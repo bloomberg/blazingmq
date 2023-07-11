@@ -1,0 +1,210 @@
+<!doctype HTML public "-//W3C//DTD HTML 4.0 Frameset//EN">
+<html>
+<title>Bloomberg Development Environment</title>
+<html>
+<pre>
+// Copyright 2014-2023 Bloomberg Finance L.P.
+// SPDX-License-Identifier: Apache-2.0
+//
+// Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// bmqt_sessioneventtype.h                                            -*-C++-*-
+#ifndef INCLUDED_BMQT_SESSIONEVENTTYPE
+#define INCLUDED_BMQT_SESSIONEVENTTYPE
+
+//@PURPOSE: Provide an enumeration for the different types of session events.
+//
+//@CLASSES:
+//  bmqt::SessionEventType: Enumeration for the types of session events.
+//
+//@DESCRIPTION: &#39;bmqt::SessionEventType&#39; is an enumeration for the different
+// types of session events.
+//
+//: o !CONNECTED!: The connection with the broker is established, this event is
+//:   only fired once (if for any reason the connection gets lost and
+//:   automatically reconnected, this will emit a &#39;CONNECTION_RESTORED&#39; event).
+//
+//: o !DISCONNECTED!: The connection with the broker is terminated (after the
+//:   user called stop on the session). This is the last event that will be
+//:   delivered.
+//
+//: o !CONNECTION_LOST!: The session was connected to the broker, but that
+//:   connection dropped.
+//
+//: o !RECONNECTED!: The connection to the broker has been re-established.
+//:   This event is followed by zero or more &#39;QUEUE_REOPEN_RESULT&#39; events, and
+//:   one &#39;STATE_RESTORED&#39; event.
+//
+//: o !STATE_RESTORED!: Session&#39;s state has been restored after connection
+//:   has been re-established with the broker. This event is preceded by one
+//:   &#39;RECONNECTED&#39; event, and zero or more &#39;QUEUE_REOPEN_RESULT&#39; events.
+//
+//: o !CONNECTION_TIMEOUT!: The connection to the broker has timedout.
+//
+//: o !QUEUE_OPEN_RESULT!: Indicates the result of an &#39;openQueue&#39; operation.
+//
+//: o !QUEUE_REOPEN_RESULT!: Indicates the result of an &#39;openQueue&#39; operation,
+//:   which happens when the connection to the broker has been restored and
+//:   queues previously opened have been automatically reopened.  This event is
+//:   preceded by a &#39;RECONNECTED&#39; event and followed by zero or more
+//:   &#39;QUEUE_REOPEN_RESULT&#39; events, and one &#39;STATE_RESTORED&#39; event.
+//
+//: o !QUEUE_CLOSE_RESULT!: Indicates the result of a &#39;closeQueue&#39; operation
+//
+//: o !SLOWCONSUMER_NORMAL!: Notifies that the EventQueue is back to its low
+//:   watermark level.
+//
+//: o !SLOWCONSUMER_HIGHWATERMARK!: Notifies that events are accumulating in
+//:   the EventQueue, which has now reached it&#39;s high watermark level.
+//
+//: o !QUEUE_CONFIGURE_RESULT!: Indicates the result of a &#39;configureQueue&#39;
+//:   operation.
+//
+//: o !HOST_UNHEALTHY!: Indicates the host has become unhealthy. Only issued if
+//    a &#39;bmqpi::HostHealthMonitor&#39; has been installed to the session, via the
+//    &#39;bmqt::SessionOptions&#39; object.
+//
+//: o !HOST_HEALTH_RESTORED!: Indicates the health of the host has restored,
+//    and all queues have resumed operation. Following a Host Health incident,
+//    this indicates that the application has resumed normal operation.
+//
+//: o !QUEUE_SUSPENDED!: Indicates that an open queue has suspended operation:
+//    * Consumers are configured to receive no more messages from broker
+//      (i.e., maxUnconfirmedMessages := 0, maxUnconfirmedBytes := 0,
+//      consumerPriority := INT_MIN).
+//    * Attempts to pack messages targeting queue will be rejected by
+//      &#39;bmqa::MessageEventBuilder::pack()&#39;. Clients may still attempt to POST
+//      existing packed events.
+//    * Attempts by client to reconfigure queue will not take effect until the
+//      queue has resumed.
+//
+//: o !QUEUE_RESUMED!: Indicates that a suspended queue has resumed normal
+//    operation (i.e., effects of QUEUE_SUSPENDED state no longer apply).
+//
+//: o !ERROR!: Indicates a generic error.
+//
+//: o !TIMEOUT! Indicates that the specified operation has timed out.
+//
+//: o !CANCELED!: Indicates that the specified operation was canceled.
+//
+
+// BMQ
+#include &lt;bmqscm_version.h&gt;
+
+// BDE
+#include &lt;bsl_ostream.h&gt;
+#include &lt;bsl_string.h&gt;
+
+namespace BloombergLP {
+namespace bmqt {
+
+                          // =======================
+                          // struct SessionEventType
+                          // =======================
+
+struct SessionEventType {
+    // Enumeration for the types of session events
+
+    // TYPES
+    enum Enum {
+        e_ERROR                      = -1 // Generic error
+      , e_TIMEOUT                    = -2 // Time out of the operation
+      , e_CANCELED                   = -3 // The operation was canceled
+      , e_UNDEFINED                  =  0
+      , e_CONNECTED                  =  1 // Session started
+      , e_DISCONNECTED               =  2 // Session terminated
+      , e_CONNECTION_LOST            =  3 // Lost connection to the broker
+      , e_RECONNECTED                =  4 // Reconnected with the broker
+      , e_STATE_RESTORED             =  5 // Client&#39;s state has been restored
+      , e_CONNECTION_TIMEOUT         =  6 // The connection to broker timedOut
+      , e_QUEUE_OPEN_RESULT          =  7 // Result of openQueue operation
+      , e_QUEUE_REOPEN_RESULT        =  8 // Result of re-openQueue operation
+      , e_QUEUE_CLOSE_RESULT         =  9 // Result of closeQueue operation
+      , e_SLOWCONSUMER_NORMAL        = 10 // EventQueue is at lowWatermark
+      , e_SLOWCONSUMER_HIGHWATERMARK = 11 // EventQueue is at highWatermark
+      , e_QUEUE_CONFIGURE_RESULT     = 12 // Result of configureQueue
+      , e_HOST_UNHEALTHY             = 13 // Host has become unhealthy
+      , e_HOST_HEALTH_RESTORED       = 14 // Host&#39;s health has been restored
+      , e_QUEUE_SUSPENDED            = 15 // Queue has suspended operation
+      , e_QUEUE_RESUMED              = 16 // Queue has resumed operation
+    };
+
+    // CLASS METHODS
+    static bsl::ostream&amp; print(bsl::ostream&amp;          stream,
+                               SessionEventType::Enum value,
+                               int                    level          = 0,
+                               int                    spacesPerLevel = 4);
+        // Write the string representation of the specified enumeration &#39;value&#39;
+        // to the specified output &#39;stream&#39;, and return a reference to
+        // &#39;stream&#39;.  Optionally specify an initial indentation &#39;level&#39;, whose
+        // absolute value is incremented recursively for nested objects.  If
+        // &#39;level&#39; is specified, optionally specify &#39;spacesPerLevel&#39;, whose
+        // absolute value indicates the number of spaces per indentation level
+        // for this and all of its nested objects.  If &#39;level&#39; is negative,
+        // suppress indentation of the first line.  If &#39;spacesPerLevel&#39; is
+        // negative, format the entire output on one line, suppressing all but
+        // the initial indentation (as governed by &#39;level&#39;).  See &#39;toAscii&#39; for
+        // what constitutes the string representation of a
+        // &#39;SessionEventType::Value&#39; value.
+
+    static const char *toAscii(SessionEventType::Enum value);
+        // Return the non-modifiable string representation corresponding to the
+        // specified enumeration &#39;value&#39;, if it exists, and a unique (error)
+        // string otherwise.  The string representation of &#39;value&#39; matches its
+        // corresponding enumerator name with the &#39;BMQT_&#39; prefix elided.  Note
+        // that specifying a &#39;value&#39; that does not match any of the enumerators
+        // will result in a string representation that is distinct from any of
+        // those corresponding to the enumerators, but is otherwise
+        // unspecified.
+
+    static bool fromAscii(SessionEventType::Enum   *out,
+                          const bslstl::StringRef&amp;  str);
+        // Return true and fills the specified &#39;out&#39; with the enum value
+        // corresponding to the specified &#39;str&#39;, if valid, or return false and
+        // leave &#39;out&#39; untouched if &#39;str&#39; doesn&#39;t correspond to any value of
+        // the enum.
+
+};
+
+// FREE OPERATORS
+bsl::ostream&amp; operator&lt;&lt;(bsl::ostream&amp;          stream,
+                         SessionEventType::Enum value);
+    // Format the specified &#39;value&#39; to the specified output &#39;stream&#39; and return
+    // a reference to the modifiable &#39;stream&#39;.
+
+}  // close package namespace
+
+
+// ============================================================================
+//                             INLINE DEFINITIONS
+// ============================================================================
+
+                          // -----------------------
+                          // struct SessionEventType
+                          // -----------------------
+
+// FREE OPERATORS
+inline
+bsl::ostream&amp;
+bmqt::operator&lt;&lt;(bsl::ostream&amp;                stream,
+                 bmqt::SessionEventType::Enum value)
+{
+    return SessionEventType::print(stream, value, 0 , -1);
+}
+
+}  // close enterprise namespace
+
+#endif
+</pre>
+</body>
+</html>

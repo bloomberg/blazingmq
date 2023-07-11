@@ -1,0 +1,2842 @@
+// Copyright 2023 Bloomberg Finance L.P.
+// SPDX-License-Identifier: Apache-2.0
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// mqbc_storagemanager.t.cpp                                          -*-C++-*-
+#include <mqbc_storagemanager.h>
+
+// BMQ
+#include <bmqp_ctrlmsg_messages.h>
+#include <bmqt_compressionalgorithmtype.h>
+
+// MQB
+#include <mqbc_clusterstate.h>
+#include <mqbc_clusterutil.h>
+#include <mqbc_partitionfsm.h>
+#include <mqbc_partitionfsmobserver.h>
+#include <mqbc_storageutil.h>
+#include <mqbcfg_messages.h>
+#include <mqbi_storage.h>
+#include <mqbmock_cluster.h>
+#include <mqbnet_mockcluster.h>
+#include <mqbs_datastore.h>
+#include <mqbs_filestore.h>
+#include <mqbs_filestoretestutil.h>
+#include <mqbscm_version.h>
+#include <mqbstat_brokerstats.h>
+#include <mqbu_messageguidutil.h>
+#include <mqbu_storagekey.h>
+
+// MWC
+#include <mwcsys_time.h>
+#include <mwcu_blobobjectproxy.h>
+#include <mwcu_memoutstream.h>
+
+// BDE
+#include <bdlbb_blob.h>
+#include <bdlbb_blobutil.h>
+#include <bdlbb_pooledblobbufferfactory.h>
+#include <bdlf_bind.h>
+#include <bdlmt_fixedthreadpool.h>
+#include <bdlt_currenttime.h>
+#include <bdlt_epochutil.h>
+#include <bsl_limits.h>
+#include <bsl_string.h>
+#include <bsl_unordered_map.h>
+#include <bsl_utility.h>
+#include <bsl_vector.h>
+#include <bslma_managedptr.h>
+#include <bsls_systemtime.h>
+#include <bsls_types.h>
+
+// TEST DRIVER
+#include <mwctst_testhelper.h>
+#include <mwcu_tempdirectory.h>
+
+// CONVENIENCE
+using namespace BloombergLP;
+using namespace bsl;
+
+// ============================================================================
+//                            TEST HELPERS UTILITY
+// ----------------------------------------------------------------------------
+namespace {
+// CONSTANTS
+static const bsls::Types::Int64 k_WATCHDOG_TIMEOUT_DURATION = 5 * 60;
+// 5 minutes
+
+// TYPES
+typedef mqbmock::Cluster::TestChannelMapCIter TestChannelMapCIter;
+
+typedef mqbc::StorageManager::NodeToSeqNumMap NodeToSeqNumMap;
+typedef mqbc::StorageManager::NodeToSeqNumMap::const_iterator
+    NodeToSeqNumMapCIter;
+typedef bsl::pair<mqbnet::ClusterNode*, bmqp_ctrlmsg::PartitionSequenceNumber>
+    NodeSeqNumPair;
+
+typedef bsl::unordered_map<int, int> ReqIdToNodeIdMap;
+
+typedef bsl::unordered_map<int, bmqp_ctrlmsg::PartitionSequenceNumber>
+                                          NodeIdToSeqNumMap;
+typedef NodeIdToSeqNumMap::const_iterator NodeIdToSeqNumMapCIter;
+
+// FUNCTIONS
+void mockOnRecoveryStatus(int status)
+{
+    PV("Storage recovery completed with status: " << status);
+}
+
+// CLASSES
+// ===============================
+// struct MockPartitionFSMObserver
+// ===============================
+
+struct MockPartitionFSMObserver : public mqbc::PartitionFSMObserver {
+  public:
+    // CREATORS
+    MockPartitionFSMObserver()
+    {
+        // NOTHING
+    }
+};
+
+// ===================
+// struct TesterHelper
+// ===================
+
+/// Provide helper methods to abstract away the code needed to modify the
+/// cluster state which is required by storage manager.
+struct TestHelper {
+  private:
+    // PRIVATE TYPES
+    typedef mqbnet::Cluster::NodesList NodesList;
+    typedef NodesList::iterator        NodesListIter;
+
+  public:
+    // PUBLIC DATA
+    bdlbb::PooledBlobBufferFactory d_bufferFactory;
+
+    bslma::ManagedPtr<mqbmock::Cluster> d_cluster_mp;
+
+    MockPartitionFSMObserver d_fsmObserver;
+
+    mwcu::TempDirectory d_tempDir;
+
+    mwcu::TempDirectory d_tempArchiveDir;
+
+    // CREATORS
+    TestHelper()
+    : d_bufferFactory(1024, s_allocator_p)
+    , d_cluster_mp(0)
+    , d_fsmObserver()
+    , d_tempDir(s_allocator_p)
+    , d_tempArchiveDir(s_allocator_p)
+    {
+        // Create the cluster
+        mqbmock::Cluster::ClusterNodeDefs clusterNodeDefs(s_allocator_p);
+        mqbc::ClusterUtil::appendClusterNode(
+            &clusterNodeDefs,
+            "E1",
+            "US-EAST",
+            41234,
+            mqbmock::Cluster::k_LEADER_NODE_ID,
+            s_allocator_p);
+        mqbc::ClusterUtil::appendClusterNode(
+            &clusterNodeDefs,
+            "E2",
+            "US-EAST",
+            41235,
+            mqbmock::Cluster::k_LEADER_NODE_ID + 1,
+            s_allocator_p);
+        mqbc::ClusterUtil::appendClusterNode(
+            &clusterNodeDefs,
+            "W1",
+            "US-WEST",
+            41236,
+            mqbmock::Cluster::k_LEADER_NODE_ID + 2,
+            s_allocator_p);
+        mqbc::ClusterUtil::appendClusterNode(
+            &clusterNodeDefs,
+            "W2",
+            "US-WEST",
+            41237,
+            mqbmock::Cluster::k_LEADER_NODE_ID + 3,
+            s_allocator_p);
+
+        d_cluster_mp.load(new (*s_allocator_p)
+                              mqbmock::Cluster(&d_bufferFactory,
+                                               s_allocator_p,
+                                               true,   // isClusterMember
+                                               false,  // isLeader
+                                               true,   // isCSLMode
+                                               true,   // isFSMWorkflow
+                                               clusterNodeDefs,
+                                               "testCluster",
+                                               d_tempDir.path(),
+                                               d_tempArchiveDir.path()),
+                          s_allocator_p);
+
+        d_cluster_mp->_clusterData()->stats().setIsMember(true);
+
+        BSLS_ASSERT_OPT(d_cluster_mp->_channels().size() > 0);
+
+        mwcsys::Time::initialize(
+            &bsls::SystemTime::nowRealtimeClock,
+            bdlf::BindUtil::bind(&TestHelper::nowMonotonicClock, this),
+            bdlf::BindUtil::bind(&TestHelper::highResolutionTimer, this),
+            s_allocator_p);
+
+        // Start the cluster
+        mwcu::MemOutStream errorDescription;
+        int                rc = d_cluster_mp->start(errorDescription);
+        BSLS_ASSERT_OPT(rc == 0);
+    }
+
+    void clearChannels()
+    {
+        for (TestChannelMapCIter cit = d_cluster_mp->_channels().cbegin();
+             cit != d_cluster_mp->_channels().cend();
+             ++cit) {
+            cit->second->reset();
+        }
+    }
+
+    void verifyPrimarySendsReplicaStateRqst(
+        int                                   partitionId,
+        int                                   selfNodeId,
+        bmqp_ctrlmsg::PartitionSequenceNumber seqNum =
+            bmqp_ctrlmsg::PartitionSequenceNumber(),
+        ReqIdToNodeIdMap* reqIdToNodeIdMap = 0)
+    {
+        bmqp_ctrlmsg::ClusterMessage       expectedMessage;
+        bmqp_ctrlmsg::ReplicaStateRequest& replicaStateRequest =
+            expectedMessage.choice()
+                .makePartitionMessage()
+                .choice()
+                .makeReplicaStateRequest();
+
+        replicaStateRequest.partitionId()    = partitionId;
+        replicaStateRequest.sequenceNumber() = seqNum;
+
+        // TODO: set sequence number once add mocked recovery manager to this
+        //       test helper class.
+
+        for (TestChannelMapCIter cit = d_cluster_mp->_channels().cbegin();
+             cit != d_cluster_mp->_channels().cend();
+             ++cit) {
+            if (cit->first->nodeId() != selfNodeId) {
+                ASSERT(cit->second->waitFor(1, false));
+
+                bmqp_ctrlmsg::ControlMessage message;
+                mqbc::ClusterUtil::extractMessage(
+                    &message,
+                    cit->second->writeCalls()[0].d_blob,
+                    s_allocator_p);
+                ASSERT_EQ(message.choice().clusterMessage(), expectedMessage);
+
+                if (reqIdToNodeIdMap) {
+                    reqIdToNodeIdMap->insert(
+                        bsl::make_pair(message.rId().value(),
+                                       cit->first->nodeId()));
+                }
+            }
+            else {
+                // Make sure that primary node does not end up receiving
+                // replicaStateRequest.
+                ASSERT(!cit->second->waitFor(1, false));
+            }
+        }
+    }
+
+    void verifyPrimarySendsDataChunks(
+        const bmqp_ctrlmsg::PartitionSequenceNumber& selfSeqNum,
+        const NodeIdToSeqNumMap&                     outdatedReplicas)
+    // const mqbs::FileStore&                          fs,
+    // const bsl::vector<mqbs::DataStoreRecordHandle>& handles)
+    {
+        // TODO Implement this logic after data chunk send logic is updated.
+        /*const int chunkSize = d_cluster_mp->_clusterDefinition()
+                                            .partitionConfig()
+                                            .syncConfig()
+                                            .fileChunkSize();*/
+
+        for (TestChannelMapCIter cit = d_cluster_mp->_channels().cbegin();
+             cit != d_cluster_mp->_channels().cend();
+             ++cit) {
+            NodeIdToSeqNumMapCIter replicaCit = outdatedReplicas.find(
+                cit->first->nodeId());
+
+            if (replicaCit != outdatedReplicas.end()) {
+                BSLS_ASSERT_OPT(replicaCit->second.sequenceNumber() <
+                                selfSeqNum.sequenceNumber());
+                // TODO The logic is flawed if self and primary have different
+                // primary leaseIds, e.g. (2,10) vs (1,2).  We will have to fix
+                // this after Mohit had updated the send-side logic.
+
+                ASSERT(cit->second->waitFor(2, false));
+
+                /*
+                // Verify data chunks
+                //
+                // TODO Now we only verify the journal file data chunks. Once
+                // Mohit's PR which writes message records at startup has been
+                // merged, we will augment the logic to also verify data file
+                // chunks.
+                const bdlbb::Blob blob = cit->second->writeCalls()[1].d_blob;
+
+                for (bmqp_ctrlmsg::PartitionSequenceNumber currSeqNum
+                                                          = replicaCit->second;
+                     currSeqNum < selfSeqNum;
+                     ++currSeqNum.sequenceNumber()) {
+
+                    const int recordOffset =
+                                         blob.length()
+                                       - (   (  selfSeqNum.sequenceNumber()
+                                              - currSeqNum.sequenceNumber()
+                                              + 1)
+                                           * k_JOURNAL_RECORD_SIZE);
+
+                    mwcu::BlobPosition                         pos;
+                    mwcu::BlobUtil::findOffsetSafe(&pos, blob, recordOffset);
+                    mwcu::BlobObjectProxy<mqbs::QueueOpRecord> record(&blob,
+                                                                      pos);
+                    assert(record.isSet());
+
+                    mqbs::QueueOpRecord expectedRecord;
+                    fs.loadQueueOpRecordRaw(
+                                  &expectedRecord,
+                                  handles.at(currSeqNum.sequenceNumber() - 1));
+                    ASSERT_EQ(record->header(),   expectedRecord.header());
+                    ASSERT_EQ(record->flags(),    expectedRecord.flags());
+                    ASSERT_EQ(record->queueKey(), expectedRecord.queueKey());
+                    ASSERT_EQ(record->appKey(),   expectedRecord.appKey());
+                    ASSERT_EQ(record->type(),     expectedRecord.type());
+                    ASSERT_EQ(record->queueUriRecordOffsetWords(),
+                              expectedRecord.queueUriRecordOffsetWords());
+                    ASSERT_EQ(record->magic(),    expectedRecord.magic());
+                }*/
+            }
+            else {
+                // Make sure that primary node does not end up receiving
+                // data chunks or send it to upto date replicas.
+                ASSERT(!cit->second->waitFor(1, false));
+            }
+        }
+    }
+
+    void verifyReplicaSendsDataChunksAndReplicaDataRspnPull(
+        // int                                          partitionId,
+        int                                          primaryNodeId,
+        const bmqp_ctrlmsg::PartitionSequenceNumber& beginSeqNum,
+        const bmqp_ctrlmsg::PartitionSequenceNumber& endSeqNum)
+    // const mqbs::FileStore&                       fs,
+    // const mqbs::DataStoreRecordHandle&           handle)
+    {
+        // PRECONDITIONS
+        BSLS_ASSERT_OPT(beginSeqNum < endSeqNum);
+
+        // TODO Implement this logic after data chunk send logic is updated.
+        /*
+        bmqp_ctrlmsg::ClusterMessage      expectedMessage;
+        bmqp_ctrlmsg::ReplicaDataResponse& replicaDataResponse =
+                            expectedMessage.choice().makePartitionMessage()
+                                           .choice().makeReplicaDataResponse();
+
+        replicaDataResponse.replicaDataType()     =
+                                         bmqp_ctrlmsg::ReplicaDataType::E_PULL;
+        replicaDataResponse.partitionId()         = partitionId;
+        replicaDataResponse.beginSequenceNumber() = beginSeqNum;
+        replicaDataResponse.endSequenceNumber()   = endSeqNum;
+
+        mqbs::QueueOpRecord expectedRecord;
+        fs.loadQueueOpRecordRaw(&expectedRecord, handle);
+        */
+
+        const int expectedNumDataChunks = endSeqNum.sequenceNumber() -
+                                          beginSeqNum.sequenceNumber();
+
+        for (TestChannelMapCIter cit = d_cluster_mp->_channels().cbegin();
+             cit != d_cluster_mp->_channels().cend();
+             ++cit) {
+            if (cit->first->nodeId() == primaryNodeId) {
+                ASSERT(cit->second->waitFor(expectedNumDataChunks, false));
+                ASSERT(
+                    !cit->second->waitFor(expectedNumDataChunks + 1, false));
+                /*
+                // Verify data chunks
+                const bdlbb::Blob blob = cit->second->writeCalls()[0].d_blob;
+
+                // TODO While the record is only 60 bytes, we are sending 96
+                //      redundant bytes before that.  We need to improve the
+                //      send chunk logic to *only* send the required data.
+                mwcu::BlobPosition                         pos;
+                mwcu::BlobUtil::findOffsetSafe(&pos, blob, 96);
+                mwcu::BlobObjectProxy<mqbs::QueueOpRecord> record(&blob, pos);
+                assert(record.isSet());
+
+                ASSERT_EQ(record->header(),   expectedRecord.header());
+                ASSERT_EQ(record->flags(),    expectedRecord.flags());
+                ASSERT_EQ(record->queueKey(), expectedRecord.queueKey());
+                ASSERT_EQ(record->appKey(),   expectedRecord.appKey());
+                ASSERT_EQ(record->type(),     expectedRecord.type());
+                ASSERT_EQ(record->queueUriRecordOffsetWords(),
+                          expectedRecord.queueUriRecordOffsetWords());
+                ASSERT_EQ(record->magic(), expectedRecord.magic());
+
+                // Verify ReplicaDataRspnPull
+                bmqp_ctrlmsg::ControlMessage message;
+                mqbc::ClusterUtil::extractMessage(
+                       &message,
+                       cit->second->writeCalls()[expectedNumDataChunks].d_blob,
+                       s_allocator_p);
+                ASSERT_EQ(message.choice().clusterMessage(), expectedMessage);
+                */
+            }
+            else {
+                // Make sure that replica node does not send chunks to anyone
+                // except primary.
+                ASSERT(!cit->second->waitFor(1, false));
+            }
+        }
+    }
+
+    void verifyPrimarySendsReplicaDataRqstPull(
+        int                                          partitionId,
+        int                                          highestSeqNumNodeId,
+        const bmqp_ctrlmsg::PartitionSequenceNumber& highestSeqNum)
+    {
+        bmqp_ctrlmsg::ClusterMessage      expectedMessage;
+        bmqp_ctrlmsg::ReplicaDataRequest& replicaDataRequest =
+            expectedMessage.choice()
+                .makePartitionMessage()
+                .choice()
+                .makeReplicaDataRequest();
+
+        replicaDataRequest.partitionId() = partitionId;
+        replicaDataRequest.replicaDataType() =
+            bmqp_ctrlmsg::ReplicaDataType::E_PULL;
+        replicaDataRequest.endSequenceNumber() = highestSeqNum;
+
+        // TODO: set sequence number once add mocked recovery manager to this
+        //       test helper class.
+
+        for (TestChannelMapCIter cit = d_cluster_mp->_channels().cbegin();
+             cit != d_cluster_mp->_channels().cend();
+             ++cit) {
+            if (cit->first->nodeId() == highestSeqNumNodeId) {
+                ASSERT(cit->second->waitFor(1, false));
+
+                bmqp_ctrlmsg::ControlMessage message;
+                mqbc::ClusterUtil::extractMessage(
+                    &message,
+                    cit->second->writeCalls()[0].d_blob,
+                    s_allocator_p);
+                ASSERT_EQ(message.choice().clusterMessage(), expectedMessage);
+            }
+            else {
+                // Make sure that no other node except highestSeqNumNodeId
+                // receives replicaDataRequest of type PULL.
+                ASSERT(!cit->second->waitFor(1, false));
+            }
+        }
+    }
+
+    void verifyPrimarySendsReplicaDataRqstPush(
+        int                                          partitionId,
+        const NodeIdToSeqNumMap&                     outdatedReplicas,
+        const bmqp_ctrlmsg::PartitionSequenceNumber& selfSeqNum)
+    {
+        bmqp_ctrlmsg::ClusterMessage      expectedMessage;
+        bmqp_ctrlmsg::ReplicaDataRequest& replicaDataRequest =
+            expectedMessage.choice()
+                .makePartitionMessage()
+                .choice()
+                .makeReplicaDataRequest();
+
+        replicaDataRequest.replicaDataType() =
+            bmqp_ctrlmsg::ReplicaDataType::E_PUSH;
+        replicaDataRequest.partitionId()       = partitionId;
+        replicaDataRequest.endSequenceNumber() = selfSeqNum;
+
+        for (TestChannelMapCIter cit = d_cluster_mp->_channels().cbegin();
+             cit != d_cluster_mp->_channels().cend();
+             ++cit) {
+            if (outdatedReplicas.find(cit->first->nodeId()) !=
+                outdatedReplicas.end()) {
+                ASSERT(cit->second->waitFor(1, false));
+
+                bmqp_ctrlmsg::ControlMessage message;
+                mqbc::ClusterUtil::extractMessage(
+                    &message,
+                    cit->second->writeCalls()[0].d_blob,
+                    s_allocator_p);
+                replicaDataRequest.beginSequenceNumber() = outdatedReplicas.at(
+                    cit->first->nodeId());
+                ASSERT_EQ(message.choice().clusterMessage(), expectedMessage);
+            }
+            else {
+                // Make sure that primary node does not end up receiving
+                // data chunks or send it to upto date replicas.
+                ASSERT(!cit->second->waitFor(1, false));
+            }
+        }
+    }
+
+    void verifyPrimarySendsFailedReplicaStateRspn(int rogueNodeId,
+                                                  int rogueRequestId)
+    {
+        bmqp_ctrlmsg::ControlMessage failureMessage;
+        failureMessage.rId() = rogueRequestId;
+
+        bmqp_ctrlmsg::Status& failureResponse =
+            failureMessage.choice().makeStatus();
+        failureResponse.category() = bmqp_ctrlmsg::StatusCategory::E_REFUSED;
+        failureResponse.code()     = mqbi::ClusterErrorCode::e_NOT_REPLICA;
+        failureResponse.message()  = "Not a replica";
+
+        for (TestChannelMapCIter cit = d_cluster_mp->_channels().cbegin();
+             cit != d_cluster_mp->_channels().cend();
+             ++cit) {
+            if (cit->first->nodeId() == rogueNodeId) {
+                ASSERT(cit->second->waitFor(1, false));
+
+                bmqp_ctrlmsg::ControlMessage message;
+                mqbc::ClusterUtil::extractMessage(
+                    &message,
+                    cit->second->writeCalls()[0].d_blob,
+                    s_allocator_p);
+                ASSERT_EQ(message, failureMessage);
+            }
+            else {
+                // Make sure that no other node except the rogue node ends up
+                // receiving failure replicaStateResponse.
+                ASSERT(!cit->second->waitFor(1, false));
+            }
+        }
+    }
+
+    void verifyReplicaSendsFailedPrimaryStateRspn(int rogueNodeId,
+                                                  int rogueRequestId)
+    {
+        bmqp_ctrlmsg::ControlMessage failureMessage;
+        failureMessage.rId() = rogueRequestId;
+
+        bmqp_ctrlmsg::Status& failureResponse =
+            failureMessage.choice().makeStatus();
+        failureResponse.category() = bmqp_ctrlmsg::StatusCategory::E_REFUSED;
+        failureResponse.code()     = mqbi::ClusterErrorCode::e_NOT_PRIMARY;
+        failureResponse.message()  = "Not a primary";
+
+        for (TestChannelMapCIter cit = d_cluster_mp->_channels().cbegin();
+             cit != d_cluster_mp->_channels().cend();
+             ++cit) {
+            if (cit->first->nodeId() == rogueNodeId) {
+                ASSERT(cit->second->waitFor(1, false));
+
+                bmqp_ctrlmsg::ControlMessage message;
+                mqbc::ClusterUtil::extractMessage(
+                    &message,
+                    cit->second->writeCalls()[0].d_blob,
+                    s_allocator_p);
+                ASSERT_EQ(message, failureMessage);
+            }
+            else {
+                // Make sure that no other node except the rogue node ends up
+                // receiving failure primaryStateResponse.
+                ASSERT(!cit->second->waitFor(1, false));
+            }
+        }
+    }
+
+    void verifyReplicaSendsPrimaryStateRqst(
+        int                                   partitionId,
+        int                                   primaryNodeId,
+        bmqp_ctrlmsg::PartitionSequenceNumber seqNum =
+            bmqp_ctrlmsg::PartitionSequenceNumber())
+    {
+        bmqp_ctrlmsg::ClusterMessage       expectedMessage;
+        bmqp_ctrlmsg::PrimaryStateRequest& primaryStateRequest =
+            expectedMessage.choice()
+                .makePartitionMessage()
+                .choice()
+                .makePrimaryStateRequest();
+
+        primaryStateRequest.partitionId()    = partitionId;
+        primaryStateRequest.sequenceNumber() = seqNum;
+
+        for (TestChannelMapCIter cit = d_cluster_mp->_channels().cbegin();
+             cit != d_cluster_mp->_channels().cend();
+             ++cit) {
+            if (cit->first->nodeId() == primaryNodeId) {
+                ASSERT(cit->second->waitFor(1, false));
+
+                bmqp_ctrlmsg::ControlMessage message;
+                mqbc::ClusterUtil::extractMessage(
+                    &message,
+                    cit->second->writeCalls()[0].d_blob,
+                    s_allocator_p);
+                ASSERT_EQ(message.choice().clusterMessage(), expectedMessage);
+            }
+            else {
+                // Make sure that other replica nodes dont receive
+                // primaryStateRequest.
+                ASSERT(!cit->second->waitFor(1, false));
+            }
+        }
+    }
+
+    void verifyReplicaSendsReplicaStateRspn(
+        int                                   partitionId,
+        int                                   primaryNodeId,
+        bmqp_ctrlmsg::PartitionSequenceNumber seqNum =
+            bmqp_ctrlmsg::PartitionSequenceNumber())
+    {
+        bmqp_ctrlmsg::ClusterMessage        expectedMessage;
+        bmqp_ctrlmsg::ReplicaStateResponse& replicaStateResponse =
+            expectedMessage.choice()
+                .makePartitionMessage()
+                .choice()
+                .makeReplicaStateResponse();
+
+        replicaStateResponse.partitionId()    = partitionId;
+        replicaStateResponse.sequenceNumber() = seqNum;
+
+        for (TestChannelMapCIter cit = d_cluster_mp->_channels().cbegin();
+             cit != d_cluster_mp->_channels().cend();
+             ++cit) {
+            if (cit->first->nodeId() == primaryNodeId) {
+                ASSERT(cit->second->waitFor(1, false));
+
+                bmqp_ctrlmsg::ControlMessage message;
+                mqbc::ClusterUtil::extractMessage(
+                    &message,
+                    cit->second->writeCalls()[0].d_blob,
+                    s_allocator_p);
+                ASSERT_EQ(message.choice().clusterMessage(), expectedMessage);
+            }
+            else {
+                // Make sure that other replica nodes dont receive
+                // primaryStateRequest.
+                ASSERT(!cit->second->waitFor(1, false));
+            }
+        }
+    }
+
+    NodeSeqNumPair
+    getHighestSeqNumNodeDetails(const NodeToSeqNumMap& nodeToSeqNumMap)
+    {
+        mqbnet::ClusterNode*                  highestSeqNumReplica = 0;
+        bmqp_ctrlmsg::PartitionSequenceNumber highestSeqNum;
+        for (NodeToSeqNumMapCIter cit = nodeToSeqNumMap.cbegin();
+             cit != nodeToSeqNumMap.cend();
+             ++cit) {
+            if (!highestSeqNumReplica || cit->second > highestSeqNum) {
+                highestSeqNumReplica = cit->first;
+                highestSeqNum        = cit->second;
+            }
+        }
+        return NodeSeqNumPair(highestSeqNumReplica, highestSeqNum);
+    }
+
+    bsls::TimeInterval nowMonotonicClock() const
+    {
+        return d_cluster_mp->_scheduler().now();
+    }
+
+    bsls::Types::Int64 highResolutionTimer() const
+    {
+        return d_cluster_mp->_scheduler().now().totalNanoseconds();
+    }
+
+    mqbu::StorageKey
+    writeQueueCreationRecord(mqbs::DataStoreRecordHandle* handle,
+                             mqbs::FileStore*             fs,
+                             int                          partitionId)
+    {
+        // Write a queue creation record to the specified 'fs', and load the
+        // record into the specified 'handle'.  Return the queue key.
+
+        bsl::string        uri("bmq://si.amw.bmq.stats/queue0", s_allocator_p);
+        mwcu::MemOutStream osstr;
+
+        // Generate queue-key.
+        for (size_t j = 0; j < mqbu::StorageKey::e_KEY_LENGTH_BINARY; ++j) {
+            osstr << 'x';
+        }
+
+        bsl::string      queueKeyStr(osstr.str().data(), osstr.str().length());
+        mqbu::StorageKey queueKey(
+            mqbu::StorageKey::BinaryRepresentation(),
+            queueKeyStr.substr(0, mqbu::StorageKey::e_KEY_LENGTH_BINARY)
+                .c_str());
+
+        mqbs::FileStoreTestUtil_Record rec(s_allocator_p);
+        rec.d_recordType  = mqbs::RecordType::e_QUEUE_OP;
+        rec.d_queueOpType = mqbs::QueueOpType::e_CREATION;
+        rec.d_uri         = uri;
+        rec.d_queueKey    = queueKey;
+        rec.d_timestamp   = bdlt::EpochUtil::convertToTimeT64(
+            bdlt::CurrentTime::utc());
+
+        bmqt::Uri uri_t(rec.d_uri, s_allocator_p);
+        const int rc = fs->writeQueueCreationRecord(
+            handle,
+            uri_t,
+            rec.d_queueKey,
+            mqbs::DataStore::AppIdKeyPairs(),
+            rec.d_timestamp,
+            true);  // isNewQueue
+
+        d_cluster_mp->_state().assignQueue(uri_t,
+                                           queueKey,
+                                           partitionId,
+                                           mqbc::ClusterState::AppIdInfos());
+
+        BSLS_ASSERT_OPT(rc == 0);
+        return queueKey;
+    }
+
+    void writeMessageRecord(mqbs::FileStore*        fs,
+                            const mqbu::StorageKey& queueKey,
+                            size_t                  recNum)
+    {
+        // Write a message record.
+        mwcu::MemOutStream osstr;
+
+        // Generate queue-key.
+        for (size_t j = 0; j < mqbu::StorageKey::e_KEY_LENGTH_BINARY; ++j) {
+            osstr << 'x';
+        }
+
+        mqbs::DataStoreRecordHandle    handle;
+        mqbs::FileStoreTestUtil_Record rec(s_allocator_p);
+        rec.d_recordType = mqbs::RecordType::e_MESSAGE;
+        rec.d_queueKey   = queueKey;
+        bmqp::MessagePropertiesInfo mpsInfo;
+
+        if (0 == recNum % 2) {
+            mpsInfo = bmqp::MessagePropertiesInfo::makeInvalidSchema();
+        }
+        rec.d_msgAttributes = mqbi::StorageMessageAttributes(
+            bdlt::EpochUtil::convertToTimeT64(bdlt::CurrentTime::utc()),
+            recNum % mqbs::FileStoreProtocol::k_MAX_MSG_REF_COUNT_HARD,
+            mpsInfo,
+            bmqt::CompressionAlgorithmType::e_NONE,
+            bsl::numeric_limits<unsigned int>::max() / recNum);
+        // crc value
+        mqbu::MessageGUIDUtil::generateGUID(&rec.d_guid);
+        rec.d_appData_sp.createInplace(s_allocator_p,
+                                       &d_bufferFactory,
+                                       s_allocator_p);
+        bsl::string payloadStr(recNum * 10, 'x', s_allocator_p);
+        bdlbb::BlobUtil::append(rec.d_appData_sp.get(),
+                                payloadStr.c_str(),
+                                payloadStr.length());
+
+        const int rc = fs->writeMessageRecord(&rec.d_msgAttributes,
+                                              &handle,
+                                              rec.d_guid,
+                                              rec.d_appData_sp,
+                                              rec.d_options_sp,
+                                              rec.d_queueKey);
+
+        BSLS_ASSERT_OPT(rc == 0);
+    }
+
+    void
+    initializeRecords(mqbs::DataStoreRecordHandle*           handle,
+                      int                                    numRecords,
+                      bmqp_ctrlmsg::PartitionSequenceNumber* selfSeqNum = 0)
+    {
+        static const int k_PARTITION_ID = 1;
+
+        const int selfNodeId = d_cluster_mp->_clusterData()
+                                   ->membership()
+                                   .netCluster()
+                                   ->selfNodeId();
+
+        mqbnet::ClusterNode* selfNode = d_cluster_mp->_clusterData()
+                                            ->membership()
+                                            .netCluster()
+                                            ->lookupNode(selfNodeId);
+
+        const mqbcfg::PartitionConfig& partitionCfg =
+            d_cluster_mp->_clusterDefinition().partitionConfig();
+
+        mqbs::DataStoreConfig dsCfg;
+        dsCfg.setScheduler(d_cluster_mp->_clusterData()->scheduler())
+            .setBufferFactory(d_cluster_mp->_clusterData()->bufferFactory())
+            .setPreallocate(partitionCfg.preallocate())
+            .setPrefaultPages(partitionCfg.prefaultPages())
+            .setLocation(partitionCfg.location())
+            .setArchiveLocation(partitionCfg.archiveLocation())
+            .setNodeId(d_cluster_mp->_clusterData()
+                           ->membership()
+                           .selfNode()
+                           ->nodeId())
+            .setPartitionId(k_PARTITION_ID)
+            .setMaxDataFileSize(partitionCfg.maxDataFileSize())
+            .setMaxJournalFileSize(partitionCfg.maxJournalFileSize())
+            .setMaxQlistFileSize(partitionCfg.maxQlistFileSize())
+            .setMaxArchivedFileSets(partitionCfg.maxArchivedFileSets());
+
+        bdlmt::FixedThreadPool threadPool(1, 100, s_allocator_p);
+        threadPool.start();
+
+        mqbs::FileStore fs(dsCfg,
+                           1,
+                           d_cluster_mp->dispatcher(),
+                           &d_cluster_mp->netCluster(),
+                           &d_cluster_mp->_clusterData()->stats(),
+                           d_cluster_mp->_clusterData()->blobSpPool(),
+                           d_cluster_mp->_clusterData()->stateSpPool(),
+                           &threadPool,
+                           d_cluster_mp->isCSLModeEnabled(),
+                           d_cluster_mp->isFSMWorkflow(),
+                           1,  // replicationFactor
+                           s_allocator_p);
+
+        dynamic_cast<mqbnet::MockCluster&>(d_cluster_mp->netCluster())
+            ._setDisableBroadcast(true);
+        fs.open();
+        // TODO: clean this up since its a hack to set replica node as primary!
+        // had to explicitly setPrimary for fileStore because of the assert in
+        // writeRecords which allows writes only if current node is primary for
+        // the fileStore.
+        // TODO: set primary to self but also correct it to the right node
+        // after writing 10 records.
+        fs.setPrimary(selfNode, 1U);
+
+        const mqbu::StorageKey& queueKey =
+            writeQueueCreationRecord(handle, &fs, k_PARTITION_ID);
+        for (int i = 1; i <= numRecords; i++) {
+            writeMessageRecord(&fs, queueKey, i);
+        }
+
+        fs.close();
+        dynamic_cast<mqbnet::MockCluster&>(d_cluster_mp->netCluster())
+            ._setDisableBroadcast(false);
+
+        if (selfSeqNum) {
+            selfSeqNum->primaryLeaseId() = 1U;
+            selfSeqNum->sequenceNumber() = 2U + numRecords;
+        }
+    }
+
+    ~TestHelper() { mwcsys::Time::shutdown(); }
+};
+}  // close unnamed namespace
+
+// ============================================================================
+//                                    TESTS
+// ----------------------------------------------------------------------------
+
+static void test1_breathingTest()
+// ------------------------------------------------------------------------
+// BREATHING TEST
+//
+// Concerns:
+//   Ensure proper building and starting of the StorageManager
+//
+// Plan:
+//  1) Create a StorageManager on the stack
+//  2) Invoke start.
+//  3) Invoke stop.
+//
+// Testing:
+//   Basic functionality.
+// ------------------------------------------------------------------------
+{
+    mwctst::TestHelper::printTestName("BREATHING TEST - START STOP "
+                                      "STORAGEMANAGER SUCCESSFULLY");
+
+    TestHelper helper;
+
+    mqbs::DataStoreRecordHandle handle;
+    helper.initializeRecords(&handle, 1);
+
+    mqbc::StorageManager storageManager(
+        helper.d_cluster_mp->_clusterDefinition(),
+        helper.d_cluster_mp.get(),
+        helper.d_cluster_mp->_clusterData(),
+        helper.d_cluster_mp->_state(),
+        helper.d_cluster_mp->_clusterData()->domainFactory(),
+        &helper.d_fsmObserver,
+        helper.d_cluster_mp->dispatcher(),
+        k_WATCHDOG_TIMEOUT_DURATION,
+        mockOnRecoveryStatus,
+        s_allocator_p);
+
+    mwcu::MemOutStream errorDescription;
+
+    static const int k_PARTITION_ID = 1;
+
+    const int rc = storageManager.start(errorDescription);
+    BSLS_ASSERT_OPT(rc == 0);
+
+    BSLS_ASSERT_OPT(storageManager.partitionHealthState(k_PARTITION_ID) ==
+                    mqbc::PartitionFSM::State::e_UNKNOWN);
+
+    // Stop the cluster
+    storageManager.stop();
+    helper.d_cluster_mp->stop();
+}
+
+static void test2_unknownDetectSelfPrimary()
+// ------------------------------------------------------------------------
+// BREATHING TEST
+//
+// Concerns:
+//   Ensure proper building and starting of the StorageManager
+//
+// Plan:
+//  1) Create a StorageManager on the stack
+//  2) Invoke start.
+//  3) Detect Self node as primary
+//  4) Verify the actions as per FSM.
+//  5) Invoke stop.
+//
+// Testing:
+//   Basic functionality.
+// ------------------------------------------------------------------------
+{
+    mwctst::TestHelper::printTestName("BREATHING TEST - DETECT PRIMARY");
+
+    TestHelper helper;
+
+    mqbc::StorageManager storageManager(
+        helper.d_cluster_mp->_clusterDefinition(),
+        helper.d_cluster_mp.get(),
+        helper.d_cluster_mp->_clusterData(),
+        helper.d_cluster_mp->_state(),
+        helper.d_cluster_mp->_clusterData()->domainFactory(),
+        &helper.d_fsmObserver,
+        helper.d_cluster_mp->dispatcher(),
+        k_WATCHDOG_TIMEOUT_DURATION,
+        mockOnRecoveryStatus,
+        s_allocator_p);
+
+    mwcu::MemOutStream errorDescription;
+
+    static const int k_PARTITION_ID = 1;
+    const int        rc             = storageManager.start(errorDescription);
+    BSLS_ASSERT_OPT(rc == 0);
+
+    const int selfNodeId = helper.d_cluster_mp->_clusterData()
+                               ->membership()
+                               .netCluster()
+                               ->selfNodeId();
+
+    mqbnet::ClusterNode* selfNode = helper.d_cluster_mp->_clusterData()
+                                        ->membership()
+                                        .netCluster()
+                                        ->lookupNode(selfNodeId);
+
+    BSLS_ASSERT_OPT(storageManager.partitionHealthState(k_PARTITION_ID) ==
+                    mqbc::PartitionFSM::State::e_UNKNOWN);
+
+    storageManager.processPrimaryDetect(k_PARTITION_ID,
+                                        selfNode,
+                                        1);  // primaryLeaseId
+
+    ASSERT_EQ(storageManager.nodeToSeqNumMap(k_PARTITION_ID).size(), 1U);
+    ASSERT_EQ(storageManager.partitionHealthState(k_PARTITION_ID),
+              mqbc::PartitionFSM::State::e_PRIMARY_HEALING_STG1);
+
+    helper.verifyPrimarySendsReplicaStateRqst(k_PARTITION_ID, selfNodeId);
+    helper.clearChannels();
+
+    // Stop the cluster
+    storageManager.stop();
+    helper.d_cluster_mp->stop();
+}
+
+static void test3_unknownDetectSelfReplica()
+// ------------------------------------------------------------------------
+// BREATHING TEST
+//
+// Concerns:
+//   Ensure proper building and starting of the StorageManager
+//
+// Plan:
+//  1) Create a StorageManager on the stack
+//  2) Invoke start.
+//  3) Detect Self node as replica
+//  4) Verify the actions as per FSM.
+//  5) Invoke stop.
+//
+// Testing:
+//   Basic functionality.
+// ------------------------------------------------------------------------
+{
+    mwctst::TestHelper::printTestName("BREATHING TEST - DETECT REPLICA");
+
+    TestHelper helper;
+
+    mqbc::StorageManager storageManager(
+        helper.d_cluster_mp->_clusterDefinition(),
+        helper.d_cluster_mp.get(),
+        helper.d_cluster_mp->_clusterData(),
+        helper.d_cluster_mp->_state(),
+        helper.d_cluster_mp->_clusterData()->domainFactory(),
+        &helper.d_fsmObserver,
+        helper.d_cluster_mp->dispatcher(),
+        k_WATCHDOG_TIMEOUT_DURATION,
+        mockOnRecoveryStatus,
+        s_allocator_p);
+
+    mwcu::MemOutStream errorDescription;
+
+    static const int k_PARTITION_ID = 1;
+
+    const int rc = storageManager.start(errorDescription);
+    BSLS_ASSERT_OPT(rc == 0);
+    const int selfNodeId = helper.d_cluster_mp->_clusterData()
+                               ->membership()
+                               .netCluster()
+                               ->selfNodeId();
+    const int primaryNodeId = selfNodeId + 1;
+
+    mqbnet::ClusterNode* primaryNode = helper.d_cluster_mp->_clusterData()
+                                           ->membership()
+                                           .netCluster()
+                                           ->lookupNode(primaryNodeId);
+
+    BSLS_ASSERT_OPT(storageManager.partitionHealthState(k_PARTITION_ID) ==
+                    mqbc::PartitionFSM::State::e_UNKNOWN);
+
+    storageManager.processReplicaDetect(k_PARTITION_ID,
+                                        primaryNode,
+                                        1);  // primaryLeaseId
+
+    ASSERT_EQ(storageManager.nodeToSeqNumMap(k_PARTITION_ID).size(), 1U);
+    ASSERT_EQ(storageManager.partitionHealthState(k_PARTITION_ID),
+              mqbc::PartitionFSM::State::e_REPLICA_HEALING_STG1);
+
+    helper.verifyReplicaSendsPrimaryStateRqst(k_PARTITION_ID, primaryNodeId);
+    helper.clearChannels();
+
+    // Stop the cluster
+    storageManager.stop();
+    helper.d_cluster_mp->stop();
+}
+
+static void test4_primaryHealingStage1DetectSelfReplica()
+// ------------------------------------------------------------------------
+// BREATHING TEST
+//
+// Concerns:
+//   Ensure proper building and starting of the StorageManager
+//
+// Plan:
+//  1) Create a StorageManager on the stack
+//  2) Invoke start.
+//  3) Transition to Primary healing stage 1 and then detect self replica.
+//  4) Verify the actions as per FSM.
+//  5) Invoke stop.
+//
+// Testing:
+//   Basic functionality.
+// ------------------------------------------------------------------------
+{
+    mwctst::TestHelper::printTestName("BREATHING TEST - "
+                                      "PRIMARY HEALING STAGE 1 DETECTS SELF AS"
+                                      " REPLICA");
+
+    TestHelper helper;
+
+    mqbc::StorageManager storageManager(
+        helper.d_cluster_mp->_clusterDefinition(),
+        helper.d_cluster_mp.get(),
+        helper.d_cluster_mp->_clusterData(),
+        helper.d_cluster_mp->_state(),
+        helper.d_cluster_mp->_clusterData()->domainFactory(),
+        &helper.d_fsmObserver,
+        helper.d_cluster_mp->dispatcher(),
+        k_WATCHDOG_TIMEOUT_DURATION,
+        mockOnRecoveryStatus,
+        s_allocator_p);
+
+    mwcu::MemOutStream errorDescription;
+
+    static const int k_PARTITION_ID = 1;
+
+    const int rc = storageManager.start(errorDescription);
+    BSLS_ASSERT_OPT(rc == 0);
+
+    BSLS_ASSERT_OPT(storageManager.partitionHealthState(k_PARTITION_ID) ==
+                    mqbc::PartitionFSM::State::e_UNKNOWN);
+
+    const int selfNodeId = helper.d_cluster_mp->_clusterData()
+                               ->membership()
+                               .netCluster()
+                               ->selfNodeId();
+
+    mqbnet::ClusterNode* selfNode = helper.d_cluster_mp->_clusterData()
+                                        ->membership()
+                                        .netCluster()
+                                        ->lookupNode(selfNodeId);
+
+    storageManager.processPrimaryDetect(k_PARTITION_ID,
+                                        selfNode,
+                                        1);  // primaryLeaseId
+
+    BSLS_ASSERT_OPT(storageManager.partitionHealthState(k_PARTITION_ID) ==
+                    mqbc::PartitionFSM::State::e_PRIMARY_HEALING_STG1);
+
+    helper.verifyPrimarySendsReplicaStateRqst(k_PARTITION_ID, selfNodeId);
+    helper.clearChannels();
+
+    const mqbc::StorageUtil::NodeToSeqNumMap& nodeToSeqNumMap =
+        storageManager.nodeToSeqNumMap(k_PARTITION_ID);
+
+    BSLS_ASSERT_OPT(nodeToSeqNumMap.size() == 1);
+
+    // Apply Detect Self Replica event to Node in primaryHealingStage1.
+
+    const int            primaryNodeId = selfNodeId + 1;
+    mqbnet::ClusterNode* primaryNode   = helper.d_cluster_mp->_clusterData()
+                                           ->membership()
+                                           .netCluster()
+                                           ->lookupNode(primaryNodeId);
+
+    storageManager.processReplicaDetect(k_PARTITION_ID,
+                                        primaryNode,
+                                        1);  // primaryLeaseId
+
+    ASSERT_EQ(storageManager.nodeToSeqNumMap(k_PARTITION_ID).size(), 1U);
+    ASSERT_EQ(storageManager.partitionHealthState(k_PARTITION_ID),
+              mqbc::PartitionFSM::State::e_REPLICA_HEALING_STG1);
+
+    helper.verifyReplicaSendsPrimaryStateRqst(k_PARTITION_ID, primaryNodeId);
+    helper.clearChannels();
+
+    // Stop the cluster
+    storageManager.stop();
+    helper.d_cluster_mp->stop();
+}
+
+static void test5_primaryHealingStage1ReceivesReplicaStateRqst()
+// ------------------------------------------------------------------------
+// BREATHING TEST
+//
+// Concerns:
+//   Ensure primary in healing stage 1 sends Failure ReplicaStateResponse
+//   when it receives a ReplicaStateRequest from any other node.
+//
+// Plan:
+//  1) Create a StorageManager on the stack
+//  2) Invoke start.
+//  3) Transition to Primary healing stage 1.
+//  4) Verify the actions as per FSM.
+//  5) Send ReplicaStateRequest to this primary.
+//  6) Check that primary sends failure Response to received request.
+//  7) Invoke stop.
+//
+// Testing:
+//   Basic functionality.
+// ------------------------------------------------------------------------
+{
+    mwctst::TestHelper::printTestName("BREATHING TEST - "
+                                      "PRIMARY HEALING STAGE 1 SENDS FAILURE"
+                                      " REPLICA STATE RESPONSE");
+
+    TestHelper helper;
+
+    mqbc::StorageManager storageManager(
+        helper.d_cluster_mp->_clusterDefinition(),
+        helper.d_cluster_mp.get(),
+        helper.d_cluster_mp->_clusterData(),
+        helper.d_cluster_mp->_state(),
+        helper.d_cluster_mp->_clusterData()->domainFactory(),
+        &helper.d_fsmObserver,
+        helper.d_cluster_mp->dispatcher(),
+        k_WATCHDOG_TIMEOUT_DURATION,
+        mockOnRecoveryStatus,
+        s_allocator_p);
+
+    mwcu::MemOutStream errorDescription;
+
+    static const int k_PARTITION_ID = 1;
+
+    const int rc = storageManager.start(errorDescription);
+    BSLS_ASSERT_OPT(rc == 0);
+
+    BSLS_ASSERT_OPT(storageManager.partitionHealthState(k_PARTITION_ID) ==
+                    mqbc::PartitionFSM::State::e_UNKNOWN);
+
+    const int selfNodeId = helper.d_cluster_mp->_clusterData()
+                               ->membership()
+                               .netCluster()
+                               ->selfNodeId();
+
+    mqbnet::ClusterNode* selfNode = helper.d_cluster_mp->_clusterData()
+                                        ->membership()
+                                        .netCluster()
+                                        ->lookupNode(selfNodeId);
+
+    storageManager.processPrimaryDetect(k_PARTITION_ID,
+                                        selfNode,
+                                        1);  // primaryLeaseId
+
+    BSLS_ASSERT_OPT(storageManager.partitionHealthState(k_PARTITION_ID) ==
+                    mqbc::PartitionFSM::State::e_PRIMARY_HEALING_STG1);
+
+    helper.verifyPrimarySendsReplicaStateRqst(k_PARTITION_ID, selfNodeId);
+    helper.clearChannels();
+
+    const mqbc::StorageUtil::NodeToSeqNumMap& nodeToSeqNumMap =
+        storageManager.nodeToSeqNumMap(k_PARTITION_ID);
+
+    BSLS_ASSERT_OPT(nodeToSeqNumMap.size() == 1);
+
+    // Receives ReplicaStateRequest from a rogue node.
+    static const int             k_ROGUE_REQUEST_ID = 1;
+    bmqp_ctrlmsg::ControlMessage message;
+    message.rId() = k_ROGUE_REQUEST_ID;
+    bmqp_ctrlmsg::ReplicaStateRequest& replicaStateRequest =
+        message.choice()
+            .makeClusterMessage()
+            .choice()
+            .makePartitionMessage()
+            .choice()
+            .makeReplicaStateRequest();
+
+    bmqp_ctrlmsg::PartitionSequenceNumber seqNum;
+    seqNum.sequenceNumber() = 1U;
+    seqNum.primaryLeaseId() = 1U;
+
+    replicaStateRequest.partitionId()    = k_PARTITION_ID;
+    replicaStateRequest.sequenceNumber() = seqNum;
+
+    mqbnet::ClusterNode* source = helper.d_cluster_mp->_clusterData()
+                                      ->membership()
+                                      .netCluster()
+                                      ->lookupNode(selfNodeId + 1);
+
+    storageManager.processReplicaStateRequest(message, source);
+
+    helper.verifyPrimarySendsFailedReplicaStateRspn(selfNodeId + 1,
+                                                    k_ROGUE_REQUEST_ID);
+
+    ASSERT_EQ(storageManager.nodeToSeqNumMap(k_PARTITION_ID).size(), 1U);
+    ASSERT_EQ(storageManager.partitionHealthState(k_PARTITION_ID),
+              mqbc::PartitionFSM::State::e_PRIMARY_HEALING_STG1);
+
+    // Stop the cluster
+    storageManager.stop();
+    helper.d_cluster_mp->stop();
+}
+
+static void test6_primaryHealingStage1ReceivesReplicaStateRspnQuorum()
+// ------------------------------------------------------------------------
+// BREATHING TEST
+//
+// Concerns:
+//   Ensure primary in healing stage 1 correctly stores ReplicaSeq
+//   when it receives a ReplicaStateRspn from a replica node.
+//
+// Plan:
+//  1) Create a StorageManager on the stack
+//  2) Invoke start.
+//  3) Transition to Primary healing stage 1.
+//  4) Verify the actions as per FSM.
+//  5) Send ReplicaStateResponse from all replicas to this primary.
+//  6) Check that primary stores Replica Sequence number and goes to stg2.
+//  7) Invoke stop.
+//
+// Testing:
+//   Basic functionality.
+// ------------------------------------------------------------------------
+{
+    mwctst::TestHelper::printTestName("BREATHING TEST - "
+                                      "PRIMARY HEALING STAGE 1 RECEIVES"
+                                      " REPLICA STATE RESPONSE QUORUM");
+
+    TestHelper helper;
+
+    mqbc::StorageManager storageManager(
+        helper.d_cluster_mp->_clusterDefinition(),
+        helper.d_cluster_mp.get(),
+        helper.d_cluster_mp->_clusterData(),
+        helper.d_cluster_mp->_state(),
+        helper.d_cluster_mp->_clusterData()->domainFactory(),
+        &helper.d_fsmObserver,
+        helper.d_cluster_mp->dispatcher(),
+        k_WATCHDOG_TIMEOUT_DURATION,
+        mockOnRecoveryStatus,
+        s_allocator_p);
+
+    mwcu::MemOutStream errorDescription;
+
+    static const int k_PARTITION_ID = 1;
+
+    const int rc = storageManager.start(errorDescription);
+    BSLS_ASSERT_OPT(rc == 0);
+
+    BSLS_ASSERT_OPT(storageManager.partitionHealthState(k_PARTITION_ID) ==
+                    mqbc::PartitionFSM::State::e_UNKNOWN);
+
+    const int selfNodeId = helper.d_cluster_mp->_clusterData()
+                               ->membership()
+                               .netCluster()
+                               ->selfNodeId();
+
+    mqbnet::ClusterNode* selfNode = helper.d_cluster_mp->_clusterData()
+                                        ->membership()
+                                        .netCluster()
+                                        ->lookupNode(selfNodeId);
+
+    storageManager.processPrimaryDetect(k_PARTITION_ID,
+                                        selfNode,
+                                        1);  // primaryLeaseId
+
+    BSLS_ASSERT_OPT(storageManager.partitionHealthState(k_PARTITION_ID) ==
+                    mqbc::PartitionFSM::State::e_PRIMARY_HEALING_STG1);
+
+    helper.verifyPrimarySendsReplicaStateRqst(k_PARTITION_ID, selfNodeId);
+    helper.clearChannels();
+
+    // Receives ReplicaStateResponse from replica nodes.
+    BSLS_ASSERT_OPT(storageManager.nodeToSeqNumMap(k_PARTITION_ID).size() ==
+                    1);
+    static const int             k_REQUEST_ID = 1;
+    bmqp_ctrlmsg::ControlMessage message;
+    message.rId() = k_REQUEST_ID;
+    bmqp_ctrlmsg::ReplicaStateResponse& replicaStateResponse =
+        message.choice()
+            .makeClusterMessage()
+            .choice()
+            .makePartitionMessage()
+            .choice()
+            .makeReplicaStateResponse();
+
+    bmqp_ctrlmsg::PartitionSequenceNumber seqNum;
+    seqNum.sequenceNumber() = 1U;
+    seqNum.primaryLeaseId() = 1U;
+
+    replicaStateResponse.partitionId()    = k_PARTITION_ID;
+    replicaStateResponse.sequenceNumber() = seqNum;
+
+    helper.d_cluster_mp->requestManager().processResponse(message);
+
+    message.rId() = k_REQUEST_ID + 1;
+    helper.d_cluster_mp->requestManager().processResponse(message);
+
+    message.rId() = k_REQUEST_ID + 2;
+    helper.d_cluster_mp->requestManager().processResponse(message);
+
+    ASSERT_EQ(storageManager.nodeToSeqNumMap(k_PARTITION_ID).size(), 4U);
+    ASSERT_EQ(storageManager.partitionHealthState(k_PARTITION_ID),
+              mqbc::PartitionFSM::State::e_PRIMARY_HEALING_STG2);
+
+    // Stop the cluster
+    storageManager.stop();
+    helper.d_cluster_mp->stop();
+}
+
+static void test7_primaryHealingStage1ReceivesPrimaryStateRequestQuorum()
+// ------------------------------------------------------------------------
+// BREATHING TEST
+//
+// Concerns:
+//   Ensure primary in healing stage 1 correctly stores ReplicaSeq
+//   when it receives a PrimaryStateRequest from replica nodes.
+//
+// Plan:
+//  1) Create a StorageManager on the stack
+//  2) Invoke start.
+//  3) Transition to Primary healing stage 1.
+//  4) Verify the actions as per FSM.
+//  5) Send PrimaryStateRequest from all replicas to this primary.
+//  6) Check that primary stores Replica Sequence number and goes to stg2.
+//  7) Invoke stop.
+//
+// Testing:
+//   Basic functionality.
+// ------------------------------------------------------------------------
+{
+    mwctst::TestHelper::printTestName("BREATHING TEST - "
+                                      "PRIMARY HEALING STAGE 1 RECEIVES"
+                                      " PRIMARY STATE REQUEST QUORUM");
+
+    TestHelper helper;
+
+    mqbc::StorageManager storageManager(
+        helper.d_cluster_mp->_clusterDefinition(),
+        helper.d_cluster_mp.get(),
+        helper.d_cluster_mp->_clusterData(),
+        helper.d_cluster_mp->_state(),
+        helper.d_cluster_mp->_clusterData()->domainFactory(),
+        &helper.d_fsmObserver,
+        helper.d_cluster_mp->dispatcher(),
+        k_WATCHDOG_TIMEOUT_DURATION,
+        mockOnRecoveryStatus,
+        s_allocator_p);
+
+    mwcu::MemOutStream errorDescription;
+
+    static const int k_PARTITION_ID = 1;
+
+    const int rc = storageManager.start(errorDescription);
+    BSLS_ASSERT_OPT(rc == 0);
+
+    BSLS_ASSERT_OPT(storageManager.partitionHealthState(k_PARTITION_ID) ==
+                    mqbc::PartitionFSM::State::e_UNKNOWN);
+
+    const int selfNodeId = helper.d_cluster_mp->_clusterData()
+                               ->membership()
+                               .netCluster()
+                               ->selfNodeId();
+
+    mqbnet::ClusterNode* selfNode = helper.d_cluster_mp->_clusterData()
+                                        ->membership()
+                                        .netCluster()
+                                        ->lookupNode(selfNodeId);
+
+    storageManager.processPrimaryDetect(k_PARTITION_ID,
+                                        selfNode,
+                                        1);  // primaryLeaseId
+
+    BSLS_ASSERT_OPT(storageManager.partitionHealthState(k_PARTITION_ID) ==
+                    mqbc::PartitionFSM::State::e_PRIMARY_HEALING_STG1);
+
+    helper.verifyPrimarySendsReplicaStateRqst(k_PARTITION_ID, selfNodeId);
+    helper.clearChannels();
+
+    // Receives PrimaryStateRequest from replica nodes.
+    BSLS_ASSERT_OPT(storageManager.nodeToSeqNumMap(k_PARTITION_ID).size() ==
+                    1);
+    mqbnet::ClusterNode* replica1 =
+        helper.d_cluster_mp->netCluster().lookupNode(selfNodeId + 1);
+    static const int             k_REQUEST_ID = 1;
+    bmqp_ctrlmsg::ControlMessage message;
+    message.rId() = k_REQUEST_ID;
+    bmqp_ctrlmsg::PrimaryStateRequest& primaryStateRequest =
+        message.choice()
+            .makeClusterMessage()
+            .choice()
+            .makePartitionMessage()
+            .choice()
+            .makePrimaryStateRequest();
+
+    bmqp_ctrlmsg::PartitionSequenceNumber seqNum;
+    seqNum.sequenceNumber() = 1U;
+    seqNum.primaryLeaseId() = 1U;
+
+    primaryStateRequest.partitionId()    = k_PARTITION_ID;
+    primaryStateRequest.sequenceNumber() = seqNum;
+
+    storageManager.processPrimaryStateRequest(message, replica1);
+
+    message.rId() = k_REQUEST_ID + 1;
+    mqbnet::ClusterNode* replica2 =
+        helper.d_cluster_mp->netCluster().lookupNode(selfNodeId + 2);
+    storageManager.processPrimaryStateRequest(message, replica2);
+
+    message.rId() = k_REQUEST_ID + 2;
+    mqbnet::ClusterNode* replica3 =
+        helper.d_cluster_mp->netCluster().lookupNode(selfNodeId - 1);
+    storageManager.processPrimaryStateRequest(message, replica3);
+
+    ASSERT_EQ(storageManager.nodeToSeqNumMap(k_PARTITION_ID).size(), 4U);
+    ASSERT_EQ(storageManager.partitionHealthState(k_PARTITION_ID),
+              mqbc::PartitionFSM::State::e_PRIMARY_HEALING_STG2);
+
+    // Stop the cluster
+    storageManager.stop();
+    helper.d_cluster_mp->stop();
+}
+
+static void test8_primaryHealingStage1ReceivesPrimaryStateRqst()
+// ------------------------------------------------------------------------
+// BREATHING TEST
+//
+// Concerns:
+//   Ensure primary in healing stage 1 correctly stores ReplicaSeq
+//   when it receives PrimaryStateRequest from a replica node.
+//
+// Plan:
+//  1) Create a StorageManager on the stack
+//  2) Invoke start.
+//  3) Transition to Primary healing stage 1.
+//  4) Verify the actions as per FSM.
+//  5) Send PrimaryStateRequest to this primary.
+//  6) Check that primary stores Replica Sequence number
+//  7) Invoke stop.
+//
+// Testing:
+//   Basic functionality.
+// ------------------------------------------------------------------------
+{
+    mwctst::TestHelper::printTestName("BREATHING TEST - "
+                                      "PRIMARY HEALING STAGE 1 RECEIVES"
+                                      " PRIMARY STATE REQUEST");
+
+    TestHelper helper;
+
+    mqbc::StorageManager storageManager(
+        helper.d_cluster_mp->_clusterDefinition(),
+        helper.d_cluster_mp.get(),
+        helper.d_cluster_mp->_clusterData(),
+        helper.d_cluster_mp->_state(),
+        helper.d_cluster_mp->_clusterData()->domainFactory(),
+        &helper.d_fsmObserver,
+        helper.d_cluster_mp->dispatcher(),
+        k_WATCHDOG_TIMEOUT_DURATION,
+        mockOnRecoveryStatus,
+        s_allocator_p);
+
+    mwcu::MemOutStream errorDescription;
+
+    static const int k_PARTITION_ID = 1;
+
+    const int rc = storageManager.start(errorDescription);
+    BSLS_ASSERT_OPT(rc == 0);
+
+    BSLS_ASSERT_OPT(storageManager.partitionHealthState(k_PARTITION_ID) ==
+                    mqbc::PartitionFSM::State::e_UNKNOWN);
+
+    const int selfNodeId = helper.d_cluster_mp->_clusterData()
+                               ->membership()
+                               .netCluster()
+                               ->selfNodeId();
+
+    mqbnet::ClusterNode* selfNode = helper.d_cluster_mp->_clusterData()
+                                        ->membership()
+                                        .netCluster()
+                                        ->lookupNode(selfNodeId);
+
+    storageManager.processPrimaryDetect(k_PARTITION_ID,
+                                        selfNode,
+                                        1);  // primaryLeaseId
+
+    BSLS_ASSERT_OPT(storageManager.partitionHealthState(k_PARTITION_ID) ==
+                    mqbc::PartitionFSM::State::e_PRIMARY_HEALING_STG1);
+
+    helper.verifyPrimarySendsReplicaStateRqst(k_PARTITION_ID, selfNodeId);
+    helper.clearChannels();
+
+    BSLS_ASSERT_OPT(storageManager.nodeToSeqNumMap(k_PARTITION_ID).size() ==
+                    1);
+
+    // Receives PrimaryStateRequest from a replica node.
+    mqbnet::ClusterNode* replicaNode = helper.d_cluster_mp->_clusterData()
+                                           ->membership()
+                                           .netCluster()
+                                           ->lookupNode(selfNodeId + 1);
+
+    static const int             k_REQUEST_ID = 1;
+    bmqp_ctrlmsg::ControlMessage message;
+    message.rId() = k_REQUEST_ID;
+    bmqp_ctrlmsg::PrimaryStateRequest& primaryStateRequest =
+        message.choice()
+            .makeClusterMessage()
+            .choice()
+            .makePartitionMessage()
+            .choice()
+            .makePrimaryStateRequest();
+
+    bmqp_ctrlmsg::PartitionSequenceNumber seqNum;
+    seqNum.sequenceNumber() = 1U;
+    seqNum.primaryLeaseId() = 1U;
+
+    primaryStateRequest.partitionId()    = k_PARTITION_ID;
+    primaryStateRequest.sequenceNumber() = seqNum;
+
+    storageManager.processPrimaryStateRequest(message, replicaNode);
+
+    ASSERT_EQ(storageManager.nodeToSeqNumMap(k_PARTITION_ID).size(), 2U);
+    ASSERT_EQ(
+        storageManager.nodeToSeqNumMap(k_PARTITION_ID).count(replicaNode),
+        1U);
+    ASSERT_EQ(storageManager.partitionHealthState(k_PARTITION_ID),
+              mqbc::PartitionFSM::State::e_PRIMARY_HEALING_STG1);
+
+    // Stop the cluster
+    storageManager.stop();
+    helper.d_cluster_mp->stop();
+}
+
+static void test9_primaryHealingStage1ReceivesReplicaStateRspnNoQuorum()
+// ------------------------------------------------------------------------
+// BREATHING TEST
+//
+// Concerns:
+//   Ensure primary in healing stage 1 correctly stores ReplicaSeq
+//   when it receives a ReplicaStateRspn from a replica node.
+//
+// Plan:
+//  1) Create a StorageManager on the stack
+//  2) Invoke start.
+//  3) Transition to Primary healing stage 1.
+//  4) Verify the actions as per FSM.
+//  5) Send mix of success/failure ReplicaStateResponse to this primary.
+//  6) Check that primary stores Replica Sequence number, remains in stg1.
+//  7) Invoke stop.
+//
+// Testing:
+//   Basic functionality.
+// ------------------------------------------------------------------------
+{
+    mwctst::TestHelper::printTestName("BREATHING TEST - "
+                                      "PRIMARY HEALING STAGE 1 RECEIVES"
+                                      " REPLICA STATE RESPONSE NO QUORUM");
+
+    TestHelper helper;
+
+    mqbc::StorageManager storageManager(
+        helper.d_cluster_mp->_clusterDefinition(),
+        helper.d_cluster_mp.get(),
+        helper.d_cluster_mp->_clusterData(),
+        helper.d_cluster_mp->_state(),
+        helper.d_cluster_mp->_clusterData()->domainFactory(),
+        &helper.d_fsmObserver,
+        helper.d_cluster_mp->dispatcher(),
+        k_WATCHDOG_TIMEOUT_DURATION,
+        mockOnRecoveryStatus,
+        s_allocator_p);
+
+    mwcu::MemOutStream errorDescription;
+
+    static const int k_PARTITION_ID = 1;
+
+    const int rc = storageManager.start(errorDescription);
+    BSLS_ASSERT_OPT(rc == 0);
+
+    BSLS_ASSERT_OPT(storageManager.partitionHealthState(k_PARTITION_ID) ==
+                    mqbc::PartitionFSM::State::e_UNKNOWN);
+
+    const int selfNodeId = helper.d_cluster_mp->_clusterData()
+                               ->membership()
+                               .netCluster()
+                               ->selfNodeId();
+
+    mqbnet::ClusterNode* selfNode = helper.d_cluster_mp->_clusterData()
+                                        ->membership()
+                                        .netCluster()
+                                        ->lookupNode(selfNodeId);
+
+    storageManager.processPrimaryDetect(k_PARTITION_ID,
+                                        selfNode,
+                                        1);  // primaryLeaseId
+
+    BSLS_ASSERT_OPT(storageManager.partitionHealthState(k_PARTITION_ID) ==
+                    mqbc::PartitionFSM::State::e_PRIMARY_HEALING_STG1);
+
+    helper.verifyPrimarySendsReplicaStateRqst(k_PARTITION_ID, selfNodeId);
+    helper.clearChannels();
+
+    // Receives success ReplicaStateResponse from a replica node.
+    BSLS_ASSERT_OPT(storageManager.nodeToSeqNumMap(k_PARTITION_ID).size() ==
+                    1);
+    static const int             k_REQUEST_ID = 1;
+    bmqp_ctrlmsg::ControlMessage message;
+    message.rId() = k_REQUEST_ID;
+    bmqp_ctrlmsg::ReplicaStateResponse& replicaStateResponse =
+        message.choice()
+            .makeClusterMessage()
+            .choice()
+            .makePartitionMessage()
+            .choice()
+            .makeReplicaStateResponse();
+
+    bmqp_ctrlmsg::PartitionSequenceNumber seqNum;
+    seqNum.sequenceNumber() = 1U;
+    seqNum.primaryLeaseId() = 1U;
+
+    replicaStateResponse.partitionId()    = k_PARTITION_ID;
+    replicaStateResponse.sequenceNumber() = seqNum;
+
+    helper.d_cluster_mp->requestManager().processResponse(message);
+
+    bmqp_ctrlmsg::ControlMessage failureMsg;
+    bmqp_ctrlmsg::Status&        response = failureMsg.choice().makeStatus();
+    response.category() = bmqp_ctrlmsg::StatusCategory::E_REFUSED;
+    response.code()     = mqbi::ClusterErrorCode::e_NOT_REPLICA;
+    response.message()  = "Not a replica";
+
+    failureMsg.rId() = 2;
+    helper.d_cluster_mp->requestManager().processResponse(failureMsg);
+
+    failureMsg.rId() = 3;
+    helper.d_cluster_mp->requestManager().processResponse(failureMsg);
+
+    ASSERT_EQ(storageManager.nodeToSeqNumMap(k_PARTITION_ID).size(), 2U);
+    ASSERT_EQ(storageManager.partitionHealthState(k_PARTITION_ID),
+              mqbc::PartitionFSM::State::e_PRIMARY_HEALING_STG1);
+
+    // Stop the cluster
+    storageManager.stop();
+    helper.d_cluster_mp->stop();
+}
+
+static void test10_primaryHealingStage1QuorumSendsReplicaDataRequestPull()
+// ------------------------------------------------------------------------
+// BREATHING TEST
+//
+// Concerns:
+//   Ensure primary in healing stage 1 achives quorum and then sends
+//   ReplicaDataRequestPull to the replica node with highest seqNum.
+//
+// Plan:
+//  1) Create a StorageManager on the stack
+//  2) Invoke start.
+//  3) Transition to Primary healing stage 1.
+//  4) Verify the actions as per FSM.
+//  5) Send ReplicaStateResponse from all replicas to this primary.
+//  6) Check that primary stores Replica Sequence number and goes to stg2.
+//  7) Verify that primary sends ReplicaDataRequestPull to highest seqNum
+//     replica node.
+//  8) Invoke stop.
+//
+// Testing:
+//   Basic functionality.
+// ------------------------------------------------------------------------
+{
+    mwctst::TestHelper::printTestName("BREATHING TEST - "
+                                      "PRIMARY HEALING STAGE 1 QUORUM"
+                                      " SENDS REPLICA DATA REQUEST PULL");
+
+    TestHelper helper;
+
+    mqbc::StorageManager storageManager(
+        helper.d_cluster_mp->_clusterDefinition(),
+        helper.d_cluster_mp.get(),
+        helper.d_cluster_mp->_clusterData(),
+        helper.d_cluster_mp->_state(),
+        helper.d_cluster_mp->_clusterData()->domainFactory(),
+        &helper.d_fsmObserver,
+        helper.d_cluster_mp->dispatcher(),
+        k_WATCHDOG_TIMEOUT_DURATION,
+        mockOnRecoveryStatus,
+        s_allocator_p);
+
+    mwcu::MemOutStream errorDescription;
+
+    static const int k_PARTITION_ID = 1;
+
+    const int rc = storageManager.start(errorDescription);
+    BSLS_ASSERT_OPT(rc == 0);
+
+    BSLS_ASSERT_OPT(storageManager.partitionHealthState(k_PARTITION_ID) ==
+                    mqbc::PartitionFSM::State::e_UNKNOWN);
+
+    const int selfNodeId = helper.d_cluster_mp->_clusterData()
+                               ->membership()
+                               .netCluster()
+                               ->selfNodeId();
+
+    mqbnet::ClusterNode* selfNode = helper.d_cluster_mp->_clusterData()
+                                        ->membership()
+                                        .netCluster()
+                                        ->lookupNode(selfNodeId);
+
+    storageManager.processPrimaryDetect(k_PARTITION_ID,
+                                        selfNode,
+                                        1);  // primaryLeaseId
+
+    BSLS_ASSERT_OPT(storageManager.partitionHealthState(k_PARTITION_ID) ==
+                    mqbc::PartitionFSM::State::e_PRIMARY_HEALING_STG1);
+
+    helper.verifyPrimarySendsReplicaStateRqst(k_PARTITION_ID, selfNodeId);
+    helper.clearChannels();
+
+    // Receives ReplicaStateResponse from a replica node.
+    BSLS_ASSERT_OPT(storageManager.nodeToSeqNumMap(k_PARTITION_ID).size() ==
+                    1);
+    static const int             k_REQUEST_ID = 1;
+    bmqp_ctrlmsg::ControlMessage message;
+    message.rId() = k_REQUEST_ID;
+    bmqp_ctrlmsg::ReplicaStateResponse& replicaStateResponse =
+        message.choice()
+            .makeClusterMessage()
+            .choice()
+            .makePartitionMessage()
+            .choice()
+            .makeReplicaStateResponse();
+
+    bmqp_ctrlmsg::PartitionSequenceNumber seqNum;
+    seqNum.sequenceNumber() = 1U;
+    seqNum.primaryLeaseId() = 1U;
+
+    replicaStateResponse.partitionId()    = k_PARTITION_ID;
+    replicaStateResponse.sequenceNumber() = seqNum;
+
+    helper.d_cluster_mp->requestManager().processResponse(message);
+
+    message.rId()                         = k_REQUEST_ID + 1;
+    seqNum.sequenceNumber()               = 7U;
+    seqNum.primaryLeaseId()               = 1U;
+    replicaStateResponse.sequenceNumber() = seqNum;
+    helper.d_cluster_mp->requestManager().processResponse(message);
+
+    message.rId()                         = k_REQUEST_ID + 2;
+    seqNum.sequenceNumber()               = 3U;
+    seqNum.primaryLeaseId()               = 1U;
+    replicaStateResponse.sequenceNumber() = seqNum;
+    helper.d_cluster_mp->requestManager().processResponse(message);
+
+    ASSERT_EQ(storageManager.nodeToSeqNumMap(k_PARTITION_ID).size(), 4U);
+    ASSERT_EQ(storageManager.partitionHealthState(k_PARTITION_ID),
+              mqbc::PartitionFSM::State::e_PRIMARY_HEALING_STG2);
+
+    const NodeSeqNumPair& highestSeqNumNode =
+        helper.getHighestSeqNumNodeDetails(
+            storageManager.nodeToSeqNumMap(k_PARTITION_ID));
+
+    ASSERT_NE(highestSeqNumNode.first, selfNode);
+    ASSERT_EQ(highestSeqNumNode.second.sequenceNumber(), 7U);
+
+    helper.verifyPrimarySendsReplicaDataRqstPull(
+        k_PARTITION_ID,
+        highestSeqNumNode.first->nodeId(),
+        highestSeqNumNode.second);
+
+    // Stop the cluster
+    storageManager.stop();
+    helper.d_cluster_mp->stop();
+}
+
+static void test11_primaryHealingStage2DetectSelfReplica()
+// ------------------------------------------------------------------------
+// BREATHING TEST
+//
+// Concerns:
+//   Ensure proper building and starting of the StorageManager
+//
+// Plan:
+//  1) Create a StorageManager on the stack
+//  2) Invoke start.
+//  3) Transition to Primary healing stage 2 and then detect self replica.
+//  4) Verify the actions as per FSM.
+//  5) Invoke stop.
+//
+// Testing:
+//   Basic functionality.
+// ------------------------------------------------------------------------
+{
+    mwctst::TestHelper::printTestName("BREATHING TEST - "
+                                      "PRIMARY HEALING STAGE 2 DETECTS SELF AS"
+                                      " REPLICA");
+
+    TestHelper helper;
+
+    mqbc::StorageManager storageManager(
+        helper.d_cluster_mp->_clusterDefinition(),
+        helper.d_cluster_mp.get(),
+        helper.d_cluster_mp->_clusterData(),
+        helper.d_cluster_mp->_state(),
+        helper.d_cluster_mp->_clusterData()->domainFactory(),
+        &helper.d_fsmObserver,
+        helper.d_cluster_mp->dispatcher(),
+        k_WATCHDOG_TIMEOUT_DURATION,
+        mockOnRecoveryStatus,
+        s_allocator_p);
+
+    mwcu::MemOutStream errorDescription;
+
+    static const int k_PARTITION_ID = 1;
+
+    const int rc = storageManager.start(errorDescription);
+    BSLS_ASSERT_OPT(rc == 0);
+
+    BSLS_ASSERT_OPT(storageManager.partitionHealthState(k_PARTITION_ID) ==
+                    mqbc::PartitionFSM::State::e_UNKNOWN);
+
+    const int selfNodeId = helper.d_cluster_mp->_clusterData()
+                               ->membership()
+                               .netCluster()
+                               ->selfNodeId();
+
+    mqbnet::ClusterNode* selfNode = helper.d_cluster_mp->_clusterData()
+                                        ->membership()
+                                        .netCluster()
+                                        ->lookupNode(selfNodeId);
+
+    storageManager.processPrimaryDetect(k_PARTITION_ID,
+                                        selfNode,
+                                        1);  // primaryLeaseId
+
+    BSLS_ASSERT_OPT(storageManager.partitionHealthState(k_PARTITION_ID) ==
+                    mqbc::PartitionFSM::State::e_PRIMARY_HEALING_STG1);
+
+    helper.verifyPrimarySendsReplicaStateRqst(k_PARTITION_ID, selfNodeId);
+    helper.clearChannels();
+
+    const mqbc::StorageUtil::NodeToSeqNumMap& nodeToSeqNumMap =
+        storageManager.nodeToSeqNumMap(k_PARTITION_ID);
+
+    BSLS_ASSERT_OPT(nodeToSeqNumMap.size() == 1);
+
+    // Receives ReplicaStateResponse from replica nodes.
+    static const int             k_REQUEST_ID = 1;
+    bmqp_ctrlmsg::ControlMessage message;
+    message.rId() = k_REQUEST_ID;
+    bmqp_ctrlmsg::ReplicaStateResponse& replicaStateResponse =
+        message.choice()
+            .makeClusterMessage()
+            .choice()
+            .makePartitionMessage()
+            .choice()
+            .makeReplicaStateResponse();
+
+    bmqp_ctrlmsg::PartitionSequenceNumber seqNum;
+    seqNum.sequenceNumber() = 1U;
+    seqNum.primaryLeaseId() = 1U;
+
+    replicaStateResponse.partitionId()    = k_PARTITION_ID;
+    replicaStateResponse.sequenceNumber() = seqNum;
+
+    helper.d_cluster_mp->requestManager().processResponse(message);
+
+    message.rId()                         = k_REQUEST_ID + 1;
+    seqNum.sequenceNumber()               = 7U;
+    seqNum.primaryLeaseId()               = 1U;
+    replicaStateResponse.sequenceNumber() = seqNum;
+    helper.d_cluster_mp->requestManager().processResponse(message);
+
+    message.rId()                         = k_REQUEST_ID + 2;
+    seqNum.sequenceNumber()               = 3U;
+    seqNum.primaryLeaseId()               = 1U;
+    replicaStateResponse.sequenceNumber() = seqNum;
+    helper.d_cluster_mp->requestManager().processResponse(message);
+
+    BSLS_ASSERT_OPT(storageManager.nodeToSeqNumMap(k_PARTITION_ID).size() ==
+                    4U);
+    BSLS_ASSERT_OPT(storageManager.partitionHealthState(k_PARTITION_ID) ==
+                    mqbc::PartitionFSM::State::e_PRIMARY_HEALING_STG2);
+
+    const NodeSeqNumPair& highestSeqNumNode =
+        helper.getHighestSeqNumNodeDetails(
+            storageManager.nodeToSeqNumMap(k_PARTITION_ID));
+
+    BSLS_ASSERT_OPT(highestSeqNumNode.first != selfNode);
+    BSLS_ASSERT_OPT(highestSeqNumNode.second.sequenceNumber() == 7U);
+
+    helper.verifyPrimarySendsReplicaDataRqstPull(
+        k_PARTITION_ID,
+        highestSeqNumNode.first->nodeId(),
+        highestSeqNumNode.second);
+    helper.clearChannels();
+
+    // Apply Detect Self Replica event to Node in primaryHealingStage2.
+    const int            primaryNodeId = selfNodeId + 1;
+    mqbnet::ClusterNode* primaryNode   = helper.d_cluster_mp->_clusterData()
+                                           ->membership()
+                                           .netCluster()
+                                           ->lookupNode(primaryNodeId);
+
+    storageManager.processReplicaDetect(k_PARTITION_ID,
+                                        primaryNode,
+                                        1);  // primaryLeaseId
+
+    ASSERT_EQ(storageManager.nodeToSeqNumMap(k_PARTITION_ID).size(), 1U);
+    ASSERT_EQ(storageManager.partitionHealthState(k_PARTITION_ID),
+              mqbc::PartitionFSM::State::e_REPLICA_HEALING_STG1);
+
+    helper.verifyReplicaSendsPrimaryStateRqst(k_PARTITION_ID, primaryNodeId);
+    helper.clearChannels();
+
+    // Stop the cluster
+    storageManager.stop();
+    helper.d_cluster_mp->stop();
+}
+
+static void test12_replicaHealingStage1DetectSelfPrimary()
+// ------------------------------------------------------------------------
+// BREATHING TEST
+//
+// Concerns:
+//   Ensure proper building and starting of the StorageManager
+//
+// Plan:
+//  1) Create a StorageManager on the stack
+//  2) Invoke start.
+//  3) Transition to Replica healing stage 1 and then detect self primary.
+//  4) Verify the actions as per FSM.
+//  5) Invoke stop.
+//
+// Testing:
+//   Basic functionality.
+// ------------------------------------------------------------------------
+{
+    mwctst::TestHelper::printTestName("BREATHING TEST - "
+                                      "REPLICA HEALING STAGE 1 DETECTS SELF AS"
+                                      " PRIMARY");
+
+    TestHelper helper;
+
+    mqbc::StorageManager storageManager(
+        helper.d_cluster_mp->_clusterDefinition(),
+        helper.d_cluster_mp.get(),
+        helper.d_cluster_mp->_clusterData(),
+        helper.d_cluster_mp->_state(),
+        helper.d_cluster_mp->_clusterData()->domainFactory(),
+        &helper.d_fsmObserver,
+        helper.d_cluster_mp->dispatcher(),
+        k_WATCHDOG_TIMEOUT_DURATION,
+        mockOnRecoveryStatus,
+        s_allocator_p);
+
+    mwcu::MemOutStream errorDescription;
+
+    static const int k_PARTITION_ID = 1;
+
+    int rc = storageManager.start(errorDescription);
+    BSLS_ASSERT_OPT(rc == 0);
+
+    BSLS_ASSERT_OPT(storageManager.partitionHealthState(k_PARTITION_ID) ==
+                    mqbc::PartitionFSM::State::e_UNKNOWN);
+
+    const int selfNodeId = helper.d_cluster_mp->_clusterData()
+                               ->membership()
+                               .netCluster()
+                               ->selfNodeId();
+    const int primaryNodeId = selfNodeId + 1;
+
+    mqbnet::ClusterNode* selfNode = helper.d_cluster_mp->_clusterData()
+                                        ->membership()
+                                        .netCluster()
+                                        ->lookupNode(selfNodeId);
+
+    mqbnet::ClusterNode* primaryNode = helper.d_cluster_mp->_clusterData()
+                                           ->membership()
+                                           .netCluster()
+                                           ->lookupNode(primaryNodeId);
+
+    storageManager.processReplicaDetect(k_PARTITION_ID,
+                                        primaryNode,
+                                        1);  // primaryLeaseId
+
+    BSLS_ASSERT_OPT(storageManager.partitionHealthState(k_PARTITION_ID) ==
+                    mqbc::PartitionFSM::State::e_REPLICA_HEALING_STG1);
+
+    helper.verifyReplicaSendsPrimaryStateRqst(k_PARTITION_ID, primaryNodeId);
+    helper.clearChannels();
+
+    const mqbc::StorageUtil::NodeToSeqNumMap& nodeToSeqNumMap =
+        storageManager.nodeToSeqNumMap(k_PARTITION_ID);
+
+    BSLS_ASSERT_OPT(nodeToSeqNumMap.size() == 1);
+
+    // Apply Detect Self Primary event to Self Node in replicaHealingStage1.
+
+    storageManager.processPrimaryDetect(k_PARTITION_ID,
+                                        selfNode,
+                                        1);  // primaryLeaseId
+
+    ASSERT_EQ(storageManager.nodeToSeqNumMap(k_PARTITION_ID).size(), 1U);
+    ASSERT_EQ(storageManager.partitionHealthState(k_PARTITION_ID),
+              mqbc::PartitionFSM::State::e_PRIMARY_HEALING_STG1);
+
+    helper.verifyPrimarySendsReplicaStateRqst(k_PARTITION_ID, selfNodeId);
+    helper.clearChannels();
+
+    // Stop the cluster
+    storageManager.stop();
+    helper.d_cluster_mp->stop();
+}
+
+static void test13_replicaHealingStage1ReceivesReplicaStateRqst()
+// ------------------------------------------------------------------------
+// BREATHING TEST
+//
+// Concerns:
+//   Ensure proper building and starting of the StorageManager
+//
+// Plan:
+//  1) Create a StorageManager on the stack
+//  2) Invoke start.
+//  3) Transition to Replica healing stage 1.
+//  4) Send ReplicaStateRqst to this Replica.
+//  5) Check that Replica sends ReplicaStateRspn, stores primarySeqNum.
+//  6) Verify the actions as per FSM.
+//  7) Invoke stop.
+//
+// Testing:
+//   Basic functionality.
+// ------------------------------------------------------------------------
+{
+    mwctst::TestHelper::printTestName("BREATHING TEST - "
+                                      "REPLICA HEALING STAGE 1 RECEIVES "
+                                      "REPLICA STATE REQUEST");
+
+    TestHelper helper;
+
+    mqbc::StorageManager storageManager(
+        helper.d_cluster_mp->_clusterDefinition(),
+        helper.d_cluster_mp.get(),
+        helper.d_cluster_mp->_clusterData(),
+        helper.d_cluster_mp->_state(),
+        helper.d_cluster_mp->_clusterData()->domainFactory(),
+        &helper.d_fsmObserver,
+        helper.d_cluster_mp->dispatcher(),
+        k_WATCHDOG_TIMEOUT_DURATION,
+        mockOnRecoveryStatus,
+        s_allocator_p);
+
+    mwcu::MemOutStream errorDescription;
+
+    static const int k_PARTITION_ID = 1;
+
+    int rc = storageManager.start(errorDescription);
+    BSLS_ASSERT_OPT(rc == 0);
+
+    BSLS_ASSERT_OPT(storageManager.partitionHealthState(k_PARTITION_ID) ==
+                    mqbc::PartitionFSM::State::e_UNKNOWN);
+
+    const int selfNodeId = helper.d_cluster_mp->_clusterData()
+                               ->membership()
+                               .netCluster()
+                               ->selfNodeId();
+    const int primaryNodeId = selfNodeId + 1;
+
+    mqbnet::ClusterNode* primaryNode = helper.d_cluster_mp->_clusterData()
+                                           ->membership()
+                                           .netCluster()
+                                           ->lookupNode(primaryNodeId);
+
+    storageManager.processReplicaDetect(k_PARTITION_ID,
+                                        primaryNode,
+                                        1);  // primaryLeaseId
+
+    BSLS_ASSERT_OPT(storageManager.partitionHealthState(k_PARTITION_ID) ==
+                    mqbc::PartitionFSM::State::e_REPLICA_HEALING_STG1);
+
+    helper.verifyReplicaSendsPrimaryStateRqst(k_PARTITION_ID, primaryNodeId);
+    helper.clearChannels();
+
+    const mqbc::StorageUtil::NodeToSeqNumMap& nodeToSeqNumMap =
+        storageManager.nodeToSeqNumMap(k_PARTITION_ID);
+
+    BSLS_ASSERT_OPT(nodeToSeqNumMap.size() == 1);
+
+    // Receives ReplicaStateRequest from the primary node.
+    static const int             k_PRIMARY_REQUEST_ID = 1;
+    bmqp_ctrlmsg::ControlMessage message;
+    message.rId() = k_PRIMARY_REQUEST_ID;
+    bmqp_ctrlmsg::ReplicaStateRequest& replicaStateRequest =
+        message.choice()
+            .makeClusterMessage()
+            .choice()
+            .makePartitionMessage()
+            .choice()
+            .makeReplicaStateRequest();
+
+    bmqp_ctrlmsg::PartitionSequenceNumber seqNum;
+    seqNum.sequenceNumber() = 1U;
+    seqNum.primaryLeaseId() = 1U;
+
+    replicaStateRequest.partitionId()    = k_PARTITION_ID;
+    replicaStateRequest.sequenceNumber() = seqNum;
+
+    storageManager.processReplicaStateRequest(message, primaryNode);
+
+    helper.verifyReplicaSendsReplicaStateRspn(k_PARTITION_ID, primaryNodeId);
+
+    ASSERT_EQ(nodeToSeqNumMap.size(), 2U);
+    ASSERT_EQ(nodeToSeqNumMap.at(primaryNode).sequenceNumber(),
+              seqNum.sequenceNumber());
+    ASSERT_EQ(nodeToSeqNumMap.at(primaryNode).primaryLeaseId(),
+              seqNum.primaryLeaseId());
+    ASSERT_EQ(storageManager.partitionHealthState(k_PARTITION_ID),
+              mqbc::PartitionFSM::State::e_REPLICA_HEALING_STG2);
+
+    // Stop the cluster
+    storageManager.stop();
+    helper.d_cluster_mp->stop();
+}
+
+static void test14_replicaHealingStage1ReceivesPrimaryStateRspn()
+// ------------------------------------------------------------------------
+// BREATHING TEST
+//
+// Concerns:
+//   Ensure proper building and starting of the StorageManager
+//
+// Plan:
+//  1) Create a StorageManager on the stack
+//  2) Invoke start.
+//  3) Transition to Replica healing stage 1.
+//  4) Send PrimaryStateRspn to this Replica.
+//  5) Check that Replica stores primarySeqNum.
+//  6) Verify the actions as per FSM.
+//  7) Invoke stop.
+//
+// Testing:
+//   Basic functionality.
+// ------------------------------------------------------------------------
+{
+    mwctst::TestHelper::printTestName("BREATHING TEST - "
+                                      "REPLICA HEALING STAGE 1 RECEIVES "
+                                      "PRIMARY STATE RESPONSE");
+
+    TestHelper helper;
+
+    mqbc::StorageManager storageManager(
+        helper.d_cluster_mp->_clusterDefinition(),
+        helper.d_cluster_mp.get(),
+        helper.d_cluster_mp->_clusterData(),
+        helper.d_cluster_mp->_state(),
+        helper.d_cluster_mp->_clusterData()->domainFactory(),
+        &helper.d_fsmObserver,
+        helper.d_cluster_mp->dispatcher(),
+        k_WATCHDOG_TIMEOUT_DURATION,
+        mockOnRecoveryStatus,
+        s_allocator_p);
+
+    mwcu::MemOutStream errorDescription;
+
+    static const int k_PARTITION_ID = 1;
+
+    int rc = storageManager.start(errorDescription);
+    BSLS_ASSERT_OPT(rc == 0);
+
+    BSLS_ASSERT_OPT(storageManager.partitionHealthState(k_PARTITION_ID) ==
+                    mqbc::PartitionFSM::State::e_UNKNOWN);
+
+    const int selfNodeId = helper.d_cluster_mp->_clusterData()
+                               ->membership()
+                               .netCluster()
+                               ->selfNodeId();
+    const int primaryNodeId = selfNodeId + 1;
+
+    mqbnet::ClusterNode* primaryNode = helper.d_cluster_mp->_clusterData()
+                                           ->membership()
+                                           .netCluster()
+                                           ->lookupNode(primaryNodeId);
+
+    storageManager.processReplicaDetect(k_PARTITION_ID,
+                                        primaryNode,
+                                        1);  // primaryLeaseId
+
+    BSLS_ASSERT_OPT(storageManager.partitionHealthState(k_PARTITION_ID) ==
+                    mqbc::PartitionFSM::State::e_REPLICA_HEALING_STG1);
+
+    helper.verifyReplicaSendsPrimaryStateRqst(k_PARTITION_ID, primaryNodeId);
+    helper.clearChannels();
+
+    const mqbc::StorageUtil::NodeToSeqNumMap& nodeToSeqNumMap =
+        storageManager.nodeToSeqNumMap(k_PARTITION_ID);
+
+    BSLS_ASSERT_OPT(nodeToSeqNumMap.size() == 1);
+
+    // Receives PrimaryStateResponse from the primary node.
+    static const int             k_PRIMARY_REQUEST_ID = 1;
+    bmqp_ctrlmsg::ControlMessage message;
+    message.rId() = k_PRIMARY_REQUEST_ID;
+    bmqp_ctrlmsg::PrimaryStateResponse& primaryStateResponse =
+        message.choice()
+            .makeClusterMessage()
+            .choice()
+            .makePartitionMessage()
+            .choice()
+            .makePrimaryStateResponse();
+
+    bmqp_ctrlmsg::PartitionSequenceNumber seqNum;
+    seqNum.sequenceNumber() = 1U;
+    seqNum.primaryLeaseId() = 1U;
+
+    primaryStateResponse.partitionId()    = k_PARTITION_ID;
+    primaryStateResponse.sequenceNumber() = seqNum;
+
+    helper.d_cluster_mp->requestManager().processResponse(message);
+
+    ASSERT_EQ(nodeToSeqNumMap.size(), 2U);
+    ASSERT_EQ(nodeToSeqNumMap.at(primaryNode).sequenceNumber(),
+              seqNum.sequenceNumber());
+    ASSERT_EQ(nodeToSeqNumMap.at(primaryNode).primaryLeaseId(),
+              seqNum.primaryLeaseId());
+    ASSERT_EQ(storageManager.partitionHealthState(k_PARTITION_ID),
+              mqbc::PartitionFSM::State::e_REPLICA_HEALING_STG2);
+
+    // Stop the cluster
+    storageManager.stop();
+    helper.d_cluster_mp->stop();
+}
+
+static void test15_replicaHealingStage1ReceivesFailedPrimaryStateRspn()
+// ------------------------------------------------------------------------
+// BREATHING TEST
+//
+// Concerns:
+//   Ensure proper building and starting of the StorageManager
+//
+// Plan:
+//  1) Create a StorageManager on the stack
+//  2) Invoke start.
+//  3) Transition to Replica healing stage 1.
+//  4) Send failed PrimaryStateRspn to this Replica.
+//  5) Check that Replica does not store primarySeqNum.
+//  6) Verify the actions as per FSM.
+//  7) Invoke stop.
+//
+// Testing:
+//   Basic functionality.
+// ------------------------------------------------------------------------
+{
+    mwctst::TestHelper::printTestName("BREATHING TEST - "
+                                      "REPLICA HEALING STAGE 1 RECEIVES "
+                                      "FAILED PRIMARY STATE RESPONSE");
+
+    TestHelper helper;
+
+    mqbc::StorageManager storageManager(
+        helper.d_cluster_mp->_clusterDefinition(),
+        helper.d_cluster_mp.get(),
+        helper.d_cluster_mp->_clusterData(),
+        helper.d_cluster_mp->_state(),
+        helper.d_cluster_mp->_clusterData()->domainFactory(),
+        &helper.d_fsmObserver,
+        helper.d_cluster_mp->dispatcher(),
+        k_WATCHDOG_TIMEOUT_DURATION,
+        mockOnRecoveryStatus,
+        s_allocator_p);
+
+    mwcu::MemOutStream errorDescription;
+
+    static const int k_PARTITION_ID = 1;
+
+    int rc = storageManager.start(errorDescription);
+    BSLS_ASSERT_OPT(rc == 0);
+
+    BSLS_ASSERT_OPT(storageManager.partitionHealthState(k_PARTITION_ID) ==
+                    mqbc::PartitionFSM::State::e_UNKNOWN);
+
+    const int selfNodeId = helper.d_cluster_mp->_clusterData()
+                               ->membership()
+                               .netCluster()
+                               ->selfNodeId();
+    const int primaryNodeId = selfNodeId + 1;
+
+    mqbnet::ClusterNode* primaryNode = helper.d_cluster_mp->_clusterData()
+                                           ->membership()
+                                           .netCluster()
+                                           ->lookupNode(primaryNodeId);
+
+    storageManager.processReplicaDetect(k_PARTITION_ID,
+                                        primaryNode,
+                                        1);  // primaryLeaseId
+
+    BSLS_ASSERT_OPT(storageManager.partitionHealthState(k_PARTITION_ID) ==
+                    mqbc::PartitionFSM::State::e_REPLICA_HEALING_STG1);
+
+    helper.verifyReplicaSendsPrimaryStateRqst(k_PARTITION_ID, primaryNodeId);
+    helper.clearChannels();
+
+    const mqbc::StorageUtil::NodeToSeqNumMap& nodeToSeqNumMap =
+        storageManager.nodeToSeqNumMap(k_PARTITION_ID);
+
+    BSLS_ASSERT_OPT(nodeToSeqNumMap.size() == 1);
+
+    // Receives Failed PrimaryStateResponse from the primary node.
+    static const int             k_PRIMARY_REQUEST_ID = 1;
+    bmqp_ctrlmsg::ControlMessage failureMsg;
+    bmqp_ctrlmsg::Status&        response = failureMsg.choice().makeStatus();
+    response.category() = bmqp_ctrlmsg::StatusCategory::E_REFUSED;
+    response.code()     = mqbi::ClusterErrorCode::e_NOT_PRIMARY;
+    response.message()  = "Not a primary";
+    failureMsg.rId()    = k_PRIMARY_REQUEST_ID;
+
+    helper.d_cluster_mp->requestManager().processResponse(failureMsg);
+
+    ASSERT_EQ(nodeToSeqNumMap.size(), 1U);
+    ASSERT_EQ(storageManager.partitionHealthState(k_PARTITION_ID),
+              mqbc::PartitionFSM::State::e_REPLICA_HEALING_STG1);
+
+    // Stop the cluster
+    storageManager.stop();
+    helper.d_cluster_mp->stop();
+}
+
+static void test16_replicaHealingStage1ReceivesPrimaryStateRqst()
+// ------------------------------------------------------------------------
+// BREATHING TEST
+//
+// Concerns:
+//   Ensure proper building and starting of the StorageManager
+//
+// Plan:
+//  1) Create a StorageManager on the stack
+//  2) Invoke start.
+//  3) Transition to Replica healing stage 1.
+//  4) Send PrimaryStateRqst to this Replica.
+//  5) Check that Replica sends failed PrimaryStateRspn.
+//  6) Verify the actions as per FSM.
+//  7) Invoke stop.
+//
+// Testing:
+//   Basic functionality.
+// ------------------------------------------------------------------------
+{
+    mwctst::TestHelper::printTestName("BREATHING TEST - "
+                                      "REPLICA HEALING STAGE 1 RECEIVES "
+                                      "PRIMARY STATE REQUEST");
+
+    TestHelper helper;
+
+    mqbc::StorageManager storageManager(
+        helper.d_cluster_mp->_clusterDefinition(),
+        helper.d_cluster_mp.get(),
+        helper.d_cluster_mp->_clusterData(),
+        helper.d_cluster_mp->_state(),
+        helper.d_cluster_mp->_clusterData()->domainFactory(),
+        &helper.d_fsmObserver,
+        helper.d_cluster_mp->dispatcher(),
+        k_WATCHDOG_TIMEOUT_DURATION,
+        mockOnRecoveryStatus,
+        s_allocator_p);
+
+    mwcu::MemOutStream errorDescription;
+
+    static const int k_PARTITION_ID = 1;
+
+    int rc = storageManager.start(errorDescription);
+    BSLS_ASSERT_OPT(rc == 0);
+
+    BSLS_ASSERT_OPT(storageManager.partitionHealthState(k_PARTITION_ID) ==
+                    mqbc::PartitionFSM::State::e_UNKNOWN);
+
+    const int selfNodeId = helper.d_cluster_mp->_clusterData()
+                               ->membership()
+                               .netCluster()
+                               ->selfNodeId();
+    const int primaryNodeId = selfNodeId + 1;
+
+    mqbnet::ClusterNode* primaryNode = helper.d_cluster_mp->_clusterData()
+                                           ->membership()
+                                           .netCluster()
+                                           ->lookupNode(primaryNodeId);
+
+    storageManager.processReplicaDetect(k_PARTITION_ID,
+                                        primaryNode,
+                                        1);  // primaryLeaseId
+
+    BSLS_ASSERT_OPT(storageManager.partitionHealthState(k_PARTITION_ID) ==
+                    mqbc::PartitionFSM::State::e_REPLICA_HEALING_STG1);
+
+    helper.verifyReplicaSendsPrimaryStateRqst(k_PARTITION_ID, primaryNodeId);
+    helper.clearChannels();
+
+    const mqbc::StorageUtil::NodeToSeqNumMap& nodeToSeqNumMap =
+        storageManager.nodeToSeqNumMap(k_PARTITION_ID);
+
+    BSLS_ASSERT_OPT(nodeToSeqNumMap.size() == 1);
+
+    // Receives PrimaryStateRequest from a rogue node.
+    const int            rogueNodeId = selfNodeId + 2;
+    mqbnet::ClusterNode* rogueNode   = helper.d_cluster_mp->_clusterData()
+                                         ->membership()
+                                         .netCluster()
+                                         ->lookupNode(rogueNodeId);
+    static const int             k_ROGUE_REQUEST_ID = 1;
+    bmqp_ctrlmsg::ControlMessage message;
+    message.rId() = k_ROGUE_REQUEST_ID;
+    bmqp_ctrlmsg::PrimaryStateRequest& primaryStateRequest =
+        message.choice()
+            .makeClusterMessage()
+            .choice()
+            .makePartitionMessage()
+            .choice()
+            .makePrimaryStateRequest();
+
+    bmqp_ctrlmsg::PartitionSequenceNumber seqNum;
+    seqNum.sequenceNumber() = 1U;
+    seqNum.primaryLeaseId() = 1U;
+
+    primaryStateRequest.partitionId()    = k_PARTITION_ID;
+    primaryStateRequest.sequenceNumber() = seqNum;
+
+    storageManager.processPrimaryStateRequest(message, rogueNode);
+
+    helper.verifyReplicaSendsFailedPrimaryStateRspn(rogueNodeId,
+                                                    k_ROGUE_REQUEST_ID);
+
+    ASSERT_EQ(nodeToSeqNumMap.size(), 1U);
+    ASSERT_EQ(nodeToSeqNumMap.count(rogueNode), 0U);
+    ASSERT_EQ(storageManager.partitionHealthState(k_PARTITION_ID),
+              mqbc::PartitionFSM::State::e_REPLICA_HEALING_STG1);
+
+    // Stop the cluster
+    storageManager.stop();
+    helper.d_cluster_mp->stop();
+}
+
+static void test17_replicaHealingStage2ReceivesReplicaDataRqstPull()
+// ------------------------------------------------------------------------
+// BREATHING TEST
+//
+// Concerns:
+//   Ensure replica node sends data chunks and response upon receiving
+//   ReplicaDataRqstPull.
+//
+// Plan:
+//  1) Create a StorageManager on the stack
+//  2) Invoke start.
+//  3) Transition to Replica healing stage 1.
+//  4) Send ReplicaStateRqst to this Replica.
+//  5) Check that Replica sends ReplicaStateRspn, stores primarySeqNum.
+//  6) Transition Replica to healing stage 2 and send ReplicaDataRqstPull
+//  7) Check that Replica sends data chunks.
+//  8) Check that Replica sends ReplicaDataRspnPull.
+//  9) Invoke stop.
+//
+// Testing:
+//   Basic functionality.
+// ------------------------------------------------------------------------
+{
+    mwctst::TestHelper::printTestName("BREATHING TEST - "
+                                      "REPLICA HEALING STAGE 2 RECEIVES "
+                                      "REPLICA DATA REQUEST PULL");
+
+    // TODO: debug on why the global allocator check fails for fileStore
+    // allocating some memory through default allocator.
+
+    TestHelper helper;
+
+    bmqp_ctrlmsg::PartitionSequenceNumber selfSeqNum;
+    mqbs::DataStoreRecordHandle           handle;
+    helper.initializeRecords(&handle, 1, &selfSeqNum);
+
+    mqbc::StorageManager storageManager(
+        helper.d_cluster_mp->_clusterDefinition(),
+        helper.d_cluster_mp.get(),
+        helper.d_cluster_mp->_clusterData(),
+        helper.d_cluster_mp->_state(),
+        helper.d_cluster_mp->_clusterData()->domainFactory(),
+        &helper.d_fsmObserver,
+        helper.d_cluster_mp->dispatcher(),
+        k_WATCHDOG_TIMEOUT_DURATION,
+        mockOnRecoveryStatus,
+        s_allocator_p);
+
+    static const int k_PARTITION_ID = 1;
+
+    mwcu::MemOutStream errorDescription;
+
+    BSLS_ASSERT_OPT(storageManager.partitionHealthState(k_PARTITION_ID) ==
+                    mqbc::PartitionFSM::State::e_UNKNOWN);
+
+    const int selfNodeId = helper.d_cluster_mp->_clusterData()
+                               ->membership()
+                               .netCluster()
+                               ->selfNodeId();
+
+    const int primaryNodeId = selfNodeId + 1;
+
+    int rc = storageManager.start(errorDescription);
+    BSLS_ASSERT_OPT(rc == 0);
+
+    mqbs::FileStore& fs = storageManager.fileStore(k_PARTITION_ID);
+    fs.setIgnoreCrc32c(true);
+
+    mqbnet::ClusterNode* primaryNode = helper.d_cluster_mp->_clusterData()
+                                           ->membership()
+                                           .netCluster()
+                                           ->lookupNode(primaryNodeId);
+    storageManager.processReplicaDetect(k_PARTITION_ID,
+                                        primaryNode,
+                                        1);  // primaryLeaseId
+
+    BSLS_ASSERT_OPT(storageManager.partitionHealthState(k_PARTITION_ID) ==
+                    mqbc::PartitionFSM::State::e_REPLICA_HEALING_STG1);
+
+    helper.verifyReplicaSendsPrimaryStateRqst(k_PARTITION_ID,
+                                              primaryNodeId,
+                                              selfSeqNum);
+    helper.clearChannels();
+
+    const mqbc::StorageUtil::NodeToSeqNumMap& nodeToSeqNumMap =
+        storageManager.nodeToSeqNumMap(k_PARTITION_ID);
+
+    BSLS_ASSERT_OPT(nodeToSeqNumMap.size() == 1);
+
+    // Receives ReplicaStateRequest from the primary node.
+    static const int             k_PRIMARY_REQUEST_ID = 1;
+    bmqp_ctrlmsg::ControlMessage message;
+    message.rId() = k_PRIMARY_REQUEST_ID;
+    bmqp_ctrlmsg::ReplicaStateRequest& replicaStateRequest =
+        message.choice()
+            .makeClusterMessage()
+            .choice()
+            .makePartitionMessage()
+            .choice()
+            .makeReplicaStateRequest();
+
+    bmqp_ctrlmsg::PartitionSequenceNumber k_PRIMARY_SEQ_NUM;
+    k_PRIMARY_SEQ_NUM.sequenceNumber() = 1U;
+    k_PRIMARY_SEQ_NUM.primaryLeaseId() = 1U;
+
+    replicaStateRequest.partitionId()    = k_PARTITION_ID;
+    replicaStateRequest.sequenceNumber() = k_PRIMARY_SEQ_NUM;
+
+    storageManager.processReplicaStateRequest(message, primaryNode);
+
+    helper.verifyReplicaSendsReplicaStateRspn(k_PARTITION_ID,
+                                              primaryNodeId,
+                                              selfSeqNum);
+    helper.clearChannels();
+
+    ASSERT_EQ(nodeToSeqNumMap.size(), 2U);
+    ASSERT_EQ(nodeToSeqNumMap.at(primaryNode), k_PRIMARY_SEQ_NUM);
+    ASSERT_EQ(storageManager.partitionHealthState(k_PARTITION_ID),
+              mqbc::PartitionFSM::State::e_REPLICA_HEALING_STG2);
+
+    // Receives ReplicaDataRequestPULL from the primary node.
+    bmqp_ctrlmsg::ControlMessage dataMessage;
+    dataMessage.rId() = k_PRIMARY_REQUEST_ID + 1;
+    bmqp_ctrlmsg::ReplicaDataRequest& replicaDataRequest =
+        message.choice()
+            .makeClusterMessage()
+            .choice()
+            .makePartitionMessage()
+            .choice()
+            .makeReplicaDataRequest();
+
+    replicaDataRequest.replicaDataType() =
+        bmqp_ctrlmsg::ReplicaDataType::E_PULL;
+    replicaDataRequest.partitionId()         = k_PARTITION_ID;
+    replicaDataRequest.beginSequenceNumber() = k_PRIMARY_SEQ_NUM;
+    replicaDataRequest.endSequenceNumber()   = selfSeqNum;
+
+    storageManager.processReplicaDataRequestPull(message, primaryNode);
+
+    BSLS_ASSERT_OPT(fs.primaryLeaseId() == selfSeqNum.primaryLeaseId());
+    BSLS_ASSERT_OPT(fs.sequenceNumber() == selfSeqNum.sequenceNumber());
+
+    // Verify that Replica sends data chunks followed by ReplicaDataRspnPull.
+    helper.verifyReplicaSendsDataChunksAndReplicaDataRspnPull(
+        primaryNodeId,
+        k_PRIMARY_SEQ_NUM,
+        selfSeqNum);
+
+    // Stop the cluster
+    storageManager.stop();
+    helper.d_cluster_mp->stop();
+}
+
+static void test18_primaryHealingStage1SelfHighestSendsDataChunks()
+// ------------------------------------------------------------------------
+// BREATHING TEST
+//
+// Concerns:
+//   Ensure primary node sends data chunks to replicas if it has the
+//   highest sequence number.
+//
+// Plan:
+//  1) Create a StorageManager on the stack
+//  2) Invoke start.
+//  3) Transition to Primary healing stage 1 and collect sequence numbers.
+//  4) Receive ReplicaStateRspns from replica nodes.
+//  5) Transition to Primary healing stage 2, and self has highest seq num.
+//  6) Verify that self sends ReplicaDataRqstPush to outdated replicas.
+//  7) Verify that self sends data chunks to outdated replicas.
+//  8) Invoke stop.
+//
+// Testing:
+//   Basic functionality.
+// ------------------------------------------------------------------------
+{
+    mwctst::TestHelper::printTestName("BREATHING TEST - "
+                                      "PRIMARY HEALING STAGE 1 SELF HIGHEST"
+                                      " SENDS DATA CHUNKS");
+
+    TestHelper helper;
+
+    bmqp_ctrlmsg::PartitionSequenceNumber    selfSeqNum;
+    bsl::vector<mqbs::DataStoreRecordHandle> handles;
+    handles.resize(1);
+    // TODO fix mqbs::DataStoreRecordHandle handle;
+    helper.initializeRecords(&handles[0], 10, &selfSeqNum);
+
+    mqbc::StorageManager storageManager(
+        helper.d_cluster_mp->_clusterDefinition(),
+        helper.d_cluster_mp.get(),
+        helper.d_cluster_mp->_clusterData(),
+        helper.d_cluster_mp->_state(),
+        helper.d_cluster_mp->_clusterData()->domainFactory(),
+        &helper.d_fsmObserver,
+        helper.d_cluster_mp->dispatcher(),
+        k_WATCHDOG_TIMEOUT_DURATION,
+        mockOnRecoveryStatus,
+        s_allocator_p);
+
+    mwcu::MemOutStream errorDescription;
+
+    static const int k_PARTITION_ID = 1;
+
+    const int rc = storageManager.start(errorDescription);
+    BSLS_ASSERT_OPT(rc == 0);
+
+    mqbs::FileStore& fs = storageManager.fileStore(k_PARTITION_ID);
+    fs.setIgnoreCrc32c(true);
+
+    BSLS_ASSERT_OPT(storageManager.partitionHealthState(k_PARTITION_ID) ==
+                    mqbc::PartitionFSM::State::e_UNKNOWN);
+
+    const int selfNodeId = helper.d_cluster_mp->_clusterData()
+                               ->membership()
+                               .netCluster()
+                               ->selfNodeId();
+
+    mqbnet::ClusterNode* selfNode = helper.d_cluster_mp->_clusterData()
+                                        ->membership()
+                                        .netCluster()
+                                        ->lookupNode(selfNodeId);
+
+    storageManager.processPrimaryDetect(k_PARTITION_ID,
+                                        selfNode,
+                                        1);  // primaryLeaseId
+
+    BSLS_ASSERT_OPT(storageManager.partitionHealthState(k_PARTITION_ID) ==
+                    mqbc::PartitionFSM::State::e_PRIMARY_HEALING_STG1);
+
+    ReqIdToNodeIdMap reqIdToNodeIdMap;
+    helper.verifyPrimarySendsReplicaStateRqst(k_PARTITION_ID,
+                                              selfNodeId,
+                                              selfSeqNum,
+                                              &reqIdToNodeIdMap);
+    helper.clearChannels();
+
+    const mqbc::StorageUtil::NodeToSeqNumMap& nodeToSeqNumMap =
+        storageManager.nodeToSeqNumMap(k_PARTITION_ID);
+
+    BSLS_ASSERT_OPT(nodeToSeqNumMap.size() == 1);
+
+    // Receives ReplicaStateResponse from replica nodes.
+    static const int             k_REQUEST_ID = 1;
+    bmqp_ctrlmsg::ControlMessage message;
+    message.rId() = k_REQUEST_ID;
+    bmqp_ctrlmsg::ReplicaStateResponse& replicaStateResponse =
+        message.choice()
+            .makeClusterMessage()
+            .choice()
+            .makePartitionMessage()
+            .choice()
+            .makeReplicaStateResponse();
+
+    bmqp_ctrlmsg::PartitionSequenceNumber k_REPLICA_SEQ_NUM_1;
+    k_REPLICA_SEQ_NUM_1.primaryLeaseId()  = 1U;
+    k_REPLICA_SEQ_NUM_1.sequenceNumber()  = 3U;
+    replicaStateResponse.partitionId()    = k_PARTITION_ID;
+    replicaStateResponse.sequenceNumber() = k_REPLICA_SEQ_NUM_1;
+
+    helper.d_cluster_mp->requestManager().processResponse(message);
+
+    bmqp_ctrlmsg::PartitionSequenceNumber k_REPLICA_SEQ_NUM_2;
+    k_REPLICA_SEQ_NUM_2.primaryLeaseId()  = 1U;
+    k_REPLICA_SEQ_NUM_2.sequenceNumber()  = 5U;
+    message.rId()                         = k_REQUEST_ID + 1;
+    replicaStateResponse.sequenceNumber() = k_REPLICA_SEQ_NUM_2;
+    helper.d_cluster_mp->requestManager().processResponse(message);
+
+    message.rId()                         = k_REQUEST_ID + 2;
+    replicaStateResponse.sequenceNumber() = selfSeqNum;
+    helper.d_cluster_mp->requestManager().processResponse(message);
+
+    BSLS_ASSERT_OPT(storageManager.nodeToSeqNumMap(k_PARTITION_ID).size() ==
+                    4U);
+    BSLS_ASSERT_OPT(storageManager.partitionHealthState(k_PARTITION_ID) ==
+                    mqbc::PartitionFSM::State::e_PRIMARY_HEALING_STG2);
+
+    BSLS_ASSERT_OPT(fs.primaryLeaseId() == selfSeqNum.primaryLeaseId());
+    BSLS_ASSERT_OPT(fs.sequenceNumber() == selfSeqNum.sequenceNumber());
+
+    const NodeSeqNumPair& highestSeqNumNode =
+        helper.getHighestSeqNumNodeDetails(
+            storageManager.nodeToSeqNumMap(k_PARTITION_ID));
+
+    BSLS_ASSERT_OPT(highestSeqNumNode.second.sequenceNumber() == 12U);
+
+    NodeIdToSeqNumMap outdatedReplicas;
+    outdatedReplicas.insert(
+        bsl::make_pair(reqIdToNodeIdMap.at(1), k_REPLICA_SEQ_NUM_1));
+    outdatedReplicas.insert(
+        bsl::make_pair(reqIdToNodeIdMap.at(2), k_REPLICA_SEQ_NUM_2));
+
+    // Verify that self sends ReplicaDataRqstPush and data chunks to outdated
+    // replicas.
+    helper.verifyPrimarySendsReplicaDataRqstPush(k_PARTITION_ID,
+                                                 outdatedReplicas,
+                                                 selfSeqNum);
+
+    helper.verifyPrimarySendsDataChunks(selfSeqNum, outdatedReplicas);
+
+    // Stop the cluster
+    storageManager.stop();
+    helper.d_cluster_mp->stop();
+}
+
+// ============================================================================
+//                                 MAIN PROGRAM
+// ----------------------------------------------------------------------------
+
+int main(int argc, char* argv[])
+{
+    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+
+    bmqp::ProtocolUtil::initialize(s_allocator_p);
+    bmqt::UriParser::initialize(s_allocator_p);
+
+    switch (_testCase) {
+    case 0:
+        //      case 23:
+        //      test23_primaryHealingStage2SendsReplicaDataRqstPushDrop();
+        //      break; case 22: test22_replicaHealingStage2DetectSelfPrimary();
+        //      break; case 21:
+        //      test21_replicaHealingStage2ReceivesReplicaDataRqstDrop();
+        //      break; case 20:
+        //      test20_replicaHealingStage2ReceivesReplicaDataRqstPush();
+        //      break; case 19: test19_primaryHealedSendsDataChunks(); break;
+    case 18: test18_primaryHealingStage1SelfHighestSendsDataChunks(); break;
+    case 17: test17_replicaHealingStage2ReceivesReplicaDataRqstPull(); break;
+    case 16: test16_replicaHealingStage1ReceivesPrimaryStateRqst(); break;
+    case 15:
+        test15_replicaHealingStage1ReceivesFailedPrimaryStateRspn();
+        break;
+    case 14: test14_replicaHealingStage1ReceivesPrimaryStateRspn(); break;
+    case 13: test13_replicaHealingStage1ReceivesReplicaStateRqst(); break;
+    case 12: test12_replicaHealingStage1DetectSelfPrimary(); break;
+    case 11: test11_primaryHealingStage2DetectSelfReplica(); break;
+    case 10:
+        test10_primaryHealingStage1QuorumSendsReplicaDataRequestPull();
+        break;
+    case 9:
+        test9_primaryHealingStage1ReceivesReplicaStateRspnNoQuorum();
+        break;
+    case 8: test8_primaryHealingStage1ReceivesPrimaryStateRqst(); break;
+    case 7:
+        test7_primaryHealingStage1ReceivesPrimaryStateRequestQuorum();
+        break;
+    case 6: test6_primaryHealingStage1ReceivesReplicaStateRspnQuorum(); break;
+    case 5: test5_primaryHealingStage1ReceivesReplicaStateRqst(); break;
+    case 4: test4_primaryHealingStage1DetectSelfReplica(); break;
+    case 3: test3_unknownDetectSelfReplica(); break;
+    case 2: test2_unknownDetectSelfPrimary(); break;
+    case 1: test1_breathingTest(); break;
+    default: {
+        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
+        s_testStatus = -1;
+    } break;
+    }
+
+    bmqp::ProtocolUtil::shutdown();
+    bmqt::UriParser::shutdown();
+
+    TEST_EPILOG(mwctst::TestHelper::e_CHECK_GBL_ALLOC);
+    // Can't ensure no default memory is allocated because
+    // 'bdlmt::EventSchedulerTestTimeSource' inside 'mqbmock::Cluster' uses
+    // the default allocator in its constructor.
+}

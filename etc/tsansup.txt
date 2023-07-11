@@ -1,0 +1,34 @@
+# ThreadSanitizer suppressions file for BMQ
+
+# There's a lengthy comment in ObjectPool::getObject that explains why this
+# isn't a race.  I'm not smart enough to figure out if it's right, but I'll
+# assume it's right
+race:BloombergLP::bdlcc::ObjectPool<*>::getObject
+race:BloombergLP::bdlcc::ObjectPool<*>::releaseObject
+race:BloombergLP::bdlma::ConcurrentPool::deallocate
+race:BloombergLP::bdlma::ConcurrentPool::allocate
+
+# Similar to above, there is a lengthy comment in bcema_Pool::allocate which
+# attempts to explain why there is no race.
+race:BloombergLP::bcema_Pool<*>::allocate
+
+# Not sure what the problem is here, but tsan can't show the other stack, so
+# there's nothing to look into
+race:__tsan_atomic32_fetch_add
+
+# Don't warn about using cout from multiple threads
+race:std::basic_ostream<char, *>& bsl::operator<< <*>(std::basic_ostream<*>&, bsl::basic_string<*> const&)
+
+# Looks like ball::LoggerManager uses a plain ptr to store its singleton, and
+# it makes tsan warn in some cases
+race:BloombergLP::ball::LoggerManager::isInitialized()
+
+# Suppress TSan report in a routine used in bmqimp::Brokersession test driver.
+# It is a benign race in the test driver, but should be looked into at some
+# point.
+race:TestSession::waitForChannelClose
+
+# Since we use mqbmock::Dispatcher in unit tests, this method does not get
+# enqueued correctly back to cluster-dispatcher thread, causing potential
+# data race.
+race:BloombergLP::mqbc::ClusterStateManager::onWatchDogDispatched()

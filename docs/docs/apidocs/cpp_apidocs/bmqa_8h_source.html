@@ -1,0 +1,74 @@
+<!doctype HTML public "-//W3C//DTD HTML 4.0 Frameset//EN">
+<html>
+<title>Bloomberg Development Environment</title>
+<html>
+<pre>
+ bmqa.txt
+
+@PURPOSE: Provide applications public API for the BlazingMQ SDK.
+
+@MNEMONIC: BlazingMQ API (bmqa)
+
+@DESCRIPTION: The &#39;bmqa&#39; package provides the public API of the BlazingMQ SDK
+ for applications to use.
+
+/Hierarchical Synopsis
+/---------------------
+The &#39;bmqa&#39; package currently has 8 components having 6 levels of physical
+dependency.  The list below shows the hierarchical ordering of the components.
+..
+  6. bmqa_session
+
+  5. bmqa_event
+     bmqa_messageeventbuilder
+
+  4. bmqa_messageevent
+
+  3. bmqa_messageiterator
+
+  2. bmqa_message
+     bmqa_openqueuestatus
+     bmqa_closequeuestatus
+     bmqa_configurequeuestatus
+     bmqa_sessionevent
+
+  1. bmqa_queueid
+..
+
+/Component Synopsis
+/------------------
+: &#39;bmqa_event&#39;:
+:      Provide a generic variant encompassing all types of events.
+:
+: &#39;bmqa_message&#39;:
+:      Provide the application with a message data object.
+:
+: &#39;bmqa_messageevent&#39;:
+:      Provide the application with data event notifications.
+:
+: &#39;bmqa_messageeventbuilder&#39;:
+:      Provide a builder for &#39;MessageEvent&#39; objects.
+:
+: &#39;bmqa_messageiterator&#39;:
+:      Provide a mechanism to iterate over the messages of a MessageEvent.
+:
+: &#39;bmqa_openqueuestatus&#39;:
+:      Provide value-semantic type for an open queue operation
+:
+: &#39;bmqa_closequeuestatus&#39;:
+:      Provide value-semantic type for a close queue operation
+:
+: &#39;bmqa_configurequeuestatus&#39;:
+:      Provide value-semantic type for a configure queue operation
+:
+: &#39;bmqa_queueid&#39;:
+:      Provide a value-semantic efficient identifier for a queue.
+:
+: &#39;bmqa_session&#39;:
+:      Provide access to the BlazingMQ broker.
+:
+: &#39;bmqa_sessionevent&#39;:
+:      Provide value-semantic type for system event session notifications.
+</pre>
+</body>
+</html>

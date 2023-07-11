@@ -1,0 +1,22 @@
+    mqbi.txt
+
+@PURPOSE: Provide Protocol Interfaces.
+
+@MNEMONIC: BlazingMQ Interfaces (mqbi)
+
+@DESCRIPTION: This package provides interfaces for Broker components and
+Pluggable modules to enhance the bmqbrkr.
+
+
+/Hierarchical Synopsis
+/---------------------
+The 'mqbi' package currently has 1 component having 1 level of physical
+dependency.  The list below shows the hierarchical ordering of the components.
+..
+  1. mqbi_storage
+..
+
+/Component Synopsis
+/------------------
+: 'mqbi_storage':
+:      Provide

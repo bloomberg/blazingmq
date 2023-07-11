@@ -1,0 +1,23 @@
+mqb.txt
+
+@PURPOSE: BlazingMQ Broker
+
+@MNEMONIC: BlazingMQ Broker (mbm)
+
+@DESCRIPTION: BlazingMQ Broker (package group 'mqb') is a message-qeue
+framework allowing application developers to use reliable distributed queues.
+
+
+/Hierarchical Synopsis
+/---------------------
+'mqb' currently has 1 package forming 1 level of physical dependency.
+..
+  Level 1: mqbscm
+..
+
+/Package Synopsis
+/------------------
+The following is a brief synopsis of the content of each package in 'mqb'.
+..
+  'mqbscm' - versioning information for 'mqb' library components.
+..

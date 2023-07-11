@@ -1,0 +1,5 @@
+NOTICE
+======
+
+BlazingMQ is a trademark of Bloomberg L.P., and is an Apache 2.0 licensed
+project.  Please see the LICENSE file at the root of this repository.

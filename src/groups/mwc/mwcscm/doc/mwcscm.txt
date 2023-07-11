@@ -1,0 +1,32 @@
+ mwcscm.txt
+
+@PURPOSE: Provide versioning information for library components in 'mwc'.
+
+@MNEMONIC: MiddleWare Core Source Control Management (mwcscm)
+
+@DESCRIPTION: The 'mwcscm' package provides versioning information that is
+ incorporated into every release of the 'mwc' Package Group Library.  This
+ versioning information is in turn available to all clients of 'mwc' both at
+ run time and by inspection of appropriate .o files.  See {BP BDE_SCM <GO>} for
+ a detailed specification of the BDE source control contract that this package
+ group uses.
+
+/Hierarchical Synopsis
+/---------------------
+ The 'mwcscm' package currently has 2 components having 2 levels of physical
+ dependency.  The list below shows the hierarchical ordering of the components.
+ The order of components within each level is not architecturally significant,
+ just alphabetical.
+..
+  2. mwcscm_version
+
+  1. mwcscm_versiontag
+..
+
+/Component Synopsis
+/------------------
+: 'mwcscm_version':
+:      Provide source control management (versioning) information.
+:
+: 'mwcscm_versiontag':
+:      Provide versioning information for the 'mwc' package group.

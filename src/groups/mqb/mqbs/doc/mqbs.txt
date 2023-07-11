@@ -1,0 +1,19 @@
+    mqbs.txt
+
+@PURPOSE: Provide Storage facilities.
+
+@MNEMONIC: BlazingMQ Broker Storage (mqbs)
+
+@DESCRIPTION: This package provides interfaces and components to manipulate
+storage.
+
+
+/Hierarchical Synopsis
+/---------------------
+The 'mqbs' package currently has 0 component having 0 level of physical
+dependency.  The list below shows the hierarchical ordering of the components.
+..
+..
+
+/Component Synopsis
+/------------------

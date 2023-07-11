@@ -1,0 +1,220 @@
+<!doctype HTML public "-//W3C//DTD HTML 4.0 Frameset//EN">
+<html>
+<title>Bloomberg Development Environment</title>
+<html>
+<pre>
+// Copyright 2014-2023 Bloomberg Finance L.P.
+// SPDX-License-Identifier: Apache-2.0
+//
+// Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// bmqa_queueid.h                                                     -*-C++-*-
+#ifndef INCLUDED_BMQA_QUEUEID
+#define INCLUDED_BMQA_QUEUEID
+
+//@PURPOSE: Provide a value-semantic efficient identifier for a queue.
+//
+//@CLASSES:
+//  bmqa::QueueId: Value-semantic efficient identifier for a queue.
+//
+//@DESCRIPTION: This component implements a value-semantic class,
+// &#39;bmqa::QueueId&#39;, which can be used to efficiently identify the queue
+// associated with a message event.  A &#39;bmqa::QueueId&#39; instance can be created
+// with a 64-bit integer, raw pointer, shared pointer, or
+// &#39;bmqt::CorrelationId&#39;.
+
+// BMQ
+#include &lt;bmqscm_version.h&gt;
+#include &lt;bmqt_correlationid.h&gt;
+#include &lt;bmqt_queueoptions.h&gt;
+#include &lt;bmqt_uri.h&gt;
+
+// BDE
+#include &lt;bsl_string.h&gt;
+#include &lt;bsl_iosfwd.h&gt;
+#include &lt;bsl_memory.h&gt;
+#include &lt;bsls_types.h&gt;
+#include &lt;bslma_allocator.h&gt;
+#include &lt;bslma_usesbslmaallocator.h&gt;
+#include &lt;bslmf_nestedtraitdeclaration.h&gt;
+
+namespace BloombergLP {
+
+// FORWARD DECLARATION
+namespace bmqimp { class Queue; }
+
+namespace bmqa {
+
+
+                               // =============
+                               // class QueueId
+                               // =============
+
+class QueueId {
+    // Value-semantic efficient identifier for a queue
+
+    // FRIENDS
+    friend bool operator==(const QueueId&amp; lhs, const QueueId&amp; rhs);
+    friend bool operator!=(const QueueId&amp; lhs, const QueueId&amp; rhs);
+    friend bool operator&lt;(const QueueId&amp; lhs, const QueueId&amp; rhs);
+
+  private:
+    // DATA
+    bsl::shared_ptr&lt;bmqimp::Queue&gt; d_impl_sp; // pimpl
+
+  public:
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(QueueId, bslma::UsesBslmaAllocator)
+
+    // CREATORS
+    explicit QueueId(bslma::Allocator *allocator = 0);
+        // Default constructor.  Create a new QueueId associated with an
+        // automatically generated correlation Id, using the optionally
+        // specified &#39;allocator&#39;.
+
+    QueueId(const QueueId&amp;    other,
+            bslma::Allocator *allocator = 0);
+        // Copy constructor, create a new queueId having the same values as the
+        // specified &#39;other&#39;, and using the optionally specified &#39;allocator&#39;.
+
+    explicit QueueId(const bmqt::CorrelationId&amp;  correlationId,
+                     bslma::Allocator           *allocator = 0);
+        // Create a new QueueId associated to the correlation Id having the
+        // specified &#39;correlationId&#39; value, using the optionally specified
+        // &#39;allocator&#39;.
+
+    explicit QueueId(bsls::Types::Int64  numeric,
+                     bslma::Allocator   *allocator = 0);
+        // Create a new QueueId associated to the correlation Id having the
+        // specified &#39;numeric&#39; correlationId value, using the optionally
+        // specified &#39;allocator&#39;.
+
+    explicit QueueId(void             *pointer,
+                     bslma::Allocator *allocator = 0);
+        // Create a new QueueId associated to the correlation Id having the
+        // specified &#39;pointer&#39; correlationId value, using the optionally
+        // specified &#39;allocator&#39;.
+
+    explicit QueueId(const bsl::shared_ptr&lt;void&gt;&amp;  sharedPtr,
+                     bslma::Allocator             *allocator = 0);
+        // Create a new QueueId associated to the correlation Id having the
+        // specified &#39;sharedPtr&#39; correlationId value, using the optionally
+        // specified &#39;allocator&#39;.  The lifetime of &#39;sharedPtr&#39; is tied to this
+        // object, and it is the responsibility of the user to manage it
+        // accordingly.
+
+    // MANIPULATORS
+    QueueId&amp; operator=(const QueueId&amp; rhs);
+        // Assignment operator, from the specified &#39;rhs&#39; using the specified
+        // &#39;allocator&#39;.
+
+    // ACCESSORS
+    const bmqt::CorrelationId&amp; correlationId() const;
+        // Return the correlationId associated to this QueueId. The behavior is
+        // undefined unless this QueueId is valid.
+
+    bsls::Types::Uint64 flags() const;
+        // Return the flags used when opening this queue.
+
+    const bmqt::Uri&amp; uri() const;
+        // Return the URI associated to this QueueId. The behavior is
+        // undefined unless this QueueId is valid.
+
+    const bmqt::QueueOptions&amp; options() const;
+        // Return the options used when opening this queue.
+
+    bool isValid() const;
+        // Return whether this QueueId is valid, i.e., is associated to an
+        // opened queue.
+
+    bsl::ostream&amp; print(bsl::ostream&amp; stream,
+                        int           level          = 0,
+                        int           spacesPerLevel = 4) const;
+        // Format this object to the specified output &#39;stream&#39; at the (absolute
+        // value of) the optionally specified indentation &#39;level&#39; and return a
+        // reference to &#39;stream&#39;.  If &#39;level&#39; is specified, optionally specify
+        // &#39;spacesPerLevel&#39;, the number of spaces per indentation level for
+        // this and all of its nested objects.  If &#39;level&#39; is negative,
+        // suppress indentation of the first line.  If &#39;spacesPerLevel&#39; is
+        // negative format the entire output on one line, suppressing all but
+        // the initial indentation (as governed by &#39;level&#39;).  If &#39;stream&#39; is
+        // not valid on entry, this operation has no effect.
+};
+
+// FREE OPERATORS
+bsl::ostream&amp; operator&lt;&lt;(bsl::ostream&amp; stream, const QueueId&amp; rhs);
+    // Format the specified &#39;rhs&#39; to the specified output &#39;stream&#39; and return a
+    // reference to the modifiable &#39;stream&#39;.
+
+bool operator==(const QueueId&amp; lhs, const QueueId&amp; rhs);
+    // Return &#39;true&#39; if &#39;rhs&#39; object contains the value of the same type as
+    // contained in &#39;lhs&#39; object and the value itself is the same in both
+    // objects, return false otherwise.
+
+bool operator!=(const QueueId&amp; lhs, const QueueId&amp; rhs);
+    // Return &#39;false&#39; if &#39;rhs&#39; object contains the value of the same type as
+    // contained in &#39;lhs&#39; object and the value itself is the same in both
+    // objects, return &#39;true&#39; otherwise.
+
+bool operator&lt;(const QueueId&amp; lhs, const QueueId&amp; rhs);
+    // Operator used to allow comparison between the specified &#39;lhs&#39; and &#39;rhs&#39;
+    // CorrelationId objects so that CorrelationId can be used as key in a map.
+
+}  // close package namespace
+
+// ============================================================================
+//                             INLINE DEFINITIONS
+// ============================================================================
+
+                               // -------------
+                               // class QueueId
+                               // -------------
+
+inline
+bsl::ostream&amp;
+bmqa::operator&lt;&lt;(bsl::ostream&amp;        stream,
+                 const bmqa::QueueId&amp; rhs)
+{
+    return rhs.print(stream, 0, -1);
+}
+
+inline
+bool
+bmqa::operator==(const bmqa::QueueId&amp; lhs,
+                 const bmqa::QueueId&amp; rhs)
+{
+    return rhs.d_impl_sp.get() == lhs.d_impl_sp.get();
+}
+
+inline
+bool
+bmqa::operator!=(const bmqa::QueueId&amp; lhs,
+                 const bmqa::QueueId&amp; rhs)
+{
+    return rhs.d_impl_sp.get() != lhs.d_impl_sp.get();
+}
+
+inline
+bool
+bmqa::operator&lt;(const bmqa::QueueId&amp; lhs,
+                const bmqa::QueueId&amp; rhs)
+{
+    return rhs.d_impl_sp.get() &lt; lhs.d_impl_sp.get();
+}
+
+}  // close enterprise namespace
+
+#endif
+</pre>
+</body>
+</html>

@@ -1,0 +1,467 @@
+// Copyright 2021-2023 Bloomberg Finance L.P.
+// SPDX-License-Identifier: Apache-2.0
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// mqbc_recoverymanager.h                                             -*-C++-*-
+#ifndef INCLUDED_MQBC_RECOVERYMANAGER
+#define INCLUDED_MQBC_RECOVERYMANAGER
+
+//@PURPOSE: Provide a mechanism to manage storage recovery in a cluster node.
+//
+//@CLASSES:
+//  mqbc::RecoveryManager: Mechanism to manage recovery in a cluster node.
+//
+//@DESCRIPTION: 'mqbc::RecoveryManager' provides a mechanism to manage
+// storage recovery in a cluster node.
+
+// MQB
+
+#include <mqbc_clusterdata.h>
+#include <mqbcfg_messages.h>
+#include <mqbnet_cluster.h>
+#include <mqbs_datastore.h>
+#include <mqbs_filestore.h>
+#include <mqbs_filestoreset.h>
+#include <mqbs_mappedfiledescriptor.h>
+
+// BMQ
+#include <bmqp_ctrlmsg_messages.h>
+#include <bmqp_protocol.h>
+#include <bmqp_requestmanager.h>
+
+// BDE
+#include <ball_log.h>
+#include <bdlbb_blob.h>
+#include <bsl_memory.h>
+#include <bsl_ostream.h>
+#include <bsl_vector.h>
+#include <bslma_allocator.h>
+#include <bslma_usesbslmaallocator.h>
+#include <bslmf_nestedtraitdeclaration.h>
+#include <bsls_assert.h>
+#include <bsls_atomic.h>
+#include <bsls_types.h>
+
+namespace BloombergLP {
+
+namespace mqbc {
+// =====================
+// class RecoveryManager
+// =====================
+
+/// This component provides a mechanism to manage storage recovery in a
+/// cluster node.
+class RecoveryManager {
+    // ==================
+    // class ChunkDeleter
+    // ==================
+
+    /// Private class.  Implementation detail of `mqbc::RecoveryManager`.
+    /// This class provides a custom deleter for a chunk of file aliasing to
+    /// the mapped region.
+    class ChunkDeleter {
+      private:
+        // DATA
+        bsl::shared_ptr<mqbs::MappedFileDescriptor> d_mfd_sp;
+        bsl::shared_ptr<bsls::AtomicInt>            d_counter_sp;
+
+      public:
+        // CREATORS
+
+        /// Create a chunk deleter object with the specified `mfd` mapped
+        /// file descriptor and specified `counter`.  Increment `counter`.
+        explicit ChunkDeleter(
+            const bsl::shared_ptr<mqbs::MappedFileDescriptor>& mfd,
+            const bsl::shared_ptr<bsls::AtomicInt>&            counter);
+
+        // ACCESSORS
+
+        /// Functor which will close the underlying mapped file descriptor
+        /// owned by this chunk deleter object, if decrementing the
+        /// underlying counter makes it reach 0.
+        void operator()(const void* ptr = 0) const;
+    };
+
+    // ========================
+    // class ReceiveDataContext
+    // ========================
+
+    /// Private class.  Implementation detail of `mqbc::RecoveryManager`.
+    /// This class contains important information to keep track of when
+    /// receiving data chunks from an up-to-date node during recovery, such
+    /// as the recovery data source, range of sequence numbers to recover,
+    /// current sequence number offset, and mapped journal/data fds.
+    class ReceiveDataContext {
+      public:
+        // TYPES
+        typedef bsl::vector<bsl::shared_ptr<bdlbb::Blob> > StorageEvents;
+
+      public:
+        // DATA
+        mqbnet::ClusterNode* d_liveDataSource_p;
+        // Peer node from which we are
+        // receiving live data.
+
+        mqbnet::ClusterNode* d_recoveryDataSource_p;
+        // Peer node from which we are
+        // receiving recovery data.
+
+        bool d_expectChunks;
+        // Whether self is expecting
+        // recovery data chunks.
+
+        int d_recoveryRequestId;
+        // Id of the
+        // ReplicaDataRequest which
+        // signals the expectation of
+        // recovery data chunks.  This
+        // value is only meaningful if
+        // we are a replica receiving
+        // data from the primary.
+
+        bmqp_ctrlmsg::PartitionSequenceNumber d_beginSeqNum;
+        // Beginning sequence number
+        // of recovery data chunks.
+        // Note that self already
+        // contains message with this
+        // sequence number.  The first
+        // recovery data chunk is
+        // expected to have sequence
+        // number 'd_beginSeqNum + 1'.
+
+        bmqp_ctrlmsg::PartitionSequenceNumber d_endSeqNum;
+        // Expected ending sequence
+        // number of recovery data
+        // chunks.
+
+        bmqp_ctrlmsg::PartitionSequenceNumber d_currSeqNum;
+        // Self's current sequence
+        // number.
+
+        mqbs::MappedFileDescriptor d_mappedJournalFd;
+        // Journal file descriptor to
+        // use for recovery.
+
+        bsls::Types::Uint64 d_journalFilePosition;
+        // Write offset of the journal
+        // file.
+
+        mqbs::MappedFileDescriptor d_mappedDataFd;
+        // Data file descriptor to use
+        // for recovery.
+
+        bsls::Types::Uint64 d_dataFilePosition;
+        // Write offset of the data
+        // file.
+
+        mqbs::FileStoreSet d_recoveryFileSet;
+        // Recovery file set.
+
+        StorageEvents d_bufferedEvents;
+        // List of storage events which
+        // are buffered while recovery
+        // is in progress.  Once
+        // recovery is complete, these
+        // events are applied to bring
+        // the node up-to-date with
+        // this partition.
+
+      public:
+        // TRAITS
+        BSLMF_NESTED_TRAIT_DECLARATION(ReceiveDataContext,
+                                       bslma::UsesBslmaAllocator)
+
+        // CREATORS
+
+        /// Create a default `ReceiveDataContext` object, using the
+        /// specified `basicAllocator` for memory allocations.
+        ReceiveDataContext(bslma::Allocator* basicAllocator = 0);
+
+        /// Create a `ReceiveDataContext` object copying the specified
+        /// `other`, using the specified `basicAllocator` for memory
+        /// allocations.
+        ReceiveDataContext(const ReceiveDataContext& other,
+                           bslma::Allocator*         basicAllocator = 0);
+
+        // MANIPULATORS
+
+        /// Reset the members of this object.
+        void reset();
+    };
+
+  private:
+    // CLASS-SCOPE CATEGORY
+    BALL_LOG_SET_CLASS_CATEGORY("MQBC.RECOVERYMANAGER");
+
+  private:
+    // PRIVATE TYPES
+
+    /// Callback provided by mqbc::StorageManager to this component to
+    /// indicate the status of sendDataChunks to the specified `destination`
+    /// i.e. peer to which current node is sending data for the specified
+    /// `partitionId`. The status is as per the specified `status`.
+    typedef bsl::function<
+        void(int partitionId, mqbnet::ClusterNode* destination, int status)>
+        PartitionDoneSendDataChunksCb;
+
+    typedef bsl::vector<ReceiveDataContext> ReceiveDataContextVec;
+    // Vector per partition of
+    // ReceiveDataContext.
+
+    // This callback is only used when the self node is a replica.
+    bsl::function<
+        void(int partitionId, mqbnet::ClusterNode* destination, int status)>
+        PartitionDoneRcvDataChunksCb;
+
+  private:
+    // DATA
+    bslma::Allocator* d_allocator_p;
+    // Allocator to use
+
+    const mqbcfg::ClusterDefinition& d_clusterConfig;
+    // Cluster configuration to use
+
+    mqbs::DataStoreConfig d_dataStoreConfig;
+    // Configuration for file store to use
+
+    mqbc::ClusterData* d_clusterData_p;
+    // Associated non-persistent cluster
+    // data for this node
+
+    ReceiveDataContextVec d_receiveDataContextVec;
+    // Vector per partition which maintains
+    // information about
+    // ReceiveDataContext.
+
+  private:
+    // NOT IMPLEMENTED
+    RecoveryManager(const RecoveryManager&) BSLS_KEYWORD_DELETED;
+    RecoveryManager& operator=(const RecoveryManager&) BSLS_KEYWORD_DELETED;
+
+  public:
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(RecoveryManager, bslma::UsesBslmaAllocator)
+
+    // CREATORS
+
+    /// Create a `RecoveryManager` object with the specified
+    /// `clusterConfig`, `dataStoreConfig`, `clusterData`. Use the specified
+    /// `allocator` for any memory allocation.
+    RecoveryManager(const mqbcfg::ClusterDefinition& clusterConfig,
+                    mqbc::ClusterData*               clusterData,
+                    const mqbs::DataStoreConfig&     dataStoreConfig,
+                    bslma::Allocator*                allocator);
+
+    /// Destroy this object.
+    ~RecoveryManager();
+
+    // MANIPULATORS
+
+    /// Start the component. Incase of errors, use the specified
+    /// `errorDescription`.
+    int start(bsl::ostream& errorDescription);
+
+    /// Stop the component which includes cleanup of any asynchronous
+    /// uncompleted events.
+    void stop();
+
+    /// Deprecate the active file set of the specified `partitionId`, called
+    /// when self's storage is out of sync with primary and cannot be healed
+    /// trivially.
+    ///
+    /// THREAD: Executed in the dispatcher thread associated with the
+    /// specified `partitionId`.
+    void deprecateFileSet(int partitionId);
+
+    /// Set the expected receive data chunk range for the specified
+    /// `partitionId` to be from the specified `source` from the specified
+    /// `beginSeqNum` to the specified `endSeqNum`, based on information
+    /// from the optionally specified `requestId`.  Return 0 on success and
+    /// non-zero error code on error.
+    ///
+    /// THREAD: Executed in the dispatcher thread associated with the
+    /// specified `partitionId`.
+    int setExpectedDataChunkRange(
+        int                                          partitionId,
+        mqbnet::ClusterNode*                         source,
+        const bmqp_ctrlmsg::PartitionSequenceNumber& beginSeqNum,
+        const bmqp_ctrlmsg::PartitionSequenceNumber& endSeqNum,
+        int                                          requestId = -1);
+
+    /// Reset the receive data context for the specified `partitionId.`
+    void resetReceiveDataCtx(int partitionId);
+
+    /// Send data chunks for the specified `partitionId` to the specified
+    /// `destination` starting from specified `beginSeqNum` upto specified
+    /// `endSeqNum` using data from specified `fs`. Send the status of this
+    /// operation back to the caller using the specified `doneDataChunksCb`.
+    /// Note, we mmap the files for every call to this function. Return 0 on
+    /// success and non-zero otherwise.
+    ///
+    /// THREAD: Executed in the dispatcher thread associated with the
+    /// specified `partitionId`.
+    int processSendDataChunks(
+        int                                          partitionId,
+        mqbnet::ClusterNode*                         destination,
+        const bmqp_ctrlmsg::PartitionSequenceNumber& beginSeqNum,
+        const bmqp_ctrlmsg::PartitionSequenceNumber& endSeqNum,
+        const mqbs::FileStore&                       fs,
+        PartitionDoneSendDataChunksCb                doneDataChunksCb);
+
+    /// Process the recovery data chunks contained in the specified `blob`
+    /// sent by the specified `source` for the specified `partitionId`.
+    /// Forward the processing to the specified `fs` if `fs` is open.
+    /// Return 0 on success and non-zero code on error.
+    ///
+    /// THREAD: Executed in the dispatcher thread associated with the
+    /// specified `partitionId`.
+    int processReceiveDataChunks(const bsl::shared_ptr<bdlbb::Blob>& blob,
+                                 mqbnet::ClusterNode*                source,
+                                 mqbs::FileStore*                    fs,
+                                 int partitionId);
+
+    /// Create the internal recovery file set for the specified
+    /// `partitionId`, using the specified `fs`.  Return 0 on success, non
+    /// zero value otherwise along with populating the specified
+    /// `errorDescription` with a brief reason for logging purposes.
+    int createRecoveryFileSet(bsl::ostream&    errorDescription,
+                              mqbs::FileStore* fs,
+                              int              partitionId);
+
+    /// Retrieve the appropriate journal fd + position, data fd + position,
+    /// and recovery file set belonging to the specified `partitionId`.
+    /// Return 0 on success, non zero value otherwise along with populating
+    /// the specified `errorDescription` with a brief reason for logging
+    /// purposes.  Note that a return value of `1` is special and indicates
+    /// that no recovery file set is found.
+    int openRecoveryFileSet(bsl::ostream& errorDescription, int partitionId);
+
+    /// Recover latest sequence number from storage for the specified
+    /// `partitionId` and populate the output in the specified `seqNum`.
+    /// Return 0 on success and non-zero otherwise.
+    int recoverSeqNum(bmqp_ctrlmsg::PartitionSequenceNumber* seqNum,
+                      int                                    partitionId);
+
+    /// Buffer the storage event for the specified `partitionId` contained
+    /// in the specified `blob` sent from the specified `source`.
+    void bufferStorageEvent(int                                 partitionId,
+                            const bsl::shared_ptr<bdlbb::Blob>& blob,
+                            mqbnet::ClusterNode*                source);
+
+    /// Load into the specified `out` all buffered storage events for the
+    /// specified `partitionId`, verifying that they are sent from the
+    /// specified `source`, then clear the buffer.  Return 0 on success and
+    /// non-zero otherwise.
+    int
+    loadBufferedStorageEvents(bsl::vector<bsl::shared_ptr<bdlbb::Blob> >* out,
+                              const mqbnet::ClusterNode* source,
+                              int                        partitionId);
+
+    // ACCESSORS
+
+    /// Return true if the specified `partitionId` is expecting data chunks,
+    /// false otherwise.
+    bool expectedDataChunks(int partitionId) const;
+
+    /// Load into the specified `out` a ReplicaDataResponsePush using
+    /// information in self's ReceiveDataContext for the specified
+    /// `partitionId`.
+    void loadReplicaDataResponsePush(bmqp_ctrlmsg::ControlMessage* out,
+                                     int partitionId) const;
+};
+
+// ============================================================================
+//                            INLINE DEFINITIONS
+// ============================================================================
+
+// ------------------
+// class ChunkDeleter
+// ------------------
+
+// CREATORS
+inline RecoveryManager::ChunkDeleter::ChunkDeleter(
+    const bsl::shared_ptr<mqbs::MappedFileDescriptor>& mfd,
+    const bsl::shared_ptr<bsls::AtomicInt>&            counter)
+: d_mfd_sp(mfd)
+, d_counter_sp(counter)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_counter_sp);
+
+    ++(*d_counter_sp);
+}
+
+// ------------------------
+// class ReceiveDataContext
+// ------------------------
+
+// CREATORS
+inline RecoveryManager::ReceiveDataContext::ReceiveDataContext(
+    bslma::Allocator* basicAllocator)
+: d_liveDataSource_p(0)
+, d_recoveryDataSource_p(0)
+, d_expectChunks(false)
+, d_recoveryRequestId(-1)
+, d_beginSeqNum()
+, d_endSeqNum()
+, d_currSeqNum()
+, d_mappedJournalFd()
+, d_journalFilePosition(0)
+, d_mappedDataFd()
+, d_dataFilePosition(0)
+, d_recoveryFileSet(basicAllocator)
+, d_bufferedEvents(basicAllocator)
+{
+    // NOTHING
+}
+
+inline RecoveryManager::ReceiveDataContext::ReceiveDataContext(
+    const ReceiveDataContext& other,
+    bslma::Allocator*         basicAllocator)
+: d_liveDataSource_p(other.d_liveDataSource_p)
+, d_recoveryDataSource_p(other.d_recoveryDataSource_p)
+, d_expectChunks(other.d_expectChunks)
+, d_recoveryRequestId(other.d_recoveryRequestId)
+, d_beginSeqNum(other.d_beginSeqNum)
+, d_endSeqNum(other.d_endSeqNum)
+, d_currSeqNum(other.d_currSeqNum)
+, d_mappedJournalFd(other.d_mappedJournalFd)
+, d_journalFilePosition(other.d_journalFilePosition)
+, d_mappedDataFd(other.d_mappedDataFd)
+, d_dataFilePosition(other.d_dataFilePosition)
+, d_recoveryFileSet(other.d_recoveryFileSet, basicAllocator)
+, d_bufferedEvents(other.d_bufferedEvents, basicAllocator)
+{
+    // NOTHING
+}
+
+// ---------------------
+// class RecoveryManager
+// ---------------------
+
+// ACCESSORS
+inline bool RecoveryManager::expectedDataChunks(int partitionId) const
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(partitionId >= 0 &&
+                     partitionId <
+                         d_clusterConfig.partitionConfig().numPartitions());
+
+    return d_receiveDataContextVec[partitionId].d_expectChunks;
+}
+
+}  // close package namespace
+}  // close enterprise namespace
+
+#endif

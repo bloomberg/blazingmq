@@ -1,0 +1,1541 @@
+<!doctype HTML public "-//W3C//DTD HTML 4.0 Frameset//EN">
+<html>
+<title>Bloomberg Development Environment</title>
+<html>
+<pre>
+// Copyright 2016-2023 Bloomberg Finance L.P.
+// SPDX-License-Identifier: Apache-2.0
+//
+// Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// bmqa_mocksession.h                                                 -*-C++-*-
+#ifndef INCLUDED_BMQA_MOCKSESSION
+#define INCLUDED_BMQA_MOCKSESSION
+
+//@PURPOSE: Provide a mock session, implementing &#39;bmqa::AbstractSession&#39;.
+//
+//@CLASSES:
+//  bmqa::MockSession:     mechanism to mock a &#39;bmqa::Session&#39;
+//  bmqa::MockSessionUtil: utility methods to create &#39;bmqa&#39; events
+//
+//@DESCRIPTION: This component provides a mechanism implementing the
+// &#39;bmqa::AbstractSession&#39; protocol, for mocking a &#39;bmqa::Session&#39; and can be
+// used to write a test for an application that uses BMQ.  The
+// &#39;bmqa::MockSession&#39; provides all the methods that &#39;Session&#39; provides, with
+// added methods to specify return codes and emitted events and expected calls.
+// This can be used to test BlazingMQ application code without a connection to
+// the broker.  &#39;bmqa::MockSessionUtil&#39; is a utility namespace providing useful
+// methods to build &#39;bmqa::Event&#39; objects that are typically only emitted from
+// the broker.
+//
+// The following documentation elucidates the API that this component provides
+// and some simple use cases to get you started.
+//
+//
+///Disclaimer
+///----------
+// THIS COMPONENT SHOULD ONLY BE USED IN TEST DRIVERS.  IT WILL NOT WORK WITH
+// PRODUCTION CODE.
+//
+//
+///Usable Components
+///-----------------
+//: o !BMQA_EXPECT_CALL!: Macro to specify an expected call to a
+//:                       &#39;bmqa::MockSession&#39; object. This macro is used to
+//:                       specify which is the next expected call on the
+//:                       &#39;bmqa::MockSession&#39;.  If an incorrect call is invoked
+//:                       or incorrect parameters are used, an assert will be
+//:                       invoked.
+//
+//: o !returning!       : Specify a return value for the expected call.  This
+//:                       is the value that will be returned when the method on
+//:                       &#39;bmqa::MockSession&#39; is invoked.
+//
+//: o !emitting!        : Specify an event to be &#39;emitted&#39; when the expected
+//:                       call is invoked.  The events specified are enqueued
+//:                       to the internal event queue and are delivered to the
+//:                       application when &#39;emitEvent&#39; is invoked.
+//
+///Static Helper Methods
+///---------------------
+//: o !createAckEvent!            : Create an acknowledgment message event for
+//:                                 messages posted to BMQ.
+//
+//: o !createPushEvent!           : Create a push message event for messages to
+//:                                 be consumed from BMQ.
+//
+//: o !createOpenQueueStatus!     : Create an openQueue result (relating to an
+//:                                 async open queue operation)
+//
+//: o !createConfigureQueueStatus!: Create a configureQueue result (relating to
+//:                                 an async configure queue operation)
+//
+//: o !createCloseQueueStatus!    : Create a closeQueue result (relating to an
+//:                                 async close queue operation)
+//
+//: o !createSessionEvent!        : Create a specified type of session event
+//:                                 except for events related to open, close
+//:                                 and configure queue.
+//
+// The static event builder specified above are typically built inside the
+// broker but are now available to be built in the SDK.  The expected use of
+// such events is to build them and specify them to either the
+// &#39;BMQA_EXPECT_CALL&#39; macro in the &#39;emitting&#39; parameter, or enqueued to the
+// &#39;bmqa::MockSession&#39; directly through the &#39;enqueueEvent&#39; method.  They can
+// then be emitted by invoking the &#39;emitEvent&#39; method, which in turn would be
+// processed through the application-provided &#39;bmqa::SessionEventHandler&#39;.
+//
+///Additional Note
+///---------------
+// &#39;MockSession&#39; does not check if methods have been invoked in the correct
+// order.  The user is responsible for ensuring that the methods are invoked
+// and events enqueued in the correct order.
+//
+// The following methods do not emit events:
+//: o &#39;getQueueId&#39;
+//: o &#39;loadMessageEventBuilder&#39;
+//: o &#39;loadConfirmEventBuilder&#39;
+//: o &#39;loadMessageProperties&#39;
+//: o &#39;confirmMessage&#39;
+//: o &#39;confirmMessages&#39;
+//
+// Calls to the following methods do not require an expect:
+//: o &#39;getQueueId&#39;
+//: o &#39;loadMessageEventBuilder&#39;
+//: o &#39;loadConfirmEventBuilder&#39;
+//: o &#39;loadMessageProperties&#39;
+//
+//
+///Creating a mock session in asynchronous mode
+///--------------------------------------------
+// The &#39;MockSession&#39; is created in asynchronous mode when a
+// &#39;SessionEventHandler&#39; is provided to it.  If it is not provided a handler,
+// the &#39;MockSession&#39; is started in synchronous mode, requiring the application
+// to call &#39;nextEvent&#39; to access enqueued events.  A sample handler could look
+// like this:
+//
+//..
+//  class MyEventHandler : public bmqa::SessionEventHandler {
+//
+//    private:
+//      // DATA
+//      bsl::deque&lt;bmqa::SessionEvent&gt;    d_sessionEventsQueue;
+//      bsl::deque&lt;bmqa::MessageEvents&gt;   d_messageEventsQueue;
+//      bsl::deque&lt;bmqa::OpenQueueStatus&gt; d_openQueueResultsQueue;
+//      ...
+//
+//    public:
+//      // MANIPULATORS
+//      virtual void onSessionEvent(const bmqa::SessionEvent&amp; event)
+//      {
+//          bsl::cout &lt;&lt; &quot;Received session event &quot; &lt;&lt; event &lt;&lt; &quot;\n&quot;;
+//          // some business logic, typically a switch case on
+//          // &#39;bmqt::SessionEventType&#39;
+//          d_sessionEventsQueue.push_back(event);
+//      }
+//
+//      virtual void onMessageEvent(const bmqa::MessageEvent&amp; event)
+//      {
+//          bsl::cout &lt;&lt; &quot;Received message event &quot; &lt;&lt; event &lt;&lt; &quot;\n&quot;;
+//          // some business logic, typically a switch case on
+//          // &#39;bmqt::MessageEventType&#39;
+//          d_messageEventsQueue.push_back(event);
+//      }
+//
+//      void onOpenQueueStatus(const bmqa::OpenQueueStatus&amp; result)
+//      {
+//          bsl::cout &lt;&lt; &quot;Received open queue result: &quot; &lt;&lt; result &lt;&lt; &quot;\n&quot;;
+//          // Some business logic
+//          d_openQueueResultsQueue.push_back(result);
+//      }
+//      ...
+//
+//      bmqa::SessionEvent popSessionEvent()
+//      {
+//          BSLS_ASSERT(d_sessionEventsQueue.size() &gt; 0);
+//          bmqa::SessionEvent ret(d_receivedSessionEvents.front());
+//          d_receivedSessionEvents.pop_front();
+//          return ret;
+//      }
+//
+//      bmqa::MessageEvent popMessageEvent()
+//      {
+//          BSLS_ASSERT(d_messageEventsSize.size() &gt; 0);
+//          bmqa::MessageEvent ret(d_receivedMessageEvents.front());
+//          d_receivedMessageEvents.erase(d_receivedMessageEvents.begin());
+//          return ret;
+//      }
+//
+//      bmqa::OpenQueueStatus popOpenQueueStatus()
+//      {
+//          BSLS_ASSERT(d_openQueueResultsQueue.size() &gt; 0);
+//          bmqa::OpenQueueStatus ret(d_openQueueResultsQueue.front());
+//          d_openQueueResultsQueue.erase(d_openQueueResultsQueue.begin());
+//          return ret;
+//      }
+//      ...
+//  };
+//..
+//
+///Usage
+///-----
+// This section illustrates intended use of this component.
+//
+///Example 1
+///- - - - -
+// The folowing example shows a simple producer in asynchronous mode, which
+// will start the session, open a queue, post a message to the queue, generate
+// an ack for that message and finally stop the session (skipping over close
+// queue because it is analogous to opening a queue).  In theory, you can use
+// &#39;emitting&#39; on the &#39;BMQA_EXPECT_CALL&#39; macro and &#39;enqueueEvent&#39;
+// interchangeably, but in practice it is important to note that events from
+// the broker are generated asynchronously, which means that they are not
+// emitted as you call the method.  You can control emission of events,
+// however, by delaying the call to &#39;emitEvent&#39;.
+//
+// NOTE: As with &#39;bmqa::Session&#39;, calling &#39;nextEvent&#39; is meaningless in
+//       asynchronous mode.
+//
+//..
+//  void unitTest()
+//  {
+//       // Create an event handler
+//       EventHandler eventHandler(d_allocator_p);
+//
+//       // The following static initializer method calls all the appropriate
+//       // static initializers of the underlying components needed for the
+//       // &#39;MockSession&#39;.  The constructor of &#39;MockSession&#39; will call it in
+//       // any case but if events need to be built outside the scope of the
+//       // creation of &#39;MockSession&#39; you will need to explicitly invoke this
+//       // static initializer method.
+//       // bmqa::MockSession::initialize(s_allocator_p);
+//
+//       bslma::ManagedPtr&lt;bmqa::SessionEventHandler&gt; handlerMp;
+//       handlerMp.load(&amp;eventHandler, 0, bslma::ManagedPtrUtil::noOpDeleter);
+//
+//       bmqa::MockSession mockSession(handlerMp,
+//                                     bmqt::SessionOptions(d_allocator_p),
+//                                     d_allocator_p);
+//
+//       bmqa::QueueId       queueId(bmqt::CorrelationId(1), d_allocator_p);
+//       bmqt::CorrelationId corrId(1);
+//
+//       // Expect a call to start and the call emits an &#39;e_CONNECTED&#39; event.
+//       BMQA_EXPECT_CALL(mockSession, startAsync())
+//           .returning(0)
+//           .emitting(bmqa::MockSessionUtil::createSessionEvent(
+//                         bmqt::SessionEventType::e_CONNECTED,
+//                         0,   // statusCode
+//                         &quot;&quot;,  // errorDescription
+//                         d_allocator_p));
+//
+//       // Make a call to startAsync and emit the event that is enqueued from
+//       // that call.
+//       ASSERT_EQ(mockSession.startAsync(), 0);
+//
+//       // Emit our enqueued event.  This fully sets up the session which is
+//       // now ready to use.  Typically you would have some business logic on
+//       // &#39;e_CONNECTED&#39; that makes your application ready to use.
+//       ASSERT_EQ(mockSession.emitEvent(), true);
+//
+//       // Our event handler internally just stores the event emitted, so pop
+//       // it out and examine.
+//       bmqa::SessionEvent startEvent(eventHandler.popSessionEvent());
+//
+//       ASSERT_EQ(startEvent.type(), bmqt::SessionEventType::e_CONNECTED);
+//       ASSERT_EQ(startEvent.statusCode(), 0);
+//
+//       // Create the uri to your queue as you would in your application.
+//       const bmqt::Uri uri(&quot;bmq://my.domain/queue&quot;);
+//
+//       // Initialize the queue flags for a producer with acks enabled
+//       bsls::Types::Uint64 flags = 0;
+//       bmqt::QueueFlagsUtil::setWriter(&amp;flags);
+//       bmqt::QueueFlagsUtil::setAck(&amp;flags);
+//
+//       // We use the macro to expect a call to &#39;openQueueAsync&#39;, binding the
+//       // &#39;uri&#39; and &#39;queueId&#39; objects as well as the &#39;flags&#39; that we created.
+//       bmqa::MockSession::OpenQueueCallback openQueueCallback =
+//           bdlf::BindUtil::bind(&amp;EventHandler::onOpenQueueStatus,
+//                                &amp;eventHandler,
+//                                bdlf::PlaceHolders::_1); // result
+//
+//       BMQA_EXPECT_CALL(mockSession,
+//                        openQueueAsync(uri1,
+//                                       flags,
+//                                       openQueueCallback));
+//       BMQA_EXPECT_CALL(mockSession,
+//                        openQueueAsync(uri, flags, openQueueCallback));
+//
+//       // Now that we have set our expectations we can try to open the queue.
+//       mockSession.openQueueAsync(uri1, flags, openQueueCallback);
+//
+//       // Since the application may not have direct access to the queue, we
+//       // need to get the &#39;queueId&#39; from the session.  We can then bind this
+//       // retrieved &#39;queueId&#39; to the &#39;e_QUEUE_OPEN_RESULT&#39; session event and
+//       // enqueue it to the &#39;MockSession&#39;.
+//       // Note: You can only get the &#39;queueId&#39; after &#39;openQueue&#39; or
+//       //       &#39;openQueueAsync&#39; has been invoked on the session.
+//       bmqa::QueueId         queueId1(corrId1);
+//       bmqa::OpenQueueStatus openQueueResult =
+//           bmqa::MockSessionUtil::createOpenQueueStatus(
+//                       queueId1,
+//                       bmqt::OpenQueueResult::e_TIMEOUT,  // statusCode
+//                       &quot;Local Timeout&quot;,                   // errorDescription
+//                       d_allocator_p);
+//       mockSession.enqueueEvent(openQueueResult);
+//
+//       // We just enqueued a &#39;bmqa::OpenQueueStatus&#39; to be emitted.  We can
+//       // emit it using &#39;emitEvent&#39;.
+//       ASSERT_EQ(mockSession.emitEvent(), true);
+//
+//       //  Pop out this event from the handler and examine it.
+//       bmqa::OpenQueueStatus result = eventHandler.popOpenQueueStatus();
+//       ASSERT_EQ(result, openQueueResult);
+//
+//       // On emission of &#39;bmqa::OpenQueueStatus&#39;, the queue is fully open and
+//       // we can now post to it.
+//       bmqa::MessageEventBuilder builder;
+//       mockSession.loadMessageEventBuilder(&amp;builder);
+//
+//       BMQA_EXPECT_CALL(mockSession, post(builder.messageEvent()))
+//           .returning(0);
+//
+//       // Use the builder to build a mesage event and pack it for the queue
+//       // that has been opened.  If you try to pack the message for an
+//       // invalid or closed queue, packing the message will fail. This has
+//       // been elided for brevity.
+//
+//       // Now that the event has been built we can &#39;post&#39; it to BMQ.
+//       ASSERT_EQ(mockSession.post(builder.messageEvent()), 0);
+//
+//       // Simply creating a blob buffer factory on the stack to be used by
+//       // &#39;createAckEvent&#39;.  Typically you would have one for the component.
+//       bdlbb::PooledBlobBufferFactory bufferFactory(4 * 1024, d_allocator_p);
+//
+//       // The method &#39;createAckEvent&#39; takes a vector of &#39;AckParams&#39; to
+//       // specify multiple acks per event, but here we are only acknowledging
+//       // 1 message.  Specify a positive ack with &#39;e_SUCCESS&#39; here but you
+//       // can specify any from &#39;bmqt::AckResult::Enum&#39;.
+//       bsl::vector&lt;bmqa::MockSessionUtil::AckParams&gt; acks(d_allocator_p);
+//       acks.emplace_back(bmqt::AckResult::e_SUCCESS,
+//                         bmqt::CorrelationId(1),
+//                         bmqt::MessageGUID(), // Real GUID needed if you want
+//                                              // to record ack messages.
+//                         bmqa::QueueId(1));
+//
+//       // Enqueuing ack event to be emitted.  We use the helper function
+//       // &#39;createAckEvent&#39; to generate this event.
+//       mockSession.enqueueEvent(bmqa::MockSessionUtil::createAckEvent(
+//                                                             acks,
+//                                                             &amp;bufferFactory,
+//                                                             d_allocator_p));
+//
+//       // Emit the enqueued ack event.
+//       ASSERT_EQ(mockSession.emitEvent(), true);
+//
+//       // As we did earlier, pop it out and examine.
+//       bmqa::MessageEvent ackEvent(eventHandler.popMessageEvent());
+//       ASSERT_EQ(ackEvent.type(), bmqt::MessageEventType::e_ACK);
+//       bmqa::MessageIterator mIter = ackEvent.messageIterator();
+//       mIter.nextMessage();
+//       ASSERT_EQ(mIter.message().ackStatus(), bmqt::AckResult::e_SUCCESS);
+//
+//       // This is a simple test.  After posting our message and receiving the
+//       // ack, we are now shutting down our application.  Therefore we expect
+//       // a &#39;stopAsync&#39; call.
+//       BMQA_EXPECT_CALL(mockSession, stopAsync());
+//
+//       // Now make a call to &#39;stopAsync&#39; to stop our session.
+//       mockSession.stopAsync();
+//
+//       // Here we are enqueuing an &#39;e_DISCONNECTED&#39; event as you would
+//       // receive from the broker on a successful shutdown.
+//       mockSession.enqueueEvent(bmqa::MockSessionUtil::createSessionEvent(
+//                                      bmqt::SessionEventType::e_DISCONNECTED,
+//                                      0,   // statusCode
+//                                      &quot;&quot;,  // errorDescription
+//                                      d_allocator_p));
+//       ASSERT_EQ(mockSession.emitEvent(), true);
+//
+//       // Our event handler internally just stores the event emitted, so pop
+//       // it out and examine.
+//       bmqa::SessionEvent stopEvent(eventHandler.popSessionEvent());
+//       ASSERT_EQ(stopEvent.type(), bmqt::SessionEventType::e_DISCONNECTED);
+//       ASSERT_EQ(stopEvent.statusCode(), 0);
+//
+//      // The corresponding pendant operation of the &#39;initialize&#39; which would
+//      // need to be called only if &#39;initialize&#39; was explicitly called.
+//      // bmqa::MockSession::shutdown();
+//   }
+//..
+//
+///Example 2
+///- - - - -
+// The folowing example shows a consumer in synchronous mode, which will start
+// the session, generate a push message (simulating the broker), confirm the
+// message and then stop the session.  Additionally, this test case also sets
+// all expectations up front before running the code, as this is the alternate
+// way of writing your test driver.
+//
+// NOTE: Using &#39;enqueue&#39; or &#39;emitEvent&#39; on &#39;bmqa::MockSession&#39; or &#39;emitting&#39; on
+//       the &#39;BMQA_EXPECT_CALL&#39; macro in synchronous mode is meaningless.
+//
+//..
+//  void unitTest()
+//  {
+//      // MockSession created without an eventHandler.
+//      bmqa::MockSession mockSession(bmqt::SessionOptions(d_allocator_p),
+//                                    d_allocator_p);
+//
+//      // The following static initializer method calls all the appropriate
+//      // static initializers of the underlying components needed for the
+//      // &#39;MockSession&#39;.  The constructor of &#39;MockSession&#39; will call it in
+//      // any case but if events need to be built outside the scope of the
+//      // creation of &#39;MockSession&#39; you will need to explicitly invoke this
+//      // static initializer method.
+//      // bmqa::MockSession::initialize(s_allocator_p);
+//
+//      // Create simple queueIds and corrIds
+//      bmqa::QueueId       queueId(1);
+//      bmqt::CorrelationId corrId(1);
+//
+//      // Create the uri to your queue as you would in your application.
+//      bmqt::Uri uri(&quot;bmq://my.domain/queue&quot;);
+//
+//      // Expecting that &#39;startAsync&#39; will be called on the MockSession.
+//      BMQA_EXPECT_CALL(mockSession, startAsync())
+//          .returning(0);
+//
+//      // Simply creating a blob buffer factory on the stack to be used by
+//      // &#39;createAckEvent&#39;.  Typically you would have one for the component.
+//      bdlbb::PooledBlobBufferFactory bufferFactory(4 * 1024, d_allocator_p);
+//
+//      // We then expect that &#39;nextEvent&#39; will be called to return the
+//      // &#39;e_CONNECTED&#39; event from the broker
+//      BMQA_EXPECT_CALL(mockSession, nextEvent(bsls::TimeInterval()))
+//          .returning(bmqa::MockSessionUtil::createSessionEvent(
+//                         bmqt::SessionEventType::e_CONNECTED,
+//                         bmqt::CorrelationId::autoValue(),
+//                         0,   // errorCode
+//                         &quot;&quot;,  // errorDescription
+//                         d_allocator_p));
+//          // Note that we use an &#39;autoValue&#39; for correlationId because it&#39;s
+//          // irrelevant for a &#39;CONNECTED&#39; event.
+//
+//       // Initialize the queue flags for a consumer
+//       bsls::Types::Uint64 flags = 0;
+//       bmqt::QueueFlagsUtil::setReader(&amp;flags);
+//
+//      // We use the macro to expect a call to &#39;openQueueSync&#39;, binding the
+//      // &#39;uri&#39; and &#39;queueId&#39; objects as well as the flags that we created.
+//      // Note that the &#39;queueId&#39; object will be modified as &#39;openQueueSync&#39;
+//      // takes it as an output parameter.
+//      bmqa::OpenQueueStatus expectedResult =
+//          bmqa::MockSessionUtil::createOpenQueueStatus(
+//                       queueId,
+//                       bmqt::OpenQueueResult::e_SUCCESS,  // statusCode
+//                       &quot;&quot;,                                // errorDescription
+//                       d_allocator_p);
+//      BMQA_EXPECT_CALL(mockSession, openQueueSync(&amp;queueId, uri, flags))
+//          .returning(expectedResult);
+//
+//      // Build our incoming message event.
+//      bsl::vector&lt;bmqa::MockSessionUtil::PushMessageParams&gt; pushMsgs(
+//                                                              d_allocator_p);
+//      bdlbb::Blob payload(&amp;bufferFactory, d_allocator_p);
+//      bdlbb::BlobUtil::append(&amp;payload, &quot;hello&quot;, 6);
+//
+//      const char        guidHex[] = &quot;00000000000000000000000000000001&quot;;
+//      bmqt::MessageGUID guid;
+//      guid.fromHex(guidHex);
+//
+//      bmqa::MessageProperties properties;
+//      mockSession.loadMessageProperties(&amp;properties);
+//
+//      // For each message that we are supposed to receive from the broker,
+//      // we need to specify the payload, the queueId, a guid (the hex is
+//      // random but unique within your test driver) and properties which
+//      // could be empty.
+//      pushMsgs.emplace_back(payload, queueId, guid, properties);
+//      bmqa::Event pushMsgEvent = bmqa::MockSessionUtil::createPushEvent(
+//                                                              pushMsgs,
+//                                                              &amp;bufferFactory,
+//                                                              d_allocator_p);
+//      BMQA_EXPECT_CALL(mockSession, nextEvent(bsls::TimeInterval()))
+//          .returning(pushMsgEvent);
+//
+//      // Next we expect a call to &#39;confirmMessages&#39;, to confirm the 1 message
+//      // that we received from the broker.
+//      bmqa::ConfirmEventBuilder confirmBuilder;
+//      mockSession.loadConfirmEventBuilder(&amp;confirmBuilder);
+//      BMQA_EXPECT_CALL(mockSession, confirmMessages(&amp;confirmBuilder))
+//          .returning(0);
+//
+//      // Expectations have been set up.  Now we run the code.
+//      // &#39;startAsync&#39; is the first call.  We expect it to return 0 and we
+//      // expect &#39;nextEvent&#39; to return the &#39;e_CONNECTED&#39; session event.
+//      int rc = mockSession.startAsync();
+//      ASSERT_EQ(rc, 0);
+//      bmqa::SessionEvent startEvent = mockSession.nextEvent(
+//                                                        bsls::TimeInterval())
+//          .sessionEvent();
+//      ASSERT_EQ(startEvent.type(), bmqt::SessionEventType::e_CONNECTED);
+//      ASSERT_EQ(startEvent.statusCode(),       0);
+//      ASSERT_EQ(startEvent.errorDescription(), &quot;&quot;);
+//
+//      // Next we expect a call to &#39;openQueue&#39; to open the queue.
+//      bmqa::OpenQueueStatus result = mockSession.openQueueSync(&amp;queueId,
+//                                                               uri,
+//                                                               10);
+//      ASSERT_EQ(result, expectedResult);
+//
+//      // Now our call to &#39;nextEvent&#39; will generate a push message from the
+//      // broker, which we will then go on to confirm.
+//      bmqa::MessageEvent pushMsgEvt(mockSession.nextEvent(
+//                                                        bsls::TimeInterval())
+//                                                            .messageEvent());
+//      ASSERT_EQ(pushMsgEvt.type(), bmqt::MessageEventType::e_PUSH);
+//
+//      // Now that we have received a push message which has yet to be
+//      // confirmed, we can confirm that 1 unconfirmed message exists.
+//      ASSERT_EQ(mockSession.unconfirmedMessages(), 1U);
+//
+//      // Since there is only 1 message in our message event, we dont have to
+//      // iterate over the event but in reality you will want to iterate over
+//      // each message and add it to the confirm builder.
+//      bmqa::MessageIterator mIter = pushMsgEvt.messageIterator();
+//      mIter.nextMessage();
+//      confirmBuilder.addMessageConfirmation(mIter.message());
+//      ASSERT_EQ(confirmBuilder.messageCount(), 1);
+//
+//      // Confirm the messages using the builder that has been populated.
+//      rc = mockSession.confirmMessages(&amp;confirmBuilder);
+//      ASSERT_EQ(rc, 0);
+//
+//      // Voila! We now have no unconfirmed messages.
+//      ASSERT_EQ(mockSession.unconfirmedMessages(), 0u);
+//      // &#39;stop&#39; has been elided for brevity and is analogous to &#39;start&#39;
+//
+//      // The corresponding pendant operation of the &#39;initialize&#39; which would
+//      // need to be called only if &#39;initialize&#39; was explicitly called.
+//      // bmqa::MockSession::shutdown();
+//  }
+//..
+//
+///Thread Safety
+///-------------
+// THREAD SAFE.
+
+// BMQ
+#include &lt;bmqa_abstractsession.h&gt;
+#include &lt;bmqa_closequeuestatus.h&gt;
+#include &lt;bmqa_configurequeuestatus.h&gt;
+#include &lt;bmqa_messageeventbuilder.h&gt;
+#include &lt;bmqa_openqueuestatus.h&gt;
+#include &lt;bmqa_queueid.h&gt;
+#include &lt;bmqa_session.h&gt;     // for &#39;bmqa::SessionEventHandler&#39;
+#include &lt;bmqscm_version.h&gt;
+#include &lt;bmqt_queueoptions.h&gt;
+#include &lt;bmqt_sessionoptions.h&gt;
+
+// MWC
+#include &lt;mwcst_statcontext.h&gt;
+
+// BDE
+#include &lt;ball_log.h&gt;
+#include &lt;bdlb_variant.h&gt;
+#include &lt;bdlbb_blob.h&gt;
+#include &lt;bdlbb_pooledblobbufferfactory.h&gt;
+#include &lt;bsl_cstddef.h&gt;
+#include &lt;bsl_deque.h&gt;
+#include &lt;bsl_functional.h&gt;
+#include &lt;bsl_memory.h&gt;
+#include &lt;bsl_string.h&gt;
+#include &lt;bsl_unordered_map.h&gt;
+#include &lt;bsl_unordered_set.h&gt;
+#include &lt;bslma_allocator.h&gt;
+#include &lt;bslma_managedptr.h&gt;
+#include &lt;bslma_usesbslmaallocator.h&gt;
+#include &lt;bslmf_nestedtraitdeclaration.h&gt;
+#include &lt;bslmt_mutex.h&gt;
+#include &lt;bsls_alignedbuffer.h&gt;
+#include &lt;bsls_assert.h&gt;
+#include &lt;bsls_timeinterval.h&gt;
+#include &lt;bsls_types.h&gt;
+
+namespace BloombergLP {
+
+// FORWARD DECLARATION
+namespace bmqimp { class Event; }
+namespace bmqimp { class MessageCorrelationIdContainer; }
+namespace bmqimp { struct Stat; }
+
+
+namespace bmqa {
+
+// FORWARD DECLARATION
+class ConfirmEventBuilder;
+
+// Record an expected method &#39;CALL&#39; into the specified mock session &#39;OBJ&#39;.
+#define BMQA_EXPECT_CALL(OBJ, CALL)                                           \
+    (((OBJ).expect_ ## CALL).fromLocation(__FILE__, __LINE__))
+
+
+                            // ======================
+                            // struct MockSessionUtil
+                            // ======================
+
+struct MockSessionUtil {
+    // Utility methods to create &#39;bmqa&#39; events
+
+  private:
+    // PRIVATE TYPES
+    typedef bsl::shared_ptr&lt;bmqimp::Event&gt; EventImplSp;
+                                        // Event impl shared pointer to access
+                                        // the pimpl of &#39;bmqa::Event&#39;.
+
+    typedef bsl::shared_ptr&lt;bmqimp::Queue&gt; QueueImplSp;
+                                        // Queue impl shared pointer to access
+                                        // the pimpl of &#39;bmqa::QueueId&#39;.
+
+  public:
+    // PUBLIC TYPES
+    struct AckParams {
+        // Struct representing parameters for an ack message.
+
+        // PUBLIC DATA
+        bmqt::AckResult::Enum d_status; // Status code
+
+        bmqt::CorrelationId   d_correlationId;
+                                        // Correlation id
+
+        bmqt::MessageGUID     d_guid;   // Message GUID of confirmed message
+
+        QueueId               d_queueId;
+                                        // Queue id for message being referred
+                                        // to
+
+        // CREATORS
+        AckParams(const bmqt::AckResult::Enum status,
+                  const bmqt::CorrelationId&amp;  correlationId,
+                  const bmqt::MessageGUID&amp;    guid,
+                  const bmqa::QueueId&amp;        queueId);
+            // Create a new AckParams object with the specified &#39;status&#39;,
+            // &#39;correlationId&#39;, &#39;guid&#39; and &#39;queueId&#39;.
+    };
+
+    // PUBLIC TYPES
+    struct PushMessageParams {
+        // Struct representing parameters for a push message.
+
+        // PUBLIC DATA
+        bdlbb::Blob       d_payload;   // Payload of message
+
+        QueueId           d_queueId;    // Queue Id for this message
+
+        bmqt::MessageGUID d_guid;       // GUID for message
+
+        MessageProperties d_properties; // Optionally specified properties for
+                                        // message
+
+        // CREATORS
+        PushMessageParams(const bdlbb::Blob&amp;       payload,
+                          const bmqa::QueueId&amp;     queueId,
+                          const bmqt::MessageGUID&amp; guid,
+                          const MessageProperties&amp; properties);
+            // Create a new PushMessageParams object with the specified
+            // &#39;payload&#39;, &#39;queueId&#39;, &#39;guid&#39; and &#39;properties&#39;.
+    };
+
+    // CLASS METHODS
+    static
+    Event createAckEvent(const bsl::vector&lt;AckParams&gt;&amp;  acks,
+                         bdlbb::BlobBufferFactory      *bufferFactory,
+                         bslma::Allocator              *allocator);
+        // Create and return an &#39;Event&#39; configured as a message event of type
+        // &#39;e_ACK&#39; with the specified &#39;acks&#39; params using the specified
+        // &#39;bufferFactory&#39; and the specified &#39;allocator&#39; to supply memory.
+
+    static
+    Event
+    createPushEvent(const bsl::vector&lt;PushMessageParams&gt;&amp;  pushEventParams,
+                    bdlbb::BlobBufferFactory              *bufferFactory,
+                    bslma::Allocator                      *allocator);
+        // Create and return an &#39;Event&#39; configured as a message event of type
+        // &#39;e_PUSH&#39; and with the specified &#39;pushEventParams&#39;, using the
+        // specified &#39;bufferFactory&#39; and the specified &#39;allocator&#39; to supply
+        // memory.
+
+    static
+    Event
+    createQueueSessionEvent(bmqt::SessionEventType::Enum  sessionEventType,
+                            QueueId                      *queueId,
+                            const bmqt::CorrelationId&amp;    correlationId,
+                            int                           errorCode,
+                            const bslstl::StringRef&amp;      errorDescription,
+                            bslma::Allocator             *allocator);
+        // DEPRECATED: Use the &#39;createOpenQueueStatus(...)&#39;,
+        //            &#39;createConfigureQueueStatus(...)&#39;, or
+        //            &#39;createCloseQueueStatus(...)&#39; methods instead.  This
+        //            method will be marked as &#39;BSLS_ANNOTATION_DEPRECATED&#39; in
+        //            future release of libbmq.
+
+    static
+    Event createSessionEvent(bmqt::SessionEventType::Enum  sessionEventType,
+                             const bmqt::CorrelationId&amp;    correlationId,
+                             const int                     errorCode,
+                             const bslstl::StringRef&amp;      errorDescription,
+                             bslma::Allocator             *allocator);
+        // Create and return an &#39;Event&#39; configured as a session event with the
+        // specified &#39;sessionEventType&#39;, &#39;errorCode&#39; and &#39;errorDescription&#39; and
+        // using the specified &#39;allocator&#39; to supply memory.  Note that this
+        // method will not create queue related session events.
+
+    static
+    OpenQueueStatus
+    createOpenQueueStatus(const QueueId&amp;               queueId,
+                          bmqt::OpenQueueResult::Enum  statusCode,
+                          const bsl::string&amp;           errorDescription,
+                          bslma::Allocator            *allocator        = 0);
+        // Create and return a &#39;bmqa::OpenQueueStatus&#39; object with the
+        // specified &#39;queueId&#39;, &#39;statusCode&#39;, and &#39;errorDescription&#39;, using the
+        // optionally specified &#39;allocator&#39; to supply memory in the result.
+
+    static
+    ConfigureQueueStatus
+    createConfigureQueueStatus(
+                       const QueueId&amp;                    queueId,
+                       bmqt::ConfigureQueueResult::Enum  statusCode,
+                       const bsl::string&amp;                errorDescription,
+                       bslma::Allocator                 *allocator        = 0);
+        // Create and return a &#39;bmqa::ConfigureQueueStatus&#39; object with the
+        // specified &#39;queueId&#39;, &#39;statusCode&#39;, and &#39;errorDescription&#39;, using the
+        // optionally specified &#39;allocator&#39; to supply memory in the result.
+
+    static
+    CloseQueueStatus
+    createCloseQueueStatus(const QueueId&amp;                queueId,
+                           bmqt::CloseQueueResult::Enum  statusCode,
+                           const bsl::string&amp;            errorDescription,
+                           bslma::Allocator             *allocator        = 0);
+        // Create and return a &#39;bmqa::CloseQueueStatus&#39; object with the
+        // specified &#39;queueId&#39;, &#39;statusCode&#39;, and &#39;errorDescription&#39;, using the
+        // optionally specified &#39;allocator&#39; to supply memory in the result.
+};
+
+
+                             // =================
+                             // class MockSession
+                             // =================
+
+class MockSession : public AbstractSession {
+    // Mechanism to mock a &#39;bmqa::Session&#39;
+
+  public:
+    // CLASS METHODS
+    static void initialize(bslma::Allocator *allocator = 0);
+        // Perform a one time initialization needed by components used in
+        // &#39;MockSession&#39; and &#39;MockSessionUtil&#39;.  This method only needs to be
+        // called once before any other method, but can be called multiple
+        // times provided that for each call to &#39;initialize&#39; there is a
+        // corresponding call to &#39;shutdown&#39;.  Use the optionally specified
+        // &#39;allocator&#39; for any memory allocation, or the &#39;global&#39; allocator if
+        // none is provided.  Note that specifying the allocator is provided
+        // for test drivers only, and therefore users should let it default to
+        // the global allocator.
+        // NOTE: This method will need to be invoked only if the application
+        //       needs to use &#39;MockSessionUtil&#39; outside the scope of
+        //       &#39;MockSession&#39;.
+
+    static void shutdown();
+        // Pendant operation of the &#39;initialize&#39; one.  The number of calls to
+        // &#39;shutdown&#39; must equal the number of calls to &#39;initialize&#39;, without
+        // corresponding &#39;shutdown&#39; calls, to fully destroy the objects.  It is
+        // safe to call &#39;initialize&#39; after calling &#39;shutdown&#39;.  The behaviour
+        // is undefined if &#39;shutdown&#39; is called without &#39;initialize&#39; first
+        // being called.
+
+    // PUBLIC TYPES
+    typedef bsl::function&lt;void (const char *description,
+                                const char *file,
+                                int         line)&gt; FailureCb;
+        // Callback used to inform the test driver of an assertion failure.
+        // The application test driver using the &#39;MockSession&#39; may provide an
+        // implementation that makes the test driver fail (for instance,
+        // calling BDE&#39;s test driver ASSERT macro).
+
+  private:
+    // CLASS-SCOPE CATEGORY
+    BALL_LOG_SET_CLASS_CATEGORY(&quot;BMQA.MOCKSESSION&quot;);
+
+  private:
+    // CONSTANTS
+    static const int k_MAX_SIZEOF_MWCC_TWOKEYHASHMAP = 256;
+        // Constant representing the maximum size of a &#39;mwcc::TwoKeyHashMap&#39;
+        // object, so that the below AlignedBuffer is big enough.  No &#39;mwc&#39;
+        // headers can be included in &#39;bmq&#39; public headers, to prevent build
+        // time dependency.
+
+    // PRIVATE TYPES
+    typedef bsls::AlignedBuffer&lt;k_MAX_SIZEOF_MWCC_TWOKEYHASHMAP&gt;
+                                                           TwoKeyHashMapBuffer;
+        // Aligned buffer holding the two key hash map
+
+    typedef bsl::shared_ptr&lt;bmqimp::Queue&gt;                 QueueImplSp;
+        // Cast for bmqimp::Queue to access internal data
+
+    typedef bsl::shared_ptr&lt;bmqimp::Event&gt;                 EventImplSp;
+        // Cast for bmqimp::Event to access internal data
+
+    typedef bsl::shared_ptr&lt;bmqimp::Stat&gt;                  StatImplSp;
+        // Convenience for bmqimp::Stat
+
+    typedef bsl::shared_ptr&lt;bmqimp::MessageCorrelationIdContainer&gt;
+                                                      CorrelationIdContainerSp;
+        // Convenience for bmqimp::MessageCorrelationIdContainer
+
+    typedef bsl::function&lt;void()&gt;                          CallbackFn;
+
+    struct Job {
+        // Struct holding attributes associated with an asynchronous queue
+        // operation executed with a user-specified callback
+
+        // PUBLIC DATA
+        CallbackFn                   d_callback;
+                                      // Signature of a &#39;void&#39; callback method
+
+        QueueImplSp                  d_queue;
+                                      // Queue associated with this job
+
+        bmqt::SessionEventType::Enum d_type;
+                                      // Type of queue event associated with
+                                      // this job (OPEN,CONFIGURE, or CLOSE)
+
+        int                          d_status;
+                                      // Status of the queue operation
+    };
+
+    typedef bdlb::Variant&lt;Event, Job&gt;                      EventOrJob;
+
+    enum Method {
+        // Enumeration for the methods in the &#39;MockSession&#39; protocol.  Each
+        // enum value corresponds to a method.
+        e_START
+      , e_START_ASYNC
+      , e_STOP
+      , e_STOP_ASYNC
+      , e_FINALIZE_STOP
+      , e_OPEN_QUEUE
+      , e_OPEN_QUEUE_SYNC
+      , e_OPEN_QUEUE_ASYNC
+      , e_OPEN_QUEUE_ASYNC_CALLBACK
+      , e_CLOSE_QUEUE
+      , e_CLOSE_QUEUE_SYNC
+      , e_CLOSE_QUEUE_ASYNC
+      , e_CLOSE_QUEUE_ASYNC_CALLBACK
+      , e_CONFIGURE_QUEUE
+      , e_CONFIGURE_QUEUE_SYNC
+      , e_CONFIGURE_QUEUE_ASYNC
+      , e_CONFIGURE_QUEUE_ASYNC_CALLBACK
+      , e_NEXT_EVENT
+      , e_POST
+      , e_CONFIRM_MESSAGE
+      , e_CONFIRM_MESSAGES
+    };
+
+    struct Call {
+        // PUBLIC TYPES
+        typedef bsl::vector&lt;EventOrJob&gt;  EventsAndJobs; // Vector of events
+
+        // PUBLIC DATA
+        int                        d_rc;
+                                        // Value to be returned on call
+
+        Method                     d_method;
+                                        // The type of method
+
+        int                        d_line;
+                                        // Line number
+
+        bsl::string                d_file;
+                                        // File
+
+        bmqt::Uri                  d_uri;
+                                        // Uri associated with this call
+
+        bsls::Types::Uint64        d_flags;
+                                        // Flags associated with this call
+
+        bmqt::QueueOptions         d_queueOptions;
+                                        // QueueOptions associated with this
+                                        // call
+
+        bsls::TimeInterval         d_timeout;
+                                        // Timeout interval associated with
+                                        // this call
+
+        OpenQueueCallback          d_openQueueCallback;
+                                        // Callback to be invoked upon emission
+                                        // of an async openQueue (if callback
+                                        // was provided)
+
+        ConfigureQueueCallback     d_configureQueueCallback;
+                                        // Callback to be invoked upon emission
+                                        // of an async configureQueue (if
+                                        // callback was provided)
+
+        CloseQueueCallback         d_closeQueueCallback;
+                                        // Callback to be invoked upon emission
+                                        // of an async closeQueue (if callback
+                                        // was provided)
+
+        bmqa::OpenQueueStatus      d_openQueueResult;
+                                        // The result of an open queue
+                                        // operation
+
+        bmqa::ConfigureQueueStatus d_configureQueueResult;
+                                        // The result of a configure queue
+                                        // operation
+
+        bmqa::CloseQueueStatus     d_closeQueueResult;
+                                        // The result of a close queue
+                                        // operation
+
+        EventsAndJobs              d_emittedEvents;
+                                        // Events to be emitted on this call
+
+        Event                      d_returnEvent;
+                                        // Event to be returned on this call
+
+        MessageEvent               d_messageEvent;
+                                        // MessageEvent associated with this
+                                        // call
+
+        MessageConfirmationCookie  d_cookie;
+                                        // MessageConfirmationCookie associated
+                                        // with this call
+
+        bslma::Allocator          *d_allocator_p;
+                                        // Allocator
+
+        // TRAITS
+        BSLMF_NESTED_TRAIT_DECLARATION(Call, bslma::UsesBslmaAllocator)
+
+        // CREATORS
+        Call(Method method, bslma::Allocator *allocator);
+            // Create a Call object having the specified &#39;method&#39; and the
+            // specified &#39;allocator&#39; to supply memory.
+
+        Call(const Call&amp; other, bslma::Allocator *allocator);
+
+        // MANIPULATORS
+        Call&amp; fromLocation(const char* file, int line);
+            // Record the specified &#39;file&#39; and &#39;line&#39; that this call was
+            // created from.
+            //
+            // NOTE: This function is invoked through the macro only.
+
+        Call&amp; returning(int rc);
+            // Specify the return value for this function call to be the
+            // specified &#39;rc&#39;.
+
+        Call&amp; returning(const bmqa::OpenQueueStatus&amp; result);
+            // Specify the return value for this function call to be the
+            // specified &#39;result&#39;.  The behavior is undefined unless this call
+            // corresponds to a synchronous open queue.
+
+        Call&amp; returning(const bmqa::ConfigureQueueStatus&amp; result);
+            // Specify the return value for this function call to be the
+            // specified &#39;result&#39;.  The behavior is undefined unless this call
+            // corresponds to a synchronous configure queue.
+
+        Call&amp; returning(const bmqa::CloseQueueStatus&amp; result);
+            // Specify the return value for this function call to be the
+            // specified &#39;result&#39;.  The behavior is undefined unless this call
+            // corresponds to a synchronous close queue.
+
+        Call&amp; returning(const Event&amp; event);
+            // Specify the return value for this function call to be the
+            // specified &#39;event&#39;.
+
+        Call&amp; emitting(const Event&amp; event);
+            // Specify the specified &#39;event&#39; to be emitted on this function
+            // call.
+
+        Call&amp; emitting(const OpenQueueStatus&amp; openQueueResult);
+            // Specify the specified &#39;openQueueResult&#39; to be emitted on this
+            // function call.  The behavior is undefined unless the call is an
+            // &#39;openQueueAsync&#39; provided a callback.
+
+        Call&amp; emitting(const ConfigureQueueStatus&amp; configureQueueResutl);
+            // Specify the specified &#39;configureQueueResult&#39; to be emitted on
+            // this function call.  The behavior is undefined unless the call
+            // is a &#39;configureQueueResult&#39; provided a callback.
+
+        Call&amp; emitting(const CloseQueueStatus&amp; closeQueueResult);
+            // Specify the specified &#39;closeQueueResult&#39; to be emitted on this
+            // function call.  The behavior is undefined unless the call is a
+            // &#39;closeQueueResult&#39; provided a callback.
+
+        // ACCESSORS
+        const char* methodName() const;
+            // Get the method name of this call.
+    };
+
+    typedef bsl::deque&lt;Call&gt; CallQueue;
+        // Queue of expected calls
+
+    typedef bsl::deque&lt;bmqa::MessageEvent&gt; PostedEvents;
+        // Queue of posted events
+
+    // DATA
+    bdlbb::PooledBlobBufferFactory          d_blobBufferFactory;
+                                        // Buffer factory
+
+    bslma::ManagedPtr&lt;SessionEventHandler&gt;  d_eventHandler_mp;
+                                        // Event handler (set only in
+                                        // asynchronous mode)
+
+    mutable CallQueue                       d_calls;
+                                        // sequence of method calls that are
+                                        // expected
+
+    mutable bsl::deque&lt;EventOrJob&gt;          d_eventsAndJobs;
+                                        // events waiting to be emitted
+
+    bsl::unordered_set&lt;bmqt::MessageGUID&gt;   d_unconfirmedGUIDs;
+                                        // GUIDS of unconfirmed messages
+
+    TwoKeyHashMapBuffer                     d_twoKeyHashMapBuffer;
+                                        // Aligned buffer of two key hash map
+                                        // uri, corrid to queues
+
+    FailureCb                               d_failureCb;
+                                        // Currently installed failure callback
+                                        // that is invoked if methods are
+                                        // called incorrectly or out of order.
+
+    int                                     d_lastQueueId;
+                                        // QueueId
+
+    CorrelationIdContainerSp                d_corrIdContainer_sp;
+                                        // Mock correlationId container
+
+    PostedEvents                            d_postedEvents;
+                                        // Queue of posted events
+
+    mutable bslmt::Mutex                    d_mutex;
+                                        // protects all public methods
+
+    mwcst::StatContext                      d_rootStatContext;
+                                        // Top level stat context for this
+                                        // mocked Session.
+
+    StatImplSp                              d_queuesStats_sp;
+                                        // Stats for all queues
+
+    bmqt::SessionOptions                    d_sessionOptions;
+                                        // Session Options for current session
+
+    bslma::Allocator                       *d_allocator_p;
+                                        // Allocator
+
+  private:
+    // PRIVATE CLASS METHODS
+    static const char *toAscii(const Method method);
+        // Get the string representation of the specified &#39;method&#39;.
+
+    // PRIVATE MANIPULATORS
+    void initializeStats();
+        // Configure this component to keep track of statistics.
+
+    void
+    openQueueImp(QueueId                   *queueId,
+                 const bmqt::QueueOptions&amp;  options,
+                 const bmqt::Uri&amp;           uri,
+                 bsls::Types::Uint64        flags,
+                 bool                       async);
+        // Open the specified &#39;queueId&#39; with the specified &#39;uri&#39; and &#39;flags&#39;.
+        // If the specified &#39;async&#39; param is true, set the state of the
+        // specified &#39;queueId&#39; to &#39;e_OPENING&#39;, else set it to &#39;e_OPENED.  This
+        // is to account for the fact that in &#39;openQueue&#39; blocks until the
+        // queue is opened whereas &#39;openQueueAsync&#39; returns immediately and the
+        // state changes to opened on emission of a successfull open queue
+        // response.
+
+    void processIfQueueEvent(Event *event);
+        // Modify the queues specified by the &#39;event&#39; if this event is a
+        // session event of type &#39;e_QUEUE_OPEN_RESULT&#39; or
+        // &#39;e_QUEUE_CLOSE_RESULT&#39;.
+
+    void processIfQueueJob(Job *job);
+        // Modify the queue(s) associated with the specified &#39;job&#39; if this job
+        // is associated with an operation of type &#39;e_QUEUE_OPEN_RESULT&#39; or
+        // &#39;e_QUEUE_CLOSE_RESULT&#39;.
+
+    void processIfPushEvent(const Event&amp; event);
+        // Record the messages in the specified &#39;event&#39; as unconfirmed if it is
+        // a push message event.
+
+    // PRIVATE ACCESSORS
+    void assertWrongCall(const Method method) const;
+        // Invoke the failure callback because of a wrong call to the specified
+        // &#39;method&#39;.
+
+    void assertWrongCall(const Method method, const Call&amp;  expectedCall) const;
+        // Invoke the failure callback because of a wrong call to the specified
+        // &#39;method&#39;, while the specified &#39;expectedCall&#39; was expected instead.
+
+    template&lt;class T, class U&gt;
+    void assertWrongArg(const T&amp;      expected,
+                        const U&amp;      actual,
+                        const Method  method,
+                        const char   *arg,
+                        const Call&amp;   call) const;
+        // Verify that the specified &#39;actual&#39; value is equal to the specified
+        // &#39;expected&#39; value for argument &#39;argName&#39; (a string) in the call to
+        // &#39;method&#39; (a Method enum) in &#39;call&#39; (a Call).  Invoke the failure
+        // callback if not.
+
+  public:
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(MockSession, bslma::UsesBslmaAllocator)
+
+    // CREATORS
+    explicit
+    MockSession(const bmqt::SessionOptions&amp;  options = bmqt::SessionOptions(),
+                bslma::Allocator            *allocator = 0);
+        // Create a new &#39;MockSession&#39; in *synchronous* mode using the
+        // optionally specified &#39;options&#39;.  In such mode, events have to be
+        // fetched by the application using the &#39;nextEvent()&#39; method.
+        // Optionally specify an &#39;allocator&#39; used to supply memory.  If
+        // &#39;allocator&#39; is 0, the currently installed default allocator is used.
+
+    explicit
+    MockSession(
+      bslma::ManagedPtr&lt;SessionEventHandler&gt;  eventHandler,
+      const bmqt::SessionOptions&amp;             options = bmqt::SessionOptions(),
+      bslma::Allocator                       *allocator = 0);
+        // Create a &#39;MockSession&#39; in *asynchronous* mode using the specified
+        // &#39;eventHandler&#39; as callback for event processing and the optionally
+        // specified &#39;options&#39;.  Optionally specify an &#39;allocator&#39; used to
+        // supply memory.  If the optionally specified &#39;allocator&#39; is 0, the
+        // currently installed default allocator is used.
+
+    ~MockSession() BSLS_KEYWORD_OVERRIDE;
+        // Stop the &#39;MockSession&#39; and destroy this object.
+
+    // MANIPULATORS
+    //   (specific to &#39;bmqa::MockSession&#39;)
+    void enqueueEvent(const bmqa::Event&amp; event);
+        // Enqueue the specified &#39;event&#39; in the queue of events to be emitted.
+        // NOTE: This method is unique to &#39;MockSession&#39; and is valid only in
+        //       unit tests.
+
+    bool emitEvent(int numEvents = 1);
+        // Emit the specified number of &#39;numEvents&#39; from the queue of events to
+        // be emitted.  Return true if at least one event was emitted, and
+        // false otherwise.
+        // NOTE: This method is unique to &#39;MockSession&#39; and is valid only in
+        //       unit tests.
+
+    Call&amp;
+    expect_start(const bsls::TimeInterval&amp; timeout = bsls::TimeInterval());
+    Call&amp;
+    expect_startAsync(
+                     const bsls::TimeInterval&amp; timeout = bsls::TimeInterval());
+    Call&amp; expect_stop();
+    Call&amp; expect_stopAsync();
+    Call&amp; expect_finalizeStop();
+    Call&amp;
+    expect_openQueue(
+                    QueueId                   *queueId,
+                    const bmqt::Uri&amp;           uri,
+                    bsls::Types::Uint64        flags,
+                    const bmqt::QueueOptions&amp;  options = bmqt::QueueOptions(),
+                    const bsls::TimeInterval&amp;  timeout = bsls::TimeInterval());
+    Call&amp;
+    expect_openQueueSync(
+                    QueueId                   *queueId,
+                    const bmqt::Uri&amp;           uri,
+                    bsls::Types::Uint64        flags,
+                    const bmqt::QueueOptions&amp;  options = bmqt::QueueOptions(),
+                    const bsls::TimeInterval&amp;  timeout = bsls::TimeInterval());
+
+    Call&amp;
+    expect_openQueueAsync(
+                    QueueId                   *queueId,
+                    const bmqt::Uri&amp;           uri,
+                    bsls::Types::Uint64        flags,
+                    const bmqt::QueueOptions&amp;  options = bmqt::QueueOptions(),
+                    const bsls::TimeInterval&amp;  timeout = bsls::TimeInterval());
+    Call&amp;
+    expect_openQueueAsync(
+                   QueueId                   *queueId,
+                   const bmqt::Uri&amp;           uri,
+                   bsls::Types::Uint64        flags,
+                   const OpenQueueCallback&amp;   callback,
+                   const bmqt::QueueOptions&amp;  options  = bmqt::QueueOptions(),
+                   const bsls::TimeInterval&amp;  timeout  = bsls::TimeInterval());
+
+    Call&amp;
+    expect_closeQueue(
+                    QueueId                   *queueId,
+                    const bsls::TimeInterval&amp;  timeout = bsls::TimeInterval());
+    Call&amp;
+    expect_closeQueueSync(
+                    QueueId                   *queueId,
+                    const bsls::TimeInterval&amp;  timeout = bsls::TimeInterval());
+
+    Call&amp;
+    expect_closeQueueAsync(
+                    QueueId                   *queueId,
+                    const bsls::TimeInterval&amp;  timeout = bsls::TimeInterval());
+    Call&amp;
+    expect_closeQueueAsync(
+                   QueueId                   *queueId,
+                   const CloseQueueCallback&amp;  callback,
+                   const bsls::TimeInterval&amp;  timeout  = bsls::TimeInterval());
+    Call&amp;
+    expect_configureQueue(
+                    QueueId                   *queueId,
+                    const bmqt::QueueOptions&amp;  options = bmqt::QueueOptions(),
+                    const bsls::TimeInterval&amp;  timeout = bsls::TimeInterval());
+    Call&amp;
+    expect_configureQueueSync(
+                    QueueId                   *queueId,
+                    const bmqt::QueueOptions&amp;  options = bmqt::QueueOptions(),
+                    const bsls::TimeInterval&amp;  timeout = bsls::TimeInterval());
+    Call&amp;
+    expect_configureQueueAsync(
+                    QueueId                   *queueId,
+                    const bmqt::QueueOptions&amp;  options = bmqt::QueueOptions(),
+                    const bsls::TimeInterval&amp;  timeout = bsls::TimeInterval());
+
+    Call&amp;
+    expect_configureQueueAsync(
+               QueueId                       *queueId,
+               const bmqt::QueueOptions&amp;      options,
+               const ConfigureQueueCallback&amp;  callback,
+               const bsls::TimeInterval&amp;      timeout  = bsls::TimeInterval());
+
+    Call&amp;
+    expect_nextEvent(const bsls::TimeInterval&amp; timeout = bsls::TimeInterval());
+    Call&amp; expect_post(const MessageEvent&amp; messageEvent);
+    Call&amp; expect_confirmMessage(const Message&amp; message);
+    Call&amp; expect_confirmMessage(const MessageConfirmationCookie&amp; cookie);
+    Call&amp; expect_confirmMessages(ConfirmEventBuilder *builder);
+        // Expect a call to the function and return a reference offering
+        // modifiable access to the corresponding &#39;Call&#39; object.
+        //
+        // NOTE: Do not use these method directly, use the macro
+        //       &#39;BMQA_EXPECT_CALL&#39; instead.
+
+    // MANIPULATORS
+    //   (virtual bmqa::AbstractSession)
+    int start(const bsls::TimeInterval&amp; timeout = bsls::TimeInterval())
+                                                         BSLS_KEYWORD_OVERRIDE;
+    int startAsync(const bsls::TimeInterval&amp; timeout = bsls::TimeInterval())
+                                                         BSLS_KEYWORD_OVERRIDE;
+        // Start the &#39;MockSession&#39; with an optionally specified &#39;timeout&#39;.  The
+        // return values are elucidated in &#39;bmqt::GenericResult&#39;.  In general a
+        // call to &#39;start&#39; or &#39;startAsync&#39; emits a &#39;SessionEvent&#39; of type
+        // &#39;e_CONNECTED&#39; or &#39;e_CONNECTION_TIMEOUT&#39;.
+
+    void stop() BSLS_KEYWORD_OVERRIDE;
+    void stopAsync() BSLS_KEYWORD_OVERRIDE;
+        // Stop the &#39;MockSession&#39;.  In general a call to &#39;start&#39; or
+        // &#39;startAsync&#39; emits a &#39;SessionEvent&#39; of type &#39;e_DISCONNECTED&#39; or
+        // &#39;e_CONNECTION_TIMEOUT&#39;.
+
+    void finalizeStop() BSLS_KEYWORD_OVERRIDE;
+        // This method is only to be used if the session is in synchronous mode
+        // (i.e., not using the EventHandler): it must be called once all
+        // threads getting events with &#39;nextEvent()&#39; have been joined.
+
+    void loadMessageEventBuilder(MessageEventBuilder *builder)
+                                                         BSLS_KEYWORD_OVERRIDE;
+        // Load the &#39;MessageEventBuilder&#39; into the specified &#39;builder&#39; output
+        // parameter.
+
+    void loadConfirmEventBuilder(ConfirmEventBuilder *builder)
+                                                         BSLS_KEYWORD_OVERRIDE;
+        // Load the &#39;ConfirmEventBuilder&#39; into the specified &#39;builder&#39; output
+        // parameter.
+
+    void loadMessageProperties(MessageProperties *buffer)
+                                                         BSLS_KEYWORD_OVERRIDE;
+        // Load the &#39;MessageProperties&#39; into the specified &#39;buffer&#39; output
+        // parameter.
+
+    ///Queue management
+    ///----------------
+    int getQueueId(QueueId *queueId, const bmqt::Uri&amp; uri) const
+                                                         BSLS_KEYWORD_OVERRIDE;
+        // Load &#39;QueueId&#39; object associated with the specified &#39;uri&#39; into the
+        // specified &#39;queueId&#39; output parameter.
+
+    int getQueueId(QueueId                    *queueId,
+                   const bmqt::CorrelationId&amp;  correlationId) const
+                                                         BSLS_KEYWORD_OVERRIDE;
+        // Load &#39;QueueId&#39; object associated with the specified &#39;correlationId&#39;
+        // into the specified &#39;queueId&#39; output parameter.
+
+    int
+    openQueue(QueueId                   *queueId,
+              const bmqt::Uri&amp;           uri,
+              bsls::Types::Uint64        flags,
+              const bmqt::QueueOptions&amp;  options = bmqt::QueueOptions(),
+              const bsls::TimeInterval&amp;  timeout = bsls::TimeInterval())
+                                                         BSLS_KEYWORD_OVERRIDE;
+        // DEPRECATED: Use the &#39;openQueueSync(QueueId *queueId...)&#39; instead.
+        //             This method will be marked as
+        //             &#39;BSLS_ANNOTATION_DEPRECATED&#39; in future release of
+        //             libbmq.
+
+    OpenQueueStatus
+    openQueueSync(QueueId                   *queueId,
+                  const bmqt::Uri&amp;           uri,
+                  bsls::Types::Uint64        flags,
+                  const bmqt::QueueOptions&amp;  options = bmqt::QueueOptions(),
+                  const bsls::TimeInterval&amp;  timeout = bsls::TimeInterval())
+                                                         BSLS_KEYWORD_OVERRIDE;
+        // Open the queue having the specified &#39;uri&#39; with the specified &#39;flags&#39;
+        // (a combination of the values defined in &#39;bmqt::QueueFlags::Enum&#39;),
+        // using the specified &#39;queueId&#39; to correlate events related to that
+        // queue.  The object &#39;queueId&#39; referring to is modified, so the
+        // &#39;queueId&#39; represents the actual queue uri, flags and options.
+        // Return a result providing the status and context of the operation.
+        // Use the optionally specified &#39;options&#39; to configure some advanced
+        // settings.  In general, a call to &#39;openQueueSync&#39; emits nothing.
+
+    int
+    openQueueAsync(QueueId                   *queueId,
+                   const bmqt::Uri&amp;           uri,
+                   bsls::Types::Uint64        flags,
+                   const bmqt::QueueOptions&amp;  options = bmqt::QueueOptions(),
+                   const bsls::TimeInterval&amp;  timeout = bsls::TimeInterval())
+                                                         BSLS_KEYWORD_OVERRIDE;
+        // DEPRECATED: Use the &#39;openQueueAsync(...)&#39; with callback flavor
+        //             instead.  This method will be marked as
+        //             &#39;BSLS_ANNOTATION_DEPRECATED&#39; in future release of
+        //             libbmq.
+
+    void
+    openQueueAsync(QueueId                   *queueId,
+                   const bmqt::Uri&amp;           uri,
+                   bsls::Types::Uint64        flags,
+                   const OpenQueueCallback&amp;   callback,
+                   const bmqt::QueueOptions&amp;  options  = bmqt::QueueOptions(),
+                   const bsls::TimeInterval&amp;  timeout  = bsls::TimeInterval())
+                                                         BSLS_KEYWORD_OVERRIDE;
+        // Asynchronously open the queue having the specified &#39;uri&#39; with the
+        // specified &#39;flags&#39; (a combination of the values defined in
+        // &#39;bmqt::QueueFlags::Enum&#39;).  The object &#39;queueId&#39; referring to is
+        // modified, so the &#39;queueId&#39; represents the actual queue uri, flags
+        // and options.  The result of the operation is communicated to the
+        // specified &#39;callback&#39; via a &#39;bmqa::OpenQueueStatus&#39;, providing an
+        // automatically generated correlation &#39;queueId&#39; and the status and
+        // context of the requested operation.  Use the optionally specified
+        // &#39;options&#39; to configure some advanced settings.  In general, a call
+        // to &#39;openQueueAsync&#39; does not emit a &#39;SessionEvent&#39;, but rather
+        // invokes the &#39;callback&#39; (if provided) instead when the corresponding
+        // &#39;emitEvent&#39; is called.
+        //
+        // NOTE: &#39;openQueueAsync&#39; updates the queue state to &#39;e_OPENING&#39; which
+        //       is further updated upon invocation of the &#39;callback&#39; (if
+        //       provided) with a successful &#39;bmqa::OpenQueueStatus&#39;.
+
+    int
+    configureQueue(QueueId                   *queueId,
+                   const bmqt::QueueOptions&amp;  options = bmqt::QueueOptions(),
+                   const bsls::TimeInterval&amp;  timeout = bsls::TimeInterval())
+                                                         BSLS_KEYWORD_OVERRIDE;
+        // DEPRECATED: Use the &#39;configureQueueSync(QueueId *queueId...)
+        //             instead.  This method will be marked as
+        //             &#39;BSLS_ANNOTATION_DEPRECATED&#39; in future release of
+        //             libbmq.
+
+    ConfigureQueueStatus
+    configureQueueSync(const QueueId             *queueId,
+                       const bmqt::QueueOptions&amp;  options,
+                       const bsls::TimeInterval&amp;  timeout)
+                                                         BSLS_KEYWORD_OVERRIDE;
+        // Configure the queue identified by the specified &#39;queueId&#39; using the
+        // specified &#39;options&#39; to configure some advanced settings and return a
+        // result providing the status and context of the operation.  In
+        // general, a call to &#39;configureQueueSync&#39; emits nothing.
+
+    int
+    configureQueueAsync(
+                    QueueId                   *queueId,
+                    const bmqt::QueueOptions&amp;  options = bmqt::QueueOptions(),
+                    const bsls::TimeInterval&amp;  timeout = bsls::TimeInterval())
+                                                         BSLS_KEYWORD_OVERRIDE;
+        // DEPRECATED: Use the &#39;configureQueueAsync(...)&#39; with callback flavor
+        //             instead.  This method will be marked as
+        //             &#39;BSLS_ANNOTATION_DEPRECATED&#39; in future release of
+        //             libbmq.
+
+    void
+    configureQueueAsync(
+               const QueueId                 *queueId,
+               const bmqt::QueueOptions&amp;      options,
+               const ConfigureQueueCallback&amp;  callback,
+               const bsls::TimeInterval&amp;      timeout  = bsls::TimeInterval())
+                                                         BSLS_KEYWORD_OVERRIDE;
+        // Asynchronously configure the queue identified by the specified
+        // &#39;queueId&#39; using the specified &#39;options&#39; to configure some advanced
+        // settings.  The result of the operation is communicated to the
+        // specified &#39;callback&#39; via a &#39;bmqa::ConfigureQueueStatus&#39;, providing
+        // the status and context of the requested operation.  In general, a
+        // call to &#39;configureQueueAsync&#39; does not emit a &#39;SessionEvent&#39;, but
+        // rather invokes the &#39;callback&#39; (if provided) instead when the
+        // corresponding &#39;emitEvent&#39; is called.
+
+    int
+    closeQueue(QueueId                   *queueId,
+               const bsls::TimeInterval&amp;  timeout = bsls::TimeInterval())
+                                                         BSLS_KEYWORD_OVERRIDE;
+        // DEPRECATED: Use the &#39;closeQueueSync(QueueId *queueId...)&#39; instead.
+        //             This method will be marked as
+        //             &#39;BSLS_ANNOTATION_DEPRECATED&#39; in future release of
+        //             libbmq.
+
+    CloseQueueStatus
+    closeQueueSync(const QueueId             *queueId,
+                   const bsls::TimeInterval&amp;  timeout = bsls::TimeInterval())
+                                                         BSLS_KEYWORD_OVERRIDE;
+        // Close the queue identified by the specified &#39;queueId&#39; using the
+        // specified &#39;timeout&#39;.  Populate the optionally specified &#39;result&#39;
+        // with the status and context of the operation and return a value
+        // providing the status of the operation.  In general, a call to
+        // &#39;closeQueueSync&#39; emits nothing.
+
+    int
+    closeQueueAsync(QueueId                   *queueId,
+                    const bsls::TimeInterval&amp;  timeout = bsls::TimeInterval())
+                                                         BSLS_KEYWORD_OVERRIDE;
+        // DEPRECATED: Use the &#39;closeQueueAsync(...)&#39; with callback flavor
+        //             instead.  This method will be marked as
+        //             &#39;BSLS_ANNOTATION_DEPRECATED&#39; in future release of
+        //             libbmq.
+
+    void
+    closeQueueAsync(
+                   const QueueId             *queueId,
+                   const CloseQueueCallback&amp;  callback,
+                   const bsls::TimeInterval&amp;  timeout  = bsls::TimeInterval())
+                                                         BSLS_KEYWORD_OVERRIDE;
+        // Asynchronously close the queue identified by the specified &#39;queueId&#39;
+        // using the specified &#39;timeout&#39;.  The result of the operation is
+        // communicated to the specified &#39;callback&#39; via a
+        // &#39;bmqa::CloseQueueStatus&#39;, providing the status and context of the
+        // requested operation.  In general, a call to &#39;closeQueueAsync&#39; does
+        // not emit a &#39;SessionEvent&#39;, but rather invokes the &#39;callback&#39; (if
+        // provided) instead when the corresponding &#39;emitEvent&#39; is called.
+
+    Event nextEvent(const bsls::TimeInterval&amp; timeout = bsls::TimeInterval())
+                                                         BSLS_KEYWORD_OVERRIDE;
+        // Returns the nextEvent emitted.
+        //
+        // NOTE: This method should only be used when the &#39;MockSession&#39; has
+        //       been created in synchronous mode.  It is invalid if used in
+        //       asynchronous mode and your test case is likely to be faulty
+        //       if used with such a set up.
+
+    int post(const MessageEvent&amp; messageEvent) BSLS_KEYWORD_OVERRIDE;
+        // Post the specified &#39;messageEvent&#39;.  Return values are defined as per
+        // &#39;bmqt::PostResult&#39;.  In general a call to &#39;post&#39; emits a
+        // &#39;MessageEvent&#39; of type &#39;e_ACK&#39; or no response if acks are not
+        // requested.
+
+    int confirmMessage(const Message&amp; message) BSLS_KEYWORD_OVERRIDE;
+    int confirmMessage(const MessageConfirmationCookie&amp; cookie)
+                                                         BSLS_KEYWORD_OVERRIDE;
+    int confirmMessages(ConfirmEventBuilder *builder) BSLS_KEYWORD_OVERRIDE;
+        // Confirm messages specified by the &#39;message&#39;, &#39;cookie&#39; or &#39;builder&#39;.
+        // Return values are defined as per &#39;bmqt::GenericResult&#39;.  No event is
+        // emitted for calls to &#39;confirmMessage&#39;.
+
+    int configureMessageDumping(const bslstl::StringRef&amp; command)
+                                                         BSLS_KEYWORD_OVERRIDE;
+        // NOT IMPLEMENTED
+
+    void setFailureCallback(const FailureCb&amp; failureCb);
+        // Set the failure callback of to be the specified &#39;failureCb&#39;.  This
+        // callback is invoked whenever an expectation set by the test driver
+        // is not met.
+
+    bool popPostedEvent(bmqa::MessageEvent *event);
+        // Load into the specified &#39;event&#39; the next posted event on this
+        // session, if any, and return true; leave &#39;event&#39; unchanged and return
+        // false otherwise.
+
+    // ACCESSORS
+    size_t unconfirmedMessages() const;
+        // Get the number of unconfirmed messages.  This corresponds to the
+        // number of push messages enqueued to the session object but not yet
+        // confirmed by the application.
+};
+
+
+// ============================================================================
+//                             INLINE DEFINITIONS
+// ============================================================================
+
+                             // -----------------
+                             // class MockSession
+                             // -----------------
+
+inline
+void
+MockSession::setFailureCallback(const FailureCb&amp; failureCb)
+{
+    d_failureCb = failureCb;
+}
+
+inline
+size_t
+MockSession::unconfirmedMessages() const
+{
+    return d_unconfirmedGUIDs.size();
+}
+
+inline
+bool
+MockSession::popPostedEvent(bmqa::MessageEvent *event)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT(event);
+
+    bslmt::LockGuard&lt;bslmt::Mutex&gt; guard(&amp;d_mutex);                   // LOCKED
+
+    if (d_postedEvents.empty()) {
+        return false;                                                 // RETURN
+    }
+
+    *event = d_postedEvents.front();
+    d_postedEvents.pop_front();
+
+    return true;
+}
+
+}  // close package namespace
+}  // close enterprise namespace
+
+#endif
+</pre>
+</body>
+</html>

@@ -1,0 +1,49 @@
+    mqbu.txt
+
+@PURPOSE: Provide utility components and mechanisms.
+
+@MNEMONIC: BlazingMQ Utility (mqbu)
+
+@DESCRIPTION: This package provides miscellanous utility components to be used
+in the bmqbrkr.
+
+
+/Hierarchical Synopsis
+/---------------------
+The 'mqbu' package currently has 12 components having 1 level of physical
+dependency.  The list below shows the hierarchal ordering of the components.
+..
+  1. mqbu_capacitymeter
+     mqbu_loadbalancer
+     mqbu_messageguidutil
+     mqbu_queuestats
+     mqbu_resourceusagemonitor
+     mqbu_sdkversionutil
+     mqbu_statetable
+..
+
+/Component Synopsis
+/------------------
+: 'mqbu_capacitymonitor':
+:      Provide a mechanism to meter capacity usage of a storage resource.
+:
+: 'mqbu_loadbalancer':
+:      Provide a mechanism to load-balance objects across processors.
+:
+: 'mqbu_messageguidutil':
+:      Provide a utility component for the 'bmqt::MessageGUID'.
+:
+: 'mqbu_queuestats':
+:      Provide a mechanism to keep track of Queue statistics.
+:
+: 'mqbu_resourceusagemonitor':
+:      Provide a simple two-resource usage monitor (low/high watermark)
+:
+: 'mqbu_sdkversionutil:
+:      Provide utilities for BlazingMQ SDK source control management (versioning).
+:
+: 'mqbu_statetable':
+:     Provide a state table for FSM use.
+:
+: 'mqbu_threadutil':
+:      Provide utilities related to thread management.

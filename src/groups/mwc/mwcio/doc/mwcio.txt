@@ -1,0 +1,84 @@
+    mwcio.txt
+
+@PURPOSE: Provide network related components..
+
+@MNEMONIC: MiddleWare Core IO (mwcio)
+
+@DESCRIPTION: This package provides interfaces and concrete implementations related to TCP communication.
+
+/Hierarchical Synopsis
+/---------------------
+The 'mwcio' package currently has 13 components having 5 levels of physical
+dependency.  The list below shows the hierarchal ordering of the components.
+..
+  5. mwcio_tcpchannelfactory
+
+  4. mwcio_resolvingchannelfactory
+     mwcio_tcpchannel
+
+  3. mwcio_basechannelpartialimp
+     mwcio_decoratingchannelpartialimp
+     mwcio_reconnectingchannelfactory
+     mwcio_testchannel
+     mwcio_testchannelfactory
+
+  2. mwcio_channel
+     mwcio_channelfactory
+
+  1. mwcio_connectoptions
+     mwcio_listenoptions
+     mwcio_status
+..
+
+/Component Synopsis
+/------------------
+: 'mwcio_basechannelpartialimp':
+:     Provide a partial 'Channel' imp for a 'base' channel
+:
+: 'mwcio_channel':
+:      Provide a pure protocol for a bi-directional async channel.
+:
+: 'mwcio_channelfactory':
+:      Provide a protocol for a 'mwcio::Channel' factory.
+:
+: 'mwcio_channelutil':
+:      Provide utility functions related to channel manipulation.
+:
+: 'mwcio_connectoptions':
+:      Provide a type encapsulating options for 'ChannelFactory::connect'.
+:
+: 'mwcio_decoratingchannelpartialimp':
+:      Provide a partial imp of 'mwcio::Channel' for decorating channels.
+:
+: 'mwcio_listenoptions':
+:      Provide a type encapsulating options for 'ChannelFactory::listen'.
+:
+: 'mwcio_reconnectingchannelfactory':
+:      Provide an auto-reconnecting ChannelFactory decorator.
+:
+: 'mwcio_resolvingchannelfactory':
+:      Provide a 'ChannelFactory' that resolves the URIs of its channels.
+:
+: 'mwcio_statchannel':
+:      Provide a 'mwcio::Channel' that collects stats.
+:
+: 'mwcio_statchannelfactory':
+:      Provide a ChannelFactory decorator for channels collecting stats.
+:
+: 'mwcio_status':
+:      Provide an object representing the result of an I/O operation.
+:
+: 'mwcio_tcpchannel':
+:      Provide a 'mwcio::Channel' using a 'btemt_ChannelPoolChannel'.
+:
+: 'mwcio_tcpchannelfactory':
+:      Provide a 'mwcio::ChannelFactory' using a 'btemt::ChannelPool'.
+:
+: 'mwcio_tcpendpoint':
+:      Provide Value-semantic type representing endpoints for 'mwcio' channels.
+:
+: 'mwcio_testchannel':
+:      Provide an implementation of the Channel protocol for test drivers.
+:
+: 'mwcio_testchannelfactory':
+:      Provide a test imp of the 'ChannelFactory' protocol.

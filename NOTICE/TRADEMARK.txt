@@ -1,0 +1,70 @@
+BLAZINGMQ Trademark Guidelines
+==============================
+
+BLAZINGMQ and the BLAZINGMQ logos (the “BLAZINGMQ Marks”) are trademarks and
+service marks of Bloomberg L.P. (“Bloomberg”) and, as such, are symbols of the
+quality of the products and services that Bloomberg offers. These trademark
+guidelines are essential and must be followed to prevent use of the BLAZINGMQ
+Marks that could lead to confusion about our software or our company.
+
+The BLAZINGMQ Marks may be used in the following manners or places:
+
+- on your website or in your social media accounts in content related to the
+  BLAZINGMQ project;
+
+- in connection with conferences, events or talks related to the BLAZINGMQ
+  project;
+
+- in connection with educational services offered related to the BLAZINGMQ
+- project; in the title of an article or book (print or digital) related to the
+- BLAZINGMQ project;
+
+- in a video (title or content) related to the BLAZINGMQ project;
+
+- to indicate that your product is an ecosystem component meant to enhance
+  BlazingMQ's software, .e.g. blazingmq-[component name].
+
+
+The BLAZINGMQ Marks may not be used:
+
+- on merchandise;
+- in or as part of your company name;
+- in conjunction with your or another company’s logo or mark; or
+- to disparage Bloomberg or its goods or services.
+
+By use of the BLAZINGMQ Marks, each individual or organization:
+
+- Acknowledges that Bloomberg is the owner of all right, title and interest in
+  and to the BLAZINGMQ Marks and the goodwill of the business related thereto
+  and that all use of the BLAZINGMQ Marks will inure solely to the benefit of
+  Bloomberg.
+
+- Agrees not to: (i) apply anywhere for trademark or service mark registration
+  of the BLAZINGMQ Marks or any mark including the BLAZINGMQ Marks; (ii) use
+  the BLAZINGMQ Marks in any manner or commit any other act likely to devalue,
+  injure or dilute the goodwill or reputation of Bloomberg or the BLAZINGMQ
+  Marks; or (iii) challenge the validity of the BLAZINGMQ Marks.
+
+- Acknowledges that Bloomberg will exercise control over the quality of use of
+  the BLAZINGMQ Marks and the goods/services provided thereunder and will: (i)
+  use the BLAZINGMQ Marks only in connection with goods and services of a level
+  of quality at least equal to the goods and services it has distributed
+  previously and, in no event, at no less than then-current industry standards;
+  (ii) use the BLAZINGMQ Marks in strict compliance with all guidelines
+  provided by Bloomberg and with such trademark notices as Bloomberg shall
+  direct; (iii) upon reasonable request provide Bloomberg with specimens of use
+  of the BLAZINGMQ Marks; and (iv) cease any use of the BLAZINGMQ Marks upon
+  written notice from Bloomberg.
+
+- Agrees only to use the BLAZINGMQ logo marks provided in the file located in
+  the 'docs' folder at https://github.com/bloomberg/BLAZINGMQ, to maintain
+  aspect ratio and to refrain from modifying the color of the marks.
+
+- Agrees to use the word mark BLAZINGMQ only in the format “BLAZINGMQ”,
+  “BlazingMQ” or “Blazingmq” in the same font and size as the surrounding text.
+
+- Agrees not to use the BLOOMBERG trademark, service mark or logo mark without
+  permission and understands that any use of the BLOOMBERG trademark, service
+  mark or logo mark may be made only following the grant of a license by
+  Bloomberg. In referring to the BLAZINGMQ software, you may use the following
+  text: “BLAZINGMQ, developed and published by Bloomberg L.P.”

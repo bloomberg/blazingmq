@@ -1,0 +1,139 @@
+<!doctype HTML public "-//W3C//DTD HTML 4.0 Frameset//EN">
+<html>
+<title>Bloomberg Development Environment</title>
+<html>
+<pre>
+// Copyright 2014-2023 Bloomberg Finance L.P.
+// SPDX-License-Identifier: Apache-2.0
+//
+// Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// bmqa_messageevent.h                                                -*-C++-*-
+#ifndef INCLUDED_BMQA_MESSAGEEVENT
+#define INCLUDED_BMQA_MESSAGEEVENT
+
+//@PURPOSE: Provide the application with data event notifications.
+//
+//@CLASSES:
+//  bmqa::MessageEvent: Mechanism for data event notification.
+//
+//@SEE_ALSO:
+//  bmqa::MessageIterator: iterator over the messages in this event
+//  bmqa::Message:         type of the Message
+//
+//@DESCRIPTION: This component provides a &#39;bmqa::MessageEvent&#39; notification
+// object used by the &#39;bmqa::Session&#39; to provide BlazingMQ applications with
+// data messages received from the broker.  The application can consume the
+// messages by asking this &#39;MessageEvent&#39; for a &#39;MessageIterator&#39;.
+//
+// Note that &#39;MessageEvent&#39; is implemented using the pimpl idiom, so copying a
+// &#39;MessageEvent&#39; is very cheap (a pointer copy).  All copies of this
+// &#39;MessageEvent&#39; will share the same underlying implementation.
+
+
+// BMQ
+#include &lt;bmqscm_version.h&gt;
+#include &lt;bmqa_messageiterator.h&gt;
+#include &lt;bmqt_messageeventtype.h&gt;
+
+// BDE
+#include &lt;bsl_memory.h&gt;
+#include &lt;bsl_iosfwd.h&gt;
+
+namespace BloombergLP {
+
+// FORWARD DECLARATION
+namespace bmqimp { class Event; }
+
+namespace bmqa {
+
+
+                             // ==================
+                             // class MessageEvent
+                             // ==================
+
+class MessageEvent {
+    // An event containing messages received from a queue.  The application can
+    // consume messages using the message iterator.
+
+  private:
+    // DATA
+    bsl::shared_ptr&lt;bmqimp::Event&gt; d_impl_sp; // pimpl
+
+  public:
+    // CREATORS
+    explicit MessageEvent();
+        // Create an unset instance.  Note that &#39;type()&#39; will return
+        // &#39;bmqt::MessageEventType::UNDEFINED&#39;.
+
+    //! MessageEvent(const MessageEvent&amp; other) = default;
+
+    // MANIPULATORS
+    //! MessageEvent&amp; operator=(const MessageEvent&amp; rhs) = default;
+
+    // ACCESSORS
+    MessageIterator messageIterator() const;
+        // Return a &#39;MessageIterator&#39; object usable for iterating over the
+        // &#39;Message&#39; objects contained in this &#39;MessageEvent&#39;.  Note that
+        // obtaining an iterator invalidates (resets) any previously obtained
+        // iterator.  The behavior is undefined if &#39;type()&#39; returns
+        // &#39;bmqt::MessageEventType::UNDEFINED&#39;.
+
+    bmqt::MessageEventType::Enum type() const;
+        // Return the type of messages contained in this MessageEvent.
+
+    bsl::ostream&amp; print(bsl::ostream&amp; stream,
+                        int           level          = 0,
+                        int           spacesPerLevel = 4) const;
+        // Format this object to the specified output &#39;stream&#39; at the (absolute
+        // value of) the optionally specified indentation &#39;level&#39; and return a
+        // reference to &#39;stream&#39;.  If &#39;level&#39; is specified, optionally specify
+        // &#39;spacesPerLevel&#39;, the number of spaces per indentation level for
+        // this and all of its nested objects.  If &#39;level&#39; is negative,
+        // suppress indentation of the first line.  If &#39;spacesPerLevel&#39; is
+        // negative format the entire output on one line, suppressing all but
+        // the initial indentation (as governed by &#39;level&#39;).  If &#39;stream&#39; is
+        // not valid on entry, this operation has no effect.
+};
+
+// FREE OPERATORS
+bsl::ostream&amp; operator&lt;&lt;(bsl::ostream&amp; stream, const MessageEvent&amp; rhs);
+    // Format the specified &#39;rhs&#39; to the specified output &#39;stream&#39; and return a
+    // reference to the modifiable &#39;stream&#39;.
+
+
+// ============================================================================
+//                             INLINE DEFINITIONS
+// ============================================================================
+
+}  // close package namespace
+
+
+                             // ------------------
+                             // class MessageEvent
+                             // ------------------
+
+inline
+bsl::ostream&amp;
+bmqa::operator&lt;&lt;(bsl::ostream&amp;             stream,
+                 const bmqa::MessageEvent&amp; rhs)
+{
+    return rhs.print(stream, 0, -1);
+}
+
+}  // close enterprise namespace
+
+#endif
+</pre>
+</body>
+</html>

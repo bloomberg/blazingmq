@@ -1,0 +1,15 @@
+    mqbnet.txt
+
+@PURPOSE: Provide network transport components.
+
+@MNEMONIC: BlazingMQ Broker Transport (mqbnet)
+
+@DESCRIPTION: This package provides transport components used by the broker.
+
+/Hierarchical Synopsis
+/---------------------
+ TBD
+
+/Component Synopsis
+/------------------
+: TBD

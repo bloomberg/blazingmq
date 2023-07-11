@@ -1,0 +1,9 @@
+mqb
+bmq
+# TBD: Should not be needed, but for now is required in order for plugins to
+#      build (doesn't seem like the mqb -> bmq dependency is being transitively
+#      transferred to the plugins build mechanism).
+mwc
+bal
+bdl
+bsl

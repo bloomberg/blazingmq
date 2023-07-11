@@ -1,0 +1,2 @@
+# Locking APIs from non-instrumented `libpthread` yields false-positives.
+fun:_ZN11BloombergLP5bslmt9MutexImplINS0_8Platform12PosixThreadsEE*

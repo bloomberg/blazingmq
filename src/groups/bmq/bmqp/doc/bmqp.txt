@@ -1,0 +1,148 @@
+ bmqp.txt
+
+@PURPOSE: [INTERNAL] Provide BlazingMQ protocol definition, builders and
+          parsers.
+
+@MNEMONIC: BlazingMQ Protocol (bmqp)
+
+@DESCRIPTION: [!INTERNAL!] This package provides the definition of the BMQ
+ protocol as well as the utilities to manipulate the protocol objects.
+
+ Note that this package is !INTERNAL!.  Clients are not supposed to use any of
+ its components directly, but rather use the accessor public APIs from 'bmqa'.
+
+/Hierarchical Synopsis
+/---------------------
+The 'bmqp' package currently has 30 components having 4 level of physical
+dependency.  The list below shows the hierarchical ordering of the components.
+..
+  4. bmqp_requestmanager
+
+  3. bmqp_confirmeventbuilder
+     bmqp_event
+     bmqp_pusheventbuilder
+     bmqp_puteventbuilder
+     bmqp_puttester
+     bmqp_rejecteventbuilder
+     bmqp_schemaeventbuilder
+
+  2. bmqp_ackeventbuilder
+     bmqp_ackmessageiterator
+     bmqp_confirmmessageiterator
+     bmqp_controlmessageutil
+     bmqp_eventutil
+     bmqp_messageproperties
+     bmqp_optionsview
+     bmqp_optionutil
+     bmqp_protocolutil
+     bmqp_pushmessageiterator
+     bmqp_putmessageiterator
+     bmqp_recoveryeventbuilder
+     bmqp_recoverymessageiterator
+     bmqp_rejectmessageiterator
+     bmqp_routingconfigurationutils
+     bmqp_storageeventbuilder
+     bmqp_storagemessageiterator
+
+  1. bmqp_compression
+     bmqp_crc32c
+     bmqp_ctrlmsg_messages
+     bmqp_messageguidgenerator
+     bmqp_protocol
+     bmqp_queueid
+..
+
+/Component Synopsis
+/------------------
+: 'bmqp_ackeventbuilder':
+:      Provide a mechanism to build a BlazingMQ 'ACK' event.
+:
+: 'bmqp_ackmessageiterator':
+:      Provide a mechanism to iterate over the messages of an AckEvent.
+:
+: 'bmqp_compression':
+:      Provide a utility for compression.
+:
+: 'bmqp_confirmeventbuilder':
+:      Provide a mechanism to build a BlazingMQ 'CONFIRM' event.
+:
+: 'bmqp_confirmmessageiterator':
+:      Provide a mechanism to iterate over messages of a 'CONFIRM' event.
+:
+: 'bmqp_controlmessageutil':
+:      Provide utilities related to control messages.
+:
+: 'bmqp_crc32c':
+:      Provide utilities for calculating crc32c.
+:
+: 'bmqp_ctrlmsg_messages':
+:      Provide value-semantic types for control messages.
+:
+: 'bmqp_event':
+:      Provide a mechanism to access messages from a raw BlazingMQ event packet.
+:
+: 'bmqp_eventutil':
+:      Provide utilities for BlazingMQ protocol events.
+:
+: 'bmqp_messageguidgenerator':
+:      Provide a mechanism to generate bmqt::MessageGUIDs.
+
+: 'bmqp_messageproperties':
+:      Provide a VST representing message properties.
+:
+: 'bmqp_optionsview':
+:      Provide a mechanism to access options of a message.
+:
+: 'bmqp_optionutil':
+:      Provide utilities for builders and iterators that use options.
+:
+: 'bmqp_protocol':
+:      Provide definitions for BlazingMQ protocol structures and constants.
+:
+: 'bmqp_protocolutil':
+:      Provide utilities for BlazingMQ protocol builders and iterators.
+:
+: 'bmqp_pusheventbuilder':
+:      Provide a mechanism to build a BlazingMQ 'PUSH' event.
+:
+: 'bmqp_pushmessageiterator':
+:      Provide a mechanism to iterate over messages of a 'PUSH' event.
+:
+: 'bmqp_puteventbuilder':
+:      Provide a mechanism to build a BlazingMQ 'PUT' event.
+:
+: 'bmqp_putmessageiterator':
+:      Provide a mechanism to iterate over messages of a 'PUT' event.
+:
+: 'bmqp_puttester':
+:      Provide utility methods for testing 'PUT' events.
+:
+: 'bmqp_queueid'
+:      Provide a value-semantic type for a key related to a queue.
+:
+: 'bmqp_recoveryeventbuilder'
+:      Provide a mechanism to build a BlazingMQ 'RECOVERY' event.
+:
+: 'bmqp_recoverymessageiterator'
+:      Provide a mechanism to iterate over messages of a 'RECOVERY' event.
+:
+: 'bmqp_rejecteventbuilder':
+:      Provide a mechanism to build a BlazingMQ 'REJECT' event.
+:
+: 'bmqp_rejectmessageiterator':
+:      Provide a mechanism to iterate over messages of a 'REJECT' event.
+:
+: 'bmqp_requestmanager':
+:      Provide a mechanism to manipulate requests and their response.
+:
+: 'bmqp_routingconfigurationutils':
+:      Provide utility methods to manage 'RoutingConfiguration' instances.
+:
+: 'bmqp_schemaeventbuilder':
+:      Provide a mechanism to build a BlazingMQ schema event.
+:
+: 'bmqp_storageeventbuilder':
+:      Provide a mechanism to build a BlazingMQ 'STORAGE' event.
+:
+: 'bmqp_storagemessageiterator':
+:      Provide a mechanism to iterate over messages of a 'STORAGE' event.

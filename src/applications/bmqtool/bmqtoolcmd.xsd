@@ -1,0 +1,246 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<schema xmlns='http://www.w3.org/2001/XMLSchema'
+        xmlns:bdem='http://bloomberg.com/schemas/bdem'
+        xmlns:tns='http://bloomberg.com/schemas/bmqtoolcmd'
+        targetNamespace='http://bloomberg.com/schemas/bmqtoolcmd'
+        bdem:package='m_bmqtool_cmd'
+        elementFormDefault='qualified'>
+
+  <complexType name='Command'>
+    <choice>
+      <!-- Commands specific to e_CLI mode -->
+      <element name='start'          type='tns:StartCommand'/>
+      <element name='stop'           type='tns:StopCommand'/>
+      <element name='openQueue'      type='tns:OpenQueueCommand'/>
+      <element name='configureQueue' type='tns:ConfigureQueueCommand'/>
+      <element name='closeQueue'     type='tns:CloseQueueCommand'/>
+      <element name='post'           type='tns:PostCommand'/>
+      <element name='list'           type='tns:ListCommand'/>
+      <element name='confirm'        type='tns:ConfirmCommand'/>
+
+      <!-- Commands specific to e_STORAGE mode -->
+      <element name='openStorage'        type='tns:OpenStorageCommand'/>
+      <element name='closeStorage'       type='tns:CloseStorageCommand'/>
+      <element name='metadata'           type='tns:MetadataCommand'/>
+      <element name='listQueues'         type='tns:ListQueuesCommand'/>
+      <element name='dumpQueue'          type='tns:DumpQueueCommand'/>
+      <element name='data'               type='tns:DataCommand' />
+      <element name='qlist'              type='tns:QlistCommand' />
+      <element name='journal'            type='tns:JournalCommand' />
+    </choice>
+  </complexType>
+
+  <!-- Commands specific to e_CLI mode -->
+  <complexType name='StartCommand'>
+    <sequence>
+      <element name='async' type='boolean' default='false'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='StopCommand'>
+    <sequence>
+      <element name='async' type='boolean' default='false'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='OpenQueueCommand'>
+    <sequence>
+      <element name='uri'                    type='string'/>
+      <element name='flags'                  type='string'/>
+      <element name='async'                  type='boolean' default='false'/>
+      <element name='maxUnconfirmedMessages' type='int'     default='1024'/>
+      <element name='maxUnconfirmedBytes'    type='int'     default='33554432'/>
+      <element name='consumerPriority'       type='int'     default='0'/>
+      <element name='subscriptions'          type='tns:Subscription' maxOccurs='unbounded'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='ConfigureQueueCommand'>
+    <sequence>
+      <element name='uri'                    type='string'/>
+      <element name='async'                  type='boolean' default='false'/>
+      <element name='maxUnconfirmedMessages' type='int'     default='1024'/>
+      <element name='maxUnconfirmedBytes'    type='int'     default='33554432'/>
+      <element name='consumerPriority'       type='int'     default='0'/>
+      <element name='subscriptions'          type='tns:Subscription' maxOccurs='unbounded'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='Subscription'>
+    <sequence>
+      <element name='correlationId'          type='unsignedInt' minOccurs='0'/>
+      <element name='expression'             type='string'      minOccurs='0'/>
+      <element name='maxUnconfirmedMessages' type='int'         minOccurs='0'/>
+      <element name='maxUnconfirmedBytes'    type='int'         minOccurs='0'/>
+      <element name='consumerPriority'       type='int'         minOccurs='0'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='CloseQueueCommand'>
+    <sequence>
+      <element name='uri'   type='string'/>
+      <element name='async' type='boolean' default='false'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='PostCommand'>
+    <sequence>
+      <element name='uri'                      type='string'/>
+      <element name='payload'                  type='string'  maxOccurs='unbounded'/>
+      <element name='async'                    type='boolean' default='false'/>
+      <element name='groupid'                  type='string' default=''/>
+      <element name='compressionAlgorithmType' type='string' default='none'/>
+      <element name='messageProperties'        type='tns:MessageProperty' maxOccurs='unbounded'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='ListCommand'>
+    <sequence>
+      <element name='uri' type='string' minOccurs='0'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='ConfirmCommand'>
+    <sequence>
+      <element name='uri'  type='string'/>
+      <element name='guid' type='string'/>
+    </sequence>
+  </complexType>
+
+  <!-- Commands specific to e_STORAGE mode -->
+  <complexType name='OpenStorageCommand'>
+    <sequence>
+      <element name='path'      type='string' />
+    </sequence>
+  </complexType>
+
+  <complexType name='CloseStorageCommand'>
+    <sequence>
+      <!-- empty -->
+    </sequence>
+  </complexType>
+
+  <complexType name='MetadataCommand'>
+    <sequence>
+      <!-- empty -->
+    </sequence>
+  </complexType>
+
+  <complexType name='ListQueuesCommand'>
+    <sequence>
+      <!-- empty -->
+    </sequence>
+  </complexType>
+
+  <complexType name='DumpQueueCommand'>
+    <sequence>
+      <element name='uri' type='string' />
+      <element name='key' type='string' />
+    </sequence>
+  </complexType>
+
+  <complexType name='DataCommand'>
+    <sequence>
+      <choice>
+        <element name='n'      type='nonNegativeInteger' />
+        <element name='next'   type='nonNegativeInteger' />
+        <element name='p'      type='nonNegativeInteger' />
+        <element name='prev'   type='nonNegativeInteger' />
+        <element name='r'      type='nonNegativeInteger' />
+        <element name='record' type='nonNegativeInteger' />
+        <element name='list'   type='int' />
+        <element name='l'      type='int' />
+      </choice>
+    </sequence>
+  </complexType>
+
+  <complexType name='QlistCommand'>
+    <sequence>
+      <choice>
+        <element name='n'      type='nonNegativeInteger' />
+        <element name='next'   type='nonNegativeInteger' />
+        <element name='p'      type='nonNegativeInteger' />
+        <element name='prev'   type='nonNegativeInteger' />
+        <element name='r'      type='nonNegativeInteger' />
+        <element name='record' type='nonNegativeInteger' />
+        <element name='list'   type='int' />
+        <element name='l'      type='int' />
+      </choice>
+    </sequence>
+  </complexType>
+
+  <complexType name='JournalCommand'>
+    <sequence>
+      <choice>
+        <element name='n'      type='nonNegativeInteger' />
+        <element name='next'   type='nonNegativeInteger' />
+        <element name='p'      type='nonNegativeInteger' />
+        <element name='prev'   type='nonNegativeInteger' />
+        <element name='r'      type='nonNegativeInteger' />
+        <element name='record' type='nonNegativeInteger' />
+        <element name='list'   type='int' />
+        <element name='l'      type='int' />
+        <element name='dump'   type='string' />
+        <element name='type'>
+            <simpleType>
+              <restriction base='string'>
+                <enumeration value='message' />
+                <enumeration value='confirm' />
+                <enumeration value='delete' />
+                <enumeration value='qop' />
+                <enumeration value='jop' />
+              </restriction>
+            </simpleType>
+        </element>
+      </choice>
+    </sequence>
+  </complexType>
+
+  <complexType name='CommandLineParameters'>
+    <sequence>
+      <element name='mode'                     type='string'  default="cli"/>
+      <element name='broker'                   type='string'  default="tcp://localhost:30114"/>
+      <element name='queueUri'                 type='string'  default=""/>
+      <element name='queueFlags'               type='string'  default=""/>
+      <element name='latency'                  type='string'  default="none"/>
+      <element name='latencyReport'            type='string'  default=""/>
+      <element name='dumpMsg'                  type='boolean' default="false"/>
+      <element name='confirmMsg'               type='boolean' default="false"/>
+      <element name='eventSize'                type='int'     default="1"/>
+      <element name='msgSize'                  type='int'     default="1024"/>
+      <element name='postRate'                 type='int'     default="1"/>
+      <element name='eventsCount'              type='string'  default="0"/>
+      <element name='maxUnconfirmed'           type='string'  default="1024:33554432"/>
+      <element name='postInterval'             type='int'     default="1000"/>
+      <element name='verbosity'                type='string'  default="info"/>
+      <element name='logFormat'                type='string'  default="%d (%t) %s %F:%l %m\n"/>
+      <element name='memoryDebug'              type='boolean' default="false"/>
+      <element name='threads'                  type='int'     default="1"/>
+      <element name='shutdownGrace'            type='int'     default="0"/>
+      <element name='noSessionEventHandler'    type='boolean' default="false"/>
+      <element name='storage'                  type='string'  default=""/>
+      <element name='log'                      type='string'  default=""/>
+      <element name='sequentialMessagePattern' type='string'  default=""/>
+      <element name='messageProperties'        type='tns:MessageProperty' maxOccurs='unbounded'/>
+      <element name='subscriptions'            type='tns:Subscription'    maxOccurs='unbounded'/>
+    </sequence>
+  </complexType>
+  <complexType name='MessageProperty'>
+    <sequence>
+      <element name='name'      type='string'/>
+      <element name='value'     type='string'/>
+      <element name='type'      type='tns:MessagePropertyType' default='E_STRING'/>
+    </sequence>
+  </complexType>  
+  <simpleType name='MessagePropertyType'>
+    <annotation>
+      <documentation>
+        Enumeration of supported MessageProperty types.
+      </documentation>
+    </annotation>
+    <restriction base='string' bdem:preserveEnumOrder='1'>
+      <enumeration value='E_STRING' bdem:id='0'/>
+      <enumeration value='E_INT'    bdem:id='1'/>
+    </restriction>
+  </simpleType>  
+</schema>

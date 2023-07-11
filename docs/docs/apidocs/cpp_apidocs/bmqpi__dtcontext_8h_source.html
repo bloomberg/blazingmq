@@ -1,0 +1,99 @@
+<!doctype HTML public "-//W3C//DTD HTML 4.0 Frameset//EN">
+<html>
+<title>Bloomberg Development Environment</title>
+<html>
+<pre>
+// Copyright 2021-2023 Bloomberg Finance L.P.
+// SPDX-License-Identifier: Apache-2.0
+//
+// Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// bmqpi_dtcontext.h                                                  -*-C++-*-
+#ifndef INCLUDED_BMQPI_DTCONTEXT
+#define INCLUDED_BMQPI_DTCONTEXT
+
+//@PURPOSE: Provide an interface for a context with a notion of a current span.
+//
+//@CLASSES:
+//  bmqpi::DTContext: Interface for a context with a notion of a current span.
+//
+//@DESCRIPTION:
+// &#39;bmqpi::DTContext&#39; is a pure interface representing a context which defines
+// a &quot;current&quot; &#39;bmqpi::DTSpan&#39; for the calling thread. Implementations *may*
+// return different spans for each thread, or return a single span shared by
+// all calling threads.
+//
+// Many distributed trace libraries provide a well-defined thread-local storage
+// slot for the span currently under execution, which allows a function to
+// obtain a reference to its caller across library boundaries, without changes
+// to its API to facilitate dependency injection. This storage slot is set by
+// instantiating an RAII &quot;Span Guard&quot; that writes a span to the TLS at
+// construction, and reverts its state on destruction (emulating the semantics
+// of a call-stack). The API of &#39;bmqpi::DTContext&#39; aims to make it easy to wrap
+// these common patterns in a library-agnostic manner, while also facilitating
+// test double implementations.
+//
+
+// BMQ
+#include &lt;bmqscm_version.h&gt;
+#include &lt;bmqpi_dtspan.h&gt;
+
+// BDE
+#include &lt;bsl_memory.h&gt;
+#include &lt;bslma_managedptr.h&gt;
+
+namespace BloombergLP {
+namespace bmqpi {
+
+                              // ===============
+                              // class DTContext
+                              // ===============
+
+class DTContext {
+    // A pure interface for a context with a notion of a current span.
+
+  public:
+    // PUBLIC CREATORS
+    virtual ~DTContext();
+        // Destructor
+
+    // PUBLIC ACCESSORS
+    virtual bsl::shared_ptr&lt;bmqpi::DTSpan&gt; span() const = 0;
+        // Returns the current &#39;DTSpan&#39; for the calling thread according to
+        // this &#39;DTContext&#39;, or an empty &#39;shared_ptr&#39; if no span is currently
+        // set.
+
+    // PUBLIC MANIPULATORS
+    virtual
+    bslma::ManagedPtr&lt;void&gt;
+    scope(const bsl::shared_ptr&lt;DTSpan&gt;&amp; newSpan) = 0;
+        // Letting &#39;previous = span()&#39; on some thread &#39;T&#39;, returns an object
+        // &#39;token&#39; which promises:
+        //: o &#39;span()&#39; will return &#39;newSpan&#39; when called on thread &#39;T&#39;,
+        //:    following the construction of &#39;token&#39;.
+        //: o &#39;span()&#39; will return &#39;previous&#39; when called on thread &#39;T&#39;,
+        //:    following the destruction of &#39;token&#39;.
+        //
+        // Note that if &#39;token2 = scope(otherSpan)&#39; is called on thread &#39;T&#39;
+        // during the lifetime of &#39;token&#39;, then &#39;span()&#39; will return
+        // &#39;otherSpan&#39;. After &#39;token2&#39; is destroyed, it will again return
+        // &#39;newSpan&#39;.
+};
+
+}  // close package namespace
+}  // close enterprise namespace
+
+#endif
+</pre>
+</body>
+</html>

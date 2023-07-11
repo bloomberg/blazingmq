@@ -1,0 +1,1034 @@
+<?xml version="1.0"?>
+<schema xmlns="http://www.w3.org/2001/XMLSchema"
+        xmlns:bdem="http://bloomberg.com/schemas/bdem"
+        xmlns:tns="http://bloomberg.com/schemas/schema"
+        xmlns:xs="http://www.w3.org/2001/XMLSchema"
+        targetNamespace="http://bloomberg.com/schemas/schema">
+
+  <complexType name="Command">
+    <choice>
+      <element name="help"           type="tns:HelpCommand"/>
+      <element name="domains"        type="tns:DomainsCommand"/>
+      <element name="configProvider" type="tns:ConfigProviderCommand"/>
+      <element name="stat"           type="tns:StatCommand"/>
+      <element name="clusters"       type="tns:ClustersCommand"/>
+      <element name="danger"         type="tns:DangerCommand"/>
+      <element name="brokerConfig"   type="tns:BrokerConfigCommand"/>
+    </choice>
+  </complexType>
+
+  <complexType name="InternalResult">
+    <choice>
+      <element name="error"                      type="tns:Error"/>
+      <element name="success"                    type="tns:Void"/>
+      <element name="domainsResult"              type="tns:DomainsResult"/>
+      <element name="clustersResult"             type="tns:ClustersResult"/>
+      <element name="help"                       type="tns:Help"/>
+      <element name="queueInternals"             type="tns:QueueInternals"/>
+      <element name="statResult"                 type="tns:StatResult"/>
+      <element name="clusterList"                type="tns:ClusterList"/>
+      <element name="clusterQueueHelper"         type="tns:ClusterQueueHelper"/>
+      <element name="clusterStorageSummary"      type="tns:ClusterStorageSummary"/>
+      <element name="clusterDomainQueueStatuses" type="tns:ClusterDomainQueueStatuses"/>
+      <element name="brokerConfig"               type="tns:BrokerConfig"/>
+    </choice>
+  </complexType>
+
+  <complexType name="Result">
+    <choice>
+      <element name="error"                      type="tns:Error"/>
+      <element name="success"                    type="tns:Void"/>
+      <element name="value"                      type="tns:Value"/>
+      <element name="tunable"                    type="tns:Tunable"/>
+      <element name="tunables"                   type="tns:Tunables"/>
+      <element name="tunableConfirmation"        type="tns:TunableConfirmation"/>
+      <element name="help"                       type="tns:Help"/>
+      <element name="domainInfo"                 type="tns:DomainInfo"/>
+      <element name="purgedQueues"               type="tns:PurgedQueues"/>
+      <element name="queueInternals"             type="tns:QueueInternals"/>
+      <element name="messageGroupIdHelper"       type="tns:MessageGroupIdHelper"/>
+      <element name="queueContents"              type="tns:QueueContents"/>
+      <element name="message"                    type="tns:Message"/>
+      <element name="stats"                      type="xs:string"/>
+      <element name="clusterList"                type="tns:ClusterList"/>
+      <element name="clusterStatus"              type="tns:ClusterStatus"/>
+      <element name="clusterProxyStatus"         type="tns:ClusterProxyStatus"/>
+      <element name="nodeStatuses"               type="tns:NodeStatuses"/>
+      <element name="electorInfo"                type="tns:ElectorInfo"/>
+      <element name="partitionsInfo"             type="tns:PartitionsInfo"/>
+      <element name="clusterQueueHelper"         type="tns:ClusterQueueHelper"/>
+      <element name="storageContent"             type="tns:StorageContent"/>
+      <element name="clusterStorageSummary"      type="tns:ClusterStorageSummary"/>
+      <element name="clusterDomainQueueStatuses" type="tns:ClusterDomainQueueStatuses"/>
+      <element name="brokerConfig"               type="tns:BrokerConfig"/>
+    </choice>
+  </complexType>
+
+  <complexType name="DomainsResult">
+    <choice>
+      <element name="success"      type="tns:Void"/>
+      <element name="error"        type="tns:Error"/>
+      <element name="domainResult" type="tns:DomainResult"/>
+    </choice>
+  </complexType>
+
+  <complexType name="DomainResult">
+    <choice>
+      <element name="success"      type="tns:Void"/>
+      <element name="error"        type="tns:Error"/>
+      <element name="domainInfo"   type="tns:DomainInfo"/>
+      <element name="purgedQueues" type="tns:PurgedQueues"/>
+      <element name="queueResult"  type="tns:QueueResult"/>
+    </choice>
+  </complexType>
+
+  <complexType name="ClustersResult">
+    <choice>
+      <element name="error"         type="tns:Error"/>
+      <element name="success"       type="tns:Void"/>
+      <element name="clusterList"   type="tns:ClusterList"/>
+      <element name="clusterResult" type="tns:ClusterResult"/>
+    </choice>
+  </complexType>
+
+  <complexType name="ClusterResult">
+    <choice>
+      <element name="error"              type="tns:Error"/>
+      <element name="success"            type="tns:Void"/>
+      <element name="electorResult"      type="tns:ElectorResult"/>
+      <element name="storageResult"      type="tns:StorageResult"/>
+      <element name="clusterQueueHelper" type="tns:ClusterQueueHelper"/>
+      <element name="clusterStatus"      type="tns:ClusterStatus"/>
+      <element name="clusterProxyStatus" type="tns:ClusterProxyStatus"/>
+    </choice>
+  </complexType>
+
+  <complexType name="StorageResult">
+    <choice>
+      <element name="success"               type="tns:Void"/>
+      <element name="error"                 type="tns:Error"/>
+      <element name="storageContent"        type="tns:StorageContent"/>
+      <element name="clusterStorageSummary" type="tns:ClusterStorageSummary"/>
+      <element name="replicationResult"     type="tns:ReplicationResult"/>
+    </choice>
+  </complexType>
+
+  <complexType name="ElectorResult">
+    <choice>
+      <element name="error"               type="tns:Error"/>
+      <element name="tunable"             type="tns:Tunable"/>
+      <element name="tunables"            type="tns:Tunables"/>
+      <element name="tunableConfirmation" type="tns:TunableConfirmation"/>
+    </choice>
+  </complexType>
+
+  <complexType name="ReplicationResult">
+    <choice>
+      <element name="error"               type="tns:Error"/>
+      <element name="tunable"             type="tns:Tunable"/>
+      <element name="tunables"            type="tns:Tunables"/>
+      <element name="tunableConfirmation" type="tns:TunableConfirmation"/>
+    </choice>
+  </complexType>
+
+  <complexType name="StatResult">
+    <choice>
+      <element name="error"               type="tns:Error"/>
+      <element name="stats"               type="xs:string"/>
+      <element name="tunable"             type="tns:Tunable"/>
+      <element name="tunables"            type="tns:Tunables"/>
+      <element name="tunableConfirmation" type="tns:TunableConfirmation"/>
+    </choice>
+  </complexType>
+
+  <complexType name="QueueResult">
+    <choice>
+      <element name="error"          type="tns:Error"/>
+      <element name="purgedQueues"   type="tns:PurgedQueues"/>
+      <element name="queueContents"  type="tns:QueueContents"/>
+      <element name="queueInternals" type="tns:QueueInternals"/>
+    </choice>
+  </complexType>
+
+  <complexType name="PurgedQueues">
+      <sequence>
+        <element name="queues" type="tns:PurgeQueueResult" minOccurs="0" maxOccurs="unbounded"/>
+      </sequence>
+  </complexType>
+
+  <complexType name="PurgeQueueResult">
+      <choice>
+        <element name="error" type="tns:Error"/>
+        <element name="queue" type="tns:PurgedQueueDetails"/>
+      </choice>
+  </complexType>
+
+  <complexType name="PurgedQueueDetails">
+      <sequence>
+        <element name="queueUri"          type="xs:string"/>
+        <element name="appId"             type="xs:string"/>
+        <element name="appKey"            type="xs:string"/>
+        <element name="numMessagesPurged" type="xs:long"/>
+        <element name="numBytesPurged"    type="xs:long"/>
+      </sequence>
+  </complexType>
+
+  <complexType name="Void">
+    <sequence/>
+  </complexType>
+
+  <complexType name="Error">
+    <sequence>
+      <element name="message" type="xs:string"/>
+    </sequence>
+  </complexType>
+
+  <complexType name="HelpCommand">
+    <sequence>
+      <element name="plumbing" type="xs:boolean" default="false"/>
+    </sequence>
+  </complexType>
+
+  <complexType name="Value">
+    <choice>
+      <element name="theNull"     type="tns:Void"/>
+      <element name="theBool"     type="xs:boolean"/>
+      <element name="theInteger"  type="xs:integer"/>
+      <element name="theDouble"   type="xs:double"/>
+      <element name="theDate"     type="xs:date"/>
+      <element name="theTime"     type="xs:time"/>
+      <element name="theDatetime" type="xs:dateTime"/>
+      <element name="theString"   type="xs:string"/>
+    </choice>
+  </complexType>
+
+  <complexType name="Tunable">
+    <sequence>
+      <element name="name"        type="xs:string"/>
+      <element name="value"       type="tns:Value"/>
+      <element name="description" type="xs:string"/>
+    </sequence>
+  </complexType>
+
+  <complexType name="TunableConfirmation">
+    <sequence>
+      <element name="name"     type="xs:string"/>
+      <element name="oldValue" type="tns:Value"/>
+      <element name="newValue" type="tns:Value"/>
+    </sequence>
+  </complexType>
+
+  <complexType name="DomainCommand">
+    <choice>
+      <element name="purge"           type="tns:Void"/>
+      <element name="info"            type="tns:Void"/>
+      <element name="queue"           type="tns:DomainQueue"/>
+    </choice>
+  </complexType>
+
+  <complexType name="ClusterCommand">
+    <choice>
+      <element name="status"           type="tns:Void"/>
+      <element name="queueHelper"      type="tns:Void"/>
+      <element name="forceGcQueues"    type="tns:Void"/>
+      <element name="storage"          type="tns:StorageCommand"/>
+      <element name="state"            type="tns:ClusterStateCommand"/>
+    </choice>
+  </complexType>
+
+  <complexType name="ClusterStateCommand">
+    <choice>
+      <element name="elector" type="tns:ElectorCommand"/>
+    </choice>
+  </complexType>
+
+  <complexType name="StorageCommand">
+    <choice>
+      <element name="summary"     type="tns:Void"/>
+      <element name="partition"   type="tns:StoragePartition"/>
+      <element name="domain"      type="tns:StorageDomain"/>
+      <element name="replication" type="tns:ReplicationCommand"/>
+    </choice>
+  </complexType>
+
+  <complexType name="ClearCache">
+    <choice>
+      <element name="domain" type="xs:string"/>
+      <element name="all"    type="tns:Void"/>
+    </choice>
+  </complexType>
+
+  <complexType name="Tunables">
+    <sequence>
+      <element name="tunables" type="tns:Tunable" maxOccurs="unbounded" minOccurs="0"/>
+    </sequence>
+  </complexType>
+
+  <complexType name="ClusterDomainQueueStatuses">
+    <sequence>
+      <element name="statuses" type="tns:QueueStatuses" minOccurs="0"/>
+    </sequence>
+  </complexType>
+
+  <complexType name="QueueStatuses">
+    <sequence>
+      <element name="queueStatuses" type="tns:StorageContent" maxOccurs="unbounded" minOccurs="0"/>
+    </sequence>
+  </complexType>
+
+  <complexType name="ClusterStorageSummary">
+    <sequence>
+      <element name="clusterFileStoreLocation" type="xs:string"/>
+      <element name="fileStores"               type="tns:FileStore" maxOccurs="unbounded" minOccurs="0" />
+    </sequence>
+  </complexType>
+
+  <complexType name="FileStoreSummary">
+    <sequence>
+      <element name="primaryNodeDescription" type="xs:string"/>
+      <element name="primaryLeaseId"         type="xs:unsignedInt"/>
+      <element name="sequenceNum"            type="xs:unsignedLong"/>
+      <element name="isAvailable"            type="xs:boolean"/>
+      <element name="fileSets"               type="tns:FileSet" maxOccurs="unbounded" minOccurs="0"/>
+      <element name="activeFileSet"          type="tns:ActiveFileSet"/>
+      <element name="totalMappedBytes"       type="xs:unsignedLong"/>
+      <element name="numOutstandingRecords"  type="xs:unsignedInt"/>
+      <element name="numUnreceiptedMessages" type="xs:unsignedInt"/>
+      <element name="naglePacketCount"       type="xs:unsignedInt"/>
+      <element name="storageContent"         type="tns:StorageContent"/>
+    </sequence>
+  </complexType>
+
+  <complexType name="FileInfo">
+    <sequence>
+      <element name="positionBytes"    type="xs:unsignedLong"/>
+      <element name="sizeBytes"        type="xs:unsignedLong"/>
+      <element name="outstandingBytes" type="xs:unsignedLong"/>
+    </sequence>
+  </complexType>
+
+  <complexType name="Help">
+    <sequence>
+      <element name="commands"     type="tns:CommandSpec" maxOccurs="unbounded" minOccurs="0"/>
+      <element name="isPlumbing"   type="xs:boolean"/>
+    </sequence>
+  </complexType>
+
+  <complexType name="CommandSpec">
+    <sequence>
+      <element name="command"     type="xs:string"/>
+      <element name="description" type="xs:string"/>
+    </sequence>
+  </complexType>
+
+  <complexType name="ClusterStatus">
+    <sequence>
+      <element name="name"                  type="xs:string"/>
+      <element name="description"           type="xs:string"/>
+      <element name="selfNodeDescription"   type="xs:string"/>
+      <element name="isHealthy"             type="xs:boolean"/>
+      <element name="nodeStatuses"          type="tns:NodeStatuses"/>
+      <element name="electorInfo"           type="tns:ElectorInfo"/>
+      <element name="partitionsInfo"        type="tns:PartitionsInfo"/>
+      <element name="queuesInfo"            type="tns:StorageContent"/>
+      <element name="clusterStorageSummary" type="tns:ClusterStorageSummary"/>
+    </sequence>
+  </complexType>
+
+  <complexType name="ClusterProxyStatus">
+    <sequence>
+      <element name="description"           type="xs:string"/>
+      <element name="activeNodeDescription" type="xs:string" minOccurs="0"/>
+      <element name="isHealthy"             type="xs:boolean"/>
+      <element name="nodeStatuses"          type="tns:NodeStatuses"/>
+      <element name="queuesInfo"            type="tns:StorageContent"/>
+    </sequence>
+  </complexType>
+
+  <complexType name="NodeStatuses">
+    <sequence>
+      <element name="nodes" type="tns:ClusterNodeInfo" maxOccurs="unbounded" minOccurs="0"/>
+    </sequence>
+  </complexType>
+
+  <complexType name="PartitionsInfo">
+    <sequence>
+      <element name="partitions" type="tns:PartitionInfo" maxOccurs="unbounded" minOccurs="0"/>
+    </sequence>
+  </complexType>
+
+  <complexType name="ElectorInfo">
+    <sequence>
+      <element name="electorState"          type="tns:ElectorState"/>
+      <element name="leaderNode"            type="xs:string"/>
+      <element name="leaderMessageSequence" type="tns:LeaderMessageSequence"/>
+      <element name="leaderStatus"          type="tns:LeaderStatus"/>
+    </sequence>
+  </complexType>
+
+  <complexType name="PartitionInfo">
+    <sequence>
+      <element name="numQueuesMapped" type="xs:int"/>
+      <element name="numActiveQueues" type="xs:int"/>
+      <element name="primaryNode"     type="xs:string" minOccurs="0"/>
+      <element name="primaryLeaseId"  type="xs:unsignedInt"/>
+      <element name="primaryStatus"   type="tns:PrimaryStatus"/>
+    </sequence>
+  </complexType>
+
+  <complexType name="LeaderMessageSequence">
+    <sequence>
+      <element name="electorTerm"    type="tns:unsignedLong"/>
+      <element name="sequenceNumber" type="xs:unsignedLong"/>
+    </sequence>
+  </complexType>
+
+  <simpleType name="LeaderStatus" bdem:preserveEnumOrder='1'>
+    <restriction base="xs:string">
+      <enumeration value="UNDEFINED"/>
+      <enumeration value="PASSIVE"/>
+      <enumeration value="ACTIVE"/>
+    </restriction>
+  </simpleType>
+
+  <simpleType name="PrimaryStatus" bdem:preserveEnumOrder='1'>
+    <restriction base="xs:string">
+      <enumeration value="UNDEFINED" bdem:id='0'/>
+      <enumeration value="PASSIVE"   bdem:id='1'/>
+      <enumeration value="ACTIVE"    bdem:id='5'/>
+    </restriction>
+  </simpleType>
+
+  <simpleType name="ElectorState" bdem:preserveEnumOrder='1'>
+    <restriction base="xs:string">
+      <enumeration value="DORMANT"/>
+      <enumeration value="FOLLOWER"/>
+      <enumeration value="CANDIDATE"/>
+      <enumeration value="LEADER"/>
+    </restriction>
+  </simpleType>
+
+  <complexType name="BrokerConfig">
+    <sequence>
+      <element name="asJSON" type="xs:string"/>
+    </sequence>
+  </complexType>
+
+  <simpleType name="Locality" bdem:preserveEnumOrder='1'>
+    <restriction base="xs:string">
+      <enumeration value="remote"/>
+      <enumeration value="local"/>
+      <enumeration value="member"/>
+    </restriction>
+  </simpleType>
+
+  <complexType name="ClusterQueueHelper">
+    <sequence>
+      <element name="clusterName"                   type="xs:string"/>
+      <element name="locality"                      type="tns:Locality"/>
+      <element name="numQueues"                     type="xs:unsignedInt"/>
+      <element name="numQueueKeys"                  type="xs:unsignedInt"/>
+      <element name="numPendingReopenQueueRequests" type="xs:unsignedInt"/>
+      <element name="domains"                       type="tns:ClusterDomain" maxOccurs="unbounded" minOccurs="0"/>
+      <element name="queues"                        type="tns:ClusterQueue"  maxOccurs="unbounded" minOccurs="0"/>
+    </sequence>
+  </complexType>
+
+  <complexType name="DomainInfo">
+    <sequence>
+      <element name="name"                      type="xs:string"/>
+      <element name="configJson"                type="xs:string"/>
+      <element name="clusterName"               type="xs:string"/>
+      <element name="capacityMeter"             type="tns:CapacityMeter"/>
+      <element name="queueUris"                 type="xs:string" maxOccurs="unbounded" minOccurs="0"/>
+      <element name="storageContent"            type="tns:StorageContent"/>
+    </sequence>
+  </complexType>
+
+  <complexType name="StorageContent">
+    <sequence>
+      <element name="storages" type="tns:StorageQueueInfo" maxOccurs="unbounded" minOccurs="0"/>
+    </sequence>
+  </complexType>
+
+  <complexType name="StorageQueueInfo">
+    <sequence>
+      <element name="queueUri"        type="xs:string"/>
+      <element name="queueKey"        type="xs:string"/>
+      <element name="partitionId"     type="xs:int"/>
+      <element name="numMessages"     type="xs:long"/>
+      <element name="numBytes"        type="xs:long"/>
+      <element name="isPersistent"    type="xs:boolean"/>
+      <element name="internalQueueId" type="xs:unsignedInt"/>
+    </sequence>
+  </complexType>
+
+  <complexType name="QueueInternals">
+    <sequence>
+      <element name="state" type="tns:QueueState"/>
+      <element name="queue" type="tns:Queue"/>
+    </sequence>
+  </complexType>
+
+  <complexType name="RemoteQueue">
+    <sequence>
+      <element name="numPendingPuts"                 type="xs:long"/>
+      <element name="numPendingConfirms"             type="xs:long"/>
+      <element name="isPushExpirationTimerScheduled" type="xs:boolean"/>
+      <element name="numUpstreamGeneration"          type="xs:unsignedInt"/>
+      <element name="streams"                        type="tns:RemoteStreamInfo" maxOccurs="unbounded" minOccurs="0"/>
+      <element name="queueEngine"                    type="tns:QueueEngine"/>
+    </sequence>
+  </complexType>
+
+  <complexType name="RemoteStreamInfo">
+    <sequence>
+      <element name="id"        type="xs:int"/>
+      <element name="state"     type="xs:string"/>
+      <element name="genCount"  type="xs:long"/>
+    </sequence>
+  </complexType>
+
+  <complexType name="LocalQueue">
+    <sequence>
+      <element name="queueEngine" type="tns:QueueEngine"/>
+    </sequence>
+  </complexType>
+
+  <complexType name="QueueEngine">
+    <choice>
+      <element name="fanout"                type="tns:FanoutQueueEngine"/>
+      <element name="relay"                 type="tns:RelayQueueEngine"/>
+    </choice>
+  </complexType>
+
+  <complexType name="FanoutQueueEngine">
+    <sequence>
+      <element name="maxConsumers"   type="xs:unsignedInt"/>
+      <element name="mode"           type="xs:string"/>
+      <element name="consumerStates" type="tns:ConsumerState" maxOccurs="unbounded" minOccurs="0"/>
+      <element name="Routing"        type="tns:Routing"/>
+    </sequence>
+  </complexType>
+
+  <complexType name="Routing">
+    <sequence>
+      <element name="subscriptionGroups"    type="tns:SubscriptionGroup" maxOccurs="unbounded" minOccurs="0"/>
+    </sequence>
+  </complexType>
+
+  <complexType name="SubscriptionGroup">
+    <sequence>
+      <element name="id"                        type="xs:unsignedInt"/>
+      <element name="expression"                type="xs:string"/>
+      <element name="upstreamSubQueueId"        type="xs:unsignedInt"/>
+      <element name="priorityGroup"             type="PriorityGroup" minOccurs="0"/>
+    </sequence>
+  </complexType>
+
+  <complexType name="PriorityGroup">
+    <sequence>
+      <element name="id"                        type="xs:unsignedInt"/>
+      <element name="highestSubscriptions"      type="Subscription" maxOccurs="unbounded" minOccurs="0"/>
+    </sequence>
+  </complexType>
+
+  <complexType name="Subscription">
+    <sequence>
+      <element name="downstreamSubscriptionId"  type="xs:unsignedInt"/>
+      <element name='consumer'                  type='tns:ConsumerInfo'/>
+      <element name='subscriber'                type='Subscriber'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='Subscriber'>
+    <sequence>
+      <element name='downstreamSubQueueId'      type='long'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='ConsumerInfo'>
+    <sequence>
+      <element name='maxUnconfirmedMessages'    type='long'/>
+      <element name='maxUnconfirmedBytes'       type='long'/>
+      <element name='consumerPriority'          type='int'/>
+      <element name='consumerPriorityCount'     type='int'/>
+    </sequence>
+  </complexType>
+
+  <complexType name="RoundRobinRouter">
+    <sequence>
+      <element name="consumers" type="tns:RouterConsumer" maxOccurs="unbounded" minOccurs="0"/>
+    </sequence>
+  </complexType>
+
+  <complexType name="MessageGroupIdHelper">
+    <sequence>
+      <element name="timeoutNanoseconds" type="xs:long"/>
+      <element name="maxMsgGroupIds"     type="xs:int"/>
+      <element name="isRebalanceOn"      type="xs:boolean"/>
+      <element name="status"             type="tns:MessageGroupIdManagerIndex"/>
+    </sequence>
+  </complexType>
+
+  <complexType name="MessageGroupIdManagerIndex">
+    <sequence>
+      <element name="leastRecentlyUsedGroupIds" type="tns:LeastRecentlyUsedGroupId" maxOccurs="unbounded" minOccurs="0"/>
+      <element name="numMsgGroupsPerClient"     type="tns:ClientMsgGroupsCount"     maxOccurs="unbounded" minOccurs="0"/>
+    </sequence>
+  </complexType>
+
+  <complexType name="RouterConsumer">
+    <sequence>
+      <element name="priority"    type="xs:int"/>
+      <element name="queueHandle" type="tns:QueueHandle"/>
+      <element name="count"       type="xs:unsignedInt"/>
+      <element name="expression"  type="xs:string"/>
+    </sequence>
+  </complexType>
+
+  <complexType name="RelayQueueEngine">
+    <sequence>
+      <element name="numSubstreams" type="xs:unsignedInt"/>
+      <element name="subStreams"    type="tns:RelayQueueEngineSubStream" maxOccurs="unbounded" minOccurs="0"/>
+      <element name="appStates"     type="tns:AppState" maxOccurs="unbounded" minOccurs="0"/>
+      <element name="Routing"       type="tns:Routing"/>
+    </sequence>
+  </complexType>
+
+  <complexType name="RelayQueueEngineSubStream">
+    <sequence>
+      <element name="appId"  type="xs:string"/>
+      <element name="appKey" type="xs:string">
+        <annotation>
+          <documentation>a.k.a. "storage key"</documentation>
+        </annotation>
+      </element>
+      <element name="numMessages" type="xs:unsignedInt"/>
+    </sequence>
+  </complexType>
+
+  <complexType name="QueueState">
+    <sequence>
+      <element name="uri"                  type="xs:string"/>
+      <element name="handleParametersJson" type="xs:string"/>
+      <element name="streamParametersJson" type="xs:string"/>
+      <element name="id"                   type="xs:unsignedInt"/>
+      <element name="key"                  type="xs:string"/>
+      <element name="partitionId"          type="xs:int"/>
+      <element name="storage"              type="tns:QueueStorage"  minOccurs="0"/>
+      <element name="capacityMeter"        type="tns:CapacityMeter" minOccurs="0"/>
+      <element name="handles"              type="tns:QueueHandle" maxOccurs="unbounded" minOccurs="0" />
+    </sequence>
+  </complexType>
+
+  <complexType name="CapacityMeter">
+    <sequence>
+      <element name="name"                type="xs:string"/>
+      <element name="isDisabled"          type="xs:boolean"/>
+      <element name="numMessages"         type="xs:long"/>
+      <element name="messageCapacity"     type="xs:long"/>
+      <element name="numMessagesReserved" type="xs:long"/>
+      <element name="numBytes"            type="xs:long"/>
+      <element name="byteCapacity"        type="xs:long"/>
+      <element name="numBytesReserved"    type="xs:long"/>
+      <element name="parent"              type="tns:CapacityMeter" minOccurs="0" />
+    </sequence>
+  </complexType>
+
+  <complexType name="QueueHandle">
+    <sequence>
+      <element name="clientDescription"     type="xs:string"/>
+      <element name="parametersJson"        type="xs:string"/>
+      <element name="isClientClusterMember" type="xs:boolean"/>
+      <element name="subStreams"            type="tns:QueueHandleSubStream" maxOccurs="unbounded" minOccurs="0"/>
+    </sequence>
+  </complexType>
+
+  <complexType name="ResourceUsageMonitor">
+    <sequence>
+      <element name="state"                      type="tns:ResourceUsageMonitorState"/>
+      <element name="messagesState"              type="tns:ResourceUsageMonitorState"/>
+      <element name="numMessages"                type="xs:long"/>
+      <element name="messagesLowWatermarkRatio"  type="xs:long"/>
+      <element name="messagesHighWatermarkRatio" type="xs:long"/>
+      <element name="messagesCapacity"           type="xs:long"/>
+      <element name="bytesState"                 type="tns:ResourceUsageMonitorState"/>
+      <element name="numBytes"                   type="xs:long"/>
+      <element name="bytesLowWatermarkRatio"     type="xs:long"/>
+      <element name="bytesHighWatermarkRatio"    type="xs:long"/>
+      <element name="bytesCapacity"              type="xs:long"/>
+    </sequence>
+  </complexType>
+
+  <complexType name="QueueContents">
+    <sequence>
+      <element name="messages"           type="tns:Message" maxOccurs="unbounded" minOccurs="0" />
+      <element name="offset"             type="xs:long"/>
+      <element name="totalQueueMessages" type="xs:long"/>
+    </sequence>
+  </complexType>
+
+  <complexType name="ClusterList">
+    <sequence>
+      <element name="clusters" type="tns:ClusterInfo" maxOccurs="unbounded" minOccurs="0"/>
+    </sequence>
+  </complexType>
+
+  <complexType name="DomainsCommand">
+    <choice>
+      <element name="domain"      type="tns:Domain"/>
+      <element name="resolver"    type="tns:DomainResolverCommand"/>
+      <element name="reconfigure" type="tns:DomainReconfigure"/>
+    </choice>
+  </complexType>
+
+  <complexType name="DomainResolverCommand">
+    <choice>
+      <element name="clearCache" type="tns:ClearCache"/>
+    </choice>
+  </complexType>
+
+  <complexType name="DomainReconfigure">
+    <choice>
+      <element name="domain" type="xs:string"/>
+    </choice>
+  </complexType>
+
+  <complexType name="ConfigProviderCommand">
+    <choice>
+      <element name="clearCache" type="tns:ClearCache"/>
+    </choice>
+  </complexType>
+
+  <complexType name="StatCommand">
+    <choice>
+      <element name="show" type="tns:Void"/>
+      <element name="setTunable"   type="tns:SetTunable"/>
+      <element name="getTunable"   type="xs:string"/>
+      <element name="listTunables" type="tns:Void"/>
+    </choice>
+  </complexType>
+
+  <complexType name="BrokerConfigCommand">
+    <choice>
+      <element name="dump" type="tns:Void"/>
+    </choice>
+  </complexType>
+
+  <complexType name="ClustersCommand">
+    <choice>
+      <element name="list"            type="tns:Void"/>
+      <element name="addReverseProxy" type="tns:AddReverseProxy"/>
+      <element name="cluster"         type="tns:Cluster"/>
+    </choice>
+  </complexType>
+
+  <complexType name="DangerCommand">
+    <choice>
+      <element name="shutdown"  type="tns:Void"/>
+      <element name="terminate" type="tns:Void"/>
+    </choice>
+  </complexType>
+
+  <complexType name="DomainQueue">
+    <sequence>
+      <element name="name"    type="xs:string"/>
+      <element name="command" type="tns:QueueCommand"/>
+    </sequence>
+  </complexType>
+
+  <complexType name="StoragePartition">
+    <sequence>
+      <element name="partitionId" type="xs:int"/>
+      <element name="command"     type="tns:StoragePartitionCommand"/>
+    </sequence>
+  </complexType>
+
+  <complexType name="StorageDomain">
+    <sequence>
+      <element name="name"    type="xs:string"/>
+      <element name="command" type="tns:StorageDomainCommand"/>
+    </sequence>
+  </complexType>
+
+  <complexType name="ElectorCommand">
+    <choice>
+      <element name="setTunable"   type="tns:SetTunable"/>
+      <element name="getTunable"   type="xs:string"/>
+      <element name="listTunables" type="tns:Void"/>
+    </choice>
+</complexType>
+
+  <complexType name="ReplicationCommand">
+    <choice>
+      <element name="setTunable"   type="tns:SetTunable"/>
+      <element name="getTunable"   type="xs:string"/>
+      <element name="listTunables" type="tns:Void"/>
+    </choice>
+  </complexType>
+
+  <complexType name="FileStore">
+    <sequence>
+      <element name="partitionId" type="xs:int"/>
+      <element name="state"       type="tns:FileStoreState"/>
+      <element name="summary"     type="tns:FileStoreSummary"/>
+    </sequence>
+  </complexType>
+
+  <complexType name="FileSet">
+    <sequence>
+      <element name="dataFileName"           type="xs:string"/>
+      <element name="aliasedBlobBufferCount" type="xs:unsignedLong"/>
+    </sequence>
+  </complexType>
+
+  <complexType name="ActiveFileSet">
+    <sequence>
+      <element name="dataFile"    type="tns:FileInfo"/>
+      <element name="journalFile" type="tns:FileInfo"/>
+      <element name="qlistFile"   type="tns:FileInfo"/>
+    </sequence>
+  </complexType>
+
+  <complexType name="ClusterNodeInfo">
+    <sequence>
+      <element name="description"            type="xs:string"/>
+      <element name="isAvailable"            type="xs:boolean" minOccurs="0"/>
+      <element name="status"                 type="xs:NodeStatus"/>
+      <element name="primaryForPartitionIds" type="xs:int" maxOccurs="unbounded" minOccurs="0"/>
+    </sequence>
+  </complexType>
+
+  <simpleType name='NodeStatus'>
+    <annotation>
+      <documentation>
+        Enumeration of the various node states.
+      </documentation>
+    </annotation>
+    <restriction base='string' bdem:preserveEnumOrder='1'>
+      <enumeration value='E_UNKNOWN'     bdem:id='0'/>
+      <enumeration value='E_STARTING'    bdem:id='10'/>
+      <enumeration value='E_AVAILABLE'   bdem:id='20'/>
+      <enumeration value='E_STOPPING'    bdem:id='30'/>
+      <enumeration value='E_UNAVAILABLE' bdem:id='40'/>
+    </restriction>
+  </simpleType>
+
+  <complexType name="ClusterDomain">
+    <sequence>
+      <element name="name"              type="xs:string"/>
+      <element name="numAssignedQueues" type="xs:unsignedInt"/>
+      <element name="loaded"            type="xs:boolean"/>
+    </sequence>
+  </complexType>
+
+  <complexType name="ClusterQueue">
+    <sequence>
+      <element name="uri"                   type="xs:string"/>
+      <element name="numInFlightContexts"   type="xs:unsignedInt"/>
+      <element name="isAssigned"            type="xs:boolean"/>
+      <element name="isPrimaryAvailable"    type="xs:boolean"/>
+      <element name="id"                    type="xs:unsignedInt"/>
+      <element name="subIds"                type="tns:SubId" maxOccurs="unbounded" minOccurs="0"/>
+      <element name="partitionId"           type="xs:int"/>
+      <element name="primaryNodeDescription" type="xs:string" minOccurs="0"/>
+      <element name="key"                   type="xs:string"/>
+      <element name="isCreated"             type="xs:boolean"/>
+      <element name="contexts"              type="tns:Context" maxOccurs="unbounded" minOccurs="0"/>
+    </sequence>
+  </complexType>
+
+  <complexType name="SubId">
+    <sequence>
+      <element name="subId" type="xs:unsignedInt"/>
+      <element name="appId" type="xs:string"/>
+    </sequence>
+  </complexType>
+
+  <complexType name="Queue">
+    <choice>
+      <element name="localQueue"         type="tns:LocalQueue"/>
+      <element name="remoteQueue"        type="tns:RemoteQueue"/>
+      <element name="uninitializedQueue" type="tns:UninitializedQueue"/>
+    </choice>
+  </complexType>
+
+  <complexType name="ConsumerState">
+    <sequence>
+      <element name="appId"            type="xs:string"/>
+      <element name="status"           type="tns:ConsumerStatus"/>
+      <element name="isAtEndOfStorage" type="xs:boolean" minOccurs="0"/>
+      <element name="appState"         type="tns:AppState"/>
+    </sequence>
+  </complexType>
+
+  <complexType name="AppState">
+    <sequence>
+      <element name="appId"                type="xs:string"/>
+      <element name="numConsumers"         type="xs:unsignedInt"/>
+      <element name="redeliveryListLength" type="xs:long"/>
+      <element name="roundRobinRouter"     type="xs:RoundRobinRouter"/>
+    </sequence>
+  </complexType>
+
+  <complexType name="LeastRecentlyUsedGroupId">
+    <sequence>
+      <element name="clientDescription"        type="xs:string"/>
+      <element name="msgGroupId"               type="xs:string"/>
+      <element name="lastSeenDeltaNanoseconds" type="xs:integer"/>
+    </sequence>
+  </complexType>
+
+  <complexType name="ClientMsgGroupsCount">
+    <sequence>
+      <element name="clientDescription" type="xs:string"/>
+      <element name="numMsgGroupIds"    type="xs:unsignedInt"/>
+    </sequence>
+  </complexType>
+
+  <complexType name="QueueStorage">
+    <sequence>
+      <element name="numMessages"     type="xs:unsignedInt"/>
+      <element name="numBytes"        type="xs:unsignedInt"/>
+      <element name="virtualStorages" type="tns:VirtualStorage" maxOccurs="unbounded" minOccurs="0"/>
+    </sequence>
+  </complexType>
+
+  <complexType name="QueueHandleSubStream">
+    <sequence>
+      <element name="subId"                  type="xs:unsignedInt"/>
+      <element name="appId"                  type="xs:string" minOccurs="0"/>
+      <element name="parametersJson"         type="xs:string"/>
+      <element name="unconfirmedMonitors"    type="tns:ResourceUsageMonitor" maxOccurs="unbounded" minOccurs="0"/>
+      <element name="numUnconfirmedMessages" type="xs:long" minOccurs="0"/>
+    </sequence>
+  </complexType>
+
+  <simpleType name="ResourceUsageMonitorState" bdem:preserveEnumOrder='1'>
+    <restriction base="xs:string">
+      <enumeration value="STATE_NORMAL"/>
+      <enumeration value="STATE_HIGH_WATERMARK"/>
+      <enumeration value="STATE_FULL"/>
+    </restriction>
+  </simpleType>
+  <complexType name="Message">
+    <sequence>
+      <element name="guid"             type="xs:string"/>
+      <element name="sizeBytes"        type="xs:integer"/>
+      <element name="arrivalTimestamp" type="xs:dateTime"/>
+    </sequence>
+  </complexType>
+
+  <complexType name="ClusterInfo">
+    <sequence>
+      <element name="locality" type="tns:Locality"/>
+      <element name="name"     type="xs:string"/>
+      <element name="nodes"    type="tns:ClusterNode" maxOccurs="unbounded" minOccurs="0"/>
+    </sequence>
+  </complexType>
+
+  <complexType name="Domain">
+    <sequence>
+      <element name="name"    type="xs:string"/>
+      <element name="command" type="tns:DomainCommand"/>
+    </sequence>
+  </complexType>
+
+  <complexType name="AddReverseProxy">
+    <sequence>
+      <element name="clusterName" type="xs:string"/>
+      <element name="remotePeer"  type="xs:string"/>
+    </sequence>
+  </complexType>
+
+  <complexType name="Cluster">
+    <sequence>
+      <element name="name"    type="xs:string"/>
+      <element name="command" type="tns:ClusterCommand"/>
+    </sequence>
+  </complexType>
+
+  <complexType name="QueueCommand">
+    <choice>
+      <element name="purgeAppId" type="xs:string">
+        <annotation>
+          <documentation>The special value "*" indicates the entire queue.</documentation>
+        </annotation>
+      </element>
+      <element name="internals"  type="tns:Void"/>
+      <element name="messages"   type="tns:ListMessages"/>
+    </choice>
+  </complexType>
+
+  <complexType name="StoragePartitionCommand">
+    <choice>
+      <element name="enable"  type="tns:Void"/>
+      <element name="disable" type="tns:Void"/>
+      <element name="summary" type="tns:Void"/>
+    </choice>
+  </complexType>
+
+  <complexType name="StorageDomainCommand">
+    <choice>
+      <element name="queueStatus" type="tns:Void"/>
+    </choice>
+  </complexType>
+
+  <complexType name="SetTunable">
+    <sequence>
+      <element name="name"  type="xs:string"/>
+      <element name="value" type="tns:Value"/>
+    </sequence>
+  </complexType>
+
+  <simpleType name="FileStoreState" bdem:preserveEnumOrder='1'>
+    <restriction base="xs:string">
+      <enumeration value="open"/>
+      <enumeration value="closed"/>
+      <enumeration value="stopping"/>
+    </restriction>
+  </simpleType>
+
+  <complexType name="Context">
+    <sequence>
+      <element name="queueHandleParametersJson" type="xs:string"/>
+    </sequence>
+  </complexType>
+
+  <complexType name="UninitializedQueue">
+    <sequence/>
+  </complexType>
+
+  <simpleType name="ConsumerStatus" bdem:preserveEnumOrder='1'>
+    <restriction base="xs:string">
+      <enumeration value="alive"/>
+      <enumeration value="registered"/>
+      <enumeration value="unauthorized"/>
+    </restriction>
+  </simpleType>
+  <complexType name="VirtualStorage">
+    <sequence>
+      <element name="appId"       type="xs:string"/>
+      <element name="appKey"      type="xs:string"/>
+      <element name="numMessages" type="xs:unsignedInt"/>
+    </sequence>
+  </complexType>
+
+  <complexType name="ClusterNode">
+    <sequence>
+      <element name="hostName"   type="xs:string"/>
+      <element name="nodeId"     type="xs:int"/>
+      <element name="dataCenter" type="xs:string"/>
+    </sequence>
+  </complexType>
+
+  <complexType name="ListMessages">
+    <sequence>
+      <element name="appId"  type="xs:string" minOccurs="0"/>
+      <element name="offset" type="xs:int"/>
+      <element name="count"  type="xs:int"/>
+    </sequence>
+  </complexType>
+
+</schema>

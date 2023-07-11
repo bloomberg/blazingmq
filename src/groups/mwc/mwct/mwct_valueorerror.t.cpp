@@ -1,0 +1,626 @@
+// Copyright 2023 Bloomberg Finance L.P.
+// SPDX-License-Identifier: Apache-2.0
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// mwct_valueorerror.t.cpp                                            -*-C++-*-
+#include <mwct_valueorerror.h>
+
+// BMQ
+#include <mwcu_memoutstream.h>
+
+// TEST DRIVER
+#include <bsl_cstdlib.h>
+#include <bslma_constructionutil.h>
+#include <mwctst_testhelper.h>
+
+// CONVENIENCE
+using namespace BloombergLP;
+using namespace bsl;
+
+//=============================================================================
+//                          GLOBAL TYPES FOR TESTING
+//-----------------------------------------------------------------------------
+
+namespace {
+
+// A long string to trigger allocation.
+const char* k_LONG_STRING = "12345678901234567890123456789001234567890";
+
+class CustomValueType {
+  public:
+    CustomValueType()
+    : d_foo(k_LONG_STRING, s_allocator_p)
+    , d_bar(k_LONG_STRING, s_allocator_p)
+    {
+        PVV("CustomValueType(bslma::Allocator *)");
+    }
+
+    CustomValueType(const bsl::string& src)
+    : d_foo(k_LONG_STRING, s_allocator_p)
+    , d_bar(k_LONG_STRING, s_allocator_p)
+    {
+        PVV("CustomValueType(const bsl::string&)");
+
+        d_foo += src;
+        d_bar += src;
+    }
+
+    CustomValueType(const CustomValueType& rhs)
+    : d_foo(rhs.d_foo, s_allocator_p)
+    , d_bar(rhs.d_bar, s_allocator_p)
+    {
+        PVV("CustomValueType(const CustomValueType& , bslma::Allocator *)");
+    }
+
+    bsl::string d_foo;
+    bsl::string d_bar;
+};
+
+bsl::ostream& operator<<(bsl::ostream& os, const CustomValueType& value)
+{
+    os << "(" << value.d_foo << ", " << value.d_bar << ")";
+    return os;
+}
+
+bool operator==(const CustomValueType& lhs, const CustomValueType& rhs)
+{
+    return (lhs.d_foo == rhs.d_foo) && (lhs.d_bar == rhs.d_bar);
+}
+
+class CustomAllocValueType {
+  public:
+    CustomAllocValueType(bslma::Allocator* basicAllocator)
+    : d_foo(k_LONG_STRING, basicAllocator)
+    , d_bar(k_LONG_STRING, basicAllocator)
+    {
+    }
+
+    CustomAllocValueType(const bsl::string& src,
+                         bslma::Allocator*  basicAllocator)
+    : d_foo(k_LONG_STRING, basicAllocator)
+    , d_bar(k_LONG_STRING, basicAllocator)
+    {
+        d_foo += src;
+        d_bar += src;
+    }
+
+    CustomAllocValueType(const CustomAllocValueType& rhs,
+                         bslma::Allocator*           basicAllocator)
+    : d_foo(rhs.d_foo, basicAllocator)
+    , d_bar(rhs.d_bar, basicAllocator)
+    {
+    }
+
+    BSLMF_NESTED_TRAIT_DECLARATION(CustomAllocValueType,
+                                   bslma::UsesBslmaAllocator)
+
+    bsl::string d_foo;
+    bsl::string d_bar;
+};
+
+bsl::ostream& operator<<(bsl::ostream& os, const CustomAllocValueType& value)
+{
+    os << "(" << value.d_foo << ", " << value.d_bar << ")";
+    return os;
+}
+
+bool operator==(const CustomAllocValueType& lhs,
+                const CustomAllocValueType& rhs)
+{
+    return (lhs.d_foo == rhs.d_foo) && (lhs.d_bar == rhs.d_bar);
+}
+
+bsl::string formatError(const int rc)
+{
+    mwcu::MemOutStream os(s_allocator_p);
+    os << "error: " << rc << "(" << k_LONG_STRING << ")";
+    return bsl::string(os.str(), s_allocator_p);
+}
+
+class CustomErrorType {
+  public:
+    CustomErrorType()
+    : d_error(k_LONG_STRING, s_allocator_p)
+    , d_rc(-2)
+    {
+    }
+
+    CustomErrorType(const int rc)
+    : d_error(formatError(rc), s_allocator_p)
+    , d_rc(rc)
+    {
+    }
+
+    CustomErrorType(const CustomErrorType& rhs)
+    : d_error(rhs.d_error, s_allocator_p)
+    , d_rc(rhs.d_rc)
+    {
+    }
+
+    bsl::string d_error;
+    int         d_rc;
+};
+
+bsl::ostream& operator<<(bsl::ostream& os, const CustomErrorType& error)
+{
+    os << "rc = " << error.d_rc << ": " << error.d_error;
+    return os;
+}
+
+bool operator==(const CustomErrorType& lhs, const CustomErrorType& rhs)
+{
+    return (lhs.d_error == rhs.d_error) && (lhs.d_rc == rhs.d_rc);
+}
+
+class CustomAllocErrorType {
+  public:
+    CustomAllocErrorType(bslma::Allocator* basicAllocator)
+    : d_error(k_LONG_STRING, basicAllocator)
+    , d_rc(-2)
+    {
+    }
+
+    CustomAllocErrorType(const int rc, bslma::Allocator* basicAllocator)
+    : d_error(formatError(rc), basicAllocator)
+    , d_rc(rc)
+    {
+    }
+
+    CustomAllocErrorType(const CustomAllocErrorType& rhs,
+                         bslma::Allocator*           basicAllocator)
+    : d_error(rhs.d_error, basicAllocator)
+    , d_rc(rhs.d_rc)
+    {
+    }
+
+    BSLMF_NESTED_TRAIT_DECLARATION(CustomAllocErrorType,
+                                   bslma::UsesBslmaAllocator)
+
+    bsl::string d_error;
+    int         d_rc;
+};
+
+bsl::ostream& operator<<(bsl::ostream& os, const CustomAllocErrorType& error)
+{
+    os << "rc = " << error.d_rc << ": " << error.d_error;
+    return os;
+}
+
+bool operator==(const CustomAllocErrorType& lhs,
+                const CustomAllocErrorType& rhs)
+{
+    return (lhs.d_error == rhs.d_error) && (lhs.d_rc == rhs.d_rc);
+}
+
+template <typename T, typename V>
+T makeObjectCase(const V&               value,
+                 BSLS_ANNOTATION_UNUSED bsl::true_type uses_allocator)
+{
+    return T(value, s_allocator_p);
+}
+
+template <typename T, typename V>
+T makeObjectCase(const V&               value,
+                 BSLS_ANNOTATION_UNUSED bsl::false_type uses_allocator)
+{
+    return T(value);
+}
+
+template <typename T, typename V>
+T makeObject(const V& value)
+{
+    return makeObjectCase<T, V>(value,
+                                typename bslma::UsesBslmaAllocator<T>::type());
+}
+
+template <typename T>
+T makeObjectCase(BSLS_ANNOTATION_UNUSED bsl::true_type uses_allocator)
+{
+    return T(s_allocator_p);
+}
+
+template <typename T>
+T makeObjectCase(BSLS_ANNOTATION_UNUSED bsl::false_type uses_allocator)
+{
+    return T();
+}
+
+template <typename T>
+T makeObject()
+{
+    return makeObjectCase<T>(typename bslma::UsesBslmaAllocator<T>::type());
+}
+
+int atoiNoThrowSpec(const char* str)
+{
+    return bsl::atoi(str);
+}
+
+inline unsigned toUnsigned(const double in)
+{
+    return static_cast<unsigned>(in);
+}
+
+}  // close unnamed namespace
+
+// ============================================================================
+//                                    TESTS
+// ----------------------------------------------------------------------------
+
+template <typename T>
+static void test_ops_generic()
+{
+    typedef typename T::ValueType Value;
+    typedef typename T::ErrorType Error;
+
+    PVV("Test ValueOrError(bslma::Allocator *) and operator<<");
+    T value(s_allocator_p);
+
+    ASSERT(value.isUndefined());
+    ASSERT(!value.isValue());
+    ASSERT(!value.isError());
+    {
+        mwcu::MemOutStream os(s_allocator_p);
+        os << value;
+        ASSERT_EQ(os.str(), "[ UNDEFINED ]");
+    }
+
+    PVV("Test makeValue(const VALUE&)");
+
+    Value refValue(makeObject<Value>("value"));
+
+    value.makeValue(refValue);
+    ASSERT(!value.isUndefined());
+    ASSERT(value.isValue());
+    ASSERT(!value.isError());
+    {
+        mwcu::MemOutStream expected(s_allocator_p), actual(s_allocator_p);
+
+        expected << "[ value = " << refValue << " ]";
+        actual << value;
+
+        ASSERT_EQ(actual.str(), expected.str());
+    }
+    ASSERT_EQ(value.value(), refValue);
+
+    PVV("Test makeError(const ERROR&)");
+
+    Error refError(makeObject<Error>(-5));
+
+    value.makeError(refError);
+    ASSERT(!value.isUndefined());
+    ASSERT(!value.isValue());
+    ASSERT(value.isError());
+    {
+        mwcu::MemOutStream expected(s_allocator_p), actual(s_allocator_p);
+
+        expected << "[ error = " << refError << " ]";
+        actual << value;
+
+        ASSERT_EQ(actual.str(), expected.str());
+    }
+    ASSERT_EQ(value.error(), refError);
+
+    PVV("Test makeValue()");
+    value.makeValue();
+    ASSERT_EQ(value.value(), makeObject<Value>());
+
+    PVV("Test makeError()");
+    value.makeError();
+    ASSERT_EQ(value.error(), makeObject<Error>());
+
+    PVV("Test reset()");
+    ASSERT(!value.isUndefined());
+    value.reset();
+    ASSERT(value.isUndefined());
+
+    PVV("Test operator=");
+
+    Value srcValue(makeObject<Value>("src"));
+    {
+        T src(s_allocator_p);
+        src.makeValue(srcValue);
+        value = src;
+    }
+    ASSERT(!value.isUndefined());
+    ASSERT(value.isValue());
+    ASSERT(!value.isError());
+    ASSERT_EQ(value.value(), srcValue);
+
+    PVV("Test copy constructor");
+    T copy(value, s_allocator_p);
+    ASSERT_EQ(copy.value(), value.value());
+
+    // Temporary workaround to suppress the 'unused operator
+    // NestedTraitDeclaration' warning/error generated by clang.
+    //
+    // TBD: figure out the right way to fix this.
+
+    CustomAllocValueType dummy1(s_allocator_p);
+    static_cast<void>(
+        static_cast<bslmf::NestedTraitDeclaration<CustomAllocValueType,
+                                                  bslma::UsesBslmaAllocator> >(
+            dummy1));
+
+    CustomAllocErrorType dummy2(s_allocator_p);
+    static_cast<void>(
+        static_cast<bslmf::NestedTraitDeclaration<CustomAllocErrorType,
+                                                  bslma::UsesBslmaAllocator> >(
+            dummy2));
+}
+
+static void test1_ops_on_string_int()
+// ------------------------------------------------------------------------
+// Basic Operations on ValueOrError<string, int>
+//
+// Concerns:
+//   - ensure that all the basic 'ValueOrError' operations function in
+//     accordance with the usual semantics. Note that there's no need for
+//     extreme testing, since this class was based on bas_codegen'ed code.
+//
+// Plan:
+//   Execute all basic operations and check basic assertions.
+//
+// Testing:
+//   Proper behavior of the 'ValueOrError' class.
+// ------------------------------------------------------------------------
+{
+    mwctst::TestHelper::printTestName("ops_on_string_int");
+
+    test_ops_generic<mwct::ValueOrError<bsl::string, int> >();
+}
+
+static void test2_ops_on_custom_value_error_types()
+// ------------------------------------------------------------------------
+// Basic Operations on ValueOrError<CustomValueType, CustomErrorType>
+//
+// Concerns:
+//   - ensure that all the basic 'ValueOrError' operations function in
+//     accordance with the usual semantics. Note that there's no need for
+//     extreme testing, since this class was based on bas_codegen'ed code.
+//
+// Plan:
+//   Execute all basic operations and check basic assertions.
+//
+// Testing:
+//   Proper behavior of the 'ValueOrError' class.
+// ------------------------------------------------------------------------
+{
+    mwctst::TestHelper::printTestName("ops_on_custom_value_error_types");
+
+    test_ops_generic<mwct::ValueOrError<CustomValueType, CustomErrorType> >();
+}
+
+static void test3_ops_on_customalloc_value_error_types()
+// ------------------------------------------------------------------------
+// Basic Operations on ValueOrError<CustomValueType, CustomErrorType>
+//
+// Concerns:
+//   - ensure that all the basic 'ValueOrError' operations function in
+//     accordance with the usual semantics. Note that there's no need for
+//     extreme testing, since this class was based on bas_codegen'ed code.
+//
+// Plan:
+//   Execute all basic operations and check basic assertions.
+//
+// Testing:
+//   Proper behavior of the 'ValueOrError' class.
+// ------------------------------------------------------------------------
+{
+    mwctst::TestHelper::printTestName("ops_on_customalloc_value_error_types");
+
+    test_ops_generic<
+        mwct::ValueOrError<CustomAllocValueType, CustomErrorType> >();
+}
+
+static void test4_ops_on_custom_value_erroralloc_types()
+// ------------------------------------------------------------------------
+// Basic Operations on ValueOrError<CustomValueType, CustomErrorType>
+//
+// Concerns:
+//   - ensure that all the basic 'ValueOrError' operations function in
+//     accordance with the usual semantics. Note that there's no need for
+//     extreme testing, since this class was based on bas_codegen'ed code.
+//
+// Plan:
+//   Execute all basic operations and check basic assertions.
+//
+// Testing:
+//   Proper behavior of the 'ValueOrError' class.
+// ------------------------------------------------------------------------
+{
+    mwctst::TestHelper::printTestName("ops_on_custom_value_erroralloc_types");
+
+    test_ops_generic<
+        mwct::ValueOrError<CustomValueType, CustomAllocErrorType> >();
+}
+
+static void test5_ops_on_customalloc_value_erroralloc_types()
+// ------------------------------------------------------------------------
+// Basic Operations on ValueOrError<CustomValueType, CustomErrorType>
+//
+// Concerns:
+//   - ensure that all the basic 'ValueOrError' operations function in
+//     accordance with the usual semantics. Note that there's no need for
+//     extreme testing, since this class was based on bas_codegen'ed code.
+//
+// Plan:
+//   Execute all basic operations and check basic assertions.
+//
+// Testing:
+//   Proper behavior of the 'ValueOrError' class.
+// ------------------------------------------------------------------------
+{
+    mwctst::TestHelper::printTestName(
+        "ops_on_customalloc_value_erroralloc_types");
+
+    test_ops_generic<
+        mwct::ValueOrError<CustomAllocValueType, CustomAllocErrorType> >();
+}
+
+static void test6_converters()
+// ------------------------------------------------------------------------
+// Mapping Operations on ValueOrError<CustomValueType, CustomErrorType>
+//
+// Concerns:
+//   - ensure that all mapping 'ValueOrError' operations function in
+//     accordance with the usual semantics.
+//
+// Plan:
+//   Execute all mapping operations and check basic assertions.
+//
+// Testing:
+//   Proper behavior of the 'ValueOrError' class.
+// ------------------------------------------------------------------------
+{
+    mwctst::TestHelper::printTestName("converters");
+
+    // Use 'mapValue()' to transform values (Value case)
+    {
+        typedef mwct::ValueOrError<const char*, char> SourceType;
+        typedef mwct::ValueOrError<int, char>         TargetType;
+
+        SourceType st;
+        st.makeValue("12");
+        TargetType tt;
+
+        st.mapValue(&tt, &atoiNoThrowSpec);
+        ASSERT(tt.isValue());
+        ASSERT_EQ(tt.value(), 12);
+
+        ASSERT_EQ(tt.valueOr(15), 12);
+    }
+
+    // Use 'mapValue()' to transform values (Error case)
+    {
+        typedef mwct::ValueOrError<const char*, char> SourceType;
+        typedef mwct::ValueOrError<int, char>         TargetType;
+
+        SourceType st;
+        st.makeError('a');
+        TargetType tt;
+
+        st.mapValue(&tt, &atoiNoThrowSpec);
+        ASSERT(tt.isError());
+        ASSERT_EQ(tt.error(), 'a');
+
+        ASSERT_EQ(tt.valueOr(15), 15);
+    }
+
+    // Same thing with 'mapError()' for errors (Value case)
+    {
+        typedef mwct::ValueOrError<char, const char*> SourceType;
+        typedef mwct::ValueOrError<char, int>         TargetType;
+
+        SourceType st;
+        st.makeValue('a');
+        TargetType tt;
+
+        st.mapError(&tt, &atoiNoThrowSpec);
+        ASSERT(tt.isValue());
+        ASSERT_EQ(tt.value(), 'a');
+
+        ASSERT_EQ(tt.valueOr('i'), 'a');
+    }
+
+    // Same thing with 'mapError()' for errors (Error case)
+    {
+        typedef mwct::ValueOrError<char, const char*> SourceType;
+        typedef mwct::ValueOrError<char, int>         TargetType;
+
+        SourceType st;
+        st.makeError("12");
+        TargetType tt;
+
+        st.mapError(&tt, &atoiNoThrowSpec);
+        ASSERT(tt.isError());
+        ASSERT_EQ(tt.error(), 12);
+
+        ASSERT_EQ(tt.valueOr('i'), 'i');
+    }
+
+    // Use map() to transform both.
+    {
+        typedef mwct::ValueOrError<const char*, double> SourceType;
+        typedef mwct::ValueOrError<int, unsigned>       TargetType;
+
+        SourceType st1, st2;
+
+        st1.makeValue("12");
+        st2.makeError(3.14);
+
+        TargetType tt1, tt2;
+        st1.map(&tt1, &atoiNoThrowSpec, &toUnsigned);
+        st2.map(&tt2, &atoiNoThrowSpec, &toUnsigned);
+
+        ASSERT(tt1.isValue());
+        ASSERT_EQ(tt1.value(), 12);
+
+        ASSERT(tt2.isError());
+        ASSERT_EQ(tt2.error(), 3u);
+    }
+}
+
+static void test7_explicit_print()
+// ------------------------------------------------------------------------
+// Explicit Printing on ValueOrError
+//
+// Concerns:
+//   - ensure that explicit call of the 'static' 'print()' method of
+//     'ValueOrError' produces the expected outcome.
+//
+// Plan:
+//   Execute a 'print()' call and check results.
+//
+// Testing:
+//   Proper behavior of the 'ValueOrError' class.
+// ------------------------------------------------------------------------
+{
+    mwctst::TestHelper::printTestName("explicit_print");
+
+    typedef mwct::ValueOrError<int, char> TypeUnderTest;
+
+    TypeUnderTest value;
+    value.makeValue(12);
+
+    mwcu::MemOutStream os(s_allocator_p);
+    TypeUnderTest::print(os, value, 0, 0);
+    ASSERT_EQ(os.str(), "[ value = 12 ]\n");
+}
+
+// ============================================================================
+//                                 MAIN PROGRAM
+// ----------------------------------------------------------------------------
+
+int main(int argc, char* argv[])
+{
+    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+
+    switch (_testCase) {
+    case 0:
+    case 7: test7_explicit_print(); break;
+    case 6: test6_converters(); break;
+    case 5: test5_ops_on_customalloc_value_erroralloc_types(); break;
+    case 4: test4_ops_on_custom_value_erroralloc_types(); break;
+    case 3: test3_ops_on_customalloc_value_error_types(); break;
+    case 2: test2_ops_on_custom_value_error_types(); break;
+    case 1: test1_ops_on_string_int(); break;
+    default: {
+        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
+        s_testStatus = -1;
+    } break;
+    }
+
+    TEST_EPILOG(mwctst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+}

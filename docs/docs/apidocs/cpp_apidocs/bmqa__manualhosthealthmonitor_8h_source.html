@@ -1,0 +1,87 @@
+<!doctype HTML public "-//W3C//DTD HTML 4.0 Frameset//EN">
+<html>
+<title>Bloomberg Development Environment</title>
+<html>
+<pre>
+// Copyright 2021-2023 Bloomberg Finance L.P.
+// SPDX-License-Identifier: Apache-2.0
+//
+// Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// bmqa_manualhosthealthmonitor.h                                     -*-C++-*-
+#ifndef INCLUDED_BMQA_MANUALHOSTHEALTHMONITOR
+#define INCLUDED_BMQA_MANUALHOSTHEALTHMONITOR
+
+//@PURPOSE: Provide a minimal implementation of &#39;bmqpi::HostHealthMonitor&#39;.
+//
+//@CLASSES:
+//  bmqa::ManualHostHealthMonitor: A &#39;HostHealthMonitor&#39; that derives its host
+//  health state from a value explicitly set through a setter method.
+//
+//@DESCRIPTION:
+// &#39;bmqa::ManualHostHealthMonitor&#39; is a minimal implementation of
+// &#39;bmqpi::HostHealthMonitor&#39;, which is primarily useful for unit-testing, and
+// for integrating with other systems for determining host health.
+
+
+// BMQ
+#include &lt;bmqscm_version.h&gt;
+#include &lt;bmqpi_hosthealthmonitor.h&gt;
+#include &lt;bmqt_hosthealthstate.h&gt;
+
+// BDE
+#include &lt;bdlmt_signaler.h&gt;
+#include &lt;bsl_memory.h&gt;
+#include &lt;bsls_keyword.h&gt;
+
+namespace BloombergLP {
+
+namespace bmqa {
+
+                       // =============================
+                       // class ManualHostHealthMonitor
+                       // =============================
+
+class ManualHostHealthMonitor: public bmqpi::HostHealthMonitor {
+  private:
+    // PRIVATE DATA
+    bsl::shared_ptr&lt;bmqpi::HostHealthMonitor&gt; d_impl_sp;
+
+  public:
+    // CREATORS
+    ManualHostHealthMonitor(bmqt::HostHealthState::Enum  initialState,
+                            bslma::Allocator            *allocator = 0);
+        // Constructs a &#39;ManualHostHealthMonitor&#39; with the given initial state.
+        // Optionally specify an &#39;allocator&#39; to supply memory. If &#39;allocator&#39;
+        // is 0, the currently installed default allocator is used.
+
+    ~ManualHostHealthMonitor() BSLS_KEYWORD_OVERRIDE;
+        // Destructor.
+
+    // MANIPULATORS
+    bdlmt::SignalerConnection
+    observeHostHealth(const HostHealthChangeFn&amp; cb) BSLS_KEYWORD_OVERRIDE;
+
+    void setState(bmqt::HostHealthState::Enum newState);
+
+    // ACCESSORS
+    bmqt::HostHealthState::Enum hostState() const BSLS_KEYWORD_OVERRIDE;
+};
+
+}  // close package namespace
+}  // close enterprise namespace
+
+#endif
+</pre>
+</body>
+</html>

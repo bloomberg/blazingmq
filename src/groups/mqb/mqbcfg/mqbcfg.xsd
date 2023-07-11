@@ -1,0 +1,794 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<schema xmlns              = 'http://www.w3.org/2001/XMLSchema'
+        xmlns:bdem         = 'http://bloomberg.com/schemas/bdem'
+        xmlns:tns          = 'http://bloomberg.com/schemas/mqbcfg'
+        targetNamespace    = 'http://bloomberg.com/schemas/mqbcfg'
+        bdem:package       = 'mqbcfg'
+        elementFormDefault = 'qualified'>
+
+  <complexType name='Configuration'>
+    <sequence>
+      <element name='taskConfig' type='tns:TaskConfig'/>
+      <element name='appConfig'  type='tns:AppConfig'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='TaskConfig'>
+    <sequence>
+      <element name='allocatorType'   type='tns:AllocatorType'/>
+      <element name='allocationLimit' type='unsignedLong'/>
+      <element name='logController'   type='tns:LogController'/>
+    </sequence>
+  </complexType>
+
+  <simpleType name='AllocatorType'>
+    <restriction base='string' bdem:preserveEnumOrder='1'>
+      <enumeration value='NEWDELETE'      bdem:id='0'/>
+      <enumeration value='COUNTING'       bdem:id='1'/>
+      <enumeration value='STACKTRACETEST' bdem:id='2'/>
+    </restriction>
+  </simpleType>
+
+  <complexType name='SyslogConfig'>
+    <sequence>
+      <element name='enabled'   type='boolean' default='false'/>
+      <element name='appName'   type='string'/>
+      <element name='logFormat' type='string'/>
+      <element name='verbosity' type='string'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='LogController'>
+    <sequence>
+      <element name='fileName'                 type='string'/>
+      <element name='fileMaxAgeDays'           type='int'/>
+      <element name='rotationBytes'            type='int'/>
+      <element name='logfileFormat'            type='string'/>
+      <element name='consoleFormat'            type='string'/>
+      <element name='loggingVerbosity'         type='string'/>
+      <element name='bslsLogSeverityThreshold' type='string' default='ERROR'/>
+      <element name='consoleSeverityThreshold' type='string'/>
+      <element name='categories'               type='string' maxOccurs='unbounded'/>
+          <!-- format for 'categories': 'categoryExpression:severity:color' -->
+      <element name='syslog'                   type='tns:SyslogConfig'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='AppConfig'>
+    <annotation>
+      <documentation>
+        Top level typ for the broker's configuration.
+
+        brokerInstanceName...: name of the broker instance
+        brokerVersion........: version of the broker
+        configVersion........: version of the bmqbrkr.cfg config
+        etcDir...............: directory containing the json config files
+        hostName.............: name of the current host
+        hostTags.............: tags of the current host
+        hostDataCenter.......: datacenter the current host resides in
+        isRunningOnDev.......: true if running on dev
+        logsObserverMaxSize..: maximum number of log records to keep
+        latencyMonitorDomain.: common part of all latemon domains
+        dispatcherConfig.....: configuration for the dispatcher
+        stats................: configuration for the stats
+        networkInterfaces....: configuration for the network interfaces
+        bmqconfConfig........: configuration for bmqconf
+        plugins..............: configuration for the plugins
+        msgPropertiesSupport.: information about if/how to advertise support for v2 message properties
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='brokerInstanceName'   type='string'/>
+      <element name='brokerVersion'        type='int'/>
+      <element name='configVersion'        type='int'/>
+      <element name='etcDir'               type='string'/>
+      <element name='hostName'             type='string'/>
+      <element name='hostTags'             type='string'/>
+      <element name='hostDataCenter'       type='string'/>
+      <element name='isRunningOnDev'       type='boolean'/>
+      <element name='logsObserverMaxSize'  type='int'/>
+      <element name='latencyMonitorDomain' type='string'
+                                           default='bmq.sys.latemon.latency'/>
+      <element name='dispatcherConfig'     type='tns:DispatcherConfig'/>
+      <element name='stats'                type='tns:StatsConfig'/>
+      <element name='networkInterfaces'    type='tns:NetworkInterfaces'/>
+      <element name='bmqconfConfig'        type='tns:BmqconfConfig'/>
+      <element name='plugins'              type='tns:Plugins'/>
+      <element name='messagePropertiesV2'  type='tns:MessagePropertiesV2'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='DispatcherProcessorParameters'>
+    <sequence>
+        <element name='queueSize'              type='int'/>
+        <element name='queueSizeLowWatermark'  type='int'/>
+        <element name='queueSizeHighWatermark' type='int'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='DispatcherProcessorConfig'>
+    <sequence>
+        <element name='numProcessors'   type='int'/>
+        <element name='processorConfig' type='tns:DispatcherProcessorParameters'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='DispatcherConfig'>
+    <sequence>
+        <element name='sessions' type='tns:DispatcherProcessorConfig'/>
+        <element name='queues'   type='tns:DispatcherProcessorConfig'/>
+        <element name='clusters' type='tns:DispatcherProcessorConfig'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='StatsConfig'>
+    <sequence>
+      <element name='snapshotInterval' type='int' default='1'/>  <!-- 0 to disable -->
+      <element name='plugins'          type='tns:StatPluginConfig' maxOccurs='unbounded'/>
+      <element name='printer'          type='tns:StatsPrinterConfig'/>
+    </sequence>
+  </complexType>
+
+  <complexType name="StatPluginConfig">
+    <sequence>
+      <element name='name'               type='string' default=''/>
+      <element name='queueSize'          type='int'    default='10000'/>
+      <element name='queueHighWatermark' type='int'    default='5000'/>
+      <element name='queueLowWatermark'  type='int'    default='1000'/>
+      <element name='publishInterval'    type='int'    default='30'/>  <!-- 0 to disable -->
+      <element name='namespacePrefix'    type='string' default=''/>
+      <element name='hosts'              type='string' maxOccurs='unbounded'/>
+      <element name='instanceId'         type='string' default=''/>
+    </sequence>
+  </complexType>
+
+  <complexType name="StatsPrinterConfig">
+    <sequence>
+      <element name='printInterval' type='int' default='60'/>  <!-- 0 to disable -->
+      <element name='file'          type='string'/>
+      <element name='maxAgeDays'    type='int'/>
+      <element name='rotateBytes'   type='int' default='268435456'/> <!-- 256 * 1024 * 1024 -->
+      <element name='rotateDays'    type='int' default='1'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='NetworkInterfaces'>
+    <sequence>
+      <element name='heartbeats'   type='tns:Heartbeat'/>
+      <element name='tcpInterface' type='tns:TcpInterfaceConfig' minOccurs='0'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='MessagePropertiesV2'>
+    <annotation>
+      <documentation>
+        This complex type captures information which can be used to tell a
+        broker if it should advertise support for message properties v2 format
+        (also knownn as extended or 'EX' message properties at some places).
+        Additionally, broker can be configured to advertise this feature only
+        to those C++ and Java clients which match a certain minimum SDK version.
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='advertiseV2Support' type='boolean' default='false'/>
+      <element name='minCppSdkVersion'   type='int'     default='11207'/>
+      <element name='minJavaSdkVersion'  type='int'     default='10'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='Heartbeat'>
+    <annotation>
+      <documentation>
+        The following parameters define, for the various connection types,
+        after how many missed heartbeats the connection should be proactively
+        resetted.  Note that a value of 0 means that smart-heartbeat is
+        entirely disabled for this kind of connection (i.e., it will not
+        periodically emit heatbeats in case no traffic is received, and will
+        therefore not quickly detect stale remote peer).  Each value is in
+        multiple of the 'NetworkInterfaces/TCPInterfaceConfig/heartIntervalMs'.
+
+        client............:
+            The channel represents a client connected to the broker
+        downstreamBroker..:
+            The channel represents a downstream broker connected to this
+            broker, i.e. a proxy.
+        upstreamBroker....:
+            The channel represents an upstream broker connection from this
+            broker, i.e. a cluster proxy connection.
+        clusterPeer.......:
+            The channel represents a connection with a peer node in the cluster
+            this broker is part of.
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='client'           type='int' default='0'/>
+      <element name='downstreamBroker' type='int' default='0'/>
+      <element name='upstreamBroker'   type='int' default='0'/>
+      <element name='clusterPeer'      type='int' default='0'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='TcpInterfaceConfig'>
+    <annotation>
+      <documentation>
+        lowWatermark.........:
+        highWatermark........:
+            Watermarks used for channels with a client or proxy.
+        nodeLowWatermark.....:
+        nodeHighWatermark....:
+            Reduced watermarks for communication between cluster nodes where
+            BlazingMQ maintains its own cache.
+        heartbeatIntervalMs..:
+            How often (in milliseconds) to check if the channel received data,
+            and emit heartbeat.  0 to globally disable.
+       useNtf...............:
+            Use the new NTF based TCP transport library instead of
+            the existing one based on BTE
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='name'                type='string'/>
+      <element name='port'                type='int'/>
+      <element name='ioThreads'           type='int'/>
+      <element name='maxConnections'      type='int' default='10000'/>
+      <element name='lowWatermark'        type='long'/>
+      <element name='highWatermark'       type='long'/>
+      <element name='nodeLowWatermark'    type='long' default='1024'/>
+      <element name='nodeHighWatermark'   type='long' default='2048'/>
+      <element name='heartbeatIntervalMs' type='int' default='3000'/>
+      <element name='useNtf'              type='boolean' default='false'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='BmqconfConfig'>
+    <sequence>
+      <element name='cacheTTLSeconds' type='int'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='Plugins'>
+    <sequence>
+      <element name='libraries' type='string' maxOccurs='unbounded'/>
+      <element name='enabled'   type='string' maxOccurs='unbounded'/>
+    </sequence>
+  </complexType>
+
+  <!-- ========================================================================
+                               DOMAIN_RESOLUTION
+  ========================================================================= -->
+  <complexType name='ResolvedDomain'>
+    <annotation>
+      <documentation>
+        Top level type representing the information retrieved when resolving a
+        domain.
+
+        resolvedName.: Resolved name of the domain
+        clusterName..: Name of the cluster where this domain exists
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='resolvedName' type='string'/>
+      <element name='clusterName'  type='string'/>
+    </sequence>
+  </complexType>
+
+  <!-- ========================================================================
+                                    CLUSTER
+  ========================================================================= -->
+  <complexType name='ClustersDefinition'>
+    <annotation>
+      <documentation>
+        Top level type representing the configuration for all clusters.
+
+        myClusters.................:
+            definition of the clusters the current machine is part of (if any);
+            empty means this broker does not belong to any cluster
+        myReverseClusters..........:
+            name of the clusters (if any) the current machine is expected to
+            receive inbound connections about and therefore should pro-actively
+            create a proxy cluster at startup
+        myVirtualClusters..........:
+            information about all the virtual clusters the current machine is
+            considered to belong to (if any)
+        clusters...................: array of cluster definition
+        reversedClusterConnections.:
+            cluster and associated remote connections that should be
+            established
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='myClusters'                 type='tns:ClusterDefinition'         maxOccurs='unbounded'/>
+      <element name='myReverseClusters'          type='string'                        maxOccurs='unbounded'/>
+      <element name='myVirtualClusters'          type='tns:VirtualClusterInformation' maxOccurs='unbounded'/>
+      <element name='proxyClusters'              type='tns:ClusterProxyDefinition'    maxOccurs='unbounded'/>
+      <element name='reversedClusterConnections' type='tns:ReversedClusterConnection' maxOccurs='unbounded'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='VirtualClusterInformation'>
+    <annotation>
+      <documentation>
+        Type representing the information about the current node with regards
+        to virtual cluster.
+
+        name.............: name of the cluster
+        selfNodeId.......: id of the current node in that virtual cluster
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='name'       type='string'/>
+      <element name='selfNodeId' type='int'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='ClusterDefinition'>
+    <annotation>
+      <documentation>
+        Type representing the configuration for a cluster.
+
+        name..................: name of the cluster
+        nodes.................: list of nodes in the cluster
+        partitionConfig.......: configuration for the storage
+        masterAssignment......: algorithm to use for partition's master assignment
+        elector...............: configuration for leader election amongst the nodes
+        queueOperations.......: configuration for queue operations on the cluster
+        clusterAttributes.....: attributes specific to this cluster
+        clusterMonitorConfig..: configuration for cluster state monitor
+        messageThrottleConfig.: configuration for message throttling intervals and
+                                thresholds.
+     </documentation>
+    </annotation>
+    <sequence>
+      <element name='name'                  type='string'/>
+      <element name='nodes'                 type='tns:ClusterNode' maxOccurs='unbounded'/>
+      <element name='partitionConfig'       type='tns:PartitionConfig'/>
+      <element name='masterAssignment'      type='tns:MasterAssignmentAlgorithm'/>
+      <element name='elector'               type='tns:ElectorConfig'/>
+      <element name='queueOperations'       type='tns:QueueOperationsConfig'/>
+      <element name='clusterAttributes'     type='tns:ClusterAttributes'/>
+      <element name='clusterMonitorConfig'  type='tns:ClusterMonitorConfig'/>
+      <element name='messageThrottleConfig' type='tns:MessageThrottleConfig'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='ClusterProxyDefinition'>
+    <annotation>
+      <documentation>
+        Type representing the configuration for a cluster proxy.
+
+        name..................: name of the cluster
+        nodes.................: list of nodes in the cluster
+        queueOperations.......: configuration for queue operations with the cluster
+        clusterMonitorConfig..: configuration for cluster state monitor
+        messageThrottleConfig.: configuration for message throttling intervals and
+                                thresholds.
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='name'                  type='string'/>
+      <element name='nodes'                 type='tns:ClusterNode' maxOccurs='unbounded'/>
+      <element name='queueOperations'       type='tns:QueueOperationsConfig'/>
+      <element name='clusterMonitorConfig'  type='tns:ClusterMonitorConfig'/>
+      <element name='messageThrottleConfig' type='tns:MessageThrottleConfig'/>
+    </sequence>
+  </complexType>
+
+  <simpleType name='MasterAssignmentAlgorithm'>
+    <annotation>
+      <documentation>
+        Enumeration of the various algorithm's used for assigning a master to
+        a partition:
+        - E_LEADER_IS_MASTER_ALL: the leader is master for all partitions
+        - E_LEAST_ASSIGNED:       the active node with the least number of
+                                  partitions assigned is used
+      </documentation>
+    </annotation>
+    <restriction base='string' bdem:preserveEnumOrder='1'>
+      <enumeration value='E_LEADER_IS_MASTER_ALL' bdem:id='0'/>
+      <enumeration value='E_LEAST_ASSIGNED'       bdem:id='1'/>
+    </restriction>
+  </simpleType>
+
+  <complexType name='PartitionConfig'>
+    <annotation>
+      <documentation>
+        Type representing the configuration for the storage layer of a cluster.
+
+        numPartitions........: number of partitions at each node in the cluster
+        location.............: location of active files for a partition
+        archiveLocation......: location of archive files for a partition
+        maxDataFileSize......: maximum size of partitions' data file
+        maxJournalFileSize...: maximum size of partitions' journal file
+        maxQlistFileSize.....: maximum size of partitions' qlist file
+        preallocate..........: flag to indicate whether files should be
+                               preallocated on disk
+        maxArchivedFileSets..: maximum number of archived file sets per
+                               partition to keep
+        prefaultPages........: flag to indicate whether to populate (prefault)
+                               page tables for a mapping.
+        flushAtShutdown......: flag to indicate whether broker should flush
+                               storage files to disk at shutdown
+        syncConfig...........: configuration for storage synchronization and
+                               recovery
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='numPartitions'       type='int'/>
+      <element name='location'            type='string'/>
+      <element name='archiveLocation'     type='string'/>
+      <element name='maxDataFileSize'     type='unsignedLong'/>
+      <element name='maxJournalFileSize'  type='unsignedLong'/>
+      <element name='maxQlistFileSize'    type='unsignedLong'/>
+      <element name='preallocate'         type='boolean' default='false'/>
+      <element name='maxArchivedFileSets' type='int'/>
+      <element name='prefaultPages'       type='boolean' default='false'/>
+      <element name='flushAtShutdown'     type='boolean' default='true'/>
+      <element name='syncConfig'          type='tns:StorageSyncConfig'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='ElectorConfig'>
+    <annotation>
+      <documentation>
+        Type representing the configuration for leader election amongst a
+        cluster of nodes.
+
+        initialWaitTimeoutMs.......:
+            initial wait timeout, in milliseconds, of a follower for leader
+            heartbeat before initiating election, as per the *Raft* Algorithm.
+            Note that `initialWaitTimeoutMs` should be larger than
+            `maxRandomWaitTimeoutMs`
+        maxRandomWaitTimeoutMs.....:
+            maximum random wait timeout, in milliseconds, of a follower for
+            leader heartbeat before initiating election, as per the *Raft*
+            Algorithm
+        scoutingResultTimeoutMs....:
+            timeout, in milliseconds, of a follower for awaiting scouting
+            responses from all nodes after sending scouting request.
+        electionResultTimeoutMs....:
+            timeout, in milliseconds, of a candidate for awaiting quorum to be
+            reached after proposing election, as per the *Raft* Algorithm
+        heartbeatBroadcastPeriodMs.:
+            frequency, in milliseconds, in which the leader broadcasts a
+            heartbeat signal, as per the *Raft* Algorithm,
+        heartbeatCheckPeriodMs.....:
+            frequency, in milliseconds, in which a follower checks for
+            heartbeat signals from the leader, as per the *Raft* Algorithm
+        heartbeatMissCount.........:
+            the number of missed heartbeat signals required before a follower
+            marks the current leader as inactive, as per the *Raft* Algorithm
+        quorum.....................:
+            the minimum number of votes required for a candidate to transition
+            to the leader. If zero, dynamically set to half the number of nodes
+            plus one
+        leaderSyncDelayMs..........:
+            delay, in milliseconds, after a leader has been elected before
+            initiating leader sync, in order to give a chance to all nodes to
+            come up and declare themselves AVAILABLE.  Note that this should be
+            done only in case of cluster of size > 1
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='initialWaitTimeoutMs'       type='int' default='8000'/>
+      <element name='maxRandomWaitTimeoutMs'     type='int' default='3000'/>
+      <element name='scoutingResultTimeoutMs'    type='int' default='4000'/>
+      <element name='electionResultTimeoutMs'    type='int' default='4000'/>
+      <element name='heartbeatBroadcastPeriodMs' type='int' default='2000'/>
+      <element name='heartbeatCheckPeriodMs'     type='int' default='1000'/>
+      <element name='heartbeatMissCount'         type='int' default='10'/>
+      <element name='quorum'                     type='int' default='0'/>
+      <element name='leaderSyncDelayMs'          type='int' default='80000'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='QueueOperationsConfig'>
+    <annotation>
+      <documentation>
+        Type representing the configuration for queue operations on a cluster.
+
+        openTimeoutMs..............:
+            timeout, in milliseconds, to use when opening a queue.  An open
+            request requires some co-ordination among the nodes (queue
+            assignment request/response, followed by queue open
+            request/response, etc)
+        configureTimeoutMs.........:
+            timeout, in milliseconds, to use for a configure queue request.
+            Note that `configureTimeoutMs` must be less than or equal to
+            `closeTimeoutMs` to prevent out-of-order processing of closeQueue
+            (e.g.  closeQueue sent after configureQueue but timeout response
+            processed first for the closeQueue)
+        closeTimeoutMs.............:
+            timeout, in milliseconds, to use for a close queue request
+        reopenTimeoutMs............:
+            timeout, in milliseconds, to use when sending a reopen-queue
+            request.  Ideally, we should use same value as `openTimeoutMs`, but
+            we are using a very large value as a workaround: during network
+            outages, a proxy or a replica may failover to a new upstream node,
+            which itself may be out of sync or not yet ready.  Eventually, the
+            reopen-queue requests sent during failover may timeout, and will
+            never be retried, leading to a 'permanent' failure (client consumer
+            app stops receiving messages; PUT messages from client producer app
+            starts getting NAK'd or buffered).  Using such a large timeout
+            value helps in a situation when network outages or its
+            after-effects are fixed after a few hours).
+        reopenRetryIntervalMs......:
+            duration, in milliseconds, after which a retry attempt should be
+            made to reopen the queue
+        reopenMaxAttempts..........:
+            maximum number of attempts to reopen a queue when restoring the
+            state in a proxy upon getting a new active node notification
+        assignmentTimeoutMs........:
+            timeout, in milliseconds, to use for a queue assignment request
+        keepaliveDurationMs........:
+            duration, in milliseconds, to keep a queue alive after it has met
+            the criteria for deletion
+        consumptionMonitorPeriodMs.:
+            frequency, in milliseconds, in which the consumption monitor checks
+            queue consumption statistics on the cluster
+        stopTimeoutMs..............:
+            timeout, in milliseconds, to use in StopRequest between
+            deconfiguring and closing each affected queue.  This is primarily
+            to give a chance for pending PUSH mesages to be CONFIRMed.
+        shutdownTimeoutMs..........:
+            timeout, in milliseconds, to use when node stops for shutdown or
+            maintenance mode.  This timeout should be greater than the
+            'stopTimeoutMs'. This is to handle misbehaving downstream which may
+            not reply to stopRequest (otherwise, this timeout is not expected
+            to be reached).
+        ackWindowSize..............:
+            number of PUTs without ACK requested after which we request an ACK.
+            This is to remove pending broadcast PUTs.
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='openTimeoutMs'              type='int' default='300000'/>   <!-- 5 minutes -->
+      <element name='configureTimeoutMs'         type='int' default='300000'/>   <!-- 5 minutes -->
+      <element name='closeTimeoutMs'             type='int' default='300000'/>   <!-- 5 minutes -->
+      <element name='reopenTimeoutMs'            type='int' default='43200000'/> <!-- 12 hours -->
+      <element name='reopenRetryIntervalMs'      type='int' default='5000'/>     <!-- 5 seconds -->
+      <element name='reopenMaxAttempts'          type='int' default='10'/>
+      <element name='assignmentTimeoutMs'        type='int' default='15000'/>    <!-- 15 seconds -->
+      <element name='keepaliveDurationMs'        type='int' default='1800000'/>  <!-- 30 minutes -->
+      <element name='consumptionMonitorPeriodMs' type='int' default='30000'/>    <!-- 30 seconds -->
+      <element name='stopTimeoutMs'              type='int' default='10000'/>    <!-- 10 seconds -->
+      <element name='shutdownTimeoutMs'          type='int' default='20000'/>    <!-- 20 seconds -->
+      <element name='ackWindowSize'              type='int' default='500'/>      <!-- 500 messages -->
+    </sequence>
+  </complexType>
+
+  <complexType name='ClusterMonitorConfig'>
+    <annotation>
+      <documentation>
+        Type representing the configuration for cluster state monitor.
+
+        maxTimeLeader......:
+            Time (in seconds) before alarming that the cluster's leader is not
+            'active'
+        maxTimeMaster......:
+            Time (in seconds) before alarming that a partition's master is not
+            'active'
+        maxTimeNode........:
+            Time (in seconds) before alarming that a node is not 'available'
+        maxTimeFailover..:
+            Time (in seconds) before alarming that failover hasn't completed
+        thresholdLeader....:
+            Time (in seconds) before first notifying observers that cluster's
+            leader is not 'active'.  This time interval is smaller than
+            'maxTimeLeader' because observing components may attempt to heal
+            the cluster state before an alarm is raised.
+        thresholdMaster....:
+            Time (in seconds) before notifying observers that a partition's
+            master is not 'active'.  This time interval is smaller than
+            'maxTimeMaster' because observing components may attempt to heal
+            the cluster state before an alarm is raised.
+        thresholdNode......:
+            Time (in seconds) before notifying observers that a node is not
+            'available'.  This time interval is smaller than 'maxTimeNode'
+            because observing components may attempt to heal the cluster state
+            before an alarm is raised.
+        thresholdFailover..:
+            Time (in seconds) before notifying observers that failover has not
+            completed.  This time interval is smaller than 'maxTimeFailover'
+            because observing components may attempt to fix the issue before an
+            alarm is raised.
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='maxTimeLeader'     type='int' default='60'/>  <!-- 1 minute -->
+      <element name='maxTimeMaster'     type='int' default='120'/> <!-- 2 minutes -->
+      <element name='maxTimeNode'       type='int' default='120'/> <!-- 2 minutes -->
+      <element name='maxTimeFailover'   type='int' default='240'/> <!-- 4 minutes -->
+      <element name='thresholdLeader'   type='int' default='30'/>  <!-- 30 seconds -->
+      <element name='thresholdMaster'   type='int' default='60'/>  <!-- 1 minute -->
+      <element name='thresholdNode'     type='int' default='60'/>  <!-- 1 minute -->
+      <element name='thresholdFailover' type='int' default='120'/> <!-- 2 minutes -->
+    </sequence>
+  </complexType>
+
+  <complexType name='ClusterAttributes'>
+    <annotation>
+      <documentation>
+        Type representing the attributes specific to a cluster.
+
+        isCSLModeEnabled.: indicates if CSL is enabled for this cluster
+        isFSMWorkflow....: indicates if CSL FSM workflow is enabled for this
+                           cluster.  This flag *must* be false if
+                           'isCSLModeEnabled' is false.
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='isCSLModeEnabled' type ='boolean' default='false'/>
+      <element name='isFSMWorkflow'    type ='boolean' default='false'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='MessageThrottleConfig'>
+    <annotation>
+      <documentation>
+        Configuration values for message throttling intervals and thresholds.
+
+        lowInterval...: time in milliseconds.
+
+        highInterval..: time in milliseconds.
+
+        lowThreshold..: indicates the rda counter value at which we start
+                        throttlling for time equal to 'lowInterval'.
+
+        highThreshold.: indicates the rda counter value at which we start
+                        throttlling for time equal to 'highInterval'.
+
+        Note: lowInterval should be less than/equal to highInterval,
+              lowThreshold should be less than highThreshold.
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='lowThreshold'  type='unsignedInt' default='2'/>
+      <element name='highThreshold' type='unsignedInt' default='4'/>
+      <element name='lowInterval'   type='unsignedInt' default='1000'/>
+      <element name='highInterval'  type='unsignedInt' default='3000'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='StorageSyncConfig'>
+    <annotation>
+      <documentation>
+        Type representing the configuration for storage synchronization and
+        recovery of a cluster.
+
+        startupRecoveryMaxDurationMs...:
+            maximum amount of time, in milliseconds, in which recovery for a
+            partition at node startup must complete.  This interval captures
+            the time taken to receive storage-sync response, retry attempts for
+            failed storage-sync request, as well as the time taken by the peer
+            node to send partition files to the starting (i.e.  requester) node
+        maxAttemptsStorageSync.........:
+            maximum number of attempts that a node makes for storage-sync
+            requests when it comes up (this value includes the 1st attempt)
+        storageSyncReqTimeoutMs........:
+            timeout, in milliseconds, for the storage-sync request.  A bigger
+            value is recommended because peer node could be busy serving
+            storage-sync request for other partition(s) assigned to the same
+            partition-dispatcher thread, etc.  This timeout does *not* capture
+            the time taken by the peer to send partition files
+        masterSyncMaxDurationMs........:
+            maximum amount of time, in milliseconds, in which master sync for a
+            partition must complete.  This interval includes the time taken by
+            replica node (the one with advanced view of the partition) to send
+            the file chunks, as well as time taken to receive partition-sync
+            state and data responses
+        partitionSyncStateReqTimeoutMs.:
+            timeout, in milliseconds, for partition-sync-state-query request.
+            This request is sent by a new master node to all replica nodes to
+            query their view of the partition
+        partitionSyncDataReqTimeoutMs..:
+            timeout, in milliseconds, for partition-sync-data-query request.
+            This request is sent by a new master node to a replica node (which
+            has an advanced view of the partition) to initiate partition sync.
+            This duration does *not* capture the amount of time which replica
+            might take to send the partition file
+        startupWaitDurationMs..........:
+            duration, in milliseconds, for which recovery manager waits for a
+            sync point for a partition.  If no sync point is received from a
+            peer for a partition during this time, it is assumed that there is
+            no master for that partition, and recovery manager randomly picks
+            up a node from all the available ones with send a sync request.  If
+            no peers are available at this time, it is assumed that entire
+            cluster is coming up together, and proceeds with local recovery for
+            that partition.  Note that this value should be less than the
+            duration for which a node waits if its elected a leader and there
+            are no AVAILABLE nodes.  This is important so that if all nodes in
+            the cluster are starting, they have a chance to wait for
+            'startupWaitDurationMs' milliseconds, find out that none of the
+            partitions have any master, go ahead with local recovery and
+            declare themselves as AVAILABLE.  This will give the new leader
+            node a chance to make each node a master for a given partition.
+            Moreover, this value should be greater than the duration for which
+            a peer waits before attempting to reconnect to the node in the
+            cluster, so that peer has a chance to connect to this node, get
+            notified (via ClusterObserver), and send sync point if its a master
+            for any partition
+        fileChunkSize..................:
+            chunk size, in bytes, to send in one go to the peer when serving a
+            storage sync request from it
+        partitionSyncEventSize.........:
+            maximum size, in bytes, of bmqp::EventType::PARTITION_SYNC before
+            we send it to the peer
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='startupRecoveryMaxDurationMs'   type='int' default='1200000'/> <!-- 20 minutes -->
+      <element name='maxAttemptsStorageSync'         type='int' default='3'/>
+      <element name='storageSyncReqTimeoutMs'        type='int' default='300000'/>  <!-- 5 minutes -->
+      <element name='masterSyncMaxDurationMs'        type='int' default='600000'/>  <!-- 10 minutes -->
+      <element name='partitionSyncStateReqTimeoutMs' type='int' default='120000'/>  <!-- 2 minutes -->
+      <element name='partitionSyncDataReqTimeoutMs'  type='int' default='120000'/>  <!-- 2 minutes -->
+      <element name='startupWaitDurationMs'          type='int' default='60000'/>   <!-- 60 seconds -->
+      <element name='fileChunkSize'                  type='int' default='4194304'/> <!-- 4 MB -->
+      <element name='partitionSyncEventSize'         type='int' default='4194304'/> <!-- 4 MB -->
+    </sequence>
+  </complexType>
+
+  <complexType name='ClusterNode'>
+    <annotation>
+      <documentation>
+        Type representing the configuration of a node in a cluster.
+
+        id.........: the unique ID of that node in the cluster; must be a > 0
+                     value
+        name.......: name of this node
+        datacenter.: the datacenter of that node
+        transport..: the transport configuration for establishing connectivity
+                     with the node
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='id'         type='int'/>
+      <element name='name'       type='string'/>
+      <element name='dataCenter' type='string'/>
+      <element name='transport'  type='tns:ClusterNodeConnection'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='ClusterNodeConnection'>
+    <annotation>
+      <documentation>
+        Choice of all the various transport mode available to establish
+        connetivity with a node.
+
+        tcp.: TCP connectivity
+      </documentation>
+    </annotation>
+    <choice>
+      <element name='tcp' type='tns:TcpClusterNodeConnection'/>
+    </choice>
+  </complexType>
+
+  <complexType name='TcpClusterNodeConnection'>
+    <annotation>
+      <documentation>
+        Configuration of a TCP based cluster node connectivity.
+
+        endpoint.: endpoint URI of the node address
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='endpoint' type='string'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='ReversedClusterConnection'>
+    <annotation>
+      <documentation>
+        Type representing the configuration for remote cluster connections..
+
+        name.............: name of the cluster
+        connections......: list of connections to establish
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='name'        type='string'/>
+      <element name='connections' type='tns:ClusterNodeConnection' maxOccurs='unbounded'/>
+    </sequence>
+  </complexType>
+
+</schema>

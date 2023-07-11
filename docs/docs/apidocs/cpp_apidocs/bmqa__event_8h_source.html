@@ -1,0 +1,148 @@
+<!doctype HTML public "-//W3C//DTD HTML 4.0 Frameset//EN">
+<html>
+<title>Bloomberg Development Environment</title>
+<html>
+<pre>
+// Copyright 2014-2023 Bloomberg Finance L.P.
+// SPDX-License-Identifier: Apache-2.0
+//
+// Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// bmqa_event.h                                                       -*-C++-*-
+#ifndef INCLUDED_BMQA_EVENT
+#define INCLUDED_BMQA_EVENT
+
+//@PURPOSE: Provide a generic variant encompassing all types of events.
+//
+//@CLASSES:
+//  bmqa::Event: variant encompassing all types of events.
+//
+//@SEE_ALSO:
+//  bmqa::MessageEvent : Data event notification.
+//  bmqa::SessionEvent : Session and queue status event notification.
+//
+//@DESCRIPTION: This component provides a generic &#39;bmqa::Event&#39; notification
+// object used by the &#39;bmqa::Session&#39; to provide BlazingMQ applications with
+// information regarding the status of the session or data coming from queues.
+// This &#39;bmqa::Event&#39; object is only used when user wants to process messages
+// from the EventQueue using its own thread, by calling the
+// bmqa::Session::nextEvent method.
+//
+// A &#39;bmqa::Event&#39; can either be a &#39;bmqa::SessionEvent&#39; or a
+// &#39;bmqa::MessageEvent&#39;.  The former describes notifications such as the result
+// of a session start or the opening of a queue.  The latter carries
+// application messages retrieved from a queue.
+//
+// Note that event is implemented using the pimpl idiom, so copying an event is
+// very cheap (a pointer copy).  All copies of this &#39;bmqa::Event&#39;, as well as
+// any &#39;SessionEvent&#39; or &#39;MessageEvent&#39; extracted from it will share the same
+// underlying implementation.
+
+
+// BMQ
+#include &lt;bmqscm_version.h&gt;
+#include &lt;bmqa_messageevent.h&gt;
+#include &lt;bmqa_sessionevent.h&gt;
+
+// BDE
+#include &lt;bsl_iosfwd.h&gt;
+#include &lt;bsl_memory.h&gt;
+
+namespace BloombergLP {
+
+// FORWARD DECLARATION
+namespace bmqimp { class Event; }
+
+namespace bmqa {
+
+                                // ===========
+                                // class Event
+                                // ===========
+
+class Event {
+    // A variant type encompassing all types of events
+
+  private:
+    // DATA
+    bsl::shared_ptr&lt;bmqimp::Event&gt; d_impl_sp; // pimpl
+
+  public:
+    // CREATORS
+    explicit Event();
+        // Default constructor
+
+    //! Event(const Event&amp; other) = default;
+
+    // MANIPULATORS
+    //! Event&amp; operator=(const Event&amp; rhs) = default;
+
+    // ACCESSORS
+    SessionEvent sessionEvent() const;
+        // Return the &#39;SessionEvent&#39; variant.  The behavior is undefined unless
+        // &#39;isSessionEvent&#39; returns true.
+
+    MessageEvent messageEvent() const;
+        // Return the &#39;MessageEvent&#39; variant.  The behavior is undefined unless
+        // &#39;isMessageEvent&#39; returns true.
+
+    bool isSessionEvent() const;
+        // Return true if the event is a session event.
+
+    bool isMessageEvent() const;
+        // Return true if the event is a message event.
+
+    bsl::ostream&amp; print(bsl::ostream&amp; stream,
+                        int           level          = 0,
+                        int           spacesPerLevel = 4) const;
+        // Format this object to the specified output &#39;stream&#39; at the (absolute
+        // value of) the optionally specified indentation &#39;level&#39; and return a
+        // reference to &#39;stream&#39;.  If &#39;level&#39; is specified, optionally specify
+        // &#39;spacesPerLevel&#39;, the number of spaces per indentation level for
+        // this and all of its nested objects.  If &#39;level&#39; is negative,
+        // suppress indentation of the first line.  If &#39;spacesPerLevel&#39; is
+        // negative format the entire output on one line, suppressing all but
+        // the initial indentation (as governed by &#39;level&#39;).  If &#39;stream&#39; is
+        // not valid on entry, this operation has no effect.
+};
+
+// FREE OPERATORS
+bsl::ostream&amp; operator&lt;&lt;(bsl::ostream&amp; stream, const Event&amp; rhs);
+    // Format the specified &#39;rhs&#39; to the specified output &#39;stream&#39; and return a
+    // reference to the modifiable &#39;stream&#39;.
+
+}  // close package namespace
+
+
+// ============================================================================
+//                             INLINE DEFINITIONS
+// ============================================================================
+
+
+                                // -----------
+                                // class Event
+                                // -----------
+
+inline
+bsl::ostream&amp;
+bmqa::operator&lt;&lt;(bsl::ostream&amp;      stream,
+                 const bmqa::Event&amp; rhs)
+{
+    return rhs.print(stream, 0, -1);
+}
+
+}  // close enterprise namespace
+
+#endif
+</pre>
+</body>
+</html>
