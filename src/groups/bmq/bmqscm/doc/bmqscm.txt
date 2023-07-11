@@ -1,0 +1,30 @@
+ bmqscm.txt
+
+@PURPOSE: Provide versioning information for library components in 'bmq'.
+
+@MNEMONIC: BlazingMQ Source Control Management (bmqscm)
+
+@DESCRIPTION: The 'bmqscm' package provides versioning information that is
+ incorporated into every release of the 'bmq' Package Group Library.  This
+ versioning information is in turn available to all clients of 'bmq' both at
+ run time and by inspection of appropriate .o files.
+
+/Hierarchical Synopsis
+/---------------------
+ The 'bmqscm' package currently has 2 components having 2 levels of physical
+ dependency.  The list below shows the hierarchical ordering of the components.
+ The order of components within each level is not architecturally significant,
+ just alphabetical.
+..
+  2. bmqscm_version
+
+  1. bmqscm_versiontag
+..
+
+/Component Synopsis
+/------------------
+: 'bmqscm_version':
+:      Provide source control management (versioning) information.
+:
+: 'bmqscm_versiontag':
+:      Provide versioning information for the 'bmq' package group.

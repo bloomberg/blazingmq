@@ -1,0 +1,198 @@
+// Copyright 2019-2023 Bloomberg Finance L.P.
+// SPDX-License-Identifier: Apache-2.0
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// mqbc_electorinfo.cpp                                               -*-C++-*-
+#include <mqbc_electorinfo.h>
+
+#include <mqbscm_version.h>
+// MQB
+#include <mqbnet_cluster.h>
+#include <mqbscm_version.h>
+
+// BMQ
+#include <bmqp_ctrlmsg_messages.h>
+
+// BDE
+#include <bsls_annotation.h>
+#include <bsls_assert.h>
+#include <bsls_types.h>
+
+namespace BloombergLP {
+namespace mqbc {
+
+// ------------------------------
+// struct ElectorInfoLeaderStatus
+// ------------------------------
+
+bsl::ostream&
+ElectorInfoLeaderStatus::print(bsl::ostream&                 stream,
+                               ElectorInfoLeaderStatus::Enum value,
+                               int                           level,
+                               int                           spacesPerLevel)
+{
+    bdlb::Print::indent(stream, level, spacesPerLevel);
+    stream << ElectorInfoLeaderStatus::toAscii(value);
+
+    if (spacesPerLevel >= 0) {
+        stream << '\n';
+    }
+
+    return stream;
+}
+
+const char*
+ElectorInfoLeaderStatus::toAscii(ElectorInfoLeaderStatus::Enum value)
+{
+#define CASE(X)                                                               \
+    case e_##X: return #X;
+
+    switch (value) {
+        CASE(UNDEFINED)
+        CASE(PASSIVE)
+        CASE(ACTIVE)
+    default: return "(* UNKNOWN *)";
+    }
+
+#undef CASE
+}
+
+// -------------------------
+// class ElectorInfoObserver
+// -------------------------
+
+// CREATORS
+ElectorInfoObserver::~ElectorInfoObserver()
+{
+    // NOTHING
+}
+
+void ElectorInfoObserver::onClusterLeader(
+    BSLS_ANNOTATION_UNUSED mqbnet::ClusterNode* node,
+    BSLS_ANNOTATION_UNUSED ElectorInfoLeaderStatus::Enum status)
+{
+    // NOTHING
+}
+
+// -----------------
+// class ElectorInfo
+// -----------------
+
+// MANIPULATORS
+//   (virtual: mqbc::ClusterFSMObserver)
+void ElectorInfo::onHealedLeader()
+{
+    onSelfActiveLeader();
+
+    // One leader advisory has already been sent in part of Cluster FSM healing
+    // logic, so we bump up the LSN by one.
+    ++d_leaderMessageSequence.sequenceNumber();
+}
+
+// MANIPULATORS
+ElectorInfo& ElectorInfo::registerObserver(ElectorInfoObserver* observer)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(observer);
+
+    d_observers.insert(observer);
+    return *this;
+}
+
+ElectorInfo& ElectorInfo::unregisterObserver(ElectorInfoObserver* observer)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(observer);
+
+    d_observers.erase(observer);
+    return *this;
+}
+
+ElectorInfo& ElectorInfo::setLeaderStatus(ElectorInfoLeaderStatus::Enum value)
+{
+    // executed by the cluster *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(
+        (d_leaderNode_p && (ElectorInfoLeaderStatus::e_UNDEFINED != value)) ||
+        (!d_leaderNode_p && (ElectorInfoLeaderStatus::e_UNDEFINED == value)));
+
+    if (d_leaderStatus != value) {
+        BALL_LOG_INFO << "#ELECTOR_INFO: leader status transitioning from "
+                      << d_leaderStatus << " to " << value;
+    }
+
+    // We update internal state *before* notifying observers.
+    ElectorInfoLeaderStatus::Enum oldStatus = d_leaderStatus;
+    d_leaderStatus                          = value;
+
+    if (value == ElectorInfoLeaderStatus::e_ACTIVE &&
+        oldStatus != ElectorInfoLeaderStatus::e_ACTIVE) {
+        // We only notify the observers if we are the leader transitioning to
+        // *active* state, and only the first time this happens.
+        for (ObserversSet::iterator it = d_observers.begin();
+             it != d_observers.end();
+             ++it) {
+            (*it)->onClusterLeader(d_leaderNode_p, d_leaderStatus);
+        }
+    }
+
+    return *this;
+}
+
+ElectorInfo& ElectorInfo::setElectorInfo(mqbnet::ElectorState::Enum    state,
+                                         bsls::Types::Uint64           term,
+                                         mqbnet::ClusterNode*          node,
+                                         ElectorInfoLeaderStatus::Enum status)
+{
+    // executed by the cluster *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(
+        (node && (ElectorInfoLeaderStatus::e_UNDEFINED != status)) ||
+        (!node && (ElectorInfoLeaderStatus::e_UNDEFINED == status)));
+
+    mqbnet::ClusterNode* oldLeader = d_leaderNode_p;
+
+    d_electorState = state;
+    d_electorTerm  = term;
+    d_leaderNode_p = node;
+    d_leaderStatus = status;
+
+    if (!node || !oldLeader) {
+        // We could have been called because of a change of state, which may
+        // not imply a change of leader (for example from dormant to
+        // candidate).  Here, we only notify the observers when the leader is
+        // gone; notifying of the leader elected is taken care of by the
+        // 'setLeaderStatus' method; unless there is a new leader.
+        for (ObserversSet::iterator it = d_observers.begin();
+             it != d_observers.end();
+             ++it) {
+            (*it)->onClusterLeader(d_leaderNode_p, status);
+        }
+    }
+
+    return *this;
+}
+
+void ElectorInfo::onSelfActiveLeader()
+{
+    d_leaderMessageSequence.electorTerm()    = d_electorTerm;
+    d_leaderMessageSequence.sequenceNumber() = 0;
+
+    setLeaderStatus(mqbc::ElectorInfoLeaderStatus::e_ACTIVE);
+}
+
+}  // close package namespace
+}  // close enterprise namespace

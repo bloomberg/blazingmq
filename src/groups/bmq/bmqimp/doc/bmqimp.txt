@@ -1,0 +1,70 @@
+ bmqimp.txt
+
+@PURPOSE: [INTERNAL] Provide implementation for the API of the BlazingMQ SDK.
+
+@MNEMONIC: BlazingMQ (API) Implementation (bmqimp)
+
+@DESCRIPTION: [!INTERNAL!] The 'bmqimp' package provides the implementation API
+ of the BlazingMQ SDK.
+
+ Note that this package is !INTERNAL!.  Clients are not supposed to use any of
+ its components directly, but rather use the accessor public APIs from 'bmqa'.
+
+/Hierarchical Synopsis
+/---------------------
+The 'bmqimp' package currently has 11 component having 7 levels of physical
+dependency.  The list below shows the hierarchical ordering of the components.
+..
+  7. bmqimp_application
+
+  6. bmqimp_brokersession
+
+  5. bmqimp_eventqueue
+
+  4. bmqimp_event
+     bmqimp_messagedumper
+
+  3. bmqimp_messagecorrelationidcontainer
+     bmqimp_queuemanager
+
+  2. bmqpimp_eventsstats
+     bmqpimp_queue
+
+  1. bmqimp_negotiatedchannelfactory
+     bmqimp_stat
+..
+
+/Component Synopsis
+/------------------
+: 'bmqimp_application':
+:      Provide the top level object to manipulate a session with bmqbrkr.
+:
+: 'bmqimp_brokersession':
+:      Provide the implementation of a session with the bmqbrkr.
+:
+: 'bmqimp_event':
+:      Provide a value-semantic type representing an event.
+:
+: 'bmqimp_eventqueue':
+:      Provide a thread safe queue of pooled bmqimp::Event items.
+:
+: 'bmqpimp_eventsstats':
+:      Provide a mechanism to keep track of Events statistics.
+:
+: 'bmqimp_messagecorrelationidcontainer':
+:      Provide a mechanism to manage message correlationIds.
+:
+: 'bmqimp_messagedumper':
+:      Provide a meschanism to dump messages.
+:
+: 'bmqimp_negotiatedchannelfactory':
+:      Provide a 'ChannelFactory' that negotiates upon connecting to peer.
+:
+: 'bmqpimp_queue':
+:      Provide a type object to represent information about a queue.
+:
+: 'bmqimp_queuemanager':
+:      Provide a mechanism to manage queues and interact with BlazingMQ broker.
+:
+: 'bmqimp_stat':
+:      Provide utilities for stat manipulation.

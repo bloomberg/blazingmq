@@ -1,0 +1,1755 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<schema xmlns              = 'http://www.w3.org/2001/XMLSchema'
+        xmlns:bdem         = 'http://bloomberg.com/schemas/bdem'
+        xmlns:tns          = 'http://bloomberg.com/schemas/bmqp'
+        targetNamespace    = 'http://bloomberg.com/schemas/bmqp'
+        bdem:package       = 'bmqp_ctrlmsg'
+        elementFormDefault = 'qualified'>
+
+  <!-- ========================================================================
+       ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+       :                         BMQP_CTRLMSG                                 :
+       #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::#
+       This 'bmqp_ctrlmsg' schema defines all the types of messages used for:
+          o client <-> broker communication
+          o broker <-> broker communication
+       Any message sent is of either one of those top level types:
+          o ControlMessage
+          o NegotiationMessage
+
+       The following convention is used for controlMessage:
+         Each request is just the name of the request ('openQueue',
+         'closeQueue', ...). The response to those requests is either the
+         request name with 'Response' appended ('openQueueResponse',
+         'closeQueueResponse', ...) in case of success; of the 'failure' type
+         in case of error.
+       ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+       ==================================================================== -->
+
+
+  <!-- ========================================================================
+       ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+       :                         GENERIC TYPES                                :
+       #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::#
+       ==================================================================== -->
+  <simpleType name='StatusCategory'>
+    <annotation>
+      <documentation>
+        Enumeration of the various status categories.
+        Some categories (TIMEOUT, CANCELED) should not be sent by the broker,
+        but adding them in that enum will make it possible from the SDK (which
+        could fire those errors in response of a request) to simulate such
+        response from the broker and hence allow to use a single code path for
+        the response handling.
+        ## This enum must remain in sync with 'bmqt_resultcode::GenericResult'
+      </documentation>
+    </annotation>
+    <restriction base='string' bdem:preserveEnumOrder='1'>
+      <enumeration value='E_SUCCESS'          bdem:id='0'/>
+      <enumeration value='E_UNKNOWN'          bdem:id='-1'/>
+      <enumeration value='E_TIMEOUT'          bdem:id='-2'/>
+      <enumeration value='E_NOT_CONNECTED'    bdem:id='-3'/>
+      <enumeration value='E_CANCELED'         bdem:id='-4'/>
+      <enumeration value='E_NOT_SUPPORTED'    bdem:id='-5'/>
+      <enumeration value='E_REFUSED'          bdem:id='-6'/>
+      <enumeration value='E_INVALID_ARGUMENT' bdem:id='-7'/>
+      <enumeration value='E_NOT_READY'        bdem:id='-8'/>
+    </restriction>
+  </simpleType>
+
+   <complexType name='Status'>
+    <annotation>
+      <documentation>
+        Generic type to represent a status.
+
+        category.: the category of the status
+        code.....: an integer value representing the error
+        message..: an optional string describing the error
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='category' type='tns:StatusCategory'/>
+      <element name='code'     type='int'/>
+      <element name='message'  type='string' default=''/>
+    </sequence>
+  </complexType>
+
+
+  <!-- ========================================================================
+       ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+       :                        CONTROL MESSAGE                               :
+       #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::#
+       ==================================================================== -->
+
+  <complexType name='ControlMessage'>
+    <annotation>
+      <documentation>
+        This type is the top level type for any message being sent by a client
+        to the broker or a broker to another broker. Each message can be
+        associated with an optional 'rId' (requestId) that, if specified, will
+        be set to the same value as part of the response to correlate the
+        request and the response together.
+
+        rId....: optional id of this specific request
+        choice.: enumerates all the different types of control messages
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='rId' type='int' minOccurs='0'/>
+      <choice>
+        <element bdem:id='0'  name='status'                       type='tns:Status'/>
+        <element bdem:id='1'  name='disconnect'                   type='tns:Disconnect'/>
+        <element bdem:id='2'  name='disconnectResponse'           type='tns:DisconnectResponse'/>
+        <!-- No longer used types:
+            3: openQueueOld
+            4: openQueueResponseOld
+            5: closeQueueOld
+            6: closeQueueResponseOld
+        -->
+        <element bdem:id='7'  name='adminCommand'                   type='tns:AdminCommand'/>
+        <element bdem:id='8'  name='adminCommandResponse'           type='tns:AdminCommandResponse'/>
+        <element bdem:id='9'  name='clusterMessage'                 type='tns:ClusterMessage'/>
+        <element bdem:id='10' name='openQueue'                      type='tns:OpenQueue'/>
+        <element bdem:id='11' name='openQueueResponse'              type='tns:OpenQueueResponse'/>
+        <element bdem:id='12' name='closeQueue'                     type='tns:CloseQueue'/>
+        <element bdem:id='13' name='closeQueueResponse'             type='tns:CloseQueueResponse'/>
+        <element bdem:id='14' name='configureQueueStream'           type='tns:ConfigureQueueStream'/>
+        <element bdem:id='15' name='configureQueueStreamResponse'   type='tns:ConfigureQueueStreamResponse'/>
+        <element bdem:id='16' name='configureStream'                type='tns:ConfigureStream'/>
+        <element bdem:id='17' name='configureStreamResponse'        type='tns:ConfigureStreamResponse'/>
+      </choice>
+    </sequence>
+  </complexType>
+
+  <complexType name='Disconnect'>
+    <annotation>
+      <documentation>
+        This request is sent by the SDK to the broker to perform a gracefull
+        clean shutdown.
+      </documentation>
+    </annotation>
+    <sequence>
+      <!-- Reserved for future use -->
+    </sequence>
+  </complexType>
+
+  <complexType name='DisconnectResponse'>
+    <annotation>
+      <documentation>
+        This response is sent by the broker to the SDK in response to a
+        'Disconnect' request, to acknowledge reception of the request and
+        indicate to the client it's good to close the channel.
+      </documentation>
+    </annotation>
+    <sequence>
+      <!-- Reserved for future use -->
+    </sequence>
+  </complexType>
+
+  <complexType name='AdminCommand'>
+    <annotation>
+      <documentation>
+        This request is sent by the admin client to execute the specified
+        command on the broker.  Command is expected in a human-friendly text
+        format, to get a list of available commands 'help' command can be sent.
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='command' type='string'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='AdminCommandResponse'>
+    <annotation>
+      <documentation>
+        This response is sent by the broker to the admin client in response to
+        an 'AdminCommand' request with the command execution results.  The
+        resulting text can be both non-structured text or represent a valid
+        json, depending on specific command.  Also it can contain error message
+        if some problem occured.
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='text' type='string'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='OpenQueue'>
+    <annotation>
+      <documentation>
+        This request is an indication that the client wants to open a queue,
+        and the upstream node should create a queue handle for the requester.
+
+        handleParameters.: Parameters for the queue handle to be created
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='handleParameters' type='tns:QueueHandleParameters'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='OpenQueueResponse'>
+    <annotation>
+      <documentation>
+        Response of an 'OpenQueue' request indicating success of the operation.
+
+        originalRequest......: original request this 'OpenQueueResponse' is the
+                               response of
+        routingConfiguration.: routing info to be used by the downstream
+                               node to distribute messages to consumers
+                               attached to it
+        deduplicationTimeMs........:
+            timeout, in milliseconds, to keep GUID of PUT message for the
+            purpose of detecting duplicate PUTs.
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='originalRequest'      type='tns:OpenQueue'/>
+      <element name='routingConfiguration' type='tns:RoutingConfiguration'/>
+      <element name='deduplicationTimeMs'  type='int' default='300000'/>   <!-- 5 minutes -->
+    </sequence>
+  </complexType>
+
+  <complexType name='ConfigureQueueStream'>
+    <annotation>
+      <documentation>
+        This request contains parameters advertised by the downstream node so
+        that upstream node can configure the stream associated with the
+        downstream node.
+
+        qId..............: Id identifying the queue
+        streamParameters.: Parameters for configuring the stream
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='qId'              type='unsignedInt'/>
+      <element name='streamParameters' type='tns:QueueStreamParameters'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='ConfigureQueueStreamResponse'>
+    <annotation>
+      <documentation>
+        Response of a 'ConfigureQueueStream' request, indicating success of the
+        operation.
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='request' type='tns:ConfigureQueueStream'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='CloseQueue'>
+    <annotation>
+      <documentation>
+        This request contains parameters advertised by the downstream node
+        when it wants to close a queue on an upstream node.
+
+        handleParameters.: Queue handle parameters as advertised by the
+                           downstream node
+        isFinal..........: Flag advertising if downstream node has no more
+                           clients for this queue, and upstream node is free to
+                           delete the queue handle representing the downstream
+                           node
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='handleParameters' type='tns:QueueHandleParameters'/>
+      <element name='isFinal'          type='boolean'   default='false'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='CloseQueueResponse'>
+    <annotation>
+      <documentation>
+        Response of a 'CloseQueue' request, indicating success of the
+        operation.
+      </documentation>
+    </annotation>
+    <sequence>
+      <!-- Reserved for future use; indicates a success to configure queue stream -->
+    </sequence>
+  </complexType>
+
+  <complexType name='ConfigureStream'>
+    <annotation>
+      <documentation>
+        This request contains parameters advertised by the downstream node so
+        that upstream node can configure subscriptions associated with the
+        given queue on the downstream node.
+
+        qId....................: Id identifying the queue
+        subscriptionParameters.: Parameters for configuring subscriptions
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='qId'               type='unsignedInt'/>
+      <element name='streamParameters'  type='tns:StreamParameters'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='ConfigureStreamResponse'>
+    <annotation>
+      <documentation>
+        Response of a 'ConfigureStream' request, indicating success of
+        the operation.
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='request' type='tns:ConfigureStream'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='QueueHandleParameters'>
+    <annotation>
+      <documentation>
+        This complex type contains various parameters required by an upstream
+        node to create a queue handle for the requester.
+
+        uri........: URI of the queue to open
+        qId........: id that will be used to reference this queue
+        subIdInfo..: Optional SubQueueId info, applicable if requester is a
+                     fanout consumer
+        flags......: flags to use when opening the queue
+        readCount..: the number of 'downstream' reader clients aggregated in
+                     this open queue request
+        writeCount.: the number of 'downstream' writer clients aggregated in
+                     this open queue request
+        adminCount.: the number of 'downstream' admin clients aggregated in
+                     this open queue request
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='uri'        type='string'/>
+      <element name='qId'        type='unsignedInt'/>
+      <element name='subIdInfo'  type='tns:SubQueueIdInfo' minOccurs='0'/>
+      <element name='flags'      type='unsignedLong'/>
+      <element name='readCount'  type='int' default='0'/>
+      <element name='writeCount' type='int' default='0'/>
+      <element name='adminCount' type='int' default='0'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='QueueStreamParameters'>
+    <annotation>
+      <documentation>
+        This complex type contains various parameters required by an upstream
+        node to configure a queue handle (i.e., a "stream") that has already
+        been created.
+
+        subIdInfo..............: Optional subQueueId identifying the stream in
+                                 case downstream node represents a fanout
+                                 consumer
+        maxUnconfirmedMessages.: maximum number of outstanding delivered but
+                                 pending confirmation from the client
+        maxUnconfirmedBytes....: maximum cumulated bytes of all outstanding
+                                 delivered but pending confirmation messages
+                                 from the client
+        consumerPriority.......: priority as advertised by the downstream node
+                                 for this stream
+        consumerPriorityCount..: weight of the stream as advertised by the
+                                 downstream node, having above-mentioned
+                                 consumer priority
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='subIdInfo'              type='tns:SubQueueIdInfo' minOccurs='0'/>
+      <element name='maxUnconfirmedMessages' type='long'               default='0'/>
+      <element name='maxUnconfirmedBytes'    type='long'               default='0'/>
+      <element name='consumerPriority'       type='int'                default='-2147483648'/>
+      <element name='consumerPriorityCount'  type='int'                default='0'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='SubQueueIdInfo'>
+    <annotation>
+      <documentation>
+        This complex type contains various attributes which uniquely
+        identify a subQueueId (which typically would represent a fanout
+        consumer).
+
+        subId.: Id of the subQueue
+        appId.: Application-provided unique string identifier for a given
+                fanout consumer
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='subId' type='unsignedInt' default='0'/>
+      <element name='appId' type='string'      default='__default'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='StreamParameters'>
+    <annotation>
+      <documentation>
+        This request contains parameters advertised by the downstream node so
+        that upstream node can configure subscriptions associated with the
+        given queue on the downstream node.
+
+        appId..................: Application-provided unique string identifier
+                                 for a given fanout consumer
+        subscriptions..........: Parameters for configuring subscriptions
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='appId'         type='string'           default='__default'/>
+      <element name='subscriptions' type='tns:Subscription' maxOccurs='unbounded'/>
+    </sequence>
+  </complexType>
+
+  <simpleType name='ExpressionVersion'>
+    <annotation>
+      <documentation>
+        Enumeration of the various expression versions.
+      </documentation>
+    </annotation>
+    <restriction base='string' bdem:preserveEnumOrder='1'>
+      <enumeration value='E_UNDEFINED' bdem:id='0'/>
+      <enumeration value='E_VERSION_1' bdem:id='1'/>
+    </restriction>
+  </simpleType>
+
+  <complexType name='Expression'>
+    <annotation>
+      <documentation>
+        This complex type contains expression to evaluate when selecting
+        Subscription for delivery.
+
+        version................: expression version (default is HSL)
+        text...................: textual representation of the expression
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='version' type='tns:ExpressionVersion' default='E_UNDEFINED'/>
+      <element name='text' type='string'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='ConsumerInfo'>
+    <annotation>
+      <documentation>
+        This complex type contains various parameters required by an upstream
+        node to configure subscription for a queue handle that has already been
+        created.
+
+        maxUnconfirmedMessages.: maximum number of outstanding delivered but
+                                 pending confirmation from the client
+        maxUnconfirmedBytes....: maximum cumulated bytes of all outstanding
+                                 delivered but pending confirmation messages
+                                 from the client
+        consumerPriority.......: priority as advertised by the downstream node
+                                 for this subscription
+        consumerPriorityCount..: weight of the subscription as advertised by
+                                 the downstream node, having above-mentioned
+                                 consumer priority
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='maxUnconfirmedMessages' type='long'    default='0'/>
+      <element name='maxUnconfirmedBytes'    type='long'    default='0'/>
+      <element name='consumerPriority'       type='int'     default='-2147483648'/>
+      <element name='consumerPriorityCount'  type='int'     default='0'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='Subscription'>
+    <annotation>
+      <documentation>
+        This complex type contains various parameters required by an upstream
+        node to configure subscription for a queue handle that has already been
+        created.
+
+        sId....................: subscription identifier
+        consumers..............: consumer parameters
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='sId'        type='unsignedInt'     />
+      <element name='expression' type='tns:Expression'   />
+      <element name='consumers'  type='tns:ConsumerInfo' maxOccurs='unbounded'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='RoutingConfiguration'>
+    <annotation>
+      <documentation>
+        This complex type contains various attributes required by the
+        downstream node to route messages to the consumers attached to it.
+
+        flags.: Flags representing the routing configuration
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='flags' type='unsignedLong'>
+        <annotation>
+          <documentation>
+            This is an unsigned representation with flag bits specified on
+            the 'RoutingConfigurationFlags' type.
+          </documentation>
+        </annotation>
+      </element>
+    </sequence>
+  </complexType>
+
+  <simpleType name='RoutingConfigurationFlags'>
+    <annotation>
+      <documentation>
+        This flag encodes configuration on how messages should be routed
+        to downstream consumers.
+
+        E_AT_MOST_ONCE..............: This indicates that this domain is
+                                      configured with at-most-once semantics.
+                                      This in turn means that confirms are
+                                      optional and acknowledgments (if
+                                      required) will always be send, even if
+                                      there's message loss.
+        E_DELIVER_CONSUMER_PRIORITY.: This flag indicates that only downstream
+                                      consumers having the highest consumer
+                                      should be considered as available
+                                      destination for a message.
+        E_DELIVER_ALL...............: This flag indicates that messages should
+                                      be delivered to all available downstream
+                                      consumers (after some added filtering
+                                      based on other flags, such as
+                                      'E_DELIVER_CONSUMER_PRIORITY').
+        E_HAS_MULTIPLE_SUB_STREAMS..: This flag indicates that multiple
+                                      downstream consumers should be considered
+                                      as available destination for a message.
+      </documentation>
+    </annotation>
+    <restriction base='string' bdem:preserveEnumOrder='1'>
+      <enumeration value='E_AT_MOST_ONCE'              bdem:id='0'/>
+      <enumeration value='E_DELIVER_CONSUMER_PRIORITY' bdem:id='1'/>
+      <enumeration value='E_DELIVER_ALL'               bdem:id='2'/>
+      <enumeration value='E_HAS_MULTIPLE_SUB_STREAMS'  bdem:id='3'/>
+    </restriction>
+  </simpleType>
+
+  <!-- ========================================================================
+       ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+       :                        CLUSTER MESSAGE                               :
+       #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::#
+       ==================================================================== -->
+
+  <complexType name='ClusterMessage'>
+    <annotation>
+      <documentation>
+        This type is the top level type for any message being sent by a node
+        inside the cluster to one or more peer nodes.  Note that this type of
+        message is not sent outside the cluster.
+
+        choice.: enumerates all the different types of cluster messages
+      </documentation>
+    </annotation>
+    <sequence>
+      <choice>
+        <element name='partitionPrimaryAdvisory'        type='tns:PartitionPrimaryAdvisory'/>
+        <element name='leaderAdvisory'                  type='tns:LeaderAdvisory'/>
+        <element name='queueAssignmentAdvisory'         type='tns:QueueAssignmentAdvisory'/>
+        <element name='nodeStatusAdvisory'              type='tns:NodeStatusAdvisory'/>
+        <element name='leaderSyncStateQuery'            type='tns:LeaderSyncStateQuery'/>
+        <element name='leaderSyncStateQueryResponse'    type='tns:LeaderSyncStateQueryResponse'/>
+        <element name='leaderSyncDataQuery'             type='tns:LeaderSyncDataQuery'/>
+        <element name='leaderSyncDataQueryResponse'     type='tns:LeaderSyncDataQueryResponse'/>
+        <element name='queueAssignmentRequest'          type='tns:QueueAssignmentRequest'/>
+        <element name='storageSyncRequest'              type='tns:StorageSyncRequest'/>
+        <element name='storageSyncResponse'             type='tns:StorageSyncResponse'/>
+        <element name='partitionSyncStateQuery'         type='tns:PartitionSyncStateQuery'/>
+        <element name='partitionSyncStateQueryResponse' type='tns:PartitionSyncStateQueryResponse'/>
+        <element name='partitionSyncDataQuery'          type='tns:PartitionSyncDataQuery'/>
+        <element name='partitionSyncDataQueryResponse'  type='tns:PartitionSyncDataQueryResponse'/>
+        <element name='partitionSyncDataQueryStatus'    type='tns:PartitionSyncDataQueryStatus'/>
+        <element name='primaryStatusAdvisory'           type='tns:PrimaryStatusAdvisory'/>
+        <element name='clusterSyncRequest'              type='tns:ClusterSyncRequest'/>
+        <element name='clusterSyncResponse'             type='tns:ClusterSyncResponse'/>
+        <element name='queueUnAssignmentAdvisory'       type='tns:QueueUnAssignmentAdvisory'/>
+        <element name='queueUnassignedAdvisory'         type='tns:QueueUnassignedAdvisory'/>
+        <element name='leaderAdvisoryAck'               type='tns:LeaderAdvisoryAck'/>
+        <element name='leaderAdvisoryCommit'            type='tns:LeaderAdvisoryCommit'/>
+        <element name='stateNotification'               type='tns:StateNotification'/>
+        <element name='stopRequest'                     type='tns:StopRequest'/>
+        <element name='stopResponse'                    type='tns:StopResponse'/>
+        <element name='queueUnassignmentRequest'        type='tns:QueueUnassignmentRequest'/>
+        <element name='queueUpdateAdvisory'             type='tns:QueueUpdateAdvisory'/>
+        <element name='clusterStateFSMMessage'          type='tns:ClusterStateFSMMessage'/>
+        <element name='partitionMessage'                type='tns:PartitionMessage'/>
+      </choice>
+    </sequence>
+  </complexType>
+
+  <complexType name='ClusterStateFSMMessage'>
+    <annotation>
+      <documentation>
+        This type is the top level type for any message being sent by a node
+        inside the cluster to one or more peer nodes that triggers an event in
+        the Cluster State FSM.
+        Note that this type of message is not sent outside the cluster.
+
+        choice.: enumerates all the different types of cluster state messages
+      </documentation>
+    </annotation>
+    <sequence>
+      <choice>
+        <element name='followerLSNRequest'           type='tns:FollowerLSNRequest'/>
+        <element name='followerLSNResponse'          type='tns:FollowerLSNResponse'/>
+        <element name='registrationRequest'          type='tns:RegistrationRequest'/>
+        <element name='registrationResponse'         type='tns:RegistrationResponse'/>
+        <element name='followerClusterStateRequest'  type='tns:FollowerClusterStateRequest'/>
+        <element name='followerClusterStateResponse' type='tns:FollowerClusterStateResponse'/>
+      </choice>
+    </sequence>
+  </complexType>
+
+  <complexType name='FollowerLSNRequest'>
+    <annotation>
+      <documentation>
+        This type represents a request sent by the leader to a follower to
+        query its leader-sequence number.
+      </documentation>
+    </annotation>
+  </complexType>
+
+  <complexType name='FollowerLSNResponse'>
+    <annotation>
+      <documentation>
+        This type represents a response to the 'FollowerLSNRequest' sent by
+        a follower to the leader.
+
+        sequenceNumber..: Follower's leader-sequence number
+      </documentation>
+    </annotation>
+    <sequence>
+        <element name='sequenceNumber' type='tns:LeaderMessageSequence'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='RegistrationRequest'>
+    <annotation>
+      <documentation>
+        This type represents a request sent by a follower to the leader to
+        register its leader-sequence number.
+
+        sequenceNumber..: Follower's leader-sequence number
+      </documentation>
+    </annotation>
+    <sequence>
+        <element name='sequenceNumber' type='tns:LeaderMessageSequence'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='RegistrationResponse'>
+    <annotation>
+      <documentation>
+        This type represents a response to the 'RegistrationRequest' sent by
+        the leader to a follower.
+      </documentation>
+    </annotation>
+  </complexType>
+
+  <complexType name='FollowerClusterStateRequest'>
+    <annotation>
+      <documentation>
+        This type represents a request sent by the leader to the highest LSN
+        follower to obtain its cluster state snapshot.
+    </documentation>
+    </annotation>
+  </complexType>
+
+  <complexType name='FollowerClusterStateResponse'>
+    <annotation>
+      <documentation>
+        This type represents a response to the 'FollowerClusterStateRequest'
+        sent by the highest LSN follower to the leader, containing its cluster
+        state snapshot.
+
+        clusterStateSnapshot..: Encoded cluster state snapshot, in the form of
+                                a leader advisory.
+    </documentation>
+    </annotation>
+    <sequence>
+        <element name='clusterStateSnapshot' type='tns:LeaderAdvisory'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='PartitionMessage'>
+    <annotation>
+      <documentation>
+        This type is the top level type for any message being sent by a node
+        inside the cluster to one or more peer nodes to exchange partition
+        state. Note that this type of message is not sent outside the cluster.
+
+        choice.: enumerates all the different types of partition messages
+      </documentation>
+    </annotation>
+    <sequence>
+      <choice>
+        <element name='replicaStateRequest'  type='tns:ReplicaStateRequest'/>
+        <element name='replicaStateResponse' type='tns:ReplicaStateResponse'/>
+        <element name='primaryStateRequest'  type='tns:PrimaryStateRequest'/>
+        <element name='primaryStateResponse' type='tns:PrimaryStateResponse'/>
+        <element name='replicaDataRequest'   type='tns:ReplicaDataRequest'/>
+        <element name='replicaDataResponse'  type='tns:ReplicaDataResponse'/>
+      </choice>
+    </sequence>
+  </complexType>
+
+  <complexType name='ReplicaStateRequest'>
+    <annotation>
+      <documentation>
+        This type represents a request sent to the replica by the primary to
+        ask for replica's sequence number. The primary also sends its own
+        sequence number as part of this request.
+
+        partitionId:    partition id for corresponding partition.
+        sequenceNumber: Primary's sequence number for corresponding partition.
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='partitionId'    type='int'/>
+      <element name='sequenceNumber' type='tns:PartitionSequenceNumber'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='ReplicaStateResponse'>
+    <annotation>
+      <documentation>
+        This type represents a response sent by a replica to the primary along
+        with its sequence number.
+
+        partitionId:    partition id for corresponding partition.
+        sequenceNumber: Replica's sequence number for corresponding partition.
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='partitionId'    type='int'/>
+      <element name='sequenceNumber' type='tns:PartitionSequenceNumber'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='PrimaryStateRequest'>
+    <annotation>
+      <documentation>
+        This type represents a request sent to the primary by a replica to
+        ask for primary's sequence number. The replica also sends it own
+        sequence number as part of this request.
+
+        partitionId:    partition id for corresponding partition.
+        sequenceNumber: Replica's sequence number for corresponding partition.
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='partitionId'    type='int'/>
+      <element name='sequenceNumber' type='tns:PartitionSequenceNumber'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='PrimaryStateResponse'>
+    <annotation>
+      <documentation>
+        This type represents a response sent by a primary to the replica along
+        with its sequence number.
+
+        partitionId:    partition id for corresponding partition.
+        sequenceNumber: Primary's sequence number for corresponding partition.
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='partitionId'    type='int'/>
+      <element name='sequenceNumber' type='tns:PartitionSequenceNumber'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='ReplicaDataRequest'>
+    <annotation>
+      <documentation>
+        This type represents a request sent to the replica by the primary to
+        start the synchronization of data.
+
+        replicaDataType:     type of request i.e. PULL, PUSH or DROP for
+                             corresponding partition.
+        partitionId:         partition id for corresponding partition.
+        beginSequenceNumber: Primary's begin sequence number for corresponding
+                             partition for corresponding data chunks.
+        endSequenceNumber:   Primary's end sequence number for corresponding
+                             partition for corresponding data chunks.
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='replicaDataType'     type='tns:ReplicaDataType'/>
+      <element name='partitionId'         type='int'/>
+      <element name='beginSequenceNumber' type='tns:PartitionSequenceNumber'/>
+      <element name='endSequenceNumber'   type='tns:PartitionSequenceNumber'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='ReplicaDataResponse'>
+    <annotation>
+      <documentation>
+        This type represents a response sent by a replica to the primary for
+        the data synchronization request received by it.
+
+        replicaDataType:     type of request received i.e. PULL, PUSH or DROP
+                             for corresponding partition. Note, this field will
+                             be set as per the request received and the primary
+                             purpose of sending this field back in response is
+                             for debugging and sanity checking.
+        partitionId:         partition id for corresponding partition.
+        beginSequenceNumber: Replica's begin sequence number for corresponding
+                             partition for corresponding data chunks.
+        endSequenceNumber:   Replica's end sequence number for corresponding
+                             partition for corresponding data chunks.
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='replicaDataType' type='tns:ReplicaDataType'/>
+      <element name='partitionId'     type='int'/>
+      <element name='beginSequenceNumber' type='tns:PartitionSequenceNumber'/>
+      <element name='endSequenceNumber'   type='tns:PartitionSequenceNumber'/>
+    </sequence>
+  </complexType>
+
+  <simpleType name='ReplicaDataType'>
+    <annotation>
+      <documentation>
+        Enumeration of the various replica data request/response types.
+      </documentation>
+    </annotation>
+    <restriction base='string' bdem:preserveEnumOrder='1'>
+      <enumeration value='E_UNKNOWN' bdem:id='0'/>
+      <enumeration value='E_PULL'    bdem:id='10'/>
+      <enumeration value='E_PUSH'    bdem:id='20'/>
+      <enumeration value='E_DROP'    bdem:id='30'/>
+    </restriction>
+  </simpleType>
+
+  <complexType name='PartitionPrimaryAdvisory'>
+    <annotation>
+      <documentation>
+        This type represents a one way message sent by the leader to all
+        followers with a mapping of partition -> primary node, and other
+        relevant infomration.
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='sequenceNumber' type='tns:LeaderMessageSequence'/>
+      <element name='partitions'     type='tns:PartitionPrimaryInfo'  maxOccurs='unbounded'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='LeaderMessageSequence'>
+    <annotation>
+      <documentation>
+        This type represents the sequence number of a message/advisory/response
+        sent by the leader.
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='electorTerm'     type='unsignedLong'/>
+      <element name='sequenceNumber'  type='unsignedLong'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='PartitionSequenceNumber'>
+    <annotation>
+      <documentation>
+        This type represents the logical sequence number in a partition.
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='primaryLeaseId' type='unsignedInt'/>
+      <element name='sequenceNumber' type='unsignedLong'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='PartitionPrimaryInfo'>
+    <annotation>
+      <documentation>
+        This type represents the details of parition->primary node mapping.
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='partitionId'    type='int'/>
+      <element name='primaryNodeId'  type='int'/>
+      <element name='primaryLeaseId' type='unsignedInt'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='AppIdInfo'>
+    <annotation>
+      <documentation>
+        This type represents the details of an application id, that is the app
+        id string and app key bytes for a queue.
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='appId'  type='string'/>
+      <element name='appKey' type='hexBinary'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='QueueInfo'>
+    <annotation>
+      <documentation>
+        This type represents a queue assignment, that is the key and
+        partitionId assigned to a given URI.
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='uri'         type='string'/>
+      <element name='key'         type='hexBinary'/>
+      <element name='partitionId' type='int'/>
+      <element name='appIds'      type='tns:AppIdInfo' maxOccurs='unbounded'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='QueueInfoUpdate'>
+    <annotation>
+      <documentation>
+        This type represents a queue update, that is the added or removed
+        appIds for a given URI. In the case of (un)registering appIds for a
+        domain without any queues present, the 'domain' field will be populated
+        whereas the 'uri', 'key' and 'partitionId' will all be set to
+        null/invalid.
+    </documentation>
+    </annotation>
+    <sequence>
+      <element name='uri'           type='string'/>
+      <element name='key'           type='hexBinary'/>
+      <element name='partitionId'   type='int'/>
+      <element name='addedAppIds'   type='tns:AppIdInfo' maxOccurs='unbounded'/>
+      <element name='removedAppIds' type='tns:AppIdInfo' maxOccurs='unbounded'/>
+      <element name='domain'        type='string'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='QueueAssignmentAdvisory'>
+    <annotation>
+      <documentation>
+        This type represents a one way message sent by the leader to all
+        followers when a queue is assigned a partition.
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='sequenceNumber' type='tns:LeaderMessageSequence'/>
+      <element name='queues'         type='tns:QueueInfo' maxOccurs='unbounded'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='QueueUpdateAdvisory'>
+    <annotation>
+      <documentation>
+        This type represents a one way message sent by the leader to all
+        followers when appIds are added to, or removed from, a queue.
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='sequenceNumber' type='tns:LeaderMessageSequence'/>
+      <element name='queueUpdates'   type='tns:QueueInfoUpdate' maxOccurs='unbounded'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='QueueUnAssignmentAdvisory'>
+    <annotation>
+      <documentation>
+        This type represents a one way message sent by the primary of a
+        partition to all peers when queues are unmapped from that partition.
+        NOTE: The 'partitionId' member of 'QueueInfo' is unused (superseeded by
+              the 'partitionId' at this level of the data structure).
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='primaryNodeId'  type='int'/>
+      <element name='primaryLeaseId' type='unsignedInt'/>
+      <element name='partitionId'    type='int'/>
+      <element name='queues'         type='tns:QueueInfo' maxOccurs='unbounded'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='QueueUnassignedAdvisory'>
+    <annotation>
+      <documentation>
+        This type represents a one way message sent by the leader to all peers
+        when queues are unmapped from that partition. Once the logic is updated
+        such that leader broadcasts queue unassigned advisories, primary node
+        will no longer broadcastthem, and the other similar type
+        'QueueUnAssignmentAdvisory' will be removed.
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='sequenceNumber' type='tns:LeaderMessageSequence'/>
+      <element name='partitionId'    type='int'/>
+      <element name='primaryLeaseId' type='unsignedInt'/>
+      <element name='primaryNodeId'  type='int'/>
+      <element name='queues'         type='tns:QueueInfo' maxOccurs='unbounded'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='LeaderAdvisory'>
+    <annotation>
+      <documentation>
+        This type represents a one way message sent by the leader to all
+        followers about partition/primary and queue info mappings.
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='sequenceNumber' type='tns:LeaderMessageSequence'/>
+      <element name='partitions'     type='tns:PartitionPrimaryInfo'  maxOccurs='unbounded'/>
+      <element name='queues'         type='tns:QueueInfo'             maxOccurs='unbounded'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='LeaderAdvisoryAck'>
+    <annotation>
+      <documentation>
+        This type represents a one way message indicating receipt of a specific
+        leader advisory.
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='sequenceNumberAcked' type='tns:LeaderMessageSequence'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='LeaderAdvisoryCommit'>
+    <annotation>
+      <documentation>
+        This type represents a one way message indicating commit of a specific
+        leader advisory.
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='sequenceNumber'          type='tns:LeaderMessageSequence'/>
+      <element name='sequenceNumberCommitted' type='tns:LeaderMessageSequence'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='StateNotification'>
+    <annotation>
+      <documentation>
+        Choice of all the various cluster state notifications sent from a
+        node in the cluster to a peer node with the capacity to take action
+        upon the notification.
+
+        leaderPassive..: Leader is passive
+      </documentation>
+    </annotation>
+    <sequence>
+      <choice>
+        <element name='leaderPassive' type='tns:LeaderPassive'/>
+      </choice>
+    </sequence>
+  </complexType>
+
+  <complexType name='LeaderPassive'>
+    <annotation>
+      <documentation>
+        This type represents a particular type of cluster issue whereby the
+        leader is seen as passive by a follower node, resulting in invalid
+        cluster state.
+      </documentation>
+    </annotation>
+    <sequence>
+        <!-- TBD: empty for now -->
+    </sequence>
+  </complexType>
+
+  <complexType name='SyncPoint'>
+    <annotation>
+      <documentation>
+        This type represents a 'sync point' for a given partition (file store)
+        in the BlazingMQ replicated state machine.  Note that sync point is
+        sent as a binary message, not a schema message.  This type exists in
+        this schema solely as a convenience for using a generated type instead
+        of writing one by hand.
+
+        partitionId.............: Id of the applicable partition (file store)
+        primaryLeaseId..........: LeaseId of the sender node (primary for the
+                                  partition)
+        primaryNodeId...........: NodeId of the sender (primary for the
+                                  partition)
+        sequenceNum.............: Sequence number of the last message
+        dataFilePositionDwords..: Position of data file when this sync point
+                                  was issued.
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='primaryLeaseId'         type='unsignedInt'/>
+      <element name='sequenceNum'            type='unsignedLong'/>
+      <element name='dataFileOffsetDwords'   type='unsignedInt'/>
+      <element name='qlistFileOffsetWords'   type='unsignedInt'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='SyncPointOffsetPair'>
+    <annotation>
+      <documentation>
+        A pair of SyncPt and the offset in the journal where that SyncPt
+        appears.  Note that in future, we may introduce a journal-offset field
+        in the SyncPt itself, but that could be different from the offset of
+        SyncPt itself.
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='syncPoint' type='tns:SyncPoint'/>
+      <element name='offset'    type='unsignedLong'/>
+    </sequence>
+  </complexType>
+
+  <simpleType name='NodeStatus'>
+    <annotation>
+      <documentation>
+        Enumeration of the various node states.
+      </documentation>
+    </annotation>
+    <restriction base='string' bdem:preserveEnumOrder='1'>
+      <enumeration value='E_UNKNOWN'         bdem:id='0'/>
+      <enumeration value='E_STARTING'        bdem:id='10'/>
+      <enumeration value='E_AVAILABLE'       bdem:id='20'/>
+      <enumeration value='E_STOPPING'        bdem:id='30'/>
+      <enumeration value='E_UNAVAILABLE'     bdem:id='40'/>
+    </restriction>
+  </simpleType>
+
+  <complexType name='NodeStatusAdvisory'>
+    <annotation>
+      <documentation>
+        This type represents a one way message sent by a node to its peers
+        whenever its status changes, as it deemed by the node itself.
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='status'      type='tns:NodeStatus'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='LeaderSyncStateQuery'>
+    <annotation>
+      <documentation>
+        This type represents a request sent by current leader to a follower to
+        query follower's view of the cluster state maintained by the leader.
+      </documentation>
+    </annotation>
+    <sequence>
+      <!-- empty for now -->
+    </sequence>
+  </complexType>
+
+  <complexType name='LeaderSyncStateQueryResponse'>
+    <annotation>
+      <documentation>
+        This type represents a response to the 'LeaderSyncStateQuery' sent by
+        the follower to the leader.
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='leaderMessageSequence'  type='tns:LeaderMessageSequence'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='LeaderSyncDataQuery'>
+    <annotation>
+      <documentation>
+        This type represents a request sent by current leader to a follower to
+        ask follower to send the leader its partition/primary mapping and queue
+        information.
+      </documentation>
+    </annotation>
+    <sequence>
+      <!-- empty for now -->
+    </sequence>
+  </complexType>
+
+  <complexType name='LeaderSyncDataQueryResponse'>
+    <annotation>
+      <documentation>
+        This type represents a response to the 'LeaderSyncDataQuery' sent by
+        the follower to the leader.
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='leaderSyncData'  type='tns:LeaderAdvisory'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='QueueAssignmentRequest'>
+    <annotation>
+      <documentation>
+        This type represents a request, sent to the leader, to assign the queue
+        with the specified 'queueUri'.
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='queueUri' type='string'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='QueueUnassignmentRequest'>
+    <annotation>
+      <documentation>
+        This type represents a request, sent to the leader, to unassign the
+        queue with the specified 'queueUri'.
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='queueUri'    type='string'/>
+      <element name='partitionId' type='int'/>
+      <element name='queueKey'    type='hexBinary'/>
+    </sequence>
+  </complexType>
+
+  <simpleType name='StorageSyncResponseType'>
+    <annotation>
+      <documentation>
+        Enumeration of the various categories for storage sync response.
+      </documentation>
+    </annotation>
+    <restriction base='string' bdem:preserveEnumOrder='1'>
+      <enumeration value='E_UNDEFINED' bdem:id='0'/>
+      <enumeration value='E_PATCH'     bdem:id='1'/>
+      <enumeration value='E_FILE'      bdem:id='2'/>
+      <enumeration value='E_IN_SYNC'   bdem:id='3'/>
+      <enumeration value='E_EMPTY'     bdem:id='4'/>
+    </restriction>
+  </simpleType>
+
+  <complexType name='StorageSyncRequest'>
+    <annotation>
+      <documentation>
+        This type represents a request sent by a cluster node to a peer node in
+        the cluster requesting to initiate storage sync.
+
+        partitionId.....: The corresponding partitionId
+        beginSyncPoint..: Optional starting sync point of the missing storage
+        endSyncPoint....: Optional ending sync point of the missing storage
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='partitionId'               type='int'/>
+      <element name='beginSyncPointOffsetPair'  type='tns:SyncPointOffsetPair' minOccurs='0'/>
+      <element name='endSyncPointOffsetPair'    type='tns:SyncPointOffsetPair' minOccurs='0'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='StorageSyncResponse'>
+    <annotation>
+      <documentation>
+        This type represents the message sent by the peer node in response to
+        a storage sync request.
+
+        partitionId..............: The corresponding partitionId
+        storageSyncResponseType..: Type of storage sync response (enumeration)
+        beginSyncPoint...........: Starting sync point of the sent storage
+        endSyncPoint.............: Ending sync point of the sent storage
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='partitionId'             type='int'/>
+      <element name='storageSyncResponseType' type='tns:StorageSyncResponseType'/>
+      <element name='beginSyncPoint'          type='tns:SyncPoint'/>
+      <element name='endSyncPoint'            type='tns:SyncPoint'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='PartitionSyncStateQuery'>
+    <annotation>
+      <documentation>
+        This type represents a request sent by a new primary node to all its
+        AVAILABLE peers to query their current state for a given partition.
+
+        partitionId: The corresponding partitionId
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='partitionId' type='int'  default='-1'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='PartitionSyncStateQueryResponse'>
+    <annotation>
+      <documentation>
+        This type represents a message sent by a peer node in response to
+        PartitionSyncStateQueryQuery.
+
+        partitionId....: The corresponding partitionId
+        primaryLeaseId.: Peer's partition's primary leaseId
+        sequenceNum....: Peer's partition's sequence number
+        lastSyncPoint..: Last sync point for this partition
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='partitionId'             type='int'/>
+      <element name='primaryLeaseId'          type='unsignedInt'/>
+      <element name='sequenceNum'             type='unsignedLong'/>
+      <element name='lastSyncPointOffsetPair' type='tns:SyncPointOffsetPair'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='PartitionSyncDataQuery'>
+    <annotation>
+      <documentation>
+        This type represents a request sent by a new primary node to one of the
+        AVAILABLE peers to asking for syncing the partition.
+
+        partitionId....: The corresponding partitionId
+        lastSyncPoint..: Last sync point of the requester for this partition.
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='partitionId'             type='int'/>
+      <element name='lastPrimaryLeaseId'      type='unsignedInt'/>
+      <element name='lastSequenceNum'         type='unsignedLong'/>
+      <element name='uptoPrimaryLeaseId'      type='unsignedInt'/>
+      <element name='uptoSequenceNum'         type='unsignedLong'/>
+      <element name='lastSyncPointOffsetPair' type='tns:SyncPointOffsetPair'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='PartitionSyncDataQueryResponse'>
+    <annotation>
+      <documentation>
+        This type represents a message sent by a peer node to the new primary
+        in response to PartitionSyncDataQuery.
+
+        partitionId....: The corresponding partitionId
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='partitionId'       type='int'/>
+      <element name='endPrimaryLeaseId' type='unsignedInt'/>
+      <element name='endSequenceNum'    type='unsignedLong'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='PartitionSyncDataQueryStatus'>
+    <annotation>
+      <documentation>
+        This type represents a message sent by a peer node to the new primary
+        after it is finished sending partition sync data.  This message
+        indicates to the new primary node that partition sync from peer is
+        complete (with appropriate success/failure status indicated in this
+        message).
+
+        partitionId..: The corresponding partitionId
+        status.......: Status of the query
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='partitionId' type='int'/>
+      <element name='status'      type='tns:Status'/>
+    </sequence>
+  </complexType>
+
+  <simpleType name='PrimaryStatus'>
+    <annotation>
+      <documentation>
+        Enumeration of the various primary status.
+      </documentation>
+    </annotation>
+    <restriction base='string' bdem:preserveEnumOrder='1'>
+      <enumeration value='E_UNDEFINED' bdem:id='0'/>
+      <enumeration value='E_PASSIVE'   bdem:id='1'/>
+      <enumeration value='E_ACTIVE'    bdem:id='5'/>
+    </restriction>
+  </simpleType>
+
+  <complexType name='PrimaryStatusAdvisory'>
+    <annotation>
+      <documentation>
+        This type represents a message sent by a primary node to the replicas
+        whenever primary's status changes.
+
+        partitionId..: The corresponding partitionId
+        status.......: Status of the query
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='partitionId'    type='int'/>
+      <element name='primaryLeaseId' type='unsignedInt'/>
+      <element name='status'         type='tns:PrimaryStatus' default='E_UNDEFINED'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='ClusterSyncRequest'>
+    <annotation>
+      <documentation>
+        This type represents a message sent by a cluster member node to all
+        peers, in order to ensure sync (think of it as a distributed latch
+        between all nodes in the cluster).  Each peer, upon reception of this
+        request, is expected to reply with a 'ClusterSyncResponse' message.
+      </documentation>
+    </annotation>
+    <sequence>
+      <!-- Reserved for future use -->
+    </sequence>
+  </complexType>
+
+  <complexType name='ClusterSyncResponse'>
+    <annotation>
+      <documentation>
+        This type represents a message sent by a cluster member node, in
+        response to a 'ClusterSyncRequest'.
+      </documentation>
+    </annotation>
+    <sequence>
+      <!-- Reserved for future use -->
+    </sequence>
+  </complexType>
+
+  <complexType name='StopRequest'>
+    <annotation>
+      <documentation>
+        This type represents a request sent by a cluster member node upon
+        graceful shutdown / going into maintenance mode.
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='clusterName' type='string'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='StopResponse'>
+    <annotation>
+      <documentation>
+        This type represents a response sent by a cluster member node or
+        proxy after completing processing stopRequest.
+
+        clusterName: Must match the one in corresponding stopRequest
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='clusterName' type='string'/>
+    </sequence>
+  </complexType>
+
+  <!-- ========================================================================
+       ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+       :                        ELECTOR MESSAGE                               :
+       #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::#
+       ==================================================================== -->
+
+  <complexType name='ElectorMessage'>
+    <annotation>
+      <documentation>
+        This type is the top level type for any message being sent by elector
+        component in the cluster.
+
+        term....: Term being proposed in the election
+        choice..: Enumerates all the different types of elector messages
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='term' type='unsignedLong'/>
+      <choice>
+        <element name='electionProposal'  type='tns:ElectionProposal'/>
+        <element name='electionResponse'  type='tns:ElectionResponse'/>
+        <element name='leaderHeartbeat'   type='tns:LeaderHeartbeat'/>
+        <element name='electorNodeStatus' type='tns:ElectorNodeStatus'/>
+        <element name='heartbeatResponse' type='tns:HeartbeatResponse'/>
+        <element name='scoutingRequest'   type='tns:ScoutingRequest'/>
+        <element name='scoutingResponse'  type='tns:ScoutingResponse'/>
+        <element name='leadershipCessionNotification'
+                                     type='tns:LeadershipCessionNotification'/>
+      </choice>
+    </sequence>
+  </complexType>
+
+  <complexType name='ElectionProposal'>
+    <annotation>
+      <documentation>
+        This type represents an election proposal from a given node in the BMQ
+        leader election algorithm.
+      </documentation>
+    </annotation>
+    <sequence>
+      <!-- TBD: empty for now -->
+    </sequence>
+  </complexType>
+
+  <complexType name='ElectionResponse'>
+    <annotation>
+      <documentation>
+        This type represents an election response from a given node in the BMQ
+        leader election algorithm.
+      </documentation>
+    </annotation>
+    <sequence>
+      <!-- TBD: empty for now -->
+    </sequence>
+  </complexType>
+
+  <complexType name='LeadershipCessionNotification'>
+    <annotation>
+      <documentation>
+        This type represents a notification signalling cession of leadership
+        from the leader node in the BlazingMQ leader election algorithm.
+      </documentation>
+    </annotation>
+    <sequence>
+      <!-- TBD: empty for now -->
+    </sequence>
+  </complexType>
+
+  <complexType name='LeaderHeartbeat'>
+    <annotation>
+      <documentation>
+        This type represents a heartbeat from the leader node in the BlazingMQ
+        leader election algorithm.
+      </documentation>
+    </annotation>
+    <sequence>
+      <!-- TBD: empty for now -->
+    </sequence>
+  </complexType>
+
+  <complexType name='ElectorNodeStatus'>
+    <annotation>
+      <documentation>
+        This type represents a notification from a node about its status.
+
+        isAvailable..: flag indicated whether an elector node is available or
+                       not.
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='isAvailable' type='boolean'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='HeartbeatResponse'>
+    <annotation>
+      <documentation>
+        This type represents a response sent by a peer node to the node which
+        sent it a leader heartbeat message.
+      </documentation>
+    </annotation>
+    <sequence>
+      <!-- TBD: empty for now -->
+    </sequence>
+  </complexType>
+
+  <complexType name='ScoutingRequest'>
+    <annotation>
+      <documentation>
+        This type represents a request sent by a peer node to gauge the
+        interest peer nodes in supporting it, with the term specified in
+        the top level type.
+      </documentation>
+    </annotation>
+    <sequence>
+      <!-- Empty for now -->
+    </sequence>
+  </complexType>
+
+  <complexType name='ScoutingResponse'>
+    <annotation>
+      <documentation>
+        This type represents a message sent by a peer node as a response to the
+        scouting request from another peer.
+
+        willVote..: boolean indicating if this peer will support an election
+                    proposal from the requester node with the term specified in
+                    the top level type.
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='willVote' type='boolean'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='DumpMessages'>
+    <sequence>
+      <element name='msgTypeToDump'   type='tns:DumpMsgType' />
+      <element name='dumpActionType'  type='tns:DumpActionType'/>
+      <element name='dumpActionValue' type='int' default='0'/>
+    </sequence>
+  </complexType>
+
+  <simpleType name='DumpMsgType' bdem:preserveEnumOrder='1'>
+    <restriction base='string'>
+      <enumeration value='E_INCOMING'/>
+      <enumeration value='E_OUTGOING'/>
+      <enumeration value='E_PUSH'/>
+      <enumeration value='E_ACK'/>
+      <enumeration value='E_PUT'/>
+      <enumeration value='E_CONFIRM'/>
+    </restriction>
+  </simpleType>
+
+  <simpleType name='DumpActionType' bdem:preserveEnumOrder='1'>
+    <restriction base='string'>
+      <enumeration value='E_ON'/>
+      <enumeration value='E_OFF'/>
+      <enumeration value='E_MESSAGE_COUNT'/>
+      <enumeration value='E_TIME_IN_SECONDS'/>
+    </restriction>
+  </simpleType>
+
+    <!-- ========================================================================
+       ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+       :                       NEGOTIATION MESSAGE                            :
+       #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::#
+       ==================================================================== -->
+  <complexType name='NegotiationMessage'>
+    <annotation>
+      <documentation>
+        This type is the top level type for any message being exchanged during
+        negotiation of a connection with the broker, whether by a BlazingMQ
+        client or another broker.
+
+        choice.: enumerates all the different type of negotiation packets
+
+        During negotiation, the process (whether a client using the libbmq SDK,
+        or a bmqbrkr) sends a 'clientIdentity' message; to which the remote
+        peer will reply with a 'brokerResponse' message, embedding a
+        'clientIdentity' representing its own identity.  In order to support
+        reverse connection, the negotiation will be 3 steps: first, a
+        'reverseConnectionRequest' will be sent, which will trigger the
+        'normal' 2-steps negotiation to be initiated by the remote peer.
+      </documentation>
+    </annotation>
+    <choice>
+      <element name='clientIdentity'           type='tns:ClientIdentity'/>
+      <element name='brokerResponse'           type='tns:BrokerResponse'/>
+      <element name='reverseConnectionRequest' type='tns:ReverseConnectionRequest'/>
+    </choice>
+  </complexType>
+
+  <simpleType name='ClientType'>
+    <annotation>
+      <documentation>
+        Enumeration of the various types of client which can connect to the
+        bmqbrkr.
+      </documentation>
+    </annotation>
+    <restriction base='string' bdem:preserveEnumOrder='1'>
+      <enumeration value='E_UNKNOWN'   bdem:id='0'/>
+      <enumeration value='E_TCPCLIENT' bdem:id='1'/>
+      <enumeration value='E_TCPBROKER' bdem:id='2'/>
+      <enumeration value='E_TCPADMIN'  bdem:id='3'/>
+    </restriction>
+  </simpleType>
+
+  <simpleType name='ClientLanguage'>
+    <annotation>
+      <documentation>
+        Enumeration of the various types of language which can be used by a
+        client.
+      </documentation>
+    </annotation>
+    <restriction base='string' bdem:preserveEnumOrder='1'>
+      <enumeration value='E_UNKNOWN' bdem:id='0'/>
+      <enumeration value='E_CPP'     bdem:id='1'/>
+      <enumeration value='E_JAVA'    bdem:id='2'/>
+    </restriction>
+  </simpleType>
+
+  <complexType name='GuidInfo'>
+    <annotation>
+      <documentation>
+        This represents the 'clientId' and 'nanoSecondsFromEpoch' provided by
+        bmqp::MessageGUIDGenerator.  Sending them to the broker will allow to
+        retrieve the source and compute the absolute time of a GUID.
+
+        clientId..............: SDK client ID
+        nanoSecondsFromEpoch..: number of nano seconds from epoch
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='clientId'             type='string' default=''/>
+      <element name='nanoSecondsFromEpoch' type='long'   default='0'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='ClientIdentity'>
+    <annotation>
+      <documentation>
+        This represents the 'identification' sent by a client to the broker
+        during connection negotiation.
+
+        protocolVersion...: protocol version used by this client
+        sdkVersion........: version of the SDK used by this client
+        clientType........: type of client trying to connect to the bmqbrkr
+        processName.......: name of the process
+        pid...............: PID of the process
+        sessionId.........: instance count of the session in the task
+        hostName..........: name of the host where the client is running
+        features..........: a space separated list of supported features by the
+                            client
+        clusterName.......: used only when 'clientType' is 'E_TCPBROKER' and
+                            contains the name of the Cluster responsible for
+                            establishing this inter-broker connectivity;
+                            whether this is about a Cluster proxy or a Cluster
+                            member.
+        clusterNodeId.....: used only when 'clientType' is 'E_TCPBROKER' and
+                            contains the node id of the broker in that cluster,
+                            or -1 if the broker  is not part of the cluster
+                            (i.e., a -1 value for 'clusterNodeId' indicates
+                            this connection is about a Cluster proxy; note that
+                            this -1 must be equal to
+                            'mqbnet::Cluster::k_INVALID_NODE_ID').
+        sdkLanguage.......: language of the SDK used by this client.
+        guidInfo..........: data provided by bmqp::MessageGUIDGenerator.
+                            Contains clientId, current timer tick and number of
+                            seconds from epoch.
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='protocolVersion' type='int'/>
+      <element name='sdkVersion'      type='int'    default='999999'/>
+      <element name='clientType'      type='tns:ClientType'/>
+      <element name='processName'     type='string' default=''/>
+      <element name='pid'             type='int'    default='0'/>
+      <element name='sessionId'       type='int'    default='1'/>
+      <element name='hostName'        type='string' default=''/>
+      <element name='features'        type='string' default=''/>
+      <element name='clusterName'     type='string' default=''/>
+      <element name='clusterNodeId'   type='int'    default='-1'/>
+      <element name='sdkLanguage'     type='tns:ClientLanguage' default='E_CPP'/>
+      <element name='guidInfo'        type='tns:GuidInfo'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='BrokerResponse'>
+    <annotation>
+      <documentation>
+        This represents the response from the broker to a 'ClientIdentity'
+        message during connection negotiation.
+
+        result..........: the result of the negotiation
+        protocolVersion.: protocol version used by the bmqbrkr
+        brokerVersion...: version of the broker
+        isDeprecatedSdk.: is the version of the client's SDK version deprecated
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='result'          type='tns:Status'/>
+      <element name='protocolVersion' type='int'/>
+      <element name='brokerVersion'   type='int'/>
+      <element name='isDeprecatedSdk' type='boolean' default='false'/>
+      <element name='brokerIdentity'  type='tns:ClientIdentity'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='ReverseConnectionRequest'>
+    <annotation>
+      <documentation>
+        This negotiation message is used as the first message exchanged in the
+        case of reverse connection: the 'connecting' out peer sends that
+        message once the connection is established, indicating to the remote
+        peer that it should use this connection as the communication channel
+        for the 'clusterNodeId' of the 'clusterName'.
+
+        protocolVersion...: protocol version used by this broker
+        clusterName.......: the name of the cluster this connection is about
+        clusterNodeId.....: the nodeId of the node in that cluster (note that
+                            the -1 default corresponds to
+                            'mqbnet::Cluster::k_INVALID_NODE_ID').
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='protocolVersion' type='int'/>
+      <element name='clusterName'     type='string' default=''/>
+      <element name='clusterNodeId'   type='int'    default='-1'/>
+    </sequence>
+  </complexType>
+</schema>

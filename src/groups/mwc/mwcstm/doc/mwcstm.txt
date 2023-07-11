@@ -1,0 +1,7 @@
+ mwcstm.txt
+
+@PURPOSE: Value semantic types for a generic statistics framework.
+
+@MNEMONIC: mwcstm
+
+@DESCRIPTION:

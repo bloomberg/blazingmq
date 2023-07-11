@@ -1,0 +1,27 @@
+    mqbstat.txt
+
+@PURPOSE: Provide broker statistics management components.
+
+@MNEMONIC: BlazingMQ Broker Statistics (mqbstat)
+
+@DESCRIPTION: This package provides components for reporting broker statistics.
+
+
+/Hierarchical Synopsis
+/---------------------
+ The 'mqbstat' package currently has 2 components having 2 levels of physical
+ dependency.  The list below shows the hierarchical ordering of the components.
+..
+  2. mqbstat_statcontroller
+
+  1. mqbstat_queuestats
+
+..
+
+/Component Synopsis
+/------------------
+: 'mqbstat_queuestats'
+:       Provide mechanism to keep track of Queue statistics.
+:
+: 'mqbstat_statcontroller'
+:       Provide a processor for statistics collected by the bmqbrkr.

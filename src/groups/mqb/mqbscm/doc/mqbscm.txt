@@ -1,0 +1,32 @@
+    mqbscm.txt
+
+@PURPOSE: Provide versioning information for 'mqb' library components.
+
+@MNEMONIC: BlazingMQ Source Control Management (mqbscm)
+
+@DESCRIPTION: This package provides versioning information that is incorporated
+ into every release of the 'mqb' Package Group Library.  This versioning
+ information is in turn available to all clients of 'mqb' both at run time and
+ by inspection of appropriate .o files.  Note that, except for the package
+ name, this version functionality is repeated in every package group within the
+ MQB library.  This document therefore serves as documentation for all 'XXXscm'
+ packages within the MQB library.
+
+
+/Hierarchical Synopsis
+/---------------------
+ The 'mqbscm' package currently has 2 components having 2 levels of physical
+ dependency.  The list below shows the hierarchical ordering of the components.
+..
+  2. mqbscm_version
+
+  1. mqbscm_versiontag
+..
+
+/Component Synopsis
+/------------------
+: 'mqbscm_version':
+:      Provide source control management (versioning) information.
+:
+: 'mqbscm_versiontag':
+:      Provide versioning information for the 'mqb' package group.

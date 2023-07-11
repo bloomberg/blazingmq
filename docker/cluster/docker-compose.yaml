@@ -1,0 +1,48 @@
+version: "2.1"
+
+services:
+  bmqbrkr1:
+    image: bmqbrkr:latest
+    build:
+      context: ../..
+      dockerfile: docker/Dockerfile
+    volumes:
+      - ./config:/etc/local/bmq:ro
+    hostname: gallifrey
+    command: "/usr/local/bin/bmqbrkr -h gallifrey -d WHO /etc/local/bmq"
+
+  bmqbrkr2:
+    image: bmqbrkr:latest
+    build:
+      context: ../..
+      dockerfile: docker/Dockerfile
+    volumes:
+      - ./config:/etc/local/bmq:ro
+    hostname: skaro
+    command: "/usr/local/bin/bmqbrkr -h skaro -d WHO /etc/local/bmq"
+
+  bmqbrkr3:
+    image: bmqbrkr:latest
+    build:
+      context: ../..
+      dockerfile: docker/Dockerfile
+    volumes:
+      - ./config:/etc/local/bmq:ro
+    hostname: pacem
+    command: "/usr/local/bin/bmqbrkr -h pacem -d HYPERION /etc/local/bmq"
+
+  bmqbrkr4:
+    build:
+      context: ../..
+      dockerfile: docker/Dockerfile
+    volumes:
+      - ./config:/etc/local/bmq:ro
+    hostname: lusus
+    command: "/usr/local/bin/bmqbrkr -h lusus -d HYPERION /etc/local/bmq"
+
+  bmqtool:
+    image: bmqbrkr:latest
+    hostname: earth
+    # This "service" will exit immediately. It's OK, this is just a
+    # container sitting on the same network as the nodes, to be started
+    # in interactive mode with `docker-compose run`

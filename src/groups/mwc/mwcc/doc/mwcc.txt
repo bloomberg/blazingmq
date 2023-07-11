@@ -1,0 +1,49 @@
+ mwcc.txt
+
+@PURPOSE: Provide container vocabulary types.
+
+@MNEMONIC: MiddleWare Core Containers (mwcc)
+
+@DESCRIPTION: This package provides miscellaneous container vocabulary types to
+be reused through various applications.
+
+/Hierarchical Synopsis
+/---------------------
+The 'mwcc' package currently has 7 components having 3 level of physical
+dependency.  The list below shows the hierarchal ordering of the components.
+..
+  3. mwcc_multiqueuethreadpool
+  2. mwcc_monitoredqueue_bdlccfixedqueue
+     mwcc_monitoredqueue_bdlccsingleconsumerqueue
+     mwcc_monitoredqueue_bdlccsingleproducerqueue
+  1. mwcc_array
+     mwcc_monitoredqueue
+     mwcc_orderedhashmap
+     mwcc_twokeyhashmap
+..
+
+/Component Synopsis
+/------------------
+: 'mwcc_array':
+:      Provide a hybrid of static and dynamic array.
+:
+: 'mwcc_monitoredqueue':
+:      Provide a queue that monitors its load.
+:
+: 'mwcc_monitoredqueue_bdlccfixedqueue':
+:      Provide a fixed queue queue that monitors its load.
+:
+: 'mwcc_monitoredqueue_bdlccsingleconsumerqueue':
+:      Provide a single consumer queue that monitors its load.
+:
+: 'mwcc_monitoredqueue_bdlccsingleproducerqueue':
+:      Provide a single producer queue that monitors its load.
+:
+: 'mwcc_multiqueuethreadpool':
+:      Provide a set of queues processed by a thread pool.
+:
+: 'mwcc_orderedhashmap':
+:      Provide a hash table with predictive iteration order.
+:
+: 'mwcc_twokeyhashmap':
+:      Provide a simple hash map with two keys.

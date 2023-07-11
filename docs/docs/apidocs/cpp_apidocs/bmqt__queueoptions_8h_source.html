@@ -1,0 +1,399 @@
+<!doctype HTML public "-//W3C//DTD HTML 4.0 Frameset//EN">
+<html>
+<title>Bloomberg Development Environment</title>
+<html>
+<pre>
+// Copyright 2015-2023 Bloomberg Finance L.P.
+// SPDX-License-Identifier: Apache-2.0
+//
+// Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// bmqt_queueoptions.h                                                -*-C++-*-
+#ifndef INCLUDED_BMQT_QUEUEOPTIONS
+#define INCLUDED_BMQT_QUEUEOPTIONS
+
+//@PURPOSE: Provide a value-semantic type for options related to a queue.
+//
+//@CLASSES:
+//  bmqt::QueueOptions: options related to a queue.
+//
+//@DESCRIPTION: &#39;bmqt::QueueOptions&#39; provides a value-semantic type,
+// &#39;QueueOptions&#39;, which is used to specify parameters for a queue.
+//
+//
+// The following parameters are supported:
+//: o !maxUnconfirmedMessages!:
+//:      Maximum number of outstanding messages that can be sent by the broker
+//:      without being confirmed.
+//:
+//: o !maxUnconfirmedBytes!:
+//:      Maximum accumulated bytes of all outstanding messages that can be sent
+//:      by the broker without being confirmed.
+//:
+//: o !consumerPriority!:
+//:      Priority of a consumer with respect to delivery of messages.
+//:
+//: o !suspendsOnBadHostHealth!:
+//:      Sets whether the queue should suspend operation when the host machine
+//:      is unhealthy.
+
+
+// BMQ
+#include &lt;bmqscm_version.h&gt;
+#include &lt;bmqt_subscription.h&gt;
+
+//BDE
+#include &lt;bsl_iosfwd.h&gt;
+#include &lt;bsl_optional.h&gt;
+#include &lt;bsl_vector.h&gt;
+#include &lt;bsl_unordered_map.h&gt;
+#include &lt;bslma_allocator.h&gt;
+#include &lt;bslma_usesbslmaallocator.h&gt;
+#include &lt;bslmf_nestedtraitdeclaration.h&gt;
+
+namespace BloombergLP {
+
+namespace bmqt {
+
+
+                            // ==================
+                            // class QueueOptions
+                            // ==================
+
+class QueueOptions {
+    // Value-semantic type for options related to a queue.
+
+  public:
+    // PUBLIC CONSTANTS
+    static const int k_CONSUMER_PRIORITY_MIN;
+                                        // Constant representing the minimum
+                                        // valid consumer priority
+
+    static const int k_CONSUMER_PRIORITY_MAX;
+                                        // Constant representing the maximum
+                                        // valid consumer priority
+
+    static const int  k_DEFAULT_MAX_UNCONFIRMED_MESSAGES;
+    static const int  k_DEFAULT_MAX_UNCONFIRMED_BYTES;
+    static const int  k_DEFAULT_CONSUMER_PRIORITY;
+    static const bool k_DEFAULT_SUSPENDS_ON_BAD_HOST_HEALTH;
+
+  private:
+    // PRIVATE TYPES
+    typedef bsl::unordered_map&lt;SubscriptionHandle, Subscription&gt; Subscriptions;
+
+  private:
+    // DATA
+    Subscription        d_info;
+
+    bsl::optional&lt;bool&gt; d_suspendsOnBadHostHealth;
+                                        // Whether the queue suspends operation
+                                        // while the host is unhealthy.
+
+    Subscriptions       d_subscriptions;
+
+    bool                d_hadSubscriptions;
+                            // &#39;true&#39; if &#39;d_subscriptions&#39; had a value, &#39;false&#39;
+                            // otherwise.  Emulates &#39;bsl::optional&#39; for
+                            // &#39;d_subscriptions&#39;.
+
+    bslma::Allocator   *d_allocator_p;
+                            // Allocator
+
+  public:
+    // PUBLIC TYPES
+
+    typedef bsl::pair&lt;SubscriptionHandle, Subscription&gt; HandleAndSubscription;
+    typedef bsl::vector&lt;HandleAndSubscription&gt; SubscriptionsSnapshot;
+        // &#39;loadSubscriptions&#39; return types
+        //
+        // EXPERIMENTAL.  Do not use until this feature is announced.
+
+  public:
+     // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(QueueOptions, bslma::UsesBslmaAllocator)
+
+    // CREATORS
+    explicit QueueOptions(bslma::Allocator *allocator = 0);
+        // Create a new QueueOptions using the optionally specified
+        // &#39;allocator&#39;.
+
+    QueueOptions(const QueueOptions&amp;  other,
+                 bslma::Allocator    *allocator = 0);
+        // Create a new QueueOptions by copying values from the specified
+        // &#39;other&#39;, using the optionally specified &#39;allocator&#39;.
+
+    // MANIPULATORS
+    QueueOptions&amp; setMaxUnconfirmedMessages(int value);
+        // Set the maxUnconfirmedMessages to the specified &#39;value&#39;.  The
+        // behavior is undefined unless &#39;value &gt;= 0&#39;. If the specified &#39;value&#39;
+        // is set to 0, it means that the consumer does not receive any
+        // messages.  This might be useful when the consumer is shutting down
+        // and wants to process only pending messages, or when it is unable to
+        // process new messages because of transient issues.
+
+    QueueOptions&amp; setMaxUnconfirmedBytes(int value);
+        // Set the maxUnconfirmedBytes to the specified &#39;value&#39;.  The behavior
+        // is undefined unless &#39;value &gt;= 0&#39;.
+
+    QueueOptions&amp; setConsumerPriority(int value);
+        // Set the consumerPriority to the specified &#39;value&#39;.  The behavior is
+        // undefined unless &#39;k_CONSUMER_PRIORITY_MIN &lt;= value &lt;=
+        // k_CONSUMER_PRIORITY_MAX&#39;
+
+    QueueOptions&amp; setSuspendsOnBadHostHealth(bool value);
+        // Set whether the queue suspends operation while host is unhealthy.
+
+    QueueOptions&amp; merge(const QueueOptions&amp; other);
+        // &quot;Merges&quot; another &#39;QueueOptions&#39; into this one, by invoking
+        //     setF(other.F())
+        // for all fields &#39;F&#39; for which &#39;other.hasF()&#39; is true.  Returns the
+        // instance on which the method was invoked.
+
+    bool addOrUpdateSubscription(bsl::string               *errorDescription,
+                                 const SubscriptionHandle&amp;  handle,
+                                 const Subscription&amp;        subscription);
+        // Add, or update if it exists, the specified &#39;subscription&#39; for the
+        // specified &#39;handle&#39;.  Return true on success, otherwise return false
+        // and load the specified &#39;errorDescription&#39; with a description of the
+        // error.  Note that &#39;errorDescription&#39; may be null if the caller does
+        // not care about getting error messages, but users are strongly
+        // encouraged to log error string if this API returns failure.
+        //
+        // EXPERIMENTAL.  Do not use until this feature is announced.
+
+    bool removeSubscription(const SubscriptionHandle&amp; handle);
+        // Return false if subscription does not exist.
+        //
+        // EXPERIMENTAL.  Do not use until this feature is announced.
+
+    void removeAllSubscriptions();
+        // Remove all subscriptions.
+        //
+        // EXPERIMENTAL.  Do not use until this feature is announced.
+
+    // ACCESSORS
+    int maxUnconfirmedMessages() const;
+        // Get the number for the maxUnconfirmedMessages parameter.
+
+    int maxUnconfirmedBytes() const;
+        // Get the number for the maxUnconfirmedBytes parameter.
+
+    int consumerPriority() const;
+        // Get the number for the consumerPriority parameter.
+
+    bool suspendsOnBadHostHealth() const;
+        // Get whether the queue suspends operation while host is unhealthy.
+
+    bool hasMaxUnconfirmedMessages() const;
+        // Returns whether &#39;maxUnconfirmedMessages&#39; has been set for this
+        // object, or whether it implicitly holds
+        // &#39;k_DEFAULT_MAX_UNCONFIRMED_MESSAGES&#39;.
+
+    bool hasMaxUnconfirmedBytes() const;
+        // Returns whether &#39;maxUnconfirmedBytes&#39; has been set for this object,
+        // or whether it implicitly holds &#39;k_DEFAULT_MAX_UNCONFIRMED_BYTES&#39;.
+
+    bool hasConsumerPriority() const;
+        // Returns whether &#39;consumerPriority&#39; has been set for this object, or
+        // whether it implicitly holds &#39;k_DEFAULT_CONSUMER_PRIORITY&#39;.
+
+    bool hasSuspendsOnBadHostHealth() const;
+        // Returns whether &#39;suspendsOnBadHostHealth&#39; has been set for this
+        // object, or whether it implicitly holds
+        // &#39;k_DEFAULT_SUSPENDS_ON_BAD_HOST_HEALTH&#39;.
+
+    bool loadSubscription(Subscription              *subscription,
+                          const SubscriptionHandle&amp;  handle) const;
+        // Return false if subscription does not exist.
+        //
+        // EXPERIMENTAL.  Do not use until this feature is announced.
+
+    void loadSubscriptions(SubscriptionsSnapshot *snapshot) const;
+        // Load all handles and subscriptions into the specified &#39;snapshot&#39;.
+        //
+        // EXPERIMENTAL.  Do not use until this feature is announced.
+
+    bsl::ostream&amp; print(bsl::ostream&amp; stream,
+                        int           level          = 0,
+                        int           spacesPerLevel = 4) const;
+        // Format this object to the specified output &#39;stream&#39; at the (absolute
+        // value of) the optionally specified indentation &#39;level&#39; and return a
+        // reference to &#39;stream&#39;.  If &#39;level&#39; is specified, optionally specify
+        // &#39;spacesPerLevel&#39;, the number of spaces per indentation level for
+        // this and all of its nested objects.  If &#39;level&#39; is negative,
+        // suppress indentation of the first line.  If &#39;spacesPerLevel&#39; is
+        // negative format the entire output on one line, suppressing all but
+        // the initial indentation (as governed by &#39;level&#39;).  If &#39;stream&#39; is
+        // not valid on entry, this operation has no effect.
+};
+
+// FREE OPERATORS
+bool operator==(const QueueOptions&amp; lhs, const QueueOptions&amp; rhs);
+    // Return &#39;true&#39; if the specified &#39;rhs&#39; object contains the value of the
+    // same type as contained in the specified &#39;lhs&#39; object and the value
+    // itself is the same in both objects, return false otherwise.
+
+bool operator!=(const QueueOptions&amp; lhs, const QueueOptions&amp; rhs);
+    // Return &#39;false&#39; if the specified &#39;rhs&#39; object contains the value of the
+    // same type as contained in the specified &#39;lhs&#39; object and the value
+    // itself is the same in both objects, return &#39;true&#39; otherwise.
+
+bsl::ostream&amp; operator&lt;&lt;(bsl::ostream&amp; stream, const QueueOptions&amp; rhs);
+    // Format the specified &#39;rhs&#39; to the specified output &#39;stream&#39; and return a
+    // reference to the modifiable &#39;stream&#39;.
+
+
+// ============================================================================
+//                             INLINE DEFINITIONS
+// ============================================================================
+
+
+                             // ------------------
+                             // class QueueOptions
+                             // ------------------
+
+// MANIPULATORS
+inline
+QueueOptions&amp;
+QueueOptions::setMaxUnconfirmedMessages(int value)
+{
+    d_info.setMaxUnconfirmedMessages(value);
+    return *this;
+}
+
+inline
+QueueOptions&amp;
+QueueOptions::setMaxUnconfirmedBytes(int value)
+{
+    d_info.setMaxUnconfirmedBytes(value);
+    return *this;
+}
+
+inline
+QueueOptions&amp;
+QueueOptions::setConsumerPriority(int value)
+{
+    d_info.setConsumerPriority(value);
+    return *this;
+}
+
+inline
+QueueOptions&amp;
+QueueOptions::setSuspendsOnBadHostHealth(bool value)
+{
+    d_suspendsOnBadHostHealth.emplace(value);
+    return *this;
+}
+
+// ACCESSORS
+inline
+int
+QueueOptions::maxUnconfirmedMessages() const
+{
+    return d_info.maxUnconfirmedMessages();
+}
+
+inline
+int
+QueueOptions::maxUnconfirmedBytes() const
+{
+    return d_info.maxUnconfirmedBytes();
+}
+
+inline
+int
+QueueOptions::consumerPriority() const
+{
+    return d_info.consumerPriority();
+}
+
+inline
+bool
+QueueOptions::suspendsOnBadHostHealth() const
+{
+    return d_suspendsOnBadHostHealth.value_or(
+                                        k_DEFAULT_SUSPENDS_ON_BAD_HOST_HEALTH);
+}
+
+inline
+bool
+QueueOptions::hasMaxUnconfirmedMessages() const
+{
+    return d_info.hasMaxUnconfirmedMessages();
+}
+
+inline
+bool
+QueueOptions::hasMaxUnconfirmedBytes() const
+{
+    return d_info.hasMaxUnconfirmedBytes();
+}
+
+inline
+bool
+QueueOptions::hasConsumerPriority() const
+{
+    return d_info.hasConsumerPriority();
+}
+
+inline
+bool
+QueueOptions::hasSuspendsOnBadHostHealth() const
+{
+    return d_suspendsOnBadHostHealth.has_value();
+}
+
+}  // close package namespace
+
+
+                             // ------------------
+                             // class QueueOptions
+                             // ------------------
+
+inline
+bool
+bmqt::operator==(const bmqt::QueueOptions&amp; lhs,
+                 const bmqt::QueueOptions&amp; rhs)
+{
+    return    lhs.maxUnconfirmedMessages()  == rhs.maxUnconfirmedMessages()
+           &amp;&amp; lhs.maxUnconfirmedBytes()     == rhs.maxUnconfirmedBytes()
+           &amp;&amp; lhs.consumerPriority()        == rhs.consumerPriority()
+           &amp;&amp; lhs.suspendsOnBadHostHealth() == rhs.suspendsOnBadHostHealth();
+}
+
+inline
+bool
+bmqt::operator!=(const bmqt::QueueOptions&amp; lhs,
+                 const bmqt::QueueOptions&amp; rhs)
+{
+    return    lhs.maxUnconfirmedMessages()  != rhs.maxUnconfirmedMessages()
+           || lhs.maxUnconfirmedBytes()     != rhs.maxUnconfirmedBytes()
+           || lhs.consumerPriority()        != rhs.consumerPriority()
+           || lhs.suspendsOnBadHostHealth() != rhs.suspendsOnBadHostHealth();
+}
+
+inline
+bsl::ostream&amp;
+bmqt::operator&lt;&lt;(bsl::ostream&amp;             stream,
+                 const bmqt::QueueOptions&amp; rhs)
+{
+    return rhs.print(stream, 0, -1);
+}
+
+}  // close enterprise namespace
+
+#endif
+</pre>
+</body>
+</html>

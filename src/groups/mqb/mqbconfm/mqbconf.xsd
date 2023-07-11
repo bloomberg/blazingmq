@@ -1,0 +1,437 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<schema xmlns              = 'http://www.w3.org/2001/XMLSchema'
+        xmlns:bdem         = 'http://bloomberg.com/schemas/bdem'
+        xmlns:mqbconfm     = 'urn:x-bloomberg-com:mqbconfm'
+        targetNamespace    = 'urn:x-bloomberg-com:mqbconfm'
+        bdem:serviceInfo   = 'bmqconf:183474-1.0'
+        bdem:package       = 'mqbconfm'
+        elementFormDefault = 'qualified'>
+
+  <!-- ========================================================================
+                                      BAS
+  ========================================================================= -->
+  <!-- NOTE:
+        The following two lines should be added back to the <schema above tag
+           ..
+             bdem:requestType   = 'Request'
+             bdem:responseType  = 'Response'
+           ..
+
+           However, they would generate messagesutil and messagesschema file,
+           which depend on bsc. What we should do here is split this xsd in two
+           parts: one with the types, and one with the bas requests/responses
+           (which will include the former one). Then the messages file will be
+           duplicate in this mqbconfm library as well as somewhere in the
+           bmqconf library (mqc).
+  -->
+  <element name='request'  type='mqbconfm:Request'/>
+  <element name='response' type='mqbconfm:Response'/>
+
+  <!-- ========================================================================
+                               REQUEST/RESPONSE
+  ========================================================================= -->
+  <complexType name='Request'>
+    <annotation>
+      <documentation>
+        The choice between all possible request to the bmqconf task.
+      </documentation>
+    </annotation>
+    <choice>
+      <element name='domainConfig' type='mqbconfm:DomainConfigRequest'/>
+    </choice>
+  </complexType>
+
+  <complexType name='Response'>
+    <annotation>
+      <documentation>
+        The choice between all possible response from the bmqconf task.
+      </documentation>
+    </annotation>
+    <choice>
+      <element name='failure'      type='mqbconfm:Failure'/>
+      <element name='domainConfig' type='mqbconfm:DomainConfigRaw'/>
+    </choice>
+  </complexType>
+
+  <!-- ========================================================================
+                                    GENERIC
+  ========================================================================= -->
+
+  <complexType name='Failure'>
+    <annotation>
+      <documentation>
+        Generic type to represent an error.
+
+        code.....: an integer value representing the error
+        message..: an optional string describing the error
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='code'    type='int'/>
+      <element name='message' type='string' default=''/>
+    </sequence>
+  </complexType>
+
+  <complexType name='BrokerIdentity'>
+    <annotation>
+      <documentation>
+        Generic type to hold identification of a broker.
+
+        hostName......: machine name
+        hostTags......: machine tags
+        brokerVersion.: version of the broker
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='hostName'      type='string'/>
+      <element name='hostTags'      type='string'/>
+      <element name='brokerVersion' type='string'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='Limits'>
+    <annotation>
+      <documentation>
+        Represent the various limitations to apply to either a 'domain' or an
+        individual 'queue'.
+
+        message................: maximum number of messages
+        messagesWatermarkRatio.: threshold ratio to the maximum number of
+                                 messages for which a high watermark alarm
+                                 will trigger
+        byte...................: maximum cumulated number of bytes
+        bytesWatermarkRatio....: threshold ratio to the maximum cumulated
+                                 number of bytes for which a high watermark
+                                 alarm will trigger
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='messages'               type ='long'/>
+      <element name='messagesWatermarkRatio' type ='decimal' default='0.8'/>
+      <element name='bytes'                  type ='long'/>
+      <element name='bytesWatermarkRatio'    type ='decimal' default='0.8'/>
+    </sequence>
+  </complexType>
+
+  <!-- ========================================================================
+                               GET DOMAIN CONFIG
+  ========================================================================= -->
+
+  <complexType name='DomainConfigRequest'>
+    <annotation>
+      <documentation>
+        Request to get a domain config.
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='brokerIdentity' type='mqbconfm:BrokerIdentity'/>
+      <element name='domainName'     type='string'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='DomainConfigRaw'>
+    <annotation>
+      <documentation>
+        Response of a get domain config request.
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='domainName' type='string'/>
+      <element name='config'     type='string'/>
+    </sequence>
+  </complexType>
+
+  <!-- ========================================================================
+                               DOMAIN_RESOLUTION
+  ========================================================================= -->
+  <complexType name='DomainResolver'>
+    <annotation>
+      <documentation>
+        Top level type representing the information retrieved when resolving a
+        domain.
+        Review: Keep this? Why not just store the cluster name?
+
+        name....: Domain name
+        cluster.: Cluster name
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='name' type='string'/>
+      <element name='cluster'  type='string'/>
+    </sequence>
+  </complexType>
+
+  <!-- ========================================================================
+                                    DOMAIN_PARAMETERS
+  ========================================================================= -->
+
+  <complexType name='Domain'>
+    <annotation>
+      <documentation>
+        Configuration for a Domain using the custom Bloomberg Domain.
+
+        mode................: mode of the queues in this domain
+        storage.............: storage to use by queues in this domain
+        maxConsumers........: will reject if more than this number of consumers
+                              tries to connect. 0 (the default) means unlimited
+        maxProducers........: will reject if more than this number of producers
+                              tries to connect. 0 (the default) means unlimited
+        maxQueues...........: will reject creating more than this number of
+                              queues. 0 (the default) means unlimited
+        msgGroupIdConfig....: optional configuration for Group Id routing
+                              features
+        maxIdleTime.........: (seconds) time queue can be inactive before
+                              alarming. 0 (the default) means no monitoring and
+                              alarming
+        messageTtl..........: (seconds) minimum time before which a message can
+                              be discarded (i.e., it's not guaranteed that the
+                              message will be discarded exactly after
+                              'ttlSeconds' time, but it is guaranteed that it
+                              will not be discarded before at least
+                              'ttlSeconds' time
+        maxDeliveryAttempts.: maximum number of times BlazingMQ framework will
+                              attempt to deliver a message to consumers before
+                              purging it from the queue.  Zero (the default)
+                              means unlimited
+        deduplicationTimeMs.: timeout, in milliseconds, to keep GUID of PUT
+                              message for the purpose of detecting duplicate
+                              PUTs.
+        consistency.........: optional consistency mode.
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='name'                type='string'/>
+      <element name='mode'                type='mqbconfm:QueueMode'/>
+      <element name='storage'             type='mqbconfm:StorageDefinition'/>
+      <element name='maxConsumers'        type='int' default='0'/>
+      <element name='maxProducers'        type='int' default='0'/>
+      <element name='maxQueues'           type='int' default='0'/>
+      <element name='msgGroupIdConfig'    type='mqbconfm:MsgGroupIdConfig'
+                                                  minOccurs='0' maxOccurs='1'/>
+      <element name='maxIdleTime'         type='int' default='0'/>
+      <element name='messageTtl'          type='long'/>
+      <element name='maxDeliveryAttempts' type='int' default='0'/>
+      <element name='deduplicationTimeMs' type='int' default='300000'/>   <!-- 5 minutes -->
+      <element name='consistency'         type='mqbconfm:Consistency'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='MsgGroupIdConfig'>
+    <annotation>
+      <documentation>
+        Configuration for the use of Group Ids for routing. The garbage
+        collection arguments could be assigned manually or get calculated out
+        of statistics on the streams. They are considered internal and our
+        intentions is _not_ to give customers full control over those numbers.
+        Their role is to protect BlazingMQ from abuse i.e. cases of infinite
+        Group Ids being stored. Another assumption is that 'maxGroups >> number
+        of consumers'.
+
+        rebalance..: groups will be dynamically rebalanced in way such that all
+                     consumers have equal share of Group Ids assigned to them
+        maxGroups..: Maximum number of groups. If the number of groups gets
+                     larger than this, the least recently used one is evicted.
+                     This is a "garbage collection" parameter
+        ttlSeconds.: minimum time of inactivity (no messages for a Group Id),
+                     in seconds, before a group becomes available for "garbage
+                     collection". 0 (the default) means unlimited
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='rebalance'  type='boolean' default='false'/>
+      <element name='maxGroups'  type='int'     default='2147483647'/>
+      <element name='ttlSeconds' type='long'    default='0'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='QueueMode'>
+    <annotation>
+      <documentation>
+        Choice of all the various mode a queue can be configured in.
+
+        fanout.........: multiple consumers are each getting all messages
+        priority.......: consumers with highest priority are sharing load in
+                         round robin way
+        broadcast......: send to all available consumers on a best-effort basis
+      </documentation>
+    </annotation>
+    <choice>
+      <element name='fanout'    type='mqbconfm:QueueModeFanout'/>
+      <element name='priority'  type='mqbconfm:QueueModePriority'/>
+      <element name='broadcast' type='mqbconfm:QueueModeBroadcast'/>
+    </choice>
+  </complexType>
+
+  <complexType name='QueueModeFanout'>
+    <annotation>
+      <documentation>
+        Configuration for a fanout queue.
+
+        appIDs.: List of appIDs authorized to consume from the queue.
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='appIDs' type='string' maxOccurs='unbounded'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='QueueModePriority'>
+    <annotation>
+      <documentation>
+        Configuration for a priority queue.
+      </documentation>
+    </annotation>
+    <sequence>
+      <!-- Reserved for future usage -->
+    </sequence>
+  </complexType>
+
+  <complexType name='QueueModeBroadcast'>
+    <annotation>
+      <documentation>
+        Configuration for a broadcast queue.
+      </documentation>
+    </annotation>
+    <sequence>
+      <!-- Reserved for future usage -->
+    </sequence>
+  </complexType>
+
+  <complexType name='Consistency'>
+    <annotation>
+      <documentation>
+        Consistency choices to configure a queue.
+
+        eventual........: no Replication Receipt is required.
+        strong..........: require Replication Receipt before ACK/PUSH
+      </documentation>
+    </annotation>
+    <choice>
+      <element name='eventual' type='mqbconfm:QueueConsistencyEventual'/>
+      <element name='strong'   type='mqbconfm:QueueConsistencyStrong'/>
+    </choice>
+  </complexType>
+
+  <complexType name='QueueConsistencyEventual'>
+    <annotation>
+      <documentation>
+        Configuration for eventual consistency.
+      </documentation>
+    </annotation>
+    <sequence>
+      <!-- Reserved for future usage -->
+    </sequence>
+  </complexType>
+
+  <complexType name='QueueConsistencyStrong'>
+    <annotation>
+      <documentation>
+        Configuration for strong consistency.
+      </documentation>
+    </annotation>
+    <sequence>
+      <!-- Reserved for future usage -->
+    </sequence>
+  </complexType>
+
+  <!-- ========================================================================
+                                    STORAGE
+  ========================================================================= -->
+
+  <complexType name='StorageDefinition'>
+    <annotation>
+      <documentation>
+        Type representing the configuration for a Storage.
+
+        config........: configuration for the type of storage to use
+        domainLimits..: global limits to apply to the entire domain,
+                        cumulated for all queues in the domain
+        queueLimits...: individual limits (as a subset of the global limits)
+                        to apply to each queue of the domain
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='domainLimits' type='mqbconfm:Limits'/>
+      <element name='queueLimits'  type='mqbconfm:Limits'/>
+      <element name='config'       type='mqbconfm:Storage'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='Storage'>
+    <annotation>
+      <documentation>
+        Choice of all the various Storage backend
+
+        inMemory....: store data in memory
+        fileBacked..: store data in a file on disk
+      </documentation>
+    </annotation>
+   <choice>
+     <element name='inMemory'   type='mqbconfm:InMemoryStorage'/>
+     <element name='fileBacked' type='mqbconfm:FileBackedStorage'/>
+   </choice>
+  </complexType>
+
+  <complexType name='InMemoryStorage'>
+    <annotation>
+      <documentation>
+        Configuration for storage using an in-memory map.
+      </documentation>
+    </annotation>
+    <sequence>
+      <!-- Nothing.. reserved for future use -->
+    </sequence>
+  </complexType>
+
+ <complexType name='FileBackedStorage'>
+   <annotation>
+     <documentation>
+       Configuration for storage using a file on disk.
+     </documentation>
+   </annotation>
+   <sequence>
+     <!-- Nothing.. reserved for future use -->
+   </sequence>
+ </complexType>
+
+  <!-- ========================================================================
+                               DOMAIN_DEFINITION
+  ========================================================================= -->
+  <complexType name='DomainDefinition'>
+    <annotation>
+      <documentation>
+        Top level type representing the information retrieved when resolving a
+        domain.
+
+        location..: Domain location (i.e., cluster name)  REVIEW: consider: s/location/cluster/
+        parameters: Domain parameters
+
+        REVIEW: consider merging Domain into DomainDefinition
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='location'   type='string'/>
+      <element name='parameters' type='mqbconfm:Domain'/>
+    </sequence>
+  </complexType>
+
+<!-- ========================================================================
+                               DOMAIN_VARIANT
+  ========================================================================= -->
+
+  <complexType name='DomainVariant'>
+    <annotation>
+      <documentation>
+        Either a Domain or a DomainRedirection.
+
+        definition..: The full definition of a domain
+        redirection.: The name of the domain to redirect to
+      </documentation>
+    </annotation>
+    <choice>
+      <element name='definition' type='mqbconfm:DomainDefinition'/>
+      <element name='redirect' type='string'/>
+    </choice>
+  </complexType>
+
+</schema>

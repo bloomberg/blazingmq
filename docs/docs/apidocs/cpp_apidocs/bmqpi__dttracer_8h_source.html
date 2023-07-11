@@ -1,0 +1,73 @@
+<!doctype HTML public "-//W3C//DTD HTML 4.0 Frameset//EN">
+<html>
+<title>Bloomberg Development Environment</title>
+<html>
+<pre>
+// Copyright 2021-2023 Bloomberg Finance L.P.
+// SPDX-License-Identifier: Apache-2.0
+//
+// Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// bmqpi_dttracer.h                                                   -*-C++-*-
+#ifndef INCLUDED_BMQPI_DTTRACER
+#define INCLUDED_BMQPI_DTTRACER
+
+//@PURPOSE: Provide an interface that can create new &#39;DTSpan&#39; objects.
+//
+//@CLASSES:
+//  bmqpi::DTTracer: Interface for creators of &#39;DTSpan&#39; objects.
+//
+//@DESCRIPTION:
+// &#39;bmqpi::DTTracer&#39; is a pure interface for creators of new &#39;DTSpan&#39; objects.
+
+// BMQ
+#include &lt;bmqscm_version.h&gt;
+#include &lt;bmqpi_dtspan.h&gt;
+
+// BDE
+#include &lt;bsl_memory.h&gt;
+#include &lt;bsl_string_view.h&gt;
+
+namespace BloombergLP {
+namespace bmqpi {
+
+                               // ==============
+                               // class DTTracer
+                               // ==============
+
+class DTTracer {
+    // A pure interface for creators of &#39;DTSpan&#39; objects.
+
+  public:
+    // PUBLIC CREATORS
+    virtual ~DTTracer();
+        // Destructor
+
+    // PUBLIC METHODS
+    virtual
+    bsl::shared_ptr&lt;DTSpan&gt;
+    createChildSpan(const bsl::shared_ptr&lt;DTSpan&gt;&amp; parent,
+                    const bsl::string_view&amp;        operation,
+                    const DTSpan::Baggage&amp;         baggage
+                                                = DTSpan::Baggage()) const = 0;
+        // Creates and returns a new &#39;DTSpan&#39; representing &#39;operation&#39; as a
+        // child of &#39;parent&#39;, having the key-value tags defined by &#39;baggage&#39;.
+};
+
+}  // close package namespace
+}  // close enterprise namespace
+
+#endif
+</pre>
+</body>
+</html>

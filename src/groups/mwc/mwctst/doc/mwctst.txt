@@ -1,0 +1,27 @@
+ mwctst.txt
+
+@PURPOSE: Provide macros and utilities to assist in writing test drivers.
+
+@MNEMONIC: MiddleWare Core Test
+
+@DESCRIPTION: The mwctst' package provides macros and utilities to assist in
+writing test drivers.
+
+/Hierarchical Synopsis
+/---------------------
+ The mwctst' package currently has 3 components having 1 level of physical
+ dependency.  The list below shows the hierarchical ordering of the components.
+..
+  1. mwctst_blobtestutil
+     mwctst_scopedlogobserver
+     mwctst_testhelper
+..
+
+/Component Synopsis
+/------------------
+: 'mwctst_blobtestutil':
+:      Provide blob utilities for use in test drivers.
+: 'mwctst_scopedlogobserver':
+:      Provide a scoped tester implementation of the log observer protocol.
+: 'mwctst_testhelper':
+:      Provide macros and utilities to assist in writing test drivers.

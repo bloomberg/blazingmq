@@ -1,0 +1,15 @@
+bmqt_compressionalgorithmtype
+bmqt_correlationid
+bmqt_encodingtype
+bmqt_hosthealthstate
+bmqt_messageeventtype
+bmqt_messageguid
+bmqt_propertytype
+bmqt_queueflags
+bmqt_queueoptions
+bmqt_resultcode
+bmqt_sessioneventtype
+bmqt_sessionoptions
+bmqt_subscription
+bmqt_uri
+bmqt_version

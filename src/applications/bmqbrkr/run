@@ -1,0 +1,40 @@
+#!/bin/bash
+
+set -e
+
+# Execute bmqbrkr.tsk with default development parameters and any other passed
+# to the command line.
+# If 'gdb' or 'lldb' is passed in, execute the task with those arguments in the
+# corresponding debugger.
+
+if [ ! -s 'bmqbrkr.tsk' ]; then
+    echo "Task 'bmqbrkr.tsk' doesn't exist"
+    exit 1
+fi
+
+BMQ_PREFIX="${BMQ_PREFIX:-localBMQ}"
+
+if [ ! -d $BMQ_PREFIX ]; then
+    mkdir $BMQ_PREFIX
+    ln -sf $(readlink etc) $BMQ_PREFIX/etc
+    mkdir $BMQ_PREFIX/logs
+    mkdir -p $BMQ_PREFIX/storage/local/archive
+else
+    echo "Clearing logs ... in $BMQ_PREFIX/logs/*"
+    rm -f $BMQ_PREFIX/logs/*
+    mkdir -p $BMQ_PREFIX/storage/local/archive
+fi
+
+while [ "$1" != "" ]; do
+    if [ "$1" == "gdb" ]; then
+        debugCmd="gdb --args"
+    elif [ "$1" == "lldb" ]; then
+        debugCmd="lldb --"
+    elif [ "$1" == "echo" ]; then
+        debugCmd="echo"
+    fi
+    shift
+done
+
+# Execute the task
+${debugCmd} "$@" ./bmqbrkr.tsk localBMQ/etc

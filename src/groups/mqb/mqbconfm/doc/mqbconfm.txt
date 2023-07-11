@@ -1,0 +1,21 @@
+    mqbconfm.txt
+
+@PURPOSE: BlazingMQ conf messages package
+
+@MNEMONIC: BlazingMQ Config Message (mqbconfm)
+
+@DESCRIPTION: This package provides message for the configuration task
+
+
+/Hierarchical Synopsis
+/---------------------
+ The 'mqbconfm' package currently has 1 component having 1 level of physical
+ dependency.  The list below shows the hierarchical ordering of the components.
+..
+  1. mqbconfm_messages
+..
+
+/Component Synopsis
+/------------------
+: 'mqbconfm_messages':
+:      Provide message for configuration task

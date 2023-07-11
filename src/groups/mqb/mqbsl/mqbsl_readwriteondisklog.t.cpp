@@ -1,0 +1,971 @@
+// Copyright 2023 Bloomberg Finance L.P.
+// SPDX-License-Identifier: Apache-2.0
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// mqbsl_readwriteondisklog.t.cpp                                     -*-C++-*-
+#include <mqbsl_readwriteondisklog.h>
+
+// MQB
+#include <mqbsi_log.h>
+#include <mqbsl_ondisklog.h>
+#include <mqbu_storagekey.h>
+
+// BDE
+#include <bdlb_random.h>
+#include <bdlbb_blob.h>
+#include <bdlbb_blobutil.h>
+#include <bdlbb_pooledblobbufferfactory.h>
+#include <bsl_cstring.h>  // for memcmp
+#include <bsl_limits.h>
+#include <bsls_platform.h>
+#include <bsls_types.h>
+
+// TEST DRIVER
+#include <mwctst_testhelper.h>
+#include <mwcu_tempdirectory.h>
+
+// CONVENIENCE
+using namespace BloombergLP;
+using namespace bsl;
+
+//=============================================================================
+//                             TEST PLAN
+//-----------------------------------------------------------------------------
+// - breathingTest
+// - fileNotExist
+// - updateOutstandingNumBytes
+// - setOutstandingNumBytes
+// - writeRaw
+// - writeBlob
+// - writeBlobSection
+// - readRaw
+// - readBlob
+// - aliasRaw
+// - aliasBlob
+// - seek
+// - readWriteHugeBlob
+//-----------------------------------------------------------------------------
+
+// ============================================================================
+//                            TEST HELPERS UTILITY
+// ----------------------------------------------------------------------------
+
+namespace {
+
+// CONSTANTS
+const bsls::Types::Int64 k_LOG_MAX_SIZE = 2048;
+const char               k_LOG_ID[]     = "DEADFACE42";
+const mqbu::StorageKey   k_LOG_KEY(mqbu::StorageKey::HexRepresentation(),
+                                 k_LOG_ID);
+
+const char* const k_ENTRIES[]    = {"ax001",
+                                    "ax002",
+                                    "ax003",
+                                    "ax004",
+                                    "ax005",
+                                    "ax006",
+                                    "ax007",
+                                    "ax008",
+                                    "ax009",
+                                    "ax010"};
+const int         k_NUM_ENTRIES  = 10;
+const int         k_ENTRY_LENGTH = 5;
+
+const char* const k_LONG_ENTRY             = "xxxxxxxxxxHELLO_WORLDxxxxxxxxxx";
+const char* const k_LONG_ENTRY_MEAT        = "HELLO_WORLD";
+const int         k_LONG_ENTRY_OFFSET      = 10;
+const int         k_LONG_ENTRY_LENGTH      = 11;
+const int         k_LONG_ENTRY_FULL_LENGTH = 31;
+
+const char* const k_LONG_ENTRY2             = "xxxxBMQ_ROCKSxxxxxxxx";
+const char* const k_LONG_ENTRY2_MEAT        = "BMQ_ROCKS";
+const int         k_LONG_ENTRY2_OFFSET      = 4;
+const int         k_LONG_ENTRY2_LENGTH      = 9;
+const int         k_LONG_ENTRY2_FULL_LENGTH = 21;
+
+// ALIASES
+typedef mqbsl::ReadWriteOnDiskLog ReadWriteOnDiskLog;
+typedef mqbsi::Log                Log;
+typedef mqbsi::Log::Offset        Offset;
+typedef mqbsi::LogOpResult        LogOpResult;
+
+// STATICS
+static bdlbb::PooledBlobBufferFactory* g_bufferFactory_p     = 0;
+static bdlbb::PooledBlobBufferFactory* g_miniBufferFactory_p = 0;
+
+// FUNCTIONS
+void generateRandomString(char* s, const int len)
+{
+    static const char alphanum[] = "0123456789"
+                                   "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+                                   "abcdefghijklmnopqrstuvwxyz";
+
+    static int seed = 1337;
+    for (int i = 0; i < len; ++i) {
+        s[i] = alphanum[bdlb::Random::generate15(&seed) % sizeof(alphanum)];
+    }
+}
+
+// CLASSES
+// =============
+// struct Tester
+// =============
+struct Tester {
+  private:
+    // DATA
+    mwcu::TempDirectory    d_tempDirectory;
+    const mqbsi::LogConfig d_config;
+    ReadWriteOnDiskLog     d_log;
+
+  public:
+    // CREATORS
+    Tester(bsls::Types::Int64 logMaxSize = k_LOG_MAX_SIZE,
+           bslma::Allocator*  allocator  = s_allocator_p)
+    : d_tempDirectory(allocator)
+    , d_config(logMaxSize,
+               k_LOG_KEY,
+               d_tempDirectory.path() + "/test_log.bmq",
+               true,   // reserveOnDisk
+               false,  // prefaultPages
+               allocator)
+    , d_log(d_config)
+    {
+        // NOTHING
+    }
+
+    const mqbsi::LogConfig& config() { return d_config; }
+
+    ReadWriteOnDiskLog& log() { return d_log; }
+};
+
+}  // close anonymous namespace
+
+// ============================================================================
+//                                    TESTS
+// ----------------------------------------------------------------------------
+static void test1_breathingTest()
+// ------------------------------------------------------------------------
+// BREATHING TEST
+//
+// Concerns:
+//   Exercise the basic functionality of the component.
+//
+// Testing:
+//   Basic functionality
+// ------------------------------------------------------------------------
+{
+    mwctst::TestHelper::printTestName("BREATHING TEST");
+
+    Tester              tester;
+    ReadWriteOnDiskLog& log = tester.log();
+    ASSERT_EQ(log.isOpened(), false);
+
+    ASSERT_EQ(log.open(Log::e_CREATE_IF_MISSING), LogOpResult::e_SUCCESS);
+    ASSERT_EQ(log.isOpened(), true);
+    ASSERT_EQ(log.totalNumBytes(), 0);
+    ASSERT_EQ(log.outstandingNumBytes(), 0);
+    ASSERT_EQ(log.currentOffset(), static_cast<Offset>(0));
+    ASSERT_EQ(log.logConfig(), tester.config());
+    ASSERT_EQ(log.supportsAliasing(), false);
+    ASSERT_EQ(log.config(), tester.config());
+    ASSERT_EQ(log.flush(), LogOpResult::e_SUCCESS);
+
+    ASSERT_EQ(log.close(), LogOpResult::e_SUCCESS);
+    ASSERT_EQ(log.isOpened(), false);
+}
+
+static void test2_fileNotExist()
+// ------------------------------------------------------------------------
+// FILE NOT EXIST
+//
+// Concerns:
+//   Verify that opening the log without the CREATE_IF_MISSING flag fails
+//   if the file does not exist.
+//
+// Testing:
+//   open(...)
+// ------------------------------------------------------------------------
+{
+    mwctst::TestHelper::printTestName("FILE NOT EXIST");
+
+    Tester              tester;
+    ReadWriteOnDiskLog& log = tester.log();
+
+    ASSERT_EQ(log.open(Log::e_READ_ONLY), LogOpResult::e_FILE_NOT_EXIST);
+    ASSERT_EQ(log.open(0), LogOpResult::e_FILE_NOT_EXIST);
+}
+
+static void test3_updateOutstandingNumBytes()
+// ------------------------------------------------------------------------
+// UPDATE OUTSTANDING NUM BYTES
+//
+// Concerns:
+//   Verify that 'updateOutstandingNumBytes' works as intended.
+//
+// Testing:
+//   updateOutstandingNumBytes(...)
+// ------------------------------------------------------------------------
+{
+    mwctst::TestHelper::printTestName("UPDATE OUTSTANDING NUM BYTES");
+
+    Tester              tester;
+    ReadWriteOnDiskLog& log = tester.log();
+    BSLS_ASSERT_OPT(log.open(Log::e_CREATE_IF_MISSING) ==
+                    LogOpResult::e_SUCCESS);
+    BSLS_ASSERT_OPT(log.outstandingNumBytes() == 0);
+
+    log.updateOutstandingNumBytes(200);
+    ASSERT_EQ(log.outstandingNumBytes(), 200);
+    log.updateOutstandingNumBytes(1000);
+    ASSERT_EQ(log.outstandingNumBytes(), 1200);
+    log.updateOutstandingNumBytes(-700);
+    ASSERT_EQ(log.outstandingNumBytes(), 500);
+
+    // Close and re-open the log. 'outstandingNumBytes' should be re-calibrated
+    // to 0.
+    BSLS_ASSERT_OPT(log.close() == LogOpResult::e_SUCCESS);
+    BSLS_ASSERT_OPT(log.open(Log::e_READ_ONLY) == LogOpResult::e_SUCCESS);
+    ASSERT_EQ(log.outstandingNumBytes(), 0);
+
+    BSLS_ASSERT_OPT(log.close() == LogOpResult::e_SUCCESS);
+}
+
+static void test4_setOutstandingNumBytes()
+// ------------------------------------------------------------------------
+// SET OUTSTANDING NUM BYTES
+//
+// Concerns:
+//   Verify that 'setOutstandingNumBytes' works as intended.
+//
+// Testing:
+//   setOutstandingNumBytes(...)
+// ------------------------------------------------------------------------
+{
+    mwctst::TestHelper::printTestName("SET OUTSTANDING NUM BYTES");
+
+    Tester              tester;
+    ReadWriteOnDiskLog& log = tester.log();
+    BSLS_ASSERT_OPT(log.open(Log::e_CREATE_IF_MISSING) ==
+                    LogOpResult::e_SUCCESS);
+    BSLS_ASSERT_OPT(log.outstandingNumBytes() == 0);
+
+    log.setOutstandingNumBytes(500);
+    ASSERT_EQ(log.outstandingNumBytes(), 500);
+    log.setOutstandingNumBytes(2000);
+    ASSERT_EQ(log.outstandingNumBytes(), 2000);
+    log.setOutstandingNumBytes(666);
+    ASSERT_EQ(log.outstandingNumBytes(), 666);
+
+    // Close and re-open the log. 'outstandingNumBytes' should be re-calibrated
+    // to 0.
+    BSLS_ASSERT_OPT(log.close() == LogOpResult::e_SUCCESS);
+    BSLS_ASSERT_OPT(log.open(Log::e_READ_ONLY) == LogOpResult::e_SUCCESS);
+    ASSERT_EQ(log.outstandingNumBytes(), 0);
+
+    BSLS_ASSERT_OPT(log.close() == LogOpResult::e_SUCCESS);
+}
+
+static void test5_writeRaw()
+// ------------------------------------------------------------------------
+// WRITE RAW
+//
+// Concerns:
+//   Verify that 'write' works as intended when dealing with void*, and
+//   give an example of updating `outstandingNumBytes` when using 'write'.
+//
+// Testing:
+//   write(const void *entry, int offset, int length)
+// ------------------------------------------------------------------------
+{
+    mwctst::TestHelper::printTestName("WRITE RAW");
+
+    const bsls::Types::Int64 logMaxSize = k_NUM_ENTRIES * k_ENTRY_LENGTH +
+                                          k_LONG_ENTRY_LENGTH + 10;
+    Tester              tester(logMaxSize);
+    ReadWriteOnDiskLog& log = tester.log();
+    BSLS_ASSERT_OPT(log.open(Log::e_CREATE_IF_MISSING) ==
+                    LogOpResult::e_SUCCESS);
+
+    // 1. Write a list of entries
+    for (int i = 0; i < k_NUM_ENTRIES; ++i) {
+        ASSERT_EQ(log.write(k_ENTRIES[i], 0, k_ENTRY_LENGTH),
+                  static_cast<Offset>(i * k_ENTRY_LENGTH));
+        ASSERT_EQ(log.totalNumBytes(), (i + 1) * k_ENTRY_LENGTH);
+        ASSERT_EQ(log.outstandingNumBytes(), (i + 1) * k_ENTRY_LENGTH);
+        ASSERT_EQ(log.currentOffset(),
+                  static_cast<Offset>((i + 1) * k_ENTRY_LENGTH));
+    }
+
+    // 2. Set `outstandingNumBytes` to zero, indicating that all entries are no
+    //    longer outstanding
+    log.setOutstandingNumBytes(0);
+    BSLS_ASSERT_OPT(log.outstandingNumBytes() == 0);
+
+    // 3. Write a long entry
+    bsls::Types::Int64 currNumBytes = log.totalNumBytes();
+    ASSERT_EQ(
+        log.write(k_LONG_ENTRY, k_LONG_ENTRY_OFFSET, k_LONG_ENTRY_LENGTH),
+        static_cast<Offset>(currNumBytes));
+    currNumBytes += k_LONG_ENTRY_LENGTH;
+    ASSERT_EQ(log.totalNumBytes(), currNumBytes);
+    ASSERT_EQ(log.outstandingNumBytes(), k_LONG_ENTRY_LENGTH);
+    ASSERT_EQ(log.currentOffset(), static_cast<Offset>(currNumBytes));
+
+    // 4. Write another long entry. This should fail due to exceeding max size.
+    ASSERT_EQ(
+        log.write(k_LONG_ENTRY, k_LONG_ENTRY_OFFSET, k_LONG_ENTRY_LENGTH),
+        LogOpResult::e_REACHED_END_OF_LOG);
+
+    // 5. Close and re-open the log.  'currentOffset', 'totalNumBytes' and
+    //    'outstandingNumBytes' must be re-calibrated.
+    log.setOutstandingNumBytes(0);
+    BSLS_ASSERT_OPT(log.flush() == LogOpResult::e_SUCCESS);
+    BSLS_ASSERT_OPT(log.close() == LogOpResult::e_SUCCESS);
+
+    BSLS_ASSERT_OPT(log.open(Log::e_READ_ONLY) == LogOpResult::e_SUCCESS);
+    ASSERT_EQ(log.currentOffset(), currNumBytes);
+    ASSERT_EQ(log.totalNumBytes(), currNumBytes);
+    ASSERT_EQ(log.outstandingNumBytes(), currNumBytes);
+
+    BSLS_ASSERT_OPT(log.close() == LogOpResult::e_SUCCESS);
+}
+
+static void test6_writeBlob()
+// ------------------------------------------------------------------------
+// WRITE BLOB
+//
+// Concerns:
+//   Verify that 'write' works as intended when dealing with blobs, and
+//   give an example of updating `outstandingNumBytes` when using 'write'.
+//
+// Testing:
+//   write(const bdlbb::Blob&        entry,
+//         const mwcu::BlobPosition& offset,
+//         int                       length)
+// ------------------------------------------------------------------------
+{
+    mwctst::TestHelper::printTestName("WRITE BLOB");
+
+    const bsls::Types::Int64 logMaxSize = k_NUM_ENTRIES * k_ENTRY_LENGTH +
+                                          k_LONG_ENTRY_LENGTH + 10;
+    Tester              tester(logMaxSize);
+    ReadWriteOnDiskLog& log = tester.log();
+    BSLS_ASSERT_OPT(log.open(Log::e_CREATE_IF_MISSING) ==
+                    LogOpResult::e_SUCCESS);
+
+    // 1. Write a list of entries
+    bdlbb::Blob blob(g_miniBufferFactory_p, s_allocator_p);
+    for (int i = 0; i < k_NUM_ENTRIES; ++i) {
+        bdlbb::BlobUtil::append(&blob, k_ENTRIES[i], k_ENTRY_LENGTH);
+
+        mwcu::BlobPosition pos(i, 0);
+        ASSERT_EQ(log.write(blob, pos, k_ENTRY_LENGTH),
+                  static_cast<Offset>(i * k_ENTRY_LENGTH));
+        ASSERT_EQ(log.totalNumBytes(), (i + 1) * k_ENTRY_LENGTH);
+        ASSERT_EQ(log.outstandingNumBytes(), (i + 1) * k_ENTRY_LENGTH);
+        ASSERT_EQ(log.currentOffset(),
+                  static_cast<Offset>((i + 1) * k_ENTRY_LENGTH));
+    }
+    blob.removeAll();
+
+    // 2. Set `outstandingNumBytes` to zero, indicating that all entries are no
+    //    longer outstanding
+    log.setOutstandingNumBytes(0);
+    BSLS_ASSERT_OPT(log.outstandingNumBytes() == 0);
+
+    // 3. Write a long entry
+    bsls::Types::Int64 currNumBytes = log.totalNumBytes();
+
+    bdlbb::Blob blob2(g_bufferFactory_p, s_allocator_p);
+    bdlbb::BlobUtil::append(&blob2, k_LONG_ENTRY, k_LONG_ENTRY_FULL_LENGTH);
+    ASSERT_EQ(log.write(blob2,
+                        mwcu::BlobPosition(0, k_LONG_ENTRY_OFFSET),
+                        k_LONG_ENTRY_LENGTH),
+              static_cast<Offset>(currNumBytes));
+    currNumBytes += k_LONG_ENTRY_LENGTH;
+    ASSERT_EQ(log.totalNumBytes(), currNumBytes);
+    ASSERT_EQ(log.outstandingNumBytes(), k_LONG_ENTRY_LENGTH);
+    ASSERT_EQ(log.currentOffset(), static_cast<Offset>(currNumBytes));
+
+    // 4. Write another long entry. This should fail due to exceeding max size.
+    ASSERT_EQ(log.write(blob2,
+                        mwcu::BlobPosition(0, k_LONG_ENTRY_OFFSET),
+                        k_LONG_ENTRY_LENGTH),
+              LogOpResult::e_REACHED_END_OF_LOG);
+
+    // 5. Close and re-open the log.  'currentOffset', 'totalNumBytes' and
+    //    'outstandingNumBytes' must be re-calibrated.
+    log.setOutstandingNumBytes(0);
+    BSLS_ASSERT_OPT(log.flush() == LogOpResult::e_SUCCESS);
+    BSLS_ASSERT_OPT(log.close() == LogOpResult::e_SUCCESS);
+
+    BSLS_ASSERT_OPT(log.open(Log::e_READ_ONLY) == LogOpResult::e_SUCCESS);
+    ASSERT_EQ(log.currentOffset(), currNumBytes);
+    ASSERT_EQ(log.totalNumBytes(), currNumBytes);
+    ASSERT_EQ(log.outstandingNumBytes(), currNumBytes);
+
+    BSLS_ASSERT_OPT(log.close() == LogOpResult::e_SUCCESS);
+}
+
+static void test7_writeBlobSection()
+// ------------------------------------------------------------------------
+// WRITE BLOB SECTION
+//
+// Concerns:
+//   Verify that 'write' works as intended when dealing with blob sections,
+//   , and give an example of updating `outstandingNumBytes` when using
+//   'write'.
+//
+// Testing:
+//   write(const bdlbb::Blob& entry, const mwcu::BlobSection& section)
+// ------------------------------------------------------------------------
+{
+    mwctst::TestHelper::printTestName("WRITE BLOB SECTION");
+
+    const bsls::Types::Int64 logMaxSize = k_NUM_ENTRIES * k_ENTRY_LENGTH +
+                                          k_LONG_ENTRY_LENGTH + 10;
+    Tester              tester(logMaxSize);
+    ReadWriteOnDiskLog& log = tester.log();
+    BSLS_ASSERT_OPT(log.open(Log::e_CREATE_IF_MISSING) ==
+                    LogOpResult::e_SUCCESS);
+
+    // 1. Write a list of entries
+    bdlbb::Blob blob(g_miniBufferFactory_p, s_allocator_p);
+    for (int i = 0; i < k_NUM_ENTRIES; ++i) {
+        bdlbb::BlobUtil::append(&blob, k_ENTRIES[i], k_ENTRY_LENGTH);
+
+        mwcu::BlobPosition start(i, 0);
+        mwcu::BlobPosition end(i + 1, 0);
+        mwcu::BlobSection  section(start, end);
+        ASSERT_EQ(log.write(blob, section),
+                  static_cast<Offset>(i * k_ENTRY_LENGTH));
+        ASSERT_EQ(log.totalNumBytes(), (i + 1) * k_ENTRY_LENGTH);
+        ASSERT_EQ(log.outstandingNumBytes(), (i + 1) * k_ENTRY_LENGTH);
+        ASSERT_EQ(log.currentOffset(),
+                  static_cast<Offset>((i + 1) * k_ENTRY_LENGTH));
+    }
+    blob.removeAll();
+
+    // 2. Set `outstandingNumBytes` to zero, indicating that all entries are no
+    //    longer outstanding
+    log.setOutstandingNumBytes(0);
+    BSLS_ASSERT_OPT(log.outstandingNumBytes() == 0);
+
+    // 3. Write a long entry
+    bsls::Types::Int64 currNumBytes = log.totalNumBytes();
+
+    bdlbb::Blob blob2(g_bufferFactory_p, s_allocator_p);
+    bdlbb::BlobUtil::append(&blob2, k_LONG_ENTRY, k_LONG_ENTRY_FULL_LENGTH);
+
+    mwcu::BlobPosition start(0, k_LONG_ENTRY_OFFSET);
+    mwcu::BlobPosition end(0, k_LONG_ENTRY_OFFSET + k_LONG_ENTRY_LENGTH);
+    mwcu::BlobSection  section(start, end);
+    ASSERT_EQ(log.write(blob2, section), static_cast<Offset>(currNumBytes));
+    currNumBytes += k_LONG_ENTRY_LENGTH;
+    ASSERT_EQ(log.totalNumBytes(), currNumBytes);
+    ASSERT_EQ(log.outstandingNumBytes(), k_LONG_ENTRY_LENGTH);
+    ASSERT_EQ(log.currentOffset(), static_cast<Offset>(currNumBytes));
+
+    // 4. Write another long entry. This should fail due to exceeding max size.
+    ASSERT_EQ(log.write(blob2, section), LogOpResult::e_REACHED_END_OF_LOG);
+
+    // 5. Close and re-open the log.  'currentOffset', 'totalNumBytes' and
+    //    'outstandingNumBytes' must be re-calibrated.
+    log.setOutstandingNumBytes(0);
+    BSLS_ASSERT_OPT(log.flush() == LogOpResult::e_SUCCESS);
+    BSLS_ASSERT_OPT(log.close() == LogOpResult::e_SUCCESS);
+
+    BSLS_ASSERT_OPT(log.open(Log::e_READ_ONLY) == LogOpResult::e_SUCCESS);
+    ASSERT_EQ(log.currentOffset(), currNumBytes);
+    ASSERT_EQ(log.totalNumBytes(), currNumBytes);
+    ASSERT_EQ(log.outstandingNumBytes(), currNumBytes);
+
+    BSLS_ASSERT_OPT(log.close() == LogOpResult::e_SUCCESS);
+}
+
+static void test8_readRaw()
+// ------------------------------------------------------------------------
+// READ RAW
+//
+// Concerns:
+//   Verify that 'read' works as intended when dealing with void*.
+//
+// Testing:
+//   read(void **entry, int length, Offset offset)
+// ------------------------------------------------------------------------
+{
+    mwctst::TestHelper::printTestName("READ RAW");
+
+    Tester              tester;
+    ReadWriteOnDiskLog& log = tester.log();
+    BSLS_ASSERT_OPT(log.open(Log::e_CREATE_IF_MISSING) ==
+                    LogOpResult::e_SUCCESS);
+
+    // 1. Write a list of entries
+    for (int i = 0; i < k_NUM_ENTRIES; ++i) {
+        BSLS_ASSERT_OPT(log.write(k_ENTRIES[i], 0, k_ENTRY_LENGTH) ==
+                        static_cast<Offset>(i * k_ENTRY_LENGTH));
+    }
+
+    // 2. Read each entry in the list of entries
+    char entry[k_LONG_ENTRY_LENGTH];
+    for (int i = 0; i < k_NUM_ENTRIES; ++i) {
+        ASSERT_EQ(log.read(static_cast<void*>(entry),
+                           k_ENTRY_LENGTH,
+                           i * k_ENTRY_LENGTH),
+                  LogOpResult::e_SUCCESS);
+        ASSERT_EQ(bsl::memcmp(entry, k_ENTRIES[i], k_ENTRY_LENGTH), 0);
+    }
+
+    // 3. Close and re-open the log
+    BSLS_ASSERT_OPT(log.close() == LogOpResult::e_SUCCESS);
+    BSLS_ASSERT_OPT(log.open(Log::e_CREATE_IF_MISSING) ==
+                    LogOpResult::e_SUCCESS);
+
+    // 4. Write a long entry
+    bdlbb::Blob blob(g_bufferFactory_p, s_allocator_p);
+    bdlbb::BlobUtil::append(&blob, k_LONG_ENTRY, k_LONG_ENTRY_FULL_LENGTH);
+    BSLS_ASSERT_OPT(log.write(blob,
+                              mwcu::BlobPosition(0, k_LONG_ENTRY_OFFSET),
+                              k_LONG_ENTRY_LENGTH) ==
+                    static_cast<Offset>(k_NUM_ENTRIES * k_ENTRY_LENGTH));
+
+    // 5. Re-read the list of entries, then read the long entry
+    for (int i = 0; i < k_NUM_ENTRIES; ++i) {
+        ASSERT_EQ(log.read(static_cast<void*>(entry),
+                           k_ENTRY_LENGTH,
+                           i * k_ENTRY_LENGTH),
+                  LogOpResult::e_SUCCESS);
+        ASSERT_EQ(bsl::memcmp(entry, k_ENTRIES[i], k_ENTRY_LENGTH), 0);
+    }
+
+    ASSERT_EQ(log.read(static_cast<void*>(entry),
+                       k_LONG_ENTRY_LENGTH,
+                       k_NUM_ENTRIES * k_ENTRY_LENGTH),
+              LogOpResult::e_SUCCESS);
+    ASSERT_EQ(bsl::memcmp(entry, k_LONG_ENTRY_MEAT, k_LONG_ENTRY_LENGTH), 0);
+
+    // 6. Write another long entry
+    const Offset currOffset = static_cast<Offset>(
+        k_NUM_ENTRIES * k_ENTRY_LENGTH + k_LONG_ENTRY_LENGTH);
+
+    bdlbb::Blob blob2(g_bufferFactory_p, s_allocator_p);
+    bdlbb::BlobUtil::append(&blob2, k_LONG_ENTRY2, k_LONG_ENTRY2_FULL_LENGTH);
+
+    mwcu::BlobPosition start(0, k_LONG_ENTRY2_OFFSET);
+    mwcu::BlobPosition end(0, k_LONG_ENTRY2_OFFSET + k_LONG_ENTRY2_LENGTH);
+    mwcu::BlobSection  section(start, end);
+    BSLS_ASSERT_OPT(log.write(blob2, section) == currOffset);
+
+    // 7. Read the other long entry
+    ASSERT_EQ(
+        log.read(static_cast<void*>(entry), k_LONG_ENTRY2_LENGTH, currOffset),
+        LogOpResult::e_SUCCESS);
+    ASSERT_EQ(bsl::memcmp(entry, k_LONG_ENTRY2_MEAT, k_LONG_ENTRY2_LENGTH), 0);
+
+    // 8. Read beyond the last record offset should fail
+    ASSERT_EQ(log.read(static_cast<void*>(entry), k_ENTRY_LENGTH, 9999),
+              LogOpResult::e_REACHED_END_OF_LOG);
+
+    // 9. Read beyond the length of the log should fail
+    ASSERT_EQ(log.read(static_cast<void*>(entry), 9999, 0),
+              LogOpResult::e_REACHED_END_OF_LOG);
+
+    BSLS_ASSERT_OPT(log.flush() == LogOpResult::e_SUCCESS);
+    BSLS_ASSERT_OPT(log.close() == LogOpResult::e_SUCCESS);
+}
+
+static void test9_readBlob()
+// ------------------------------------------------------------------------
+// READ BLOB
+//
+// Concerns:
+//   Verify that 'read' works as intended when dealing with blobs.
+//
+// Testing:
+//   read(bdlbb::Blob *entry, int length, Offset offset)
+// ------------------------------------------------------------------------
+{
+    mwctst::TestHelper::printTestName("READ BLOB");
+
+    Tester              tester;
+    ReadWriteOnDiskLog& log = tester.log();
+    BSLS_ASSERT_OPT(log.open(Log::e_CREATE_IF_MISSING) ==
+                    LogOpResult::e_SUCCESS);
+
+    // 1. Write a list of entries
+    for (int i = 0; i < k_NUM_ENTRIES; ++i) {
+        BSLS_ASSERT_OPT(log.write(k_ENTRIES[i], 0, k_ENTRY_LENGTH) ==
+                        static_cast<Offset>(i * k_ENTRY_LENGTH));
+    }
+
+    // 2. Read each entry in the list of entries
+    bdlbb::Blob blob(g_miniBufferFactory_p, s_allocator_p);
+
+    char entry[k_LONG_ENTRY_LENGTH];
+    for (int i = 0; i < k_NUM_ENTRIES; ++i) {
+        ASSERT_EQ(log.read(&blob, k_ENTRY_LENGTH, i * k_ENTRY_LENGTH),
+                  LogOpResult::e_SUCCESS);
+        mwcu::BlobUtil::readNBytes(entry,
+                                   blob,
+                                   mwcu::BlobPosition(),
+                                   k_ENTRY_LENGTH);
+        ASSERT_EQ(bsl::memcmp(entry, k_ENTRIES[i], k_ENTRY_LENGTH), 0);
+        blob.removeBuffer(0);
+    }
+
+    // 3. Close and re-open the log
+    BSLS_ASSERT_OPT(log.close() == LogOpResult::e_SUCCESS);
+    BSLS_ASSERT_OPT(log.open(Log::e_CREATE_IF_MISSING) ==
+                    LogOpResult::e_SUCCESS);
+
+    // 4. Write a long entry
+    bdlbb::Blob blob2(g_bufferFactory_p, s_allocator_p);
+    bdlbb::BlobUtil::append(&blob2, k_LONG_ENTRY, k_LONG_ENTRY_FULL_LENGTH);
+    BSLS_ASSERT_OPT(log.write(blob2,
+                              mwcu::BlobPosition(0, k_LONG_ENTRY_OFFSET),
+                              k_LONG_ENTRY_LENGTH) ==
+                    static_cast<Offset>(k_NUM_ENTRIES * k_ENTRY_LENGTH));
+
+    // 5. Re-read the list of entries, then read the long entry
+    for (int i = 0; i < k_NUM_ENTRIES; ++i) {
+        ASSERT_EQ(log.read(&blob, k_ENTRY_LENGTH, i * k_ENTRY_LENGTH),
+                  LogOpResult::e_SUCCESS);
+        mwcu::BlobUtil::readNBytes(entry,
+                                   blob,
+                                   mwcu::BlobPosition(),
+                                   k_ENTRY_LENGTH);
+        ASSERT_EQ(bsl::memcmp(entry, k_ENTRIES[i], k_ENTRY_LENGTH), 0);
+        blob.removeBuffer(0);
+    }
+
+    ASSERT_EQ(
+        log.read(&blob, k_LONG_ENTRY_LENGTH, k_NUM_ENTRIES * k_ENTRY_LENGTH),
+        LogOpResult::e_SUCCESS);
+    mwcu::BlobUtil::readNBytes(entry,
+                               blob,
+                               mwcu::BlobPosition(),
+                               k_LONG_ENTRY_LENGTH);
+    ASSERT_EQ(bsl::memcmp(entry, k_LONG_ENTRY_MEAT, k_LONG_ENTRY_LENGTH), 0);
+    blob.removeAll();
+
+    // 6. Write another long entry
+    const Offset currOffset = static_cast<Offset>(
+        k_NUM_ENTRIES * k_ENTRY_LENGTH + k_LONG_ENTRY_LENGTH);
+
+    bdlbb::Blob blob3(g_bufferFactory_p, s_allocator_p);
+    bdlbb::BlobUtil::append(&blob3, k_LONG_ENTRY2, k_LONG_ENTRY2_FULL_LENGTH);
+
+    mwcu::BlobPosition start(0, k_LONG_ENTRY2_OFFSET);
+    mwcu::BlobPosition end(0, k_LONG_ENTRY2_OFFSET + k_LONG_ENTRY2_LENGTH);
+    mwcu::BlobSection  section(start, end);
+    BSLS_ASSERT_OPT(log.write(blob3, section) == currOffset);
+
+    // 7. Read the other long entry
+    ASSERT_EQ(log.read(&blob, k_LONG_ENTRY2_LENGTH, currOffset),
+              LogOpResult::e_SUCCESS);
+    mwcu::BlobUtil::readNBytes(entry,
+                               blob,
+                               mwcu::BlobPosition(),
+                               k_LONG_ENTRY2_LENGTH);
+    ASSERT_EQ(bsl::memcmp(entry, k_LONG_ENTRY2_MEAT, k_LONG_ENTRY2_LENGTH), 0);
+    blob.removeAll();
+
+    // 8. Read beyond the last record offset should fail
+    ASSERT_EQ(log.read(&blob, k_ENTRY_LENGTH, 9999),
+              LogOpResult::e_REACHED_END_OF_LOG);
+
+    // 9. Read beyond the length of the log should fail
+    ASSERT_EQ(log.read(&blob, 9999, 0), LogOpResult::e_REACHED_END_OF_LOG);
+
+    BSLS_ASSERT_OPT(log.flush() == LogOpResult::e_SUCCESS);
+    BSLS_ASSERT_OPT(log.close() == LogOpResult::e_SUCCESS);
+}
+
+static void test10_aliasRaw()
+// ------------------------------------------------------------------------
+// ALIAS RAW
+//
+// Concerns:
+//   Verify that 'alias' works as intended when dealing with void*.
+//
+// Testing:
+//   alias(void **entry, int length, Offset offset)
+// ------------------------------------------------------------------------
+{
+    mwctst::TestHelper::printTestName("ALIAS RAW");
+
+    Tester              tester;
+    ReadWriteOnDiskLog& log = tester.log();
+    BSLS_ASSERT_OPT(log.open(Log::e_CREATE_IF_MISSING) ==
+                    LogOpResult::e_SUCCESS);
+
+    // Raw aliasing is not supported
+    char  entry[k_ENTRY_LENGTH];
+    void* entry_vp = entry;
+    ASSERT_FAIL(log.alias(&entry_vp, k_ENTRY_LENGTH, 0));
+
+    BSLS_ASSERT_OPT(log.close() == LogOpResult::e_SUCCESS);
+}
+
+static void test11_aliasBlob()
+// ------------------------------------------------------------------------
+// ALIAS BLOB
+//
+// Concerns:
+//   Verify that 'alias' works as intended when dealing with blobs.
+//
+// Testing:
+//   alias(bdlbb::Blob *entry, int length, Offset offset)
+// ------------------------------------------------------------------------
+{
+    mwctst::TestHelper::printTestName("ALIAS BLOB");
+
+    Tester              tester;
+    ReadWriteOnDiskLog& log = tester.log();
+    BSLS_ASSERT_OPT(log.open(Log::e_CREATE_IF_MISSING) ==
+                    LogOpResult::e_SUCCESS);
+
+    // Blob aliasing is not supported
+    bdlbb::Blob blob(g_bufferFactory_p, s_allocator_p);
+    ASSERT_FAIL(log.alias(&blob, k_ENTRY_LENGTH, 0));
+
+    BSLS_ASSERT_OPT(log.close() == LogOpResult::e_SUCCESS);
+}
+
+static void test12_seek()
+// ------------------------------------------------------------------------
+// SEEK
+//
+// Concerns:
+//   Verify that 'seek' works as intended, and demonstrate how
+//   `outstandingNumBytes` should be updated when using 'seek' and 'write'.
+//
+// Testing:
+//   seek(...)
+// ------------------------------------------------------------------------
+{
+    mwctst::TestHelper::printTestName("SEEK");
+
+    Tester              tester;
+    ReadWriteOnDiskLog& log = tester.log();
+    BSLS_ASSERT_OPT(log.open(Log::e_CREATE_IF_MISSING) ==
+                    LogOpResult::e_SUCCESS);
+    BSLS_ASSERT_OPT(log.currentOffset() == static_cast<Offset>(0));
+
+    // Expected values
+    bsls::Types::Int64 expTotalNumBytes       = 0;
+    bsls::Types::Int64 expOutstandingNumBytes = 0;
+    BSLS_ASSERT_OPT(log.totalNumBytes() == expTotalNumBytes);
+    BSLS_ASSERT_OPT(log.outstandingNumBytes() == expOutstandingNumBytes);
+
+    // 1. Write a list of entries
+    for (int i = 0; i < k_NUM_ENTRIES; ++i) {
+        BSLS_ASSERT_OPT(log.write(k_ENTRIES[i], 0, k_ENTRY_LENGTH) ==
+                        static_cast<Offset>(i * k_ENTRY_LENGTH));
+    }
+    BSLS_ASSERT_OPT(log.currentOffset() ==
+                    static_cast<Offset>(k_NUM_ENTRIES * k_ENTRY_LENGTH));
+    expTotalNumBytes += k_NUM_ENTRIES * k_ENTRY_LENGTH;
+    expOutstandingNumBytes += k_NUM_ENTRIES * k_ENTRY_LENGTH;
+    BSLS_ASSERT_OPT(log.totalNumBytes() == expTotalNumBytes);
+    BSLS_ASSERT_OPT(log.outstandingNumBytes() == expOutstandingNumBytes);
+
+    // 2. Seek to a position in the middle
+    const Offset midpoint = static_cast<Offset>(k_NUM_ENTRIES *
+                                                k_ENTRY_LENGTH / 2);
+    ASSERT_EQ(log.seek(midpoint), LogOpResult::e_SUCCESS);
+    ASSERT_EQ(log.currentOffset(), midpoint);
+
+    // 3. Read the entry at that position and the next one (since they will be
+    //    overwritten), then subtract `outstandingNumBytes` by their total
+    //    length, indicating that they are no longer outstanding
+    char entry[k_LONG_ENTRY_LENGTH];
+    BSLS_ASSERT_OPT(log.read(static_cast<void*>(entry),
+                             k_ENTRY_LENGTH,
+                             midpoint) == LogOpResult::e_SUCCESS);
+    BSLS_ASSERT_OPT(
+        bsl::memcmp(entry, k_ENTRIES[k_NUM_ENTRIES / 2], k_ENTRY_LENGTH) == 0);
+
+    BSLS_ASSERT_OPT(log.read(static_cast<void*>(entry),
+                             k_ENTRY_LENGTH,
+                             midpoint + k_ENTRY_LENGTH) ==
+                    LogOpResult::e_SUCCESS);
+    BSLS_ASSERT_OPT(bsl::memcmp(entry,
+                                k_ENTRIES[k_NUM_ENTRIES / 2 + 1],
+                                k_ENTRY_LENGTH) == 0);
+
+    log.updateOutstandingNumBytes(-2 * k_ENTRY_LENGTH);
+    expOutstandingNumBytes -= 2 * k_ENTRY_LENGTH;
+    BSLS_ASSERT_OPT(log.totalNumBytes() == expTotalNumBytes);
+    BSLS_ASSERT_OPT(log.outstandingNumBytes() == expOutstandingNumBytes);
+
+    // 4. Overwrite that entry with a long entry, then read the new entry
+    ASSERT_EQ(
+        log.write(k_LONG_ENTRY, k_LONG_ENTRY_OFFSET, k_LONG_ENTRY_LENGTH),
+        midpoint);
+    BSLS_ASSERT_OPT(log.currentOffset() == midpoint + k_LONG_ENTRY_LENGTH);
+    expOutstandingNumBytes += k_LONG_ENTRY_LENGTH;
+    // Expected total num bytes remains unchanged
+    ASSERT_EQ(log.totalNumBytes(), expTotalNumBytes);
+    ASSERT_EQ(log.outstandingNumBytes(), expOutstandingNumBytes);
+
+    BSLS_ASSERT_OPT(log.read(static_cast<void*>(entry),
+                             k_LONG_ENTRY_LENGTH,
+                             midpoint) == LogOpResult::e_SUCCESS);
+    ASSERT_EQ(bsl::memcmp(entry, k_LONG_ENTRY_MEAT, k_LONG_ENTRY_LENGTH), 0);
+
+    // 5. Seek to the end
+    Offset endpoint = static_cast<Offset>(k_NUM_ENTRIES * k_ENTRY_LENGTH);
+    ASSERT_EQ(log.seek(endpoint), LogOpResult::e_SUCCESS);
+    ASSERT_EQ(log.currentOffset(), endpoint);
+
+    // 6. Write an entry, then read it
+    ASSERT_EQ(
+        log.write(k_LONG_ENTRY, k_LONG_ENTRY_OFFSET, k_LONG_ENTRY_LENGTH),
+        endpoint);
+    endpoint += k_LONG_ENTRY_LENGTH;
+    BSLS_ASSERT_OPT(log.currentOffset() == endpoint);
+    expTotalNumBytes += k_LONG_ENTRY_LENGTH;
+    expOutstandingNumBytes += k_LONG_ENTRY_LENGTH;
+    ASSERT_EQ(log.totalNumBytes(), expTotalNumBytes);
+    ASSERT_EQ(log.outstandingNumBytes(), expOutstandingNumBytes);
+
+    BSLS_ASSERT_OPT(log.read(static_cast<void*>(entry),
+                             k_LONG_ENTRY_LENGTH,
+                             endpoint - k_LONG_ENTRY_LENGTH) ==
+                    LogOpResult::e_SUCCESS);
+    ASSERT_EQ(bsl::memcmp(entry, k_LONG_ENTRY_MEAT, k_LONG_ENTRY_LENGTH), 0);
+
+    // 7. Seek to the beginning, then close and re-open the log.
+    //    'currentOffset' must be re-calibrated to the end of the log.
+    ASSERT_EQ(log.seek(0), LogOpResult::e_SUCCESS);
+    BSLS_ASSERT_OPT(log.flush() == LogOpResult::e_SUCCESS);
+    BSLS_ASSERT_OPT(log.close() == LogOpResult::e_SUCCESS);
+
+    BSLS_ASSERT_OPT(log.open(Log::e_READ_ONLY) == LogOpResult::e_SUCCESS);
+    ASSERT_EQ(log.currentOffset(), endpoint);
+
+    BSLS_ASSERT_OPT(log.close() == LogOpResult::e_SUCCESS);
+}
+
+static void test13_readWriteHugeBlob()
+// ------------------------------------------------------------------------
+// READ WRITE HUGE BLOB
+//
+// Concerns:
+//   Verify that 'read' and 'write' work as intended when a huge blob is
+//   being used as the entry.
+//
+// Testing:
+//   write(const bdlbb::Blob&        entry,
+//         const mwcu::BlobPosition& offset,
+//         int                       length)
+//   read(bdlbb::Blob *entry, int length, Offset offset)
+// ------------------------------------------------------------------------
+{
+    mwctst::TestHelper::printTestName("WRITE HUGE BLOB");
+
+    static const int k_BLOB_MAX_SIZE = 500 * 1024 * 1024;  // 500 MiB
+
+    Tester              tester(k_BLOB_MAX_SIZE);
+    ReadWriteOnDiskLog& log = tester.log();
+    BSLS_ASSERT_OPT(log.open(Log::e_CREATE_IF_MISSING) ==
+                    LogOpResult::e_SUCCESS);
+
+    // 1. Create a huge blob entry having a size of 500 MiB and having more
+    //    than IOV_MAX number of blob buffers.
+    static const int k_NUM_BUFFERS    = IOV_MAX + 2;
+    static const int k_BUFFER_LEN     = k_BLOB_MAX_SIZE / k_NUM_BUFFERS;
+    static const int k_HUGE_BLOB_SIZE = k_BUFFER_LEN * k_NUM_BUFFERS;
+
+    bdlbb::PooledBlobBufferFactory hugeBufferFactory(k_BUFFER_LEN,
+                                                     s_allocator_p);
+    bdlbb::Blob                    hugeBlob(&hugeBufferFactory, s_allocator_p);
+
+    char* entry = static_cast<char*>(
+        s_allocator_p->allocate(k_HUGE_BLOB_SIZE));
+    generateRandomString(entry, k_HUGE_BLOB_SIZE);
+    bdlbb::BlobUtil::append(&hugeBlob, entry, k_HUGE_BLOB_SIZE);
+    BSLS_ASSERT_OPT(hugeBlob.numDataBuffers() > IOV_MAX);
+
+    // 2. Write the huge blob entry
+    mwcu::BlobPosition recordPos(1, 42);
+    const int recordSize = k_HUGE_BLOB_SIZE - hugeBlob.buffer(0).size() -
+                           recordPos.byte();
+
+    ASSERT_EQ(log.write(hugeBlob, recordPos, recordSize),
+              static_cast<Offset>(0));
+    ASSERT_EQ(log.totalNumBytes(), recordSize);
+    ASSERT_EQ(log.outstandingNumBytes(), recordSize);
+    ASSERT_EQ(log.currentOffset(), static_cast<Offset>(recordSize));
+
+    // 3. Read the huge blob entry
+    bdlbb::Blob outBlob(&hugeBufferFactory, s_allocator_p);
+    ASSERT_EQ(log.read(&outBlob, recordSize, 0), LogOpResult::e_SUCCESS);
+    BSLS_ASSERT_OPT(outBlob.numDataBuffers() > IOV_MAX);
+
+    bdlbb::Blob expectedRecord(&hugeBufferFactory, s_allocator_p);
+    mwcu::BlobUtil::appendToBlob(&expectedRecord,
+                                 hugeBlob,
+                                 recordPos,
+                                 recordSize);
+    ASSERT_EQ(bdlbb::BlobUtil::compare(expectedRecord, outBlob), 0);
+
+    BSLS_ASSERT_OPT(log.flush() == LogOpResult::e_SUCCESS);
+    BSLS_ASSERT_OPT(log.close() == LogOpResult::e_SUCCESS);
+
+    s_allocator_p->deallocate(entry);
+}
+
+// ============================================================================
+//                                 MAIN PROGRAM
+// ----------------------------------------------------------------------------
+
+int main(int argc, char* argv[])
+{
+    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+
+    {
+        bdlbb::PooledBlobBufferFactory bufferFactory(k_LONG_ENTRY_LENGTH * 2,
+                                                     s_allocator_p);
+        bdlbb::PooledBlobBufferFactory miniBufferFactory(k_ENTRY_LENGTH,
+                                                         s_allocator_p);
+        g_bufferFactory_p     = &bufferFactory;
+        g_miniBufferFactory_p = &miniBufferFactory;
+
+        switch (_testCase) {
+        case 0:
+        case 1: test1_breathingTest(); break;
+        case 2: test2_fileNotExist(); break;
+        case 3: test3_updateOutstandingNumBytes(); break;
+        case 4: test4_setOutstandingNumBytes(); break;
+        case 5: test5_writeRaw(); break;
+        case 6: test6_writeBlob(); break;
+        case 7: test7_writeBlobSection(); break;
+        case 8: test8_readRaw(); break;
+        case 9: test9_readBlob(); break;
+        case 10: test10_aliasRaw(); break;
+        case 11: test11_aliasBlob(); break;
+        case 12: test12_seek(); break;
+        case 13: test13_readWriteHugeBlob(); break;
+        default: {
+            cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
+            s_testStatus = -1;
+        } break;
+        }
+    }
+
+    TEST_EPILOG(mwctst::TestHelper::e_CHECK_GBL_ALLOC);
+}

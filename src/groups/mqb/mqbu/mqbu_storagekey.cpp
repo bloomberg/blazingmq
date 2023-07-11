@@ -1,0 +1,36 @@
+// Copyright 2016-2023 Bloomberg Finance L.P.
+// SPDX-License-Identifier: Apache-2.0
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// mqbu_storagekey.cpp                                                -*-C++-*-
+#include <mqbu_storagekey.h>
+
+#include <mqbscm_version.h>
+// BSL
+#include <bslmf_assert.h>
+
+namespace BloombergLP {
+namespace mqbu {
+
+BSLMF_ASSERT(StorageKey::e_KEY_LENGTH_BINARY == sizeof(StorageKey));
+
+// ----------------
+// class StorageKey
+// ----------------
+
+const char*      StorageKey::k_NULL_KEY_BUFFER("\0\0\0\0\0");
+const StorageKey StorageKey::k_NULL_KEY;
+
+}  // close package namespace
+}  // close enterprise namespace

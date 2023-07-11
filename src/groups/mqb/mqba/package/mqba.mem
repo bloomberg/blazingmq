@@ -1,0 +1,8 @@
+mqba_adminsession
+mqba_application
+mqba_clientsession
+mqba_configprovider
+mqba_dispatcher
+mqba_domainmanager
+mqba_domainresolver
+mqba_sessionnegotiator

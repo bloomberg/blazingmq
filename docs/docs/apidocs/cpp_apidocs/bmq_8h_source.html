@@ -1,0 +1,71 @@
+<!doctype HTML public "-//W3C//DTD HTML 4.0 Frameset//EN">
+<html>
+<title>Bloomberg Development Environment</title>
+<html>
+<pre>
+ bmq.txt
+
+@PURPOSE: Public SDK API for the BlazingMQ framework.
+
+@MNEMONIC: BlazingMQ (bmq)
+
+@DESCRIPTION: BlazingmQ (package group &#39;bmq&#39;) is a message-queue
+ framework allowing application developers to use reliable distributed queues.
+
+ The &#39;bmqa&#39; and &#39;bmqt&#39; packages contain all components that constitute the
+ public API for BlazingmQ users to use.  A client should only use the
+ components in these packages, and should not use any other package under the
+ &#39;bmq&#39; package group since they are implementation components that may change
+ at any time.
+
+/Hierarchical Synopsis
+/---------------------
+The &#39;bmq&#39; group library currently has 5 packages forming 5 levels of physical
+dependency.
+..
+  5. bmqa
+
+  4. bmqimp
+
+  3. bmqp
+
+  2. bmqt
+
+  1. bmqscm
+..
+
+/Package Synopsis
+/------------------
+: &#39;bmqa&#39;:
+:      Provide applications public API for the BlazingmQ SDK.
+:
+: &#39;bmqimp&#39;:
+:      [INTERNAL] Provide implementation for the API of the BlazingMQ SDK.
+:
+: &#39;bmqp&#39;:
+:      [INTERNAL] Provide BlazingMQ protocol definition, builders and parsers.
+:
+: &#39;bmqscm&#39;:
+:      Provide versioning information for library components in &#39;bmq&#39;.
+:
+: &#39;bmqt&#39;:
+:      Provide value-semantic vocabulary types.
+
+/Package Overview
+/----------------
+ The following provides a brief overview of several of the packages within the
+ &#39;bmq&#39; package group, arranged in alphabetical order.  The descriptions here
+ are still very brief; see the respective Package Level documents for more
+ details and usage examples.
+
+/&#39;bmqa&#39;
+/- - -
+ &#39;bmqa&#39; provides the top-level public APIs application can use to interact with
+  BlazingMQ framework in their applications.
+
+/&#39;bmqt&#39;
+/- - -
+ &#39;bmqt&#39; provides value-semantic vocabulary types used in the {&#39;bmqa&#39;} APIs.
+</pre>
+</body>
+</html>

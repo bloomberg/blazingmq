@@ -1,0 +1,59 @@
+    mqbmock.txt
+
+@PURPOSE: Provide Mock components.
+
+@MNEMONIC: BlazingMQ Mocks (mqbmock)
+
+@DESCRIPTION: This package provides mocks of components.
+
+
+/Hierarchical Synopsis
+/---------------------
+The 'mqbmock' package currently has 10 components having 2 levels of physical
+dependency.  The list below shows the hierarchical ordering of the components.
+..
+  2. mqbmock_queue
+     mqbmock_clusterstateledger
+
+  1. mqbmock_appkeygenerator
+     mqbmock_cluster
+     mqbmock_clusterstateledgeriterator
+     mqbmock_dispatcher
+     mqbmock_domain
+     mqbmock_logidgenerator
+     mqbmock_queueengine
+     mqbmock_queuehandle
+..
+
+/Component Synopsis
+/------------------
+: mqbmock_appkeygenerator:
+:      Provide a mock implementation of 'mqbi::AppKeyGenerator'.
+:
+: mqbmock_cluster':
+:      Provide a mock cluster implementation of 'mqbi::Cluster'.
+:
+: mqbmock_clusterstateledger:
+:      Provide a mock implementation of 'mqbc::ClusterStateLedger'.
+:
+: mqbmock_clusterstateledgeriterator:
+:      Provide a mock implementation of 'mqbc::ClusterStateLedgerIterator'.
+:
+: mqbmock_dispatcher:
+:      Provide a mock implementation of the 'mqbi::Dispatcher' interface.
+:
+: mqbmock_domain:
+:      Provide a mock implementation of the 'mqbi::Domain' interface.
+:
+: mqbmock_logidgenerator:
+:      Provide a mock implementation of the 'mqbsi::LogIdGenerator' interface.
+:
+: mqbmock_queue:
+:      Provide a mock queue implementation of the 'mqbi::Queue' interface.
+:
+: mqbmock_queueengine:
+:      Provide a mock implementation for 'mqbi::QueueEngine' interface.
+:
+: mqbmock_queuehandle:
+:      Provide a mock Queue Handle implementation.
+:

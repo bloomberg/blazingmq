@@ -1,0 +1,16 @@
+bmqa_abstractsession
+bmqa_event
+bmqa_message
+bmqa_messageevent
+bmqa_messageeventbuilder
+bmqa_confirmeventbuilder
+bmqa_manualhosthealthmonitor
+bmqa_messageiterator
+bmqa_messageproperties
+bmqa_mocksession
+bmqa_openqueuestatus
+bmqa_closequeuestatus
+bmqa_configurequeuestatus
+bmqa_session
+bmqa_sessionevent
+bmqa_queueid

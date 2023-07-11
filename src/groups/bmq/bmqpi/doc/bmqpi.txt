@@ -1,0 +1,24 @@
+ bmqpi.txt
+
+@PURPOSE: Provide an interface for monitoring the health of the host.
+
+@MNEMONIC: BlazingMQ Public Interfaces (bmqpi)
+
+@DESCRIPTION: The 'bmqpi' package provides pure abstract interfaces, which are
+ intended for clients to extend in their own applications and libraries. These
+ extension points facilitate integration with other aspects of a runtime
+ environment (e.g. authentication, host health-checking), which may vary
+ significantly from organization to organization.
+
+/Hierarchical Synopsis
+/---------------------
+ The 'bmqpi' package currently has 1 component having 1 level of physical
+ dependency.  The list below shows the hierarchical ordering of the components.
+..
+  1. bmqpi_hosthealthmonitor
+..
+
+/Component Synopsis
+/------------------
+: 'bmqpi_hosthealthmonitor':
+:      Provide an interface for monitoring the health of the host.

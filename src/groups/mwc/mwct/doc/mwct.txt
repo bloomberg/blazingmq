@@ -1,0 +1,26 @@
+@PURPOSE: Provide value-semantic vocabulary types.
+
+@MNEMONIC: MiddleWare Core Types (mwct)
+
+@DESCRIPTION: This package provides value-semantic vocabulary types.
+
+/Hierarchical Synopsis
+/---------------------
+The 'mwct' package currently has 2 component having 1 levels of physical
+dependency.  The list below shows the hierarchal ordering of the components.
+..
+  1.  mwct_propertybag
+      mwct_rcdescriptionerror
+      mwct_valueorerror
+..
+
+/Component Synopsis
+/------------------
+: 'mwct_propertybag':
+:      Provide a bag of named properties.
+:
+: 'mwct_rcdescriptionerror':
+:      Provide a value-semantic class for a typical error.
+:
+: 'mwct_valueorerror':
+:      Provide a value-semantic class that may hold a value or an error.

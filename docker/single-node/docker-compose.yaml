@@ -1,0 +1,14 @@
+services:
+  bmqbrkr:
+    image: bmqbrkr:latest
+    build:
+      context: ../..
+      dockerfile: docker/Dockerfile
+    volumes:
+      - ./config:/etc/local/bmq:ro
+    hostname: earth
+    command: "/usr/local/bin/bmqbrkr /etc/local/bmq"
+
+networks:
+  default:
+    driver: bridge

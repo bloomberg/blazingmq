@@ -1,0 +1,39 @@
+    mqbsl.txt
+
+@PURPOSE: [INTERNAL] Provide storage ledger functionalities.
+
+@MNEMONIC: BlazingMQ Broker Storage Ledger (mqbsl)
+
+@DESCRIPTION: [!INTERNAL!] This package provides implementations to the log and
+ledger interfaces in the storage layer.
+
+
+/Hierarchical Synopsis
+/---------------------
+The 'mqbsl' package currently has 5 components having 2 levels of physical
+dependency.  The list below shows the hierarchical ordering of the components.
+..
+  2. mqbsl_readwriteondisklog
+     mqbsl_memorymappedondisklog
+
+  1. mqbsl_inmemorylog
+     mqbsl_ondisklog
+     mqbsl_ledger
+..
+
+/Component Synopsis
+/------------------
+: 'mqbsl_inmemorylog':
+:      Provide a mechanism for reading and writing to an in-memory log.
+:
+: 'mqbsl_ondisklog':
+:      Provide an interface for reading and writing to an on-disk log.
+:
+: 'mqbsl_ledger':
+:      Provide a mechanism to store application-defined records.
+:
+: 'mqbsl_readwriteondisklog':
+:      Implements an on-disk log using read() and write() syscalls.
+:
+: 'mqbsl_memorymappedondisklog':
+:      Implements an on-disk log using the mmap() syscall.
