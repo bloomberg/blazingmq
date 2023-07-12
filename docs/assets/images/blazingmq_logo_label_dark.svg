@@ -18,18 +18,18 @@
      bordercolor="#000000"
      borderopacity="0.25"
      inkscape:showpageshadow="2"
-     inkscape:pageopacity="0.0"
+     inkscape:pageopacity="1"
      inkscape:pagecheckerboard="0"
      inkscape:deskcolor="#d1d1d1"
      showgrid="false"
      inkscape:zoom="0.99465159"
-     inkscape:cx="361.43309"
-     inkscape:cy="98.526962"
-     inkscape:window-width="2307"
-     inkscape:window-height="1154"
-     inkscape:window-x="214"
-     inkscape:window-y="25"
-     inkscape:window-maximized="0"
+     inkscape:cx="245.31203"
+     inkscape:cy="99.029651"
+     inkscape:window-width="1728"
+     inkscape:window-height="979"
+     inkscape:window-x="0"
+     inkscape:window-y="481"
+     inkscape:window-maximized="1"
      inkscape:current-layer="svg66" />
   <path
      d="m26 90.1v30l26-15v-30z"
@@ -122,42 +122,42 @@
   <g
      fill="#000"
      id="g64"
-     style="fill:#a1b4b4;fill-opacity:1">
+     style="fill:#ffffff;fill-opacity:1">
     <path
        d="m231.2 15.5h84.5l19.3 19.3v37.6l-7.8 8 13.6 13.9v35.3l-20.9 20.9h-88.8v-135c0 0 .1 0 .1 0zm71.2 56.4 7-7v-20.9l-6.7-6.7h-45.7v34.5h45.4zm4.5 56.4 8.3-8.3v-19l-8.3-8.3h-50v35.3h50z"
        id="path46"
-       style="fill:#a1b4b4;fill-opacity:1" />
+       style="fill:#ffffff;fill-opacity:1" />
     <path
        d="m355.6 15.5h26.2v112.6h67.4v22.2h-93.6z"
        id="path48"
-       style="fill:#a1b4b4;fill-opacity:1" />
+       style="fill:#ffffff;fill-opacity:1" />
     <path
        d="m510.5 15.5h23.8l49.2 134.8h-26.5l-11-30h-47.3l-11 30h-26.5zm29.7 83.4-17.9-51.4h-.3l-17.4 51.4z"
        id="path50"
-       style="fill:#a1b4b4;fill-opacity:1" />
+       style="fill:#ffffff;fill-opacity:1" />
     <path
        d="m595.5 129.4 69-91.7v-.3h-67.1v-21.9h98.7v20.9l-69 91.7v.3h69v21.9h-100.6z"
        id="path52"
-       style="fill:#a1b4b4;fill-opacity:1" />
+       style="fill:#ffffff;fill-opacity:1" />
     <path
        d="m713.2 15.5h26.2v134.8h-26.2z"
        id="path54"
-       style="fill:#a1b4b4;fill-opacity:1" />
+       style="fill:#ffffff;fill-opacity:1" />
     <path
        d="m756.8 15.5h23.5l60.2 91.5h.3v-91.5h25.1v134.8h-23.5l-60.2-91.2h-.3v91.2h-25.1z"
        id="path56"
-       style="fill:#a1b4b4;fill-opacity:1" />
+       style="fill:#ffffff;fill-opacity:1" />
     <path
        d="m880.6 128.1v-90.4l22.2-22.2h67.1l21.7 21.7v20.6h-26.2v-11l-9.1-9.1h-39.6l-9.9 9.9v70.6l9.9 9.9h40.1l9.4-9.4v-20.9h-28.9v-22.4h54.3v53l-22.2 22.2h-66.6z"
        id="path58"
-       style="fill:#a1b4b4;fill-opacity:1" />
+       style="fill:#ffffff;fill-opacity:1" />
     <path
        d="m1013.3 15.5h12.8l44.4 109.7h.3l44.4-109.7h13.1v134.8h-10.7v-114h-.3l-42 101.4h-9.4l-42-101.4h-.3v113.9h-10.7v-134.7z"
        id="path60"
-       style="fill:#a1b4b4;fill-opacity:1" />
+       style="fill:#ffffff;fill-opacity:1" />
     <path
        d="m1252.7 163.1-7 7-19.5-19.8h-55.4l-20.3-20.3v-94.5l20.3-20.3h59.4l20.3 20.3v94.4l-15.2 15.2zm-13.7-36.9v-86.9l-14.1-13.9h-49.2l-14.2 13.9v86.9l14.2 14.2h49.2z"
        id="path62"
-       style="fill:#a1b4b4;fill-opacity:1" />
+       style="fill:#ffffff;fill-opacity:1" />
   </g>
 </svg>
