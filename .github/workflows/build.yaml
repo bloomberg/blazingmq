@@ -36,15 +36,15 @@ jobs:
           env:
             PATH: ${PATH}:/workspace/srcs/bde-tools/bin
             PKG_CONFIG_PATH: /usr/lib/x86_64-linux-gnu/pkgconfig:/opt/bb/lib64/pkgconfig
-         run: |
-         cmake -S . -B cmake.bld/Linux -G Ninja \
-            -DCMAKE_TOOLCHAIN_FILE=bde-tools/BdeBuildSystem/toolchains/linux/gcc-default.cmake \
-            -DCMAKE_BUILD_TYPE=Debug \
-            -DBDE_BUILD_TARGET_SAFE=ON \
-            -DBDE_BUILD_TARGET_64=ON \
-            -DBDE_BUILD_TARGET_CPP17=ON \
-            -DCMAKE_PREFIX_PATH=bde-tools/BdeBuildSystem
-          cmake --build cmake.bld/Linux --parallel 8
+          run: |
+            cmake -S . -B cmake.bld/Linux -G Ninja \
+              -DCMAKE_TOOLCHAIN_FILE=bde-tools/BdeBuildSystem/toolchains/linux/gcc-default.cmake \
+              -DCMAKE_BUILD_TYPE=Debug \
+              -DBDE_BUILD_TARGET_SAFE=ON \
+              -DBDE_BUILD_TARGET_64=ON \
+              -DBDE_BUILD_TARGET_CPP17=ON \
+              -DCMAKE_PREFIX_PATH=bde-tools/BdeBuildSystem
+            cmake --build cmake.bld/Linux --parallel 8
       - name: Run Unit Tests
         run: |
           cd cmake.bld/Linux
