@@ -21,8 +21,8 @@ To begin, first clone the BlazingMQ
 commands from repo's root directory:
 
 ```sh
-$ docker compose -f docker/docker-compose.yaml up --build -d
-$ docker compose -f docker/docker-compose.yaml run bmqtool
+$ docker compose -f docker/single-node/docker-compose.yaml up --build -d
+$ docker compose -f docker/single-node/docker-compose.yaml run bmqtool
 $ bmqtool -b tcp://bmqbrkr:30114
 ```
 
@@ -39,7 +39,7 @@ and/or consumer application. We will walk through its most basic workflow: the
 client REPL. The included docker compose workflow should get you started:
 
 ```sh
-$ docker compose -f docker/docker-compose.yaml up bmqtool
+$ docker compose -f docker/single-node/docker-compose.yaml up bmqtool
 
 > help
 ```
