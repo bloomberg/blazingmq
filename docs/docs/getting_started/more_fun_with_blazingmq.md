@@ -18,8 +18,8 @@ workflow in [BlazingMQ in Action](../blazingmq_in_action).
 As a reminder, here's the setup for bmqtool and a single broker node:
 
 ```sh
-$ docker compose -f docker/docker-compose.yaml up --build -d
-$ docker compose -f docker/docker-compose.yaml run bmqtool
+$ docker compose -f docker/single-node/docker-compose.yaml up --build -d
+$ docker compose -f docker/single-node/docker-compose.yaml run bmqtool
 $ bmqtool -b tcp://bmqbrkr:30114
 ```
 
