@@ -1,0 +1,71 @@
+name: Tests
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  build_and_test:
+    name: "Check if BlazingMQ can build and pass unit tests"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -qy build-essential \
+            curl \
+            python3.10 \
+            cmake \
+            ninja-build \
+            pkg-config \
+            bison \
+            libfl-dev \
+            libbenchmark-dev \
+            libz-dev
+          docker/build_deps.sh
+       - name: Build BlazingMQ
+         env:
+           PATH: ${PATH}:/workspace/srcs/bde-tools/bin
+           PKG_CONFIG_PATH: /usr/lib/x86_64-linux-gnu/pkgconfig:/opt/bb/lib64/pkgconfig
+         run: |
+          cmake -S . -B cmake.bld/Linux -G Ninja \
+            -DCMAKE_TOOLCHAIN_FILE=bde-tools/BdeBuildSystem/toolchains/linux/gcc-default.cmake \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DBDE_BUILD_TARGET_SAFE=ON \
+            -DBDE_BUILD_TARGET_64=ON \
+            -DBDE_BUILD_TARGET_CPP17=ON \
+            -DCMAKE_PREFIX_PATH=bde-tools/BdeBuildSystem
+          cmake --build cmake.bld/Linux --parallel 8
+        - name: Run Unit Tests
+          run: |
+            cd cmake.bld/Linux
+            ctest
+
+  lint_and_docs:
+    name: "Lint and Docs"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16
+      - name: Set up dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -qy clang-format git doxygen
+      - name: Lint sources
+        run: |
+          git clang-format
+      - name: Build docs
+        run: |
+          doxygen Doxyfile
