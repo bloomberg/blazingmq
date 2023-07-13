@@ -33,11 +33,11 @@ jobs:
             libz-dev
           docker/build_deps.sh
       - name: Build BlazingMQ
-         env:
-           PATH: ${PATH}:/workspace/srcs/bde-tools/bin
-           PKG_CONFIG_PATH: /usr/lib/x86_64-linux-gnu/pkgconfig:/opt/bb/lib64/pkgconfig
+          env:
+            PATH: ${PATH}:/workspace/srcs/bde-tools/bin
+            PKG_CONFIG_PATH: /usr/lib/x86_64-linux-gnu/pkgconfig:/opt/bb/lib64/pkgconfig
          run: |
-          cmake -S . -B cmake.bld/Linux -G Ninja \
+         cmake -S . -B cmake.bld/Linux -G Ninja \
             -DCMAKE_TOOLCHAIN_FILE=bde-tools/BdeBuildSystem/toolchains/linux/gcc-default.cmake \
             -DCMAKE_BUILD_TYPE=Debug \
             -DBDE_BUILD_TARGET_SAFE=ON \
