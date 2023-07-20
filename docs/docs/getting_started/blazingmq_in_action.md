@@ -59,6 +59,10 @@ open a connection with the BlazingMQ backend, you'll need to `start` a
 10MAY2023_15:27:19.311 (140195584415616) INFO m_bmqtool_interactive.cpp:151 <-- session.start(5.0) => SUCCESS (0)
 ```
 
+{: .highlight }
+**Note:** `bmqtool` may print log lines hiding the CLI prompt `>`.
+The CLI will still take commands you type into the CLI even if the `>` is not visible.
+
 Now we may open our first **queue**!  We will open the queue both as a producer
 and consumer.  This means that any messages that we post will be echoed back to
 us.  Note that a queue does not need to be created or declared upfront in
