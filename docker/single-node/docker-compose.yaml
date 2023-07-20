@@ -6,8 +6,15 @@ services:
       dockerfile: docker/Dockerfile
     volumes:
       - ./config:/etc/local/bmq:ro
-    hostname: earth
+    hostname: gallifrey
     command: "/usr/local/bin/bmqbrkr /etc/local/bmq"
+
+  bmqtool:
+    image: bmqbrkr:latest
+    hostname: earth
+    # This "service" will exit immediately. It's OK, this is a
+    # container sitting on the same network as the single node, to be started
+    # in interactive mode with `docker-compose run`
 
 networks:
   default:
