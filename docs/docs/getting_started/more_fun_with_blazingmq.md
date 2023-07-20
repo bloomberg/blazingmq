@@ -23,6 +23,10 @@ $ docker compose -f docker/single-node/docker-compose.yaml run bmqtool
 $ bmqtool -b tcp://bmqbrkr:30114
 ```
 
+{: .highlight }
+**Note:** `bmqtool` may print log lines hiding the CLI prompt `>`.
+The CLI will still take commands you type into the CLI even if the `>` is not visible.
+
 ---
 
 ## Redelivery
