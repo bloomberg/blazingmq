@@ -124,7 +124,7 @@ A question that may arise in this setup is the effect of multi-hop architecture
 on message latency.  Since a message has to travel through several hops,
 additional latency is unavoidable.  In most set ups, BlazingMQ provides an end
 to end median latency in single digit milliseconds.  Ultimately, it comes down
-to carrying out end to end bench-marking in a production-like setup, reviewing
+to carrying out end to end benchmarking in a production-like setup, reviewing
 the latency and bandwidth numbers, and then adjusting number of consumers or
 number of levels in the tree.
 
