@@ -15,7 +15,7 @@ nav_order: 5
 
 * Producer applications can indicate to the BlazingMQ SDK to compress a
   message.  BlazingMQ SDK will compress the message (both payload and
-  properties) before sending it to the BlazingMQ backend.
+  properties) before sending it to the BlazingMQ back-end.
 
 * On the consumer side, upon receiving a compressed message, BlazingMQ SDK will
   seamlessly decompress it before presenting it to the application layer.
@@ -37,7 +37,7 @@ nav_order: 5
 * *Reduced Storage Quota:* A compressed message will lead to reduced usage of
   disk as well as BlazingMQ domain quota.  This means that applications will be
   able to store more messages with the same quota.  In certain scenarios, it
-  can also help the BlazingMQ backend, particularly in storage replication and
+  can also help the BlazingMQ back-end, particularly in storage replication and
   synchronization.  For *in-memory* queues, compressed messages will also help
   bring down the BlazingMQ broker's memory consumption.
 
@@ -45,7 +45,7 @@ nav_order: 5
 
 * *Higher CPU Usage:* There are no free lunches in life!  The above mentioned
   advantages come at the cost of additional CPU cycles in the producer and
-  consumers applications (note that BlazingMQ backend does not decompress
+  consumers applications (note that BlazingMQ back-end does not decompress
   messages).
 
 * *Potentially Higher Latency:* Since producers compress messages, and

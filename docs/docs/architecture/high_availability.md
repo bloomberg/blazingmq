@@ -210,7 +210,7 @@ producer applications can expect an *ACK* (success or failure) within the
 configured time interval.
 
 The presence of this retransmission buffer ensures that producer applications
-don't see any transient issues in the BlazingMQ backend.  In fact, today the
+don't see any transient issues in the BlazingMQ back-end.  In fact, today the
 entire BlazingMQ cluster (all replicas and primary node) can disappear from the
 network for a few minutes, and producer applications won't notice any failure
 from BlazingMQ APIs.  Now this's high availability!
@@ -328,7 +328,7 @@ contain a retransmission buffer, generate *GUID*s and support
 
 Addition of high availability support in BlazingMQ has undoubtedly improved
 BlazingMQ user experience and has helped provide uninterrupted service to users
-in case of transient issues in BlazingMQ backend, including network and
+in case of transient issues in BlazingMQ back-end, including network and
 hardware.  Applications can rely on BlazingMQ to buffer and retry messages
 seamlessly.  Additionally, BlazingMQ nodes can be restarted at any time without
 service interruption, which helps BlazingMQ maintainers during software

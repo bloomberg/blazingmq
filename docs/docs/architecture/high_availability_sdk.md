@@ -17,10 +17,10 @@ This article introduces readers to the notion of high availability ("HA") in
 BlazingMQ client libraries (also referred to as SDKs).  We will see how high
 availability in client libraries helps users write simpler applications than
 before, while protecting applications from transient issues in the BlazingMQ
-backend, network issues, etc.
+back-end, network issues, etc.
 
 High availability in client libraries complements [*High Availability in
-BlazingMQ Backend*](../high_availability), and they work together to provide a
+BlazingMQ Back-end*](../high_availability), and they work together to provide a
 seamless experience to BlazingMQ applications in case of framework crashes,
 machine issue, network faults, etc.
 
@@ -42,8 +42,8 @@ as well as *primary node -> consumer* paths:
    crash etc).
 
 Any of these events disrupt data flow and can impact applications.  As a result
-of HA in BlazingMQ backend, applications are protected from events in 1-3
-(readers can refer to [HA in BlazingMQ backend](../high_availability) article
+of HA in BlazingMQ back-end, applications are protected from events in 1-3
+(readers can refer to [HA in BlazingMQ back-end](../high_availability) article
 for more details).
 
 However, event (4) can still impact applications.  If BlazingMQ node to which
@@ -86,14 +86,14 @@ Lets take the example of a producer application and see how it gets affected:
 
 ## Design
 
-Just like high availability in BlazingMQ backend, all cases described above can
+Just like high availability in BlazingMQ back-end, all cases described above can
 be solved by buffering any work submitted to the SDK when connectivity is down,
 and transmitting buffered work and retransmitting any pending work upon
 reconnection. HA in BlazingMQ SDK takes the same approach.  Specifically:
 
 1. All *PUT* messages which are submitted by producer application are buffered
    by the SDK in a collection, irrespective of the state of connectivity with
-   BlazingMQ backend.  This means that once the queue has been successfully
+   BlazingMQ back-end.  This means that once the queue has been successfully
    opened by the producer application, it can continue to post *PUT* messages
    without worrying about connection's status.  This is one of the most
    important changes in the behavior of the SDK.  Previously, producer
@@ -103,7 +103,7 @@ reconnection. HA in BlazingMQ SDK takes the same approach.  Specifically:
 
 2. In addition, SDK now generates and assigns a unique `bmqt::MessageGUID` to
    every *PUT* message submitted by the application.  Prior to HA in SDK, GUIDs
-   were assigned by the first BlazingMQ backend (hop closest to the producer
+   were assigned by the first BlazingMQ back-end (hop closest to the producer
    application, typically the local BlazingMQ proxy).  Motivation for this
    change will be explained shortly.
 
@@ -116,12 +116,12 @@ reconnection. HA in BlazingMQ SDK takes the same approach.  Specifically:
    in (1).
 
 5. Once the connection is restored and all queues are reopened, all *PUT*
-   messages in the collection are transmitted to BlazingMQ backend.  It is
+   messages in the collection are transmitted to BlazingMQ back-end.  It is
    important to note that some of these *PUT* message could have been sent to
-   BlazingMQ backend prior to connection drop and SDK was waiting for *ACK*s
+   BlazingMQ back-end prior to connection drop and SDK was waiting for *ACK*s
    for them.  Moreover, some of these *PUT* messages could have been accepted
    by BlazingMQ queue.  Such *PUT* messages will be seamlessly deduped by
-   BlazingMQ backend, because BlazingMQ primary node maintains a history of
+   BlazingMQ back-end, because BlazingMQ primary node maintains a history of
    *MessageGUIDs* seen in the last few minutes (configurable), and if a *PUT*
    message arrives on the queue with a *GUID* which exists in the historical
    list of *GUID*s, it is simply acknowledged back without being added to the

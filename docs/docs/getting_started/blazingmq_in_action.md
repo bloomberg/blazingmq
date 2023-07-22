@@ -48,7 +48,7 @@ $ docker compose -f docker/single-node/docker-compose.yaml up bmqtool
 
 When you start up `bmqtool`, it should drop you into its default CLI mode. By
 default the tool does not begin a **session** with the broker in this mode. To
-open a connection with the BlazingMQ backend, you'll need to `start` a
+open a connection with the BlazingMQ back-end, you'll need to `start` a
 **session**:
 
 ```sh

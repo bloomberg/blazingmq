@@ -73,7 +73,7 @@ message as deleted once the consumer confirms the message.  Readers may notice
 that the work queue mode described above is just a simpler case of priority
 mode where all consumers have same priority.  In fact, there is no separate
 routing strategy called "work queue" in code or configuration, and BlazingMQ
-backend does not treat "work queue" as a special mode.
+back-end does not treat "work queue" as a special mode.
 
 Consumer priorities give applications finer control over message processing, in
 that applications can direct the traffic to a specific consumer instance or

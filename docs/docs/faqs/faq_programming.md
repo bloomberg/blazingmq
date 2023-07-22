@@ -225,13 +225,13 @@ Yes, it can fail, due to any of the reasons listed below:
 - An application attempts to open a queue for a BlazingMQ domain from a machine
   which is not configured for that BlazingMQ domain.
 
-- A bad configuration deployed in BlazingMQ backend (rare, but has non-zero
+- A bad configuration deployed in BlazingMQ back-end (rare, but has non-zero
   probability).
 
 - A long-standing network issue leads to a connection failure between the
-  application and the BlazingMQ backend, or within various BlazingMQ nodes in
-  the backend (rare, but has non-zero probability).
+  application and the BlazingMQ back-end, or within various BlazingMQ nodes in
+  the back-end (rare, but has non-zero probability).
 
-- A bug in the BlazingMQ backend
+- A bug in the BlazingMQ back-end
 
 ---
