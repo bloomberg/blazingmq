@@ -34,7 +34,7 @@ This topology structure helps BlazingMQ achieve bandwidth savings in very high
 fan-out ratio setups (a scenario where every message posted on the queue needs
 to go to every consumer attached to that queue).
 
-### What is High Availability
+### What is High Availability?
 
 Failure is inevitable in any distributed system.  While total failure can be
 minimized or even avoided in a well designed distributed system, partial
