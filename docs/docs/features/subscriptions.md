@@ -147,7 +147,7 @@ matching subscription(s). Here’s how subscriptions work at a high level:
 - Existing APIs will continue to work and consumer applications which do not
   use subscriptions will not need to make any changes.
 
-- In the BlazingMQ backend, upon the arrival of a new message, BlazingMQ
+- In the BlazingMQ back-end, upon the arrival of a new message, BlazingMQ
   primary node will try to match the message with a subscription and route the
   message to the consumer with that subscription. See *Implementation Details*
   section below for more info.
@@ -200,12 +200,12 @@ are, however, some additional details which are worth specifying.
    modes in BlazingMQ.
 
 5. **Merging of Subscriptions**: In case multiple consumers specify the same
-   subscription, BlazingMQ backend will seamlessly merge them by combining the
+   subscription, BlazingMQ back-end will seamlessly merge them by combining the
    options advertised by the consumers for that subscription. For example, if
    consumer A subscribes to `CustomerId == 1000` with priority 10 and capacity
    X , and consumer B subscribes to `CustomerId == 1000` with priority 10 and
    capacity Y , the two subscriptions will be merged by an intermediate hop in
-   BlazingMQ backend and advertised to the primary node as `CustomerId == 1000`
+   BlazingMQ back-end and advertised to the primary node as `CustomerId == 1000`
    with priority 10 and capacity X + Y . Two subscriptions will be determined
    to be same if they compare equal lexicographically. Merging of subscriptions
    will ensure that load-balancing across consumers having same subscription
@@ -216,7 +216,7 @@ are, however, some additional details which are worth specifying.
    the expression. For example, while evaluating the `CustomerId == 1000`
    expression, primary node will read `CustomerId` property from the message
    and compare its value against `1000` to determine a match. It is worth
-   noting that BlazingMQ backend can read a property in a message extremely
+   noting that BlazingMQ back-end can read a property in a message extremely
    efficiently (in `O(1)` time) – we essentially build a hashtable on the wire.
 
 ## Expression Language

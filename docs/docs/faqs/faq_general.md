@@ -87,8 +87,8 @@ send a message more than once to the same or different consumer.  This never
 occurs in steady state but can occur in these scenarios:
 
 - A consumer crashes without confirming a message
-- A node in BlazingMQ backend crashes
-- A node in BlazingMQ backend restarts gracefully
+- A node in BlazingMQ back-end crashes
+- A node in BlazingMQ back-end restarts gracefully
 
 A consumer application must be able to handle duplicate delivery.
 
