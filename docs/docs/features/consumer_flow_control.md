@@ -33,7 +33,7 @@ consumer processes (i.e., confirms) pending messages that were delivered
 previously.  BlazingMQ keeps track of outstanding messages sent to every
 consumer to determine if a consumer instance is at capacity or not.
 
-As an example, if a consumer instance wants no more than 1000 messages or 100MB
+As an example, if a consumer instance wants no more than 1,000 messages or 100MB
 worth of messages, it can specify that in the flow control API.  Specifying the
 value of zero of number or bytes of messages leads to effectively pausing the
 consumer -- BlazingMQ sees that consumer has no capacity and thus does not

@@ -303,7 +303,7 @@ size of the shards is chosen considering the total storage capacity as well
 as total anticipated number of queues that the cluster will host.  Typically,
 the number of shards is much less than the total number of queues hosted on a
 cluster.  For example, having less than 50 shards for a cluster which is
-hosting 10000+ queues is normal.  Every node in a BlazingMQ cluster has full
+hosting 10,000+ queues is normal.  Every node in a BlazingMQ cluster has full
 knowledge (and a full copy) of all the shards.
 
 ### Storage Shard Internals
