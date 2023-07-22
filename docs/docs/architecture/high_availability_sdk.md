@@ -1,11 +1,11 @@
 ---
 layout: default
-title: High Availability in SDKs
+title: High Availability in Client Libraries
 parent: Architecture
 nav_order: 5
 ---
 
-# High Availability in BlazingMQ Client Libraries
+# High Availability in Client Libraries
 {: .no_toc }
 
 * toc
