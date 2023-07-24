@@ -49,7 +49,7 @@ jobs:
             -DBDE_BUILD_TARGET_CPP17=ON \
             -DCMAKE_PREFIX_PATH=${{ github.workspace }}/deps/srcs/bde-tools/BdeBuildSystem \
             -DCMAKE_INSTALL_LIBDIR=lib64
-          cmake --build cmake.bld/Linux --parallel 8 --target all.t
+          cmake --build cmake.bld/Linux --parallel 8 --target all all.t
       - name: Run Unit Tests
         run: |
           cd cmake.bld/Linux
