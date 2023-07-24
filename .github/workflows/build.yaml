@@ -36,7 +36,7 @@ jobs:
         run: mkdir -p deps
       - name: Fetch & Build non packaged dependencies
         working-directory: deps
-        run: docker/build_deps.sh
+        run: ../docker/build_deps.sh
       - name: Build BlazingMQ
         env:
           PKG_CONFIG_PATH: /usr/lib/x86_64-linux-gnu/pkgconfig:/opt/bb/lib64/pkgconfig
