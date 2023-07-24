@@ -32,6 +32,8 @@ jobs:
             libfl-dev \
             libbenchmark-dev \
             libz-dev
+      - name: Create dependency fetcher working directory
+        run: mkdir -p deps
       - name: Fetch & Build non packaged dependencies
         working-directory: deps
         run: docker/build_deps.sh
@@ -41,12 +43,12 @@ jobs:
         run: |
           echo $PATH
           cmake -S . -B cmake.bld/Linux -G Ninja \
-            -DCMAKE_TOOLCHAIN_FILE=deps/bde-tools/BdeBuildSystem/toolchains/linux/gcc-default.cmake \
+            -DCMAKE_TOOLCHAIN_FILE=deps/srcs/bde-tools/BdeBuildSystem/toolchains/linux/gcc-default.cmake \
             -DCMAKE_BUILD_TYPE=Debug \
             -DBDE_BUILD_TARGET_SAFE=ON \
             -DBDE_BUILD_TARGET_64=ON \
             -DBDE_BUILD_TARGET_CPP17=ON \
-            -DCMAKE_PREFIX_PATH=deps/bde-tools/BdeBuildSystem
+            -DCMAKE_PREFIX_PATH=deps/srcs/bde-tools/BdeBuildSystem
           cmake --build cmake.bld/Linux --parallel 8
       - name: Run Unit Tests
         run: |
