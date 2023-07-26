@@ -689,4 +689,29 @@
     <script src="../../utils.js"></script>
     <script src="./animation.js"></script>
   </body>
+
+  <!-- Dark Theme -->
+  <style type="text/css">
+    body.dark-theme {
+      fill: #fff;
+    }
+    body.dark-theme .st0 {
+      stroke: #fff;
+    }
+    body.dark-theme .st2 {
+      fill: #000;
+    }
+    body.dark-theme .st6 {
+      fill: #000;
+      stroke: #fff;
+    }
+    body.dark-theme .st7 {
+      stroke: #fff;
+    }
+  </style>
+  <script>
+    if (window.location.search.includes("theme=dark")) {
+      document.body.classList.add("dark-theme");
+    }
+  </script>
 </html>
