@@ -75,8 +75,7 @@ container(s).
 
 ## Single Node
 
-In this example (see the [docker-compose.yaml
-file](https://github.com/bloomberg/blazingmq/blob/main/docker/single-node/docker-compose.yaml)),
+In this example (see the [docker-compose.yaml](https://github.com/bloomberg/blazingmq/blob/main/docker/single-node/docker-compose.yaml) file),
 a single machine, called _earth_, runs a broker that acts as the single node of
 a cluster named "local". The `hostName` in
 [`bmqbrkrcfg.json`](https://github.com/bloomberg/blazingmq/blob/main/docker/single-node/config/bmqbrkrcfg.json)
