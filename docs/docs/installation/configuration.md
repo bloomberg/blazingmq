@@ -130,7 +130,7 @@ settings, see the
 [schema](https://github.com/bloomberg/blazingmq/blob/main/src/groups/mqb/mqbconfm/mqbconf.xsd).
 The top level object is `DomainVariant`. For sample configurations, see the
 Docker
-[example](https://github.com/bloomberg/blazingmq/tree/main/docker/cluster/etc/domains).
+[example](https://github.com/bloomberg/blazingmq/tree/main/docker/cluster/config/domains).
 
 ### Domain Definition
 
