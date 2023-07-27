@@ -29,7 +29,7 @@ configure() {
 build_bde() {
     pushd srcs/bde
     bbs_build configure
-    bbs_build build
+    bbs_build build -j8
     bbs_build --install=/opt/bb --prefix=/ install
     popd
 }
@@ -38,7 +38,7 @@ build_ntf() {
     pushd srcs/ntf-core
     sed -i s/CMakeLists.txt//g ./configure
     ./configure --prefix /opt/bb
-    make
+    make -j8
     make install
     popd
 }
