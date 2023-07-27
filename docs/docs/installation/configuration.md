@@ -61,7 +61,7 @@ For a complete list of settings, see the configuration
 [schema](https://github.com/bloomberg/blazingmq/blob/main/src/groups/mqb/mqbcfg/mqbcfg.xsd).
 The top level object is `Configuration`. For a sample configuration, see the
 Docker
-[example](https://github.com/bloomberg/blazingmq/blob/main/docker/cluster/etc/bmqbrkrcfg.json).
+[example](https://github.com/bloomberg/blazingmq/blob/main/docker/cluster/config/bmqbrkrcfg.json).
 
 ---
 
