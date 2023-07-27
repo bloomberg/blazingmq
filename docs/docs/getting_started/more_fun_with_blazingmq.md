@@ -119,14 +119,16 @@ message:
 `list` both consumers to show that one received the message and the other
 didn't:
 
-```
+```sh
 # bmqtool 1
+> list
 Unconfirmed message listing: 1 messages
   #  1  [40000000007A7B1DCAB1E7ED0CDB2FD1] Queue: '[ uri = bmq://bmq.test.persistent.priority/rebalance correlationId = [ autoValue = 8 ] ]' = 'alice'
 ```
 
-```
+```sh
 # bmqtool 2
+> list
 Unconfirmed message listing: 0 messages
 ```
 
