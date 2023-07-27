@@ -62,7 +62,7 @@ We provide results of a recent benchmark of BlazingMQ with this setup:
   a total of four nodes (primary and three replicas) recorded the message.
 
 - Queues with various [*routing
-  strategies*](../../introduction/features/message_routing_strategies) were
+  strategies*](../../features/message_routing_strategies) were
   tested.
 
 It is worth mentioning that the cluster setup described above is an extreme one

@@ -147,6 +147,6 @@ Details about BlazingMQ latency numbers can be found in
 ## How do I configure and deploy a BlazingMQ message broker, cluster or domain?
 
 Details about configuration and deployment can be found
-[here](../../installation).
+[here](../../../installation).
 
 ---
