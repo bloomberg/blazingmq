@@ -13,7 +13,7 @@ nav_order: 3
 
 ## Introduction
 
-This document introduces readers to BlazingMQ'sf network topology and describes
+This document introduces readers to BlazingMQ's network topology and describes
 how its unique topology enables BlazingMQ to provide flexible deployments, high
 bandwidth savings and very high fan-out ratio (10,000+ and beyond).
 
