@@ -79,7 +79,7 @@ article, readers can learn about some intermediate and advanced features of Blaz
 
 ## Installation
 
-[This](https://bloomberg.github.io/blazingmq/docs/configuration-and-deployment/deployment)
+[This](https://bloomberg.github.io/blazingmq/docs/installation/deployment/)
 article describes the steps for installing a BlazingMQ cluster in a set of Docker
 containers, along with a recommended set of configurations.
 
