@@ -8,14 +8,11 @@
 </p>
 
 ---
-
-![OS Linux](https://img.shields.io/badge/OS-Linux-blue)
-![OS AIX](https://img.shields.io/badge/OS-AIX-blue)
-![OS Solaris](https://img.shields.io/badge/OS-Solaris-blue)
+[![OS Linux](https://img.shields.io/badge/OS-Linux-blue)](#)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue)](LICENSE)
-![C++](https://img.shields.io/badge/C++-blue)
-![CMake](https://img.shields.io/badge/CMake-blue)
-![MessageQueue](https://img.shields.io/badge/MessageQueue-blue)
+[![C++](https://img.shields.io/badge/C++-blue)](#)
+[![CMake](https://img.shields.io/badge/CMake-blue)](#)
+[![MessageQueue](https://img.shields.io/badge/MessageQueue-blue)](#)
 [![Documentation](https://img.shields.io/badge/Documentation-blue)](https://bloomberg.github.io/blazingmq)
 
 # BlazingMQ - A Modern, High-Performance Message Queue
