@@ -53,7 +53,7 @@ jobs:
       - name: Run Unit Tests
         run: |
           cd cmake.bld/Linux
-          ctest
+          ctest --output-on-failure
 
   lint_and_docs:
     name: "Lint and Docs"
