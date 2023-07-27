@@ -140,6 +140,6 @@ BlazingMQ:
   [Java](https://github.com/bloomberg/bmq-sdk-java/tree/main/bmq-examples)
   tutorials.
 
-- C++ and Java API reference [documentation](../../apidocs/index)
+- C++ and Java API reference [documentation](../../apidocs)
 
 - BlazingMQ [architecture](../../architecture/clustering)
