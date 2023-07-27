@@ -37,7 +37,7 @@ build_bde() {
 build_ntf() {
     pushd srcs/ntf-core
     sed -i s/CMakeLists.txt//g ./configure
-    ./configure --prefix /opt/bb
+    ./configure --prefix /opt/bb --without-usage-examples --without-applications
     make -j8
     make install
     popd
