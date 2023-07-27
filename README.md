@@ -67,19 +67,19 @@ Comprehensive documentation about BlazingMQ can be found [here](https://bloomber
 
 ## Quick Start
 
-[This](https://bloomberg.github.io/blazingmq/getting_started/blazingmq_in_action/)
+[This](https://bloomberg.github.io/blazingmq/docs/getting_started/blazingmq_in_action/)
 article guides readers to build, install, and experiment with BlazingMQ locally
 in a Docker container.
 
 In the
-[companion](https://bloomberg.github.io/blazingmq/getting_started/more_fun_with_blazingmq)
+[companion](https://bloomberg.github.io/blazingmq/docs/getting_started/more_fun_with_blazingmq)
 article, readers can learn about some intermediate and advanced features of BlazingMQ and see them in action.
 
 ---
 
 ## Installation
 
-[This](https://bloomberg.github.io/blazingmq/configuration-and-deployment/deployment)
+[This](https://bloomberg.github.io/blazingmq/docs/configuration-and-deployment/deployment)
 article describes the steps for installing a BlazingMQ cluster in a set of Docker
 containers, along with a recommended set of configurations.
 
