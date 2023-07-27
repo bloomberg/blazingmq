@@ -118,7 +118,7 @@ For a complete list of settings, see the configuration
 [schema](https://github.com/bloomberg/blazingmq/blob/main/src/groups/mqb/mqbcfg/mqbcfg.xsd).
 The top level object is `ClustersDefinition`. For a sample configuration, see
 the Docker
-[example](https://github.com/bloomberg/blazingmq/blob/main/docker/cluster/etc/clusters.json).
+[example](https://github.com/bloomberg/blazingmq/blob/main/docker/cluster/config/clusters.json).
 
 ---
 
