@@ -596,7 +596,7 @@ static void consume(bmqa::Session* session, QueueManager* queueManager)
     // so it doesn't really matter.  We believe it is far better for the
     // application to provide its own ids than for BlazingMQ to supply a queue
     // ids.
-    const char k_QUEUE_URL[] = "bmq://bmq.tutorial.hello/test-queue";
+    const char k_QUEUE_URL[] = "bmq://bmq.test.mem.priority/test-queue";
 
     bmqt::CorrelationId   corrId(bmqt::CorrelationId::autoValue());
     bmqa::QueueId         queueId(corrId);

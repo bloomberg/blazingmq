@@ -788,7 +788,7 @@ static void produce(bmqa::Session* session, QueueManager* queueManager)
     // NOTE: it is designed this way because we believe it is better for the
     //       application to provide its own IDs than for BlazingMQ to supply a
     //       queue IDs.
-    const char k_QUEUE_URL[] = "bmq://bmq.tutorial.hello/test-queue";
+    const char k_QUEUE_URL[] = "bmq://bmq.test.mem.priority/test-queue";
     const int  k_QUEUE_ID    = 1;
 
     bmqa::QueueId         queueId(k_QUEUE_ID);
