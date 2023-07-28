@@ -55,6 +55,22 @@ jobs:
           cd cmake.bld/Linux
           ctest -E mwcsys_executil.t --output-on-failure
 
+  docker_single_node:
+    name: “Check whether docker single-node workflow builds correctly.”
+    runs-on: ubuntu-latest
+    steps:
+      - users: actions/checkout@v3
+      - name: Docker Workflow
+        run: docker compose -f docker/single-node/docker-compose.yaml up --build -d
+
+  docker_cluster:
+    name: “Check whether docker cluster workflow builds correctly.”
+    runs-on: ubuntu-latest
+    steps:
+      - users: actions/checkout@v3
+      - name: Docker Workflow
+        run: docker compose -f docker/cluster/docker-compose.yaml up --build -d
+
   Documentation:
     name: "Documentation"
     runs-on: ubuntu-latest
