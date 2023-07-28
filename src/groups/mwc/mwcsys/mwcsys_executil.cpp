@@ -82,7 +82,7 @@ int ExecUtil::execute(bsl::string* output, const char* command)
     // Close the pipe, and retrieve the rc code of execution of the command.
     int rc = pclose(pipe);
     if (rc != 0) {
-        if (WIFEXITED(rc)) {
+        if (WIFEXITED(rc) && !WIFSTOPPED(rc)) {
             // Process normally exited with an 'exit', extract the lower 8 bits
             // return value.
             return WEXITSTATUS(rc);  // RETURN
