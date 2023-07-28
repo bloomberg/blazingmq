@@ -11,6 +11,9 @@ services:
 
   bmqtool:
     image: bmqbrkr:latest
+    build: 
+      context: ../..
+      dockerfile: docker/Dockerfile
     hostname: earth
     # This "service" will exit immediately. It's OK, this is a
     # container sitting on the same network as the single node, to be started
