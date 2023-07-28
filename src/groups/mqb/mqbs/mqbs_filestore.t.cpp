@@ -166,12 +166,12 @@ struct Tester {
 
   public:
     // CREATORS
-    Tester()
+    Tester(const char *location)
     : d_scheduler(bsls::SystemClockType::e_MONOTONIC, s_allocator_p)
     , d_bufferFactory(1024, s_allocator_p)
     , d_itemPool(mqbnet::Channel::k_ITEM_SIZE, s_allocator_p)
-    , d_clusterLocation("./test-cluster123", s_allocator_p)
-    , d_clusterArchiveLocation("./test-cluster123", s_allocator_p)
+    , d_clusterLocation(location, s_allocator_p)
+    , d_clusterArchiveLocation(location, s_allocator_p)
     , d_blobSpPool(bdlf::BindUtil::bind(&createBlob,
                                         &d_bufferFactory,
                                         bdlf::PlaceHolders::_1,   // arena
@@ -745,7 +745,7 @@ struct Tester {
     }
 
     // ACCESSORS
-    mqbs::FileStore& fileSore() const { return *(d_fs_mp); }
+    mqbs::FileStore& fileStore() const { return *(d_fs_mp); }
 
     mqbnet::ClusterNode* node() const { return d_node_p; }
 };
@@ -767,8 +767,10 @@ static void test1_breathingTest()
 {
     s_ignoreCheckDefAlloc = true;
 
-    Tester           tester;
-    mqbs::FileStore& fs = tester.fileSore();
+    const char k_FILE_STORE_LOCATION[] = "./test-cluster123-1";
+
+    Tester           tester(k_FILE_STORE_LOCATION);
+    mqbs::FileStore& fs = tester.fileStore();
 
     int rc = fs.open();
     ASSERT_EQ(0, rc);
@@ -892,8 +894,10 @@ static void test2_printTest()
 
     s_ignoreCheckDefAlloc = true;
 
-    Tester           tester;
-    mqbs::FileStore& fs = tester.fileSore();
+    const char k_FILE_STORE_LOCATION[] = "./test-cluster123-2";
+
+    Tester           tester(k_FILE_STORE_LOCATION);
+    mqbs::FileStore& fs = tester.fileStore();
     BSLS_ASSERT_OPT(fs.open() == 0);
 
     // Set primary.
