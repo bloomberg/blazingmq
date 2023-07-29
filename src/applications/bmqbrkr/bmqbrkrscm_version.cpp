@@ -36,4 +36,4 @@ const char* bmqbrkrscm::Version::s_buildInfo         = "";
 const char* bmqbrkrscm::Version::s_timestamp         = "";
 const char* bmqbrkrscm::Version::s_sourceControlInfo = "";
 
-}  // close enterprise namespace
+}  // This closes the enterprise namespace
