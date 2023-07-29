@@ -35,7 +35,7 @@ communication between application programs, where 'producer' drops a message in 
 mailbox and 'consumer' picks it up at its own leisure. Messages placed into the
 queue are stored until the recipient retrieves and processes them. In other words,
 producer and consumer applications can temporally and spatially isolate
-themselves from each other by using a message queue to faciliate communication.
+themselves from each other by using a message queue to facilitate communication.
 
 BlazingMQ's back-end (message brokers) has been implemented in C++, and client
 libraries are available in C++, Java, and Python (the Python SDK will be published shortly
