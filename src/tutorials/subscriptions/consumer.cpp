@@ -630,7 +630,7 @@ static void consume(bmqa::Session*            session,
     // so it doesn't really matter.  We believe it is far better for the
     // application to provide its own ids than for BlazingMQ to supply a queue
     // ids.
-    const char k_QUEUE_URL[] = "bmq://bmq.tutorial.hello/test-queue";
+    const char k_QUEUE_URL[] = "bmq://bmq.test.mem.priority/test-queue";
 
     bsl::string        error;
     bmqt::QueueOptions queueOptions;

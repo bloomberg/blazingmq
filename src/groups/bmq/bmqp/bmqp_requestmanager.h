@@ -135,7 +135,7 @@
 //
 //  // Populate the request
 //  bmqp_ctrlmsg::OpenQueue& req = request->request().choice().makeOpenQueue();
-//  req.uri() = "bmq://bmq.tutorial.hello/myQueue"
+//  req.uri() = "bmq://bmq.test.mem.priority/myQueue"
 //  [...]
 //
 //  // Now set the response callback to be invoked
@@ -207,7 +207,7 @@
 //..
 //  RequestManagerType::RequestSp request = requestManager.createRequest();
 //  bmqp_ctrlmsg::OpenQueue& req = request->request().choice().makeOpenQueue();
-//  req.uri() = "bmq://bmq.tutorial.hello/myQueue"
+//  req.uri() = "bmq://bmq.test.mem.priority/myQueue"
 //  [...]
 //
 //  // Now set the response callback to be invoked
@@ -251,7 +251,7 @@
 //..
 //  RequestManagerType::RequestSp request = requestManager.createRequest();
 //  bmqp_ctrlmsg::OpenQueue& req = request->request().choice().makeOpenQueue();
-//  req.uri() = "bmq://bmq.tutorial.hello/myQueue"
+//  req.uri() = "bmq://bmq.test.mem.priority/myQueue"
 //  [...]
 //
 //  // We don't set a response callback, which means that the RequestManager
@@ -292,7 +292,7 @@
 //..
 //  RequestManagerType::RequestSp request = requestManager.createRequest();
 //  bmqp_ctrlmsg::OpenQueue& req = request->request().choice().makeOpenQueue();
-//  req.uri() = "bmq://bmq.tutorial.hello/myQueue"
+//  req.uri() = "bmq://bmq.test.mem.priority/myQueue"
 //  [...]
 //
 //  // We can set either the response callback or the async notifier callback

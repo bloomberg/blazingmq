@@ -49,7 +49,7 @@ using namespace BloombergLP;
 
 namespace {
 typedef bsl::vector<bsl::string> TestMessages;
-const char k_QUEUE_URL[] = "bmq://bmq.tutorial.hello/test-queue";
+const char k_QUEUE_URL[] = "bmq://bmq.test.mem.priority/test-queue";
 const int  k_QUEUE_ID    = 1;
 }  // close unnamed namespace
 

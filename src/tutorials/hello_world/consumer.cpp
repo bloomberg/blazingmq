@@ -68,7 +68,7 @@ namespace {
 using ManagedHandler = bslma::ManagedPtr<bmqa::SessionEventHandler>;
 
 // CONSTANTS
-const char k_QUEUE_URL[] = "bmq://bmq.tutorial.hello/test-queue";
+const char k_QUEUE_URL[] = "bmq://bmq.test.mem.priority/test-queue";
 
 // FUNCTIONS
 bsl::function<void(int)> shutdownHandler;

@@ -477,7 +477,7 @@ static void testN1_decodeFromFile()
             bmqt::QueueFlagsUtil::setWriter(&flags);
             bmqt::QueueFlagsUtil::setAck(&flags);
 
-            params.uri()        = "bmq://bmq.tutorial.hello/test-queue";
+            params.uri()        = "bmq://bmq.test.mem.priority/test-queue";
             params.flags()      = flags;
             params.qId()        = 0;
             params.readCount()  = 0;
@@ -515,7 +515,7 @@ static void testN1_decodeFromFile()
             bmqt::QueueFlagsUtil::setWriter(&flags);
             bmqt::QueueFlagsUtil::setAck(&flags);
 
-            params.uri()        = "bmq://bmq.tutorial.hello/test-queue";
+            params.uri()        = "bmq://bmq.test.mem.priority/test-queue";
             params.flags()      = flags;
             params.qId()        = 0;
             params.readCount()  = 0;
