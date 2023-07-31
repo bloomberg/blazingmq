@@ -55,18 +55,30 @@ jobs:
           cd cmake.bld/Linux
           ctest -E mwcsys_executil.t --output-on-failure
 
-  lint_and_docs:
-    name: "Lint and Docs"
+  Documentation:
+    name: "Documentation"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - name: Set up dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -qy clang-format git doxygen
-      - name: Lint sources
-        run: |
-          git clang-format
+          sudo apt-get install -qy git doxygen
       - name: Build docs
         run: |
           doxygen Doxyfile
+  
+  formatting-check:
+    name: Formatting Check
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        path:
+          - 'src'
+    steps:
+      - uses: actions/checkout@v3
+      - name: Run clang-format style check for C/C++/Protobuf programs.
+        uses: jidicula/clang-format-action@v4.11.0
+        with:
+          clang-format-version: '14'
+          check-path: ${{ matrix.path }}
