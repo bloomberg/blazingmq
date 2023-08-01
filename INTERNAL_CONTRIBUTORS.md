@@ -36,9 +36,16 @@ GitHub (each list has been sorted based on the last names):
 - Dimitrios Kouzis-Loukas
 - Matt Millett
 - Ford Peprah
-- Anton Pryakhin
 - Gaurav Pikale
+- Anton Pryakhin
 - Andrei Riakhovskii
 - Ilougino Rocha
+
+---
+
+## Special Thanks
+
+- Timi Adeniran (TLA+ spec)
+- Max Duluc (BlazingMQ logo, website design and animations)
 
 ---
