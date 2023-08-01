@@ -45,6 +45,10 @@ published shortly as open source too!).
 BlazingMQ is an actively developed project and has been battle-tested in
 production at Bloomberg for 8+ years.
 
+This repository contains BlazingMQ message broker, BlazingMQ C++ client library
+and a BlazingMQ command line tool, while BlazingMQ Java client library can be
+found in [this](https://github.com/bloomberg/blazingmq-sdk-java) repository.
+
 ---
 
 ## Menu
