@@ -63,7 +63,7 @@ jobs:
       - name: Set up dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -qy git doxygen
+          sudo apt-get install -qy doxygen
       - name: Build docs
         run: |
           doxygen Doxyfile
