@@ -14,7 +14,6 @@
 // limitations under the License.
 
 // mwcsys_executil.cpp                                                -*-C++-*-
-#include <mwcsys_executil.h>
 
 #include <mwcscm_version.h>
 
