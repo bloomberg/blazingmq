@@ -206,7 +206,8 @@ class ExecutionPolicy;
 /// Provides a metafunction that determines, at compile time, the type
 /// returned by `mwcex::ExecutionUtil::execute`.
 template <class POLICY, class FUNCTION>
-struct ExecutionUtil_ExecuteResult {};
+struct ExecutionUtil_ExecuteResult {
+};
 
 /// Provides a specialization of `ExecutionUtil_ExecuteResult` for One-Way
 /// policies.
@@ -252,7 +253,8 @@ struct ExecutionUtil_ExecuteResult<
 /// Provides a metafunction that determines, at compile time, the type
 /// returned by `mwcex::ExecutionUtil::thenExecute`.
 template <class POLICY, class FUTURE, class FUNCTION>
-struct ExecutionUtil_ThenExecuteResult {};
+struct ExecutionUtil_ThenExecuteResult {
+};
 
 /// Provides a specialization of `ExecutionUtil_ThenExecuteResult` for
 /// One-Way policies.
