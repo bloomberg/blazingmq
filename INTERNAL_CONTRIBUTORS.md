@@ -46,6 +46,12 @@ GitHub (each list has been sorted based on the last names):
 ## Special Thanks
 
 - Timi Adeniran (TLA+ spec)
-- Max Duluc (BlazingMQ logo, website design and animations)
+- BMS User Workflow team (BlazingMQ logo, website design and animations)
+  - Max Duluc
+  - Kieran Flay
+  - Nikita Martianov
+  - Pawan Korotane
+  - Sam Chislett
+  - Lidiia Chernomorova
 
 ---
