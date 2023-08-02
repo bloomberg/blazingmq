@@ -295,7 +295,8 @@ class Future_Callback {
     /// Provides a tag type to specify the type of the async result accepted
     /// by the callback,
     template <class R>
-    struct AsyncResultTypeTag {};
+    struct AsyncResultTypeTag {
+    };
 
   private:
     // PRIVATE TYPES

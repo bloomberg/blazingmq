@@ -203,7 +203,8 @@ class WeakMemFnResult;
 /// that its call signature is compatible with the specified return type
 /// `RET` and the specified argument types `ARGS`.
 template <class WEAKMEMFN, class RET, class ARGS>
-struct WeakMemFn_Invocable {};
+struct WeakMemFn_Invocable {
+};
 
 /// Provides a specialization of `WeakMemFn_Invocable` for a non-void return
 /// types and 0 argument types.
@@ -618,7 +619,8 @@ struct WeakMemFn_Invocable<
 /// with the specified return type `RET` and the specified argument types
 /// `ARGS`.
 template <class WEAKMEMFN, class RET, class ARGS>
-struct WeakMemFnInstance_Invocable {};
+struct WeakMemFnInstance_Invocable {
+};
 
 /// Provides a specialization of `WeakMemFnInstance_Invocable` for 0
 /// argument types.

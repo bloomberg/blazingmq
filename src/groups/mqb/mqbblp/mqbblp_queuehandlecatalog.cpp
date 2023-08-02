@@ -122,7 +122,7 @@ void QueueHandleCatalog::queueHandleDeleter(mqbi::QueueHandle* handle)
 QueueHandleCatalog::QueueHandleCatalog(mqbi::Queue*      queue,
                                        bslma::Allocator* allocator)
 : d_queue_p(queue)
-, d_handleFactory_mp(new(*allocator) DefaultHandleFactory(), allocator)
+, d_handleFactory_mp(new (*allocator) DefaultHandleFactory(), allocator)
 , d_handles(allocator)
 , d_allocator_p(allocator)
 {
