@@ -576,7 +576,7 @@ ClusterOrchestrator::ClusterOrchestrator(
 , d_stateManager_mp(
       clusterConfig.clusterAttributes().isFSMWorkflow()
           ? static_cast<mqbi::ClusterStateManager*>(
-                new(*d_allocator_p) mqbc::ClusterStateManager(
+                new (*d_allocator_p) mqbc::ClusterStateManager(
                     clusterConfig,
                     d_cluster_p,
                     d_clusterData_p,
@@ -595,7 +595,7 @@ ClusterOrchestrator::ClusterOrchestrator(
                     k_WATCHDOG_TIMEOUT_DURATION,
                     d_allocators.get("ClusterStateManager")))
           : static_cast<mqbi::ClusterStateManager*>(
-                new(*d_allocator_p) ClusterStateManager(
+                new (*d_allocator_p) ClusterStateManager(
                     clusterConfig,
                     d_cluster_p,
                     d_clusterData_p,

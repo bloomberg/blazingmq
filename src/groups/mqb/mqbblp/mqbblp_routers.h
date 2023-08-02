@@ -832,7 +832,7 @@ inline Routers::QueueRoutingContext::QueueRoutingContext(
 : d_expressions(allocator)
 , d_nextSubscriptionId(0)
 , d_groupIds(allocator)
-, d_preader(new(*allocator) MessagePropertiesReader(schemaLearner, allocator),
+, d_preader(new (*allocator) MessagePropertiesReader(schemaLearner, allocator),
             allocator)
 , d_evaluationContext(0, allocator)
 , d_allocator_p(allocator)

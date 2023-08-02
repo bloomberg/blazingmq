@@ -805,7 +805,7 @@ QueueEngineUtil_AppState::QueueEngineUtil_AppState(
     const mqbu::StorageKey&                  appKey,
     bslma::Allocator*                        allocator)
 : d_storageIter_mp(iterator)
-, d_routing_sp(new(*allocator) Routers::AppContext(queueContext, allocator),
+, d_routing_sp(new (*allocator) Routers::AppContext(queueContext, allocator),
                allocator)
 , d_redeliveryList(allocator)
 , d_putAsideList(allocator)

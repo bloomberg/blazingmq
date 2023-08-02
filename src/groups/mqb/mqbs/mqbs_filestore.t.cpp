@@ -166,7 +166,7 @@ struct Tester {
 
   public:
     // CREATORS
-    Tester(const char *location)
+    Tester(const char* location)
     : d_scheduler(bsls::SystemClockType::e_MONOTONIC, s_allocator_p)
     , d_bufferFactory(1024, s_allocator_p)
     , d_itemPool(mqbnet::Channel::k_ITEM_SIZE, s_allocator_p)
