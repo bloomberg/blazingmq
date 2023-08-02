@@ -27,7 +27,6 @@
 #include <mqbu_messageguidutil.h>
 
 // MWC
-#include <mwcsys_executil.h>
 #include <mwcsys_time.h>
 #include <mwctsk_alarmlog.h>
 #include <mwcu_memoutstream.h>
