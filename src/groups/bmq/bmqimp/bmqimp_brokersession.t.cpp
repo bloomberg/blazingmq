@@ -2242,7 +2242,6 @@ bool TestSession::waitForQueueRemoved(
 
     const bsls::TimeInterval expireAfter =
         bsls::SystemTime::nowRealtimeClock() + timeout;
-    mwcsys::Time::nowMonotonicClock() + timeout;
     while (session().lookupQueue(queue->uri()) != 0 &&
            bsls::SystemTime::nowRealtimeClock() < expireAfter) {
         bslmt::ThreadUtil::microSleep(k_TIME_SOURCE_STEP.totalMicroseconds());
@@ -9797,7 +9796,7 @@ static void test54_distributedTrace()
             for (size_t i = 0; i < expectedNum; i++) {
                 ASSERT_EQ(
                     events.timedPopFront(&buffer[i],
-                                         mwcsys::Time::nowMonotonicClock() +
+                                         bdlt::CurrentTime::now() +
                                              bsls::TimeInterval(0.1)),
                     0);
             }
@@ -9812,9 +9811,25 @@ static void test54_distributedTrace()
             // Make sure no other events arrive with the given default timeout.
             bsl::string emptyStr(s_allocator_p);
             ASSERT_NE(events.timedPopFront(&emptyStr,
-                                           mwcsys::Time::nowMonotonicClock() +
+                                           bdlt::CurrentTime::now() +
                                                bsls::TimeInterval(0.01)),
                       0);
+        }
+
+        
+        static bool waitForWriteCall(const bsl::deque<mwcio::TestChannel::WriteCall> &calls,
+                                     const bsls::TimeInterval& timeout)
+        {
+            PVVV_SAFE("Waiting for any write event");
+
+            const bsls::TimeInterval expireAfter =
+                bsls::SystemTime::nowRealtimeClock() + timeout;
+            while (calls.empty() &&
+                bsls::SystemTime::nowRealtimeClock() < expireAfter) {
+                bslmt::ThreadUtil::microSleep(TestSession::k_TIME_SOURCE_STEP.totalMicroseconds());
+            }
+
+            return !calls.empty();
         }
     };
 
@@ -9908,11 +9923,12 @@ static void test54_distributedTrace()
     dtEvents.clear();
 
     PVV_SAFE("Step 3. Configure a queue");
+    ASSERT(obj.channel().writeCalls().empty());
     int rc = obj.session().configureQueueAsync(pQueue,
                                                pQueue->options(),
                                                timeout);
     ASSERT_EQ(rc, bmqt::ConfigureQueueResult::e_SUCCESS);
-    ASSERT(obj.channel().writeCalls().empty());
+    ASSERT(localFns::waitForWriteCall(obj.channel().writeCalls(), bsls::TimeInterval(0.1)));
 
     localFns::fillEventBufferFn(dtEvents, dtEventsQueue, 1u);
     ASSERT_EQ(dtEvents[0],
