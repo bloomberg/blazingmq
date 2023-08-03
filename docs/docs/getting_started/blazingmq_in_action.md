@@ -143,3 +143,10 @@ BlazingMQ:
 - C++ and Java API reference [documentation](../../../apidocs)
 
 - BlazingMQ [architecture](../../architecture/clustering)
+
+## Building
+
+[bin/build-ubuntu.sh](bin/build-ubuntu) and
+[bin/build-darwin.sh](bin/build-darwin) build BlazingMQ and its dependencies,
+respectively, on Ubuntu 22.04.2 LTS and Darwin 22.6.0. They can serve as a basis
+to build BlazingMQ on other systems.
