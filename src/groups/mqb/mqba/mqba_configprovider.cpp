@@ -26,7 +26,6 @@
 #include <bmqscm_versiontag.h>
 
 // MWC
-#include <mwcsys_executil.h>
 #include <mwcsys_time.h>
 #include <mwcu_memoutstream.h>
 #include <mwcu_printutil.h>
