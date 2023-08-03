@@ -55,6 +55,7 @@ found in [this](https://github.com/bloomberg/blazingmq-sdk-java) repository.
 
 - [Documentation](#documentation)
 - [Quick Start](#quick-start)
+- [Building](#building)
 - [Installation](#installation)
 - [Contributions](#contributions)
 - [License](#license)
@@ -80,6 +81,15 @@ In the
 [companion](https://bloomberg.github.io/blazingmq/docs/getting_started/more_fun_with_blazingmq)
 article, readers can learn about some intermediate and advanced features of
 BlazingMQ and see them in action.
+
+---
+
+## Building
+
+[bin/build-ubuntu.sh](bin/build-ubuntu) and
+[bin/build-darwin.sh](bin/build-darwin) build BlazingMQ and its dependencies,
+respectively, on Ubuntu 22.04.2 LTS and Darwin 22.6.0. They can serve as a basis
+to build BlazingMQ on other systems.
 
 ---
 
