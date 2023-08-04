@@ -5,6 +5,7 @@
 # Before running this script, install following prerequisites, if not present
 # yet, by copy-and-pasting the commands between `<<PREREQUISITES` and
 # `PREREQUISITES` below:
+                                                    # shellcheck disable=SC2188
 <<PREREQUISITES
 sudo apt update && sudo apt -y install ca-certificates
 sudo apt install -y --no-install-recommends \
@@ -21,17 +22,17 @@ PREREQUISITES
 
 set -e
 set -u
-[ -z $BASH ] || shopt -s expand_aliases
+[ -z "$BASH" ] || shopt -s expand_aliases
 
-script_path="bin/$(basename $0)"
+script_path="bin/$(basename "$0")"
 
-if [ ! -f $script_path ] || [ $(realpath $0) != $(realpath $script_path) ]; then
+if [ ! -f "$script_path" ] || [ "$(realpath "$0")" != "$(realpath "$script_path")" ]; then
     echo 'This script must be run from the root of the BlazingMQ repository.'
     exit 1
 fi
 
 # :: Set some initial constants :::::::::::::::::::::::::::::::::::::::::::::::
-DIR_ROOT="${DIR_ROOT:-`pwd`}"
+DIR_ROOT="${DIR_ROOT:-$(pwd)}"
 
 DIR_THIRDPARTY="${DIR_ROOT}/thirdparty"
 mkdir -p "${DIR_THIRDPARTY}"
@@ -59,11 +60,11 @@ PATH="${DIR_THIRDPARTY}/bde-tools/bin:$PATH"
 
 if [ ! -e "${DIR_BUILD}/bde/.complete" ]; then
     pushd "${DIR_THIRDPARTY}/bde"
-    eval `bbs_build_env -u opt_64_cpp17 -b "${DIR_BUILD}/bde"`
+    eval "$(bbs_build_env -u opt_64_cpp17 -b "${DIR_BUILD}/bde")"
     bbs_build configure --prefix="${DIR_ROOT}"
     bbs_build build --prefix="${DIR_ROOT}"
     bbs_build --install_dir="/" --prefix="${DIR_ROOT}" install
-    eval `bbs_build_env unset`
+    eval "$(bbs_build_env unset)"
     popd
     touch "${DIR_BUILD}/bde/.complete"
 fi
@@ -79,20 +80,20 @@ if [ ! -e "${DIR_BUILD}/ntf/.complete" ]; then
 fi
 
 # :: Build the BlazingMQ repo :::::::::::::::::::::::::::::::::::::::::::::::::::::::
-CMAKE_OPTIONS="\
+CMAKE_OPTIONS=(\
     -DBDE_BUILD_TARGET_64=1 \
     -DCMAKE_BUILD_TYPE=Debug \
-    -DCMAKE_INSTALL_LIBDIR=${DIR_ROOT}/lib \
-    -DCMAKE_INSTALL_PREFIX=${DIR_ROOT} \
-    -DCMAKE_MODULE_PATH=${DIR_THIRDPARTY}/bde-tools/cmake;${DIR_THIRDPARTY}/bde-tools/BdeBuildSystem \
-    -DCMAKE_PREFIX_PATH=${DIR_ROOT} \
-    -DCMAKE_TOOLCHAIN_FILE=${DIR_THIRDPARTY}/bde-tools/BdeBuildSystem/toolchains/linux/gcc-default.cmake \
+    -DCMAKE_INSTALL_LIBDIR="${DIR_ROOT}/lib" \
+    -DCMAKE_INSTALL_PREFIX="${DIR_ROOT}" \
+    -DCMAKE_MODULE_PATH="${DIR_THIRDPARTY}/bde-tools/cmake;${DIR_THIRDPARTY}/bde-tools/BdeBuildSystem" \
+    -DCMAKE_PREFIX_PATH="${DIR_ROOT}" \
+    -DCMAKE_TOOLCHAIN_FILE="${DIR_THIRDPARTY}/bde-tools/BdeBuildSystem/toolchains/linux/gcc-default.cmake" \
     -DCMAKE_CXX_STANDARD=17 \
     -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-    -DFLEX_ROOT=/usr/lib/x86_64-linux-gnu"
+    -DFLEX_ROOT=/usr/lib/x86_64-linux-gnu)
 
 PKG_CONFIG_PATH="${DIR_ROOT}/lib64/pkgconfig:$(pkg-config --variable pc_path pkg-config)" \
-cmake -B "${DIR_BUILD}/blazingmq" -S "${DIR_ROOT}" ${CMAKE_OPTIONS}
+cmake -B "${DIR_BUILD}/blazingmq" -S "${DIR_ROOT}" "${CMAKE_OPTIONS[@]}"
 make -C "${DIR_BUILD}/blazingmq" -j 16
 
 echo broker is here: "${DIR_BUILD}/blazingmq/src/applications/bmqbrkr/bmqbrkr.tsk"
