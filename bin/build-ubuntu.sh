@@ -88,5 +88,5 @@ cmake -B "${DIR_BUILD}/blazingmq" -S "${DIR_ROOT}" ${CMAKE_OPTIONS}
 make -C "${DIR_BUILD}/blazingmq" -j 16
 
 echo broker is here: "${DIR_BUILD}/blazingmq/src/applications/bmqbrkr/bmqbrkr.tsk"
-echo to run the broker: "cd ${DIR_BUILD}/blazingmq/src/applications/bmqbrkr ; ./run"
+echo to run the broker: "${DIR_BUILD}/blazingmq/src/applications/bmqbrkr/run"
 echo tool is here: "${DIR_BUILD}/blazingmq/src/applications/bmqtool/bmqtool.tsk"
