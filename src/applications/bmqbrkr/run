@@ -7,6 +7,8 @@ set -e
 # If 'gdb' or 'lldb' is passed in, execute the task with those arguments in the
 # corresponding debugger.
 
+cd "$(dirname "$0")"
+
 if [ ! -s 'bmqbrkr.tsk' ]; then
     echo "Task 'bmqbrkr.tsk' doesn't exist"
     exit 1
@@ -14,15 +16,15 @@ fi
 
 BMQ_PREFIX="${BMQ_PREFIX:-localBMQ}"
 
-if [ ! -d $BMQ_PREFIX ]; then
-    mkdir $BMQ_PREFIX
-    ln -sf $(readlink etc) $BMQ_PREFIX/etc
-    mkdir $BMQ_PREFIX/logs
-    mkdir -p $BMQ_PREFIX/storage/local/archive
+if [ ! -d "$BMQ_PREFIX" ]; then
+    mkdir "$BMQ_PREFIX"
+    ln -sf "$(readlink etc)" "$BMQ_PREFIX/etc"
+    mkdir "$BMQ_PREFIX/logs"
+    mkdir -p "$BMQ_PREFIX/storage/local/archive"
 else
     echo "Clearing logs ... in $BMQ_PREFIX/logs/*"
-    rm -f $BMQ_PREFIX/logs/*
-    mkdir -p $BMQ_PREFIX/storage/local/archive
+    rm -f "$BMQ_PREFIX/logs/*"
+    mkdir -p "$BMQ_PREFIX/storage/local/archive"
 fi
 
 while [ "$1" != "" ]; do
