@@ -9,13 +9,27 @@ RUN apt install -y --no-install-recommends \
     gdb \
     curl \
     python3.10 \
-    cmake \
     ninja-build \
     pkg-config \
     bison \
     libfl-dev \
     libbenchmark-dev \
     libz-dev \
+    && apt clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# BDE build requires CMake > 3.24, which is not available in Ubuntu 22.04 yet
+# Consider installation of cmake from apt once it's met BDE requirements
+RUN apt update \
+    && apt install -y --no-install-recommends git \
+    && mkdir -p /deps_build/CMake \
+    && git clone -b v3.27.0 https://github.com/Kitware/CMake /deps_build/CMake \
+    && cd /deps_build/CMake \
+    && ./bootstrap --parallel=8 -- -DCMAKE_USE_OPENSSL=OFF \
+    && make -j8 \
+    && make install \
+    && rm -rf /deps_build \
+    && apt remove -y git \
     && apt clean \
     && rm -rf /var/lib/apt/lists/*
 
