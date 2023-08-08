@@ -90,3 +90,11 @@ jobs:
       - uses: actions/checkout@v3
       - name: Run ShellCheck
         uses: ludeeus/action-shellcheck@master
+
+  docker-build-check:
+    name: Docker image build check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Run docker compose build
+        run: docker compose -f docker/single-node/docker-compose.yaml build
