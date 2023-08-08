@@ -23,7 +23,7 @@ RUN apt install -y --no-install-recommends \
 RUN mkdir -p /deps_build/CMake \
     && cd /deps_build/CMake \
     && curl -s -L -O https://github.com/Kitware/CMake/releases/download/v3.27.1/cmake-3.27.1-linux-x86_64.sh \
-    && /bin/bash -c "./cmake-3.27.1-linux-x86_64.sh --skip-license --prefix=/opt/bb" \
+    && /bin/bash cmake-3.27.1-linux-x86_64.sh -- --skip-license --prefix=/usr/local \
     && rm -rf /deps_build
 
 WORKDIR /workspace
