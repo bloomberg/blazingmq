@@ -20,18 +20,11 @@ RUN apt install -y --no-install-recommends \
 
 # BDE build requires CMake > 3.24, which is not available in Ubuntu 22.04 yet
 # Consider installation of cmake from apt once it's met BDE requirements
-RUN apt update \
-    && apt install -y --no-install-recommends git \
-    && mkdir -p /deps_build/CMake \
-    && git clone -b v3.27.0 https://github.com/Kitware/CMake /deps_build/CMake \
+RUN mkdir -p /deps_build/CMake \
     && cd /deps_build/CMake \
-    && ./bootstrap --parallel=8 -- -DCMAKE_USE_OPENSSL=OFF \
-    && make -j8 \
-    && make install \
-    && rm -rf /deps_build \
-    && apt remove -y git \
-    && apt clean \
-    && rm -rf /var/lib/apt/lists/*
+    && curl -s -L -O https://github.com/Kitware/CMake/releases/download/v3.27.1/cmake-3.27.1-linux-x86_64.sh \
+    && /bin/bash -c "./cmake-3.27.1-linux-x86_64.sh --skip-license --prefix=/opt/bb" \
+    && rm -rf /deps_build
 
 WORKDIR /workspace
 
