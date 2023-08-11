@@ -24,6 +24,7 @@
 #include <bdlb_tokenizer.h>
 #include <bsl_cstdlib.h>
 #include <bsl_iostream.h>
+#include <bsl_string.h>
 
 namespace BloombergLP {
 namespace m_bmqtool {
@@ -34,12 +35,9 @@ namespace m_bmqtool {
 
 bool InputUtil::getLine(bsl::string* out)
 {
-    const int BUFFER_SIZE = 512;
-    char      buffer[BUFFER_SIZE];
     bsl::cout << "> " << bsl::flush;
     bsl::cin.clear();
-    bsl::cin.getline(buffer, BUFFER_SIZE);
-    out->assign(buffer);
+    bsl::getline(bsl::cin, *out);
     bdlb::String::trim(out);
     if (bsl::cin.eof()) {
         // User typed Ctrl-D
