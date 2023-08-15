@@ -264,5 +264,10 @@ int main(int argc, char* argv[])
     } break;
     }
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    TEST_EPILOG(mwctst::TestHelper::e_CHECK_GBL_ALLOC);
+    // Default: there is a check in the 'bslmt_fastpostsemaphoreimpl.h':
+    //          BSLS.LOG BSLS_REVIEW failure: (level:R-OPT).
+    //          During this check some temporal objects constructed in
+    //          'bsls_review.h', including static counter.  This leads
+    //          to allocator check failure here.
 }
