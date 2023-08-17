@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 
-# This script builds BlazingMQ and all of its dependencies. It must be run from
-# the root of the BlazingMQ repository.
-
-# Install the following prerequisites, if not present yet:
+# This script builds BlazingMQ and all of its dependencies.
+#
+# Before running this script, install following prerequisites, if not present
+# yet, by copy-and-pasting the commands between `<<PREREQUISITES` and
+# `PREREQUISITES` below:
 <<PREREQUISITES
 sudo apt update && sudo apt -y install ca-certificates
 sudo apt install -y --no-install-recommends \
