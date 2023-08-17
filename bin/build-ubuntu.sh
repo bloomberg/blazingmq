@@ -72,16 +72,17 @@ fi
 
 # :: Build the BlazingMQ repo :::::::::::::::::::::::::::::::::::::::::::::::::::::::
 CMAKE_OPTIONS="\
-    -DBDE_BUILD_TARGET_64=1 \
+    -DBDE_BUILD_TARGET_SAFE=ON \
+    -DBDE_BUILD_TARGET_64=ON \
+    -DBDE_BUILD_TARGET_CPP17=ON \
     -DCMAKE_BUILD_TYPE=Debug \
     -DCMAKE_INSTALL_LIBDIR=${DIR_ROOT}/lib \
     -DCMAKE_INSTALL_PREFIX=${DIR_ROOT} \
-    -DCMAKE_MODULE_PATH=${DIR_THIRDPARTY}/bde-tools/cmake;${DIR_THIRDPARTY}/bde-tools/BdeBuildSystem \
-    -DCMAKE_PREFIX_PATH=${DIR_ROOT} \
+    -DCMAKE_PREFIX_PATH=${DIR_THIRDPARTY}/bde-tools/BdeBuildSystem \
     -DCMAKE_TOOLCHAIN_FILE=${DIR_THIRDPARTY}/bde-tools/BdeBuildSystem/toolchains/linux/gcc-default.cmake \
-    -DCMAKE_CXX_STANDARD=17 \
     -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-    -DFLEX_ROOT=/usr/lib/x86_64-linux-gnu"
+    -DFLEX_ROOT=/usr/lib/x86_64-linux-gnu \
+    -Dlibbenchmark=/usr/lib/x86_64-linux-gnu/libbenchmark.so"
 
 PKG_CONFIG_PATH="${DIR_ROOT}/lib64/pkgconfig:$(pkg-config --variable pc_path pkg-config)" \
 cmake -B "${DIR_BUILD}/blazingmq" -S "${DIR_ROOT}" ${CMAKE_OPTIONS}
