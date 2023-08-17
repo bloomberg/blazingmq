@@ -14,8 +14,8 @@ nav_order: 5
 ## Summary
 
 * Producer applications can indicate to the BlazingMQ SDK to compress a
-  message.  BlazingMQ SDK will compress the message (both payload and
-  properties) before sending it to the BlazingMQ back-end.
+  message.  BlazingMQ SDK will compress the message payload before sending
+  it to the BlazingMQ back-end.
 
 * On the consumer side, upon receiving a compressed message, BlazingMQ SDK will
   seamlessly decompress it before presenting it to the application layer.
@@ -59,10 +59,10 @@ nav_order: 5
 
 ## General Guidelines for Enabling Compression
 
-* Compression is useful for scenarios where the message payload and/or
-  properties contain textual data of around 1KB or more.  In our benchmarks
-  where messages contained randomly generated strings, we found meaningful
-  gains when the message length was more than 1KB.
+* Compression is useful for scenarios where the message payload contains textual
+  data of around 1KB or more.  In our benchmarks where messages contained randomly
+  generated strings, we found meaningful gains when the message length was more
+  than 1KB.
 
 * Producers should not enable compression in BlazingMQ SDK if message is
   already compressed.
