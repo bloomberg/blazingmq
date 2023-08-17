@@ -88,7 +88,7 @@ static void testN1_SimpleEvaluator_GoogleBenchmark(benchmark::State& state)
     CompilationContext compilationContext(&localAllocator);
     SimpleEvaluator    evaluator;
 
-    ASSERT(evaluator.compile("false | (i64_42=42 & s_foo=\"foo\")",
+    ASSERT(evaluator.compile("false || (i64_42==42 && s_foo==\"foo\")",
                              compilationContext) == 0);
 
     ASSERT_EQ(evaluator.evaluate(evaluationContext), true);
