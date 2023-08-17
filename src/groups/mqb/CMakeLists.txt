@@ -20,10 +20,10 @@ set_property(SOURCE "mqba/mqba_application.cpp"
 set(MQB_PRIVATE_PACKAGES mqba mqbblp mqbc mqbcmd mqbconfm mqbi mqbmock mqbnet mqbs mqbsi mqbsl mqbu)
 target_bmq_style_uor( mqb PRIVATE_PACKAGES ${MQB_PRIVATE_PACKAGES})
 
-# Note these calls are temporary and should be removed immediately when BDE
-# team fixes how to install both the library and the headers together
+# Note these calls are temporary and should be removed immediately when
+# installation of the library and the pkg-config file together is supported in
+# upstream https://github.com/bloomberg/bde-tools repo.
 bbs_read_metadata(GROUP mqb PRIVATE_PACKAGES ${MQB_PRIVATE_PACKAGES})
-bmq_install_target_headers(mqb)
 bmq_emit_pkg_config(mqb)
 
 # Additional system required libraries:
