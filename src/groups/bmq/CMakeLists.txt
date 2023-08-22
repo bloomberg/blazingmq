@@ -33,12 +33,6 @@ endif()
 set(BMQ_PRIVATE_PACKAGES bmqimp bmqp bmqeval)
 target_bmq_style_uor( bmq PRIVATE_PACKAGES ${BMQ_PRIVATE_PACKAGES} )
 
-# Note these calls are temporary and should be removed immediately when
-# installation of the library and the pkg-config file together is supported in
-# upstream https://github.com/bloomberg/bde-tools repo.
-bbs_read_metadata(GROUP bmq PRIVATE_PACKAGES ${BMQ_PRIVATE_PACKAGES})
-bmq_emit_pkg_config(bmq)
-
 if(CMAKE_HOST_SYSTEM_NAME MATCHES "Darwin")
   # Search homebrewed keg-only versions of Bison and Flex on macOS.
   execute_process(

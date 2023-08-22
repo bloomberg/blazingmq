@@ -30,9 +30,3 @@ if("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU|(Apple)?Clang")
 endif()
 
 target_bmq_style_uor(mwc)
-
-# Note these calls are temporary and should be removed immediately when
-# installation of the library and the pkg-config file together is supported in
-# upstream https://github.com/bloomberg/bde-tools repo.
-bbs_read_metadata(GROUP mwc)
-bmq_emit_pkg_config(mwc)
