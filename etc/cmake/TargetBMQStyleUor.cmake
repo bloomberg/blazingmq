@@ -60,7 +60,6 @@ function(target_bmq_style_uor TARGET)
   target_compile_definitions(${TARGET}-flags INTERFACE "MWC_INTERNAL_USAGE")
 
   bbs_setup_target_uor(${TARGET}
-    NO_EMIT_PKG_CONFIG_FILE
     SKIP_TESTS
     PRIVATE_PACKAGES "${_PRIVATE_PACKAGES}")
 
@@ -97,27 +96,4 @@ endfunction()
 # sure this makes correctly.
 function(bmq_install_target_headers target)
     bbs_install_target_headers(${ARGV})
-endfunction()
-
-# :: bmq_emit_pkg_config :::::::::::::::::::::::::::::::::::::::::::::::::::::::
-# This function emits package config for the target.
-function(bmq_emit_pkg_config target)
-  cmake_parse_arguments(PARSE_ARGV 1
-    ""
-    ""
-    "COMPONENT"
-    "")
-  bbs_assert_no_unparsed_args("")
-
-  get_target_property(uor_name ${target} NAME)
-
-  # default the component to the target name normalized as a dpkg name
-  if(NOT _COMPONENT)
-    string(REPLACE "_" "-" _COMPONENT ${uor_name})
-  endif()
-
-  bbs_emit_pkgconfig_file(TARGET ${target}
-    PREFIX "${CMAKE_INSTALL_PREFIX}"
-    VERSION "${BB_BUILDID_PKG_VERSION}" # todo: add real version
-    COMPONENT ${_COMPONENT})
 endfunction()
