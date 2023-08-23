@@ -1189,14 +1189,14 @@ class MockSession : public AbstractSession {
         QueueId*                  queueId,
         const bsls::TimeInterval& timeout = bsls::TimeInterval());
     Call& expect_closeQueueSync(
-        QueueId*                  queueId,
+        const QueueId*            queueId,
         const bsls::TimeInterval& timeout = bsls::TimeInterval());
 
     Call& expect_closeQueueAsync(
         QueueId*                  queueId,
         const bsls::TimeInterval& timeout = bsls::TimeInterval());
     Call& expect_closeQueueAsync(
-        QueueId*                  queueId,
+        const QueueId*            queueId,
         const CloseQueueCallback& callback,
         const bsls::TimeInterval& timeout = bsls::TimeInterval());
     Call& expect_configureQueue(
@@ -1204,7 +1204,7 @@ class MockSession : public AbstractSession {
         const bmqt::QueueOptions& options = bmqt::QueueOptions(),
         const bsls::TimeInterval& timeout = bsls::TimeInterval());
     Call& expect_configureQueueSync(
-        QueueId*                  queueId,
+        const QueueId*            queueId,
         const bmqt::QueueOptions& options = bmqt::QueueOptions(),
         const bsls::TimeInterval& timeout = bsls::TimeInterval());
     Call& expect_configureQueueAsync(
