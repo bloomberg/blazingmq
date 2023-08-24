@@ -1149,8 +1149,75 @@ right order without any dangling references or leaks.
 
 ## Client Library Design Guide
 
+Apart from implementing the BlazingMQ wire protocol and the sequence of message
+exchanges between SDK and broker correctly, a good SDK should also expose easy
+to use (and hard to misuse) APIs, and should have an efficient implementation.
+In this section, we will go over some details about the SDK APIs and
+implementation which authors of a new SDK may find useful.
+
 ### APIs
 
+We list some guiding principles for designing BlazingMQ client APIs:
+
+1. APIs should be designed so that they are easy to use and hard to misuse.
+
+2. APIs should provide high enough abstraction so that users can focus on
+   implementing their business logic instead of trying to understand intricate
+   API interactions.
+   [This](https://github.com/bloomberg/blazingmq-sdk-java/blob/main/bmq-examples/src/main/java/com/bloomberg/bmq/examples/SimpleProducer.java) Java sample producer is a good
+   example which demonstrates this.
+
+3. For certain higher level languages like Python, Ruby, etc., APIs can be
+   opiniated and expose a minimal "surface area", which can simplify the APIs
+   while also catering to the needs of majority of the users.
+
+4. For languages where people often write high performance applications, APIs
+   should be asynchronous as much as possible, while also providing synchronous
+   flavor in some cases.
+
+5. Overall, in our experience, BlazingMQ Java SDK provides a set of APIs which
+   can be a good starting point for anyone.  SDKs in higher level languages
+   should aim to further simplify the Java SDK APIs, while lower level
+   languages can implementing something similar to Java APIs.
+
 ### Implementation
+
+We list some implementation details which authors of new BlazingMQ SDKs may
+find useful:
+
+1. The network I/O logic could be made asynchronous (i.e., could use
+   non-blocking sockets).  This is not very important for higher level
+   languages like Python, etc. but for languages like Rust, etc.  Non-blocking
+   I/O can enable client appliactions to achieve higher throughput, at the cost
+   of higher complexity of SDK implementation.  One could leverage some well
+   known open source libraries which make it easier to achieve async I/O.  For
+   example, Java SDK uses
+   [`netty`](https://github.com/bloomberg/blazingmq-sdk-java/tree/main/bmq-sdk/src/main/java/com/bloomberg/bmq/impl/infr/net) to achieve async I/O fairly easily.
+
+2. For SDKs which are highly asynchronous in their implemenation, it can be
+   difficult to reason about when multiple events are occuring concurrently.
+   For example, events like a user-initiated *CloseQueue* operation, network
+   disconnection with the BlazingMQ broker, and timeout of an outstanding
+   *OpenQueue* request could occur at the same time, and it might become
+   unreasonably difficult to reason about the code.  As one of the potential
+   solutions, authors may find a FSM based approach easy to implement and
+   reason about.  In this approach, all states, state transitions, events and
+   actions can be codified in the form of enums, callbacks, etc.  Any incoming
+   or outgoing event (initiated by any entity like the user, timer, network,
+   etc) on the queue or the top level session object can be applied to the
+   appropriate FSM (queue or session), and desired outcome (state transition)
+   and action can dispatched from the FSM table.  As an example, the C++ SDK
+   takes this approach (but only partially) by introducing concepts like:
+
+   - [`QueueFSM`](https://github.com/bloomberg/blazingmq/blob/58044d8e4579665fffa0419df820c8be5cdbc2eb/src/groups/bmq/bmqimp/bmqimp_brokersession.h#L456)
+
+   - [`QueueFsmEvent`](https://github.com/bloomberg/blazingmq/blob/58044d8e4579665fffa0419df820c8be5cdbc2eb/src/groups/bmq/bmqimp/bmqimp_brokersession.h#L257)
+
+   - [`QueueStateTransition`](https://github.com/bloomberg/blazingmq/blob/58044d8e4579665fffa0419df820c8be5cdbc2eb/src/groups/bmq/bmqimp/bmqimp_brokersession.h#L320)
+
+   - [`SessionFsm`](https://github.com/bloomberg/blazingmq/blob/58044d8e4579665fffa0419df820c8be5cdbc2eb/src/groups/bmq/bmqimp/bmqimp_brokersession.h#L365)
+
+3. Testability of the SDK should be kept in mind, and all classes which are
+   mechanisms should ideally be an interface so that they can be mocked easily.
 
 ---
