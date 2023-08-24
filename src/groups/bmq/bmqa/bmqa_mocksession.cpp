@@ -1193,8 +1193,7 @@ MockSession::expect_configureQueue(BSLS_ANNOTATION_UNUSED QueueId* queueId,
     return call;
 }
 
-MockSession::Call&
-MockSession::expect_configureQueueSync(
+MockSession::Call& MockSession::expect_configureQueueSync(
     BSLS_ANNOTATION_UNUSED const QueueId* queueId,
     const bmqt::QueueOptions&             options,
     const bsls::TimeInterval&             timeout)
@@ -1256,8 +1255,7 @@ MockSession::expect_closeQueue(BSLS_ANNOTATION_UNUSED QueueId* queueId,
     return call;
 }
 
-MockSession::Call&
-MockSession::expect_closeQueueSync(
+MockSession::Call& MockSession::expect_closeQueueSync(
     BSLS_ANNOTATION_UNUSED const QueueId* queueId,
     const bsls::TimeInterval&             timeout)
 {
@@ -1284,11 +1282,10 @@ MockSession::expect_closeQueueAsync(BSLS_ANNOTATION_UNUSED QueueId* queueId,
     return d_calls.back();
 }
 
-MockSession::Call&
-MockSession::expect_closeQueueAsync(
+MockSession::Call& MockSession::expect_closeQueueAsync(
     BSLS_ANNOTATION_UNUSED const QueueId* queueId,
-    const CloseQueueCallback&       callback,
-    const bsls::TimeInterval&       timeout)
+    const CloseQueueCallback&             callback,
+    const bsls::TimeInterval&             timeout)
 {
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);
 
