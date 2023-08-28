@@ -796,14 +796,14 @@ class Session : public AbstractSession {
     /// `queueId` untouched and return a non-zero value if no queue
     /// corresponding to `uri` is currently open.
     int getQueueId(QueueId*         queueId,
-                   const bmqt::Uri& uri) const BSLS_KEYWORD_OVERRIDE;
+                   const bmqt::Uri& uri) BSLS_KEYWORD_OVERRIDE;
 
     /// Load in the specified `queueId` the queue corresponding to the
     /// specified `correlationId` and return 0 if such a queue was found, or
     /// leave `queueId` untouched and return a non-zero value if no queue
     /// corresponding to `correlationId` is currently open.
     int getQueueId(QueueId* queueId, const bmqt::CorrelationId& correlationId)
-        const BSLS_KEYWORD_OVERRIDE;
+        BSLS_KEYWORD_OVERRIDE;
 
     /// DEPRECATED: Use the `openQueueSync(QueueId *queueId...)` instead.
     ///             This method will be marked as
@@ -913,7 +913,7 @@ class Session : public AbstractSession {
     ///         thread(s) (i.e., from the EventHandler callback, if
     ///         provided) *WILL* lead to a *DEADLOCK*.
     ConfigureQueueStatus
-    configureQueueSync(const QueueId*            queueId,
+    configureQueueSync(QueueId*                  queueId,
                        const bmqt::QueueOptions& options,
                        const bsls::TimeInterval& timeout =
                            bsls::TimeInterval()) BSLS_KEYWORD_OVERRIDE;
@@ -944,7 +944,7 @@ class Session : public AbstractSession {
     /// THREAD: The `callback` will *ALWAYS* be invoked from the
     ///         EventHandler thread(s) (or if a SessionEventHandler was not
     ///         specified, from the thread invoking `nextEvent`).
-    void configureQueueAsync(const QueueId*                queueId,
+    void configureQueueAsync(QueueId*                      queueId,
                              const bmqt::QueueOptions&     options,
                              const ConfigureQueueCallback& callback,
                              const bsls::TimeInterval&     timeout =
@@ -975,7 +975,7 @@ class Session : public AbstractSession {
     ///         thread(s) (i.e., from the EventHandler callback, if
     ///         provided) *WILL* lead to a *DEADLOCK*.
     CloseQueueStatus
-    closeQueueSync(const QueueId*            queueId,
+    closeQueueSync(QueueId*                  queueId,
                    const bsls::TimeInterval& timeout = bsls::TimeInterval())
         BSLS_KEYWORD_OVERRIDE;
 
@@ -1011,7 +1011,7 @@ class Session : public AbstractSession {
     /// THREAD: The `callback` will *ALWAYS* be invoked from the
     ///         EventHandler thread(s) (or if a SessionEventHandler was not
     ///         specified, from the thread invoking `nextEvent`).
-    void closeQueueAsync(const QueueId*            queueId,
+    void closeQueueAsync(QueueId*                  queueId,
                          const CloseQueueCallback& callback,
                          const bsls::TimeInterval& timeout =
                              bsls::TimeInterval()) BSLS_KEYWORD_OVERRIDE;

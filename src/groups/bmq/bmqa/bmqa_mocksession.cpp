@@ -1548,7 +1548,7 @@ void MockSession::loadMessageProperties(MessageProperties* buffer)
     *buffer = MessageProperties();
 }
 
-int MockSession::getQueueId(QueueId* queueId, const bmqt::Uri& uri) const
+int MockSession::getQueueId(QueueId* queueId, const bmqt::Uri& uri)
 {
     UriCorrIdToQueueMap::const_iterator iter =
         uriCorrIdToQueues(d_twoKeyHashMapBuffer).findByKey1(uri);
@@ -1569,7 +1569,7 @@ int MockSession::getQueueId(QueueId* queueId, const bmqt::Uri& uri) const
 }
 
 int MockSession::getQueueId(QueueId*                   queueId,
-                            const bmqt::CorrelationId& correlationId) const
+                            const bmqt::CorrelationId& correlationId)
 {
     UriCorrIdToQueueMap::const_iterator iter =
         uriCorrIdToQueues(d_twoKeyHashMapBuffer).findByKey2(correlationId);
@@ -1783,7 +1783,7 @@ int MockSession::configureQueue(QueueId*                  queueId,
 }
 
 ConfigureQueueStatus
-MockSession::configureQueueSync(const QueueId*            queueId,
+MockSession::configureQueueSync(QueueId*                  queueId,
                                 const bmqt::QueueOptions& options,
                                 const bsls::TimeInterval& timeout)
 {
@@ -1864,7 +1864,7 @@ int MockSession::configureQueueAsync(QueueId*                  queueId,
 }
 
 void MockSession::configureQueueAsync(
-    const QueueId*                                       queueId,
+    QueueId*                                             queueId,
     const bmqt::QueueOptions&                            options,
     BSLS_ANNOTATION_UNUSED const ConfigureQueueCallback& callback,
     const bsls::TimeInterval&                            timeout)
@@ -1927,7 +1927,7 @@ int MockSession::closeQueue(QueueId*                  queueId,
     return 0;
 }
 
-CloseQueueStatus MockSession::closeQueueSync(const QueueId*            queueId,
+CloseQueueStatus MockSession::closeQueueSync(QueueId*                  queueId,
                                              const bsls::TimeInterval& timeout)
 {
     // PRECONDITIONS
@@ -2007,7 +2007,7 @@ int MockSession::closeQueueAsync(QueueId*                  queueId,
 }
 
 void MockSession::closeQueueAsync(
-    const QueueId*                                   queueId,
+    QueueId*                                         queueId,
     BSLS_ANNOTATION_UNUSED const CloseQueueCallback& callback,
     const bsls::TimeInterval&                        timeout)
 {
