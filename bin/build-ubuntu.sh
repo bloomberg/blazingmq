@@ -40,6 +40,9 @@ mkdir -p "${DIR_THIRDPARTY}"
 DIR_BUILD="${DIR_BUILD:-${DIR_ROOT}/build}"
 mkdir -p "${DIR_BUILD}"
 
+DIR_INSTALL="${DIR_INSTALL:-${DIR_ROOT}}"
+mkdir -p "${DIR_INSTALL}"
+
 # :: Clone dependencies :::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 if [ ! -d "${DIR_THIRDPARTY}/bde-tools" ]; then
@@ -60,10 +63,10 @@ PATH="${DIR_THIRDPARTY}/bde-tools/bin:$PATH"
 
 if [ ! -e "${DIR_BUILD}/bde/.complete" ]; then
     pushd "${DIR_THIRDPARTY}/bde"
-    eval "$(bbs_build_env -u opt_64_cpp17 -b "${DIR_BUILD}/bde")"
-    bbs_build configure --prefix="${DIR_ROOT}"
-    bbs_build build --prefix="${DIR_ROOT}"
-    bbs_build --install_dir="/" --prefix="${DIR_ROOT}" install
+    eval "$(bbs_build_env -u opt_64_cpp17 -b "${DIR_BUILD}/bde" -i "${DIR_INSTALL}")"
+    bbs_build configure --prefix="${DIR_INSTALL}"
+    bbs_build build --prefix="${DIR_INSTALL}"
+    bbs_build install --install_dir="/" --prefix="${DIR_INSTALL}"
     eval "$(bbs_build_env unset)"
     popd
     touch "${DIR_BUILD}/bde/.complete"
@@ -72,7 +75,7 @@ fi
 if [ ! -e "${DIR_BUILD}/ntf/.complete" ]; then
     # Build and install NTF
     pushd "${DIR_THIRDPARTY}/ntf-core"
-    ./configure --prefix "${DIR_ROOT}" --output "${DIR_BUILD}/ntf"
+    ./configure --prefix "${DIR_INSTALL}" --output "${DIR_BUILD}/ntf"
     make -j 16
     make install
     popd
@@ -83,16 +86,16 @@ fi
 CMAKE_OPTIONS=(\
     -DBDE_BUILD_TARGET_64=1 \
     -DCMAKE_BUILD_TYPE=Debug \
-    -DCMAKE_INSTALL_LIBDIR="${DIR_ROOT}/lib" \
-    -DCMAKE_INSTALL_PREFIX="${DIR_ROOT}" \
+    -DCMAKE_INSTALL_LIBDIR="lib" \
+    -DCMAKE_INSTALL_PREFIX="${DIR_INSTALL}" \
     -DCMAKE_MODULE_PATH="${DIR_THIRDPARTY}/bde-tools/cmake;${DIR_THIRDPARTY}/bde-tools/BdeBuildSystem" \
-    -DCMAKE_PREFIX_PATH="${DIR_ROOT}" \
+    -DCMAKE_PREFIX_PATH="${DIR_INSTALL}" \
     -DCMAKE_TOOLCHAIN_FILE="${DIR_THIRDPARTY}/bde-tools/BdeBuildSystem/toolchains/linux/gcc-default.cmake" \
     -DCMAKE_CXX_STANDARD=17 \
     -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
     -DFLEX_ROOT=/usr/lib/x86_64-linux-gnu)
 
-PKG_CONFIG_PATH="${DIR_ROOT}/lib64/pkgconfig:$(pkg-config --variable pc_path pkg-config)" \
+PKG_CONFIG_PATH="${DIR_INSTALL}/lib64/pkgconfig:$(pkg-config --variable pc_path pkg-config)" \
 cmake -B "${DIR_BUILD}/blazingmq" -S "${DIR_ROOT}" "${CMAKE_OPTIONS[@]}"
 make -C "${DIR_BUILD}/blazingmq" -j 16
 
