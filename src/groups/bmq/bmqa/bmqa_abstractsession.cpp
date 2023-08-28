@@ -97,9 +97,8 @@ void AbstractSession::loadMessageProperties(
 
 /// Queue management
 ///----------------
-int AbstractSession::getQueueId(
-    BSLS_ANNOTATION_UNUSED QueueId* queueId,
-    BSLS_ANNOTATION_UNUSED const bmqt::Uri& uri) const
+int AbstractSession::getQueueId(BSLS_ANNOTATION_UNUSED QueueId* queueId,
+                                BSLS_ANNOTATION_UNUSED const bmqt::Uri& uri)
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(false && "Method is undefined in base protocol");
@@ -109,7 +108,7 @@ int AbstractSession::getQueueId(
 
 int AbstractSession::getQueueId(
     BSLS_ANNOTATION_UNUSED QueueId* queueId,
-    BSLS_ANNOTATION_UNUSED const bmqt::CorrelationId& correlationId) const
+    BSLS_ANNOTATION_UNUSED const bmqt::CorrelationId& correlationId)
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(false && "Method is undefined in base protocol");
@@ -182,7 +181,7 @@ int AbstractSession::configureQueue(
 }
 
 ConfigureQueueStatus AbstractSession::configureQueueSync(
-    BSLS_ANNOTATION_UNUSED const QueueId* queueId,
+    BSLS_ANNOTATION_UNUSED QueueId* queueId,
     BSLS_ANNOTATION_UNUSED const bmqt::QueueOptions& options,
     BSLS_ANNOTATION_UNUSED const bsls::TimeInterval& timeout)
 
@@ -208,7 +207,7 @@ int AbstractSession::configureQueueAsync(
 }
 
 void AbstractSession::configureQueueAsync(
-    BSLS_ANNOTATION_UNUSED const QueueId* queueId,
+    BSLS_ANNOTATION_UNUSED QueueId* queueId,
     BSLS_ANNOTATION_UNUSED const bmqt::QueueOptions&     options,
     BSLS_ANNOTATION_UNUSED const ConfigureQueueCallback& callback,
     BSLS_ANNOTATION_UNUSED const bsls::TimeInterval& timeout)
@@ -228,7 +227,7 @@ int AbstractSession::closeQueue(
 }
 
 CloseQueueStatus AbstractSession::closeQueueSync(
-    BSLS_ANNOTATION_UNUSED const QueueId* queueId,
+    BSLS_ANNOTATION_UNUSED QueueId* queueId,
     BSLS_ANNOTATION_UNUSED const bsls::TimeInterval& timeout)
 {
     // PRECONDITIONS
@@ -250,7 +249,7 @@ int AbstractSession::closeQueueAsync(
 }
 
 void AbstractSession::closeQueueAsync(
-    BSLS_ANNOTATION_UNUSED const QueueId*            queueId,
+    BSLS_ANNOTATION_UNUSED QueueId*                  queueId,
     BSLS_ANNOTATION_UNUSED const CloseQueueCallback& callback,
     BSLS_ANNOTATION_UNUSED const bsls::TimeInterval& timeout)
 {

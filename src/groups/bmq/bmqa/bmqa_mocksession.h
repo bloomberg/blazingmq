@@ -1276,12 +1276,12 @@ class MockSession : public AbstractSession {
     /// Load `QueueId` object associated with the specified `uri` into the
     /// specified `queueId` output parameter.
     int getQueueId(QueueId*         queueId,
-                   const bmqt::Uri& uri) const BSLS_KEYWORD_OVERRIDE;
+                   const bmqt::Uri& uri) BSLS_KEYWORD_OVERRIDE;
 
     /// Load `QueueId` object associated with the specified `correlationId`
     /// into the specified `queueId` output parameter.
     int getQueueId(QueueId* queueId, const bmqt::CorrelationId& correlationId)
-        const BSLS_KEYWORD_OVERRIDE;
+        BSLS_KEYWORD_OVERRIDE;
 
     /// DEPRECATED: Use the `openQueueSync(QueueId *queueId...)` instead.
     ///             This method will be marked as
@@ -1361,7 +1361,7 @@ class MockSession : public AbstractSession {
     /// specified `options` to configure some advanced settings and return a
     /// result providing the status and context of the operation.  In
     /// general, a call to `configureQueueSync` emits nothing.
-    ConfigureQueueStatus configureQueueSync(const QueueId*            queueId,
+    ConfigureQueueStatus configureQueueSync(QueueId*                  queueId,
                                             const bmqt::QueueOptions& options,
                                             const bsls::TimeInterval& timeout)
         BSLS_KEYWORD_OVERRIDE;
@@ -1384,7 +1384,7 @@ class MockSession : public AbstractSession {
     /// call to `configureQueueAsync` does not emit a `SessionEvent`, but
     /// rather invokes the `callback` (if provided) instead when the
     /// corresponding `emitEvent` is called.
-    void configureQueueAsync(const QueueId*                queueId,
+    void configureQueueAsync(QueueId*                      queueId,
                              const bmqt::QueueOptions&     options,
                              const ConfigureQueueCallback& callback,
                              const bsls::TimeInterval&     timeout =
@@ -1404,7 +1404,7 @@ class MockSession : public AbstractSession {
     /// providing the status of the operation.  In general, a call to
     /// `closeQueueSync` emits nothing.
     CloseQueueStatus
-    closeQueueSync(const QueueId*            queueId,
+    closeQueueSync(QueueId*                  queueId,
                    const bsls::TimeInterval& timeout = bsls::TimeInterval())
         BSLS_KEYWORD_OVERRIDE;
 
@@ -1423,7 +1423,7 @@ class MockSession : public AbstractSession {
     /// requested operation.  In general, a call to `closeQueueAsync` does
     /// not emit a `SessionEvent`, but rather invokes the `callback` (if
     /// provided) instead when the corresponding `emitEvent` is called.
-    void closeQueueAsync(const QueueId*            queueId,
+    void closeQueueAsync(QueueId*                  queueId,
                          const CloseQueueCallback& callback,
                          const bsls::TimeInterval& timeout =
                              bsls::TimeInterval()) BSLS_KEYWORD_OVERRIDE;

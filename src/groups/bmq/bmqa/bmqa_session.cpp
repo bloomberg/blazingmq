@@ -854,7 +854,7 @@ void Session::loadMessageProperties(MessageProperties* buffer)
     *buffer = MessageProperties();
 }
 
-int Session::getQueueId(QueueId* queueId, const bmqt::Uri& uri) const
+int Session::getQueueId(QueueId* queueId, const bmqt::Uri& uri)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(queueId);
@@ -879,7 +879,7 @@ int Session::getQueueId(QueueId* queueId, const bmqt::Uri& uri) const
 }
 
 int Session::getQueueId(QueueId*                   queueId,
-                        const bmqt::CorrelationId& correlationId) const
+                        const bmqt::CorrelationId& correlationId)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(queueId);
@@ -1146,7 +1146,7 @@ int Session::configureQueue(QueueId*                  queueId,
 }
 
 ConfigureQueueStatus
-Session::configureQueueSync(const QueueId*            queueId,
+Session::configureQueueSync(QueueId*                  queueId,
                             const bmqt::QueueOptions& options,
                             const bsls::TimeInterval& timeout)
 {
@@ -1238,7 +1238,7 @@ int Session::configureQueueAsync(QueueId*                  queueId,
     return rc;
 }
 
-void Session::configureQueueAsync(const QueueId*                queueId,
+void Session::configureQueueAsync(QueueId*                      queueId,
                                   const bmqt::QueueOptions&     options,
                                   const ConfigureQueueCallback& callback,
                                   const bsls::TimeInterval&     timeout)
@@ -1325,7 +1325,7 @@ int Session::closeQueue(QueueId* queueId, const bsls::TimeInterval& timeout)
     return rc;
 }
 
-CloseQueueStatus Session::closeQueueSync(const QueueId*            queueId,
+CloseQueueStatus Session::closeQueueSync(QueueId*                  queueId,
                                          const bsls::TimeInterval& timeout)
 {
     // Validate parameters
@@ -1413,7 +1413,7 @@ int Session::closeQueueAsync(QueueId*                  queueId,
     return rc;
 }
 
-void Session::closeQueueAsync(const QueueId*            queueId,
+void Session::closeQueueAsync(QueueId*                  queueId,
                               const CloseQueueCallback& callback,
                               const bsls::TimeInterval& timeout)
 {
