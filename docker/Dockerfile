@@ -2,9 +2,8 @@ FROM docker.io/ubuntu:22.04 AS builder
 
 # Set up CA certificates first before installing other dependencies
 RUN apt-get update && \
-    apt-get -y install ca-certificates
-
-RUN apt-get install -y --no-install-recommends \
+    apt-get install -y ca-certificates && \
+    apt-get install -y --no-install-recommends \
     build-essential \
     gdb \
     curl \
