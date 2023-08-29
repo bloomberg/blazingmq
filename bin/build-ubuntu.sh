@@ -32,7 +32,7 @@ if [ ! -f "$script_path" ] || [ "$(realpath "$0")" != "$(realpath "$script_path"
 fi
 
 # :: Set some initial constants :::::::::::::::::::::::::::::::::::::::::::::::
-DIR_ROOT="${DIR_ROOT:-$(pwd)}"
+DIR_ROOT="$(pwd)"
 
 DIR_THIRDPARTY="${DIR_ROOT}/thirdparty"
 mkdir -p "${DIR_THIRDPARTY}"
