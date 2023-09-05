@@ -25,7 +25,7 @@ fetch_git() {
 
 fetch_deps() {
     fetch_git bloomberg bde-tools 3.117.0.0
-    fetch_git bloomberg bde
+    fetch_git bloomberg bde 3.117.0.0
     fetch_git bloomberg ntf-core
 }
 
