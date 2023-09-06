@@ -71,7 +71,7 @@ were four guiding principles when this protocol was designed:
 
 - *Efficiency*: The protocol should avoid encoding/decoding overhead for
   frequent messages, while still taking into consideration concerns like
-  endiannes, etc.
+  endianness, etc.
 
 ### BlazingMQ Network Packet
 
