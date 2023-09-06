@@ -164,7 +164,7 @@ and broker, along with their purpose:
 
 - **PutMessage**: A message posted by the producer to the BlazingMQ queue. This
   message contains the payload and any associated metadata that producer wants
-  to be deliverd to the consumer.
+  to be delivered to the consumer.
 
 - **AckMessage**: An acknowledgement sent by BlazingMQ queue to the producer in
   response to the PUT message.  The *AckMessage* carries the success/failure
