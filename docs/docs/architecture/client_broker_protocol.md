@@ -999,7 +999,7 @@ multiple PUSH messages to the application in one go.
 #### Consume API Implementation
 
 Wire layout of a PUSH event was described in a [previous](#push-event) section.
-As far as implemention is concerned, SDK logic should keep some of these things
+As far as implementation is concerned, SDK logic should keep some of these things
 in mind when receiving and dispatching a PUSH event:
 
 - Ensure that the queue is still open, and not closed or being closed by the
