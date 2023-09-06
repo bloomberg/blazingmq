@@ -419,7 +419,7 @@ An ACK event contains one
 followed by one or more
 [`AckMessage`](https://github.com/bloomberg/blazingmq/blob/e3ddd4fdc8e024e3abff96aa91555f042ce4e565/src/groups/bmq/bmqp/bmqp_protocol.h#L1849)s.
 
-Note that unlinke a PUT event, there is only one `AckHeader` in an ACK event,
+Note that unlike a PUT event, there is only one `AckHeader` in an ACK event,
 irrespective of the number of `AckMessage`s.
 
 Let's go over various fields in a `AckHeader`:
