@@ -1194,7 +1194,7 @@ find useful:
    example, Java SDK uses
    [`netty`](https://github.com/bloomberg/blazingmq-sdk-java/tree/main/bmq-sdk/src/main/java/com/bloomberg/bmq/impl/infr/net) to achieve async I/O fairly easily.
 
-2. For SDKs which are highly asynchronous in their implemenation, it can be
+2. For SDKs which are highly asynchronous in their implementation, it can be
    difficult to reason about when multiple events are occurring concurrently.
    For example, events like a user-initiated *CloseQueue* operation, network
    disconnection with the BlazingMQ broker, and timeout of an outstanding
