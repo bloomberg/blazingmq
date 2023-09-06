@@ -1168,7 +1168,7 @@ We list some guiding principles for designing BlazingMQ client APIs:
    example which demonstrates this.
 
 3. For certain higher level languages like Python, Ruby, etc., APIs can be
-   opiniated and expose a minimal "surface area", which can simplify the APIs
+   opinionated and expose a minimal "surface area", which can simplify the APIs
    while also catering to the needs of majority of the users.
 
 4. For languages where people often write high performance applications, APIs
