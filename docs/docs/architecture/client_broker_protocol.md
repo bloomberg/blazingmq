@@ -196,7 +196,7 @@ for C++, and [here](https://github.com/bloomberg/blazingmq-sdk-java/tree/main/bm
 > better place to look at the  messages exchanged between client and broker
 > would be in the Java link above.
 
-The recommendation is to use JSON codec for schema messages.  Other encodings
+The recommendation is to use the JSON codec for schema messages.  Other encodings
 like BER, XML, etc are also supported but not recommended.  C++ SDK uses the
 [`baljsn`](https://github.com/bloomberg/bde/tree/main/groups/bal/baljsn) codec
 for JSON encoding, and Java SDK uses [`gson`](https://github.com/google/gson)
