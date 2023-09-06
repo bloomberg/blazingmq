@@ -235,6 +235,21 @@ static void test4_subscriptionsTest()
         ASSERT(handles.emplace(handle).second);
     }
 
+    // Subscription expression validation
+    {
+        bmqt::Subscription       subscription;
+        bmqt::SubscriptionHandle handle(bmqt::CorrelationId::autoValue());
+
+        const bmqt::SubscriptionExpression expression(
+            "0invalid",
+            bmqt::SubscriptionExpression::e_VERSION_1);
+
+        subscription.setExpression(expression);
+        bsl::string error;
+        ASSERT(!obj.addOrUpdateSubscription(&error, handle, subscription));
+        ASSERT(!error.empty());
+    }
+
     bmqt::QueueOptions::SubscriptionsSnapshot snapshot(s_allocator_p);
     obj.loadSubscriptions(&snapshot);
 
@@ -276,5 +291,5 @@ int main(int argc, char* argv[])
     } break;
     }
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    TEST_EPILOG(mwctst::TestHelper::e_CHECK_GBL_ALLOC);
 }
