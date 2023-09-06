@@ -435,7 +435,7 @@ Now let's go over various fields in a `AckMessage`:
 
 - `CorrelationId`: **TODO**
 
-- `MessageGUID`: the 16 byte globally unique identfier of a message.  See
+- `MessageGUID`: the 16 byte globally unique identifier of a message.  See
     [this](https://github.com/bloomberg/blazingmq/blob/main/src/groups/bmq/bmqt/bmqt_messageguid.h)
     and
     [this](https://github.com/bloomberg/blazingmq/blob/main/src/groups/bmq/bmqp/bmqp_messageguidgenerator.h)
