@@ -948,7 +948,7 @@ PUT message(s) specified by the application, by following guidelines
 - Ensure that the connection with BlazingMQ broker is up, and not stopping or
   disconnected.
 
-- Ensure that message payload is not emptpy.  By policy, we don't allow other
+- Ensure that message payload is not empty.  By policy, we don't allow other
   BlazingMQ SDKs to post empty message payloads.
 
 One of the fields in `PutHeader` is `MessageGUID`, which was described in
