@@ -39,7 +39,7 @@ Before we dive in, it is worth noting that:
    targeting one of those languages may provide maximum benefits to our users.
 
 
-The rest of this document is divided three main parts:
+The rest of this document is divided into three main parts:
 
 - *BlazingMQ wire protocol*, which goes over format of messages exchanged
   between BlazingMQ client and broker.
