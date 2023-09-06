@@ -197,9 +197,9 @@ for C++, and [here](https://github.com/bloomberg/blazingmq-sdk-java/tree/main/bm
 > would be in the Java link above.
 
 The recommendation is to use the JSON codec for schema messages.  Other encodings
-like BER, XML, etc are also supported but not recommended.  C++ SDK uses the
+like BER, XML, etc are also supported but not recommended.  The C++ SDK uses the
 [`baljsn`](https://github.com/bloomberg/bde/tree/main/groups/bal/baljsn) codec
-for JSON encoding, and Java SDK uses [`gson`](https://github.com/google/gson)
+for JSON encoding, and the Java SDK uses [`gson`](https://github.com/google/gson)
 codec.
 
 Here's a list of schema messages which are exchanged between BlazingMQ client
@@ -208,26 +208,26 @@ and broker, along with their purpose:
 - **NegotiationMessage**: The first message sent by the client to the broker
   upon establishing a TCP connection with the broker (see
   [this](https://github.com/bloomberg/blazingmq-sdk-java/blob/main/bmq-sdk/src/main/java/com/bloomberg/bmq/impl/infr/msg/NegotiationMessageChoice.java)).
-  Its a choice, and client always sets the choice to
+  It's a choice, and the client always sets the choice to
   [`ClientIdentity`](https://github.com/bloomberg/blazingmq-sdk-java/blob/main/bmq-sdk/src/main/java/com/bloomberg/bmq/impl/infr/msg/ClientIdentity.java),
   and populates various fields in `ClientIdentity` accordingly.  Broker
   responds with a `NegotiationMessage` as well, but sets
   [`BrokerResponse`](https://github.com/bloomberg/blazingmq-sdk-java/blob/main/bmq-sdk/src/main/java/com/bloomberg/bmq/impl/infr/msg/BrokerResponse.java)
   instead of `ClientIdentity`.  A `NegotiationMessage` from the client can be
   thought of as an application level handshake with the broker to establish a
-  BlazingMQ session.  Client advertises some of its capabilities, version, and
+  BlazingMQ session.  The client advertises some of its capabilities, version, and
   some other details in the `NegotiationMessage`.  Based on this information,
   the broker can choose to accept or reject the connection with the client
-  (e.g., if the client is using a very old version of the SDK, broker may
+  (e.g., if the client is using a very old version of the SDK, the broker may
   refuse to connect with the client).
 
-- **OpenQueue**: The request that client sends to the broker to attach to a
+- **OpenQueue**: The request that the client sends to the broker to attach to a
   queue (see
   [this](https://github.com/bloomberg/blazingmq-sdk-java/blob/main/bmq-sdk/src/main/java/com/bloomberg/bmq/impl/infr/msg/OpenQueue.java)).
-  `OpenQueue` contains
+  `OpenQueue` contains a
   [`QueueHandleParameters`](https://github.com/bloomberg/blazingmq-sdk-java/blob/main/bmq-sdk/src/main/java/com/bloomberg/bmq/impl/infr/msg/QueueHandleParameters.java)
-  field.  Client populates each field of `QueueHandleParameters` appropriately.
-  `OpenQueue` request can be logically thought as a request by a BlazingMQ
+  field.  The client populates each field of `QueueHandleParameters` appropriately.
+  An `OpenQueue` request can be logically thought as a request by a BlazingMQ
   application to get a handle on the queue or connecting to a queue.  Note that
   an `OpenQueue` request is always followed by a
   [`ConfigureQueue`](https://github.com/bloomberg/blazingmq-sdk-java/blob/main/bmq-sdk/src/main/java/com/bloomberg/bmq/impl/infr/msg/ConfigureQueueStream.java)
@@ -237,8 +237,8 @@ and broker, along with their purpose:
   request (see [this](https://github.com/bloomberg/blazingmq-sdk-java/blob/main/bmq-sdk/src/main/java/com/bloomberg/bmq/impl/infr/msg/OpenQueueResponse.java)).
 
 - **ConfigureQueueStream**: The request sent by the client to the broker to
-  configure client's configuration for queue which was opened earlier by the
-  client by calling `OpenQueue` request (see
+  configure the client's configuration for some queue which was opened earlier by the
+  client by making an `OpenQueue` request (see
   [this](https://github.com/bloomberg/blazingmq-sdk-java/blob/main/bmq-sdk/src/main/java/com/bloomberg/bmq/impl/infr/msg/ConfigureQueueStream.java)).
   The main field in this request is
   [`QueueStreamParameters`](https://github.com/bloomberg/blazingmq-sdk-java/blob/main/bmq-sdk/src/main/java/com/bloomberg/bmq/impl/infr/msg/ConfigureQueueStream.java).
@@ -252,20 +252,20 @@ and broker, along with their purpose:
 
 - **ConfigureQueueStreamResponse**: The message sent by the broker in response
   to the `ConfigureQueueStream` request from the client (see
-  [this](https://github.com/bloomberg/blazingmq-sdk-java/blob/main/bmq-sdk/src/main/java/com/bloomberg/bmq/impl/infr/msg/ConfigureQueueStreamResponse.java).
+  [this](https://github.com/bloomberg/blazingmq-sdk-java/blob/main/bmq-sdk/src/main/java/com/bloomberg/bmq/impl/infr/msg/ConfigureQueueStreamResponse.java)).
 
 - **CloseQueue**: The request sent by the client to the broker to indicate that
   client no longer wants to be attached to the queue (see
   [this](https://github.com/bloomberg/blazingmq-sdk-java/blob/main/bmq-sdk/src/main/java/com/bloomberg/bmq/impl/infr/msg/CloseQueue.java)).
-  `CloseQueue` request is the opposite of `OpenQueue` request.  Note that a
-  `CloseQueue` request is always preceded by `ConfigureQueueStream` request.
+  A `CloseQueue` request is the opposite of an `OpenQueue` request.  Note that a
+  `CloseQueue` request is always preceded by an `ConfigureQueueStream` request.
 
 - **Disconnect**: The request sent by the client to tear down the BlazingMQ
   session with the broker (see
   [this](https://github.com/bloomberg/blazingmq-sdk-java/blob/main/bmq-sdk/src/main/java/com/bloomberg/bmq/impl/infr/msg/Disconnect.java)).
 
 - **DisconnectResponse**: The message sent by the broker to the client in
-  response to `Disconnect` request (see
+  response to a `Disconnect` request (see
   [this](https://github.com/bloomberg/blazingmq-sdk-java/blob/main/bmq-sdk/src/main/java/com/bloomberg/bmq/impl/infr/msg/DisconnectResponse.java)).  Once `DisconnectResponse` is
   sent by the broker, no other message is sent by it to the client.
 
@@ -281,7 +281,7 @@ representation.
 
 As mentioned earlier in the article, every BlazingMQ network packet starts with
 an
-[`EventHeader`]([C++](https://github.com/bloomberg/blazingmq/blob/ca6491f69eea8d91733fa36ef3e82c4facc734fc/src/groups/bmq/bmqp/bmqp_protocol.h#L727),
+`EventHeader` ([C++](https://github.com/bloomberg/blazingmq/blob/ca6491f69eea8d91733fa36ef3e82c4facc734fc/src/groups/bmq/bmqp/bmqp_protocol.h#L727),
 [Java](https://github.com/bloomberg/blazingmq-sdk-java/blob/main/bmq-sdk/src/main/java/com/bloomberg/bmq/impl/infr/proto/EventHeader.java)).
 
 ### Endianness
@@ -305,14 +305,14 @@ In C++, BlazingMQ uses various
 [`bdlb::BigEndian`](https://github.com/bloomberg/bde/blob/main/groups/bdl/bdlb/bdlb_bigendian.h)
 classes from one of our helper libraries.  These classes take care of swapping
 the bytes seamlessly. As an example,
-[here](https://github.com/bloomberg/blazingmq/blob/69f0f8f5b188ca1eb07b9d262093f949729db538/src/groups/bmq/bmqp/bmqp_protocol.h#L779),
-we use
+[here](https://github.com/bloomberg/blazingmq/blob/69f0f8f5b188ca1eb07b9d262093f949729db538/src/groups/bmq/bmqp/bmqp_protocol.h#L779)
+we use the
 [`bdlb::BigEndianUint32`](https://github.com/bloomberg/bde/blob/cf44cbb2cc179077f687f5408d92d6949fae75af/groups/bdl/bdlb/bdlb_bigendian.h#L517)
-type to represent an `unsigned int32` to capture the `fragment` and `length`
+type to represent a `uint32_t` to capture the `fragment` and `length`
 fields of an `EventHeader`.
 
-Let's go over wire layout of every binary message exchanged between client and
-broker.
+Let's go over the wire layout of every binary message exchanged between the client and
+the broker.
 
 ### PUT Event
 
@@ -336,10 +336,10 @@ To describe above layout in words:
   [`PutHeader`](https://github.com/bloomberg/blazingmq/blob/e3ddd4fdc8e024e3abff96aa91555f042ce4e565/src/groups/bmq/bmqp/bmqp_protocol.h#L1337)
   contains fields like:
 
-  - `MessageWords`: Length of total PUT message (including options, properties,
+  - `MessageWords`: Length of the entire PUT message (including options, properties,
     payload and padding) in words (1 word == 4 bytes).
 
-  - `OptionsWords`: Length of total options, if any, in words.
+  - `OptionsWords`: Length of all options, if any, in words.
 
   - `CAT`: Compression algorithm type (see
     [this](https://github.com/bloomberg/blazingmq/blob/main/src/groups/bmq/bmqt/bmqt_compressionalgorithmtype.h)).
@@ -574,13 +574,13 @@ like this:
 Note that schema messages are not batched.  One BlazingMQ network event will
 contain only one encoded schema message.
 
-JSON is the recommended encoding to use.  Java SDK uses
+JSON is the recommended encoding to use.  The Java SDK uses
 [`gson`](https://github.com/google/gson) library for JSON codecs, and wraps the
 encoding/decoding logic in two simple
 [components](https://github.com/bloomberg/blazingmq-sdk-java/blob/main/bmq-sdk/src/main/java/com/bloomberg/bmq/impl/infr/codec).
-On the outgoing path, Java SDK also uses
+On the outgoing path, the Java SDK also uses
 [`SchemaEventBuilder`](https://github.com/bloomberg/blazingmq-sdk-java/blob/main/bmq-sdk/src/main/java/com/bloomberg/bmq/impl/TcpBrokerConnection.java)
-to prepend [`EventHeader`] to the outgoing message.  On the incoming side, SDK
+to prepend [`EventHeader`] to the outgoing message.  On the incoming side, the SDK
 uses `JsonDecoderUtil` as shown
 [here](https://github.com/bloomberg/blazingmq-sdk-java/blob/ed0eb848f5ac2897cfe32cc481575d689a4cb1c2/bmq-sdk/src/main/java/com/bloomberg/bmq/impl/infr/proto/ControlEventImpl.java#L54).
 
@@ -589,7 +589,7 @@ uses `JsonDecoderUtil` as shown
 ## BlazingMQ Client Server Interaction
 
 Now that we have an understanding of various types of messages (and their wire
-layouts) exchanged between BlazingMQ client and broker, its time to understand
+layouts) exchanged between BlazingMQ client and broker, it's time to understand
 the sequence in which these messages are exchanged.  Note that general API and
 design guidelines for the SDK are discussed in a
 [later](#client-library-design-guide) section.
@@ -616,10 +616,10 @@ detail.
 
 #### TCP Connection
 
-The first step in BlazingMQ client/broker interaction is the client initiating
+The first step in a BlazingMQ client/broker interaction is the client initiating
 a TCP connection with the broker.
 
-Before we go into the mechanics of that, its worth briefly discussing how a
+Before we go into the mechanics of that, it's worth briefly discussing how a
 BlazingMQ client can figure out the right TCP endpoint (IP + Port) of the
 BlazingMQ broker to connect to.  In an enterprise setting, the correct endpoint
 would typically be retrieved via some [service
@@ -636,44 +636,44 @@ and have BlazingMQ client applications connect to the local BlazingMQ proxy
 which could listen on a fixed port number.
 
 Coming back to the TCP connection, SDK initiates the connection by calling some
-flavor of `connect` API in the underlying language or library being used.  As
-an example. BlazingMQ Java SDK uses [`netty`](https://netty.io) for its TCP
-connection management and initiates connection like shown
-[here]https://github.com/bloomberg/blazingmq-sdk-java/blob/ed0eb848f5ac2897cfe32cc481575d689a4cb1c2/bmq-sdk/src/main/java/com/bloomberg/bmq/impl/infr/net/NettyTcpConnection.java#L370).
+flavor of the `connect` API in the underlying language or library being used.  As
+an example, BlazingMQ Java SDK uses [`netty`](https://netty.io) for its TCP
+connection management and initiates a connection as shown
+[here](https://github.com/bloomberg/blazingmq-sdk-java/blob/ed0eb848f5ac2897cfe32cc481575d689a4cb1c2/bmq-sdk/src/main/java/com/bloomberg/bmq/impl/infr/net/NettyTcpConnection.java#L370).
 On the other hand, the `PlainProducerIT.java` file mentioned above simply uses
 the basic
 [`connect`](https://github.com/bloomberg/blazingmq-sdk-java/blob/ed0eb848f5ac2897cfe32cc481575d689a4cb1c2/bmq-sdk/src/test/java/com/bloomberg/bmq/it/PlainProducerIT.java#L80) API
-provided by Java language.
+provided by the Java language.
 
-An important thing to note here is that both BlazingMQ C++ and Java SDKs use
+An important thing to note here is that both the BlazingMQ C++ and Java SDKs use
 [non-blocking
 I/O](https://beej.us/guide/bgnet/html//#slightly-advanced-techniques), which
 can help with asynchronous and flexible design in the SDK, but at the added
 cost of more complexity.  In our experience, the complexity is worth it, and
-a SDK implementation in any language should consider using non-blocking I/O if
+an SDK implementation in any language should consider using non-blocking I/O if
 possible.
 
 #### Negotiation
 
-Once the `connect` operation succeeds, BlazingMQ SDK will have a TCP connection
+Once the `connect` operation succeeds, the BlazingMQ SDK will have a TCP connection
 established with the broker.  The next step is for the SDK to carry out a
 handshake with the broker.  This is known as *negotiation* in BlazingMQ.
 Immediately after establishing a TCP connection, the SDK sends a
 [`NegotiationMessage`](https://github.com/bloomberg/blazingmq/blob/69f0f8f5b188ca1eb07b9d262093f949729db538/src/groups/bmq/bmqp/bmqp_ctrlmsg.xsd#L1592)
 to the broker.  This is a schema message, and hence needs to be encoded.  See
-[previous](#schema-messages-wire-layout) section for more details on the wire
-layout.  Note thae `NegotationMessage` is one of the top level schema messages,
+the [previous](#schema-messages-wire-layout) section for more details on the wire
+layout.  Note that `NegotationMessage` is one of the top level schema messages,
 the other being
 [`ControlMessage`](https://github.com/bloomberg/blazingmq/blob/9b692fe25f74543e954a27e30b6b15b0ae057c8d/src/groups/bmq/bmqp/bmqp_ctrlmsg.xsd#L84).
 There is no way to discriminate between these two top level schema messages.
-It is implicit that the `NegotiationMessage` will only be used uding the
+It is implicit that the `NegotiationMessage` will only be used during the
 handshake phase, and every other schema message exchanged after that will be
 the top level `ControlMessage`.
 
-`NegotiationMessage` is a choice with three selections.  SDK always
+A `NegotiationMessage` can be one of three possible sub-types.  The SDK always
 sends the
 [`ClientIdentity`](https://github.com/bloomberg/blazingmq/blob/69f0f8f5b188ca1eb07b9d262093f949729db538/src/groups/bmq/bmqp/bmqp_ctrlmsg.xsd#L1663)
-selection, which contains various fields as described in its documentation in
+sub-type, which contains various fields as described in its documentation in
 the link.
 [Here's](https://github.com/bloomberg/blazingmq-sdk-java/blob/ed0eb848f5ac2897cfe32cc481575d689a4cb1c2/bmq-sdk/src/main/java/com/bloomberg/bmq/impl/TcpBrokerConnection.java#L355-L377)
 the relevant snippet of code from the Java SDK which populates various fields
@@ -687,9 +687,8 @@ Looking at
 one of the fields is
 [`GuidInfo`](https://github.com/bloomberg/blazingmq/blob/c8acf1b840fcd9e907d4404f43e5e687edd660f5/src/groups/bmq/bmqp/bmqp_ctrlmsg.xsd#L1646-L1661).  Readers should refer to the
 documentation in header files of [`MessageGUIDGenerator`](https://github.com/bloomberg/blazingmq/blob/main/src/groups/bmq/bmqp/bmqp_messageguidgenerator.h) for more details.
-field
 
-Once the `NegotiationMessage` has been sent, SDK waits for the broker to
+Once the `NegotiationMessage` has been sent, the SDK waits for the broker to
 respond with a `NegotiationMessage` of sub-type
 [`BrokerIdentity`](https://github.com/bloomberg/blazingmq/blob/69f0f8f5b188ca1eb07b9d262093f949729db538/src/groups/bmq/bmqp/bmqp_ctrlmsg.xsd#L1712).
 The `result` field in the `BrokerResponse` indicates if the BlazingMQ broker
@@ -711,7 +710,7 @@ and Java SDKs by the `openQueue` API, which looks like
 [this](https://github.com/bloomberg/blazingmq-sdk-java/blob/ed0eb848f5ac2897cfe32cc481575d689a4cb1c2/bmq-sdk/src/main/java/com/bloomberg/bmq/Queue.java#L24-L34)
 in Java and like
 [this](https://github.com/bloomberg/blazingmq/blob/f4a4f55ae74caf24995ca540a0fbf70a33fbd9c3/src/groups/bmq/bmqa/bmqa_session.h#L819-L840)
-in C++ SDK.
+in the C++ SDK.
 
 Let's go over the two pairs of request/response exchanges which occur under the
 hood when one calls the `openQueue` API:
@@ -761,10 +760,10 @@ sending an
 [`OpenQueueResponse`](https://github.com/bloomberg/blazingmq/blob/9b692fe25f74543e954a27e30b6b15b0ae057c8d/src/groups/bmq/bmqp/bmqp_ctrlmsg.xsd#L191-L211).  Let's go over the three
 fields in this type:
 
-- `originalRequest`: A field whose type is `OpenQueue` request, and it simply
+- `originalRequest`: A field whose type is `OpenQueue`, and it simply
   carries the `OpenQueue` request sent by the client.
 
-- `routingConfiguration`: An integer which indicates information about message
+- `routingConfiguration`: An integer which indicates information about the message
   routing strategy of the queue, as indicated by the broker.  Possible values
   for the flag can be found
   [here](https://github.com/bloomberg/blazingmq/blob/9b692fe25f74543e954a27e30b6b15b0ae057c8d/src/groups/bmq/bmqp/bmqp_routingconfigurationutils.h#L51-L61).
@@ -790,7 +789,7 @@ fields in this type:
 
 As mentioned before, opening a queue is a two-step process.  The first one
 `OpenQueue`/`OpenQueueResponse`.  Let's look at the second step.  Note that a
-BlazingMQ client cannot start producing/consumer to/from a queue until the
+BlazingMQ client cannot start producing to/consuming from a queue until the
 second step is complete.
 
 #### `ConfigureStream` Request
@@ -818,7 +817,7 @@ Now that we have a high level understanding of this request, let's dig deeper.
 The `ConfigureStream` request contains two fields.  The first one is `qId`,
 which was explained above.  The second one is
 [`streamParameters`](https://github.com/bloomberg/blazingmq/blob/9b692fe25f74543e954a27e30b6b15b0ae057c8d/src/groups/bmq/bmqp/bmqp_ctrlmsg.xsd#L287C22-L287C38).
-Let's look at various fields of this
+Let's look at the fields of this
 [type](https://github.com/bloomberg/blazingmq/blob/9b692fe25f74543e954a27e30b6b15b0ae057c8d/src/groups/bmq/bmqp/bmqp_ctrlmsg.xsd#L382-L398):
 
 - `appId`: This string contains the name of *appId*, if any, for the consumer.
@@ -871,13 +870,13 @@ both SDKs, the `post()` API is asynchronous i.e., the API does not wait for the
 BlazingMQ broker to respond with ACK messages. In fact, in some cases, the API
 does not write the PUT messages to the TCP socket.  Instead, the SDK just
 accepts the messages, adds them to an internal buffer, and sends them later.
-This can occur if TCP layer is enforcing some flow control, or in case SDK is
+This can occur if the TCP layer is enforcing some flow control, or in case the client is
 not connected to the broker, etc.
 
-Keeping above complications aside, the simplest way to send PUT messages is to
-do what [Java
+Keeping the above complications aside, the simplest way to send PUT messages is to
+do what the [Java
 SDK](https://github.com/bloomberg/blazingmq-sdk-java/blob/ed0eb848f5ac2897cfe32cc481575d689a4cb1c2/bmq-sdk/src/main/java/com/bloomberg/bmq/Queue.java#L109-L115)
-is doing.  A public class called `PutMessage` could be created, with data
+does.  A public class called `PutMessage` could be created, with data
 members like the payload, message properties and a callback which will be
 invoked by the SDK when it receives the ACK message for the PUT message from
 the broker.  `PutMessage` could look like this (in pseudo-code):
@@ -943,7 +942,7 @@ PUT message(s) specified by the application, by following guidelines
   application is calling `post`, it must have opened the queue with *WRITE*
   intent.
 
-- Ensure that the queue is in the processing of being closed or already closed.
+- Ensure that the queue is in the process of being closed or is already closed.
 
 - Ensure that the connection with BlazingMQ broker is up, and not stopping or
   disconnected.
@@ -957,15 +956,15 @@ API is invoked.
 
 ### Processing Acknowledgement Messages (Producers)
 
-After posting one or more messages, the SDK should expect response from the
+After posting one or more messages, the SDK should expect a response from the
 BlazingMQ broker in the form of an ACK (acknowledgement) message containing the
 result of the `post` operation.  Multiple ACK messages can be delivered by the
-broker in one ACK event, so the SDK must be able to handle them.  Wire layout
+broker in one ACK event, so the SDK must be able to handle them.  The wire layout
 of an ACK event was discussed in a [previous](#ack-event) section.
 
-One of the fields in ACK message is `MessageGUID`, which can be used to
+One of the fields in ACK message is `MessageGUID`, which is used to
 correlate the ACK message to its PUT message.  For example, when the
-application calls `post` API, SDK should generate a `MessageGUID`, add it to
+application calls the `post` API, the SDK should generate a `MessageGUID`, add it to
 the PUT header of that message before sending it, and also keep track of the
 `MessageGUID` along with any relevant information for that PUT message (e.g.,
 the `AckCallback` specified by the application for that PUT message).  When the
@@ -985,9 +984,9 @@ As far as handing over PUSH messages to the application is concerned, it can be
 done by asking for a callback from the application when it opens the queue, and
 dispatching PUSH messages by invoking that callback.  There are various ways to
 ask applications for this callback, but the most obvious one could be in the
-`openQueue` API (or a flavor of it).  For example, Java SDK has a
+`openQueue` API (or a flavor of it).  For example, the Java SDK has a
 [`PushMessageHandler`](https://github.com/bloomberg/blazingmq-sdk-java/blob/main/bmq-sdk/src/main/java/com/bloomberg/bmq/PushMessageHandler.java)
-interface, which consumer application should specify when
+interface, which the consumer application should specify when
 [creating](https://github.com/bloomberg/blazingmq-sdk-java/blob/ed0eb848f5ac2897cfe32cc481575d689a4cb1c2/bmq-examples/src/main/java/com/bloomberg/bmq/examples/SimpleConsumer.java#L117C42-L117C42)
 a queue.
 
@@ -998,7 +997,7 @@ multiple PUSH messages to the application in one go.
 
 #### Consume API Implementation
 
-Wire layout of a PUSH event was described in a [previous](#push-event) section.
+The wire layout of a PUSH event was described in a [previous](#push-event) section.
 As far as implementation is concerned, SDK logic should keep some of these things
 in mind when receiving and dispatching a PUSH event:
 
@@ -1015,9 +1014,9 @@ in mind when receiving and dispatching a PUSH event:
 
 After opening a queue, a consumer application will receive messages which are
 being posted on the queue.  Some details about handling PUSH messages were
-described in the previous section.  One the consumer application processes a
+described in the previous section.  Once the consumer application processes a
 PUSH message by executing its business logic, it needs to indicate to the
-BlazingMQ backend that message has been processed successfully and can be
+BlazingMQ backend that the message has been processed successfully and can be
 removed from the queue.  This is done by the consumer application sending a
 CONFIRM message.
 
@@ -1025,20 +1024,20 @@ CONFIRM message.
 
 Similar to the **Post API**, C++ and Java SDKs support batching of CONFIRM
 messages i.e., consumer application can send a batch of CONFIRM messages in one
-shot instead of sending them one by one.  Batching can have an improved impact
-on the performance.  Additionally, in both SDKs, the `confirmMessage()` API is
-asynchronous i.e., the API may not write the CONFIRM messages to the TCP
+shot instead of sending them one by one.  Batching can improve performance.
+Additionally, in both SDKs, the `confirmMessage()` API is
+asynchronous; i.e., the API may not immediately write the CONFIRM messages to the TCP
 socket.  Instead, the SDK just accepts the CONFIRM messages, adds them to an
-internal buffer, and sends them later.  This can occur if TCP layer is
-enforcing some flow control, or in case SDK is not connected to the broker,
+internal buffer, and sends them later.  This can occur if the TCP layer is
+enforcing some flow control, or in case the SDK is not connected to the broker,
 etc.
 
 Keeping above complications aside, the simplest way to send CONFIRM messages is
-to do what [Java
+to do what the [Java
 SDK](https://github.com/bloomberg/blazingmq-sdk-java/blob/ed0eb848f5ac2897cfe32cc481575d689a4cb1c2/bmq-sdk/src/main/java/com/bloomberg/bmq/PushMessage.java#L70C8-L76)
-is doing.  Alternatively, depending upon the API design, the `confirmMessage`
+does.  Alternatively, depending upon the API design, the `confirmMessage`
 API could be part of a top level object like `Connection`, `Session`,
-`Context`, `Domain`, etc like on [C++
+`Context`, `Domain`, etc, as in the [C++
 SDK](https://github.com/bloomberg/blazingmq/blob/f4a4f55ae74caf24995ca540a0fbf70a33fbd9c3/src/groups/bmq/bmqa/bmqa_session.h#L1052-L1059).
 
 #### ConfirmMessage API Implementation
@@ -1057,7 +1056,7 @@ request.
 
 ### Closing a Queue
 
-Once a client application no longer wants to produce/consumer to/from a queue
+Once a client application no longer wants to produce to or consume from a queue
 that it previously opened, it should close the queue.  Closing a queue will not
 delete the queue in BlazingMQ backend.  It will simply detach the application
 from the queue.
@@ -1069,7 +1068,7 @@ which looks like
 [this](https://github.com/bloomberg/blazingmq-sdk-java/blob/ed0eb848f5ac2897cfe32cc481575d689a4cb1c2/bmq-sdk/src/main/java/com/bloomberg/bmq/Queue.java#L78-L86)
 in Java and like
 [this](https://github.com/bloomberg/blazingmq/blob/f4a4f55ae74caf24995ca540a0fbf70a33fbd9c3/src/groups/bmq/bmqa/bmqa_session.h#L961C3-L980)
-in C++ SDK.
+in the C++ SDK.
 
 Let's go over the two pairs of request/response exchanges which occur under the
 hood when one calls the `closeQueue` API:
@@ -1100,14 +1099,14 @@ sending a
 > [!NOTE]
 > The `ConfigureStream` request is sent by the SDK in three cases:
 >
-> 1) As the second step in the open-queue workflow (i.e., when application
->    calls one of the flavors of `openQueue` APIs).
+> 1) As the second step in the open-queue workflow (i.e., when an application
+>    calls one of the flavors of the `openQueue` APIs).
 >
-> 2) Sent as a standalone request when application calls one of the flavors of
+> 2) As a standalone request when an application calls one of the flavors of the
 >    `configureQueue` APIs.
 >
-> 3) As the firs step in the close-queue workflow (i.e., when application calls
->    one of the flavors of `closeQueue` APIs).
+> 3) As the first step in the close-queue workflow (i.e., when an application calls
+>    one of the flavors of the `closeQueue` APIs).
 
 ### Stopping a Session with BlazingMQ Broker
 
@@ -1119,8 +1118,8 @@ application can stop the BlazingMQ session at any time.
 Stopping the BlazingMQ session is typically done by calling a
 [`stop`](https://github.com/bloomberg/blazingmq-sdk-java/blob/358eda1e6ea7917e63ee6fb50d15ecd5873dbf56/bmq-sdk/src/main/java/com/bloomberg/bmq/Session.java#L512-L524)
 method on the top level Session/Connection/Context object.  This method needs
-to carry out two things -- inform the broker about the disconnect intent and
-wait for a response from the broker, and then finally close the TCP socket with
+to carry out three things -- it needs to inform the broker about its intent to disconnect and
+wait for a response from the broker, and then finally it needs to close the TCP socket with
 the broker.  Let's look into these steps in detail.
 
 #### `Disconnect` Request
@@ -1134,7 +1133,7 @@ it responds to this request by sending a
 [`DisconnectResponse`](https://github.com/bloomberg/blazingmq/blob/58044d8e4579665fffa0419df820c8be5cdbc2eb/src/groups/bmq/bmqp/bmqp_ctrlmsg.xsd#L136-L147).
 A guarantee provided by the broker is that once the `DisconnectResponse` has
 been sent, the broker will not send any other
-message/request/response/notification to the SDK.  Logically, the *Disconnect*
+message/request/response/notification to the client.  Logically, the *Disconnect*
 request/response pair can be thought of as a way to ensure that the "pipe"
 between client and broker is empty.
 
@@ -1142,7 +1141,7 @@ between client and broker is empty.
 
 Once the SDK receives the `DisconnectResponse`, it can proceed to close the TCP
 socket with the broker, and release any resources associated with the
-connection.  Care must be taken to ensure that the resources are cleaned in the
+connection.  Care must be taken to ensure that the resources are released in the
 right order without any dangling references or leaks.
 
 ---
@@ -1187,11 +1186,11 @@ find useful:
 
 1. The network I/O logic could be made asynchronous (i.e., could use
    non-blocking sockets).  This is not very important for higher level
-   languages like Python, etc. but for languages like Rust, etc.  Non-blocking
+   languages like Python, etc. but is for languages like Rust, etc.  Non-blocking
    I/O can enable client applications to achieve higher throughput, at the cost
    of higher complexity of SDK implementation.  One could leverage some well
    known open source libraries which make it easier to achieve async I/O.  For
-   example, Java SDK uses
+   example, the Java SDK uses
    [`netty`](https://github.com/bloomberg/blazingmq-sdk-java/tree/main/bmq-sdk/src/main/java/com/bloomberg/bmq/impl/infr/net) to achieve async I/O fairly easily.
 
 2. For SDKs which are highly asynchronous in their implementation, it can be
@@ -1200,7 +1199,7 @@ find useful:
    disconnection with the BlazingMQ broker, and timeout of an outstanding
    *OpenQueue* request could occur at the same time, and it might become
    unreasonably difficult to reason about the code.  As one of the potential
-   solutions, authors may find a FSM based approach easy to implement and
+   solutions, authors may find a Finite-State Machine-based (FSM) approach easy to implement and
    reason about.  In this approach, all states, state transitions, events and
    actions can be codified in the form of enums, callbacks, etc.  Any incoming
    or outgoing event (initiated by any entity like the user, timer, network,
