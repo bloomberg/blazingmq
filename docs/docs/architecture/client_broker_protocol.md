@@ -69,7 +69,7 @@ were four guiding principles when this protocol was designed:
 - *Batching*: The protocol should support batching of messages wherever
   possible.
 
-- *Efficiency*: The protcol should avoid encoding/decoding overhead for
+- *Efficiency*: The protocol should avoid encoding/decoding overhead for
   frequent messages, while still taking into consideration concerns like
   endiannes, etc.
 
