@@ -1188,7 +1188,7 @@ find useful:
 1. The network I/O logic could be made asynchronous (i.e., could use
    non-blocking sockets).  This is not very important for higher level
    languages like Python, etc. but for languages like Rust, etc.  Non-blocking
-   I/O can enable client appliactions to achieve higher throughput, at the cost
+   I/O can enable client applications to achieve higher throughput, at the cost
    of higher complexity of SDK implementation.  One could leverage some well
    known open source libraries which make it easier to achieve async I/O.  For
    example, Java SDK uses
