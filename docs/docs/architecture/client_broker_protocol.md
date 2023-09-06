@@ -517,7 +517,7 @@ A CONFIRM event contains one
 followed by one or more
 [`ConfirmMessage`](https://github.com/bloomberg/blazingmq/blob/e3ddd4fdc8e024e3abff96aa91555f042ce4e565/src/groups/bmq/bmqp/bmqp_protocol.h#L2387)s.
 
-Note that unlinke PUT and PUSH events, there is only one `ConfirmHeader` in a
+Note that unlike PUT and PUSH events, there is only one `ConfirmHeader` in a
 CONFIRM event, irrespective of the number of `ConfirmMessage`s.
 
 Let's go over various fields in a `ConfirmHeader`:
