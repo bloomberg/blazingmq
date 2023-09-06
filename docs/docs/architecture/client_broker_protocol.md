@@ -1178,7 +1178,7 @@ We list some guiding principles for designing BlazingMQ client APIs:
 5. Overall, in our experience, BlazingMQ Java SDK provides a set of APIs which
    can be a good starting point for anyone.  SDKs in higher level languages
    should aim to further simplify the Java SDK APIs, while lower level
-   languages can implementing something similar to Java APIs.
+   languages can implement something similar to Java APIs.
 
 ### Implementation
 
