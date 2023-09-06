@@ -123,7 +123,7 @@ above.  Some important things to know about:
 
 ### Types of Messages
 
-Now that we understand about top level structure of a BlazingMQ network packet,
+Now that we understand top level structure of a BlazingMQ network packet,
 let's dive into the next level of detail.  At a high level, there are two types
 of messages in the protocol:
 
