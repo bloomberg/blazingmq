@@ -247,7 +247,7 @@ and broker, along with their purpose:
   `ConfigureQueueStream` request is used by the producer/consumer to set its
   priority or flow-control parameters for the queue.  A producer/consumer can
   also send a stand-alone `ConfigureQueueStream` request at any time to do the
-  same.  However, it must send one upon receiving a sucessful
+  same.  However, it must send one upon receiving a successful
   `OpenQueueResponse` from the broker.
 
 - **ConfigureQueueStreamResponse**: The message sent by the broker in response
