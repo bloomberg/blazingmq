@@ -4,7 +4,10 @@ Use [Just the Docs](https://github.com/just-the-docs/just-the-docs) for document
 
 ## License
 
-Uses [Just the Docs](https://github.com/just-the-docs/just-the-docs)
+In order to build the documentation, we use the [Just the
+Docs](https://github.com/just-the-docs/just-the-docs) theme for Jekyll, which
+is licensed under the [MIT license](../licenses/LICENSE-just-the-docs.txt).
+Please see that file for the theme’s copyright and permission notices.
 
 # Setup for developing locally (Mac)
 
@@ -12,7 +15,10 @@ Uses [Just the Docs](https://github.com/just-the-docs/just-the-docs)
 
 ### Homebrew
 
-Installed via the bootstrapper tool.
+Install [Homebrew](https://brew.sh/).
+```
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+```
 
 ### Ruby 3.1
 
@@ -24,7 +30,7 @@ ruby -v
 ```
 
 
-## Install dependencies from artifactory
+## Install dependencies
 
 Install the dependencies listed in the Gemfile using the command:
 ```
