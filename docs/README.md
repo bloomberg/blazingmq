@@ -15,7 +15,10 @@ that file for the theme’s copyright and permission notices.
 
 ### Homebrew
 
-Installed via the bootstrapper tool.
+Install [Homebrew](https://brew.sh/).
+```
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+```
 
 ### Ruby 3.1
 
@@ -27,7 +30,7 @@ ruby -v
 ```
 
 
-## Install dependencies from artifactory
+## Install dependencies
 
 Install the dependencies listed in the Gemfile using the command:
 ```
