@@ -6,8 +6,8 @@ Use [Just the Docs](https://github.com/just-the-docs/just-the-docs) for document
 
 In order to build the documentation, we use the [Just the
 Docs](https://github.com/just-the-docs/just-the-docs) theme for Jekyll, which
-is licensed under the [MIT license](LICENSE.just-the-docs.txt).  Please see
-that file for the theme’s copyright and permission notices.
+is licensed under the [MIT license](../licenses/LICENSE-just-the-docs.txt).
+Please see that file for the theme’s copyright and permission notices.
 
 # Setup for developing locally (Mac)
 
