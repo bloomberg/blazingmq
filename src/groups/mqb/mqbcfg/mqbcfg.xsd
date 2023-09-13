@@ -170,7 +170,7 @@
       </documentation>
     </annotation>
     <sequence>
-      <element name='advertiseV2Support' type='boolean' default='false'/>
+      <element name='advertiseV2Support' type='boolean' default='true'/>
       <element name='minCppSdkVersion'   type='int'     default='11207'/>
       <element name='minJavaSdkVersion'  type='int'     default='10'/>
     </sequence>
