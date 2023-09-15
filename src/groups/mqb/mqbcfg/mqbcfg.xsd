@@ -753,7 +753,7 @@
     <annotation>
       <documentation>
         Choice of all the various transport mode available to establish
-        connetivity with a node.
+        connectivity with a node.
 
         tcp.: TCP connectivity
       </documentation>
