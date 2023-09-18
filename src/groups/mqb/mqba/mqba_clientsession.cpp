@@ -269,6 +269,19 @@ bool isClientGeneratingGUIDs(
     return !clientIdentity.guidInfo().clientId().empty();  // RETURN
 }
 
+// Finalize the specified 'handle' associated with the specified 'description'
+void finalizeClosedHandle(bsl::string description,
+                          const bsl::shared_ptr<mqbi::QueueHandle>& handle)
+{
+    // executed by ONE of the *QUEUE* dispatcher threads
+
+    BSLS_ASSERT_SAFE(
+        handle->queue()->dispatcher()->inDispatcherThread(handle->queue()));
+
+    BALL_LOG_INFO << description << ": Closed queue handle is finalized: "
+                  << handle->handleParameters();
+}
+
 }  // close unnamed namespace
 
 // -------------------------
@@ -1323,27 +1336,17 @@ void ClientSession::closeQueueCb(
     // queue's thread allows to keep the handle alive until the check is
     // complete.
     //
+    // NOTE: We copy and pass 'description()' string to the callback because
+    //       this 'ClientSession' object might be already destroyed when event
+    //       is executed.  See internal-ticket D173020032.
+    //
     // NOTE: We use the e_DISPATCHER type because the handle gets destroyed,
     //       and the process of this event by the dispatcher should not add it
     //       to the flush list.
     handle->queue()->dispatcher()->execute(
-        bdlf::BindUtil::bind(&ClientSession::finalizeClosedHandle,
-                             this,
-                             handle),
+        bdlf::BindUtil::bind(&finalizeClosedHandle, description(), handle),
         handle->queue(),
         mqbi::DispatcherEventType::e_DISPATCHER);
-}
-
-void ClientSession::finalizeClosedHandle(
-    const bsl::shared_ptr<mqbi::QueueHandle>& handle)
-{
-    // executed by ONE of the *QUEUE* dispatcher threads
-
-    BSLS_ASSERT_SAFE(
-        handle->queue()->dispatcher()->inDispatcherThread(handle->queue()));
-
-    BALL_LOG_INFO << description() << ": Closed queue handle is finalized: "
-                  << handle->handleParameters();
 }
 
 void ClientSession::processConfigureStream(
