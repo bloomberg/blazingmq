@@ -19,7 +19,6 @@
                 }
             ],
             "partitionConfig": {
-                "name": "local",
                 "flushAtShutdown": true,
                 "location": "localBMQ/storage/local",
                 "maxArchivedFileSets": 0,

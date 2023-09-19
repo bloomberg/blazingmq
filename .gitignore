@@ -5,3 +5,4 @@ compile_commands.json
 /out/
 /.cache/
 CMakeUserPresets.json
+/thirdparty/

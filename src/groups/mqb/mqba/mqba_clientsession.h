@@ -570,9 +570,6 @@ class ClientSession : public mqbnet::Session,
     void closeQueueCb(const bsl::shared_ptr<mqbi::QueueHandle>& handle,
                       const bmqp_ctrlmsg::ControlMessage& handleParamsCtrlMsg);
 
-    void
-    finalizeClosedHandle(const bsl::shared_ptr<mqbi::QueueHandle>& handle);
-
     /// Return a pointer to the stats associated with an unknown queue.
     /// Note that these stats are lazily created in the first invocation of
     /// this method.
