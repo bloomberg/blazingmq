@@ -91,6 +91,22 @@ BlazingMQ and see them in action.
 respectively, on Ubuntu 22.04.2 LTS and Darwin 22.6.0. They can serve as a basis
 to build BlazingMQ on other systems.
 
+### With vcpkg
+
+There is also support for building BlazingMQ with [vpckg](https://vcpkg.io/en/).
+
+Before attempting to build, you will have to acquire `flex`, `bison`, and `bde-tools` for your system, as vcpkg cannot fetch them. Both `flex` and `bison` can likely be installed through your system's package manager. Clone [`bde-tools`](https://github.com/bloomberg/bde-tools.git), we'll assume `blazingmq/thirdparty/bde-tools` for this guide.
+
+Once the prerequisite tools are installed, you should be able to build BlazingMQ with the following:
+
+```sh
+export VCPKG_ROOT=path/to/vcpkg
+cmake --preset [preset-name] -DCMAKE_PREFIX_PATH=thirdparty/bde-tools
+cmake --build cmake.bld
+```
+
+For a list of presets, please look at the `*-vcpkg` configurations in [`CMakePresets.json`](./CMakePresets.json).
+
 ---
 
 ## Installation

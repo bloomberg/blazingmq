@@ -1,3 +1,8 @@
 /build/
 /cmake.bld/
+/vcpkg_installed/
+compile_commands.json
+/out/
+/.cache/
+CMakeUserPresets.json
 /thirdparty/
