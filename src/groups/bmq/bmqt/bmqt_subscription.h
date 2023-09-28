@@ -20,8 +20,8 @@
 //@PURPOSE: Provide a value-semantic types for subscription related API.
 //
 //@CLASSES:
-//  bmqt::Subscription_Handle:      uniquely identifies Subscription
-//  bmqt::Subscription_Expression:  Subscription criteria
+//  bmqt::SubscriptionHandle:       uniquely identifies Subscription
+//  bmqt::SubscriptionExpression:   Subscription criteria
 //  bmqt::Subscription:             Subscription parameters
 //
 //@DESCRIPTION: 'bmqt::Subscription' provides a value-semantic type carried
