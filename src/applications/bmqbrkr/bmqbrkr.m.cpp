@@ -299,6 +299,8 @@ static int getConfig(bsl::ostream&      errorDescription,
     }
 
     taskEnv->d_config.appConfig().etcDir() = configDir;
+    taskEnv->d_config.appConfig().brokerVersion() =
+        bmqbrkrscm::Version::versionAsInt();
     mqbcfg::BrokerConfig::set(taskEnv->d_config.appConfig());
 
     return rc_SUCCESS;
