@@ -594,7 +594,6 @@ run(bsl::ostream& errorDescription, TaskEnvironment* taskEnv, bool wait = true)
 
 int main(int argc, const char* argv[])
 {
-
     // Parse command line parameters
     bsl::string configDir;
     bsl::string instanceId = "default";
@@ -637,7 +636,7 @@ int main(int argc, const char* argv[])
          balcl::OccurrenceInfo::e_OPTIONAL},
         {"v|version",
          "version",
-         "Show version number",
+         "Show broker version number",
          balcl::TypeInfo(&version),
          balcl::OccurrenceInfo::e_OPTIONAL},
     };
@@ -652,13 +651,15 @@ int main(int argc, const char* argv[])
     }
 
     if (version) {
-        bsl::cout << bmqbrkrscm::Version::version() << "\n";
+        bsl::cout << "BlazingMQ broker version: "
+                  << bmqbrkrscm::Version::version() << "\n";
         return 0;
     }
 
     if (configDir.empty()) {
         bsl::cerr << "Error: No value supplied for the non-option argument "
                      "\"config\".\n";
+        return mqbu::ExitCode::e_COMMAND_LINE;  // RETURN
     }
 
     printStartStopTrace("STARTING");
