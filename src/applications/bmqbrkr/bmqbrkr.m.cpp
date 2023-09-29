@@ -594,6 +594,73 @@ run(bsl::ostream& errorDescription, TaskEnvironment* taskEnv, bool wait = true)
 
 int main(int argc, const char* argv[])
 {
+
+    // Parse command line parameters
+    bsl::string configDir;
+    bsl::string instanceId = "default";
+    bsl::string hostName;
+    bsl::string hostTags;
+    bsl::string hostDataCenter;
+    int         port    = 0;
+    bool        version = false;
+
+    balcl::OptionInfo specTable[] = {
+        {"",
+         "config",
+         "Path to the configuration directory",
+         balcl::TypeInfo(&configDir),
+         balcl::OccurrenceInfo::e_OPTIONAL},
+        {"i|instanceId",
+         "instanceId",
+         "The instance ID ('default' if not provided)",
+         balcl::TypeInfo(&instanceId),
+         balcl::OccurrenceInfo::e_OPTIONAL},
+        {"h|hostName",
+         "hostName",
+         "Override host name",
+         balcl::TypeInfo(&hostName),
+         balcl::OccurrenceInfo::e_OPTIONAL},
+        {"t|hostTags",
+         "hostTags",
+         "Override host tags",
+         balcl::TypeInfo(&hostTags),
+         balcl::OccurrenceInfo::e_OPTIONAL},
+        {"d|hostDataCenter",
+         "hostDataCenter",
+         "Override host data center",
+         balcl::TypeInfo(&hostDataCenter),
+         balcl::OccurrenceInfo::e_OPTIONAL},
+        {"p|port",
+         "port",
+         "Override port",
+         balcl::TypeInfo(&port),
+         balcl::OccurrenceInfo::e_OPTIONAL},
+        {"v|version",
+         "version",
+         "Show version number",
+         balcl::TypeInfo(&version),
+         balcl::OccurrenceInfo::e_OPTIONAL},
+    };
+
+    balcl::CommandLine commandLine(specTable);
+
+    if (commandLine.parse(argc, argv)) {
+        bsl::cerr << "PANIC [STARTUP] Failed to parse command line\n"
+                  << bsl::flush;
+        commandLine.printUsage();
+        return mqbu::ExitCode::e_COMMAND_LINE;  // RETURN
+    }
+
+    if (version) {
+        bsl::cout << bmqbrkrscm::Version::version() << "\n";
+        return 0;
+    }
+
+    if (configDir.empty()) {
+        bsl::cerr << "Error: No value supplied for the non-option argument "
+                     "\"config\".\n";
+    }
+
     printStartStopTrace("STARTING");
 
     ignoreSigpipe();
@@ -623,56 +690,6 @@ int main(int argc, const char* argv[])
 
     TaskEnvironment taskEnv;
     s_taskEnv_p = &taskEnv;
-
-    // Parse command line parameters
-    bsl::string configDir;
-    bsl::string instanceId = "default";
-    bsl::string hostName;
-    bsl::string hostTags;
-    bsl::string hostDataCenter;
-    int         port = 0;
-
-    balcl::OptionInfo specTable[] = {
-        {"",
-         "config",
-         "Path to the configuration directory",
-         balcl::TypeInfo(&configDir),
-         balcl::OccurrenceInfo::e_REQUIRED},
-        {"i|instanceId",
-         "instanceId",
-         "The instance ID ('default' if not provided)",
-         balcl::TypeInfo(&instanceId),
-         balcl::OccurrenceInfo::e_OPTIONAL},
-        {"h|hostName",
-         "hostName",
-         "Override host name",
-         balcl::TypeInfo(&hostName),
-         balcl::OccurrenceInfo::e_OPTIONAL},
-        {"t|hostTags",
-         "hostTags",
-         "Override host tags",
-         balcl::TypeInfo(&hostTags),
-         balcl::OccurrenceInfo::e_OPTIONAL},
-        {"d|hostDataCenter",
-         "hostDataCenter",
-         "Override host data center",
-         balcl::TypeInfo(&hostDataCenter),
-         balcl::OccurrenceInfo::e_OPTIONAL},
-        {"p|port",
-         "port",
-         "Override port",
-         balcl::TypeInfo(&port),
-         balcl::OccurrenceInfo::e_OPTIONAL},
-    };
-
-    balcl::CommandLine commandLine(specTable);
-
-    if (commandLine.parse(argc, argv)) {
-        bsl::cerr << "PANIC [STARTUP] Failed to parse command line\n"
-                  << bsl::flush;
-        commandLine.printUsage();
-        return mqbu::ExitCode::e_COMMAND_LINE;  // RETURN
-    }
 
     const char* prefixEnvVar = bsl::getenv("BMQ_PREFIX");
     taskEnv.d_bmqPrefix      = (prefixEnvVar != 0 ? prefixEnvVar : "./");
