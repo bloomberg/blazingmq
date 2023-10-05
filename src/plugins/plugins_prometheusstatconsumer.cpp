@@ -125,10 +125,6 @@ struct Tagger {
 
 }  // close unnamed namespace
 
-                     // ---------------------------------
-                     // class PrometheusStatConsumer::PrometheusEvent
-                     // ---------------------------------
-
                           // ----------------------
                           // class PrometheusStatConsumer
                           // ----------------------
@@ -166,25 +162,30 @@ PrometheusStatConsumer::PrometheusStatConsumer(const StatContextsMap&  statConte
     // d_prometheusHost(d_consumerConfig_p->host());
     // d_prometheusPort(d_consumerConfig_p->port());
     // d_prometheusMode(d_consumerConfig_p->mode());
-    d_prometheusHost = "localhost";
-    d_prometheusPort = 9090;
+    const char * prometheusHost = "localhost";
+    size_t prometheusPort = 9090;
     d_prometheusMode = "pull"; // TODO enum or check validity?
 
+    //d_prometheusRegistry_p = std::make_shared<prometheus::Registry>();
+
     if (d_prometheusMode == "push") {
-        //bsl::string clientHostName = "clientHostName"; //TODO: do we need this? to recognise different sources of statistics?
+        bsl::string clientHostName = "clientHostName"; //TODO: do we need this? to recognise different sources of statistics?
         //bsl::string jobName = 
 
-        // Push mode config
-        // // create a push gateway
-        // const auto labels = Gateway::GetInstanceLabel(clientHostName); // creates label { "instance": clientHostName }
-        // d_prometheusGateway_p         = bls::make_unique<Gateway>(d_prometheusHost,
-        //                                       bsl::to_string(d_prometheusPort),
+        // Push mode
+        // create a push gateway
+        // const auto labels = prometheus::Gateway::GetInstanceLabel(clientHostName); // creates label { "instance": clientHostName }
+        // d_prometheusGateway_p         = bsl::make_unique<prometheus::Gateway>(prometheusHost,
+        //                                       bsl::to_string(prometheusPort),
         //                                       name(),  // use plugin name as a job name
         //                                       labels);
-        // d_prometheusRegistry_p = bsl::make_shared<prometheus::Registry>();
         // d_prometheusGateway_p->RegisterCollectable(d_prometheusRegistry_p);
     } else {
         // Pull mode
+        // bsl::ostringstream endpoint;
+        // endpoint << prometheusHost << ":" << prometheusPort;
+        // d_prometheusExposer = bsl::make_unique<prometheus::Exposer>(endpoint.str());
+        // d_prometheusExposer->RegisterCollectable(d_prometheusRegistry_p);
     }
 }
 
@@ -477,6 +478,10 @@ PrometheusStatConsumer::prometheusPushThread()
     BALL_LOG_INFO << "Prometheus Push thread terminated "
                   << "[id: " << bslmt::ThreadUtil::selfIdAsUint64() << "]";
 }
+
+                     // ---------------------------------
+                     // class PrometheusStatConsumerPluginFactory
+                     // ---------------------------------
 
 // CREATORS
 PrometheusStatConsumerPluginFactory::PrometheusStatConsumerPluginFactory()

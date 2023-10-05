@@ -130,14 +130,14 @@ class PrometheusStatConsumer : public mqbplug::StatConsumer {
     bool                            d_isStarted;
                                         // Is the PrometheusStatConsumer started
     // Prometheus staff
-    bsl::string               d_prometheusHost;
-    std::size_t               d_prometheusPort;
-    bsl::string               d_prometheusMode;
-    //bsl::unique_ptr<prometheus::Gateway> d_prometheusGateway_p;
-    bsl::shared_ptr<prometheus::Registry> d_prometheusRegistry_p;
     bsl::atomic_bool          d_threadStop;
     bslmt::Mutex              d_prometheusThreadMutex;
     bslmt::Condition          d_prometheusThreadCondition;
+
+    bsl::string               d_prometheusMode;
+    // bsl::unique_ptr<prometheus::Gateway> d_prometheusGateway_p;
+    // bsl::unique_ptr<prometheus::Exposer> d_prometheusExposer;
+    std::shared_ptr<prometheus::Registry> d_prometheusRegistry_p;
 
   private:
     // NOT IMPLEMENTED
