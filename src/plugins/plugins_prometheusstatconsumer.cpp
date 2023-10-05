@@ -261,6 +261,7 @@ PrometheusStatConsumer::onSnapshot()
     setActionCounter();
     
     captureQueueStats();
+    captureSystemStats();
 
     if (d_prometheusMode == "push") {
         // Wake up push thread
@@ -383,6 +384,57 @@ PrometheusStatConsumer::captureQueueStats()
 }
 
 void
+PrometheusStatConsumer::captureSystemStats()
+{
+    bsl::vector<bsl::pair<bsl::string, double>> datapoints;
+
+    const int k_NUM_SYS_STATS = 10;
+    datapoints.reserve(k_NUM_SYS_STATS);
+
+#define COPY_METRIC(TAIL, ACCESSOR)                                           \
+    datapoints.emplace_back("brkr_system." TAIL,                              \
+        mwcsys::StatMonitorUtil::ACCESSOR(*d_systemStatContext_p,             \
+                                           d_snapshotId));
+
+    COPY_METRIC("cpu_sys",                  cpuSystem);
+    COPY_METRIC("cpu_usr",                  cpuUser);
+    COPY_METRIC("cpu_all",                  cpuAll);
+    COPY_METRIC("mem_res",                  memResident);
+    COPY_METRIC("mem_virt",                 memVirtual);
+    COPY_METRIC("os_pagefaults_minor",      minorPageFaults);
+    COPY_METRIC("os_pagefaults_major",      majorPageFaults);
+    COPY_METRIC("os_swaps",                 numSwaps);
+    COPY_METRIC("os_ctxswitch_voluntary",   voluntaryContextSwitches);
+    COPY_METRIC("os_ctxswitch_involuntary", involuntaryContextSwitches);
+
+#undef COPY_METRIC
+
+    prometheus::Labels labels;
+    bslstl::StringRef instanceName =
+                              mqbcfg::BrokerConfig::get().brokerInstanceName();
+    if (!instanceName.empty()) {
+        labels.emplace("instanceName", instanceName);
+    }
+
+    BALL_LOG_INFO << "!!! System metrics";
+    for (bsl::vector<bsl::pair<bsl::string, double>>::iterator it = datapoints.begin();
+            it != datapoints.end();
+            ++it) {
+
+        BALL_LOG_INFO << "!!! " << it->first << " : " << it->second;
+
+        // auto& gauge = prometheus::BuildGauge()
+        //             .Name(it->first)
+        // // TODO:    .Help()
+        //             .Register(*d_prometheusRegistry_p);
+        // gauge.Add(labels).Set(it->second);
+    }
+
+    // POSTCONDITIONS
+    BSLS_ASSERT_SAFE(datapoints.size() == k_NUM_SYS_STATS);
+}
+
+void
 PrometheusStatConsumer::updateMetric(const DatapointDef *def_p, prometheus::Labels& labels, const mwcst::StatContext& queueContext)
 {
     const bsls::Types::Int64 value =
@@ -396,15 +448,15 @@ PrometheusStatConsumer::updateMetric(const DatapointDef *def_p, prometheus::Labe
         BALL_LOG_INFO << "!!! " << def_p->d_name << " : " << value;
         // To save metrics, only report non-null values
         if (def_p->d_isCounter) {
-            // auto& counter = BuildCounter()
+            // auto& counter = prometheus::BuildCounter()
             //             .Name(def_p->d_name)
-            //// TODO:           .Help(def_p->d_help)
+            //// TODO:     .Help(def_p->d_help)
             //             .Register(*d_prometheusRegistry_p);
             //counter.Add(labels).Increment(value);
         } else {
-            // auto& gauge = BuildGauge()
+            // auto& gauge = prometheus::BuildGauge()
             //             .Name(def_p->d_name)
-            //// TODO:           .Help(def_p->d_help)
+            //// TODO:     .Help(def_p->d_help)
             //             .Register(*d_prometheusRegistry_p);
             //gauge.Add(labels).Set(value);
         }
