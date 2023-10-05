@@ -17,10 +17,12 @@
 
 // MWC
 #include <mwcc_monitoredqueue_bdlccfixedqueue.h>
+#include <mwcst_statcontext.h>
 #include <mwcu_throttledaction.h>
 
 // BDE
 #include <bdlcc_sharedobjectpool.h>
+#include <bsl_atomic.h>
 #include <bsl_deque.h>
 #include <bsl_memory.h>
 #include <bsl_string.h>
@@ -30,6 +32,8 @@
 #include <bslma_managedptr.h>
 #include <bslma_usesbslmaallocator.h>
 #include <bslmt_threadutil.h>
+#include <bslmt_condition.h>
+#include <bslmt_mutex.h>
 #include <bsls_keyword.h>
 #include <bsls_timeinterval.h>
 #include <bslstl_stringref.h>
@@ -58,16 +62,109 @@ typedef StatConsumer::CommandProcessorFn CommandProcessorFn;
                           // ======================
 
 class PrometheusStatConsumer : public mqbplug::StatConsumer {
+    // CLASS-SCOPE CATEGORY
+    BALL_LOG_SET_CLASS_CATEGORY("MQBSTAT.PROMETHEUSSTATCONSUMER");
+
   private:
     // PRIVATE DATA
-    bsls::TimeInterval d_publishInterval;
-        // Prometheus stat publish interval.  Specified as a number of seconds.
-        // Must be a multiple of the snapshot interval.
+
+    struct DatapointDef {
+        const char *d_name;
+        int         d_stat;
+        bool        d_isCounter;
+//TODO: const char *d_help;
+    };
+
+    typedef const DatapointDef *DatapointDefCIter;
+
+    const mwcst::StatContext       *d_systemStatContext_p;
+                                        // The system stat context
+
+    const mwcst::StatContext       *d_brokerStatContext_p;
+                                        // The broker stat context
+
+    const mwcst::StatContext       *d_clustersStatContext_p;
+                                        // The cluster stat context
+
+    const mwcst::StatContext       *d_clusterNodesStatContext_p;
+                                        // The cluster nodes stat context
+
+    const mwcst::StatContext       *d_domainsStatContext_p;
+                                        // The domain stat context
+
+    const mwcst::StatContext       *d_domainQueuesStatContext_p;
+                                        // The domain queues stat context
+
+    const mwcst::StatContext       *d_clientStatContext_p;
+                                        // The client stat context
+
+    const mwcst::StatContext       *d_channelsStatContext_p;
+                                        // The channels stat context
+
+    StatContextsMap                 d_contextsMap;
+
+    const mqbcfg::StatPluginConfig *d_consumerConfig_p;
+                                        // Broker configuration for consumer.
+
+    bslmt::ThreadUtil::Handle       d_prometheusPushThreadHandle;
+                                        // Handle of the guts publishing thread
+
+    bsls::TimeInterval              d_publishInterval;
+                                        // Prometheus stat publish interval.
+                                        // Specified as a number of seconds.
+                                        // Must be a multiple of the snapshot
+                                        // interval.
+
+    int                             d_snapshotId;
+                                        // Snapshot id which is used to locate
+                                        // data in stat history.  Calculated as
+                                        // a result of dividing the publish
+                                        // interval by the snapshot interval.
+
+    int                             d_actionCounter;
+                                        // Stats are published to SIMON only
+                                        // every publish interval.  This
+                                        // counter is used to keep track of
+                                        // when to publish.
+
+    bool                            d_isStarted;
+                                        // Is the PrometheusStatConsumer started
+    // Prometheus staff
+    bsl::string               d_prometheusHost;
+    std::size_t               d_prometheusPort;
+    bsl::string               d_prometheusMode;
+    //bsl::unique_ptr<prometheus::Gateway> d_prometheusGateway_p;
+    bsl::shared_ptr<prometheus::Registry> d_prometheusRegistry_p;
+    bsl::atomic_bool          d_threadStop;
+    bslmt::Mutex              d_prometheusThreadMutex;
+    bslmt::Condition          d_prometheusThreadCondition;
+
   private:
     // NOT IMPLEMENTED
     PrometheusStatConsumer(const PrometheusStatConsumer& other) = delete;
     PrometheusStatConsumer& operator=(
                              const PrometheusStatConsumer& other) = delete;
+    // ACCESSORS
+    const mwcst::StatContext *getStatContext(const char *name) const;
+        // Return a pointer to the statContext with the specified 'name' from
+        // 'd_contextsMap', asserting that it exists.
+
+    // PRIVATE MANIPULATORS
+    void captureQueueStats();
+        // Capture all queue related data points, and store them in Prometheus 
+        // Registry for further publishing to Prometheus.
+
+    void setActionCounter();
+        // Set internal action counter based on Prometheus publish interval.
+
+    void prometheusPushThread();
+        // Push gathered statistics to the push gateway in 'push' mode.
+        //
+        // THREAD: This method is called from the dedicated thread.
+    
+    void updateMetric(const DatapointDef *def_p, prometheus::Labels& labels, const mwcst::StatContext& queueContext);
+        // Retrieve metric value from given 'queueContext' by given 'def_p' and update it in Prometheus Registry.
+
   public:
     // CREATORS
     PrometheusStatConsumer(const StatContextsMap&  statContextsMap,
