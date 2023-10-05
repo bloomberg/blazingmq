@@ -158,6 +158,10 @@ class PrometheusStatConsumer : public mqbplug::StatConsumer {
         // Capture all system related data points, and store them in Prometheus 
         // Registry for further publishing to Prometheus.
 
+    void captureNetworkStats();
+        // Capture all network related data points, and store them in Prometheus 
+        // Registry for further publishing to Prometheus.
+
     void setActionCounter();
         // Set internal action counter based on Prometheus publish interval.
 

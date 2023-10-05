@@ -260,8 +260,9 @@ PrometheusStatConsumer::onSnapshot()
 
     setActionCounter();
     
-    captureQueueStats();
     captureSystemStats();
+    captureNetworkStats();
+    captureQueueStats();
 
     if (d_prometheusMode == "push") {
         // Wake up push thread
@@ -416,7 +417,7 @@ PrometheusStatConsumer::captureSystemStats()
         labels.emplace("instanceName", instanceName);
     }
 
-    BALL_LOG_INFO << "!!! System metrics";
+    BALL_LOG_INFO << "!!! System metrics, label: " << instanceName;
     for (bsl::vector<bsl::pair<bsl::string, double>>::iterator it = datapoints.begin();
             it != datapoints.end();
             ++it) {
@@ -432,6 +433,60 @@ PrometheusStatConsumer::captureSystemStats()
 
     // POSTCONDITIONS
     BSLS_ASSERT_SAFE(datapoints.size() == k_NUM_SYS_STATS);
+}
+
+void
+PrometheusStatConsumer::captureNetworkStats()
+{
+    bsl::vector<bsl::pair<bsl::string, double>> datapoints;
+
+    const int k_NUM_NETWORK_STATS = 4;
+    datapoints.reserve(k_NUM_NETWORK_STATS);
+
+    const mwcst::StatContext *localContext =
+                               d_channelsStatContext_p->getSubcontext("local");
+    const mwcst::StatContext *remoteContext =
+                              d_channelsStatContext_p->getSubcontext("remote");
+        // NOTE: Should be StatController::k_CHANNEL_STAT_*, but can't due to
+        //       dependency limitations.
+
+#define RETRIEVE_METRIC(TAIL, STAT, CONTEXT)                                \
+    datapoints.emplace_back("brkr_system_net_" TAIL,                        \
+        mwcio::StatChannelFactoryUtil::getValue(                            \
+                       *CONTEXT,                                            \
+                       d_snapshotId,                                        \
+                       mwcio::StatChannelFactoryUtil::Stat::STAT));
+
+    RETRIEVE_METRIC("local_in_bytes",   e_BYTES_IN_DELTA,  localContext);
+    RETRIEVE_METRIC("local_out_bytes",  e_BYTES_OUT_DELTA, localContext);
+    RETRIEVE_METRIC("remote_in_bytes",  e_BYTES_IN_DELTA,  remoteContext);
+    RETRIEVE_METRIC("remote_out_bytes", e_BYTES_OUT_DELTA, remoteContext);
+
+#undef RETRIEVE_METRIC
+
+    prometheus::Labels labels;
+    bslstl::StringRef instanceName =
+                              mqbcfg::BrokerConfig::get().brokerInstanceName();
+    if (!instanceName.empty()) {
+        labels.emplace("instanceName", instanceName);
+    }
+
+    BALL_LOG_INFO << "!!! Network metrics, label: " << instanceName;
+    for (bsl::vector<bsl::pair<bsl::string, double>>::iterator it = datapoints.begin();
+            it != datapoints.end();
+            ++it) {
+
+        BALL_LOG_INFO << "!!! " << it->first << " : " << it->second;
+
+        // auto& counter = prometheus::BuildCounter()
+        //             .Name(it->first)
+        // // TODO:    .Help()
+        //             .Register(*d_prometheusRegistry_p);
+        // counter.Add(labels).Increment(it->second);
+    }
+
+    // POSTCONDITIONS
+    BSLS_ASSERT_SAFE(datapoints.size() == k_NUM_NETWORK_STATS);
 }
 
 void
