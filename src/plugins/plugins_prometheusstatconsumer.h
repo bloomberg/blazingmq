@@ -66,13 +66,14 @@ class PrometheusStatConsumer : public mqbplug::StatConsumer {
     BALL_LOG_SET_CLASS_CATEGORY("MQBSTAT.PROMETHEUSSTATCONSUMER");
 
   private:
-    // PRIVATE DATA
+    // PRIVATE TYPES
+    typedef bsl::unordered_set<bslstl::StringRef> LeaderSet;
 
     struct DatapointDef {
         const char *d_name;
         int         d_stat;
         bool        d_isCounter;
-//TODO: const char *d_help;
+        //TODO: const char *d_help;
     };
 
     typedef const DatapointDef *DatapointDefCIter;
@@ -166,6 +167,21 @@ class PrometheusStatConsumer : public mqbplug::StatConsumer {
         // Capture all broker related data points, and store them in Prometheus 
         // Registry for further publishing to Prometheus.
 
+    void collectLeaders(LeaderSet *leaders);
+        // Record all the current leaders in the specified 'leaders' set.
+
+    void captureClusterStats(const LeaderSet& leaders);
+        // Capture all cluster related data points, and store them in Prometheus 
+        // Registry for further publishing to Prometheus.
+
+    void captureClusterPartitionsStats();
+        // Capture all cluster's partitions related data points, and store them in Prometheus 
+        // Registry for further publishing to Prometheus.
+
+    void captureDomainStats(const LeaderSet&  leaders);
+        // Capture all queue related data points, and store them in Prometheus 
+        // Registry for further publishing to Prometheus.
+
     void setActionCounter();
         // Set internal action counter based on Prometheus publish interval.
 
@@ -174,7 +190,7 @@ class PrometheusStatConsumer : public mqbplug::StatConsumer {
         //
         // THREAD: This method is called from the dedicated thread.
     
-    void updateMetric(const DatapointDef *def_p, prometheus::Labels& labels, const mwcst::StatContext& context);
+    void updateMetric(const DatapointDef *def_p, const prometheus::Labels& labels, const bsls::Types::Int64 value);
         // Retrieve metric value from given 'context' by given 'def_p' and update it in Prometheus Registry.
 
   public:

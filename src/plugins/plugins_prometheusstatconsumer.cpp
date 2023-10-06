@@ -262,6 +262,12 @@ PrometheusStatConsumer::onSnapshot()
     
     captureSystemStats();
     captureNetworkStats();
+    captureBrokerStats();
+    LeaderSet leaders;
+    collectLeaders(&leaders);
+    captureClusterStats(leaders);
+    captureClusterPartitionsStats();
+    captureDomainStats(leaders);
     captureQueueStats();
 
     if (d_prometheusMode == "push") {
@@ -316,7 +322,7 @@ PrometheusStatConsumer::captureQueueStats()
                           << ", remoteHost: " << tagger.d_remoteHost
                           << ", Instance: " << tagger.d_instance
                           << ", dataType: " << tagger.d_dataType;
-            prometheus::Labels labels = tagger.getLabels();
+            const prometheus::Labels labels = tagger.getLabels();
 
             // Heartbeat metric
             {
@@ -333,7 +339,6 @@ PrometheusStatConsumer::captureQueueStats()
             }
 
             // Queue metrics
-            const mwcst::StatContext& queueContext = *queueIt;
             {  // for scoping only
                 static const DatapointDef defs[] = {
                     { "queue_producers_count",   Stat::e_NB_PRODUCER, false },
@@ -355,7 +360,13 @@ PrometheusStatConsumer::captureQueueStats()
                 for (DatapointDefCIter dpIt = bdlb::ArrayUtil::begin(defs);
                      dpIt != bdlb::ArrayUtil::end(defs);
                      ++dpIt) {
-                    updateMetric(dpIt, labels, queueContext);
+                    const bsls::Types::Int64 value =
+                        mqbstat::QueueStatsDomain::getValue(
+                            *queueIt,
+                            d_snapshotId,
+                            static_cast<mqbstat::QueueStatsDomain::Stat::Enum>(
+                                dpIt->d_stat));
+                    updateMetric(dpIt, labels, value);
                 }
             }
 
@@ -378,7 +389,13 @@ PrometheusStatConsumer::captureQueueStats()
                 for (DatapointDefCIter dpIt = bdlb::ArrayUtil::begin(defs);
                      dpIt != bdlb::ArrayUtil::end(defs);
                      ++dpIt) {
-                    updateMetric(dpIt, labels, queueContext);
+                    const bsls::Types::Int64 value =
+                        mqbstat::QueueStatsDomain::getValue(
+                            *queueIt,
+                            d_snapshotId,
+                            static_cast<mqbstat::QueueStatsDomain::Stat::Enum>(
+                                dpIt->d_stat));
+                    updateMetric(dpIt, labels, value);
                 }
             }
         }
@@ -505,26 +522,258 @@ PrometheusStatConsumer::captureBrokerStats()
     BALL_LOG_INFO << "!!! Broker Labels: "
                     << ", Instance: " << tagger.d_instance
                     << ", dataType: " << tagger.d_dataType;
-    prometheus::Labels labels = tagger.getLabels();
+    const prometheus::Labels labels = tagger.getLabels();
 
     BALL_LOG_INFO << "!!! Broker stat: !!!";
     for (DatapointDefCIter dpIt = bdlb::ArrayUtil::begin(defs);
             dpIt != bdlb::ArrayUtil::end(defs);
             ++dpIt) {
-        updateMetric(dpIt, labels, *d_brokerStatContext_p);
+        const bsls::Types::Int64 value =
+            mqbstat::BrokerStats::getValue(*d_brokerStatContext_p,
+                                  d_snapshotId,
+                                  static_cast<Stat::Enum>(dpIt->d_stat));
+        updateMetric(dpIt, labels, value);
     }
 }
 
 void
-PrometheusStatConsumer::updateMetric(const DatapointDef *def_p, prometheus::Labels& labels, const mwcst::StatContext& context)
+PrometheusStatConsumer::collectLeaders(LeaderSet *leaders)
 {
-    const bsls::Types::Int64 value =
-        mqbstat::QueueStatsDomain::getValue(
-            context,
-            d_snapshotId,
-            static_cast<mqbstat::QueueStatsDomain::Stat::Enum>(
-                def_p->d_stat));
+    for (mwcst::StatContextIterator clusterIt =
+             d_clustersStatContext_p->subcontextIterator();
+         clusterIt;
+         ++clusterIt) {
+        if (   mqbstat::ClusterStats::getValue(
+                                  *clusterIt,
+                                  d_snapshotId,
+                                  mqbstat::ClusterStats::Stat::e_LEADER_STATUS)
+            == mqbstat::ClusterStats::LeaderStatus::e_LEADER) {
+            leaders->insert(clusterIt->name());
+        }
+    }
+}
 
+void
+PrometheusStatConsumer::captureClusterStats(const LeaderSet& leaders)
+{
+    const mwcst::StatContext& clustersStatContext = *d_clustersStatContext_p;
+
+    for (mwcst::StatContextIterator clusterIt =
+                                      clustersStatContext.subcontextIterator();
+         clusterIt;
+         ++clusterIt) {
+
+        typedef mqbstat::ClusterStats::Stat Stat;  // Shortcut
+
+        // scope
+        {
+            static const DatapointDef defs[] = {
+                { "cluster_healthiness", Stat::e_CLUSTER_STATUS, false },
+            };
+
+
+            const mqbstat::ClusterStats::Role::Enum role =
+                static_cast<mqbstat::ClusterStats::Role::Enum>(
+                    mqbstat::ClusterStats::getValue(
+                                         *clusterIt,
+                                         d_snapshotId,
+                                         mqbstat::ClusterStats::Stat::e_ROLE));
+
+            Tagger tagger;
+            tagger
+                .setCluster(clusterIt->name())
+                .setInstance(mqbcfg::BrokerConfig::get().brokerInstanceName())
+                .setRole(mqbstat::ClusterStats::Role::toAscii(role))
+                .setDataType("HostData");
+
+            if (role == mqbstat::ClusterStats::Role::e_PROXY) {
+                bslma::ManagedPtr<bdld::ManagedDatum> mdSp =
+                                                            clusterIt->datum();
+                bdld::DatumMapRef                     map =
+                                                        mdSp->datum().theMap();
+
+                bslstl::StringRef upstream = map.find("upstream")->theString();
+                tagger.setRemoteHost(upstream.isEmpty() ? "_none_" : upstream);
+            }
+
+            BALL_LOG_INFO << "!!! Cluster Labels: "
+                            << ", Cluster: " << tagger.d_cluster
+                            << ", Instance: " << tagger.d_instance
+                            << ", Role: " << tagger.d_role
+                            << ", RemoteHost: " << tagger.d_remoteHost;
+            const prometheus::Labels labels = tagger.getLabels();
+
+            for (DatapointDefCIter dpIt = bdlb::ArrayUtil::begin(defs);
+                 dpIt != bdlb::ArrayUtil::end(defs);
+                 ++dpIt) {
+                const bsls::Types::Int64 value =
+                    mqbstat::ClusterStats::getValue(
+                                        *clusterIt,
+                                        d_snapshotId,
+                                        static_cast<Stat::Enum>(dpIt->d_stat));
+
+                updateMetric(dpIt, labels, value);
+            }
+        }
+
+        if (leaders.find(clusterIt->name()) != leaders.end()) {
+            static const DatapointDef defs[] = {
+                {
+                    "cluster_partition_cfg_journal_bytes",
+                    Stat::e_PARTITION_CFG_JOURNAL_BYTES, false
+                },
+                {
+                    "cluster_partition_cfg_data_bytes",
+                    Stat::e_PARTITION_CFG_DATA_BYTES, false
+                },
+            };
+
+            Tagger tagger;
+            tagger
+                .setCluster(clusterIt->name())
+                .setInstance(mqbcfg::BrokerConfig::get().brokerInstanceName()).setDataType("GlobalData");
+
+            BALL_LOG_INFO << "!!! Leader Labels: "
+                            << ", Cluster: " << tagger.d_cluster
+                            << ", Instance: " << tagger.d_instance;
+            const prometheus::Labels labels = tagger.getLabels();
+
+            for (DatapointDefCIter dpIt = bdlb::ArrayUtil::begin(defs);
+                 dpIt != bdlb::ArrayUtil::end(defs);
+                 ++dpIt) {
+                const bsls::Types::Int64 value =
+                    mqbstat::ClusterStats::getValue(
+                                        *clusterIt,
+                                        d_snapshotId,
+                                        static_cast<Stat::Enum>(dpIt->d_stat));
+
+                updateMetric(dpIt, labels, value);
+            }
+        }
+    }
+}
+
+void
+PrometheusStatConsumer::captureClusterPartitionsStats()
+{
+    // Iterate over each cluster
+    for (mwcst::StatContextIterator clusterIt =
+                                 d_clustersStatContext_p->subcontextIterator();
+         clusterIt;
+         ++clusterIt) {
+
+        // Iterate over each partition
+        for (mwcst::StatContextIterator partitionIt =
+                                               clusterIt->subcontextIterator();
+             partitionIt;
+             ++partitionIt) {
+
+            mqbstat::ClusterStats::PrimaryStatus::Enum primaryStatus =
+                static_cast<mqbstat::ClusterStats::PrimaryStatus::Enum>(
+                     mqbstat::ClusterStats::getValue(
+                     *partitionIt,
+                     d_snapshotId,
+                     mqbstat::ClusterStats::Stat::e_PARTITION_PRIMARY_STATUS));
+            if (   primaryStatus
+                != mqbstat::ClusterStats::PrimaryStatus::e_PRIMARY) {
+                // Only report partition stats from the primary node
+                continue;                                           // CONTINUE
+            }
+
+            // Generate the metric name from the partition name (e.g.,
+            // 'cluster_partition1_rollover_time')
+            const bsl::string prefix = "cluster_" + partitionIt->name() + "_";
+            const DatapointDef defs[] = {
+                {
+                  (prefix + "rollover_time").c_str(),
+                  mqbstat::ClusterStats::Stat::e_PARTITION_ROLLOVER_TIME, false
+                },
+                {
+                  (prefix + "journal_outstanding_bytes").c_str(),
+                  mqbstat::ClusterStats::Stat::e_PARTITION_JOURNAL_CONTENT, false
+                },
+                {
+                  (prefix + "data_outstanding_bytes").c_str(),
+                  mqbstat::ClusterStats::Stat::e_PARTITION_DATA_CONTENT, false
+                }
+            };
+
+            Tagger tagger;
+            tagger.setCluster(clusterIt->name())
+                  .setInstance(mqbcfg::BrokerConfig::get()
+                                                        .brokerInstanceName())
+                  .setDataType("GlobalData");
+            const prometheus::Labels labels = tagger.getLabels();
+
+            for (DatapointDefCIter dpIt = bdlb::ArrayUtil::begin(defs);
+                 dpIt != bdlb::ArrayUtil::end(defs);
+                 ++dpIt) {
+                BALL_LOG_INFO << "!!!NAME: " << dpIt->d_name;
+                const bsls::Types::Int64 value =
+                    mqbstat::ClusterStats::getValue(
+                          *partitionIt,
+                          d_snapshotId,
+                          static_cast<mqbstat::ClusterStats::Stat::Enum>(
+                                                                dpIt->d_stat));
+                updateMetric(dpIt, labels, value);
+            }
+        }
+    }
+}
+
+void
+PrometheusStatConsumer::captureDomainStats(const LeaderSet& leaders)
+{
+    const mwcst::StatContext& domainsStatContext =
+        *d_domainsStatContext_p;
+
+    typedef mqbstat::DomainStats::Stat Stat;  // Shortcut
+
+    for (mwcst::StatContextIterator domainIt =
+             domainsStatContext.subcontextIterator();
+         domainIt;
+         ++domainIt) {
+
+        bslma::ManagedPtr<bdld::ManagedDatum> mdSp = domainIt->datum();
+        bdld::DatumMapRef                     map  = mdSp->datum().theMap();
+
+        const bslstl::StringRef clusterName = map.find("cluster")->theString();
+
+        if (leaders.find(clusterName) == leaders.end()) {
+            // is NOT leader
+            continue;                                               // CONTINUE
+        }
+
+        Tagger tagger;
+        tagger
+            .setCluster(clusterName)
+            .setDomain(map.find("domain")->theString())
+            .setTier(map.find("tier")->theString())
+            .setDataType("GlobalData");
+
+        static const DatapointDef defs[] = {
+            { "domain_cfg_msgs",    Stat::e_CFG_MSGS, false },
+            { "domain_cfg_bytes",   Stat::e_CFG_BYTES, false },
+            { "domain_queue_count", Stat::e_QUEUE_COUNT, false },
+        };
+        const prometheus::Labels labels = tagger.getLabels();
+
+        for (DatapointDefCIter dpIt = bdlb::ArrayUtil::begin(defs);
+             dpIt != bdlb::ArrayUtil::end(defs);
+             ++dpIt) {
+            const bsls::Types::Int64 value =
+                mqbstat::DomainStats::getValue(*domainIt,
+                                      d_snapshotId,
+                                      static_cast<Stat::Enum>(dpIt->d_stat));
+
+            updateMetric(dpIt, labels, value);
+        }
+    }
+}
+
+void
+PrometheusStatConsumer::updateMetric(const DatapointDef *def_p, const prometheus::Labels& labels, const bsls::Types::Int64 value)
+{
     if (value != 0) {
         BALL_LOG_INFO << "!!! " << def_p->d_name << " : " << value;
         // To save metrics, only report non-null values
