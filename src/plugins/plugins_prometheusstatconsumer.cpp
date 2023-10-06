@@ -314,6 +314,7 @@ PrometheusStatConsumer::captureQueueStats()
                           << ", queue: " << tagger.d_queue
                           << ", tier: " << tagger.d_tier
                           << ", remoteHost: " << tagger.d_remoteHost
+                          << ", Instance: " << tagger.d_instance
                           << ", dataType: " << tagger.d_dataType;
             prometheus::Labels labels = tagger.getLabels();
 
@@ -410,7 +411,7 @@ PrometheusStatConsumer::captureSystemStats()
 
 #undef COPY_METRIC
 
-    prometheus::Labels labels;
+    prometheus::Labels labels {{"dataType", "HostData"}};
     bslstl::StringRef instanceName =
                               mqbcfg::BrokerConfig::get().brokerInstanceName();
     if (!instanceName.empty()) {
@@ -464,7 +465,7 @@ PrometheusStatConsumer::captureNetworkStats()
 
 #undef RETRIEVE_METRIC
 
-    prometheus::Labels labels;
+    prometheus::Labels labels {{"dataType", "HostData"}};
     bslstl::StringRef instanceName =
                               mqbcfg::BrokerConfig::get().brokerInstanceName();
     if (!instanceName.empty()) {
@@ -490,11 +491,36 @@ PrometheusStatConsumer::captureNetworkStats()
 }
 
 void
-PrometheusStatConsumer::updateMetric(const DatapointDef *def_p, prometheus::Labels& labels, const mwcst::StatContext& queueContext)
+PrometheusStatConsumer::captureBrokerStats()
+{
+    typedef mqbstat::BrokerStats::Stat Stat;  // Shortcut
+
+    static const DatapointDef defs[] = {
+        { "brkr_summary_queues_count",  Stat::e_QUEUE_COUNT, false },
+        { "brkr_summary_clients_count", Stat::e_CLIENT_COUNT, false },
+    };
+
+    Tagger tagger;
+    tagger.setInstance(mqbcfg::BrokerConfig::get().brokerInstanceName()).setDataType("HostData");
+    BALL_LOG_INFO << "!!! Broker Labels: "
+                    << ", Instance: " << tagger.d_instance
+                    << ", dataType: " << tagger.d_dataType;
+    prometheus::Labels labels = tagger.getLabels();
+
+    BALL_LOG_INFO << "!!! Broker stat: !!!";
+    for (DatapointDefCIter dpIt = bdlb::ArrayUtil::begin(defs);
+            dpIt != bdlb::ArrayUtil::end(defs);
+            ++dpIt) {
+        updateMetric(dpIt, labels, *d_brokerStatContext_p);
+    }
+}
+
+void
+PrometheusStatConsumer::updateMetric(const DatapointDef *def_p, prometheus::Labels& labels, const mwcst::StatContext& context)
 {
     const bsls::Types::Int64 value =
         mqbstat::QueueStatsDomain::getValue(
-            queueContext,
+            context,
             d_snapshotId,
             static_cast<mqbstat::QueueStatsDomain::Stat::Enum>(
                 def_p->d_stat));
