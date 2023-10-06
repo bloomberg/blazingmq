@@ -59,7 +59,7 @@ bdlbb::Blob& BlobTestUtil::fromString(bdlbb::Blob*             blob,
         bsl::memcpy(bufData, dataStart, length);
         bsl::shared_ptr<char> buffer;
         buffer.reset(bufData, alloc);
-        bdlbb::BlobBuffer blobBuffer(buffer, length);
+        bdlbb::BlobBuffer blobBuffer(buffer, static_cast<int>(length));
         blob->appendDataBuffer(blobBuffer);
 
         if ((idx < format.size()) && format[idx] == '|') {
