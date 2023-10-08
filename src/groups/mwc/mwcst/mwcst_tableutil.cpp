@@ -140,7 +140,7 @@ int TableUtil::printTable(bsl::ostream& stream, const TableInfoProvider& info)
             }
 
             stream << bsl::setw(columnWidths[level][i]);
-            info.printHeader(stream, level, i, columnWidths[level][i]);
+            info.printHeader(stream, level, static_cast<int>(i), columnWidths[level][i]);
         }
     }
 

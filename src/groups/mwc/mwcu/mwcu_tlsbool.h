@@ -186,7 +186,7 @@ inline void TLSBool::setFlag(int index, bool value)
         d_flags = d_flags | (1 << index);
     }
     else {
-        d_flags = d_flags & ~(1 << index);
+        d_flags = d_flags & static_cast<char>(~(1 << index));
     }
 }
 

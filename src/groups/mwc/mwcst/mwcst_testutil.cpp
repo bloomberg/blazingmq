@@ -114,7 +114,7 @@ void TestUtil::hexToString(bsl::string* output, const bslstl::StringRef& input)
         const char* q = bsl::lower_bound(HEX_DIGITS, HEX_DIGITS + 16, b);
         BSLS_ASSERT_OPT(*q == b && "Bad hex input");
 
-        output->push_back(((p - HEX_DIGITS) << 4) | (q - HEX_DIGITS));
+        output->push_back(static_cast<char>((p - HEX_DIGITS) << 4) | static_cast<char>(q - HEX_DIGITS));
     }
 }
 

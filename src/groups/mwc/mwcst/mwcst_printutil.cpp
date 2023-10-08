@@ -76,7 +76,7 @@ const char* timeIntervalNsHelper(bsls::Types::Int64* num,
     }
 
     *num       = ns / div;
-    *remainder = (int)bsl::floor(((double)(ns - *num * div) / div) *
+    *remainder = (int)bsl::floor(((double)(ns - *num * div) / static_cast<double>(div)) *
                                  bsl::pow(10.0, precision));
     return TIME_INTERVAL_NS_UNITS[level];
 }
@@ -116,7 +116,7 @@ const char* memoryHelper(bsls::Types::Int64* num,
 
     bsls::Types::Int64 div = (((bsls::Types::Int64)1) << shift);
     *num                   = bytes >> shift;
-    *remainder = (int)bsl::floor((((double)(bytes - (*num << shift)) / div) *
+    *remainder = (int)bsl::floor((((double)(bytes - (*num << shift)) / static_cast<double>(div)) *
                                   bsl::pow(10.0, precision)));
 
     if (negative) {
@@ -322,7 +322,7 @@ int PrintUtil::printedMemoryLength(bsls::Types::Int64 bytes, int precision)
     int                remainder = 0;
     const char* unit = memoryHelper(&value, &remainder, bytes, precision);
 
-    int ret = printedValueLength(value) + bsl::strlen(unit) + 1;
+    int ret = printedValueLength(value) + static_cast<int>(bsl::strlen(unit)) + 1;
     if (unit != MEMORY_UNITS[0] && precision > 0) {
         ret += 1 + precision;
     }
@@ -367,7 +367,7 @@ int PrintUtil::printedTimeIntervalNsLength(bsls::Types::Int64 timeIntervalNs,
     const char*        unit =
         timeIntervalNsHelper(&value, &remainder, timeIntervalNs, precision);
 
-    int ret = printedValueLength(value) + bsl::strlen(unit) + 1;
+    int ret = printedValueLength(value) + static_cast<int>(bsl::strlen(unit)) + 1;
     if (unit != TIME_INTERVAL_NS_UNITS[0]) {
         ret += 1 + precision;
     }
