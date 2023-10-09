@@ -162,30 +162,29 @@ PrometheusStatConsumer::PrometheusStatConsumer(const StatContextsMap&  statConte
     // d_prometheusHost(d_consumerConfig_p->host());
     // d_prometheusPort(d_consumerConfig_p->port());
     // d_prometheusMode(d_consumerConfig_p->mode());
-    const char * prometheusHost = "localhost";
-    size_t prometheusPort = 9090;
-    d_prometheusMode = "pull"; // TODO enum or check validity?
+    const char * prometheusHost = "127.0.1.1";
+    size_t prometheusPort = 9091;
+    d_prometheusMode = "push"; // TODO enum or check validity?
 
-    //d_prometheusRegistry_p = std::make_shared<prometheus::Registry>();
+    d_prometheusRegistry_p = std::make_shared<prometheus::Registry>();
 
     if (d_prometheusMode == "push") {
         bsl::string clientHostName = "clientHostName"; //TODO: do we need this? to recognise different sources of statistics?
-        //bsl::string jobName = 
 
         // Push mode
         // create a push gateway
-        // const auto labels = prometheus::Gateway::GetInstanceLabel(clientHostName); // creates label { "instance": clientHostName }
-        // d_prometheusGateway_p         = bsl::make_unique<prometheus::Gateway>(prometheusHost,
-        //                                       bsl::to_string(prometheusPort),
-        //                                       name(),  // use plugin name as a job name
-        //                                       labels);
-        // d_prometheusGateway_p->RegisterCollectable(d_prometheusRegistry_p);
+        const auto labels = prometheus::Gateway::GetInstanceLabel(clientHostName); // creates label { "instance": clientHostName }
+        d_prometheusGateway_p         = bsl::make_unique<prometheus::Gateway>(prometheusHost,
+                                              bsl::to_string(prometheusPort),
+                                              name(),  // use plugin name as a job name
+                                              labels);
+        d_prometheusGateway_p->RegisterCollectable(d_prometheusRegistry_p);
     } else {
         // Pull mode
-        // bsl::ostringstream endpoint;
-        // endpoint << prometheusHost << ":" << prometheusPort;
-        // d_prometheusExposer = bsl::make_unique<prometheus::Exposer>(endpoint.str());
-        // d_prometheusExposer->RegisterCollectable(d_prometheusRegistry_p);
+        bsl::ostringstream endpoint;
+        endpoint << prometheusHost << ":" << prometheusPort;
+        d_prometheusExposer_p = bsl::make_unique<prometheus::Exposer>(endpoint.str());
+        d_prometheusExposer_p->RegisterCollectable(d_prometheusRegistry_p);
     }
 }
 
@@ -266,7 +265,7 @@ PrometheusStatConsumer::onSnapshot()
     LeaderSet leaders;
     collectLeaders(&leaders);
     captureClusterStats(leaders);
-    captureClusterPartitionsStats();
+    // captureClusterPartitionsStats();
     captureDomainStats(leaders);
     captureQueueStats();
 
@@ -331,11 +330,11 @@ PrometheusStatConsumer::captureQueueStats()
                 // a time series containing all the tags that can be leveraged
                 // in Grafana.
 
-                // auto& heartbeatGauge = prometheus::BuildGauge()
-                //             .Name("queue_heartbeat")
-                //             .Help("queue heartbeat")
-                //             .Register(*d_prometheusRegistry_p);
-                // heartbeatGauge.Add(labels).Set(0);
+                auto& heartbeatGauge = prometheus::BuildGauge()
+                            .Name("queue_heartbeat")
+                            .Help("queue heartbeat")
+                            .Register(*d_prometheusRegistry_p);
+                heartbeatGauge.Add(labels).Set(0);
             }
 
             // Queue metrics
@@ -374,15 +373,15 @@ PrometheusStatConsumer::captureQueueStats()
             // primary node only.
             if (role == mqbstat::QueueStatsDomain::Role::e_PRIMARY) {
                 static const DatapointDef defs[] = {
-                    { "queue.gc_msgs",              Stat::e_GC_MSGS_DELTA, true },
-                    { "queue.cfg_msgs",             Stat::e_CFG_MSGS, false },
-                    { "queue.cfg_bytes",            Stat::e_CFG_BYTES, false },
-                    { "queue.content_msgs",         Stat::e_MESSAGES_MAX, false },
-                    { "queue.content_bytes",        Stat::e_BYTES_MAX, false },
-                    { "queue.queue_time_avg",       Stat::e_QUEUE_TIME_AVG, false },
-                    { "queue.queue_time_max",       Stat::e_QUEUE_TIME_MAX, false },
-                    { "queue.reject_msgs",          Stat::e_REJECT_DELTA, true},
-                    { "queue.nack_noquorum_msgs",   Stat::e_NO_SC_MSGS_DELTA, true},
+                    { "queue_gc_msgs",              Stat::e_GC_MSGS_DELTA, true },
+                    { "queue_cfg_msgs",             Stat::e_CFG_MSGS, false },
+                    { "queue_cfg_bytes",            Stat::e_CFG_BYTES, false },
+                    { "queue_content_msgs",         Stat::e_MESSAGES_MAX, false },
+                    { "queue_content_bytes",        Stat::e_BYTES_MAX, false },
+                    { "queue_queue_time_avg",       Stat::e_QUEUE_TIME_AVG, false },
+                    { "queue_queue_time_max",       Stat::e_QUEUE_TIME_MAX, false },
+                    { "queue_reject_msgs",          Stat::e_REJECT_DELTA, true},
+                    { "queue_nack_noquorum_msgs",   Stat::e_NO_SC_MSGS_DELTA, true},
                 };
                 
                 BALL_LOG_INFO << "!!! Prim. node stat: !!!";
@@ -411,7 +410,7 @@ PrometheusStatConsumer::captureSystemStats()
     datapoints.reserve(k_NUM_SYS_STATS);
 
 #define COPY_METRIC(TAIL, ACCESSOR)                                           \
-    datapoints.emplace_back("brkr_system." TAIL,                              \
+    datapoints.emplace_back("brkr_system_" TAIL,                              \
         mwcsys::StatMonitorUtil::ACCESSOR(*d_systemStatContext_p,             \
                                            d_snapshotId));
 
@@ -442,11 +441,11 @@ PrometheusStatConsumer::captureSystemStats()
 
         BALL_LOG_INFO << "!!! " << it->first << " : " << it->second;
 
-        // auto& gauge = prometheus::BuildGauge()
-        //             .Name(it->first)
-        // // TODO:    .Help()
-        //             .Register(*d_prometheusRegistry_p);
-        // gauge.Add(labels).Set(it->second);
+        auto& gauge = prometheus::BuildGauge()
+                    .Name(it->first)
+        // TODO:    .Help()
+                    .Register(*d_prometheusRegistry_p);
+        gauge.Add(labels).Set(it->second);
     }
 
     // POSTCONDITIONS
@@ -496,11 +495,11 @@ PrometheusStatConsumer::captureNetworkStats()
 
         BALL_LOG_INFO << "!!! " << it->first << " : " << it->second;
 
-        // auto& counter = prometheus::BuildCounter()
-        //             .Name(it->first)
-        // // TODO:    .Help()
-        //             .Register(*d_prometheusRegistry_p);
-        // counter.Add(labels).Increment(it->second);
+        auto& counter = prometheus::BuildCounter()
+                    .Name(it->first)
+        // TODO:    .Help()
+                    .Register(*d_prometheusRegistry_p);
+        counter.Add(labels).Increment(it->second);
     }
 
     // POSTCONDITIONS
@@ -778,17 +777,17 @@ PrometheusStatConsumer::updateMetric(const DatapointDef *def_p, const prometheus
         BALL_LOG_INFO << "!!! " << def_p->d_name << " : " << value;
         // To save metrics, only report non-null values
         if (def_p->d_isCounter) {
-            // auto& counter = prometheus::BuildCounter()
-            //             .Name(def_p->d_name)
-            //// TODO:     .Help(def_p->d_help)
-            //             .Register(*d_prometheusRegistry_p);
-            //counter.Add(labels).Increment(value);
+            auto& counter = prometheus::BuildCounter()
+                        .Name(def_p->d_name)
+            // TODO:     .Help(def_p->d_help)
+                        .Register(*d_prometheusRegistry_p);
+            counter.Add(labels).Increment(value);
         } else {
-            // auto& gauge = prometheus::BuildGauge()
-            //             .Name(def_p->d_name)
-            //// TODO:     .Help(def_p->d_help)
-            //             .Register(*d_prometheusRegistry_p);
-            //gauge.Add(labels).Set(value);
+            auto& gauge = prometheus::BuildGauge()
+                        .Name(def_p->d_name)
+            // TODO:     .Help(def_p->d_help)
+                        .Register(*d_prometheusRegistry_p);
+            gauge.Add(labels).Set(value);
         }
     }
 }
@@ -853,8 +852,8 @@ PrometheusStatConsumer::prometheusPushThread()
         bslmt::LockGuard<bslmt::Mutex> lock(&d_prometheusThreadMutex);
         d_prometheusThreadCondition.wait(&d_prometheusThreadMutex);
 
-        //auto returnCode = d_prometheusGateway_p->Push();
-        //BALL_LOG_INFO << "Pushed to Prometheus with code: " << returnCode;
+        auto returnCode = d_prometheusGateway_p->Push();
+        BALL_LOG_INFO << "Pushed to Prometheus with code: " << returnCode;
     }
 
     BALL_LOG_INFO << "Prometheus Push thread terminated "

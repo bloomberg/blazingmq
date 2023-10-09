@@ -136,8 +136,8 @@ class PrometheusStatConsumer : public mqbplug::StatConsumer {
     bslmt::Condition          d_prometheusThreadCondition;
 
     bsl::string               d_prometheusMode;
-    // bsl::unique_ptr<prometheus::Gateway> d_prometheusGateway_p;
-    // bsl::unique_ptr<prometheus::Exposer> d_prometheusExposer;
+    bsl::unique_ptr<prometheus::Gateway> d_prometheusGateway_p;
+    bsl::unique_ptr<prometheus::Exposer> d_prometheusExposer_p;
     std::shared_ptr<prometheus::Registry> d_prometheusRegistry_p;
 
   private:
