@@ -14,7 +14,6 @@
 #include <mwcio_statchannelfactory.h>
 #include <mwcsys_statmonitor.h>
 #include <mwcsys_threadutil.h>
-#include <mwcsys_time.h>
 #include <mwcu_memoutstream.h>
 
 // BDE
@@ -22,7 +21,6 @@
 #include <bdlb_arrayutil.h>
 #include <bdld_manageddatum.h>
 #include <bdlf_bind.h>
-#include <bdlt_currenttime.h>
 #include <bsl_vector.h>
 #include <bsls_annotation.h>
 #include <bsls_performancehint.h>
@@ -41,7 +39,7 @@ const char *k_THREADNAME = "bmqPrometheusPush";
 
 class Tagger {
   private:
-    // PRIVATE DATA
+    // DATA
     prometheus::Labels labels;
 
   public:
@@ -95,7 +93,7 @@ class Tagger {
     }
 
     // ACCESSORS
-    prometheus::Labels getLabels() { return labels; }
+    prometheus::Labels& getLabels() { return labels; }
 };
 
 }  // close unnamed namespace
@@ -123,7 +121,7 @@ PrometheusStatConsumer::PrometheusStatConsumer(
     // PRECONDITIONS
     BSLS_ASSERT(d_publishInterval >= 0);
 
-    // Populate host name from config
+    // Initialize stat contexts
     d_systemStatContext_p       = getStatContext("system");
     d_brokerStatContext_p       = getStatContext("broker");
     d_clustersStatContext_p     = getStatContext("clusters");
@@ -181,10 +179,8 @@ int PrometheusStatConsumer::start(
 
     setActionCounter();
 
-    // TODO: do we need d_snapshotId? we can use d_snapshotId = 1 to get all
-    // snapshots data and collect them in Registry
     const mqbcfg::AppConfig& brkrCfg = mqbcfg::BrokerConfig::get();
-    d_snapshotId                     = (d_publishInterval.seconds() /
+    d_snapshotId                     = (static_cast<int>(d_publishInterval.seconds()) /
                                         brkrCfg.stats().snapshotInterval());
 
     if (d_prometheusMode == "push") {
@@ -270,7 +266,7 @@ void PrometheusStatConsumer::captureQueueStats()
             bslma::ManagedPtr<bdld::ManagedDatum> mdSp = queueIt->datum();
             bdld::DatumMapRef                     map = mdSp->datum().theMap();
 
-            const int role = mqbstat::QueueStatsDomain::getValue(
+            const auto role = mqbstat::QueueStatsDomain::getValue(
                                       *queueIt,
                                       d_snapshotId,
                                       mqbstat::QueueStatsDomain::Stat::e_ROLE);
@@ -283,9 +279,9 @@ void PrometheusStatConsumer::captureQueueStats()
                 .setRole(mqbstat::QueueStatsDomain::Role::toAscii(
                      static_cast<mqbstat::QueueStatsDomain::Role::Enum>(role)))
                 .setInstance(mqbcfg::BrokerConfig::get().brokerInstanceName())
-                .setDataType("HostData");
+                .setDataType("host-data");
 
-            const prometheus::Labels labels = tagger.getLabels();
+            const auto labels = tagger.getLabels();
 
             // Heartbeat metric
             {
@@ -472,7 +468,7 @@ void PrometheusStatConsumer::captureBrokerStats()
 
     Tagger tagger;
     tagger.setInstance(mqbcfg::BrokerConfig::get().brokerInstanceName())
-        .setDataType("HostData");
+        .setDataType("host-data");
 
     for (DatapointDefCIter dpIt = bdlb::ArrayUtil::begin(defs);
          dpIt != bdlb::ArrayUtil::end(defs);
@@ -528,7 +524,7 @@ void PrometheusStatConsumer::captureClusterStats(const LeaderSet& leaders)
             tagger.setCluster(clusterIt->name())
                 .setInstance(mqbcfg::BrokerConfig::get().brokerInstanceName())
                 .setRole(mqbstat::ClusterStats::Role::toAscii(role))
-                .setDataType("HostData");
+                .setDataType("host-data");
 
             if (role == mqbstat::ClusterStats::Role::e_PROXY) {
                 bslma::ManagedPtr<bdld::ManagedDatum> mdSp =
@@ -565,7 +561,7 @@ void PrometheusStatConsumer::captureClusterStats(const LeaderSet& leaders)
             Tagger tagger;
             tagger.setCluster(clusterIt->name())
                 .setInstance(mqbcfg::BrokerConfig::get().brokerInstanceName())
-                .setDataType("GlobalData");
+                .setDataType("global-data");
 
             for (DatapointDefCIter dpIt = bdlb::ArrayUtil::begin(defs);
                  dpIt != bdlb::ArrayUtil::end(defs);
@@ -630,7 +626,7 @@ void PrometheusStatConsumer::captureClusterPartitionsStats()
             Tagger tagger;
             tagger.setCluster(clusterIt->name())
                 .setInstance(mqbcfg::BrokerConfig::get().brokerInstanceName())
-                .setDataType("GlobalData");
+                .setDataType("global-data");
 
             for (DatapointDefCIter dpIt = bdlb::ArrayUtil::begin(defs);
                  dpIt != bdlb::ArrayUtil::end(defs);
@@ -671,7 +667,7 @@ void PrometheusStatConsumer::captureDomainStats(const LeaderSet& leaders)
         tagger.setCluster(clusterName)
             .setDomain(map.find("domain")->theString())
             .setTier(map.find("tier")->theString())
-            .setDataType("GlobalData");
+            .setDataType("global-data");
 
         static const DatapointDef defs[] = {
             { "domain_cfg_msgs",    Stat::e_CFG_MSGS, false },
@@ -732,7 +728,7 @@ void PrometheusStatConsumer::setPublishInterval(
                   << publishInterval;
 
     d_publishInterval = publishInterval;
-    d_snapshotId      = d_publishInterval.seconds() / snapshotInterval;
+    d_snapshotId      = static_cast<int>(d_publishInterval.seconds()) / snapshotInterval;
 
     setActionCounter();
 }
@@ -760,7 +756,7 @@ void PrometheusStatConsumer::setActionCounter()
     BSLS_ASSERT(d_publishInterval >= 0);
     BSLS_ASSERT(d_publishInterval.seconds() % snapshotInterval == 0);
 
-    d_actionCounter = d_publishInterval.seconds() / snapshotInterval;
+    d_actionCounter = static_cast<int>(d_publishInterval.seconds()) / snapshotInterval;
 }
 
 void PrometheusStatConsumer::prometheusPushThread()

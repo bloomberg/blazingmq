@@ -105,6 +105,7 @@ class PrometheusStatConsumer : public mqbplug::StatConsumer {
         // The channels stat context
 
     StatContextsMap                        d_contextsMap;
+        // Map of stat contexts
 
     const mqbcfg::StatPluginConfig        *d_consumerConfig_p;
         // Broker configuration for consumer.
@@ -122,19 +123,26 @@ class PrometheusStatConsumer : public mqbplug::StatConsumer {
         // snapshot interval.
 
     int                                    d_actionCounter;
-        // Stats are published to SIMON only every publish interval.  This
+        // Stats are published to Prometheus only every publish interval. This
         // counter is used to keep track of when to publish.
 
     bool                                   d_isStarted;
-        // Is the PrometheusStatConsumer started Prometheus staff
+        // Is the PrometheusStatConsumer started
     bsl::atomic_bool                       d_threadStop;
+        // Flag to stop Prometheus push thread
     bslmt::Mutex                           d_prometheusThreadMutex;
+        // Mutex for synchronization with Prometheus push thread
     bslmt::Condition                       d_prometheusThreadCondition;
+        // Condition for synchronization with Prometheus push thread
 
     bsl::string                            d_prometheusMode;
+        // Prometheus mode, push or pull
     bsl::unique_ptr<prometheus::Gateway>   d_prometheusGateway_p;
+        // Unique pointer to Prometheus Gateway, used in push mode
     bsl::unique_ptr<prometheus::Exposer>   d_prometheusExposer_p;
+        // Unique pointer to Prometheus Exposer, used in pull mode
     std::shared_ptr<prometheus::Registry>  d_prometheusRegistry_p;
+        // Shared pointer to Prometheus Registry, used to store metrics
 
   private:
     // NOT IMPLEMENTED
@@ -189,8 +197,8 @@ class PrometheusStatConsumer : public mqbplug::StatConsumer {
     void updateMetric(const DatapointDef        *def_p,
                       const prometheus::Labels&  labels,
                       const bsls::Types::Int64   value);
-        // Retrieve metric value from given 'context' by given 'def_p' and
-        // update it in Prometheus Registry.
+        // Update metric by given 'def_p', 'labels' and 'value'
+        // in Prometheus Registry.
 
   public:
     // CREATORS
