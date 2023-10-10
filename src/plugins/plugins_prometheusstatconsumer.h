@@ -50,7 +50,9 @@
 namespace BloombergLP {
 
 // FORWARD DECLARATION
-namespace mwcst { class StatContext; }
+namespace mwcst {
+class StatContext;
+}
 
 namespace plugins {
 
@@ -58,9 +60,9 @@ typedef mqbplug::StatConsumer            StatConsumer;
 typedef StatConsumer::StatContextsMap    StatContextsMap;
 typedef StatConsumer::CommandProcessorFn CommandProcessorFn;
 
-                        // ============================
-                        // class PrometheusStatConsumer
-                        // ============================
+// ============================
+// class PrometheusStatConsumer
+// ============================
 
 class PrometheusStatConsumer : public mqbplug::StatConsumer {
     // CLASS-SCOPE CATEGORY
@@ -71,178 +73,178 @@ class PrometheusStatConsumer : public mqbplug::StatConsumer {
     typedef bsl::unordered_set<bslstl::StringRef> LeaderSet;
 
     struct DatapointDef {
-        const char *d_name;
+        const char* d_name;
         int         d_stat;
         bool        d_isCounter;
-            //TODO: const char *d_help;
+        // TODO: const char *d_help;
     };
 
-    typedef const DatapointDef *DatapointDefCIter;
+    typedef const DatapointDef* DatapointDefCIter;
 
     // DATA
-    const mwcst::StatContext              *d_systemStatContext_p;
-        // The system stat context
+    const mwcst::StatContext* d_systemStatContext_p;
+    // The system stat context
 
-    const mwcst::StatContext              *d_brokerStatContext_p;
-        // The broker stat context
+    const mwcst::StatContext* d_brokerStatContext_p;
+    // The broker stat context
 
-    const mwcst::StatContext              *d_clustersStatContext_p;
-        // The cluster stat context
+    const mwcst::StatContext* d_clustersStatContext_p;
+    // The cluster stat context
 
-    const mwcst::StatContext              *d_clusterNodesStatContext_p;
-        // The cluster nodes stat context
+    const mwcst::StatContext* d_clusterNodesStatContext_p;
+    // The cluster nodes stat context
 
-    const mwcst::StatContext              *d_domainsStatContext_p;
-        // The domain stat context
+    const mwcst::StatContext* d_domainsStatContext_p;
+    // The domain stat context
 
-    const mwcst::StatContext              *d_domainQueuesStatContext_p;
-        // The domain queues stat context
+    const mwcst::StatContext* d_domainQueuesStatContext_p;
+    // The domain queues stat context
 
-    const mwcst::StatContext              *d_clientStatContext_p;
-        // The client stat context
+    const mwcst::StatContext* d_clientStatContext_p;
+    // The client stat context
 
-    const mwcst::StatContext              *d_channelsStatContext_p;
-        // The channels stat context
+    const mwcst::StatContext* d_channelsStatContext_p;
+    // The channels stat context
 
-    StatContextsMap                        d_contextsMap;
-        // Map of stat contexts
+    StatContextsMap d_contextsMap;
+    // Map of stat contexts
 
-    const mqbcfg::StatPluginConfig        *d_consumerConfig_p;
-        // Broker configuration for consumer.
+    const mqbcfg::StatPluginConfig* d_consumerConfig_p;
+    // Broker configuration for consumer.
 
-    bslmt::ThreadUtil::Handle              d_prometheusPushThreadHandle;
-        // Handle of the Prometheus push thread
+    bslmt::ThreadUtil::Handle d_prometheusPushThreadHandle;
+    // Handle of the Prometheus push thread
 
-    bsls::TimeInterval                     d_publishInterval;
-        // Prometheus stat publish interval.  Specified as a number of seconds.
-        // Must be a multiple of the snapshot interval.
+    bsls::TimeInterval d_publishInterval;
+    // Prometheus stat publish interval.  Specified as a number of seconds.
+    // Must be a multiple of the snapshot interval.
 
-    int                                    d_snapshotId;
-        // Snapshot id which is used to locate data in stat history.
-        // Calculated as a result of dividing the publish interval by the
-        // snapshot interval.
+    int d_snapshotId;
+    // Snapshot id which is used to locate data in stat history.
+    // Calculated as a result of dividing the publish interval by the
+    // snapshot interval.
 
-    int                                    d_actionCounter;
-        // Stats are published to Prometheus only every publish interval. This
-        // counter is used to keep track of when to publish.
+    int d_actionCounter;
+    // Stats are published to Prometheus only every publish interval. This
+    // counter is used to keep track of when to publish.
 
-    bool                                   d_isStarted;
-        // Is the PrometheusStatConsumer started
-    bsl::atomic_bool                       d_threadStop;
-        // Flag to stop Prometheus push thread
-    bslmt::Mutex                           d_prometheusThreadMutex;
-        // Mutex for synchronization with Prometheus push thread
-    bslmt::Condition                       d_prometheusThreadCondition;
-        // Condition for synchronization with Prometheus push thread
+    bool d_isStarted;
+    // Is the PrometheusStatConsumer started
+    bsl::atomic_bool d_threadStop;
+    // Flag to stop Prometheus push thread
+    bslmt::Mutex d_prometheusThreadMutex;
+    // Mutex for synchronization with Prometheus push thread
+    bslmt::Condition d_prometheusThreadCondition;
+    // Condition for synchronization with Prometheus push thread
 
-    bsl::string                            d_prometheusMode;
-        // Prometheus mode, push or pull
-    bsl::unique_ptr<prometheus::Gateway>   d_prometheusGateway_p;
-        // Unique pointer to Prometheus Gateway, used in push mode
-    bsl::unique_ptr<prometheus::Exposer>   d_prometheusExposer_p;
-        // Unique pointer to Prometheus Exposer, used in pull mode
-    std::shared_ptr<prometheus::Registry>  d_prometheusRegistry_p;
-        // Shared pointer to Prometheus Registry, used to store metrics
+    bsl::string d_prometheusMode;
+    // Prometheus mode, push or pull
+    bsl::unique_ptr<prometheus::Gateway> d_prometheusGateway_p;
+    // Unique pointer to Prometheus Gateway, used in push mode
+    bsl::unique_ptr<prometheus::Exposer> d_prometheusExposer_p;
+    // Unique pointer to Prometheus Exposer, used in pull mode
+    std::shared_ptr<prometheus::Registry> d_prometheusRegistry_p;
+    // Shared pointer to Prometheus Registry, used to store metrics
 
   private:
     // NOT IMPLEMENTED
     PrometheusStatConsumer(const PrometheusStatConsumer& other) = delete;
-    PrometheusStatConsumer& operator=(
-                                 const PrometheusStatConsumer& other) = delete;
+    PrometheusStatConsumer&
+    operator=(const PrometheusStatConsumer& other) = delete;
     // ACCESSORS
-    const mwcst::StatContext *getStatContext(const char *name) const;
-        // Return a pointer to the statContext with the specified 'name' from
-        // 'd_contextsMap', asserting that it exists.
+    const mwcst::StatContext* getStatContext(const char* name) const;
+    // Return a pointer to the statContext with the specified 'name' from
+    // 'd_contextsMap', asserting that it exists.
 
     // PRIVATE MANIPULATORS
     void captureQueueStats();
-        // Capture all queue related data points, and store them in Prometheus
-        // Registry for further publishing to Prometheus.
+    // Capture all queue related data points, and store them in Prometheus
+    // Registry for further publishing to Prometheus.
 
     void captureSystemStats();
-        // Capture all system related data points, and store them in Prometheus
-        // Registry for further publishing to Prometheus.
+    // Capture all system related data points, and store them in Prometheus
+    // Registry for further publishing to Prometheus.
 
     void captureNetworkStats();
-        // Capture all network related data points, and store them in
-        // Prometheus Registry for further publishing to Prometheus.
+    // Capture all network related data points, and store them in
+    // Prometheus Registry for further publishing to Prometheus.
 
     void captureBrokerStats();
-        // Capture all broker related data points, and store them in Prometheus
-        // Registry for further publishing to Prometheus.
+    // Capture all broker related data points, and store them in Prometheus
+    // Registry for further publishing to Prometheus.
 
-    void collectLeaders(LeaderSet *leaders);
-        // Record all the current leaders in the specified 'leaders' set.
+    void collectLeaders(LeaderSet* leaders);
+    // Record all the current leaders in the specified 'leaders' set.
 
     void captureClusterStats(const LeaderSet& leaders);
-        // Capture all cluster related data points, and store them in
-        // Prometheus Registry for further publishing to Prometheus.
+    // Capture all cluster related data points, and store them in
+    // Prometheus Registry for further publishing to Prometheus.
 
     void captureClusterPartitionsStats();
-        // Capture all cluster's partitions related data points, and store them
-        // in Prometheus Registry for further publishing to Prometheus.
+    // Capture all cluster's partitions related data points, and store them
+    // in Prometheus Registry for further publishing to Prometheus.
 
     void captureDomainStats(const LeaderSet& leaders);
-        // Capture all queue related data points, and store them in Prometheus
-        // Registry for further publishing to Prometheus.
+    // Capture all queue related data points, and store them in Prometheus
+    // Registry for further publishing to Prometheus.
 
     void setActionCounter();
-        // Set internal action counter based on Prometheus publish interval.
+    // Set internal action counter based on Prometheus publish interval.
 
     void prometheusPushThread();
-        // Push gathered statistics to the push gateway in 'push' mode.
-        //
-        // THREAD: This method is called from the dedicated thread.
+    // Push gathered statistics to the push gateway in 'push' mode.
+    //
+    // THREAD: This method is called from the dedicated thread.
 
-    void updateMetric(const DatapointDef        *def_p,
-                      const prometheus::Labels&  labels,
-                      const bsls::Types::Int64   value);
-        // Update metric by given 'def_p', 'labels' and 'value'
-        // in Prometheus Registry.
+    void updateMetric(const DatapointDef*       def_p,
+                      const prometheus::Labels& labels,
+                      const bsls::Types::Int64  value);
+    // Update metric by given 'def_p', 'labels' and 'value'
+    // in Prometheus Registry.
 
   public:
     // CREATORS
-    PrometheusStatConsumer(const StatContextsMap&  statContextsMap,
-                           bslma::Allocator       *allocator);
-        // Create a new 'PrometheusStatConsumer' using the specified
-        // 'statContextMap' and the optionally specified 'allocator' for memory
-        // allocation.
+    PrometheusStatConsumer(const StatContextsMap& statContextsMap,
+                           bslma::Allocator*      allocator);
+    // Create a new 'PrometheusStatConsumer' using the specified
+    // 'statContextMap' and the optionally specified 'allocator' for memory
+    // allocation.
 
     ~PrometheusStatConsumer() override;
-        // Destructor.
+    // Destructor.
 
     // MANIPULATORS
     int start(bsl::ostream& errorDescription) override;
-        // Start the PrometheusStatConsumer and return 0 on success, or return
-        // a non-zero value and populate the specified 'errorDescription' with
-        // the description of any failure encountered.
+    // Start the PrometheusStatConsumer and return 0 on success, or return
+    // a non-zero value and populate the specified 'errorDescription' with
+    // the description of any failure encountered.
 
     void stop() override;
-        // Stop the PrometheusStatConsumer.
+    // Stop the PrometheusStatConsumer.
 
     void onSnapshot() override;
-        // Publish stats to Prometheus if publishing at the intervals specified
-        // by the config.
+    // Publish stats to Prometheus if publishing at the intervals specified
+    // by the config.
 
     void setPublishInterval(bsls::TimeInterval publishInterval) override;
-        // Set the Prometheus publish interval with the specified
-        // 'publishInterval'.  Disable Prometheus publishing if
-        // 'publishInterval' is 0.  It is expected that specified
-        // 'publishInterval' is a multiple of the snapshot interval or 0.
+    // Set the Prometheus publish interval with the specified
+    // 'publishInterval'.  Disable Prometheus publishing if
+    // 'publishInterval' is 0.  It is expected that specified
+    // 'publishInterval' is a multiple of the snapshot interval or 0.
 
     // ACCESSORS
     bslstl::StringRef name() const override;
 
     bool isEnabled() const override;
-        // Returns true if Prometheus reporting is enabled, false otherwise.
+    // Returns true if Prometheus reporting is enabled, false otherwise.
 
     bsls::TimeInterval publishInterval() const override;
-        // Return current value of publish interval
+    // Return current value of publish interval
 };
 
-                 // =========================================
-                 // class PrometheusStatConsumerPluginFactory
-                 // =========================================
+// =========================================
+// class PrometheusStatConsumerPluginFactory
+// =========================================
 
 class PrometheusStatConsumerPluginFactory
 : public mqbplug::StatConsumerPluginFactory {
@@ -257,35 +259,32 @@ class PrometheusStatConsumerPluginFactory
     ~PrometheusStatConsumerPluginFactory() override;
 
     // MANIPULATORS
-    bslma::ManagedPtr<StatConsumer> create(
-                                const StatContextsMap&     statContexts,
-                                const CommandProcessorFn&  commandProcessor,
-                                bdlbb::BlobBufferFactory  *bufferFactory,
-                                bslma::Allocator          *allocator) override;
+    bslma::ManagedPtr<StatConsumer>
+    create(const StatContextsMap&    statContexts,
+           const CommandProcessorFn& commandProcessor,
+           bdlbb::BlobBufferFactory* bufferFactory,
+           bslma::Allocator*         allocator) override;
 };
 
 // ============================================================================
 //                             INLINE DEFINITIONS
 // ============================================================================
 
-                        // ----------------------------
-                        // class PrometheusStatConsumer
-                        // ----------------------------
+// ----------------------------
+// class PrometheusStatConsumer
+// ----------------------------
 
-inline
-bsls::TimeInterval PrometheusStatConsumer::publishInterval() const
+inline bsls::TimeInterval PrometheusStatConsumer::publishInterval() const
 {
     return d_publishInterval;
 }
 
-inline
-bslstl::StringRef PrometheusStatConsumer::name() const
+inline bslstl::StringRef PrometheusStatConsumer::name() const
 {
     return "PrometheusStatConsumer";
 }
 
-inline
-bool PrometheusStatConsumer::isEnabled() const
+inline bool PrometheusStatConsumer::isEnabled() const
 {
     return d_publishInterval.seconds() > 0;
 }
