@@ -114,7 +114,7 @@ size_t Value::hash() const
     case VALUE_STRINGTYPE: {
         d_hash = bdlb::HashUtil::hash1(
             d_value.the<bslstl::StringRef>().data(),
-            d_value.the<bslstl::StringRef>().length());
+            static_cast<int>(d_value.the<bslstl::StringRef>().length()));
     } break;
     default: {
         d_hash = (size_t)-1;

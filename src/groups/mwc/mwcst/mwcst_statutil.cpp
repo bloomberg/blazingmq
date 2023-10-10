@@ -70,8 +70,9 @@ StatUtil::incrementRate(const StatValue&                   value,
                         const StatValue::SnapshotLocation& firstSnapshot,
                         const StatValue::SnapshotLocation& secondSnapshot)
 {
-    double diff = value.snapshot(secondSnapshot).increments() -
-                  value.snapshot(firstSnapshot).increments();
+    double diff = static_cast<double>(
+        value.snapshot(secondSnapshot).increments() -
+        value.snapshot(firstSnapshot).increments());
 
     double divisor = firstSnapshot.index() - secondSnapshot.index();
     for (int i = 0; i < firstSnapshot.level(); ++i) {
@@ -86,8 +87,9 @@ double StatUtil::incrementsPerSecond(
     const StatValue::SnapshotLocation& firstSnapshot,
     const StatValue::SnapshotLocation& secondSnapshot)
 {
-    double diff = value.snapshot(secondSnapshot).increments() -
-                  value.snapshot(firstSnapshot).increments();
+    double diff = static_cast<double>(
+        value.snapshot(secondSnapshot).increments() -
+        value.snapshot(firstSnapshot).increments());
 
     bsls::Types::Int64 duration =
         value.snapshot(secondSnapshot).snapshotTime() -
@@ -118,8 +120,9 @@ StatUtil::decrementRate(const StatValue&                   value,
                         const StatValue::SnapshotLocation& firstSnapshot,
                         const StatValue::SnapshotLocation& secondSnapshot)
 {
-    double diff = value.snapshot(secondSnapshot).decrements() -
-                  value.snapshot(firstSnapshot).decrements();
+    double diff = static_cast<double>(
+        value.snapshot(secondSnapshot).decrements() -
+        value.snapshot(firstSnapshot).decrements());
 
     double divisor = firstSnapshot.index() - secondSnapshot.index();
     for (int i = 0; i < firstSnapshot.level(); ++i) {
@@ -134,8 +137,9 @@ double StatUtil::decrementsPerSecond(
     const StatValue::SnapshotLocation& firstSnapshot,
     const StatValue::SnapshotLocation& secondSnapshot)
 {
-    double diff = value.snapshot(secondSnapshot).decrements() -
-                  value.snapshot(firstSnapshot).decrements();
+    double diff = static_cast<double>(
+        value.snapshot(secondSnapshot).decrements() -
+        value.snapshot(firstSnapshot).decrements());
 
     bsls::Types::Int64 duration =
         value.snapshot(secondSnapshot).snapshotTime() -
@@ -164,15 +168,15 @@ double StatUtil::average(const StatValue&                   value,
         divisor *= value.historySize(i);
     }
 
-    return 1.0 * sum / divisor;
+    return static_cast<double>(sum) / divisor;
 }
 
 double StatUtil::rate(const StatValue&                   value,
                       const StatValue::SnapshotLocation& firstSnapshot,
                       const StatValue::SnapshotLocation& secondSnapshot)
 {
-    double diff = value.snapshot(secondSnapshot).value() -
-                  value.snapshot(firstSnapshot).value();
+    double diff = static_cast<double>(value.snapshot(secondSnapshot).value() -
+                                      value.snapshot(firstSnapshot).value());
 
     int divisor = firstSnapshot.index() - secondSnapshot.index();
     for (int i = 0; i < firstSnapshot.level(); ++i) {
@@ -187,8 +191,8 @@ StatUtil::ratePerSecond(const StatValue&                   value,
                         const StatValue::SnapshotLocation& firstSnapshot,
                         const StatValue::SnapshotLocation& secondSnapshot)
 {
-    double diff = value.snapshot(secondSnapshot).value() -
-                  value.snapshot(firstSnapshot).value();
+    double diff = static_cast<double>(value.snapshot(secondSnapshot).value() -
+                                      value.snapshot(firstSnapshot).value());
 
     bsls::Types::Int64 duration =
         value.snapshot(secondSnapshot).snapshotTime() -
@@ -414,7 +418,7 @@ double StatUtil::averagePerEventReal(
         bsls::Types::Int64 sum = sumDifference(value,
                                                firstSnapshot,
                                                secondSnapshot);
-        return static_cast<double>(sum) / events;
+        return static_cast<double>(sum) / static_cast<double>(events);
     }
 }
 

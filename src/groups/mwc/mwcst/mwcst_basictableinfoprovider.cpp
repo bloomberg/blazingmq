@@ -178,14 +178,14 @@ int BasicTableInfoProvider_ValueSizeVisitor::operator()(
     if (value == bsl::numeric_limits<bsls::Types::Int64>::max() ||
         value == bsl::numeric_limits<bsls::Types::Int64>::min()) {
         if (!d_fmt_p->d_extremeString.isNull()) {
-            return d_fmt_p->d_extremeString.value().length();
+            return static_cast<int>(d_fmt_p->d_extremeString.value().length());
         }
         else {
-            return NA_STRING.length();
+            return static_cast<int>(NA_STRING.length());
         }
     }
     else if (!d_fmt_p->d_zeroString.isNull() && value == 0) {
-        return d_fmt_p->d_zeroString.value().length();
+        return static_cast<int>(d_fmt_p->d_zeroString.value().length());
     }
     else if (d_fmt_p->d_type == ColumnFormat::DMCU_NS_TIME_INTERVAL) {
         return mwcstu::PrintUtil::printedTimeIntervalNsLength(
@@ -212,13 +212,13 @@ int BasicTableInfoProvider_ValueSizeVisitor::operator()(int value) const
 int BasicTableInfoProvider_ValueSizeVisitor::operator()(
     const bslstl::StringRef& value) const
 {
-    return value.length();
+    return static_cast<int>(value.length());
 }
 
 int BasicTableInfoProvider_ValueSizeVisitor::operator()(double value) const
 {
     if (!d_fmt_p->d_zeroString.isNull() && value == 0.0) {
-        return d_fmt_p->d_zeroString.value().length();
+        return static_cast<int>(d_fmt_p->d_zeroString.value().length());
     }
     else if (d_fmt_p->d_printSeparators) {
         return mwcstu::PrintUtil::printedValueLengthWithSeparator(
@@ -485,10 +485,10 @@ bsl::ostream& BasicTableInfoProvider::printValue(bsl::ostream& stream,
 int BasicTableInfoProvider::getHeaderSize(int level, int column) const
 {
     if (level == 0) {
-        return d_columns[column].d_printColumnName.length();
+        return static_cast<int>(d_columns[column].d_printColumnName.length());
     }
     else {
-        return d_columnGroups[column].length();
+        return static_cast<int>(d_columnGroups[column].length());
     }
 }
 

@@ -76,7 +76,7 @@ int TestTableInfoProvider::numHeaderLevels() const
 
 int TestTableInfoProvider::getValueSize(int row, int column) const
 {
-    return d_table[row][column].length();
+    return static_cast<int>(d_table[row][column].length());
 }
 
 bsl::ostream& TestTableInfoProvider::printValue(bsl::ostream& stream,
@@ -97,7 +97,7 @@ int TestTableInfoProvider::getHeaderSize(int level, int column) const
         }
 
         if (column == 0) {
-            return row[i].length();
+            return static_cast<int>(row[i].length());
         }
         else {
             --column;

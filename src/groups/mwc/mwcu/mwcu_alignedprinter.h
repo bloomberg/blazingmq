@@ -123,9 +123,9 @@ inline AlignedPrinter::AlignedPrinter(bsl::ostream&                   stream,
     BSLS_ASSERT_SAFE(0 <= d_indent);
     BSLS_ASSERT_SAFE(0 < d_fields_p->size());
 
-    int maxLen = bsl::strlen((*d_fields_p)[0]);
+    int maxLen = static_cast<int>(bsl::strlen((*d_fields_p)[0]));
     for (unsigned int i = 1; i < d_fields_p->size(); ++i) {
-        int len = bsl::strlen((*d_fields_p)[i]);
+        int len = static_cast<int>(bsl::strlen((*d_fields_p)[i]));
         if (maxLen < len) {
             maxLen = len;
         }

@@ -107,8 +107,8 @@ bool StringUtil::endsWith(const bslstl::StringRef& str,
         return false;  // RETURN
     }
 
-    int i = str.length() - 1;
-    int j = suffix.length() - 1;
+    int i = static_cast<int>(str.length() - 1);
+    int j = static_cast<int>(suffix.length() - 1);
     while ((i >= 0) && (j >= 0)) {
         if (str[i--] != suffix[j--]) {
             return false;  // RETURN
@@ -184,8 +184,8 @@ bool StringUtil::match(const bslstl::StringRef& str,
     // This implementation is taken almost exactly from the blog post:
     // https://research.swtch.com/glob
 
-    const int strLength     = str.size();
-    const int patternLength = pattern.size();
+    const int strLength     = static_cast<int>(str.size());
+    const int patternLength = static_cast<int>(pattern.size());
 
     int i = 0;  // index into 'str'
     int j = 0;  // index into 'pattern'

@@ -74,20 +74,20 @@ class DefaultIdColumn : public StatContextTableInfoProviderCustomColumn {
         int length = 0;
         if (valueType == StatContext::DMCST_TOTAL_VALUE) {
             if (context.hasName()) {
-                length = context.name().length();
+                length = static_cast<int>(context.name().length());
             }
             else {
                 length = mwcstu::PrintUtil::printedValueLength(context.id());
             }
         }
         else if (valueType == StatContext::DMCST_DIRECT_VALUE) {
-            length = DIRECT_NAME.length();
+            length = static_cast<int>(DIRECT_NAME.length());
         }
         else if (valueType == StatContext::DMCST_EXPIRED_VALUE) {
-            length = EXPIRED_NAME.length();
+            length = static_cast<int>(EXPIRED_NAME.length());
         }
         else {
-            length = UNKNOWN_NAME.length();
+            length = static_cast<int>(UNKNOWN_NAME.length());
         }
 
         length += 2 * level;
@@ -472,7 +472,7 @@ int StatContextTableInfoProvider::getValueSize(int row, int column) const
         if (colInfo.d_intFunc) {
             bsls::Types::Int64 funcValue = colInfo.d_intFunc(value);
             if (funcValue == MAX_INT || funcValue == MIN_INT) {
-                return NA_STRING.length();
+                return static_cast<int>(NA_STRING.length());
             }
             else if (colInfo.d_printType == DMCST_INT_VALUE) {
                 if (d_printSeparators) {
@@ -555,10 +555,10 @@ bsl::ostream& StatContextTableInfoProvider::printValue(bsl::ostream& stream,
 int StatContextTableInfoProvider::getHeaderSize(int level, int column) const
 {
     if (level == 0) {
-        return d_columns[column].d_name.length();
+        return static_cast<int>(d_columns[column].d_name.length());
     }
     else {
-        return d_columnGroups[column].length();
+        return static_cast<int>(d_columnGroups[column].length());
     }
 }
 

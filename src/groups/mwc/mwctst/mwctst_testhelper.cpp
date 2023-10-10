@@ -47,7 +47,7 @@ void TestHelper::printTestName(bslstl::StringRef value)
     }
 
     bsl::cout << "\n" << value << "\n";
-    int length = value.length();
+    size_t length = value.length();
     while (length--) {
         bsl::cout << "=";
     }

@@ -522,7 +522,7 @@ int BlobUtil::readUpToNBytes(char*               buf,
         cursor.setByte(0);
     }
 
-    return (outPosition - buf);
+    return static_cast<int>(outPosition - buf);
 }
 
 int BlobUtil::readNBytes(char*               buf,
