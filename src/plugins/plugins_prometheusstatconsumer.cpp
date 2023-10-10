@@ -1,4 +1,4 @@
-// plugins_prometheusstatconsumer.cpp                                     -*-C++-*-
+// plugins_prometheusstatconsumer.cpp                                 -*-C++-*-
 #include <plugins_prometheusstatconsumer.h>
 
 // PLUGINS
@@ -30,7 +30,6 @@
 // PROMETHEUS
 #include "prometheus/labels.h"
 
-
 namespace BloombergLP {
 namespace plugins {
 
@@ -38,104 +37,81 @@ namespace {
 
 BALL_LOG_SET_NAMESPACE_CATEGORY("BMQBRKR.PROMETHEUSSTATCONSUMER");
 
-const char *k_THREADNAME     = "bmqPrometheusPush";
+const char *k_THREADNAME = "bmqPrometheusPush";
 
-struct Tagger {
-    bslstl::StringRef d_cluster;
-    bslstl::StringRef d_domain;
-    bslstl::StringRef d_tier;
-    bslstl::StringRef d_queue;
-    bslstl::StringRef d_role;
-    bslstl::StringRef d_instance;
-    bslstl::StringRef d_remoteHost;
-    bslstl::StringRef d_dataType;
+class Tagger {
+  private:
+    // PRIVATE DATA
+    prometheus::Labels labels;
 
+  public:
+    // MANIPULATORS
     Tagger& setCluster(const bslstl::StringRef& value)
     {
-        d_cluster = value;
+        labels["Cluster"] = value;
         return *this;
     }
 
     Tagger& setDomain(const bslstl::StringRef& value)
     {
-        d_domain = value;
+        labels["Domain"] = value;
         return *this;
     }
 
     Tagger& setTier(const bslstl::StringRef& value)
     {
-        d_tier = value;
+        labels["Tier"] = value;
         return *this;
     }
 
     Tagger& setQueue(const bslstl::StringRef& value)
     {
-        d_queue = value;
+        labels["Queue"] = value;
         return *this;
     }
 
     Tagger& setRole(const bslstl::StringRef& value)
     {
-        d_role = value;
+        labels["Role"] = value;
         return *this;
     }
 
     Tagger& setInstance(const bslstl::StringRef& value)
     {
-        d_instance = value;
+        labels["Instance"] = value;
         return *this;
     }
 
     Tagger& setRemoteHost(const bslstl::StringRef& value)
     {
-        d_remoteHost = value;
+        labels["RemoteHost"] = value;
         return *this;
     }
 
     Tagger& setDataType(const bslstl::StringRef& value)
     {
-        d_dataType = value;
+        labels["DataType"] = value;
         return *this;
     }
 
-    prometheus::Labels getLabels()
-    {
-        // TODO: find a better way
-        prometheus::Labels labels;
-        if (!d_dataType.empty())
-            labels.emplace("DataType", d_dataType);
-        if (!d_cluster.empty())
-            labels.emplace("Cluster", d_cluster);
-        if (!d_domain.empty())
-            labels.emplace("Domain", d_domain);
-        if (!d_tier.empty())
-            labels.emplace("Tier", d_tier);
-        if (!d_queue.empty())
-            labels.emplace("Queue", d_queue);
-        if (!d_role.empty())
-            labels.emplace("Role", d_role);
-        if (!d_instance.empty())
-            labels.emplace("Instance", d_instance);
-        if (!d_remoteHost.empty())
-            labels.emplace("RemoteHost", d_remoteHost);
-
-        return labels;
-    }
+    // ACCESSORS
+    prometheus::Labels getLabels() { return labels; }
 };
 
 }  // close unnamed namespace
 
-                          // ----------------------
-                          // class PrometheusStatConsumer
-                          // ----------------------
+                        // ----------------------------
+                        // class PrometheusStatConsumer
+                        // ----------------------------
 
 PrometheusStatConsumer::~PrometheusStatConsumer()
 {
     stop();
 }
 
-PrometheusStatConsumer::PrometheusStatConsumer(const StatContextsMap&  statContextsMap,
-                                   bslma::Allocator       *allocator)
+PrometheusStatConsumer::PrometheusStatConsumer(
+                                       const StatContextsMap&  statContextsMap,
+                                       bslma::Allocator        * /*allocator*/)
 : d_contextsMap(statContextsMap)
 , d_consumerConfig_p(mqbplug::StatConsumerUtil::findConsumerConfig(name()))
 , d_publishInterval(0)
@@ -157,43 +133,43 @@ PrometheusStatConsumer::PrometheusStatConsumer(const StatContextsMap&  statConte
     d_clientStatContext_p       = getStatContext("clients");
     d_channelsStatContext_p     = getStatContext("channels");
 
-    // Initialize Prometheus
-    // FIXME: need to generate mqbcfg_messages.cpp/h with new fields
-    // d_prometheusHost(d_consumerConfig_p->host());
-    // d_prometheusPort(d_consumerConfig_p->port());
-    // d_prometheusMode(d_consumerConfig_p->mode());
-    const char * prometheusHost = "127.0.1.1";
-    size_t prometheusPort = 9091;
-    d_prometheusMode = "push"; // TODO enum or check validity?
+    // Initialize Prometheus config
+    const char *prometheusHost = "127.0.1.1";
+    size_t      prometheusPort = 9091;
+    d_prometheusMode           = "push";  // TODO enum or check validity?
 
     d_prometheusRegistry_p = std::make_shared<prometheus::Registry>();
 
     if (d_prometheusMode == "push") {
-        bsl::string clientHostName = "clientHostName"; //TODO: do we need this? to recognise different sources of statistics?
+        bsl::string clientHostName =
+            "clientHostName";  //TODO: do we need this? to recognise different sources of statistics?
 
         // Push mode
-        // create a push gateway
-        const auto labels = prometheus::Gateway::GetInstanceLabel(clientHostName); // creates label { "instance": clientHostName }
-        d_prometheusGateway_p         = bsl::make_unique<prometheus::Gateway>(prometheusHost,
-                                              bsl::to_string(prometheusPort),
-                                              name(),  // use plugin name as a job name
-                                              labels);
+        const auto labels = prometheus::Gateway::GetInstanceLabel(
+              clientHostName);  // creates label { "instance": clientHostName }
+        d_prometheusGateway_p = bsl::make_unique<prometheus::Gateway>(
+                                      prometheusHost,
+                                      bsl::to_string(prometheusPort),
+                                      name(),  // TODO: use plugin name as a job name? probably should be configurable
+                                      labels);
         d_prometheusGateway_p->RegisterCollectable(d_prometheusRegistry_p);
-    } else {
+    }
+    else {
         // Pull mode
         bsl::ostringstream endpoint;
         endpoint << prometheusHost << ":" << prometheusPort;
-        d_prometheusExposer_p = bsl::make_unique<prometheus::Exposer>(endpoint.str());
+        d_prometheusExposer_p =
+                         bsl::make_unique<prometheus::Exposer>(endpoint.str());
         d_prometheusExposer_p->RegisterCollectable(d_prometheusRegistry_p);
     }
 }
 
-int
-PrometheusStatConsumer::start(BSLS_ANNOTATION_UNUSED bsl::ostream& errorDescription)
+int PrometheusStatConsumer::start(
+                         BSLS_ANNOTATION_UNUSED bsl::ostream& errorDescription)
 {
     if (!d_consumerConfig_p) {
-        BALL_LOG_ERROR << "Could not find config for StatConsumer '"
-                       << name() << "'";
+        BALL_LOG_ERROR << "Could not find config for StatConsumer '" << name()
+                       << "'";
         return -1;                                                    // RETURN
     }
 
@@ -205,22 +181,23 @@ PrometheusStatConsumer::start(BSLS_ANNOTATION_UNUSED bsl::ostream& errorDescript
 
     setActionCounter();
 
-    // TODO: do we need d_snapshotId? we can use d_snapshotId = 1 to get all snapshots data and collect them in Registry
+    // TODO: do we need d_snapshotId? we can use d_snapshotId = 1 to get all
+    // snapshots data and collect them in Registry
     const mqbcfg::AppConfig& brkrCfg = mqbcfg::BrokerConfig::get();
-    d_snapshotId = (  d_publishInterval.seconds()
-                    / brkrCfg.stats().snapshotInterval());
+    d_snapshotId                     = (d_publishInterval.seconds() /
+                                        brkrCfg.stats().snapshotInterval());
 
     if (d_prometheusMode == "push") {
         // create push thread
         int rc = bslmt::ThreadUtil::create(
-                    &d_prometheusPushThreadHandle,
-                    mwcsys::ThreadUtil::defaultAttributes(),
-                    bdlf::BindUtil::bind(&PrometheusStatConsumer::prometheusPushThread,
-                                        this));
+            &d_prometheusPushThreadHandle,
+            mwcsys::ThreadUtil::defaultAttributes(),
+            bdlf::BindUtil::bind(&PrometheusStatConsumer::prometheusPushThread,
+                                 this));
         if (rc != 0) {
             BALL_LOG_ERROR << "#PROMETHEUS_REPORTING "
-                        << "Failed to start prometheusPushThread thread"
-                        << "' [rc: " << rc << "]";
+                           << "Failed to start prometheusPushThread thread"
+                           << "' [rc: " << rc << "]";
             return rc;                                                // RETURN
         }
     }
@@ -229,8 +206,7 @@ PrometheusStatConsumer::start(BSLS_ANNOTATION_UNUSED bsl::ostream& errorDescript
     return 0;
 }
 
-void
-PrometheusStatConsumer::stop()
+void PrometheusStatConsumer::stop()
 {
     if (!d_isStarted) {
         return;                                                       // RETURN
@@ -245,10 +221,9 @@ PrometheusStatConsumer::stop()
     d_isStarted = false;
 }
 
-void
-PrometheusStatConsumer::onSnapshot()
+void PrometheusStatConsumer::onSnapshot()
 {
-                        // executed by the *SCHEDULER* thread of StatController
+    // executed by the *SCHEDULER* thread of StatController
     if (!isEnabled()) {
         return;                                                       // RETURN
     }
@@ -258,7 +233,7 @@ PrometheusStatConsumer::onSnapshot()
     }
 
     setActionCounter();
-    
+
     captureSystemStats();
     captureNetworkStats();
     captureBrokerStats();
@@ -275,8 +250,7 @@ PrometheusStatConsumer::onSnapshot()
     }
 }
 
-void
-PrometheusStatConsumer::captureQueueStats()
+void PrometheusStatConsumer::captureQueueStats()
 {
     // Lookup the 'domainQueues' stat context
     // This is guaranteed to work because it was asserted in the ctor.
@@ -293,10 +267,8 @@ PrometheusStatConsumer::captureQueueStats()
                                                 domainIt->subcontextIterator();
              queueIt;
              ++queueIt) {
-
             bslma::ManagedPtr<bdld::ManagedDatum> mdSp = queueIt->datum();
-            bdld::DatumMapRef                     map  =
-                                                        mdSp->datum().theMap();
+            bdld::DatumMapRef                     map = mdSp->datum().theMap();
 
             const int role = mqbstat::QueueStatsDomain::getValue(
                                       *queueIt,
@@ -304,8 +276,7 @@ PrometheusStatConsumer::captureQueueStats()
                                       mqbstat::QueueStatsDomain::Stat::e_ROLE);
 
             Tagger tagger;
-            tagger
-                .setCluster(map.find("cluster")->theString())
+            tagger.setCluster(map.find("cluster")->theString())
                 .setDomain(map.find("domain")->theString())
                 .setTier(map.find("tier")->theString())
                 .setQueue(map.find("queue")->theString())
@@ -324,9 +295,9 @@ PrometheusStatConsumer::captureQueueStats()
                 // in Grafana.
 
                 auto& heartbeatGauge = prometheus::BuildGauge()
-                            .Name("queue_heartbeat")
-                            .Help("queue heartbeat")
-                            .Register(*d_prometheusRegistry_p);
+                                           .Name("queue_heartbeat")
+                                           .Help("queue heartbeat")
+                                           .Register(*d_prometheusRegistry_p);
                 heartbeatGauge.Add(labels).Set(0);
             }
 
@@ -375,7 +346,7 @@ PrometheusStatConsumer::captureQueueStats()
                     { "queue_reject_msgs",          Stat::e_REJECT_DELTA, true},
                     { "queue_nack_noquorum_msgs",   Stat::e_NO_SC_MSGS_DELTA, true},
                 };
-                
+
                 for (DatapointDefCIter dpIt = bdlb::ArrayUtil::begin(defs);
                      dpIt != bdlb::ArrayUtil::end(defs);
                      ++dpIt) {
@@ -392,18 +363,18 @@ PrometheusStatConsumer::captureQueueStats()
     }
 }
 
-void
-PrometheusStatConsumer::captureSystemStats()
+void PrometheusStatConsumer::captureSystemStats()
 {
-    bsl::vector<bsl::pair<bsl::string, double>> datapoints;
+    bsl::vector<bsl::pair<bsl::string, double> > datapoints;
 
     const int k_NUM_SYS_STATS = 10;
     datapoints.reserve(k_NUM_SYS_STATS);
 
 #define COPY_METRIC(TAIL, ACCESSOR)                                           \
-    datapoints.emplace_back("brkr_system_" TAIL,                              \
-        mwcsys::StatMonitorUtil::ACCESSOR(*d_systemStatContext_p,             \
-                                           d_snapshotId));
+    datapoints.emplace_back(                                                  \
+                    "brkr_system_" TAIL,                                      \
+                    mwcsys::StatMonitorUtil::ACCESSOR(*d_systemStatContext_p, \
+                                                      d_snapshotId));
 
     COPY_METRIC("cpu_sys",                  cpuSystem);
     COPY_METRIC("cpu_usr",                  cpuUser);
@@ -418,21 +389,21 @@ PrometheusStatConsumer::captureSystemStats()
 
 #undef COPY_METRIC
 
-    prometheus::Labels labels {{"dataType", "HostData"}};
-    bslstl::StringRef instanceName =
+    prometheus::Labels labels{{"dataType", "HostData"}};
+    bslstl::StringRef  instanceName =
                               mqbcfg::BrokerConfig::get().brokerInstanceName();
     if (!instanceName.empty()) {
         labels.emplace("instanceName", instanceName);
     }
 
-    for (bsl::vector<bsl::pair<bsl::string, double>>::iterator it = datapoints.begin();
-            it != datapoints.end();
-            ++it) {
-
+    for (bsl::vector<bsl::pair<bsl::string, double> >::iterator it =
+                                                            datapoints.begin();
+         it != datapoints.end();
+         ++it) {
         auto& gauge = prometheus::BuildGauge()
-                    .Name(it->first)
-        // TODO:    .Help()
-                    .Register(*d_prometheusRegistry_p);
+                          .Name(it->first)
+                          // TODO:    .Help()
+                          .Register(*d_prometheusRegistry_p);
         gauge.Add(labels).Set(it->second);
     }
 
@@ -440,10 +411,9 @@ PrometheusStatConsumer::captureSystemStats()
     BSLS_ASSERT_SAFE(datapoints.size() == k_NUM_SYS_STATS);
 }
 
-void
-PrometheusStatConsumer::captureNetworkStats()
+void PrometheusStatConsumer::captureNetworkStats()
 {
-    bsl::vector<bsl::pair<bsl::string, double>> datapoints;
+    bsl::vector<bsl::pair<bsl::string, double> > datapoints;
 
     const int k_NUM_NETWORK_STATS = 4;
     datapoints.reserve(k_NUM_NETWORK_STATS);
@@ -452,15 +422,15 @@ PrometheusStatConsumer::captureNetworkStats()
                                d_channelsStatContext_p->getSubcontext("local");
     const mwcst::StatContext *remoteContext =
                               d_channelsStatContext_p->getSubcontext("remote");
-        // NOTE: Should be StatController::k_CHANNEL_STAT_*, but can't due to
-        //       dependency limitations.
+    // NOTE: Should be StatController::k_CHANNEL_STAT_*, but can't due to
+    //       dependency limitations.
 
-#define RETRIEVE_METRIC(TAIL, STAT, CONTEXT)                                \
-    datapoints.emplace_back("brkr_system_net_" TAIL,                        \
-        mwcio::StatChannelFactoryUtil::getValue(                            \
-                       *CONTEXT,                                            \
-                       d_snapshotId,                                        \
-                       mwcio::StatChannelFactoryUtil::Stat::STAT));
+#define RETRIEVE_METRIC(TAIL, STAT, CONTEXT)                                  \
+    datapoints.emplace_back("brkr_system_net_" TAIL,                          \
+                            mwcio::StatChannelFactoryUtil::getValue(          \
+                                 *CONTEXT,                                    \
+                                 d_snapshotId,                                \
+                                 mwcio::StatChannelFactoryUtil::Stat::STAT));
 
     RETRIEVE_METRIC("local_in_bytes",   e_BYTES_IN_DELTA,  localContext);
     RETRIEVE_METRIC("local_out_bytes",  e_BYTES_OUT_DELTA, localContext);
@@ -469,21 +439,21 @@ PrometheusStatConsumer::captureNetworkStats()
 
 #undef RETRIEVE_METRIC
 
-    prometheus::Labels labels {{"dataType", "HostData"}};
-    bslstl::StringRef instanceName =
+    prometheus::Labels labels{{"dataType", "HostData"}};
+    bslstl::StringRef  instanceName =
                               mqbcfg::BrokerConfig::get().brokerInstanceName();
     if (!instanceName.empty()) {
         labels.emplace("instanceName", instanceName);
     }
 
-    for (bsl::vector<bsl::pair<bsl::string, double>>::iterator it = datapoints.begin();
-            it != datapoints.end();
-            ++it) {
-
+    for (bsl::vector<bsl::pair<bsl::string, double> >::iterator it =
+                                                            datapoints.begin();
+         it != datapoints.end();
+         ++it) {
         auto& counter = prometheus::BuildCounter()
-                    .Name(it->first)
-        // TODO:    .Help()
-                    .Register(*d_prometheusRegistry_p);
+                            .Name(it->first)
+                            // TODO:    .Help()
+                            .Register(*d_prometheusRegistry_p);
         counter.Add(labels).Increment(it->second);
     }
 
@@ -491,8 +461,7 @@ PrometheusStatConsumer::captureNetworkStats()
     BSLS_ASSERT_SAFE(datapoints.size() == k_NUM_NETWORK_STATS);
 }
 
-void
-PrometheusStatConsumer::captureBrokerStats()
+void PrometheusStatConsumer::captureBrokerStats()
 {
     typedef mqbstat::BrokerStats::Stat Stat;  // Shortcut
 
@@ -502,38 +471,37 @@ PrometheusStatConsumer::captureBrokerStats()
     };
 
     Tagger tagger;
-    tagger.setInstance(mqbcfg::BrokerConfig::get().brokerInstanceName()).setDataType("HostData");
+    tagger.setInstance(mqbcfg::BrokerConfig::get().brokerInstanceName())
+        .setDataType("HostData");
 
     for (DatapointDefCIter dpIt = bdlb::ArrayUtil::begin(defs);
-            dpIt != bdlb::ArrayUtil::end(defs);
-            ++dpIt) {
-        const bsls::Types::Int64 value =
-            mqbstat::BrokerStats::getValue(*d_brokerStatContext_p,
-                                  d_snapshotId,
-                                  static_cast<Stat::Enum>(dpIt->d_stat));
+         dpIt != bdlb::ArrayUtil::end(defs);
+         ++dpIt) {
+        const bsls::Types::Int64 value = mqbstat::BrokerStats::getValue(
+                                        *d_brokerStatContext_p,
+                                        d_snapshotId,
+                                        static_cast<Stat::Enum>(dpIt->d_stat));
         updateMetric(dpIt, tagger.getLabels(), value);
     }
 }
 
-void
-PrometheusStatConsumer::collectLeaders(LeaderSet *leaders)
+void PrometheusStatConsumer::collectLeaders(LeaderSet *leaders)
 {
     for (mwcst::StatContextIterator clusterIt =
-             d_clustersStatContext_p->subcontextIterator();
+                                 d_clustersStatContext_p->subcontextIterator();
          clusterIt;
          ++clusterIt) {
-        if (   mqbstat::ClusterStats::getValue(
-                                  *clusterIt,
-                                  d_snapshotId,
-                                  mqbstat::ClusterStats::Stat::e_LEADER_STATUS)
-            == mqbstat::ClusterStats::LeaderStatus::e_LEADER) {
+        if (mqbstat::ClusterStats::getValue(
+                               *clusterIt,
+                               d_snapshotId,
+                               mqbstat::ClusterStats::Stat::e_LEADER_STATUS) ==
+            mqbstat::ClusterStats::LeaderStatus::e_LEADER) {
             leaders->insert(clusterIt->name());
         }
     }
 }
 
-void
-PrometheusStatConsumer::captureClusterStats(const LeaderSet& leaders)
+void PrometheusStatConsumer::captureClusterStats(const LeaderSet& leaders)
 {
     const mwcst::StatContext& clustersStatContext = *d_clustersStatContext_p;
 
@@ -541,26 +509,23 @@ PrometheusStatConsumer::captureClusterStats(const LeaderSet& leaders)
                                       clustersStatContext.subcontextIterator();
          clusterIt;
          ++clusterIt) {
-
         typedef mqbstat::ClusterStats::Stat Stat;  // Shortcut
 
         // scope
         {
             static const DatapointDef defs[] = {
-                { "cluster_healthiness", Stat::e_CLUSTER_STATUS, false },
+                {"cluster_healthiness", Stat::e_CLUSTER_STATUS, false},
             };
 
-
             const mqbstat::ClusterStats::Role::Enum role =
-                static_cast<mqbstat::ClusterStats::Role::Enum>(
-                    mqbstat::ClusterStats::getValue(
-                                         *clusterIt,
-                                         d_snapshotId,
-                                         mqbstat::ClusterStats::Stat::e_ROLE));
+                                static_cast<mqbstat::ClusterStats::Role::Enum>(
+                                    mqbstat::ClusterStats::getValue(
+                                        *clusterIt,
+                                        d_snapshotId,
+                                        mqbstat::ClusterStats::Stat::e_ROLE));
 
             Tagger tagger;
-            tagger
-                .setCluster(clusterIt->name())
+            tagger.setCluster(clusterIt->name())
                 .setInstance(mqbcfg::BrokerConfig::get().brokerInstanceName())
                 .setRole(mqbstat::ClusterStats::Role::toAscii(role))
                 .setDataType("HostData");
@@ -568,8 +533,7 @@ PrometheusStatConsumer::captureClusterStats(const LeaderSet& leaders)
             if (role == mqbstat::ClusterStats::Role::e_PROXY) {
                 bslma::ManagedPtr<bdld::ManagedDatum> mdSp =
                                                             clusterIt->datum();
-                bdld::DatumMapRef                     map =
-                                                        mdSp->datum().theMap();
+                bdld::DatumMapRef map = mdSp->datum().theMap();
 
                 bslstl::StringRef upstream = map.find("upstream")->theString();
                 tagger.setRemoteHost(upstream.isEmpty() ? "_none_" : upstream);
@@ -579,7 +543,7 @@ PrometheusStatConsumer::captureClusterStats(const LeaderSet& leaders)
                  dpIt != bdlb::ArrayUtil::end(defs);
                  ++dpIt) {
                 const bsls::Types::Int64 value =
-                    mqbstat::ClusterStats::getValue(
+                                    mqbstat::ClusterStats::getValue(
                                         *clusterIt,
                                         d_snapshotId,
                                         static_cast<Stat::Enum>(dpIt->d_stat));
@@ -590,26 +554,24 @@ PrometheusStatConsumer::captureClusterStats(const LeaderSet& leaders)
 
         if (leaders.find(clusterIt->name()) != leaders.end()) {
             static const DatapointDef defs[] = {
-                {
-                    "cluster_partition_cfg_journal_bytes",
-                    Stat::e_PARTITION_CFG_JOURNAL_BYTES, false
-                },
-                {
-                    "cluster_partition_cfg_data_bytes",
-                    Stat::e_PARTITION_CFG_DATA_BYTES, false
-                },
+                {"cluster_partition_cfg_journal_bytes",
+                 Stat::e_PARTITION_CFG_JOURNAL_BYTES,
+                 false},
+                {"cluster_partition_cfg_data_bytes",
+                 Stat::e_PARTITION_CFG_DATA_BYTES,
+                 false},
             };
 
             Tagger tagger;
-            tagger
-                .setCluster(clusterIt->name())
-                .setInstance(mqbcfg::BrokerConfig::get().brokerInstanceName()).setDataType("GlobalData");
+            tagger.setCluster(clusterIt->name())
+                .setInstance(mqbcfg::BrokerConfig::get().brokerInstanceName())
+                .setDataType("GlobalData");
 
             for (DatapointDefCIter dpIt = bdlb::ArrayUtil::begin(defs);
                  dpIt != bdlb::ArrayUtil::end(defs);
                  ++dpIt) {
                 const bsls::Types::Int64 value =
-                    mqbstat::ClusterStats::getValue(
+                                    mqbstat::ClusterStats::getValue(
                                         *clusterIt,
                                         d_snapshotId,
                                         static_cast<Stat::Enum>(dpIt->d_stat));
@@ -620,29 +582,27 @@ PrometheusStatConsumer::captureClusterStats(const LeaderSet& leaders)
     }
 }
 
-void
-PrometheusStatConsumer::captureClusterPartitionsStats()
+void PrometheusStatConsumer::captureClusterPartitionsStats()
 {
     // Iterate over each cluster
     for (mwcst::StatContextIterator clusterIt =
                                  d_clustersStatContext_p->subcontextIterator();
          clusterIt;
          ++clusterIt) {
-
         // Iterate over each partition
         for (mwcst::StatContextIterator partitionIt =
                                                clusterIt->subcontextIterator();
              partitionIt;
              ++partitionIt) {
-
             mqbstat::ClusterStats::PrimaryStatus::Enum primaryStatus =
-                static_cast<mqbstat::ClusterStats::PrimaryStatus::Enum>(
-                     mqbstat::ClusterStats::getValue(
-                     *partitionIt,
-                     d_snapshotId,
-                     mqbstat::ClusterStats::Stat::e_PARTITION_PRIMARY_STATUS));
-            if (   primaryStatus
-                != mqbstat::ClusterStats::PrimaryStatus::e_PRIMARY) {
+                       static_cast<mqbstat::ClusterStats::PrimaryStatus::Enum>(
+                           mqbstat::ClusterStats::getValue(
+                               *partitionIt,
+                               d_snapshotId,
+                               mqbstat::ClusterStats::Stat::
+                                   e_PARTITION_PRIMARY_STATUS));
+            if (primaryStatus !=
+                mqbstat::ClusterStats::PrimaryStatus::e_PRIMARY) {
                 // Only report partition stats from the primary node
                 continue;                                           // CONTINUE
             }
@@ -651,58 +611,52 @@ PrometheusStatConsumer::captureClusterPartitionsStats()
             // 'cluster_partition1_rollover_time')
             const bsl::string prefix = "cluster_" + partitionIt->name() + "_";
             const bsl::string rollover_time = prefix + "rollover_time";
-            const bsl::string journal_outstanding_bytes = prefix + "journal_outstanding_bytes";
-            const bsl::string data_outstanding_bytes = prefix + "data_outstanding_bytes";
+            const bsl::string journal_outstanding_bytes =
+                                          prefix + "journal_outstanding_bytes";
+            const bsl::string data_outstanding_bytes =
+                                             prefix + "data_outstanding_bytes";
 
             const DatapointDef defs[] = {
-                {
-                  rollover_time.c_str(),
-                  mqbstat::ClusterStats::Stat::e_PARTITION_ROLLOVER_TIME, false
-                },
-                {
-                  journal_outstanding_bytes.c_str(),
-                  mqbstat::ClusterStats::Stat::e_PARTITION_JOURNAL_CONTENT, false
-                },
-                {
-                  data_outstanding_bytes.c_str(),
-                  mqbstat::ClusterStats::Stat::e_PARTITION_DATA_CONTENT, false
-                }
-            };
+                {rollover_time.c_str(),
+                 mqbstat::ClusterStats::Stat::e_PARTITION_ROLLOVER_TIME,
+                 false},
+                {journal_outstanding_bytes.c_str(),
+                 mqbstat::ClusterStats::Stat::e_PARTITION_JOURNAL_CONTENT,
+                 false},
+                {data_outstanding_bytes.c_str(),
+                 mqbstat::ClusterStats::Stat::e_PARTITION_DATA_CONTENT,
+                 false}};
 
             Tagger tagger;
             tagger.setCluster(clusterIt->name())
-                  .setInstance(mqbcfg::BrokerConfig::get()
-                                                        .brokerInstanceName())
-                  .setDataType("GlobalData");
+                .setInstance(mqbcfg::BrokerConfig::get().brokerInstanceName())
+                .setDataType("GlobalData");
 
             for (DatapointDefCIter dpIt = bdlb::ArrayUtil::begin(defs);
                  dpIt != bdlb::ArrayUtil::end(defs);
                  ++dpIt) {
                 const bsls::Types::Int64 value =
-                    mqbstat::ClusterStats::getValue(
-                          *partitionIt,
-                          d_snapshotId,
-                          static_cast<mqbstat::ClusterStats::Stat::Enum>(
-                                                                dpIt->d_stat));
+                            mqbstat::ClusterStats::getValue(
+                                *partitionIt,
+                                d_snapshotId,
+                                static_cast<mqbstat::ClusterStats::Stat::Enum>(
+                                    dpIt->d_stat));
                 updateMetric(dpIt, tagger.getLabels(), value);
             }
         }
     }
 }
 
-void
-PrometheusStatConsumer::captureDomainStats(const LeaderSet& leaders)
+void PrometheusStatConsumer::captureDomainStats(const LeaderSet& leaders)
 {
-    const mwcst::StatContext& domainsStatContext =
-        *d_domainsStatContext_p;
+    const mwcst::StatContext& domainsStatContext = *d_domainsStatContext_p;
 
     typedef mqbstat::DomainStats::Stat Stat;  // Shortcut
 
     for (mwcst::StatContextIterator domainIt =
-             domainsStatContext.subcontextIterator();
+                                       domainsStatContext.subcontextIterator();
          domainIt;
          ++domainIt) {
-
         bslma::ManagedPtr<bdld::ManagedDatum> mdSp = domainIt->datum();
         bdld::DatumMapRef                     map  = mdSp->datum().theMap();
 
@@ -714,8 +668,7 @@ PrometheusStatConsumer::captureDomainStats(const LeaderSet& leaders)
         }
 
         Tagger tagger;
-        tagger
-            .setCluster(clusterName)
+        tagger.setCluster(clusterName)
             .setDomain(map.find("domain")->theString())
             .setTier(map.find("tier")->theString())
             .setDataType("GlobalData");
@@ -729,42 +682,43 @@ PrometheusStatConsumer::captureDomainStats(const LeaderSet& leaders)
         for (DatapointDefCIter dpIt = bdlb::ArrayUtil::begin(defs);
              dpIt != bdlb::ArrayUtil::end(defs);
              ++dpIt) {
-            const bsls::Types::Int64 value =
-                mqbstat::DomainStats::getValue(*domainIt,
-                                      d_snapshotId,
-                                      static_cast<Stat::Enum>(dpIt->d_stat));
+            const bsls::Types::Int64 value = mqbstat::DomainStats::getValue(
+                                        *domainIt,
+                                        d_snapshotId,
+                                        static_cast<Stat::Enum>(dpIt->d_stat));
 
             updateMetric(dpIt, tagger.getLabels(), value);
         }
     }
 }
 
-void
-PrometheusStatConsumer::updateMetric(const DatapointDef *def_p, const prometheus::Labels& labels, const bsls::Types::Int64 value)
+void PrometheusStatConsumer::updateMetric(const DatapointDef        *def_p,
+                                          const prometheus::Labels&  labels,
+                                          const bsls::Types::Int64   value)
 {
     if (value != 0) {
-        // BALL_LOG_INFO << "!!! " << def_p->d_name << " : " << value;
         // To save metrics, only report non-null values
         if (def_p->d_isCounter) {
             auto& counter = prometheus::BuildCounter()
-                        .Name(def_p->d_name)
-            // TODO:     .Help(def_p->d_help)
-                        .Register(*d_prometheusRegistry_p);
-            counter.Add(labels).Increment(value);
-        } else {
+                                .Name(def_p->d_name)
+                                // TODO:     .Help(def_p->d_help)
+                                .Register(*d_prometheusRegistry_p);
+            counter.Add(labels).Increment(static_cast<double>(value));
+        }
+        else {
             auto& gauge = prometheus::BuildGauge()
-                        .Name(def_p->d_name)
-            // TODO:     .Help(def_p->d_help)
-                        .Register(*d_prometheusRegistry_p);
-            gauge.Add(labels).Set(value);
+                              .Name(def_p->d_name)
+                              // TODO:     .Help(def_p->d_help)
+                              .Register(*d_prometheusRegistry_p);
+            gauge.Add(labels).Set(static_cast<double>(value));
         }
     }
 }
 
-void
-PrometheusStatConsumer::setPublishInterval(bsls::TimeInterval publishInterval)
+void PrometheusStatConsumer::setPublishInterval(
+                                            bsls::TimeInterval publishInterval)
 {
-                        // executed by the *SCHEDULER* thread of StatController
+    // executed by the *SCHEDULER* thread of StatController
 
     const int snapshotInterval =
                         mqbcfg::BrokerConfig::get().stats().snapshotInterval();
@@ -780,23 +734,23 @@ PrometheusStatConsumer::setPublishInterval(bsls::TimeInterval publishInterval)
     d_publishInterval = publishInterval;
     d_snapshotId      = d_publishInterval.seconds() / snapshotInterval;
 
-    setActionCounter();    
+    setActionCounter();
 }
 
-const mwcst::StatContext*
-PrometheusStatConsumer::getStatContext(const char *name) const
+const mwcst::StatContext *PrometheusStatConsumer::getStatContext(
+                                                        const char *name) const
 {
     StatContextsMap::const_iterator cIt = d_contextsMap.find(name);
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(cIt == d_contextsMap.end())) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        BSLS_ASSERT_SAFE(false && "StatContext not found in PrometheusStatConsumer");
+        BSLS_ASSERT_SAFE(false &&
+                         "StatContext not found in PrometheusStatConsumer");
         return 0;                                                     // RETURN
     }
     return cIt->second;
 }
 
-void
-PrometheusStatConsumer::setActionCounter()
+void PrometheusStatConsumer::setActionCounter()
 {
     const int snapshotInterval =
                         mqbcfg::BrokerConfig::get().stats().snapshotInterval();
@@ -809,10 +763,9 @@ PrometheusStatConsumer::setActionCounter()
     d_actionCounter = d_publishInterval.seconds() / snapshotInterval;
 }
 
-void
-PrometheusStatConsumer::prometheusPushThread()
+void PrometheusStatConsumer::prometheusPushThread()
 {
-                                   // executed by the dedicated prometheus push thread
+    // executed by the dedicated prometheus push thread
     mwcsys::ThreadUtil::setCurrentThreadName(k_THREADNAME);
 
     BALL_LOG_INFO << "Prometheus Push thread has started [id: "
@@ -823,7 +776,8 @@ PrometheusStatConsumer::prometheusPushThread()
 
         auto returnCode = d_prometheusGateway_p->Push();
         if (returnCode != 200) {
-            BALL_LOG_WARN << "Push to Prometheus failed with code: " << returnCode;
+            BALL_LOG_WARN << "Push to Prometheus failed with code: "
+                          << returnCode;
         }
 
         BALL_LOG_DEBUG << "Pushed to Prometheus with code: " << returnCode;
@@ -833,33 +787,32 @@ PrometheusStatConsumer::prometheusPushThread()
                   << "[id: " << bslmt::ThreadUtil::selfIdAsUint64() << "]";
 }
 
-                     // ---------------------------------
-                     // class PrometheusStatConsumerPluginFactory
-                     // ---------------------------------
+                 // -----------------------------------------
+                 // class PrometheusStatConsumerPluginFactory
+                 // -----------------------------------------
 
 // CREATORS
 PrometheusStatConsumerPluginFactory::PrometheusStatConsumerPluginFactory()
 {
-   // NOTHING
+    // NOTHING
 }
 
 PrometheusStatConsumerPluginFactory::~PrometheusStatConsumerPluginFactory()
 {
-   // NOTHING
+    // NOTHING
 }
 
-bslma::ManagedPtr<StatConsumer>
-PrometheusStatConsumerPluginFactory::create(
-                                const StatContextsMap&     statContexts,
-                                const CommandProcessorFn& /*commandProcessor*/,
-                                bdlbb::BlobBufferFactory* /*bufferFactory*/,
-                                bslma::Allocator           *allocator)
+bslma::ManagedPtr<StatConsumer> PrometheusStatConsumerPluginFactory::create(
+                  const StatContextsMap&                          statContexts,
+                  const CommandProcessorFn& /*commandProcessor*/,
+                  bdlbb::BlobBufferFactory * /*bufferFactory*/,
+                  bslma::Allocator                               *allocator)
 {
     allocator = bslma::Default::allocator(allocator);
 
     bslma::ManagedPtr<mqbplug::StatConsumer> result(
-                   new (*allocator) PrometheusStatConsumer(statContexts, allocator),
-                   allocator);
+              new (*allocator) PrometheusStatConsumer(statContexts, allocator),
+              allocator);
     return result;
 }
 
