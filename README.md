@@ -89,7 +89,11 @@ BlazingMQ and see them in action.
 [bin/build-ubuntu.sh](bin/build-ubuntu.sh) and
 [bin/build-darwin.sh](bin/build-darwin.sh) build BlazingMQ and its dependencies,
 respectively, on Ubuntu 22.04.2 LTS and Darwin 22.6.0. They can serve as a basis
-to build BlazingMQ on other systems.
+to build BlazingMQ on other systems.  
+To build BlazingMQ with plugins, pass 'plugins' argument to the build script, e.g.
+```bash
+bin/build-ubuntu.sh plugins
+```
 
 ### With vcpkg
 
