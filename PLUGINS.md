@@ -50,7 +50,7 @@ where
 - `mode`: interaction with Prometheus mode: `push` or `pull`;
 
 ### Build and Run plugin in demo environment
-To build BlazingMQ with plugins, pass 'plugins' aregument to the build script, e.g.
+To build BlazingMQ with plugins, pass 'plugins' argument to the build script, e.g.
 ```bash
 bin/build-ubuntu.sh plugins
 ```
@@ -143,6 +143,7 @@ docker compose -f docker/plugins/prometheus/docker-compose.yml up
 |queue_confirm_time_max|CONFIRM max time|
 
 For primary primary node only
+|Metric Name|Description|
 |-----------|-----------|
 |queue_gc_msgs|GC messages number|
 |queue_cfg_msgs|Config messages number|
