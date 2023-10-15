@@ -2721,7 +2721,7 @@ int StorageUtil::processCommand(mqbcmd::StorageResult*     result,
     else if (command.isPartitionValue()) {
         const int partitionId = command.partition().partitionId();
 
-        if (partitionId < 0 || partitionId >= int(fileStores->size())) {
+        if (partitionId < 0 || partitionId >= static_cast<int>(fileStores->size())) {
             bdlma::LocalSequentialAllocator<256> localAllocator(allocator);
             mwcu::MemOutStream                   os(&localAllocator);
             os << "Invalid partitionId value: '" << partitionId << "'";

@@ -39,7 +39,7 @@ bsls::Types::Int64 MIN_INT = bsl::numeric_limits<bsls::Types::Int64>::min();
 // PRIVATE MANIPULATORS
 void StatValue::aggregateLevel(int level, bsls::Types::Int64 snapshotTime)
 {
-    if (level + 1 >= (int)d_levelStartIndices.size() - 1) {
+    if (level + 1 >= static_cast<int>(d_levelStartIndices.size()) - 1) {
         // There is no higher aggregation level
         return;
     }

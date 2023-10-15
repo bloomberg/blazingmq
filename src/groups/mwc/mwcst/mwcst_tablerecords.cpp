@@ -200,12 +200,12 @@ const StatContext* TableRecords::context() const
 
 int TableRecords::numRecords() const
 {
-    return (int)d_records.size();
+    return static_cast<int>(d_records.size());
 }
 
 const TableRecords::Record& TableRecords::record(int index) const
 {
-    BSLS_ASSERT_SAFE(index < (int)d_records.size());
+    BSLS_ASSERT_SAFE(index < static_cast<int>(d_records.size()));
     return d_records[index];
 }
 

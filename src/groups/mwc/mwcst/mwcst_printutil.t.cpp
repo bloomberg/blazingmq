@@ -401,7 +401,7 @@ int main(int argc, char* argv[])
                 PrintUtil::printedMemoryLength(data.d_arg, data.d_precision);
 
             LOOP_ASSERT_EQUALS(LINE, ss.str(), data.d_expected_p);
-            LOOP_ASSERT_EQUALS(LINE, (int)ss.str().length(), expectedLength);
+            LOOP_ASSERT_EQUALS(LINE, static_cast<int>(ss.str().length()), expectedLength);
         }
 
 #undef TO_I64

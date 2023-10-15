@@ -95,7 +95,7 @@ double StatUtil::incrementsPerSecond(
         value.snapshot(secondSnapshot).snapshotTime() -
         value.snapshot(firstSnapshot).snapshotTime();
 
-    double divisor = (double)duration / DMCST_NS_PER_SEC;
+    double divisor = static_cast<double>(duration) / DMCST_NS_PER_SEC;
     return diff / divisor;
 }
 
@@ -145,7 +145,7 @@ double StatUtil::decrementsPerSecond(
         value.snapshot(secondSnapshot).snapshotTime() -
         value.snapshot(firstSnapshot).snapshotTime();
 
-    double divisor = (double)duration / DMCST_NS_PER_SEC;
+    double divisor = static_cast<double>(duration) / DMCST_NS_PER_SEC;
     return diff / divisor;
 }
 
@@ -198,7 +198,7 @@ StatUtil::ratePerSecond(const StatValue&                   value,
         value.snapshot(secondSnapshot).snapshotTime() -
         value.snapshot(firstSnapshot).snapshotTime();
 
-    double divisor = (double)duration / DMCST_NS_PER_SEC;
+    double divisor = static_cast<double>(duration) / DMCST_NS_PER_SEC;
     return diff / divisor;
 }
 

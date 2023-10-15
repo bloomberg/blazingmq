@@ -57,17 +57,17 @@ int TableUtil::printTable(bsl::ostream& stream, const TableInfoProvider& info)
 
     columnWidths[0].resize(info.numColumns(0), 0);
     for (size_t i = 0; i < columnWidths[0].size(); ++i) {
-        columnWidths[0][i] = info.getHeaderSize(0, (int)i);
+        columnWidths[0][i] = info.getHeaderSize(0, static_cast<int>(i));
 
         for (int row = 0; row < numRows; ++row) {
             columnWidths[0][i] = bsl::max(columnWidths[0][i],
-                                          info.getValueSize(row, (int)i));
+                                          info.getValueSize(row, static_cast<int>(i)));
         }
     }
 
     // Figure out widths of additional header cells
     for (size_t levelIdx = 1; levelIdx < columnWidths.size(); ++levelIdx) {
-        int               level            = (int)levelIdx;
+        int               level            = static_cast<int>(levelIdx);
         bsl::vector<int>& levelHeaders     = columnWidths[levelIdx];
         bsl::vector<int>& lastLevelHeaders = columnWidths[levelIdx - 1];
 
@@ -76,7 +76,7 @@ int TableUtil::printTable(bsl::ostream& stream, const TableInfoProvider& info)
         int lastUpdatedHeader = -1;
         int numSubHeaders     = 0;
         for (size_t col = 0; col < lastLevelHeaders.size(); ++col) {
-            int headerIdx = info.getParentHeader(level - 1, (int)col);
+            int headerIdx = info.getParentHeader(level - 1, static_cast<int>(col));
             levelHeaders[headerIdx] += lastLevelHeaders[col];
 
             if (lastUpdatedHeader == headerIdx) {
@@ -94,11 +94,11 @@ int TableUtil::printTable(bsl::ostream& stream, const TableInfoProvider& info)
                     int mod                = excess % numSubHeaders;
 
                     levelHeaders[lastUpdatedHeader] = headerSize;
-                    for (size_t hIdx = 0; (int)hIdx < numSubHeaders; ++hIdx) {
+                    for (size_t hIdx = 0; static_cast<int>(hIdx) < numSubHeaders; ++hIdx) {
                         // Add 'excessPerSubHeader' to each subHeader, and an
                         // extra '1' to 'mod' of them
                         lastLevelHeaders[col - hIdx - 1] +=
-                            excessPerSubHeader + ((int)hIdx < mod ? 1 : 0);
+                            excessPerSubHeader + (static_cast<int>(hIdx) < mod ? 1 : 0);
                     }
                 }
 
@@ -131,7 +131,7 @@ int TableUtil::printTable(bsl::ostream& stream, const TableInfoProvider& info)
     stream << bsl::setfill(' ');
 
     // Print the header rows
-    for (int level = (int)columnWidths.size() - 1; level >= 0; --level) {
+    for (int level = static_cast<int>(columnWidths.size()) - 1; level >= 0; --level) {
         stream << bsl::endl;
 
         for (size_t i = 0; i < columnWidths[level].size(); ++i) {
@@ -169,7 +169,7 @@ int TableUtil::printTable(bsl::ostream& stream, const TableInfoProvider& info)
             }
 
             stream << bsl::setw(columnWidths[0][col]);
-            info.printValue(stream, row, (int)col, columnWidths[0][col]);
+            info.printValue(stream, row, static_cast<int>(col), columnWidths[0][col]);
         }
         stream << bsl::endl;
     }
