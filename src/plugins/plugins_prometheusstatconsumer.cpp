@@ -393,7 +393,7 @@ void PrometheusStatConsumer::captureSystemStats()
 
 #undef COPY_METRIC
 
-    prometheus::Labels labels{{"dataType", "HostData"}};
+    prometheus::Labels labels{{"DataType", "host-data"}};
     bslstl::StringRef  instanceName =
         mqbcfg::BrokerConfig::get().brokerInstanceName();
     if (!instanceName.empty()) {
@@ -443,7 +443,7 @@ void PrometheusStatConsumer::captureNetworkStats()
 
 #undef RETRIEVE_METRIC
 
-    prometheus::Labels labels{{"dataType", "HostData"}};
+    prometheus::Labels labels{{"DataType", "host-data"}};
     bslstl::StringRef  instanceName =
         mqbcfg::BrokerConfig::get().brokerInstanceName();
     if (!instanceName.empty()) {
