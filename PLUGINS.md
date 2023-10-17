@@ -93,7 +93,7 @@ docker compose -f docker/plugins/prometheus/docker-compose.yml up
 |brkr_system_os_ctxswitch_voluntary|Voluntary context switches|
 |brkr_system_os_ctxswitch_voluntary|Involuntary context switches|
 
-#### System metrics
+#### Network metrics
 |Metric Name|Description|
 |-----------|-----------|
 |brkr_system_net_local_in_bytes|Local network input bytes|
