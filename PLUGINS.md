@@ -141,6 +141,7 @@ docker compose -f docker/plugins/prometheus/docker-compose.yml up
 |queue_confirm_msgs|CONFIRM messages number|
 |queue_confirm_time_avg|CONFIRM average time|
 |queue_confirm_time_max|CONFIRM max time|
+|queue_heartbeat|Queue heartbeat, always zero|
 
 For primary primary node only
 |Metric Name|Description|
