@@ -139,6 +139,9 @@
       <element name='namespacePrefix'    type='string' default=''/>
       <element name='hosts'              type='string' maxOccurs='unbounded'/>
       <element name='instanceId'         type='string' default=''/>
+      <element name='mode'               type='string' default='pull'/>
+      <element name='host'               type='string' default='localhost'/>
+      <element name='port'               type='int'    default='8080'/>
     </sequence>
   </complexType>
 
