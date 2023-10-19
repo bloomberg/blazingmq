@@ -168,10 +168,8 @@ int PrometheusStatConsumer::start(
 
     setActionCounter();
 
-    // TODO: do we need d_snapshotId? we can use d_snapshotId = 1 to get all
-    // snapshots data and collect them in Registry
-    d_snapshotId = (d_publishInterval.seconds() /
-                    d_snapshotInterval.seconds());
+    d_snapshotId = static_cast<int>(d_publishInterval.seconds() /
+                                    d_snapshotInterval.seconds());
     d_isStarted  = true;
     return 0;
 }
@@ -258,7 +256,6 @@ void PrometheusStatConsumer::captureQueueStats()
 
                 auto& heartbeatGauge = prometheus::BuildGauge()
                                            .Name("queue_heartbeat")
-                                           .Help("queue heartbeat")
                                            .Register(*d_prometheusRegistry_p);
                 heartbeatGauge.Add(labels).Set(0);
             }
@@ -370,7 +367,6 @@ void PrometheusStatConsumer::captureSystemStats()
          ++it) {
         auto& gauge = prometheus::BuildGauge()
                           .Name(it->first)
-                          // TODO:    .Help()
                           .Register(*d_prometheusRegistry_p);
         gauge.Add(labels).Set(it->second);
     }
@@ -407,7 +403,7 @@ void PrometheusStatConsumer::captureNetworkStats()
 
 #undef RETRIEVE_METRIC
 
-    prometheus::Labels labels{{"dataType", "HostData"}};
+    prometheus::Labels labels{{"DataType", "host-data"}};
     bslstl::StringRef  instanceName =
         mqbcfg::BrokerConfig::get().brokerInstanceName();
     if (!instanceName.empty()) {
@@ -420,7 +416,6 @@ void PrometheusStatConsumer::captureNetworkStats()
          ++it) {
         auto& counter = prometheus::BuildCounter()
                             .Name(it->first)
-                            // TODO:    .Help()
                             .Register(*d_prometheusRegistry_p);
         counter.Add(labels).Increment(it->second);
     }
@@ -440,7 +435,7 @@ void PrometheusStatConsumer::captureBrokerStats()
 
     Tagger tagger;
     tagger.setInstance(mqbcfg::BrokerConfig::get().brokerInstanceName())
-        .setDataType("HostData");
+        .setDataType("host-data");
 
     for (DatapointDefCIter dpIt = bdlb::ArrayUtil::begin(defs);
          dpIt != bdlb::ArrayUtil::end(defs);
@@ -669,14 +664,12 @@ void PrometheusStatConsumer::updateMetric(const DatapointDef*       def_p,
         if (def_p->d_isCounter) {
             auto& counter = prometheus::BuildCounter()
                                 .Name(def_p->d_name)
-                                // TODO:     .Help(def_p->d_help)
                                 .Register(*d_prometheusRegistry_p);
             counter.Add(labels).Increment(static_cast<double>(value));
         }
         else {
             auto& gauge = prometheus::BuildGauge()
                               .Name(def_p->d_name)
-                              // TODO:     .Help(def_p->d_help)
                               .Register(*d_prometheusRegistry_p);
             gauge.Add(labels).Set(static_cast<double>(value));
         }
@@ -697,8 +690,8 @@ void PrometheusStatConsumer::setPublishInterval(
                   << publishInterval;
 
     d_publishInterval = publishInterval;
-    d_snapshotId = static_cast<int>(d_publishInterval.seconds() /
-				     d_snapshotInterval.seconds());
+    d_snapshotId      = static_cast<int>(d_publishInterval.seconds() /
+                                    d_snapshotInterval.seconds());
 
     setActionCounter();
 }
@@ -725,7 +718,7 @@ void PrometheusStatConsumer::setActionCounter()
                 0);
 
     d_actionCounter = static_cast<int>(d_publishInterval.seconds() /
-  		                       d_snapshotInterval.seconds());
+                                       d_snapshotInterval.seconds());
 }
 
 // -----------------------------------------
