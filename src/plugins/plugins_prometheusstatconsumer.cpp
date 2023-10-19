@@ -126,7 +126,7 @@ PrometheusStatConsumer::PrometheusStatConsumer(
 , d_isStarted(false)
 , d_prometheusRegistry_p(std::make_shared<prometheus::Registry>())
 {
-    // Populate host name from config
+    // Initialize stat contexts
     d_systemStatContext_p       = getStatContext("system");
     d_brokerStatContext_p       = getStatContext("broker");
     d_clustersStatContext_p     = getStatContext("clusters");
@@ -365,9 +365,8 @@ void PrometheusStatConsumer::captureSystemStats()
              datapoints.begin();
          it != datapoints.end();
          ++it) {
-        auto& gauge = prometheus::BuildGauge()
-                          .Name(it->first)
-                          .Register(*d_prometheusRegistry_p);
+        auto& gauge = prometheus::BuildGauge().Name(it->first).Register(
+            *d_prometheusRegistry_p);
         gauge.Add(labels).Set(it->second);
     }
 
@@ -414,9 +413,8 @@ void PrometheusStatConsumer::captureNetworkStats()
              datapoints.begin();
          it != datapoints.end();
          ++it) {
-        auto& counter = prometheus::BuildCounter()
-                            .Name(it->first)
-                            .Register(*d_prometheusRegistry_p);
+        auto& counter = prometheus::BuildCounter().Name(it->first).Register(
+            *d_prometheusRegistry_p);
         counter.Add(labels).Increment(it->second);
     }
 

@@ -99,7 +99,6 @@ class PrometheusStatConsumer : public mqbplug::StatConsumer {
 
     typedef const DatapointDef* DatapointDefCIter;
 
-    // DATA
     const mwcst::StatContext* d_systemStatContext_p;
     // The system stat context
 
@@ -197,8 +196,8 @@ class PrometheusStatConsumer : public mqbplug::StatConsumer {
     /// Set internal action counter based on Prometheus publish interval.
     void setActionCounter();
 
-    /// Retrieve metric value from given 'context' by given 'def_p' and update
-    /// it in Prometheus Registry.
+    /// Update metric by given 'def_p', 'labels' and 'value' in Prometheus
+    /// Registry.
     void updateMetric(const DatapointDef*       def_p,
                       const prometheus::Labels& labels,
                       const bsls::Types::Int64  value);
