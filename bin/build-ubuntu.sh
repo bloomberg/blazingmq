@@ -12,14 +12,13 @@ sudo apt install -y --no-install-recommends \
     build-essential \
     gdb \
     cmake \
-    curl \
     ninja-build \
     pkg-config \
     bison \
-    libcurl4-openssl-dev \
     libfl-dev \
     libbenchmark-dev \
     libssl-dev \
+    libpsl-dev \
     libz-dev
 PREREQUISITES
 
@@ -62,9 +61,14 @@ fi
 if [ ! -d "${DIR_THIRDPARTY}/ntf-core" ]; then
     git clone https://github.com/bloomberg/ntf-core.git "${DIR_THIRDPARTY}/ntf-core"
 fi
-# prometheus-cpp for the plugin
-if [ "${BUILD_PLUGINS}" == true ] && [ ! -d "${DIR_THIRDPARTY}/prometheus-cpp" ]; then
-    git clone https://github.com/jupp0r/prometheus-cpp.git "${DIR_THIRDPARTY}/prometheus-cpp"
+# prometheus-cpp and its dependency for the plugin
+if [ "${BUILD_PLUGINS}" == true ]; then
+    if [ ! -d "${DIR_THIRDPARTY}/prometheus-cpp" ]; then
+        git clone https://github.com/jupp0r/prometheus-cpp.git "${DIR_THIRDPARTY}/prometheus-cpp"
+    fi
+    if [ ! -d "${DIR_THIRDPARTY}/curl" ]; then
+        git clone https://github.com/curl/curl.git "${DIR_THIRDPARTY}/curl"
+    fi
 fi
 
 # :: Install required packages ::::::::::::::::::::::::::::::::::::::::::::::::
@@ -94,20 +98,46 @@ if [ ! -e "${DIR_BUILD}/ntf/.complete" ]; then
     touch "${DIR_BUILD}/ntf/.complete"
 fi
 
-if [ "${BUILD_PLUGINS}" == true ] && [ ! -e "${DIR_BUILD}/prometheus-cpp/.complete" ]; then
-    pushd "${DIR_THIRDPARTY}/prometheus-cpp"
-    # fetch third-party dependencies
-    git submodule init
-    git submodule update
-    # Build and install prometheus-cpp
-    cmake -DBUILD_SHARED_LIBS=ON \
-          -DENABLE_PUSH=ON \
-          -DENABLE_COMPRESSION=OFF \
-          -B "${DIR_BUILD}/prometheus-cpp"
-    cmake --build "${DIR_BUILD}/prometheus-cpp" --parallel 16
-    cmake --install "${DIR_BUILD}/prometheus-cpp" --prefix "${DIR_INSTALL}"
-    touch "${DIR_BUILD}/prometheus-cpp/.complete"
-    popd
+if [ "${BUILD_PLUGINS}" == true ]; then
+    if [ ! -e "${DIR_BUILD}/curl/.complete" ]; then
+        pushd "${DIR_THIRDPARTY}/curl"
+        autoreconf -fi
+        if [ ! -d "${DIR_BUILD}/curl" ]; then
+            mkdir "${DIR_BUILD}/curl"
+        fi
+        cd "${DIR_BUILD}/curl"
+        LDFLAGS="-static" PKG_CONFIG="pkg-config --static" \
+            ${DIR_THIRDPARTY}/curl/configure \
+            --disable-shared --disable-debug --disable-ftp --disable-ldap \
+            --disable-ldaps --disable-rtsp --disable-proxy --disable-dict \
+            --disable-telnet --disable-tftp --disable-pop3 --disable-imap \
+            --disable-smb --disable-smtp --disable-gopher --disable-manual \
+            --disable-ipv6 --disable-sspi --disable-crypto-auth \
+            --disable-ntlm-wb --disable-tls-srp --with-openssl \
+            --without-nghttp2 --without-libidn2 --without-libssh2 \
+            --without-brotli --prefix=${DIR_INSTALL}
+        make curl_LDFLAGS=-all-static
+        make curl_LDFLAGS=-all-static install
+        touch "${DIR_BUILD}/curl/.complete"
+        rm -f "${DIR_BUILD}/prometheus-cpp/.complete"
+        popd
+    fi
+
+    if [ ! -e "${DIR_BUILD}/prometheus-cpp/.complete" ]; then
+        pushd "${DIR_THIRDPARTY}/prometheus-cpp"
+        # fetch third-party dependencies
+        git submodule init
+        git submodule update
+        # Build and install prometheus-cpp
+        cmake -DBUILD_SHARED_LIBS=OFF \
+              -DENABLE_PUSH=ON \
+              -DENABLE_COMPRESSION=OFF \
+              -B "${DIR_BUILD}/prometheus-cpp"
+        cmake --build "${DIR_BUILD}/prometheus-cpp" --parallel 16
+        cmake --install "${DIR_BUILD}/prometheus-cpp" --prefix "${DIR_INSTALL}"
+        touch "${DIR_BUILD}/prometheus-cpp/.complete"
+        popd
+    fi
 fi
 
 # :: Build the BlazingMQ repo :::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -127,9 +157,7 @@ if [ "${BUILD_PLUGINS}" == true ]; then
     CMAKE_OPTIONS+=(-DINSTALL_TARGETS=plugins);
 fi
 
-echo "${DIR_INSTALL}/lib64/pkgconfig:$(pkg-config --variable pc_path pkg-config)"
-
-PKG_CONFIG_PATH="${DIR_INSTALL}/lib64/pkgconfig:$(pkg-config --variable pc_path pkg-config)" \
+PKG_CONFIG_PATH="${DIR_INSTALL}/lib64/pkgconfig:${DIR_INSTALL}/lib/pkgconfig:$(pkg-config --variable pc_path pkg-config)" \
 cmake -B "${DIR_BUILD}/blazingmq" -S "${DIR_ROOT}" "${CMAKE_OPTIONS[@]}"
 make -C "${DIR_BUILD}/blazingmq" -j 16
 
