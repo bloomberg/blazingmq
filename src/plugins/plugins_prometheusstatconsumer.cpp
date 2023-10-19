@@ -1,4 +1,4 @@
-// plugins_prometheusstatconsumer.cpp                                 -*-C++-*-
+// plugins_prometheusstatconsumer.cpp -*-C++-*-
 #include <plugins_prometheusstatconsumer.h>
 
 // PLUGINS
@@ -14,6 +14,7 @@
 #include <mwcio_statchannelfactory.h>
 #include <mwcsys_statmonitor.h>
 #include <mwcsys_threadutil.h>
+#include <mwcsys_time.h>
 #include <mwcu_memoutstream.h>
 
 // BDE
@@ -21,6 +22,7 @@
 #include <bdlb_arrayutil.h>
 #include <bdld_manageddatum.h>
 #include <bdlf_bind.h>
+#include <bdlt_currenttime.h>
 #include <bsl_vector.h>
 #include <bsls_annotation.h>
 #include <bsls_performancehint.h>
@@ -98,6 +100,12 @@ class Tagger {
 
 }  // close unnamed namespace
 
+bsl::unique_ptr<PrometheusStatExporter>
+makeExporter(const bsl::string&                     mode,
+             const bsl::string&                     host,
+             const bsl::size_t                      port,
+             std::shared_ptr<prometheus::Registry>& registry);
+
 // ----------------------------
 // class PrometheusStatConsumer
 // ----------------------------
@@ -109,19 +117,16 @@ PrometheusStatConsumer::~PrometheusStatConsumer()
 
 PrometheusStatConsumer::PrometheusStatConsumer(
     const StatContextsMap& statContextsMap,
-    bslma::Allocator* /*allocator*/)
+    BSLS_ANNOTATION_UNUSED bslma::Allocator* allocator)
 : d_contextsMap(statContextsMap)
-, d_consumerConfig_p(mqbplug::StatConsumerUtil::findConsumerConfig(name()))
 , d_publishInterval(0)
+, d_snapshotInterval(0)
 , d_snapshotId(0)
 , d_actionCounter(0)
 , d_isStarted(false)
-, d_threadStop(false)
+, d_prometheusRegistry_p(std::make_shared<prometheus::Registry>())
 {
-    // PRECONDITIONS
-    BSLS_ASSERT(d_publishInterval >= 0);
-
-    // Initialize stat contexts
+    // Populate host name from config
     d_systemStatContext_p       = getStatContext("system");
     d_brokerStatContext_p       = getStatContext("broker");
     d_clustersStatContext_p     = getStatContext("clusters");
@@ -130,50 +135,32 @@ PrometheusStatConsumer::PrometheusStatConsumer(
     d_domainQueuesStatContext_p = getStatContext("domainQueues");
     d_clientStatContext_p       = getStatContext("clients");
     d_channelsStatContext_p     = getStatContext("channels");
-
-    // Initialize Prometheus config
-    const char* prometheusHost = "127.0.1.1";
-    size_t      prometheusPort = 9091;
-    d_prometheusMode           = "push";  // TODO enum or check validity?
-
-    d_prometheusRegistry_p = std::make_shared<prometheus::Registry>();
-
-    if (d_prometheusMode == "push") {
-        bsl::string clientHostName =
-            "clientHostName";  // TODO: do we need this? to recognise different
-                               // sources of statistics?
-
-        // Push mode
-        const auto labels = prometheus::Gateway::GetInstanceLabel(
-            clientHostName);  // creates label { "instance": clientHostName }
-        d_prometheusGateway_p = bsl::make_unique<prometheus::Gateway>(
-            prometheusHost,
-            bsl::to_string(prometheusPort),
-            name(),  // TODO: use plugin name as a job name? probably should be
-                     // configurable
-            labels);
-        d_prometheusGateway_p->RegisterCollectable(d_prometheusRegistry_p);
-    }
-    else {
-        // Pull mode
-        bsl::ostringstream endpoint;
-        endpoint << prometheusHost << ":" << prometheusPort;
-        d_prometheusExposer_p = bsl::make_unique<prometheus::Exposer>(
-            endpoint.str());
-        d_prometheusExposer_p->RegisterCollectable(d_prometheusRegistry_p);
-    }
 }
 
 int PrometheusStatConsumer::start(
     BSLS_ANNOTATION_UNUSED bsl::ostream& errorDescription)
 {
+    d_consumerConfig_p = mqbplug::StatConsumerUtil::findConsumerConfig(name());
     if (!d_consumerConfig_p) {
         BALL_LOG_ERROR << "Could not find config for StatConsumer '" << name()
                        << "'";
         return -1;  // RETURN
     }
 
-    d_publishInterval = d_consumerConfig_p->publishInterval();
+    if (!d_prometheusStatExporter_p) {
+        d_prometheusStatExporter_p = makeExporter(d_consumerConfig_p->mode(),
+                                                  d_consumerConfig_p->host(),
+                                                  d_consumerConfig_p->port(),
+                                                  d_prometheusRegistry_p);
+    }
+    if (!d_prometheusStatExporter_p) {
+        return -2;  // RETURN
+    }
+    d_prometheusStatExporter_p->start();
+
+    const mqbcfg::AppConfig& brkrCfg = mqbcfg::BrokerConfig::get();
+    d_publishInterval                = d_consumerConfig_p->publishInterval();
+    d_snapshotInterval               = brkrCfg.stats().snapshotInterval();
 
     if (!isEnabled() || d_isStarted) {
         return 0;  // RETURN
@@ -181,26 +168,11 @@ int PrometheusStatConsumer::start(
 
     setActionCounter();
 
-    const mqbcfg::AppConfig& brkrCfg = mqbcfg::BrokerConfig::get();
-    d_snapshotId = (static_cast<int>(d_publishInterval.seconds()) /
-                    brkrCfg.stats().snapshotInterval());
-
-    if (d_prometheusMode == "push") {
-        // create push thread
-        int rc = bslmt::ThreadUtil::create(
-            &d_prometheusPushThreadHandle,
-            mwcsys::ThreadUtil::defaultAttributes(),
-            bdlf::BindUtil::bind(&PrometheusStatConsumer::prometheusPushThread,
-                                 this));
-        if (rc != 0) {
-            BALL_LOG_ERROR << "#PROMETHEUS_REPORTING "
-                           << "Failed to start prometheusPushThread thread"
-                           << "' [rc: " << rc << "]";
-            return rc;  // RETURN
-        }
-    }
-
-    d_isStarted = true;
+    // TODO: do we need d_snapshotId? we can use d_snapshotId = 1 to get all
+    // snapshots data and collect them in Registry
+    d_snapshotId = (d_publishInterval.seconds() /
+                    d_snapshotInterval.seconds());
+    d_isStarted  = true;
     return 0;
 }
 
@@ -210,12 +182,7 @@ void PrometheusStatConsumer::stop()
         return;  // RETURN
     }
 
-    if (d_prometheusMode == "push") {
-        d_threadStop = true;
-        d_prometheusThreadCondition.signal();
-        bslmt::ThreadUtil::join(d_prometheusPushThreadHandle);
-    }
-
+    d_prometheusStatExporter_p->stop();
     d_isStarted = false;
 }
 
@@ -242,10 +209,7 @@ void PrometheusStatConsumer::onSnapshot()
     captureDomainStats(leaders);
     captureQueueStats();
 
-    if (d_prometheusMode == "push") {
-        // Wake up push thread
-        d_prometheusThreadCondition.signal();
-    }
+    d_prometheusStatExporter_p->onData();
 }
 
 void PrometheusStatConsumer::captureQueueStats()
@@ -443,7 +407,7 @@ void PrometheusStatConsumer::captureNetworkStats()
 
 #undef RETRIEVE_METRIC
 
-    prometheus::Labels labels{{"DataType", "host-data"}};
+    prometheus::Labels labels{{"dataType", "HostData"}};
     bslstl::StringRef  instanceName =
         mqbcfg::BrokerConfig::get().brokerInstanceName();
     if (!instanceName.empty()) {
@@ -476,7 +440,7 @@ void PrometheusStatConsumer::captureBrokerStats()
 
     Tagger tagger;
     tagger.setInstance(mqbcfg::BrokerConfig::get().brokerInstanceName())
-        .setDataType("host-data");
+        .setDataType("HostData");
 
     for (DatapointDefCIter dpIt = bdlb::ArrayUtil::begin(defs);
          dpIt != bdlb::ArrayUtil::end(defs);
@@ -724,20 +688,17 @@ void PrometheusStatConsumer::setPublishInterval(
 {
     // executed by the *SCHEDULER* thread of StatController
 
-    const int snapshotInterval =
-        mqbcfg::BrokerConfig::get().stats().snapshotInterval();
-
     // PRECONDITIONS
     BSLS_ASSERT(publishInterval.seconds() >= 0);
-    BSLS_ASSERT(snapshotInterval > 0);
-    BSLS_ASSERT(publishInterval.seconds() % snapshotInterval == 0);
+    BSLS_ASSERT(d_snapshotInterval.seconds() > 0);
+    BSLS_ASSERT(publishInterval.seconds() % d_snapshotInterval.seconds() == 0);
 
     BALL_LOG_INFO << "Set PrometheusStatConsumer publish interval to "
                   << publishInterval;
 
     d_publishInterval = publishInterval;
-    d_snapshotId      = static_cast<int>(d_publishInterval.seconds()) /
-                   snapshotInterval;
+    d_snapshotId = static_cast<int>(d_publishInterval.seconds() /
+				     d_snapshotInterval.seconds());
 
     setActionCounter();
 }
@@ -757,40 +718,14 @@ PrometheusStatConsumer::getStatContext(const char* name) const
 
 void PrometheusStatConsumer::setActionCounter()
 {
-    const int snapshotInterval =
-        mqbcfg::BrokerConfig::get().stats().snapshotInterval();
-
     // PRECONDITIONS
-    BSLS_ASSERT(snapshotInterval > 0);
+    BSLS_ASSERT(d_snapshotInterval > 0);
     BSLS_ASSERT(d_publishInterval >= 0);
-    BSLS_ASSERT(d_publishInterval.seconds() % snapshotInterval == 0);
+    BSLS_ASSERT(d_publishInterval.seconds() % d_snapshotInterval.seconds() ==
+                0);
 
-    d_actionCounter = static_cast<int>(d_publishInterval.seconds()) /
-                      snapshotInterval;
-}
-
-void PrometheusStatConsumer::prometheusPushThread()
-{
-    // executed by the dedicated prometheus push thread
-    mwcsys::ThreadUtil::setCurrentThreadName(k_THREADNAME);
-
-    BALL_LOG_INFO << "Prometheus Push thread has started [id: "
-                  << bslmt::ThreadUtil::selfIdAsUint64() << "]";
-    while (!d_threadStop) {
-        bslmt::LockGuard<bslmt::Mutex> lock(&d_prometheusThreadMutex);
-        d_prometheusThreadCondition.wait(&d_prometheusThreadMutex);
-
-        auto returnCode = d_prometheusGateway_p->Push();
-        if (returnCode != 200) {
-            BALL_LOG_WARN << "Push to Prometheus failed with code: "
-                          << returnCode;
-        }
-
-        BALL_LOG_DEBUG << "Pushed to Prometheus with code: " << returnCode;
-    }
-
-    BALL_LOG_INFO << "Prometheus Push thread terminated "
-                  << "[id: " << bslmt::ThreadUtil::selfIdAsUint64() << "]";
+    d_actionCounter = static_cast<int>(d_publishInterval.seconds() /
+  		                       d_snapshotInterval.seconds());
 }
 
 // -----------------------------------------
@@ -819,6 +754,151 @@ bslma::ManagedPtr<StatConsumer> PrometheusStatConsumerPluginFactory::create(
     bslma::ManagedPtr<mqbplug::StatConsumer> result(
         new (*allocator) PrometheusStatConsumer(statContexts, allocator),
         allocator);
+    return result;
+}
+
+// --------------------------------
+// class PrometheusPullStatExporter
+// --------------------------------
+
+class PrometheusPullStatExporter : public PrometheusStatExporter {
+    std::weak_ptr<prometheus::Registry>  d_registry_p;
+    bsl::unique_ptr<prometheus::Exposer> d_exposer_p;
+    bsl::string                          d_exposerEndpoint;
+
+  public:
+    PrometheusPullStatExporter(
+        const bsl::string&                           host,
+        const bsl::size_t                            port,
+        const std::shared_ptr<prometheus::Registry>& registry)
+    : d_registry_p(registry)
+    {
+        bsl::ostringstream endpoint;
+        endpoint << host << ":" << port;
+        d_exposerEndpoint = endpoint.str();
+    }
+
+    void start() override
+    {
+        d_exposer_p = bsl::make_unique<prometheus::Exposer>(d_exposerEndpoint);
+        d_exposer_p->RegisterCollectable(d_registry_p);
+    }
+
+    void stop() override { d_exposer_p.reset(); }
+};
+
+// --------------------------------
+// class PrometheusPushStatExporter
+// --------------------------------
+
+class PrometheusPushStatExporter : public PrometheusStatExporter {
+    bsl::unique_ptr<prometheus::Gateway> d_prometheusGateway_p;
+    /// Handle of the Prometheus publishing thread
+    bslmt::ThreadUtil::Handle d_prometheusPushThreadHandle;
+    bslmt::Mutex              d_prometheusThreadMutex;
+    bslmt::Condition          d_prometheusThreadCondition;
+    bsl::atomic_bool          d_threadStop;
+
+    /// Push gathered statistics to the push gateway in 'push' mode.
+    /// THREAD: This method is called from the dedicated thread.
+    void prometheusPushThread()
+    {
+        // executed by the dedicated prometheus push thread
+        mwcsys::ThreadUtil::setCurrentThreadName(k_THREADNAME);
+
+        BALL_LOG_INFO << "Prometheus Push thread has started [id: "
+                      << bslmt::ThreadUtil::selfIdAsUint64() << "]";
+        while (!d_threadStop) {
+            bslmt::LockGuard<bslmt::Mutex> lock(&d_prometheusThreadMutex);
+            d_prometheusThreadCondition.wait(&d_prometheusThreadMutex);
+            auto returnCode = d_prometheusGateway_p->Push();
+            if (returnCode != 200) {
+                BALL_LOG_WARN << "Push to Prometheus failed with code: "
+                              << returnCode;
+            }
+            else {
+                BALL_LOG_DEBUG << "Pushed to Prometheus with code: "
+                               << returnCode;
+            }
+        }
+
+        BALL_LOG_INFO << "Prometheus Push thread terminated "
+                      << "[id: " << bslmt::ThreadUtil::selfIdAsUint64() << "]";
+    }
+
+    void stopImpl()
+    {
+        if (d_threadStop) {
+            return;
+        }
+        d_threadStop = true;
+        d_prometheusThreadCondition.signal();
+        bslmt::ThreadUtil::join(d_prometheusPushThreadHandle);
+    }
+
+  public:
+    PrometheusPushStatExporter(
+        const bsl::string&                           host,
+        const bsl::size_t&                           port,
+        const std::shared_ptr<prometheus::Registry>& registry)
+    : d_threadStop(false)
+    {
+        // create a push gateway
+        const auto label = prometheus::Gateway::GetInstanceLabel(
+            mqbcfg::BrokerConfig::get().hostName());
+        d_prometheusGateway_p = bsl::make_unique<prometheus::Gateway>(
+            host,
+            bsl::to_string(port),
+            "bmq",
+            label);
+        d_prometheusGateway_p->RegisterCollectable(registry);
+    }
+
+    ~PrometheusPushStatExporter() { stopImpl(); }
+
+    void onData() override { d_prometheusThreadCondition.signal(); }
+
+    void start() override
+    {
+        d_threadStop = false;
+        // create push thread
+        int rc = bslmt::ThreadUtil::create(
+            &d_prometheusPushThreadHandle,
+            mwcsys::ThreadUtil::defaultAttributes(),
+            bdlf::BindUtil::bind(
+                &PrometheusPushStatExporter::prometheusPushThread,
+                this));
+        if (rc != 0) {
+            BALL_LOG_ERROR << "#PROMETHEUS_REPORTING "
+                           << "Failed to start prometheusPushThread thread"
+                           << "' [rc: " << rc << "]";
+        }
+    }
+
+    void stop() override { stopImpl(); }
+};
+
+bsl::unique_ptr<PrometheusStatExporter>
+makeExporter(const bsl::string&                     mode,
+             const bsl::string&                     host,
+             const bsl::size_t                      port,
+             std::shared_ptr<prometheus::Registry>& registry)
+{
+    bsl::unique_ptr<PrometheusStatExporter> result;
+    if (mode == "pull") {
+        result = bsl::make_unique<PrometheusPullStatExporter>(host,
+                                                              port,
+                                                              registry);
+    }
+    else if (mode == "push") {
+        result = bsl::make_unique<PrometheusPushStatExporter>(host,
+                                                              port,
+                                                              registry);
+    }
+    else {
+        BALL_LOG_ERROR << "Could not init Prometheus. Wrong mode '" << mode
+                       << "'";
+    }
     return result;
 }
 

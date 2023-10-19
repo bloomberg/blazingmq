@@ -1,4 +1,4 @@
-// plugins_prometheusstatconsumer.h                                   -*-C++-*-
+// plugins_prometheusstatconsumer.h -*-C++-*-
 #ifndef INCLUDED_PLUGINS_PROMETHEUSSTATCONSUMER
 #define INCLUDED_PLUGINS_PROMETHEUSSTATCONSUMER
 
@@ -61,6 +61,24 @@ typedef StatConsumer::StatContextsMap    StatContextsMap;
 typedef StatConsumer::CommandProcessorFn CommandProcessorFn;
 
 // ============================
+// class PrometheusStatExporter
+// ============================
+
+/// This is the interface class for exporting stats to Prometheus
+class PrometheusStatExporter {
+  public:
+    PrometheusStatExporter(const PrometheusStatExporter&)            = delete;
+    PrometheusStatExporter& operator=(const PrometheusStatExporter&) = delete;
+    PrometheusStatExporter()                                         = default;
+
+    virtual ~PrometheusStatExporter(){};
+
+    virtual void onData(){};
+    virtual void start() = 0;
+    virtual void stop()  = 0;
+};
+
+// ============================
 // class PrometheusStatConsumer
 // ============================
 
@@ -112,146 +130,138 @@ class PrometheusStatConsumer : public mqbplug::StatConsumer {
     const mqbcfg::StatPluginConfig* d_consumerConfig_p;
     // Broker configuration for consumer.
 
-    bslmt::ThreadUtil::Handle d_prometheusPushThreadHandle;
-    // Handle of the Prometheus push thread
-
     bsls::TimeInterval d_publishInterval;
     // Prometheus stat publish interval.  Specified as a number of seconds.
     // Must be a multiple of the snapshot interval.
 
+    bsls::TimeInterval d_snapshotInterval;
+    // Stats snapshot interval.  Specified as a number of seconds.
+
     int d_snapshotId;
-    // Snapshot id which is used to locate data in stat history.
-    // Calculated as a result of dividing the publish interval by the
-    // snapshot interval.
+    // Snapshot id which is used to locate data in stat history.  Calculated
+    // as a result of dividing the publish interval by the snapshot interval.
 
     int d_actionCounter;
-    // Stats are published to Prometheus only every publish interval. This
+    // Stats are published to Prometheus only every publish interval.  This
     // counter is used to keep track of when to publish.
 
     bool d_isStarted;
     // Is the PrometheusStatConsumer started
-    bsl::atomic_bool d_threadStop;
-    // Flag to stop Prometheus push thread
-    bslmt::Mutex d_prometheusThreadMutex;
-    // Mutex for synchronization with Prometheus push thread
-    bslmt::Condition d_prometheusThreadCondition;
-    // Condition for synchronization with Prometheus push thread
 
-    bsl::string d_prometheusMode;
-    // Prometheus mode, push or pull
-    bsl::unique_ptr<prometheus::Gateway> d_prometheusGateway_p;
-    // Unique pointer to Prometheus Gateway, used in push mode
-    bsl::unique_ptr<prometheus::Exposer> d_prometheusExposer_p;
-    // Unique pointer to Prometheus Exposer, used in pull mode
+    bsl::unique_ptr<PrometheusStatExporter> d_prometheusStatExporter_p;
+    // Entity responsible for sending statistics to Prometheus backend
+
     std::shared_ptr<prometheus::Registry> d_prometheusRegistry_p;
-    // Shared pointer to Prometheus Registry, used to store metrics
+    // Container for storing statistics in Prometheus format
 
   private:
-    // NOT IMPLEMENTED
-    PrometheusStatConsumer(const PrometheusStatConsumer& other) = delete;
-    PrometheusStatConsumer&
-    operator=(const PrometheusStatConsumer& other) = delete;
-    // ACCESSORS
+    // PRIVATE ACCESSORS
+
+    /// Return a pointer to the statContext with the specified 'name' from
+    /// 'd_contextsMap', asserting that it exists.
     const mwcst::StatContext* getStatContext(const char* name) const;
-    // Return a pointer to the statContext with the specified 'name' from
-    // 'd_contextsMap', asserting that it exists.
 
     // PRIVATE MANIPULATORS
+
+    /// Capture all queue related data points, and store them in Prometheus
+    /// Registry for further publishing to Prometheus.
     void captureQueueStats();
-    // Capture all queue related data points, and store them in Prometheus
-    // Registry for further publishing to Prometheus.
 
+    /// Capture all system related data points, and store them in Prometheus
+    /// Registry for further publishing to Prometheus.
     void captureSystemStats();
-    // Capture all system related data points, and store them in Prometheus
-    // Registry for further publishing to Prometheus.
 
+    /// Capture all network related data points, and store them in Prometheus
+    /// Registry for further publishing to Prometheus.
     void captureNetworkStats();
-    // Capture all network related data points, and store them in
-    // Prometheus Registry for further publishing to Prometheus.
 
+    /// Capture all broker related data points, and store them in Prometheus
+    /// Registry for further publishing to Prometheus.
     void captureBrokerStats();
-    // Capture all broker related data points, and store them in Prometheus
-    // Registry for further publishing to Prometheus.
 
+    /// Record all the current leaders in the specified 'leaders' set.
     void collectLeaders(LeaderSet* leaders);
-    // Record all the current leaders in the specified 'leaders' set.
 
+    /// Capture all cluster related data points, and store them in Prometheus
+    /// Registry for further publishing to Prometheus.
     void captureClusterStats(const LeaderSet& leaders);
-    // Capture all cluster related data points, and store them in
-    // Prometheus Registry for further publishing to Prometheus.
 
+    /// Capture all cluster's partitions related data points, and store them in
+    /// Prometheus Registry for further publishing to Prometheus.
     void captureClusterPartitionsStats();
-    // Capture all cluster's partitions related data points, and store them
-    // in Prometheus Registry for further publishing to Prometheus.
 
+    /// Capture all queue related data points, and store them in Prometheus
+    /// Registry for further publishing to Prometheus.
     void captureDomainStats(const LeaderSet& leaders);
-    // Capture all queue related data points, and store them in Prometheus
-    // Registry for further publishing to Prometheus.
 
+    /// Set internal action counter based on Prometheus publish interval.
     void setActionCounter();
-    // Set internal action counter based on Prometheus publish interval.
 
-    void prometheusPushThread();
-    // Push gathered statistics to the push gateway in 'push' mode.
-    //
-    // THREAD: This method is called from the dedicated thread.
-
+    /// Retrieve metric value from given 'context' by given 'def_p' and update
+    /// it in Prometheus Registry.
     void updateMetric(const DatapointDef*       def_p,
                       const prometheus::Labels& labels,
                       const bsls::Types::Int64  value);
-    // Update metric by given 'def_p', 'labels' and 'value'
-    // in Prometheus Registry.
 
   public:
+    // NOT IMPLEMENTED
+
+    PrometheusStatConsumer(const PrometheusStatConsumer& other) = delete;
+    PrometheusStatConsumer&
+    operator=(const PrometheusStatConsumer& other) = delete;
+
     // CREATORS
+
+    /// Create a new 'PrometheusStatConsumer' using the specified
+    /// 'statContextMap' and the optionally specified 'allocator' for memory
+    /// allocation.
     PrometheusStatConsumer(const StatContextsMap& statContextsMap,
                            bslma::Allocator*      allocator);
-    // Create a new 'PrometheusStatConsumer' using the specified
-    // 'statContextMap' and the optionally specified 'allocator' for memory
-    // allocation.
 
+    /// Destructor.
     ~PrometheusStatConsumer() override;
-    // Destructor.
 
     // MANIPULATORS
+
+    /// Start the PrometheusStatConsumer and return 0 on success, or return a
+    /// non-zero value and populate the specified 'errorDescription' with
+    /// the description of any failure encountered.
     int start(bsl::ostream& errorDescription) override;
-    // Start the PrometheusStatConsumer and return 0 on success, or return
-    // a non-zero value and populate the specified 'errorDescription' with
-    // the description of any failure encountered.
 
+    /// Stop the PrometheusStatConsumer.
     void stop() override;
-    // Stop the PrometheusStatConsumer.
 
+    /// Publish stats to Prometheus if publishing at the intervals specified by
+    /// the config.
     void onSnapshot() override;
-    // Publish stats to Prometheus if publishing at the intervals specified
-    // by the config.
 
+    /// Set the Prometheus publish interval with the specified
+    /// 'publishInterval'. Disable Prometheus publishing if 'publishInterval'
+    /// is 0.  It is expected that specified 'publishInterval' is a multiple of
+    /// the snapshot interval or 0.
     void setPublishInterval(bsls::TimeInterval publishInterval) override;
-    // Set the Prometheus publish interval with the specified
-    // 'publishInterval'.  Disable Prometheus publishing if
-    // 'publishInterval' is 0.  It is expected that specified
-    // 'publishInterval' is a multiple of the snapshot interval or 0.
 
     // ACCESSORS
+
+    /// Return plugins name
     bslstl::StringRef name() const override;
 
+    /// Return true if Prometheus reporting is enabled, false otherwise.
     bool isEnabled() const override;
-    // Returns true if Prometheus reporting is enabled, false otherwise.
 
+    /// Return current value of publish interval
     bsls::TimeInterval publishInterval() const override;
-    // Return current value of publish interval
 };
 
 // =========================================
 // class PrometheusStatConsumerPluginFactory
 // =========================================
 
+/// This is the factory class for plugins of type 'PrometheusStatConsumer'.
+/// All it does is allows to instantiate a concrete object of the
+/// 'PrometheusStatConsumer' interface, taking any required arguments.
 class PrometheusStatConsumerPluginFactory
 : public mqbplug::StatConsumerPluginFactory {
-    // This is the factory class for plugins of type 'PrometheusStatConsumer'.
-    // All it does is allows to instantiate a concrete object of the
-    // 'PrometheusStatConsumer' interface, taking any required arguments.
-
   public:
     // CREATORS
     PrometheusStatConsumerPluginFactory();
