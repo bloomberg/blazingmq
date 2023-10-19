@@ -6,3 +6,4 @@ compile_commands.json
 /.cache/
 CMakeUserPresets.json
 /thirdparty/
+/.vscode/
