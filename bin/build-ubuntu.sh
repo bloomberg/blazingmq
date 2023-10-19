@@ -12,13 +12,21 @@ sudo apt install -y --no-install-recommends \
     build-essential \
     gdb \
     cmake \
+    curl \
     ninja-build \
     pkg-config \
     bison \
+    libcurl4-openssl-dev \
     libfl-dev \
     libbenchmark-dev \
+    libssl-dev \
     libz-dev
 PREREQUISITES
+
+BUILD_PLUGINS=false
+if [ $# -eq 1 ] &&  [ $1 == "plugins" ]; then
+    BUILD_PLUGINS=true
+fi
 
 set -e
 set -u
@@ -54,6 +62,10 @@ fi
 if [ ! -d "${DIR_THIRDPARTY}/ntf-core" ]; then
     git clone https://github.com/bloomberg/ntf-core.git "${DIR_THIRDPARTY}/ntf-core"
 fi
+# prometheus-cpp for the plugin
+if [ "${BUILD_PLUGINS}" == true ] && [ ! -d "${DIR_THIRDPARTY}/prometheus-cpp" ]; then
+    git clone https://github.com/jupp0r/prometheus-cpp.git "${DIR_THIRDPARTY}/prometheus-cpp"
+fi
 
 # :: Install required packages ::::::::::::::::::::::::::::::::::::::::::::::::
 
@@ -82,6 +94,22 @@ if [ ! -e "${DIR_BUILD}/ntf/.complete" ]; then
     touch "${DIR_BUILD}/ntf/.complete"
 fi
 
+if [ "${BUILD_PLUGINS}" == true ] && [ ! -e "${DIR_BUILD}/prometheus-cpp/.complete" ]; then
+    pushd "${DIR_THIRDPARTY}/prometheus-cpp"
+    # fetch third-party dependencies
+    git submodule init
+    git submodule update
+    # Build and install prometheus-cpp
+    cmake -DBUILD_SHARED_LIBS=ON \
+          -DENABLE_PUSH=ON \
+          -DENABLE_COMPRESSION=OFF \
+          -B "${DIR_BUILD}/prometheus-cpp"
+    cmake --build "${DIR_BUILD}/prometheus-cpp" --parallel 16
+    cmake --install "${DIR_BUILD}/prometheus-cpp" --prefix "${DIR_INSTALL}"
+    touch "${DIR_BUILD}/prometheus-cpp/.complete"
+    popd
+fi
+
 # :: Build the BlazingMQ repo :::::::::::::::::::::::::::::::::::::::::::::::::::::::
 CMAKE_OPTIONS=(\
     -DBDE_BUILD_TARGET_64=1 \
@@ -94,6 +122,12 @@ CMAKE_OPTIONS=(\
     -DCMAKE_CXX_STANDARD=17 \
     -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
     -DFLEX_ROOT=/usr/lib/x86_64-linux-gnu)
+
+if [ "${BUILD_PLUGINS}" == true ]; then
+    CMAKE_OPTIONS+=(-DINSTALL_TARGETS=plugins);
+fi
+
+echo "${DIR_INSTALL}/lib64/pkgconfig:$(pkg-config --variable pc_path pkg-config)"
 
 PKG_CONFIG_PATH="${DIR_INSTALL}/lib64/pkgconfig:$(pkg-config --variable pc_path pkg-config)" \
 cmake -B "${DIR_BUILD}/blazingmq" -S "${DIR_ROOT}" "${CMAKE_OPTIONS[@]}"
