@@ -23,7 +23,7 @@ sudo apt install -y --no-install-recommends \
 PREREQUISITES
 
 BUILD_PLUGINS=false
-if [ $# -eq 1 ] &&  [ $1 == "plugins" ]; then
+if [ $# -eq 1 ] &&  [ "$1" == "plugins" ]; then
     BUILD_PLUGINS=true
 fi
 
@@ -107,7 +107,7 @@ if [ "${BUILD_PLUGINS}" == true ]; then
         fi
         cd "${DIR_BUILD}/curl"
         LDFLAGS="-static" PKG_CONFIG="pkg-config --static" \
-            ${DIR_THIRDPARTY}/curl/configure \
+            "${DIR_THIRDPARTY}"/curl/configure \
             --disable-shared --disable-debug --disable-ftp --disable-ldap \
             --disable-ldaps --disable-rtsp --disable-proxy --disable-dict \
             --disable-telnet --disable-tftp --disable-pop3 --disable-imap \
@@ -115,7 +115,7 @@ if [ "${BUILD_PLUGINS}" == true ]; then
             --disable-ipv6 --disable-sspi --disable-crypto-auth \
             --disable-ntlm-wb --disable-tls-srp --with-pic --without-nghttp2\
             --without-libidn2 --without-libssh2 --without-brotli \
-            --without-ssl --without-zlib --prefix=${DIR_INSTALL}
+            --without-ssl --without-zlib --prefix="${DIR_INSTALL}"
         make curl_LDFLAGS=-all-static
         make curl_LDFLAGS=-all-static install
         touch "${DIR_BUILD}/curl/.complete"

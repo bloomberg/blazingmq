@@ -28,75 +28,68 @@
 // BDE
 #include <bsls_linkcoercion.h>
 
-
 namespace BloombergLP {
 namespace plugins {
 
 struct Version {
     // PUBLIC CLASS DATA
-    static const char *s_ident;
-    static const char *s_what;
+    static const char* s_ident;
+    static const char* s_what;
 
-#define PLUGINS_CONCAT2(a,b,c,d,e) a ## b ## c ## d ## e
-#define PLUGINS_CONCAT(a,b,c,d,e)  PLUGINS_CONCAT2(a,b,c,d,e)
+#define PLUGINS_CONCAT2(a, b, c, d, e) a##b##c##d##e
+#define PLUGINS_CONCAT(a, b, c, d, e) PLUGINS_CONCAT2(a, b, c, d, e)
 
 // 'PLUGINS_S_VERSION' is a symbol whose name warns users of version mismatch
 // linking errors.  Note that the exact string "compiled_this_object" must be
 // present in this version coercion symbol.  Tools may look for this pattern to
 // warn users of mismatches.
-#define PLUGINS_S_VERSION PLUGINS_CONCAT(d_version_PLUGINS_,     \
-                                             PLUGINS_VERSION_MAJOR,  \
-                                              _,                       \
-                                             PLUGINS_VERSION_MINOR,  \
-                                             _compiled_this_object)
+#define PLUGINS_S_VERSION                                                     \
+    PLUGINS_CONCAT(d_version_PLUGINS_,                                        \
+                   PLUGINS_VERSION_MAJOR,                                     \
+                   _,                                                         \
+                   PLUGINS_VERSION_MINOR,                                     \
+                   _compiled_this_object)
 
-    static const char *PLUGINS_S_VERSION;
+    static const char* PLUGINS_S_VERSION;
 
-    static const char *s_dependencies;
-    static const char *s_buildInfo;
-    static const char *s_timestamp;
-    static const char *s_sourceControlInfo;
+    static const char* s_dependencies;
+    static const char* s_buildInfo;
+    static const char* s_timestamp;
+    static const char* s_sourceControlInfo;
 
     // CLASS METHODS
-    static const char *version();
-        // Return the formatted string corresponding to the version. Format is
-        // BLP_LIB_PLUGINS_<major>.<minor>.<patch>
+    static const char* version();
+    // Return the formatted string corresponding to the version. Format is
+    // BLP_LIB_PLUGINS_<major>.<minor>.<patch>
 
     static int versionAsInt();
-        // Return the int corresponding to the version, using the following
-        // formula: '(major) * 10000 + (minor) * 100 + (patch)'
+    // Return the int corresponding to the version, using the following
+    // formula: '(major) * 10000 + (minor) * 100 + (patch)'
 };
-
 
 // ============================================================================
 //                             INLINE DEFINITIONS
 // ============================================================================
 
-                           // ------------------------
-                           // class plugins::Version
-                           // ------------------------
+// ------------------------
+// class plugins::Version
+// ------------------------
 
-inline
-const char*
-Version::version()
+inline const char* Version::version()
 {
     return PLUGINS_S_VERSION;
 }
 
-inline
-int
-Version::versionAsInt()
+inline int Version::versionAsInt()
 {
     return PLUGINS_EXT_VERSION;
 }
 
 }  // close package namespace
 
-
-BSLS_LINKCOERCION_FORCE_SYMBOL_DEPENDENCY(
-                                       const char *,
-                                       plugins_version_assertion,
-                                       plugins::Version::PLUGINS_S_VERSION)
+BSLS_LINKCOERCION_FORCE_SYMBOL_DEPENDENCY(const char*,
+                                          plugins_version_assertion,
+                                          plugins::Version::PLUGINS_S_VERSION)
 
 }  // close enterprise namespace
 

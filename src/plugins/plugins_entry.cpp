@@ -1,8 +1,8 @@
 // plugins_entry.cpp                                                -*-C++-*-
 
 // PLUGINS
-#include <plugins_version.h>
 #include <plugins_pluginlibrary.h>
+#include <plugins_version.h>
 
 // MQB
 #include <mqbplug_pluginlibrary.h>
@@ -16,21 +16,21 @@
 using namespace BloombergLP;
 
 extern "C" {
-void
-instantiatePluginLibrary(bslma::ManagedPtr<mqbplug::PluginLibrary> *library,
-                         bslma::Allocator                          *allocator);
+void instantiatePluginLibrary(
+    bslma::ManagedPtr<mqbplug::PluginLibrary>* library,
+    bslma::Allocator*                          allocator);
 }  // close extern "C"
 
-void
-instantiatePluginLibrary(bslma::ManagedPtr<mqbplug::PluginLibrary> *library,
-                         bslma::Allocator                          *allocator)
+void instantiatePluginLibrary(
+    bslma::ManagedPtr<mqbplug::PluginLibrary>* library,
+    bslma::Allocator*                          allocator)
 {
     BALL_LOG_SET_CATEGORY("PLUGINS.ENTRY");
 
     BALL_LOG_INFO << "Instantiating 'libplugins.so' plugin library "
-                     "(version: " << plugins::Version::version() << ")";
+                     "(version: "
+                  << plugins::Version::version() << ")";
 
-    *library =
-        bslma::ManagedPtrUtil::allocateManaged<plugins::PluginLibrary>(
-                                                                    allocator);
+    *library = bslma::ManagedPtrUtil::allocateManaged<plugins::PluginLibrary>(
+        allocator);
 }

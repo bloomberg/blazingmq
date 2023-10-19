@@ -6,34 +6,33 @@
 #include <plugins_version.h>
 
 //// BUL
-//#include <bulscm_version.h>
+// #include <bulscm_version.h>
 
 //// SIM
-//#include <simscm_version.h>
+// #include <simscm_version.h>
 
 // BDE
 #include <bsl_sstream.h>
 #include <bslma_default.h>
 
-
 namespace BloombergLP {
 namespace plugins {
 
-                          // -------------------
-                          // class PluginLibrary
-                          // -------------------
+// -------------------
+// class PluginLibrary
+// -------------------
 
-PluginLibrary::PluginLibrary(bslma::Allocator *allocator)
+PluginLibrary::PluginLibrary(bslma::Allocator* allocator)
 : d_plugins(bslma::Default::allocator(allocator))
 {
     allocator = bslma::Default::allocator(allocator);
 
-    mqbplug::PluginInfo& prometheusPluginInfo =
-                  d_plugins.emplace_back(mqbplug::PluginType::e_STATS_CONSUMER,
-                                         "PrometheusStatConsumer");
+    mqbplug::PluginInfo& prometheusPluginInfo = d_plugins.emplace_back(
+        mqbplug::PluginType::e_STATS_CONSUMER,
+        "PrometheusStatConsumer");
 
     prometheusPluginInfo.setFactory(
-               bsl::allocate_shared<PrometheusStatConsumerPluginFactory>(allocator));
+        bsl::allocate_shared<PrometheusStatConsumerPluginFactory>(allocator));
     prometheusPluginInfo.setVersion(Version::version());
 
     bsl::stringstream prometheusDescription(allocator);
@@ -46,19 +45,16 @@ PluginLibrary::~PluginLibrary()
     // NOTHING
 }
 
-int
-PluginLibrary::activate()
+int PluginLibrary::activate()
 {
     return 0;
 }
 
-void
-PluginLibrary::deactivate()
+void PluginLibrary::deactivate()
 {
 }
 
-const bsl::vector<mqbplug::PluginInfo>&
-PluginLibrary::plugins() const
+const bsl::vector<mqbplug::PluginInfo>& PluginLibrary::plugins() const
 {
     return d_plugins;
 }

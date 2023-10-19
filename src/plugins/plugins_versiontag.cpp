@@ -1,7 +1,6 @@
 // plugins_versiontag.cpp                                           -*-C++-*-
 #include <plugins_versiontag.h>
 
-
 // ----------------------------------------------------------------------------
 // NOTICE:
 //      Copyright (C) Bloomberg L.P., 2023

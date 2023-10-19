@@ -17,21 +17,19 @@
 #include <mqbplug_pluginlibrary.h>
 
 // BDE
-#include <bsls_keyword.h>
 #include <bsl_vector.h>
 #include <bslma_allocator.h>
 #include <bslma_usesbslmaallocator.h>
 #include <bslmf_nestedtraitdeclaration.h>
-
+#include <bsls_keyword.h>
 
 namespace BloombergLP {
 namespace plugins {
-                          // ===================
-                          // class PluginLibrary
-                          // ===================
+// ===================
+// class PluginLibrary
+// ===================
 
 class PluginLibrary : public mqbplug::PluginLibrary {
-
   private:
     // DATA
     bsl::vector<mqbplug::PluginInfo> d_plugins;
@@ -40,30 +38,29 @@ class PluginLibrary : public mqbplug::PluginLibrary {
     // NOT IMPLEMENTED
     PluginLibrary(const PluginLibrary&);
     PluginLibrary& operator=(const PluginLibrary&);
-        // Copy constructor and assignment operator are not implemented.
+    // Copy constructor and assignment operator are not implemented.
 
   public:
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(PluginLibrary, bslma::UsesBslmaAllocator)
 
     // CREATORS
-    explicit PluginLibrary(bslma::Allocator *allocator = 0);
-        // Constructor.
+    explicit PluginLibrary(bslma::Allocator* allocator = 0);
+    // Constructor.
     ~PluginLibrary() override;
-        // Destructor.
+    // Destructor.
 
     // MODIFIERS
     int activate() override;
-        // Called by 'PluginManager' during broker startup if at least one
-        // enabled plugin is provided by this library.
+    // Called by 'PluginManager' during broker startup if at least one
+    // enabled plugin is provided by this library.
 
     void deactivate() override;
-        // Called by 'PluginManager' during broker shutdown if at least one
-        // enabled plugin is provided by this library.
+    // Called by 'PluginManager' during broker shutdown if at least one
+    // enabled plugin is provided by this library.
 
     // ACCESSORS
-    const bsl::vector<mqbplug::PluginInfo>&
-    plugins() const override;
+    const bsl::vector<mqbplug::PluginInfo>& plugins() const override;
 };
 
 }  // close package namespace
