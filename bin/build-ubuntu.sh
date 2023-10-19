@@ -9,6 +9,7 @@
 <<PREREQUISITES
 sudo apt update && sudo apt -y install ca-certificates
 sudo apt install -y --no-install-recommends \
+    autoconf \
     build-essential \
     gdb \
     cmake \
@@ -17,8 +18,7 @@ sudo apt install -y --no-install-recommends \
     bison \
     libfl-dev \
     libbenchmark-dev \
-    libssl-dev \
-    libpsl-dev \
+    libtool \
     libz-dev
 PREREQUISITES
 
@@ -63,11 +63,11 @@ if [ ! -d "${DIR_THIRDPARTY}/ntf-core" ]; then
 fi
 # prometheus-cpp and its dependency for the plugin
 if [ "${BUILD_PLUGINS}" == true ]; then
-    if [ ! -d "${DIR_THIRDPARTY}/prometheus-cpp" ]; then
-        git clone https://github.com/jupp0r/prometheus-cpp.git "${DIR_THIRDPARTY}/prometheus-cpp"
-    fi
     if [ ! -d "${DIR_THIRDPARTY}/curl" ]; then
         git clone https://github.com/curl/curl.git "${DIR_THIRDPARTY}/curl"
+    fi
+    if [ ! -d "${DIR_THIRDPARTY}/prometheus-cpp" ]; then
+        git clone https://github.com/jupp0r/prometheus-cpp.git "${DIR_THIRDPARTY}/prometheus-cpp"
     fi
 fi
 
@@ -79,7 +79,7 @@ PATH="${DIR_THIRDPARTY}/bde-tools/bin:$PATH"
 
 if [ ! -e "${DIR_BUILD}/bde/.complete" ]; then
     pushd "${DIR_THIRDPARTY}/bde"
-    eval "$(bbs_build_env -u opt_64_cpp17 -b "${DIR_BUILD}/bde" -i "${DIR_INSTALL}")"
+    eval "$(bbs_build_env -u opt_64_cpp17_pic -b "${DIR_BUILD}/bde" -i "${DIR_INSTALL}")"
     bbs_build configure --prefix="${DIR_INSTALL}"
     bbs_build build --prefix="${DIR_INSTALL}"
     bbs_build install --install_dir="/" --prefix="${DIR_INSTALL}"
@@ -113,9 +113,9 @@ if [ "${BUILD_PLUGINS}" == true ]; then
             --disable-telnet --disable-tftp --disable-pop3 --disable-imap \
             --disable-smb --disable-smtp --disable-gopher --disable-manual \
             --disable-ipv6 --disable-sspi --disable-crypto-auth \
-            --disable-ntlm-wb --disable-tls-srp --with-openssl \
-            --without-nghttp2 --without-libidn2 --without-libssh2 \
-            --without-brotli --prefix=${DIR_INSTALL}
+            --disable-ntlm-wb --disable-tls-srp --with-pic --without-nghttp2\
+            --without-libidn2 --without-libssh2 --without-brotli \
+            --without-ssl --without-zlib --prefix=${DIR_INSTALL}
         make curl_LDFLAGS=-all-static
         make curl_LDFLAGS=-all-static install
         touch "${DIR_BUILD}/curl/.complete"
@@ -129,9 +129,12 @@ if [ "${BUILD_PLUGINS}" == true ]; then
         git submodule init
         git submodule update
         # Build and install prometheus-cpp
+        PKG_CONFIG_PATH="${DIR_INSTALL}/lib/pkgconfig:$(pkg-config --variable pc_path pkg-config)" \
         cmake -DBUILD_SHARED_LIBS=OFF \
               -DENABLE_PUSH=ON \
               -DENABLE_COMPRESSION=OFF \
+              -DENABLE_TESTING=OFF \
+              -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
               -B "${DIR_BUILD}/prometheus-cpp"
         cmake --build "${DIR_BUILD}/prometheus-cpp" --parallel 16
         cmake --install "${DIR_BUILD}/prometheus-cpp" --prefix "${DIR_INSTALL}"
