@@ -113,21 +113,30 @@ class Tagger {
     prometheus::Labels& getLabels() { return labels; }
 };
 
-}  // close unnamed namespace
-
 bsl::unique_ptr<PrometheusStatExporter>
 makeExporter(const bsl::string&                     mode,
              const bsl::string&                     host,
              const bsl::size_t                      port,
              std::shared_ptr<prometheus::Registry>& registry);
 
+}  // close unnamed namespace
+
 // ----------------------------
 // class PrometheusStatConsumer
 // ----------------------------
 
+void PrometheusStatConsumer::stopImpl()
+{
+    if (!d_isStarted || !d_prometheusStatExporter_p) {
+        return;  // RETURN
+    }
+    d_prometheusStatExporter_p->stop();
+    d_isStarted = false;
+}
+
 PrometheusStatConsumer::~PrometheusStatConsumer()
 {
-    stop();
+    stopImpl();
 }
 
 PrometheusStatConsumer::PrometheusStatConsumer(
@@ -162,17 +171,6 @@ int PrometheusStatConsumer::start(
         return -1;  // RETURN
     }
 
-    if (!d_prometheusStatExporter_p) {
-        d_prometheusStatExporter_p = makeExporter(d_consumerConfig_p->mode(),
-                                                  d_consumerConfig_p->host(),
-                                                  d_consumerConfig_p->port(),
-                                                  d_prometheusRegistry_p);
-    }
-    if (!d_prometheusStatExporter_p) {
-        return -2;  // RETURN
-    }
-    d_prometheusStatExporter_p->start();
-
     const mqbcfg::AppConfig& brkrCfg = mqbcfg::BrokerConfig::get();
     d_publishInterval                = d_consumerConfig_p->publishInterval();
     d_snapshotInterval               = brkrCfg.stats().snapshotInterval();
@@ -185,18 +183,25 @@ int PrometheusStatConsumer::start(
 
     d_snapshotId = static_cast<int>(d_publishInterval.seconds() /
                                     d_snapshotInterval.seconds());
-    d_isStarted  = true;
+
+    if (!d_prometheusStatExporter_p) {
+        d_prometheusStatExporter_p = makeExporter(d_consumerConfig_p->mode(),
+                                                  d_consumerConfig_p->host(),
+                                                  d_consumerConfig_p->port(),
+                                                  d_prometheusRegistry_p);
+    }
+    if (!d_prometheusStatExporter_p) {
+        return -2;  // RETURN
+    }
+    d_prometheusStatExporter_p->start();
+
+    d_isStarted = true;
     return 0;
 }
 
 void PrometheusStatConsumer::stop()
 {
-    if (!d_isStarted) {
-        return;  // RETURN
-    }
-
-    d_prometheusStatExporter_p->stop();
-    d_isStarted = false;
+    stopImpl();
 }
 
 void PrometheusStatConsumer::onSnapshot()
@@ -884,6 +889,8 @@ class PrometheusPushStatExporter : public PrometheusStatExporter {
     void stop() override { stopImpl(); }
 };
 
+namespace {
+
 bsl::unique_ptr<PrometheusStatExporter>
 makeExporter(const bsl::string&                     mode,
              const bsl::string&                     host,
@@ -907,6 +914,8 @@ makeExporter(const bsl::string&                     mode,
     }
     return result;
 }
+
+}  // close unnamed namespace
 
 }  // close package namespace
 }  // close enterprise namespace

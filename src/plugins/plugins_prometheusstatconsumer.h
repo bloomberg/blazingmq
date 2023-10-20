@@ -217,6 +217,9 @@ class PrometheusStatConsumer : public mqbplug::StatConsumer {
                       const prometheus::Labels& labels,
                       const bsls::Types::Int64  value);
 
+    /// Stop plugin
+    void stopImpl();
+
   public:
     // NOT IMPLEMENTED
 
