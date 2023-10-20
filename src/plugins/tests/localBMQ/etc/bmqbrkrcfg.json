@@ -9,7 +9,7 @@
             "logfileFormat": "%d (%t) %s %F:%l %m\n\n",
             "consoleFormat": "%d (%t) %s %F:%l %m\n",
             "loggingVerbosity": "INFO",
-            "consoleSeverityThreshold": "INFO",
+            "consoleSeverityThreshold": "ERROR",
             "categories": [
                 "BMQBRKR:INFO:green",
                 "BMQ*:INFO:green",

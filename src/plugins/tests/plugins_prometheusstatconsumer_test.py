@@ -6,9 +6,15 @@ Prerequisites:
  - 'requests'  TODO: can be replaced with native http.client, but it is too low level
 2. Docker should be installed, user launching the test script must be included into the group 'docker'
 
+Usage: python3 plugins_prometheusstatconsumer_test.py [-h] -p PATH -u URL
+options:
+  -h, --help            show this help message and exit
+  -p PATH, --path PATH  absolute path to BlasingMQ folder
+  -u URL, --url URL     prometheus URL
  """
 
 import argparse
+import json
 import os
 import subprocess
 import tempfile
@@ -27,8 +33,8 @@ BROKER_METRICS = ['brkr_summary_queues_count', 'brkr_summary_clients_count']
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Integration tests for Prometheus plugin')
-    parser.add_argument('-p', '--path', type=str, required=True, help="Path to BlasingMQ folder")
-    parser.add_argument('-u', '--url', type=str, required=True, help="Prometheus URL")
+    parser.add_argument('-p', '--path', type=str, required=True, help="absolute path to BlasingMQ folder")
+    parser.add_argument('-u', '--url', type=str, required=True, help="prometheus URL")
 
     return parser.parse_args()
 
@@ -37,37 +43,44 @@ def test_local_cluster_with_push_mode(broker_path, broker_cfg_path, tool_path, p
     # Run Prometheus in docker
     docker_proc =  subprocess.Popen(['docker', 'compose', '-f', prometheus_docker_file_path, 'up', '-d'])
     docker_proc.wait()
-    time.sleep(3)  # wait until Prometheus runs
 
     with tempfile.TemporaryDirectory() as tmpdirname:
         shutil.copy(broker_path.joinpath('bmqbrkr.tsk'), tmpdirname)
-        path = shutil.copytree(Path(broker_cfg_path), Path(tmpdirname).joinpath('localBMQ'))
+        local_cfg_path = shutil.copytree(Path(broker_cfg_path), Path(tmpdirname).joinpath('localBMQ'))
         # for path,dirs,files in os.walk(tmpdirname):
         #     for filename in files:
         #         print(os.path.join(path,filename))
 
+        # Edit config for push mode
+        local_cfg_file = Path(local_cfg_path.joinpath('etc/bmqbrkrcfg.json'))
+        with local_cfg_file.open() as f:
+            local_cfg = json.load(f)
+        prometheus_cfg = local_cfg['appConfig']['stats']['plugins'][0]
+        prometheus_cfg['host'] = 'localhost'
+        prometheus_cfg['port'] = 9091
+        prometheus_cfg['mode'] = 'push'
+        with local_cfg_file.open('w') as f:
+            json.dump(local_cfg, f)
+
         # Run broker
         os.chdir(tmpdirname)
         broker_proc =  subprocess.Popen(['./bmqbrkr.tsk', 'localBMQ/etc'])
-        time.sleep(3)  # wait until broker runs
 
         try:
-            # Wait until cluster becomes healthy
-            for trial in range(20):
-                # print("""""""""""""""""""""""""", trial)
-                # time.sleep(1)
+            # Wait until broker runs and cluster becomes healthy
+            for attempt in range(20):
                 response = _make_request(f'{prometheus_url}/api/v1/query', dict(query='cluster_healthiness'))
                 value  = response['result'][0]['value'][-1] if response['result'] else None
                 if value == '1':
                     break
-                assert  trial < 20, 'cluster did not become healthy during 20 sec'
+                assert attempt < 19, 'cluster did not become healthy during 20 sec'
                 time.sleep(1)
 
             # Check initial statistic from Prometheus
             _check_initial_statistic(prometheus_url)
 
             # Run bmqtool to open queue, put one message and exit
-            tool_args = [tool_path, '--mode=auto', '-f', 'write', '-q', 'bmq://bmq.test.persistent.priority/my-first-queue', '--eventscount=1', '--shutdownGrace=2']
+            tool_args = [tool_path, '--mode=auto', '-f', 'write', '-q', 'bmq://bmq.test.persistent.priority/my-first-queue', '--eventscount=1', '--shutdownGrace=2', '--verbosity=warning']
             tool_proc = subprocess.Popen(tool_args)
             tool_proc.wait()
 
