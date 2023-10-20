@@ -630,7 +630,7 @@ static void consume(bmqa::Session*            session,
     // so it doesn't really matter.  We believe it is far better for the
     // application to provide its own ids than for BlazingMQ to supply a queue
     // ids.
-    const char k_QUEUE_URL[] = "bmq://bmq.test.mem.priority/test-queue";
+    const char k_QUEUE_URL[] = "bmq://bmq.test.mem.fanout/test-queue";
 
     bsl::string        error;
     bmqt::QueueOptions queueOptions;
@@ -712,14 +712,29 @@ static void consume(bmqa::Session*            session,
         }
     }
 
+    {
+        // open "foo" appId
+        bmqt::CorrelationId corrId(bmqt::CorrelationId::autoValue());
+        bmqa::QueueId       queueId(corrId);
+
+        bmqa::OpenQueueStatus status = session->openQueueSync(
+            &queueId,
+            k_QUEUE_URL + bsl::string("?id=foo"),
+            bmqt::QueueFlags::e_READ,
+            queueOptions);
+    }
+
+
+    // open "bar" appId
     bmqt::CorrelationId corrId(bmqt::CorrelationId::autoValue());
     bmqa::QueueId       queueId(corrId);
 
     bmqa::OpenQueueStatus status = session->openQueueSync(
         &queueId,
-        k_QUEUE_URL,
+        k_QUEUE_URL + bsl::string("?id=bar"),
         bmqt::QueueFlags::e_READ,
         queueOptions);
+    
 
     if (!status || !queueId.isValid()) {
         // Error! Log something
