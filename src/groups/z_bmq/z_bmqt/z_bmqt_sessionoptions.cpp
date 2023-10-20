@@ -2,12 +2,17 @@
 #include <z_bmqt_sessionoptions.h>
 
 
-
-namespace BloomberLP {
-int z_bmqt_SessionOptions__create(z_bmqt_SessionOptions* options) {
-    BloombergLP::bmqt::SessionOptions* options_ptr = new BloombergLP::bmqt::SessionOptions();
-    *options = reinterpret_cast<z_bmqt_SessionOptions>(options_ptr);
+int z_bmqt_SessionOptions__create(z_bmqt_SessionOptions** options) {
+    using namespace BloombergLP;
+    bmqt::SessionOptions* options_ptr = new bmqt::SessionOptions();
+    *options = reinterpret_cast<z_bmqt_SessionOptions*>(options_ptr);
     return 0;
 }
 
-};
+const char* z_bmqt_SessionOptions__brokerUri(const z_bmqt_SessionOptions* options) {
+    using namespace BloombergLP;
+
+    const bmqt::SessionOptions* options_ptr = reinterpret_cast<const bmqt::SessionOptions*>(options);
+
+    return options_ptr->brokerUri().c_str();
+}
