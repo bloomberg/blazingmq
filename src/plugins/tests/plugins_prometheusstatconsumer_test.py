@@ -39,7 +39,7 @@ def parse_arguments():
     return parser.parse_args()
 
 
-def test_local_cluster_with_push_mode(broker_path, broker_cfg_path, tool_path, prometheus_url, prometheus_docker_file_path):
+def test_local_cluster(broker_path, broker_cfg_path, tool_path, prometheus_url, prometheus_docker_file_path, mode):
     # Run Prometheus in docker
     docker_proc =  subprocess.Popen(['docker', 'compose', '-f', prometheus_docker_file_path, 'up', '-d'])
     docker_proc.wait()
@@ -47,18 +47,20 @@ def test_local_cluster_with_push_mode(broker_path, broker_cfg_path, tool_path, p
     with tempfile.TemporaryDirectory() as tmpdirname:
         shutil.copy(broker_path.joinpath('bmqbrkr.tsk'), tmpdirname)
         local_cfg_path = shutil.copytree(Path(broker_cfg_path), Path(tmpdirname).joinpath('localBMQ'))
-        # for path,dirs,files in os.walk(tmpdirname):
-        #     for filename in files:
-        #         print(os.path.join(path,filename))
 
-        # Edit config for push mode
+        # Edit broker config for given mode
         local_cfg_file = Path(local_cfg_path.joinpath('etc/bmqbrkrcfg.json'))
         with local_cfg_file.open() as f:
             local_cfg = json.load(f)
         prometheus_cfg = local_cfg['appConfig']['stats']['plugins'][0]
-        prometheus_cfg['host'] = 'localhost'
-        prometheus_cfg['port'] = 9091
-        prometheus_cfg['mode'] = 'push'
+        if mode == 'push':
+            prometheus_cfg['port'] = 9091
+            prometheus_cfg['mode'] = 'push'
+        elif mode == 'pull':
+            prometheus_cfg['port'] = 8080
+            prometheus_cfg['mode'] = 'pull'
+        else:
+            assert False, f'Unexpected mode: {mode}'
         with local_cfg_file.open('w') as f:
             json.dump(local_cfg, f)
 
@@ -79,8 +81,12 @@ def test_local_cluster_with_push_mode(broker_path, broker_cfg_path, tool_path, p
             # Check initial statistic from Prometheus
             _check_initial_statistic(prometheus_url)
 
-            # Run bmqtool to open queue, put one message and exit
-            tool_args = [tool_path, '--mode=auto', '-f', 'write', '-q', 'bmq://bmq.test.persistent.priority/my-first-queue', '--eventscount=1', '--shutdownGrace=2', '--verbosity=warning']
+            # Run bmqtool to open queue, put two messages and exit
+            tool_args = [tool_path, '--mode=auto', '-f', 'write', '-q', 'bmq://bmq.test.persistent.priority/first-queue', '--eventscount=2', '--shutdownGrace=2', '--verbosity=warning']
+            tool_proc = subprocess.Popen(tool_args)
+            tool_proc.wait()
+            # Run bmqtool to open another queue, put one message and exit
+            tool_args = [tool_path, '--mode=auto', '-f', 'write', '-q', 'bmq://bmq.test.persistent.priority/second-queue', '--eventscount=1', '--shutdownGrace=2', '--verbosity=warning']
             tool_proc = subprocess.Popen(tool_args)
             tool_proc.wait()
 
@@ -108,8 +114,13 @@ def main(args):
     tool_path = Path(args.path).joinpath('build/blazingmq/src/applications/bmqtool/bmqtool.tsk')
     prometheus_url = args.url
 
-    print('local_cluster_test_with_push_mode : ', test_local_cluster_with_push_mode(broker_path, broker_cfg_path, tool_path, prometheus_url, prometheus_docker_file_path))
+    results = dict()
+    results['local_cluster_test_with_push_mode'] = test_local_cluster(broker_path, broker_cfg_path, tool_path, prometheus_url, prometheus_docker_file_path, 'push')
+    results['local_cluster_test_with_pull_mode'] = test_local_cluster(broker_path, broker_cfg_path, tool_path, prometheus_url, prometheus_docker_file_path, 'pull')
 
+    print('\n\n\n========================================')
+    for test, result in results.items():
+        print(f'{test} : {"passed" if result else "failed"}')
 
 
 def _make_request(prometheus_url, params={}):
@@ -142,22 +153,29 @@ def _check_statistic(prometheus_url):
             case 'queue_consumers_count':
                 assert value is None, _assert_message(metric, 'None', value)
             case 'queue_put_msgs':
+                # For first queue
+                assert value == '2', _assert_message(metric, '2', value)
+                labels = response['result'][0]['metric']
+                assert labels['Queue'] == 'first-queue', _assert_message(metric, 'first-queue', labels['Queue'])
+                # For second queue
+                value = response['result'][1]['value'][-1]
                 assert value == '1', _assert_message(metric, '1', value)
+                labels = response['result'][1]['metric']
+                assert labels['Queue'] == 'second-queue', _assert_message(metric, 'second-queue', labels['Queue'])
             case 'queue_put_bytes':
-                assert value == '1024', _assert_message(metric, '1024', value)
+                assert value == '2048', _assert_message(metric, '2048', value)
             case 'queue_push_msgs':
                 assert value is None, _assert_message(metric, 'None', value)
             case 'queue_push_bytes':
                 assert value is None, _assert_message(metric, 'None', value)
             case 'queue_ack_msgs':
-                assert value == '1', _assert_message(metric, '1', value)
+                assert value == '2', _assert_message(metric, '2', value)
             # Queue primary node statistic
             case 'queue_content_msgs':
-                # assert value == '1', _assert_message(metric, '1', value)
-                pass  # 1 or 2 sporadic
+                assert value == '2', _assert_message(metric, '2', value)
             # Broker statistic
             case 'brkr_summary_queues_count':
-                assert value == '1', _assert_message(metric, '1', value)
+                assert value == '2', _assert_message(metric, '2', value)
             case 'brkr_summary_clients_count':
                 assert value == '1', _assert_message(metric, '1', value)
             # Cluster statistic

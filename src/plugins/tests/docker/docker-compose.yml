@@ -4,7 +4,7 @@ services:
         build:
             dockerfile: Dockerfile
         ports:
-            - '9093:9090'
+            - '9090:9090'
     pushgateway:
         image: "prom/pushgateway"
         ports:
