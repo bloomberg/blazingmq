@@ -106,8 +106,6 @@ def test_local_cluster(broker_path, broker_cfg_path, tool_path, prometheus_url, 
 
 
 def main(args):
-    # Check plugin is enabled in config or use config fixtures
-
     prometheus_docker_file_path = Path(args.path).joinpath('src/plugins/tests/docker/docker-compose.yml')
     broker_path = Path(args.path).joinpath('build/blazingmq/src/applications/bmqbrkr')
     broker_cfg_path = Path('localBMQ').absolute()
@@ -146,41 +144,41 @@ def _check_statistic(prometheus_url):
     for metric in all_metrics:
         response = _make_request(f'{prometheus_url}/api/v1/query', dict(query=metric))
         value  = response['result'][0]['value'][-1] if response['result'] else None
-        match(metric):
-            # Queue statistic
-            case 'queue_producers_count':
-                assert value == '1', _assert_message(metric, '1', value)
-            case 'queue_consumers_count':
-                assert value is None, _assert_message(metric, 'None', value)
-            case 'queue_put_msgs':
-                # For first queue
-                assert value == '2', _assert_message(metric, '2', value)
-                labels = response['result'][0]['metric']
-                assert labels['Queue'] == 'first-queue', _assert_message(metric, 'first-queue', labels['Queue'])
-                # For second queue
-                value = response['result'][1]['value'][-1]
-                assert value == '1', _assert_message(metric, '1', value)
-                labels = response['result'][1]['metric']
-                assert labels['Queue'] == 'second-queue', _assert_message(metric, 'second-queue', labels['Queue'])
-            case 'queue_put_bytes':
-                assert value == '2048', _assert_message(metric, '2048', value)
-            case 'queue_push_msgs':
-                assert value is None, _assert_message(metric, 'None', value)
-            case 'queue_push_bytes':
-                assert value is None, _assert_message(metric, 'None', value)
-            case 'queue_ack_msgs':
-                assert value == '2', _assert_message(metric, '2', value)
-            # Queue primary node statistic
-            case 'queue_content_msgs':
-                assert value == '2', _assert_message(metric, '2', value)
-            # Broker statistic
-            case 'brkr_summary_queues_count':
-                assert value == '2', _assert_message(metric, '2', value)
-            case 'brkr_summary_clients_count':
-                assert value == '1', _assert_message(metric, '1', value)
-            # Cluster statistic
-            case 'cluster_healthiness': # ClusterStatus::e_CLUSTER_STATUS_HEALTHY
-                assert value == '1', _assert_message(metric, '1', value)
+        # Queue statistic
+        if metric == 'queue_producers_count':
+            assert value == '1', _assert_message(metric, '1', value)
+        elif metric == 'queue_consumers_count':
+            assert value is None, _assert_message(metric, 'None', value)
+        elif metric == 'queue_put_msgs':
+            # For first queue
+            assert value == '2', _assert_message(metric, '2', value)
+            labels = response['result'][0]['metric']
+            assert labels['Queue'] == 'first-queue', _assert_message(metric, 'first-queue', labels['Queue'])
+            # For second queue
+            value = response['result'][1]['value'][-1]
+            assert value == '1', _assert_message(metric, '1', value)
+            labels = response['result'][1]['metric']
+            assert labels['Queue'] == 'second-queue', _assert_message(metric, 'second-queue', labels['Queue'])
+        elif metric == 'queue_put_bytes':
+            assert value == '2048', _assert_message(metric, '2048', value)
+        elif metric == 'queue_push_msgs':
+            assert value is None, _assert_message(metric, 'None', value)
+        elif metric == 'queue_push_bytes':
+            assert value is None, _assert_message(metric, 'None', value)
+        elif metric == 'queue_ack_msgs':
+            assert value == '2', _assert_message(metric, '2', value)
+        # Queue primary node statistic
+        elif metric == 'queue_content_msgs':
+            assert value == '2', _assert_message(metric, '2', value)
+        # Broker statistic
+        elif metric == 'brkr_summary_queues_count':
+            assert value == '2', _assert_message(metric, '2', value)
+        elif metric == 'brkr_summary_clients_count':
+            assert value == '1', _assert_message(metric, '1', value)
+        # Cluster statistic
+        elif metric == 'cluster_healthiness': # ClusterStatus::e_CLUSTER_STATUS_HEALTHY
+            assert value == '1', _assert_message(metric, '1', value)
+
 
 def _assert_message(metric, expected, given):
     return f'{metric} expected {expected} but {given} given'
