@@ -39,12 +39,13 @@ def parse_arguments():
     return parser.parse_args()
 
 
-def test_local_cluster(broker_path, broker_cfg_path, tool_path, prometheus_url, prometheus_docker_file_path, mode):
+def test_local_cluster(plugin_path, broker_path, broker_cfg_path, tool_path, prometheus_url, prometheus_docker_file_path, mode):
     # Run Prometheus in docker
     docker_proc =  subprocess.Popen(['docker', 'compose', '-f', prometheus_docker_file_path, 'up', '-d'])
     docker_proc.wait()
 
     with tempfile.TemporaryDirectory() as tmpdirname:
+        shutil.copy(plugin_path.joinpath('libplugins.so'), tmpdirname)
         shutil.copy(broker_path.joinpath('bmqbrkr.tsk'), tmpdirname)
         local_cfg_path = shutil.copytree(Path(broker_cfg_path), Path(tmpdirname).joinpath('localBMQ'))
 
@@ -110,11 +111,12 @@ def main(args):
     broker_path = Path(args.path).joinpath('build/blazingmq/src/applications/bmqbrkr')
     broker_cfg_path = Path('localBMQ').absolute()
     tool_path = Path(args.path).joinpath('build/blazingmq/src/applications/bmqtool/bmqtool.tsk')
+    plugin_path = Path(args.path).joinpath('build/blazingmq/src/plugins')
     prometheus_url = args.url
 
     results = dict()
-    results['local_cluster_test_with_push_mode'] = test_local_cluster(broker_path, broker_cfg_path, tool_path, prometheus_url, prometheus_docker_file_path, 'push')
-    results['local_cluster_test_with_pull_mode'] = test_local_cluster(broker_path, broker_cfg_path, tool_path, prometheus_url, prometheus_docker_file_path, 'pull')
+    results['local_cluster_test_with_push_mode'] = test_local_cluster(plugin_path, broker_path, broker_cfg_path, tool_path, prometheus_url, prometheus_docker_file_path, 'push')
+    results['local_cluster_test_with_pull_mode'] = test_local_cluster(plugin_path, broker_path, broker_cfg_path, tool_path, prometheus_url, prometheus_docker_file_path, 'pull')
 
     print('\n\n\n========================================')
     for test, result in results.items():
