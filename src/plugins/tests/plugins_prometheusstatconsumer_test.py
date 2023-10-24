@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """Integration tests for BlazingMQ Prometheus plugin.
 
 Test plan:
@@ -18,7 +18,7 @@ Prerequisites:
 2. Python3 should be installed;
 3. Docker should be installed, user launching the test script must be included into the group 'docker'.
 
-Usage: python3 plugins_prometheusstatconsumer_test.py [-h] -p PATH -u URL
+Usage: ./plugins_prometheusstatconsumer_test.py [-h] -p PATH
 options:
   -h, --help            show this help message and exit
   -p PATH, --path PATH  absolute path to BlasingMQ folder
