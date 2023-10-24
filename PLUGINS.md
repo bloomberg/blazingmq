@@ -78,6 +78,30 @@ docker compose -f docker/plugins/prometheus/docker-compose.yml up
   - Select `Prometrheus` data source;
   - Set `http://prometheus:9090` as Prometheus server URL;
 
+### Integration tests
+Test plan:
+1. Test Prometheus plugin in 'push' mode:
+  - Run Prometheus (in docker);
+  - Run broker with local cluster and enabled Prometheus plugin in sandbox (temp folder);
+  - Put several messages into different queues;
+  - Request metrics from Prometheus and compare them with expected metric values.
+2. Test Prometheus plugin in 'pull' mode:
+  - Run Prometheus (in docker);
+  - Run broker with local cluster and enabled Prometheus plugin in sandbox (temp folder);
+  - Put several messages into different queues;
+  - Request metrics from Prometheus and compare them with expected metric values.
+
+Prerequisites:
+1. bmqbroker, bmqtool and plugins library should be built;
+2. Python3 should be installed;
+3. Docker should be installed, user launching the test script must be included into the group 'docker'.
+```bash
+Usage: ./src/plugins/tests/plugins_prometheusstatconsumer_test.py [-h] -p PATH
+options:
+  -h, --help            show this help message and exit
+  -p PATH, --path PATH  absolute path to BlasingMQ folder
+```
+
 ### Available BlazingMQ metrics
 #### System metrics
 |Metric Name|Description|
