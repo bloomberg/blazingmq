@@ -39,6 +39,8 @@ def parse_arguments():
 
 
 def test_local_cluster(plugin_path, broker_path, broker_cfg_path, tool_path, prometheus_url, prometheus_docker_file_path, mode):
+    current_dir = os.getcwd()
+    print('CWD: ', current_dir)
     # Run Prometheus in docker
     docker_proc =  subprocess.Popen(['docker', 'compose', '-f', prometheus_docker_file_path, 'up', '-d'])
     docker_proc.wait()
@@ -100,6 +102,7 @@ def test_local_cluster(plugin_path, broker_path, broker_cfg_path, tool_path, pro
             print('Statistic check failed: ', e)
             return False
         finally:
+            os.chdir(current_dir)
             broker_proc.terminate()
             broker_proc.wait()
             docker_proc = subprocess.Popen(['docker', 'compose', '-f', prometheus_docker_file_path, 'down'])
