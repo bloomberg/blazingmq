@@ -25,7 +25,7 @@ from pathlib import Path
 
 import requests
 
-QUEUE_METRICS = ['queue_producers_count', 'queue_consumers_count', 'queue_put_msgs', 'queue_put_bytes', 'queue_push_msgs', 'queue_push_bytes', 'queue_ack_msgs']
+QUEUE_METRICS = ['queue_heartbeat', 'queue_producers_count', 'queue_consumers_count', 'queue_put_msgs', 'queue_put_bytes', 'queue_push_msgs', 'queue_push_bytes', 'queue_ack_msgs']
 QUEUE_PRIMARY_NODE_METRICS = ['queue_gc_msgs', 'queue_cfg_msgs', 'queue_content_msgs']
 CLUSTER_METRICS = ['cluster_healthiness']
 BROKER_METRICS = ['brkr_summary_queues_count', 'brkr_summary_clients_count']
@@ -44,9 +44,12 @@ def test_local_cluster(plugin_path, broker_path, broker_cfg_path, tool_path, pro
     docker_proc =  subprocess.Popen(['docker', 'compose', '-f', prometheus_docker_file_path, 'up', '-d'])
     docker_proc.wait()
 
+    # Create sandbox in temp folder
     with tempfile.TemporaryDirectory() as tmpdirname:
+        # Copy broker and plugins lib into sandbox
         shutil.copy(plugin_path.joinpath('libplugins.so'), tmpdirname)
         shutil.copy(broker_path.joinpath('bmqbrkr.tsk'), tmpdirname)
+        # Copy broker config folder into sandbox
         local_cfg_path = shutil.copytree(Path(broker_cfg_path), Path(tmpdirname).joinpath('localBMQ'))
 
         # Edit broker config for given mode
@@ -67,7 +70,7 @@ def test_local_cluster(plugin_path, broker_path, broker_cfg_path, tool_path, pro
 
         # Run broker
         os.chdir(tmpdirname)
-        broker_proc =  subprocess.Popen(['./bmqbrkr.tsk', 'localBMQ/etc'])
+        broker_proc = subprocess.Popen(['./bmqbrkr.tsk', 'localBMQ/etc'])
 
         try:
             # Wait until broker runs and cluster becomes healthy
@@ -100,7 +103,7 @@ def test_local_cluster(plugin_path, broker_path, broker_cfg_path, tool_path, pro
         finally:
             broker_proc.terminate()
             broker_proc.wait()
-            docker_proc =  subprocess.Popen(['docker', 'compose', '-f', prometheus_docker_file_path, 'down'])
+            docker_proc = subprocess.Popen(['docker', 'compose', '-f', prometheus_docker_file_path, 'down'])
             docker_proc.wait()
 
         return True
@@ -129,17 +132,11 @@ def _make_request(prometheus_url, params={}):
     return response.json()['data']
 
 
-
 def _check_initial_statistic(prometheus_url):
     all_metrics = QUEUE_METRICS + QUEUE_PRIMARY_NODE_METRICS + BROKER_METRICS
     for metric in all_metrics:
         response = _make_request(f'{prometheus_url}/api/v1/query', dict(query=metric))
         assert not response['result']  # must be empty
-    
-    response = _make_request(f'{prometheus_url}/api/v1/query', dict(query='cluster_healthiness'))
-    value  = response['result'][0]['value'][-1] if response['result'] else None
-    assert  value == '1', _assert_message('cluster_healthiness', '1', value) # ClusterStatus::e_CLUSTER_STATUS_HEALTHY
-
 
 def _check_statistic(prometheus_url):
     all_metrics = QUEUE_METRICS + QUEUE_PRIMARY_NODE_METRICS + BROKER_METRICS + CLUSTER_METRICS
@@ -147,7 +144,17 @@ def _check_statistic(prometheus_url):
         response = _make_request(f'{prometheus_url}/api/v1/query', dict(query=metric))
         value  = response['result'][0]['value'][-1] if response['result'] else None
         # Queue statistic
-        if metric == 'queue_producers_count':
+        if metric == 'queue_heartbeat':
+            # For first queue
+            assert value == '0', _assert_message(metric, '0', value)
+            labels = response['result'][0]['metric']
+            assert labels['Queue'] == 'first-queue', _assert_message(metric, 'first-queue', labels['Queue'])
+            # For second queue
+            value = response['result'][1]['value'][-1]
+            assert value == '0', _assert_message(metric, '0', value)
+            labels = response['result'][1]['metric']
+            assert labels['Queue'] == 'second-queue', _assert_message(metric, 'second-queue', labels['Queue'])
+        elif metric == 'queue_producers_count':
             assert value == '1', _assert_message(metric, '1', value)
         elif metric == 'queue_consumers_count':
             assert value is None, _assert_message(metric, 'None', value)
@@ -162,16 +169,28 @@ def _check_statistic(prometheus_url):
             labels = response['result'][1]['metric']
             assert labels['Queue'] == 'second-queue', _assert_message(metric, 'second-queue', labels['Queue'])
         elif metric == 'queue_put_bytes':
+            # For first queue
             assert value == '2048', _assert_message(metric, '2048', value)
+            # For second queue
+            value = response['result'][1]['value'][-1]
+            assert value == '1024', _assert_message(metric, '1024', value)
         elif metric == 'queue_push_msgs':
             assert value is None, _assert_message(metric, 'None', value)
         elif metric == 'queue_push_bytes':
             assert value is None, _assert_message(metric, 'None', value)
         elif metric == 'queue_ack_msgs':
+            # For first queue
             assert value == '2', _assert_message(metric, '2', value)
+            # For second queue
+            value = response['result'][1]['value'][-1]
+            assert value == '1', _assert_message(metric, '1', value)
         # Queue primary node statistic
         elif metric == 'queue_content_msgs':
+            # For first queue
             assert value == '2', _assert_message(metric, '2', value)
+            # For second queue
+            value = response['result'][1]['value'][-1]
+            assert value == '1', _assert_message(metric, '1', value)
         # Broker statistic
         elif metric == 'brkr_summary_queues_count':
             assert value == '2', _assert_message(metric, '2', value)
