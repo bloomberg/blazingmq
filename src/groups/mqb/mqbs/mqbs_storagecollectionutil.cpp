@@ -156,6 +156,31 @@ void StorageCollectionUtil::loadStorages(StorageList*       storages,
     }
 }
 
+namespace {
+
+template <class Predicate>
+struct Not1 {
+    Not1(const Predicate& predicate)
+    : d_predicate(predicate)
+    {
+    }
+
+    template <class Value>
+    bool operator()(const Value& value) const
+    {
+        return !d_predicate(value);
+    }
+    Predicate d_predicate;
+};
+
+template <class Predicate>
+Not1<Predicate> not_pred(const Predicate& predicate)
+{
+    return Not1<Predicate>(predicate);
+}
+
+}  // close anonymous namespace
+
 void StorageCollectionUtil::filterStorages(StorageList*         storages,
                                            const StorageFilter& filter)
 {
@@ -164,7 +189,7 @@ void StorageCollectionUtil::filterStorages(StorageList*         storages,
 
     StorageListIter iter = bsl::remove_if(storages->begin(),
                                           storages->end(),
-                                          bsl::not1(filter));
+                                          not_pred(filter));
     storages->erase(iter, storages->end());
 }
 
