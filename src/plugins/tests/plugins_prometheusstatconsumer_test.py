@@ -10,7 +10,6 @@ Usage: python3 plugins_prometheusstatconsumer_test.py [-h] -p PATH -u URL
 options:
   -h, --help            show this help message and exit
   -p PATH, --path PATH  absolute path to BlasingMQ folder
-  -u URL, --url URL     prometheus URL
  """
 
 import argparse
@@ -30,11 +29,11 @@ QUEUE_PRIMARY_NODE_METRICS = ['queue_gc_msgs', 'queue_cfg_msgs', 'queue_content_
 CLUSTER_METRICS = ['cluster_healthiness']
 BROKER_METRICS = ['brkr_summary_queues_count', 'brkr_summary_clients_count']
 
+PROMETHEUS_URL = 'http://localhost:9090'  # Must be in sync with docker/docker-compose.yml
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Integration tests for Prometheus plugin')
     parser.add_argument('-p', '--path', type=str, required=True, help="absolute path to BlasingMQ folder")
-    parser.add_argument('-u', '--url', type=str, required=True, help="prometheus URL")
 
     return parser.parse_args()
 
@@ -115,11 +114,10 @@ def main(args):
     broker_cfg_path = Path('localBMQ').absolute()
     tool_path = Path(args.path).joinpath('build/blazingmq/src/applications/bmqtool/bmqtool.tsk')
     plugin_path = Path(args.path).joinpath('build/blazingmq/src/plugins')
-    prometheus_url = args.url
 
     results = dict()
-    results['local_cluster_test_with_push_mode'] = test_local_cluster(plugin_path, broker_path, broker_cfg_path, tool_path, prometheus_url, prometheus_docker_file_path, 'push')
-    results['local_cluster_test_with_pull_mode'] = test_local_cluster(plugin_path, broker_path, broker_cfg_path, tool_path, prometheus_url, prometheus_docker_file_path, 'pull')
+    results['local_cluster_test_with_push_mode'] = test_local_cluster(plugin_path, broker_path, broker_cfg_path, tool_path, PROMETHEUS_URL, prometheus_docker_file_path, 'push')
+    results['local_cluster_test_with_pull_mode'] = test_local_cluster(plugin_path, broker_path, broker_cfg_path, tool_path, PROMETHEUS_URL, prometheus_docker_file_path, 'pull')
 
     print('\n\n\n========================================')
     for test, result in results.items():
