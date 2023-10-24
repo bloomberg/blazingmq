@@ -1,10 +1,22 @@
 #!/usr/bin/env python
 """Integration tests for BlazingMQ Prometheus plugin.
 
+Test plan:
+ - Test Prometheus plugin in 'push' mode:
+    - Run Prometheus (in docker);
+    - Run broker with local cluster and enabled Prometheus plugin in sandbox (temp folder);
+    - Put several messages into different queues;
+    - Request metrics from Prometheus and compare them with expected metric values.
+ - Test Prometheus plugin in 'pull' mode:
+    - Run Prometheus (in docker);
+    - Run broker with local cluster and enabled Prometheus plugin in sandbox (temp folder);
+    - Put several messages into different queues;
+    - Request metrics from Prometheus and compare them with expected metric values.
+
 Prerequisites:
-1. Python3 should be installed, the following python3 libs should be installed (e.g. 'pip install <package_name>'):
- - 'requests'  TODO: can be replaced with native http.client, but it is too low level
-2. Docker should be installed, user launching the test script must be included into the group 'docker'
+1. bmqbroker, bmqtool and plugins library should be built;
+2. Python3 should be installed;
+3. Docker should be installed, user launching the test script must be included into the group 'docker'.
 
 Usage: python3 plugins_prometheusstatconsumer_test.py [-h] -p PATH -u URL
 options:
@@ -13,36 +25,43 @@ options:
  """
 
 import argparse
+import http.client
 import json
 import os
+import shutil
 import subprocess
 import tempfile
 import time
-import shutil
-
+import urllib.parse
 from pathlib import Path
 
-import requests
 
-QUEUE_METRICS = ['queue_heartbeat', 'queue_producers_count', 'queue_consumers_count', 'queue_put_msgs', 'queue_put_bytes', 'queue_push_msgs', 'queue_push_bytes', 'queue_ack_msgs']
-QUEUE_PRIMARY_NODE_METRICS = ['queue_gc_msgs', 'queue_cfg_msgs', 'queue_content_msgs']
+QUEUE_METRICS = ['queue_heartbeat', 'queue_producers_count', 'queue_consumers_count', 'queue_put_msgs', 'queue_put_bytes',
+                 'queue_push_msgs', 'queue_push_bytes', 'queue_ack_msgs']
+QUEUE_PRIMARY_NODE_METRICS = ['queue_gc_msgs',
+                              'queue_cfg_msgs', 'queue_content_msgs']
 CLUSTER_METRICS = ['cluster_healthiness']
 BROKER_METRICS = ['brkr_summary_queues_count', 'brkr_summary_clients_count']
 
-PROMETHEUS_URL = 'http://localhost:9090'  # Must be in sync with docker/docker-compose.yml
+# Must be in sync with docker/docker-compose.yml
+PROMETHEUS_HOST = 'localhost:9090'
+
 
 def parse_arguments():
-    parser = argparse.ArgumentParser(description='Integration tests for Prometheus plugin')
-    parser.add_argument('-p', '--path', type=str, required=True, help="absolute path to BlasingMQ folder")
+    parser = argparse.ArgumentParser(
+        description='Integration tests for Prometheus plugin')
+    parser.add_argument('-p', '--path', type=str, required=True,
+                        help="absolute path to BlasingMQ folder")
 
     return parser.parse_args()
 
 
-def test_local_cluster(plugin_path, broker_path, broker_cfg_path, tool_path, prometheus_url, prometheus_docker_file_path, mode):
+def test_local_cluster(plugin_path, broker_path, broker_cfg_path, tool_path, prometheus_host, prometheus_docker_file_path, mode):
     current_dir = os.getcwd()
-    print('CWD: ', current_dir)
+
     # Run Prometheus in docker
-    docker_proc =  subprocess.Popen(['docker', 'compose', '-f', prometheus_docker_file_path, 'up', '-d'])
+    docker_proc = subprocess.Popen(
+        ['docker', 'compose', '-f', prometheus_docker_file_path, 'up', '-d'])
     docker_proc.wait()
 
     # Create sandbox in temp folder
@@ -51,7 +70,8 @@ def test_local_cluster(plugin_path, broker_path, broker_cfg_path, tool_path, pro
         shutil.copy(plugin_path.joinpath('libplugins.so'), tmpdirname)
         shutil.copy(broker_path.joinpath('bmqbrkr.tsk'), tmpdirname)
         # Copy broker config folder into sandbox
-        local_cfg_path = shutil.copytree(Path(broker_cfg_path), Path(tmpdirname).joinpath('localBMQ'))
+        local_cfg_path = shutil.copytree(
+            Path(broker_cfg_path), Path(tmpdirname).joinpath('localBMQ'))
 
         # Edit broker config for given mode
         local_cfg_file = Path(local_cfg_path.joinpath('etc/bmqbrkrcfg.json'))
@@ -76,86 +96,107 @@ def test_local_cluster(plugin_path, broker_path, broker_cfg_path, tool_path, pro
         try:
             # Wait until broker runs and cluster becomes healthy
             for attempt in range(20):
-                response = _make_request(f'{prometheus_url}/api/v1/query', dict(query='cluster_healthiness'))
-                value  = response['result'][0]['value'][-1] if response['result'] else None
+                response = _make_request(
+                    prometheus_host, '/api/v1/query', dict(query='cluster_healthiness'))
+                value = response['result'][0]['value'][-1] if response['result'] else None
                 if value == '1':
                     break
                 assert attempt < 19, 'cluster did not become healthy during 20 sec'
                 time.sleep(1)
 
             # Check initial statistic from Prometheus
-            _check_initial_statistic(prometheus_url)
+            _check_initial_statistic(prometheus_host)
 
             # Run bmqtool to open queue, put two messages and exit
-            tool_args = [tool_path, '--mode=auto', '-f', 'write', '-q', 'bmq://bmq.test.persistent.priority/first-queue', '--eventscount=2', '--shutdownGrace=2', '--verbosity=warning']
+            tool_args = [tool_path, '--mode=auto', '-f', 'write', '-q', 'bmq://bmq.test.persistent.priority/first-queue',
+                         '--eventscount=2', '--shutdownGrace=2', '--verbosity=warning']
             tool_proc = subprocess.Popen(tool_args)
             tool_proc.wait()
             # Run bmqtool to open another queue, put one message and exit
-            tool_args = [tool_path, '--mode=auto', '-f', 'write', '-q', 'bmq://bmq.test.persistent.priority/second-queue', '--eventscount=1', '--shutdownGrace=2', '--verbosity=warning']
+            tool_args = [tool_path, '--mode=auto', '-f', 'write', '-q', 'bmq://bmq.test.persistent.priority/second-queue',
+                         '--eventscount=1', '--shutdownGrace=2', '--verbosity=warning']
             tool_proc = subprocess.Popen(tool_args)
             tool_proc.wait()
 
             # Check current statistic from Prometheus
-            _check_statistic(prometheus_url)
+            _check_statistic(prometheus_host)
 
-        except AssertionError as e:
-            print('Statistic check failed: ', e)
+        except AssertionError as error:
+            print('Statistic check failed: ', error)
             return False
         finally:
             os.chdir(current_dir)
             broker_proc.terminate()
             broker_proc.wait()
-            docker_proc = subprocess.Popen(['docker', 'compose', '-f', prometheus_docker_file_path, 'down'])
+            docker_proc = subprocess.Popen(
+                ['docker', 'compose', '-f', prometheus_docker_file_path, 'down'])
             docker_proc.wait()
 
         return True
 
 
 def main(args):
-    prometheus_docker_file_path = Path(args.path).joinpath('src/plugins/tests/docker/docker-compose.yml')
-    broker_path = Path(args.path).joinpath('build/blazingmq/src/applications/bmqbrkr')
+    prometheus_docker_file_path = Path(args.path).joinpath(
+        'src/plugins/tests/docker/docker-compose.yml')
+    broker_path = Path(args.path).joinpath(
+        'build/blazingmq/src/applications/bmqbrkr')
     broker_cfg_path = Path(args.path).joinpath('src/plugins/tests/localBMQ')
-    tool_path = Path(args.path).joinpath('build/blazingmq/src/applications/bmqtool/bmqtool.tsk')
+    tool_path = Path(args.path).joinpath(
+        'build/blazingmq/src/applications/bmqtool/bmqtool.tsk')
     plugin_path = Path(args.path).joinpath('build/blazingmq/src/plugins')
 
     results = dict()
-    results['local_cluster_test_with_push_mode'] = test_local_cluster(plugin_path, broker_path, broker_cfg_path, tool_path, PROMETHEUS_URL, prometheus_docker_file_path, 'push')
-    results['local_cluster_test_with_pull_mode'] = test_local_cluster(plugin_path, broker_path, broker_cfg_path, tool_path, PROMETHEUS_URL, prometheus_docker_file_path, 'pull')
+    results['local_cluster_test_with_push_mode'] = test_local_cluster(
+        plugin_path, broker_path, broker_cfg_path, tool_path, PROMETHEUS_HOST, prometheus_docker_file_path, 'push')
+    results['local_cluster_test_with_pull_mode'] = test_local_cluster(
+        plugin_path, broker_path, broker_cfg_path, tool_path, PROMETHEUS_HOST, prometheus_docker_file_path, 'pull')
 
     print('\n\n\n========================================')
-    print(f'{len(results)} integration tests executed with following results')
+    print(f'{len(results)} integration tests executed with following results:')
     for test, result in results.items():
         print(f'{test} : {"passed" if result else "failed"}')
 
 
-def _make_request(prometheus_url, params={}):
-    response = requests.get(prometheus_url, params=params)
-    assert response.status_code == requests.codes.ok
-    return response.json()['data']
+def _make_request(host, url, params={}):
+    try:
+        conn = http.client.HTTPConnection(host)
+        url = f'{url}?{urllib.parse.urlencode(params)}' if params else url
+        conn.request('GET', url)
+        response = conn.getresponse()
+        assert response.status == 200
+        return json.loads(response.read().decode())['data']
+    finally:
+        conn.close()
 
 
-def _check_initial_statistic(prometheus_url):
+def _check_initial_statistic(prometheus_host):
     all_metrics = QUEUE_METRICS + QUEUE_PRIMARY_NODE_METRICS + BROKER_METRICS
     for metric in all_metrics:
-        response = _make_request(f'{prometheus_url}/api/v1/query', dict(query=metric))
+        response = _make_request(
+            prometheus_host, '/api/v1/query', dict(query=metric))
         assert not response['result']  # must be empty
 
-def _check_statistic(prometheus_url):
-    all_metrics = QUEUE_METRICS + QUEUE_PRIMARY_NODE_METRICS + BROKER_METRICS + CLUSTER_METRICS
+
+def _check_statistic(prometheus_host):
+    all_metrics = QUEUE_METRICS + QUEUE_PRIMARY_NODE_METRICS + \
+        BROKER_METRICS + CLUSTER_METRICS
     for metric in all_metrics:
-        response = _make_request(f'{prometheus_url}/api/v1/query', dict(query=metric))
-        value  = response['result'][0]['value'][-1] if response['result'] else None
+        response = _make_request(
+            prometheus_host, '/api/v1/query', dict(query=metric))
+        value = response['result'][0]['value'][-1] if response['result'] else None
         # Queue statistic
         if metric == 'queue_heartbeat':
             # For first queue
             assert value == '0', _assert_message(metric, '0', value)
             labels = response['result'][0]['metric']
-            assert labels['Queue'] == 'first-queue', _assert_message(metric, 'first-queue', labels['Queue'])
+            assert labels['Queue'] == 'first-queue', _assert_message(
+                metric, 'first-queue', labels['Queue'])
             # For second queue
             value = response['result'][1]['value'][-1]
             assert value == '0', _assert_message(metric, '0', value)
             labels = response['result'][1]['metric']
-            assert labels['Queue'] == 'second-queue', _assert_message(metric, 'second-queue', labels['Queue'])
+            assert labels['Queue'] == 'second-queue', _assert_message(
+                metric, 'second-queue', labels['Queue'])
         elif metric == 'queue_producers_count':
             assert value == '1', _assert_message(metric, '1', value)
         elif metric == 'queue_consumers_count':
@@ -164,12 +205,14 @@ def _check_statistic(prometheus_url):
             # For first queue
             assert value == '2', _assert_message(metric, '2', value)
             labels = response['result'][0]['metric']
-            assert labels['Queue'] == 'first-queue', _assert_message(metric, 'first-queue', labels['Queue'])
+            assert labels['Queue'] == 'first-queue', _assert_message(
+                metric, 'first-queue', labels['Queue'])
             # For second queue
             value = response['result'][1]['value'][-1]
             assert value == '1', _assert_message(metric, '1', value)
             labels = response['result'][1]['metric']
-            assert labels['Queue'] == 'second-queue', _assert_message(metric, 'second-queue', labels['Queue'])
+            assert labels['Queue'] == 'second-queue', _assert_message(
+                metric, 'second-queue', labels['Queue'])
         elif metric == 'queue_put_bytes':
             # For first queue
             assert value == '2048', _assert_message(metric, '2048', value)
@@ -199,7 +242,7 @@ def _check_statistic(prometheus_url):
         elif metric == 'brkr_summary_clients_count':
             assert value == '1', _assert_message(metric, '1', value)
         # Cluster statistic
-        elif metric == 'cluster_healthiness': # ClusterStatus::e_CLUSTER_STATUS_HEALTHY
+        elif metric == 'cluster_healthiness':  # ClusterStatus::e_CLUSTER_STATUS_HEALTHY
             assert value == '1', _assert_message(metric, '1', value)
 
 
