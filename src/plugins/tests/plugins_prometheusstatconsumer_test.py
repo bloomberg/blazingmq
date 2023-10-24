@@ -111,7 +111,7 @@ def test_local_cluster(plugin_path, broker_path, broker_cfg_path, tool_path, pro
 def main(args):
     prometheus_docker_file_path = Path(args.path).joinpath('src/plugins/tests/docker/docker-compose.yml')
     broker_path = Path(args.path).joinpath('build/blazingmq/src/applications/bmqbrkr')
-    broker_cfg_path = Path('localBMQ').absolute()
+    broker_cfg_path = Path(args.path).joinpath('src/plugins/tests/localBMQ')
     tool_path = Path(args.path).joinpath('build/blazingmq/src/applications/bmqtool/bmqtool.tsk')
     plugin_path = Path(args.path).joinpath('build/blazingmq/src/plugins')
 
@@ -120,6 +120,7 @@ def main(args):
     results['local_cluster_test_with_pull_mode'] = test_local_cluster(plugin_path, broker_path, broker_cfg_path, tool_path, PROMETHEUS_URL, prometheus_docker_file_path, 'pull')
 
     print('\n\n\n========================================')
+    print(f'{len(results)} integration tests executed with following results')
     for test, result in results.items():
         print(f'{test} : {"passed" if result else "failed"}')
 
