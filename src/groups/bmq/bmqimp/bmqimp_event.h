@@ -797,9 +797,8 @@ inline bmqp::PutEventBuilder* Event::putEventBuilder()
     return &(d_putEventBuilderBuffer.object());
 }
 
-inline void Event::addCorrelationId(
-        const bmqt::CorrelationId& correlationId,
-        unsigned int               subscriptionHandleId)
+inline void Event::addCorrelationId(const bmqt::CorrelationId& correlationId,
+                                    unsigned int subscriptionHandleId)
 {
     // TODO: when ACK event is created locally we have to fill d_correlationIds
     //       before the raw ACK 'bmqp::Event' is created and may be used to
@@ -812,9 +811,7 @@ inline void Event::addCorrelationId(
     // BSLS_ASSERT_SAFE(d_rawEvent.isAckEvent());
 
     d_correlationIds.push_back(
-            bsl::make_pair(
-                    correlationId,
-                    subscriptionHandleId));
+        bsl::make_pair(correlationId, subscriptionHandleId));
 }
 
 }  // close package namespace

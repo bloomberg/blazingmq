@@ -3533,10 +3533,9 @@ void BrokerSession::processPushEvent(const bmqp::Event& event)
             bmqt::CorrelationId         correlationId;
             unsigned int                subscriptionHandleId;
             const QueueManager::QueueSp queue =
-                    d_queueManager.observePushEvent(
-                            &correlationId,
-                            &subscriptionHandleId,
-                            *citer);
+                d_queueManager.observePushEvent(&correlationId,
+                                                &subscriptionHandleId,
+                                                *citer);
 
             BSLS_ASSERT(queue);
             queueEvent->insertQueue(citer->d_subscriptionId, queue);
@@ -3545,9 +3544,7 @@ void BrokerSession::processPushEvent(const bmqp::Event& event)
             // 'citer->d_subscriptionId' so that
             // 'bmqimp::Event::subscriptionId()' returns 'subscriptionHandle'
 
-            queueEvent->addCorrelationId(
-                    correlationId,
-                    subscriptionHandleId);
+            queueEvent->addCorrelationId(correlationId, subscriptionHandleId);
         }
 
         // Update event bytes
@@ -5275,10 +5272,9 @@ BrokerSession::createConfigureQueueContext(const bsl::shared_ptr<Queue>& queue,
             subscription.expression().text()    = from.expression().text();
 
             streamParams.subscriptions().emplace_back(subscription);
-            queue->registerInternalSubscriptionId(
-                    internalSubscriptionId,
-                    cit->first.id(),
-                    cit->first.correlationId());
+            queue->registerInternalSubscriptionId(internalSubscriptionId,
+                                                  cit->first.id(),
+                                                  cit->first.correlationId());
         }
         return context;  // RETURN
     }
@@ -5314,10 +5310,9 @@ BrokerSession::createConfigureQueueContext(const bsl::shared_ptr<Queue>& queue,
         streamParams.consumerPriority()      = options.consumerPriority();
         streamParams.consumerPriorityCount() = 1;
 
-        queue->registerInternalSubscriptionId(
-                queue->subQueueId(),
-                queue->subQueueId(),
-                bmqt::CorrelationId());
+        queue->registerInternalSubscriptionId(queue->subQueueId(),
+                                              queue->subQueueId(),
+                                              bmqt::CorrelationId());
     }
 
     return context;
@@ -6140,7 +6135,7 @@ void BrokerSession::onConfigureQueueResponse(
                              res == bmqt::GenericResult::e_NOT_CONNECTED ||
                              res == bmqt::GenericResult::e_NOT_SUPPORTED);
 
-            (void) res;
+            (void)res;
             BALL_LOG_INFO << "Ignore cancelled request: "
                           << context->request();
             return;  // RETURN

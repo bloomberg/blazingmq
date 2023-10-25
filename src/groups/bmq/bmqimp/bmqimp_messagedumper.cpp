@@ -346,11 +346,10 @@ void MessageDumper::dumpPushEvent(bsl::ostream& out, const bmqp::Event& event)
         iter.extractQueueInfo(&qId, &subscriptionId, &rdaInfo);
 
         QueueManager::QueueSp queue =
-            d_queueManager_p->lookupQueueBySubscriptionId(
-                    &correlationId,
-                    &subscriptionHandle,
-                    qId,
-                    subscriptionId);
+            d_queueManager_p->lookupQueueBySubscriptionId(&correlationId,
+                                                          &subscriptionHandle,
+                                                          qId,
+                                                          subscriptionId);
         BSLS_ASSERT_SAFE(queue);
 
         out << "PUSH Message #" << ++msgNum << ": "

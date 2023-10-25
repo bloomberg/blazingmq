@@ -151,7 +151,7 @@ class QueueManager {
   public:
     // TYPES
 
-    typedef bsl::shared_ptr<Queue> QueueSp;
+    typedef bsl::shared_ptr<Queue>                       QueueSp;
     typedef bsl::pair<unsigned int, bmqt::CorrelationId> SubscriptionUandle;
 
     struct QueueBySubscription {
@@ -161,9 +161,8 @@ class QueueManager {
         // The Subscription correlationId as
         // specified in the configure request.
 
-        QueueBySubscription(
-                unsigned int                     internalSubscriptionId,
-                const bsl::shared_ptr<Queue>&     queue);
+        QueueBySubscription(unsigned int internalSubscriptionId,
+                            const bsl::shared_ptr<Queue>& queue);
     };
 
     /// Subscription id -> {Queue, Subscription correlationId}
@@ -247,11 +246,10 @@ class QueueManager {
     /// successful lookup Load the Subscription correlationId into the
     /// specified `correlationId`.
     QueueSp
-    lookupQueueBySubscriptionIdLocked(
-            bmqt::CorrelationId *correlationId,
-            unsigned int        *subscriptionHandleId,
-            int                  qid,
-            unsigned int         innerSubscriptionId) const;
+    lookupQueueBySubscriptionIdLocked(bmqt::CorrelationId* correlationId,
+                                      unsigned int* subscriptionHandleId,
+                                      int           qid,
+                                      unsigned int  innerSubscriptionId) const;
 
   public:
     // TRAITS
@@ -312,10 +310,9 @@ class QueueManager {
                     bool* hasMessageWithMultipleSubQueueIds,
                     const bmqp::PushMessageIterator& iterator);
 
-    const QueueSp observePushEvent(
-            bmqt::CorrelationId             *correlationId,
-            unsigned int                    *subscriptionHandle,
-            const bmqp::EventUtilQueueInfo&  info);
+    const QueueSp observePushEvent(bmqt::CorrelationId* correlationId,
+                                   unsigned int*        subscriptionHandle,
+                                   const bmqp::EventUtilQueueInfo& info);
 
     /// Update stats for the queue(s) corresponding to the messages pointed
     /// to by the specified `iterator` and populate the specified
@@ -343,9 +340,8 @@ class QueueManager {
     /// object.
     void resetSubStreamCount(const bsl::string& canonicalUri);
 
-    void updateSubscriptions(
-            const bsl::shared_ptr<Queue>&            queue,
-            const bmqp_ctrlmsg::StreamParameters&     config);
+    void updateSubscriptions(const bsl::shared_ptr<Queue>&         queue,
+                             const bmqp_ctrlmsg::StreamParameters& config);
 
     // ACCESSORS
     QueueSp lookupQueue(const bmqt::Uri& uri) const;
@@ -355,11 +351,10 @@ class QueueManager {
     /// Lookup the queue with the specified `queueId`, or `uri`, or
     /// `correlationId`, and return a shared pointer to the Queue object (if
     /// found), or an empty shared pointer (if not found).
-    QueueSp lookupQueueBySubscriptionId(
-            bmqt::CorrelationId* correlationId,
-            unsigned int        *subscriptionHandle,
-            int                  queueId,
-            unsigned int subscriptionId) const;
+    QueueSp lookupQueueBySubscriptionId(bmqt::CorrelationId* correlationId,
+                                        unsigned int* subscriptionHandle,
+                                        int           queueId,
+                                        unsigned int  subscriptionId) const;
 
     // TBD: Temporary method to enable refactoring of 'BrokerSession'.
     //      Specifically, reopen logic in 'BrokerSession::processPacket'.
@@ -386,11 +381,11 @@ class QueueManager {
 // ----------------------------------------
 
 inline QueueManager::QueueBySubscription::QueueBySubscription(
-        unsigned int                     internalSubscriptionId,
-        const bsl::shared_ptr<Queue>&     queue)
+    unsigned int                  internalSubscriptionId,
+    const bsl::shared_ptr<Queue>& queue)
 : d_queue(queue)
 , d_subscriptionHandle(
-        queue->extractSubscriptionHandle(internalSubscriptionId))
+      queue->extractSubscriptionHandle(internalSubscriptionId))
 {
     // NOTHING
 }
@@ -441,20 +436,18 @@ QueueManager::lookupQueue(const bmqp::QueueId& queueId) const
     return lookupQueueLocked(queueId);
 }
 
-inline QueueManager::QueueSp
-QueueManager::lookupQueueBySubscriptionId(
-        bmqt::CorrelationId* correlationId,
-        unsigned int        *subscriptionHandle,
-        int                  queueId,
-        unsigned int         internalSubscriptionId) const
+inline QueueManager::QueueSp QueueManager::lookupQueueBySubscriptionId(
+    bmqt::CorrelationId* correlationId,
+    unsigned int*        subscriptionHandle,
+    int                  queueId,
+    unsigned int         internalSubscriptionId) const
 {
     bsls::SpinLockGuard guard(&d_queuesLock);  // d_queuesLock LOCKED
 
-    return lookupQueueBySubscriptionIdLocked(
-            correlationId,
-            subscriptionHandle,
-            queueId,
-            internalSubscriptionId);
+    return lookupQueueBySubscriptionIdLocked(correlationId,
+                                             subscriptionHandle,
+                                             queueId,
+                                             internalSubscriptionId);
 }
 
 }  // close package namespace

@@ -66,10 +66,10 @@ QueueManager::lookupQueueLocked(const bmqp::QueueId& queueId) const
 }
 
 QueueManager::QueueSp QueueManager::lookupQueueBySubscriptionIdLocked(
-        bmqt::CorrelationId *correlationId,
-        unsigned int        *subscriptionHandleId,
-        int                  qId,
-        unsigned int         internalSubscriptionId) const
+    bmqt::CorrelationId* correlationId,
+    unsigned int*        subscriptionHandleId,
+    int                  qId,
+    unsigned int         internalSubscriptionId) const
 {
     // PRECONDITIONS
     // d_queuesLock locked
@@ -87,8 +87,8 @@ QueueManager::QueueSp QueueManager::lookupQueueBySubscriptionIdLocked(
     // lookup by 'subscriptionId'
     SubscriptionId id(qId, internalSubscriptionId);
 
-    QueuesBySubscriptions::const_iterator cit =
-            d_queuesBySubscriptionIds.find(id);
+    QueuesBySubscriptions::const_iterator cit = d_queuesBySubscriptionIds.find(
+        id);
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
             cit == d_queuesBySubscriptionIds.end())) {
@@ -98,8 +98,8 @@ QueueManager::QueueSp QueueManager::lookupQueueBySubscriptionIdLocked(
 
     BSLS_ASSERT_SAFE(cit->second.d_queue);
 
-    *subscriptionHandleId   = cit->second.d_subscriptionHandle.first;
-    *correlationId          = cit->second.d_subscriptionHandle.second;
+    *subscriptionHandleId = cit->second.d_subscriptionHandle.first;
+    *correlationId        = cit->second.d_subscriptionHandle.second;
 
     return cit->second.d_queue;
 }
@@ -289,10 +289,9 @@ void QueueManager::resetState()
 }
 
 const QueueManager::QueueSp
-QueueManager::observePushEvent(
-        bmqt::CorrelationId             *correlationId,
-        unsigned int                    *subscriptionHandle,
-        const bmqp::EventUtilQueueInfo&  info)
+QueueManager::observePushEvent(bmqt::CorrelationId* correlationId,
+                               unsigned int*        subscriptionHandle,
+                               const bmqp::EventUtilQueueInfo& info)
 {
     // Update stats
     const QueueSp queue = lookupQueueBySubscriptionIdLocked(
@@ -497,8 +496,8 @@ void QueueManager::resetSubStreamCount(const bsl::string& canonicalUri)
 }
 
 void QueueManager::updateSubscriptions(
-    const bsl::shared_ptr<Queue>&            queue,
-    const bmqp_ctrlmsg::StreamParameters&    config)
+    const bsl::shared_ptr<Queue>&         queue,
+    const bmqp_ctrlmsg::StreamParameters& config)
 {
     BSLS_ASSERT_SAFE(queue);
 
@@ -506,28 +505,19 @@ void QueueManager::updateSubscriptions(
 
     for (size_t i = 0; i < previous.subscriptions().size(); ++i) {
         unsigned int internalSubscriptionId =
-                previous.subscriptions()[i].sId();
+            previous.subscriptions()[i].sId();
 
-        SubscriptionId id(
-                queue->id(),
-                internalSubscriptionId);
+        SubscriptionId id(queue->id(), internalSubscriptionId);
 
         d_queuesBySubscriptionIds.erase(id);
     }
 
     for (size_t i = 0; i < config.subscriptions().size(); ++i) {
+        unsigned int internalSubscriptionId = config.subscriptions()[i].sId();
 
-        unsigned int internalSubscriptionId =
-                config.subscriptions()[i].sId();
-
-        d_queuesBySubscriptionIds.insert(
-                bsl::make_pair(
-                        SubscriptionId(
-                                queue->id(),
-                                internalSubscriptionId),
-                        QueueBySubscription(
-                                internalSubscriptionId,
-                                queue)));
+        d_queuesBySubscriptionIds.insert(bsl::make_pair(
+            SubscriptionId(queue->id(), internalSubscriptionId),
+            QueueBySubscription(internalSubscriptionId, queue)));
     }
 }
 
