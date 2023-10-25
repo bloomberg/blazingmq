@@ -727,7 +727,7 @@ int StatContext::valueIndex(const bslstl::StringRef& name) const
 {
     for (size_t i = 0; i < d_valueDefs_p->size(); ++i) {
         if ((*d_valueDefs_p)[i].d_name == name) {
-            return (int)i;
+            return static_cast<int>(i);
         }
     }
 

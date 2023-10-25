@@ -404,7 +404,8 @@ BasicTableInfoProvider::addColumn(const bslstl::StringRef& tableColumnName,
     ColumnFormat& column = d_columns.back();
 
     if (!d_columnGroups.empty()) {
-        column.d_columnGroupIndex = (int)d_columnGroups.size() - 1;
+        column.d_columnGroupIndex = static_cast<int>(d_columnGroups.size()) -
+                                    1;
     }
 
     return column;
@@ -421,10 +422,10 @@ int BasicTableInfoProvider::numRows() const
 int BasicTableInfoProvider::numColumns(int level) const
 {
     if (level == 0) {
-        return (int)d_columns.size();
+        return static_cast<int>(d_columns.size());
     }
     else {
-        return (int)d_columnGroups.size();
+        return static_cast<int>(d_columnGroups.size());
     }
 }
 

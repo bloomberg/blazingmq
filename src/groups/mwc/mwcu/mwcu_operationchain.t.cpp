@@ -176,7 +176,7 @@ struct ThrowException {
 
     // ACCESSORS
     BSLS_ANNOTATION_NORETURN
-    void operator()() const { throw int(42); }
+    void operator()() const { throw static_cast<int>(42); }
 };
 
 // ====================
