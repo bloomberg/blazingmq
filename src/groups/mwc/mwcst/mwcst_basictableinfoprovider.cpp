@@ -404,7 +404,8 @@ BasicTableInfoProvider::addColumn(const bslstl::StringRef& tableColumnName,
     ColumnFormat& column = d_columns.back();
 
     if (!d_columnGroups.empty()) {
-        column.d_columnGroupIndex = static_cast<int>(d_columnGroups.size()) - 1;
+        column.d_columnGroupIndex = static_cast<int>(d_columnGroups.size()) -
+                                    1;
     }
 
     return column;
