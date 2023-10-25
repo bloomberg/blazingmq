@@ -172,6 +172,11 @@ struct QueueStatsUtil {
 
 /// Representation of a Queue (properties, stats, state, ...)
 class Queue {
+  public:
+    // PUBLIC TYPES
+    typedef bsl::pair<unsigned int, bmqt::CorrelationId>    SubscriptionHandle;
+        // Not using private 'bmqt::SubscriptionHandle' ctor
+
   private:
     // DATA
     bslma::Allocator* d_allocator_p;
@@ -256,6 +261,13 @@ class Queue {
 
     bmqp_ctrlmsg::StreamParameters d_config;
 
+    bsl::unordered_map<unsigned int, SubscriptionHandle>
+                                d_registeredInternalSubscriptionIds;
+        // This keeps SubscriptionHandle (id and CorrelationId) for Configure
+        // response processing.
+        // Supporting multiple concurrent Configure requests.
+        // TODO: This should go into ConfigureRequest context.
+
   private:
     // NOT IMPLEMENTED
 
@@ -324,6 +336,20 @@ class Queue {
     /// when this queue is closed, after the session has been stopped to
     /// reinitialize the state before a new start).
     void clearStatContext();
+
+    void registerInternalSubscriptionId(
+            unsigned int                internalSubscriptionId,
+            unsigned int                subscriptionHandleId,
+            const bmqt::CorrelationId&  correlationId);
+        // Keep the specified 'subscriptionHandleId' and 'correlationId'
+        // associated with the specified 'internalSubscriptionId' between
+        // Configure request and Configure response (until
+        // 'extractSubscriptionHandle').
+
+    SubscriptionHandle extractSubscriptionHandle(
+            unsigned int internalSubscriptionId);
+        // Lookup, copy, erase, and return the copy of what was registered
+        // by 'registerInternalSubscriptionId'.
 
     // ACCESSORS
 
@@ -526,6 +552,35 @@ inline Queue& Queue::setConfig(const bmqp_ctrlmsg::StreamParameters& value)
 {
     d_config = value;
     return *this;
+}
+
+inline
+void Queue::registerInternalSubscriptionId(
+        unsigned int                internalSubscriptionId,
+        unsigned int                subscriptionHandleId,
+        const bmqt::CorrelationId&  correlationId)
+{
+    d_registeredInternalSubscriptionIds.emplace(
+            internalSubscriptionId,
+            SubscriptionHandle(subscriptionHandleId, correlationId));
+}
+
+inline
+Queue::SubscriptionHandle
+Queue::extractSubscriptionHandle(unsigned int internalSubscriptionId)
+{
+    bsl::unordered_map<unsigned int, SubscriptionHandle>::const_iterator
+    cit = d_registeredInternalSubscriptionIds.find(internalSubscriptionId);
+
+    if (cit == d_registeredInternalSubscriptionIds.end()) {
+        return {internalSubscriptionId, bmqt::CorrelationId()};       // RETURN
+    }
+
+    SubscriptionHandle result(cit->second);
+
+    d_registeredInternalSubscriptionIds.erase(cit);
+
+    return result;
 }
 
 // ACCESSORS

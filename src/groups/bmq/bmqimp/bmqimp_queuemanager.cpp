@@ -66,14 +66,15 @@ QueueManager::lookupQueueLocked(const bmqp::QueueId& queueId) const
 }
 
 QueueManager::QueueSp QueueManager::lookupQueueBySubscriptionIdLocked(
-    bmqt::CorrelationId* correlationId,
-    int                  qId,
-    unsigned int         sid) const
+        bmqt::CorrelationId *correlationId,
+        unsigned int        *subscriptionHandleId,
+        int                  qId,
+        unsigned int         internalSubscriptionId) const
 {
     // PRECONDITIONS
     // d_queuesLock locked
 
-    if (sid == bmqp::Protocol::k_DEFAULT_SUBSCRIPTION_ID) {
+    if (internalSubscriptionId == bmqp::Protocol::k_DEFAULT_SUBSCRIPTION_ID) {
         // Look up by 'bmqp::QueueId'
         const QueueSp& result = lookupQueueLocked(bmqp::QueueId(qId));
 
@@ -84,22 +85,21 @@ QueueManager::QueueSp QueueManager::lookupQueueBySubscriptionIdLocked(
         return result;
     }
     // lookup by 'subscriptionId'
-    SubscriptionId id(qId, sid);
+    SubscriptionId id(qId, internalSubscriptionId);
 
-    QueuesBySubscriptions::const_iterator cit = d_queuesBySubscriptionIds.find(
-        id);
+    QueuesBySubscriptions::const_iterator cit =
+            d_queuesBySubscriptionIds.find(id);
+
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
             cit == d_queuesBySubscriptionIds.end())) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
         return QueueSp();  // RETURN
     }
-    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!cit->second.d_isCommited)) {
-        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        return QueueSp();  // RETURN
-    }
+
     BSLS_ASSERT_SAFE(cit->second.d_queue);
 
-    *correlationId = cit->second.d_correlatonId;
+    *subscriptionHandleId   = cit->second.d_subscriptionHandle.first;
+    *correlationId          = cit->second.d_subscriptionHandle.second;
 
     return cit->second.d_queue;
 }
@@ -226,17 +226,6 @@ QueueManager::QueueSp QueueManager::removeQueue(const Queue* queue)
         (void)numErasedUris;  // Compiler happiness
     }
 
-    bmqt::QueueOptions::SubscriptionsSnapshot snapshot(d_allocator_p);
-    queueSp->options().loadSubscriptions(&snapshot);
-
-    for (bmqt::QueueOptions::SubscriptionsSnapshot::const_iterator cit =
-             snapshot.begin();
-         cit != snapshot.end();
-         ++cit) {
-        SubscriptionId id(queue->id(), cit->first.id());
-        d_queuesBySubscriptionIds.erase(id);
-    }
-
     return queueSp;
 }
 
@@ -300,12 +289,15 @@ void QueueManager::resetState()
 }
 
 const QueueManager::QueueSp
-QueueManager::observePushEvent(bmqt::CorrelationId*            correlationId,
-                               const bmqp::EventUtilQueueInfo& info)
+QueueManager::observePushEvent(
+        bmqt::CorrelationId             *correlationId,
+        unsigned int                    *subscriptionHandle,
+        const bmqp::EventUtilQueueInfo&  info)
 {
     // Update stats
     const QueueSp queue = lookupQueueBySubscriptionIdLocked(
         correlationId,
+        subscriptionHandle,
         info.d_header.queueId(),
         info.d_subscriptionId);
 
@@ -504,54 +496,39 @@ void QueueManager::resetSubStreamCount(const bsl::string& canonicalUri)
     uriIter->second.d_subStreamCount = 0;
 }
 
-void QueueManager::registerSubscription(
-    const bsl::shared_ptr<Queue>& queue,
-    unsigned int                  subscriptionId,
-    const bmqt::CorrelationId&    correlationId)
+void QueueManager::updateSubscriptions(
+    const bsl::shared_ptr<Queue>&            queue,
+    const bmqp_ctrlmsg::StreamParameters&    config)
 {
     BSLS_ASSERT_SAFE(queue);
 
-    d_queuesBySubscriptionIds.insert(
-        bsl::make_pair(SubscriptionId(queue->id(), subscriptionId),
-                       QueueBySubscription(queue, correlationId)));
-}
-
-void QueueManager::updateSubscriptions(
-    const bsl::shared_ptr<Queue>&         queue,
-    const bmqp_ctrlmsg::StreamParameters& config)
-{
     const bmqp_ctrlmsg::StreamParameters& previous = queue->config();
 
     for (size_t i = 0; i < previous.subscriptions().size(); ++i) {
-        SubscriptionId id(queue->id(), previous.subscriptions()[i].sId());
+        unsigned int internalSubscriptionId =
+                previous.subscriptions()[i].sId();
 
-        QueuesBySubscriptions::iterator it = d_queuesBySubscriptionIds.find(
-            id);
-        if (it != d_queuesBySubscriptionIds.end()) {
-            it->second.d_isCommited = false;
-        }
-        // For backward compatibility, allow missing 'registerSubscription'
-        // in which case Subscription Correlation Id will be empty.
+        SubscriptionId id(
+                queue->id(),
+                internalSubscriptionId);
+
+        d_queuesBySubscriptionIds.erase(id);
     }
+
     for (size_t i = 0; i < config.subscriptions().size(); ++i) {
-        SubscriptionId id(queue->id(), config.subscriptions()[i].sId());
-        QueuesBySubscriptions::iterator it = d_queuesBySubscriptionIds.find(
-            id);
-        if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
-                it == d_queuesBySubscriptionIds.end())) {
-            // For backward compatibility, allow missing 'registerSubscription'
-            // in which case Subscription Correlation Id will be empty.
 
-            it = d_queuesBySubscriptionIds
-                     .insert(bsl::make_pair(
-                         id,
-                         QueueBySubscription(queue, bmqt::CorrelationId())))
-                     .first;
-        }
+        unsigned int internalSubscriptionId =
+                config.subscriptions()[i].sId();
 
-        it->second.d_isCommited = true;
+        d_queuesBySubscriptionIds.insert(
+                bsl::make_pair(
+                        SubscriptionId(
+                                queue->id(),
+                                internalSubscriptionId),
+                        QueueBySubscription(
+                                internalSubscriptionId,
+                                queue)));
     }
-    // 'QueueManager::removeQueue' cleans 'd_queuesBySubscriptionIds'
 }
 
 // ACCESSORS

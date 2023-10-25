@@ -545,12 +545,16 @@ void Tester::registerSubscription(const bslstl::StringRef&   uri,
                                   unsigned int               subscriptionId,
                                   const bmqt::CorrelationId& correlationId)
 {
-    const bmqimp::QueueManager::QueueSp& queue = d_queueManager.lookupQueue(
-        uri);
+    const bmqimp::QueueManager::QueueSp& queue =
+            d_queueManager.lookupQueue(
+                    uri);
 
     BSLS_ASSERT_SAFE(queue);
 
-    d_queueManager.registerSubscription(queue, subscriptionId, correlationId);
+    queue->registerInternalSubscriptionId(
+            subscriptionId,
+            subscriptionId,
+            correlationId);
 }
 
 void Tester::updateSubscriptions(const bslstl::StringRef&              uri,

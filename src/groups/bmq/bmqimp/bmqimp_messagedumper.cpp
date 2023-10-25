@@ -341,13 +341,16 @@ void MessageDumper::dumpPushEvent(bsl::ostream& out, const bmqp::Event& event)
         unsigned int        subscriptionId;
         bmqp::RdaInfo       rdaInfo;
         bmqt::CorrelationId correlationId;
+        unsigned int        subscriptionHandle;
 
         iter.extractQueueInfo(&qId, &subscriptionId, &rdaInfo);
 
         QueueManager::QueueSp queue =
-            d_queueManager_p->lookupQueueBySubscriptionId(&correlationId,
-                                                          qId,
-                                                          subscriptionId);
+            d_queueManager_p->lookupQueueBySubscriptionId(
+                    &correlationId,
+                    &subscriptionHandle,
+                    qId,
+                    subscriptionId);
         BSLS_ASSERT_SAFE(queue);
 
         out << "PUSH Message #" << ++msgNum << ": "
