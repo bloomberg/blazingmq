@@ -43,7 +43,7 @@ const int Subscription::k_DEFAULT_CONSUMER_PRIORITY        = 0;
 
 unsigned int SubscriptionHandle::nextId()
 {
-    static bsls::AtomicUint s_id = 0;
+    static bsls::AtomicUint s_id = k_INVALID_HANDLE_ID;
 
     return ++s_id;
 }

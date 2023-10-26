@@ -411,6 +411,7 @@ struct Protocol {
     // RemainingDeliveryAttempts counter value.
 
     static const unsigned int k_DEFAULT_SUBSCRIPTION_ID = 0;
+    // Internal unique id in Configure request
 
     // CLASS METHODS
 

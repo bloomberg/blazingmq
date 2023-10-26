@@ -64,6 +64,10 @@ class SubscriptionHandle {
     friend class bmqa::MessageImpl;
     friend class bmqa::MessageIterator;
 
+  public:
+    static const unsigned int k_INVALID_HANDLE_ID = 0;
+    // Initial (invalid) value for 'bmqt::SubscriptionHandle::d_id'
+
   private:
     // PRIVATE DATA
     unsigned int d_id;
@@ -281,7 +285,7 @@ bsl::ostream& operator<<(bsl::ostream& stream, const Subscription& rhs);
 // ----------------------
 
 inline SubscriptionHandle::SubscriptionHandle()
-: d_id(0)
+: d_id(k_INVALID_HANDLE_ID)
 , d_correlationId()
 {
     // NOTHING

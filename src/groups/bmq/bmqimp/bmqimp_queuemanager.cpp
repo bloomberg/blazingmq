@@ -290,13 +290,13 @@ void QueueManager::resetState()
 
 const QueueManager::QueueSp
 QueueManager::observePushEvent(bmqt::CorrelationId* correlationId,
-                               unsigned int*        subscriptionHandle,
+                               unsigned int*        subscriptionHandleId,
                                const bmqp::EventUtilQueueInfo& info)
 {
     // Update stats
     const QueueSp queue = lookupQueueBySubscriptionIdLocked(
         correlationId,
-        subscriptionHandle,
+        subscriptionHandleId,
         info.d_header.queueId(),
         info.d_subscriptionId);
 

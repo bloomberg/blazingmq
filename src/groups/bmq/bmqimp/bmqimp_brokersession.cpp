@@ -5245,9 +5245,8 @@ BrokerSession::createConfigureQueueContext(const bsl::shared_ptr<Queue>& queue,
 
             bmqp_ctrlmsg::Subscription subscription(d_allocator_p);
 
-            static bsls::AtomicUint s_nextId(0);
-
-            unsigned int internalSubscriptionId = s_nextId.add(1);
+            const unsigned int internalSubscriptionId =
+                ++d_nextInternalSubscriptionId;
 
             subscription.sId() = internalSubscriptionId;
             // Using unique id instead of 'SubscriptionHandle::id()'
@@ -5636,6 +5635,7 @@ BrokerSession::BrokerSession(
 , d_messageExpirationTimeoutHandle()
 , d_nextRequestGroupId(k_NON_BUFFERED_REQUEST_GROUP_ID)
 , d_queueRetransmissionTimeoutMap(allocator)
+, d_nextInternalSubscriptionId(bmqp::Protocol::k_DEFAULT_SUBSCRIPTION_ID)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_scheduler_p->clockType() ==

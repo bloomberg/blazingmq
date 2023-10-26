@@ -501,7 +501,7 @@ class Event {
     /// underlying raw event is of type ACK, PUT or PUSH.
     void addCorrelationId(const bmqt::CorrelationId& correlationId,
                           unsigned int               subscriptionHandleId =
-                              bmqp::Protocol::k_DEFAULT_SUBSCRIPTION_ID);
+                              bmqt::SubscriptionHandle::k_INVALID_HANDLE_ID);
 
     /// Insert the specified `queue` to the queues and the specified
     /// `corrId` to the list of correlationIds associated with this event.

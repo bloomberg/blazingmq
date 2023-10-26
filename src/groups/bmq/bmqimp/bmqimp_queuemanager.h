@@ -311,7 +311,7 @@ class QueueManager {
                     const bmqp::PushMessageIterator& iterator);
 
     const QueueSp observePushEvent(bmqt::CorrelationId* correlationId,
-                                   unsigned int*        subscriptionHandle,
+                                   unsigned int*        subscriptionHandleId,
                                    const bmqp::EventUtilQueueInfo& info);
 
     /// Update stats for the queue(s) corresponding to the messages pointed
@@ -352,7 +352,7 @@ class QueueManager {
     /// `correlationId`, and return a shared pointer to the Queue object (if
     /// found), or an empty shared pointer (if not found).
     QueueSp lookupQueueBySubscriptionId(bmqt::CorrelationId* correlationId,
-                                        unsigned int* subscriptionHandle,
+                                        unsigned int* subscriptionHandleId,
                                         int           queueId,
                                         unsigned int  subscriptionId) const;
 
@@ -438,14 +438,14 @@ QueueManager::lookupQueue(const bmqp::QueueId& queueId) const
 
 inline QueueManager::QueueSp QueueManager::lookupQueueBySubscriptionId(
     bmqt::CorrelationId* correlationId,
-    unsigned int*        subscriptionHandle,
+    unsigned int*        subscriptionHandleId,
     int                  queueId,
     unsigned int         internalSubscriptionId) const
 {
     bsls::SpinLockGuard guard(&d_queuesLock);  // d_queuesLock LOCKED
 
     return lookupQueueBySubscriptionIdLocked(correlationId,
-                                             subscriptionHandle,
+                                             subscriptionHandleId,
                                              queueId,
                                              internalSubscriptionId);
 }
