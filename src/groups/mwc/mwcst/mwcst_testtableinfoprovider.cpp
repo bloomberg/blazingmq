@@ -55,13 +55,13 @@ void TestTableInfoProvider::addHeaderLevel(const Row& row)
 // ACCESSORS
 int TestTableInfoProvider::numRows() const
 {
-    return (int)d_table.size();
+    return static_cast<int>(d_table.size());
 }
 
 int TestTableInfoProvider::numColumns(int /*level*/) const
 {
     BSLS_ASSERT(d_headers.size() > 0);
-    return (int)d_headers[0].size();
+    return static_cast<int>(d_headers[0].size());
 }
 
 bool TestTableInfoProvider::hasTitle() const
@@ -71,7 +71,7 @@ bool TestTableInfoProvider::hasTitle() const
 
 int TestTableInfoProvider::numHeaderLevels() const
 {
-    return (int)d_headers.size();
+    return static_cast<int>(d_headers.size());
 }
 
 int TestTableInfoProvider::getValueSize(int row, int column) const

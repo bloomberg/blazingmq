@@ -333,7 +333,7 @@ void StatContextTableInfoProvider::addColumn(const bslstl::StringRef& name,
 {
     BSLS_ASSERT(!d_columnGroups.empty());
     d_columns.push_back(
-        ColumnInfo((int)d_columnGroups.size() - 1, name, column));
+        ColumnInfo(static_cast<int>(d_columnGroups.size()) - 1, name, column));
 }
 
 void StatContextTableInfoProvider::addColumn(const bslstl::StringRef& name,
@@ -342,7 +342,7 @@ void StatContextTableInfoProvider::addColumn(const bslstl::StringRef& name,
                                              const IntValueFunctor& func)
 {
     BSLS_ASSERT(!d_columnGroups.empty());
-    d_columns.push_back(ColumnInfo((int)d_columnGroups.size() - 1,
+    d_columns.push_back(ColumnInfo(static_cast<int>(d_columnGroups.size()) - 1,
                                    name,
                                    statValueIndex,
                                    printType,
@@ -355,7 +355,7 @@ void StatContextTableInfoProvider::addColumn(const bslstl::StringRef& name,
                                              const DoubleValueFunctor& func)
 {
     BSLS_ASSERT(!d_columnGroups.empty());
-    d_columns.push_back(ColumnInfo((int)d_columnGroups.size() - 1,
+    d_columns.push_back(ColumnInfo(static_cast<int>(d_columnGroups.size()) - 1,
                                    name,
                                    statValueIndex,
                                    printType,
@@ -427,16 +427,16 @@ void StatContextTableInfoProvider::addColumn(
 // ACCESSORS
 int StatContextTableInfoProvider::numRows() const
 {
-    return (int)d_rows.size();
+    return static_cast<int>(d_rows.size());
 }
 
 int StatContextTableInfoProvider::numColumns(int level) const
 {
     if (level == 0) {
-        return (int)d_columns.size();
+        return static_cast<int>(d_columns.size());
     }
     else {
-        return (int)d_columnGroups.size();
+        return static_cast<int>(d_columnGroups.size());
     }
 }
 

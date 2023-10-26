@@ -37,8 +37,8 @@ Version::print(bsl::ostream& stream, int level, int spacesPerLevel) const
 
     bslim::Printer printer(&stream, level, spacesPerLevel);
     printer.start();
-    printer.printAttribute("major", int(d_major));
-    printer.printAttribute("minor", int(d_minor));
+    printer.printAttribute("major", static_cast<int>(d_major));
+    printer.printAttribute("minor", static_cast<int>(d_minor));
     printer.end();
 
     return stream;

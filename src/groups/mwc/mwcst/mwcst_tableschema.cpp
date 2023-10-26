@@ -295,7 +295,7 @@ TableSchema::addColumn(const bslstl::StringRef& name,
 // ACCESSORS
 int TableSchema::numColumns() const
 {
-    return (int)d_columns.size();
+    return static_cast<int>(d_columns.size());
 }
 
 const TableSchemaColumn& TableSchema::column(int index) const

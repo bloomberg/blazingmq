@@ -76,9 +76,9 @@ const char* timeIntervalNsHelper(bsls::Types::Int64* num,
     }
 
     *num       = ns / div;
-    *remainder = (int)bsl::floor(
-        ((double)(ns - *num * div) / static_cast<double>(div)) *
-        bsl::pow(10.0, precision));
+    *remainder = static_cast<int>(bsl::floor(
+        (static_cast<double>(ns - *num * div) / static_cast<double>(div)) *
+        bsl::pow(10.0, precision)));
     return TIME_INTERVAL_NS_UNITS[level];
 }
 
@@ -117,9 +117,10 @@ const char* memoryHelper(bsls::Types::Int64* num,
 
     bsls::Types::Int64 div = (((bsls::Types::Int64)1) << shift);
     *num                   = bytes >> shift;
-    *remainder             = (int)bsl::floor(
-        (((double)(bytes - (*num << shift)) / static_cast<double>(div)) *
-         bsl::pow(10.0, precision)));
+    *remainder             = static_cast<int>(
+        bsl::floor(((static_cast<double>(bytes - (*num << shift)) /
+                     static_cast<double>(div)) *
+                    bsl::pow(10.0, precision))));
 
     if (negative) {
         *num = -*num;
@@ -257,8 +258,8 @@ bsl::ostream& PrintUtil::printValueWithSeparator(bsl::ostream& stream,
 
     if (precision > 0) {
         double absValue  = bsl::abs(value);
-        int    remainder = (int)bsl::floor((absValue - bsl::floor(absValue)) *
-                                        bsl::pow(10.0, precision));
+        int    remainder = static_cast<int>(bsl::floor(
+            (absValue - bsl::floor(absValue)) * bsl::pow(10.0, precision)));
 
         snprintf(pos - precision - 2,
                  precision + 2,
@@ -279,7 +280,7 @@ bsl::ostream& PrintUtil::printStringCentered(bsl::ostream&            stream,
                                              const bslstl::StringRef& str)
 {
     bsl::streamsize width = stream.width();
-    if (width > (int)str.length()) {
+    if (width > static_cast<int>(str.length())) {
         bsl::streamsize left = (width + str.length()) / 2;
         stream.width(left);
         stream << str;
@@ -395,8 +396,8 @@ bsl::ostream& PrintUtil::printOrdinal(bsl::ostream&      stream,
 {
     stream << num;
 
-    int mod100 = (int)(num % 100);
-    int mod10  = (int)(num % 10);
+    int mod100 = static_cast<int>(num % 100);
+    int mod10  = static_cast<int>(num % 10);
 
     if (mod100 == 11 || mod100 == 12 || mod100 == 13) {
         return stream << "th";
