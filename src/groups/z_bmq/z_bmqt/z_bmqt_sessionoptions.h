@@ -8,9 +8,9 @@ extern "C" {
 
 typedef struct z_bmqt_SessionOptions z_bmqt_SessionOptions;
 
-int z_bmqt_SessionOptions__create(z_bmqt_SessionOptions** options);
+int z_bmqt_SessionOptions__create(z_bmqt_SessionOptions** options_obj);
 
-const char* z_bmqt_SessionOptions__brokerUri(const z_bmqt_SessionOptions* options);
+const char* z_bmqt_SessionOptions__brokerUri(const z_bmqt_SessionOptions* options_obj);
 
 
 #if defined(__cplusplus)
