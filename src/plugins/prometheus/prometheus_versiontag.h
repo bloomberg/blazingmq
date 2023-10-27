@@ -13,51 +13,51 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// plugins_versiontag.h                                             -*-C++-*-
-#ifndef INCLUDED_PLUGINS_VERSIONTAG
-#define INCLUDED_PLUGINS_VERSIONTAG
+// prometheus_versiontag.h -*-C++-*-
+#ifndef INCLUDED_PROMETHEUS_VERSIONTAG
+#define INCLUDED_PROMETHEUS_VERSIONTAG
 
-//@PURPOSE: Provide versioning information for the 'plugins' plugin.
+//@PURPOSE: Provide versioning information for the 'prometheus' plugin.
 //
-//@SEE_ALSO: plugins::Version
+//@SEE_ALSO: prometheus::Version
 //
 //@DESCRIPTION: This component provides versioning information for the
-// 'plugins' plugin.  The 'PLUGINS_VERSION' macro that is supplied can be
-// used for conditional-compilation based on 'plugins' version information.
+// 'prometheus' plugin.  The 'PROMETHEUS_VERSION' macro that is supplied can be
+// used for conditional-compilation based on 'prometheus' version information.
 // The following usage example illustrates this basic capability.
 //
 /// Usage
 ///-----
-// At compile time, the version of PLUGINS can be used to select an older or
+// At compile time, the version of PROMETHEUS can be used to select an older or
 // newer way to accomplish a task, to enable new functionality, or to
 // accommodate an interface change.  For example, if the name of a function
 // changes (a rare occurrence, but potentially disruptive when it does happen),
 // the impact on affected code can be minimized by conditionally calling the
 // function by its old or new name using conditional compilation.  In the
-// following, the '#if' preprocessor directive compares 'PLUGINS_VERSION'
-// (i.e., the latest PLUGINS version, excluding the patch version) to a
+// following, the '#if' preprocessor directive compares 'PROMETHEUS_VERSION'
+// (i.e., the latest PROMETHEUS version, excluding the patch version) to a
 // specified major and minor version composed using the 'BDE_MAKE_VERSION'
 // macro:
 //..
-//  #if PLUGINS_VERSION > BDE_MAKE_VERSION(1, 3)
-//      // Call 'newFunction' for PLUGINS versions later than 1.3.
+//  #if PROMETHEUS_VERSION > BDE_MAKE_VERSION(1, 3)
+//      // Call 'newFunction' for PROMETHEUS versions later than 1.3.
 //      int result = newFunction();
 //  #else
-//      // Call 'oldFunction' for PLUGINS version 1.3 or earlier.
+//      // Call 'oldFunction' for PROMETHEUS version 1.3 or earlier.
 //      int result = oldFunction();
 //  #endif
 //..
 
-#define PLUGINS_VERSION_MAJOR 99
-// PLUGINS release major version
+#define PROMETHEUS_VERSION_MAJOR 99
+// PROMETHEUS release major version
 
-#define PLUGINS_VERSION_MINOR 99
-// PLUGINS release minor version
+#define PROMETHEUS_VERSION_MINOR 99
+// PROMETHEUS release minor version
 
-#define PLUGINS_VERSION_PATCH 99
-// PLUGINS patch level
+#define PROMETHEUS_VERSION_PATCH 99
+// PROMETHEUS patch level
 
-#define PLUGINS_MAKE_VERSION(major, minor) ((major)*10000 + (minor)*100)
+#define PROMETHEUS_MAKE_VERSION(major, minor) ((major)*10000 + (minor)*100)
 // Construct a composite version number in the range [ 0 .. 999900 ] from
 // the specified 'major' and 'minor' version numbers.  The resulting value,
 // when expressed as a 6-digit decimal string, has "00" as the two
@@ -72,25 +72,25 @@
 // intentionally not included.  The behavior is undefined unless 'major'
 // and 'minor' are integral values in the range '[ 0 .. 99 ]'.
 
-#define PLUGINS_MAKE_EXT_VERSION(major, minor, patch)                         \
+#define PROMETHEUS_MAKE_EXT_VERSION(major, minor, patch)                      \
     ((major)*10000 + (minor)*100 + (patch))
-// Similar to PLUGINS_MAKE_VERSION(), but include patch number as well.
+// Similar to PROMETHEUS_MAKE_VERSION(), but include patch number as well.
 
-#define PLUGINS_VERSION                                                       \
-    PLUGINS_MAKE_VERSION(PLUGINS_VERSION_MAJOR, PLUGINS_VERSION_MINOR)
+#define PROMETHEUS_VERSION                                                    \
+    PROMETHEUS_MAKE_VERSION(PROMETHEUS_VERSION_MAJOR, PROMETHEUS_VERSION_MINOR)
 // Construct a composite version number in the range [ 0 .. 999900 ] from
-// the specified 'PLUGINS_VERSION_MAJOR' and 'PLUGINS_VERSION_MINOR'
+// the specified 'PROMETHEUS_VERSION_MAJOR' and 'PROMETHEUS_VERSION_MINOR'
 // numbers corresponding to the major and minor version numbers,
-// respectively, of the current (latest) PLUGINS release.  Note that the
+// respectively, of the current (latest) PROMETHEUS release.  Note that the
 // patch version number is intentionally not included.  For example,
-// 'PLUGINS_VERSION' produces 10300 (decimal) for PLUGINS version
+// 'PROMETHEUS_VERSION' produces 10300 (decimal) for PROMETHEUS version
 // 1.3.1.
 
-#define PLUGINS_EXT_VERSION                                                   \
-    PLUGINS_MAKE_EXT_VERSION(PLUGINS_VERSION_MAJOR,                           \
-                             PLUGINS_VERSION_MINOR,                           \
-                             PLUGINS_VERSION_PATCH)
-// Similar to PLUGINS_VERSION, but include the patch number as well
+#define PROMETHEUS_EXT_VERSION                                                \
+    PROMETHEUS_MAKE_EXT_VERSION(PROMETHEUS_VERSION_MAJOR,                     \
+                                PROMETHEUS_VERSION_MINOR,                     \
+                                PROMETHEUS_VERSION_PATCH)
+// Similar to PROMETHEUS_VERSION, but include the patch number as well
 
 #endif
 

@@ -18,7 +18,7 @@ Prerequisites:
 2. Python3 should be installed;
 3. Docker should be installed, user launching the test script must be included into the group 'docker'.
 
-Usage: ./plugins_prometheusstatconsumer_test.py [-h] -p PATH
+Usage: ./prometheus_prometheusstatconsumer_test.py [-h] -p PATH
 options:
   -h, --help            show this help message and exit
   -p PATH, --path PATH  absolute path to BlasingMQ folder
@@ -67,7 +67,7 @@ def test_local_cluster(plugin_path, broker_path, broker_cfg_path, tool_path, pro
     # Create sandbox in temp folder
     with tempfile.TemporaryDirectory() as tmpdirname:
         # Copy broker and plugins lib into sandbox
-        shutil.copy(plugin_path.joinpath('libplugins.so'), tmpdirname)
+        shutil.copy(plugin_path.joinpath('libprometheus.so'), tmpdirname)
         shutil.copy(broker_path.joinpath('bmqbrkr.tsk'), tmpdirname)
         # Copy broker config folder into sandbox
         local_cfg_path = shutil.copytree(
@@ -122,7 +122,7 @@ def test_local_cluster(plugin_path, broker_path, broker_cfg_path, tool_path, pro
             _check_statistic(prometheus_host)
 
         except AssertionError as error:
-            print('Statistic check failed: ', error)
+            print('ERROR: Prometheus metrics check failed: ', error)
             return False
         finally:
             os.chdir(current_dir)
@@ -137,10 +137,11 @@ def test_local_cluster(plugin_path, broker_path, broker_cfg_path, tool_path, pro
 
 def main(args):
     prometheus_docker_file_path = Path(args.path).joinpath(
-        'src/plugins/tests/docker/docker-compose.yml')
+        'src/plugins/prometheus/tests/docker/docker-compose.yml')
     broker_path = Path(args.path).joinpath(
         'build/blazingmq/src/applications/bmqbrkr')
-    broker_cfg_path = Path(args.path).joinpath('src/plugins/tests/localBMQ')
+    broker_cfg_path = Path(args.path).joinpath(
+        'src/plugins/prometheus/tests/localBMQ')
     tool_path = Path(args.path).joinpath(
         'build/blazingmq/src/applications/bmqtool/bmqtool.tsk')
     plugin_path = Path(args.path).joinpath('build/blazingmq/src/plugins')

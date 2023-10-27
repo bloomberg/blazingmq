@@ -13,17 +13,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// plugins_prometheusstatconsumer.h -*-C++-*-
-#ifndef INCLUDED_PLUGINS_PROMETHEUSSTATCONSUMER
-#define INCLUDED_PLUGINS_PROMETHEUSSTATCONSUMER
+// prometheus_prometheusstatconsumer.h -*-C++-*-
+#ifndef INCLUDED_PROMETHEUS_PROMETHEUSSTATCONSUMER
+#define INCLUDED_PROMETHEUS_PROMETHEUSSTATCONSUMER
 
 //@PURPOSE: Provide a 'StatConsumer' plugin for publishing stats to Prometheus.
 //
 //@CLASSES:
-//  plugins::PrometheusStatConsumer: bmqbrkr plugin for publishing stats to
+//  prometheus::PrometheusStatConsumer: bmqbrkr plugin for publishing stats to
 //  Prometheus.
 //
-//@DESCRIPTION: 'plugins::PrometheusStatConsumer' handles the publishing of
+//@DESCRIPTION: 'prometheus::PrometheusStatConsumer' handles the publishing of
 // statistics to Prometheus.
 
 // MQB
@@ -69,7 +69,7 @@ namespace mwcst {
 class StatContext;
 }
 
-namespace plugins {
+namespace prometheus {
 
 typedef mqbplug::StatConsumer            StatConsumer;
 typedef StatConsumer::StatContextsMap    StatContextsMap;
@@ -165,7 +165,7 @@ class PrometheusStatConsumer : public mqbplug::StatConsumer {
     bsl::unique_ptr<PrometheusStatExporter> d_prometheusStatExporter_p;
     // Entity responsible for sending statistics to Prometheus backend
 
-    std::shared_ptr<prometheus::Registry> d_prometheusRegistry_p;
+    std::shared_ptr< ::prometheus::Registry> d_prometheusRegistry_p;
     // Container for storing statistics in Prometheus format
 
   private:
@@ -213,9 +213,9 @@ class PrometheusStatConsumer : public mqbplug::StatConsumer {
 
     /// Update metric by given 'def_p', 'labels' and 'value' in Prometheus
     /// Registry.
-    void updateMetric(const DatapointDef*       def_p,
-                      const prometheus::Labels& labels,
-                      const bsls::Types::Int64  value);
+    void updateMetric(const DatapointDef*         def_p,
+                      const ::prometheus::Labels& labels,
+                      const bsls::Types::Int64    value);
 
     /// Stop plugin
     void stopImpl();
@@ -260,7 +260,7 @@ class PrometheusStatConsumer : public mqbplug::StatConsumer {
 
     // ACCESSORS
 
-    /// Return plugins name
+    /// Return plugin name
     bslstl::StringRef name() const override;
 
     /// Return true if Prometheus reporting is enabled, false otherwise.
@@ -274,7 +274,7 @@ class PrometheusStatConsumer : public mqbplug::StatConsumer {
 // class PrometheusStatConsumerPluginFactory
 // =========================================
 
-/// This is the factory class for plugins of type 'PrometheusStatConsumer'.
+/// This is the factory class for plugin of type 'PrometheusStatConsumer'.
 /// All it does is allows to instantiate a concrete object of the
 /// 'PrometheusStatConsumer' interface, taking any required arguments.
 class PrometheusStatConsumerPluginFactory

@@ -13,8 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// plugins_versiontag.cpp                                           -*-C++-*-
-#include <plugins_versiontag.h>
+// prometheus_versiontag.cpp -*-C++-*-
+#include <prometheus_versiontag.h>
 
 // ----------------------------------------------------------------------------
 // NOTICE:

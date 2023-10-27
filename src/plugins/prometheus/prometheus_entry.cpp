@@ -13,11 +13,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// plugins_entry.cpp                                                -*-C++-*-
+// prometheus_entry.cpp -*-C++-*-
 
-// PLUGINS
-#include <plugins_pluginlibrary.h>
-#include <plugins_version.h>
+// PROMETHEUS
+#include <prometheus_pluginlibrary.h>
+#include <prometheus_version.h>
 
 // MQB
 #include <mqbplug_pluginlibrary.h>
@@ -40,12 +40,13 @@ void instantiatePluginLibrary(
     bslma::ManagedPtr<mqbplug::PluginLibrary>* library,
     bslma::Allocator*                          allocator)
 {
-    BALL_LOG_SET_CATEGORY("PLUGINS.ENTRY");
+    BALL_LOG_SET_CATEGORY("PROMETHEUS.ENTRY");
 
-    BALL_LOG_INFO << "Instantiating 'libplugins.so' plugin library "
+    BALL_LOG_INFO << "Instantiating 'libprometheus.so' plugin library "
                      "(version: "
-                  << plugins::Version::version() << ")";
+                  << prometheus::Version::version() << ")";
 
-    *library = bslma::ManagedPtrUtil::allocateManaged<plugins::PluginLibrary>(
-        allocator);
+    *library =
+        bslma::ManagedPtrUtil::allocateManaged<prometheus::PluginLibrary>(
+            allocator);
 }

@@ -13,19 +13,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// plugins_pluginlibrary.h                                          -*-C++-*-
-#ifndef INCLUDED_PLUGINS_PLUGINLIBRARY
-#define INCLUDED_PLUGINS_PLUGINLIBRARY
+// prometheus_pluginlibrary.h -*-C++-*-
+#ifndef INCLUDED_PROMETHEUS_PLUGINLIBRARY
+#define INCLUDED_PROMETHEUS_PLUGINLIBRARY
 
-//@PURPOSE: Provide library of enterprise broker plugins for Bloomberg.
+//@PURPOSE: Provide library of Prometheus plugin for broker.
 //
 //@CLASSES:
-//  plugins::PluginLibrary: Library of Bloomberg enterprise broker plugins.
+//  prometheus::PluginLibrary: Library of Prometheus plugin.
 //
 //@DESCRIPTION: This component provides the definition for the 'PluginLibrary'
-// class, which represents and publishes various plugins for interfacing
-// between the BMQ broker (i.e., 'bmqbrkr.tsk') and various enterprise services
-// available only within Bloomberg.
+// class, which represents and publishes Prometheus plugin for interfacing
+// with the BMQ broker (i.e., 'bmqbrkr.tsk').
 
 // MQB
 #include <mqbplug_plugininfo.h>
@@ -39,7 +38,7 @@
 #include <bsls_keyword.h>
 
 namespace BloombergLP {
-namespace plugins {
+namespace prometheus {
 // ===================
 // class PluginLibrary
 // ===================

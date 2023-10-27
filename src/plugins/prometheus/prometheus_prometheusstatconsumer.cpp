@@ -13,11 +13,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// plugins_prometheusstatconsumer.cpp -*-C++-*-
-#include <plugins_prometheusstatconsumer.h>
+// prometheus_prometheusstatconsumer.cpp -*-C++-*-
+#include <prometheus_prometheusstatconsumer.h>
 
-// PLUGINS
-#include <plugins_version.h>
+// PROMETHEUS
+#include <prometheus_version.h>
 
 // MQB
 #include <mqbstat_brokerstats.h>
@@ -46,7 +46,7 @@
 #include "prometheus/labels.h"
 
 namespace BloombergLP {
-namespace plugins {
+namespace prometheus {
 
 namespace {
 
@@ -57,7 +57,7 @@ const char* k_THREADNAME = "bmqPrometheusPush";
 class Tagger {
   private:
     // DATA
-    prometheus::Labels labels;
+    ::prometheus::Labels labels;
 
   public:
     // MANIPULATORS
@@ -110,14 +110,14 @@ class Tagger {
     }
 
     // ACCESSORS
-    prometheus::Labels& getLabels() { return labels; }
+    ::prometheus::Labels& getLabels() { return labels; }
 };
 
 bsl::unique_ptr<PrometheusStatExporter>
-makeExporter(const bsl::string&                     mode,
-             const bsl::string&                     host,
-             const bsl::size_t                      port,
-             std::shared_ptr<prometheus::Registry>& registry);
+makeExporter(const bsl::string&                        mode,
+             const bsl::string&                        host,
+             const bsl::size_t                         port,
+             std::shared_ptr< ::prometheus::Registry>& registry);
 
 }  // close unnamed namespace
 
@@ -148,7 +148,7 @@ PrometheusStatConsumer::PrometheusStatConsumer(
 , d_snapshotId(0)
 , d_actionCounter(0)
 , d_isStarted(false)
-, d_prometheusRegistry_p(std::make_shared<prometheus::Registry>())
+, d_prometheusRegistry_p(std::make_shared< ::prometheus::Registry>())
 {
     // Initialize stat contexts
     d_systemStatContext_p       = getStatContext("system");
@@ -274,7 +274,7 @@ void PrometheusStatConsumer::captureQueueStats()
                 // a time series containing all the tags that can be leveraged
                 // in Grafana.
 
-                auto& heartbeatGauge = prometheus::BuildGauge()
+                auto& heartbeatGauge = ::prometheus::BuildGauge()
                                            .Name("queue_heartbeat")
                                            .Register(*d_prometheusRegistry_p);
                 heartbeatGauge.Add(labels).Set(0);
@@ -374,8 +374,8 @@ void PrometheusStatConsumer::captureSystemStats()
 
 #undef COPY_METRIC
 
-    prometheus::Labels labels{{"DataType", "host-data"}};
-    bslstl::StringRef  instanceName =
+    ::prometheus::Labels labels{{"DataType", "host-data"}};
+    bslstl::StringRef    instanceName =
         mqbcfg::BrokerConfig::get().brokerInstanceName();
     if (!instanceName.empty()) {
         labels.emplace("instanceName", instanceName);
@@ -385,7 +385,7 @@ void PrometheusStatConsumer::captureSystemStats()
              datapoints.begin();
          it != datapoints.end();
          ++it) {
-        auto& gauge = prometheus::BuildGauge().Name(it->first).Register(
+        auto& gauge = ::prometheus::BuildGauge().Name(it->first).Register(
             *d_prometheusRegistry_p);
         gauge.Add(labels).Set(it->second);
     }
@@ -422,8 +422,8 @@ void PrometheusStatConsumer::captureNetworkStats()
 
 #undef RETRIEVE_METRIC
 
-    prometheus::Labels labels{{"DataType", "host-data"}};
-    bslstl::StringRef  instanceName =
+    ::prometheus::Labels labels{{"DataType", "host-data"}};
+    bslstl::StringRef    instanceName =
         mqbcfg::BrokerConfig::get().brokerInstanceName();
     if (!instanceName.empty()) {
         labels.emplace("instanceName", instanceName);
@@ -433,7 +433,7 @@ void PrometheusStatConsumer::captureNetworkStats()
              datapoints.begin();
          it != datapoints.end();
          ++it) {
-        auto& counter = prometheus::BuildCounter().Name(it->first).Register(
+        auto& counter = ::prometheus::BuildCounter().Name(it->first).Register(
             *d_prometheusRegistry_p);
         counter.Add(labels).Increment(it->second);
     }
@@ -673,20 +673,20 @@ void PrometheusStatConsumer::captureDomainStats(const LeaderSet& leaders)
     }
 }
 
-void PrometheusStatConsumer::updateMetric(const DatapointDef*       def_p,
-                                          const prometheus::Labels& labels,
-                                          const bsls::Types::Int64  value)
+void PrometheusStatConsumer::updateMetric(const DatapointDef*         def_p,
+                                          const ::prometheus::Labels& labels,
+                                          const bsls::Types::Int64    value)
 {
     if (value != 0) {
         // To save metrics, only report non-null values
         if (def_p->d_isCounter) {
-            auto& counter = prometheus::BuildCounter()
+            auto& counter = ::prometheus::BuildCounter()
                                 .Name(def_p->d_name)
                                 .Register(*d_prometheusRegistry_p);
             counter.Add(labels).Increment(static_cast<double>(value));
         }
         else {
-            auto& gauge = prometheus::BuildGauge()
+            auto& gauge = ::prometheus::BuildGauge()
                               .Name(def_p->d_name)
                               .Register(*d_prometheusRegistry_p);
             gauge.Add(labels).Set(static_cast<double>(value));
@@ -773,15 +773,15 @@ bslma::ManagedPtr<StatConsumer> PrometheusStatConsumerPluginFactory::create(
 // --------------------------------
 
 class PrometheusPullStatExporter : public PrometheusStatExporter {
-    std::weak_ptr<prometheus::Registry>  d_registry_p;
-    bsl::unique_ptr<prometheus::Exposer> d_exposer_p;
-    bsl::string                          d_exposerEndpoint;
+    std::weak_ptr< ::prometheus::Registry>  d_registry_p;
+    bsl::unique_ptr< ::prometheus::Exposer> d_exposer_p;
+    bsl::string                             d_exposerEndpoint;
 
   public:
     PrometheusPullStatExporter(
-        const bsl::string&                           host,
-        const bsl::size_t                            port,
-        const std::shared_ptr<prometheus::Registry>& registry)
+        const bsl::string&                              host,
+        const bsl::size_t                               port,
+        const std::shared_ptr< ::prometheus::Registry>& registry)
     : d_registry_p(registry)
     {
         bsl::ostringstream endpoint;
@@ -791,7 +791,8 @@ class PrometheusPullStatExporter : public PrometheusStatExporter {
 
     void start() override
     {
-        d_exposer_p = bsl::make_unique<prometheus::Exposer>(d_exposerEndpoint);
+        d_exposer_p = bsl::make_unique< ::prometheus::Exposer>(
+            d_exposerEndpoint);
         d_exposer_p->RegisterCollectable(d_registry_p);
     }
 
@@ -803,7 +804,7 @@ class PrometheusPullStatExporter : public PrometheusStatExporter {
 // --------------------------------
 
 class PrometheusPushStatExporter : public PrometheusStatExporter {
-    bsl::unique_ptr<prometheus::Gateway> d_prometheusGateway_p;
+    bsl::unique_ptr< ::prometheus::Gateway> d_prometheusGateway_p;
     /// Handle of the Prometheus publishing thread
     bslmt::ThreadUtil::Handle d_prometheusPushThreadHandle;
     bslmt::Mutex              d_prometheusThreadMutex;
@@ -849,15 +850,15 @@ class PrometheusPushStatExporter : public PrometheusStatExporter {
 
   public:
     PrometheusPushStatExporter(
-        const bsl::string&                           host,
-        const bsl::size_t&                           port,
-        const std::shared_ptr<prometheus::Registry>& registry)
+        const bsl::string&                              host,
+        const bsl::size_t&                              port,
+        const std::shared_ptr< ::prometheus::Registry>& registry)
     : d_threadStop(false)
     {
         // create a push gateway
-        const auto label = prometheus::Gateway::GetInstanceLabel(
+        const auto label = ::prometheus::Gateway::GetInstanceLabel(
             mqbcfg::BrokerConfig::get().hostName());
-        d_prometheusGateway_p = bsl::make_unique<prometheus::Gateway>(
+        d_prometheusGateway_p = bsl::make_unique< ::prometheus::Gateway>(
             host,
             bsl::to_string(port),
             "bmq",
@@ -892,10 +893,10 @@ class PrometheusPushStatExporter : public PrometheusStatExporter {
 namespace {
 
 bsl::unique_ptr<PrometheusStatExporter>
-makeExporter(const bsl::string&                     mode,
-             const bsl::string&                     host,
-             const bsl::size_t                      port,
-             std::shared_ptr<prometheus::Registry>& registry)
+makeExporter(const bsl::string&                        mode,
+             const bsl::string&                        host,
+             const bsl::size_t                         port,
+             std::shared_ptr< ::prometheus::Registry>& registry)
 {
     bsl::unique_ptr<PrometheusStatExporter> result;
     if (mode == "pull") {

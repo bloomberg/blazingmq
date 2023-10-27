@@ -13,26 +13,28 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// plugins_version.cpp                                              -*-C++-*-
-#include <plugins_version.h>
+// prometheus_version.cpp -*-C++-*-
+#include <prometheus_version.h>
 
 namespace BloombergLP {
 
 #define STRINGIFY2(a) #a
 #define STRINGIFY(a) STRINGIFY2(a)
 
-#define PLUGINS_VERSION_STRING                                                \
-    "BLP_LIB_PLUGINS_" STRINGIFY(PLUGINS_VERSION_MAJOR) "." STRINGIFY(        \
-        PLUGINS_VERSION_MINOR) "." STRINGIFY(PLUGINS_VERSION_PATCH)
+#define PROMETHEUS_VERSION_STRING                                             \
+    "BLP_LIB_PROMETHEUS_" STRINGIFY(PROMETHEUS_VERSION_MAJOR) "." STRINGIFY(  \
+        PROMETHEUS_VERSION_MINOR) "." STRINGIFY(PROMETHEUS_VERSION_PATCH)
 
-const char* plugins::Version::s_ident = "$Id: " PLUGINS_VERSION_STRING " $";
-const char* plugins::Version::s_what  = "@(#)" PLUGINS_VERSION_STRING;
+const char* prometheus::Version::s_ident = "$Id: " PROMETHEUS_VERSION_STRING
+                                           " $";
+const char* prometheus::Version::s_what = "@(#)" PROMETHEUS_VERSION_STRING;
 
-const char* plugins::Version::PLUGINS_S_VERSION   = PLUGINS_VERSION_STRING;
-const char* plugins::Version::s_dependencies      = "";
-const char* plugins::Version::s_buildInfo         = "";
-const char* plugins::Version::s_timestamp         = "";
-const char* plugins::Version::s_sourceControlInfo = "";
+const char* prometheus::Version::PROMETHEUS_S_VERSION =
+    PROMETHEUS_VERSION_STRING;
+const char* prometheus::Version::s_dependencies      = "";
+const char* prometheus::Version::s_buildInfo         = "";
+const char* prometheus::Version::s_timestamp         = "";
+const char* prometheus::Version::s_sourceControlInfo = "";
 
 }  // close enterprise namespace
 

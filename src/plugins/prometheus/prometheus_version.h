@@ -13,59 +13,59 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// plugins_version.h                                                -*-C++-*-
-#ifndef INCLUDED_PLUGINS_VERSION
-#define INCLUDED_PLUGINS_VERSION
+// prometheus_version.h -*-C++-*-
+#ifndef INCLUDED_PROMETHEUS_VERSION
+#define INCLUDED_PROMETHEUS_VERSION
 
 //@PURPOSE: Provide source control management (versioning) information.
 //
 //@CLASSES:
-//  plugins::Version: namespace for 'plugins' SCM versioning information
+//  prometheus::Version: namespace for 'prometheus' SCM versioning information
 //
 //@DESCRIPTION: This component provides source control management (versioning)
-// information for the 'plugins' plugin.  In particular, this component
+// information for the 'prometheus' plugin.  In particular, this component
 // embeds RCS-style and SCCS-style version strings in binary executable files
-// that use one or more components from the 'plugins' plugin.  This version
+// that use one or more components from the 'prometheus' plugin.  This version
 // information may be extracted from binary files using common UNIX utilities
 // (e.g., 'ident' and 'what').  In addition, the 'version' 'static' member
-// function in the 'plugins::Version' struct can be used to query version
-// information for the 'plugins' plugin at runtime.  The following USAGE
+// function in the 'prometheus::Version' struct can be used to query version
+// information for the 'prometheus' plugin at runtime.  The following USAGE
 // examples illustrate these two basic capabilities.
 //
 // Note that unless the 'version' method will be called, it is not necessary to
-// "#include" this component header file to get 'plugins' version information
-// embedded in an executable.  It is only necessary to use one or more
-// 'plugins' components (and, hence, link in the 'plugins' library).
+// "#include" this component header file to get 'prometheus' version
+// information embedded in an executable.  It is only necessary to use one or
+// more 'prometheus' components (and, hence, link in the 'prometheus' library).
 
-// PLUGINS
-#include <plugins_versiontag.h>
+// PROMETHEUS
+#include <prometheus_versiontag.h>
 
 // BDE
 #include <bsls_linkcoercion.h>
 
 namespace BloombergLP {
-namespace plugins {
+namespace prometheus {
 
 struct Version {
     // PUBLIC CLASS DATA
     static const char* s_ident;
     static const char* s_what;
 
-#define PLUGINS_CONCAT2(a, b, c, d, e) a##b##c##d##e
-#define PLUGINS_CONCAT(a, b, c, d, e) PLUGINS_CONCAT2(a, b, c, d, e)
+#define PROMETHEUS_CONCAT2(a, b, c, d, e) a##b##c##d##e
+#define PROMETHEUS_CONCAT(a, b, c, d, e) PROMETHEUS_CONCAT2(a, b, c, d, e)
 
-// 'PLUGINS_S_VERSION' is a symbol whose name warns users of version mismatch
-// linking errors.  Note that the exact string "compiled_this_object" must be
-// present in this version coercion symbol.  Tools may look for this pattern to
-// warn users of mismatches.
-#define PLUGINS_S_VERSION                                                     \
-    PLUGINS_CONCAT(d_version_PLUGINS_,                                        \
-                   PLUGINS_VERSION_MAJOR,                                     \
-                   _,                                                         \
-                   PLUGINS_VERSION_MINOR,                                     \
-                   _compiled_this_object)
+// 'PROMETHEUS_S_VERSION' is a symbol whose name warns users of version
+// mismatch linking errors.  Note that the exact string "compiled_this_object"
+// must be present in this version coercion symbol.  Tools may look for this
+// pattern to warn users of mismatches.
+#define PROMETHEUS_S_VERSION                                                  \
+    PROMETHEUS_CONCAT(d_version_PROMETHEUS_,                                  \
+                      PROMETHEUS_VERSION_MAJOR,                               \
+                      _,                                                      \
+                      PROMETHEUS_VERSION_MINOR,                               \
+                      _compiled_this_object)
 
-    static const char* PLUGINS_S_VERSION;
+    static const char* PROMETHEUS_S_VERSION;
 
     static const char* s_dependencies;
     static const char* s_buildInfo;
@@ -75,7 +75,7 @@ struct Version {
     // CLASS METHODS
     static const char* version();
     // Return the formatted string corresponding to the version. Format is
-    // BLP_LIB_PLUGINS_<major>.<minor>.<patch>
+    // BLP_LIB_PROMETHEUS_<major>.<minor>.<patch>
 
     static int versionAsInt();
     // Return the int corresponding to the version, using the following
@@ -87,24 +87,25 @@ struct Version {
 // ============================================================================
 
 // ------------------------
-// class plugins::Version
+// class prometheus::Version
 // ------------------------
 
 inline const char* Version::version()
 {
-    return PLUGINS_S_VERSION;
+    return PROMETHEUS_S_VERSION;
 }
 
 inline int Version::versionAsInt()
 {
-    return PLUGINS_EXT_VERSION;
+    return PROMETHEUS_EXT_VERSION;
 }
 
 }  // close package namespace
 
-BSLS_LINKCOERCION_FORCE_SYMBOL_DEPENDENCY(const char*,
-                                          plugins_version_assertion,
-                                          plugins::Version::PLUGINS_S_VERSION)
+BSLS_LINKCOERCION_FORCE_SYMBOL_DEPENDENCY(
+    const char*,
+    prometheus_version_assertion,
+    prometheus::Version::PROMETHEUS_S_VERSION)
 
 }  // close enterprise namespace
 

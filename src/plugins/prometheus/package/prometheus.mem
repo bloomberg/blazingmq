@@ -1,0 +1,5 @@
+prometheus_entry
+prometheus_pluginlibrary
+prometheus_prometheusstatconsumer
+prometheus_version
+prometheus_versiontag

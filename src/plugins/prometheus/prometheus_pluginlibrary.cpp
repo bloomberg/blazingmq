@@ -13,25 +13,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// plugins_pluginlibrary.cpp                                        -*-C++-*-
-#include <plugins_pluginlibrary.h>
+// prometheus_pluginlibrary.cpp -*-C++-*-
+#include <prometheus_pluginlibrary.h>
 
-// PLUGINS
-#include <plugins_prometheusstatconsumer.h>
-#include <plugins_version.h>
-
-//// BUL
-// #include <bulscm_version.h>
-
-//// SIM
-// #include <simscm_version.h>
+// PROMETHEUS
+#include <prometheus_prometheusstatconsumer.h>
+#include <prometheus_version.h>
 
 // BDE
 #include <bsl_sstream.h>
 #include <bslma_default.h>
 
 namespace BloombergLP {
-namespace plugins {
+namespace prometheus {
 
 // -------------------
 // class PluginLibrary
@@ -67,6 +61,7 @@ int PluginLibrary::activate()
 
 void PluginLibrary::deactivate()
 {
+    // NOTHING
 }
 
 const bsl::vector<mqbplug::PluginInfo>& PluginLibrary::plugins() const
