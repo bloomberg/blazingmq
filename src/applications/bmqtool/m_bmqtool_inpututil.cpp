@@ -52,6 +52,9 @@ void InputUtil::preprocessInput(bsl::string*                     verb,
                                 const bsl::string&               input,
                                 bsl::unordered_set<bsl::string>* keys)
 {
+    BSLS_ASSERT_SAFE(verb);
+    BSLS_ASSERT_SAFE(output);
+    BSLS_ASSERT_SAFE(keys);
     mwcu::MemOutStream oss;
 
     bool isKey = true, isFirstKey = true, isVerb = true;
