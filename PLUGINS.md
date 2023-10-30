@@ -13,7 +13,7 @@ By default, plugin is disabled. To enable and configure it, edit `bmqbrkcfg.json
     ...
 
     "plugins": {
-        "libraries": ["<absolute-path-to-BlazingMQ>/build/blazingmq/src/plugins"],
+        "libraries": ["<path-to-prometheus-plugin-library-folder>"],
         "enabled": ["PrometheusStatConsumer"]
     }
 }
@@ -92,14 +92,14 @@ Test plan:
   - Request metrics from Prometheus and compare them with expected metric values.
 
 Prerequisites:
-1. bmqbroker, bmqtool and plugins library should be built;
+1. bmqbroker, bmqtool and prometheus plugin library should be built;
 2. Python3 should be installed;
 3. Docker should be installed, user launching the test script must be included into the group 'docker'.
 ```bash
-Usage: ./src/plugins/tests/plugins_prometheusstatconsumer_test.py [-h] -p PATH
+Usage: ./src/plugins/prometheus/tests/prometheus_prometheusstatconsumer_test.py [-h] -p PATH
 options:
   -h, --help            show this help message and exit
-  -p PATH, --path PATH  absolute path to BlasingMQ folder
+  -p PATH, --path PATH  path to BlasingMQ build folder, e.g. './build/blasingmq'
 ```
 
 ### Available BlazingMQ metrics
