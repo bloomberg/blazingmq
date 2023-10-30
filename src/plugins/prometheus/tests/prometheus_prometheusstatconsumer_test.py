@@ -21,7 +21,7 @@ Prerequisites:
 Usage: ./prometheus_prometheusstatconsumer_test.py [-h] -p PATH
 options:
   -h, --help            show this help message and exit
-  -p PATH, --path PATH  absolute path to BlasingMQ folder
+  -p PATH, --path PATH  path to BlasingMQ build folder
  """
 
 import argparse
@@ -30,6 +30,7 @@ import json
 import os
 import shutil
 import subprocess
+import sys
 import tempfile
 import time
 import urllib.parse
@@ -51,12 +52,12 @@ def parse_arguments():
     parser = argparse.ArgumentParser(
         description='Integration tests for Prometheus plugin')
     parser.add_argument('-p', '--path', type=str, required=True,
-                        help="absolute path to BlasingMQ folder")
+                        help="path to BlasingMQ build folder")
 
     return parser.parse_args()
 
 
-def test_local_cluster(plugin_path, broker_path, broker_cfg_path, tool_path, prometheus_host, prometheus_docker_file_path, mode):
+def test_local_cluster(plugin_path, broker_path, tool_path, prometheus_host, prometheus_docker_file_path, mode):
     current_dir = os.getcwd()
 
     # Run Prometheus in docker
@@ -67,16 +68,27 @@ def test_local_cluster(plugin_path, broker_path, broker_cfg_path, tool_path, pro
     # Create sandbox in temp folder
     with tempfile.TemporaryDirectory() as tmpdirname:
         # Copy broker and plugins lib into sandbox
-        shutil.copy(plugin_path.joinpath('libprometheus.so'), tmpdirname)
-        shutil.copy(broker_path.joinpath('bmqbrkr.tsk'), tmpdirname)
+        shutil.copy(plugin_path, tmpdirname)
+        shutil.copy(broker_path, tmpdirname)
         # Copy broker config folder into sandbox
+        broker_cfg_path = broker_path.parent.joinpath('etc')
         local_cfg_path = shutil.copytree(
-            Path(broker_cfg_path), Path(tmpdirname).joinpath('localBMQ'))
+            Path(broker_cfg_path), Path(tmpdirname).joinpath('localBMQ/etc'))
+        # Create required folders
+        os.makedirs(Path(tmpdirname).joinpath('localBMQ/logs'))
+        os.makedirs(Path(tmpdirname).joinpath(
+            'localBMQ/storage/local/archive'))
 
         # Edit broker config for given mode
-        local_cfg_file = Path(local_cfg_path.joinpath('etc/bmqbrkrcfg.json'))
+        local_cfg_file = Path(local_cfg_path.joinpath('bmqbrkrcfg.json'))
         with local_cfg_file.open() as f:
             local_cfg = json.load(f)
+        local_cfg['taskConfig']['logController']['consoleSeverityThreshold'] = 'ERROR'
+        local_cfg['appConfig']['stats']['plugins'] = [
+            dict(name='PrometheusStatConsumer', publishInterval=1, host='localhost')]
+        local_cfg['appConfig']['plugins'] = dict(
+            libraries=['./'], enabled=['PrometheusStatConsumer'])
+
         prometheus_cfg = local_cfg['appConfig']['stats']['plugins'][0]
         if mode == 'push':
             prometheus_cfg['port'] = 9091
@@ -136,26 +148,26 @@ def test_local_cluster(plugin_path, broker_path, broker_cfg_path, tool_path, pro
 
 
 def main(args):
-    prometheus_docker_file_path = Path(args.path).joinpath(
-        'src/plugins/prometheus/tests/docker/docker-compose.yml')
-    broker_path = Path(args.path).joinpath(
-        'build/blazingmq/src/applications/bmqbrkr')
-    broker_cfg_path = Path(args.path).joinpath(
-        'src/plugins/prometheus/tests/localBMQ')
-    tool_path = Path(args.path).joinpath(
-        'build/blazingmq/src/applications/bmqtool/bmqtool.tsk')
-    plugin_path = Path(args.path).joinpath('build/blazingmq/src/plugins')
+    build_dir = Path(args.path).absolute()
+    test_folder = Path(__file__).absolute().parent
+    prometheus_docker_file_path = test_folder.joinpath(
+        'docker/docker-compose.yml')
+    broker_path = build_dir.joinpath('src/applications/bmqbrkr/bmqbrkr.tsk')
+    tool_path = build_dir.joinpath('src/applications/bmqtool/bmqtool.tsk')
+    plugin_path = build_dir.joinpath('src/plugins/libprometheus.so')
 
     results = dict()
     results['local_cluster_test_with_push_mode'] = test_local_cluster(
-        plugin_path, broker_path, broker_cfg_path, tool_path, PROMETHEUS_HOST, prometheus_docker_file_path, 'push')
+        plugin_path, broker_path, tool_path, PROMETHEUS_HOST, prometheus_docker_file_path, 'push')
     results['local_cluster_test_with_pull_mode'] = test_local_cluster(
-        plugin_path, broker_path, broker_cfg_path, tool_path, PROMETHEUS_HOST, prometheus_docker_file_path, 'pull')
+        plugin_path, broker_path, tool_path, PROMETHEUS_HOST, prometheus_docker_file_path, 'pull')
 
     print('\n\n\n========================================')
     print(f'{len(results)} integration tests executed with following results:')
     for test, result in results.items():
         print(f'{test} : {"passed" if result else "failed"}')
+
+    return not all(results.values())
 
 
 def _make_request(host, url, params={}):
@@ -252,4 +264,4 @@ def _assert_message(metric, expected, given):
 
 
 if __name__ == '__main__':
-    main(parse_arguments())
+    sys.exit(main(parse_arguments()))
