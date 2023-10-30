@@ -55,11 +55,7 @@
 #include <bslstl_stringref.h>
 
 // PROMETHEUS
-#include "prometheus/counter.h"
-#include "prometheus/exposer.h"
-#include "prometheus/family.h"
-#include "prometheus/gateway.h"
-#include "prometheus/info.h"
+#include "prometheus/labels.h"
 #include "prometheus/registry.h"
 
 namespace BloombergLP {
@@ -89,7 +85,7 @@ class PrometheusStatExporter {
     virtual ~PrometheusStatExporter(){};
 
     virtual void onData(){};
-    virtual void start() = 0;
+    virtual int  start() = 0;
     virtual void stop()  = 0;
 };
 

@@ -43,6 +43,10 @@
 #include <bsls_performancehint.h>
 
 // PROMETHEUS
+#include "prometheus/counter.h"
+#include "prometheus/exposer.h"
+#include "prometheus/gateway.h"
+#include "prometheus/gauge.h"
 #include "prometheus/labels.h"
 
 namespace BloombergLP {
@@ -193,7 +197,9 @@ int PrometheusStatConsumer::start(
     if (!d_prometheusStatExporter_p) {
         return -2;  // RETURN
     }
-    d_prometheusStatExporter_p->start();
+    if (0 != d_prometheusStatExporter_p->start()) {
+        return -3;  // RETURN
+    }
 
     d_isStarted = true;
     return 0;
@@ -789,11 +795,20 @@ class PrometheusPullStatExporter : public PrometheusStatExporter {
         d_exposerEndpoint = endpoint.str();
     }
 
-    void start() override
+    int start() override
     {
-        d_exposer_p = bsl::make_unique< ::prometheus::Exposer>(
-            d_exposerEndpoint);
-        d_exposer_p->RegisterCollectable(d_registry_p);
+        try {
+            d_exposer_p = bsl::make_unique< ::prometheus::Exposer>(
+                d_exposerEndpoint);
+            d_exposer_p->RegisterCollectable(d_registry_p);
+            return 0;  // RETURN
+        }
+        catch (const bsl::exception& e) {
+            BALL_LOG_WARN << "#PROMETHEUS_REPORTING "
+                          << "Failed to start http server for Prometheus: "
+                          << e.what();
+            return -1;  // RETURN
+        }
     }
 
     void stop() override { d_exposer_p.reset(); }
@@ -820,18 +835,16 @@ class PrometheusPushStatExporter : public PrometheusStatExporter {
 
         BALL_LOG_INFO << "Prometheus Push thread has started [id: "
                       << bslmt::ThreadUtil::selfIdAsUint64() << "]";
+        auto returnCode = 200;
         while (!d_threadStop) {
             bslmt::LockGuard<bslmt::Mutex> lock(&d_prometheusThreadMutex);
             d_prometheusThreadCondition.wait(&d_prometheusThreadMutex);
-            auto returnCode = d_prometheusGateway_p->Push();
-            if (returnCode != 200) {
+            auto newReturnCode = d_prometheusGateway_p->Push();
+            if (newReturnCode != 200 && newReturnCode != returnCode) {
                 BALL_LOG_WARN << "Push to Prometheus failed with code: "
-                              << returnCode;
+                              << newReturnCode;
             }
-            else {
-                BALL_LOG_DEBUG << "Pushed to Prometheus with code: "
-                               << returnCode;
-            }
+            returnCode = newReturnCode;
         }
 
         BALL_LOG_INFO << "Prometheus Push thread terminated "
@@ -870,7 +883,7 @@ class PrometheusPushStatExporter : public PrometheusStatExporter {
 
     void onData() override { d_prometheusThreadCondition.signal(); }
 
-    void start() override
+    int start() override
     {
         d_threadStop = false;
         // create push thread
@@ -885,6 +898,7 @@ class PrometheusPushStatExporter : public PrometheusStatExporter {
                            << "Failed to start prometheusPushThread thread"
                            << "' [rc: " << rc << "]";
         }
+        return rc;  // RETURN
     }
 
     void stop() override { stopImpl(); }
