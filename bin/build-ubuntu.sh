@@ -22,10 +22,36 @@ sudo apt install -y --no-install-recommends \
     libz-dev
 PREREQUISITES
 
-BUILD_PLUGINS=false
-if [ $# -eq 1 ] &&  [ "$1" == "plugins" ]; then
-    BUILD_PLUGINS=true
+# :: Parse and validate arguments :::::::::::::::::::::::::::::::::::::::::::::
+BUILD_PROMETHEUS=false
+VALID_ARGS=$(getopt -o p: --long plugins: -- "$@")
+if [[ $? -ne 0 ]]; then
+    echo "Usage:   $0 [--plugins list,of,plugins]"
+    echo "  -p|--plugins list,of,plugins     Specify plugins you would like to build."
+    echo "                                   Available plugins: ${PLUGINS_AVAILABLE[@]}"
+    exit 1;
 fi
+
+eval set -- "$VALID_ARGS"
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    -p | --plugins)
+        for i in ${2//,/ }
+        do
+            if [ "$i" == "prometheus" ]; then
+                BUILD_PROMETHEUS=true
+            else
+                echo "Invalid plugin name '$i' provided"
+                exit 1;
+            fi
+        done
+        shift 2
+        ;;
+    --) shift;
+        break
+        ;;
+  esac
+done
 
 set -e
 set -u
@@ -62,7 +88,7 @@ if [ ! -d "${DIR_THIRDPARTY}/ntf-core" ]; then
     git clone https://github.com/bloomberg/ntf-core.git "${DIR_THIRDPARTY}/ntf-core"
 fi
 # prometheus-cpp and its dependency for the plugin
-if [ "${BUILD_PLUGINS}" == true ]; then
+if [ "${BUILD_PROMETHEUS}" == true ]; then
     if [ ! -d "${DIR_THIRDPARTY}/curl" ]; then
         git clone https://github.com/curl/curl.git "${DIR_THIRDPARTY}/curl"
     fi
@@ -79,7 +105,7 @@ PATH="${DIR_THIRDPARTY}/bde-tools/bin:$PATH"
 
 if [ ! -e "${DIR_BUILD}/bde/.complete" ]; then
     pushd "${DIR_THIRDPARTY}/bde"
-    eval "$(bbs_build_env -u opt_64_cpp17_pic -b "${DIR_BUILD}/bde" -i "${DIR_INSTALL}")"
+    eval "$(bbs_build_env -u opt_64_cpp17 -b "${DIR_BUILD}/bde" -i "${DIR_INSTALL}")"
     bbs_build configure --prefix="${DIR_INSTALL}"
     bbs_build build --prefix="${DIR_INSTALL}"
     bbs_build install --install_dir="/" --prefix="${DIR_INSTALL}"
@@ -98,7 +124,7 @@ if [ ! -e "${DIR_BUILD}/ntf/.complete" ]; then
     touch "${DIR_BUILD}/ntf/.complete"
 fi
 
-if [ "${BUILD_PLUGINS}" == true ]; then
+if [ "${BUILD_PROMETHEUS}" == true ]; then
     if [ ! -e "${DIR_BUILD}/curl/.complete" ]; then
         pushd "${DIR_THIRDPARTY}/curl"
         autoreconf -fi
@@ -143,7 +169,7 @@ if [ "${BUILD_PLUGINS}" == true ]; then
     fi
 fi
 
-# :: Build the BlazingMQ repo :::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# :: Build the BlazingMQ repo :::::::::::::::::::::::::::::::::::::::::::::::::
 CMAKE_OPTIONS=(\
     -DBDE_BUILD_TARGET_64=1 \
     -DCMAKE_BUILD_TYPE=Debug \
@@ -156,8 +182,8 @@ CMAKE_OPTIONS=(\
     -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
     -DFLEX_ROOT=/usr/lib/x86_64-linux-gnu)
 
-if [ "${BUILD_PLUGINS}" == true ]; then
-    CMAKE_OPTIONS+=(-DINSTALL_TARGETS=plugins);
+if [ "${BUILD_PROMETHEUS}" == true ]; then
+    CMAKE_OPTIONS+=(-DINSTALL_TARGETS=prometheus);
 fi
 
 PKG_CONFIG_PATH="${DIR_INSTALL}/lib64/pkgconfig:${DIR_INSTALL}/lib/pkgconfig:$(pkg-config --variable pc_path pkg-config)" \
