@@ -28,7 +28,7 @@ VALID_ARGS=$(getopt -o p: --long plugins: -- "$@")
 if [[ $? -ne 0 ]]; then
     echo "Usage:   $0 [--plugins list,of,plugins]"
     echo "  -p|--plugins list,of,plugins     Specify plugins you would like to build."
-    echo "                                   Available plugins: ${PLUGINS_AVAILABLE[@]}"
+    echo "                                   Available plugins: prometheus"
     exit 1;
 fi
 
