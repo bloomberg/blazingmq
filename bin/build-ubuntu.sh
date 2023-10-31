@@ -10,6 +10,7 @@
 sudo apt update && sudo apt -y install ca-certificates
 sudo apt install -y --no-install-recommends \
     autoconf \
+    automake \
     build-essential \
     gdb \
     cmake \
