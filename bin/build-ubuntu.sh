@@ -23,16 +23,16 @@ sudo apt install -y --no-install-recommends \
 PREREQUISITES
 
 # :: Parse and validate arguments :::::::::::::::::::::::::::::::::::::::::::::
-BUILD_PROMETHEUS=false
-VALID_ARGS=$(getopt -o p: --long plugins: -- "$@")
-if [[ $? -ne 0 ]]; then
+print_usage_and_exit_with_error() {
     echo "Usage:   $0 [--plugins list,of,plugins]"
     echo "  -p|--plugins list,of,plugins     Specify plugins you would like to build."
     echo "                                   Available plugins: prometheus"
     exit 1;
-fi
+}
+VALID_ARGS=$(getopt -o p: --long plugins: -- "$@") || print_usage_and_exit_with_error
+eval "set -- $VALID_ARGS"
 
-eval set -- "$VALID_ARGS"
+BUILD_PROMETHEUS=false
 while [ "$#" -gt 0 ]; do
   case "$1" in
     -p | --plugins)
@@ -42,7 +42,7 @@ while [ "$#" -gt 0 ]; do
                 BUILD_PROMETHEUS=true
             else
                 echo "Invalid plugin name '$i' provided"
-                exit 1;
+                print_usage_and_exit_with_error;
             fi
         done
         shift 2
