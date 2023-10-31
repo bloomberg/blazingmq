@@ -7,3 +7,5 @@ compile_commands.json
 CMakeUserPresets.json
 /thirdparty/
 /.vscode/
+/include/
+/lib/
