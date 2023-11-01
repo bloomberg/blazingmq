@@ -91,7 +91,7 @@ fi
 # prometheus-cpp and its dependency for the plugin
 if [ "${BUILD_PROMETHEUS}" == true ]; then
     if [ ! -d "${DIR_THIRDPARTY}/curl" ]; then
-        git clone https://github.com/curl/curl.git "${DIR_THIRDPARTY}/curl"
+        git clone https://github.com/curl/curl.git --branch curl-8_4_0 "${DIR_THIRDPARTY}/curl"
     fi
     if [ ! -d "${DIR_THIRDPARTY}/prometheus-cpp" ]; then
         git clone https://github.com/jupp0r/prometheus-cpp.git "${DIR_THIRDPARTY}/prometheus-cpp"
