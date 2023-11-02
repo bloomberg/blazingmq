@@ -84,18 +84,18 @@ def test_local_cluster(plugin_path, broker_path, tool_path, prometheus_host, pro
         with local_cfg_file.open() as f:
             local_cfg = json.load(f)
         local_cfg['taskConfig']['logController']['consoleSeverityThreshold'] = 'ERROR'
-        local_cfg['appConfig']['stats']['plugins'] = [
-            dict(name='PrometheusStatConsumer', publishInterval=1, host='localhost')]
         local_cfg['appConfig']['plugins'] = dict(
             libraries=['./'], enabled=['PrometheusStatConsumer'])
+        plugins_cfg = local_cfg['appConfig']['stats']['plugins'] = [
+            dict(name='PrometheusStatConsumer', publishInterval=1)]
 
-        prometheus_cfg = local_cfg['appConfig']['stats']['plugins'][0]
+        prometheus_cfg = plugins_cfg[0]['prometheusSpecific'] = dict(host='localhost')
         if mode == 'push':
             prometheus_cfg['port'] = 9091
-            prometheus_cfg['mode'] = 'push'
+            prometheus_cfg['mode'] = 'E_PUSH'
         elif mode == 'pull':
             prometheus_cfg['port'] = 8080
-            prometheus_cfg['mode'] = 'pull'
+            prometheus_cfg['mode'] = 'E_PULL'
         else:
             assert False, f'Unexpected mode: {mode}'
         with local_cfg_file.open('w') as f:
