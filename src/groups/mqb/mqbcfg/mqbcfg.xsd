@@ -131,19 +131,32 @@
 
   <complexType name="StatPluginConfig">
     <sequence>
-      <element name='name'               type='string' default=''/>
-      <element name='queueSize'          type='int'    default='10000'/>
-      <element name='queueHighWatermark' type='int'    default='5000'/>
-      <element name='queueLowWatermark'  type='int'    default='1000'/>
-      <element name='publishInterval'    type='int'    default='30'/>  <!-- 0 to disable -->
-      <element name='namespacePrefix'    type='string' default=''/>
-      <element name='hosts'              type='string' maxOccurs='unbounded'/>
-      <element name='instanceId'         type='string' default=''/>
-      <element name='mode'               type='string' default='pull'/>
-      <element name='host'               type='string' default='localhost'/>
-      <element name='port'               type='int'    default='8080'/>
+      <element name='name'               type='string'         default=''/>
+      <element name='queueSize'          type='int'            default='10000'/>
+      <element name='queueHighWatermark' type='int'            default='5000'/>
+      <element name='queueLowWatermark'  type='int'            default='1000'/>
+      <element name='publishInterval'    type='int'            default='30'/>  <!-- 0 to disable -->
+      <element name='namespacePrefix'    type='string'         default=''/>
+      <element name='hosts'              type='string'         maxOccurs='unbounded'/>
+      <element name='instanceId'         type='string'         default=''/>
+      <element name='prometheusSpecific' type='tns:StatPluginConfigPrometheus' minOccurs='0'/>
     </sequence>
   </complexType>
+
+  <complexType name="StatPluginConfigPrometheus">
+      <sequence>
+          <element name='mode' type='tns:ExportMode' default='E_PULL'/>
+          <element name='host' type='string'         default='localhost'/>
+          <element name='port' type='int'            default='8080'/>
+      </sequence>
+  </complexType>
+
+  <simpleType name='ExportMode' bdem:preserveEnumOrder='1'>
+    <restriction base='string'>
+      <enumeration value='E_PUSH' bdem:id='0'/>
+      <enumeration value='E_PULL' bdem:id='1'/>
+    </restriction>
+  </simpleType>
 
   <complexType name="StatsPrinterConfig">
     <sequence>

@@ -90,9 +90,6 @@ namespace mqbcfg {
 class ResolvedDomain;
 }
 namespace mqbcfg {
-class StatPluginConfig;
-}
-namespace mqbcfg {
 class StatsPrinterConfig;
 }
 namespace mqbcfg {
@@ -126,7 +123,7 @@ namespace mqbcfg {
 class PartitionConfig;
 }
 namespace mqbcfg {
-class StatsConfig;
+class StatPluginConfigPrometheus;
 }
 namespace mqbcfg {
 class ClusterNode;
@@ -138,16 +135,22 @@ namespace mqbcfg {
 class ReversedClusterConnection;
 }
 namespace mqbcfg {
-class TaskConfig;
+class StatPluginConfig;
 }
 namespace mqbcfg {
-class AppConfig;
+class TaskConfig;
 }
 namespace mqbcfg {
 class ClusterDefinition;
 }
 namespace mqbcfg {
 class ClusterProxyDefinition;
+}
+namespace mqbcfg {
+class StatsConfig;
+}
+namespace mqbcfg {
+class AppConfig;
 }
 namespace mqbcfg {
 class ClustersDefinition;
@@ -1423,6 +1426,64 @@ void hashAppend(t_HASH_ALGORITHM& hashAlg, const ElectorConfig& object);
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::ElectorConfig)
+
+namespace mqbcfg {
+
+// ================
+// class ExportMode
+// ================
+
+struct ExportMode {
+  public:
+    // TYPES
+    enum Value { E_PUSH = 0, E_PULL = 1 };
+
+    enum { NUM_ENUMERATORS = 2 };
+
+    // CONSTANTS
+    static const char CLASS_NAME[];
+
+    static const bdlat_EnumeratorInfo ENUMERATOR_INFO_ARRAY[];
+
+    // CLASS METHODS
+    static const char* toString(Value value);
+    // Return the string representation exactly matching the enumerator
+    // name corresponding to the specified enumeration 'value'.
+
+    static int fromString(Value* result, const char* string, int stringLength);
+    // Load into the specified 'result' the enumerator matching the
+    // specified 'string' of the specified 'stringLength'.  Return 0 on
+    // success, and a non-zero value with no effect on 'result' otherwise
+    // (i.e., 'string' does not match any enumerator).
+
+    static int fromString(Value* result, const bsl::string& string);
+    // Load into the specified 'result' the enumerator matching the
+    // specified 'string'.  Return 0 on success, and a non-zero value with
+    // no effect on 'result' otherwise (i.e., 'string' does not match any
+    // enumerator).
+
+    static int fromInt(Value* result, int number);
+    // Load into the specified 'result' the enumerator matching the
+    // specified 'number'.  Return 0 on success, and a non-zero value with
+    // no effect on 'result' otherwise (i.e., 'number' does not match any
+    // enumerator).
+
+    static bsl::ostream& print(bsl::ostream& stream, Value value);
+    // Write to the specified 'stream' the string representation of
+    // the specified enumeration 'value'.  Return a reference to
+    // the modifiable 'stream'.
+};
+
+// FREE OPERATORS
+inline bsl::ostream& operator<<(bsl::ostream& stream, ExportMode::Value rhs);
+// Format the specified 'rhs' to the specified output 'stream' and
+// return a reference to the modifiable 'stream'.
+
+}  // close package namespace
+
+// TRAITS
+
+BDLAT_DECL_ENUMERATION_TRAITS(mqbcfg::ExportMode)
 
 namespace mqbcfg {
 
@@ -2959,335 +3020,6 @@ void hashAppend(t_HASH_ALGORITHM& hashAlg, const ResolvedDomain& object);
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbcfg::ResolvedDomain)
-
-namespace mqbcfg {
-
-// ======================
-// class StatPluginConfig
-// ======================
-
-class StatPluginConfig {
-    // INSTANCE DATA
-    bsl::vector<bsl::string> d_hosts;
-    bsl::string              d_name;
-    bsl::string              d_namespacePrefix;
-    bsl::string              d_instanceId;
-    bsl::string              d_mode;
-    bsl::string              d_host;
-    int                      d_queueSize;
-    int                      d_queueHighWatermark;
-    int                      d_queueLowWatermark;
-    int                      d_publishInterval;
-    int                      d_port;
-
-  public:
-    // TYPES
-    enum {
-        ATTRIBUTE_ID_NAME                 = 0,
-        ATTRIBUTE_ID_QUEUE_SIZE           = 1,
-        ATTRIBUTE_ID_QUEUE_HIGH_WATERMARK = 2,
-        ATTRIBUTE_ID_QUEUE_LOW_WATERMARK  = 3,
-        ATTRIBUTE_ID_PUBLISH_INTERVAL     = 4,
-        ATTRIBUTE_ID_NAMESPACE_PREFIX     = 5,
-        ATTRIBUTE_ID_HOSTS                = 6,
-        ATTRIBUTE_ID_INSTANCE_ID          = 7,
-        ATTRIBUTE_ID_MODE                 = 8,
-        ATTRIBUTE_ID_HOST                 = 9,
-        ATTRIBUTE_ID_PORT                 = 10
-    };
-
-    enum { NUM_ATTRIBUTES = 11 };
-
-    enum {
-        ATTRIBUTE_INDEX_NAME                 = 0,
-        ATTRIBUTE_INDEX_QUEUE_SIZE           = 1,
-        ATTRIBUTE_INDEX_QUEUE_HIGH_WATERMARK = 2,
-        ATTRIBUTE_INDEX_QUEUE_LOW_WATERMARK  = 3,
-        ATTRIBUTE_INDEX_PUBLISH_INTERVAL     = 4,
-        ATTRIBUTE_INDEX_NAMESPACE_PREFIX     = 5,
-        ATTRIBUTE_INDEX_HOSTS                = 6,
-        ATTRIBUTE_INDEX_INSTANCE_ID          = 7,
-        ATTRIBUTE_INDEX_MODE                 = 8,
-        ATTRIBUTE_INDEX_HOST                 = 9,
-        ATTRIBUTE_INDEX_PORT                 = 10
-    };
-
-    // CONSTANTS
-    static const char CLASS_NAME[];
-
-    static const char DEFAULT_INITIALIZER_NAME[];
-
-    static const int DEFAULT_INITIALIZER_QUEUE_SIZE;
-
-    static const int DEFAULT_INITIALIZER_QUEUE_HIGH_WATERMARK;
-
-    static const int DEFAULT_INITIALIZER_QUEUE_LOW_WATERMARK;
-
-    static const int DEFAULT_INITIALIZER_PUBLISH_INTERVAL;
-
-    static const char DEFAULT_INITIALIZER_NAMESPACE_PREFIX[];
-
-    static const char DEFAULT_INITIALIZER_INSTANCE_ID[];
-
-    static const char DEFAULT_INITIALIZER_MODE[];
-
-    static const char DEFAULT_INITIALIZER_HOST[];
-
-    static const int DEFAULT_INITIALIZER_PORT;
-
-    static const bdlat_AttributeInfo ATTRIBUTE_INFO_ARRAY[];
-
-  public:
-    // CLASS METHODS
-    static const bdlat_AttributeInfo* lookupAttributeInfo(int id);
-    // Return attribute information for the attribute indicated by the
-    // specified 'id' if the attribute exists, and 0 otherwise.
-
-    static const bdlat_AttributeInfo* lookupAttributeInfo(const char* name,
-                                                          int nameLength);
-    // Return attribute information for the attribute indicated by the
-    // specified 'name' of the specified 'nameLength' if the attribute
-    // exists, and 0 otherwise.
-
-    // CREATORS
-    explicit StatPluginConfig(bslma::Allocator* basicAllocator = 0);
-    // Create an object of type 'StatPluginConfig' having the default
-    // value.  Use the optionally specified 'basicAllocator' to supply
-    // memory.  If 'basicAllocator' is 0, the currently installed default
-    // allocator is used.
-
-    StatPluginConfig(const StatPluginConfig& original,
-                     bslma::Allocator*       basicAllocator = 0);
-    // Create an object of type 'StatPluginConfig' having the value of the
-    // specified 'original' object.  Use the optionally specified
-    // 'basicAllocator' to supply memory.  If 'basicAllocator' is 0, the
-    // currently installed default allocator is used.
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    StatPluginConfig(StatPluginConfig&& original) noexcept;
-    // Create an object of type 'StatPluginConfig' having the value of the
-    // specified 'original' object.  After performing this action, the
-    // 'original' object will be left in a valid, but unspecified state.
-
-    StatPluginConfig(StatPluginConfig&& original,
-                     bslma::Allocator*  basicAllocator);
-    // Create an object of type 'StatPluginConfig' having the value of the
-    // specified 'original' object.  After performing this action, the
-    // 'original' object will be left in a valid, but unspecified state.
-    // Use the optionally specified 'basicAllocator' to supply memory.  If
-    // 'basicAllocator' is 0, the currently installed default allocator is
-    // used.
-#endif
-
-    ~StatPluginConfig();
-    // Destroy this object.
-
-    // MANIPULATORS
-    StatPluginConfig& operator=(const StatPluginConfig& rhs);
-    // Assign to this object the value of the specified 'rhs' object.
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    StatPluginConfig& operator=(StatPluginConfig&& rhs);
-    // Assign to this object the value of the specified 'rhs' object.
-    // After performing this action, the 'rhs' object will be left in a
-    // valid, but unspecified state.
-#endif
-
-    void reset();
-    // Reset this object to the default value (i.e., its value upon
-    // default construction).
-
-    template <typename t_MANIPULATOR>
-    int manipulateAttributes(t_MANIPULATOR& manipulator);
-    // Invoke the specified 'manipulator' sequentially on the address of
-    // each (modifiable) attribute of this object, supplying 'manipulator'
-    // with the corresponding attribute information structure until such
-    // invocation returns a non-zero value.  Return the value from the
-    // last invocation of 'manipulator' (i.e., the invocation that
-    // terminated the sequence).
-
-    template <typename t_MANIPULATOR>
-    int manipulateAttribute(t_MANIPULATOR& manipulator, int id);
-    // Invoke the specified 'manipulator' on the address of
-    // the (modifiable) attribute indicated by the specified 'id',
-    // supplying 'manipulator' with the corresponding attribute
-    // information structure.  Return the value returned from the
-    // invocation of 'manipulator' if 'id' identifies an attribute of this
-    // class, and -1 otherwise.
-
-    template <typename t_MANIPULATOR>
-    int manipulateAttribute(t_MANIPULATOR& manipulator,
-                            const char*    name,
-                            int            nameLength);
-    // Invoke the specified 'manipulator' on the address of
-    // the (modifiable) attribute indicated by the specified 'name' of the
-    // specified 'nameLength', supplying 'manipulator' with the
-    // corresponding attribute information structure.  Return the value
-    // returned from the invocation of 'manipulator' if 'name' identifies
-    // an attribute of this class, and -1 otherwise.
-
-    bsl::string& name();
-    // Return a reference to the modifiable "Name" attribute of this
-    // object.
-
-    int& queueSize();
-    // Return a reference to the modifiable "QueueSize" attribute of this
-    // object.
-
-    int& queueHighWatermark();
-    // Return a reference to the modifiable "QueueHighWatermark" attribute
-    // of this object.
-
-    int& queueLowWatermark();
-    // Return a reference to the modifiable "QueueLowWatermark" attribute
-    // of this object.
-
-    int& publishInterval();
-    // Return a reference to the modifiable "PublishInterval" attribute of
-    // this object.
-
-    bsl::string& namespacePrefix();
-    // Return a reference to the modifiable "NamespacePrefix" attribute of
-    // this object.
-
-    bsl::vector<bsl::string>& hosts();
-    // Return a reference to the modifiable "Hosts" attribute of this
-    // object.
-
-    bsl::string& instanceId();
-    // Return a reference to the modifiable "InstanceId" attribute of this
-    // object.
-
-    bsl::string& mode();
-    // Return a reference to the modifiable "Mode" attribute of this
-    // object.
-
-    bsl::string& host();
-    // Return a reference to the modifiable "Host" attribute of this
-    // object.
-
-    int& port();
-    // Return a reference to the modifiable "Port" attribute of this
-    // object.
-
-    // ACCESSORS
-    bsl::ostream&
-    print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
-    // Format this object to the specified output 'stream' at the
-    // optionally specified indentation 'level' and return a reference to
-    // the modifiable 'stream'.  If 'level' is specified, optionally
-    // specify 'spacesPerLevel', the number of spaces per indentation level
-    // for this and all of its nested objects.  Each line is indented by
-    // the absolute value of 'level * spacesPerLevel'.  If 'level' is
-    // negative, suppress indentation of the first line.  If
-    // 'spacesPerLevel' is negative, suppress line breaks and format the
-    // entire output on one line.  If 'stream' is initially invalid, this
-    // operation has no effect.  Note that a trailing newline is provided
-    // in multiline mode only.
-
-    template <typename t_ACCESSOR>
-    int accessAttributes(t_ACCESSOR& accessor) const;
-    // Invoke the specified 'accessor' sequentially on each
-    // (non-modifiable) attribute of this object, supplying 'accessor'
-    // with the corresponding attribute information structure until such
-    // invocation returns a non-zero value.  Return the value from the
-    // last invocation of 'accessor' (i.e., the invocation that terminated
-    // the sequence).
-
-    template <typename t_ACCESSOR>
-    int accessAttribute(t_ACCESSOR& accessor, int id) const;
-    // Invoke the specified 'accessor' on the (non-modifiable) attribute
-    // of this object indicated by the specified 'id', supplying 'accessor'
-    // with the corresponding attribute information structure.  Return the
-    // value returned from the invocation of 'accessor' if 'id' identifies
-    // an attribute of this class, and -1 otherwise.
-
-    template <typename t_ACCESSOR>
-    int accessAttribute(t_ACCESSOR& accessor,
-                        const char* name,
-                        int         nameLength) const;
-    // Invoke the specified 'accessor' on the (non-modifiable) attribute
-    // of this object indicated by the specified 'name' of the specified
-    // 'nameLength', supplying 'accessor' with the corresponding attribute
-    // information structure.  Return the value returned from the
-    // invocation of 'accessor' if 'name' identifies an attribute of this
-    // class, and -1 otherwise.
-
-    const bsl::string& name() const;
-    // Return a reference offering non-modifiable access to the "Name"
-    // attribute of this object.
-
-    int queueSize() const;
-    // Return the value of the "QueueSize" attribute of this object.
-
-    int queueHighWatermark() const;
-    // Return the value of the "QueueHighWatermark" attribute of this
-    // object.
-
-    int queueLowWatermark() const;
-    // Return the value of the "QueueLowWatermark" attribute of this
-    // object.
-
-    int publishInterval() const;
-    // Return the value of the "PublishInterval" attribute of this object.
-
-    const bsl::string& namespacePrefix() const;
-    // Return a reference offering non-modifiable access to the
-    // "NamespacePrefix" attribute of this object.
-
-    const bsl::vector<bsl::string>& hosts() const;
-    // Return a reference offering non-modifiable access to the "Hosts"
-    // attribute of this object.
-
-    const bsl::string& instanceId() const;
-    // Return a reference offering non-modifiable access to the
-    // "InstanceId" attribute of this object.
-
-    const bsl::string& mode() const;
-    // Return a reference offering non-modifiable access to the "Mode"
-    // attribute of this object.
-
-    const bsl::string& host() const;
-    // Return a reference offering non-modifiable access to the "Host"
-    // attribute of this object.
-
-    int port() const;
-    // Return the value of the "Port" attribute of this object.
-};
-
-// FREE OPERATORS
-inline bool operator==(const StatPluginConfig& lhs,
-                       const StatPluginConfig& rhs);
-// Return 'true' if the specified 'lhs' and 'rhs' attribute objects have
-// the same value, and 'false' otherwise.  Two attribute objects have the
-// same value if each respective attribute has the same value.
-
-inline bool operator!=(const StatPluginConfig& lhs,
-                       const StatPluginConfig& rhs);
-// Return 'true' if the specified 'lhs' and 'rhs' attribute objects do not
-// have the same value, and 'false' otherwise.  Two attribute objects do
-// not have the same value if one or more respective attributes differ in
-// values.
-
-inline bsl::ostream& operator<<(bsl::ostream&           stream,
-                                const StatPluginConfig& rhs);
-// Format the specified 'rhs' to the specified output 'stream' and
-// return a reference to the modifiable 'stream'.
-
-template <typename t_HASH_ALGORITHM>
-void hashAppend(t_HASH_ALGORITHM& hashAlg, const StatPluginConfig& object);
-// Pass the specified 'object' to the specified 'hashAlg'.  This function
-// integrates with the 'bslh' modular hashing system and effectively
-// provides a 'bsl::hash' specialization for 'StatPluginConfig'.
-
-}  // close package namespace
-
-// TRAITS
-
-BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcfg::StatPluginConfig)
 
 namespace mqbcfg {
 
@@ -6075,36 +5807,40 @@ BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
 
 namespace mqbcfg {
 
-// =================
-// class StatsConfig
-// =================
+// ================================
+// class StatPluginConfigPrometheus
+// ================================
 
-class StatsConfig {
+class StatPluginConfigPrometheus {
     // INSTANCE DATA
-    bsl::vector<StatPluginConfig> d_plugins;
-    StatsPrinterConfig            d_printer;
-    int                           d_snapshotInterval;
+    bsl::string       d_host;
+    int               d_port;
+    ExportMode::Value d_mode;
 
   public:
     // TYPES
     enum {
-        ATTRIBUTE_ID_SNAPSHOT_INTERVAL = 0,
-        ATTRIBUTE_ID_PLUGINS           = 1,
-        ATTRIBUTE_ID_PRINTER           = 2
+        ATTRIBUTE_ID_MODE = 0,
+        ATTRIBUTE_ID_HOST = 1,
+        ATTRIBUTE_ID_PORT = 2
     };
 
     enum { NUM_ATTRIBUTES = 3 };
 
     enum {
-        ATTRIBUTE_INDEX_SNAPSHOT_INTERVAL = 0,
-        ATTRIBUTE_INDEX_PLUGINS           = 1,
-        ATTRIBUTE_INDEX_PRINTER           = 2
+        ATTRIBUTE_INDEX_MODE = 0,
+        ATTRIBUTE_INDEX_HOST = 1,
+        ATTRIBUTE_INDEX_PORT = 2
     };
 
     // CONSTANTS
     static const char CLASS_NAME[];
 
-    static const int DEFAULT_INITIALIZER_SNAPSHOT_INTERVAL;
+    static const ExportMode::Value DEFAULT_INITIALIZER_MODE;
+
+    static const char DEFAULT_INITIALIZER_HOST[];
+
+    static const int DEFAULT_INITIALIZER_PORT;
 
     static const bdlat_AttributeInfo ATTRIBUTE_INFO_ARRAY[];
 
@@ -6121,45 +5857,48 @@ class StatsConfig {
     // exists, and 0 otherwise.
 
     // CREATORS
-    explicit StatsConfig(bslma::Allocator* basicAllocator = 0);
-    // Create an object of type 'StatsConfig' having the default value.
-    // Use the optionally specified 'basicAllocator' to supply memory.  If
-    // 'basicAllocator' is 0, the currently installed default allocator is
-    // used.
+    explicit StatPluginConfigPrometheus(bslma::Allocator* basicAllocator = 0);
+    // Create an object of type 'StatPluginConfigPrometheus' having the
+    // default value.  Use the optionally specified 'basicAllocator' to
+    // supply memory.  If 'basicAllocator' is 0, the currently installed
+    // default allocator is used.
 
-    StatsConfig(const StatsConfig& original,
-                bslma::Allocator*  basicAllocator = 0);
-    // Create an object of type 'StatsConfig' having the value of the
-    // specified 'original' object.  Use the optionally specified
-    // 'basicAllocator' to supply memory.  If 'basicAllocator' is 0, the
-    // currently installed default allocator is used.
+    StatPluginConfigPrometheus(const StatPluginConfigPrometheus& original,
+                               bslma::Allocator* basicAllocator = 0);
+    // Create an object of type 'StatPluginConfigPrometheus' having the
+    // value of the specified 'original' object.  Use the optionally
+    // specified 'basicAllocator' to supply memory.  If 'basicAllocator' is
+    // 0, the currently installed default allocator is used.
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    StatsConfig(StatsConfig&& original) noexcept;
-    // Create an object of type 'StatsConfig' having the value of the
-    // specified 'original' object.  After performing this action, the
-    // 'original' object will be left in a valid, but unspecified state.
+    StatPluginConfigPrometheus(StatPluginConfigPrometheus&& original) noexcept;
+    // Create an object of type 'StatPluginConfigPrometheus' having the
+    // value of the specified 'original' object.  After performing this
+    // action, the 'original' object will be left in a valid, but
+    // unspecified state.
 
-    StatsConfig(StatsConfig&& original, bslma::Allocator* basicAllocator);
-    // Create an object of type 'StatsConfig' having the value of the
-    // specified 'original' object.  After performing this action, the
-    // 'original' object will be left in a valid, but unspecified state.
-    // Use the optionally specified 'basicAllocator' to supply memory.  If
-    // 'basicAllocator' is 0, the currently installed default allocator is
-    // used.
+    StatPluginConfigPrometheus(StatPluginConfigPrometheus&& original,
+                               bslma::Allocator*            basicAllocator);
+    // Create an object of type 'StatPluginConfigPrometheus' having the
+    // value of the specified 'original' object.  After performing this
+    // action, the 'original' object will be left in a valid, but
+    // unspecified state.  Use the optionally specified 'basicAllocator' to
+    // supply memory.  If 'basicAllocator' is 0, the currently installed
+    // default allocator is used.
 #endif
 
-    ~StatsConfig();
+    ~StatPluginConfigPrometheus();
     // Destroy this object.
 
     // MANIPULATORS
-    StatsConfig& operator=(const StatsConfig& rhs);
+    StatPluginConfigPrometheus&
+    operator=(const StatPluginConfigPrometheus& rhs);
     // Assign to this object the value of the specified 'rhs' object.
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    StatsConfig& operator=(StatsConfig&& rhs);
+    StatPluginConfigPrometheus& operator=(StatPluginConfigPrometheus&& rhs);
     // Assign to this object the value of the specified 'rhs' object.
     // After performing this action, the 'rhs' object will be left in a
     // valid, but unspecified state.
@@ -6198,16 +5937,16 @@ class StatsConfig {
     // returned from the invocation of 'manipulator' if 'name' identifies
     // an attribute of this class, and -1 otherwise.
 
-    int& snapshotInterval();
-    // Return a reference to the modifiable "SnapshotInterval" attribute of
-    // this object.
-
-    bsl::vector<StatPluginConfig>& plugins();
-    // Return a reference to the modifiable "Plugins" attribute of this
+    ExportMode::Value& mode();
+    // Return a reference to the modifiable "Mode" attribute of this
     // object.
 
-    StatsPrinterConfig& printer();
-    // Return a reference to the modifiable "Printer" attribute of this
+    bsl::string& host();
+    // Return a reference to the modifiable "Host" attribute of this
+    // object.
+
+    int& port();
+    // Return a reference to the modifiable "Port" attribute of this
     // object.
 
     // ACCESSORS
@@ -6253,45 +5992,49 @@ class StatsConfig {
     // invocation of 'accessor' if 'name' identifies an attribute of this
     // class, and -1 otherwise.
 
-    int snapshotInterval() const;
-    // Return the value of the "SnapshotInterval" attribute of this object.
+    ExportMode::Value mode() const;
+    // Return the value of the "Mode" attribute of this object.
 
-    const bsl::vector<StatPluginConfig>& plugins() const;
-    // Return a reference offering non-modifiable access to the "Plugins"
+    const bsl::string& host() const;
+    // Return a reference offering non-modifiable access to the "Host"
     // attribute of this object.
 
-    const StatsPrinterConfig& printer() const;
-    // Return a reference offering non-modifiable access to the "Printer"
-    // attribute of this object.
+    int port() const;
+    // Return the value of the "Port" attribute of this object.
 };
 
 // FREE OPERATORS
-inline bool operator==(const StatsConfig& lhs, const StatsConfig& rhs);
+inline bool operator==(const StatPluginConfigPrometheus& lhs,
+                       const StatPluginConfigPrometheus& rhs);
 // Return 'true' if the specified 'lhs' and 'rhs' attribute objects have
 // the same value, and 'false' otherwise.  Two attribute objects have the
 // same value if each respective attribute has the same value.
 
-inline bool operator!=(const StatsConfig& lhs, const StatsConfig& rhs);
+inline bool operator!=(const StatPluginConfigPrometheus& lhs,
+                       const StatPluginConfigPrometheus& rhs);
 // Return 'true' if the specified 'lhs' and 'rhs' attribute objects do not
 // have the same value, and 'false' otherwise.  Two attribute objects do
 // not have the same value if one or more respective attributes differ in
 // values.
 
-inline bsl::ostream& operator<<(bsl::ostream& stream, const StatsConfig& rhs);
+inline bsl::ostream& operator<<(bsl::ostream&                     stream,
+                                const StatPluginConfigPrometheus& rhs);
 // Format the specified 'rhs' to the specified output 'stream' and
 // return a reference to the modifiable 'stream'.
 
 template <typename t_HASH_ALGORITHM>
-void hashAppend(t_HASH_ALGORITHM& hashAlg, const StatsConfig& object);
+void hashAppend(t_HASH_ALGORITHM&                 hashAlg,
+                const StatPluginConfigPrometheus& object);
 // Pass the specified 'object' to the specified 'hashAlg'.  This function
 // integrates with the 'bslh' modular hashing system and effectively
-// provides a 'bsl::hash' specialization for 'StatsConfig'.
+// provides a 'bsl::hash' specialization for 'StatPluginConfigPrometheus'.
 
 }  // close package namespace
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcfg::StatsConfig)
+BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
+    mqbcfg::StatPluginConfigPrometheus)
 
 namespace mqbcfg {
 
@@ -6951,6 +6694,309 @@ BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
 
 namespace mqbcfg {
 
+// ======================
+// class StatPluginConfig
+// ======================
+
+class StatPluginConfig {
+    // INSTANCE DATA
+    bsl::vector<bsl::string>                        d_hosts;
+    bsl::string                                     d_name;
+    bsl::string                                     d_namespacePrefix;
+    bsl::string                                     d_instanceId;
+    bdlb::NullableValue<StatPluginConfigPrometheus> d_prometheusSpecific;
+    int                                             d_queueSize;
+    int                                             d_queueHighWatermark;
+    int                                             d_queueLowWatermark;
+    int                                             d_publishInterval;
+
+  public:
+    // TYPES
+    enum {
+        ATTRIBUTE_ID_NAME                 = 0,
+        ATTRIBUTE_ID_QUEUE_SIZE           = 1,
+        ATTRIBUTE_ID_QUEUE_HIGH_WATERMARK = 2,
+        ATTRIBUTE_ID_QUEUE_LOW_WATERMARK  = 3,
+        ATTRIBUTE_ID_PUBLISH_INTERVAL     = 4,
+        ATTRIBUTE_ID_NAMESPACE_PREFIX     = 5,
+        ATTRIBUTE_ID_HOSTS                = 6,
+        ATTRIBUTE_ID_INSTANCE_ID          = 7,
+        ATTRIBUTE_ID_PROMETHEUS_SPECIFIC  = 8
+    };
+
+    enum { NUM_ATTRIBUTES = 9 };
+
+    enum {
+        ATTRIBUTE_INDEX_NAME                 = 0,
+        ATTRIBUTE_INDEX_QUEUE_SIZE           = 1,
+        ATTRIBUTE_INDEX_QUEUE_HIGH_WATERMARK = 2,
+        ATTRIBUTE_INDEX_QUEUE_LOW_WATERMARK  = 3,
+        ATTRIBUTE_INDEX_PUBLISH_INTERVAL     = 4,
+        ATTRIBUTE_INDEX_NAMESPACE_PREFIX     = 5,
+        ATTRIBUTE_INDEX_HOSTS                = 6,
+        ATTRIBUTE_INDEX_INSTANCE_ID          = 7,
+        ATTRIBUTE_INDEX_PROMETHEUS_SPECIFIC  = 8
+    };
+
+    // CONSTANTS
+    static const char CLASS_NAME[];
+
+    static const char DEFAULT_INITIALIZER_NAME[];
+
+    static const int DEFAULT_INITIALIZER_QUEUE_SIZE;
+
+    static const int DEFAULT_INITIALIZER_QUEUE_HIGH_WATERMARK;
+
+    static const int DEFAULT_INITIALIZER_QUEUE_LOW_WATERMARK;
+
+    static const int DEFAULT_INITIALIZER_PUBLISH_INTERVAL;
+
+    static const char DEFAULT_INITIALIZER_NAMESPACE_PREFIX[];
+
+    static const char DEFAULT_INITIALIZER_INSTANCE_ID[];
+
+    static const bdlat_AttributeInfo ATTRIBUTE_INFO_ARRAY[];
+
+  public:
+    // CLASS METHODS
+    static const bdlat_AttributeInfo* lookupAttributeInfo(int id);
+    // Return attribute information for the attribute indicated by the
+    // specified 'id' if the attribute exists, and 0 otherwise.
+
+    static const bdlat_AttributeInfo* lookupAttributeInfo(const char* name,
+                                                          int nameLength);
+    // Return attribute information for the attribute indicated by the
+    // specified 'name' of the specified 'nameLength' if the attribute
+    // exists, and 0 otherwise.
+
+    // CREATORS
+    explicit StatPluginConfig(bslma::Allocator* basicAllocator = 0);
+    // Create an object of type 'StatPluginConfig' having the default
+    // value.  Use the optionally specified 'basicAllocator' to supply
+    // memory.  If 'basicAllocator' is 0, the currently installed default
+    // allocator is used.
+
+    StatPluginConfig(const StatPluginConfig& original,
+                     bslma::Allocator*       basicAllocator = 0);
+    // Create an object of type 'StatPluginConfig' having the value of the
+    // specified 'original' object.  Use the optionally specified
+    // 'basicAllocator' to supply memory.  If 'basicAllocator' is 0, the
+    // currently installed default allocator is used.
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+    StatPluginConfig(StatPluginConfig&& original) noexcept;
+    // Create an object of type 'StatPluginConfig' having the value of the
+    // specified 'original' object.  After performing this action, the
+    // 'original' object will be left in a valid, but unspecified state.
+
+    StatPluginConfig(StatPluginConfig&& original,
+                     bslma::Allocator*  basicAllocator);
+    // Create an object of type 'StatPluginConfig' having the value of the
+    // specified 'original' object.  After performing this action, the
+    // 'original' object will be left in a valid, but unspecified state.
+    // Use the optionally specified 'basicAllocator' to supply memory.  If
+    // 'basicAllocator' is 0, the currently installed default allocator is
+    // used.
+#endif
+
+    ~StatPluginConfig();
+    // Destroy this object.
+
+    // MANIPULATORS
+    StatPluginConfig& operator=(const StatPluginConfig& rhs);
+    // Assign to this object the value of the specified 'rhs' object.
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+    StatPluginConfig& operator=(StatPluginConfig&& rhs);
+    // Assign to this object the value of the specified 'rhs' object.
+    // After performing this action, the 'rhs' object will be left in a
+    // valid, but unspecified state.
+#endif
+
+    void reset();
+    // Reset this object to the default value (i.e., its value upon
+    // default construction).
+
+    template <typename t_MANIPULATOR>
+    int manipulateAttributes(t_MANIPULATOR& manipulator);
+    // Invoke the specified 'manipulator' sequentially on the address of
+    // each (modifiable) attribute of this object, supplying 'manipulator'
+    // with the corresponding attribute information structure until such
+    // invocation returns a non-zero value.  Return the value from the
+    // last invocation of 'manipulator' (i.e., the invocation that
+    // terminated the sequence).
+
+    template <typename t_MANIPULATOR>
+    int manipulateAttribute(t_MANIPULATOR& manipulator, int id);
+    // Invoke the specified 'manipulator' on the address of
+    // the (modifiable) attribute indicated by the specified 'id',
+    // supplying 'manipulator' with the corresponding attribute
+    // information structure.  Return the value returned from the
+    // invocation of 'manipulator' if 'id' identifies an attribute of this
+    // class, and -1 otherwise.
+
+    template <typename t_MANIPULATOR>
+    int manipulateAttribute(t_MANIPULATOR& manipulator,
+                            const char*    name,
+                            int            nameLength);
+    // Invoke the specified 'manipulator' on the address of
+    // the (modifiable) attribute indicated by the specified 'name' of the
+    // specified 'nameLength', supplying 'manipulator' with the
+    // corresponding attribute information structure.  Return the value
+    // returned from the invocation of 'manipulator' if 'name' identifies
+    // an attribute of this class, and -1 otherwise.
+
+    bsl::string& name();
+    // Return a reference to the modifiable "Name" attribute of this
+    // object.
+
+    int& queueSize();
+    // Return a reference to the modifiable "QueueSize" attribute of this
+    // object.
+
+    int& queueHighWatermark();
+    // Return a reference to the modifiable "QueueHighWatermark" attribute
+    // of this object.
+
+    int& queueLowWatermark();
+    // Return a reference to the modifiable "QueueLowWatermark" attribute
+    // of this object.
+
+    int& publishInterval();
+    // Return a reference to the modifiable "PublishInterval" attribute of
+    // this object.
+
+    bsl::string& namespacePrefix();
+    // Return a reference to the modifiable "NamespacePrefix" attribute of
+    // this object.
+
+    bsl::vector<bsl::string>& hosts();
+    // Return a reference to the modifiable "Hosts" attribute of this
+    // object.
+
+    bsl::string& instanceId();
+    // Return a reference to the modifiable "InstanceId" attribute of this
+    // object.
+
+    bdlb::NullableValue<StatPluginConfigPrometheus>& prometheusSpecific();
+    // Return a reference to the modifiable "PrometheusSpecific" attribute
+    // of this object.
+
+    // ACCESSORS
+    bsl::ostream&
+    print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
+    // Format this object to the specified output 'stream' at the
+    // optionally specified indentation 'level' and return a reference to
+    // the modifiable 'stream'.  If 'level' is specified, optionally
+    // specify 'spacesPerLevel', the number of spaces per indentation level
+    // for this and all of its nested objects.  Each line is indented by
+    // the absolute value of 'level * spacesPerLevel'.  If 'level' is
+    // negative, suppress indentation of the first line.  If
+    // 'spacesPerLevel' is negative, suppress line breaks and format the
+    // entire output on one line.  If 'stream' is initially invalid, this
+    // operation has no effect.  Note that a trailing newline is provided
+    // in multiline mode only.
+
+    template <typename t_ACCESSOR>
+    int accessAttributes(t_ACCESSOR& accessor) const;
+    // Invoke the specified 'accessor' sequentially on each
+    // (non-modifiable) attribute of this object, supplying 'accessor'
+    // with the corresponding attribute information structure until such
+    // invocation returns a non-zero value.  Return the value from the
+    // last invocation of 'accessor' (i.e., the invocation that terminated
+    // the sequence).
+
+    template <typename t_ACCESSOR>
+    int accessAttribute(t_ACCESSOR& accessor, int id) const;
+    // Invoke the specified 'accessor' on the (non-modifiable) attribute
+    // of this object indicated by the specified 'id', supplying 'accessor'
+    // with the corresponding attribute information structure.  Return the
+    // value returned from the invocation of 'accessor' if 'id' identifies
+    // an attribute of this class, and -1 otherwise.
+
+    template <typename t_ACCESSOR>
+    int accessAttribute(t_ACCESSOR& accessor,
+                        const char* name,
+                        int         nameLength) const;
+    // Invoke the specified 'accessor' on the (non-modifiable) attribute
+    // of this object indicated by the specified 'name' of the specified
+    // 'nameLength', supplying 'accessor' with the corresponding attribute
+    // information structure.  Return the value returned from the
+    // invocation of 'accessor' if 'name' identifies an attribute of this
+    // class, and -1 otherwise.
+
+    const bsl::string& name() const;
+    // Return a reference offering non-modifiable access to the "Name"
+    // attribute of this object.
+
+    int queueSize() const;
+    // Return the value of the "QueueSize" attribute of this object.
+
+    int queueHighWatermark() const;
+    // Return the value of the "QueueHighWatermark" attribute of this
+    // object.
+
+    int queueLowWatermark() const;
+    // Return the value of the "QueueLowWatermark" attribute of this
+    // object.
+
+    int publishInterval() const;
+    // Return the value of the "PublishInterval" attribute of this object.
+
+    const bsl::string& namespacePrefix() const;
+    // Return a reference offering non-modifiable access to the
+    // "NamespacePrefix" attribute of this object.
+
+    const bsl::vector<bsl::string>& hosts() const;
+    // Return a reference offering non-modifiable access to the "Hosts"
+    // attribute of this object.
+
+    const bsl::string& instanceId() const;
+    // Return a reference offering non-modifiable access to the
+    // "InstanceId" attribute of this object.
+
+    const bdlb::NullableValue<StatPluginConfigPrometheus>&
+    prometheusSpecific() const;
+    // Return a reference offering non-modifiable access to the
+    // "PrometheusSpecific" attribute of this object.
+};
+
+// FREE OPERATORS
+inline bool operator==(const StatPluginConfig& lhs,
+                       const StatPluginConfig& rhs);
+// Return 'true' if the specified 'lhs' and 'rhs' attribute objects have
+// the same value, and 'false' otherwise.  Two attribute objects have the
+// same value if each respective attribute has the same value.
+
+inline bool operator!=(const StatPluginConfig& lhs,
+                       const StatPluginConfig& rhs);
+// Return 'true' if the specified 'lhs' and 'rhs' attribute objects do not
+// have the same value, and 'false' otherwise.  Two attribute objects do
+// not have the same value if one or more respective attributes differ in
+// values.
+
+inline bsl::ostream& operator<<(bsl::ostream&           stream,
+                                const StatPluginConfig& rhs);
+// Format the specified 'rhs' to the specified output 'stream' and
+// return a reference to the modifiable 'stream'.
+
+template <typename t_HASH_ALGORITHM>
+void hashAppend(t_HASH_ALGORITHM& hashAlg, const StatPluginConfig& object);
+// Pass the specified 'object' to the specified 'hashAlg'.  This function
+// integrates with the 'bslh' modular hashing system and effectively
+// provides a 'bsl::hash' specialization for 'StatPluginConfig'.
+
+}  // close package namespace
+
+// TRAITS
+
+BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
+    mqbcfg::StatPluginConfig)
+
+namespace mqbcfg {
+
 // ================
 // class TaskConfig
 // ================
@@ -7165,382 +7211,6 @@ void hashAppend(t_HASH_ALGORITHM& hashAlg, const TaskConfig& object);
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcfg::TaskConfig)
-
-namespace mqbcfg {
-
-// ===============
-// class AppConfig
-// ===============
-
-class AppConfig {
-    // Top level typ for the broker's configuration.
-    // brokerInstanceName...: name of the broker instance
-    // brokerVersion........: version of the broker configVersion........:
-    // version of the bmqbrkr.cfg config etcDir...............: directory
-    // containing the json config files hostName.............: name of the
-    // current host hostTags.............: tags of the current host
-    // hostDataCenter.......: datacenter the current host resides in
-    // isRunningOnDev.......: true if running on dev logsObserverMaxSize..:
-    // maximum number of log records to keep latencyMonitorDomain.: common part
-    // of all latemon domains dispatcherConfig.....: configuration for the
-    // dispatcher stats................: configuration for the stats
-    // networkInterfaces....: configuration for the network interfaces
-    // bmqconfConfig........: configuration for bmqconf plugins..............:
-    // configuration for the plugins msgPropertiesSupport.: information about
-    // if/how to advertise support for v2 message properties
-
-    // INSTANCE DATA
-    bsl::string         d_brokerInstanceName;
-    bsl::string         d_etcDir;
-    bsl::string         d_hostName;
-    bsl::string         d_hostTags;
-    bsl::string         d_hostDataCenter;
-    bsl::string         d_latencyMonitorDomain;
-    StatsConfig         d_stats;
-    Plugins             d_plugins;
-    NetworkInterfaces   d_networkInterfaces;
-    MessagePropertiesV2 d_messagePropertiesV2;
-    DispatcherConfig    d_dispatcherConfig;
-    BmqconfConfig       d_bmqconfConfig;
-    int                 d_brokerVersion;
-    int                 d_configVersion;
-    int                 d_logsObserverMaxSize;
-    bool                d_isRunningOnDev;
-
-  public:
-    // TYPES
-    enum {
-        ATTRIBUTE_ID_BROKER_INSTANCE_NAME   = 0,
-        ATTRIBUTE_ID_BROKER_VERSION         = 1,
-        ATTRIBUTE_ID_CONFIG_VERSION         = 2,
-        ATTRIBUTE_ID_ETC_DIR                = 3,
-        ATTRIBUTE_ID_HOST_NAME              = 4,
-        ATTRIBUTE_ID_HOST_TAGS              = 5,
-        ATTRIBUTE_ID_HOST_DATA_CENTER       = 6,
-        ATTRIBUTE_ID_IS_RUNNING_ON_DEV      = 7,
-        ATTRIBUTE_ID_LOGS_OBSERVER_MAX_SIZE = 8,
-        ATTRIBUTE_ID_LATENCY_MONITOR_DOMAIN = 9,
-        ATTRIBUTE_ID_DISPATCHER_CONFIG      = 10,
-        ATTRIBUTE_ID_STATS                  = 11,
-        ATTRIBUTE_ID_NETWORK_INTERFACES     = 12,
-        ATTRIBUTE_ID_BMQCONF_CONFIG         = 13,
-        ATTRIBUTE_ID_PLUGINS                = 14,
-        ATTRIBUTE_ID_MESSAGE_PROPERTIES_V2  = 15
-    };
-
-    enum { NUM_ATTRIBUTES = 16 };
-
-    enum {
-        ATTRIBUTE_INDEX_BROKER_INSTANCE_NAME   = 0,
-        ATTRIBUTE_INDEX_BROKER_VERSION         = 1,
-        ATTRIBUTE_INDEX_CONFIG_VERSION         = 2,
-        ATTRIBUTE_INDEX_ETC_DIR                = 3,
-        ATTRIBUTE_INDEX_HOST_NAME              = 4,
-        ATTRIBUTE_INDEX_HOST_TAGS              = 5,
-        ATTRIBUTE_INDEX_HOST_DATA_CENTER       = 6,
-        ATTRIBUTE_INDEX_IS_RUNNING_ON_DEV      = 7,
-        ATTRIBUTE_INDEX_LOGS_OBSERVER_MAX_SIZE = 8,
-        ATTRIBUTE_INDEX_LATENCY_MONITOR_DOMAIN = 9,
-        ATTRIBUTE_INDEX_DISPATCHER_CONFIG      = 10,
-        ATTRIBUTE_INDEX_STATS                  = 11,
-        ATTRIBUTE_INDEX_NETWORK_INTERFACES     = 12,
-        ATTRIBUTE_INDEX_BMQCONF_CONFIG         = 13,
-        ATTRIBUTE_INDEX_PLUGINS                = 14,
-        ATTRIBUTE_INDEX_MESSAGE_PROPERTIES_V2  = 15
-    };
-
-    // CONSTANTS
-    static const char CLASS_NAME[];
-
-    static const char DEFAULT_INITIALIZER_LATENCY_MONITOR_DOMAIN[];
-
-    static const bdlat_AttributeInfo ATTRIBUTE_INFO_ARRAY[];
-
-  public:
-    // CLASS METHODS
-    static const bdlat_AttributeInfo* lookupAttributeInfo(int id);
-    // Return attribute information for the attribute indicated by the
-    // specified 'id' if the attribute exists, and 0 otherwise.
-
-    static const bdlat_AttributeInfo* lookupAttributeInfo(const char* name,
-                                                          int nameLength);
-    // Return attribute information for the attribute indicated by the
-    // specified 'name' of the specified 'nameLength' if the attribute
-    // exists, and 0 otherwise.
-
-    // CREATORS
-    explicit AppConfig(bslma::Allocator* basicAllocator = 0);
-    // Create an object of type 'AppConfig' having the default value.  Use
-    // the optionally specified 'basicAllocator' to supply memory.  If
-    // 'basicAllocator' is 0, the currently installed default allocator is
-    // used.
-
-    AppConfig(const AppConfig& original, bslma::Allocator* basicAllocator = 0);
-    // Create an object of type 'AppConfig' having the value of the
-    // specified 'original' object.  Use the optionally specified
-    // 'basicAllocator' to supply memory.  If 'basicAllocator' is 0, the
-    // currently installed default allocator is used.
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    AppConfig(AppConfig&& original) noexcept;
-    // Create an object of type 'AppConfig' having the value of the
-    // specified 'original' object.  After performing this action, the
-    // 'original' object will be left in a valid, but unspecified state.
-
-    AppConfig(AppConfig&& original, bslma::Allocator* basicAllocator);
-    // Create an object of type 'AppConfig' having the value of the
-    // specified 'original' object.  After performing this action, the
-    // 'original' object will be left in a valid, but unspecified state.
-    // Use the optionally specified 'basicAllocator' to supply memory.  If
-    // 'basicAllocator' is 0, the currently installed default allocator is
-    // used.
-#endif
-
-    ~AppConfig();
-    // Destroy this object.
-
-    // MANIPULATORS
-    AppConfig& operator=(const AppConfig& rhs);
-    // Assign to this object the value of the specified 'rhs' object.
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    AppConfig& operator=(AppConfig&& rhs);
-    // Assign to this object the value of the specified 'rhs' object.
-    // After performing this action, the 'rhs' object will be left in a
-    // valid, but unspecified state.
-#endif
-
-    void reset();
-    // Reset this object to the default value (i.e., its value upon
-    // default construction).
-
-    template <typename t_MANIPULATOR>
-    int manipulateAttributes(t_MANIPULATOR& manipulator);
-    // Invoke the specified 'manipulator' sequentially on the address of
-    // each (modifiable) attribute of this object, supplying 'manipulator'
-    // with the corresponding attribute information structure until such
-    // invocation returns a non-zero value.  Return the value from the
-    // last invocation of 'manipulator' (i.e., the invocation that
-    // terminated the sequence).
-
-    template <typename t_MANIPULATOR>
-    int manipulateAttribute(t_MANIPULATOR& manipulator, int id);
-    // Invoke the specified 'manipulator' on the address of
-    // the (modifiable) attribute indicated by the specified 'id',
-    // supplying 'manipulator' with the corresponding attribute
-    // information structure.  Return the value returned from the
-    // invocation of 'manipulator' if 'id' identifies an attribute of this
-    // class, and -1 otherwise.
-
-    template <typename t_MANIPULATOR>
-    int manipulateAttribute(t_MANIPULATOR& manipulator,
-                            const char*    name,
-                            int            nameLength);
-    // Invoke the specified 'manipulator' on the address of
-    // the (modifiable) attribute indicated by the specified 'name' of the
-    // specified 'nameLength', supplying 'manipulator' with the
-    // corresponding attribute information structure.  Return the value
-    // returned from the invocation of 'manipulator' if 'name' identifies
-    // an attribute of this class, and -1 otherwise.
-
-    bsl::string& brokerInstanceName();
-    // Return a reference to the modifiable "BrokerInstanceName" attribute
-    // of this object.
-
-    int& brokerVersion();
-    // Return a reference to the modifiable "BrokerVersion" attribute of
-    // this object.
-
-    int& configVersion();
-    // Return a reference to the modifiable "ConfigVersion" attribute of
-    // this object.
-
-    bsl::string& etcDir();
-    // Return a reference to the modifiable "EtcDir" attribute of this
-    // object.
-
-    bsl::string& hostName();
-    // Return a reference to the modifiable "HostName" attribute of this
-    // object.
-
-    bsl::string& hostTags();
-    // Return a reference to the modifiable "HostTags" attribute of this
-    // object.
-
-    bsl::string& hostDataCenter();
-    // Return a reference to the modifiable "HostDataCenter" attribute of
-    // this object.
-
-    bool& isRunningOnDev();
-    // Return a reference to the modifiable "IsRunningOnDev" attribute of
-    // this object.
-
-    int& logsObserverMaxSize();
-    // Return a reference to the modifiable "LogsObserverMaxSize" attribute
-    // of this object.
-
-    bsl::string& latencyMonitorDomain();
-    // Return a reference to the modifiable "LatencyMonitorDomain"
-    // attribute of this object.
-
-    DispatcherConfig& dispatcherConfig();
-    // Return a reference to the modifiable "DispatcherConfig" attribute of
-    // this object.
-
-    StatsConfig& stats();
-    // Return a reference to the modifiable "Stats" attribute of this
-    // object.
-
-    NetworkInterfaces& networkInterfaces();
-    // Return a reference to the modifiable "NetworkInterfaces" attribute
-    // of this object.
-
-    BmqconfConfig& bmqconfConfig();
-    // Return a reference to the modifiable "BmqconfConfig" attribute of
-    // this object.
-
-    Plugins& plugins();
-    // Return a reference to the modifiable "Plugins" attribute of this
-    // object.
-
-    MessagePropertiesV2& messagePropertiesV2();
-    // Return a reference to the modifiable "MessagePropertiesV2" attribute
-    // of this object.
-
-    // ACCESSORS
-    bsl::ostream&
-    print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
-    // Format this object to the specified output 'stream' at the
-    // optionally specified indentation 'level' and return a reference to
-    // the modifiable 'stream'.  If 'level' is specified, optionally
-    // specify 'spacesPerLevel', the number of spaces per indentation level
-    // for this and all of its nested objects.  Each line is indented by
-    // the absolute value of 'level * spacesPerLevel'.  If 'level' is
-    // negative, suppress indentation of the first line.  If
-    // 'spacesPerLevel' is negative, suppress line breaks and format the
-    // entire output on one line.  If 'stream' is initially invalid, this
-    // operation has no effect.  Note that a trailing newline is provided
-    // in multiline mode only.
-
-    template <typename t_ACCESSOR>
-    int accessAttributes(t_ACCESSOR& accessor) const;
-    // Invoke the specified 'accessor' sequentially on each
-    // (non-modifiable) attribute of this object, supplying 'accessor'
-    // with the corresponding attribute information structure until such
-    // invocation returns a non-zero value.  Return the value from the
-    // last invocation of 'accessor' (i.e., the invocation that terminated
-    // the sequence).
-
-    template <typename t_ACCESSOR>
-    int accessAttribute(t_ACCESSOR& accessor, int id) const;
-    // Invoke the specified 'accessor' on the (non-modifiable) attribute
-    // of this object indicated by the specified 'id', supplying 'accessor'
-    // with the corresponding attribute information structure.  Return the
-    // value returned from the invocation of 'accessor' if 'id' identifies
-    // an attribute of this class, and -1 otherwise.
-
-    template <typename t_ACCESSOR>
-    int accessAttribute(t_ACCESSOR& accessor,
-                        const char* name,
-                        int         nameLength) const;
-    // Invoke the specified 'accessor' on the (non-modifiable) attribute
-    // of this object indicated by the specified 'name' of the specified
-    // 'nameLength', supplying 'accessor' with the corresponding attribute
-    // information structure.  Return the value returned from the
-    // invocation of 'accessor' if 'name' identifies an attribute of this
-    // class, and -1 otherwise.
-
-    const bsl::string& brokerInstanceName() const;
-    // Return a reference offering non-modifiable access to the
-    // "BrokerInstanceName" attribute of this object.
-
-    int brokerVersion() const;
-    // Return the value of the "BrokerVersion" attribute of this object.
-
-    int configVersion() const;
-    // Return the value of the "ConfigVersion" attribute of this object.
-
-    const bsl::string& etcDir() const;
-    // Return a reference offering non-modifiable access to the "EtcDir"
-    // attribute of this object.
-
-    const bsl::string& hostName() const;
-    // Return a reference offering non-modifiable access to the "HostName"
-    // attribute of this object.
-
-    const bsl::string& hostTags() const;
-    // Return a reference offering non-modifiable access to the "HostTags"
-    // attribute of this object.
-
-    const bsl::string& hostDataCenter() const;
-    // Return a reference offering non-modifiable access to the
-    // "HostDataCenter" attribute of this object.
-
-    bool isRunningOnDev() const;
-    // Return the value of the "IsRunningOnDev" attribute of this object.
-
-    int logsObserverMaxSize() const;
-    // Return the value of the "LogsObserverMaxSize" attribute of this
-    // object.
-
-    const bsl::string& latencyMonitorDomain() const;
-    // Return a reference offering non-modifiable access to the
-    // "LatencyMonitorDomain" attribute of this object.
-
-    const DispatcherConfig& dispatcherConfig() const;
-    // Return a reference offering non-modifiable access to the
-    // "DispatcherConfig" attribute of this object.
-
-    const StatsConfig& stats() const;
-    // Return a reference offering non-modifiable access to the "Stats"
-    // attribute of this object.
-
-    const NetworkInterfaces& networkInterfaces() const;
-    // Return a reference offering non-modifiable access to the
-    // "NetworkInterfaces" attribute of this object.
-
-    const BmqconfConfig& bmqconfConfig() const;
-    // Return a reference offering non-modifiable access to the
-    // "BmqconfConfig" attribute of this object.
-
-    const Plugins& plugins() const;
-    // Return a reference offering non-modifiable access to the "Plugins"
-    // attribute of this object.
-
-    const MessagePropertiesV2& messagePropertiesV2() const;
-    // Return a reference offering non-modifiable access to the
-    // "MessagePropertiesV2" attribute of this object.
-};
-
-// FREE OPERATORS
-inline bool operator==(const AppConfig& lhs, const AppConfig& rhs);
-// Return 'true' if the specified 'lhs' and 'rhs' attribute objects have
-// the same value, and 'false' otherwise.  Two attribute objects have the
-// same value if each respective attribute has the same value.
-
-inline bool operator!=(const AppConfig& lhs, const AppConfig& rhs);
-// Return 'true' if the specified 'lhs' and 'rhs' attribute objects do not
-// have the same value, and 'false' otherwise.  Two attribute objects do
-// not have the same value if one or more respective attributes differ in
-// values.
-
-inline bsl::ostream& operator<<(bsl::ostream& stream, const AppConfig& rhs);
-// Format the specified 'rhs' to the specified output 'stream' and
-// return a reference to the modifiable 'stream'.
-
-template <typename t_HASH_ALGORITHM>
-void hashAppend(t_HASH_ALGORITHM& hashAlg, const AppConfig& object);
-// Pass the specified 'object' to the specified 'hashAlg'.  This function
-// integrates with the 'bslh' modular hashing system and effectively
-// provides a 'bsl::hash' specialization for 'AppConfig'.
-
-}  // close package namespace
-
-// TRAITS
-
-BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcfg::AppConfig)
 
 namespace mqbcfg {
 
@@ -8096,6 +7766,602 @@ void hashAppend(t_HASH_ALGORITHM&             hashAlg,
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbcfg::ClusterProxyDefinition)
+
+namespace mqbcfg {
+
+// =================
+// class StatsConfig
+// =================
+
+class StatsConfig {
+    // INSTANCE DATA
+    bsl::vector<StatPluginConfig> d_plugins;
+    StatsPrinterConfig            d_printer;
+    int                           d_snapshotInterval;
+
+  public:
+    // TYPES
+    enum {
+        ATTRIBUTE_ID_SNAPSHOT_INTERVAL = 0,
+        ATTRIBUTE_ID_PLUGINS           = 1,
+        ATTRIBUTE_ID_PRINTER           = 2
+    };
+
+    enum { NUM_ATTRIBUTES = 3 };
+
+    enum {
+        ATTRIBUTE_INDEX_SNAPSHOT_INTERVAL = 0,
+        ATTRIBUTE_INDEX_PLUGINS           = 1,
+        ATTRIBUTE_INDEX_PRINTER           = 2
+    };
+
+    // CONSTANTS
+    static const char CLASS_NAME[];
+
+    static const int DEFAULT_INITIALIZER_SNAPSHOT_INTERVAL;
+
+    static const bdlat_AttributeInfo ATTRIBUTE_INFO_ARRAY[];
+
+  public:
+    // CLASS METHODS
+    static const bdlat_AttributeInfo* lookupAttributeInfo(int id);
+    // Return attribute information for the attribute indicated by the
+    // specified 'id' if the attribute exists, and 0 otherwise.
+
+    static const bdlat_AttributeInfo* lookupAttributeInfo(const char* name,
+                                                          int nameLength);
+    // Return attribute information for the attribute indicated by the
+    // specified 'name' of the specified 'nameLength' if the attribute
+    // exists, and 0 otherwise.
+
+    // CREATORS
+    explicit StatsConfig(bslma::Allocator* basicAllocator = 0);
+    // Create an object of type 'StatsConfig' having the default value.
+    // Use the optionally specified 'basicAllocator' to supply memory.  If
+    // 'basicAllocator' is 0, the currently installed default allocator is
+    // used.
+
+    StatsConfig(const StatsConfig& original,
+                bslma::Allocator*  basicAllocator = 0);
+    // Create an object of type 'StatsConfig' having the value of the
+    // specified 'original' object.  Use the optionally specified
+    // 'basicAllocator' to supply memory.  If 'basicAllocator' is 0, the
+    // currently installed default allocator is used.
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+    StatsConfig(StatsConfig&& original) noexcept;
+    // Create an object of type 'StatsConfig' having the value of the
+    // specified 'original' object.  After performing this action, the
+    // 'original' object will be left in a valid, but unspecified state.
+
+    StatsConfig(StatsConfig&& original, bslma::Allocator* basicAllocator);
+    // Create an object of type 'StatsConfig' having the value of the
+    // specified 'original' object.  After performing this action, the
+    // 'original' object will be left in a valid, but unspecified state.
+    // Use the optionally specified 'basicAllocator' to supply memory.  If
+    // 'basicAllocator' is 0, the currently installed default allocator is
+    // used.
+#endif
+
+    ~StatsConfig();
+    // Destroy this object.
+
+    // MANIPULATORS
+    StatsConfig& operator=(const StatsConfig& rhs);
+    // Assign to this object the value of the specified 'rhs' object.
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+    StatsConfig& operator=(StatsConfig&& rhs);
+    // Assign to this object the value of the specified 'rhs' object.
+    // After performing this action, the 'rhs' object will be left in a
+    // valid, but unspecified state.
+#endif
+
+    void reset();
+    // Reset this object to the default value (i.e., its value upon
+    // default construction).
+
+    template <typename t_MANIPULATOR>
+    int manipulateAttributes(t_MANIPULATOR& manipulator);
+    // Invoke the specified 'manipulator' sequentially on the address of
+    // each (modifiable) attribute of this object, supplying 'manipulator'
+    // with the corresponding attribute information structure until such
+    // invocation returns a non-zero value.  Return the value from the
+    // last invocation of 'manipulator' (i.e., the invocation that
+    // terminated the sequence).
+
+    template <typename t_MANIPULATOR>
+    int manipulateAttribute(t_MANIPULATOR& manipulator, int id);
+    // Invoke the specified 'manipulator' on the address of
+    // the (modifiable) attribute indicated by the specified 'id',
+    // supplying 'manipulator' with the corresponding attribute
+    // information structure.  Return the value returned from the
+    // invocation of 'manipulator' if 'id' identifies an attribute of this
+    // class, and -1 otherwise.
+
+    template <typename t_MANIPULATOR>
+    int manipulateAttribute(t_MANIPULATOR& manipulator,
+                            const char*    name,
+                            int            nameLength);
+    // Invoke the specified 'manipulator' on the address of
+    // the (modifiable) attribute indicated by the specified 'name' of the
+    // specified 'nameLength', supplying 'manipulator' with the
+    // corresponding attribute information structure.  Return the value
+    // returned from the invocation of 'manipulator' if 'name' identifies
+    // an attribute of this class, and -1 otherwise.
+
+    int& snapshotInterval();
+    // Return a reference to the modifiable "SnapshotInterval" attribute of
+    // this object.
+
+    bsl::vector<StatPluginConfig>& plugins();
+    // Return a reference to the modifiable "Plugins" attribute of this
+    // object.
+
+    StatsPrinterConfig& printer();
+    // Return a reference to the modifiable "Printer" attribute of this
+    // object.
+
+    // ACCESSORS
+    bsl::ostream&
+    print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
+    // Format this object to the specified output 'stream' at the
+    // optionally specified indentation 'level' and return a reference to
+    // the modifiable 'stream'.  If 'level' is specified, optionally
+    // specify 'spacesPerLevel', the number of spaces per indentation level
+    // for this and all of its nested objects.  Each line is indented by
+    // the absolute value of 'level * spacesPerLevel'.  If 'level' is
+    // negative, suppress indentation of the first line.  If
+    // 'spacesPerLevel' is negative, suppress line breaks and format the
+    // entire output on one line.  If 'stream' is initially invalid, this
+    // operation has no effect.  Note that a trailing newline is provided
+    // in multiline mode only.
+
+    template <typename t_ACCESSOR>
+    int accessAttributes(t_ACCESSOR& accessor) const;
+    // Invoke the specified 'accessor' sequentially on each
+    // (non-modifiable) attribute of this object, supplying 'accessor'
+    // with the corresponding attribute information structure until such
+    // invocation returns a non-zero value.  Return the value from the
+    // last invocation of 'accessor' (i.e., the invocation that terminated
+    // the sequence).
+
+    template <typename t_ACCESSOR>
+    int accessAttribute(t_ACCESSOR& accessor, int id) const;
+    // Invoke the specified 'accessor' on the (non-modifiable) attribute
+    // of this object indicated by the specified 'id', supplying 'accessor'
+    // with the corresponding attribute information structure.  Return the
+    // value returned from the invocation of 'accessor' if 'id' identifies
+    // an attribute of this class, and -1 otherwise.
+
+    template <typename t_ACCESSOR>
+    int accessAttribute(t_ACCESSOR& accessor,
+                        const char* name,
+                        int         nameLength) const;
+    // Invoke the specified 'accessor' on the (non-modifiable) attribute
+    // of this object indicated by the specified 'name' of the specified
+    // 'nameLength', supplying 'accessor' with the corresponding attribute
+    // information structure.  Return the value returned from the
+    // invocation of 'accessor' if 'name' identifies an attribute of this
+    // class, and -1 otherwise.
+
+    int snapshotInterval() const;
+    // Return the value of the "SnapshotInterval" attribute of this object.
+
+    const bsl::vector<StatPluginConfig>& plugins() const;
+    // Return a reference offering non-modifiable access to the "Plugins"
+    // attribute of this object.
+
+    const StatsPrinterConfig& printer() const;
+    // Return a reference offering non-modifiable access to the "Printer"
+    // attribute of this object.
+};
+
+// FREE OPERATORS
+inline bool operator==(const StatsConfig& lhs, const StatsConfig& rhs);
+// Return 'true' if the specified 'lhs' and 'rhs' attribute objects have
+// the same value, and 'false' otherwise.  Two attribute objects have the
+// same value if each respective attribute has the same value.
+
+inline bool operator!=(const StatsConfig& lhs, const StatsConfig& rhs);
+// Return 'true' if the specified 'lhs' and 'rhs' attribute objects do not
+// have the same value, and 'false' otherwise.  Two attribute objects do
+// not have the same value if one or more respective attributes differ in
+// values.
+
+inline bsl::ostream& operator<<(bsl::ostream& stream, const StatsConfig& rhs);
+// Format the specified 'rhs' to the specified output 'stream' and
+// return a reference to the modifiable 'stream'.
+
+template <typename t_HASH_ALGORITHM>
+void hashAppend(t_HASH_ALGORITHM& hashAlg, const StatsConfig& object);
+// Pass the specified 'object' to the specified 'hashAlg'.  This function
+// integrates with the 'bslh' modular hashing system and effectively
+// provides a 'bsl::hash' specialization for 'StatsConfig'.
+
+}  // close package namespace
+
+// TRAITS
+
+BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcfg::StatsConfig)
+
+namespace mqbcfg {
+
+// ===============
+// class AppConfig
+// ===============
+
+class AppConfig {
+    // Top level typ for the broker's configuration.
+    // brokerInstanceName...: name of the broker instance
+    // brokerVersion........: version of the broker configVersion........:
+    // version of the bmqbrkr.cfg config etcDir...............: directory
+    // containing the json config files hostName.............: name of the
+    // current host hostTags.............: tags of the current host
+    // hostDataCenter.......: datacenter the current host resides in
+    // isRunningOnDev.......: true if running on dev logsObserverMaxSize..:
+    // maximum number of log records to keep latencyMonitorDomain.: common part
+    // of all latemon domains dispatcherConfig.....: configuration for the
+    // dispatcher stats................: configuration for the stats
+    // networkInterfaces....: configuration for the network interfaces
+    // bmqconfConfig........: configuration for bmqconf plugins..............:
+    // configuration for the plugins msgPropertiesSupport.: information about
+    // if/how to advertise support for v2 message properties
+
+    // INSTANCE DATA
+    bsl::string         d_brokerInstanceName;
+    bsl::string         d_etcDir;
+    bsl::string         d_hostName;
+    bsl::string         d_hostTags;
+    bsl::string         d_hostDataCenter;
+    bsl::string         d_latencyMonitorDomain;
+    StatsConfig         d_stats;
+    Plugins             d_plugins;
+    NetworkInterfaces   d_networkInterfaces;
+    MessagePropertiesV2 d_messagePropertiesV2;
+    DispatcherConfig    d_dispatcherConfig;
+    BmqconfConfig       d_bmqconfConfig;
+    int                 d_brokerVersion;
+    int                 d_configVersion;
+    int                 d_logsObserverMaxSize;
+    bool                d_isRunningOnDev;
+
+  public:
+    // TYPES
+    enum {
+        ATTRIBUTE_ID_BROKER_INSTANCE_NAME   = 0,
+        ATTRIBUTE_ID_BROKER_VERSION         = 1,
+        ATTRIBUTE_ID_CONFIG_VERSION         = 2,
+        ATTRIBUTE_ID_ETC_DIR                = 3,
+        ATTRIBUTE_ID_HOST_NAME              = 4,
+        ATTRIBUTE_ID_HOST_TAGS              = 5,
+        ATTRIBUTE_ID_HOST_DATA_CENTER       = 6,
+        ATTRIBUTE_ID_IS_RUNNING_ON_DEV      = 7,
+        ATTRIBUTE_ID_LOGS_OBSERVER_MAX_SIZE = 8,
+        ATTRIBUTE_ID_LATENCY_MONITOR_DOMAIN = 9,
+        ATTRIBUTE_ID_DISPATCHER_CONFIG      = 10,
+        ATTRIBUTE_ID_STATS                  = 11,
+        ATTRIBUTE_ID_NETWORK_INTERFACES     = 12,
+        ATTRIBUTE_ID_BMQCONF_CONFIG         = 13,
+        ATTRIBUTE_ID_PLUGINS                = 14,
+        ATTRIBUTE_ID_MESSAGE_PROPERTIES_V2  = 15
+    };
+
+    enum { NUM_ATTRIBUTES = 16 };
+
+    enum {
+        ATTRIBUTE_INDEX_BROKER_INSTANCE_NAME   = 0,
+        ATTRIBUTE_INDEX_BROKER_VERSION         = 1,
+        ATTRIBUTE_INDEX_CONFIG_VERSION         = 2,
+        ATTRIBUTE_INDEX_ETC_DIR                = 3,
+        ATTRIBUTE_INDEX_HOST_NAME              = 4,
+        ATTRIBUTE_INDEX_HOST_TAGS              = 5,
+        ATTRIBUTE_INDEX_HOST_DATA_CENTER       = 6,
+        ATTRIBUTE_INDEX_IS_RUNNING_ON_DEV      = 7,
+        ATTRIBUTE_INDEX_LOGS_OBSERVER_MAX_SIZE = 8,
+        ATTRIBUTE_INDEX_LATENCY_MONITOR_DOMAIN = 9,
+        ATTRIBUTE_INDEX_DISPATCHER_CONFIG      = 10,
+        ATTRIBUTE_INDEX_STATS                  = 11,
+        ATTRIBUTE_INDEX_NETWORK_INTERFACES     = 12,
+        ATTRIBUTE_INDEX_BMQCONF_CONFIG         = 13,
+        ATTRIBUTE_INDEX_PLUGINS                = 14,
+        ATTRIBUTE_INDEX_MESSAGE_PROPERTIES_V2  = 15
+    };
+
+    // CONSTANTS
+    static const char CLASS_NAME[];
+
+    static const char DEFAULT_INITIALIZER_LATENCY_MONITOR_DOMAIN[];
+
+    static const bdlat_AttributeInfo ATTRIBUTE_INFO_ARRAY[];
+
+  public:
+    // CLASS METHODS
+    static const bdlat_AttributeInfo* lookupAttributeInfo(int id);
+    // Return attribute information for the attribute indicated by the
+    // specified 'id' if the attribute exists, and 0 otherwise.
+
+    static const bdlat_AttributeInfo* lookupAttributeInfo(const char* name,
+                                                          int nameLength);
+    // Return attribute information for the attribute indicated by the
+    // specified 'name' of the specified 'nameLength' if the attribute
+    // exists, and 0 otherwise.
+
+    // CREATORS
+    explicit AppConfig(bslma::Allocator* basicAllocator = 0);
+    // Create an object of type 'AppConfig' having the default value.  Use
+    // the optionally specified 'basicAllocator' to supply memory.  If
+    // 'basicAllocator' is 0, the currently installed default allocator is
+    // used.
+
+    AppConfig(const AppConfig& original, bslma::Allocator* basicAllocator = 0);
+    // Create an object of type 'AppConfig' having the value of the
+    // specified 'original' object.  Use the optionally specified
+    // 'basicAllocator' to supply memory.  If 'basicAllocator' is 0, the
+    // currently installed default allocator is used.
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+    AppConfig(AppConfig&& original) noexcept;
+    // Create an object of type 'AppConfig' having the value of the
+    // specified 'original' object.  After performing this action, the
+    // 'original' object will be left in a valid, but unspecified state.
+
+    AppConfig(AppConfig&& original, bslma::Allocator* basicAllocator);
+    // Create an object of type 'AppConfig' having the value of the
+    // specified 'original' object.  After performing this action, the
+    // 'original' object will be left in a valid, but unspecified state.
+    // Use the optionally specified 'basicAllocator' to supply memory.  If
+    // 'basicAllocator' is 0, the currently installed default allocator is
+    // used.
+#endif
+
+    ~AppConfig();
+    // Destroy this object.
+
+    // MANIPULATORS
+    AppConfig& operator=(const AppConfig& rhs);
+    // Assign to this object the value of the specified 'rhs' object.
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+    AppConfig& operator=(AppConfig&& rhs);
+    // Assign to this object the value of the specified 'rhs' object.
+    // After performing this action, the 'rhs' object will be left in a
+    // valid, but unspecified state.
+#endif
+
+    void reset();
+    // Reset this object to the default value (i.e., its value upon
+    // default construction).
+
+    template <typename t_MANIPULATOR>
+    int manipulateAttributes(t_MANIPULATOR& manipulator);
+    // Invoke the specified 'manipulator' sequentially on the address of
+    // each (modifiable) attribute of this object, supplying 'manipulator'
+    // with the corresponding attribute information structure until such
+    // invocation returns a non-zero value.  Return the value from the
+    // last invocation of 'manipulator' (i.e., the invocation that
+    // terminated the sequence).
+
+    template <typename t_MANIPULATOR>
+    int manipulateAttribute(t_MANIPULATOR& manipulator, int id);
+    // Invoke the specified 'manipulator' on the address of
+    // the (modifiable) attribute indicated by the specified 'id',
+    // supplying 'manipulator' with the corresponding attribute
+    // information structure.  Return the value returned from the
+    // invocation of 'manipulator' if 'id' identifies an attribute of this
+    // class, and -1 otherwise.
+
+    template <typename t_MANIPULATOR>
+    int manipulateAttribute(t_MANIPULATOR& manipulator,
+                            const char*    name,
+                            int            nameLength);
+    // Invoke the specified 'manipulator' on the address of
+    // the (modifiable) attribute indicated by the specified 'name' of the
+    // specified 'nameLength', supplying 'manipulator' with the
+    // corresponding attribute information structure.  Return the value
+    // returned from the invocation of 'manipulator' if 'name' identifies
+    // an attribute of this class, and -1 otherwise.
+
+    bsl::string& brokerInstanceName();
+    // Return a reference to the modifiable "BrokerInstanceName" attribute
+    // of this object.
+
+    int& brokerVersion();
+    // Return a reference to the modifiable "BrokerVersion" attribute of
+    // this object.
+
+    int& configVersion();
+    // Return a reference to the modifiable "ConfigVersion" attribute of
+    // this object.
+
+    bsl::string& etcDir();
+    // Return a reference to the modifiable "EtcDir" attribute of this
+    // object.
+
+    bsl::string& hostName();
+    // Return a reference to the modifiable "HostName" attribute of this
+    // object.
+
+    bsl::string& hostTags();
+    // Return a reference to the modifiable "HostTags" attribute of this
+    // object.
+
+    bsl::string& hostDataCenter();
+    // Return a reference to the modifiable "HostDataCenter" attribute of
+    // this object.
+
+    bool& isRunningOnDev();
+    // Return a reference to the modifiable "IsRunningOnDev" attribute of
+    // this object.
+
+    int& logsObserverMaxSize();
+    // Return a reference to the modifiable "LogsObserverMaxSize" attribute
+    // of this object.
+
+    bsl::string& latencyMonitorDomain();
+    // Return a reference to the modifiable "LatencyMonitorDomain"
+    // attribute of this object.
+
+    DispatcherConfig& dispatcherConfig();
+    // Return a reference to the modifiable "DispatcherConfig" attribute of
+    // this object.
+
+    StatsConfig& stats();
+    // Return a reference to the modifiable "Stats" attribute of this
+    // object.
+
+    NetworkInterfaces& networkInterfaces();
+    // Return a reference to the modifiable "NetworkInterfaces" attribute
+    // of this object.
+
+    BmqconfConfig& bmqconfConfig();
+    // Return a reference to the modifiable "BmqconfConfig" attribute of
+    // this object.
+
+    Plugins& plugins();
+    // Return a reference to the modifiable "Plugins" attribute of this
+    // object.
+
+    MessagePropertiesV2& messagePropertiesV2();
+    // Return a reference to the modifiable "MessagePropertiesV2" attribute
+    // of this object.
+
+    // ACCESSORS
+    bsl::ostream&
+    print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
+    // Format this object to the specified output 'stream' at the
+    // optionally specified indentation 'level' and return a reference to
+    // the modifiable 'stream'.  If 'level' is specified, optionally
+    // specify 'spacesPerLevel', the number of spaces per indentation level
+    // for this and all of its nested objects.  Each line is indented by
+    // the absolute value of 'level * spacesPerLevel'.  If 'level' is
+    // negative, suppress indentation of the first line.  If
+    // 'spacesPerLevel' is negative, suppress line breaks and format the
+    // entire output on one line.  If 'stream' is initially invalid, this
+    // operation has no effect.  Note that a trailing newline is provided
+    // in multiline mode only.
+
+    template <typename t_ACCESSOR>
+    int accessAttributes(t_ACCESSOR& accessor) const;
+    // Invoke the specified 'accessor' sequentially on each
+    // (non-modifiable) attribute of this object, supplying 'accessor'
+    // with the corresponding attribute information structure until such
+    // invocation returns a non-zero value.  Return the value from the
+    // last invocation of 'accessor' (i.e., the invocation that terminated
+    // the sequence).
+
+    template <typename t_ACCESSOR>
+    int accessAttribute(t_ACCESSOR& accessor, int id) const;
+    // Invoke the specified 'accessor' on the (non-modifiable) attribute
+    // of this object indicated by the specified 'id', supplying 'accessor'
+    // with the corresponding attribute information structure.  Return the
+    // value returned from the invocation of 'accessor' if 'id' identifies
+    // an attribute of this class, and -1 otherwise.
+
+    template <typename t_ACCESSOR>
+    int accessAttribute(t_ACCESSOR& accessor,
+                        const char* name,
+                        int         nameLength) const;
+    // Invoke the specified 'accessor' on the (non-modifiable) attribute
+    // of this object indicated by the specified 'name' of the specified
+    // 'nameLength', supplying 'accessor' with the corresponding attribute
+    // information structure.  Return the value returned from the
+    // invocation of 'accessor' if 'name' identifies an attribute of this
+    // class, and -1 otherwise.
+
+    const bsl::string& brokerInstanceName() const;
+    // Return a reference offering non-modifiable access to the
+    // "BrokerInstanceName" attribute of this object.
+
+    int brokerVersion() const;
+    // Return the value of the "BrokerVersion" attribute of this object.
+
+    int configVersion() const;
+    // Return the value of the "ConfigVersion" attribute of this object.
+
+    const bsl::string& etcDir() const;
+    // Return a reference offering non-modifiable access to the "EtcDir"
+    // attribute of this object.
+
+    const bsl::string& hostName() const;
+    // Return a reference offering non-modifiable access to the "HostName"
+    // attribute of this object.
+
+    const bsl::string& hostTags() const;
+    // Return a reference offering non-modifiable access to the "HostTags"
+    // attribute of this object.
+
+    const bsl::string& hostDataCenter() const;
+    // Return a reference offering non-modifiable access to the
+    // "HostDataCenter" attribute of this object.
+
+    bool isRunningOnDev() const;
+    // Return the value of the "IsRunningOnDev" attribute of this object.
+
+    int logsObserverMaxSize() const;
+    // Return the value of the "LogsObserverMaxSize" attribute of this
+    // object.
+
+    const bsl::string& latencyMonitorDomain() const;
+    // Return a reference offering non-modifiable access to the
+    // "LatencyMonitorDomain" attribute of this object.
+
+    const DispatcherConfig& dispatcherConfig() const;
+    // Return a reference offering non-modifiable access to the
+    // "DispatcherConfig" attribute of this object.
+
+    const StatsConfig& stats() const;
+    // Return a reference offering non-modifiable access to the "Stats"
+    // attribute of this object.
+
+    const NetworkInterfaces& networkInterfaces() const;
+    // Return a reference offering non-modifiable access to the
+    // "NetworkInterfaces" attribute of this object.
+
+    const BmqconfConfig& bmqconfConfig() const;
+    // Return a reference offering non-modifiable access to the
+    // "BmqconfConfig" attribute of this object.
+
+    const Plugins& plugins() const;
+    // Return a reference offering non-modifiable access to the "Plugins"
+    // attribute of this object.
+
+    const MessagePropertiesV2& messagePropertiesV2() const;
+    // Return a reference offering non-modifiable access to the
+    // "MessagePropertiesV2" attribute of this object.
+};
+
+// FREE OPERATORS
+inline bool operator==(const AppConfig& lhs, const AppConfig& rhs);
+// Return 'true' if the specified 'lhs' and 'rhs' attribute objects have
+// the same value, and 'false' otherwise.  Two attribute objects have the
+// same value if each respective attribute has the same value.
+
+inline bool operator!=(const AppConfig& lhs, const AppConfig& rhs);
+// Return 'true' if the specified 'lhs' and 'rhs' attribute objects do not
+// have the same value, and 'false' otherwise.  Two attribute objects do
+// not have the same value if one or more respective attributes differ in
+// values.
+
+inline bsl::ostream& operator<<(bsl::ostream& stream, const AppConfig& rhs);
+// Format the specified 'rhs' to the specified output 'stream' and
+// return a reference to the modifiable 'stream'.
+
+template <typename t_HASH_ALGORITHM>
+void hashAppend(t_HASH_ALGORITHM& hashAlg, const AppConfig& object);
+// Pass the specified 'object' to the specified 'hashAlg'.  This function
+// integrates with the 'bslh' modular hashing system and effectively
+// provides a 'bsl::hash' specialization for 'AppConfig'.
+
+}  // close package namespace
+
+// TRAITS
+
+BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcfg::AppConfig)
 
 namespace mqbcfg {
 
@@ -9714,6 +9980,24 @@ inline int ElectorConfig::leaderSyncDelayMs() const
     return d_leaderSyncDelayMs;
 }
 
+// ----------------
+// class ExportMode
+// ----------------
+
+// CLASS METHODS
+inline int ExportMode::fromString(Value* result, const bsl::string& string)
+{
+    return fromString(result,
+                      string.c_str(),
+                      static_cast<int>(string.length()));
+}
+
+inline bsl::ostream& ExportMode::print(bsl::ostream&     stream,
+                                       ExportMode::Value value)
+{
+    return stream << toString(value);
+}
+
 // ---------------
 // class Heartbeat
 // ---------------
@@ -11041,406 +11325,6 @@ inline const bsl::string& ResolvedDomain::resolvedName() const
 inline const bsl::string& ResolvedDomain::clusterName() const
 {
     return d_clusterName;
-}
-
-// ----------------------
-// class StatPluginConfig
-// ----------------------
-
-// CLASS METHODS
-// MANIPULATORS
-template <typename t_MANIPULATOR>
-int StatPluginConfig::manipulateAttributes(t_MANIPULATOR& manipulator)
-{
-    int ret;
-
-    ret = manipulator(&d_name, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NAME]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = manipulator(&d_queueSize,
-                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_QUEUE_SIZE]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = manipulator(
-        &d_queueHighWatermark,
-        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_QUEUE_HIGH_WATERMARK]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = manipulator(
-        &d_queueLowWatermark,
-        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_QUEUE_LOW_WATERMARK]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = manipulator(&d_publishInterval,
-                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PUBLISH_INTERVAL]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = manipulator(&d_namespacePrefix,
-                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NAMESPACE_PREFIX]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = manipulator(&d_hosts, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HOSTS]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = manipulator(&d_instanceId,
-                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_INSTANCE_ID]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = manipulator(&d_mode, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MODE]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = manipulator(&d_host, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HOST]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = manipulator(&d_port, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PORT]);
-    if (ret) {
-        return ret;
-    }
-
-    return 0;
-}
-
-template <typename t_MANIPULATOR>
-int StatPluginConfig::manipulateAttribute(t_MANIPULATOR& manipulator, int id)
-{
-    enum { NOT_FOUND = -1 };
-
-    switch (id) {
-    case ATTRIBUTE_ID_NAME: {
-        return manipulator(&d_name,
-                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NAME]);
-    }
-    case ATTRIBUTE_ID_QUEUE_SIZE: {
-        return manipulator(&d_queueSize,
-                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_QUEUE_SIZE]);
-    }
-    case ATTRIBUTE_ID_QUEUE_HIGH_WATERMARK: {
-        return manipulator(
-            &d_queueHighWatermark,
-            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_QUEUE_HIGH_WATERMARK]);
-    }
-    case ATTRIBUTE_ID_QUEUE_LOW_WATERMARK: {
-        return manipulator(
-            &d_queueLowWatermark,
-            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_QUEUE_LOW_WATERMARK]);
-    }
-    case ATTRIBUTE_ID_PUBLISH_INTERVAL: {
-        return manipulator(
-            &d_publishInterval,
-            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PUBLISH_INTERVAL]);
-    }
-    case ATTRIBUTE_ID_NAMESPACE_PREFIX: {
-        return manipulator(
-            &d_namespacePrefix,
-            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NAMESPACE_PREFIX]);
-    }
-    case ATTRIBUTE_ID_HOSTS: {
-        return manipulator(&d_hosts,
-                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HOSTS]);
-    }
-    case ATTRIBUTE_ID_INSTANCE_ID: {
-        return manipulator(&d_instanceId,
-                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_INSTANCE_ID]);
-    }
-    case ATTRIBUTE_ID_MODE: {
-        return manipulator(&d_mode,
-                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MODE]);
-    }
-    case ATTRIBUTE_ID_HOST: {
-        return manipulator(&d_host,
-                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HOST]);
-    }
-    case ATTRIBUTE_ID_PORT: {
-        return manipulator(&d_port,
-                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PORT]);
-    }
-    default: return NOT_FOUND;
-    }
-}
-
-template <typename t_MANIPULATOR>
-int StatPluginConfig::manipulateAttribute(t_MANIPULATOR& manipulator,
-                                          const char*    name,
-                                          int            nameLength)
-{
-    enum { NOT_FOUND = -1 };
-
-    const bdlat_AttributeInfo* attributeInfo = lookupAttributeInfo(name,
-                                                                   nameLength);
-    if (0 == attributeInfo) {
-        return NOT_FOUND;
-    }
-
-    return manipulateAttribute(manipulator, attributeInfo->d_id);
-}
-
-inline bsl::string& StatPluginConfig::name()
-{
-    return d_name;
-}
-
-inline int& StatPluginConfig::queueSize()
-{
-    return d_queueSize;
-}
-
-inline int& StatPluginConfig::queueHighWatermark()
-{
-    return d_queueHighWatermark;
-}
-
-inline int& StatPluginConfig::queueLowWatermark()
-{
-    return d_queueLowWatermark;
-}
-
-inline int& StatPluginConfig::publishInterval()
-{
-    return d_publishInterval;
-}
-
-inline bsl::string& StatPluginConfig::namespacePrefix()
-{
-    return d_namespacePrefix;
-}
-
-inline bsl::vector<bsl::string>& StatPluginConfig::hosts()
-{
-    return d_hosts;
-}
-
-inline bsl::string& StatPluginConfig::instanceId()
-{
-    return d_instanceId;
-}
-
-inline bsl::string& StatPluginConfig::mode()
-{
-    return d_mode;
-}
-
-inline bsl::string& StatPluginConfig::host()
-{
-    return d_host;
-}
-
-inline int& StatPluginConfig::port()
-{
-    return d_port;
-}
-
-// ACCESSORS
-template <typename t_ACCESSOR>
-int StatPluginConfig::accessAttributes(t_ACCESSOR& accessor) const
-{
-    int ret;
-
-    ret = accessor(d_name, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NAME]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = accessor(d_queueSize,
-                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_QUEUE_SIZE]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = accessor(d_queueHighWatermark,
-                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_QUEUE_HIGH_WATERMARK]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = accessor(d_queueLowWatermark,
-                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_QUEUE_LOW_WATERMARK]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = accessor(d_publishInterval,
-                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PUBLISH_INTERVAL]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = accessor(d_namespacePrefix,
-                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NAMESPACE_PREFIX]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = accessor(d_hosts, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HOSTS]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = accessor(d_instanceId,
-                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_INSTANCE_ID]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = accessor(d_mode, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MODE]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = accessor(d_host, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HOST]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = accessor(d_port, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PORT]);
-    if (ret) {
-        return ret;
-    }
-
-    return 0;
-}
-
-template <typename t_ACCESSOR>
-int StatPluginConfig::accessAttribute(t_ACCESSOR& accessor, int id) const
-{
-    enum { NOT_FOUND = -1 };
-
-    switch (id) {
-    case ATTRIBUTE_ID_NAME: {
-        return accessor(d_name, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NAME]);
-    }
-    case ATTRIBUTE_ID_QUEUE_SIZE: {
-        return accessor(d_queueSize,
-                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_QUEUE_SIZE]);
-    }
-    case ATTRIBUTE_ID_QUEUE_HIGH_WATERMARK: {
-        return accessor(
-            d_queueHighWatermark,
-            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_QUEUE_HIGH_WATERMARK]);
-    }
-    case ATTRIBUTE_ID_QUEUE_LOW_WATERMARK: {
-        return accessor(
-            d_queueLowWatermark,
-            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_QUEUE_LOW_WATERMARK]);
-    }
-    case ATTRIBUTE_ID_PUBLISH_INTERVAL: {
-        return accessor(
-            d_publishInterval,
-            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PUBLISH_INTERVAL]);
-    }
-    case ATTRIBUTE_ID_NAMESPACE_PREFIX: {
-        return accessor(
-            d_namespacePrefix,
-            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NAMESPACE_PREFIX]);
-    }
-    case ATTRIBUTE_ID_HOSTS: {
-        return accessor(d_hosts, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HOSTS]);
-    }
-    case ATTRIBUTE_ID_INSTANCE_ID: {
-        return accessor(d_instanceId,
-                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_INSTANCE_ID]);
-    }
-    case ATTRIBUTE_ID_MODE: {
-        return accessor(d_mode, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MODE]);
-    }
-    case ATTRIBUTE_ID_HOST: {
-        return accessor(d_host, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HOST]);
-    }
-    case ATTRIBUTE_ID_PORT: {
-        return accessor(d_port, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PORT]);
-    }
-    default: return NOT_FOUND;
-    }
-}
-
-template <typename t_ACCESSOR>
-int StatPluginConfig::accessAttribute(t_ACCESSOR& accessor,
-                                      const char* name,
-                                      int         nameLength) const
-{
-    enum { NOT_FOUND = -1 };
-
-    const bdlat_AttributeInfo* attributeInfo = lookupAttributeInfo(name,
-                                                                   nameLength);
-    if (0 == attributeInfo) {
-        return NOT_FOUND;
-    }
-
-    return accessAttribute(accessor, attributeInfo->d_id);
-}
-
-inline const bsl::string& StatPluginConfig::name() const
-{
-    return d_name;
-}
-
-inline int StatPluginConfig::queueSize() const
-{
-    return d_queueSize;
-}
-
-inline int StatPluginConfig::queueHighWatermark() const
-{
-    return d_queueHighWatermark;
-}
-
-inline int StatPluginConfig::queueLowWatermark() const
-{
-    return d_queueLowWatermark;
-}
-
-inline int StatPluginConfig::publishInterval() const
-{
-    return d_publishInterval;
-}
-
-inline const bsl::string& StatPluginConfig::namespacePrefix() const
-{
-    return d_namespacePrefix;
-}
-
-inline const bsl::vector<bsl::string>& StatPluginConfig::hosts() const
-{
-    return d_hosts;
-}
-
-inline const bsl::string& StatPluginConfig::instanceId() const
-{
-    return d_instanceId;
-}
-
-inline const bsl::string& StatPluginConfig::mode() const
-{
-    return d_mode;
-}
-
-inline const bsl::string& StatPluginConfig::host() const
-{
-    return d_host;
-}
-
-inline int StatPluginConfig::port() const
-{
-    return d_port;
 }
 
 // ------------------------
@@ -14030,31 +13914,29 @@ inline const StorageSyncConfig& PartitionConfig::syncConfig() const
     return d_syncConfig;
 }
 
-// -----------------
-// class StatsConfig
-// -----------------
+// --------------------------------
+// class StatPluginConfigPrometheus
+// --------------------------------
 
 // CLASS METHODS
 // MANIPULATORS
 template <typename t_MANIPULATOR>
-int StatsConfig::manipulateAttributes(t_MANIPULATOR& manipulator)
+int StatPluginConfigPrometheus::manipulateAttributes(
+    t_MANIPULATOR& manipulator)
 {
     int ret;
 
-    ret = manipulator(&d_snapshotInterval,
-                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SNAPSHOT_INTERVAL]);
+    ret = manipulator(&d_mode, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MODE]);
     if (ret) {
         return ret;
     }
 
-    ret = manipulator(&d_plugins,
-                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PLUGINS]);
+    ret = manipulator(&d_host, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HOST]);
     if (ret) {
         return ret;
     }
 
-    ret = manipulator(&d_printer,
-                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PRINTER]);
+    ret = manipulator(&d_port, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PORT]);
     if (ret) {
         return ret;
     }
@@ -14063,32 +13945,32 @@ int StatsConfig::manipulateAttributes(t_MANIPULATOR& manipulator)
 }
 
 template <typename t_MANIPULATOR>
-int StatsConfig::manipulateAttribute(t_MANIPULATOR& manipulator, int id)
+int StatPluginConfigPrometheus::manipulateAttribute(t_MANIPULATOR& manipulator,
+                                                    int            id)
 {
     enum { NOT_FOUND = -1 };
 
     switch (id) {
-    case ATTRIBUTE_ID_SNAPSHOT_INTERVAL: {
-        return manipulator(
-            &d_snapshotInterval,
-            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SNAPSHOT_INTERVAL]);
+    case ATTRIBUTE_ID_MODE: {
+        return manipulator(&d_mode,
+                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MODE]);
     }
-    case ATTRIBUTE_ID_PLUGINS: {
-        return manipulator(&d_plugins,
-                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PLUGINS]);
+    case ATTRIBUTE_ID_HOST: {
+        return manipulator(&d_host,
+                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HOST]);
     }
-    case ATTRIBUTE_ID_PRINTER: {
-        return manipulator(&d_printer,
-                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PRINTER]);
+    case ATTRIBUTE_ID_PORT: {
+        return manipulator(&d_port,
+                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PORT]);
     }
     default: return NOT_FOUND;
     }
 }
 
 template <typename t_MANIPULATOR>
-int StatsConfig::manipulateAttribute(t_MANIPULATOR& manipulator,
-                                     const char*    name,
-                                     int            nameLength)
+int StatPluginConfigPrometheus::manipulateAttribute(t_MANIPULATOR& manipulator,
+                                                    const char*    name,
+                                                    int            nameLength)
 {
     enum { NOT_FOUND = -1 };
 
@@ -14101,39 +13983,38 @@ int StatsConfig::manipulateAttribute(t_MANIPULATOR& manipulator,
     return manipulateAttribute(manipulator, attributeInfo->d_id);
 }
 
-inline int& StatsConfig::snapshotInterval()
+inline ExportMode::Value& StatPluginConfigPrometheus::mode()
 {
-    return d_snapshotInterval;
+    return d_mode;
 }
 
-inline bsl::vector<StatPluginConfig>& StatsConfig::plugins()
+inline bsl::string& StatPluginConfigPrometheus::host()
 {
-    return d_plugins;
+    return d_host;
 }
 
-inline StatsPrinterConfig& StatsConfig::printer()
+inline int& StatPluginConfigPrometheus::port()
 {
-    return d_printer;
+    return d_port;
 }
 
 // ACCESSORS
 template <typename t_ACCESSOR>
-int StatsConfig::accessAttributes(t_ACCESSOR& accessor) const
+int StatPluginConfigPrometheus::accessAttributes(t_ACCESSOR& accessor) const
 {
     int ret;
 
-    ret = accessor(d_snapshotInterval,
-                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SNAPSHOT_INTERVAL]);
+    ret = accessor(d_mode, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MODE]);
     if (ret) {
         return ret;
     }
 
-    ret = accessor(d_plugins, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PLUGINS]);
+    ret = accessor(d_host, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HOST]);
     if (ret) {
         return ret;
     }
 
-    ret = accessor(d_printer, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PRINTER]);
+    ret = accessor(d_port, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PORT]);
     if (ret) {
         return ret;
     }
@@ -14142,32 +14023,29 @@ int StatsConfig::accessAttributes(t_ACCESSOR& accessor) const
 }
 
 template <typename t_ACCESSOR>
-int StatsConfig::accessAttribute(t_ACCESSOR& accessor, int id) const
+int StatPluginConfigPrometheus::accessAttribute(t_ACCESSOR& accessor,
+                                                int         id) const
 {
     enum { NOT_FOUND = -1 };
 
     switch (id) {
-    case ATTRIBUTE_ID_SNAPSHOT_INTERVAL: {
-        return accessor(
-            d_snapshotInterval,
-            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SNAPSHOT_INTERVAL]);
+    case ATTRIBUTE_ID_MODE: {
+        return accessor(d_mode, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MODE]);
     }
-    case ATTRIBUTE_ID_PLUGINS: {
-        return accessor(d_plugins,
-                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PLUGINS]);
+    case ATTRIBUTE_ID_HOST: {
+        return accessor(d_host, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HOST]);
     }
-    case ATTRIBUTE_ID_PRINTER: {
-        return accessor(d_printer,
-                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PRINTER]);
+    case ATTRIBUTE_ID_PORT: {
+        return accessor(d_port, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PORT]);
     }
     default: return NOT_FOUND;
     }
 }
 
 template <typename t_ACCESSOR>
-int StatsConfig::accessAttribute(t_ACCESSOR& accessor,
-                                 const char* name,
-                                 int         nameLength) const
+int StatPluginConfigPrometheus::accessAttribute(t_ACCESSOR& accessor,
+                                                const char* name,
+                                                int         nameLength) const
 {
     enum { NOT_FOUND = -1 };
 
@@ -14180,19 +14058,19 @@ int StatsConfig::accessAttribute(t_ACCESSOR& accessor,
     return accessAttribute(accessor, attributeInfo->d_id);
 }
 
-inline int StatsConfig::snapshotInterval() const
+inline ExportMode::Value StatPluginConfigPrometheus::mode() const
 {
-    return d_snapshotInterval;
+    return d_mode;
 }
 
-inline const bsl::vector<StatPluginConfig>& StatsConfig::plugins() const
+inline const bsl::string& StatPluginConfigPrometheus::host() const
 {
-    return d_plugins;
+    return d_host;
 }
 
-inline const StatsPrinterConfig& StatsConfig::printer() const
+inline int StatPluginConfigPrometheus::port() const
 {
-    return d_printer;
+    return d_port;
 }
 
 // -----------------
@@ -14680,6 +14558,360 @@ ReversedClusterConnection::connections() const
     return d_connections;
 }
 
+// ----------------------
+// class StatPluginConfig
+// ----------------------
+
+// CLASS METHODS
+// MANIPULATORS
+template <typename t_MANIPULATOR>
+int StatPluginConfig::manipulateAttributes(t_MANIPULATOR& manipulator)
+{
+    int ret;
+
+    ret = manipulator(&d_name, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NAME]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(&d_queueSize,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_QUEUE_SIZE]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(
+        &d_queueHighWatermark,
+        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_QUEUE_HIGH_WATERMARK]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(
+        &d_queueLowWatermark,
+        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_QUEUE_LOW_WATERMARK]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(&d_publishInterval,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PUBLISH_INTERVAL]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(&d_namespacePrefix,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NAMESPACE_PREFIX]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(&d_hosts, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HOSTS]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(&d_instanceId,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_INSTANCE_ID]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(
+        &d_prometheusSpecific,
+        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PROMETHEUS_SPECIFIC]);
+    if (ret) {
+        return ret;
+    }
+
+    return 0;
+}
+
+template <typename t_MANIPULATOR>
+int StatPluginConfig::manipulateAttribute(t_MANIPULATOR& manipulator, int id)
+{
+    enum { NOT_FOUND = -1 };
+
+    switch (id) {
+    case ATTRIBUTE_ID_NAME: {
+        return manipulator(&d_name,
+                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NAME]);
+    }
+    case ATTRIBUTE_ID_QUEUE_SIZE: {
+        return manipulator(&d_queueSize,
+                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_QUEUE_SIZE]);
+    }
+    case ATTRIBUTE_ID_QUEUE_HIGH_WATERMARK: {
+        return manipulator(
+            &d_queueHighWatermark,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_QUEUE_HIGH_WATERMARK]);
+    }
+    case ATTRIBUTE_ID_QUEUE_LOW_WATERMARK: {
+        return manipulator(
+            &d_queueLowWatermark,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_QUEUE_LOW_WATERMARK]);
+    }
+    case ATTRIBUTE_ID_PUBLISH_INTERVAL: {
+        return manipulator(
+            &d_publishInterval,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PUBLISH_INTERVAL]);
+    }
+    case ATTRIBUTE_ID_NAMESPACE_PREFIX: {
+        return manipulator(
+            &d_namespacePrefix,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NAMESPACE_PREFIX]);
+    }
+    case ATTRIBUTE_ID_HOSTS: {
+        return manipulator(&d_hosts,
+                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HOSTS]);
+    }
+    case ATTRIBUTE_ID_INSTANCE_ID: {
+        return manipulator(&d_instanceId,
+                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_INSTANCE_ID]);
+    }
+    case ATTRIBUTE_ID_PROMETHEUS_SPECIFIC: {
+        return manipulator(
+            &d_prometheusSpecific,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PROMETHEUS_SPECIFIC]);
+    }
+    default: return NOT_FOUND;
+    }
+}
+
+template <typename t_MANIPULATOR>
+int StatPluginConfig::manipulateAttribute(t_MANIPULATOR& manipulator,
+                                          const char*    name,
+                                          int            nameLength)
+{
+    enum { NOT_FOUND = -1 };
+
+    const bdlat_AttributeInfo* attributeInfo = lookupAttributeInfo(name,
+                                                                   nameLength);
+    if (0 == attributeInfo) {
+        return NOT_FOUND;
+    }
+
+    return manipulateAttribute(manipulator, attributeInfo->d_id);
+}
+
+inline bsl::string& StatPluginConfig::name()
+{
+    return d_name;
+}
+
+inline int& StatPluginConfig::queueSize()
+{
+    return d_queueSize;
+}
+
+inline int& StatPluginConfig::queueHighWatermark()
+{
+    return d_queueHighWatermark;
+}
+
+inline int& StatPluginConfig::queueLowWatermark()
+{
+    return d_queueLowWatermark;
+}
+
+inline int& StatPluginConfig::publishInterval()
+{
+    return d_publishInterval;
+}
+
+inline bsl::string& StatPluginConfig::namespacePrefix()
+{
+    return d_namespacePrefix;
+}
+
+inline bsl::vector<bsl::string>& StatPluginConfig::hosts()
+{
+    return d_hosts;
+}
+
+inline bsl::string& StatPluginConfig::instanceId()
+{
+    return d_instanceId;
+}
+
+inline bdlb::NullableValue<StatPluginConfigPrometheus>&
+StatPluginConfig::prometheusSpecific()
+{
+    return d_prometheusSpecific;
+}
+
+// ACCESSORS
+template <typename t_ACCESSOR>
+int StatPluginConfig::accessAttributes(t_ACCESSOR& accessor) const
+{
+    int ret;
+
+    ret = accessor(d_name, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NAME]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_queueSize,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_QUEUE_SIZE]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_queueHighWatermark,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_QUEUE_HIGH_WATERMARK]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_queueLowWatermark,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_QUEUE_LOW_WATERMARK]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_publishInterval,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PUBLISH_INTERVAL]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_namespacePrefix,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NAMESPACE_PREFIX]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_hosts, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HOSTS]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_instanceId,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_INSTANCE_ID]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_prometheusSpecific,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PROMETHEUS_SPECIFIC]);
+    if (ret) {
+        return ret;
+    }
+
+    return 0;
+}
+
+template <typename t_ACCESSOR>
+int StatPluginConfig::accessAttribute(t_ACCESSOR& accessor, int id) const
+{
+    enum { NOT_FOUND = -1 };
+
+    switch (id) {
+    case ATTRIBUTE_ID_NAME: {
+        return accessor(d_name, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NAME]);
+    }
+    case ATTRIBUTE_ID_QUEUE_SIZE: {
+        return accessor(d_queueSize,
+                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_QUEUE_SIZE]);
+    }
+    case ATTRIBUTE_ID_QUEUE_HIGH_WATERMARK: {
+        return accessor(
+            d_queueHighWatermark,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_QUEUE_HIGH_WATERMARK]);
+    }
+    case ATTRIBUTE_ID_QUEUE_LOW_WATERMARK: {
+        return accessor(
+            d_queueLowWatermark,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_QUEUE_LOW_WATERMARK]);
+    }
+    case ATTRIBUTE_ID_PUBLISH_INTERVAL: {
+        return accessor(
+            d_publishInterval,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PUBLISH_INTERVAL]);
+    }
+    case ATTRIBUTE_ID_NAMESPACE_PREFIX: {
+        return accessor(
+            d_namespacePrefix,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NAMESPACE_PREFIX]);
+    }
+    case ATTRIBUTE_ID_HOSTS: {
+        return accessor(d_hosts, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HOSTS]);
+    }
+    case ATTRIBUTE_ID_INSTANCE_ID: {
+        return accessor(d_instanceId,
+                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_INSTANCE_ID]);
+    }
+    case ATTRIBUTE_ID_PROMETHEUS_SPECIFIC: {
+        return accessor(
+            d_prometheusSpecific,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PROMETHEUS_SPECIFIC]);
+    }
+    default: return NOT_FOUND;
+    }
+}
+
+template <typename t_ACCESSOR>
+int StatPluginConfig::accessAttribute(t_ACCESSOR& accessor,
+                                      const char* name,
+                                      int         nameLength) const
+{
+    enum { NOT_FOUND = -1 };
+
+    const bdlat_AttributeInfo* attributeInfo = lookupAttributeInfo(name,
+                                                                   nameLength);
+    if (0 == attributeInfo) {
+        return NOT_FOUND;
+    }
+
+    return accessAttribute(accessor, attributeInfo->d_id);
+}
+
+inline const bsl::string& StatPluginConfig::name() const
+{
+    return d_name;
+}
+
+inline int StatPluginConfig::queueSize() const
+{
+    return d_queueSize;
+}
+
+inline int StatPluginConfig::queueHighWatermark() const
+{
+    return d_queueHighWatermark;
+}
+
+inline int StatPluginConfig::queueLowWatermark() const
+{
+    return d_queueLowWatermark;
+}
+
+inline int StatPluginConfig::publishInterval() const
+{
+    return d_publishInterval;
+}
+
+inline const bsl::string& StatPluginConfig::namespacePrefix() const
+{
+    return d_namespacePrefix;
+}
+
+inline const bsl::vector<bsl::string>& StatPluginConfig::hosts() const
+{
+    return d_hosts;
+}
+
+inline const bsl::string& StatPluginConfig::instanceId() const
+{
+    return d_instanceId;
+}
+
+inline const bdlb::NullableValue<StatPluginConfigPrometheus>&
+StatPluginConfig::prometheusSpecific() const
+{
+    return d_prometheusSpecific;
+}
+
 // ----------------
 // class TaskConfig
 // ----------------
@@ -14847,583 +15079,6 @@ inline bsls::Types::Uint64 TaskConfig::allocationLimit() const
 inline const LogController& TaskConfig::logController() const
 {
     return d_logController;
-}
-
-// ---------------
-// class AppConfig
-// ---------------
-
-// CLASS METHODS
-// MANIPULATORS
-template <typename t_MANIPULATOR>
-int AppConfig::manipulateAttributes(t_MANIPULATOR& manipulator)
-{
-    int ret;
-
-    ret = manipulator(
-        &d_brokerInstanceName,
-        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_BROKER_INSTANCE_NAME]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = manipulator(&d_brokerVersion,
-                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_BROKER_VERSION]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = manipulator(&d_configVersion,
-                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CONFIG_VERSION]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = manipulator(&d_etcDir,
-                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ETC_DIR]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = manipulator(&d_hostName,
-                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HOST_NAME]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = manipulator(&d_hostTags,
-                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HOST_TAGS]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = manipulator(&d_hostDataCenter,
-                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HOST_DATA_CENTER]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = manipulator(&d_isRunningOnDev,
-                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_IS_RUNNING_ON_DEV]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = manipulator(
-        &d_logsObserverMaxSize,
-        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LOGS_OBSERVER_MAX_SIZE]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = manipulator(
-        &d_latencyMonitorDomain,
-        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LATENCY_MONITOR_DOMAIN]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = manipulator(&d_dispatcherConfig,
-                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_DISPATCHER_CONFIG]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = manipulator(&d_stats, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_STATS]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = manipulator(
-        &d_networkInterfaces,
-        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NETWORK_INTERFACES]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = manipulator(&d_bmqconfConfig,
-                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_BMQCONF_CONFIG]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = manipulator(&d_plugins,
-                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PLUGINS]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = manipulator(
-        &d_messagePropertiesV2,
-        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MESSAGE_PROPERTIES_V2]);
-    if (ret) {
-        return ret;
-    }
-
-    return 0;
-}
-
-template <typename t_MANIPULATOR>
-int AppConfig::manipulateAttribute(t_MANIPULATOR& manipulator, int id)
-{
-    enum { NOT_FOUND = -1 };
-
-    switch (id) {
-    case ATTRIBUTE_ID_BROKER_INSTANCE_NAME: {
-        return manipulator(
-            &d_brokerInstanceName,
-            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_BROKER_INSTANCE_NAME]);
-    }
-    case ATTRIBUTE_ID_BROKER_VERSION: {
-        return manipulator(
-            &d_brokerVersion,
-            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_BROKER_VERSION]);
-    }
-    case ATTRIBUTE_ID_CONFIG_VERSION: {
-        return manipulator(
-            &d_configVersion,
-            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CONFIG_VERSION]);
-    }
-    case ATTRIBUTE_ID_ETC_DIR: {
-        return manipulator(&d_etcDir,
-                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ETC_DIR]);
-    }
-    case ATTRIBUTE_ID_HOST_NAME: {
-        return manipulator(&d_hostName,
-                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HOST_NAME]);
-    }
-    case ATTRIBUTE_ID_HOST_TAGS: {
-        return manipulator(&d_hostTags,
-                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HOST_TAGS]);
-    }
-    case ATTRIBUTE_ID_HOST_DATA_CENTER: {
-        return manipulator(
-            &d_hostDataCenter,
-            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HOST_DATA_CENTER]);
-    }
-    case ATTRIBUTE_ID_IS_RUNNING_ON_DEV: {
-        return manipulator(
-            &d_isRunningOnDev,
-            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_IS_RUNNING_ON_DEV]);
-    }
-    case ATTRIBUTE_ID_LOGS_OBSERVER_MAX_SIZE: {
-        return manipulator(
-            &d_logsObserverMaxSize,
-            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LOGS_OBSERVER_MAX_SIZE]);
-    }
-    case ATTRIBUTE_ID_LATENCY_MONITOR_DOMAIN: {
-        return manipulator(
-            &d_latencyMonitorDomain,
-            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LATENCY_MONITOR_DOMAIN]);
-    }
-    case ATTRIBUTE_ID_DISPATCHER_CONFIG: {
-        return manipulator(
-            &d_dispatcherConfig,
-            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_DISPATCHER_CONFIG]);
-    }
-    case ATTRIBUTE_ID_STATS: {
-        return manipulator(&d_stats,
-                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_STATS]);
-    }
-    case ATTRIBUTE_ID_NETWORK_INTERFACES: {
-        return manipulator(
-            &d_networkInterfaces,
-            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NETWORK_INTERFACES]);
-    }
-    case ATTRIBUTE_ID_BMQCONF_CONFIG: {
-        return manipulator(
-            &d_bmqconfConfig,
-            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_BMQCONF_CONFIG]);
-    }
-    case ATTRIBUTE_ID_PLUGINS: {
-        return manipulator(&d_plugins,
-                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PLUGINS]);
-    }
-    case ATTRIBUTE_ID_MESSAGE_PROPERTIES_V2: {
-        return manipulator(
-            &d_messagePropertiesV2,
-            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MESSAGE_PROPERTIES_V2]);
-    }
-    default: return NOT_FOUND;
-    }
-}
-
-template <typename t_MANIPULATOR>
-int AppConfig::manipulateAttribute(t_MANIPULATOR& manipulator,
-                                   const char*    name,
-                                   int            nameLength)
-{
-    enum { NOT_FOUND = -1 };
-
-    const bdlat_AttributeInfo* attributeInfo = lookupAttributeInfo(name,
-                                                                   nameLength);
-    if (0 == attributeInfo) {
-        return NOT_FOUND;
-    }
-
-    return manipulateAttribute(manipulator, attributeInfo->d_id);
-}
-
-inline bsl::string& AppConfig::brokerInstanceName()
-{
-    return d_brokerInstanceName;
-}
-
-inline int& AppConfig::brokerVersion()
-{
-    return d_brokerVersion;
-}
-
-inline int& AppConfig::configVersion()
-{
-    return d_configVersion;
-}
-
-inline bsl::string& AppConfig::etcDir()
-{
-    return d_etcDir;
-}
-
-inline bsl::string& AppConfig::hostName()
-{
-    return d_hostName;
-}
-
-inline bsl::string& AppConfig::hostTags()
-{
-    return d_hostTags;
-}
-
-inline bsl::string& AppConfig::hostDataCenter()
-{
-    return d_hostDataCenter;
-}
-
-inline bool& AppConfig::isRunningOnDev()
-{
-    return d_isRunningOnDev;
-}
-
-inline int& AppConfig::logsObserverMaxSize()
-{
-    return d_logsObserverMaxSize;
-}
-
-inline bsl::string& AppConfig::latencyMonitorDomain()
-{
-    return d_latencyMonitorDomain;
-}
-
-inline DispatcherConfig& AppConfig::dispatcherConfig()
-{
-    return d_dispatcherConfig;
-}
-
-inline StatsConfig& AppConfig::stats()
-{
-    return d_stats;
-}
-
-inline NetworkInterfaces& AppConfig::networkInterfaces()
-{
-    return d_networkInterfaces;
-}
-
-inline BmqconfConfig& AppConfig::bmqconfConfig()
-{
-    return d_bmqconfConfig;
-}
-
-inline Plugins& AppConfig::plugins()
-{
-    return d_plugins;
-}
-
-inline MessagePropertiesV2& AppConfig::messagePropertiesV2()
-{
-    return d_messagePropertiesV2;
-}
-
-// ACCESSORS
-template <typename t_ACCESSOR>
-int AppConfig::accessAttributes(t_ACCESSOR& accessor) const
-{
-    int ret;
-
-    ret = accessor(d_brokerInstanceName,
-                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_BROKER_INSTANCE_NAME]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = accessor(d_brokerVersion,
-                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_BROKER_VERSION]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = accessor(d_configVersion,
-                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CONFIG_VERSION]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = accessor(d_etcDir, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ETC_DIR]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = accessor(d_hostName,
-                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HOST_NAME]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = accessor(d_hostTags,
-                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HOST_TAGS]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = accessor(d_hostDataCenter,
-                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HOST_DATA_CENTER]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = accessor(d_isRunningOnDev,
-                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_IS_RUNNING_ON_DEV]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = accessor(
-        d_logsObserverMaxSize,
-        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LOGS_OBSERVER_MAX_SIZE]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = accessor(
-        d_latencyMonitorDomain,
-        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LATENCY_MONITOR_DOMAIN]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = accessor(d_dispatcherConfig,
-                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_DISPATCHER_CONFIG]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = accessor(d_stats, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_STATS]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = accessor(d_networkInterfaces,
-                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NETWORK_INTERFACES]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = accessor(d_bmqconfConfig,
-                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_BMQCONF_CONFIG]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = accessor(d_plugins, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PLUGINS]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = accessor(
-        d_messagePropertiesV2,
-        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MESSAGE_PROPERTIES_V2]);
-    if (ret) {
-        return ret;
-    }
-
-    return 0;
-}
-
-template <typename t_ACCESSOR>
-int AppConfig::accessAttribute(t_ACCESSOR& accessor, int id) const
-{
-    enum { NOT_FOUND = -1 };
-
-    switch (id) {
-    case ATTRIBUTE_ID_BROKER_INSTANCE_NAME: {
-        return accessor(
-            d_brokerInstanceName,
-            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_BROKER_INSTANCE_NAME]);
-    }
-    case ATTRIBUTE_ID_BROKER_VERSION: {
-        return accessor(d_brokerVersion,
-                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_BROKER_VERSION]);
-    }
-    case ATTRIBUTE_ID_CONFIG_VERSION: {
-        return accessor(d_configVersion,
-                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CONFIG_VERSION]);
-    }
-    case ATTRIBUTE_ID_ETC_DIR: {
-        return accessor(d_etcDir,
-                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ETC_DIR]);
-    }
-    case ATTRIBUTE_ID_HOST_NAME: {
-        return accessor(d_hostName,
-                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HOST_NAME]);
-    }
-    case ATTRIBUTE_ID_HOST_TAGS: {
-        return accessor(d_hostTags,
-                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HOST_TAGS]);
-    }
-    case ATTRIBUTE_ID_HOST_DATA_CENTER: {
-        return accessor(
-            d_hostDataCenter,
-            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HOST_DATA_CENTER]);
-    }
-    case ATTRIBUTE_ID_IS_RUNNING_ON_DEV: {
-        return accessor(
-            d_isRunningOnDev,
-            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_IS_RUNNING_ON_DEV]);
-    }
-    case ATTRIBUTE_ID_LOGS_OBSERVER_MAX_SIZE: {
-        return accessor(
-            d_logsObserverMaxSize,
-            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LOGS_OBSERVER_MAX_SIZE]);
-    }
-    case ATTRIBUTE_ID_LATENCY_MONITOR_DOMAIN: {
-        return accessor(
-            d_latencyMonitorDomain,
-            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LATENCY_MONITOR_DOMAIN]);
-    }
-    case ATTRIBUTE_ID_DISPATCHER_CONFIG: {
-        return accessor(
-            d_dispatcherConfig,
-            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_DISPATCHER_CONFIG]);
-    }
-    case ATTRIBUTE_ID_STATS: {
-        return accessor(d_stats, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_STATS]);
-    }
-    case ATTRIBUTE_ID_NETWORK_INTERFACES: {
-        return accessor(
-            d_networkInterfaces,
-            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NETWORK_INTERFACES]);
-    }
-    case ATTRIBUTE_ID_BMQCONF_CONFIG: {
-        return accessor(d_bmqconfConfig,
-                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_BMQCONF_CONFIG]);
-    }
-    case ATTRIBUTE_ID_PLUGINS: {
-        return accessor(d_plugins,
-                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PLUGINS]);
-    }
-    case ATTRIBUTE_ID_MESSAGE_PROPERTIES_V2: {
-        return accessor(
-            d_messagePropertiesV2,
-            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MESSAGE_PROPERTIES_V2]);
-    }
-    default: return NOT_FOUND;
-    }
-}
-
-template <typename t_ACCESSOR>
-int AppConfig::accessAttribute(t_ACCESSOR& accessor,
-                               const char* name,
-                               int         nameLength) const
-{
-    enum { NOT_FOUND = -1 };
-
-    const bdlat_AttributeInfo* attributeInfo = lookupAttributeInfo(name,
-                                                                   nameLength);
-    if (0 == attributeInfo) {
-        return NOT_FOUND;
-    }
-
-    return accessAttribute(accessor, attributeInfo->d_id);
-}
-
-inline const bsl::string& AppConfig::brokerInstanceName() const
-{
-    return d_brokerInstanceName;
-}
-
-inline int AppConfig::brokerVersion() const
-{
-    return d_brokerVersion;
-}
-
-inline int AppConfig::configVersion() const
-{
-    return d_configVersion;
-}
-
-inline const bsl::string& AppConfig::etcDir() const
-{
-    return d_etcDir;
-}
-
-inline const bsl::string& AppConfig::hostName() const
-{
-    return d_hostName;
-}
-
-inline const bsl::string& AppConfig::hostTags() const
-{
-    return d_hostTags;
-}
-
-inline const bsl::string& AppConfig::hostDataCenter() const
-{
-    return d_hostDataCenter;
-}
-
-inline bool AppConfig::isRunningOnDev() const
-{
-    return d_isRunningOnDev;
-}
-
-inline int AppConfig::logsObserverMaxSize() const
-{
-    return d_logsObserverMaxSize;
-}
-
-inline const bsl::string& AppConfig::latencyMonitorDomain() const
-{
-    return d_latencyMonitorDomain;
-}
-
-inline const DispatcherConfig& AppConfig::dispatcherConfig() const
-{
-    return d_dispatcherConfig;
-}
-
-inline const StatsConfig& AppConfig::stats() const
-{
-    return d_stats;
-}
-
-inline const NetworkInterfaces& AppConfig::networkInterfaces() const
-{
-    return d_networkInterfaces;
-}
-
-inline const BmqconfConfig& AppConfig::bmqconfConfig() const
-{
-    return d_bmqconfConfig;
-}
-
-inline const Plugins& AppConfig::plugins() const
-{
-    return d_plugins;
-}
-
-inline const MessagePropertiesV2& AppConfig::messagePropertiesV2() const
-{
-    return d_messagePropertiesV2;
 }
 
 // -----------------------
@@ -16017,6 +15672,748 @@ ClusterProxyDefinition::messageThrottleConfig() const
     return d_messageThrottleConfig;
 }
 
+// -----------------
+// class StatsConfig
+// -----------------
+
+// CLASS METHODS
+// MANIPULATORS
+template <typename t_MANIPULATOR>
+int StatsConfig::manipulateAttributes(t_MANIPULATOR& manipulator)
+{
+    int ret;
+
+    ret = manipulator(&d_snapshotInterval,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SNAPSHOT_INTERVAL]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(&d_plugins,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PLUGINS]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(&d_printer,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PRINTER]);
+    if (ret) {
+        return ret;
+    }
+
+    return 0;
+}
+
+template <typename t_MANIPULATOR>
+int StatsConfig::manipulateAttribute(t_MANIPULATOR& manipulator, int id)
+{
+    enum { NOT_FOUND = -1 };
+
+    switch (id) {
+    case ATTRIBUTE_ID_SNAPSHOT_INTERVAL: {
+        return manipulator(
+            &d_snapshotInterval,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SNAPSHOT_INTERVAL]);
+    }
+    case ATTRIBUTE_ID_PLUGINS: {
+        return manipulator(&d_plugins,
+                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PLUGINS]);
+    }
+    case ATTRIBUTE_ID_PRINTER: {
+        return manipulator(&d_printer,
+                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PRINTER]);
+    }
+    default: return NOT_FOUND;
+    }
+}
+
+template <typename t_MANIPULATOR>
+int StatsConfig::manipulateAttribute(t_MANIPULATOR& manipulator,
+                                     const char*    name,
+                                     int            nameLength)
+{
+    enum { NOT_FOUND = -1 };
+
+    const bdlat_AttributeInfo* attributeInfo = lookupAttributeInfo(name,
+                                                                   nameLength);
+    if (0 == attributeInfo) {
+        return NOT_FOUND;
+    }
+
+    return manipulateAttribute(manipulator, attributeInfo->d_id);
+}
+
+inline int& StatsConfig::snapshotInterval()
+{
+    return d_snapshotInterval;
+}
+
+inline bsl::vector<StatPluginConfig>& StatsConfig::plugins()
+{
+    return d_plugins;
+}
+
+inline StatsPrinterConfig& StatsConfig::printer()
+{
+    return d_printer;
+}
+
+// ACCESSORS
+template <typename t_ACCESSOR>
+int StatsConfig::accessAttributes(t_ACCESSOR& accessor) const
+{
+    int ret;
+
+    ret = accessor(d_snapshotInterval,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SNAPSHOT_INTERVAL]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_plugins, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PLUGINS]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_printer, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PRINTER]);
+    if (ret) {
+        return ret;
+    }
+
+    return 0;
+}
+
+template <typename t_ACCESSOR>
+int StatsConfig::accessAttribute(t_ACCESSOR& accessor, int id) const
+{
+    enum { NOT_FOUND = -1 };
+
+    switch (id) {
+    case ATTRIBUTE_ID_SNAPSHOT_INTERVAL: {
+        return accessor(
+            d_snapshotInterval,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SNAPSHOT_INTERVAL]);
+    }
+    case ATTRIBUTE_ID_PLUGINS: {
+        return accessor(d_plugins,
+                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PLUGINS]);
+    }
+    case ATTRIBUTE_ID_PRINTER: {
+        return accessor(d_printer,
+                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PRINTER]);
+    }
+    default: return NOT_FOUND;
+    }
+}
+
+template <typename t_ACCESSOR>
+int StatsConfig::accessAttribute(t_ACCESSOR& accessor,
+                                 const char* name,
+                                 int         nameLength) const
+{
+    enum { NOT_FOUND = -1 };
+
+    const bdlat_AttributeInfo* attributeInfo = lookupAttributeInfo(name,
+                                                                   nameLength);
+    if (0 == attributeInfo) {
+        return NOT_FOUND;
+    }
+
+    return accessAttribute(accessor, attributeInfo->d_id);
+}
+
+inline int StatsConfig::snapshotInterval() const
+{
+    return d_snapshotInterval;
+}
+
+inline const bsl::vector<StatPluginConfig>& StatsConfig::plugins() const
+{
+    return d_plugins;
+}
+
+inline const StatsPrinterConfig& StatsConfig::printer() const
+{
+    return d_printer;
+}
+
+// ---------------
+// class AppConfig
+// ---------------
+
+// CLASS METHODS
+// MANIPULATORS
+template <typename t_MANIPULATOR>
+int AppConfig::manipulateAttributes(t_MANIPULATOR& manipulator)
+{
+    int ret;
+
+    ret = manipulator(
+        &d_brokerInstanceName,
+        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_BROKER_INSTANCE_NAME]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(&d_brokerVersion,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_BROKER_VERSION]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(&d_configVersion,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CONFIG_VERSION]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(&d_etcDir,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ETC_DIR]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(&d_hostName,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HOST_NAME]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(&d_hostTags,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HOST_TAGS]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(&d_hostDataCenter,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HOST_DATA_CENTER]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(&d_isRunningOnDev,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_IS_RUNNING_ON_DEV]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(
+        &d_logsObserverMaxSize,
+        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LOGS_OBSERVER_MAX_SIZE]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(
+        &d_latencyMonitorDomain,
+        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LATENCY_MONITOR_DOMAIN]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(&d_dispatcherConfig,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_DISPATCHER_CONFIG]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(&d_stats, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_STATS]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(
+        &d_networkInterfaces,
+        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NETWORK_INTERFACES]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(&d_bmqconfConfig,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_BMQCONF_CONFIG]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(&d_plugins,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PLUGINS]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(
+        &d_messagePropertiesV2,
+        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MESSAGE_PROPERTIES_V2]);
+    if (ret) {
+        return ret;
+    }
+
+    return 0;
+}
+
+template <typename t_MANIPULATOR>
+int AppConfig::manipulateAttribute(t_MANIPULATOR& manipulator, int id)
+{
+    enum { NOT_FOUND = -1 };
+
+    switch (id) {
+    case ATTRIBUTE_ID_BROKER_INSTANCE_NAME: {
+        return manipulator(
+            &d_brokerInstanceName,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_BROKER_INSTANCE_NAME]);
+    }
+    case ATTRIBUTE_ID_BROKER_VERSION: {
+        return manipulator(
+            &d_brokerVersion,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_BROKER_VERSION]);
+    }
+    case ATTRIBUTE_ID_CONFIG_VERSION: {
+        return manipulator(
+            &d_configVersion,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CONFIG_VERSION]);
+    }
+    case ATTRIBUTE_ID_ETC_DIR: {
+        return manipulator(&d_etcDir,
+                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ETC_DIR]);
+    }
+    case ATTRIBUTE_ID_HOST_NAME: {
+        return manipulator(&d_hostName,
+                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HOST_NAME]);
+    }
+    case ATTRIBUTE_ID_HOST_TAGS: {
+        return manipulator(&d_hostTags,
+                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HOST_TAGS]);
+    }
+    case ATTRIBUTE_ID_HOST_DATA_CENTER: {
+        return manipulator(
+            &d_hostDataCenter,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HOST_DATA_CENTER]);
+    }
+    case ATTRIBUTE_ID_IS_RUNNING_ON_DEV: {
+        return manipulator(
+            &d_isRunningOnDev,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_IS_RUNNING_ON_DEV]);
+    }
+    case ATTRIBUTE_ID_LOGS_OBSERVER_MAX_SIZE: {
+        return manipulator(
+            &d_logsObserverMaxSize,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LOGS_OBSERVER_MAX_SIZE]);
+    }
+    case ATTRIBUTE_ID_LATENCY_MONITOR_DOMAIN: {
+        return manipulator(
+            &d_latencyMonitorDomain,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LATENCY_MONITOR_DOMAIN]);
+    }
+    case ATTRIBUTE_ID_DISPATCHER_CONFIG: {
+        return manipulator(
+            &d_dispatcherConfig,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_DISPATCHER_CONFIG]);
+    }
+    case ATTRIBUTE_ID_STATS: {
+        return manipulator(&d_stats,
+                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_STATS]);
+    }
+    case ATTRIBUTE_ID_NETWORK_INTERFACES: {
+        return manipulator(
+            &d_networkInterfaces,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NETWORK_INTERFACES]);
+    }
+    case ATTRIBUTE_ID_BMQCONF_CONFIG: {
+        return manipulator(
+            &d_bmqconfConfig,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_BMQCONF_CONFIG]);
+    }
+    case ATTRIBUTE_ID_PLUGINS: {
+        return manipulator(&d_plugins,
+                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PLUGINS]);
+    }
+    case ATTRIBUTE_ID_MESSAGE_PROPERTIES_V2: {
+        return manipulator(
+            &d_messagePropertiesV2,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MESSAGE_PROPERTIES_V2]);
+    }
+    default: return NOT_FOUND;
+    }
+}
+
+template <typename t_MANIPULATOR>
+int AppConfig::manipulateAttribute(t_MANIPULATOR& manipulator,
+                                   const char*    name,
+                                   int            nameLength)
+{
+    enum { NOT_FOUND = -1 };
+
+    const bdlat_AttributeInfo* attributeInfo = lookupAttributeInfo(name,
+                                                                   nameLength);
+    if (0 == attributeInfo) {
+        return NOT_FOUND;
+    }
+
+    return manipulateAttribute(manipulator, attributeInfo->d_id);
+}
+
+inline bsl::string& AppConfig::brokerInstanceName()
+{
+    return d_brokerInstanceName;
+}
+
+inline int& AppConfig::brokerVersion()
+{
+    return d_brokerVersion;
+}
+
+inline int& AppConfig::configVersion()
+{
+    return d_configVersion;
+}
+
+inline bsl::string& AppConfig::etcDir()
+{
+    return d_etcDir;
+}
+
+inline bsl::string& AppConfig::hostName()
+{
+    return d_hostName;
+}
+
+inline bsl::string& AppConfig::hostTags()
+{
+    return d_hostTags;
+}
+
+inline bsl::string& AppConfig::hostDataCenter()
+{
+    return d_hostDataCenter;
+}
+
+inline bool& AppConfig::isRunningOnDev()
+{
+    return d_isRunningOnDev;
+}
+
+inline int& AppConfig::logsObserverMaxSize()
+{
+    return d_logsObserverMaxSize;
+}
+
+inline bsl::string& AppConfig::latencyMonitorDomain()
+{
+    return d_latencyMonitorDomain;
+}
+
+inline DispatcherConfig& AppConfig::dispatcherConfig()
+{
+    return d_dispatcherConfig;
+}
+
+inline StatsConfig& AppConfig::stats()
+{
+    return d_stats;
+}
+
+inline NetworkInterfaces& AppConfig::networkInterfaces()
+{
+    return d_networkInterfaces;
+}
+
+inline BmqconfConfig& AppConfig::bmqconfConfig()
+{
+    return d_bmqconfConfig;
+}
+
+inline Plugins& AppConfig::plugins()
+{
+    return d_plugins;
+}
+
+inline MessagePropertiesV2& AppConfig::messagePropertiesV2()
+{
+    return d_messagePropertiesV2;
+}
+
+// ACCESSORS
+template <typename t_ACCESSOR>
+int AppConfig::accessAttributes(t_ACCESSOR& accessor) const
+{
+    int ret;
+
+    ret = accessor(d_brokerInstanceName,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_BROKER_INSTANCE_NAME]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_brokerVersion,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_BROKER_VERSION]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_configVersion,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CONFIG_VERSION]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_etcDir, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ETC_DIR]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_hostName,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HOST_NAME]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_hostTags,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HOST_TAGS]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_hostDataCenter,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HOST_DATA_CENTER]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_isRunningOnDev,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_IS_RUNNING_ON_DEV]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(
+        d_logsObserverMaxSize,
+        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LOGS_OBSERVER_MAX_SIZE]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(
+        d_latencyMonitorDomain,
+        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LATENCY_MONITOR_DOMAIN]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_dispatcherConfig,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_DISPATCHER_CONFIG]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_stats, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_STATS]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_networkInterfaces,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NETWORK_INTERFACES]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_bmqconfConfig,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_BMQCONF_CONFIG]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_plugins, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PLUGINS]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(
+        d_messagePropertiesV2,
+        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MESSAGE_PROPERTIES_V2]);
+    if (ret) {
+        return ret;
+    }
+
+    return 0;
+}
+
+template <typename t_ACCESSOR>
+int AppConfig::accessAttribute(t_ACCESSOR& accessor, int id) const
+{
+    enum { NOT_FOUND = -1 };
+
+    switch (id) {
+    case ATTRIBUTE_ID_BROKER_INSTANCE_NAME: {
+        return accessor(
+            d_brokerInstanceName,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_BROKER_INSTANCE_NAME]);
+    }
+    case ATTRIBUTE_ID_BROKER_VERSION: {
+        return accessor(d_brokerVersion,
+                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_BROKER_VERSION]);
+    }
+    case ATTRIBUTE_ID_CONFIG_VERSION: {
+        return accessor(d_configVersion,
+                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CONFIG_VERSION]);
+    }
+    case ATTRIBUTE_ID_ETC_DIR: {
+        return accessor(d_etcDir,
+                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ETC_DIR]);
+    }
+    case ATTRIBUTE_ID_HOST_NAME: {
+        return accessor(d_hostName,
+                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HOST_NAME]);
+    }
+    case ATTRIBUTE_ID_HOST_TAGS: {
+        return accessor(d_hostTags,
+                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HOST_TAGS]);
+    }
+    case ATTRIBUTE_ID_HOST_DATA_CENTER: {
+        return accessor(
+            d_hostDataCenter,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HOST_DATA_CENTER]);
+    }
+    case ATTRIBUTE_ID_IS_RUNNING_ON_DEV: {
+        return accessor(
+            d_isRunningOnDev,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_IS_RUNNING_ON_DEV]);
+    }
+    case ATTRIBUTE_ID_LOGS_OBSERVER_MAX_SIZE: {
+        return accessor(
+            d_logsObserverMaxSize,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LOGS_OBSERVER_MAX_SIZE]);
+    }
+    case ATTRIBUTE_ID_LATENCY_MONITOR_DOMAIN: {
+        return accessor(
+            d_latencyMonitorDomain,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LATENCY_MONITOR_DOMAIN]);
+    }
+    case ATTRIBUTE_ID_DISPATCHER_CONFIG: {
+        return accessor(
+            d_dispatcherConfig,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_DISPATCHER_CONFIG]);
+    }
+    case ATTRIBUTE_ID_STATS: {
+        return accessor(d_stats, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_STATS]);
+    }
+    case ATTRIBUTE_ID_NETWORK_INTERFACES: {
+        return accessor(
+            d_networkInterfaces,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NETWORK_INTERFACES]);
+    }
+    case ATTRIBUTE_ID_BMQCONF_CONFIG: {
+        return accessor(d_bmqconfConfig,
+                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_BMQCONF_CONFIG]);
+    }
+    case ATTRIBUTE_ID_PLUGINS: {
+        return accessor(d_plugins,
+                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PLUGINS]);
+    }
+    case ATTRIBUTE_ID_MESSAGE_PROPERTIES_V2: {
+        return accessor(
+            d_messagePropertiesV2,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MESSAGE_PROPERTIES_V2]);
+    }
+    default: return NOT_FOUND;
+    }
+}
+
+template <typename t_ACCESSOR>
+int AppConfig::accessAttribute(t_ACCESSOR& accessor,
+                               const char* name,
+                               int         nameLength) const
+{
+    enum { NOT_FOUND = -1 };
+
+    const bdlat_AttributeInfo* attributeInfo = lookupAttributeInfo(name,
+                                                                   nameLength);
+    if (0 == attributeInfo) {
+        return NOT_FOUND;
+    }
+
+    return accessAttribute(accessor, attributeInfo->d_id);
+}
+
+inline const bsl::string& AppConfig::brokerInstanceName() const
+{
+    return d_brokerInstanceName;
+}
+
+inline int AppConfig::brokerVersion() const
+{
+    return d_brokerVersion;
+}
+
+inline int AppConfig::configVersion() const
+{
+    return d_configVersion;
+}
+
+inline const bsl::string& AppConfig::etcDir() const
+{
+    return d_etcDir;
+}
+
+inline const bsl::string& AppConfig::hostName() const
+{
+    return d_hostName;
+}
+
+inline const bsl::string& AppConfig::hostTags() const
+{
+    return d_hostTags;
+}
+
+inline const bsl::string& AppConfig::hostDataCenter() const
+{
+    return d_hostDataCenter;
+}
+
+inline bool AppConfig::isRunningOnDev() const
+{
+    return d_isRunningOnDev;
+}
+
+inline int AppConfig::logsObserverMaxSize() const
+{
+    return d_logsObserverMaxSize;
+}
+
+inline const bsl::string& AppConfig::latencyMonitorDomain() const
+{
+    return d_latencyMonitorDomain;
+}
+
+inline const DispatcherConfig& AppConfig::dispatcherConfig() const
+{
+    return d_dispatcherConfig;
+}
+
+inline const StatsConfig& AppConfig::stats() const
+{
+    return d_stats;
+}
+
+inline const NetworkInterfaces& AppConfig::networkInterfaces() const
+{
+    return d_networkInterfaces;
+}
+
+inline const BmqconfConfig& AppConfig::bmqconfConfig() const
+{
+    return d_bmqconfConfig;
+}
+
+inline const Plugins& AppConfig::plugins() const
+{
+    return d_plugins;
+}
+
+inline const MessagePropertiesV2& AppConfig::messagePropertiesV2() const
+{
+    return d_messagePropertiesV2;
+}
+
 // ------------------------
 // class ClustersDefinition
 // ------------------------
@@ -16576,6 +16973,12 @@ void mqbcfg::hashAppend(t_HASH_ALGORITHM&            hashAlg,
     hashAppend(hashAlg, object.leaderSyncDelayMs());
 }
 
+inline bsl::ostream& mqbcfg::operator<<(bsl::ostream&             stream,
+                                        mqbcfg::ExportMode::Value rhs)
+{
+    return mqbcfg::ExportMode::print(stream, rhs);
+}
+
 inline bool mqbcfg::operator==(const mqbcfg::Heartbeat& lhs,
                                const mqbcfg::Heartbeat& rhs)
 {
@@ -16782,49 +17185,6 @@ void mqbcfg::hashAppend(t_HASH_ALGORITHM&             hashAlg,
     using bslh::hashAppend;
     hashAppend(hashAlg, object.resolvedName());
     hashAppend(hashAlg, object.clusterName());
-}
-
-inline bool mqbcfg::operator==(const mqbcfg::StatPluginConfig& lhs,
-                               const mqbcfg::StatPluginConfig& rhs)
-{
-    return lhs.name() == rhs.name() && lhs.queueSize() == rhs.queueSize() &&
-           lhs.queueHighWatermark() == rhs.queueHighWatermark() &&
-           lhs.queueLowWatermark() == rhs.queueLowWatermark() &&
-           lhs.publishInterval() == rhs.publishInterval() &&
-           lhs.namespacePrefix() == rhs.namespacePrefix() &&
-           lhs.hosts() == rhs.hosts() &&
-           lhs.instanceId() == rhs.instanceId() && lhs.mode() == rhs.mode() &&
-           lhs.host() == rhs.host() && lhs.port() == rhs.port();
-}
-
-inline bool mqbcfg::operator!=(const mqbcfg::StatPluginConfig& lhs,
-                               const mqbcfg::StatPluginConfig& rhs)
-{
-    return !(lhs == rhs);
-}
-
-inline bsl::ostream& mqbcfg::operator<<(bsl::ostream&                   stream,
-                                        const mqbcfg::StatPluginConfig& rhs)
-{
-    return rhs.print(stream, 0, -1);
-}
-
-template <typename t_HASH_ALGORITHM>
-void mqbcfg::hashAppend(t_HASH_ALGORITHM&               hashAlg,
-                        const mqbcfg::StatPluginConfig& object)
-{
-    using bslh::hashAppend;
-    hashAppend(hashAlg, object.name());
-    hashAppend(hashAlg, object.queueSize());
-    hashAppend(hashAlg, object.queueHighWatermark());
-    hashAppend(hashAlg, object.queueLowWatermark());
-    hashAppend(hashAlg, object.publishInterval());
-    hashAppend(hashAlg, object.namespacePrefix());
-    hashAppend(hashAlg, object.hosts());
-    hashAppend(hashAlg, object.instanceId());
-    hashAppend(hashAlg, object.mode());
-    hashAppend(hashAlg, object.host());
-    hashAppend(hashAlg, object.port());
 }
 
 inline bool mqbcfg::operator==(const mqbcfg::StatsPrinterConfig& lhs,
@@ -17225,33 +17585,34 @@ void mqbcfg::hashAppend(t_HASH_ALGORITHM&              hashAlg,
     hashAppend(hashAlg, object.syncConfig());
 }
 
-inline bool mqbcfg::operator==(const mqbcfg::StatsConfig& lhs,
-                               const mqbcfg::StatsConfig& rhs)
+inline bool mqbcfg::operator==(const mqbcfg::StatPluginConfigPrometheus& lhs,
+                               const mqbcfg::StatPluginConfigPrometheus& rhs)
 {
-    return lhs.snapshotInterval() == rhs.snapshotInterval() &&
-           lhs.plugins() == rhs.plugins() && lhs.printer() == rhs.printer();
+    return lhs.mode() == rhs.mode() && lhs.host() == rhs.host() &&
+           lhs.port() == rhs.port();
 }
 
-inline bool mqbcfg::operator!=(const mqbcfg::StatsConfig& lhs,
-                               const mqbcfg::StatsConfig& rhs)
+inline bool mqbcfg::operator!=(const mqbcfg::StatPluginConfigPrometheus& lhs,
+                               const mqbcfg::StatPluginConfigPrometheus& rhs)
 {
     return !(lhs == rhs);
 }
 
-inline bsl::ostream& mqbcfg::operator<<(bsl::ostream&              stream,
-                                        const mqbcfg::StatsConfig& rhs)
+inline bsl::ostream&
+mqbcfg::operator<<(bsl::ostream&                             stream,
+                   const mqbcfg::StatPluginConfigPrometheus& rhs)
 {
     return rhs.print(stream, 0, -1);
 }
 
 template <typename t_HASH_ALGORITHM>
-void mqbcfg::hashAppend(t_HASH_ALGORITHM&          hashAlg,
-                        const mqbcfg::StatsConfig& object)
+void mqbcfg::hashAppend(t_HASH_ALGORITHM&                         hashAlg,
+                        const mqbcfg::StatPluginConfigPrometheus& object)
 {
     using bslh::hashAppend;
-    hashAppend(hashAlg, object.snapshotInterval());
-    hashAppend(hashAlg, object.plugins());
-    hashAppend(hashAlg, object.printer());
+    hashAppend(hashAlg, object.mode());
+    hashAppend(hashAlg, object.host());
+    hashAppend(hashAlg, object.port());
 }
 
 inline bool mqbcfg::operator==(const mqbcfg::ClusterNode& lhs,
@@ -17342,6 +17703,47 @@ void mqbcfg::hashAppend(t_HASH_ALGORITHM&                        hashAlg,
     hashAppend(hashAlg, object.connections());
 }
 
+inline bool mqbcfg::operator==(const mqbcfg::StatPluginConfig& lhs,
+                               const mqbcfg::StatPluginConfig& rhs)
+{
+    return lhs.name() == rhs.name() && lhs.queueSize() == rhs.queueSize() &&
+           lhs.queueHighWatermark() == rhs.queueHighWatermark() &&
+           lhs.queueLowWatermark() == rhs.queueLowWatermark() &&
+           lhs.publishInterval() == rhs.publishInterval() &&
+           lhs.namespacePrefix() == rhs.namespacePrefix() &&
+           lhs.hosts() == rhs.hosts() &&
+           lhs.instanceId() == rhs.instanceId() &&
+           lhs.prometheusSpecific() == rhs.prometheusSpecific();
+}
+
+inline bool mqbcfg::operator!=(const mqbcfg::StatPluginConfig& lhs,
+                               const mqbcfg::StatPluginConfig& rhs)
+{
+    return !(lhs == rhs);
+}
+
+inline bsl::ostream& mqbcfg::operator<<(bsl::ostream&                   stream,
+                                        const mqbcfg::StatPluginConfig& rhs)
+{
+    return rhs.print(stream, 0, -1);
+}
+
+template <typename t_HASH_ALGORITHM>
+void mqbcfg::hashAppend(t_HASH_ALGORITHM&               hashAlg,
+                        const mqbcfg::StatPluginConfig& object)
+{
+    using bslh::hashAppend;
+    hashAppend(hashAlg, object.name());
+    hashAppend(hashAlg, object.queueSize());
+    hashAppend(hashAlg, object.queueHighWatermark());
+    hashAppend(hashAlg, object.queueLowWatermark());
+    hashAppend(hashAlg, object.publishInterval());
+    hashAppend(hashAlg, object.namespacePrefix());
+    hashAppend(hashAlg, object.hosts());
+    hashAppend(hashAlg, object.instanceId());
+    hashAppend(hashAlg, object.prometheusSpecific());
+}
+
 inline bool mqbcfg::operator==(const mqbcfg::TaskConfig& lhs,
                                const mqbcfg::TaskConfig& rhs)
 {
@@ -17370,61 +17772,6 @@ void mqbcfg::hashAppend(t_HASH_ALGORITHM&         hashAlg,
     hashAppend(hashAlg, object.allocatorType());
     hashAppend(hashAlg, object.allocationLimit());
     hashAppend(hashAlg, object.logController());
-}
-
-inline bool mqbcfg::operator==(const mqbcfg::AppConfig& lhs,
-                               const mqbcfg::AppConfig& rhs)
-{
-    return lhs.brokerInstanceName() == rhs.brokerInstanceName() &&
-           lhs.brokerVersion() == rhs.brokerVersion() &&
-           lhs.configVersion() == rhs.configVersion() &&
-           lhs.etcDir() == rhs.etcDir() && lhs.hostName() == rhs.hostName() &&
-           lhs.hostTags() == rhs.hostTags() &&
-           lhs.hostDataCenter() == rhs.hostDataCenter() &&
-           lhs.isRunningOnDev() == rhs.isRunningOnDev() &&
-           lhs.logsObserverMaxSize() == rhs.logsObserverMaxSize() &&
-           lhs.latencyMonitorDomain() == rhs.latencyMonitorDomain() &&
-           lhs.dispatcherConfig() == rhs.dispatcherConfig() &&
-           lhs.stats() == rhs.stats() &&
-           lhs.networkInterfaces() == rhs.networkInterfaces() &&
-           lhs.bmqconfConfig() == rhs.bmqconfConfig() &&
-           lhs.plugins() == rhs.plugins() &&
-           lhs.messagePropertiesV2() == rhs.messagePropertiesV2();
-}
-
-inline bool mqbcfg::operator!=(const mqbcfg::AppConfig& lhs,
-                               const mqbcfg::AppConfig& rhs)
-{
-    return !(lhs == rhs);
-}
-
-inline bsl::ostream& mqbcfg::operator<<(bsl::ostream&            stream,
-                                        const mqbcfg::AppConfig& rhs)
-{
-    return rhs.print(stream, 0, -1);
-}
-
-template <typename t_HASH_ALGORITHM>
-void mqbcfg::hashAppend(t_HASH_ALGORITHM&        hashAlg,
-                        const mqbcfg::AppConfig& object)
-{
-    using bslh::hashAppend;
-    hashAppend(hashAlg, object.brokerInstanceName());
-    hashAppend(hashAlg, object.brokerVersion());
-    hashAppend(hashAlg, object.configVersion());
-    hashAppend(hashAlg, object.etcDir());
-    hashAppend(hashAlg, object.hostName());
-    hashAppend(hashAlg, object.hostTags());
-    hashAppend(hashAlg, object.hostDataCenter());
-    hashAppend(hashAlg, object.isRunningOnDev());
-    hashAppend(hashAlg, object.logsObserverMaxSize());
-    hashAppend(hashAlg, object.latencyMonitorDomain());
-    hashAppend(hashAlg, object.dispatcherConfig());
-    hashAppend(hashAlg, object.stats());
-    hashAppend(hashAlg, object.networkInterfaces());
-    hashAppend(hashAlg, object.bmqconfConfig());
-    hashAppend(hashAlg, object.plugins());
-    hashAppend(hashAlg, object.messagePropertiesV2());
 }
 
 inline bool mqbcfg::operator==(const mqbcfg::ClusterDefinition& lhs,
@@ -17502,6 +17849,90 @@ void mqbcfg::hashAppend(t_HASH_ALGORITHM&                     hashAlg,
     hashAppend(hashAlg, object.messageThrottleConfig());
 }
 
+inline bool mqbcfg::operator==(const mqbcfg::StatsConfig& lhs,
+                               const mqbcfg::StatsConfig& rhs)
+{
+    return lhs.snapshotInterval() == rhs.snapshotInterval() &&
+           lhs.plugins() == rhs.plugins() && lhs.printer() == rhs.printer();
+}
+
+inline bool mqbcfg::operator!=(const mqbcfg::StatsConfig& lhs,
+                               const mqbcfg::StatsConfig& rhs)
+{
+    return !(lhs == rhs);
+}
+
+inline bsl::ostream& mqbcfg::operator<<(bsl::ostream&              stream,
+                                        const mqbcfg::StatsConfig& rhs)
+{
+    return rhs.print(stream, 0, -1);
+}
+
+template <typename t_HASH_ALGORITHM>
+void mqbcfg::hashAppend(t_HASH_ALGORITHM&          hashAlg,
+                        const mqbcfg::StatsConfig& object)
+{
+    using bslh::hashAppend;
+    hashAppend(hashAlg, object.snapshotInterval());
+    hashAppend(hashAlg, object.plugins());
+    hashAppend(hashAlg, object.printer());
+}
+
+inline bool mqbcfg::operator==(const mqbcfg::AppConfig& lhs,
+                               const mqbcfg::AppConfig& rhs)
+{
+    return lhs.brokerInstanceName() == rhs.brokerInstanceName() &&
+           lhs.brokerVersion() == rhs.brokerVersion() &&
+           lhs.configVersion() == rhs.configVersion() &&
+           lhs.etcDir() == rhs.etcDir() && lhs.hostName() == rhs.hostName() &&
+           lhs.hostTags() == rhs.hostTags() &&
+           lhs.hostDataCenter() == rhs.hostDataCenter() &&
+           lhs.isRunningOnDev() == rhs.isRunningOnDev() &&
+           lhs.logsObserverMaxSize() == rhs.logsObserverMaxSize() &&
+           lhs.latencyMonitorDomain() == rhs.latencyMonitorDomain() &&
+           lhs.dispatcherConfig() == rhs.dispatcherConfig() &&
+           lhs.stats() == rhs.stats() &&
+           lhs.networkInterfaces() == rhs.networkInterfaces() &&
+           lhs.bmqconfConfig() == rhs.bmqconfConfig() &&
+           lhs.plugins() == rhs.plugins() &&
+           lhs.messagePropertiesV2() == rhs.messagePropertiesV2();
+}
+
+inline bool mqbcfg::operator!=(const mqbcfg::AppConfig& lhs,
+                               const mqbcfg::AppConfig& rhs)
+{
+    return !(lhs == rhs);
+}
+
+inline bsl::ostream& mqbcfg::operator<<(bsl::ostream&            stream,
+                                        const mqbcfg::AppConfig& rhs)
+{
+    return rhs.print(stream, 0, -1);
+}
+
+template <typename t_HASH_ALGORITHM>
+void mqbcfg::hashAppend(t_HASH_ALGORITHM&        hashAlg,
+                        const mqbcfg::AppConfig& object)
+{
+    using bslh::hashAppend;
+    hashAppend(hashAlg, object.brokerInstanceName());
+    hashAppend(hashAlg, object.brokerVersion());
+    hashAppend(hashAlg, object.configVersion());
+    hashAppend(hashAlg, object.etcDir());
+    hashAppend(hashAlg, object.hostName());
+    hashAppend(hashAlg, object.hostTags());
+    hashAppend(hashAlg, object.hostDataCenter());
+    hashAppend(hashAlg, object.isRunningOnDev());
+    hashAppend(hashAlg, object.logsObserverMaxSize());
+    hashAppend(hashAlg, object.latencyMonitorDomain());
+    hashAppend(hashAlg, object.dispatcherConfig());
+    hashAppend(hashAlg, object.stats());
+    hashAppend(hashAlg, object.networkInterfaces());
+    hashAppend(hashAlg, object.bmqconfConfig());
+    hashAppend(hashAlg, object.plugins());
+    hashAppend(hashAlg, object.messagePropertiesV2());
+}
+
 inline bool mqbcfg::operator==(const mqbcfg::ClustersDefinition& lhs,
                                const mqbcfg::ClustersDefinition& rhs)
 {
@@ -17568,7 +17999,7 @@ void mqbcfg::hashAppend(t_HASH_ALGORITHM&            hashAlg,
 }  // close enterprise namespace
 #endif
 
-// GENERATED BY BLP_BAS_CODEGEN_2023.09.30
+// GENERATED BY BLP_BAS_CODEGEN_2023.10.25
 // USING bas_codegen.pl -m msg --noAggregateConversion --noExternalization
 // --noIdent --package mqbcfg --msgComponent messages mqbcfg.xsd
 // ----------------------------------------------------------------------------
