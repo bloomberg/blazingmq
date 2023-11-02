@@ -118,7 +118,7 @@ class Tagger {
 };
 
 bsl::unique_ptr<PrometheusStatExporter>
-makeExporter(const bsl::string&                        mode,
+makeExporter(const mqbcfg::ExportMode::Value&          mode,
              const bsl::string&                        host,
              const bsl::size_t                         port,
              std::shared_ptr< ::prometheus::Registry>& registry);
@@ -185,20 +185,29 @@ int PrometheusStatConsumer::start(
 
     setActionCounter();
 
-    d_snapshotId = static_cast<int>(d_publishInterval.seconds() /
+    d_snapshotId              = static_cast<int>(d_publishInterval.seconds() /
                                     d_snapshotInterval.seconds());
+    const auto& prometheusCfg = d_consumerConfig_p->prometheusSpecific();
+    if (prometheusCfg.isNull()) {
+        BALL_LOG_ERROR
+            << "Could not find 'prometheusSpecific' section in the config";
+        return -2;  // RETURN
+    }
 
     if (!d_prometheusStatExporter_p) {
-        d_prometheusStatExporter_p = makeExporter(d_consumerConfig_p->mode(),
-                                                  d_consumerConfig_p->host(),
-                                                  d_consumerConfig_p->port(),
+        d_prometheusStatExporter_p = makeExporter(prometheusCfg->mode(),
+                                                  prometheusCfg->host(),
+                                                  prometheusCfg->port(),
                                                   d_prometheusRegistry_p);
     }
     if (!d_prometheusStatExporter_p) {
-        return -2;  // RETURN
+        BALL_LOG_ERROR
+            << "Could not create an instance of PrometheusStatExporter";
+        return -3;  // RETURN
     }
     if (0 != d_prometheusStatExporter_p->start()) {
-        return -3;  // RETURN
+        BALL_LOG_ERROR << "Could not start the PrometheusStatExporter";
+        return -4;  // RETURN
     }
 
     d_isStarted = true;
@@ -907,25 +916,24 @@ class PrometheusPushStatExporter : public PrometheusStatExporter {
 namespace {
 
 bsl::unique_ptr<PrometheusStatExporter>
-makeExporter(const bsl::string&                        mode,
+makeExporter(const mqbcfg::ExportMode::Value&          mode,
              const bsl::string&                        host,
              const bsl::size_t                         port,
              std::shared_ptr< ::prometheus::Registry>& registry)
 {
     bsl::unique_ptr<PrometheusStatExporter> result;
-    if (mode == "pull") {
+    if (mode == mqbcfg::ExportMode::E_PULL) {
         result = bsl::make_unique<PrometheusPullStatExporter>(host,
                                                               port,
                                                               registry);
     }
-    else if (mode == "push") {
+    else if (mode == mqbcfg::ExportMode::E_PUSH) {
         result = bsl::make_unique<PrometheusPushStatExporter>(host,
                                                               port,
                                                               registry);
     }
     else {
-        BALL_LOG_ERROR << "Could not init Prometheus. Wrong mode '" << mode
-                       << "'";
+        BALL_LOG_ERROR << "Wrong operation mode specified '" << mode << "'";
     }
     return result;
 }
