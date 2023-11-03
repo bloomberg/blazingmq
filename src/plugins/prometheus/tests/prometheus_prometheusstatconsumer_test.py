@@ -22,6 +22,9 @@ Usage: ./prometheus_prometheusstatconsumer_test.py [-h] -p PATH
 options:
   -h, --help            show this help message and exit
   -p PATH, --path PATH  path to BlasingMQ build folder
+  -m {all,pull,push}, --mode {all,pull,push}
+                        prometheus mode
+  --no-docker           don't run Prometheus in docker, assume it is running on localhost
  """
 
 import argparse
@@ -53,6 +56,10 @@ def parse_arguments():
         description='Integration tests for Prometheus plugin')
     parser.add_argument('-p', '--path', type=str, required=True,
                         help="path to BlasingMQ build folder")
+    parser.add_argument('-m', '--mode', type=str,
+                        choices=['all', 'pull', 'push'], default='all', help="prometheus mode")
+    parser.add_argument('--no-docker', action='store_true',
+                        help="don't run Prometheus in docker, assume it is running on localhost")
 
     return parser.parse_args()
 
@@ -61,9 +68,10 @@ def test_local_cluster(plugin_path, broker_path, tool_path, prometheus_host, pro
     current_dir = os.getcwd()
 
     # Run Prometheus in docker
-    docker_proc = subprocess.Popen(
-        ['docker', 'compose', '-f', prometheus_docker_file_path, 'up', '-d'])
-    docker_proc.wait()
+    if prometheus_docker_file_path:
+        docker_proc = subprocess.Popen(
+            ['docker', 'compose', '-f', prometheus_docker_file_path, 'up', '-d'])
+        docker_proc.wait()
 
     # Create sandbox in temp folder
     with tempfile.TemporaryDirectory() as tmpdirname:
@@ -89,7 +97,8 @@ def test_local_cluster(plugin_path, broker_path, tool_path, prometheus_host, pro
         plugins_cfg = local_cfg['appConfig']['stats']['plugins'] = [
             dict(name='PrometheusStatConsumer', publishInterval=1)]
 
-        prometheus_cfg = plugins_cfg[0]['prometheusSpecific'] = dict(host='localhost')
+        prometheus_cfg = plugins_cfg[0]['prometheusSpecific'] = dict(
+            host='localhost')
         if mode == 'push':
             prometheus_cfg['port'] = 9091
             prometheus_cfg['mode'] = 'E_PUSH'
@@ -140,9 +149,10 @@ def test_local_cluster(plugin_path, broker_path, tool_path, prometheus_host, pro
             os.chdir(current_dir)
             broker_proc.terminate()
             broker_proc.wait()
-            docker_proc = subprocess.Popen(
-                ['docker', 'compose', '-f', prometheus_docker_file_path, 'down'])
-            docker_proc.wait()
+            if prometheus_docker_file_path:
+                docker_proc = subprocess.Popen(
+                    ['docker', 'compose', '-f', prometheus_docker_file_path, 'down'])
+                docker_proc.wait()
 
         return True
 
@@ -150,17 +160,17 @@ def test_local_cluster(plugin_path, broker_path, tool_path, prometheus_host, pro
 def main(args):
     build_dir = Path(args.path).absolute()
     test_folder = Path(__file__).absolute().parent
-    prometheus_docker_file_path = test_folder.joinpath(
+    prometheus_docker_file_path = None if args.no_docker else test_folder.joinpath(
         'docker/docker-compose.yml')
     broker_path = build_dir.joinpath('src/applications/bmqbrkr/bmqbrkr.tsk')
     tool_path = build_dir.joinpath('src/applications/bmqtool/bmqtool.tsk')
     plugin_path = build_dir.joinpath('src/plugins/libprometheus.so')
 
+    modes = ['push', 'pull'] if args.mode == 'all' else [args.mode]
     results = dict()
-    results['local_cluster_test_with_push_mode'] = test_local_cluster(
-        plugin_path, broker_path, tool_path, PROMETHEUS_HOST, prometheus_docker_file_path, 'push')
-    results['local_cluster_test_with_pull_mode'] = test_local_cluster(
-        plugin_path, broker_path, tool_path, PROMETHEUS_HOST, prometheus_docker_file_path, 'pull')
+    for mode in modes:
+        results[f'local_cluster_test_with_{mode}_mode'] = test_local_cluster(
+            plugin_path, broker_path, tool_path, PROMETHEUS_HOST, prometheus_docker_file_path, mode)
 
     print('\n\n\n========================================')
     print(f'{len(results)} integration tests executed with following results:')
@@ -187,7 +197,8 @@ def _check_initial_statistic(prometheus_host):
     for metric in all_metrics:
         response = _make_request(
             prometheus_host, '/api/v1/query', dict(query=metric))
-        assert not response['result']  # must be empty
+        assert not response['result'], _assert_message(
+            metric, 'None', response['result'])  # must be empty
 
 
 def _check_statistic(prometheus_host):

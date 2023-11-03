@@ -162,6 +162,8 @@ if [ "${BUILD_PROMETHEUS}" == true ]; then
               -DENABLE_COMPRESSION=OFF \
               -DENABLE_TESTING=OFF \
               -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+              -DGENERATE_PKGCONFIG=ON \
+              -DCMAKE_INSTALL_PREFIX="${DIR_INSTALL}" \
               -B "${DIR_BUILD}/prometheus-cpp"
         cmake --build "${DIR_BUILD}/prometheus-cpp" --parallel 16
         cmake --install "${DIR_BUILD}/prometheus-cpp" --prefix "${DIR_INSTALL}"
