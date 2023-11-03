@@ -35,6 +35,8 @@ namespace m_bmqtool {
 
 bool InputUtil::getLine(bsl::string* out)
 {
+    BSLS_ASSERT_SAFE(out);
+
     bsl::cout << "> " << bsl::flush;
     bsl::cin.clear();
     bsl::getline(bsl::cin, *out);
@@ -54,7 +56,7 @@ void InputUtil::preprocessInput(bsl::string*                     verb,
 {
     BSLS_ASSERT_SAFE(verb);
     BSLS_ASSERT_SAFE(output);
-    BSLS_ASSERT_SAFE(keys);
+
     mwcu::MemOutStream oss;
 
     bool isKey = true, isFirstKey = true, isVerb = true;
@@ -134,6 +136,8 @@ void InputUtil::populateProperties(
     bmqa::MessageProperties*            out,
     const bsl::vector<MessageProperty>& properties)
 {
+    BSLS_ASSERT_SAFE(out);
+
     for (size_t i = 0; i < properties.size(); ++i) {
         const bsl::string& name  = properties[i].name();
         const bsl::string& value = properties[i].value();
@@ -263,6 +267,8 @@ void InputUtil::verifyProperties(
 bool InputUtil::populateSubscriptions(bmqt::QueueOptions*              out,
                                       const bsl::vector<Subscription>& in)
 {
+    BSLS_ASSERT_SAFE(out);
+
     bool failed = false;
     for (size_t i = 0; i < in.size(); ++i) {
         bmqt::Subscription             to;
