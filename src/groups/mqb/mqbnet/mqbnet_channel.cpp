@@ -687,7 +687,9 @@ Channel::writeImmediate(bool*                                     isConsumed,
             }
             *isConsumed = false;
         } break;
+#ifdef BMQ_ENABLE_MSG_GROUPID
         case bmqt::EventBuilderResult::e_INVALID_MSG_GROUP_ID:
+#endif
         case bmqt::EventBuilderResult::e_PAYLOAD_EMPTY:
         case bmqt::EventBuilderResult::e_MISSING_CORRELATION_ID:
         case bmqt::EventBuilderResult::e_QUEUE_READONLY:
