@@ -107,12 +107,12 @@ jobs:
             -DBDE_BUILD_TARGET_64=ON \
             -DBDE_BUILD_TARGET_CPP17=ON \
             -DCMAKE_PREFIX_PATH=${{ github.workspace }}/deps/srcs/bde-tools/BdeBuildSystem \
-            -DCMAKE_INSTALL_LIBDIR=lib \
+            -DCMAKE_INSTALL_LIBDIR=lib64 \
             -DINSTALL_TARGETS=prometheus
           cmake --build cmake.bld/Linux --parallel 8 --target all
       - name: Create prometheus dir
         run:  mkdir -p prometheus_dir
-      - name: Download prometyheus
+      - name: Download Prometheus
         run:  curl -SL "https://github.com/prometheus/prometheus/releases/download/v2.45.1/prometheus-2.45.1.linux-amd64.tar.gz" | tar -xzC prometheus_dir/
       - name: Run Prometheus
         run:  ./prometheus_dir/prometheus-2.45.1.linux-amd64/prometheus --config.file=${{ github.workspace }}/src/plugins/prometheus/tests/prometheus_localhost.yaml --web.enable-lifecycle --storage.tsdb.path=${{ github.workspace }}/prometheus_dir/data &

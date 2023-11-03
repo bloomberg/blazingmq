@@ -29,7 +29,7 @@ By default, plugin is disabled. To enable and configure it, edit `bmqbrkcfg.json
                 "publishInterval": 10,
                 "host": "localhost",
                 "port": 9091,
-                "mode": "push"
+                "mode": "E_PUSH"
             }
         ],
         ...
@@ -47,12 +47,12 @@ where
 - `port`
   - in `push` mode: Prometheus Push Gateway port, usually 9091;
   - in `pull` mode: Prometheus exposer port that should be accessable by Prometheus to pull the statistic;
-- `mode`: interaction with Prometheus mode: `push` or `pull`;
+- `mode`: interaction with Prometheus mode: `E_PUSH` or `E_PULL`;
 
 ### Build and Run plugin in demo environment
-To build BlazingMQ with plugins, pass 'plugins' argument to the build script, e.g.
+To build Prometheus plugin, pass '--plugins prometheus' argument to the build script, e.g.
 ```bash
-bin/build-ubuntu.sh plugins
+bin/build-ubuntu.sh --plugins prometheus
 ```
 To run plugin in demo environment, perform the following steps:
 1. Set plugin configuration:
@@ -60,13 +60,13 @@ To run plugin in demo environment, perform the following steps:
   ```
     "host": "localhost",
     "port": 9091,
-    "mode": "push"
+    "mode": "E_PUSH"
   ```
   - For `pull` mode:
   ```
     "host": "localhost",
     "port": 8080,
-    "mode": "pull"
+    "mode": "E_PULL"
   ```
 2. Run BlazingMQ broker, it will automatically load and configure the plugin;
 3. Run Prometheus and Grafana services in Docker:
@@ -99,7 +99,7 @@ Prerequisites:
 Usage: ./src/plugins/prometheus/tests/prometheus_prometheusstatconsumer_test.py [-h] -p PATH
 options:
   -h, --help            show this help message and exit
-  -p PATH, --path PATH  path to BlasingMQ build folder, e.g. './build/blasingmq'
+  -p PATH, --path PATH  path to BlazingMQ build folder, e.g. './build/blazingmq'
 ```
 
 ### Available BlazingMQ metrics
