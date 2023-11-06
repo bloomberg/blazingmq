@@ -104,8 +104,8 @@ Before attempting to build, you will have to acquire `flex`, `bison`, and `bde-t
 Once the prerequisite tools are installed, you should be able to build BlazingMQ with the following:
 
 ```sh
-export VCPKG_ROOT=path/to/vcpkg
-cmake --preset [preset-name] -DCMAKE_PREFIX_PATH=thirdparty/bde-tools
+export VCPKG_ROOT=/path/to/vcpkg
+cmake --preset [preset-name] -DCMAKE_PREFIX_PATH=/path/to/thirdparty/bde-tools
 cmake --build cmake.bld
 ```
 
