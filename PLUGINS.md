@@ -27,9 +27,11 @@ By default, plugin is disabled. To enable and configure it, edit `bmqbrkcfg.json
             {
                 "name": "PrometheusStatConsumer",
                 "publishInterval": 10,
-                "host": "localhost",
-                "port": 9091,
-                "mode": "E_PUSH"
+                "prometheusSpecific": {
+                    "host": "localhost",
+                    "port": 9091,
+                    "mode": "E_PUSH"    
+                }
             }
         ],
         ...
