@@ -39,7 +39,7 @@ jobs:
         run: ../docker/build_deps.sh
       - name: Build BlazingMQ
         env:
-          PKG_CONFIG_PATH: /usr/lib/x86_64-linux-gnu/pkgconfig:/opt/bb/lib64/pkgconfig:/opt/bb/lib/pkgconfig
+          PKG_CONFIG_PATH: /usr/lib/x86_64-linux-gnu/pkgconfig:/opt/bb/lib64/pkgconfig
         run: |
           cmake -S . -B cmake.bld/Linux -G Ninja \
             -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/deps/srcs/bde-tools/BdeBuildSystem/toolchains/linux/gcc-default.cmake \
@@ -98,7 +98,7 @@ jobs:
         run:  ${{ github.workspace }}/src/plugins/prometheus/build_prometheus_deps.sh
       - name: Build plugins
         env:
-          PKG_CONFIG_PATH: /usr/lib/x86_64-linux-gnu/pkgconfig:/opt/bb/lib64/pkgconfig:/opt/bb/lib/pkgconfig
+          PKG_CONFIG_PATH: /usr/lib/x86_64-linux-gnu/pkgconfig:/opt/bb/lib64/pkgconfig
         run: |
           cmake -S . -B cmake.bld/Linux -G Ninja \
             -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/deps/srcs/bde-tools/BdeBuildSystem/toolchains/linux/gcc-default.cmake \

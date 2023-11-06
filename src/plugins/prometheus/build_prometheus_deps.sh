@@ -28,7 +28,7 @@ build_curl() {
         --disable-ipv6 --disable-sspi --disable-crypto-auth \
         --disable-ntlm-wb --disable-tls-srp --with-pic --without-nghttp2\
         --without-libidn2 --without-libssh2 --without-brotli \
-        --without-ssl --without-zlib --prefix=/opt/bb
+        --without-ssl --without-zlib --prefix=/opt/bb --libdir=/opt/bb/lib64
     make curl_LDFLAGS=-all-static
     make curl_LDFLAGS=-all-static install
     popd
@@ -43,7 +43,7 @@ build_prometheus_cpp() {
 
     mkdir -p build
 
-    PKG_CONFIG_PATH="/opt/bb/lib/pkgconfig:$(pkg-config --variable pc_path pkg-config)" \
+    PKG_CONFIG_PATH="/opt/bb/lib64/pkgconfig:$(pkg-config --variable pc_path pkg-config)" \
     cmake -DBUILD_SHARED_LIBS=OFF \
             -DENABLE_PUSH=ON \
             -DENABLE_COMPRESSION=OFF \
@@ -51,6 +51,7 @@ build_prometheus_cpp() {
             -DGENERATE_PKGCONFIG=ON \
             -DCMAKE_INSTALL_PREFIX=/opt/bb \
             -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+            -DCMAKE_INSTALL_LIBDIR=lib64 \
             -B build
     cmake --build build --parallel 16
     cmake --install build --prefix /opt/bb
