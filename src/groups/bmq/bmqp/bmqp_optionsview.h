@@ -347,7 +347,7 @@ inline OptionsView::Iterator::Iterator(const OptionsView* optionsView,
                                        const unsigned int offset)
 : d_optionsView_p(optionsView)
 , d_offset(offset)
-, d_value(static_cast<const bmqp::OptionType::Enum>(d_offset))
+, d_value(static_cast<bmqp::OptionType::Enum>(d_offset))
 {
 }
 

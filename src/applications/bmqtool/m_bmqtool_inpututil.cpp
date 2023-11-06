@@ -180,6 +180,8 @@ void InputUtil::verifyProperties(
 
             bsl::unordered_set<bsl::string> pairs;
 
+            pairs.insert("pairs_");
+
             while (it.hasNext()) {
                 bsl::string name = it.name();
 
@@ -208,7 +210,7 @@ void InputUtil::verifyProperties(
                     break;
                 }
                 case bmqt::PropertyType::e_SHORT: {
-                    BSLS_ASSERT_SAFE(it.getAsShort()() ==
+                    BSLS_ASSERT_SAFE(it.getAsShort() ==
                                      in.getPropertyAsShort(name));
                     break;
                 }

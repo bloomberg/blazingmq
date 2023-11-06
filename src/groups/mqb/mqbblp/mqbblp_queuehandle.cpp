@@ -535,10 +535,12 @@ QueueHandle::QueueHandle(
     d_throttledDroppedPutMessages.initialize(
         1,
         5 * bdlt::TimeUnitRatio::k_NS_PER_S);
-    d_throttledSubscriptionInfo.initialize(
-        1,
-        5 * bdlt::TimeUnitRatio::k_NS_PER_S);
     // One maximum log per 5 seconds
+
+    d_throttledSubscriptionInfo.initialize(
+        10,
+        5 * bdlt::TimeUnitRatio::k_NS_PER_S);
+    // Ten per 5 seconds
 
     setHandleParameters(handleParameters);
 }

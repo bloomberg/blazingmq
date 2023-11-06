@@ -471,7 +471,7 @@ class Event {
     /// undefined unless 0 <= 'position' < numCorrrelationIds(), and event's
     /// type() is MESSAGEEVENT, 'messageEventMode()' is READ and the
     /// underlying raw event is of type PUSH.
-    const unsigned int subscriptionId(int position) const;
+    unsigned int subscriptionId(int position) const;
 
     // MANIPULATORS
 
@@ -500,8 +500,8 @@ class Event {
     /// event's type() is MESSAGEEVENT, 'messageEventMode()' is READ and the
     /// underlying raw event is of type ACK, PUT or PUSH.
     void addCorrelationId(const bmqt::CorrelationId& correlationId,
-                          unsigned int               subscriptionId =
-                              bmqp::Protocol::k_DEFAULT_SUBSCRIPTION_ID);
+                          unsigned int               subscriptionHandleId =
+                              bmqt::SubscriptionHandle::k_INVALID_HANDLE_ID);
 
     /// Insert the specified `queue` to the queues and the specified
     /// `corrId` to the list of correlationIds associated with this event.
@@ -746,7 +746,7 @@ inline const bmqt::CorrelationId& Event::correlationId(int position) const
     return d_correlationIds[position].first;
 }
 
-inline const unsigned int Event::subscriptionId(int position) const
+inline unsigned int Event::subscriptionId(int position) const
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(type() == EventType::e_MESSAGE);
@@ -798,7 +798,7 @@ inline bmqp::PutEventBuilder* Event::putEventBuilder()
 }
 
 inline void Event::addCorrelationId(const bmqt::CorrelationId& correlationId,
-                                    unsigned int               subscriptionId)
+                                    unsigned int subscriptionHandleId)
 {
     // TODO: when ACK event is created locally we have to fill d_correlationIds
     //       before the raw ACK 'bmqp::Event' is created and may be used to
@@ -810,7 +810,8 @@ inline void Event::addCorrelationId(const bmqt::CorrelationId& correlationId,
     // BSLS_ASSERT_SAFE(messageEventMode() == MessageEventMode::e_READ);
     // BSLS_ASSERT_SAFE(d_rawEvent.isAckEvent());
 
-    d_correlationIds.push_back(bsl::make_pair(correlationId, subscriptionId));
+    d_correlationIds.push_back(
+        bsl::make_pair(correlationId, subscriptionHandleId));
 }
 
 }  // close package namespace
