@@ -1,4 +1,4 @@
-name: Sanity check
+name: DCO check
 on:
   pull_request:
     types:
