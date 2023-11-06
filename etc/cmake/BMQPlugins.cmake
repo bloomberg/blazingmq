@@ -23,7 +23,9 @@ macro(_bmq_dedup_link_flags target)
                 # that are "-l<library>"; if they are already linked by
                 # 'bmqbrkr.tsk'.
                 list(REMOVE_ITEM ${target}_DEPENDS "${linkopt}")
-                target_include_directories(${target} PRIVATE $<TARGET_PROPERTY:${linkopt},INTERFACE_INCLUDE_DIRECTORIES>)
+                if (TARGET "${linkopt}")
+                    target_include_directories(${target} PRIVATE $<TARGET_PROPERTY:${linkopt},INTERFACE_INCLUDE_DIRECTORIES>)
+                endif()
             endif()
         endif()
     endforeach()
@@ -72,4 +74,13 @@ function(bmq_add_plugin name)
 
     include(TargetBMQStyleUor)
     target_bmq_default_compiler_flags(${name})
+
+    # Add -bbigtoc on AIX platforms
+    target_link_options(${name} PRIVATE "$<$<PLATFORM_ID:AIX>:$<$<CXX_COMPILER_ID:XL>:-bbigtoc>>")
+    bbs_import_target_dependencies(${name} ${${name}_PCDEPS})
+
+    # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+    # DPKG/install rules
+    # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+    install(TARGETS ${name} COMPONENT ${name} LIBRARY DESTINATION "data/bmq/plugins")
 endfunction()
