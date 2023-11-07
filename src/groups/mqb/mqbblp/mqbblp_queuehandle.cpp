@@ -62,6 +62,13 @@ namespace {
 const double k_WATERMARK_RATIO = 0.8;
 // Percentage of the 'capacity' to use for the 'lowWatermark'
 
+const int k_MAX_INSTANT_MESSAGES = 10;
+// Maximum messages logged with throttling in a short period of time.
+
+const bsls::Types::Int64 k_NS_PER_MESSAGE =
+    bdlt::TimeUnitRatio::k_NANOSECONDS_PER_SECOND;
+// Time interval between messages logged with throttling.
+
 typedef bsl::function<void()> CompletionCallback;
 
 /// Utility function used in `mwcu::OperationChain` as the operation
@@ -606,9 +613,6 @@ void QueueHandle::registerSubscription(unsigned int downstreamSubId,
                                        const bmqp_ctrlmsg::ConsumerInfo& ci,
                                        unsigned int upstreamId)
 {
-    static const int                k_MAX_INSTANT_MESSAGES = 10;
-    static const bsls::Types::Int64 k_NS_PER_MESSAGE =
-        bdlt::TimeUnitRatio::k_NANOSECONDS_PER_SECOND;
     BALL_LOGTHROTTLE_INFO(k_MAX_INSTANT_MESSAGES, k_NS_PER_MESSAGE)
         << "QueueHandle [" << this
         << "] registering Subscription [id = " << downstreamId
@@ -715,9 +719,6 @@ bool QueueHandle::unregisterSubStream(
              itSubscription != d_subscriptions.end();) {
             const SubscriptionSp& subscription = itSubscription->second;
             if (subscription->d_downstreamSubQueueId == downstreamSubQueueId) {
-                static const int                k_MAX_INSTANT_MESSAGES = 10;
-                static const bsls::Types::Int64 k_NS_PER_MESSAGE =
-                    bdlt::TimeUnitRatio::k_NANOSECONDS_PER_SECOND;
                 BALL_LOGTHROTTLE_INFO(k_MAX_INSTANT_MESSAGES, k_NS_PER_MESSAGE)
                     << "Queue '" << d_queue_sp->description() << "' handle "
                     << this << " removing Subscription "
