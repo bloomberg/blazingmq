@@ -1,0 +1,1267 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>API Reference &mdash; blazingmq 1.2.0 documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=6efca38a"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Changelog" href="CHANGELOG.html" />
+    <link rel="prev" title="Queue Options and Configuration" href="queue_options_and_configuration.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            blazingmq
+          </a>
+              <div class="version">
+                1.2.0
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="user_guide.html">User Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="acknowledgments.html">Acknowledgments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="message_properties.html">Message Properties</a></li>
+<li class="toctree-l1"><a class="reference internal" href="queue_options_and_configuration.html">Queue Options and Configuration</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#session">Session</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#blazingmq.Session"><code class="docutils literal notranslate"><span class="pre">Session</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#blazingmq.Session.close_queue"><code class="docutils literal notranslate"><span class="pre">Session.close_queue()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#blazingmq.Session.configure_queue"><code class="docutils literal notranslate"><span class="pre">Session.configure_queue()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#blazingmq.Session.confirm"><code class="docutils literal notranslate"><span class="pre">Session.confirm()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#blazingmq.Session.get_queue_options"><code class="docutils literal notranslate"><span class="pre">Session.get_queue_options()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#blazingmq.Session.open_queue"><code class="docutils literal notranslate"><span class="pre">Session.open_queue()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#blazingmq.Session.post"><code class="docutils literal notranslate"><span class="pre">Session.post()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#blazingmq.Session.stop"><code class="docutils literal notranslate"><span class="pre">Session.stop()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#blazingmq.QueueOptions"><code class="docutils literal notranslate"><span class="pre">QueueOptions</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#blazingmq.QueueOptions.DEFAULT_MAX_UNCONFIRMED_MESSAGES"><code class="docutils literal notranslate"><span class="pre">QueueOptions.DEFAULT_MAX_UNCONFIRMED_MESSAGES</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#blazingmq.QueueOptions.DEFAULT_MAX_UNCONFIRMED_BYTES"><code class="docutils literal notranslate"><span class="pre">QueueOptions.DEFAULT_MAX_UNCONFIRMED_BYTES</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#blazingmq.QueueOptions.DEFAULT_CONSUMER_PRIORITY"><code class="docutils literal notranslate"><span class="pre">QueueOptions.DEFAULT_CONSUMER_PRIORITY</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#blazingmq.QueueOptions.DEFAULT_SUSPENDS_ON_BAD_HOST_HEALTH"><code class="docutils literal notranslate"><span class="pre">QueueOptions.DEFAULT_SUSPENDS_ON_BAD_HOST_HEALTH</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#message-classes">Message Classes</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#blazingmq.Message"><code class="docutils literal notranslate"><span class="pre">Message</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#blazingmq.Message.data"><code class="docutils literal notranslate"><span class="pre">Message.data</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#blazingmq.Message.guid"><code class="docutils literal notranslate"><span class="pre">Message.guid</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#blazingmq.Message.queue_uri"><code class="docutils literal notranslate"><span class="pre">Message.queue_uri</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#blazingmq.Message.properties"><code class="docutils literal notranslate"><span class="pre">Message.properties</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#blazingmq.Message.property_types"><code class="docutils literal notranslate"><span class="pre">Message.property_types</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#blazingmq.MessageHandle"><code class="docutils literal notranslate"><span class="pre">MessageHandle</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#blazingmq.MessageHandle.confirm"><code class="docutils literal notranslate"><span class="pre">MessageHandle.confirm()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#blazingmq.Ack"><code class="docutils literal notranslate"><span class="pre">Ack</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#blazingmq.Ack.guid"><code class="docutils literal notranslate"><span class="pre">Ack.guid</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#blazingmq.Ack.queue_uri"><code class="docutils literal notranslate"><span class="pre">Ack.queue_uri</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#blazingmq.Ack.status"><code class="docutils literal notranslate"><span class="pre">Ack.status</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#health-monitoring">Health Monitoring</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#blazingmq.BasicHealthMonitor"><code class="docutils literal notranslate"><span class="pre">BasicHealthMonitor</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#blazingmq.BasicHealthMonitor.set_healthy"><code class="docutils literal notranslate"><span class="pre">BasicHealthMonitor.set_healthy()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#blazingmq.BasicHealthMonitor.set_unhealthy"><code class="docutils literal notranslate"><span class="pre">BasicHealthMonitor.set_unhealthy()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#enumerations">Enumerations</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#blazingmq.AckStatus"><code class="docutils literal notranslate"><span class="pre">AckStatus</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#blazingmq.AckStatus.SUCCESS"><code class="docutils literal notranslate"><span class="pre">AckStatus.SUCCESS</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#blazingmq.AckStatus.CANCELED"><code class="docutils literal notranslate"><span class="pre">AckStatus.CANCELED</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#blazingmq.AckStatus.INVALID_ARGUMENT"><code class="docutils literal notranslate"><span class="pre">AckStatus.INVALID_ARGUMENT</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#blazingmq.AckStatus.LIMIT_BYTES"><code class="docutils literal notranslate"><span class="pre">AckStatus.LIMIT_BYTES</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#blazingmq.AckStatus.LIMIT_MESSAGES"><code class="docutils literal notranslate"><span class="pre">AckStatus.LIMIT_MESSAGES</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#blazingmq.AckStatus.NOT_CONNECTED"><code class="docutils literal notranslate"><span class="pre">AckStatus.NOT_CONNECTED</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#blazingmq.AckStatus.NOT_READY"><code class="docutils literal notranslate"><span class="pre">AckStatus.NOT_READY</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#blazingmq.AckStatus.NOT_SUPPORTED"><code class="docutils literal notranslate"><span class="pre">AckStatus.NOT_SUPPORTED</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#blazingmq.AckStatus.REFUSED"><code class="docutils literal notranslate"><span class="pre">AckStatus.REFUSED</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#blazingmq.AckStatus.TIMEOUT"><code class="docutils literal notranslate"><span class="pre">AckStatus.TIMEOUT</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#blazingmq.AckStatus.UNKNOWN"><code class="docutils literal notranslate"><span class="pre">AckStatus.UNKNOWN</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#blazingmq.AckStatus.UNRECOGNIZED"><code class="docutils literal notranslate"><span class="pre">AckStatus.UNRECOGNIZED</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#blazingmq.CompressionAlgorithmType"><code class="docutils literal notranslate"><span class="pre">CompressionAlgorithmType</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#blazingmq.CompressionAlgorithmType.NONE"><code class="docutils literal notranslate"><span class="pre">CompressionAlgorithmType.NONE</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#blazingmq.CompressionAlgorithmType.ZLIB"><code class="docutils literal notranslate"><span class="pre">CompressionAlgorithmType.ZLIB</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#blazingmq.PropertyType"><code class="docutils literal notranslate"><span class="pre">PropertyType</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#blazingmq.PropertyType.BOOL"><code class="docutils literal notranslate"><span class="pre">PropertyType.BOOL</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#blazingmq.PropertyType.CHAR"><code class="docutils literal notranslate"><span class="pre">PropertyType.CHAR</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#blazingmq.PropertyType.SHORT"><code class="docutils literal notranslate"><span class="pre">PropertyType.SHORT</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#blazingmq.PropertyType.INT32"><code class="docutils literal notranslate"><span class="pre">PropertyType.INT32</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#blazingmq.PropertyType.INT64"><code class="docutils literal notranslate"><span class="pre">PropertyType.INT64</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#blazingmq.PropertyType.STRING"><code class="docutils literal notranslate"><span class="pre">PropertyType.STRING</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#blazingmq.PropertyType.BINARY"><code class="docutils literal notranslate"><span class="pre">PropertyType.BINARY</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#exceptions">Exceptions</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#blazingmq.Error"><code class="docutils literal notranslate"><span class="pre">Error</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#blazingmq.exceptions.BrokerTimeoutError"><code class="docutils literal notranslate"><span class="pre">BrokerTimeoutError</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#session-events">Session Events</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#blazingmq.session_events.SessionEvent"><code class="docutils literal notranslate"><span class="pre">SessionEvent</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#blazingmq.session_events.QueueEvent"><code class="docutils literal notranslate"><span class="pre">QueueEvent</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#blazingmq.session_events.QueueEvent.queue_uri"><code class="docutils literal notranslate"><span class="pre">QueueEvent.queue_uri</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#blazingmq.session_events.Connected"><code class="docutils literal notranslate"><span class="pre">Connected</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#blazingmq.session_events.Disconnected"><code class="docutils literal notranslate"><span class="pre">Disconnected</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#blazingmq.session_events.ConnectionLost"><code class="docutils literal notranslate"><span class="pre">ConnectionLost</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#blazingmq.session_events.Reconnected"><code class="docutils literal notranslate"><span class="pre">Reconnected</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#blazingmq.session_events.StateRestored"><code class="docutils literal notranslate"><span class="pre">StateRestored</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#blazingmq.session_events.ConnectionTimeout"><code class="docutils literal notranslate"><span class="pre">ConnectionTimeout</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#blazingmq.session_events.HostUnhealthy"><code class="docutils literal notranslate"><span class="pre">HostUnhealthy</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#blazingmq.session_events.HostHealthRestored"><code class="docutils literal notranslate"><span class="pre">HostHealthRestored</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#blazingmq.session_events.QueueSuspended"><code class="docutils literal notranslate"><span class="pre">QueueSuspended</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#blazingmq.session_events.QueueSuspended.queue_uri"><code class="docutils literal notranslate"><span class="pre">QueueSuspended.queue_uri</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#blazingmq.session_events.QueueSuspendFailed"><code class="docutils literal notranslate"><span class="pre">QueueSuspendFailed</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#blazingmq.session_events.QueueSuspendFailed.queue_uri"><code class="docutils literal notranslate"><span class="pre">QueueSuspendFailed.queue_uri</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#blazingmq.session_events.QueueResumed"><code class="docutils literal notranslate"><span class="pre">QueueResumed</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#blazingmq.session_events.QueueResumed.queue_uri"><code class="docutils literal notranslate"><span class="pre">QueueResumed.queue_uri</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#blazingmq.session_events.QueueResumeFailed"><code class="docutils literal notranslate"><span class="pre">QueueResumeFailed</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#blazingmq.session_events.QueueResumeFailed.queue_uri"><code class="docutils literal notranslate"><span class="pre">QueueResumeFailed.queue_uri</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#blazingmq.session_events.QueueReopened"><code class="docutils literal notranslate"><span class="pre">QueueReopened</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#blazingmq.session_events.QueueReopened.queue_uri"><code class="docutils literal notranslate"><span class="pre">QueueReopened.queue_uri</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#blazingmq.session_events.QueueReopenFailed"><code class="docutils literal notranslate"><span class="pre">QueueReopenFailed</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#blazingmq.session_events.QueueReopenFailed.queue_uri"><code class="docutils literal notranslate"><span class="pre">QueueReopenFailed.queue_uri</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#blazingmq.session_events.SlowConsumerNormal"><code class="docutils literal notranslate"><span class="pre">SlowConsumerNormal</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#blazingmq.session_events.SlowConsumerHighWaterMark"><code class="docutils literal notranslate"><span class="pre">SlowConsumerHighWaterMark</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#blazingmq.session_events.Error"><code class="docutils literal notranslate"><span class="pre">Error</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#blazingmq.session_events.InterfaceError"><code class="docutils literal notranslate"><span class="pre">InterfaceError</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#helper-functions">Helper Functions</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#blazingmq.session_events.log_session_event"><code class="docutils literal notranslate"><span class="pre">log_session_event()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#module-blazingmq.testing">Testing Utilities</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#blazingmq.testing.HostHealth"><code class="docutils literal notranslate"><span class="pre">HostHealth</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#helper-types">Helper Types</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#blazingmq.PropertyTypeDict"><code class="docutils literal notranslate"><span class="pre">PropertyTypeDict</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#blazingmq.PropertyValueDict"><code class="docutils literal notranslate"><span class="pre">PropertyValueDict</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="CHANGELOG.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="BUILD.html">Build instructions</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">blazingmq</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">API Reference</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/api_reference.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="api-reference">
+<span id="module-blazingmq"></span><span id="id1"></span><h1>API Reference<a class="headerlink" href="#api-reference" title="Link to this heading"></a></h1>
+<section id="session">
+<h2>Session<a class="headerlink" href="#session" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="blazingmq.Session">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">blazingmq.</span></span><span class="sig-name descname"><span class="pre">Session</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">on_session_event</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">on_message</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">broker</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'tcp://localhost:30114'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">message_compression_algorithm</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">CompressionAlgorithmType.NONE</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">...</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">host_health_monitor</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/blazingmq/_session.html#Session"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#blazingmq.Session" title="Link to this definition"></a></dt>
+<dd><p>Represents a connection with the BlazingMQ broker.</p>
+<p>The session represents a connection to the broker.
+This object can be manipulated to modify the state of the application from
+the point of view of the broker, including opening queues, and starting or
+stopping the connection with the broker.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>on_session_event</strong> (<em>Callable</em><em>[</em><em>[</em><a class="reference internal" href="#blazingmq.session_events.SessionEvent" title="blazingmq.session_events.SessionEvent"><em>SessionEvent</em></a><em>]</em><em>, </em><em>None</em><em>]</em>) – a required callback to process <a class="reference internal" href="#blazingmq.session_events.SessionEvent" title="blazingmq.session_events.SessionEvent"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SessionEvent</span></code></a> events
+received by the session.</p></li>
+<li><p><strong>on_message</strong> (<em>Optional</em><em>[</em><em>Callable</em><em>[</em><em>[</em><a class="reference internal" href="#blazingmq.Message" title="blazingmq.Message"><em>Message</em></a><em>, </em><a class="reference internal" href="#blazingmq.MessageHandle" title="blazingmq.MessageHandle"><em>MessageHandle</em></a><em>]</em><em>, </em><em>None</em><em>]</em><em>]</em>) – an optional callback to process <a class="reference internal" href="#blazingmq.Message" title="blazingmq.Message"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Message</span></code></a> objects received
+by the session.</p></li>
+<li><p><strong>broker</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – TCP address of the broker (default: ‘<a class="reference external" href="tcp://localhost:30114">tcp://localhost:30114</a>’)</p></li>
+<li><p><strong>message_compression_algorithm</strong> (<a class="reference internal" href="#blazingmq.CompressionAlgorithmType" title="blazingmq.CompressionAlgorithmType"><em>CompressionAlgorithmType</em></a>) – the type of compression to apply to messages
+being posted via this session object.</p></li>
+<li><p><strong>timeout</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – maximum number of seconds to wait for requests on this
+session.  If not provided, reasonable defaults are used.</p></li>
+<li><p><strong>host_health_monitor</strong> (<em>Union</em><em>[</em><a class="reference internal" href="#blazingmq.BasicHealthMonitor" title="blazingmq.BasicHealthMonitor"><em>BasicHealthMonitor</em></a><em>, </em><em>None</em><em>]</em>) – A <a class="reference internal" href="#blazingmq.BasicHealthMonitor" title="blazingmq.BasicHealthMonitor"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BasicHealthMonitor</span></code></a> is used by default, so
+your tests can control whether the session sees the machine as
+healthy or not by calling <a class="reference internal" href="#blazingmq.BasicHealthMonitor.set_healthy" title="blazingmq.BasicHealthMonitor.set_healthy"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_healthy</span></code></a> and <a class="reference internal" href="#blazingmq.BasicHealthMonitor.set_unhealthy" title="blazingmq.BasicHealthMonitor.set_unhealthy"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_unhealthy</span></code></a> on
+that instance.  If you instead pass <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a>, the session will always
+see the machine as healthy, <a class="reference internal" href="#blazingmq.session_events.HostUnhealthy" title="blazingmq.session_events.HostUnhealthy"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HostUnhealthy</span></code></a> and
+<a class="reference internal" href="#blazingmq.session_events.HostHealthRestored" title="blazingmq.session_events.HostHealthRestored"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HostHealthRestored</span></code></a> events will never be emitted, and the
+<em>suspends_on_bad_host_health</em> option of <a class="reference internal" href="#blazingmq.QueueOptions" title="blazingmq.QueueOptions"><code class="xref py py-obj docutils literal notranslate"><span class="pre">QueueOptions</span></code></a> cannot be
+used.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><a class="reference internal" href="#blazingmq.Error" title="blazingmq.Error"><strong>Error</strong></a> – If the session start request was not successful.</p></li>
+<li><p><a class="reference internal" href="#blazingmq.exceptions.BrokerTimeoutError" title="blazingmq.exceptions.BrokerTimeoutError"><strong>BrokerTimeoutError</strong></a> – If the broker didn’t respond
+    to the request within a reasonable amount of time.</p></li>
+<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.12)"><strong>ValueError</strong></a> – If <em>timeout</em> is provided and not &gt; 0.0.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="blazingmq.Session.close_queue">
+<span class="sig-name descname"><span class="pre">close_queue</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">queue_uri</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">...</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/blazingmq/_session.html#Session.close_queue"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#blazingmq.Session.close_queue" title="Link to this definition"></a></dt>
+<dd><p>Close an opened queue at the specified <em>queue_uri</em>.</p>
+<p>Close the queue at the specified <em>queue_uri</em>. After this method
+successfully returns, the <em>queue_uri</em> will no longer correspond to valid
+queue to do any operations.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Invoking this method from the <code class="docutils literal notranslate"><span class="pre">on_message</span></code> or
+<code class="docutils literal notranslate"><span class="pre">on_session_event</span></code> of the <a class="reference internal" href="#blazingmq.Session" title="blazingmq.Session"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Session</span></code></a> or the <code class="docutils literal notranslate"><span class="pre">on_ack</span></code> callback of
+a posted message will cause a deadlock.</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>queue_uri</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – unique resource identifier for the queue to be closed.</p></li>
+<li><p><strong>timeout</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – maximum number of seconds to wait for this request.
+If not provided, the <em>timeout</em> provided to the <a class="reference internal" href="#blazingmq.Session" title="blazingmq.Session"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Session</span></code></a> when
+it was created it used.  If that was not provided either,
+a reasonable default is used.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><a class="reference internal" href="#blazingmq.Error" title="blazingmq.Error"><strong>Error</strong></a> – If the close queue request was not successful.</p></li>
+<li><p><a class="reference internal" href="#blazingmq.exceptions.BrokerTimeoutError" title="blazingmq.exceptions.BrokerTimeoutError"><strong>BrokerTimeoutError</strong></a> – If the broker didn’t
+    respond to the request within a reasonable amount of time.</p></li>
+<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.12)"><strong>ValueError</strong></a> – If <em>timeout</em> is not &gt; 0.0.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="blazingmq.Session.configure_queue">
+<span class="sig-name descname"><span class="pre">configure_queue</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">queue_uri</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">options</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">...</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/blazingmq/_session.html#Session.configure_queue"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#blazingmq.Session.configure_queue" title="Link to this definition"></a></dt>
+<dd><p>Modify the options on an opened queue at the specified <em>queue_uri</em>.</p>
+<p>Modify the options of the queue at the specified <em>queue_uri</em>. After this
+method successfully returns, the <em>queue_uri</em> will be configured with the
+specified <em>options</em>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Invoking this method from the <code class="docutils literal notranslate"><span class="pre">on_message</span></code> or <code class="docutils literal notranslate"><span class="pre">on_session_event</span></code> of
+the <a class="reference internal" href="#blazingmq.Session" title="blazingmq.Session"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Session</span></code></a> or the <code class="docutils literal notranslate"><span class="pre">on_ack</span></code> callback of a posted message will
+cause a deadlock.</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>queue_uri</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – unique resource identifier for the queue to be configured.</p></li>
+<li><p><strong>options</strong> (<a class="reference internal" href="#blazingmq.QueueOptions" title="blazingmq.QueueOptions"><em>QueueOptions</em></a>) – options to configure the queue with</p></li>
+<li><p><strong>timeout</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – maximum number of seconds to wait for this request.
+If not provided, the <em>timeout</em> provided to the <a class="reference internal" href="#blazingmq.Session" title="blazingmq.Session"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Session</span></code></a> when
+it was created it used.  If that was not provided either,
+a reasonable default is used.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><a class="reference internal" href="#blazingmq.Error" title="blazingmq.Error"><strong>Error</strong></a> – If the configure queue request was not successful.</p></li>
+<li><p><a class="reference internal" href="#blazingmq.exceptions.BrokerTimeoutError" title="blazingmq.exceptions.BrokerTimeoutError"><strong>BrokerTimeoutError</strong></a> – If the broker didn’t
+    respond to the request within a reasonable amount of time.</p></li>
+<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.12)"><strong>ValueError</strong></a> – If <em>timeout</em> is not &gt; 0.0.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="blazingmq.Session.confirm">
+<span class="sig-name descname"><span class="pre">confirm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">message</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/blazingmq/_session.html#Session.confirm"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#blazingmq.Session.confirm" title="Link to this definition"></a></dt>
+<dd><p>Confirm the specified message from this queue.</p>
+<p>Mark the specified <em>message</em>, as confirmed. If successful, this will
+indicate to the BlazingMQ framework that the processing for this
+message has been completed and that the message must not be
+re-delivered, if this queue is opened again by any consumer.</p>
+<p>It’s often more convenient to use <a class="reference internal" href="#blazingmq.MessageHandle.confirm" title="blazingmq.MessageHandle.confirm"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MessageHandle.confirm</span></code></a>
+instead. An instance of <a class="reference internal" href="#blazingmq.MessageHandle" title="blazingmq.MessageHandle"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MessageHandle</span></code></a> is received with every
+new <a class="reference internal" href="#blazingmq.Message" title="blazingmq.Message"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Message</span></code></a> delivered via the <code class="docutils literal notranslate"><span class="pre">on_message</span></code> callback.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>message</strong> (<a class="reference internal" href="#blazingmq.Message" title="blazingmq.Message"><em>Message</em></a>) – message to be confirmed.</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#blazingmq.Error" title="blazingmq.Error"><strong>Error</strong></a> – If the confirm message request was not
+    successful.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="blazingmq.Session.get_queue_options">
+<span class="sig-name descname"><span class="pre">get_queue_options</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">queue_uri</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/blazingmq/_session.html#Session.get_queue_options"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#blazingmq.Session.get_queue_options" title="Link to this definition"></a></dt>
+<dd><p>Get configured options of an opened queue.</p>
+<p>Get the previously set options of an opened queue at the specified
+<em>queue_uri</em>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>queue_uri</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – unique resource identifier for the queue to be configured.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The queue’s configured options.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#blazingmq.QueueOptions" title="blazingmq.QueueOptions"><code class="xref py py-obj docutils literal notranslate"><span class="pre">QueueOptions</span></code></a></p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#blazingmq.Error" title="blazingmq.Error"><strong>Error</strong></a> – If the queue with the given URI is not open, or
+    its options cannot be retrieved.</p>
+</dd>
+</dl>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Options that only affect message consumption, including
+<em>consumer_priority</em>, <em>max_unconfirmed_messages</em>, and
+<em>max_unconfirmed_bytes</em>, are ignored when opening or configuring
+a write-only queue, so any attempt to set those options on
+a write-only queue won’t be reflected in the <a class="reference internal" href="#blazingmq.QueueOptions" title="blazingmq.QueueOptions"><code class="xref py py-obj docutils literal notranslate"><span class="pre">QueueOptions</span></code></a>
+returned by a later call to <em>get_queue_options</em>.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="blazingmq.Session.open_queue">
+<span class="sig-name descname"><span class="pre">open_queue</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">queue_uri</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">read</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">write</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">options</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">QueueOptions()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">...</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/blazingmq/_session.html#Session.open_queue"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#blazingmq.Session.open_queue" title="Link to this definition"></a></dt>
+<dd><p>Open a queue with the specified parameters</p>
+<p>Open a queue at the specified <em>queue_uri</em>. The <em>queue_uri</em> is the
+identifier for any future interactions with this opened queue.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Invoking this method from the <code class="docutils literal notranslate"><span class="pre">on_message</span></code> or
+<code class="docutils literal notranslate"><span class="pre">on_session_event</span></code> of the <a class="reference internal" href="#blazingmq.Session" title="blazingmq.Session"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Session</span></code></a> or the <code class="docutils literal notranslate"><span class="pre">on_ack</span></code> callback of
+a posted message will cause a deadlock.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>It’s possible to override the default tier by adding an optional
+tier to the queue URI.  See <a class="reference external" href="https://bloomberg.github.io/blazingmq/docs/apidocs/cpp_apidocs/group__bmqt__uri.html">URI format</a>.</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>queue_uri</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – unique resource identifier for the queue to be opened.</p></li>
+<li><p><strong>read</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a>) – open the queue for reading, enabling the <a class="reference internal" href="#blazingmq.Session" title="blazingmq.Session"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Session</span></code></a> to receive
+<a class="reference internal" href="#blazingmq.Message" title="blazingmq.Message"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Message</span></code></a> objects for this queue.</p></li>
+<li><p><strong>write</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a>) – open the queue for writing, allowing posting to this queue.</p></li>
+<li><p><strong>options</strong> (<a class="reference internal" href="#blazingmq.QueueOptions" title="blazingmq.QueueOptions"><em>QueueOptions</em></a>) – options to configure the queue
+with</p></li>
+<li><p><strong>timeout</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – maximum number of seconds to wait for this request.
+If not provided, the <em>timeout</em> provided to the <a class="reference internal" href="#blazingmq.Session" title="blazingmq.Session"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Session</span></code></a> when
+it was created it used.  If that was not provided either,
+a reasonable default is used.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><a class="reference internal" href="#blazingmq.Error" title="blazingmq.Error"><strong>Error</strong></a> – If the open queue request was not successful.</p></li>
+<li><p><a class="reference internal" href="#blazingmq.exceptions.BrokerTimeoutError" title="blazingmq.exceptions.BrokerTimeoutError"><strong>BrokerTimeoutError</strong></a> – If the broker didn’t
+    respond to the request within a reasonable amount of time.</p></li>
+<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.12)"><strong>ValueError</strong></a> – If <em>timeout</em> is not &gt; 0.0.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="blazingmq.Session.post">
+<span class="sig-name descname"><span class="pre">post</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">queue_uri</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">message</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">properties</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">property_type_overrides</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">on_ack</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/blazingmq/_session.html#Session.post"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#blazingmq.Session.post" title="Link to this definition"></a></dt>
+<dd><p>Post a message to an opened queue specified by <em>queue_uri</em>.</p>
+<p>Post the payload and optional properties and overrides to the opened
+queue specified by <em>queue_uri</em>. Optionally take an <em>on_ack</em> callback
+that is invoked with the incoming acknowledgment for the message posted.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>queue_uri</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – unique resource identifier for the queue to posted to.</p></li>
+<li><p><strong>message</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytes" title="(in Python v3.12)"><em>bytes</em></a>) – the payload of the message.</p></li>
+<li><p><strong>properties</strong> (Optional[<a class="reference internal" href="#blazingmq.PropertyValueDict" title="blazingmq.PropertyValueDict"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PropertyValueDict</span></code></a>]) – optionally
+provided properties to be associated with the message.</p></li>
+<li><p><strong>property_type_overrides</strong> (Optional[<a class="reference internal" href="#blazingmq.PropertyTypeDict" title="blazingmq.PropertyTypeDict"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PropertyTypeDict</span></code></a>]) – optionally provided type overrides for the properties.</p></li>
+<li><p><strong>on_ack</strong> (<em>Optional</em><em>[</em><em>Callable</em><em>[</em><em>[</em><a class="reference internal" href="#blazingmq.Ack" title="blazingmq.Ack"><em>Ack</em></a><em>]</em><em>, </em><em>None</em><em>]</em><em>]</em>) – optionally
+specified callback which is invoked with the acknowledgment
+status of the message being posted.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#blazingmq.Error" title="blazingmq.Error"><strong>Error</strong></a> – If the post request was not successful.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="blazingmq.Session.stop">
+<span class="sig-name descname"><span class="pre">stop</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/blazingmq/_session.html#Session.stop"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#blazingmq.Session.stop" title="Link to this definition"></a></dt>
+<dd><p>Teardown the broker connection</p>
+<p>Stop the session with the connected BlazingMQ broker which implies
+tearing down the connection. This session cannot be used to execute any
+actions after this method returns.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Invoking this method from the <code class="docutils literal notranslate"><span class="pre">on_message</span></code> or
+<code class="docutils literal notranslate"><span class="pre">on_session_event</span></code> of the <a class="reference internal" href="#blazingmq.Session" title="blazingmq.Session"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Session</span></code></a> or the <code class="docutils literal notranslate"><span class="pre">on_ack</span></code> callback of
+a posted message will cause a deadlock.</p>
+</div>
+<dl class="field-list simple">
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="blazingmq.QueueOptions">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">blazingmq.</span></span><span class="sig-name descname"><span class="pre">QueueOptions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">max_unconfirmed_messages</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_unconfirmed_bytes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">consumer_priority</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">suspends_on_bad_host_health</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/blazingmq/_session.html#QueueOptions"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#blazingmq.QueueOptions" title="Link to this definition"></a></dt>
+<dd><p>A value semantic type representing the settings for a queue.</p>
+<p>Each option can be set either by passing it as a keyword argument when
+constructing a <em>QueueOptions</em> instance, or by setting it as an attribute on
+a constructed instance.</p>
+<p>The default for every option is <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a>. When calling <a class="reference internal" href="#blazingmq.Session.configure_queue" title="blazingmq.Session.configure_queue"><code class="xref py py-obj docutils literal notranslate"><span class="pre">configure_queue</span></code></a>,
+options set to <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a> are not changed from their current setting. When
+calling <a class="reference internal" href="#blazingmq.Session.open_queue" title="blazingmq.Session.open_queue"><code class="xref py py-obj docutils literal notranslate"><span class="pre">open_queue</span></code></a>, options set to <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a> are given default values.
+These default values are accessible as class attributes on the
+<em>QueueOptions</em> class.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>max_unconfirmed_messages</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a><em>]</em>) – The maximum number of messages that can be delivered to the queue
+without confirmation. This limit can be reached if the queue
+receives messages faster than it confirms received messages. Once
+this limit is reached, at least one message must be confirmed
+before the queue will receive any more messages.</p></li>
+<li><p><strong>max_unconfirmed_bytes</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a><em>]</em>) – The maximum number of bytes that can be delivered to the queue
+without confirmation. Like <em>max_unconfirmed_messages</em>, this limit
+can be reached if incoming messages are queued up waiting for
+already delivered messages to be confirmed.</p></li>
+<li><p><strong>consumer_priority</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a><em>]</em>) – The precedence of this consumer compared to other consumers of the
+same queue. The consumer with the highest priority receives the
+messages. If multiple consumers share the highest priority,
+messages are delivered to them in a round-robin fashion.</p></li>
+<li><p><strong>suspends_on_bad_host_health</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a><em>]</em>) – Whether or not this queue should suspend operation while the host
+machine is unhealthy. While operation is suspended, a queue opened
+with <code class="docutils literal notranslate"><span class="pre">read=True</span></code> will not receive messages and a queue opened
+with <code class="docutils literal notranslate"><span class="pre">write=True</span></code> will raise if you try to <a class="reference internal" href="#blazingmq.Session.post" title="blazingmq.Session.post"><code class="xref py py-obj docutils literal notranslate"><span class="pre">post</span></code></a> a message.
+By default, queues are not sensitive to the host’s health.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="blazingmq.QueueOptions.DEFAULT_MAX_UNCONFIRMED_MESSAGES">
+<span class="sig-name descname"><span class="pre">DEFAULT_MAX_UNCONFIRMED_MESSAGES</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1000</span></em><a class="headerlink" href="#blazingmq.QueueOptions.DEFAULT_MAX_UNCONFIRMED_MESSAGES" title="Link to this definition"></a></dt>
+<dd><p>The <em>max_unconfirmed_messages</em> used by <a class="reference internal" href="#blazingmq.Session.open_queue" title="blazingmq.Session.open_queue"><code class="xref py py-obj docutils literal notranslate"><span class="pre">open_queue</span></code></a> by default.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="blazingmq.QueueOptions.DEFAULT_MAX_UNCONFIRMED_BYTES">
+<span class="sig-name descname"><span class="pre">DEFAULT_MAX_UNCONFIRMED_BYTES</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">33554432</span></em><a class="headerlink" href="#blazingmq.QueueOptions.DEFAULT_MAX_UNCONFIRMED_BYTES" title="Link to this definition"></a></dt>
+<dd><p>The <em>max_unconfirmed_bytes</em> used by <a class="reference internal" href="#blazingmq.Session.open_queue" title="blazingmq.Session.open_queue"><code class="xref py py-obj docutils literal notranslate"><span class="pre">open_queue</span></code></a> by default.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="blazingmq.QueueOptions.DEFAULT_CONSUMER_PRIORITY">
+<span class="sig-name descname"><span class="pre">DEFAULT_CONSUMER_PRIORITY</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="headerlink" href="#blazingmq.QueueOptions.DEFAULT_CONSUMER_PRIORITY" title="Link to this definition"></a></dt>
+<dd><p>The <em>consumer_priority</em> used by <a class="reference internal" href="#blazingmq.Session.open_queue" title="blazingmq.Session.open_queue"><code class="xref py py-obj docutils literal notranslate"><span class="pre">open_queue</span></code></a> by default.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="blazingmq.QueueOptions.DEFAULT_SUSPENDS_ON_BAD_HOST_HEALTH">
+<span class="sig-name descname"><span class="pre">DEFAULT_SUSPENDS_ON_BAD_HOST_HEALTH</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></em><a class="headerlink" href="#blazingmq.QueueOptions.DEFAULT_SUSPENDS_ON_BAD_HOST_HEALTH" title="Link to this definition"></a></dt>
+<dd><p>The <em>suspends_on_bad_host_health</em> used by <a class="reference internal" href="#blazingmq.Session.open_queue" title="blazingmq.Session.open_queue"><code class="xref py py-obj docutils literal notranslate"><span class="pre">open_queue</span></code></a> by default.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="message-classes">
+<h2>Message Classes<a class="headerlink" href="#message-classes" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="blazingmq.Message">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">blazingmq.</span></span><span class="sig-name descname"><span class="pre">Message</span></span><a class="reference internal" href="_modules/blazingmq/_messages.html#Message"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#blazingmq.Message" title="Link to this definition"></a></dt>
+<dd><p>A class representing a message received from BlazingMQ.</p>
+<p>A <a class="reference internal" href="#blazingmq.Message" title="blazingmq.Message"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Message</span></code></a> represents a message delivered by BlazingMQ from a producer
+to this queue. This message can only be received if the queue is
+opened with ‘read=True’ mode enabled.</p>
+<dl class="field-list simple">
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="blazingmq.Message.data">
+<span class="sig-name descname"><span class="pre">data</span></span><a class="headerlink" href="#blazingmq.Message.data" title="Link to this definition"></a></dt>
+<dd><p>Payload for the message received from BlazingMQ.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytes" title="(in Python v3.12)">bytes</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="blazingmq.Message.guid">
+<span class="sig-name descname"><span class="pre">guid</span></span><a class="headerlink" href="#blazingmq.Message.guid" title="Link to this definition"></a></dt>
+<dd><p>Globally unique id for this message.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytes" title="(in Python v3.12)">bytes</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="blazingmq.Message.queue_uri">
+<span class="sig-name descname"><span class="pre">queue_uri</span></span><a class="headerlink" href="#blazingmq.Message.queue_uri" title="Link to this definition"></a></dt>
+<dd><p>Queue URI this message is for.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="blazingmq.Message.properties">
+<span class="sig-name descname"><span class="pre">properties</span></span><a class="headerlink" href="#blazingmq.Message.properties" title="Link to this definition"></a></dt>
+<dd><p>A dictionary of BlazingMQ message properties.
+The dictionary keys must be <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a> representing the property
+names and the values must be of type <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytes" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bytes</span></code></a>,
+<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a> or <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)">dict</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="blazingmq.Message.property_types">
+<span class="sig-name descname"><span class="pre">property_types</span></span><a class="headerlink" href="#blazingmq.Message.property_types" title="Link to this definition"></a></dt>
+<dd><p>A mapping of property names to
+<a class="reference internal" href="#blazingmq.PropertyType" title="blazingmq.PropertyType"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PropertyType</span></code></a> types. The dictionary is guaranteed to provide
+a value for each key already present in <a class="reference internal" href="#blazingmq.Message.properties" title="blazingmq.Message.properties"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Message.properties</span></code></a></p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)">dict</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="blazingmq.MessageHandle">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">blazingmq.</span></span><span class="sig-name descname"><span class="pre">MessageHandle</span></span><a class="reference internal" href="_modules/blazingmq/_messages.html#MessageHandle"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#blazingmq.MessageHandle" title="Link to this definition"></a></dt>
+<dd><p>Operations that can be performed on a <a class="reference internal" href="#blazingmq.Message" title="blazingmq.Message"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Message</span></code></a>.</p>
+<p>An instance of this class is received in the <code class="docutils literal notranslate"><span class="pre">on_message</span></code>
+callback along with an instance of a <a class="reference internal" href="#blazingmq.Message" title="blazingmq.Message"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Message</span></code></a>.</p>
+<dl class="field-list simple">
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="blazingmq.MessageHandle.confirm">
+<span class="sig-name descname"><span class="pre">confirm</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/blazingmq/_messages.html#MessageHandle.confirm"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#blazingmq.MessageHandle.confirm" title="Link to this definition"></a></dt>
+<dd><p>Confirm the message received along with this handle.</p>
+<p>See <a class="reference internal" href="#blazingmq.Session.confirm" title="blazingmq.Session.confirm"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Session.confirm</span></code></a> for more details.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#blazingmq.Error" title="blazingmq.Error"><strong>Error</strong></a> – If the confirm message request
+    was not successful.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="blazingmq.Ack">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">blazingmq.</span></span><span class="sig-name descname"><span class="pre">Ack</span></span><a class="reference internal" href="_modules/blazingmq/_messages.html#Ack"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#blazingmq.Ack" title="Link to this definition"></a></dt>
+<dd><p>Acknowledgment message</p>
+<p>An <a class="reference internal" href="#blazingmq.Ack" title="blazingmq.Ack"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Ack</span></code></a> is a notification from BlazingMQ to the application,
+specifying that the message has been received. This is valuable
+for ensuring delivery of messages.</p>
+<p>These messages will be received in the optionally provided callback to
+<a class="reference internal" href="#blazingmq.Session.post" title="blazingmq.Session.post"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Session.post()</span></code></a>.</p>
+<p>An <a class="reference internal" href="#blazingmq.Ack" title="blazingmq.Ack"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Ack</span></code></a> is by itself not an indication of success unless it has a status of
+<a class="reference internal" href="#blazingmq.AckStatus.SUCCESS" title="blazingmq.AckStatus.SUCCESS"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AckStatus.SUCCESS</span></code></a>.</p>
+<dl class="field-list simple">
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="blazingmq.Ack.guid">
+<span class="sig-name descname"><span class="pre">guid</span></span><a class="headerlink" href="#blazingmq.Ack.guid" title="Link to this definition"></a></dt>
+<dd><p>a globally unique identifier generated by BlazingMQ for the
+message that was successfully posted. This can be correlated between the
+producer and consumer to verify the flow of messages.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytes" title="(in Python v3.12)">bytes</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="blazingmq.Ack.queue_uri">
+<span class="sig-name descname"><span class="pre">queue_uri</span></span><a class="headerlink" href="#blazingmq.Ack.queue_uri" title="Link to this definition"></a></dt>
+<dd><p>the queue that this message was routed to. This is useful
+if you have many queues and you want to route this particular <a class="reference internal" href="#blazingmq.Ack" title="blazingmq.Ack"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Ack</span></code></a> to a
+particular queue.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="blazingmq.Ack.status">
+<span class="sig-name descname"><span class="pre">status</span></span><a class="headerlink" href="#blazingmq.Ack.status" title="Link to this definition"></a></dt>
+<dd><p>the <a class="reference internal" href="#blazingmq.AckStatus" title="blazingmq.AckStatus"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AckStatus</span></code></a> indicating the result of the post
+operation. Unless this is of type <a class="reference internal" href="#blazingmq.AckStatus.SUCCESS" title="blazingmq.AckStatus.SUCCESS"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AckStatus.SUCCESS</span></code></a>, the post has
+failed and potentially needs to be dealt with.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#blazingmq.AckStatus" title="blazingmq.AckStatus">AckStatus</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="health-monitoring">
+<h2>Health Monitoring<a class="headerlink" href="#health-monitoring" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="blazingmq.BasicHealthMonitor">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">blazingmq.</span></span><span class="sig-name descname"><span class="pre">BasicHealthMonitor</span></span><a class="reference internal" href="_modules/blazingmq/_monitors.html#BasicHealthMonitor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#blazingmq.BasicHealthMonitor" title="Link to this definition"></a></dt>
+<dd><p>Control whether a <a class="reference internal" href="#blazingmq.Session" title="blazingmq.Session"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Session</span></code></a> sees the host as healthy or unhealthy.</p>
+<p>When a <em>BasicHealthMonitor</em> is passed for the <a class="reference internal" href="#blazingmq.Session" title="blazingmq.Session"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Session</span></code></a> constructor’s
+<em>host_health_monitor</em> parameter, you can control whether the BlazingMQ
+session sees the host as healthy or unhealthy by calling the <a class="reference internal" href="#blazingmq.BasicHealthMonitor.set_healthy" title="blazingmq.BasicHealthMonitor.set_healthy"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_healthy</span></code></a>
+and <a class="reference internal" href="#blazingmq.BasicHealthMonitor.set_unhealthy" title="blazingmq.BasicHealthMonitor.set_unhealthy"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_unhealthy</span></code></a> methods.  Newly created instances default to the
+healthy state.</p>
+<dl class="field-list simple">
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="blazingmq.BasicHealthMonitor.set_healthy">
+<span class="sig-name descname"><span class="pre">set_healthy</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/blazingmq/_monitors.html#BasicHealthMonitor.set_healthy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#blazingmq.BasicHealthMonitor.set_healthy" title="Link to this definition"></a></dt>
+<dd><p>Tell any associated <a class="reference internal" href="#blazingmq.Session" title="blazingmq.Session"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Session</span></code></a> that the host is healthy.</p>
+<dl class="field-list simple">
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="blazingmq.BasicHealthMonitor.set_unhealthy">
+<span class="sig-name descname"><span class="pre">set_unhealthy</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/blazingmq/_monitors.html#BasicHealthMonitor.set_unhealthy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#blazingmq.BasicHealthMonitor.set_unhealthy" title="Link to this definition"></a></dt>
+<dd><p>Tell any associated <a class="reference internal" href="#blazingmq.Session" title="blazingmq.Session"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Session</span></code></a> that the host is unhealthy.</p>
+<dl class="field-list simple">
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="enumerations">
+<h2>Enumerations<a class="headerlink" href="#enumerations" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="blazingmq.AckStatus">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">blazingmq.</span></span><span class="sig-name descname"><span class="pre">AckStatus</span></span><a class="reference internal" href="_modules/blazingmq/_enums.html#AckStatus"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#blazingmq.AckStatus" title="Link to this definition"></a></dt>
+<dd><p>An enum representing the status of an Ack message</p>
+<p>An <a class="reference internal" href="#blazingmq.AckStatus" title="blazingmq.AckStatus"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AckStatus</span></code></a> is a status of a received <a class="reference internal" href="#blazingmq.Ack" title="blazingmq.Ack"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Ack</span></code></a> message
+which is the result of an attempted put to some particular queue.
+Anything other than <a class="reference internal" href="#blazingmq.AckStatus.SUCCESS" title="blazingmq.AckStatus.SUCCESS"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AckStatus.SUCCESS</span></code></a> represents a failure.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="blazingmq.AckStatus.SUCCESS">
+<span class="sig-name descname"><span class="pre">SUCCESS</span></span><a class="headerlink" href="#blazingmq.AckStatus.SUCCESS" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="blazingmq.AckStatus.CANCELED">
+<span class="sig-name descname"><span class="pre">CANCELED</span></span><a class="headerlink" href="#blazingmq.AckStatus.CANCELED" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="blazingmq.AckStatus.INVALID_ARGUMENT">
+<span class="sig-name descname"><span class="pre">INVALID_ARGUMENT</span></span><a class="headerlink" href="#blazingmq.AckStatus.INVALID_ARGUMENT" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="blazingmq.AckStatus.LIMIT_BYTES">
+<span class="sig-name descname"><span class="pre">LIMIT_BYTES</span></span><a class="headerlink" href="#blazingmq.AckStatus.LIMIT_BYTES" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="blazingmq.AckStatus.LIMIT_MESSAGES">
+<span class="sig-name descname"><span class="pre">LIMIT_MESSAGES</span></span><a class="headerlink" href="#blazingmq.AckStatus.LIMIT_MESSAGES" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="blazingmq.AckStatus.NOT_CONNECTED">
+<span class="sig-name descname"><span class="pre">NOT_CONNECTED</span></span><a class="headerlink" href="#blazingmq.AckStatus.NOT_CONNECTED" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="blazingmq.AckStatus.NOT_READY">
+<span class="sig-name descname"><span class="pre">NOT_READY</span></span><a class="headerlink" href="#blazingmq.AckStatus.NOT_READY" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="blazingmq.AckStatus.NOT_SUPPORTED">
+<span class="sig-name descname"><span class="pre">NOT_SUPPORTED</span></span><a class="headerlink" href="#blazingmq.AckStatus.NOT_SUPPORTED" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="blazingmq.AckStatus.REFUSED">
+<span class="sig-name descname"><span class="pre">REFUSED</span></span><a class="headerlink" href="#blazingmq.AckStatus.REFUSED" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="blazingmq.AckStatus.TIMEOUT">
+<span class="sig-name descname"><span class="pre">TIMEOUT</span></span><a class="headerlink" href="#blazingmq.AckStatus.TIMEOUT" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="blazingmq.AckStatus.UNKNOWN">
+<span class="sig-name descname"><span class="pre">UNKNOWN</span></span><a class="headerlink" href="#blazingmq.AckStatus.UNKNOWN" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="blazingmq.AckStatus.UNRECOGNIZED">
+<span class="sig-name descname"><span class="pre">UNRECOGNIZED</span></span><a class="headerlink" href="#blazingmq.AckStatus.UNRECOGNIZED" title="Link to this definition"></a></dt>
+<dd><p>The <a class="reference internal" href="#blazingmq.AckStatus" title="blazingmq.AckStatus"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AckStatus</span></code></a> was not recognized by the binding layer</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="blazingmq.CompressionAlgorithmType">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">blazingmq.</span></span><span class="sig-name descname"><span class="pre">CompressionAlgorithmType</span></span><a class="reference internal" href="_modules/blazingmq/_enums.html#CompressionAlgorithmType"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#blazingmq.CompressionAlgorithmType" title="Link to this definition"></a></dt>
+<dd><p>An enum representing compression algorithm used by a producer</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="blazingmq.CompressionAlgorithmType.NONE">
+<span class="sig-name descname"><span class="pre">NONE</span></span><a class="headerlink" href="#blazingmq.CompressionAlgorithmType.NONE" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="blazingmq.CompressionAlgorithmType.ZLIB">
+<span class="sig-name descname"><span class="pre">ZLIB</span></span><a class="headerlink" href="#blazingmq.CompressionAlgorithmType.ZLIB" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="blazingmq.PropertyType">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">blazingmq.</span></span><span class="sig-name descname"><span class="pre">PropertyType</span></span><a class="reference internal" href="_modules/blazingmq/_enums.html#PropertyType"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#blazingmq.PropertyType" title="Link to this definition"></a></dt>
+<dd><p>An enum representing various data types understood by BlazingMQ</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="blazingmq.PropertyType.BOOL">
+<span class="sig-name descname"><span class="pre">BOOL</span></span><a class="headerlink" href="#blazingmq.PropertyType.BOOL" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="blazingmq.PropertyType.CHAR">
+<span class="sig-name descname"><span class="pre">CHAR</span></span><a class="headerlink" href="#blazingmq.PropertyType.CHAR" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="blazingmq.PropertyType.SHORT">
+<span class="sig-name descname"><span class="pre">SHORT</span></span><a class="headerlink" href="#blazingmq.PropertyType.SHORT" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="blazingmq.PropertyType.INT32">
+<span class="sig-name descname"><span class="pre">INT32</span></span><a class="headerlink" href="#blazingmq.PropertyType.INT32" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="blazingmq.PropertyType.INT64">
+<span class="sig-name descname"><span class="pre">INT64</span></span><a class="headerlink" href="#blazingmq.PropertyType.INT64" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="blazingmq.PropertyType.STRING">
+<span class="sig-name descname"><span class="pre">STRING</span></span><a class="headerlink" href="#blazingmq.PropertyType.STRING" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="blazingmq.PropertyType.BINARY">
+<span class="sig-name descname"><span class="pre">BINARY</span></span><a class="headerlink" href="#blazingmq.PropertyType.BINARY" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="exceptions">
+<h2>Exceptions<a class="headerlink" href="#exceptions" title="Link to this heading"></a></h2>
+<dl class="py exception">
+<dt class="sig sig-object py" id="blazingmq.Error">
+<em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">blazingmq.</span></span><span class="sig-name descname"><span class="pre">Error</span></span><a class="reference internal" href="_modules/blazingmq/exceptions.html#Error"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#blazingmq.Error" title="Link to this definition"></a></dt>
+<dd><p>Generic BlazingMQ exception type</p>
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="blazingmq.exceptions.BrokerTimeoutError">
+<em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">blazingmq.exceptions.</span></span><span class="sig-name descname"><span class="pre">BrokerTimeoutError</span></span><a class="reference internal" href="_modules/blazingmq/exceptions.html#BrokerTimeoutError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#blazingmq.exceptions.BrokerTimeoutError" title="Link to this definition"></a></dt>
+<dd><p>Provided time to wait has expired</p>
+</dd></dl>
+
+</section>
+<section id="session-events">
+<h2>Session Events<a class="headerlink" href="#session-events" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="blazingmq.session_events.SessionEvent">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">blazingmq.session_events.</span></span><span class="sig-name descname"><span class="pre">SessionEvent</span></span><a class="reference internal" href="_modules/blazingmq/session_events.html#SessionEvent"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#blazingmq.session_events.SessionEvent" title="Link to this definition"></a></dt>
+<dd><p>Base session event type</p>
+<dl class="field-list simple">
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="blazingmq.session_events.QueueEvent">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">blazingmq.session_events.</span></span><span class="sig-name descname"><span class="pre">QueueEvent</span></span><a class="reference internal" href="_modules/blazingmq/session_events.html#QueueEvent"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#blazingmq.session_events.QueueEvent" title="Link to this definition"></a></dt>
+<dd><p>Base type for session events relating to a single queue.</p>
+<dl class="field-list simple">
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="blazingmq.session_events.QueueEvent.queue_uri">
+<span class="sig-name descname"><span class="pre">queue_uri</span></span><a class="headerlink" href="#blazingmq.session_events.QueueEvent.queue_uri" title="Link to this definition"></a></dt>
+<dd><p>Queue URI this event is associated with.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="blazingmq.session_events.Connected">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">blazingmq.session_events.</span></span><span class="sig-name descname"><span class="pre">Connected</span></span><a class="reference internal" href="_modules/blazingmq/session_events.html#Connected"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#blazingmq.session_events.Connected" title="Link to this definition"></a></dt>
+<dd><p>Notification of successful connection with the broker</p>
+<dl class="field-list simple">
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="blazingmq.session_events.Disconnected">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">blazingmq.session_events.</span></span><span class="sig-name descname"><span class="pre">Disconnected</span></span><a class="reference internal" href="_modules/blazingmq/session_events.html#Disconnected"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#blazingmq.session_events.Disconnected" title="Link to this definition"></a></dt>
+<dd><p>Notification of successful disconnection with the broker</p>
+<dl class="field-list simple">
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="blazingmq.session_events.ConnectionLost">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">blazingmq.session_events.</span></span><span class="sig-name descname"><span class="pre">ConnectionLost</span></span><a class="reference internal" href="_modules/blazingmq/session_events.html#ConnectionLost"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#blazingmq.session_events.ConnectionLost" title="Link to this definition"></a></dt>
+<dd><p>Notification of a lost connection with the broker</p>
+<dl class="field-list simple">
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="blazingmq.session_events.Reconnected">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">blazingmq.session_events.</span></span><span class="sig-name descname"><span class="pre">Reconnected</span></span><a class="reference internal" href="_modules/blazingmq/session_events.html#Reconnected"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#blazingmq.session_events.Reconnected" title="Link to this definition"></a></dt>
+<dd><p>Notification of a re-connection with the broker in case connection was lost earlier</p>
+<dl class="field-list simple">
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="blazingmq.session_events.StateRestored">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">blazingmq.session_events.</span></span><span class="sig-name descname"><span class="pre">StateRestored</span></span><a class="reference internal" href="_modules/blazingmq/session_events.html#StateRestored"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#blazingmq.session_events.StateRestored" title="Link to this definition"></a></dt>
+<dd><p>Notification of successfully restoring state of application as it was before lost
+connection or disconnection</p>
+<dl class="field-list simple">
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="blazingmq.session_events.ConnectionTimeout">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">blazingmq.session_events.</span></span><span class="sig-name descname"><span class="pre">ConnectionTimeout</span></span><a class="reference internal" href="_modules/blazingmq/session_events.html#ConnectionTimeout"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#blazingmq.session_events.ConnectionTimeout" title="Link to this definition"></a></dt>
+<dd><p>Notification that a requested connection could not be initiated in within the
+timeout period</p>
+<dl class="field-list simple">
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="blazingmq.session_events.HostUnhealthy">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">blazingmq.session_events.</span></span><span class="sig-name descname"><span class="pre">HostUnhealthy</span></span><a class="reference internal" href="_modules/blazingmq/session_events.html#HostUnhealthy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#blazingmq.session_events.HostUnhealthy" title="Link to this definition"></a></dt>
+<dd><p>Notification that the host has been marked unhealthy.</p>
+<p>This is emitted only if <code class="docutils literal notranslate"><span class="pre">host_health_monitor=None</span></code> was not provided when
+the <a class="reference internal" href="#blazingmq.Session" title="blazingmq.Session"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Session</span></code></a> was created.  This will be emitted whenever the machine
+becomes unhealthy.  It is also emitted if the machine is initially unhealthy
+when the <a class="reference internal" href="#blazingmq.Session" title="blazingmq.Session"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Session</span></code></a> is created.</p>
+<div class="versionadded">
+<p><span class="versionmodified added">New in version 0.7.0.</span></p>
+</div>
+<dl class="field-list simple">
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="blazingmq.session_events.HostHealthRestored">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">blazingmq.session_events.</span></span><span class="sig-name descname"><span class="pre">HostHealthRestored</span></span><a class="reference internal" href="_modules/blazingmq/session_events.html#HostHealthRestored"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#blazingmq.session_events.HostHealthRestored" title="Link to this definition"></a></dt>
+<dd><p>Notification that the host is no longer marked unhealthy.</p>
+<p>This is emitted only if <code class="docutils literal notranslate"><span class="pre">host_health_monitor=None</span></code> was not provided when
+the <a class="reference internal" href="#blazingmq.Session" title="blazingmq.Session"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Session</span></code></a> was created.  It will be emitted once the machine is becomes
+healthy after an earlier <a class="reference internal" href="#blazingmq.session_events.HostUnhealthy" title="blazingmq.session_events.HostUnhealthy"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HostUnhealthy</span></code></a> event. Before this event
+is emitted, you will receive a <a class="reference internal" href="#blazingmq.session_events.QueueResumed" title="blazingmq.session_events.QueueResumed"><code class="xref py py-obj docutils literal notranslate"><span class="pre">QueueResumed</span></code></a> or <a class="reference internal" href="#blazingmq.session_events.QueueResumeFailed" title="blazingmq.session_events.QueueResumeFailed"><code class="xref py py-obj docutils literal notranslate"><span class="pre">QueueResumeFailed</span></code></a> for
+each queue that was suspended due to <code class="docutils literal notranslate"><span class="pre">suspends_on_bad_host_health=True</span></code>.</p>
+<div class="versionadded">
+<p><span class="versionmodified added">New in version 0.7.0.</span></p>
+</div>
+<dl class="field-list simple">
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="blazingmq.session_events.QueueSuspended">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">blazingmq.session_events.</span></span><span class="sig-name descname"><span class="pre">QueueSuspended</span></span><a class="reference internal" href="_modules/blazingmq/session_events.html#QueueSuspended"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#blazingmq.session_events.QueueSuspended" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#blazingmq.session_events.QueueEvent" title="blazingmq.session_events.QueueEvent"><code class="xref py py-class docutils literal notranslate"><span class="pre">QueueEvent</span></code></a></p>
+<p>A queue that is sensitive to host health has been suspended.</p>
+<p>After a <a class="reference internal" href="#blazingmq.session_events.HostUnhealthy" title="blazingmq.session_events.HostUnhealthy"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HostUnhealthy</span></code></a> event is emitted, any queue that was opened with
+<code class="docutils literal notranslate"><span class="pre">suspend_on_bad_host_health=True</span></code> will suspend operation. This event will
+be emitted once for each suspended queue.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If <code class="docutils literal notranslate"><span class="pre">host_health_monitor=None</span></code> was provided when the <a class="reference internal" href="#blazingmq.Session" title="blazingmq.Session"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Session</span></code></a> was
+created, this event will never be emitted because the host will never
+be considered unhealthy.</p>
+</div>
+<dl class="field-list simple">
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="blazingmq.session_events.QueueSuspended.queue_uri">
+<span class="sig-name descname"><span class="pre">queue_uri</span></span><a class="headerlink" href="#blazingmq.session_events.QueueSuspended.queue_uri" title="Link to this definition"></a></dt>
+<dd><p>URI of the queue that has been successfully suspended.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<div class="versionadded">
+<p><span class="versionmodified added">New in version 0.7.0.</span></p>
+</div>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="blazingmq.session_events.QueueSuspendFailed">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">blazingmq.session_events.</span></span><span class="sig-name descname"><span class="pre">QueueSuspendFailed</span></span><a class="reference internal" href="_modules/blazingmq/session_events.html#QueueSuspendFailed"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#blazingmq.session_events.QueueSuspendFailed" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#blazingmq.session_events.QueueEvent" title="blazingmq.session_events.QueueEvent"><code class="xref py py-class docutils literal notranslate"><span class="pre">QueueEvent</span></code></a></p>
+<p>A queue that is sensitive to host health could not be suspended.</p>
+<p>Whenever a <a class="reference internal" href="#blazingmq.session_events.QueueSuspended" title="blazingmq.session_events.QueueSuspended"><code class="xref py py-obj docutils literal notranslate"><span class="pre">QueueSuspended</span></code></a> event would be expected, this event may be
+emitted instead if the SDK is unable to suspend the queue as expected.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The BlazingMQ SDK considers the failure to suspend a queue as evidence
+of an unusually serious problem with the connection to the broker, so
+if this event occurs the SDK follows it up by dropping the connection
+to the broker and trying to re-establish it.</p>
+</div>
+<dl class="field-list simple">
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="blazingmq.session_events.QueueSuspendFailed.queue_uri">
+<span class="sig-name descname"><span class="pre">queue_uri</span></span><a class="headerlink" href="#blazingmq.session_events.QueueSuspendFailed.queue_uri" title="Link to this definition"></a></dt>
+<dd><p>URI of the queue that could not be suspended.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<div class="versionadded">
+<p><span class="versionmodified added">New in version 0.7.0.</span></p>
+</div>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="blazingmq.session_events.QueueResumed">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">blazingmq.session_events.</span></span><span class="sig-name descname"><span class="pre">QueueResumed</span></span><a class="reference internal" href="_modules/blazingmq/session_events.html#QueueResumed"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#blazingmq.session_events.QueueResumed" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#blazingmq.session_events.QueueEvent" title="blazingmq.session_events.QueueEvent"><code class="xref py py-class docutils literal notranslate"><span class="pre">QueueEvent</span></code></a></p>
+<p>A queue that is sensitive to host health has been resumed.</p>
+<p>Once an unhealthy machine becomes healthy again, the SDK will automatically
+attempt to resume each queue that was suspended when the machine became
+unhealthy. This event will be emitted once for each queue that had been
+suspended, only after which will <a class="reference internal" href="#blazingmq.session_events.HostHealthRestored" title="blazingmq.session_events.HostHealthRestored"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HostHealthRestored</span></code></a> be emitted.</p>
+<dl class="field-list simple">
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="blazingmq.session_events.QueueResumed.queue_uri">
+<span class="sig-name descname"><span class="pre">queue_uri</span></span><a class="headerlink" href="#blazingmq.session_events.QueueResumed.queue_uri" title="Link to this definition"></a></dt>
+<dd><p>URI of the queue that has been successfully resumed.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<div class="versionadded">
+<p><span class="versionmodified added">New in version 0.7.0.</span></p>
+</div>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="blazingmq.session_events.QueueResumeFailed">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">blazingmq.session_events.</span></span><span class="sig-name descname"><span class="pre">QueueResumeFailed</span></span><a class="reference internal" href="_modules/blazingmq/session_events.html#QueueResumeFailed"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#blazingmq.session_events.QueueResumeFailed" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#blazingmq.session_events.QueueEvent" title="blazingmq.session_events.QueueEvent"><code class="xref py py-class docutils literal notranslate"><span class="pre">QueueEvent</span></code></a></p>
+<p>A queue that is sensitive to host health could not be resumed.</p>
+<p>Whenever a <a class="reference internal" href="#blazingmq.session_events.QueueResumed" title="blazingmq.session_events.QueueResumed"><code class="xref py py-obj docutils literal notranslate"><span class="pre">QueueResumed</span></code></a> event would be expected, this event may be
+emitted instead if the SDK is unable to resume the queue as expected.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Unlike if suspending a queue fails, the SDK will not automatically drop
+the connection to the broker if resuming a queue fails.</p>
+</div>
+<dl class="field-list simple">
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="blazingmq.session_events.QueueResumeFailed.queue_uri">
+<span class="sig-name descname"><span class="pre">queue_uri</span></span><a class="headerlink" href="#blazingmq.session_events.QueueResumeFailed.queue_uri" title="Link to this definition"></a></dt>
+<dd><p>URI of the queue that could not be resumed.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<div class="versionadded">
+<p><span class="versionmodified added">New in version 0.7.0.</span></p>
+</div>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="blazingmq.session_events.QueueReopened">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">blazingmq.session_events.</span></span><span class="sig-name descname"><span class="pre">QueueReopened</span></span><a class="reference internal" href="_modules/blazingmq/session_events.html#QueueReopened"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#blazingmq.session_events.QueueReopened" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#blazingmq.session_events.QueueEvent" title="blazingmq.session_events.QueueEvent"><code class="xref py py-class docutils literal notranslate"><span class="pre">QueueEvent</span></code></a></p>
+<p>A queue has been successfully reopened after a connection loss.</p>
+<p>If the connection with the broker is lost, <a class="reference internal" href="#blazingmq.session_events.ConnectionLost" title="blazingmq.session_events.ConnectionLost"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ConnectionLost</span></code></a> is emitted.
+Once it is reestablished, <a class="reference internal" href="#blazingmq.session_events.Reconnected" title="blazingmq.session_events.Reconnected"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Reconnected</span></code></a> is emitted, followed by either
+a <a class="reference internal" href="#blazingmq.session_events.QueueReopened" title="blazingmq.session_events.QueueReopened"><code class="xref py py-obj docutils literal notranslate"><span class="pre">QueueReopened</span></code></a> or <a class="reference internal" href="#blazingmq.session_events.QueueReopenFailed" title="blazingmq.session_events.QueueReopenFailed"><code class="xref py py-obj docutils literal notranslate"><span class="pre">QueueReopenFailed</span></code></a> for each queue that was
+previously open, and finally <a class="reference internal" href="#blazingmq.session_events.StateRestored" title="blazingmq.session_events.StateRestored"><code class="xref py py-obj docutils literal notranslate"><span class="pre">StateRestored</span></code></a> is emitted.</p>
+<dl class="field-list simple">
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="blazingmq.session_events.QueueReopened.queue_uri">
+<span class="sig-name descname"><span class="pre">queue_uri</span></span><a class="headerlink" href="#blazingmq.session_events.QueueReopened.queue_uri" title="Link to this definition"></a></dt>
+<dd><p>URI of the queue that has been successfully reopened.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="blazingmq.session_events.QueueReopenFailed">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">blazingmq.session_events.</span></span><span class="sig-name descname"><span class="pre">QueueReopenFailed</span></span><a class="reference internal" href="_modules/blazingmq/session_events.html#QueueReopenFailed"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#blazingmq.session_events.QueueReopenFailed" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#blazingmq.session_events.QueueEvent" title="blazingmq.session_events.QueueEvent"><code class="xref py py-class docutils literal notranslate"><span class="pre">QueueEvent</span></code></a></p>
+<p>A queue couldn’t be reopened after a connection loss.</p>
+<dl class="field-list simple">
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="blazingmq.session_events.QueueReopenFailed.queue_uri">
+<span class="sig-name descname"><span class="pre">queue_uri</span></span><a class="headerlink" href="#blazingmq.session_events.QueueReopenFailed.queue_uri" title="Link to this definition"></a></dt>
+<dd><p>URI of the queue that could not be reopened.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="blazingmq.session_events.SlowConsumerNormal">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">blazingmq.session_events.</span></span><span class="sig-name descname"><span class="pre">SlowConsumerNormal</span></span><a class="reference internal" href="_modules/blazingmq/session_events.html#SlowConsumerNormal"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#blazingmq.session_events.SlowConsumerNormal" title="Link to this definition"></a></dt>
+<dd><p>Notification that the consumer has resumed acceptable rate of consumption</p>
+<dl class="field-list simple">
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="blazingmq.session_events.SlowConsumerHighWaterMark">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">blazingmq.session_events.</span></span><span class="sig-name descname"><span class="pre">SlowConsumerHighWaterMark</span></span><a class="reference internal" href="_modules/blazingmq/session_events.html#SlowConsumerHighWaterMark"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#blazingmq.session_events.SlowConsumerHighWaterMark" title="Link to this definition"></a></dt>
+<dd><p>Notification that the consumer is consuming at the lowest rate acceptable</p>
+<dl class="field-list simple">
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="blazingmq.session_events.Error">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">blazingmq.session_events.</span></span><span class="sig-name descname"><span class="pre">Error</span></span><a class="reference internal" href="_modules/blazingmq/session_events.html#Error"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#blazingmq.session_events.Error" title="Link to this definition"></a></dt>
+<dd><p>Notification of a miscellaneous error</p>
+<dl class="field-list simple">
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="blazingmq.session_events.InterfaceError">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">blazingmq.session_events.</span></span><span class="sig-name descname"><span class="pre">InterfaceError</span></span><a class="reference internal" href="_modules/blazingmq/session_events.html#InterfaceError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#blazingmq.session_events.InterfaceError" title="Link to this definition"></a></dt>
+<dd><p>The BlazingMQ SDK behaved in an unexpected way.</p>
+<dl class="field-list simple">
+</dl>
+</dd></dl>
+
+</section>
+<section id="helper-functions">
+<h2>Helper Functions<a class="headerlink" href="#helper-functions" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="blazingmq.session_events.log_session_event">
+<span class="sig-prename descclassname"><span class="pre">blazingmq.session_events.</span></span><span class="sig-name descname"><span class="pre">log_session_event</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">event</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/blazingmq/session_events.html#log_session_event"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#blazingmq.session_events.log_session_event" title="Link to this definition"></a></dt>
+<dd><p>Log incoming session event as appropriate</p>
+<p>A callback that can be used as a default for the <em>on_session_event</em>
+parameter on the <a class="reference internal" href="#blazingmq.Session" title="blazingmq.Session"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Session</span></code></a> object. All <a class="reference internal" href="#blazingmq.session_events.Connected" title="blazingmq.session_events.Connected"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Connected</span></code></a>, <a class="reference internal" href="#blazingmq.session_events.Disconnected" title="blazingmq.session_events.Disconnected"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Disconnected</span></code></a>,
+<a class="reference internal" href="#blazingmq.session_events.StateRestored" title="blazingmq.session_events.StateRestored"><code class="xref py py-obj docutils literal notranslate"><span class="pre">StateRestored</span></code></a>, <a class="reference internal" href="#blazingmq.session_events.SlowConsumerNormal" title="blazingmq.session_events.SlowConsumerNormal"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SlowConsumerNormal</span></code></a>, and <a class="reference internal" href="#blazingmq.session_events.QueueReopened" title="blazingmq.session_events.QueueReopened"><code class="xref py py-obj docutils literal notranslate"><span class="pre">QueueReopened</span></code></a> events are
+logged at INFO level, and any <a class="reference internal" href="#blazingmq.session_events.ConnectionLost" title="blazingmq.session_events.ConnectionLost"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ConnectionLost</span></code></a>, <a class="reference internal" href="#blazingmq.session_events.SlowConsumerHighWaterMark" title="blazingmq.session_events.SlowConsumerHighWaterMark"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SlowConsumerHighWaterMark</span></code></a>,
+and <a class="reference internal" href="#blazingmq.session_events.Reconnected" title="blazingmq.session_events.Reconnected"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Reconnected</span></code></a> events are logged at WARN level, as they may indicate issues
+with the application. Any other events are most likely an error in the
+application and are logged at ERROR level.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>event</strong> (<a class="reference internal" href="#blazingmq.session_events.SessionEvent" title="blazingmq.session_events.SessionEvent"><em>SessionEvent</em></a>) – incoming <a class="reference internal" href="#blazingmq.session_events.SessionEvent" title="blazingmq.session_events.SessionEvent"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SessionEvent</span></code></a>
+object.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-blazingmq.testing">
+<span id="testing-utilities"></span><h2>Testing Utilities<a class="headerlink" href="#module-blazingmq.testing" title="Link to this heading"></a></h2>
+<p>The <a class="reference internal" href="#module-blazingmq.testing" title="blazingmq.testing"><code class="xref py py-obj docutils literal notranslate"><span class="pre">blazingmq.testing</span></code></a> module provides testing utilities.</p>
+<p>Nothing in this module should ever be used outside of the context of performing
+integration tests on your subscribers and publishers.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="blazingmq.testing.HostHealth">
+<span class="sig-prename descclassname"><span class="pre">blazingmq.testing.</span></span><span class="sig-name descname"><span class="pre">HostHealth</span></span><a class="headerlink" href="#blazingmq.testing.HostHealth" title="Link to this definition"></a></dt>
+<dd><p>This is an alias of <a class="reference internal" href="#blazingmq.BasicHealthMonitor" title="blazingmq.BasicHealthMonitor"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BasicHealthMonitor</span></code></a>.</p>
+<p>This was originally exposed only for testing purposes, but is now supported for
+general use. The original name has been retained for backwards compatibility,
+but new code should prefer to use <a class="reference internal" href="#blazingmq.BasicHealthMonitor" title="blazingmq.BasicHealthMonitor"><code class="xref py py-obj docutils literal notranslate"><span class="pre">blazingmq.BasicHealthMonitor</span></code></a> directly.</p>
+</dd></dl>
+
+</section>
+<section id="helper-types">
+<h2>Helper Types<a class="headerlink" href="#helper-types" title="Link to this heading"></a></h2>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="blazingmq.PropertyTypeDict">
+<span class="sig-prename descclassname"><span class="pre">blazingmq.</span></span><span class="sig-name descname"><span class="pre">PropertyTypeDict</span></span><a class="headerlink" href="#blazingmq.PropertyTypeDict" title="Link to this definition"></a></dt>
+<dd><p>alias of <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Dict</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference internal" href="#blazingmq.PropertyType" title="blazingmq._enums.PropertyType"><code class="xref py py-class docutils literal notranslate"><span class="pre">PropertyType</span></code></a>]</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="blazingmq.PropertyValueDict">
+<span class="sig-prename descclassname"><span class="pre">blazingmq.</span></span><span class="sig-name descname"><span class="pre">PropertyValueDict</span></span><a class="headerlink" href="#blazingmq.PropertyValueDict" title="Link to this definition"></a></dt>
+<dd><p>alias of <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Dict</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Union" title="(in Python v3.12)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Union</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytes" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bytes</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>]]</p>
+</dd></dl>
+
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="queue_options_and_configuration.html" class="btn btn-neutral float-left" title="Queue Options and Configuration" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="CHANGELOG.html" class="btn btn-neutral float-right" title="Changelog" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2019-2023, Bloomberg Finance L.P..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>blazingmq._session &mdash; blazingmq 1.2.0 documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=6efca38a"></script>
+        <script src="../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            blazingmq
+          </a>
+              <div class="version">
+                1.2.0
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../user_guide.html">User Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../acknowledgments.html">Acknowledgments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../message_properties.html">Message Properties</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../queue_options_and_configuration.html">Queue Options and Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api_reference.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../CHANGELOG.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../BUILD.html">Build instructions</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">blazingmq</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">blazingmq._session</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for blazingmq._session</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright 2019-2023 Bloomberg Finance L.P.</span>
+<span class="c1"># SPDX-License-Identifier: Apache-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Callable</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Tuple</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Union</span>
+
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">_six</span> <span class="k">as</span> <span class="n">six</span>
+<span class="kn">from</span> <span class="nn">._enums</span> <span class="kn">import</span> <span class="n">CompressionAlgorithmType</span>
+<span class="kn">from</span> <span class="nn">._enums</span> <span class="kn">import</span> <span class="n">PropertyType</span>
+<span class="kn">from</span> <span class="nn">._ext</span> <span class="kn">import</span> <span class="n">DEFAULT_CONSUMER_PRIORITY</span>
+<span class="kn">from</span> <span class="nn">._ext</span> <span class="kn">import</span> <span class="n">DEFAULT_MAX_UNCONFIRMED_BYTES</span>
+<span class="kn">from</span> <span class="nn">._ext</span> <span class="kn">import</span> <span class="n">DEFAULT_MAX_UNCONFIRMED_MESSAGES</span>
+<span class="kn">from</span> <span class="nn">._ext</span> <span class="kn">import</span> <span class="n">DEFAULT_SUSPENDS_ON_BAD_HOST_HEALTH</span>
+<span class="kn">from</span> <span class="nn">._ext</span> <span class="kn">import</span> <span class="n">PROPERTY_TYPES_FROM_PY_MAPPING</span>
+<span class="kn">from</span> <span class="nn">._ext</span> <span class="kn">import</span> <span class="n">Session</span> <span class="k">as</span> <span class="n">ExtSession</span>
+<span class="kn">from</span> <span class="nn">._messages</span> <span class="kn">import</span> <span class="n">Ack</span>
+<span class="kn">from</span> <span class="nn">._messages</span> <span class="kn">import</span> <span class="n">Message</span>
+<span class="kn">from</span> <span class="nn">._messages</span> <span class="kn">import</span> <span class="n">MessageHandle</span>
+<span class="kn">from</span> <span class="nn">._monitors</span> <span class="kn">import</span> <span class="n">BasicHealthMonitor</span>
+<span class="kn">from</span> <span class="nn">._typing</span> <span class="kn">import</span> <span class="n">PropertyTypeDict</span>
+<span class="kn">from</span> <span class="nn">._typing</span> <span class="kn">import</span> <span class="n">PropertyValueDict</span>
+<span class="kn">from</span> <span class="nn">._typing</span> <span class="kn">import</span> <span class="n">PropertyValueType</span>
+<span class="kn">from</span> <span class="nn">.exceptions</span> <span class="kn">import</span> <span class="n">Error</span>
+<span class="kn">from</span> <span class="nn">.session_events</span> <span class="kn">import</span> <span class="n">SessionEvent</span>
+
+
+<span class="k">class</span> <span class="nc">DefaultTimeoutType</span><span class="p">(</span><span class="nb">float</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">&quot;...&quot;</span>
+
+
+<span class="k">def</span> <span class="nf">DefaultMonitor</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">BasicHealthMonitor</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
+    <span class="k">return</span> <span class="kc">None</span>
+
+
+<span class="n">DEFAULT_TIMEOUT</span> <span class="o">=</span> <span class="n">DefaultTimeoutType</span><span class="p">()</span>
+<span class="n">KNOWN_MONITORS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;blazingmq.BasicHealthMonitor&quot;</span><span class="p">,)</span>
+
+
+<span class="k">def</span> <span class="nf">_convert_timeout</span><span class="p">(</span><span class="n">timeout</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Convert the timeout for use by the Cython layer.</span>
+
+<span class="sd">    If it is the DEFAULT_TIMEOUT sentinel, return None.  Otherwise, validate</span>
+<span class="sd">    that it is within the range accepted by bsls::TimeInterval and return it.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">timeout</span> <span class="ow">is</span> <span class="n">DEFAULT_TIMEOUT</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="k">elif</span> <span class="n">timeout</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="p">(</span><span class="mf">0.0</span> <span class="o">&lt;</span> <span class="nb">float</span><span class="p">(</span><span class="n">timeout</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="o">**</span><span class="mi">63</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">timeout</span><span class="p">)</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;timeout must be greater than 0.0, was </span><span class="si">{</span><span class="n">timeout</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_collect_properties_and_types</span><span class="p">(</span>
+    <span class="n">properties</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">PropertyValueDict</span><span class="p">],</span>
+    <span class="n">property_type_overrides</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">PropertyTypeDict</span><span class="p">],</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">bytes</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">],</span> <span class="nb">int</span><span class="p">]]:</span>
+    <span class="n">property_val_by_name</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">bytes</span><span class="p">,</span> <span class="n">PropertyValueType</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">property_type_by_name</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">bytes</span><span class="p">,</span> <span class="n">PropertyType</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="k">if</span> <span class="n">properties</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">properties</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="nb">bool</span><span class="p">):</span>
+                <span class="n">default_type</span> <span class="o">=</span> <span class="n">PropertyType</span><span class="o">.</span><span class="n">BOOL</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+                <span class="n">default_type</span> <span class="o">=</span> <span class="n">PropertyType</span><span class="o">.</span><span class="n">INT64</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                <span class="n">default_type</span> <span class="o">=</span> <span class="n">PropertyType</span><span class="o">.</span><span class="n">STRING</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">):</span>
+                <span class="n">default_type</span> <span class="o">=</span> <span class="n">PropertyType</span><span class="o">.</span><span class="n">BINARY</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">Error</span><span class="p">(</span>
+                    <span class="s2">&quot;Property values of type </span><span class="si">%r</span><span class="s2"> are not supported&quot;</span> <span class="o">%</span> <span class="nb">type</span><span class="p">(</span><span class="n">val</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span>
+                <span class="p">)</span>
+
+            <span class="n">name_bytes</span> <span class="o">=</span> <span class="n">six</span><span class="o">.</span><span class="n">ensure_binary</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+            <span class="n">property_val_by_name</span><span class="p">[</span><span class="n">name_bytes</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+            <span class="n">property_type_by_name</span><span class="p">[</span><span class="n">name_bytes</span><span class="p">]</span> <span class="o">=</span> <span class="n">default_type</span>
+
+    <span class="k">if</span> <span class="n">property_type_overrides</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">override_type</span> <span class="ow">in</span> <span class="n">property_type_overrides</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">name_bytes</span> <span class="o">=</span> <span class="n">six</span><span class="o">.</span><span class="n">ensure_binary</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">name_bytes</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">property_type_by_name</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">Error</span><span class="p">(</span><span class="s2">&quot;Received override for non-existent property </span><span class="si">%r</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">name</span><span class="p">)</span>
+            <span class="n">property_type_by_name</span><span class="p">[</span><span class="n">name_bytes</span><span class="p">]</span> <span class="o">=</span> <span class="n">override_type</span>
+
+    <span class="n">merged</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">bytes</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">],</span> <span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">name_bytes</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">property_val_by_name</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">property_type</span> <span class="o">=</span> <span class="n">property_type_by_name</span><span class="p">[</span><span class="n">name_bytes</span><span class="p">]</span>
+        <span class="n">type_code</span> <span class="o">=</span> <span class="n">PROPERTY_TYPES_FROM_PY_MAPPING</span><span class="p">[</span><span class="n">property_type</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">property_type</span> <span class="ow">is</span> <span class="n">PropertyType</span><span class="o">.</span><span class="n">STRING</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">merged</span><span class="p">[</span><span class="n">name_bytes</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">val</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">&quot;utf-8&quot;</span><span class="p">),</span> <span class="n">type_code</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">merged</span><span class="p">[</span><span class="n">name_bytes</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">type_code</span><span class="p">)</span>  <span class="c1"># type: ignore[assignment]</span>
+            <span class="c1"># mypy warns because `merged` can still contain Text if a Text value was</span>
+            <span class="c1"># passed for a non-STRING field.  If so, the extension gives a nice error.</span>
+
+    <span class="k">return</span> <span class="n">merged</span>
+
+
+<div class="viewcode-block" id="QueueOptions">
+<a class="viewcode-back" href="../../api_reference.html#blazingmq.QueueOptions">[docs]</a>
+<span class="k">class</span> <span class="nc">QueueOptions</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;A value semantic type representing the settings for a queue.</span>
+
+<span class="sd">    Each option can be set either by passing it as a keyword argument when</span>
+<span class="sd">    constructing a *QueueOptions* instance, or by setting it as an attribute on</span>
+<span class="sd">    a constructed instance.</span>
+
+<span class="sd">    The default for every option is `None`. When calling `.configure_queue`,</span>
+<span class="sd">    options set to `None` are not changed from their current setting. When</span>
+<span class="sd">    calling `.open_queue`, options set to `None` are given default values.</span>
+<span class="sd">    These default values are accessible as class attributes on the</span>
+<span class="sd">    *QueueOptions* class.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        max_unconfirmed_messages:</span>
+<span class="sd">            The maximum number of messages that can be delivered to the queue</span>
+<span class="sd">            without confirmation. This limit can be reached if the queue</span>
+<span class="sd">            receives messages faster than it confirms received messages. Once</span>
+<span class="sd">            this limit is reached, at least one message must be confirmed</span>
+<span class="sd">            before the queue will receive any more messages.</span>
+<span class="sd">        max_unconfirmed_bytes:</span>
+<span class="sd">            The maximum number of bytes that can be delivered to the queue</span>
+<span class="sd">            without confirmation. Like *max_unconfirmed_messages*, this limit</span>
+<span class="sd">            can be reached if incoming messages are queued up waiting for</span>
+<span class="sd">            already delivered messages to be confirmed.</span>
+<span class="sd">        consumer_priority:</span>
+<span class="sd">            The precedence of this consumer compared to other consumers of the</span>
+<span class="sd">            same queue. The consumer with the highest priority receives the</span>
+<span class="sd">            messages. If multiple consumers share the highest priority,</span>
+<span class="sd">            messages are delivered to them in a round-robin fashion.</span>
+<span class="sd">        suspends_on_bad_host_health:</span>
+<span class="sd">            Whether or not this queue should suspend operation while the host</span>
+<span class="sd">            machine is unhealthy. While operation is suspended, a queue opened</span>
+<span class="sd">            with ``read=True`` will not receive messages and a queue opened</span>
+<span class="sd">            with ``write=True`` will raise if you try to `.post` a message.</span>
+<span class="sd">            By default, queues are not sensitive to the host&#39;s health.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">DEFAULT_MAX_UNCONFIRMED_MESSAGES</span> <span class="o">=</span> <span class="n">DEFAULT_MAX_UNCONFIRMED_MESSAGES</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;The *max_unconfirmed_messages* used by `.open_queue` by default.&quot;&quot;&quot;</span>
+
+    <span class="n">DEFAULT_MAX_UNCONFIRMED_BYTES</span> <span class="o">=</span> <span class="n">DEFAULT_MAX_UNCONFIRMED_BYTES</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;The *max_unconfirmed_bytes* used by `.open_queue` by default.&quot;&quot;&quot;</span>
+
+    <span class="n">DEFAULT_CONSUMER_PRIORITY</span> <span class="o">=</span> <span class="n">DEFAULT_CONSUMER_PRIORITY</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;The *consumer_priority* used by `.open_queue` by default.&quot;&quot;&quot;</span>
+
+    <span class="n">DEFAULT_SUSPENDS_ON_BAD_HOST_HEALTH</span> <span class="o">=</span> <span class="n">DEFAULT_SUSPENDS_ON_BAD_HOST_HEALTH</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;The *suspends_on_bad_host_health* used by `.open_queue` by default.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">max_unconfirmed_messages</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">max_unconfirmed_bytes</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">consumer_priority</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">suspends_on_bad_host_health</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_unconfirmed_messages</span> <span class="o">=</span> <span class="n">max_unconfirmed_messages</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_unconfirmed_bytes</span> <span class="o">=</span> <span class="n">max_unconfirmed_bytes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">consumer_priority</span> <span class="o">=</span> <span class="n">consumer_priority</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">suspends_on_bad_host_health</span> <span class="o">=</span> <span class="n">suspends_on_bad_host_health</span>
+
+    <span class="k">def</span> <span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">QueueOptions</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">max_unconfirmed_messages</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">max_unconfirmed_messages</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_unconfirmed_bytes</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">max_unconfirmed_bytes</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">consumer_priority</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">consumer_priority</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">suspends_on_bad_host_health</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">suspends_on_bad_host_health</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__ne__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">return</span> <span class="ow">not</span> <span class="bp">self</span> <span class="o">==</span> <span class="n">other</span>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="n">attrs</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="s2">&quot;max_unconfirmed_messages&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;max_unconfirmed_bytes&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;consumer_priority&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;suspends_on_bad_host_health&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">params</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">attr</span> <span class="ow">in</span> <span class="n">attrs</span><span class="p">:</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">params</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">attr</span><span class="si">}</span><span class="s2">=</span><span class="si">{</span><span class="n">value</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="s2">&quot;QueueOptions(</span><span class="si">%s</span><span class="s2">)&quot;</span> <span class="o">%</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">params</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="Session">
+<a class="viewcode-back" href="../../api_reference.html#blazingmq.Session">[docs]</a>
+<span class="k">class</span> <span class="nc">Session</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Represents a connection with the BlazingMQ broker.</span>
+
+<span class="sd">    The session represents a connection to the broker.</span>
+<span class="sd">    This object can be manipulated to modify the state of the application from</span>
+<span class="sd">    the point of view of the broker, including opening queues, and starting or</span>
+<span class="sd">    stopping the connection with the broker.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        on_session_event: a required callback to process `.SessionEvent` events</span>
+<span class="sd">            received by the session.</span>
+<span class="sd">        on_message: an optional callback to process `Message` objects received</span>
+<span class="sd">            by the session.</span>
+<span class="sd">        broker: TCP address of the broker (default: &#39;tcp://localhost:30114&#39;)</span>
+<span class="sd">        message_compression_algorithm: the type of compression to apply to messages</span>
+<span class="sd">            being posted via this session object.</span>
+<span class="sd">        timeout: maximum number of seconds to wait for requests on this</span>
+<span class="sd">            session.  If not provided, reasonable defaults are used.</span>
+<span class="sd">        host_health_monitor: A `.BasicHealthMonitor` is used by default, so</span>
+<span class="sd">            your tests can control whether the session sees the machine as</span>
+<span class="sd">            healthy or not by calling `.set_healthy` and `.set_unhealthy` on</span>
+<span class="sd">            that instance.  If you instead pass `None`, the session will always</span>
+<span class="sd">            see the machine as healthy, `.HostUnhealthy` and</span>
+<span class="sd">            `.HostHealthRestored` events will never be emitted, and the</span>
+<span class="sd">            *suspends_on_bad_host_health* option of `QueueOptions` cannot be</span>
+<span class="sd">            used.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        `~blazingmq.Error`: If the session start request was not successful.</span>
+<span class="sd">        `~blazingmq.exceptions.BrokerTimeoutError`: If the broker didn&#39;t respond</span>
+<span class="sd">            to the request within a reasonable amount of time.</span>
+<span class="sd">        `ValueError`: If *timeout* is provided and not &gt; 0.0.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">on_session_event</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">SessionEvent</span><span class="p">],</span> <span class="kc">None</span><span class="p">],</span>
+        <span class="n">on_message</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">[[</span><span class="n">Message</span><span class="p">,</span> <span class="n">MessageHandle</span><span class="p">],</span> <span class="kc">None</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">broker</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;tcp://localhost:30114&quot;</span><span class="p">,</span>
+        <span class="n">message_compression_algorithm</span><span class="p">:</span> <span class="n">CompressionAlgorithmType</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">CompressionAlgorithmType</span><span class="o">.</span><span class="n">NONE</span>
+        <span class="p">),</span>
+        <span class="n">timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">DEFAULT_TIMEOUT</span><span class="p">,</span>
+        <span class="n">host_health_monitor</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">BasicHealthMonitor</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">DefaultMonitor</span><span class="p">()),</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">host_health_monitor</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">host_health_monitor</span><span class="p">,</span> <span class="n">BasicHealthMonitor</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;host_health_monitor must be None or an instance of &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="s1">&#39; or &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">KNOWN_MONITORS</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+
+        <span class="n">monitor_host_health</span> <span class="o">=</span> <span class="n">host_health_monitor</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="n">fake_host_health_monitor</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">host_health_monitor</span><span class="p">,</span> <span class="s2">&quot;_monitor&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_has_no_on_message</span> <span class="o">=</span> <span class="n">on_message</span> <span class="ow">is</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ext</span> <span class="o">=</span> <span class="n">ExtSession</span><span class="p">(</span>
+            <span class="n">on_session_event</span><span class="p">,</span>
+            <span class="n">on_message</span><span class="o">=</span><span class="n">on_message</span><span class="p">,</span>
+            <span class="n">broker</span><span class="o">=</span><span class="n">six</span><span class="o">.</span><span class="n">ensure_binary</span><span class="p">(</span><span class="n">broker</span><span class="p">),</span>
+            <span class="n">message_compression_algorithm</span><span class="o">=</span><span class="n">message_compression_algorithm</span><span class="p">,</span>
+            <span class="n">timeout</span><span class="o">=</span><span class="n">_convert_timeout</span><span class="p">(</span><span class="n">timeout</span><span class="p">),</span>
+            <span class="n">monitor_host_health</span><span class="o">=</span><span class="n">monitor_host_health</span><span class="p">,</span>
+            <span class="n">fake_host_health_monitor</span><span class="o">=</span><span class="n">fake_host_health_monitor</span><span class="p">,</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="Session.open_queue">
+<a class="viewcode-back" href="../../api_reference.html#blazingmq.Session.open_queue">[docs]</a>
+    <span class="k">def</span> <span class="nf">open_queue</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">queue_uri</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">read</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">write</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">options</span><span class="p">:</span> <span class="n">QueueOptions</span> <span class="o">=</span> <span class="n">QueueOptions</span><span class="p">(),</span>
+        <span class="n">timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">DEFAULT_TIMEOUT</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Open a queue with the specified parameters</span>
+
+<span class="sd">        Open a queue at the specified *queue_uri*. The *queue_uri* is the</span>
+<span class="sd">        identifier for any future interactions with this opened queue.</span>
+
+<span class="sd">        Note:</span>
+<span class="sd">            Invoking this method from the ``on_message`` or</span>
+<span class="sd">            ``on_session_event`` of the `Session` or the ``on_ack`` callback of</span>
+<span class="sd">            a posted message will cause a deadlock.</span>
+
+<span class="sd">        Note:</span>
+<span class="sd">            It&#39;s possible to override the default tier by adding an optional</span>
+<span class="sd">            tier to the queue URI.  See `URI format`__.</span>
+
+<span class="sd">        __ https://bloomberg.github.io/blazingmq/docs/apidocs/cpp_apidocs/group__bmqt__uri.html</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            queue_uri: unique resource identifier for the queue to be opened.</span>
+<span class="sd">            read: open the queue for reading, enabling the `Session` to receive</span>
+<span class="sd">                `Message` objects for this queue.</span>
+<span class="sd">            write: open the queue for writing, allowing posting to this queue.</span>
+<span class="sd">            options (~blazingmq.QueueOptions): options to configure the queue</span>
+<span class="sd">                with</span>
+<span class="sd">            timeout: maximum number of seconds to wait for this request.</span>
+<span class="sd">                If not provided, the *timeout* provided to the `Session` when</span>
+<span class="sd">                it was created it used.  If that was not provided either,</span>
+<span class="sd">                a reasonable default is used.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            `~blazingmq.Error`: If the open queue request was not successful.</span>
+<span class="sd">            `~blazingmq.exceptions.BrokerTimeoutError`: If the broker didn&#39;t</span>
+<span class="sd">                respond to the request within a reasonable amount of time.</span>
+<span class="sd">            `ValueError`: If *timeout* is not &gt; 0.0.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">read</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_has_no_on_message</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">Error</span><span class="p">(</span>
+                <span class="s2">&quot;Can&#39;t open queue </span><span class="si">{}</span><span class="s2"> in read mode: no on_message &quot;</span>
+                <span class="s2">&quot;callback was provided at Session construction&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">queue_uri</span><span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">suspends_on_bad_host_health</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ext</span><span class="o">.</span><span class="n">monitor_host_health</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">Error</span><span class="p">(</span>
+                <span class="s2">&quot;Queues cannot use suspends_on_bad_host_health if host health&quot;</span>
+                <span class="s2">&quot; monitoring was disabled when the Session was created&quot;</span>
+            <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ext</span><span class="o">.</span><span class="n">open_queue_sync</span><span class="p">(</span>
+            <span class="n">six</span><span class="o">.</span><span class="n">ensure_binary</span><span class="p">(</span><span class="n">queue_uri</span><span class="p">),</span>
+            <span class="n">read</span><span class="o">=</span><span class="n">read</span><span class="p">,</span>
+            <span class="n">write</span><span class="o">=</span><span class="n">write</span><span class="p">,</span>
+            <span class="n">consumer_priority</span><span class="o">=</span><span class="n">options</span><span class="o">.</span><span class="n">consumer_priority</span><span class="p">,</span>
+            <span class="n">max_unconfirmed_messages</span><span class="o">=</span><span class="n">options</span><span class="o">.</span><span class="n">max_unconfirmed_messages</span><span class="p">,</span>
+            <span class="n">max_unconfirmed_bytes</span><span class="o">=</span><span class="n">options</span><span class="o">.</span><span class="n">max_unconfirmed_bytes</span><span class="p">,</span>
+            <span class="n">suspends_on_bad_host_health</span><span class="o">=</span><span class="n">options</span><span class="o">.</span><span class="n">suspends_on_bad_host_health</span><span class="p">,</span>
+            <span class="n">timeout</span><span class="o">=</span><span class="n">_convert_timeout</span><span class="p">(</span><span class="n">timeout</span><span class="p">),</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Session.close_queue">
+<a class="viewcode-back" href="../../api_reference.html#blazingmq.Session.close_queue">[docs]</a>
+    <span class="k">def</span> <span class="nf">close_queue</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">queue_uri</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">DEFAULT_TIMEOUT</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Close an opened queue at the specified *queue_uri*.</span>
+
+<span class="sd">        Close the queue at the specified *queue_uri*. After this method</span>
+<span class="sd">        successfully returns, the *queue_uri* will no longer correspond to valid</span>
+<span class="sd">        queue to do any operations.</span>
+
+<span class="sd">        Note:</span>
+<span class="sd">            Invoking this method from the ``on_message`` or</span>
+<span class="sd">            ``on_session_event`` of the `Session` or the ``on_ack`` callback of</span>
+<span class="sd">            a posted message will cause a deadlock.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            queue_uri: unique resource identifier for the queue to be closed.</span>
+<span class="sd">            timeout: maximum number of seconds to wait for this request.</span>
+<span class="sd">                If not provided, the *timeout* provided to the `Session` when</span>
+<span class="sd">                it was created it used.  If that was not provided either,</span>
+<span class="sd">                a reasonable default is used.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            `~blazingmq.Error`: If the close queue request was not successful.</span>
+<span class="sd">            `~blazingmq.exceptions.BrokerTimeoutError`: If the broker didn&#39;t</span>
+<span class="sd">                respond to the request within a reasonable amount of time.</span>
+<span class="sd">            `ValueError`: If *timeout* is not &gt; 0.0.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ext</span><span class="o">.</span><span class="n">close_queue_sync</span><span class="p">(</span>
+            <span class="n">six</span><span class="o">.</span><span class="n">ensure_binary</span><span class="p">(</span><span class="n">queue_uri</span><span class="p">),</span>
+            <span class="n">timeout</span><span class="o">=</span><span class="n">_convert_timeout</span><span class="p">(</span><span class="n">timeout</span><span class="p">),</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Session.configure_queue">
+<a class="viewcode-back" href="../../api_reference.html#blazingmq.Session.configure_queue">[docs]</a>
+    <span class="k">def</span> <span class="nf">configure_queue</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">queue_uri</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">options</span><span class="p">:</span> <span class="n">QueueOptions</span><span class="p">,</span>
+        <span class="n">timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">DEFAULT_TIMEOUT</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Modify the options on an opened queue at the specified *queue_uri*.</span>
+
+<span class="sd">        Modify the options of the queue at the specified *queue_uri*. After this</span>
+<span class="sd">        method successfully returns, the *queue_uri* will be configured with the</span>
+<span class="sd">        specified *options*.</span>
+
+<span class="sd">        Note:</span>
+<span class="sd">            Invoking this method from the ``on_message`` or ``on_session_event`` of</span>
+<span class="sd">            the `Session` or the ``on_ack`` callback of a posted message will</span>
+<span class="sd">            cause a deadlock.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            queue_uri: unique resource identifier for the queue to be configured.</span>
+<span class="sd">            options (~blazingmq.QueueOptions): options to configure the queue with</span>
+<span class="sd">            timeout: maximum number of seconds to wait for this request.</span>
+<span class="sd">                If not provided, the *timeout* provided to the `Session` when</span>
+<span class="sd">                it was created it used.  If that was not provided either,</span>
+<span class="sd">                a reasonable default is used.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            `~blazingmq.Error`: If the configure queue request was not successful.</span>
+<span class="sd">            `~blazingmq.exceptions.BrokerTimeoutError`: If the broker didn&#39;t</span>
+<span class="sd">                respond to the request within a reasonable amount of time.</span>
+<span class="sd">            `ValueError`: If *timeout* is not &gt; 0.0.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">suspends_on_bad_host_health</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ext</span><span class="o">.</span><span class="n">monitor_host_health</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">Error</span><span class="p">(</span>
+                <span class="s2">&quot;Queues cannot use suspends_on_bad_host_health if host health&quot;</span>
+                <span class="s2">&quot; monitoring was disabled when the Session was created&quot;</span>
+            <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ext</span><span class="o">.</span><span class="n">configure_queue_sync</span><span class="p">(</span>
+            <span class="n">six</span><span class="o">.</span><span class="n">ensure_binary</span><span class="p">(</span><span class="n">queue_uri</span><span class="p">),</span>
+            <span class="n">consumer_priority</span><span class="o">=</span><span class="n">options</span><span class="o">.</span><span class="n">consumer_priority</span><span class="p">,</span>
+            <span class="n">max_unconfirmed_messages</span><span class="o">=</span><span class="n">options</span><span class="o">.</span><span class="n">max_unconfirmed_messages</span><span class="p">,</span>
+            <span class="n">max_unconfirmed_bytes</span><span class="o">=</span><span class="n">options</span><span class="o">.</span><span class="n">max_unconfirmed_bytes</span><span class="p">,</span>
+            <span class="n">suspends_on_bad_host_health</span><span class="o">=</span><span class="n">options</span><span class="o">.</span><span class="n">suspends_on_bad_host_health</span><span class="p">,</span>
+            <span class="n">timeout</span><span class="o">=</span><span class="n">_convert_timeout</span><span class="p">(</span><span class="n">timeout</span><span class="p">),</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Session.get_queue_options">
+<a class="viewcode-back" href="../../api_reference.html#blazingmq.Session.get_queue_options">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_queue_options</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">queue_uri</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">QueueOptions</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get configured options of an opened queue.</span>
+
+<span class="sd">        Get the previously set options of an opened queue at the specified</span>
+<span class="sd">        *queue_uri*.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            queue_uri: unique resource identifier for the queue to be configured.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            `~blazingmq.QueueOptions`: The queue&#39;s configured options.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            `~blazingmq.Error`: If the queue with the given URI is not open, or</span>
+<span class="sd">                its options cannot be retrieved.</span>
+
+<span class="sd">        Note:</span>
+<span class="sd">            Options that only affect message consumption, including</span>
+<span class="sd">            *consumer_priority*, *max_unconfirmed_messages*, and</span>
+<span class="sd">            *max_unconfirmed_bytes*, are ignored when opening or configuring</span>
+<span class="sd">            a write-only queue, so any attempt to set those options on</span>
+<span class="sd">            a write-only queue won&#39;t be reflected in the `QueueOptions`</span>
+<span class="sd">            returned by a later call to *get_queue_options*.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">options</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ext</span><span class="o">.</span><span class="n">get_queue_options</span><span class="p">(</span><span class="n">six</span><span class="o">.</span><span class="n">ensure_binary</span><span class="p">(</span><span class="n">queue_uri</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">QueueOptions</span><span class="p">(</span><span class="o">*</span><span class="n">options</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Session.stop">
+<a class="viewcode-back" href="../../api_reference.html#blazingmq.Session.stop">[docs]</a>
+    <span class="k">def</span> <span class="nf">stop</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Teardown the broker connection</span>
+
+<span class="sd">        Stop the session with the connected BlazingMQ broker which implies</span>
+<span class="sd">        tearing down the connection. This session cannot be used to execute any</span>
+<span class="sd">        actions after this method returns.</span>
+
+<span class="sd">        Note:</span>
+<span class="sd">            Invoking this method from the ``on_message`` or</span>
+<span class="sd">            ``on_session_event`` of the `Session` or the ``on_ack`` callback of</span>
+<span class="sd">            a posted message will cause a deadlock.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ext</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="Session.post">
+<a class="viewcode-back" href="../../api_reference.html#blazingmq.Session.post">[docs]</a>
+    <span class="k">def</span> <span class="nf">post</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">queue_uri</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">message</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">,</span>
+        <span class="n">properties</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">PropertyValueDict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">property_type_overrides</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">PropertyTypeDict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">on_ack</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">[[</span><span class="n">Ack</span><span class="p">],</span> <span class="kc">None</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Post a message to an opened queue specified by *queue_uri*.</span>
+
+<span class="sd">        Post the payload and optional properties and overrides to the opened</span>
+<span class="sd">        queue specified by *queue_uri*. Optionally take an *on_ack* callback</span>
+<span class="sd">        that is invoked with the incoming acknowledgment for the message posted.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            queue_uri: unique resource identifier for the queue to posted to.</span>
+<span class="sd">            message: the payload of the message.</span>
+<span class="sd">            properties (Optional[`~blazingmq.PropertyValueDict`]): optionally</span>
+<span class="sd">                provided properties to be associated with the message.</span>
+<span class="sd">            property_type_overrides (Optional[`~blazingmq.PropertyTypeDict`]):</span>
+<span class="sd">                optionally provided type overrides for the properties.</span>
+<span class="sd">            on_ack (Optional[Callable[[~blazingmq.Ack], None]]): optionally</span>
+<span class="sd">                specified callback which is invoked with the acknowledgment</span>
+<span class="sd">                status of the message being posted.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            `~blazingmq.Error`: If the post request was not successful.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">props</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">bytes</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">],</span> <span class="nb">int</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">properties</span> <span class="ow">or</span> <span class="n">property_type_overrides</span><span class="p">:</span>
+            <span class="n">props</span> <span class="o">=</span> <span class="n">_collect_properties_and_types</span><span class="p">(</span><span class="n">properties</span><span class="p">,</span> <span class="n">property_type_overrides</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ext</span><span class="o">.</span><span class="n">post</span><span class="p">(</span>
+            <span class="n">six</span><span class="o">.</span><span class="n">ensure_binary</span><span class="p">(</span><span class="n">queue_uri</span><span class="p">),</span>
+            <span class="n">message</span><span class="p">,</span>
+            <span class="n">properties</span><span class="o">=</span><span class="n">props</span><span class="p">,</span>
+            <span class="n">on_ack</span><span class="o">=</span><span class="n">on_ack</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Session.confirm">
+<a class="viewcode-back" href="../../api_reference.html#blazingmq.Session.confirm">[docs]</a>
+    <span class="k">def</span> <span class="nf">confirm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">:</span> <span class="n">Message</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Confirm the specified message from this queue.</span>
+
+<span class="sd">        Mark the specified *message*, as confirmed. If successful, this will</span>
+<span class="sd">        indicate to the BlazingMQ framework that the processing for this</span>
+<span class="sd">        message has been completed and that the message must not be</span>
+<span class="sd">        re-delivered, if this queue is opened again by any consumer.</span>
+
+<span class="sd">        It&#39;s often more convenient to use `MessageHandle.confirm`</span>
+<span class="sd">        instead. An instance of `MessageHandle` is received with every</span>
+<span class="sd">        new `Message` delivered via the ``on_message`` callback.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            message (~blazingmq.Message): message to be confirmed.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            `~blazingmq.Error`: If the confirm message request was not</span>
+<span class="sd">                successful.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ext</span><span class="o">.</span><span class="n">confirm</span><span class="p">(</span><span class="n">message</span><span class="p">)</span></div>
+
+
+    <span class="k">def</span> <span class="fm">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Session</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="fm">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">exc_type</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">exc_value</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">exc_traceback</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2019-2023, Bloomberg Finance L.P..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
