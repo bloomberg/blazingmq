@@ -286,7 +286,7 @@ void RelayQueueEngine::onHandleConfiguredDispatched(
             << downStreamParameters << ", but assuming success.";
     }
 
-    BALL_LOG_INFO_BLOCK
+    BALL_LOG_TRACE_BLOCK
     {
         mqbcmd::RoundRobinRouter outrr(d_allocator_p);
         context->d_routing_sp->loadInternals(&outrr);
@@ -319,7 +319,7 @@ void RelayQueueEngine::onHandleConfiguredDispatched(
         applyConfiguration(app, *context);
     }
 
-    BALL_LOG_INFO_BLOCK
+    BALL_LOG_TRACE_BLOCK
     {
         mqbcmd::QueueEngine outqe(d_allocator_p);
         loadInternals(&outqe);
