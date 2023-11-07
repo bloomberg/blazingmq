@@ -39,6 +39,7 @@
 #include <mwcu_printutil.h>
 
 // BDE
+#include <ball_logthrottle.h>
 #include <bdlb_print.h>
 #include <bdlf_bind.h>
 #include <bdlt_timeunitratio.h>
@@ -537,11 +538,6 @@ QueueHandle::QueueHandle(
         5 * bdlt::TimeUnitRatio::k_NS_PER_S);
     // One maximum log per 5 seconds
 
-    d_throttledSubscriptionInfo.initialize(
-        10,
-        5 * bdlt::TimeUnitRatio::k_NS_PER_S);
-    // Ten per 5 seconds
-
     setHandleParameters(handleParameters);
 }
 
@@ -610,12 +606,14 @@ void QueueHandle::registerSubscription(unsigned int downstreamSubId,
                                        const bmqp_ctrlmsg::ConsumerInfo& ci,
                                        unsigned int upstreamId)
 {
-    if (d_throttledSubscriptionInfo.requestPermission()) {
-        BALL_LOG_INFO << "QueueHandle [" << this
-                      << "] registering Subscription [id = " << downstreamId
-                      << ", downstreamSubQueueId = " << downstreamSubId
-                      << ", upstreamId = " << upstreamId << "]";
-    }
+    static const int                k_MAX_INSTANT_MESSAGES = 10;
+    static const bsls::Types::Int64 k_NS_PER_MESSAGE =
+        bdlt::TimeUnitRatio::k_NANOSECONDS_PER_SECOND;
+    BALL_LOGTHROTTLE_INFO(k_MAX_INSTANT_MESSAGES, k_NS_PER_MESSAGE)
+        << "QueueHandle [" << this
+        << "] registering Subscription [id = " << downstreamId
+        << ", downstreamSubQueueId = " << downstreamSubId
+        << ", upstreamId = " << upstreamId << "]";
 
     const bsl::shared_ptr<Downstream>& subStream = downstream(downstreamSubId);
 
@@ -717,12 +715,13 @@ bool QueueHandle::unregisterSubStream(
              itSubscription != d_subscriptions.end();) {
             const SubscriptionSp& subscription = itSubscription->second;
             if (subscription->d_downstreamSubQueueId == downstreamSubQueueId) {
-                if (d_throttledSubscriptionInfo.requestPermission()) {
-                    BALL_LOG_INFO << "Queue '" << d_queue_sp->description()
-                                  << "' handle " << this
-                                  << " removing Subscription "
-                                  << itSubscription->first;
-                }
+                static const int                k_MAX_INSTANT_MESSAGES = 10;
+                static const bsls::Types::Int64 k_NS_PER_MESSAGE =
+                    bdlt::TimeUnitRatio::k_NANOSECONDS_PER_SECOND;
+                BALL_LOGTHROTTLE_INFO(k_MAX_INSTANT_MESSAGES, k_NS_PER_MESSAGE)
+                    << "Queue '" << d_queue_sp->description() << "' handle "
+                    << this << " removing Subscription "
+                    << itSubscription->first;
                 itSubscription = d_subscriptions.erase(itSubscription);
             }
             else {
