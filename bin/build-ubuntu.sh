@@ -187,6 +187,8 @@ CMAKE_OPTIONS=(\
 
 if [ "${BUILD_PROMETHEUS}" == true ]; then
     CMAKE_OPTIONS+=(-DINSTALL_TARGETS=prometheus);
+else
+    CMAKE_OPTIONS+=(-UINSTALL_TARGETS);
 fi
 
 PKG_CONFIG_PATH="${DIR_INSTALL}/lib64/pkgconfig:${DIR_INSTALL}/lib/pkgconfig:$(pkg-config --variable pc_path pkg-config)" \
