@@ -35,22 +35,28 @@ using namespace bsl;
 //                                    TESTS
 // ----------------------------------------------------------------------------
 
-static void test1_sessionOptions()
+static void test1_session()
 {
     mwctst::TestHelper::printTestName("Create Session");
 
-    // Create default sessionOptions
-    z_bmqt_SessionOptions* sessionOptions;
-    z_bmqt_SessionOptions__create(&sessionOptions);
-    bmqt::SessionOptions sessionOptions_cpp(s_allocator_p);
+    // Create default session
+
+    z_bmqa_Session* session;
+    z_bmqt_SessionOptions* options;
+    z_bmqt_SessionOptions__create(&options);
+    z_bmqa_Session__create(&session, options);
 
     // Make sure 'k_BROKER_DEFAULT_PORT' and the default brokerUri are in sync
     {
-        PV("CHECKING brokerUri()");
+        PV("CHECKING start() and stop()");
 
-        
+        z_bmqa_Session__start(session, 1000);
+
+        z_bmqa_Session__stop(session);
         // ASSERT_EQ(sessionOptions_cpp.brokerUri(), result);
     }
+
+    // z_bmqa_Session__destroy(session);
 }
 
 
@@ -64,7 +70,7 @@ int main(int argc, char* argv[])
 
     switch (_testCase) {
     case 0:
-    case 1: test1_sessionOptions(); break;
+    case 1: test1_session(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
         s_testStatus = -1;
