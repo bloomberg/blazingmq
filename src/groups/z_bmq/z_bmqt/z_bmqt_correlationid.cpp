@@ -104,13 +104,13 @@ CorrelationId_Type z_bmqt_CorrelationId__type(const z_bmqt_CorrelationId* correl
     const bmqt::CorrelationId* correlationId_ptr = reinterpret_cast<const bmqt::CorrelationId*>(correlationId_obj);
 
     switch(correlationId_ptr->type()) {
-        case bmqt::CorrelationId::Type::e_NUMERIC: return e_NUMERIC;
-        case bmqt::CorrelationId::Type::e_POINTER: return e_POINTER;
-        case bmqt::CorrelationId::Type::e_SHARED_PTR: return e_SHARED_PTR;
-        case bmqt::CorrelationId::Type::e_AUTO_VALUE: return e_AUTO_VALUE;
-        case bmqt::CorrelationId::Type::e_UNSET: return e_UNSET;
+        case bmqt::CorrelationId::Type::e_NUMERIC: return CorrelationId_Type::e_NUMERIC;
+        case bmqt::CorrelationId::Type::e_POINTER: return CorrelationId_Type::e_POINTER;
+        case bmqt::CorrelationId::Type::e_SHARED_PTR: return CorrelationId_Type::e_SHARED_PTR;
+        case bmqt::CorrelationId::Type::e_AUTO_VALUE: return CorrelationId_Type::e_AUTO_VALUE;
+        case bmqt::CorrelationId::Type::e_UNSET: return CorrelationId_Type::e_UNSET;
         default: break;
     }
 
-    return e_ERROR;
+    return CorrelationId_Type::e_CORRELATIONID_ERROR;
 }
