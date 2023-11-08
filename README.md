@@ -39,8 +39,7 @@ themselves from each other by using a message queue to facilitate
 communication.
 
 BlazingMQ's back-end (message brokers) has been implemented in C++, and client
-libraries are available in C++, Java, and Python (the Python SDK will be
-published shortly as open source too!).
+libraries are available in C++, Java, and Python.
 
 BlazingMQ is an actively developed project and has been battle-tested in
 production at Bloomberg for 8+ years.
