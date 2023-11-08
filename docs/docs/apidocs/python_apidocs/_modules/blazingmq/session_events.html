@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>blazingmq.session_events &mdash; blazingmq 1.2.0 documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=6efca38a"></script>
+        <script src="../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            blazingmq
+          </a>
+              <div class="version">
+                1.2.0
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../user_guide.html">User Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../acknowledgments.html">Acknowledgments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../message_properties.html">Message Properties</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../queue_options_and_configuration.html">Queue Options and Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api_reference.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../CHANGELOG.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../BUILD.html">Build instructions</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">blazingmq</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">blazingmq.session_events</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for blazingmq.session_events</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright 2019-2023 Bloomberg Finance L.P.</span>
+<span class="c1"># SPDX-License-Identifier: Apache-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span>
+
+<span class="n">LOGGER</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="SessionEvent">
+<a class="viewcode-back" href="../../api_reference.html#blazingmq.session_events.SessionEvent">[docs]</a>
+<span class="k">class</span> <span class="nc">SessionEvent</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Base session event type&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_message</span> <span class="o">=</span> <span class="n">message</span>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_message</span><span class="p">:</span>
+            <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;&lt;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_message</span><span class="si">}</span><span class="s2">&gt;&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;&lt;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&gt;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">SessionEvent</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span> <span class="ow">is</span> <span class="n">other</span><span class="o">.</span><span class="vm">__class__</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_message</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">_message</span>
+
+    <span class="k">def</span> <span class="fm">__ne__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">return</span> <span class="ow">not</span> <span class="bp">self</span> <span class="o">==</span> <span class="n">other</span></div>
+
+
+
+<div class="viewcode-block" id="QueueEvent">
+<a class="viewcode-back" href="../../api_reference.html#blazingmq.session_events.QueueEvent">[docs]</a>
+<span class="k">class</span> <span class="nc">QueueEvent</span><span class="p">(</span><span class="n">SessionEvent</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Base type for session events relating to a single queue.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        queue_uri (str): Queue URI this event is associated with.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">queue_uri</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">message</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">queue_uri</span> <span class="o">=</span> <span class="n">queue_uri</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_message</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s2">&quot;&lt;</span><span class="si">{}</span><span class="s2">: </span><span class="si">{}</span><span class="s2"> </span><span class="si">{}</span><span class="s2">&gt;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">queue_uri</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_message</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;&lt;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">queue_uri</span><span class="si">}</span><span class="s2">&gt;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="nb">type</span><span class="p">(</span><span class="n">other</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">NotImplemented</span>
+
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">QueueEvent</span><span class="p">)</span>  <span class="c1"># for mypy&#39;s sake</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span> <span class="ow">is</span> <span class="n">other</span><span class="o">.</span><span class="vm">__class__</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_message</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">_message</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">queue_uri</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">queue_uri</span>
+        <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="Connected">
+<a class="viewcode-back" href="../../api_reference.html#blazingmq.session_events.Connected">[docs]</a>
+<span class="k">class</span> <span class="nc">Connected</span><span class="p">(</span><span class="n">SessionEvent</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Notification of successful connection with the broker&quot;&quot;&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="Disconnected">
+<a class="viewcode-back" href="../../api_reference.html#blazingmq.session_events.Disconnected">[docs]</a>
+<span class="k">class</span> <span class="nc">Disconnected</span><span class="p">(</span><span class="n">SessionEvent</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Notification of successful disconnection with the broker&quot;&quot;&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="ConnectionLost">
+<a class="viewcode-back" href="../../api_reference.html#blazingmq.session_events.ConnectionLost">[docs]</a>
+<span class="k">class</span> <span class="nc">ConnectionLost</span><span class="p">(</span><span class="n">SessionEvent</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Notification of a lost connection with the broker&quot;&quot;&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="Reconnected">
+<a class="viewcode-back" href="../../api_reference.html#blazingmq.session_events.Reconnected">[docs]</a>
+<span class="k">class</span> <span class="nc">Reconnected</span><span class="p">(</span><span class="n">SessionEvent</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Notification of a re-connection with the broker in case connection was lost earlier&quot;&quot;&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="StateRestored">
+<a class="viewcode-back" href="../../api_reference.html#blazingmq.session_events.StateRestored">[docs]</a>
+<span class="k">class</span> <span class="nc">StateRestored</span><span class="p">(</span><span class="n">SessionEvent</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Notification of successfully restoring state of application as it was before lost</span>
+<span class="sd">    connection or disconnection&quot;&quot;&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="ConnectionTimeout">
+<a class="viewcode-back" href="../../api_reference.html#blazingmq.session_events.ConnectionTimeout">[docs]</a>
+<span class="k">class</span> <span class="nc">ConnectionTimeout</span><span class="p">(</span><span class="n">SessionEvent</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Notification that a requested connection could not be initiated in within the</span>
+<span class="sd">    timeout period&quot;&quot;&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="HostUnhealthy">
+<a class="viewcode-back" href="../../api_reference.html#blazingmq.session_events.HostUnhealthy">[docs]</a>
+<span class="k">class</span> <span class="nc">HostUnhealthy</span><span class="p">(</span><span class="n">SessionEvent</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Notification that the host has been marked unhealthy.</span>
+
+<span class="sd">    This is emitted only if ``host_health_monitor=None`` was not provided when</span>
+<span class="sd">    the `.Session` was created.  This will be emitted whenever the machine</span>
+<span class="sd">    becomes unhealthy.  It is also emitted if the machine is initially unhealthy</span>
+<span class="sd">    when the `.Session` is created.</span>
+
+<span class="sd">    .. versionadded:: 0.7.0</span>
+<span class="sd">    &quot;&quot;&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="HostHealthRestored">
+<a class="viewcode-back" href="../../api_reference.html#blazingmq.session_events.HostHealthRestored">[docs]</a>
+<span class="k">class</span> <span class="nc">HostHealthRestored</span><span class="p">(</span><span class="n">SessionEvent</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Notification that the host is no longer marked unhealthy.</span>
+
+<span class="sd">    This is emitted only if ``host_health_monitor=None`` was not provided when</span>
+<span class="sd">    the `.Session` was created.  It will be emitted once the machine is becomes</span>
+<span class="sd">    healthy after an earlier `.HostUnhealthy` event. Before this event</span>
+<span class="sd">    is emitted, you will receive a `QueueResumed` or `QueueResumeFailed` for</span>
+<span class="sd">    each queue that was suspended due to ``suspends_on_bad_host_health=True``.</span>
+
+<span class="sd">    .. versionadded:: 0.7.0</span>
+<span class="sd">    &quot;&quot;&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="QueueSuspended">
+<a class="viewcode-back" href="../../api_reference.html#blazingmq.session_events.QueueSuspended">[docs]</a>
+<span class="k">class</span> <span class="nc">QueueSuspended</span><span class="p">(</span><span class="n">QueueEvent</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;A queue that is sensitive to host health has been suspended.</span>
+
+<span class="sd">    After a `.HostUnhealthy` event is emitted, any queue that was opened with</span>
+<span class="sd">    ``suspend_on_bad_host_health=True`` will suspend operation. This event will</span>
+<span class="sd">    be emitted once for each suspended queue.</span>
+
+<span class="sd">    Note:</span>
+<span class="sd">        If ``host_health_monitor=None`` was provided when the `.Session` was</span>
+<span class="sd">        created, this event will never be emitted because the host will never</span>
+<span class="sd">        be considered unhealthy.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        queue_uri (str): URI of the queue that has been successfully suspended.</span>
+
+<span class="sd">    .. versionadded:: 0.7.0</span>
+<span class="sd">    &quot;&quot;&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="QueueSuspendFailed">
+<a class="viewcode-back" href="../../api_reference.html#blazingmq.session_events.QueueSuspendFailed">[docs]</a>
+<span class="k">class</span> <span class="nc">QueueSuspendFailed</span><span class="p">(</span><span class="n">QueueEvent</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;A queue that is sensitive to host health could not be suspended.</span>
+
+<span class="sd">    Whenever a `QueueSuspended` event would be expected, this event may be</span>
+<span class="sd">    emitted instead if the SDK is unable to suspend the queue as expected.</span>
+
+<span class="sd">    Note:</span>
+<span class="sd">        The BlazingMQ SDK considers the failure to suspend a queue as evidence</span>
+<span class="sd">        of an unusually serious problem with the connection to the broker, so</span>
+<span class="sd">        if this event occurs the SDK follows it up by dropping the connection</span>
+<span class="sd">        to the broker and trying to re-establish it.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        queue_uri (str): URI of the queue that could not be suspended.</span>
+
+<span class="sd">    .. versionadded:: 0.7.0</span>
+<span class="sd">    &quot;&quot;&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="QueueResumed">
+<a class="viewcode-back" href="../../api_reference.html#blazingmq.session_events.QueueResumed">[docs]</a>
+<span class="k">class</span> <span class="nc">QueueResumed</span><span class="p">(</span><span class="n">QueueEvent</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;A queue that is sensitive to host health has been resumed.</span>
+
+<span class="sd">    Once an unhealthy machine becomes healthy again, the SDK will automatically</span>
+<span class="sd">    attempt to resume each queue that was suspended when the machine became</span>
+<span class="sd">    unhealthy. This event will be emitted once for each queue that had been</span>
+<span class="sd">    suspended, only after which will `HostHealthRestored` be emitted.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        queue_uri (str): URI of the queue that has been successfully resumed.</span>
+
+<span class="sd">    .. versionadded:: 0.7.0</span>
+<span class="sd">    &quot;&quot;&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="QueueResumeFailed">
+<a class="viewcode-back" href="../../api_reference.html#blazingmq.session_events.QueueResumeFailed">[docs]</a>
+<span class="k">class</span> <span class="nc">QueueResumeFailed</span><span class="p">(</span><span class="n">QueueEvent</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;A queue that is sensitive to host health could not be resumed.</span>
+
+<span class="sd">    Whenever a `QueueResumed` event would be expected, this event may be</span>
+<span class="sd">    emitted instead if the SDK is unable to resume the queue as expected.</span>
+
+<span class="sd">    Note:</span>
+<span class="sd">        Unlike if suspending a queue fails, the SDK will not automatically drop</span>
+<span class="sd">        the connection to the broker if resuming a queue fails.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        queue_uri (str): URI of the queue that could not be resumed.</span>
+
+<span class="sd">    .. versionadded:: 0.7.0</span>
+<span class="sd">    &quot;&quot;&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="QueueReopened">
+<a class="viewcode-back" href="../../api_reference.html#blazingmq.session_events.QueueReopened">[docs]</a>
+<span class="k">class</span> <span class="nc">QueueReopened</span><span class="p">(</span><span class="n">QueueEvent</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;A queue has been successfully reopened after a connection loss.</span>
+
+<span class="sd">    If the connection with the broker is lost, `ConnectionLost` is emitted.</span>
+<span class="sd">    Once it is reestablished, `Reconnected` is emitted, followed by either</span>
+<span class="sd">    a `QueueReopened` or `QueueReopenFailed` for each queue that was</span>
+<span class="sd">    previously open, and finally `StateRestored` is emitted.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        queue_uri (str): URI of the queue that has been successfully reopened.</span>
+<span class="sd">    &quot;&quot;&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="QueueReopenFailed">
+<a class="viewcode-back" href="../../api_reference.html#blazingmq.session_events.QueueReopenFailed">[docs]</a>
+<span class="k">class</span> <span class="nc">QueueReopenFailed</span><span class="p">(</span><span class="n">QueueEvent</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;A queue couldn&#39;t be reopened after a connection loss.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        queue_uri (str): URI of the queue that could not be reopened.</span>
+<span class="sd">    &quot;&quot;&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="SlowConsumerNormal">
+<a class="viewcode-back" href="../../api_reference.html#blazingmq.session_events.SlowConsumerNormal">[docs]</a>
+<span class="k">class</span> <span class="nc">SlowConsumerNormal</span><span class="p">(</span><span class="n">SessionEvent</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Notification that the consumer has resumed acceptable rate of consumption&quot;&quot;&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="SlowConsumerHighWaterMark">
+<a class="viewcode-back" href="../../api_reference.html#blazingmq.session_events.SlowConsumerHighWaterMark">[docs]</a>
+<span class="k">class</span> <span class="nc">SlowConsumerHighWaterMark</span><span class="p">(</span><span class="n">SessionEvent</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Notification that the consumer is consuming at the lowest rate acceptable&quot;&quot;&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="Error">
+<a class="viewcode-back" href="../../api_reference.html#blazingmq.session_events.Error">[docs]</a>
+<span class="k">class</span> <span class="nc">Error</span><span class="p">(</span><span class="n">SessionEvent</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Notification of a miscellaneous error&quot;&quot;&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="InterfaceError">
+<a class="viewcode-back" href="../../api_reference.html#blazingmq.session_events.InterfaceError">[docs]</a>
+<span class="k">class</span> <span class="nc">InterfaceError</span><span class="p">(</span><span class="n">SessionEvent</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;The BlazingMQ SDK behaved in an unexpected way.&quot;&quot;&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="log_session_event">
+<a class="viewcode-back" href="../../api_reference.html#blazingmq.session_events.log_session_event">[docs]</a>
+<span class="k">def</span> <span class="nf">log_session_event</span><span class="p">(</span><span class="n">event</span><span class="p">:</span> <span class="n">SessionEvent</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Log incoming session event as appropriate</span>
+
+<span class="sd">    A callback that can be used as a default for the *on_session_event*</span>
+<span class="sd">    parameter on the `.Session` object. All `.Connected`, `.Disconnected`,</span>
+<span class="sd">    `.StateRestored`, `.SlowConsumerNormal`, and `.QueueReopened` events are</span>
+<span class="sd">    logged at INFO level, and any `.ConnectionLost`, `.SlowConsumerHighWaterMark`,</span>
+<span class="sd">    and `.Reconnected` events are logged at WARN level, as they may indicate issues</span>
+<span class="sd">    with the application. Any other events are most likely an error in the</span>
+<span class="sd">    application and are logged at ERROR level.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        event (~blazingmq.session_events.SessionEvent): incoming `SessionEvent`</span>
+<span class="sd">            object.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span>
+        <span class="n">event</span><span class="p">,</span>
+        <span class="p">(</span>
+            <span class="n">Connected</span><span class="p">,</span>
+            <span class="n">Disconnected</span><span class="p">,</span>
+            <span class="n">StateRestored</span><span class="p">,</span>
+            <span class="n">SlowConsumerNormal</span><span class="p">,</span>
+            <span class="n">QueueReopened</span><span class="p">,</span>
+            <span class="n">HostUnhealthy</span><span class="p">,</span>
+            <span class="n">HostHealthRestored</span><span class="p">,</span>
+            <span class="n">QueueSuspended</span><span class="p">,</span>
+            <span class="n">QueueResumed</span><span class="p">,</span>
+        <span class="p">),</span>
+    <span class="p">):</span>
+        <span class="n">level</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">INFO</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">event</span><span class="p">,</span> <span class="p">(</span><span class="n">ConnectionLost</span><span class="p">,</span> <span class="n">Reconnected</span><span class="p">,</span> <span class="n">SlowConsumerHighWaterMark</span><span class="p">)):</span>
+        <span class="n">level</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">WARN</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># ConnectionTimeout, Error, InterfaceError, QueueReopenFailed,</span>
+        <span class="c1"># QueueSuspendFailed, QueueResumeFailed</span>
+        <span class="n">level</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">ERROR</span>
+
+    <span class="n">LOGGER</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">level</span><span class="p">,</span> <span class="s2">&quot;Received session event: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">event</span><span class="p">)</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2019-2023, Bloomberg Finance L.P..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
