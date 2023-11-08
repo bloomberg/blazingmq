@@ -25,9 +25,9 @@ int z_bmqt_QueueOptions__setSuspendsOnBadHostHealth(z_bmqt_QueueOptions* queueOp
 
 int z_bmqt_QueueOptions__merge(z_bmqt_QueueOptions* queueOptions_obj, const z_bmqt_QueueOptions* other);
 
-int z_bmqt_QueueOptions__addOrUpdateSubscription(z_bmqt_QueueOptions* queueOptions_obj);
+// int z_bmqt_QueueOptions__addOrUpdateSubscription(z_bmqt_QueueOptions* queueOptions_obj);
 
-int z_bmqt_QueueOptions__removeSubscription(z_bmqt_QueueOptions* queueOptions_obj);
+// int z_bmqt_QueueOptions__removeSubscription(z_bmqt_QueueOptions* queueOptions_obj);
 
 int z_bmqt_QueueOptions__removeAllSubscriptions(z_bmqt_QueueOptions* queueOptions_obj);
 
@@ -51,9 +51,9 @@ bool z_bmqt_QueueOptions__hasSuspendsOnBadHostHealth(const z_bmqt_QueueOptions* 
 
 
 //Experimental (Modifiers)
-bool z_bmqt_QueueOptions__loadSubcription(z_bmqt_QueueOptions* queueOptions_obj);
+// bool z_bmqt_QueueOptions__loadSubcription(z_bmqt_QueueOptions* queueOptions_obj);
 
-int z_bmqt_QueueOptions__loadSubscriptions(z_bmqt_QueueOptions* queueOptions_obj);
+// int z_bmqt_QueueOptions__loadSubscriptions(z_bmqt_QueueOptions* queueOptions_obj);
 
 #if defined(__cplusplus)
 }

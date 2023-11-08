@@ -136,7 +136,7 @@ bool z_bmqt_QueueOptions__hasConsumerPriority(const z_bmqt_QueueOptions* queueOp
     return queueOptions_ptr->hasConsumerPriority();
 }
 
-bool z_bmqt_QueueOptions__hasSuspendsOnBadHostHealth(const z_bmqt_QueueOptions* queueOptions_obj, int value) {
+bool z_bmqt_QueueOptions__hasSuspendsOnBadHostHealth(const z_bmqt_QueueOptions* queueOptions_obj) {
     using namespace BloombergLP;
 
     const bmqt::QueueOptions* queueOptions_ptr = reinterpret_cast<const bmqt::QueueOptions*>(queueOptions_obj);
