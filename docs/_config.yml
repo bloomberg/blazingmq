@@ -47,6 +47,11 @@ exclude:
  # theme test code
    - fixtures/
 
+include:
+   - _static
+   - _modules
+   - _sources
+
 # Set a path/url to a logo that will be displayed instead of the title
 logo: "/assets/images/Asset 2@3x.png"
 favicon_ico: "favicon.ico"
