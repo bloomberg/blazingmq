@@ -5,6 +5,9 @@
 
 typedef struct z_bmqt_CorrelationId z_bmqt_CorrelationId;
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 enum CorrelationId_Type {
     e_NUMERIC  // the 'CorrelationId' holds a 64-bit integer
@@ -22,9 +25,9 @@ enum CorrelationId_Type {
 
 int z_bmqt_CorrelationId__create(z_bmqt_CorrelationId** correlationId_obj);
 
-int z_bmqt_CorrelationId__create(z_bmqt_CorrelationId** correlationId_obj, int64_t numeric);
+int z_bmqt_CorrelationId__createFromNumeric(z_bmqt_CorrelationId** correlationId_obj, int64_t numeric);
 
-int z_bmqt_CorrelationId__create(z_bmqt_CorrelationId** correlationId_obj, void* pointer);
+int z_bmqt_CorrelationId__createFromPointer(z_bmqt_CorrelationId** correlationId_obj, void* pointer);
 
 int z_bmqt_CorrelationId__makeUnset(z_bmqt_CorrelationId* correlation_Id_obj);
 
@@ -47,5 +50,9 @@ int64_t z_bmqt_CorrelationId__theNumeric(const z_bmqt_CorrelationId* correlation
 void* z_bmqt_CorrelationId__thePointer(const z_bmqt_CorrelationId* correlation_Id_obj);
 
 CorrelationId_Type z_bmqt_CorrelationId__type(const z_bmqt_CorrelationId* correlation_Id_obj);
+
+#if defined(__cplusplus)
+}
+#endif
 
 #endif
