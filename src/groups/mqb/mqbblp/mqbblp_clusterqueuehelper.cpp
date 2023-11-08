@@ -3166,7 +3166,8 @@ bool ClusterQueueHelper::sendConfigureQueueRequest(
     // TODO: Replace with 'ConfigureStream' once all brokers recognize it
 
     const mqbcfg::AppConfig& brkrCfg = mqbcfg::BrokerConfig::get();
-    if (brkrCfg.brokerVersion() == bmqp::Protocol::k_DEV_VERSION) {
+    if (brkrCfg.brokerVersion() == bmqp::Protocol::k_DEV_VERSION ||
+        brkrCfg.configureStream()) {
         bmqp_ctrlmsg::ConfigureStream& qs =
             request->request().choice().makeConfigureStream();
 
