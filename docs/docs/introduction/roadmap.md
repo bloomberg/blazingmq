@@ -19,14 +19,6 @@ BlazingMQ, please reach out to us!
 
 ## Short-Term
 
-### Python Client Library
-{: .no_toc }
-
-BlazingMQ has a full-fledged Python client library which was not published as
-open source in the initial OSS release. This library will be published once
-any enterprise dependencies have been removed from it, and CI,
-packaging, and release workflow have been updated to be suitable for OSS.
-
 ### Testing Suites
 {: .no_toc }
 

@@ -32,12 +32,12 @@ themselves from each other by using a message queue to facilitate communication.
 Within Bloomberg, the BlazingMQ framework processes billions of messages and
 terabytes of data every day and is used in production by thousands of applications.
 
-BlazingMQ client libraries are available in C++, Java and Python (the Python SDK
-will be published shortly as open source). Within Bloomberg, client applications and
-BlazingMQ clusters both run in a variety of environments, and BlazingMQ attempts to
-provide a consistent user experience across heterogeneous deployments. In
-general, BlazingMQ clusters can be hosted anywhere and do not depend on any
-other Bloomberg-specific or open source frameworks.
+BlazingMQ client libraries are available in C++, Java and Python. Within
+Bloomberg, client applications and BlazingMQ clusters both run in a variety of
+environments, and BlazingMQ attempts to provide a consistent user experience
+across heterogeneous deployments. In general, BlazingMQ clusters can be hosted
+anywhere and do not depend on any other Bloomberg-specific or open source
+frameworks.
 
 ---
 
