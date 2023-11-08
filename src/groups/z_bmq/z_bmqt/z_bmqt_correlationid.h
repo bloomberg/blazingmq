@@ -3,11 +3,13 @@
 
 #include <stdint.h>
 
-typedef struct z_bmqt_CorrelationId z_bmqt_CorrelationId;
-
 #if defined(__cplusplus)
 extern "C" {
 #endif
+
+
+typedef struct z_bmqt_CorrelationId z_bmqt_CorrelationId;
+
 
 enum CorrelationId_Type {
     e_NUMERIC  // the 'CorrelationId' holds a 64-bit integer
@@ -20,7 +22,7 @@ enum CorrelationId_Type {
     ,
     e_UNSET  // the 'CorrelationId' is not set
     ,
-    e_ERROR // error
+    e_CORRELATIONID_ERROR // error
 };
 
 int z_bmqt_CorrelationId__create(z_bmqt_CorrelationId** correlationId_obj);

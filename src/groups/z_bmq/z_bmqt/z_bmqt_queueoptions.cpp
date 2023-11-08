@@ -1,4 +1,7 @@
 #include <bmqt_queueoptions.h>
+#include <bmqt_subscription.h>
+#include <bsl_string.h>
+#include <string.h>
 #include <z_bmqt_queueoptions.h>
 
 int z_bmqt_QueueOptions__create(z_bmqt_QueueOptions** queueOptions_obj) {
@@ -65,17 +68,37 @@ int z_bmqt_QueueOptions__merge(z_bmqt_QueueOptions* queueOptions_obj, const z_bm
     return 0;
 }
 
-// int z_bmqt_QueueOptions__addOrUpdateSubscription(z_bmqt_QueueOptions* queueOptions_obj) {
-//     using namespace BloombergLP;
+int z_bmqt_QueueOptions__addOrUpdateSubscription(z_bmqt_QueueOptions* queueOptions_obj, char** errorDescription, const z_bmqt_SubscriptionHandle* handle, const z_bmqt_Subscription* subscription){
+    using namespace BloombergLP;
 
-//     bmqt::QueueOptions* queueOptions_ptr = reinterpret_cast<bmqt::QueueOptions*>(queueOptions_obj);
-// }
+    bmqt::QueueOptions* queueOptions_ptr = reinterpret_cast<bmqt::QueueOptions*>(queueOptions_obj);
+    const bmqt::SubscriptionHandle* handle_ptr = reinterpret_cast<const bmqt::SubscriptionHandle*>(handle);
+    const bmqt::Subscription* subscription_ptr = reinterpret_cast<const bmqt::Subscription*>(subscription);
 
-// int z_bmqt_QueueOptions__removeSubscription(z_bmqt_QueueOptions* queueOptions_obj) {
-//     using namespace BloombergLP;
+    bsl::string error;
 
-//     bmqt::QueueOptions* queueOptions_ptr = reinterpret_cast<bmqt::QueueOptions*>(queueOptions_obj);
-// }
+    queueOptions_ptr->addOrUpdateSubscription(&error, *handle_ptr, *subscription_ptr);
+
+    if(error.empty()) {
+        *errorDescription = NULL;
+        return 0;
+    } else {
+        *errorDescription = static_cast<char*>(calloc(error.size()+1, sizeof(char)));
+        strcpy(*errorDescription, error.c_str());
+
+        return 1;
+    }
+}
+
+int z_bmqt_QueueOptions__removeSubscription(z_bmqt_QueueOptions* queueOptions_obj, const z_bmqt_SubscriptionHandle* handle){
+    using namespace BloombergLP;
+
+    bmqt::QueueOptions* queueOptions_ptr = reinterpret_cast<bmqt::QueueOptions*>(queueOptions_obj);
+    const bmqt::SubscriptionHandle* handle_ptr = reinterpret_cast<const bmqt::SubscriptionHandle*>(handle);
+    queueOptions_ptr->removeSubscription(*handle_ptr);
+
+    return 0;
+}
 
 int z_bmqt_QueueOptions__removeAllSubscriptions(z_bmqt_QueueOptions* queueOptions_obj) {
     using namespace BloombergLP;
@@ -145,14 +168,42 @@ bool z_bmqt_QueueOptions__hasSuspendsOnBadHostHealth(const z_bmqt_QueueOptions* 
 
 
 //Experimental (Modifiers)
-// bool z_bmqt_QueueOptions__loadSubcription(z_bmqt_QueueOptions* queueOptions_obj) {
-//     using namespace BloombergLP;
+bool z_bmqt_QueueOptions__loadSubscription(const z_bmqt_QueueOptions* queueOptions_obj, z_bmqt_Subscription** subscription, const z_bmqt_SubscriptionHandle* handle) {
+    using namespace BloombergLP;
 
-//     bmqt::QueueOptions* queueOptions_ptr = reinterpret_cast<bmqt::QueueOptions*>(queueOptions_obj);
-// }
+    const bmqt::QueueOptions* queueOptions_ptr = reinterpret_cast<const bmqt::QueueOptions*>(queueOptions_obj);
+    const bmqt::SubscriptionHandle* handle_ptr = reinterpret_cast<const bmqt::SubscriptionHandle*>(handle);
+    bmqt::Subscription* subscription_ptr = new bmqt::Subscription();
 
-// int z_bmqt_QueueOptions__loadSubscriptions(z_bmqt_QueueOptions* queueOptions_obj) {
-//     using namespace BloombergLP;
+    bool success = queueOptions_ptr->loadSubscription(subscription_ptr, *handle_ptr);
+    
+    if(success) {
+        *subscription = reinterpret_cast<z_bmqt_Subscription*>(subscription_ptr);
+    } else {
+        delete subscription_ptr;
+        *subscription = NULL;
+    }
 
-//     bmqt::QueueOptions* queueOptions_ptr = reinterpret_cast<bmqt::QueueOptions*>(queueOptions_obj);
-// }
+    return success;
+}
+
+int z_bmqt_QueueOptions__loadSubscriptions(const z_bmqt_QueueOptions* queueOptions_obj, z_bmqt_SubscrptionsSnapshot* snapshot) {
+    using namespace BloombergLP;
+
+    bmqt::QueueOptions::SubscriptionsSnapshot vector;
+    const bmqt::QueueOptions* queueOptions_ptr = reinterpret_cast<const bmqt::QueueOptions*>(queueOptions_obj);
+    queueOptions_ptr->loadSubscriptions(&vector);
+
+    snapshot->size = vector.size();
+    snapshot->subscriptions = static_cast<z_bmqt_HandleAndSubscrption*>(calloc(vector.size(), sizeof(z_bmqt_HandleAndSubscrption)));
+
+    for(size_t i = 0; i < vector.size(); ++i) {
+        bmqt::SubscriptionHandle* handle_ptr = new bmqt::SubscriptionHandle(vector[i].first);
+        bmqt::Subscription* subscription_ptr = new bmqt::Subscription(vector[i].second);
+
+        snapshot->subscriptions[i].handle = reinterpret_cast<z_bmqt_SubscriptionHandle*>(handle_ptr);
+        snapshot->subscriptions[i].subscrption = reinterpret_cast<z_bmqt_Subscription*>(subscription_ptr);
+    }
+
+    return 0;
+}
