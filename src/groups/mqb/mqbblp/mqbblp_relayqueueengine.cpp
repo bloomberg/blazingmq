@@ -44,6 +44,7 @@
 #include <mwcu_weakmemfn.h>
 
 // BDE
+#include <ball_logthrottle.h>
 #include <bdlb_print.h>
 #include <bdlb_scopeexit.h>
 #include <bdlf_bind.h>
@@ -65,6 +66,13 @@ namespace BloombergLP {
 namespace mqbblp {
 
 namespace {
+
+const int k_MAX_INSTANT_MESSAGES = 10;
+// Maximum messages logged with throttling in a short period of time.
+
+const bsls::Types::Int64 k_NS_PER_MESSAGE =
+    bdlt::TimeUnitRatio::k_NANOSECONDS_PER_MINUTE / k_MAX_INSTANT_MESSAGES;
+// Time interval between messages logged with throttling.
 
 // ====================
 // class LimitedPrinter
@@ -286,7 +294,7 @@ void RelayQueueEngine::onHandleConfiguredDispatched(
             << downStreamParameters << ", but assuming success.";
     }
 
-    BALL_LOG_INFO_BLOCK
+    BALL_LOGTHROTTLE_INFO_BLOCK(k_MAX_INSTANT_MESSAGES, k_NS_PER_MESSAGE)
     {
         mqbcmd::RoundRobinRouter outrr(d_allocator_p);
         context->d_routing_sp->loadInternals(&outrr);
@@ -319,7 +327,7 @@ void RelayQueueEngine::onHandleConfiguredDispatched(
         applyConfiguration(app, *context);
     }
 
-    BALL_LOG_INFO_BLOCK
+    BALL_LOGTHROTTLE_INFO_BLOCK(k_MAX_INSTANT_MESSAGES, k_NS_PER_MESSAGE)
     {
         mqbcmd::QueueEngine outqe(d_allocator_p);
         loadInternals(&outqe);

@@ -196,8 +196,6 @@ class QueueHandle : public mqbi::QueueHandle {
 
     bdlmt::Throttle d_throttledDroppedPutMessages;
 
-    bdlmt::Throttle d_throttledSubscriptionInfo;
-
     mwcu::OperationChain d_deconfigureChain;
     // Mechanism to serialize execution of
     // the substream deconfigure callbacks

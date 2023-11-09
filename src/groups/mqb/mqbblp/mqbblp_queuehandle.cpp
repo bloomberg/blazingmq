@@ -39,6 +39,7 @@
 #include <mwcu_printutil.h>
 
 // BDE
+#include <ball_logthrottle.h>
 #include <bdlb_print.h>
 #include <bdlf_bind.h>
 #include <bdlt_timeunitratio.h>
@@ -60,6 +61,13 @@ namespace mqbblp {
 namespace {
 const double k_WATERMARK_RATIO = 0.8;
 // Percentage of the 'capacity' to use for the 'lowWatermark'
+
+const int k_MAX_INSTANT_MESSAGES = 10;
+// Maximum messages logged with throttling in a short period of time.
+
+const bsls::Types::Int64 k_NS_PER_MESSAGE =
+    bdlt::TimeUnitRatio::k_NANOSECONDS_PER_SECOND;
+// Time interval between messages logged with throttling.
 
 typedef bsl::function<void()> CompletionCallback;
 
@@ -537,11 +545,6 @@ QueueHandle::QueueHandle(
         5 * bdlt::TimeUnitRatio::k_NS_PER_S);
     // One maximum log per 5 seconds
 
-    d_throttledSubscriptionInfo.initialize(
-        10,
-        5 * bdlt::TimeUnitRatio::k_NS_PER_S);
-    // Ten per 5 seconds
-
     setHandleParameters(handleParameters);
 }
 
@@ -610,12 +613,11 @@ void QueueHandle::registerSubscription(unsigned int downstreamSubId,
                                        const bmqp_ctrlmsg::ConsumerInfo& ci,
                                        unsigned int upstreamId)
 {
-    if (d_throttledSubscriptionInfo.requestPermission()) {
-        BALL_LOG_INFO << "QueueHandle [" << this
-                      << "] registering Subscription [id = " << downstreamId
-                      << ", downstreamSubQueueId = " << downstreamSubId
-                      << ", upstreamId = " << upstreamId << "]";
-    }
+    BALL_LOGTHROTTLE_INFO(k_MAX_INSTANT_MESSAGES, k_NS_PER_MESSAGE)
+        << "QueueHandle [" << this
+        << "] registering Subscription [id = " << downstreamId
+        << ", downstreamSubQueueId = " << downstreamSubId
+        << ", upstreamId = " << upstreamId << "]";
 
     const bsl::shared_ptr<Downstream>& subStream = downstream(downstreamSubId);
 
@@ -717,12 +719,10 @@ bool QueueHandle::unregisterSubStream(
              itSubscription != d_subscriptions.end();) {
             const SubscriptionSp& subscription = itSubscription->second;
             if (subscription->d_downstreamSubQueueId == downstreamSubQueueId) {
-                if (d_throttledSubscriptionInfo.requestPermission()) {
-                    BALL_LOG_INFO << "Queue '" << d_queue_sp->description()
-                                  << "' handle " << this
-                                  << " removing Subscription "
-                                  << itSubscription->first;
-                }
+                BALL_LOGTHROTTLE_INFO(k_MAX_INSTANT_MESSAGES, k_NS_PER_MESSAGE)
+                    << "Queue '" << d_queue_sp->description() << "' handle "
+                    << this << " removing Subscription "
+                    << itSubscription->first;
                 itSubscription = d_subscriptions.erase(itSubscription);
             }
             else {
