@@ -5,8 +5,11 @@
 #include <z_bmqa_messageeventbuilder.h>
 #include <z_bmqa_confirmeventbuilder.h>
 #include <z_bmqa_messageproperties.h>
+#include <z_bmqa_event.h>
+#include <z_bmqa_messageevent.h>
 #include <z_bmqt_uri.h>
 #include <z_bmqa_queueid.h>
+#include <z_bmqa_message.h>
 #include <stdint.h>
 
 #if defined(__cplusplus)
@@ -71,12 +74,29 @@ int z_bmqa_Session__openQueueSync(z_bmqa_Session* session_obj,
 //                                   const z_bmqt_QueueOptions* options,
 //                                   int64_t timeout);
 
-int z_bmqa_Session__configureQueue(z_bmqa_Session* session_obj,
+int z_bmqa_Session__configureQueueSync(z_bmqa_Session* session_obj,
                                    z_bmqa_QueueId* queueId,
                                    const z_bmqt_QueueOptions* options,
                                    int64_t timeout);
 
+// int z_bmqa_Session__configureQueueAsync(z_bmqa_Session* session_obj,
+//                                    z_bmqa_QueueId* queueId,
+//                                    const z_bmqt_QueueOptions* options,
+//                                    int64_t timeout);
 
+int z_bmqa_Session__closeQueueSync(z_bmqa_Session* session_obj, z_bmqa_QueueId* queueId, int64_t timeout);
+
+int z_bmqa_Session__closeQueueAsync(z_bmqa_Session* session_obj, z_bmqa_QueueId* queueId, int64_t timeout);
+
+int z_bmqa_Session_nextEvent(z_bmqa_Session* session_obj, z_bmqa_Event** event_obj, int64_t timeout);
+
+int z_bmqa_Session__post(z_bmqa_Session* session_obj, const z_bmqa_MessageEvent* event);
+
+int z_bmqa_Session__confirmMessage(z_bmqa_Session* session_obj, const z_bmqa_Message* message);
+
+int z_bmqa_Session__confirmMessageWithCookie(z_bmqa_Session* session_obj, const z_bmqa_MessageConfirmationCookie* cookie);
+
+int z_bmqa_Session__confirmMessages(z_bmqa_Session* session_obj, z_bmqa_ConfirmEventBuilder* builder);
 
 #if defined(__cplusplus)
 }
