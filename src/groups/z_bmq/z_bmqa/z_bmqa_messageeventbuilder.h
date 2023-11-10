@@ -1,0 +1,6 @@
+#ifndef INCLUDED_Z_BMQA_MESSAGEEVENTBUILDER
+#define INCLUDED_Z_BMQA_MESSAGEEVENTBUILDER
+
+typedef struct z_bmqa_MessageEventBuilder z_bmqa_MessageEventBuilder;
+
+#endif
