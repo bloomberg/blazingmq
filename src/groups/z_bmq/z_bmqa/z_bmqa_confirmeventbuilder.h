@@ -1,0 +1,6 @@
+#ifndef INCLUDED_Z_BMQA_CONFIRMEVENTBUILDER
+#define INCLUDED_Z_BMQA_CONFIRMEVENTBUILDER
+
+typedef struct z_bmqa_ConfirmEventBuilder z_bmqa_ConfirmEventBuilder;
+
+#endif

@@ -2,6 +2,7 @@
 #define INCLUDED_Z_BMQT_QUEUEOPTIONS
 
 #include <stdbool.h>
+#include <z_bmqt_types.h>
 #include <z_bmqt_subscription.h>
 
 #if defined(__cplusplus)
@@ -16,7 +17,7 @@ typedef struct z_bmqt_HandleAndSubscrption {
 } z_bmqt_HandleAndSubscrption;
 
 typedef struct z_bmqt_SubscrptionsSnapshot {
-    size_t size;
+    uint64_t size;
     z_bmqt_HandleAndSubscrption* subscriptions;
 } z_bmqt_SubscrptionsSnapshot;
 
