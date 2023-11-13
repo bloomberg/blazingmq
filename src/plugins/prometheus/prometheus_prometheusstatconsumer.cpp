@@ -38,7 +38,11 @@
 #include <bdld_manageddatum.h>
 #include <bdlf_bind.h>
 #include <bdlt_currenttime.h>
+#include <bsl_atomic.h>
 #include <bsl_vector.h>
+#include <bslmt_condition.h>
+#include <bslmt_mutex.h>
+#include <bslmt_threadutil.h>
 #include <bsls_annotation.h>
 #include <bsls_performancehint.h>
 

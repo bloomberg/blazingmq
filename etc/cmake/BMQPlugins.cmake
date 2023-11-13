@@ -1,6 +1,6 @@
 include_guard()
 
-macro(_bmq_dedup_link_flags target)
+macro(_bmq_add_include_paths target)
     cmake_parse_arguments(
         ""
         ""
@@ -9,29 +9,9 @@ macro(_bmq_dedup_link_flags target)
         ${ARGN}
     )
 
-    message(DEBUG "Resolved target ${target} deps: ${${target}_DEPENDS}")
-    message(DEBUG "Culling depends from ${target}: ${_DEPS}")
-
-    bbs_import_target_dependencies(${target} ${${target}_PCDEPS})
-
-    foreach(linkopt ${${target}_DEPENDS})
-        list(FIND _DEPS "${linkopt}" idx)
-
-        if(${idx} GREATER -1)
-            if("${linkopt}" MATCHES "^-l" OR "${linkopt}" MATCHES "^[a-z]*$")
-                # Remove any link-flags like "mqb", "bmq", etc.; or any flags
-                # that are "-l<library>"; if they are already linked by
-                # 'bmqbrkr.tsk'.
-                list(REMOVE_ITEM ${target}_DEPENDS "${linkopt}")
-                if (TARGET "${linkopt}")
-                    target_include_directories(${target} PRIVATE $<TARGET_PROPERTY:${linkopt},INTERFACE_INCLUDE_DIRECTORIES>)
-                endif()
-            endif()
-        endif()
+    foreach(linkopt ${_DEPS})
+        target_include_directories(${target} PRIVATE $<TARGET_PROPERTY:${linkopt},INTERFACE_INCLUDE_DIRECTORIES>)
     endforeach()
-
-    message(DEBUG "Culled depends from ${target} deps: ${${target}_DEPENDS}")
-    list(REMOVE_DUPLICATES ${target}_DEPENDS)
 endmacro()
 
 # :: bmq_add_plugin :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -61,7 +41,7 @@ function(bmq_add_plugin name)
     # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
     # Configure link-time options.
     # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-    _bmq_dedup_link_flags(${name} DEPS bal bsl mqb bmq mwc)
+    _bmq_add_include_paths(${name} DEPS bal bsl mqb bmq mwc)
     target_link_libraries(${name} PRIVATE ${${name}_DEPENDS})
 
     # include( BMQTest )

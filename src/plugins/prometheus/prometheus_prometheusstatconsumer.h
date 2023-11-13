@@ -38,7 +38,6 @@
 
 // BDE
 #include <bdlcc_sharedobjectpool.h>
-#include <bsl_atomic.h>
 #include <bsl_deque.h>
 #include <bsl_memory.h>
 #include <bsl_string.h>
@@ -47,9 +46,6 @@
 #include <bslma_allocator.h>
 #include <bslma_managedptr.h>
 #include <bslma_usesbslmaallocator.h>
-#include <bslmt_condition.h>
-#include <bslmt_mutex.h>
-#include <bslmt_threadutil.h>
 #include <bsls_keyword.h>
 #include <bsls_timeinterval.h>
 #include <bslstl_stringref.h>

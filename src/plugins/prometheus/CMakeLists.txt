@@ -1,5 +1,5 @@
 # Prometheus plugin
-# ------------
+# -----------------
 
 if (NOT BMQ_TARGET_PROMETHEUS_NEEDED )
   return()
