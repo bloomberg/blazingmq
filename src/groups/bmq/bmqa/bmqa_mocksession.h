@@ -492,7 +492,7 @@
 //      // Next we expect a call to 'openQueue' to open the queue.
 //      bmqa::OpenQueueStatus result = mockSession.openQueueSync(&queueId,
 //                                                               uri,
-//                                                               10);
+//                                                               flags);
 //      ASSERT_EQ(result, expectedResult);
 //
 //      // Now our call to 'nextEvent' will generate a push message from the
