@@ -13,14 +13,4 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// prometheus_versiontag.cpp -*-C++-*-
-#include <prometheus_versiontag.h>
-
-// ----------------------------------------------------------------------------
-// NOTICE:
-//      Copyright (C) Bloomberg L.P., 2023
-//      All Rights Reserved.
-//      Property of Bloomberg L.P. (BLP)
-//      This software is made available solely pursuant to the
-//      terms of a BLP license agreement which governs its use.
-// ----------------------------- END-OF-FILE ----------------------------------
+#include <bmqprometheus_versiontag.h>

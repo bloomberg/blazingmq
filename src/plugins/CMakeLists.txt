@@ -1,1 +1,1 @@
-add_subdirectory( "prometheus" )
+add_subdirectory( "bmqprometheus" )

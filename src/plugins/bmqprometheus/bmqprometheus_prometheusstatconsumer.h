@@ -13,18 +13,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// prometheus_prometheusstatconsumer.h -*-C++-*-
 #ifndef INCLUDED_PROMETHEUS_PROMETHEUSSTATCONSUMER
 #define INCLUDED_PROMETHEUS_PROMETHEUSSTATCONSUMER
 
 //@PURPOSE: Provide a 'StatConsumer' plugin for publishing stats to Prometheus.
 //
 //@CLASSES:
-//  prometheus::PrometheusStatConsumer: bmqbrkr plugin for publishing stats to
-//  Prometheus.
+//  bmqprometheus::PrometheusStatConsumer: bmqbrkr plugin for publishing stats
+//  to Prometheus.
 //
-//@DESCRIPTION: 'prometheus::PrometheusStatConsumer' handles the publishing of
-// statistics to Prometheus.
+//@DESCRIPTION: 'bmqprometheus::PrometheusStatConsumer' handles the publishing
+// of statistics to Prometheus.
 
 // MQB
 #include <mqbcfg_brokerconfig.h>
@@ -51,8 +50,8 @@
 #include <bslstl_stringref.h>
 
 // PROMETHEUS
-#include "prometheus/labels.h"
-#include "prometheus/registry.h"
+#include <prometheus/labels.h>
+#include <prometheus/registry.h>
 
 namespace BloombergLP {
 
@@ -61,11 +60,11 @@ namespace mwcst {
 class StatContext;
 }
 
-namespace prometheus {
+namespace bmqprometheus {
 
-typedef mqbplug::StatConsumer            StatConsumer;
-typedef StatConsumer::StatContextsMap    StatContextsMap;
-typedef StatConsumer::CommandProcessorFn CommandProcessorFn;
+using StatConsumer       = mqbplug::StatConsumer;
+using StatContextsMap    = StatConsumer::StatContextsMap;
+using CommandProcessorFn = StatConsumer::CommandProcessorFn;
 
 // ============================
 // class PrometheusStatExporter
@@ -78,7 +77,7 @@ class PrometheusStatExporter {
     PrometheusStatExporter& operator=(const PrometheusStatExporter&) = delete;
     PrometheusStatExporter()                                         = default;
 
-    virtual ~PrometheusStatExporter(){};
+    virtual ~PrometheusStatExporter() = default;
 
     virtual void onData(){};
     virtual int  start() = 0;
@@ -95,16 +94,15 @@ class PrometheusStatConsumer : public mqbplug::StatConsumer {
 
   private:
     // PRIVATE TYPES
-    typedef bsl::unordered_set<bslstl::StringRef> LeaderSet;
+    using LeaderSet = bsl::unordered_set<bslstl::StringRef>;
 
     struct DatapointDef {
         const char* d_name;
         int         d_stat;
         bool        d_isCounter;
-        // TODO: const char *d_help;
     };
 
-    typedef const DatapointDef* DatapointDefCIter;
+    using DatapointDefCIter = const DatapointDef*;
 
     const mwcst::StatContext* d_systemStatContext_p;
     // The system stat context
@@ -312,12 +310,3 @@ inline bool PrometheusStatConsumer::isEnabled() const
 }  // close enterprise namespace
 
 #endif
-
-// ----------------------------------------------------------------------------
-// NOTICE:
-//      Copyright (C) Bloomberg L.P., 2023
-//      All Rights Reserved.
-//      Property of Bloomberg L.P. (BLP)
-//      This software is made available solely pursuant to the
-//      terms of a BLP license agreement which governs its use.
-// ------------------------------ END-OF-FILE ---------------------------------

@@ -7,4 +7,4 @@ endif()
 
 find_package( PkgConfig REQUIRED )
 
-bmq_add_plugin( prometheus )
+bmq_add_plugin( bmqprometheus )

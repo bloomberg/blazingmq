@@ -13,38 +13,39 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// prometheus_version.h -*-C++-*-
 #ifndef INCLUDED_PROMETHEUS_VERSION
 #define INCLUDED_PROMETHEUS_VERSION
 
 //@PURPOSE: Provide source control management (versioning) information.
 //
 //@CLASSES:
-//  prometheus::Version: namespace for 'prometheus' SCM versioning information
+//  bmqprometheus::Version: namespace for 'bmqprometheus' SCM versioning
+//  information
 //
 //@DESCRIPTION: This component provides source control management (versioning)
-// information for the 'prometheus' plugin.  In particular, this component
+// information for the 'bmqprometheus' plugin.  In particular, this component
 // embeds RCS-style and SCCS-style version strings in binary executable files
-// that use one or more components from the 'prometheus' plugin.  This version
-// information may be extracted from binary files using common UNIX utilities
-// (e.g., 'ident' and 'what').  In addition, the 'version' 'static' member
-// function in the 'prometheus::Version' struct can be used to query version
-// information for the 'prometheus' plugin at runtime.  The following USAGE
-// examples illustrate these two basic capabilities.
+// that use one or more components from the 'bmqprometheus' plugin.  This
+// version information may be extracted from binary files using common UNIX
+// utilities (e.g., 'ident' and 'what').  In addition, the 'version' 'static'
+// member function in the 'bmqprometheus::Version' struct can be used to query
+// version information for the 'bmqprometheus' plugin at runtime.  The
+// following USAGE examples illustrate these two basic capabilities.
 //
 // Note that unless the 'version' method will be called, it is not necessary to
-// "#include" this component header file to get 'prometheus' version
+// "#include" this component header file to get 'bmqprometheus' version
 // information embedded in an executable.  It is only necessary to use one or
-// more 'prometheus' components (and, hence, link in the 'prometheus' library).
+// more 'bmqprometheus' components (and, hence, link in the 'bmqprometheus'
+// library).
 
 // PROMETHEUS
-#include <prometheus_versiontag.h>
+#include <bmqprometheus_versiontag.h>
 
 // BDE
 #include <bsls_linkcoercion.h>
 
 namespace BloombergLP {
-namespace prometheus {
+namespace bmqprometheus {
 
 struct Version {
     // PUBLIC CLASS DATA
@@ -86,9 +87,9 @@ struct Version {
 //                             INLINE DEFINITIONS
 // ============================================================================
 
-// ------------------------
-// class prometheus::Version
-// ------------------------
+// ----------------------------
+// class bmqprometheus::Version
+// ----------------------------
 
 inline const char* Version::version()
 {
@@ -102,20 +103,6 @@ inline int Version::versionAsInt()
 
 }  // close package namespace
 
-BSLS_LINKCOERCION_FORCE_SYMBOL_DEPENDENCY(
-    const char*,
-    prometheus_version_assertion,
-    prometheus::Version::PROMETHEUS_S_VERSION)
-
 }  // close enterprise namespace
 
 #endif
-
-// ----------------------------------------------------------------------------
-// NOTICE:
-//      Copyright (C) Bloomberg L.P., 2023
-//      All Rights Reserved.
-//      Property of Bloomberg L.P. (BLP)
-//      This software is made available solely pursuant to the
-//      terms of a BLP license agreement which governs its use.
-// ------------------------------- END-OF-FILE --------------------------------

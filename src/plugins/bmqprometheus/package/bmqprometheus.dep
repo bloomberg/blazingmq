@@ -1,8 +1,3 @@
-#bal
-#bmq
-#bsl
-#mqb
-#mwc
 prometheus-cpp-core
 prometheus-cpp-pull
 prometheus-cpp-push

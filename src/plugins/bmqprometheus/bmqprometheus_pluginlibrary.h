@@ -13,14 +13,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// prometheus_pluginlibrary.h -*-C++-*-
 #ifndef INCLUDED_PROMETHEUS_PLUGINLIBRARY
 #define INCLUDED_PROMETHEUS_PLUGINLIBRARY
 
 //@PURPOSE: Provide library of Prometheus plugin for broker.
 //
 //@CLASSES:
-//  prometheus::PluginLibrary: Library of Prometheus plugin.
+//  bmqprometheus::PluginLibrary: Library of Prometheus plugin.
 //
 //@DESCRIPTION: This component provides the definition for the 'PluginLibrary'
 // class, which represents and publishes Prometheus plugin for interfacing
@@ -38,7 +37,7 @@
 #include <bsls_keyword.h>
 
 namespace BloombergLP {
-namespace prometheus {
+namespace bmqprometheus {
 // ===================
 // class PluginLibrary
 // ===================
@@ -81,12 +80,3 @@ class PluginLibrary : public mqbplug::PluginLibrary {
 }  // close enterprise namespace
 
 #endif
-
-// ----------------------------------------------------------------------------
-// NOTICE:
-//      Copyright (C) Bloomberg L.P., 2023
-//      All Rights Reserved.
-//      Property of Bloomberg L.P. (BLP)
-//      This software is made available solely pursuant to the
-//      terms of a BLP license agreement which governs its use.
-// ------------------------------ END-OF-FILE ---------------------------------

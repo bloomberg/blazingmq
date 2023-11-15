@@ -13,11 +13,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// prometheus_prometheusstatconsumer.cpp -*-C++-*-
-#include <prometheus_prometheusstatconsumer.h>
+#include <bmqprometheus_prometheusstatconsumer.h>
 
 // PROMETHEUS
-#include <prometheus_version.h>
+#include <bmqprometheus_version.h>
 
 // MQB
 #include <mqbstat_brokerstats.h>
@@ -54,7 +53,7 @@
 #include "prometheus/labels.h"
 
 namespace BloombergLP {
-namespace prometheus {
+namespace bmqprometheus {
 
 namespace {
 
@@ -946,12 +945,3 @@ makeExporter(const mqbcfg::ExportMode::Value&          mode,
 
 }  // close package namespace
 }  // close enterprise namespace
-
-// ----------------------------------------------------------------------------
-// NOTICE:
-//      Copyright (C) Bloomberg L.P., 2023
-//      All Rights Reserved.
-//      Property of Bloomberg L.P. (BLP)
-//      This software is made available solely pursuant to the
-//      terms of a BLP license agreement which governs its use.
-// ------------------------------ END-OF-FILE ---------------------------------

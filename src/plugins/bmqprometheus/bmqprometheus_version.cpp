@@ -13,8 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// prometheus_version.cpp -*-C++-*-
-#include <prometheus_version.h>
+#include <bmqprometheus_version.h>
 
 namespace BloombergLP {
 
@@ -25,24 +24,15 @@ namespace BloombergLP {
     "BLP_LIB_PROMETHEUS_" STRINGIFY(PROMETHEUS_VERSION_MAJOR) "." STRINGIFY(  \
         PROMETHEUS_VERSION_MINOR) "." STRINGIFY(PROMETHEUS_VERSION_PATCH)
 
-const char* prometheus::Version::s_ident = "$Id: " PROMETHEUS_VERSION_STRING
-                                           " $";
-const char* prometheus::Version::s_what = "@(#)" PROMETHEUS_VERSION_STRING;
+const char* bmqprometheus::Version::s_ident = "$Id: " PROMETHEUS_VERSION_STRING
+                                              " $";
+const char* bmqprometheus::Version::s_what = "@(#)" PROMETHEUS_VERSION_STRING;
 
-const char* prometheus::Version::PROMETHEUS_S_VERSION =
+const char* bmqprometheus::Version::PROMETHEUS_S_VERSION =
     PROMETHEUS_VERSION_STRING;
-const char* prometheus::Version::s_dependencies      = "";
-const char* prometheus::Version::s_buildInfo         = "";
-const char* prometheus::Version::s_timestamp         = "";
-const char* prometheus::Version::s_sourceControlInfo = "";
+const char* bmqprometheus::Version::s_dependencies      = "";
+const char* bmqprometheus::Version::s_buildInfo         = "";
+const char* bmqprometheus::Version::s_timestamp         = "";
+const char* bmqprometheus::Version::s_sourceControlInfo = "";
 
 }  // close enterprise namespace
-
-// ----------------------------------------------------------------------------
-// NOTICE:
-//      Copyright (C) Bloomberg L.P., 2023
-//      All Rights Reserved.
-//      Property of Bloomberg L.P. (BLP)
-//      This software is made available solely pursuant to the
-//      terms of a BLP license agreement which governs its use.
-// ------------------------------- END-OF-FILE --------------------------------

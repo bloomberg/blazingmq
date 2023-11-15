@@ -164,7 +164,7 @@ def main(args):
         'docker/docker-compose.yml')
     broker_path = build_dir.joinpath('src/applications/bmqbrkr/bmqbrkr.tsk')
     tool_path = build_dir.joinpath('src/applications/bmqtool/bmqtool.tsk')
-    plugin_path = build_dir.joinpath('src/plugins/libprometheus.so')
+    plugin_path = build_dir.joinpath('src/plugins/libbmqprometheus.so')
 
     modes = ['push', 'pull'] if args.mode == 'all' else [args.mode]
     results = dict()

@@ -13,18 +13,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// prometheus_versiontag.h -*-C++-*-
 #ifndef INCLUDED_PROMETHEUS_VERSIONTAG
 #define INCLUDED_PROMETHEUS_VERSIONTAG
 
-//@PURPOSE: Provide versioning information for the 'prometheus' plugin.
+//@PURPOSE: Provide versioning information for the 'bmqprometheus' plugin.
 //
-//@SEE_ALSO: prometheus::Version
+//@SEE_ALSO: bmqprometheus::Version
 //
 //@DESCRIPTION: This component provides versioning information for the
-// 'prometheus' plugin.  The 'PROMETHEUS_VERSION' macro that is supplied can be
-// used for conditional-compilation based on 'prometheus' version information.
-// The following usage example illustrates this basic capability.
+// 'bmqprometheus' plugin.  The 'PROMETHEUS_VERSION' macro that is supplied can
+// be used for conditional-compilation based on 'bmqprometheus' version
+// information. The following usage example illustrates this basic capability.
 //
 /// Usage
 ///-----
@@ -48,57 +47,48 @@
 //  #endif
 //..
 
+/// PROMETHEUS release major version
 #define PROMETHEUS_VERSION_MAJOR 99
-// PROMETHEUS release major version
 
+/// PROMETHEUS release minor version
 #define PROMETHEUS_VERSION_MINOR 99
-// PROMETHEUS release minor version
 
+/// PROMETHEUS patch level
 #define PROMETHEUS_VERSION_PATCH 99
-// PROMETHEUS patch level
 
+/// Construct a composite version number in the range [ 0 .. 999900 ] from
+/// the specified 'major' and 'minor' version numbers.  The resulting value,
+/// when expressed as a 6-digit decimal string, has "00" as the two
+/// lowest-order decimal digits, 'minor' as the next two digits, and 'major'
+/// as the highest-order digits.  The result is unique for each combination
+/// of 'major' and 'minor', and is sortable such that a value composed from
+/// a given 'major' version number will compare larger than a value composed
+/// from a smaller 'major' version number (and similarly for 'minor' version
+/// numbers).  Note that if 'major' and 'minor' are both compile-time
+/// integral constants, then the resulting expression is also a compile-time
+/// integral constant.  Also note that the patch version number is
+/// intentionally not included.  The behavior is undefined unless 'major'
+/// and 'minor' are integral values in the range '[ 0 .. 99 ]'.
 #define PROMETHEUS_MAKE_VERSION(major, minor) ((major)*10000 + (minor)*100)
-// Construct a composite version number in the range [ 0 .. 999900 ] from
-// the specified 'major' and 'minor' version numbers.  The resulting value,
-// when expressed as a 6-digit decimal string, has "00" as the two
-// lowest-order decimal digits, 'minor' as the next two digits, and 'major'
-// as the highest-order digits.  The result is unique for each combination
-// of 'major' and 'minor', and is sortable such that a value composed from
-// a given 'major' version number will compare larger than a value composed
-// from a smaller 'major' version number (and similarly for 'minor' version
-// numbers).  Note that if 'major' and 'minor' are both compile-time
-// integral constants, then the resulting expression is also a compile-time
-// integral constant.  Also note that the patch version number is
-// intentionally not included.  The behavior is undefined unless 'major'
-// and 'minor' are integral values in the range '[ 0 .. 99 ]'.
 
+/// Similar to PROMETHEUS_MAKE_VERSION(), but include patch number as well.
 #define PROMETHEUS_MAKE_EXT_VERSION(major, minor, patch)                      \
     ((major)*10000 + (minor)*100 + (patch))
-// Similar to PROMETHEUS_MAKE_VERSION(), but include patch number as well.
 
+/// Construct a composite version number in the range [ 0 .. 999900 ] from
+/// the specified 'PROMETHEUS_VERSION_MAJOR' and 'PROMETHEUS_VERSION_MINOR'
+/// numbers corresponding to the major and minor version numbers,
+/// respectively, of the current (latest) PROMETHEUS release.  Note that the
+/// patch version number is intentionally not included.  For example,
+/// 'PROMETHEUS_VERSION' produces 10300 (decimal) for PROMETHEUS version
+/// 1.3.1.
 #define PROMETHEUS_VERSION                                                    \
     PROMETHEUS_MAKE_VERSION(PROMETHEUS_VERSION_MAJOR, PROMETHEUS_VERSION_MINOR)
-// Construct a composite version number in the range [ 0 .. 999900 ] from
-// the specified 'PROMETHEUS_VERSION_MAJOR' and 'PROMETHEUS_VERSION_MINOR'
-// numbers corresponding to the major and minor version numbers,
-// respectively, of the current (latest) PROMETHEUS release.  Note that the
-// patch version number is intentionally not included.  For example,
-// 'PROMETHEUS_VERSION' produces 10300 (decimal) for PROMETHEUS version
-// 1.3.1.
 
+/// Similar to PROMETHEUS_VERSION, but include the patch number as well
 #define PROMETHEUS_EXT_VERSION                                                \
     PROMETHEUS_MAKE_EXT_VERSION(PROMETHEUS_VERSION_MAJOR,                     \
                                 PROMETHEUS_VERSION_MINOR,                     \
                                 PROMETHEUS_VERSION_PATCH)
-// Similar to PROMETHEUS_VERSION, but include the patch number as well
 
 #endif
-
-// ----------------------------------------------------------------------------
-// NOTICE:
-//      Copyright (C) Bloomberg L.P., 2023
-//      All Rights Reserved.
-//      Property of Bloomberg L.P. (BLP)
-//      This software is made available solely pursuant to the
-//      terms of a BLP license agreement which governs its use.
-// ----------------------------- END-OF-FILE ----------------------------------

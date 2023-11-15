@@ -13,11 +13,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// prometheus_entry.cpp -*-C++-*-
-
 // PROMETHEUS
-#include <prometheus_pluginlibrary.h>
-#include <prometheus_version.h>
+#include <bmqprometheus_pluginlibrary.h>
+#include <bmqprometheus_version.h>
 
 // MQB
 #include <mqbplug_pluginlibrary.h>
@@ -44,9 +42,9 @@ void instantiatePluginLibrary(
 
     BALL_LOG_INFO << "Instantiating 'libprometheus.so' plugin library "
                      "(version: "
-                  << prometheus::Version::version() << ")";
+                  << bmqprometheus::Version::version() << ")";
 
     *library =
-        bslma::ManagedPtrUtil::allocateManaged<prometheus::PluginLibrary>(
+        bslma::ManagedPtrUtil::allocateManaged<bmqprometheus::PluginLibrary>(
             allocator);
 }

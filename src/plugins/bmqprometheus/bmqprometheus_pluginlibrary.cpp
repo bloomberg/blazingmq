@@ -13,19 +13,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// prometheus_pluginlibrary.cpp -*-C++-*-
-#include <prometheus_pluginlibrary.h>
+#include <bmqprometheus_pluginlibrary.h>
 
 // PROMETHEUS
-#include <prometheus_prometheusstatconsumer.h>
-#include <prometheus_version.h>
+#include <bmqprometheus_prometheusstatconsumer.h>
+#include <bmqprometheus_version.h>
 
 // BDE
 #include <bsl_sstream.h>
 #include <bslma_default.h>
 
 namespace BloombergLP {
-namespace prometheus {
+namespace bmqprometheus {
 
 // -------------------
 // class PluginLibrary
@@ -71,12 +70,3 @@ const bsl::vector<mqbplug::PluginInfo>& PluginLibrary::plugins() const
 
 }  // close package namespace
 }  // close enterprise namespace
-
-// ----------------------------------------------------------------------------
-// NOTICE:
-//      Copyright (C) Bloomberg L.P., 2023
-//      All Rights Reserved.
-//      Property of Bloomberg L.P. (BLP)
-//      This software is made available solely pursuant to the
-//      terms of a BLP license agreement which governs its use.
-// ------------------------------ END-OF-FILE ---------------------------------
