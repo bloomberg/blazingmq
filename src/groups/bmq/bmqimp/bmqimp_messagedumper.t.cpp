@@ -550,7 +550,9 @@ void Tester::registerSubscription(const bslstl::StringRef&   uri,
 
     BSLS_ASSERT_SAFE(queue);
 
-    d_queueManager.registerSubscription(queue, subscriptionId, correlationId);
+    queue->registerInternalSubscriptionId(subscriptionId,
+                                          subscriptionId,
+                                          correlationId);
 }
 
 void Tester::updateSubscriptions(const bslstl::StringRef&              uri,

@@ -12,3 +12,4 @@ permalink: /apidocs
 
 - [Java API Documentation](java_apidocs/index.html)
 - [C++ API Documentation](cpp_apidocs/index.html)
+- [Python API Documentation](python_apidocs/index.html)

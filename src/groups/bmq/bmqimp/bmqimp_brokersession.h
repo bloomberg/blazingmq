@@ -852,6 +852,9 @@ class BrokerSession BSLS_CPP11_FINAL {
     // retransmission timeout provided by
     // the broker
 
+    unsigned int d_nextInternalSubscriptionId;
+    // Assists generating unique ids for Configure requests.
+
   private:
     // NOT IMPLEMENTED
     BrokerSession(const BrokerSession&);

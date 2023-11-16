@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>blazingmq._messages &mdash; blazingmq 1.2.0 documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=6efca38a"></script>
+        <script src="../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            blazingmq
+          </a>
+              <div class="version">
+                1.2.0
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../user_guide.html">User Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../acknowledgments.html">Acknowledgments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../message_properties.html">Message Properties</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../queue_options_and_configuration.html">Queue Options and Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api_reference.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../CHANGELOG.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../BUILD.html">Build instructions</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">blazingmq</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">blazingmq._messages</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for blazingmq._messages</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright 2019-2023 Bloomberg Finance L.P.</span>
+<span class="c1"># SPDX-License-Identifier: Apache-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">TYPE_CHECKING</span>
+
+<span class="kn">from</span> <span class="nn">._enums</span> <span class="kn">import</span> <span class="n">AckStatus</span>
+<span class="kn">from</span> <span class="nn">._typing</span> <span class="kn">import</span> <span class="n">PropertyTypeDict</span>
+<span class="kn">from</span> <span class="nn">._typing</span> <span class="kn">import</span> <span class="n">PropertyValueDict</span>
+<span class="kn">from</span> <span class="nn">.exceptions</span> <span class="kn">import</span> <span class="n">Error</span>
+
+<span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
+    <span class="c1"># Safely perform circular references only during static type analysis</span>
+    <span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">_ext</span>  <span class="c1"># pragma: no cover</span>
+
+
+<span class="k">def</span> <span class="nf">pretty_hex</span><span class="p">(</span><span class="n">blob</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">blob</span><span class="o">.</span><span class="n">hex</span><span class="p">()</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+
+
+<span class="k">def</span> <span class="nf">create_message</span><span class="p">(</span>
+    <span class="n">data</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">,</span>
+    <span class="n">guid</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">,</span>
+    <span class="n">queue_uri</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">properties</span><span class="p">:</span> <span class="n">PropertyValueDict</span><span class="p">,</span>
+    <span class="n">property_types</span><span class="p">:</span> <span class="n">PropertyTypeDict</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Message</span><span class="p">:</span>
+    <span class="n">inst</span> <span class="o">=</span> <span class="n">Message</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span><span class="n">Message</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">inst</span><span class="p">,</span> <span class="n">Message</span><span class="p">)</span>
+    <span class="n">inst</span><span class="o">.</span><span class="n">_set_attrs</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">guid</span><span class="p">,</span> <span class="n">queue_uri</span><span class="p">,</span> <span class="n">properties</span><span class="p">,</span> <span class="n">property_types</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">inst</span>
+
+
+<div class="viewcode-block" id="Message">
+<a class="viewcode-back" href="../../api_reference.html#blazingmq.Message">[docs]</a>
+<span class="k">class</span> <span class="nc">Message</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;A class representing a message received from BlazingMQ.</span>
+
+<span class="sd">    A `Message` represents a message delivered by BlazingMQ from a producer</span>
+<span class="sd">    to this queue. This message can only be received if the queue is</span>
+<span class="sd">    opened with &#39;read=True&#39; mode enabled.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        data (bytes): Payload for the message received from BlazingMQ.</span>
+<span class="sd">        guid (bytes): Globally unique id for this message.</span>
+<span class="sd">        queue_uri (str): Queue URI this message is for.</span>
+<span class="sd">        properties (dict): A dictionary of BlazingMQ message properties.</span>
+<span class="sd">            The dictionary keys must be :class:`str` representing the property</span>
+<span class="sd">            names and the values must be of type :class:`str`, :class:`bytes`,</span>
+<span class="sd">            :class:`bool` or :class:`int`.</span>
+<span class="sd">        property_types (dict): A mapping of property names to</span>
+<span class="sd">            `PropertyType` types. The dictionary is guaranteed to provide</span>
+<span class="sd">            a value for each key already present in `Message.properties`</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">_set_attrs</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">data</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">,</span>
+        <span class="n">guid</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">,</span>
+        <span class="n">queue_uri</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">properties</span><span class="p">:</span> <span class="n">PropertyValueDict</span><span class="p">,</span>
+        <span class="n">property_types</span><span class="p">:</span> <span class="n">PropertyTypeDict</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Teach mypy what our instance variables are despite our private __init__&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">data</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">guid</span> <span class="o">=</span> <span class="n">guid</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">queue_uri</span> <span class="o">=</span> <span class="n">queue_uri</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">properties</span> <span class="o">=</span> <span class="n">properties</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">property_types</span> <span class="o">=</span> <span class="n">property_types</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">Error</span><span class="p">(</span><span class="s2">&quot;The Message class does not have a public constructor.&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;&lt;Message[</span><span class="si">{</span><span class="n">pretty_hex</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">guid</span><span class="p">)</span><span class="si">}</span><span class="s2">] for </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">queue_uri</span><span class="si">}</span><span class="s2">&gt;&quot;</span></div>
+
+
+
+<span class="k">def</span> <span class="nf">create_message_handle</span><span class="p">(</span><span class="n">message</span><span class="p">:</span> <span class="n">Message</span><span class="p">,</span> <span class="n">ext_session</span><span class="p">:</span> <span class="n">_ext</span><span class="o">.</span><span class="n">Session</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MessageHandle</span><span class="p">:</span>
+    <span class="n">inst</span> <span class="o">=</span> <span class="n">MessageHandle</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span><span class="n">MessageHandle</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">inst</span><span class="p">,</span> <span class="n">MessageHandle</span><span class="p">)</span>
+    <span class="n">inst</span><span class="o">.</span><span class="n">_set_attrs</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="n">ext_session</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">inst</span>
+
+
+<div class="viewcode-block" id="MessageHandle">
+<a class="viewcode-back" href="../../api_reference.html#blazingmq.MessageHandle">[docs]</a>
+<span class="k">class</span> <span class="nc">MessageHandle</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Operations that can be performed on a `Message`.</span>
+
+<span class="sd">    An instance of this class is received in the ``on_message``</span>
+<span class="sd">    callback along with an instance of a `Message`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="MessageHandle.confirm">
+<a class="viewcode-back" href="../../api_reference.html#blazingmq.MessageHandle.confirm">[docs]</a>
+    <span class="k">def</span> <span class="nf">confirm</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Confirm the message received along with this handle.</span>
+
+<span class="sd">        See `Session.confirm` for more details.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            `~blazingmq.Error`: If the confirm message request</span>
+<span class="sd">                was not successful.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ext_session</span><span class="o">.</span><span class="n">confirm</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_message</span><span class="p">)</span></div>
+
+
+    <span class="k">def</span> <span class="nf">_set_attrs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">:</span> <span class="n">Message</span><span class="p">,</span> <span class="n">ext_session</span><span class="p">:</span> <span class="n">_ext</span><span class="o">.</span><span class="n">Session</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Teach mypy what our instance variables are despite our private __init__&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_message</span> <span class="o">=</span> <span class="n">message</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ext_session</span> <span class="o">=</span> <span class="n">ext_session</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">Error</span><span class="p">(</span><span class="s2">&quot;The MessageHandle class does not have a public constructor.&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">&quot;&lt;MessageHandle[</span><span class="si">{}</span><span class="s2">] for </span><span class="si">{}</span><span class="s2">&gt;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">pretty_hex</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_message</span><span class="o">.</span><span class="n">guid</span><span class="p">),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_message</span><span class="o">.</span><span class="n">queue_uri</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+
+<span class="k">def</span> <span class="nf">create_ack</span><span class="p">(</span>
+    <span class="n">guid</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bytes</span><span class="p">],</span> <span class="n">status</span><span class="p">:</span> <span class="n">AckStatus</span><span class="p">,</span> <span class="n">status_description</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">queue_uri</span><span class="p">:</span> <span class="nb">str</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Ack</span><span class="p">:</span>
+    <span class="n">inst</span> <span class="o">=</span> <span class="n">Ack</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span><span class="n">Ack</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">inst</span><span class="p">,</span> <span class="n">Ack</span><span class="p">)</span>
+    <span class="n">inst</span><span class="o">.</span><span class="n">_set_attrs</span><span class="p">(</span><span class="n">guid</span><span class="p">,</span> <span class="n">status</span><span class="p">,</span> <span class="n">status_description</span><span class="p">,</span> <span class="n">queue_uri</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">inst</span>
+
+
+<div class="viewcode-block" id="Ack">
+<a class="viewcode-back" href="../../api_reference.html#blazingmq.Ack">[docs]</a>
+<span class="k">class</span> <span class="nc">Ack</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Acknowledgment message</span>
+
+<span class="sd">    An `Ack` is a notification from BlazingMQ to the application,</span>
+<span class="sd">    specifying that the message has been received. This is valuable</span>
+<span class="sd">    for ensuring delivery of messages.</span>
+
+<span class="sd">    These messages will be received in the optionally provided callback to</span>
+<span class="sd">    `Session.post()`.</span>
+
+<span class="sd">    An `Ack` is by itself not an indication of success unless it has a status of</span>
+<span class="sd">    `AckStatus.SUCCESS`.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        guid (bytes): a globally unique identifier generated by BlazingMQ for the</span>
+<span class="sd">            message that was successfully posted. This can be correlated between the</span>
+<span class="sd">            producer and consumer to verify the flow of messages.</span>
+<span class="sd">        queue_uri (str): the queue that this message was routed to. This is useful</span>
+<span class="sd">            if you have many queues and you want to route this particular `Ack` to a</span>
+<span class="sd">            particular queue.</span>
+<span class="sd">        status (AckStatus): the `AckStatus` indicating the result of the post</span>
+<span class="sd">            operation. Unless this is of type `AckStatus.SUCCESS`, the post has</span>
+<span class="sd">            failed and potentially needs to be dealt with.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">_set_attrs</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">guid</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bytes</span><span class="p">],</span>
+        <span class="n">status</span><span class="p">:</span> <span class="n">AckStatus</span><span class="p">,</span>
+        <span class="n">status_description</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">queue_uri</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Teach mypy what our instance variables are despite our private __init__&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">guid</span> <span class="o">=</span> <span class="n">guid</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="n">status</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_status_description</span> <span class="o">=</span> <span class="n">status_description</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">queue_uri</span> <span class="o">=</span> <span class="n">queue_uri</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">Error</span><span class="p">(</span><span class="s2">&quot;The Ack class does not have a public constructor.&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="n">guid_identifier</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">guid</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="sa">f</span><span class="s2">&quot;[</span><span class="si">{</span><span class="n">pretty_hex</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">guid</span><span class="p">)</span><span class="si">}</span><span class="s2">]&quot;</span>
+        <span class="k">return</span> <span class="s2">&quot;&lt;Ack</span><span class="si">{}</span><span class="s2"> </span><span class="si">{}</span><span class="s2"> for </span><span class="si">{}</span><span class="s2">&gt;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">guid_identifier</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_status_description</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">queue_uri</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2019-2023, Bloomberg Finance L.P..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

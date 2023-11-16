@@ -325,6 +325,7 @@ Queue::Queue(bslma::Allocator* allocator)
 , d_schemaLearner(allocator)
 , d_schemaLearnerContext(d_schemaLearner.createContext())
 , d_config(allocator)
+, d_registeredInternalSubscriptionIds(allocator)
 {
     d_handleParameters.uri()   = "";
     d_handleParameters.flags() = bmqt::QueueFlagsUtil::empty();
