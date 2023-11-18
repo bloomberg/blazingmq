@@ -9,6 +9,8 @@ extern "C" {
 
 typedef const char* z_bmqt_String;
 
+typedef struct z_bmqt_Blob z_bmqt_Blob;
+
 #if defined(__cplusplus)
 }
 #endif
