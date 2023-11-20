@@ -117,7 +117,7 @@ jobs:
           docker pull prom/pushgateway
           docker run -d -p 9091:9091 prom/pushgateway
       - name: Run BMQPrometheus plugin integration test in "pull" mode
-        run: ${{ github.workspace }}/src/plugins/prometheus/tests/prometheus_prometheusstatconsumer_test.py -p ${{ github.workspace }}/cmake.bld/Linux -m pull --no-docker
+        run: ${{ github.workspace }}/src/plugins/bmqprometheus/tests/prometheus_prometheusstatconsumer_test.py -p ${{ github.workspace }}/cmake.bld/Linux -m pull --no-docker
       - name: Clear Prometheus database and restart
         run: |
           curl -X POST "http://localhost:9090/-/quit"
