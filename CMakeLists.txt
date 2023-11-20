@@ -41,7 +41,6 @@ if( "${CMAKE_CXX_COMPILER_ID}" MATCHES "(Apple)?Clang" )
   )
 
 
-
   if( DEFINED CMAKE_CXX_STANDARD AND CMAKE_CXX_STANDARD GREATER_EQUAL 17 )
     # The below warnings are disabled, but should be revisited and properly
     # addressed
