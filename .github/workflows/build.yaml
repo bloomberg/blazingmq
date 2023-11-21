@@ -117,14 +117,14 @@ jobs:
           docker pull prom/pushgateway
           docker run -d -p 9091:9091 prom/pushgateway
       - name: Run BMQPrometheus plugin integration test in "pull" mode
-        run: ${{ github.workspace }}/src/plugins/bmqprometheus/tests/prometheus_prometheusstatconsumer_test.py -p ${{ github.workspace }}/cmake.bld/Linux -m pull --no-docker
+        run: ${{ github.workspace }}/src/plugins/bmqprometheus/tests/bmqprometheus_prometheusstatconsumer_test.py -p ${{ github.workspace }}/cmake.bld/Linux -m pull --no-docker
       - name: Clear Prometheus database and restart
         run: |
           curl -X POST "http://localhost:9090/-/quit"
           rm -rf prometheus_dir/data
           ./prometheus_dir/prometheus-2.45.1.linux-amd64/prometheus --config.file=${{ github.workspace }}/src/plugins/bmqprometheus/tests/prometheus_localhost.yaml --web.enable-lifecycle --storage.tsdb.path=${{ github.workspace }}/prometheus_dir/data &
       - name: Run Prometheus plugin integration test in "push" mode
-        run: ${{ github.workspace }}/src/plugins/bmqprometheus/tests/prometheus_prometheusstatconsumer_test.py -p ${{ github.workspace }}/cmake.bld/Linux -m push --no-docker
+        run: ${{ github.workspace }}/src/plugins/bmqprometheus/tests/bmqprometheus_prometheusstatconsumer_test.py -p ${{ github.workspace }}/cmake.bld/Linux -m push --no-docker
 
   Documentation:
     name: "Documentation"

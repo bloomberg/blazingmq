@@ -40,7 +40,7 @@ void instantiatePluginLibrary(
 {
     BALL_LOG_SET_CATEGORY("PROMETHEUS.ENTRY");
 
-    BALL_LOG_INFO << "Instantiating 'libprometheus.so' plugin library "
+    BALL_LOG_INFO << "Instantiating 'libbmqprometheus.so' plugin library "
                      "(version: "
                   << bmqprometheus::Version::version() << ")";
 
