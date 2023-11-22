@@ -1,0 +1,22 @@
+global:
+  scrape_interval:     5s
+  evaluation_interval: 5s
+
+scrape_configs:
+  - job_name:       'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name:       'gateway'
+    scrape_interval: 1s
+    honor_labels: true
+    static_configs:
+      - targets: ['localhost:9091']
+        labels:
+          group: 'pushgateway'
+  - job_name:       'bmq'
+    scrape_interval: 1s
+    static_configs:
+      - targets: ['localhost:8080']
+        labels:
+          group: 'bmq'

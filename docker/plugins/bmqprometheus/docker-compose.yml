@@ -1,0 +1,15 @@
+version: '3.3'
+services:
+    prometheus:
+        build:
+            dockerfile: Dockerfile
+        ports:
+            - '9090:9090'
+    pushgateway:
+        image: "prom/pushgateway"
+        ports:
+            - '9091:9091'
+    grafana:
+        image: "grafana/grafana-enterprise"
+        ports:
+            - '3000:3000'
