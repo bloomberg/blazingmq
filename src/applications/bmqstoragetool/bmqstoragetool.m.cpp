@@ -29,7 +29,7 @@ static bool parseArgs(int argc, const char* argv[])
 {
     // Parameters is default initialized, get all default values ...
     CommandLineParameters params(bslma::Default::allocator());
-    bsl::string           command = "E_SEARCH";
+    bool                  showHelp = false;
 
     balcl::OptionInfo specTable[] = {
         {"path",
@@ -88,14 +88,20 @@ static bool parseArgs(int argc, const char* argv[])
          "limit of payload output",
          balcl::TypeInfo(&params.dumpLimit()),
          balcl::OccurrenceInfo::e_OPTIONAL},
-        {"",
-         "command",
-         "command to execute [E_SEARCH, E_METADATA, E_RATIO]",
-         balcl::TypeInfo(&command),
+        {"summary",
+         "summary",
+         "summary of all matching messages (number of outstanding messages "
+         "and other statistics)",
+         balcl::TypeInfo(&params.summary()),
+         balcl::OccurrenceInfo::e_OPTIONAL},
+        {"help",
+         "help",
+         "print usage)",
+         balcl::TypeInfo(&showHelp),
          balcl::OccurrenceInfo::e_OPTIONAL}};
 
     balcl::CommandLine commandLine(specTable);
-    if (commandLine.parse(argc, argv) != 0 /*|| showHelp*/) {
+    if (commandLine.parse(argc, argv) != 0 || showHelp) {
         commandLine.printUsage();
         return false;  // RETURN
     }
@@ -116,6 +122,7 @@ static bool parseArgs(int argc, const char* argv[])
     bsl::cout << "details :\t" << params.details() << bsl::endl;
     bsl::cout << "dump-payload :\t" << params.dumpPayload() << bsl::endl;
     bsl::cout << "dump-limit :\t" << params.dumpLimit() << bsl::endl;
+    bsl::cout << "summary :\t" << params.summary() << bsl::endl;
 
     return true;
 }
