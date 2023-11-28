@@ -16,6 +16,13 @@
 // bmqstoragetool
 #include <m_bmqstoragetool_commandprocessor.h>
 
+// MQB
+#include <mqbs_datafileiterator.h>
+#include <mqbs_filestoreprotocol.h>
+#include <mqbs_journalfileiterator.h>
+#include <mqbs_mappedfiledescriptor.h>
+// #include <mqbu_storagekey.h>
+
 // BDE
 #include <bsls_keyword.h>
 
@@ -26,9 +33,43 @@ namespace m_bmqstoragetool {
 // class SearchProcessor
 // =====================
 
-class SearchProcessor : public CommandProcessor {
+class SearchParameters {
   public:
+    SearchParameters();
+    SearchParameters(bslma::Allocator* allocator);
+    bsl::vector<bsl::string> searchGuids;
+};
+
+class SearchProcessor : public CommandProcessor {
+
+  private:
+    // DATA
+    bsl::string d_dataFile;
+
+    bsl::string d_journalFile;
+
+    mqbs::MappedFileDescriptor d_dataFd;
+
+    mqbs::MappedFileDescriptor d_journalFd;
+
+    mqbs::DataFileIterator d_dataFileIter;
+
+    mqbs::JournalFileIterator d_journalFileIter;
+
+    SearchParameters d_searchParameters;
+
+  public:
+    // CREATORS
+    SearchProcessor();
+    SearchProcessor(bslma::Allocator* allocator);
+    SearchProcessor(bsl::string& journalFile, bslma::Allocator* allocator);
+    SearchProcessor(mqbs::JournalFileIterator& journalFileIter, SearchParameters& params, bslma::Allocator* allocator);
+    ~SearchProcessor();
+
     void process(bsl::ostream& ostream) BSLS_KEYWORD_OVERRIDE;
+
+    // TODO: remove
+    mqbs::JournalFileIterator& getJournalFileIter() { return d_journalFileIter;}
 };
 
 }  // close package namespace

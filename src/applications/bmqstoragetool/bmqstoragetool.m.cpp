@@ -15,6 +15,8 @@
 
 // bmqstoragetool
 #include <m_bmqstoragetool_messages.h>
+#include <m_bmqstoragetool_searchprocessor.h>
+
 
 // BDE
 #include <balcl_commandline.h>
@@ -135,6 +137,9 @@ int main(int argc, const char* argv[])
     if (!parseArgs(argc, argv)) {
         return 1;  // RETURN
     }
+
+    bsl::unique_ptr<CommandProcessor> cmdProcessor = bsl::make_unique<SearchProcessor>();
+    cmdProcessor->process(bsl::cout);
 
     return 0;
 }
