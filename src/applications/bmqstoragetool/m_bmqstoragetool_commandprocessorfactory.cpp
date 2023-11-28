@@ -13,20 +13,27 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqstoragetool_searchguidprocessor.cpp                                        -*-C++-*-
-
-#include <bmqstoragetool_searchprocessor.h>
-
-#include <bsl_iostream.h>
+// bmqstoragetool
+#include <m_bmqstoragetool_commandprocessorfactory.h>
 
 namespace BloombergLP {
 namespace m_bmqstoragetool {
 
 // =================
-// class SearchProcessor
+// class CommandProcessorFactory
 // =================
 
-void SearchProcessor::process(bsl::ostream& ostream) {
+bsl::unique_ptr<CommandProcessor>
+CommandProcessorFactory::createCommandProcessor(CommandLineParameters& params)
+{
+    if (params.path().empty() ||
+        (params.journalFile().empty() && params.qlistFile().empty() &&
+         params.dataFile().empty())) {
+        bsl::unique_ptr<CommandProcessor> emptyPointer;
+        return emptyPointer;
+    }
+
+    return bsl::make_unique<SearchProcessor>();
 }
 
 }  // close package namespace

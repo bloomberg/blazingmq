@@ -13,9 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqtool.m.cpp                                                      -*-C++-*-
-
-// bmqtool
+// bmqstoragetool
 #include <m_bmqstoragetool_messages.h>
 
 // BDE

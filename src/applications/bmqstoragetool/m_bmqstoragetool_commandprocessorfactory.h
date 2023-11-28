@@ -13,22 +13,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// command_processor.h                                        -*-C++-*-
+// bmqstoragetool
+#include <m_bmqstoragetool_messages.h>
+#include <m_bmqstoragetool_searchprocessor.h>
 
-#include <bsl_ostream.h>
+// BDE
+#include <bsl_memory.h>
 
 namespace BloombergLP {
 namespace m_bmqstoragetool {
 
 // =================
-// class CommandProcessor
+// class CommandProcessorFactory
 // =================
 
-class CommandProcessor {
-public:
-    virtual ~CommandProcessor() = default;
-
-    virtual void process(bsl::ostream& ostream) = 0;
+class CommandProcessorFactory {
+  public:
+    static bsl::unique_ptr<CommandProcessor>
+    createCommandProcessor(CommandLineParameters& params);
 };
 
 }  // close package namespace
