@@ -137,6 +137,5 @@ int main(int argc, const char* argv[])
     if (!parseArgs(argc, argv)) {
         return 1;  // RETURN
     }
-
     return 0;
 }
