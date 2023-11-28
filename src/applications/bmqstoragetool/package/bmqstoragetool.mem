@@ -1,1 +1,4 @@
 m_bmqstoragetool_messages
+bmqstoragetool_commandprocessor
+bmqstoragetool_commandprocessorfactory
+bmqstoragetool_searchprocessor
