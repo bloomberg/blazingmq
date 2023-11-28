@@ -13,25 +13,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// command_processor_factory.h                                        -*-C++-*-
-
-#include <bmqstoragetool_commandprocessorfactory.h>
+// BDE
+#include <bsl_ostream.h>
 
 namespace BloombergLP {
 namespace m_bmqstoragetool {
 
 // =================
-// class CommandProcessorFactory
+// class CommandProcessor
 // =================
 
-bsl::unique_ptr<CommandProcessor> CommandProcessorFactory::createCommandProcessor(CommandLineParameters& params) {
-    if (params.path().empty() || (params.journalFile().empty() && params.qlistFile().empty() && params.dataFile().empty())) {
-        bsl::unique_ptr<CommandProcessor> emptyPointer;
-        return emptyPointer;
-    }
+class CommandProcessor {
+public:
+    virtual ~CommandProcessor() = default;
 
-    return bsl::make_unique<SearchProcessor>();
-}
+    virtual void process(bsl::ostream& ostream) = 0;
+};
 
 }  // close package namespace
 }  // close enterprise namespace

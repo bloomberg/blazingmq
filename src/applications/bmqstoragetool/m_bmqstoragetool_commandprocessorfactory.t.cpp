@@ -13,9 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqstoragetool_commandprocessorfactory.t.cpp                                               -*-C++-*-
-
-#include <bmqstoragetool_commandprocessorfactory.h>
+// bmqstoragetool
+#include <m_bmqstoragetool_commandprocessorfactory.h>
 
 // TEST DRIVER
 #include <mwctst_testhelper.h>
@@ -25,12 +24,11 @@ using namespace BloombergLP;
 using namespace m_bmqstoragetool;
 using namespace bsl;
 
-
 // ============================================================================
 //                                    TESTS
 // ----------------------------------------------------------------------------
 
-static void test1_breathingTest() 
+static void test1_breathingTest()
 // ------------------------------------------------------------------------
 // BREATHING TEST
 //
@@ -45,7 +43,8 @@ static void test1_breathingTest()
     // Empty parameters
     CommandLineParameters params(s_allocator_p);
 
-    auto cmdProcessor = CommandProcessorFactory::createCommandProcessor(params);
+    auto cmdProcessor = CommandProcessorFactory::createCommandProcessor(
+        params);
     ASSERT_EQ(dynamic_cast<SearchProcessor*>(cmdProcessor.get()), nullptr)
 }
 
