@@ -58,16 +58,6 @@ memory, large volume of pending work, etc.). In turn, they will start
 throttling producer applications which are producing messages at a higher rate than normal
 and/or have a lot of pending (unacknowledged) messages piled up in the brokers.
 
-### Prometheus Metrics Plugin
-{: .no_toc }
-
-BlazingMQ uses an internal system for collecting, monitoring, and alerting on
-metrics, which is not released externally. While the logic to collect and
-report metrics from BlazingMQ is pluggable and anyone can implement their own
-plug-in, an out-of-the-box plug-in which can work with an industry standard
-monitoring system like Prometheus will be provided and published as open
-source.
-
 ### Stuck Consumer Detection
 {: .no_toc }
 
