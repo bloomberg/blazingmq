@@ -25,12 +25,11 @@
 using namespace BloombergLP;
 using namespace m_bmqstoragetool;
 
-
 static bool parseArgs(int argc, const char* argv[])
 {
     // Parameters is default initialized, get all default values ...
     CommandLineParameters params(bslma::Default::allocator());
-    bsl::string command = "E_SEARCH";
+    bsl::string           command = "E_SEARCH";
 
     balcl::OptionInfo specTable[] = {
         {"path",
@@ -93,8 +92,7 @@ static bool parseArgs(int argc, const char* argv[])
          "command",
          "command to execute [E_SEARCH, E_METADATA, E_RATIO]",
          balcl::TypeInfo(&command),
-         balcl::OccurrenceInfo::e_OPTIONAL}
-    };
+         balcl::OccurrenceInfo::e_OPTIONAL}};
 
     balcl::CommandLine commandLine(specTable);
     if (commandLine.parse(argc, argv) != 0 /*|| showHelp*/) {
