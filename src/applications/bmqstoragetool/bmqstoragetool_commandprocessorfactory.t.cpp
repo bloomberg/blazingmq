@@ -46,7 +46,7 @@ static void test1_breathingTest()
     CommandLineParameters params(s_allocator_p);
 
     auto cmdProcessor = CommandProcessorFactory::createCommandProcessor(params);
-    ASSERT_EQ(dynamic_cast<SearchProcessor*>(cmdProcessor.get()), nullptr)
+    ASSERT_EQ(cmdProcessor.get(), nullptr)
 }
 
 // ============================================================================
@@ -58,6 +58,7 @@ int main(int argc, char* argv[])
     TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
 
     switch (_testCase) {
+    case 0:
     case 1: test1_breathingTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
