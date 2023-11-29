@@ -40,6 +40,7 @@
 #include <mqbs_datastore.h>
 #include <mqbs_filestore.h>
 #include <mqbs_replicatedstorage.h>
+#include <mqbs_storageutil.h>
 #include <mqbu_storagekey.h>
 
 // BMQ
@@ -58,10 +59,11 @@
 #include <bdlmt_fixedthreadpool.h>
 #include <bsl_algorithm.h>
 #include <bsl_functional.h>
+#include <bsl_map.h>
 #include <bsl_memory.h>
 #include <bsl_numeric.h>
 #include <bsl_string.h>
-#include <bsl_unordered_map.h>
+#include <bsl_unordered_set.h>
 #include <bsl_vector.h>
 #include <bslma_allocator.h>
 #include <bslma_managedptr.h>
@@ -100,9 +102,13 @@ struct StorageUtil {
 
   private:
     // TYPES
-    typedef mqbi::StorageManager::AppIdKeyPair  AppIdKeyPair;
-    typedef mqbi::StorageManager::AppIdKeyPairs AppIdKeyPairs;
-    typedef AppIdKeyPairs::const_iterator       AppIdKeyPairsCIter;
+    typedef mqbi::StorageManager::AppIdKeyPair       AppIdKeyPair;
+    typedef mqbi::StorageManager::AppIdKeyPairs      AppIdKeyPairs;
+    typedef mqbi::StorageManager::AppIdKeyPairsCIter AppIdKeyPairsCIter;
+
+    typedef mqbi::StorageManager::AppIds         AppIds;
+    typedef mqbi::StorageManager::AppIdsIter     AppIdsIter;
+    typedef mqbi::StorageManager::AppIdsInsertRc AppIdsInsertRc;
 
     typedef mqbi::StorageManager::AppKeys         AppKeys;
     typedef mqbi::StorageManager::AppKeysInsertRc AppKeysInsertRc;
@@ -113,7 +119,12 @@ struct StorageUtil {
     typedef mqbi::StorageManager::StorageSpMapIter      StorageSpMapIter;
     typedef mqbi::StorageManager::StorageSpMapConstIter StorageSpMapConstIter;
 
+    typedef mqbi::StorageManager::PartitionPrimaryStatusCb
+        PartitionPrimaryStatusCb;
+
     typedef mqbs::DataStoreConfig::QueueKeyInfoMap QueueKeyInfoMap;
+    typedef mqbs::DataStoreConfig::QueueKeyInfoMapConstIter
+        QueueKeyInfoMapConstIter;
 
     typedef mqbs::DataStoreConfig::QueueCreationCb   QueueCreationCb;
     typedef mqbs::DataStoreConfig::QueueDeletionCb   QueueDeletionCb;
@@ -129,14 +140,21 @@ struct StorageUtil {
 
     typedef mqbs::FileStore::StorageFilters StorageFilters;
 
+    typedef bsl::map<bsl::string, mqbi::Domain*> DomainMap;
+    // Above, it is important that we use an associative container where
+    // iterators don't get invalidated, because 'onDomain' routine
+    // implementation depends on this assumption.
+    typedef DomainMap::iterator DomainMapIter;
+
+    typedef mqbs::StorageUtil::DomainQueueMessagesCountMap
+        DomainQueueMessagesCountMap;
+    typedef mqbs::StorageUtil::DomainQueueMessagesCountMaps
+        DomainQueueMessagesCountMaps;
+
   public:
     // TYPES
     typedef bsl::shared_ptr<mqbs::FileStore> FileStoreSp;
     typedef bsl::vector<FileStoreSp>         FileStores;
-
-    typedef bsl::unordered_map<mqbnet::ClusterNode*,
-                               bmqp_ctrlmsg::PartitionSequenceNumber>
-        NodeToSeqNumMap;
 
     typedef bdlcc::SharedObjectPool<
         bdlbb::Blob,
@@ -364,7 +382,7 @@ struct StorageUtil {
     // FUNCTIONS
 
     /// Load into the specified `addedEntries` the list of entries which are
-    /// present in `newEntries` but not in `existingEntries`.  Similary, load
+    /// present in `newEntries` but not in `existingEntries`.  Similarly, load
     /// into the specified `removedEntries` the list of entries which are
     /// present in `existingEntries` but not in `newEntries`.
     template <typename T>
@@ -427,19 +445,22 @@ struct StorageUtil {
     template <bool IS_RECOVERY>
     static unsigned int extractPartitionId(const bmqp::Event& event);
 
-    /// Validate that every storage message in the specified `event` have
-    /// the same specified `partitionId`, and that the specified event
-    /// `source` is the active primary node in the specified `clusterState`.
-    /// Use the specified `clusterData` to help with validation.  The
-    /// specified `skipAlarm` flag determines whether to skip alarming if
-    /// `source` is not active primary.  Return true if valid, false
-    /// otherwise.
+    /// Validate that every storage message in the specified 'event' have
+    /// the same specified 'partitionId', and that the specified event
+    /// 'source' is the specified 'primary' with the specified 'status'
+    /// which needs to be ACTIVE.  Use the specified 'clusterData' to help
+    /// with validation.  The specified 'skipAlarm' flag determines whether
+    /// to skip alarming if 'source' is not active primary.  Use the
+    /// specified 'isFSMWorkflow' flag to help with validation.  Return true
+    /// if valid, false otherwise.
     static bool validateStorageEvent(const bmqp::Event&         event,
                                      int                        partitionId,
                                      const mqbnet::ClusterNode* source,
-                                     const mqbc::ClusterState&  clusterState,
-                                     const mqbc::ClusterData&   clusterData,
-                                     bool                       skipAlarm);
+                                     const mqbnet::ClusterNode* primary,
+                                     bmqp_ctrlmsg::PrimaryStatus::Value status,
+                                     const mqbc::ClusterData& clusterData,
+                                     bool                     skipAlarm,
+                                     bool                     isFSMWorkflow);
 
     /// Validate that every partition sync message in the specified `event`
     /// have the same specified `partitionId`, and that ether self or the
@@ -455,14 +476,14 @@ struct StorageUtil {
                                const mqbc::ClusterData&   clusterData,
                                bool                       isFSMWorkflow);
 
-    /// Assign Queue dispatcher threads from the specified `threadPool` of
-    /// the specified `clusterData`, specified `cluster` using the specified
-    /// `dispatcher` where the configuration is used from the specified
-    /// `config` to the specified `fileStores` using the specified
-    /// `blobSpPool` where memory is allocated using the specified
-    /// `allocators`, any errors are captured using the specified
-    /// `errorDescription` and there are optionally specified
-    /// `queueCreationCb`, `queueDeletionCb` and `recoveredQueuesCb`.
+    /// Assign Queue dispatcher threads from the specified 'threadPool' of
+    /// the specified 'clusterData', specified 'cluster' using the specified
+    /// 'dispatcher' where the configuration is used from the specified
+    /// 'config' to the specified 'fileStores' using the specified
+    /// 'blobSpPool' where memory is allocated using the specified
+    /// 'allocators', any errors are captured using the specified
+    /// 'errorDescription' and there are specified 'recoveredQueuesCb',
+    /// optionally specified 'queueCreationCb' and 'queueDeletionCb'.
     static int assignPartitionDispatcherThreads(
         bdlmt::FixedThreadPool*                     threadPool,
         mqbc::ClusterData*                          clusterData,
@@ -474,12 +495,11 @@ struct StorageUtil {
         mwcma::CountingAllocatorStore*              allocators,
         bsl::ostream&                               errorDescription,
         int                                         replicationFactor,
+        const RecoveredQueuesCb&                    recoveredQueuesCb,
         const bdlb::NullableValue<QueueCreationCb>& queueCreationCb =
             bdlb::NullableValue<QueueCreationCb>(),
         const bdlb::NullableValue<QueueDeletionCb>& queueDeletionCb =
-            bdlb::NullableValue<QueueDeletionCb>(),
-        const bdlb::NullableValue<RecoveredQueuesCb>& recoveredQueuesCb =
-            bdlb::NullableValue<RecoveredQueuesCb>());
+            bdlb::NullableValue<QueueDeletionCb>());
 
     /// Clear the specified `primary` of the specified `partitionId` from
     /// the specified `fs` and `partitionInfo`, using the specified
@@ -498,12 +518,6 @@ struct StorageUtil {
     static bsls::Types::Uint64
     findMinReqDiskSpace(const mqbcfg::PartitionConfig& config);
 
-    /// Clean sequence numbers from the specified `partitionInfo` and
-    /// specified `nodeToSeqNumMap`. Reset the primary node in the specified
-    /// `partitionInfo` to null.
-    static void cleanSeqNums(PartitionInfo&   partitionInfo,
-                             NodeToSeqNumMap& nodeToSeqNumMap);
-
     /// Transition self to active primary of the specified `partitionId` and
     /// load this info into the specified `partitionInfo`.  Then, broadcast
     /// a primary status advisory to peers using the specified
@@ -515,6 +529,52 @@ struct StorageUtil {
     /// Stop all the underlying partitions using the specified `clusterData`
     /// by scheduling execution of the specified `shutdownCb` for each
     /// FileStore in the specified `fileStores`
+    static void onPartitionPrimarySync(
+        mqbs::FileStore*                fs,
+        PartitionInfo*                  pinfo,
+        mqbc::ClusterData*              clusterData,
+        const PartitionPrimaryStatusCb& partitionPrimaryStatusCb,
+        int                             partitionId,
+        int                             status);
+    // Callback executed after primary sync for the specified 'partitionId'
+    // is complete with the specified 'status'.  Use the specified 'fs',
+    // 'pinfo', 'clusterData' and 'partitionPrimaryStatusCb'.
+    //
+    // THREAD: Executed by the dispatcher thread associated with
+    //         'partitionId'.
+
+    static void
+    recoveredQueuesCb(StorageSpMap*                storageMap,
+                      bslmt::Mutex*                storagesLock,
+                      mqbs::FileStore*             fs,
+                      AppKeys*                     appKeys,
+                      bslmt::Mutex*                appKeysLock,
+                      mqbi::DomainFactory*         domainFactory,
+                      DomainQueueMessagesCountMap* unrecognizedDomains,
+                      const bsl::string&           clusterDescription,
+                      int                          partitionId,
+                      const QueueKeyInfoMap&       queueKeyInfoMap,
+                      bool                         isCSLMode);
+    // Callback executed when the partition having the specified
+    // 'partitionId' has performed recovery and recovered file-backed
+    // queues and their virtual storages in the specified
+    // 'queueKeyInfoMap'.
+    //
+    // THREAD: Executed by the dispatcher thread of the partition.
+
+    static void dumpUnknownRecoveredDomains(
+        const bsl::string&                  clusterDescription,
+        const DomainQueueMessagesCountMaps& unrecognizedDomains);
+    // Print statistics regarding the specified 'unrecognizedDomains'
+    // encountered during recovery of the specified 'clusterDescription',
+    // if any.
+
+    static void gcUnrecognizedDomainQueues(
+        FileStores*                         fileStores,
+        const DomainQueueMessagesCountMaps& unrecognizedDomains);
+    // GC the queues of the specified 'unrecognizedDomains' from the
+    // specified 'fileStores', if any.
+
     static void stop(ClusterData*      clusterData,
                      FileStores*       fileStores,
                      const ShutdownCb& shutdownCb);
@@ -664,7 +724,8 @@ struct StorageUtil {
         PartitionInfo*                             pinfo,
         const bmqp_ctrlmsg::PrimaryStatusAdvisory& advisory,
         const bsl::string&                         clusterDescription,
-        mqbnet::ClusterNode*                       source);
+        mqbnet::ClusterNode*                       source,
+        bool                                       isFSMWorkflow);
 
     static void processReplicaStatusAdvisoryDispatched(
         mqbc::ClusterData*              clusterData,

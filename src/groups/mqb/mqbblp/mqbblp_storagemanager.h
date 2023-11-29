@@ -59,13 +59,9 @@
 #include <bdlmt_eventscheduler.h>
 #include <bdlmt_fixedthreadpool.h>
 #include <bsl_functional.h>
-#include <bsl_map.h>
 #include <bsl_memory.h>
 #include <bsl_ostream.h>
 #include <bsl_string.h>
-#include <bsl_unordered_map.h>
-#include <bsl_unordered_set.h>
-#include <bsl_utility.h>
 #include <bsl_vector.h>
 #include <bslma_allocator.h>
 #include <bslma_managedptr.h>
@@ -156,17 +152,6 @@ class StorageManager : public mqbi::StorageManager {
 
   private:
     // PRIVATE TYPES
-    typedef bsl::shared_ptr<mqbs::ReplicatedStorage> StorageSp;
-
-    typedef bsl::vector<AppKeys>       AppKeysVec;
-    typedef AppKeysVec::iterator       AppKeysVecIter;
-    typedef AppKeysVec::const_iterator AppKeysVecConstIter;
-
-    typedef bsl::unordered_set<bsl::string> AppIds;
-    typedef AppIds::iterator                AppIdsIter;
-    typedef AppIds::const_iterator          AppIdsConstIter;
-    typedef bsl::pair<AppIdsIter, bool>     AppIdsInsertRc;
-
     typedef bdlmt::EventScheduler::RecurringEventHandle RecurringEventHandle;
 
     typedef mqbc::StorageUtil::FileStores FileStores;
@@ -180,18 +165,9 @@ class StorageManager : public mqbi::StorageManager {
 
     typedef bsl::function<void(int, const PrimaryLeaseIds&)> RecoveryStatusCb;
 
-    typedef bsl::function<
-        void(int partitionId, int status, unsigned int primaryLeaseId)>
-        PartitionPrimaryStatusCb;
-
     typedef bsl::shared_ptr<bdlbb::Blob> BlobSp;
 
-    typedef mqbs::DataStoreConfig::QueueKeyInfoMap     QueueKeyInfoMap;
-    typedef mqbs::DataStoreConfig::QueueKeyInfoMapIter QueueKeyInfoMapIter;
-    typedef mqbs::DataStoreConfig::QueueKeyInfoMapConstIter
-        QueueKeyInfoMapConstIter;
-
-    typedef AppIdKeyPairs::const_iterator AppIdKeyPairsCIter;
+    typedef mqbs::DataStoreConfig::QueueKeyInfoMap QueueKeyInfoMap;
 
     typedef mqbc::ClusterStatePartitionInfo ClusterStatePartitionInfo;
 
@@ -208,13 +184,7 @@ class StorageManager : public mqbi::StorageManager {
     typedef MultiRequestManagerType::NodeResponsePairsConstIter
         NodeResponsePairsConstIter;
 
-    /// Above, it is important that we use an associative container where
-    /// iterators don't get invalidated, because `onDomain` routine
-    /// implementation depends on this assumption.
-    typedef bsl::map<bsl::string, mqbi::Domain*> DomainMap;
-    typedef DomainMap::iterator                  DomainMapIter;
-
-    typedef bsl::vector<mqbs::StorageUtil::DomainQueueMessagesCountMap>
+    typedef mqbs::StorageUtil::DomainQueueMessagesCountMaps
         DomainQueueMessagesCountMaps;
 
   private:
@@ -410,8 +380,10 @@ class StorageManager : public mqbi::StorageManager {
 
     /// Callback executed by `mqbblp::RecoveryManager` after primary sync
     /// for the specified `partitionId` is complete with the specified
-    /// `status`.  Executed by the dispatcher thread associated with
-    /// `partitionId`.
+    /// `status`.
+    ///
+    /// THREAD: Executed by the dispatcher thread associated with
+    ///         'partitionId'.
     void onPartitionPrimarySync(int partitionId, int status);
 
     /// Gracefully shut down the partition associated with the specified
@@ -434,14 +406,12 @@ class StorageManager : public mqbi::StorageManager {
                          const mqbu::StorageKey& queueKey,
                          const mqbu::StorageKey& appKey);
 
-    void recoveredQueuesCbImpl(int                    partitionId,
-                               const QueueKeyInfoMap& queueKeyInfoMap);
-
     /// Callback executed when the partition having the specified
     /// `partitionId` has performed recovery and recovered file-backed
     /// queues and their virtual storages in the specified
-    /// `queueKeyInfoMap`.  Executed by the dispatcher thread of the
-    /// partition.
+    /// `queueKeyInfoMap`.
+    ///
+    /// THREAD: Executed by the dispatcher thread of the partition.
     void recoveredQueuesCb(int                    partitionId,
                            const QueueKeyInfoMap& queueKeyInfoMap);
 
@@ -495,10 +465,6 @@ class StorageManager : public mqbi::StorageManager {
         mqbnet::ClusterNode*                source);
 
     void processShutdownEventDispatched(int partitionId);
-
-    /// Print statistics regarding unrecognized domains encountered during
-    /// recovery, if any.
-    void dumpUnknownRecoveredDomains() const;
 
     /// Explicitly call `flush` on all FileStores to enforce their GC.
     void forceFlushFileStores();
@@ -622,35 +588,33 @@ class StorageManager : public mqbi::StorageManager {
                              const bmqt::Uri& uri,
                              int partitionId) BSLS_KEYWORD_OVERRIDE;
 
-    /// Executed in cluster dispatcher thread.  Behavior is undefined unless
-    /// the specified `partitionId` is in range and the specified
-    /// `primaryNode` is not null.
+    /// Behavior is undefined unless the specified 'partitionId' is in range
+    /// and the specified 'primaryNode' is not null.
+    ///
+    /// THREAD: Executed in cluster dispatcher thread.
     virtual void
     setPrimaryForPartition(int                  partitionId,
                            mqbnet::ClusterNode* primaryNode,
                            unsigned int primaryLeaseId) BSLS_KEYWORD_OVERRIDE;
 
-    /// Executed in cluster dispatcher thread.  Behavior is undefined unless
-    /// the specified `partitionId` is in range and the specified
-    /// `primaryNode` is not null.
+    /// Behavior is undefined unless the specified 'partitionId' is in range
+    /// and the specified 'primaryNode' is not null.
+    ///
+    /// THREAD: Executed in cluster dispatcher thread.
     virtual void clearPrimaryForPartition(int                  partitionId,
                                           mqbnet::ClusterNode* primary)
         BSLS_KEYWORD_OVERRIDE;
 
-    /// Apply DETECT_SelfPrimary event to PartitionFSM using the specified
-    /// `partitionId`, `primaryNode` and `primaryLeaseId`.
-    virtual void
-    processPrimaryDetect(int                  partitionId,
-                         mqbnet::ClusterNode* primaryNode,
-                         unsigned int primaryLeaseId) BSLS_KEYWORD_OVERRIDE;
+    /// Set the primary status of the specified 'partitionId' to the specified
+    /// 'value'.
+    ///
+    /// THREAD: Executed in cluster dispatcher thread.
+    virtual void setPrimaryStatusForPartition(
+        int                                partitionId,
+        bmqp_ctrlmsg::PrimaryStatus::Value value) BSLS_KEYWORD_OVERRIDE;
 
-    /// Apply DETECT_SelfReplica event to StorageFSM using the specified
-    /// `partitionId`, `primaryNode` and `primaryLeaseId`.
-    virtual void
-    processReplicaDetect(int                  partitionId,
-                         mqbnet::ClusterNode* primaryNode,
-                         unsigned int primaryLeaseId) BSLS_KEYWORD_OVERRIDE;
-
+    /// Process primary state request received from the specified `source`
+    /// with the specified `message`.
     virtual void processPrimaryStateRequest(
         const bmqp_ctrlmsg::ControlMessage& message,
         mqbnet::ClusterNode*                source) BSLS_KEYWORD_OVERRIDE;
@@ -661,19 +625,7 @@ class StorageManager : public mqbi::StorageManager {
 
     /// Process replica data request received from the specified `source`
     /// with the specified `message`.
-    virtual void processReplicaDataRequestPull(
-        const bmqp_ctrlmsg::ControlMessage& message,
-        mqbnet::ClusterNode*                source) BSLS_KEYWORD_OVERRIDE;
-
-    /// Process replica data request received from the specified `source`
-    /// with the specified `message`.
-    virtual void processReplicaDataRequestPush(
-        const bmqp_ctrlmsg::ControlMessage& message,
-        mqbnet::ClusterNode*                source) BSLS_KEYWORD_OVERRIDE;
-
-    /// Process replica data request received from the specified `source`
-    /// with the specified `message`.
-    virtual void processReplicaDataRequestDrop(
+    virtual void processReplicaDataRequest(
         const bmqp_ctrlmsg::ControlMessage& message,
         mqbnet::ClusterNode*                source) BSLS_KEYWORD_OVERRIDE;
 

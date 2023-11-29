@@ -64,6 +64,8 @@ ClusterFSM& ClusterFSM::registerObserver(ClusterFSMObserver* observer)
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(observer);
 
+    BALL_LOG_INFO << "ClusterFSM: Registered 1 new observer.";
+
     d_observers.insert(observer);
     return *this;
 }
@@ -72,6 +74,8 @@ ClusterFSM& ClusterFSM::unregisterObserver(ClusterFSMObserver* observer)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(observer);
+
+    BALL_LOG_INFO << "ClusterFSM: Unregistered 1 observer.";
 
     d_observers.erase(observer);
     return *this;

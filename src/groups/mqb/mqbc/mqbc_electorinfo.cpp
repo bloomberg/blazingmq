@@ -93,11 +93,12 @@ void ElectorInfoObserver::onClusterLeader(
 //   (virtual: mqbc::ClusterFSMObserver)
 void ElectorInfo::onHealedLeader()
 {
-    onSelfActiveLeader();
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_electorState == mqbnet::ElectorState::e_LEADER);
 
-    // One leader advisory has already been sent in part of Cluster FSM healing
-    // logic, so we bump up the LSN by one.
-    ++d_leaderMessageSequence.sequenceNumber();
+    BALL_LOG_INFO << "#ELECTOR_INFO: onHealedLeader()";
+
+    onSelfActiveLeader();
 }
 
 // MANIPULATORS
@@ -105,6 +106,8 @@ ElectorInfo& ElectorInfo::registerObserver(ElectorInfoObserver* observer)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(observer);
+
+    BALL_LOG_INFO << "#ELECTOR_INFO: Registered 1 new observer.";
 
     d_observers.insert(observer);
     return *this;
@@ -114,6 +117,8 @@ ElectorInfo& ElectorInfo::unregisterObserver(ElectorInfoObserver* observer)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(observer);
+
+    BALL_LOG_INFO << "#ELECTOR_INFO: Unregistered 1 observer.";
 
     d_observers.erase(observer);
     return *this;
@@ -128,10 +133,12 @@ ElectorInfo& ElectorInfo::setLeaderStatus(ElectorInfoLeaderStatus::Enum value)
         (d_leaderNode_p && (ElectorInfoLeaderStatus::e_UNDEFINED != value)) ||
         (!d_leaderNode_p && (ElectorInfoLeaderStatus::e_UNDEFINED == value)));
 
-    if (d_leaderStatus != value) {
-        BALL_LOG_INFO << "#ELECTOR_INFO: leader status transitioning from "
-                      << d_leaderStatus << " to " << value;
-    }
+    BALL_LOG_INFO << "#ELECTOR_INFO: leader: "
+                  << (d_leaderNode_p ? d_leaderNode_p->nodeDescription()
+                                     : "** NULL **")
+                  << ", LSN: " << d_leaderMessageSequence
+                  << ", transitioning status from " << d_leaderStatus << " to "
+                  << value;
 
     // We update internal state *before* notifying observers.
     ElectorInfoLeaderStatus::Enum oldStatus = d_leaderStatus;
@@ -165,10 +172,19 @@ ElectorInfo& ElectorInfo::setElectorInfo(mqbnet::ElectorState::Enum    state,
 
     mqbnet::ClusterNode* oldLeader = d_leaderNode_p;
 
+    BALL_LOG_INFO << "#ELECTOR_INFO: tranisition old leader: "
+                  << (oldLeader ? oldLeader->nodeDescription() : "** NULL **")
+                  << ", status: " << d_leaderStatus
+                  << ", LSN: " << d_leaderMessageSequence << " to new leader: "
+                  << (node ? node->nodeDescription() : "** NULL **")
+                  << ", status: " << status << ", electorTerm: " << term
+                  << ". Transition elector state from " << d_electorState
+                  << " to " << state << ".";
+
     d_electorState = state;
-    d_electorTerm  = term;
     d_leaderNode_p = node;
     d_leaderStatus = status;
+    setElectorTerm(term);
 
     if (!node || !oldLeader) {
         // We could have been called because of a change of state, which may
@@ -188,8 +204,13 @@ ElectorInfo& ElectorInfo::setElectorInfo(mqbnet::ElectorState::Enum    state,
 
 void ElectorInfo::onSelfActiveLeader()
 {
-    d_leaderMessageSequence.electorTerm()    = d_electorTerm;
-    d_leaderMessageSequence.sequenceNumber() = 0;
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_electorState == mqbnet::ElectorState::e_LEADER);
+    BSLS_ASSERT_SAFE(d_leaderNode_p);
+
+    BALL_LOG_INFO << "#ELECTOR_INFO: onSelfActiveLeader(): "
+                  << "leader = " << d_leaderNode_p->nodeDescription()
+                  << ", LSN = " << d_leaderMessageSequence << ".";
 
     setLeaderStatus(mqbc::ElectorInfoLeaderStatus::e_ACTIVE);
 }

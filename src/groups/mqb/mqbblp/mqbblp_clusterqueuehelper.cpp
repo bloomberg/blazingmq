@@ -353,7 +353,8 @@ void ClusterQueueHelper::afterPartitionPrimaryAssignment(
 
     BSLS_ASSERT_SAFE(status != bmqp_ctrlmsg::PrimaryStatus::E_UNDEFINED);
 
-    if (!d_cluster_p->isFSMWorkflow()) {
+    if (!d_cluster_p->isFSMWorkflow() ||
+        status == bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE) {
         restoreState(partitionId);
     }
 
@@ -784,8 +785,9 @@ void ClusterQueueHelper::onQueueContextAssigned(
             return;  // RETURN
         }
 
-        if (bmqp_ctrlmsg::NodeStatus::E_AVAILABLE !=
-            d_clusterData_p->membership().selfNodeStatus()) {
+        if (!d_cluster_p->isFSMWorkflow() &&
+            bmqp_ctrlmsg::NodeStatus::E_AVAILABLE !=
+                d_clusterData_p->membership().selfNodeStatus()) {
             // Self is not available, we have to postpone processing the queue
             // opening.
 
@@ -4412,42 +4414,6 @@ void ClusterQueueHelper::onQueueUpdated(const bmqt::Uri&   uri,
                   << ", removedAppIds: " << printer2;
 }
 
-void ClusterQueueHelper::onTransitionToPrimaryHealed(
-    int                    partitionId,
-    BSLS_ANNOTATION_UNUSED mqbc::PartitionStateTableState::Enum oldState)
-{
-    // executed by *QUEUE_DISPATCHER* thread associated with 'partitionId'
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(
-        0 <= partitionId &&
-        partitionId < static_cast<int>(d_clusterState_p->partitions().size()));
-
-    d_cluster_p->dispatcher()->execute(
-        bdlf::BindUtil::bind(&ClusterQueueHelper::restoreState,
-                             this,
-                             partitionId),
-        d_cluster_p);
-}
-
-void ClusterQueueHelper::onTransitionToReplicaHealed(
-    int                    partitionId,
-    BSLS_ANNOTATION_UNUSED mqbc::PartitionStateTableState::Enum oldState)
-{
-    // executed by *QUEUE_DISPATCHER* thread associated with 'partitionId'
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(
-        0 <= partitionId &&
-        partitionId < static_cast<int>(d_clusterState_p->partitions().size()));
-
-    d_cluster_p->dispatcher()->execute(
-        bdlf::BindUtil::bind(&ClusterQueueHelper::restoreState,
-                             this,
-                             partitionId),
-        d_cluster_p);
-}
-
 void ClusterQueueHelper::onUpstreamNodeChange(mqbnet::ClusterNode* node,
                                               int                  partitionId)
 {
@@ -5316,6 +5282,24 @@ void ClusterQueueHelper::processNodeStoppingNotification(
                       << clusterNode->nodeDescription()
                       << " to the previous one";
     }
+}
+
+void ClusterQueueHelper::onLeaderAvailable()
+{
+    // executed by the cluster *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(
+        d_cluster_p->dispatcher()->inDispatcherThread(d_cluster_p));
+
+    // This routine is invoked only in the cluster nodes.
+
+    BSLS_ASSERT_SAFE(!d_cluster_p->isRemote());
+
+    BALL_LOG_INFO << d_cluster_p->description()
+                  << ": On leader available, restoring state.";
+
+    restoreState(mqbs::DataStore::k_ANY_PARTITION_ID);
 }
 
 bool ClusterQueueHelper::setStopContext(
