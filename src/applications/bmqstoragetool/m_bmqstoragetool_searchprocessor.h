@@ -58,6 +58,8 @@ class SearchProcessor : public CommandProcessor {
 
     SearchParameters d_searchParameters;
 
+    // MANIPULATORS
+
   public:
     // CREATORS
     SearchProcessor();
@@ -66,6 +68,7 @@ class SearchProcessor : public CommandProcessor {
     SearchProcessor(mqbs::JournalFileIterator& journalFileIter, SearchParameters& params, bslma::Allocator* allocator);
     ~SearchProcessor();
 
+    // MANIPULATORS
     void process(bsl::ostream& ostream) BSLS_KEYWORD_OVERRIDE;
 
     // TODO: remove

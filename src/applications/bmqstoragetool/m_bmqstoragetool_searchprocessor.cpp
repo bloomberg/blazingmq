@@ -17,8 +17,8 @@
 #include <m_bmqstoragetool_searchprocessor.h>
 
 // BDE
-#include <bsl_iostream.h>
 #include <bdls_filesystemutil.h>
+#include <bsl_iostream.h>
 
 // MQB
 #include <mqbs_filestoreprotocolprinter.h>
@@ -32,16 +32,17 @@
 #include <mwcu_outstreamformatsaver.h>
 #include <mwcu_stringutil.h>
 
-
 namespace BloombergLP {
 namespace m_bmqstoragetool {
 
 namespace {
+
+// TODO: remove
 template <typename ITER>
 bool resetIterator(mqbs::MappedFileDescriptor* mfd,
                    ITER*                       iter,
                    const char*                 filename,
-                   bsl::ostream& errorDescription)
+                   bsl::ostream&               errorDescription)
 {
     if (!bdls::FilesystemUtil::isRegularFile(filename)) {
         errorDescription << "File [" << filename << "] is not a regular file.";
@@ -57,8 +58,8 @@ bool resetIterator(mqbs::MappedFileDescriptor* mfd,
         true,  // read only
         errorDesc);
     if (0 != rc) {
-        errorDescription << "Failed to open file [" << filename << "] rc: " << rc
-                       << ", error: " << errorDesc.str();
+        errorDescription << "Failed to open file [" << filename
+                         << "] rc: " << rc << ", error: " << errorDesc.str();
         return false;  // RETURN
     }
 
@@ -66,7 +67,7 @@ bool resetIterator(mqbs::MappedFileDescriptor* mfd,
     rc = mqbs::FileStoreProtocolUtil::hasBmqHeader(*mfd);
     if (0 != rc) {
         errorDescription << "Missing BlazingMQ header from file [" << filename
-                       << "] rc: " << rc;
+                         << "] rc: " << rc;
         mqbs::FileSystemUtil::close(mfd);
         return false;  // RETURN
     }
@@ -75,7 +76,7 @@ bool resetIterator(mqbs::MappedFileDescriptor* mfd,
     rc = iter->reset(mfd, mqbs::FileStoreProtocolUtil::bmqHeader(*mfd));
     if (0 != rc) {
         errorDescription << "Failed to create iterator for file [" << filename
-                       << "] rc: " << rc;
+                         << "] rc: " << rc;
         mqbs::FileSystemUtil::close(mfd);
         return false;  // RETURN
     }
@@ -84,8 +85,7 @@ bool resetIterator(mqbs::MappedFileDescriptor* mfd,
     return true;  // RETURN
 }
 
-} // close unnamed namespace
-
+}  // close unnamed namespace
 
 // =====================
 // class SearchParameters
@@ -108,7 +108,7 @@ SearchParameters::SearchParameters(bslma::Allocator* allocator)
 // =====================
 
 // CREATORS
-SearchProcessor::SearchProcessor() 
+SearchProcessor::SearchProcessor()
 : d_dataFile()
 , d_journalFile()
 , d_searchParameters()
@@ -116,7 +116,7 @@ SearchProcessor::SearchProcessor()
     // NOTHING
 }
 
-SearchProcessor::SearchProcessor(bslma::Allocator* allocator) 
+SearchProcessor::SearchProcessor(bslma::Allocator* allocator)
 : d_dataFile(allocator)
 , d_journalFile(allocator)
 , d_searchParameters(allocator)
@@ -124,7 +124,8 @@ SearchProcessor::SearchProcessor(bslma::Allocator* allocator)
     // NOTHING
 }
 
-SearchProcessor::SearchProcessor(bsl::string& journalFile, bslma::Allocator* allocator) 
+SearchProcessor::SearchProcessor(bsl::string&      journalFile,
+                                 bslma::Allocator* allocator)
 : d_dataFile(allocator)
 , d_journalFile(journalFile, allocator)
 , d_searchParameters(allocator)
@@ -132,7 +133,9 @@ SearchProcessor::SearchProcessor(bsl::string& journalFile, bslma::Allocator* all
     // NOTHING
 }
 
-SearchProcessor::SearchProcessor(mqbs::JournalFileIterator& journalFileIter, SearchParameters& params, bslma::Allocator* allocator) 
+SearchProcessor::SearchProcessor(mqbs::JournalFileIterator& journalFileIter,
+                                 SearchParameters&          params,
+                                 bslma::Allocator*          allocator)
 : d_dataFile(allocator)
 , d_journalFile(allocator)
 , d_journalFileIter(journalFileIter)
@@ -155,51 +158,87 @@ SearchProcessor::~SearchProcessor()
     }
 }
 
-void SearchProcessor::process(bsl::ostream& ostream) {
+void SearchProcessor::process(bsl::ostream& ostream)
+{
     // TODO: remove - Initialize journal file iterator
     if (!d_journalFileIter.isValid()) {
         if (!resetIterator(&d_journalFd,
-                            &d_journalFileIter,
-                            d_journalFile.c_str(), ostream)) {
+                           &d_journalFileIter,
+                           d_journalFile.c_str(),
+                           ostream)) {
             return;  // RETURN
         }
         ostream << "Created Journal iterator successfully" << bsl::endl;
     }
 
-    if (!d_searchParameters.searchGuids.empty()) {
-        // Search by GUIDs
-        // TODO: use bsl::transform
-        // auto transformFunc = [](bsl::string item) {
-        //     bmqt::MessageGUID guid;
-        //     return guid.fromHex(item.c_str());
-        // };
-        // bsl::transform(d_searchParameters.searchGuids.begin(), d_searchParameters.searchGuids.end(), bsl::back_inserter(guids), transformFunc);
-        bsl::unordered_map<bmqt::MessageGUID, bsl::string> guids;
+    // Search by message GUIDs
+    const bool        searchAll = d_searchParameters.searchGuids.empty() ? true
+                                                                         : false;
+    const bsl::string foundCaption          = " message GUID(s) found.";
+    const bsl::string notFoundCaption       = "No message GUIDS found.";
+    bool              firstFoundMessageFlag = false;
+    bsl::size_t       foundMessagesCount    = 0;
+
+    // Build MessageGUID->StrGUID Map
+    bsl::unordered_map<bmqt::MessageGUID, bsl::string> guidsMap;
+    if (!searchAll) {
         for (auto& guidStr : d_searchParameters.searchGuids) {
             bmqt::MessageGUID guid;
-            guids[guid.fromHex(guidStr.c_str())] = guidStr; 
-
+            guidsMap[guid.fromHex(guidStr.c_str())] = guidStr;
         }
-        mqbs::JournalFileIterator* iter   = &d_journalFileIter;
-        while (true) {
-            if (!iter->hasRecordSizeRemaining()) {
-                ostream << "Ran out of records while iterating.";
-                return;  // RETURN
+    }
+
+    // Helper lambdas
+    auto outputFooter = [&]() {
+            firstFoundMessageFlag
+                ? (ostream << foundMessagesCount << foundCaption)
+                : ostream << notFoundCaption;
+            ostream << bsl::endl;
+            ostream.flush();
+    };
+
+    auto outputGuidString = [&](const mqbs::MessageRecord& message) {
+                char buf[bmqt::MessageGUID::e_SIZE_HEX];
+                message.messageGUID().toHex(buf);
+                ostream.write(buf, bmqt::MessageGUID::e_SIZE_HEX);
+                ostream << bsl::endl;
+    };
+
+    // Iterate through Journal file records
+    mqbs::JournalFileIterator* iter = &d_journalFileIter;
+    while (true) {
+        if (!iter->hasRecordSizeRemaining()) {
+            // End of journal file reached, return...
+            outputFooter();
+            return;  // RETURN
+        }
+
+        int rc = iter->nextRecord();
+        if (rc <= 0) {
+            ostream << "Iteration aborted (exit status " << rc << ").";
+            return;  // RETURN
+        }
+        else if (iter->recordType() == mqbs::RecordType::e_MESSAGE) {
+            const mqbs::MessageRecord& message = iter->asMessageRecord();
+            if (searchAll) {
+                if (!firstFoundMessageFlag)
+                    firstFoundMessageFlag = true;
+                outputGuidString(message);
+                foundMessagesCount++;
             }
-            int rc = iter->nextRecord();
-            if (rc <= 0) {
-                ostream << "Iteration aborted (exit status " << rc
-                               << ").";
-                return;  // RETURN
-            }
-            else if (iter->recordType() == mqbs::RecordType::e_MESSAGE) {
-                const mqbs::MessageRecord& message = iter->asMessageRecord();
-                 if (auto search = guids.find(message.messageGUID()); search != guids.end()) {
-                    bsl::cout << "FOUND: " << guids[message.messageGUID()] << bsl::endl;
-                 }
-                 else {
-                    bsl::cout << "NOT FOUND: " << bsl::endl;
-                 }
+            else if (auto foundGUID = guidsMap.find(message.messageGUID());
+                     foundGUID != guidsMap.end()) {
+                // Output result and remove processed GUID from map
+                if (!firstFoundMessageFlag)
+                    firstFoundMessageFlag = true;
+                ostream << foundGUID->second << bsl::endl;
+                guidsMap.erase(foundGUID);
+                foundMessagesCount++;
+                if (guidsMap.empty()) {
+                    // All GUIDs are found, return...
+                    outputFooter();
+                    return;  // RETURN
+                }
             }
         }
     }
