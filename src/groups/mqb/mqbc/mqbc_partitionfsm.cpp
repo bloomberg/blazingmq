@@ -33,6 +33,8 @@ PartitionFSM& PartitionFSM::registerObserver(PartitionFSMObserver* observer)
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(observer);
 
+    BALL_LOG_INFO << "PartitionFSM: Registered 1 new observer.";
+
     d_observers.insert(observer);
     return *this;
 }
@@ -41,6 +43,8 @@ PartitionFSM& PartitionFSM::unregisterObserver(PartitionFSMObserver* observer)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(observer);
+
+    BALL_LOG_INFO << "PartitionFSM: Unregistered 1 observer.";
 
     d_observers.erase(observer);
     return *this;
@@ -63,10 +67,13 @@ void PartitionFSM::applyEvent(
     // Transition state
     d_state = static_cast<State::Enum>(transition.first);
 
-    BALL_LOG_INFO << "Partition FSM for Partition [" << partitionId
-                  << "] on Event '" << eventWithData.first
-                  << "', transition: State '" << oldState << "' =>  State '"
-                  << d_state << "'";
+    if (eventWithData.first != PartitionStateTableEvent::e_RECOVERY_DATA &&
+        eventWithData.first != PartitionStateTableEvent::e_LIVE_DATA) {
+        BALL_LOG_INFO << "Partition FSM for Partition [" << partitionId
+                      << "] on Event '" << eventWithData.first
+                      << "', transition: State '" << oldState
+                      << "' =>  State '" << d_state << "'";
+    }
 
     // Perform action
     PartitionFSMArgsSp argsSp(new (*d_allocator_p)
@@ -111,8 +118,7 @@ void PartitionFSM::applyEvent(
         }
         case State::e_PRIMARY_HEALING_STG1: BSLS_ANNOTATION_FALLTHROUGH;
         case State::e_PRIMARY_HEALING_STG2: BSLS_ANNOTATION_FALLTHROUGH;
-        case State::e_REPLICA_HEALING_STG1: BSLS_ANNOTATION_FALLTHROUGH;
-        case State::e_REPLICA_HEALING_STG2:
+        case State::e_REPLICA_HEALING:
         default: {
             break;  // BREAK
         }

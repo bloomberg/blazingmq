@@ -980,6 +980,7 @@ void ClusterStateManager::onPartitionPrimaryAssignment(
                                                         partitionId,
                                                         primary,
                                                         leaseId,
+                                                        status,
                                                         oldPrimary,
                                                         oldLeaseId);
 

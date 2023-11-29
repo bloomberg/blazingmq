@@ -84,6 +84,11 @@ class PartitionFSMEventData {
     int d_partitionId;
     // Associated partition Id.
 
+    int d_incrementCount;
+    // Increment count (for counting
+    // number of replica data
+    // responses).
+
     mqbnet::ClusterNode* d_primary_p;
     // The primary for the associated
     // partitionId.
@@ -118,14 +123,15 @@ class PartitionFSMEventData {
     PartitionFSMEventData();
 
     /// Create an instance using the specified `source` with the specified
-    /// `requestId`, specified `partitionId`. Optionally specify the
-    /// `primary` and `primaryLeaseId`. If applicable the associated data
-    /// sequence number is an optionally specified `seqNum`. There are also
-    /// optionally specified `highestSeqNumNode`, optionally specified
-    /// `seqNumDataRange`.
+    /// `requestId`, specified `partitionId` and specified 'incrementCount'.
+    /// Optionally specify the `primary` and `primaryLeaseId`. If applicable
+    /// the associated data sequence number is an optionally specified
+    /// `seqNum`. There are also optionally specified `highestSeqNumNode`,
+    /// optionally specified `seqNumDataRange`.
     PartitionFSMEventData(mqbnet::ClusterNode* source,
                           int                  requestId,
                           int                  partitionId,
+                          int                  incrementCount,
                           mqbnet::ClusterNode* primary        = 0,
                           unsigned int         primaryLeaseId = 0,
                           const bmqp_ctrlmsg::PartitionSequenceNumber& seqNum =
@@ -136,26 +142,30 @@ class PartitionFSMEventData {
 
     /// Create an instance of PartitionFSMEventData using the specified
     /// `source` where request id is the specified `requestId`, the
-    /// partition identifier is the specified `partitionId` and the
-    /// associated data sequence number is the specified `seqNum`.
+    /// partition identifier is the specified `partitionId`, the associated
+    /// data sequence number is the specified `seqNum`, and the specified
+    /// 'incrementCount'.
     PartitionFSMEventData(mqbnet::ClusterNode* source,
                           int                  requestId,
                           int                  partitionId,
+                          int                  incrementCount,
                           const bmqp_ctrlmsg::PartitionSequenceNumber& seqNum);
 
     /// Create an instance of PartitionFSMEventData using the specified
     /// `source` where request id is the specified `requestId`, partition
-    /// identifier is the specified `partitionId` and the data range is
-    /// associated specified `seqNumDataRange`.
+    /// identifier is the specified `partitionId`, the data range is associated
+    /// specified `seqNumDataRange`, and the specified 'incrementCount'.
     PartitionFSMEventData(mqbnet::ClusterNode*            source,
                           int                             requestId,
                           int                             partitionId,
+                          int                             incrementCount,
                           const PartitionSeqNumDataRange& seqNumDataRange);
 
     /// Create an instance of PartitionFSMEventData using the specified
-    /// `source`, `partitionId` and `storageEvent`.
+    /// `source`, `partitionId`, 'incrementCount' and `storageEvent`.
     PartitionFSMEventData(mqbnet::ClusterNode*                source,
                           int                                 partitionId,
+                          int                                 incrementCount,
                           const bsl::shared_ptr<bdlbb::Blob>& storageEvent);
 
     // ACCESSORS
@@ -164,6 +174,7 @@ class PartitionFSMEventData {
     unsigned int         primaryLeaseId() const;
     int                  requestId() const;
     int                  partitionId() const;
+    int                  incrementCount() const;
     const bmqp_ctrlmsg::PartitionSequenceNumber&
                                     partitionSequenceNumber() const;
     mqbnet::ClusterNode*            highestSeqNumNode() const;
@@ -290,6 +301,7 @@ inline PartitionFSMEventData::PartitionFSMEventData()
 : d_source_p(0)
 , d_requestId(-1)  // Invalid requestId
 , d_partitionId(mqbs::DataStore::k_INVALID_PARTITION_ID)
+, d_incrementCount(1)
 , d_primary_p(0)
 , d_primaryLeaseId(0)  // Invalid placeholder LeaseId
 , d_partitionSequenceNumber()
@@ -304,6 +316,7 @@ inline PartitionFSMEventData::PartitionFSMEventData(
     mqbnet::ClusterNode*                         source,
     int                                          requestId,
     int                                          partitionId,
+    int                                          incrementCount,
     mqbnet::ClusterNode*                         primary,
     unsigned int                                 primaryLeaseId,
     const bmqp_ctrlmsg::PartitionSequenceNumber& seqNum,
@@ -312,6 +325,7 @@ inline PartitionFSMEventData::PartitionFSMEventData(
 : d_source_p(source)
 , d_requestId(requestId)
 , d_partitionId(partitionId)
+, d_incrementCount(incrementCount)
 , d_primary_p(primary)
 , d_primaryLeaseId(primaryLeaseId)
 , d_partitionSequenceNumber(seqNum)
@@ -326,10 +340,12 @@ inline PartitionFSMEventData::PartitionFSMEventData(
     mqbnet::ClusterNode*                         source,
     int                                          requestId,
     int                                          partitionId,
+    int                                          incrementCount,
     const bmqp_ctrlmsg::PartitionSequenceNumber& seqNum)
 : d_source_p(source)
 , d_requestId(requestId)
 , d_partitionId(partitionId)
+, d_incrementCount(incrementCount)
 , d_primary_p(0)
 , d_primaryLeaseId(0)  // Invalid placeholder primaryLeaseId
 , d_partitionSequenceNumber(seqNum)
@@ -344,10 +360,12 @@ inline PartitionFSMEventData::PartitionFSMEventData(
     mqbnet::ClusterNode*            source,
     int                             requestId,
     int                             partitionId,
+    int                             incrementCount,
     const PartitionSeqNumDataRange& seqNumDataRange)
 : d_source_p(source)
 , d_requestId(requestId)
 , d_partitionId(partitionId)
+, d_incrementCount(incrementCount)
 , d_primary_p(0)
 , d_primaryLeaseId(0)  // Invalid placeholder primaryLeaseId
 , d_partitionSequenceNumber()
@@ -361,10 +379,12 @@ inline PartitionFSMEventData::PartitionFSMEventData(
 inline PartitionFSMEventData::PartitionFSMEventData(
     mqbnet::ClusterNode*                source,
     int                                 partitionId,
+    int                                 incrementCount,
     const bsl::shared_ptr<bdlbb::Blob>& storageEvent)
 : d_source_p(source)
 , d_requestId(-1)  // Invalid requestId
 , d_partitionId(partitionId)
+, d_incrementCount(incrementCount)
 , d_primary_p(0)
 , d_primaryLeaseId(0)  // Invalid placeholder primaryLeaseId
 , d_partitionSequenceNumber()
@@ -399,6 +419,11 @@ inline int PartitionFSMEventData::requestId() const
 inline int PartitionFSMEventData::partitionId() const
 {
     return d_partitionId;
+}
+
+inline int PartitionFSMEventData::incrementCount() const
+{
+    return d_incrementCount;
 }
 
 inline const bmqp_ctrlmsg::PartitionSequenceNumber&
@@ -473,8 +498,7 @@ inline bool PartitionFSM::isSelfPrimary() const
 
 inline bool PartitionFSM::isSelfReplica() const
 {
-    return d_state == State::e_REPLICA_HEALING_STG1 ||
-           d_state == State::e_REPLICA_HEALING_STG2 ||
+    return d_state == State::e_REPLICA_HEALING ||
            d_state == State::e_REPLICA_HEALED;
 }
 

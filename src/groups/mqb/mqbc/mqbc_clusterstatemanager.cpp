@@ -61,7 +61,7 @@ ClusterStateManager::ClusterStateManager(
 , d_clusterData_p(clusterData)
 , d_state_p(clusterState)
 , d_clusterFSM(*this)
-, d_nodeToLSNMap(allocator)
+, d_nodeToLedgerLSNMap(allocator)
 , d_lsnQuorum((clusterConfig.nodes().size() / 2) + 1)
 // TODO Add cluster config to determine Eventual vs Strong
 , d_clusterStateLedger_mp(clusterStateLedger)
@@ -175,11 +175,17 @@ void ClusterStateManager::do_applyCSLSelf(const ClusterFSMArgsSp& args)
         metadata.highestLSNNode()->nodeId() ==
         d_clusterData_p->membership().selfNode()->nodeId();
     if (selfHighestLSN) {
-        // Verify that self ledger's term is less than the current elector term
+        // Verify that self ledger's term is less than or equal to the current
+        // elector term
         bmqp_ctrlmsg::LeaderMessageSequence selfLedgerLSN;
         latestLedgerLSN(&selfLedgerLSN);
-        BSLS_ASSERT_SAFE(selfLedgerLSN.electorTerm() <
+        BSLS_ASSERT_SAFE(selfLedgerLSN.electorTerm() <=
                          d_clusterData_p->electorInfo().electorTerm());
+
+        BALL_LOG_INFO << "#TEMP_STATE "
+                      << d_clusterData_p->identity().description()
+                      << ": Loading snapshot into temporary cluster state from"
+                      << " CSL iterator.";
 
         const int rc = loadClusterStateSnapshot(&tempState);
         if (rc != 0) {
@@ -205,6 +211,11 @@ void ClusterStateManager::do_applyCSLSelf(const ClusterFSMArgsSp& args)
 
         clusterStateSnapshot = metadata.clusterStateSnapshot();
 
+        BALL_LOG_INFO << "#TEMP_STATE "
+                      << d_clusterData_p->identity().description()
+                      << ": Loading follower snapshot into temporary cluster "
+                      << "state from " << metadata.highestLSNNode() << ".";
+
         bmqp_ctrlmsg::ClusterMessage clusterMessage;
         clusterMessage.choice().makeLeaderAdvisory(clusterStateSnapshot);
         ClusterUtil::apply(&tempState, clusterMessage, *d_clusterData_p);
@@ -214,19 +225,32 @@ void ClusterStateManager::do_applyCSLSelf(const ClusterFSMArgsSp& args)
         clusterStateSnapshot.partitions().clear();
     }
 
-    clusterStateSnapshot.sequenceNumber().electorTerm() =
-        d_clusterData_p->electorInfo().electorTerm();
-    clusterStateSnapshot.sequenceNumber().sequenceNumber() = 1;
+    d_clusterData_p->electorInfo().nextLeaderMessageSequence(
+        &clusterStateSnapshot.sequenceNumber());
 
-    ClusterUtil::assignPartitions(&clusterStateSnapshot.partitions(),
-                                  &tempState,
-                                  d_clusterConfig.masterAssignment(),
-                                  *d_clusterData_p,
-                                  true);  // isCSLMode
+    if (d_clusterFSM.isSelfLeader() && d_clusterFSM.isSelfHealed()) {
+        // Self is healed leader. We are simply broadcasting cluster state
+        // snapshot to newcoming follower nodes. No need to re-assign
+        // partitions.
+        ClusterUtil::loadPartitionsInfo(&clusterStateSnapshot.partitions(),
+                                        tempState);
+    }
+    else {
+        BALL_LOG_INFO << "#TEMP_STATE "
+                      << d_clusterData_p->identity().description()
+                      << ": Assigning partitions into temporary cluster "
+                      << "state.";
+
+        ClusterUtil::assignPartitions(&clusterStateSnapshot.partitions(),
+                                      &tempState,
+                                      d_clusterConfig.masterAssignment(),
+                                      *d_clusterData_p,
+                                      true);  // isCSLMode
+    }
 
     // Apply the new leader's first advisory
     BALL_LOG_INFO << d_clusterData_p->identity().description()
-                  << "Applying cluster state snapshot from "
+                  << ": Applying cluster state snapshot from "
                   << (selfHighestLSN
                           ? "self"
                           : metadata.highestLSNNode()->nodeDescription())
@@ -241,9 +265,12 @@ void ClusterStateManager::do_sendFollowerLSNRequests(
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(d_cluster_p));
-    BSLS_ASSERT_SAFE(!d_clusterData_p->cluster()->isLocal());
     BSLS_ASSERT_SAFE(d_clusterData_p->electorInfo().isSelfLeader() &&
                      d_clusterFSM.isSelfLeader());
+
+    if (d_clusterData_p->cluster()->isLocal()) {
+        return;  // RETURN
+    }
 
     bsl::vector<mqbnet::ClusterNode*> followers;
     ClusterUtil::loadPeerNodes(&followers, *d_clusterData_p);
@@ -294,9 +321,7 @@ void ClusterStateManager::do_sendFollowerLSNResponse(
         clusterMsg.choice().makeClusterStateFSMMessage();
     bmqp_ctrlmsg::FollowerLSNResponse& response =
         clusterFSMMessage.choice().makeFollowerLSNResponse();
-
-    response.sequenceNumber() =
-        d_clusterData_p->electorInfo().leaderMessageSequence();
+    latestLedgerLSN(&response.sequenceNumber());
 
     d_clusterData_p->messageTransmitter().sendMessage(controlMsg,
                                                       inputMessage.source());
@@ -347,12 +372,14 @@ void ClusterStateManager::do_findHighestLSN(
     BSLS_ASSERT_SAFE(d_clusterData_p->electorInfo().isSelfLeader() &&
                      d_clusterFSM.isSelfLeader());
 
-    mqbnet::ClusterNode*                highestLSNNode = 0;
-    bmqp_ctrlmsg::LeaderMessageSequence highestLSN;
-    for (NodeToLSNMapCIter cit = d_nodeToLSNMap.cbegin();
-         cit != d_nodeToLSNMap.cend();
+    mqbnet::ClusterNode* selfNode = d_clusterData_p->membership().selfNode();
+    mqbnet::ClusterNode* highestLSNNode            = selfNode;
+    bmqp_ctrlmsg::LeaderMessageSequence highestLSN = d_nodeToLedgerLSNMap.at(
+        selfNode);
+    for (NodeToLSNMapCIter cit = d_nodeToLedgerLSNMap.cbegin();
+         cit != d_nodeToLedgerLSNMap.cend();
          ++cit) {
-        if (!highestLSNNode || cit->second > highestLSN) {
+        if (cit->second > highestLSN) {
             highestLSNNode = cit->first;
             highestLSN     = cit->second;
         }
@@ -443,8 +470,7 @@ void ClusterStateManager::do_sendFollowerClusterStateResponse(
             .makeFollowerClusterStateResponse();
     bmqp_ctrlmsg::LeaderAdvisory& leaderAdvisory =
         response.clusterStateSnapshot();
-    leaderAdvisory.sequenceNumber() =
-        d_clusterData_p->electorInfo().leaderMessageSequence();
+    latestLedgerLSN(&leaderAdvisory.sequenceNumber());
 
     const int rc = loadClusterStateSnapshot(&leaderAdvisory);
     if (rc != 0) {
@@ -504,13 +530,16 @@ void ClusterStateManager::do_storeSelfLSN(const ClusterFSMArgsSp& args)
 
     const ClusterFSMEventMetadata& metadata = args->front().second;
     BSLS_ASSERT_SAFE(metadata.inputMessages().size() == 1);
-
     const InputMessage& inputMessage = metadata.inputMessages().at(0);
     BSLS_ASSERT_SAFE(inputMessage.source()->nodeId() ==
                      d_clusterData_p->membership().selfNode()->nodeId());
 
-    d_nodeToLSNMap[inputMessage.source()] =
-        inputMessage.leaderSequenceNumber();
+    bmqp_ctrlmsg::LeaderMessageSequence selfLSN;
+    latestLedgerLSN(&selfLSN);
+    d_nodeToLedgerLSNMap[inputMessage.source()] = selfLSN;
+
+    BALL_LOG_INFO << d_clusterData_p->identity().description()
+                  << ": In the Cluster FSM, storing self's LSN as " << selfLSN;
 }
 
 void ClusterStateManager::do_storeFollowerLSNs(const ClusterFSMArgsSp& args)
@@ -528,7 +557,12 @@ void ClusterStateManager::do_storeFollowerLSNs(const ClusterFSMArgsSp& args)
     for (InputMessagesCIter cit = metadata.inputMessages().cbegin();
          cit != metadata.inputMessages().cend();
          ++cit) {
-        d_nodeToLSNMap[cit->source()] = cit->leaderSequenceNumber();
+        d_nodeToLedgerLSNMap[cit->source()] = cit->leaderSequenceNumber();
+
+        BALL_LOG_INFO << d_clusterData_p->identity().description()
+                      << ": In the Cluster FSM, storing the LSN of "
+                      << cit->source()->nodeDescription() << " as "
+                      << cit->leaderSequenceNumber();
     }
 }
 
@@ -545,7 +579,20 @@ void ClusterStateManager::do_removeFollowerLSN(const ClusterFSMArgsSp& args)
     const ClusterFSMEventMetadata& metadata  = args->front().second;
     mqbnet::ClusterNode* crashedFollowerNode = metadata.crashedFollowerNode();
 
-    d_nodeToLSNMap.erase(crashedFollowerNode);
+    NodeToLSNMapCIter cit = d_nodeToLedgerLSNMap.find(crashedFollowerNode);
+    if (cit == d_nodeToLedgerLSNMap.cend()) {
+        BALL_LOG_ERROR << d_clusterData_p->identity().description()
+                       << " In the cluster FSM, failed to remove the LSN of "
+                       << crashedFollowerNode->nodeDescription()
+                       << " because it was not recorded.";
+    }
+
+    BALL_LOG_INFO << d_clusterData_p->identity().description()
+                  << ": In the Cluster FSM, removing the LSN of "
+                  << crashedFollowerNode->nodeDescription() << ", which was "
+                  << cit->second;
+
+    d_nodeToLedgerLSNMap.erase(cit);
 }
 
 void ClusterStateManager::do_checkLSNQuorum(const ClusterFSMArgsSp& args)
@@ -557,12 +604,12 @@ void ClusterStateManager::do_checkLSNQuorum(const ClusterFSMArgsSp& args)
     BSLS_ASSERT_SAFE(d_clusterData_p->electorInfo().isSelfLeader() &&
                      d_clusterFSM.isSelfLeader());
 
-    if (d_nodeToLSNMap.size() >= d_lsnQuorum) {
+    if (d_nodeToLedgerLSNMap.size() >= d_lsnQuorum) {
         // If we have a quorum of LSNs (including self LSN)
 
         BALL_LOG_INFO << d_clusterData_p->identity().description()
                       << ": Achieved a quorum of LSNs with a count of "
-                      << d_nodeToLSNMap.size();
+                      << d_nodeToLedgerLSNMap.size();
 
         args->emplace(ClusterFSM::Event::e_QUORUM_LSN,
                       ClusterFSMEventMetadata(d_allocator_p));
@@ -572,7 +619,7 @@ void ClusterStateManager::do_checkLSNQuorum(const ClusterFSMArgsSp& args)
 
         BALL_LOG_INFO << d_clusterData_p->identity().description()
                       << ": Lost quorum of LSNs. New count is "
-                      << d_nodeToLSNMap.size();
+                      << d_nodeToLedgerLSNMap.size();
 
         args->emplace(ClusterFSM::Event::e_LOST_QUORUM_LSN,
                       ClusterFSMEventMetadata(d_allocator_p));
@@ -601,9 +648,7 @@ void ClusterStateManager::do_sendRegistrationRequest(
             .makeClusterStateFSMMessage()
             .choice()
             .makeRegistrationRequest();
-
-    registrationRequest.sequenceNumber() =
-        d_clusterData_p->electorInfo().leaderMessageSequence();
+    latestLedgerLSN(&registrationRequest.sequenceNumber());
 
     mqbnet::ClusterNode* destNode =
         d_clusterData_p->electorInfo().leaderNode();
@@ -750,7 +795,7 @@ void ClusterStateManager::do_logErrorLeaderNotHealed(
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(d_cluster_p));
     BSLS_ASSERT_SAFE(!d_clusterData_p->cluster()->isLocal());
     BSLS_ASSERT_SAFE(!d_clusterData_p->electorInfo().isSelfLeader());
-    BSLS_ASSERT_SAFE(d_clusterFSM.state() == ClusterFSM::State::e_FOL_HEALED);
+    BSLS_ASSERT_SAFE(d_clusterFSM.state() == ClusterFSM::State::e_FOL_HEALING);
 
     const ClusterFSMEventMetadata& metadata = args->front().second;
     BSLS_ASSERT_SAFE(metadata.inputMessages().size() == 1);
@@ -883,13 +928,8 @@ void ClusterStateManager::do_reapplySelectLeader(const ClusterFSMArgsSp& args)
     BALL_LOG_INFO << d_clusterData_p->identity().description()
                   << ": Re-apply transition to leader in the Cluster FSM.";
 
-    bmqp_ctrlmsg::LeaderMessageSequence selfLSN;
-    latestLedgerLSN(&selfLSN);
-
     InputMessages inputMessages(1, d_allocator_p);
-    inputMessages.at(0)
-        .setSource(d_clusterData_p->membership().selfNode())
-        .setLeaderSequenceNumber(selfLSN);
+    inputMessages.at(0).setSource(d_clusterData_p->membership().selfNode());
 
     args->emplace(ClusterFSM::Event::e_SLCT_LDR,
                   ClusterFSMEventMetadata(inputMessages));
@@ -923,7 +963,7 @@ void ClusterStateManager::do_cleanupLSNs(
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(d_cluster_p));
 
-    d_nodeToLSNMap.clear();
+    d_nodeToLedgerLSNMap.clear();
 }
 
 void ClusterStateManager::do_cancelRequests(
@@ -965,13 +1005,14 @@ void ClusterStateManager::onPartitionPrimaryAssignment(
     // 'ClusterQueueHelper::afterPartitionPrimaryAssignment' (via
     // d_afterPartitionPrimaryAssignmentCb), because ClusterQueueHelper assumes
     // that storage is aware of the mapping.
-    mqbc::ClusterUtil::onPartitionPrimaryAssignment(d_clusterData_p,
-                                                    d_storageManager_p,
-                                                    partitionId,
-                                                    primary,
-                                                    leaseId,
-                                                    oldPrimary,
-                                                    oldLeaseId);
+    ClusterUtil::onPartitionPrimaryAssignment(d_clusterData_p,
+                                              d_storageManager_p,
+                                              partitionId,
+                                              primary,
+                                              leaseId,
+                                              status,
+                                              oldPrimary,
+                                              oldLeaseId);
 
     d_afterPartitionPrimaryAssignmentCb(partitionId, primary, status);
 }
@@ -1055,6 +1096,11 @@ int ClusterStateManager::loadClusterStateSnapshot(
         d_cluster_p,
         d_cluster_p->clusterConfig()->partitionConfig().numPartitions(),
         d_allocator_p);
+
+    BALL_LOG_INFO << "#TEMP_STATE "
+                  << d_clusterData_p->identity().description()
+                  << ": Loading snapshot into temporary cluster state from"
+                  << " CSL iterator.";
 
     const int rc = loadClusterStateSnapshot(&tempState);
     if (rc != 0) {
@@ -1170,8 +1216,13 @@ void ClusterStateManager::onFollowerLSNResponse(
     }
 
     if (!successResponses.empty()) {
+        mqbnet::ClusterNode* highestLSNNode =
+            (d_clusterFSM.isSelfLeader() && d_clusterFSM.isSelfHealed())
+                ? d_clusterData_p->membership().selfNode()
+                : 0;
         applyFSMEvent(ClusterFSM::Event::e_FOL_LSN_RSPN,
-                      ClusterFSMEventMetadata(successResponses));
+                      ClusterFSMEventMetadata(successResponses,
+                                              highestLSNNode));
     }
 }
 
@@ -1335,6 +1386,8 @@ int ClusterStateManager::start(bsl::ostream& errorDescription)
         return rc;  // RETURN
     }
 
+    d_state_p->registerObserver(this);
+
     return 0;
 }
 
@@ -1354,6 +1407,8 @@ void ClusterStateManager::stop()
                        << ": Failed to close cluster state ledger [rc: " << rc
                        << "]";
     }
+
+    d_state_p->unregisterObserver(this);
 
     applyFSMEvent(ClusterFSM::Event::e_STOP_NODE, ClusterFSMEventMetadata());
 }
@@ -1666,8 +1721,12 @@ void ClusterStateManager::processRegistrationRequest(
                                      .registrationRequest()
                                      .sequenceNumber());
 
+    mqbnet::ClusterNode* highestLSNNode =
+        (d_clusterFSM.isSelfLeader() && d_clusterFSM.isSelfHealed())
+            ? d_clusterData_p->membership().selfNode()
+            : 0;
     applyFSMEvent(ClusterFSM::Event::e_REGISTRATION_RQST,
-                  ClusterFSMEventMetadata(inputMessages));
+                  ClusterFSMEventMetadata(inputMessages, highestLSNNode));
 }
 
 void ClusterStateManager::processClusterStateEvent(
@@ -1839,24 +1898,18 @@ void ClusterStateManager::onClusterLeader(
     InputMessages inputMessages(1, d_allocator_p);
     inputMessages.at(0).setSource(node);  // leader node
 
-    if (d_clusterData_p->membership().selfNode() == node) {
-        if (!d_clusterFSM.isSelfLeader()) {
-            BALL_LOG_INFO << d_clusterData_p->identity().description()
-                          << ": Transitioning to leader in the Cluster FSM.";
-        }
-
-        bmqp_ctrlmsg::LeaderMessageSequence selfLSN;
-        latestLedgerLSN(&selfLSN);
-        inputMessages.at(0).setLeaderSequenceNumber(selfLSN);
+    if (d_clusterData_p->membership().selfNode()->nodeId() == node->nodeId()) {
+        BALL_LOG_INFO << d_clusterData_p->identity().description() << ": "
+                      << (d_clusterFSM.isSelfLeader() ? "Re-" : "")
+                      << "Transitioning to leader in the Cluster FSM.";
 
         applyFSMEvent(ClusterFSM::Event::e_SLCT_LDR,
                       ClusterFSMEventMetadata(inputMessages));
     }
     else {
-        if (!d_clusterFSM.isSelfFollower()) {
-            BALL_LOG_INFO << d_clusterData_p->identity().description()
-                          << ": Transitioning to follower in the Cluster FSM.";
-        }
+        BALL_LOG_INFO << d_clusterData_p->identity().description() << ": "
+                      << (d_clusterFSM.isSelfFollower() ? "Re-" : "")
+                      << "Transitioning to follower in the Cluster FSM.";
 
         applyFSMEvent(ClusterFSM::Event::e_SLCT_FOL,
                       ClusterFSMEventMetadata(inputMessages));

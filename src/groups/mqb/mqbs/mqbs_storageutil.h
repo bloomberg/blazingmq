@@ -51,6 +51,7 @@
 #include <bsl_unordered_map.h>
 #include <bsl_unordered_set.h>
 #include <bsl_utility.h>
+#include <bsl_vector.h>
 #include <bsls_types.h>
 
 namespace BloombergLP {
@@ -80,6 +81,8 @@ struct StorageUtil {
     /// [domainName][queueUri] -> numMessages
     typedef bsl::unordered_map<bsl::string, QueueMessagesCountMap>
         DomainQueueMessagesCountMap;
+    typedef bsl::vector<DomainQueueMessagesCountMap>
+        DomainQueueMessagesCountMaps;
 
   public:
     // CLASS METHODS

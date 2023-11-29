@@ -171,9 +171,6 @@ class ElectorInfo : public ClusterFSMObserver {
     mqbnet::ElectorState::Enum d_electorState;
     // Elector's state
 
-    bsls::Types::Uint64 d_electorTerm;
-    // Current term of the elector
-
     mqbnet::ClusterNode* d_leaderNode_p;
     // Current leader, as notified by
     // the elector, or null if no
@@ -254,10 +251,10 @@ class ElectorInfo : public ClusterFSMObserver {
                                 mqbnet::ClusterNode*          node,
                                 ElectorInfoLeaderStatus::Enum status);
 
-    /// Populate the specified `sequence` with the next leader message
-    /// sequence number.
-    void
-    nextLeaderMessageSequence(bmqp_ctrlmsg::LeaderMessageSequence* sequence);
+    /// Bump up the leader sequence number and populate to the optionally
+    /// specified 'sequence'.
+    void nextLeaderMessageSequence(
+        bmqp_ctrlmsg::LeaderMessageSequence* sequence = 0);
 
     /// Invoked when self has transitioned to ACTIVE leader.
     void onSelfActiveLeader();
@@ -304,7 +301,6 @@ class ElectorInfo : public ClusterFSMObserver {
 // CREATORS
 inline ElectorInfo::ElectorInfo(mqbi::Cluster* cluster)
 : d_electorState(mqbnet::ElectorState::e_DORMANT)
-, d_electorTerm(mqbnet::Elector::k_INVALID_TERM)
 , d_leaderNode_p(0)
 , d_leaderStatus(ElectorInfoLeaderStatus::e_UNDEFINED)
 , d_leaderMessageSequence()
@@ -314,6 +310,9 @@ inline ElectorInfo::ElectorInfo(mqbi::Cluster* cluster)
 {
     d_leaderMessageSequence.electorTerm()    = mqbnet::Elector::k_INVALID_TERM;
     d_leaderMessageSequence.sequenceNumber() = 0;
+
+    BALL_LOG_INFO << "Setting elector's leader sequence number to "
+                  << d_leaderMessageSequence;
 }
 
 // MANIPULATORS
@@ -326,7 +325,11 @@ ElectorInfo::setElectorState(mqbnet::ElectorState::Enum value)
 
 inline ElectorInfo& ElectorInfo::setElectorTerm(bsls::Types::Uint64 value)
 {
-    d_electorTerm = value;
+    d_leaderMessageSequence.electorTerm()    = value;
+    d_leaderMessageSequence.sequenceNumber() = 0;
+
+    BALL_LOG_INFO << "Setting elector's leader sequence number to "
+                  << d_leaderMessageSequence;
     return *this;
 }
 
@@ -340,6 +343,9 @@ inline ElectorInfo& ElectorInfo::setLeaderMessageSequence(
     const bmqp_ctrlmsg::LeaderMessageSequence& value)
 {
     d_leaderMessageSequence = value;
+
+    BALL_LOG_INFO << "Setting elector's leader sequence number to "
+                  << d_leaderMessageSequence;
     return *this;
 }
 
@@ -347,7 +353,12 @@ inline void ElectorInfo::nextLeaderMessageSequence(
     bmqp_ctrlmsg::LeaderMessageSequence* sequence)
 {
     ++d_leaderMessageSequence.sequenceNumber();
-    *sequence = d_leaderMessageSequence;
+    if (sequence) {
+        *sequence = d_leaderMessageSequence;
+    }
+
+    BALL_LOG_INFO << "Bumping up elector's leader sequence number to "
+                  << d_leaderMessageSequence;
 }
 
 inline ElectorInfo::SchedulerEventHandle* ElectorInfo::leaderSyncEventHandle()
@@ -374,7 +385,7 @@ inline mqbnet::ElectorState::Enum ElectorInfo::electorState() const
 
 inline bsls::Types::Uint64 ElectorInfo::electorTerm() const
 {
-    return d_electorTerm;
+    return d_leaderMessageSequence.electorTerm();
 }
 
 inline mqbnet::ClusterNode* ElectorInfo::leaderNode() const

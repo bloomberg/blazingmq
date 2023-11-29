@@ -180,6 +180,12 @@ struct Tester {
         BSLS_ASSERT_OPT(rc == 0);
         rc = d_clusterStateManager_mp->start(errorDescription);
         BSLS_ASSERT_OPT(rc == 0);
+
+        // In unit test, we do *not* want to trigger cluster state observer
+        // events.
+        const_cast<mqbc::ClusterState*>(
+            d_clusterStateManager_mp->clusterState())
+            ->unregisterObserver(d_clusterStateManager_mp.get());
     }
 
     ~Tester()
@@ -299,9 +305,11 @@ struct Tester {
         }
     }
 
-    void verifyFollowerLSNResponseSent() const
+    void verifyFollowerLSNResponseSent(
+        const bmqp_ctrlmsg::LeaderMessageSequence& sequenceNumber) const
     {
-        // Verify that a follower LSN response is replied *only* to the leader.
+        // Verify that a follower LSN response having the specified
+        // 'sequenceNumber' is replied *only* to the leader.
         bmqp_ctrlmsg::ControlMessage expectedMessage;
         expectedMessage.rId() = 1;
         bmqp_ctrlmsg::FollowerLSNResponse& response =
@@ -311,9 +319,7 @@ struct Tester {
                 .makeClusterStateFSMMessage()
                 .choice()
                 .makeFollowerLSNResponse();
-        response.sequenceNumber() = d_cluster_mp->_clusterData()
-                                        ->electorInfo()
-                                        .leaderMessageSequence();
+        response.sequenceNumber() = sequenceNumber;
 
         for (TestChannelMapCIter cit = d_cluster_mp->_channels().cbegin();
              cit != d_cluster_mp->_channels().cend();
@@ -502,12 +508,7 @@ struct Tester {
                 .makeClusterStateFSMMessage()
                 .choice()
                 .makeFollowerClusterStateResponse();
-        response.clusterStateSnapshot().sequenceNumber() =
-            d_cluster_mp->_clusterData()
-                ->electorInfo()
-                .leaderMessageSequence();
-        ASSERT_EQ(response.clusterStateSnapshot().sequenceNumber(),
-                  sequenceNumber);
+        response.clusterStateSnapshot().sequenceNumber() = sequenceNumber;
         // Load (empty) cluster state into the response
         mqbc::ClusterUtil::loadPartitionsInfo(
             &response.clusterStateSnapshot().partitions(),
@@ -571,14 +572,15 @@ static void test1_breathingTestLeader()
     ASSERT_EQ(tester.d_clusterStateManager_mp->healthState(),
               mqbc::ClusterStateTableState::e_LDR_HEALING_STG1);
 
-    // Verify that self LSN is stored
+    // Verify that self ledger LSN is stored, and is less than current
+    // elector term
     const NodeToLSNMap& lsnMap =
         tester.d_clusterStateManager_mp->nodeToLSNMap();
     ASSERT_EQ(lsnMap.size(), 1U);
     NodeToLSNMapCIter citer = lsnMap.find(const_cast<mqbnet::ClusterNode*>(
         tester.d_cluster_mp->netCluster().selfNode()));
     ASSERT(citer != lsnMap.cend());
-    ASSERT_EQ(citer->second,
+    ASSERT_LT(citer->second,
               tester.d_cluster_mp->_clusterData()
                   ->electorInfo()
                   .leaderMessageSequence());
@@ -792,7 +794,7 @@ static void test5_followerLSNRequestHandlingFollower()
     ASSERT_EQ(tester.d_clusterStateManager_mp->healthState(),
               mqbc::ClusterStateTableState::e_FOL_HEALING);
 
-    tester.verifyFollowerLSNResponseSent();
+    tester.verifyFollowerLSNResponseSent(selfLSN);
 }
 
 static void test6_registrationRequestHandlingLeader()
@@ -1220,7 +1222,7 @@ static void test11_leaderHighestLeaderHealed()
             ->electorInfo()
             .leaderMessageSequence();
     ASSERT_EQ(latestLSN.electorTerm(), 2U);
-    ASSERT_EQ(latestLSN.sequenceNumber(), 1U);
+    ASSERT_EQ(latestLSN.sequenceNumber(), 2U);
 }
 
 static void test12_followerHighestLeaderHealed()
@@ -1345,7 +1347,7 @@ static void test12_followerHighestLeaderHealed()
             ->electorInfo()
             .leaderMessageSequence();
     ASSERT_EQ(latestLSN.electorTerm(), 2U);
-    ASSERT_EQ(latestLSN.sequenceNumber(), 1U);
+    ASSERT_EQ(latestLSN.sequenceNumber(), 2U);
 }
 
 static void test13_followerHealed()
@@ -1611,7 +1613,7 @@ static void test16_followerClusterStateRespFailureLeaderNext()
             ->electorInfo()
             .leaderMessageSequence();
     ASSERT_EQ(latestLSN.electorTerm(), 2U);
-    ASSERT_EQ(latestLSN.sequenceNumber(), 1U);
+    ASSERT_EQ(latestLSN.sequenceNumber(), 2U);
 }
 
 static void test17_followerClusterStateRespFailureFollowerNext()
@@ -1761,7 +1763,7 @@ static void test17_followerClusterStateRespFailureFollowerNext()
             ->electorInfo()
             .leaderMessageSequence();
     ASSERT_EQ(latestLSN.electorTerm(), 2U);
-    ASSERT_EQ(latestLSN.sequenceNumber(), 1U);
+    ASSERT_EQ(latestLSN.sequenceNumber(), 2U);
 }
 
 static void test18_followerClusterStateRespFailureLostQuorum()
@@ -2267,7 +2269,7 @@ static void test22_selectFollowerFromLeader()
 
     followerLSNResponse.rId() = 1;
     lms.electorTerm()         = 1U;
-    lms.sequenceNumber()      = 8U;  // Follower LSNs are lower than leader's
+    lms.sequenceNumber()      = 8U;  // Follower LSNs are higher than leader's
     tester2.d_cluster_mp->requestManager().processResponse(
         followerLSNResponse);
     followerLSNResponse.rId() = 2;
@@ -2298,7 +2300,7 @@ static void test22_selectFollowerFromLeader()
                     mqbc::ClusterStateTableState::e_UNKNOWN);
 
     tester3.setSelfLedgerLSN(selfLSN);
-    lms.sequenceNumber() = 2U;  // Follower LSNs are higher than leader's
+    lms.sequenceNumber() = 2U;  // Follower LSNs are lower than leader's
 
     tester3.electLeader(2U);
     tester3.verifyFollowerLSNRequestsSent();
@@ -2329,10 +2331,10 @@ static void test22_selectFollowerFromLeader()
     ASSERT_EQ(tester3.d_clusterStateManager_mp->healthState(),
               mqbc::ClusterStateTableState::e_FOL_HEALING);
 
-    // Current self LSN should be (2,1) after becoming healed leader earlier
+    // Current self LSN should be (2,2) after becoming healed leader earlier
     bmqp_ctrlmsg::LeaderMessageSequence currentSelfLSN;
     currentSelfLSN.electorTerm()    = 2U;
-    currentSelfLSN.sequenceNumber() = 1U;
+    currentSelfLSN.sequenceNumber() = 2U;
     tester3.verifyRegistrationRequestSent(currentSelfLSN);
 }
 

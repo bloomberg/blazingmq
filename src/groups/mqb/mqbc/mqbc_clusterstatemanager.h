@@ -153,10 +153,10 @@ class ClusterStateManager
     // determine state transition and
     // action upon an event.
 
-    NodeToLSNMap d_nodeToLSNMap;
+    NodeToLSNMap d_nodeToLedgerLSNMap;
     // Map from a cluster node (including
     // self) to its view of the latest
-    // leader sequence number
+    // ledger leader sequence number
 
     unsigned int d_lsnQuorum;
     // Number of LSN views gathered from
@@ -805,7 +805,7 @@ inline ClusterFSM::State::Enum ClusterStateManager::healthState() const
 inline const ClusterStateManager::NodeToLSNMap&
 ClusterStateManager::nodeToLSNMap() const
 {
-    return d_nodeToLSNMap;
+    return d_nodeToLedgerLSNMap;
 }
 
 }  // close package namespace
