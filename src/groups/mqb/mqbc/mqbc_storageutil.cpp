@@ -1756,7 +1756,7 @@ void StorageUtil::recoveredQueuesCb(
                       << "], queueKey [" << queueKey << "].";
 
         // Update 'storageMap'.
-        const mqbconfm::BloombergDomain&   domainCfg  = domain->config();
+        const mqbconfm::Domain&            domainCfg  = domain->config();
         const mqbconfm::StorageDefinition& storageDef = domainCfg.storage();
 
         if (domainCfg.mode().isUndefinedValue()) {

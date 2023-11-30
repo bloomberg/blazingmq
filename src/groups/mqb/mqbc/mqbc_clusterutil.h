@@ -402,9 +402,9 @@ struct ClusterUtil {
     /// and a non-zero error code on failure.  Note that this involves
     /// iteration over the entire ledger which can be an expensive operation.
     /// static
-    int latestLedgerLSN(bmqp_ctrlmsg::LeaderMessageSequence* out,
-                        const ClusterStateLedger&            ledger,
-                        const ClusterData&                   clusterData);
+    static int latestLedgerLSN(bmqp_ctrlmsg::LeaderMessageSequence* out,
+                               const ClusterStateLedger&            ledger,
+                               const ClusterData& clusterData);
 };
 
 // ============================================================================
