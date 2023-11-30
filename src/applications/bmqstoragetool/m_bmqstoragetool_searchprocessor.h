@@ -38,11 +38,22 @@ class SearchParameters {
     SearchParameters();
     SearchParameters(bslma::Allocator* allocator);
     bsl::vector<bsl::string> searchGuids;
+    bool                     searchOutstanding;
 };
 
 class SearchProcessor : public CommandProcessor {
-
   private:
+    enum SearchMode { k_ALL, k_LIST, k_OUTSTANDING };
+
+    struct MessageDetails {
+        mqbs::MessageRecord              messageRecord;
+        bsl::vector<mqbs::ConfirmRecord> confirmRecords;
+        mqbs::DeletionRecordFlag::Enum   deleteRecordFlag;
+    };
+
+    typedef bsl::unordered_map<bmqt::MessageGUID, MessageDetails>
+        MessagesDetails;
+
     // DATA
     bsl::string d_dataFile;
 
@@ -59,20 +70,34 @@ class SearchProcessor : public CommandProcessor {
     SearchParameters d_searchParameters;
 
     // MANIPULATORS
+    void outputSearchResult(bsl::ostream&          ostream,
+                            const SearchMode       mode,
+                            const MessagesDetails& messagesDetails,
+                            const bsl::size_t      messagesCount);
+
+    // ACCESSORS
+    void outputGuidString(bsl::ostream&            ostream,
+                          const bmqt::MessageGUID& messageGUID,
+                          const bool               addNewLine = true);
 
   public:
     // CREATORS
     SearchProcessor();
     SearchProcessor(bslma::Allocator* allocator);
     SearchProcessor(bsl::string& journalFile, bslma::Allocator* allocator);
-    SearchProcessor(mqbs::JournalFileIterator& journalFileIter, SearchParameters& params, bslma::Allocator* allocator);
+    SearchProcessor(mqbs::JournalFileIterator& journalFileIter,
+                    SearchParameters&          params,
+                    bslma::Allocator*          allocator);
     ~SearchProcessor();
 
     // MANIPULATORS
     void process(bsl::ostream& ostream) BSLS_KEYWORD_OVERRIDE;
 
     // TODO: remove
-    mqbs::JournalFileIterator& getJournalFileIter() { return d_journalFileIter;}
+    mqbs::JournalFileIterator& getJournalFileIter()
+    {
+        return d_journalFileIter;
+    }
 };
 
 }  // close package namespace

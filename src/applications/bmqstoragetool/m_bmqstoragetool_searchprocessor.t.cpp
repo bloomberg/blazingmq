@@ -56,12 +56,12 @@ typedef bsl::pair<RecordType::Enum, RecordBufferType> NodeType;
 
 typedef bsl::list<NodeType> RecordsListType;
 
-void addJournalRecords(MemoryBlock*  block,
-                FileHeader*          fileHeader,
-                bsls::Types::Uint64* lastRecordPos,
-                bsls::Types::Uint64* lastSyncPtPos,
-                RecordsListType*     records,
-                unsigned int         numRecords)
+void addJournalRecords(MemoryBlock*         block,
+                       FileHeader*          fileHeader,
+                       bsls::Types::Uint64* lastRecordPos,
+                       bsls::Types::Uint64* lastSyncPtPos,
+                       RecordsListType*     records,
+                       unsigned int         numRecords)
 {
     bsls::Types::Uint64 currPos = 0;
 
@@ -193,32 +193,153 @@ void addJournalRecords(MemoryBlock*  block,
     }
 }
 
-
-bsls::Types::Uint64 memoryBufferSize(size_t numRecords) 
+bsl::vector<bmqt::MessageGUID>
+addJournalRecordsWithOutstandingMessages(MemoryBlock*         block,
+                                         FileHeader*          fileHeader,
+                                         bsls::Types::Uint64* lastRecordPos,
+                                         bsls::Types::Uint64* lastSyncPtPos,
+                                         RecordsListType*     records,
+                                         unsigned int         numRecords)
 {
-    return sizeof(FileHeader) + sizeof(JournalFileHeader) +
-        numRecords * FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
+    bsls::Types::Uint64 currPos = 0;
+
+    OffsetPtr<FileHeader> fh(*block, currPos);
+    new (fh.get()) FileHeader();
+    *fileHeader = *fh;
+    currPos += sizeof(FileHeader);
+
+    OffsetPtr<JournalFileHeader> jfh(*block, currPos);
+    new (jfh.get()) JournalFileHeader();  // Default values are ok
+    currPos += sizeof(JournalFileHeader);
+
+    bool                           outstandingFlag = false;
+    bmqt::MessageGUID              lastMessageGUID;
+    bsl::vector<bmqt::MessageGUID> outstandingGUIDs;
+
+    for (unsigned int i = 1; i <= numRecords; ++i) {
+        *lastRecordPos = currPos;
+
+        unsigned int remainder = i % 3;
+        if (1 == remainder) {
+            // bmqt::MessageGUID g;
+            mqbu::MessageGUIDUtil::generateGUID(&lastMessageGUID);
+            OffsetPtr<MessageRecord> rec(*block, currPos);
+            new (rec.get()) MessageRecord();
+            rec->header().setPrimaryLeaseId(100).setSequenceNumber(i);
+            rec->setRefCount(i % FileStoreProtocol::k_MAX_MSG_REF_COUNT_HARD)
+                .setQueueKey(
+                    mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
+                                     "abcde"))
+                .setFileKey(
+                    mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
+                                     "12345"))
+                .setMessageOffsetDwords(i)
+                .setMessageGUID(lastMessageGUID)
+                .setCrc32c(i)
+                .setCompressionAlgorithmType(
+                    bmqt::CompressionAlgorithmType::e_NONE)
+                .setMagic(RecordHeader::k_MAGIC);
+
+            RecordBufferType buf;
+            bsl::memcpy(buf.buffer(),
+                        rec.get(),
+                        FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
+            records->push_back(bsl::make_pair(RecordType::e_MESSAGE, buf));
+        }
+        else if (2 == remainder) {
+            // ConfRec
+            bmqt::MessageGUID g;
+            mqbu::MessageGUIDUtil::generateGUID(&g);
+            OffsetPtr<ConfirmRecord> rec(*block, currPos);
+            new (rec.get()) ConfirmRecord();
+            rec->header().setPrimaryLeaseId(100).setSequenceNumber(i);
+            rec->setReason(ConfirmReason::e_REJECTED)
+                .setQueueKey(
+                    mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
+                                     "abcde"))
+                .setAppKey(
+                    mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
+                                     "appid"))
+                .setMessageGUID(g)
+                .setMagic(RecordHeader::k_MAGIC);
+
+            RecordBufferType buf;
+            bsl::memcpy(buf.buffer(),
+                        rec.get(),
+                        FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
+            records->push_back(bsl::make_pair(RecordType::e_CONFIRM, buf));
+        }
+        else {
+            // DelRec
+            bmqt::MessageGUID g;
+            if (outstandingFlag) {
+                mqbu::MessageGUIDUtil::generateGUID(&g);
+                outstandingGUIDs.push_back(lastMessageGUID);
+            }
+            else {
+                g = lastMessageGUID;
+            }
+            outstandingFlag = !outstandingFlag;
+            OffsetPtr<DeletionRecord> rec(*block, currPos);
+            new (rec.get()) DeletionRecord();
+            rec->header().setPrimaryLeaseId(100).setSequenceNumber(i);
+            rec->setDeletionRecordFlag(DeletionRecordFlag::e_IMPLICIT_CONFIRM)
+                .setQueueKey(
+                    mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
+                                     "abcde"))
+                .setMessageGUID(g)
+                .setMagic(RecordHeader::k_MAGIC);
+
+            RecordBufferType buf;
+            bsl::memcpy(buf.buffer(),
+                        rec.get(),
+                        FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
+            records->push_back(bsl::make_pair(RecordType::e_DELETION, buf));
+        }
+
+        currPos += FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
+    }
+
+    return outstandingGUIDs;
 }
 
+bsls::Types::Uint64 memoryBufferSize(size_t numRecords)
+{
+    return sizeof(FileHeader) + sizeof(JournalFileHeader) +
+           numRecords * FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
+}
 
-JournalFileIterator& createJournalFileIterator(unsigned int numRecords, MemoryBlock& block, RecordsListType* records)
+void outputGuidString(bsl::ostream&            ostream,
+                      const bmqt::MessageGUID& messageGUID,
+                      const bool               addNewLine = true)
+{
+    char buf[bmqt::MessageGUID::e_SIZE_HEX];
+    messageGUID.toHex(buf);
+    ostream.write(buf, bmqt::MessageGUID::e_SIZE_HEX);
+    if (addNewLine)
+        ostream << bsl::endl;
+}
+
+JournalFileIterator& createJournalFileIterator(unsigned int     numRecords,
+                                               MemoryBlock&     block,
+                                               RecordsListType* records)
 {
     bsls::Types::Uint64 totalSize = memoryBufferSize(numRecords);
 
     // char*       p = static_cast<char*>(s_allocator_p->allocate(totalSize));
     // MemoryBlock block(p, totalSize);
-    FileHeader  fileHeader;
+    FileHeader          fileHeader;
     bsls::Types::Uint64 lastRecordPos = 0;
     bsls::Types::Uint64 lastSyncPtPos = 0;
 
     // RecordsListType records(s_allocator_p);
 
     addJournalRecords(&block,
-               &fileHeader,
-               &lastRecordPos,
-               &lastSyncPtPos,
-               records,
-               numRecords);
+                      &fileHeader,
+                      &lastRecordPos,
+                      &lastSyncPtPos,
+                      records,
+                      numRecords);
 
     // Create JournalFileIterator
     MappedFileDescriptor mfd;
@@ -231,8 +352,6 @@ JournalFileIterator& createJournalFileIterator(unsigned int numRecords, MemoryBl
 
 }  // close unnamed namespace
 
-
-
 // ============================================================================
 //                                    TESTS
 // ----------------------------------------------------------------------------
@@ -242,7 +361,8 @@ static void test1_breathingTest()
 // BREATHING TEST
 //
 // Concerns:
-//   Exercise the basic functionality of the tool - output all message GUIDs found in journal file.
+//   Exercise the basic functionality of the tool - output all message GUIDs
+//   found in journal file.
 //
 // Testing:
 //   Basic functionality
@@ -266,11 +386,11 @@ static void test1_breathingTest()
     RecordsListType records(s_allocator_p);
 
     addJournalRecords(&block,
-               &fileHeader,
-               &lastRecordPos,
-               &lastSyncPtPos,
-               &records,
-               numRecords);
+                      &fileHeader,
+                      &lastRecordPos,
+                      &lastSyncPtPos,
+                      &records,
+                      numRecords);
 
     // Create JournalFileIterator
     MappedFileDescriptor mfd;
@@ -279,25 +399,30 @@ static void test1_breathingTest()
     mfd.setFileSize(totalSize);
     JournalFileIterator it(&mfd, fileHeader, false);
 
-    // char*       p = static_cast<char*>(s_allocator_p->allocate(memoryBufferSize(numRecords)));
+    // char*       p =
+    // static_cast<char*>(s_allocator_p->allocate(memoryBufferSize(numRecords)));
     // MemoryBlock block(p, memoryBufferSize(numRecords));
     // RecordsListType records(s_allocator_p);
-    // JournalFileIterator it = createJournalFileIterator(numRecords, block, &records);
+    // JournalFileIterator it = createJournalFileIterator(numRecords, block,
+    // &records);
 
     SearchParameters searchParameters(s_allocator_p);
-    auto searchProcessor = SearchProcessor(it, searchParameters, s_allocator_p);
+    auto             searchProcessor = SearchProcessor(it,
+                                           searchParameters,
+                                           s_allocator_p);
 
     bsl::ostringstream resultStream(s_allocator_p);
     searchProcessor.process(resultStream);
 
     // Prepare expected output with list of message GUIDs in Journal file
-    bsl::ostringstream expectedStream(s_allocator_p);
+    bsl::ostringstream                  expectedStream(s_allocator_p);
     bsl::list<NodeType>::const_iterator recordIter = records.begin();
-    bsl::size_t msgCnt = 0;
-    while(recordIter++ != records.end()) {
+    bsl::size_t                         msgCnt     = 0;
+    while (recordIter++ != records.end()) {
         RecordType::Enum rtype = recordIter->first;
-        if (rtype == RecordType::e_MESSAGE){
-            const MessageRecord& msg = *reinterpret_cast<const MessageRecord*>(recordIter->second.buffer());
+        if (rtype == RecordType::e_MESSAGE) {
+            const MessageRecord& msg = *reinterpret_cast<const MessageRecord*>(
+                recordIter->second.buffer());
             char buf[bmqt::MessageGUID::e_SIZE_HEX];
             msg.messageGUID().toHex(buf);
             expectedStream.write(buf, bmqt::MessageGUID::e_SIZE_HEX);
@@ -311,8 +436,9 @@ static void test1_breathingTest()
 
     s_allocator_p->deallocate(p);
 
-    // bsl::string journalFile("/home/aivanov71/projects/pr/blazingmq/build/blazingmq/src/applications/bmqbrkr/localBMQ/storage/local/bmq_0.20231121_091839.bmq_journal", s_allocator_p);
-    // auto sp = SearchProcessor(journalFile, s_allocator_p);
+    // bsl::string
+    // journalFile("/home/aivanov71/projects/pr/blazingmq/build/blazingmq/src/applications/bmqbrkr/localBMQ/storage/local/bmq_0.20231121_091839.bmq_journal",
+    // s_allocator_p); auto sp = SearchProcessor(journalFile, s_allocator_p);
     // sp.process(bsl::cout);
     // ASSERT(sp.getJournalFileIter().isValid());
 }
@@ -329,7 +455,7 @@ static void test2_searchGuidTest()
 // ------------------------------------------------------------------------
 {
     mwctst::TestHelper::printTestName("SEARCH GUID");
-    
+
     // Simulate journal file
     unsigned int numRecords = 15;
 
@@ -346,11 +472,11 @@ static void test2_searchGuidTest()
     RecordsListType records(s_allocator_p);
 
     addJournalRecords(&block,
-               &fileHeader,
-               &lastRecordPos,
-               &lastSyncPtPos,
-               &records,
-               numRecords);
+                      &fileHeader,
+                      &lastRecordPos,
+                      &lastSyncPtPos,
+                      &records,
+                      numRecords);
 
     // Create JournalFileIterator
     MappedFileDescriptor mfd;
@@ -360,14 +486,16 @@ static void test2_searchGuidTest()
     JournalFileIterator it(&mfd, fileHeader, false);
 
     // Get list of message GUIDs for searching
-    SearchParameters searchParameters(s_allocator_p);
+    SearchParameters                    searchParameters(s_allocator_p);
     bsl::list<NodeType>::const_iterator recordIter = records.begin();
-    bsl::size_t msgCnt = 0;
-    while(recordIter++ != records.end()) {
+    bsl::size_t                         msgCnt     = 0;
+    while (recordIter++ != records.end()) {
         RecordType::Enum rtype = recordIter->first;
-        if (rtype == RecordType::e_MESSAGE){
-            if (msgCnt++ % 2 != 0) continue; // Skip odd messages for test purposes
-            const MessageRecord& msg = *reinterpret_cast<const MessageRecord*>(recordIter->second.buffer());
+        if (rtype == RecordType::e_MESSAGE) {
+            if (msgCnt++ % 2 != 0)
+                continue;  // Skip odd messages for test purposes
+            const MessageRecord& msg = *reinterpret_cast<const MessageRecord*>(
+                recordIter->second.buffer());
             char buf[bmqt::MessageGUID::e_SIZE_HEX];
             msg.messageGUID().toHex(buf);
             bsl::string guid(buf, s_allocator_p);
@@ -375,17 +503,20 @@ static void test2_searchGuidTest()
         }
     }
 
-    auto searchProcessor = SearchProcessor(it, searchParameters, s_allocator_p);
+    auto searchProcessor = SearchProcessor(it,
+                                           searchParameters,
+                                           s_allocator_p);
 
     bsl::ostringstream resultStream(s_allocator_p);
     searchProcessor.process(resultStream);
 
     // Prepare expected output
     bsl::ostringstream expectedStream(s_allocator_p);
-    for(auto& guid : searchParameters.searchGuids) {
+    for (auto& guid : searchParameters.searchGuids) {
         expectedStream << guid << bsl::endl;
     }
-    expectedStream << searchParameters.searchGuids.size() << " message GUID(s) found." << bsl::endl;
+    expectedStream << searchParameters.searchGuids.size()
+                   << " message GUID(s) found." << bsl::endl;
 
     ASSERT_EQ(resultStream.str(), expectedStream.str());
 
@@ -406,7 +537,7 @@ static void test3_searchNonExistingGuidTest()
 // ------------------------------------------------------------------------
 {
     mwctst::TestHelper::printTestName("SEARCH NON EXISTING GUID");
-    
+
     // Simulate journal file
     unsigned int numRecords = 15;
 
@@ -423,11 +554,11 @@ static void test3_searchNonExistingGuidTest()
     RecordsListType records(s_allocator_p);
 
     addJournalRecords(&block,
-               &fileHeader,
-               &lastRecordPos,
-               &lastSyncPtPos,
-               &records,
-               numRecords);
+                      &fileHeader,
+                      &lastRecordPos,
+                      &lastSyncPtPos,
+                      &records,
+                      numRecords);
 
     // Create JournalFileIterator
     MappedFileDescriptor mfd;
@@ -437,8 +568,7 @@ static void test3_searchNonExistingGuidTest()
     JournalFileIterator it(&mfd, fileHeader, false);
 
     // Get list of message GUIDs for searching
-
-    SearchParameters searchParameters(s_allocator_p);
+    SearchParameters  searchParameters(s_allocator_p);
     bmqt::MessageGUID guid;
     mqbu::MessageGUIDUtil::generateGUID(&guid);
     char buf[bmqt::MessageGUID::e_SIZE_HEX];
@@ -450,15 +580,85 @@ static void test3_searchNonExistingGuidTest()
     guidStr = buf;
     searchParameters.searchGuids.push_back(guidStr);
 
-    auto searchProcessor = SearchProcessor(it, searchParameters, s_allocator_p);
+    auto searchProcessor = SearchProcessor(it,
+                                           searchParameters,
+                                           s_allocator_p);
 
     bsl::ostringstream resultStream(s_allocator_p);
     searchProcessor.process(resultStream);
 
     // Prepare expected output
     bsl::ostringstream expectedStream(s_allocator_p);
-    expectedStream << "No message GUIDS found." << bsl::endl;
+    expectedStream << "No message GUID found." << bsl::endl;
 
+    ASSERT_EQ(resultStream.str(), expectedStream.str());
+
+    s_allocator_p->deallocate(p);
+}
+
+static void test4_searchOutstandingMessagesTest()
+// ------------------------------------------------------------------------
+// SEARCH OUTSTANDING MESSAGES TEST
+//
+// Concerns:
+//   Search messages by GUIDs in journal file and output GUIDs.
+//
+// Testing:
+//   SearchProcessor::process()
+// ------------------------------------------------------------------------
+{
+    mwctst::TestHelper::printTestName("SEARCH OUTSTANDING MESSAGES TEST");
+
+    // Simulate journal file
+    unsigned int numRecords = 15;
+
+    bsls::Types::Uint64 totalSize =
+        sizeof(FileHeader) + sizeof(JournalFileHeader) +
+        numRecords * FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
+
+    char*       p = static_cast<char*>(s_allocator_p->allocate(totalSize));
+    MemoryBlock block(p, totalSize);
+    FileHeader  fileHeader;
+    bsls::Types::Uint64 lastRecordPos = 0;
+    bsls::Types::Uint64 lastSyncPtPos = 0;
+
+    RecordsListType records(s_allocator_p);
+
+    bsl::vector<bmqt::MessageGUID> outstandingGUIDS =
+        addJournalRecordsWithOutstandingMessages(&block,
+                                                 &fileHeader,
+                                                 &lastRecordPos,
+                                                 &lastSyncPtPos,
+                                                 &records,
+                                                 numRecords);
+
+    // Create JournalFileIterator
+    MappedFileDescriptor mfd;
+    mfd.setFd(-1);  // invalid fd will suffice.
+    mfd.setBlock(block);
+    mfd.setFileSize(totalSize);
+    JournalFileIterator it(&mfd, fileHeader, false);
+
+    // Configure parameters to search outstanding messages
+    SearchParameters searchParameters(s_allocator_p);
+    searchParameters.searchOutstanding = true;
+
+    auto searchProcessor = SearchProcessor(it,
+                                           searchParameters,
+                                           s_allocator_p);
+
+    bsl::ostringstream resultStream(s_allocator_p);
+    searchProcessor.process(resultStream);
+
+    // Prepare expected output
+    bsl::ostringstream expectedStream(s_allocator_p);
+    for (const auto& guid : outstandingGUIDS) {
+        outputGuidString(expectedStream, guid);
+    }
+    expectedStream << outstandingGUIDS.size() << " message GUID(s) found."
+                   << bsl::endl;
+
+    // TODO: fix ordering issue (sporadic fail)
     ASSERT_EQ(resultStream.str(), expectedStream.str());
 
     s_allocator_p->deallocate(p);
@@ -473,10 +673,11 @@ int main(int argc, char* argv[])
     TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
 
     switch (_testCase) {
-    case 0: 
+    case 0:
     case 1: test1_breathingTest(); break;
     case 2: test2_searchGuidTest(); break;
-    case 3: test3_searchNonExistingGuidTest(); break;    
+    case 3: test3_searchNonExistingGuidTest(); break;
+    case 4: test4_searchOutstandingMessagesTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
         s_testStatus = -1;

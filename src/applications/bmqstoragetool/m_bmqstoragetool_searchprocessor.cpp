@@ -93,12 +93,14 @@ bool resetIterator(mqbs::MappedFileDescriptor* mfd,
 
 SearchParameters::SearchParameters()
 : searchGuids()
+, searchOutstanding(false)
 {
     // NOTHING
 }
 
 SearchParameters::SearchParameters(bslma::Allocator* allocator)
 : searchGuids(allocator)
+, searchOutstanding(false)
 {
     // NOTHING
 }
@@ -160,7 +162,7 @@ SearchProcessor::~SearchProcessor()
 
 void SearchProcessor::process(bsl::ostream& ostream)
 {
-    // TODO: remove - Initialize journal file iterator
+    // TODO: remove - Initialize journal file iterator from real file
     if (!d_journalFileIter.isValid()) {
         if (!resetIterator(&d_journalFd,
                            &d_journalFileIter,
@@ -171,45 +173,33 @@ void SearchProcessor::process(bsl::ostream& ostream)
         ostream << "Created Journal iterator successfully" << bsl::endl;
     }
 
-    // Search by message GUIDs
-    const bool        searchAll = d_searchParameters.searchGuids.empty() ? true
-                                                                         : false;
-    const bsl::string foundCaption          = " message GUID(s) found.";
-    const bsl::string notFoundCaption       = "No message GUIDS found.";
-    bool              firstFoundMessageFlag = false;
-    bsl::size_t       foundMessagesCount    = 0;
+    SearchMode mode = d_searchParameters.searchGuids.empty()
+                          ? SearchMode::k_ALL
+                          : SearchMode::k_LIST;
+    if (d_searchParameters.searchOutstanding)
+        mode = SearchMode::k_OUTSTANDING;
+
+    bsl::size_t     foundMessagesCount = 0;
+    MessagesDetails messagesDetails;
 
     // Build MessageGUID->StrGUID Map
     bsl::unordered_map<bmqt::MessageGUID, bsl::string> guidsMap;
-    if (!searchAll) {
-        for (auto& guidStr : d_searchParameters.searchGuids) {
+    if (mode == SearchMode::k_LIST) {
+        for (const auto& guidStr : d_searchParameters.searchGuids) {
             bmqt::MessageGUID guid;
             guidsMap[guid.fromHex(guidStr.c_str())] = guidStr;
         }
     }
-
-    // Helper lambdas
-    auto outputFooter = [&]() {
-            firstFoundMessageFlag
-                ? (ostream << foundMessagesCount << foundCaption)
-                : ostream << notFoundCaption;
-            ostream << bsl::endl;
-            ostream.flush();
-    };
-
-    auto outputGuidString = [&](const mqbs::MessageRecord& message) {
-                char buf[bmqt::MessageGUID::e_SIZE_HEX];
-                message.messageGUID().toHex(buf);
-                ostream.write(buf, bmqt::MessageGUID::e_SIZE_HEX);
-                ostream << bsl::endl;
-    };
 
     // Iterate through Journal file records
     mqbs::JournalFileIterator* iter = &d_journalFileIter;
     while (true) {
         if (!iter->hasRecordSizeRemaining()) {
             // End of journal file reached, return...
-            outputFooter();
+            outputSearchResult(ostream,
+                               mode,
+                               messagesDetails,
+                               foundMessagesCount);
             return;  // RETURN
         }
 
@@ -220,27 +210,91 @@ void SearchProcessor::process(bsl::ostream& ostream)
         }
         else if (iter->recordType() == mqbs::RecordType::e_MESSAGE) {
             const mqbs::MessageRecord& message = iter->asMessageRecord();
-            if (searchAll) {
-                if (!firstFoundMessageFlag)
-                    firstFoundMessageFlag = true;
-                outputGuidString(message);
+            switch (mode) {
+            case SearchMode::k_ALL:
+                outputGuidString(ostream, message.messageGUID());
                 foundMessagesCount++;
+                break;
+            case SearchMode::k_LIST:
+                if (auto foundGUID = guidsMap.find(message.messageGUID());
+                    foundGUID != guidsMap.end()) {
+                    // Output result and remove processed GUID from map
+                    ostream << foundGUID->second << bsl::endl;
+                    guidsMap.erase(foundGUID);
+                    foundMessagesCount++;
+                    if (guidsMap.empty()) {
+                        // All GUIDs are found, return...
+                        outputSearchResult(ostream,
+                                           mode,
+                                           messagesDetails,
+                                           foundMessagesCount);
+                        return;  // RETURN
+                    }
+                }
+                break;
+            case SearchMode::k_OUTSTANDING:
+                MessageDetails messageDetails;
+                messageDetails.messageRecord           = message;
+                messagesDetails[message.messageGUID()] = messageDetails;
+                break;
             }
-            else if (auto foundGUID = guidsMap.find(message.messageGUID());
-                     foundGUID != guidsMap.end()) {
-                // Output result and remove processed GUID from map
-                if (!firstFoundMessageFlag)
-                    firstFoundMessageFlag = true;
-                ostream << foundGUID->second << bsl::endl;
-                guidsMap.erase(foundGUID);
-                foundMessagesCount++;
-                if (guidsMap.empty()) {
-                    // All GUIDs are found, return...
-                    outputFooter();
-                    return;  // RETURN
+        }
+        else if (iter->recordType() == mqbs::RecordType::e_DELETION) {
+            const mqbs::DeletionRecord& deletion = iter->asDeletionRecord();
+            if (mode == SearchMode::k_OUTSTANDING) {
+                if (auto foundGUID = messagesDetails.find(
+                        deletion.messageGUID());
+                    foundGUID != messagesDetails.end()) {
+                    // Message is not outstanding, remove it.
+                    messagesDetails.erase(foundGUID);
+                }
+                else {
+                    foundMessagesCount++;
                 }
             }
         }
+    }
+}
+
+void SearchProcessor::outputGuidString(bsl::ostream&            ostream,
+                                       const bmqt::MessageGUID& messageGUID,
+                                       const bool               addNewLine)
+{
+    char buf[bmqt::MessageGUID::e_SIZE_HEX];
+    messageGUID.toHex(buf);
+    ostream.write(buf, bmqt::MessageGUID::e_SIZE_HEX);
+    if (addNewLine)
+        ostream << bsl::endl;
+}
+
+void SearchProcessor::outputSearchResult(
+    bsl::ostream&          ostream,
+    const SearchMode       mode,
+    const MessagesDetails& messagesDetails,
+    const bsl::size_t      messagesCount)
+{
+    const bsl::string foundCaption    = " message GUID(s) found.";
+    const bsl::string notFoundCaption = "No message GUID found.";
+
+    // Helper lambdas
+    auto outputFooter = [&]() {
+        messagesCount > 0 ? (ostream << messagesCount << foundCaption)
+                          : ostream << notFoundCaption;
+        ostream << bsl::endl;
+    };
+
+    switch (mode) {
+    case SearchMode::k_ALL:
+    case SearchMode::k_LIST: outputFooter(); break;
+    case SearchMode::k_OUTSTANDING:
+        auto outstandingMessagesCount = messagesDetails.size();
+        if (outstandingMessagesCount > 0) {
+            for (const auto& messageDetails : messagesDetails) {
+                outputGuidString(ostream, messageDetails.first);
+            }
+        }
+        outputFooter();
+        break;
     }
 }
 
