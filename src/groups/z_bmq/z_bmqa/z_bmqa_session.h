@@ -18,6 +18,7 @@ extern "C" {
 
 typedef struct z_bmqa_SessionEventHandler z_bmqa_SessionEventHandler;
 
+typedef struct z_bmqa_MessageConfirmationCookie z_bmqa_MessageConfirmationCookie;
 
 typedef struct z_bmqa_Session z_bmqa_Session;
 
@@ -64,8 +65,9 @@ int z_bmqa_Session__getQueueIdWithUri(z_bmqa_Session* session_obj, z_bmqa_QueueI
 
 int z_bmqa_Session__getQueueIdWithCorrelationId(z_bmqa_Session* session_obj, z_bmqa_QueueId** queueId, const z_bmqt_CorrelationId* correlationId);
 
-int z_bmqa_Session__openQueueSync(z_bmqa_Session* session_obj,z_bmqa_QueueId* queueId,const z_bmqt_Uri* uri,uint64_t flags /*,z_bmqa_OpenQueueStatus* out_obj*/);
+// int z_bmqa_Session__openQueueSync(z_bmqa_Session* session_obj,z_bmqa_QueueId* queueId,const z_bmqt_Uri* uri,uint64_t flags /*,z_bmqa_OpenQueueStatus* out_obj*/);
 
+int z_bmqa_Session__openQueueSync(z_bmqa_Session* session_obj,z_bmqa_QueueId* queueId,const char * uri,uint64_t flags /*,z_bmqa_OpenQueueStatus* out_obj*/);
 
 // int z_bmqa_Session__openQueueAsync(z_bmqa_Session* session_obj,
 //                                   z_bmqa_QueueId* queueId,
@@ -83,7 +85,7 @@ int z_bmqa_Session__configureQueueSync(z_bmqa_Session* session_obj,
 //                                    const z_bmqt_QueueOptions* options,
 //                                    int64_t timeout);
 
-int z_bmqa_Session__closeQueueSync(z_bmqa_Session* session_obj, z_bmqa_QueueId* queueId, int64_t timeout /*,z_bmqa_CloseQueueStatus**/);
+int z_bmqa_Session__closeQueueSync(z_bmqa_Session* session_obj, z_bmqa_QueueId* queueId /*,z_bmqa_CloseQueueStatus**/);
 
 int z_bmqa_Session__closeQueueAsync(z_bmqa_Session* session_obj, z_bmqa_QueueId* queueId, int64_t timeout);
 
