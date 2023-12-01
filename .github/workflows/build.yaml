@@ -54,6 +54,81 @@ jobs:
         run: |
           cd cmake.bld/Linux
           ctest -E mwcsys_executil.t --output-on-failure
+      - uses: actions/cache@v3
+        with:
+          path: |
+            cmake.bld/Linux
+            deps
+            /opt/bb/include
+          key: cache-${{ github.sha }}
+
+  build_and_test_bmqprometheus_plugin:
+    name: "Check if BMQPrometheus plugin can build and pass tests"
+    runs-on: ubuntu-latest
+    needs: build_and_test
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/cache/@v3
+        with:
+          path: |
+            cmake.bld/Linux
+            deps
+            /opt/bb/include
+          key: cache-${{ github.sha }}
+      - name: Set up plugins dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -qy build-essential \
+            gdb \
+            curl \
+            python3.10 \
+            cmake \
+            ninja-build \
+            pkg-config \
+            bison \
+            libfl-dev \
+            libbenchmark-dev \
+            libz-dev \
+            autoconf \
+            libtool
+      - name: Create dependency fetcher working directory
+        run: mkdir -p deps
+      - name: Fetch & Build non packaged plugins dependencies
+        working-directory: deps
+        run:  ${{ github.workspace }}/src/plugins/bmqprometheus/build_prometheus_deps.sh
+      - name: Build plugins
+        env:
+          PKG_CONFIG_PATH: /usr/lib/x86_64-linux-gnu/pkgconfig:/opt/bb/lib64/pkgconfig
+        run: |
+          cmake -S . -B cmake.bld/Linux -G Ninja \
+            -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/deps/srcs/bde-tools/BdeBuildSystem/toolchains/linux/gcc-default.cmake \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DBDE_BUILD_TARGET_SAFE=ON \
+            -DBDE_BUILD_TARGET_64=ON \
+            -DBDE_BUILD_TARGET_CPP17=ON \
+            -DCMAKE_PREFIX_PATH=${{ github.workspace }}/deps/srcs/bde-tools/BdeBuildSystem \
+            -DCMAKE_INSTALL_LIBDIR=lib64 \
+            -DINSTALL_TARGETS=prometheus
+          cmake --build cmake.bld/Linux --parallel 8 --target all
+      - name: Create prometheus dir
+        run:  mkdir -p prometheus_dir
+      - name: Download Prometheus
+        run:  curl -SL "https://github.com/prometheus/prometheus/releases/download/v2.45.1/prometheus-2.45.1.linux-amd64.tar.gz" | tar -xzC prometheus_dir/
+      - name: Run Prometheus
+        run:  ./prometheus_dir/prometheus-2.45.1.linux-amd64/prometheus --config.file=${{ github.workspace }}/src/plugins/bmqprometheus/tests/prometheus_localhost.yaml --web.enable-lifecycle --storage.tsdb.path=${{ github.workspace }}/prometheus_dir/data &
+      - name: Run Pushgateway
+        run: |
+          docker pull prom/pushgateway
+          docker run -d -p 9091:9091 prom/pushgateway
+      - name: Run BMQPrometheus plugin integration test in "pull" mode
+        run: ${{ github.workspace }}/src/plugins/bmqprometheus/tests/bmqprometheus_prometheusstatconsumer_test.py -p ${{ github.workspace }}/cmake.bld/Linux -m pull --no-docker
+      - name: Clear Prometheus database and restart
+        run: |
+          curl -X POST "http://localhost:9090/-/quit"
+          rm -rf prometheus_dir/data
+          ./prometheus_dir/prometheus-2.45.1.linux-amd64/prometheus --config.file=${{ github.workspace }}/src/plugins/bmqprometheus/tests/prometheus_localhost.yaml --web.enable-lifecycle --storage.tsdb.path=${{ github.workspace }}/prometheus_dir/data &
+      - name: Run Prometheus plugin integration test in "push" mode
+        run: ${{ github.workspace }}/src/plugins/bmqprometheus/tests/bmqprometheus_prometheusstatconsumer_test.py -p ${{ github.workspace }}/cmake.bld/Linux -m push --no-docker
 
   Documentation:
     name: "Documentation"

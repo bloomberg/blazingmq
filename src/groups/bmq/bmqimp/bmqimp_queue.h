@@ -48,6 +48,7 @@
 #include <bsl_iosfwd.h>
 #include <bsl_optional.h>
 #include <bsl_string.h>
+#include <bsl_utility.h>
 #include <bslma_allocator.h>
 #include <bslma_managedptr.h>
 #include <bslma_usesbslmaallocator.h>
@@ -571,7 +572,8 @@ Queue::extractSubscriptionHandle(unsigned int internalSubscriptionId)
         d_registeredInternalSubscriptionIds.find(internalSubscriptionId);
 
     if (cit == d_registeredInternalSubscriptionIds.end()) {
-        return {internalSubscriptionId, bmqt::CorrelationId()};  // RETURN
+        return bsl::make_pair(internalSubscriptionId, bmqt::CorrelationId());
+        // RETURN
     }
 
     SubscriptionHandle result(cit->second);

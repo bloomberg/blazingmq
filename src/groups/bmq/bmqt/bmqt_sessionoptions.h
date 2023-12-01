@@ -263,13 +263,21 @@ class SessionOptions {
     /// minutes.
     SessionOptions& setStatsDumpInterval(const bsls::TimeInterval& value);
 
+    /// Set the timeout for connecting to the broker to the specified `value`.
     SessionOptions& setConnectTimeout(const bsls::TimeInterval& value);
+
+    /// Set the timeout for disconnecting from the broker to the specified
+    /// `value`.
     SessionOptions& setDisconnectTimeout(const bsls::TimeInterval& value);
+
+    /// Set the timeout for opening a queue to the specified `value`.
     SessionOptions& setOpenQueueTimeout(const bsls::TimeInterval& value);
+
+    /// Set the timeout for configuring or deconfiguring a queue to the
+    /// specified `value`.
     SessionOptions& setConfigureQueueTimeout(const bsls::TimeInterval& value);
 
-    /// Set the timeout for operations of the corresponding type to the
-    /// specified `value`.
+    /// Set the timeout for closing a queue to the specified `value`.
     SessionOptions& setCloseQueueTimeout(const bsls::TimeInterval& value);
 
     /// Set a `HostHealthMonitor` object that will notify the session when
@@ -319,12 +327,19 @@ class SessionOptions {
     /// Get the stats dump interval.
     const bsls::TimeInterval& statsDumpInterval() const;
 
+    /// Get the timeout for connecting to the broker.
     const bsls::TimeInterval& connectTimeout() const;
+
+    /// Get the timeout for disconnecting from the broker.
     const bsls::TimeInterval& disconnectTimeout() const;
+
+    /// Get the timeout for opening a queue.
     const bsls::TimeInterval& openQueueTimeout() const;
+
+    /// Get the timeout for configuring or disconfiguring a queue.
     const bsls::TimeInterval& configureQueueTimeout() const;
 
-    /// Get the timeout for the operations of the corresponding type.
+    /// Get the timeout for closing a queue.
     const bsls::TimeInterval& closeQueueTimeout() const;
 
     const bsl::shared_ptr<bmqpi::HostHealthMonitor>& hostHealthMonitor() const;

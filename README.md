@@ -88,7 +88,12 @@ BlazingMQ and see them in action.
 [bin/build-ubuntu.sh](bin/build-ubuntu.sh) and
 [bin/build-darwin.sh](bin/build-darwin.sh) build BlazingMQ and its dependencies,
 respectively, on Ubuntu 22.04.2 LTS and Darwin 22.6.0. They can serve as a basis
-to build BlazingMQ on other systems.
+to build BlazingMQ on other systems.  
+  
+To build BlazingMQ with plugins, pass '--plugins' argument with desired plugin names to the build script, e.g.
+```bash
+bin/build-ubuntu.sh --plugins plugin-1-name,plugin-2-name
+```
 
 ### With vcpkg
 
@@ -99,8 +104,8 @@ Before attempting to build, you will have to acquire `flex`, `bison`, and `bde-t
 Once the prerequisite tools are installed, you should be able to build BlazingMQ with the following:
 
 ```sh
-export VCPKG_ROOT=path/to/vcpkg
-cmake --preset [preset-name] -DCMAKE_PREFIX_PATH=thirdparty/bde-tools
+export VCPKG_ROOT=/path/to/vcpkg
+cmake --preset [preset-name] -DCMAKE_PREFIX_PATH=/path/to/thirdparty/bde-tools
 cmake --build cmake.bld
 ```
 
