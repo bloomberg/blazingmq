@@ -234,12 +234,13 @@ Event MockSessionUtil::createSessionEvent(
         sessionEventType != bmqt::SessionEventType::e_QUEUE_CLOSE_RESULT &&
         sessionEventType != bmqt::SessionEventType::e_QUEUE_CONFIGURE_RESULT);
 
+    bslma::Allocator* alloc = bslma::Default::allocator(allocator);
+
     Event        event;
     EventImplSp& implPtr = reinterpret_cast<EventImplSp&>(
         static_cast<Event&>(event));
-    implPtr = EventImplSp(new (*allocator)
-                              bmqimp::Event(g_bufferFactory_p, allocator),
-                          allocator);
+    implPtr = EventImplSp(new (*alloc) bmqimp::Event(g_bufferFactory_p, alloc),
+                          alloc);
 
     implPtr->configureAsSessionEvent(sessionEventType,
                                      errorCode,
@@ -263,12 +264,13 @@ Event MockSessionUtil::createQueueSessionEvent(
         sessionEventType == bmqt::SessionEventType::e_QUEUE_CLOSE_RESULT ||
         sessionEventType == bmqt::SessionEventType::e_QUEUE_CONFIGURE_RESULT);
 
+    bslma::Allocator* alloc = bslma::Default::allocator(allocator);
+
     Event        event;
     EventImplSp& implPtr = reinterpret_cast<EventImplSp&>(
         static_cast<Event&>(event));
-    implPtr = EventImplSp(new (*allocator)
-                              bmqimp::Event(g_bufferFactory_p, allocator),
-                          allocator);
+    implPtr = EventImplSp(new (*alloc) bmqimp::Event(g_bufferFactory_p, alloc),
+                          alloc);
 
     implPtr->configureAsSessionEvent(sessionEventType,
                                      errorCode,
@@ -290,14 +292,15 @@ Event MockSessionUtil::createAckEvent(const bsl::vector<AckParams>& acks,
     BSLS_ASSERT_SAFE(!acks.empty());
     BSLS_ASSERT_SAFE(bufferFactory);
 
+    bslma::Allocator* alloc = bslma::Default::allocator(allocator);
+
     Event        event;
     EventImplSp& implPtr = reinterpret_cast<EventImplSp&>(
         static_cast<Event&>(event));
-    implPtr = EventImplSp(new (*allocator)
-                              bmqimp::Event(g_bufferFactory_p, allocator),
-                          allocator);
+    implPtr = EventImplSp(new (*alloc) bmqimp::Event(g_bufferFactory_p, alloc),
+                          alloc);
 
-    bmqp::AckEventBuilder ackBuilder(bufferFactory, allocator);
+    bmqp::AckEventBuilder ackBuilder(bufferFactory, alloc);
     for (size_t i = 0; i != acks.size(); ++i) {
         const AckParams&   params   = acks[i];
         const QueueImplSp& impQueue = reinterpret_cast<const QueueImplSp&>(
@@ -312,7 +315,7 @@ Event MockSessionUtil::createAckEvent(const bsl::vector<AckParams>& acks,
     }
 
     implPtr->configureAsMessageEvent(
-        bmqp::Event(&ackBuilder.blob(), allocator, true));
+        bmqp::Event(&ackBuilder.blob(), alloc, true));
     for (size_t i = 0; i != acks.size(); ++i) {
         implPtr->addCorrelationId(acks[i].d_correlationId);
     }
@@ -328,13 +331,14 @@ Event MockSessionUtil::createPushEvent(
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(!pushEventParams.empty());
 
+    bslma::Allocator* alloc = bslma::Default::allocator(allocator);
+
     Event        event;
     EventImplSp& implPtr = reinterpret_cast<EventImplSp&>(event);
-    implPtr              = EventImplSp(new (*allocator)
-                              bmqimp::Event(g_bufferFactory_p, allocator),
-                          allocator);
+    implPtr = EventImplSp(new (*alloc) bmqimp::Event(g_bufferFactory_p, alloc),
+                          alloc);
 
-    bmqp::PushEventBuilder pushBuilder(bufferFactory, allocator);
+    bmqp::PushEventBuilder pushBuilder(bufferFactory, alloc);
 
     for (size_t i = 0; i != pushEventParams.size(); ++i) {
         const QueueImplSp& queueImplPtr = reinterpret_cast<const QueueImplSp&>(
@@ -367,7 +371,7 @@ Event MockSessionUtil::createPushEvent(
         implPtr->addCorrelationId(bmqt::CorrelationId());
     }
 
-    bmqp::Event bmqpEvent(&pushBuilder.blob(), allocator, true);
+    bmqp::Event bmqpEvent(&pushBuilder.blob(), alloc, true);
     implPtr->configureAsMessageEvent(bmqpEvent);
 
     return event;
