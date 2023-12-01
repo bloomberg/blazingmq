@@ -95,19 +95,30 @@ int z_bmqa_Session__loadMessageProperties(z_bmqa_Session* session_obj, z_bmqa_Me
 // }
 
 
-int z_bmqa_Session__openQueueSync(z_bmqa_Session* session_obj,z_bmqa_QueueId* queueId,const z_bmqt_Uri* uri,uint64_t flags /*,z_bmqa_OpenQueueStatus* out_obj*/){
+// int z_bmqa_Session__openQueueSync(z_bmqa_Session* session_obj,z_bmqa_QueueId* queueId,const z_bmqt_Uri* uri,uint64_t flags /*,z_bmqa_OpenQueueStatus* out_obj*/){
+//     using namespace BloombergLP;
+
+//     bmqa::Session* session_ptr = reinterpret_cast<bmqa::Session*>(session_obj);
+//     bmqt::Uri const * uri_ptr = reinterpret_cast< bmqt::Uri const *>(uri);
+//     bmqa::QueueId* queueid_ptr = reinterpret_cast<bmqa::QueueId*>(queueId);
+
+//     //must populate out obj in future
+//     session_ptr->openQueueSync(queueid_ptr, *uri_ptr, flags);
+//     return 0;
+// }
+
+int z_bmqa_Session__openQueueSync(z_bmqa_Session* session_obj,z_bmqa_QueueId* queueId,const char * uri,uint64_t flags /*,z_bmqa_OpenQueueStatus* out_obj*/){
     using namespace BloombergLP;
 
     bmqa::Session* session_ptr = reinterpret_cast<bmqa::Session*>(session_obj);
-    bmqt::Uri const * uri_ptr = reinterpret_cast< bmqt::Uri const *>(uri);
-    bmqa::QueueId* queueid_ptr = reinterpret_cast<bmqa::QueueId*>(queueId);
+        bmqa::QueueId* queueid_ptr = reinterpret_cast<bmqa::QueueId*>(queueId);
 
     //must populate out obj in future
-    session_ptr->openQueueSync(queueid_ptr, *uri_ptr, flags);
+    session_ptr->openQueueSync(queueid_ptr, uri, flags);
     return 0;
 }
 
-int z_bmqa_Session__closeQueueSync(z_bmqa_Session* session_obj, z_bmqa_QueueId* queueId, int64_t timeout /*,z_bmqa_CloseQueueStatus**/){
+int z_bmqa_Session__closeQueueSync(z_bmqa_Session* session_obj, z_bmqa_QueueId* queueId /*,z_bmqa_CloseQueueStatus**/){
     using namespace BloombergLP;
 
     bmqa::Session* session_ptr = reinterpret_cast<bmqa::Session*>(session_obj);
