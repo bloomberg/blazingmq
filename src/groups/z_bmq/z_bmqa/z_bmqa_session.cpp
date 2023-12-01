@@ -2,6 +2,7 @@
 #include <z_bmqt_sessionoptions.h>
 #include <bmqa_session.h>
 #include <bmqt_sessionoptions.h>
+#include <bmqa_openqueuestatus.h>
 
 
 int z_bmqa_Session__create(z_bmqa_Session** session_obj , const z_bmqt_SessionOptions* options) {
@@ -83,12 +84,58 @@ int z_bmqa_Session__loadMessageProperties(z_bmqa_Session* session_obj, z_bmqa_Me
     return 0;
 }
 
-int z_bmqa_Session__getQueueIdWithUri(z_bmqa_Session* session_obj, z_bmqa_QueueId** queueId, const z_bmqt_Uri* uri){
-    using namespace BloombergLP;
+// int z_bmqa_Session__getQueueIdWithUri(z_bmqa_Session* session_obj, z_bmqa_QueueId** queueId, const z_bmqt_Uri* uri){
+//     using namespace BloombergLP;
     
-    bmqa::Session* session_ptr = reinterpret_cast<bmqa::Session*>(session_obj);
-    bmqa::Q* buffer_ptr = reinterpret_cast<bmqa::MessageProperties*>(uri);
+//     bmqa::Session* session_ptr = reinterpret_cast<bmqa::Session*>(session_obj);
+//     bmqa::Q* buffer_ptr = reinterpret_cast<bmqa::MessageProperties*>(uri);
 
-    session_ptr->getQueueId(buffer_ptr);
+//     session_ptr->getQueueId(buffer_ptr);
+//     return 0;
+// }
+
+
+int z_bmqa_Session__openQueueSync(z_bmqa_Session* session_obj,z_bmqa_QueueId* queueId,const z_bmqt_Uri* uri,uint64_t flags /*,z_bmqa_OpenQueueStatus* out_obj*/){
+    using namespace BloombergLP;
+
+    bmqa::Session* session_ptr = reinterpret_cast<bmqa::Session*>(session_obj);
+    bmqt::Uri const * uri_ptr = reinterpret_cast< bmqt::Uri const *>(uri);
+    bmqa::QueueId* queueid_ptr = reinterpret_cast<bmqa::QueueId*>(queueId);
+
+    //must populate out obj in future
+    session_ptr->openQueueSync(queueid_ptr, *uri_ptr, flags);
     return 0;
 }
+
+int z_bmqa_Session__closeQueueSync(z_bmqa_Session* session_obj, z_bmqa_QueueId* queueId, int64_t timeout /*,z_bmqa_CloseQueueStatus**/){
+    using namespace BloombergLP;
+
+    bmqa::Session* session_ptr = reinterpret_cast<bmqa::Session*>(session_obj);
+    bmqa::QueueId* queueid_ptr = reinterpret_cast<bmqa::QueueId*>(queueId);
+
+    //must populate out obj in future
+    session_ptr->closeQueueSync(queueid_ptr); // not using timeout (we should definitely add this)
+    return 0;
+}
+
+int z_bmqa_Session__loadMessageEventBuilder(z_bmqa_Session* session_obj, z_bmqa_MessageEventBuilder** builder){
+    using namespace BloombergLP;
+
+    bmqa::Session* session_ptr = reinterpret_cast<bmqa::Session*>(session_obj);
+    bmqa::MessageEventBuilder* builder_ptr = reinterpret_cast<bmqa::MessageEventBuilder*>(builder);
+
+    session_ptr->loadMessageEventBuilder(builder_ptr);
+    return 0;
+}
+
+int z_bmqa_Session__post(z_bmqa_Session* session_obj, const z_bmqa_MessageEvent* event){
+    using namespace BloombergLP;
+
+    bmqa::Session* session_ptr = reinterpret_cast<bmqa::Session*>(session_obj);
+    const bmqa::MessageEvent* event_ptr = reinterpret_cast<const bmqa::MessageEvent*>(event);
+
+    session_ptr->post(*event_ptr);
+    return 0;
+}
+
+
