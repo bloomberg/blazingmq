@@ -9,6 +9,7 @@ extern "C" {
 #endif
 
 typedef struct z_bmqa_ConfirmEventBuilder z_bmqa_ConfirmEventBuilder;
+typedef struct z_bmqa_MessageConfirmationCookie z_bmqa_MessageConfirmationCookie;
 
 int z_bmqa_ConfirmEventBuilder__create(z_bmqa_ConfirmEventBuilder** builder_obj);
 
