@@ -2,6 +2,16 @@
 #include <z_bmqt_sessionoptions.h>
 
 
+int z_bmqt_SessionOptions__delete(z_bmqt_SessionOptions** options_obj) {
+    using namespace BloombergLP;
+
+    bmqt::SessionOptions* options_ptr = reinterpret_cast<bmqt::SessionOptions*>(options_obj);
+    delete options_ptr;
+    *options_obj = NULL;
+
+    return 0;
+}
+
 int z_bmqt_SessionOptions__create(z_bmqt_SessionOptions** options_obj) {
     using namespace BloombergLP;
     bmqt::SessionOptions* options_ptr = new bmqt::SessionOptions();
