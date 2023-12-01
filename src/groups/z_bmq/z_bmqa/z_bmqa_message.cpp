@@ -10,7 +10,7 @@ int z_bmqa_Message__createEmpty(z_bmqa_Message** message_obj){
     return 0;
 }
 
-int z_bmqa_Message_setDataRef(z_bmqa_Message** message_obj, const char* data, size_t length){
+int z_bmqa_Message__setDataRef(z_bmqa_Message* message_obj, const char* data, int length){
     using namespace BloombergLP;
 
     bmqa::Message* message_ptr = reinterpret_cast<bmqa::Message*>(message_obj);

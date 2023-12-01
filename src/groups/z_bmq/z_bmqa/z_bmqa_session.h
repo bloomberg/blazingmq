@@ -41,6 +41,10 @@ typedef struct EventHandlerData {
 //     }
 // }
 
+ //
+
+int z_bmqa_Session__delete(z_bmqa_Session** session_obj);
+
 int z_bmqa_Session__create(z_bmqa_Session** session_obj, const z_bmqt_SessionOptions* options);
 
 int z_bmqa_Session__createAsync(z_bmqa_Session** session_obj, z_bmqa_SessionEventHandler* eventHandler, const z_bmqt_SessionOptions* options);

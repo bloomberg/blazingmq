@@ -13,11 +13,12 @@ int z_bmqa_MessageEventBuilder__create(z_bmqa_MessageEventBuilder** builder_obj)
     return 0;
 }
 
-int z_bmqa_MessageEventBuilder__startMessage(z_bmqa_MessageEventBuilder* builder_obj, z_bmqa_Message* out_obj) {
+int z_bmqa_MessageEventBuilder__startMessage(z_bmqa_MessageEventBuilder* builder_obj, z_bmqa_Message** out_obj) {
     using namespace BloombergLP;
 
     bmqa::MessageEventBuilder* builder_ptr = reinterpret_cast<bmqa::MessageEventBuilder*>(builder_obj);
-    out_obj = reinterpret_cast<z_bmqa_Message*>(&builder_ptr->startMessage()); // uhhhhh
+    bmqa::Message* message_ptr = &builder_ptr->startMessage();
+    *out_obj = reinterpret_cast<z_bmqa_Message*>(message_ptr);
 
     return 0;
 }

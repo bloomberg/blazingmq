@@ -5,6 +5,16 @@
 #include <bmqa_openqueuestatus.h>
 
 
+int z_bmqa_Session__delete(z_bmqa_Session** session_obj) {
+    using namespace BloombergLP;
+
+    bmqa::Session* session_ptr = reinterpret_cast<bmqa::Session*>(session_obj);
+    delete session_ptr;
+    *session_obj = NULL;
+
+    return 0;
+}
+
 int z_bmqa_Session__create(z_bmqa_Session** session_obj , const z_bmqt_SessionOptions* options) {
     using namespace BloombergLP;
 
@@ -46,19 +56,12 @@ int z_bmqa_Session__finalizeStop(z_bmqa_Session* session_obj){
 }
 
 
-int z_bmqa_Session__finalizeStop(z_bmqa_Session* session_obj){
-    using namespace BloombergLP;
-    
-    bmqa::Session* session_ptr = reinterpret_cast<bmqa::Session*>(session_obj);
-    session_ptr->finalizeStop();
-    return 0;
-}
 
 int z_bmqa_Session__loadMessageEventBuilder(z_bmqa_Session* session_obj, z_bmqa_MessageEventBuilder** builder){
     using namespace BloombergLP;
     
     bmqa::Session* session_ptr = reinterpret_cast<bmqa::Session*>(session_obj);
-    bmqa::MessageEventBuilder* builder_ptr = reinterpret_cast<bmqa::MessageEventBuilder*>(builder);
+    bmqa::MessageEventBuilder* builder_ptr = reinterpret_cast<bmqa::MessageEventBuilder*>(*builder);
 
     session_ptr->loadMessageEventBuilder(builder_ptr);
     return 0;
@@ -129,15 +132,6 @@ int z_bmqa_Session__closeQueueSync(z_bmqa_Session* session_obj, z_bmqa_QueueId* 
     return 0;
 }
 
-int z_bmqa_Session__loadMessageEventBuilder(z_bmqa_Session* session_obj, z_bmqa_MessageEventBuilder** builder){
-    using namespace BloombergLP;
-
-    bmqa::Session* session_ptr = reinterpret_cast<bmqa::Session*>(session_obj);
-    bmqa::MessageEventBuilder* builder_ptr = reinterpret_cast<bmqa::MessageEventBuilder*>(builder);
-
-    session_ptr->loadMessageEventBuilder(builder_ptr);
-    return 0;
-}
 
 int z_bmqa_Session__post(z_bmqa_Session* session_obj, const z_bmqa_MessageEvent* event){
     using namespace BloombergLP;

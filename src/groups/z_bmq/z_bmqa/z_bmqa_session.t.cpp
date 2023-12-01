@@ -27,6 +27,8 @@
 // TEST DRIVER
 #include <mwctst_testhelper.h>
 
+#include <demo.h>
+
 // CONVENIENCE
 using namespace BloombergLP;
 using namespace bsl;
@@ -37,26 +39,7 @@ using namespace bsl;
 
 static void test1_session()
 {
-    mwctst::TestHelper::printTestName("Create Session");
-
-    // Create default session
-
-    z_bmqa_Session* session;
-    z_bmqt_SessionOptions* options;
-    z_bmqt_SessionOptions__create(&options);
-    z_bmqa_Session__create(&session, options);
-
-    // Make sure 'k_BROKER_DEFAULT_PORT' and the default brokerUri are in sync
-    {
-        PV("CHECKING start() and stop()");
-
-        z_bmqa_Session__start(session, 1000);
-
-        z_bmqa_Session__stop(session);
-        // ASSERT_EQ(sessionOptions_cpp.brokerUri(), result);
-    }
-
-    // z_bmqa_Session__destroy(session);
+    run_c_producer();
 }
 
 
@@ -69,8 +52,8 @@ int main(int argc, char* argv[])
     TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
 
     switch (_testCase) {
-    case 0:
-    case 1: test1_session(); break;
+    case 0: test1_session(); break;
+    case 1: printf("Good\n"); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
         s_testStatus = -1;
