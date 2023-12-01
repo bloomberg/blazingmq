@@ -15,7 +15,7 @@ typedef struct z_bmqa_MessageEventBuilder z_bmqa_MessageEventBuilder;
 
 int z_bmqa_MessageEventBuilder__create(z_bmqa_MessageEventBuilder** builder_obj);
 
-int z_bmqa_MessageEventBuilder__startMessage(z_bmqa_MessageEventBuilder* builder_obj);
+int z_bmqa_MessageEventBuilder__startMessage(z_bmqa_MessageEventBuilder* builder_obj, z_bmqa_Message* out_obj);
 
 int z_bmqa_MessageEventBuilder__packMessage(z_bmqa_MessageEventBuilder* builder_obj, const z_bmqa_QueueId* queueId);
 
