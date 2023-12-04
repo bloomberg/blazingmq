@@ -1053,7 +1053,7 @@ int IncoreClusterStateLedger::applyImpl(const bdlbb::Blob&   event,
                 // 'onLeaderSyncDataQueryResponseDispatched' for similar check.
                 MWCTSK_ALARMLOG_ALARM("CLUSTER")
                     << d_clusterData_p->identity().description()
-                    << ": PartitionId [" << info.partitionId()
+                    << ": Partition [" << info.partitionId()
                     << "]: self node views self as active/available primary, "
                     << "but a different node is proposed as primary in the "
                     << "partition/primary mapping: " << info << ". This "

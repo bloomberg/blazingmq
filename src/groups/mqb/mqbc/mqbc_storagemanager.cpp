@@ -121,9 +121,9 @@ void StorageManager::recoveredQueuesCb(int                    partitionId,
     // executed by *QUEUE_DISPATCHER* thread associated with 'partitionId'
 
     // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_fileStores[partitionId]->inDispatcherThread());
     const int numPartitions = static_cast<int>(d_fileStores.size());
     BSLS_ASSERT_SAFE(0 <= partitionId && partitionId < numPartitions);
-    BSLS_ASSERT_SAFE(d_fileStores[partitionId]->inDispatcherThread());
     BSLS_ASSERT_SAFE(d_numPartitionsRecoveredQueues < numPartitions);
 
     if (d_cluster_p->isStopping()) {
@@ -3947,7 +3947,7 @@ void StorageManager::processReplicaDataRequest(
     case bmqp_ctrlmsg::ReplicaDataType::E_DROP: {
         processReplicaDataRequestDrop(message, source);
     } break;  // BREAK
-    case bmqp_ctrlmsg::ReplicaDataType::E_UNKNOWN:
+    case bmqp_ctrlmsg::ReplicaDataType::E_UNKNOWN: BSLS_ANNOTATION_FALLTHROUGH;
     default: {
         MWCTSK_ALARMLOG_ALARM("CLUSTER")
             << d_clusterData_p->identity().description()

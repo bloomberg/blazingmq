@@ -33,9 +33,11 @@ PartitionFSM& PartitionFSM::registerObserver(PartitionFSMObserver* observer)
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(observer);
 
-    BALL_LOG_INFO << "PartitionFSM: Registered 1 new observer.";
-
     d_observers.insert(observer);
+    BALL_LOG_DEBUG << "PartitionFSM: Registered 1 new observer (" << observer
+                   << "). Total number of observers is now "
+                   << d_observers.size();
+
     return *this;
 }
 
@@ -44,9 +46,11 @@ PartitionFSM& PartitionFSM::unregisterObserver(PartitionFSMObserver* observer)
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(observer);
 
-    BALL_LOG_INFO << "PartitionFSM: Unregistered 1 observer.";
-
     d_observers.erase(observer);
+    BALL_LOG_DEBUG << "PartitionFSM: Unregistered 1 observer (" << observer
+                   << "). Total number of observers is now "
+                   << d_observers.size();
+
     return *this;
 }
 
@@ -118,7 +122,7 @@ void PartitionFSM::applyEvent(
         }
         case State::e_PRIMARY_HEALING_STG1: BSLS_ANNOTATION_FALLTHROUGH;
         case State::e_PRIMARY_HEALING_STG2: BSLS_ANNOTATION_FALLTHROUGH;
-        case State::e_REPLICA_HEALING:
+        case State::e_REPLICA_HEALING: BSLS_ANNOTATION_FALLTHROUGH;
         default: {
             break;  // BREAK
         }
