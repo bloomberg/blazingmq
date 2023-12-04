@@ -1263,6 +1263,7 @@ void RecoveryManager::setLiveDataSource(mqbnet::ClusterNode* source,
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(source);
     BSLS_ASSERT_SAFE(0 <= partitionId);
+    BSLS_ASSERT_SAFE(partitionId < d_recoveryContextVec.size());
 
     RecoveryContext& recoveryCtx = d_recoveryContextVec[partitionId];
 

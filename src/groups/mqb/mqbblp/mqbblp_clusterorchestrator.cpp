@@ -41,6 +41,7 @@
 #include <bsl_cstddef.h>  // size_t
 #include <bsl_string.h>
 #include <bsl_vector.h>
+#include <bsls_annotation.h>
 #include <bsls_assert.h>
 #include <bsls_timeinterval.h>
 
@@ -926,13 +927,15 @@ void ClusterOrchestrator::processClusterStateFSMMessage(
         d_stateManager_mp->processFollowerClusterStateRequest(message, source);
     } break;  // BREAK
     case MsgChoice::SELECTION_ID_FOLLOWER_L_S_N_RESPONSE:
+        BSLS_ANNOTATION_FALLTHROUGH;
     case MsgChoice::SELECTION_ID_REGISTRATION_RESPONSE:
+        BSLS_ANNOTATION_FALLTHROUGH;
     case MsgChoice::SELECTION_ID_FOLLOWER_CLUSTER_STATE_RESPONSE: {
         BSLS_ASSERT_SAFE(!message.rId().isNull());
 
         d_cluster_p->processResponse(message);
     } break;  // BREAK
-    case MsgChoice::SELECTION_ID_UNDEFINED:
+    case MsgChoice::SELECTION_ID_UNDEFINED: BSLS_ANNOTATION_FALLTHROUGH;
     default: {
         MWCTSK_ALARMLOG_ALARM("CLUSTER")
             << d_clusterData_p->identity().description()
@@ -961,7 +964,7 @@ void ClusterOrchestrator::processPartitionMessage(
         BALL_LOG_INFO << d_clusterData_p->identity().description()
                       << ": Not processing partition message : " << message
                       << " from " << source->nodeDescription()
-                      << " because self is stopping";
+                      << " since self is stopping";
 
         return;  // RETURN
     }
@@ -983,13 +986,15 @@ void ClusterOrchestrator::processPartitionMessage(
         d_storageManager_p->processReplicaDataRequest(message, source);
     } break;  // BREAK
     case MsgChoice::SELECTION_ID_REPLICA_STATE_RESPONSE:
+        BSLS_ANNOTATION_FALLTHROUGH;
     case MsgChoice::SELECTION_ID_PRIMARY_STATE_RESPONSE:
+        BSLS_ANNOTATION_FALLTHROUGH;
     case MsgChoice::SELECTION_ID_REPLICA_DATA_RESPONSE: {
         BSLS_ASSERT_SAFE(!message.rId().isNull());
 
         d_cluster_p->processResponse(message);
     } break;  // BREAK
-    case MsgChoice::SELECTION_ID_UNDEFINED:
+    case MsgChoice::SELECTION_ID_UNDEFINED: BSLS_ANNOTATION_FALLTHROUGH;
     default: {
         MWCTSK_ALARMLOG_ALARM("CLUSTER")
             << d_clusterData_p->identity().description()

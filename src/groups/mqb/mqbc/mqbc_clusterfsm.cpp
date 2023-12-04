@@ -64,9 +64,11 @@ ClusterFSM& ClusterFSM::registerObserver(ClusterFSMObserver* observer)
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(observer);
 
-    BALL_LOG_INFO << "ClusterFSM: Registered 1 new observer.";
-
     d_observers.insert(observer);
+    BALL_LOG_DEBUG << "ClusterFSM: Registered 1 new observer (" << observer
+                   << "). Total number of observers is now "
+                   << d_observers.size();
+
     return *this;
 }
 
@@ -75,9 +77,11 @@ ClusterFSM& ClusterFSM::unregisterObserver(ClusterFSMObserver* observer)
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(observer);
 
-    BALL_LOG_INFO << "ClusterFSM: Unregistered 1 observer.";
-
     d_observers.erase(observer);
+    BALL_LOG_DEBUG << "ClusterFSM: Unregistered 1 observer. (" << observer
+                   << "). Total number of observers is now "
+                   << d_observers.size();
+
     return *this;
 }
 
@@ -147,7 +151,7 @@ void ClusterFSM::applyEvent(ClusterFSMArgsSp& eventsQueue)
         case State::e_FOL_HEALING: BSLS_ANNOTATION_FALLTHROUGH;
         case State::e_LDR_HEALING_STG1: BSLS_ANNOTATION_FALLTHROUGH;
         case State::e_LDR_HEALING_STG2: BSLS_ANNOTATION_FALLTHROUGH;
-        case State::e_STOPPED:
+        case State::e_STOPPED: BSLS_ANNOTATION_FALLTHROUGH;
         default: {
             break;  // BREAK
         }
