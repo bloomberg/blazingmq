@@ -51,7 +51,6 @@
 #include <mqbi_storagemanager.h>
 #include <mqbs_datastore.h>
 #include <mqbs_filestore.h>
-#include <mqbs_storageutil.h>
 #include <mqbu_storagekey.h>
 
 // BMQ
@@ -178,7 +177,7 @@ class StorageManager
     typedef NodeToSeqNumCtxMap::const_iterator NodeToSeqNumCtxMapCIter;
     typedef bsl::vector<NodeToSeqNumCtxMap>    NodeToSeqNumCtxMapPartitionVec;
 
-    typedef mqbs::StorageUtil::DomainQueueMessagesCountMaps
+    typedef StorageUtil::DomainQueueMessagesCountMaps
         DomainQueueMessagesCountMaps;
 
   private:

@@ -42,7 +42,6 @@
 #include <mqbnet_multirequestmanager.h>
 #include <mqbs_filestore.h>
 #include <mqbs_filestoreprotocol.h>
-#include <mqbs_storageutil.h>
 #include <mqbu_storagekey.h>
 
 // BMQ
@@ -184,7 +183,7 @@ class StorageManager : public mqbi::StorageManager {
     typedef MultiRequestManagerType::NodeResponsePairsConstIter
         NodeResponsePairsConstIter;
 
-    typedef mqbs::StorageUtil::DomainQueueMessagesCountMaps
+    typedef mqbc::StorageUtil::DomainQueueMessagesCountMaps
         DomainQueueMessagesCountMaps;
 
   private:
