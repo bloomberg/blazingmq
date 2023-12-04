@@ -81,8 +81,6 @@ struct StorageUtil {
     /// [domainName][queueUri] -> numMessages
     typedef bsl::unordered_map<bsl::string, QueueMessagesCountMap>
         DomainQueueMessagesCountMap;
-    typedef bsl::vector<DomainQueueMessagesCountMap>
-        DomainQueueMessagesCountMaps;
 
   public:
     // CLASS METHODS

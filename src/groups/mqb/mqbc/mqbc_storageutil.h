@@ -147,8 +147,6 @@ struct StorageUtil {
 
     typedef mqbs::StorageUtil::DomainQueueMessagesCountMap
         DomainQueueMessagesCountMap;
-    typedef mqbs::StorageUtil::DomainQueueMessagesCountMaps
-        DomainQueueMessagesCountMaps;
 
   public:
     // TYPES
@@ -169,6 +167,9 @@ struct StorageUtil {
     /// latch along with the function.  Each partition should call
     /// `latch->arrive()` after it has finished executing the function.
     typedef bsl::function<void(const int, bslmt::Latch*)> PerPartitionFunctor;
+
+    typedef bsl::vector<DomainQueueMessagesCountMap>
+        DomainQueueMessagesCountMaps;
 
   private:
     // PRIVATE FUNCTIONS

@@ -77,7 +77,7 @@ void StorageManager::startRecoveryCb(int partitionId)
 
     BALL_LOG_INFO_BLOCK
     {
-        mqbc::StorageUtil::printRecoveryPhaseOneBanner(
+        StorageUtil::printRecoveryPhaseOneBanner(
             BALL_LOG_OUTPUT_STREAM,
             d_clusterData_p->identity().description(),
             partitionId);
@@ -1103,7 +1103,7 @@ void StorageManager::forceFlushFileStores()
 {
     // executed by scheduler's dispatcher thread
 
-    mqbc::StorageUtil::forceFlushFileStores(&d_fileStores);
+    StorageUtil::forceFlushFileStores(&d_fileStores);
 }
 
 void StorageManager::do_startWatchDog(const PartitionFSMArgsSp& args)
