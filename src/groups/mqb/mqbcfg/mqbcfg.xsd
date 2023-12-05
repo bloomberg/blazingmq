@@ -75,6 +75,7 @@
         bmqconfConfig........: configuration for bmqconf
         plugins..............: configuration for the plugins
         msgPropertiesSupport.: information about if/how to advertise support for v2 message properties
+        configureStream......: send new ConfigureStream instead of old ConfigureQueue/>
       </documentation>
     </annotation>
     <sequence>
@@ -95,6 +96,7 @@
       <element name='bmqconfConfig'        type='tns:BmqconfConfig'/>
       <element name='plugins'              type='tns:Plugins'/>
       <element name='messagePropertiesV2'  type='tns:MessagePropertiesV2'/>
+      <element name='configureStream'      type='boolean' default='false'/>
     </sequence>
   </complexType>
 
