@@ -3,107 +3,107 @@
 
 int z_bmqt_CorrelationId__create(z_bmqt_CorrelationId** correlationId_obj) {
     using namespace BloombergLP;
-    bmqt::CorrelationId* correlationId_ptr = new bmqt::CorrelationId();
+    bmqt::CorrelationId* correlationId_p = new bmqt::CorrelationId();
 
-    *correlationId_obj = reinterpret_cast<z_bmqt_CorrelationId*>(correlationId_ptr);
+    *correlationId_obj = reinterpret_cast<z_bmqt_CorrelationId*>(correlationId_p);
     return 0;
 }
 
 int z_bmqt_CorrelationId__create(z_bmqt_CorrelationId** correlationId_obj, int64_t numeric) {
     using namespace BloombergLP;
-    bmqt::CorrelationId* correlationId_ptr = new bmqt::CorrelationId(numeric);
+    bmqt::CorrelationId* correlationId_p = new bmqt::CorrelationId(numeric);
 
-    *correlationId_obj = reinterpret_cast<z_bmqt_CorrelationId*>(correlationId_ptr);
+    *correlationId_obj = reinterpret_cast<z_bmqt_CorrelationId*>(correlationId_p);
     return 0;
 }
 
 int z_bmqt_CorrelationId__create(z_bmqt_CorrelationId** correlationId_obj, void* pointer) {
     using namespace BloombergLP;
-    bmqt::CorrelationId* correlationId_ptr = new bmqt::CorrelationId(pointer);
+    bmqt::CorrelationId* correlationId_p = new bmqt::CorrelationId(pointer);
 
-    *correlationId_obj = reinterpret_cast<z_bmqt_CorrelationId*>(correlationId_ptr);
+    *correlationId_obj = reinterpret_cast<z_bmqt_CorrelationId*>(correlationId_p);
     return 0;
 }
 
 int z_bmqt_CorrelationId__makeUnset(z_bmqt_CorrelationId* correlationId_obj) {
     using namespace BloombergLP;
-    bmqt::CorrelationId* correlationId_ptr = reinterpret_cast<bmqt::CorrelationId*>(correlationId_obj);
+    bmqt::CorrelationId* correlationId_p = reinterpret_cast<bmqt::CorrelationId*>(correlationId_obj);
 
-    correlationId_ptr->makeUnset();
+    correlationId_p->makeUnset();
     return 0;
 }
 
 int z_bmqt_CorrelationId__setNumeric(z_bmqt_CorrelationId* correlationId_obj, int64_t numeric) {
     using namespace BloombergLP;
-    bmqt::CorrelationId* correlationId_ptr = reinterpret_cast<bmqt::CorrelationId*>(correlationId_obj);
+    bmqt::CorrelationId* correlationId_p = reinterpret_cast<bmqt::CorrelationId*>(correlationId_obj);
 
-    correlationId_ptr->setNumeric(numeric);
+    correlationId_p->setNumeric(numeric);
     return 0;
 }
 
 int z_bmqt_CorrelationId__setPointer(z_bmqt_CorrelationId* correlationId_obj, void* pointer) {
     using namespace BloombergLP;
-    bmqt::CorrelationId* correlationId_ptr = reinterpret_cast<bmqt::CorrelationId*>(correlationId_obj);
+    bmqt::CorrelationId* correlationId_p = reinterpret_cast<bmqt::CorrelationId*>(correlationId_obj);
 
 
-    correlationId_ptr->setPointer(pointer);
+    correlationId_p->setPointer(pointer);
     return 0;
 }
 
 int z_bmqt_CorrelationId__isUnset(const z_bmqt_CorrelationId* correlationId_obj) {
     using namespace BloombergLP;
-    const bmqt::CorrelationId* correlationId_ptr = reinterpret_cast<const bmqt::CorrelationId*>(correlationId_obj);
+    const bmqt::CorrelationId* correlationId_p = reinterpret_cast<const bmqt::CorrelationId*>(correlationId_obj);
 
-    return correlationId_ptr->isUnset();
+    return correlationId_p->isUnset();
 }
 
 int z_bmqt_CorrelationId__isNumeric(const z_bmqt_CorrelationId* correlationId_obj) {
     using namespace BloombergLP;
-    const bmqt::CorrelationId* correlationId_ptr = reinterpret_cast<const bmqt::CorrelationId*>(correlationId_obj);
+    const bmqt::CorrelationId* correlationId_p = reinterpret_cast<const bmqt::CorrelationId*>(correlationId_obj);
 
-    return correlationId_ptr->isNumeric();
+    return correlationId_p->isNumeric();
 }
 
 int z_bmqt_CorrelationId__isPointer(const z_bmqt_CorrelationId* correlationId_obj) {
     using namespace BloombergLP;
-    const bmqt::CorrelationId* correlationId_ptr = reinterpret_cast<const bmqt::CorrelationId*>(correlationId_obj);
+    const bmqt::CorrelationId* correlationId_p = reinterpret_cast<const bmqt::CorrelationId*>(correlationId_obj);
 
-    return correlationId_ptr->isPointer();
+    return correlationId_p->isPointer();
 }
 
 int z_bmqt_CorrelationId__isSharedPtr(const z_bmqt_CorrelationId* correlationId_obj) {
     using namespace BloombergLP;
-    const bmqt::CorrelationId* correlationId_ptr = reinterpret_cast<const bmqt::CorrelationId*>(correlationId_obj);
+    const bmqt::CorrelationId* correlationId_p = reinterpret_cast<const bmqt::CorrelationId*>(correlationId_obj);
 
-    return correlationId_ptr->isSharedPtr();
+    return correlationId_p->isSharedPtr();
 }
 
 int z_bmqt_CorrelationId__isAutoValue(const z_bmqt_CorrelationId* correlationId_obj) {
     using namespace BloombergLP;
-    const bmqt::CorrelationId* correlationId_ptr = reinterpret_cast<const bmqt::CorrelationId*>(correlationId_obj);
+    const bmqt::CorrelationId* correlationId_p = reinterpret_cast<const bmqt::CorrelationId*>(correlationId_obj);
 
-    return correlationId_ptr->isAutoValue();
+    return correlationId_p->isAutoValue();
 }
 
 int64_t z_bmqt_CorrelationId__theNumeric(const z_bmqt_CorrelationId* correlationId_obj) {
     using namespace BloombergLP;
-    const bmqt::CorrelationId* correlationId_ptr = reinterpret_cast<const bmqt::CorrelationId*>(correlationId_obj);
+    const bmqt::CorrelationId* correlationId_p = reinterpret_cast<const bmqt::CorrelationId*>(correlationId_obj);
 
-    return correlationId_ptr->theNumeric();
+    return correlationId_p->theNumeric();
 }
 
 void* z_bmqt_CorrelationId__thePointer(const z_bmqt_CorrelationId* correlationId_obj) {
     using namespace BloombergLP;
-    const bmqt::CorrelationId* correlationId_ptr = reinterpret_cast<const bmqt::CorrelationId*>(correlationId_obj);
+    const bmqt::CorrelationId* correlationId_p = reinterpret_cast<const bmqt::CorrelationId*>(correlationId_obj);
 
-    return correlationId_ptr->thePointer();
+    return correlationId_p->thePointer();
 }
 
 CorrelationId_Type z_bmqt_CorrelationId__type(const z_bmqt_CorrelationId* correlationId_obj) {
     using namespace BloombergLP;
-    const bmqt::CorrelationId* correlationId_ptr = reinterpret_cast<const bmqt::CorrelationId*>(correlationId_obj);
+    const bmqt::CorrelationId* correlationId_p = reinterpret_cast<const bmqt::CorrelationId*>(correlationId_obj);
 
-    switch(correlationId_ptr->type()) {
+    switch(correlationId_p->type()) {
         case bmqt::CorrelationId::Type::e_NUMERIC: return CorrelationId_Type::e_NUMERIC;
         case bmqt::CorrelationId::Type::e_POINTER: return CorrelationId_Type::e_POINTER;
         case bmqt::CorrelationId::Type::e_SHARED_PTR: return CorrelationId_Type::e_SHARED_PTR;
