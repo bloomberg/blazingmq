@@ -26,8 +26,15 @@ namespace m_bmqstoragetool {
 // class SearchProcessor
 // =====================
 
+SearchProcessor::SearchProcessor(const Parameters& params)
+: CommandProcessor(params)
+{
+}
+
 void SearchProcessor::process(bsl::ostream& ostream)
 {
+    ostream << "SearchProcessor::process()\n";
+    d_parameters.print(ostream);
 }
 
 }  // close package namespace

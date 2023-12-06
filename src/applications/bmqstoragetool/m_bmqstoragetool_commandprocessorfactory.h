@@ -14,7 +14,7 @@
 // limitations under the License.
 
 // bmqstoragetool
-#include <m_bmqstoragetool_messages.h>
+#include <m_bmqstoragetool_parameters.h>
 #include <m_bmqstoragetool_searchprocessor.h>
 
 // BDE
@@ -30,7 +30,7 @@ namespace m_bmqstoragetool {
 class CommandProcessorFactory {
   public:
     static bsl::unique_ptr<CommandProcessor>
-    createCommandProcessor(CommandLineParameters& params);
+    createCommandProcessor(const Parameters& params);
 };
 
 }  // close package namespace
