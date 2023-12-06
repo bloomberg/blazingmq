@@ -19,9 +19,9 @@
 namespace BloombergLP {
 namespace m_bmqstoragetool {
 
-// =================
+// =============================
 // class CommandProcessorFactory
-// =================
+// =============================
 
 bsl::unique_ptr<CommandProcessor>
 CommandProcessorFactory::createCommandProcessor(const Parameters& params)
@@ -31,7 +31,8 @@ CommandProcessorFactory::createCommandProcessor(const Parameters& params)
     if (params.timestampGt() > 0 || params.timestampLt() > 0) {
         // TODO : implement binary search by timestamps
         // result = bsl::make_unique<TimestampSearchProcessor>(params);
-    } else {
+    }
+    else {
         result = bsl::make_unique<SearchProcessor>(params);
     }
 

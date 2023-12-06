@@ -91,45 +91,45 @@ class Parameters {
     Parameters(bslma::Allocator* allocator);
 
     // MANIPULATORS
-    bsls::Types::Int64& setTimestampGt();
-    bsls::Types::Int64& setTimestampLt();
-    bsl::string& setPath();
-    bsl::string& setJournalFile();
-    bsl::string& setDataFile();
-    bsl::string& setCslFile();
+    bsls::Types::Int64&       setTimestampGt();
+    bsls::Types::Int64&       setTimestampLt();
+    bsl::string&              setPath();
+    bsl::string&              setJournalFile();
+    bsl::string&              setDataFile();
+    bsl::string&              setCslFile();
     bsl::vector<bsl::string>& setGuid();
     bsl::vector<bsl::string>& setQueueKey();
     bsl::vector<bsl::string>& setQueueName();
-    int& setDumpLimit();
-    bool& setDetails();
-    bool& setDumpPayload();
-    bool& setSummary();
-    bool& setOutstanding();
-    bool& setConfirmed();
-    bool& setPartiallyConfirmed();
+    int&                      setDumpLimit();
+    bool&                     setDetails();
+    bool&                     setDumpPayload();
+    bool&                     setSummary();
+    bool&                     setOutstanding();
+    bool&                     setConfirmed();
+    bool&                     setPartiallyConfirmed();
 
     /// Validate the consistency of all settings.
     bool validate(bsl::string* error);
 
     // ACCESSORS
     /// Print all the parameters
-    void print(bsl::ostream& ss) const;
-    bsls::Types::Int64 timestampGt() const;
-    bsls::Types::Int64 timestampLt() const;
-    bsl::string path() const;
-    bsl::string journalFile() const;
-    bsl::string dataFile() const;
-    bsl::string cslFile() const;
+    void                     print(bsl::ostream& ss) const;
+    bsls::Types::Int64       timestampGt() const;
+    bsls::Types::Int64       timestampLt() const;
+    bsl::string              path() const;
+    bsl::string              journalFile() const;
+    bsl::string              dataFile() const;
+    bsl::string              cslFile() const;
     bsl::vector<bsl::string> guid() const;
     bsl::vector<bsl::string> queueKey() const;
     bsl::vector<bsl::string> queueName() const;
-    int dumpLimit() const;
-    bool details() const;
-    bool dumpPayload() const;
-    bool summary() const;
-    bool outstanding() const;
-    bool confirmed() const;
-    bool partiallyConfirmed() const;
+    int                      dumpLimit() const;
+    bool                     details() const;
+    bool                     dumpPayload() const;
+    bool                     summary() const;
+    bool                     outstanding() const;
+    bool                     confirmed() const;
+    bool                     partiallyConfirmed() const;
 };
 
 }  // close package namespace

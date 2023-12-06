@@ -23,9 +23,9 @@
 namespace BloombergLP {
 namespace m_bmqstoragetool {
 
-// =================
+// =============================
 // class CommandProcessorFactory
-// =================
+// =============================
 
 class CommandProcessorFactory {
   public:

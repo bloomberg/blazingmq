@@ -41,9 +41,10 @@ static void test1_breathingTest()
 {
     mwctst::TestHelper::printTestName("BREATHING TEST");
     // Empty parameters
-    CommandLineParameters params(s_allocator_p);
+    Parameters params(s_allocator_p);
 
-    auto cmdProcessor = CommandProcessorFactory::createCommandProcessor(params);
+    auto cmdProcessor = CommandProcessorFactory::createCommandProcessor(
+        params);
     ASSERT_EQ(cmdProcessor.get(), nullptr)
 }
 
