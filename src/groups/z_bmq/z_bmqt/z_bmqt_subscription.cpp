@@ -7,8 +7,8 @@ int z_bmqt_SubscriptionHandle__create(z_bmqt_SubscriptionHandle** subscriptionHa
     using namespace BloombergLP;
 
     const bmqt::CorrelationId* correlationId = reinterpret_cast<const bmqt::CorrelationId*>(cid);
-    bmqt::SubscriptionHandle* subscriptionHandle_ptr = new bmqt::SubscriptionHandle(*correlationId);
-    *subscriptionHandle_obj = reinterpret_cast<z_bmqt_SubscriptionHandle*>(subscriptionHandle_ptr);
+    bmqt::SubscriptionHandle* subscriptionHandle_p = new bmqt::SubscriptionHandle(*correlationId);
+    *subscriptionHandle_obj = reinterpret_cast<z_bmqt_SubscriptionHandle*>(subscriptionHandle_p);
 
     return 0;
 }
@@ -16,8 +16,8 @@ int z_bmqt_SubscriptionHandle__create(z_bmqt_SubscriptionHandle** subscriptionHa
 unsigned int z_bmqt_SubscriptionHandle__id(const z_bmqt_SubscriptionHandle* subscriptionHandle_obj){
     using namespace BloombergLP;
 
-    const bmqt::SubscriptionHandle* subscriptionHandle_ptr = reinterpret_cast<const bmqt::SubscriptionHandle*>(subscriptionHandle_obj);
-    return subscriptionHandle_ptr->id();
+    const bmqt::SubscriptionHandle* subscriptionHandle_p = reinterpret_cast<const bmqt::SubscriptionHandle*>(subscriptionHandle_obj);
+    return subscriptionHandle_p->id();
 }
 
 ///////
@@ -25,8 +25,8 @@ unsigned int z_bmqt_SubscriptionHandle__id(const z_bmqt_SubscriptionHandle* subs
 int z_bmqt_SubscriptionExpression__create(z_bmqt_SubscriptionExpression** subscriptionExpression_obj){
     using namespace BloombergLP;
 
-    bmqt::SubscriptionExpression* subscriptionExpression_ptr = new bmqt::SubscriptionExpression();
-    *subscriptionExpression_obj = reinterpret_cast<z_bmqt_SubscriptionExpression*>(subscriptionExpression_ptr);
+    bmqt::SubscriptionExpression* subscriptionExpression_p = new bmqt::SubscriptionExpression();
+    *subscriptionExpression_obj = reinterpret_cast<z_bmqt_SubscriptionExpression*>(subscriptionExpression_p);
 
     return 0;
 }
@@ -41,9 +41,9 @@ int z_bmqt_SubscriptionExpression__createFromString(z_bmqt_SubscriptionExpressio
         default: return 1;
     }
 
-    bmqt::SubscriptionExpression* subscriptionExpression_ptr = new bmqt::SubscriptionExpression(bsl::string(expression), v);
+    bmqt::SubscriptionExpression* subscriptionExpression_p = new bmqt::SubscriptionExpression(bsl::string(expression), v);
 
-    *subscriptionExpression_obj = reinterpret_cast<z_bmqt_SubscriptionExpression*>(subscriptionExpression_ptr);
+    *subscriptionExpression_obj = reinterpret_cast<z_bmqt_SubscriptionExpression*>(subscriptionExpression_p);
 
     return 0;
 }
@@ -51,15 +51,15 @@ int z_bmqt_SubscriptionExpression__createFromString(z_bmqt_SubscriptionExpressio
 const char* z_bmqt_SubscriptionExpression__text(const z_bmqt_SubscriptionExpression* subscriptionExpression_obj){
     using namespace BloombergLP;
 
-    const bmqt::SubscriptionExpression* subscriptionExpression_ptr = reinterpret_cast<const bmqt::SubscriptionExpression*>(subscriptionExpression_obj);
-    return subscriptionExpression_ptr->text().c_str();
+    const bmqt::SubscriptionExpression* subscriptionExpression_p = reinterpret_cast<const bmqt::SubscriptionExpression*>(subscriptionExpression_obj);
+    return subscriptionExpression_p->text().c_str();
 }
 
 SubscriptionExpressionEnum z_bmqt_SubscriptionExpression__version(const z_bmqt_SubscriptionExpression* subscriptionExpression_obj){
     using namespace BloombergLP;
 
-    const bmqt::SubscriptionExpression* subscriptionExpression_ptr = reinterpret_cast<const bmqt::SubscriptionExpression*>(subscriptionExpression_obj);
-    switch(subscriptionExpression_ptr->version()) {
+    const bmqt::SubscriptionExpression* subscriptionExpression_p = reinterpret_cast<const bmqt::SubscriptionExpression*>(subscriptionExpression_obj);
+    switch(subscriptionExpression_p->version()) {
         case bmqt::SubscriptionExpression::e_NONE: return SubscriptionExpressionEnum::e_NONE;
         case bmqt::SubscriptionExpression::e_VERSION_1: return SubscriptionExpressionEnum::e_VERSION_1;
         default: break;
@@ -71,8 +71,8 @@ SubscriptionExpressionEnum z_bmqt_SubscriptionExpression__version(const z_bmqt_S
 bool z_bmqt_SubscriptionExpression__isValid(const z_bmqt_SubscriptionExpression* subscriptionExpression_obj){
     using namespace BloombergLP;
 
-    const bmqt::SubscriptionExpression* subscriptionExpression_ptr = reinterpret_cast<const bmqt::SubscriptionExpression*>(subscriptionExpression_obj);
-    return subscriptionExpression_ptr->isValid();
+    const bmqt::SubscriptionExpression* subscriptionExpression_p = reinterpret_cast<const bmqt::SubscriptionExpression*>(subscriptionExpression_obj);
+    return subscriptionExpression_p->isValid();
 }
 
 ///////
@@ -80,8 +80,8 @@ bool z_bmqt_SubscriptionExpression__isValid(const z_bmqt_SubscriptionExpression*
 int z_bmqt_Subscription__create(z_bmqt_Subscription** subscription_obj){
     using namespace BloombergLP;
 
-    bmqt::Subscription* subscription_ptr = new bmqt::Subscription();
-    *subscription_obj = reinterpret_cast<z_bmqt_Subscription*>(subscription_ptr);
+    bmqt::Subscription* subscription_p = new bmqt::Subscription();
+    *subscription_obj = reinterpret_cast<z_bmqt_Subscription*>(subscription_p);
 
     return 0;
 }
@@ -89,9 +89,9 @@ int z_bmqt_Subscription__create(z_bmqt_Subscription** subscription_obj){
 int z_bmqt_Subscription__createCopy(z_bmqt_Subscription** subscription_obj, const z_bmqt_Subscription* other){
     using namespace BloombergLP;
 
-    const bmqt::Subscription* other_ptr = reinterpret_cast<const bmqt::Subscription*>(other);
-    bmqt::Subscription* subscription_ptr = new bmqt::Subscription(*other_ptr);
-    *subscription_obj = reinterpret_cast<z_bmqt_Subscription*>(subscription_ptr);
+    const bmqt::Subscription* other_p = reinterpret_cast<const bmqt::Subscription*>(other);
+    bmqt::Subscription* subscription_p = new bmqt::Subscription(*other_p);
+    *subscription_obj = reinterpret_cast<z_bmqt_Subscription*>(subscription_p);
 
     return 0;
 }
@@ -99,8 +99,8 @@ int z_bmqt_Subscription__createCopy(z_bmqt_Subscription** subscription_obj, cons
 int z_bmqt_Subscription__setMaxUnconfirmedMessages(z_bmqt_Subscription* subscription_obj, int value){
     using namespace BloombergLP;
 
-    bmqt::Subscription* subscription_ptr = reinterpret_cast<bmqt::Subscription*>(subscription_obj);
-    subscription_ptr->setMaxUnconfirmedMessages(value);
+    bmqt::Subscription* subscription_p = reinterpret_cast<bmqt::Subscription*>(subscription_obj);
+    subscription_p->setMaxUnconfirmedMessages(value);
 
     return 0;
 }
@@ -108,8 +108,8 @@ int z_bmqt_Subscription__setMaxUnconfirmedMessages(z_bmqt_Subscription* subscrip
 int z_bmqt_Subscription__setMaxUnconfirmedBytes(z_bmqt_Subscription* subscription_obj, int value){
     using namespace BloombergLP;
 
-    bmqt::Subscription* subscription_ptr = reinterpret_cast<bmqt::Subscription*>(subscription_obj);
-    subscription_ptr->setMaxUnconfirmedBytes(value);
+    bmqt::Subscription* subscription_p = reinterpret_cast<bmqt::Subscription*>(subscription_obj);
+    subscription_p->setMaxUnconfirmedBytes(value);
 
     return 0;
 }
@@ -117,8 +117,8 @@ int z_bmqt_Subscription__setMaxUnconfirmedBytes(z_bmqt_Subscription* subscriptio
 int z_bmqt_Subscription__setConsumerPriority(z_bmqt_Subscription* subscription_obj, int value){
     using namespace BloombergLP;
 
-    bmqt::Subscription* subscription_ptr = reinterpret_cast<bmqt::Subscription*>(subscription_obj);
-    subscription_ptr->setConsumerPriority(value);
+    bmqt::Subscription* subscription_p = reinterpret_cast<bmqt::Subscription*>(subscription_obj);
+    subscription_p->setConsumerPriority(value);
 
     return 0;
 }
@@ -126,9 +126,9 @@ int z_bmqt_Subscription__setConsumerPriority(z_bmqt_Subscription* subscription_o
 int z_bmqt_Subscription__setExpression(z_bmqt_Subscription* subscription_obj, const z_bmqt_SubscriptionExpression* value){
     using namespace BloombergLP;
 
-    bmqt::Subscription* subscription_ptr = reinterpret_cast<bmqt::Subscription*>(subscription_obj);
-    const bmqt::SubscriptionExpression* expression_ptr = reinterpret_cast<const bmqt::SubscriptionExpression*>(value);
-    subscription_ptr->setExpression(*expression_ptr);
+    bmqt::Subscription* subscription_p = reinterpret_cast<bmqt::Subscription*>(subscription_obj);
+    const bmqt::SubscriptionExpression* expression_p = reinterpret_cast<const bmqt::SubscriptionExpression*>(value);
+    subscription_p->setExpression(*expression_p);
 
     return 0;
 }
@@ -136,50 +136,50 @@ int z_bmqt_Subscription__setExpression(z_bmqt_Subscription* subscription_obj, co
 int z_bmqt_Subscription__maxUnconfirmedMessages(const z_bmqt_Subscription* subscription_obj){
     using namespace BloombergLP;
 
-    const bmqt::Subscription* subscription_ptr = reinterpret_cast<const bmqt::Subscription*>(subscription_obj);
-    return subscription_ptr->maxUnconfirmedMessages();
+    const bmqt::Subscription* subscription_p = reinterpret_cast<const bmqt::Subscription*>(subscription_obj);
+    return subscription_p->maxUnconfirmedMessages();
 }
 
 int z_bmqt_Subscription__maxUnconfirmedBytes(const z_bmqt_Subscription* subscription_obj){
     using namespace BloombergLP;
 
-    const bmqt::Subscription* subscription_ptr = reinterpret_cast<const bmqt::Subscription*>(subscription_obj);
-    return subscription_ptr->maxUnconfirmedBytes();
+    const bmqt::Subscription* subscription_p = reinterpret_cast<const bmqt::Subscription*>(subscription_obj);
+    return subscription_p->maxUnconfirmedBytes();
 }
 
 int z_bmqt_Subscription__consumerPriority(const z_bmqt_Subscription* subscription_obj){
     using namespace BloombergLP;
 
-    const bmqt::Subscription* subscription_ptr = reinterpret_cast<const bmqt::Subscription*>(subscription_obj);
-    return subscription_ptr->consumerPriority();
+    const bmqt::Subscription* subscription_p = reinterpret_cast<const bmqt::Subscription*>(subscription_obj);
+    return subscription_p->consumerPriority();
 }
 
 const z_bmqt_SubscriptionExpression* z_bmqt_Subscription__expression(const z_bmqt_Subscription* subscription_obj){
     using namespace BloombergLP;
 
-    const bmqt::Subscription* subscription_ptr = reinterpret_cast<const bmqt::Subscription*>(subscription_obj);
-    const bmqt::SubscriptionExpression* expression_ptr = &(subscription_ptr->expression());
+    const bmqt::Subscription* subscription_p = reinterpret_cast<const bmqt::Subscription*>(subscription_obj);
+    const bmqt::SubscriptionExpression* expression_p = &(subscription_p->expression());
 
-    return reinterpret_cast<const z_bmqt_SubscriptionExpression*>(expression_ptr);
+    return reinterpret_cast<const z_bmqt_SubscriptionExpression*>(expression_p);
 }
 
 bool z_bmqt_Subscription__hasMaxUnconfirmedMessages(const z_bmqt_Subscription* subscription_obj){
     using namespace BloombergLP;
 
-    const bmqt::Subscription* subscription_ptr = reinterpret_cast<const bmqt::Subscription*>(subscription_obj);
-    return subscription_ptr->hasMaxUnconfirmedMessages();
+    const bmqt::Subscription* subscription_p = reinterpret_cast<const bmqt::Subscription*>(subscription_obj);
+    return subscription_p->hasMaxUnconfirmedMessages();
 }
 
 bool z_bmqt_Subscription__hasMaxUnconfirmedBytes(const z_bmqt_Subscription* subscription_obj){
     using namespace BloombergLP;
 
-    const bmqt::Subscription* subscription_ptr = reinterpret_cast<const bmqt::Subscription*>(subscription_obj);
-    return subscription_ptr->hasMaxUnconfirmedBytes();
+    const bmqt::Subscription* subscription_p = reinterpret_cast<const bmqt::Subscription*>(subscription_obj);
+    return subscription_p->hasMaxUnconfirmedBytes();
 }
 
 bool z_bmqt_Subscription__hasConsumerPriority(const z_bmqt_Subscription* subscription_obj){
     using namespace BloombergLP;
 
-    const bmqt::Subscription* subscription_ptr = reinterpret_cast<const bmqt::Subscription*>(subscription_obj);
-    return subscription_ptr->hasConsumerPriority();
+    const bmqt::Subscription* subscription_p = reinterpret_cast<const bmqt::Subscription*>(subscription_obj);
+    return subscription_p->hasConsumerPriority();
 }

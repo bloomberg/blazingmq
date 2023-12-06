@@ -25,7 +25,7 @@ const int K_NUM_MESSAGES = 5;
 };
 
 
-void postEvent(const char* text, 
+void postEvent(const char* text,
                z_bmqa_QueueId* queueId,
                z_bmqa_Session* session){
 
@@ -46,6 +46,9 @@ void postEvent(const char* text,
     z_bmqa_MessageEventBuilder__messageEvent(builder, &messageEvent);
 
     z_bmqa_Session__post(session, messageEvent);
+
+    z_bmqa_MessageEventBuilder__delete(&builder);
+
 }
 
 
@@ -68,6 +71,8 @@ void produce(z_bmqa_Session* session){
     }
 
     z_bmqa_Session__closeQueueSync(session, queueId);
+
+    z_bmqa_QueueId__delete(&queueId);
 }
 
 int run_c_producer(){
@@ -86,10 +91,9 @@ int run_c_producer(){
     //stop the session
     z_bmqa_Session__stop(session);
 
-    printf("Good2\n");
 
-    // z_bmqa_Session__delete(&session);
-    // z_bmqt_SessionOptions__delete(&options);
+    z_bmqa_Session__delete(&session);
+    z_bmqt_SessionOptions__delete(&options);
 
     return 0;
 

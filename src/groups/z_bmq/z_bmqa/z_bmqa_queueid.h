@@ -12,6 +12,10 @@ extern "C" {
 
 typedef struct z_bmqa_QueueId z_bmqa_QueueId;
 
+int z_bmqa_QueueId__delete(z_bmqa_QueueId** queueId_obj);
+
+int z_bmqa_QueueId__deleteConst(z_bmqa_QueueId const** queueId_obj);
+
 int z_bmqa_QueueId__create(z_bmqa_QueueId** queueId_obj);
 
 int z_bmqa_QueueId__createCopy(z_bmqa_QueueId** queueId_obj, const z_bmqa_QueueId* other);

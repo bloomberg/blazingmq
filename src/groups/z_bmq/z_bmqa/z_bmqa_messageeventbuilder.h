@@ -13,6 +13,10 @@ extern "C" {
 
 typedef struct z_bmqa_MessageEventBuilder z_bmqa_MessageEventBuilder;
 
+int z_bmqa_MessageEventBuilder__delete(z_bmqa_MessageEventBuilder** builder_obj);
+
+int z_bmqa_MessageEventBuilder__deleteConst(z_bmqa_MessageEventBuilder const** builder_obj);
+
 int z_bmqa_MessageEventBuilder__create(z_bmqa_MessageEventBuilder** builder_obj);
 
 int z_bmqa_MessageEventBuilder__startMessage(z_bmqa_MessageEventBuilder* builder_obj, z_bmqa_Message** out_obj);
