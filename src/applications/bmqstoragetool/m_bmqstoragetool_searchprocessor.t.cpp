@@ -405,10 +405,8 @@ static void test1_breathingTest()
     // RecordsListType records(s_allocator_p);
     // JournalFileIterator it = createJournalFileIterator(numRecords, block,
     // &records);
-    Parameters       params(s_allocator_p);
-    SearchParameters searchParameters(s_allocator_p);
-    auto             searchProcessor =
-        SearchProcessor(params, it, searchParameters, s_allocator_p);
+    Parameters params(s_allocator_p);
+    auto       searchProcessor = SearchProcessor(params, it, s_allocator_p);
 
     bsl::ostringstream resultStream(s_allocator_p);
     searchProcessor.process(resultStream);
@@ -485,7 +483,9 @@ static void test2_searchGuidTest()
     JournalFileIterator it(&mfd, fileHeader, false);
 
     // Get list of message GUIDs for searching
-    SearchParameters                    searchParameters(s_allocator_p);
+    Parameters                params(s_allocator_p);
+    bsl::vector<bsl::string>& searchGuids = params.setGuid();
+
     bsl::list<NodeType>::const_iterator recordIter = records.begin();
     bsl::size_t                         msgCnt     = 0;
     while (recordIter++ != records.end()) {
@@ -498,24 +498,22 @@ static void test2_searchGuidTest()
             char buf[bmqt::MessageGUID::e_SIZE_HEX];
             msg.messageGUID().toHex(buf);
             bsl::string guid(buf, s_allocator_p);
-            searchParameters.searchGuids.push_back(guid);
+            searchGuids.push_back(guid);
         }
     }
 
-    Parameters params(s_allocator_p);
-    auto       searchProcessor =
-        SearchProcessor(params, it, searchParameters, s_allocator_p);
+    auto searchProcessor = SearchProcessor(params, it, s_allocator_p);
 
     bsl::ostringstream resultStream(s_allocator_p);
     searchProcessor.process(resultStream);
 
     // Prepare expected output
     bsl::ostringstream expectedStream(s_allocator_p);
-    for (auto& guid : searchParameters.searchGuids) {
+    for (auto& guid : searchGuids) {
         expectedStream << guid << bsl::endl;
     }
-    expectedStream << searchParameters.searchGuids.size()
-                   << " message GUID(s) found." << bsl::endl;
+    expectedStream << searchGuids.size() << " message GUID(s) found."
+                   << bsl::endl;
 
     ASSERT_EQ(resultStream.str(), expectedStream.str());
 
@@ -567,21 +565,21 @@ static void test3_searchNonExistingGuidTest()
     JournalFileIterator it(&mfd, fileHeader, false);
 
     // Get list of message GUIDs for searching
-    SearchParameters  searchParameters(s_allocator_p);
+    Parameters                params(s_allocator_p);
+    bsl::vector<bsl::string>& searchGuids = params.setGuid();
+
     bmqt::MessageGUID guid;
     mqbu::MessageGUIDUtil::generateGUID(&guid);
     char buf[bmqt::MessageGUID::e_SIZE_HEX];
     guid.toHex(buf);
     bsl::string guidStr(buf, s_allocator_p);
-    searchParameters.searchGuids.push_back(guidStr);
+    searchGuids.push_back(guidStr);
     mqbu::MessageGUIDUtil::generateGUID(&guid);
     guid.toHex(buf);
     guidStr = buf;
-    searchParameters.searchGuids.push_back(guidStr);
+    searchGuids.push_back(guidStr);
 
-    Parameters params(s_allocator_p);
-    auto       searchProcessor =
-        SearchProcessor(params, it, searchParameters, s_allocator_p);
+    auto searchProcessor = SearchProcessor(params, it, s_allocator_p);
 
     bsl::ostringstream resultStream(s_allocator_p);
     searchProcessor.process(resultStream);
@@ -639,12 +637,10 @@ static void test4_searchOutstandingMessagesTest()
     JournalFileIterator it(&mfd, fileHeader, false);
 
     // Configure parameters to search outstanding messages
-    SearchParameters searchParameters(s_allocator_p);
-    searchParameters.searchOutstanding = true;
-
     Parameters params(s_allocator_p);
-    auto       searchProcessor =
-        SearchProcessor(params, it, searchParameters, s_allocator_p);
+    params.setOutstanding() = true;
+
+    auto searchProcessor = SearchProcessor(params, it, s_allocator_p);
 
     bsl::ostringstream resultStream(s_allocator_p);
     searchProcessor.process(resultStream);

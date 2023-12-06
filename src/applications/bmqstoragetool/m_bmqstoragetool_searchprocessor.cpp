@@ -88,24 +88,6 @@ bool resetIterator(mqbs::MappedFileDescriptor* mfd,
 }  // close unnamed namespace
 
 // =====================
-// class SearchParameters
-// =====================
-
-SearchParameters::SearchParameters()
-: searchGuids()
-, searchOutstanding(false)
-{
-    // NOTHING
-}
-
-SearchParameters::SearchParameters(bslma::Allocator* allocator)
-: searchGuids(allocator)
-, searchOutstanding(false)
-{
-    // NOTHING
-}
-
-// =====================
 // class SearchProcessor
 // =====================
 
@@ -117,20 +99,17 @@ SearchProcessor::SearchProcessor(const Parameters& params,
 : CommandProcessor(params)
 , d_dataFile(allocator)
 , d_journalFile(journalFile, allocator)
-, d_searchParameters(allocator)
 {
     // NOTHING
 }
 
 SearchProcessor::SearchProcessor(const Parameters&          params,
                                  mqbs::JournalFileIterator& journalFileIter,
-                                 SearchParameters&          searchParams,
                                  bslma::Allocator*          allocator)
 : CommandProcessor(params)
 , d_dataFile(allocator)
 , d_journalFile(allocator)
 , d_journalFileIter(journalFileIter)
-, d_searchParameters(searchParams)
 {
     // NOTHING
 }
@@ -170,10 +149,9 @@ void SearchProcessor::process(bsl::ostream& ostream)
         ostream << "Created Journal iterator successfully" << bsl::endl;
     }
 
-    SearchMode mode = d_searchParameters.searchGuids.empty()
-                          ? SearchMode::k_ALL
-                          : SearchMode::k_LIST;
-    if (d_searchParameters.searchOutstanding)
+    SearchMode mode = d_parameters.guid().empty() ? SearchMode::k_ALL
+                                                  : SearchMode::k_LIST;
+    if (d_parameters.outstanding())
         mode = SearchMode::k_OUTSTANDING;
 
     bsl::size_t     foundMessagesCount = 0;
@@ -183,7 +161,7 @@ void SearchProcessor::process(bsl::ostream& ostream)
     // Build MessageGUID->StrGUID Map
     bsl::unordered_map<bmqt::MessageGUID, bsl::string> guidsMap;
     if (mode == SearchMode::k_LIST) {
-        for (const auto& guidStr : d_searchParameters.searchGuids) {
+        for (const auto& guidStr : d_parameters.guid()) {
             bmqt::MessageGUID guid;
             guidsMap[guid.fromHex(guidStr.c_str())] = guidStr;
         }

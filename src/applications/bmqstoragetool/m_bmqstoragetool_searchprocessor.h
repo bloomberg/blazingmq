@@ -33,14 +33,6 @@ namespace m_bmqstoragetool {
 // class SearchProcessor
 // =====================
 
-class SearchParameters {
-  public:
-    SearchParameters();
-    SearchParameters(bslma::Allocator* allocator);
-    bsl::vector<bsl::string> searchGuids;
-    bool                     searchOutstanding;
-};
-
 class SearchProcessor : public CommandProcessor {
   private:
     enum SearchMode { k_ALL, k_LIST, k_OUTSTANDING };
@@ -69,8 +61,6 @@ class SearchProcessor : public CommandProcessor {
 
     mqbs::JournalFileIterator d_journalFileIter;
 
-    SearchParameters d_searchParameters;
-
     // MANIPULATORS
     void outputSearchResult(bsl::ostream&          ostream,
                             const SearchMode       mode,
@@ -90,12 +80,10 @@ class SearchProcessor : public CommandProcessor {
                     bslma::Allocator* allocator);
     SearchProcessor(const Parameters&          params,
                     mqbs::JournalFileIterator& journalFileIter,
-                    SearchParameters&          searchParams,
                     bslma::Allocator*          allocator);
-    ~SearchProcessor();
-
-    /// CREATORS
     explicit SearchProcessor(const Parameters& params);
+
+    ~SearchProcessor();
 
     // MANIPULATORS
     void process(bsl::ostream& ostream) BSLS_KEYWORD_OVERRIDE;
