@@ -51,6 +51,7 @@ include:
    - _static
    - _modules
    - _sources
+   - _sphinx_javascript_frameworks_compat.js  # Required for the Python SDK API documentation
 
 # Set a path/url to a logo that will be displayed instead of the title
 logo: "/assets/images/Asset 2@3x.png"
