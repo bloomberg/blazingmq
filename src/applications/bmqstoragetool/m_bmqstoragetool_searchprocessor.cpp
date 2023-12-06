@@ -110,40 +110,34 @@ SearchParameters::SearchParameters(bslma::Allocator* allocator)
 // =====================
 
 // CREATORS
-SearchProcessor::SearchProcessor()
-: d_dataFile()
-, d_journalFile()
-, d_searchParameters()
-{
-    // NOTHING
-}
 
-SearchProcessor::SearchProcessor(bslma::Allocator* allocator)
-: d_dataFile(allocator)
-, d_journalFile(allocator)
-, d_searchParameters(allocator)
-{
-    // NOTHING
-}
-
-SearchProcessor::SearchProcessor(bsl::string&      journalFile,
+SearchProcessor::SearchProcessor(const Parameters& params,
+                                 bsl::string&      journalFile,
                                  bslma::Allocator* allocator)
-: d_dataFile(allocator)
+: CommandProcessor(params)
+, d_dataFile(allocator)
 , d_journalFile(journalFile, allocator)
 , d_searchParameters(allocator)
 {
     // NOTHING
 }
 
-SearchProcessor::SearchProcessor(mqbs::JournalFileIterator& journalFileIter,
-                                 SearchParameters&          params,
+SearchProcessor::SearchProcessor(const Parameters&          params,
+                                 mqbs::JournalFileIterator& journalFileIter,
+                                 SearchParameters&          searchParams,
                                  bslma::Allocator*          allocator)
-: d_dataFile(allocator)
+: CommandProcessor(params)
+, d_dataFile(allocator)
 , d_journalFile(allocator)
 , d_journalFileIter(journalFileIter)
-, d_searchParameters(params)
+, d_searchParameters(searchParams)
 {
     // NOTHING
+}
+
+SearchProcessor::SearchProcessor(const Parameters& params)
+: CommandProcessor(params)
+{
 }
 
 SearchProcessor::~SearchProcessor()
@@ -162,6 +156,9 @@ SearchProcessor::~SearchProcessor()
 
 void SearchProcessor::process(bsl::ostream& ostream)
 {
+    // ostream << "SearchProcessor::process()\n";
+    // d_parameters.print(ostream);
+
     // TODO: remove - Initialize journal file iterator from real file
     if (!d_journalFileIter.isValid()) {
         if (!resetIterator(&d_journalFd,
@@ -200,7 +197,8 @@ void SearchProcessor::process(bsl::ostream& ostream)
             outputSearchResult(ostream,
                                mode,
                                messagesDetails,
-                               foundMessagesCount, totalMessagesCount);
+                               foundMessagesCount,
+                               totalMessagesCount);
             return;  // RETURN
         }
 
@@ -297,8 +295,12 @@ void SearchProcessor::outputSearchResult(
                 outputGuidString(ostream, messageDetails.first);
             }
             outputFooter();
-            ostream << "Outstanding ratio: " << float(outstandingMessagesCount) / totalMessagesCount * 100.0 << "%"<< bsl::endl;
-        }else 
+            ostream << "Outstanding ratio: "
+                    << float(outstandingMessagesCount) / totalMessagesCount *
+                           100.0
+                    << "%" << bsl::endl;
+        }
+        else
             outputFooter();
         break;
     }

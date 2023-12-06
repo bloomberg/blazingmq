@@ -13,22 +13,37 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// bmqstoragetool
+#include <m_bmqstoragetool_parameters.h>
+
 // BDE
 #include <bsl_ostream.h>
 
 namespace BloombergLP {
 namespace m_bmqstoragetool {
 
-// =================
+// ======================
 // class CommandProcessor
-// =================
+// ======================
 
 class CommandProcessor {
-public:
+  protected:
+    /// PRIVATE DATA
+    const Parameters d_parameters;
+
+  public:
+    /// CREATORS
+    explicit CommandProcessor(const Parameters& params);
+
     virtual ~CommandProcessor() = default;
 
     virtual void process(bsl::ostream& ostream) = 0;
 };
+
+inline CommandProcessor::CommandProcessor(const Parameters& params)
+: d_parameters(params)
+{
+}
 
 }  // close package namespace
 }  // close enterprise namespace

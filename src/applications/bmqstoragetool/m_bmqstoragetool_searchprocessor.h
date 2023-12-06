@@ -75,7 +75,7 @@ class SearchProcessor : public CommandProcessor {
     void outputSearchResult(bsl::ostream&          ostream,
                             const SearchMode       mode,
                             const MessagesDetails& messagesDetails,
-                            const bsl::size_t      messagesCount, 
+                            const bsl::size_t      messagesCount,
                             const bsl::size_t      totalMessagesCount);
 
     // ACCESSORS
@@ -85,13 +85,17 @@ class SearchProcessor : public CommandProcessor {
 
   public:
     // CREATORS
-    SearchProcessor();
-    SearchProcessor(bslma::Allocator* allocator);
-    SearchProcessor(bsl::string& journalFile, bslma::Allocator* allocator);
-    SearchProcessor(mqbs::JournalFileIterator& journalFileIter,
-                    SearchParameters&          params,
+    SearchProcessor(const Parameters& params,
+                    bsl::string&      journalFile,
+                    bslma::Allocator* allocator);
+    SearchProcessor(const Parameters&          params,
+                    mqbs::JournalFileIterator& journalFileIter,
+                    SearchParameters&          searchParams,
                     bslma::Allocator*          allocator);
     ~SearchProcessor();
+
+    /// CREATORS
+    explicit SearchProcessor(const Parameters& params);
 
     // MANIPULATORS
     void process(bsl::ostream& ostream) BSLS_KEYWORD_OVERRIDE;

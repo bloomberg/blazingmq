@@ -405,11 +405,10 @@ static void test1_breathingTest()
     // RecordsListType records(s_allocator_p);
     // JournalFileIterator it = createJournalFileIterator(numRecords, block,
     // &records);
-
+    Parameters       params(s_allocator_p);
     SearchParameters searchParameters(s_allocator_p);
-    auto             searchProcessor = SearchProcessor(it,
-                                           searchParameters,
-                                           s_allocator_p);
+    auto             searchProcessor =
+        SearchProcessor(params, it, searchParameters, s_allocator_p);
 
     bsl::ostringstream resultStream(s_allocator_p);
     searchProcessor.process(resultStream);
@@ -503,9 +502,9 @@ static void test2_searchGuidTest()
         }
     }
 
-    auto searchProcessor = SearchProcessor(it,
-                                           searchParameters,
-                                           s_allocator_p);
+    Parameters params(s_allocator_p);
+    auto       searchProcessor =
+        SearchProcessor(params, it, searchParameters, s_allocator_p);
 
     bsl::ostringstream resultStream(s_allocator_p);
     searchProcessor.process(resultStream);
@@ -580,9 +579,9 @@ static void test3_searchNonExistingGuidTest()
     guidStr = buf;
     searchParameters.searchGuids.push_back(guidStr);
 
-    auto searchProcessor = SearchProcessor(it,
-                                           searchParameters,
-                                           s_allocator_p);
+    Parameters params(s_allocator_p);
+    auto       searchProcessor =
+        SearchProcessor(params, it, searchParameters, s_allocator_p);
 
     bsl::ostringstream resultStream(s_allocator_p);
     searchProcessor.process(resultStream);
@@ -643,9 +642,9 @@ static void test4_searchOutstandingMessagesTest()
     SearchParameters searchParameters(s_allocator_p);
     searchParameters.searchOutstanding = true;
 
-    auto searchProcessor = SearchProcessor(it,
-                                           searchParameters,
-                                           s_allocator_p);
+    Parameters params(s_allocator_p);
+    auto       searchProcessor =
+        SearchProcessor(params, it, searchParameters, s_allocator_p);
 
     bsl::ostringstream resultStream(s_allocator_p);
     searchProcessor.process(resultStream);
@@ -657,9 +656,11 @@ static void test4_searchOutstandingMessagesTest()
     }
     expectedStream << outstandingGUIDS.size() << " message GUID(s) found."
                    << bsl::endl;
-    float messageCount = numRecords / 3.0; 
-    float outstandingRatio = float(outstandingGUIDS.size()) / messageCount * 100.0;
-    expectedStream << "Outstanding ratio: " << outstandingRatio << "%"<< bsl::endl;
+    float messageCount     = numRecords / 3.0;
+    float outstandingRatio = float(outstandingGUIDS.size()) / messageCount *
+                             100.0;
+    expectedStream << "Outstanding ratio: " << outstandingRatio << "%"
+                   << bsl::endl;
     // TODO: fix ordering issue (sporadic fail)
     ASSERT_EQ(resultStream.str(), expectedStream.str());
 
