@@ -180,6 +180,7 @@ void SearchProcessor::process(bsl::ostream& ostream)
         mode = SearchMode::k_OUTSTANDING;
 
     bsl::size_t     foundMessagesCount = 0;
+    bsl::size_t     totalMessagesCount = 0;
     MessagesDetails messagesDetails;
 
     // Build MessageGUID->StrGUID Map
@@ -199,7 +200,7 @@ void SearchProcessor::process(bsl::ostream& ostream)
             outputSearchResult(ostream,
                                mode,
                                messagesDetails,
-                               foundMessagesCount);
+                               foundMessagesCount, totalMessagesCount);
             return;  // RETURN
         }
 
@@ -209,6 +210,7 @@ void SearchProcessor::process(bsl::ostream& ostream)
             return;  // RETURN
         }
         else if (iter->recordType() == mqbs::RecordType::e_MESSAGE) {
+            totalMessagesCount++;
             const mqbs::MessageRecord& message = iter->asMessageRecord();
             switch (mode) {
             case SearchMode::k_ALL:
@@ -227,7 +229,8 @@ void SearchProcessor::process(bsl::ostream& ostream)
                         outputSearchResult(ostream,
                                            mode,
                                            messagesDetails,
-                                           foundMessagesCount);
+                                           foundMessagesCount,
+                                           totalMessagesCount);
                         return;  // RETURN
                     }
                 }
@@ -271,7 +274,8 @@ void SearchProcessor::outputSearchResult(
     bsl::ostream&          ostream,
     const SearchMode       mode,
     const MessagesDetails& messagesDetails,
-    const bsl::size_t      messagesCount)
+    const bsl::size_t      messagesCount,
+    const bsl::size_t      totalMessagesCount)
 {
     const bsl::string foundCaption    = " message GUID(s) found.";
     const bsl::string notFoundCaption = "No message GUID found.";
@@ -292,8 +296,10 @@ void SearchProcessor::outputSearchResult(
             for (const auto& messageDetails : messagesDetails) {
                 outputGuidString(ostream, messageDetails.first);
             }
-        }
-        outputFooter();
+            outputFooter();
+            ostream << "Outstanding ratio: " << float(outstandingMessagesCount) / totalMessagesCount * 100.0 << "%"<< bsl::endl;
+        }else 
+            outputFooter();
         break;
     }
 }

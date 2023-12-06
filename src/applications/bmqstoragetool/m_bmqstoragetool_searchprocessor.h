@@ -45,6 +45,8 @@ class SearchProcessor : public CommandProcessor {
   private:
     enum SearchMode { k_ALL, k_LIST, k_OUTSTANDING };
 
+    // TODO: refactor to class, move to separate file for sharing.
+    // VST representing message details.
     struct MessageDetails {
         mqbs::MessageRecord              messageRecord;
         bsl::vector<mqbs::ConfirmRecord> confirmRecords;
@@ -73,7 +75,8 @@ class SearchProcessor : public CommandProcessor {
     void outputSearchResult(bsl::ostream&          ostream,
                             const SearchMode       mode,
                             const MessagesDetails& messagesDetails,
-                            const bsl::size_t      messagesCount);
+                            const bsl::size_t      messagesCount, 
+                            const bsl::size_t      totalMessagesCount);
 
     // ACCESSORS
     void outputGuidString(bsl::ostream&            ostream,

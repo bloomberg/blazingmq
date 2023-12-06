@@ -657,7 +657,9 @@ static void test4_searchOutstandingMessagesTest()
     }
     expectedStream << outstandingGUIDS.size() << " message GUID(s) found."
                    << bsl::endl;
-
+    float messageCount = numRecords / 3.0; 
+    float outstandingRatio = float(outstandingGUIDS.size()) / messageCount * 100.0;
+    expectedStream << "Outstanding ratio: " << outstandingRatio << "%"<< bsl::endl;
     // TODO: fix ordering issue (sporadic fail)
     ASSERT_EQ(resultStream.str(), expectedStream.str());
 
