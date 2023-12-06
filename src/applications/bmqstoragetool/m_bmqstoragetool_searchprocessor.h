@@ -28,6 +28,9 @@ namespace m_bmqstoragetool {
 
 class SearchProcessor : public CommandProcessor {
   public:
+    /// CREATORS
+    explicit SearchProcessor(const Parameters& params);
+
     void process(bsl::ostream& ostream) BSLS_KEYWORD_OVERRIDE;
 };
 
