@@ -1,12 +1,14 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="./">
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Build instructions for the BlazingMQ Python SDK &mdash; blazingmq 1.2.0 documentation</title>
-      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+
+  
   <!--[if lt IE 9]>
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
@@ -110,19 +112,17 @@ Run <code class="docutils literal notranslate"><span class="pre">tox</span> <spa
 </section>
 <section id="local-development">
 <h2>Local Development<a class="headerlink" href="#local-development" title="Link to this heading"></a></h2>
-<p>The BlazingMQ C++ SDK provides a <code class="docutils literal notranslate"><span class="pre">./build-manylinux.sh</span></code> script and a
-`./build-macosx-universal.sh‘ script for setting up a
-development environmen.</p>
+<p>The BlazingMQ Python SDK provides a <code class="docutils literal notranslate"><span class="pre">./build-manylinux.sh</span></code> script and a
+<code class="docutils literal notranslate"><span class="pre">./build-macosx-universal.sh</span></code> script for setting up a development environment.</p>
 </section>
 <section id="working-with-make-targets">
 <h2>Working with Make Targets<a class="headerlink" href="#working-with-make-targets" title="Link to this heading"></a></h2>
-<p>When in an interactive command line prompt, you can use the following
-<code class="docutils literal notranslate"><span class="pre">make</span></code> targets to build and test the BlazingMQ Python SDK. Check the
-GitHub Actions configuration to set up the appropriate environment
-variables that may be needed prior to running these commands (such as
-setting <code class="docutils literal notranslate"><span class="pre">PYEXEC</span></code>).  With a BlazingMQ broker running at
-‘tcp://localhost:30114‘, the following targets build and test the
-Python SDK:</p>
+<p>When in an interactive command line prompt, you can use the following <code class="docutils literal notranslate"><span class="pre">make</span></code>
+targets to build and test the BlazingMQ Python SDK. Check the
+appropriate GitHub Actions configuration to set up the appropriate environment
+variables that may be needed prior to running these commands (such as setting
+<code class="docutils literal notranslate"><span class="pre">PYEXEC</span></code>).  With a BlazingMQ broker running at <code class="docutils literal notranslate"><span class="pre">tcp://localhost:30114</span></code>, the
+following targets build and test the Python SDK:</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>make<span class="w"> </span>test-install
 <span class="nv">BMQ_BROKER_URI</span><span class="o">=</span>tcp://localhost:30114<span class="w"> </span>make<span class="w"> </span>check
 </pre></div>
