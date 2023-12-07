@@ -75,7 +75,8 @@
         bmqconfConfig........: configuration for bmqconf
         plugins..............: configuration for the plugins
         msgPropertiesSupport.: information about if/how to advertise support for v2 message properties
-        configureStream......: send new ConfigureStream instead of old ConfigureQueue/>
+        configureStream......: send new ConfigureStream instead of old ConfigureQueue
+        tls..................: optional configuation for TLS
       </documentation>
     </annotation>
     <sequence>
@@ -97,6 +98,7 @@
       <element name='plugins'              type='tns:Plugins'/>
       <element name='messagePropertiesV2'  type='tns:MessagePropertiesV2'/>
       <element name='configureStream'      type='boolean' default='false'/>
+      <element name="tls"                  type='tns:TlsConfig' minOccurs='0'/>
     </sequence>
   </complexType>
 
@@ -239,9 +241,11 @@
         heartbeatIntervalMs..:
             How often (in milliseconds) to check if the channel received data,
             and emit heartbeat.  0 to globally disable.
-       useNtf...............:
+        useNtf...............:
             Use the new NTF based TCP transport library instead of
             the existing one based on BTE
+         tls.................:
+            Use TLS on this interface.
       </documentation>
     </annotation>
     <sequence>
@@ -255,6 +259,7 @@
       <element name='nodeHighWatermark'   type='long' default='2048'/>
       <element name='heartbeatIntervalMs' type='int' default='3000'/>
       <element name='useNtf'              type='boolean' default='false'/>
+      <element name='tls'                 type='boolean' default='false'/>
     </sequence>
   </complexType>
 
@@ -268,6 +273,27 @@
     <sequence>
       <element name='libraries' type='string' maxOccurs='unbounded'/>
       <element name='enabled'   type='string' maxOccurs='unbounded'/>
+    </sequence>
+  </complexType>
+
+    <complexType name='TlsConfig'>
+    <annotation>
+      <documentation>
+        certificateAuthority.:
+            A path to the FILE, containing concatenation of known certificates
+            the server can use to reference as its certificate store.
+        certificate..........:
+            A path to the FILE, containing the certificate the broker will use
+            to identify itself to other clients.
+        key..................:
+            A path to the FILE, containing the private key that the broker uses
+            to read the certificate.
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='certificateAuthority' type='string'/>
+      <element name='certificate'          type='string'/>
+      <element name='key'                  type='string'/>
     </sequence>
   </complexType>
 
