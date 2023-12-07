@@ -35,7 +35,16 @@ namespace m_bmqstoragetool {
 
 class SearchProcessor : public CommandProcessor {
   private:
-    enum SearchMode { k_ALL, k_LIST, k_OUTSTANDING };
+    enum SearchMode {
+        k_ALL,          // search all messages in journal file
+        k_LIST,         // search messages by given GUIDs in journal file
+        k_OUTSTANDING,  // search outstanding (not deleted) messages in journal
+                        // file
+        k_CONFIRMED,    // search confirmed by all consumers (deleted) messages
+                        // in journal file
+        k_PARTIALLY_CONFIRMED  // search confirmed at least by one consumer
+                               // messages in journal file
+    };
 
     // TODO: refactor to class, move to separate file for sharing.
     // VST representing message details.
@@ -43,6 +52,7 @@ class SearchProcessor : public CommandProcessor {
         mqbs::MessageRecord              messageRecord;
         bsl::vector<mqbs::ConfirmRecord> confirmRecords;
         mqbs::DeletionRecordFlag::Enum   deleteRecordFlag;
+        bool partiallyConfirmed;  // There is at least one confirmation message
     };
 
     typedef bsl::unordered_map<bmqt::MessageGUID, MessageDetails>
@@ -60,6 +70,8 @@ class SearchProcessor : public CommandProcessor {
     mqbs::DataFileIterator d_dataFileIter;
 
     mqbs::JournalFileIterator d_journalFileIter;
+
+    bslma::Allocator* d_allocator_p;
 
     // MANIPULATORS
     void outputSearchResult(bsl::ostream&          ostream,
