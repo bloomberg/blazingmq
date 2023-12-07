@@ -775,7 +775,7 @@ static void test4_searchOutstandingMessagesTest()
                              100.0;
     expectedStream << "Outstanding ratio: " << outstandingRatio << "%"
                    << bsl::endl;
-    // TODO: fix ordering issue (sporadic fail)
+
     ASSERT_EQ(resultStream.str(), expectedStream.str());
 
     s_allocator_p->deallocate(p);

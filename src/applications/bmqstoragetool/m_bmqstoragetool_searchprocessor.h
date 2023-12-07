@@ -35,28 +35,31 @@ namespace m_bmqstoragetool {
 
 class SearchProcessor : public CommandProcessor {
   private:
-    enum SearchMode {
-        k_ALL,          // search all messages in journal file
-        k_LIST,         // search messages by given GUIDs in journal file
-        k_OUTSTANDING,  // search outstanding (not deleted) messages in journal
-                        // file
-        k_CONFIRMED,    // search confirmed by all consumers (deleted) messages
-                        // in journal file
-        k_PARTIALLY_CONFIRMED  // search confirmed at least by one consumer
-                               // messages in journal file
-    };
+    // enum SearchMode {
+    //     k_ALL,          // search all messages in journal file
+    //     k_LIST,         // search messages by given GUIDs in journal file
+    //     k_OUTSTANDING,  // search outstanding (not deleted) messages in
+    //     journal
+    //                     // file
+    //     k_CONFIRMED,    // search confirmed by all consumers (deleted)
+    //     messages
+    //                     // in journal file
+    //     k_PARTIALLY_CONFIRMED  // search confirmed at least by one consumer
+    //                            // messages in journal file
+    // };
 
     // TODO: refactor to class, move to separate file for sharing.
     // VST representing message details.
-    struct MessageDetails {
-        mqbs::MessageRecord              messageRecord;
-        bsl::vector<mqbs::ConfirmRecord> confirmRecords;
-        mqbs::DeletionRecordFlag::Enum   deleteRecordFlag;
-        bool partiallyConfirmed;  // There is at least one confirmation message
-    };
+    // struct MessageDetails {
+    //     mqbs::MessageRecord              messageRecord;
+    //     bsl::vector<mqbs::ConfirmRecord> confirmRecords;
+    //     mqbs::DeletionRecordFlag::Enum   deleteRecordFlag;
+    //     bool partiallyConfirmed;  // There is at least one confirmation
+    //     message
+    // };
 
-    typedef bsl::unordered_map<bmqt::MessageGUID, MessageDetails>
-        MessagesDetails;
+    // typedef bsl::unordered_map<bmqt::MessageGUID, MessageDetails>
+    //     MessagesDetails;
 
     // DATA
     bsl::string d_dataFile;
@@ -74,16 +77,16 @@ class SearchProcessor : public CommandProcessor {
     bslma::Allocator* d_allocator_p;
 
     // MANIPULATORS
-    void outputSearchResult(bsl::ostream&          ostream,
-                            const SearchMode       mode,
-                            const MessagesDetails& messagesDetails,
-                            const bsl::size_t      messagesCount,
-                            const bsl::size_t      totalMessagesCount);
+    // void outputSearchResult(bsl::ostream&          ostream,
+    //                         const SearchMode       mode,
+    //                         const MessagesDetails& messagesDetails,
+    //                         const bsl::size_t      messagesCount,
+    //                         const bsl::size_t      totalMessagesCount);
 
-    // ACCESSORS
-    void outputGuidString(bsl::ostream&            ostream,
-                          const bmqt::MessageGUID& messageGUID,
-                          const bool               addNewLine = true);
+    // // ACCESSORS
+    // void outputGuidString(bsl::ostream&            ostream,
+    //                       const bmqt::MessageGUID& messageGUID,
+    //                       const bool               addNewLine = true);
 
   public:
     // CREATORS

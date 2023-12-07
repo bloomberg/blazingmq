@@ -15,10 +15,12 @@
 
 // bmqstoragetool
 #include <m_bmqstoragetool_searchprocessor.h>
+#include <m_bmqstoragetool_searchresult.h>
 
 // BDE
 #include <bdls_filesystemutil.h>
 #include <bsl_iostream.h>
+#include <bsls_assert.h>
 
 // MQB
 #include <mqbs_filestoreprotocolprinter.h>
@@ -151,39 +153,55 @@ void SearchProcessor::process(bsl::ostream& ostream)
         ostream << "Created Journal iterator successfully" << bsl::endl;
     }
 
-    SearchMode mode = SearchMode::k_ALL;
-    if (!d_parameters.guid().empty())
-        mode = SearchMode::k_LIST;
-    else if (d_parameters.outstanding())
-        mode = SearchMode::k_OUTSTANDING;
-    else if (d_parameters.confirmed())
-        mode = SearchMode::k_CONFIRMED;
-    else if (d_parameters.partiallyConfirmed())
-        mode = SearchMode::k_PARTIALLY_CONFIRMED;
-
-    bsl::size_t     foundMessagesCount = 0;
-    bsl::size_t     totalMessagesCount = 0;
-    MessagesDetails messagesDetails;
-
-    // Build MessageGUID->StrGUID Map
-    bsl::unordered_map<bmqt::MessageGUID, bsl::string> guidsMap(d_allocator_p);
-    if (mode == SearchMode::k_LIST) {
-        for (const auto& guidStr : d_parameters.guid()) {
-            bmqt::MessageGUID guid;
-            guidsMap[guid.fromHex(guidStr.c_str())] = guidStr;
-        }
+    // TODO: why unique_ptr doesn't support deleter in reset()
+    // bsl::unique_ptr<SearchResult> searchResult_p;
+    bsl::shared_ptr<SearchResult> searchResult_p;
+    if (!d_parameters.guid().empty()) {
+        searchResult_p.reset(new (*d_allocator_p)
+                                 SearchGuidResult(ostream,
+                                                  d_parameters.details(),
+                                                  d_parameters.guid(),
+                                                  d_allocator_p),
+                             d_allocator_p);
     }
+    else if (d_parameters.outstanding()) {
+        searchResult_p.reset(new (*d_allocator_p) SearchOutstandingResult(
+                                 ostream,
+                                 d_parameters.details(),
+                                 d_allocator_p),
+                             d_allocator_p);
+    }
+    else if (d_parameters.confirmed()) {
+        searchResult_p.reset(new (*d_allocator_p)
+                                 SearchConfirmedResult(ostream,
+                                                       d_parameters.details(),
+                                                       d_allocator_p),
+                             d_allocator_p);
+    }
+    else if (d_parameters.partiallyConfirmed()) {
+        searchResult_p.reset(
+            new (*d_allocator_p)
+                SearchPartiallyConfirmedResult(ostream,
+                                               d_parameters.details(),
+                                               d_allocator_p),
+            d_allocator_p);
+    }
+    else {
+        searchResult_p.reset(new (*d_allocator_p)
+                                 SearchAllResult(ostream,
+                                                 d_parameters.details(),
+                                                 d_allocator_p),
+                             d_allocator_p);
+    }
+    BSLS_ASSERT(searchResult_p);
+
+    bool stopSearch = false;
 
     // Iterate through all Journal file records
     mqbs::JournalFileIterator* iter = &d_journalFileIter;
     while (true) {
-        if (!iter->hasRecordSizeRemaining()) {
-            // End of journal file reached, return...
-            outputSearchResult(ostream,
-                               mode,
-                               messagesDetails,
-                               foundMessagesCount,
-                               totalMessagesCount);
+        if (stopSearch || !iter->hasRecordSizeRemaining()) {
+            searchResult_p->outputResult();
             return;  // RETURN
         }
 
@@ -194,135 +212,19 @@ void SearchProcessor::process(bsl::ostream& ostream)
         }
         // MessageRecord
         else if (iter->recordType() == mqbs::RecordType::e_MESSAGE) {
-            totalMessagesCount++;
             const mqbs::MessageRecord& message = iter->asMessageRecord();
-            switch (mode) {
-            case SearchMode::k_ALL:
-                outputGuidString(ostream, message.messageGUID());
-                foundMessagesCount++;
-                break;
-            case SearchMode::k_LIST:
-                if (auto foundGUID = guidsMap.find(message.messageGUID());
-                    foundGUID != guidsMap.end()) {
-                    // Output result immediately and remove processed GUID from
-                    // map
-                    ostream << foundGUID->second << bsl::endl;
-                    guidsMap.erase(foundGUID);
-                    foundMessagesCount++;
-                    if (guidsMap.empty()) {
-                        // All GUIDs are found, return...
-                        outputSearchResult(ostream,
-                                           mode,
-                                           messagesDetails,
-                                           foundMessagesCount,
-                                           totalMessagesCount);
-                        return;  // RETURN
-                    }
-                }
-                break;
-            default:
-                MessageDetails messageDetails;
-                // messageDetails.messageRecord           = message;  // TODO:
-                // only when details needed
-                messagesDetails[message.messageGUID()] = messageDetails;
-                break;
-            }
+            stopSearch = searchResult_p->processMessageRecord(message);
         }
         // ConfirmRecord
         else if (iter->recordType() == mqbs::RecordType::e_CONFIRM) {
-            const mqbs::ConfirmRecord& confirm = iter->asConfirmRecord();
-            if (auto foundGUID = messagesDetails.find(confirm.messageGUID());
-                foundGUID != messagesDetails.end()) {
-                if (mode == SearchMode::k_PARTIALLY_CONFIRMED) {
-                    // foundGUID->second.confirmRecords.push_back(confirm); //
-                    // TODO: only when details needed
-                    if (!foundGUID->second.partiallyConfirmed) {
-                        foundGUID->second.partiallyConfirmed = true;
-                    }
-                }
-            }
+            const mqbs::ConfirmRecord& record = iter->asConfirmRecord();
+            stopSearch = searchResult_p->processConfirmRecord(record);
         }
         // DeletionRecord
         else if (iter->recordType() == mqbs::RecordType::e_DELETION) {
-            const mqbs::DeletionRecord& deletion = iter->asDeletionRecord();
-            if (mode == SearchMode::k_OUTSTANDING ||
-                mode == SearchMode::k_CONFIRMED ||
-                mode == SearchMode::k_PARTIALLY_CONFIRMED) {
-                if (auto foundGUID = messagesDetails.find(
-                        deletion.messageGUID());
-                    foundGUID != messagesDetails.end()) {
-                    if (mode == SearchMode::k_CONFIRMED) {
-                        // Output found message data immediately.
-                        outputGuidString(ostream, deletion.messageGUID());
-                        foundMessagesCount++;
-                    }
-                    // Message is confirmed (not outstanding and not partialy
-                    // confirmed), remove it.
-                    messagesDetails.erase(foundGUID);
-                }
-            }
+            const mqbs::DeletionRecord& record = iter->asDeletionRecord();
+            stopSearch = searchResult_p->processDeletionRecord(record);
         }
-    }
-}
-
-void SearchProcessor::outputGuidString(bsl::ostream&            ostream,
-                                       const bmqt::MessageGUID& messageGUID,
-                                       const bool               addNewLine)
-{
-    char buf[bmqt::MessageGUID::e_SIZE_HEX];
-    messageGUID.toHex(buf);
-    ostream.write(buf, bmqt::MessageGUID::e_SIZE_HEX);
-    if (addNewLine)
-        ostream << bsl::endl;
-}
-
-void SearchProcessor::outputSearchResult(
-    bsl::ostream&          ostream,
-    const SearchMode       mode,
-    const MessagesDetails& messagesDetails,
-    const bsl::size_t      messagesCount,
-    const bsl::size_t      totalMessagesCount)
-{
-    const bsl::string foundCaption    = " message GUID(s) found.";
-    const bsl::string notFoundCaption = "No message GUID found.";
-
-    bsl::size_t foundMessagesCount = messagesCount;
-    // Helper lambdas
-    auto outputFooter = [&](bool outputRatio = false) {
-        foundMessagesCount > 0
-            ? (ostream << foundMessagesCount << foundCaption)
-            : ostream << notFoundCaption;
-        ostream << bsl::endl;
-        if (outputRatio && foundMessagesCount) {
-            ostream << "Outstanding ratio: "
-                    << float(foundMessagesCount) / totalMessagesCount * 100.0
-                    << "%" << bsl::endl;
-        }
-    };
-
-    switch (mode) {
-    case SearchMode::k_ALL:
-    case SearchMode::k_LIST: outputFooter(); break;
-    case SearchMode::k_OUTSTANDING: {
-        foundMessagesCount = messagesDetails.size();
-        for (const auto& messageDetails : messagesDetails) {
-            outputGuidString(ostream, messageDetails.first);
-        }
-        outputFooter(true);
-        break;
-    }
-    case SearchMode::k_CONFIRMED: outputFooter(true); break;
-    case SearchMode::k_PARTIALLY_CONFIRMED: {
-        foundMessagesCount = 0;
-        for (const auto& messageDetails : messagesDetails) {
-            if (messageDetails.second.partiallyConfirmed) {
-                outputGuidString(ostream, messageDetails.first);
-                foundMessagesCount++;
-            }
-        }
-        outputFooter(true);
-        break;
-    }
     }
 }
 
