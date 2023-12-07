@@ -299,7 +299,7 @@ bool Parameters::validate(bsl::string* error)
     if (d_timestampGt > 0 && d_timestampGt <= d_timestampLt) {
         ss << "Invalid timestamp range specified\n";
     }
-    if (d_guid.empty() &&
+    if (!d_guid.empty() &&
         (!d_queueKey.empty() || !d_queueName.empty() || d_outstanding ||
          d_confirmed || d_partiallyConfirmed || d_timestampGt > 0 ||
          d_timestampLt > 0)) {

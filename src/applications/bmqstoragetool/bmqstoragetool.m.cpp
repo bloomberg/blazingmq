@@ -14,8 +14,8 @@
 // limitations under the License.
 
 // bmqstoragetool
-#include <m_bmqstoragetool_parameters.h>
 #include <m_bmqstoragetool_commandprocessorfactory.h>
+#include <m_bmqstoragetool_parameters.h>
 
 // BDE
 #include <balcl_commandline.h>
@@ -26,7 +26,7 @@ using namespace m_bmqstoragetool;
 
 static bool parseArgs(Parameters& parameters, int argc, const char* argv[])
 {
-    bool       showHelp = false;
+    bool showHelp = false;
 
     balcl::OptionInfo specTable[] = {
         {"path",
