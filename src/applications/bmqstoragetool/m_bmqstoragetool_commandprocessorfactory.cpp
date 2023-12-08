@@ -24,16 +24,17 @@ namespace m_bmqstoragetool {
 // =============================
 
 bsl::unique_ptr<CommandProcessor>
-CommandProcessorFactory::createCommandProcessor(const Parameters& params)
+CommandProcessorFactory::createCommandProcessor(
+    bsl::unique_ptr<Parameters> params)
 {
     bsl::unique_ptr<CommandProcessor> result;
 
-    if (params.timestampGt() > 0 || params.timestampLt() > 0) {
+    if (params->timestampGt() > 0 || params->timestampLt() > 0) {
         // TODO : implement binary search by timestamps
         // result = bsl::make_unique<TimestampSearchProcessor>(params);
     }
     else {
-        result = bsl::make_unique<SearchProcessor>(params);
+        result = bsl::make_unique<SearchProcessor>(bsl::move(params));
     }
 
     return result;

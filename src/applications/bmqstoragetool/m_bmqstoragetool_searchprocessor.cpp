@@ -93,7 +93,7 @@ bool resetIterator(mqbs::MappedFileDescriptor* mfd,
 
 // CREATORS
 
-SearchProcessor::SearchProcessor(const Parameters& params,
+SearchProcessor::SearchProcessor(const bsl::shared_ptr<Parameters>& params,
                                  bsl::string&      journalFile,
                                  bslma::Allocator* allocator)
 : CommandProcessor(params)
@@ -103,7 +103,7 @@ SearchProcessor::SearchProcessor(const Parameters& params,
     // NOTHING
 }
 
-SearchProcessor::SearchProcessor(const Parameters&          params,
+SearchProcessor::SearchProcessor(const bsl::shared_ptr<Parameters>& params,
                                  mqbs::JournalFileIterator& journalFileIter,
                                  bslma::Allocator*          allocator)
 : CommandProcessor(params)
@@ -114,7 +114,7 @@ SearchProcessor::SearchProcessor(const Parameters&          params,
     // NOTHING
 }
 
-SearchProcessor::SearchProcessor(const Parameters& params)
+SearchProcessor::SearchProcessor(const bsl::shared_ptr<Parameters>& params)
 : CommandProcessor(params)
 {
 }
@@ -136,7 +136,7 @@ SearchProcessor::~SearchProcessor()
 void SearchProcessor::process(bsl::ostream& ostream)
 {
     // ostream << "SearchProcessor::process()\n";
-    // d_parameters.print(ostream);
+    // d_parameters->print(ostream);
 
     // TODO: remove - Initialize journal file iterator from real file
     if (!d_journalFileIter.isValid()) {
@@ -149,9 +149,9 @@ void SearchProcessor::process(bsl::ostream& ostream)
         ostream << "Created Journal iterator successfully" << bsl::endl;
     }
 
-    SearchMode mode = d_parameters.guid().empty() ? SearchMode::k_ALL
-                                                  : SearchMode::k_LIST;
-    if (d_parameters.outstanding())
+    SearchMode mode = d_parameters->guid().empty() ? SearchMode::k_ALL
+                                                   : SearchMode::k_LIST;
+    if (d_parameters->outstanding())
         mode = SearchMode::k_OUTSTANDING;
 
     bsl::size_t     foundMessagesCount = 0;
@@ -161,7 +161,7 @@ void SearchProcessor::process(bsl::ostream& ostream)
     // Build MessageGUID->StrGUID Map
     bsl::unordered_map<bmqt::MessageGUID, bsl::string> guidsMap;
     if (mode == SearchMode::k_LIST) {
-        for (const auto& guidStr : d_parameters.guid()) {
+        for (const auto& guidStr : d_parameters->guid()) {
             bmqt::MessageGUID guid;
             guidsMap[guid.fromHex(guidStr.c_str())] = guidStr;
         }

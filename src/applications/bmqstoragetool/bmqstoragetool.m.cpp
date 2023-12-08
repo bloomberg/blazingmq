@@ -24,7 +24,8 @@
 using namespace BloombergLP;
 using namespace m_bmqstoragetool;
 
-static bool parseArgs(Parameters& parameters, int argc, const char* argv[])
+static bool
+parseArgs(CommandLineArguments& arguments, int argc, const char* argv[])
 {
     bool showHelp = false;
 
@@ -33,83 +34,83 @@ static bool parseArgs(Parameters& parameters, int argc, const char* argv[])
          "path",
          "'*'-ended file path pattern, where the tool will try to find "
          "journal, data and csl files",
-         balcl::TypeInfo(&parameters.setPath()),
+         balcl::TypeInfo(&arguments.d_path),
          balcl::OccurrenceInfo::e_OPTIONAL},
         {"journal-file",
          "journal file",
          "path to a .bmq_journal file",
-         balcl::TypeInfo(&parameters.setJournalFile()),
+         balcl::TypeInfo(&arguments.d_journalFile),
          balcl::OccurrenceInfo::e_OPTIONAL},
         {"data-file",
          "data file",
          "path to a .bmq_data file",
-         balcl::TypeInfo(&parameters.setDataFile()),
+         balcl::TypeInfo(&arguments.d_dataFile),
          balcl::OccurrenceInfo::e_OPTIONAL},
         {"qlist-file",
          "qlist file",
          "path to a .bmq_qlist file",
-         balcl::TypeInfo(&parameters.setCslFile()),
+         balcl::TypeInfo(&arguments.d_cslFile),
          balcl::OccurrenceInfo::e_OPTIONAL},
         {"guid",
          "guid",
          "message guid",
-         balcl::TypeInfo(&parameters.setGuid()),
+         balcl::TypeInfo(&arguments.d_guid),
          balcl::OccurrenceInfo::e_OPTIONAL},
         {"queue-name",
          "queue name",
          "message queue name",
-         balcl::TypeInfo(&parameters.setQueueName()),
+         balcl::TypeInfo(&arguments.d_queueName),
          balcl::OccurrenceInfo::e_OPTIONAL},
         {"queue-key",
          "queue key",
          "message queue key",
-         balcl::TypeInfo(&parameters.setQueueKey()),
+         balcl::TypeInfo(&arguments.d_queueKey),
          balcl::OccurrenceInfo::e_OPTIONAL},
         {"timestamp-gt",
          "timestamp grater then",
          "lower timestamp bound",
-         balcl::TypeInfo(&parameters.setTimestampGt()),
+         balcl::TypeInfo(&arguments.d_timestampGt),
          balcl::OccurrenceInfo::e_OPTIONAL},
         {"timestamp-lt",
          "timestamp less then",
          "lower timestamp bound",
-         balcl::TypeInfo(&parameters.setTimestampGt()),
+         balcl::TypeInfo(&arguments.d_timestampGt),
          balcl::OccurrenceInfo::e_OPTIONAL},
         {"outstanding",
          "only outstanding",
          "show only outstanding (not deleted) messages",
-         balcl::TypeInfo(&parameters.setOutstanding()),
+         balcl::TypeInfo(&arguments.d_outstanding),
          balcl::OccurrenceInfo::e_OPTIONAL},
         {"confirmed",
          "only confirmed",
          "show only messages, confirmed by all the appId's",
-         balcl::TypeInfo(&parameters.setConfirmed()),
+         balcl::TypeInfo(&arguments.d_confirmed),
          balcl::OccurrenceInfo::e_OPTIONAL},
         {"partially-confirmed",
          "only partially confirmed",
          "show only messages, confirmed by some of the appId's",
-         balcl::TypeInfo(&parameters.setPartiallyConfirmed()),
+         balcl::TypeInfo(&arguments.d_partiallyConfirmed),
          balcl::OccurrenceInfo::e_OPTIONAL},
         {"details",
          "details",
          "specify if you need message details",
-         balcl::TypeInfo(&parameters.setDetails()),
+         balcl::TypeInfo(&arguments.d_details),
          balcl::OccurrenceInfo::e_OPTIONAL},
         {"dump-payload",
          "dump payload",
          "specify if you need message payload",
-         balcl::TypeInfo(&parameters.setDumpPayload()),
+         balcl::TypeInfo(&arguments.d_dumpPayload),
          balcl::OccurrenceInfo::e_OPTIONAL},
         {"dump-limit",
          "dump limit",
          "limit of payload output",
-         balcl::TypeInfo(&parameters.setDumpLimit()),
+         balcl::TypeInfo(&arguments.d_dumpLimit),
          balcl::OccurrenceInfo::e_OPTIONAL},
         {"summary",
          "summary",
          "summary of all matching messages (number of outstanding messages "
          "and other statistics)",
-         balcl::TypeInfo(&parameters.setSummary()),
+         balcl::TypeInfo(&arguments.d_summary),
          balcl::OccurrenceInfo::e_OPTIONAL},
         {"h|help",
          "help",
@@ -124,8 +125,9 @@ static bool parseArgs(Parameters& parameters, int argc, const char* argv[])
     }
 
     bsl::string error;
-    if (!parameters.validate(&error)) {
-        bsl::cerr << "Parameters validation failed: " << error;
+    if (!arguments.validate(&error)) {
+        bsl::cerr << "Arguments validation failed:\n" << error;
+        return false;  // RETURN
     }
 
     return true;
@@ -137,17 +139,27 @@ static bool parseArgs(Parameters& parameters, int argc, const char* argv[])
 
 int main(int argc, const char* argv[])
 {
-    // Parameters parsing
-    Parameters parameters(bslma::Default::allocator());
-    if (!parseArgs(parameters, argc, argv)) {
+    // Arguments parsing
+    CommandLineArguments arguments;
+    if (!parseArgs(arguments, argc, argv)) {
         return 1;  // RETURN
     }
 
+    bsl::unique_ptr<Parameters> parameters;
+    try {
+        parameters = bsl::make_unique<Parameters>(arguments,
+                                                  bslma::Default::allocator());
+    }
+    catch (const bsl::exception& e) {
+        bsl::cerr << e.what();
+        return 2;  // RETURN
+    }
+
     bsl::unique_ptr<CommandProcessor> processor =
-        CommandProcessorFactory::createCommandProcessor(parameters);
+        CommandProcessorFactory::createCommandProcessor(bsl::move(parameters));
 
     if (!processor) {
-        return 2;  // RETURN
+        return 3;  // RETURN
     }
 
     processor->process(bsl::cout);
