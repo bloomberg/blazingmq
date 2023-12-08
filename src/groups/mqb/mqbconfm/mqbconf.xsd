@@ -33,7 +33,7 @@
   <complexType name='Request'>
     <annotation>
       <documentation>
-        The choice between all possible request to the bmqconf task.
+        The choice between all the possible requests to the bmqconf task.
       </documentation>
     </annotation>
     <choice>
@@ -44,7 +44,7 @@
   <complexType name='Response'>
     <annotation>
       <documentation>
-        The choice between all possible response from the bmqconf task.
+        The choice between all the possible responses from the bmqconf task.
       </documentation>
     </annotation>
     <choice>
@@ -95,11 +95,11 @@
         Represent the various limitations to apply to either a 'domain' or an
         individual 'queue'.
 
-        message................: maximum number of messages
+        messages...............: maximum number of messages
         messagesWatermarkRatio.: threshold ratio to the maximum number of
                                  messages for which a high watermark alarm
                                  will trigger
-        byte...................: maximum cumulated number of bytes
+        bytes..................: maximum cumulated number of bytes
         bytesWatermarkRatio....: threshold ratio to the maximum cumulated
                                  number of bytes for which a high watermark
                                  alarm will trigger
@@ -170,6 +170,7 @@
       <documentation>
         Configuration for a Domain using the custom Bloomberg Domain.
 
+        name................: name of this domain
         mode................: mode of the queues in this domain
         storage.............: storage to use by queues in this domain
         maxConsumers........: will reject if more than this number of consumers
@@ -247,7 +248,7 @@
   <complexType name='QueueMode'>
     <annotation>
       <documentation>
-        Choice of all the various mode a queue can be configured in.
+        Choice of all the various modes a queue can be configured in.
 
         fanout.........: multiple consumers are each getting all messages
         priority.......: consumers with highest priority are sharing load in
@@ -360,7 +361,7 @@
   <complexType name='Storage'>
     <annotation>
       <documentation>
-        Choice of all the various Storage backend
+        Choice of all the various Storage backends
 
         inMemory....: store data in memory
         fileBacked..: store data in a file on disk

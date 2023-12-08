@@ -288,7 +288,8 @@ void Routers::AppContext::load(
 
             if (!itGroup) {
                 const mqbcfg::AppConfig& brkrCfg = mqbcfg::BrokerConfig::get();
-                if (brkrCfg.brokerVersion() == bmqp::Protocol::k_DEV_VERSION) {
+                if (brkrCfg.brokerVersion() == bmqp::Protocol::k_DEV_VERSION ||
+                    brkrCfg.configureStream()) {
                     // This must be the same as in
                     // 'ClusterQueueHelper::sendConfigureQueueRequest'
 

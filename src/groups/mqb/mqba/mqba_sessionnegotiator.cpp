@@ -168,6 +168,10 @@ void loadBrokerIdentity(bmqp_ctrlmsg::ClientIdentity* identity,
 {
     bool shouldExtendMessageProperties = false;
 
+    // TODO: make this unconditional.  Currently, 'V2' is controlled by config
+    // as a means to prevent SDK from generating 'V2'.
+    // Regardless of SDK, brokers now decompress MPs and send ConfigureStream.
+
     if (mqbcfg::BrokerConfig::get().brokerVersion() == 999999) {
         // Always advertise v2 (EX) support in test build (developer workflow,
         // CI, Jenkins, etc).
@@ -545,6 +549,11 @@ SessionNegotiator::onClientIdentityMessage(bsl::ostream& errorDescription,
     }
     else {
         bool shouldExtendMessageProperties = false;
+
+        // TODO: make this unconditional.  Currently, 'V2' is controlled by
+        // config as a means to prevent SDK from generating 'V2'.
+        // Regardless of SDK, brokers now decompress MPs and send
+        // ConfigureStream.
 
         if (mqbcfg::BrokerConfig::get().brokerVersion() == 999999) {
             // Always advertise v2 (EX) support in test build (developer

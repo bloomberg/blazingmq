@@ -28,19 +28,17 @@ Run `tox -l` to see all available `tox` environments.
 
 ## Local Development
 
-The BlazingMQ C++ SDK provides a `./build-manylinux.sh` script and a
-`./build-macosx-universal.sh‘ script for setting up a
-development environmen.
+The BlazingMQ Python SDK provides a `./build-manylinux.sh` script and a
+`./build-macosx-universal.sh` script for setting up a development environment.
 
 ## Working with Make Targets
 
-When in an interactive command line prompt, you can use the following
-`make` targets to build and test the BlazingMQ Python SDK. Check the
-GitHub Actions configuration to set up the appropriate environment
-variables that may be needed prior to running these commands (such as
-setting `PYEXEC`).  With a BlazingMQ broker running at
-‘tcp://localhost:30114‘, the following targets build and test the
-Python SDK:
+When in an interactive command line prompt, you can use the following `make`
+targets to build and test the BlazingMQ Python SDK. Check the
+appropriate GitHub Actions configuration to set up the appropriate environment
+variables that may be needed prior to running these commands (such as setting
+`PYEXEC`).  With a BlazingMQ broker running at `tcp://localhost:30114`, the
+following targets build and test the Python SDK:
 
 ```shell
 make test-install

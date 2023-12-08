@@ -1,11 +1,13 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../../">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>blazingmq._session &mdash; blazingmq 1.2.0 documentation</title>
-      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+
+  
   <!--[if lt IE 9]>
     <script src="../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
@@ -115,6 +117,7 @@
 <span class="kn">from</span> <span class="nn">._messages</span> <span class="kn">import</span> <span class="n">Message</span>
 <span class="kn">from</span> <span class="nn">._messages</span> <span class="kn">import</span> <span class="n">MessageHandle</span>
 <span class="kn">from</span> <span class="nn">._monitors</span> <span class="kn">import</span> <span class="n">BasicHealthMonitor</span>
+<span class="kn">from</span> <span class="nn">._timeouts</span> <span class="kn">import</span> <span class="n">Timeouts</span>
 <span class="kn">from</span> <span class="nn">._typing</span> <span class="kn">import</span> <span class="n">PropertyTypeDict</span>
 <span class="kn">from</span> <span class="nn">._typing</span> <span class="kn">import</span> <span class="n">PropertyValueDict</span>
 <span class="kn">from</span> <span class="nn">._typing</span> <span class="kn">import</span> <span class="n">PropertyValueType</span>
@@ -135,17 +138,47 @@
 <span class="n">KNOWN_MONITORS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;blazingmq.BasicHealthMonitor&quot;</span><span class="p">,)</span>
 
 
-<span class="k">def</span> <span class="nf">_convert_timeout</span><span class="p">(</span><span class="n">timeout</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]:</span>
+<span class="k">def</span> <span class="nf">_validate_timeouts</span><span class="p">(</span><span class="n">timeouts</span><span class="p">:</span> <span class="n">Timeouts</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Timeouts</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Validate a `.Timeouts` instance for use by the Cython layer.</span>
+
+<span class="sd">    If any of the timeouts contained within the `.Timeouts` instance are the</span>
+<span class="sd">    `DEFAULT_TIMEOUT` sentinel or `None`, return `None`.  Otherwise, validate</span>
+<span class="sd">    that it is within the range accepted by `bsls::TimeInterval` and return it.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">Timeouts</span><span class="p">(</span>
+        <span class="n">connect_timeout</span><span class="o">=</span><span class="n">_convert_timeout</span><span class="p">(</span><span class="n">timeouts</span><span class="o">.</span><span class="n">connect_timeout</span><span class="p">),</span>
+        <span class="n">disconnect_timeout</span><span class="o">=</span><span class="n">_convert_timeout</span><span class="p">(</span><span class="n">timeouts</span><span class="o">.</span><span class="n">disconnect_timeout</span><span class="p">),</span>
+        <span class="n">open_queue_timeout</span><span class="o">=</span><span class="n">_convert_timeout</span><span class="p">(</span><span class="n">timeouts</span><span class="o">.</span><span class="n">open_queue_timeout</span><span class="p">),</span>
+        <span class="n">configure_queue_timeout</span><span class="o">=</span><span class="n">_convert_timeout</span><span class="p">(</span><span class="n">timeouts</span><span class="o">.</span><span class="n">configure_queue_timeout</span><span class="p">),</span>
+        <span class="n">close_queue_timeout</span><span class="o">=</span><span class="n">_convert_timeout</span><span class="p">(</span><span class="n">timeouts</span><span class="o">.</span><span class="n">close_queue_timeout</span><span class="p">),</span>
+    <span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_convert_timeout</span><span class="p">(</span><span class="n">timeout</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Convert the timeout for use by the Cython layer.</span>
 
-<span class="sd">    If it is the DEFAULT_TIMEOUT sentinel, return None.  Otherwise, validate</span>
-<span class="sd">    that it is within the range accepted by bsls::TimeInterval and return it.</span>
+<span class="sd">    If it is the DEFAULT_TIMEOUT sentinel or None, return None.  Otherwise,</span>
+<span class="sd">    validate that it is within the range accepted by bsls::TimeInterval and</span>
+<span class="sd">    return it.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="n">timeout</span> <span class="ow">is</span> <span class="n">DEFAULT_TIMEOUT</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">timeout</span> <span class="ow">is</span> <span class="n">DEFAULT_TIMEOUT</span> <span class="ow">or</span> <span class="n">timeout</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">return</span> <span class="kc">None</span>
-    <span class="k">elif</span> <span class="n">timeout</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="p">(</span><span class="mf">0.0</span> <span class="o">&lt;</span> <span class="nb">float</span><span class="p">(</span><span class="n">timeout</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="o">**</span><span class="mi">63</span><span class="p">):</span>
-        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">timeout</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="mf">0.0</span> <span class="o">&lt;</span> <span class="n">timeout</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="o">**</span><span class="mi">63</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">timeout</span>
     <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;timeout must be greater than 0.0, was </span><span class="si">{</span><span class="n">timeout</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_convert_stats_dump_interval</span><span class="p">(</span><span class="n">interval</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Convert the stats dump interval for use by the Cython layer.</span>
+
+<span class="sd">    If is None, return None.  Otherwise, validate that it is within the range</span>
+<span class="sd">    accepted by bsls::TimeInterval and return it.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">interval</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">interval</span>
+    <span class="k">if</span> <span class="mf">0.0</span> <span class="o">&lt;=</span> <span class="n">interval</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="o">**</span><span class="mi">63</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">interval</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;stats_dump_interval must be nonnegative, was </span><span class="si">{</span><span class="n">interval</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
 
 <span class="k">def</span> <span class="nf">_collect_properties_and_types</span><span class="p">(</span>
@@ -286,7 +319,119 @@
             <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">params</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">attr</span><span class="si">}</span><span class="s2">=</span><span class="si">{</span><span class="n">value</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="s2">&quot;QueueOptions(</span><span class="si">%s</span><span class="s2">)&quot;</span> <span class="o">%</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">params</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;QueueOptions(</span><span class="si">{</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">params</span><span class="p">)</span><span class="si">}</span><span class="s2">)&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="SessionOptions">
+<a class="viewcode-back" href="../../api_reference.html#blazingmq.SessionOptions">[docs]</a>
+<span class="k">class</span> <span class="nc">SessionOptions</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;A value semantic type representing session options.</span>
+
+<span class="sd">    Each option can be set either by passing it as a keyword argument when</span>
+<span class="sd">    constructing a *SessionOptions* instance, or by setting it as an attribute</span>
+<span class="sd">    on a constructed instance.</span>
+
+<span class="sd">    The default for every option is `None`. When constructing a `Session`,</span>
+<span class="sd">    options set to `None` are given reasonable default values.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        message_compression_algorithm:</span>
+<span class="sd">            The type of compression to apply to messages being posted via the</span>
+<span class="sd">            session this object is configuring.</span>
+<span class="sd">        timeouts:</span>
+<span class="sd">            The maximum number of seconds to wait for requests for each</span>
+<span class="sd">            operation on this session.  If not provided, reasonable defaults</span>
+<span class="sd">            are used.</span>
+<span class="sd">        host_health_monitor:</span>
+<span class="sd">            A `.BasicHealthMonitor` is used by default, so your tests can</span>
+<span class="sd">            control whether the session sees the machine as healthy or not by</span>
+<span class="sd">            calling `.set_healthy` and `.set_unhealthy` on that instance.  If</span>
+<span class="sd">            you instead pass `None`, the session will always see the machine as</span>
+<span class="sd">            healthy, `.HostUnhealthy` and `.HostHealthRestored` events with</span>
+<span class="sd">            never be emitted, and the *suspends_on_bad_host_health* option of</span>
+<span class="sd">            `QueueOptions` cannot be used.</span>
+<span class="sd">        num_processing_threads:</span>
+<span class="sd">            The number of threads for the SDK to use for processing events.</span>
+<span class="sd">            This defaults to 1.</span>
+<span class="sd">        blob_buffer_size:</span>
+<span class="sd">            The size (in bytes) of the blob buffers to use.  This defaults to</span>
+<span class="sd">            4k.</span>
+<span class="sd">        channel_high_watermark:</span>
+<span class="sd">            The size (in bytes) to use for the write cache high watermark on</span>
+<span class="sd">            the channel.  The default value is 128MB.  Note that BlazingMQ</span>
+<span class="sd">            reserves 4MB of this value for control messages, so the actual</span>
+<span class="sd">            watermark for data published is ``channel_high_watermark - 4MB``.</span>
+<span class="sd">        event_queue_watermarks:</span>
+<span class="sd">            A tuple containing the low and high notification watermark</span>
+<span class="sd">            thresholds for the buffer containing all incoming messages from the</span>
+<span class="sd">            broker, respectively.  A warning `.SlowConsumerHighWaterMark` is</span>
+<span class="sd">            emitted when the buffer reaches the high watermark value, and a</span>
+<span class="sd">            notification `.SlowConsumerNormal` is emitted when the buffer is</span>
+<span class="sd">            back to the low watermark.</span>
+<span class="sd">        stats_dump_interval:</span>
+<span class="sd">            The interval (in seconds) at which to dump stats into the logs.  If</span>
+<span class="sd">            0, disable the recurring dump of stats (final stats are always</span>
+<span class="sd">            dumped at the end of the session).  The default is 5min; the value</span>
+<span class="sd">            must be a multiple of 30s, in the range ``[0s - 60min]``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">message_compression_algorithm</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">CompressionAlgorithmType</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">timeouts</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Timeouts</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">host_health_monitor</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">BasicHealthMonitor</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">DefaultMonitor</span><span class="p">()),</span>
+        <span class="n">num_processing_threads</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">blob_buffer_size</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">channel_high_watermark</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">event_queue_watermarks</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">stats_dump_interval</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">message_compression_algorithm</span> <span class="o">=</span> <span class="n">message_compression_algorithm</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">timeouts</span> <span class="o">=</span> <span class="n">timeouts</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">host_health_monitor</span> <span class="o">=</span> <span class="n">host_health_monitor</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_processing_threads</span> <span class="o">=</span> <span class="n">num_processing_threads</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">blob_buffer_size</span> <span class="o">=</span> <span class="n">blob_buffer_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">channel_high_watermark</span> <span class="o">=</span> <span class="n">channel_high_watermark</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">event_queue_watermarks</span> <span class="o">=</span> <span class="n">event_queue_watermarks</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stats_dump_interval</span> <span class="o">=</span> <span class="n">stats_dump_interval</span>
+
+    <span class="k">def</span> <span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">SessionOptions</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">message_compression_algorithm</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">message_compression_algorithm</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">timeouts</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">timeouts</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">host_health_monitor</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">host_health_monitor</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_processing_threads</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">num_processing_threads</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">blob_buffer_size</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">blob_buffer_size</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">channel_high_watermark</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">channel_high_watermark</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">event_queue_watermarks</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">event_queue_watermarks</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">stats_dump_interval</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">stats_dump_interval</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__ne__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">return</span> <span class="ow">not</span> <span class="bp">self</span> <span class="o">==</span> <span class="n">other</span>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="n">attrs</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="s2">&quot;message_compression_algorithm&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;timeouts&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;host_health_monitor&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;num_processing_threads&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;blob_buffer_size&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;channel_high_watermark&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;event_queue_watermarks&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;stats_dump_interval&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">params</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">attr</span> <span class="ow">in</span> <span class="n">attrs</span><span class="p">:</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">params</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">attr</span><span class="si">}</span><span class="s2">=</span><span class="si">{</span><span class="n">value</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;SessionOptions(</span><span class="si">{</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">params</span><span class="p">)</span><span class="si">}</span><span class="s2">)&quot;</span></div>
 
 
 
@@ -305,11 +450,16 @@
 <span class="sd">            received by the session.</span>
 <span class="sd">        on_message: an optional callback to process `Message` objects received</span>
 <span class="sd">            by the session.</span>
-<span class="sd">        broker: TCP address of the broker (default: &#39;tcp://localhost:30114&#39;)</span>
+<span class="sd">        broker: TCP address of the broker (default: &#39;tcp://localhost:30114&#39;).</span>
+<span class="sd">            If the environment variable ``BMQ_BROKER_URI`` is set, its value</span>
+<span class="sd">            will override whatever broker address is passed via this argument.</span>
 <span class="sd">        message_compression_algorithm: the type of compression to apply to messages</span>
 <span class="sd">            being posted via this session object.</span>
 <span class="sd">        timeout: maximum number of seconds to wait for requests on this</span>
-<span class="sd">            session.  If not provided, reasonable defaults are used.</span>
+<span class="sd">            session.  If not provided, reasonable defaults are used.  This</span>
+<span class="sd">            argument may either be a simple ``float``, which sets the same</span>
+<span class="sd">            timeout for each operation, or an instance of the `Timeouts` class,</span>
+<span class="sd">            which allows setting the timeout for each operation independently.</span>
 <span class="sd">        host_health_monitor: A `.BasicHealthMonitor` is used by default, so</span>
 <span class="sd">            your tests can control whether the session sees the machine as</span>
 <span class="sd">            healthy or not by calling `.set_healthy` and `.set_unhealthy` on</span>
@@ -318,12 +468,33 @@
 <span class="sd">            `.HostHealthRestored` events will never be emitted, and the</span>
 <span class="sd">            *suspends_on_bad_host_health* option of `QueueOptions` cannot be</span>
 <span class="sd">            used.</span>
+<span class="sd">        num_processing_threads: The number of threads for the SDK to use for</span>
+<span class="sd">            processing events.  This defaults to 1.</span>
+<span class="sd">        blob_buffer_size: The size (in bytes) of the blob buffers to use.  This</span>
+<span class="sd">            defaults to 4k.</span>
+<span class="sd">        channel_high_watermark: The size (in bytes) to use for the write cache</span>
+<span class="sd">            high watermark on the channel.  The default value is 128MB.  Note</span>
+<span class="sd">            that BlazingMQ reserves 4MB of this value for control messages, so</span>
+<span class="sd">            the actual watermark for data published is</span>
+<span class="sd">            ``channel_high_watermark - 4MB``.</span>
+<span class="sd">        event_queue_watermarks: A tuple containing the low and high</span>
+<span class="sd">            notification watermark thresholds for the buffer containing all</span>
+<span class="sd">            incoming messages from the broker, respectively.  A warning</span>
+<span class="sd">            `.SlowConsumerHighWaterMark` is emitted when the buffer reaches the</span>
+<span class="sd">            high watermark value, and a notification `.SlowConsumerNormal` is</span>
+<span class="sd">            emitted when the buffer is back to the low watermark.</span>
+<span class="sd">        stats_dump_interval: The interval (in seconds) at which to dump stats</span>
+<span class="sd">            into the logs.  If 0, disable the recurring dump of stats (final</span>
+<span class="sd">            stats are always dumped at the end of the session).  The default is</span>
+<span class="sd">            5min; the value must be a multiple of 30s, in the range</span>
+<span class="sd">            ``[0s - 60min]``.</span>
 
 <span class="sd">    Raises:</span>
 <span class="sd">        `~blazingmq.Error`: If the session start request was not successful.</span>
 <span class="sd">        `~blazingmq.exceptions.BrokerTimeoutError`: If the broker didn&#39;t respond</span>
 <span class="sd">            to the request within a reasonable amount of time.</span>
-<span class="sd">        `ValueError`: If *timeout* is provided and not &gt; 0.0.</span>
+<span class="sd">        `ValueError`: If any of the timeouts are provided and not &gt; 0.0, or if</span>
+<span class="sd">            the ``stats_dump_interval`` is provided and is &lt; 0.0.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
@@ -334,8 +505,13 @@
         <span class="n">message_compression_algorithm</span><span class="p">:</span> <span class="n">CompressionAlgorithmType</span> <span class="o">=</span> <span class="p">(</span>
             <span class="n">CompressionAlgorithmType</span><span class="o">.</span><span class="n">NONE</span>
         <span class="p">),</span>
-        <span class="n">timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">DEFAULT_TIMEOUT</span><span class="p">,</span>
+        <span class="n">timeout</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Timeouts</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="n">DEFAULT_TIMEOUT</span><span class="p">,</span>
         <span class="n">host_health_monitor</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">BasicHealthMonitor</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">DefaultMonitor</span><span class="p">()),</span>
+        <span class="n">num_processing_threads</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">blob_buffer_size</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">channel_high_watermark</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">event_queue_watermarks</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">stats_dump_interval</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">host_health_monitor</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">host_health_monitor</span><span class="p">,</span> <span class="n">BasicHealthMonitor</span><span class="p">):</span>
@@ -348,15 +524,99 @@
         <span class="n">fake_host_health_monitor</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">host_health_monitor</span><span class="p">,</span> <span class="s2">&quot;_monitor&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_has_no_on_message</span> <span class="o">=</span> <span class="n">on_message</span> <span class="ow">is</span> <span class="kc">None</span>
+
+        <span class="c1"># Using our Timeouts class, preserve the old behavior of passing in a</span>
+        <span class="c1"># simple float as a timeout.  Avoid setting the `connect_timeout` and</span>
+        <span class="c1"># `disconnect_timeout`.</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">timeout</span><span class="p">,</span> <span class="n">Timeouts</span><span class="p">):</span>
+            <span class="n">timeout</span> <span class="o">=</span> <span class="n">Timeouts</span><span class="p">(</span>
+                <span class="n">open_queue_timeout</span><span class="o">=</span><span class="n">timeout</span><span class="p">,</span>
+                <span class="n">configure_queue_timeout</span><span class="o">=</span><span class="n">timeout</span><span class="p">,</span>
+                <span class="n">close_queue_timeout</span><span class="o">=</span><span class="n">timeout</span><span class="p">,</span>
+            <span class="p">)</span>
+
         <span class="bp">self</span><span class="o">.</span><span class="n">_ext</span> <span class="o">=</span> <span class="n">ExtSession</span><span class="p">(</span>
             <span class="n">on_session_event</span><span class="p">,</span>
             <span class="n">on_message</span><span class="o">=</span><span class="n">on_message</span><span class="p">,</span>
             <span class="n">broker</span><span class="o">=</span><span class="n">six</span><span class="o">.</span><span class="n">ensure_binary</span><span class="p">(</span><span class="n">broker</span><span class="p">),</span>
             <span class="n">message_compression_algorithm</span><span class="o">=</span><span class="n">message_compression_algorithm</span><span class="p">,</span>
-            <span class="n">timeout</span><span class="o">=</span><span class="n">_convert_timeout</span><span class="p">(</span><span class="n">timeout</span><span class="p">),</span>
+            <span class="n">num_processing_threads</span><span class="o">=</span><span class="n">num_processing_threads</span><span class="p">,</span>
+            <span class="n">blob_buffer_size</span><span class="o">=</span><span class="n">blob_buffer_size</span><span class="p">,</span>
+            <span class="n">channel_high_watermark</span><span class="o">=</span><span class="n">channel_high_watermark</span><span class="p">,</span>
+            <span class="n">event_queue_watermarks</span><span class="o">=</span><span class="n">event_queue_watermarks</span><span class="p">,</span>
+            <span class="n">stats_dump_interval</span><span class="o">=</span><span class="n">_convert_stats_dump_interval</span><span class="p">(</span><span class="n">stats_dump_interval</span><span class="p">),</span>
+            <span class="n">timeouts</span><span class="o">=</span><span class="n">_validate_timeouts</span><span class="p">(</span><span class="n">timeout</span><span class="p">),</span>
             <span class="n">monitor_host_health</span><span class="o">=</span><span class="n">monitor_host_health</span><span class="p">,</span>
             <span class="n">fake_host_health_monitor</span><span class="o">=</span><span class="n">fake_host_health_monitor</span><span class="p">,</span>
         <span class="p">)</span>
+
+<div class="viewcode-block" id="Session.with_options">
+<a class="viewcode-back" href="../../api_reference.html#blazingmq.Session.with_options">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">with_options</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span>
+        <span class="n">on_session_event</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">SessionEvent</span><span class="p">],</span> <span class="kc">None</span><span class="p">],</span>
+        <span class="n">on_message</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">[[</span><span class="n">Message</span><span class="p">,</span> <span class="n">MessageHandle</span><span class="p">],</span> <span class="kc">None</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">broker</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;tcp://localhost:30114&quot;</span><span class="p">,</span>
+        <span class="n">session_options</span><span class="p">:</span> <span class="n">SessionOptions</span> <span class="o">=</span> <span class="p">(</span><span class="n">SessionOptions</span><span class="p">()),</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Session</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Construct a *Session* instance using `.SessionOptions`.</span>
+
+<span class="sd">        This is the recommended way to construct a new session, as the</span>
+<span class="sd">        `.SessionOptions` class provides an easier to use interface for</span>
+<span class="sd">        configuring only those options you need.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            on_session_event: a required callback to process `.SessionEvent` events</span>
+<span class="sd">                received by the session.</span>
+<span class="sd">            on_message: an optional callback to process `Message` objects received</span>
+<span class="sd">                by the session.</span>
+<span class="sd">            broker: TCP address of the broker (default: &#39;tcp://localhost:30114&#39;).</span>
+<span class="sd">                If the environment variable ``BMQ_BROKER_URI`` is set, its value</span>
+<span class="sd">                will override whatever broker address is passed via this argument.</span>
+<span class="sd">            session_options: an instance of `.SessionOptions` that represents the</span>
+<span class="sd">                session&#39;s configuration.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            `~blazingmq.Error`: If the session start request was not successful.</span>
+<span class="sd">            `~blazingmq.exceptions.BrokerTimeoutError`: If the broker didn&#39;t respond</span>
+<span class="sd">                to the request within a reasonable amount of time.</span>
+<span class="sd">            `ValueError`: If any of the timeouts are provided and not &gt; 0.0, or if</span>
+<span class="sd">                the ``stats_dump_interval`` is provided and is &lt; 0.0.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">message_compression_algorithm</span> <span class="o">=</span> <span class="n">session_options</span><span class="o">.</span><span class="n">message_compression_algorithm</span>
+        <span class="k">if</span> <span class="n">message_compression_algorithm</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">message_compression_algorithm</span> <span class="o">=</span> <span class="n">CompressionAlgorithmType</span><span class="o">.</span><span class="n">NONE</span>
+
+        <span class="k">if</span> <span class="n">session_options</span><span class="o">.</span><span class="n">timeouts</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+                <span class="n">on_session_event</span><span class="p">,</span>
+                <span class="n">on_message</span><span class="p">,</span>
+                <span class="n">broker</span><span class="p">,</span>
+                <span class="n">message_compression_algorithm</span><span class="p">,</span>
+                <span class="n">DEFAULT_TIMEOUT</span><span class="p">,</span>
+                <span class="n">session_options</span><span class="o">.</span><span class="n">host_health_monitor</span><span class="p">,</span>
+                <span class="n">session_options</span><span class="o">.</span><span class="n">num_processing_threads</span><span class="p">,</span>
+                <span class="n">session_options</span><span class="o">.</span><span class="n">blob_buffer_size</span><span class="p">,</span>
+                <span class="n">session_options</span><span class="o">.</span><span class="n">channel_high_watermark</span><span class="p">,</span>
+                <span class="n">session_options</span><span class="o">.</span><span class="n">event_queue_watermarks</span><span class="p">,</span>
+                <span class="n">session_options</span><span class="o">.</span><span class="n">stats_dump_interval</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+                <span class="n">on_session_event</span><span class="p">,</span>
+                <span class="n">on_message</span><span class="p">,</span>
+                <span class="n">broker</span><span class="p">,</span>
+                <span class="n">message_compression_algorithm</span><span class="p">,</span>
+                <span class="n">session_options</span><span class="o">.</span><span class="n">timeouts</span><span class="p">,</span>
+                <span class="n">session_options</span><span class="o">.</span><span class="n">host_health_monitor</span><span class="p">,</span>
+                <span class="n">session_options</span><span class="o">.</span><span class="n">num_processing_threads</span><span class="p">,</span>
+                <span class="n">session_options</span><span class="o">.</span><span class="n">blob_buffer_size</span><span class="p">,</span>
+                <span class="n">session_options</span><span class="o">.</span><span class="n">channel_high_watermark</span><span class="p">,</span>
+                <span class="n">session_options</span><span class="o">.</span><span class="n">event_queue_watermarks</span><span class="p">,</span>
+                <span class="n">session_options</span><span class="o">.</span><span class="n">stats_dump_interval</span><span class="p">,</span>
+            <span class="p">)</span></div>
+
 
 <div class="viewcode-block" id="Session.open_queue">
 <a class="viewcode-back" href="../../api_reference.html#blazingmq.Session.open_queue">[docs]</a>
