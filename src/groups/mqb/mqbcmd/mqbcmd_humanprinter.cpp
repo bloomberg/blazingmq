@@ -51,7 +51,8 @@ struct SortPurgeQueueResultByBytesDesc {
     bool operator()(const PurgeQueueResult& lhs,
                     const PurgeQueueResult& rhs) const
     {
-        return (lhs.queue().numBytesPurged() > rhs.queue().numBytesPurged());
+        return (lhs.isQueueValue() ? lhs.queue().numBytesPurged() : 0) >
+               (rhs.isQueueValue() ? rhs.queue().numBytesPurged() : 0);
     }
 };
 
