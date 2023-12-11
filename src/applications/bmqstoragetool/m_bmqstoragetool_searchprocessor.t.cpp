@@ -525,10 +525,9 @@ static void test1_breathingTest()
     CommandLineArguments        arguments;
     bsl::unique_ptr<Parameters> params =
         bsl::make_unique<Parameters>(arguments, s_allocator_p);
+    params->journalFile()->setIterator(&it);
 
-    auto searchProcessor = SearchProcessor(bsl::move(params),
-                                           &it,
-                                           s_allocator_p);
+    auto searchProcessor = SearchProcessor(bsl::move(params), s_allocator_p);
 
     bsl::ostringstream resultStream(s_allocator_p);
     searchProcessor.process(resultStream);
@@ -625,10 +624,9 @@ static void test2_searchGuidTest()
     }
     bsl::unique_ptr<Parameters> params =
         bsl::make_unique<Parameters>(arguments, s_allocator_p);
+    params->journalFile()->setIterator(&it);
 
-    auto searchProcessor = SearchProcessor(bsl::move(params),
-                                           &it,
-                                           s_allocator_p);
+    auto searchProcessor = SearchProcessor(bsl::move(params), s_allocator_p);
 
     bsl::ostringstream resultStream(s_allocator_p);
     searchProcessor.process(resultStream);
@@ -642,8 +640,6 @@ static void test2_searchGuidTest()
                    << bsl::endl;
 
     ASSERT_EQ(resultStream.str(), expectedStream.str());
-
-    // ASSERT(searchProcessor.getJournalFileIter().isValid());
 
     s_allocator_p->deallocate(p);
 }
@@ -707,10 +703,9 @@ static void test3_searchNonExistingGuidTest()
 
     bsl::unique_ptr<Parameters> params =
         bsl::make_unique<Parameters>(arguments, s_allocator_p);
+    params->journalFile()->setIterator(&it);
 
-    auto searchProcessor = SearchProcessor(bsl::move(params),
-                                           &it,
-                                           s_allocator_p);
+    auto searchProcessor = SearchProcessor(bsl::move(params), s_allocator_p);
 
     bsl::ostringstream resultStream(s_allocator_p);
     searchProcessor.process(resultStream);
@@ -773,10 +768,9 @@ static void test4_searchOutstandingMessagesTest()
     arguments.d_outstanding = true;
     bsl::unique_ptr<Parameters> params =
         bsl::make_unique<Parameters>(arguments, s_allocator_p);
+    params->journalFile()->setIterator(&it);
 
-    auto searchProcessor = SearchProcessor(bsl::move(params),
-                                           &it,
-                                           s_allocator_p);
+    auto searchProcessor = SearchProcessor(bsl::move(params), s_allocator_p);
 
     bsl::ostringstream resultStream(s_allocator_p);
     searchProcessor.process(resultStream);
@@ -848,10 +842,9 @@ static void test5_searchConfirmedMessagesTest()
     arguments.d_confirmed = true;
     bsl::unique_ptr<Parameters> params =
         bsl::make_unique<Parameters>(arguments, s_allocator_p);
+    params->journalFile()->setIterator(&it);
 
-    auto searchProcessor = SearchProcessor(bsl::move(params),
-                                           &it,
-                                           s_allocator_p);
+    auto searchProcessor = SearchProcessor(bsl::move(params), s_allocator_p);
 
     bsl::ostringstream resultStream(s_allocator_p);
     searchProcessor.process(resultStream);
@@ -924,10 +917,9 @@ static void test6_searchPartiallyConfirmedMessagesTest()
     arguments.d_partiallyConfirmed = true;
     bsl::unique_ptr<Parameters> params =
         bsl::make_unique<Parameters>(arguments, s_allocator_p);
+    params->journalFile()->setIterator(&it);
 
-    auto searchProcessor = SearchProcessor(bsl::move(params),
-                                           &it,
-                                           s_allocator_p);
+    auto searchProcessor = SearchProcessor(bsl::move(params), s_allocator_p);
 
     bsl::ostringstream resultStream(s_allocator_p);
     searchProcessor.process(resultStream);

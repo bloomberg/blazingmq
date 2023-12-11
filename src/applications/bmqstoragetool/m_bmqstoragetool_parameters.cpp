@@ -271,6 +271,11 @@ Parameters::Parameters(const CommandLineArguments& arguments,
         (!d_dataFile.path().empty() && !d_dataFile.resetIterator(ss))) {
         throw bsl::runtime_error(ss.str());
     }
+    // TODO: used for testing, consider better way
+    if (d_journalFile.path().empty())
+        d_journalFile.setIterator(nullptr);
+    if (d_dataFile.path().empty())
+        d_dataFile.setIterator(nullptr);
 }
 
 void Parameters::print(bsl::ostream& ss) const
@@ -368,6 +373,14 @@ template <typename ITER>
 ITER* Parameters::FileHandler<ITER>::iterator()
 {
     return &d_iter;
+}
+
+// TODO: used for testing, consider better way
+template <typename ITER>
+void Parameters::FileHandler<ITER>::setIterator(ITER* iter)
+{
+    if (iterator() != nullptr && iter != nullptr)
+        d_iter = *iter;
 }
 
 }  // close package namespace

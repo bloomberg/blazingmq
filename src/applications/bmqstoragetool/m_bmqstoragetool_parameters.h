@@ -118,6 +118,9 @@ class Parameters {
         // MANIPULATORS
         /// iterator resetter
         bool resetIterator(bsl::ostream& errorDescription);
+        
+        // TODO: used for testing, consider better way
+        void setIterator(ITER* iter);
 
         /// Mapped file iterator
         ITER* iterator();

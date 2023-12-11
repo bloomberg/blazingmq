@@ -96,18 +96,6 @@ bool resetIterator(mqbs::MappedFileDescriptor* mfd,
 // CREATORS
 
 SearchProcessor::SearchProcessor(const bsl::shared_ptr<Parameters>& params,
-                                 mqbs::JournalFileIterator* journalFileIter,
-                                 bslma::Allocator*          allocator)
-: CommandProcessor(params)
-, d_dataFile(allocator)
-, d_journalFile(allocator)
-, d_journalFileIter(journalFileIter)
-, d_allocator_p(bslma::Default::allocator(allocator))
-{
-    // NOTHING
-}
-
-SearchProcessor::SearchProcessor(const bsl::shared_ptr<Parameters>& params,
                                  bslma::Allocator*                  allocator)
 : CommandProcessor(params)
 , d_allocator_p(bslma::Default::allocator(allocator))
@@ -117,20 +105,6 @@ SearchProcessor::SearchProcessor(const bsl::shared_ptr<Parameters>& params,
 
 void SearchProcessor::process(bsl::ostream& ostream)
 {
-    // ostream << "SearchProcessor::process()\n";
-    // d_parameters->print(ostream);
-
-    // TODO: remove - Initialize journal file iterator from real file
-    if (!d_journalFileIter->isValid()) {
-        if (!resetIterator(&d_journalFd,
-                           d_journalFileIter,
-                           d_journalFile.c_str(),
-                           ostream)) {
-            return;  // RETURN
-        }
-        ostream << "Created Journal iterator successfully" << bsl::endl;
-    }
-
     // TODO: why unique_ptr doesn't support deleter in reset()
     // bsl::unique_ptr<SearchResult> searchResult_p;
     bsl::shared_ptr<SearchResult> searchResult_p;
@@ -176,7 +150,7 @@ void SearchProcessor::process(bsl::ostream& ostream)
     bool stopSearch = false;
 
     // Iterate through all Journal file records
-    mqbs::JournalFileIterator* iter = d_journalFileIter;
+    mqbs::JournalFileIterator* iter = d_parameters->journalFile()->iterator();
     while (true) {
         if (stopSearch || !iter->hasRecordSizeRemaining()) {
             searchResult_p->outputResult();
