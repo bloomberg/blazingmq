@@ -70,44 +70,24 @@ class SearchProcessor : public CommandProcessor {
 
     mqbs::MappedFileDescriptor d_journalFd;
 
-    mqbs::DataFileIterator d_dataFileIter;
+    mqbs::DataFileIterator* d_dataFileIter;
 
-    mqbs::JournalFileIterator d_journalFileIter;
+    mqbs::JournalFileIterator* d_journalFileIter;
 
     bslma::Allocator* d_allocator_p;
 
     // MANIPULATORS
-    // void outputSearchResult(bsl::ostream&          ostream,
-    //                         const SearchMode       mode,
-    //                         const MessagesDetails& messagesDetails,
-    //                         const bsl::size_t      messagesCount,
-    //                         const bsl::size_t      totalMessagesCount);
-
-    // // ACCESSORS
-    // void outputGuidString(bsl::ostream&            ostream,
-    //                       const bmqt::MessageGUID& messageGUID,
-    //                       const bool               addNewLine = true);
 
   public:
     // CREATORS
-    SearchProcessor(const bsl::shared_ptr<Parameters>& params,
-                    bsl::string&                       journalFile,
-                    bslma::Allocator*                  allocator);
-    SearchProcessor(const bsl::shared_ptr<Parameters>& params,
-                    mqbs::JournalFileIterator&         journalFileIter,
-                    bslma::Allocator*                  allocator);
-    explicit SearchProcessor(const bsl::shared_ptr<Parameters>& params);
-
-    ~SearchProcessor();
+    explicit SearchProcessor(const bsl::shared_ptr<Parameters>& params,
+                             mqbs::JournalFileIterator* journalFileIter,
+                             bslma::Allocator*          allocator);
+    explicit SearchProcessor(const bsl::shared_ptr<Parameters>& params,
+                             bslma::Allocator*                  allocator);
 
     // MANIPULATORS
     void process(bsl::ostream& ostream) BSLS_KEYWORD_OVERRIDE;
-
-    // TODO: remove
-    mqbs::JournalFileIterator& getJournalFileIter()
-    {
-        return d_journalFileIter;
-    }
 };
 
 }  // close package namespace

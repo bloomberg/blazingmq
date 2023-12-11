@@ -25,7 +25,8 @@ namespace m_bmqstoragetool {
 
 bsl::unique_ptr<CommandProcessor>
 CommandProcessorFactory::createCommandProcessor(
-    bsl::unique_ptr<Parameters> params)
+    bsl::unique_ptr<Parameters> params,
+    bslma::Allocator*           allocator)
 {
     bsl::unique_ptr<CommandProcessor> result;
 
@@ -34,7 +35,8 @@ CommandProcessorFactory::createCommandProcessor(
         // result = bsl::make_unique<TimestampSearchProcessor>(params);
     }
     else {
-        result = bsl::make_unique<SearchProcessor>(bsl::move(params));
+        result = bsl::make_unique<SearchProcessor>(bsl::move(params),
+                                                   allocator);
     }
 
     return result;

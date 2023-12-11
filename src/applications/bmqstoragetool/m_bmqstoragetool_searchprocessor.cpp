@@ -96,18 +96,7 @@ bool resetIterator(mqbs::MappedFileDescriptor* mfd,
 // CREATORS
 
 SearchProcessor::SearchProcessor(const bsl::shared_ptr<Parameters>& params,
-                                 bsl::string&      journalFile,
-                                 bslma::Allocator* allocator)
-: CommandProcessor(params)
-, d_dataFile(allocator)
-, d_journalFile(journalFile, allocator)
-, d_allocator_p(bslma::Default::allocator(allocator))
-{
-    // NOTHING
-}
-
-SearchProcessor::SearchProcessor(const bsl::shared_ptr<Parameters>& params,
-                                 mqbs::JournalFileIterator& journalFileIter,
+                                 mqbs::JournalFileIterator* journalFileIter,
                                  bslma::Allocator*          allocator)
 : CommandProcessor(params)
 , d_dataFile(allocator)
@@ -118,23 +107,12 @@ SearchProcessor::SearchProcessor(const bsl::shared_ptr<Parameters>& params,
     // NOTHING
 }
 
-SearchProcessor::SearchProcessor(const bsl::shared_ptr<Parameters>& params)
+SearchProcessor::SearchProcessor(const bsl::shared_ptr<Parameters>& params,
+                                 bslma::Allocator*                  allocator)
 : CommandProcessor(params)
+, d_allocator_p(bslma::Default::allocator(allocator))
 {
-}
-
-SearchProcessor::~SearchProcessor()
-{
-    d_dataFileIter.clear();
-    d_journalFileIter.clear();
-
-    if (d_dataFd.isValid()) {
-        mqbs::FileSystemUtil::close(&d_dataFd);
-    }
-
-    if (d_journalFd.isValid()) {
-        mqbs::FileSystemUtil::close(&d_journalFd);
-    }
+    // NOTHING
 }
 
 void SearchProcessor::process(bsl::ostream& ostream)
@@ -143,9 +121,9 @@ void SearchProcessor::process(bsl::ostream& ostream)
     // d_parameters->print(ostream);
 
     // TODO: remove - Initialize journal file iterator from real file
-    if (!d_journalFileIter.isValid()) {
+    if (!d_journalFileIter->isValid()) {
         if (!resetIterator(&d_journalFd,
-                           &d_journalFileIter,
+                           d_journalFileIter,
                            d_journalFile.c_str(),
                            ostream)) {
             return;  // RETURN
@@ -198,7 +176,7 @@ void SearchProcessor::process(bsl::ostream& ostream)
     bool stopSearch = false;
 
     // Iterate through all Journal file records
-    mqbs::JournalFileIterator* iter = &d_journalFileIter;
+    mqbs::JournalFileIterator* iter = d_journalFileIter;
     while (true) {
         if (stopSearch || !iter->hasRecordSizeRemaining()) {
             searchResult_p->outputResult();

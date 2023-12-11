@@ -30,7 +30,8 @@ namespace m_bmqstoragetool {
 class CommandProcessorFactory {
   public:
     static bsl::unique_ptr<CommandProcessor>
-    createCommandProcessor(bsl::unique_ptr<Parameters> params);
+    createCommandProcessor(bsl::unique_ptr<Parameters> params,
+                           bslma::Allocator*           allocator);
 };
 
 }  // close package namespace

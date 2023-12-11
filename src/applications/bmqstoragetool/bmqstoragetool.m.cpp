@@ -156,7 +156,7 @@ int main(int argc, const char* argv[])
     }
 
     bsl::unique_ptr<CommandProcessor> processor =
-        CommandProcessorFactory::createCommandProcessor(bsl::move(parameters));
+        CommandProcessorFactory::createCommandProcessor(bsl::move(parameters), bslma::Default::allocator());
 
     if (!processor) {
         return 3;  // RETURN
