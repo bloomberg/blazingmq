@@ -95,7 +95,7 @@ bool resetIterator(mqbs::MappedFileDescriptor* mfd,
 
 // CREATORS
 
-SearchProcessor::SearchProcessor(const Parameters& params,
+SearchProcessor::SearchProcessor(const bsl::shared_ptr<Parameters>& params,
                                  bsl::string&      journalFile,
                                  bslma::Allocator* allocator)
 : CommandProcessor(params)
@@ -106,7 +106,7 @@ SearchProcessor::SearchProcessor(const Parameters& params,
     // NOTHING
 }
 
-SearchProcessor::SearchProcessor(const Parameters&          params,
+SearchProcessor::SearchProcessor(const bsl::shared_ptr<Parameters>& params,
                                  mqbs::JournalFileIterator& journalFileIter,
                                  bslma::Allocator*          allocator)
 : CommandProcessor(params)
@@ -118,7 +118,7 @@ SearchProcessor::SearchProcessor(const Parameters&          params,
     // NOTHING
 }
 
-SearchProcessor::SearchProcessor(const Parameters& params)
+SearchProcessor::SearchProcessor(const bsl::shared_ptr<Parameters>& params)
 : CommandProcessor(params)
 {
 }
@@ -140,7 +140,7 @@ SearchProcessor::~SearchProcessor()
 void SearchProcessor::process(bsl::ostream& ostream)
 {
     // ostream << "SearchProcessor::process()\n";
-    // d_parameters.print(ostream);
+    // d_parameters->print(ostream);
 
     // TODO: remove - Initialize journal file iterator from real file
     if (!d_journalFileIter.isValid()) {
@@ -156,40 +156,40 @@ void SearchProcessor::process(bsl::ostream& ostream)
     // TODO: why unique_ptr doesn't support deleter in reset()
     // bsl::unique_ptr<SearchResult> searchResult_p;
     bsl::shared_ptr<SearchResult> searchResult_p;
-    if (!d_parameters.guid().empty()) {
+    if (!d_parameters->guid().empty()) {
         searchResult_p.reset(new (*d_allocator_p)
                                  SearchGuidResult(ostream,
-                                                  d_parameters.details(),
-                                                  d_parameters.guid(),
+                                                  d_parameters->details(),
+                                                  d_parameters->guid(),
                                                   d_allocator_p),
                              d_allocator_p);
     }
-    else if (d_parameters.outstanding()) {
+    else if (d_parameters->outstanding()) {
         searchResult_p.reset(new (*d_allocator_p) SearchOutstandingResult(
                                  ostream,
-                                 d_parameters.details(),
+                                 d_parameters->details(),
                                  d_allocator_p),
                              d_allocator_p);
     }
-    else if (d_parameters.confirmed()) {
+    else if (d_parameters->confirmed()) {
         searchResult_p.reset(new (*d_allocator_p)
                                  SearchConfirmedResult(ostream,
-                                                       d_parameters.details(),
+                                                       d_parameters->details(),
                                                        d_allocator_p),
                              d_allocator_p);
     }
-    else if (d_parameters.partiallyConfirmed()) {
+    else if (d_parameters->partiallyConfirmed()) {
         searchResult_p.reset(
             new (*d_allocator_p)
                 SearchPartiallyConfirmedResult(ostream,
-                                               d_parameters.details(),
+                                               d_parameters->details(),
                                                d_allocator_p),
             d_allocator_p);
     }
     else {
         searchResult_p.reset(new (*d_allocator_p)
                                  SearchAllResult(ostream,
-                                                 d_parameters.details(),
+                                                 d_parameters->details(),
                                                  d_allocator_p),
                              d_allocator_p);
     }

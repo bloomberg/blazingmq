@@ -35,7 +35,10 @@
 #include <bsls_types.h>
 
 // MQB
+#include <mqbs_datafileiterator.h>
 #include <mqbs_filestoreprotocol.h>
+#include <mqbs_journalfileiterator.h>
+#include <mqbs_mappedfiledescriptor.h>
 
 // MWC
 #include <mwcu_stringutil.h>
@@ -48,9 +51,7 @@ namespace m_bmqstoragetool {
 // class Parameters
 // ================
 
-/// Holds command line parameters for bmqstoragetool.
-class Parameters {
-  public:
+struct CommandLineArguments {
     // PUBLIC DATA
     bsls::Types::Int64 d_timestampGt;
     // Filter messages by minimum timestamp
@@ -85,41 +86,91 @@ class Parameters {
     bool d_partiallyConfirmed;
     // Show only messages, confirmed by some of the appId's
 
+    // CREATORS
+    explicit CommandLineArguments(bslma::Allocator* allocator = 0);
+
+    // MANIPULATORS
+    /// Validate the consistency of all settings.
+    bool validate(bsl::string* error);
+};
+
+/// Holds command line parameters for bmqstoragetool.
+class Parameters {
+  public:
+    // PUBLIC TYPES
+    template <typename ITER>
+    class FileHandler {
+        const bsl::string          d_path;
+        ITER                       d_iter;
+        mqbs::MappedFileDescriptor d_mfd;
+
+      public:
+        // CREATORS
+        explicit FileHandler(const bsl::string& path,
+                             bslma::Allocator*  allocator = 0);
+
+        ~FileHandler();
+
+        // ACCESSORS
+        /// File path
+        bsl::string path() const;
+
+        // MANIPULATORS
+        /// iterator resetter
+        bool resetIterator(bsl::ostream& errorDescription);
+
+        /// Mapped file iterator
+        ITER* iterator();
+    };
+
+  private:
+    bsls::Types::Int64 d_timestampGt;
+    // Filter messages by minimum timestamp
+    bsls::Types::Int64 d_timestampLt;
+    // Filter messages by maximum timestamp
+    FileHandler<mqbs::JournalFileIterator> d_journalFile;
+    // Handler of journal file
+    FileHandler<mqbs::DataFileIterator> d_dataFile;
+    // Handler of data file
+    // TODO: handle CSL file too
+    bsl::string d_cslFile;
+    // Handler of  CSL file
+    bsl::vector<bsl::string> d_guid;
+    // Filter messages by message guids
+    bsl::vector<bsl::string> d_queueKey;
+    // Filter messages by queue keys
+    bsl::vector<bsl::string> d_queueName;
+    // Filter messages by queue names
+    int d_dumpLimit;
+    // Limit number of bytes to
+    bool d_details;
+    // Print message details
+    bool d_dumpPayload;
+    // Print message payload
+    bool d_summary;
+    // Print summary of messages
+    bool d_outstanding;
+    // Show only outstanding messages (not deleted)
+    bool d_confirmed;
+    // Show only messages, confirmed by all the appId's
+    bool d_partiallyConfirmed;
+    // Show only messages, confirmed by some of the appId's
+
   public:
     // CREATORS
     /// Default constructor
-    Parameters(bslma::Allocator* allocator);
+    explicit Parameters(const CommandLineArguments& aruments,
+                        bslma::Allocator*           allocator = 0);
 
     // MANIPULATORS
-    bsls::Types::Int64&       setTimestampGt();
-    bsls::Types::Int64&       setTimestampLt();
-    bsl::string&              setPath();
-    bsl::string&              setJournalFile();
-    bsl::string&              setDataFile();
-    bsl::string&              setCslFile();
-    bsl::vector<bsl::string>& setGuid();
-    bsl::vector<bsl::string>& setQueueKey();
-    bsl::vector<bsl::string>& setQueueName();
-    int&                      setDumpLimit();
-    bool&                     setDetails();
-    bool&                     setDumpPayload();
-    bool&                     setSummary();
-    bool&                     setOutstanding();
-    bool&                     setConfirmed();
-    bool&                     setPartiallyConfirmed();
-
-    /// Validate the consistency of all settings.
-    bool validate(bsl::string* error);
+    FileHandler<mqbs::JournalFileIterator>* journalFile();
+    FileHandler<mqbs::DataFileIterator>*    dataFile();
+    // TODO: handle CSL file too
+    bsl::string cslFile();
 
     // ACCESSORS
-    /// Print all the parameters
-    void                     print(bsl::ostream& ss) const;
     bsls::Types::Int64       timestampGt() const;
     bsls::Types::Int64       timestampLt() const;
-    bsl::string              path() const;
-    bsl::string              journalFile() const;
-    bsl::string              dataFile() const;
-    bsl::string              cslFile() const;
     bsl::vector<bsl::string> guid() const;
     bsl::vector<bsl::string> queueKey() const;
     bsl::vector<bsl::string> queueName() const;
@@ -130,6 +181,10 @@ class Parameters {
     bool                     outstanding() const;
     bool                     confirmed() const;
     bool                     partiallyConfirmed() const;
+
+    // MEMBER FUNCTIONS
+    /// Print all the parameters
+    void print(bsl::ostream& ss) const;
 };
 
 }  // close package namespace

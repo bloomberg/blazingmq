@@ -90,13 +90,13 @@ class SearchProcessor : public CommandProcessor {
 
   public:
     // CREATORS
-    SearchProcessor(const Parameters& params,
-                    bsl::string&      journalFile,
-                    bslma::Allocator* allocator);
-    SearchProcessor(const Parameters&          params,
-                    mqbs::JournalFileIterator& journalFileIter,
-                    bslma::Allocator*          allocator);
-    explicit SearchProcessor(const Parameters& params);
+    SearchProcessor(const bsl::shared_ptr<Parameters>& params,
+                    bsl::string&                       journalFile,
+                    bslma::Allocator*                  allocator);
+    SearchProcessor(const bsl::shared_ptr<Parameters>& params,
+                    mqbs::JournalFileIterator&         journalFileIter,
+                    bslma::Allocator*                  allocator);
+    explicit SearchProcessor(const bsl::shared_ptr<Parameters>& params);
 
     ~SearchProcessor();
 
