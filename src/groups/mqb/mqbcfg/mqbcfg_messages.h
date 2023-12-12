@@ -4062,7 +4062,7 @@ class TcpInterfaceConfig {
     // heartbeatIntervalMs..: How often (in milliseconds) to check if the
     // channel received data, and emit heartbeat.  0 to globally disable.
     // useNtf...............: Use the new NTF based TCP transport library
-    // instead of the existing one based on BTE tls.................: Use TLS
+    // instead of the existing one based on BTE useTls...............: Use TLS
     // on this interface.
 
     // INSTANCE DATA
@@ -4076,7 +4076,7 @@ class TcpInterfaceConfig {
     int                d_maxConnections;
     int                d_heartbeatIntervalMs;
     bool               d_useNtf;
-    bool               d_tls;
+    bool               d_useTls;
 
   public:
     // TYPES
@@ -4091,7 +4091,7 @@ class TcpInterfaceConfig {
         ATTRIBUTE_ID_NODE_HIGH_WATERMARK   = 7,
         ATTRIBUTE_ID_HEARTBEAT_INTERVAL_MS = 8,
         ATTRIBUTE_ID_USE_NTF               = 9,
-        ATTRIBUTE_ID_TLS                   = 10
+        ATTRIBUTE_ID_USE_TLS               = 10
     };
 
     enum { NUM_ATTRIBUTES = 11 };
@@ -4107,7 +4107,7 @@ class TcpInterfaceConfig {
         ATTRIBUTE_INDEX_NODE_HIGH_WATERMARK   = 7,
         ATTRIBUTE_INDEX_HEARTBEAT_INTERVAL_MS = 8,
         ATTRIBUTE_INDEX_USE_NTF               = 9,
-        ATTRIBUTE_INDEX_TLS                   = 10
+        ATTRIBUTE_INDEX_USE_TLS               = 10
     };
 
     // CONSTANTS
@@ -4123,7 +4123,7 @@ class TcpInterfaceConfig {
 
     static const bool DEFAULT_INITIALIZER_USE_NTF;
 
-    static const bool DEFAULT_INITIALIZER_TLS;
+    static const bool DEFAULT_INITIALIZER_USE_TLS;
 
     static const bdlat_AttributeInfo ATTRIBUTE_INFO_ARRAY[];
 
@@ -4258,8 +4258,9 @@ class TcpInterfaceConfig {
     // Return a reference to the modifiable "UseNtf" attribute of this
     // object.
 
-    bool& tls();
-    // Return a reference to the modifiable "Tls" attribute of this object.
+    bool& useTls();
+    // Return a reference to the modifiable "UseTls" attribute of this
+    // object.
 
     // ACCESSORS
     bsl::ostream&
@@ -4337,8 +4338,8 @@ class TcpInterfaceConfig {
     bool useNtf() const;
     // Return the value of the "UseNtf" attribute of this object.
 
-    bool tls() const;
-    // Return the value of the "Tls" attribute of this object.
+    bool useTls() const;
+    // Return the value of the "UseTls" attribute of this object.
 };
 
 // FREE OPERATORS
@@ -4385,27 +4386,31 @@ class TlsConfig {
     // store.  certificate..........: A path to the FILE, containing the
     // certificate the broker will use to identify itself to other clients.
     // key..................: A path to the FILE, containing the private key
-    // that the broker uses to read the certificate.
+    // that the broker uses to read the certificate.  version..............:
+    // Protocol version.
 
     // INSTANCE DATA
     bsl::string d_certificateAuthority;
     bsl::string d_certificate;
     bsl::string d_key;
+    bsl::string d_version;
 
   public:
     // TYPES
     enum {
         ATTRIBUTE_ID_CERTIFICATE_AUTHORITY = 0,
         ATTRIBUTE_ID_CERTIFICATE           = 1,
-        ATTRIBUTE_ID_KEY                   = 2
+        ATTRIBUTE_ID_KEY                   = 2,
+        ATTRIBUTE_ID_VERSION               = 3
     };
 
-    enum { NUM_ATTRIBUTES = 3 };
+    enum { NUM_ATTRIBUTES = 4 };
 
     enum {
         ATTRIBUTE_INDEX_CERTIFICATE_AUTHORITY = 0,
         ATTRIBUTE_INDEX_CERTIFICATE           = 1,
-        ATTRIBUTE_INDEX_KEY                   = 2
+        ATTRIBUTE_INDEX_KEY                   = 2,
+        ATTRIBUTE_INDEX_VERSION               = 3
     };
 
     // CONSTANTS
@@ -4513,6 +4518,10 @@ class TlsConfig {
     bsl::string& key();
     // Return a reference to the modifiable "Key" attribute of this object.
 
+    bsl::string& version();
+    // Return a reference to the modifiable "Version" attribute of this
+    // object.
+
     // ACCESSORS
     bsl::ostream&
     print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
@@ -4566,6 +4575,10 @@ class TlsConfig {
 
     const bsl::string& key() const;
     // Return a reference offering non-modifiable access to the "Key"
+    // attribute of this object.
+
+    const bsl::string& version() const;
+    // Return a reference offering non-modifiable access to the "Version"
     // attribute of this object.
 };
 
@@ -8249,7 +8262,7 @@ class AppConfig {
     // configuration for the plugins msgPropertiesSupport.: information about
     // if/how to advertise support for v2 message properties
     // configureStream......: send new ConfigureStream instead of old
-    // ConfigureQueue tls..................: optional configuation for TLS
+    // ConfigureQueue tlsConfig............: optional configuation for TLS
 
     // INSTANCE DATA
     bsl::string                    d_brokerInstanceName;
@@ -8258,7 +8271,7 @@ class AppConfig {
     bsl::string                    d_hostTags;
     bsl::string                    d_hostDataCenter;
     bsl::string                    d_latencyMonitorDomain;
-    bdlb::NullableValue<TlsConfig> d_tls;
+    bdlb::NullableValue<TlsConfig> d_tlsConfig;
     StatsConfig                    d_stats;
     Plugins                        d_plugins;
     NetworkInterfaces              d_networkInterfaces;
@@ -8291,7 +8304,7 @@ class AppConfig {
         ATTRIBUTE_ID_PLUGINS                = 14,
         ATTRIBUTE_ID_MESSAGE_PROPERTIES_V2  = 15,
         ATTRIBUTE_ID_CONFIGURE_STREAM       = 16,
-        ATTRIBUTE_ID_TLS                    = 17
+        ATTRIBUTE_ID_TLS_CONFIG             = 17
     };
 
     enum { NUM_ATTRIBUTES = 18 };
@@ -8314,7 +8327,7 @@ class AppConfig {
         ATTRIBUTE_INDEX_PLUGINS                = 14,
         ATTRIBUTE_INDEX_MESSAGE_PROPERTIES_V2  = 15,
         ATTRIBUTE_INDEX_CONFIGURE_STREAM       = 16,
-        ATTRIBUTE_INDEX_TLS                    = 17
+        ATTRIBUTE_INDEX_TLS_CONFIG             = 17
     };
 
     // CONSTANTS
@@ -8483,8 +8496,9 @@ class AppConfig {
     // Return a reference to the modifiable "ConfigureStream" attribute of
     // this object.
 
-    bdlb::NullableValue<TlsConfig>& tls();
-    // Return a reference to the modifiable "Tls" attribute of this object.
+    bdlb::NullableValue<TlsConfig>& tlsConfig();
+    // Return a reference to the modifiable "TlsConfig" attribute of this
+    // object.
 
     // ACCESSORS
     bsl::ostream&
@@ -8593,8 +8607,8 @@ class AppConfig {
     bool configureStream() const;
     // Return the value of the "ConfigureStream" attribute of this object.
 
-    const bdlb::NullableValue<TlsConfig>& tls() const;
-    // Return a reference offering non-modifiable access to the "Tls"
+    const bdlb::NullableValue<TlsConfig>& tlsConfig() const;
+    // Return a reference offering non-modifiable access to the "TlsConfig"
     // attribute of this object.
 };
 
@@ -12570,7 +12584,8 @@ int TcpInterfaceConfig::manipulateAttributes(t_MANIPULATOR& manipulator)
         return ret;
     }
 
-    ret = manipulator(&d_tls, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_TLS]);
+    ret = manipulator(&d_useTls,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_USE_TLS]);
     if (ret) {
         return ret;
     }
@@ -12630,8 +12645,9 @@ int TcpInterfaceConfig::manipulateAttribute(t_MANIPULATOR& manipulator, int id)
         return manipulator(&d_useNtf,
                            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_USE_NTF]);
     }
-    case ATTRIBUTE_ID_TLS: {
-        return manipulator(&d_tls, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_TLS]);
+    case ATTRIBUTE_ID_USE_TLS: {
+        return manipulator(&d_useTls,
+                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_USE_TLS]);
     }
     default: return NOT_FOUND;
     }
@@ -12703,9 +12719,9 @@ inline bool& TcpInterfaceConfig::useNtf()
     return d_useNtf;
 }
 
-inline bool& TcpInterfaceConfig::tls()
+inline bool& TcpInterfaceConfig::useTls()
 {
-    return d_tls;
+    return d_useTls;
 }
 
 // ACCESSORS
@@ -12772,7 +12788,7 @@ int TcpInterfaceConfig::accessAttributes(t_ACCESSOR& accessor) const
         return ret;
     }
 
-    ret = accessor(d_tls, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_TLS]);
+    ret = accessor(d_useTls, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_USE_TLS]);
     if (ret) {
         return ret;
     }
@@ -12827,8 +12843,9 @@ int TcpInterfaceConfig::accessAttribute(t_ACCESSOR& accessor, int id) const
         return accessor(d_useNtf,
                         ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_USE_NTF]);
     }
-    case ATTRIBUTE_ID_TLS: {
-        return accessor(d_tls, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_TLS]);
+    case ATTRIBUTE_ID_USE_TLS: {
+        return accessor(d_useTls,
+                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_USE_TLS]);
     }
     default: return NOT_FOUND;
     }
@@ -12900,9 +12917,9 @@ inline bool TcpInterfaceConfig::useNtf() const
     return d_useNtf;
 }
 
-inline bool TcpInterfaceConfig::tls() const
+inline bool TcpInterfaceConfig::useTls() const
 {
-    return d_tls;
+    return d_useTls;
 }
 
 // ---------------
@@ -12934,6 +12951,12 @@ int TlsConfig::manipulateAttributes(t_MANIPULATOR& manipulator)
         return ret;
     }
 
+    ret = manipulator(&d_version,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_VERSION]);
+    if (ret) {
+        return ret;
+    }
+
     return 0;
 }
 
@@ -12954,6 +12977,10 @@ int TlsConfig::manipulateAttribute(t_MANIPULATOR& manipulator, int id)
     }
     case ATTRIBUTE_ID_KEY: {
         return manipulator(&d_key, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_KEY]);
+    }
+    case ATTRIBUTE_ID_VERSION: {
+        return manipulator(&d_version,
+                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_VERSION]);
     }
     default: return NOT_FOUND;
     }
@@ -12990,6 +13017,11 @@ inline bsl::string& TlsConfig::key()
     return d_key;
 }
 
+inline bsl::string& TlsConfig::version()
+{
+    return d_version;
+}
+
 // ACCESSORS
 template <typename t_ACCESSOR>
 int TlsConfig::accessAttributes(t_ACCESSOR& accessor) const
@@ -13014,6 +13046,11 @@ int TlsConfig::accessAttributes(t_ACCESSOR& accessor) const
         return ret;
     }
 
+    ret = accessor(d_version, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_VERSION]);
+    if (ret) {
+        return ret;
+    }
+
     return 0;
 }
 
@@ -13034,6 +13071,10 @@ int TlsConfig::accessAttribute(t_ACCESSOR& accessor, int id) const
     }
     case ATTRIBUTE_ID_KEY: {
         return accessor(d_key, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_KEY]);
+    }
+    case ATTRIBUTE_ID_VERSION: {
+        return accessor(d_version,
+                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_VERSION]);
     }
     default: return NOT_FOUND;
     }
@@ -13068,6 +13109,11 @@ inline const bsl::string& TlsConfig::certificate() const
 inline const bsl::string& TlsConfig::key() const
 {
     return d_key;
+}
+
+inline const bsl::string& TlsConfig::version() const
+{
+    return d_version;
 }
 
 // -------------------------------
@@ -16408,7 +16454,8 @@ int AppConfig::manipulateAttributes(t_MANIPULATOR& manipulator)
         return ret;
     }
 
-    ret = manipulator(&d_tls, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_TLS]);
+    ret = manipulator(&d_tlsConfig,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_TLS_CONFIG]);
     if (ret) {
         return ret;
     }
@@ -16502,8 +16549,9 @@ int AppConfig::manipulateAttribute(t_MANIPULATOR& manipulator, int id)
             &d_configureStream,
             ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CONFIGURE_STREAM]);
     }
-    case ATTRIBUTE_ID_TLS: {
-        return manipulator(&d_tls, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_TLS]);
+    case ATTRIBUTE_ID_TLS_CONFIG: {
+        return manipulator(&d_tlsConfig,
+                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_TLS_CONFIG]);
     }
     default: return NOT_FOUND;
     }
@@ -16610,9 +16658,9 @@ inline bool& AppConfig::configureStream()
     return d_configureStream;
 }
 
-inline bdlb::NullableValue<TlsConfig>& AppConfig::tls()
+inline bdlb::NullableValue<TlsConfig>& AppConfig::tlsConfig()
 {
-    return d_tls;
+    return d_tlsConfig;
 }
 
 // ACCESSORS
@@ -16723,7 +16771,8 @@ int AppConfig::accessAttributes(t_ACCESSOR& accessor) const
         return ret;
     }
 
-    ret = accessor(d_tls, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_TLS]);
+    ret = accessor(d_tlsConfig,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_TLS_CONFIG]);
     if (ret) {
         return ret;
     }
@@ -16813,8 +16862,9 @@ int AppConfig::accessAttribute(t_ACCESSOR& accessor, int id) const
             d_configureStream,
             ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CONFIGURE_STREAM]);
     }
-    case ATTRIBUTE_ID_TLS: {
-        return accessor(d_tls, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_TLS]);
+    case ATTRIBUTE_ID_TLS_CONFIG: {
+        return accessor(d_tlsConfig,
+                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_TLS_CONFIG]);
     }
     default: return NOT_FOUND;
     }
@@ -16921,9 +16971,9 @@ inline bool AppConfig::configureStream() const
     return d_configureStream;
 }
 
-inline const bdlb::NullableValue<TlsConfig>& AppConfig::tls() const
+inline const bdlb::NullableValue<TlsConfig>& AppConfig::tlsConfig() const
 {
-    return d_tls;
+    return d_tlsConfig;
 }
 
 // ------------------------
@@ -17846,7 +17896,7 @@ inline bool mqbcfg::operator==(const mqbcfg::TcpInterfaceConfig& lhs,
            lhs.nodeLowWatermark() == rhs.nodeLowWatermark() &&
            lhs.nodeHighWatermark() == rhs.nodeHighWatermark() &&
            lhs.heartbeatIntervalMs() == rhs.heartbeatIntervalMs() &&
-           lhs.useNtf() == rhs.useNtf() && lhs.tls() == rhs.tls();
+           lhs.useNtf() == rhs.useNtf() && lhs.useTls() == rhs.useTls();
 }
 
 inline bool mqbcfg::operator!=(const mqbcfg::TcpInterfaceConfig& lhs,
@@ -17876,14 +17926,15 @@ void mqbcfg::hashAppend(t_HASH_ALGORITHM&                 hashAlg,
     hashAppend(hashAlg, object.nodeHighWatermark());
     hashAppend(hashAlg, object.heartbeatIntervalMs());
     hashAppend(hashAlg, object.useNtf());
-    hashAppend(hashAlg, object.tls());
+    hashAppend(hashAlg, object.useTls());
 }
 
 inline bool mqbcfg::operator==(const mqbcfg::TlsConfig& lhs,
                                const mqbcfg::TlsConfig& rhs)
 {
     return lhs.certificateAuthority() == rhs.certificateAuthority() &&
-           lhs.certificate() == rhs.certificate() && lhs.key() == rhs.key();
+           lhs.certificate() == rhs.certificate() && lhs.key() == rhs.key() &&
+           lhs.version() == rhs.version();
 }
 
 inline bool mqbcfg::operator!=(const mqbcfg::TlsConfig& lhs,
@@ -17906,6 +17957,7 @@ void mqbcfg::hashAppend(t_HASH_ALGORITHM&        hashAlg,
     hashAppend(hashAlg, object.certificateAuthority());
     hashAppend(hashAlg, object.certificate());
     hashAppend(hashAlg, object.key());
+    hashAppend(hashAlg, object.version());
 }
 
 inline bool mqbcfg::operator==(const mqbcfg::VirtualClusterInformation& lhs,
@@ -18439,7 +18491,7 @@ inline bool mqbcfg::operator==(const mqbcfg::AppConfig& lhs,
            lhs.plugins() == rhs.plugins() &&
            lhs.messagePropertiesV2() == rhs.messagePropertiesV2() &&
            lhs.configureStream() == rhs.configureStream() &&
-           lhs.tls() == rhs.tls();
+           lhs.tlsConfig() == rhs.tlsConfig();
 }
 
 inline bool mqbcfg::operator!=(const mqbcfg::AppConfig& lhs,
@@ -18476,7 +18528,7 @@ void mqbcfg::hashAppend(t_HASH_ALGORITHM&        hashAlg,
     hashAppend(hashAlg, object.plugins());
     hashAppend(hashAlg, object.messagePropertiesV2());
     hashAppend(hashAlg, object.configureStream());
-    hashAppend(hashAlg, object.tls());
+    hashAppend(hashAlg, object.tlsConfig());
 }
 
 inline bool mqbcfg::operator==(const mqbcfg::ClustersDefinition& lhs,
@@ -18545,6 +18597,6 @@ void mqbcfg::hashAppend(t_HASH_ALGORITHM&            hashAlg,
 }  // close enterprise namespace
 #endif
 
-// GENERATED BY BLP_BAS_CODEGEN_2023.11.25
+// GENERATED BY BLP_BAS_CODEGEN_2023.12.02
 // USING bas_codegen.pl -m msg --noAggregateConversion --noExternalization
 // --noIdent --package mqbcfg --msgComponent messages mqbcfg.xsd

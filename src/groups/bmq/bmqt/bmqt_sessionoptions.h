@@ -307,6 +307,12 @@ class SessionOptions {
     /// The behavior is undefined unless `lowWatermark < highWatermark`.
     SessionOptions& configureEventQueue(int lowWatermark, int highWatermark);
 
+    /// Set the TLS certificate authority to the specified 'certificateAuthority'.
+    /// Set the TLS protocol version to the specified 'version'.
+    /// Return this SessionOptions object reference.
+    SessionOptions& setTlsDetails(const bslstl::StringRef& certificateAuthority,
+                                  const bslstl::StringRef& version);
+
     // ACCESSORS
 
     /// Get the broker URI.

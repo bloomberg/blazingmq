@@ -76,7 +76,7 @@
         plugins..............: configuration for the plugins
         msgPropertiesSupport.: information about if/how to advertise support for v2 message properties
         configureStream......: send new ConfigureStream instead of old ConfigureQueue
-        tls..................: optional configuation for TLS
+        tlsConfig............: optional configuation for TLS
       </documentation>
     </annotation>
     <sequence>
@@ -98,7 +98,7 @@
       <element name='plugins'              type='tns:Plugins'/>
       <element name='messagePropertiesV2'  type='tns:MessagePropertiesV2'/>
       <element name='configureStream'      type='boolean' default='false'/>
-      <element name="tls"                  type='tns:TlsConfig' minOccurs='0'/>
+      <element name="tlsConfig"            type='tns:TlsConfig' minOccurs='0'/>
     </sequence>
   </complexType>
 
@@ -244,7 +244,7 @@
         useNtf...............:
             Use the new NTF based TCP transport library instead of
             the existing one based on BTE
-         tls.................:
+        useTls...............:
             Use TLS on this interface.
       </documentation>
     </annotation>
@@ -259,7 +259,7 @@
       <element name='nodeHighWatermark'   type='long' default='2048'/>
       <element name='heartbeatIntervalMs' type='int' default='3000'/>
       <element name='useNtf'              type='boolean' default='false'/>
-      <element name='tls'                 type='boolean' default='false'/>
+      <element name='useTls'              type='boolean' default='false'/>
     </sequence>
   </complexType>
 
@@ -288,12 +288,15 @@
         key..................:
             A path to the FILE, containing the private key that the broker uses
             to read the certificate.
+        version..............:
+            Protocol version.
       </documentation>
     </annotation>
     <sequence>
       <element name='certificateAuthority' type='string'/>
       <element name='certificate'          type='string'/>
       <element name='key'                  type='string'/>
+      <element name='version'              type='string'/>
     </sequence>
   </complexType>
 
