@@ -13,6 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// m_bmqstoragetool_searchresult.cpp -*-C++-*-
+
 // bmqstoragetool
 #include <m_bmqstoragetool_searchresult.h>
 
@@ -25,9 +27,11 @@ namespace m_bmqstoragetool {
 
 SearchResult::SearchResult(bsl::ostream&     ostream,
                            bool              withDetails,
+                           Filters&          filters,
                            bslma::Allocator* allocator)
 : d_ostream(ostream)
 , d_withDetails(withDetails)
+, d_filters(filters)
 , d_foundMessagesCount()
 , d_totalMessagesCount()
 , d_allocator_p(bslma::Default::allocator(allocator))
@@ -38,9 +42,9 @@ SearchResult::SearchResult(bsl::ostream&     ostream,
 bool SearchResult::processMessageRecord(const mqbs::MessageRecord& record)
 {
     d_totalMessagesCount++;
-    d_foundMessagesCount++;
+    // d_foundMessagesCount++;
 
-    return false;
+    return d_filters.apply(record);
 }
 
 bool SearchResult::processConfirmRecord(const mqbs::ConfirmRecord& record)
@@ -93,19 +97,24 @@ void SearchResult::outputOutstandingRatio()
 
 SearchAllResult::SearchAllResult(bsl::ostream&     ostream,
                                  bool              withDetails,
+                                 Filters&          filters,
                                  bslma::Allocator* allocator)
-: SearchResult(ostream, withDetails, allocator)
+: SearchResult(ostream, withDetails, filters, allocator)
 {
     // NOTHING
 }
 
 bool SearchAllResult::processMessageRecord(const mqbs::MessageRecord& record)
 {
-    if (!d_withDetails) {
-        outputGuidString(record.messageGUID());
+    bool filterPassed = SearchResult::processMessageRecord(record);
+    if (filterPassed) {
+        if (!d_withDetails) {
+            outputGuidString(record.messageGUID());
+        }
+        d_foundMessagesCount++;
     }
 
-    return SearchResult::processMessageRecord(record);
+    return false;
 }
 
 // =====================
@@ -115,8 +124,9 @@ bool SearchAllResult::processMessageRecord(const mqbs::MessageRecord& record)
 SearchGuidResult::SearchGuidResult(bsl::ostream&                   ostream,
                                    bool                            withDetails,
                                    const bsl::vector<bsl::string>& guids,
+                                   Filters&                        filters,
                                    bslma::Allocator*               allocator)
-: SearchResult(ostream, withDetails, allocator)
+: SearchResult(ostream, withDetails, filters, allocator)
 , d_guidsMap(allocator)
 {
     // Build MessageGUID->StrGUID Map
@@ -148,8 +158,9 @@ bool SearchGuidResult::processMessageRecord(const mqbs::MessageRecord& record)
 
 SearchOutstandingResult::SearchOutstandingResult(bsl::ostream&     ostream,
                                                  bool              withDetails,
+                                                 Filters&          filters,
                                                  bslma::Allocator* allocator)
-: SearchResult(ostream, withDetails, allocator)
+: SearchResult(ostream, withDetails, filters, allocator)
 , d_outstandingGUIDS(allocator)
 {
     // NOTHING
@@ -158,11 +169,15 @@ SearchOutstandingResult::SearchOutstandingResult(bsl::ostream&     ostream,
 bool SearchOutstandingResult::processMessageRecord(
     const mqbs::MessageRecord& record)
 {
-    if (!d_withDetails) {
-        d_outstandingGUIDS.push_back(record.messageGUID());
+    bool filterPassed = SearchResult::processMessageRecord(record);
+    if (filterPassed) {
+        if (!d_withDetails) {
+            d_outstandingGUIDS.push_back(record.messageGUID());
+        }
+        d_foundMessagesCount++;
     }
 
-    return SearchResult::processMessageRecord(record);
+    return false;
 }
 
 bool SearchOutstandingResult::processDeletionRecord(
@@ -198,8 +213,9 @@ void SearchOutstandingResult::outputResult()
 
 SearchConfirmedResult::SearchConfirmedResult(bsl::ostream&     ostream,
                                              bool              withDetails,
+                                             Filters&          filters,
                                              bslma::Allocator* allocator)
-: SearchResult(ostream, withDetails, allocator)
+: SearchResult(ostream, withDetails, filters, allocator)
 , d_messageGUIDS(allocator)
 {
     // NOTHING
@@ -208,10 +224,12 @@ SearchConfirmedResult::SearchConfirmedResult(bsl::ostream&     ostream,
 bool SearchConfirmedResult::processMessageRecord(
     const mqbs::MessageRecord& record)
 {
-    if (!d_withDetails) {
-        d_messageGUIDS.push_back(record.messageGUID());
+    bool filterPassed = SearchResult::processMessageRecord(record);
+    if (filterPassed) {
+        if (!d_withDetails) {
+            d_messageGUIDS.push_back(record.messageGUID());
+        }
     }
-    d_totalMessagesCount++;
 
     return false;
 }
@@ -249,8 +267,9 @@ void SearchConfirmedResult::outputResult()
 SearchPartiallyConfirmedResult::SearchPartiallyConfirmedResult(
     bsl::ostream&     ostream,
     bool              withDetails,
+    Filters&          filters,
     bslma::Allocator* allocator)
-: SearchResult(ostream, withDetails, allocator)
+: SearchResult(ostream, withDetails, filters, allocator)
 , d_partiallyConfirmedGUIDS(allocator)
 {
     // NOTHING
@@ -259,10 +278,12 @@ SearchPartiallyConfirmedResult::SearchPartiallyConfirmedResult(
 bool SearchPartiallyConfirmedResult::processMessageRecord(
     const mqbs::MessageRecord& record)
 {
-    if (!d_withDetails) {
-        d_partiallyConfirmedGUIDS[record.messageGUID()] = 0;
+    bool filterPassed = SearchResult::processMessageRecord(record);
+    if (filterPassed) {
+        if (!d_withDetails) {
+            d_partiallyConfirmedGUIDS[record.messageGUID()] = 0;
+        }
     }
-    d_totalMessagesCount++;
 
     return false;
 }

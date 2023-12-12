@@ -13,6 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// m_bmqstoragetool_searchprocessor.cpp -*-C++-*-
+
 // bmqstoragetool
 #include <m_bmqstoragetool_searchprocessor.h>
 #include <m_bmqstoragetool_searchresult.h>
@@ -37,58 +39,6 @@
 namespace BloombergLP {
 namespace m_bmqstoragetool {
 
-namespace {
-
-// TODO: remove
-template <typename ITER>
-bool resetIterator(mqbs::MappedFileDescriptor* mfd,
-                   ITER*                       iter,
-                   const char*                 filename,
-                   bsl::ostream&               errorDescription)
-{
-    if (!bdls::FilesystemUtil::isRegularFile(filename)) {
-        errorDescription << "File [" << filename << "] is not a regular file.";
-        return false;  // RETURN
-    }
-
-    // 1) Open
-    mwcu::MemOutStream errorDesc;
-    int                rc = mqbs::FileSystemUtil::open(
-        mfd,
-        filename,
-        bdls::FilesystemUtil::getFileSize(filename),
-        true,  // read only
-        errorDesc);
-    if (0 != rc) {
-        errorDescription << "Failed to open file [" << filename
-                         << "] rc: " << rc << ", error: " << errorDesc.str();
-        return false;  // RETURN
-    }
-
-    // 2) Basic sanity check
-    rc = mqbs::FileStoreProtocolUtil::hasBmqHeader(*mfd);
-    if (0 != rc) {
-        errorDescription << "Missing BlazingMQ header from file [" << filename
-                         << "] rc: " << rc;
-        mqbs::FileSystemUtil::close(mfd);
-        return false;  // RETURN
-    }
-
-    // 3) Load iterator and check
-    rc = iter->reset(mfd, mqbs::FileStoreProtocolUtil::bmqHeader(*mfd));
-    if (0 != rc) {
-        errorDescription << "Failed to create iterator for file [" << filename
-                         << "] rc: " << rc;
-        mqbs::FileSystemUtil::close(mfd);
-        return false;  // RETURN
-    }
-
-    BSLS_ASSERT_OPT(iter->isValid());
-    return true;  // RETURN
-}
-
-}  // close unnamed namespace
-
 // =====================
 // class SearchProcessor
 // =====================
@@ -105,6 +55,10 @@ SearchProcessor::SearchProcessor(const bsl::shared_ptr<Parameters>& params,
 
 void SearchProcessor::process(bsl::ostream& ostream)
 {
+    Filters filters(d_parameters->queueKey(),
+                    d_parameters->queueName(),
+                    d_allocator_p);
+
     // TODO: why unique_ptr doesn't support deleter in reset()
     // bsl::unique_ptr<SearchResult> searchResult_p;
     bsl::shared_ptr<SearchResult> searchResult_p;
@@ -113,6 +67,7 @@ void SearchProcessor::process(bsl::ostream& ostream)
                                  SearchGuidResult(ostream,
                                                   d_parameters->details(),
                                                   d_parameters->guid(),
+                                                  filters,
                                                   d_allocator_p),
                              d_allocator_p);
     }
@@ -120,6 +75,7 @@ void SearchProcessor::process(bsl::ostream& ostream)
         searchResult_p.reset(new (*d_allocator_p) SearchOutstandingResult(
                                  ostream,
                                  d_parameters->details(),
+                                 filters,
                                  d_allocator_p),
                              d_allocator_p);
     }
@@ -127,6 +83,7 @@ void SearchProcessor::process(bsl::ostream& ostream)
         searchResult_p.reset(new (*d_allocator_p)
                                  SearchConfirmedResult(ostream,
                                                        d_parameters->details(),
+                                                       filters,
                                                        d_allocator_p),
                              d_allocator_p);
     }
@@ -135,6 +92,7 @@ void SearchProcessor::process(bsl::ostream& ostream)
             new (*d_allocator_p)
                 SearchPartiallyConfirmedResult(ostream,
                                                d_parameters->details(),
+                                               filters,
                                                d_allocator_p),
             d_allocator_p);
     }
@@ -142,6 +100,7 @@ void SearchProcessor::process(bsl::ostream& ostream)
         searchResult_p.reset(new (*d_allocator_p)
                                  SearchAllResult(ostream,
                                                  d_parameters->details(),
+                                                 filters,
                                                  d_allocator_p),
                              d_allocator_p);
     }
@@ -164,8 +123,8 @@ void SearchProcessor::process(bsl::ostream& ostream)
         }
         // MessageRecord
         else if (iter->recordType() == mqbs::RecordType::e_MESSAGE) {
-            const mqbs::MessageRecord& message = iter->asMessageRecord();
-            stopSearch = searchResult_p->processMessageRecord(message);
+            const mqbs::MessageRecord& record = iter->asMessageRecord();
+            stopSearch = searchResult_p->processMessageRecord(record);
         }
         // ConfirmRecord
         else if (iter->recordType() == mqbs::RecordType::e_CONFIRM) {

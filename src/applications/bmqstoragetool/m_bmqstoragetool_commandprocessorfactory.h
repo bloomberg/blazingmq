@@ -13,6 +13,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// m_bmqstoragetool_commandprocessorfactory.h -*-C++-*-
+#ifndef INCLUDED_M_BMQSTORAGETOOL_COMMANDPROCESSORFACTORY
+#define INCLUDED_M_BMQSTORAGETOOL_COMMANDPROCESSORFACTORY
+
 // bmqstoragetool
 #include <m_bmqstoragetool_parameters.h>
 #include <m_bmqstoragetool_searchprocessor.h>
@@ -36,3 +40,5 @@ class CommandProcessorFactory {
 
 }  // close package namespace
 }  // close enterprise namespace
+
+#endif

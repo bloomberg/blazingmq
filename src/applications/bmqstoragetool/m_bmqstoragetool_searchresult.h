@@ -13,8 +13,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// m_bmqstoragetool_searchresult.h -*-C++-*-
+#ifndef INCLUDED_M_BMQSTORAGETOOL_SEARCHRESULT
+#define INCLUDED_M_BMQSTORAGETOOL_SEARCHRESULT
+
 // bmqstoragetool
 // #include <m_bmqstoragetool_searchprocessor.h>
+
+#include <m_bmqstoragetool_filters.h>
 
 // BDE
 #include <bsl_iostream.h>
@@ -40,6 +46,7 @@ class SearchResult {
     // DATA
     bsl::ostream&     d_ostream;
     bool              d_withDetails;
+    Filters&          d_filters;
     bsl::size_t       d_totalMessagesCount;
     bsl::size_t       d_foundMessagesCount;
     bslma::Allocator* d_allocator_p;
@@ -48,6 +55,7 @@ class SearchResult {
     // CREATORS
     explicit SearchResult(bsl::ostream&     ostream,
                           bool              withDetails,
+                          Filters&          filters,
                           bslma::Allocator* allocator);
     virtual ~SearchResult() = default;
 
@@ -70,6 +78,7 @@ class SearchAllResult : public SearchResult {
     // CREATORS
     explicit SearchAllResult(bsl::ostream&     ostream,
                              bool              withDetails,
+                             Filters&          filters,
                              bslma::Allocator* allocator);
 
     // MANIPULATORS
@@ -89,6 +98,7 @@ class SearchGuidResult : public SearchResult {
     explicit SearchGuidResult(bsl::ostream&                   ostream,
                               bool                            withDetails,
                               const bsl::vector<bsl::string>& guids,
+                              Filters&                        filters,
                               bslma::Allocator*               allocator);
 
     // MANIPULATORS
@@ -108,6 +118,7 @@ class SearchOutstandingResult : public SearchResult {
     // CREATORS
     explicit SearchOutstandingResult(bsl::ostream&     ostream,
                                      bool              withDetails,
+                                     Filters&          filters,
                                      bslma::Allocator* allocator);
 
     // MANIPULATORS
@@ -130,6 +141,7 @@ class SearchConfirmedResult : public SearchResult {
     // CREATORS
     explicit SearchConfirmedResult(bsl::ostream&     ostream,
                                    bool              withDetails,
+                                   Filters&          filters,
                                    bslma::Allocator* allocator);
 
     // MANIPULATORS
@@ -152,6 +164,7 @@ class SearchPartiallyConfirmedResult : public SearchResult {
     // CREATORS
     explicit SearchPartiallyConfirmedResult(bsl::ostream&     ostream,
                                             bool              withDetails,
+                                            Filters&          filters,
                                             bslma::Allocator* allocator);
 
     // MANIPULATORS
@@ -166,3 +179,5 @@ class SearchPartiallyConfirmedResult : public SearchResult {
 
 }  // close package namespace
 }  // close enterprise namespace
+
+#endif

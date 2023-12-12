@@ -13,42 +13,37 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// m_bmqstoragetool_commandprocessor.h -*-C++-*-
-#ifndef INCLUDED_M_BMQSTORAGETOOL_COMMANDPROCESSOR
-#define INCLUDED_M_BMQSTORAGETOOL_COMMANDPROCESSOR
+// m_bmqstoragetool_filters.h                                       -*-C++-*-
+#ifndef INCLUDED_M_BMQSTORAGETOOL_FILTERS
+#define INCLUDED_M_BMQSTORAGETOOL_FILTERS
 
-// bmqstoragetool
 #include <m_bmqstoragetool_parameters.h>
 
-// BDE
-#include <bsl_ostream.h>
+// MQB
+#include <mqbu_storagekey.h>
 
 namespace BloombergLP {
 namespace m_bmqstoragetool {
 
-// ======================
-// class CommandProcessor
-// ======================
+// =====================
+// class Filters
+// =====================
 
-class CommandProcessor {
-  protected:
-    /// PRIVATE DATA
-    const bsl::shared_ptr<Parameters> d_parameters;
+class Filters {
+  private:
+    // DATA
+    bsl::vector<mqbu::StorageKey> d_queueKeys;
 
   public:
-    /// CREATORS
-    explicit CommandProcessor(const bsl::shared_ptr<Parameters>& params);
+    // CREATORS
+    explicit Filters(const bsl::vector<bsl::string>& queueHexKeys,
+                     const bsl::vector<bsl::string>& queueURIS,
+                     bslma::Allocator*               allocator);
 
-    virtual ~CommandProcessor() = default;
-
-    virtual void process(bsl::ostream& ostream) = 0;
+    // MANIPULATORS
+    bool apply(const mqbs::MessageRecord& record);
+    // Apply filters and return true if filter matched, false otherwise.
 };
-
-inline CommandProcessor::CommandProcessor(
-    const bsl::shared_ptr<Parameters>& params)
-: d_parameters(params)
-{
-}
 
 }  // close package namespace
 }  // close enterprise namespace

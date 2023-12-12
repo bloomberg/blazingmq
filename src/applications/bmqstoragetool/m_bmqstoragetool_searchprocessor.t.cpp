@@ -420,6 +420,117 @@ bsl::vector<bmqt::MessageGUID> addJournalRecordsWithPartiallyConfirmedMessages(
     return expectedGUIDs;
 }
 
+// Generate sequence of MessageRecord, ConfirmRecord and DeleteRecord records.
+// MessageRecord ConfirmRecord and DeletionRecord records have the same GUID.
+// queueKey1 is used for even records, queueKey1 for odd ones.
+// Returns GUIDs with queueKey1.
+bsl::vector<bmqt::MessageGUID>
+addJournalRecordsWithTwoQueueKeys(MemoryBlock*         block,
+                                  FileHeader*          fileHeader,
+                                  bsls::Types::Uint64* lastRecordPos,
+                                  bsls::Types::Uint64* lastSyncPtPos,
+                                  RecordsListType*     records,
+                                  unsigned int         numRecords,
+                                  const char*          queueKey1,
+                                  const char*          queueKey2)
+{
+    bsls::Types::Uint64 currPos = 0;
+
+    OffsetPtr<FileHeader> fh(*block, currPos);
+    new (fh.get()) FileHeader();
+    *fileHeader = *fh;
+    currPos += sizeof(FileHeader);
+
+    OffsetPtr<JournalFileHeader> jfh(*block, currPos);
+    new (jfh.get()) JournalFileHeader();  // Default values are ok
+    currPos += sizeof(JournalFileHeader);
+
+    bool                           partialyConfirmedFlag = false;
+    bmqt::MessageGUID              lastMessageGUID;
+    bsl::vector<bmqt::MessageGUID> expectedGUIDs;
+
+    for (unsigned int i = 1; i <= numRecords; ++i) {
+        *lastRecordPos = currPos;
+
+        const char* queueKey = (i % 2 != 0) ? queueKey1 : queueKey2;
+
+        unsigned int remainder = i % 3;
+        if (1 == remainder) {
+            mqbu::MessageGUIDUtil::generateGUID(&lastMessageGUID);
+            if (queueKey == queueKey1) {
+                expectedGUIDs.push_back(lastMessageGUID);
+            }
+            OffsetPtr<MessageRecord> rec(*block, currPos);
+            new (rec.get()) MessageRecord();
+            rec->header().setPrimaryLeaseId(100).setSequenceNumber(i);
+            rec->setRefCount(i % FileStoreProtocol::k_MAX_MSG_REF_COUNT_HARD)
+                .setQueueKey(
+                    mqbu::StorageKey(mqbu::StorageKey::HexRepresentation(),
+                                     queueKey))
+                .setFileKey(
+                    mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
+                                     "12345"))
+                .setMessageOffsetDwords(i)
+                .setMessageGUID(lastMessageGUID)
+                .setCrc32c(i)
+                .setCompressionAlgorithmType(
+                    bmqt::CompressionAlgorithmType::e_NONE)
+                .setMagic(RecordHeader::k_MAGIC);
+
+            RecordBufferType buf;
+            bsl::memcpy(buf.buffer(),
+                        rec.get(),
+                        FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
+            records->push_back(bsl::make_pair(RecordType::e_MESSAGE, buf));
+        }
+        else if (2 == remainder) {
+            // ConfRec
+            bmqt::MessageGUID        g = lastMessageGUID;
+            OffsetPtr<ConfirmRecord> rec(*block, currPos);
+            new (rec.get()) ConfirmRecord();
+            rec->header().setPrimaryLeaseId(100).setSequenceNumber(i);
+            rec->setReason(ConfirmReason::e_REJECTED)
+                .setQueueKey(
+                    mqbu::StorageKey(mqbu::StorageKey::HexRepresentation(),
+                                     queueKey))
+                .setAppKey(
+                    mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
+                                     "appid"))
+                .setMessageGUID(g)
+                .setMagic(RecordHeader::k_MAGIC);
+
+            RecordBufferType buf;
+            bsl::memcpy(buf.buffer(),
+                        rec.get(),
+                        FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
+            records->push_back(bsl::make_pair(RecordType::e_CONFIRM, buf));
+        }
+        else {
+            // DelRec
+            bmqt::MessageGUID         g = lastMessageGUID;
+            OffsetPtr<DeletionRecord> rec(*block, currPos);
+            new (rec.get()) DeletionRecord();
+            rec->header().setPrimaryLeaseId(100).setSequenceNumber(i);
+            rec->setDeletionRecordFlag(DeletionRecordFlag::e_IMPLICIT_CONFIRM)
+                .setQueueKey(
+                    mqbu::StorageKey(mqbu::StorageKey::HexRepresentation(),
+                                     queueKey))
+                .setMessageGUID(g)
+                .setMagic(RecordHeader::k_MAGIC);
+
+            RecordBufferType buf;
+            bsl::memcpy(buf.buffer(),
+                        rec.get(),
+                        FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
+            records->push_back(bsl::make_pair(RecordType::e_DELETION, buf));
+        }
+
+        currPos += FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
+    }
+
+    return expectedGUIDs;
+}
+
 bsls::Types::Uint64 memoryBufferSize(size_t numRecords)
 {
     return sizeof(FileHeader) + sizeof(JournalFileHeader) +
@@ -872,7 +983,7 @@ static void test6_searchPartiallyConfirmedMessagesTest()
 // SEARCH PARTIALLY CONFIRMED MESSAGES TEST
 //
 // Concerns:
-//   Search partially confirmed (at least one confirm) messages  in journal
+//   Search partially confirmed (at least one confirm) messages in journal
 //   file and output GUIDs.
 //
 // Testing:
@@ -943,6 +1054,81 @@ static void test6_searchPartiallyConfirmedMessagesTest()
     s_allocator_p->deallocate(p);
 }
 
+static void test7_searchMessagesByQueueKeyTest()
+// ------------------------------------------------------------------------
+// SEARCH MESSAGES BY QUEUE KEY TEST
+//
+// Concerns:
+//   Search messages by queueKwy in journal
+//   file and output GUIDs.
+//
+// Testing:
+//   SearchProcessor::process()
+// ------------------------------------------------------------------------
+{
+    mwctst::TestHelper::printTestName("SEARCH MESSAGES BY QUEUE KEY TEST");
+
+    // Simulate journal file
+    unsigned int numRecords = 15;
+
+    bsls::Types::Uint64 totalSize =
+        sizeof(FileHeader) + sizeof(JournalFileHeader) +
+        numRecords * FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
+
+    char*       p = static_cast<char*>(s_allocator_p->allocate(totalSize));
+    MemoryBlock block(p, totalSize);
+    FileHeader  fileHeader;
+    bsls::Types::Uint64 lastRecordPos = 0;
+    bsls::Types::Uint64 lastSyncPtPos = 0;
+
+    RecordsListType records(s_allocator_p);
+
+    const char* queueKey1 = "ABCDE12345";
+    const char* queueKey2 = "12345ABCDE";
+
+    bsl::vector<bmqt::MessageGUID> queueKey1GUIDS =
+        addJournalRecordsWithTwoQueueKeys(&block,
+                                          &fileHeader,
+                                          &lastRecordPos,
+                                          &lastSyncPtPos,
+                                          &records,
+                                          numRecords,
+                                          queueKey1,
+                                          queueKey2);
+
+    // Create JournalFileIterator
+    MappedFileDescriptor mfd;
+    mfd.setFd(-1);  // invalid fd will suffice.
+    mfd.setBlock(block);
+    mfd.setFileSize(totalSize);
+    JournalFileIterator it(&mfd, fileHeader, false);
+
+    // Configure parameters to search messages by queueKey1
+    CommandLineArguments arguments;
+    arguments.d_queueKey.push_back(queueKey1);
+    bsl::unique_ptr<Parameters> params =
+        bsl::make_unique<Parameters>(arguments, s_allocator_p);
+    params->journalFile()->setIterator(&it);
+
+    auto searchProcessor = SearchProcessor(bsl::move(params), s_allocator_p);
+
+    bsl::ostringstream resultStream(s_allocator_p);
+    searchProcessor.process(resultStream);
+
+    // Prepare expected output
+    bsl::ostringstream expectedStream(s_allocator_p);
+    for (const auto& guid : queueKey1GUIDS) {
+        outputGuidString(expectedStream, guid);
+    }
+    expectedStream << queueKey1GUIDS.size() << " message GUID(s) found."
+                   << bsl::endl;
+
+    // TODO: fix ordering issue (sporadic fail)
+    ASSERT_EQ(resultStream.str(), expectedStream.str());
+
+    s_allocator_p->deallocate(p);
+}
+
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
@@ -959,6 +1145,7 @@ int main(int argc, char* argv[])
     case 4: test4_searchOutstandingMessagesTest(); break;
     case 5: test5_searchConfirmedMessagesTest(); break;
     case 6: test6_searchPartiallyConfirmedMessagesTest(); break;
+    case 7: test7_searchMessagesByQueueKeyTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
         s_testStatus = -1;

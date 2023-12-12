@@ -13,6 +13,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// m_bmqstoragetool_searchprocessor.h -*-C++-*-
+#ifndef INCLUDED_M_BMQSTORAGETOOL_SEARCHPROCESSOR
+#define INCLUDED_M_BMQSTORAGETOOL_SEARCHPROCESSOR
+
 // bmqstoragetool
 #include <m_bmqstoragetool_commandprocessor.h>
 
@@ -21,7 +25,6 @@
 #include <mqbs_filestoreprotocol.h>
 #include <mqbs_journalfileiterator.h>
 #include <mqbs_mappedfiledescriptor.h>
-// #include <mqbu_storagekey.h>
 
 // BDE
 #include <bsls_keyword.h>
@@ -51,3 +54,5 @@ class SearchProcessor : public CommandProcessor {
 
 }  // close package namespace
 }  // close enterprise namespace
+
+#endif
