@@ -9,3 +9,4 @@ CMakeUserPresets.json
 /.vscode/
 /include/
 /lib/
+**/__pycache__/

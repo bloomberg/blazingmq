@@ -1,0 +1,7 @@
+pytest
+pytest-order
+pytest-repeat
+pytest-rerunfailures
+pytest-xdist
+termcolor
+xsdata
