@@ -110,6 +110,7 @@
       <element name="storageContent"        type="tns:StorageContent"/>
       <element name="clusterStorageSummary" type="tns:ClusterStorageSummary"/>
       <element name="replicationResult"     type="tns:ReplicationResult"/>
+      <element name="purgedQueues"          type="tns:PurgedQueues"/>
     </choice>
   </complexType>
 
@@ -247,6 +248,7 @@
       <element name="summary"     type="tns:Void"/>
       <element name="partition"   type="tns:StoragePartition"/>
       <element name="domain"      type="tns:StorageDomain"/>
+      <element name="queue"       type="tns:StorageQueue"/>
       <element name="replication" type="tns:ReplicationCommand"/>
     </choice>
   </complexType>
@@ -752,6 +754,13 @@
     </sequence>
   </complexType>
 
+  <complexType name="StorageQueue">
+    <sequence>
+      <element name="uri"    type="xs:string"/>
+      <element name="command" type="tns:StorageQueueCommand"/>
+    </sequence>
+  </complexType>
+
   <complexType name="ElectorCommand">
     <choice>
       <element name="setTunable"   type="tns:SetTunable"/>
@@ -972,6 +981,13 @@
   <complexType name="StorageDomainCommand">
     <choice>
       <element name="queueStatus" type="tns:Void"/>
+      <element name="purge"       type="tns:Void"/>
+    </choice>
+  </complexType>
+
+  <complexType name="StorageQueueCommand">
+    <choice>
+      <element name="purge" type="tns:Void"/>
     </choice>
   </complexType>
 
