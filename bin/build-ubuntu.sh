@@ -118,7 +118,11 @@ fi
 if [ ! -e "${DIR_BUILD}/ntf/.complete" ]; then
     # Build and install NTF
     pushd "${DIR_THIRDPARTY}/ntf-core"
-    ./configure --prefix "${DIR_INSTALL}" --output "${DIR_BUILD}/ntf"
+    ./configure --prefix "${DIR_INSTALL}" \
+                --output "${DIR_BUILD}/ntf" \
+                --without-warnings-as-errors \
+                --without-usage-examples \
+                --without-applications
     make -j 16
     make install
     popd
