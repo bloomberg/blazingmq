@@ -8009,6 +8009,8 @@ class AppConfig {
     // bmqconfConfig........: configuration for bmqconf plugins..............:
     // configuration for the plugins msgPropertiesSupport.: information about
     // if/how to advertise support for v2 message properties
+    // configureStream......: send new ConfigureStream instead of old
+    // ConfigureQueue/>
 
     // INSTANCE DATA
     bsl::string         d_brokerInstanceName;
@@ -8027,6 +8029,7 @@ class AppConfig {
     int                 d_configVersion;
     int                 d_logsObserverMaxSize;
     bool                d_isRunningOnDev;
+    bool                d_configureStream;
 
   public:
     // TYPES
@@ -8046,10 +8049,11 @@ class AppConfig {
         ATTRIBUTE_ID_NETWORK_INTERFACES     = 12,
         ATTRIBUTE_ID_BMQCONF_CONFIG         = 13,
         ATTRIBUTE_ID_PLUGINS                = 14,
-        ATTRIBUTE_ID_MESSAGE_PROPERTIES_V2  = 15
+        ATTRIBUTE_ID_MESSAGE_PROPERTIES_V2  = 15,
+        ATTRIBUTE_ID_CONFIGURE_STREAM       = 16
     };
 
-    enum { NUM_ATTRIBUTES = 16 };
+    enum { NUM_ATTRIBUTES = 17 };
 
     enum {
         ATTRIBUTE_INDEX_BROKER_INSTANCE_NAME   = 0,
@@ -8067,13 +8071,16 @@ class AppConfig {
         ATTRIBUTE_INDEX_NETWORK_INTERFACES     = 12,
         ATTRIBUTE_INDEX_BMQCONF_CONFIG         = 13,
         ATTRIBUTE_INDEX_PLUGINS                = 14,
-        ATTRIBUTE_INDEX_MESSAGE_PROPERTIES_V2  = 15
+        ATTRIBUTE_INDEX_MESSAGE_PROPERTIES_V2  = 15,
+        ATTRIBUTE_INDEX_CONFIGURE_STREAM       = 16
     };
 
     // CONSTANTS
     static const char CLASS_NAME[];
 
     static const char DEFAULT_INITIALIZER_LATENCY_MONITOR_DOMAIN[];
+
+    static const bool DEFAULT_INITIALIZER_CONFIGURE_STREAM;
 
     static const bdlat_AttributeInfo ATTRIBUTE_INFO_ARRAY[];
 
@@ -8230,6 +8237,10 @@ class AppConfig {
     // Return a reference to the modifiable "MessagePropertiesV2" attribute
     // of this object.
 
+    bool& configureStream();
+    // Return a reference to the modifiable "ConfigureStream" attribute of
+    // this object.
+
     // ACCESSORS
     bsl::ostream&
     print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
@@ -8333,6 +8344,9 @@ class AppConfig {
     const MessagePropertiesV2& messagePropertiesV2() const;
     // Return a reference offering non-modifiable access to the
     // "MessagePropertiesV2" attribute of this object.
+
+    bool configureStream() const;
+    // Return the value of the "ConfigureStream" attribute of this object.
 };
 
 // FREE OPERATORS
@@ -15948,6 +15962,12 @@ int AppConfig::manipulateAttributes(t_MANIPULATOR& manipulator)
         return ret;
     }
 
+    ret = manipulator(&d_configureStream,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CONFIGURE_STREAM]);
+    if (ret) {
+        return ret;
+    }
+
     return 0;
 }
 
@@ -16031,6 +16051,11 @@ int AppConfig::manipulateAttribute(t_MANIPULATOR& manipulator, int id)
         return manipulator(
             &d_messagePropertiesV2,
             ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MESSAGE_PROPERTIES_V2]);
+    }
+    case ATTRIBUTE_ID_CONFIGURE_STREAM: {
+        return manipulator(
+            &d_configureStream,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CONFIGURE_STREAM]);
     }
     default: return NOT_FOUND;
     }
@@ -16130,6 +16155,11 @@ inline Plugins& AppConfig::plugins()
 inline MessagePropertiesV2& AppConfig::messagePropertiesV2()
 {
     return d_messagePropertiesV2;
+}
+
+inline bool& AppConfig::configureStream()
+{
+    return d_configureStream;
 }
 
 // ACCESSORS
@@ -16234,6 +16264,12 @@ int AppConfig::accessAttributes(t_ACCESSOR& accessor) const
         return ret;
     }
 
+    ret = accessor(d_configureStream,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CONFIGURE_STREAM]);
+    if (ret) {
+        return ret;
+    }
+
     return 0;
 }
 
@@ -16313,6 +16349,11 @@ int AppConfig::accessAttribute(t_ACCESSOR& accessor, int id) const
         return accessor(
             d_messagePropertiesV2,
             ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MESSAGE_PROPERTIES_V2]);
+    }
+    case ATTRIBUTE_ID_CONFIGURE_STREAM: {
+        return accessor(
+            d_configureStream,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CONFIGURE_STREAM]);
     }
     default: return NOT_FOUND;
     }
@@ -16412,6 +16453,11 @@ inline const Plugins& AppConfig::plugins() const
 inline const MessagePropertiesV2& AppConfig::messagePropertiesV2() const
 {
     return d_messagePropertiesV2;
+}
+
+inline bool AppConfig::configureStream() const
+{
+    return d_configureStream;
 }
 
 // ------------------------
@@ -17895,7 +17941,8 @@ inline bool mqbcfg::operator==(const mqbcfg::AppConfig& lhs,
            lhs.networkInterfaces() == rhs.networkInterfaces() &&
            lhs.bmqconfConfig() == rhs.bmqconfConfig() &&
            lhs.plugins() == rhs.plugins() &&
-           lhs.messagePropertiesV2() == rhs.messagePropertiesV2();
+           lhs.messagePropertiesV2() == rhs.messagePropertiesV2() &&
+           lhs.configureStream() == rhs.configureStream();
 }
 
 inline bool mqbcfg::operator!=(const mqbcfg::AppConfig& lhs,
@@ -17931,6 +17978,7 @@ void mqbcfg::hashAppend(t_HASH_ALGORITHM&        hashAlg,
     hashAppend(hashAlg, object.bmqconfConfig());
     hashAppend(hashAlg, object.plugins());
     hashAppend(hashAlg, object.messagePropertiesV2());
+    hashAppend(hashAlg, object.configureStream());
 }
 
 inline bool mqbcfg::operator==(const mqbcfg::ClustersDefinition& lhs,
@@ -17999,7 +18047,7 @@ void mqbcfg::hashAppend(t_HASH_ALGORITHM&            hashAlg,
 }  // close enterprise namespace
 #endif
 
-// GENERATED BY BLP_BAS_CODEGEN_2023.10.25
+// GENERATED BY BLP_BAS_CODEGEN_2023.10.07
 // USING bas_codegen.pl -m msg --noAggregateConversion --noExternalization
 // --noIdent --package mqbcfg --msgComponent messages mqbcfg.xsd
 // ----------------------------------------------------------------------------

@@ -1,12 +1,14 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="./">
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>API Reference &mdash; blazingmq 1.2.0 documentation</title>
-      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+
+  
   <!--[if lt IE 9]>
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
@@ -61,8 +63,11 @@
 <li class="toctree-l4"><a class="reference internal" href="#blazingmq.Session.open_queue"><code class="docutils literal notranslate"><span class="pre">Session.open_queue()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#blazingmq.Session.post"><code class="docutils literal notranslate"><span class="pre">Session.post()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#blazingmq.Session.stop"><code class="docutils literal notranslate"><span class="pre">Session.stop()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#blazingmq.Session.with_options"><code class="docutils literal notranslate"><span class="pre">Session.with_options()</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="#blazingmq.Timeouts"><code class="docutils literal notranslate"><span class="pre">Timeouts</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#blazingmq.SessionOptions"><code class="docutils literal notranslate"><span class="pre">SessionOptions</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#blazingmq.QueueOptions"><code class="docutils literal notranslate"><span class="pre">QueueOptions</span></code></a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#blazingmq.QueueOptions.DEFAULT_MAX_UNCONFIRMED_MESSAGES"><code class="docutils literal notranslate"><span class="pre">QueueOptions.DEFAULT_MAX_UNCONFIRMED_MESSAGES</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#blazingmq.QueueOptions.DEFAULT_MAX_UNCONFIRMED_BYTES"><code class="docutils literal notranslate"><span class="pre">QueueOptions.DEFAULT_MAX_UNCONFIRMED_BYTES</span></code></a></li>
@@ -232,7 +237,7 @@
 <h2>Session<a class="headerlink" href="#session" title="Link to this heading"></a></h2>
 <dl class="py class">
 <dt class="sig sig-object py" id="blazingmq.Session">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">blazingmq.</span></span><span class="sig-name descname"><span class="pre">Session</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">on_session_event</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">on_message</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">broker</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'tcp://localhost:30114'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">message_compression_algorithm</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">CompressionAlgorithmType.NONE</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">...</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">host_health_monitor</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/blazingmq/_session.html#Session"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#blazingmq.Session" title="Link to this definition"></a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">blazingmq.</span></span><span class="sig-name descname"><span class="pre">Session</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">on_session_event</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">on_message</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">broker</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'tcp://localhost:30114'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">message_compression_algorithm</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">CompressionAlgorithmType.NONE</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">...</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">host_health_monitor</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_processing_threads</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">blob_buffer_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">channel_high_watermark</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">event_queue_watermarks</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stats_dump_interval</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/blazingmq/_session.html#Session"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#blazingmq.Session" title="Link to this definition"></a></dt>
 <dd><p>Represents a connection with the BlazingMQ broker.</p>
 <p>The session represents a connection to the broker.
 This object can be manipulated to modify the state of the application from
@@ -245,11 +250,16 @@ stopping the connection with the broker.</p>
 received by the session.</p></li>
 <li><p><strong>on_message</strong> (<em>Optional</em><em>[</em><em>Callable</em><em>[</em><em>[</em><a class="reference internal" href="#blazingmq.Message" title="blazingmq.Message"><em>Message</em></a><em>, </em><a class="reference internal" href="#blazingmq.MessageHandle" title="blazingmq.MessageHandle"><em>MessageHandle</em></a><em>]</em><em>, </em><em>None</em><em>]</em><em>]</em>) – an optional callback to process <a class="reference internal" href="#blazingmq.Message" title="blazingmq.Message"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Message</span></code></a> objects received
 by the session.</p></li>
-<li><p><strong>broker</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – TCP address of the broker (default: ‘<a class="reference external" href="tcp://localhost:30114">tcp://localhost:30114</a>’)</p></li>
+<li><p><strong>broker</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – TCP address of the broker (default: ‘<a class="reference external" href="tcp://localhost:30114">tcp://localhost:30114</a>’).
+If the environment variable <code class="docutils literal notranslate"><span class="pre">BMQ_BROKER_URI</span></code> is set, its value
+will override whatever broker address is passed via this argument.</p></li>
 <li><p><strong>message_compression_algorithm</strong> (<a class="reference internal" href="#blazingmq.CompressionAlgorithmType" title="blazingmq.CompressionAlgorithmType"><em>CompressionAlgorithmType</em></a>) – the type of compression to apply to messages
 being posted via this session object.</p></li>
-<li><p><strong>timeout</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – maximum number of seconds to wait for requests on this
-session.  If not provided, reasonable defaults are used.</p></li>
+<li><p><strong>timeout</strong> (<em>Union</em><em>[</em><a class="reference internal" href="#blazingmq.Timeouts" title="blazingmq.Timeouts"><em>Timeouts</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a><em>]</em>) – maximum number of seconds to wait for requests on this
+session.  If not provided, reasonable defaults are used.  This
+argument may either be a simple <code class="docutils literal notranslate"><span class="pre">float</span></code>, which sets the same
+timeout for each operation, or an instance of the <a class="reference internal" href="#blazingmq.Timeouts" title="blazingmq.Timeouts"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Timeouts</span></code></a> class,
+which allows setting the timeout for each operation independently.</p></li>
 <li><p><strong>host_health_monitor</strong> (<em>Union</em><em>[</em><a class="reference internal" href="#blazingmq.BasicHealthMonitor" title="blazingmq.BasicHealthMonitor"><em>BasicHealthMonitor</em></a><em>, </em><em>None</em><em>]</em>) – A <a class="reference internal" href="#blazingmq.BasicHealthMonitor" title="blazingmq.BasicHealthMonitor"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BasicHealthMonitor</span></code></a> is used by default, so
 your tests can control whether the session sees the machine as
 healthy or not by calling <a class="reference internal" href="#blazingmq.BasicHealthMonitor.set_healthy" title="blazingmq.BasicHealthMonitor.set_healthy"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_healthy</span></code></a> and <a class="reference internal" href="#blazingmq.BasicHealthMonitor.set_unhealthy" title="blazingmq.BasicHealthMonitor.set_unhealthy"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_unhealthy</span></code></a> on
@@ -258,6 +268,26 @@ see the machine as healthy, <a class="reference internal" href="#blazingmq.sessi
 <a class="reference internal" href="#blazingmq.session_events.HostHealthRestored" title="blazingmq.session_events.HostHealthRestored"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HostHealthRestored</span></code></a> events will never be emitted, and the
 <em>suspends_on_bad_host_health</em> option of <a class="reference internal" href="#blazingmq.QueueOptions" title="blazingmq.QueueOptions"><code class="xref py py-obj docutils literal notranslate"><span class="pre">QueueOptions</span></code></a> cannot be
 used.</p></li>
+<li><p><strong>num_processing_threads</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a><em>]</em>) – The number of threads for the SDK to use for
+processing events.  This defaults to 1.</p></li>
+<li><p><strong>blob_buffer_size</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a><em>]</em>) – The size (in bytes) of the blob buffers to use.  This
+defaults to 4k.</p></li>
+<li><p><strong>channel_high_watermark</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a><em>]</em>) – The size (in bytes) to use for the write cache
+high watermark on the channel.  The default value is 128MB.  Note
+that BlazingMQ reserves 4MB of this value for control messages, so
+the actual watermark for data published is
+<code class="docutils literal notranslate"><span class="pre">channel_high_watermark</span> <span class="pre">-</span> <span class="pre">4MB</span></code>.</p></li>
+<li><p><strong>event_queue_watermarks</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.12)"><em>tuple</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a><em>]</em><em>]</em>) – A tuple containing the low and high
+notification watermark thresholds for the buffer containing all
+incoming messages from the broker, respectively.  A warning
+<a class="reference internal" href="#blazingmq.session_events.SlowConsumerHighWaterMark" title="blazingmq.session_events.SlowConsumerHighWaterMark"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SlowConsumerHighWaterMark</span></code></a> is emitted when the buffer reaches the
+high watermark value, and a notification <a class="reference internal" href="#blazingmq.session_events.SlowConsumerNormal" title="blazingmq.session_events.SlowConsumerNormal"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SlowConsumerNormal</span></code></a> is
+emitted when the buffer is back to the low watermark.</p></li>
+<li><p><strong>stats_dump_interval</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a><em>]</em>) – The interval (in seconds) at which to dump stats
+into the logs.  If 0, disable the recurring dump of stats (final
+stats are always dumped at the end of the session).  The default is
+5min; the value must be a multiple of 30s, in the range
+<code class="docutils literal notranslate"><span class="pre">[0s</span> <span class="pre">-</span> <span class="pre">60min]</span></code>.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
@@ -265,7 +295,8 @@ used.</p></li>
 <li><p><a class="reference internal" href="#blazingmq.Error" title="blazingmq.Error"><strong>Error</strong></a> – If the session start request was not successful.</p></li>
 <li><p><a class="reference internal" href="#blazingmq.exceptions.BrokerTimeoutError" title="blazingmq.exceptions.BrokerTimeoutError"><strong>BrokerTimeoutError</strong></a> – If the broker didn’t respond
     to the request within a reasonable amount of time.</p></li>
-<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.12)"><strong>ValueError</strong></a> – If <em>timeout</em> is provided and not &gt; 0.0.</p></li>
+<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.12)"><strong>ValueError</strong></a> – If any of the timeouts are provided and not &gt; 0.0, or if
+    the <code class="docutils literal notranslate"><span class="pre">stats_dump_interval</span></code> is provided and is &lt; 0.0.</p></li>
 </ul>
 </dd>
 </dl>
@@ -478,6 +509,114 @@ a posted message will cause a deadlock.</p>
 </dl>
 </dd></dl>
 
+<dl class="py method">
+<dt class="sig sig-object py" id="blazingmq.Session.with_options">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">with_options</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">on_session_event</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">on_message</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">broker</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'tcp://localhost:30114'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">session_options</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">SessionOptions()</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/blazingmq/_session.html#Session.with_options"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#blazingmq.Session.with_options" title="Link to this definition"></a></dt>
+<dd><p>Construct a <em>Session</em> instance using <a class="reference internal" href="#blazingmq.SessionOptions" title="blazingmq.SessionOptions"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SessionOptions</span></code></a>.</p>
+<p>This is the recommended way to construct a new session, as the
+<a class="reference internal" href="#blazingmq.SessionOptions" title="blazingmq.SessionOptions"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SessionOptions</span></code></a> class provides an easier to use interface for
+configuring only those options you need.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>on_session_event</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.12)"><em>Callable</em></a><em>[</em><em>[</em><a class="reference internal" href="#blazingmq.session_events.SessionEvent" title="blazingmq.session_events.SessionEvent"><em>SessionEvent</em></a><em>]</em><em>, </em><em>None</em><em>]</em>) – a required callback to process <a class="reference internal" href="#blazingmq.session_events.SessionEvent" title="blazingmq.session_events.SessionEvent"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SessionEvent</span></code></a> events
+received by the session.</p></li>
+<li><p><strong>on_message</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.12)"><em>Callable</em></a><em>[</em><em>[</em><a class="reference internal" href="#blazingmq.Message" title="blazingmq._messages.Message"><em>Message</em></a><em>, </em><a class="reference internal" href="#blazingmq.MessageHandle" title="blazingmq._messages.MessageHandle"><em>MessageHandle</em></a><em>]</em><em>, </em><em>None</em><em>] </em><em>| </em><em>None</em>) – an optional callback to process <a class="reference internal" href="#blazingmq.Message" title="blazingmq.Message"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Message</span></code></a> objects received
+by the session.</p></li>
+<li><p><strong>broker</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – TCP address of the broker (default: ‘<a class="reference external" href="tcp://localhost:30114">tcp://localhost:30114</a>’).
+If the environment variable <code class="docutils literal notranslate"><span class="pre">BMQ_BROKER_URI</span></code> is set, its value
+will override whatever broker address is passed via this argument.</p></li>
+<li><p><strong>session_options</strong> (<a class="reference internal" href="#blazingmq.SessionOptions" title="blazingmq._session.SessionOptions"><em>SessionOptions</em></a>) – an instance of <a class="reference internal" href="#blazingmq.SessionOptions" title="blazingmq.SessionOptions"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SessionOptions</span></code></a> that represents the
+session’s configuration.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><a class="reference internal" href="#blazingmq.Error" title="blazingmq.Error"><strong>Error</strong></a> – If the session start request was not successful.</p></li>
+<li><p><a class="reference internal" href="#blazingmq.exceptions.BrokerTimeoutError" title="blazingmq.exceptions.BrokerTimeoutError"><strong>BrokerTimeoutError</strong></a> – If the broker didn’t respond
+    to the request within a reasonable amount of time.</p></li>
+<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.12)"><strong>ValueError</strong></a> – If any of the timeouts are provided and not &gt; 0.0, or if
+    the <code class="docutils literal notranslate"><span class="pre">stats_dump_interval</span></code> is provided and is &lt; 0.0.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="blazingmq.Timeouts">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">blazingmq.</span></span><span class="sig-name descname"><span class="pre">Timeouts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">connect_timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">disconnect_timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">open_queue_timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">configure_queue_timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">close_queue_timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/blazingmq/_timeouts.html#Timeouts"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#blazingmq.Timeouts" title="Link to this definition"></a></dt>
+<dd><p>A value semantic type representing session timeouts.</p>
+<p>Each option can be set either by passing it as a keyword argument when
+constructing a <em>Timeouts</em> instance, or by setting it as an attribute on
+a constructed instance.</p>
+<p>The default for every option is <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a>. When constructing a <a class="reference internal" href="#blazingmq.Session" title="blazingmq.Session"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Session</span></code></a>,
+either directly or using <a class="reference internal" href="#blazingmq.SessionOptions" title="blazingmq.SessionOptions"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SessionOptions</span></code></a>, options set to <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a> are given
+reasonable default values.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>connect_timeout</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a><em>]</em>) – The maximum number of seconds to wait for connection requests on
+this session.</p></li>
+<li><p><strong>disconnect_timeout</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a><em>]</em>) – The maximum number of seconds to wait for disconnection requests
+on this session.</p></li>
+<li><p><strong>open_queue_timeout</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a><em>]</em>) – The maximum number of seconds to wait for open queue requests on
+this session.</p></li>
+<li><p><strong>configure_queue_timeout</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a><em>]</em>) – The maximum number of seconds to wait for configure queue requests
+on this session.</p></li>
+<li><p><strong>close_queue_timeout</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a><em>]</em>) – The maximum number of seconds to wait for close queue requests on
+this session.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="blazingmq.SessionOptions">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">blazingmq.</span></span><span class="sig-name descname"><span class="pre">SessionOptions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">message_compression_algorithm</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeouts</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">host_health_monitor</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_processing_threads</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">blob_buffer_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">channel_high_watermark</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">event_queue_watermarks</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stats_dump_interval</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/blazingmq/_session.html#SessionOptions"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#blazingmq.SessionOptions" title="Link to this definition"></a></dt>
+<dd><p>A value semantic type representing session options.</p>
+<p>Each option can be set either by passing it as a keyword argument when
+constructing a <em>SessionOptions</em> instance, or by setting it as an attribute
+on a constructed instance.</p>
+<p>The default for every option is <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a>. When constructing a <a class="reference internal" href="#blazingmq.Session" title="blazingmq.Session"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Session</span></code></a>,
+options set to <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a> are given reasonable default values.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>message_compression_algorithm</strong> (<em>Optional</em><em>[</em><a class="reference internal" href="#blazingmq.CompressionAlgorithmType" title="blazingmq.CompressionAlgorithmType"><em>CompressionAlgorithmType</em></a><em>]</em>) – The type of compression to apply to messages being posted via the
+session this object is configuring.</p></li>
+<li><p><strong>timeouts</strong> (<em>Optional</em><em>[</em><a class="reference internal" href="#blazingmq.Timeouts" title="blazingmq.Timeouts"><em>Timeouts</em></a><em>]</em>) – The maximum number of seconds to wait for requests for each
+operation on this session.  If not provided, reasonable defaults
+are used.</p></li>
+<li><p><strong>host_health_monitor</strong> (<em>Union</em><em>[</em><a class="reference internal" href="#blazingmq.BasicHealthMonitor" title="blazingmq.BasicHealthMonitor"><em>BasicHealthMonitor</em></a><em>, </em><em>None</em><em>]</em>) – A <a class="reference internal" href="#blazingmq.BasicHealthMonitor" title="blazingmq.BasicHealthMonitor"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BasicHealthMonitor</span></code></a> is used by default, so your tests can
+control whether the session sees the machine as healthy or not by
+calling <a class="reference internal" href="#blazingmq.BasicHealthMonitor.set_healthy" title="blazingmq.BasicHealthMonitor.set_healthy"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_healthy</span></code></a> and <a class="reference internal" href="#blazingmq.BasicHealthMonitor.set_unhealthy" title="blazingmq.BasicHealthMonitor.set_unhealthy"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_unhealthy</span></code></a> on that instance.  If
+you instead pass <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a>, the session will always see the machine as
+healthy, <a class="reference internal" href="#blazingmq.session_events.HostUnhealthy" title="blazingmq.session_events.HostUnhealthy"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HostUnhealthy</span></code></a> and <a class="reference internal" href="#blazingmq.session_events.HostHealthRestored" title="blazingmq.session_events.HostHealthRestored"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HostHealthRestored</span></code></a> events with
+never be emitted, and the <em>suspends_on_bad_host_health</em> option of
+<a class="reference internal" href="#blazingmq.QueueOptions" title="blazingmq.QueueOptions"><code class="xref py py-obj docutils literal notranslate"><span class="pre">QueueOptions</span></code></a> cannot be used.</p></li>
+<li><p><strong>num_processing_threads</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a><em>]</em>) – The number of threads for the SDK to use for processing events.
+This defaults to 1.</p></li>
+<li><p><strong>blob_buffer_size</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a><em>]</em>) – The size (in bytes) of the blob buffers to use.  This defaults to
+4k.</p></li>
+<li><p><strong>channel_high_watermark</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a><em>]</em>) – The size (in bytes) to use for the write cache high watermark on
+the channel.  The default value is 128MB.  Note that BlazingMQ
+reserves 4MB of this value for control messages, so the actual
+watermark for data published is <code class="docutils literal notranslate"><span class="pre">channel_high_watermark</span> <span class="pre">-</span> <span class="pre">4MB</span></code>.</p></li>
+<li><p><strong>event_queue_watermarks</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.12)"><em>tuple</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a><em>]</em><em>]</em>) – A tuple containing the low and high notification watermark
+thresholds for the buffer containing all incoming messages from the
+broker, respectively.  A warning <a class="reference internal" href="#blazingmq.session_events.SlowConsumerHighWaterMark" title="blazingmq.session_events.SlowConsumerHighWaterMark"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SlowConsumerHighWaterMark</span></code></a> is
+emitted when the buffer reaches the high watermark value, and a
+notification <a class="reference internal" href="#blazingmq.session_events.SlowConsumerNormal" title="blazingmq.session_events.SlowConsumerNormal"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SlowConsumerNormal</span></code></a> is emitted when the buffer is
+back to the low watermark.</p></li>
+<li><p><strong>stats_dump_interval</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a><em>]</em>) – The interval (in seconds) at which to dump stats into the logs.  If
+0, disable the recurring dump of stats (final stats are always
+dumped at the end of the session).  The default is 5min; the value
+must be a multiple of 30s, in the range <code class="docutils literal notranslate"><span class="pre">[0s</span> <span class="pre">-</span> <span class="pre">60min]</span></code>.</p></li>
+</ul>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py class">
