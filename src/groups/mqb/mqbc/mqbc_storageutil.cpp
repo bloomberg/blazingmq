@@ -2700,6 +2700,127 @@ void StorageUtil::forceFlushFileStores(FileStores* fileStores)
     }
 }
 
+// TODO args order
+// TODO static function
+void StorageUtil::purgeDomain(FileStores* fileStores, const bsl::string &domain)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(fileStores);
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+
+
+    // TODO comment
+    // Iterate over each recovered storage for each partition in the
+    // StorageMgr and register the recovered queue uri/key info with
+    // 'ClusterOrchestrator'.
+    for (size_t i = 0; i < fileStores->size(); ++i) {
+        mqbs::FileStore* fs = (*fileStores)[i].get();
+        BSLS_ASSERT_SAFE(fs);
+
+        if (!fs->isOpen()) {
+            continue;  // CONTINUE
+        }
+
+        fs->getStorages
+
+        fs->execute(bdlf::BindUtil::bind(&mqbs::FileStore::flush, fs));
+    }
+    for (size_t pid = 0; pid < d_state.partitions().size(); ++pid) {
+        bslma::ManagedPtr<mqbi::StorageManagerIterator> itMp;
+        itMp = d_storageManager_mp->getIterator(pid);
+        while (itMp && *itMp) {
+            // const bmqt::Uri uri(itMp->uri().canonical());
+            // BSLS_ASSERT_SAFE(itMp->storage()->partitionId() ==
+            //                     static_cast<int>(pid));
+
+            // // TODO normalize domain name
+            // // TODO qualified domain?
+            // BALL_LOG_INFO << "Uri: " << uri << ", domain: " << uri.domain();
+            // if (uri.domain() != domain) {
+            //     BALL_LOG_INFO << "skipping ...";
+            //     continue;
+            // }
+
+            // BALL_LOG_INFO << "purging ...";
+
+
+            // const mqbi::Storage *storage = itMp->storage();
+            // mqbu::StorageKey appKey;
+            // if (appId.empty()) {
+            //     // Entire queue needs to be purged.  Note that
+            //     // 'bmqp::ProtocolUtil::k_NULL_APP_ID' is the empty string.
+            //     appKey = mqbu::StorageKey::k_NULL_KEY;
+            // }
+            // else {
+            //     // A specific appId (i.e., virtual storage) needs to be purged.
+            //     if (!d_state_p->storage()->hasVirtualStorage(appId, &appKey)) {
+            //         mwcu::MemOutStream errorMsg;
+            //         errorMsg << "Specified appId '" << appId << "' not found in the "
+            //                 << "storage of queue '" << d_state_p->uri() << "'.";
+            //         mqbcmd::Error& error = result->makeError();
+            //         error.message()      = errorMsg.str();
+            //         return;  // RETURN
+            //     }
+            // }
+            // appKey = mqbu::StorageKey::k_NULL_KEY;
+
+            // const bsls::Types::Uint64 numMsgs = storage->numMessages(
+            //     appKey);
+            // const bsls::Types::Uint64 numBytes = storage->numBytes(
+            //     appKey);
+
+            // mqbi::StorageResult::Enum rc = storage->removeAll(appKey);
+            // if (rc != mqbi::StorageResult::e_SUCCESS) {
+            //     mwcu::MemOutStream errorMsg;
+            //     errorMsg << "Failed to purge appId '" << appId << "', appKey '"
+            //             << appKey << "' of queue '" << d_state_p->description()
+            //             << "' [reason: " << mqbi::StorageResult::toAscii(rc) << "]";
+            //     BALL_LOG_WARN << "#QUEUE_PURGE_FAILURE " << errorMsg.str();
+            //     mqbcmd::Error& error = result->makeError();
+            //     error.message()      = errorMsg.str();
+            //     return;  // RETURN
+            // }
+
+            // d_queueEngine_mp->afterQueuePurged(appId, appKey);
+
+            // mqbcmd::PurgedQueueDetails& queueDetails = result->makeQueue();
+            // queueDetails.queueUri()                  = d_state_p->uri().asString();
+            // queueDetails.appId()                     = appId;
+            // mwcu::MemOutStream appKeyStr;
+            // appKeyStr << appKey;
+            // queueDetails.appKey()            = appKeyStr.str();
+            // queueDetails.numMessagesPurged() = numMsgs;
+            // queueDetails.numBytesPurged()    = numBytes;
+
+            // if (isCSLModeEnabled()) {
+            //     AppIdKeyPairs appIdKeyPairs;
+            //     itMp->storage()->loadVirtualStorageDetails(&appIdKeyPairs);
+            //     AppIdInfos appIdInfos(appIdKeyPairs.cbegin(),
+            //                             appIdKeyPairs.cend());
+
+            //     d_clusterOrchestrator.registerQueueInfo(
+            //         uri,
+            //         pid,
+            //         itMp->storage()->queueKey(),
+            //         appIdInfos,
+            //         false);  // Force-update?
+            // }
+            // else {
+            //     d_clusterOrchestrator.registerQueueInfo(
+            //         uri,
+            //         pid,
+            //         itMp->storage()->queueKey(),
+            //         AppIdInfos(),
+            //         false);  // Force-update?
+            // }
+
+            // ++(*itMp);
+        }
+    }
+}
+
 int StorageUtil::processCommand(mqbcmd::StorageResult*     result,
                                 FileStores*                fileStores,
                                 const mqbi::DomainFactory* domainFactory,
@@ -2766,6 +2887,8 @@ int StorageUtil::processCommand(mqbcmd::StorageResult*     result,
                          command.domain().name(),
                          *fileStores);
             return 0;  // RETURN
+        } else if (command.domain().command().isPurgeValue()) {
+
         }
     }
     else if (command.isReplicationValue()) {

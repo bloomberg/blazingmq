@@ -669,6 +669,11 @@ struct StorageUtil {
                                             mqbs::FileStore*     fs,
                                             mqbnet::ClusterNode* destination,
                                             const PartitionInfo& pinfo);
+
+
+    // TODO docs
+    // TODO place
+    static void purgeDomain(FileStores* fileStores, const bsl::string &domain)
 };
 
 template <>

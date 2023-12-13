@@ -819,7 +819,30 @@ int Domain::processCommand(mqbcmd::DomainResult*        result,
 
         finalizePurgeSem.wait();
 
+        // Some queues might be inactive, if broker opened them and then restarted.
+        // They don't have associated mqbi::Queue objects registered in Domain.
+        // To purge these queues, we need to send purge command to the storage level.
+        mqbcmd::ClusterCommand clusterCommand;
+        mqbcmd::StorageDomain& domain =
+            clusterCommand.makeStorage().makeDomain();
+        domain.name() = d_name;
+        domain.command().makePurge();
+
+        mqbcmd::ClusterResult clusterResult;
+        const int             rc = d_cluster_sp->processCommand(&clusterResult,
+                                                    clusterCommand);
+
+        // TODO filter duplicates
         mqbcmd::PurgedQueues& purgedQueues = result->makePurgedQueues();
+        if (clusterResult.isStorageResultValue().isPurgedQueuesValue()) {
+            //TODO handle other selections
+            const bsl::vector<mqbcmd::PurgeQueueResult>& purgedQs =
+                clusterResult.storageResult().purgedQueues().queues();
+
+            purgedQueues.queues().insert(purgedQueues.queues().begin(),
+                                         purgedQs.begin(),
+                                         purgedQs.end());
+        }
 
         for (size_t i = 0; i < purgedQueuesVec.size(); ++i) {
             const bsl::vector<mqbcmd::PurgeQueueResult>& purgedQs =
