@@ -35,33 +35,69 @@ SearchResult::SearchResult(bsl::ostream&     ostream,
 , d_foundMessagesCount()
 , d_totalMessagesCount()
 , d_allocator_p(bslma::Default::allocator(allocator))
+, d_messagesDetails(allocator)
 {
     // NOTHING
 }
 
-bool SearchResult::processMessageRecord(const mqbs::MessageRecord& record)
+bool SearchResult::processMessageRecord(const mqbs::MessageRecord& record,
+                                        bsls::Types::Uint64        recordIndex,
+                                        bsls::Types::Uint64 recordOffset)
 {
-    d_totalMessagesCount++;
-    // d_foundMessagesCount++;
+    // Apply filters
+    bool filterPassed = d_filters.apply(record);
 
-    return d_filters.apply(record);
+    if (filterPassed && d_withDetails) {
+        // Store record details for further output
+        d_messagesDetails.emplace(
+            record.messageGUID(),
+            MessageDetails(record, recordIndex, recordOffset, d_allocator_p));
+    }
+
+    d_totalMessagesCount++;
+
+    return filterPassed;
 }
 
-bool SearchResult::processConfirmRecord(const mqbs::ConfirmRecord& record)
+bool SearchResult::processConfirmRecord(const mqbs::ConfirmRecord& record,
+                                        bsls::Types::Uint64        recordIndex,
+                                        bsls::Types::Uint64 recordOffset)
 {
+    if (d_withDetails) {
+        // Store record details for further output
+        if (auto it = d_messagesDetails.find(record.messageGUID());
+            it != d_messagesDetails.end()) {
+            it->second.addConfirmRecord(record, recordIndex, recordOffset);
+        }
+    }
     return false;
 }
 
-bool SearchResult::processDeletionRecord(const mqbs::DeletionRecord& record)
+bool SearchResult::processDeletionRecord(const mqbs::DeletionRecord& record,
+                                         bsls::Types::Uint64 recordIndex,
+                                         bsls::Types::Uint64 recordOffset)
 {
+    if (d_withDetails) {
+        // Print message details immediately and delete record to save space.
+        if (auto it = d_messagesDetails.find(record.messageGUID());
+            it != d_messagesDetails.end()) {
+            it->second.addDeleteRecord(record, recordIndex, recordOffset);
+            it->second.print(d_ostream);
+            d_messagesDetails.erase(it);
+        }
+    }
     return false;
 }
 
 void SearchResult::outputResult()
 {
-    if (!d_withDetails) {
-        outputFooter();
+    if (d_withDetails) {
+        // Print all collected messages details
+        for (auto& item : d_messagesDetails) {
+            item.second.print(d_ostream);
+        }
     }
+    outputFooter();
 }
 
 void SearchResult::outputGuidString(const bmqt::MessageGUID& messageGUID,
@@ -76,9 +112,10 @@ void SearchResult::outputGuidString(const bmqt::MessageGUID& messageGUID,
 
 void SearchResult::outputFooter()
 {
-    d_foundMessagesCount > 0
-        ? (d_ostream << d_foundMessagesCount << d_foundGuidCaption)
-        : d_ostream << d_notFoundGuidCaption;
+    const char* caption = d_withDetails ? " message(s) found."
+                                        : " message GUID(s) found.";
+    d_foundMessagesCount > 0 ? (d_ostream << d_foundMessagesCount << caption)
+                             : d_ostream << "No message GUID found.";
     d_ostream << bsl::endl;
 }
 
@@ -104,11 +141,16 @@ SearchAllResult::SearchAllResult(bsl::ostream&     ostream,
     // NOTHING
 }
 
-bool SearchAllResult::processMessageRecord(const mqbs::MessageRecord& record)
+bool SearchAllResult::processMessageRecord(const mqbs::MessageRecord& record,
+                                           bsls::Types::Uint64 recordIndex,
+                                           bsls::Types::Uint64 recordOffset)
 {
-    bool filterPassed = SearchResult::processMessageRecord(record);
+    bool filterPassed = SearchResult::processMessageRecord(record,
+                                                           recordIndex,
+                                                           recordOffset);
     if (filterPassed) {
         if (!d_withDetails) {
+            // Output GUID immediately.
             outputGuidString(record.messageGUID());
         }
         d_foundMessagesCount++;
@@ -136,7 +178,9 @@ SearchGuidResult::SearchGuidResult(bsl::ostream&                   ostream,
     }
 }
 
-bool SearchGuidResult::processMessageRecord(const mqbs::MessageRecord& record)
+bool SearchGuidResult::processMessageRecord(const mqbs::MessageRecord& record,
+                                            bsls::Types::Uint64 recordIndex,
+                                            bsls::Types::Uint64 recordOffset)
 {
     if (auto it = d_guidsMap.find(record.messageGUID());
         it != d_guidsMap.end()) {
@@ -167,9 +211,13 @@ SearchOutstandingResult::SearchOutstandingResult(bsl::ostream&     ostream,
 }
 
 bool SearchOutstandingResult::processMessageRecord(
-    const mqbs::MessageRecord& record)
+    const mqbs::MessageRecord& record,
+    bsls::Types::Uint64        recordIndex,
+    bsls::Types::Uint64        recordOffset)
 {
-    bool filterPassed = SearchResult::processMessageRecord(record);
+    bool filterPassed = SearchResult::processMessageRecord(record,
+                                                           recordIndex,
+                                                           recordOffset);
     if (filterPassed) {
         if (!d_withDetails) {
             d_outstandingGUIDS.push_back(record.messageGUID());
@@ -181,7 +229,9 @@ bool SearchOutstandingResult::processMessageRecord(
 }
 
 bool SearchOutstandingResult::processDeletionRecord(
-    const mqbs::DeletionRecord& record)
+    const mqbs::DeletionRecord& record,
+    bsls::Types::Uint64         recordIndex,
+    bsls::Types::Uint64         recordOffset)
 {
     if (auto it = bsl::find(d_outstandingGUIDS.begin(),
                             d_outstandingGUIDS.end(),
@@ -222,9 +272,13 @@ SearchConfirmedResult::SearchConfirmedResult(bsl::ostream&     ostream,
 }
 
 bool SearchConfirmedResult::processMessageRecord(
-    const mqbs::MessageRecord& record)
+    const mqbs::MessageRecord& record,
+    bsls::Types::Uint64        recordIndex,
+    bsls::Types::Uint64        recordOffset)
 {
-    bool filterPassed = SearchResult::processMessageRecord(record);
+    bool filterPassed = SearchResult::processMessageRecord(record,
+                                                           recordIndex,
+                                                           recordOffset);
     if (filterPassed) {
         if (!d_withDetails) {
             d_messageGUIDS.push_back(record.messageGUID());
@@ -235,7 +289,9 @@ bool SearchConfirmedResult::processMessageRecord(
 }
 
 bool SearchConfirmedResult::processDeletionRecord(
-    const mqbs::DeletionRecord& record)
+    const mqbs::DeletionRecord& record,
+    bsls::Types::Uint64         recordIndex,
+    bsls::Types::Uint64         recordOffset)
 {
     if (!d_withDetails) {
         if (auto it = bsl::find(d_messageGUIDS.begin(),
@@ -276,9 +332,13 @@ SearchPartiallyConfirmedResult::SearchPartiallyConfirmedResult(
 }
 
 bool SearchPartiallyConfirmedResult::processMessageRecord(
-    const mqbs::MessageRecord& record)
+    const mqbs::MessageRecord& record,
+    bsls::Types::Uint64        recordIndex,
+    bsls::Types::Uint64        recordOffset)
 {
-    bool filterPassed = SearchResult::processMessageRecord(record);
+    bool filterPassed = SearchResult::processMessageRecord(record,
+                                                           recordIndex,
+                                                           recordOffset);
     if (filterPassed) {
         if (!d_withDetails) {
             d_partiallyConfirmedGUIDS[record.messageGUID()] = 0;
@@ -289,7 +349,9 @@ bool SearchPartiallyConfirmedResult::processMessageRecord(
 }
 
 bool SearchPartiallyConfirmedResult::processConfirmRecord(
-    const mqbs::ConfirmRecord& record)
+    const mqbs::ConfirmRecord& record,
+    bsls::Types::Uint64        recordIndex,
+    bsls::Types::Uint64        recordOffset)
 {
     if (!d_withDetails) {
         if (auto it = d_partiallyConfirmedGUIDS.find(record.messageGUID());
@@ -303,7 +365,9 @@ bool SearchPartiallyConfirmedResult::processConfirmRecord(
 }
 
 bool SearchPartiallyConfirmedResult::processDeletionRecord(
-    const mqbs::DeletionRecord& record)
+    const mqbs::DeletionRecord& record,
+    bsls::Types::Uint64         recordIndex,
+    bsls::Types::Uint64         recordOffset)
 {
     if (!d_withDetails) {
         if (auto it = d_partiallyConfirmedGUIDS.find(record.messageGUID());

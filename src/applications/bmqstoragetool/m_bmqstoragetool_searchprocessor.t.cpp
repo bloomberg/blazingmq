@@ -1129,6 +1129,81 @@ static void test7_searchMessagesByQueueKeyTest()
     s_allocator_p->deallocate(p);
 }
 
+static void test8_printMessagesDetailsTest()
+// ------------------------------------------------------------------------
+// PRINT MESSAGE DETAILS TEST
+//
+// Concerns:
+//   Search confirmed (deleted) messages  in journal file and output GUIDs.
+//
+// Testing:
+//   SearchProcessor::process()
+// ------------------------------------------------------------------------
+{
+    mwctst::TestHelper::printTestName("SEARCH CONFIRMED MESSAGES TEST");
+
+    // Simulate journal file
+    unsigned int numRecords = 15;
+
+    bsls::Types::Uint64 totalSize =
+        sizeof(FileHeader) + sizeof(JournalFileHeader) +
+        numRecords * FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
+
+    char*       p = static_cast<char*>(s_allocator_p->allocate(totalSize));
+    MemoryBlock block(p, totalSize);
+    FileHeader  fileHeader;
+    bsls::Types::Uint64 lastRecordPos = 0;
+    bsls::Types::Uint64 lastSyncPtPos = 0;
+
+    RecordsListType records(s_allocator_p);
+
+    bsl::vector<bmqt::MessageGUID> confirmedGUIDS =
+        addJournalRecordsWithOutstandingAndConfirmedMessages(&block,
+                                                             &fileHeader,
+                                                             &lastRecordPos,
+                                                             &lastSyncPtPos,
+                                                             &records,
+                                                             numRecords,
+                                                             false);
+
+    // Create JournalFileIterator
+    MappedFileDescriptor mfd;
+    mfd.setFd(-1);  // invalid fd will suffice.
+    mfd.setBlock(block);
+    mfd.setFileSize(totalSize);
+    JournalFileIterator it(&mfd, fileHeader, false);
+
+    // Configure parameters to print message details
+    CommandLineArguments arguments;
+    arguments.d_details = true;
+    bsl::unique_ptr<Parameters> params =
+        bsl::make_unique<Parameters>(arguments, s_allocator_p);
+    params->journalFile()->setIterator(&it);
+
+    auto searchProcessor = SearchProcessor(bsl::move(params), s_allocator_p);
+
+    bsl::ostringstream resultStream(s_allocator_p);
+    searchProcessor.process(resultStream);
+    bsl::cout << resultStream.str();
+
+    // Prepare expected output
+    // bsl::ostringstream expectedStream(s_allocator_p);
+    // for (const auto& guid : confirmedGUIDS) {
+    //     outputGuidString(expectedStream, guid);
+    // }
+    // expectedStream << confirmedGUIDS.size() << " message GUID(s) found."
+    //                << bsl::endl;
+    // float messageCount     = numRecords / 3.0;
+    // float outstandingRatio = float(confirmedGUIDS.size()) / messageCount *
+    //                          100.0;
+    // expectedStream << "Outstanding ratio: " << outstandingRatio << "%"
+    //                << bsl::endl;
+
+    // ASSERT_EQ(resultStream.str(), expectedStream.str());
+
+    s_allocator_p->deallocate(p);
+}
+
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
@@ -1146,6 +1221,7 @@ int main(int argc, char* argv[])
     case 5: test5_searchConfirmedMessagesTest(); break;
     case 6: test6_searchPartiallyConfirmedMessagesTest(); break;
     case 7: test7_searchMessagesByQueueKeyTest(); break;
+    case 8: test8_printMessagesDetailsTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
         s_testStatus = -1;

@@ -21,6 +21,7 @@
 // #include <m_bmqstoragetool_searchprocessor.h>
 
 #include <m_bmqstoragetool_filters.h>
+#include <m_bmqstoragetool_messagedetails.h>
 
 // BDE
 #include <bsl_iostream.h>
@@ -40,16 +41,21 @@ namespace m_bmqstoragetool {
 
 class SearchResult {
   protected:
-    const bsl::string d_foundGuidCaption    = " message GUID(s) found.";
-    const bsl::string d_notFoundGuidCaption = "No message GUID found.";
+    typedef bsl::unordered_map<bmqt::MessageGUID, MessageDetails>
+        MessagesDetails;
 
     // DATA
+    // const bsl::string d_foundGuidCaption    = " message GUID(s) found.";
+    // const bsl::string d_notFoundGuidCaption = "No message GUID found.";
+
     bsl::ostream&     d_ostream;
     bool              d_withDetails;
     Filters&          d_filters;
     bsl::size_t       d_totalMessagesCount;
     bsl::size_t       d_foundMessagesCount;
     bslma::Allocator* d_allocator_p;
+
+    MessagesDetails d_messagesDetails;
 
   public:
     // CREATORS
@@ -60,9 +66,15 @@ class SearchResult {
     virtual ~SearchResult() = default;
 
     // MANIPULATORS
-    virtual bool processMessageRecord(const mqbs::MessageRecord& record);
-    virtual bool processConfirmRecord(const mqbs::ConfirmRecord& record);
-    virtual bool processDeletionRecord(const mqbs::DeletionRecord& record);
+    virtual bool processMessageRecord(const mqbs::MessageRecord& record,
+                                      bsls::Types::Uint64        recordIndex,
+                                      bsls::Types::Uint64        recordOffset);
+    virtual bool processConfirmRecord(const mqbs::ConfirmRecord& record,
+                                      bsls::Types::Uint64        recordIndex,
+                                      bsls::Types::Uint64        recordOffset);
+    virtual bool processDeletionRecord(const mqbs::DeletionRecord& record,
+                                       bsls::Types::Uint64         recordIndex,
+                                       bsls::Types::Uint64 recordOffset);
     virtual void outputResult();
     void         outputGuidString(const bmqt::MessageGUID& messageGUID,
                                   const bool               addNewLine = true);
@@ -82,7 +94,9 @@ class SearchAllResult : public SearchResult {
                              bslma::Allocator* allocator);
 
     // MANIPULATORS
-    bool processMessageRecord(const mqbs::MessageRecord& record)
+    bool processMessageRecord(const mqbs::MessageRecord& record,
+                              bsls::Types::Uint64        recordIndex,
+                              bsls::Types::Uint64        recordOffset)
         BSLS_KEYWORD_OVERRIDE;
 };
 
@@ -102,7 +116,9 @@ class SearchGuidResult : public SearchResult {
                               bslma::Allocator*               allocator);
 
     // MANIPULATORS
-    bool processMessageRecord(const mqbs::MessageRecord& record)
+    bool processMessageRecord(const mqbs::MessageRecord& record,
+                              bsls::Types::Uint64        recordIndex,
+                              bsls::Types::Uint64        recordOffset)
         BSLS_KEYWORD_OVERRIDE;
 };
 
@@ -122,9 +138,13 @@ class SearchOutstandingResult : public SearchResult {
                                      bslma::Allocator* allocator);
 
     // MANIPULATORS
-    bool processMessageRecord(const mqbs::MessageRecord& record)
+    bool processMessageRecord(const mqbs::MessageRecord& record,
+                              bsls::Types::Uint64        recordIndex,
+                              bsls::Types::Uint64        recordOffset)
         BSLS_KEYWORD_OVERRIDE;
-    bool processDeletionRecord(const mqbs::DeletionRecord& record)
+    bool processDeletionRecord(const mqbs::DeletionRecord& record,
+                               bsls::Types::Uint64         recordIndex,
+                               bsls::Types::Uint64         recordOffset)
         BSLS_KEYWORD_OVERRIDE;
     void outputResult() BSLS_KEYWORD_OVERRIDE;
 };
@@ -145,9 +165,13 @@ class SearchConfirmedResult : public SearchResult {
                                    bslma::Allocator* allocator);
 
     // MANIPULATORS
-    bool processMessageRecord(const mqbs::MessageRecord& record)
+    bool processMessageRecord(const mqbs::MessageRecord& record,
+                              bsls::Types::Uint64        recordIndex,
+                              bsls::Types::Uint64        recordOffset)
         BSLS_KEYWORD_OVERRIDE;
-    bool processDeletionRecord(const mqbs::DeletionRecord& record)
+    bool processDeletionRecord(const mqbs::DeletionRecord& record,
+                               bsls::Types::Uint64         recordIndex,
+                               bsls::Types::Uint64         recordOffset)
         BSLS_KEYWORD_OVERRIDE;
     void outputResult() BSLS_KEYWORD_OVERRIDE;
 };
@@ -168,11 +192,17 @@ class SearchPartiallyConfirmedResult : public SearchResult {
                                             bslma::Allocator* allocator);
 
     // MANIPULATORS
-    bool processMessageRecord(const mqbs::MessageRecord& record)
+    bool processMessageRecord(const mqbs::MessageRecord& record,
+                              bsls::Types::Uint64        recordIndex,
+                              bsls::Types::Uint64        recordOffset)
         BSLS_KEYWORD_OVERRIDE;
-    bool processConfirmRecord(const mqbs::ConfirmRecord& record)
+    bool processConfirmRecord(const mqbs::ConfirmRecord& record,
+                              bsls::Types::Uint64        recordIndex,
+                              bsls::Types::Uint64        recordOffset)
         BSLS_KEYWORD_OVERRIDE;
-    bool processDeletionRecord(const mqbs::DeletionRecord& record)
+    bool processDeletionRecord(const mqbs::DeletionRecord& record,
+                               bsls::Types::Uint64         recordIndex,
+                               bsls::Types::Uint64         recordOffset)
         BSLS_KEYWORD_OVERRIDE;
     void outputResult() BSLS_KEYWORD_OVERRIDE;
 };

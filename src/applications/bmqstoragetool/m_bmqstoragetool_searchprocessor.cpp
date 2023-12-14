@@ -124,17 +124,26 @@ void SearchProcessor::process(bsl::ostream& ostream)
         // MessageRecord
         else if (iter->recordType() == mqbs::RecordType::e_MESSAGE) {
             const mqbs::MessageRecord& record = iter->asMessageRecord();
-            stopSearch = searchResult_p->processMessageRecord(record);
+            stopSearch = searchResult_p->processMessageRecord(
+                record,
+                iter->recordIndex(),
+                iter->recordOffset());
         }
         // ConfirmRecord
         else if (iter->recordType() == mqbs::RecordType::e_CONFIRM) {
             const mqbs::ConfirmRecord& record = iter->asConfirmRecord();
-            stopSearch = searchResult_p->processConfirmRecord(record);
+            stopSearch = searchResult_p->processConfirmRecord(
+                record,
+                iter->recordIndex(),
+                iter->recordOffset());
         }
         // DeletionRecord
         else if (iter->recordType() == mqbs::RecordType::e_DELETION) {
             const mqbs::DeletionRecord& record = iter->asDeletionRecord();
-            stopSearch = searchResult_p->processDeletionRecord(record);
+            stopSearch = searchResult_p->processDeletionRecord(
+                record,
+                iter->recordIndex(),
+                iter->recordOffset());
         }
     }
 }
