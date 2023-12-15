@@ -61,14 +61,18 @@ void MessageDetails::addDeleteRecord(const mqbs::DeletionRecord& record,
 void MessageDetails::print(bsl::ostream& os) const
 {
     // Print message record
-    os << "MESSAGE Record index: " << d_messageRecord.d_recordIndex
-       << ", offset: " << d_messageRecord.d_recordOffset << bsl::endl;
+    bsl::stringstream ss;
+    ss << "MESSAGE Record, index: " << d_messageRecord.d_recordIndex
+       << ", offset: " << d_messageRecord.d_recordOffset;
+    bsl::string delimiter(ss.str().size(), '=');
+    os << delimiter << bsl::endl << ss.str() << bsl::endl;
+
     mqbs::FileStoreProtocolPrinter::printRecord(os, d_messageRecord.d_record);
 
     // Print confirmations records
     if (!d_confirmRecords.empty()) {
         for (auto& rec : d_confirmRecords) {
-            os << "CONFIRM Record index: " << rec.d_recordIndex
+            os << "CONFIRM Record, index: " << rec.d_recordIndex
                << ", offset: " << rec.d_recordOffset << bsl::endl;
             mqbs::FileStoreProtocolPrinter::printRecord(os, rec.d_record);
         }
@@ -77,7 +81,7 @@ void MessageDetails::print(bsl::ostream& os) const
     // Print deletion record
     if (d_deleteRecord.d_record.deletionRecordFlag() !=
         mqbs::DeletionRecordFlag::Enum::e_NONE) {
-        os << "DELETE Record index: " << d_deleteRecord.d_recordIndex
+        os << "DELETE Record, index: " << d_deleteRecord.d_recordIndex
            << ", offset: " << d_deleteRecord.d_recordOffset << bsl::endl;
         mqbs::FileStoreProtocolPrinter::printRecord(os,
                                                     d_deleteRecord.d_record);
