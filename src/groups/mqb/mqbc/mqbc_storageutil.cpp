@@ -2702,26 +2702,53 @@ void StorageUtil::forceFlushFileStores(FileStores* fileStores)
 
 // TODO args order
 // TODO static function
-void StorageUtil::purgeDomainDispatched(bslmt::Latch*                  latch,
-                                 int                            partitionId,
-                                 const FileStores&              fileStores,
-                                 const bsl::string& domainName)
+void StorageUtil::purgeDomainDispatched(
+                                bsl::vector<bsl::vector<mqbcmd::PurgeQueueResult> >* purgedQueuesVec,
+                                bslmt::Latch*                  latch,
+                                int                            partitionId,
+                                const FileStores&              fileStores,
+                                const bsl::string& domainName)
 {
     // executed by *QUEUE_DISPATCHER* thread with the specified 'partitionId'
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(fileStores[partitionId]->inDispatcherThread());
     BSLS_ASSERT_SAFE(latch);
+    BSLS_ASSERT_SAFE(purgedQueuesVec);
     BSLS_ASSERT_SAFE(0 <= partitionId);
     BSLS_ASSERT_SAFE(static_cast<unsigned int>(partitionId) < fileStores.size());
+    BSLS_ASSERT_SAFE(purgedQueuesVec->size() == fileStores.size());
 
-    fileStores[partitionId]->purgeDomain(domainName);
+    bsl::vector<mqbcmd::PurgeQueueResult>& purgedQueues = (*purgedQueuesVec)[partitionId];
+    fileStores[partitionId]->purgeDomain(&purgedQueues, domainName);
 
     latch->arrive();
 }
 
+void StorageUtil::purgeQueueDispatched(
+                                mqbcmd::PurgeQueueResult       *purgedQueue,
+                                bslmt::Semaphore              *purgeFinishedSemaphore,
+                                mqbs::FileStore                   *fileStore,
+                                mqbi::Storage *storage,
+                                const bsl::string *appId)
+{
+    // executed by *QUEUE_DISPATCHER* thread with the specified 'partitionId'
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(fileStore)
+    BSLS_ASSERT_SAFE(fileStore->inDispatcherThread());
+    BSLS_ASSERT_SAFE(purgedQueue);
+    BSLS_ASSERT_SAFE(purgeFinishedSemaphore);
+
+    fileStore->purgeQueue(purgedQueue, *storage, *appId);
+
+    purgeFinishedSemaphore->post();
+}
+
 int StorageUtil::processCommand(mqbcmd::StorageResult*     result,
                                 FileStores*                fileStores,
+                                StorageSpMapVec*           storageMapVec,
+                                bslmt::Mutex*              storagesLock,
                                 const mqbi::DomainFactory* domainFactory,
                                 int*                       replicationFactor,
                                 const mqbcmd::StorageCommand& command,
@@ -2731,6 +2758,8 @@ int StorageUtil::processCommand(mqbcmd::StorageResult*     result,
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(result);
     BSLS_ASSERT_SAFE(fileStores);
+    BSLS_ASSERT_SAFE(storageMapVec);
+    BSLS_ASSERT_SAFE(storagesLock);
     BSLS_ASSERT_SAFE(domainFactory);
     BSLS_ASSERT_SAFE(replicationFactor);
 
@@ -2789,15 +2818,84 @@ int StorageUtil::processCommand(mqbcmd::StorageResult*     result,
         } else if (command.domain().command().isPurgeValue()) {
             // todo return value
 
+
+            bsl::vector<bsl::vector<mqbcmd::PurgeQueueResult> > purgedQueuesVec;
+            purgedQueuesVec.resize(fileStores->size());
+
             executeForEachPartitions(
                 bdlf::BindUtil::bind(&purgeDomainDispatched,
+                                    &purgedQueuesVec,
                                     bdlf::PlaceHolders::_2,  // latch
                                     bdlf::PlaceHolders::_1,  // partitionId
                                     *fileStores,
                                     command.domain().name()),
                 *fileStores);
 
+            mqbcmd::PurgedQueues& purgedQueues = result->makePurgedQueues();
+            for (size_t i = 0; i < purgedQueuesVec.size(); ++i) {
+                const bsl::vector<mqbcmd::PurgeQueueResult>& purgedQs =
+                    purgedQueuesVec[i];
+
+                purgedQueues.queues().insert(purgedQueues.queues().begin(),
+                                            purgedQs.begin(),
+                                            purgedQs.end());
+            }
+
+            return 0;  // RETURN
         }
+    }
+    else if (command.isQueueValue()) {
+        BSLS_ASSERT_SAFE(command.queue().command().isPurgeAppIdValue());
+
+        const bmqt::Uri uri(command.queue().uri(), allocator);
+
+        BSLS_ASSERT_SAFE(uri.isCanonical());
+
+        mqbi::Storage *queueStorage = NULL;
+        {
+            bslmt::LockGuard<bslmt::Mutex> guard(storagesLock);
+            for (StorageSpMapVec::iterator it = storageMapVec->begin(); it != storageMapVec->end(); it++) {
+                StorageSpMap::iterator storageIter = it->find(uri);
+                if (storageIter != it->end()) {
+                    queueStorage = storageIter->second.get();
+                    break;
+                }
+            }
+        }
+
+        if (!queueStorage) {
+            bdlma::LocalSequentialAllocator<256> localAllocator(allocator);
+            mwcu::MemOutStream                   os(&localAllocator);
+            os << "Queue was not found '" << uri << "'";
+            result->makeError().message() = os.str();
+            return -1;  // RETURN
+        }
+
+        // Empty string means all appIds, however, for the command, we require
+        // the user to be explicit if the entire queue is to be deleted, and
+        // therefore require '*' for the appid.
+        const bsl::string &purgeAppId = command.queue().command().purgeAppId();
+        bsl::string appId = (purgeAppId == "*") ? "" : purgeAppId;
+
+        const int partitionId = queueStorage->partitionId();
+        FileStoreSp &fileStore = (*fileStores)[partitionId];
+
+        mqbcmd::PurgeQueueResult purgedQueue;
+        bslmt::Semaphore purgeFinishedSemaphore;
+        fileStore->execute(bdlf::BindUtil::bind(&purgeQueueDispatched,
+                                        &purgedQueue,
+                                        &purgeFinishedSemaphore,
+                                        fileStore.get(),
+                                        queueStorage,
+                                        &appId
+        ));
+
+        purgeFinishedSemaphore.wait();
+
+        result->makePurgedQueues();
+        result->purgedQueues().queues().push_back(purgedQueue);
+
+        return 0;  // RETURN
     }
     else if (command.isReplicationValue()) {
         mqbcmd::ReplicationResult replicationResult;

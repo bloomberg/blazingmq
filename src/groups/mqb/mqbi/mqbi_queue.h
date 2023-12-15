@@ -895,12 +895,6 @@ class Queue : public DispatcherClient {
     virtual int processCommand(mqbcmd::QueueResult*        result,
                                const mqbcmd::QueueCommand& command) = 0;
 
-    /// Remove all outstanding messages from that queue and load the details
-    /// of the purged queue into the specified `result` object.  Empty
-    /// `appId` means to purge from ALL appIds.
-    virtual void purge(mqbcmd::PurgeQueueResult* result,
-                       const bsl::string&        appId = "") = 0;
-
     // ACCESSORS
 
     /// Return the domain this queue belong to.

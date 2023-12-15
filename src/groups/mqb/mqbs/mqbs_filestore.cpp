@@ -7094,26 +7094,97 @@ void FileStore::flush()
     }
 }
 
-void FileStore::purgeDomain(const bsl::string &domainName)
+void FileStore::purgeQueue(mqbcmd::PurgeQueueResult* result,
+                           mqbi::Storage &storage,
+                           const bsl::string& appId)
+{
+
+    // executed by the *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(inDispatcherThread());
+    BSLS_ASSERT_SAFE(result);
+    BSLS_ASSERT_SAFE(d_config.partitionId() == storage.partitionId());
+
+    if (!d_isPrimary) {
+        mwcu::MemOutStream errorMsg;
+        errorMsg << "Not purging queue '" << storage.queueUri() << "' "
+                 << " with  primary node: " << primaryNode()->nodeDescription()
+                 << "[reason: queue is NOT local]";
+        mqbcmd::Error& error = result->makeError();
+        error.message()      = errorMsg.str();
+        return;
+    }
+
+    mqbu::StorageKey appKey;
+    if (appId.empty()) {
+        // Entire queue needs to be purged.  Note that
+        // 'bmqp::ProtocolUtil::k_NULL_APP_ID' is the empty string.
+        appKey = mqbu::StorageKey::k_NULL_KEY;
+    }
+    else {
+        // A specific appId (i.e., virtual storage) needs to be purged.
+        if (!storage.hasVirtualStorage(appId, &appKey)) {
+            mwcu::MemOutStream errorMsg;
+            errorMsg << "Specified appId '" << appId << "' not found in the "
+                     << "storage of queue '" << storage.queueUri() << "'.";
+            mqbcmd::Error& error = result->makeError();
+            error.message()      = errorMsg.str();
+            return;  // RETURN
+        }
+    }
+
+    const bsls::Types::Uint64 numMsgs = storage.numMessages(appKey);
+    const bsls::Types::Uint64 numBytes = storage.numBytes(appKey);
+
+    mqbi::StorageResult::Enum rc = storage.removeAll(appKey);
+    if (rc != mqbi::StorageResult::e_SUCCESS) {
+        mwcu::MemOutStream errorMsg;
+        errorMsg << "Failed to purge appId '" << appId << "', appKey '"
+                 << appKey << "' of queue '" << storage.queueUri()
+                 << "' [reason: " << mqbi::StorageResult::toAscii(rc) << "]";
+        BALL_LOG_WARN << "#QUEUE_PURGE_FAILURE " << errorMsg.str();
+        mqbcmd::Error& error = result->makeError();
+        error.message()      = errorMsg.str();
+        return;  // RETURN
+    }
+
+    if (storage.queue()) {
+        BSLS_ASSERT_SAFE(storage.queue()->queueEngine());
+        storage.queue()->queueEngine()->afterQueuePurged(appId, appKey);
+    }
+
+    mqbcmd::PurgedQueueDetails& queueDetails = result->makeQueue();
+    queueDetails.queueUri()                  = storage.queueUri().asString();
+    queueDetails.appId()                     = appId;
+    mwcu::MemOutStream appKeyStr;
+    appKeyStr << appKey;
+    queueDetails.appKey()            = appKeyStr.str();
+    queueDetails.numMessagesPurged() = numMsgs;
+    queueDetails.numBytesPurged()    = numBytes;
+}
+
+
+void FileStore::purgeDomain(bsl::vector<mqbcmd::PurgeQueueResult> *purgedQueues, const bsl::string &domainName)
 {
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(inDispatcherThread());
+    BSLS_ASSERT_SAFE(purgedQueues);
 
     mqbs::StorageCollectionUtil::StorageFilter filter = mqbs::StorageCollectionUtilFilterFactory::byDomain(domainName);
 
-    mqbu::StorageKey appKey = mqbu::StorageKey::k_NULL_KEY;
-
     for (StorageMapIter sit = d_storages.begin(); sit != d_storages.end(); sit++) {
-        // TODO don't touch empty queues?
+        // PURGE queue return empty queues or not?
+        // TODO check if it's primary for this queue
         if (!filter(sit->second)) {
             continue;
         }
-        BALL_LOG_ERROR << "PURGE " << sit->first << " " << sit->second->queueUri() << " " << sit->second->capacityMeter()->messages() << " messages";
-        sit->second->removeAll(appKey);
+        mqbcmd::PurgeQueueResult result;
+        purgeQueue(&result, *sit->second, "");
+        purgedQueues->push_back(result);
     }
-    // TODO stats / return
 }
 
 void FileStore::setReplicationFactor(int value)

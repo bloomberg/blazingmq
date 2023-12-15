@@ -158,10 +158,6 @@ class StorageManager : public mqbi::StorageManager {
     // PRIVATE TYPES
     typedef bsl::shared_ptr<mqbs::ReplicatedStorage> StorageSp;
 
-    typedef bsl::vector<StorageSpMap>       StorageSpMapVec;
-    typedef StorageSpMapVec::iterator       StorageSpMapVecIter;
-    typedef StorageSpMapVec::const_iterator StorageSpMapVecConstIter;
-
     typedef bsl::vector<AppKeys>       AppKeysVec;
     typedef AppKeysVec::iterator       AppKeysVecIter;
     typedef AppKeysVec::const_iterator AppKeysVecConstIter;
