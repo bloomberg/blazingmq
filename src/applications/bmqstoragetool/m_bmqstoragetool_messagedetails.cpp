@@ -79,8 +79,7 @@ void MessageDetails::print(bsl::ostream& os) const
     }
 
     // Print deletion record
-    if (d_deleteRecord.d_record.deletionRecordFlag() !=
-        mqbs::DeletionRecordFlag::Enum::e_NONE) {
+    if (d_deleteRecord.d_isValid) {
         os << "DELETE Record, index: " << d_deleteRecord.d_recordIndex
            << ", offset: " << d_deleteRecord.d_recordOffset << bsl::endl;
         mqbs::FileStoreProtocolPrinter::printRecord(os,

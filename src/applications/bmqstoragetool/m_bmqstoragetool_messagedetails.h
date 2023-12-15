@@ -36,8 +36,13 @@ class MessageDetails {
         RECORD_TYPE         d_record;
         bsls::Types::Uint64 d_recordIndex;
         bsls::Types::Uint64 d_recordOffset;
+        bool                d_isValid;
 
-        RecordDetails() = default;
+        RecordDetails()
+        : d_isValid(false)
+        {
+            // NOTHING
+        }
 
         explicit RecordDetails(RECORD_TYPE         record,
                                bsls::Types::Uint64 recordIndex,
@@ -45,6 +50,7 @@ class MessageDetails {
         : d_record(record)
         , d_recordIndex(recordIndex)
         , d_recordOffset(recordOffset)
+        , d_isValid(true)
         {
             // NOTHING
         }

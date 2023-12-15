@@ -93,7 +93,7 @@ void SearchResult::outputResult()
 {
     if (d_withDetails) {
         // Print all collected messages details
-        for (auto& item : d_messagesDetails) {
+        for (const auto& item : d_messagesDetails) {
             item.second.print(d_ostream);
         }
     }
@@ -112,10 +112,13 @@ void SearchResult::outputGuidString(const bmqt::MessageGUID& messageGUID,
 
 void SearchResult::outputFooter()
 {
-    const char* caption = d_withDetails ? " message(s) found."
-                                        : " message GUID(s) found.";
-    d_foundMessagesCount > 0 ? (d_ostream << d_foundMessagesCount << caption)
-                             : d_ostream << "No message GUID found.";
+    const char* captionForFound    = d_withDetails ? " message(s) found."
+                                                   : " message GUID(s) found.";
+    const char* captionForNotFound = d_withDetails ? "No message found."
+                                                   : "No message GUID found.";
+    d_foundMessagesCount > 0
+        ? (d_ostream << d_foundMessagesCount << captionForFound)
+        : d_ostream << captionForNotFound;
     d_ostream << bsl::endl;
 }
 
@@ -123,7 +126,8 @@ void SearchResult::outputOutstandingRatio()
 {
     if (d_foundMessagesCount) {
         d_ostream << "Outstanding ratio: "
-                  << float(d_foundMessagesCount) / d_totalMessagesCount * 100.0
+                  << bsl::round(float(d_foundMessagesCount) /
+                                d_totalMessagesCount * 100.0)
                   << "%" << bsl::endl;
     }
 }
@@ -184,16 +188,37 @@ bool SearchGuidResult::processMessageRecord(const mqbs::MessageRecord& record,
 {
     if (auto it = d_guidsMap.find(record.messageGUID());
         it != d_guidsMap.end()) {
-        if (!d_withDetails) {
-            // Output result immediately and remove processed GUID from map.
-            d_ostream << it->second << bsl::endl;
-            d_guidsMap.erase(it);
+        if (d_withDetails) {
+            // Store record details for further output
+            d_messagesDetails.emplace(record.messageGUID(),
+                                      MessageDetails(record,
+                                                     recordIndex,
+                                                     recordOffset,
+                                                     d_allocator_p));
         }
+        else {
+            // Output result immediately.
+            d_ostream << it->second << bsl::endl;
+        }
+        // Remove processed GUID from map.
+        d_guidsMap.erase(it);
         d_foundMessagesCount++;
     }
     d_totalMessagesCount++;
 
-    return d_guidsMap.empty() ? true : false;
+    // return true (stop search) if no detail is needed and map is empty.
+    return (!d_withDetails && d_guidsMap.empty());
+}
+
+bool SearchGuidResult::processDeletionRecord(
+    const mqbs::DeletionRecord& record,
+    bsls::Types::Uint64         recordIndex,
+    bsls::Types::Uint64         recordOffset)
+{
+    SearchResult::processDeletionRecord(record, recordIndex, recordOffset);
+    // return true (stop search) when details needed and search is done (map is
+    // empty).
+    return (d_withDetails && d_guidsMap.empty());
 }
 
 // =====================
@@ -220,7 +245,7 @@ bool SearchOutstandingResult::processMessageRecord(
                                                            recordOffset);
     if (filterPassed) {
         if (!d_withDetails) {
-            d_outstandingGUIDS.push_back(record.messageGUID());
+            d_outstandingGUIDS.insert(record.messageGUID());
         }
         d_foundMessagesCount++;
     }
@@ -233,13 +258,21 @@ bool SearchOutstandingResult::processDeletionRecord(
     bsls::Types::Uint64         recordIndex,
     bsls::Types::Uint64         recordOffset)
 {
-    if (auto it = bsl::find(d_outstandingGUIDS.begin(),
-                            d_outstandingGUIDS.end(),
-                            record.messageGUID());
-        it != d_outstandingGUIDS.end()) {
-        // Message is confirmed (not outstanding), remove it.
-        d_outstandingGUIDS.erase(it);
-        d_foundMessagesCount--;
+    if (d_withDetails) {
+        if (auto it = d_messagesDetails.find(record.messageGUID());
+            it != d_messagesDetails.end()) {
+            // Message is confirmed (not outstanding), remove it.
+            d_messagesDetails.erase(it);
+            d_foundMessagesCount--;
+        }
+    }
+    else {
+        if (auto it = d_outstandingGUIDS.find(record.messageGUID());
+            it != d_outstandingGUIDS.end()) {
+            // Message is confirmed (not outstanding), remove it.
+            d_outstandingGUIDS.erase(it);
+            d_foundMessagesCount--;
+        }
     }
 
     return false;
@@ -247,14 +280,18 @@ bool SearchOutstandingResult::processDeletionRecord(
 
 void SearchOutstandingResult::outputResult()
 {
-    if (!d_withDetails) {
+    if (d_withDetails) {
+        for (const auto& item : d_messagesDetails) {
+            item.second.print(d_ostream);
+        }
+    }
+    else {
         for (const auto& guid : d_outstandingGUIDS) {
             outputGuidString(guid);
         }
-
-        outputFooter();
-        outputOutstandingRatio();
     }
+    outputFooter();
+    outputOutstandingRatio();
 }
 
 // =====================
@@ -281,7 +318,7 @@ bool SearchConfirmedResult::processMessageRecord(
                                                            recordOffset);
     if (filterPassed) {
         if (!d_withDetails) {
-            d_messageGUIDS.push_back(record.messageGUID());
+            d_messageGUIDS.insert(record.messageGUID());
         }
     }
 
@@ -293,15 +330,23 @@ bool SearchConfirmedResult::processDeletionRecord(
     bsls::Types::Uint64         recordIndex,
     bsls::Types::Uint64         recordOffset)
 {
-    if (!d_withDetails) {
-        if (auto it = bsl::find(d_messageGUIDS.begin(),
-                                d_messageGUIDS.end(),
-                                record.messageGUID());
+    if (d_withDetails) {
+        if (auto it = d_messagesDetails.find(record.messageGUID());
+            it != d_messagesDetails.end()) {
+            it->second.addDeleteRecord(record, recordIndex, recordOffset);
+            // Message is confirmed, output it immediately and remove.
+            it->second.print(d_ostream);
+            d_messagesDetails.erase(it);
+            d_foundMessagesCount++;
+        }
+    }
+    else {
+        if (auto it = d_messageGUIDS.find(record.messageGUID());
             it != d_messageGUIDS.end()) {
             // Message is confirmed, output it immediately and remove.
             outputGuidString(record.messageGUID());
-            d_foundMessagesCount++;
             d_messageGUIDS.erase(it);
+            d_foundMessagesCount++;
         }
     }
 
@@ -310,10 +355,10 @@ bool SearchConfirmedResult::processDeletionRecord(
 
 void SearchConfirmedResult::outputResult()
 {
-    if (!d_withDetails) {
-        outputFooter();
-        outputOutstandingRatio();
-    }
+    outputFooter();
+    // For ratio calculation, recalculate d_foundMessagesCount
+    d_foundMessagesCount = d_totalMessagesCount - d_foundMessagesCount;
+    outputOutstandingRatio();
 }
 
 // =====================
@@ -340,9 +385,7 @@ bool SearchPartiallyConfirmedResult::processMessageRecord(
                                                            recordIndex,
                                                            recordOffset);
     if (filterPassed) {
-        if (!d_withDetails) {
-            d_partiallyConfirmedGUIDS[record.messageGUID()] = 0;
-        }
+        d_partiallyConfirmedGUIDS[record.messageGUID()] = 0;
     }
 
     return false;
@@ -353,12 +396,11 @@ bool SearchPartiallyConfirmedResult::processConfirmRecord(
     bsls::Types::Uint64        recordIndex,
     bsls::Types::Uint64        recordOffset)
 {
-    if (!d_withDetails) {
-        if (auto it = d_partiallyConfirmedGUIDS.find(record.messageGUID());
-            it != d_partiallyConfirmedGUIDS.end()) {
-            // Message is partially confirmed, increase counter.
-            it->second++;
-        }
+    SearchResult::processConfirmRecord(record, recordIndex, recordOffset);
+    if (auto it = d_partiallyConfirmedGUIDS.find(record.messageGUID());
+        it != d_partiallyConfirmedGUIDS.end()) {
+        // Message is partially confirmed, increase counter.
+        it->second++;
     }
 
     return false;
@@ -369,11 +411,12 @@ bool SearchPartiallyConfirmedResult::processDeletionRecord(
     bsls::Types::Uint64         recordIndex,
     bsls::Types::Uint64         recordOffset)
 {
-    if (!d_withDetails) {
-        if (auto it = d_partiallyConfirmedGUIDS.find(record.messageGUID());
-            it != d_partiallyConfirmedGUIDS.end()) {
-            // Message is confirmed, remove.
-            d_partiallyConfirmedGUIDS.erase(it);
+    if (auto it = d_partiallyConfirmedGUIDS.find(record.messageGUID());
+        it != d_partiallyConfirmedGUIDS.end()) {
+        // Message is confirmed, remove.
+        d_partiallyConfirmedGUIDS.erase(it);
+        if (d_withDetails) {
+            d_messagesDetails.erase(record.messageGUID());
         }
     }
 
@@ -382,17 +425,20 @@ bool SearchPartiallyConfirmedResult::processDeletionRecord(
 
 void SearchPartiallyConfirmedResult::outputResult()
 {
-    if (!d_withDetails) {
-        for (const auto& item : d_partiallyConfirmedGUIDS) {
-            if (item.second > 0) {
-                outputGuidString(item.first);
-                d_foundMessagesCount++;
+    for (const auto& item : d_partiallyConfirmedGUIDS) {
+        if (item.second > 0) {
+            if (d_withDetails) {
+                d_messagesDetails.at(item.first).print(d_ostream);
             }
+            else {
+                outputGuidString(item.first);
+            }
+            d_foundMessagesCount++;
         }
-
-        outputFooter();
-        outputOutstandingRatio();
     }
+
+    outputFooter();
+    outputOutstandingRatio();
 }
 
 }  // close package namespace

@@ -968,8 +968,8 @@ static void test5_searchConfirmedMessagesTest()
     expectedStream << confirmedGUIDS.size() << " message GUID(s) found."
                    << bsl::endl;
     float messageCount     = numRecords / 3.0;
-    float outstandingRatio = float(confirmedGUIDS.size()) / messageCount *
-                             100.0;
+    float outstandingRatio = float(messageCount - confirmedGUIDS.size()) /
+                             messageCount * 100.0;
     expectedStream << "Outstanding ratio: " << outstandingRatio << "%"
                    << bsl::endl;
 

@@ -26,6 +26,7 @@
 // BDE
 #include <bsl_iostream.h>
 #include <bsl_unordered_map.h>
+#include <bsl_unordered_set.h>
 #include <bsl_vector.h>
 #include <bsls_keyword.h>
 
@@ -45,8 +46,6 @@ class SearchResult {
         MessagesDetails;
 
     // DATA
-    // const bsl::string d_foundGuidCaption    = " message GUID(s) found.";
-    // const bsl::string d_notFoundGuidCaption = "No message GUID found.";
 
     bsl::ostream&     d_ostream;
     bool              d_withDetails;
@@ -120,6 +119,10 @@ class SearchGuidResult : public SearchResult {
                               bsls::Types::Uint64        recordIndex,
                               bsls::Types::Uint64        recordOffset)
         BSLS_KEYWORD_OVERRIDE;
+    bool processDeletionRecord(const mqbs::DeletionRecord& record,
+                               bsls::Types::Uint64         recordIndex,
+                               bsls::Types::Uint64         recordOffset)
+        BSLS_KEYWORD_OVERRIDE;
 };
 
 // =====================
@@ -128,7 +131,7 @@ class SearchGuidResult : public SearchResult {
 class SearchOutstandingResult : public SearchResult {
   private:
     // DATA
-    bsl::vector<bmqt::MessageGUID> d_outstandingGUIDS;
+    bsl::unordered_set<bmqt::MessageGUID> d_outstandingGUIDS;
 
   public:
     // CREATORS
@@ -155,7 +158,7 @@ class SearchOutstandingResult : public SearchResult {
 class SearchConfirmedResult : public SearchResult {
   private:
     // DATA
-    bsl::vector<bmqt::MessageGUID> d_messageGUIDS;
+    bsl::unordered_set<bmqt::MessageGUID> d_messageGUIDS;
 
   public:
     // CREATORS
