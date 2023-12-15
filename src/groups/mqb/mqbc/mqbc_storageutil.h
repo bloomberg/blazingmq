@@ -295,6 +295,14 @@ struct StorageUtil {
                                  int                            partitionId,
                                  const FileStores&              fileStores);
 
+    // TODO docs
+    // TODO place
+    static void purgeDomainDispatched( 
+                                 bslmt::Latch*                  latch,
+                                 int                            partitionId,
+                                 const FileStores&              fileStores,
+                                 const bsl::string& domainName);
+
     /// Execute the specified `job` for each partition in the specified
     /// `fileStores`.  Each partition will receive its partitionId and a
     /// latch along with the `job`.  Each partition *must* call
@@ -669,11 +677,6 @@ struct StorageUtil {
                                             mqbs::FileStore*     fs,
                                             mqbnet::ClusterNode* destination,
                                             const PartitionInfo& pinfo);
-
-
-    // TODO docs
-    // TODO place
-    static void purgeDomain(FileStores* fileStores, const bsl::string &domain)
 };
 
 template <>

@@ -834,7 +834,8 @@ int Domain::processCommand(mqbcmd::DomainResult*        result,
 
         // TODO filter duplicates
         mqbcmd::PurgedQueues& purgedQueues = result->makePurgedQueues();
-        if (clusterResult.isStorageResultValue().isPurgedQueuesValue()) {
+        if (clusterResult.isStorageResultValue() && 
+            clusterResult.storageResult().isPurgedQueuesValue()) {
             //TODO handle other selections
             const bsl::vector<mqbcmd::PurgeQueueResult>& purgedQs =
                 clusterResult.storageResult().purgedQueues().queues();
