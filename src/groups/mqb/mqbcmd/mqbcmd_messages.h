@@ -128,6 +128,9 @@ namespace mqbcmd {
 class RemoteStreamInfo;
 }
 namespace mqbcmd {
+class StorageQueueCommand;
+}
+namespace mqbcmd {
 class StorageQueueInfo;
 }
 namespace mqbcmd {
@@ -203,7 +206,7 @@ namespace mqbcmd {
 class StoragePartitionCommand;
 }
 namespace mqbcmd {
-class StorageQueueCommand;
+class StorageQueue;
 }
 namespace mqbcmd {
 class Subscription;
@@ -261,9 +264,6 @@ class StorageDomain;
 }
 namespace mqbcmd {
 class StoragePartition;
-}
-namespace mqbcmd {
-class StorageQueue;
 }
 namespace mqbcmd {
 class Tunable;
@@ -5341,6 +5341,205 @@ inline bsl::ostream& operator<<(bsl::ostream&                    stream,
 // TRAITS
 
 BDLAT_DECL_ENUMERATION_TRAITS(mqbcmd::ResourceUsageMonitorState)
+
+namespace mqbcmd {
+
+// =========================
+// class StorageQueueCommand
+// =========================
+
+class StorageQueueCommand {
+    // INSTANCE DATA
+    union {
+        bsls::ObjectBuffer<bsl::string> d_purgeAppId;
+        // The special value "*" indicates the entire queue.
+    };
+
+    int               d_selectionId;
+    bslma::Allocator* d_allocator_p;
+
+  public:
+    // TYPES
+
+    enum { SELECTION_ID_UNDEFINED = -1, SELECTION_ID_PURGE_APP_ID = 0 };
+
+    enum { NUM_SELECTIONS = 1 };
+
+    enum { SELECTION_INDEX_PURGE_APP_ID = 0 };
+
+    // CONSTANTS
+    static const char CLASS_NAME[];
+
+    static const bdlat_SelectionInfo SELECTION_INFO_ARRAY[];
+
+    // CLASS METHODS
+    static const bdlat_SelectionInfo* lookupSelectionInfo(int id);
+    // Return selection information for the selection indicated by the
+    // specified 'id' if the selection exists, and 0 otherwise.
+
+    static const bdlat_SelectionInfo* lookupSelectionInfo(const char* name,
+                                                          int nameLength);
+    // Return selection information for the selection indicated by the
+    // specified 'name' of the specified 'nameLength' if the selection
+    // exists, and 0 otherwise.
+
+    // CREATORS
+    explicit StorageQueueCommand(bslma::Allocator* basicAllocator = 0);
+    // Create an object of type 'StorageQueueCommand' having the default
+    // value.  Use the optionally specified 'basicAllocator' to supply
+    // memory.  If 'basicAllocator' is 0, the currently installed default
+    // allocator is used.
+
+    StorageQueueCommand(const StorageQueueCommand& original,
+                        bslma::Allocator*          basicAllocator = 0);
+    // Create an object of type 'StorageQueueCommand' having the value of
+    // the specified 'original' object.  Use the optionally specified
+    // 'basicAllocator' to supply memory.  If 'basicAllocator' is 0, the
+    // currently installed default allocator is used.
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+    StorageQueueCommand(StorageQueueCommand&& original) noexcept;
+    // Create an object of type 'StorageQueueCommand' having the value of
+    // the specified 'original' object.  After performing this action, the
+    // 'original' object will be left in a valid, but unspecified state.
+
+    StorageQueueCommand(StorageQueueCommand&& original,
+                        bslma::Allocator*     basicAllocator);
+    // Create an object of type 'StorageQueueCommand' having the value of
+    // the specified 'original' object.  After performing this action, the
+    // 'original' object will be left in a valid, but unspecified state.
+    // Use the optionally specified 'basicAllocator' to supply memory.  If
+    // 'basicAllocator' is 0, the currently installed default allocator is
+    // used.
+#endif
+
+    ~StorageQueueCommand();
+    // Destroy this object.
+
+    // MANIPULATORS
+    StorageQueueCommand& operator=(const StorageQueueCommand& rhs);
+    // Assign to this object the value of the specified 'rhs' object.
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+    StorageQueueCommand& operator=(StorageQueueCommand&& rhs);
+    // Assign to this object the value of the specified 'rhs' object.
+    // After performing this action, the 'rhs' object will be left in a
+    // valid, but unspecified state.
+#endif
+
+    void reset();
+    // Reset this object to the default value (i.e., its value upon default
+    // construction).
+
+    int makeSelection(int selectionId);
+    // Set the value of this object to be the default for the selection
+    // indicated by the specified 'selectionId'.  Return 0 on success, and
+    // non-zero value otherwise (i.e., the selection is not found).
+
+    int makeSelection(const char* name, int nameLength);
+    // Set the value of this object to be the default for the selection
+    // indicated by the specified 'name' of the specified 'nameLength'.
+    // Return 0 on success, and non-zero value otherwise (i.e., the
+    // selection is not found).
+
+    bsl::string& makePurgeAppId();
+    bsl::string& makePurgeAppId(const bsl::string& value);
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+    bsl::string& makePurgeAppId(bsl::string&& value);
+#endif
+    // Set the value of this object to be a "PurgeAppId" value.  Optionally
+    // specify the 'value' of the "PurgeAppId".  If 'value' is not
+    // specified, the default "PurgeAppId" value is used.
+
+    template <typename t_MANIPULATOR>
+    int manipulateSelection(t_MANIPULATOR& manipulator);
+    // Invoke the specified 'manipulator' on the address of the modifiable
+    // selection, supplying 'manipulator' with the corresponding selection
+    // information structure.  Return the value returned from the
+    // invocation of 'manipulator' if this object has a defined selection,
+    // and -1 otherwise.
+
+    bsl::string& purgeAppId();
+    // Return a reference to the modifiable "PurgeAppId" selection of this
+    // object if "PurgeAppId" is the current selection.  The behavior is
+    // undefined unless "PurgeAppId" is the selection of this object.
+
+    // ACCESSORS
+    bsl::ostream&
+    print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
+    // Format this object to the specified output 'stream' at the
+    // optionally specified indentation 'level' and return a reference to
+    // the modifiable 'stream'.  If 'level' is specified, optionally
+    // specify 'spacesPerLevel', the number of spaces per indentation level
+    // for this and all of its nested objects.  Each line is indented by
+    // the absolute value of 'level * spacesPerLevel'.  If 'level' is
+    // negative, suppress indentation of the first line.  If
+    // 'spacesPerLevel' is negative, suppress line breaks and format the
+    // entire output on one line.  If 'stream' is initially invalid, this
+    // operation has no effect.  Note that a trailing newline is provided
+    // in multiline mode only.
+
+    int selectionId() const;
+    // Return the id of the current selection if the selection is defined,
+    // and -1 otherwise.
+
+    template <typename t_ACCESSOR>
+    int accessSelection(t_ACCESSOR& accessor) const;
+    // Invoke the specified 'accessor' on the non-modifiable selection,
+    // supplying 'accessor' with the corresponding selection information
+    // structure.  Return the value returned from the invocation of
+    // 'accessor' if this object has a defined selection, and -1 otherwise.
+
+    const bsl::string& purgeAppId() const;
+    // Return a reference to the non-modifiable "PurgeAppId" selection of
+    // this object if "PurgeAppId" is the current selection.  The behavior
+    // is undefined unless "PurgeAppId" is the selection of this object.
+
+    bool isPurgeAppIdValue() const;
+    // Return 'true' if the value of this object is a "PurgeAppId" value,
+    // and return 'false' otherwise.
+
+    bool isUndefinedValue() const;
+    // Return 'true' if the value of this object is undefined, and 'false'
+    // otherwise.
+
+    const char* selectionName() const;
+    // Return the symbolic name of the current selection of this object.
+};
+
+// FREE OPERATORS
+inline bool operator==(const StorageQueueCommand& lhs,
+                       const StorageQueueCommand& rhs);
+// Return 'true' if the specified 'lhs' and 'rhs' objects have the same
+// value, and 'false' otherwise.  Two 'StorageQueueCommand' objects have the
+// same value if either the selections in both objects have the same ids and
+// the same values, or both selections are undefined.
+
+inline bool operator!=(const StorageQueueCommand& lhs,
+                       const StorageQueueCommand& rhs);
+// Return 'true' if the specified 'lhs' and 'rhs' objects do not have the
+// same values, as determined by 'operator==', and 'false' otherwise.
+
+inline bsl::ostream& operator<<(bsl::ostream&              stream,
+                                const StorageQueueCommand& rhs);
+// Format the specified 'rhs' to the specified output 'stream' and
+// return a reference to the modifiable 'stream'.
+
+template <typename t_HASH_ALGORITHM>
+void hashAppend(t_HASH_ALGORITHM& hashAlg, const StorageQueueCommand& object);
+// Pass the specified 'object' to the specified 'hashAlg'.  This function
+// integrates with the 'bslh' modular hashing system and effectively
+// provides a 'bsl::hash' specialization for 'StorageQueueCommand'.
+
+}  // close package namespace
+
+// TRAITS
+
+BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
+    mqbcmd::StorageQueueCommand)
 
 namespace mqbcmd {
 
@@ -10848,112 +11047,124 @@ BDLAT_DECL_CHOICE_WITH_BITWISEMOVEABLE_TRAITS(mqbcmd::StoragePartitionCommand)
 
 namespace mqbcmd {
 
-// =========================
-// class StorageQueueCommand
-// =========================
+// ==================
+// class StorageQueue
+// ==================
 
-class StorageQueueCommand {
+class StorageQueue {
     // INSTANCE DATA
-    union {
-        bsls::ObjectBuffer<Void> d_purge;
-    };
-
-    int d_selectionId;
+    bsl::string         d_uri;
+    StorageQueueCommand d_command;
 
   public:
     // TYPES
+    enum { ATTRIBUTE_ID_URI = 0, ATTRIBUTE_ID_COMMAND = 1 };
 
-    enum { SELECTION_ID_UNDEFINED = -1, SELECTION_ID_PURGE = 0 };
+    enum { NUM_ATTRIBUTES = 2 };
 
-    enum { NUM_SELECTIONS = 1 };
-
-    enum { SELECTION_INDEX_PURGE = 0 };
+    enum { ATTRIBUTE_INDEX_URI = 0, ATTRIBUTE_INDEX_COMMAND = 1 };
 
     // CONSTANTS
     static const char CLASS_NAME[];
 
-    static const bdlat_SelectionInfo SELECTION_INFO_ARRAY[];
+    static const bdlat_AttributeInfo ATTRIBUTE_INFO_ARRAY[];
 
+  public:
     // CLASS METHODS
-    static const bdlat_SelectionInfo* lookupSelectionInfo(int id);
-    // Return selection information for the selection indicated by the
-    // specified 'id' if the selection exists, and 0 otherwise.
+    static const bdlat_AttributeInfo* lookupAttributeInfo(int id);
+    // Return attribute information for the attribute indicated by the
+    // specified 'id' if the attribute exists, and 0 otherwise.
 
-    static const bdlat_SelectionInfo* lookupSelectionInfo(const char* name,
+    static const bdlat_AttributeInfo* lookupAttributeInfo(const char* name,
                                                           int nameLength);
-    // Return selection information for the selection indicated by the
-    // specified 'name' of the specified 'nameLength' if the selection
+    // Return attribute information for the attribute indicated by the
+    // specified 'name' of the specified 'nameLength' if the attribute
     // exists, and 0 otherwise.
 
     // CREATORS
-    StorageQueueCommand();
-    // Create an object of type 'StorageQueueCommand' having the default
-    // value.
+    explicit StorageQueue(bslma::Allocator* basicAllocator = 0);
+    // Create an object of type 'StorageQueue' having the default value.
+    // Use the optionally specified 'basicAllocator' to supply memory.  If
+    // 'basicAllocator' is 0, the currently installed default allocator is
+    // used.
 
-    StorageQueueCommand(const StorageQueueCommand& original);
-    // Create an object of type 'StorageQueueCommand' having the value of
-    // the specified 'original' object.
+    StorageQueue(const StorageQueue& original,
+                 bslma::Allocator*   basicAllocator = 0);
+    // Create an object of type 'StorageQueue' having the value of the
+    // specified 'original' object.  Use the optionally specified
+    // 'basicAllocator' to supply memory.  If 'basicAllocator' is 0, the
+    // currently installed default allocator is used.
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    StorageQueueCommand(StorageQueueCommand&& original) noexcept;
-    // Create an object of type 'StorageQueueCommand' having the value of
-    // the specified 'original' object.  After performing this action, the
+    StorageQueue(StorageQueue&& original) noexcept;
+    // Create an object of type 'StorageQueue' having the value of the
+    // specified 'original' object.  After performing this action, the
     // 'original' object will be left in a valid, but unspecified state.
+
+    StorageQueue(StorageQueue&& original, bslma::Allocator* basicAllocator);
+    // Create an object of type 'StorageQueue' having the value of the
+    // specified 'original' object.  After performing this action, the
+    // 'original' object will be left in a valid, but unspecified state.
+    // Use the optionally specified 'basicAllocator' to supply memory.  If
+    // 'basicAllocator' is 0, the currently installed default allocator is
+    // used.
 #endif
 
-    ~StorageQueueCommand();
+    ~StorageQueue();
     // Destroy this object.
 
     // MANIPULATORS
-    StorageQueueCommand& operator=(const StorageQueueCommand& rhs);
+    StorageQueue& operator=(const StorageQueue& rhs);
     // Assign to this object the value of the specified 'rhs' object.
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    StorageQueueCommand& operator=(StorageQueueCommand&& rhs);
+    StorageQueue& operator=(StorageQueue&& rhs);
     // Assign to this object the value of the specified 'rhs' object.
     // After performing this action, the 'rhs' object will be left in a
     // valid, but unspecified state.
 #endif
 
     void reset();
-    // Reset this object to the default value (i.e., its value upon default
-    // construction).
-
-    int makeSelection(int selectionId);
-    // Set the value of this object to be the default for the selection
-    // indicated by the specified 'selectionId'.  Return 0 on success, and
-    // non-zero value otherwise (i.e., the selection is not found).
-
-    int makeSelection(const char* name, int nameLength);
-    // Set the value of this object to be the default for the selection
-    // indicated by the specified 'name' of the specified 'nameLength'.
-    // Return 0 on success, and non-zero value otherwise (i.e., the
-    // selection is not found).
-
-    Void& makePurge();
-    Void& makePurge(const Void& value);
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    Void& makePurge(Void&& value);
-#endif
-    // Set the value of this object to be a "Purge" value.  Optionally
-    // specify the 'value' of the "Purge".  If 'value' is not specified,
-    // the default "Purge" value is used.
+    // Reset this object to the default value (i.e., its value upon
+    // default construction).
 
     template <typename t_MANIPULATOR>
-    int manipulateSelection(t_MANIPULATOR& manipulator);
-    // Invoke the specified 'manipulator' on the address of the modifiable
-    // selection, supplying 'manipulator' with the corresponding selection
-    // information structure.  Return the value returned from the
-    // invocation of 'manipulator' if this object has a defined selection,
-    // and -1 otherwise.
+    int manipulateAttributes(t_MANIPULATOR& manipulator);
+    // Invoke the specified 'manipulator' sequentially on the address of
+    // each (modifiable) attribute of this object, supplying 'manipulator'
+    // with the corresponding attribute information structure until such
+    // invocation returns a non-zero value.  Return the value from the
+    // last invocation of 'manipulator' (i.e., the invocation that
+    // terminated the sequence).
 
-    Void& purge();
-    // Return a reference to the modifiable "Purge" selection of this
-    // object if "Purge" is the current selection.  The behavior is
-    // undefined unless "Purge" is the selection of this object.
+    template <typename t_MANIPULATOR>
+    int manipulateAttribute(t_MANIPULATOR& manipulator, int id);
+    // Invoke the specified 'manipulator' on the address of
+    // the (modifiable) attribute indicated by the specified 'id',
+    // supplying 'manipulator' with the corresponding attribute
+    // information structure.  Return the value returned from the
+    // invocation of 'manipulator' if 'id' identifies an attribute of this
+    // class, and -1 otherwise.
+
+    template <typename t_MANIPULATOR>
+    int manipulateAttribute(t_MANIPULATOR& manipulator,
+                            const char*    name,
+                            int            nameLength);
+    // Invoke the specified 'manipulator' on the address of
+    // the (modifiable) attribute indicated by the specified 'name' of the
+    // specified 'nameLength', supplying 'manipulator' with the
+    // corresponding attribute information structure.  Return the value
+    // returned from the invocation of 'manipulator' if 'name' identifies
+    // an attribute of this class, and -1 otherwise.
+
+    bsl::string& uri();
+    // Return a reference to the modifiable "Uri" attribute of this object.
+
+    StorageQueueCommand& command();
+    // Return a reference to the modifiable "Command" attribute of this
+    // object.
 
     // ACCESSORS
     bsl::ostream&
@@ -10970,63 +11181,70 @@ class StorageQueueCommand {
     // operation has no effect.  Note that a trailing newline is provided
     // in multiline mode only.
 
-    int selectionId() const;
-    // Return the id of the current selection if the selection is defined,
-    // and -1 otherwise.
+    template <typename t_ACCESSOR>
+    int accessAttributes(t_ACCESSOR& accessor) const;
+    // Invoke the specified 'accessor' sequentially on each
+    // (non-modifiable) attribute of this object, supplying 'accessor'
+    // with the corresponding attribute information structure until such
+    // invocation returns a non-zero value.  Return the value from the
+    // last invocation of 'accessor' (i.e., the invocation that terminated
+    // the sequence).
 
     template <typename t_ACCESSOR>
-    int accessSelection(t_ACCESSOR& accessor) const;
-    // Invoke the specified 'accessor' on the non-modifiable selection,
-    // supplying 'accessor' with the corresponding selection information
-    // structure.  Return the value returned from the invocation of
-    // 'accessor' if this object has a defined selection, and -1 otherwise.
+    int accessAttribute(t_ACCESSOR& accessor, int id) const;
+    // Invoke the specified 'accessor' on the (non-modifiable) attribute
+    // of this object indicated by the specified 'id', supplying 'accessor'
+    // with the corresponding attribute information structure.  Return the
+    // value returned from the invocation of 'accessor' if 'id' identifies
+    // an attribute of this class, and -1 otherwise.
 
-    const Void& purge() const;
-    // Return a reference to the non-modifiable "Purge" selection of this
-    // object if "Purge" is the current selection.  The behavior is
-    // undefined unless "Purge" is the selection of this object.
+    template <typename t_ACCESSOR>
+    int accessAttribute(t_ACCESSOR& accessor,
+                        const char* name,
+                        int         nameLength) const;
+    // Invoke the specified 'accessor' on the (non-modifiable) attribute
+    // of this object indicated by the specified 'name' of the specified
+    // 'nameLength', supplying 'accessor' with the corresponding attribute
+    // information structure.  Return the value returned from the
+    // invocation of 'accessor' if 'name' identifies an attribute of this
+    // class, and -1 otherwise.
 
-    bool isPurgeValue() const;
-    // Return 'true' if the value of this object is a "Purge" value, and
-    // return 'false' otherwise.
+    const bsl::string& uri() const;
+    // Return a reference offering non-modifiable access to the "Uri"
+    // attribute of this object.
 
-    bool isUndefinedValue() const;
-    // Return 'true' if the value of this object is undefined, and 'false'
-    // otherwise.
-
-    const char* selectionName() const;
-    // Return the symbolic name of the current selection of this object.
+    const StorageQueueCommand& command() const;
+    // Return a reference offering non-modifiable access to the "Command"
+    // attribute of this object.
 };
 
 // FREE OPERATORS
-inline bool operator==(const StorageQueueCommand& lhs,
-                       const StorageQueueCommand& rhs);
-// Return 'true' if the specified 'lhs' and 'rhs' objects have the same
-// value, and 'false' otherwise.  Two 'StorageQueueCommand' objects have the
-// same value if either the selections in both objects have the same ids and
-// the same values, or both selections are undefined.
+inline bool operator==(const StorageQueue& lhs, const StorageQueue& rhs);
+// Return 'true' if the specified 'lhs' and 'rhs' attribute objects have
+// the same value, and 'false' otherwise.  Two attribute objects have the
+// same value if each respective attribute has the same value.
 
-inline bool operator!=(const StorageQueueCommand& lhs,
-                       const StorageQueueCommand& rhs);
-// Return 'true' if the specified 'lhs' and 'rhs' objects do not have the
-// same values, as determined by 'operator==', and 'false' otherwise.
+inline bool operator!=(const StorageQueue& lhs, const StorageQueue& rhs);
+// Return 'true' if the specified 'lhs' and 'rhs' attribute objects do not
+// have the same value, and 'false' otherwise.  Two attribute objects do
+// not have the same value if one or more respective attributes differ in
+// values.
 
-inline bsl::ostream& operator<<(bsl::ostream&              stream,
-                                const StorageQueueCommand& rhs);
+inline bsl::ostream& operator<<(bsl::ostream& stream, const StorageQueue& rhs);
 // Format the specified 'rhs' to the specified output 'stream' and
 // return a reference to the modifiable 'stream'.
 
 template <typename t_HASH_ALGORITHM>
-void hashAppend(t_HASH_ALGORITHM& hashAlg, const StorageQueueCommand& object);
+void hashAppend(t_HASH_ALGORITHM& hashAlg, const StorageQueue& object);
 // Pass the specified 'object' to the specified 'hashAlg'.  This function
 // integrates with the 'bslh' modular hashing system and effectively
-// provides a 'bsl::hash' specialization for 'StorageQueueCommand'.
+// provides a 'bsl::hash' specialization for 'StorageQueue'.
 
 }  // close package namespace
 
 // TRAITS
 
-BDLAT_DECL_CHOICE_WITH_BITWISEMOVEABLE_TRAITS(mqbcmd::StorageQueueCommand)
+BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::StorageQueue)
 
 namespace mqbcmd {
 
@@ -15279,207 +15497,6 @@ void hashAppend(t_HASH_ALGORITHM& hashAlg, const StoragePartition& object);
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcmd::StoragePartition)
-
-namespace mqbcmd {
-
-// ==================
-// class StorageQueue
-// ==================
-
-class StorageQueue {
-    // INSTANCE DATA
-    bsl::string         d_uri;
-    StorageQueueCommand d_command;
-
-  public:
-    // TYPES
-    enum { ATTRIBUTE_ID_URI = 0, ATTRIBUTE_ID_COMMAND = 1 };
-
-    enum { NUM_ATTRIBUTES = 2 };
-
-    enum { ATTRIBUTE_INDEX_URI = 0, ATTRIBUTE_INDEX_COMMAND = 1 };
-
-    // CONSTANTS
-    static const char CLASS_NAME[];
-
-    static const bdlat_AttributeInfo ATTRIBUTE_INFO_ARRAY[];
-
-  public:
-    // CLASS METHODS
-    static const bdlat_AttributeInfo* lookupAttributeInfo(int id);
-    // Return attribute information for the attribute indicated by the
-    // specified 'id' if the attribute exists, and 0 otherwise.
-
-    static const bdlat_AttributeInfo* lookupAttributeInfo(const char* name,
-                                                          int nameLength);
-    // Return attribute information for the attribute indicated by the
-    // specified 'name' of the specified 'nameLength' if the attribute
-    // exists, and 0 otherwise.
-
-    // CREATORS
-    explicit StorageQueue(bslma::Allocator* basicAllocator = 0);
-    // Create an object of type 'StorageQueue' having the default value.
-    // Use the optionally specified 'basicAllocator' to supply memory.  If
-    // 'basicAllocator' is 0, the currently installed default allocator is
-    // used.
-
-    StorageQueue(const StorageQueue& original,
-                 bslma::Allocator*   basicAllocator = 0);
-    // Create an object of type 'StorageQueue' having the value of the
-    // specified 'original' object.  Use the optionally specified
-    // 'basicAllocator' to supply memory.  If 'basicAllocator' is 0, the
-    // currently installed default allocator is used.
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    StorageQueue(StorageQueue&& original) noexcept;
-    // Create an object of type 'StorageQueue' having the value of the
-    // specified 'original' object.  After performing this action, the
-    // 'original' object will be left in a valid, but unspecified state.
-
-    StorageQueue(StorageQueue&& original, bslma::Allocator* basicAllocator);
-    // Create an object of type 'StorageQueue' having the value of the
-    // specified 'original' object.  After performing this action, the
-    // 'original' object will be left in a valid, but unspecified state.
-    // Use the optionally specified 'basicAllocator' to supply memory.  If
-    // 'basicAllocator' is 0, the currently installed default allocator is
-    // used.
-#endif
-
-    ~StorageQueue();
-    // Destroy this object.
-
-    // MANIPULATORS
-    StorageQueue& operator=(const StorageQueue& rhs);
-    // Assign to this object the value of the specified 'rhs' object.
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    StorageQueue& operator=(StorageQueue&& rhs);
-    // Assign to this object the value of the specified 'rhs' object.
-    // After performing this action, the 'rhs' object will be left in a
-    // valid, but unspecified state.
-#endif
-
-    void reset();
-    // Reset this object to the default value (i.e., its value upon
-    // default construction).
-
-    template <typename t_MANIPULATOR>
-    int manipulateAttributes(t_MANIPULATOR& manipulator);
-    // Invoke the specified 'manipulator' sequentially on the address of
-    // each (modifiable) attribute of this object, supplying 'manipulator'
-    // with the corresponding attribute information structure until such
-    // invocation returns a non-zero value.  Return the value from the
-    // last invocation of 'manipulator' (i.e., the invocation that
-    // terminated the sequence).
-
-    template <typename t_MANIPULATOR>
-    int manipulateAttribute(t_MANIPULATOR& manipulator, int id);
-    // Invoke the specified 'manipulator' on the address of
-    // the (modifiable) attribute indicated by the specified 'id',
-    // supplying 'manipulator' with the corresponding attribute
-    // information structure.  Return the value returned from the
-    // invocation of 'manipulator' if 'id' identifies an attribute of this
-    // class, and -1 otherwise.
-
-    template <typename t_MANIPULATOR>
-    int manipulateAttribute(t_MANIPULATOR& manipulator,
-                            const char*    name,
-                            int            nameLength);
-    // Invoke the specified 'manipulator' on the address of
-    // the (modifiable) attribute indicated by the specified 'name' of the
-    // specified 'nameLength', supplying 'manipulator' with the
-    // corresponding attribute information structure.  Return the value
-    // returned from the invocation of 'manipulator' if 'name' identifies
-    // an attribute of this class, and -1 otherwise.
-
-    bsl::string& uri();
-    // Return a reference to the modifiable "Uri" attribute of this object.
-
-    StorageQueueCommand& command();
-    // Return a reference to the modifiable "Command" attribute of this
-    // object.
-
-    // ACCESSORS
-    bsl::ostream&
-    print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
-    // Format this object to the specified output 'stream' at the
-    // optionally specified indentation 'level' and return a reference to
-    // the modifiable 'stream'.  If 'level' is specified, optionally
-    // specify 'spacesPerLevel', the number of spaces per indentation level
-    // for this and all of its nested objects.  Each line is indented by
-    // the absolute value of 'level * spacesPerLevel'.  If 'level' is
-    // negative, suppress indentation of the first line.  If
-    // 'spacesPerLevel' is negative, suppress line breaks and format the
-    // entire output on one line.  If 'stream' is initially invalid, this
-    // operation has no effect.  Note that a trailing newline is provided
-    // in multiline mode only.
-
-    template <typename t_ACCESSOR>
-    int accessAttributes(t_ACCESSOR& accessor) const;
-    // Invoke the specified 'accessor' sequentially on each
-    // (non-modifiable) attribute of this object, supplying 'accessor'
-    // with the corresponding attribute information structure until such
-    // invocation returns a non-zero value.  Return the value from the
-    // last invocation of 'accessor' (i.e., the invocation that terminated
-    // the sequence).
-
-    template <typename t_ACCESSOR>
-    int accessAttribute(t_ACCESSOR& accessor, int id) const;
-    // Invoke the specified 'accessor' on the (non-modifiable) attribute
-    // of this object indicated by the specified 'id', supplying 'accessor'
-    // with the corresponding attribute information structure.  Return the
-    // value returned from the invocation of 'accessor' if 'id' identifies
-    // an attribute of this class, and -1 otherwise.
-
-    template <typename t_ACCESSOR>
-    int accessAttribute(t_ACCESSOR& accessor,
-                        const char* name,
-                        int         nameLength) const;
-    // Invoke the specified 'accessor' on the (non-modifiable) attribute
-    // of this object indicated by the specified 'name' of the specified
-    // 'nameLength', supplying 'accessor' with the corresponding attribute
-    // information structure.  Return the value returned from the
-    // invocation of 'accessor' if 'name' identifies an attribute of this
-    // class, and -1 otherwise.
-
-    const bsl::string& uri() const;
-    // Return a reference offering non-modifiable access to the "Uri"
-    // attribute of this object.
-
-    const StorageQueueCommand& command() const;
-    // Return a reference offering non-modifiable access to the "Command"
-    // attribute of this object.
-};
-
-// FREE OPERATORS
-inline bool operator==(const StorageQueue& lhs, const StorageQueue& rhs);
-// Return 'true' if the specified 'lhs' and 'rhs' attribute objects have
-// the same value, and 'false' otherwise.  Two attribute objects have the
-// same value if each respective attribute has the same value.
-
-inline bool operator!=(const StorageQueue& lhs, const StorageQueue& rhs);
-// Return 'true' if the specified 'lhs' and 'rhs' attribute objects do not
-// have the same value, and 'false' otherwise.  Two attribute objects do
-// not have the same value if one or more respective attributes differ in
-// values.
-
-inline bsl::ostream& operator<<(bsl::ostream& stream, const StorageQueue& rhs);
-// Format the specified 'rhs' to the specified output 'stream' and
-// return a reference to the modifiable 'stream'.
-
-template <typename t_HASH_ALGORITHM>
-void hashAppend(t_HASH_ALGORITHM& hashAlg, const StorageQueue& object);
-// Pass the specified 'object' to the specified 'hashAlg'.  This function
-// integrates with the 'bslh' modular hashing system and effectively
-// provides a 'bsl::hash' specialization for 'StorageQueue'.
-
-}  // close package namespace
-
-// TRAITS
-
-BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::StorageQueue)
 
 namespace mqbcmd {
 
@@ -31410,6 +31427,78 @@ ResourceUsageMonitorState::print(bsl::ostream&                    stream,
     return stream << toString(value);
 }
 
+// -------------------------
+// class StorageQueueCommand
+// -------------------------
+
+// CLASS METHODS
+// CREATORS
+inline StorageQueueCommand::StorageQueueCommand(
+    bslma::Allocator* basicAllocator)
+: d_selectionId(SELECTION_ID_UNDEFINED)
+, d_allocator_p(bslma::Default::allocator(basicAllocator))
+{
+}
+
+inline StorageQueueCommand::~StorageQueueCommand()
+{
+    reset();
+}
+
+// MANIPULATORS
+template <typename t_MANIPULATOR>
+int StorageQueueCommand::manipulateSelection(t_MANIPULATOR& manipulator)
+{
+    switch (d_selectionId) {
+    case StorageQueueCommand::SELECTION_ID_PURGE_APP_ID:
+        return manipulator(&d_purgeAppId.object(),
+                           SELECTION_INFO_ARRAY[SELECTION_INDEX_PURGE_APP_ID]);
+    default:
+        BSLS_ASSERT(StorageQueueCommand::SELECTION_ID_UNDEFINED ==
+                    d_selectionId);
+        return -1;
+    }
+}
+
+inline bsl::string& StorageQueueCommand::purgeAppId()
+{
+    BSLS_ASSERT(SELECTION_ID_PURGE_APP_ID == d_selectionId);
+    return d_purgeAppId.object();
+}
+
+// ACCESSORS
+inline int StorageQueueCommand::selectionId() const
+{
+    return d_selectionId;
+}
+
+template <typename t_ACCESSOR>
+int StorageQueueCommand::accessSelection(t_ACCESSOR& accessor) const
+{
+    switch (d_selectionId) {
+    case SELECTION_ID_PURGE_APP_ID:
+        return accessor(d_purgeAppId.object(),
+                        SELECTION_INFO_ARRAY[SELECTION_INDEX_PURGE_APP_ID]);
+    default: BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId); return -1;
+    }
+}
+
+inline const bsl::string& StorageQueueCommand::purgeAppId() const
+{
+    BSLS_ASSERT(SELECTION_ID_PURGE_APP_ID == d_selectionId);
+    return d_purgeAppId.object();
+}
+
+inline bool StorageQueueCommand::isPurgeAppIdValue() const
+{
+    return SELECTION_ID_PURGE_APP_ID == d_selectionId;
+}
+
+inline bool StorageQueueCommand::isUndefinedValue() const
+{
+    return SELECTION_ID_UNDEFINED == d_selectionId;
+}
+
 // ----------------------
 // class StorageQueueInfo
 // ----------------------
@@ -35426,74 +35515,134 @@ inline bool StoragePartitionCommand::isUndefinedValue() const
     return SELECTION_ID_UNDEFINED == d_selectionId;
 }
 
-// -------------------------
-// class StorageQueueCommand
-// -------------------------
+// ------------------
+// class StorageQueue
+// ------------------
 
 // CLASS METHODS
-// CREATORS
-inline StorageQueueCommand::StorageQueueCommand()
-: d_selectionId(SELECTION_ID_UNDEFINED)
-{
-}
-
-inline StorageQueueCommand::~StorageQueueCommand()
-{
-    reset();
-}
-
 // MANIPULATORS
 template <typename t_MANIPULATOR>
-int StorageQueueCommand::manipulateSelection(t_MANIPULATOR& manipulator)
+int StorageQueue::manipulateAttributes(t_MANIPULATOR& manipulator)
 {
-    switch (d_selectionId) {
-    case StorageQueueCommand::SELECTION_ID_PURGE:
-        return manipulator(&d_purge.object(),
-                           SELECTION_INFO_ARRAY[SELECTION_INDEX_PURGE]);
-    default:
-        BSLS_ASSERT(StorageQueueCommand::SELECTION_ID_UNDEFINED ==
-                    d_selectionId);
-        return -1;
+    int ret;
+
+    ret = manipulator(&d_uri, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_URI]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(&d_command,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_COMMAND]);
+    if (ret) {
+        return ret;
+    }
+
+    return 0;
+}
+
+template <typename t_MANIPULATOR>
+int StorageQueue::manipulateAttribute(t_MANIPULATOR& manipulator, int id)
+{
+    enum { NOT_FOUND = -1 };
+
+    switch (id) {
+    case ATTRIBUTE_ID_URI: {
+        return manipulator(&d_uri, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_URI]);
+    }
+    case ATTRIBUTE_ID_COMMAND: {
+        return manipulator(&d_command,
+                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_COMMAND]);
+    }
+    default: return NOT_FOUND;
     }
 }
 
-inline Void& StorageQueueCommand::purge()
+template <typename t_MANIPULATOR>
+int StorageQueue::manipulateAttribute(t_MANIPULATOR& manipulator,
+                                      const char*    name,
+                                      int            nameLength)
 {
-    BSLS_ASSERT(SELECTION_ID_PURGE == d_selectionId);
-    return d_purge.object();
+    enum { NOT_FOUND = -1 };
+
+    const bdlat_AttributeInfo* attributeInfo = lookupAttributeInfo(name,
+                                                                   nameLength);
+    if (0 == attributeInfo) {
+        return NOT_FOUND;
+    }
+
+    return manipulateAttribute(manipulator, attributeInfo->d_id);
+}
+
+inline bsl::string& StorageQueue::uri()
+{
+    return d_uri;
+}
+
+inline StorageQueueCommand& StorageQueue::command()
+{
+    return d_command;
 }
 
 // ACCESSORS
-inline int StorageQueueCommand::selectionId() const
+template <typename t_ACCESSOR>
+int StorageQueue::accessAttributes(t_ACCESSOR& accessor) const
 {
-    return d_selectionId;
+    int ret;
+
+    ret = accessor(d_uri, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_URI]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_command, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_COMMAND]);
+    if (ret) {
+        return ret;
+    }
+
+    return 0;
 }
 
 template <typename t_ACCESSOR>
-int StorageQueueCommand::accessSelection(t_ACCESSOR& accessor) const
+int StorageQueue::accessAttribute(t_ACCESSOR& accessor, int id) const
 {
-    switch (d_selectionId) {
-    case SELECTION_ID_PURGE:
-        return accessor(d_purge.object(),
-                        SELECTION_INFO_ARRAY[SELECTION_INDEX_PURGE]);
-    default: BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId); return -1;
+    enum { NOT_FOUND = -1 };
+
+    switch (id) {
+    case ATTRIBUTE_ID_URI: {
+        return accessor(d_uri, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_URI]);
+    }
+    case ATTRIBUTE_ID_COMMAND: {
+        return accessor(d_command,
+                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_COMMAND]);
+    }
+    default: return NOT_FOUND;
     }
 }
 
-inline const Void& StorageQueueCommand::purge() const
+template <typename t_ACCESSOR>
+int StorageQueue::accessAttribute(t_ACCESSOR& accessor,
+                                  const char* name,
+                                  int         nameLength) const
 {
-    BSLS_ASSERT(SELECTION_ID_PURGE == d_selectionId);
-    return d_purge.object();
+    enum { NOT_FOUND = -1 };
+
+    const bdlat_AttributeInfo* attributeInfo = lookupAttributeInfo(name,
+                                                                   nameLength);
+    if (0 == attributeInfo) {
+        return NOT_FOUND;
+    }
+
+    return accessAttribute(accessor, attributeInfo->d_id);
 }
 
-inline bool StorageQueueCommand::isPurgeValue() const
+inline const bsl::string& StorageQueue::uri() const
 {
-    return SELECTION_ID_PURGE == d_selectionId;
+    return d_uri;
 }
 
-inline bool StorageQueueCommand::isUndefinedValue() const
+inline const StorageQueueCommand& StorageQueue::command() const
 {
-    return SELECTION_ID_UNDEFINED == d_selectionId;
+    return d_command;
 }
 
 // ------------------
@@ -38624,136 +38773,6 @@ inline int StoragePartition::partitionId() const
 }
 
 inline const StoragePartitionCommand& StoragePartition::command() const
-{
-    return d_command;
-}
-
-// ------------------
-// class StorageQueue
-// ------------------
-
-// CLASS METHODS
-// MANIPULATORS
-template <typename t_MANIPULATOR>
-int StorageQueue::manipulateAttributes(t_MANIPULATOR& manipulator)
-{
-    int ret;
-
-    ret = manipulator(&d_uri, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_URI]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = manipulator(&d_command,
-                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_COMMAND]);
-    if (ret) {
-        return ret;
-    }
-
-    return 0;
-}
-
-template <typename t_MANIPULATOR>
-int StorageQueue::manipulateAttribute(t_MANIPULATOR& manipulator, int id)
-{
-    enum { NOT_FOUND = -1 };
-
-    switch (id) {
-    case ATTRIBUTE_ID_URI: {
-        return manipulator(&d_uri, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_URI]);
-    }
-    case ATTRIBUTE_ID_COMMAND: {
-        return manipulator(&d_command,
-                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_COMMAND]);
-    }
-    default: return NOT_FOUND;
-    }
-}
-
-template <typename t_MANIPULATOR>
-int StorageQueue::manipulateAttribute(t_MANIPULATOR& manipulator,
-                                      const char*    name,
-                                      int            nameLength)
-{
-    enum { NOT_FOUND = -1 };
-
-    const bdlat_AttributeInfo* attributeInfo = lookupAttributeInfo(name,
-                                                                   nameLength);
-    if (0 == attributeInfo) {
-        return NOT_FOUND;
-    }
-
-    return manipulateAttribute(manipulator, attributeInfo->d_id);
-}
-
-inline bsl::string& StorageQueue::uri()
-{
-    return d_uri;
-}
-
-inline StorageQueueCommand& StorageQueue::command()
-{
-    return d_command;
-}
-
-// ACCESSORS
-template <typename t_ACCESSOR>
-int StorageQueue::accessAttributes(t_ACCESSOR& accessor) const
-{
-    int ret;
-
-    ret = accessor(d_uri, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_URI]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = accessor(d_command, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_COMMAND]);
-    if (ret) {
-        return ret;
-    }
-
-    return 0;
-}
-
-template <typename t_ACCESSOR>
-int StorageQueue::accessAttribute(t_ACCESSOR& accessor, int id) const
-{
-    enum { NOT_FOUND = -1 };
-
-    switch (id) {
-    case ATTRIBUTE_ID_URI: {
-        return accessor(d_uri, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_URI]);
-    }
-    case ATTRIBUTE_ID_COMMAND: {
-        return accessor(d_command,
-                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_COMMAND]);
-    }
-    default: return NOT_FOUND;
-    }
-}
-
-template <typename t_ACCESSOR>
-int StorageQueue::accessAttribute(t_ACCESSOR& accessor,
-                                  const char* name,
-                                  int         nameLength) const
-{
-    enum { NOT_FOUND = -1 };
-
-    const bdlat_AttributeInfo* attributeInfo = lookupAttributeInfo(name,
-                                                                   nameLength);
-    if (0 == attributeInfo) {
-        return NOT_FOUND;
-    }
-
-    return accessAttribute(accessor, attributeInfo->d_id);
-}
-
-inline const bsl::string& StorageQueue::uri() const
-{
-    return d_uri;
-}
-
-inline const StorageQueueCommand& StorageQueue::command() const
 {
     return d_command;
 }
@@ -47500,6 +47519,52 @@ mqbcmd::operator<<(bsl::ostream&                            stream,
     return mqbcmd::ResourceUsageMonitorState::print(stream, rhs);
 }
 
+inline bool mqbcmd::operator==(const mqbcmd::StorageQueueCommand& lhs,
+                               const mqbcmd::StorageQueueCommand& rhs)
+{
+    typedef mqbcmd::StorageQueueCommand Class;
+    if (lhs.selectionId() == rhs.selectionId()) {
+        switch (rhs.selectionId()) {
+        case Class::SELECTION_ID_PURGE_APP_ID:
+            return lhs.purgeAppId() == rhs.purgeAppId();
+        default:
+            BSLS_ASSERT(Class::SELECTION_ID_UNDEFINED == rhs.selectionId());
+            return true;
+        }
+    }
+    else {
+        return false;
+    }
+}
+
+inline bool mqbcmd::operator!=(const mqbcmd::StorageQueueCommand& lhs,
+                               const mqbcmd::StorageQueueCommand& rhs)
+{
+    return !(lhs == rhs);
+}
+
+inline bsl::ostream& mqbcmd::operator<<(bsl::ostream& stream,
+                                        const mqbcmd::StorageQueueCommand& rhs)
+{
+    return rhs.print(stream, 0, -1);
+}
+
+template <typename t_HASH_ALGORITHM>
+void mqbcmd::hashAppend(t_HASH_ALGORITHM&                  hashAlg,
+                        const mqbcmd::StorageQueueCommand& object)
+{
+    typedef mqbcmd::StorageQueueCommand Class;
+    using bslh::hashAppend;
+    hashAppend(hashAlg, object.selectionId());
+    switch (object.selectionId()) {
+    case Class::SELECTION_ID_PURGE_APP_ID:
+        hashAppend(hashAlg, object.purgeAppId());
+        break;
+    default:
+        BSLS_ASSERT(Class::SELECTION_ID_UNDEFINED == object.selectionId());
+    }
+}
+
 inline bool mqbcmd::operator==(const mqbcmd::StorageQueueInfo& lhs,
                                const mqbcmd::StorageQueueInfo& rhs)
 {
@@ -48407,47 +48472,31 @@ void mqbcmd::hashAppend(t_HASH_ALGORITHM&                      hashAlg,
     }
 }
 
-inline bool mqbcmd::operator==(const mqbcmd::StorageQueueCommand& lhs,
-                               const mqbcmd::StorageQueueCommand& rhs)
+inline bool mqbcmd::operator==(const mqbcmd::StorageQueue& lhs,
+                               const mqbcmd::StorageQueue& rhs)
 {
-    typedef mqbcmd::StorageQueueCommand Class;
-    if (lhs.selectionId() == rhs.selectionId()) {
-        switch (rhs.selectionId()) {
-        case Class::SELECTION_ID_PURGE: return lhs.purge() == rhs.purge();
-        default:
-            BSLS_ASSERT(Class::SELECTION_ID_UNDEFINED == rhs.selectionId());
-            return true;
-        }
-    }
-    else {
-        return false;
-    }
+    return lhs.uri() == rhs.uri() && lhs.command() == rhs.command();
 }
 
-inline bool mqbcmd::operator!=(const mqbcmd::StorageQueueCommand& lhs,
-                               const mqbcmd::StorageQueueCommand& rhs)
+inline bool mqbcmd::operator!=(const mqbcmd::StorageQueue& lhs,
+                               const mqbcmd::StorageQueue& rhs)
 {
     return !(lhs == rhs);
 }
 
-inline bsl::ostream& mqbcmd::operator<<(bsl::ostream& stream,
-                                        const mqbcmd::StorageQueueCommand& rhs)
+inline bsl::ostream& mqbcmd::operator<<(bsl::ostream&               stream,
+                                        const mqbcmd::StorageQueue& rhs)
 {
     return rhs.print(stream, 0, -1);
 }
 
 template <typename t_HASH_ALGORITHM>
-void mqbcmd::hashAppend(t_HASH_ALGORITHM&                  hashAlg,
-                        const mqbcmd::StorageQueueCommand& object)
+void mqbcmd::hashAppend(t_HASH_ALGORITHM&           hashAlg,
+                        const mqbcmd::StorageQueue& object)
 {
-    typedef mqbcmd::StorageQueueCommand Class;
     using bslh::hashAppend;
-    hashAppend(hashAlg, object.selectionId());
-    switch (object.selectionId()) {
-    case Class::SELECTION_ID_PURGE: hashAppend(hashAlg, object.purge()); break;
-    default:
-        BSLS_ASSERT(Class::SELECTION_ID_UNDEFINED == object.selectionId());
-    }
+    hashAppend(hashAlg, object.uri());
+    hashAppend(hashAlg, object.command());
 }
 
 inline bool mqbcmd::operator==(const mqbcmd::Subscription& lhs,
@@ -49104,33 +49153,6 @@ void mqbcmd::hashAppend(t_HASH_ALGORITHM&               hashAlg,
 {
     using bslh::hashAppend;
     hashAppend(hashAlg, object.partitionId());
-    hashAppend(hashAlg, object.command());
-}
-
-inline bool mqbcmd::operator==(const mqbcmd::StorageQueue& lhs,
-                               const mqbcmd::StorageQueue& rhs)
-{
-    return lhs.uri() == rhs.uri() && lhs.command() == rhs.command();
-}
-
-inline bool mqbcmd::operator!=(const mqbcmd::StorageQueue& lhs,
-                               const mqbcmd::StorageQueue& rhs)
-{
-    return !(lhs == rhs);
-}
-
-inline bsl::ostream& mqbcmd::operator<<(bsl::ostream&               stream,
-                                        const mqbcmd::StorageQueue& rhs)
-{
-    return rhs.print(stream, 0, -1);
-}
-
-template <typename t_HASH_ALGORITHM>
-void mqbcmd::hashAppend(t_HASH_ALGORITHM&           hashAlg,
-                        const mqbcmd::StorageQueue& object)
-{
-    using bslh::hashAppend;
-    hashAppend(hashAlg, object.uri());
     hashAppend(hashAlg, object.command());
 }
 
@@ -51306,6 +51328,6 @@ void mqbcmd::hashAppend(t_HASH_ALGORITHM&             hashAlg,
 }  // close enterprise namespace
 #endif
 
-// GENERATED BY BLP_BAS_CODEGEN_2023.12.02
+// GENERATED BY BLP_BAS_CODEGEN_2023.12.09
 // USING bas_codegen.pl -m msg --noAggregateConversion --noExternalization
 // --noIdent --package mqbcmd --msgComponent messages mqbcmd.xsd

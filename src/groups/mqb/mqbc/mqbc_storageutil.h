@@ -109,6 +109,7 @@ struct StorageUtil {
 
     typedef mqbi::StorageManager::StorageSp             StorageSp;
     typedef mqbi::StorageManager::StorageSpMap          StorageSpMap;
+    typedef mqbi::StorageManager::StorageSpMapVec       StorageSpMapVec;
     typedef mqbi::StorageManager::StorageSpMapIter      StorageSpMapIter;
     typedef mqbi::StorageManager::StorageSpMapConstIter StorageSpMapConstIter;
 
@@ -297,11 +298,19 @@ struct StorageUtil {
 
     // TODO docs
     // TODO place
-    static void purgeDomainDispatched( 
+    static void purgeDomainDispatched(
+                                bsl::vector<bsl::vector<mqbcmd::PurgeQueueResult> >* purgedQueuesVec,
                                  bslmt::Latch*                  latch,
                                  int                            partitionId,
                                  const FileStores&              fileStores,
                                  const bsl::string& domainName);
+
+    static void purgeQueueDispatched(
+                                mqbcmd::PurgeQueueResult  *purgedQueue,
+                                bslmt::Semaphore          *purgeFinishedSemaphore,
+                                mqbs::FileStore                 *fileStore,
+                                mqbi::Storage             *storage,
+                                const bsl::string *appId);
 
     /// Execute the specified `job` for each partition in the specified
     /// `fileStores`.  Each partition will receive its partitionId and a
@@ -659,6 +668,8 @@ struct StorageUtil {
     /// asynchronous operation is complete.
     static int processCommand(mqbcmd::StorageResult*        result,
                               FileStores*                   fileStores,
+                              StorageSpMapVec*              storageMapVec,
+                              bslmt::Mutex*                 storagesLock,
                               const mqbi::DomainFactory*    domainFactory,
                               int*                          replicationFactor,
                               const mqbcmd::StorageCommand& command,

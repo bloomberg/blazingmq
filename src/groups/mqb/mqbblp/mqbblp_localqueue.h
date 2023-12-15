@@ -232,14 +232,6 @@ class LocalQueue BSLS_CPP11_FINAL {
                       unsigned int             upstreamSubQueueId,
                       mqbi::QueueHandle*       source);
 
-    /// Remove all outstanding messages from that queue, and load the
-    /// details of the purged queue into the specified `result` object.
-    /// Empty `appId` means to purge from ALL appIds.
-    ///
-    /// THREAD: this method is invoked in queue's dispatcher thread.
-    void purge(mqbcmd::PurgeQueueResult* result,
-               const bsl::string&        appId = "");
-
     // ACCESSORS
 
     /// Load into the specified `out` object the internal details about this

@@ -756,7 +756,7 @@
 
   <complexType name="StorageQueue">
     <sequence>
-      <element name="uri"    type="xs:string"/>
+      <element name="uri"     type="xs:string"/>
       <element name="command" type="tns:StorageQueueCommand"/>
     </sequence>
   </complexType>
@@ -987,7 +987,11 @@
 
   <complexType name="StorageQueueCommand">
     <choice>
-      <element name="purge" type="tns:Void"/>
+      <element name="purgeAppId" type="xs:string">
+        <annotation>
+          <documentation>The special value "*" indicates the entire queue.</documentation>
+        </annotation>
+      </element>
     </choice>
   </complexType>
 

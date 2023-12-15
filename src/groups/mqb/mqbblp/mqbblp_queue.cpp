@@ -852,31 +852,8 @@ int Queue::processCommand(mqbcmd::QueueResult*        result,
     // executed by *ANY* thread
 
     if (command.isPurgeAppIdValue()) {
-        if (command.purgeAppId().empty()) {
-            mqbcmd::Error& error = result->makeError();
-            error.message()      = "Queue Purge requires a non-empty appId ("
-                                   "Specify '*' to purge the entire queue).";
-            return -1;  // RETURN
-        }
-
-        result->makePurgedQueues();
-        result->purgedQueues().queues().resize(1);
-        mqbcmd::PurgeQueueResult& purgedQueueResult =
-            result->purgedQueues().queues().back();
-
-        // Empty string means all appIds, however, for the command, we require
-        // the user to be explicit if the entire queue is to be deleted, and
-        // therefore require '*' for the appid.
-        bsl::string appId = (command.purgeAppId() == "*")
-                                ? ""
-                                : command.purgeAppId();
-        dispatcher()->execute(bdlf::BindUtil::bind(&Queue::purge,
-                                                   this,
-                                                   &purgedQueueResult,
-                                                   appId),
-                              this);
-        dispatcher()->synchronize(this);
-        return 0;  // RETURN
+        BSLS_ASSERT_SAFE(false && 
+                         "Should not get here. PURGE QUEUE command must be processed on a storage level.");
     }
     else if (command.isInternalsValue()) {
         mqbcmd::QueueInternals& queueInternals = result->makeQueueInternals();
@@ -904,25 +881,6 @@ int Queue::processCommand(mqbcmd::QueueResult*        result,
     os << "Unknown command '" << command << "'";
     error.message() = os.str();
     return -1;
-}
-
-void Queue::purge(mqbcmd::PurgeQueueResult* result, const bsl::string& appId)
-{
-    // executed by the *QUEUE* dispatcher thread
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
-
-    if (!isLocal()) {
-        mwcu::MemOutStream errorMsg;
-        errorMsg << "Not purging '" << d_state.uri() << "' "
-                 << "[reason: queue is NOT local]";
-        mqbcmd::Error& error = result->makeError();
-        error.message()      = errorMsg.str();
-        return;  // RETURN
-    }
-
-    d_localQueue_mp->purge(result, appId);
 }
 
 void Queue::onDispatcherEvent(const mqbi::DispatcherEvent& event)

@@ -3578,6 +3578,247 @@ ResourceUsageMonitorState::toString(ResourceUsageMonitorState::Value value)
     return 0;
 }
 
+// -------------------------
+// class StorageQueueCommand
+// -------------------------
+
+// CONSTANTS
+
+const char StorageQueueCommand::CLASS_NAME[] = "StorageQueueCommand";
+
+const bdlat_SelectionInfo StorageQueueCommand::SELECTION_INFO_ARRAY[] = {
+    {SELECTION_ID_PURGE_APP_ID,
+     "purgeAppId",
+     sizeof("purgeAppId") - 1,
+     "",
+     bdlat_FormattingMode::e_TEXT}};
+
+// CLASS METHODS
+
+const bdlat_SelectionInfo*
+StorageQueueCommand::lookupSelectionInfo(const char* name, int nameLength)
+{
+    for (int i = 0; i < 1; ++i) {
+        const bdlat_SelectionInfo& selectionInfo =
+            StorageQueueCommand::SELECTION_INFO_ARRAY[i];
+
+        if (nameLength == selectionInfo.d_nameLength &&
+            0 == bsl::memcmp(selectionInfo.d_name_p, name, nameLength)) {
+            return &selectionInfo;
+        }
+    }
+
+    return 0;
+}
+
+const bdlat_SelectionInfo* StorageQueueCommand::lookupSelectionInfo(int id)
+{
+    switch (id) {
+    case SELECTION_ID_PURGE_APP_ID:
+        return &SELECTION_INFO_ARRAY[SELECTION_INDEX_PURGE_APP_ID];
+    default: return 0;
+    }
+}
+
+// CREATORS
+
+StorageQueueCommand::StorageQueueCommand(const StorageQueueCommand& original,
+                                         bslma::Allocator* basicAllocator)
+: d_selectionId(original.d_selectionId)
+, d_allocator_p(bslma::Default::allocator(basicAllocator))
+{
+    switch (d_selectionId) {
+    case SELECTION_ID_PURGE_APP_ID: {
+        new (d_purgeAppId.buffer())
+            bsl::string(original.d_purgeAppId.object(), d_allocator_p);
+    } break;
+    default: BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId);
+    }
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+StorageQueueCommand::StorageQueueCommand(StorageQueueCommand&& original)
+    noexcept : d_selectionId(original.d_selectionId),
+               d_allocator_p(original.d_allocator_p)
+{
+    switch (d_selectionId) {
+    case SELECTION_ID_PURGE_APP_ID: {
+        new (d_purgeAppId.buffer())
+            bsl::string(bsl::move(original.d_purgeAppId.object()),
+                        d_allocator_p);
+    } break;
+    default: BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId);
+    }
+}
+
+StorageQueueCommand::StorageQueueCommand(StorageQueueCommand&& original,
+                                         bslma::Allocator*     basicAllocator)
+: d_selectionId(original.d_selectionId)
+, d_allocator_p(bslma::Default::allocator(basicAllocator))
+{
+    switch (d_selectionId) {
+    case SELECTION_ID_PURGE_APP_ID: {
+        new (d_purgeAppId.buffer())
+            bsl::string(bsl::move(original.d_purgeAppId.object()),
+                        d_allocator_p);
+    } break;
+    default: BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId);
+    }
+}
+#endif
+
+// MANIPULATORS
+
+StorageQueueCommand&
+StorageQueueCommand::operator=(const StorageQueueCommand& rhs)
+{
+    if (this != &rhs) {
+        switch (rhs.d_selectionId) {
+        case SELECTION_ID_PURGE_APP_ID: {
+            makePurgeAppId(rhs.d_purgeAppId.object());
+        } break;
+        default:
+            BSLS_ASSERT(SELECTION_ID_UNDEFINED == rhs.d_selectionId);
+            reset();
+        }
+    }
+
+    return *this;
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+StorageQueueCommand& StorageQueueCommand::operator=(StorageQueueCommand&& rhs)
+{
+    if (this != &rhs) {
+        switch (rhs.d_selectionId) {
+        case SELECTION_ID_PURGE_APP_ID: {
+            makePurgeAppId(bsl::move(rhs.d_purgeAppId.object()));
+        } break;
+        default:
+            BSLS_ASSERT(SELECTION_ID_UNDEFINED == rhs.d_selectionId);
+            reset();
+        }
+    }
+
+    return *this;
+}
+#endif
+
+void StorageQueueCommand::reset()
+{
+    switch (d_selectionId) {
+    case SELECTION_ID_PURGE_APP_ID: {
+        typedef bsl::string Type;
+        d_purgeAppId.object().~Type();
+    } break;
+    default: BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId);
+    }
+
+    d_selectionId = SELECTION_ID_UNDEFINED;
+}
+
+int StorageQueueCommand::makeSelection(int selectionId)
+{
+    switch (selectionId) {
+    case SELECTION_ID_PURGE_APP_ID: {
+        makePurgeAppId();
+    } break;
+    case SELECTION_ID_UNDEFINED: {
+        reset();
+    } break;
+    default: return -1;
+    }
+    return 0;
+}
+
+int StorageQueueCommand::makeSelection(const char* name, int nameLength)
+{
+    const bdlat_SelectionInfo* selectionInfo = lookupSelectionInfo(name,
+                                                                   nameLength);
+    if (0 == selectionInfo) {
+        return -1;
+    }
+
+    return makeSelection(selectionInfo->d_id);
+}
+
+bsl::string& StorageQueueCommand::makePurgeAppId()
+{
+    if (SELECTION_ID_PURGE_APP_ID == d_selectionId) {
+        bdlat_ValueTypeFunctions::reset(&d_purgeAppId.object());
+    }
+    else {
+        reset();
+        new (d_purgeAppId.buffer()) bsl::string(d_allocator_p);
+        d_selectionId = SELECTION_ID_PURGE_APP_ID;
+    }
+
+    return d_purgeAppId.object();
+}
+
+bsl::string& StorageQueueCommand::makePurgeAppId(const bsl::string& value)
+{
+    if (SELECTION_ID_PURGE_APP_ID == d_selectionId) {
+        d_purgeAppId.object() = value;
+    }
+    else {
+        reset();
+        new (d_purgeAppId.buffer()) bsl::string(value, d_allocator_p);
+        d_selectionId = SELECTION_ID_PURGE_APP_ID;
+    }
+
+    return d_purgeAppId.object();
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+bsl::string& StorageQueueCommand::makePurgeAppId(bsl::string&& value)
+{
+    if (SELECTION_ID_PURGE_APP_ID == d_selectionId) {
+        d_purgeAppId.object() = bsl::move(value);
+    }
+    else {
+        reset();
+        new (d_purgeAppId.buffer())
+            bsl::string(bsl::move(value), d_allocator_p);
+        d_selectionId = SELECTION_ID_PURGE_APP_ID;
+    }
+
+    return d_purgeAppId.object();
+}
+#endif
+
+// ACCESSORS
+
+bsl::ostream& StorageQueueCommand::print(bsl::ostream& stream,
+                                         int           level,
+                                         int           spacesPerLevel) const
+{
+    bslim::Printer printer(&stream, level, spacesPerLevel);
+    printer.start();
+    switch (d_selectionId) {
+    case SELECTION_ID_PURGE_APP_ID: {
+        printer.printAttribute("purgeAppId", d_purgeAppId.object());
+    } break;
+    default: stream << "SELECTION UNDEFINED\n";
+    }
+    printer.end();
+    return stream;
+}
+
+const char* StorageQueueCommand::selectionName() const
+{
+    switch (d_selectionId) {
+    case SELECTION_ID_PURGE_APP_ID:
+        return SELECTION_INFO_ARRAY[SELECTION_INDEX_PURGE_APP_ID].name();
+    default:
+        BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId);
+        return "(* UNDEFINED *)";
+    }
+}
+
 // ----------------------
 // class StorageQueueInfo
 // ----------------------
@@ -8431,89 +8672,96 @@ const char* StoragePartitionCommand::selectionName() const
     }
 }
 
-// -------------------------
-// class StorageQueueCommand
-// -------------------------
+// ------------------
+// class StorageQueue
+// ------------------
 
 // CONSTANTS
 
-const char StorageQueueCommand::CLASS_NAME[] = "StorageQueueCommand";
+const char StorageQueue::CLASS_NAME[] = "StorageQueue";
 
-const bdlat_SelectionInfo StorageQueueCommand::SELECTION_INFO_ARRAY[] = {
-    {SELECTION_ID_PURGE,
-     "purge",
-     sizeof("purge") - 1,
+const bdlat_AttributeInfo StorageQueue::ATTRIBUTE_INFO_ARRAY[] = {
+    {ATTRIBUTE_ID_URI,
+     "uri",
+     sizeof("uri") - 1,
+     "",
+     bdlat_FormattingMode::e_TEXT},
+    {ATTRIBUTE_ID_COMMAND,
+     "command",
+     sizeof("command") - 1,
      "",
      bdlat_FormattingMode::e_DEFAULT}};
 
 // CLASS METHODS
 
-const bdlat_SelectionInfo*
-StorageQueueCommand::lookupSelectionInfo(const char* name, int nameLength)
+const bdlat_AttributeInfo* StorageQueue::lookupAttributeInfo(const char* name,
+                                                             int nameLength)
 {
-    for (int i = 0; i < 1; ++i) {
-        const bdlat_SelectionInfo& selectionInfo =
-            StorageQueueCommand::SELECTION_INFO_ARRAY[i];
+    for (int i = 0; i < 2; ++i) {
+        const bdlat_AttributeInfo& attributeInfo =
+            StorageQueue::ATTRIBUTE_INFO_ARRAY[i];
 
-        if (nameLength == selectionInfo.d_nameLength &&
-            0 == bsl::memcmp(selectionInfo.d_name_p, name, nameLength)) {
-            return &selectionInfo;
+        if (nameLength == attributeInfo.d_nameLength &&
+            0 == bsl::memcmp(attributeInfo.d_name_p, name, nameLength)) {
+            return &attributeInfo;
         }
     }
 
     return 0;
 }
 
-const bdlat_SelectionInfo* StorageQueueCommand::lookupSelectionInfo(int id)
+const bdlat_AttributeInfo* StorageQueue::lookupAttributeInfo(int id)
 {
     switch (id) {
-    case SELECTION_ID_PURGE:
-        return &SELECTION_INFO_ARRAY[SELECTION_INDEX_PURGE];
+    case ATTRIBUTE_ID_URI: return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_URI];
+    case ATTRIBUTE_ID_COMMAND:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_COMMAND];
     default: return 0;
     }
 }
 
 // CREATORS
 
-StorageQueueCommand::StorageQueueCommand(const StorageQueueCommand& original)
-: d_selectionId(original.d_selectionId)
+StorageQueue::StorageQueue(bslma::Allocator* basicAllocator)
+: d_uri(basicAllocator)
+, d_command(basicAllocator)
 {
-    switch (d_selectionId) {
-    case SELECTION_ID_PURGE: {
-        new (d_purge.buffer()) Void(original.d_purge.object());
-    } break;
-    default: BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId);
-    }
+}
+
+StorageQueue::StorageQueue(const StorageQueue& original,
+                           bslma::Allocator*   basicAllocator)
+: d_uri(original.d_uri, basicAllocator)
+, d_command(original.d_command, basicAllocator)
+{
 }
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-StorageQueueCommand::StorageQueueCommand(StorageQueueCommand&& original)
-    noexcept : d_selectionId(original.d_selectionId)
+StorageQueue::StorageQueue(StorageQueue&& original) noexcept
+: d_uri(bsl::move(original.d_uri)),
+  d_command(bsl::move(original.d_command))
 {
-    switch (d_selectionId) {
-    case SELECTION_ID_PURGE: {
-        new (d_purge.buffer()) Void(bsl::move(original.d_purge.object()));
-    } break;
-    default: BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId);
-    }
+}
+
+StorageQueue::StorageQueue(StorageQueue&&    original,
+                           bslma::Allocator* basicAllocator)
+: d_uri(bsl::move(original.d_uri), basicAllocator)
+, d_command(bsl::move(original.d_command), basicAllocator)
+{
 }
 #endif
+
+StorageQueue::~StorageQueue()
+{
+}
 
 // MANIPULATORS
 
-StorageQueueCommand&
-StorageQueueCommand::operator=(const StorageQueueCommand& rhs)
+StorageQueue& StorageQueue::operator=(const StorageQueue& rhs)
 {
     if (this != &rhs) {
-        switch (rhs.d_selectionId) {
-        case SELECTION_ID_PURGE: {
-            makePurge(rhs.d_purge.object());
-        } break;
-        default:
-            BSLS_ASSERT(SELECTION_ID_UNDEFINED == rhs.d_selectionId);
-            reset();
-        }
+        d_uri     = rhs.d_uri;
+        d_command = rhs.d_command;
     }
 
     return *this;
@@ -8521,132 +8769,34 @@ StorageQueueCommand::operator=(const StorageQueueCommand& rhs)
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-StorageQueueCommand& StorageQueueCommand::operator=(StorageQueueCommand&& rhs)
+StorageQueue& StorageQueue::operator=(StorageQueue&& rhs)
 {
     if (this != &rhs) {
-        switch (rhs.d_selectionId) {
-        case SELECTION_ID_PURGE: {
-            makePurge(bsl::move(rhs.d_purge.object()));
-        } break;
-        default:
-            BSLS_ASSERT(SELECTION_ID_UNDEFINED == rhs.d_selectionId);
-            reset();
-        }
+        d_uri     = bsl::move(rhs.d_uri);
+        d_command = bsl::move(rhs.d_command);
     }
 
     return *this;
 }
 #endif
 
-void StorageQueueCommand::reset()
+void StorageQueue::reset()
 {
-    switch (d_selectionId) {
-    case SELECTION_ID_PURGE: {
-        d_purge.object().~Void();
-    } break;
-    default: BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId);
-    }
-
-    d_selectionId = SELECTION_ID_UNDEFINED;
+    bdlat_ValueTypeFunctions::reset(&d_uri);
+    bdlat_ValueTypeFunctions::reset(&d_command);
 }
-
-int StorageQueueCommand::makeSelection(int selectionId)
-{
-    switch (selectionId) {
-    case SELECTION_ID_PURGE: {
-        makePurge();
-    } break;
-    case SELECTION_ID_UNDEFINED: {
-        reset();
-    } break;
-    default: return -1;
-    }
-    return 0;
-}
-
-int StorageQueueCommand::makeSelection(const char* name, int nameLength)
-{
-    const bdlat_SelectionInfo* selectionInfo = lookupSelectionInfo(name,
-                                                                   nameLength);
-    if (0 == selectionInfo) {
-        return -1;
-    }
-
-    return makeSelection(selectionInfo->d_id);
-}
-
-Void& StorageQueueCommand::makePurge()
-{
-    if (SELECTION_ID_PURGE == d_selectionId) {
-        bdlat_ValueTypeFunctions::reset(&d_purge.object());
-    }
-    else {
-        reset();
-        new (d_purge.buffer()) Void();
-        d_selectionId = SELECTION_ID_PURGE;
-    }
-
-    return d_purge.object();
-}
-
-Void& StorageQueueCommand::makePurge(const Void& value)
-{
-    if (SELECTION_ID_PURGE == d_selectionId) {
-        d_purge.object() = value;
-    }
-    else {
-        reset();
-        new (d_purge.buffer()) Void(value);
-        d_selectionId = SELECTION_ID_PURGE;
-    }
-
-    return d_purge.object();
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-Void& StorageQueueCommand::makePurge(Void&& value)
-{
-    if (SELECTION_ID_PURGE == d_selectionId) {
-        d_purge.object() = bsl::move(value);
-    }
-    else {
-        reset();
-        new (d_purge.buffer()) Void(bsl::move(value));
-        d_selectionId = SELECTION_ID_PURGE;
-    }
-
-    return d_purge.object();
-}
-#endif
 
 // ACCESSORS
 
-bsl::ostream& StorageQueueCommand::print(bsl::ostream& stream,
-                                         int           level,
-                                         int           spacesPerLevel) const
+bsl::ostream&
+StorageQueue::print(bsl::ostream& stream, int level, int spacesPerLevel) const
 {
     bslim::Printer printer(&stream, level, spacesPerLevel);
     printer.start();
-    switch (d_selectionId) {
-    case SELECTION_ID_PURGE: {
-        printer.printAttribute("purge", d_purge.object());
-    } break;
-    default: stream << "SELECTION UNDEFINED\n";
-    }
+    printer.printAttribute("uri", this->uri());
+    printer.printAttribute("command", this->command());
     printer.end();
     return stream;
-}
-
-const char* StorageQueueCommand::selectionName() const
-{
-    switch (d_selectionId) {
-    case SELECTION_ID_PURGE:
-        return SELECTION_INFO_ARRAY[SELECTION_INDEX_PURGE].name();
-    default:
-        BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId);
-        return "(* UNDEFINED *)";
-    }
 }
 
 // ------------------
@@ -12219,133 +12369,6 @@ bsl::ostream& StoragePartition::print(bsl::ostream& stream,
     bslim::Printer printer(&stream, level, spacesPerLevel);
     printer.start();
     printer.printAttribute("partitionId", this->partitionId());
-    printer.printAttribute("command", this->command());
-    printer.end();
-    return stream;
-}
-
-// ------------------
-// class StorageQueue
-// ------------------
-
-// CONSTANTS
-
-const char StorageQueue::CLASS_NAME[] = "StorageQueue";
-
-const bdlat_AttributeInfo StorageQueue::ATTRIBUTE_INFO_ARRAY[] = {
-    {ATTRIBUTE_ID_URI,
-     "uri",
-     sizeof("uri") - 1,
-     "",
-     bdlat_FormattingMode::e_TEXT},
-    {ATTRIBUTE_ID_COMMAND,
-     "command",
-     sizeof("command") - 1,
-     "",
-     bdlat_FormattingMode::e_DEFAULT}};
-
-// CLASS METHODS
-
-const bdlat_AttributeInfo* StorageQueue::lookupAttributeInfo(const char* name,
-                                                             int nameLength)
-{
-    for (int i = 0; i < 2; ++i) {
-        const bdlat_AttributeInfo& attributeInfo =
-            StorageQueue::ATTRIBUTE_INFO_ARRAY[i];
-
-        if (nameLength == attributeInfo.d_nameLength &&
-            0 == bsl::memcmp(attributeInfo.d_name_p, name, nameLength)) {
-            return &attributeInfo;
-        }
-    }
-
-    return 0;
-}
-
-const bdlat_AttributeInfo* StorageQueue::lookupAttributeInfo(int id)
-{
-    switch (id) {
-    case ATTRIBUTE_ID_URI: return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_URI];
-    case ATTRIBUTE_ID_COMMAND:
-        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_COMMAND];
-    default: return 0;
-    }
-}
-
-// CREATORS
-
-StorageQueue::StorageQueue(bslma::Allocator* basicAllocator)
-: d_uri(basicAllocator)
-, d_command()
-{
-}
-
-StorageQueue::StorageQueue(const StorageQueue& original,
-                           bslma::Allocator*   basicAllocator)
-: d_uri(original.d_uri, basicAllocator)
-, d_command(original.d_command)
-{
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-StorageQueue::StorageQueue(StorageQueue&& original) noexcept
-: d_uri(bsl::move(original.d_uri)),
-  d_command(bsl::move(original.d_command))
-{
-}
-
-StorageQueue::StorageQueue(StorageQueue&&    original,
-                           bslma::Allocator* basicAllocator)
-: d_uri(bsl::move(original.d_uri), basicAllocator)
-, d_command(bsl::move(original.d_command))
-{
-}
-#endif
-
-StorageQueue::~StorageQueue()
-{
-}
-
-// MANIPULATORS
-
-StorageQueue& StorageQueue::operator=(const StorageQueue& rhs)
-{
-    if (this != &rhs) {
-        d_uri     = rhs.d_uri;
-        d_command = rhs.d_command;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-StorageQueue& StorageQueue::operator=(StorageQueue&& rhs)
-{
-    if (this != &rhs) {
-        d_uri     = bsl::move(rhs.d_uri);
-        d_command = bsl::move(rhs.d_command);
-    }
-
-    return *this;
-}
-#endif
-
-void StorageQueue::reset()
-{
-    bdlat_ValueTypeFunctions::reset(&d_uri);
-    bdlat_ValueTypeFunctions::reset(&d_command);
-}
-
-// ACCESSORS
-
-bsl::ostream&
-StorageQueue::print(bsl::ostream& stream, int level, int spacesPerLevel) const
-{
-    bslim::Printer printer(&stream, level, spacesPerLevel);
-    printer.start();
-    printer.printAttribute("uri", this->uri());
     printer.printAttribute("command", this->command());
     printer.end();
     return stream;
@@ -29437,6 +29460,6 @@ const char* InternalResult::selectionName() const
 }  // close package namespace
 }  // close enterprise namespace
 
-// GENERATED BY BLP_BAS_CODEGEN_2023.12.02
+// GENERATED BY BLP_BAS_CODEGEN_2023.12.09
 // USING bas_codegen.pl -m msg --noAggregateConversion --noExternalization
 // --noIdent --package mqbcmd --msgComponent messages mqbcmd.xsd
