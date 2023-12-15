@@ -7094,6 +7094,28 @@ void FileStore::flush()
     }
 }
 
+void FileStore::purgeDomain(const bsl::string &domainName)
+{
+    // executed by the *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(inDispatcherThread());
+
+    mqbs::StorageCollectionUtil::StorageFilter filter = mqbs::StorageCollectionUtilFilterFactory::byDomain(domainName);
+
+    mqbu::StorageKey appKey = mqbu::StorageKey::k_NULL_KEY;
+
+    for (StorageMapIter sit = d_storages.begin(); sit != d_storages.end(); sit++) {
+        // TODO don't touch empty queues?
+        if (!filter(sit->second)) {
+            continue;
+        }
+        BALL_LOG_ERROR << "PURGE " << sit->first << " " << sit->second->queueUri() << " " << sit->second->capacityMeter()->messages() << " messages";
+        sit->second->removeAll(appKey);
+    }
+    // TODO stats / return
+}
+
 void FileStore::setReplicationFactor(int value)
 {
     // executed by the *DISPATCHER* thread

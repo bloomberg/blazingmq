@@ -778,6 +778,8 @@ class FileStore : public DataStore {
                                  bsls::Types::Uint64     timestamp)
         BSLS_KEYWORD_OVERRIDE;
 
+    void purgeDomain(const bsl::string &domainName);
+
     /// Journal related
     /// ---------------
 
