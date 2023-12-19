@@ -61,9 +61,16 @@ jobs:
           PYTHONPATH: ${{ github.workspace }}/src/python
         run: |
           python -m pytest ${{ github.workspace }}/src/integration-tests \
-            -m 'not fsm_mode' \
-            --bmq-tolerate-dirty-shutdown \
-            # --reruns=3 -vvv -n 8
+            -m 'pr_integrationtest and (single or not csl_mode) and not fsm_mode and not flakey' \
+            --log-level ERROR                \
+            --log-file-level DEBUG           \
+            --bmq-tolerate-dirty-shutdown    \
+            --bmq-log-dir=failure-logs       \
+            --bmq-log-level=INFO             \
+            --junitxml=integration-tests.xml \
+            --tb line                        \
+            -v                               \
+            -n 4 --reruns=3
       - uses: actions/cache@v3
         with:
           path: |
