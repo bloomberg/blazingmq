@@ -13,162 +13,164 @@ from bmq.dev.it.fixtures import (  # pylint: disable=unused-import
 from bmq.dev.it.process.client import Client
 
 
-class TestCloseQueue:
-    def test_close_queue(self, local_cluster: Cluster):
-        assert local_cluster.is_local
+def test_close_queue(local_cluster: Cluster):
+    assert local_cluster.is_local
 
-        # Start a consumer and open a queue
-        proxies = local_cluster.proxy_cycle()
-        consumer = next(proxies).create_client("consumer")
-        consumer.open(tc.URI_PRIORITY, flags=["read"], succeed=True)
+    # Start a consumer and open a queue
+    proxies = local_cluster.proxy_cycle()
+    consumer = next(proxies).create_client("consumer")
+    consumer.open(tc.URI_PRIORITY, flags=["read"], succeed=True)
 
-        # Shutdown the broker
-        leader = local_cluster.last_known_leader
-        leader.stop()
+    # Shutdown the broker
+    leader = local_cluster.last_known_leader
+    leader.stop()
 
-        # Try to close the queue
-        consumer.wait_connection_lost()
+    # Try to close the queue
+    consumer.wait_connection_lost()
 
-        # Pending queue can be closed successfully
-        assert consumer.close(tc.URI_PRIORITY, block=True) == Client.e_SUCCESS
+    # Pending queue can be closed successfully
+    assert consumer.close(tc.URI_PRIORITY, block=True) == Client.e_SUCCESS
 
-    @tweak.domain.max_consumers(1)
-    @start_cluster(False)
-    def test_close_while_reopening(self, standard_cluster: Cluster):
-        """
-        DRQS 169125974.  Closing queue while reopen response is pending should
-        not result in a dangling handle.
-        """
 
-        cluster = standard_cluster
+@tweak.domain.max_consumers(1)
+@start_cluster(False)
+def test_close_while_reopening(standard_cluster: Cluster):
+    """
+    DRQS 169125974.  Closing queue while reopen response is pending should
+    not result in a dangling handle.
+    """
 
-        west1 = cluster.start_node("west1")
-        # make it primary
-        west1.set_quorum(1)
+    cluster = standard_cluster
 
-        # Two replicas for a total of 3 nodes
-        east1 = cluster.start_node("east1")
-        east1.set_quorum(5)
+    west1 = cluster.start_node("west1")
+    # make it primary
+    west1.set_quorum(1)
 
-        east2 = cluster.start_node("east2")
-        east2.set_quorum(5)
+    # Two replicas for a total of 3 nodes
+    east1 = cluster.start_node("east1")
+    east1.set_quorum(5)
 
-        east1.wait_status(wait_leader=True, wait_ready=True)
+    east2 = cluster.start_node("east2")
+    east2.set_quorum(5)
 
-        # west1 is the primary
-        assert west1 == east1.last_known_leader
+    east1.wait_status(wait_leader=True, wait_ready=True)
 
-        # One proxy connected to the primary
-        westp = cluster.start_proxy("westp")
+    # west1 is the primary
+    assert west1 == east1.last_known_leader
 
-        consumer1 = westp.create_client("consumer1")
-        consumer2 = westp.create_client("consumer2")
+    # One proxy connected to the primary
+    westp = cluster.start_proxy("westp")
 
-        consumer1.open(tc.URI_PRIORITY, flags=["read"], succeed=True)
+    consumer1 = westp.create_client("consumer1")
+    consumer2 = westp.create_client("consumer2")
 
-        assert west1 == cluster.process(westp.get_active_node())
+    consumer1.open(tc.URI_PRIORITY, flags=["read"], succeed=True)
 
-        # Should fail
-        consumer2.open(tc.URI_PRIORITY, flags=["read"], succeed=False)
+    assert west1 == cluster.process(westp.get_active_node())
 
-        east1.set_quorum(3)
-        east2.set_quorum(3)
+    # Should fail
+    consumer2.open(tc.URI_PRIORITY, flags=["read"], succeed=False)
 
-        # Stop the primary.  The proxy will pick new active node and re-issue
-        # Open request but the new active node (either r1 or r2) will not
-        # respond because there is no quorum (3) for new primary
+    east1.set_quorum(3)
+    east2.set_quorum(3)
 
-        west1.exit_gracefully()
-        # Wait for the subprocess to terminate
-        west1.wait()
+    # Stop the primary.  The proxy will pick new active node and re-issue
+    # Open request but the new active node (either r1 or r2) will not
+    # respond because there is no quorum (3) for new primary
 
-        # Now send Close request which the proxy should park
-        consumer1.close(tc.URI_PRIORITY, block=False)
+    west1.exit_gracefully()
+    # Wait for the subprocess to terminate
+    west1.wait()
 
-        # Restore the quorum.  Proxy should send the parked Close _after_
-        # receiving Reopen response (and after sending Configure request)
-        west2 = cluster.start_node("west2")
-        west2.wait_status(wait_leader=True, wait_ready=True)
+    # Now send Close request which the proxy should park
+    consumer1.close(tc.URI_PRIORITY, block=False)
 
-        # Should succeed now!
-        consumer2.open(tc.URI_PRIORITY, flags=["read"], succeed=True)
+    # Restore the quorum.  Proxy should send the parked Close _after_
+    # receiving Reopen response (and after sending Configure request)
+    west2 = cluster.start_node("west2")
+    west2.wait_status(wait_leader=True, wait_ready=True)
 
-        consumer3 = westp.create_client("consumer3")
-        # Should fail
-        consumer3.open(tc.URI_PRIORITY, flags=["read"], succeed=False)
+    # Should succeed now!
+    consumer2.open(tc.URI_PRIORITY, flags=["read"], succeed=True)
 
-    def test_close_open(self, standard_cluster: Cluster):
-        """
-        DRQS 169326671.  Close, followed by Open with a different subId.
-        """
-        proxies = standard_cluster.proxy_cycle()
-        # pick proxy in datacenter opposite to the primary's
-        next(proxies)
-        proxy = next(proxies)
-        consumer1 = proxy.create_client("consumer1")
-        consumer1.open(tc.URI_FANOUT_FOO, flags=["read"], succeed=True)
+    consumer3 = westp.create_client("consumer3")
+    # Should fail
+    consumer3.open(tc.URI_PRIORITY, flags=["read"], succeed=False)
 
-        consumer2 = proxy.create_client("consumer2")
-        consumer2.open(tc.URI_FANOUT_BAR, flags=["read"], succeed=True)
 
-        leader = standard_cluster.last_known_leader
-        consumer3 = leader.create_client("consumer3")
-        consumer3.open(tc.URI_FANOUT_FOO, flags=["read"], succeed=True)
+def test_close_open(standard_cluster: Cluster):
+    """
+    DRQS 169326671.  Close, followed by Open with a different subId.
+    """
+    proxies = standard_cluster.proxy_cycle()
+    # pick proxy in datacenter opposite to the primary's
+    next(proxies)
+    proxy = next(proxies)
+    consumer1 = proxy.create_client("consumer1")
+    consumer1.open(tc.URI_FANOUT_FOO, flags=["read"], succeed=True)
 
-        consumer1.close(tc.URI_FANOUT_FOO, succeed=True)
-        consumer1.open(tc.URI_FANOUT_FOO, flags=["read"], succeed=True)
+    consumer2 = proxy.create_client("consumer2")
+    consumer2.open(tc.URI_FANOUT_BAR, flags=["read"], succeed=True)
 
-    @tweak.domain.max_consumers(1)
-    @tweak.cluster.queue_operations.reopen_retry_interval_ms(1234)
-    def test_close_while_retrying_reopen(self, standard_cluster: Cluster):
-        """
-        DRQS 170043950.  Trigger reopen failure causing proxy to retry on
-        timeout. While waiting, close the queue and make sure, the retry
-        accounts for that close.
-        """
+    leader = standard_cluster.last_known_leader
+    consumer3 = leader.create_client("consumer3")
+    consumer3.open(tc.URI_FANOUT_FOO, flags=["read"], succeed=True)
 
-        proxies = standard_cluster.proxy_cycle()
-        # pick proxy in datacenter opposite to the primary's
-        next(proxies)
-        proxy1 = next(proxies)
-        proxy2 = next(proxies)
+    consumer1.close(tc.URI_FANOUT_FOO, succeed=True)
+    consumer1.open(tc.URI_FANOUT_FOO, flags=["read"], succeed=True)
 
-        producer = proxy1.create_client("producer")
-        consumer1 = proxy1.create_client("consumer1")
-        consumer2 = proxy2.create_client("consumer2")
 
-        producer.open(tc.URI_PRIORITY, flags=["write,ack"], succeed=True)
-        consumer1.open(tc.URI_PRIORITY, flags=["read"], succeed=True)
+@tweak.domain.max_consumers(1)
+@tweak.cluster.queue_operations.reopen_retry_interval_ms(1234)
+def test_close_while_retrying_reopen(standard_cluster: Cluster):
+    """
+    DRQS 170043950.  Trigger reopen failure causing proxy to retry on
+    timeout. While waiting, close the queue and make sure, the retry
+    accounts for that close.
+    """
 
-        active_node = standard_cluster.process(proxy1.get_active_node())
-        proxy1.suspend()
+    proxies = standard_cluster.proxy_cycle()
+    # pick proxy in datacenter opposite to the primary's
+    next(proxies)
+    proxy1 = next(proxies)
+    proxy2 = next(proxies)
 
-        # this is to trigger reopen when proxy1 resumes
-        active_node.force_stop()
+    producer = proxy1.create_client("producer")
+    consumer1 = proxy1.create_client("consumer1")
+    consumer2 = proxy2.create_client("consumer2")
 
-        # this is to make the reopen fail
-        consumer2.open(tc.URI_PRIORITY, flags=["read"], succeed=True)
+    producer.open(tc.URI_PRIORITY, flags=["write,ack"], succeed=True)
+    consumer1.open(tc.URI_PRIORITY, flags=["read"], succeed=True)
 
-        # trigger reopen
-        proxy1.resume()
+    active_node = standard_cluster.process(proxy1.get_active_node())
+    proxy1.suspend()
 
-        # reopen should fail because of consumer2
-        assert proxy1.capture(
-            r"queue reopen-request failed. .*, error response: \[ rId = \d+ choice = \[ status = \[ category = E_UNKNOWN code = -1 message = \"Client would exceed the limit of 1 consumer\(s\)\" \] \] \]. Attempt number was: 1. Attempting again after 1234 milliseconds",
-            timeout=10,
-        )
+    # this is to trigger reopen when proxy1 resumes
+    active_node.force_stop()
 
-        # this should stop reopening consumer
-        consumer1.close(tc.URI_PRIORITY, succeed=True)
+    # this is to make the reopen fail
+    consumer2.open(tc.URI_PRIORITY, flags=["read"], succeed=True)
 
-        # this is to make (re)open to succeed
-        consumer2.close(tc.URI_PRIORITY, succeed=True)
+    # trigger reopen
+    proxy1.resume()
 
-        # next reopen should not have readCount
-        assert proxy1.capture(
-            r"Sending request to .* \[request: \[ rId = \d+ choice = \[ openQueue = \[ handleParameters = \[ .* flags = 4 readCount = 0 writeCount = 1 adminCount = 0 \] \] \] \]",
-            timeout=10,
-        )
+    # reopen should fail because of consumer2
+    assert proxy1.capture(
+        r"queue reopen-request failed. .*, error response: \[ rId = \d+ choice = \[ status = \[ category = E_UNKNOWN code = -1 message = \"Client would exceed the limit of 1 consumer\(s\)\" \] \] \]. Attempt number was: 1. Attempting again after 1234 milliseconds",
+        timeout=10,
+    )
 
-        # verify new open
-        consumer1.open(tc.URI_PRIORITY, flags=["read"], succeed=True)
+    # this should stop reopening consumer
+    consumer1.close(tc.URI_PRIORITY, succeed=True)
+
+    # this is to make (re)open to succeed
+    consumer2.close(tc.URI_PRIORITY, succeed=True)
+
+    # next reopen should not have readCount
+    assert proxy1.capture(
+        r"Sending request to .* \[request: \[ rId = \d+ choice = \[ openQueue = \[ handleParameters = \[ .* flags = 4 readCount = 0 writeCount = 1 adminCount = 0 \] \] \] \]",
+        timeout=10,
+    )
+
+    # verify new open
+    consumer1.open(tc.URI_PRIORITY, flags=["read"], succeed=True)

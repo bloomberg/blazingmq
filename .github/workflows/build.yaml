@@ -63,7 +63,7 @@ jobs:
           python -m pytest ${{ github.workspace }}/src/integration-tests \
             -m 'not fsm_mode' \
             --bmq-tolerate-dirty-shutdown \
-            --reruns=3 -vvv -n 8
+            # --reruns=3 -vvv -n 8
       - uses: actions/cache@v3
         with:
           path: |
