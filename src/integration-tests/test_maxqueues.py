@@ -1,12 +1,15 @@
-import bmq.dev.it.testconstants as tc
-from bmq.dev.it.fixtures import (  # pylint: disable=unused-import
+import blazingmq.dev.it.testconstants as tc
+from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
     Cluster,
     cluster,
-    standard_cluster,
+    order,
+    multi_node,
     start_cluster,
     tweak,
 )
-from bmq.dev.it.process.client import Client
+from blazingmq.dev.it.process.client import Client
+
+pytestmark = order(4)
 
 timeout = 60
 
@@ -65,7 +68,7 @@ class TestMaxQueues:
 
         active_replica = (
             leader
-            if cluster.is_local
+            if cluster.is_single_node
             else cluster.process(replica_proxy.get_active_node())
         )
         check_num_assigned_queues(5, leader, active_replica)
@@ -101,7 +104,7 @@ class TestMaxQueues:
         # ---------------------------------------------------------------------
         # force a change of leadership
 
-        if not cluster.is_local:
+        if not cluster.is_single_node:
             for node in cluster.nodes():
                 # avoid picking up old leader
                 node.drain()
@@ -127,8 +130,8 @@ class TestMaxQueues:
     # open queues before there is a leader (restore, in flight contexts)
 
     @start_cluster(False)
-    def test_max_queue_restore(self, standard_cluster: Cluster):
-        cluster = standard_cluster
+    def test_max_queue_restore(self, multi_node: Cluster):
+        cluster = multi_node
 
         cluster.start_node("west1")
         cluster.start_node("east1")

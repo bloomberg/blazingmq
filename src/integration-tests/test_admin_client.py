@@ -6,12 +6,12 @@ commands.
 import json
 import re
 
-from bmq.dev.it.fixtures import Cluster, local_cluster  # pylint: disable=unused-import
-from bmq.dev.it.process.admin import AdminClient
+from blazingmq.dev.it.fixtures import Cluster, single_node, order  # pylint: disable=unused-import
+from blazingmq.dev.it.process.admin import AdminClient
 
 
-def test_admin(local_cluster: Cluster):
-    cluster: Cluster = local_cluster
+def test_admin(single_node: Cluster):
+    cluster: Cluster = single_node
     endpoint: str = cluster.config.definition.nodes[0].transport.tcp.endpoint  # type: ignore
 
     # Extract the (host, port) pair from the config

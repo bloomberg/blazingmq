@@ -4,13 +4,14 @@ out of sync while processing CONFIRM after converting priority queue to
 local.
 """
 
-import bmq.dev.it.testconstants as tc
-from bmq.dev.it.fixtures import Cluster
-from bmq.dev.it.fixtures import (
-    standard_cluster as cluster,  # pylint: disable=unused-import
+import blazingmq.dev.it.testconstants as tc
+from blazingmq.dev.it.fixtures import (
+    Cluster,
+    multi_node as cluster,
+    order,  # pylint: disable=unused-import
 )
-from bmq.dev.it.process.client import Client
-from bmq.dev.it.util import wait_until
+from blazingmq.dev.it.process.client import Client
+from blazingmq.dev.it.util import wait_until
 
 
 def test_confirm_after_killing_primary(cluster: Cluster):

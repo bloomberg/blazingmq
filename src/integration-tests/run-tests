@@ -1,0 +1,11 @@
+#! /usr/bin/env bash
+
+set -e
+
+repo_dir=$(realpath "$0")
+repo_dir=${repo_dir%/src/*}
+
+export PYTHONPATH=$repo_dir/src/python:$PYTHONPATH
+cd "$repo_dir/src/integration-tests"
+
+python -m pytest -m "not csl_mode and not fsm_mode" "$@"

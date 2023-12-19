@@ -2,15 +2,17 @@
 Testing poison message detection and handling.
 """
 
-import bmq.dev.it.testconstants as tc
-from bmq.dev.it.fixtures import (  # pylint: disable=unused-import
+import blazingmq.dev.it.testconstants as tc
+from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
     Cluster,
-    standard_cluster,
+    order,
+    multi_node,
     start_cluster,
     tweak,
 )
-from bmq.dev.workspace import Workspace
+from blazingmq.dev.workspace import Workspace
 
+pytestmark = order(5)
 
 def message_throttling(high: int, low: int):
     def tweaker(workspace: Workspace):
@@ -33,7 +35,7 @@ class TestPoisonMessages:
         broker.list_messages(uri, tc.TEST_QUEUE, 0, len(messages))
         assert broker.outputs_substr(f"Printing {len(messages)} message(s)", 10)
 
-    def _post_crash_consumers(self, standard_cluster, proxy, domain, suffixes):
+    def _post_crash_consumers(self, multi_node, proxy, domain, suffixes):
         # We want to make sure a messages aren't redelivered when the rda
         # count reaches zero after a consumer crash. In the case of fanout,
         # the 'suffixes' list will be populated with an app id for each
@@ -67,8 +69,8 @@ class TestPoisonMessages:
             consumer.open(f"{uri}{suffix}", flags=["read"], succeed=True)
             consumers.append(consumer)
 
-        replica = standard_cluster.process(proxy.get_active_node())
-        leader = standard_cluster.last_known_leader
+        replica = multi_node.process(proxy.get_active_node())
+        leader = multi_node.last_known_leader
 
         self._list_messages(proxy, domain, ["1"])
         self._list_messages(replica, domain, ["1"])
@@ -109,12 +111,12 @@ class TestPoisonMessages:
         # change the leader and check if the original message ('1') is still
         # gone
         replica.set_quorum(1)
-        nodes = standard_cluster.nodes(exclude=[replica, leader])
+        nodes = multi_node.nodes(exclude=[replica, leader])
         for node in nodes:
             node.set_quorum(4)
         leader.stop()
         leader = replica
-        assert leader == standard_cluster.wait_leader()
+        assert leader == multi_node.wait_leader()
 
         # Wait for new leader to become active primary by opening a queue from
         # a new producer for synchronization.
@@ -131,7 +133,7 @@ class TestPoisonMessages:
             consumer.confirm(f"{uri}{suffixes[count]}", "*", True)
 
     def _crash_consumer_restart_leader(
-        self, standard_cluster, proxy, domain, make_active_node_leader
+        self, multi_node, proxy, domain, make_active_node_leader
     ):
         # We want to make sure the rda counter resets to the value in the
         # configuration after losing a leader. Since the rda counter is set to
@@ -155,8 +157,8 @@ class TestPoisonMessages:
         consumer = proxy.create_client("consumer_0")
         consumer.open(f"{uri}", flags=["read"], succeed=True)
 
-        replica = standard_cluster.process(proxy.get_active_node())
-        leader = standard_cluster.last_known_leader
+        replica = multi_node.process(proxy.get_active_node())
+        leader = multi_node.last_known_leader
 
         self._list_messages(proxy, domain, ["1"])
         self._list_messages(replica, domain, ["1"])
@@ -178,14 +180,14 @@ class TestPoisonMessages:
         if make_active_node_leader:
             # make the active replica the new leader
             replica.set_quorum(1)
-            nodes = standard_cluster.nodes(exclude=replica)
+            nodes = multi_node.nodes(exclude=replica)
             for node in nodes:
                 node.set_quorum(4)
             leader.stop()
             leader = replica
         else:
             # make a replica that isn't the active node the new leader
-            nodes = standard_cluster.nodes(exclude=[replica, leader])
+            nodes = multi_node.nodes(exclude=[replica, leader])
             assert nodes
             leader_candidate = nodes.pop()
             leader_candidate.set_quorum(1)
@@ -194,7 +196,7 @@ class TestPoisonMessages:
                 node.set_quorum(4)
             leader.stop()
             leader = leader_candidate
-        assert leader == standard_cluster.wait_leader()
+        assert leader == multi_node.wait_leader()
 
         consumer.check_exit_code = False
         consumer.kill()
@@ -210,7 +212,7 @@ class TestPoisonMessages:
         producer.exit_gracefully()
         consumer.confirm(f"{uri}", "*", True)
 
-    def _crash_one_consumer(self, standard_cluster, proxy, domain, suffixes):
+    def _crash_one_consumer(self, multi_node, proxy, domain, suffixes):
         # We want to make sure when the rda counter reaches 0 for app #1 while
         # the other apps (#2 and #3) haven't been confirmed, the message
         # doesn't get redelivered for app #1. In this method, we will:
@@ -273,7 +275,7 @@ class TestPoisonMessages:
 
         # make sure after the confirms, the first message is gone from
         # everywhere
-        leader = standard_cluster.last_known_leader
+        leader = multi_node.last_known_leader
         self._list_messages(proxy, domain, ["2"])
         self._list_messages(leader, domain, ["2"])
 
@@ -281,7 +283,7 @@ class TestPoisonMessages:
         for count, consumer in enumerate(consumers):
             consumer.confirm(f"{uri}{suffixes[count]}", "*", True)
 
-    def _stop_consumer_gracefully(self, standard_cluster, proxy, domain):
+    def _stop_consumer_gracefully(self, multi_node, proxy, domain):
         # We want to make sure the rda counter isn't decremented when a
         # consumer is shut down gracefully. To test this, we set the rda
         # counter to 1 and:
@@ -305,13 +307,13 @@ class TestPoisonMessages:
         consumer.open(f"{uri}", flags=["read"], succeed=True)
         consumer.wait_push_event()
 
-        leader = standard_cluster.last_known_leader
+        leader = multi_node.last_known_leader
 
         self._list_messages(proxy, domain, ["1"])
         self._list_messages(leader, domain, ["1"])
         consumer.confirm(f"{uri}", "*", True)
 
-    def _crash_consumer_connected_to_replica(self, standard_cluster, proxy, domain):
+    def _crash_consumer_connected_to_replica(self, multi_node, proxy, domain):
         # We want to make sure when a consumer on a replica node crashes and the
         # reject message propagates to the primary, when a new consumer appears
         # on the same replica, the updated rda bubbles down from the primary to
@@ -329,8 +331,8 @@ class TestPoisonMessages:
         #    synchronize so we can test that the first message won't be
         #    redelivered.
         uri = f"bmq://{domain}/{tc.TEST_QUEUE}"
-        leader = standard_cluster.last_known_leader
-        potential_replicas = standard_cluster.nodes(exclude=leader)
+        leader = multi_node.last_known_leader
+        potential_replicas = multi_node.nodes(exclude=leader)
 
         assert potential_replicas
 
@@ -360,7 +362,7 @@ class TestPoisonMessages:
         assert msgs[0].payload == "2"
         consumer_1.confirm(f"{uri}", "*", True)
 
-    def _stop_proxy(self, standard_cluster, proxy, domain, should_kill):
+    def _stop_proxy(self, multi_node, proxy, domain, should_kill):
         # We want to make sure when a broker either crashes or exits
         # gracefully, outstanding messages from that broker's downstream aren't
         # rejected. To test this, we will set the rda to 1 and:
@@ -380,7 +382,7 @@ class TestPoisonMessages:
         consumer_0 = proxy.create_client("consumer_0")
         consumer_0.open(f"{uri}", flags=["read"], succeed=True)
 
-        leader = standard_cluster.last_known_leader
+        leader = multi_node.last_known_leader
 
         msgs = consumer_0.list(block=True)
         assert len(msgs) == 1
@@ -407,32 +409,32 @@ class TestPoisonMessages:
 
     @max_delivery_attempts(1)
     @message_throttling(high=0, low=0)
-    def test_poison_proxy_and_replica_priority(self, standard_cluster: Cluster):
-        proxies = standard_cluster.proxy_cycle()
+    def test_poison_proxy_and_replica_priority(self, multi_node: Cluster):
+        proxies = multi_node.proxy_cycle()
         # pick proxy in datacenter opposite to the primary's
         next(proxies)
         proxy = next(proxies)
-        self._post_crash_consumers(standard_cluster, proxy, tc.DOMAIN_PRIORITY, [""])
+        self._post_crash_consumers(multi_node, proxy, tc.DOMAIN_PRIORITY, [""])
 
     @max_delivery_attempts(1)
     @message_throttling(high=0, low=0)
-    def test_poison_proxy_and_replica_fanout(self, standard_cluster: Cluster):
-        proxies = standard_cluster.proxy_cycle()
+    def test_poison_proxy_and_replica_fanout(self, multi_node: Cluster):
+        proxies = multi_node.proxy_cycle()
         # pick proxy in datacenter opposite to the primary's
         next(proxies)
         proxy = next(proxies)
         self._post_crash_consumers(
-            standard_cluster, proxy, tc.DOMAIN_FANOUT, ["?id=foo", "?id=bar", "?id=baz"]
+            multi_node, proxy, tc.DOMAIN_FANOUT, ["?id=foo", "?id=bar", "?id=baz"]
         )
 
     @max_delivery_attempts(2)
-    def test_poison_rda_reset_priority_active(self, standard_cluster: Cluster):
-        proxies = standard_cluster.proxy_cycle()
+    def test_poison_rda_reset_priority_active(self, multi_node: Cluster):
+        proxies = multi_node.proxy_cycle()
         # pick proxy in datacenter opposite to the primary's
         next(proxies)
         proxy = next(proxies)
         self._crash_consumer_restart_leader(
-            standard_cluster, proxy, tc.DOMAIN_PRIORITY, True
+            multi_node, proxy, tc.DOMAIN_PRIORITY, True
         )  # when set to true, make the
         # active node of the proxy
         # the new leader
@@ -440,57 +442,57 @@ class TestPoisonMessages:
     @max_delivery_attempts(2)
     @message_throttling(high=1, low=0)
     @start_cluster(True, True, True)
-    def test_poison_rda_reset_priority_non_active(self, standard_cluster: Cluster):
-        proxies = standard_cluster.proxy_cycle()
+    def test_poison_rda_reset_priority_non_active(self, multi_node: Cluster):
+        proxies = multi_node.proxy_cycle()
         # pick proxy in datacenter opposite to the primary's
         next(proxies)
         proxy = next(proxies)
         self._crash_consumer_restart_leader(
-            standard_cluster, proxy, tc.DOMAIN_PRIORITY, False
+            multi_node, proxy, tc.DOMAIN_PRIORITY, False
         )
 
     @max_delivery_attempts(2)
     @message_throttling(high=1, low=0)
-    def test_poison_fanout_crash_one_app(self, standard_cluster: Cluster):
-        proxies = standard_cluster.proxy_cycle()
+    def test_poison_fanout_crash_one_app(self, multi_node: Cluster):
+        proxies = multi_node.proxy_cycle()
         # pick proxy in datacenter opposite to the primary's
         next(proxies)
         proxy = next(proxies)
         self._crash_one_consumer(
-            standard_cluster, proxy, tc.DOMAIN_FANOUT, ["?id=foo", "?id=bar", "?id=baz"]
+            multi_node, proxy, tc.DOMAIN_FANOUT, ["?id=foo", "?id=bar", "?id=baz"]
         )
 
     @max_delivery_attempts(1)
     @message_throttling(high=0, low=0)
-    def test_poison_consumer_graceful_shutdown(self, standard_cluster: Cluster):
-        proxies = standard_cluster.proxy_cycle()
+    def test_poison_consumer_graceful_shutdown(self, multi_node: Cluster):
+        proxies = multi_node.proxy_cycle()
         # pick proxy in datacenter opposite to the primary's
         next(proxies)
         proxy = next(proxies)
-        self._stop_consumer_gracefully(standard_cluster, proxy, tc.DOMAIN_PRIORITY)
+        self._stop_consumer_gracefully(multi_node, proxy, tc.DOMAIN_PRIORITY)
 
     @max_delivery_attempts(2)
     @message_throttling(high=1, low=0)
-    def test_poison_replica_receives_updated_rda(self, standard_cluster: Cluster):
-        proxies = standard_cluster.proxy_cycle()
+    def test_poison_replica_receives_updated_rda(self, multi_node: Cluster):
+        proxies = multi_node.proxy_cycle()
         next(proxies)
         proxy = next(proxies)
         self._crash_consumer_connected_to_replica(
-            standard_cluster, proxy, tc.DOMAIN_PRIORITY
+            multi_node, proxy, tc.DOMAIN_PRIORITY
         )
 
     @max_delivery_attempts(1)
     @message_throttling(high=0, low=0)
-    def test_poison_no_reject_broker_crash(self, standard_cluster: Cluster):
-        proxies = standard_cluster.proxy_cycle()
+    def test_poison_no_reject_broker_crash(self, multi_node: Cluster):
+        proxies = multi_node.proxy_cycle()
         next(proxies)
         proxy = next(proxies)
-        self._stop_proxy(standard_cluster, proxy, tc.DOMAIN_PRIORITY, True)
+        self._stop_proxy(multi_node, proxy, tc.DOMAIN_PRIORITY, True)
 
     @max_delivery_attempts(1)
     @message_throttling(high=0, low=0)
-    def test_poison_no_reject_broker_graceful_shutdown(self, standard_cluster: Cluster):
-        proxies = standard_cluster.proxy_cycle()
+    def test_poison_no_reject_broker_graceful_shutdown(self, multi_node: Cluster):
+        proxies = multi_node.proxy_cycle()
         next(proxies)
         proxy = next(proxies)
-        self._stop_proxy(standard_cluster, proxy, tc.DOMAIN_PRIORITY, False)
+        self._stop_proxy(multi_node, proxy, tc.DOMAIN_PRIORITY, False)

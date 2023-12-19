@@ -7,10 +7,12 @@ functionality (i.e., no PUTs/CONFIRMs etc are retransmitted).
 import re
 import time
 
-import bmq.dev.it.testconstants as tc
-from bmq.dev.it.fixtures import Cluster, cluster  # pylint: disable=unused-import
-from bmq.dev.it.process.client import Client
-from bmq.dev.it.util import attempt, wait_until
+import blazingmq.dev.it.testconstants as tc
+from blazingmq.dev.it.fixtures import Cluster, cluster, order  # pylint: disable=unused-import
+from blazingmq.dev.it.process.client import Client
+from blazingmq.dev.it.util import attempt, wait_until
+
+pytestmark = order(2)
 
 
 def test_basic(cluster: Cluster):
@@ -44,7 +46,7 @@ def test_basic(cluster: Cluster):
     cluster.restart_nodes()
     # For a standard cluster, states have already been restored as part of
     # leader re-election.
-    if cluster.is_local:
+    if cluster.is_single_node:
         producer.wait_state_restored()
 
     producer.post(tc.URI_PRIORITY, payload=["msg2"], wait_ack=True, succeed=True)

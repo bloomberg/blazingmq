@@ -1,9 +1,10 @@
-import bmq.dev.it.testconstants as tc
-from bmq.dev.it.fixtures import (  # pylint: disable=unused-import
+import blazingmq.dev.it.testconstants as tc
+from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
     Cluster,
-    standard_cluster,
+    order,
+    multi_node,
 )
-from bmq.dev.it.util import wait_until
+from blazingmq.dev.it.util import wait_until
 
 
 class TestConfirmsBuffering:
@@ -39,7 +40,7 @@ class TestConfirmsBuffering:
                 self.candidate = node
 
     def test_kill_primary_confirm_puts_close_app_start_primary(
-        self, standard_cluster: Cluster  # pylint: disable=unused-argument
+        self, multi_node: Cluster  # pylint: disable=unused-argument
     ):
         # add one more tc.URI_FANOUT_BAZ consumer
         baz = self.replica_proxy.create_client("baz")

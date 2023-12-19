@@ -1,20 +1,19 @@
 # pylint: disable=protected-access; TODO: fix
 
-import contextlib
-import os
+from pathlib import Path
 import re
-import signal
 from collections import namedtuple
 
-import bmq.dev.it.testconstants as tc
-from bmq.dev.it.fixtures import (  # pylint: disable=unused-import
+import blazingmq.dev.it.testconstants as tc
+from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
     Cluster,
     cartesian_product_cluster,
-    logger,
-    standard_cluster,
+    multi_node,
+    order,
+    test_logger,
     tweak,
 )
-from bmq.dev.it.util import wait_until
+from blazingmq.dev.it.util import wait_until
 
 BACKLOG_MESSAGES = 400  # minimum to consume before killing / shutting down
 NUM_MESSAGES = 2000
@@ -52,7 +51,9 @@ class TestPutsRetransmission:
             consitency.
     """
 
-    def inspect_results(self, logger, allow_duplicates=False):
+    work_dir: Path
+
+    def inspect_results(self, allow_duplicates=False):
 
         if self.active_node in self.cluster.virtual_nodes():
             self.active_node.wait_status(wait_leader=True, wait_ready=False)
@@ -65,7 +66,7 @@ class TestPutsRetransmission:
         )
 
         for uri, consumer in zip(self.uris, self.consumers):
-            logger.info(f"{uri[0]}: received {consumer[1]} messages")
+            test_logger.info(f"{uri[0]}: received {consumer[1]} messages")
             # assert consumer[1] == NUM_MESSAGES
 
         leader.command(f"DOMAINS DOMAIN {self.domain} QUEUE {tc.TEST_QUEUE} INTERNALS")
@@ -73,14 +74,14 @@ class TestPutsRetransmission:
         leader.list_messages(self.domain, tc.TEST_QUEUE, 0, NUM_MESSAGES)
         assert leader.outputs_substr("Printing 0 message(s)", 10)
 
-        os.kill(self.producer._process.pid, signal.SIGTERM)
+        self.producer.force_stop()
 
         for consumer in self.consumers:
-            os.kill(consumer[0]._process.pid, signal.SIGTERM)
+            consumer[0].force_stop()
 
-        self.parse_message_logs(logger, allow_duplicates)
+        self.parse_message_logs(allow_duplicates=allow_duplicates)
 
-    def parse_message_logs(self, logger, allow_duplicates=False):
+    def parse_message_logs(self, allow_duplicates=False):
 
         Put = namedtuple("Put", ["message_index", "guid"])
         Ack = namedtuple("Ack", ["message_index", "guid", "status"])
@@ -98,17 +99,16 @@ class TestPutsRetransmission:
         num_duplicates = 0
         num_errors = 0
 
-        def warning(logger, prefix, p1, p2=None):
-            logger.warning(f'{prefix}: {p1}{f" vs existing {p2}" if p2 else ""}')
+        def warning(test_logger, prefix, p1, p2=None):
+            test_logger.warning(f'{prefix}: {p1}{f" vs existing {p2}" if p2 else ""}')
 
-        def error(logger, prefix, p1, p2=None):
+        def error(test_logger, prefix, p1, p2=None):
             nonlocal num_errors
             num_errors += 1
-            warning(logger, prefix, p1, p2)
+            warning(test_logger, prefix, p1, p2)
 
-        filePath = os.path.join(self.work_dir, "producer.log")
-        with open(filePath, encoding="ascii") as f:
-
+        consumer_log = self.work_dir / "producer.log"
+        with open(consumer_log, encoding="ascii") as f:
             re_put = re.compile(
                 r"(?i)"  # case insensitive
                 + r" PUT "  #  PUT
@@ -160,11 +160,13 @@ class TestPutsRetransmission:
                         )
 
                         if message_index is None:
-                            error(logger, "unexpected ACK guid", ack)
+                            error(test_logger, "unexpected ACK guid", ack)
                         elif puts[message_index] is None:
-                            error(logger, "unexpected ACK payload", ack)
+                            error(test_logger, "unexpected ACK payload", ack)
                         elif acks[message_index]:
-                            error(logger, "duplicate ACK", ack, acks[message_index])
+                            error(
+                                test_logger, "duplicate ACK", ack, acks[message_index]
+                            )
                         else:
                             acks[message_index] = ack
 
@@ -173,13 +175,13 @@ class TestPutsRetransmission:
                             else:
                                 num_nacks += 1
                                 warning(
-                                    logger,
+                                    test_logger,
                                     f"unsuccessful ({status}) ACK",
                                     ack,
                                     puts[message_index],
                                 )
 
-        logger.info(f"{num_puts} PUTs, {num_acks} acks, {num_nacks} nacks")
+        test_logger.info(f"{num_puts} PUTs, {num_acks} acks, {num_nacks} nacks")
 
         for uri in self.uris:
             re_push = re.compile(
@@ -199,12 +201,12 @@ class TestPutsRetransmission:
             )  # |GUID|
 
             app = uri[1]  # client Id
-            filePath = os.path.join(self.work_dir, f"{app}.log")
+            consumer_log = self.work_dir / f"{app}.log"
             consumed = 0
             pushes = [None] * NUM_MESSAGES  # Push
             num_confirms = 0
 
-            with open(filePath, encoding="ascii") as f:
+            with open(consumer_log, encoding="ascii") as f:
                 for line in f:
                     match = re_push.search(line)
                     if match:
@@ -218,7 +220,7 @@ class TestPutsRetransmission:
                         if pushes[message_index]:  # duplicate PUSH
                             num_duplicates += 1
                             warning(
-                                logger,
+                                test_logger,
                                 f"{app}: duplicate PUSH payload",
                                 push,
                                 pushes[message_index],
@@ -228,12 +230,12 @@ class TestPutsRetransmission:
                             consumed += 1
 
                             if puts[message_index] is None:  # no corresponding PUT
-                                error(logger, f"{app}: unexpected PUSH", push)
+                                error(test_logger, f"{app}: unexpected PUSH", push)
                             elif acks[message_index] is None:  # no corresponding ACK:
-                                error(logger, f"{app}: unexpected PUSH", push)
+                                error(test_logger, f"{app}: unexpected PUSH", push)
                             elif acks[message_index].guid != guid:  # ACK GUID mismatch
                                 error(
-                                    logger,
+                                    test_logger,
                                     f"{app}: GUID mismatch",
                                     push,
                                     acks[message_index],
@@ -248,14 +250,18 @@ class TestPutsRetransmission:
 
                             if message_index is None:
                                 error(
-                                    logger, f"{app}: unexpected CONFIRM guid", confirm
+                                    test_logger,
+                                    f"{app}: unexpected CONFIRM guid",
+                                    confirm,
                                 )
                             elif pushes[message_index] is None:
-                                error(logger, f"{app}: unexpected CONFIRM", confirm)
+                                error(
+                                    test_logger, f"{app}: unexpected CONFIRM", confirm
+                                )
                             else:
                                 num_confirms += 1
 
-            logger.info(
+            test_logger.info(
                 f"{app}: {num_puts} PUTs"
                 f", {num_acks} acks"
                 f", {num_nacks} nacks"
@@ -269,10 +275,14 @@ class TestPutsRetransmission:
                 if pushes[message_index] is None:
                     # never received 'message_index'
                     if acks[message_index]:
-                        error(logger, f"{app}: missing message", acks[message_index])
+                        error(
+                            test_logger, f"{app}: missing message", acks[message_index]
+                        )
                     num_lost += 1
                 elif pushes[message_index].index != (message_index - num_lost):
-                    error(logger, f"{app}: out of order PUSH", pushes[message_index])
+                    error(
+                        test_logger, f"{app}: out of order PUSH", pushes[message_index]
+                    )
 
         assert num_puts == num_acks
         assert consumed == num_puts
@@ -331,7 +341,7 @@ class TestPutsRetransmission:
 
         self.set_proxy(cluster)
 
-        self.mps = '\'[{"name": "p1", "value": "s1", "type": "E_STRING"}]\''
+        self.mps = '[{"name": "p1", "value": "s1", "type": "E_STRING"}]'
 
         self.start_producer(0)
         self.start_consumers(cluster, BACKLOG_MESSAGES)
@@ -347,14 +357,14 @@ class TestPutsRetransmission:
         ]
 
         self.set_proxy(cluster)
-        self.mps = '\'[{"name": "p1", "value": "s1", "type": "E_STRING"}]\''
+        self.mps = '[{"name": "p1", "value": "s1", "type": "E_STRING"}]'
 
         self.start_consumers(cluster, 0)
         self.start_producer(BACKLOG_MESSAGES)
 
     def set_proxy(self, cluster):
         self.cluster = cluster
-        self.work_dir = str(cluster.work_dir)
+        self.work_dir = cluster.work_dir
         proxies = cluster.proxy_cycle()
         # pick proxy in datacenter opposite to the primary's
         next(proxies)
@@ -367,16 +377,30 @@ class TestPutsRetransmission:
         return produced
 
     def start_producer(self, after=BACKLOG_MESSAGES):
-        filePath = os.path.join(self.work_dir, "producer.log")
-
-        with contextlib.suppress(FileNotFoundError):
-            os.unlink(filePath)
+        producer_log = self.work_dir / "producer.log"
+        producer_log.unlink(missing_ok=True)
 
         self.producer = self.replica_proxy.create_client(
             "producer",
             start=False,
             dump_messages=False,
-            options=f'--mode auto --queueflags "write,ack" --eventscount {NUM_MESSAGES} --postinterval {POST_INTERVAL_MS} --queueuri {self.uri} --messagepattern "msg%10d|" --log {filePath} --messageProperties={self.mps}',
+            options=[
+                "--mode",
+                "auto",
+                "--queueflags",
+                "write,ack",
+                "--eventscount",
+                NUM_MESSAGES,
+                "--postinterval",
+                POST_INTERVAL_MS,
+                "--queueuri",
+                self.uri,
+                "--messagepattern",
+                "msg%10d|",
+                f"--messageProperties={self.mps}",
+                "--log",
+                producer_log,
+            ],
         )
         # generate BACKLOG_MESSAGES
         if after > 0:
@@ -395,19 +419,33 @@ class TestPutsRetransmission:
                 20,
             )
 
-        def create_consumer(proxy, uri, work_dir):
+        def create_consumer(proxy, uri, work_dir: Path):
             app = uri[1]  # uri[1] - client id
             assert app
-            filePath = os.path.join(work_dir, f"{app}.log")
-            with contextlib.suppress(FileNotFoundError):
-                os.unlink(filePath)
+            consumer_log = work_dir / f"{app}.log"
+            consumer_log.unlink(missing_ok=True)
 
             return [
                 proxy.create_client(
                     f"consumer{app}",
                     start=False,
                     dump_messages=False,
-                    options=f'--mode auto --queueflags "read" --eventscount {NUM_MESSAGES} --queueuri {uri[0]} -c --log {filePath} --messageProperties={self.mps} --maxunconfirmed {NUM_MESSAGES}:{NUM_MESSAGES*1024}',
+                    options=[
+                        "--mode",
+                        "auto",
+                        "--queueflags",
+                        "read",
+                        "--eventscount",
+                        NUM_MESSAGES,
+                        "--queueuri",
+                        uri[0],
+                        "-c",
+                        "--log",
+                        consumer_log,
+                        f"--messageProperties={self.mps}",
+                        "--maxunconfirmed",
+                        f"{NUM_MESSAGES}:{NUM_MESSAGES*1024}",
+                    ],
                 ),
                 0,  # total received
                 0,  # last received (for tracking progress)
@@ -424,11 +462,11 @@ class TestPutsRetransmission:
         self.leader = cluster.last_known_leader
         self.active_node = cluster.process(self.replica_proxy.get_active_node())
 
-    def test_shutdown_primary_convert_replica(self, standard_cluster: Cluster, logger):
-        self.setup_cluster_fanout(standard_cluster)
+    def test_shutdown_primary_convert_replica(self, multi_node: Cluster):
+        self.setup_cluster_fanout(multi_node)
 
         # make the 'active_node' new primary
-        for node in standard_cluster.nodes(exclude=self.active_node):
+        for node in multi_node.nodes(exclude=self.active_node):
             node.set_quorum(4)
 
         self.active_node.drain()
@@ -439,12 +477,11 @@ class TestPutsRetransmission:
 
         # If shutting down primary, the replica needs to wait for new primary.
         self.active_node.wait_status(wait_leader=True, wait_ready=False)
-        self.active_node.capture("is back to healthy state")
 
-        self.inspect_results(logger, allow_duplicates=False)
+        self.inspect_results(allow_duplicates=False)
 
-    def test_shutdown_primary_keep_replica(self, standard_cluster: Cluster, logger):
-        self.setup_cluster_fanout(standard_cluster)
+    def test_shutdown_primary_keep_replica(self, multi_node: Cluster):
+        self.setup_cluster_fanout(multi_node)
 
         # prevent 'active_node' from becoming new primary
         self.active_node.set_quorum(4)
@@ -457,12 +494,11 @@ class TestPutsRetransmission:
 
         # If shutting down primary, the replica needs to wait for new primary.
         self.active_node.wait_status(wait_leader=True, wait_ready=False)
-        self.active_node.capture("is back to healthy state")
 
-        self.inspect_results(logger, allow_duplicates=False)
+        self.inspect_results(allow_duplicates=False)
 
-    def test_shutdown_replica(self, standard_cluster: Cluster, logger):
-        self.setup_cluster_fanout(standard_cluster)
+    def test_shutdown_replica(self, multi_node: Cluster):
+        self.setup_cluster_fanout(multi_node)
 
         # Start graceful shutdown
         self.active_node.exit_gracefully()
@@ -472,55 +508,54 @@ class TestPutsRetransmission:
         # Because the quorum is 3, cluster is still healthy after shutting down
         # replica.
 
-        self.inspect_results(logger, allow_duplicates=False)
+        self.inspect_results(allow_duplicates=False)
 
-    def test_kill_primary_convert_replica(self, standard_cluster: Cluster, logger):
-        self.setup_cluster_fanout(standard_cluster)
+    def test_kill_primary_convert_replica(self, multi_node: Cluster):
+        self.setup_cluster_fanout(multi_node)
 
         # make the 'active_node' new primary
-        for node in standard_cluster.nodes(exclude=self.active_node):
+        nodes = multi_node.nodes(exclude=self.active_node)
+        for node in nodes:
             node.set_quorum(4)
 
         self.active_node.drain()
-        # Start graceful shutdown
+        # Kill leader.
         self.leader.force_stop()
 
         # If shutting down primary, the replica needs to wait for new primary.
         self.active_node.wait_status(wait_leader=True, wait_ready=False)
-        self.active_node.capture("is back to healthy state")
 
-        self.inspect_results(logger, allow_duplicates=True)
+        self.inspect_results(allow_duplicates=True)
 
-    def test_kill_primary_keep_replica(self, standard_cluster: Cluster, logger):
-        self.setup_cluster_fanout(standard_cluster)
+    def test_kill_primary_keep_replica(self, multi_node: Cluster):
+        self.setup_cluster_fanout(multi_node)
 
         # prevent 'active_node' from becoming new primary
         self.active_node.set_quorum(4)
 
         self.active_node.drain()
-        # Start graceful shutdown
+        # Kill leader.
         self.leader.force_stop()
 
         # If shutting down primary, the replica needs to wait for new primary.
         self.active_node.wait_status(wait_leader=True, wait_ready=False)
-        self.active_node.capture("is back to healthy state")
 
-        self.inspect_results(logger, allow_duplicates=True)
+        self.inspect_results(allow_duplicates=True)
 
-    def test_kill_replica(self, standard_cluster: Cluster, logger):
-        self.setup_cluster_fanout(standard_cluster)
+    def test_kill_replica(self, multi_node: Cluster):
+        self.setup_cluster_fanout(multi_node)
 
         # Start graceful shutdown
         self.active_node.force_stop()
 
         # Because the quorum is 3, cluster is still healthy after shutting down
         # replica.
-        self.inspect_results(logger, allow_duplicates=True)
+        self.inspect_results(allow_duplicates=True)
 
     @tweak.broker.app_config.network_interfaces.tcp_interface.low_watermark(512)
     @tweak.broker.app_config.network_interfaces.tcp_interface.high_watermark(1024)
-    def test_watermarks(self, standard_cluster: Cluster, logger):
-        self.setup_cluster_fanout(standard_cluster)
+    def test_watermarks(self, multi_node: Cluster):
+        self.setup_cluster_fanout(multi_node)
 
         producer1 = self.replica_proxy.create_client("producer1")
         producer1.open(tc.URI_PRIORITY, flags=["write", "ack"], succeed=True)
@@ -537,10 +572,10 @@ class TestPutsRetransmission:
         assert msgs[0].payload == "msg"
 
         assert wait_until(self.has_consumed_all, 120)
-        self.inspect_results(logger, allow_duplicates=False)
+        self.inspect_results(allow_duplicates=False)
 
-    def test_kill_proxy(self, standard_cluster: Cluster, logger):
-        self.setup_cluster_fanout(standard_cluster)
+    def test_kill_proxy(self, multi_node: Cluster):
+        self.setup_cluster_fanout(multi_node)
 
         self.replica_proxy.force_stop()
 
@@ -549,9 +584,9 @@ class TestPutsRetransmission:
         self.replica_proxy.start()
         self.replica_proxy.wait_until_started()
 
-        self.inspect_results(logger, allow_duplicates=True)
+        self.inspect_results(allow_duplicates=True)
 
-    def test_shutdown_upstream_proxy(self, cartesian_product_cluster: Cluster, logger):
+    def test_shutdown_upstream_proxy(self, cartesian_product_cluster: Cluster):
         if not cartesian_product_cluster.virtual_nodes():
             # Skip cluster without virtual nodes
             return
@@ -561,4 +596,4 @@ class TestPutsRetransmission:
         # Shutdown upstream proxy (VR)
         self.active_node.exit_gracefully()
 
-        self.inspect_results(logger, allow_duplicates=True)
+        self.inspect_results(allow_duplicates=True)

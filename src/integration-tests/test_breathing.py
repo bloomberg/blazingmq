@@ -5,20 +5,21 @@ types of queues.
 
 from collections import namedtuple
 
-import bmq.dev.it.testconstants as tc
+import blazingmq.dev.it.testconstants as tc
 import pytest
-from bmq.dev.it.fixtures import (  # pylint: disable=unused-import
+from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
     Cluster,
     cartesian_product_cluster,
     cluster,
-    standard_cluster,
+    order,
+    multi_node,
     start_cluster,
     tweak,
 )
-from bmq.dev.it.process.client import Client
-from bmq.dev.it.util import wait_until
+from blazingmq.dev.it.process.client import Client
+from blazingmq.dev.it.util import wait_until
 
-pytestmark = pytest.mark.order(0)
+pytestmark = order(1)
 
 BmqClient = namedtuple("BmqClient", "handle, uri")
 
@@ -611,12 +612,12 @@ def test_verify_priority_queue_redelivery(cluster: Cluster):
     _stop_clients([producer, consumer])
 
 
-def test_verify_partial_close(standard_cluster: Cluster):
+def test_verify_partial_close(multi_node: Cluster):
     """Drop one of two producers both having unacked message (primary is
     suspended.  Make sure the remaining producer does not get NACK but gets
     ACK when primary resumes.
     """
-    proxies = standard_cluster.proxy_cycle()
+    proxies = multi_node.proxy_cycle()
 
     proxy = next(proxies)
     proxy = next(proxies)
@@ -627,7 +628,7 @@ def test_verify_partial_close(standard_cluster: Cluster):
     producer2 = proxy.create_client("producer2")
     producer2.open(tc.URI_FANOUT, flags=["write", "ack"], succeed=True)
 
-    leader = standard_cluster.last_known_leader
+    leader = multi_node.last_known_leader
     leader.suspend()
 
     producer1.post(tc.URI_FANOUT, payload=["1"], succeed=True, wait_ack=False)
@@ -644,16 +645,16 @@ def test_verify_partial_close(standard_cluster: Cluster):
 
 @start_cluster(True, True, True)
 @tweak.cluster.queue_operations.open_timeout_ms(2)
-def test_command_timeout(standard_cluster: Cluster):
+def test_command_timeout(multi_node: Cluster):
     """Simple test to execute onOpenQueueResponse timeout."""
 
     # make sure the cluster is healthy and the queue is assigned
     # Cannot use proxies as they do not read cluster config
 
-    leader = standard_cluster.last_known_leader
-    host = standard_cluster.nodes()[0]
+    leader = multi_node.last_known_leader
+    host = multi_node.nodes()[0]
     if host == leader:
-        host = standard_cluster.nodes()[1]
+        host = multi_node.nodes()[1]
 
     client = host.create_client("client")
     # this may fail due to the short timeout; we just need queue assigned
@@ -667,19 +668,19 @@ def test_command_timeout(standard_cluster: Cluster):
     assert result == Client.e_TIMEOUT
 
 
-def test_queue_purge_command(standard_cluster: Cluster):
+def test_queue_purge_command(multi_node: Cluster):
     """Ensure that 'queue purge' command is working as expected.  Post a
     message to the queue, then purge the queue, then bring up a consumer.
     Ensure that consumer does not receive any message.
     """
-    proxy = next(standard_cluster.proxy_cycle())
+    proxy = next(multi_node.proxy_cycle())
 
     # Start a producer and post a message
     producer = proxy.create_client("producer")
     producer.open(tc.URI_FANOUT, flags=["write", "ack"], succeed=True)
     producer.post(tc.URI_FANOUT, ["msg1"], succeed=True, wait_ack=True)
 
-    leader = standard_cluster.last_known_leader
+    leader = multi_node.last_known_leader
 
     # Purge queue, but *only* for 'foo' appId
     leader.command(f"DOMAINS DOMAIN {tc.DOMAIN_FANOUT} QUEUE {tc.TEST_QUEUE} PURGE foo")

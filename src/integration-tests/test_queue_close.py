@@ -2,27 +2,27 @@
 Integration test that tests closing a queue when the broker is down.
 """
 
-import bmq.dev.it.testconstants as tc
-from bmq.dev.it.fixtures import (  # pylint: disable=unused-import
+import blazingmq.dev.it.testconstants as tc
+from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
     Cluster,
-    local_cluster,
-    standard_cluster,
+    single_node, order,
+    multi_node,
     start_cluster,
     tweak,
 )
-from bmq.dev.it.process.client import Client
+from blazingmq.dev.it.process.client import Client
 
 
-def test_close_queue(local_cluster: Cluster):
-    assert local_cluster.is_local
+def test_close_queue(single_node: Cluster):
+    assert single_node.is_single_node
 
     # Start a consumer and open a queue
-    proxies = local_cluster.proxy_cycle()
+    proxies = single_node.proxy_cycle()
     consumer = next(proxies).create_client("consumer")
     consumer.open(tc.URI_PRIORITY, flags=["read"], succeed=True)
 
     # Shutdown the broker
-    leader = local_cluster.last_known_leader
+    leader = single_node.last_known_leader
     leader.stop()
 
     # Try to close the queue
@@ -34,13 +34,13 @@ def test_close_queue(local_cluster: Cluster):
 
 @tweak.domain.max_consumers(1)
 @start_cluster(False)
-def test_close_while_reopening(standard_cluster: Cluster):
+def test_close_while_reopening(multi_node: Cluster):
     """
     DRQS 169125974.  Closing queue while reopen response is pending should
     not result in a dangling handle.
     """
 
-    cluster = standard_cluster
+    cluster = multi_node
 
     west1 = cluster.start_node("west1")
     # make it primary
@@ -98,11 +98,11 @@ def test_close_while_reopening(standard_cluster: Cluster):
     consumer3.open(tc.URI_PRIORITY, flags=["read"], succeed=False)
 
 
-def test_close_open(standard_cluster: Cluster):
+def test_close_open(multi_node: Cluster):
     """
     DRQS 169326671.  Close, followed by Open with a different subId.
     """
-    proxies = standard_cluster.proxy_cycle()
+    proxies = multi_node.proxy_cycle()
     # pick proxy in datacenter opposite to the primary's
     next(proxies)
     proxy = next(proxies)
@@ -112,7 +112,7 @@ def test_close_open(standard_cluster: Cluster):
     consumer2 = proxy.create_client("consumer2")
     consumer2.open(tc.URI_FANOUT_BAR, flags=["read"], succeed=True)
 
-    leader = standard_cluster.last_known_leader
+    leader = multi_node.last_known_leader
     consumer3 = leader.create_client("consumer3")
     consumer3.open(tc.URI_FANOUT_FOO, flags=["read"], succeed=True)
 
@@ -122,14 +122,14 @@ def test_close_open(standard_cluster: Cluster):
 
 @tweak.domain.max_consumers(1)
 @tweak.cluster.queue_operations.reopen_retry_interval_ms(1234)
-def test_close_while_retrying_reopen(standard_cluster: Cluster):
+def test_close_while_retrying_reopen(multi_node: Cluster):
     """
     DRQS 170043950.  Trigger reopen failure causing proxy to retry on
     timeout. While waiting, close the queue and make sure, the retry
     accounts for that close.
     """
 
-    proxies = standard_cluster.proxy_cycle()
+    proxies = multi_node.proxy_cycle()
     # pick proxy in datacenter opposite to the primary's
     next(proxies)
     proxy1 = next(proxies)
@@ -142,7 +142,7 @@ def test_close_while_retrying_reopen(standard_cluster: Cluster):
     producer.open(tc.URI_PRIORITY, flags=["write,ack"], succeed=True)
     consumer1.open(tc.URI_PRIORITY, flags=["read"], succeed=True)
 
-    active_node = standard_cluster.process(proxy1.get_active_node())
+    active_node = multi_node.process(proxy1.get_active_node())
     proxy1.suspend()
 
     # this is to trigger reopen when proxy1 resumes

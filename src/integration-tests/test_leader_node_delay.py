@@ -5,11 +5,14 @@ leader and verifies that all follower nodes successfully notice the leader
 transitioning from PASSIVE to ACTIVE.
 """
 
-import bmq.dev.it.testconstants as tc
-from bmq.dev.it.fixtures import Cluster
-from bmq.dev.it.fixtures import (
-    standard_cluster as cluster,  # pylint: disable=unused-import
+import blazingmq.dev.it.testconstants as tc
+from blazingmq.dev.it.fixtures import Cluster
+from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
+    multi_node as cluster,
+    order,
 )
+
+pytestmark = order(6)
 
 
 def test_leader_node_delay(cluster: Cluster):

@@ -1,15 +1,17 @@
-import bmq.dev.it.testconstants as tc
-from bmq.dev.it.fixtures import (  # pylint: disable=unused-import
+import blazingmq.dev.it.testconstants as tc
+from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
     Cluster,
-    standard_cluster,
+    order,
+    multi_node,
     tweak,
 )
-from bmq.dev.it.process.client import Client
+from blazingmq.dev.it.process.client import Client
 
+pytestmark = order(4)
 
 class TestMaxunconfirmed:
-    def setup_cluster(self, standard_cluster):
-        proxies = standard_cluster.proxy_cycle()
+    def setup_cluster(self, multi_node):
+        proxies = multi_node.proxy_cycle()
         # pick proxy in datacenter opposite to the primary's
         next(proxies)
         self.proxy = next(proxies)
@@ -31,7 +33,7 @@ class TestMaxunconfirmed:
         return all(res == Client.e_SUCCESS for res in results)
 
     @tweak.cluster.queue_operations.stop_timeout_ms(1000)
-    def test_maxunconfirmed(self, standard_cluster: Cluster):
+    def test_maxunconfirmed(self, multi_node: Cluster):
         # Post 100 messages
         assert self.post_n_msgs(tc.URI_PRIORITY, 100)
 
@@ -47,11 +49,11 @@ class TestMaxunconfirmed:
         assert len(self.consumer.list(tc.URI_PRIORITY, block=True)) == 1
 
         # Shutdown the primary
-        leader = standard_cluster.last_known_leader
-        active_node = standard_cluster.process(self.proxy.get_active_node())
+        leader = multi_node.last_known_leader
+        active_node = multi_node.process(self.proxy.get_active_node())
 
         active_node.set_quorum(1)
-        nodes = standard_cluster.nodes(exclude=[active_node, leader])
+        nodes = multi_node.nodes(exclude=[active_node, leader])
         for node in nodes:
             node.set_quorum(4)
 
@@ -59,7 +61,7 @@ class TestMaxunconfirmed:
 
         # Make sure the active node is new primary
         leader = active_node
-        assert leader == standard_cluster.wait_leader()
+        assert leader == multi_node.wait_leader()
 
         # Confirm 1 message
         self.consumer.confirm(tc.URI_PRIORITY, "*", succeed=True)

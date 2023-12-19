@@ -7,12 +7,15 @@ go to the relevant section in the README.md, in this directory.
 from threading import Semaphore
 from time import sleep
 
-import bmq.dev.it.testconstants as tc
-from bmq.dev.it.fixtures import (  # pylint: disable=unused-import
+import blazingmq.dev.it.testconstants as tc
+from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
     Cluster,
-    standard_cluster,
+    order,
+    multi_node,
 )
-from bmq.dev.it.process.client import Client
+from blazingmq.dev.it.process.client import Client
+
+pytestmark = order(6)
 
 
 class TestClusterNodeShutdown:
@@ -98,14 +101,14 @@ class TestClusterNodeShutdown:
             == Client.e_SUCCESS
         )
 
-    def test_primary_shutdown_with_proxy(self, standard_cluster: Cluster):
-        cluster = standard_cluster
+    def test_primary_shutdown_with_proxy(self, multi_node: Cluster):
+        cluster = multi_node
         primary = cluster.last_known_leader
 
         self._post_kill_recover_post(cluster, primary)
 
-    def test_replica_shutdown_with_proxy(self, standard_cluster: Cluster):
-        cluster = standard_cluster
+    def test_replica_shutdown_with_proxy(self, multi_node: Cluster):
+        cluster = multi_node
         replica = cluster.process(self.proxy2.get_active_node())
 
         self._post_kill_recover_post(cluster, replica)

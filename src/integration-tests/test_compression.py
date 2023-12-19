@@ -4,10 +4,11 @@ payload in various scenarios as listed below:
     - cluster gets restarted after sending ack to producer.
 """
 
-import bmq.dev.it.testconstants as tc
-from bmq.dev.it.fixtures import Cluster, cluster  # pylint: disable=unused-import
-from bmq.dev.it.util import random_string
+import blazingmq.dev.it.testconstants as tc
+from blazingmq.dev.it.fixtures import Cluster, cluster, order  # pylint: disable=unused-import
+from blazingmq.dev.it.util import random_string
 
+pytestmark = order(10)
 
 def test_compression_restart(cluster: Cluster):
 
@@ -37,7 +38,7 @@ def test_compression_restart(cluster: Cluster):
     cluster.restart_nodes()
     # For a standard cluster, states have already been restored as part of
     # leader re-election.
-    if cluster.is_local:
+    if cluster.is_single_node:
         producer.wait_state_restored()
 
     consumer = next(proxies).create_client("consumer")

@@ -1,14 +1,17 @@
 import contextlib
 
-import bmq.dev.it.testconstants as tc
-from bmq.dev.it.fixtures import (  # pylint: disable=unused-import
+import blazingmq.dev.it.testconstants as tc
+from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
     Cluster,
-    local_cluster,
-    standard_cluster,
+    single_node,
+    order,
+    multi_node,
     tweak,
 )
-from bmq.dev.it.util import wait_until
-from bmq.schemas import mqbconf
+from blazingmq.dev.it.util import wait_until
+from blazingmq.schemas import mqbconf
+
+pytestmark = order(5)
 
 
 class Suspender:
@@ -64,8 +67,8 @@ class TestStrongConsistency:
         for uri in [tc.URI_FANOUT_SC_FOO, tc.URI_FANOUT_SC_BAR, tc.URI_FANOUT_SC_BAZ]:
             self.consumer.open(uri, flags=["read"], succeed=True)
 
-    def _break_post_unbreak(self, standard_cluster, breaker, has_timeout):
-        cluster = standard_cluster
+    def _break_post_unbreak(self, multi_node, breaker, has_timeout):
+        cluster = multi_node
         leader = cluster.last_known_leader
         active_node = cluster.process(self.replica_proxy.get_active_node())
 
@@ -120,14 +123,14 @@ class TestStrongConsistency:
                     lambda: len(self.consumer.list(uri, block=True)) == 1, 2
                 )
 
-    def test_suspend_post_resume(self, standard_cluster: Cluster):
-        self._break_post_unbreak(standard_cluster, Suspender, False)
+    def test_suspend_post_resume(self, multi_node: Cluster):
+        self._break_post_unbreak(multi_node, Suspender, False)
 
-    def test_kill_post_start(self, standard_cluster: Cluster):
-        self._break_post_unbreak(standard_cluster, Killer, False)
+    def test_kill_post_start(self, multi_node: Cluster):
+        self._break_post_unbreak(multi_node, Killer, False)
 
     def test_strong_consistency_local(
-        self, local_cluster  # pylint: disable=unused-argument
+        self, single_node  # pylint: disable=unused-argument
     ):
         # post SC
         self.producer.post(
@@ -141,19 +144,19 @@ class TestStrongConsistency:
             assert wait_until(lambda: len(self.consumer.list(uri, block=True)) == 1, 2)
 
     @tweak.domain.deduplication_time_ms(1000)
-    def test_timeout_receipt(self, standard_cluster: Cluster):
-        self._break_post_unbreak(standard_cluster, Suspender, True)
+    def test_timeout_receipt(self, multi_node: Cluster):
+        self._break_post_unbreak(multi_node, Suspender, True)
 
-    def test_dynamic_replication_factor(self, standard_cluster: Cluster):
-        leader = standard_cluster.last_known_leader
+    def test_dynamic_replication_factor(self, multi_node: Cluster):
+        leader = multi_node.last_known_leader
 
         # Exercise the LIST_TUNABLES command to ensure it executes safely.
         leader.command("CLUSTERS CLUSTER itCluster STORAGE REPLICATION LIST_TUNABLES")
 
         with contextlib.ExitStack() as stack:
             # Suspend all nodes that are not the leader or active.
-            active_node = standard_cluster.process(self.replica_proxy.get_active_node())
-            for node in standard_cluster.nodes(exclude=[leader, active_node]):
+            active_node = multi_node.process(self.replica_proxy.get_active_node())
+            for node in multi_node.nodes(exclude=[leader, active_node]):
                 stack.enter_context(Suspender(node))
 
             # Default replication-factor is 3. Since only two nodes are active, no
@@ -185,8 +188,8 @@ class TestStrongConsistency:
                     lambda: len(self.consumer.list(uri, block=True)) == 2, 2
                 )
 
-    def test_change_consistency(self, standard_cluster: Cluster):
-        leader = standard_cluster.last_known_leader
+    def test_change_consistency(self, multi_node: Cluster):
+        leader = multi_node.last_known_leader
         assert leader
 
         # Open priority queue.
@@ -194,10 +197,10 @@ class TestStrongConsistency:
         self.producer.open(tc.URI_PRIORITY, flags=["write,ack"], succeed=True)
 
         # Build list of nodes to be suspended.
-        suspended_nodes = standard_cluster.nodes(
+        suspended_nodes = multi_node.nodes(
             exclude=[
                 leader,
-                standard_cluster.process(self.replica_proxy.get_active_node()),
+                multi_node.process(self.replica_proxy.get_active_node()),
             ]
         )
 
@@ -216,19 +219,17 @@ class TestStrongConsistency:
                 )
                 assert self.consumer.wait_push_event()
 
-                for broker in standard_cluster.workspace.brokers.values():
-                    broker.domains[
-                        tc.DOMAIN_PRIORITY
-                    ].definition.parameters.consistency = mqbconf.Consistency(  # type: ignore
-                        strong=mqbconf.QueueConsistencyStrong()
-                    )
-
-                standard_cluster.reconfigure_domain_values(
-                    tc.DOMAIN_PRIORITY, {}, write_only=True
+                multi_node.config.domains[
+                    tc.DOMAIN_PRIORITY
+                ].definition.parameters.consistency = mqbconf.Consistency(  # type: ignore
+                    strong=mqbconf.QueueConsistencyStrong()
+                )
+                multi_node.reconfigure_domain(
+                    tc.DOMAIN_PRIORITY, write_only=True
                 )
 
                 # Reconfigure domain to be strongly consistent.
-                for node in standard_cluster.nodes(exclude=suspended_nodes):
+                for node in multi_node.nodes(exclude=suspended_nodes):
                     node.reconfigure_domain(tc.DOMAIN_PRIORITY, succeed=True)
 
                 # Require messages to be written to three machines before push.

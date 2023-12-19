@@ -5,11 +5,14 @@ queue has failed. All nodes going down gracefully at cluster shutdown verifies
 the fix.
 """
 
-import bmq.dev.it.testconstants as tc
-from bmq.dev.it.fixtures import Cluster
-from bmq.dev.it.fixtures import (
-    standard_cluster as cluster,  # pylint: disable=unused-import
+import blazingmq.dev.it.testconstants as tc
+from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
+    Cluster,
+    multi_node as cluster,
+    order,
 )
+
+pytestmark = order(6)
 
 
 def test_reopen_queue_failure(cluster: Cluster):

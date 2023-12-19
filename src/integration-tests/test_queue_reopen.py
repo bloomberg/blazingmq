@@ -2,20 +2,20 @@
 Integration tests for queue re-open scenarios.
 """
 
-import bmq.dev.it.testconstants as tc
-from bmq.dev.it.fixtures import (  # pylint: disable=unused-import
-    Cluster,
-    standard_cluster,
+import blazingmq.dev.it.testconstants as tc
+from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
+    Cluster, order,
+    multi_node,
 )
-from bmq.dev.it.process.client import Client
+from blazingmq.dev.it.process.client import Client
 
 
-def test_reopen_empty_queue(standard_cluster: Cluster):
+def test_reopen_empty_queue(multi_node: Cluster):
     """
     If queue has no handles by the time cluster state restores, it should
     still be notified in order to update its state.
     """
-    proxies = standard_cluster.proxy_cycle()
+    proxies = multi_node.proxy_cycle()
     # pick proxy in datacenter opposite to the primary's
     next(proxies)
     replica_proxy = next(proxies)
@@ -25,7 +25,7 @@ def test_reopen_empty_queue(standard_cluster: Cluster):
     producer.open(tc.URI_PRIORITY, flags=["write,ack"], succeed=True)
 
     # If queue open has succeeded, then active_node is known
-    active_node = standard_cluster.process(replica_proxy.get_active_node())
+    active_node = multi_node.process(replica_proxy.get_active_node())
 
     # Close the queue.  The replica keeps (stale) RemoteQueue
     producer.exit_gracefully()
@@ -34,7 +34,7 @@ def test_reopen_empty_queue(standard_cluster: Cluster):
     active_node.set_quorum(4)
 
     # Shutdown the primary
-    leader = standard_cluster.last_known_leader
+    leader = multi_node.last_known_leader
     leader.stop()
 
     # Start a producer and open a queue
@@ -48,13 +48,13 @@ def test_reopen_empty_queue(standard_cluster: Cluster):
     )
 
 
-def test_reopen_substream(standard_cluster: Cluster):
+def test_reopen_substream(multi_node: Cluster):
     """
     DRQS 169527537.  Make a primary's client reopen the same appId with a
     different subId.
     """
 
-    leader = standard_cluster.last_known_leader
+    leader = multi_node.last_known_leader
     consumer1 = leader.create_client("consumer1")
     consumer1.open(tc.URI_FANOUT_FOO, flags=["read"], succeed=True)
 

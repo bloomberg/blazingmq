@@ -4,10 +4,11 @@ consumers .
 """
 
 
-from bmq.dev.it.fixtures import Cluster, cluster  # pylint: disable=unused-import
-from bmq.dev.it.process.client import Client
-from bmq.dev.it.util import wait_until
+from blazingmq.dev.it.fixtures import Cluster, cluster, order  # pylint: disable=unused-import
+from blazingmq.dev.it.process.client import Client
+from blazingmq.dev.it.util import wait_until
 
+pytestmark = order(4)
 
 def test_fanout_priorities(cluster: Cluster):
     # create foo, bar, and baz clients on every node.
@@ -26,13 +27,13 @@ def test_fanout_priorities(cluster: Cluster):
     nodes.append(next(proxies))
 
     for node in nodes:
-        client = node.create_client(f"{node.name}Consumer2")
+        client = node.create_client("consumer2")
         [queues] = client.open_fanout_queues(
             1, flags=["read"], consumer_priority=2, block=True, appids=apps
         )
         highPriorityQueues += queues
 
-        client = node.create_client(f"{node.name}Consumer1")
+        client = node.create_client("consumer1")
         [queues] = client.open_fanout_queues(
             1, flags=["read"], consumer_priority=1, block=True, appids=apps
         )

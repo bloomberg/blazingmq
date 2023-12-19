@@ -3,13 +3,16 @@ Testing runtime reconfiguration of domains.
 """
 import time
 
-import bmq.dev.it.testconstants as tc
-from bmq.dev.it.fixtures import (  # pylint: disable=unused-import
+import blazingmq.dev.it.testconstants as tc
+from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
     Cluster,
-    standard_cluster,
+    order,
+    multi_node,
     tweak,
 )
-from bmq.dev.it.process.client import Client
+from blazingmq.dev.it.process.client import Client
+
+pytestmark = order(6)
 
 INITIAL_MSG_QUOTA = 10
 
@@ -18,7 +21,7 @@ URI_PRIORITY_2 = f"bmq://{tc.DOMAIN_PRIORITY}/qrst-queue"
 
 
 class TestReconfigureDomains:
-    def setup_cluster(self, cluster):
+    def setup_cluster(self, cluster: Cluster):
         proxy = next(cluster.proxy_cycle())
 
         self.writer = proxy.create_client("writers")
@@ -38,16 +41,16 @@ class TestReconfigureDomains:
         return all(res == Client.e_SUCCESS for res in results)
 
     # Helper method which tells 'leader' to reload the domain config.
-    def reconfigure_to_n_msgs(self, cluster, num_msgs, leader_only=True):
-        return cluster.reconfigure_domain_values(
-            tc.DOMAIN_PRIORITY,
-            {"storage.domain_limits.messages": num_msgs},
-            leader_only=leader_only,
-            succeed=True,
+    def reconfigure_to_n_msgs(self, cluster: Cluster, num_msgs, leader_only=True):
+        cluster.config.domains[
+            tc.DOMAIN_PRIORITY
+        ].definition.parameters.storage.domain_limits.messages = num_msgs
+        return cluster.reconfigure_domain(
+            tc.DOMAIN_PRIORITY, leader_only=leader_only, succeed=True
         )
 
     @tweak.domain.storage.domain_limits.messages(INITIAL_MSG_QUOTA)
-    def test_reconfigure_domain_message_limits(self, standard_cluster: Cluster):
+    def test_reconfigure_domain_message_limits(self, multi_node: Cluster):
         assert self.post_n_msgs(URI_PRIORITY_1, INITIAL_MSG_QUOTA)
 
         # Resource monitor allows exceeding message quota exactly once before
@@ -63,7 +66,7 @@ class TestReconfigureDomains:
         assert not self.post_n_msgs(URI_PRIORITY_2, 1)
 
         # Modify the domain configuration to hold 2 more messages.
-        self.reconfigure_to_n_msgs(standard_cluster, INITIAL_MSG_QUOTA + 10)
+        self.reconfigure_to_n_msgs(multi_node, INITIAL_MSG_QUOTA + 10)
 
         # Observe that posting two more messages succeeds.
         assert self.post_n_msgs(URI_PRIORITY_1, 5)
@@ -75,7 +78,7 @@ class TestReconfigureDomains:
         assert not self.post_n_msgs(URI_PRIORITY_2, 1)
 
         # Reconfigure limit back down to the initial value.
-        self.reconfigure_to_n_msgs(standard_cluster, INITIAL_MSG_QUOTA)
+        self.reconfigure_to_n_msgs(multi_node, INITIAL_MSG_QUOTA)
 
         # Observe that posting continues to fail.
         assert not self.post_n_msgs(URI_PRIORITY_1, 1)
@@ -99,7 +102,7 @@ class TestReconfigureDomains:
         assert self.post_n_msgs(URI_PRIORITY_2, 1)
 
     @tweak.domain.storage.queue_limits.messages(INITIAL_MSG_QUOTA)
-    def test_reconfigure_queue_message_limits(self, standard_cluster: Cluster):
+    def test_reconfigure_queue_message_limits(self, multi_node: Cluster):
         # Resource monitor allows exceeding message quota exactly once before
         # beginning to fail ACKs. So we expect 'INITIAL_MSG_QUOTA+1' messages
         # to succeed without error.
@@ -115,11 +118,10 @@ class TestReconfigureDomains:
         assert not self.post_n_msgs(URI_PRIORITY_2, 1)
 
         # Modify the domain configuration to hold 2 more messages per queue.
-        standard_cluster.reconfigure_domain_values(
-            tc.DOMAIN_PRIORITY,
-            {"storage.queue_limits.messages": INITIAL_MSG_QUOTA + 1},
-            succeed=True,
-        )
+        multi_node.config.domains[
+            tc.DOMAIN_PRIORITY
+        ].definition.parameters.storage.queue_limits.messages = (INITIAL_MSG_QUOTA + 1)
+        multi_node.reconfigure_domain(tc.DOMAIN_PRIORITY, succeed=True)
 
         # Observe that posting one more message now succeeds for each queue.
         assert self.post_n_msgs(URI_PRIORITY_1, 1)
@@ -130,15 +132,15 @@ class TestReconfigureDomains:
         assert not self.post_n_msgs(URI_PRIORITY_2, 1)
 
     @tweak.domain.storage.domain_limits.messages(1)
-    def test_reconfigure_with_leader_change(self, standard_cluster: Cluster):
-        leader = standard_cluster.last_known_leader
+    def test_reconfigure_with_leader_change(self, multi_node: Cluster):
+        leader = multi_node.last_known_leader
 
         # Exhaust the message capacity of the domain.
         assert self.post_n_msgs(URI_PRIORITY_1, 2)
         assert not self.post_n_msgs(URI_PRIORITY_1, 1)
 
         # Reconfigure every node to accept an additional message.
-        self.reconfigure_to_n_msgs(standard_cluster, 3, leader_only=False)
+        self.reconfigure_to_n_msgs(multi_node, 3, leader_only=False)
 
         # Ensure the capacity increased as expected, then confirm one message.
         assert self.post_n_msgs(URI_PRIORITY_1, 2)
@@ -151,9 +153,9 @@ class TestReconfigureDomains:
         leader.wait()
 
         # Wait for a new leader to be elected.
-        standard_cluster.wait_leader()
-        assert leader != standard_cluster.last_known_leader
-        leader = standard_cluster.last_known_leader
+        multi_node.wait_leader()
+        assert leader != multi_node.last_known_leader
+        leader = multi_node.last_known_leader
 
         # Verify that new leader accepts one more message and reaches capacity.
         assert self.post_n_msgs(URI_PRIORITY_1, 1)
@@ -161,8 +163,8 @@ class TestReconfigureDomains:
 
     @tweak.domain.max_consumers(1)
     @tweak.domain.max_producers(1)
-    def test_reconfigure_max_clients(self, standard_cluster: Cluster):
-        proxy = next(standard_cluster.proxy_cycle())
+    def test_reconfigure_max_clients(self, multi_node: Cluster):
+        proxy = next(multi_node.proxy_cycle())
 
         # Create another client.
         ad_client = proxy.create_client("another-client")
@@ -172,11 +174,11 @@ class TestReconfigureDomains:
         assert ad_client.open(URI_PRIORITY_2, flags=["read"], block=True) != 0
 
         # Reconfigure the domain to allow for one more producer to connect.
-        standard_cluster.reconfigure_domain_values(
-            tc.DOMAIN_PRIORITY,
-            {"max_producers": 2},
-            leader_only=True,
-            succeed=True,
+        multi_node.config.domains[
+            tc.DOMAIN_PRIORITY
+        ].definition.parameters.max_producers = 2
+        multi_node.reconfigure_domain(
+            tc.DOMAIN_PRIORITY, leader_only=True, succeed=True
         )
 
         # Confirm that the queue can be opened for writing, but not reading.
@@ -184,11 +186,11 @@ class TestReconfigureDomains:
         assert ad_client.open(URI_PRIORITY_2, flags=["read"], block=True) != 0
 
         # Reconfigure the domain to allow for one more consumer to connect.
-        standard_cluster.reconfigure_domain_values(
-            tc.DOMAIN_PRIORITY,
-            {"max_consumers": 2},
-            leader_only=True,
-            succeed=True,
+        multi_node.config.domains[
+            tc.DOMAIN_PRIORITY
+        ].definition.parameters.max_consumers = 2
+        multi_node.reconfigure_domain(
+            tc.DOMAIN_PRIORITY, leader_only=True, succeed=True
         )
 
         # Confirm that the queue can be opened for reading.
@@ -200,7 +202,7 @@ class TestReconfigureDomains:
         assert ad_client.open(URI_PRIORITY_2, flags=["read"], block=True) != 0
 
     @tweak.domain.max_queues(2)
-    def test_reconfigure_max_queues(self, standard_cluster: Cluster):
+    def test_reconfigure_max_queues(self, multi_node: Cluster):
         ad_url_1 = f"{URI_PRIORITY_1}-third-queue"
         ad_url_2 = f"{URI_PRIORITY_1}-fourth-queue"
 
@@ -208,11 +210,11 @@ class TestReconfigureDomains:
         assert self.reader.open(ad_url_1, flags=["read"], block=True) != 0
 
         # Reconfigure the domain to allow for one more producer to connect.
-        standard_cluster.reconfigure_domain_values(
-            tc.DOMAIN_PRIORITY,
-            {"max_queues": 3},
-            leader_only=True,
-            succeed=True,
+        multi_node.config.domains[
+            tc.DOMAIN_PRIORITY
+        ].definition.parameters.max_queues = 3
+        multi_node.reconfigure_domain(
+            tc.DOMAIN_PRIORITY, leader_only=True, succeed=True
         )
 
         # Confirm that one more queue can be opened.
@@ -223,8 +225,8 @@ class TestReconfigureDomains:
 
     @tweak.cluster.queue_operations.consumption_monitor_period_ms(500)
     @tweak.domain.max_idle_time(1)
-    def test_reconfigure_max_idle_time(self, standard_cluster: Cluster):
-        leader = standard_cluster.last_known_leader
+    def test_reconfigure_max_idle_time(self, multi_node: Cluster):
+        leader = multi_node.last_known_leader
 
         # Configure reader to have at most one outstanding unconfirmed message.
         self.reader.configure(URI_PRIORITY_1, block=True, maxUnconfirmedMessages=1)
@@ -240,11 +242,11 @@ class TestReconfigureDomains:
         self.reader.confirm(URI_PRIORITY_1, "+2", succeed=True)
 
         # Reconfigure domain to tolerate as much as two seconds of idleness.
-        standard_cluster.reconfigure_domain_values(
-            tc.DOMAIN_PRIORITY,
-            {"max_idle_time": 2},
-            leader_only=True,
-            succeed=True,
+        multi_node.config.domains[
+            tc.DOMAIN_PRIORITY
+        ].definition.parameters.max_idle_time = 2
+        multi_node.reconfigure_domain(
+            tc.DOMAIN_PRIORITY, leader_only=True, succeed=True
         )
 
         # Write two further messages to the queue.
@@ -260,8 +262,8 @@ class TestReconfigureDomains:
         assert not leader.alarms("QUEUE_CONSUMER_MONITOR", 1)
 
     @tweak.domain.message_ttl(1)
-    def test_reconfigure_message_ttl(self, standard_cluster: Cluster):
-        leader = standard_cluster.last_known_leader
+    def test_reconfigure_message_ttl(self, multi_node: Cluster):
+        leader = multi_node.last_known_leader
 
         # Write two messages to the queue (only one can be sent to reader).
         assert self.post_n_msgs(URI_PRIORITY_1, 2)
@@ -273,11 +275,11 @@ class TestReconfigureDomains:
         assert leader.erases_messages(URI_PRIORITY_1, msgs=2, timeout=1)
 
         # Reconfigure the domain to wait 3 seconds before GC'ing messages.
-        standard_cluster.reconfigure_domain_values(
-            tc.DOMAIN_PRIORITY,
-            {"message_ttl": 10},
-            leader_only=True,
-            succeed=True,
+        multi_node.config.domains[
+            tc.DOMAIN_PRIORITY
+        ].definition.parameters.message_ttl = 10
+        multi_node.reconfigure_domain(
+            tc.DOMAIN_PRIORITY, leader_only=True, succeed=True
         )
 
         # Write two further messages to the queue.
@@ -293,9 +295,9 @@ class TestReconfigureDomains:
         self.reader.confirm(URI_PRIORITY_1, "+2", succeed=True)
 
     @tweak.domain.max_delivery_attempts(0)
-    def test_reconfigure_max_delivery_attempts(self, standard_cluster: Cluster):
+    def test_reconfigure_max_delivery_attempts(self, multi_node: Cluster):
         URI = f"bmq://{tc.DOMAIN_PRIORITY}/my-queue"
-        proxy = next(standard_cluster.proxy_cycle())
+        proxy = next(multi_node.proxy_cycle())
 
         # Open the queue through the writer.
         self.writer.open(URI, flags=["write,ack"], succeed=True)
@@ -327,9 +329,10 @@ class TestReconfigureDomains:
         do_test(True)
 
         # Reconfigure messages to expire after 5 delivery attempts.
-        standard_cluster.reconfigure_domain_values(
-            tc.DOMAIN_PRIORITY, {"max_delivery_attempts": 5}, succeed=True
-        )
+        multi_node.config.domains[
+            tc.DOMAIN_PRIORITY
+        ].definition.parameters.max_delivery_attempts = 5
+        multi_node.reconfigure_domain(tc.DOMAIN_PRIORITY, succeed=True)
 
         # Expect that message will expire after failed deliveries.
         do_test(False)

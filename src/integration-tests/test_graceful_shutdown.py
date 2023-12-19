@@ -2,20 +2,21 @@ import functools
 import re
 from typing import Iterator
 
-import bmq.dev.it.testconstants as tc
+import blazingmq.dev.it.testconstants as tc
 import pytest
-from bmq.dev.it import fixtures
-from bmq.dev.it.fixtures import (  # pylint: disable=unused-import
+from blazingmq.dev.it import fixtures
+from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
     Cluster,
     Mode,
-    logger,
-    standard_cluster,
+    test_logger,
+    order,
+    multi_node,
     tweak,
     virtual_cluster_config,
 )
-from bmq.dev.it.process.client import Client
-from bmq.dev.it.util import wait_until
-from bmq.dev.workspace import Workspace
+from blazingmq.dev.it.process.client import Client
+from blazingmq.dev.it.util import wait_until
+from blazingmq.dev.workspace import Workspace
 
 OTHER_DOMAIN = f"{tc.DOMAIN_PRIORITY}.other"
 
@@ -60,9 +61,9 @@ def multi_cluster(request):
 
 
 class TestGracefulShutdown:
-    def post_kill_confirm(self, node, peer, logger):
+    def post_kill_confirm(self, node, peer):
 
-        logger.info("posting...")
+        test_logger.info("posting...")
 
         # post 3 PUTs
         for i in range(1, 4):
@@ -149,8 +150,8 @@ class TestGracefulShutdown:
         node.wait()
         # assert node.return_code == 0
 
-    def kill_wait_unconfirmed(self, peer, logger):
-        logger.info("posting...")
+    def kill_wait_unconfirmed(self, peer):
+        test_logger.info("posting...")
 
         uriWrite = tc.URI_FANOUT
         uriRead = tc.URI_FANOUT_FOO
@@ -214,46 +215,46 @@ class TestGracefulShutdown:
         self.producer.open(tc.URI_FANOUT, flags=["write,ack"], succeed=True)
 
     @tweak.cluster.queue_operations.stop_timeout_ms(1000)
-    def test_shutting_down_primary(self, standard_cluster: Cluster, logger):
-        cluster = standard_cluster
+    def test_shutting_down_primary(self, multi_node: Cluster):
+        cluster = multi_node
         leader = cluster.last_known_leader
         active_node = cluster.process(self.replica_proxy.get_active_node())
-        self.post_kill_confirm(leader, active_node, logger)
+        self.post_kill_confirm(leader, active_node)
 
     @tweak.cluster.queue_operations.stop_timeout_ms(1000)
-    def test_shutting_down_replica(self, standard_cluster: Cluster, logger):
-        cluster = standard_cluster
+    def test_shutting_down_replica(self, multi_node: Cluster):
+        cluster = multi_node
         leader = cluster.last_known_leader
         active_node = cluster.process(self.replica_proxy.get_active_node())
-        self.post_kill_confirm(active_node, leader, logger)
+        self.post_kill_confirm(active_node, leader)
 
     @tweak.cluster.queue_operations.stop_timeout_ms(1000)
     @tweak.cluster.queue_operations.shutdown_timeout_ms(5000)
     def test_wait_unconfirmed_proxy(
-        self, standard_cluster, logger  # pylint: disable=unused-argument
+        self, multi_node  # pylint: disable=unused-argument
     ):
         proxy = self.replica_proxy
-        self.kill_wait_unconfirmed(proxy, logger)
+        self.kill_wait_unconfirmed(proxy)
 
     @tweak.cluster.queue_operations.stop_timeout_ms(1000)
     @tweak.cluster.queue_operations.shutdown_timeout_ms(5000)
     def test_wait_unconfirmed_replica(
-        self, standard_cluster, logger  # pylint: disable=unused-argument
+        self, multi_node  # pylint: disable=unused-argument
     ):
-        cluster = standard_cluster
+        cluster = multi_node
         replica = cluster.process(self.replica_proxy.get_active_node())
-        self.kill_wait_unconfirmed(replica, logger)
+        self.kill_wait_unconfirmed(replica)
 
     @tweak.cluster.queue_operations.stop_timeout_ms(3000)
     @tweak.cluster.queue_operations.shutdown_timeout_ms(2000)
     def test_cancel_unconfirmed_timer(
-        self, standard_cluster  # pylint: disable=unused-argument
+        self, multi_node  # pylint: disable=unused-argument
     ):
 
         uriWrite = tc.URI_FANOUT
         uriRead = tc.URI_FANOUT_FOO
 
-        leader = standard_cluster.last_known_leader
+        leader = multi_node.last_known_leader
 
         # post 2 PUTs
         self.producer.post(uriWrite, payload=["msg1"], succeed=True)
@@ -264,7 +265,7 @@ class TestGracefulShutdown:
 
         consumer.open(uriRead, flags=["read"], succeed=True)
 
-        replica = standard_cluster.process(self.replica_proxy.get_active_node())
+        replica = multi_node.process(self.replica_proxy.get_active_node())
 
         # receive messages
         consumer.wait_push_event()
