@@ -53,7 +53,6 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 
 import bmq.dev.it.testconstants as tc
 import pytest
-from bmq.schemas import mqbcfg
 from bmq.dev.it.fixtures import (  # pylint: disable=unused-import
     Cluster,
     cluster,
@@ -64,6 +63,7 @@ from bmq.dev.it.fixtures import (  # pylint: disable=unused-import
 from bmq.dev.it.process.broker import Broker
 from bmq.dev.it.process.client import Client, ITError, Message
 from bmq.dev.it.util import wait_until
+from bmq.schemas import mqbcfg
 
 EMPTY_SUBSCRIPTION = []
 EPS = 1e-6

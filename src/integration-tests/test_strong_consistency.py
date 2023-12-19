@@ -1,7 +1,6 @@
 import contextlib
 
 import bmq.dev.it.testconstants as tc
-from bmq.schemas import mqbconf
 from bmq.dev.it.fixtures import (  # pylint: disable=unused-import
     Cluster,
     local_cluster,
@@ -9,6 +8,7 @@ from bmq.dev.it.fixtures import (  # pylint: disable=unused-import
     tweak,
 )
 from bmq.dev.it.util import wait_until
+from bmq.schemas import mqbconf
 
 
 class Suspender:

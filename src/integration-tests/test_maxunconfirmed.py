@@ -1,7 +1,3 @@
-"""
-DRQS 168460165.
-"""
-
 import bmq.dev.it.testconstants as tc
 from bmq.dev.it.fixtures import (  # pylint: disable=unused-import
     Cluster,
