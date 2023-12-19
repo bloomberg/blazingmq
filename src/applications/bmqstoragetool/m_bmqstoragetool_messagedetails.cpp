@@ -87,5 +87,15 @@ void MessageDetails::print(bsl::ostream& os) const
     }
 }
 
+unsigned int MessageDetails::dataRecordOffset() const
+{
+    return d_messageRecord.d_record.messageOffsetDwords();
+}
+
+bsls::Types::Uint64 MessageDetails::messageRecordIndex() const
+{
+    return d_messageRecord.d_recordIndex;
+}
+
 }  // close package namespace
 }  // close enterprise namespace

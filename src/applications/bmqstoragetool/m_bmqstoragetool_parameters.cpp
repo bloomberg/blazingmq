@@ -216,7 +216,7 @@ bsl::vector<bsl::string> Parameters::queueName() const
     return d_queueName;
 }
 
-int Parameters::dumpLimit() const
+unsigned int Parameters::dumpLimit() const
 {
     return d_dumpLimit;
 }

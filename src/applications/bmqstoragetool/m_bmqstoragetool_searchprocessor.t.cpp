@@ -645,8 +645,8 @@ static void test1_breathingTest()
 
     // Prepare expected output with list of message GUIDs in Journal file
     bsl::ostringstream                  expectedStream(s_allocator_p);
-    bsl::list<NodeType>::const_iterator recordIter = records.begin();
-    bsl::size_t                         msgCnt     = 0;
+    bsl::list<NodeType>::const_iterator recordIter         = records.begin();
+    bsl::size_t                         foundMessagesCount = 0;
     while (recordIter++ != records.end()) {
         RecordType::Enum rtype = recordIter->first;
         if (rtype == RecordType::e_MESSAGE) {
@@ -656,10 +656,16 @@ static void test1_breathingTest()
             msg.messageGUID().toHex(buf);
             expectedStream.write(buf, bmqt::MessageGUID::e_SIZE_HEX);
             expectedStream << bsl::endl;
-            msgCnt++;
+            foundMessagesCount++;
         }
     }
-    expectedStream << msgCnt << " message GUID(s) found." << bsl::endl;
+    expectedStream << foundMessagesCount << " message GUID(s) found."
+                   << bsl::endl;
+    float outstandingRatio = float(foundMessagesCount) / foundMessagesCount *
+                             100.0;
+    expectedStream << "Outstanding ratio: " << outstandingRatio << "% ("
+                   << foundMessagesCount << "/" << foundMessagesCount << ")"
+                   << bsl::endl;
 
     ASSERT_EQ(resultStream.str(), expectedStream.str());
 
@@ -825,12 +831,120 @@ static void test3_searchNonExistingGuidTest()
     bsl::ostringstream expectedStream(s_allocator_p);
     expectedStream << "No message GUID found." << bsl::endl;
 
+    expectedStream << bsl::endl
+                   << "The following 2 GUID(s) not found:" << bsl::endl;
+    //  TODO: fix sporadic fail due to order
+    expectedStream << searchGuids[1] << bsl::endl
+                   << searchGuids[0] << bsl::endl;
+    ;
+
     ASSERT_EQ(resultStream.str(), expectedStream.str());
 
     s_allocator_p->deallocate(p);
 }
 
-static void test4_searchOutstandingMessagesTest()
+static void test4_searchExistingAndNonExistingGuidTest()
+// ------------------------------------------------------------------------
+// SEARCH EXISTING AND NON EXISTING GUID TEST
+//
+// Concerns:
+//   Search messages by existing and non existing GUIDs in journal file and
+//   output result.
+//
+// Testing:
+//   SearchProcessor::process()
+// ------------------------------------------------------------------------
+{
+    mwctst::TestHelper::printTestName("SEARCH EXISTING AND NON EXISTING GUID");
+
+    // Simulate journal file
+    unsigned int numRecords = 15;
+
+    bsls::Types::Uint64 totalSize =
+        sizeof(FileHeader) + sizeof(JournalFileHeader) +
+        numRecords * FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
+
+    char*       p = static_cast<char*>(s_allocator_p->allocate(totalSize));
+    MemoryBlock block(p, totalSize);
+    FileHeader  fileHeader;
+    bsls::Types::Uint64 lastRecordPos = 0;
+    bsls::Types::Uint64 lastSyncPtPos = 0;
+
+    RecordsListType records(s_allocator_p);
+
+    addJournalRecords(&block,
+                      &fileHeader,
+                      &lastRecordPos,
+                      &lastSyncPtPos,
+                      &records,
+                      numRecords);
+
+    // Create JournalFileIterator
+    MappedFileDescriptor mfd;
+    mfd.setFd(-1);  // invalid fd will suffice.
+    mfd.setBlock(block);
+    mfd.setFileSize(totalSize);
+    JournalFileIterator it(&mfd, fileHeader, false);
+
+    // Get list of message GUIDs for searching
+    CommandLineArguments      arguments;
+    bsl::vector<bsl::string>& searchGuids = arguments.d_guid;
+
+    // Get two existing message GUIDs
+    bsl::list<NodeType>::const_iterator recordIter = records.begin();
+    bsl::size_t                         msgCnt     = 0;
+    while (recordIter++ != records.end()) {
+        RecordType::Enum rtype = recordIter->first;
+        if (rtype == RecordType::e_MESSAGE) {
+            if (msgCnt++ == 2)
+                break;  // Take two GUIDs
+            const MessageRecord& msg = *reinterpret_cast<const MessageRecord*>(
+                recordIter->second.buffer());
+            char buf[bmqt::MessageGUID::e_SIZE_HEX];
+            msg.messageGUID().toHex(buf);
+            bsl::string guid(buf, s_allocator_p);
+            searchGuids.push_back(guid);
+        }
+    }
+
+    // Get two non existing message GUIDs
+    bmqt::MessageGUID guid;
+    mqbu::MessageGUIDUtil::generateGUID(&guid);
+    char buf[bmqt::MessageGUID::e_SIZE_HEX];
+    guid.toHex(buf);
+    bsl::string guidStr(buf, s_allocator_p);
+    searchGuids.push_back(guidStr);
+    mqbu::MessageGUIDUtil::generateGUID(&guid);
+    guid.toHex(buf);
+    guidStr = buf;
+    searchGuids.push_back(guidStr);
+
+    bsl::unique_ptr<Parameters> params =
+        bsl::make_unique<Parameters>(arguments, s_allocator_p);
+    params->journalFile()->setIterator(&it);
+
+    auto searchProcessor = SearchProcessor(bsl::move(params), s_allocator_p);
+
+    bsl::ostringstream resultStream(s_allocator_p);
+    searchProcessor.process(resultStream);
+
+    // Prepare expected output
+    bsl::ostringstream expectedStream(s_allocator_p);
+    expectedStream << searchGuids[0] << bsl::endl
+                   << searchGuids[1] << bsl::endl;
+    expectedStream << "2 message GUID(s) found." << bsl::endl;
+    expectedStream << bsl::endl
+                   << "The following 2 GUID(s) not found:" << bsl::endl;
+    // TODO: fix sporadic search due to order in map
+    expectedStream << searchGuids[2] << bsl::endl
+                   << searchGuids[3] << bsl::endl;
+
+    ASSERT_EQ(resultStream.str(), expectedStream.str());
+
+    s_allocator_p->deallocate(p);
+}
+
+static void test5_searchOutstandingMessagesTest()
 // ------------------------------------------------------------------------
 // SEARCH OUTSTANDING MESSAGES TEST
 //
@@ -896,7 +1010,8 @@ static void test4_searchOutstandingMessagesTest()
     float messageCount     = numRecords / 3.0;
     float outstandingRatio = float(outstandingGUIDS.size()) / messageCount *
                              100.0;
-    expectedStream << "Outstanding ratio: " << outstandingRatio << "%"
+    expectedStream << "Outstanding ratio: " << outstandingRatio << "% ("
+                   << outstandingGUIDS.size() << "/" << messageCount << ")"
                    << bsl::endl;
 
     ASSERT_EQ(resultStream.str(), expectedStream.str());
@@ -904,7 +1019,7 @@ static void test4_searchOutstandingMessagesTest()
     s_allocator_p->deallocate(p);
 }
 
-static void test5_searchConfirmedMessagesTest()
+static void test6_searchConfirmedMessagesTest()
 // ------------------------------------------------------------------------
 // SEARCH CONFIRMED MESSAGES TEST
 //
@@ -970,15 +1085,16 @@ static void test5_searchConfirmedMessagesTest()
     float messageCount     = numRecords / 3.0;
     float outstandingRatio = float(messageCount - confirmedGUIDS.size()) /
                              messageCount * 100.0;
-    expectedStream << "Outstanding ratio: " << outstandingRatio << "%"
-                   << bsl::endl;
+    expectedStream << "Outstanding ratio: " << outstandingRatio << "% ("
+                   << (messageCount - confirmedGUIDS.size()) << "/"
+                   << messageCount << ")" << bsl::endl;
 
     ASSERT_EQ(resultStream.str(), expectedStream.str());
 
     s_allocator_p->deallocate(p);
 }
 
-static void test6_searchPartiallyConfirmedMessagesTest()
+static void test7_searchPartiallyConfirmedMessagesTest()
 // ------------------------------------------------------------------------
 // SEARCH PARTIALLY CONFIRMED MESSAGES TEST
 //
@@ -1045,8 +1161,9 @@ static void test6_searchPartiallyConfirmedMessagesTest()
     float messageCount     = numRecords / 3.0;
     float outstandingRatio = float(partiallyConfirmedGUIDS.size()) /
                              messageCount * 100.0;
-    expectedStream << "Outstanding ratio: " << outstandingRatio << "%"
-                   << bsl::endl;
+    expectedStream << "Outstanding ratio: " << outstandingRatio << "% ("
+                   << partiallyConfirmedGUIDS.size() << "/" << messageCount
+                   << ")" << bsl::endl;
 
     // TODO: fix ordering issue (sporadic fail)
     ASSERT_EQ(resultStream.str(), expectedStream.str());
@@ -1054,7 +1171,7 @@ static void test6_searchPartiallyConfirmedMessagesTest()
     s_allocator_p->deallocate(p);
 }
 
-static void test7_searchMessagesByQueueKeyTest()
+static void test8_searchMessagesByQueueKeyTest()
 // ------------------------------------------------------------------------
 // SEARCH MESSAGES BY QUEUE KEY TEST
 //
@@ -1120,7 +1237,13 @@ static void test7_searchMessagesByQueueKeyTest()
     for (const auto& guid : queueKey1GUIDS) {
         outputGuidString(expectedStream, guid);
     }
-    expectedStream << queueKey1GUIDS.size() << " message GUID(s) found."
+    auto foundMessagesCount = queueKey1GUIDS.size();
+    expectedStream << foundMessagesCount << " message GUID(s) found."
+                   << bsl::endl;
+    float outstandingRatio = float(foundMessagesCount) / foundMessagesCount *
+                             100.0;
+    expectedStream << "Outstanding ratio: " << outstandingRatio << "% ("
+                   << foundMessagesCount << "/" << foundMessagesCount << ")"
                    << bsl::endl;
 
     // TODO: fix ordering issue (sporadic fail)
@@ -1129,7 +1252,7 @@ static void test7_searchMessagesByQueueKeyTest()
     s_allocator_p->deallocate(p);
 }
 
-static void test8_printMessagesDetailsTest()
+static void test9_printMessagesDetailsTest()
 // ------------------------------------------------------------------------
 // PRINT MESSAGE DETAILS TEST
 //
@@ -1217,11 +1340,12 @@ int main(int argc, char* argv[])
     case 1: test1_breathingTest(); break;
     case 2: test2_searchGuidTest(); break;
     case 3: test3_searchNonExistingGuidTest(); break;
-    case 4: test4_searchOutstandingMessagesTest(); break;
-    case 5: test5_searchConfirmedMessagesTest(); break;
-    case 6: test6_searchPartiallyConfirmedMessagesTest(); break;
-    case 7: test7_searchMessagesByQueueKeyTest(); break;
-    case 8: test8_printMessagesDetailsTest(); break;
+    case 4: test4_searchExistingAndNonExistingGuidTest(); break;
+    case 5: test5_searchOutstandingMessagesTest(); break;
+    case 6: test6_searchConfirmedMessagesTest(); break;
+    case 7: test7_searchPartiallyConfirmedMessagesTest(); break;
+    case 8: test8_searchMessagesByQueueKeyTest(); break;
+    case 9: test9_printMessagesDetailsTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
         s_testStatus = -1;

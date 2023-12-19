@@ -18,6 +18,12 @@
 // bmqstoragetool
 #include <m_bmqstoragetool_searchresult.h>
 
+// MQB
+#include <mqbs_filestoreprotocolprinter.h>
+#include <mqbs_filestoreprotocolutil.h>
+
+#include <mwcu_memoutstream.h>
+
 namespace BloombergLP {
 namespace m_bmqstoragetool {
 
@@ -25,19 +31,53 @@ namespace m_bmqstoragetool {
 // class SearchResult
 // =====================
 
-SearchResult::SearchResult(bsl::ostream&     ostream,
-                           bool              withDetails,
-                           Filters&          filters,
-                           bslma::Allocator* allocator)
+SearchResult::SearchResult(
+    bsl::ostream&                                    ostream,
+    bool                                             withDetails,
+    bool                                             dumpPayload,
+    unsigned int                                     dumpLimit,
+    Parameters::FileHandler<mqbs::DataFileIterator>* dataFile,
+    Filters&                                         filters,
+    bslma::Allocator*                                allocator)
 : d_ostream(ostream)
 , d_withDetails(withDetails)
+, d_dumpPayload(dumpPayload)
+, d_dumpLimit(dumpLimit)
+, d_dataFile(dataFile)
 , d_filters(filters)
-, d_foundMessagesCount()
-, d_totalMessagesCount()
+, d_foundMessagesCount(0)
+, d_totalMessagesCount(0)
+, d_deletedMessagesCount(0)
 , d_allocator_p(bslma::Default::allocator(allocator))
 , d_messagesDetails(allocator)
+, dataRecordOffsetMap(allocator)
 {
     // NOTHING
+}
+
+void SearchResult::addMessageDetails(const mqbs::MessageRecord& record,
+                                     bsls::Types::Uint64        recordIndex,
+                                     bsls::Types::Uint64        recordOffset)
+{
+    d_messagesDetails.emplace(
+        record.messageGUID(),
+        MessageDetails(record, recordIndex, recordOffset, d_allocator_p));
+    d_messageIndexToGuidMap.emplace(recordIndex, record.messageGUID());
+}
+
+void SearchResult::deleteMessageDetails(MessagesDetails::iterator iterator)
+{
+    // Erase record from both maps
+    d_messagesDetails.erase(iterator);
+    d_messageIndexToGuidMap.erase(iterator->second.messageRecordIndex());
+}
+
+void SearchResult::deleteMessageDetails(const bmqt::MessageGUID& messageGUID,
+                                        bsls::Types::Uint64      recordIndex)
+{
+    // Erase record from both maps
+    d_messagesDetails.erase(messageGUID);
+    d_messageIndexToGuidMap.erase(recordIndex);
 }
 
 bool SearchResult::processMessageRecord(const mqbs::MessageRecord& record,
@@ -47,14 +87,11 @@ bool SearchResult::processMessageRecord(const mqbs::MessageRecord& record,
     // Apply filters
     bool filterPassed = d_filters.apply(record);
 
-    if (filterPassed && d_withDetails) {
+    if (filterPassed) {
         // Store record details for further output
-        d_messagesDetails.emplace(
-            record.messageGUID(),
-            MessageDetails(record, recordIndex, recordOffset, d_allocator_p));
+        addMessageDetails(record, recordIndex, recordOffset);
+        d_totalMessagesCount++;
     }
-
-    d_totalMessagesCount++;
 
     return filterPassed;
 }
@@ -77,27 +114,44 @@ bool SearchResult::processDeletionRecord(const mqbs::DeletionRecord& record,
                                          bsls::Types::Uint64 recordIndex,
                                          bsls::Types::Uint64 recordOffset)
 {
-    if (d_withDetails) {
+    if (auto it = d_messagesDetails.find(record.messageGUID());
+        it != d_messagesDetails.end()) {
         // Print message details immediately and delete record to save space.
-        if (auto it = d_messagesDetails.find(record.messageGUID());
-            it != d_messagesDetails.end()) {
+        if (d_withDetails) {
             it->second.addDeleteRecord(record, recordIndex, recordOffset);
             it->second.print(d_ostream);
-            d_messagesDetails.erase(it);
         }
+        else {
+            outputGuidString(it->first);
+        }
+        if (d_dumpPayload) {
+            auto dataRecordOffset = it->second.dataRecordOffset();
+            outputPayload(dataRecordOffset);
+        }
+        deleteMessageDetails(it);
+        d_deletedMessagesCount++;
     }
     return false;
 }
 
-void SearchResult::outputResult()
+void SearchResult::outputResult(bool outputRatio)
 {
-    if (d_withDetails) {
-        // Print all collected messages details
-        for (const auto& item : d_messagesDetails) {
-            item.second.print(d_ostream);
+    for (const auto& item : d_messageIndexToGuidMap) {
+        auto messageDetails = d_messagesDetails.at(item.second);
+        if (d_withDetails) {
+            messageDetails.print(d_ostream);
+        }
+        else {
+            outputGuidString(item.second);
+        }
+        if (d_dumpPayload) {
+            outputPayload(messageDetails.dataRecordOffset());
         }
     }
+
     outputFooter();
+    if (outputRatio)
+        outputOutstandingRatio();
 }
 
 void SearchResult::outputGuidString(const bmqt::MessageGUID& messageGUID,
@@ -124,23 +178,116 @@ void SearchResult::outputFooter()
 
 void SearchResult::outputOutstandingRatio()
 {
-    if (d_foundMessagesCount) {
+    if (d_totalMessagesCount > 0) {
+        bsl::size_t outstandingMessages = d_totalMessagesCount -
+                                          d_deletedMessagesCount;
         d_ostream << "Outstanding ratio: "
-                  << bsl::round(float(d_foundMessagesCount) /
+                  << bsl::round(float(outstandingMessages) /
                                 d_totalMessagesCount * 100.0)
-                  << "%" << bsl::endl;
+                  << "% (" << outstandingMessages << "/"
+                  << d_totalMessagesCount << ")" << bsl::endl;
     }
+}
+
+void SearchResult::outputPayload(bsls::Types::Uint64 messageOffsetDwords)
+{
+    bsls::Types::Uint64 recordOffset = messageOffsetDwords *
+                                       bmqp::Protocol::k_DWORD_SIZE;
+    auto it = d_dataFile->iterator();
+    // Search record in data file
+    while (it->recordOffset() != recordOffset) {
+        int rc = it->nextRecord();
+        // TODO: reset iterator if rc ==0
+        if (rc != 1) {
+            d_ostream << "Failed to retrieve message from DATA "
+                      << "file rc: " << rc << bsl::endl;
+            return;  // RETURN
+        }
+    }
+
+    mwcu::MemOutStream dataHeaderOsstr;
+    mwcu::MemOutStream optionsOsstr;
+    mwcu::MemOutStream propsOsstr;
+
+    dataHeaderOsstr << it->dataHeader();
+
+    const char*  options    = 0;
+    unsigned int optionsLen = 0;
+    it->loadOptions(&options, &optionsLen);
+    mqbs::FileStoreProtocolPrinter::printOptions(optionsOsstr,
+                                                 options,
+                                                 optionsLen);
+
+    const char*  appData    = 0;
+    unsigned int appDataLen = 0;
+    it->loadApplicationData(&appData, &appDataLen);
+
+    const mqbs::DataHeader& dh                = it->dataHeader();
+    unsigned int            propertiesAreaLen = 0;
+    if (mqbs::DataHeaderFlagUtil::isSet(
+            dh.flags(),
+            mqbs::DataHeaderFlags::e_MESSAGE_PROPERTIES)) {
+        int rc = mqbs::FileStoreProtocolPrinter::printMessageProperties(
+            &propertiesAreaLen,
+            propsOsstr,
+            appData,
+            bmqp::MessagePropertiesInfo(dh));
+        if (rc) {
+            d_ostream << "Failed to retrieve message properties, rc: " << rc
+                      << bsl::endl;
+        }
+
+        appDataLen -= propertiesAreaLen;
+        appData += propertiesAreaLen;
+    }
+
+    // Payload
+    mwcu::MemOutStream payloadOsstr;
+    unsigned int minLen = d_dumpLimit > 0 ? bsl::min(appDataLen, d_dumpLimit)
+                                          : appDataLen;
+    payloadOsstr << "First " << minLen << " bytes of payload:" << bsl::endl;
+    bdlb::Print::hexDump(payloadOsstr, appData, minLen);
+    if (minLen < appDataLen) {
+        payloadOsstr << "And " << (appDataLen - minLen)
+                     << " more bytes (redacted)" << bsl::endl;
+    }
+
+    d_ostream << bsl::endl
+              << "DataRecord index: " << it->recordIndex()
+              << ", offset: " << it->recordOffset() << bsl::endl
+              << "DataHeader: " << bsl::endl
+              << dataHeaderOsstr.str();
+
+    if (0 != optionsLen) {
+        d_ostream << "\nOptions: " << bsl::endl << optionsOsstr.str();
+    }
+
+    if (0 != propertiesAreaLen) {
+        d_ostream << "\nProperties: " << bsl::endl << propsOsstr.str();
+    }
+
+    d_ostream << "\nPayload: " << bsl::endl << payloadOsstr.str() << bsl::endl;
 }
 
 // =====================
 // class SearchAllResult
 // =====================
 
-SearchAllResult::SearchAllResult(bsl::ostream&     ostream,
-                                 bool              withDetails,
-                                 Filters&          filters,
-                                 bslma::Allocator* allocator)
-: SearchResult(ostream, withDetails, filters, allocator)
+SearchAllResult::SearchAllResult(
+    bsl::ostream&                                    ostream,
+    bool                                             withDetails,
+    bool                                             dumpPayload,
+    unsigned int                                     dumpLimit,
+    Parameters::FileHandler<mqbs::DataFileIterator>* dataFile,
+    Filters&                                         filters,
+    bslma::Allocator*                                allocator)
+: SearchResult(ostream,
+               withDetails,
+               dumpPayload,
+               dumpLimit,
+               dataFile,
+               filters,
+               allocator)
 {
     // NOTHING
 }
@@ -154,8 +301,12 @@ bool SearchAllResult::processMessageRecord(const mqbs::MessageRecord& record,
                                                            recordOffset);
     if (filterPassed) {
         if (!d_withDetails) {
-            // Output GUID immediately.
+            // Output GUID immediately and delete message details.
             outputGuidString(record.messageGUID());
+            if (d_dumpPayload) {
+                outputPayload(record.messageOffsetDwords());
+            }
+            deleteMessageDetails(record.messageGUID(), recordIndex);
         }
         d_foundMessagesCount++;
     }
@@ -167,12 +318,22 @@ bool SearchAllResult::processMessageRecord(const mqbs::MessageRecord& record,
 // class SearchGuidResult
 // =====================
 
-SearchGuidResult::SearchGuidResult(bsl::ostream&                   ostream,
-                                   bool                            withDetails,
-                                   const bsl::vector<bsl::string>& guids,
-                                   Filters&                        filters,
-                                   bslma::Allocator*               allocator)
-: SearchResult(ostream, withDetails, filters, allocator)
+SearchGuidResult::SearchGuidResult(
+    bsl::ostream&                                    ostream,
+    bool                                             withDetails,
+    bool                                             dumpPayload,
+    unsigned int                                     dumpLimit,
+    Parameters::FileHandler<mqbs::DataFileIterator>* dataFile,
+    const bsl::vector<bsl::string>&                  guids,
+    Filters&                                         filters,
+    bslma::Allocator*                                allocator)
+: SearchResult(ostream,
+               withDetails,
+               dumpPayload,
+               dumpLimit,
+               dataFile,
+               filters,
+               allocator)
 , d_guidsMap(allocator)
 {
     // Build MessageGUID->StrGUID Map
@@ -189,16 +350,16 @@ bool SearchGuidResult::processMessageRecord(const mqbs::MessageRecord& record,
     if (auto it = d_guidsMap.find(record.messageGUID());
         it != d_guidsMap.end()) {
         if (d_withDetails) {
-            // Store record details for further output
-            d_messagesDetails.emplace(record.messageGUID(),
-                                      MessageDetails(record,
-                                                     recordIndex,
-                                                     recordOffset,
-                                                     d_allocator_p));
+            SearchResult::processMessageRecord(record,
+                                               recordIndex,
+                                               recordOffset);
         }
         else {
             // Output result immediately.
             d_ostream << it->second << bsl::endl;
+            if (d_dumpPayload) {
+                outputPayload(record.messageOffsetDwords());
+            }
         }
         // Remove processed GUID from map.
         d_guidsMap.erase(it);
@@ -221,16 +382,39 @@ bool SearchGuidResult::processDeletionRecord(
     return (d_withDetails && d_guidsMap.empty());
 }
 
+void SearchGuidResult::outputResult(bool outputRatio)
+{
+    SearchResult::outputResult(false);
+    // Print non found GUIDs
+    if (auto nonFoundCount = d_guidsMap.size(); nonFoundCount > 0) {
+        d_ostream << bsl::endl
+                  << "The following " << nonFoundCount
+                  << " GUID(s) not found:" << bsl::endl;
+        for (const auto& item : d_guidsMap) {
+            d_ostream << item.second << bsl::endl;
+        }
+    }
+}
+
 // =====================
 // class SearchOutstandingResult
 // =====================
 
-SearchOutstandingResult::SearchOutstandingResult(bsl::ostream&     ostream,
-                                                 bool              withDetails,
-                                                 Filters&          filters,
-                                                 bslma::Allocator* allocator)
-: SearchResult(ostream, withDetails, filters, allocator)
-, d_outstandingGUIDS(allocator)
+SearchOutstandingResult::SearchOutstandingResult(
+    bsl::ostream&                                    ostream,
+    bool                                             withDetails,
+    bool                                             dumpPayload,
+    unsigned int                                     dumpLimit,
+    Parameters::FileHandler<mqbs::DataFileIterator>* dataFile,
+    Filters&                                         filters,
+    bslma::Allocator*                                allocator)
+: SearchResult(ostream,
+               withDetails,
+               dumpPayload,
+               dumpLimit,
+               dataFile,
+               filters,
+               allocator)
 {
     // NOTHING
 }
@@ -244,9 +428,6 @@ bool SearchOutstandingResult::processMessageRecord(
                                                            recordIndex,
                                                            recordOffset);
     if (filterPassed) {
-        if (!d_withDetails) {
-            d_outstandingGUIDS.insert(record.messageGUID());
-        }
         d_foundMessagesCount++;
     }
 
@@ -258,52 +439,41 @@ bool SearchOutstandingResult::processDeletionRecord(
     bsls::Types::Uint64         recordIndex,
     bsls::Types::Uint64         recordOffset)
 {
-    if (d_withDetails) {
-        if (auto it = d_messagesDetails.find(record.messageGUID());
-            it != d_messagesDetails.end()) {
-            // Message is confirmed (not outstanding), remove it.
-            d_messagesDetails.erase(it);
-            d_foundMessagesCount--;
-        }
-    }
-    else {
-        if (auto it = d_outstandingGUIDS.find(record.messageGUID());
-            it != d_outstandingGUIDS.end()) {
-            // Message is confirmed (not outstanding), remove it.
-            d_outstandingGUIDS.erase(it);
-            d_foundMessagesCount--;
-        }
+    if (auto it = d_messagesDetails.find(record.messageGUID());
+        it != d_messagesDetails.end()) {
+        // Message is confirmed (not outstanding), remove it.
+        deleteMessageDetails(it);
+        d_foundMessagesCount--;
+        d_deletedMessagesCount++;
     }
 
     return false;
 }
 
-void SearchOutstandingResult::outputResult()
-{
-    if (d_withDetails) {
-        for (const auto& item : d_messagesDetails) {
-            item.second.print(d_ostream);
-        }
-    }
-    else {
-        for (const auto& guid : d_outstandingGUIDS) {
-            outputGuidString(guid);
-        }
-    }
-    outputFooter();
-    outputOutstandingRatio();
-}
+// void SearchOutstandingResult::outputResult()
+// {
+//     SearchResult::outputResult();
+// }
 
 // =====================
 // class SearchConfirmedResult
 // =====================
 
-SearchConfirmedResult::SearchConfirmedResult(bsl::ostream&     ostream,
-                                             bool              withDetails,
-                                             Filters&          filters,
-                                             bslma::Allocator* allocator)
-: SearchResult(ostream, withDetails, filters, allocator)
-, d_messageGUIDS(allocator)
+SearchConfirmedResult::SearchConfirmedResult(
+    bsl::ostream&                                    ostream,
+    bool                                             withDetails,
+    bool                                             dumpPayload,
+    unsigned int                                     dumpLimit,
+    Parameters::FileHandler<mqbs::DataFileIterator>* dataFile,
+    Filters&                                         filters,
+    bslma::Allocator*                                allocator)
+: SearchResult(ostream,
+               withDetails,
+               dumpPayload,
+               dumpLimit,
+               dataFile,
+               filters,
+               allocator)
 {
     // NOTHING
 }
@@ -313,15 +483,7 @@ bool SearchConfirmedResult::processMessageRecord(
     bsls::Types::Uint64        recordIndex,
     bsls::Types::Uint64        recordOffset)
 {
-    bool filterPassed = SearchResult::processMessageRecord(record,
-                                                           recordIndex,
-                                                           recordOffset);
-    if (filterPassed) {
-        if (!d_withDetails) {
-            d_messageGUIDS.insert(record.messageGUID());
-        }
-    }
-
+    SearchResult::processMessageRecord(record, recordIndex, recordOffset);
     return false;
 }
 
@@ -330,34 +492,21 @@ bool SearchConfirmedResult::processDeletionRecord(
     bsls::Types::Uint64         recordIndex,
     bsls::Types::Uint64         recordOffset)
 {
-    if (d_withDetails) {
-        if (auto it = d_messagesDetails.find(record.messageGUID());
-            it != d_messagesDetails.end()) {
-            it->second.addDeleteRecord(record, recordIndex, recordOffset);
-            // Message is confirmed, output it immediately and remove.
-            it->second.print(d_ostream);
-            d_messagesDetails.erase(it);
-            d_foundMessagesCount++;
-        }
+    if (auto it = d_messagesDetails.find(record.messageGUID());
+        it != d_messagesDetails.end()) {
+        d_foundMessagesCount++;
     }
-    else {
-        if (auto it = d_messageGUIDS.find(record.messageGUID());
-            it != d_messageGUIDS.end()) {
-            // Message is confirmed, output it immediately and remove.
-            outputGuidString(record.messageGUID());
-            d_messageGUIDS.erase(it);
-            d_foundMessagesCount++;
-        }
-    }
+
+    SearchResult::processDeletionRecord(record, recordIndex, recordOffset);
 
     return false;
 }
 
-void SearchConfirmedResult::outputResult()
+void SearchConfirmedResult::outputResult(bool outputRatio)
 {
     outputFooter();
     // For ratio calculation, recalculate d_foundMessagesCount
-    d_foundMessagesCount = d_totalMessagesCount - d_foundMessagesCount;
+    // d_foundMessagesCount = d_totalMessagesCount - d_foundMessagesCount;
     outputOutstandingRatio();
 }
 
@@ -366,11 +515,20 @@ void SearchConfirmedResult::outputResult()
 // =====================
 
 SearchPartiallyConfirmedResult::SearchPartiallyConfirmedResult(
-    bsl::ostream&     ostream,
-    bool              withDetails,
-    Filters&          filters,
-    bslma::Allocator* allocator)
-: SearchResult(ostream, withDetails, filters, allocator)
+    bsl::ostream&                                    ostream,
+    bool                                             withDetails,
+    bool                                             dumpPayload,
+    unsigned int                                     dumpLimit,
+    Parameters::FileHandler<mqbs::DataFileIterator>* dataFile,
+    Filters&                                         filters,
+    bslma::Allocator*                                allocator)
+: SearchResult(ostream,
+               withDetails,
+               dumpPayload,
+               dumpLimit,
+               dataFile,
+               filters,
+               allocator)
 , d_partiallyConfirmedGUIDS(allocator)
 {
     // NOTHING
@@ -413,25 +571,27 @@ bool SearchPartiallyConfirmedResult::processDeletionRecord(
 {
     if (auto it = d_partiallyConfirmedGUIDS.find(record.messageGUID());
         it != d_partiallyConfirmedGUIDS.end()) {
-        // Message is confirmed, remove.
+        // Message is confirmed, remove it.
         d_partiallyConfirmedGUIDS.erase(it);
-        if (d_withDetails) {
-            d_messagesDetails.erase(record.messageGUID());
-        }
+        auto messageDetails = d_messagesDetails.at(record.messageGUID());
+        deleteMessageDetails(record.messageGUID(),
+                             messageDetails.messageRecordIndex());
+        d_deletedMessagesCount++;
     }
 
     return false;
 }
 
-void SearchPartiallyConfirmedResult::outputResult()
+void SearchPartiallyConfirmedResult::outputResult(bool outputRatio)
 {
-    for (const auto& item : d_partiallyConfirmedGUIDS) {
-        if (item.second > 0) {
+    for (const auto& item : d_messageIndexToGuidMap) {
+        auto ConfirmCount = d_partiallyConfirmedGUIDS.at(item.second);
+        if (ConfirmCount > 0) {
             if (d_withDetails) {
-                d_messagesDetails.at(item.first).print(d_ostream);
+                d_messagesDetails.at(item.second).print(d_ostream);
             }
             else {
-                outputGuidString(item.first);
+                outputGuidString(item.second);
             }
             d_foundMessagesCount++;
         }

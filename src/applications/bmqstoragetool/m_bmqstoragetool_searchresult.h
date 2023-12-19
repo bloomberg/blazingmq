@@ -22,6 +22,7 @@
 
 #include <m_bmqstoragetool_filters.h>
 #include <m_bmqstoragetool_messagedetails.h>
+#include <m_bmqstoragetool_parameters.h>
 
 // BDE
 #include <bsl_iostream.h>
@@ -47,21 +48,43 @@ class SearchResult {
 
     // DATA
 
-    bsl::ostream&     d_ostream;
-    bool              d_withDetails;
-    Filters&          d_filters;
-    bsl::size_t       d_totalMessagesCount;
-    bsl::size_t       d_foundMessagesCount;
-    bslma::Allocator* d_allocator_p;
+    bsl::ostream&                                    d_ostream;
+    bool                                             d_withDetails;
+    bool                                             d_dumpPayload;
+    unsigned int                                     d_dumpLimit;
+    Parameters::FileHandler<mqbs::DataFileIterator>* d_dataFile;
+    Filters&                                         d_filters;
+    bsl::size_t                                      d_totalMessagesCount;
+    bsl::size_t                                      d_foundMessagesCount;
+    bsl::size_t                                      d_deletedMessagesCount;
+    bslma::Allocator*                                d_allocator_p;
 
     MessagesDetails d_messagesDetails;
 
+    bsl::map<bsls::Types::Uint64, bmqt::MessageGUID> dataRecordOffsetMap;
+    // Map to store sorted data records offset for data file iterator.
+
+    bsl::map<bsls::Types::Uint64, bmqt::MessageGUID> d_messageIndexToGuidMap;
+    // Map to store sorted indexes to preserve messages order for output.
+
+    // MANIPULATORS
+    void addMessageDetails(const mqbs::MessageRecord& record,
+                           bsls::Types::Uint64        recordIndex,
+                           bsls::Types::Uint64        recordOffset);
+    void deleteMessageDetails(MessagesDetails::iterator iterator);
+    void deleteMessageDetails(const bmqt::MessageGUID& messageGUID,
+                              bsls::Types::Uint64      recordIndex);
+
   public:
     // CREATORS
-    explicit SearchResult(bsl::ostream&     ostream,
-                          bool              withDetails,
-                          Filters&          filters,
-                          bslma::Allocator* allocator);
+    explicit SearchResult(
+        bsl::ostream&                                    ostream,
+        bool                                             withDetails,
+        bool                                             d_dumpPayload,
+        unsigned int                                     d_dumpLimit,
+        Parameters::FileHandler<mqbs::DataFileIterator>* d_dataFile,
+        Filters&                                         filters,
+        bslma::Allocator*                                allocator);
     virtual ~SearchResult() = default;
 
     // MANIPULATORS
@@ -74,10 +97,11 @@ class SearchResult {
     virtual bool processDeletionRecord(const mqbs::DeletionRecord& record,
                                        bsls::Types::Uint64         recordIndex,
                                        bsls::Types::Uint64 recordOffset);
-    virtual void outputResult();
+    virtual void outputResult(bool outputRatio = true);
     void         outputGuidString(const bmqt::MessageGUID& messageGUID,
                                   const bool               addNewLine = true);
     void         outputFooter();
+    void         outputPayload(bsls::Types::Uint64 dataRecordOffset);
     void         outputOutstandingRatio();
 };
 
@@ -87,10 +111,14 @@ class SearchResult {
 class SearchAllResult : public SearchResult {
   public:
     // CREATORS
-    explicit SearchAllResult(bsl::ostream&     ostream,
-                             bool              withDetails,
-                             Filters&          filters,
-                             bslma::Allocator* allocator);
+    explicit SearchAllResult(
+        bsl::ostream&                                    ostream,
+        bool                                             withDetails,
+        bool                                             d_dumpPayload,
+        unsigned int                                     d_dumpLimit,
+        Parameters::FileHandler<mqbs::DataFileIterator>* d_dataFile,
+        Filters&                                         filters,
+        bslma::Allocator*                                allocator);
 
     // MANIPULATORS
     bool processMessageRecord(const mqbs::MessageRecord& record,
@@ -108,11 +136,15 @@ class SearchGuidResult : public SearchResult {
 
   public:
     // CREATORS
-    explicit SearchGuidResult(bsl::ostream&                   ostream,
-                              bool                            withDetails,
-                              const bsl::vector<bsl::string>& guids,
-                              Filters&                        filters,
-                              bslma::Allocator*               allocator);
+    explicit SearchGuidResult(
+        bsl::ostream&                                    ostream,
+        bool                                             withDetails,
+        bool                                             d_dumpPayload,
+        unsigned int                                     d_dumpLimit,
+        Parameters::FileHandler<mqbs::DataFileIterator>* d_dataFile,
+        const bsl::vector<bsl::string>&                  guids,
+        Filters&                                         filters,
+        bslma::Allocator*                                allocator);
 
     // MANIPULATORS
     bool processMessageRecord(const mqbs::MessageRecord& record,
@@ -123,22 +155,23 @@ class SearchGuidResult : public SearchResult {
                                bsls::Types::Uint64         recordIndex,
                                bsls::Types::Uint64         recordOffset)
         BSLS_KEYWORD_OVERRIDE;
+    void outputResult(bool outputRatio = true) BSLS_KEYWORD_OVERRIDE;
 };
 
 // =====================
 // class SearchOutstandingResult
 // =====================
 class SearchOutstandingResult : public SearchResult {
-  private:
-    // DATA
-    bsl::unordered_set<bmqt::MessageGUID> d_outstandingGUIDS;
-
   public:
     // CREATORS
-    explicit SearchOutstandingResult(bsl::ostream&     ostream,
-                                     bool              withDetails,
-                                     Filters&          filters,
-                                     bslma::Allocator* allocator);
+    explicit SearchOutstandingResult(
+        bsl::ostream&                                    ostream,
+        bool                                             withDetails,
+        bool                                             d_dumpPayload,
+        unsigned int                                     d_dumpLimit,
+        Parameters::FileHandler<mqbs::DataFileIterator>* d_dataFile,
+        Filters&                                         filters,
+        bslma::Allocator*                                allocator);
 
     // MANIPULATORS
     bool processMessageRecord(const mqbs::MessageRecord& record,
@@ -149,7 +182,7 @@ class SearchOutstandingResult : public SearchResult {
                                bsls::Types::Uint64         recordIndex,
                                bsls::Types::Uint64         recordOffset)
         BSLS_KEYWORD_OVERRIDE;
-    void outputResult() BSLS_KEYWORD_OVERRIDE;
+    // void outputResult() BSLS_KEYWORD_OVERRIDE;
 };
 
 // =====================
@@ -158,14 +191,18 @@ class SearchOutstandingResult : public SearchResult {
 class SearchConfirmedResult : public SearchResult {
   private:
     // DATA
-    bsl::unordered_set<bmqt::MessageGUID> d_messageGUIDS;
+    // bsl::unordered_set<bmqt::MessageGUID> d_messageGUIDS;
 
   public:
     // CREATORS
-    explicit SearchConfirmedResult(bsl::ostream&     ostream,
-                                   bool              withDetails,
-                                   Filters&          filters,
-                                   bslma::Allocator* allocator);
+    explicit SearchConfirmedResult(
+        bsl::ostream&                                    ostream,
+        bool                                             withDetails,
+        bool                                             d_dumpPayload,
+        unsigned int                                     d_dumpLimit,
+        Parameters::FileHandler<mqbs::DataFileIterator>* d_dataFile,
+        Filters&                                         filters,
+        bslma::Allocator*                                allocator);
 
     // MANIPULATORS
     bool processMessageRecord(const mqbs::MessageRecord& record,
@@ -176,7 +213,7 @@ class SearchConfirmedResult : public SearchResult {
                                bsls::Types::Uint64         recordIndex,
                                bsls::Types::Uint64         recordOffset)
         BSLS_KEYWORD_OVERRIDE;
-    void outputResult() BSLS_KEYWORD_OVERRIDE;
+    void outputResult(bool outputRatio = true) BSLS_KEYWORD_OVERRIDE;
 };
 
 // =====================
@@ -189,10 +226,14 @@ class SearchPartiallyConfirmedResult : public SearchResult {
 
   public:
     // CREATORS
-    explicit SearchPartiallyConfirmedResult(bsl::ostream&     ostream,
-                                            bool              withDetails,
-                                            Filters&          filters,
-                                            bslma::Allocator* allocator);
+    explicit SearchPartiallyConfirmedResult(
+        bsl::ostream&                                    ostream,
+        bool                                             withDetails,
+        bool                                             d_dumpPayload,
+        unsigned int                                     d_dumpLimit,
+        Parameters::FileHandler<mqbs::DataFileIterator>* d_dataFile,
+        Filters&                                         filters,
+        bslma::Allocator*                                allocator);
 
     // MANIPULATORS
     bool processMessageRecord(const mqbs::MessageRecord& record,
@@ -207,7 +248,7 @@ class SearchPartiallyConfirmedResult : public SearchResult {
                                bsls::Types::Uint64         recordIndex,
                                bsls::Types::Uint64         recordOffset)
         BSLS_KEYWORD_OVERRIDE;
-    void outputResult() BSLS_KEYWORD_OVERRIDE;
+    void outputResult(bool outputRatio = true) BSLS_KEYWORD_OVERRIDE;
 };
 
 }  // close package namespace

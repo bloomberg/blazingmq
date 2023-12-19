@@ -79,8 +79,14 @@ class MessageDetails {
 
     // ACCESSORS
 
-    // Prints this object to the specified `os` stream.
     void print(bsl::ostream& os) const;
+    // Prints this object to the specified `os` stream.
+
+    unsigned int dataRecordOffset() const;
+    // Return message's data record offset.
+
+    bsls::Types::Uint64 messageRecordIndex() const;
+    // Return message record index in Journal file.
 };
 
 }  // close package namespace

@@ -66,6 +66,9 @@ void SearchProcessor::process(bsl::ostream& ostream)
         searchResult_p.reset(new (*d_allocator_p)
                                  SearchGuidResult(ostream,
                                                   d_parameters->details(),
+                                                  d_parameters->dumpPayload(),
+                                                  d_parameters->dumpLimit(),
+                                                  d_parameters->dataFile(),
                                                   d_parameters->guid(),
                                                   filters,
                                                   d_allocator_p),
@@ -75,16 +78,22 @@ void SearchProcessor::process(bsl::ostream& ostream)
         searchResult_p.reset(new (*d_allocator_p) SearchOutstandingResult(
                                  ostream,
                                  d_parameters->details(),
+                                 d_parameters->dumpPayload(),
+                                 d_parameters->dumpLimit(),
+                                 d_parameters->dataFile(),
                                  filters,
                                  d_allocator_p),
                              d_allocator_p);
     }
     else if (d_parameters->confirmed()) {
-        searchResult_p.reset(new (*d_allocator_p)
-                                 SearchConfirmedResult(ostream,
-                                                       d_parameters->details(),
-                                                       filters,
-                                                       d_allocator_p),
+        searchResult_p.reset(new (*d_allocator_p) SearchConfirmedResult(
+                                 ostream,
+                                 d_parameters->details(),
+                                 d_parameters->dumpPayload(),
+                                 d_parameters->dumpLimit(),
+                                 d_parameters->dataFile(),
+                                 filters,
+                                 d_allocator_p),
                              d_allocator_p);
     }
     else if (d_parameters->partiallyConfirmed()) {
@@ -92,6 +101,9 @@ void SearchProcessor::process(bsl::ostream& ostream)
             new (*d_allocator_p)
                 SearchPartiallyConfirmedResult(ostream,
                                                d_parameters->details(),
+                                               d_parameters->dumpPayload(),
+                                               d_parameters->dumpLimit(),
+                                               d_parameters->dataFile(),
                                                filters,
                                                d_allocator_p),
             d_allocator_p);
@@ -100,6 +112,9 @@ void SearchProcessor::process(bsl::ostream& ostream)
         searchResult_p.reset(new (*d_allocator_p)
                                  SearchAllResult(ostream,
                                                  d_parameters->details(),
+                                                 d_parameters->dumpPayload(),
+                                                 d_parameters->dumpLimit(),
+                                                 d_parameters->dataFile(),
                                                  filters,
                                                  d_allocator_p),
                              d_allocator_p);

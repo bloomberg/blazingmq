@@ -118,7 +118,7 @@ class Parameters {
         // MANIPULATORS
         /// iterator resetter
         bool resetIterator(bsl::ostream& errorDescription);
-        
+
         // TODO: used for testing, consider better way
         void setIterator(ITER* iter);
 
@@ -144,8 +144,8 @@ class Parameters {
     // Filter messages by queue keys
     bsl::vector<bsl::string> d_queueName;
     // Filter messages by queue names
-    int d_dumpLimit;
-    // Limit number of bytes to
+    unsigned int d_dumpLimit;
+    // Limit number of bytes to dump
     bool d_details;
     // Print message details
     bool d_dumpPayload;
@@ -177,7 +177,7 @@ class Parameters {
     bsl::vector<bsl::string> guid() const;
     bsl::vector<bsl::string> queueKey() const;
     bsl::vector<bsl::string> queueName() const;
-    int                      dumpLimit() const;
+    unsigned int             dumpLimit() const;
     bool                     details() const;
     bool                     dumpPayload() const;
     bool                     summary() const;
