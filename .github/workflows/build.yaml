@@ -69,8 +69,7 @@ jobs:
             --bmq-log-level=INFO             \
             --junitxml=integration-tests.xml \
             --tb line                        \
-            -v                               \
-            -n 4 --reruns=3
+            -v
       - uses: actions/cache@v3
         with:
           path: |
