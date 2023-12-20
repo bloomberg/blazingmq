@@ -169,6 +169,10 @@ class Cluster(contextlib.AbstractContextManager):
                     self._logger.error(
                         f"Exception raised while stopping process: {error}"
                     )
+                if process.name in self._processes:
+                    del self._processes[process.name]
+                else:
+                    self._clients.remove(process)
 
         self.last_known_leader = None
         bad_exit = False
