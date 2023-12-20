@@ -964,6 +964,9 @@ void StorageManager::recoveredQueuesCbImpl(
     mqbs::FileStoreIterator fsIt(fs);
     DataStoreRecordHandles  recordsToPurge;
 
+    bsls::Types::Uint64 lastStrongConsistencySequenceNum    = 0;
+    unsigned int        lastStrongConsistencyPrimaryLeaseId = 0;
+
     while (fsIt.next()) {
         mqbu::StorageKey        appKey;
         mqbu::StorageKey        queueKey;
@@ -1002,6 +1005,9 @@ void StorageManager::recoveredQueuesCbImpl(
 
         QueueKeyStorageMapIterator storageMapIt = queueKeyStorageMap.find(
             queueKey);
+
+        const mqbs::DataStoreRecordHandle& handle = fsIt.handle();
+
         // If queue is either not recovered or belongs to an unrecognized
         // domain.
         if (storageMapIt == queueKeyStorageMap.end()) {
@@ -1020,7 +1026,7 @@ void StorageManager::recoveredQueuesCbImpl(
                     domIt->second.find(uri);
                 BSLS_ASSERT_SAFE(countMapIt != domIt->second.end());
                 ++countMapIt->second;
-                recordsToPurge.push_back(fsIt.handle());
+                recordsToPurge.push_back(handle);
                 continue;  // CONTINUE
             }
 
@@ -1036,6 +1042,8 @@ void StorageManager::recoveredQueuesCbImpl(
 
         mqbs::ReplicatedStorage* rs = storageMapIt->second;
         BSLS_ASSERT_SAFE(rs);
+
+        const bool isStrongConsistency = !rs->hasReceipt(bmqt::MessageGUID());
 
         if (mqbs::RecordType::e_QUEUE_OP != fsIt.type()) {
             // It's one of MESSAGE/CONFIRM/DELETION records, which means it
@@ -1060,7 +1068,7 @@ void StorageManager::recoveredQueuesCbImpl(
             BSLS_ASSERT_SAFE(guid.isUnset());
             BSLS_ASSERT_SAFE(mqbs::QueueOpType::e_UNDEFINED != queueOpType);
 
-            rs->addQueueOpRecordHandle(fsIt.handle());
+            rs->addQueueOpRecordHandle(handle);
 
             if (mqbs::QueueOpType::e_PURGE == queueOpType &&
                 !appKey.isNull()) {
@@ -1087,9 +1095,13 @@ void StorageManager::recoveredQueuesCbImpl(
         else if (mqbs::RecordType::e_MESSAGE == fsIt.type()) {
             BSLS_ASSERT_SAFE(false == guid.isUnset());
             rs->processMessageRecord(guid,
-                                     fs->getMessageLenRaw(fsIt.handle()),
+                                     fs->getMessageLenRaw(handle),
                                      refCount,
-                                     fsIt.handle());
+                                     handle);
+            if (isStrongConsistency) {
+                lastStrongConsistencySequenceNum    = handle.sequenceNum();
+                lastStrongConsistencyPrimaryLeaseId = handle.primaryLeaseId();
+            }
         }
         else if (mqbs::RecordType::e_CONFIRM == fsIt.type()) {
             BSLS_ASSERT_SAFE(false == guid.isUnset());
@@ -1111,7 +1123,7 @@ void StorageManager::recoveredQueuesCbImpl(
                     << "]. Dropping this record." << MWCTSK_ALARMLOG_END;
                 continue;  // CONTINUE
             }
-            rs->processConfirmRecord(guid, appKey, fsIt.handle());
+            rs->processConfirmRecord(guid, appKey, handle);
         }
         else {
             BSLS_ASSERT(false);
@@ -1124,6 +1136,9 @@ void StorageManager::recoveredQueuesCbImpl(
          ++it) {
         fs->removeRecordRaw(*it);
     }
+
+    fs->setLastStrongConsistency(lastStrongConsistencyPrimaryLeaseId,
+                                 lastStrongConsistencySequenceNum);
 }
 
 void StorageManager::recoveredQueuesCb(int                    partitionId,

@@ -329,7 +329,8 @@ class FileStore : public DataStore {
 
     NodeReceiptContexts d_nodes;
 
-    DataStoreRecordKey d_lastRecoveredMessage;
+    bsls::Types::Uint64 d_lastStrongConsistencySequenceNum;
+    unsigned int        d_lastStrongConsistencyPrimaryLeaseId;
 
     FileSets d_fileSets;
     // List of file sets.  File set at
@@ -898,6 +899,10 @@ class FileStore : public DataStore {
     /// set this to true during testing.
     void setIgnoreCrc32c(bool value);
 
+    // This will be used as Implicit Receipt
+    void setLastStrongConsistency(unsigned int        primaryLeaseId,
+                                  bsls::Types::Uint64 sequenceNum);
+
     /// Load into the specified `storages` the list of queue storages for
     /// which all filters from the specified `filters` are returning true.
     void getStorages(StorageList*          storages,
@@ -1172,6 +1177,14 @@ inline bool FileStore::inDispatcherThread() const
 inline void FileStore::setIgnoreCrc32c(bool value)
 {
     d_ignoreCrc32c = value;
+}
+
+inline void
+FileStore::setLastStrongConsistency(unsigned int        primaryLeaseId,
+                                    bsls::Types::Uint64 sequenceNum)
+{
+    d_lastStrongConsistencyPrimaryLeaseId = primaryLeaseId;
+    d_lastStrongConsistencySequenceNum    = sequenceNum;
 }
 
 // ACCESSORS
