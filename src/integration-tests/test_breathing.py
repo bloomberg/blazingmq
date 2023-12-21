@@ -11,6 +11,7 @@ from bmq.dev.it.fixtures import (  # pylint: disable=unused-import
     Cluster,
     cartesian_product_cluster,
     cluster,
+    order,
     standard_cluster,
     start_cluster,
     tweak,
@@ -18,7 +19,7 @@ from bmq.dev.it.fixtures import (  # pylint: disable=unused-import
 from bmq.dev.it.process.client import Client
 from bmq.dev.it.util import wait_until
 
-pytestmark = pytest.mark.order(0)
+pytestmark = order(1)
 
 BmqClient = namedtuple("BmqClient", "handle, uri")
 

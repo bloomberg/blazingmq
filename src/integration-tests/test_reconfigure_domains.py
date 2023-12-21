@@ -6,10 +6,13 @@ import time
 import bmq.dev.it.testconstants as tc
 from bmq.dev.it.fixtures import (  # pylint: disable=unused-import
     Cluster,
+    order,
     standard_cluster,
     tweak,
 )
 from bmq.dev.it.process.client import Client
+
+pytestmark = order(6)
 
 INITIAL_MSG_QUOTA = 10
 

@@ -6,11 +6,14 @@ from bmq.dev.it.fixtures import (  # pylint: disable=unused-import
     Cluster,
     cluster,
     logger,
+    order,
     standard_cluster,
     tweak,
 )
 from bmq.dev.it.process.client import Client
 from bmq.dev.it.util import attempt, wait_until
+
+pytestmark = order(3)
 
 authorized_app_ids = ["foo", "bar", "baz"]
 timeout = 60

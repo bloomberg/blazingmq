@@ -5,12 +5,14 @@ Testing poison message detection and handling.
 import bmq.dev.it.testconstants as tc
 from bmq.dev.it.fixtures import (  # pylint: disable=unused-import
     Cluster,
+    order,
     standard_cluster,
     start_cluster,
     tweak,
 )
 from bmq.dev.workspace import Workspace
 
+pytestmark = order(5)
 
 def message_throttling(high: int, low: int):
     def tweaker(workspace: Workspace):

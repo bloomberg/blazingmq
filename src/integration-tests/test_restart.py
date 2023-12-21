@@ -8,9 +8,11 @@ import re
 import time
 
 import bmq.dev.it.testconstants as tc
-from bmq.dev.it.fixtures import Cluster, cluster  # pylint: disable=unused-import
+from bmq.dev.it.fixtures import Cluster, cluster, order  # pylint: disable=unused-import
 from bmq.dev.it.process.client import Client
 from bmq.dev.it.util import attempt, wait_until
+
+pytestmark = order(2)
 
 
 def test_basic(cluster: Cluster):

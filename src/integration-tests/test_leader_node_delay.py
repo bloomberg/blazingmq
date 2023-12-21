@@ -8,7 +8,8 @@ transitioning from PASSIVE to ACTIVE.
 import bmq.dev.it.testconstants as tc
 from bmq.dev.it.fixtures import Cluster
 from bmq.dev.it.fixtures import (
-    standard_cluster as cluster,  # pylint: disable=unused-import
+    standard_cluster as cluster,
+    order,  # pylint: disable=unused-import
 )
 
 

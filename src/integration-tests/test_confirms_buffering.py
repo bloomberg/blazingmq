@@ -1,6 +1,7 @@
 import bmq.dev.it.testconstants as tc
 from bmq.dev.it.fixtures import (  # pylint: disable=unused-import
     Cluster,
+    order,
     standard_cluster,
 )
 from bmq.dev.it.util import wait_until

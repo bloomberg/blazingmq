@@ -2,11 +2,14 @@ import bmq.dev.it.testconstants as tc
 from bmq.dev.it.fixtures import (  # pylint: disable=unused-import
     Cluster,
     cluster,
+    order,
     standard_cluster,
     start_cluster,
     tweak,
 )
 from bmq.dev.it.process.client import Client
+
+pytestmark = order(4)
 
 timeout = 60
 

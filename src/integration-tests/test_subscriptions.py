@@ -57,6 +57,7 @@ from bmq.dev.it.fixtures import (  # pylint: disable=unused-import
     Cluster,
     cluster,
     logger,
+    order,
     standard_cluster,
     tweak,
 )
@@ -64,6 +65,8 @@ from bmq.dev.it.process.broker import Broker
 from bmq.dev.it.process.client import Client, ITError, Message
 from bmq.dev.it.util import wait_until
 from bmq.schemas import mqbcfg
+
+pytestmark = order(7)
 
 EMPTY_SUBSCRIPTION = []
 EPS = 1e-6

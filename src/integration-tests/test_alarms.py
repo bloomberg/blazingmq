@@ -5,7 +5,7 @@ Testing broker ALARMS.
 import time
 
 import bmq.dev.it.testconstants as tc
-from bmq.dev.it.fixtures import Cluster, cluster, tweak  # pylint: disable=unused-import
+from bmq.dev.it.fixtures import Cluster, cluster, order, tweak  # pylint: disable=unused-import
 
 
 @tweak.cluster.queue_operations.consumption_monitor_period_ms(500)

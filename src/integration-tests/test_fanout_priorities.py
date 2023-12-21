@@ -4,10 +4,11 @@ consumers .
 """
 
 
-from bmq.dev.it.fixtures import Cluster, cluster  # pylint: disable=unused-import
+from bmq.dev.it.fixtures import Cluster, cluster, order  # pylint: disable=unused-import
 from bmq.dev.it.process.client import Client
 from bmq.dev.it.util import wait_until
 
+pytestmark = order(4)
 
 def test_fanout_priorities(cluster: Cluster):
     # create foo, bar, and baz clients on every node.

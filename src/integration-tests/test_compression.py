@@ -5,9 +5,10 @@ payload in various scenarios as listed below:
 """
 
 import bmq.dev.it.testconstants as tc
-from bmq.dev.it.fixtures import Cluster, cluster  # pylint: disable=unused-import
+from bmq.dev.it.fixtures import Cluster, cluster, order  # pylint: disable=unused-import
 from bmq.dev.it.util import random_string
 
+pytestmark = order(10)
 
 def test_compression_restart(cluster: Cluster):
 

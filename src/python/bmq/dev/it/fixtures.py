@@ -40,6 +40,8 @@ from bmq.dev.paths import paths
 from bmq.dev.reserveport import reserve_port
 from bmq.dev.pytest import PYTEST_LOG_SPEC_VAR
 
+order = pytest.mark.order
+
 _logger = logging.getLogger(__name__)
 
 BROKER_CATEGORY = "proc.bmqbrkr"

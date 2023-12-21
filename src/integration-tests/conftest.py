@@ -1,5 +1,6 @@
 import contextlib
 import logging
+import pytest
 
 import bmq.dev.it.logging
 import bmq.util.logging as bul
@@ -89,6 +90,15 @@ def pytest_addoption(parser):
         )
         parser.addini(PYTEST_LOG_SPEC_VAR, help_, type=None, default=None)
 
+    help_ = "run only with the specified order"
+    parser.addoption(
+        "--bmq-wave",
+        type=int,
+        action="store",
+        metavar="WAVE",
+        help=help_,
+    )
+
 
 def pytest_configure(config):
     logging.setLoggerClass(bmq.dev.it.logging.BMQLogger)
@@ -103,3 +113,28 @@ def pytest_configure(config):
         top_level = levels[0]
         logging.getLogger("proc").setLevel(top_level)
         logging.getLogger("test").setLevel(top_level)
+
+
+def pytest_collection_modifyitems(config, items):
+    active_wave = config.getoption("bmq_wave")
+    if active_wave is None:
+        return
+
+    for item in items:
+        mark = None
+        for mark in item.iter_markers(name="order"):
+            pass
+
+        if mark is None:
+            order = 0
+        else:
+            order = int(mark.args[0])
+
+        if order == active_wave:
+            continue
+
+        item.add_marker(
+            pytest.mark.skip(
+                reason=f"order = {order}, running {active_wave} only"
+            )
+        )

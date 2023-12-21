@@ -4,12 +4,14 @@ import bmq.dev.it.testconstants as tc
 from bmq.dev.it.fixtures import (  # pylint: disable=unused-import
     Cluster,
     local_cluster,
+    order,
     standard_cluster,
     tweak,
 )
 from bmq.dev.it.util import wait_until
 from bmq.schemas import mqbconf
 
+pytestmark = order(5)
 
 class Suspender:
     def __init__(self, node):

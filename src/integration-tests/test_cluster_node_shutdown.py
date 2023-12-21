@@ -10,9 +10,12 @@ from time import sleep
 import bmq.dev.it.testconstants as tc
 from bmq.dev.it.fixtures import (  # pylint: disable=unused-import
     Cluster,
+    order,
     standard_cluster,
 )
 from bmq.dev.it.process.client import Client
+
+pytestmark = order(6)
 
 
 class TestClusterNodeShutdown:

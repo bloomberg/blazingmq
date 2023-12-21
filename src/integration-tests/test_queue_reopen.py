@@ -4,7 +4,7 @@ Integration tests for queue re-open scenarios.
 
 import bmq.dev.it.testconstants as tc
 from bmq.dev.it.fixtures import (  # pylint: disable=unused-import
-    Cluster,
+    Cluster, order,
     standard_cluster,
 )
 from bmq.dev.it.process.client import Client

@@ -5,9 +5,10 @@ local.
 """
 
 import bmq.dev.it.testconstants as tc
-from bmq.dev.it.fixtures import Cluster
 from bmq.dev.it.fixtures import (
-    standard_cluster as cluster,  # pylint: disable=unused-import
+    Cluster,
+    standard_cluster as cluster,
+    order,  # pylint: disable=unused-import
 )
 from bmq.dev.it.process.client import Client
 from bmq.dev.it.util import wait_until

@@ -6,7 +6,7 @@ commands.
 import json
 import re
 
-from bmq.dev.it.fixtures import Cluster, local_cluster  # pylint: disable=unused-import
+from bmq.dev.it.fixtures import Cluster, local_cluster, order  # pylint: disable=unused-import
 from bmq.dev.it.process.admin import AdminClient
 
 

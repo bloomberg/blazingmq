@@ -9,6 +9,7 @@ from bmq.dev.it.fixtures import (  # pylint: disable=unused-import
     Cluster,
     Mode,
     logger,
+    order,
     standard_cluster,
     tweak,
     virtual_cluster_config,

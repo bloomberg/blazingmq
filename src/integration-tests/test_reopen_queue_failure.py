@@ -6,10 +6,13 @@ the fix.
 """
 
 import bmq.dev.it.testconstants as tc
-from bmq.dev.it.fixtures import Cluster
 from bmq.dev.it.fixtures import (
-    standard_cluster as cluster,  # pylint: disable=unused-import
+    Cluster,
+    standard_cluster as cluster,
+    order,  # pylint: disable=unused-import
 )
+
+pytestmark = order(6)
 
 
 def test_reopen_queue_failure(cluster: Cluster):

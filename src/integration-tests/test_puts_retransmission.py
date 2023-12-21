@@ -11,6 +11,7 @@ from bmq.dev.it.fixtures import (  # pylint: disable=unused-import
     Cluster,
     cartesian_product_cluster,
     logger,
+    order,
     standard_cluster,
     tweak,
 )
