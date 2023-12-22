@@ -26,6 +26,7 @@
 /// observers, implementing the @bbref{mqbblp::ClusterStateObserver} interface.
 
 // MQB
+#include <mqbc_clusternodesession.h>
 #include <mqbi_cluster.h>
 #include <mqbi_clusterstatemanager.h>
 #include <mqbnet_cluster.h>
@@ -101,7 +102,7 @@ class ClusterStatePartitionInfo {
 
     /// Pointer to primary node for the partition; null if no primary
     /// associated.
-    mqbnet::ClusterNode* d_primaryNode_p;
+    ClusterNodeSession* d_primaryNodeSession_p;
 
     // Status of the primary.
     bmqp_ctrlmsg::PrimaryStatus::Value d_primaryStatus;
@@ -118,7 +119,8 @@ class ClusterStatePartitionInfo {
     ClusterStatePartitionInfo& setPrimaryNodeId(int value);
     ClusterStatePartitionInfo& setNumQueuesMapped(int value);
     ClusterStatePartitionInfo& setNumActiveQueues(int value);
-    ClusterStatePartitionInfo& setPrimaryNode(mqbnet::ClusterNode* value);
+    ClusterStatePartitionInfo&
+    setPrimaryNodeSession(ClusterNodeSession* value);
 
     /// Set the corresponding member to the specified `value` and return a
     /// reference offering modifiable access to this object.
@@ -131,6 +133,7 @@ class ClusterStatePartitionInfo {
     int                  primaryNodeId() const;
     int                  numQueuesMapped() const;
     int                  numActiveQueues() const;
+    ClusterNodeSession*  primaryNodeSession() const;
     mqbnet::ClusterNode* primaryNode() const;
 
     /// Return the value of the corresponding member of this object.
@@ -544,7 +547,8 @@ class ClusterState {
     /// Observers of the cluster state.
     ObserversSet d_observers;
 
-    /// Regexp wrapper used to get partition Id.
+    bsl::vector<GateKeeper> d_gatePrimary;
+
     PartitionIdExtractor d_partitionIdExtractor;
 
   public:
@@ -596,9 +600,9 @@ class ClusterState {
     /// `onPartitionPrimaryAssignment()` on each of them, with the
     /// `partitionId` and `node` as parameters.  The bahavior is undefined
     /// unless `partitionId >= 0` and `partitionId < partitionsCount`.
-    ClusterState& setPartitionPrimary(int                  partitionId,
-                                      unsigned int         leaseId,
-                                      mqbnet::ClusterNode* node);
+    ClusterState& setPartitionPrimary(int                 partitionId,
+                                      unsigned int        leaseId,
+                                      ClusterNodeSession* ns);
 
     /// Set the status of the primary of the specified `partitionId` to the
     /// specified `value`.
@@ -658,6 +662,8 @@ class ClusterState {
 
     /// Clear this cluster state object, without firing any observers.
     void clear();
+
+    GateKeeper& gatePrimary(int partitionId);
 
     // ACCESSORS
     const mqbi::Cluster*  cluster() const;
@@ -738,7 +744,7 @@ inline ClusterStatePartitionInfo::ClusterStatePartitionInfo()
 , d_primaryNodeId(mqbnet::Cluster::k_INVALID_NODE_ID)
 , d_numQueuesMapped(0)
 , d_numActiveQueues(0)
-, d_primaryNode_p(0)
+, d_primaryNodeSession_p(0)
 , d_primaryStatus(bmqp_ctrlmsg::PrimaryStatus::E_UNDEFINED)
 {
     // NOTHING
@@ -781,9 +787,9 @@ ClusterStatePartitionInfo::setNumActiveQueues(int value)
 }
 
 inline ClusterStatePartitionInfo&
-ClusterStatePartitionInfo::setPrimaryNode(mqbnet::ClusterNode* value)
+ClusterStatePartitionInfo::setPrimaryNodeSession(ClusterNodeSession* value)
 {
-    d_primaryNode_p = value;
+    d_primaryNodeSession_p = value;
     return *this;
 }
 
@@ -822,7 +828,13 @@ inline int ClusterStatePartitionInfo::numActiveQueues() const
 
 inline mqbnet::ClusterNode* ClusterStatePartitionInfo::primaryNode() const
 {
-    return d_primaryNode_p;
+    return d_primaryNodeSession_p ? d_primaryNodeSession_p->clusterNode() : 0;
+}
+
+inline ClusterNodeSession*
+ClusterStatePartitionInfo::primaryNodeSession() const
+{
+    return d_primaryNodeSession_p;
 }
 
 inline bmqp_ctrlmsg::PrimaryStatus::Value
@@ -966,6 +978,7 @@ inline ClusterState::ClusterState(mqbi::Cluster*    cluster,
 , d_domainStates(allocator)
 , d_queueKeys(allocator)
 , d_observers(allocator)
+, d_gatePrimary(partitionsCount, allocator)
 , d_partitionIdExtractor(allocator)
 {
     // PRECONDITIONS
@@ -977,6 +990,7 @@ inline ClusterState::ClusterState(mqbi::Cluster*    cluster,
     d_partitionsInfo.resize(partitionsCount);
     for (int i = 0; i < partitionsCount; ++i) {
         d_partitionsInfo[i].setPartitionId(i);
+        d_gatePrimary[i].close();
     }
 }
 
@@ -994,6 +1008,12 @@ inline ClusterState::DomainStates& ClusterState::domainStates()
 inline ClusterState::QueueKeys& ClusterState::queueKeys()
 {
     return d_queueKeys;
+}
+
+inline GateKeeper& ClusterState::gatePrimary(int partitionId)
+{
+    // This assumes thread-safe access to d_gatePrimary vector.
+    return d_gatePrimary[partitionId];
 }
 
 // ACCESSORS
@@ -1041,9 +1061,14 @@ inline bool ClusterState::isSelfPrimary(int partitionId) const
 
     const ClusterStatePartitionInfo& partitionInfo = partition(partitionId);
 
-    return (partitionInfo.primaryNode() &&
-            (partitionInfo.primaryNode()->nodeId() ==
-             cluster()->netCluster().selfNodeId()));
+    if (partitionInfo.primaryNodeSession()) {
+        const mqbnet::ClusterNode* node =
+            partitionInfo.primaryNodeSession()->clusterNode();
+        BSLS_ASSERT_SAFE(node);
+        return node->nodeId() == cluster()->netCluster().selfNodeId();
+    }
+
+    return false;
 }
 
 inline bool ClusterState::isSelfActivePrimary(int partitionId) const
@@ -1103,7 +1128,7 @@ inline bool ClusterState::isSelfActivePrimary() const
 
 inline bool ClusterState::hasActivePrimary(int partitionId) const
 {
-    return 0 != partition(partitionId).primaryNode() &&
+    return 0 != partition(partitionId).primaryNodeSession() &&
            bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE ==
                partition(partitionId).primaryStatus();
 }

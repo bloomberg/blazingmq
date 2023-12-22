@@ -344,16 +344,16 @@ struct BuildAckOverflowFunctor {
 // -------------------------
 
 ClientSessionState::ClientSessionState(
-    bslma::ManagedPtr<bmqst::StatContext>& clientStatContext,
-    BlobSpPool*                            blobSpPool,
-    bdlbb::BlobBufferFactory*              bufferFactory,
-    bmqp::EncodingType::Enum               encodingType,
-    bslma::Allocator*                      allocator)
+    const bsl::shared_ptr<mwcst::StatContext>& clientStatContext,
+    BlobSpPool*                                blobSpPool,
+    bdlbb::BlobBufferFactory*                  bufferFactory,
+    bmqp::EncodingType::Enum                   encodingType,
+    bslma::Allocator*                          allocator)
 : d_allocator_p(allocator)
 , d_channelBufferQueue(allocator)
 , d_unackedMessageInfos(d_allocator_p)
 , d_dispatcherClientData()
-, d_statContext_mp(clientStatContext)
+, d_statContext_sp(clientStatContext)
 , d_bufferFactory_p(bufferFactory)
 , d_blobSpPool_p(blobSpPool)
 , d_schemaEventBuilder(blobSpPool, encodingType, allocator)
@@ -634,12 +634,13 @@ void ClientSession::sendAck(bmqt::AckResult::Enum    status,
         flush();
     }
 
-    mqbstat::QueueStatsClient* queueStats = 0;
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(queueState == 0)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
         // Invalid/unknown queue
-        queueStats = invalidQueueStats();
+        invalidQueueStats()->onEvent(
+            mqbstat::QueueStatsClient::EventType::e_ACK,
+            1);
     }
     else {
         // Known queue (or subStream of the queue)
@@ -654,14 +655,16 @@ void ClientSession::sendAck(bmqt::AckResult::Enum    status,
             // Invalid/unknown subStream
             // Producer has closed the queue before receiving ACKs
 
-            queueStats = invalidQueueStats();
+            invalidQueueStats()->onEvent(
+                mqbstat::QueueStatsClient::EventType::e_ACK,
+                1);
         }
         else {
-            queueStats = subQueueCiter->value().d_stats.get();
+            subQueueCiter->value().onEvent(
+                mqbstat::QueueStatsClient::EventType::e_ACK,
+                1);
         }
     }
-
-    queueStats->onEvent(mqbstat::QueueStatsClient::EventType::e_ACK, 1);
 }
 
 void ClientSession::tearDownImpl(bslmt::Semaphore*            semaphore,
@@ -1905,24 +1908,6 @@ bool ClientSession::validateMessage(mqbi::QueueHandle**   queueHandle,
         return false;  // RETURN
     }
 
-    StreamsMap::iterator subQueueIt =
-        queueIt->second.d_subQueueInfosMap.findBySubIdSafe(queueId.subId());
-    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
-            subQueueIt == queueIt->second.d_subQueueInfosMap.end())) {
-        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-
-        if (eventType == bmqp::EventType::e_CONFIRM) {
-            // Update invalid queue stats
-            invalidQueueStats()->onEvent(
-                mqbstat::QueueStatsClient::EventType::e_CONFIRM,
-                1);
-        }
-
-        *errorStream << "for an unknown subQueueId";
-
-        return false;  // RETURN
-    }
-
     *queueHandle = queueIt->second.d_handle_p;
     BSLS_ASSERT_SAFE(queueHandle);
 
@@ -1965,13 +1950,6 @@ bool ClientSession::validateMessage(mqbi::QueueHandle**   queueHandle,
         *errorStream << "for queue in non-fanout mode with invalid subId";
 
         return false;  // RETURN
-    }
-
-    if (eventType == bmqp::EventType::e_CONFIRM) {
-        // Update stats for the queue (or subStream of the queue)
-        subQueueIt->value().d_stats->onEvent(
-            mqbstat::QueueStatsClient::EventType::e_CONFIRM,
-            1);
     }
 
     return true;
@@ -2112,7 +2090,7 @@ void ClientSession::onPushEvent(const mqbi::DispatcherPushEvent& event)
                     blob->length());
             }
             else {
-                subQueueCiter->value().d_stats->onEvent(
+                subQueueCiter->value().onEvent(
                     mqbstat::QueueStatsClient::EventType::e_PUSH,
                     blob->length());
             }
@@ -2265,9 +2243,8 @@ void ClientSession::onPutEvent(const mqbi::DispatcherPutEvent& event)
         BSLS_ASSERT_SAFE(queueStatePtr && subQueueInfoPtr);
         BSLS_ASSERT_SAFE(queueStatePtr->d_handle_p);
 
-        subQueueInfoPtr->d_stats->onEvent(
-            mqbstat::QueueStatsClient::EventType::e_PUT,
-            appDataSp->length());
+        subQueueInfoPtr->onEvent(mqbstat::QueueStatsClient::EventType::e_PUT,
+                                 appDataSp->length());
 
         const bool isAtMostOnce =
             queueStatePtr->d_handle_p->queue()->isAtMostOnce();
@@ -2434,7 +2411,7 @@ mqbstat::QueueStatsClient* ClientSession::invalidQueueStats()
         d_state.d_invalidQueueStats.makeValue();
         d_state.d_invalidQueueStats.value().initialize(
             "bmq://invalid/queue",
-            d_state.d_statContext_mp.get(),
+            d_state.d_statContext_sp.get(),
             d_state.d_allocator_p);
         // TBD: The queue uri should be '** INVALID QUEUE **', but that can
         //      only be done once the stats UI panel has been updated to
@@ -2638,16 +2615,16 @@ bool ClientSession::validatePutMessage(QueueState**   queueState,
 // CREATORS
 ClientSession::ClientSession(
     const bsl::shared_ptr<bmqio::Channel>&  channel,
-    const bmqp_ctrlmsg::NegotiationMessage& negotiationMessage,
-    const bsl::string&                      sessionDescription,
-    mqbi::Dispatcher*                       dispatcher,
-    mqbblp::ClusterCatalog*                 clusterCatalog,
-    mqbi::DomainFactory*                    domainFactory,
-    bslma::ManagedPtr<bmqst::StatContext>&  clientStatContext,
-    ClientSessionState::BlobSpPool*         blobSpPool,
-    bdlbb::BlobBufferFactory*               bufferFactory,
-    bdlmt::EventScheduler*                  scheduler,
-    bslma::Allocator*                       allocator)
+    const bmqp_ctrlmsg::NegotiationMessage&    negotiationMessage,
+    const bsl::string&                         sessionDescription,
+    mqbi::Dispatcher*                          dispatcher,
+    mqbblp::ClusterCatalog*                    clusterCatalog,
+    mqbi::DomainFactory*                       domainFactory,
+    const bsl::shared_ptr<bmqst::StatContext>& clientStatContext,
+    ClientSessionState::BlobSpPool*            blobSpPool,
+    bdlbb::BlobBufferFactory*                  bufferFactory,
+    bdlmt::EventScheduler*                     scheduler,
+    bslma::Allocator*                          allocator)
 : d_self(this)  // use default allocator
 , d_operationState(e_RUNNING)
 , d_isDisconnecting(false)
@@ -2668,7 +2645,7 @@ ClientSession::ClientSession(
           allocator)
 , d_queueSessionManager(this,
                         *d_clientIdentity_p,
-                        d_state.d_statContext_mp.get(),
+                        d_state.d_statContext_sp,
                         domainFactory,
                         allocator)
 , d_clusterCatalog_p(clusterCatalog)

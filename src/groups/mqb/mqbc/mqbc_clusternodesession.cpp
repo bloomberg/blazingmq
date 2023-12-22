@@ -33,11 +33,12 @@ namespace mqbc {
 
 // CREATORS
 ClusterNodeSession::ClusterNodeSession(
-    mqbi::DispatcherClient*             cluster,
-    mqbnet::ClusterNode*                netNode,
-    const bsl::string&                  clusterName,
-    const bmqp_ctrlmsg::ClientIdentity& identity,
-    bslma::Allocator*                   allocator)
+    mqbi::DispatcherClient*                    cluster,
+    mqbnet::ClusterNode*                       netNode,
+    const bsl::string&                         clusterName,
+    const bmqp_ctrlmsg::ClientIdentity&        identity,
+    const bsl::shared_ptr<mwcst::StatContext>& statContext,
+    bslma::Allocator*                          allocator)
 : d_cluster_p(cluster)
 , d_clusterNode_p(netNode)
 , d_peerInstanceId(0)  // There is no invalid value for this field
@@ -45,9 +46,12 @@ ClusterNodeSession::ClusterNodeSession(
       new(*allocator) mqbi::QueueHandleRequesterContext(allocator),
       allocator)
 , d_nodeStatus(bmqp_ctrlmsg::NodeStatus::E_UNAVAILABLE)  // See note in ctor
-, d_statContext_sp()
 , d_primaryPartitions(allocator)
 , d_queueHandles(allocator)
+, d_gatePush()
+, d_gateAck()
+, d_gatePut()
+, d_gateConfirm()
 {
     // Note regarding 'd_nodeStatus': it must be initialized with E_UNAVAILABLE
     // because this value indicates that self node is not connected to this
@@ -58,7 +62,9 @@ ClusterNodeSession::ClusterNodeSession(
         .setDescription(description())
         .setIsClusterMember(true)
         .setRequesterId(
-            mqbi::QueueHandleRequesterContext ::generateUniqueRequesterId());
+            mqbi::QueueHandleRequesterContext ::generateUniqueRequesterId())
+        .setInlineClient(this)
+        .setStatContext(statContext);
     // TBD: The passed in 'queueHandleRequesterIdentity' is currently the
     //      'clusterState->identity()' (representing the identity of self node
     //      in the cluster); and it should instead represent the identity of
@@ -88,6 +94,11 @@ void ClusterNodeSession::teardown()
         mqbi::QueueHandle* handle = it->second.d_handle_p;
         handle->drop();
     }
+
+    d_gatePush.close();
+    d_gateAck.close();
+    d_gatePut.close();
+    d_gateConfirm.close();
 
     // TBD: Synchronize on the dispatcher ?
 }
@@ -184,6 +195,92 @@ void ClusterNodeSession::removeAllPartitions()
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
 
     d_primaryPartitions.clear();
+}
+
+mqbi::InlineResult::Enum ClusterNodeSession::sendPush(
+    const bmqt::MessageGUID&                  msgGUID,
+    int                                       queueId,
+    const bsl::shared_ptr<bdlbb::Blob>&       message,
+    const mqbi::StorageMessageAttributes&     attributes,
+    const bmqp::MessagePropertiesInfo&        mps,
+    const bmqp::Protocol::SubQueueInfosArray& subQueueInfos)
+{
+    // executed by the *QUEUE DISPATCHER* thread
+    // This PUSH message is enqueued by mqbblp::Queue/QueueHandle on this node,
+    // and needs to be forwarded to 'event.clusterNode()' (the replica node,
+    // which is the client).  Note that replica is already expected to have the
+    // payload, and so, primary (this node) sends only the guid and, if
+    // applicable, the associated subQueueIds.
+
+    GateKeeper::Status status(d_gatePush);
+
+    if (!status.isOpen()) {
+        // Target node (or self) is not AVAILABLE, so we don't send this PUSH
+        // to it. Note that this PUSH msg was dispatched by the queue handle
+        // representing the target node, and will be in its 'pending list'.
+
+        return mqbi::InlineResult::e_UNAVAILABLE;  // RETURN
+    }
+
+    bmqt::GenericResult::Enum rc = bmqt::GenericResult::e_SUCCESS;
+    // TBD: groupId: also pass options to the 'PushEventBuilder::packMessage'
+    // routine below.
+
+    if (message) {
+        // If it's at most once, then we explicitly send the payload since it's
+        // in-mem mode and there's been no replication (i.e. no preceding
+        // STORAGE message).
+        rc = clusterNode()->channel().writePush(
+            message,
+            queueId,
+            msgGUID,
+            0,
+            attributes.compressionAlgorithmType(),
+            mps,
+            subQueueInfos);
+    }
+    else {
+        rc = clusterNode()->channel().writePush(
+            queueId,
+            msgGUID,
+            0,
+            attributes.compressionAlgorithmType(),
+            mps,
+            subQueueInfos);
+    }
+
+    return rc == bmqt::GenericResult::e_SUCCESS
+               ? mqbi::InlineResult::e_SUCCESS
+               : mqbi::InlineResult::e_CHANNEL_ERROR;
+}
+
+mqbi::InlineResult::Enum
+ClusterNodeSession::sendAck(const bmqp::AckMessage& ackMessage,
+                            unsigned int            queueId)
+{
+    // executed by the *QUEUE DISPATCHER* thread
+
+    // This ACK message is enqueued by mqbblp::Queue on this node, and needs to
+    // be forwarded to 'clusterNode()' (the replica node).
+
+    GateKeeper::Status status(d_gateAck);
+
+    if (!status.isOpen()) {
+        // Drop the ACK because downstream node (or self) is either starting,
+        // or shut down.
+
+        return mqbi::InlineResult::e_UNAVAILABLE;  // RETURN
+    }
+
+    bmqt::GenericResult::Enum rc = clusterNode()->channel().writeAck(
+        ackMessage.status(),
+        ackMessage.correlationId(),
+        ackMessage.messageGUID(),
+        queueId);
+
+    return rc == bmqt::GenericResult::e_SUCCESS
+               ? mqbi::InlineResult::e_SUCCESS
+               : mqbi::InlineResult::e_CHANNEL_ERROR;
 }
 
 }  // close package namespace

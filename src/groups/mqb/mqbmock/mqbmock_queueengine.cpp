@@ -59,6 +59,7 @@ int QueueEngine::rebuildInternalState(
 }
 
 mqbi::QueueHandle* QueueEngine::getHandle(
+    BSLS_ANNOTATION_UNUSED const mqbi::OpenQueueConfirmationCookie& context,
     BSLS_ANNOTATION_UNUSED const
         bsl::shared_ptr<mqbi::QueueHandleRequesterContext>& clientContext,
     BSLS_ANNOTATION_UNUSED const        bmqp_ctrlmsg::QueueHandleParameters&
