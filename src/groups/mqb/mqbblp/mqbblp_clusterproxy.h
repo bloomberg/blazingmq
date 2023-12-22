@@ -240,10 +240,6 @@ class ClusterProxy : public mqbc::ClusterStateObserver,
     // Throttling parameters for failed ACK
     // messages.
 
-    mwcu::ThrottledActionParams d_throttledSkippedPutMessages;
-    // Throttling parameters for skipped
-    // PUT messages.
-
     ClusterStateMonitor d_clusterMonitor;
     // Cluster state monitor
 
@@ -262,6 +258,10 @@ class ClusterProxy : public mqbc::ClusterStateObserver,
     StopRequestManagerType d_stopRequestsManager;
     // Request manager to send stop
     // requests to connected proxies.
+
+    mqbnet::ClusterNode* d_activeNode_p;
+
+    mqbc::GateKeeper d_gateActiveNode;
 
   private:
     // PRIVATE MANIPULATORS
@@ -331,21 +331,10 @@ class ClusterProxy : public mqbc::ClusterStateObserver,
     /// the specified `putHeader` from the specified `source`.  The nack is
     /// replied to the `source`.  Log the specified `rc` as a reason for the
     /// NACK.
-    void generateNack(bmqt::AckResult::Enum               status,
-                      const bmqp::PutHeader&              putHeader,
-                      DispatcherClient*                   source,
-                      const bsl::shared_ptr<bdlbb::Blob>& appData,
-                      const bsl::shared_ptr<bdlbb::Blob>& options,
-                      bmqt::GenericResult::Enum           rc);
 
     void onPushEvent(const mqbi::DispatcherPushEvent& event);
 
     void onAckEvent(const mqbi::DispatcherAckEvent& event);
-
-    void onRelayPutEvent(const mqbi::DispatcherPutEvent& event,
-                         mqbi::DispatcherClient*         source);
-
-    void onRelayConfirmEvent(const mqbi::DispatcherConfirmEvent& event);
 
     void onRelayRejectEvent(const mqbi::DispatcherRejectEvent& event);
 
@@ -540,6 +529,18 @@ class ClusterProxy : public mqbc::ClusterStateObserver,
 
     /// Load the cluster state in the specified `out` object.
     void loadClusterStatus(mqbcmd::ClusterResult* out) BSLS_KEYWORD_OVERRIDE;
+
+    mqbi::InlineResult::Enum sendConfirmInline(
+        int                         partitionId,
+        const bmqp::ConfirmMessage& message) BSLS_KEYWORD_OVERRIDE;
+
+    mqbi::InlineResult::Enum
+    sendPutInline(int                                       partitionId,
+                  const bmqp::PutHeader&                    putHeader,
+                  const bsl::shared_ptr<bdlbb::Blob>&       appData,
+                  const bsl::shared_ptr<bdlbb::Blob>&       options,
+                  const bsl::shared_ptr<mwcu::AtomicState>& state,
+                  bsls::Types::Uint64 genCount) BSLS_KEYWORD_OVERRIDE;
 
     // MANIPULATORS
     //   (virtual: mqbi::DispatcherClient)

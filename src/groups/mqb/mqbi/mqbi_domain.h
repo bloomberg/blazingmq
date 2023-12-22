@@ -82,6 +82,9 @@ class DispatcherClient;
 class Queue;
 class QueueHandle;
 class QueueHandleRequesterContext;
+struct OpenQueueContext;
+
+typedef bsl::shared_ptr<OpenQueueContext> OpenQueueConfirmationCookie;
 
 // ============
 // class Domain
@@ -97,8 +100,6 @@ class Domain {
     typedef bsl::function<void(const bsl::string& domainName)> TeardownCb;
 
     /// Refer to the similar typedef in `mqbi::Cluster` for description.
-    typedef bsl::shared_ptr<QueueHandle*> OpenQueueConfirmationCookie;
-
     /// Signature of the callback function for the `openQueue` method.  If
     /// the specified `status` is SUCCESS, then the specified `handle` is
     /// populated with the resulting queue handle to use by the callee; and
@@ -111,10 +112,10 @@ class Domain {
     /// requester (see meaning in the
     /// `mqbi::Cluster::OpenQueueConfirmationCookie` typedef).
     typedef bsl::function<void(
-        const bmqp_ctrlmsg::Status&            status,
-        QueueHandle*                           handle,
-        const bmqp_ctrlmsg::OpenQueueResponse& openQueueResponse,
-        const OpenQueueConfirmationCookie&     confirmationCookie)>
+        const bmqp_ctrlmsg::Status&              status,
+        QueueHandle*                             handle,
+        const bmqp_ctrlmsg::OpenQueueResponse&   openQueueResponse,
+        const mqbi::OpenQueueConfirmationCookie& confirmationCookie)>
         OpenQueueCallback;
 
   public:

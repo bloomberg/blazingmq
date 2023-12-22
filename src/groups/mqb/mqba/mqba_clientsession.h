@@ -149,8 +149,6 @@ struct ClientSessionState {
     typedef bsl::pair<UnackedMessageInfoMap::iterator, bool>
         UnackedMessageInfoMapInsertRc;
 
-    typedef bslma::ManagedPtr<mwcst::StatContext> StatContextMp;
-
   public:
     // PUBLIC DATA
     bslma::Allocator* d_allocator_p;
@@ -178,7 +176,7 @@ struct ClientSessionState {
     // Dispatcher client data associated to
     // this session.
 
-    StatContextMp d_statContext_mp;
+    const bsl::shared_ptr<mwcst::StatContext> d_statContext_sp;
     // Stat context dedicated to this
     // domain, to use as the parent stat
     // context for any queue in this
@@ -238,11 +236,11 @@ struct ClientSessionState {
     /// builder will use. Memory allocations are performed using the
     /// specified `allocator`.
     ClientSessionState(
-        bslma::ManagedPtr<mwcst::StatContext>& clientStatContext,
-        BlobSpPool*                            blobSpPool,
-        bdlbb::BlobBufferFactory*              bufferFactory,
-        bmqp::EncodingType::Enum               encodingType,
-        bslma::Allocator*                      allocator);
+        const bsl::shared_ptr<mwcst::StatContext>& clientStatContext,
+        BlobSpPool*                                blobSpPool,
+        bdlbb::BlobBufferFactory*                  bufferFactory,
+        bmqp::EncodingType::Enum                   encodingType,
+        bslma::Allocator*                          allocator);
 };
 
 // ===================
@@ -620,11 +618,11 @@ class ClientSession : public mqbnet::Session,
                   mqbi::Dispatcher*                       dispatcher,
                   mqbblp::ClusterCatalog*                 clusterCatalog,
                   mqbi::DomainFactory*                    domainFactory,
-                  bslma::ManagedPtr<mwcst::StatContext>&  clientStatContext,
-                  ClientSessionState::BlobSpPool*         blobSpPool,
-                  bdlbb::BlobBufferFactory*               bufferFactory,
-                  bdlmt::EventScheduler*                  scheduler,
-                  bslma::Allocator*                       allocator);
+                  const bsl::shared_ptr<mwcst::StatContext>& clientStatContext,
+                  ClientSessionState::BlobSpPool*            blobSpPool,
+                  bdlbb::BlobBufferFactory*                  bufferFactory,
+                  bdlmt::EventScheduler*                     scheduler,
+                  bslma::Allocator*                          allocator);
 
     /// Destructor
     ~ClientSession() BSLS_KEYWORD_OVERRIDE;

@@ -202,10 +202,10 @@ int normalizeConfig(mqbconfm::Domain* defn,
 // ------------
 
 void Domain::onOpenQueueResponse(
-    const bmqp_ctrlmsg::Status&                       status,
-    mqbi::Queue*                                      queue,
-    const bmqp_ctrlmsg::OpenQueueResponse&            openQueueResponse,
-    const mqbi::Cluster::OpenQueueConfirmationCookie& confirmationCookie,
+    const bmqp_ctrlmsg::Status&              status,
+    mqbi::Queue*                             queue,
+    const bmqp_ctrlmsg::OpenQueueResponse&   openQueueResponse,
+    const mqbi::OpenQueueConfirmationCookie& confirmationCookie,
     const bsl::shared_ptr<mqbi::QueueHandleRequesterContext>& clientContext,
     const bmqp_ctrlmsg::QueueHandleParameters&                handleParameters,
     const mqbi::Domain::OpenQueueCallback&                    callback)
@@ -236,7 +236,8 @@ void Domain::onOpenQueueResponse(
     const unsigned int upstreamSubQueueId = bmqp::QueueUtil::extractSubQueueId(
         upstreamHandleParams);
 
-    queue->getHandle(clientContext,
+    queue->getHandle(confirmationCookie,
+                     clientContext,
                      handleParameters,
                      upstreamSubQueueId,
                      bdlf::BindUtil::bind(callback,
@@ -587,10 +588,11 @@ void Domain::openQueue(
         status.code()     = mqbi::ClusterErrorCode::e_STOPPING;
         status.message()  = k_NODE_IS_STOPPING;
 
+        mqbi::OpenQueueConfirmationCookie temp;
         callback(status,
                  static_cast<mqbi::QueueHandle*>(0),
                  bmqp_ctrlmsg::OpenQueueResponse(),
-                 mqbi::Cluster::OpenQueueConfirmationCookie());
+                 temp);
         return;  // RETURN
     }
 

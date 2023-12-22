@@ -206,8 +206,6 @@ class Cluster : public DispatcherClient {
     /// the requester is not able to process the openQueue response, it
     /// needs to set this cookie to the queue handle which it received, so
     /// that the operation can be rolled back.
-    typedef bsl::shared_ptr<QueueHandle*> OpenQueueConfirmationCookie;
-
     /// Signature of the callback passed to the `openQueue()` method: if the
     /// specified `status` is SUCCESS, the operation was a success and the
     /// specified `queue` contains the resulting queue, and the specified
@@ -353,6 +351,18 @@ class Cluster : public DispatcherClient {
 
     /// Load the cluster state to the specified `out` object.
     virtual void loadClusterStatus(mqbcmd::ClusterResult* out) = 0;
+
+    virtual mqbi::InlineResult::Enum
+    sendConfirmInline(int                         partitionId,
+                      const bmqp::ConfirmMessage& message) = 0;
+
+    virtual mqbi::InlineResult::Enum
+    sendPutInline(int                                       partitionId,
+                  const bmqp::PutHeader&                    putHeader,
+                  const bsl::shared_ptr<bdlbb::Blob>&       appData,
+                  const bsl::shared_ptr<bdlbb::Blob>&       options,
+                  const bsl::shared_ptr<mwcu::AtomicState>& state,
+                  bsls::Types::Uint64                       genCount) = 0;
 
     // ACCESSORS
 
