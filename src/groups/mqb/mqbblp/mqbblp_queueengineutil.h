@@ -107,8 +107,7 @@ struct QueueEngineUtil {
     static int
     validateUri(const bmqp_ctrlmsg::QueueHandleParameters& handleParameters,
                 mqbi::QueueHandle*                         handle,
-                const mqbi::QueueHandleRequesterContext&   clientContext =
-                    mqbi::QueueHandleRequesterContext());
+                const mqbi::QueueHandleRequesterContext*   clientContext = 0);
 
     /// Return true is the specified `queue` is of the broadcast type.
     static bool isBroadcastMode(const mqbi::Queue* queue);

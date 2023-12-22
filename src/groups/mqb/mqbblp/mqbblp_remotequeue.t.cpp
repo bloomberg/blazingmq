@@ -108,13 +108,14 @@ class TestBench {
   public:
     struct PutEvent {
         const bmqp::PutHeader        d_header;
-        mqbi::DispatcherClient*      d_source;
         bsl::shared_ptr<bdlbb::Blob> d_appData;
         bsl::shared_ptr<bdlbb::Blob> d_options;
 
-        PutEvent(const mqbi::DispatcherPutEvent& event,
-                 mqbi::DispatcherClient*         source);
+        PutEvent(const bmqp::PutHeader               header,
+                 const bsl::shared_ptr<bdlbb::Blob>& appData,
+                 const bsl::shared_ptr<bdlbb::Blob>& options);
     };
+
     class TestRemoteQueue {
       public:
         bsl::shared_ptr<mqbmock::Queue> d_queue_sp;
@@ -151,10 +152,16 @@ class TestBench {
                bmqp_ctrlmsg::RoutingConfiguration& routingConfig);
 
     /// Install to handle (record) Cluster events
-    void eventProcessor(const mqbi::DispatcherEvent& event);
+    mqbi::InlineResult::Enum
+    putProcessor(int                                       partitionId,
+                 const bmqp::PutHeader&                    putHeader,
+                 const bsl::shared_ptr<bdlbb::Blob>&       appData,
+                 const bsl::shared_ptr<bdlbb::Blob>&       options,
+                 const bsl::shared_ptr<mwcu::AtomicState>& state,
+                 bsls::Types::Uint64                       genCount);
 
     /// Ack all recorded PUTs
-    void ackPuts(bmqt::AckResult::Enum status);
+    void ackPuts(mqbi::Queue* queue, bmqt::AckResult::Enum status);
 
     void dropPuts();
 
@@ -179,10 +186,14 @@ TestBench::TestBench(bslma::Allocator* allocator_p)
 
     d_dispatcher._setInDispatcherThread(true);
 
-    d_cluster._setEventProcessor(
-        bdlf::BindUtil::bind(&TestBench::eventProcessor,
-                             this,
-                             bdlf::PlaceHolders::_1));
+    d_cluster._setPutFunctor(bdlf::BindUtil::bind(&TestBench::putProcessor,
+                                                  this,
+                                                  bdlf::PlaceHolders::_1,
+                                                  bdlf::PlaceHolders::_2,
+                                                  bdlf::PlaceHolders::_3,
+                                                  bdlf::PlaceHolders::_4,
+                                                  bdlf::PlaceHolders::_5,
+                                                  bdlf::PlaceHolders::_6));
 
     bmqsys::Time::initialize(
         bdlf::BindUtil::bind(&TestClock::realtimeClock, &d_testClock),
@@ -216,28 +227,30 @@ bsl::shared_ptr<mqbmock::Queue> TestBench::getQueue()
     return queue_sp;
 }
 
-TestBench::PutEvent::PutEvent(const mqbi::DispatcherPutEvent& event,
-                              mqbi::DispatcherClient*         source)
-: d_header(event.putHeader())
-, d_source(source)
-, d_appData(event.blob())
-, d_options(event.blob())
+TestBench::PutEvent::PutEvent(const bmqp::PutHeader               header,
+                              const bsl::shared_ptr<bdlbb::Blob>& appData,
+                              const bsl::shared_ptr<bdlbb::Blob>& options)
+: d_header(header)
+, d_appData(appData)
+, d_options(options)
 {
     // NOTHING
 }
 
-void TestBench::eventProcessor(const mqbi::DispatcherEvent& event)
+mqbi::InlineResult::Enum TestBench::putProcessor(
+    BSLS_ANNOTATION_UNUSED int          partitionId,
+    const bmqp::PutHeader&              putHeader,
+    const bsl::shared_ptr<bdlbb::Blob>& appData,
+    const bsl::shared_ptr<bdlbb::Blob>& options,
+    BSLS_ANNOTATION_UNUSED const bsl::shared_ptr<mwcu::AtomicState>& state,
+    BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 genCount)
 {
-    if (event.type() == mqbi::DispatcherEventType::e_PUT) {
-        const mqbi::DispatcherPutEvent* realEvent = event.asPutEvent();
+    d_puts.push(PutEvent(putHeader, appData, options));
 
-        if (realEvent->isRelay()) {
-            d_puts.push(PutEvent(*realEvent, event.source()));
-        }
-    }
+    return mqbi::InlineResult::e_SUCCESS;
 }
 
-void TestBench::ackPuts(bmqt::AckResult::Enum status)
+void TestBench::ackPuts(mqbi::Queue* queue, bmqt::AckResult::Enum status)
 {
     while (!d_puts.empty()) {
         const bmqp::PutHeader& ph = d_puts.front().d_header;
@@ -255,7 +268,7 @@ void TestBench::ackPuts(bmqt::AckResult::Enum status)
                 .setAckMessage(ackMessage)
                 .setBlob(d_puts.front().d_appData)
                 .setOptions(d_puts.front().d_options);
-            d_puts.front().d_source->onDispatcherEvent(ackEvent);
+            queue->onDispatcherEvent(ackEvent);
         }
         d_puts.pop();
     }
@@ -510,7 +523,7 @@ static void test1_fanoutBasic()
     y.postOneMessage(&theQueue.d_remoteQueue);
 
     // everything is ACK'ed with e_SUCCESS
-    theBench.ackPuts(bmqt::AckResult::e_SUCCESS);
+    theBench.ackPuts(theQueue.d_queue_sp.get(), bmqt::AckResult::e_SUCCESS);
     BMQTST_ASSERT_EQ(0U, x.count());
     BMQTST_ASSERT_EQ(0U, y.count());
 
@@ -522,7 +535,7 @@ static void test1_fanoutBasic()
     y.postOneMessage(&theQueue.d_remoteQueue);
 
     // Everything is pending
-    theBench.ackPuts(bmqt::AckResult::e_NOT_READY);
+    theBench.ackPuts(theQueue.d_queue_sp.get(), bmqt::AckResult::e_NOT_READY);
     // RemoteQueue should terminate 'e_NOT_READY'
     BMQTST_ASSERT_EQ(2U, x.count());
     BMQTST_ASSERT_EQ(3U, y.count());
@@ -536,7 +549,7 @@ static void test1_fanoutBasic()
         bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID);
 
     // everything is ACK'ed with e_SUCCESS
-    theBench.ackPuts(bmqt::AckResult::e_SUCCESS);
+    theBench.ackPuts(theQueue.d_queue_sp.get(), bmqt::AckResult::e_SUCCESS);
     BMQTST_ASSERT_EQ(0U, x.count());
     BMQTST_ASSERT_EQ(0U, y.count());
 
@@ -580,7 +593,7 @@ static void test1_fanoutBasic()
     x.d_status = bmqt::AckResult::e_SUCCESS;
     y.d_status = bmqt::AckResult::e_SUCCESS;
 
-    theBench.ackPuts(bmqt::AckResult::e_SUCCESS);
+    theBench.ackPuts(theQueue.d_queue_sp.get(), bmqt::AckResult::e_SUCCESS);
 
     BMQTST_ASSERT_EQ(0U, x.count());
     BMQTST_ASSERT_EQ(0U, y.count());
@@ -664,7 +677,7 @@ static void test2_broadcastBasic()
     // everything but broadcast is ACK'ed with e_SUCCESS
     // One (Nth) broadcast is ACK'ed resulting in removal of all previously
     // broadcasted PUTs.
-    theBench.ackPuts(bmqt::AckResult::e_SUCCESS);
+    theBench.ackPuts(theQueue.d_queue_sp.get(), bmqt::AckResult::e_SUCCESS);
     BMQTST_ASSERT_EQ(0U, z.count());
 
     pendingBroadcastPutsWithData = 0;
@@ -686,7 +699,7 @@ static void test2_broadcastBasic()
     }
 
     // Everything is pending including all N broadcast PUTs
-    theBench.ackPuts(bmqt::AckResult::e_NOT_READY);
+    theBench.ackPuts(theQueue.d_queue_sp.get(), bmqt::AckResult::e_NOT_READY);
     // RemoteQueue should terminate 'e_NOT_READY'
     BMQTST_ASSERT_EQ(0U, z.count());
 
@@ -728,7 +741,7 @@ static void test2_broadcastBasic()
     // everything but broadcast is ACK'ed with e_SUCCESS
     // One (N + 1) broadcast is ACK'ed resulting in removal of all previously
     // broadcasted PUTs.
-    theBench.ackPuts(bmqt::AckResult::e_SUCCESS);
+    theBench.ackPuts(theQueue.d_queue_sp.get(), bmqt::AckResult::e_SUCCESS);
 
     BMQTST_ASSERT_EQ(0U, z.count());
 
@@ -798,7 +811,7 @@ static void test2_broadcastBasic()
         3,
         bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID);
 
-    theBench.ackPuts(bmqt::AckResult::e_SUCCESS);
+    theBench.ackPuts(theQueue.d_queue_sp.get(), bmqt::AckResult::e_SUCCESS);
 
     BMQTST_ASSERT_EQ(0U, z.count());
 
@@ -842,7 +855,7 @@ static void test2_broadcastBasic()
         2,
         bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID);
 
-    theBench.ackPuts(bmqt::AckResult::e_SUCCESS);
+    theBench.ackPuts(theQueue.d_queue_sp.get(), bmqt::AckResult::e_SUCCESS);
     BMQTST_ASSERT_EQ(0U, z.count());
 
     pendingBroadcastPutsWithData = 0;
@@ -1024,7 +1037,7 @@ static void test4_buffering()
     BMQTST_ASSERT_EQ(5U, theBench.d_puts.size());
 
     // ACK with e_SUCCESS
-    theBench.ackPuts(bmqt::AckResult::e_SUCCESS);
+    theBench.ackPuts(theQueue.d_queue_sp.get(), bmqt::AckResult::e_SUCCESS);
     BMQTST_ASSERT_EQ(2U, x.count());
     BMQTST_ASSERT_EQ(3U, y.count());
 
@@ -1045,7 +1058,7 @@ static void test4_buffering()
     BMQTST_ASSERT_EQ(10U, theBench.d_puts.size());
 
     // everything is ACK'ed with e_SUCCESS
-    theBench.ackPuts(bmqt::AckResult::e_SUCCESS);
+    theBench.ackPuts(theQueue.d_queue_sp.get(), bmqt::AckResult::e_SUCCESS);
     BMQTST_ASSERT_EQ(0U, x.count());
     BMQTST_ASSERT_EQ(0U, y.count());
 
