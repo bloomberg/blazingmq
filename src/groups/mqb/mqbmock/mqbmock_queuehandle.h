@@ -229,7 +229,7 @@ class QueueHandle : public mqbi::QueueHandle {
     /// if it is not registered.
     ///
     /// THREAD: This method is called from the Queue's dispatcher thread.
-    void
+    mqbi::QueueHandle::SubStreams::const_iterator
     registerSubStream(const bmqp_ctrlmsg::SubQueueIdInfo& subStreamInfo,
                       unsigned int                        upstreamSubQueueId,
                       const mqbi::QueueCounts& counts) BSLS_KEYWORD_OVERRIDE;

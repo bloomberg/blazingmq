@@ -100,6 +100,7 @@ class QueueEngine {
     ///
     /// THREAD: This method is called from the Queue's dispatcher thread.
     virtual QueueHandle* getHandle(
+        const mqbi::OpenQueueConfirmationCookie&            context,
         const bsl::shared_ptr<QueueHandleRequesterContext>& clientContext,
         const bmqp_ctrlmsg::QueueHandleParameters&          handleParameters,
         unsigned int                                        upstreamSubQueueId,

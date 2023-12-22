@@ -62,6 +62,7 @@
 #include <bmqt_resultcode.h>
 
 #include <bmqc_orderedhashset.h>
+#include <mwcst_statcontext.h>
 
 // BDE
 #include <bdlbb_blob.h>
@@ -106,6 +107,9 @@ class ResourceUsageMonitor;
 namespace mqbstat {
 class QueueStatsDomain;
 }
+namespace mqbstat {
+class QueueStatsClient;
+}
 
 namespace mqbi {
 
@@ -114,6 +118,57 @@ class DispatcherClient;
 class Domain;
 class Queue;
 class QueueEngine;
+
+// =======================
+// class InlineClient
+// =======================
+struct InlineResult {
+    enum Enum {
+        e_SUCCESS           = 0,
+        e_UNAVAILABLE       = 1,
+        e_INVALID_PRIMARY   = 2,
+        e_INVALID_GEN_COUNT = 3,
+        e_CHANNEL_ERROR     = 4,
+        e_INVALID_PARTITION = 5,
+        e_SELF_PRIMARY      = 6
+    };
+    // CLASS METHODS
+    static const char* toAscii(InlineResult::Enum value);
+    static bool        isPermanentError(bmqt::AckResult::Enum* ackResult,
+                                        InlineResult::Enum     value);
+};
+
+class InlineClient {
+    // Interface for PUSH and ACK.
+  public:
+    // TYPES
+
+  public:
+    // CREATORS
+    virtual ~InlineClient();
+
+    virtual mqbi::InlineResult::Enum
+    sendPush(const bmqt::MessageGUID&                  msgGUID,
+             int                                       queueId,
+             const bsl::shared_ptr<bdlbb::Blob>&       message,
+             const mqbi::StorageMessageAttributes&     attributes,
+             const bmqp::MessagePropertiesInfo&        mps,
+             const bmqp::Protocol::SubQueueInfosArray& subQueues) = 0;
+    // Called by the 'queueId' to deliver the specified 'message' with the
+    // specified 'message', 'msgGUID', 'attributes' and 'mps' for the
+    // specified 'subQueues' streams of the queue.  Return 'true' on
+    // success.
+    //
+    // THREAD: This method is called from the Queue's dispatcher thread.
+
+    virtual mqbi::InlineResult::Enum
+    sendAck(const bmqp::AckMessage& ackMessage, unsigned int queueId) = 0;
+    // Called by the 'Queue' to send the specified 'ackMessage'.  Return
+    // 'true' on success.
+    //
+    //
+    // THREAD: This method is called from the Queue's dispatcher thread.
+};
 
 // =================================
 // class QueueHandleRequesterContext
@@ -169,6 +224,10 @@ class QueueHandleRequesterContext {
     // Unique ID associated with the requester
     // of a queue handle.
 
+    bsl::shared_ptr<mwcst::StatContext> d_statContext_sp;
+
+    InlineClient* d_inlineClient_p;
+
   public:
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(QueueHandleRequesterContext,
@@ -201,6 +260,10 @@ class QueueHandleRequesterContext {
     /// Set the corresponding data member to the specified `value` and
     /// return a reference offering modifiable access to this object.
     QueueHandleRequesterContext& setRequesterId(RequesterId value);
+    QueueHandleRequesterContext&
+    setStatContext(const bsl::shared_ptr<mwcst::StatContext>& value);
+
+    QueueHandleRequesterContext& setInlineClient(InlineClient* inlineClient);
 
     // ACCESSORS
     DispatcherClient*                   client() const;
@@ -210,6 +273,10 @@ class QueueHandleRequesterContext {
 
     /// Return the corresponding data member's value.
     RequesterId requesterId() const;
+
+    const bsl::shared_ptr<mwcst::StatContext>& statContext() const;
+
+    InlineClient* inlineClient() const;
 
     /// Return true if the requester node is first hop after the client (or
     /// last hop before the client).
@@ -235,6 +302,41 @@ class QueueHandleRequester {
     virtual const bsl::shared_ptr<mqbi::QueueHandleRequesterContext>&
     handleRequesterContext() const = 0;
 };
+
+// ==================================
+// struct OpenQueueConfirmationCookie
+// ==================================
+
+struct OpenQueueContext {
+    // Type of a 'cookie' provided in the 'OpenQueueCallback' to confirm
+    // processing of the 'openQueue' response by the requester.  Opening a
+    // queue is fully async, and it could happen that the requester went
+    // down before the 'openQueue' response got delivered to it.  In this
+    // case, we must rollback upstream state.  This cookie is used for
+    // that: it is initialized to zero (in the 'Cluster' implementation),
+    // and carried over to the original requester of the 'openQueue'.  If
+    // the requester is not able to process the openQueue response, it
+    // needs to set this cookie to the queue handle which it received, so
+    // that the operation can be rolled back.
+
+    QueueHandle*                               d_handle;
+    bsl::shared_ptr<mqbstat::QueueStatsClient> d_stats;
+
+    OpenQueueContext();
+    OpenQueueContext(QueueHandle* handle);
+};
+
+typedef bsl::shared_ptr<OpenQueueContext> OpenQueueConfirmationCookie;
+// Type of a 'cookie' provided in the 'OpenQueueCallback' to confirm
+// processing of the 'openQueue' response by the requester.  Opening a
+// queue is fully async, and it could happen that the requester went
+// down before the 'openQueue' response got delivered to it.  In this
+// case, we must rollback upstream state.  This cookie is used for
+// that: it is initialized to zero (in the 'Cluster' implementation),
+// and carried over to the original requester of the 'openQueue'.  If
+// the requester is not able to process the openQueue response, it
+// needs to set this cookie to the queue handle which it received, so
+// that the operation can be rolled back.
 
 // ==================
 // struct QueueCounts
@@ -446,6 +548,8 @@ class QueueHandle {
         unsigned int                   d_upstreamSubQueueId;
         bmqp_ctrlmsg::StreamParameters d_streamParameters;
 
+        bsl::shared_ptr<mqbstat::QueueStatsClient> d_clientStats;
+
         StreamInfo(const QueueCounts& counts,
                    unsigned int       downstreamSubQueueId,
                    unsigned int       upstreamSubQueueId,
@@ -477,7 +581,7 @@ class QueueHandle {
     /// `upstreamSubQueueId`.
     ///
     /// THREAD: This method is called from the Queue's dispatcher thread.
-    virtual void
+    virtual SubStreams::const_iterator
     registerSubStream(const bmqp_ctrlmsg::SubQueueIdInfo& subStreamInfo,
                       unsigned int                        upstreamSubQueueId,
                       const mqbi::QueueCounts&            counts) = 0;
@@ -748,6 +852,7 @@ class Queue : public DispatcherClient {
     /// and `upstreamSubQueueId`.  Invoke the specified `callback` with the
     /// result.
     virtual void getHandle(
+        const mqbi::OpenQueueConfirmationCookie&            context,
         const bsl::shared_ptr<QueueHandleRequesterContext>& clientContext,
         const bmqp_ctrlmsg::QueueHandleParameters&          handleParameters,
         unsigned int                                        upstreamSubQueueId,
@@ -982,6 +1087,59 @@ class QueueHandleFactory {
 //                             INLINE DEFINITIONS
 // ============================================================================
 
+inline const char* InlineResult::toAscii(InlineResult::Enum value)
+{
+#define CASE(X)                                                               \
+    case e_##X: return #X;
+
+    switch (value) {
+        CASE(SUCCESS)
+        CASE(UNAVAILABLE)
+        CASE(CHANNEL_ERROR)
+        CASE(INVALID_PARTITION)
+        CASE(INVALID_PRIMARY)
+        CASE(INVALID_GEN_COUNT)
+        CASE(SELF_PRIMARY)
+    default: return "(* UNKNOWN *)";
+    }
+#undef CASE
+}
+
+inline bool InlineResult::isPermanentError(bmqt::AckResult::Enum* ackResult,
+                                           InlineResult::Enum     value)
+{
+    switch (value) {
+    case e_SUCCESS:
+    case e_UNAVAILABLE:
+    case e_INVALID_PRIMARY:
+    case e_INVALID_GEN_COUNT:
+    case e_CHANNEL_ERROR: return false;
+    case e_INVALID_PARTITION:
+        *ackResult = bmqt::AckResult::e_INVALID_ARGUMENT;
+        break;
+    case e_SELF_PRIMARY: *ackResult = bmqt::AckResult::e_UNKNOWN; break;
+    }
+    return true;
+}
+
+// ----------------------------------
+// struct OpenQueueConfirmationCookie
+// ----------------------------------
+
+inline OpenQueueContext::OpenQueueContext()
+: d_handle()
+, d_stats()
+{
+    // NOTHING
+}
+
+inline OpenQueueContext::OpenQueueContext(QueueHandle* handle)
+: d_handle(handle)
+, d_stats()
+{
+    // NOTHING
+}
+
 // ------------------
 // struct QueueCounts
 // ------------------
@@ -1122,6 +1280,8 @@ inline QueueHandleRequesterContext::QueueHandleRequesterContext(
 , d_description(allocator)
 , d_isClusterMember(false)
 , d_requesterId(k_INVALID_REQUESTER_ID)
+, d_statContext_sp()
+, d_inlineClient_p(0)
 {
     // NOTHING
 }
@@ -1134,6 +1294,8 @@ inline QueueHandleRequesterContext::QueueHandleRequesterContext(
 , d_description(original.d_description, allocator)
 , d_isClusterMember(original.d_isClusterMember)
 , d_requesterId(original.d_requesterId)
+, d_statContext_sp(original.d_statContext_sp)
+, d_inlineClient_p(original.d_inlineClient_p)
 {
     // NOTHING
 }
@@ -1173,6 +1335,21 @@ QueueHandleRequesterContext::setRequesterId(RequesterId value)
     return *this;
 }
 
+inline QueueHandleRequesterContext&
+QueueHandleRequesterContext::setStatContext(
+    const bsl::shared_ptr<mwcst::StatContext>& value)
+{
+    d_statContext_sp = value;
+    return *this;
+}
+
+inline QueueHandleRequesterContext&
+QueueHandleRequesterContext::setInlineClient(InlineClient* inlineClient)
+{
+    d_inlineClient_p = inlineClient;
+    return *this;
+}
+
 inline DispatcherClient* QueueHandleRequesterContext::client() const
 {
     return d_client_p;
@@ -1203,6 +1380,17 @@ inline QueueHandleRequesterContext::RequesterId
 QueueHandleRequesterContext::requesterId() const
 {
     return d_requesterId;
+}
+
+inline const bsl::shared_ptr<mwcst::StatContext>&
+QueueHandleRequesterContext::statContext() const
+{
+    return d_statContext_sp;
+}
+
+inline InlineClient* QueueHandleRequesterContext::inlineClient() const
+{
+    return d_inlineClient_p;
 }
 
 }  // close package namespace
