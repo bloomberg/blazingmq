@@ -210,7 +210,7 @@ bool QueueEngineUtil::consumerAndProducerLimitsAreValid(
 int QueueEngineUtil::validateUri(
     const bmqp_ctrlmsg::QueueHandleParameters& handleParameters,
     mqbi::QueueHandle*                         handle,
-    const mqbi::QueueHandleRequesterContext&   clientContext)
+    const mqbi::QueueHandleRequesterContext*   clientContext)
 {
     bmqt::Uri       uri;
     bsl::string     error;
@@ -224,11 +224,10 @@ int QueueEngineUtil::validateUri(
                 << "#CLIENT_IMPROPER_BEHAVIOR "
                 << "Mismatched queue URIs for same queueId for a "
                 << "client. Rejecting request.";
-            if (clientContext.requesterId() !=
-                mqbi::QueueHandleRequesterContext::k_INVALID_REQUESTER_ID) {
+            if (clientContext) {
                 BALL_LOG_OUTPUT_STREAM
-                    << " ClientPtr '" << clientContext.client()
-                    << "', requesterId '" << clientContext.requesterId()
+                    << " ClientPtr '" << clientContext->client()
+                    << "', requesterId '" << clientContext->requesterId()
                     << "',";
             }
             BALL_LOG_OUTPUT_STREAM

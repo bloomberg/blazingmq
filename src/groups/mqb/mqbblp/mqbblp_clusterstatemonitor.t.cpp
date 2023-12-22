@@ -240,8 +240,14 @@ struct TestHelper {
         bmqp_ctrlmsg::PrimaryStatus::Value status =
             isActive ? bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE
                      : bmqp_ctrlmsg::PrimaryStatus::E_PASSIVE;
+
+        mqbc::ClusterNodeSession* ns =
+            d_cluster_mp->_clusterData()->membership().getClusterNodeSession(
+                node);
+        BSLS_ASSERT_OPT(ns);
+
         d_cluster_mp->_state()
-            .setPartitionPrimary(partition, 1, node)
+            .setPartitionPrimary(partition, 1, ns)
             .setPartitionPrimaryStatus(partition, status);
     }
 
@@ -255,7 +261,7 @@ struct TestHelper {
             ->membership()
             .clusterNodeSessionMap()
             .find(node)
-            ->second->setNodeStatus(status);
+            ->second->setNodeStatus(status, status);
     }
 };
 

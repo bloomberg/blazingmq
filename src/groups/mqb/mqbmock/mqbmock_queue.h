@@ -199,7 +199,8 @@ class Queue : public mqbi::Queue {
     /// specified `clientContext` and using the specified `handleParameters`
     /// and `upstreamSubQueueId`.  Invoke the specified `callback` with the
     /// result.
-    void getHandle(const bsl::shared_ptr<mqbi::QueueHandleRequesterContext>&
+    void getHandle(const mqbi::OpenQueueConfirmationCookie& context,
+                   const bsl::shared_ptr<mqbi::QueueHandleRequesterContext>&
                                                               clientContext,
                    const bmqp_ctrlmsg::QueueHandleParameters& handleParameters,
                    unsigned int upstreamSubQueueId,

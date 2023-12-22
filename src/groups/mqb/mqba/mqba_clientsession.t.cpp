@@ -585,7 +585,7 @@ class MyMockDomain : public mqbmock::Domain {
     /// calls the specified `callback` with a new queue handle created
     /// using the specified `handleParameters`.  The specified `uri` and
     /// `clientContext` are ignored.
-    void openQueue(BSLA_UNUSED const bmqt::Uri& uri,
+    void openQueue(const bmqt::Uri& uri,
                    const bsl::shared_ptr<mqbi::QueueHandleRequesterContext>&
                                                               clientContext,
                    const bmqp_ctrlmsg::QueueHandleParameters& handleParameters,
@@ -605,8 +605,14 @@ class MyMockDomain : public mqbmock::Domain {
                                     handleParameters,
                                     d_allocator_p);
 
-        OpenQueueConfirmationCookie confirmationCookie;
+        mqbi::OpenQueueConfirmationCookie confirmationCookie;
         confirmationCookie.createInplace(d_allocator_p, d_queueHandle.get());
+
+        confirmationCookie->d_stats.createInplace(d_allocator_p);
+        confirmationCookie->d_stats->initialize(
+            uri,
+            clientContext->statContext().get(),
+            d_allocator_p);
 
         bmqp_ctrlmsg::Status status(d_allocator_p);
         status.category() = bmqp_ctrlmsg::StatusCategory::E_SUCCESS;
@@ -648,18 +654,18 @@ class TestBench {
 
   public:
     // DATA
-    bdlbb::PooledBlobBufferFactory        d_bufferFactory;
-    BlobSpPool                            d_blobSpPool;
+    bdlbb::PooledBlobBufferFactory            d_bufferFactory;
+    BlobSpPool                                d_blobSpPool;
     bsl::shared_ptr<bmqio::TestChannel>   d_channel;
-    mqbmock::Cluster                      d_cluster;
-    mqbmock::Dispatcher                   d_mockDispatcher;
-    MyMockDomain                          d_domain;
-    mqbmock::DomainFactory                d_mockDomainFactory;
-    bslma::ManagedPtr<bmqst::StatContext> d_clientStatContext_mp;
-    bdlmt::EventScheduler                 d_scheduler;
-    TestClock                             d_testClock;
-    mqba::ClientSession                   d_cs;
-    bslma::Allocator*                     d_allocator_p;
+    mqbmock::Cluster                          d_cluster;
+    mqbmock::Dispatcher                       d_mockDispatcher;
+    MyMockDomain                              d_domain;
+    mqbmock::DomainFactory                    d_mockDomainFactory;
+    const bsl::shared_ptr<bmqst::StatContext> d_clientStatContext_sp;
+    bdlmt::EventScheduler                     d_scheduler;
+    TestClock                                 d_testClock;
+    mqba::ClientSession                       d_cs;
+    bslma::Allocator*                         d_allocator_p;
 
     static const int k_PAYLOAD_LENGTH = 36;
 
@@ -682,9 +688,8 @@ class TestBench {
     , d_mockDispatcher(allocator)
     , d_domain(&d_mockDispatcher, &d_cluster, atMostOnce, allocator)
     , d_mockDomainFactory(d_domain, allocator)
-    , d_clientStatContext_mp(
-          mqbstat::QueueStatsUtil::initializeStatContextClients(10, allocator)
-              .managedPtr())
+    , d_clientStatContext_sp(
+          mqbstat::QueueStatsUtil::initializeStatContextClients(10, allocator))
     , d_scheduler(bsls::SystemClockType::e_MONOTONIC, allocator)
     , d_testClock(d_scheduler)
     , d_cs(d_channel,
@@ -693,7 +698,7 @@ class TestBench {
            setInDispatcherThread(&d_mockDispatcher),
            0,  // ClusterCatalog
            &d_mockDomainFactory,
-           d_clientStatContext_mp,
+           d_clientStatContext_sp,
            &d_blobSpPool,
            &d_bufferFactory,
            &d_scheduler,

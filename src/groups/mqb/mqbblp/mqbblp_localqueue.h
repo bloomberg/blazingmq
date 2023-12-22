@@ -125,7 +125,8 @@ class LocalQueue BSLS_CPP11_FINAL {
     /// result.
     ///
     /// THREAD: This method is called from the Queue's dispatcher thread.
-    void getHandle(const bsl::shared_ptr<mqbi::QueueHandleRequesterContext>&
+    void getHandle(const mqbi::OpenQueueConfirmationCookie& confirmationCookie,
+                   const bsl::shared_ptr<mqbi::QueueHandleRequesterContext>&
                                                               clientContext,
                    const bmqp_ctrlmsg::QueueHandleParameters& handleParameters,
                    unsigned int upstreamSubQueueId,
