@@ -329,8 +329,7 @@ class FileStore : public DataStore {
 
     NodeReceiptContexts d_nodes;
 
-    bsls::Types::Uint64 d_lastStrongConsistencySequenceNum;
-    unsigned int        d_lastStrongConsistencyPrimaryLeaseId;
+    DataStoreRecordKey d_lastRecoveredStrongConsistency;
 
     FileSets d_fileSets;
     // List of file sets.  File set at
@@ -1183,8 +1182,8 @@ inline void
 FileStore::setLastStrongConsistency(unsigned int        primaryLeaseId,
                                     bsls::Types::Uint64 sequenceNum)
 {
-    d_lastStrongConsistencyPrimaryLeaseId = primaryLeaseId;
-    d_lastStrongConsistencySequenceNum    = sequenceNum;
+    d_lastRecoveredStrongConsistency.d_primaryLeaseId = primaryLeaseId;
+    d_lastRecoveredStrongConsistency.d_sequenceNum    = sequenceNum;
 }
 
 // ACCESSORS

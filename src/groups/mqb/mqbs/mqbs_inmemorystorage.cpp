@@ -584,6 +584,11 @@ InMemoryStorage::queueOpRecordHandles() const
     return d_queueOpRecordHandles;
 }
 
+bool InMemoryStorage::isStrongConsistency() const
+{
+    return false;
+}
+
 // -----------------------------
 // class InMemoryStorageIterator
 // -----------------------------

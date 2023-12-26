@@ -1043,7 +1043,7 @@ void StorageManager::recoveredQueuesCbImpl(
         mqbs::ReplicatedStorage* rs = storageMapIt->second;
         BSLS_ASSERT_SAFE(rs);
 
-        const bool isStrongConsistency = !rs->hasReceipt(bmqt::MessageGUID());
+        const bool isStrongConsistency = rs->isStrongConsistency();
 
         if (mqbs::RecordType::e_QUEUE_OP != fsIt.type()) {
             // It's one of MESSAGE/CONFIRM/DELETION records, which means it

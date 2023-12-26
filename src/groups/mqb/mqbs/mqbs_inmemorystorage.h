@@ -517,6 +517,8 @@ class InMemoryStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
 
     virtual const RecordHandles&
     queueOpRecordHandles() const BSLS_KEYWORD_OVERRIDE;
+
+    virtual bool isStrongConsistency() const BSLS_KEYWORD_OVERRIDE;
 };
 
 // =============================
@@ -807,7 +809,7 @@ inline bool InMemoryStorage::hasVirtualStorage(const bsl::string& appId,
     return d_virtualStorageCatalog.hasVirtualStorage(appId, appKey);
 }
 
-inline bool InMemoryStorage::hasReceipt(const bmqt::MessageGUID& msgGUID) const
+inline bool InMemoryStorage::hasReceipt(const bmqt::MessageGUID&) const
 {
     return true;
 }
