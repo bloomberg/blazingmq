@@ -501,6 +501,8 @@ class FileBackedStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
 
     virtual const RecordHandles&
     queueOpRecordHandles() const BSLS_KEYWORD_OVERRIDE;
+
+    virtual bool isStrongConsistency() const BSLS_KEYWORD_OVERRIDE;
 };
 
 // ===============================
@@ -748,6 +750,11 @@ inline const ReplicatedStorage::RecordHandles&
 FileBackedStorage::queueOpRecordHandles() const
 {
     return d_queueOpRecordHandles;
+}
+
+inline bool FileBackedStorage::isStrongConsistency() const
+{
+    return !d_hasReceipts;
 }
 
 inline int FileBackedStorage::numVirtualStorages() const
