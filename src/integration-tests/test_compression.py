@@ -4,9 +4,9 @@ payload in various scenarios as listed below:
     - cluster gets restarted after sending ack to producer.
 """
 
-import bmq.dev.it.testconstants as tc
-from bmq.dev.it.fixtures import Cluster, cluster, order  # pylint: disable=unused-import
-from bmq.dev.it.util import random_string
+import blazingmq.dev.it.testconstants as tc
+from blazingmq.dev.it.fixtures import Cluster, cluster, order  # pylint: disable=unused-import
+from blazingmq.dev.it.util import random_string
 
 pytestmark = order(10)
 

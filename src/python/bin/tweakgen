@@ -9,9 +9,9 @@ from pathlib import Path
 from typing import IO, Type
 import typing
 
-from bmq.schemas import mqbcfg, mqbconf
+from blazingmq.schemas import mqbcfg, mqbconf
 
-from bmq.dev import it
+from blazingmq.dev import it
 
 
 def type_str(type_):
@@ -79,8 +79,8 @@ import decimal
 import typing
 from typing import Callable
 
-import bmq.schemas.mqbcfg
-import bmq.schemas.mqbconf
+import blazingmq.schemas.mqbcfg
+import blazingmq.schemas.mqbconf
 
 from . import TweakMetaclass, decorator
 

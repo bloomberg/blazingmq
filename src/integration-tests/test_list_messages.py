@@ -1,8 +1,8 @@
 import time
 
-import bmq.dev.it.testconstants as tc
-from bmq.dev.it.fixtures import Cluster, cluster, order  # pylint: disable=unused-import
-from bmq.dev.it.util import wait_until
+import blazingmq.dev.it.testconstants as tc
+from blazingmq.dev.it.fixtures import Cluster, cluster, order  # pylint: disable=unused-import
+from blazingmq.dev.it.util import wait_until
 
 TIMEOUT = 30
 

@@ -7,13 +7,13 @@ go to the relevant section in the README.md, in this directory.
 from threading import Semaphore
 from time import sleep
 
-import bmq.dev.it.testconstants as tc
-from bmq.dev.it.fixtures import (  # pylint: disable=unused-import
+import blazingmq.dev.it.testconstants as tc
+from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
     Cluster,
     order,
     standard_cluster,
 )
-from bmq.dev.it.process.client import Client
+from blazingmq.dev.it.process.client import Client
 
 pytestmark = order(6)
 

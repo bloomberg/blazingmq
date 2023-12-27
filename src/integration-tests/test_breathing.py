@@ -5,9 +5,9 @@ types of queues.
 
 from collections import namedtuple
 
-import bmq.dev.it.testconstants as tc
+import blazingmq.dev.it.testconstants as tc
 import pytest
-from bmq.dev.it.fixtures import (  # pylint: disable=unused-import
+from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
     Cluster,
     cartesian_product_cluster,
     cluster,
@@ -16,8 +16,8 @@ from bmq.dev.it.fixtures import (  # pylint: disable=unused-import
     start_cluster,
     tweak,
 )
-from bmq.dev.it.process.client import Client
-from bmq.dev.it.util import wait_until
+from blazingmq.dev.it.process.client import Client
+from blazingmq.dev.it.util import wait_until
 
 pytestmark = order(1)
 

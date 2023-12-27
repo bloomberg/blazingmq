@@ -2,15 +2,15 @@
 Integration test that tests closing a queue when the broker is down.
 """
 
-import bmq.dev.it.testconstants as tc
-from bmq.dev.it.fixtures import (  # pylint: disable=unused-import
+import blazingmq.dev.it.testconstants as tc
+from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
     Cluster,
     local_cluster, order,
     standard_cluster,
     start_cluster,
     tweak,
 )
-from bmq.dev.it.process.client import Client
+from blazingmq.dev.it.process.client import Client
 
 
 def test_close_queue(local_cluster: Cluster):

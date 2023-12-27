@@ -5,9 +5,9 @@ leader and verifies that all follower nodes successfully notice the leader
 transitioning from PASSIVE to ACTIVE.
 """
 
-import bmq.dev.it.testconstants as tc
-from bmq.dev.it.fixtures import Cluster
-from bmq.dev.it.fixtures import (
+import blazingmq.dev.it.testconstants as tc
+from blazingmq.dev.it.fixtures import Cluster
+from blazingmq.dev.it.fixtures import (
     standard_cluster as cluster,
     order,  # pylint: disable=unused-import
 )

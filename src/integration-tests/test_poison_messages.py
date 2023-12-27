@@ -2,15 +2,15 @@
 Testing poison message detection and handling.
 """
 
-import bmq.dev.it.testconstants as tc
-from bmq.dev.it.fixtures import (  # pylint: disable=unused-import
+import blazingmq.dev.it.testconstants as tc
+from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
     Cluster,
     order,
     standard_cluster,
     start_cluster,
     tweak,
 )
-from bmq.dev.workspace import Workspace
+from blazingmq.dev.workspace import Workspace
 
 pytestmark = order(5)
 

@@ -2,10 +2,10 @@ import functools
 import re
 from typing import Iterator
 
-import bmq.dev.it.testconstants as tc
+import blazingmq.dev.it.testconstants as tc
 import pytest
-from bmq.dev.it import fixtures
-from bmq.dev.it.fixtures import (  # pylint: disable=unused-import
+from blazingmq.dev.it import fixtures
+from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
     Cluster,
     Mode,
     logger,
@@ -14,9 +14,9 @@ from bmq.dev.it.fixtures import (  # pylint: disable=unused-import
     tweak,
     virtual_cluster_config,
 )
-from bmq.dev.it.process.client import Client
-from bmq.dev.it.util import wait_until
-from bmq.dev.workspace import Workspace
+from blazingmq.dev.it.process.client import Client
+from blazingmq.dev.it.util import wait_until
+from blazingmq.dev.workspace import Workspace
 
 OTHER_DOMAIN = f"{tc.DOMAIN_PRIORITY}.other"
 

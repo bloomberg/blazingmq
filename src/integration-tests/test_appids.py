@@ -1,8 +1,8 @@
 import time
 from typing import List
 
-import bmq.dev.it.testconstants as tc
-from bmq.dev.it.fixtures import (  # pylint: disable=unused-import
+import blazingmq.dev.it.testconstants as tc
+from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
     Cluster,
     cluster,
     logger,
@@ -10,8 +10,8 @@ from bmq.dev.it.fixtures import (  # pylint: disable=unused-import
     standard_cluster,
     tweak,
 )
-from bmq.dev.it.process.client import Client
-from bmq.dev.it.util import attempt, wait_until
+from blazingmq.dev.it.process.client import Client
+from blazingmq.dev.it.util import attempt, wait_until
 
 pytestmark = order(3)
 

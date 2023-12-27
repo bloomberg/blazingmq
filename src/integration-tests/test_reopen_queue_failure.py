@@ -5,8 +5,8 @@ queue has failed. All nodes going down gracefully at cluster shutdown verifies
 the fix.
 """
 
-import bmq.dev.it.testconstants as tc
-from bmq.dev.it.fixtures import (
+import blazingmq.dev.it.testconstants as tc
+from blazingmq.dev.it.fixtures import (
     Cluster,
     standard_cluster as cluster,
     order,  # pylint: disable=unused-import

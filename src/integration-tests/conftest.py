@@ -2,9 +2,9 @@ import contextlib
 import logging
 import pytest
 
-import bmq.dev.it.logging
-import bmq.util.logging as bul
-from bmq.dev.pytest import PYTEST_LOG_SPEC_VAR
+import blazingmq.dev.it.logging
+import blazingmq.util.logging as bul
+from blazingmq.dev.pytest import PYTEST_LOG_SPEC_VAR
 
 
 def pytest_addoption(parser):
@@ -101,7 +101,7 @@ def pytest_addoption(parser):
 
 
 def pytest_configure(config):
-    logging.setLoggerClass(bmq.dev.it.logging.BMQLogger)
+    logging.setLoggerClass(blazingmq.dev.it.logging.BMQLogger)
 
     level_spec = config.getoption(PYTEST_LOG_SPEC_VAR) or config.getini(
         PYTEST_LOG_SPEC_VAR

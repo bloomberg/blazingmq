@@ -51,9 +51,9 @@ import time
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-import bmq.dev.it.testconstants as tc
+import blazingmq.dev.it.testconstants as tc
 import pytest
-from bmq.dev.it.fixtures import (  # pylint: disable=unused-import
+from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
     Cluster,
     cluster,
     logger,
@@ -61,10 +61,10 @@ from bmq.dev.it.fixtures import (  # pylint: disable=unused-import
     standard_cluster,
     tweak,
 )
-from bmq.dev.it.process.broker import Broker
-from bmq.dev.it.process.client import Client, ITError, Message
-from bmq.dev.it.util import wait_until
-from bmq.schemas import mqbcfg
+from blazingmq.dev.it.process.broker import Broker
+from blazingmq.dev.it.process.client import Client, ITError, Message
+from blazingmq.dev.it.util import wait_until
+from blazingmq.schemas import mqbcfg
 
 pytestmark = order(7)
 

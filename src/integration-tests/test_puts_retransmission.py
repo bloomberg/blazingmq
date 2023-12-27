@@ -6,8 +6,8 @@ import re
 import signal
 from collections import namedtuple
 
-import bmq.dev.it.testconstants as tc
-from bmq.dev.it.fixtures import (  # pylint: disable=unused-import
+import blazingmq.dev.it.testconstants as tc
+from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
     Cluster,
     cartesian_product_cluster,
     logger,
@@ -15,7 +15,7 @@ from bmq.dev.it.fixtures import (  # pylint: disable=unused-import
     standard_cluster,
     tweak,
 )
-from bmq.dev.it.util import wait_until
+from blazingmq.dev.it.util import wait_until
 
 BACKLOG_MESSAGES = 400  # minimum to consume before killing / shutting down
 NUM_MESSAGES = 2000

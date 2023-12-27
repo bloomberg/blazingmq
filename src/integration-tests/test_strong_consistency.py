@@ -1,15 +1,15 @@
 import contextlib
 
-import bmq.dev.it.testconstants as tc
-from bmq.dev.it.fixtures import (  # pylint: disable=unused-import
+import blazingmq.dev.it.testconstants as tc
+from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
     Cluster,
     local_cluster,
     order,
     standard_cluster,
     tweak,
 )
-from bmq.dev.it.util import wait_until
-from bmq.schemas import mqbconf
+from blazingmq.dev.it.util import wait_until
+from blazingmq.schemas import mqbconf
 
 pytestmark = order(5)
 

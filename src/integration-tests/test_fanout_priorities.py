@@ -4,9 +4,9 @@ consumers .
 """
 
 
-from bmq.dev.it.fixtures import Cluster, cluster, order  # pylint: disable=unused-import
-from bmq.dev.it.process.client import Client
-from bmq.dev.it.util import wait_until
+from blazingmq.dev.it.fixtures import Cluster, cluster, order  # pylint: disable=unused-import
+from blazingmq.dev.it.process.client import Client
+from blazingmq.dev.it.util import wait_until
 
 pytestmark = order(4)
 
