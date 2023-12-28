@@ -1252,7 +1252,7 @@ static void test8_searchMessagesByQueueKeyTest()
     s_allocator_p->deallocate(p);
 }
 
-static void test9_searchMessagesByQueueKeyTest()
+static void test9_searchMessagesByQueueNameTest()
 // ------------------------------------------------------------------------
 // SEARCH MESSAGES BY QUEUE NAME TEST
 //
@@ -1433,7 +1433,7 @@ int main(int argc, char* argv[])
     case 6: test6_searchConfirmedMessagesTest(); break;
     case 7: test7_searchPartiallyConfirmedMessagesTest(); break;
     case 8: test8_searchMessagesByQueueKeyTest(); break;
-    case 9: test9_searchMessagesByQueueKeyTest(); break;
+    case 9: test9_searchMessagesByQueueNameTest(); break;
     case 10: test10_printMessagesDetailsTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
