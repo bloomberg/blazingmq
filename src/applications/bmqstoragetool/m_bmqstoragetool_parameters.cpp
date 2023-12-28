@@ -16,9 +16,28 @@
 // m_bmqtool_parameters.cpp                                           -*-C++-*-
 #include <m_bmqstoragetool_parameters.h>
 
+// BMQ
+#include <bmqp_crc32c.h>
+#include <bmqt_messageguid.h>
+#include <bmqt_queueflags.h>
+
+// MQB
+#include <mqbs_filestoreprotocolutil.h>
+#include <mqbs_filesystemutil.h>
+
+#include <mqbc_clusterstateledgerutil.h>
+#include <mqbc_incoreclusterstateledgeriterator.h>
+#include <mqbmock_logidgenerator.h>
+#include <mqbsl_ledger.h>
+#include <mqbsl_memorymappedondisklog.h>
+
+// MWC
+#include <mwcu_memoutstream.h>
+
 // BDE
 #include <bdlb_string.h>
 #include <bdls_filesystemutil.h>
+#include <bdls_pathutil.h>
 #include <bdlt_timeunitratio.h>
 #include <bsl_iostream.h>
 #include <bsl_sstream.h>
@@ -27,18 +46,6 @@
 #include <bslma_allocator.h>
 #include <bsls_assert.h>
 #include <bsls_types.h>
-
-// BMQ
-#include <bmqt_messageguid.h>
-#include <bmqt_queueflags.h>
-
-// MQB
-#include <mqbs_filestoreprotocolutil.h>
-#include <mqbs_filesystemutil.h>
-
-// MWC
-#include <mwcu_memoutstream.h>
-#include <mwcu_printutil.h>
 
 namespace BloombergLP {
 namespace m_bmqstoragetool {
@@ -196,11 +203,6 @@ Parameters::FileHandler<mqbs::DataFileIterator>* Parameters::dataFile()
     return &d_dataFile;
 }
 
-bsl::string Parameters::cslFile()
-{
-    return d_cslFile;
-}
-
 bsl::vector<bsl::string> Parameters::guid() const
 {
     return d_guid;
@@ -251,11 +253,143 @@ bool Parameters::partiallyConfirmed() const
     return d_partiallyConfirmed;
 }
 
+const Parameters::QueueInfo& Parameters::queueInfo() const
+{
+    return d_queueInfo;
+}
+
+// TODO: used for testing, find better way
+Parameters::QueueInfo& Parameters::queueInfo()
+{
+    return d_queueInfo;
+}
+
+// MANIPULATORS
+bool Parameters::collectQueueInfo(bsl::ostream&     ss,
+                                  bslma::Allocator* allocator)
+{
+    // Required for ledger operations
+    bmqp::Crc32c::initialize();
+
+    // Instantiate ledger config
+    mqbsi::LedgerConfig                    ledgerConfig(allocator);
+    bsl::shared_ptr<mqbsi::LogIdGenerator> logIdGenerator(
+        new (*allocator) mqbmock::LogIdGenerator("bmq_csl_", allocator),
+        allocator);
+    bsl::shared_ptr<mqbsi::LogFactory> logFactory(
+        new (*allocator) mqbsl::MemoryMappedOnDiskLogFactory(allocator),
+        allocator);
+    auto fileSize = bdls::FilesystemUtil::getFileSize(d_cslFile.c_str());
+    bsl::string pattern(allocator);
+    bsl::string location(allocator);
+    BSLS_ASSERT(bdls::PathUtil::getBasename(&pattern, d_cslFile) == 0);
+    BSLS_ASSERT(bdls::PathUtil::getDirname(&location, d_cslFile) == 0);
+    ledgerConfig.setLocation(location)
+        .setPattern(pattern)
+        .setMaxLogSize(
+            fileSize)  // TODO: what size should be? Assume size of Cls file.
+        .setReserveOnDisk(false)
+        .setPrefaultPages(false)
+        .setLogIdGenerator(logIdGenerator)
+        .setLogFactory(logFactory)
+        .setExtractLogIdCallback(&mqbc::ClusterStateLedgerUtil::extractLogId)
+        .setValidateLogCallback(mqbc::ClusterStateLedgerUtil::validateLog);
+
+    // Create and open the ledger
+    mqbsl::Ledger ledger(ledgerConfig, allocator);
+    BSLS_ASSERT(ledger.open(mqbsi::Ledger::e_READ_ONLY) == 0);
+    // Set guard to close the ledger
+    auto closeLedger = [](mqbsl::Ledger* ledger) {
+        BSLS_ASSERT(ledger->close() == 0);
+    };
+    bdlb::ScopeExitAny guard(bdlf::BindUtil::bind(closeLedger, &ledger));
+
+    // Iterate through each record in the ledger to find the last snapshot
+    // record
+    mqbc::IncoreClusterStateLedgerIterator cslIt(&ledger);
+    mqbc::IncoreClusterStateLedgerIterator lastSnapshotIt(&ledger);
+    while (true) {
+        int rc = cslIt.next();
+        if (rc == 1) {
+            if (!lastSnapshotIt.isValid()) {
+                ss << "No Snapshot found in csl file." << bsl::endl;
+                return false;  // RETURN
+            }
+            break;
+        }
+        else if (rc < 0) {
+            ss << "Csl iterator error: " << rc << bsl::endl;
+            return false;  // RETURN
+        }
+
+        if (cslIt.header().recordType() ==
+            mqbc::ClusterStateRecordType::Enum::e_SNAPSHOT) {
+            // Save snapshot iterator
+            lastSnapshotIt = cslIt;
+        }
+    }
+
+    // Process last snapshot
+    bmqp_ctrlmsg::ClusterMessage clusterMessage;
+    lastSnapshotIt.loadClusterMessage(&clusterMessage);
+    BSLS_ASSERT(
+        clusterMessage.choice().selectionId() ==
+        bmqp_ctrlmsg::ClusterMessageChoice::SELECTION_ID_LEADER_ADVISORY);
+
+    // Get queue info from snapshot (leaderAdvisory) record
+    auto leaderAdvisory = clusterMessage.choice().leaderAdvisory();
+    auto queuesInfo     = leaderAdvisory.queues();
+
+    // Helper lambda to fill queue maps
+    auto& queueKeyToInfoMap = d_queueInfo.queueKeyToInfoMap();
+    auto& queueUriToKeyMap  = d_queueInfo.queueUriToKeyMap();
+    auto  fillMap           = [&](const bmqp_ctrlmsg::QueueInfo& queueInfo) {
+        auto queueKey = mqbu::StorageKey(
+            mqbu::StorageKey::BinaryRepresentation(),
+            queueInfo.key().begin());
+        queueKeyToInfoMap[queueKey]       = queueInfo;
+        queueUriToKeyMap[queueInfo.uri()] = queueKey;
+    };
+    bsl::for_each(queuesInfo.begin(), queuesInfo.end(), fillMap);
+
+    // Iterate from last snapshot to get updates
+    while (true) {
+        int rc = lastSnapshotIt.next();
+        if (rc == 1) {
+            // end iterator reached
+            break;
+        }
+        else if (rc < 0) {
+            ss << "Csl iterator error: " << rc << bsl::endl;
+            return false;  // RETURN
+        }
+
+        if (lastSnapshotIt.header().recordType() ==
+            mqbc::ClusterStateRecordType::Enum::e_UPDATE) {
+            lastSnapshotIt.loadClusterMessage(&clusterMessage);
+            // TODO: consider also process SELECTION_ID_QUEUE_UPDATE_ADVISORY
+            // if AppIds updates are required.
+            if (clusterMessage.choice().selectionId() ==
+                bmqp_ctrlmsg::ClusterMessageChoice::
+                    SELECTION_ID_QUEUE_ASSIGNMENT_ADVISORY) {
+                auto queueAdvisory =
+                    clusterMessage.choice().queueAssignmentAdvisory();
+                auto updateQueuesInfo = queueAdvisory.queues();
+                bsl::for_each(updateQueuesInfo.begin(),
+                              updateQueuesInfo.end(),
+                              fillMap);
+            }
+        }
+    }
+
+    return true;
+}
+
 Parameters::Parameters(const CommandLineArguments& arguments,
                        bslma::Allocator*           allocator)
-: d_journalFile(arguments.d_journalFile)
-, d_dataFile(arguments.d_dataFile)
-, d_cslFile(arguments.d_cslFile)
+: d_journalFile(arguments.d_journalFile, allocator)
+, d_dataFile(arguments.d_dataFile, allocator)
+, d_cslFile(arguments.d_cslFile, allocator)
 , d_guid(arguments.d_guid, allocator)
 , d_queueKey(arguments.d_queueKey, allocator)
 , d_queueName(arguments.d_queueName, allocator)
@@ -267,12 +401,18 @@ Parameters::Parameters(const CommandLineArguments& arguments,
 , d_outstanding(arguments.d_outstanding)
 , d_confirmed(arguments.d_confirmed)
 , d_partiallyConfirmed(arguments.d_partiallyConfirmed)
+, d_queueInfo(allocator)
 {
     mwcu::MemOutStream ss;
     if ((!d_journalFile.path().empty() && !d_journalFile.resetIterator(ss)) ||
         (!d_dataFile.path().empty() && !d_dataFile.resetIterator(ss))) {
         throw bsl::runtime_error(ss.str());
     }
+
+    if (!d_cslFile.empty() && !collectQueueInfo(ss, allocator)) {
+        throw bsl::runtime_error(ss.str());
+    }
+
     // TODO: used for testing, consider better way
     if (d_journalFile.path().empty())
         d_journalFile.setIterator(nullptr);
@@ -308,6 +448,10 @@ void Parameters::print(bsl::ostream& ss) const
     ss << "dump-limit :\t" << d_dumpLimit << bsl::endl;
     ss << "summary :\t" << d_summary << bsl::endl;
 }
+
+// =============================
+// class Parameters::FileHandler
+// =============================
 
 template <typename ITER>
 Parameters::FileHandler<ITER>::FileHandler(const bsl::string& path,
@@ -383,6 +527,41 @@ void Parameters::FileHandler<ITER>::setIterator(ITER* iter)
 {
     if (iterator() != nullptr && iter != nullptr)
         d_iter = *iter;
+}
+
+// ===========================
+// class Parameters::QueueInfo
+// ===========================
+
+Parameters::QueueInfo::QueueInfo(bslma::Allocator* allocator)
+: d_queueKeyToInfoMap(allocator)
+, d_queueUriToKeyMap(allocator)
+{
+    // NOTHING
+}
+
+// MANIPULATORS
+Parameters::QueueKeyToInfoMap& Parameters::QueueInfo::queueKeyToInfoMap()
+{
+    return d_queueKeyToInfoMap;
+}
+
+Parameters::QueueUriToKeyMap& Parameters::QueueInfo::queueUriToKeyMap()
+{
+    return d_queueUriToKeyMap;
+}
+
+// ACCESSORS
+const Parameters::QueueKeyToInfoMap&
+Parameters::QueueInfo::queueKeyToInfoMap() const
+{
+    return d_queueKeyToInfoMap;
+}
+
+const Parameters::QueueUriToKeyMap&
+Parameters::QueueInfo::queueUriToKeyMap() const
+{
+    return d_queueUriToKeyMap;
 }
 
 }  // close package namespace

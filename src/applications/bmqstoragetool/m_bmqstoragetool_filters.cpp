@@ -26,14 +26,30 @@ namespace m_bmqstoragetool {
 
 Filters::Filters(const bsl::vector<bsl::string>& queueHexKeys,
                  const bsl::vector<bsl::string>& queueURIS,
+                 const Parameters::QueueInfo&    queueInfo,
+                 bsl::ostream&                   ostream,
                  bslma::Allocator*               allocator)
 : d_queueKeys(allocator)
 {
     if (!queueHexKeys.empty()) {
-        for (auto& key : queueHexKeys) {
+        for (const auto& key : queueHexKeys) {
             d_queueKeys.push_back(
                 mqbu::StorageKey(mqbu::StorageKey::HexRepresentation(),
                                  key.c_str()));
+        }
+    }
+    else if (!queueURIS.empty()) {
+        for (const auto& uri : queueURIS) {
+            // Check if given queue name is in map
+            if (auto it = queueInfo.queueUriToKeyMap().find(uri);
+                it != queueInfo.queueUriToKeyMap().end()) {
+                d_queueKeys.push_back(it->second);
+            }
+            else {
+                ostream << "Queue name: '" << uri
+                        << "' is not found in Csl file. Skipping..."
+                        << bsl::endl;
+            }
         }
     }
 }

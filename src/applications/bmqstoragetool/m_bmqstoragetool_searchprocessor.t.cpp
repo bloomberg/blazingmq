@@ -1176,7 +1176,7 @@ static void test8_searchMessagesByQueueKeyTest()
 // SEARCH MESSAGES BY QUEUE KEY TEST
 //
 // Concerns:
-//   Search messages by queueKwy in journal
+//   Search messages by queue key in journal
 //   file and output GUIDs.
 //
 // Testing:
@@ -1252,7 +1252,95 @@ static void test8_searchMessagesByQueueKeyTest()
     s_allocator_p->deallocate(p);
 }
 
-static void test9_printMessagesDetailsTest()
+static void test9_searchMessagesByQueueKeyTest()
+// ------------------------------------------------------------------------
+// SEARCH MESSAGES BY QUEUE NAME TEST
+//
+// Concerns:
+//   Search messages by queue name in journal
+//   file and output GUIDs.
+//
+// Testing:
+//   SearchProcessor::process()
+// ------------------------------------------------------------------------
+{
+    mwctst::TestHelper::printTestName("SEARCH MESSAGES BY QUEUE NAME TEST");
+
+    // Simulate journal file
+    unsigned int numRecords = 15;
+
+    bsls::Types::Uint64 totalSize =
+        sizeof(FileHeader) + sizeof(JournalFileHeader) +
+        numRecords * FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
+
+    char*       p = static_cast<char*>(s_allocator_p->allocate(totalSize));
+    MemoryBlock block(p, totalSize);
+    FileHeader  fileHeader;
+    bsls::Types::Uint64 lastRecordPos = 0;
+    bsls::Types::Uint64 lastSyncPtPos = 0;
+
+    RecordsListType records(s_allocator_p);
+
+    const char* queueKey1 = "ABCDE12345";
+    const char* queueKey2 = "12345ABCDE";
+
+    bsl::vector<bmqt::MessageGUID> queueKey1GUIDS =
+        addJournalRecordsWithTwoQueueKeys(&block,
+                                          &fileHeader,
+                                          &lastRecordPos,
+                                          &lastSyncPtPos,
+                                          &records,
+                                          numRecords,
+                                          queueKey1,
+                                          queueKey2);
+
+    // Create JournalFileIterator
+    MappedFileDescriptor mfd;
+    mfd.setFd(-1);  // invalid fd will suffice.
+    mfd.setBlock(block);
+    mfd.setFileSize(totalSize);
+    JournalFileIterator it(&mfd, fileHeader, false);
+
+    // Configure parameters to search messages by 'queue1' and 'unknown' names
+    CommandLineArguments arguments;
+    arguments.d_queueName.push_back("queue1");
+    arguments.d_queueName.push_back("unknown");
+    bsl::unique_ptr<Parameters> params =
+        bsl::make_unique<Parameters>(arguments, s_allocator_p);
+    params->journalFile()->setIterator(&it);
+    // Add uri to key mapping
+    params->queueInfo().queueUriToKeyMap()["queue1"] =
+        mqbu::StorageKey(mqbu::StorageKey::HexRepresentation(), queueKey1);
+
+    auto searchProcessor = SearchProcessor(bsl::move(params), s_allocator_p);
+
+    bsl::ostringstream resultStream(s_allocator_p);
+    searchProcessor.process(resultStream);
+
+    // Prepare expected output
+    bsl::ostringstream expectedStream(s_allocator_p);
+    expectedStream
+        << "Queue name: 'unknown' is not found in Csl file. Skipping..."
+        << bsl::endl;
+    for (const auto& guid : queueKey1GUIDS) {
+        outputGuidString(expectedStream, guid);
+    }
+    auto foundMessagesCount = queueKey1GUIDS.size();
+    expectedStream << foundMessagesCount << " message GUID(s) found."
+                   << bsl::endl;
+    float outstandingRatio = float(foundMessagesCount) / foundMessagesCount *
+                             100.0;
+    expectedStream << "Outstanding ratio: " << outstandingRatio << "% ("
+                   << foundMessagesCount << "/" << foundMessagesCount << ")"
+                   << bsl::endl;
+
+    // TODO: fix ordering issue (sporadic fail)
+    ASSERT_EQ(resultStream.str(), expectedStream.str());
+
+    s_allocator_p->deallocate(p);
+}
+
+static void test10_printMessagesDetailsTest()
 // ------------------------------------------------------------------------
 // PRINT MESSAGE DETAILS TEST
 //
@@ -1345,7 +1433,8 @@ int main(int argc, char* argv[])
     case 6: test6_searchConfirmedMessagesTest(); break;
     case 7: test7_searchPartiallyConfirmedMessagesTest(); break;
     case 8: test8_searchMessagesByQueueKeyTest(); break;
-    case 9: test9_printMessagesDetailsTest(); break;
+    case 9: test9_searchMessagesByQueueKeyTest(); break;
+    case 10: test10_printMessagesDetailsTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
         s_testStatus = -1;

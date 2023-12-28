@@ -40,6 +40,9 @@
 #include <mqbs_journalfileiterator.h>
 #include <mqbs_mappedfiledescriptor.h>
 
+// BMQ
+#include <bmqp_ctrlmsg_messages.h>
+
 // MWC
 #include <mwcu_stringutil.h>
 
@@ -98,6 +101,7 @@ struct CommandLineArguments {
 class Parameters {
   public:
     // PUBLIC TYPES
+
     template <typename ITER>
     class FileHandler {
         const bsl::string          d_path;
@@ -126,6 +130,33 @@ class Parameters {
         ITER* iterator();
     };
 
+    typedef bsl::unordered_map<mqbu::StorageKey, bmqp_ctrlmsg::QueueInfo>
+        QueueKeyToInfoMap;
+    typedef bsl::unordered_map<bsl::string, mqbu::StorageKey> QueueUriToKeyMap;
+
+    class QueueInfo {
+        QueueKeyToInfoMap d_queueKeyToInfoMap;
+        QueueUriToKeyMap  d_queueUriToKeyMap;
+
+      public:
+        // CREATORS
+        explicit QueueInfo(bslma::Allocator* allocator);
+
+        // MANIPULATORS
+        QueueKeyToInfoMap& queueKeyToInfoMap();
+        // Return reference to modifiable key to info map
+
+        QueueUriToKeyMap& queueUriToKeyMap();
+        // Return reference to modifiable Uri to key map
+
+        // ACCESSORS
+        const QueueKeyToInfoMap& queueKeyToInfoMap() const;
+        // Return reference to non-modifiable key to info map
+
+        const QueueUriToKeyMap& queueUriToKeyMap() const;
+        // Return reference to non-modifiable Uri to key map
+    };
+
   private:
     bsls::Types::Int64 d_timestampGt;
     // Filter messages by minimum timestamp
@@ -135,9 +166,8 @@ class Parameters {
     // Handler of journal file
     FileHandler<mqbs::DataFileIterator> d_dataFile;
     // Handler of data file
-    // TODO: handle CSL file too
     bsl::string d_cslFile;
-    // Handler of  CSL file
+    // CSL file path
     bsl::vector<bsl::string> d_guid;
     // Filter messages by message guids
     bsl::vector<bsl::string> d_queueKey;
@@ -158,6 +188,12 @@ class Parameters {
     // Show only messages, confirmed by all the appId's
     bool d_partiallyConfirmed;
     // Show only messages, confirmed by some of the appId's
+    QueueInfo d_queueInfo;
+    // Queue info
+
+    // MANIPULATORS
+    bool collectQueueInfo(bsl::ostream& ss, bslma::Allocator* allocator);
+    // Collect queue info from csl file.
 
   public:
     // CREATORS
@@ -168,8 +204,8 @@ class Parameters {
     // MANIPULATORS
     FileHandler<mqbs::JournalFileIterator>* journalFile();
     FileHandler<mqbs::DataFileIterator>*    dataFile();
-    // TODO: handle CSL file too
-    bsl::string cslFile();
+    // TODO: used for testing, find better way
+    QueueInfo& queueInfo();
 
     // ACCESSORS
     bsls::Types::Int64       timestampGt() const;
@@ -184,6 +220,7 @@ class Parameters {
     bool                     outstanding() const;
     bool                     confirmed() const;
     bool                     partiallyConfirmed() const;
+    const QueueInfo&         queueInfo() const;
 
     // MEMBER FUNCTIONS
     /// Print all the parameters
