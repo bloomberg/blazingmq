@@ -134,13 +134,13 @@ class Parameters {
         QueueKeyToInfoMap;
     typedef bsl::unordered_map<bsl::string, mqbu::StorageKey> QueueUriToKeyMap;
 
-    class QueueInfo {
+    class QueueMap {
         QueueKeyToInfoMap d_queueKeyToInfoMap;
         QueueUriToKeyMap  d_queueUriToKeyMap;
 
       public:
         // CREATORS
-        explicit QueueInfo(bslma::Allocator* allocator);
+        explicit QueueMap(bslma::Allocator* allocator);
 
         // MANIPULATORS
         QueueKeyToInfoMap& queueKeyToInfoMap();
@@ -188,12 +188,12 @@ class Parameters {
     // Show only messages, confirmed by all the appId's
     bool d_partiallyConfirmed;
     // Show only messages, confirmed by some of the appId's
-    QueueInfo d_queueInfo;
+    QueueMap d_queueMap;
     // Queue info
 
     // MANIPULATORS
-    bool collectQueueInfo(bsl::ostream& ss, bslma::Allocator* allocator);
-    // Collect queue info from csl file.
+    bool buildQueueMap(bsl::ostream& ss, bslma::Allocator* allocator);
+    // Build queue map from csl file.
 
   public:
     // CREATORS
@@ -205,7 +205,7 @@ class Parameters {
     FileHandler<mqbs::JournalFileIterator>* journalFile();
     FileHandler<mqbs::DataFileIterator>*    dataFile();
     // TODO: used for testing, find better way
-    QueueInfo& queueInfo();
+    QueueMap& queueMap();
 
     // ACCESSORS
     bsls::Types::Int64       timestampGt() const;
@@ -220,7 +220,7 @@ class Parameters {
     bool                     outstanding() const;
     bool                     confirmed() const;
     bool                     partiallyConfirmed() const;
-    const QueueInfo&         queueInfo() const;
+    const QueueMap&          queueMap() const;
 
     // MEMBER FUNCTIONS
     /// Print all the parameters

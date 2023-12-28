@@ -253,20 +253,19 @@ bool Parameters::partiallyConfirmed() const
     return d_partiallyConfirmed;
 }
 
-const Parameters::QueueInfo& Parameters::queueInfo() const
+const Parameters::QueueMap& Parameters::queueMap() const
 {
-    return d_queueInfo;
+    return d_queueMap;
 }
 
 // TODO: used for testing, find better way
-Parameters::QueueInfo& Parameters::queueInfo()
+Parameters::QueueMap& Parameters::queueMap()
 {
-    return d_queueInfo;
+    return d_queueMap;
 }
 
 // MANIPULATORS
-bool Parameters::collectQueueInfo(bsl::ostream&     ss,
-                                  bslma::Allocator* allocator)
+bool Parameters::buildQueueMap(bsl::ostream& ss, bslma::Allocator* allocator)
 {
     // Required for ledger operations
     bmqp::Crc32c::initialize();
@@ -341,8 +340,8 @@ bool Parameters::collectQueueInfo(bsl::ostream&     ss,
     auto queuesInfo     = leaderAdvisory.queues();
 
     // Helper lambda to fill queue maps
-    auto& queueKeyToInfoMap = d_queueInfo.queueKeyToInfoMap();
-    auto& queueUriToKeyMap  = d_queueInfo.queueUriToKeyMap();
+    auto& queueKeyToInfoMap = d_queueMap.queueKeyToInfoMap();
+    auto& queueUriToKeyMap  = d_queueMap.queueUriToKeyMap();
     auto  fillMap           = [&](const bmqp_ctrlmsg::QueueInfo& queueInfo) {
         auto queueKey = mqbu::StorageKey(
             mqbu::StorageKey::BinaryRepresentation(),
@@ -401,7 +400,7 @@ Parameters::Parameters(const CommandLineArguments& arguments,
 , d_outstanding(arguments.d_outstanding)
 , d_confirmed(arguments.d_confirmed)
 , d_partiallyConfirmed(arguments.d_partiallyConfirmed)
-, d_queueInfo(allocator)
+, d_queueMap(allocator)
 {
     mwcu::MemOutStream ss;
     if ((!d_journalFile.path().empty() && !d_journalFile.resetIterator(ss)) ||
@@ -409,7 +408,7 @@ Parameters::Parameters(const CommandLineArguments& arguments,
         throw bsl::runtime_error(ss.str());
     }
 
-    if (!d_cslFile.empty() && !collectQueueInfo(ss, allocator)) {
+    if (!d_cslFile.empty() && !buildQueueMap(ss, allocator)) {
         throw bsl::runtime_error(ss.str());
     }
 
@@ -533,7 +532,7 @@ void Parameters::FileHandler<ITER>::setIterator(ITER* iter)
 // class Parameters::QueueInfo
 // ===========================
 
-Parameters::QueueInfo::QueueInfo(bslma::Allocator* allocator)
+Parameters::QueueMap::QueueMap(bslma::Allocator* allocator)
 : d_queueKeyToInfoMap(allocator)
 , d_queueUriToKeyMap(allocator)
 {
@@ -541,25 +540,25 @@ Parameters::QueueInfo::QueueInfo(bslma::Allocator* allocator)
 }
 
 // MANIPULATORS
-Parameters::QueueKeyToInfoMap& Parameters::QueueInfo::queueKeyToInfoMap()
+Parameters::QueueKeyToInfoMap& Parameters::QueueMap::queueKeyToInfoMap()
 {
     return d_queueKeyToInfoMap;
 }
 
-Parameters::QueueUriToKeyMap& Parameters::QueueInfo::queueUriToKeyMap()
+Parameters::QueueUriToKeyMap& Parameters::QueueMap::queueUriToKeyMap()
 {
     return d_queueUriToKeyMap;
 }
 
 // ACCESSORS
 const Parameters::QueueKeyToInfoMap&
-Parameters::QueueInfo::queueKeyToInfoMap() const
+Parameters::QueueMap::queueKeyToInfoMap() const
 {
     return d_queueKeyToInfoMap;
 }
 
 const Parameters::QueueUriToKeyMap&
-Parameters::QueueInfo::queueUriToKeyMap() const
+Parameters::QueueMap::queueUriToKeyMap() const
 {
     return d_queueUriToKeyMap;
 }

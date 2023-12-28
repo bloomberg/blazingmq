@@ -57,7 +57,7 @@ void SearchProcessor::process(bsl::ostream& ostream)
 {
     Filters filters(d_parameters->queueKey(),
                     d_parameters->queueName(),
-                    d_parameters->queueInfo(),
+                    d_parameters->queueMap(),
                     ostream,
                     d_allocator_p);
 

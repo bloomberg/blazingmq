@@ -26,7 +26,7 @@ namespace m_bmqstoragetool {
 
 Filters::Filters(const bsl::vector<bsl::string>& queueHexKeys,
                  const bsl::vector<bsl::string>& queueURIS,
-                 const Parameters::QueueInfo&    queueInfo,
+                 const Parameters::QueueMap&     queueMap,
                  bsl::ostream&                   ostream,
                  bslma::Allocator*               allocator)
 : d_queueKeys(allocator)
@@ -41,8 +41,8 @@ Filters::Filters(const bsl::vector<bsl::string>& queueHexKeys,
     else if (!queueURIS.empty()) {
         for (const auto& uri : queueURIS) {
             // Check if given queue name is in map
-            if (auto it = queueInfo.queueUriToKeyMap().find(uri);
-                it != queueInfo.queueUriToKeyMap().end()) {
+            if (auto it = queueMap.queueUriToKeyMap().find(uri);
+                it != queueMap.queueUriToKeyMap().end()) {
                 d_queueKeys.push_back(it->second);
             }
             else {
