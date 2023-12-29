@@ -1,11 +1,32 @@
 """
-Provide an object - 'paths' - that contains various paths useful to development
-tools (integration tests, CapMon, etc).
+Provide a cache of paths (to build dir, to broker, etc), derived from this
+module's path, with possible overrides via environment variables.
+
+The module publishes two attributes, 'paths' and 'required_paths'. The latter
+raises an exception if queried for a path that does not exist. Both objects
+have the following Path attributes:
+
+- repository:
+    the repository containing this module
+- python_path:
+    this repository's Python directory
+- build_dir:
+    the build area; the value of env var BLAZINGMQ_BUILD_DIR, or
+    f"cmake.bld/{platform.system()}" if not set
+- broker_path:
+    the broker; the value of env var BLAZINGMQ_BROKER, or
+    f"{build_dir}/src/applications/bmqbrkr/bmqbrkr.tsk" if not set
+- tool_path:
+    bmqtool; the value of env var BLAZINGMQ_TOOL, or
+    f"{build_dir}/src/applications/bmqtool/bmqtool.tsk" if not set
+- plugins_path:
+    the value of env var BLAZINGMQ_PLUGINS, or
+    f"{build_dir}/src/applications/bmqtool/bmqtool.tsk" if not set
 """
 
+from dataclasses import dataclass
 import os
 import platform
-import sys
 from pathlib import Path
 from typing import Optional
 
@@ -16,6 +37,7 @@ from blazingmq.core import BMQError
 logger = logging.getLogger(__name__)
 
 
+@dataclass
 class Paths:
     """
     Container for paths to repository root, build area, etc.
@@ -26,8 +48,13 @@ class Paths:
     use an instance of this class.
     """
 
+    must_exist: bool
+
     _repository: Optional[Path] = None
     _build_dir: Optional[Path] = None
+    _broker_path: Optional[Path] = None
+    _tool_path: Optional[Path] = None
+    _plugin_path: Optional[Path] = None
 
     @property
     def repository(self) -> Path:
@@ -83,8 +110,7 @@ class Paths:
             logger.debug("build directory is %s", self._build_dir)
         else:
             logger.warning(
-                "build directory %s does not exist, or it is not a directory",
-                self._build_dir,
+                "%s does not exist, or it is not a directory", self._build_dir
             )
 
         return self._build_dir
@@ -95,9 +121,22 @@ class Paths:
         Return the path to the broker task.
         """
 
-        return self.build_dir.joinpath(
-            *"src/applications/bmqbrkr/bmqbrkr.tsk".split("/")
-        )
+        if self._broker_path is not None:
+            return self._broker_path
+
+        if path_str := os.environ.get("BLAZINGMQ_BROKER"):
+            self._broker_path = Path(path_str)
+        else:
+            self._broker_path = self.build_dir.joinpath(
+                *"src/applications/bmqbrkr/bmqbrkr.tsk".split("/")
+            )
+
+        if not self._broker_path.exists():
+            logger.warning("path %s does not exist", self._broker_path)
+            if self.must_exist:
+                raise FileNotFoundError(self._broker_path)
+
+        return self._broker_path
 
     @property
     def tool_path(self) -> Path:
@@ -105,9 +144,22 @@ class Paths:
         Return the path to the bmqtool task.
         """
 
-        return self.build_dir.joinpath(
-            *"src/applications/bmqtool/bmqtool.tsk".split("/")
-        )
+        if self._tool_path is not None:
+            return self._tool_path
+
+        if path_str := os.environ.get("BLAZINGMQ_TOOL"):
+            self._tool_path = Path(path_str)
+        else:
+            self._tool_path = self.build_dir.joinpath(
+                *"src/applications/bmqtool/bmqtool.tsk".split("/")
+            )
+
+        if not self._tool_path.exists():
+            logger.warning("path %s does not exist", self._tool_path)
+            if self.must_exist:
+                raise FileNotFoundError(self._tool_path)
+
+        return self._tool_path
 
     @property
     def plugins_path(self) -> Path:
@@ -115,7 +167,21 @@ class Paths:
         Return the path to the plugins directory.
         """
 
-        return self.build_dir.joinpath("src", "plugins")
+        if self._plugin_path is not None:
+            return self._plugin_path
+
+        if path_str := os.environ.get("BLAZINGMQ_PLUGINS"):
+            self._plugin_path = Path(path_str)
+        else:
+            self._plugin_path = self.build_dir.joinpath("src", "plugins")
+
+        if not self._plugin_path.exists():
+            logger.warning("path %s does not exist", self._plugin_path)
+            if self.must_exist:
+                raise FileNotFoundError(self._plugin_path)
+
+        return self._plugin_path
 
 
-paths = Paths()
+paths = Paths(must_exist=False)
+required_paths = Paths(must_exist=True)

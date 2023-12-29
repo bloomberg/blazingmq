@@ -14,7 +14,7 @@ Synopsis:
     # example.py
 
     parser = argparse.ArgumentParser(
-        parents=[bmq.util.logging.make_parser(), ...],
+        parents=[blazingmq.util.logging.make_parser(), ...],
         ...)
 
     $ ./example.py --log-level info

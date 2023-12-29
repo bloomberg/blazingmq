@@ -3,7 +3,9 @@ Create a workspace for running a cluster.
 
 BMQ workspace generator
 
-usage: python -m blazingmq.dev.workspace [-h] [--log-level LEVELS] --workdir WORKDIR [--port-base PORT]
+usage: python-m blazingmq.dev.workspace
+            [-h] [--log-level LEVELS]
+            --workdir WORKDIR [--port-base PORT]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -112,7 +114,7 @@ local = HostLocation(workspace, args.workdir)
 local.deploy()
 
 
-def on_signal(signum: int, frame) -> None:
+def on_signal(signum: int, frame) -> None: # pylint: disable=W0613
     """
     Signal handler.
 
@@ -126,7 +128,7 @@ with local.run() as brokers:
     signal.signal(signal.SIGINT, on_signal)  # handle CTRL-C
     signal.signal(signal.SIGTERM, on_signal)
 
-    for broker in brokers.brokers.keys():
+    for broker in brokers.brokers:
         print("{}: tcp://{}:{}".format(broker.name, broker.host, broker.port))
 
     print("C-c to exit...")

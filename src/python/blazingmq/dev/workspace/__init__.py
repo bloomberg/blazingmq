@@ -14,7 +14,6 @@ import copy
 from dataclasses import dataclass, field
 import itertools
 import functools
-import itertools
 import logging
 from pathlib import Path
 from shutil import copytree, rmtree
@@ -42,7 +41,7 @@ from xsdata.formats.dataclass.serializers import JsonSerializer
 from xsdata.formats.dataclass.serializers.config import SerializerConfig
 from xsdata.formats.dataclass.serializers.json import DictFactory
 
-from blazingmq.dev.paths import paths
+from blazingmq.dev.paths import required_paths as paths
 from blazingmq.schemas import mqbconf
 from blazingmq.schemas import mqbcfg
 
@@ -664,13 +663,16 @@ class Workspace:
                 transport=mqbcfg.ClusterNodeConnection(
                     mqbcfg.TcpClusterNodeConnection(
                         "tcp://{host}:{port}".format(
-                            host=broker.config.app_config.network_interfaces.tcp_interface.name,  # type: ignore
-                            port=broker.config.app_config.network_interfaces.tcp_interface.port,  # type: ignore
+                            host=tcp_interface.name,  # type: ignore
+                            port=tcp_interface.port,  # type: ignore
                         )
                     )
                 ),
             )
             for broker in nodes
+            for tcp_interface in (
+                broker.config.app_config.network_interfaces.tcp_interface,
+            )
         ]
 
     def cluster(self, name: str, nodes: List[Broker]) -> Cluster:
@@ -795,8 +797,8 @@ def broker_monitor(out: IO[str], prefix: str, color: str):
             broker_logger.info(colored("%s | %s", color), prefix, line)
 
 
-def _json_filter(x: Tuple) -> Dict:
-    return {k: (float(v) if "Ratio" in k else v) for k, v in x if v is not None}
+def _json_filter(kv_pairs: Tuple) -> Dict:
+    return {k: (float(v) if "Ratio" in k else v) for k, v in kv_pairs if v is not None}
 
 
 class HostLocation(Location):
@@ -806,8 +808,8 @@ class HostLocation(Location):
         self.workspace = workspace
         self.root_dir = Path(root_dir)
 
-    def broker_path(self, broker: Broker, *paths: Union[str, Path]) -> Path:
-        return self.root_dir.joinpath(broker.name, *paths)
+    def broker_path(self, broker: Broker, *parts: Union[str, Path]) -> Path:
+        return self.root_dir.joinpath(broker.name, *parts)
 
     def mkdir(self, broker: Broker, path: Union[str, Path]) -> Path:
         target = self.broker_path(broker, path)
@@ -870,8 +872,6 @@ class HostLocation(Location):
                 if broker.thread is not None:
                     broker.thread.join()
 
-            return None
-
         def stop(self):
             for broker in self.brokers.values():
                 if broker.process is not None:
@@ -880,7 +880,7 @@ class HostLocation(Location):
 
     def run(self):
         colors = itertools.cycle(COLORS)
-        prefix_len = max([len(name) for name in self.workspace.brokers.keys()])
+        prefix_len = max(len(name) for name in self.workspace.brokers.keys())
 
         with self.Brokers(self) as build:
             for broker in self.workspace.brokers.values():
