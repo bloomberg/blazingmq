@@ -52,6 +52,3 @@ def test_cluster_proxies(tmpdir):
         tcp_port=next(port_allocator),
         data_center="east",
     ).proxy(cluster)
-
-    local = HostLocation(workspace, tmpdir)
-    local.deploy()

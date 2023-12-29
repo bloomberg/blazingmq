@@ -722,9 +722,9 @@ class Workspace:
         self, location: Location, brokers: Optional[List[Broker]] = None
     ) -> None:
         for broker in brokers or self.brokers.values():
-            location.install(broker, paths.broker_path, "bin")
-            location.install(broker, paths.tool_path, "bin")
-            location.install(broker, paths.plugins_path, ".")
+            location.install(broker, paths.broker, "bin")
+            location.install(broker, paths.tool, "bin")
+            location.install(broker, paths.plugins, ".")
 
             for script, cmd in ("run", "exec"), ("debug", "gdb --args"):
                 location.create_file(

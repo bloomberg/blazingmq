@@ -8,18 +8,18 @@ have the following Path attributes:
 
 - repository:
     the repository containing this module
-- python_path:
+- python:
     this repository's Python directory
 - build_dir:
     the build area; the value of env var BLAZINGMQ_BUILD_DIR, or
     f"cmake.bld/{platform.system()}" if not set
-- broker_path:
+- broker:
     the broker; the value of env var BLAZINGMQ_BROKER, or
     f"{build_dir}/src/applications/bmqbrkr/bmqbrkr.tsk" if not set
-- tool_path:
+- tool:
     bmqtool; the value of env var BLAZINGMQ_TOOL, or
     f"{build_dir}/src/applications/bmqtool/bmqtool.tsk" if not set
-- plugins_path:
+- plugins:
     the value of env var BLAZINGMQ_PLUGINS, or
     f"{build_dir}/src/applications/bmqtool/bmqtool.tsk" if not set
 """
@@ -52,9 +52,9 @@ class Paths:
 
     _repository: Optional[Path] = None
     _build_dir: Optional[Path] = None
-    _broker_path: Optional[Path] = None
-    _tool_path: Optional[Path] = None
-    _plugin_path: Optional[Path] = None
+    _broker: Optional[Path] = None
+    _tool: Optional[Path] = None
+    _plugin: Optional[Path] = None
 
     @property
     def repository(self) -> Path:
@@ -82,7 +82,7 @@ class Paths:
         return self._repository
 
     @property
-    def python_path(self) -> Path:
+    def python(self) -> Path:
         """
         Return the path to the Python root directory.
         """
@@ -116,71 +116,71 @@ class Paths:
         return self._build_dir
 
     @property
-    def broker_path(self) -> Path:
+    def broker(self) -> Path:
         """
         Return the path to the broker task.
         """
 
-        if self._broker_path is not None:
-            return self._broker_path
+        if self._broker is not None:
+            return self._broker
 
         if path_str := os.environ.get("BLAZINGMQ_BROKER"):
-            self._broker_path = Path(path_str)
+            self._broker = Path(path_str)
         else:
-            self._broker_path = self.build_dir.joinpath(
+            self._broker = self.build_dir.joinpath(
                 *"src/applications/bmqbrkr/bmqbrkr.tsk".split("/")
             )
 
-        if not self._broker_path.exists():
-            logger.warning("path %s does not exist", self._broker_path)
+        if not self._broker.exists():
+            logger.warning("path %s does not exist", self._broker)
             if self.must_exist:
-                raise FileNotFoundError(self._broker_path)
+                raise FileNotFoundError(self._broker)
 
-        return self._broker_path
+        return self._broker
 
     @property
-    def tool_path(self) -> Path:
+    def tool(self) -> Path:
         """
         Return the path to the bmqtool task.
         """
 
-        if self._tool_path is not None:
-            return self._tool_path
+        if self._tool is not None:
+            return self._tool
 
         if path_str := os.environ.get("BLAZINGMQ_TOOL"):
-            self._tool_path = Path(path_str)
+            self._tool = Path(path_str)
         else:
-            self._tool_path = self.build_dir.joinpath(
+            self._tool = self.build_dir.joinpath(
                 *"src/applications/bmqtool/bmqtool.tsk".split("/")
             )
 
-        if not self._tool_path.exists():
-            logger.warning("path %s does not exist", self._tool_path)
+        if not self._tool.exists():
+            logger.warning("path %s does not exist", self._tool)
             if self.must_exist:
-                raise FileNotFoundError(self._tool_path)
+                raise FileNotFoundError(self._tool)
 
-        return self._tool_path
+        return self._tool
 
     @property
-    def plugins_path(self) -> Path:
+    def plugins(self) -> Path:
         """
         Return the path to the plugins directory.
         """
 
-        if self._plugin_path is not None:
-            return self._plugin_path
+        if self._plugin is not None:
+            return self._plugin
 
         if path_str := os.environ.get("BLAZINGMQ_PLUGINS"):
-            self._plugin_path = Path(path_str)
+            self._plugin = Path(path_str)
         else:
-            self._plugin_path = self.build_dir.joinpath("src", "plugins")
+            self._plugin = self.build_dir.joinpath("src", "plugins")
 
-        if not self._plugin_path.exists():
-            logger.warning("path %s does not exist", self._plugin_path)
+        if not self._plugin.exists():
+            logger.warning("path %s does not exist", self._plugin)
             if self.must_exist:
-                raise FileNotFoundError(self._plugin_path)
+                raise FileNotFoundError(self._plugin)
 
-        return self._plugin_path
+        return self._plugin
 
 
 paths = Paths(must_exist=False)

@@ -114,7 +114,7 @@ local = HostLocation(workspace, args.workdir)
 local.deploy()
 
 
-def on_signal(signum: int, frame) -> None: # pylint: disable=W0613
+def on_signal(signum: int, frame) -> None:  # pylint: disable=W0613
     """
     Signal handler.
 
