@@ -13,6 +13,7 @@ class BrokerIdentity:
     hostTags......: machine tags
     brokerVersion.: version of the broker
     """
+
     host_name: Optional[str] = field(
         default=None,
         metadata={
@@ -20,7 +21,7 @@ class BrokerIdentity:
             "type": "Element",
             "namespace": "urn:x-bloomberg-com:mqbconfm",
             "required": True,
-        }
+        },
     )
     host_tags: Optional[str] = field(
         default=None,
@@ -29,7 +30,7 @@ class BrokerIdentity:
             "type": "Element",
             "namespace": "urn:x-bloomberg-com:mqbconfm",
             "required": True,
-        }
+        },
     )
     broker_version: Optional[str] = field(
         default=None,
@@ -38,7 +39,7 @@ class BrokerIdentity:
             "type": "Element",
             "namespace": "urn:x-bloomberg-com:mqbconfm",
             "required": True,
-        }
+        },
     )
 
 
@@ -47,6 +48,7 @@ class DomainConfigRaw:
     """
     Response of a get domain config request.
     """
+
     domain_name: Optional[str] = field(
         default=None,
         metadata={
@@ -54,7 +56,7 @@ class DomainConfigRaw:
             "type": "Element",
             "namespace": "urn:x-bloomberg-com:mqbconfm",
             "required": True,
-        }
+        },
     )
     config: Optional[str] = field(
         default=None,
@@ -62,7 +64,7 @@ class DomainConfigRaw:
             "type": "Element",
             "namespace": "urn:x-bloomberg-com:mqbconfm",
             "required": True,
-        }
+        },
     )
 
 
@@ -75,13 +77,14 @@ class DomainResolver:
     name....: Domain name
     cluster.: Cluster name
     """
+
     name: Optional[str] = field(
         default=None,
         metadata={
             "type": "Element",
             "namespace": "urn:x-bloomberg-com:mqbconfm",
             "required": True,
-        }
+        },
     )
     cluster: Optional[str] = field(
         default=None,
@@ -89,7 +92,7 @@ class DomainResolver:
             "type": "Element",
             "namespace": "urn:x-bloomberg-com:mqbconfm",
             "required": True,
-        }
+        },
     )
 
 
@@ -100,13 +103,14 @@ class Failure:
     code.....: an integer value representing the error
     message..: an optional string describing the error
     """
+
     code: Optional[int] = field(
         default=None,
         metadata={
             "type": "Element",
             "namespace": "urn:x-bloomberg-com:mqbconfm",
             "required": True,
-        }
+        },
     )
     message: str = field(
         default="",
@@ -114,7 +118,7 @@ class Failure:
             "type": "Element",
             "namespace": "urn:x-bloomberg-com:mqbconfm",
             "required": True,
-        }
+        },
     )
 
 
@@ -146,13 +150,14 @@ class Limits:
     number of bytes for which a high watermark
     alarm will trigger
     """
+
     messages: Optional[int] = field(
         default=None,
         metadata={
             "type": "Element",
             "namespace": "urn:x-bloomberg-com:mqbconfm",
             "required": True,
-        }
+        },
     )
     messages_watermark_ratio: Decimal = field(
         default=Decimal("0.8"),
@@ -161,7 +166,7 @@ class Limits:
             "type": "Element",
             "namespace": "urn:x-bloomberg-com:mqbconfm",
             "required": True,
-        }
+        },
     )
     bytes: Optional[int] = field(
         default=None,
@@ -169,7 +174,7 @@ class Limits:
             "type": "Element",
             "namespace": "urn:x-bloomberg-com:mqbconfm",
             "required": True,
-        }
+        },
     )
     bytes_watermark_ratio: Decimal = field(
         default=Decimal("0.8"),
@@ -178,7 +183,7 @@ class Limits:
             "type": "Element",
             "namespace": "urn:x-bloomberg-com:mqbconfm",
             "required": True,
-        }
+        },
     )
 
 
@@ -200,13 +205,14 @@ class MsgGroupIdConfig:
     Group Id), in seconds, before a group becomes available for "garbage
     collection". 0 (the default) means unlimited
     """
+
     rebalance: bool = field(
         default=False,
         metadata={
             "type": "Element",
             "namespace": "urn:x-bloomberg-com:mqbconfm",
             "required": True,
-        }
+        },
     )
     max_groups: int = field(
         default=2147483647,
@@ -215,7 +221,7 @@ class MsgGroupIdConfig:
             "type": "Element",
             "namespace": "urn:x-bloomberg-com:mqbconfm",
             "required": True,
-        }
+        },
     )
     ttl_seconds: int = field(
         default=0,
@@ -224,7 +230,7 @@ class MsgGroupIdConfig:
             "type": "Element",
             "namespace": "urn:x-bloomberg-com:mqbconfm",
             "required": True,
-        }
+        },
     )
 
 
@@ -255,6 +261,7 @@ class QueueModeFanout:
 
     appIDs.: List of appIDs authorized to consume from the queue.
     """
+
     app_ids: List[str] = field(
         default_factory=list,
         metadata={
@@ -262,7 +269,7 @@ class QueueModeFanout:
             "type": "Element",
             "namespace": "urn:x-bloomberg-com:mqbconfm",
             "min_occurs": 1,
-        }
+        },
     )
 
 
@@ -280,19 +287,20 @@ class Consistency:
     eventual........: no Replication Receipt is required.
     strong..........: require Replication Receipt before ACK/PUSH
     """
+
     eventual: Optional[QueueConsistencyEventual] = field(
         default=None,
         metadata={
             "type": "Element",
             "namespace": "urn:x-bloomberg-com:mqbconfm",
-        }
+        },
     )
     strong: Optional[QueueConsistencyStrong] = field(
         default=None,
         metadata={
             "type": "Element",
             "namespace": "urn:x-bloomberg-com:mqbconfm",
-        }
+        },
     )
 
 
@@ -301,6 +309,7 @@ class DomainConfigRequest:
     """
     Request to get a domain config.
     """
+
     broker_identity: Optional[BrokerIdentity] = field(
         default=None,
         metadata={
@@ -308,7 +317,7 @@ class DomainConfigRequest:
             "type": "Element",
             "namespace": "urn:x-bloomberg-com:mqbconfm",
             "required": True,
-        }
+        },
     )
     domain_name: Optional[str] = field(
         default=None,
@@ -317,7 +326,7 @@ class DomainConfigRequest:
             "type": "Element",
             "namespace": "urn:x-bloomberg-com:mqbconfm",
             "required": True,
-        }
+        },
     )
 
 
@@ -330,26 +339,27 @@ class QueueMode:
     round robin way
     broadcast......: send to all available consumers on a best-effort basis
     """
+
     fanout: Optional[QueueModeFanout] = field(
         default=None,
         metadata={
             "type": "Element",
             "namespace": "urn:x-bloomberg-com:mqbconfm",
-        }
+        },
     )
     priority: Optional[QueueModePriority] = field(
         default=None,
         metadata={
             "type": "Element",
             "namespace": "urn:x-bloomberg-com:mqbconfm",
-        }
+        },
     )
     broadcast: Optional[QueueModeBroadcast] = field(
         default=None,
         metadata={
             "type": "Element",
             "namespace": "urn:x-bloomberg-com:mqbconfm",
-        }
+        },
     )
 
 
@@ -358,6 +368,7 @@ class Response1:
     """
     The choice between all the possible responses from the bmqconf task.
     """
+
     class Meta:
         name = "Response"
 
@@ -366,7 +377,7 @@ class Response1:
         metadata={
             "type": "Element",
             "namespace": "urn:x-bloomberg-com:mqbconfm",
-        }
+        },
     )
     domain_config: Optional[DomainConfigRaw] = field(
         default=None,
@@ -374,7 +385,7 @@ class Response1:
             "name": "domainConfig",
             "type": "Element",
             "namespace": "urn:x-bloomberg-com:mqbconfm",
-        }
+        },
     )
 
 
@@ -384,13 +395,14 @@ class Storage:
     Choice of all the various Storage backends inMemory....: store data in memory
     fileBacked..: store data in a file on disk.
     """
+
     in_memory: Optional[InMemoryStorage] = field(
         default=None,
         metadata={
             "name": "inMemory",
             "type": "Element",
             "namespace": "urn:x-bloomberg-com:mqbconfm",
-        }
+        },
     )
     file_backed: Optional[FileBackedStorage] = field(
         default=None,
@@ -398,7 +410,7 @@ class Storage:
             "name": "fileBacked",
             "type": "Element",
             "namespace": "urn:x-bloomberg-com:mqbconfm",
-        }
+        },
     )
 
 
@@ -407,6 +419,7 @@ class Request1:
     """
     The choice between all the possible requests to the bmqconf task.
     """
+
     class Meta:
         name = "Request"
 
@@ -417,7 +430,7 @@ class Request1:
             "type": "Element",
             "namespace": "urn:x-bloomberg-com:mqbconfm",
             "required": True,
-        }
+        },
     )
 
 
@@ -431,6 +444,7 @@ class StorageDefinition:
     queueLimits...: individual limits (as a subset of the global limits)
     to apply to each queue of the domain
     """
+
     domain_limits: Optional[Limits] = field(
         default=None,
         metadata={
@@ -438,7 +452,7 @@ class StorageDefinition:
             "type": "Element",
             "namespace": "urn:x-bloomberg-com:mqbconfm",
             "required": True,
-        }
+        },
     )
     queue_limits: Optional[Limits] = field(
         default=None,
@@ -447,7 +461,7 @@ class StorageDefinition:
             "type": "Element",
             "namespace": "urn:x-bloomberg-com:mqbconfm",
             "required": True,
-        }
+        },
     )
     config: Optional[Storage] = field(
         default=None,
@@ -455,7 +469,7 @@ class StorageDefinition:
             "type": "Element",
             "namespace": "urn:x-bloomberg-com:mqbconfm",
             "required": True,
-        }
+        },
     )
 
 
@@ -499,13 +513,14 @@ class Domain:
     PUTs.
     consistency.........: optional consistency mode.
     """
+
     name: Optional[str] = field(
         default=None,
         metadata={
             "type": "Element",
             "namespace": "urn:x-bloomberg-com:mqbconfm",
             "required": True,
-        }
+        },
     )
     mode: Optional[QueueMode] = field(
         default=None,
@@ -513,7 +528,7 @@ class Domain:
             "type": "Element",
             "namespace": "urn:x-bloomberg-com:mqbconfm",
             "required": True,
-        }
+        },
     )
     storage: Optional[StorageDefinition] = field(
         default=None,
@@ -521,7 +536,7 @@ class Domain:
             "type": "Element",
             "namespace": "urn:x-bloomberg-com:mqbconfm",
             "required": True,
-        }
+        },
     )
     max_consumers: int = field(
         default=0,
@@ -530,7 +545,7 @@ class Domain:
             "type": "Element",
             "namespace": "urn:x-bloomberg-com:mqbconfm",
             "required": True,
-        }
+        },
     )
     max_producers: int = field(
         default=0,
@@ -539,7 +554,7 @@ class Domain:
             "type": "Element",
             "namespace": "urn:x-bloomberg-com:mqbconfm",
             "required": True,
-        }
+        },
     )
     max_queues: int = field(
         default=0,
@@ -548,7 +563,7 @@ class Domain:
             "type": "Element",
             "namespace": "urn:x-bloomberg-com:mqbconfm",
             "required": True,
-        }
+        },
     )
     msg_group_id_config: Optional[MsgGroupIdConfig] = field(
         default=None,
@@ -556,7 +571,7 @@ class Domain:
             "name": "msgGroupIdConfig",
             "type": "Element",
             "namespace": "urn:x-bloomberg-com:mqbconfm",
-        }
+        },
     )
     max_idle_time: int = field(
         default=0,
@@ -565,7 +580,7 @@ class Domain:
             "type": "Element",
             "namespace": "urn:x-bloomberg-com:mqbconfm",
             "required": True,
-        }
+        },
     )
     message_ttl: Optional[int] = field(
         default=None,
@@ -574,7 +589,7 @@ class Domain:
             "type": "Element",
             "namespace": "urn:x-bloomberg-com:mqbconfm",
             "required": True,
-        }
+        },
     )
     max_delivery_attempts: int = field(
         default=0,
@@ -583,7 +598,7 @@ class Domain:
             "type": "Element",
             "namespace": "urn:x-bloomberg-com:mqbconfm",
             "required": True,
-        }
+        },
     )
     deduplication_time_ms: int = field(
         default=300000,
@@ -592,7 +607,7 @@ class Domain:
             "type": "Element",
             "namespace": "urn:x-bloomberg-com:mqbconfm",
             "required": True,
-        }
+        },
     )
     consistency: Optional[Consistency] = field(
         default=None,
@@ -600,7 +615,7 @@ class Domain:
             "type": "Element",
             "namespace": "urn:x-bloomberg-com:mqbconfm",
             "required": True,
-        }
+        },
     )
 
 
@@ -620,13 +635,14 @@ class DomainDefinition:
     parameters: Domain parameters
     REVIEW: consider merging Domain into DomainDefinition
     """
+
     location: Optional[str] = field(
         default=None,
         metadata={
             "type": "Element",
             "namespace": "urn:x-bloomberg-com:mqbconfm",
             "required": True,
-        }
+        },
     )
     parameters: Optional[Domain] = field(
         default=None,
@@ -634,7 +650,7 @@ class DomainDefinition:
             "type": "Element",
             "namespace": "urn:x-bloomberg-com:mqbconfm",
             "required": True,
-        }
+        },
     )
 
 
@@ -645,17 +661,18 @@ class DomainVariant:
     definition..: The full definition of a domain redirection.: The name
     of the domain to redirect to
     """
+
     definition: Optional[DomainDefinition] = field(
         default=None,
         metadata={
             "type": "Element",
             "namespace": "urn:x-bloomberg-com:mqbconfm",
-        }
+        },
     )
     redirect: Optional[str] = field(
         default=None,
         metadata={
             "type": "Element",
             "namespace": "urn:x-bloomberg-com:mqbconfm",
-        }
+        },
     )

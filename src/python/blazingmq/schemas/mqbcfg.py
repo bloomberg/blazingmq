@@ -20,7 +20,7 @@ class BmqconfConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
 
 
@@ -33,6 +33,7 @@ class ClusterAttributes:
     cluster.  This flag *must* be false if
     'isCSLModeEnabled' is false.
     """
+
     is_cslmode_enabled: bool = field(
         default=False,
         metadata={
@@ -40,7 +41,7 @@ class ClusterAttributes:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     is_fsmworkflow: bool = field(
         default=False,
@@ -49,7 +50,7 @@ class ClusterAttributes:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
 
 
@@ -88,6 +89,7 @@ class ClusterMonitorConfig:
     because observing components may attempt to fix the issue before an
     alarm is raised.
     """
+
     max_time_leader: int = field(
         default=60,
         metadata={
@@ -95,7 +97,7 @@ class ClusterMonitorConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     max_time_master: int = field(
         default=120,
@@ -104,7 +106,7 @@ class ClusterMonitorConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     max_time_node: int = field(
         default=120,
@@ -113,7 +115,7 @@ class ClusterMonitorConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     max_time_failover: int = field(
         default=240,
@@ -122,7 +124,7 @@ class ClusterMonitorConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     threshold_leader: int = field(
         default=30,
@@ -131,7 +133,7 @@ class ClusterMonitorConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     threshold_master: int = field(
         default=60,
@@ -140,7 +142,7 @@ class ClusterMonitorConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     threshold_node: int = field(
         default=60,
@@ -149,7 +151,7 @@ class ClusterMonitorConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     threshold_failover: int = field(
         default=120,
@@ -158,7 +160,7 @@ class ClusterMonitorConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
 
 
@@ -171,7 +173,7 @@ class DispatcherProcessorParameters:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     queue_size_low_watermark: Optional[int] = field(
         default=None,
@@ -180,7 +182,7 @@ class DispatcherProcessorParameters:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     queue_size_high_watermark: Optional[int] = field(
         default=None,
@@ -189,7 +191,7 @@ class DispatcherProcessorParameters:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
 
 
@@ -232,6 +234,7 @@ class ElectorConfig:
     come up and declare themselves AVAILABLE.  Note that this should be
     done only in case of cluster of size &gt; 1
     """
+
     initial_wait_timeout_ms: int = field(
         default=8000,
         metadata={
@@ -239,7 +242,7 @@ class ElectorConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     max_random_wait_timeout_ms: int = field(
         default=3000,
@@ -248,7 +251,7 @@ class ElectorConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     scouting_result_timeout_ms: int = field(
         default=4000,
@@ -257,7 +260,7 @@ class ElectorConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     election_result_timeout_ms: int = field(
         default=4000,
@@ -266,7 +269,7 @@ class ElectorConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     heartbeat_broadcast_period_ms: int = field(
         default=2000,
@@ -275,7 +278,7 @@ class ElectorConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     heartbeat_check_period_ms: int = field(
         default=1000,
@@ -284,7 +287,7 @@ class ElectorConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     heartbeat_miss_count: int = field(
         default=10,
@@ -293,7 +296,7 @@ class ElectorConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     quorum: int = field(
         default=0,
@@ -301,7 +304,7 @@ class ElectorConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     leader_sync_delay_ms: int = field(
         default=80000,
@@ -310,7 +313,7 @@ class ElectorConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
 
 
@@ -341,13 +344,14 @@ class Heartbeat:
     The channel represents a connection with a peer node in the cluster
     this broker is part of.
     """
+
     client: int = field(
         default=0,
         metadata={
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     downstream_broker: int = field(
         default=0,
@@ -356,7 +360,7 @@ class Heartbeat:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     upstream_broker: int = field(
         default=0,
@@ -365,7 +369,7 @@ class Heartbeat:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     cluster_peer: int = field(
         default=0,
@@ -374,7 +378,7 @@ class Heartbeat:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
 
 
@@ -386,6 +390,7 @@ class MasterAssignmentAlgorithm(Enum):
     - E_LEAST_ASSIGNED:       the active node with the least number of
     partitions assigned is used
     """
+
     E_LEADER_IS_MASTER_ALL = "E_LEADER_IS_MASTER_ALL"
     E_LEAST_ASSIGNED = "E_LEAST_ASSIGNED"
 
@@ -400,6 +405,7 @@ class MessagePropertiesV2:
     only to those C++ and Java clients which match a certain minimum SDK
     version.
     """
+
     advertise_v2_support: bool = field(
         default=True,
         metadata={
@@ -407,7 +413,7 @@ class MessagePropertiesV2:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     min_cpp_sdk_version: int = field(
         default=11207,
@@ -416,7 +422,7 @@ class MessagePropertiesV2:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     min_java_sdk_version: int = field(
         default=10,
@@ -425,7 +431,7 @@ class MessagePropertiesV2:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
 
 
@@ -442,6 +448,7 @@ class MessageThrottleConfig:
     Note: lowInterval should be less than/equal to highInterval,
     lowThreshold should be less than highThreshold.
     """
+
     low_threshold: int = field(
         default=2,
         metadata={
@@ -449,7 +456,7 @@ class MessageThrottleConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     high_threshold: int = field(
         default=4,
@@ -458,7 +465,7 @@ class MessageThrottleConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     low_interval: int = field(
         default=1000,
@@ -467,7 +474,7 @@ class MessageThrottleConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     high_interval: int = field(
         default=3000,
@@ -476,7 +483,7 @@ class MessageThrottleConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
 
 
@@ -488,7 +495,7 @@ class Plugins:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "min_occurs": 1,
-        }
+        },
     )
     enabled: List[str] = field(
         default_factory=list,
@@ -496,7 +503,7 @@ class Plugins:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "min_occurs": 1,
-        }
+        },
     )
 
 
@@ -557,6 +564,7 @@ class QueueOperationsConfig:
     number of PUTs without ACK requested after which we request an ACK.
     This is to remove pending broadcast PUTs.
     """
+
     open_timeout_ms: int = field(
         default=300000,
         metadata={
@@ -564,7 +572,7 @@ class QueueOperationsConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     configure_timeout_ms: int = field(
         default=300000,
@@ -573,7 +581,7 @@ class QueueOperationsConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     close_timeout_ms: int = field(
         default=300000,
@@ -582,7 +590,7 @@ class QueueOperationsConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     reopen_timeout_ms: int = field(
         default=43200000,
@@ -591,7 +599,7 @@ class QueueOperationsConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     reopen_retry_interval_ms: int = field(
         default=5000,
@@ -600,7 +608,7 @@ class QueueOperationsConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     reopen_max_attempts: int = field(
         default=10,
@@ -609,7 +617,7 @@ class QueueOperationsConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     assignment_timeout_ms: int = field(
         default=15000,
@@ -618,7 +626,7 @@ class QueueOperationsConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     keepalive_duration_ms: int = field(
         default=1800000,
@@ -627,7 +635,7 @@ class QueueOperationsConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     consumption_monitor_period_ms: int = field(
         default=30000,
@@ -636,7 +644,7 @@ class QueueOperationsConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     stop_timeout_ms: int = field(
         default=10000,
@@ -645,7 +653,7 @@ class QueueOperationsConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     shutdown_timeout_ms: int = field(
         default=20000,
@@ -654,7 +662,7 @@ class QueueOperationsConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     ack_window_size: int = field(
         default=500,
@@ -663,7 +671,7 @@ class QueueOperationsConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
 
 
@@ -675,6 +683,7 @@ class ResolvedDomain:
     resolvedName.: Resolved name of the domain clusterName..: Name of
     the cluster where this domain exists
     """
+
     resolved_name: Optional[str] = field(
         default=None,
         metadata={
@@ -682,7 +691,7 @@ class ResolvedDomain:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     cluster_name: Optional[str] = field(
         default=None,
@@ -691,7 +700,7 @@ class ResolvedDomain:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
 
 
@@ -704,7 +713,7 @@ class StatsPrinterConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     file: Optional[str] = field(
         default=None,
@@ -712,7 +721,7 @@ class StatsPrinterConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     max_age_days: Optional[int] = field(
         default=None,
@@ -721,7 +730,7 @@ class StatsPrinterConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     rotate_bytes: int = field(
         default=268435456,
@@ -730,7 +739,7 @@ class StatsPrinterConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     rotate_days: int = field(
         default=1,
@@ -739,7 +748,7 @@ class StatsPrinterConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
 
 
@@ -807,6 +816,7 @@ class StorageSyncConfig:
     maximum size, in bytes, of bmqp::EventType::PARTITION_SYNC before
     we send it to the peer
     """
+
     startup_recovery_max_duration_ms: int = field(
         default=1200000,
         metadata={
@@ -814,7 +824,7 @@ class StorageSyncConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     max_attempts_storage_sync: int = field(
         default=3,
@@ -823,7 +833,7 @@ class StorageSyncConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     storage_sync_req_timeout_ms: int = field(
         default=300000,
@@ -832,7 +842,7 @@ class StorageSyncConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     master_sync_max_duration_ms: int = field(
         default=600000,
@@ -841,7 +851,7 @@ class StorageSyncConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     partition_sync_state_req_timeout_ms: int = field(
         default=120000,
@@ -850,7 +860,7 @@ class StorageSyncConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     partition_sync_data_req_timeout_ms: int = field(
         default=120000,
@@ -859,7 +869,7 @@ class StorageSyncConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     startup_wait_duration_ms: int = field(
         default=60000,
@@ -868,7 +878,7 @@ class StorageSyncConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     file_chunk_size: int = field(
         default=4194304,
@@ -877,7 +887,7 @@ class StorageSyncConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     partition_sync_event_size: int = field(
         default=4194304,
@@ -886,7 +896,7 @@ class StorageSyncConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
 
 
@@ -898,7 +908,7 @@ class SyslogConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     app_name: Optional[str] = field(
         default=None,
@@ -907,7 +917,7 @@ class SyslogConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     log_format: Optional[str] = field(
         default=None,
@@ -916,7 +926,7 @@ class SyslogConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     verbosity: Optional[str] = field(
         default=None,
@@ -924,7 +934,7 @@ class SyslogConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
 
 
@@ -934,13 +944,14 @@ class TcpClusterNodeConnection:
 
     endpoint.: endpoint URI of the node address
     """
+
     endpoint: Optional[str] = field(
         default=None,
         metadata={
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
 
 
@@ -961,13 +972,14 @@ class TcpInterfaceConfig:
     Use the new NTF based TCP transport library instead of
     the existing one based on BTE
     """
+
     name: Optional[str] = field(
         default=None,
         metadata={
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     port: Optional[int] = field(
         default=None,
@@ -975,7 +987,7 @@ class TcpInterfaceConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     io_threads: Optional[int] = field(
         default=None,
@@ -984,7 +996,7 @@ class TcpInterfaceConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     max_connections: int = field(
         default=10000,
@@ -993,7 +1005,7 @@ class TcpInterfaceConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     low_watermark: Optional[int] = field(
         default=None,
@@ -1002,7 +1014,7 @@ class TcpInterfaceConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     high_watermark: Optional[int] = field(
         default=None,
@@ -1011,7 +1023,7 @@ class TcpInterfaceConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     node_low_watermark: int = field(
         default=1024,
@@ -1020,7 +1032,7 @@ class TcpInterfaceConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     node_high_watermark: int = field(
         default=2048,
@@ -1029,7 +1041,7 @@ class TcpInterfaceConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     heartbeat_interval_ms: int = field(
         default=3000,
@@ -1038,7 +1050,7 @@ class TcpInterfaceConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     use_ntf: bool = field(
         default=False,
@@ -1047,7 +1059,7 @@ class TcpInterfaceConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
 
 
@@ -1059,13 +1071,14 @@ class VirtualClusterInformation:
     name.............: name of the cluster
     selfNodeId.......: id of the current node in that virtual cluster
     """
+
     name: Optional[str] = field(
         default=None,
         metadata={
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     self_node_id: Optional[int] = field(
         default=None,
@@ -1074,7 +1087,7 @@ class VirtualClusterInformation:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
 
 
@@ -1085,13 +1098,14 @@ class ClusterNodeConnection:
 
     tcp.: TCP connectivity
     """
+
     tcp: Optional[TcpClusterNodeConnection] = field(
         default=None,
         metadata={
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
 
 
@@ -1104,7 +1118,7 @@ class DispatcherProcessorConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     processor_config: Optional[DispatcherProcessorParameters] = field(
         default=None,
@@ -1113,7 +1127,7 @@ class DispatcherProcessorConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
 
 
@@ -1126,7 +1140,7 @@ class LogController:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     file_max_age_days: Optional[int] = field(
         default=None,
@@ -1135,7 +1149,7 @@ class LogController:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     rotation_bytes: Optional[int] = field(
         default=None,
@@ -1144,7 +1158,7 @@ class LogController:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     logfile_format: Optional[str] = field(
         default=None,
@@ -1153,7 +1167,7 @@ class LogController:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     console_format: Optional[str] = field(
         default=None,
@@ -1162,7 +1176,7 @@ class LogController:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     logging_verbosity: Optional[str] = field(
         default=None,
@@ -1171,7 +1185,7 @@ class LogController:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     bsls_log_severity_threshold: str = field(
         default="ERROR",
@@ -1180,7 +1194,7 @@ class LogController:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     console_severity_threshold: Optional[str] = field(
         default=None,
@@ -1189,7 +1203,7 @@ class LogController:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     categories: List[str] = field(
         default_factory=list,
@@ -1197,7 +1211,7 @@ class LogController:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "min_occurs": 1,
-        }
+        },
     )
     syslog: Optional[SyslogConfig] = field(
         default=None,
@@ -1205,7 +1219,7 @@ class LogController:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
 
 
@@ -1217,7 +1231,7 @@ class NetworkInterfaces:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     tcp_interface: Optional[TcpInterfaceConfig] = field(
         default=None,
@@ -1225,7 +1239,7 @@ class NetworkInterfaces:
             "name": "tcpInterface",
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
-        }
+        },
     )
 
 
@@ -1250,6 +1264,7 @@ class PartitionConfig:
     syncConfig...........: configuration for storage synchronization and
     recovery
     """
+
     num_partitions: Optional[int] = field(
         default=None,
         metadata={
@@ -1257,7 +1272,7 @@ class PartitionConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     location: Optional[str] = field(
         default=None,
@@ -1265,7 +1280,7 @@ class PartitionConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     archive_location: Optional[str] = field(
         default=None,
@@ -1274,7 +1289,7 @@ class PartitionConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     max_data_file_size: Optional[int] = field(
         default=None,
@@ -1283,7 +1298,7 @@ class PartitionConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     max_journal_file_size: Optional[int] = field(
         default=None,
@@ -1292,7 +1307,7 @@ class PartitionConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     max_qlist_file_size: Optional[int] = field(
         default=None,
@@ -1301,7 +1316,7 @@ class PartitionConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     preallocate: bool = field(
         default=False,
@@ -1309,7 +1324,7 @@ class PartitionConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     max_archived_file_sets: Optional[int] = field(
         default=None,
@@ -1318,7 +1333,7 @@ class PartitionConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     prefault_pages: bool = field(
         default=False,
@@ -1327,7 +1342,7 @@ class PartitionConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     flush_at_shutdown: bool = field(
         default=True,
@@ -1336,7 +1351,7 @@ class PartitionConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     sync_config: Optional[StorageSyncConfig] = field(
         default=None,
@@ -1345,7 +1360,7 @@ class PartitionConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
 
 
@@ -1357,7 +1372,7 @@ class StatPluginConfigPrometheus:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     host: str = field(
         default="localhost",
@@ -1365,7 +1380,7 @@ class StatPluginConfigPrometheus:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     port: int = field(
         default=8080,
@@ -1373,7 +1388,7 @@ class StatPluginConfigPrometheus:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
 
 
@@ -1388,13 +1403,14 @@ class ClusterNode:
     transport..: the transport configuration for establishing connectivity
     with the node
     """
+
     id: Optional[int] = field(
         default=None,
         metadata={
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     name: Optional[str] = field(
         default=None,
@@ -1402,7 +1418,7 @@ class ClusterNode:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     data_center: Optional[str] = field(
         default=None,
@@ -1411,7 +1427,7 @@ class ClusterNode:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     transport: Optional[ClusterNodeConnection] = field(
         default=None,
@@ -1419,7 +1435,7 @@ class ClusterNode:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
 
 
@@ -1431,7 +1447,7 @@ class DispatcherConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     queues: Optional[DispatcherProcessorConfig] = field(
         default=None,
@@ -1439,7 +1455,7 @@ class DispatcherConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     clusters: Optional[DispatcherProcessorConfig] = field(
         default=None,
@@ -1447,7 +1463,7 @@ class DispatcherConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
 
 
@@ -1458,13 +1474,14 @@ class ReversedClusterConnection:
     name.............: name of the cluster
     connections......: list of connections to establish
     """
+
     name: Optional[str] = field(
         default=None,
         metadata={
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     connections: List[ClusterNodeConnection] = field(
         default_factory=list,
@@ -1472,7 +1489,7 @@ class ReversedClusterConnection:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "min_occurs": 1,
-        }
+        },
     )
 
 
@@ -1484,7 +1501,7 @@ class StatPluginConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     queue_size: int = field(
         default=10000,
@@ -1493,7 +1510,7 @@ class StatPluginConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     queue_high_watermark: int = field(
         default=5000,
@@ -1502,7 +1519,7 @@ class StatPluginConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     queue_low_watermark: int = field(
         default=1000,
@@ -1511,7 +1528,7 @@ class StatPluginConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     publish_interval: int = field(
         default=30,
@@ -1520,7 +1537,7 @@ class StatPluginConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     namespace_prefix: str = field(
         default="",
@@ -1529,7 +1546,7 @@ class StatPluginConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     hosts: List[str] = field(
         default_factory=list,
@@ -1537,7 +1554,7 @@ class StatPluginConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "min_occurs": 1,
-        }
+        },
     )
     instance_id: str = field(
         default="",
@@ -1546,7 +1563,7 @@ class StatPluginConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     prometheus_specific: Optional[StatPluginConfigPrometheus] = field(
         default=None,
@@ -1554,7 +1571,7 @@ class StatPluginConfig:
             "name": "prometheusSpecific",
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
-        }
+        },
     )
 
 
@@ -1567,7 +1584,7 @@ class TaskConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     allocation_limit: Optional[int] = field(
         default=None,
@@ -1576,7 +1593,7 @@ class TaskConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     log_controller: Optional[LogController] = field(
         default=None,
@@ -1585,7 +1602,7 @@ class TaskConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
 
 
@@ -1604,13 +1621,14 @@ class ClusterDefinition:
     messageThrottleConfig.: configuration for message throttling intervals and
     thresholds.
     """
+
     name: Optional[str] = field(
         default=None,
         metadata={
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     nodes: List[ClusterNode] = field(
         default_factory=list,
@@ -1618,7 +1636,7 @@ class ClusterDefinition:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "min_occurs": 1,
-        }
+        },
     )
     partition_config: Optional[PartitionConfig] = field(
         default=None,
@@ -1627,7 +1645,7 @@ class ClusterDefinition:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     master_assignment: Optional[MasterAssignmentAlgorithm] = field(
         default=None,
@@ -1636,7 +1654,7 @@ class ClusterDefinition:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     elector: Optional[ElectorConfig] = field(
         default=None,
@@ -1644,7 +1662,7 @@ class ClusterDefinition:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     queue_operations: Optional[QueueOperationsConfig] = field(
         default=None,
@@ -1653,7 +1671,7 @@ class ClusterDefinition:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     cluster_attributes: Optional[ClusterAttributes] = field(
         default=None,
@@ -1662,7 +1680,7 @@ class ClusterDefinition:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     cluster_monitor_config: Optional[ClusterMonitorConfig] = field(
         default=None,
@@ -1671,7 +1689,7 @@ class ClusterDefinition:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     message_throttle_config: Optional[MessageThrottleConfig] = field(
         default=None,
@@ -1680,7 +1698,7 @@ class ClusterDefinition:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
 
 
@@ -1695,13 +1713,14 @@ class ClusterProxyDefinition:
     messageThrottleConfig.: configuration for message throttling intervals and
     thresholds.
     """
+
     name: Optional[str] = field(
         default=None,
         metadata={
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     nodes: List[ClusterNode] = field(
         default_factory=list,
@@ -1709,7 +1728,7 @@ class ClusterProxyDefinition:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "min_occurs": 1,
-        }
+        },
     )
     queue_operations: Optional[QueueOperationsConfig] = field(
         default=None,
@@ -1718,7 +1737,7 @@ class ClusterProxyDefinition:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     cluster_monitor_config: Optional[ClusterMonitorConfig] = field(
         default=None,
@@ -1727,7 +1746,7 @@ class ClusterProxyDefinition:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     message_throttle_config: Optional[MessageThrottleConfig] = field(
         default=None,
@@ -1736,7 +1755,7 @@ class ClusterProxyDefinition:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
 
 
@@ -1749,7 +1768,7 @@ class StatsConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     plugins: List[StatPluginConfig] = field(
         default_factory=list,
@@ -1757,7 +1776,7 @@ class StatsConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "min_occurs": 1,
-        }
+        },
     )
     printer: Optional[StatsPrinterConfig] = field(
         default=None,
@@ -1765,7 +1784,7 @@ class StatsConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
 
 
@@ -1791,6 +1810,7 @@ class AppConfig:
     msgPropertiesSupport.: information about if/how to advertise support for v2 message properties
     configureStream......: send new ConfigureStream instead of old ConfigureQueue/&gt;
     """
+
     broker_instance_name: Optional[str] = field(
         default=None,
         metadata={
@@ -1798,7 +1818,7 @@ class AppConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     broker_version: Optional[int] = field(
         default=None,
@@ -1807,7 +1827,7 @@ class AppConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     config_version: Optional[int] = field(
         default=None,
@@ -1816,7 +1836,7 @@ class AppConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     etc_dir: Optional[str] = field(
         default=None,
@@ -1825,7 +1845,7 @@ class AppConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     host_name: Optional[str] = field(
         default=None,
@@ -1834,7 +1854,7 @@ class AppConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     host_tags: Optional[str] = field(
         default=None,
@@ -1843,7 +1863,7 @@ class AppConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     host_data_center: Optional[str] = field(
         default=None,
@@ -1852,7 +1872,7 @@ class AppConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     is_running_on_dev: Optional[bool] = field(
         default=None,
@@ -1861,7 +1881,7 @@ class AppConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     logs_observer_max_size: Optional[int] = field(
         default=None,
@@ -1870,7 +1890,7 @@ class AppConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     latency_monitor_domain: str = field(
         default="bmq.sys.latemon.latency",
@@ -1879,7 +1899,7 @@ class AppConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     dispatcher_config: Optional[DispatcherConfig] = field(
         default=None,
@@ -1888,7 +1908,7 @@ class AppConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     stats: Optional[StatsConfig] = field(
         default=None,
@@ -1896,7 +1916,7 @@ class AppConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     network_interfaces: Optional[NetworkInterfaces] = field(
         default=None,
@@ -1905,7 +1925,7 @@ class AppConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     bmqconf_config: Optional[BmqconfConfig] = field(
         default=None,
@@ -1914,7 +1934,7 @@ class AppConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     plugins: Optional[Plugins] = field(
         default=None,
@@ -1922,7 +1942,7 @@ class AppConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     message_properties_v2: Optional[MessagePropertiesV2] = field(
         default=None,
@@ -1931,7 +1951,7 @@ class AppConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     configure_stream: bool = field(
         default=False,
@@ -1940,7 +1960,7 @@ class AppConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
 
 
@@ -1963,6 +1983,7 @@ class ClustersDefinition:
     cluster and associated remote connections that should be
     established
     """
+
     my_clusters: List[ClusterDefinition] = field(
         default_factory=list,
         metadata={
@@ -1970,7 +1991,7 @@ class ClustersDefinition:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "min_occurs": 1,
-        }
+        },
     )
     my_reverse_clusters: List[str] = field(
         default_factory=list,
@@ -1979,7 +2000,7 @@ class ClustersDefinition:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "min_occurs": 1,
-        }
+        },
     )
     my_virtual_clusters: List[VirtualClusterInformation] = field(
         default_factory=list,
@@ -1988,7 +2009,7 @@ class ClustersDefinition:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "min_occurs": 1,
-        }
+        },
     )
     proxy_clusters: List[ClusterProxyDefinition] = field(
         default_factory=list,
@@ -1997,7 +2018,7 @@ class ClustersDefinition:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "min_occurs": 1,
-        }
+        },
     )
     reversed_cluster_connections: List[ReversedClusterConnection] = field(
         default_factory=list,
@@ -2006,7 +2027,7 @@ class ClustersDefinition:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "min_occurs": 1,
-        }
+        },
     )
 
 
@@ -2019,7 +2040,7 @@ class Configuration:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
     app_config: Optional[AppConfig] = field(
         default=None,
@@ -2028,5 +2049,5 @@ class Configuration:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
-        }
+        },
     )
