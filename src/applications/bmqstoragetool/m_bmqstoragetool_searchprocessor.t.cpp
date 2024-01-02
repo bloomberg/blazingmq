@@ -83,7 +83,7 @@ void addJournalRecords(MemoryBlock*         block,
             mqbu::MessageGUIDUtil::generateGUID(&g);
             OffsetPtr<MessageRecord> rec(*block, currPos);
             new (rec.get()) MessageRecord();
-            rec->header().setPrimaryLeaseId(100).setSequenceNumber(i);
+            rec->header().setPrimaryLeaseId(100).setSequenceNumber(i).setTimestamp(i);
             rec->setRefCount(i % FileStoreProtocol::k_MAX_MSG_REF_COUNT_HARD)
                 .setQueueKey(
                     mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
@@ -110,7 +110,7 @@ void addJournalRecords(MemoryBlock*         block,
             mqbu::MessageGUIDUtil::generateGUID(&g);
             OffsetPtr<ConfirmRecord> rec(*block, currPos);
             new (rec.get()) ConfirmRecord();
-            rec->header().setPrimaryLeaseId(100).setSequenceNumber(i);
+            rec->header().setPrimaryLeaseId(100).setSequenceNumber(i).setTimestamp(i);
             rec->setReason(ConfirmReason::e_REJECTED)
                 .setQueueKey(
                     mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
@@ -133,7 +133,7 @@ void addJournalRecords(MemoryBlock*         block,
             mqbu::MessageGUIDUtil::generateGUID(&g);
             OffsetPtr<DeletionRecord> rec(*block, currPos);
             new (rec.get()) DeletionRecord();
-            rec->header().setPrimaryLeaseId(100).setSequenceNumber(i);
+            rec->header().setPrimaryLeaseId(100).setSequenceNumber(i).setTimestamp(i);
             rec->setDeletionRecordFlag(DeletionRecordFlag::e_IMPLICIT_CONFIRM)
                 .setQueueKey(
                     mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
@@ -151,7 +151,7 @@ void addJournalRecords(MemoryBlock*         block,
             // QueueOpRec
             OffsetPtr<QueueOpRecord> rec(*block, currPos);
             new (rec.get()) QueueOpRecord();
-            rec->header().setPrimaryLeaseId(100).setSequenceNumber(i);
+            rec->header().setPrimaryLeaseId(100).setSequenceNumber(i).setTimestamp(i);
             rec->setFlags(3)
                 .setQueueKey(
                     mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
@@ -181,7 +181,7 @@ void addJournalRecords(MemoryBlock*         block,
                                             100,      // qlistFilePosition
                                             RecordHeader::k_MAGIC);
 
-            rec->header().setPrimaryLeaseId(100).setSequenceNumber(i);
+            rec->header().setPrimaryLeaseId(100).setSequenceNumber(i).setTimestamp(i);
             RecordBufferType buf;
             bsl::memcpy(buf.buffer(),
                         rec.get(),
@@ -755,6 +755,8 @@ static void test2_searchGuidTest()
     }
     expectedStream << searchGuids.size() << " message GUID(s) found."
                    << bsl::endl;
+
+    bsl::cout << resultStream.str();
 
     ASSERT_EQ(resultStream.str(), expectedStream.str());
 
@@ -1346,7 +1348,93 @@ static void test9_searchMessagesByQueueNameTest()
     s_allocator_p->deallocate(p);
 }
 
-static void test10_printMessagesDetailsTest()
+static void test10_searchMessagesByTimestamp()
+// ------------------------------------------------------------------------
+// SEARCH MESSAGES BY TIMESTAMP TEST
+//
+// Concerns:
+//   Search messages by timestamp in journal file and output GUIDs.
+//
+// Testing:
+//   SearchProcessor::process()
+// ------------------------------------------------------------------------
+{
+    mwctst::TestHelper::printTestName("SEARCH MESSAGES BY TIMESTAMP TEST");
+
+    // Simulate journal file
+    unsigned int numRecords = 50;
+
+    bsls::Types::Uint64 totalSize =
+        sizeof(FileHeader) + sizeof(JournalFileHeader) +
+        numRecords * FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
+
+    char*       p = static_cast<char*>(s_allocator_p->allocate(totalSize));
+    MemoryBlock block(p, totalSize);
+    FileHeader  fileHeader;
+    bsls::Types::Uint64 lastRecordPos = 0;
+    bsls::Types::Uint64 lastSyncPtPos = 0;
+
+    RecordsListType records(s_allocator_p);
+
+    addJournalRecords(&block,
+                      &fileHeader,
+                      &lastRecordPos,
+                      &lastSyncPtPos,
+                      &records,
+                      numRecords);
+
+    // Create JournalFileIterator
+    MappedFileDescriptor mfd;
+    mfd.setFd(-1);  // invalid fd will suffice.
+    mfd.setBlock(block);
+    mfd.setFileSize(totalSize);
+    JournalFileIterator it(&mfd, fileHeader, false);
+
+    // Configure parameters to search messages by timestamps
+    CommandLineArguments arguments;
+    arguments.d_timestampGt = 10;
+    arguments.d_timestampLt = 40;
+    bsl::unique_ptr<Parameters> params =
+        bsl::make_unique<Parameters>(arguments, s_allocator_p);
+    params->journalFile()->setIterator(&it);
+
+    // Get GUIDs of messages with matching timestamps and prepare expected
+    // output
+    bsl::ostringstream expectedStream(s_allocator_p);
+
+    bsl::list<NodeType>::const_iterator recordIter = records.begin();
+    bsl::size_t                         msgCnt     = 0;
+    while (recordIter++ != records.end()) {
+        RecordType::Enum rtype = recordIter->first;
+        if (rtype == RecordType::e_MESSAGE) {
+            const MessageRecord& msg = *reinterpret_cast<const MessageRecord*>(
+                recordIter->second.buffer());
+            const bsls::Types::Uint64& ts = msg.header().timestamp();
+            if (ts > arguments.d_timestampGt && ts < arguments.d_timestampLt) {
+                char buf[bmqt::MessageGUID::e_SIZE_HEX];
+                msg.messageGUID().toHex(buf);
+                bsl::string guid(buf, s_allocator_p);
+                expectedStream.write(buf, bmqt::MessageGUID::e_SIZE_HEX);
+                expectedStream << bsl::endl;
+                msgCnt++;
+            }
+        }
+    }
+    expectedStream << msgCnt << " message GUID(s) found." << bsl::endl;
+    expectedStream << "Outstanding ratio: 100% (" << msgCnt << "/" << msgCnt
+                   << ")" << bsl::endl;
+
+    auto searchProcessor = SearchProcessor(bsl::move(params), s_allocator_p);
+
+    bsl::ostringstream resultStream(s_allocator_p);
+    searchProcessor.process(resultStream);
+
+    ASSERT_EQ(resultStream.str(), expectedStream.str());
+
+    s_allocator_p->deallocate(p);
+}
+
+static void test11_printMessagesDetailsTest()
 // ------------------------------------------------------------------------
 // PRINT MESSAGE DETAILS TEST
 //
@@ -1440,7 +1528,8 @@ int main(int argc, char* argv[])
     case 7: test7_searchPartiallyConfirmedMessagesTest(); break;
     case 8: test8_searchMessagesByQueueKeyTest(); break;
     case 9: test9_searchMessagesByQueueNameTest(); break;
-    case 10: test10_printMessagesDetailsTest(); break;
+    case 10: test10_searchMessagesByTimestamp(); break;
+    case 11: test11_printMessagesDetailsTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
         s_testStatus = -1;

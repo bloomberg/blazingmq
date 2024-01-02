@@ -45,9 +45,9 @@ namespace m_bmqstoragetool {
 
 // CREATORS
 
-SearchProcessor::SearchProcessor(const bsl::shared_ptr<Parameters>& params,
-                                 bslma::Allocator*                  allocator)
-: CommandProcessor(params)
+SearchProcessor::SearchProcessor(bsl::unique_ptr<Parameters> params,
+                                 bslma::Allocator*           allocator)
+: CommandProcessor(bsl::move(params))
 , d_allocator_p(bslma::Default::allocator(allocator))
 {
     // NOTHING
@@ -58,6 +58,8 @@ void SearchProcessor::process(bsl::ostream& ostream)
     Filters filters(d_parameters->queueKey(),
                     d_parameters->queueName(),
                     d_parameters->queueMap(),
+                    d_parameters->timestampGt(),
+                    d_parameters->timestampLt(),
                     ostream,
                     d_allocator_p);
 
