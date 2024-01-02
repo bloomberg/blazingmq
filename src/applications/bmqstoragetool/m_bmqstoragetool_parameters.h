@@ -40,6 +40,9 @@
 #include <mqbs_journalfileiterator.h>
 #include <mqbs_mappedfiledescriptor.h>
 
+// BMQ
+#include <bmqp_ctrlmsg_messages.h>
+
 // MWC
 #include <mwcu_stringutil.h>
 
@@ -98,6 +101,7 @@ struct CommandLineArguments {
 class Parameters {
   public:
     // PUBLIC TYPES
+
     template <typename ITER>
     class FileHandler {
         const bsl::string          d_path;
@@ -126,6 +130,37 @@ class Parameters {
         ITER* iterator();
     };
 
+    typedef bsl::unordered_map<mqbu::StorageKey, bmqp_ctrlmsg::QueueInfo>
+        QueueKeyToInfoMap;
+    typedef bsl::unordered_map<bsl::string, mqbu::StorageKey> QueueUriToKeyMap;
+
+    class QueueMap {
+        QueueKeyToInfoMap d_queueKeyToInfoMap;
+        QueueUriToKeyMap  d_queueUriToKeyMap;
+
+      public:
+        // CREATORS
+
+        explicit QueueMap(bslma::Allocator* allocator);
+
+        // MANIPULATORS
+
+        void insert(const bmqp_ctrlmsg::QueueInfo& queueInfo);
+        // Insert queue info data into internal maps
+
+        // ACCESSORS
+
+        bool findInfoByKey(bmqp_ctrlmsg::QueueInfo* queueInfo_p,
+                           const mqbu::StorageKey&  key) const;
+        // Find queue info by queue key. Return 'true' if key found and
+        // queueInfo_p contains valid data, 'false' otherwise.
+
+        bool findKeyByUri(mqbu::StorageKey*  storageKey_p,
+                          const bsl::string& uri) const;
+        // Find queue info by queue key. Return 'true' if uri found and
+        // storageKey_p contains valid data, 'false' otherwise.
+    };
+
   private:
     bsls::Types::Int64 d_timestampGt;
     // Filter messages by minimum timestamp
@@ -135,9 +170,8 @@ class Parameters {
     // Handler of journal file
     FileHandler<mqbs::DataFileIterator> d_dataFile;
     // Handler of data file
-    // TODO: handle CSL file too
     bsl::string d_cslFile;
-    // Handler of  CSL file
+    // CSL file path
     bsl::vector<bsl::string> d_guid;
     // Filter messages by message guids
     bsl::vector<bsl::string> d_queueKey;
@@ -158,6 +192,12 @@ class Parameters {
     // Show only messages, confirmed by all the appId's
     bool d_partiallyConfirmed;
     // Show only messages, confirmed by some of the appId's
+    QueueMap d_queueMap;
+    // Queue info
+
+    // MANIPULATORS
+    bool buildQueueMap(bsl::ostream& ss, bslma::Allocator* allocator);
+    // Build queue map from csl file.
 
   public:
     // CREATORS
@@ -168,8 +208,8 @@ class Parameters {
     // MANIPULATORS
     FileHandler<mqbs::JournalFileIterator>* journalFile();
     FileHandler<mqbs::DataFileIterator>*    dataFile();
-    // TODO: handle CSL file too
-    bsl::string cslFile();
+    // TODO: used for testing, find better way
+    QueueMap& queueMap();
 
     // ACCESSORS
     bsls::Types::Int64       timestampGt() const;
@@ -184,6 +224,7 @@ class Parameters {
     bool                     outstanding() const;
     bool                     confirmed() const;
     bool                     partiallyConfirmed() const;
+    const QueueMap&          queueMap() const;
 
     // MEMBER FUNCTIONS
     /// Print all the parameters
