@@ -1309,8 +1309,14 @@ static void test9_searchMessagesByQueueNameTest()
         bsl::make_unique<Parameters>(arguments, s_allocator_p);
     params->journalFile()->setIterator(&it);
     // Add uri to key mapping
-    params->queueMap().queueUriToKeyMap()["queue1"] =
-        mqbu::StorageKey(mqbu::StorageKey::HexRepresentation(), queueKey1);
+    bmqp_ctrlmsg::QueueInfo queueInfo;
+    queueInfo.uri() = "queue1";
+    auto key        = mqbu::StorageKey(mqbu::StorageKey::HexRepresentation(),
+                                queueKey1);
+    for (int i = 0; i < mqbu::StorageKey::e_KEY_LENGTH_BINARY; i++) {
+        queueInfo.key().push_back(key.data()[i]);
+    }
+    params->queueMap().insert(queueInfo);
 
     auto searchProcessor = SearchProcessor(bsl::move(params), s_allocator_p);
 

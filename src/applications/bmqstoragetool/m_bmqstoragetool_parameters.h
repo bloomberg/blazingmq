@@ -140,21 +140,25 @@ class Parameters {
 
       public:
         // CREATORS
+
         explicit QueueMap(bslma::Allocator* allocator);
 
         // MANIPULATORS
-        QueueKeyToInfoMap& queueKeyToInfoMap();
-        // Return reference to modifiable key to info map
 
-        QueueUriToKeyMap& queueUriToKeyMap();
-        // Return reference to modifiable Uri to key map
+        void insert(const bmqp_ctrlmsg::QueueInfo& queueInfo);
+        // Insert queue info data into internal maps
 
         // ACCESSORS
-        const QueueKeyToInfoMap& queueKeyToInfoMap() const;
-        // Return reference to non-modifiable key to info map
 
-        const QueueUriToKeyMap& queueUriToKeyMap() const;
-        // Return reference to non-modifiable Uri to key map
+        bool findInfoByKey(bmqp_ctrlmsg::QueueInfo* queueInfo_p,
+                           const mqbu::StorageKey&  key) const;
+        // Find queue info by queue key. Return 'true' if key found and
+        // queueInfo_p contains valid data, 'false' otherwise.
+
+        bool findKeyByUri(mqbu::StorageKey*  storageKey_p,
+                          const bsl::string& uri) const;
+        // Find queue info by queue key. Return 'true' if uri found and
+        // storageKey_p contains valid data, 'false' otherwise.
     };
 
   private:

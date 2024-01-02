@@ -41,9 +41,9 @@ Filters::Filters(const bsl::vector<bsl::string>& queueHexKeys,
     else if (!queueURIS.empty()) {
         for (const auto& uri : queueURIS) {
             // Check if given queue name is in map
-            if (auto it = queueMap.queueUriToKeyMap().find(uri);
-                it != queueMap.queueUriToKeyMap().end()) {
-                d_queueKeys.push_back(it->second);
+            mqbu::StorageKey key;
+            if (queueMap.findKeyByUri(&key, uri)) {
+                d_queueKeys.push_back(key);
             }
             else {
                 ostream << "Queue name: '" << uri

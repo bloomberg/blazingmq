@@ -338,18 +338,12 @@ bool Parameters::buildQueueMap(bsl::ostream& ss, bslma::Allocator* allocator)
     // Get queue info from snapshot (leaderAdvisory) record
     auto leaderAdvisory = clusterMessage.choice().leaderAdvisory();
     auto queuesInfo     = leaderAdvisory.queues();
-
-    // Helper lambda to fill queue maps
-    auto& queueKeyToInfoMap = d_queueMap.queueKeyToInfoMap();
-    auto& queueUriToKeyMap  = d_queueMap.queueUriToKeyMap();
-    auto  fillMap           = [&](const bmqp_ctrlmsg::QueueInfo& queueInfo) {
-        auto queueKey = mqbu::StorageKey(
-            mqbu::StorageKey::BinaryRepresentation(),
-            queueInfo.key().begin());
-        queueKeyToInfoMap[queueKey]       = queueInfo;
-        queueUriToKeyMap[queueInfo.uri()] = queueKey;
-    };
-    bsl::for_each(queuesInfo.begin(), queuesInfo.end(), fillMap);
+    // Fill queue map
+    bsl::for_each(queuesInfo.begin(),
+                  queuesInfo.end(),
+                  [this](const bmqp_ctrlmsg::QueueInfo& queueInfo) {
+                      d_queueMap.insert(queueInfo);
+                  });
 
     // Iterate from last snapshot to get updates
     while (true) {
@@ -374,9 +368,12 @@ bool Parameters::buildQueueMap(bsl::ostream& ss, bslma::Allocator* allocator)
                 auto queueAdvisory =
                     clusterMessage.choice().queueAssignmentAdvisory();
                 auto updateQueuesInfo = queueAdvisory.queues();
-                bsl::for_each(updateQueuesInfo.begin(),
-                              updateQueuesInfo.end(),
-                              fillMap);
+                bsl::for_each(
+                    updateQueuesInfo.begin(),
+                    updateQueuesInfo.end(),
+                    [this](const bmqp_ctrlmsg::QueueInfo& queueInfo) {
+                        d_queueMap.insert(queueInfo);
+                    });
             }
         }
     }
@@ -532,6 +529,8 @@ void Parameters::FileHandler<ITER>::setIterator(ITER* iter)
 // class Parameters::QueueInfo
 // ===========================
 
+// CREATORS
+
 Parameters::QueueMap::QueueMap(bslma::Allocator* allocator)
 : d_queueKeyToInfoMap(allocator)
 , d_queueUriToKeyMap(allocator)
@@ -540,27 +539,37 @@ Parameters::QueueMap::QueueMap(bslma::Allocator* allocator)
 }
 
 // MANIPULATORS
-Parameters::QueueKeyToInfoMap& Parameters::QueueMap::queueKeyToInfoMap()
-{
-    return d_queueKeyToInfoMap;
-}
 
-Parameters::QueueUriToKeyMap& Parameters::QueueMap::queueUriToKeyMap()
+void Parameters::QueueMap::insert(const bmqp_ctrlmsg::QueueInfo& queueInfo)
 {
-    return d_queueUriToKeyMap;
+    auto queueKey = mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
+                                     queueInfo.key().begin());
+    d_queueKeyToInfoMap[queueKey]       = queueInfo;
+    d_queueUriToKeyMap[queueInfo.uri()] = queueKey;
 }
 
 // ACCESSORS
-const Parameters::QueueKeyToInfoMap&
-Parameters::QueueMap::queueKeyToInfoMap() const
+
+bool Parameters::QueueMap::findInfoByKey(bmqp_ctrlmsg::QueueInfo* queueInfo_p,
+                                         const mqbu::StorageKey&  key) const
 {
-    return d_queueKeyToInfoMap;
+    if (auto it = d_queueKeyToInfoMap.find(key);
+        it != d_queueKeyToInfoMap.end()) {
+        *queueInfo_p = it->second;
+        return true;
+    }
+    return false;
 }
 
-const Parameters::QueueUriToKeyMap&
-Parameters::QueueMap::queueUriToKeyMap() const
+bool Parameters::QueueMap::findKeyByUri(mqbu::StorageKey*  storageKey_p,
+                                        const bsl::string& uri) const
 {
-    return d_queueUriToKeyMap;
+    if (auto it = d_queueUriToKeyMap.find(uri);
+        it != d_queueUriToKeyMap.end()) {
+        *storageKey_p = it->second;
+        return true;
+    }
+    return false;
 }
 
 }  // close package namespace
