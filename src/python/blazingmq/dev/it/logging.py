@@ -3,9 +3,6 @@
 
 import inspect
 import logging
-import re
-
-import blazingmq.util.logging
 
 
 def clip(text, width):
@@ -23,7 +20,7 @@ class BMQLogger(logging.getLoggerClass()):
     def makeRecord(self, name, level, fn, lno, msg, args, exc_info, func, extra, sinfo):
         # Add two attributes.
         extra = {
-            "bmqContext": "N/A",  # bmqbrkr or bmqtool process name, test id
+            "bmqprocess": "N/A",  # bmqbrkr or bmqtool process name, test id
             **(extra or {}),
         }
         overrides = extra.pop("ball_overrides", {})

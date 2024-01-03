@@ -144,12 +144,12 @@ class Process:
         # Give a chance to subclass to override the logger.  For example, we
         # prefer `Client` to log using its own logger.
         self._internal_logger = logging.LoggerAdapter(
-            logging.getLogger(self.__class__.__module__), {"bmqContext": name}
+            logging.getLogger(self.__class__.__module__), {"bmqprocess": name}
         )
         self._logger = BallLoggerAdapter(
-            logging.getLogger("test"),
+            logging.getLogger("blazingmq.test"),
             extra={
-                "bmqContext": self.name,
+                "bmqprocess": self.name,
                 "ball_overrides": {"processName": self.name},
                 "blp_log_from": inspect.getfile(type(self)),
             },
@@ -488,7 +488,7 @@ class Process:
         if self.check_exit_code and self._process.poll():  # None or 0: OK
             raise ProcessExitError(self.name, self.returncode)
 
-    def drain(self, timeout=1):
+    def drain(self):
         """
         Read and discard the log, until no log entry is produced for the
         specified 'timeout'.

@@ -7,14 +7,12 @@ import itertools
 import logging
 import shutil
 import signal
-from typing import Any, Callable, Dict, Iterator, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 from pathlib import Path
 
-import blazingmq.dev.it.logre
 import blazingmq.dev.it.process.proc
 import blazingmq.dev.it.testconstants as tc
 import blazingmq.dev.workspace as ws
-import blazingmq.util.logging as bul
 from blazingmq.dev.it.process.broker import Broker
 from blazingmq.dev.it.process.client import Client
 from blazingmq.dev.it.util import ListContextManager, Queue, internal_use
@@ -70,7 +68,7 @@ class Cluster(contextlib.AbstractContextManager):
         self.copy_cores = copy_cores
 
         log_extra = {
-            "bmqContext": "cluster",
+            "bmqprocess": "pytest",
             "ball_overrides": {},
             "blp_log_from": inspect.getfile(type(self)),
         }
@@ -78,7 +76,7 @@ class Cluster(contextlib.AbstractContextManager):
             logging.getLogger(__name__), extra=log_extra
         )
         self._logger = blazingmq.dev.it.process.proc.BallLoggerAdapter(
-            logging.getLogger("test"), extra=log_extra
+            logging.getLogger("blazingmq.test"), extra=log_extra
         )
 
         self.last_known_leader = None
@@ -442,7 +440,8 @@ class Cluster(contextlib.AbstractContextManager):
         dump_messages=True,
         options=None,
     ) -> Client:
-        """Create a client with the specified name.
+        """
+        Create a client with the specified name.
 
         Either 'proxyhostname' or 'proxy' must be specified; the client
         connects to the specified proxy.  If 'options' is specified, its string
@@ -460,26 +459,22 @@ class Cluster(contextlib.AbstractContextManager):
         if isinstance(options, str):
             options = [options]
 
-        process = Client(
+        client = Client(
             name=f"{name}@{proxyhostname}",
             cwd=(self.work_dir / proxyhostname),
             dump_messages=dump_messages,
             options=(self._tool_extra_args or []) + (options or []),
         )
+        client.add_sync_log_hook(lambda _: self.check_processes())
+        client.start()
+        self._clients.append(client)
+        self._logger.debug("%s@%s pid = %s", name, proxyhostname, client._process.pid)
 
-        process.add_sync_log_hook(lambda _: self.check_processes())
-
-        with internal_use(process):
-            process.start()
-
-        self._clients.append(process)
-        self._logger.debug("%s@%s pid = %s", name, proxyhostname, process._process.pid)
-
-        with internal_use(process):
+        with internal_use(client):
             if start:
-                process.start_session(succeed=True)
+                client.start_session(succeed=True)
 
-        return process
+        return client
 
     def wait_status(self, wait_leader, wait_ready):
         """
@@ -640,14 +635,15 @@ class Cluster(contextlib.AbstractContextManager):
         if write_only:
             return True
 
-        if not self.last_known_leader.reconfigure_domain(domain, succeed):
-            return False
+        with internal_use(self):
+            if not self.last_known_leader.reconfigure_domain(domain, succeed):
+                return False
 
-        if not leader_only:
-            for node in self.nodes():
-                if node is not self.last_known_leader:
-                    if not node.reconfigure_domain(domain, succeed):
-                        return False
+            if not leader_only:
+                for node in self.nodes():
+                    if node is not self.last_known_leader:
+                        if not node.reconfigure_domain(domain, succeed):
+                            return False
 
         return True
 

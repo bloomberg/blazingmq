@@ -8,7 +8,7 @@ from blazingmq.dev.it import fixtures
 from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
     Cluster,
     Mode,
-    logger,
+    test_logger,
     order,
     standard_cluster,
     tweak,
@@ -61,9 +61,9 @@ def multi_cluster(request):
 
 
 class TestGracefulShutdown:
-    def post_kill_confirm(self, node, peer, logger):
+    def post_kill_confirm(self, node, peer):
 
-        logger.info("posting...")
+        test_logger.info("posting...")
 
         # post 3 PUTs
         for i in range(1, 4):
@@ -150,8 +150,8 @@ class TestGracefulShutdown:
         node.wait()
         # assert node.return_code == 0
 
-    def kill_wait_unconfirmed(self, peer, logger):
-        logger.info("posting...")
+    def kill_wait_unconfirmed(self, peer):
+        test_logger.info("posting...")
 
         uriWrite = tc.URI_FANOUT
         uriRead = tc.URI_FANOUT_FOO
@@ -215,35 +215,35 @@ class TestGracefulShutdown:
         self.producer.open(tc.URI_FANOUT, flags=["write,ack"], succeed=True)
 
     @tweak.cluster.queue_operations.stop_timeout_ms(1000)
-    def test_shutting_down_primary(self, standard_cluster: Cluster, logger):
+    def test_shutting_down_primary(self, standard_cluster: Cluster):
         cluster = standard_cluster
         leader = cluster.last_known_leader
         active_node = cluster.process(self.replica_proxy.get_active_node())
-        self.post_kill_confirm(leader, active_node, logger)
+        self.post_kill_confirm(leader, active_node)
 
     @tweak.cluster.queue_operations.stop_timeout_ms(1000)
-    def test_shutting_down_replica(self, standard_cluster: Cluster, logger):
+    def test_shutting_down_replica(self, standard_cluster: Cluster):
         cluster = standard_cluster
         leader = cluster.last_known_leader
         active_node = cluster.process(self.replica_proxy.get_active_node())
-        self.post_kill_confirm(active_node, leader, logger)
+        self.post_kill_confirm(active_node, leader)
 
     @tweak.cluster.queue_operations.stop_timeout_ms(1000)
     @tweak.cluster.queue_operations.shutdown_timeout_ms(5000)
     def test_wait_unconfirmed_proxy(
-        self, standard_cluster, logger  # pylint: disable=unused-argument
+        self, standard_cluster  # pylint: disable=unused-argument
     ):
         proxy = self.replica_proxy
-        self.kill_wait_unconfirmed(proxy, logger)
+        self.kill_wait_unconfirmed(proxy)
 
     @tweak.cluster.queue_operations.stop_timeout_ms(1000)
     @tweak.cluster.queue_operations.shutdown_timeout_ms(5000)
     def test_wait_unconfirmed_replica(
-        self, standard_cluster, logger  # pylint: disable=unused-argument
+        self, standard_cluster  # pylint: disable=unused-argument
     ):
         cluster = standard_cluster
         replica = cluster.process(self.replica_proxy.get_active_node())
-        self.kill_wait_unconfirmed(replica, logger)
+        self.kill_wait_unconfirmed(replica)
 
     @tweak.cluster.queue_operations.stop_timeout_ms(3000)
     @tweak.cluster.queue_operations.shutdown_timeout_ms(2000)

@@ -7,10 +7,12 @@ transitioning from PASSIVE to ACTIVE.
 
 import blazingmq.dev.it.testconstants as tc
 from blazingmq.dev.it.fixtures import Cluster
-from blazingmq.dev.it.fixtures import (
+from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
     standard_cluster as cluster,
-    order,  # pylint: disable=unused-import
+    order,
 )
+
+pytestmark = order(6)
 
 
 def test_leader_node_delay(cluster: Cluster):

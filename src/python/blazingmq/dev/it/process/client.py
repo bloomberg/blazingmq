@@ -274,11 +274,13 @@ class Client(blazingmq.dev.it.process.bmqproc.BMQProcess):
         If 'block' is specified and is True, wait for the command
         to complete and return the messages as an array of tuples.
         """
+
         with internal_use(self):
             self.send("list" + f' uri="{uri}"' if uri else "list")
-        if not block:
-            return
-        with internal_use(self):
+
+            if not block:
+                return
+
             m = self.capture(
                 r"Unconfirmed message listing: (-?\d+) messages", timeout=blocktimeout
             )
@@ -298,14 +300,15 @@ class Client(blazingmq.dev.it.process.bmqproc.BMQProcess):
 
     def confirm(self, uri, guid, block=None, succeed=None, no_except=None):
         command = _build_command(f'confirm uri="{uri}" guid="{guid}"', {}, {})
-        res = self._command_helper(
-            command,
-            block,
-            r"<--.*confirmMessage.*\((-?\d+)\)",
-            succeed,
-            no_except,
-        )
-        return res.error_code
+        with internal_use(self):
+            res = self._command_helper(
+                command,
+                block,
+                r"<--.*confirmMessage.*\((-?\d+)\)",
+                succeed,
+                no_except,
+            )
+            return res.error_code
 
     def close(self, uri, block=None, succeed=None, no_except=None, **kw):
         command = _build_command(
@@ -315,13 +318,14 @@ class Client(blazingmq.dev.it.process.bmqproc.BMQProcess):
             },
             kw,
         )
-        res = self._command_helper(
-            command,
-            block,
-            f"<--.*closeQueue.*uri = {re.escape(uri)}.*" r"\((-?\d+)\)",
-            succeed,
-            no_except,
-        )
+        with internal_use(self):
+            res = self._command_helper(
+                command,
+                block,
+                f"<--.*closeQueue.*uri = {re.escape(uri)}.*" r"\((-?\d+)\)",
+                succeed,
+                no_except,
+            )
         return res.error_code
 
     def stop_session(self, block=None, **kw):
@@ -502,8 +506,7 @@ class Client(blazingmq.dev.it.process.bmqproc.BMQProcess):
 
         block = block or (succeed is not None) or (len(all_patterns) > 1)
 
-        with internal_use(self):
-            self.send(command)
+        self.send(command)
 
         if not block:
             return CommandResult(None, None)
@@ -514,10 +517,11 @@ class Client(blazingmq.dev.it.process.bmqproc.BMQProcess):
             result = matches[0]
             extra_matches = matches[1:]
 
-        error_code = self._parse_command_result(
-            command, result, succeed, no_except, timeout
-        )
-        self._logger.info(f"{command} -> {error_code}")
+            error_code = self._parse_command_result(
+                command, result, succeed, no_except, timeout
+            )
+            self._logger.info(f"{command} -> {error_code}")
+
         return CommandResult(error_code, extra_matches)
 
     def _parse_command_result(

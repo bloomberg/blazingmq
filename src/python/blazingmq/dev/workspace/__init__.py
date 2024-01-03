@@ -474,24 +474,7 @@ class Proto:
                     ),
                 ),
                 stats=mqbcfg.StatsConfig(
-                    plugins=[
-                        mqbcfg.StatPluginConfig(
-                            name="GUTSStatConsumer",
-                            queue_size=50000,
-                            queue_high_watermark=10000,
-                            queue_low_watermark=1000,
-                            publish_interval=30,
-                            namespace_prefix="bmqtst",
-                            hosts=[],
-                            instance_id="",
-                        ),
-                        mqbcfg.StatPluginConfig(
-                            name="SimonStatConsumer",
-                            publish_interval=10,
-                            hosts=[],
-                            instance_id="",
-                        ),
-                    ],
+                    plugins=[],
                     snapshot_interval=1,
                     printer=mqbcfg.StatsPrinterConfig(
                         print_interval=60,
@@ -523,8 +506,8 @@ class Proto:
                 ),
                 bmqconf_config=mqbcfg.BmqconfConfig(cache_ttlseconds=30),
                 plugins=mqbcfg.Plugins(
-                    enabled=["GUTSStatConsumer", "SimonStatConsumer"],
-                    libraries=["plugins"],
+                    enabled=[],
+                    libraries=[],
                 ),
                 message_properties_v2=mqbcfg.MessagePropertiesV2(
                     advertise_v2_support=True,

@@ -62,7 +62,7 @@ class BMQProcess(Process):
             category = category.lower()
             thread = int(thread)
             ms = int(ms)
-            category = f"proc.{self._process_log_category}.{category}"
+            category = f"blazingmq.tsk.{self._process_log_category}.{category}"
             self._last_stdout_log_category = category
             timestamp = (
                 time.mktime(time.strptime(datetime, "%d%b%Y_%H:%M:%S")) + ms / 1000.0
@@ -95,7 +95,7 @@ class BMQProcess(Process):
         if level is None:
             # This is the output of the process to stdout *before* it started
             # logging.
-            category = f"proc.{self._process_log_category}"
+            category = f"blazingmq.tsk.{self._process_log_category}"
             level = logging.INFO
             self._last_stdout_log_overrides = {
                 "filename": "?",
@@ -107,11 +107,11 @@ class BMQProcess(Process):
             level,
             record,
             extra={
-                "bmqContext": self.name,
+                "bmqprocess": self.name,
                 "ball_overrides": self._last_stdout_log_overrides,
             },
         )
 
     def log_stderr(self, record):
-        category = f"proc.{self._process_log_category}.stderr"
-        logging.getLogger(category).info("%s", record, extra={"bmqContext": self.name})
+        category = f"blazingmq.tsk.{self._process_log_category}.stderr"
+        logging.getLogger(category).info("%s", record, extra={"bmqprocess": self.name})

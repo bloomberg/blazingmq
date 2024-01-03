@@ -14,7 +14,6 @@ import signal
 
 from blazingmq.dev.it.process import proc
 import blazingmq.dev.it.process.bmqproc
-import blazingmq.dev.it.logre
 import blazingmq.dev.it.testconstants as tc
 import blazingmq.dev.workspace as ws
 
@@ -166,11 +165,11 @@ class Broker(blazingmq.dev.it.process.bmqproc.BMQProcess):
 
         if wait_leader:
             self._logger.info("Waiting for active leader...")
-            regexes.append(blazingmq.dev.it.logre.leader)
+            regexes.append(r"new leader\: \[([^,]+), \d+\], leader status: ACTIVE")
 
         if wait_ready:
             self._logger.log(self._log_level, "Waiting for cluster to be ready...")
-            regexes.append(blazingmq.dev.it.logre.cluster_is_available(cluster))
+            regexes.append(f"Cluster \\({cluster}\\) is available")
 
         if len(regexes) == 0:
             return

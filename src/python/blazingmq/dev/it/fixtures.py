@@ -24,28 +24,30 @@ from enum import IntEnum
 from pathlib import Path
 from typing import Callable, Generator, Iterator, List, Optional, Tuple
 
+import pytest
+
 import blazingmq.dev.it.process.bmqproc
 import blazingmq.dev.it.testconstants as tc
 import blazingmq.dev.workspace as ws
 import blazingmq.util.logging as bul
-import pytest
-from blazingmq.schemas import mqbcfg, mqbconf
 from blazingmq.dev.it.cluster import Cluster
+from blazingmq.dev.it.tweaks import tweak  # pylint: disable=unused-import
 from blazingmq.dev.it.tweaks import TWEAK_ATTRIBUTE, Tweak
-from blazingmq.dev.it.tweaks import (
-    tweak,  # pylint: disable=unused-import; not used here, imported for tests
-)
 from blazingmq.dev.it.util import internal_use
 from blazingmq.dev.paths import paths
-from blazingmq.dev.reserveport import reserve_port
 from blazingmq.dev.pytest import PYTEST_LOG_SPEC_VAR
+from blazingmq.dev.reserveport import reserve_port
+from blazingmq.schemas import mqbcfg, mqbconf
 
 order = pytest.mark.order
 
-_logger = logging.getLogger(__name__)
+logger = logging.LoggerAdapter(logging.getLogger(__name__), {"bmqprocess": "pytest"})
+test_logger = logging.LoggerAdapter(
+    logging.getLogger("blazingmq.test"), {"bmqprocess": "pytest"}
+)
 
-BROKER_CATEGORY = "proc.bmqbrkr"
-TOOL_CATEGORY = "proc.bmqtool"
+BROKER_CATEGORY = "blazingmq.tsk.bmqbrkr"
+TOOL_CATEGORY = "blazingmq.tsk.bmqtool"
 
 
 def start_cluster(start=True, wait_leader=True, wait_ready=False):
@@ -139,7 +141,7 @@ def task_log_params(normalized_levels):
             # pytest loggers.
             continue
 
-        if category == "proc":
+        if category == "blazingmq.tsk":
             proc_default_level = level
             broker_default_level = broker_default_level or level
             broker_threshold = min(broker_threshold, level)
@@ -175,7 +177,7 @@ def task_log_params(normalized_levels):
         )
     ] + broker_category_levels
 
-    _logger.debug(
+    logger.debug(
         "(broker_threshold, broker_category_levels, tool_threshold) = "
         f"{(broker_threshold, broker_category_levels, tool_threshold)}"
     )
@@ -233,14 +235,14 @@ def cluster_fixture(request, configure) -> Generator:
             on_exit.callback(remove_log_file_handler)
 
         work_dir = Path(tempfile.mkdtemp())
-        _logger.info("work_dir = %s", work_dir)
+        logger.info("work_dir = %s", work_dir)
 
         def remove_work_dir():
-            _logger.debug("removing work directory %s", work_dir)
+            logger.debug("removing work directory %s", work_dir)
             shutil.rmtree(work_dir)
 
         if get_option_ini(request.config, "bmq_keep_work_dirs"):
-            _logger.debug(
+            logger.debug(
                 "--bmq-keep-work-dirs specified, will not delete directory %s", work_dir
             )
         else:
@@ -259,31 +261,29 @@ def cluster_fixture(request, configure) -> Generator:
         def check_sequential_tests():
             if int(os.environ.get("PYTEST_XDIST_WORKER_COUNT", "1")) > 1:
                 message = "fixed port allocation is incompatible with parallelism"
-                _logger.error(message)
+                logger.error(message)
                 raise RuntimeError(message)
 
         with contextlib.ExitStack() as scope:
             if env_ports := os.environ.get("BMQIT_PORTS"):
                 check_sequential_tests()
-                _logger.info("using ports %s", env_ports)
+                logger.info("using ports %s", env_ports)
 
                 def port_pool_allocator():
                     for port in env_ports.split(","):
                         yield int(port)
 
                     message = "out of ports"
-                    _logger.error(message)
+                    logger.error(message)
                     raise RuntimeError(message)
 
                 port_allocator = port_pool_allocator()
             elif env_port_base := os.environ.get("BMQIT_PORT_BASE"):
                 check_sequential_tests()
-                _logger.info(
-                    "using ports sequentially allocated from %s", env_port_base
-                )
+                logger.info("using ports sequentially allocated from %s", env_port_base)
                 port_allocator = itertools.count(int(env_port_base))
             else:
-                _logger.info("allocating ephemeral ports")
+                logger.info("allocating ephemeral ports")
 
                 def ephemeral_port_allocator():
                     while True:
@@ -348,7 +348,7 @@ def cluster_fixture(request, configure) -> Generator:
 
                 try:
                     with internal_use(cluster):
-                        _logger.debug("starting cluster")
+                        logger.debug("starting cluster")
 
                         if get_cluster_param(request, "_start_cluster", True):
                             with internal_use(cluster):
@@ -367,7 +367,7 @@ def cluster_fixture(request, configure) -> Generator:
                             request.instance.setup_cluster(cluster)
 
                 except Exception as initial_exception:
-                    _logger.warning(
+                    logger.warning(
                         "stopping cluster after exception %s in during setup",
                         initial_exception,
                     )
@@ -382,10 +382,10 @@ def cluster_fixture(request, configure) -> Generator:
                 else:
                     yield cluster
 
-                _logger.debug("teardown")
+                logger.debug("teardown")
 
                 with internal_use(cluster):
-                    _logger.debug("stopping cluster")
+                    logger.debug("stopping cluster")
 
                     try:
                         cluster.stop()
@@ -395,7 +395,7 @@ def cluster_fixture(request, configure) -> Generator:
                         ):
                             raise
 
-                _logger.debug("teardown complete")
+                logger.debug("teardown complete")
 
 
 @contextlib.contextmanager
@@ -706,12 +706,3 @@ cartesian_product_cluster_params = [
 @pytest.fixture(params=cartesian_product_cluster_params)
 def cartesian_product_cluster(request):
     yield from cluster_fixture(request, request.param)
-
-
-###############################################################################
-# logger
-
-
-@pytest.fixture
-def logger(request):
-    return logging.LoggerAdapter(logging.getLogger("bmq.test"), {"bmqContext": "TEST"})

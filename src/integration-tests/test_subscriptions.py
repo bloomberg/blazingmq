@@ -56,7 +56,7 @@ import pytest
 from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
     Cluster,
     cluster,
-    logger,
+    test_logger,
     order,
     standard_cluster,
     tweak,
@@ -1115,7 +1115,7 @@ class TestSubscriptions:
             consumer.configure(["x >= 0"])
             consumer.expect_messages(expected, confirm=True)
 
-    def test_numeric_limits(self, cluster: Cluster, logger):
+    def test_numeric_limits(self, cluster: Cluster):
         """
         Test: pass huge values in subscription expressions.
         - Create 1 producer / 1 consumer.
@@ -1177,10 +1177,10 @@ class TestSubscriptions:
             expected = producer.post_diff(num=10, offset=i * 100)
 
             if value in supported_ints:
-                logger.info("supported_ints[%s]: %s ", i, value)
+                test_logger.info("supported_ints[%s]: %s ", i, value)
                 consumer.expect_messages(expected, confirm=True)
             else:
-                logger.info("unsupported_ints[%s]: %s", i - len(supported_ints), value)
+                test_logger.info("unsupported_ints[%s]: %s", i - len(supported_ints), value)
                 consumer.expect_empty()
                 # Reconfigure for clean-up
                 consumer.configure(subscriptions=["x >= 0"])

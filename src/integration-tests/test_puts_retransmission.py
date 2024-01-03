@@ -10,7 +10,7 @@ import blazingmq.dev.it.testconstants as tc
 from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
     Cluster,
     cartesian_product_cluster,
-    logger,
+    test_logger,
     order,
     standard_cluster,
     tweak,
@@ -53,7 +53,7 @@ class TestPutsRetransmission:
             consitency.
     """
 
-    def inspect_results(self, logger, allow_duplicates=False):
+    def inspect_results(self, allow_duplicates=False):
 
         if self.active_node in self.cluster.virtual_nodes():
             self.active_node.wait_status(wait_leader=True, wait_ready=False)
@@ -66,7 +66,7 @@ class TestPutsRetransmission:
         )
 
         for uri, consumer in zip(self.uris, self.consumers):
-            logger.info(f"{uri[0]}: received {consumer[1]} messages")
+            test_logger.info(f"{uri[0]}: received {consumer[1]} messages")
             # assert consumer[1] == NUM_MESSAGES
 
         leader.command(f"DOMAINS DOMAIN {self.domain} QUEUE {tc.TEST_QUEUE} INTERNALS")
@@ -79,9 +79,9 @@ class TestPutsRetransmission:
         for consumer in self.consumers:
             os.kill(consumer[0]._process.pid, signal.SIGTERM)
 
-        self.parse_message_logs(logger, allow_duplicates)
+        self.parse_message_logs(allow_duplicates=allow_duplicates)
 
-    def parse_message_logs(self, logger, allow_duplicates=False):
+    def parse_message_logs(self, allow_duplicates=False):
 
         Put = namedtuple("Put", ["message_index", "guid"])
         Ack = namedtuple("Ack", ["message_index", "guid", "status"])
@@ -99,13 +99,13 @@ class TestPutsRetransmission:
         num_duplicates = 0
         num_errors = 0
 
-        def warning(logger, prefix, p1, p2=None):
-            logger.warning(f'{prefix}: {p1}{f" vs existing {p2}" if p2 else ""}')
+        def warning(test_logger, prefix, p1, p2=None):
+            test_logger.warning(f'{prefix}: {p1}{f" vs existing {p2}" if p2 else ""}')
 
-        def error(logger, prefix, p1, p2=None):
+        def error(test_logger, prefix, p1, p2=None):
             nonlocal num_errors
             num_errors += 1
-            warning(logger, prefix, p1, p2)
+            warning(test_logger, prefix, p1, p2)
 
         filePath = os.path.join(self.work_dir, "producer.log")
         with open(filePath, encoding="ascii") as f:
@@ -161,11 +161,13 @@ class TestPutsRetransmission:
                         )
 
                         if message_index is None:
-                            error(logger, "unexpected ACK guid", ack)
+                            error(test_logger, "unexpected ACK guid", ack)
                         elif puts[message_index] is None:
-                            error(logger, "unexpected ACK payload", ack)
+                            error(test_logger, "unexpected ACK payload", ack)
                         elif acks[message_index]:
-                            error(logger, "duplicate ACK", ack, acks[message_index])
+                            error(
+                                test_logger, "duplicate ACK", ack, acks[message_index]
+                            )
                         else:
                             acks[message_index] = ack
 
@@ -174,13 +176,13 @@ class TestPutsRetransmission:
                             else:
                                 num_nacks += 1
                                 warning(
-                                    logger,
+                                    test_logger,
                                     f"unsuccessful ({status}) ACK",
                                     ack,
                                     puts[message_index],
                                 )
 
-        logger.info(f"{num_puts} PUTs, {num_acks} acks, {num_nacks} nacks")
+        test_logger.info(f"{num_puts} PUTs, {num_acks} acks, {num_nacks} nacks")
 
         for uri in self.uris:
             re_push = re.compile(
@@ -219,7 +221,7 @@ class TestPutsRetransmission:
                         if pushes[message_index]:  # duplicate PUSH
                             num_duplicates += 1
                             warning(
-                                logger,
+                                test_logger,
                                 f"{app}: duplicate PUSH payload",
                                 push,
                                 pushes[message_index],
@@ -229,12 +231,12 @@ class TestPutsRetransmission:
                             consumed += 1
 
                             if puts[message_index] is None:  # no corresponding PUT
-                                error(logger, f"{app}: unexpected PUSH", push)
+                                error(test_logger, f"{app}: unexpected PUSH", push)
                             elif acks[message_index] is None:  # no corresponding ACK:
-                                error(logger, f"{app}: unexpected PUSH", push)
+                                error(test_logger, f"{app}: unexpected PUSH", push)
                             elif acks[message_index].guid != guid:  # ACK GUID mismatch
                                 error(
-                                    logger,
+                                    test_logger,
                                     f"{app}: GUID mismatch",
                                     push,
                                     acks[message_index],
@@ -249,14 +251,18 @@ class TestPutsRetransmission:
 
                             if message_index is None:
                                 error(
-                                    logger, f"{app}: unexpected CONFIRM guid", confirm
+                                    test_logger,
+                                    f"{app}: unexpected CONFIRM guid",
+                                    confirm,
                                 )
                             elif pushes[message_index] is None:
-                                error(logger, f"{app}: unexpected CONFIRM", confirm)
+                                error(
+                                    test_logger, f"{app}: unexpected CONFIRM", confirm
+                                )
                             else:
                                 num_confirms += 1
 
-            logger.info(
+            test_logger.info(
                 f"{app}: {num_puts} PUTs"
                 f", {num_acks} acks"
                 f", {num_nacks} nacks"
@@ -270,10 +276,14 @@ class TestPutsRetransmission:
                 if pushes[message_index] is None:
                     # never received 'message_index'
                     if acks[message_index]:
-                        error(logger, f"{app}: missing message", acks[message_index])
+                        error(
+                            test_logger, f"{app}: missing message", acks[message_index]
+                        )
                     num_lost += 1
                 elif pushes[message_index].index != (message_index - num_lost):
-                    error(logger, f"{app}: out of order PUSH", pushes[message_index])
+                    error(
+                        test_logger, f"{app}: out of order PUSH", pushes[message_index]
+                    )
 
         assert num_puts == num_acks
         assert consumed == num_puts
@@ -425,7 +435,7 @@ class TestPutsRetransmission:
         self.leader = cluster.last_known_leader
         self.active_node = cluster.process(self.replica_proxy.get_active_node())
 
-    def test_shutdown_primary_convert_replica(self, standard_cluster: Cluster, logger):
+    def test_shutdown_primary_convert_replica(self, standard_cluster: Cluster):
         self.setup_cluster_fanout(standard_cluster)
 
         # make the 'active_node' new primary
@@ -442,9 +452,9 @@ class TestPutsRetransmission:
         self.active_node.wait_status(wait_leader=True, wait_ready=False)
         self.active_node.capture("is back to healthy state")
 
-        self.inspect_results(logger, allow_duplicates=False)
+        self.inspect_results(allow_duplicates=False)
 
-    def test_shutdown_primary_keep_replica(self, standard_cluster: Cluster, logger):
+    def test_shutdown_primary_keep_replica(self, standard_cluster: Cluster):
         self.setup_cluster_fanout(standard_cluster)
 
         # prevent 'active_node' from becoming new primary
@@ -460,9 +470,9 @@ class TestPutsRetransmission:
         self.active_node.wait_status(wait_leader=True, wait_ready=False)
         self.active_node.capture("is back to healthy state")
 
-        self.inspect_results(logger, allow_duplicates=False)
+        self.inspect_results(allow_duplicates=False)
 
-    def test_shutdown_replica(self, standard_cluster: Cluster, logger):
+    def test_shutdown_replica(self, standard_cluster: Cluster):
         self.setup_cluster_fanout(standard_cluster)
 
         # Start graceful shutdown
@@ -473,9 +483,9 @@ class TestPutsRetransmission:
         # Because the quorum is 3, cluster is still healthy after shutting down
         # replica.
 
-        self.inspect_results(logger, allow_duplicates=False)
+        self.inspect_results(allow_duplicates=False)
 
-    def test_kill_primary_convert_replica(self, standard_cluster: Cluster, logger):
+    def test_kill_primary_convert_replica(self, standard_cluster: Cluster):
         self.setup_cluster_fanout(standard_cluster)
 
         # make the 'active_node' new primary
@@ -490,9 +500,9 @@ class TestPutsRetransmission:
         self.active_node.wait_status(wait_leader=True, wait_ready=False)
         self.active_node.capture("is back to healthy state")
 
-        self.inspect_results(logger, allow_duplicates=True)
+        self.inspect_results(allow_duplicates=True)
 
-    def test_kill_primary_keep_replica(self, standard_cluster: Cluster, logger):
+    def test_kill_primary_keep_replica(self, standard_cluster: Cluster):
         self.setup_cluster_fanout(standard_cluster)
 
         # prevent 'active_node' from becoming new primary
@@ -506,9 +516,9 @@ class TestPutsRetransmission:
         self.active_node.wait_status(wait_leader=True, wait_ready=False)
         self.active_node.capture("is back to healthy state")
 
-        self.inspect_results(logger, allow_duplicates=True)
+        self.inspect_results(allow_duplicates=True)
 
-    def test_kill_replica(self, standard_cluster: Cluster, logger):
+    def test_kill_replica(self, standard_cluster: Cluster):
         self.setup_cluster_fanout(standard_cluster)
 
         # Start graceful shutdown
@@ -516,11 +526,11 @@ class TestPutsRetransmission:
 
         # Because the quorum is 3, cluster is still healthy after shutting down
         # replica.
-        self.inspect_results(logger, allow_duplicates=True)
+        self.inspect_results(allow_duplicates=True)
 
     @tweak.broker.app_config.network_interfaces.tcp_interface.low_watermark(512)
     @tweak.broker.app_config.network_interfaces.tcp_interface.high_watermark(1024)
-    def test_watermarks(self, standard_cluster: Cluster, logger):
+    def test_watermarks(self, standard_cluster: Cluster):
         self.setup_cluster_fanout(standard_cluster)
 
         producer1 = self.replica_proxy.create_client("producer1")
@@ -538,9 +548,9 @@ class TestPutsRetransmission:
         assert msgs[0].payload == "msg"
 
         assert wait_until(self.has_consumed_all, 120)
-        self.inspect_results(logger, allow_duplicates=False)
+        self.inspect_results(allow_duplicates=False)
 
-    def test_kill_proxy(self, standard_cluster: Cluster, logger):
+    def test_kill_proxy(self, standard_cluster: Cluster):
         self.setup_cluster_fanout(standard_cluster)
 
         self.replica_proxy.force_stop()
@@ -550,9 +560,9 @@ class TestPutsRetransmission:
         self.replica_proxy.start()
         self.replica_proxy.wait_until_started()
 
-        self.inspect_results(logger, allow_duplicates=True)
+        self.inspect_results(allow_duplicates=True)
 
-    def test_shutdown_upstream_proxy(self, cartesian_product_cluster: Cluster, logger):
+    def test_shutdown_upstream_proxy(self, cartesian_product_cluster: Cluster):
         if not cartesian_product_cluster.virtual_nodes():
             # Skip cluster without virtual nodes
             return
@@ -562,4 +572,4 @@ class TestPutsRetransmission:
         # Shutdown upstream proxy (VR)
         self.active_node.exit_gracefully()
 
-        self.inspect_results(logger, allow_duplicates=True)
+        self.inspect_results(allow_duplicates=True)

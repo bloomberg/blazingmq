@@ -87,7 +87,7 @@ def apply_normalized_log_levels(levels):
 
     top_level, *category_levels = levels
     logging.getLogger().setLevel(top_level)
-    logging.getLogger("bmq").setLevel(top_level)
+    logging.getLogger("blazingmq").setLevel(top_level)
 
     for category_level in category_levels:
         category, level = category_level

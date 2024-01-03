@@ -5,7 +5,7 @@ import blazingmq.dev.it.testconstants as tc
 from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
     Cluster,
     cluster,
-    logger,
+    test_logger,
     order,
     standard_cluster,
     tweak,
@@ -29,7 +29,7 @@ def set_app_ids(cluster: Cluster, app_ids: List[str]):  # noqa: F811
     cluster.reconfigure_domain_values(tc.DOMAIN_FANOUT, {}, succeed=True)
 
 
-def test_open_alarm_authorize_post(cluster: Cluster, logger):
+def test_open_alarm_authorize_post(cluster: Cluster):
     leader = cluster.last_known_leader
     proxies = cluster.proxy_cycle()
 
@@ -65,16 +65,16 @@ def test_open_alarm_authorize_post(cluster: Cluster, logger):
 
     leader.dump_queue_internals(tc.DOMAIN_FANOUT, tc.TEST_QUEUE)
 
-    barStatus, bazStatus, fooStatus, quuxStatus = sorted(
+    bar_status, baz_status, foo_status, quuxStatus = sorted(
         [
             leader.capture(r"(\w+).*: status=(\w+)(?:, StorageIter.atEnd=(\w+))?", 60)
             for i in all_app_ids
         ],
-        key=lambda m: m[1],
+        key=lambda match: match[1],
     )
-    assert barStatus[2] == "alive"
-    assert bazStatus[2] == "alive"
-    assert fooStatus[2] == "alive"
+    assert bar_status[2] == "alive"
+    assert baz_status[2] == "alive"
+    assert foo_status[2] == "alive"
     assert quuxStatus.group(2, 3) == ("unauthorized", None)
 
     assert (
@@ -90,7 +90,7 @@ def test_open_alarm_authorize_post(cluster: Cluster, logger):
 
     # ---------------------------------------------------------------------
     # Check that 'quux' (unauthorized) client did not receive it.
-    logger.info('Check that "quux" has not seen any messages')
+    test_logger.info('Check that "quux" has not seen any messages')
     assert not quux.wait_push_event(timeout=2, quiet=True)
     assert len(quux.list(f"{tc.URI_FANOUT}?id=quux", block=True)) == 0
 
@@ -119,7 +119,7 @@ def test_open_alarm_authorize_post(cluster: Cluster, logger):
     leader.dump_queue_internals(tc.DOMAIN_FANOUT, tc.TEST_QUEUE)
     # pylint: disable=cell-var-from-loop; passing lambda to 'wait_until' is safe
     for app_id in authorized_app_ids:
-        logger.info(f"Check if {app_id} has seen 2 messages")
+        test_logger.info(f"Check if {app_id} has seen 2 messages")
         assert wait_until(
             lambda: len(
                 consumers[app_id].list(f"{tc.URI_FANOUT}?id={app_id}", block=True)
@@ -128,7 +128,7 @@ def test_open_alarm_authorize_post(cluster: Cluster, logger):
             3,
         )
 
-    logger.info("Check if quux has seen 1 message")
+    test_logger.info("Check if quux has seen 1 message")
     assert wait_until(
         lambda: len(quux.list(f"{tc.URI_FANOUT}?id=quux", block=True)) == 1, 3
     )
@@ -239,7 +239,7 @@ def _test_command_errors(cluster):
     set_app_ids(cluster, authorized_app_ids)
 
 
-def test_unregister_in_presence_of_queues(cluster: Cluster, logger):
+def test_unregister_in_presence_of_queues(cluster: Cluster):
     leader = cluster.last_known_leader
     proxies = cluster.proxy_cycle()
 
@@ -269,7 +269,7 @@ def test_unregister_in_presence_of_queues(cluster: Cluster, logger):
         assert leader.outputs_substr("Num virtual storages: 2")
         assert leader.outputs_substr("foo: status=unauthorized")
 
-    logger.info("confirm msg 1 for bar, expecting 1 msg in storage")
+    test_logger.info("confirm msg 1 for bar, expecting 1 msg in storage")
     time.sleep(1)  # Let the message reach the proxy
     bar.confirm(tc.URI_FANOUT_BAR, "+1", succeed=True)
 
@@ -278,7 +278,7 @@ def test_unregister_in_presence_of_queues(cluster: Cluster, logger):
         leader.dump_queue_internals(tc.DOMAIN_FANOUT, tc.TEST_QUEUE)
         assert leader.outputs_regex("Storage.*: 1 messages")
 
-    logger.info("confirm msg 1 for baz, expecting 0 msg in storage")
+    test_logger.info("confirm msg 1 for baz, expecting 0 msg in storage")
     time.sleep(1)  # Let the message reach the proxy
     baz.confirm(tc.URI_FANOUT_BAZ, "+1", succeed=True)
 
