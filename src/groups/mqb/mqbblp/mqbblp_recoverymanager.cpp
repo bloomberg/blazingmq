@@ -2967,19 +2967,23 @@ void RecoveryManager::startRecovery(
     // Max number of file sets that we want to be inspected.  TBD: add reason
     // for '2'.
 
-    const int          k_MAX_NUM_FILE_SETS_TO_CHECK = 2;
-    int                rc                           = 0;
-    mwcu::MemOutStream errorDesc;
+    const int           k_MAX_NUM_FILE_SETS_TO_CHECK = 2;
+    int                 rc                           = 0;
+    mwcu::MemOutStream  errorDesc;
+    bsls::Types::Uint64 journalFilePos;
+    bsls::Types::Uint64 dataFilePos;
 
     rc = mqbs::FileStoreUtil::openRecoveryFileSet(errorDesc,
                                                   &recoveryCtx.journalFd(),
+                                                  &recoveryCtx.dataFd(),
                                                   &recoveryCtx.fileSet(),
+                                                  &journalFilePos,
+                                                  &dataFilePos,
                                                   partitionId,
                                                   k_MAX_NUM_FILE_SETS_TO_CHECK,
                                                   d_dataStoreConfig,
                                                   true,   // readOnly
                                                   false,  // isFSMWorkflow
-                                                  &recoveryCtx.dataFd(),
                                                   &recoveryCtx.qlistFd());
 
     if ((rc != 0) && (rc != 1)) {

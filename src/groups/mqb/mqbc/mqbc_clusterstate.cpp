@@ -198,7 +198,7 @@ ClusterState& ClusterState::setPartitionPrimary(int          partitionId,
     pinfo.setPrimaryStatus(primaryStatus);
 
     BALL_LOG_INFO << "Cluster [" << d_cluster_p->name() << "]: "
-                  << "Setting primary of Partition [" << partitionId << "] to"
+                  << "Setting primary of Partition [" << partitionId << "] to "
                   << "[" << (node ? node->nodeDescription() : "** NULL **")
                   << "], leaseId: [" << leaseId << "], primaryStatus: ["
                   << primaryStatus << "], oldPrimary: ["
