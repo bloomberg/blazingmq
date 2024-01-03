@@ -125,7 +125,7 @@ class Broker(blazingmq.dev.it.process.bmqproc.BMQProcess):
         Wait until an active node becomes available, and return its host
         name.  Should only be called on proxies.
         """
-        if self.cluster.is_local:
+        if self.cluster.is_single_node:
             return self.last_known_active
 
         self._logger.info("Waiting for active node...")
@@ -155,7 +155,7 @@ class Broker(blazingmq.dev.it.process.bmqproc.BMQProcess):
             cluster = self.cluster_name
 
         if wait_leader:
-            if self.cluster.is_local:
+            if self.cluster.is_single_node:
                 self.last_known_leader = self
                 wait_leader = None
             else:

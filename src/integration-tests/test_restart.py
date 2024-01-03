@@ -46,7 +46,7 @@ def test_basic(cluster: Cluster):
     cluster.restart_nodes()
     # For a standard cluster, states have already been restored as part of
     # leader re-election.
-    if cluster.is_local:
+    if cluster.is_single_node:
         producer.wait_state_restored()
 
     producer.post(tc.URI_PRIORITY, payload=["msg2"], wait_ack=True, succeed=True)

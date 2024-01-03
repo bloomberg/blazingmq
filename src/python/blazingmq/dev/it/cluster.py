@@ -121,7 +121,7 @@ class Cluster(contextlib.AbstractContextManager):
                 else:
                     self.start_node(broker)
 
-            if self.is_local:
+            if self.is_single_node:
                 self._proxies = self._nodes
                 self.last_known_leader = self.nodes()[0]
             else:
@@ -131,14 +131,17 @@ class Cluster(contextlib.AbstractContextManager):
         return (self._nodes, self._proxies)
 
     @property
-    def is_local(self) -> bool:
-        """Return True if this is a local cluster."""
+    def is_single_node(self) -> bool:
+        """
+        Return True if this is a single node cluster.
+        """
 
         return len(self.config.nodes) == 1
 
     @property
     def all_processes(self):
-        """Return all processes related to this cluster.
+        """
+        Return all processes related to this cluster.
 
         This function returns *all* the processes, i.e. the nodes, the proxies
         and the clients.

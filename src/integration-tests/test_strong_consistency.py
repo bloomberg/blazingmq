@@ -3,7 +3,7 @@ import contextlib
 import blazingmq.dev.it.testconstants as tc
 from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
     Cluster,
-    local_cluster,
+    single_node,
     order,
     multi_node,
     tweak,
@@ -129,7 +129,7 @@ class TestStrongConsistency:
         self._break_post_unbreak(multi_node, Killer, False)
 
     def test_strong_consistency_local(
-        self, local_cluster  # pylint: disable=unused-argument
+        self, single_node  # pylint: disable=unused-argument
     ):
         # post SC
         self.producer.post(

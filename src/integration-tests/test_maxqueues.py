@@ -68,7 +68,7 @@ class TestMaxQueues:
 
         active_replica = (
             leader
-            if cluster.is_local
+            if cluster.is_single_node
             else cluster.process(replica_proxy.get_active_node())
         )
         check_num_assigned_queues(5, leader, active_replica)
@@ -104,7 +104,7 @@ class TestMaxQueues:
         # ---------------------------------------------------------------------
         # force a change of leadership
 
-        if not cluster.is_local:
+        if not cluster.is_single_node:
             for node in cluster.nodes():
                 # avoid picking up old leader
                 node.drain()

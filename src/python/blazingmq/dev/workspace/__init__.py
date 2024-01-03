@@ -590,7 +590,7 @@ class Workspace:
       individually.
     """
 
-    proto: Proto = field(default_factory=Proto)
+    proto: Proto = field(default_factory=lambda: copy.deepcopy(Proto()))
     brokers: Dict[str, Broker] = field(default_factory=dict)
     clusters: Dict[str, AbstractCluster] = field(default_factory=dict)
     host_id_allocator: Iterator[int] = field(

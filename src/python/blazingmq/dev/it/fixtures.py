@@ -412,7 +412,7 @@ def break_before_test(request, cluster):
         print(f"broker      : {broker_path}")
         if cluster.last_known_leader is not None:
             print(f"debug leader: gdb {broker_path} {cluster.last_known_leader.pid}")
-        if not cluster.is_local:
+        if not cluster.is_single_node:
             print("nodes:")
             for broker in cluster.nodes():
                 print(f"  {broker.name}:  {broker.pid}", end="")
@@ -467,12 +467,7 @@ WorkspaceConfigurator = Callable[..., None]
 
 
 ###############################################################################
-# local cluster
-
-# local_cluster_config = stock_config.clone()
-# local_cluster_config.select_clusters({"itCluster": "itlcl"})
-# local_cluster_config.add_tags(["itlocal"])
-
+# single node cluster
 
 def add_test_domains(cluster: ws.Cluster):
     for (domain_factory, domain_name, *args) in (
@@ -494,26 +489,26 @@ def add_test_domains(cluster: ws.Cluster):
             )
 
 
-def local_cluster_config(
+def single_node_cluster_config(
     workspace: ws.Workspace, port_allocator: Iterator[int], mode: Mode
 ):
     mode.tweak(workspace.proto.cluster)
 
     broker = workspace.broker(
-        name="local",
+        name="single_node",
         tcp_host="localhost",
         tcp_port=next(port_allocator),
-        data_center="local",
+        data_center="single_node",
     )
 
     cluster = workspace.cluster(name="itCluster", nodes=[broker])
     add_test_domains(cluster)
 
 
-local_cluster_params = [
+single_node_cluster_params = [
     pytest.param(
-        functools.partial(local_cluster_config, mode=mode),
-        id=f"local_cluster{mode.suffix}",
+        functools.partial(single_node_cluster_config, mode=mode),
+        id=f"single_node{mode.suffix}",
         marks=[
             pytest.mark.integrationtest,
             pytest.mark.quick_integrationtest,
@@ -526,16 +521,16 @@ local_cluster_params = [
 ]
 
 
-@pytest.fixture(params=local_cluster_params)
-def local_cluster(request):
+@pytest.fixture(params=single_node_cluster_params)
+def single_node(request):
     yield from cluster_fixture(request, request.param)
 
 
 ###############################################################################
-# standard cluster
+# multi_node cluster
 
 
-def standard_cluster_config(
+def multi_node_cluster_config(
     workspace: ws.Workspace,
     port_allocator: Iterator[int],
     mode: Mode,
@@ -568,9 +563,9 @@ def standard_cluster_config(
         ).proxy(cluster, reverse=reverse_proxy)
 
 
-standard_cluster_params = [
+multi_node_cluster_params = [
     pytest.param(
-        functools.partial(standard_cluster_config, mode=mode),
+        functools.partial(multi_node_cluster_config, mode=mode),
         id=f"multi_node{mode.suffix}",
         marks=[
             pytest.mark.integrationtest,
@@ -583,16 +578,16 @@ standard_cluster_params = [
 ]
 
 
-@pytest.fixture(params=standard_cluster_params)
+@pytest.fixture(params=multi_node_cluster_params)
 def multi_node(request):
     yield from cluster_fixture(request, request.param)
 
 
 ###############################################################################
-# local + standard cluster
+# single_node + multi_node cluster
 
 
-@pytest.fixture(params=local_cluster_params + standard_cluster_params)
+@pytest.fixture(params=single_node_cluster_params + multi_node_cluster_params)
 def cluster(request):
     yield from cluster_fixture(request, request.param)
 
@@ -695,7 +690,7 @@ cartesian_product_cluster_params = [
         ],
     )
     for topology, config in (
-        ("standard", standard_cluster_config),
+        ("multi_node", multi_node_cluster_config),
         ("virtual", virtual_cluster_config),
     )
     for mode in Mode.__members__.values()

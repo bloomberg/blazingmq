@@ -5,7 +5,7 @@ Integration test that tests closing a queue when the broker is down.
 import blazingmq.dev.it.testconstants as tc
 from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
     Cluster,
-    local_cluster, order,
+    single_node, order,
     multi_node,
     start_cluster,
     tweak,
@@ -13,16 +13,16 @@ from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
 from blazingmq.dev.it.process.client import Client
 
 
-def test_close_queue(local_cluster: Cluster):
-    assert local_cluster.is_local
+def test_close_queue(single_node: Cluster):
+    assert single_node.is_single_node
 
     # Start a consumer and open a queue
-    proxies = local_cluster.proxy_cycle()
+    proxies = single_node.proxy_cycle()
     consumer = next(proxies).create_client("consumer")
     consumer.open(tc.URI_PRIORITY, flags=["read"], succeed=True)
 
     # Shutdown the broker
-    leader = local_cluster.last_known_leader
+    leader = single_node.last_known_leader
     leader.stop()
 
     # Try to close the queue

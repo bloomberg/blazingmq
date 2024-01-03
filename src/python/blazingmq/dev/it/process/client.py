@@ -9,8 +9,8 @@ Provide a subclass of 'ito.proc.Process' that wraps 'bmqtool.tsk'.
 
 from contextlib import ExitStack
 
+from collections import namedtuple
 import json
-import logging
 import re
 import subprocess
 from typing import Any, Callable, Dict, Optional, List
@@ -18,7 +18,6 @@ from typing import Any, Callable, Dict, Optional, List
 import blazingmq.dev.it.process.bmqproc
 from blazingmq.dev.it.testconstants import *
 from blazingmq.dev.it.util import internal_use, ListContextManager, Queue
-from collections import namedtuple
 
 Message = namedtuple("Message", "guid, uri, correlationId, payload")
 CommandResult = namedtuple("CommandResult", "error_code, matches")
@@ -284,18 +283,24 @@ class Client(blazingmq.dev.it.process.bmqproc.BMQProcess):
             m = self.capture(
                 r"Unconfirmed message listing: (-?\d+) messages", timeout=blocktimeout
             )
-            if not m:
+            if m is None:
                 self._error(f"list did not complete within {blocktimeout}s")
+                return []
+
             msgs = []
             for i in range(0, int(m[1])):
                 m = self.capture(
-                    f"\\[([0-9a-fA-F]+)\\] Queue: '\\[ uri = (\\S+) correlationId = \\[ autoValue = (-?\\d+) \\] \\]' = '([^']*)'",
+                    "\\[([0-9a-fA-F]+)\\] Queue: '\\[ uri = (\\S+) correlationId = \\[ autoValue = (-?\\d+) \\] \\]' = '([^']*)'",
                     timeout=blocktimeout,
                 )
-                if not m:
+                if m is None:
                     self._error(f"list timed out while waiting for message #{i + 1}")
+                    return []
+
                 msgs.append(Message(m[1], m[2], m[3], m[4]))
+
             self._logger.info(f"list -> {len(msgs)} message(s)")
+
             return msgs
 
     def confirm(self, uri, guid, block=None, succeed=None, no_except=None):

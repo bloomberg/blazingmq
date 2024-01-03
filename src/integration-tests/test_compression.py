@@ -38,7 +38,7 @@ def test_compression_restart(cluster: Cluster):
     cluster.restart_nodes()
     # For a standard cluster, states have already been restored as part of
     # leader re-election.
-    if cluster.is_local:
+    if cluster.is_single_node:
         producer.wait_state_restored()
 
     consumer = next(proxies).create_client("consumer")
