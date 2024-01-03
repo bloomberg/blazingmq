@@ -191,13 +191,18 @@ void SearchResult::outputOutstandingRatio()
 
 void SearchResult::outputPayload(bsls::Types::Uint64 messageOffsetDwords)
 {
-    bsls::Types::Uint64 recordOffset = messageOffsetDwords *
-                                       bmqp::Protocol::k_DWORD_SIZE;
-    auto it = d_dataFile->iterator();
+    auto recordOffset = messageOffsetDwords * bmqp::Protocol::k_DWORD_SIZE;
+    auto it           = d_dataFile->iterator();
+
+    // Flip iterator direction depending on recordOffset
+    if ((it->recordOffset() > recordOffset && !it->isReverseMode()) ||
+        (it->recordOffset() < recordOffset && it->isReverseMode())) {
+        it->flipDirection();
+    }
     // Search record in data file
     while (it->recordOffset() != recordOffset) {
         int rc = it->nextRecord();
-        // TODO: reset iterator if rc ==0
+
         if (rc != 1) {
             d_ostream << "Failed to retrieve message from DATA "
                       << "file rc: " << rc << bsl::endl;
@@ -396,9 +401,9 @@ void SearchGuidResult::outputResult(bool outputRatio)
     }
 }
 
-// =====================
+// =============================
 // class SearchOutstandingResult
-// =====================
+// =============================
 
 SearchOutstandingResult::SearchOutstandingResult(
     bsl::ostream&                                    ostream,
@@ -450,14 +455,9 @@ bool SearchOutstandingResult::processDeletionRecord(
     return false;
 }
 
-// void SearchOutstandingResult::outputResult()
-// {
-//     SearchResult::outputResult();
-// }
-
-// =====================
+// ===========================
 // class SearchConfirmedResult
-// =====================
+// ===========================
 
 SearchConfirmedResult::SearchConfirmedResult(
     bsl::ostream&                                    ostream,
@@ -505,14 +505,12 @@ bool SearchConfirmedResult::processDeletionRecord(
 void SearchConfirmedResult::outputResult(bool outputRatio)
 {
     outputFooter();
-    // For ratio calculation, recalculate d_foundMessagesCount
-    // d_foundMessagesCount = d_totalMessagesCount - d_foundMessagesCount;
     outputOutstandingRatio();
 }
 
-// =====================
+// ====================================
 // class SearchPartiallyConfirmedResult
-// =====================
+// ====================================
 
 SearchPartiallyConfirmedResult::SearchPartiallyConfirmedResult(
     bsl::ostream&                                    ostream,
