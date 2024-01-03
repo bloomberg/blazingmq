@@ -109,8 +109,7 @@ struct QueueEngineUtil {
     static int
     validateUri(const bmqp_ctrlmsg::QueueHandleParameters& handleParameters,
                 mqbi::QueueHandle*                         handle,
-                const mqbi::QueueHandleRequesterContext&   clientContext =
-                    mqbi::QueueHandleRequesterContext());
+                const mqbi::QueueHandleRequesterContext*   clientContext = 0);
 
     /// Report to the specified `domainStats` the queue-time metric of the
     /// message having specified `attributes`.  Note that this method must

@@ -188,10 +188,10 @@ class Domain : public mqbi::Domain, public mqbc::ClusterStateObserver {
     /// Invoke the specified `callback` with the specified
     /// `confirmationCookie` to propagate the result to the requester.
     void onOpenQueueResponse(
-        const bmqp_ctrlmsg::Status&                       status,
-        mqbi::Queue*                                      queue,
-        const bmqp_ctrlmsg::OpenQueueResponse&            openQueueResponse,
-        const mqbi::Cluster::OpenQueueConfirmationCookie& confirmationCookie,
+        const bmqp_ctrlmsg::Status&              status,
+        mqbi::Queue*                             queue,
+        const bmqp_ctrlmsg::OpenQueueResponse&   openQueueResponse,
+        const mqbi::OpenQueueConfirmationCookie& confirmationCookie,
         const bsl::shared_ptr<mqbi::QueueHandleRequesterContext>&
                                                    clientContext,
         const bmqp_ctrlmsg::QueueHandleParameters& handleParameters,

@@ -255,10 +255,6 @@ class Cluster : public mqbi::Cluster,
     // Throttling parameters for failed PUT
     // messages.
 
-    mwcu::ThrottledActionParams d_throttledSkippedPutMessages;
-    // Throttling parameters for dropped
-    // PUT messages.
-
     mwcu::ThrottledActionParams d_throttledFailedAckMessages;
     // Throttling parameters for failed ACK
     // messages.
@@ -274,10 +270,6 @@ class Cluster : public mqbi::Cluster,
     mwcu::ThrottledActionParams d_throttledFailedRejectMessages;
     // Throttling parameters for failed
     // REJECT messages.
-
-    mwcu::ThrottledActionParams d_throttledDroppedConfirmMessages;
-    // Throttling parameters for dropped
-    // CONFIRM messages.
 
     mwcu::ThrottledActionParams d_throttledDroppedRejectMessages;
     // Throttling parameters for dropped
@@ -338,8 +330,7 @@ class Cluster : public mqbi::Cluster,
                  const bmqt::MessageGUID& messageGUID,
                  int                      queueId,
                  const bslstl::StringRef& source,
-                 mqbnet::ClusterNode*     destination,
-                 bool                     isSelfGenerated);
+                 mqbnet::ClusterNode*     destination);
 
     /// Append an ACK message to the session's ack builder, with the
     /// specified `status`, `correlationId`, `messageGUID` and `queueId` to
@@ -353,23 +344,13 @@ class Cluster : public mqbi::Cluster,
                  const bmqt::MessageGUID&  messageGUID,
                  int                       queueId,
                  const bslstl::StringRef&  source,
-                 mqbc::ClusterNodeSession* nodeSession,
-                 bool                      isSelfGenerated);
+                 mqbc::ClusterNodeSession* nodeSession);
 
     /// Generate a nack with the specified `status` and `nackReason` for a
     /// PUT message having the specified `putHeader` for the specified
     /// `queue` from the specified `source`.  The nack is replied to the
     /// `source`.  The specified `raiseAlarm` flag determines whether an
     /// alarm should be raised for this nack.
-    void generateNack(bmqt::AckResult::Enum               status,
-                      const bslstl::StringRef&            nackReason,
-                      const bmqp::PutHeader&              putHeader,
-                      mqbi::Queue*                        queue,
-                      DispatcherClient*                   source,
-                      const bsl::shared_ptr<bdlbb::Blob>& appData,
-                      const bsl::shared_ptr<bdlbb::Blob>& options,
-                      bool                                raiseAlarm);
-
     /// Executed by dispatcher thread.
     void processCommandDispatched(mqbcmd::ClusterResult*        result,
                                   const mqbcmd::ClusterCommand& command);
@@ -401,21 +382,13 @@ class Cluster : public mqbi::Cluster,
 
     void onPutEvent(const mqbi::DispatcherEvent& event);
 
-    void onRelayPutEvent(const mqbi::DispatcherEvent& event);
-
-    void onAckEvent(const mqbi::DispatcherEvent& event);
-
     void onRelayAckEvent(const mqbi::DispatcherEvent& event);
 
     void onConfirmEvent(const mqbi::DispatcherEvent& event);
 
-    void onRelayConfirmEvent(const mqbi::DispatcherEvent& event);
-
     void onRejectEvent(const mqbi::DispatcherEvent& event);
 
     void onRelayRejectEvent(const mqbi::DispatcherEvent& event);
-
-    void onPushEvent(const mqbi::DispatcherEvent& event);
 
     void onRelayPushEvent(const mqbi::DispatcherEvent& event);
 
@@ -625,6 +598,18 @@ class Cluster : public mqbi::Cluster,
 
     /// Load the cluster state to the specified `out` object.
     void loadClusterStatus(mqbcmd::ClusterResult* out) BSLS_KEYWORD_OVERRIDE;
+
+    mqbi::InlineResult::Enum sendConfirmInline(
+        int                         partitionId,
+        const bmqp::ConfirmMessage& message) BSLS_KEYWORD_OVERRIDE;
+
+    mqbi::InlineResult::Enum
+    sendPutInline(int                                       partitionId,
+                  const bmqp::PutHeader&                    putHeader,
+                  const bsl::shared_ptr<bdlbb::Blob>&       appData,
+                  const bsl::shared_ptr<bdlbb::Blob>&       options,
+                  const bsl::shared_ptr<mwcu::AtomicState>& state,
+                  bsls::Types::Uint64 genCount) BSLS_KEYWORD_OVERRIDE;
 
     // MANIPULATORS
     //   (virtual: mqbnet::SessionEventProcessor)

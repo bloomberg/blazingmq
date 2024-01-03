@@ -96,12 +96,12 @@ const char k_SELF_NODE_IS_STOPPING[] = "self node is stopping";
 /// ensure that the specified `refCount` is decremented after it gets
 /// invoked with the specified `status`, `queue` and `confirmationCookie`.
 void openQueueContextCallbackWrapper(
-    int*                                              refCount,
-    const mqbi::Cluster::OpenQueueCallback&           callback,
-    const bmqp_ctrlmsg::Status&                       status,
-    mqbi::Queue*                                      queue,
-    const bmqp_ctrlmsg::OpenQueueResponse&            openQueueResponse,
-    const mqbi::Cluster::OpenQueueConfirmationCookie& confirmationCookie)
+    int*                                     refCount,
+    const mqbi::Cluster::OpenQueueCallback&  callback,
+    const bmqp_ctrlmsg::Status&              status,
+    mqbi::Queue*                             queue,
+    const bmqp_ctrlmsg::OpenQueueResponse&   openQueueResponse,
+    const mqbi::OpenQueueConfirmationCookie& confirmationCookie)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(*refCount >= 1);
@@ -1048,7 +1048,7 @@ void ClusterQueueHelper::sendOpenQueueRequest(const OpenQueueContext& context)
         context.d_callback(failure,                                           \
                            0,                                                 \
                            bmqp_ctrlmsg::OpenQueueResponse(),                 \
-                           mqbi::Cluster::OpenQueueConfirmationCookie());     \
+                           mqbi::OpenQueueConfirmationCookie());              \
     } while (0)
 
     if (bmqp::QueueUtil::isEmpty(context.d_handleParameters)) {
@@ -1292,7 +1292,7 @@ void ClusterQueueHelper::onOpenQueueResponse(
             context.d_callback(requestContext->response().choice().status(),
                                0,
                                bmqp_ctrlmsg::OpenQueueResponse(),
-                               mqbi::Cluster::OpenQueueConfirmationCookie());
+                               mqbi::OpenQueueConfirmationCookie());
 
             return;  // RETURN
         }
@@ -1906,13 +1906,13 @@ void ClusterQueueHelper::onReopenQueueRetryDispatched(
 }
 
 void ClusterQueueHelper::onOpenQueueConfirmationCookieReleased(
-    mqbi::QueueHandle**                        value,
+    mqbi::OpenQueueContext*                    value,
     const bmqp_ctrlmsg::QueueHandleParameters& handleParameters)
 {
     // TBD: NOT REVIEWED
     // executed by *ANY* thread
 
-    mqbi::QueueHandle* handle = *value;
+    mqbi::QueueHandle* handle = value->d_handle;
     d_allocator_p->deleteObject(value);
 
     if (!handle) {
@@ -1954,8 +1954,8 @@ bool ClusterQueueHelper::createQueue(
                   << "context.d_handleParameters: "
                   << context.d_handleParameters << "]";
 
-    mqbi::Cluster::OpenQueueConfirmationCookie confirmationCookie(
-        new (*d_allocator_p) mqbi::QueueHandle*(0),
+    mqbi::OpenQueueConfirmationCookie confirmationCookie(
+        new (*d_allocator_p) mqbi::OpenQueueContext(),
         bdlf::BindUtil::bind(
             &ClusterQueueHelper::onOpenQueueConfirmationCookieReleased,
             this,
@@ -2015,10 +2015,10 @@ bool ClusterQueueHelper::createQueue(
     status.code()     = -1;
     status.message().assign(errorDescription.str().data(),
                             errorDescription.str().length());
-    context.d_callback(status,
-                       0,
-                       openQueueResponse,
-                       mqbi::Cluster::OpenQueueConfirmationCookie());
+
+    mqbi::OpenQueueConfirmationCookie temp;
+
+    context.d_callback(status, 0, openQueueResponse, temp);
 
     if (isPrimary) {
         // No further cleanup required.
@@ -2280,29 +2280,12 @@ void ClusterQueueHelper::onHandleConfigured(
 {
     // executed by *ANY* thread
 
-    d_cluster_p->dispatcher()->execute(
-        bdlf::BindUtil::bind(&ClusterQueueHelper::onHandleConfiguredDispatched,
-                             this,
-                             status,
-                             streamParameters,
-                             request,
-                             requester),
-        d_cluster_p);
-}
+    // Make sure the response is out; otherwise inline PUSH (in queue thread)
+    // can get to the channel before the response.
 
-void ClusterQueueHelper::onHandleConfiguredDispatched(
-    const bmqp_ctrlmsg::Status&           status,
-    const bmqp_ctrlmsg::StreamParameters& streamParameters,
-    const bmqp_ctrlmsg::ControlMessage&   request,
-    mqbc::ClusterNodeSession*             requester)
-{
-    // executed by the *CLUSTER* dispatcher thread
+    // 'synchronize' (Queue with the Cluster) would result in a dead-lock if
+    // 'Queue::configure' synchronizes Cluster with Qeuue.
 
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(
-        d_cluster_p->dispatcher()->inDispatcherThread(d_cluster_p));
-
-    // Send the response (always success)
     bdlma::LocalSequentialAllocator<1024> localAllocator(d_allocator_p);
     bmqp_ctrlmsg::ControlMessage          response(&localAllocator);
 
@@ -2342,25 +2325,47 @@ void ClusterQueueHelper::onHandleConfiguredDispatched(
             configureStream.streamParameters() = streamParameters;
         }
 
-        // Need to rebuild Subscriptions
-        CNSQueueHandleMap::iterator it = requester->queueHandles().find(qId);
-        if (it == requester->queueHandles().end()) {
-            // Failure.
-
-            BALL_LOG_WARN << d_cluster_p->description()
-                          << ": Received configureStream response from ["
-                          << requester->description()
-                          << "] for a queue with unknown Id "
-                          << "(" << qId << ").";
-        }
-        else {
-            it->second.d_subQueueInfosMap.addSubscriptions(streamParameters);
-        }
+        // Need to rebuild Subscriptions in the Cluster thread.
+        d_cluster_p->dispatcher()->execute(
+            bdlf::BindUtil::bind(
+                &ClusterQueueHelper::onHandleConfiguredDispatched,
+                this,
+                qId,
+                streamParameters,
+                requester),
+            d_cluster_p);
     }
 
-    d_clusterData_p->messageTransmitter().sendMessage(
+    d_clusterData_p->messageTransmitter().sendMessageSafe(
         response,
         requester->clusterNode());
+}
+
+void ClusterQueueHelper::onHandleConfiguredDispatched(
+    unsigned int                          qId,
+    const bmqp_ctrlmsg::StreamParameters& streamParameters,
+    mqbc::ClusterNodeSession*             requester)
+{
+    // executed by the *CLUSTER* dispatcher thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(
+        d_cluster_p->dispatcher()->inDispatcherThread(d_cluster_p));
+
+    // Need to rebuild Subscriptions
+    CNSQueueHandleMap::iterator it = requester->queueHandles().find(qId);
+    if (it == requester->queueHandles().end()) {
+        // Failure.
+
+        BALL_LOG_WARN << d_cluster_p->description()
+                      << ": Received configureStream response from ["
+                      << requester->description()
+                      << "] for a queue with unknown Id "
+                      << "(" << qId << ").";
+    }
+    else {
+        it->second.d_subQueueInfosMap.addSubscriptions(streamParameters);
+    }
 }
 
 void ClusterQueueHelper::onGetDomain(
@@ -2439,13 +2444,13 @@ void ClusterQueueHelper::onGetDomainDispatched(
 }
 
 void ClusterQueueHelper::onGetQueueHandle(
-    const bmqp_ctrlmsg::Status&                      status,
-    mqbi::QueueHandle*                               queueHandle,
-    const bmqp_ctrlmsg::OpenQueueResponse&           openQueueResponse,
-    const mqbi::Domain::OpenQueueConfirmationCookie& confirmationCookie,
-    const bmqp_ctrlmsg::ControlMessage&              request,
-    mqbc::ClusterNodeSession*                        requester,
-    const int                                        peerInstanceId)
+    const bmqp_ctrlmsg::Status&              status,
+    mqbi::QueueHandle*                       queueHandle,
+    const bmqp_ctrlmsg::OpenQueueResponse&   openQueueResponse,
+    const mqbi::OpenQueueConfirmationCookie& confirmationCookie,
+    const bmqp_ctrlmsg::ControlMessage&      request,
+    mqbc::ClusterNodeSession*                requester,
+    const int                                peerInstanceId)
 {
     // executed by *ANY* thread
 
@@ -2458,7 +2463,7 @@ void ClusterQueueHelper::onGetQueueHandle(
     // 'requester'.
 
     if (confirmationCookie) {
-        *confirmationCookie = queueHandle;
+        confirmationCookie->d_handle = queueHandle;
     }
 
     d_cluster_p->dispatcher()->execute(
@@ -2475,13 +2480,13 @@ void ClusterQueueHelper::onGetQueueHandle(
 }
 
 void ClusterQueueHelper::onGetQueueHandleDispatched(
-    const bmqp_ctrlmsg::Status&                      status,
-    mqbi::QueueHandle*                               queueHandle,
-    const bmqp_ctrlmsg::OpenQueueResponse&           openQueueResponse,
-    const mqbi::Domain::OpenQueueConfirmationCookie& confirmationCookie,
-    const bmqp_ctrlmsg::ControlMessage&              request,
-    mqbc::ClusterNodeSession*                        requester,
-    const int                                        peerInstanceId)
+    const bmqp_ctrlmsg::Status&              status,
+    mqbi::QueueHandle*                       queueHandle,
+    const bmqp_ctrlmsg::OpenQueueResponse&   openQueueResponse,
+    const mqbi::OpenQueueConfirmationCookie& confirmationCookie,
+    const bmqp_ctrlmsg::ControlMessage&      request,
+    mqbc::ClusterNodeSession*                requester,
+    const int                                peerInstanceId)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -2536,14 +2541,15 @@ void ClusterQueueHelper::onGetQueueHandleDispatched(
     }
 
     BSLS_ASSERT_SAFE(queueHandle);
-    BSLS_ASSERT_SAFE(confirmationCookie);  // in case of success, the cookie
-                                           // must be a valid shared_ptr
+    BSLS_ASSERT_SAFE(confirmationCookie->d_handle);
+    // in case of success, the cookie must be a valid shared_ptr
 
     // Update the cookie to point to a null queue handle, which indicates that
     // 'requester' has successfully received and processed the open-queue
     // response.
 
-    *confirmationCookie = 0;  // Indicate proper response of the queueHandle
+    confirmationCookie->d_handle = 0;
+    // Indicate proper response of the queueHandle
 
     const bmqp_ctrlmsg::OpenQueue& openQueue = request.choice().openQueue();
     const bmqp_ctrlmsg::QueueHandleParameters& handleParams =
@@ -2567,10 +2573,7 @@ void ClusterQueueHelper::onGetQueueHandleDispatched(
         if (subQueueIter == iter->second.d_subQueueInfosMap.end()) {
             // New subStream for this queueHandle
             mqbc::ClusterNodeSession::SubQueueInfo subQueueInfo;
-            subQueueInfo.d_clientStats->initialize(
-                queueHandle->queue()->uri(),
-                requester->statContext().get(),
-                d_allocator_p);
+            subQueueInfo.d_clientStats = confirmationCookie->d_stats;
 
             iter->second.d_subQueueInfosMap.insert(handleParams, subQueueInfo);
         }
@@ -2586,9 +2589,7 @@ void ClusterQueueHelper::onGetQueueHandleDispatched(
         queueContext.d_handle_p = queueHandle;
 
         CNSSubQueueInfo subQueueInfo;
-        subQueueInfo.d_clientStats->initialize(queueHandle->queue()->uri(),
-                                               requester->statContext().get(),
-                                               d_allocator_p);
+        subQueueInfo.d_clientStats = confirmationCookie->d_stats;
 
         queueContext.d_subQueueInfosMap.insert(handleParams, subQueueInfo);
 
@@ -3392,7 +3393,7 @@ void ClusterQueueHelper::processRejectedQueueAssignments(
             cIt->d_callback(failure,
                             0,
                             bmqp_ctrlmsg::OpenQueueResponse(),
-                            mqbi::Cluster::OpenQueueConfirmationCookie());
+                            mqbi::OpenQueueConfirmationCookie());
         }
         d_queues.erase((*sIt)->uri());
     }
@@ -4597,10 +4598,8 @@ void ClusterQueueHelper::openQueue(
         failure.category() = bmqp_ctrlmsg::StatusCategory::E_REFUSED;         \
         failure.code()     = CODE;                                            \
         failure.message()  = REASON;                                          \
-        callback(failure,                                                     \
-                 0,                                                           \
-                 bmqp_ctrlmsg::OpenQueueResponse(),                           \
-                 mqbi::Cluster::OpenQueueConfirmationCookie());               \
+        mqbi::OpenQueueConfirmationCookie temp;                               \
+        callback(failure, 0, bmqp_ctrlmsg::OpenQueueResponse(), temp);        \
     } while (0)
 
     if (d_cluster_p->isStopping()) {
