@@ -70,7 +70,7 @@
           "startupRecoveryMaxDurationMs": 1200000,
           "startupWaitDurationMs": 60000,
           "storageSyncReqTimeoutMs": 300000
-}
+        }
       },
       "masterAssignment": "E_LEADER_IS_MASTER_ALL",
       "elector": {
