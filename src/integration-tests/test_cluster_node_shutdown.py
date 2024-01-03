@@ -11,7 +11,7 @@ import blazingmq.dev.it.testconstants as tc
 from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
     Cluster,
     order,
-    standard_cluster,
+    multi_node,
 )
 from blazingmq.dev.it.process.client import Client
 
@@ -101,14 +101,14 @@ class TestClusterNodeShutdown:
             == Client.e_SUCCESS
         )
 
-    def test_primary_shutdown_with_proxy(self, standard_cluster: Cluster):
-        cluster = standard_cluster
+    def test_primary_shutdown_with_proxy(self, multi_node: Cluster):
+        cluster = multi_node
         primary = cluster.last_known_leader
 
         self._post_kill_recover_post(cluster, primary)
 
-    def test_replica_shutdown_with_proxy(self, standard_cluster: Cluster):
-        cluster = standard_cluster
+    def test_replica_shutdown_with_proxy(self, multi_node: Cluster):
+        cluster = multi_node
         replica = cluster.process(self.proxy2.get_active_node())
 
         self._post_kill_recover_post(cluster, replica)

@@ -12,7 +12,7 @@ from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
     cartesian_product_cluster,
     test_logger,
     order,
-    standard_cluster,
+    multi_node,
     tweak,
 )
 from blazingmq.dev.it.util import wait_until
@@ -435,11 +435,11 @@ class TestPutsRetransmission:
         self.leader = cluster.last_known_leader
         self.active_node = cluster.process(self.replica_proxy.get_active_node())
 
-    def test_shutdown_primary_convert_replica(self, standard_cluster: Cluster):
-        self.setup_cluster_fanout(standard_cluster)
+    def test_shutdown_primary_convert_replica(self, multi_node: Cluster):
+        self.setup_cluster_fanout(multi_node)
 
         # make the 'active_node' new primary
-        for node in standard_cluster.nodes(exclude=self.active_node):
+        for node in multi_node.nodes(exclude=self.active_node):
             node.set_quorum(4)
 
         self.active_node.drain()
@@ -454,8 +454,8 @@ class TestPutsRetransmission:
 
         self.inspect_results(allow_duplicates=False)
 
-    def test_shutdown_primary_keep_replica(self, standard_cluster: Cluster):
-        self.setup_cluster_fanout(standard_cluster)
+    def test_shutdown_primary_keep_replica(self, multi_node: Cluster):
+        self.setup_cluster_fanout(multi_node)
 
         # prevent 'active_node' from becoming new primary
         self.active_node.set_quorum(4)
@@ -472,8 +472,8 @@ class TestPutsRetransmission:
 
         self.inspect_results(allow_duplicates=False)
 
-    def test_shutdown_replica(self, standard_cluster: Cluster):
-        self.setup_cluster_fanout(standard_cluster)
+    def test_shutdown_replica(self, multi_node: Cluster):
+        self.setup_cluster_fanout(multi_node)
 
         # Start graceful shutdown
         self.active_node.exit_gracefully()
@@ -485,11 +485,11 @@ class TestPutsRetransmission:
 
         self.inspect_results(allow_duplicates=False)
 
-    def test_kill_primary_convert_replica(self, standard_cluster: Cluster):
-        self.setup_cluster_fanout(standard_cluster)
+    def test_kill_primary_convert_replica(self, multi_node: Cluster):
+        self.setup_cluster_fanout(multi_node)
 
         # make the 'active_node' new primary
-        for node in standard_cluster.nodes(exclude=self.active_node):
+        for node in multi_node.nodes(exclude=self.active_node):
             node.set_quorum(4)
 
         self.active_node.drain()
@@ -502,8 +502,8 @@ class TestPutsRetransmission:
 
         self.inspect_results(allow_duplicates=True)
 
-    def test_kill_primary_keep_replica(self, standard_cluster: Cluster):
-        self.setup_cluster_fanout(standard_cluster)
+    def test_kill_primary_keep_replica(self, multi_node: Cluster):
+        self.setup_cluster_fanout(multi_node)
 
         # prevent 'active_node' from becoming new primary
         self.active_node.set_quorum(4)
@@ -518,8 +518,8 @@ class TestPutsRetransmission:
 
         self.inspect_results(allow_duplicates=True)
 
-    def test_kill_replica(self, standard_cluster: Cluster):
-        self.setup_cluster_fanout(standard_cluster)
+    def test_kill_replica(self, multi_node: Cluster):
+        self.setup_cluster_fanout(multi_node)
 
         # Start graceful shutdown
         self.active_node.force_stop()
@@ -530,8 +530,8 @@ class TestPutsRetransmission:
 
     @tweak.broker.app_config.network_interfaces.tcp_interface.low_watermark(512)
     @tweak.broker.app_config.network_interfaces.tcp_interface.high_watermark(1024)
-    def test_watermarks(self, standard_cluster: Cluster):
-        self.setup_cluster_fanout(standard_cluster)
+    def test_watermarks(self, multi_node: Cluster):
+        self.setup_cluster_fanout(multi_node)
 
         producer1 = self.replica_proxy.create_client("producer1")
         producer1.open(tc.URI_PRIORITY, flags=["write", "ack"], succeed=True)
@@ -550,8 +550,8 @@ class TestPutsRetransmission:
         assert wait_until(self.has_consumed_all, 120)
         self.inspect_results(allow_duplicates=False)
 
-    def test_kill_proxy(self, standard_cluster: Cluster):
-        self.setup_cluster_fanout(standard_cluster)
+    def test_kill_proxy(self, multi_node: Cluster):
+        self.setup_cluster_fanout(multi_node)
 
         self.replica_proxy.force_stop()
 

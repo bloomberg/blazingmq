@@ -571,7 +571,7 @@ def standard_cluster_config(
 standard_cluster_params = [
     pytest.param(
         functools.partial(standard_cluster_config, mode=mode),
-        id=f"standard_cluster{mode.suffix}",
+        id=f"multi_node{mode.suffix}",
         marks=[
             pytest.mark.integrationtest,
             pytest.mark.pr_integrationtest,
@@ -584,7 +584,7 @@ standard_cluster_params = [
 
 
 @pytest.fixture(params=standard_cluster_params)
-def standard_cluster(request):
+def multi_node(request):
     yield from cluster_fixture(request, request.param)
 
 

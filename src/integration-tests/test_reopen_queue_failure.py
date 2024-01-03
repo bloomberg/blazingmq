@@ -8,7 +8,7 @@ the fix.
 import blazingmq.dev.it.testconstants as tc
 from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
     Cluster,
-    standard_cluster as cluster,
+    multi_node as cluster,
     order,
 )
 

@@ -3,7 +3,7 @@ from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
     Cluster,
     cluster,
     order,
-    standard_cluster,
+    multi_node,
     start_cluster,
     tweak,
 )
@@ -130,8 +130,8 @@ class TestMaxQueues:
     # open queues before there is a leader (restore, in flight contexts)
 
     @start_cluster(False)
-    def test_max_queue_restore(self, standard_cluster: Cluster):
-        cluster = standard_cluster
+    def test_max_queue_restore(self, multi_node: Cluster):
+        cluster = multi_node
 
         cluster.start_node("west1")
         cluster.start_node("east1")

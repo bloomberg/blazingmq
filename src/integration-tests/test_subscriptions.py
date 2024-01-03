@@ -58,7 +58,7 @@ from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
     cluster,
     test_logger,
     order,
-    standard_cluster,
+    multi_node,
     tweak,
 )
 from blazingmq.dev.it.process.broker import Broker
@@ -1599,7 +1599,7 @@ class TestSubscriptions:
         # condition, because it's impossible to have any progress.
         assert optimization_monitor.has_new_message("baz")
 
-    def test_primary_node_crash(self, standard_cluster: Cluster):
+    def test_primary_node_crash(self, multi_node: Cluster):
         """
         Test: configured subscriptions work after primary node crash.
         - Create 1 producer / N consumers.
@@ -1621,10 +1621,10 @@ class TestSubscriptions:
         """
         uri = tc.URI_PRIORITY
 
-        producer = Producer(standard_cluster, uri)
-        consumer1 = Consumer(standard_cluster, uri, ["x < 0"])
-        consumer2 = Consumer(standard_cluster, uri, ["x > 0"])
-        consumer3 = Consumer(standard_cluster, uri, ["x == 0"])
+        producer = Producer(multi_node, uri)
+        consumer1 = Consumer(multi_node, uri, ["x < 0"])
+        consumer2 = Consumer(multi_node, uri, ["x > 0"])
+        consumer3 = Consumer(multi_node, uri, ["x == 0"])
 
         expected1 = producer.post_diff(num=10, offset=-100)
         expected2 = producer.post_diff(num=10, offset=100)
@@ -1634,18 +1634,18 @@ class TestSubscriptions:
         consumer2.expect_messages(expected2, confirm=False)
         consumer3.expect_messages(expected3, confirm=False)
 
-        standard_cluster.drain()
-        leader = standard_cluster.last_known_leader
+        multi_node.drain()
+        leader = multi_node.last_known_leader
         leader.check_exit_code = False
         leader.kill()
         leader.wait()
 
-        leader = standard_cluster.wait_leader()
+        leader = multi_node.wait_leader()
         assert leader is not None
 
         # Consumer with always false expression in this context.
         # Used for synchronization.
-        Consumer(standard_cluster, uri, ["x > 100000"])
+        Consumer(multi_node, uri, ["x > 100000"])
 
         consumer1.expect_messages(expected1, confirm=True, timeout=0)
         consumer2.expect_messages(expected2, confirm=True, timeout=0)
@@ -1659,7 +1659,7 @@ class TestSubscriptions:
         consumer2.expect_messages(expected2, confirm=True)
         consumer3.expect_messages(expected3, confirm=True)
 
-    def test_redelivery_on_primary_node_crash(self, standard_cluster: Cluster):
+    def test_redelivery_on_primary_node_crash(self, multi_node: Cluster):
         """
         Test: configured subscriptions work after primary node crash.
         - Create 1 producer / 3 consumers: C_high, C_low1, C_low2.
@@ -1689,30 +1689,30 @@ class TestSubscriptions:
         """
         uri = tc.URI_PRIORITY
 
-        producer = Producer(standard_cluster, uri)
-        consumer_high = Consumer(standard_cluster, uri, [("x <= 0 || x > 0", 2)])
-        consumer_low1 = Consumer(standard_cluster, uri, [("x <= 0", 1)])
-        consumer_low2 = Consumer(standard_cluster, uri, [("x > 0", 1)])
+        producer = Producer(multi_node, uri)
+        consumer_high = Consumer(multi_node, uri, [("x <= 0 || x > 0", 2)])
+        consumer_low1 = Consumer(multi_node, uri, [("x <= 0", 1)])
+        consumer_low2 = Consumer(multi_node, uri, [("x > 0", 1)])
 
         expected1 = producer.post_diff(num=10, offset=-100)
         expected2 = producer.post_diff(num=10, offset=100)
 
         consumer_high.expect_messages(expected1 + expected2, confirm=False)
 
-        standard_cluster.drain()
-        leader = standard_cluster.last_known_leader
+        multi_node.drain()
+        leader = multi_node.last_known_leader
         leader.check_exit_code = False
         leader.kill()
         leader.wait()
 
         consumer_high.close()
 
-        leader = standard_cluster.wait_leader()
+        leader = multi_node.wait_leader()
         assert leader is not None
 
         # Consumer with always false expression in this context.
         # Used for synchronization.
-        Consumer(standard_cluster, uri, ["x > 100000"])
+        Consumer(multi_node, uri, ["x > 100000"])
 
         consumer_low1.expect_messages(expected1, confirm=True)
         consumer_low2.expect_messages(expected2, confirm=True)
@@ -1723,7 +1723,7 @@ class TestSubscriptions:
         consumer_low1.expect_messages(expected1, confirm=True)
         consumer_low2.expect_messages(expected2, confirm=True)
 
-    def test_reconfigure_on_primary_node_crash(self, standard_cluster: Cluster):
+    def test_reconfigure_on_primary_node_crash(self, multi_node: Cluster):
         """
         Test: configured subscriptions work after primary node crash.
         - Create 1 producer / 3 consumers: C_high, C_low1, C_low2.
@@ -1754,18 +1754,18 @@ class TestSubscriptions:
         """
         uri = tc.URI_PRIORITY
 
-        producer = Producer(standard_cluster, uri)
-        consumer_high = Consumer(standard_cluster, uri, [("x <= 0 || x > 0", 2)])
-        consumer_low1 = Consumer(standard_cluster, uri, [("x > 0", 1)])
-        consumer_low2 = Consumer(standard_cluster, uri, [("x <= 0", 1)])
+        producer = Producer(multi_node, uri)
+        consumer_high = Consumer(multi_node, uri, [("x <= 0 || x > 0", 2)])
+        consumer_low1 = Consumer(multi_node, uri, [("x > 0", 1)])
+        consumer_low2 = Consumer(multi_node, uri, [("x <= 0", 1)])
 
         expected1 = producer.post_diff(num=10, offset=-100)
         expected2 = producer.post_diff(num=10, offset=100)
 
         consumer_high.expect_messages(expected1 + expected2, confirm=False)
 
-        standard_cluster.drain()
-        leader = standard_cluster.last_known_leader
+        multi_node.drain()
+        leader = multi_node.last_known_leader
         leader.check_exit_code = False
         leader.kill()
         leader.wait()
@@ -1775,12 +1775,12 @@ class TestSubscriptions:
         consumer_low2.configure(subscriptions=["x > 0"])
         consumer_high.close()
 
-        leader = standard_cluster.wait_leader()
+        leader = multi_node.wait_leader()
         assert leader is not None
 
         # Consumer with always false expression in this context.
         # Used for synchronization.
-        Consumer(standard_cluster, uri, ["x > 100000"])
+        Consumer(multi_node, uri, ["x > 100000"])
 
         consumer_low1.expect_messages(expected1, confirm=True)
         consumer_low2.expect_messages(expected2, confirm=True)

@@ -2,7 +2,7 @@ import blazingmq.dev.it.testconstants as tc
 from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
     Cluster,
     order,
-    standard_cluster,
+    multi_node,
 )
 from blazingmq.dev.it.util import wait_until
 
@@ -40,7 +40,7 @@ class TestConfirmsBuffering:
                 self.candidate = node
 
     def test_kill_primary_confirm_puts_close_app_start_primary(
-        self, standard_cluster: Cluster  # pylint: disable=unused-argument
+        self, multi_node: Cluster  # pylint: disable=unused-argument
     ):
         # add one more tc.URI_FANOUT_BAZ consumer
         baz = self.replica_proxy.create_client("baz")

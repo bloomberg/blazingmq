@@ -8,7 +8,7 @@ transitioning from PASSIVE to ACTIVE.
 import blazingmq.dev.it.testconstants as tc
 from blazingmq.dev.it.fixtures import Cluster
 from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
-    standard_cluster as cluster,
+    multi_node as cluster,
     order,
 )
 

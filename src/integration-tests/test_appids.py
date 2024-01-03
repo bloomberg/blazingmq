@@ -7,7 +7,7 @@ from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
     cluster,
     test_logger,
     order,
-    standard_cluster,
+    multi_node,
     tweak,
 )
 from blazingmq.dev.it.process.client import Client
@@ -492,18 +492,18 @@ def test_unauthorization(cluster: Cluster):
     consumer.open(appid_uri, flags=["read"], succeed=True)
 
 
-def test_two_consumers_of_unauthorized_app(standard_cluster: Cluster):
+def test_two_consumers_of_unauthorized_app(multi_node: Cluster):
     """DRQS 167201621: First client open authorized and unauthorized apps;
     second client opens unauthorized app.
     Then, primary shuts down causing replica to issue wildcard close
     requests to primary.
     """
 
-    leader = standard_cluster.last_known_leader
+    leader = multi_node.last_known_leader
 
-    replica1 = standard_cluster.nodes()[0]
+    replica1 = multi_node.nodes()[0]
     if replica1 == leader:
-        replica1 = standard_cluster.nodes()[1]
+        replica1 = multi_node.nodes()[1]
 
     # ---------------------------------------------------------------------
     # Two "foo" and "unauthorized" consumers
@@ -511,9 +511,9 @@ def test_two_consumers_of_unauthorized_app(standard_cluster: Cluster):
     consumer1.open(tc.URI_FANOUT_FOO, flags=["read"], succeed=True)
     consumer1.open(f"{tc.URI_FANOUT}?id=unauthorized", flags=["read"], succeed=True)
 
-    replica2 = standard_cluster.nodes()[2]
+    replica2 = multi_node.nodes()[2]
     if replica2 == leader:
-        replica2 = standard_cluster.nodes()[3]
+        replica2 = multi_node.nodes()[3]
 
     consumer2 = replica2.create_client("consumer2")
     consumer2.open(f"{tc.URI_FANOUT}?id=unauthorized", flags=["read"], succeed=True)
