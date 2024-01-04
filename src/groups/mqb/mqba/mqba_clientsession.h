@@ -387,6 +387,8 @@ class ClientSession : public mqbnet::Session,
     // execution of the queue handle
     // deconfigure callbacks.
 
+    ShutdownCb d_shutdownCallback;
+
   private:
     // NOT IMPLEMENTED
 
@@ -593,6 +595,8 @@ class ClientSession : public mqbnet::Session,
                             bsl::shared_ptr<bdlbb::Blob>*   appDataSp,
                             bsl::shared_ptr<bdlbb::Blob>*   optionsSp,
                             const bmqp::PutMessageIterator& putIt);
+
+    void closeChannel();
 
     // PRIVATE ACCESSORS
 
