@@ -296,21 +296,36 @@ struct StorageUtil {
                                  int                            partitionId,
                                  const FileStores&              fileStores);
 
-    // TODO docs
-    // TODO place
+    /// Execute the domain purge command for the specified `partitionId`,
+    /// while selecting the appropriate FileStore from the specified
+    /// `fileStores`.  The specified `domainName` is the name of a domain
+    /// to purge.  Purge results are stored in the specified `purgedQueuesVec`.
+    /// Use the specified `latch` upon completion to synchronize domain purge
+    /// across all partitions ids.
+    ///
+    /// THREAD: Executed by the Queue's dispatcher thread for the specified
+    ///         `partitionId`.
     static void purgeDomainDispatched(
-                                bsl::vector<bsl::vector<mqbcmd::PurgeQueueResult> >* purgedQueuesVec,
-                                 bslmt::Latch*                  latch,
-                                 int                            partitionId,
-                                 const FileStores&              fileStores,
-                                 const bsl::string& domainName);
+        bsl::vector<bsl::vector<mqbcmd::PurgeQueueResult> >* purgedQueuesVec,
+        bslmt::Latch*                                        latch,
+        int                                                  partitionId,
+        const FileStores&                                    fileStores,
+        const bsl::string&                                   domainName);
 
-    static void purgeQueueDispatched(
-                                mqbcmd::PurgeQueueResult  *purgedQueue,
-                                bslmt::Semaphore          *purgeFinishedSemaphore,
-                                mqbs::FileStore                 *fileStore,
-                                mqbi::Storage             *storage,
-                                const bsl::string *appId);
+    /// Execute the queue purge command for the specified `storage` and the
+    /// specified `appId`, associated with the specified `fileStore`.  The
+    /// empty `appId` means purge of all app ids for this queue.  Purge results
+    /// are stored in the specified `purgedQueue`.   Use the specified
+    /// `purgeFinishedSemaphore` upon completion to synchronize queue purge
+    /// with the caller.
+    ///
+    /// THREAD: Executed by the Queue's dispatcher thread for the specified
+    ///         `fileStore`.
+    static void purgeQueueDispatched(mqbcmd::PurgeQueueResult* purgedQueue,
+                                     bslmt::Semaphore*  purgeFinishedSemaphore,
+                                     mqbs::FileStore*   fileStore,
+                                     mqbi::Storage*     storage,
+                                     const bsl::string* appId);
 
     /// Execute the specified `job` for each partition in the specified
     /// `fileStores`.  Each partition will receive its partitionId and a
@@ -661,11 +676,13 @@ struct StorageUtil {
     /// `domainFactory` and `partitionLocation`, and load the result to the
     /// specified `result`.  The command might modify the specified
     /// `replicationFactor` and the corresponding value in each partition of
-    /// the specified `fileStores`.  Use the specified `allocator` for
-    /// memory allocations.  Return 0 if the command was successfully
-    /// processed, or a non-zero value otherwise.  This function can be
-    /// invoked from any thread, and will block until the potentially
-    /// asynchronous operation is complete.
+    /// the specified `fileStores`.  The specified `storageMapVec` might be
+    /// used to find a storage for a specific queue, the specified
+    /// `storagesLock` is used to access this container safely.  Use the
+    /// specified `allocator` for memory allocations.  Return 0 if the command
+    /// was successfully processed, or a non-zero value otherwise.  This
+    /// function can be invoked from any thread, and will block until the
+    /// potentially asynchronous operation is complete.
     static int processCommand(mqbcmd::StorageResult*        result,
                               FileStores*                   fileStores,
                               StorageSpMapVec*              storageMapVec,

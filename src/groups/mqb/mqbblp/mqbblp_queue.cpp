@@ -852,8 +852,8 @@ int Queue::processCommand(mqbcmd::QueueResult*        result,
     // executed by *ANY* thread
 
     if (command.isPurgeAppIdValue()) {
-        BSLS_ASSERT_SAFE(false && 
-                         "Should not get here. PURGE QUEUE command must be processed on a storage level.");
+        BSLS_ASSERT_SAFE(false && "Should not get here. PURGE QUEUE command "
+                                  "must be processed on a storage level.");
     }
     else if (command.isInternalsValue()) {
         mqbcmd::QueueInternals& queueInternals = result->makeQueueInternals();

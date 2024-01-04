@@ -1135,46 +1135,7 @@ ConsumerInfo::ConsumerInfo()
 {
 }
 
-ConsumerInfo::ConsumerInfo(const ConsumerInfo& original)
-: d_maxUnconfirmedMessages(original.d_maxUnconfirmedMessages)
-, d_maxUnconfirmedBytes(original.d_maxUnconfirmedBytes)
-, d_consumerPriority(original.d_consumerPriority)
-, d_consumerPriorityCount(original.d_consumerPriorityCount)
-{
-}
-
-ConsumerInfo::~ConsumerInfo()
-{
-}
-
 // MANIPULATORS
-
-ConsumerInfo& ConsumerInfo::operator=(const ConsumerInfo& rhs)
-{
-    if (this != &rhs) {
-        d_maxUnconfirmedMessages = rhs.d_maxUnconfirmedMessages;
-        d_maxUnconfirmedBytes    = rhs.d_maxUnconfirmedBytes;
-        d_consumerPriority       = rhs.d_consumerPriority;
-        d_consumerPriorityCount  = rhs.d_consumerPriorityCount;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-ConsumerInfo& ConsumerInfo::operator=(ConsumerInfo&& rhs)
-{
-    if (this != &rhs) {
-        d_maxUnconfirmedMessages = bsl::move(rhs.d_maxUnconfirmedMessages);
-        d_maxUnconfirmedBytes    = bsl::move(rhs.d_maxUnconfirmedBytes);
-        d_consumerPriority       = bsl::move(rhs.d_consumerPriority);
-        d_consumerPriorityCount  = bsl::move(rhs.d_consumerPriorityCount);
-    }
-
-    return *this;
-}
-#endif
 
 void ConsumerInfo::reset()
 {
@@ -1865,43 +1826,7 @@ FileInfo::FileInfo()
 {
 }
 
-FileInfo::FileInfo(const FileInfo& original)
-: d_positionBytes(original.d_positionBytes)
-, d_sizeBytes(original.d_sizeBytes)
-, d_outstandingBytes(original.d_outstandingBytes)
-{
-}
-
-FileInfo::~FileInfo()
-{
-}
-
 // MANIPULATORS
-
-FileInfo& FileInfo::operator=(const FileInfo& rhs)
-{
-    if (this != &rhs) {
-        d_positionBytes    = rhs.d_positionBytes;
-        d_sizeBytes        = rhs.d_sizeBytes;
-        d_outstandingBytes = rhs.d_outstandingBytes;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-FileInfo& FileInfo::operator=(FileInfo&& rhs)
-{
-    if (this != &rhs) {
-        d_positionBytes    = bsl::move(rhs.d_positionBytes);
-        d_sizeBytes        = bsl::move(rhs.d_sizeBytes);
-        d_outstandingBytes = bsl::move(rhs.d_outstandingBytes);
-    }
-
-    return *this;
-}
-#endif
 
 void FileInfo::reset()
 {
@@ -2167,37 +2092,7 @@ HelpCommand::HelpCommand()
 {
 }
 
-HelpCommand::HelpCommand(const HelpCommand& original)
-: d_plumbing(original.d_plumbing)
-{
-}
-
-HelpCommand::~HelpCommand()
-{
-}
-
 // MANIPULATORS
-
-HelpCommand& HelpCommand::operator=(const HelpCommand& rhs)
-{
-    if (this != &rhs) {
-        d_plumbing = rhs.d_plumbing;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-HelpCommand& HelpCommand::operator=(HelpCommand&& rhs)
-{
-    if (this != &rhs) {
-        d_plumbing = bsl::move(rhs.d_plumbing);
-    }
-
-    return *this;
-}
-#endif
 
 void HelpCommand::reset()
 {
@@ -2273,43 +2168,7 @@ LeaderMessageSequence::LeaderMessageSequence()
 {
 }
 
-LeaderMessageSequence::LeaderMessageSequence(
-    const LeaderMessageSequence& original)
-: d_electorTerm(original.d_electorTerm)
-, d_sequenceNumber(original.d_sequenceNumber)
-{
-}
-
-LeaderMessageSequence::~LeaderMessageSequence()
-{
-}
-
 // MANIPULATORS
-
-LeaderMessageSequence&
-LeaderMessageSequence::operator=(const LeaderMessageSequence& rhs)
-{
-    if (this != &rhs) {
-        d_electorTerm    = rhs.d_electorTerm;
-        d_sequenceNumber = rhs.d_sequenceNumber;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-LeaderMessageSequence&
-LeaderMessageSequence::operator=(LeaderMessageSequence&& rhs)
-{
-    if (this != &rhs) {
-        d_electorTerm    = bsl::move(rhs.d_electorTerm);
-        d_sequenceNumber = bsl::move(rhs.d_sequenceNumber);
-    }
-
-    return *this;
-}
-#endif
 
 void LeaderMessageSequence::reset()
 {
@@ -4197,37 +4056,7 @@ Subscriber::Subscriber()
 {
 }
 
-Subscriber::Subscriber(const Subscriber& original)
-: d_downstreamSubQueueId(original.d_downstreamSubQueueId)
-{
-}
-
-Subscriber::~Subscriber()
-{
-}
-
 // MANIPULATORS
-
-Subscriber& Subscriber::operator=(const Subscriber& rhs)
-{
-    if (this != &rhs) {
-        d_downstreamSubQueueId = rhs.d_downstreamSubQueueId;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-Subscriber& Subscriber::operator=(Subscriber&& rhs)
-{
-    if (this != &rhs) {
-        d_downstreamSubQueueId = bsl::move(rhs.d_downstreamSubQueueId);
-    }
-
-    return *this;
-}
-#endif
 
 void Subscriber::reset()
 {
@@ -4274,36 +4103,7 @@ const bdlat_AttributeInfo* UninitializedQueue::lookupAttributeInfo(int id)
 
 // CREATORS
 
-UninitializedQueue::UninitializedQueue()
-{
-}
-
-UninitializedQueue::UninitializedQueue(const UninitializedQueue& original)
-{
-    (void)original;
-}
-
-UninitializedQueue::~UninitializedQueue()
-{
-}
-
 // MANIPULATORS
-
-UninitializedQueue&
-UninitializedQueue::operator=(const UninitializedQueue& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-UninitializedQueue& UninitializedQueue::operator=(UninitializedQueue&& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-#endif
 
 void UninitializedQueue::reset()
 {
@@ -4487,35 +4287,7 @@ const bdlat_AttributeInfo* Void::lookupAttributeInfo(int id)
 
 // CREATORS
 
-Void::Void()
-{
-}
-
-Void::Void(const Void& original)
-{
-    (void)original;
-}
-
-Void::~Void()
-{
-}
-
 // MANIPULATORS
-
-Void& Void::operator=(const Void& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-Void& Void::operator=(Void&& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-#endif
 
 void Void::reset()
 {
@@ -4593,43 +4365,7 @@ ActiveFileSet::ActiveFileSet()
 {
 }
 
-ActiveFileSet::ActiveFileSet(const ActiveFileSet& original)
-: d_dataFile(original.d_dataFile)
-, d_journalFile(original.d_journalFile)
-, d_qlistFile(original.d_qlistFile)
-{
-}
-
-ActiveFileSet::~ActiveFileSet()
-{
-}
-
 // MANIPULATORS
-
-ActiveFileSet& ActiveFileSet::operator=(const ActiveFileSet& rhs)
-{
-    if (this != &rhs) {
-        d_dataFile    = rhs.d_dataFile;
-        d_journalFile = rhs.d_journalFile;
-        d_qlistFile   = rhs.d_qlistFile;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-ActiveFileSet& ActiveFileSet::operator=(ActiveFileSet&& rhs)
-{
-    if (this != &rhs) {
-        d_dataFile    = bsl::move(rhs.d_dataFile);
-        d_journalFile = bsl::move(rhs.d_journalFile);
-        d_qlistFile   = bsl::move(rhs.d_qlistFile);
-    }
-
-    return *this;
-}
-#endif
 
 void ActiveFileSet::reset()
 {
@@ -7782,72 +7518,7 @@ ResourceUsageMonitor::ResourceUsageMonitor()
 {
 }
 
-ResourceUsageMonitor::ResourceUsageMonitor(
-    const ResourceUsageMonitor& original)
-: d_numMessages(original.d_numMessages)
-, d_messagesLowWatermarkRatio(original.d_messagesLowWatermarkRatio)
-, d_messagesHighWatermarkRatio(original.d_messagesHighWatermarkRatio)
-, d_messagesCapacity(original.d_messagesCapacity)
-, d_numBytes(original.d_numBytes)
-, d_bytesLowWatermarkRatio(original.d_bytesLowWatermarkRatio)
-, d_bytesHighWatermarkRatio(original.d_bytesHighWatermarkRatio)
-, d_bytesCapacity(original.d_bytesCapacity)
-, d_state(original.d_state)
-, d_messagesState(original.d_messagesState)
-, d_bytesState(original.d_bytesState)
-{
-}
-
-ResourceUsageMonitor::~ResourceUsageMonitor()
-{
-}
-
 // MANIPULATORS
-
-ResourceUsageMonitor&
-ResourceUsageMonitor::operator=(const ResourceUsageMonitor& rhs)
-{
-    if (this != &rhs) {
-        d_state                      = rhs.d_state;
-        d_messagesState              = rhs.d_messagesState;
-        d_numMessages                = rhs.d_numMessages;
-        d_messagesLowWatermarkRatio  = rhs.d_messagesLowWatermarkRatio;
-        d_messagesHighWatermarkRatio = rhs.d_messagesHighWatermarkRatio;
-        d_messagesCapacity           = rhs.d_messagesCapacity;
-        d_bytesState                 = rhs.d_bytesState;
-        d_numBytes                   = rhs.d_numBytes;
-        d_bytesLowWatermarkRatio     = rhs.d_bytesLowWatermarkRatio;
-        d_bytesHighWatermarkRatio    = rhs.d_bytesHighWatermarkRatio;
-        d_bytesCapacity              = rhs.d_bytesCapacity;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-ResourceUsageMonitor&
-ResourceUsageMonitor::operator=(ResourceUsageMonitor&& rhs)
-{
-    if (this != &rhs) {
-        d_state                     = bsl::move(rhs.d_state);
-        d_messagesState             = bsl::move(rhs.d_messagesState);
-        d_numMessages               = bsl::move(rhs.d_numMessages);
-        d_messagesLowWatermarkRatio = bsl::move(
-            rhs.d_messagesLowWatermarkRatio);
-        d_messagesHighWatermarkRatio = bsl::move(
-            rhs.d_messagesHighWatermarkRatio);
-        d_messagesCapacity        = bsl::move(rhs.d_messagesCapacity);
-        d_bytesState              = bsl::move(rhs.d_bytesState);
-        d_numBytes                = bsl::move(rhs.d_numBytes);
-        d_bytesLowWatermarkRatio  = bsl::move(rhs.d_bytesLowWatermarkRatio);
-        d_bytesHighWatermarkRatio = bsl::move(rhs.d_bytesHighWatermarkRatio);
-        d_bytesCapacity           = bsl::move(rhs.d_bytesCapacity);
-    }
-
-    return *this;
-}
-#endif
 
 void ResourceUsageMonitor::reset()
 {
@@ -8681,9 +8352,9 @@ const char* StoragePartitionCommand::selectionName() const
 const char StorageQueue::CLASS_NAME[] = "StorageQueue";
 
 const bdlat_AttributeInfo StorageQueue::ATTRIBUTE_INFO_ARRAY[] = {
-    {ATTRIBUTE_ID_URI,
-     "uri",
-     sizeof("uri") - 1,
+    {ATTRIBUTE_ID_CANONICAL_URI,
+     "canonicalUri",
+     sizeof("canonicalUri") - 1,
      "",
      bdlat_FormattingMode::e_TEXT},
     {ATTRIBUTE_ID_COMMAND,
@@ -8713,7 +8384,8 @@ const bdlat_AttributeInfo* StorageQueue::lookupAttributeInfo(const char* name,
 const bdlat_AttributeInfo* StorageQueue::lookupAttributeInfo(int id)
 {
     switch (id) {
-    case ATTRIBUTE_ID_URI: return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_URI];
+    case ATTRIBUTE_ID_CANONICAL_URI:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CANONICAL_URI];
     case ATTRIBUTE_ID_COMMAND:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_COMMAND];
     default: return 0;
@@ -8723,14 +8395,14 @@ const bdlat_AttributeInfo* StorageQueue::lookupAttributeInfo(int id)
 // CREATORS
 
 StorageQueue::StorageQueue(bslma::Allocator* basicAllocator)
-: d_uri(basicAllocator)
+: d_canonicalUri(basicAllocator)
 , d_command(basicAllocator)
 {
 }
 
 StorageQueue::StorageQueue(const StorageQueue& original,
                            bslma::Allocator*   basicAllocator)
-: d_uri(original.d_uri, basicAllocator)
+: d_canonicalUri(original.d_canonicalUri, basicAllocator)
 , d_command(original.d_command, basicAllocator)
 {
 }
@@ -8738,14 +8410,14 @@ StorageQueue::StorageQueue(const StorageQueue& original,
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
 StorageQueue::StorageQueue(StorageQueue&& original) noexcept
-: d_uri(bsl::move(original.d_uri)),
+: d_canonicalUri(bsl::move(original.d_canonicalUri)),
   d_command(bsl::move(original.d_command))
 {
 }
 
 StorageQueue::StorageQueue(StorageQueue&&    original,
                            bslma::Allocator* basicAllocator)
-: d_uri(bsl::move(original.d_uri), basicAllocator)
+: d_canonicalUri(bsl::move(original.d_canonicalUri), basicAllocator)
 , d_command(bsl::move(original.d_command), basicAllocator)
 {
 }
@@ -8760,8 +8432,8 @@ StorageQueue::~StorageQueue()
 StorageQueue& StorageQueue::operator=(const StorageQueue& rhs)
 {
     if (this != &rhs) {
-        d_uri     = rhs.d_uri;
-        d_command = rhs.d_command;
+        d_canonicalUri = rhs.d_canonicalUri;
+        d_command      = rhs.d_command;
     }
 
     return *this;
@@ -8772,8 +8444,8 @@ StorageQueue& StorageQueue::operator=(const StorageQueue& rhs)
 StorageQueue& StorageQueue::operator=(StorageQueue&& rhs)
 {
     if (this != &rhs) {
-        d_uri     = bsl::move(rhs.d_uri);
-        d_command = bsl::move(rhs.d_command);
+        d_canonicalUri = bsl::move(rhs.d_canonicalUri);
+        d_command      = bsl::move(rhs.d_command);
     }
 
     return *this;
@@ -8782,7 +8454,7 @@ StorageQueue& StorageQueue::operator=(StorageQueue&& rhs)
 
 void StorageQueue::reset()
 {
-    bdlat_ValueTypeFunctions::reset(&d_uri);
+    bdlat_ValueTypeFunctions::reset(&d_canonicalUri);
     bdlat_ValueTypeFunctions::reset(&d_command);
 }
 
@@ -8793,7 +8465,7 @@ StorageQueue::print(bsl::ostream& stream, int level, int spacesPerLevel) const
 {
     bslim::Printer printer(&stream, level, spacesPerLevel);
     printer.start();
-    printer.printAttribute("uri", this->uri());
+    printer.printAttribute("canonicalUri", this->canonicalUri());
     printer.printAttribute("command", this->command());
     printer.end();
     return stream;
@@ -8865,43 +8537,7 @@ Subscription::Subscription()
 {
 }
 
-Subscription::Subscription(const Subscription& original)
-: d_subscriber(original.d_subscriber)
-, d_consumer(original.d_consumer)
-, d_downstreamSubscriptionId(original.d_downstreamSubscriptionId)
-{
-}
-
-Subscription::~Subscription()
-{
-}
-
 // MANIPULATORS
-
-Subscription& Subscription::operator=(const Subscription& rhs)
-{
-    if (this != &rhs) {
-        d_downstreamSubscriptionId = rhs.d_downstreamSubscriptionId;
-        d_consumer                 = rhs.d_consumer;
-        d_subscriber               = rhs.d_subscriber;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-Subscription& Subscription::operator=(Subscription&& rhs)
-{
-    if (this != &rhs) {
-        d_downstreamSubscriptionId = bsl::move(rhs.d_downstreamSubscriptionId);
-        d_consumer                 = bsl::move(rhs.d_consumer);
-        d_subscriber               = bsl::move(rhs.d_subscriber);
-    }
-
-    return *this;
-}
-#endif
 
 void Subscription::reset()
 {
@@ -12319,40 +11955,7 @@ StoragePartition::StoragePartition()
 {
 }
 
-StoragePartition::StoragePartition(const StoragePartition& original)
-: d_command(original.d_command)
-, d_partitionId(original.d_partitionId)
-{
-}
-
-StoragePartition::~StoragePartition()
-{
-}
-
 // MANIPULATORS
-
-StoragePartition& StoragePartition::operator=(const StoragePartition& rhs)
-{
-    if (this != &rhs) {
-        d_partitionId = rhs.d_partitionId;
-        d_command     = rhs.d_command;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-StoragePartition& StoragePartition::operator=(StoragePartition&& rhs)
-{
-    if (this != &rhs) {
-        d_partitionId = bsl::move(rhs.d_partitionId);
-        d_command     = bsl::move(rhs.d_command);
-    }
-
-    return *this;
-}
-#endif
 
 void StoragePartition::reset()
 {
@@ -29460,6 +29063,6 @@ const char* InternalResult::selectionName() const
 }  // close package namespace
 }  // close enterprise namespace
 
-// GENERATED BY BLP_BAS_CODEGEN_2023.12.09
+// GENERATED BY BLP_BAS_CODEGEN_2023.12.23
 // USING bas_codegen.pl -m msg --noAggregateConversion --noExternalization
 // --noIdent --package mqbcmd --msgComponent messages mqbcmd.xsd

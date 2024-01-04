@@ -755,9 +755,9 @@ int Domain::processCommand(mqbcmd::DomainResult*        result,
     // executed by *any* thread
 
     if (command.isPurgeValue()) {
-        // Some queues might be inactive.  They don't have associated mqbi::Queue objects
-        // registered in Domain.  To purge these queues, we need to send purge command
-        // to the storage level.
+        // Some queues might be inactive.  They don't have associated
+        // mqbi::Queue objects registered in Domain.  To purge these queues, we
+        // need to send purge command to the storage level.
         mqbcmd::ClusterCommand clusterCommand;
         mqbcmd::StorageDomain& domain =
             clusterCommand.makeStorage().makeDomain();
@@ -768,18 +768,19 @@ int Domain::processCommand(mqbcmd::DomainResult*        result,
         const int             rc = d_cluster_sp->processCommand(&clusterResult,
                                                     clusterCommand);
 
-        // TODO filter duplicates
-        mqbcmd::PurgedQueues& purgedQueues = result->makePurgedQueues();
-        if (clusterResult.isStorageResultValue() && 
-            clusterResult.storageResult().isPurgedQueuesValue()) {
-            //TODO handle other selections
-            const bsl::vector<mqbcmd::PurgeQueueResult>& purgedQs =
-                clusterResult.storageResult().purgedQueues().queues();
-
-            purgedQueues.queues() = purgedQs;
+        if (clusterResult.isErrorValue()) {
+            result->makeError(clusterResult.error());
+            return rc;
         }
 
-        return 0;  // RETURN
+        BSLS_ASSERT_SAFE(clusterResult.isStorageResultValue());
+        BSLS_ASSERT_SAFE(clusterResult.storageResult().isPurgedQueuesValue());
+
+        mqbcmd::PurgedQueues& purgedQueues = result->makePurgedQueues();
+        purgedQueues.queues() =
+            clusterResult.storageResult().purgedQueues().queues();
+
+        return 0;
     }
     else if (command.isInfoValue()) {
         mqbcmd::DomainInfo& domainInfo = result->makeDomainInfo();
@@ -852,36 +853,40 @@ int Domain::processCommand(mqbcmd::DomainResult*        result,
         }
 
         if (command.queue().command().isPurgeAppIdValue()) {
-            const bsl::string &purgeAppId = command.queue().command().purgeAppId();
+            const bsl::string& purgeAppId =
+                command.queue().command().purgeAppId();
 
             if (purgeAppId.empty()) {
                 mqbcmd::Error& error = result->makeError();
-                error.message()      = "Queue Purge requires a non-empty appId ("
-                                       "Specify '*' to purge the entire queue).";
+                error.message() = "Queue Purge requires a non-empty appId ("
+                                  "Specify '*' to purge the entire queue).";
                 return -1;  // RETURN
             }
 
-            // Some queues might be inactive.  They don't have associated mqbi::Queue objects
-            // registered in Domain.  To purge these queues, we need to send purge command
-            // to the storage level.
+            // Some queues might be inactive.  They don't have associated
+            // mqbi::Queue objects registered in Domain.  The only way to purge
+            // both active/inactive queues is to execute purge on the storage
+            // level.
             mqbcmd::ClusterCommand clusterCommand;
-            mqbcmd::StorageQueue& queue =
+            mqbcmd::StorageQueue&  queue =
                 clusterCommand.makeStorage().makeQueue();
-            queue.uri() = uri.canonical();
+            queue.canonicalUri()             = uri.canonical();
             queue.command().makePurgeAppId() = purgeAppId;
 
             mqbcmd::ClusterResult clusterResult;
-                             rc = d_cluster_sp->processCommand(&clusterResult,
-                                                        clusterCommand);
-
-            // TODO filter duplicates
-            mqbcmd::PurgedQueues& purgedQueues = result->makePurgedQueues();
-            if (clusterResult.isStorageResultValue() && 
-                clusterResult.storageResult().isPurgedQueuesValue()) {
-                //TODO handle other selections
-                result->makeQueueResult().makePurgedQueues().queues() = clusterResult.storageResult().purgedQueues().queues();
+            rc = d_cluster_sp->processCommand(&clusterResult, clusterCommand);
+            if (clusterResult.isErrorValue()) {
+                result->makeError(clusterResult.error());
+                return rc;
             }
 
+            BSLS_ASSERT_SAFE(clusterResult.isStorageResultValue());
+            BSLS_ASSERT_SAFE(
+                clusterResult.storageResult().isPurgedQueuesValue());
+
+            mqbcmd::PurgedQueues& purgedQueues = result->makePurgedQueues();
+            result->makeQueueResult().makePurgedQueues().queues() =
+                clusterResult.storageResult().purgedQueues().queues();
             return rc;
         }
 

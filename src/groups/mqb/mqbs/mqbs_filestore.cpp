@@ -7095,10 +7095,9 @@ void FileStore::flush()
 }
 
 void FileStore::purgeQueue(mqbcmd::PurgeQueueResult* result,
-                           mqbi::Storage &storage,
-                           const bsl::string& appId)
+                           mqbi::Storage&            storage,
+                           const bsl::string&        appId)
 {
-
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
@@ -7134,7 +7133,7 @@ void FileStore::purgeQueue(mqbcmd::PurgeQueueResult* result,
         }
     }
 
-    const bsls::Types::Uint64 numMsgs = storage.numMessages(appKey);
+    const bsls::Types::Uint64 numMsgs  = storage.numMessages(appKey);
     const bsls::Types::Uint64 numBytes = storage.numBytes(appKey);
 
     mqbi::StorageResult::Enum rc = storage.removeAll(appKey);
@@ -7164,8 +7163,9 @@ void FileStore::purgeQueue(mqbcmd::PurgeQueueResult* result,
     queueDetails.numBytesPurged()    = numBytes;
 }
 
-
-void FileStore::purgeDomain(bsl::vector<mqbcmd::PurgeQueueResult> *purgedQueues, const bsl::string &domainName)
+void FileStore::purgeDomain(
+    bsl::vector<mqbcmd::PurgeQueueResult>* purgedQueues,
+    const bsl::string&                     domainName)
 {
     // executed by the *DISPATCHER* thread
 
@@ -7173,9 +7173,11 @@ void FileStore::purgeDomain(bsl::vector<mqbcmd::PurgeQueueResult> *purgedQueues,
     BSLS_ASSERT_SAFE(inDispatcherThread());
     BSLS_ASSERT_SAFE(purgedQueues);
 
-    mqbs::StorageCollectionUtil::StorageFilter filter = mqbs::StorageCollectionUtilFilterFactory::byDomain(domainName);
+    mqbs::StorageCollectionUtil::StorageFilter filter =
+        mqbs::StorageCollectionUtilFilterFactory::byDomain(domainName);
 
-    for (StorageMapIter sit = d_storages.begin(); sit != d_storages.end(); sit++) {
+    for (StorageMapIter sit = d_storages.begin(); sit != d_storages.end();
+         sit++) {
         // PURGE queue return empty queues or not?
         // TODO check if it's primary for this queue
         if (!filter(sit->second)) {

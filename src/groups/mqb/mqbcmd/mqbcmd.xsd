@@ -756,8 +756,8 @@
 
   <complexType name="StorageQueue">
     <sequence>
-      <element name="uri"     type="xs:string"/>
-      <element name="command" type="tns:StorageQueueCommand"/>
+      <element name="canonicalUri" type="xs:string"/>
+      <element name="command"      type="tns:StorageQueueCommand"/>
     </sequence>
   </complexType>
 

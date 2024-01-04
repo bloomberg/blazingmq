@@ -1986,33 +1986,7 @@ class ConsumerInfo {
     ConsumerInfo();
     // Create an object of type 'ConsumerInfo' having the default value.
 
-    ConsumerInfo(const ConsumerInfo& original);
-    // Create an object of type 'ConsumerInfo' having the value of the
-    // specified 'original' object.
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    ConsumerInfo(ConsumerInfo&& original) = default;
-    // Create an object of type 'ConsumerInfo' having the value of the
-    // specified 'original' object.  After performing this action, the
-    // 'original' object will be left in a valid, but unspecified state.
-#endif
-
-    ~ConsumerInfo();
-    // Destroy this object.
-
     // MANIPULATORS
-    ConsumerInfo& operator=(const ConsumerInfo& rhs);
-    // Assign to this object the value of the specified 'rhs' object.
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    ConsumerInfo& operator=(ConsumerInfo&& rhs);
-    // Assign to this object the value of the specified 'rhs' object.
-    // After performing this action, the 'rhs' object will be left in a
-    // valid, but unspecified state.
-#endif
-
     void reset();
     // Reset this object to the default value (i.e., its value upon
     // default construction).
@@ -2897,33 +2871,7 @@ class FileInfo {
     FileInfo();
     // Create an object of type 'FileInfo' having the default value.
 
-    FileInfo(const FileInfo& original);
-    // Create an object of type 'FileInfo' having the value of the
-    // specified 'original' object.
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    FileInfo(FileInfo&& original) = default;
-    // Create an object of type 'FileInfo' having the value of the
-    // specified 'original' object.  After performing this action, the
-    // 'original' object will be left in a valid, but unspecified state.
-#endif
-
-    ~FileInfo();
-    // Destroy this object.
-
     // MANIPULATORS
-    FileInfo& operator=(const FileInfo& rhs);
-    // Assign to this object the value of the specified 'rhs' object.
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    FileInfo& operator=(FileInfo&& rhs);
-    // Assign to this object the value of the specified 'rhs' object.
-    // After performing this action, the 'rhs' object will be left in a
-    // valid, but unspecified state.
-#endif
-
     void reset();
     // Reset this object to the default value (i.e., its value upon
     // default construction).
@@ -3357,33 +3305,7 @@ class HelpCommand {
     HelpCommand();
     // Create an object of type 'HelpCommand' having the default value.
 
-    HelpCommand(const HelpCommand& original);
-    // Create an object of type 'HelpCommand' having the value of the
-    // specified 'original' object.
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    HelpCommand(HelpCommand&& original) = default;
-    // Create an object of type 'HelpCommand' having the value of the
-    // specified 'original' object.  After performing this action, the
-    // 'original' object will be left in a valid, but unspecified state.
-#endif
-
-    ~HelpCommand();
-    // Destroy this object.
-
     // MANIPULATORS
-    HelpCommand& operator=(const HelpCommand& rhs);
-    // Assign to this object the value of the specified 'rhs' object.
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    HelpCommand& operator=(HelpCommand&& rhs);
-    // Assign to this object the value of the specified 'rhs' object.
-    // After performing this action, the 'rhs' object will be left in a
-    // valid, but unspecified state.
-#endif
-
     void reset();
     // Reset this object to the default value (i.e., its value upon
     // default construction).
@@ -3540,33 +3462,7 @@ class LeaderMessageSequence {
     // Create an object of type 'LeaderMessageSequence' having the default
     // value.
 
-    LeaderMessageSequence(const LeaderMessageSequence& original);
-    // Create an object of type 'LeaderMessageSequence' having the value of
-    // the specified 'original' object.
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    LeaderMessageSequence(LeaderMessageSequence&& original) = default;
-    // Create an object of type 'LeaderMessageSequence' having the value of
-    // the specified 'original' object.  After performing this action, the
-    // 'original' object will be left in a valid, but unspecified state.
-#endif
-
-    ~LeaderMessageSequence();
-    // Destroy this object.
-
     // MANIPULATORS
-    LeaderMessageSequence& operator=(const LeaderMessageSequence& rhs);
-    // Assign to this object the value of the specified 'rhs' object.
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    LeaderMessageSequence& operator=(LeaderMessageSequence&& rhs);
-    // Assign to this object the value of the specified 'rhs' object.
-    // After performing this action, the 'rhs' object will be left in a
-    // valid, but unspecified state.
-#endif
-
     void reset();
     // Reset this object to the default value (i.e., its value upon
     // default construction).
@@ -6043,33 +5939,7 @@ class Subscriber {
     Subscriber();
     // Create an object of type 'Subscriber' having the default value.
 
-    Subscriber(const Subscriber& original);
-    // Create an object of type 'Subscriber' having the value of the
-    // specified 'original' object.
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    Subscriber(Subscriber&& original) = default;
-    // Create an object of type 'Subscriber' having the value of the
-    // specified 'original' object.  After performing this action, the
-    // 'original' object will be left in a valid, but unspecified state.
-#endif
-
-    ~Subscriber();
-    // Destroy this object.
-
     // MANIPULATORS
-    Subscriber& operator=(const Subscriber& rhs);
-    // Assign to this object the value of the specified 'rhs' object.
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    Subscriber& operator=(Subscriber&& rhs);
-    // Assign to this object the value of the specified 'rhs' object.
-    // After performing this action, the 'rhs' object will be left in a
-    // valid, but unspecified state.
-#endif
-
     void reset();
     // Reset this object to the default value (i.e., its value upon
     // default construction).
@@ -6212,37 +6082,8 @@ class UninitializedQueue {
     // exists, and 0 otherwise.
 
     // CREATORS
-    UninitializedQueue();
-    // Create an object of type 'UninitializedQueue' having the default
-    // value.
-
-    UninitializedQueue(const UninitializedQueue& original);
-    // Create an object of type 'UninitializedQueue' having the value of
-    // the specified 'original' object.
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    UninitializedQueue(UninitializedQueue&& original) = default;
-    // Create an object of type 'UninitializedQueue' having the value of
-    // the specified 'original' object.  After performing this action, the
-    // 'original' object will be left in a valid, but unspecified state.
-#endif
-
-    ~UninitializedQueue();
-    // Destroy this object.
 
     // MANIPULATORS
-    UninitializedQueue& operator=(const UninitializedQueue& rhs);
-    // Assign to this object the value of the specified 'rhs' object.
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    UninitializedQueue& operator=(UninitializedQueue&& rhs);
-    // Assign to this object the value of the specified 'rhs' object.
-    // After performing this action, the 'rhs' object will be left in a
-    // valid, but unspecified state.
-#endif
-
     void reset();
     // Reset this object to the default value (i.e., its value upon
     // default construction).
@@ -6601,36 +6442,8 @@ class Void {
     // exists, and 0 otherwise.
 
     // CREATORS
-    Void();
-    // Create an object of type 'Void' having the default value.
-
-    Void(const Void& original);
-    // Create an object of type 'Void' having the value of the specified
-    // 'original' object.
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    Void(Void&& original) = default;
-    // Create an object of type 'Void' having the value of the specified
-    // 'original' object.  After performing this action, the 'original'
-    // object will be left in a valid, but unspecified state.
-#endif
-
-    ~Void();
-    // Destroy this object.
 
     // MANIPULATORS
-    Void& operator=(const Void& rhs);
-    // Assign to this object the value of the specified 'rhs' object.
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    Void& operator=(Void&& rhs);
-    // Assign to this object the value of the specified 'rhs' object.
-    // After performing this action, the 'rhs' object will be left in a
-    // valid, but unspecified state.
-#endif
-
     void reset();
     // Reset this object to the default value (i.e., its value upon
     // default construction).
@@ -6785,33 +6598,7 @@ class ActiveFileSet {
     ActiveFileSet();
     // Create an object of type 'ActiveFileSet' having the default value.
 
-    ActiveFileSet(const ActiveFileSet& original);
-    // Create an object of type 'ActiveFileSet' having the value of the
-    // specified 'original' object.
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    ActiveFileSet(ActiveFileSet&& original) = default;
-    // Create an object of type 'ActiveFileSet' having the value of the
-    // specified 'original' object.  After performing this action, the
-    // 'original' object will be left in a valid, but unspecified state.
-#endif
-
-    ~ActiveFileSet();
-    // Destroy this object.
-
     // MANIPULATORS
-    ActiveFileSet& operator=(const ActiveFileSet& rhs);
-    // Assign to this object the value of the specified 'rhs' object.
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    ActiveFileSet& operator=(ActiveFileSet&& rhs);
-    // Assign to this object the value of the specified 'rhs' object.
-    // After performing this action, the 'rhs' object will be left in a
-    // valid, but unspecified state.
-#endif
-
     void reset();
     // Reset this object to the default value (i.e., its value upon
     // default construction).
@@ -10179,33 +9966,7 @@ class ResourceUsageMonitor {
     // Create an object of type 'ResourceUsageMonitor' having the default
     // value.
 
-    ResourceUsageMonitor(const ResourceUsageMonitor& original);
-    // Create an object of type 'ResourceUsageMonitor' having the value of
-    // the specified 'original' object.
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    ResourceUsageMonitor(ResourceUsageMonitor&& original) = default;
-    // Create an object of type 'ResourceUsageMonitor' having the value of
-    // the specified 'original' object.  After performing this action, the
-    // 'original' object will be left in a valid, but unspecified state.
-#endif
-
-    ~ResourceUsageMonitor();
-    // Destroy this object.
-
     // MANIPULATORS
-    ResourceUsageMonitor& operator=(const ResourceUsageMonitor& rhs);
-    // Assign to this object the value of the specified 'rhs' object.
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    ResourceUsageMonitor& operator=(ResourceUsageMonitor&& rhs);
-    // Assign to this object the value of the specified 'rhs' object.
-    // After performing this action, the 'rhs' object will be left in a
-    // valid, but unspecified state.
-#endif
-
     void reset();
     // Reset this object to the default value (i.e., its value upon
     // default construction).
@@ -11053,16 +10814,16 @@ namespace mqbcmd {
 
 class StorageQueue {
     // INSTANCE DATA
-    bsl::string         d_uri;
+    bsl::string         d_canonicalUri;
     StorageQueueCommand d_command;
 
   public:
     // TYPES
-    enum { ATTRIBUTE_ID_URI = 0, ATTRIBUTE_ID_COMMAND = 1 };
+    enum { ATTRIBUTE_ID_CANONICAL_URI = 0, ATTRIBUTE_ID_COMMAND = 1 };
 
     enum { NUM_ATTRIBUTES = 2 };
 
-    enum { ATTRIBUTE_INDEX_URI = 0, ATTRIBUTE_INDEX_COMMAND = 1 };
+    enum { ATTRIBUTE_INDEX_CANONICAL_URI = 0, ATTRIBUTE_INDEX_COMMAND = 1 };
 
     // CONSTANTS
     static const char CLASS_NAME[];
@@ -11159,8 +10920,9 @@ class StorageQueue {
     // returned from the invocation of 'manipulator' if 'name' identifies
     // an attribute of this class, and -1 otherwise.
 
-    bsl::string& uri();
-    // Return a reference to the modifiable "Uri" attribute of this object.
+    bsl::string& canonicalUri();
+    // Return a reference to the modifiable "CanonicalUri" attribute of
+    // this object.
 
     StorageQueueCommand& command();
     // Return a reference to the modifiable "Command" attribute of this
@@ -11209,9 +10971,9 @@ class StorageQueue {
     // invocation of 'accessor' if 'name' identifies an attribute of this
     // class, and -1 otherwise.
 
-    const bsl::string& uri() const;
-    // Return a reference offering non-modifiable access to the "Uri"
-    // attribute of this object.
+    const bsl::string& canonicalUri() const;
+    // Return a reference offering non-modifiable access to the
+    // "CanonicalUri" attribute of this object.
 
     const StorageQueueCommand& command() const;
     // Return a reference offering non-modifiable access to the "Command"
@@ -11295,33 +11057,7 @@ class Subscription {
     Subscription();
     // Create an object of type 'Subscription' having the default value.
 
-    Subscription(const Subscription& original);
-    // Create an object of type 'Subscription' having the value of the
-    // specified 'original' object.
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    Subscription(Subscription&& original) = default;
-    // Create an object of type 'Subscription' having the value of the
-    // specified 'original' object.  After performing this action, the
-    // 'original' object will be left in a valid, but unspecified state.
-#endif
-
-    ~Subscription();
-    // Destroy this object.
-
     // MANIPULATORS
-    Subscription& operator=(const Subscription& rhs);
-    // Assign to this object the value of the specified 'rhs' object.
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    Subscription& operator=(Subscription&& rhs);
-    // Assign to this object the value of the specified 'rhs' object.
-    // After performing this action, the 'rhs' object will be left in a
-    // valid, but unspecified state.
-#endif
-
     void reset();
     // Reset this object to the default value (i.e., its value upon
     // default construction).
@@ -15348,33 +15084,7 @@ class StoragePartition {
     // Create an object of type 'StoragePartition' having the default
     // value.
 
-    StoragePartition(const StoragePartition& original);
-    // Create an object of type 'StoragePartition' having the value of the
-    // specified 'original' object.
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    StoragePartition(StoragePartition&& original) = default;
-    // Create an object of type 'StoragePartition' having the value of the
-    // specified 'original' object.  After performing this action, the
-    // 'original' object will be left in a valid, but unspecified state.
-#endif
-
-    ~StoragePartition();
-    // Destroy this object.
-
     // MANIPULATORS
-    StoragePartition& operator=(const StoragePartition& rhs);
-    // Assign to this object the value of the specified 'rhs' object.
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    StoragePartition& operator=(StoragePartition&& rhs);
-    // Assign to this object the value of the specified 'rhs' object.
-    // After performing this action, the 'rhs' object will be left in a
-    // valid, but unspecified state.
-#endif
-
     void reset();
     // Reset this object to the default value (i.e., its value upon
     // default construction).
@@ -35526,7 +35236,8 @@ int StorageQueue::manipulateAttributes(t_MANIPULATOR& manipulator)
 {
     int ret;
 
-    ret = manipulator(&d_uri, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_URI]);
+    ret = manipulator(&d_canonicalUri,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CANONICAL_URI]);
     if (ret) {
         return ret;
     }
@@ -35546,8 +35257,10 @@ int StorageQueue::manipulateAttribute(t_MANIPULATOR& manipulator, int id)
     enum { NOT_FOUND = -1 };
 
     switch (id) {
-    case ATTRIBUTE_ID_URI: {
-        return manipulator(&d_uri, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_URI]);
+    case ATTRIBUTE_ID_CANONICAL_URI: {
+        return manipulator(
+            &d_canonicalUri,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CANONICAL_URI]);
     }
     case ATTRIBUTE_ID_COMMAND: {
         return manipulator(&d_command,
@@ -35573,9 +35286,9 @@ int StorageQueue::manipulateAttribute(t_MANIPULATOR& manipulator,
     return manipulateAttribute(manipulator, attributeInfo->d_id);
 }
 
-inline bsl::string& StorageQueue::uri()
+inline bsl::string& StorageQueue::canonicalUri()
 {
-    return d_uri;
+    return d_canonicalUri;
 }
 
 inline StorageQueueCommand& StorageQueue::command()
@@ -35589,7 +35302,8 @@ int StorageQueue::accessAttributes(t_ACCESSOR& accessor) const
 {
     int ret;
 
-    ret = accessor(d_uri, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_URI]);
+    ret = accessor(d_canonicalUri,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CANONICAL_URI]);
     if (ret) {
         return ret;
     }
@@ -35608,8 +35322,9 @@ int StorageQueue::accessAttribute(t_ACCESSOR& accessor, int id) const
     enum { NOT_FOUND = -1 };
 
     switch (id) {
-    case ATTRIBUTE_ID_URI: {
-        return accessor(d_uri, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_URI]);
+    case ATTRIBUTE_ID_CANONICAL_URI: {
+        return accessor(d_canonicalUri,
+                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CANONICAL_URI]);
     }
     case ATTRIBUTE_ID_COMMAND: {
         return accessor(d_command,
@@ -35635,9 +35350,9 @@ int StorageQueue::accessAttribute(t_ACCESSOR& accessor,
     return accessAttribute(accessor, attributeInfo->d_id);
 }
 
-inline const bsl::string& StorageQueue::uri() const
+inline const bsl::string& StorageQueue::canonicalUri() const
 {
-    return d_uri;
+    return d_canonicalUri;
 }
 
 inline const StorageQueueCommand& StorageQueue::command() const
@@ -48475,7 +48190,8 @@ void mqbcmd::hashAppend(t_HASH_ALGORITHM&                      hashAlg,
 inline bool mqbcmd::operator==(const mqbcmd::StorageQueue& lhs,
                                const mqbcmd::StorageQueue& rhs)
 {
-    return lhs.uri() == rhs.uri() && lhs.command() == rhs.command();
+    return lhs.canonicalUri() == rhs.canonicalUri() &&
+           lhs.command() == rhs.command();
 }
 
 inline bool mqbcmd::operator!=(const mqbcmd::StorageQueue& lhs,
@@ -48495,7 +48211,7 @@ void mqbcmd::hashAppend(t_HASH_ALGORITHM&           hashAlg,
                         const mqbcmd::StorageQueue& object)
 {
     using bslh::hashAppend;
-    hashAppend(hashAlg, object.uri());
+    hashAppend(hashAlg, object.canonicalUri());
     hashAppend(hashAlg, object.command());
 }
 
@@ -51328,6 +51044,6 @@ void mqbcmd::hashAppend(t_HASH_ALGORITHM&             hashAlg,
 }  // close enterprise namespace
 #endif
 
-// GENERATED BY BLP_BAS_CODEGEN_2023.12.09
+// GENERATED BY BLP_BAS_CODEGEN_2023.12.23
 // USING bas_codegen.pl -m msg --noAggregateConversion --noExternalization
 // --noIdent --package mqbcmd --msgComponent messages mqbcmd.xsd
