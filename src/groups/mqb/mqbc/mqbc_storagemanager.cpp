@@ -3609,7 +3609,7 @@ int StorageManager::processCommand(mqbcmd::StorageResult*        result,
     return StorageUtil::processCommand(
         result,
         &d_fileStores,
-        &d_storages, // LOCK!!!!
+        &d_storages,
         &d_storagesLock,
         d_domainFactory_p,
         &d_replicationFactor,
