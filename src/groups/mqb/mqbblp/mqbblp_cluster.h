@@ -217,6 +217,8 @@ class Cluster : public mqbi::Cluster,
         const StopRequestManagerType::RequestContextSp& contextSp)>
         StopRequestCompletionCallback;
 
+    typedef bsl::function<void()> CompletionCallback;
+
   private:
     // DATA
     bslma::Allocator* d_allocator_p;
@@ -384,9 +386,10 @@ class Cluster : public mqbi::Cluster,
                          const StopRequestCompletionCallback& stopCb);
 
     /// Continue shutting down upon receipt of all StopResponses.
-    void continueShutdown(
-        bsls::Types::Int64                              startTimeNs,
-        const StopRequestManagerType::RequestContextSp& contextSp);
+    void continueShutdown(bsls::Types::Int64        startTimeNs,
+                          const CompletionCallback& completionCb);
+    void continueShutdownDispatched(bsls::Types::Int64        startTimeNs,
+                                    const CompletionCallback& completionCb);
 
     void processControlMessage(const bmqp_ctrlmsg::ControlMessage& message,
                                mqbnet::ClusterNode*                source);

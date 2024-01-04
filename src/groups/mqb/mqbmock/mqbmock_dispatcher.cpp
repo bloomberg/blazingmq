@@ -108,11 +108,18 @@ void Dispatcher::execute(
 }
 
 void Dispatcher::execute(
-    BSLS_ANNOTATION_UNUSED const mqbi::Dispatcher::ProcessorFunctor& functor,
+    const mqbi::Dispatcher::ProcessorFunctor& functor,
     BSLS_ANNOTATION_UNUSED mqbi::DispatcherClientType::Enum type,
-    BSLS_ANNOTATION_UNUSED const mqbi::Dispatcher::VoidFunctor& doneCallback)
+    const mqbi::Dispatcher::VoidFunctor&                    doneCallback)
 {
-    // NOTHING
+    if (functor) {
+        const ProcessorHandle dummy = Dispatcher::k_INVALID_PROCESSOR_HANDLE;
+        functor(dummy);
+    }
+
+    if (doneCallback) {
+        doneCallback();
+    }
 }
 
 void Dispatcher::synchronize(

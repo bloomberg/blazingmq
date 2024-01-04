@@ -88,15 +88,6 @@ const double k_QUEUE_GC_INTERVAL = 60.0;  // 1 minutes
 /// Timeout duration for Partition FSM watchdog -- 5 minutes
 const bsls::Types::Int64 k_PARTITION_FSM_WATCHDOG_TIMEOUT_DURATION = 60 * 5;
 
-typedef bsl::function<void()> CompletionCallback;
-
-/// Utility function used in `mwcu::OperationChain` as the operation
-/// callback which just calls the completion callback.
-void allClientSessionsShutDown(const CompletionCallback& callback)
-{
-    callback();
-}
-
 }  // close unnamed namespace
 
 // -------------
@@ -362,10 +353,7 @@ void Cluster::stopDispatched()
     // NOTE: channel.close() will not flush the channel's buffer, so there is a
     //       risk that the last message (the broadcast of the e_UNAVAILABLE
     //       state) - or worse, more messages - may not be delivered.
-    //
-    // TBD:  In the future, we should review the entire shutdown logic, and
-    //       eventually implement a request/response based mechanism in order
-    //       to provide true graceful shutdown.
+
     d_clusterData.membership().netCluster()->closeChannels();
 }
 
@@ -674,18 +662,17 @@ void Cluster::initiateShutdownDispatched(const VoidFunctor& callback)
         bdlf::BindUtil::bind(&Cluster::sendStopRequest,
                              this,
                              sessions,
-                             bdlf::PlaceHolders::_1),  // completion callback
-        bdlf::BindUtil::bind(&Cluster::continueShutdown,
-                             this,
-                             mwcsys::Time::highResolutionTimer(),  // startTime
-                             bdlf::PlaceHolders::_1));             // contextSp
+                             bdlf::PlaceHolders::_1));  // completion callback
 
     d_shutdownChain.append(&link);
 
     // Add callback to be invoked once all the client sessions are shut down
     // and stop responses are received
+
     d_shutdownChain.appendInplace(
-        bdlf::BindUtil::bind(&allClientSessionsShutDown,
+        bdlf::BindUtil::bind(&Cluster::continueShutdown,
+                             this,
+                             mwcsys::Time::highResolutionTimer(),  // startTime
                              bdlf::PlaceHolders::_1),  // completionCb
         callback);
 
@@ -722,15 +709,29 @@ void Cluster::sendStopRequest(const SessionSpVec&                  sessions,
     // continue after receipt of all StopResponses or the timeout
 }
 
-void Cluster::continueShutdown(
-    bsls::Types::Int64           startTimeNs,
-    BSLS_ANNOTATION_UNUSED const StopRequestManagerType::RequestContextSp&
-                                 contextSp)
+void Cluster::continueShutdown(bsls::Types::Int64        startTimeNs,
+                               const CompletionCallback& completionCb)
+{
+    // executed by either the *DISPATCHER* thread or one of *CLIENT* threads
+
+    dispatcher()->execute(
+        bdlf::BindUtil::bind(&Cluster::continueShutdownDispatched,
+                             this,
+                             startTimeNs,
+                             completionCb),
+        this);
+}
+
+void Cluster::continueShutdownDispatched(
+    bsls::Types::Int64        startTimeNs,
+    const CompletionCallback& completionCb)
 {
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+
+    bdlb::ScopeExitAny guard(completionCb);
 
     BALL_LOG_INFO_BLOCK
     {
@@ -758,10 +759,15 @@ void Cluster::continueShutdown(
     failure.message()  = "Node is being stopped";
 
     d_clusterData.requestManager().cancelAllRequests(response);
-    // TBD: The above is wrongly placed: in 'mqba::Application::stop', we first
-    //      invoke this method, then close all downstream clients; so there is
-    //      still a potential risk that a request will be sent after having
-    //      them all being cleared here.
+    // All downstreams have either disconnected (clients) or responded with
+    // StopResponse
+    // There could be outstanding close queue requests resulting from handle
+    // drop resulting from 'ClientSession::tearDownImpl' but 'doDropHandle'
+    // does not wait for responses.
+    // Note that requests did go out (from the cluster thread) because
+    //  1) 'ClientSession::tearDownImpl' waits for 'tearDownAllQueuesDone'
+    //      before triggering 'Cluster::continueShutdown'
+    //  2) 'Cluster::continueShutdown' executes 'continueShutdownDispatched'
 
     // Indicate the StorageMgr that self node is stopping.  For all the
     // partitions for which self is primary, self will issue last syncPt and
