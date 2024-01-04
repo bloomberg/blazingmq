@@ -2126,6 +2126,12 @@ static void test11_initiateShutdown()
                                                       &semaphore),
                                  timeout);
 
+        // Verify 'Channel::close' call
+        ASSERT_EQ(tb.d_channel->closeCalls().size(), 1UL);
+
+        // Imitate close operation
+        tb.d_cs.tearDown(bsl::shared_ptr<void>(), true);
+
         // Verify that the shutdown callback gets called
         semaphore.wait();
 
@@ -2160,6 +2166,9 @@ static void test11_initiateShutdown()
                                                       &semaphore),
                                  timeout);
 
+        // No 'Channel::close' call
+        ASSERT_EQ(tb.d_channel->closeCalls().size(), 0UL);
+
         // Verify that the shutdown callback hasn't been called
         int rc = semaphore.timedWait(
             bsls::SystemTime::now(bsls::SystemClockType::e_REALTIME) +
@@ -2170,6 +2179,12 @@ static void test11_initiateShutdown()
 
         // Advance time to reach the shutdown timeout
         tb.d_testClock.d_timeSource.advanceTime(timeout);
+
+        // Verify 'Channel::close' call
+        ASSERT_EQ(tb.d_channel->closeCalls().size(), 1UL);
+
+        // Imitate close operation
+        tb.d_cs.tearDown(bsl::shared_ptr<void>(), true);
 
         // Verify that the shutdown callback gets called
         semaphore.wait();
@@ -2206,6 +2221,9 @@ static void test11_initiateShutdown()
                                  timeout + timeout);
         // Long shutdown timeout
 
+        // No 'Channel::close' call
+        ASSERT_EQ(tb.d_channel->closeCalls().size(), 0UL);
+
         // Verify that the shutdown callback hasn't been called
         int rc = semaphore.timedWait(
             bsls::SystemTime::now(bsls::SystemClockType::e_REALTIME) +
@@ -2221,6 +2239,12 @@ static void test11_initiateShutdown()
 
         // Advance time less than the shutdown timeout
         tb.d_testClock.d_timeSource.advanceTime(timeout);
+
+        // Verify 'Channel::close' call
+        ASSERT_EQ(tb.d_channel->closeCalls().size(), 1UL);
+
+        // Imitate close operation
+        tb.d_cs.tearDown(bsl::shared_ptr<void>(), true);
 
         // Verify that the shutdown callback gets called
         semaphore.wait();
@@ -2263,6 +2287,9 @@ static void test11_initiateShutdown()
                                  timeout + timeout + timeout);
         // Long shutdown timeout
 
+        // No 'Channel::close' call
+        ASSERT_EQ(tb.d_channel->closeCalls().size(), 0UL);
+
         // Verify that the shutdown callback hasn't been called
         int rc = semaphore.timedWait(
             bsls::SystemTime::now(bsls::SystemClockType::e_REALTIME) +
@@ -2282,6 +2309,9 @@ static void test11_initiateShutdown()
         // Advance time less than the shutdown timeout
         tb.d_testClock.d_timeSource.advanceTime(timeout);
 
+        // No 'Channel::close' call
+        ASSERT_EQ(tb.d_channel->closeCalls().size(), 0UL);
+
         // Still no callback
         rc = semaphore.timedWait(
             bsls::SystemTime::now(bsls::SystemClockType::e_REALTIME) +
@@ -2298,6 +2328,12 @@ static void test11_initiateShutdown()
 
         // Advance time less than the shutdown timeout
         tb.d_testClock.d_timeSource.advanceTime(timeout);
+
+        // Verify 'Channel::close' call
+        ASSERT_EQ(tb.d_channel->closeCalls().size(), 1UL);
+
+        // Imitate close operation
+        tb.d_cs.tearDown(bsl::shared_ptr<void>(), true);
 
         // Verify that the shutdown callback gets called
         semaphore.wait();
