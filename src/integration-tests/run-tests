@@ -8,5 +8,6 @@ repo_dir=${repo_dir%/src/*}
 export PYTHONPATH=$repo_dir/src/python:$PYTHONPATH
 cd "$repo_dir/src/integration-tests"
 
-python -m pytest -vv -m "single and not csl_mode and not fsm_mode" "$@" && \
-python -m pytest -vv -m "multi and not csl_mode and not fsm_mode" "$@"
+# python -m pytest -vv -m "single and not csl_mode and not fsm_mode" "$@" && \
+# python -m pytest -vv -m "multi and not csl_mode and not fsm_mode" "$@"
+python -m pytest --log-cli-level info --bmq-log-level=error,blazingmq.test:info,blazingmq.tsk:critical
