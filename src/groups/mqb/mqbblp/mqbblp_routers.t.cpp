@@ -76,7 +76,7 @@ struct TestStorage {
                 allocator)
     , d_iterator(d_storage.getIterator(mqbu::StorageKey()))
     , d_bufferFactory(32, allocator)
-    , d_queue_sp(new (*allocator) mqbmock::Queue(0, allocator), allocator)
+    , d_queue_sp(new(*allocator) mqbmock::Queue(0, allocator), allocator)
     , d_allocator_p(allocator)
 
     {

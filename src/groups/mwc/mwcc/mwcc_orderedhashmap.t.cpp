@@ -215,7 +215,7 @@ static void test3_insert()
     const int k_NUM_ELEMENTS = 1000 * 1000;  // 1M
 #else
     // Avoid timeout on AIX and Solaris
-    const int k_NUM_ELEMENTS = 100 * 1000;   // 100K
+    const int k_NUM_ELEMENTS = 100 * 1000;  // 100K
 #endif
 
     // Insert 1M elements

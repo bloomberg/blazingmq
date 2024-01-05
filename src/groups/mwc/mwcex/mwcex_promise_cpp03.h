@@ -1,4 +1,4 @@
-// Copyright 2022-2023 Bloomberg Finance L.P.
+// Copyright 2018-2023 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -36,17 +36,12 @@
 // regions of C++11 code, then this header contains no code and is not
 // '#include'd in the original header.
 //
-// Generated on Wed Jun 29 04:19:38 2022
+// Generated on Mon Jan 22 16:59:02 2024
 // Command line: sim_cpp11_features.pl mwcex_promise.h
 
 #ifdef COMPILING_MWCEX_PROMISE_H
 
 namespace BloombergLP {
-
-// FORWARD DECLARATION
-namespace bslma {
-class Allocator;
-}
 
 namespace mwcex {
 
@@ -54,15 +49,14 @@ namespace mwcex {
 // class Promise
 // =============
 
+/// Provides a mechanism to store a value or an exception that is later
+/// acquired asynchronously via a `mwcex::Future` object created by the
+/// `mwcex::Promise` object.
+///
+/// `R` must meet the requirements of Destructible as specified in the C++
+/// standard.
 template <class R>
 class Promise {
-    // Provides a mechanism to store a value or an exception that is later
-    // acquired asynchronously via a 'mwcex::Future' object created by the
-    // 'mwcex::Promise' object.
-    //
-    // 'R' must meet the requirements of Destructible as specified in the C++
-    // standard.
-
   private:
     // PRIVATE TYPES
     typedef typename Future<R>::SharedStateType SharedStateType;
@@ -82,69 +76,71 @@ class Promise {
 
   public:
     // CREATORS
-    explicit Promise(bslma::Allocator* basicAllocator = 0);
-    // Create a 'Promise' object holding a shared state of type
-    // 'mwcex::Future<R>::SharedStateType' initialized with the specified
-    // 'basicAllocator'.
 
+    /// Create a `Promise` object holding a shared state of type
+    /// `mwcex::Future<R>::SharedStateType` initialized with the specified
+    /// `basicAllocator`.
+    explicit Promise(bslma::Allocator* basicAllocator = 0);
+
+    /// Create a `Promise` object holding a shared state of type
+    /// `mwcex::Future<R>::SharedStateType` initialized with the specified
+    /// `clockType` and `basicAllocator`.
     explicit Promise(bsls::SystemClockType::Enum clockType,
                      bslma::Allocator*           basicAllocator = 0);
-    // Create a 'Promise' object holding a shared state of type
-    // 'mwcex::Future<R>::SharedStateType' initialized with the specified
-    // 'clockType' and 'basicAllocator'.
 
+    /// Create a `Promise` object that refers to and assumes management of
+    /// the same shared state (if any) as the specified `original` object,
+    /// and leave `original` having no shared state.
     Promise(bslmf::MovableRef<Promise> original) BSLS_KEYWORD_NOEXCEPT;
-    // Create a 'Promise' object that refers to and assumes management of
-    // the same shared state (if any) as the specified 'original' object,
-    // and leave 'original' having no shared state.
 
+    /// Destroy this object. If `*this` has a shared state and the shared
+    /// state is not ready, store a `mwcex::PromiseBroken` exception object
+    /// into the shared state and make the state ready, then release the
+    /// underlying shared state.
     ~Promise();
-    // Destroy this object. If '*this' has a shared state and the shared
-    // state is not ready, store a 'mwcex::PromiseBroken' exception object
-    // into the shared state and make the state ready, then release the
-    // underlying shared state.
 
   public:
     // MANIPULATORS
+
+    /// Make this promise refer to and assume management of the same shared
+    /// state (if any) as the specified `rhs` promise, and leave `rhs`
+    /// having no shared state. Return `*this`.
     Promise& operator=(bslmf::MovableRef<Promise> rhs) BSLS_KEYWORD_NOEXCEPT;
-    // Make this promise refer to and assume management of the same shared
-    // state (if any) as the specified 'rhs' promise, and leave 'rhs'
-    // having no shared state. Return '*this'.
 
+    /// Atomically store the specified `value` into the shared state as if
+    /// by direct-non-list-initializing an object of type `R` with `value`
+    /// and make the state ready. If a callback is attached to the shared
+    /// state, invoke, and then destroy it. Effectively calls `setValue`
+    /// on the underlying shared state. The behavior is undefined if the
+    /// shared state is ready or if the promise has no shared state.
+    ///
+    /// Throws any exception thrown by the selected constructor of `R`, or
+    /// any exception thrown by the attached callback. If an exception is
+    /// thrown by `R`s constructor, this function has no effect. If an
+    /// exception is thrown by the attached callback, the stored value stays
+    /// initialized and the callback is destroyed.
+    ///
+    /// `R` must meet the requirements of CopyConstructible as specified in
+    /// the C++ standard.
     void setValue(const R& value);
-    // Atomically store the specified 'value' into the shared state as if
-    // by direct-non-list-initializing an object of type 'R' with 'value'
-    // and make the state ready. If a callback is attached to the shared
-    // state, invoke, and then destroy it. Effectively calls 'setValue'
-    // on the underlying shared state. The behavior is undefined if the
-    // shared state is ready or if the promise has no shared state.
-    //
-    // Throws any exception thrown by the selected constructor of 'R', or
-    // any exception thrown by the attached callback. If an exception is
-    // thrown by 'R's constructor, this function has no effect. If an
-    // exception is thrown by the attached callback, the stored value stays
-    // initialized and the callback is destroyed.
-    //
-    // 'R' must meet the requirements of CopyConstructible as specified in
-    // the C++ standard.
 
+    /// Atomically store the specified `value` into the shared state as if
+    /// by direct-non-list-initializing an object of type `R` with
+    /// `bsl::move(value)` and make the state ready. If a callback is
+    /// attached to the shared state, invoke, and then destroy it.
+    /// Effectively calls `setValue` on the underlying shared state. The
+    /// behavior is undefined if the shared state is ready or if the promise
+    /// has no shared state.
+    ///
+    /// Throws any exception thrown by the selected constructor of `R`, or
+    /// any exception thrown by the attached callback. If an exception is
+    /// thrown by `R`s constructor, this function has no effect. If an
+    /// exception is thrown by the attached callback, the stored value stays
+    /// initialized and the callback is destroyed.
+    ///
+    /// `R` must meet the requirements of MoveConstructible as specified in
+    /// the C++ standard.
     void setValue(bslmf::MovableRef<R> value);
-    // Atomically store the specified 'value' into the shared state as if
-    // by direct-non-list-initializing an object of type 'R' with
-    // 'bsl::move(value)' and make the state ready. If a callback is
-    // attached to the shared state, invoke, and then destroy it.
-    // Effectively calls 'setValue' on the underlying shared state. The
-    // behavior is undefined if the shared state is ready or if the promise
-    // has no shared state.
-    //
-    // Throws any exception thrown by the selected constructor of 'R', or
-    // any exception thrown by the attached callback. If an exception is
-    // thrown by 'R's constructor, this function has no effect. If an
-    // exception is thrown by the attached callback, the stored value stays
-    // initialized and the callback is destroyed.
-    //
-    // 'R' must meet the requirements of MoveConstructible as specified in
-    // the C++ standard.
 
 #if BSLS_COMPILERFEATURES_SIMULATE_VARIADIC_TEMPLATES
 // {{{ BEGIN GENERATED CODE
@@ -155,6 +151,7 @@ class Promise {
 #ifndef MWCEX_PROMISE_VARIADIC_LIMIT_A
 #define MWCEX_PROMISE_VARIADIC_LIMIT_A MWCEX_PROMISE_VARIADIC_LIMIT
 #endif
+
 #if MWCEX_PROMISE_VARIADIC_LIMIT_A >= 0
     void emplaceValue();
 #endif  // MWCEX_PROMISE_VARIADIC_LIMIT_A >= 0
@@ -273,55 +270,57 @@ class Promise {
 #else
     // The generated code below is a workaround for the absence of perfect
     // forwarding in some compilers.
+
     template <class... ARGS>
     void emplaceValue(BSLS_COMPILERFEATURES_FORWARD_REF(ARGS)... args);
 // }}} END GENERATED CODE
 #endif
 
 #ifdef BSLS_LIBRARYFEATURES_HAS_CPP11_EXCEPTION_HANDLING
+    /// Atomically store the specified `exception` pointer into the shared
+    /// state and make the state ready. If a callback is attached to the
+    /// shared state, invoke, and then destroy it. Effectively calls
+    /// `setException` on the underlying shared state. The behavior is
+    /// undefined if the shared state is ready or if the promise has no
+    /// shared state.
+    ///
+    /// Throws any exception thrown by the attached callback. If an
+    /// exception is thrown, the stored exception stays initialized and the
+    /// callback is destroyed.
     void setException(bsl::exception_ptr exception);
-    // Atomically store the specified 'exception' pointer into the shared
-    // state and make the state ready. If a callback is attached to the
-    // shared state, invoke, and then destroy it. Effectively calls
-    // 'setException' on the underlying shared state. The behavior is
-    // undefined if the shared state is ready or if the promise has no
-    // shared state.
-    //
-    // Throws any exception thrown by the attached callback. If an
-    // exception is thrown, the stored exception stays initialized and the
-    // callback is destroyed.
 #endif
 
+    /// Atomically store the specified `exception` object into the shared
+    /// state as if by direct-non-list-initializing an object of type
+    /// `bsl::decay_t<EXCEPTION>` with `bsl::forward<EXCEPTION>(EXCEPTION)`
+    /// and make the state ready. If a callback is attached to the shared
+    /// state, invoke, and then destroy it. Effectively calls
+    /// `setException` on the underlying shared state. The behavior is
+    /// undefined if the shared state is ready or if the promise has no
+    /// shared state.
+    ///
+    /// Throws any exception thrown by the selected constructor of
+    /// `bsl::decay_t<EXCEPTION>`, any exception thrown by the attached
+    /// callback, or `bsl::bad_alloc` if memory allocation fails. If an
+    /// exception is thrown by `bsl::decay_t<EXCEPTION>`s constructor or due
+    /// to memory allocation failure, this function has no effect. If an
+    /// exception is thrown by the attached callback, the stored exception
+    /// stays initialized and the callback is destroyed.
+    ///
+    /// `bsl::decay_t<EXCEPTION>` must meet the requirements of Destructible
+    /// and CopyConstructible as specified in the C++ standard.
     template <class EXCEPTION>
     void setException(BSLS_COMPILERFEATURES_FORWARD_REF(EXCEPTION) exception);
-    // Atomically store the specified 'exception' object into the shared
-    // state as if by direct-non-list-initializing an object of type
-    // 'bsl::decay_t<EXCEPTION>' with 'bsl::forward<EXCEPTION>(EXCEPTION)'
-    // and make the state ready. If a callback is attached to the shared
-    // state, invoke, and then destroy it. Effectively calls
-    // 'setException' on the underlying shared state. The behavior is
-    // undefined if the shared state is ready or if the promise has no
-    // shared state.
-    //
-    // Throws any exception thrown by the selected constructor of
-    // 'bsl::decay_t<EXCEPTION>', any exception thrown by the attached
-    // callback, or 'bsl::bad_alloc' if memory allocation fails. If an
-    // exception is thrown by 'bsl::decay_t<EXCEPTION>'s constructor or due
-    // to memory allocation failure, this function has no effect. If an
-    // exception is thrown by the attached callback, the stored exception
-    // stays initialized and the callback is destroyed.
-    //
-    // 'bsl::decay_t<EXCEPTION>' must meet the requirements of Destructible
-    // and CopyConstructible as specified in the C++ standard.
 
+    /// Swap the contents of `*this` and `other`.
     void swap(Promise& other) BSLS_KEYWORD_NOEXCEPT;
-    // Swap the contents of '*this' and 'other'.
 
   public:
     // ACCESSORS
+
+    /// Return a future associated with the shared state owned by `*this`.
+    /// The behavior is undefined unless the promise has a shared state.
     Future<R> future() const BSLS_KEYWORD_NOEXCEPT;
-    // Return a future associated with the shared state owned by '*this'.
-    // The behavior is undefined unless the promise has a shared state.
 
   public:
     // TRAITS
@@ -333,10 +332,9 @@ class Promise {
 // class Promise<void>
 // ===================
 
+/// Provides a specialization of `Promise` for `void` result type.
 template <>
 class Promise<void> : private Promise<bslmf::Nil> {
-    // Provides a specialization of 'Promise' for 'void' result type.
-
   private:
     // PRIVATE TYPES
     typedef Promise<bslmf::Nil> Impl;
@@ -348,51 +346,51 @@ class Promise<void> : private Promise<bslmf::Nil> {
 
   public:
     // CREATORS
-    explicit Promise(bslma::Allocator* basicAllocator = 0);
-    // Same as for the non-specialized class template.
 
+    /// Same as for the non-specialized class template.
+    explicit Promise(bslma::Allocator* basicAllocator = 0);
+
+    /// Same as for the non-specialized class template.
     explicit Promise(bsls::SystemClockType::Enum clockType,
                      bslma::Allocator*           basicAllocator = 0);
-    // Same as for the non-specialized class template.
 
+    /// Same as for the non-specialized class template.
     Promise(bslmf::MovableRef<Promise> original) BSLS_KEYWORD_NOEXCEPT;
-    // Same as for the non-specialized class template.
-
-    //! ~Promise();
-    // Same as for the non-specialized class template.
 
   public:
     // MANIPULATORS
-    Promise& operator=(bslmf::MovableRef<Promise> rhs) BSLS_KEYWORD_NOEXCEPT;
-    // Same as for the non-specialized class template.
 
+    /// Same as for the non-specialized class template.
+    Promise& operator=(bslmf::MovableRef<Promise> rhs) BSLS_KEYWORD_NOEXCEPT;
+
+    /// Atomically make the shared state ready. If a callback is attached to
+    /// the shared state, invoke, and then destroy it. Effectively calls
+    /// `setValue` on the underlying shared state. The behavior is
+    /// undefined if the shared state is ready or if the promise has no
+    /// shared state.
+    ///
+    /// Throws any exception thrown by the attached callback. If an
+    /// exception is thrown, the stored value stays initialized and the
+    /// callback is destroyed.
     void setValue();
-    // Atomically make the shared state ready. If a callback is attached to
-    // the shared state, invoke, and then destroy it. Effectively calls
-    // 'setValue' on the underlying shared state. The behavior is
-    // undefined if the shared state is ready or if the promise has no
-    // shared state.
-    //
-    // Throws any exception thrown by the attached callback. If an
-    // exception is thrown, the stored value stays initialized and the
-    // callback is destroyed.
 
 #ifdef BSLS_LIBRARYFEATURES_HAS_CPP11_EXCEPTION_HANDLING
+    /// Same as for the non-specialized class template.
     void setException(bsl::exception_ptr exception);
-    // Same as for the non-specialized class template.
 #endif
 
+    /// Same as for the non-specialized class template.
     template <class EXCEPTION>
     void setException(BSLS_COMPILERFEATURES_FORWARD_REF(EXCEPTION) exception);
-    // Same as for the non-specialized class template.
 
+    /// Same as for the non-specialized class template.
     void swap(Promise& other) BSLS_KEYWORD_NOEXCEPT;
-    // Same as for the non-specialized class template.
 
   public:
     // ACCESSORS
+
+    /// Same as for the non-specialized class template.
     Future<void> future() const BSLS_KEYWORD_NOEXCEPT;
-    // Same as for the non-specialized class template.
 
   public:
     // TRAITS
@@ -404,10 +402,9 @@ class Promise<void> : private Promise<bslmf::Nil> {
 // class Promise<R&>
 // =================
 
+/// Provides a specialization of `Promise` for reference result types.
 template <class R>
 class Promise<R&> : private Promise<bsl::reference_wrapper<R> > {
-    // Provides a specialization of 'Promise' for reference result types.
-
   private:
     // PRIVATE TYPES
     typedef Promise<bsl::reference_wrapper<R> > Impl;
@@ -419,52 +416,52 @@ class Promise<R&> : private Promise<bsl::reference_wrapper<R> > {
 
   public:
     // CREATORS
-    explicit Promise(bslma::Allocator* basicAllocator = 0);
-    // Same as for the non-specialized class template.
 
+    /// Same as for the non-specialized class template.
+    explicit Promise(bslma::Allocator* basicAllocator = 0);
+
+    /// Same as for the non-specialized class template.
     explicit Promise(bsls::SystemClockType::Enum clockType,
                      bslma::Allocator*           basicAllocator = 0);
-    // Same as for the non-specialized class template.
 
+    /// Same as for the non-specialized class template.
     Promise(bslmf::MovableRef<Promise> original) BSLS_KEYWORD_NOEXCEPT;
-    // Same as for the non-specialized class template.
-
-    //! ~Promise();
-    // Same as for the non-specialized class template.
 
   public:
     // MANIPULATORS
-    Promise& operator=(bslmf::MovableRef<Promise> rhs) BSLS_KEYWORD_NOEXCEPT;
-    // Same as for the non-specialized class template.
 
+    /// Same as for the non-specialized class template.
+    Promise& operator=(bslmf::MovableRef<Promise> rhs) BSLS_KEYWORD_NOEXCEPT;
+
+    /// Atomically store the specified `value` reference into the shared
+    /// state and make the state ready. If a callback is attached to the
+    /// shared state, invoke, and then destroy it. Effectively calls
+    /// `setValue` on the underlying shared state. The behavior is
+    /// undefined if the shared state is ready or if the promise has no
+    /// shared state.
+    ///
+    /// Throws any exception thrown by the attached callback. If an
+    /// exception is thrown, the stored reference stays initialized and the
+    /// callback is destroyed.
     void setValue(R& value);
-    // Atomically store the specified 'value' reference into the shared
-    // state and make the state ready. If a callback is attached to the
-    // shared state, invoke, and then destroy it. Effectively calls
-    // 'setValue' on the underlying shared state. The behavior is
-    // undefined if the shared state is ready or if the promise has no
-    // shared state.
-    //
-    // Throws any exception thrown by the attached callback. If an
-    // exception is thrown, the stored reference stays initialized and the
-    // callback is destroyed.
 
 #ifdef BSLS_LIBRARYFEATURES_HAS_CPP11_EXCEPTION_HANDLING
+    /// Same as for the non-specialized class template.
     void setException(bsl::exception_ptr exception);
-    // Same as for the non-specialized class template.
 #endif
 
+    /// Same as for the non-specialized class template.
     template <class EXCEPTION>
     void setException(BSLS_COMPILERFEATURES_FORWARD_REF(EXCEPTION) exception);
-    // Same as for the non-specialized class template.
 
+    /// Same as for the non-specialized class template.
     void swap(Promise& other) BSLS_KEYWORD_NOEXCEPT;
-    // Same as for the non-specialized class template.
 
   public:
     // ACCESSORS
+
+    /// Same as for the non-specialized class template.
     Future<R&> future() const BSLS_KEYWORD_NOEXCEPT;
-    // Same as for the non-specialized class template.
 
   public:
     // TRAITS
@@ -476,25 +473,27 @@ class Promise<R&> : private Promise<bsl::reference_wrapper<R> > {
 // class PromiseBroken
 // ===================
 
+/// Provide an exception class to indicate a promise was broken.
 class PromiseBroken : public bsl::exception {
-    // Provide an exception class to indicate a promise was broken.
-
   public:
     // CREATORS
+
+    /// Create a `PromiseBroken` object.
     PromiseBroken() BSLS_KEYWORD_NOEXCEPT;
-    // Create a 'PromiseBroken' object.
 
   public:
     // ACCESSORS
+
+    /// Return a pointer to the string literal "PromiseBroken", with a
+    /// storage duration of the lifetime of the program.
     const char* what() const BSLS_EXCEPTION_WHAT_NOTHROW BSLS_KEYWORD_OVERRIDE;
-    // Return a pointer to the string literal "PromiseBroken", with a
-    // storage duration of the lifetime of the program.
 };
 
 // FREE OPERATORS
+
+/// Swap the contents of `lhs` and `rhs`.
 template <class R>
 void swap(Promise<R>& lhs, Promise<R>& rhs) BSLS_KEYWORD_NOEXCEPT;
-// Swap the contents of 'lhs' and 'rhs'.
 
 // ============================================================================
 //                           INLINE DEFINITIONS
@@ -1011,18 +1010,5 @@ inline void mwcex::swap(Promise<R>& lhs, Promise<R>& rhs) BSLS_KEYWORD_NOEXCEPT
 
 #endif  // ! defined(INCLUDED_MWCEX_PROMISE_CPP03)
 
-// ----------------------------------------------------------------------------
-// Copyright 2022-2023 Bloomberg Finance L.P.
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-// ----------------------------- END-OF-FILE ----------------------------------
+// SCRIPT-SHA: 60926cad35f1091c31a7d8cc9d33acc38edd25e4891f3e1d41fe7c40fd6e02f5
+// SOURCE-SHA: 7fbcbfd7e0165f0f11da630e4b42b42648eb19ce489e6f584fb1b3abd7a299f2

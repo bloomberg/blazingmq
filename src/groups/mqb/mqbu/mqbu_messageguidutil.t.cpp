@@ -187,7 +187,7 @@ static void test2_multithread()
     // (it's unable to complete in 90 seconds).
     const int k_NUM_GUIDS = 500000;  // 500k
 #else
-    const int                k_NUM_GUIDS = 1000000;   // 1M
+    const int k_NUM_GUIDS = 1000000;  // 1M
 #endif
 
     bslmt::ThreadGroup threadGroup(s_allocator_p);

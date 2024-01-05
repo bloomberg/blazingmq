@@ -191,14 +191,18 @@
 #include <bsl_type_traits.h>
 #endif
 
+// clang-format off
+
 #if BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES
 // Include version that can be compiled with C++03
-// Generated on Tue Jun 28 12:18:48 2022
+// Generated on Fri Jan  5 17:14:30 2024
 // Command line: sim_cpp11_features.pl mwcu_operationchain.h
-#define COMPILING_MWCU_OPERATIONCHAIN_H
-#include <mwcu_operationchain_cpp03.h>
-#undef COMPILING_MWCU_OPERATIONCHAIN_H
+# define COMPILING_MWCU_OPERATIONCHAIN_H
+# include <mwcu_operationchain_cpp03.h>
+# undef COMPILING_MWCU_OPERATIONCHAIN_H
 #else
+
+// clang-format on
 
 namespace BloombergLP {
 
@@ -302,7 +306,9 @@ class OperationChain_CompletionCallbackWrapper {
 
   public:
     // ACCESSORS
-#if !BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES  // $var-args=9
+    // clang-format off
+#if !BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES // $var-args=9
+    // clang-format on
 
     /// Invoke the associated completion callback with the specified `args`
     /// arguments and notify the associated operation chain. Propagate any
@@ -803,7 +809,9 @@ inline OperationChain_CompletionCallbackWrapper<CO_CALLBACK>::
 }
 
 // ACCESSORS
-#if !BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES  // $var-args=9
+// clang-format off
+#if !BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES // $var-args=9
+// clang-format on
 template <class CO_CALLBACK>
 template <class... ARGS>
 inline void OperationChain_CompletionCallbackWrapper<CO_CALLBACK>::operator()(
@@ -1018,6 +1026,10 @@ inline void mwcu::swap(OperationChainLink& lhs,
 
 }  // close enterprise namespace
 
-#endif  // End C++11 code
+// clang-format off
+
+#endif // End C++11 code
+
+// clang-format on
 
 #endif

@@ -959,14 +959,14 @@ MockSession::MockSession(const bmqt::SessionOptions& options,
                                     bdlf::PlaceHolders::_2,
                                     bdlf::PlaceHolders::_3))
 , d_lastQueueId(0)
-, d_corrIdContainer_sp(new (*bslma::Default::allocator(allocator))
+, d_corrIdContainer_sp(new(*bslma::Default::allocator(allocator))
                            bmqimp::MessageCorrelationIdContainer(
                                bslma::Default::allocator(allocator)),
                        bslma::Default::allocator(allocator))
 , d_postedEvents(bslma::Default::allocator(allocator))
 , d_rootStatContext(mwcst::StatContextConfiguration("MockSession", allocator),
                     allocator)
-, d_queuesStats_sp(new (*bslma::Default::allocator(allocator))
+, d_queuesStats_sp(new(*bslma::Default::allocator(allocator))
                        bmqimp::Stat(bslma::Default::allocator(allocator)),
                    bslma::Default::allocator(allocator))
 , d_sessionOptions(options, allocator)
@@ -1002,14 +1002,14 @@ MockSession::MockSession(bslma::ManagedPtr<SessionEventHandler> eventHandler,
                                     bdlf::PlaceHolders::_2,
                                     bdlf::PlaceHolders::_3))
 , d_lastQueueId(0)
-, d_corrIdContainer_sp(new (*bslma::Default::allocator(allocator))
+, d_corrIdContainer_sp(new(*bslma::Default::allocator(allocator))
                            bmqimp::MessageCorrelationIdContainer(
                                bslma::Default::allocator(allocator)),
                        bslma::Default::allocator(allocator))
 , d_postedEvents(bslma::Default::allocator(allocator))
 , d_rootStatContext(mwcst::StatContextConfiguration("MockSession", allocator),
                     allocator)
-, d_queuesStats_sp(new (*bslma::Default::allocator(allocator))
+, d_queuesStats_sp(new(*bslma::Default::allocator(allocator))
                        bmqimp::Stat(bslma::Default::allocator(allocator)),
                    bslma::Default::allocator(allocator))
 , d_sessionOptions(options, allocator)

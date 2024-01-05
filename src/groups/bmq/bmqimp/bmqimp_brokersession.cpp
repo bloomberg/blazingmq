@@ -1350,7 +1350,7 @@ BrokerSession::QueueFsm::QueueFsm(BrokerSession& session)
     typedef QueueState    S;
     typedef QueueFsmEvent E;
     QueueStateTransition  table[] = {
-         // current state           event              new state
+        // current state           event              new state
         {S::e_CLOSED, E::e_OPEN_CMD, S::e_OPENING_OPN},
         //
         {S::e_OPENING_OPN, E::e_RESP_OK, S::e_OPENING_CFG},

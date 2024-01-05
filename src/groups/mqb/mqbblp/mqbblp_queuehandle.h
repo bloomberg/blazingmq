@@ -663,7 +663,7 @@ inline QueueHandle::Downstream::Downstream(const bsl::string& appId,
                                            bslma::Allocator* allocator_p)
 : d_appId(appId)
 , d_upstreamSubQueueId(upstreamSubQueueId)
-, d_data(new (*allocator_p)
+, d_data(new(*allocator_p)
              mqbi::QueueHandle::UnconfirmedMessageInfoMap(allocator_p),
          allocator_p)
 {
