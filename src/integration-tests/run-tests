@@ -8,8 +8,4 @@ repo_dir=${repo_dir%/src/*}
 export PYTHONPATH=$repo_dir/src/python:$PYTHONPATH
 cd "$repo_dir/src/integration-tests"
 
-for wave in {1..10} 0; do
-    python -m pytest -vv "--bmq-wave=$wave" --bmq-tolerate-dirty-shutdown \
-        -m "not csl_mode and not fsm_mode" "$@" \
-        | grep -v SKIPPED
-done
+python -m pytest -vv -m "not csl_mode and not fsm_mode" "$@"

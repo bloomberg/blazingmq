@@ -62,7 +62,7 @@ jobs:
         run: |
           ${{ github.workspace }}/src/integration-tests/run-tests \
             --log-level ERROR                   \
-            --log-file-level DEBUG              \
+            --log-file-level=info               \
             --bmq-tolerate-dirty-shutdown       \
             --bmq-log-dir=failure-logs          \
             --bmq-log-level=INFO                \
