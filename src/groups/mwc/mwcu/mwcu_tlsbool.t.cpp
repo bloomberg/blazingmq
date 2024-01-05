@@ -158,8 +158,8 @@ static void test2_isValid()
     catch (int) {
     };
 
-        // Test isValid and default values.  There is a limit of
-        // PTHREAD_KEYS_MAX (1024 on Linux) keys that can be created.
+    // Test isValid and default values.  There is a limit of
+    // PTHREAD_KEYS_MAX (1024 on Linux) keys that can be created.
 
 #if !defined PTHREAD_KEYS_MAX
     // Somehow, some platforms (e.g., SunOs) don't define that variable so skip
