@@ -55,8 +55,7 @@ struct ExecutionProperty {
     /// Provides a tag type defining the Two-Way direction property and the
     /// result type of the execution function.
     template <class R>
-    struct TwoWayR {
-    };
+    struct TwoWayR {};
 
     enum Blocking {
         // Provides a enumeration type defining the blocking behavior property.

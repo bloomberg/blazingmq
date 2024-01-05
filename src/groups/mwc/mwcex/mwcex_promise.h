@@ -92,7 +92,7 @@
 
 #if BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES
 // Include version that can be compiled with C++03
-// Generated on Wed Jun 29 04:19:38 2022
+// Generated on Fri Jan  5 14:50:03 2024
 // Command line: sim_cpp11_features.pl mwcex_promise.h
 #define COMPILING_MWCEX_PROMISE_H
 #include <mwcex_promise_cpp03.h>

@@ -1,4 +1,4 @@
-// Copyright 2022-2023 Bloomberg Finance L.P.
+// Copyright 2024 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,7 +17,7 @@
 
 // Automatically generated file.  **DO NOT EDIT**
 
-// Generated on Thu Jul 14 05:51:54 2022
+// Generated on Fri Jan  5 15:06:49 2024
 // Command line: sim_cpp11_features.pl mwcex_future.cpp
 
 #define INCLUDED_MWCEX_FUTURE_CPP03  // Disable inclusion
@@ -31,7 +31,7 @@
 #endif  // defined(COMPILING_MWCEX_FUTURE_CPP)
 
 // ----------------------------------------------------------------------------
-// Copyright 2022-2023 Bloomberg Finance L.P.
+// Copyright 2024 Bloomberg Finance L.P.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.

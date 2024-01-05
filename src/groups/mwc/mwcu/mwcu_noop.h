@@ -34,14 +34,18 @@
 #include <bsls_compilerfeatures.h>
 #include <bsls_keyword.h>
 
+// clang-format off
+
 #if BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES
 // Include version that can be compiled with C++03
-// Generated on Wed Jun 29 04:03:13 2022
+// Generated on Fri Jan  5 17:20:31 2024
 // Command line: sim_cpp11_features.pl mwcu_noop.h
-#define COMPILING_MWCU_NOOP_H
-#include <mwcu_noop_cpp03.h>
-#undef COMPILING_MWCU_NOOP_H
+# define COMPILING_MWCU_NOOP_H
+# include <mwcu_noop_cpp03.h>
+# undef COMPILING_MWCU_NOOP_H
 #else
+
+// clang-format on
 
 namespace BloombergLP {
 namespace mwcu {
@@ -60,7 +64,9 @@ class NoOp {
 
   public:
     // ACCESSORS
-#if !BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES  // $var-args=9
+    // clang-format off
+#if !BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES // $var-args=9
+    // clang-format on
 
     /// Do nothing.
     template <class... ARGS>
@@ -82,7 +88,9 @@ class NoOp {
 // ----------
 
 // ACCESSORS
-#if !BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES  // $var-args=9
+// clang-format off
+#if !BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES // $var-args=9
+// clang-format on
 template <class... ARGS>
 inline void NoOp::operator()(const ARGS&...) const BSLS_KEYWORD_NOEXCEPT
 {
@@ -93,6 +101,10 @@ inline void NoOp::operator()(const ARGS&...) const BSLS_KEYWORD_NOEXCEPT
 }  // close package namespace
 }  // close enterprise namespace
 
-#endif  // End C++11 code
+// clang-format off
+
+#endif // End C++11 code
+
+// clang-format on
 
 #endif

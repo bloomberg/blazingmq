@@ -45,14 +45,18 @@
 #include <bsls_keyword.h>
 #include <bsls_performancehint.h>
 
+// clang-format off
+
 #if BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES
 // Include version that can be compiled with C++03
-// Generated on Wed Jun 29 04:09:58 2022
+// Generated on Fri Jan  5 17:19:16 2024
 // Command line: sim_cpp11_features.pl mwcu_objectplaceholder.h
-#define COMPILING_MWCU_OBJECTPLACEHOLDER_H
-#include <mwcu_objectplaceholder_cpp03.h>
-#undef COMPILING_MWCU_OBJECTPLACEHOLDER_H
+# define COMPILING_MWCU_OBJECTPLACEHOLDER_H
+# include <mwcu_objectplaceholder_cpp03.h>
+# undef COMPILING_MWCU_OBJECTPLACEHOLDER_H
 #else
+
+// clang-format on
 
 namespace BloombergLP {
 namespace mwcu {
@@ -191,7 +195,9 @@ class ObjectPlaceHolder {
 
   public:
     // MANIPULATORS
-#if !BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES  // $var-args=9
+    // clang-format off
+#if !BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES // $var-args=9
+    // clang-format on
 
     /// Initialize this placeholder with an object of the specified `TYPE`
     /// constructed from the specified `args` arguments.  Specify an
@@ -387,7 +393,9 @@ inline ObjectPlaceHolder<SIZE>::~ObjectPlaceHolder()
 }
 
 // MANIPULATORS
-#if !BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES  // $var-args=9
+// clang-format off
+#if !BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES // $var-args=9
+// clang-format on
 
 template <size_t SIZE>
 template <class TYPE, class... ARGS>
@@ -470,6 +478,10 @@ ObjectPlaceHolder<SIZE>::objectAddress() const BSLS_KEYWORD_NOEXCEPT
 }  // close package namespace
 }  // close enterprise namespace
 
-#endif  // End C++11 code
+// clang-format off
+
+#endif // End C++11 code
+
+// clang-format on
 
 #endif
