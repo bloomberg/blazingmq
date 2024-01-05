@@ -38,7 +38,7 @@ class Filters {
     // CREATORS
     explicit Filters(const bsl::vector<bsl::string>& queueHexKeys,
                      const bsl::vector<bsl::string>& queueURIS,
-                     const Parameters::QueueMap&     queueMap,
+                     const QueueMap&                 queueMap,
                      bsl::ostream&                   ostream,
                      bslma::Allocator*               allocator);
 

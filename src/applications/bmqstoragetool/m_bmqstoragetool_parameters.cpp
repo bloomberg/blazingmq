@@ -253,13 +253,13 @@ bool Parameters::partiallyConfirmed() const
     return d_partiallyConfirmed;
 }
 
-const Parameters::QueueMap& Parameters::queueMap() const
+const QueueMap& Parameters::queueMap() const
 {
     return d_queueMap;
 }
 
 // TODO: used for testing, find better way
-Parameters::QueueMap& Parameters::queueMap()
+QueueMap& Parameters::queueMap()
 {
     return d_queueMap;
 }
@@ -523,53 +523,6 @@ void Parameters::FileHandler<ITER>::setIterator(ITER* iter)
 {
     if (iterator() != nullptr && iter != nullptr)
         d_iter = *iter;
-}
-
-// ===========================
-// class Parameters::QueueInfo
-// ===========================
-
-// CREATORS
-
-Parameters::QueueMap::QueueMap(bslma::Allocator* allocator)
-: d_queueKeyToInfoMap(allocator)
-, d_queueUriToKeyMap(allocator)
-{
-    // NOTHING
-}
-
-// MANIPULATORS
-
-void Parameters::QueueMap::insert(const bmqp_ctrlmsg::QueueInfo& queueInfo)
-{
-    auto queueKey = mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
-                                     queueInfo.key().begin());
-    d_queueKeyToInfoMap[queueKey]       = queueInfo;
-    d_queueUriToKeyMap[queueInfo.uri()] = queueKey;
-}
-
-// ACCESSORS
-
-bool Parameters::QueueMap::findInfoByKey(bmqp_ctrlmsg::QueueInfo* queueInfo_p,
-                                         const mqbu::StorageKey&  key) const
-{
-    if (auto it = d_queueKeyToInfoMap.find(key);
-        it != d_queueKeyToInfoMap.end()) {
-        *queueInfo_p = it->second;
-        return true;
-    }
-    return false;
-}
-
-bool Parameters::QueueMap::findKeyByUri(mqbu::StorageKey*  storageKey_p,
-                                        const bsl::string& uri) const
-{
-    if (auto it = d_queueUriToKeyMap.find(uri);
-        it != d_queueUriToKeyMap.end()) {
-        *storageKey_p = it->second;
-        return true;
-    }
-    return false;
 }
 
 }  // close package namespace

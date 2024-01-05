@@ -18,8 +18,6 @@
 #define INCLUDED_M_BMQSTORAGETOOL_SEARCHRESULT
 
 // bmqstoragetool
-// #include <m_bmqstoragetool_searchprocessor.h>
-
 #include <m_bmqstoragetool_filters.h>
 #include <m_bmqstoragetool_messagedetails.h>
 #include <m_bmqstoragetool_parameters.h>
@@ -52,7 +50,8 @@ class SearchResult {
     bool                                             d_withDetails;
     bool                                             d_dumpPayload;
     unsigned int                                     d_dumpLimit;
-    Parameters::FileHandler<mqbs::DataFileIterator>* d_dataFile;
+    Parameters::FileHandler<mqbs::DataFileIterator>* d_dataFile_p;
+    QueueMap&                                        d_queueMap;
     Filters&                                         d_filters;
     bsl::size_t                                      d_totalMessagesCount;
     bsl::size_t                                      d_foundMessagesCount;
@@ -80,9 +79,10 @@ class SearchResult {
     explicit SearchResult(
         bsl::ostream&                                    ostream,
         bool                                             withDetails,
-        bool                                             d_dumpPayload,
-        unsigned int                                     d_dumpLimit,
-        Parameters::FileHandler<mqbs::DataFileIterator>* d_dataFile,
+        bool                                             dumpPayload,
+        unsigned int                                     dumpLimit,
+        Parameters::FileHandler<mqbs::DataFileIterator>* dataFile_p,
+        QueueMap&                                        queueMap,
         Filters&                                         filters,
         bslma::Allocator*                                allocator);
     virtual ~SearchResult() = default;
@@ -114,9 +114,10 @@ class SearchAllResult : public SearchResult {
     explicit SearchAllResult(
         bsl::ostream&                                    ostream,
         bool                                             withDetails,
-        bool                                             d_dumpPayload,
-        unsigned int                                     d_dumpLimit,
-        Parameters::FileHandler<mqbs::DataFileIterator>* d_dataFile,
+        bool                                             dumpPayload,
+        unsigned int                                     dumpLimit,
+        Parameters::FileHandler<mqbs::DataFileIterator>* dataFile_p,
+        QueueMap&                                        queueMap,
         Filters&                                         filters,
         bslma::Allocator*                                allocator);
 
@@ -139,9 +140,10 @@ class SearchGuidResult : public SearchResult {
     explicit SearchGuidResult(
         bsl::ostream&                                    ostream,
         bool                                             withDetails,
-        bool                                             d_dumpPayload,
-        unsigned int                                     d_dumpLimit,
-        Parameters::FileHandler<mqbs::DataFileIterator>* d_dataFile,
+        bool                                             dumpPayload,
+        unsigned int                                     dumpLimit,
+        Parameters::FileHandler<mqbs::DataFileIterator>* dataFile_p,
+        QueueMap&                                        queueMap,
         const bsl::vector<bsl::string>&                  guids,
         Filters&                                         filters,
         bslma::Allocator*                                allocator);
@@ -167,9 +169,10 @@ class SearchOutstandingResult : public SearchResult {
     explicit SearchOutstandingResult(
         bsl::ostream&                                    ostream,
         bool                                             withDetails,
-        bool                                             d_dumpPayload,
-        unsigned int                                     d_dumpLimit,
-        Parameters::FileHandler<mqbs::DataFileIterator>* d_dataFile,
+        bool                                             dumpPayload,
+        unsigned int                                     dumpLimit,
+        Parameters::FileHandler<mqbs::DataFileIterator>* dataFile_p,
+        QueueMap&                                        queueMap,
         Filters&                                         filters,
         bslma::Allocator*                                allocator);
 
@@ -198,9 +201,10 @@ class SearchConfirmedResult : public SearchResult {
     explicit SearchConfirmedResult(
         bsl::ostream&                                    ostream,
         bool                                             withDetails,
-        bool                                             d_dumpPayload,
-        unsigned int                                     d_dumpLimit,
-        Parameters::FileHandler<mqbs::DataFileIterator>* d_dataFile,
+        bool                                             dumpPayload,
+        unsigned int                                     dumpLimit,
+        Parameters::FileHandler<mqbs::DataFileIterator>* dataFile_p,
+        QueueMap&                                        queueMap,
         Filters&                                         filters,
         bslma::Allocator*                                allocator);
 
@@ -229,9 +233,10 @@ class SearchPartiallyConfirmedResult : public SearchResult {
     explicit SearchPartiallyConfirmedResult(
         bsl::ostream&                                    ostream,
         bool                                             withDetails,
-        bool                                             d_dumpPayload,
-        unsigned int                                     d_dumpLimit,
-        Parameters::FileHandler<mqbs::DataFileIterator>* d_dataFile,
+        bool                                             dumpPayload,
+        unsigned int                                     dumpLimit,
+        Parameters::FileHandler<mqbs::DataFileIterator>* dataFile_p,
+        QueueMap&                                        queueMap,
         Filters&                                         filters,
         bslma::Allocator*                                allocator);
 

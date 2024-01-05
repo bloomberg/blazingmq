@@ -61,6 +61,7 @@ void SearchProcessor::process(bsl::ostream& ostream)
                     ostream,
                     d_allocator_p);
 
+    // TODO: consider to introduce SearchResultFactory and move all logic there
     // TODO: why unique_ptr doesn't support deleter in reset()
     // bsl::unique_ptr<SearchResult> searchResult_p;
     bsl::shared_ptr<SearchResult> searchResult_p;
@@ -71,6 +72,7 @@ void SearchProcessor::process(bsl::ostream& ostream)
                                                   d_parameters->dumpPayload(),
                                                   d_parameters->dumpLimit(),
                                                   d_parameters->dataFile(),
+                                                  d_parameters->queueMap(),
                                                   d_parameters->guid(),
                                                   filters,
                                                   d_allocator_p),
@@ -83,6 +85,7 @@ void SearchProcessor::process(bsl::ostream& ostream)
                                  d_parameters->dumpPayload(),
                                  d_parameters->dumpLimit(),
                                  d_parameters->dataFile(),
+                                 d_parameters->queueMap(),
                                  filters,
                                  d_allocator_p),
                              d_allocator_p);
@@ -94,6 +97,7 @@ void SearchProcessor::process(bsl::ostream& ostream)
                                  d_parameters->dumpPayload(),
                                  d_parameters->dumpLimit(),
                                  d_parameters->dataFile(),
+                                 d_parameters->queueMap(),
                                  filters,
                                  d_allocator_p),
                              d_allocator_p);
@@ -106,6 +110,7 @@ void SearchProcessor::process(bsl::ostream& ostream)
                                                d_parameters->dumpPayload(),
                                                d_parameters->dumpLimit(),
                                                d_parameters->dataFile(),
+                                               d_parameters->queueMap(),
                                                filters,
                                                d_allocator_p),
             d_allocator_p);
@@ -117,6 +122,7 @@ void SearchProcessor::process(bsl::ostream& ostream)
                                                  d_parameters->dumpPayload(),
                                                  d_parameters->dumpLimit(),
                                                  d_parameters->dataFile(),
+                                                 d_parameters->queueMap(),
                                                  filters,
                                                  d_allocator_p),
                              d_allocator_p);

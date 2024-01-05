@@ -36,14 +36,16 @@ SearchResult::SearchResult(
     bool                                             withDetails,
     bool                                             dumpPayload,
     unsigned int                                     dumpLimit,
-    Parameters::FileHandler<mqbs::DataFileIterator>* dataFile,
+    Parameters::FileHandler<mqbs::DataFileIterator>* dataFile_p,
+    QueueMap&                                        queueMap,
     Filters&                                         filters,
     bslma::Allocator*                                allocator)
 : d_ostream(ostream)
 , d_withDetails(withDetails)
 , d_dumpPayload(dumpPayload)
 , d_dumpLimit(dumpLimit)
-, d_dataFile(dataFile)
+, d_dataFile_p(dataFile_p)
+, d_queueMap(queueMap)
 , d_filters(filters)
 , d_foundMessagesCount(0)
 , d_totalMessagesCount(0)
@@ -119,7 +121,7 @@ bool SearchResult::processDeletionRecord(const mqbs::DeletionRecord& record,
         // Print message details immediately and delete record to save space.
         if (d_withDetails) {
             it->second.addDeleteRecord(record, recordIndex, recordOffset);
-            it->second.print(d_ostream);
+            it->second.print(d_ostream, d_queueMap);
         }
         else {
             outputGuidString(it->first);
@@ -139,7 +141,7 @@ void SearchResult::outputResult(bool outputRatio)
     for (const auto& item : d_messageIndexToGuidMap) {
         auto messageDetails = d_messagesDetails.at(item.second);
         if (d_withDetails) {
-            messageDetails.print(d_ostream);
+            messageDetails.print(d_ostream, d_queueMap);
         }
         else {
             outputGuidString(item.second);
@@ -157,9 +159,8 @@ void SearchResult::outputResult(bool outputRatio)
 void SearchResult::outputGuidString(const bmqt::MessageGUID& messageGUID,
                                     const bool               addNewLine)
 {
-    char buf[bmqt::MessageGUID::e_SIZE_HEX];
-    messageGUID.toHex(buf);
-    d_ostream.write(buf, bmqt::MessageGUID::e_SIZE_HEX);
+    d_ostream << messageGUID;
+
     if (addNewLine)
         d_ostream << bsl::endl;
 }
@@ -192,7 +193,7 @@ void SearchResult::outputOutstandingRatio()
 void SearchResult::outputPayload(bsls::Types::Uint64 messageOffsetDwords)
 {
     auto recordOffset = messageOffsetDwords * bmqp::Protocol::k_DWORD_SIZE;
-    auto it           = d_dataFile->iterator();
+    auto it           = d_dataFile_p->iterator();
 
     // Flip iterator direction depending on recordOffset
     if ((it->recordOffset() > recordOffset && !it->isReverseMode()) ||
@@ -283,14 +284,16 @@ SearchAllResult::SearchAllResult(
     bool                                             withDetails,
     bool                                             dumpPayload,
     unsigned int                                     dumpLimit,
-    Parameters::FileHandler<mqbs::DataFileIterator>* dataFile,
+    Parameters::FileHandler<mqbs::DataFileIterator>* dataFile_p,
+    QueueMap&                                        queueMap,
     Filters&                                         filters,
     bslma::Allocator*                                allocator)
 : SearchResult(ostream,
                withDetails,
                dumpPayload,
                dumpLimit,
-               dataFile,
+               dataFile_p,
+               queueMap,
                filters,
                allocator)
 {
@@ -328,7 +331,8 @@ SearchGuidResult::SearchGuidResult(
     bool                                             withDetails,
     bool                                             dumpPayload,
     unsigned int                                     dumpLimit,
-    Parameters::FileHandler<mqbs::DataFileIterator>* dataFile,
+    Parameters::FileHandler<mqbs::DataFileIterator>* dataFile_p,
+    QueueMap&                                        queueMap,
     const bsl::vector<bsl::string>&                  guids,
     Filters&                                         filters,
     bslma::Allocator*                                allocator)
@@ -336,7 +340,8 @@ SearchGuidResult::SearchGuidResult(
                withDetails,
                dumpPayload,
                dumpLimit,
-               dataFile,
+               dataFile_p,
+               queueMap,
                filters,
                allocator)
 , d_guidsMap(allocator)
@@ -410,14 +415,16 @@ SearchOutstandingResult::SearchOutstandingResult(
     bool                                             withDetails,
     bool                                             dumpPayload,
     unsigned int                                     dumpLimit,
-    Parameters::FileHandler<mqbs::DataFileIterator>* dataFile,
+    Parameters::FileHandler<mqbs::DataFileIterator>* dataFile_p,
+    QueueMap&                                        queueMap,
     Filters&                                         filters,
     bslma::Allocator*                                allocator)
 : SearchResult(ostream,
                withDetails,
                dumpPayload,
                dumpLimit,
-               dataFile,
+               dataFile_p,
+               queueMap,
                filters,
                allocator)
 {
@@ -464,14 +471,16 @@ SearchConfirmedResult::SearchConfirmedResult(
     bool                                             withDetails,
     bool                                             dumpPayload,
     unsigned int                                     dumpLimit,
-    Parameters::FileHandler<mqbs::DataFileIterator>* dataFile,
+    Parameters::FileHandler<mqbs::DataFileIterator>* dataFile_p,
+    QueueMap&                                        queueMap,
     Filters&                                         filters,
     bslma::Allocator*                                allocator)
 : SearchResult(ostream,
                withDetails,
                dumpPayload,
                dumpLimit,
-               dataFile,
+               dataFile_p,
+               queueMap,
                filters,
                allocator)
 {
@@ -517,14 +526,16 @@ SearchPartiallyConfirmedResult::SearchPartiallyConfirmedResult(
     bool                                             withDetails,
     bool                                             dumpPayload,
     unsigned int                                     dumpLimit,
-    Parameters::FileHandler<mqbs::DataFileIterator>* dataFile,
+    Parameters::FileHandler<mqbs::DataFileIterator>* dataFile_p,
+    QueueMap&                                        queueMap,
     Filters&                                         filters,
     bslma::Allocator*                                allocator)
 : SearchResult(ostream,
                withDetails,
                dumpPayload,
                dumpLimit,
-               dataFile,
+               dataFile_p,
+               queueMap,
                filters,
                allocator)
 , d_partiallyConfirmedGUIDS(allocator)
@@ -586,7 +597,7 @@ void SearchPartiallyConfirmedResult::outputResult(bool outputRatio)
         auto ConfirmCount = d_partiallyConfirmedGUIDS.at(item.second);
         if (ConfirmCount > 0) {
             if (d_withDetails) {
-                d_messagesDetails.at(item.second).print(d_ostream);
+                d_messagesDetails.at(item.second).print(d_ostream, d_queueMap);
             }
             else {
                 outputGuidString(item.second);

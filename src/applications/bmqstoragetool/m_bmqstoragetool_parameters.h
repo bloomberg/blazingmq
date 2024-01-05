@@ -28,11 +28,8 @@
 //@DESCRIPTION: This component provides a value-semantic type holding the
 // command-line parameters for the 'bmqtool' program.
 
-// BDE
-#include <bsl_iosfwd.h>
-#include <bsl_string.h>
-#include <bslma_allocator.h>
-#include <bsls_types.h>
+// bmqstoragetool
+#include <m_bmqstoragetool_queuemap.h>
 
 // MQB
 #include <mqbs_datafileiterator.h>
@@ -40,11 +37,14 @@
 #include <mqbs_journalfileiterator.h>
 #include <mqbs_mappedfiledescriptor.h>
 
-// BMQ
-#include <bmqp_ctrlmsg_messages.h>
-
 // MWC
 #include <mwcu_stringutil.h>
+
+// BDE
+#include <bsl_iosfwd.h>
+#include <bsl_string.h>
+#include <bslma_allocator.h>
+#include <bsls_types.h>
 
 namespace BloombergLP {
 
@@ -130,37 +130,6 @@ class Parameters {
         ITER* iterator();
     };
 
-    typedef bsl::unordered_map<mqbu::StorageKey, bmqp_ctrlmsg::QueueInfo>
-        QueueKeyToInfoMap;
-    typedef bsl::unordered_map<bsl::string, mqbu::StorageKey> QueueUriToKeyMap;
-
-    class QueueMap {
-        QueueKeyToInfoMap d_queueKeyToInfoMap;
-        QueueUriToKeyMap  d_queueUriToKeyMap;
-
-      public:
-        // CREATORS
-
-        explicit QueueMap(bslma::Allocator* allocator);
-
-        // MANIPULATORS
-
-        void insert(const bmqp_ctrlmsg::QueueInfo& queueInfo);
-        // Insert queue info data into internal maps
-
-        // ACCESSORS
-
-        bool findInfoByKey(bmqp_ctrlmsg::QueueInfo* queueInfo_p,
-                           const mqbu::StorageKey&  key) const;
-        // Find queue info by queue key. Return 'true' if key found and
-        // queueInfo_p contains valid data, 'false' otherwise.
-
-        bool findKeyByUri(mqbu::StorageKey*  storageKey_p,
-                          const bsl::string& uri) const;
-        // Find queue info by queue key. Return 'true' if uri found and
-        // storageKey_p contains valid data, 'false' otherwise.
-    };
-
   private:
     bsls::Types::Int64 d_timestampGt;
     // Filter messages by minimum timestamp
@@ -193,7 +162,7 @@ class Parameters {
     bool d_partiallyConfirmed;
     // Show only messages, confirmed by some of the appId's
     QueueMap d_queueMap;
-    // Queue info
+    // Queue map containing uri to key and key to info mappings
 
     // MANIPULATORS
     bool buildQueueMap(bsl::ostream& ss, bslma::Allocator* allocator);

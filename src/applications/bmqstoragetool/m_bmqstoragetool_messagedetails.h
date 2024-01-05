@@ -17,6 +17,8 @@
 #ifndef INCLUDED_M_BMQSTORAGETOOL_MESSGEDETAILS
 #define INCLUDED_M_BMQSTORAGETOOL_MESSGEDETAILS
 
+#include <m_bmqstoragetool_queuemap.h>
+
 // MQB
 #include <mqbs_filestoreprotocol.h>
 
@@ -79,7 +81,7 @@ class MessageDetails {
 
     // ACCESSORS
 
-    void print(bsl::ostream& os) const;
+    void print(bsl::ostream& os, QueueMap& queueMap) const;
     // Prints this object to the specified `os` stream.
 
     unsigned int dataRecordOffset() const;
