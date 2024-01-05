@@ -649,61 +649,6 @@ int LocalQueue::rejectMessage(const bmqt::MessageGUID& msgGUID,
                                              upstreamSubQueueId);
 }
 
-void LocalQueue::purge(mqbcmd::PurgeQueueResult* result,
-                       const bsl::string&        appId)
-{
-    // executed by the *QUEUE* dispatcher thread
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_state_p->queue()->dispatcher()->inDispatcherThread(
-        d_state_p->queue()));
-
-    mqbu::StorageKey appKey;
-    if (appId.empty()) {
-        // Entire queue needs to be purged.  Note that
-        // 'bmqp::ProtocolUtil::k_NULL_APP_ID' is the empty string.
-        appKey = mqbu::StorageKey::k_NULL_KEY;
-    }
-    else {
-        // A specific appId (i.e., virtual storage) needs to be purged.
-        if (!d_state_p->storage()->hasVirtualStorage(appId, &appKey)) {
-            mwcu::MemOutStream errorMsg;
-            errorMsg << "Specified appId '" << appId << "' not found in the "
-                     << "storage of queue '" << d_state_p->uri() << "'.";
-            mqbcmd::Error& error = result->makeError();
-            error.message()      = errorMsg.str();
-            return;  // RETURN
-        }
-    }
-
-    const bsls::Types::Uint64 numMsgs = d_state_p->storage()->numMessages(
-        appKey);
-    const bsls::Types::Uint64 numBytes = d_state_p->storage()->numBytes(
-        appKey);
-
-    mqbi::StorageResult::Enum rc = d_state_p->storage()->removeAll(appKey);
-    if (rc != mqbi::StorageResult::e_SUCCESS) {
-        mwcu::MemOutStream errorMsg;
-        errorMsg << "Failed to purge appId '" << appId << "', appKey '"
-                 << appKey << "' of queue '" << d_state_p->description()
-                 << "' [reason: " << mqbi::StorageResult::toAscii(rc) << "]";
-        BALL_LOG_WARN << "#QUEUE_PURGE_FAILURE " << errorMsg.str();
-        mqbcmd::Error& error = result->makeError();
-        error.message()      = errorMsg.str();
-        return;  // RETURN
-    }
-
-    d_queueEngine_mp->afterQueuePurged(appId, appKey);
-
-    mqbcmd::PurgedQueueDetails& queueDetails = result->makeQueue();
-    queueDetails.queueUri()                  = d_state_p->uri().asString();
-    queueDetails.appId()                     = appId;
-    mwcu::MemOutStream appKeyStr;
-    appKeyStr << appKey;
-    queueDetails.appKey()            = appKeyStr.str();
-    queueDetails.numMessagesPurged() = numMsgs;
-    queueDetails.numBytesPurged()    = numBytes;
-}
-
 void LocalQueue::loadInternals(mqbcmd::LocalQueue* out) const
 {
     // executed by the *QUEUE* dispatcher thread
