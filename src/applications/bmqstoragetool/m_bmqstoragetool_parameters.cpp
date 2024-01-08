@@ -151,7 +151,8 @@ bool CommandLineArguments::validate(bsl::string* error)
         ss << "Can't search by queue name, because csl file is not "
               "specified\n";
     }
-    if (d_timestampGt > 0 && d_timestampGt <= d_timestampLt) {
+    if (d_timestampLt < 0 || d_timestampGt < 0 ||
+        (d_timestampLt > 0 && d_timestampGt >= d_timestampLt)) {
         ss << "Invalid timestamp range specified\n";
     }
     if (!d_guid.empty() &&
