@@ -578,6 +578,201 @@ JournalFileIterator& createJournalFileIterator(unsigned int     numRecords,
     return it;
 }
 
+
+bsl::vector<bmqt::MessageGUID>
+addJournalRecordsWithConfirmedMessagesWithDifferentOrder(
+    MemoryBlock*               block,
+    FileHeader*                fileHeader,
+    bsls::Types::Uint64*       lastRecordPos,
+    bsls::Types::Uint64*       lastSyncPtPos,
+    RecordsListType*           records,
+    unsigned int               numRecords,
+    bsl::vector<unsigned int>& messageOffsets)
+{
+    bsls::Types::Uint64 currPos = 0;
+
+    OffsetPtr<FileHeader> fh(*block, currPos);
+    new (fh.get()) FileHeader();
+    *fileHeader = *fh;
+    currPos += sizeof(FileHeader);
+
+    OffsetPtr<JournalFileHeader> jfh(*block, currPos);
+    new (jfh.get()) JournalFileHeader();  // Default values are ok
+    currPos += sizeof(JournalFileHeader);
+
+    // bmqt::MessageGUID              lastMessageGUID;
+    bsl::vector<bmqt::MessageGUID> expectedGUIDs;
+
+    ASSERT(numRecords == messageOffsets.size());
+    ASSERT(numRecords >= 3);
+
+    // Create messages
+    for (unsigned int i = 0; i < numRecords; ++i) {
+        *lastRecordPos = currPos;
+
+        bmqt::MessageGUID g;
+        mqbu::MessageGUIDUtil::generateGUID(&g);
+        expectedGUIDs.push_back(g);
+        OffsetPtr<MessageRecord> rec(*block, currPos);
+        new (rec.get()) MessageRecord();
+        rec->header().setPrimaryLeaseId(100).setSequenceNumber(i + 1);
+        rec->setRefCount(i % FileStoreProtocol::k_MAX_MSG_REF_COUNT_HARD)
+            .setQueueKey(
+                mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
+                                 "abcde"))
+            .setFileKey(
+                mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
+                                 "12345"))
+            .setMessageOffsetDwords(messageOffsets.at(i))
+            .setMessageGUID(g)
+            .setCrc32c(i)
+            .setCompressionAlgorithmType(
+                bmqt::CompressionAlgorithmType::e_NONE)
+            .setMagic(RecordHeader::k_MAGIC);
+
+        RecordBufferType buf;
+        bsl::memcpy(buf.buffer(),
+                    rec.get(),
+                    FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
+        records->push_back(bsl::make_pair(RecordType::e_MESSAGE, buf));
+
+        currPos += FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
+    }
+
+    // Create delete messages, and replace GUIDS for 2nd and 3rd message
+    for (unsigned int i = 0; i < numRecords; ++i) {
+        *lastRecordPos = currPos;
+
+        // DelRec
+        bmqt::MessageGUID g;
+        // Change GUIDs order for 2nd and 3rd deletion records
+        if (i == 1) {
+            g = expectedGUIDs.at(2);
+        }
+        else if (i == 2) {
+            g = expectedGUIDs.at(1);
+        }
+        else {
+            g = expectedGUIDs.at(i);
+        }
+
+        OffsetPtr<DeletionRecord> rec(*block, currPos);
+        new (rec.get()) DeletionRecord();
+        rec->header().setPrimaryLeaseId(100).setSequenceNumber(i + 1);
+        rec->setDeletionRecordFlag(DeletionRecordFlag::e_IMPLICIT_CONFIRM)
+            .setQueueKey(
+                mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
+                                 "abcde"))
+            .setMessageGUID(g)
+            .setMagic(RecordHeader::k_MAGIC);
+
+        RecordBufferType buf;
+        bsl::memcpy(buf.buffer(),
+                    rec.get(),
+                    FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
+        records->push_back(bsl::make_pair(RecordType::e_DELETION, buf));
+
+        currPos += FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
+    }
+
+    return expectedGUIDs;
+}
+
+struct DataMessage {
+    int         d_line;
+    const char* d_appData_p;
+    const char* d_options_p;
+};
+
+static char* addDataRecords(bslma::Allocator*          ta,
+                            MappedFileDescriptor*      mfd,
+                            FileHeader*                fileHeader,
+                            const DataMessage*         messages,
+                            const unsigned int         numMessages,
+                            bsl::vector<unsigned int>& messageOffsets)
+{
+    bsls::Types::Uint64 currPos = 0;
+    const unsigned int  dhSize  = sizeof(DataHeader);
+    unsigned int totalSize      = sizeof(FileHeader) + sizeof(DataFileHeader);
+
+    // Have to compute the 'totalSize' we need for the 'MemoryBlock' based on
+    // the padding that we need for each record.
+
+    for (unsigned int i = 0; i < numMessages; i++) {
+        unsigned int optionsLen = bsl::strlen(messages[i].d_options_p);
+        BSLS_ASSERT_OPT(0 == optionsLen % bmqp::Protocol::k_WORD_SIZE);
+
+        unsigned int appDataLen     = bsl::strlen(messages[i].d_appData_p);
+        int          appDataPadding = 0;
+        bmqp::ProtocolUtil::calcNumDwordsAndPadding(&appDataPadding,
+                                                    appDataLen + optionsLen +
+                                                        dhSize);
+
+        totalSize += dhSize + appDataLen + appDataPadding + optionsLen;
+    }
+
+    // Allocate the memory now.
+    char* p = static_cast<char*>(ta->allocate(totalSize));
+
+    // Create the 'MemoryBlock'
+    MemoryBlock block(p, totalSize);
+
+    // Set the MFD
+    mfd->setFd(-1);
+    mfd->setBlock(block);
+    mfd->setFileSize(totalSize);
+
+    // Add the entries to the block.
+    OffsetPtr<FileHeader> fh(block, currPos);
+    new (fh.get()) FileHeader();
+    fh->setHeaderWords(sizeof(FileHeader) / bmqp::Protocol::k_WORD_SIZE);
+    fh->setMagic1(FileHeader::k_MAGIC1);
+    fh->setMagic2(FileHeader::k_MAGIC2);
+    currPos += sizeof(FileHeader);
+
+    OffsetPtr<DataFileHeader> dfh(block, currPos);
+    new (dfh.get()) DataFileHeader();
+    dfh->setHeaderWords(sizeof(DataFileHeader) / bmqp::Protocol::k_WORD_SIZE);
+    currPos += sizeof(DataFileHeader);
+
+    for (unsigned int i = 0; i < numMessages; i++) {
+        messageOffsets.push_back(currPos / bmqp::Protocol::k_DWORD_SIZE);
+
+        OffsetPtr<DataHeader> dh(block, currPos);
+        new (dh.get()) DataHeader();
+
+        unsigned int optionsLen = bsl::strlen(messages[i].d_options_p);
+        dh->setOptionsWords(optionsLen / bmqp::Protocol::k_WORD_SIZE);
+        currPos += sizeof(DataHeader);
+
+        char* destination = reinterpret_cast<char*>(block.base() + currPos);
+        bsl::memcpy(destination, messages[i].d_options_p, optionsLen);
+        currPos += optionsLen;
+        destination += optionsLen;
+
+        unsigned int appDataLen = bsl::strlen(messages[i].d_appData_p);
+        int          appDataPad = 0;
+        bmqp::ProtocolUtil::calcNumDwordsAndPadding(&appDataPad,
+                                                    appDataLen + optionsLen +
+                                                        dhSize);
+
+        bsl::memcpy(destination, messages[i].d_appData_p, appDataLen);
+        currPos += appDataLen;
+        destination += appDataLen;
+        bmqp::ProtocolUtil::appendPaddingDwordRaw(destination, appDataPad);
+        currPos += appDataPad;
+
+        unsigned int messageOffset = dh->headerWords() +
+                                     ((appDataLen + appDataPad + optionsLen) /
+                                      bmqp::Protocol::k_WORD_SIZE);
+        dh->setMessageWords(messageOffset);
+    }
+
+    *fileHeader = *fh;
+
+    return p;
+}
+
 }  // close unnamed namespace
 
 // ============================================================================
