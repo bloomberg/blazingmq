@@ -27,11 +27,16 @@ namespace m_bmqstoragetool {
 Filters::Filters(const bsl::vector<bsl::string>& queueHexKeys,
                  const bsl::vector<bsl::string>& queueURIS,
                  const QueueMap&                 queueMap,
+                 const bsls::Types::Int64        timestampGt,
+                 const bsls::Types::Int64        timestampLt,
                  bsl::ostream&                   ostream,
                  bslma::Allocator*               allocator)
 : d_queueKeys(allocator)
+, d_timestampGt(timestampGt)
+, d_timestampLt(timestampLt)
 {
     if (!queueHexKeys.empty()) {
+        d_queueKeys.reserve(queueHexKeys.size());
         for (const auto& key : queueHexKeys) {
             d_queueKeys.push_back(
                 mqbu::StorageKey(mqbu::StorageKey::HexRepresentation(),
@@ -65,6 +70,12 @@ bool Filters::apply(const mqbs::MessageRecord& record)
             // Not matched
             return false;  // RETURN
         }
+    const bsls::Types::Uint64& ts = record.header().timestamp();
+    if ((d_timestampGt > 0 && ts <= d_timestampGt) ||
+        (d_timestampLt > 0 && ts >= d_timestampLt)) {
+        // Match by timestamp
+        return false;  // RETURN
+    }
     return true;
 }
 

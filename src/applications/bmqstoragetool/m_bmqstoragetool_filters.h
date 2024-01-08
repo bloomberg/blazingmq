@@ -33,12 +33,16 @@ class Filters {
   private:
     // DATA
     bsl::vector<mqbu::StorageKey> d_queueKeys;
+    const bsls::Types::Int64      d_timestampGt;
+    const bsls::Types::Int64      d_timestampLt;
 
   public:
     // CREATORS
     explicit Filters(const bsl::vector<bsl::string>& queueHexKeys,
                      const bsl::vector<bsl::string>& queueURIS,
                      const QueueMap&                 queueMap,
+                     const bsls::Types::Int64        timestampGt,
+                     const bsls::Types::Int64        timestampLt,
                      bsl::ostream&                   ostream,
                      bslma::Allocator*               allocator);
 

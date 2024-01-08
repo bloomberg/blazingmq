@@ -45,8 +45,8 @@ class SearchProcessor : public CommandProcessor {
 
   public:
     // CREATORS
-    explicit SearchProcessor(const bsl::shared_ptr<Parameters>& params,
-                             bslma::Allocator*                  allocator);
+    explicit SearchProcessor(bsl::unique_ptr<Parameters> params,
+                             bslma::Allocator*           allocator);
 
     // MANIPULATORS
     void process(bsl::ostream& ostream) BSLS_KEYWORD_OVERRIDE;
