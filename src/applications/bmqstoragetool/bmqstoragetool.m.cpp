@@ -74,7 +74,7 @@ parseArgs(CommandLineArguments& arguments, int argc, const char* argv[])
         {"timestamp-lt",
          "timestamp less then",
          "lower timestamp bound",
-         balcl::TypeInfo(&arguments.d_timestampGt),
+         balcl::TypeInfo(&arguments.d_timestampLt),
          balcl::OccurrenceInfo::e_OPTIONAL},
         {"outstanding",
          "only outstanding",
@@ -161,6 +161,7 @@ int main(int argc, const char* argv[])
             bslma::Default::allocator());
 
     if (!processor) {
+        bsl::cerr << "Failed to create processor";
         return 3;  // RETURN
     }
 
