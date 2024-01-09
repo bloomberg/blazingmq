@@ -45,7 +45,7 @@ class CommandProcessor {
 };
 
 inline CommandProcessor::CommandProcessor(bsl::unique_ptr<Parameters> params)
-    : d_parameters(bsl::move(params))
+: d_parameters(bsl::move(params))
 {
 }
 

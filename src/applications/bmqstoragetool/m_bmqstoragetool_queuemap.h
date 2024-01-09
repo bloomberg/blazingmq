@@ -50,6 +50,9 @@ class QueueMap {
     void insert(const bmqp_ctrlmsg::QueueInfo& queueInfo);
     // Insert queue info data into internal maps
 
+    void update(const bmqp_ctrlmsg::QueueInfoUpdate& queueUpdateInfo);
+    // Update queue info data in internal maps
+
     // ACCESSORS
 
     bool findInfoByKey(bmqp_ctrlmsg::QueueInfo* queueInfo_p,

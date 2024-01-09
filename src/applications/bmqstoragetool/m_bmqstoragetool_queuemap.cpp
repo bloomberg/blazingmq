@@ -44,6 +44,30 @@ void QueueMap::insert(const bmqp_ctrlmsg::QueueInfo& queueInfo)
     d_queueUriToKeyMap[queueInfo.uri()] = queueKey;
 }
 
+void QueueMap::update(const bmqp_ctrlmsg::QueueInfoUpdate& queueInfoUpdate)
+{
+    auto queueKey = mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
+                                     queueInfoUpdate.key().begin());
+    if (auto it = d_queueKeyToInfoMap.find(queueKey);
+        it != d_queueKeyToInfoMap.end()) {
+        bsl::vector<bmqp_ctrlmsg::AppIdInfo>& appIds = it->second.appIds();
+        // Remove AppIds
+        const bsl::vector<bmqp_ctrlmsg::AppIdInfo>& removedAppIds =
+            queueInfoUpdate.removedAppIds();
+        bsl::erase_if(
+            appIds,
+            [&removedAppIds](const bmqp_ctrlmsg::AppIdInfo& appIdInfo) {
+                return bsl::find(removedAppIds.begin(),
+                                 removedAppIds.end(),
+                                 appIdInfo) != removedAppIds.end();
+            });
+        // Add AppIds
+        const bsl::vector<bmqp_ctrlmsg::AppIdInfo>& addedAppIds =
+            queueInfoUpdate.addedAppIds();
+        appIds.insert(appIds.end(), addedAppIds.begin(), addedAppIds.end());
+    }
+}
+
 // ACCESSORS
 
 bool QueueMap::findInfoByKey(bmqp_ctrlmsg::QueueInfo* queueInfo_p,

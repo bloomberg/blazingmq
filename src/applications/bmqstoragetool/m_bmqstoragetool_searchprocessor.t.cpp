@@ -83,7 +83,10 @@ void addJournalRecords(MemoryBlock*         block,
             mqbu::MessageGUIDUtil::generateGUID(&g);
             OffsetPtr<MessageRecord> rec(*block, currPos);
             new (rec.get()) MessageRecord();
-            rec->header().setPrimaryLeaseId(100).setSequenceNumber(i).setTimestamp(i);
+            rec->header()
+                .setPrimaryLeaseId(100)
+                .setSequenceNumber(i)
+                .setTimestamp(i);
             rec->setRefCount(i % FileStoreProtocol::k_MAX_MSG_REF_COUNT_HARD)
                 .setQueueKey(
                     mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
@@ -110,7 +113,10 @@ void addJournalRecords(MemoryBlock*         block,
             mqbu::MessageGUIDUtil::generateGUID(&g);
             OffsetPtr<ConfirmRecord> rec(*block, currPos);
             new (rec.get()) ConfirmRecord();
-            rec->header().setPrimaryLeaseId(100).setSequenceNumber(i).setTimestamp(i);
+            rec->header()
+                .setPrimaryLeaseId(100)
+                .setSequenceNumber(i)
+                .setTimestamp(i);
             rec->setReason(ConfirmReason::e_REJECTED)
                 .setQueueKey(
                     mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
@@ -133,7 +139,10 @@ void addJournalRecords(MemoryBlock*         block,
             mqbu::MessageGUIDUtil::generateGUID(&g);
             OffsetPtr<DeletionRecord> rec(*block, currPos);
             new (rec.get()) DeletionRecord();
-            rec->header().setPrimaryLeaseId(100).setSequenceNumber(i).setTimestamp(i);
+            rec->header()
+                .setPrimaryLeaseId(100)
+                .setSequenceNumber(i)
+                .setTimestamp(i);
             rec->setDeletionRecordFlag(DeletionRecordFlag::e_IMPLICIT_CONFIRM)
                 .setQueueKey(
                     mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
@@ -151,7 +160,10 @@ void addJournalRecords(MemoryBlock*         block,
             // QueueOpRec
             OffsetPtr<QueueOpRecord> rec(*block, currPos);
             new (rec.get()) QueueOpRecord();
-            rec->header().setPrimaryLeaseId(100).setSequenceNumber(i).setTimestamp(i);
+            rec->header()
+                .setPrimaryLeaseId(100)
+                .setSequenceNumber(i)
+                .setTimestamp(i);
             rec->setFlags(3)
                 .setQueueKey(
                     mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
@@ -181,7 +193,10 @@ void addJournalRecords(MemoryBlock*         block,
                                             100,      // qlistFilePosition
                                             RecordHeader::k_MAGIC);
 
-            rec->header().setPrimaryLeaseId(100).setSequenceNumber(i).setTimestamp(i);
+            rec->header()
+                .setPrimaryLeaseId(100)
+                .setSequenceNumber(i)
+                .setTimestamp(i);
             RecordBufferType buf;
             bsl::memcpy(buf.buffer(),
                         rec.get(),
@@ -577,7 +592,6 @@ JournalFileIterator& createJournalFileIterator(unsigned int     numRecords,
     JournalFileIterator it(&mfd, fileHeader, false);
     return it;
 }
-
 
 bsl::vector<bmqt::MessageGUID>
 addJournalRecordsWithConfirmedMessagesWithDifferentOrder(
@@ -1848,7 +1862,6 @@ static void test12_searchMessagesWithPayloadDumpTest()
     s_allocator_p->deallocate(p);
     s_allocator_p->deallocate(pd);
 }
-
 
 // ============================================================================
 //                                 MAIN PROGRAM

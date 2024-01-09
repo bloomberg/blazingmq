@@ -361,8 +361,7 @@ bool Parameters::buildQueueMap(bsl::ostream& ss, bslma::Allocator* allocator)
         if (lastSnapshotIt.header().recordType() ==
             mqbc::ClusterStateRecordType::Enum::e_UPDATE) {
             lastSnapshotIt.loadClusterMessage(&clusterMessage);
-            // TODO: consider also process SELECTION_ID_QUEUE_UPDATE_ADVISORY
-            // if AppIds updates are required.
+            // Process queueAssignmentAdvisory record
             if (clusterMessage.choice().selectionId() ==
                 bmqp_ctrlmsg::ClusterMessageChoice::
                     SELECTION_ID_QUEUE_ASSIGNMENT_ADVISORY) {
@@ -374,6 +373,21 @@ bool Parameters::buildQueueMap(bsl::ostream& ss, bslma::Allocator* allocator)
                     updateQueuesInfo.end(),
                     [this](const bmqp_ctrlmsg::QueueInfo& queueInfo) {
                         d_queueMap.insert(queueInfo);
+                    });
+            }
+            else if (clusterMessage.choice().selectionId() ==
+                     // Process queueUpdateAdvisory record
+                     bmqp_ctrlmsg::ClusterMessageChoice::
+                         SELECTION_ID_QUEUE_UPDATE_ADVISORY) {
+                auto queueUpdateAdvisory =
+                    clusterMessage.choice().queueUpdateAdvisory();
+                auto queueInfoUpdates = queueUpdateAdvisory.queueUpdates();
+                bsl::for_each(
+                    queueInfoUpdates.begin(),
+                    queueInfoUpdates.end(),
+                    [this](
+                        const bmqp_ctrlmsg::QueueInfoUpdate& queueInfoUpdate) {
+                        d_queueMap.update(queueInfoUpdate);
                     });
             }
         }
