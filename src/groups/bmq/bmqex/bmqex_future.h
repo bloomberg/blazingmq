@@ -148,12 +148,16 @@
 #include <bsls_timeinterval.h>
 
 #if BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES
+// clang-format off
 // Include version that can be compiled with C++03
-// Generated on Wed Jun 18 14:44:15 2025
+// Generated on Wed Mar 25 20:05:12 2026
 // Command line: sim_cpp11_features.pl bmqex_future.h
-#define COMPILING_BMQEX_FUTURE_H
-#include <bmqex_future_cpp03.h>
-#undef COMPILING_BMQEX_FUTURE_H
+
+# define COMPILING_BMQEX_FUTURE_H
+# include <bmqex_future_cpp03.h>
+# undef COMPILING_BMQEX_FUTURE_H
+
+// clang-format on
 #else
 
 namespace BloombergLP {
@@ -952,7 +956,7 @@ class FutureSharedState {
     /// the C++ standard.
     void setValue(bslmf::MovableRef<R> value);
 
-#if !BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES  // $var-args=9
+#if !BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES // $var-args=9
 
     /// Atomically initialize the stored value as if by direct-non-list-
     /// initializing an object of type `R` with 'bsl::forward<ARGS>(
@@ -1665,7 +1669,7 @@ inline void FutureSharedState<R>::setValue(bslmf::MovableRef<R> value)
     emplaceValue(bslmf::MovableRefUtil::move(value));
 }
 
-#if !BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES  // $var-args=9
+#if !BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES // $var-args=9
 template <class R>
 template <class... ARGS>
 inline void FutureSharedState<R>::emplaceValue(ARGS&&... args)
@@ -1903,7 +1907,8 @@ inline void bmqex::swap(FutureResult<R>& lhs,
 
 }  // close enterprise namespace
 
-#endif  // End C++11 code
+#endif // End C++11 code
+
 #include <bsl_type_traits.h>
 
 #endif

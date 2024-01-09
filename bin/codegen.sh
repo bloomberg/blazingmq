@@ -3,7 +3,7 @@
 #
 # This script is not able to be run by non-Bloomberg developers as it relies on internal tooling.
 
-COPYRIGHT="// Copyright 2025 Bloomberg Finance L.P.
+readonly COPYRIGHT="// Copyright 2025 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the \"License\");
@@ -18,6 +18,7 @@ COPYRIGHT="// Copyright 2025 Bloomberg Finance L.P.
 // See the License for the specific language governing permissions and
 // limitations under the License.
 "
+readonly CODEGEN="${CODEGEN:-}"
 
 codegen() {
   local dir=$1
@@ -49,14 +50,24 @@ codegen() {
   done
 }
 
+usage() {
+  echo "Usage: codegen.sh <schema-name>\
+  Valid schema names include: [ m_bmqtool, bmqp_ctrlmsg, bmqstm, mqbcfg, mqbcmd, mqbconf ]"\ >&2
+}
+
 main() {
   set -eux
 
-  if [[ -z "${CODEGEN+}" ]]; then
+  if [[ -z "${CODEGEN}" ]]; then
     echo "This script is not able to be run by non-Bloomberg developers as it relies on \
 internal tooling. Please open an issue if you are an open-source contributor \
 in need of code generation. If you are a Bloomberg developer, please rerun this \
 script with the CODEGEN enviornment variable set to the internal codegen tool." >&2
+    exit 1
+  fi
+
+  if [[ -z "${1+x}" ]]; then
+    usage
     exit 1
   fi
 
@@ -80,7 +91,7 @@ script with the CODEGEN enviornment variable set to the internal codegen tool." 
       codegen ./src/groups/mqb/mqbconfm mqbconf.xsd messages
       ;;
     *)
-      echo "Unrecognized/missing codegen target" >&2
+      usage
       exit 1
       ;;
   esac

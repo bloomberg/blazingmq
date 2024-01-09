@@ -6,7 +6,7 @@ echo -e "Before running this script, install the following prerequisites, if not
         "by executing the following commands:\n"                                               \
         "sudo apt update && sudo apt -y install ca-certificates\n"                             \
         "sudo apt install -y --no-install-recommends"                                          \
-        "autoconf automake build-essential gdb cmake ninja-build pkg-config bison libfl-dev libbenchmark-dev libgmock-dev libtool libz-dev"
+        "autoconf automake build-essential gdb cmake ninja-build pkg-config bison libfl-dev libbenchmark-dev libgmock-dev libgtest-dev libtool libz-dev"
 
 # :: Parse and validate arguments :::::::::::::::::::::::::::::::::::::::::::::
 print_usage_and_exit_with_error() {
@@ -59,7 +59,7 @@ mkdir -p "${DIR_THIRDPARTY}"
 DIR_BUILD="${DIR_BUILD:-${DIR_ROOT}/build}"
 mkdir -p "${DIR_BUILD}"
 
-DIR_INSTALL="${DIR_INSTALL:-${DIR_ROOT}}"
+DIR_INSTALL="${DIR_INSTALL:-${DIR_ROOT}/install}"
 mkdir -p "${DIR_INSTALL}"
 
 # :: Clone dependencies :::::::::::::::::::::::::::::::::::::::::::::::::::::::
