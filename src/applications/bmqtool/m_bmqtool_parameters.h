@@ -280,6 +280,13 @@ class Parameters {
     // Timeout for session operations.  This timeout is used for all timeouts
     // in the `bmqt::SessionOptions` used by the session.
 
+    /// A path to the FILE, containing concatenation of known certificates
+    /// the client can use to reference as its certificate store.
+    bsl::string d_tlsAuthority;
+
+    /// A string with a comma-separated list of supported TLS versions.
+    bsl::string d_tlsVersions;
+
   public:
     // CREATORS
 
@@ -317,6 +324,8 @@ class Parameters {
     Parameters& setAutoIncrementedField(const bsl::string& value);
     Parameters& setAutoPubSubModulo(int autoPubSubModulo);
     Parameters& setTimeout(const bsls::TimeInterval& value);
+    Parameters& setTlsAuthority(const bsl::string& value);
+    Parameters& setTlsVersions(const bsl::string& value);
 
     // Set the corresponding member to the specified 'value' and return a
     // reference offering modifiable access to this object.
@@ -377,8 +386,9 @@ class Parameters {
     const bsl::string&                  autoIncrementedField() const;
     int                                 autoPubSubModulo() const;
     const bsls::TimeInterval&           timeout() const;
-
     const char* autoPubSubPropertyName() const;
+    const bsl::string&                  tlsAuthority() const;
+    const bsl::string&                  tlsVersions() const;
 };
 
 // FREE OPERATORS
@@ -598,7 +608,18 @@ inline Parameters& Parameters::setAutoPubSubModulo(int autoPubSubModulo)
 inline Parameters& Parameters::setTimeout(const bsls::TimeInterval& value)
 {
     d_timeout = value;
+    return *this;
+}
 
+inline Parameters& Parameters::setTlsAuthority(const bsl::string& value)
+{
+    d_tlsAuthority = value;
+    return *this;
+}
+
+inline Parameters& Parameters::setTlsVersions(const bsl::string& value)
+{
+    d_tlsVersions = value;
     return *this;
 }
 
@@ -757,6 +778,16 @@ inline int Parameters::autoPubSubModulo() const
 inline const bsls::TimeInterval& Parameters::timeout() const
 {
     return d_timeout;
+}
+
+inline const bsl::string& Parameters::tlsAuthority() const
+{
+    return d_tlsAuthority;
+}
+
+inline const bsl::string& Parameters::tlsVersions() const
+{
+    return d_tlsVersions;
 }
 
 }  // close package namespace
