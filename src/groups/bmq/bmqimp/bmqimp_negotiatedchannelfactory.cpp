@@ -16,11 +16,11 @@
 // bmqimp_negotiatedchannelfactory.cpp                                -*-C++-*-
 #include <bmqimp_negotiatedchannelfactory.h>
 
-#include <bmqscm_version.h>
 // BMQ
 #include <bmqp_event.h>
 #include <bmqp_protocol.h>
 #include <bmqp_schemaeventbuilder.h>
+#include <bmqscm_version.h>
 
 #include <bmqio_channelutil.h>
 #include <bmqu_blob.h>

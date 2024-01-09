@@ -546,11 +546,13 @@ def single_node_cluster_config(
     configurator: cfg.Configurator, port_allocator: Iterator[int], mode: Mode
 ):
     mode.tweak(configurator.proto.cluster)
+    tcp_host = "localhost"
+    tcp_port = next(port_allocator)
 
     broker = configurator.broker(
         name="single",
-        tcp_host="localhost",
-        tcp_port=next(port_allocator),
+        tcp_host=tcp_host,
+        tcp_port=tcp_port,
         data_center="single_node",
     )
 
@@ -590,14 +592,16 @@ def multi_node_cluster_config(
     reverse_proxy: bool = False,
 ) -> None:
     mode.tweak(configurator.proto.cluster)
+    tcp_host = "localhost"
+    tcp_port = next(port_allocator)
 
     cluster = configurator.cluster(
         name="itCluster",
         nodes=[
             configurator.broker(
                 name=f"{data_center}{broker}",
-                tcp_host="localhost",
-                tcp_port=next(port_allocator),
+                tcp_host=tcp_host,
+                tcp_port=tcp_port,
                 data_center=data_center,
             )
             for data_center in ("east", "west")
@@ -608,10 +612,11 @@ def multi_node_cluster_config(
     add_test_domains(cluster)
 
     for data_center in ("east", "west"):
+        tcp_port = next(port_allocator)
         configurator.broker(
             name=f"{data_center}p",
-            tcp_host="localhost",
-            tcp_port=next(port_allocator),
+            tcp_host=tcp_host,
+            tcp_port=tcp_port,
             data_center=data_center,
         ).proxy(cluster, reverse=reverse_proxy)
 
@@ -742,14 +747,16 @@ def virtual_cluster_config(
     reverse_proxy: bool = False,
 ) -> None:
     mode.tweak(configurator.proto.cluster)
+    tcp_host = "localhost"
+    tcp_port = next(port_allocator)
 
     final_cluster = configurator.cluster(
         name="itCluster",
         nodes=[
             configurator.broker(
                 name=f"{data_center}{broker}",
-                tcp_host="localhost",
-                tcp_port=next(port_allocator),
+                tcp_host=tcp_host,
+                tcp_port=tcp_port,
                 data_center=data_center,
             )
             for data_center in ("east", "west")
@@ -758,13 +765,14 @@ def virtual_cluster_config(
     )
     add_test_domains(final_cluster)
 
+    tcp_port = next(port_allocator)
     cluster = configurator.virtual_cluster(
         name="itVirtualCluster",
         nodes=[
             configurator.broker(
                 name=f"{data_center}v",
-                tcp_host="localhost",
-                tcp_port=next(port_allocator),
+                tcp_host=tcp_host,
+                tcp_port=tcp_port,
                 data_center=data_center,
             )
             for data_center in ("east", "west")
@@ -773,10 +781,11 @@ def virtual_cluster_config(
     cluster.proxy(final_cluster)
 
     for data_center in ("east", "west"):
+        tcp_port = next(port_allocator)
         configurator.broker(
             name=f"{data_center}p",
-            tcp_host="localhost",
-            tcp_port=next(port_allocator),
+            tcp_host=tcp_host,
+            tcp_port=tcp_port,
             data_center=data_center,
         ).proxy(cluster, reverse=reverse_proxy)
 

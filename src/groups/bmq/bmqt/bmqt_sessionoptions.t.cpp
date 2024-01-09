@@ -62,7 +62,8 @@ static void test2_printTest()
         "openQueueTimeout = 300 configureQueueTimeout = 300 "
         "closeQueueTimeout = 300 eventQueueLowWatermark = 50 "
         "eventQueueHighWatermark = 2000 hasHostHealthMonitor = false "
-        "hasDistributedTracing = false ]";
+        "hasDistributedTracing = false certificateAuthority = \"\" "
+        "protocolVersions = [ ] ]";
     bmqtst::TestHelper::printTestName("PRINT");
     PV("Testing print");
     bmqu::MemOutStream stream(bmqtst::TestHelperUtil::allocator());

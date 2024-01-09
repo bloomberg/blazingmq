@@ -87,6 +87,7 @@
         configureStream......: send new ConfigureStream instead of old ConfigureQueue
         advertiseSubscriptions.: temporarily control use of ConfigureStream in SDK
         routeCommandTimeoutMs: maximum amount of time to wait for a routed command's response
+        tlsConfig............: optional configuation for TLS
       </documentation>
     </annotation>
     <sequence>
@@ -110,6 +111,7 @@
       <element name='configureStream'      type='boolean' default='false'/>
       <element name='advertiseSubscriptions' type='boolean' default='false'/>
       <element name='routeCommandTimeoutMs' type='int' default='3000'/>
+      <element name="tlsConfig"            type='tns:TlsConfig' minOccurs='0'/>
     </sequence>
   </complexType>
 
@@ -284,11 +286,14 @@
         A name to associate this listener to.
       port.................:
         The port this listener will accept connections on.
+      tls..................:
+        Use TLS on this interface.
       </documentation>
     </annotation>
     <sequence>
       <element name='name'                type='string'/>
       <element name='port'                type='int'/>
+      <element name='tls'   type='boolean' default='false'/>
     </sequence>
   </complexType>
 
@@ -302,6 +307,30 @@
     <sequence>
       <element name='libraries' type='string' maxOccurs='unbounded'/>
       <element name='enabled'   type='string' maxOccurs='unbounded'/>
+    </sequence>
+  </complexType>
+
+    <complexType name='TlsConfig'>
+    <annotation>
+      <documentation>
+        certificateAuthority.:
+            A path to the FILE, containing concatenation of known certificates
+            the server can use to reference as its certificate store.
+        certificate..........:
+            A path to the FILE, containing the certificate the broker will use
+            to identify itself to other clients.
+        key..................:
+            A path to the FILE, containing the private key that the broker uses
+            to read the certificate.
+        versions.............:
+            A string with a comma-separated list of supported protocol versions.
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='certificateAuthority' type='string'/>
+      <element name='certificate'          type='string'/>
+      <element name='key'                  type='string'/>
+      <element name='versions'             type='string'/>
     </sequence>
   </complexType>
 
