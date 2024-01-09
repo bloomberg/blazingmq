@@ -94,11 +94,12 @@ class Broker:
 
     @property
     def host(self) -> str:
-        return self.config.app_config.network_interfaces.tcp_interface.name  # type: ignore
+        return self.config.app_config.network_interfaces.tcp_interface.name
 
     @property
     def port(self) -> str:
-        return self.config.app_config.network_interfaces.tcp_interface.port  # type: ignore
+        return self.config.app_config.network_interfaces.tcp_interface.port
+
 
     @property
     def config_dir(self) -> Path:

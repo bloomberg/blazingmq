@@ -564,6 +564,11 @@ int Application::initialize()
         .setNumProcessingThreads(d_parameters.numProcessingThreads())
         .configureEventQueue(1000, 10 * 1000);
 
+    if (!d_parameters.tlsAuthority().empty()) {
+        options.setTlsDetails(d_parameters.tlsAuthority(),
+                              d_parameters.tlsVersions());
+    }
+
     // Create the session
     if (d_parameters.noSessionEventHandler()) {
         d_session_mp.load(new (*d_allocator_p)

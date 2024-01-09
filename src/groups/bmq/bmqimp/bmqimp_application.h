@@ -35,7 +35,6 @@
 // Thread safe.
 
 // BMQ
-
 #include <bmqimp_brokersession.h>
 #include <bmqimp_eventqueue.h>
 #include <bmqimp_negotiatedchannelfactory.h>
@@ -89,6 +88,67 @@ class Application {
     typedef bslma::ManagedPtr<bmqio::ChannelFactory::OpHandle>
         ChannelFactoryOpHandleMp;
 
+    class ChannelFactoryPipeline : public bmqio::ChannelFactory {
+      public:
+        BSLMF_NESTED_TRAIT_DECLARATION(ChannelFactoryPipeline,
+                                       bslma::UsesBslmaAllocator)
+
+      private:
+        bslma::Allocator*                 d_allocator_p;
+        bmqio::NtcChannelFactory          d_channelFactory;
+        bmqio::ResolvingChannelFactory    d_resolvingChannelFactory;
+        bmqio::ReconnectingChannelFactory d_reconnectingChannelFactory;
+        bmqio::StatChannelFactory         d_statChannelFactory;
+        NegotiatedChannelFactory          d_negotiatedChannelFactory;
+
+      public:
+        // CREATORS
+
+        /// @brief Initialize the channel factory pipeline that this client
+        /// session will use for creating channels.
+        ///
+        /// @param blobBufferFactory The factory to allocate blobs for when data is receieved from the network.
+        /// @param scheduler The scheduler used for retrying connections.
+        /// @param blobSpPool The object pool used to manage BlobSp's.
+        /// @param sessionOptions The options used to configure the network sesison
+        /// @param statContextCreator The factory used to create StatContexts
+        /// @param negotiationMessage The initial negotiation message to send to the outgoing connection.
+        /// @param allocator The allocator used to supply memory.
+        ChannelFactoryPipeline(
+            bdlbb::BlobBufferFactory*   blobBufferFactory,
+            bdlmt::EventScheduler*      scheduler,
+            BlobSpPool*                             blobSpPool,
+            const bmqt::SessionOptions& sessionOptions,
+            const bmqio::StatChannelFactoryConfig::StatContextCreatorFn&
+                                                    statContextCreator,
+            const bmqp_ctrlmsg::NegotiationMessage& negotiationMessage,
+            bslma::Allocator*                       allocator = 0);
+
+        // ACCESSORS
+
+        /// @brief Returns this object's allocator
+        inline bslma::Allocator* allocator() const { return d_allocator_p; }
+
+        // MANIPULATORS
+
+        /// @brief Enable the creation TLS channels from this pipeline.
+        int configureTls(const bsl::string& caPath);
+
+        void listen(bmqio::Status*               status,
+                    bslma::ManagedPtr<OpHandle>* handle,
+                    const bmqio::ListenOptions&  options,
+                    const ResultCallback&        cb) BSLS_KEYWORD_OVERRIDE;
+
+        void connect(bmqio::Status*               status,
+                     bslma::ManagedPtr<OpHandle>* handle,
+                     const bmqio::ConnectOptions& options,
+                     const ResultCallback&        cb) BSLS_KEYWORD_OVERRIDE;
+
+        int start();
+
+        void stop();
+    };
+
     // CLASS-SCOPE CATEGORY
     BALL_LOG_SET_CLASS_CATEGORY("BMQIMP.APPLICATION");
 
@@ -126,15 +186,7 @@ class Application {
     bdlmt::EventScheduler d_scheduler;
     // Scheduler
 
-    bmqio::NtcChannelFactory d_channelFactory;
-
-    bmqio::ResolvingChannelFactory d_resolvingChannelFactory;
-
-    bmqio::ReconnectingChannelFactory d_reconnectingChannelFactory;
-
-    bmqio::StatChannelFactory d_statChannelFactory;
-
-    NegotiatedChannelFactory d_negotiatedChannelFactory;
+    ChannelFactoryPipeline d_channelFactoryPipeline;
 
     ChannelFactoryOpHandleMp d_connectHandle_mp;
 
@@ -162,6 +214,9 @@ class Application {
 
     /// Scheduler handle of the recurring event to monitor channels heartbeats.
     bdlmt::EventSchedulerRecurringEventHandle d_heartbeatSchedulerHandle;
+
+    /// Handle for the client side encryption engine 
+    bsl::shared_ptr<ntci::EncryptionClient> d_encryptionClient_sp;
 
   private:
     // PRIVATE MANIPULATORS
