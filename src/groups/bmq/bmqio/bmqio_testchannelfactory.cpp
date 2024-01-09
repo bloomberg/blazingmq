@@ -148,5 +148,14 @@ void TestChannelFactory::connect(Status*                      status,
     }
 }
 
+int TestChannelFactory::start()
+{
+    return 0;
+}
+
+void TestChannelFactory::stop()
+{
+}
+
 }  // close package namespace
 }  // close enterprise namespace

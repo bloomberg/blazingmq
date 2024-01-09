@@ -101,6 +101,7 @@ jobs:
             libfl-dev \
             libbenchmark-dev \
             libgmock-dev \
+            libgtest-dev \
             libz-dev
       - name: Install cached non packaged dependencies
         if: steps.build-cache-restore-step.outputs.cache-hit != 'true' # Variable type is string, thus using quotes
