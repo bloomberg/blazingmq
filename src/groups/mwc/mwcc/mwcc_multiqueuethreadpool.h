@@ -1262,7 +1262,7 @@ inline MultiQueueThreadPool<TYPE>::MultiQueueThreadPool(
                               bdlf::PlaceHolders::_1,
                               // arena
                               bdlf::PlaceHolders::_2),  // allocator
-         -1,
+         256 * 1024,
          basicAllocator)
 , d_queueEmptyEvent(config.d_objectCreatorFn,
                     config.d_objectResetterFn,

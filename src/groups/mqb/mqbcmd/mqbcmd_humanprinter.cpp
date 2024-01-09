@@ -463,8 +463,7 @@ void printFileStoreSummary(bsl::ostream&           os,
        << "Num unreceipted messages: "
        << prettyNumber(static_cast<bsls::Types::Int64>(
               summary.numUnreceiptedMessages()))
-       << newlineAndIndent(level + 1, spacesPerLevel)
-       << "Current Nagle count: "
+       << newlineAndIndent(level + 1, spacesPerLevel) << "Current Nagle size: "
        << prettyNumber(
               static_cast<bsls::Types::Int64>(summary.naglePacketCount()))
        << '\n'

@@ -338,7 +338,7 @@ class VirtualStorage : public mqbi::Storage {
 
     /// Behavior is undefined if this method is ever invoked.  This method
     /// needs to be implemented as its part of base protocol.
-    void dispatcherFlush(bool storage, bool queues) BSLS_KEYWORD_OVERRIDE;
+    void dispatcherFlush(bool isQueueIdle) BSLS_KEYWORD_OVERRIDE;
 
     /// Attempt to garbage-collect messages for which TTL has expired, and
     /// return the number of messages garbage-collected.  Populate the

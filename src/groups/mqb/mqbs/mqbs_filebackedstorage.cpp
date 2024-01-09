@@ -538,7 +538,7 @@ FileBackedStorage::removeAll(const mqbu::StorageKey& appKey)
 
     if (appKey.isNull()) {
         purgeCommon(appKey);  // or 'mqbu::StorageKey::k_NULL_KEY'
-        dispatcherFlush(true, false);
+        dispatcherFlush(false);
         d_isEmpty.storeRelaxed(1);
         return mqbi::StorageResult::e_SUCCESS;  // RETURN
     }
@@ -634,7 +634,7 @@ FileBackedStorage::removeAll(const mqbu::StorageKey& appKey)
     }
 
     purgeCommon(appKey);
-    dispatcherFlush(true, false);
+    dispatcherFlush(false);
 
     if (d_handles.empty()) {
         d_isEmpty.storeRelaxed(1);
@@ -643,9 +643,9 @@ FileBackedStorage::removeAll(const mqbu::StorageKey& appKey)
     return mqbi::StorageResult::e_SUCCESS;
 }
 
-void FileBackedStorage::dispatcherFlush(bool storage, bool queues)
+void FileBackedStorage::dispatcherFlush(bool isQueueIdle)
 {
-    d_store_p->dispatcherFlush(storage, queues);
+    d_store_p->dispatcherFlush(isQueueIdle);
 }
 
 int FileBackedStorage::gcExpiredMessages(

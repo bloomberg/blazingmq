@@ -38,6 +38,7 @@
 #include <mqbu_storagekey.h>
 
 // BMQ
+#include <bmqp_event.h>
 #include <bmqt_uri.h>
 
 // BDE
@@ -363,9 +364,9 @@ class StorageManager : public mqbi::AppKeyGenerator {
     virtual void
     processRecoveryEvent(const mqbi::DispatcherRecoveryEvent& event) = 0;
 
-    /// Executed in cluster dispatcher thread.
-    virtual void
-    processReceiptEvent(const mqbi::DispatcherReceiptEvent& event) = 0;
+    /// Executed in IO thread.
+    virtual void processReceiptEvent(const bmqp::Event&   event,
+                                     mqbnet::ClusterNode* source) = 0;
 
     /// Executed by any thread.
     virtual void processPrimaryStatusAdvisory(

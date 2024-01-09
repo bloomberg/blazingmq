@@ -319,7 +319,7 @@ static void test2_unsupportedOperations()
     ASSERT_OPT_FAIL(
         tester.vStorage().put(&attributes, guid, appData, options));
     ASSERT_OPT_FAIL(tester.vStorage().releaseRef(guid, k_APP_KEY, 0));
-    ASSERT_OPT_FAIL(tester.vStorage().dispatcherFlush(true, false));
+    ASSERT_OPT_FAIL(tester.vStorage().dispatcherFlush(false));
     ASSERT_OPT_FAIL(tester.vStorage().numVirtualStorages());
     ASSERT_OPT_FAIL(tester.vStorage().hasVirtualStorage(k_APP_KEY));
     ASSERT_OPT_FAIL(tester.vStorage().hasVirtualStorage(k_APP_ID));
