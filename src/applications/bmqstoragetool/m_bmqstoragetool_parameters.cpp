@@ -271,6 +271,15 @@ bool Parameters::buildQueueMap(bsl::ostream& ss, bslma::Allocator* allocator)
     // Required for ledger operations
     bmqp::Crc32c::initialize();
 
+    // Ledger config stubs
+    auto onRolloverCallback = [](const mqbu::StorageKey& oldLogId,
+                                 const mqbu::StorageKey& newLogId) {
+        return 0;
+    };
+    auto cleanupCallback = [](const bsl::string& logPath) {
+        return 0;
+    };
+
     // Instantiate ledger config
     mqbsi::LedgerConfig                    ledgerConfig(allocator);
     bsl::shared_ptr<mqbsi::LogIdGenerator> logIdGenerator(
@@ -293,6 +302,8 @@ bool Parameters::buildQueueMap(bsl::ostream& ss, bslma::Allocator* allocator)
         .setLogIdGenerator(logIdGenerator)
         .setLogFactory(logFactory)
         .setExtractLogIdCallback(&mqbc::ClusterStateLedgerUtil::extractLogId)
+        .setRolloverCallback(onRolloverCallback)
+        .setCleanupCallback(cleanupCallback)
         .setValidateLogCallback(mqbc::ClusterStateLedgerUtil::validateLog);
 
     // Create and open the ledger
