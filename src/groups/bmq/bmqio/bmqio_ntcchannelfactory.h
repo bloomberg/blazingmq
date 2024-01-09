@@ -29,6 +29,7 @@
 // that implements the 'bmqio::ChannelFactory' protocol to produce and manage
 // 'bmqio::NtcChannel' objects that implement the 'bmqio::Channel' protocol.
 
+#include <bmqio_certificatestore.h>
 #include <bmqio_channelfactory.h>
 #include <bmqio_connectoptions.h>
 #include <bmqio_listenoptions.h>
@@ -37,6 +38,7 @@
 // NTF
 #include <ntca_interfaceconfig.h>
 #include <ntci_interface.h>
+#include <ntci_upgradecallback.h>
 
 // BDE
 #include <bdlbb_blob.h>
@@ -76,6 +78,8 @@ class NtcChannelFactory : public bmqio::ChannelFactory {
     /// This typedef defines a function invoked when a channel limit has
     /// been reached.
     typedef bsl::function<LimitFnType> LimitFn;
+
+    typedef ntci::UpgradeFunction UpgradeCallback;
 
   private:
     // PRIVATE TYPES
@@ -149,6 +153,17 @@ class NtcChannelFactory : public bmqio::ChannelFactory {
     /// Process the closure of the listener identified by the specified
     /// `handle`.
     void processChannelClosed(int handle);
+
+    /// Process a TLS upgrade
+    void processUpgrade(const bsl::shared_ptr<ntci::Upgradable>& upgradable,
+                        const ntca::UpgradeEvent&                event,
+                        const UpgradeCallback&                   callback);
+
+    /// Upgrade the channel to a TLS connection as a listener.
+    void upgradeListener(bmqio::NtcChannel* channel);
+
+    /// Upgrade the channel to a TLS connection as a client.
+    void upgradeChannel(bmqio::NtcChannel* channel);
 
   public:
     // PUBLIC TYPES
@@ -245,6 +260,29 @@ class NtcChannelFactory : public bmqio::ChannelFactory {
     /// during the execution of this function will be included.
     template <typename VISITOR>
     void visitChannels(VISITOR& visitor);
+
+    /// @brief Create an encryption server using this channel factory's
+    /// interface.
+    ///
+    /// Load into the specified `result` a new encryption server with the
+    /// specified `options`. Optionally specify a `basicAllocator` used to
+    /// supply memory. Return the error.
+    ntsa::Error
+    createEncryptionServer(bsl::shared_ptr<ntci::EncryptionServer>* result,
+                           const ntca::EncryptionServerOptions&     options);
+
+    /// @brief Create an encryption server using this channel factory's
+    /// interface.
+    ///
+    /// Load into the specified `result` a new encryption client with the
+    /// specified `options`. Optionally specify a `basicAllocator` used to
+    /// supply memory. Return the error.
+    ntsa::Error
+    createEncryptionClient(bsl::shared_ptr<ntci::EncryptionClient>* result,
+                           const ntca::EncryptionClientOptions&     options);
+
+    /// @brief Create a certificate loader based on the underlying interface.
+    NtcCertificateLoader createCertificateLoader();
 };
 
 // ============================

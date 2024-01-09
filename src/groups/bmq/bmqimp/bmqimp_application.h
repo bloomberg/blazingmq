@@ -35,13 +35,13 @@
 // Thread safe.
 
 // BMQ
-
 #include <bmqimp_brokersession.h>
 #include <bmqimp_eventqueue.h>
 #include <bmqimp_negotiatedchannelfactory.h>
 #include <bmqp_ctrlmsg_messages.h>
 #include <bmqt_sessionoptions.h>
 
+#include <bmqio_certificatestore.h>
 #include <bmqio_channel.h>
 #include <bmqio_channelfactory.h>
 #include <bmqio_ntcchannelfactory.h>
@@ -69,6 +69,22 @@
 #include <bsls_types.h>
 
 namespace BloombergLP {
+
+namespace ntci {
+class Upgradable;
+class EncryptionServer;
+class Upgradable;
+}
+
+namespace ntca {
+class UpgradeEvent;
+}
+
+// TODO move TLS config loading into ntcchannelfactory
+
+namespace bmqio {
+class NtcChannelFactory;
+}
 
 namespace bmqimp {
 
@@ -159,6 +175,11 @@ class Application {
     // the snapshot was performed on the
     // Counting Allocators context
 
+    // todo review NTC symbols exposed here
+    bmqio::CertificateStore d_certificateStore;
+
+    bsl::shared_ptr<ntci::EncryptionClient> d_encryptionClient_sp;
+
   private:
     // PRIVATE MANIPULATORS
     void onChannelDown(const bsl::string&   peerUri,
@@ -199,6 +220,9 @@ class Application {
     /// specified `isFinal` is true, printed stats do not include the delta
     /// values.
     void printStats(bool isFinal);
+
+    int loadTlsConfig(bmqio::NtcChannelFactory* channelFactory,
+                      const bsl::string&        caPath);
 
     /// To be invoked when the session is being started, in order to setup
     /// the network channel.

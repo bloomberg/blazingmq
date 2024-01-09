@@ -75,19 +75,28 @@ mkdir -p "${DIR_THIRDPARTY}"
 DIR_BUILD="${DIR_BUILD:-${DIR_ROOT}/build}"
 mkdir -p "${DIR_BUILD}"
 
-DIR_INSTALL="${DIR_INSTALL:-${DIR_ROOT}}"
+DIR_INSTALL="${DIR_INSTALL:-${DIR_ROOT}/install}"
 mkdir -p "${DIR_INSTALL}"
 
 # :: Clone dependencies :::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 if [ ! -d "${DIR_THIRDPARTY}/bde-tools" ]; then
-    git clone --depth 1 --branch 4.8.0.0 https://github.com/bloomberg/bde-tools "${DIR_THIRDPARTY}/bde-tools"
+    git clone --depth 1 https://github.com/bloomberg/bde-tools "${DIR_THIRDPARTY}/bde-tools"
+    pushd "${DIR_THIRDPARTY}/bde-tools"
+    git reset --hard 964f78d36577ef1643b9074412608df4850e5b33 # 4.17.0.0
+    popd
 fi
 if [ ! -d "${DIR_THIRDPARTY}/bde" ]; then
-    git clone --depth 1 --branch 4.8.0.0 https://github.com/bloomberg/bde.git "${DIR_THIRDPARTY}/bde"
+    git clone --depth 1 https://github.com/bloomberg/bde.git "${DIR_THIRDPARTY}/bde"
+    pushd "${DIR_THIRDPARTY}/bde"
+    git reset --hard ec094b4454738c311482fc54c3bde1d21c9f6893 # 4.18.0.0
+    popd
 fi
 if [ ! -d "${DIR_THIRDPARTY}/ntf-core" ]; then
-    git clone --depth 1 --branch 2.4.2 https://github.com/bloomberg/ntf-core.git "${DIR_THIRDPARTY}/ntf-core"
+    git clone --depth 1 https://github.com/bloomberg/ntf-core.git "${DIR_THIRDPARTY}/ntf-core"
+    pushd "${DIR_THIRDPARTY}/ntf-core"
+    git reset --hard 2.5.4
+    popd
 fi
 # prometheus-cpp and its dependency for the plugin
 if [ "${BUILD_PROMETHEUS}" == true ]; then

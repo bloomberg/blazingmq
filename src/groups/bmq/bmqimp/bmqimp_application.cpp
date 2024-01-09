@@ -22,6 +22,7 @@
 #include <bmqex_systemexecutor.h>
 #include <bmqio_channelutil.h>
 #include <bmqio_connectoptions.h>
+#include <bmqio_statchannel.h>
 #include <bmqio_status.h>
 #include <bmqio_tcpendpoint.h>
 #include <bmqma_countingallocatorutil.h>
@@ -34,9 +35,6 @@
 #include <bmqsys_time.h>
 #include <bmqt_resultcode.h>
 #include <bmqt_uri.h>
-#include <bmqu_blob.h>
-#include <bmqu_memoutstream.h>
-#include <bmqu_printutil.h>
 
 // BDE
 #include <bdlb_scopeexit.h>
@@ -64,6 +62,8 @@
 #include <bsls_systemclocktype.h>
 #include <bsls_systemtime.h>
 #include <bsls_timeinterval.h>
+
+#include <bsla_unused.h>
 
 namespace BloombergLP {
 namespace bmqimp {
@@ -249,10 +249,12 @@ void Application::channelStateCallback(
                                  bdlf::PlaceHolders::_2,  // numNeeded
                                  bdlf::PlaceHolders::_3,  // blob
                                  channel));
+
         if (!st) {
             BALL_LOG_ERROR << "Could not read from channel:"
                            << " [peer: " << channel->peerUri()
-                           << ", status: " << status << "]";
+                           << ", status: " << st
+                           << "]";  // #review st -> status? bug here before
             channel->close();
             return;  // RETURN
         }
@@ -260,6 +262,7 @@ void Application::channelStateCallback(
         // Cancel the timeout event (if the handle is invalid, this will just
         // do nothing)
         d_scheduler.cancelEvent(&d_startTimeoutHandle);
+
     } break;  // BREAK
     case bmqio::ChannelFactoryEvent::e_CONNECT_ATTEMPT_FAILED: {
         BALL_LOG_DEBUG << "Failed an attempt to establish a session with '"
@@ -317,6 +320,43 @@ void Application::brokerSessionStopped(
     BALL_LOG_INFO << "bmqimp::Application stop completed";
 }
 
+int Application::loadTlsConfig(bmqio::NtcChannelFactory* channelFactory,
+                               const bsl::string&        caPath)
+{
+    bmqio::NtcCertificateLoader certLoader =
+        channelFactory->createCertificateLoader();
+
+    int rc = 0;
+    if ((rc = d_certificateStore.loadCertificateAuthority(certLoader,
+                                                          caPath))) {
+        return rc;
+    }
+
+    ntca::EncryptionClientOptions encryptionClientOptions;
+    // Set the minimum version to TLS 1.3
+    encryptionClientOptions.setMinMethod(ntca::EncryptionMethod::e_TLS_V1_3);
+    encryptionClientOptions.setMaxMethod(ntca::EncryptionMethod::e_TLS_V1_3);
+    // Enable server side authentication
+    encryptionClientOptions.setAuthentication(
+        ntca::EncryptionAuthentication::e_VERIFY);
+
+    ntsa::Error err;
+    {
+        bsl::vector<char> authorityData(&d_allocator);
+        err = d_certificateStore.certificateAuthority()->encode(
+            &authorityData);
+        if (err) {
+            return err.code();
+        }
+        encryptionClientOptions.addAuthorityData(authorityData);
+    }
+
+    err = channelFactory->createEncryptionClient(&d_encryptionClient_sp,
+                                                 encryptionClientOptions);
+
+    return err.code();
+}
+
 bmqt::GenericResult::Enum Application::startChannel()
 {
     // executed by the FSM thread
@@ -368,6 +408,11 @@ bmqt::GenericResult::Enum Application::startChannel()
         .setAttemptInterval(attemptInterval)
         .setAutoReconnect(true);
 
+    if (d_sessionOptions.isTlsSession()) {
+        loadTlsConfig(&d_channelFactory,
+                      d_sessionOptions.certificateAuthority());
+    }
+
     d_negotiatedChannelFactory.connect(
         &status,
         &d_connectHandle_mp,
@@ -378,6 +423,7 @@ bmqt::GenericResult::Enum Application::startChannel()
                              bdlf::PlaceHolders::_1,    // event
                              bdlf::PlaceHolders::_2,    // status
                              bdlf::PlaceHolders::_3));  // channel
+
     if (!status) {
         BALL_LOG_ERROR << "Failed to connect to broker at '"
                        << d_sessionOptions.brokerUri()
@@ -585,6 +631,7 @@ Application::Application(
                                      negotiationMessage,
                                      sessionOptions.connectTimeout(),
                                      d_blobSpPool_sp.get(),
+                                     d_encryptionClient_sp,
                                      allocator),
       allocator)
 , d_connectHandle_mp()
@@ -599,6 +646,7 @@ Application::Application(
 , d_statSnaphotTimerHandle()
 , d_nextStatDump(-1)
 , d_lastAllocatorSnapshot(0)
+, d_encryptionClient_sp()
 {
     // NOTE:
     //   o The persistent session pool must live longer than the brokerSession

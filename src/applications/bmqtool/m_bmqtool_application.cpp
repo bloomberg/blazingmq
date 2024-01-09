@@ -556,6 +556,11 @@ int Application::initialize()
         .setNumProcessingThreads(d_parameters_p->numProcessingThreads())
         .configureEventQueue(1000, 10 * 1000);
 
+    if (!d_parameters_p->certificateAuthority().empty()) {
+        options.setTlsDetails(d_parameters_p->certificateAuthority(),
+                              "TLSv1.3");
+    }
+
     // Create the session
     if (d_parameters_p->noSessionEventHandler()) {
         d_session_mp.load(new (*d_allocator_p)

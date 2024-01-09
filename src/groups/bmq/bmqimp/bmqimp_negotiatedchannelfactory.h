@@ -50,6 +50,15 @@
 
 namespace BloombergLP {
 
+namespace ntca {
+class UpgradeEvent;
+}
+
+namespace ntci {
+class Upgradable;
+class EncryptionClient;
+}
+
 namespace bmqimp {
 
 // ====================================
@@ -61,6 +70,10 @@ class NegotiatedChannelFactoryConfig {
   public:
     // TYPES
     typedef bmqp::BlobPoolUtil::BlobSpPool BlobSpPool;
+    // #review: docs
+    typedef bsl::function<void(const bsl::shared_ptr<bmqio::Channel>& channel,
+                               const bsl::function<void(void)>&       cb)>
+        TlsUpgradeCallback;
 
   private:
     // PRIVATE DATA
@@ -68,7 +81,9 @@ class NegotiatedChannelFactoryConfig {
     bmqp_ctrlmsg::NegotiationMessage d_negotiationMessage;
     bsls::TimeInterval               d_negotiationTimeout;
     BlobSpPool*                      d_blobSpPool_p;
-    bslma::Allocator*                d_allocator_p;
+    bsl::reference_wrapper<const bsl::shared_ptr<ntci::EncryptionClient> >
+                      d_encryptionClient;
+    bslma::Allocator* d_allocator_p;
 
     // FRIENDS
     friend class NegotiatedChannelFactory;
@@ -79,16 +94,26 @@ class NegotiatedChannelFactoryConfig {
                                    bslma::UsesBslmaAllocator)
 
     // CREATORS
+
+    /// @brief Create a configuration for building a NegotiatedChannelFactory.
+    /// If certificateAuthority is empty, a TLS session will not be created.
+    ///
+    /// @pre base != NULL
+    /// @pre bufferFactory != NULL
     NegotiatedChannelFactoryConfig(
-        bmqio::ChannelFactory*                  base,
-        const bmqp_ctrlmsg::NegotiationMessage& negotiationMessage,
-        const bsls::TimeInterval&               negotiationTimeout,
-        BlobSpPool*                             blobSpPool_p,
-        bslma::Allocator*                       basicAllocator = 0);
+        bmqio::ChannelFactory*                         base,
+        const bmqp_ctrlmsg::NegotiationMessage&        negotiationMessage,
+        const bsls::TimeInterval&                      negotiationTimeout,
+        BlobSpPool*                                    blobSpPool_p,
+        const bsl::shared_ptr<ntci::EncryptionClient>& encryptionClient,
+        bslma::Allocator*                              basicAllocator = 0);
 
     NegotiatedChannelFactoryConfig(
         const NegotiatedChannelFactoryConfig& original,
         bslma::Allocator*                     basicAllocator = 0);
+
+    // ACCESSORS
+    bslma::Allocator* allocator() const;
 };
 
 // ==============================
@@ -154,6 +179,19 @@ class NegotiatedChannelFactory : public bmqio::ChannelFactory {
         const ResultCallback&                  cb,
         const bsl::shared_ptr<bmqio::Channel>& channel) const;
 
+    /// @pre channel != NULL
+    void negotiateWithTls(const bsl::shared_ptr<bmqio::Channel>& channel,
+                          const ResultCallback&                  userCb) const;
+
+    /// @pre channel != NULL
+    void
+    negotiationWithTlsInit(const bsl::shared_ptr<bmqio::Channel>&   channel,
+                           const bsl::shared_ptr<ntci::Upgradable>& upgradable,
+                           const ntca::UpgradeEvent&                event,
+                           const ResultCallback& userCb) const;
+
+    bool isTlsSession() const;
+
   public:
     // CREATORS
     explicit NegotiatedChannelFactory(const Config&     config,
@@ -162,6 +200,9 @@ class NegotiatedChannelFactory : public bmqio::ChannelFactory {
     ~NegotiatedChannelFactory() BSLS_KEYWORD_OVERRIDE;
 
   public:
+    // ACCESSORS
+    bslma::Allocator* allocator() const;
+
     // MANIPULATORS
     void listen(bmqio::Status*               status,
                 bslma::ManagedPtr<OpHandle>* handle,
@@ -173,6 +214,28 @@ class NegotiatedChannelFactory : public bmqio::ChannelFactory {
                  const bmqio::ConnectOptions& options,
                  const ResultCallback&        cb) BSLS_KEYWORD_OVERRIDE;
 };
+
+// ============================================================================
+//                             INLINE DEFINITIONS
+// ============================================================================
+
+// ====================================
+// class NegotiatedChannelFactoryConfig
+// ====================================
+
+inline bslma::Allocator* NegotiatedChannelFactoryConfig::allocator() const
+{
+    return d_allocator_p;
+}
+
+// ==============================
+// class NegotiatedChannelFactory
+// ==============================
+
+inline bslma::Allocator* NegotiatedChannelFactory::allocator() const
+{
+    return d_config.allocator();
+}
 
 }  // close package namespace
 }  // close enterprise namespace
