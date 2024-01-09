@@ -162,7 +162,7 @@ void SearchResult::outputGuidString(const bmqt::MessageGUID& messageGUID,
     d_ostream << messageGUID;
 
     if (addNewLine)
-        d_ostream << bsl::endl;
+        d_ostream << '\n';
 }
 
 void SearchResult::outputFooter()
@@ -174,7 +174,7 @@ void SearchResult::outputFooter()
     d_foundMessagesCount > 0
         ? (d_ostream << d_foundMessagesCount << captionForFound)
         : d_ostream << captionForNotFound;
-    d_ostream << bsl::endl;
+    d_ostream << '\n';
 }
 
 void SearchResult::outputOutstandingRatio()
@@ -186,7 +186,7 @@ void SearchResult::outputOutstandingRatio()
                   << bsl::round(float(outstandingMessages) /
                                 d_totalMessagesCount * 100.0)
                   << "% (" << outstandingMessages << "/"
-                  << d_totalMessagesCount << ")" << bsl::endl;
+                  << d_totalMessagesCount << ")" << '\n';
     }
 }
 
@@ -251,28 +251,28 @@ void SearchResult::outputPayload(bsls::Types::Uint64 messageOffsetDwords)
     mwcu::MemOutStream payloadOsstr;
     unsigned int minLen = d_dumpLimit > 0 ? bsl::min(appDataLen, d_dumpLimit)
                                           : appDataLen;
-    payloadOsstr << "First " << minLen << " bytes of payload:" << bsl::endl;
+    payloadOsstr << "First " << minLen << " bytes of payload:" << '\n';
     bdlb::Print::hexDump(payloadOsstr, appData, minLen);
     if (minLen < appDataLen) {
         payloadOsstr << "And " << (appDataLen - minLen)
-                     << " more bytes (redacted)" << bsl::endl;
+                     << " more bytes (redacted)" << '\n';
     }
 
-    d_ostream << bsl::endl
+    d_ostream << '\n'
               << "DataRecord index: " << it->recordIndex()
-              << ", offset: " << it->recordOffset() << bsl::endl
-              << "DataHeader: " << bsl::endl
+              << ", offset: " << it->recordOffset() << '\n'
+              << "DataHeader: " << '\n'
               << dataHeaderOsstr.str();
 
     if (0 != optionsLen) {
-        d_ostream << "\nOptions: " << bsl::endl << optionsOsstr.str();
+        d_ostream << "\nOptions: " << '\n' << optionsOsstr.str();
     }
 
     if (0 != propertiesAreaLen) {
-        d_ostream << "\nProperties: " << bsl::endl << propsOsstr.str();
+        d_ostream << "\nProperties: " << '\n' << propsOsstr.str();
     }
 
-    d_ostream << "\nPayload: " << bsl::endl << payloadOsstr.str() << bsl::endl;
+    d_ostream << "\nPayload: " << '\n' << payloadOsstr.str() << '\n';
 }
 
 // =====================
@@ -371,7 +371,7 @@ bool SearchGuidResult::processMessageRecord(const mqbs::MessageRecord& record,
         }
         else {
             // Output result immediately.
-            d_ostream << it->second << bsl::endl;
+            d_ostream << it->second << '\n';
             if (d_dumpPayload) {
                 outputPayload(record.messageOffsetDwords());
             }
@@ -402,11 +402,11 @@ void SearchGuidResult::outputResult(bool outputRatio)
     SearchResult::outputResult(false);
     // Print non found GUIDs
     if (auto nonFoundCount = d_guidsMap.size(); nonFoundCount > 0) {
-        d_ostream << bsl::endl
+        d_ostream << '\n'
                   << "The following " << nonFoundCount
-                  << " GUID(s) not found:" << bsl::endl;
+                  << " GUID(s) not found:" << '\n';
         for (const auto& item : d_guidsMap) {
-            d_ostream << item.second << bsl::endl;
+            d_ostream << item.second << '\n';
         }
     }
 }

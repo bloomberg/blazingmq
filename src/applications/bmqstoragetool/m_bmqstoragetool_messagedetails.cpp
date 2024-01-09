@@ -250,7 +250,7 @@ void MessageDetails::print(bsl::ostream& os, QueueMap& queueMap) const
     ss << "MESSAGE Record, index: " << d_messageRecord.d_recordIndex
        << ", offset: " << d_messageRecord.d_recordOffset;
     bsl::string delimiter(ss.str().size(), '=');
-    os << delimiter << bsl::endl << ss.str() << bsl::endl;
+    os << delimiter << '\n' << ss.str() << '\n';
 
     printRecord(os, d_messageRecord.d_record, queueInfo_p);
 
@@ -258,7 +258,7 @@ void MessageDetails::print(bsl::ostream& os, QueueMap& queueMap) const
     if (!d_confirmRecords.empty()) {
         for (auto& rec : d_confirmRecords) {
             os << "CONFIRM Record, index: " << rec.d_recordIndex
-               << ", offset: " << rec.d_recordOffset << bsl::endl;
+               << ", offset: " << rec.d_recordOffset << '\n';
             printRecord(os, rec.d_record, queueInfo_p);
         }
     }
@@ -266,7 +266,7 @@ void MessageDetails::print(bsl::ostream& os, QueueMap& queueMap) const
     // Print deletion record
     if (d_deleteRecord.d_isValid) {
         os << "DELETE Record, index: " << d_deleteRecord.d_recordIndex
-           << ", offset: " << d_deleteRecord.d_recordOffset << bsl::endl;
+           << ", offset: " << d_deleteRecord.d_recordOffset << '\n';
         printRecord(os, d_deleteRecord.d_record, queueInfo_p);
     }
 }
