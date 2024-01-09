@@ -34,11 +34,13 @@
 #include <bsl_iomanip.h>
 #include <bsl_ios.h>
 #include <bsl_iostream.h>
+#include <bsl_memory.h>
+#include <bsla_unused.h>
 #include <bslma_allocator.h>
 #include <bslma_default.h>
+#include <bslmf_allocatorargt.h>
 #include <bslmt_lockguard.h>
 #include <bsls_assert.h>
-#include <bsls_platform.h>
 
 namespace BloombergLP {
 namespace bmqio {
@@ -1360,6 +1362,86 @@ void NtcChannel::setWriteQueueHighWatermark(int highWatermark)
     if (d_streamSocket_sp) {
         d_streamSocket_sp->setWriteQueueHighWatermark(highWatermark);
     }
+}
+
+void NtcChannel::processUpgrade(
+    const bsl::shared_ptr<ntci::Upgradable>& upgradable,
+    const ntca::UpgradeEvent&                upgradeEvent,
+    const ntci::UpgradeFunction&             cb)
+{
+    BSLS_ASSERT(cb);
+
+    BALL_LOG_DEBUG << d_peerUri
+                   << ": received upgrade event: " << upgradeEvent;
+
+    cb(upgradable, upgradeEvent);
+}
+
+int NtcChannel::upgrade(
+    bmqio::Status*                                 status,
+    const bsl::shared_ptr<ntci::EncryptionServer>& encryptionServer,
+    const ntca::UpgradeOptions&                    options,
+    const ntci::UpgradeFunction&                   upgradeCallback)
+{
+    BSLS_ASSERT(encryptionServer);
+    BSLS_ASSERT(d_streamSocket_sp);
+
+    BALL_LOG_INFO << d_peerUri << ": upgrading server connection";
+
+    ntsa::Error error = d_streamSocket_sp->upgrade(
+        encryptionServer,
+        options,
+        d_streamSocket_sp->createUpgradeCallback(
+            bdlf::BindUtil::bind(&NtcChannel::processUpgrade,
+                                 this,
+                                 bdlf::PlaceHolders::_1,
+                                 bdlf::PlaceHolders::_2,
+                                 upgradeCallback),
+            d_allocator_p));
+
+    if (error) {
+        NtcChannelUtil::fail(status,
+                             bmqio::StatusCategory::e_CONNECTION,
+                             "upgrade",
+                             error);
+        return 1;
+    }
+
+    return 0;
+}
+
+int NtcChannel::upgrade(
+    bmqio::Status*                                 status,
+    const bsl::shared_ptr<ntci::EncryptionClient>& encryptionClient,
+    const ntca::UpgradeOptions&                    options,
+    const ntci::UpgradeFunction&                   upgradeCallback)
+{
+    BSLS_ASSERT(encryptionClient);
+    BSLS_ASSERT(d_streamSocket_sp);
+
+    BALL_LOG_INFO << d_peerUri << ": upgrading client connection";
+
+    ntsa::Error error = d_streamSocket_sp->upgrade(
+        encryptionClient,
+        options,
+        d_streamSocket_sp->createUpgradeCallback(
+            bdlf::BindUtil::bindS(d_allocator_p,
+                                  &NtcChannel::processUpgrade,
+                                  this,
+                                  bdlf::PlaceHolders::_1,
+                                  bdlf::PlaceHolders::_2,
+                                  upgradeCallback),
+            d_allocator_p));
+
+    if (error) {
+        NtcChannelUtil::fail(status,
+                             bmqio::StatusCategory::e_CONNECTION,
+                             "upgrade",
+                             error);
+        return 1;
+    }
+
+    return 0;
 }
 
 // ACCESSORS

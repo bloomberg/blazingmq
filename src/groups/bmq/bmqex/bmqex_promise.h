@@ -89,12 +89,16 @@
 #include <bsls_systemclocktype.h>
 
 #if BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES
+// clang-format off
 // Include version that can be compiled with C++03
-// Generated on Wed Jun 18 14:44:15 2025
+// Generated on Wed Nov  5 23:17:39 2025
 // Command line: sim_cpp11_features.pl bmqex_promise.h
+
 # define COMPILING_BMQEX_PROMISE_H
 # include <bmqex_promise_cpp03.h>
-#undef COMPILING_BMQEX_PROMISE_H
+# undef COMPILING_BMQEX_PROMISE_H
+
+// clang-format on
 #else
 
 namespace BloombergLP {
@@ -198,7 +202,7 @@ class Promise {
     /// the C++ standard.
     void setValue(bslmf::MovableRef<R> value);
 
-#if !BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES  // $var-args=9
+#if !BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES // $var-args=9
 
     /// Atomically store a value into the shared state as if by direct-non-
     /// list-initializing an object of type `R` with 'bsl::forward<ARGS>(
@@ -509,7 +513,7 @@ inline void Promise<R>::setValue(bslmf::MovableRef<R> value)
     d_sharedState->setValue(bslmf::MovableRefUtil::move(value));
 }
 
-#if !BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES  // $var-args=9
+#if !BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES // $var-args=9
 template <class R>
 template <class... ARGS>
 inline void Promise<R>::emplaceValue(ARGS&&... args)
@@ -719,6 +723,6 @@ inline void bmqex::swap(Promise<R>& lhs, Promise<R>& rhs) BSLS_KEYWORD_NOEXCEPT
 
 }  // close enterprise namespace
 
-#endif  // End C++11 code
+#endif // End C++11 code
 
 #endif
