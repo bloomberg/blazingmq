@@ -34,6 +34,7 @@
 #include <bmqvt_propertybag.h>
 
 // NTC
+#include <ntca_upgradeoptions.h>
 #include <ntcf_system.h>
 #include <ntci_streamsocket.h>
 
@@ -46,11 +47,15 @@
 #include <bsl_list.h>
 #include <bsl_memory.h>
 #include <bsl_string.h>
+#include <bsl_string_view.h>
 #include <bslma_usesbslmaallocator.h>
 #include <bslmf_nestedtraitdeclaration.h>
 #include <bsls_keyword.h>
 #include <bsls_timeinterval.h>
 #include <bsls_types.h>
+#include <ntci_encryptionserver.h>
+#include <ntci_upgradecallback.h>
+#include <string_view>
 
 namespace BloombergLP {
 namespace bmqio {
@@ -210,7 +215,9 @@ class NtcChannel : public bmqio::Channel,
     bdlmt::Signaler<WatermarkFnType>      d_watermarkSignaler;
     bdlmt::Signaler<CloseFnType>          d_closeSignaler;
     bmqio::ChannelFactory::ResultCallback d_resultCallback;
-    bslma::Allocator*                     d_allocator_p;
+    bsl::shared_ptr<ntci::EncryptionClient> d_encryptionClient_sp;
+    ntci::UpgradeFunction                   d_upgradeCallback;
+    bslma::Allocator*                       d_allocator_p;
 
   private:
     // NOT IMPLEMENTED
@@ -218,6 +225,8 @@ class NtcChannel : public bmqio::Channel,
     NtcChannel& operator=(const NtcChannel&) BSLS_KEYWORD_DELETED;
 
   private:
+    // PRIVATE ACCESSORS
+
     // PRIVATE MANIPULATORS
 
     /// Process the connection by the specified `connector` according to
@@ -283,6 +292,11 @@ class NtcChannel : public bmqio::Channel,
     /// Process the closure of the socket.
     void processClose(const bmqio::Status& status);
 
+    /// @brief Process the upgradeServer of this socket to TLS
+    void processUpgrade(const bsl::shared_ptr<ntci::Upgradable>& upgradable,
+                        const ntca::UpgradeEvent&                upgradeEvent,
+                        const ntci::UpgradeFunction&             cb);
+
   public:
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(NtcChannel, bslma::UsesBslmaAllocator)
@@ -297,6 +311,16 @@ class NtcChannel : public bmqio::Channel,
         const bsl::shared_ptr<ntci::Interface>&      interface,
         const bmqio::ChannelFactory::ResultCallback& resultCallback,
         bslma::Allocator*                            basicAllocator = 0);
+
+    /// Create a new channel implemented by the specified `interface`.
+    /// Optionally specify a `basicAllocator` used to supply memory. Initialize
+    /// this channel's upgrade callback with `upgradeCallback`. If
+    /// 'basicAllocator is 0, the currently installed default allocator is
+    /// used.
+    NtcChannel(const bsl::shared_ptr<ntci::Interface>&      interface,
+               const bmqio::ChannelFactory::ResultCallback& resultCallback,
+               const ntci::UpgradeFunction&                 upgradeCallback,
+               bslma::Allocator* basicAllocator = 0);
 
     /// Destroy this object.
     ~NtcChannel() BSLS_KEYWORD_OVERRIDE;
@@ -407,6 +431,22 @@ class NtcChannel : public bmqio::Channel,
     /// Set the write queue high watermark to the specified `highWatermark`.
     void setWriteQueueHighWatermark(int highWatermark);
 
+    /// Assume the TLS server role and begin upgrading the socket from
+    /// being unencrypted to being encrypted with TLS. Invoke the specified
+    /// `upgradeCallback` when the socket has completed upgrading to TLS.
+    void
+    upgrade(const bsl::shared_ptr<ntci::EncryptionServer>& encryptionServer,
+            const ntca::UpgradeOptions&                    options,
+            const ntci::UpgradeFunction&                   upgradeCallback);
+
+    /// Assume the TLS client role and begin upgrading the socket from
+    /// being unencrypted to being encrypted with TLS. Invoke the specified
+    /// `upgradeCallback` when the socket has completed upgrading to TLS.
+    void
+    upgrade(const bsl::shared_ptr<ntci::EncryptionClient>& encryptionClient,
+            const ntca::UpgradeOptions&                    options,
+            const ntci::UpgradeFunction&                   upgradeCallback);
+
     // ACCESSORS
 
     /// Return the channel ID.
@@ -441,6 +481,16 @@ class NtcChannel : public bmqio::Channel,
 /// This struct provides utilities for channels.
 struct NtcChannelUtil {
     // CLASS METHODS
+
+    /// \brief Return a reference providing const access to the name of the
+    /// property used to define the encryption client for liseners.
+    /// This property must be a `bsl::shared_ptr<ntci::EncryptionClient>`.
+    static bsl::string_view encryptionClientProperty();
+
+    /// \brief Return a reference providing const access to the name of the
+    /// property used to define the callback on a TLS upgrade.
+    /// This property must be a `bsl::shared_ptr<ntci::UpgradeFunction>`.
+    static bsl::string_view upgradeCallbackProperty();
 
     /// Load into the specified `status`, if defined, the description of
     /// the specified `error` assigned to the specified `category` that
@@ -488,7 +538,9 @@ class NtcListener : public bmqio::ChannelFactoryOperationHandle,
     bmqvt::PropertyBag                    d_properties;
     bdlmt::Signaler<CloseFnType>          d_closeSignaler;
     bmqio::ChannelFactory::ResultCallback d_resultCallback;
-    bslma::Allocator*                     d_allocator_p;
+    bsl::shared_ptr<ntci::EncryptionServer> d_encryptionServer_sp;
+    ntci::UpgradeFunction                   d_upgradeCallback;
+    bslma::Allocator*                       d_allocator_p;
 
   private:
     // NOT IMPLEMENTED
@@ -507,6 +559,10 @@ class NtcListener : public bmqio::ChannelFactoryOperationHandle,
     /// Process the closure of the socket.
     void processClose(const bmqio::Status& status);
 
+    /// Process the upgrade of a socket
+    void processUpgrade(const bsl::shared_ptr<ntci::Upgradable>& upgradable,
+                        const ntca::UpgradeEvent&                upgradeEvent);
+
   public:
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(NtcListener, bslma::UsesBslmaAllocator)
@@ -518,10 +574,9 @@ class NtcListener : public bmqio::ChannelFactoryOperationHandle,
     /// Optionally specified a `basicAllocator` used to supply memory. If
     /// `basicAllocator` is 0, the currently installed default allocator is
     /// used.
-    explicit NtcListener(
-        const bsl::shared_ptr<ntci::Interface>&      interface,
-        const bmqio::ChannelFactory::ResultCallback& resultCallback,
-        bslma::Allocator*                            basicAllocator = 0);
+    NtcListener(const bsl::shared_ptr<ntci::Interface>&      interface,
+                const bmqio::ChannelFactory::ResultCallback& resultCallback,
+                bslma::Allocator* basicAllocator = 0);
 
     /// Destroy this object.
     ~NtcListener() BSLS_KEYWORD_OVERRIDE;
@@ -585,6 +640,16 @@ struct NtcListenerUtil {
     /// `NtcChannelFactory::listen` with an integer property containing the
     /// port to which the listening socket is bound.
     static bslstl::StringRef listenPortProperty();
+
+    /// \brief Return a reference providing const access to the name of the
+    /// property used to define the encryption server for liseners.
+    /// This property must be a `bsl::shared_ptr<ntci::EncryptionServer>`.
+    static bsl::string_view encryptionServerProperty();
+
+    /// \brief Return a reference providing const access to the name of the
+    /// property used to define the callback on a TLS upgrade.
+    /// This property must be a `bsl::shared_ptr<ntci::UpgradeFunction>`.
+    static bsl::string_view upgradeCallbackProperty();
 
     /// Load into the specified `status`, if defined, the description of
     /// the specified `error` assigned to the specified `category` that

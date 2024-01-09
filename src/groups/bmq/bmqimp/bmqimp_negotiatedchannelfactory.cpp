@@ -16,13 +16,16 @@
 // bmqimp_negotiatedchannelfactory.cpp                                -*-C++-*-
 #include <bmqimp_negotiatedchannelfactory.h>
 
-#include <bmqscm_version.h>
 // BMQ
 #include <bmqp_event.h>
 #include <bmqp_protocol.h>
 #include <bmqp_schemaeventbuilder.h>
+#include <bmqscm_version.h>
 
+#include <bmqio_channel.h>
 #include <bmqio_channelutil.h>
+#include <bmqio_decoratingchannelpartialimp.h>
+#include <bmqio_ntcchannel.h>
 #include <bmqu_blob.h>
 #include <bmqu_memoutstream.h>
 #include <bmqu_weakmemfn.h>
@@ -34,9 +37,12 @@
 #include <bdlma_localsequentialallocator.h>
 #include <bsl_iostream.h>
 #include <bsl_memory.h>
+#include <bsla_unused.h>
 #include <bslma_default.h>
 #include <bsls_annotation.h>
 #include <bsls_assert.h>
+
+#include <ntci_encryptionclient.h>
 
 namespace BloombergLP {
 namespace bmqimp {
@@ -56,6 +62,20 @@ enum RcEnum {
     rc_NEGOTIATION_FAILURE     = -7
 };
 
+bmqio::Channel* findParent(bmqio::Channel* channel)
+{
+    bmqio::Channel*                     self = channel;
+    bmqio::DecoratingChannelPartialImp* decoratedChannel =
+        dynamic_cast<bmqio::DecoratingChannelPartialImp*>(self);
+    while (decoratedChannel != NULL) {
+        self             = decoratedChannel->base();
+        decoratedChannel = dynamic_cast<bmqio::DecoratingChannelPartialImp*>(
+            self);
+    }
+
+    return self;
+}
+
 }  // close unnamed namespace
 
 // ------------------------------------
@@ -63,15 +83,17 @@ enum RcEnum {
 // ------------------------------------
 
 NegotiatedChannelFactoryConfig::NegotiatedChannelFactoryConfig(
-    bmqio::ChannelFactory*                  base,
-    const bmqp_ctrlmsg::NegotiationMessage& negotiationMessage,
-    const bsls::TimeInterval&               negotiationTimeout,
-    BlobSpPool*                             blobSpPool_p,
-    bslma::Allocator*                       basicAllocator)
+    bmqio::ChannelFactory*                         base,
+    const bmqp_ctrlmsg::NegotiationMessage&        negotiationMessage,
+    const bsls::TimeInterval&                      negotiationTimeout,
+    BlobSpPool*                                    blobSpPool_p,
+    const bsl::shared_ptr<ntci::EncryptionClient>& encryptionClient,
+    bslma::Allocator*                              basicAllocator)
 : d_baseFactory_p(base)
 , d_negotiationMessage(negotiationMessage, basicAllocator)
 , d_negotiationTimeout(negotiationTimeout)
 , d_blobSpPool_p(blobSpPool_p)
+, d_encryptionClient(encryptionClient)
 , d_allocator_p(bslma::Default::allocator(basicAllocator))
 {
     // PRECONDITIONS
@@ -85,6 +107,7 @@ NegotiatedChannelFactoryConfig::NegotiatedChannelFactoryConfig(
 , d_negotiationMessage(original.d_negotiationMessage, basicAllocator)
 , d_negotiationTimeout(original.d_negotiationTimeout)
 , d_blobSpPool_p(original.d_blobSpPool_p)
+, d_encryptionClient(original.d_encryptionClient)
 , d_allocator_p(bslma::Default::allocator(basicAllocator))
 {
     // NOTHING
@@ -112,6 +135,70 @@ void NegotiatedChannelFactory::baseResultCallback(
     if (event != bmqio::ChannelFactoryEvent::e_CHANNEL_UP) {
         userCb(event, status, channel);
         return;  // RETURN
+    }
+
+    if (isTlsSession()) {
+        negotiateWithTls(channel, userCb);
+    }
+    else {
+        negotiate(channel, userCb);
+    }
+}
+
+bool NegotiatedChannelFactory::isTlsSession() const
+{
+    return d_config.d_encryptionClient.get().get() != NULL;
+}
+
+void NegotiatedChannelFactory::negotiateWithTls(
+    const bsl::shared_ptr<bmqio::Channel>& channel,
+    const ResultCallback&                  userCb) const
+{
+    BSLS_ASSERT(channel);
+
+    // ew
+    bmqio::Channel*    parent = findParent(channel.get());
+    bmqio::NtcChannel* alias  = dynamic_cast<bmqio::NtcChannel*>(parent);
+
+    if (alias) {
+        alias->upgrade(d_config.d_encryptionClient,
+                       ntca::UpgradeOptions(),
+                       bdlf::BindUtil::bindS(
+                           allocator(),
+                           &NegotiatedChannelFactory::negotiationWithTlsInit,
+                           this,
+                           channel,                 // Channel
+                           bdlf::PlaceHolders::_1,  // Upgradable
+                           bdlf::PlaceHolders::_2,  // Event
+                           userCb                   // Complete callback
+                           ));
+    }
+    else {
+        BALL_LOG_ERROR << "Unsupported channel implementation for TLS";
+        bmqio::Status status(bmqio::StatusCategory::e_GENERIC_ERROR,
+                             allocator());
+        channel->close(status);
+
+        return;  // RETURN
+    }
+}
+
+void NegotiatedChannelFactory::negotiationWithTlsInit(
+    const bsl::shared_ptr<bmqio::Channel>& channel,
+    BSLA_UNUSED const bsl::shared_ptr<ntci::Upgradable>& upgradable,
+    const ntca::UpgradeEvent&                            event,
+    const ResultCallback&                                userCb) const
+{
+    BSLS_ASSERT(channel);
+
+    if (event.isError()) {
+        BALL_LOG_ERROR << "TLS upgrade error: " << event;
+
+        bmqio::Status status(bmqio::StatusCategory::e_GENERIC_ERROR,
+                             allocator());
+        channel->close(status);
+
+        return;
     }
 
     negotiate(channel, userCb);

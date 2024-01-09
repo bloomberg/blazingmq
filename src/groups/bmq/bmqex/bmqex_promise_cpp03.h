@@ -36,8 +36,13 @@
 // regions of C++11 code, then this header contains no code and is not
 // '#include'd in the original header.
 //
+<<<<<<< HEAD:src/groups/bmq/bmqex/bmqex_promise_cpp03.h
 // Generated on Thu Oct 17 16:05:31 2024
 // Command line: sim_cpp11_features.pl bmqex_promise.h
+=======
+// Generated on Tue Mar 19 16:17:27 2024
+// Command line: sim_cpp11_features.pl bmqex_promise.h
+>>>>>>> fa40504b6 (Add integration tests for TLS):src/groups/bmq/bmqex/bmqex_promise_cpp03.h
 
 #ifdef COMPILING_BMQEX_PROMISE_H
 

@@ -272,6 +272,8 @@ class Parameters {
     // A name of a property to put auto-incremented values
     // in batch-posting mode.
 
+    bsl::string d_certificateAuthority;
+
   public:
     // CREATORS
 
@@ -307,6 +309,7 @@ class Parameters {
     setMessageProperties(const bsl::vector<MessageProperty>& value);
     Parameters& setSubscriptions(const bsl::vector<Subscription>& value);
     Parameters& setAutoIncrementedField(const bsl::string& value);
+    Parameters& setCertificateAuthority(const bsl::string& value);
 
     // Set the corresponding member to the specified 'value' and return a
     // reference offering modifiable access to this object.
@@ -365,6 +368,7 @@ class Parameters {
     const bsl::vector<MessageProperty>& messageProperties() const;
     const bsl::vector<Subscription>&    subscriptions() const;
     const bsl::string&                  autoIncrementedField() const;
+    const bsl::string&                  certificateAuthority() const;
 };
 
 // FREE OPERATORS
@@ -574,6 +578,13 @@ Parameters::setAutoIncrementedField(const bsl::string& value)
     return *this;
 }
 
+inline Parameters&
+Parameters::setCertificateAuthority(const bsl::string& value)
+{
+    d_certificateAuthority = value;
+    return *this;
+}
+
 // ACCESSORS
 inline ParametersMode::Value Parameters::mode() const
 {
@@ -719,6 +730,11 @@ inline const bsl::vector<Subscription>& Parameters::subscriptions() const
 inline const bsl::string& Parameters::autoIncrementedField() const
 {
     return d_autoIncrementedField;
+}
+
+inline const bsl::string& Parameters::certificateAuthority() const
+{
+    return d_certificateAuthority;
 }
 
 }  // close package namespace
