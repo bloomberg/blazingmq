@@ -17,6 +17,7 @@
 #include <mqba_application.h>
 
 #include <mqbscm_version.h>
+
 // MQB
 #include <mqba_authenticator.h>
 #include <mqba_configprovider.h>

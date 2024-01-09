@@ -23,7 +23,7 @@ import json
 import logging
 import shutil
 import signal
-from typing import Dict, List, Optional, Union, Tuple
+from typing import Dict, List, Optional, Union, Tuple, Generator
 from pathlib import Path
 import os
 import time
@@ -146,9 +146,11 @@ class Cluster(contextlib.AbstractContextManager):
         if not self.last_known_leader:
             return None, None
 
-        return self.last_known_leader.config.host, int(
-            self.last_known_leader.config.port
-        )
+        leader_config = self.last_known_leader.config
+        if leader_config.listeners is None:
+            return leader_config.host, int(leader_config.port)
+        admin_endpoint = leader_config.listeners[0]
+        return admin_endpoint.address, admin_endpoint.port
 
     def start(
         self, wait_leader=True, wait_ready=False, leader_name: Union[str, None] = None
@@ -582,7 +584,7 @@ class Cluster(contextlib.AbstractContextManager):
             )
         ]
 
-    def proxy_cycle(self):
+    def proxy_cycle(self) -> Generator[Broker, None, None]:
         """
         Return an iterator over a cyclic sequence of proxies.
 
@@ -627,12 +629,14 @@ class Cluster(contextlib.AbstractContextManager):
 
     def create_client(
         self,
-        prefix,
+        prefix: str,
         broker: Broker,
-        start=True,
-        dump_messages=True,
-        options=None,
-        port=None,
+        *,
+        start: bool = True,
+        dump_messages: bool = True,
+        options: Optional[str] = None,
+        port: Optional[int] = None,
+        endpoint: Optional[str] = None,
     ) -> Client:
         """
         Create a client with the specified name.
@@ -641,18 +645,52 @@ class Cluster(contextlib.AbstractContextManager):
         connects to the specified proxy.  If 'options' is specified, its string
         value is tacked at the end of the 'bmqtool.tsk' argument list. If 'port' is not
         specified, use either the first listener if it exists or 'broker.port'.
+
+        Args:
+            prefix: A prefix added to the name for the client.
+            broker: The broker to open a connection to.
+            start: Whether to start a session with the broker. Defaults to `True`.
+            dump_messages: Whether to dump message content received by the client.
+                Defaults to `True`.
+            options: A whitespace separated string of options to pass to the client CLI.
+            port: The port for the cilent to connect to. Mutually exclusive with
+                `endpoint`.
+            endpoint: The name of the listener in `broker`'s config to connect to. If
+                unspecified, the client will default to the first listener in the TCP
+                interface config. Mutually exclusive with `port`.
         """
+        if port is not None and endpoint is not None:
+            raise ValueError("port and endpoint are mutually exclusive")
 
         if isinstance(options, str):
             options = options.split()
 
+        options: List[str] = options or []
+
         name = f"{prefix}@{broker.name}"
 
-        if port is None:
+        tls = False
+        if endpoint is not None:
+            assert broker.config.listeners is not None
+            listeners = broker.config.listeners
+            client_interface = next(
+                listener for listener in listeners if listener.name == endpoint
+            )
+            port = client_interface.port
+            tls = client_interface.tls
+        elif port is None:
             if broker.config.listeners:
-                port = broker.config.listeners[0]
+                port = broker.config.listeners[0].port
+                tls = broker.config.listeners[0].tls
             else:
                 port = broker.config.port
+                tls = False
+
+        if tls:
+            certificate_authority = (
+                broker.config.config.app_config.tls_config.certificate_authority
+            )
+            options.append(f"--tls-authority={certificate_authority}")
 
         client = Client(
             name,
@@ -660,7 +698,7 @@ class Cluster(contextlib.AbstractContextManager):
             tool_path="bin/bmqtool.tsk",
             cwd=(self.work_dir / broker.name),
             dump_messages=dump_messages,
-            options=(self._tool_extra_args or []) + (options or []),
+            options=(self._tool_extra_args or []) + options,
         )
         client.add_sync_log_hook(lambda _: self.check_processes())
         client.start()

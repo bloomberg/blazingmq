@@ -82,6 +82,9 @@ struct StringUtil {
     static bsl::vector<bslstl::StringRef>
     strTokenizeRef(const bsl::string& str, const bslstl::StringRef& delims);
 
+    static bsl::vector<bsl::string_view>
+    strTokenizeRef(bsl::string_view str, bsl::string_view delims);
+
     /// Return true if the specified string `str` matches the specified
     /// `pattern`.  `pattern` may include Unix file matching wildcards `*`
     /// and `?`, representing respectively 0 to n characters and exactly 1

@@ -20,7 +20,7 @@ This suite of test cases exercises connection losses.
 import json
 import re
 from time import sleep
-from typing import Dict
+from typing import Dict, List
 
 import blazingmq.dev.it.testconstants as tc
 from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
@@ -196,7 +196,7 @@ def test_force_leader_primary_divergence(
         res = admin.send_admin(
             f"CLUSTERS CLUSTER {cluster.config.name} STORAGE SUMMARY"
         )
-        primaries: [str] = []
+        primaries: List[str] = []
         try:
             for line in res.splitlines():
                 mm = re.search(r"Primary Node.*\[(.+), \d+\]", line)

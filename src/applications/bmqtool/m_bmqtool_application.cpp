@@ -565,6 +565,11 @@ int Application::initialize()
         .configureEventQueue(1000, 10 * 1000)
         .setUserAgentPrefix("bmqtool");
 
+    if (!d_parameters.tlsAuthority().empty()) {
+        options.configureTls(d_parameters.tlsAuthority(),
+                             d_parameters.tlsVersions());
+    }
+
     // Create the session
     if (d_parameters.noSessionEventHandler()) {
         d_session_mp.load(new (*d_allocator_p)

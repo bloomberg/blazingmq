@@ -297,10 +297,10 @@ class ReconnectingChannelFactory : public ChannelFactory {
     ~ReconnectingChannelFactory() BSLS_KEYWORD_OVERRIDE;
 
     // MANIPULATORS
-    int start();
+    int start() BSLS_KEYWORD_OVERRIDE;
 
     /// Cancel any pending reconnect attempts.
-    void stop();
+    void stop() BSLS_KEYWORD_OVERRIDE;
 
     // ChannelFactory
 

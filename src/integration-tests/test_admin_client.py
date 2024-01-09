@@ -127,8 +127,13 @@ def expect_same_structure(
             assert expected.check(entry), path
         else:
             assert isinstance(expected, int)
-            if entry != expected:
-                raise RuntimeError(f"Path: {path}, {entry} != {expected} (expected)")
+            assert entry == expected, (
+                path,
+                "Actual value:",
+                entry,
+                "Expected value:",
+                expected,
+            )
 
 
 def test_breathing(
@@ -166,7 +171,11 @@ def test_breathing(
     broker_config_str = admin.send_admin("brokerconfig dump")
     broker_config = json.loads(broker_config_str)
 
-    assert broker_config["networkInterfaces"]["tcpInterface"]["port"] == port
+    listeners = broker_config["networkInterfaces"]["tcpInterface"].get("listeners")
+    if listeners is not None:
+        assert listeners[0]["port"] == port
+    else:
+        assert broker_config["networkInterfaces"]["tcpInterface"]["port"] == port
 
     # Stop the admin session
     admin.stop()

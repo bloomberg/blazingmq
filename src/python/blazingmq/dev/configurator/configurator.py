@@ -36,7 +36,15 @@ from xsdata.formats.dataclass.context import XmlContext
 from xsdata.formats.dataclass.serializers import JsonSerializer
 from xsdata.formats.dataclass.serializers.config import SerializerConfig
 
-from blazingmq.dev.configurator import *
+from blazingmq.dev.configurator import (
+    AbstractCluster,
+    Broker,
+    Domain,
+    Proto,
+    ConfiguratorError,
+    Cluster,
+    VirtualCluster,
+)
 from blazingmq.dev.configurator.site import Site
 from blazingmq.dev.paths import required_paths as paths
 from blazingmq.schemas import mqbcfg, mqbconf
@@ -124,12 +132,15 @@ class Configurator:
 
     def broker(
         self,
-        tcp_host: str,
-        tcp_port: int,
         name: str,
+        *,
+        tcp_host: Optional[str] = None,
+        tcp_port: Optional[int] = None,
         instance: Optional[str] = None,
         data_center: str = "dc",
-        listeners: List[Tuple[str, int]] = [],
+        listeners: List[mqbcfg.TcpInterfaceListener] = [],
+        tls_config: Optional[mqbcfg.TlsConfig] = None,
+        inter_broker_listener: Optional[str] = None,
     ) -> Broker:
         """Create a broker config and add it to the list of broker configs in
         the current configs.
@@ -143,11 +154,23 @@ class Configurator:
                 to.
             listeners: A list of TCP interfaces the broker will listen on. The
                 option overrides tcp_host and tcp_port if non-empty.
+            tls: Whether this broker should use TLS on its listeners.
+            tls_config: The certificate bundle for TLS enabled brokers.
+            inter_broker_listener: The name of the TCP interface to use for the cluster
+                endpoint definition.
 
         Returns:
             A Broker object representing the fully configured broker
                 configuration.
         """
+        if (tcp_host is None or tcp_port is None) == (not listeners):
+            raise ValueError(
+                "Either (tcp_host, tcp_port) xor listeners should be specified",
+                tcp_host,
+                tcp_port,
+                listeners,
+            )
+
         config = self.broker_configuration()
         assert config.app_config is not None
         assert config.app_config.network_interfaces is not None
@@ -155,32 +178,31 @@ class Configurator:
         config.app_config.host_data_center = data_center
         config.app_config.host_name = name
         config.app_config.broker_instance_name = instance
-        config.app_config.network_interfaces.tcp_interface.name = tcp_host
-        config.app_config.network_interfaces.tcp_interface.port = tcp_port
-        config.app_config.network_interfaces.tcp_interface.listeners = [
-            mqbcfg.TcpInterfaceListener(name=host, port=port)
-            for (host, port) in listeners
-        ]
-        broker = Broker(self, next(self.host_id_allocator), config)
+        if not listeners:
+            config.app_config.network_interfaces.tcp_interface.name = tcp_host
+            config.app_config.network_interfaces.tcp_interface.port = tcp_port
+        else:
+            config.app_config.network_interfaces.tcp_interface.listeners = listeners
+        if tls_config:
+            config.app_config.tls_config = tls_config
+        broker = Broker(
+            self,
+            next(self.host_id_allocator),
+            config,
+            inter_broker_listener=inter_broker_listener,
+        )
         self.brokers[name] = broker
 
         return broker
 
     def _prepare_cluster(
-        self, name: str, nodes: List[Broker], definition: mqbcfg.ClusterDefinition
+        self,
+        name: str,
+        nodes: List[Broker],
+        definition: mqbcfg.ClusterDefinition,
     ):
         if name in self.clusters:
             raise ConfiguratorError(f"cluster '{name}' already exists")
-
-        def port(tcp_interface: mqbcfg.TcpInterfaceConfig) -> int:
-            if tcp_interface.listeners:
-                return next(
-                    listener.port
-                    for listener in tcp_interface.listeners
-                    if listener.name == "BROKER"
-                )
-            else:
-                return tcp_interface.port
 
         definition.name = name
         definition.nodes = [
@@ -190,27 +212,29 @@ class Configurator:
                 data_center=broker.data_center,
                 transport=mqbcfg.ClusterNodeConnection(
                     mqbcfg.TcpClusterNodeConnection(
+                        # TODO(tfoxhall): Might have to change host -> address
                         "tcp://{host}:{port}".format(
-                            host=tcp_interface.name,  # type: ignore
-                            port=port(tcp_interface),  # type: ignore
+                            host=broker.host,  # type: ignore
+                            port=broker.port,  # type: ignore
                         )
                     )
                 ),
             )
             for broker in nodes
-            for tcp_interface in (
-                broker.config.app_config.network_interfaces.tcp_interface,
-            )
         ]
 
-    def cluster(self, name: str, nodes: List[Broker]) -> Cluster:
+    def cluster(
+        self,
+        name: str,
+        nodes: List[Broker],
+    ) -> Cluster:
         """Create a cluster config and add it to the list of cluster configs in the
         current configs.
 
-        If a broker specifies listeners in its TCP interface config, the inter-broker
-        listener URI will be constructed as tcp://<broker.tcp_host>:<port> where <port>
-        is specified by the special listener named "BROKER". Otherwise, the port is
-        taken from the port field in the TCP interface config.
+        If provided, the inter-broker listener URI will be constructed as
+        tcp://<broker.tcp_host>:<port> where <port> is specified by the broker's inter
+        broker listener. Otherwise, the first interface specified in the broker's
+        listener configuration will be chosen.
 
         Args:
             name: The name of the cluster.

@@ -60,6 +60,10 @@ apt-get install -qy --no-install-recommends \
     libfl-dev \
     pkg-config \
     python3.12-venv \
+    liblz4-dev \
+    libssl-dev \
+    libz-dev \
+    libzstd-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Install prerequisites for LLVM: latest cmake version, Ubuntu apt repository contains stale version
