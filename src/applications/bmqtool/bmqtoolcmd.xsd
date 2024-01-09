@@ -223,6 +223,8 @@
     <sequence>
       <element name='mode'                     type='string'  default="cli"/>
       <element name='broker'                   type='string'  default="tcp://localhost:30114"/>
+      <element name='tlsAuthority'             type='string'  default=""/>
+      <element name='tlsVersions'              type='string'  default="TLSv1.3"/>
       <element name='queueUri'                 type='string'  default=""/>
       <element name='queueFlags'               type='string'  default=""/>
       <element name='latency'                  type='string'  default="none"/>
