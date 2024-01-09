@@ -1105,6 +1105,8 @@ class TcpInterfaceListener:
     A name to associate this listener to.
     port.................:
     The port this listener will accept connections on.
+    tls..................:
+    Use TLS on this interface.
     """
 
     name: Optional[str] = field(
@@ -1116,6 +1118,65 @@ class TcpInterfaceListener:
         },
     )
     port: Optional[int] = field(
+        default=None,
+        metadata={
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+            "required": True,
+        },
+    )
+    tls: bool = field(
+        default=False,
+        metadata={
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+            "required": True,
+        },
+    )
+
+
+@dataclass
+class TlsConfig:
+    """certificateAuthority.:
+
+    A path to the FILE, containing concatenation of known certificates
+    the server can use to reference as its certificate store.
+    certificate..........:
+    A path to the FILE, containing the certificate the broker will use
+    to identify itself to other clients.
+    key..................:
+    A path to the FILE, containing the private key that the broker uses
+    to read the certificate.
+    versions.............:
+    A string with a comma-separated list of supported protocol versions.
+    """
+
+    certificate_authority: Optional[str] = field(
+        default=None,
+        metadata={
+            "name": "certificateAuthority",
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+            "required": True,
+        },
+    )
+    certificate: Optional[str] = field(
+        default=None,
+        metadata={
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+            "required": True,
+        },
+    )
+    key: Optional[str] = field(
+        default=None,
+        metadata={
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+            "required": True,
+        },
+    )
+    versions: Optional[str] = field(
         default=None,
         metadata={
             "type": "Element",
@@ -2090,6 +2151,7 @@ class AppConfig:
     advertiseSubscriptions.: temporarily control use of ConfigureStream in SDK
     routeCommandTimeoutMs: maximum amount of time to wait for a routed command's response
     authentication.......: configuration for authentication
+    tlsConfig............: optional configuation for TLS
     """
 
     broker_instance_name: Optional[str] = field(
@@ -2258,6 +2320,14 @@ class AppConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
+        },
+    )
+    tls_config: Optional[TlsConfig] = field(
+        default=None,
+        metadata={
+            "name": "tlsConfig",
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
         },
     )
 
