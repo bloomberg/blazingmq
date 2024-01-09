@@ -126,6 +126,8 @@ class SearchAllResult : public SearchResult {
                               bsls::Types::Uint64        recordIndex,
                               bsls::Types::Uint64        recordOffset)
         BSLS_KEYWORD_OVERRIDE;
+
+    void outputResult(bool outputRatio = false) BSLS_KEYWORD_OVERRIDE;
 };
 
 // =====================
@@ -157,7 +159,7 @@ class SearchGuidResult : public SearchResult {
                                bsls::Types::Uint64         recordIndex,
                                bsls::Types::Uint64         recordOffset)
         BSLS_KEYWORD_OVERRIDE;
-    void outputResult(bool outputRatio = true) BSLS_KEYWORD_OVERRIDE;
+    void outputResult(bool outputRatio = false) BSLS_KEYWORD_OVERRIDE;
 };
 
 // =====================

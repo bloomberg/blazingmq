@@ -870,11 +870,6 @@ static void test1_breathingTest()
     }
     expectedStream << foundMessagesCount << " message GUID(s) found."
                    << bsl::endl;
-    float outstandingRatio = float(foundMessagesCount) / foundMessagesCount *
-                             100.0;
-    expectedStream << "Outstanding ratio: " << outstandingRatio << "% ("
-                   << foundMessagesCount << "/" << foundMessagesCount << ")"
-                   << bsl::endl;
 
     ASSERT_EQ(resultStream.str(), expectedStream.str());
 
@@ -1449,11 +1444,6 @@ static void test8_searchMessagesByQueueKeyTest()
     auto foundMessagesCount = queueKey1GUIDS.size();
     expectedStream << foundMessagesCount << " message GUID(s) found."
                    << bsl::endl;
-    float outstandingRatio = float(foundMessagesCount) / foundMessagesCount *
-                             100.0;
-    expectedStream << "Outstanding ratio: " << outstandingRatio << "% ("
-                   << foundMessagesCount << "/" << foundMessagesCount << ")"
-                   << bsl::endl;
 
     // TODO: fix ordering issue (sporadic fail)
     ASSERT_EQ(resultStream.str(), expectedStream.str());
@@ -1545,9 +1535,6 @@ static void test9_searchMessagesByQueueNameTest()
                    << bsl::endl;
     float outstandingRatio = float(foundMessagesCount) / foundMessagesCount *
                              100.0;
-    expectedStream << "Outstanding ratio: " << outstandingRatio << "% ("
-                   << foundMessagesCount << "/" << foundMessagesCount << ")"
-                   << bsl::endl;
 
     // TODO: fix ordering issue (sporadic fail)
     ASSERT_EQ(resultStream.str(), expectedStream.str());
@@ -1628,8 +1615,6 @@ static void test10_searchMessagesByTimestamp()
         }
     }
     expectedStream << msgCnt << " message GUID(s) found." << bsl::endl;
-    expectedStream << "Outstanding ratio: 100% (" << msgCnt << "/" << msgCnt
-                   << ")" << bsl::endl;
 
     auto searchProcessor = SearchProcessor(bsl::move(params), s_allocator_p);
 

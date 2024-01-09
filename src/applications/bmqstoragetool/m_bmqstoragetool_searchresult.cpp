@@ -322,6 +322,11 @@ bool SearchAllResult::processMessageRecord(const mqbs::MessageRecord& record,
     return false;
 }
 
+void SearchAllResult::outputResult(bool outputRatio)
+{
+    SearchResult::outputResult(false);
+}
+
 // =====================
 // class SearchGuidResult
 // =====================
