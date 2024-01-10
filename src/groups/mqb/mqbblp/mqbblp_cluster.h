@@ -338,9 +338,7 @@ class Cluster : public mqbi::Cluster,
     /// Append an ACK message to the session's ack builder, with the
     /// specified `status`, `correlationId`, `messageGUID` and `queueId` to
     /// the specified `destination` node.  The specified `source` is used
-    /// when logging, to indicate the origin of the ACK.  The specified
-    /// `isSelfGenerated` flag indicates whether the ACK is originally
-    /// generated from this object, or just relayed through it.
+    /// when logging, to indicate the origin of the ACK.
     void sendAck(bmqt::AckResult::Enum    status,
                  int                      correlationId,
                  const bmqt::MessageGUID& messageGUID,
@@ -352,9 +350,7 @@ class Cluster : public mqbi::Cluster,
     /// specified `status`, `correlationId`, `messageGUID` and `queueId` to
     /// the cluster node identified by the specified cluster `nodeSession`.
     /// The specified `source` is used when logging, to indicate the origin
-    /// of the ACK.  The specified `isSelfGenerated` flag indicates whether
-    /// the ACK is originally generated from this object, or just relayed
-    /// through it.
+    /// of the ACK.
     void sendAck(bmqt::AckResult::Enum     status,
                  int                       correlationId,
                  const bmqt::MessageGUID&  messageGUID,
@@ -362,12 +358,6 @@ class Cluster : public mqbi::Cluster,
                  const bslstl::StringRef&  source,
                  mqbc::ClusterNodeSession* nodeSession);
 
-    /// Generate a nack with the specified `status` and `nackReason` for a
-    /// PUT message having the specified `putHeader` for the specified
-    /// `queue` from the specified `source`.  The nack is replied to the
-    /// `source`.  The specified `raiseAlarm` flag determines whether an
-    /// alarm should be raised for this nack.
-    /// Executed by dispatcher thread.
     void processCommandDispatched(mqbcmd::ClusterResult*        result,
                                   const mqbcmd::ClusterCommand& command);
 
@@ -611,10 +601,17 @@ class Cluster : public mqbi::Cluster,
     /// Load the cluster state to the specified `out` object.
     void loadClusterStatus(mqbcmd::ClusterResult* out) BSLS_KEYWORD_OVERRIDE;
 
+    /// Send the specified CONFIRM 'message' for the specified 'partitionId'
+    /// without switching thread context.
+    /// 'onRelayConfirmEvent' replacement.
     mqbi::InlineResult::Enum sendConfirmInline(
         int                         partitionId,
         const bmqp::ConfirmMessage& message) BSLS_KEYWORD_OVERRIDE;
 
+    /// Send PUT message for the specified 'partitionId' using the specified
+    /// 'putHeader', 'appData', 'options', 'state', 'genCount' without
+    /// switching thread context.
+    /// 'onRelayPutEvent' replacement.
     mqbi::InlineResult::Enum
     sendPutInline(int                                       partitionId,
                   const bmqp::PutHeader&                    putHeader,

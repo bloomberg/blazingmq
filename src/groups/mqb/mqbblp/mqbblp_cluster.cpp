@@ -1396,7 +1396,7 @@ Cluster::sendConfirmInline(int                         partitionId,
     // This relay-CONFIRM message is enqueued by the RemoteQueue on either
     // cluster (in case of replica) or clusterProxy (in case of proxy).  This
     // is a replica so this node just needs to forward the message to queue's
-    // partition's primary primary (after appropriate checks).
+    // partition's primary node (after appropriate checks).
 
     const int id    = message.queueId();
     const int subId = message.subQueueId();
@@ -1461,7 +1461,7 @@ mqbi::InlineResult::Enum Cluster::sendPutInline(
     // This relay-PUT message is enqueued by the RemoteQueue on either cluster
     // (in case of replica) or clusterProxy (in case of proxy).  This is a
     // replica so this node just needs to forward the message to queue's
-    // partition's primary primary (after appropriate checks).
+    // partition's primary node (after appropriate checks).
 
     if (mqbs::DataStore::k_INVALID_PARTITION_ID == partitionId) {
         return mqbi::InlineResult::e_INVALID_PARTITION;  // RETURN

@@ -113,10 +113,6 @@ struct ClusterUtil {
   public:
     // FUNCTIONS
 
-    /// Generate a nack with the specified `status` for a PUT message having
-    /// the specified `putHeader` from the specified `source`.  The nack is
-    /// replied to the `source`.
-
     /// Return true if the specified `syncPoint` is valid, false otherwise.
     static bool isValid(const bmqp_ctrlmsg::SyncPoint& syncPoint);
 

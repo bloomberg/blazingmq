@@ -596,6 +596,7 @@ class Channel {
               bmqp::EventType::Enum                     type,
               const bsl::shared_ptr<bmqu::AtomicState>& state = 0);
 
+    /// Request the channel to flush all its builders
     void flush();
 
     /// Notify the channel when a watermark of the specified `type` is being

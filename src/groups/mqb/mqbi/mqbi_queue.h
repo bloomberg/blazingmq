@@ -141,8 +141,6 @@ struct InlineResult {
 
 class InlineClient {
     // Interface for PUSH and ACK.
-  public:
-    // TYPES
 
   public:
     // CREATORS
@@ -157,16 +155,15 @@ class InlineClient {
              const bmqp::Protocol::SubQueueInfosArray& subQueues) = 0;
     // Called by the 'queueId' to deliver the specified 'message' with the
     // specified 'message', 'msgGUID', 'attributes' and 'mps' for the
-    // specified 'subQueues' streams of the queue.  Return 'true' on
-    // success.
+    // specified 'subQueues' streams of the queue.
+    // Return 'InlineResult::Enum'.
     //
     // THREAD: This method is called from the Queue's dispatcher thread.
 
     virtual mqbi::InlineResult::Enum
     sendAck(const bmqp::AckMessage& ackMessage, unsigned int queueId) = 0;
-    // Called by the 'Queue' to send the specified 'ackMessage'.  Return
-    // 'true' on success.
-    //
+    // Called by the 'Queue' to send the specified 'ackMessage'.
+    // Return 'InlineResult::Enum'.
     //
     // THREAD: This method is called from the Queue's dispatcher thread.
 };
@@ -328,16 +325,6 @@ struct OpenQueueContext {
 };
 
 typedef bsl::shared_ptr<OpenQueueContext> OpenQueueConfirmationCookie;
-// Type of a 'cookie' provided in the 'OpenQueueCallback' to confirm
-// processing of the 'openQueue' response by the requester.  Opening a
-// queue is fully async, and it could happen that the requester went
-// down before the 'openQueue' response got delivered to it.  In this
-// case, we must rollback upstream state.  This cookie is used for
-// that: it is initialized to zero (in the 'Cluster' implementation),
-// and carried over to the original requester of the 'openQueue'.  If
-// the requester is not able to process the openQueue response, it
-// needs to set this cookie to the queue handle which it received, so
-// that the operation can be rolled back.
 
 // ==================
 // struct QueueCounts
@@ -580,6 +567,7 @@ class QueueHandle {
     /// the specified `counts`.  Create new context for the `subStreamInfo`
     /// if it is not registered.  Associate the subStream with the specified
     /// `upstreamSubQueueId`.
+    /// Return an iterator pointing to the context.
     ///
     /// THREAD: This method is called from the Queue's dispatcher thread.
     virtual SubStreams::const_iterator
@@ -850,8 +838,9 @@ class Queue : public DispatcherClient {
 
     /// Obtain a handle to this queue, for the client represented by the
     /// specified `clientContext` and using the specified `handleParameters`
-    /// and `upstreamSubQueueId`.  Invoke the specified `callback` with the
-    /// result.
+    /// and `upstreamSubQueueId`.  Load a reference to the corresponding
+    /// `mqbstat::QueueStatsClient` into the specified `context`.
+    /// Invoke the specified `callback` with the result.
     virtual void getHandle(
         const mqbi::OpenQueueConfirmationCookie&            context,
         const bsl::shared_ptr<QueueHandleRequesterContext>& clientContext,
@@ -1110,10 +1099,10 @@ inline bool InlineResult::isPermanentError(bmqt::AckResult::Enum* ackResult,
                                            InlineResult::Enum     value)
 {
     switch (value) {
-    case e_SUCCESS:
-    case e_UNAVAILABLE:
-    case e_INVALID_PRIMARY:
-    case e_INVALID_GEN_COUNT:
+    case e_SUCCESS: BSLS_ANNOTATION_FALLTHROUGH;
+    case e_UNAVAILABLE: BSLS_ANNOTATION_FALLTHROUGH;
+    case e_INVALID_PRIMARY: BSLS_ANNOTATION_FALLTHROUGH;
+    case e_INVALID_GEN_COUNT: BSLS_ANNOTATION_FALLTHROUGH;
     case e_CHANNEL_ERROR: return false;
     case e_INVALID_PARTITION:
         *ackResult = bmqt::AckResult::e_INVALID_ARGUMENT;

@@ -1320,7 +1320,7 @@ void ClusterProxy::onDispatcherEvent(const mqbi::DispatcherEvent& event)
                        << "PUT event not yet implemented";
     } break;
     case mqbi::DispatcherEventType::e_CONFIRM: {
-        BALL_LOG_ERROR << "#UNEXPECTED_EVENT " << description();
+        BALL_LOG_ERROR << "#UNEXPECTED_EVENT (CONFIRM)" << description();
     } break;
     case mqbi::DispatcherEventType::e_REJECT: {
         const mqbi::DispatcherRejectEvent* realEvent = event.asRejectEvent();
