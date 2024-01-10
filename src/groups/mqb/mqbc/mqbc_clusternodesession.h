@@ -63,6 +63,9 @@ class AtomicGate {
 
   private:
     // PRIVATE TYPES
+
+    /// The Enum values have arithmetical meaning and cannot be changed, or
+    /// extended, or reordered.
     enum Enum { e_INIT = 0, e_CLOSE = 1, e_ENTER = 2 };
 
     // PRIVATE DATA
@@ -114,7 +117,8 @@ class GateKeeper {
         bool        d_isOpen;
 
       private:
-        Status(const Status& other);  // not implemented
+        // NOT IMPLEMENTED
+        Status(const Status& other) BSLS_KEYWORD_DELETED;
 
       public:
         // CREATORS
@@ -131,7 +135,7 @@ class GateKeeper {
 
     // MANIPULATORS
     void open();
-    bool close();
+    void close();
 };
 
 // ========================
@@ -251,6 +255,7 @@ class ClusterNodeSession : public mqbi::DispatcherClient,
     GateKeeper d_gateAck;
     GateKeeper d_gatePut;
     GateKeeper d_gateConfirm;
+    // Gates controlling sending messages inline (from multiple threads).
 
   private:
     // NOT IMPLEMENTED
@@ -302,7 +307,6 @@ class ClusterNodeSession : public mqbi::DispatcherClient,
 
     void setPeerInstanceId(int value);
 
-    /// Return the associated stat context.
     /// Return a reference to the modifiable list of queue handles.
     QueueHandleMap& queueHandles();
 
@@ -348,8 +352,7 @@ class ClusterNodeSession : public mqbi::DispatcherClient,
     mqbi::InlineResult::Enum
     sendAck(const bmqp::AckMessage& ackMessage,
             unsigned int            queueId) BSLS_KEYWORD_OVERRIDE;
-    // Called by the 'Queue' to send the specified 'ackMessage'.
-    //
+    // Called by the 'queueId' to send the specified 'ackMessage'.
     //
     // THREAD: This method is called from the Queue's dispatcher thread.
 
@@ -511,15 +514,12 @@ inline void GateKeeper::open()
     }
 }
 
-inline bool GateKeeper::close()
+inline void GateKeeper::close()
 {
     if (d_isOpen) {
         d_isOpen = false;
         d_gate.closeAndDrain();
-
-        return true;
     }
-    return false;
 }
 
 // ---------------------------------------

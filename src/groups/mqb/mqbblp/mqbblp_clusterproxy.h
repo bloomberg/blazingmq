@@ -306,11 +306,6 @@ class ClusterProxy : public mqbc::ClusterStateObserver,
     // PRIVATE MANIPULATORS
     //   (Event processing)
 
-    /// Generate a NACK with the specified `status` for a PUT message having
-    /// the specified `putHeader` from the specified `source`.  The nack is
-    /// replied to the `source`.  Log the specified `rc` as a reason for the
-    /// NACK.
-
     void onPushEvent(const mqbi::DispatcherPushEvent& event);
 
     void onAckEvent(const mqbi::DispatcherAckEvent& event);
@@ -519,10 +514,17 @@ class ClusterProxy : public mqbc::ClusterStateObserver,
     /// Load the cluster state in the specified `out` object.
     void loadClusterStatus(mqbcmd::ClusterResult* out) BSLS_KEYWORD_OVERRIDE;
 
+    /// Send the specified CONFIRM 'message' for the specified 'partitionId'
+    /// without switching thread context.
+    /// 'onRelayConfirmEvent' replacement.
     mqbi::InlineResult::Enum sendConfirmInline(
         int                         partitionId,
         const bmqp::ConfirmMessage& message) BSLS_KEYWORD_OVERRIDE;
 
+    /// Send PUT message for the specified 'partitionId' using the specified
+    /// 'putHeader', 'appData', 'options', 'state', 'genCount' without
+    /// switching thread context.
+    /// 'onRelayPutEvent' replacement.
     mqbi::InlineResult::Enum
     sendPutInline(int                                       partitionId,
                   const bmqp::PutHeader&                    putHeader,

@@ -90,14 +90,6 @@ ClusterMembership::setSelfNodeStatus(bmqp_ctrlmsg::NodeStatus::Value value)
         }
     }
 
-    for (ClusterNodeSessionMapConstIter cit = clusterNodeSessionMap().begin();
-         cit != clusterNodeSessionMap().end();
-         ++cit) {
-        mqbc::ClusterNodeSession* session = cit->second.get();
-        if (session != selfSession) {
-            session->setNodeStatus(session->nodeStatus(), value);
-        }
-    }
     if (oldVal == value) {
         return *this;  // RETURN
     }

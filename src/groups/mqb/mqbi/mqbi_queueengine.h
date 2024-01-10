@@ -95,8 +95,9 @@ class QueueEngine {
     /// Obtain and return a handle to this queue for the client identified
     /// with the specified `clientContext`, using the specified
     /// `handleParameters` and `upstreamSubQueueId`, and invoke the
-    /// specified `callback` when finished. In case of error, return a null
-    /// pointer.
+    /// specified `callback` when finished. Load a reference to the
+    /// corresponding `mqbstat::QueueStatsClient` into the specified `context`.
+    /// In case of error, return a null pointer.
     ///
     /// THREAD: This method is called from the Queue's dispatcher thread.
     virtual QueueHandle* getHandle(

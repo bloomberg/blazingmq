@@ -175,12 +175,12 @@ void Cluster::_initializeNodeSessions()
     for (; nodeIter != endIter; ++nodeIter) {
         // Create stat context for each cluster node
         mwcst::StatContextConfiguration config((*nodeIter)->hostName());
-        mqbc::ClusterMembership::ClusterNodeSessionSp nodeSessionSp;
 
         StatContextSp statContextSp(
             d_clusterData_mp->clusterNodesStatContext()->addSubcontext(config),
             d_allocator_p);
 
+        mqbc::ClusterMembership::ClusterNodeSessionSp nodeSessionSp;
         nodeSessionSp.createInplace(d_allocator_p,
                                     this,
                                     *nodeIter,

@@ -227,6 +227,7 @@ class QueueHandle : public mqbi::QueueHandle {
     /// specified `subStreamInfo` by `readCount` and `writeCount` in
     /// the specified `counts`.  Create new context for the `subStreamInfo`
     /// if it is not registered.
+    /// Return an iterator pointing to the context.
     ///
     /// THREAD: This method is called from the Queue's dispatcher thread.
     mqbi::QueueHandle::SubStreams::const_iterator
