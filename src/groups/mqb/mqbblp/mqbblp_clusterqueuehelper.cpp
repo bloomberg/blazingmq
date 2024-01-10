@@ -2190,7 +2190,7 @@ void ClusterQueueHelper::onHandleConfigured(
     // can get to the channel before the response.
 
     // 'synchronize' (Queue with the Cluster) would result in a dead-lock if
-    // 'Queue::configure' synchronizes Cluster with Qeuue.
+    // 'Queue::configure' synchronizes Cluster with Queue.
 
     bdlma::LocalSequentialAllocator<1024> localAllocator(d_allocator_p);
     bmqp_ctrlmsg::ControlMessage          response(&localAllocator);

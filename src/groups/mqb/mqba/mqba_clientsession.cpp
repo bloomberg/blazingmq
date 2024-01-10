@@ -1908,6 +1908,11 @@ bool ClientSession::validateMessage(mqbi::QueueHandle**   queueHandle,
         return false;  // RETURN
     }
 
+    // Do not lookup 'queueId.subId()'.
+    // 'QueueHandle::confirmMessageDispatched' does the check.
+    // Note, that it does not update stats (on "bmq://invalid/queue").
+    // It does log warnings.
+
     *queueHandle = queueIt->second.d_handle_p;
     BSLS_ASSERT_SAFE(queueHandle);
 

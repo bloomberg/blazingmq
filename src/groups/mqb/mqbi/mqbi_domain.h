@@ -99,7 +99,6 @@ class Domain {
     /// domain with the specified `domainName` has stopped.
     typedef bsl::function<void(const bsl::string& domainName)> TeardownCb;
 
-    /// Refer to the similar typedef in `mqbi::Cluster` for description.
     /// Signature of the callback function for the `openQueue` method.  If
     /// the specified `status` is SUCCESS, then the specified `handle` is
     /// populated with the resulting queue handle to use by the callee; and
