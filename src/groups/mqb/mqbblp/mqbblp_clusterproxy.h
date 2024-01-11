@@ -247,6 +247,10 @@ class ClusterProxy : public mqbc::ClusterStateObserver,
     StopRequestManagerType* d_stopRequestsManager_p;
 
     mqbnet::ClusterNode* d_activeNode_p;
+    // Protected by d_gateActiveNode - it is safe to use while
+    // 'mqbc::GateKeeper::Status(d_gateActiveNode).isOpen()'
+    // 'd_activeNodeManager.activeNode()' does not provide such guarantee.
+    // Also, updated after 'd_clusterData.electorInfo().setElectorInfo'
 
     mqbc::GateKeeper d_gateActiveNode;
 
