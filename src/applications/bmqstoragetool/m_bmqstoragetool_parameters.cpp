@@ -50,6 +50,30 @@
 namespace BloombergLP {
 namespace m_bmqstoragetool {
 
+namespace {
+// Validation helper
+// StorageKey class does not have validator similar to
+// MessageGUID::isValidHexRepresentation so implement own validator
+bool isValidQueueKeyHexRepresentation(const char* queueKeyBuf)
+{
+    const size_t queueKeyHexLength =
+        mqbu::StorageKey::e_KEY_LENGTH_BINARY *
+        2;  // one byte is represented by two hex symbols
+    if (bsl::strlen(queueKeyBuf) != queueKeyHexLength)
+        return false;  // RETURN
+
+    for (int i = 0; i < queueKeyHexLength; ++i) {
+        if (!(queueKeyBuf[i] >= '0' && queueKeyBuf[i] <= '9') &&
+            !(queueKeyBuf[i] >= 'A' && queueKeyBuf[i] <= 'F')) {
+            return false;  // RETURN
+        }
+    }
+
+    return true;
+}
+
+}  // close unnamed namespace
+
 // ==========================
 // class CommandLineArguments
 // ==========================
@@ -172,7 +196,15 @@ bool CommandLineArguments::validate(bsl::string* error)
     bsl::vector<bsl::string>::const_iterator it = d_guid.cbegin();
     for (; it != d_guid.cend(); ++it) {
         if (!bmqt::MessageGUID::isValidHexRepresentation(it->c_str())) {
-            ss << *it << "Is not a valid GUID\n";
+            ss << *it << " is not a valid GUID\n";
+        }
+    }
+
+    it = d_queueKey.cbegin();
+    for (; it != d_queueKey.cend(); ++it) {
+        if (!isValidQueueKeyHexRepresentation(it->c_str())) {
+            ss << *it
+               << " is not a valid Queue Key\n";
         }
     }
 
