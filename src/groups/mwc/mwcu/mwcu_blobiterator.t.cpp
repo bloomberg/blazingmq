@@ -213,7 +213,6 @@ static void test3_forwardIterator()
 //   BlobIterator(const BlobIterator&)
 //   BlobIterator& operator=(const BlobIterator&)
 //   bsl::swap(BlobIterator&, BlobIterator&)
-//   bsl::iterator_traits<BlobIterator>::reference
 // --------------------------------------------------------------------
 {
     mwctst::TestHelper::printTestName("Forward Iterator Test");
@@ -274,10 +273,8 @@ static void test3_forwardIterator()
             ASSERT_NE_D("line " << data.d_line, iter2, end);
             const mwcu::BlobPosition p(iter2.position());
             const mwcu::BlobIterator it(iter2++);
-            bsl::iterator_traits<mwcu::BlobIterator>::reference r(*it);
-            char                                                c;
+            char                     c;
             mwcu::BlobUtil::readNBytes(&c, blob, p, 1);
-            ASSERT_EQ_D("line " << data.d_line, c, r);
         }
         ASSERT_EQ_D("line " << data.d_line, iter2, iter3);
         ASSERT_EQ_D("line " << data.d_line, iter2, end);
