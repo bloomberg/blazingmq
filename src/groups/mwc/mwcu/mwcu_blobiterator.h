@@ -34,7 +34,6 @@
 
 // BDE
 #include <bsl_cstddef.h>
-#include <bsl_iterator.h>
 
 namespace BloombergLP {
 namespace mwcu {
@@ -44,11 +43,8 @@ namespace mwcu {
 // ==================
 
 /// A blob iterator
-class BlobIterator : public bsl::iterator<bsl::forward_iterator_tag,
-                                          char,
-                                          bsl::ptrdiff_t,
-                                          const char*,
-                                          const char&> {
+class BlobIterator
+{
   private:
     // DATA
     const bdlbb::Blob* d_blob_p;  // the blob we're iterating over
