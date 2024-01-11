@@ -43,8 +43,7 @@ namespace mwcu {
 // ==================
 
 /// A blob iterator
-class BlobIterator
-{
+class BlobIterator {
   private:
     // DATA
     const bdlbb::Blob* d_blob_p;  // the blob we're iterating over
