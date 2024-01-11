@@ -321,16 +321,13 @@ bool Parameters::buildQueueMap(bsl::ostream& ss, bslma::Allocator* allocator)
     mqbc::IncoreClusterStateLedgerIterator lastSnapshotIt(&ledger);
     while (true) {
         int rc = cslIt.next();
-        if (rc == 1) {
+        if (rc != 0) {
+            // End iterator reached or CSL file is corrupted or incomplete
             if (!lastSnapshotIt.isValid()) {
                 ss << "No Snapshot found in csl file." << bsl::endl;
                 return false;  // RETURN
             }
             break;
-        }
-        else if (rc < 0) {
-            ss << "Csl iterator error: " << rc << bsl::endl;
-            return false;  // RETURN
         }
 
         if (cslIt.header().recordType() ==
@@ -360,13 +357,9 @@ bool Parameters::buildQueueMap(bsl::ostream& ss, bslma::Allocator* allocator)
     // Iterate from last snapshot to get updates
     while (true) {
         int rc = lastSnapshotIt.next();
-        if (rc == 1) {
-            // end iterator reached
+        if (rc != 0) {
+            // End iterator reached or CSL file is corrupted or incomplete
             break;
-        }
-        else if (rc < 0) {
-            ss << "Csl iterator error: " << rc << bsl::endl;
-            return false;  // RETURN
         }
 
         if (lastSnapshotIt.header().recordType() ==
