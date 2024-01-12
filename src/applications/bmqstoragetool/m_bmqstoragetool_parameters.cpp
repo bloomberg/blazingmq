@@ -89,6 +89,7 @@ CommandLineArguments::CommandLineArguments(bslma::Allocator* allocator)
 , d_timestampGt(0)
 , d_timestampLt(0)
 , d_dumpLimit(0)
+, d_summary(false)
 , d_details(false)
 , d_dumpPayload(false)
 , d_outstanding(false)
@@ -182,9 +183,16 @@ bool CommandLineArguments::validate(bsl::string* error)
     if (!d_guid.empty() &&
         (!d_queueKey.empty() || !d_queueName.empty() || d_outstanding ||
          d_confirmed || d_partiallyConfirmed || d_timestampGt > 0 ||
-         d_timestampLt > 0)) {
+         d_timestampLt > 0 || d_summary)) {
         ss << "Giud filter can't be combined with any other filters, as it is "
               "specific enough to find a particular message\n";
+    }
+    if (d_summary &&
+        (d_outstanding || d_confirmed || d_partiallyConfirmed || d_details)) {
+        ss << "'--summary' can't be combined with '--outstanding', "
+              "'--confirmed', '--partially-confirmed' and '--details' "
+              "options, as it is "
+              "calculates and outputs statistics\n";
     }
 
     if (d_outstanding + d_confirmed + d_partiallyConfirmed > 1) {
@@ -203,8 +211,7 @@ bool CommandLineArguments::validate(bsl::string* error)
     it = d_queueKey.cbegin();
     for (; it != d_queueKey.cend(); ++it) {
         if (!isValidQueueKeyHexRepresentation(it->c_str())) {
-            ss << *it
-               << " is not a valid Queue Key\n";
+            ss << *it << " is not a valid Queue Key\n";
         }
     }
 
@@ -443,6 +450,7 @@ Parameters::Parameters(const CommandLineArguments& arguments,
 , d_timestampGt(arguments.d_timestampGt)
 , d_timestampLt(arguments.d_timestampLt)
 , d_dumpLimit(arguments.d_dumpLimit)
+, d_summary(arguments.d_summary)
 , d_details(arguments.d_details)
 , d_dumpPayload(arguments.d_dumpPayload)
 , d_outstanding(arguments.d_outstanding)

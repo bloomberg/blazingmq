@@ -258,6 +258,39 @@ class SearchPartiallyConfirmedResult : public SearchResult {
     void outputResult(bool outputRatio = true) BSLS_KEYWORD_OVERRIDE;
 };
 
+// =========================
+// class SearchSummaryResult
+// =========================
+class SearchSummaryResult : public SearchResult {
+  private:
+    // DATA
+    bsl::unordered_map<bmqt::MessageGUID, size_t> d_partiallyConfirmedGUIDS;
+
+  public:
+    // CREATORS
+    explicit SearchSummaryResult(
+        bsl::ostream&                                    ostream,
+        Parameters::FileHandler<mqbs::DataFileIterator>* dataFile_p,
+        QueueMap&                                        queueMap,
+        Filters&                                         filters,
+        bslma::Allocator*                                allocator);
+
+    // MANIPULATORS
+    bool processMessageRecord(const mqbs::MessageRecord& record,
+                              bsls::Types::Uint64        recordIndex,
+                              bsls::Types::Uint64        recordOffset)
+        BSLS_KEYWORD_OVERRIDE;
+    bool processConfirmRecord(const mqbs::ConfirmRecord& record,
+                              bsls::Types::Uint64        recordIndex,
+                              bsls::Types::Uint64        recordOffset)
+        BSLS_KEYWORD_OVERRIDE;
+    bool processDeletionRecord(const mqbs::DeletionRecord& record,
+                               bsls::Types::Uint64         recordIndex,
+                               bsls::Types::Uint64         recordOffset)
+        BSLS_KEYWORD_OVERRIDE;
+    void outputResult(bool outputRatio = true) BSLS_KEYWORD_OVERRIDE;
+};
+
 }  // close package namespace
 }  // close enterprise namespace
 

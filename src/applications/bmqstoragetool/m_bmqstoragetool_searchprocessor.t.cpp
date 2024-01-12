@@ -1848,6 +1848,73 @@ static void test12_searchMessagesWithPayloadDumpTest()
     s_allocator_p->deallocate(pd);
 }
 
+static void test13_summaryTest()
+// ------------------------------------------------------------------------
+// OUTPUT SUMMARY TEST
+//
+// Concerns:
+//   Search messages in journal file and output summary.
+//
+// Testing:
+//   SearchProcessor::process()
+// ------------------------------------------------------------------------
+{
+    mwctst::TestHelper::printTestName("OUTPUT SUMMARY TEST");
+
+    // Simulate journal file
+    unsigned int numRecords = 15;
+
+    bsls::Types::Uint64 totalSize =
+        sizeof(FileHeader) + sizeof(JournalFileHeader) +
+        numRecords * FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
+
+    char*       p = static_cast<char*>(s_allocator_p->allocate(totalSize));
+    MemoryBlock block(p, totalSize);
+    FileHeader  fileHeader;
+    bsls::Types::Uint64 lastRecordPos = 0;
+    bsls::Types::Uint64 lastSyncPtPos = 0;
+
+    RecordsListType records(s_allocator_p);
+
+    bsl::vector<bmqt::MessageGUID> partiallyConfirmedGUIDS =
+        addJournalRecordsWithPartiallyConfirmedMessages(&block,
+                                                        &fileHeader,
+                                                        &lastRecordPos,
+                                                        &lastSyncPtPos,
+                                                        &records,
+                                                        numRecords);
+
+    // Create JournalFileIterator
+    MappedFileDescriptor mfd;
+    mfd.setFd(-1);  // invalid fd will suffice.
+    mfd.setBlock(block);
+    mfd.setFileSize(totalSize);
+    JournalFileIterator it(&mfd, fileHeader, false);
+
+    // Configure parameters to output summary
+    CommandLineArguments arguments;
+    arguments.d_summary = true;
+    bsl::unique_ptr<Parameters> params =
+        bsl::make_unique<Parameters>(arguments, s_allocator_p);
+    params->journalFile()->setIterator(&it);
+
+    auto searchProcessor = SearchProcessor(bsl::move(params), s_allocator_p);
+
+    bsl::ostringstream resultStream(s_allocator_p);
+    searchProcessor.process(resultStream);
+
+    // Prepare expected output
+    bsl::ostringstream expectedStream(s_allocator_p);
+    expectedStream
+        << "5 message(s) found.\nNumber of confirmed messages: 3\nNumber of "
+           "partially confirmed messages: 2\n"
+           "Number of outstanding messages: 2\nOutstanding ratio: 40% (2/5)\n";
+
+    ASSERT_EQ(resultStream.str(), expectedStream.str());
+
+    s_allocator_p->deallocate(p);
+}
+
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
@@ -1870,6 +1937,7 @@ int main(int argc, char* argv[])
     case 10: test10_searchMessagesByTimestamp(); break;
     case 11: test11_printMessagesDetailsTest(); break;
     case 12: test12_searchMessagesWithPayloadDumpTest(); break;
+    case 13: test13_summaryTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
         s_testStatus = -1;

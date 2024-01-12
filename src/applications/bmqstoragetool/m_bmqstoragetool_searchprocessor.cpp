@@ -80,6 +80,15 @@ void SearchProcessor::process(bsl::ostream& ostream)
                                                   d_allocator_p),
                              d_allocator_p);
     }
+    else if (d_parameters->summary()) {
+        searchResult_p.reset(new (*d_allocator_p)
+                                 SearchSummaryResult(ostream,
+                                                     d_parameters->dataFile(),
+                                                     d_parameters->queueMap(),
+                                                     filters,
+                                                     d_allocator_p),
+                             d_allocator_p);
+    }
     else if (d_parameters->outstanding()) {
         searchResult_p.reset(new (*d_allocator_p) SearchOutstandingResult(
                                  ostream,

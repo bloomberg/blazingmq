@@ -599,8 +599,8 @@ bool SearchPartiallyConfirmedResult::processDeletionRecord(
 void SearchPartiallyConfirmedResult::outputResult(bool outputRatio)
 {
     for (const auto& item : d_messageIndexToGuidMap) {
-        auto ConfirmCount = d_partiallyConfirmedGUIDS.at(item.second);
-        if (ConfirmCount > 0) {
+        auto confirmCount = d_partiallyConfirmedGUIDS.at(item.second);
+        if (confirmCount > 0) {
             if (d_withDetails) {
                 d_messagesDetails.at(item.second).print(d_ostream, d_queueMap);
             }
@@ -612,6 +612,102 @@ void SearchPartiallyConfirmedResult::outputResult(bool outputRatio)
     }
 
     outputFooter();
+    outputOutstandingRatio();
+}
+
+// ====================================
+// class SearchSummaryResult
+// ====================================
+
+SearchSummaryResult::SearchSummaryResult(
+    bsl::ostream&                                    ostream,
+    Parameters::FileHandler<mqbs::DataFileIterator>* dataFile_p,
+    QueueMap&                                        queueMap,
+    Filters&                                         filters,
+    bslma::Allocator*                                allocator)
+: SearchResult(ostream,
+               false,
+               false,
+               0,
+               dataFile_p,
+               queueMap,
+               filters,
+               allocator)
+, d_partiallyConfirmedGUIDS(allocator)
+{
+    // NOTHING
+}
+
+bool SearchSummaryResult::processMessageRecord(
+    const mqbs::MessageRecord& record,
+    bsls::Types::Uint64        recordIndex,
+    bsls::Types::Uint64        recordOffset)
+{
+    // Apply filters
+    bool filterPassed = d_filters.apply(record);
+
+    if (filterPassed) {
+        d_partiallyConfirmedGUIDS[record.messageGUID()] = 0;
+        d_totalMessagesCount++;
+    }
+
+    return false;
+}
+
+bool SearchSummaryResult::processConfirmRecord(
+    const mqbs::ConfirmRecord& record,
+    bsls::Types::Uint64        recordIndex,
+    bsls::Types::Uint64        recordOffset)
+{
+    SearchResult::processConfirmRecord(record, recordIndex, recordOffset);
+    if (auto it = d_partiallyConfirmedGUIDS.find(record.messageGUID());
+        it != d_partiallyConfirmedGUIDS.end()) {
+        // Message is partially confirmed, increase counter.
+        it->second++;
+    }
+
+    return false;
+}
+
+bool SearchSummaryResult::processDeletionRecord(
+    const mqbs::DeletionRecord& record,
+    bsls::Types::Uint64         recordIndex,
+    bsls::Types::Uint64         recordOffset)
+{
+    if (auto it = d_partiallyConfirmedGUIDS.find(record.messageGUID());
+        it != d_partiallyConfirmedGUIDS.end()) {
+        // Message is confirmed, remove it.
+        d_partiallyConfirmedGUIDS.erase(it);
+        d_deletedMessagesCount++;
+    }
+
+    return false;
+}
+
+void SearchSummaryResult::outputResult(bool outputRatio)
+{
+    // Calculate number of partially confirmed messages
+    size_t partiallyConfirmedMessagesCount = 0;
+    for (const auto& item : d_partiallyConfirmedGUIDS) {
+        auto confirmCount = item.second;
+        if (confirmCount > 0) {
+            partiallyConfirmedMessagesCount++;
+        }
+    }
+
+    if (d_totalMessagesCount == 0) {
+        d_ostream << "No messages found." << '\n';
+        return;  // RETURN
+    }
+
+    d_ostream << d_totalMessagesCount << " message(s) found." << '\n';
+    d_ostream << "Number of confirmed messages: " << d_deletedMessagesCount
+              << '\n';
+    d_ostream << "Number of partially confirmed messages: "
+              << partiallyConfirmedMessagesCount << '\n';
+    d_ostream << "Number of outstanding messages: "
+              << (d_totalMessagesCount - d_deletedMessagesCount) << '\n';
+
     outputOutstandingRatio();
 }
 
