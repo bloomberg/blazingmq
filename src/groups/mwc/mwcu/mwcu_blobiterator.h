@@ -44,6 +44,15 @@ namespace mwcu {
 
 /// A blob iterator
 class BlobIterator {
+  public:
+    // PUBLIC TYPES
+    // iterator
+    typedef bsl::forward_iterator_tag iterator_category;
+    typedef char                      value_type;
+    typedef bsl::ptrdiff_t            difference_type;
+    typedef const char*               pointer;
+    typedef const char&               reference;
+
   private:
     // DATA
     const bdlbb::Blob* d_blob_p;  // the blob we're iterating over
