@@ -184,6 +184,11 @@ int JournalFileIterator::reset(const MappedFileDescriptor* mfd,
 
 int JournalFileIterator::nextRecord()
 {
+    return advance(1);
+}
+
+int JournalFileIterator::advance(const bsls::Types::Uint64 records)
+{
     enum RcEnum {
         // Value for the various RC error categories
         rc_HAS_NEXT = 1  // There is another message after this one
@@ -207,7 +212,9 @@ int JournalFileIterator::nextRecord()
     }
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
-            d_blockIter.advance(d_advanceLength) == false)) {
+            d_blockIter.advance(records == 1
+                                    ? d_advanceLength
+                                    : records * d_recordSize) == false)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
         clear();
         return rc_AT_END;  // RETURN
@@ -260,10 +267,10 @@ int JournalFileIterator::nextRecord()
     d_advanceLength = d_recordSize;
 
     if (d_blockIter.isForwardIterator()) {
-        d_journalRecordIndex += 1;
+        d_journalRecordIndex += records;
     }
     else {
-        d_journalRecordIndex -= 1;
+        d_journalRecordIndex -= records;
     }
 
     return rc_HAS_NEXT;

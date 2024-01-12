@@ -39,6 +39,66 @@
 namespace BloombergLP {
 namespace m_bmqstoragetool {
 
+namespace {
+
+/// Move the journal iterator pointed by the specified 'it' FORWARD to the
+/// first message whose timestamp is more then the specified 'timestamp'.
+/// Behavior is undefined unless last call to `nextRecord` returned 1 and the
+/// iterator points to the first record.
+static int moveToLowerBound(mqbs::JournalFileIterator* it,
+                            const bsls::Types::Uint64& timestamp)
+{
+    int rc = 0;
+    const unsigned int recordSize = it->header().recordWords() *
+                                    bmqp::Protocol::k_WORD_SIZE;
+    bsls::Types::Uint64 left  = it->recordIndex();
+    bsls::Types::Uint64 right = (it->lastRecordPosition() -
+                                 it->firstRecordPosition()) /
+                                recordSize;
+    while (right > left + 1) {
+        rc = it->advance((right - left) / 2);
+        if (rc != 1) {
+            return rc;
+        }
+        const bool goBackwards = it->recordHeader().timestamp() > timestamp;
+        if (goBackwards != it->isReverseMode()) {
+            it->flipDirection();
+        }
+        if (goBackwards) {
+            right = it->recordIndex();
+        } else {
+            left = it->recordIndex();
+        }
+
+    }
+    if (it->isReverseMode()) {
+        it->flipDirection();
+    }
+    if (it->recordHeader().timestamp() <= timestamp) {
+        rc = it->nextRecord();
+    }
+
+//    {
+//        // Debug information
+//        bsl::cout << "Found :\n"
+//                  << "record index : " << it->recordIndex() << "\n"
+//                  << "   timestamp : " << it->recordHeader().timestamp()
+//                  << bsl::endl;
+//        it->flipDirection();
+//        it->nextRecord();
+//        bsl::cout << "Previous :\n"
+//                  << "record index : " << it->recordIndex() << "\n"
+//                  << "   timestamp : " << it->recordHeader().timestamp()
+//                  << bsl::endl;
+//        it->flipDirection();
+//        it->nextRecord();
+//    }
+
+    return rc;
+}
+
+}  // close unnamed namespace
+
 // =====================
 // class SearchProcessor
 // =====================
@@ -141,6 +201,7 @@ void SearchProcessor::process(bsl::ostream& ostream)
     BSLS_ASSERT(searchResult_p);
 
     bool stopSearch = false;
+    bool needTimestampSearch = d_parameters->timestampGt() > 0;
 
     // Iterate through all Journal file records
     mqbs::JournalFileIterator* iter = d_parameters->journalFile()->iterator();
@@ -149,14 +210,22 @@ void SearchProcessor::process(bsl::ostream& ostream)
             searchResult_p->outputResult();
             return;  // RETURN
         }
-
         int rc = iter->nextRecord();
         if (rc <= 0) {
             ostream << "Iteration aborted (exit status " << rc << ").";
             return;  // RETURN
         }
+        if (needTimestampSearch) {
+            rc = moveToLowerBound(iter, d_parameters->timestampGt());
+            if (rc <= 0) {
+                ostream << "Binary search by timesamp aborted (exit status "
+                        << rc << ").";
+                return;  // RETURN
+            }
+            needTimestampSearch = false;
+        }
         // MessageRecord
-        else if (iter->recordType() == mqbs::RecordType::e_MESSAGE) {
+        if (iter->recordType() == mqbs::RecordType::e_MESSAGE) {
             const mqbs::MessageRecord& record = iter->asMessageRecord();
             stopSearch = searchResult_p->processMessageRecord(
                 record,
