@@ -156,13 +156,13 @@ void SearchResult::outputResult(bool outputRatio)
         outputOutstandingRatio();
 }
 
-void SearchResult::outputGuidString(const bmqt::MessageGUID& messageGUID,
-                                    const bool               addNewLine)
+void SearchResult::outputGuidString(const bmqt::MessageGUID& /*messageGUID*/,
+                                    const bool               /*addNewLine*/)
 {
-    d_ostream << messageGUID;
+//    d_ostream << messageGUID;
 
-    if (addNewLine)
-        d_ostream << bsl::endl;
+//    if (addNewLine)
+//        d_ostream << bsl::endl;
 }
 
 void SearchResult::outputFooter()
