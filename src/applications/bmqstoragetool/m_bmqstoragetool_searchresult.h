@@ -265,15 +265,17 @@ class SearchSummaryResult : public SearchResult {
   private:
     // DATA
     bsl::unordered_map<bmqt::MessageGUID, size_t> d_partiallyConfirmedGUIDS;
+    Parameters::FileHandler<mqbs::JournalFileIterator>* d_journalFile_p;
 
   public:
     // CREATORS
     explicit SearchSummaryResult(
-        bsl::ostream&                                    ostream,
-        Parameters::FileHandler<mqbs::DataFileIterator>* dataFile_p,
-        QueueMap&                                        queueMap,
-        Filters&                                         filters,
-        bslma::Allocator*                                allocator);
+        bsl::ostream&                                       ostream,
+        Parameters::FileHandler<mqbs::JournalFileIterator>* journalFile_p,
+        Parameters::FileHandler<mqbs::DataFileIterator>*    dataFile_p,
+        QueueMap&                                           queueMap,
+        Filters&                                            filters,
+        bslma::Allocator*                                   allocator);
 
     // MANIPULATORS
     bool processMessageRecord(const mqbs::MessageRecord& record,

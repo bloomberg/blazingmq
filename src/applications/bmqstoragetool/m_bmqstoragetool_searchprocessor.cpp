@@ -48,7 +48,7 @@ namespace {
 static int moveToLowerBound(mqbs::JournalFileIterator* it,
                             const bsls::Types::Uint64& timestamp)
 {
-    int rc = 0;
+    int                rc         = 0;
     const unsigned int recordSize = it->header().recordWords() *
                                     bmqp::Protocol::k_WORD_SIZE;
     bsls::Types::Uint64 left  = it->recordIndex();
@@ -66,10 +66,10 @@ static int moveToLowerBound(mqbs::JournalFileIterator* it,
         }
         if (goBackwards) {
             right = it->recordIndex();
-        } else {
+        }
+        else {
             left = it->recordIndex();
         }
-
     }
     if (it->isReverseMode()) {
         it->flipDirection();
@@ -78,21 +78,21 @@ static int moveToLowerBound(mqbs::JournalFileIterator* it,
         rc = it->nextRecord();
     }
 
-//    {
-//        // Debug information
-//        bsl::cout << "Found :\n"
-//                  << "record index : " << it->recordIndex() << "\n"
-//                  << "   timestamp : " << it->recordHeader().timestamp()
-//                  << bsl::endl;
-//        it->flipDirection();
-//        it->nextRecord();
-//        bsl::cout << "Previous :\n"
-//                  << "record index : " << it->recordIndex() << "\n"
-//                  << "   timestamp : " << it->recordHeader().timestamp()
-//                  << bsl::endl;
-//        it->flipDirection();
-//        it->nextRecord();
-//    }
+    //    {
+    //        // Debug information
+    //        bsl::cout << "Found :\n"
+    //                  << "record index : " << it->recordIndex() << "\n"
+    //                  << "   timestamp : " << it->recordHeader().timestamp()
+    //                  << bsl::endl;
+    //        it->flipDirection();
+    //        it->nextRecord();
+    //        bsl::cout << "Previous :\n"
+    //                  << "record index : " << it->recordIndex() << "\n"
+    //                  << "   timestamp : " << it->recordHeader().timestamp()
+    //                  << bsl::endl;
+    //        it->flipDirection();
+    //        it->nextRecord();
+    //    }
 
     return rc;
 }
@@ -141,12 +141,13 @@ void SearchProcessor::process(bsl::ostream& ostream)
                              d_allocator_p);
     }
     else if (d_parameters->summary()) {
-        searchResult_p.reset(new (*d_allocator_p)
-                                 SearchSummaryResult(ostream,
-                                                     d_parameters->dataFile(),
-                                                     d_parameters->queueMap(),
-                                                     filters,
-                                                     d_allocator_p),
+        searchResult_p.reset(new (*d_allocator_p) SearchSummaryResult(
+                                 ostream,
+                                 d_parameters->journalFile(),
+                                 d_parameters->dataFile(),
+                                 d_parameters->queueMap(),
+                                 filters,
+                                 d_allocator_p),
                              d_allocator_p);
     }
     else if (d_parameters->outstanding()) {
@@ -200,7 +201,7 @@ void SearchProcessor::process(bsl::ostream& ostream)
     }
     BSLS_ASSERT(searchResult_p);
 
-    bool stopSearch = false;
+    bool stopSearch          = false;
     bool needTimestampSearch = d_parameters->timestampGt() > 0;
 
     // Iterate through all Journal file records

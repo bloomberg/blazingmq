@@ -22,10 +22,123 @@
 #include <mqbs_filestoreprotocolprinter.h>
 #include <mqbs_filestoreprotocolutil.h>
 
+// MWC
+#include <mwcu_alignedprinter.h>
 #include <mwcu_memoutstream.h>
 
 namespace BloombergLP {
 namespace m_bmqstoragetool {
+
+namespace {
+
+// Helpers to print journal and data files meta
+void printDataFileMeta(
+    bsl::ostream&                                    ostream,
+    Parameters::FileHandler<mqbs::DataFileIterator>* dataFile_p)
+{
+    if (dataFile_p->path().empty() || !dataFile_p->resetIterator(ostream)) {
+        return;
+    }
+    ostream << "\nDetails of data file: \n"
+            << dataFile_p->mappedFileDescriptor() << " "
+            << dataFile_p->iterator()->header();
+}
+
+void printJournalFileMeta(
+    bsl::ostream&                                       ostream,
+    Parameters::FileHandler<mqbs::JournalFileIterator>* journalFile_p)
+{
+    if (journalFile_p->path().empty() ||
+        !journalFile_p->resetIterator(ostream)) {
+        return;
+    }
+
+    ostream << "\nDetails of journal file: \n";
+    ostream << journalFile_p->mappedFileDescriptor();
+    mqbs::FileStoreProtocolPrinter::printHeader(
+        ostream,
+        journalFile_p->iterator()->header(),
+        journalFile_p->mappedFileDescriptor());
+
+    // Print journal-specific fields
+    ostream << "Journal SyncPoint:\n";
+    bsl::vector<const char*> fields;
+    fields.push_back("Last Valid Record Offset");
+    fields.push_back("Record Type");
+    fields.push_back("Record Timestamp");
+    fields.push_back("Record Epoch");
+    fields.push_back("Last Valid SyncPoint Offset");
+    fields.push_back("SyncPoint Timestamp");
+    fields.push_back("SyncPoint Epoch");
+    fields.push_back("SyncPoint SeqNum");
+    fields.push_back("SyncPoint Primary NodeId");
+    fields.push_back("SyncPoint Primary LeaseId");
+    fields.push_back("SyncPoint DataFileOffset (DWORDS)");
+    fields.push_back("SyncPoint QlistFileOffset (WORDS)");
+
+    mwcu::AlignedPrinter printer(ostream, &fields);
+    bsls::Types::Uint64  lastRecPos =
+        journalFile_p->iterator()->lastRecordPosition();
+    printer << lastRecPos;
+    if (0 == lastRecPos) {
+        // No valid record
+        printer << "** NA **"
+                << "** NA **";
+    }
+    else {
+        mqbs::OffsetPtr<const mqbs::RecordHeader> recHeader(
+            journalFile_p->mappedFileDescriptor().block(),
+            lastRecPos);
+        printer << recHeader->type();
+        bdlt::Datetime      datetime;
+        bsls::Types::Uint64 epochValue = recHeader->timestamp();
+        int rc = bdlt::EpochUtil::convertFromTimeT64(&datetime, epochValue);
+        if (0 != rc) {
+            printer << 0;
+        }
+        else {
+            printer << datetime;
+        }
+        printer << epochValue;
+    }
+
+    bsls::Types::Uint64 syncPointPos =
+        journalFile_p->iterator()->lastSyncPointPosition();
+
+    printer << syncPointPos;
+    if (0 == syncPointPos) {
+        // No valid syncPoint
+        printer << "** NA **"
+                << "** NA **"
+                << "** NA **"
+                << "** NA **"
+                << "** NA **"
+                << "** NA **";
+    }
+    else {
+        const mqbs::JournalOpRecord& syncPt =
+            journalFile_p->iterator()->lastSyncPoint();
+
+        BSLS_ASSERT_OPT(mqbs::JournalOpType::e_SYNCPOINT == syncPt.type());
+
+        bsls::Types::Uint64 epochValue = syncPt.header().timestamp();
+        bdlt::Datetime      datetime;
+        int rc = bdlt::EpochUtil::convertFromTimeT64(&datetime, epochValue);
+        if (0 != rc) {
+            printer << 0;
+        }
+        else {
+            printer << datetime;
+        }
+        printer << epochValue;
+
+        printer << syncPt.sequenceNum() << syncPt.primaryNodeId()
+                << syncPt.primaryLeaseId() << syncPt.dataFileOffsetDwords()
+                << syncPt.qlistFileOffsetWords();
+    }
+}
+
+}  // close unnamed namespace
 
 // =====================
 // class SearchResult
@@ -620,11 +733,12 @@ void SearchPartiallyConfirmedResult::outputResult(bool outputRatio)
 // ====================================
 
 SearchSummaryResult::SearchSummaryResult(
-    bsl::ostream&                                    ostream,
-    Parameters::FileHandler<mqbs::DataFileIterator>* dataFile_p,
-    QueueMap&                                        queueMap,
-    Filters&                                         filters,
-    bslma::Allocator*                                allocator)
+    bsl::ostream&                                       ostream,
+    Parameters::FileHandler<mqbs::JournalFileIterator>* journalFile_p,
+    Parameters::FileHandler<mqbs::DataFileIterator>*    dataFile_p,
+    QueueMap&                                           queueMap,
+    Filters&                                            filters,
+    bslma::Allocator*                                   allocator)
 : SearchResult(ostream,
                false,
                false,
@@ -634,6 +748,7 @@ SearchSummaryResult::SearchSummaryResult(
                filters,
                allocator)
 , d_partiallyConfirmedGUIDS(allocator)
+, d_journalFile_p(journalFile_p)
 {
     // NOTHING
 }
@@ -709,6 +824,10 @@ void SearchSummaryResult::outputResult(bool outputRatio)
               << (d_totalMessagesCount - d_deletedMessagesCount) << '\n';
 
     outputOutstandingRatio();
+
+    // Print meta data of opened files
+    printJournalFileMeta(d_ostream, d_journalFile_p);
+    printDataFileMeta(d_ostream, d_dataFile_p);
 }
 
 }  // close package namespace

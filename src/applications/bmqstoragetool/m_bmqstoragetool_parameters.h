@@ -128,6 +128,9 @@ class Parameters {
 
         /// Mapped file iterator
         ITER* iterator();
+
+        /// Mapped file descriptor
+        mqbs::MappedFileDescriptor& mappedFileDescriptor();
     };
 
   private:
@@ -199,6 +202,31 @@ class Parameters {
     /// Print all the parameters
     void print(bsl::ostream& ss) const;
 };
+
+// ============================================================================
+//                             INLINE DEFINITIONS
+// ============================================================================
+
+template <typename ITER>
+inline ITER* Parameters::FileHandler<ITER>::iterator()
+{
+    return &d_iter;
+}
+
+template <typename ITER>
+inline mqbs::MappedFileDescriptor&
+Parameters::FileHandler<ITER>::mappedFileDescriptor()
+{
+    return d_mfd;
+}
+
+// TODO: used for testing, consider better way
+template <typename ITER>
+inline void Parameters::FileHandler<ITER>::setIterator(ITER* iter)
+{
+    if (iter != nullptr)
+        d_iter = *iter;
+}
 
 }  // close package namespace
 
