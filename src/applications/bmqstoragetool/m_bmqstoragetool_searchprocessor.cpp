@@ -41,35 +41,37 @@ namespace m_bmqstoragetool {
 
 namespace {
 
-/// Move the journal iterator pointed by the specified 'it' FORWARD to the
-/// first message whose timestamp is more then the specified 'timestamp'.
-/// Behavior is undefined unless last call to `nextRecord` returned 1 and the
-/// iterator points to the first record.
+/// Move the journal iterator pointed by the specified 'it' to the first
+/// message whose timestamp is more then the specified 'timestamp'.  Returns
+/// '1' on success, '0" if there are no such records (also the iterator is
+/// invalidated).  Behavior is undefined unless last call to `nextRecord`
+/// returned 1 and the iterator points to a valid record.
 static int moveToLowerBound(mqbs::JournalFileIterator* it,
                             const bsls::Types::Uint64& timestamp)
 {
-    int rc = 0;
+    int                rc         = 0;
     const unsigned int recordSize = it->header().recordWords() *
                                     bmqp::Protocol::k_WORD_SIZE;
-    bsls::Types::Uint64 left  = it->recordIndex();
-    bsls::Types::Uint64 right = (it->lastRecordPosition() -
-                                 it->firstRecordPosition()) /
-                                recordSize;
+    const bsls::Types::Uint64 recordsNumber = (it->lastRecordPosition() -
+                                               it->firstRecordPosition()) /
+                                              recordSize;
+    bsls::Types::Uint64 left  = 0;
+    bsls::Types::Uint64 right = recordsNumber;
     while (right > left + 1) {
-        rc = it->advance((right - left) / 2);
-        if (rc != 1) {
-            return rc;
-        }
         const bool goBackwards = it->recordHeader().timestamp() > timestamp;
         if (goBackwards != it->isReverseMode()) {
             it->flipDirection();
         }
         if (goBackwards) {
             right = it->recordIndex();
-        } else {
+        }
+        else {
             left = it->recordIndex();
         }
-
+        rc = it->advance(bsl::max((right - left) / 2, 1ULL));
+        if (rc != 1) {
+            return rc;  // RETURN
+        }
     }
     if (it->isReverseMode()) {
         it->flipDirection();
@@ -78,23 +80,7 @@ static int moveToLowerBound(mqbs::JournalFileIterator* it,
         rc = it->nextRecord();
     }
 
-//    {
-//        // Debug information
-//        bsl::cout << "Found :\n"
-//                  << "record index : " << it->recordIndex() << "\n"
-//                  << "   timestamp : " << it->recordHeader().timestamp()
-//                  << bsl::endl;
-//        it->flipDirection();
-//        it->nextRecord();
-//        bsl::cout << "Previous :\n"
-//                  << "record index : " << it->recordIndex() << "\n"
-//                  << "   timestamp : " << it->recordHeader().timestamp()
-//                  << bsl::endl;
-//        it->flipDirection();
-//        it->nextRecord();
-//    }
-
-    return rc;
+    return rc;  // RETURN
 }
 
 }  // close unnamed namespace
