@@ -56,365 +56,554 @@ typedef bsl::pair<RecordType::Enum, RecordBufferType> NodeType;
 
 typedef bsl::list<NodeType> RecordsListType;
 
-void addJournalRecords(MemoryBlock*         block,
-                       FileHeader*          fileHeader,
-                       bsls::Types::Uint64* lastRecordPos,
-                       bsls::Types::Uint64* lastSyncPtPos,
-                       RecordsListType*     records,
-                       unsigned int         numRecords)
-{
-    bsls::Types::Uint64 currPos = 0;
+class JournalFile {
+  private:
+    size_t               d_numRecords;
+    MappedFileDescriptor d_mfd;
+    char*                d_mem_p;
+    MemoryBlock          d_block;
+    bsls::Types::Uint64  d_currPos;
+    FileHeader           d_fileHeader;
+    JournalFileIterator  d_iterator;
+    bslma::Allocator*    d_allocator_p;
 
-    OffsetPtr<FileHeader> fh(*block, currPos);
-    new (fh.get()) FileHeader();
-    *fileHeader = *fh;
-    currPos += sizeof(FileHeader);
+    // MANIPULATORS
 
-    OffsetPtr<JournalFileHeader> jfh(*block, currPos);
-    new (jfh.get()) JournalFileHeader();  // Default values are ok
-    currPos += sizeof(JournalFileHeader);
+    void createFileHeader()
+    {
+        d_currPos = 0;
 
-    for (unsigned int i = 1; i <= numRecords; ++i) {
-        *lastRecordPos = currPos;
+        OffsetPtr<FileHeader> fh(d_block, d_currPos);
+        new (fh.get()) FileHeader();
+        d_fileHeader = *fh;
+        d_currPos += sizeof(FileHeader);
 
-        unsigned int remainder = i % 5;
-        if (0 == remainder) {
-            bmqt::MessageGUID g;
-            mqbu::MessageGUIDUtil::generateGUID(&g);
-            OffsetPtr<MessageRecord> rec(*block, currPos);
-            new (rec.get()) MessageRecord();
-            rec->header()
-                .setPrimaryLeaseId(100)
-                .setSequenceNumber(i)
-                .setTimestamp(i);
-            rec->setRefCount(i % FileStoreProtocol::k_MAX_MSG_REF_COUNT_HARD)
-                .setQueueKey(
-                    mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
-                                     "abcde"))
-                .setFileKey(
-                    mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
-                                     "12345"))
-                .setMessageOffsetDwords(i)
-                .setMessageGUID(g)
-                .setCrc32c(i)
-                .setCompressionAlgorithmType(
-                    bmqt::CompressionAlgorithmType::e_NONE)
-                .setMagic(RecordHeader::k_MAGIC);
-
-            RecordBufferType buf;
-            bsl::memcpy(buf.buffer(),
-                        rec.get(),
-                        FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
-            records->push_back(bsl::make_pair(RecordType::e_MESSAGE, buf));
-        }
-        else if (1 == remainder) {
-            // ConfRec
-            bmqt::MessageGUID g;
-            mqbu::MessageGUIDUtil::generateGUID(&g);
-            OffsetPtr<ConfirmRecord> rec(*block, currPos);
-            new (rec.get()) ConfirmRecord();
-            rec->header()
-                .setPrimaryLeaseId(100)
-                .setSequenceNumber(i)
-                .setTimestamp(i);
-            rec->setReason(ConfirmReason::e_REJECTED)
-                .setQueueKey(
-                    mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
-                                     "abcde"))
-                .setAppKey(
-                    mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
-                                     "appid"))
-                .setMessageGUID(g)
-                .setMagic(RecordHeader::k_MAGIC);
-
-            RecordBufferType buf;
-            bsl::memcpy(buf.buffer(),
-                        rec.get(),
-                        FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
-            records->push_back(bsl::make_pair(RecordType::e_CONFIRM, buf));
-        }
-        else if (2 == remainder) {
-            // DelRec
-            bmqt::MessageGUID g;
-            mqbu::MessageGUIDUtil::generateGUID(&g);
-            OffsetPtr<DeletionRecord> rec(*block, currPos);
-            new (rec.get()) DeletionRecord();
-            rec->header()
-                .setPrimaryLeaseId(100)
-                .setSequenceNumber(i)
-                .setTimestamp(i);
-            rec->setDeletionRecordFlag(DeletionRecordFlag::e_IMPLICIT_CONFIRM)
-                .setQueueKey(
-                    mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
-                                     "abcde"))
-                .setMessageGUID(g)
-                .setMagic(RecordHeader::k_MAGIC);
-
-            RecordBufferType buf;
-            bsl::memcpy(buf.buffer(),
-                        rec.get(),
-                        FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
-            records->push_back(bsl::make_pair(RecordType::e_DELETION, buf));
-        }
-        else if (3 == remainder) {
-            // QueueOpRec
-            OffsetPtr<QueueOpRecord> rec(*block, currPos);
-            new (rec.get()) QueueOpRecord();
-            rec->header()
-                .setPrimaryLeaseId(100)
-                .setSequenceNumber(i)
-                .setTimestamp(i);
-            rec->setFlags(3)
-                .setQueueKey(
-                    mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
-                                     "abcde"))
-                .setAppKey(
-                    mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
-                                     "appid"))
-                .setType(QueueOpType::e_PURGE)
-                .setMagic(RecordHeader::k_MAGIC);
-
-            RecordBufferType buf;
-            bsl::memcpy(buf.buffer(),
-                        rec.get(),
-                        FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
-            records->push_back(bsl::make_pair(RecordType::e_QUEUE_OP, buf));
-        }
-        else {
-            // JournalOpRec.SyncPoint
-            *lastSyncPtPos = currPos;
-            OffsetPtr<JournalOpRecord> rec(*block, currPos);
-            new (rec.get()) JournalOpRecord(JournalOpType::e_SYNCPOINT,
-                                            SyncPointType::e_REGULAR,
-                                            1234567,  // seqNum
-                                            25,       // leaderTerm
-                                            121,      // leaderNodeId
-                                            8800,     // dataFilePosition
-                                            100,      // qlistFilePosition
-                                            RecordHeader::k_MAGIC);
-
-            rec->header()
-                .setPrimaryLeaseId(100)
-                .setSequenceNumber(i)
-                .setTimestamp(i);
-            RecordBufferType buf;
-            bsl::memcpy(buf.buffer(),
-                        rec.get(),
-                        FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
-            records->push_back(bsl::make_pair(RecordType::e_JOURNAL_OP, buf));
-        }
-
-        currPos += FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
+        OffsetPtr<JournalFileHeader> jfh(d_block, d_currPos);
+        new (jfh.get()) JournalFileHeader();  // Default values are ok
+        d_currPos += sizeof(JournalFileHeader);
     }
-}
 
-bsl::vector<bmqt::MessageGUID>
-addJournalRecordsWithOutstandingAndConfirmedMessages(
-    MemoryBlock*         block,
-    FileHeader*          fileHeader,
-    bsls::Types::Uint64* lastRecordPos,
-    bsls::Types::Uint64* lastSyncPtPos,
-    RecordsListType*     records,
-    unsigned int         numRecords,
-    bool                 expectOutstandingResult)
-{
-    bsls::Types::Uint64 currPos = 0;
+  public:
+    // CREATORS
+    JournalFile(const size_t numRecords, bslma::Allocator* allocator)
+    : d_numRecords(numRecords)
+    , d_allocator_p(allocator)
+    {
+        bsls::Types::Uint64 totalSize =
+            sizeof(FileHeader) + sizeof(JournalFileHeader) +
+            numRecords * FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
 
-    OffsetPtr<FileHeader> fh(*block, currPos);
-    new (fh.get()) FileHeader();
-    *fileHeader = *fh;
-    currPos += sizeof(FileHeader);
+        d_mem_p = static_cast<char*>(s_allocator_p->allocate(totalSize));
+        d_block.setBase(d_mem_p);
+        d_block.setSize(totalSize);
 
-    OffsetPtr<JournalFileHeader> jfh(*block, currPos);
-    new (jfh.get()) JournalFileHeader();  // Default values are ok
-    currPos += sizeof(JournalFileHeader);
+        createFileHeader();
 
-    bool                           outstandingFlag = false;
-    bmqt::MessageGUID              lastMessageGUID;
-    bsl::vector<bmqt::MessageGUID> expectedGUIDs;
+        d_mfd.setFd(-1);  // invalid fd will suffice.
+        d_mfd.setBlock(d_block);
+        d_mfd.setFileSize(totalSize);
+    };
 
-    for (unsigned int i = 1; i <= numRecords; ++i) {
-        *lastRecordPos = currPos;
+    ~JournalFile() { d_allocator_p->deallocate(d_mem_p); };
 
-        unsigned int remainder = i % 3;
-        if (1 == remainder) {
-            // bmqt::MessageGUID g;
-            mqbu::MessageGUIDUtil::generateGUID(&lastMessageGUID);
-            OffsetPtr<MessageRecord> rec(*block, currPos);
-            new (rec.get()) MessageRecord();
-            rec->header().setPrimaryLeaseId(100).setSequenceNumber(i);
-            rec->setRefCount(i % FileStoreProtocol::k_MAX_MSG_REF_COUNT_HARD)
-                .setQueueKey(
-                    mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
-                                     "abcde"))
-                .setFileKey(
-                    mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
-                                     "12345"))
-                .setMessageOffsetDwords(i)
-                .setMessageGUID(lastMessageGUID)
-                .setCrc32c(i)
-                .setCompressionAlgorithmType(
-                    bmqt::CompressionAlgorithmType::e_NONE)
-                .setMagic(RecordHeader::k_MAGIC);
+    // ACCESSORS
 
-            RecordBufferType buf;
-            bsl::memcpy(buf.buffer(),
-                        rec.get(),
-                        FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
-            records->push_back(bsl::make_pair(RecordType::e_MESSAGE, buf));
-        }
-        else if (2 == remainder) {
-            // ConfRec
-            bmqt::MessageGUID        g = lastMessageGUID;
-            OffsetPtr<ConfirmRecord> rec(*block, currPos);
-            new (rec.get()) ConfirmRecord();
-            rec->header().setPrimaryLeaseId(100).setSequenceNumber(i);
-            rec->setReason(ConfirmReason::e_REJECTED)
-                .setQueueKey(
-                    mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
-                                     "abcde"))
-                .setAppKey(
-                    mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
-                                     "appid"))
-                .setMessageGUID(g)
-                .setMagic(RecordHeader::k_MAGIC);
+    const MappedFileDescriptor& mappedFileDescriptor() const { return d_mfd; }
 
-            RecordBufferType buf;
-            bsl::memcpy(buf.buffer(),
-                        rec.get(),
-                        FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
-            records->push_back(bsl::make_pair(RecordType::e_CONFIRM, buf));
-        }
-        else {
-            // DelRec
-            bmqt::MessageGUID g;
-            if (outstandingFlag) {
+    const FileHeader& fileHeader() const { return d_fileHeader; }
+
+    // MANIPULATORS
+
+    void addAllTypesRecords(RecordsListType* records)
+    {
+        for (unsigned int i = 1; i <= d_numRecords; ++i) {
+            unsigned int remainder = i % 5;
+            if (0 == remainder) {
+                bmqt::MessageGUID g;
                 mqbu::MessageGUIDUtil::generateGUID(&g);
-                if (expectOutstandingResult)
-                    expectedGUIDs.push_back(lastMessageGUID);
+                OffsetPtr<MessageRecord> rec(d_block, d_currPos);
+                new (rec.get()) MessageRecord();
+                rec->header()
+                    .setPrimaryLeaseId(100)
+                    .setSequenceNumber(i)
+                    .setTimestamp(i);
+                rec->setRefCount(i %
+                                 FileStoreProtocol::k_MAX_MSG_REF_COUNT_HARD)
+                    .setQueueKey(mqbu::StorageKey(
+                        mqbu::StorageKey::BinaryRepresentation(),
+                        "abcde"))
+                    .setFileKey(mqbu::StorageKey(
+                        mqbu::StorageKey::BinaryRepresentation(),
+                        "12345"))
+                    .setMessageOffsetDwords(i)
+                    .setMessageGUID(g)
+                    .setCrc32c(i)
+                    .setCompressionAlgorithmType(
+                        bmqt::CompressionAlgorithmType::e_NONE)
+                    .setMagic(RecordHeader::k_MAGIC);
+
+                RecordBufferType buf;
+                bsl::memcpy(buf.buffer(),
+                            rec.get(),
+                            FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
+                records->push_back(bsl::make_pair(RecordType::e_MESSAGE, buf));
+            }
+            else if (1 == remainder) {
+                // ConfRec
+                bmqt::MessageGUID g;
+                mqbu::MessageGUIDUtil::generateGUID(&g);
+                OffsetPtr<ConfirmRecord> rec(d_block, d_currPos);
+                new (rec.get()) ConfirmRecord();
+                rec->header()
+                    .setPrimaryLeaseId(100)
+                    .setSequenceNumber(i)
+                    .setTimestamp(i);
+                rec->setReason(ConfirmReason::e_REJECTED)
+                    .setQueueKey(mqbu::StorageKey(
+                        mqbu::StorageKey::BinaryRepresentation(),
+                        "abcde"))
+                    .setAppKey(mqbu::StorageKey(
+                        mqbu::StorageKey::BinaryRepresentation(),
+                        "appid"))
+                    .setMessageGUID(g)
+                    .setMagic(RecordHeader::k_MAGIC);
+
+                RecordBufferType buf;
+                bsl::memcpy(buf.buffer(),
+                            rec.get(),
+                            FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
+                records->push_back(bsl::make_pair(RecordType::e_CONFIRM, buf));
+            }
+            else if (2 == remainder) {
+                // DelRec
+                bmqt::MessageGUID g;
+                mqbu::MessageGUIDUtil::generateGUID(&g);
+                OffsetPtr<DeletionRecord> rec(d_block, d_currPos);
+                new (rec.get()) DeletionRecord();
+                rec->header()
+                    .setPrimaryLeaseId(100)
+                    .setSequenceNumber(i)
+                    .setTimestamp(i);
+                rec->setDeletionRecordFlag(
+                       DeletionRecordFlag::e_IMPLICIT_CONFIRM)
+                    .setQueueKey(mqbu::StorageKey(
+                        mqbu::StorageKey::BinaryRepresentation(),
+                        "abcde"))
+                    .setMessageGUID(g)
+                    .setMagic(RecordHeader::k_MAGIC);
+
+                RecordBufferType buf;
+                bsl::memcpy(buf.buffer(),
+                            rec.get(),
+                            FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
+                records->push_back(
+                    bsl::make_pair(RecordType::e_DELETION, buf));
+            }
+            else if (3 == remainder) {
+                // QueueOpRec
+                OffsetPtr<QueueOpRecord> rec(d_block, d_currPos);
+                new (rec.get()) QueueOpRecord();
+                rec->header()
+                    .setPrimaryLeaseId(100)
+                    .setSequenceNumber(i)
+                    .setTimestamp(i);
+                rec->setFlags(3)
+                    .setQueueKey(mqbu::StorageKey(
+                        mqbu::StorageKey::BinaryRepresentation(),
+                        "abcde"))
+                    .setAppKey(mqbu::StorageKey(
+                        mqbu::StorageKey::BinaryRepresentation(),
+                        "appid"))
+                    .setType(QueueOpType::e_PURGE)
+                    .setMagic(RecordHeader::k_MAGIC);
+
+                RecordBufferType buf;
+                bsl::memcpy(buf.buffer(),
+                            rec.get(),
+                            FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
+                records->push_back(
+                    bsl::make_pair(RecordType::e_QUEUE_OP, buf));
             }
             else {
-                g = lastMessageGUID;
-                if (!expectOutstandingResult)
-                    expectedGUIDs.push_back(lastMessageGUID);
+                OffsetPtr<JournalOpRecord> rec(d_block, d_currPos);
+                new (rec.get()) JournalOpRecord(JournalOpType::e_SYNCPOINT,
+                                                SyncPointType::e_REGULAR,
+                                                1234567,  // seqNum
+                                                25,       // leaderTerm
+                                                121,      // leaderNodeId
+                                                8800,     // dataFilePosition
+                                                100,      // qlistFilePosition
+                                                RecordHeader::k_MAGIC);
+
+                rec->header()
+                    .setPrimaryLeaseId(100)
+                    .setSequenceNumber(i)
+                    .setTimestamp(i);
+                RecordBufferType buf;
+                bsl::memcpy(buf.buffer(),
+                            rec.get(),
+                            FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
+                records->push_back(
+                    bsl::make_pair(RecordType::e_JOURNAL_OP, buf));
             }
-            outstandingFlag = !outstandingFlag;
-            OffsetPtr<DeletionRecord> rec(*block, currPos);
-            new (rec.get()) DeletionRecord();
-            rec->header().setPrimaryLeaseId(100).setSequenceNumber(i);
-            rec->setDeletionRecordFlag(DeletionRecordFlag::e_IMPLICIT_CONFIRM)
-                .setQueueKey(
-                    mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
-                                     "abcde"))
-                .setMessageGUID(g)
-                .setMagic(RecordHeader::k_MAGIC);
 
-            RecordBufferType buf;
-            bsl::memcpy(buf.buffer(),
-                        rec.get(),
-                        FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
-            records->push_back(bsl::make_pair(RecordType::e_DELETION, buf));
+            d_currPos += FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
         }
-
-        currPos += FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
     }
 
-    return expectedGUIDs;
-}
+    bsl::vector<bmqt::MessageGUID>
+    addJournalRecordsWithOutstandingAndConfirmedMessages(
+        RecordsListType* records,
+        bool             expectOutstandingResult)
+    {
+        bool                           outstandingFlag = false;
+        bmqt::MessageGUID              lastMessageGUID;
+        bsl::vector<bmqt::MessageGUID> expectedGUIDs;
 
-// Generate sequence of MessageRecord, ConfirmRecord and DeleteRecord records.
-// MessageRecord and ConfirmRecord records have the same GUID.
-// DeleteRecord records even records have the same GUID as MessageRecord, odd
-// ones - not the same.
-bsl::vector<bmqt::MessageGUID> addJournalRecordsWithPartiallyConfirmedMessages(
-    MemoryBlock*         block,
-    FileHeader*          fileHeader,
-    bsls::Types::Uint64* lastRecordPos,
-    bsls::Types::Uint64* lastSyncPtPos,
-    RecordsListType*     records,
-    unsigned int         numRecords)
-{
-    bsls::Types::Uint64 currPos = 0;
+        for (unsigned int i = 1; i <= d_numRecords; ++i) {
+            unsigned int remainder = i % 3;
+            if (1 == remainder) {
+                mqbu::MessageGUIDUtil::generateGUID(&lastMessageGUID);
+                OffsetPtr<MessageRecord> rec(d_block, d_currPos);
+                new (rec.get()) MessageRecord();
+                rec->header().setPrimaryLeaseId(100).setSequenceNumber(i);
+                rec->setRefCount(i %
+                                 FileStoreProtocol::k_MAX_MSG_REF_COUNT_HARD)
+                    .setQueueKey(mqbu::StorageKey(
+                        mqbu::StorageKey::BinaryRepresentation(),
+                        "abcde"))
+                    .setFileKey(mqbu::StorageKey(
+                        mqbu::StorageKey::BinaryRepresentation(),
+                        "12345"))
+                    .setMessageOffsetDwords(i)
+                    .setMessageGUID(lastMessageGUID)
+                    .setCrc32c(i)
+                    .setCompressionAlgorithmType(
+                        bmqt::CompressionAlgorithmType::e_NONE)
+                    .setMagic(RecordHeader::k_MAGIC);
 
-    OffsetPtr<FileHeader> fh(*block, currPos);
-    new (fh.get()) FileHeader();
-    *fileHeader = *fh;
-    currPos += sizeof(FileHeader);
+                RecordBufferType buf;
+                bsl::memcpy(buf.buffer(),
+                            rec.get(),
+                            FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
+                records->push_back(bsl::make_pair(RecordType::e_MESSAGE, buf));
+            }
+            else if (2 == remainder) {
+                // ConfRec
+                bmqt::MessageGUID        g = lastMessageGUID;
+                OffsetPtr<ConfirmRecord> rec(d_block, d_currPos);
+                new (rec.get()) ConfirmRecord();
+                rec->header().setPrimaryLeaseId(100).setSequenceNumber(i);
+                rec->setReason(ConfirmReason::e_REJECTED)
+                    .setQueueKey(mqbu::StorageKey(
+                        mqbu::StorageKey::BinaryRepresentation(),
+                        "abcde"))
+                    .setAppKey(mqbu::StorageKey(
+                        mqbu::StorageKey::BinaryRepresentation(),
+                        "appid"))
+                    .setMessageGUID(g)
+                    .setMagic(RecordHeader::k_MAGIC);
 
-    OffsetPtr<JournalFileHeader> jfh(*block, currPos);
-    new (jfh.get()) JournalFileHeader();  // Default values are ok
-    currPos += sizeof(JournalFileHeader);
-
-    bool                           partialyConfirmedFlag = false;
-    bmqt::MessageGUID              lastMessageGUID;
-    bsl::vector<bmqt::MessageGUID> expectedGUIDs;
-
-    for (unsigned int i = 1; i <= numRecords; ++i) {
-        *lastRecordPos = currPos;
-
-        unsigned int remainder = i % 3;
-        if (1 == remainder) {
-            // bmqt::MessageGUID g;
-            mqbu::MessageGUIDUtil::generateGUID(&lastMessageGUID);
-            OffsetPtr<MessageRecord> rec(*block, currPos);
-            new (rec.get()) MessageRecord();
-            rec->header().setPrimaryLeaseId(100).setSequenceNumber(i);
-            rec->setRefCount(i % FileStoreProtocol::k_MAX_MSG_REF_COUNT_HARD)
-                .setQueueKey(
-                    mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
-                                     "abcde"))
-                .setFileKey(
-                    mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
-                                     "12345"))
-                .setMessageOffsetDwords(i)
-                .setMessageGUID(lastMessageGUID)
-                .setCrc32c(i)
-                .setCompressionAlgorithmType(
-                    bmqt::CompressionAlgorithmType::e_NONE)
-                .setMagic(RecordHeader::k_MAGIC);
-
-            RecordBufferType buf;
-            bsl::memcpy(buf.buffer(),
-                        rec.get(),
-                        FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
-            records->push_back(bsl::make_pair(RecordType::e_MESSAGE, buf));
-        }
-        else if (2 == remainder) {
-            // ConfRec
-            bmqt::MessageGUID        g = lastMessageGUID;
-            OffsetPtr<ConfirmRecord> rec(*block, currPos);
-            new (rec.get()) ConfirmRecord();
-            rec->header().setPrimaryLeaseId(100).setSequenceNumber(i);
-            rec->setReason(ConfirmReason::e_REJECTED)
-                .setQueueKey(
-                    mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
-                                     "abcde"))
-                .setAppKey(
-                    mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
-                                     "appid"))
-                .setMessageGUID(g)
-                .setMagic(RecordHeader::k_MAGIC);
-
-            RecordBufferType buf;
-            bsl::memcpy(buf.buffer(),
-                        rec.get(),
-                        FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
-            records->push_back(bsl::make_pair(RecordType::e_CONFIRM, buf));
-        }
-        else {
-            // DelRec
-            bmqt::MessageGUID g;
-            if (partialyConfirmedFlag) {
-                mqbu::MessageGUIDUtil::generateGUID(&g);
-                expectedGUIDs.push_back(lastMessageGUID);
+                RecordBufferType buf;
+                bsl::memcpy(buf.buffer(),
+                            rec.get(),
+                            FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
+                records->push_back(bsl::make_pair(RecordType::e_CONFIRM, buf));
             }
             else {
-                g = lastMessageGUID;
+                // DelRec
+                bmqt::MessageGUID g;
+                if (outstandingFlag) {
+                    mqbu::MessageGUIDUtil::generateGUID(&g);
+                    if (expectOutstandingResult)
+                        expectedGUIDs.push_back(lastMessageGUID);
+                }
+                else {
+                    g = lastMessageGUID;
+                    if (!expectOutstandingResult)
+                        expectedGUIDs.push_back(lastMessageGUID);
+                }
+                outstandingFlag = !outstandingFlag;
+                OffsetPtr<DeletionRecord> rec(d_block, d_currPos);
+                new (rec.get()) DeletionRecord();
+                rec->header().setPrimaryLeaseId(100).setSequenceNumber(i);
+                rec->setDeletionRecordFlag(
+                       DeletionRecordFlag::e_IMPLICIT_CONFIRM)
+                    .setQueueKey(mqbu::StorageKey(
+                        mqbu::StorageKey::BinaryRepresentation(),
+                        "abcde"))
+                    .setMessageGUID(g)
+                    .setMagic(RecordHeader::k_MAGIC);
+
+                RecordBufferType buf;
+                bsl::memcpy(buf.buffer(),
+                            rec.get(),
+                            FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
+                records->push_back(
+                    bsl::make_pair(RecordType::e_DELETION, buf));
             }
-            partialyConfirmedFlag = !partialyConfirmedFlag;
-            OffsetPtr<DeletionRecord> rec(*block, currPos);
+
+            d_currPos += FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
+        }
+
+        return expectedGUIDs;
+    }
+
+    // Generate sequence of MessageRecord, ConfirmRecord and DeleteRecord
+    // records. MessageRecord and ConfirmRecord records have the same GUID.
+    // DeleteRecord records even records have the same GUID as MessageRecord,
+    // odd ones - not the same.
+    bsl::vector<bmqt::MessageGUID>
+    addJournalRecordsWithPartiallyConfirmedMessages(RecordsListType* records)
+    {
+        bool                           partialyConfirmedFlag = false;
+        bmqt::MessageGUID              lastMessageGUID;
+        bsl::vector<bmqt::MessageGUID> expectedGUIDs;
+
+        for (unsigned int i = 1; i <= d_numRecords; ++i) {
+            unsigned int remainder = i % 3;
+
+            if (1 == remainder) {
+                // bmqt::MessageGUID g;
+                mqbu::MessageGUIDUtil::generateGUID(&lastMessageGUID);
+                OffsetPtr<MessageRecord> rec(d_block, d_currPos);
+                new (rec.get()) MessageRecord();
+                rec->header().setPrimaryLeaseId(100).setSequenceNumber(i);
+                rec->setRefCount(i %
+                                 FileStoreProtocol::k_MAX_MSG_REF_COUNT_HARD)
+                    .setQueueKey(mqbu::StorageKey(
+                        mqbu::StorageKey::BinaryRepresentation(),
+                        "abcde"))
+                    .setFileKey(mqbu::StorageKey(
+                        mqbu::StorageKey::BinaryRepresentation(),
+                        "12345"))
+                    .setMessageOffsetDwords(i)
+                    .setMessageGUID(lastMessageGUID)
+                    .setCrc32c(i)
+                    .setCompressionAlgorithmType(
+                        bmqt::CompressionAlgorithmType::e_NONE)
+                    .setMagic(RecordHeader::k_MAGIC);
+
+                RecordBufferType buf;
+                bsl::memcpy(buf.buffer(),
+                            rec.get(),
+                            FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
+                records->push_back(bsl::make_pair(RecordType::e_MESSAGE, buf));
+            }
+            else if (2 == remainder) {
+                // ConfRec
+                bmqt::MessageGUID        g = lastMessageGUID;
+                OffsetPtr<ConfirmRecord> rec(d_block, d_currPos);
+                new (rec.get()) ConfirmRecord();
+                rec->header().setPrimaryLeaseId(100).setSequenceNumber(i);
+                rec->setReason(ConfirmReason::e_REJECTED)
+                    .setQueueKey(mqbu::StorageKey(
+                        mqbu::StorageKey::BinaryRepresentation(),
+                        "abcde"))
+                    .setAppKey(mqbu::StorageKey(
+                        mqbu::StorageKey::BinaryRepresentation(),
+                        "appid"))
+                    .setMessageGUID(g)
+                    .setMagic(RecordHeader::k_MAGIC);
+
+                RecordBufferType buf;
+                bsl::memcpy(buf.buffer(),
+                            rec.get(),
+                            FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
+                records->push_back(bsl::make_pair(RecordType::e_CONFIRM, buf));
+            }
+            else {
+                // DelRec
+                bmqt::MessageGUID g;
+                if (partialyConfirmedFlag) {
+                    mqbu::MessageGUIDUtil::generateGUID(&g);
+                    expectedGUIDs.push_back(lastMessageGUID);
+                }
+                else {
+                    g = lastMessageGUID;
+                }
+                partialyConfirmedFlag = !partialyConfirmedFlag;
+                OffsetPtr<DeletionRecord> rec(d_block, d_currPos);
+                new (rec.get()) DeletionRecord();
+                rec->header().setPrimaryLeaseId(100).setSequenceNumber(i);
+                rec->setDeletionRecordFlag(
+                       DeletionRecordFlag::e_IMPLICIT_CONFIRM)
+                    .setQueueKey(mqbu::StorageKey(
+                        mqbu::StorageKey::BinaryRepresentation(),
+                        "abcde"))
+                    .setMessageGUID(g)
+                    .setMagic(RecordHeader::k_MAGIC);
+
+                RecordBufferType buf;
+                bsl::memcpy(buf.buffer(),
+                            rec.get(),
+                            FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
+                records->push_back(
+                    bsl::make_pair(RecordType::e_DELETION, buf));
+            }
+
+            d_currPos += FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
+        }
+
+        return expectedGUIDs;
+    }
+
+    // Generate sequence of MessageRecord, ConfirmRecord and DeleteRecord
+    // records. MessageRecord ConfirmRecord and DeletionRecord records have the
+    // same GUID. queueKey1 is used for even records, queueKey1 for odd ones.
+    // Returns GUIDs with queueKey1.
+    bsl::vector<bmqt::MessageGUID>
+    addJournalRecordsWithTwoQueueKeys(RecordsListType* records,
+                                      const char*      queueKey1,
+                                      const char*      queueKey2)
+    {
+        bmqt::MessageGUID              lastMessageGUID;
+        bsl::vector<bmqt::MessageGUID> expectedGUIDs;
+
+        for (unsigned int i = 1; i <= d_numRecords; ++i) {
+            const char* queueKey = (i % 2 != 0) ? queueKey1 : queueKey2;
+
+            unsigned int remainder = i % 3;
+            if (1 == remainder) {
+                mqbu::MessageGUIDUtil::generateGUID(&lastMessageGUID);
+                if (queueKey == queueKey1) {
+                    expectedGUIDs.push_back(lastMessageGUID);
+                }
+                OffsetPtr<MessageRecord> rec(d_block, d_currPos);
+                new (rec.get()) MessageRecord();
+                rec->header().setPrimaryLeaseId(100).setSequenceNumber(i);
+                rec->setRefCount(i %
+                                 FileStoreProtocol::k_MAX_MSG_REF_COUNT_HARD)
+                    .setQueueKey(
+                        mqbu::StorageKey(mqbu::StorageKey::HexRepresentation(),
+                                         queueKey))
+                    .setFileKey(mqbu::StorageKey(
+                        mqbu::StorageKey::BinaryRepresentation(),
+                        "12345"))
+                    .setMessageOffsetDwords(i)
+                    .setMessageGUID(lastMessageGUID)
+                    .setCrc32c(i)
+                    .setCompressionAlgorithmType(
+                        bmqt::CompressionAlgorithmType::e_NONE)
+                    .setMagic(RecordHeader::k_MAGIC);
+
+                RecordBufferType buf;
+                bsl::memcpy(buf.buffer(),
+                            rec.get(),
+                            FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
+                records->push_back(bsl::make_pair(RecordType::e_MESSAGE, buf));
+            }
+            else if (2 == remainder) {
+                // ConfRec
+                bmqt::MessageGUID        g = lastMessageGUID;
+                OffsetPtr<ConfirmRecord> rec(d_block, d_currPos);
+                new (rec.get()) ConfirmRecord();
+                rec->header().setPrimaryLeaseId(100).setSequenceNumber(i);
+                rec->setReason(ConfirmReason::e_REJECTED)
+                    .setQueueKey(
+                        mqbu::StorageKey(mqbu::StorageKey::HexRepresentation(),
+                                         queueKey))
+                    .setAppKey(mqbu::StorageKey(
+                        mqbu::StorageKey::BinaryRepresentation(),
+                        "appid"))
+                    .setMessageGUID(g)
+                    .setMagic(RecordHeader::k_MAGIC);
+
+                RecordBufferType buf;
+                bsl::memcpy(buf.buffer(),
+                            rec.get(),
+                            FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
+                records->push_back(bsl::make_pair(RecordType::e_CONFIRM, buf));
+            }
+            else {
+                // DelRec
+                bmqt::MessageGUID         g = lastMessageGUID;
+                OffsetPtr<DeletionRecord> rec(d_block, d_currPos);
+                new (rec.get()) DeletionRecord();
+                rec->header().setPrimaryLeaseId(100).setSequenceNumber(i);
+                rec->setDeletionRecordFlag(
+                       DeletionRecordFlag::e_IMPLICIT_CONFIRM)
+                    .setQueueKey(
+                        mqbu::StorageKey(mqbu::StorageKey::HexRepresentation(),
+                                         queueKey))
+                    .setMessageGUID(g)
+                    .setMagic(RecordHeader::k_MAGIC);
+
+                RecordBufferType buf;
+                bsl::memcpy(buf.buffer(),
+                            rec.get(),
+                            FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
+                records->push_back(
+                    bsl::make_pair(RecordType::e_DELETION, buf));
+            }
+
+            d_currPos += FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
+        }
+
+        return expectedGUIDs;
+    }
+
+    bsl::vector<bmqt::MessageGUID>
+    addJournalRecordsWithConfirmedMessagesWithDifferentOrder(
+        RecordsListType*           records,
+        size_t                     numMessages,
+        bsl::vector<unsigned int>& messageOffsets)
+    {
+        bsl::vector<bmqt::MessageGUID> expectedGUIDs;
+
+        ASSERT(numMessages == messageOffsets.size());
+        ASSERT(numMessages >= 3);
+        ASSERT(d_numRecords == numMessages * 2);
+
+        // Create messages
+        for (unsigned int i = 0; i < numMessages; ++i) {
+            bmqt::MessageGUID g;
+            mqbu::MessageGUIDUtil::generateGUID(&g);
+            expectedGUIDs.push_back(g);
+            OffsetPtr<MessageRecord> rec(d_block, d_currPos);
+            new (rec.get()) MessageRecord();
+            rec->header().setPrimaryLeaseId(100).setSequenceNumber(i + 1);
+            rec->setRefCount(i % FileStoreProtocol::k_MAX_MSG_REF_COUNT_HARD)
+                .setQueueKey(
+                    mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
+                                     "abcde"))
+                .setFileKey(
+                    mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
+                                     "12345"))
+                .setMessageOffsetDwords(messageOffsets.at(i))
+                .setMessageGUID(g)
+                .setCrc32c(i)
+                .setCompressionAlgorithmType(
+                    bmqt::CompressionAlgorithmType::e_NONE)
+                .setMagic(RecordHeader::k_MAGIC);
+
+            RecordBufferType buf;
+            bsl::memcpy(buf.buffer(),
+                        rec.get(),
+                        FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
+            records->push_back(bsl::make_pair(RecordType::e_MESSAGE, buf));
+
+            d_currPos += FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
+        }
+
+        // Create delete messages, and replace GUIDS for 2nd and 3rd message
+        for (unsigned int i = 0; i < numMessages; ++i) {
+            // DelRec
+            bmqt::MessageGUID g;
+            // Change GUIDs order for 2nd and 3rd deletion records
+            if (i == 1) {
+                g = expectedGUIDs.at(2);
+            }
+            else if (i == 2) {
+                g = expectedGUIDs.at(1);
+            }
+            else {
+                g = expectedGUIDs.at(i);
+            }
+
+            OffsetPtr<DeletionRecord> rec(d_block, d_currPos);
             new (rec.get()) DeletionRecord();
-            rec->header().setPrimaryLeaseId(100).setSequenceNumber(i);
+            rec->header().setPrimaryLeaseId(100).setSequenceNumber(i + 1);
             rec->setDeletionRecordFlag(DeletionRecordFlag::e_IMPLICIT_CONFIRM)
                 .setQueueKey(
                     mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
@@ -427,269 +616,21 @@ bsl::vector<bmqt::MessageGUID> addJournalRecordsWithPartiallyConfirmedMessages(
                         rec.get(),
                         FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
             records->push_back(bsl::make_pair(RecordType::e_DELETION, buf));
+
+            d_currPos += FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
         }
 
-        currPos += FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
+        return expectedGUIDs;
     }
-
-    return expectedGUIDs;
-}
-
-// Generate sequence of MessageRecord, ConfirmRecord and DeleteRecord records.
-// MessageRecord ConfirmRecord and DeletionRecord records have the same GUID.
-// queueKey1 is used for even records, queueKey1 for odd ones.
-// Returns GUIDs with queueKey1.
-bsl::vector<bmqt::MessageGUID>
-addJournalRecordsWithTwoQueueKeys(MemoryBlock*         block,
-                                  FileHeader*          fileHeader,
-                                  bsls::Types::Uint64* lastRecordPos,
-                                  bsls::Types::Uint64* lastSyncPtPos,
-                                  RecordsListType*     records,
-                                  unsigned int         numRecords,
-                                  const char*          queueKey1,
-                                  const char*          queueKey2)
-{
-    bsls::Types::Uint64 currPos = 0;
-
-    OffsetPtr<FileHeader> fh(*block, currPos);
-    new (fh.get()) FileHeader();
-    *fileHeader = *fh;
-    currPos += sizeof(FileHeader);
-
-    OffsetPtr<JournalFileHeader> jfh(*block, currPos);
-    new (jfh.get()) JournalFileHeader();  // Default values are ok
-    currPos += sizeof(JournalFileHeader);
-
-    bool                           partialyConfirmedFlag = false;
-    bmqt::MessageGUID              lastMessageGUID;
-    bsl::vector<bmqt::MessageGUID> expectedGUIDs;
-
-    for (unsigned int i = 1; i <= numRecords; ++i) {
-        *lastRecordPos = currPos;
-
-        const char* queueKey = (i % 2 != 0) ? queueKey1 : queueKey2;
-
-        unsigned int remainder = i % 3;
-        if (1 == remainder) {
-            mqbu::MessageGUIDUtil::generateGUID(&lastMessageGUID);
-            if (queueKey == queueKey1) {
-                expectedGUIDs.push_back(lastMessageGUID);
-            }
-            OffsetPtr<MessageRecord> rec(*block, currPos);
-            new (rec.get()) MessageRecord();
-            rec->header().setPrimaryLeaseId(100).setSequenceNumber(i);
-            rec->setRefCount(i % FileStoreProtocol::k_MAX_MSG_REF_COUNT_HARD)
-                .setQueueKey(
-                    mqbu::StorageKey(mqbu::StorageKey::HexRepresentation(),
-                                     queueKey))
-                .setFileKey(
-                    mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
-                                     "12345"))
-                .setMessageOffsetDwords(i)
-                .setMessageGUID(lastMessageGUID)
-                .setCrc32c(i)
-                .setCompressionAlgorithmType(
-                    bmqt::CompressionAlgorithmType::e_NONE)
-                .setMagic(RecordHeader::k_MAGIC);
-
-            RecordBufferType buf;
-            bsl::memcpy(buf.buffer(),
-                        rec.get(),
-                        FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
-            records->push_back(bsl::make_pair(RecordType::e_MESSAGE, buf));
-        }
-        else if (2 == remainder) {
-            // ConfRec
-            bmqt::MessageGUID        g = lastMessageGUID;
-            OffsetPtr<ConfirmRecord> rec(*block, currPos);
-            new (rec.get()) ConfirmRecord();
-            rec->header().setPrimaryLeaseId(100).setSequenceNumber(i);
-            rec->setReason(ConfirmReason::e_REJECTED)
-                .setQueueKey(
-                    mqbu::StorageKey(mqbu::StorageKey::HexRepresentation(),
-                                     queueKey))
-                .setAppKey(
-                    mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
-                                     "appid"))
-                .setMessageGUID(g)
-                .setMagic(RecordHeader::k_MAGIC);
-
-            RecordBufferType buf;
-            bsl::memcpy(buf.buffer(),
-                        rec.get(),
-                        FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
-            records->push_back(bsl::make_pair(RecordType::e_CONFIRM, buf));
-        }
-        else {
-            // DelRec
-            bmqt::MessageGUID         g = lastMessageGUID;
-            OffsetPtr<DeletionRecord> rec(*block, currPos);
-            new (rec.get()) DeletionRecord();
-            rec->header().setPrimaryLeaseId(100).setSequenceNumber(i);
-            rec->setDeletionRecordFlag(DeletionRecordFlag::e_IMPLICIT_CONFIRM)
-                .setQueueKey(
-                    mqbu::StorageKey(mqbu::StorageKey::HexRepresentation(),
-                                     queueKey))
-                .setMessageGUID(g)
-                .setMagic(RecordHeader::k_MAGIC);
-
-            RecordBufferType buf;
-            bsl::memcpy(buf.buffer(),
-                        rec.get(),
-                        FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
-            records->push_back(bsl::make_pair(RecordType::e_DELETION, buf));
-        }
-
-        currPos += FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
-    }
-
-    return expectedGUIDs;
-}
-
-bsls::Types::Uint64 memoryBufferSize(size_t numRecords)
-{
-    return sizeof(FileHeader) + sizeof(JournalFileHeader) +
-           numRecords * FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
-}
+};
 
 void outputGuidString(bsl::ostream&            ostream,
                       const bmqt::MessageGUID& messageGUID,
                       const bool               addNewLine = true)
 {
-    char buf[bmqt::MessageGUID::e_SIZE_HEX];
-    messageGUID.toHex(buf);
-    ostream.write(buf, bmqt::MessageGUID::e_SIZE_HEX);
+    ostream << messageGUID;
     if (addNewLine)
         ostream << bsl::endl;
-}
-
-JournalFileIterator& createJournalFileIterator(unsigned int     numRecords,
-                                               MemoryBlock&     block,
-                                               RecordsListType* records)
-{
-    bsls::Types::Uint64 totalSize = memoryBufferSize(numRecords);
-
-    // char*       p = static_cast<char*>(s_allocator_p->allocate(totalSize));
-    // MemoryBlock block(p, totalSize);
-    FileHeader          fileHeader;
-    bsls::Types::Uint64 lastRecordPos = 0;
-    bsls::Types::Uint64 lastSyncPtPos = 0;
-
-    // RecordsListType records(s_allocator_p);
-
-    addJournalRecords(&block,
-                      &fileHeader,
-                      &lastRecordPos,
-                      &lastSyncPtPos,
-                      records,
-                      numRecords);
-
-    // Create JournalFileIterator
-    MappedFileDescriptor mfd;
-    mfd.setFd(-1);  // invalid fd will suffice.
-    mfd.setBlock(block);
-    mfd.setFileSize(totalSize);
-    JournalFileIterator it(&mfd, fileHeader, false);
-    return it;
-}
-
-bsl::vector<bmqt::MessageGUID>
-addJournalRecordsWithConfirmedMessagesWithDifferentOrder(
-    MemoryBlock*               block,
-    FileHeader*                fileHeader,
-    bsls::Types::Uint64*       lastRecordPos,
-    bsls::Types::Uint64*       lastSyncPtPos,
-    RecordsListType*           records,
-    unsigned int               numRecords,
-    bsl::vector<unsigned int>& messageOffsets)
-{
-    bsls::Types::Uint64 currPos = 0;
-
-    OffsetPtr<FileHeader> fh(*block, currPos);
-    new (fh.get()) FileHeader();
-    *fileHeader = *fh;
-    currPos += sizeof(FileHeader);
-
-    OffsetPtr<JournalFileHeader> jfh(*block, currPos);
-    new (jfh.get()) JournalFileHeader();  // Default values are ok
-    currPos += sizeof(JournalFileHeader);
-
-    // bmqt::MessageGUID              lastMessageGUID;
-    bsl::vector<bmqt::MessageGUID> expectedGUIDs;
-
-    ASSERT(numRecords == messageOffsets.size());
-    ASSERT(numRecords >= 3);
-
-    // Create messages
-    for (unsigned int i = 0; i < numRecords; ++i) {
-        *lastRecordPos = currPos;
-
-        bmqt::MessageGUID g;
-        mqbu::MessageGUIDUtil::generateGUID(&g);
-        expectedGUIDs.push_back(g);
-        OffsetPtr<MessageRecord> rec(*block, currPos);
-        new (rec.get()) MessageRecord();
-        rec->header().setPrimaryLeaseId(100).setSequenceNumber(i + 1);
-        rec->setRefCount(i % FileStoreProtocol::k_MAX_MSG_REF_COUNT_HARD)
-            .setQueueKey(
-                mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
-                                 "abcde"))
-            .setFileKey(
-                mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
-                                 "12345"))
-            .setMessageOffsetDwords(messageOffsets.at(i))
-            .setMessageGUID(g)
-            .setCrc32c(i)
-            .setCompressionAlgorithmType(
-                bmqt::CompressionAlgorithmType::e_NONE)
-            .setMagic(RecordHeader::k_MAGIC);
-
-        RecordBufferType buf;
-        bsl::memcpy(buf.buffer(),
-                    rec.get(),
-                    FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
-        records->push_back(bsl::make_pair(RecordType::e_MESSAGE, buf));
-
-        currPos += FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
-    }
-
-    // Create delete messages, and replace GUIDS for 2nd and 3rd message
-    for (unsigned int i = 0; i < numRecords; ++i) {
-        *lastRecordPos = currPos;
-
-        // DelRec
-        bmqt::MessageGUID g;
-        // Change GUIDs order for 2nd and 3rd deletion records
-        if (i == 1) {
-            g = expectedGUIDs.at(2);
-        }
-        else if (i == 2) {
-            g = expectedGUIDs.at(1);
-        }
-        else {
-            g = expectedGUIDs.at(i);
-        }
-
-        OffsetPtr<DeletionRecord> rec(*block, currPos);
-        new (rec.get()) DeletionRecord();
-        rec->header().setPrimaryLeaseId(100).setSequenceNumber(i + 1);
-        rec->setDeletionRecordFlag(DeletionRecordFlag::e_IMPLICIT_CONFIRM)
-            .setQueueKey(
-                mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
-                                 "abcde"))
-            .setMessageGUID(g)
-            .setMagic(RecordHeader::k_MAGIC);
-
-        RecordBufferType buf;
-        bsl::memcpy(buf.buffer(),
-                    rec.get(),
-                    FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
-        records->push_back(bsl::make_pair(RecordType::e_DELETION, buf));
-
-        currPos += FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
-    }
-
-    return expectedGUIDs;
 }
 
 struct DataMessage {
@@ -808,45 +749,23 @@ static void test1_breathingTest()
     mwctst::TestHelper::printTestName("BREATHING TEST");
 
     // Simulate journal file
-    unsigned int numRecords = 15;
-
-    bsls::Types::Uint64 totalSize =
-        sizeof(FileHeader) + sizeof(JournalFileHeader) +
-        numRecords * FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
-
-    char*       p = static_cast<char*>(s_allocator_p->allocate(totalSize));
-    MemoryBlock block(p, totalSize);
-    FileHeader  fileHeader;
-    bsls::Types::Uint64 lastRecordPos = 0;
-    bsls::Types::Uint64 lastSyncPtPos = 0;
-
+    size_t          numRecords = 15;
     RecordsListType records(s_allocator_p);
-
-    addJournalRecords(&block,
-                      &fileHeader,
-                      &lastRecordPos,
-                      &lastSyncPtPos,
-                      &records,
-                      numRecords);
+    JournalFile     journalFile(numRecords, s_allocator_p);
+    journalFile.addAllTypesRecords(&records);
 
     // Create JournalFileIterator
-    MappedFileDescriptor mfd;
-    mfd.setFd(-1);  // invalid fd will suffice.
-    mfd.setBlock(block);
-    mfd.setFileSize(totalSize);
-    JournalFileIterator it(&mfd, fileHeader, false);
+    JournalFileIterator it(&journalFile.mappedFileDescriptor(),
+                           journalFile.fileHeader(),
+                           false);
 
-    // char*       p =
-    // static_cast<char*>(s_allocator_p->allocate(memoryBufferSize(numRecords)));
-    // MemoryBlock block(p, memoryBufferSize(numRecords));
-    // RecordsListType records(s_allocator_p);
-    // JournalFileIterator it = createJournalFileIterator(numRecords, block,
-    // &records);
+    // Prepare parameters
     CommandLineArguments        arguments;
     bsl::unique_ptr<Parameters> params =
         bsl::make_unique<Parameters>(arguments, s_allocator_p);
     params->journalFile()->setIterator(&it);
 
+    // Run search
     auto searchProcessor = SearchProcessor(bsl::move(params), s_allocator_p);
 
     bsl::ostringstream resultStream(s_allocator_p);
@@ -861,10 +780,7 @@ static void test1_breathingTest()
         if (rtype == RecordType::e_MESSAGE) {
             const MessageRecord& msg = *reinterpret_cast<const MessageRecord*>(
                 recordIter->second.buffer());
-            char buf[bmqt::MessageGUID::e_SIZE_HEX];
-            msg.messageGUID().toHex(buf);
-            expectedStream.write(buf, bmqt::MessageGUID::e_SIZE_HEX);
-            expectedStream << bsl::endl;
+            outputGuidString(expectedStream, msg.messageGUID());
             foundMessagesCount++;
         }
     }
@@ -872,14 +788,6 @@ static void test1_breathingTest()
                    << bsl::endl;
 
     ASSERT_EQ(resultStream.str(), expectedStream.str());
-
-    s_allocator_p->deallocate(p);
-
-    // bsl::string
-    // journalFile("/home/aivanov71/projects/pr/blazingmq/build/blazingmq/src/applications/bmqbrkr/localBMQ/storage/local/bmq_0.20231121_091839.bmq_journal",
-    // s_allocator_p); auto sp = SearchProcessor(journalFile, s_allocator_p);
-    // sp.process(bsl::cout);
-    // ASSERT(sp.getJournalFileIter().isValid());
 }
 
 static void test2_searchGuidTest()
@@ -896,33 +804,15 @@ static void test2_searchGuidTest()
     mwctst::TestHelper::printTestName("SEARCH GUID");
 
     // Simulate journal file
-    unsigned int numRecords = 15;
-
-    bsls::Types::Uint64 totalSize =
-        sizeof(FileHeader) + sizeof(JournalFileHeader) +
-        numRecords * FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
-
-    char*       p = static_cast<char*>(s_allocator_p->allocate(totalSize));
-    MemoryBlock block(p, totalSize);
-    FileHeader  fileHeader;
-    bsls::Types::Uint64 lastRecordPos = 0;
-    bsls::Types::Uint64 lastSyncPtPos = 0;
-
+    size_t          numRecords = 15;
     RecordsListType records(s_allocator_p);
-
-    addJournalRecords(&block,
-                      &fileHeader,
-                      &lastRecordPos,
-                      &lastSyncPtPos,
-                      &records,
-                      numRecords);
+    JournalFile     journalFile(numRecords, s_allocator_p);
+    journalFile.addAllTypesRecords(&records);
 
     // Create JournalFileIterator
-    MappedFileDescriptor mfd;
-    mfd.setFd(-1);  // invalid fd will suffice.
-    mfd.setBlock(block);
-    mfd.setFileSize(totalSize);
-    JournalFileIterator it(&mfd, fileHeader, false);
+    JournalFileIterator it(&journalFile.mappedFileDescriptor(),
+                           journalFile.fileHeader(),
+                           false);
 
     // Get list of message GUIDs for searching
     CommandLineArguments      arguments;
@@ -937,10 +827,9 @@ static void test2_searchGuidTest()
                 continue;  // Skip odd messages for test purposes
             const MessageRecord& msg = *reinterpret_cast<const MessageRecord*>(
                 recordIter->second.buffer());
-            char buf[bmqt::MessageGUID::e_SIZE_HEX];
-            msg.messageGUID().toHex(buf);
-            bsl::string guid(buf, s_allocator_p);
-            arguments.d_guid.push_back(guid);
+            bsl::ostringstream ss(s_allocator_p);
+            ss << msg.messageGUID();
+            arguments.d_guid.push_back(ss.str());
         }
     }
     bsl::unique_ptr<Parameters> params =
@@ -961,8 +850,6 @@ static void test2_searchGuidTest()
                    << bsl::endl;
 
     ASSERT_EQ(resultStream.str(), expectedStream.str());
-
-    s_allocator_p->deallocate(p);
 }
 
 static void test3_searchNonExistingGuidTest()
@@ -979,53 +866,32 @@ static void test3_searchNonExistingGuidTest()
     mwctst::TestHelper::printTestName("SEARCH NON EXISTING GUID");
 
     // Simulate journal file
-    unsigned int numRecords = 15;
-
-    bsls::Types::Uint64 totalSize =
-        sizeof(FileHeader) + sizeof(JournalFileHeader) +
-        numRecords * FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
-
-    char*       p = static_cast<char*>(s_allocator_p->allocate(totalSize));
-    MemoryBlock block(p, totalSize);
-    FileHeader  fileHeader;
-    bsls::Types::Uint64 lastRecordPos = 0;
-    bsls::Types::Uint64 lastSyncPtPos = 0;
-
+    size_t          numRecords = 15;
     RecordsListType records(s_allocator_p);
-
-    addJournalRecords(&block,
-                      &fileHeader,
-                      &lastRecordPos,
-                      &lastSyncPtPos,
-                      &records,
-                      numRecords);
+    JournalFile     journalFile(numRecords, s_allocator_p);
+    journalFile.addAllTypesRecords(&records);
 
     // Create JournalFileIterator
-    MappedFileDescriptor mfd;
-    mfd.setFd(-1);  // invalid fd will suffice.
-    mfd.setBlock(block);
-    mfd.setFileSize(totalSize);
-    JournalFileIterator it(&mfd, fileHeader, false);
+    JournalFileIterator it(&journalFile.mappedFileDescriptor(),
+                           journalFile.fileHeader(),
+                           false);
 
     // Get list of message GUIDs for searching
     CommandLineArguments      arguments;
     bsl::vector<bsl::string>& searchGuids = arguments.d_guid;
-
-    bmqt::MessageGUID guid;
-    mqbu::MessageGUIDUtil::generateGUID(&guid);
-    char buf[bmqt::MessageGUID::e_SIZE_HEX];
-    guid.toHex(buf);
-    bsl::string guidStr(buf, s_allocator_p);
-    searchGuids.push_back(guidStr);
-    mqbu::MessageGUIDUtil::generateGUID(&guid);
-    guid.toHex(buf);
-    guidStr = buf;
-    searchGuids.push_back(guidStr);
+    bmqt::MessageGUID         guid;
+    for (int i = 0; i < 2; ++i) {
+        mqbu::MessageGUIDUtil::generateGUID(&guid);
+        bsl::ostringstream ss(s_allocator_p);
+        ss << guid;
+        searchGuids.push_back(ss.str());
+    }
 
     bsl::unique_ptr<Parameters> params =
         bsl::make_unique<Parameters>(arguments, s_allocator_p);
     params->journalFile()->setIterator(&it);
 
+    // Run search
     auto searchProcessor = SearchProcessor(bsl::move(params), s_allocator_p);
 
     bsl::ostringstream resultStream(s_allocator_p);
@@ -1037,14 +903,10 @@ static void test3_searchNonExistingGuidTest()
 
     expectedStream << bsl::endl
                    << "The following 2 GUID(s) not found:" << bsl::endl;
-    //  TODO: fix sporadic fail due to order
     expectedStream << searchGuids[1] << bsl::endl
                    << searchGuids[0] << bsl::endl;
-    ;
 
     ASSERT_EQ(resultStream.str(), expectedStream.str());
-
-    s_allocator_p->deallocate(p);
 }
 
 static void test4_searchExistingAndNonExistingGuidTest()
@@ -1062,33 +924,15 @@ static void test4_searchExistingAndNonExistingGuidTest()
     mwctst::TestHelper::printTestName("SEARCH EXISTING AND NON EXISTING GUID");
 
     // Simulate journal file
-    unsigned int numRecords = 15;
-
-    bsls::Types::Uint64 totalSize =
-        sizeof(FileHeader) + sizeof(JournalFileHeader) +
-        numRecords * FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
-
-    char*       p = static_cast<char*>(s_allocator_p->allocate(totalSize));
-    MemoryBlock block(p, totalSize);
-    FileHeader  fileHeader;
-    bsls::Types::Uint64 lastRecordPos = 0;
-    bsls::Types::Uint64 lastSyncPtPos = 0;
-
+    size_t          numRecords = 15;
     RecordsListType records(s_allocator_p);
-
-    addJournalRecords(&block,
-                      &fileHeader,
-                      &lastRecordPos,
-                      &lastSyncPtPos,
-                      &records,
-                      numRecords);
+    JournalFile     journalFile(numRecords, s_allocator_p);
+    journalFile.addAllTypesRecords(&records);
 
     // Create JournalFileIterator
-    MappedFileDescriptor mfd;
-    mfd.setFd(-1);  // invalid fd will suffice.
-    mfd.setBlock(block);
-    mfd.setFileSize(totalSize);
-    JournalFileIterator it(&mfd, fileHeader, false);
+    JournalFileIterator it(&journalFile.mappedFileDescriptor(),
+                           journalFile.fileHeader(),
+                           false);
 
     // Get list of message GUIDs for searching
     CommandLineArguments      arguments;
@@ -1096,7 +940,7 @@ static void test4_searchExistingAndNonExistingGuidTest()
 
     // Get two existing message GUIDs
     bsl::list<NodeType>::const_iterator recordIter = records.begin();
-    bsl::size_t                         msgCnt     = 0;
+    size_t                              msgCnt     = 0;
     while (recordIter++ != records.end()) {
         RecordType::Enum rtype = recordIter->first;
         if (rtype == RecordType::e_MESSAGE) {
@@ -1104,29 +948,26 @@ static void test4_searchExistingAndNonExistingGuidTest()
                 break;  // Take two GUIDs
             const MessageRecord& msg = *reinterpret_cast<const MessageRecord*>(
                 recordIter->second.buffer());
-            char buf[bmqt::MessageGUID::e_SIZE_HEX];
-            msg.messageGUID().toHex(buf);
-            bsl::string guid(buf, s_allocator_p);
-            searchGuids.push_back(guid);
+            bsl::ostringstream ss(s_allocator_p);
+            ss << msg.messageGUID();
+            searchGuids.push_back(ss.str());
         }
     }
 
     // Get two non existing message GUIDs
     bmqt::MessageGUID guid;
-    mqbu::MessageGUIDUtil::generateGUID(&guid);
-    char buf[bmqt::MessageGUID::e_SIZE_HEX];
-    guid.toHex(buf);
-    bsl::string guidStr(buf, s_allocator_p);
-    searchGuids.push_back(guidStr);
-    mqbu::MessageGUIDUtil::generateGUID(&guid);
-    guid.toHex(buf);
-    guidStr = buf;
-    searchGuids.push_back(guidStr);
+    for (int i = 0; i < 2; ++i) {
+        mqbu::MessageGUIDUtil::generateGUID(&guid);
+        bsl::ostringstream ss(s_allocator_p);
+        ss << guid;
+        searchGuids.push_back(ss.str());
+    }
 
     bsl::unique_ptr<Parameters> params =
         bsl::make_unique<Parameters>(arguments, s_allocator_p);
     params->journalFile()->setIterator(&it);
 
+    // Run search
     auto searchProcessor = SearchProcessor(bsl::move(params), s_allocator_p);
 
     bsl::ostringstream resultStream(s_allocator_p);
@@ -1144,8 +985,6 @@ static void test4_searchExistingAndNonExistingGuidTest()
                    << searchGuids[3] << bsl::endl;
 
     ASSERT_EQ(resultStream.str(), expectedStream.str());
-
-    s_allocator_p->deallocate(p);
 }
 
 static void test5_searchOutstandingMessagesTest()
@@ -1162,35 +1001,17 @@ static void test5_searchOutstandingMessagesTest()
     mwctst::TestHelper::printTestName("SEARCH OUTSTANDING MESSAGES TEST");
 
     // Simulate journal file
-    unsigned int numRecords = 15;
-
-    bsls::Types::Uint64 totalSize =
-        sizeof(FileHeader) + sizeof(JournalFileHeader) +
-        numRecords * FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
-
-    char*       p = static_cast<char*>(s_allocator_p->allocate(totalSize));
-    MemoryBlock block(p, totalSize);
-    FileHeader  fileHeader;
-    bsls::Types::Uint64 lastRecordPos = 0;
-    bsls::Types::Uint64 lastSyncPtPos = 0;
-
-    RecordsListType records(s_allocator_p);
-
+    size_t                         numRecords = 15;
+    RecordsListType                records(s_allocator_p);
+    JournalFile                    journalFile(numRecords, s_allocator_p);
     bsl::vector<bmqt::MessageGUID> outstandingGUIDS =
-        addJournalRecordsWithOutstandingAndConfirmedMessages(&block,
-                                                             &fileHeader,
-                                                             &lastRecordPos,
-                                                             &lastSyncPtPos,
-                                                             &records,
-                                                             numRecords,
-                                                             true);
-
+        journalFile.addJournalRecordsWithOutstandingAndConfirmedMessages(
+            &records,
+            true);
     // Create JournalFileIterator
-    MappedFileDescriptor mfd;
-    mfd.setFd(-1);  // invalid fd will suffice.
-    mfd.setBlock(block);
-    mfd.setFileSize(totalSize);
-    JournalFileIterator it(&mfd, fileHeader, false);
+    JournalFileIterator it(&journalFile.mappedFileDescriptor(),
+                           journalFile.fileHeader(),
+                           false);
 
     // Configure parameters to search outstanding messages
     CommandLineArguments arguments;
@@ -1199,6 +1020,7 @@ static void test5_searchOutstandingMessagesTest()
         bsl::make_unique<Parameters>(arguments, s_allocator_p);
     params->journalFile()->setIterator(&it);
 
+    // Run search
     auto searchProcessor = SearchProcessor(bsl::move(params), s_allocator_p);
 
     bsl::ostringstream resultStream(s_allocator_p);
@@ -1219,8 +1041,6 @@ static void test5_searchOutstandingMessagesTest()
                    << bsl::endl;
 
     ASSERT_EQ(resultStream.str(), expectedStream.str());
-
-    s_allocator_p->deallocate(p);
 }
 
 static void test6_searchConfirmedMessagesTest()
@@ -1237,35 +1057,17 @@ static void test6_searchConfirmedMessagesTest()
     mwctst::TestHelper::printTestName("SEARCH CONFIRMED MESSAGES TEST");
 
     // Simulate journal file
-    unsigned int numRecords = 15;
-
-    bsls::Types::Uint64 totalSize =
-        sizeof(FileHeader) + sizeof(JournalFileHeader) +
-        numRecords * FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
-
-    char*       p = static_cast<char*>(s_allocator_p->allocate(totalSize));
-    MemoryBlock block(p, totalSize);
-    FileHeader  fileHeader;
-    bsls::Types::Uint64 lastRecordPos = 0;
-    bsls::Types::Uint64 lastSyncPtPos = 0;
-
-    RecordsListType records(s_allocator_p);
-
+    size_t                         numRecords = 15;
+    RecordsListType                records(s_allocator_p);
+    JournalFile                    journalFile(numRecords, s_allocator_p);
     bsl::vector<bmqt::MessageGUID> confirmedGUIDS =
-        addJournalRecordsWithOutstandingAndConfirmedMessages(&block,
-                                                             &fileHeader,
-                                                             &lastRecordPos,
-                                                             &lastSyncPtPos,
-                                                             &records,
-                                                             numRecords,
-                                                             false);
-
+        journalFile.addJournalRecordsWithOutstandingAndConfirmedMessages(
+            &records,
+            false);
     // Create JournalFileIterator
-    MappedFileDescriptor mfd;
-    mfd.setFd(-1);  // invalid fd will suffice.
-    mfd.setBlock(block);
-    mfd.setFileSize(totalSize);
-    JournalFileIterator it(&mfd, fileHeader, false);
+    JournalFileIterator it(&journalFile.mappedFileDescriptor(),
+                           journalFile.fileHeader(),
+                           false);
 
     // Configure parameters to search confirmed messages
     CommandLineArguments arguments;
@@ -1274,6 +1076,7 @@ static void test6_searchConfirmedMessagesTest()
         bsl::make_unique<Parameters>(arguments, s_allocator_p);
     params->journalFile()->setIterator(&it);
 
+    // Run search
     auto searchProcessor = SearchProcessor(bsl::move(params), s_allocator_p);
 
     bsl::ostringstream resultStream(s_allocator_p);
@@ -1294,8 +1097,6 @@ static void test6_searchConfirmedMessagesTest()
                    << messageCount << ")" << bsl::endl;
 
     ASSERT_EQ(resultStream.str(), expectedStream.str());
-
-    s_allocator_p->deallocate(p);
 }
 
 static void test7_searchPartiallyConfirmedMessagesTest()
@@ -1314,34 +1115,15 @@ static void test7_searchPartiallyConfirmedMessagesTest()
         "SEARCH PARTIALLY CONFIRMED MESSAGES TEST");
 
     // Simulate journal file
-    unsigned int numRecords = 15;
-
-    bsls::Types::Uint64 totalSize =
-        sizeof(FileHeader) + sizeof(JournalFileHeader) +
-        numRecords * FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
-
-    char*       p = static_cast<char*>(s_allocator_p->allocate(totalSize));
-    MemoryBlock block(p, totalSize);
-    FileHeader  fileHeader;
-    bsls::Types::Uint64 lastRecordPos = 0;
-    bsls::Types::Uint64 lastSyncPtPos = 0;
-
-    RecordsListType records(s_allocator_p);
-
+    size_t                         numRecords = 15;
+    RecordsListType                records(s_allocator_p);
+    JournalFile                    journalFile(numRecords, s_allocator_p);
     bsl::vector<bmqt::MessageGUID> partiallyConfirmedGUIDS =
-        addJournalRecordsWithPartiallyConfirmedMessages(&block,
-                                                        &fileHeader,
-                                                        &lastRecordPos,
-                                                        &lastSyncPtPos,
-                                                        &records,
-                                                        numRecords);
-
+        journalFile.addJournalRecordsWithPartiallyConfirmedMessages(&records);
     // Create JournalFileIterator
-    MappedFileDescriptor mfd;
-    mfd.setFd(-1);  // invalid fd will suffice.
-    mfd.setBlock(block);
-    mfd.setFileSize(totalSize);
-    JournalFileIterator it(&mfd, fileHeader, false);
+    JournalFileIterator it(&journalFile.mappedFileDescriptor(),
+                           journalFile.fileHeader(),
+                           false);
 
     // Configure parameters to search outstanding messages
     CommandLineArguments arguments;
@@ -1350,6 +1132,7 @@ static void test7_searchPartiallyConfirmedMessagesTest()
         bsl::make_unique<Parameters>(arguments, s_allocator_p);
     params->journalFile()->setIterator(&it);
 
+    // Run search
     auto searchProcessor = SearchProcessor(bsl::move(params), s_allocator_p);
 
     bsl::ostringstream resultStream(s_allocator_p);
@@ -1369,10 +1152,7 @@ static void test7_searchPartiallyConfirmedMessagesTest()
                    << partiallyConfirmedGUIDS.size() << "/" << messageCount
                    << ")" << bsl::endl;
 
-    // TODO: fix ordering issue (sporadic fail)
     ASSERT_EQ(resultStream.str(), expectedStream.str());
-
-    s_allocator_p->deallocate(p);
 }
 
 static void test8_searchMessagesByQueueKeyTest()
@@ -1390,39 +1170,19 @@ static void test8_searchMessagesByQueueKeyTest()
     mwctst::TestHelper::printTestName("SEARCH MESSAGES BY QUEUE KEY TEST");
 
     // Simulate journal file
-    unsigned int numRecords = 15;
-
-    bsls::Types::Uint64 totalSize =
-        sizeof(FileHeader) + sizeof(JournalFileHeader) +
-        numRecords * FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
-
-    char*       p = static_cast<char*>(s_allocator_p->allocate(totalSize));
-    MemoryBlock block(p, totalSize);
-    FileHeader  fileHeader;
-    bsls::Types::Uint64 lastRecordPos = 0;
-    bsls::Types::Uint64 lastSyncPtPos = 0;
-
-    RecordsListType records(s_allocator_p);
-
-    const char* queueKey1 = "ABCDE12345";
-    const char* queueKey2 = "12345ABCDE";
-
+    size_t                         numRecords = 15;
+    RecordsListType                records(s_allocator_p);
+    JournalFile                    journalFile(numRecords, s_allocator_p);
+    const char*                    queueKey1 = "ABCDE12345";
+    const char*                    queueKey2 = "12345ABCDE";
     bsl::vector<bmqt::MessageGUID> queueKey1GUIDS =
-        addJournalRecordsWithTwoQueueKeys(&block,
-                                          &fileHeader,
-                                          &lastRecordPos,
-                                          &lastSyncPtPos,
-                                          &records,
-                                          numRecords,
-                                          queueKey1,
-                                          queueKey2);
-
+        journalFile.addJournalRecordsWithTwoQueueKeys(&records,
+                                                      queueKey1,
+                                                      queueKey2);
     // Create JournalFileIterator
-    MappedFileDescriptor mfd;
-    mfd.setFd(-1);  // invalid fd will suffice.
-    mfd.setBlock(block);
-    mfd.setFileSize(totalSize);
-    JournalFileIterator it(&mfd, fileHeader, false);
+    JournalFileIterator it(&journalFile.mappedFileDescriptor(),
+                           journalFile.fileHeader(),
+                           false);
 
     // Configure parameters to search messages by queueKey1
     CommandLineArguments arguments;
@@ -1431,6 +1191,7 @@ static void test8_searchMessagesByQueueKeyTest()
         bsl::make_unique<Parameters>(arguments, s_allocator_p);
     params->journalFile()->setIterator(&it);
 
+    // Run search
     auto searchProcessor = SearchProcessor(bsl::move(params), s_allocator_p);
 
     bsl::ostringstream resultStream(s_allocator_p);
@@ -1445,10 +1206,7 @@ static void test8_searchMessagesByQueueKeyTest()
     expectedStream << foundMessagesCount << " message GUID(s) found."
                    << bsl::endl;
 
-    // TODO: fix ordering issue (sporadic fail)
     ASSERT_EQ(resultStream.str(), expectedStream.str());
-
-    s_allocator_p->deallocate(p);
 }
 
 static void test9_searchMessagesByQueueNameTest()
@@ -1466,39 +1224,19 @@ static void test9_searchMessagesByQueueNameTest()
     mwctst::TestHelper::printTestName("SEARCH MESSAGES BY QUEUE NAME TEST");
 
     // Simulate journal file
-    unsigned int numRecords = 15;
-
-    bsls::Types::Uint64 totalSize =
-        sizeof(FileHeader) + sizeof(JournalFileHeader) +
-        numRecords * FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
-
-    char*       p = static_cast<char*>(s_allocator_p->allocate(totalSize));
-    MemoryBlock block(p, totalSize);
-    FileHeader  fileHeader;
-    bsls::Types::Uint64 lastRecordPos = 0;
-    bsls::Types::Uint64 lastSyncPtPos = 0;
-
-    RecordsListType records(s_allocator_p);
-
-    const char* queueKey1 = "ABCDE12345";
-    const char* queueKey2 = "12345ABCDE";
-
+    size_t                         numRecords = 15;
+    RecordsListType                records(s_allocator_p);
+    JournalFile                    journalFile(numRecords, s_allocator_p);
+    const char*                    queueKey1 = "ABCDE12345";
+    const char*                    queueKey2 = "12345ABCDE";
     bsl::vector<bmqt::MessageGUID> queueKey1GUIDS =
-        addJournalRecordsWithTwoQueueKeys(&block,
-                                          &fileHeader,
-                                          &lastRecordPos,
-                                          &lastSyncPtPos,
-                                          &records,
-                                          numRecords,
-                                          queueKey1,
-                                          queueKey2);
-
+        journalFile.addJournalRecordsWithTwoQueueKeys(&records,
+                                                      queueKey1,
+                                                      queueKey2);
     // Create JournalFileIterator
-    MappedFileDescriptor mfd;
-    mfd.setFd(-1);  // invalid fd will suffice.
-    mfd.setBlock(block);
-    mfd.setFileSize(totalSize);
-    JournalFileIterator it(&mfd, fileHeader, false);
+    JournalFileIterator it(&journalFile.mappedFileDescriptor(),
+                           journalFile.fileHeader(),
+                           false);
 
     // Configure parameters to search messages by 'queue1' and 'unknown' names
     CommandLineArguments arguments;
@@ -1517,6 +1255,7 @@ static void test9_searchMessagesByQueueNameTest()
     }
     params->queueMap().insert(queueInfo);
 
+    // Run search
     auto searchProcessor = SearchProcessor(bsl::move(params), s_allocator_p);
 
     bsl::ostringstream resultStream(s_allocator_p);
@@ -1538,8 +1277,6 @@ static void test9_searchMessagesByQueueNameTest()
 
     // TODO: fix ordering issue (sporadic fail)
     ASSERT_EQ(resultStream.str(), expectedStream.str());
-
-    s_allocator_p->deallocate(p);
 }
 
 static void test10_searchMessagesByTimestamp()
@@ -1556,33 +1293,15 @@ static void test10_searchMessagesByTimestamp()
     mwctst::TestHelper::printTestName("SEARCH MESSAGES BY TIMESTAMP TEST");
 
     // Simulate journal file
-    unsigned int numRecords = 50;
-
-    bsls::Types::Uint64 totalSize =
-        sizeof(FileHeader) + sizeof(JournalFileHeader) +
-        numRecords * FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
-
-    char*       p = static_cast<char*>(s_allocator_p->allocate(totalSize));
-    MemoryBlock block(p, totalSize);
-    FileHeader  fileHeader;
-    bsls::Types::Uint64 lastRecordPos = 0;
-    bsls::Types::Uint64 lastSyncPtPos = 0;
-
+    size_t          numRecords = 15;
     RecordsListType records(s_allocator_p);
-
-    addJournalRecords(&block,
-                      &fileHeader,
-                      &lastRecordPos,
-                      &lastSyncPtPos,
-                      &records,
-                      numRecords);
+    JournalFile     journalFile(numRecords, s_allocator_p);
+    journalFile.addAllTypesRecords(&records);
 
     // Create JournalFileIterator
-    MappedFileDescriptor mfd;
-    mfd.setFd(-1);  // invalid fd will suffice.
-    mfd.setBlock(block);
-    mfd.setFileSize(totalSize);
-    JournalFileIterator it(&mfd, fileHeader, false);
+    JournalFileIterator it(&journalFile.mappedFileDescriptor(),
+                           journalFile.fileHeader(),
+                           false);
 
     // Configure parameters to search messages by timestamps
     CommandLineArguments arguments;
@@ -1605,25 +1324,20 @@ static void test10_searchMessagesByTimestamp()
                 recordIter->second.buffer());
             const bsls::Types::Uint64& ts = msg.header().timestamp();
             if (ts > arguments.d_timestampGt && ts < arguments.d_timestampLt) {
-                char buf[bmqt::MessageGUID::e_SIZE_HEX];
-                msg.messageGUID().toHex(buf);
-                bsl::string guid(buf, s_allocator_p);
-                expectedStream.write(buf, bmqt::MessageGUID::e_SIZE_HEX);
-                expectedStream << bsl::endl;
+                outputGuidString(expectedStream, msg.messageGUID());
                 msgCnt++;
             }
         }
     }
     expectedStream << msgCnt << " message GUID(s) found." << bsl::endl;
 
+    // Run search
     auto searchProcessor = SearchProcessor(bsl::move(params), s_allocator_p);
 
     bsl::ostringstream resultStream(s_allocator_p);
     searchProcessor.process(resultStream);
 
     ASSERT_EQ(resultStream.str(), expectedStream.str());
-
-    s_allocator_p->deallocate(p);
 }
 
 static void test11_printMessagesDetailsTest()
@@ -1637,38 +1351,20 @@ static void test11_printMessagesDetailsTest()
 //   SearchProcessor::process()
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("SEARCH CONFIRMED MESSAGES TEST");
+    mwctst::TestHelper::printTestName("PRINT MESSAGE DETAILS TEST");
 
     // Simulate journal file
-    unsigned int numRecords = 15;
-
-    bsls::Types::Uint64 totalSize =
-        sizeof(FileHeader) + sizeof(JournalFileHeader) +
-        numRecords * FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
-
-    char*       p = static_cast<char*>(s_allocator_p->allocate(totalSize));
-    MemoryBlock block(p, totalSize);
-    FileHeader  fileHeader;
-    bsls::Types::Uint64 lastRecordPos = 0;
-    bsls::Types::Uint64 lastSyncPtPos = 0;
-
-    RecordsListType records(s_allocator_p);
-
+    size_t                         numRecords = 15;
+    RecordsListType                records(s_allocator_p);
+    JournalFile                    journalFile(numRecords, s_allocator_p);
     bsl::vector<bmqt::MessageGUID> confirmedGUIDS =
-        addJournalRecordsWithOutstandingAndConfirmedMessages(&block,
-                                                             &fileHeader,
-                                                             &lastRecordPos,
-                                                             &lastSyncPtPos,
-                                                             &records,
-                                                             numRecords,
-                                                             false);
-
+        journalFile.addJournalRecordsWithOutstandingAndConfirmedMessages(
+            &records,
+            false);
     // Create JournalFileIterator
-    MappedFileDescriptor mfd;
-    mfd.setFd(-1);  // invalid fd will suffice.
-    mfd.setBlock(block);
-    mfd.setFileSize(totalSize);
-    JournalFileIterator it(&mfd, fileHeader, false);
+    JournalFileIterator it(&journalFile.mappedFileDescriptor(),
+                           journalFile.fileHeader(),
+                           false);
 
     // Configure parameters to print message details
     CommandLineArguments arguments;
@@ -1697,8 +1393,6 @@ static void test11_printMessagesDetailsTest()
     //                << bsl::endl;
 
     // ASSERT_EQ(resultStream.str(), expectedStream.str());
-
-    s_allocator_p->deallocate(p);
 }
 
 static void test12_searchMessagesWithPayloadDumpTest()
@@ -1762,36 +1456,19 @@ static void test12_searchMessagesWithPayloadDumpTest()
 
     // Simulate journal file
     unsigned int numRecords =
-        k_NUM_MSGS * 2;  // k_NUM_MSGS messages + k_NUM_MSGS deletion messages
+        k_NUM_MSGS * 2;  // k_NUM_MSGS records + k_NUM_MSGS deletion records
 
-    bsls::Types::Uint64 totalSize =
-        sizeof(FileHeader) + sizeof(JournalFileHeader) +
-        numRecords * FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
-
-    char*       p = static_cast<char*>(s_allocator_p->allocate(totalSize));
-    MemoryBlock block(p, totalSize);
-    // FileHeader  fileHeader;
-    bsls::Types::Uint64 lastRecordPos = 0;
-    bsls::Types::Uint64 lastSyncPtPos = 0;
-
-    RecordsListType records(s_allocator_p);
-
+    RecordsListType                records(s_allocator_p);
+    JournalFile                    journalFile(numRecords, s_allocator_p);
     bsl::vector<bmqt::MessageGUID> confirmedGUIDS =
-        addJournalRecordsWithConfirmedMessagesWithDifferentOrder(
-            &block,
-            &fileHeader,
-            &lastRecordPos,
-            &lastSyncPtPos,
+        journalFile.addJournalRecordsWithConfirmedMessagesWithDifferentOrder(
             &records,
             k_NUM_MSGS,
             messageOffsets);
-
     // Create JournalFileIterator
-    MappedFileDescriptor mfd;
-    mfd.setFd(-1);  // invalid fd will suffice.
-    mfd.setBlock(block);
-    mfd.setFileSize(totalSize);
-    JournalFileIterator it(&mfd, fileHeader, false);
+    JournalFileIterator it(&journalFile.mappedFileDescriptor(),
+                           journalFile.fileHeader(),
+                           false);
 
     // Configure parameters to search confirmed messages GUIDs with dumping
     // messages payload.
@@ -1844,7 +1521,6 @@ static void test12_searchMessagesWithPayloadDumpTest()
         startIdx = foundIdx + dumpStr.length();
     }
 
-    s_allocator_p->deallocate(p);
     s_allocator_p->deallocate(pd);
 }
 
@@ -1862,34 +1538,15 @@ static void test13_summaryTest()
     mwctst::TestHelper::printTestName("OUTPUT SUMMARY TEST");
 
     // Simulate journal file
-    unsigned int numRecords = 15;
-
-    bsls::Types::Uint64 totalSize =
-        sizeof(FileHeader) + sizeof(JournalFileHeader) +
-        numRecords * FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
-
-    char*       p = static_cast<char*>(s_allocator_p->allocate(totalSize));
-    MemoryBlock block(p, totalSize);
-    FileHeader  fileHeader;
-    bsls::Types::Uint64 lastRecordPos = 0;
-    bsls::Types::Uint64 lastSyncPtPos = 0;
-
-    RecordsListType records(s_allocator_p);
-
+    size_t                         numRecords = 15;
+    RecordsListType                records(s_allocator_p);
+    JournalFile                    journalFile(numRecords, s_allocator_p);
     bsl::vector<bmqt::MessageGUID> partiallyConfirmedGUIDS =
-        addJournalRecordsWithPartiallyConfirmedMessages(&block,
-                                                        &fileHeader,
-                                                        &lastRecordPos,
-                                                        &lastSyncPtPos,
-                                                        &records,
-                                                        numRecords);
-
+        journalFile.addJournalRecordsWithPartiallyConfirmedMessages(&records);
     // Create JournalFileIterator
-    MappedFileDescriptor mfd;
-    mfd.setFd(-1);  // invalid fd will suffice.
-    mfd.setBlock(block);
-    mfd.setFileSize(totalSize);
-    JournalFileIterator it(&mfd, fileHeader, false);
+    JournalFileIterator it(&journalFile.mappedFileDescriptor(),
+                           journalFile.fileHeader(),
+                           false);
 
     // Configure parameters to output summary
     CommandLineArguments arguments;
@@ -1911,8 +1568,6 @@ static void test13_summaryTest()
            "Number of outstanding messages: 2\nOutstanding ratio: 40% (2/5)\n";
 
     ASSERT_EQ(resultStream.str(), expectedStream.str());
-
-    s_allocator_p->deallocate(p);
 }
 
 // ============================================================================
