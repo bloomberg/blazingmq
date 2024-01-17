@@ -1377,22 +1377,41 @@ static void test11_printMessagesDetailsTest()
 
     bsl::ostringstream resultStream(s_allocator_p);
     searchProcessor.process(resultStream);
-    bsl::cout << resultStream.str();
 
-    // Prepare expected output
-    // bsl::ostringstream expectedStream(s_allocator_p);
-    // for (const auto& guid : confirmedGUIDS) {
-    //     outputGuidString(expectedStream, guid);
-    // }
-    // expectedStream << confirmedGUIDS.size() << " message GUID(s) found."
-    //                << bsl::endl;
-    // float messageCount     = numRecords / 3.0;
-    // float outstandingRatio = float(confirmedGUIDS.size()) / messageCount *
-    //                          100.0;
-    // expectedStream << "Outstanding ratio: " << outstandingRatio << "%"
-    //                << bsl::endl;
+    // Check that substrings are present in resultStream in correct order
+    auto        resultString         = resultStream.str();
+    size_t      startIdx             = 0;
+    const char* messageRecordCaption = "MESSAGE Record";
+    const char* confirmRecordCaption = "CONFIRM Record";
+    const char* deleteRecordCaption  = "DELETE Record";
+    for (int i = 0; i < confirmedGUIDS.size(); i++) {
+        // Check Message type
+        size_t foundIdx = resultString.find(messageRecordCaption, startIdx);
+        ASSERT_D(messageRecordCaption, (foundIdx != bsl::string::npos));
+        ASSERT_D(messageRecordCaption, (foundIdx >= startIdx));
+        startIdx = foundIdx + bsl::strlen(messageRecordCaption);
 
-    // ASSERT_EQ(resultStream.str(), expectedStream.str());
+        // Check GUID
+        bsl::ostringstream ss;
+        outputGuidString(ss, confirmedGUIDS.at(i));
+        bsl::string guidStr = ss.str();
+        foundIdx            = resultString.find(guidStr, startIdx);
+        ASSERT_D(guidStr, (foundIdx != bsl::string::npos));
+        ASSERT_D(guidStr, (foundIdx >= startIdx));
+        startIdx = foundIdx + guidStr.length();
+
+        // Check Confirm type
+        foundIdx = resultString.find(confirmRecordCaption, startIdx);
+        ASSERT_D(confirmRecordCaption, (foundIdx != bsl::string::npos));
+        ASSERT_D(confirmRecordCaption, (foundIdx >= startIdx));
+        startIdx = foundIdx + bsl::strlen(messageRecordCaption);
+
+        // Check Delete type
+        foundIdx = resultString.find(deleteRecordCaption, startIdx);
+        ASSERT_D(deleteRecordCaption, (foundIdx != bsl::string::npos));
+        ASSERT_D(deleteRecordCaption, (foundIdx >= startIdx));
+        startIdx = foundIdx + bsl::strlen(messageRecordCaption);
+    }
 }
 
 static void test12_searchMessagesWithPayloadDumpTest()
