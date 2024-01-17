@@ -103,7 +103,7 @@ parseArgs(CommandLineArguments& arguments, int argc, const char* argv[])
          balcl::OccurrenceInfo::e_OPTIONAL},
         {"dump-limit",
          "dump limit",
-         "limit of payload output (1024 by default)",
+         "limit of payload output",
          balcl::TypeInfo(&arguments.d_dumpLimit),
          balcl::OccurrenceInfo(1024)},
         {"summary",
