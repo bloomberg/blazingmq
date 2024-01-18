@@ -56,7 +56,8 @@ build_ntf() {
 build_googletest() {
     pushd srcs/googletest
     mkdir -p build
-    cmake -B build
+    PKG_CONFIG_PATH="/opt/bb/lib64/pkgconfig:$(pkg-config --variable pc_path pkg-config)" \
+    cmake -DCMAKE_INSTALL_PREFIX=/opt/bb -DCMAKE_INSTALL_LIBDIR=lib64 -B build
     cmake --build build --parallel 16
     cmake --install build --prefix /opt/bb
     popd

@@ -134,7 +134,7 @@ fi
 if [ ! -e "${DIR_BUILD}/googletest/.complete" ]; then
     # Build and install googletest
     pushd "${DIR_THIRDPARTY}/googletest"
-    cmake -DCMAKE_INSTALL_PREFIX="${DIR_INSTALL}" -B "${DIR_BUILD}/googletest"
+    cmake -DCMAKE_INSTALL_PREFIX="${DIR_INSTALL}" -DCMAKE_INSTALL_LIBDIR=lib64 -B "${DIR_BUILD}/googletest"
     cmake --build "${DIR_BUILD}/googletest" --parallel 16
     cmake --install "${DIR_BUILD}/googletest" --prefix "${DIR_INSTALL}"
     popd
