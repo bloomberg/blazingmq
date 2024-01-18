@@ -19,6 +19,7 @@ sudo apt install -y --no-install-recommends \
     bison \
     libfl-dev \
     libbenchmark-dev \
+    libgmock-dev \
     libtool \
     libz-dev
 PREREQUISITES
@@ -88,12 +89,6 @@ fi
 if [ ! -d "${DIR_THIRDPARTY}/ntf-core" ]; then
     git clone https://github.com/bloomberg/ntf-core.git "${DIR_THIRDPARTY}/ntf-core"
 fi
-if [ ! -d "${DIR_THIRDPARTY}/googletest" ]; then
-    git clone https://github.com/google/googletest.git "${DIR_THIRDPARTY}/googletest"
-    pushd "${DIR_THIRDPARTY}/googletest"
-    git checkout v1.14.0
-    popd
-fi
 # prometheus-cpp and its dependency for the plugin
 if [ "${BUILD_PROMETHEUS}" == true ]; then
     if [ ! -d "${DIR_THIRDPARTY}/curl" ]; then
@@ -129,16 +124,6 @@ if [ ! -e "${DIR_BUILD}/ntf/.complete" ]; then
     make install
     popd
     touch "${DIR_BUILD}/ntf/.complete"
-fi
-
-if [ ! -e "${DIR_BUILD}/googletest/.complete" ]; then
-    # Build and install googletest
-    pushd "${DIR_THIRDPARTY}/googletest"
-    cmake -DCMAKE_INSTALL_PREFIX="${DIR_INSTALL}" -DCMAKE_INSTALL_LIBDIR=lib64 -B "${DIR_BUILD}/googletest"
-    cmake --build "${DIR_BUILD}/googletest" --parallel 16
-    cmake --install "${DIR_BUILD}/googletest" --prefix "${DIR_INSTALL}"
-    popd
-    touch "${DIR_BUILD}/googletest/.complete"
 fi
 
 if [ "${BUILD_PROMETHEUS}" == true ]; then

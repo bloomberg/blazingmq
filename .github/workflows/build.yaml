@@ -31,6 +31,7 @@ jobs:
             bison \
             libfl-dev \
             libbenchmark-dev \
+            libgmock-dev \
             libz-dev
       - name: Create dependency fetcher working directory
         run: mkdir -p deps
@@ -88,6 +89,7 @@ jobs:
             bison \
             libfl-dev \
             libbenchmark-dev \
+            libgmock-dev \
             libz-dev \
             autoconf \
             libtool

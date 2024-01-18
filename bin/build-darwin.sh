@@ -78,7 +78,7 @@ fi
 
 
 # Build other dependencies
-brew install flex bison google-benchmark zlib
+brew install flex bison google-benchmark googletest zlib
 
 # Determine paths based on Intel vs Apple Silicon CPU
 if [ "$(uname -p)" == 'arm' ]; then
