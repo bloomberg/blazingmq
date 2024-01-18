@@ -27,6 +27,7 @@ fetch_deps() {
     fetch_git bloomberg bde-tools 3.117.0.0
     fetch_git bloomberg bde 3.117.0.0
     fetch_git bloomberg ntf-core latest
+    fetch_git google googletest v1.14.0
 }
 
 configure() {
@@ -52,9 +53,19 @@ build_ntf() {
     popd
 }
 
+build_googletest() {
+    pushd srcs/googletest
+    mkdir -p build
+    cmake -B build
+    cmake --build build --parallel 16
+    cmake --install build --prefix /opt/bb
+    popd
+}
+
 build() {
     build_bde
     build_ntf
+    build_googletest
 }
 
 fetch_deps
