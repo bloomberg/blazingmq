@@ -19,6 +19,7 @@ sudo apt install -y --no-install-recommends \
     bison \
     libfl-dev \
     libbenchmark-dev \
+    libgmock-dev \
     libtool \
     libz-dev
 PREREQUISITES
