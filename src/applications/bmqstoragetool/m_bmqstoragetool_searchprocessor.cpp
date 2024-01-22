@@ -41,60 +41,58 @@ namespace m_bmqstoragetool {
 
 namespace {
 
-/// Move the journal iterator pointed by the specified 'it' FORWARD to the
-/// first message whose timestamp is more then the specified 'timestamp'.
-/// Behavior is undefined unless last call to `nextRecord` returned 1 and the
-/// iterator points to the first record.
+/// Move the journal iterator pointed by the specified 'it' to the first
+/// message whose timestamp is more then the specified 'timestamp'.  Returns
+/// '1' on success, '0" if there are no such records (also the iterator is
+/// invalidated).  Behavior is undefined unless last call to `nextRecord`
+/// returned 1 and the iterator points to a valid record.
 static int moveToLowerBound(mqbs::JournalFileIterator* it,
                             const bsls::Types::Uint64& timestamp)
 {
-    int                rc         = 0;
+    int                rc         = 1;
     const unsigned int recordSize = it->header().recordWords() *
                                     bmqp::Protocol::k_WORD_SIZE;
-    bsls::Types::Uint64 left  = it->recordIndex();
-    bsls::Types::Uint64 right = (it->lastRecordPosition() -
-                                 it->firstRecordPosition()) /
-                                recordSize;
+    const bsls::Types::Uint64 recordsNumber = (it->lastRecordPosition() -
+                                               it->firstRecordPosition()) /
+                                              recordSize;
+    bsls::Types::Uint64 left  = 0;
+    bsls::Types::Uint64 right = recordsNumber;
     while (right > left + 1) {
-        rc = it->advance((right - left) / 2);
-        if (rc != 1) {
-            return rc;
-        }
         const bool goBackwards = it->recordHeader().timestamp() > timestamp;
         if (goBackwards != it->isReverseMode()) {
             it->flipDirection();
         }
         if (goBackwards) {
+            if (it->recordIndex() == 0) {
+                break;
+            }
             right = it->recordIndex();
         }
         else {
+            if (it->recordIndex() == recordsNumber) {
+                break;
+            }
             left = it->recordIndex();
+        }
+        rc = it->advance(bsl::max((right - left) / 2, 1ULL));
+        if (rc != 1) {
+            return rc;  // RETURN
         }
     }
     if (it->isReverseMode()) {
         it->flipDirection();
     }
     if (it->recordHeader().timestamp() <= timestamp) {
-        rc = it->nextRecord();
+        if (it->recordIndex() < recordsNumber) {
+            rc = it->nextRecord();
+        } else {
+            // It's the last record, so there are no messages with timestamp
+            // greater than the specified 'ts' in the file.
+            rc = 0;
+        }
     }
 
-    //    {
-    //        // Debug information
-    //        bsl::cout << "Found :\n"
-    //                  << "record index : " << it->recordIndex() << "\n"
-    //                  << "   timestamp : " << it->recordHeader().timestamp()
-    //                  << bsl::endl;
-    //        it->flipDirection();
-    //        it->nextRecord();
-    //        bsl::cout << "Previous :\n"
-    //                  << "record index : " << it->recordIndex() << "\n"
-    //                  << "   timestamp : " << it->recordHeader().timestamp()
-    //                  << bsl::endl;
-    //        it->flipDirection();
-    //        it->nextRecord();
-    //    }
-
-    return rc;
+    return rc;  // RETURN
 }
 
 }  // close unnamed namespace
@@ -126,7 +124,7 @@ void SearchProcessor::process(bsl::ostream& ostream)
     // TODO: consider to introduce SearchResultFactory and move all logic there
     // TODO: why unique_ptr doesn't support deleter in reset()
     // bsl::unique_ptr<SearchResult> searchResult_p;
-    bsl::shared_ptr<SearchResult> searchResult_p;
+    bsl::shared_ptr<SearchResultInterface> searchResult_p;
     if (!d_parameters->guid().empty()) {
         searchResult_p.reset(new (*d_allocator_p)
                                  SearchGuidResult(ostream,
@@ -199,6 +197,13 @@ void SearchProcessor::process(bsl::ostream& ostream)
                                                  d_allocator_p),
                              d_allocator_p);
     }
+    if (d_parameters->timestampLt() > 0) {
+        searchResult_p.reset(
+            new (*d_allocator_p)
+                SearchResultTimestampDecorator(searchResult_p,
+                                               d_parameters->timestampLt()),
+            d_allocator_p);
+    }
     BSLS_ASSERT(searchResult_p);
 
     bool stopSearch          = false;
@@ -218,7 +223,10 @@ void SearchProcessor::process(bsl::ostream& ostream)
         }
         if (needTimestampSearch) {
             rc = moveToLowerBound(iter, d_parameters->timestampGt());
-            if (rc <= 0) {
+            if (rc == 0) {
+                stopSearch = true;
+                continue;
+            } else if (rc < 0) {
                 ostream << "Binary search by timesamp aborted (exit status "
                         << rc << ").";
                 return;  // RETURN
