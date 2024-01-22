@@ -35,11 +35,34 @@
 namespace BloombergLP {
 namespace m_bmqstoragetool {
 
-// =====================
-// class SearchResult
-// =====================
+// ===========================
+// class SearchResultInterface
+// ===========================
+class SearchResultInterface {
+protected:
+  virtual bool hasCache() const { return false; }
 
-class SearchResult {
+public:
+  virtual ~SearchResultInterface(){};
+
+  // MANIPULATORS
+  virtual bool processMessageRecord(const mqbs::MessageRecord& record,
+                                    bsls::Types::Uint64        recordIndex,
+                                    bsls::Types::Uint64 recordOffset)  = 0;
+  virtual bool processConfirmRecord(const mqbs::ConfirmRecord& record,
+                                    bsls::Types::Uint64        recordIndex,
+                                    bsls::Types::Uint64 recordOffset)  = 0;
+  virtual bool processDeletionRecord(const mqbs::DeletionRecord& record,
+                                     bsls::Types::Uint64         recordIndex,
+                                     bsls::Types::Uint64 recordOffset) = 0;
+  virtual void outputResult(bool outputRatio = true)                   = 0;
+};
+
+// ==================
+// class SearchResult
+// ==================
+
+class SearchResult : public SearchResultInterface {
   protected:
     typedef bsl::unordered_map<bmqt::MessageGUID, MessageDetails>
         MessagesDetails;
@@ -66,6 +89,9 @@ class SearchResult {
     bsl::map<bsls::Types::Uint64, bmqt::MessageGUID> d_messageIndexToGuidMap;
     // Map to store sorted indexes to preserve messages order for output.
 
+    // ACCESSORS
+    bool hasCache() const BSLS_KEYWORD_OVERRIDE;
+
     // MANIPULATORS
     void addMessageDetails(const mqbs::MessageRecord& record,
                            bsls::Types::Uint64        recordIndex,
@@ -85,24 +111,26 @@ class SearchResult {
         QueueMap&                                        queueMap,
         Filters&                                         filters,
         bslma::Allocator*                                allocator);
-    virtual ~SearchResult() = default;
 
     // MANIPULATORS
-    virtual bool processMessageRecord(const mqbs::MessageRecord& record,
+    bool processMessageRecord(const mqbs::MessageRecord& record,
                                       bsls::Types::Uint64        recordIndex,
-                                      bsls::Types::Uint64        recordOffset);
-    virtual bool processConfirmRecord(const mqbs::ConfirmRecord& record,
+                                      bsls::Types::Uint64        recordOffset)
+        BSLS_KEYWORD_OVERRIDE;
+    bool processConfirmRecord(const mqbs::ConfirmRecord& record,
                                       bsls::Types::Uint64        recordIndex,
-                                      bsls::Types::Uint64        recordOffset);
-    virtual bool processDeletionRecord(const mqbs::DeletionRecord& record,
+                                      bsls::Types::Uint64        recordOffset)
+        BSLS_KEYWORD_OVERRIDE;
+    bool processDeletionRecord(const mqbs::DeletionRecord& record,
                                        bsls::Types::Uint64         recordIndex,
-                                       bsls::Types::Uint64 recordOffset);
-    virtual void outputResult(bool outputRatio = true);
-    void         outputGuidString(const bmqt::MessageGUID& messageGUID,
-                                  const bool               addNewLine = true);
-    void         outputFooter();
-    void         outputPayload(bsls::Types::Uint64 dataRecordOffset);
-    void         outputOutstandingRatio();
+                                       bsls::Types::Uint64 recordOffset)
+        BSLS_KEYWORD_OVERRIDE;
+    void outputResult(bool outputRatio = true) BSLS_KEYWORD_OVERRIDE;
+    void outputGuidString(const bmqt::MessageGUID& messageGUID,
+                          const bool               addNewLine = true);
+    void outputFooter();
+    void outputPayload(bsls::Types::Uint64 dataRecordOffset);
+    void outputOutstandingRatio();
 };
 
 // =====================
@@ -289,6 +317,65 @@ class SearchSummaryResult : public SearchResult {
                                bsls::Types::Uint64         recordOffset)
         BSLS_KEYWORD_OVERRIDE;
     void outputResult(bool outputRatio = true) BSLS_KEYWORD_OVERRIDE;
+};
+
+// ===========================
+// class SearchResultDecorator
+// ===========================
+class SearchResultDecorator : public SearchResultInterface {
+  protected:
+    bsl::shared_ptr<SearchResultInterface> d_searchResult;
+
+  public:
+    // CREATORS
+    SearchResultDecorator(
+        const bsl::shared_ptr<SearchResultInterface> component);
+
+    // MANIPULATORS
+    bool processMessageRecord(const mqbs::MessageRecord& record,
+                              bsls::Types::Uint64        recordIndex,
+                              bsls::Types::Uint64        recordOffset)
+        BSLS_KEYWORD_OVERRIDE;
+    bool processConfirmRecord(const mqbs::ConfirmRecord& record,
+                              bsls::Types::Uint64        recordIndex,
+                              bsls::Types::Uint64        recordOffset)
+        BSLS_KEYWORD_OVERRIDE;
+    bool processDeletionRecord(const mqbs::DeletionRecord& record,
+                               bsls::Types::Uint64         recordIndex,
+                               bsls::Types::Uint64         recordOffset)
+        BSLS_KEYWORD_OVERRIDE;
+    void outputResult(bool outputRatio = true)
+        BSLS_KEYWORD_OVERRIDE;
+};
+
+// ====================================
+// class SearchResultTimestampDecorator
+// ====================================
+class SearchResultTimestampDecorator : public SearchResultDecorator {
+  private:
+    const bsls::Types::Uint64 d_timestampLt;
+
+    // ACCESSORS
+    bool stop(bsls::Types::Uint64 timestamp) const;
+  public:
+    // CREATORS
+    SearchResultTimestampDecorator(
+        const bsl::shared_ptr<SearchResultInterface> component,
+        const bsls::Types::Uint64                    timestampLt);
+
+    // MANIPULATORS
+    bool processMessageRecord(const mqbs::MessageRecord& record,
+                              bsls::Types::Uint64        recordIndex,
+                              bsls::Types::Uint64        recordOffset)
+        BSLS_KEYWORD_OVERRIDE;
+    bool processConfirmRecord(const mqbs::ConfirmRecord& record,
+                              bsls::Types::Uint64        recordIndex,
+                              bsls::Types::Uint64        recordOffset)
+        BSLS_KEYWORD_OVERRIDE;
+    bool processDeletionRecord(const mqbs::DeletionRecord& record,
+                               bsls::Types::Uint64         recordIndex,
+                               bsls::Types::Uint64         recordOffset)
+        BSLS_KEYWORD_OVERRIDE;
 };
 
 }  // close package namespace

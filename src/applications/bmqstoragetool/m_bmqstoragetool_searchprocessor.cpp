@@ -49,7 +49,7 @@ namespace {
 static int moveToLowerBound(mqbs::JournalFileIterator* it,
                             const bsls::Types::Uint64& timestamp)
 {
-    int                rc         = 0;
+    int                rc         = 1;
     const unsigned int recordSize = it->header().recordWords() *
                                     bmqp::Protocol::k_WORD_SIZE;
     const bsls::Types::Uint64 recordsNumber = (it->lastRecordPosition() -
@@ -63,9 +63,15 @@ static int moveToLowerBound(mqbs::JournalFileIterator* it,
             it->flipDirection();
         }
         if (goBackwards) {
+            if (it->recordIndex() == 0) {
+                break;
+            }
             right = it->recordIndex();
         }
         else {
+            if (it->recordIndex() == recordsNumber) {
+                break;
+            }
             left = it->recordIndex();
         }
         rc = it->advance(bsl::max((right - left) / 2, 1ULL));
@@ -77,7 +83,13 @@ static int moveToLowerBound(mqbs::JournalFileIterator* it,
         it->flipDirection();
     }
     if (it->recordHeader().timestamp() <= timestamp) {
-        rc = it->nextRecord();
+        if (it->recordIndex() < recordsNumber) {
+            rc = it->nextRecord();
+        } else {
+            // It's the last record, so there are no messages with timestamp
+            // greater than the specified 'ts' in the file.
+            rc = 0;
+        }
     }
 
     return rc;  // RETURN
@@ -112,7 +124,7 @@ void SearchProcessor::process(bsl::ostream& ostream)
     // TODO: consider to introduce SearchResultFactory and move all logic there
     // TODO: why unique_ptr doesn't support deleter in reset()
     // bsl::unique_ptr<SearchResult> searchResult_p;
-    bsl::shared_ptr<SearchResult> searchResult_p;
+    bsl::shared_ptr<SearchResultInterface> searchResult_p;
     if (!d_parameters->guid().empty()) {
         searchResult_p.reset(new (*d_allocator_p)
                                  SearchGuidResult(ostream,
@@ -184,6 +196,13 @@ void SearchProcessor::process(bsl::ostream& ostream)
                                                  d_allocator_p),
                              d_allocator_p);
     }
+    if (d_parameters->timestampLt() > 0) {
+        searchResult_p.reset(
+            new (*d_allocator_p)
+                SearchResultTimestampDecorator(searchResult_p,
+                                               d_parameters->timestampLt()),
+            d_allocator_p);
+    }
     BSLS_ASSERT(searchResult_p);
 
     bool stopSearch = false;
@@ -203,7 +222,10 @@ void SearchProcessor::process(bsl::ostream& ostream)
         }
         if (needTimestampSearch) {
             rc = moveToLowerBound(iter, d_parameters->timestampGt());
-            if (rc <= 0) {
+            if (rc == 0) {
+                stopSearch = true;
+                continue;
+            } else if (rc < 0) {
                 ostream << "Binary search by timesamp aborted (exit status "
                         << rc << ").";
                 return;  // RETURN

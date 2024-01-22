@@ -57,6 +57,11 @@ SearchResult::SearchResult(
     // NOTHING
 }
 
+bool SearchResult::hasCache() const
+{
+    return !d_messagesDetails.empty();
+}
+
 void SearchResult::addMessageDetails(const mqbs::MessageRecord& record,
                                      bsls::Types::Uint64        recordIndex,
                                      bsls::Types::Uint64        recordOffset)
@@ -709,6 +714,93 @@ void SearchSummaryResult::outputResult(bool outputRatio)
               << (d_totalMessagesCount - d_deletedMessagesCount) << '\n';
 
     outputOutstandingRatio();
+}
+
+SearchResultDecorator::SearchResultDecorator(
+    const bsl::shared_ptr<SearchResultInterface> component)
+: d_searchResult(component)
+{
+}
+
+bool SearchResultDecorator::processMessageRecord(
+    const mqbs::MessageRecord& record,
+    bsls::Types::Uint64        recordIndex,
+    bsls::Types::Uint64        recordOffset)
+{
+    return d_searchResult->processMessageRecord(record,
+                                                recordIndex,
+                                                recordOffset);
+}
+
+bool SearchResultDecorator::processConfirmRecord(
+    const mqbs::ConfirmRecord& record,
+    bsls::Types::Uint64        recordIndex,
+    bsls::Types::Uint64        recordOffset)
+{
+    return d_searchResult->processConfirmRecord(record,
+                                                recordIndex,
+                                                recordOffset);
+}
+
+bool SearchResultDecorator::processDeletionRecord(
+    const mqbs::DeletionRecord& record,
+    bsls::Types::Uint64         recordIndex,
+    bsls::Types::Uint64         recordOffset)
+{
+    return d_searchResult->processDeletionRecord(record,
+                                                 recordIndex,
+                                                 recordOffset);
+}
+
+void SearchResultDecorator::outputResult(bool outputRatio)
+{
+    d_searchResult->outputResult(outputRatio);
+}
+
+bool SearchResultTimestampDecorator::stop(bsls::Types::Uint64 timestamp) const
+{
+    return timestamp >= d_timestampLt && !SearchResultDecorator::hasCache();
+}
+
+SearchResultTimestampDecorator::SearchResultTimestampDecorator(
+    const bsl::shared_ptr<SearchResultInterface> component,
+    bsls::Types::Uint64                          timestampLt)
+: SearchResultDecorator(component)
+, d_timestampLt(timestampLt)
+{
+}
+
+bool SearchResultTimestampDecorator::processMessageRecord(
+    const mqbs::MessageRecord& record,
+    bsls::Types::Uint64        recordIndex,
+    bsls::Types::Uint64        recordOffset)
+{
+    return SearchResultDecorator::processMessageRecord(record,
+                                                       recordIndex,
+                                                       recordOffset) ||
+           stop(record.header().timestamp());
+}
+
+bool SearchResultTimestampDecorator::processConfirmRecord(
+    const mqbs::ConfirmRecord& record,
+    bsls::Types::Uint64        recordIndex,
+    bsls::Types::Uint64        recordOffset)
+{
+    return SearchResultDecorator::processConfirmRecord(record,
+                                                       recordIndex,
+                                                       recordOffset) ||
+           stop(record.header().timestamp());
+}
+
+bool SearchResultTimestampDecorator::processDeletionRecord(
+    const mqbs::DeletionRecord& record,
+    bsls::Types::Uint64         recordIndex,
+    bsls::Types::Uint64         recordOffset)
+{
+    return SearchResultDecorator::processDeletionRecord(record,
+                                                       recordIndex,
+                                                       recordOffset) ||
+           stop(record.header().timestamp());
 }
 
 }  // close package namespace
