@@ -674,17 +674,29 @@ void TCPSessionFactory::channelStateCallback(
         BSLS_ASSERT_SAFE(status);  // got a channel up, it must be success
         BSLS_ASSERT_SAFE(channel);
 
-        // Keep track of active channels, for logging purposes
-        ++d_nbActiveChannels;
+        if (channel->peerUri().empty()) {
+            BALL_LOG_ERROR << "#SESSION_NEGOTIATION "
+                           << "TCPSessionFactory '" << d_config.name() << "' "
+                           << "rejecting empty peer URI: '" << channel.get()
+                           << "'";
 
-        // Register as observer of the channel to get the 'onClose'
-        channel->onClose(
-            bdlf::BindUtil::bind(&TCPSessionFactory::onClose,
-                                 this,
-                                 channel,
-                                 bdlf::PlaceHolders::_1 /* mwcio::Status */));
+            mwcio::Status status(mwcio::StatusCategory::e_GENERIC_ERROR,
+                                 d_allocator_p);
+            channel->close(status);
+        }
+        else {
+            // Keep track of active channels, for logging purposes
+            ++d_nbActiveChannels;
 
-        negotiate(channel, context);
+            // Register as observer of the channel to get the 'onClose'
+            channel->onClose(bdlf::BindUtil::bind(
+                &TCPSessionFactory::onClose,
+                this,
+                channel,
+                bdlf::PlaceHolders::_1 /* mwcio::Status */));
+
+            negotiate(channel, context);
+        }
     } break;
     case mwcio::ChannelFactoryEvent::e_CONNECT_ATTEMPT_FAILED: {
         // Nothing
