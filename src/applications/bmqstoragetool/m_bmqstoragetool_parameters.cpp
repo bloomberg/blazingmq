@@ -23,7 +23,6 @@
 
 // MQB
 #include <mqbs_filestoreprotocolutil.h>
-#include <mqbs_filesystemutil.h>
 
 #include <mqbc_clusterstateledgerutil.h>
 #include <mqbc_incoreclusterstateledgeriterator.h>
