@@ -102,7 +102,26 @@ const bsls::Types::Uint64 k_SPACE_USED_PERCENT_SOFT = 40;
 /// partition.
 const double k_PARTITION_AVAILABLESPACE_SECS = 20;
 
-const int k_NAGLE_PACKET_COUNT = 100;
+const int k_NAGLE_PACKET_SIZE_MIN  = 512 * 1024;
+const int k_NAGLE_PACKET_SIZE_MAX  = bmqp::EventHeader::k_MAX_SIZE_SOFT - 1024;
+const int k_NAGLE_PACKET_SIZE_INIT = 1024 * 1024;
+const int k_NAGLE_PACKET_SIZE_STEP = 1024;
+
+// Flushing 'd_storageEventBuilder' is triggered by:
+//  1. Queue control events
+//  2. Queue idle time
+//  3. Builder reaching the limit
+//
+// The latter is not constant.  Smaller value is better for lower rates but
+// does not work for higher rates because flushing results in
+//  a. Flushing all previously accumulated PUSH data
+//  b. Making IO call
+//  c. incoming Receipts (Replicas generate one receipt per event)
+//  d. Generating and sending PUSH data!
+// The way to handle high rate is to batch more (grow builder).
+// For this reason, the limit varies between 'k_NAGLE_PACKET_SIZE_MIN' and
+// 'k_NAGLE_PACKET_SIZE_MAX'.  See 'FileStore::dispatcherFlush' for the
+// explanation how the limit ('d_nagglePacketSize') gets adjusted.
 
 const int k_KEY_LEN = FileStoreProtocol::k_KEY_LENGTH;
 
@@ -3916,7 +3935,7 @@ void FileStore::processReceiptEvent(unsigned int         primaryLeaseId,
              affectedQueues.begin();
          it != affectedQueues.end();
          ++it) {
-        (*it)->queueEngine()->afterNewMessage(bmqt::MessageGUID(), 0);
+        (*it)->onReplicatedBatch();
     }
 }
 
@@ -4840,12 +4859,23 @@ void FileStore::replicateRecord(bmqp::StorageMessageType::Enum type,
         journalRecordBufferSp,
         FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
 
-    bmqt::EventBuilderResult::Enum buildRc = d_storageEventBuilder.packMessage(
-        type,
-        d_config.partitionId(),
-        0,  // flags
-        journalOffsetWords,
-        journalRecordBlobBuffer);
+    bmqt::EventBuilderResult::Enum buildRc;
+    bool                           doRetry = false;
+    do {
+        buildRc = d_storageEventBuilder.packMessage(type,
+                                                    d_config.partitionId(),
+                                                    0,  // flags
+                                                    journalOffsetWords,
+                                                    journalRecordBlobBuffer);
+        if (buildRc == bmqt::EventBuilderResult::e_EVENT_TOO_BIG && !doRetry) {
+            flushIfNeeded(true);
+
+            doRetry = true;
+        }
+        else {
+            doRetry = false;
+        }
+    } while (doRetry);
 
     if (bmqt::EventBuilderResult::e_SUCCESS != buildRc) {
         MWCTSK_ALARMLOG_ALARM("REPLICATION")
@@ -4909,35 +4939,47 @@ void FileStore::replicateRecord(bmqp::StorageMessageType::Enum type,
                                            mfd.mapping() + dataOffset);
         dataBlobBuffer.reset(dataBufferSp, totalDataLen);
     }
-
-    if (bmqp::StorageMessageType::e_DATA == type) {
-        buildRc = d_storageEventBuilder.packMessage(
-            bmqp::StorageMessageType::e_DATA,
-            d_config.partitionId(),
-            flags,
-            journalOffsetWords,
-            journalRecordBlobBuffer,
-            dataBlobBuffer);
-    }
-    else {
-        if (d_isFSMWorkflow) {
+    bool flushAndRetry = false;
+    do {
+        if (bmqp::StorageMessageType::e_DATA == type) {
             buildRc = d_storageEventBuilder.packMessage(
-                bmqp::StorageMessageType::e_QLIST,
-                d_config.partitionId(),
-                flags,
-                journalOffsetWords,
-                journalRecordBlobBuffer);
-        }
-        else {
-            buildRc = d_storageEventBuilder.packMessage(
-                bmqp::StorageMessageType::e_QLIST,
+                bmqp::StorageMessageType::e_DATA,
                 d_config.partitionId(),
                 flags,
                 journalOffsetWords,
                 journalRecordBlobBuffer,
                 dataBlobBuffer);
         }
-    }
+        else {
+            if (d_isFSMWorkflow) {
+                buildRc = d_storageEventBuilder.packMessage(
+                    bmqp::StorageMessageType::e_QLIST,
+                    d_config.partitionId(),
+                    flags,
+                    journalOffsetWords,
+                    journalRecordBlobBuffer);
+            }
+            else {
+                buildRc = d_storageEventBuilder.packMessage(
+                    bmqp::StorageMessageType::e_QLIST,
+                    d_config.partitionId(),
+                    flags,
+                    journalOffsetWords,
+                    journalRecordBlobBuffer,
+                    dataBlobBuffer);
+            }
+        }
+        if (buildRc == bmqt::EventBuilderResult::e_EVENT_TOO_BIG &&
+            !flushAndRetry) {
+            flushIfNeeded(true);
+
+            flushAndRetry = true;
+        }
+        else {
+            flushAndRetry = false;
+        }
+
+    } while (flushAndRetry);
 
     if (bmqt::EventBuilderResult::e_SUCCESS != buildRc) {
         MWCTSK_ALARMLOG_ALARM("REPLICATION")
@@ -5090,8 +5132,10 @@ void FileStore::aliasMessage(bsl::shared_ptr<bdlbb::Blob>* appData,
 void FileStore::flushIfNeeded(bool immediateFlush)
 {
     if (immediateFlush ||
-        d_storageEventBuilder.messageCount() >= d_nagglePacketCount) {
-        dispatcherFlush(true, false);
+        (d_storageEventBuilder.eventSize() >= d_naglePacketSize)) {
+        flushStorageBuilder(false);
+
+        notifyQueuesOnReplicatedBatch();
     }
 }
 
@@ -5144,7 +5188,8 @@ FileStore::FileStore(const DataStoreConfig&  config,
 , d_isCSLModeEnabled(isCSLModeEnabled)
 , d_isFSMWorkflow(isFSMWorkflow)
 , d_ignoreCrc32c(false)
-, d_nagglePacketCount(k_NAGLE_PACKET_COUNT)
+, d_naglePacketSize(k_NAGLE_PACKET_SIZE_INIT)
+, d_step(k_NAGLE_PACKET_SIZE_STEP)
 {
     // PRECONDITIONS
     BSLS_ASSERT(allocator);
@@ -6075,8 +6120,30 @@ void FileStore::processStorageEvent(const bsl::shared_ptr<bdlbb::Blob>& blob,
     rawEvent.loadStorageMessageIterator(&iter);
     BSLS_ASSERT_SAFE(iter.isValid());
 
-    while (1 == iter.next()) {
-        const bmqp::StorageHeader&                header = iter.header();
+    if (1 != iter.next()) {
+        return;  // RETURN
+    }
+    const unsigned int      pid         = iter.header().partitionId();
+    FileStore::NodeContext* nodeContext = 0;
+
+    do {
+        const bmqp::StorageHeader& header = iter.header();
+        if (pid != header.partitionId()) {
+            // A storage event is sent by 'source' cluster node.  The node may
+            // be primary for one or more partitions, but as per the BMQ
+            // replication design, *all* messages in this event will belong to
+            // the *same* partition.  Any exception to this is a bug in the
+            // implementation of replication.
+
+            MWCTSK_ALARMLOG_ALARM("STORAGE")
+                << partitionDesc() << ": Received storage event from node "
+                << source->nodeDescription() << " with"
+                << " different PartitionId: [" << pid << "] vs ["
+                << header.partitionId() << "]"
+                << ". Ignoring storage event." << MWCTSK_ALARMLOG_END;
+            continue;  // CONTINUE
+        }
+
         mwcu::BlobPosition                        recordPosition;
         mwcu::BlobObjectProxy<mqbs::RecordHeader> recHeader;
 
@@ -6134,9 +6201,10 @@ void FileStore::processStorageEvent(const bsl::shared_ptr<bdlbb::Blob>& blob,
             if (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(0 == rc)) {
                 if (header.flags() &
                     bmqp::StorageHeaderFlags::e_RECEIPT_REQUESTED) {
-                    issueReceipt(source,
-                                 recHeader->primaryLeaseId(),
-                                 recHeader->sequenceNumber());
+                    nodeContext = generateReceipt(nodeContext,
+                                                  source,
+                                                  recHeader->primaryLeaseId(),
+                                                  recHeader->sequenceNumber());
                 }
             }
         }
@@ -6187,7 +6255,9 @@ void FileStore::processStorageEvent(const bsl::shared_ptr<bdlbb::Blob>& blob,
                 << ", rc: " << rc << ". Ignoring this message."
                 << MWCTSK_ALARMLOG_END;
         }
-    }  // end: while loop
+    } while (1 == iter.next());
+
+    sendReceipt(source, nodeContext);
 }
 
 int FileStore::processRecoveryEvent(const bsl::shared_ptr<bdlbb::Blob>& blob)
@@ -6352,34 +6422,40 @@ int FileStore::processRecoveryEvent(const bsl::shared_ptr<bdlbb::Blob>& blob)
     return rc_SUCCESS;
 }
 
-void FileStore::issueReceipt(mqbnet::ClusterNode* node,
-                             unsigned int         primaryLeaseId,
-                             bsls::Types::Uint64  sequenceNumber)
+FileStore::NodeContext*
+FileStore::generateReceipt(NodeContext*         nodeContext,
+                           mqbnet::ClusterNode* node,
+                           unsigned int         primaryLeaseId,
+                           bsls::Types::Uint64  sequenceNumber)
 {
-    const int                     nodeId = node->nodeId();
-    NodeReceiptContexts::iterator itNode = d_nodes.find(nodeId);
-    const DataStoreRecordKey      key(sequenceNumber, primaryLeaseId);
+    const DataStoreRecordKey key(sequenceNumber, primaryLeaseId);
 
-    if (itNode == d_nodes.end()) {
-        // no prior history about this node
-        itNode =
-            d_nodes
-                .insert(bsl::make_pair(
-                    nodeId,
-                    NodeContext(d_config.bufferFactory(), key, d_allocator_p)))
-                .first;
+    if (nodeContext == 0) {
+        const int                     nodeId = node->nodeId();
+        NodeReceiptContexts::iterator itNode = d_nodes.find(nodeId);
+
+        if (itNode == d_nodes.end()) {
+            // no prior history about this node
+            itNode = d_nodes
+                         .insert(bsl::make_pair(
+                             nodeId,
+                             NodeContext(d_config.bufferFactory(),
+                                         key,
+                                         d_allocator_p)))
+                         .first;
+        }
+        nodeContext = &itNode->second;
     }
-    else if (itNode->second.d_key < key) {
-        itNode->second.d_key = key;
+    else if (nodeContext->d_key < key) {
+        nodeContext->d_key = key;
     }
     else {
         // outdated receipt
-        return;  // RETURN
+        return nodeContext;  // RETURN
     }
-    NodeContext& nodeContext = itNode->second;
 
-    if (nodeContext.d_state && nodeContext.d_state->tryLock()) {
-        char*                     buffer = nodeContext.d_blob.buffer(0).data();
+    if (nodeContext->d_state && nodeContext->d_state->tryLock()) {
+        char* buffer = nodeContext->d_blob.buffer(0).data();
         bmqp::ReplicationReceipt* receipt =
             reinterpret_cast<bmqp::ReplicationReceipt*>(
                 buffer + sizeof(bmqp::EventHeader));
@@ -6389,28 +6465,39 @@ void FileStore::issueReceipt(mqbnet::ClusterNode* node,
             .setPrimaryLeaseId(primaryLeaseId)
             .setSequenceNum(sequenceNumber);
 
-        nodeContext.d_state->unlock();
+        nodeContext->d_state->unlock();
     }
     else {
-        bmqp::ProtocolUtil::buildReceipt(&nodeContext.d_blob,
+        bmqp::ProtocolUtil::buildReceipt(&nodeContext->d_blob,
                                          d_config.partitionId(),
                                          primaryLeaseId,
                                          sequenceNumber);
-        nodeContext.d_state = d_statePool_p->getObject();
+        nodeContext->d_state = d_statePool_p->getObject();
+    }
 
-        int rc = node->channel().writeBlob(
-            nodeContext.d_blob,
-            bmqp::EventType::e_REPLICATION_RECEIPT,
-            nodeContext.d_state);
+    return nodeContext;
+}
 
-        if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
-                rc != bmqt::GenericResult::e_SUCCESS)) {
-            BALL_LOG_INFO << partitionDesc() << "Failed to send Receipt for "
-                          << "[ primaryLeaseId: " << primaryLeaseId
-                          << ", sequence number: " << sequenceNumber << ".";
+void FileStore::sendReceipt(mqbnet::ClusterNode* node,
+                            NodeContext*         nodeContext)
+{
+    if (nodeContext == 0) {
+        return;  // RETURN
+    }
 
-            // Ignore the error and keep the blob
-        }
+    int rc = node->channel().writeBlob(nodeContext->d_blob,
+                                       bmqp::EventType::e_REPLICATION_RECEIPT,
+                                       nodeContext->d_state);
+
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
+            rc != bmqt::GenericResult::e_SUCCESS)) {
+        BALL_LOG_INFO << partitionDesc() << "Failed to send Receipt for "
+                      << "[ primaryLeaseId: "
+                      << nodeContext->d_key.d_primaryLeaseId
+                      << ", sequence number: "
+                      << nodeContext->d_key.d_sequenceNum << ".";
+
+        // Ignore the error and keep the blob
     }
 }
 
@@ -6530,9 +6617,12 @@ void FileStore::setPrimary(mqbnet::ClusterNode* primaryNode,
                           << "primaryLeaseId = " << d_primaryLeaseId
                           << ", d_sequenceNum = " << d_sequenceNum << "].";
 
-            issueReceipt(primaryNode,
-                         d_lastRecoveredStrongConsistency.d_primaryLeaseId,
-                         d_lastRecoveredStrongConsistency.d_sequenceNum);
+            FileStore::NodeContext* nodeContext = generateReceipt(
+                0,
+                primaryNode,
+                d_lastRecoveredStrongConsistency.d_primaryLeaseId,
+                d_lastRecoveredStrongConsistency.d_sequenceNum);
+            sendReceipt(primaryNode, nodeContext);
         }
         return;  // RETURN
     }
@@ -6780,7 +6870,7 @@ void FileStore::clearPrimary()
     }
 }
 
-void FileStore::dispatcherFlush(bool storage, bool queues)
+void FileStore::flushStorageBuilder(bool isQueueIdle)
 {
     // 'LocalQueue::flush' invokes 'dispaterFlush'.
     // This means that 'dispaterFlush' will be executed more frequently on a
@@ -6792,26 +6882,69 @@ void FileStore::dispatcherFlush(bool storage, bool queues)
 
     BSLS_ASSERT_SAFE(d_isPrimary);
 
-    if (storage) {
-        if (d_storageEventBuilder.messageCount() != 0) {
-            BALL_LOG_TRACE << partitionDesc() << "Flushing "
-                           << d_storageEventBuilder.messageCount()
-                           << " STORAGE messages.";
-            const int maxChannelPendingItems = d_cluster_p->broadcast(
-                d_storageEventBuilder.blob());
-            if (maxChannelPendingItems > 0) {
-                if (d_nagglePacketCount < k_NAGLE_PACKET_COUNT) {
-                    // back off
-                    ++d_nagglePacketCount;
+    // Two factors affect d_nagglePacketSize:
+    //  1. Network condition.  In case of congestion, the limit grows to
+    //      minimize number of writes.  The 'broadcast' return value
+    //      reports max number of pending items among all cluster node
+    //      channels.  The value is greater than zero, if some channel is
+    //      not able to keep up.
+    //  2. Dispatcher thread CPU condition.  If there are too many pending
+    //      events, the latency will grow even if the network condition is
+    //      good.  Bigger 'd_nagglePacketSize' can reduce CPU load.
+    //      An (indirect) indicator of CPU load is the queue IDLE time
+    //      which is the frequency of 'LocalQueue::flush' calls. The
+    //      combination {storage=true, queues=true) indicates 'flush' call.
+    //      Every time, this method is called not from 'LocalQueue::flush',
+    //      increase the limit to reduce CPU load.
+
+    if (d_storageEventBuilder.messageCount() != 0) {
+        BALL_LOG_TRACE << partitionDesc() << "Flushing "
+                       << d_storageEventBuilder.messageCount()
+                       << " STORAGE messages.";
+
+        const int maxChannelPendingItems = d_cluster_p->broadcast(
+            d_storageEventBuilder.blob());
+
+        if (!isQueueIdle || maxChannelPendingItems > 0) {
+            if (d_naglePacketSize < k_NAGLE_PACKET_SIZE_MAX) {
+                // back off
+                if (d_step > 0) {
+                    // Still moving forward. Make a bigger step
+                    d_step *= 2;
+                }
+                else {
+                    // Was moving backward. Make a small step
+                    d_step = k_NAGLE_PACKET_SIZE_STEP;
+                }
+
+                d_naglePacketSize += d_step;
+                if (d_naglePacketSize > k_NAGLE_PACKET_SIZE_MAX) {
+                    d_naglePacketSize = k_NAGLE_PACKET_SIZE_MAX;
                 }
             }
-            else if (d_nagglePacketCount) {
-                --d_nagglePacketCount;
-            }
-            d_storageEventBuilder.reset();
         }
+        else if (d_naglePacketSize > k_NAGLE_PACKET_SIZE_MIN) {
+            if (d_step < 0) {
+                // Still moving backward. Make a bigger step
+                d_step *= 2;
+            }
+            else {
+                // Was moving forward. Make a small step
+                d_step = -k_NAGLE_PACKET_SIZE_STEP;
+            }
+
+            d_naglePacketSize += d_step;
+            if (d_naglePacketSize < k_NAGLE_PACKET_SIZE_MIN) {
+                d_naglePacketSize = k_NAGLE_PACKET_SIZE_MIN;
+            }
+        }
+        d_storageEventBuilder.reset();
     }
-    if (queues && d_storageEventBuilder.messageCount() == 0) {
+}
+
+void FileStore::notifyQueuesOnReplicatedBatch()
+{
+    if (d_storageEventBuilder.messageCount() == 0) {
         // Empty 'd_storageEventBuilder' means it has been flushed and it is a
         // good time to flush queues.
         for (StorageMapIter it = d_storages.begin(); it != d_storages.end();
@@ -6821,6 +6954,15 @@ void FileStore::dispatcherFlush(bool storage, bool queues)
                 rs->queue()->onReplicatedBatch();
             }
         }
+    }
+}
+
+void FileStore::dispatcherFlush(bool isQueueIdle)
+{
+    flushStorageBuilder(isQueueIdle);
+
+    if (isQueueIdle) {
+        notifyQueuesOnReplicatedBatch();
     }
 }
 
@@ -6897,7 +7039,7 @@ bool FileStore::gcExpiredMessages(const bdlt::Datetime& currentTimeUtc)
         // If queues are idle, 'dispatcherFlush()' won't get called.
         // Internal-ticket D168465018.
 
-        dispatcherFlush(true, false);
+        flushStorageBuilder(false);
     }
 
     return haveMore;
@@ -7193,7 +7335,7 @@ void FileStore::loadSummary(mqbcmd::FileStore* fileStore) const
                                     d_sequenceNum,
                                     d_records.size(),
                                     d_unreceipted.size(),
-                                    d_nagglePacketCount,
+                                    d_naglePacketSize,
                                     d_fileSets,
                                     d_storages);
 }

@@ -389,12 +389,20 @@ class FileStore : public DataStore {
     // calculations.  We should only set
     // this to true during testing.
 
-    int d_nagglePacketCount;
-    // Max number of messages in the
+    int d_naglePacketSize;
+    // Max size of messages in the
     // 'd_storageEventBuilder' before
     // flushing the builder.  Depending
     // the cluster channels load, it can
     // grow or shrink.
+
+    int d_step;
+    // The value to increment/decrement
+    // 'd_naglePacketSize' when adapting
+    // to network and CPU conditions.
+    // The value is not a constant and it
+    // doubles when the conditions do not
+    // change.  See 'dispatcherFlush'.
 
   private:
     // NOT IMPLEMENTED
@@ -606,9 +614,11 @@ class FileStore : public DataStore {
     /// Send Replication Receipt to the specified `node` confirming the
     /// receipt of message with the specified `primaryLeaseId` and
     /// `sequenceNumber`.
-    void issueReceipt(mqbnet::ClusterNode* node,
-                      unsigned int         primaryLeaseId,
-                      bsls::Types::Uint64  sequenceNumber);
+    NodeContext* generateReceipt(NodeContext*         nodeContext,
+                                 mqbnet::ClusterNode* node,
+                                 unsigned int         primaryLeaseId,
+                                 bsls::Types::Uint64  sequenceNumber);
+    void sendReceipt(mqbnet::ClusterNode* node, NodeContext* nodeContext);
 
     /// Insert the specified `record` value by the specified `key` into the
     /// list of outstanding records, and assign to the specified `handle` an
@@ -855,11 +865,17 @@ class FileStore : public DataStore {
     /// Clear the current primary associated with this partition.
     void clearPrimary() BSLS_KEYWORD_OVERRIDE;
 
-    /// If the specified `storage` is `true`, flush any buffered replication
-    /// messages to the peers.  If the specified `queues` is `true`, `flush`
-    /// all associated queues.  Behavior is undefined unless this node is
-    /// the primary for this partition.
-    void dispatcherFlush(bool storage, bool queues) BSLS_KEYWORD_OVERRIDE;
+    /// Flush any buffered replication messages to the peers using the
+    /// specified 'isQueueIdle' to adjust the size of storage builder batch.
+    /// Behavior is undefined unless this node is the primary for this
+    /// partition.
+    void dispatcherFlush(bool isQueueIdle) BSLS_KEYWORD_OVERRIDE;
+
+    void flushStorageBuilder(bool isQueueIdle);
+
+    /// Call `onReplicatedBatch` on all associated queues if the storage
+    /// builder is empty (just flushed).
+    void notifyQueuesOnReplicatedBatch();
 
     /// Invoke the specified `functor` with each queue associated to the
     /// partition represented by this FileStore if the partition was

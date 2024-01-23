@@ -818,7 +818,7 @@ struct EventHeader {
     /// having the maximum allowable value is processed through the entire
     /// BlazingMQ pipeline w/o any issues.  Also see notes in
     /// `StorageHeader::k_MAX_PAYLOAD_SIZE_SOFT` constant.
-    static const int k_MAX_SIZE_SOFT = (64 + 2) * 1024 * 1024;
+    static const int k_MAX_SIZE_SOFT = 512 * 1024 * 1024;
 
     /// Highest possible value for the type of an event.
     static const int k_MAX_TYPE = (1 << k_TYPE_NUM_BITS) - 1;
@@ -1483,6 +1483,7 @@ struct PutHeader {
     /// be increased but not up to `k_MAX_SIZE`.
     static const int k_MAX_PAYLOAD_SIZE_SOFT = 64 * 1024 * 1024;
 
+    static const int k_MAX_SIZE_SOFT = (64 + 2) * 1024 * 1024;
     /// Maximum size (bytes) of the options area.
     static const int k_MAX_OPTIONS_SIZE = ((1 << k_OPTIONS_WORDS_NUM_BITS) -
                                            1) *

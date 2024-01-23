@@ -480,7 +480,7 @@ TEST_F(BasicTest, breathingTest)
     ASSERT_NE(d_tester.storage().queue(), static_cast<mqbi::Queue*>(0));
     // Queue has been set via call to 'setQueue'
 
-    ASSERT_PASS(d_tester.storage().dispatcherFlush(true, false));
+    ASSERT_PASS(d_tester.storage().dispatcherFlush(false));
     // Does nothing, at the time of this writing
 
     ASSERT_EQ(d_tester.storage().queueOpRecordHandles().empty(), true);

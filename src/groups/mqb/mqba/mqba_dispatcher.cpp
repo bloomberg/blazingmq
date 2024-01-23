@@ -332,7 +332,7 @@ Dispatcher::ProcessorPool::Queue* Dispatcher::queueCreator(
     bsl::string queueName(os.str().data(), os.str().length());
 
     ProcessorPool::Queue* queue = new (*allocator)
-        ProcessorPool::Queue(config.queueSizeLowWatermark(), allocator);
+        ProcessorPool::Queue(config.queueSize(), allocator);
 
     queue->setWatermarks(config.queueSizeLowWatermark(),
                          config.queueSizeHighWatermark());

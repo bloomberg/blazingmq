@@ -684,11 +684,11 @@ class DataStore : public mqbi::DispatcherClient {
     /// Clear the current primary associated with this partition.
     virtual void clearPrimary() = 0;
 
-    /// If the specified `storage` is `true`, flush any buffered replication
-    /// messages to the peers.  If the specified `queues` is `true`, `flush`
-    /// all associated queues.  Behavior is undefined unless this node is
-    /// the primary for this partition.
-    virtual void dispatcherFlush(bool storage, bool queues) = 0;
+    /// Flush any buffered replication messages to the peers using the
+    /// specified 'isQueueIdle' to adjust the size of storage builder batch.
+    /// Behavior is undefined unless this node is the primary for this
+    /// partition.
+    virtual void dispatcherFlush(bool isQueueIdle) = 0;
 
     // ACCESSORS
 

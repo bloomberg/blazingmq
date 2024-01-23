@@ -391,6 +391,7 @@ const int MessagePropertyHeader::k_PROP_NAME_LEN_MASK = bdlb::BitMaskUtil::one(
 
 const int PutHeader::k_MAX_OPTIONS_SIZE;
 const int PutHeader::k_MAX_PAYLOAD_SIZE_SOFT;
+const int PutHeader::k_MAX_SIZE_SOFT;
 // Force variable/symbol definition so that it can be used in other files
 
 const int PutHeader::k_FLAGS_MASK = bdlb::BitMaskUtil::one(

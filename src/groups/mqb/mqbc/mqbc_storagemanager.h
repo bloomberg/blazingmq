@@ -853,9 +853,10 @@ class StorageManager
     virtual void processRecoveryEvent(
         const mqbi::DispatcherRecoveryEvent& event) BSLS_KEYWORD_OVERRIDE;
 
-    /// Executed in cluster dispatcher thread.
-    virtual void processReceiptEvent(const mqbi::DispatcherReceiptEvent& event)
-        BSLS_KEYWORD_OVERRIDE;
+    /// Executed in IO thread.
+    virtual void
+    processReceiptEvent(const bmqp::Event&   event,
+                        mqbnet::ClusterNode* source) BSLS_KEYWORD_OVERRIDE;
 
     /// Executed by any thread.
     virtual void processPrimaryStatusAdvisory(

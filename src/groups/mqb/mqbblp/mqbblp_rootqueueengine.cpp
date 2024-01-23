@@ -1126,7 +1126,7 @@ void RootQueueEngine::onHandleUsable(mqbi::QueueHandle* handle,
     }
 
     // Before attempting to deliver any messages, flush the storage.
-    d_queueState_p->queue()->storage()->dispatcherFlush(true, false);
+    d_queueState_p->queue()->storage()->dispatcherFlush(false);
 
     unsigned int upstreamSubQueueId = 0;
     if (d_queueState_p->routingContext().onUsable(&upstreamSubQueueId,

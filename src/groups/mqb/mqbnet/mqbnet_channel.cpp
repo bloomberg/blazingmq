@@ -86,7 +86,7 @@ Channel::Channel(bdlbb::BlobBufferFactory* blobBufferFactory,
     bslmt::ThreadAttributes attr = mwcsys::ThreadUtil::defaultAttributes();
     bsl::string             threadName("bmqNet-");
     attr.setThreadName(threadName + d_name);
-    d_buffer.setWatermarks(500, 1000, 5000);
+    d_buffer.setWatermarks(50000, 100000, 500000);
     d_buffer.setStateCallback(
         bdlf::MemFnUtil::memFn(&Channel::onBufferStateChange, this));
     int rc = bslmt::ThreadUtil::createWithAllocator(
