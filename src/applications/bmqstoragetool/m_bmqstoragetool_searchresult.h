@@ -39,23 +39,23 @@ namespace m_bmqstoragetool {
 // class SearchResultInterface
 // ===========================
 class SearchResultInterface {
-protected:
-  virtual bool hasCache() const { return false; }
+  protected:
+    virtual bool hasCache() const { return false; }
 
-public:
-  virtual ~SearchResultInterface(){};
+  public:
+    virtual ~SearchResultInterface(){};
 
-  // MANIPULATORS
-  virtual bool processMessageRecord(const mqbs::MessageRecord& record,
-                                    bsls::Types::Uint64        recordIndex,
-                                    bsls::Types::Uint64 recordOffset)  = 0;
-  virtual bool processConfirmRecord(const mqbs::ConfirmRecord& record,
-                                    bsls::Types::Uint64        recordIndex,
-                                    bsls::Types::Uint64 recordOffset)  = 0;
-  virtual bool processDeletionRecord(const mqbs::DeletionRecord& record,
-                                     bsls::Types::Uint64         recordIndex,
-                                     bsls::Types::Uint64 recordOffset) = 0;
-  virtual void outputResult(bool outputRatio = true)                   = 0;
+    // MANIPULATORS
+    virtual bool processMessageRecord(const mqbs::MessageRecord& record,
+                                      bsls::Types::Uint64        recordIndex,
+                                      bsls::Types::Uint64 recordOffset)  = 0;
+    virtual bool processConfirmRecord(const mqbs::ConfirmRecord& record,
+                                      bsls::Types::Uint64        recordIndex,
+                                      bsls::Types::Uint64 recordOffset)  = 0;
+    virtual bool processDeletionRecord(const mqbs::DeletionRecord& record,
+                                       bsls::Types::Uint64         recordIndex,
+                                       bsls::Types::Uint64 recordOffset) = 0;
+    virtual void outputResult(bool outputRatio = true)                   = 0;
 };
 
 // ==================
@@ -114,16 +114,16 @@ class SearchResult : public SearchResultInterface {
 
     // MANIPULATORS
     bool processMessageRecord(const mqbs::MessageRecord& record,
-                                      bsls::Types::Uint64        recordIndex,
-                                      bsls::Types::Uint64        recordOffset)
+                              bsls::Types::Uint64        recordIndex,
+                              bsls::Types::Uint64        recordOffset)
         BSLS_KEYWORD_OVERRIDE;
     bool processConfirmRecord(const mqbs::ConfirmRecord& record,
-                                      bsls::Types::Uint64        recordIndex,
-                                      bsls::Types::Uint64        recordOffset)
+                              bsls::Types::Uint64        recordIndex,
+                              bsls::Types::Uint64        recordOffset)
         BSLS_KEYWORD_OVERRIDE;
     bool processDeletionRecord(const mqbs::DeletionRecord& record,
-                                       bsls::Types::Uint64         recordIndex,
-                                       bsls::Types::Uint64 recordOffset)
+                               bsls::Types::Uint64         recordIndex,
+                               bsls::Types::Uint64         recordOffset)
         BSLS_KEYWORD_OVERRIDE;
     void outputResult(bool outputRatio = true) BSLS_KEYWORD_OVERRIDE;
     void outputGuidString(const bmqt::MessageGUID& messageGUID,
@@ -346,8 +346,7 @@ class SearchResultDecorator : public SearchResultInterface {
                                bsls::Types::Uint64         recordIndex,
                                bsls::Types::Uint64         recordOffset)
         BSLS_KEYWORD_OVERRIDE;
-    void outputResult(bool outputRatio = true)
-        BSLS_KEYWORD_OVERRIDE;
+    void outputResult(bool outputRatio = true) BSLS_KEYWORD_OVERRIDE;
 };
 
 // ====================================
@@ -359,6 +358,7 @@ class SearchResultTimestampDecorator : public SearchResultDecorator {
 
     // ACCESSORS
     bool stop(bsls::Types::Uint64 timestamp) const;
+
   public:
     // CREATORS
     SearchResultTimestampDecorator(

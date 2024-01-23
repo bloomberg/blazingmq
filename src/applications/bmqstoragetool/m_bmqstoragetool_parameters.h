@@ -210,7 +210,7 @@ class Parameters {
 
 template <typename ITER>
 inline Parameters::FileHandler<ITER>::FileHandler(const bsl::string& path,
-                                           bslma::Allocator*  allocator)
+                                                  bslma::Allocator*  allocator)
 : d_path(path, allocator)
 {
     // NOTHING

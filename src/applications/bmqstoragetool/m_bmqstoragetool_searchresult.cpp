@@ -917,8 +917,8 @@ bool SearchResultTimestampDecorator::processDeletionRecord(
     bsls::Types::Uint64         recordOffset)
 {
     return SearchResultDecorator::processDeletionRecord(record,
-                                                       recordIndex,
-                                                       recordOffset) ||
+                                                        recordIndex,
+                                                        recordOffset) ||
            stop(record.header().timestamp());
 }
 

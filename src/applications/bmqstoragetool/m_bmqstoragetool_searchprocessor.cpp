@@ -85,7 +85,8 @@ static int moveToLowerBound(mqbs::JournalFileIterator* it,
     if (it->recordHeader().timestamp() <= timestamp) {
         if (it->recordIndex() < recordsNumber) {
             rc = it->nextRecord();
-        } else {
+        }
+        else {
             // It's the last record, so there are no messages with timestamp
             // greater than the specified 'ts' in the file.
             rc = 0;
@@ -226,7 +227,8 @@ void SearchProcessor::process(bsl::ostream& ostream)
             if (rc == 0) {
                 stopSearch = true;
                 continue;
-            } else if (rc < 0) {
+            }
+            else if (rc < 0) {
                 ostream << "Binary search by timesamp aborted (exit status "
                         << rc << ").";
                 return;  // RETURN
