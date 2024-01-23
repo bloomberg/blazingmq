@@ -2498,11 +2498,6 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
             record.d_messagePropertiesInfo      = bmqp::MessagePropertiesInfo(
                 *dataHeader);
 
-            if (d_lastRecoveredMessage < key) {
-                // This will be used as Implicit Receipt
-                d_lastRecoveredMessage = key;
-            }
-
             // Update in-memory record mapping.
             d_records.rinsert(bsl::make_pair(key, record));
 
@@ -5130,6 +5125,7 @@ FileStore::FileStore(const DataStoreConfig&  config,
 , d_unreceipted(d_allocators.get("UnreceiptedRecords"))
 , d_replicationFactor(replicationFactor)
 , d_nodes(allocator)
+, d_lastRecoveredStrongConsistency()
 , d_fileSets(allocator)
 , d_cluster_p(cluster)
 , d_miscWorkThreadPool_p(miscWorkThreadPool)
@@ -6528,14 +6524,15 @@ void FileStore::setPrimary(mqbnet::ClusterNode* primaryNode,
         d_config.scheduler()->cancelEvent(
             &d_partitionHighwatermarkEventHandle);
 
-        if (d_lastRecoveredMessage.d_primaryLeaseId == d_primaryLeaseId) {
+        if (d_lastRecoveredStrongConsistency.d_primaryLeaseId ==
+            d_primaryLeaseId) {
             BALL_LOG_INFO << partitionDesc() << "Issuing Implicit Receipt ["
                           << "primaryLeaseId = " << d_primaryLeaseId
                           << ", d_sequenceNum = " << d_sequenceNum << "].";
 
             issueReceipt(primaryNode,
-                         d_lastRecoveredMessage.d_primaryLeaseId,
-                         d_lastRecoveredMessage.d_sequenceNum);
+                         d_lastRecoveredStrongConsistency.d_primaryLeaseId,
+                         d_lastRecoveredStrongConsistency.d_sequenceNum);
         }
         return;  // RETURN
     }

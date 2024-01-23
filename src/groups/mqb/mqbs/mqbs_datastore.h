@@ -516,6 +516,8 @@ class DataStoreRecordHandle {
 
     /// Return the Primary LeaseId which created the record.
     unsigned int primaryLeaseId() const;
+
+    bsls::Types::Uint64 sequenceNum() const;
 };
 
 // FREE OPERATORS
@@ -1162,6 +1164,12 @@ inline unsigned int DataStoreRecordHandle::primaryLeaseId() const
 {
     BSLS_ASSERT_SAFE(isValid());
     return d_iterator->first.d_primaryLeaseId;
+}
+
+inline bsls::Types::Uint64 DataStoreRecordHandle::sequenceNum() const
+{
+    BSLS_ASSERT_SAFE(isValid());
+    return d_iterator->first.d_sequenceNum;
 }
 
 }  // close package namespace

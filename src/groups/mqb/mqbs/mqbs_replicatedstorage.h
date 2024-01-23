@@ -100,6 +100,9 @@ class ReplicatedStorage : public mqbi::Storage {
     /// Return a non-modifiable list of handles of all QUEUEOP records
     /// associated with this storage.
     virtual const RecordHandles& queueOpRecordHandles() const = 0;
+
+    // Return 'true' if the storage is of the strong consistency
+    virtual bool isStrongConsistency() const = 0;
 };
 
 // ============================================================================
