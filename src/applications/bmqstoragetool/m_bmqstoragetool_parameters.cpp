@@ -503,28 +503,6 @@ void Parameters::print(bsl::ostream& ss) const
 // =============================
 
 template <typename ITER>
-Parameters::FileHandler<ITER>::FileHandler(const bsl::string& path,
-                                           bslma::Allocator*  allocator)
-: d_path(path, allocator)
-{
-}
-
-template <typename ITER>
-Parameters::FileHandler<ITER>::~FileHandler()
-{
-    d_iter.clear();
-    if (d_mfd.isValid()) {
-        mqbs::FileSystemUtil::close(&d_mfd);
-    }
-}
-
-template <typename ITER>
-bsl::string Parameters::FileHandler<ITER>::path() const
-{
-    return d_path;
-}
-
-template <typename ITER>
 bool Parameters::FileHandler<ITER>::resetIterator(
     std::ostream& errorDescription)
 {

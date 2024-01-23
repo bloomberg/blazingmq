@@ -34,6 +34,7 @@
 // MQB
 #include <mqbs_datafileiterator.h>
 #include <mqbs_filestoreprotocol.h>
+#include <mqbs_filesystemutil.h>
 #include <mqbs_journalfileiterator.h>
 #include <mqbs_mappedfiledescriptor.h>
 
@@ -206,6 +207,29 @@ class Parameters {
 // ============================================================================
 //                             INLINE DEFINITIONS
 // ============================================================================
+
+template <typename ITER>
+inline Parameters::FileHandler<ITER>::FileHandler(const bsl::string& path,
+                                           bslma::Allocator*  allocator)
+: d_path(path, allocator)
+{
+    // NOTHING
+}
+
+template <typename ITER>
+inline Parameters::FileHandler<ITER>::~FileHandler()
+{
+    d_iter.clear();
+    if (d_mfd.isValid()) {
+        mqbs::FileSystemUtil::close(&d_mfd);
+    }
+}
+
+template <typename ITER>
+inline bsl::string Parameters::FileHandler<ITER>::path() const
+{
+    return d_path;
+}
 
 template <typename ITER>
 inline ITER* Parameters::FileHandler<ITER>::iterator()
