@@ -1483,7 +1483,7 @@ Event Session::nextEvent(const bsls::TimeInterval& timeout)
     // If no timeout was specified, use a long timeout to simulate a 'no
     // timeout' behavior
     bsls::TimeInterval time = timeout;
-    if (time.totalMicroseconds() == 0) {
+    if (time == bsls::TimeInterval()) {
         time.addDays(365);
     }
 
