@@ -445,9 +445,9 @@ void SearchAllResult::outputResult(bool outputRatio)
     SearchResult::outputResult(false);
 }
 
-// =====================
+// ======================
 // class SearchGuidResult
-// =====================
+// ======================
 
 SearchGuidResult::SearchGuidResult(
     bsl::ostream&                                    ostream,
@@ -758,6 +758,11 @@ SearchSummaryResult::SearchSummaryResult(
     // NOTHING
 }
 
+bool SearchSummaryResult::hasCache() const
+{
+    return !d_partiallyConfirmedGUIDS.empty();
+}
+
 bool SearchSummaryResult::processMessageRecord(
     const mqbs::MessageRecord& record,
     bsls::Types::Uint64        recordIndex,
@@ -779,7 +784,6 @@ bool SearchSummaryResult::processConfirmRecord(
     bsls::Types::Uint64        recordIndex,
     bsls::Types::Uint64        recordOffset)
 {
-    SearchResult::processConfirmRecord(record, recordIndex, recordOffset);
     if (auto it = d_partiallyConfirmedGUIDS.find(record.messageGUID());
         it != d_partiallyConfirmedGUIDS.end()) {
         // Message is partially confirmed, increase counter.
@@ -917,8 +921,8 @@ bool SearchResultTimestampDecorator::processDeletionRecord(
     bsls::Types::Uint64         recordOffset)
 {
     return SearchResultDecorator::processDeletionRecord(record,
-                                                       recordIndex,
-                                                       recordOffset) ||
+                                                        recordIndex,
+                                                        recordOffset) ||
            stop(record.header().timestamp());
 }
 
