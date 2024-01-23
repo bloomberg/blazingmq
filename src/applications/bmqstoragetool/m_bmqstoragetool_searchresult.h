@@ -295,6 +295,9 @@ class SearchSummaryResult : public SearchResult {
     bsl::unordered_map<bmqt::MessageGUID, size_t> d_partiallyConfirmedGUIDS;
     Parameters::FileHandler<mqbs::JournalFileIterator>* d_journalFile_p;
 
+  protected:
+    bool hasCache() const BSLS_KEYWORD_OVERRIDE;
+
   public:
     // CREATORS
     explicit SearchSummaryResult(
