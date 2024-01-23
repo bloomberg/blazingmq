@@ -1049,8 +1049,8 @@ class StatContextIterator {
     // ACCESSORS
     const StatContext* operator->() const;
     const StatContext& operator*() const;
-                       operator const StatContext*() const;
-                       operator bool() const;
+    operator const StatContext*() const;
+    operator bool() const;
 };
 
 // ============================================================================

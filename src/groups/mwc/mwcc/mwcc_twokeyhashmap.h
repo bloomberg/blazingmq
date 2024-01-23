@@ -1038,7 +1038,7 @@ inline TwoKeyHashMap<K1, K2, VALUE, H1, H2>::TwoKeyHashMap(
           H2(),
           typename K2Map::key_equal(),
           basicAllocator)
-, d_nodeAllocator(new (*allocator()) bdlma::Pool(sizeof(Node), allocator()),
+, d_nodeAllocator(new(*allocator()) bdlma::Pool(sizeof(Node), allocator()),
                   allocator())
 {
     // POSTCONDITIONS
@@ -1057,7 +1057,7 @@ inline TwoKeyHashMap<K1, K2, VALUE, H1, H2>::TwoKeyHashMap(
           H2(),
           typename K2Map::key_equal(),
           basicAllocator)
-, d_nodeAllocator(new (*allocator()) bdlma::Pool(sizeof(Node), allocator()),
+, d_nodeAllocator(new(*allocator()) bdlma::Pool(sizeof(Node), allocator()),
                   allocator())
 {
     // POSTCONDITIONS
@@ -1077,7 +1077,7 @@ inline TwoKeyHashMap<K1, K2, VALUE, H1, H2>::TwoKeyHashMap(
           hash2,
           typename K2Map::key_equal(),
           basicAllocator)
-, d_nodeAllocator(new (*allocator()) bdlma::Pool(sizeof(Node), allocator()),
+, d_nodeAllocator(new(*allocator()) bdlma::Pool(sizeof(Node), allocator()),
                   allocator())
 {
     // POSTCONDITIONS
@@ -1096,7 +1096,7 @@ inline TwoKeyHashMap<K1, K2, VALUE, H1, H2>::TwoKeyHashMap(
           original.d_k2Map.hash_function(),
           original.d_k2Map.key_eq(),
           basicAllocator)
-, d_nodeAllocator(new (*allocator()) bdlma::Pool(sizeof(Node), allocator()),
+, d_nodeAllocator(new(*allocator()) bdlma::Pool(sizeof(Node), allocator()),
                   allocator())
 {
     // free memory on failure
@@ -1129,7 +1129,7 @@ inline TwoKeyHashMap<K1, K2, VALUE, H1, H2>::TwoKeyHashMap(
           H2(),
           typename K2Map::key_equal(),
           basicAllocator)
-, d_nodeAllocator(new (*allocator()) bdlma::Pool(sizeof(Node), allocator()),
+, d_nodeAllocator(new(*allocator()) bdlma::Pool(sizeof(Node), allocator()),
                   allocator())
 {
     if (allocator() == bslmf::MovableRefUtil::access(original).allocator()) {

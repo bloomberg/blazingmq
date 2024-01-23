@@ -621,7 +621,7 @@
     balst::StackTraceTestAllocator _stTestAlloc;                                \
     _stTestAlloc.setName("test");                                               \
                                                                                 \
-    if ((F)&mwctst::TestHelper::e_USE_STACKTRACE_ALLOCATOR) {                   \
+    if ((F) & mwctst::TestHelper::e_USE_STACKTRACE_ALLOCATOR) {                 \
         s_allocator_p = &_stTestAlloc;                                          \
     }                                                                           \
     else {                                                                      \

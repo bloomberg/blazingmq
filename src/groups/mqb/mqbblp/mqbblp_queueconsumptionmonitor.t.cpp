@@ -81,7 +81,7 @@ struct ClientContext {
 
 ClientContext::ClientContext()
 : d_dispatcherClient(s_allocator_p)
-, d_requesterContext_sp(new (*s_allocator_p)
+, d_requesterContext_sp(new(*s_allocator_p)
                             mqbi::QueueHandleRequesterContext(s_allocator_p),
                         s_allocator_p)
 {

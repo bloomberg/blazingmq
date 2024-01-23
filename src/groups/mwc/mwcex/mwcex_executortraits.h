@@ -63,16 +63,14 @@ namespace mwcex {
 /// Provides a metafunction to detect if an executor has a proper `dispatch`
 /// member function.
 template <class EXECUTOR, class FUNCTION, class = void>
-struct ExecutorTraits_CanDispatch : bsl::false_type {
-};
+struct ExecutorTraits_CanDispatch : bsl::false_type {};
 
 template <class EXECUTOR, class FUNCTION>
 struct ExecutorTraits_CanDispatch<
     EXECUTOR,
     FUNCTION,
     bsl::void_t<decltype(bsl::declval<const EXECUTOR&>().dispatch(
-        bsl::declval<FUNCTION>()))> > : bsl::true_type {
-};
+        bsl::declval<FUNCTION>()))> > : bsl::true_type {};
 #else
 
 template <class EXECUTOR, class FUNCTION>
@@ -91,14 +89,11 @@ struct ExecutorTraits_CanDispatch {
     typedef bslmf::MovableRef<bsl::function<void()> > JobRef;
 
     template <class U, void (U::*)(Job) const>
-    struct Test1 {
-    };
+    struct Test1 {};
     template <class U, void (U::*)(const Job&) const>
-    struct Test2 {
-    };
+    struct Test2 {};
     template <class U, void (U::*)(JobRef) const>
-    struct Test3 {
-    };
+    struct Test3 {};
 
     // CLASS METHODS
     template <class U>

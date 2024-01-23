@@ -525,8 +525,8 @@ QueueSessionManager::QueueSessionManager(
 , d_domainFactory_p(domainFactory)
 , d_allocator_p(allocator)
 , d_shutdownInProgress(false)
-, d_validator_sp(new (*allocator) mwcu::AtomicValidator(), allocator)
-, d_requesterContext_sp(new (*allocator)
+, d_validator_sp(new(*allocator) mwcu::AtomicValidator(), allocator)
+, d_requesterContext_sp(new(*allocator)
                             mqbi::QueueHandleRequesterContext(allocator),
                         allocator)
 {

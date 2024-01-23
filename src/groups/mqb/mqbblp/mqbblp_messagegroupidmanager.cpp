@@ -624,7 +624,7 @@ MessageGroupIdManager::MessageGroupIdManager(const Time&       timeout,
 , d_timeout(timeout)
 , d_maxMsgGroupIds(maxMsgGroupIds)
 , d_rebalance(rebalance)
-, d_index(new (*allocator) Index(allocator), allocator)
+, d_index(new(*allocator) Index(allocator), allocator)
 {
 }
 

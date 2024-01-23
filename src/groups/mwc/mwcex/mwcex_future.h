@@ -148,14 +148,18 @@
 #include <bsls_systemtime.h>
 #include <bsls_timeinterval.h>
 
+// clang-format off
+
 #if BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES
 // Include version that can be compiled with C++03
-// Generated on Wed Jun 29 04:17:13 2022
+// Generated on Fri Jan  5 17:21:17 2024
 // Command line: sim_cpp11_features.pl mwcex_future.h
-#define COMPILING_MWCEX_FUTURE_H
-#include <mwcex_future_cpp03.h>
-#undef COMPILING_MWCEX_FUTURE_H
+# define COMPILING_MWCEX_FUTURE_H
+# include <mwcex_future_cpp03.h>
+# undef COMPILING_MWCEX_FUTURE_H
 #else
+
+// clang-format on
 
 namespace BloombergLP {
 
@@ -295,8 +299,7 @@ class Future_Callback {
     /// Provides a tag type to specify the type of the async result accepted
     /// by the callback,
     template <class R>
-    struct AsyncResultTypeTag {
-    };
+    struct AsyncResultTypeTag {};
 
   private:
     // PRIVATE TYPES
@@ -855,14 +858,14 @@ class FutureSharedState {
 
     typedef typename bsl::remove_const<R>::type ValueType;
 #ifdef BSLS_LIBRARYFEATURES_HAS_CPP11_EXCEPTION_HANDLING
-    typedef bsl::exception_ptr                  ExceptionPtrType;
+    typedef bsl::exception_ptr ExceptionPtrType;
 #endif
-    typedef Future_Exception                    ExceptionObjType;
+    typedef Future_Exception ExceptionObjType;
 
     /// Shared state result. May contain a value, an exception pointer
     /// (C++11 only), or an exception object.
     union Result {
-        bsls::ObjectBuffer<ValueType>        d_value;
+        bsls::ObjectBuffer<ValueType> d_value;
 #ifdef BSLS_LIBRARYFEATURES_HAS_CPP11_EXCEPTION_HANDLING
         bsls::ObjectBuffer<ExceptionPtrType> d_exceptionPtr;
 #endif
@@ -953,7 +956,9 @@ class FutureSharedState {
     /// the C++ standard.
     void setValue(bslmf::MovableRef<R> value);
 
-#if !BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES  // $var-args=9
+    // clang-format off
+#if !BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES // $var-args=9
+    // clang-format on
 
     /// Atomically initialize the stored value as if by direct-non-list-
     /// initializing an object of type `R` with 'bsl::forward<ARGS>(
@@ -1663,7 +1668,9 @@ inline void FutureSharedState<R>::setValue(bslmf::MovableRef<R> value)
     emplaceValue(bslmf::MovableRefUtil::move(value));
 }
 
-#if !BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES  // $var-args=9
+// clang-format off
+#if !BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES // $var-args=9
+// clang-format on
 template <class R>
 template <class... ARGS>
 inline void FutureSharedState<R>::emplaceValue(ARGS&&... args)
@@ -1900,6 +1907,10 @@ inline void mwcex::swap(FutureResult<R>& lhs,
 
 }  // close enterprise namespace
 
-#endif  // End C++11 code
+// clang-format off
+
+#endif // End C++11 code
+
+// clang-format on
 
 #endif

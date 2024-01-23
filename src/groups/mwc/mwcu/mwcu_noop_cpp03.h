@@ -36,10 +36,12 @@
 // regions of C++11 code, then this header contains no code and is not
 // '#include'd in the original header.
 //
-// Generated on Wed Jun 29 04:03:13 2022
+// Generated on Mon Jan 22 16:58:55 2024
 // Command line: sim_cpp11_features.pl mwcu_noop.h
 
 #ifdef COMPILING_MWCU_NOOP_H
+
+// clang-format on
 
 namespace BloombergLP {
 namespace mwcu {
@@ -48,16 +50,17 @@ namespace mwcu {
 // class NoOp
 // ==========
 
+/// A no-op functor.
 class NoOp {
-    // A no-op functor.
-
   public:
     // TYPES
+
+    /// Defines the result type of the call operator.
     typedef void ResultType;
-    // Defines the result type of the call operator.
 
   public:
     // ACCESSORS
+    // clang-format off
 #if BSLS_COMPILERFEATURES_SIMULATE_VARIADIC_TEMPLATES
 // {{{ BEGIN GENERATED CODE
 // Command line: sim_cpp11_features.pl mwcu_noop.h
@@ -67,6 +70,7 @@ class NoOp {
 #ifndef MWCU_NOOP_VARIADIC_LIMIT_A
 #define MWCU_NOOP_VARIADIC_LIMIT_A MWCU_NOOP_VARIADIC_LIMIT
 #endif
+
 #if MWCU_NOOP_VARIADIC_LIMIT_A >= 0
     void operator()() const BSLS_KEYWORD_NOEXCEPT;
 #endif  // MWCU_NOOP_VARIADIC_LIMIT_A >= 0
@@ -77,19 +81,26 @@ class NoOp {
 #endif  // MWCU_NOOP_VARIADIC_LIMIT_A >= 1
 
 #if MWCU_NOOP_VARIADIC_LIMIT_A >= 2
-    template <class ARGS_1, class ARGS_2>
-    void operator()(const ARGS_1&, const ARGS_2&) const BSLS_KEYWORD_NOEXCEPT;
+    template <class ARGS_1,
+              class ARGS_2>
+    void operator()(const ARGS_1&,
+                    const ARGS_2&) const BSLS_KEYWORD_NOEXCEPT;
 #endif  // MWCU_NOOP_VARIADIC_LIMIT_A >= 2
 
 #if MWCU_NOOP_VARIADIC_LIMIT_A >= 3
-    template <class ARGS_1, class ARGS_2, class ARGS_3>
+    template <class ARGS_1,
+              class ARGS_2,
+              class ARGS_3>
     void operator()(const ARGS_1&,
                     const ARGS_2&,
                     const ARGS_3&) const BSLS_KEYWORD_NOEXCEPT;
 #endif  // MWCU_NOOP_VARIADIC_LIMIT_A >= 3
 
 #if MWCU_NOOP_VARIADIC_LIMIT_A >= 4
-    template <class ARGS_1, class ARGS_2, class ARGS_3, class ARGS_4>
+    template <class ARGS_1,
+              class ARGS_2,
+              class ARGS_3,
+              class ARGS_4>
     void operator()(const ARGS_1&,
                     const ARGS_2&,
                     const ARGS_3&,
@@ -182,8 +193,9 @@ class NoOp {
 #endif  // MWCU_NOOP_VARIADIC_LIMIT_A >= 9
 
 #else
-    // The generated code below is a workaround for the absence of perfect
-    // forwarding in some compilers.
+// The generated code below is a workaround for the absence of perfect
+// forwarding in some compilers.
+
     template <class... ARGS>
     void operator()(const ARGS&...) const BSLS_KEYWORD_NOEXCEPT;
 
@@ -204,6 +216,7 @@ class NoOp {
 // ----------
 
 // ACCESSORS
+// clang-format off
 #if BSLS_COMPILERFEATURES_SIMULATE_VARIADIC_TEMPLATES
 // {{{ BEGIN GENERATED CODE
 // Command line: sim_cpp11_features.pl mwcu_noop.h
@@ -227,7 +240,8 @@ inline void NoOp::operator()(const ARGS_1&) const BSLS_KEYWORD_NOEXCEPT
 #endif  // MWCU_NOOP_VARIADIC_LIMIT_B >= 1
 
 #if MWCU_NOOP_VARIADIC_LIMIT_B >= 2
-template <class ARGS_1, class ARGS_2>
+template <class ARGS_1,
+          class ARGS_2>
 inline void NoOp::operator()(const ARGS_1&,
                              const ARGS_2&) const BSLS_KEYWORD_NOEXCEPT
 {
@@ -235,7 +249,9 @@ inline void NoOp::operator()(const ARGS_1&,
 #endif  // MWCU_NOOP_VARIADIC_LIMIT_B >= 2
 
 #if MWCU_NOOP_VARIADIC_LIMIT_B >= 3
-template <class ARGS_1, class ARGS_2, class ARGS_3>
+template <class ARGS_1,
+          class ARGS_2,
+          class ARGS_3>
 inline void NoOp::operator()(const ARGS_1&,
                              const ARGS_2&,
                              const ARGS_3&) const BSLS_KEYWORD_NOEXCEPT
@@ -244,7 +260,10 @@ inline void NoOp::operator()(const ARGS_1&,
 #endif  // MWCU_NOOP_VARIADIC_LIMIT_B >= 3
 
 #if MWCU_NOOP_VARIADIC_LIMIT_B >= 4
-template <class ARGS_1, class ARGS_2, class ARGS_3, class ARGS_4>
+template <class ARGS_1,
+          class ARGS_2,
+          class ARGS_3,
+          class ARGS_4>
 inline void NoOp::operator()(const ARGS_1&,
                              const ARGS_2&,
                              const ARGS_3&,
@@ -254,7 +273,11 @@ inline void NoOp::operator()(const ARGS_1&,
 #endif  // MWCU_NOOP_VARIADIC_LIMIT_B >= 4
 
 #if MWCU_NOOP_VARIADIC_LIMIT_B >= 5
-template <class ARGS_1, class ARGS_2, class ARGS_3, class ARGS_4, class ARGS_5>
+template <class ARGS_1,
+          class ARGS_2,
+          class ARGS_3,
+          class ARGS_4,
+          class ARGS_5>
 inline void NoOp::operator()(const ARGS_1&,
                              const ARGS_2&,
                              const ARGS_3&,
@@ -357,24 +380,14 @@ inline void NoOp::operator()(const ARGS&...) const BSLS_KEYWORD_NOEXCEPT
 }  // close package namespace
 }  // close enterprise namespace
 
-#else  // if ! defined(DEFINED_MWCU_NOOP_H)
-#error Not valid except when included from mwcu_noop.h
-#endif  // ! defined(COMPILING_MWCU_NOOP_H)
+// clang-format off
 
-#endif  // ! defined(INCLUDED_MWCU_NOOP_CPP03)
+#else // if ! defined(DEFINED_MWCU_NOOP_H)
+# error Not valid except when included from mwcu_noop.h
+#endif // ! defined(COMPILING_MWCU_NOOP_H)
 
-// ----------------------------------------------------------------------------
-// Copyright 2022-2023 Bloomberg Finance L.P.
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-// ----------------------------- END-OF-FILE ----------------------------------
+#endif // ! defined(INCLUDED_MWCU_NOOP_CPP03)
+
+// SCRIPT-SHA: 60926cad35f1091c31a7d8cc9d33acc38edd25e4891f3e1d41fe7c40fd6e02f5
+// SOURCE-SHA: 4648afff07d071044bfde573ba13195b1f68ddb124d77bad9ab5c9dc587c626e
+

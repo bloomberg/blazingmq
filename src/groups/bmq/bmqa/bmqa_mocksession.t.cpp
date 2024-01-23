@@ -68,8 +68,7 @@ using namespace bsl;
 
 /// Mapping class.  Will be partially specialized below.
 template <typename T>
-struct ResultRegistry {
-};
+struct ResultRegistry {};
 
 /// Partial specialization for mapping to `bmqa::OpenQueueStatus`.
 template <>
