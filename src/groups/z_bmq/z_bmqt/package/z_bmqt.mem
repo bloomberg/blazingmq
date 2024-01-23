@@ -1,5 +1,8 @@
+z_bmqt_compressionalgorithmtype
 z_bmqt_correlationid
+z_bmqt_messageguid
 z_bmqt_queueoptions
+z_bmqt_sessioneventtype
 z_bmqt_sessionoptions
 z_bmqt_subscription
 z_bmqt_types

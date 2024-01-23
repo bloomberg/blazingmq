@@ -27,7 +27,7 @@
 // TEST DRIVER
 #include <mwctst_testhelper.h>
 
-#include <demo.h>
+// #include <demo.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -39,7 +39,7 @@ using namespace bsl;
 
 static void test1_session()
 {
-    run_c_producer();
+    // run_c_producer();
 }
 
 

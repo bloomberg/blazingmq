@@ -104,13 +104,22 @@ CorrelationId_Type z_bmqt_CorrelationId__type(const z_bmqt_CorrelationId* correl
     const bmqt::CorrelationId* correlationId_p = reinterpret_cast<const bmqt::CorrelationId*>(correlationId_obj);
 
     switch(correlationId_p->type()) {
-        case bmqt::CorrelationId::Type::e_NUMERIC: return CorrelationId_Type::e_NUMERIC;
-        case bmqt::CorrelationId::Type::e_POINTER: return CorrelationId_Type::e_POINTER;
-        case bmqt::CorrelationId::Type::e_SHARED_PTR: return CorrelationId_Type::e_SHARED_PTR;
-        case bmqt::CorrelationId::Type::e_AUTO_VALUE: return CorrelationId_Type::e_AUTO_VALUE;
-        case bmqt::CorrelationId::Type::e_UNSET: return CorrelationId_Type::e_UNSET;
+        case bmqt::CorrelationId::Type::e_NUMERIC: return CorrelationId_Type::ec_NUMERIC;
+        case bmqt::CorrelationId::Type::e_POINTER: return CorrelationId_Type::ec_POINTER;
+        case bmqt::CorrelationId::Type::e_SHARED_PTR: return CorrelationId_Type::ec_SHARED_PTR;
+        case bmqt::CorrelationId::Type::e_AUTO_VALUE: return CorrelationId_Type::ec_AUTO_VALUE;
+        case bmqt::CorrelationId::Type::e_UNSET: return CorrelationId_Type::ec_UNSET;
         default: break;
     }
 
-    return CorrelationId_Type::e_CORRELATIONID_ERROR;
+    return CorrelationId_Type::ec_CORRELATIONID_ERROR;
+}
+
+int z_bmqt_CorrelationId__autoValue(z_bmqt_CorrelationId** correlationId_obj) {
+    using namespace BloombergLP;
+
+    bmqt::CorrelationId* correlationId_p = new bmqt::CorrelationId(bmqt::CorrelationId::autoValue());
+    *correlationId_obj = reinterpret_cast<z_bmqt_CorrelationId*>(correlationId_p);
+
+    return 0;
 }

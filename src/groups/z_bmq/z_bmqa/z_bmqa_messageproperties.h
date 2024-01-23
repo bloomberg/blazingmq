@@ -3,4 +3,6 @@
 
 typedef struct z_bmqa_MessageProperties z_bmqa_MessageProperties;
 
+
+
 #endif

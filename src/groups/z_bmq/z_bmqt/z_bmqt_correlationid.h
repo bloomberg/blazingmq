@@ -12,17 +12,17 @@ typedef struct z_bmqt_CorrelationId z_bmqt_CorrelationId;
 
 
 enum CorrelationId_Type {
-    e_NUMERIC  // the 'CorrelationId' holds a 64-bit integer
+    ec_NUMERIC  // the 'CorrelationId' holds a 64-bit integer
     ,
-    e_POINTER  // the 'CorrelationId' holds a raw pointer
+    ec_POINTER  // the 'CorrelationId' holds a raw pointer
     ,
-    e_SHARED_PTR  // the 'CorrelationId' holds a shared pointer
+    ec_SHARED_PTR  // the 'CorrelationId' holds a shared pointer
     ,
-    e_AUTO_VALUE  // the 'CorrelationId' holds an auto value
+    ec_AUTO_VALUE  // the 'CorrelationId' holds an auto value
     ,
-    e_UNSET  // the 'CorrelationId' is not set
+    ec_UNSET  // the 'CorrelationId' is not set
     ,
-    e_CORRELATIONID_ERROR // error
+    ec_CORRELATIONID_ERROR // error
 };
 
 int z_bmqt_CorrelationId__create(z_bmqt_CorrelationId** correlationId_obj);
@@ -52,6 +52,8 @@ int64_t z_bmqt_CorrelationId__theNumeric(const z_bmqt_CorrelationId* correlation
 void* z_bmqt_CorrelationId__thePointer(const z_bmqt_CorrelationId* correlation_Id_obj);
 
 CorrelationId_Type z_bmqt_CorrelationId__type(const z_bmqt_CorrelationId* correlation_Id_obj);
+
+int z_bmqt_CorrelationId__autoValue(z_bmqt_CorrelationId** correlationId_obj);
 
 #if defined(__cplusplus)
 }
