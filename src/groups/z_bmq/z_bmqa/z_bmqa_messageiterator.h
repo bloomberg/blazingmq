@@ -20,7 +20,7 @@ bool z_bmqa_MessageIterator__nextMessage(
     z_bmqa_MessageIterator* messageIterator_obj);
 
 int z_bmqa_MessageIterator__message(
-    z_bmqa_MessageIterator* messageIterator_obj,
+    const z_bmqa_MessageIterator* messageIterator_obj,
     z_bmqa_Message const**  message_obj);
 
 #if defined(__cplusplus)

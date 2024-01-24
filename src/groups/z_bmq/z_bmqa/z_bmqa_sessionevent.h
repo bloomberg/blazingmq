@@ -34,6 +34,9 @@ int z_bmqa_SessionEvent__statusCode(const z_bmqa_SessionEvent* event_obj);
 const char*
 z_bmqa_SessionEvent__errorDescription(const z_bmqa_SessionEvent* event_obj);
 
+int z_bmqa_SessionEvent__toString(const z_bmqa_SessionEvent* event_obj,
+                                  char**                     out);
+
 #if defined(__cplusplus)
 }
 #endif

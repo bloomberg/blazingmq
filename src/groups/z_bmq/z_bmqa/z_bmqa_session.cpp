@@ -1,4 +1,5 @@
 #include <bmqa_openqueuestatus.h>
+#include <bmqa_session.h>
 #include <bmqt_sessionoptions.h>
 #include <bslma_managedptr.h>
 #include <z_bmqa_closequeuestatus.h>
@@ -8,10 +9,19 @@
 
 z_bmqa_CustomSessionEventHandler::z_bmqa_CustomSessionEventHandler(
     z_bmqa_OnSessionEventCb onSessionEventCb,
-    z_bmqa_OnMessageEventCb onMessageEventCb)
+    z_bmqa_OnMessageEventCb onMessageEventCb,
+    uint64_t                mSize)
 {
+    this->mSize            = mSize;
     this->onSessionEventCb = onSessionEventCb;
     this->onMessageEventCb = onMessageEventCb;
+
+    if (mSize != 0) {
+        data = (void*)(new char[mSize]);
+    }
+    else {
+        data = NULL;
+    }
 }
 
 z_bmqa_CustomSessionEventHandler::~z_bmqa_CustomSessionEventHandler()
@@ -55,26 +65,31 @@ void z_bmqa_CustomSessionEventHandler::tryLock()
 int z_bmqa_SessionEventHandler__create(
     z_bmqa_SessionEventHandler** eventHandler_obj,
     z_bmqa_OnSessionEventCb      onSessionEventCb,
-    z_bmqa_OnMessageEventCb      onMessageEventCb)
+    z_bmqa_OnMessageEventCb      onMessageEventCb,
+    uint64_t                     dataSize)
 {
     using namespace BloombergLP;
 
     z_bmqa_CustomSessionEventHandler* eventHandler_p =
         new z_bmqa_CustomSessionEventHandler(onSessionEventCb,
-                                             onMessageEventCb);
+                                             onMessageEventCb,
+                                             dataSize);
     *eventHandler_obj = reinterpret_cast<z_bmqa_SessionEventHandler*>(
         eventHandler_p);
     ;
     return 0;
 }
 
-int z_bmqa_SessionEventHandler__delete(
-    z_bmqa_SessionEventHandler** eventHandler_obj)
+int z_bmqa_SessionEventHandler__getData(
+    z_bmqa_SessionEventHandler* eventHandler_obj,
+    void**                      buffer)
 {
+    using namespace BloombergLP;
+
     z_bmqa_CustomSessionEventHandler* eventHandler_p =
-        reinterpret_cast<z_bmqa_CustomSessionEventHandler*>(*eventHandler_obj);
-    delete eventHandler_p;
-    *eventHandler_obj = NULL;
+        reinterpret_cast<z_bmqa_CustomSessionEventHandler*>(eventHandler_obj);
+
+    *buffer = eventHandler_p->getData();
 
     return 0;
 }
@@ -192,22 +207,22 @@ int z_bmqa_Session__finalizeStop(z_bmqa_Session* session_obj)
 }
 
 int z_bmqa_Session__loadMessageEventBuilder(
-    z_bmqa_Session*              session_obj,
-    z_bmqa_MessageEventBuilder** builder)
+    z_bmqa_Session*             session_obj,
+    z_bmqa_MessageEventBuilder* builder)
 {
     using namespace BloombergLP;
 
     bmqa::Session* session_p = reinterpret_cast<bmqa::Session*>(session_obj);
     bmqa::MessageEventBuilder* builder_p =
-        reinterpret_cast<bmqa::MessageEventBuilder*>(*builder);
+        reinterpret_cast<bmqa::MessageEventBuilder*>(builder);
 
     session_p->loadMessageEventBuilder(builder_p);
     return 0;
 }
 
 int z_bmqa_Session__loadConfirmEventBuilder(
-    z_bmqa_Session*              session_obj,
-    z_bmqa_ConfirmEventBuilder** builder)
+    z_bmqa_Session*             session_obj,
+    z_bmqa_ConfirmEventBuilder* builder)
 {
     using namespace BloombergLP;
 
@@ -311,4 +326,31 @@ int z_bmqa_Session__post(z_bmqa_Session*            session_obj,
 
     session_p->post(*event_p);
     return 0;
+}
+
+// int z_bmqa_Session__confirmMessage(z_bmqa_Session*       session_obj,
+//                                    const z_bmqa_Message* message)
+// {
+//     using namespace BloombergLP;
+//     bmqa::Session* session_p =
+//     reinterpret_cast<bmqa::Session*>(session_obj);
+// }
+
+// int z_bmqa_Session__confirmMessageWithCookie(
+//     z_bmqa_Session*                         session_obj,
+//     const z_bmqa_MessageConfirmationCookie* cookie)
+// {
+//     using namespace BloombergLP;
+//     bmqa::Session* session_p =
+//     reinterpret_cast<bmqa::Session*>(session_obj);
+// }
+
+int z_bmqa_Session__confirmMessages(z_bmqa_Session*             session_obj,
+                                    z_bmqa_ConfirmEventBuilder* builder)
+{
+    using namespace BloombergLP;
+    bmqa::Session* session_p = reinterpret_cast<bmqa::Session*>(session_obj);
+    bmqa::ConfirmEventBuilder* builder_p =
+        reinterpret_cast<bmqa::ConfirmEventBuilder*>(builder);
+    return session_p->confirmMessages(builder_p);
 }

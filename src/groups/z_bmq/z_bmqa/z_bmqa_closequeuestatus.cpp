@@ -1,6 +1,16 @@
 #include <bmqa_closequeuestatus.h>
 #include <z_bmqa_closequeuestatus.h>
 
+int z_bmqa_CloseQueueStatus__delete(z_bmqa_CloseQueueStatus** status_obj) {
+    using namespace BloombergLP;
+
+    bmqa::CloseQueueStatus* status_p = reinterpret_cast<bmqa::CloseQueueStatus*>(*status_obj);
+    delete status_p;
+    *status_obj = NULL;
+
+    return 0;
+}
+
 int z_bmqa_CloseQueueStatus__create(z_bmqa_CloseQueueStatus** status_obj)
 {
     using namespace BloombergLP;

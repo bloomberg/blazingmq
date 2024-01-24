@@ -4,6 +4,16 @@
 #include <string.h>
 #include <z_bmqt_queueoptions.h>
 
+int z_bmqt_QueueOptions__delete(z_bmqt_QueueOptions** queueOptions_obj) {
+    using namespace BloombergLP;
+
+    bmqt::QueueOptions* queueOptions_p = reinterpret_cast<bmqt::QueueOptions*>(*queueOptions_obj);
+    delete queueOptions_p;
+    *queueOptions_obj = NULL;
+
+    return 0;
+}
+
 int z_bmqt_QueueOptions__create(z_bmqt_QueueOptions** queueOptions_obj) {
     using namespace BloombergLP;
     bmqt::QueueOptions* queueOptions_p = new bmqt::QueueOptions;

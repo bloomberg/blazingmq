@@ -87,7 +87,7 @@ int z_bmqa_Message__ackStatus(const z_bmqa_Message* message_obj);
 // int z_bmqa_Message__getData(const z_bmqa_Message* message_obj, z_bdlbb_Blob*
 // blob);
 
-int z_bmqa_Message__getData(const z_bmqa_Message* message_obj, void** buffer);
+int z_bmqa_Message__getData(const z_bmqa_Message* message_obj, char** buffer);
 
 int z_bmqa_Message__dataSize(const z_bmqa_Message* message_obj);
 

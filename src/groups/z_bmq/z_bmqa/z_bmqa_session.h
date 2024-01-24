@@ -31,10 +31,11 @@ typedef void (*z_bmqa_OnMessageEventCb)(
 int z_bmqa_SessionEventHandler__create(
     z_bmqa_SessionEventHandler** eventHandler_obj,
     z_bmqa_OnSessionEventCb      onSessionEvent,
-    z_bmqa_OnMessageEventCb      onMessageEvent);
+    z_bmqa_OnMessageEventCb      onMessageEvent,
+    uint64_t dataSize);
 
-int z_bmqa_SessionEventHandler__delete(
-    z_bmqa_SessionEventHandler** eventHandler_obj);
+int z_bmqa_SessionEventHandler__getData(
+    z_bmqa_SessionEventHandler* eventHandler_obj, void** buffer);
 
 typedef struct z_bmqa_MessageConfirmationCookie
     z_bmqa_MessageConfirmationCookie;
@@ -61,12 +62,12 @@ int z_bmqa_Session__stopAsync(z_bmqa_Session* session_obj);
 int z_bmqa_Session__finalizeStop(z_bmqa_Session* session_obj);
 
 int z_bmqa_Session__loadMessageEventBuilder(
-    z_bmqa_Session*              session_obj,
-    z_bmqa_MessageEventBuilder** builder);
+    z_bmqa_Session*             session_obj,
+    z_bmqa_MessageEventBuilder* builder);
 
 int z_bmqa_Session__loadConfirmEventBuilder(
-    z_bmqa_Session*              session_obj,
-    z_bmqa_ConfirmEventBuilder** builder);
+    z_bmqa_Session*             session_obj,
+    z_bmqa_ConfirmEventBuilder* builder);
 
 int z_bmqa_Session__loadMessageProperties(z_bmqa_Session* session_obj,
                                           z_bmqa_MessageProperties** buffer);
@@ -138,7 +139,8 @@ class z_bmqa_CustomSessionEventHandler
 
   public:
     z_bmqa_CustomSessionEventHandler(z_bmqa_OnSessionEventCb onSessionEventCb,
-                                     z_bmqa_OnMessageEventCb onMessageEventCb);
+                                     z_bmqa_OnMessageEventCb onMessageEventCb,
+                                     uint64_t                mSize);
 
     ~z_bmqa_CustomSessionEventHandler();
 

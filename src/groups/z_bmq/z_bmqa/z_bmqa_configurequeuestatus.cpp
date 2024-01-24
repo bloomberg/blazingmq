@@ -1,6 +1,19 @@
 #include <bmqa_configurequeuestatus.h>
 #include <z_bmqa_configurequeuestatus.h>
 
+int z_bmqa_ConfigureQueueStatus__delete(
+    z_bmqa_ConfigureQueueStatus** status_obj)
+{
+    using namespace BloombergLP;
+
+    bmqa::ConfigureQueueStatus* status_p =
+        reinterpret_cast<bmqa::ConfigureQueueStatus*>(*status_obj);
+    delete status_p;
+    *status_obj = NULL;
+
+    return 0;
+}
+
 int z_bmqa_ConfigureQueueStatus__create(
     z_bmqa_ConfigureQueueStatus** status_obj)
 {

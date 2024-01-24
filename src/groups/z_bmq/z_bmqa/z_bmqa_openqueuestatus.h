@@ -10,6 +10,8 @@ extern "C" {
 
 typedef struct z_bmqa_OpenQueueStatus z_bmqa_OpenQueueStatus;
 
+int z_bmqa_OpenQueueStatus__delete(z_bmqa_OpenQueueStatus** status_obj);
+
 int z_bmqa_OpenQueueStatus__create(z_bmqa_OpenQueueStatus** status_obj);
 
 int z_bmqa_OpenQueueStatus__createCopy(z_bmqa_OpenQueueStatus** status_obj, const z_bmqa_OpenQueueStatus* other);
