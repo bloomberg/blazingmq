@@ -1,0 +1,8 @@
+#ifndef INCLUDED_Z_BMQA_MESSAGEPROPERTIES
+#define INCLUDED_Z_BMQA_MESSAGEPROPERTIES
+
+typedef struct z_bmqa_MessageProperties z_bmqa_MessageProperties;
+
+
+
+#endif

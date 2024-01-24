@@ -1,0 +1,63 @@
+ bmq.txt
+
+@PURPOSE: Public SDK API for the BlazingMQ framework.
+
+@MNEMONIC: BlazingMQ (bmq)
+
+@DESCRIPTION: BlazingmQ (package group 'bmq') is a message-queue
+ framework allowing application developers to use reliable distributed queues.
+
+ The 'bmqa' and 'bmqt' packages contain all components that constitute the
+ public API for BlazingmQ users to use.  A client should only use the
+ components in these packages, and should not use any other package under the
+ 'bmq' package group since they are implementation components that may change
+ at any time.
+
+/Hierarchical Synopsis
+/---------------------
+The 'bmq' group library currently has 5 packages forming 5 levels of physical
+dependency.
+..
+  5. bmqa
+
+  4. bmqimp
+
+  3. bmqp
+
+  2. bmqt
+
+  1. bmqscm
+..
+
+/Package Synopsis
+/------------------
+: 'bmqa':
+:      Provide applications public API for the BlazingmQ SDK.
+:
+: 'bmqimp':
+:      [INTERNAL] Provide implementation for the API of the BlazingMQ SDK.
+:
+: 'bmqp':
+:      [INTERNAL] Provide BlazingMQ protocol definition, builders and parsers.
+:
+: 'bmqscm':
+:      Provide versioning information for library components in 'bmq'.
+:
+: 'bmqt':
+:      Provide value-semantic vocabulary types.
+
+/Package Overview
+/----------------
+ The following provides a brief overview of several of the packages within the
+ 'bmq' package group, arranged in alphabetical order.  The descriptions here
+ are still very brief; see the respective Package Level documents for more
+ details and usage examples.
+
+/'bmqa'
+/- - -
+ 'bmqa' provides the top-level public APIs application can use to interact with
+  BlazingMQ framework in their applications.
+
+/'bmqt'
+/- - -
+ 'bmqt' provides value-semantic vocabulary types used in the {'bmqa'} APIs.

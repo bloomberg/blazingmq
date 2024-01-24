@@ -36,7 +36,7 @@ function(BMQ_ADD_TUTORIAL name)
                            "$<TARGET_PROPERTY:bmq,COMPILE_OPTIONS>")
 
     # Link with 'bmq'
-    target_link_libraries(${targetName} PRIVATE "bmq")
+    target_link_libraries(${targetName} PRIVATE "bmq" "z_bmq")
 
     ## Change the name of the generated output task from
     ## "<tutorialName>_<taskName>" to "<taskName>.tsk"
@@ -66,3 +66,4 @@ add_custom_target("tutorials")
 add_subdirectory("advanced")
 add_subdirectory("hello_world")
 add_subdirectory("subscriptions")
+add_subdirectory("c_wrapper")
