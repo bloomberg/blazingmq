@@ -1,0 +1,111 @@
+#!/bin/env python
+
+"""
+Tweak generator.
+"""
+
+import dataclasses
+from pathlib import Path
+from typing import IO, Type
+import typing
+
+from blazingmq.schemas import mqbcfg, mqbconf
+
+from blazingmq.dev import it
+
+
+def type_str(type_):
+    if origin := typing.get_origin(type_):
+        if origin == typing.Union:
+            nested = [type_str(item_type) for item_type in typing.get_args(type_)]
+            return "{}[{}]".format(origin, ",".join(nested))
+    else:
+        return (
+            type_.__qualname__
+            if type_.__module__ == "builtins"
+            else f"{type_.__module__}.{type_.__qualname__}"
+        )
+
+
+TWEAK_FORMAT = """
+    def __call__(self, value: {type}) -> Callable:
+        ...
+{attr} = {class_name}()
+"""
+
+
+def print_indented(text: str, indent: int, file: IO[str]):
+    for line in text.split("\n"):
+        print(" " * 4 * indent, line, sep="", file=file)
+
+
+def generate(cls: Type, indent: int, file: IO[str]):
+    for field in dataclasses.fields(cls):
+        class_name = "".join([word.capitalize() for word in field.name.split("_")])
+
+        print_indented(f"class {class_name}(metaclass=TweakMetaclass):", indent, file)
+
+        if origin := typing.get_origin(field.type):
+            if origin in (typing.Union, list):
+                nested_types = typing.get_args(field.type)
+            else:
+                assert False, f"add support for {origin}"
+
+            for item_type in nested_types:
+                if hasattr(item_type, "__annotations__"):
+                    generate(item_type, indent + 1, file)
+
+        print_indented(
+            TWEAK_FORMAT.format(
+                class_name=class_name,
+                type=type_str(field.type),
+                attr=field.name,
+            ),
+            indent,
+            file,
+        )
+
+
+HEADER = r'''
+"""
+GENERATED CODE - DO NOT EDIT
+"""
+
+# pylint: disable=missing-class-docstring, missing-function-docstring
+# pyright: reportOptionalMemberAccess=false
+# mypy: disable-error-code="union-attr"
+
+import decimal
+import typing
+from typing import Callable
+
+import blazingmq.schemas.mqbcfg
+import blazingmq.schemas.mqbconf
+
+from . import TweakMetaclass, decorator
+
+NoneType = typing.Type[None]
+
+
+class TweakFactory:
+    def __call__(self, tweak: Callable) -> Callable:
+        return decorator(tweak)
+'''
+
+FOOTER = """
+    broker = Broker()
+    domain = Domain()
+    cluster = Cluster()
+"""
+
+with open(
+    Path(it.__file__).parent.joinpath("tweaks", "generated.py"), "w", encoding="ascii"
+) as generated:
+    print(HEADER, file=generated)
+    print("    class Broker:", file=generated)
+    generate(mqbcfg.Configuration, 2, generated)
+    print("    class Domain:", file=generated)
+    generate(mqbconf.Domain, 2, generated)
+    print("    class Cluster:", file=generated)
+    generate(mqbcfg.ClusterDefinition, 2, generated)
+    print(FOOTER, file=generated)

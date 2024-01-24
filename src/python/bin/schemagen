@@ -1,0 +1,16 @@
+#! /usr/bin/env bash
+
+set -e
+
+this=$(dirname "$0")
+python_root=$(realpath "${this}"/..)
+blazingmq_root=$(realpath "${python_root}/../..")
+
+if [ ! "$(which xsdata)" ]; then
+    echo "'xsdata' is required"
+    exit 1
+fi
+
+cd "${python_root}"
+xsdata generate --package bmq.schemas "${blazingmq_root}/src/groups/mqb/mqbcfg/mqbcfg.xsd"
+xsdata generate --package bmq.schemas "${blazingmq_root}/src/groups/mqb/mqbconfm/mqbconf.xsd"
