@@ -214,6 +214,9 @@ bool CommandLineArguments::validate(bsl::string* error)
         }
     }
 
+    if (d_dumpLimit <= 0)
+        ss << "Dump limit must be positive value greater than zero.\n";
+
     error->assign(ss.str().data(), ss.str().length());
     return error->empty();
 }
