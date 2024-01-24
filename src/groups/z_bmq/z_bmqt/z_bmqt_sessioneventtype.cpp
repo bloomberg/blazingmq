@@ -10,7 +10,7 @@ z_bmqt_SessionEventType::toAscii(z_bmqt_SessionEventType::Enum value)
     return bmqt::SessionEventType::toAscii(static_cast<bmqt::SessionEventType::Enum>(value));
 }
 
-bool fromAscii(z_bmqt_SessionEventType::Enum* out, const char* str)
+bool z_bmqt_SessionEventType::fromAscii(z_bmqt_SessionEventType::Enum* out, const char* str)
 {
     using namespace BloombergLP;
     bmqt::SessionEventType::Enum p;

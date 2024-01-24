@@ -25,6 +25,8 @@ enum CorrelationId_Type {
     ec_CORRELATIONID_ERROR // error
 };
 
+int z_bmqt_CorrelationId__delete(z_bmqt_CorrelationId** correlationId_obj);
+
 int z_bmqt_CorrelationId__create(z_bmqt_CorrelationId** correlationId_obj);
 
 int z_bmqt_CorrelationId__createFromNumeric(z_bmqt_CorrelationId** correlationId_obj, int64_t numeric);

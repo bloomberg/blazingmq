@@ -30,7 +30,7 @@ void postEvent(const char* text,
     z_bmqa_MessageEventBuilder* builder;
     z_bmqa_MessageEventBuilder__create(&builder);
 
-    z_bmqa_Session__loadMessageEventBuilder(session, &builder);
+    z_bmqa_Session__loadMessageEventBuilder(session, builder);
 
     z_bmqa_Message* message;
     
@@ -76,7 +76,7 @@ void produce(z_bmqa_Session* session){
     z_bmqa_QueueId__delete(&queueId);
 }
 
-int run_c_producer(){
+int main(){
     z_bmqa_Session* session;
     z_bmqt_SessionOptions* options;
 

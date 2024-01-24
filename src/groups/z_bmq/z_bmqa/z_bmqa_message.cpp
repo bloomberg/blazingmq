@@ -247,16 +247,16 @@ int z_bmqa_Message__getData(const z_bmqa_Message* message_obj, char** buffer)
     const bmqa::Message* message_p = reinterpret_cast<const bmqa::Message*>(
         message_obj);
 
-    bdlbb::Blob data;
-    message_p->getData(&data);
+    bdlbb::Blob       data;
+    int               rc = message_p->getData(&data);
     bsl::stringstream ss;
     ss << bdlbb::BlobUtilHexDumper(&data);
-    bsl::string data_str = ss.str();
-    *buffer = new char[data_str.length()+1];
+    bsl::string data_str         = ss.str();
+    *buffer                      = new char[data_str.length() + 1];
     (*buffer)[data_str.length()] = '\0';
     strcpy(*buffer, data_str.c_str());
 
-    return 0;
+    return rc;
 }
 
 int z_bmqa_Message__dataSize(const z_bmqa_Message* message_obj)
