@@ -17,7 +17,6 @@ import functools
 import itertools
 import logging
 import os
-import psutil
 import re
 import shutil
 import tempfile
@@ -25,12 +24,12 @@ from enum import IntEnum
 from pathlib import Path
 from typing import Callable, Generator, Iterator, List, Optional, Tuple
 
-import pytest
-
+import blazingmq.dev.configurator as cfg
 import blazingmq.dev.it.process.bmqproc
 import blazingmq.dev.it.testconstants as tc
-import blazingmq.dev.workspace as ws
 import blazingmq.util.logging as bul
+import psutil
+import pytest
 from blazingmq.dev.it.cluster import Cluster
 from blazingmq.dev.it.tweaks import tweak  # pylint: disable=unused-import
 from blazingmq.dev.it.tweaks import TWEAK_ATTRIBUTE, Tweak
@@ -59,14 +58,6 @@ def start_cluster(start=True, wait_leader=True, wait_ready=False):
         setattr(func, "_start_cluster", start)
         setattr(func, "_wait_leader", wait_leader)
         setattr(func, "_wait_ready", wait_ready)
-        return func
-
-    return decorator
-
-
-def cluster_config(config):
-    def decorator(func):
-        setattr(func, "_cluster_config", config)
         return func
 
     return decorator
@@ -308,8 +299,8 @@ def cluster_fixture(request, configure) -> Generator:
             if log_dir:
                 extra_cluster_kw_args["copy_cores"] = log_dir
 
-            workspace = ws.Workspace()
-            log_config = workspace.proto.broker.task_config.log_controller
+            configurator = cfg.Configurator()
+            log_config = configurator.proto.broker.task_config.log_controller
             log_config.logging_verbosity = logging.getLevelName(broker_threshold)
             log_config.console_severity_threshold = logging.getLevelName(
                 broker_threshold
@@ -329,18 +320,18 @@ def cluster_fixture(request, configure) -> Generator:
                         if tweaks:
                             for (tweak_callable, tweak_stage) in tweaks:
                                 if tweak_stage == stage:
-                                    tweak_callable(workspace)
+                                    tweak_callable(configurator)
 
             apply_tweaks(0)
-            configure(workspace, port_allocator)
+            configure(configurator, port_allocator)
             apply_tweaks(1)
 
-            for broker in workspace.brokers.values():
-                broker.deploy(ws.HostLocation(work_dir / broker.name))
+            for broker in configurator.brokers.values():
+                broker.deploy(cfg.LocalSite(work_dir / broker.name))
 
-            main_cluster: Optional[ws.Cluster] = None
+            main_cluster: Optional[cfg.Cluster] = None
 
-            for cluster_config in workspace.clusters.values():
+            for cluster_config in configurator.clusters.values():
                 if cluster_config.name == "itCluster":
                     assert main_cluster is None
                     main_cluster = cluster_config
@@ -349,7 +340,7 @@ def cluster_fixture(request, configure) -> Generator:
 
             with Cluster(
                 main_cluster,
-                workspace,
+                configurator,
                 work_dir,
                 tool_extra_args=tool_extra_args,
                 **extra_cluster_kw_args,
@@ -467,9 +458,6 @@ class ProxyConnection:
 class ForwardProxyConnection(ProxyConnection):
     suffix = ""
 
-    def tweak(_):
-        pass
-
 
 class ReverseProxyConnection:
     suffix = "_rev"
@@ -482,7 +470,7 @@ WorkspaceConfigurator = Callable[..., None]
 # single node cluster
 
 
-def add_test_domains(cluster: ws.Cluster):
+def add_test_domains(cluster: cfg.Cluster):
     for (domain_factory, domain_name, *args) in (
         (cluster.priority_domain, tc.DOMAIN_PRIORITY),
         (cluster.priority_domain, tc.DOMAIN_PRIORITY_SC),
@@ -490,7 +478,7 @@ def add_test_domains(cluster: ws.Cluster):
         (cluster.fanout_domain, tc.DOMAIN_FANOUT_SC, tc.TEST_APPIDS),
         (cluster.broadcast_domain, tc.DOMAIN_BROADCAST),
     ):
-        domain: ws.Domain = domain_factory(domain_name, *args)
+        domain: cfg.Domain = domain_factory(domain_name, *args)
         assert domain.definition.parameters is not None
         if domain_name.endswith(".sc"):
             domain.definition.parameters.consistency = mqbconf.Consistency(
@@ -503,18 +491,18 @@ def add_test_domains(cluster: ws.Cluster):
 
 
 def single_node_cluster_config(
-    workspace: ws.Workspace, port_allocator: Iterator[int], mode: Mode
+    configurator: cfg.Configurator, port_allocator: Iterator[int], mode: Mode
 ):
-    mode.tweak(workspace.proto.cluster)
+    mode.tweak(configurator.proto.cluster)
 
-    broker = workspace.broker(
+    broker = configurator.broker(
         name="single",
         tcp_host="localhost",
         tcp_port=next(port_allocator),
         data_center="single_node",
     )
 
-    cluster = workspace.cluster(name="itCluster", nodes=[broker])
+    cluster = configurator.cluster(name="itCluster", nodes=[broker])
     add_test_domains(cluster)
 
 
@@ -544,17 +532,17 @@ def single_node(request):
 
 
 def multi_node_cluster_config(
-    workspace: ws.Workspace,
+    configurator: cfg.Configurator,
     port_allocator: Iterator[int],
     mode: Mode,
     reverse_proxy: bool = False,
 ) -> None:
-    mode.tweak(workspace.proto.cluster)
+    mode.tweak(configurator.proto.cluster)
 
-    cluster = workspace.cluster(
+    cluster = configurator.cluster(
         name="itCluster",
         nodes=[
-            workspace.broker(
+            configurator.broker(
                 name=f"{data_center}{broker}",
                 tcp_host="localhost",
                 tcp_port=next(port_allocator),
@@ -568,7 +556,7 @@ def multi_node_cluster_config(
     add_test_domains(cluster)
 
     for data_center in ("east", "west"):
-        workspace.broker(
+        configurator.broker(
             name=f"{data_center}p",
             tcp_host="localhost",
             tcp_port=next(port_allocator),
@@ -610,17 +598,17 @@ def cluster(request):
 
 
 def virtual_cluster_config(
-    workspace: ws.Workspace,
+    configurator: cfg.Configurator,
     port_allocator: Iterator[int],
     mode: Mode,
     reverse_proxy: bool = False,
 ) -> None:
-    mode.tweak(workspace.proto.cluster)
+    mode.tweak(configurator.proto.cluster)
 
-    final_cluster = workspace.cluster(
+    final_cluster = configurator.cluster(
         name="itCluster",
         nodes=[
-            workspace.broker(
+            configurator.broker(
                 name=f"{data_center}{broker}",
                 tcp_host="localhost",
                 tcp_port=next(port_allocator),
@@ -632,10 +620,10 @@ def virtual_cluster_config(
     )
     add_test_domains(final_cluster)
 
-    cluster = workspace.virtual_cluster(
+    cluster = configurator.virtual_cluster(
         name="itVirtualCluster",
         nodes=[
-            workspace.broker(
+            configurator.broker(
                 name=f"{data_center}v",
                 tcp_host="localhost",
                 tcp_port=next(port_allocator),
@@ -647,7 +635,7 @@ def virtual_cluster_config(
     cluster.proxy(final_cluster)
 
     for data_center in ("east", "west"):
-        workspace.broker(
+        configurator.broker(
             name=f"{data_center}p",
             tcp_host="localhost",
             tcp_port=next(port_allocator),

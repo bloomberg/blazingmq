@@ -16,19 +16,19 @@ from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
 )
 from blazingmq.dev.it.process.client import Client
 from blazingmq.dev.it.util import wait_until
-from blazingmq.dev.workspace import Workspace
+from blazingmq.dev.configurator import Configurator
 
 OTHER_DOMAIN = f"{tc.DOMAIN_PRIORITY}.other"
 
 
 def multi_cluster_config(
-    workspace: Workspace, port_allocator: Iterator[int], mode: Mode
+    configurator: Configurator, port_allocator: Iterator[int], mode: Mode
 ):
-    virtual_cluster_config(workspace, port_allocator, mode)
-    other_cluster = workspace.cluster(
+    virtual_cluster_config(configurator, port_allocator, mode)
+    other_cluster = configurator.cluster(
         "otherCluster",
         nodes=[
-            workspace.broker(
+            configurator.broker(
                 "localhost", next(port_allocator), f"{dc}{i}", data_center=dc
             )
             for dc in ("east", "west")
@@ -38,7 +38,7 @@ def multi_cluster_config(
     other_cluster.priority_domain(OTHER_DOMAIN)
 
     for proxy in ("eastp", "westp"):
-        workspace.brokers[proxy].proxy(other_cluster)
+        configurator.brokers[proxy].proxy(other_cluster)
 
 
 @pytest.fixture(

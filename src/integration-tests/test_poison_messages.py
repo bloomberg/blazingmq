@@ -10,13 +10,13 @@ from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
     start_cluster,
     tweak,
 )
-from blazingmq.dev.workspace import Workspace
+from blazingmq.dev.configurator import Configurator
 
 pytestmark = order(5)
 
 def message_throttling(high: int, low: int):
-    def tweaker(workspace: Workspace):
-        throttle_config = workspace.proto.cluster.message_throttle_config
+    def tweaker(configurator: Configurator):
+        throttle_config = configurator.proto.cluster.message_throttle_config
         assert throttle_config is not None
         throttle_config.high_threshold = high
         throttle_config.low_threshold = low

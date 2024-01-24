@@ -1,5 +1,5 @@
 """
-Support for creating a "workspace", i.e. a collection of directories and
+Support for creating a "configurator", i.e. a collection of directories and
 scripts for running a cluster.
 """
 
@@ -22,14 +22,15 @@ from pathlib import Path
 from shutil import rmtree
 from typing import IO, Dict, Iterable, Iterator, List, Optional, Set, Tuple, Union
 
-from blazingmq.dev.paths import required_paths as paths
-from blazingmq.schemas import mqbcfg, mqbconf
 from termcolor import colored
 from xsdata.formats.dataclass.context import XmlContext
 from xsdata.formats.dataclass.serializers import JsonSerializer
 from xsdata.formats.dataclass.serializers.config import SerializerConfig
 
-__all__ = ["Workspace"]
+from blazingmq.dev.paths import required_paths as paths
+from blazingmq.schemas import mqbcfg, mqbconf
+
+__all__ = ["Configurator"]
 
 COLORS = {
     "green": 32,
@@ -68,7 +69,7 @@ cd $(dirname $0)
 """
 
 
-class WorkspaceError(RuntimeError):
+class ConfiguratorError(RuntimeError):
     pass
 
 
@@ -84,7 +85,7 @@ class Domain:
 
 @dataclass(frozen=True)
 class Broker:
-    workspace: "Workspace"
+    configurator: "Configurator"
     id: int
     config: mqbcfg.Configuration
     clusters: mqbcfg.ClustersDefinition = field(
@@ -133,13 +134,13 @@ class Broker:
                 name=cluster.name,
                 nodes=[copy.deepcopy(node) for node in cluster.definition.nodes],
                 queue_operations=copy.deepcopy(
-                    self.workspace.proto.cluster.queue_operations
+                    self.configurator.proto.cluster.queue_operations
                 ),
                 cluster_monitor_config=copy.deepcopy(
-                    self.workspace.proto.cluster.cluster_monitor_config
+                    self.configurator.proto.cluster.cluster_monitor_config
                 ),
                 message_throttle_config=copy.deepcopy(
-                    self.workspace.proto.cluster.message_throttle_config
+                    self.configurator.proto.cluster.message_throttle_config
                 ),
             )
         )
@@ -162,7 +163,7 @@ class Broker:
                 continue
 
             self.clusters.my_reverse_clusters.append(cluster.name)
-            reverse_cluster = self.workspace.clusters[cluster.name]
+            reverse_cluster = self.configurator.clusters[cluster.name]
 
             for node in reverse_cluster.nodes.values():
                 if reverse_cluster.name not in node._proxy_clusters:
@@ -197,18 +198,18 @@ class Broker:
 
         return self
 
-    def deploy(self, location: "Location") -> None:
-        self.deploy_programs(location)
-        self.deploy_broker_config(location)
-        self.deploy_domains(location)
+    def deploy(self, site: "Site") -> None:
+        self.deploy_programs(site)
+        self.deploy_broker_config(site)
+        self.deploy_domains(site)
 
-    def deploy_programs(self, location: "Location") -> None:
-        location.install(paths.broker, "bin")
-        location.install(paths.tool, "bin")
-        location.install(paths.plugins, ".")
+    def deploy_programs(self, site: "Site") -> None:
+        site.install(paths.broker, "bin")
+        site.install(paths.tool, "bin")
+        site.install(paths.plugins, ".")
 
         for script, cmd in ("run", "exec"), ("debug", "gdb --args"):
-            location.create_file(
+            site.create_file(
                 script,
                 RUN_SCRIPT.format(cmd=cmd, host=self.name),
                 mode=0o755,
@@ -218,7 +219,7 @@ class Broker:
             ("run-client", "exec"),
             ("debug-client", "gdb ./bmqtool.tsk --args"),
         ):
-            location.create_file(
+            site.create_file(
                 script,
                 TOOL_SCRIPT.format(
                     cmd=cmd,
@@ -227,23 +228,23 @@ class Broker:
                 mode=0o755,
             )
 
-    def deploy_broker_config(self, location: "Location") -> None:
-        location.create_json_file("etc/bmqbrkrcfg.json", self.config)
+    def deploy_broker_config(self, site: "Site") -> None:
+        site.create_json_file("etc/bmqbrkrcfg.json", self.config)
 
         log_dir = Path(self.config.task_config.log_controller.file_name).parent  # type: ignore
         if log_dir != Path():
-            location.mkdir(log_dir)
+            site.mkdir(log_dir)
 
         stats_dir = Path(self.config.app_config.stats.printer.file).parent  # type: ignore
         if stats_dir != Path():
-            location.mkdir(stats_dir)
+            site.mkdir(stats_dir)
 
-    def deploy_domains(self, location: "Location") -> None:
-        location.create_json_file("etc/clusters.json", self.clusters)
-        location.rmdir("etc/domains")
+    def deploy_domains(self, site: "Site") -> None:
+        site.create_json_file("etc/clusters.json", self.clusters)
+        site.rmdir("etc/domains")
 
         for domain in self.domains.values():
-            location.create_json_file(
+            site.create_json_file(
                 f"etc/domains/{domain.name}.json",
                 mqbconf.DomainVariant(definition=domain.definition),
             )
@@ -251,7 +252,7 @@ class Broker:
 
 @dataclass(frozen=True, repr=False)
 class AbstractCluster:
-    workspace: "Workspace"
+    configurator: "Configurator"
     definition: Union[mqbcfg.ClusterDefinition, mqbcfg.VirtualClusterInformation]
     nodes: Dict[str, Broker]
     domains: Dict[str, "Domain"] = field(default_factory=dict)
@@ -269,7 +270,7 @@ class AbstractCluster:
 
     def _add_domain(self, domain: "Domain") -> "Domain":
         if domain.name in self.domains:
-            raise WorkspaceError(
+            raise ConfiguratorError(
                 f"domain '{domain.name}' already exists in {self.name}"
             )
 
@@ -283,7 +284,7 @@ class AbstractCluster:
 
 class Cluster(AbstractCluster):
     def broadcast_domain(self, name: str) -> "Domain":
-        parameters = self.workspace.domain_definition()
+        parameters = self.configurator.domain_definition()
         parameters.name = name
         parameters.mode = mqbconf.QueueMode(broadcast=mqbconf.QueueModeBroadcast())
         parameters.storage.config.in_memory = mqbconf.InMemoryStorage()
@@ -293,7 +294,7 @@ class Cluster(AbstractCluster):
         return self._add_domain(Domain(self, domain))
 
     def fanout_domain(self, name: str, app_ids: List[str]) -> "Domain":
-        parameters = self.workspace.domain_definition()
+        parameters = self.configurator.domain_definition()
         parameters.name = name
         parameters.mode = mqbconf.QueueMode(fanout=mqbconf.QueueModeFanout([*app_ids]))
         domain = mqbconf.DomainDefinition(self.name, parameters)
@@ -301,7 +302,7 @@ class Cluster(AbstractCluster):
         return self._add_domain(Domain(self, domain))
 
     def priority_domain(self, name: str) -> "Domain":
-        parameters = self.workspace.domain_definition()
+        parameters = self.configurator.domain_definition()
         parameters.name = name
         parameters.mode = mqbconf.QueueMode(priority=mqbconf.QueueModePriority())
         domain = mqbconf.DomainDefinition(self.name, parameters)
@@ -321,15 +322,15 @@ class VirtualCluster(AbstractCluster):
             self.domains[domain.name] = Domain(self, definition)
 
 
-class Location(abc.ABC):
-    workspace: "Workspace"
+class Site(abc.ABC):
+    configurator: "Configurator"
 
     @abc.abstractmethod
     def install(self, from_path: Union[str, Path], to_path: Union[str, Path]) -> None:
         ...
 
     @abc.abstractmethod
-    def create_file(self, path: Union[str, Path], content: str, *, mode=None) -> None:
+    def create_file(self, path: Union[str, Path], content: str, mode=None) -> None:
         ...
 
     @abc.abstractmethod
@@ -604,9 +605,9 @@ class Proto:
 
 
 @dataclass(frozen=True)
-class Workspace:
+class Configurator:
     """
-    Workspace builder.
+    Configurator builder.
 
     This mechanism has two purposes:
 
@@ -662,7 +663,7 @@ class Workspace:
         self, name: str, nodes: List[Broker], definition: mqbcfg.ClusterDefinition
     ):
         if name in self.clusters:
-            raise WorkspaceError(f"cluster '{name}' already exists")
+            raise ConfiguratorError(f"cluster '{name}' already exists")
 
         definition.name = name
         definition.nodes = [
@@ -743,7 +744,7 @@ def _json_filter(kv_pairs: Tuple) -> Dict:
     return {k: (float(v) if "Ratio" in k else v) for k, v in kv_pairs if v is not None}
 
 
-class HostLocation(Location):
+class LocalSite(Site):
     root_dir: Path
 
     def __init__(self, root_dir: Union[Path, str]):
@@ -765,7 +766,7 @@ class HostLocation(Location):
             target.unlink(missing_ok=True)
         target.symlink_to(from_path.resolve(), target_is_directory=from_path.is_dir())
 
-    def create_file(self, path: Union[str, Path], content: str, *, mode=None) -> None:
+    def create_file(self, path: Union[str, Path], content: str, mode=None) -> None:
         path = self.root_dir / path
         path.parent.mkdir(0o755, exist_ok=True, parents=True)
         with open(path, "w", encoding="ascii") as out:
@@ -787,8 +788,8 @@ class HostLocation(Location):
 
 
 @dataclass
-class Brokers(contextlib.AbstractContextManager):
-    workspace: Workspace
+class Session(contextlib.AbstractContextManager):
+    configurator: Configurator
     root: Path
     brokers: Dict[Broker, MonitoredProcess] = field(default_factory=dict)
 
@@ -809,9 +810,9 @@ class Brokers(contextlib.AbstractContextManager):
 
     def run(self):
         colors = itertools.cycle(COLORS)
-        prefix_len = max(len(name) for name in self.workspace.brokers)
+        prefix_len = max(len(name) for name in self.configurator.brokers)
 
-        for broker in self.workspace.brokers.values():
+        for broker in self.configurator.brokers.values():
             monitored = MonitoredProcess()
             self.brokers[broker] = monitored
 

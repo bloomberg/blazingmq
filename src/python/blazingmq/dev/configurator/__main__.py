@@ -1,9 +1,9 @@
 """
-Create a workspace for running a cluster.
+Create a configurator for running a cluster.
 
-BMQ workspace generator
+BMQ configurator generator
 
-usage: python-m blazingmq.dev.workspace
+usage: python-m blazingmq.dev.configurator
             [-h] [--log-level LEVELS]
             --workdir WORKDIR [--port-base PORT]
 
@@ -25,11 +25,11 @@ import socket
 from pathlib import Path
 
 import blazingmq.util.logging as bul
-from blazingmq.dev.workspace import Workspace, HostLocation, Brokers, logger
+from blazingmq.dev.configurator import Configurator, LocalSite, Session, logger
 
 parser = argparse.ArgumentParser(
-    prog="python -m blazingmq.dev.workspace",
-    description="BMQ workspace generator",
+    prog="python -m blazingmq.dev.configurator",
+    description="BMQ configurator generator",
     parents=[bul.make_parser()],
 )
 
@@ -64,35 +64,35 @@ def ephemeral_port_allocator():
         yield sock.getsockname()[1]
 
 
-workspace = Workspace()
+configurator = Configurator()
 
 if args.port_base is not None:
     port_allocator = itertools.count(args.port_base)
 else:
     port_allocator = ephemeral_port_allocator()
 
-cluster = workspace.cluster(
+cluster = configurator.cluster(
     name="c2x2",
     nodes=[
-        workspace.broker(
+        configurator.broker(
             name="east/1",
             tcp_host="localhost",
             tcp_port=next(port_allocator),
             data_center="east",
         ),
-        workspace.broker(
+        configurator.broker(
             name="east/2",
             tcp_host="localhost",
             tcp_port=next(port_allocator),
             data_center="east",
         ),
-        workspace.broker(
+        configurator.broker(
             name="west/1",
             tcp_host="localhost",
             tcp_port=next(port_allocator),
             data_center="west",
         ),
-        workspace.broker(
+        configurator.broker(
             name="west/2",
             tcp_host="localhost",
             tcp_port=next(port_allocator),
@@ -104,10 +104,10 @@ cluster = workspace.cluster(
 
 priority_domain = cluster.priority_domain("bmq.test.mmap.priority")
 # TODO: move test domain definitions to this package, add them to the
-# workspace.
+# configurator.
 
-for broker in workspace.brokers.values():
-    broker.deploy(HostLocation(args.root / broker.name))
+for broker in configurator.brokers.values():
+    broker.deploy(LocalSite(args.root / broker.name))
 
 
 def on_signal(signum: int, frame) -> None:  # pylint: disable=W0613
@@ -119,14 +119,14 @@ def on_signal(signum: int, frame) -> None:  # pylint: disable=W0613
 
     logger.info("received signal: %s. Exiting...", signum)
 
+
 signal.signal(signal.SIGINT, on_signal)  # handle CTRL-C
 signal.signal(signal.SIGTERM, on_signal)
 
-with Brokers(workspace, args.root) as brokers:
-    brokers.run()
-
-    for broker in brokers.brokers:
+with Session(configurator, args.root) as Session:
+    for broker in configurator.brokers.values():
         print("{}: tcp://{}:{}".format(broker.name, broker.host, broker.port))
 
     print("C-c to exit...")
+    Session.run()
     signal.pause()

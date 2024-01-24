@@ -18,7 +18,7 @@ from typing import Any, Callable, Dict, Optional, List
 import blazingmq.dev.it.process.bmqproc
 from blazingmq.dev.it.testconstants import *
 from blazingmq.dev.it.util import internal_use, ListContextManager, Queue
-import blazingmq.dev.workspace as ws
+import blazingmq.dev.configurator as cfg
 
 Message = namedtuple("Message", "guid, uri, correlationId, payload")
 CommandResult = namedtuple("CommandResult", "error_code, matches")
@@ -77,7 +77,7 @@ class Client(blazingmq.dev.it.process.bmqproc.BMQProcess):
     e_INVALID_ARGUMENT = -7
     e_NOT_READY = -8
 
-    def __init__(self, name, broker: ws.Broker, options=None, dump_messages=True, **kwargs):
+    def __init__(self, name, broker: cfg.Broker, options=None, dump_messages=True, **kwargs):
         if options is None:
             options = []
         elif type(options) is str:

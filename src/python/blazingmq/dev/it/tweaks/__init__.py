@@ -2,9 +2,9 @@ import logging
 import re
 from typing import Any, Callable, List, Optional
 
-from blazingmq.dev.workspace import Workspace
+from blazingmq.dev.configurator import Configurator
 
-Tweak = Callable[[Workspace], None]
+Tweak = Callable[[Configurator], None]
 
 TWEAK_ATTRIBUTE = "__tweaks__"
 SNAKE_RE = re.compile("([A-Z]+[a-z0-9]+)")
@@ -12,7 +12,7 @@ SNAKE_RE = re.compile("([A-Z]+[a-z0-9]+)")
 logger = logging.getLogger(__name__).parent
 
 
-def decorator(tweak: Callable[[Workspace], None]):
+def decorator(tweak: Callable[[Configurator], None]):
     """
     Return a decorator that adds 'tweak' to 'target''s tweak list (creating it
     if necessary).
@@ -48,10 +48,10 @@ class TweakMetaclass(type):
             _ = path.pop(0)
             leaf = path.pop()
 
-            def tweak(workspace: Workspace) -> None:
+            def tweak(configurator: Configurator) -> None:
                 logger.debug("set %s to %s", path, value)
 
-                obj = workspace.proto
+                obj = configurator.proto
                 for attr in path:
                     obj = getattr(obj, attr)
                 setattr(obj, leaf, value)

@@ -12,7 +12,7 @@ from pathlib import Path
 
 import blazingmq.dev.it.process.proc
 import blazingmq.dev.it.testconstants as tc
-import blazingmq.dev.workspace as ws
+import blazingmq.dev.configurator as cfg
 from blazingmq.dev.it.process.broker import Broker
 from blazingmq.dev.it.process.client import Client
 from blazingmq.dev.it.util import ListContextManager, Queue, internal_use
@@ -52,8 +52,8 @@ class Cluster(contextlib.AbstractContextManager):
 
     def __init__(
         self,
-        config: ws.Cluster,
-        workspace: ws.Workspace,
+        config: cfg.Cluster,
+        configurator: cfg.Configurator,
         work_dir: Path,
         tool_extra_args=None,
         copy_cores: Optional[Path] = None,
@@ -63,7 +63,7 @@ class Cluster(contextlib.AbstractContextManager):
         """
 
         self.config = config
-        self.workspace = workspace
+        self.configurator = configurator
         self.work_dir = work_dir
         self.copy_cores = copy_cores
 
@@ -112,7 +112,7 @@ class Cluster(contextlib.AbstractContextManager):
         """
 
         with internal_use(self):
-            for broker in self.config.workspace.brokers.values():
+            for broker in self.config.configurator.brokers.values():
                 if len(broker.clusters.my_virtual_clusters) > 0:
                     self.start_virtual_node(broker)
                 elif len(broker.clusters.my_clusters) == 0:
@@ -301,7 +301,7 @@ class Cluster(contextlib.AbstractContextManager):
         # self._esx.close()
 
     # TODO: fold following three in start_broker
-    def start_node(self, broker: Union[ws.Broker, str]):
+    def start_node(self, broker: Union[cfg.Broker, str]):
         """
         Start a process for 'broker'.
         """
@@ -316,7 +316,7 @@ class Cluster(contextlib.AbstractContextManager):
 
         return self._start_broker(broker, self._nodes, "itCluster")
 
-    def start_virtual_node(self, broker: Union[ws.Broker, str]):
+    def start_virtual_node(self, broker: Union[cfg.Broker, str]):
         """Start the node specified by 'name'."""
 
         if isinstance(broker, str):
@@ -327,11 +327,11 @@ class Cluster(contextlib.AbstractContextManager):
 
         return self._start_broker(broker, self._virtual_nodes, "itVirtualCluster")
 
-    def start_proxy(self, broker: Union[ws.Broker, str]):
+    def start_proxy(self, broker: Union[cfg.Broker, str]):
         """Start the proxy specified by 'name'."""
 
         if isinstance(broker, str):
-            broker = self.config.workspace.brokers[broker]
+            broker = self.config.configurator.brokers[broker]
 
         self._logger.info("starting proxy [%s]", broker.name)
 
@@ -436,7 +436,7 @@ class Cluster(contextlib.AbstractContextManager):
     def create_client(
         self,
         prefix,
-        broker: ws.Broker,
+        broker: cfg.Broker,
         start=True,
         dump_messages=True,
         options=None,
@@ -593,8 +593,8 @@ class Cluster(contextlib.AbstractContextManager):
         )
 
     def deploy_domains(self):
-        for broker in self.workspace.brokers.values():
-            broker.deploy_domains(ws.HostLocation(self.work_dir / broker.name))
+        for broker in self.configurator.brokers.values():
+            broker.deploy_domains(cfg.LocalSite(self.work_dir / broker.name))
 
     def reconfigure_domain(
         self,
@@ -637,7 +637,7 @@ class Cluster(contextlib.AbstractContextManager):
     ###########################################################################
     # Internals
 
-    def _start_broker(self, broker: ws.Broker, array, cluster_name):
+    def _start_broker(self, broker: cfg.Broker, array, cluster_name):
         if broker.name in self._processes:
             raise RuntimeError(f'node "{broker.name}" is already running')
 

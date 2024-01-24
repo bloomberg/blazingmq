@@ -16,7 +16,7 @@ import signal
 from blazingmq.dev.it.process import proc
 import blazingmq.dev.it.process.bmqproc
 import blazingmq.dev.it.testconstants as tc
-import blazingmq.dev.workspace as ws
+import blazingmq.dev.configurator as cfg
 
 from blazingmq.dev.it.util import internal_use, ListContextManager, Queue
 
@@ -31,7 +31,7 @@ def open_non_blocking(path, flags):
 
 
 class Broker(blazingmq.dev.it.process.bmqproc.BMQProcess):
-    def __init__(self, config: ws.Broker, cluster, **kwargs):
+    def __init__(self, config: cfg.Broker, cluster, **kwargs):
         cwd: Path = kwargs["cwd"]
         (cwd / "bmqbrkr.ctl").unlink(missing_ok=True)
         cwd.joinpath("storage", "archive").mkdir(parents=True)
