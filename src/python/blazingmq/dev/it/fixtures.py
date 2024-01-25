@@ -222,10 +222,7 @@ def cluster_fixture(request, configure) -> Generator:
                 if failures == request.session.testsfailed and not get_option_ini(
                     request.config, "bmq_keep_logs"
                 ):
-                    try:
-                        log_file_path.unlink()
-                    except:
-                        pass
+                    log_file_path.unlink(missing_ok=True)
 
             on_exit.callback(remove_log_file_handler)
 

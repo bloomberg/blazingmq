@@ -7,15 +7,16 @@ import itertools
 import logging
 import shutil
 import signal
-from typing import Any, Dict, List, Optional, Union
 from pathlib import Path
+from typing import Any, Dict, List, Optional, Union
 
+import blazingmq.dev.configurator as cfg
 import blazingmq.dev.it.process.proc
 import blazingmq.dev.it.testconstants as tc
-import blazingmq.dev.configurator as cfg
 from blazingmq.dev.it.process.broker import Broker
 from blazingmq.dev.it.process.client import Client
 from blazingmq.dev.it.util import ListContextManager, Queue, internal_use
+from blazingmq.dev.paths import paths
 
 logger = logging.getLogger(__name__)
 
@@ -205,13 +206,19 @@ class Cluster(contextlib.AbstractContextManager):
             if process.is_alive():
                 self._logger.error("process %s refuses to exit", process.name)
             elif process.check_exit_code and process.returncode != 0:
-                if cores_dir is not None:
+                if self.copy_cores and cores_dir:
                     core_found = False
                     for core in cores_dir.iterdir():
                         if core.is_file and str(process.pid) in str(core):
                             core_found = True
                             logger.info("copying core %s to %s", core, self.copy_cores)
                             shutil.copy(core, self.copy_cores)
+                            for tsk in (paths.broker, paths.tool):
+                                copy_tsk = self.copy_cores / tsk.name
+                                if not copy_tsk.exists():
+                                    shutil.copy(
+                                        tsk, self.copy_cores, follow_symlinks=True
+                                    )
                             break
                     if not core_found:
                         self._logger.warning("could not find core for %s", process.name)
