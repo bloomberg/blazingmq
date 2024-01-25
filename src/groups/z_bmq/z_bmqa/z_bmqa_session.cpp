@@ -17,7 +17,7 @@ z_bmqa_CustomSessionEventHandler::z_bmqa_CustomSessionEventHandler(
     this->onMessageEventCb = onMessageEventCb;
 
     if (mSize != 0) {
-        data = (void*)(new char[mSize]);
+        data = static_cast<void*>(new char[mSize]);
     }
     else {
         data = NULL;
@@ -27,7 +27,7 @@ z_bmqa_CustomSessionEventHandler::z_bmqa_CustomSessionEventHandler(
 z_bmqa_CustomSessionEventHandler::~z_bmqa_CustomSessionEventHandler()
 {
     if (data != NULL) {
-        delete[] (char*)data;
+        delete[] static_cast<char*>(data);
     }
 }
 
@@ -45,6 +45,13 @@ void z_bmqa_CustomSessionEventHandler::onMessageEvent(
     const z_bmqa_MessageEvent* messageEvent_p =
         reinterpret_cast<const z_bmqa_MessageEvent*>(&messageEvent);
     this->onMessageEventCb(messageEvent_p, this->data);
+}
+
+void z_bmqa_CustomSessionEventHandler::callCustomFunction(
+    z_bmqa_SessionEventHandlerMemberFunction function,
+    void*                                    args)
+{
+    function(args, this->data);
 }
 
 void z_bmqa_CustomSessionEventHandler::lock()
@@ -76,20 +83,18 @@ int z_bmqa_SessionEventHandler__create(
                                              dataSize);
     *eventHandler_obj = reinterpret_cast<z_bmqa_SessionEventHandler*>(
         eventHandler_p);
-    ;
+
     return 0;
 }
 
-int z_bmqa_SessionEventHandler__getData(
-    z_bmqa_SessionEventHandler* eventHandler_obj,
-    void**                      buffer)
+int z_bmqa_SessionEventHandler__callCustomFunction(
+    z_bmqa_SessionEventHandler*              eventHandler_obj,
+    z_bmqa_SessionEventHandlerMemberFunction cb,
+    void*                                    args)
 {
-    using namespace BloombergLP;
-
     z_bmqa_CustomSessionEventHandler* eventHandler_p =
         reinterpret_cast<z_bmqa_CustomSessionEventHandler*>(eventHandler_obj);
-
-    *buffer = eventHandler_p->getData();
+    eventHandler_p->callCustomFunction(cb, args);
 
     return 0;
 }

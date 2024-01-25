@@ -27,18 +27,19 @@ typedef void (*z_bmqa_OnSessionEventCb)(
 typedef void (*z_bmqa_OnMessageEventCb)(
     const z_bmqa_MessageEvent* messageEvent,
     void*                      data);
+typedef void (*z_bmqa_SessionEventHandlerMemberFunction)(void* args,
+                                                         void* data);
 
 int z_bmqa_SessionEventHandler__create(
     z_bmqa_SessionEventHandler** eventHandler_obj,
     z_bmqa_OnSessionEventCb      onSessionEvent,
     z_bmqa_OnMessageEventCb      onMessageEvent,
-    uint64_t dataSize);
+    uint64_t                     dataSize);
 
-int z_bmqa_SessionEventHandler__getData(
-    z_bmqa_SessionEventHandler* eventHandler_obj, void** buffer);
-
-typedef struct z_bmqa_MessageConfirmationCookie
-    z_bmqa_MessageConfirmationCookie;
+int z_bmqa_SessionEventHandler__callCustomFunction(
+    z_bmqa_SessionEventHandler*              eventHandler_obj,
+    z_bmqa_SessionEventHandlerMemberFunction cb,
+    void*                                    args);
 
 typedef struct z_bmqa_Session z_bmqa_Session;
 
@@ -148,7 +149,8 @@ class z_bmqa_CustomSessionEventHandler
 
     void onMessageEvent(const BloombergLP::bmqa::MessageEvent& messageEvent);
 
-    void* getData() { return this->data; }
+    void callCustomFunction(z_bmqa_SessionEventHandlerMemberFunction function,
+                            void*                                    args);
 
     void lock();
 
