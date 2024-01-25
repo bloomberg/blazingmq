@@ -973,18 +973,25 @@ static void test4_searchExistingAndNonExistingGuidTest()
     bsl::ostringstream resultStream(s_allocator_p);
     searchProcessor.process(resultStream);
 
-    // Prepare expected output
-    bsl::ostringstream expectedStream(s_allocator_p);
-    expectedStream << searchGuids[0] << bsl::endl
-                   << searchGuids[1] << bsl::endl;
-    expectedStream << "2 message GUID(s) found." << bsl::endl;
-    expectedStream << bsl::endl
-                   << "The following 2 GUID(s) not found:" << bsl::endl;
-    // TODO: fix sporadic search due to order in map
-    expectedStream << searchGuids[2] << bsl::endl
-                   << searchGuids[3] << bsl::endl;
-
-    ASSERT_EQ(resultStream.str(), expectedStream.str());
+    // Check that substrings are present in resultStream in correct order
+    auto        resultString = resultStream.str();
+    size_t      startIdx     = 0;
+    const char* infodMsg =
+        "2 message GUID(s) found.\n\nThe following 2 GUID(s) not found:";
+    // Check that there are two found GUIDS in expected order, then info
+    // message, then two not found GUIDs w/o order.
+    for (int i = 0; i < searchGuids.size(); ++i) {
+        bsl::string guid     = searchGuids[i];
+        size_t      foundIdx = resultString.find(guid, startIdx);
+        ASSERT_D(guid, (foundIdx != bsl::string::npos));
+        if (i < 2)
+            startIdx = foundIdx + guid.size();
+        if (i == 1) {
+            size_t foundIdx = resultString.find(infodMsg, startIdx);
+            ASSERT_D(infodMsg, (foundIdx != bsl::string::npos));
+            startIdx = foundIdx + bsl::strlen(infodMsg);
+        }
+    }
 }
 
 static void test5_searchOutstandingMessagesTest()
