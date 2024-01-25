@@ -160,8 +160,8 @@ SearchResult::SearchResult(
 , d_dataFile_p(dataFile_p)
 , d_queueMap(queueMap)
 , d_filters(filters)
-, d_foundMessagesCount(0)
 , d_totalMessagesCount(0)
+, d_foundMessagesCount(0)
 , d_deletedMessagesCount(0)
 , d_allocator_p(bslma::Default::allocator(allocator))
 , d_messagesDetails(allocator)
@@ -302,7 +302,7 @@ void SearchResult::outputOutstandingRatio()
                                           d_deletedMessagesCount;
         d_ostream << "Outstanding ratio: "
                   << bsl::round(float(outstandingMessages) /
-                                d_totalMessagesCount * 100.0)
+                                float(d_totalMessagesCount) * 100.0)
                   << "% (" << outstandingMessages << "/"
                   << d_totalMessagesCount << ")" << '\n';
     }
@@ -440,7 +440,7 @@ bool SearchAllResult::processMessageRecord(const mqbs::MessageRecord& record,
     return false;
 }
 
-void SearchAllResult::outputResult(bool outputRatio)
+void SearchAllResult::outputResult(BSLS_ANNOTATION_UNUSED bool outputRatio)
 {
     SearchResult::outputResult(false);
 }
@@ -515,7 +515,7 @@ bool SearchGuidResult::processDeletionRecord(
     return (d_withDetails && d_guidsMap.empty());
 }
 
-void SearchGuidResult::outputResult(bool outputRatio)
+void SearchGuidResult::outputResult(BSLS_ANNOTATION_UNUSED bool outputRatio)
 {
     SearchResult::outputResult(false);
     // Print non found GUIDs
@@ -571,8 +571,8 @@ bool SearchOutstandingResult::processMessageRecord(
 
 bool SearchOutstandingResult::processDeletionRecord(
     const mqbs::DeletionRecord& record,
-    bsls::Types::Uint64         recordIndex,
-    bsls::Types::Uint64         recordOffset)
+    BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 recordIndex,
+    BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 recordOffset)
 {
     if (auto it = d_messagesDetails.find(record.messageGUID());
         it != d_messagesDetails.end()) {
@@ -634,7 +634,8 @@ bool SearchConfirmedResult::processDeletionRecord(
     return false;
 }
 
-void SearchConfirmedResult::outputResult(bool outputRatio)
+void SearchConfirmedResult::outputResult(
+    BSLS_ANNOTATION_UNUSED bool outputRatio)
 {
     outputFooter();
     outputOutstandingRatio();
@@ -698,8 +699,8 @@ bool SearchPartiallyConfirmedResult::processConfirmRecord(
 
 bool SearchPartiallyConfirmedResult::processDeletionRecord(
     const mqbs::DeletionRecord& record,
-    bsls::Types::Uint64         recordIndex,
-    bsls::Types::Uint64         recordOffset)
+    BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 recordIndex,
+    BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 recordOffset)
 {
     if (auto it = d_partiallyConfirmedGUIDS.find(record.messageGUID());
         it != d_partiallyConfirmedGUIDS.end()) {
@@ -714,7 +715,8 @@ bool SearchPartiallyConfirmedResult::processDeletionRecord(
     return false;
 }
 
-void SearchPartiallyConfirmedResult::outputResult(bool outputRatio)
+void SearchPartiallyConfirmedResult::outputResult(
+    BSLS_ANNOTATION_UNUSED bool outputRatio)
 {
     for (const auto& item : d_messageIndexToGuidMap) {
         auto confirmCount = d_partiallyConfirmedGUIDS.at(item.second);
@@ -760,8 +762,8 @@ SearchSummaryResult::SearchSummaryResult(
 
 bool SearchSummaryResult::processMessageRecord(
     const mqbs::MessageRecord& record,
-    bsls::Types::Uint64        recordIndex,
-    bsls::Types::Uint64        recordOffset)
+    BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 recordIndex,
+    BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 recordOffset)
 {
     // Apply filters
     bool filterPassed = d_filters.apply(record);
@@ -791,8 +793,8 @@ bool SearchSummaryResult::processConfirmRecord(
 
 bool SearchSummaryResult::processDeletionRecord(
     const mqbs::DeletionRecord& record,
-    bsls::Types::Uint64         recordIndex,
-    bsls::Types::Uint64         recordOffset)
+    BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 recordIndex,
+    BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 recordOffset)
 {
     if (auto it = d_partiallyConfirmedGUIDS.find(record.messageGUID());
         it != d_partiallyConfirmedGUIDS.end()) {
@@ -804,7 +806,7 @@ bool SearchSummaryResult::processDeletionRecord(
     return false;
 }
 
-void SearchSummaryResult::outputResult(bool outputRatio)
+void SearchSummaryResult::outputResult(BSLS_ANNOTATION_UNUSED bool outputRatio)
 {
     // Calculate number of partially confirmed messages
     size_t partiallyConfirmedMessagesCount = 0;
