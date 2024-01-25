@@ -53,16 +53,16 @@ function(bmq_add_test target)
   # Use the current source directory if none is specified
   if(NOT _SOURCE_DIR)
     set(_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
-  endif()
+      endif()
 
   # Check that BDE metadata exists and load it
   if(NOT DEFINED ${uor_name}_PACKAGES)
-    if(EXISTS ${_SOURCE_DIR}/group)
-      bbs_read_metadata(GROUP ${uor_name}
+        if(EXISTS ${_SOURCE_DIR}/group)
+            bbs_read_metadata(GROUP ${uor_name}
         SOURCE_DIR ${_SOURCE_DIR}
         CUSTOM_PACKAGES "${_CUSTOM_PACKAGES}")
     else()
-      if(EXISTS ${_SOURCE_DIR}/package)
+            if(EXISTS ${_SOURCE_DIR}/package)
         bbs_read_metadata(PACKAGE ${uor_name}
           SOURCE_DIR ${_SOURCE_DIR})
       endif()
@@ -131,6 +131,103 @@ function(bmq_add_test target)
     if(${target}_TEST_TARGETS)
       bbs_import_target_dependencies(${target} ${${uor_name}_TEST_PCDEPS})
     endif()
+
+    # Generate the test driver manifest file for compatibility with rat.rb
+    if(_COMPAT)
+      _bmq_target_generate_td_manifest(${target} TEST_DRIVERS ${td_manifest})
+    endif()
+
+  endif()
+
+  if(_COMPAT AND NOT TARGET all.td)
+    add_custom_target(all.td)
+    add_dependencies(all.td all.t)
+  endif()
+endfunction()
+
+# :: bmq_add_application_test :::::::::::::::::::::::::::::::::::::::::::::::::
+# This function searches for the test drivers of an 'application' TARGET. 
+# It expects existence of intermediate library '${uor_name}_lib' which is 
+# created by 'bbs_setup_target_uor()'.
+# It generates a target named ${UOR_component}.t and ${UOR_component}.td for
+# each component found, and an all.td target which depends on all the tests
+# together.
+#
+# The *.td targets should not be depended upon directly mostly exist for
+# historical compatibility.
+function(bmq_add_application_test target)
+  cmake_parse_arguments(PARSE_ARGV 1
+    ""
+    "COMPAT"
+    "SOURCE_DIR"
+    "")
+
+  find_package(BdeBuildSystem REQUIRED)
+
+  # Get the name of the unit from the target
+  get_target_property(uor_name ${target} NAME)
+
+  # Use the current source directory if none is specified
+  if(NOT _SOURCE_DIR)
+    set(_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
+  endif()
+
+  # Check that BDE metadata exists and load it
+  if(NOT DEFINED ${uor_name}_PACKAGES)
+    if(EXISTS ${_SOURCE_DIR}/package)
+      bbs_read_metadata(PACKAGE ${uor_name}
+        SOURCE_DIR ${_SOURCE_DIR})
+    endif()
+  endif()
+
+  # Refer to intermediate library created by 'bbs_setup_target_uor()'
+  set(lib_target "${uor_name}_lib")
+
+  bbs_configure_target_tests(${lib_target}
+    SOURCES    ${${uor_name}_TEST_SOURCES}
+    TEST_DEPS  ${${uor_name}_PCDEPS}
+               ${${uor_name}_TEST_PCDEPS}
+    LABELS     "all" ${target})
+
+  if (TARGET ${lib_target}.t)
+    if (NOT TARGET ${target}.t)
+      add_custom_target(${target}.t)
+    endif()
+    add_dependencies(${target}.t ${lib_target}.t)
+  endif()
+
+  if (${lib_target}_TEST_TARGETS)
+    bbs_import_target_dependencies(${lib_target} ${${uor_name}_TEST_PCDEPS})
+  endif()
+
+  set(td_manifest)
+
+  if(${lib_target}_TEST_TARGETS)
+
+    if(NOT TARGET ${lib_target}.t)
+      add_custom_target(${lib_target}.t)      
+      if(_COMPAT)
+        add_custom_target(${lib_target}.td)
+      endif()
+    endif()
+
+    add_dependencies(${lib_target}.t ${${lib_target}_TEST_TARGETS})
+
+    if(_COMPAT)
+      foreach(test_target ${${lib_target}_TEST_TARGETS})
+        string(REPLACE ".t" "" component ${test_target})
+        set_target_properties(${test_target} PROPERTIES OUTPUT_NAME "${test_target}.tsk")
+        list(APPEND td_manifest
+          "${component}: $<TARGET_FILE:${test_target}>")
+      endforeach()
+    endif()
+
+    bbs_import_target_dependencies(${lib_target} ${${uor_name}_TEST_PCDEPS})
+  endif()
+
+  # Generate the test driver manifest file for compatibility with rat.rb
+  if(_COMPAT)
+    _bmq_target_generate_td_manifest(${lib_target} TEST_DRIVERS ${td_manifest})
   endif()
 
   if(_COMPAT AND NOT TARGET all.td)
