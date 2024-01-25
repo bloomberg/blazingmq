@@ -2,6 +2,7 @@ z_bmqt_compressionalgorithmtype
 z_bmqt_correlationid
 z_bmqt_messageeventtype
 z_bmqt_messageguid
+z_bmqt_queueflags
 z_bmqt_queueoptions
 z_bmqt_sessioneventtype
 z_bmqt_sessionoptions

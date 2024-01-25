@@ -28,29 +28,8 @@
 // of the tasks may be down without impacting the other, and the Consumer can
 // process messages at a different pace than the Producer.
 
-// BMQ
-#include <bmqa_closequeuestatus.h>
-#include <bmqa_configurequeuestatus.h>
-#include <bmqa_event.h>
-#include <bmqa_messageiterator.h>
-#include <bmqa_openqueuestatus.h>
-#include <bmqa_queueid.h>
-#include <bmqa_session.h>
-#include <bmqa_sessionevent.h>
-#include <bmqt_correlationid.h>
-#include <bmqt_messageeventtype.h>
-#include <bmqt_messageguid.h>
-#include <bmqt_queueflags.h>
-#include <bmqt_queueoptions.h>
-#include <bmqt_resultcode.h>
-#include <bmqt_uri.h>
-
 // BDE
-#include <bdlbb_blob.h>
-#include <bdlbb_blobutil.h>
 #include <bsl_iostream.h>
-#include <bsl_ostream.h>
-#include <bslma_managedptr.h>
 #include <bslmt_condition.h>
 #include <bslmt_lockguard.h>
 #include <bslmt_mutex.h>
@@ -61,6 +40,7 @@
 #include <z_bmqa_confirmeventbuilder.h>
 #include <z_bmqa_messageevent.h>
 #include <z_bmqa_openqueuestatus.h>
+#include <z_bmqt_queueflags.h>
 #include <z_bmqa_session.h>
 #include <z_bmqa_sessionevent.h>
 #include <z_bmqt_correlationid.h>
@@ -69,10 +49,6 @@
 #include <signal.h>
 
 using namespace BloombergLP;
-
-namespace {
-// TYPES
-using ManagedHandler = bslma::ManagedPtr<bmqa::SessionEventHandler>;
 
 // CONSTANTS
 const char k_QUEUE_URL[] = "bmq://bmq.test.mem.priority/test-queue";
@@ -182,8 +158,6 @@ void setSession(void* args, void* eventHandlerData)
     *session_p = args_p->session;
 }
 
-}  // close unnamed namespace
-
 //=============================================================================
 //                                 CONSUMER
 //-----------------------------------------------------------------------------
@@ -203,7 +177,7 @@ static void consume(z_bmqa_Session* session)
         session,
         queueId,
         k_QUEUE_URL,
-        static_cast<uint64_t>(bmqt::QueueFlags::e_READ),
+        static_cast<uint64_t>(z_bmqt_QueueFlags::ec_READ),
         &openStatus);
 
     if (!z_bmqa_OpenQueueStatus__toBool(openStatus) ||
@@ -248,7 +222,6 @@ static void consume(z_bmqa_Session* session)
         return;  // RETURN
     }
 
-    // bmqa::CloseQueueStatus closeStatus = session->closeQueueSync(&queueId);
     z_bmqa_CloseQueueStatus* closeStatus;
     z_bmqa_Session__closeQueueSync(session, queueId, 0, &closeStatus);
     if (!z_bmqa_CloseQueueStatus__toBool(closeStatus)) {
@@ -280,9 +253,6 @@ int main(BSLS_ANNOTATION_UNUSED int         argc,
     // the local broker by default, unless the 'Session' is created with an
     // optional 'SessionOptions' object.
 
-    // EventHandler*  eventHandler = new EventHandler();
-    // ManagedHandler eventHandlerMp(eventHandler);
-    // bmqa::Session  session(eventHandlerMp);
     z_bmqa_Session*             session;
     z_bmqa_SessionEventHandler* eventHandler;
     z_bmqa_SessionEventHandler__create(&eventHandler,
