@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqt_compressionalgorithmtype.t.cpp       
+// bmqt_compressionalgorithmtype.t.cpp
 #include <z_bmqt_compressionalgorithmtype.h>
 
 // MWC
@@ -23,6 +23,7 @@
 #include <mwctst_testhelper.h>
 
 // BDE
+#include <bsl_string.h>
 #include <bslmf_assert.h>
 
 // CONVENIENCE
@@ -34,8 +35,7 @@ using namespace bsl;
 // ----------------------------------------------------------------------------
 namespace {
 
-struct PrintTestData {
-    int         d_line;
+struct ToAsciiTestData {
     int         d_type;
     const char* d_expected;
 };
@@ -47,56 +47,32 @@ struct PrintTestData {
 // ----------------------------------------------------------------------------
 
 template <typename ENUM_TYPE, typename ARRAY, int SIZE>
-static void printEnumHelper(ARRAY (&data)[SIZE])
+static void enumToAsciiHelper(ARRAY (&data)[SIZE])
 {
     for (size_t idx = 0; idx < SIZE; ++idx) {
-        const PrintTestData& test = data[idx];
-
-        PVVV("Line [" << test.d_line << "]");
-
-        mwcu::MemOutStream out(s_allocator_p);
-        mwcu::MemOutStream expected(s_allocator_p);
-
-        typedef typename ENUM_TYPE::Enum T;
-
-        T obj = static_cast<T>(test.d_type);
-
-        expected << test.d_expected;
-
-        out.setstate(bsl::ios_base::badbit);
-        ENUM_TYPE::print(out, obj, 0, -1);
-
-        ASSERT_EQ(out.str(), "");
-
-        out.clear();
-        ENUM_TYPE::print(out, obj, 0, -1);
-
-        ASSERT_EQ(out.str(), expected.str());
-
-        out.reset();
-        out << obj;
-
-        ASSERT_EQ(out.str(), expected.str());
+        const ToAsciiTestData&               test = data[idx];
+        z_bmqt_CompressionAlgorithmType::Enum type =
+            static_cast<z_bmqt_CompressionAlgorithmType::Enum>(test.d_type);
+        const char* result = z_bmqt_CompressionAlgorithmType::toAscii(type);
+        ASSERT_EQ(strcmp(result, test.d_expected), 0);
     }
 }
 
-static void test1_enumPrint()
+static void test1_enumToAscii()
 // ------------------------------------------------------------------------
 // ENUM LAYOUT
 //
 // Concerns:
-//   Check that enums print methods work correct
+//   Check that enums toAscii methods work correct
 //
 // Plan:
-//   1. For every type of enum for which there is a corresponding stream
-//      operator and print method check that layout of each enum value.
-//      equal to expected value:
-//      1.1. Check layout of stream operator
-//      1.2. Check layout of print method
-//   2. Check that layout for invalid value is equal to expected.
+//   1. For every type of enum for which there is a corresponding toAscii
+//      function check that output of the print function.
+//      equal to expected value
+//   2. Check that the result for invalid value is equal to expected.
 //
 // Testing:
-//   CompressionAlgorithmType::print
+//   z_bmqt_CompressionAlgorithmType::toAscii
 //   operator<<(bsl::ostream&, CompressionAlgorithmType::Enum)
 // ------------------------------------------------------------------------
 {
@@ -104,22 +80,22 @@ static void test1_enumPrint()
 
     PV("Test bmqt::CompressionAlgorithmType printing");
     {
-        BSLMF_ASSERT(z_bmqt_CompressionAlgorithmType::k_LOWEST_SUPPORTED_TYPE ==
-                     z_bmqt_CompressionAlgorithmType::ec_NONE);
+        BSLMF_ASSERT(
+            z_bmqt_CompressionAlgorithmType::k_LOWEST_SUPPORTED_TYPE ==
+            z_bmqt_CompressionAlgorithmType::ec_NONE);
 
         BSLMF_ASSERT(
             z_bmqt_CompressionAlgorithmType::k_HIGHEST_SUPPORTED_TYPE ==
             z_bmqt_CompressionAlgorithmType::ec_ZLIB);
 
-        PrintTestData k_DATA[] = {
-            {L_, z_bmqt_CompressionAlgorithmType::ec_UNKNOWN, "UNKNOWN"},
-            {L_, z_bmqt_CompressionAlgorithmType::ec_NONE, "NONE"},
-            {L_, z_bmqt_CompressionAlgorithmType::ec_ZLIB, "ZLIB"},
-            {L_,
-             z_bmqt_CompressionAlgorithmType::k_HIGHEST_SUPPORTED_TYPE + 1,
+        ToAsciiTestData k_DATA[] = {
+            {z_bmqt_CompressionAlgorithmType::ec_UNKNOWN, "UNKNOWN"},
+            {z_bmqt_CompressionAlgorithmType::ec_NONE, "NONE"},
+            {z_bmqt_CompressionAlgorithmType::ec_ZLIB, "ZLIB"},
+            {z_bmqt_CompressionAlgorithmType::k_HIGHEST_SUPPORTED_TYPE + 1,
              "(* UNKNOWN *)"}};
 
-        printEnumHelper<z_bmqt_CompressionAlgorithmType>(k_DATA);
+        enumToAsciiHelper<z_bmqt_CompressionAlgorithmType>(k_DATA);
     }
 }
 
@@ -133,7 +109,7 @@ int main(int argc, char* argv[])
 
     switch (_testCase) {
     case 0:
-    case 1: test1_enumPrint(); break;
+    case 1: test1_enumToAscii(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
         s_testStatus = -1;
