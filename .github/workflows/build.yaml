@@ -148,13 +148,13 @@ jobs:
             -n 4 -v -k 'test_verify_broadcast[single_node]'
       - name: temp1
         if: always()
-          ls -l /proc/sys/kernel
+        run: ls -l /proc/sys/kernel
       - name: temp2
         if: always()
-          cat /proc/sys/kernel/core_pattern
+        run: cat /proc/sys/kernel/core_pattern
       - name: temp3
         if: always()
-          ls -lR
+        run: ls -lR
       - name: Archive Integration Test Failure Logs and Cores
         if: always()
         uses: actions/upload-artifact@v4
