@@ -98,7 +98,7 @@ int z_bmqa_SessionEvent__toString(const z_bmqa_SessionEvent* event_obj,
     const bmqa::SessionEvent* event_p =
         reinterpret_cast<const bmqa::SessionEvent*>(event_obj);
     bsl::ostringstream ss;
-    event_p->print(ss);
+    ss << *event_p;
     bsl::string out_str = ss.str();
 
     *out                     = new char[out_str.length() + 1];

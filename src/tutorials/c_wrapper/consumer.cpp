@@ -28,29 +28,8 @@
 // of the tasks may be down without impacting the other, and the Consumer can
 // process messages at a different pace than the Producer.
 
-// BMQ
-#include <bmqa_closequeuestatus.h>
-#include <bmqa_configurequeuestatus.h>
-#include <bmqa_event.h>
-#include <bmqa_messageiterator.h>
-#include <bmqa_openqueuestatus.h>
-#include <bmqa_queueid.h>
-#include <bmqa_session.h>
-#include <bmqa_sessionevent.h>
-#include <bmqt_correlationid.h>
-#include <bmqt_messageeventtype.h>
-#include <bmqt_messageguid.h>
-#include <bmqt_queueflags.h>
-#include <bmqt_queueoptions.h>
-#include <bmqt_resultcode.h>
-#include <bmqt_uri.h>
-
 // BDE
-#include <bdlbb_blob.h>
-#include <bdlbb_blobutil.h>
 #include <bsl_iostream.h>
-#include <bsl_ostream.h>
-#include <bslma_managedptr.h>
 #include <bslmt_condition.h>
 #include <bslmt_lockguard.h>
 #include <bslmt_mutex.h>
@@ -61,6 +40,7 @@
 #include <z_bmqa_confirmeventbuilder.h>
 #include <z_bmqa_messageevent.h>
 #include <z_bmqa_openqueuestatus.h>
+#include <z_bmqt_queueflags.h>
 #include <z_bmqa_session.h>
 #include <z_bmqa_sessionevent.h>
 #include <z_bmqt_correlationid.h>
@@ -69,10 +49,6 @@
 #include <signal.h>
 
 using namespace BloombergLP;
-
-namespace {
-// TYPES
-using ManagedHandler = bslma::ManagedPtr<bmqa::SessionEventHandler>;
 
 // CONSTANTS
 const char k_QUEUE_URL[] = "bmq://bmq.test.mem.priority/test-queue";
@@ -86,27 +62,9 @@ void signalHandler(int signal)
     shutdownHandler(signal);
 }
 
-// CLASSES
-
-/// Concrete implementation of an event handler.  Note that the methods are
-/// called on the session's own threads.
-// class EventHandler : public bmqa::SessionEventHandler {
-//   private:
-//     // DATA
-//     bmqa::Session* d_session_p;  // Pointer to session (held, not owned)
-
-//   public:
-//     // MANIPULATORS
-//     void onMessageEvent(const bmqa::MessageEvent& messageEvent)
-//         BSLS_KEYWORD_OVERRIDE;
-//     // Process the specified 'messageEvent' received from the broker.
-
-//     void onSessionEvent(const bmqa::SessionEvent& sessionEvent)
-//         BSLS_KEYWORD_OVERRIDE;
-//     // Process the specified 'sessionEvent' received from the broker.
-
-//     void setSession(bmqa::Session* session);
-// };
+typedef struct SetSessionArgs {
+    z_bmqa_Session* session;
+} SetSessionArgs;
 
 void onMessageEvent(const z_bmqa_MessageEvent* messageEvent, void* data)
 // Handle the specified 'messageEvent'
@@ -117,6 +75,7 @@ void onMessageEvent(const z_bmqa_MessageEvent* messageEvent, void* data)
     z_bmqa_ConfirmEventBuilder__create(&confirmBuilder);
 
     z_bmqa_Session__loadConfirmEventBuilder(session, confirmBuilder);
+
     if (z_bmqa_MessageEvent__type(messageEvent) ==
         z_bmqt_MessageEventType::ec_PUSH) {
         z_bmqa_MessageIterator* msgIter;
@@ -154,8 +113,6 @@ void onMessageEvent(const z_bmqa_MessageEvent* messageEvent, void* data)
             delete[] messageGUID_str;
         }
 
-        // z_bmqa_MessageIterator__delete(&msgIter);
-
         // Confirm reception of the messages so that it can be deleted from the
         // queue.
 
@@ -191,15 +148,15 @@ void onSessionEvent(const z_bmqa_SessionEvent* sessionEvent, void* data)
     char* out;
     z_bmqa_SessionEvent__toString(sessionEvent, &out);
     bsl::cout << "Got session event: " << bsl::string(out) << "\n";
+    delete [] out;
 }
 
-void setSession(void* data_p, z_bmqa_Session* session)
+void setSession(void* args, void* eventHandlerData)
 {
-    z_bmqa_Session** session_p = static_cast<z_bmqa_Session**>(data_p);
-    *session_p                 = session;
+    SetSessionArgs* args_p = static_cast<SetSessionArgs*>(args);
+    z_bmqa_Session** session_p = static_cast<z_bmqa_Session**>(eventHandlerData);
+    *session_p = args_p->session;
 }
-
-}  // close unnamed namespace
 
 //=============================================================================
 //                                 CONSUMER
@@ -220,7 +177,7 @@ static void consume(z_bmqa_Session* session)
         session,
         queueId,
         k_QUEUE_URL,
-        static_cast<uint64_t>(bmqt::QueueFlags::e_READ),
+        static_cast<uint64_t>(z_bmqt_QueueFlags::ec_READ),
         &openStatus);
 
     if (!z_bmqa_OpenQueueStatus__toBool(openStatus) ||
@@ -265,7 +222,6 @@ static void consume(z_bmqa_Session* session)
         return;  // RETURN
     }
 
-    // bmqa::CloseQueueStatus closeStatus = session->closeQueueSync(&queueId);
     z_bmqa_CloseQueueStatus* closeStatus;
     z_bmqa_Session__closeQueueSync(session, queueId, 0, &closeStatus);
     if (!z_bmqa_CloseQueueStatus__toBool(closeStatus)) {
@@ -276,6 +232,8 @@ static void consume(z_bmqa_Session* session)
     bsl::cerr << "Queue ['" << k_QUEUE_URL << "'] has been shut down "
               << "gracefully and is now closed.\n";
 
+
+    // Must delete all objects
     z_bmqa_QueueId__delete(&queueId);
     z_bmqt_QueueOptions__delete(&options);
     z_bmqa_OpenQueueStatus__delete(&openStatus);
@@ -295,9 +253,6 @@ int main(BSLS_ANNOTATION_UNUSED int         argc,
     // the local broker by default, unless the 'Session' is created with an
     // optional 'SessionOptions' object.
 
-    // EventHandler*  eventHandler = new EventHandler();
-    // ManagedHandler eventHandlerMp(eventHandler);
-    // bmqa::Session  session(eventHandlerMp);
     z_bmqa_Session*             session;
     z_bmqa_SessionEventHandler* eventHandler;
     z_bmqa_SessionEventHandler__create(&eventHandler,
@@ -305,13 +260,11 @@ int main(BSLS_ANNOTATION_UNUSED int         argc,
                                        onMessageEvent,
                                        sizeof(z_bmqa_Session*));
     z_bmqa_Session__createAsync(&session, eventHandler, NULL);
-    void* eventHandlerData;
-    z_bmqa_SessionEventHandler__getData(eventHandler, &eventHandlerData);
-    setSession(eventHandlerData, session);
-    if (*((z_bmqa_Session**)eventHandlerData) != session) {
-        bsl::cout << "Session not set!\n";
-        return 1;
-    }
+
+    SetSessionArgs setSessionArgs;
+    setSessionArgs.session = session;
+    z_bmqa_SessionEventHandler__callCustomFunction(eventHandler, setSession, &setSessionArgs);
+
     int rc = z_bmqa_Session__start((z_bmqa_Session*)(session), 0);
     if (rc != 0) {
         bsl::cerr << "Failed to start the session with the BlazingMQ broker"

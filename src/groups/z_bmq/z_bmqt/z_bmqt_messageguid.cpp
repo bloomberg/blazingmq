@@ -45,7 +45,7 @@ int z_bmqt_MessageGUID__toString(const z_bmqt_MessageGUID* messageGUID_obj,
     bsl::ostringstream       ss;
     const bmqt::MessageGUID* messageGUID_p =
         reinterpret_cast<const bmqt::MessageGUID*>(messageGUID_obj);
-    messageGUID_p->print(ss);
+    ss << *messageGUID_p;
     bsl::string out_str      = ss.str();
     *out                     = new char[out_str.length() + 1];
     (*out)[out_str.length()] = '\0';
