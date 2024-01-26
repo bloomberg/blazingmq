@@ -5,6 +5,8 @@ int z_bmqa_CloseQueueStatus__delete(z_bmqa_CloseQueueStatus** status_obj)
 {
     using namespace BloombergLP;
 
+    BSLS_ASSERT(status_obj != NULL);
+
     bmqa::CloseQueueStatus* status_p =
         reinterpret_cast<bmqa::CloseQueueStatus*>(*status_obj);
     delete status_p;

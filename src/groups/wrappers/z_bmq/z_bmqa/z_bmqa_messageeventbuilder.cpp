@@ -7,21 +7,10 @@ int z_bmqa_MessageEventBuilder__delete(
 {
     using namespace BloombergLP;
 
+    BSLS_ASSERT(builder_obj != NULL);
+
     bmqa::MessageEventBuilder* builder_p =
         reinterpret_cast<bmqa::MessageEventBuilder*>(*builder_obj);
-    delete builder_p;
-    *builder_obj = NULL;
-
-    return 0;
-}
-
-int z_bmqa_MessageEventBuilder__deleteConst(
-    z_bmqa_MessageEventBuilder const** builder_obj)
-{
-    using namespace BloombergLP;
-
-    const bmqa::MessageEventBuilder* builder_p =
-        reinterpret_cast<const bmqa::MessageEventBuilder*>(*builder_obj);
     delete builder_p;
     *builder_obj = NULL;
 
@@ -79,7 +68,7 @@ int z_bmqa_MessageEventBuilder__reset(z_bmqa_MessageEventBuilder* builder_obj)
 
 int z_bmqa_MessageEventBuilder__messageEvent(
     z_bmqa_MessageEventBuilder* builder_obj,
-    z_bmqa_MessageEvent const** event_obj)
+    const z_bmqa_MessageEvent** event_obj)
 {
     using namespace BloombergLP;
 

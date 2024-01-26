@@ -9,19 +9,9 @@ int z_bmqa_Message__delete(z_bmqa_Message** message_obj)
 {
     using namespace BloombergLP;
 
+    BSLS_ASSERT(message_obj != NULL);
+
     bmqa::Message* message_p = reinterpret_cast<bmqa::Message*>(*message_obj);
-    delete message_p;
-    *message_obj = NULL;
-
-    return 0;
-}
-
-int z_bmqa_Message__deleteConst(z_bmqa_Message const** message_obj)
-{
-    using namespace BloombergLP;
-
-    const bmqa::Message* message_p = reinterpret_cast<const bmqa::Message*>(
-        *message_obj);
     delete message_p;
     *message_obj = NULL;
 
@@ -137,7 +127,7 @@ int z_bmqa_Message__clone(const z_bmqa_Message* message_obj,
 }
 
 int z_bmqa_Message__queueId(const z_bmqa_Message*  message_obj,
-                            z_bmqa_QueueId const** queueId_obj)
+                            const z_bmqa_QueueId** queueId_obj)
 {
     using namespace BloombergLP;
     const bmqa::Message* message_p = reinterpret_cast<const bmqa::Message*>(
@@ -150,7 +140,7 @@ int z_bmqa_Message__queueId(const z_bmqa_Message*  message_obj,
 
 int z_bmqa_Message__correlationId(
     const z_bmqa_Message*        message_obj,
-    z_bmqt_CorrelationId const** correlationId_obj)
+    const z_bmqt_CorrelationId** correlationId_obj)
 {
     using namespace BloombergLP;
     const bmqa::Message* message_p = reinterpret_cast<const bmqa::Message*>(
@@ -163,7 +153,7 @@ int z_bmqa_Message__correlationId(
 
 int z_bmqa_Message__subscriptionHandle(
     const z_bmqa_Message*             message_obj,
-    z_bmqt_SubscriptionHandle const** subscription_obj)
+    const z_bmqt_SubscriptionHandle** subscription_obj)
 {
     using namespace BloombergLP;
     const bmqa::Message* message_p = reinterpret_cast<const bmqa::Message*>(
@@ -199,7 +189,7 @@ const char* z_bmqa_Message__groupId(const z_bmqa_Message* message_obj)
 #endif
 
 int z_bmqa_Message__messageGUID(const z_bmqa_Message*      message_obj,
-                                z_bmqt_MessageGUID const** messageGUID_obj)
+                                const z_bmqt_MessageGUID** messageGUID_obj)
 {
     using namespace BloombergLP;
     const bmqa::Message* message_p = reinterpret_cast<const bmqa::Message*>(

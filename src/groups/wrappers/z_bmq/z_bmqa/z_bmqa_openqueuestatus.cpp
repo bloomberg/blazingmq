@@ -5,6 +5,8 @@ int z_bmqa_OpenQueueStatus__delete(z_bmqa_OpenQueueStatus** status_obj)
 {
     using namespace BloombergLP;
 
+    BSLS_ASSERT(status_obj != NULL);
+
     bmqa::OpenQueueStatus* status_p = reinterpret_cast<bmqa::OpenQueueStatus*>(
         *status_obj);
     delete status_p;
@@ -68,7 +70,7 @@ bool z_bmqa_OpenQueueStatus__toBool(const z_bmqa_OpenQueueStatus* status_obj)
 }
 
 int z_bmqa_OpenQueueStatus__queueId(const z_bmqa_OpenQueueStatus* status_obj,
-                                    z_bmqa_QueueId const**        queueId_obj)
+                                    const z_bmqa_QueueId**        queueId_obj)
 {
     using namespace BloombergLP;
     const bmqa::OpenQueueStatus* status_p =

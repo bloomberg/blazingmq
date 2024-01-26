@@ -6,21 +6,10 @@ int z_bmqa_ConfirmEventBuilder__delete(
 {
     using namespace BloombergLP;
 
+    BSLS_ASSERT(builder_obj != NULL);
+
     bmqa::ConfirmEventBuilder* builder_p =
         reinterpret_cast<bmqa::ConfirmEventBuilder*>(*builder_obj);
-    delete builder_p;
-    *builder_obj = NULL;
-
-    return 0;
-}
-
-int z_bmqa_ConfirmEventBuilder__deleteConst(
-    z_bmqa_ConfirmEventBuilder const** builder_obj)
-{
-    using namespace BloombergLP;
-
-    const bmqa::ConfirmEventBuilder* builder_p =
-        reinterpret_cast<const bmqa::ConfirmEventBuilder*>(*builder_obj);
     delete builder_p;
     *builder_obj = NULL;
 
@@ -86,7 +75,7 @@ int z_bmqa_ConfirmEventBuilder__messageCount(
 }
 
 int z_bmqa_ConfirmEventBuilder__blob(z_bmqa_ConfirmEventBuilder* builder_obj,
-                                     z_bmqt_Blob const**         blob_obj)
+                                     const z_bmqt_Blob**         blob_obj)
 {
     using namespace BloombergLP;
 

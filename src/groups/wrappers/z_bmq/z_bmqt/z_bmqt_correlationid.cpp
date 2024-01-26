@@ -5,6 +5,8 @@ int z_bmqt_CorrelationId__delete(z_bmqt_CorrelationId** correlationId_obj)
 {
     using namespace BloombergLP;
 
+    BSLS_ASSERT(correlationId_obj != NULL);
+
     bmqt::CorrelationId* correlationId_p =
         reinterpret_cast<bmqt::CorrelationId*>(*correlationId_obj);
     delete correlationId_p;
@@ -147,28 +149,14 @@ void* z_bmqt_CorrelationId__thePointer(
     return correlationId_p->thePointer();
 }
 
-CorrelationId_Type
+z_bmqt_CorrelationId::Type
 z_bmqt_CorrelationId__type(const z_bmqt_CorrelationId* correlationId_obj)
 {
     using namespace BloombergLP;
     const bmqt::CorrelationId* correlationId_p =
         reinterpret_cast<const bmqt::CorrelationId*>(correlationId_obj);
 
-    switch (correlationId_p->type()) {
-    case bmqt::CorrelationId::Type::e_NUMERIC:
-        return CorrelationId_Type::ec_NUMERIC;
-    case bmqt::CorrelationId::Type::e_POINTER:
-        return CorrelationId_Type::ec_POINTER;
-    case bmqt::CorrelationId::Type::e_SHARED_PTR:
-        return CorrelationId_Type::ec_SHARED_PTR;
-    case bmqt::CorrelationId::Type::e_AUTO_VALUE:
-        return CorrelationId_Type::ec_AUTO_VALUE;
-    case bmqt::CorrelationId::Type::e_UNSET:
-        return CorrelationId_Type::ec_UNSET;
-    default: break;
-    }
-
-    return CorrelationId_Type::ec_CORRELATIONID_ERROR;
+    return static_cast<z_bmqt_CorrelationId::Type>(correlationId_p->type());
 }
 
 int z_bmqt_CorrelationId__autoValue(z_bmqt_CorrelationId** correlationId_obj)

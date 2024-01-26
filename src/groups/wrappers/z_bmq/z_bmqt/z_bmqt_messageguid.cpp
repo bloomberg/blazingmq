@@ -7,20 +7,10 @@ int z_bmqt_MessageGUID__delete(z_bmqt_MessageGUID** messageGUID_obj)
 {
     using namespace BloombergLP;
 
+    BSLS_ASSERT(messageGUID_obj != NULL);
+
     bmqt::MessageGUID* messageGUID_p = reinterpret_cast<bmqt::MessageGUID*>(
         *messageGUID_obj);
-    delete messageGUID_p;
-    *messageGUID_obj = NULL;
-
-    return 0;
-}
-
-int z_bmqt_MessageGUID__deleteConst(z_bmqt_MessageGUID const** messageGUID_obj)
-{
-    using namespace BloombergLP;
-
-    const bmqt::MessageGUID* messageGUID_p =
-        reinterpret_cast<const bmqt::MessageGUID*>(*messageGUID_obj);
     delete messageGUID_p;
     *messageGUID_obj = NULL;
 

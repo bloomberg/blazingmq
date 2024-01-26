@@ -15,9 +15,6 @@ typedef struct z_bmqa_MessageConfirmationCookie
 int z_bmqa_ConfirmEventBuilder__delete(
     z_bmqa_ConfirmEventBuilder** builder_obj);
 
-int z_bmqa_ConfirmEventBuilder__deleteConst(
-    z_bmqa_ConfirmEventBuilder const** builder_obj);
-
 int z_bmqa_ConfirmEventBuilder__create(
     z_bmqa_ConfirmEventBuilder** builder_obj);
 
@@ -36,7 +33,7 @@ int z_bmqa_ConfirmEventBuilder__messageCount(
 
 int z_bmqa_ConfirmEventBuilder__blob(
     const z_bmqa_ConfirmEventBuilder* builder_obj,
-    z_bmqt_Blob const**               blob_obj);
+    const z_bmqt_Blob**               blob_obj);
 
 #if defined(__cplusplus)
 }

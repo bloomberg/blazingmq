@@ -20,8 +20,6 @@ typedef struct z_bmqa_MessageConfirmationCookie
 
 int z_bmqa_Message__delete(z_bmqa_Message** message_obj);
 
-int z_bmqa_Message__deleteConst(z_bmqa_Message const** message_obj);
-
 int z_bmqa_Message__create(z_bmqa_Message** message_obj);
 
 int z_bmqa_Message__setDataRef(z_bmqa_Message* message_obj,
@@ -55,15 +53,15 @@ int z_bmqa_Message__clone(const z_bmqa_Message* message_obj,
                           z_bmqa_Message**      other_obj);
 
 int z_bmqa_Message__queueId(const z_bmqa_Message*  message_obj,
-                            z_bmqa_QueueId const** queueId_obj);
+                            const z_bmqa_QueueId** queueId_obj);
 
 int z_bmqa_Message__correlationId(
     const z_bmqa_Message*        message_obj,
-    z_bmqt_CorrelationId const** correlationId_obj);
+    const z_bmqt_CorrelationId** correlationId_obj);
 
 int z_bmqa_Message__subscriptionHandle(
     const z_bmqa_Message*             message_obj,
-    z_bmqt_SubscriptionHandle const** subscription_obj);
+    const z_bmqt_SubscriptionHandle** subscription_obj);
 
 z_bmqt_CompressionAlgorithmType::Enum
 z_bmqa_Message__compressionAlgorithmType(const z_bmqa_Message* message_obj);
@@ -75,7 +73,7 @@ const char* z_bmqa_Message__groupId(const z_bmqa_Message* message_obj);
 #endif
 
 int z_bmqa_Message__messageGUID(const z_bmqa_Message*      message_obj,
-                                z_bmqt_MessageGUID const** messageGUID_obj);
+                                const z_bmqt_MessageGUID** messageGUID_obj);
 
 int z_bmqa_Message__confirmationCookie(
     const z_bmqa_Message*              message_obj,

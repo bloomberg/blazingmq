@@ -7,6 +7,8 @@ int z_bmqa_MessageEvent__delete(z_bmqa_MessageEvent** event_obj)
 {
     using namespace BloombergLP;
 
+    BSLS_ASSERT(event_obj != NULL);
+
     bmqa::MessageEvent* event_p = reinterpret_cast<bmqa::MessageEvent*>(
         *event_obj);
     delete event_p;
