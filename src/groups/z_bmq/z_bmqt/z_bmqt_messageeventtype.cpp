@@ -10,7 +10,8 @@ z_bmqt_MessageEventType::toAscii(z_bmqt_MessageEventType::Enum value)
         static_cast<bmqt::MessageEventType::Enum>(value));
 }
 
-bool z_bmqt_MessageEventType::fromAscii(z_bmqt_MessageEventType::Enum* out, const char* str)
+bool z_bmqt_MessageEventType::fromAscii(z_bmqt_MessageEventType::Enum* out,
+                                        const char*                    str)
 {
     using namespace BloombergLP;
     bmqt::MessageEventType::Enum p;

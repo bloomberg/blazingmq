@@ -13,9 +13,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// z_bmqt_sessioneventtype.t.cpp                                        -*-C++-*-
-#include <z_bmqt_sessioneventtype.h>
+// z_bmqt_sessioneventtype.t.cpp -*-C++-*-
 #include <bmqt_sessioneventtype.h>
+#include <z_bmqt_sessioneventtype.h>
 
 // MWC
 #include <mwcu_memoutstream.h>
@@ -40,11 +40,12 @@ static void test1_breathingTest()
     mwctst::TestHelper::printTestName("BREATHING TEST");
 
     z_bmqt_SessionEventType::Enum obj;
-    bsl::string                  str;
-    bool                         res;
+    bsl::string                   str;
+    bool                          res;
 
     PV("Testing toAscii");
-    str = z_bmqt_SessionEventType::toAscii(z_bmqt_SessionEventType::ec_CONNECTED);
+    str = z_bmqt_SessionEventType::toAscii(
+        z_bmqt_SessionEventType::ec_CONNECTED);
     ASSERT_EQ(str, "CONNECTED");
 
     PV("Testing fromAscii");
@@ -76,7 +77,7 @@ static void test2_toAsciiTest()
 
     struct Test {
         z_bmqt_SessionEventType::Enum d_type;
-        const char*                  d_expected;
+        const char*                   d_expected;
     } k_DATA[] = {
         {z_bmqt_SessionEventType::ec_UNDEFINED, "UNDEFINED"},
         {z_bmqt_SessionEventType::ec_CONNECTED, "CONNECTED"},
@@ -86,9 +87,11 @@ static void test2_toAsciiTest()
         {z_bmqt_SessionEventType::ec_STATE_RESTORED, "STATE_RESTORED"},
         {z_bmqt_SessionEventType::ec_CONNECTION_TIMEOUT, "CONNECTION_TIMEOUT"},
         {z_bmqt_SessionEventType::ec_QUEUE_OPEN_RESULT, "QUEUE_OPEN_RESULT"},
-        {z_bmqt_SessionEventType::ec_QUEUE_REOPEN_RESULT, "QUEUE_REOPEN_RESULT"},
+        {z_bmqt_SessionEventType::ec_QUEUE_REOPEN_RESULT,
+         "QUEUE_REOPEN_RESULT"},
         {z_bmqt_SessionEventType::ec_QUEUE_CLOSE_RESULT, "QUEUE_CLOSE_RESULT"},
-        {z_bmqt_SessionEventType::ec_SLOWCONSUMER_NORMAL, "SLOWCONSUMER_NORMAL"},
+        {z_bmqt_SessionEventType::ec_SLOWCONSUMER_NORMAL,
+         "SLOWCONSUMER_NORMAL"},
         {z_bmqt_SessionEventType::ec_SLOWCONSUMER_HIGHWATERMARK,
          "SLOWCONSUMER_HIGHWATERMARK"},
         {z_bmqt_SessionEventType::ec_QUEUE_CONFIGURE_RESULT,
@@ -107,7 +110,7 @@ static void test2_toAsciiTest()
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
-        const Test&        test = k_DATA[idx];
+        const Test& test   = k_DATA[idx];
         const char* result = z_bmqt_SessionEventType::toAscii(test.d_type);
         ASSERT_EQ(strcmp(result, test.d_expected), 0);
     }

@@ -18,7 +18,8 @@ int z_bmqa_MessageEvent__messageIterator(
     const z_bmqa_MessageEvent* event_obj,
     z_bmqa_MessageIterator**   iterator_obj);
 
-z_bmqt_MessageEventType::Enum z_bmqa_MessageEvent__type(const z_bmqa_MessageEvent* event_obj);
+z_bmqt_MessageEventType::Enum
+z_bmqa_MessageEvent__type(const z_bmqa_MessageEvent* event_obj);
 
 int z_bmqa_MessageEvent__toString(const z_bmqa_MessageEvent* event_obj,
                                   char**                     out);

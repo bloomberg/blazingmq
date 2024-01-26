@@ -36,8 +36,7 @@ struct z_bmqt_MessageEventType {
     /// corresponding to the specified `str`, if valid, or return false and
     /// leave `out` untouched if `str` doesn't correspond to any value of
     /// the enum.
-    static bool fromAscii(z_bmqt_MessageEventType::Enum*  out,
-                          const char* str);
+    static bool fromAscii(z_bmqt_MessageEventType::Enum* out, const char* str);
 };
 
 #if defined(__cplusplus)

@@ -54,7 +54,7 @@ struct z_bmqt_CompressionAlgorithmType {
     /// enumerators excluding "ec_" prefix will result in the function
     /// returning false and the specified `out` will not be touched.
     static bool fromAscii(z_bmqt_CompressionAlgorithmType::Enum* out,
-                          const char*              str);
+                          const char*                            str);
 
     /// Return true incase of valid specified `str` i.e. a enumerator name
     /// with the "ec_" prefix excluded.  Otherwise in case of invalid `str`

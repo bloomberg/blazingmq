@@ -48,7 +48,7 @@ int z_bmqa_MessageIterator__message(
         reinterpret_cast<const bmqa::MessageIterator*>(messageIterator_obj);
     const z_bmqa_Message* message_p = reinterpret_cast<const z_bmqa_Message*>(
         &messageIterator_p->message());
-    
+
     *message_obj = reinterpret_cast<const z_bmqa_Message*>(message_p);
 
     return 0;

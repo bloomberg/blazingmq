@@ -50,7 +50,7 @@ template <typename ENUM_TYPE, typename ARRAY, int SIZE>
 static void enumToAsciiHelper(ARRAY (&data)[SIZE])
 {
     for (size_t idx = 0; idx < SIZE; ++idx) {
-        const ToAsciiTestData&               test = data[idx];
+        const ToAsciiTestData&                test = data[idx];
         z_bmqt_CompressionAlgorithmType::Enum type =
             static_cast<z_bmqt_CompressionAlgorithmType::Enum>(test.d_type);
         const char* result = z_bmqt_CompressionAlgorithmType::toAscii(type);

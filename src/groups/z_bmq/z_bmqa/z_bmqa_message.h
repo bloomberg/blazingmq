@@ -78,7 +78,7 @@ int z_bmqa_Message__messageGUID(const z_bmqa_Message*      message_obj,
                                 z_bmqt_MessageGUID const** messageGUID_obj);
 
 int z_bmqa_Message__confirmationCookie(
-    const z_bmqa_Message*                    message_obj,
+    const z_bmqa_Message*              message_obj,
     z_bmqa_MessageConfirmationCookie** cookie_obj);
 
 int z_bmqa_Message__ackStatus(const z_bmqa_Message* message_obj);

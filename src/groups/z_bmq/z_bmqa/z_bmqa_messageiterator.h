@@ -21,7 +21,7 @@ bool z_bmqa_MessageIterator__nextMessage(
 
 int z_bmqa_MessageIterator__message(
     const z_bmqa_MessageIterator* messageIterator_obj,
-    z_bmqa_Message const**  message_obj);
+    z_bmqa_Message const**        message_obj);
 
 #if defined(__cplusplus)
 }

@@ -48,11 +48,11 @@ static void test1_sessionOptions()
     {
         PV("CHECKING brokerUri()");
 
-        bsl::string_view result = z_bmqt_SessionOptions__brokerUri(sessionOptions);
+        bsl::string_view result = z_bmqt_SessionOptions__brokerUri(
+            sessionOptions);
         ASSERT_EQ(sessionOptions_cpp.brokerUri(), result);
     }
 }
-
 
 // ============================================================================
 //                                 MAIN PROGRAM
