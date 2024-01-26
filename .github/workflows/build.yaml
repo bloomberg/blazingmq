@@ -99,6 +99,9 @@ jobs:
             deps
             /opt/bb/include
           key: cache-${{ github.sha }}
+      - name: Run Python Unit Tests
+        run: |
+          pytest src/python
       - name: Run Integration Tests
         run: |
           pip install -r ${{ github.workspace }}/src/python/requirements.txt
@@ -111,13 +114,13 @@ jobs:
             --junitxml=integration-tests.xml    \
             --tb line                           \
             --reruns=3                          \
+            -n 4 -v
       - name: Archive Integration Test Failure Logs and Cores
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: integration-test-results
           path: src/integration-tests/failure-logs
-            -n 4 -v
 
   build_macosx:
     name: Build macosx_${{ matrix.arch }}
@@ -142,6 +145,7 @@ jobs:
           pip install -r ${{ github.workspace }}/src/python/requirements.txt
       - name: Build BlazingMQ
         run: bin/build-darwin.sh
+            -n 4 -v -k 'test_verify_broadcast[single_node]'
           cat /proc/sys/kernel/core_pattern
           ls -lR
       - uses: actions/cache@v3
