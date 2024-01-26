@@ -17,6 +17,14 @@
 #ifndef INCLUDED_M_BMQSTORAGETOOL_COMMANDPROCESSORFACTORY
 #define INCLUDED_M_BMQSTORAGETOOL_COMMANDPROCESSORFACTORY
 
+//@PURPOSE: Provide a factory to create corresponding command processor.
+//
+//@CLASSES:
+//  m_bmqstoragetool::CommandProcessorFactory: command processor factory.
+//
+//@DESCRIPTION: 'CommandProcessorFactory' provides a factory to create
+// corresponding command processor.
+
 // bmqstoragetool
 #include <m_bmqstoragetool_parameters.h>
 #include <m_bmqstoragetool_searchprocessor.h>
@@ -33,6 +41,10 @@ namespace m_bmqstoragetool {
 
 class CommandProcessorFactory {
   public:
+    // MANIPULATORS
+
+    /// Create command processor for specified 'params' using specified
+    /// 'allocator'.
     static bsl::unique_ptr<CommandProcessor>
     createCommandProcessor(bsl::unique_ptr<Parameters> params,
                            bslma::Allocator*           allocator);

@@ -17,6 +17,14 @@
 #ifndef INCLUDED_M_BMQSTORAGETOOL_FILTERS
 #define INCLUDED_M_BMQSTORAGETOOL_FILTERS
 
+//@PURPOSE: Provide a filters for search engine.
+//
+//@CLASSES:
+//  m_bmqstoragetool::Filters: filters for search engine.
+//
+//@DESCRIPTION: 'Filters' provides a filters for search engine.
+
+// bmqstoragetool
 #include <m_bmqstoragetool_parameters.h>
 
 // MQB
@@ -25,9 +33,9 @@
 namespace BloombergLP {
 namespace m_bmqstoragetool {
 
-// =====================
+// =============
 // class Filters
-// =====================
+// =============
 
 class Filters {
   private:
@@ -38,6 +46,8 @@ class Filters {
 
   public:
     // CREATORS
+
+    /// Constructor using the specified arguments.
     explicit Filters(const bsl::vector<bsl::string>& queueHexKeys,
                      const bsl::vector<bsl::string>& queueURIS,
                      const QueueMap&                 queueMap,
@@ -47,8 +57,10 @@ class Filters {
                      bslma::Allocator*               allocator);
 
     // MANIPULATORS
+
+    /// Apply filters at specified 'record' and return true if all filters
+    /// are matched, false otherwise.
     bool apply(const mqbs::MessageRecord& record);
-    // Apply filters and return true if filter matched, false otherwise.
 };
 
 }  // close package namespace
