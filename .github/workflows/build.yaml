@@ -146,8 +146,6 @@ jobs:
       - name: Build BlazingMQ
         run: bin/build-darwin.sh
             -n 4 -v -k 'test_verify_broadcast[single_node]'
-          cat /proc/sys/kernel/core_pattern
-          ls -lR
       - uses: actions/cache@v3
         with:
           path: |
