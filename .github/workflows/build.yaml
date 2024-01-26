@@ -146,6 +146,21 @@ jobs:
       - name: Build BlazingMQ
         run: bin/build-darwin.sh
             -n 4 -v -k 'test_verify_broadcast[single_node]'
+      - name: temp1
+        if: always()
+          ls -l /proc/sys/kernel
+      - name: temp2
+        if: always()
+          cat /proc/sys/kernel/core_pattern
+      - name: temp3
+        if: always()
+          ls -lR
+      - name: Archive Integration Test Failure Logs and Cores
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-test-results
+          path: ${{ github.workspace }}/src/integration-tests/failure-logs
       - uses: actions/cache@v3
         with:
           path: |
