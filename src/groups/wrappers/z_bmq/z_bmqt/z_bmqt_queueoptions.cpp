@@ -8,6 +8,8 @@ int z_bmqt_QueueOptions__delete(z_bmqt_QueueOptions** queueOptions_obj)
 {
     using namespace BloombergLP;
 
+    BSLS_ASSERT(queueOptions_obj != NULL);
+
     bmqt::QueueOptions* queueOptions_p = reinterpret_cast<bmqt::QueueOptions*>(
         *queueOptions_obj);
     delete queueOptions_p;

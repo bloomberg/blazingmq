@@ -103,6 +103,8 @@ int z_bmqa_Session__delete(z_bmqa_Session** session_obj)
 {
     using namespace BloombergLP;
 
+    BSLS_ASSERT(session_obj != NULL);
+
     bmqa::Session* session_p = reinterpret_cast<bmqa::Session*>(*session_obj);
     delete session_p;
     *session_obj = NULL;

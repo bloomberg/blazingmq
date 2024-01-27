@@ -6,6 +6,8 @@ int z_bmqa_ConfigureQueueStatus__delete(
 {
     using namespace BloombergLP;
 
+    BSLS_ASSERT(status_obj != NULL);
+
     bmqa::ConfigureQueueStatus* status_p =
         reinterpret_cast<bmqa::ConfigureQueueStatus*>(*status_obj);
     delete status_p;

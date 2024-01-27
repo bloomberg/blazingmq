@@ -5,6 +5,13 @@ int z_bmqa_SessionEvent__delete(z_bmqa_SessionEvent** event_obj)
 {
     using namespace BloombergLP;
 
+    BSLS_ASSERT(event_obj != NULL);
+
+    bmqa::SessionEvent* event_p = reinterpret_cast<bmqa::SessionEvent*>(
+        *event_obj);
+    delete event_p;
+    *event_obj = NULL;
+
     return 0;
 }
 

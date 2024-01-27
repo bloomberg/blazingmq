@@ -6,19 +6,9 @@ int z_bmqa_QueueId__delete(z_bmqa_QueueId** queueId_obj)
 {
     using namespace BloombergLP;
 
+    BSLS_ASSERT(queueId_obj != NULL);
+
     bmqa::QueueId* queueId_p = reinterpret_cast<bmqa::QueueId*>(*queueId_obj);
-    delete queueId_p;
-    *queueId_obj = NULL;
-
-    return 0;
-}
-
-int z_bmqa_QueueId__deleteConst(z_bmqa_QueueId const** queueId_obj)
-{
-    using namespace BloombergLP;
-
-    const bmqa::QueueId* queueId_p = reinterpret_cast<const bmqa::QueueId*>(
-        *queueId_obj);
     delete queueId_p;
     *queueId_obj = NULL;
 

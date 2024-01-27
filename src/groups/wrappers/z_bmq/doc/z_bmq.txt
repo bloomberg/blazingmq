@@ -1,4 +1,4 @@
- bmq.txt
+ z_bmq.txt
 
 @PURPOSE: Public SDK API for the BlazingMQ framework.
 

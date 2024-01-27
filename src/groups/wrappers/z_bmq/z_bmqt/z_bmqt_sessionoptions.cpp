@@ -5,6 +5,8 @@ int z_bmqt_SessionOptions__delete(z_bmqt_SessionOptions** options_obj)
 {
     using namespace BloombergLP;
 
+    BSLS_ASSERT(options_obj != NULL);
+
     bmqt::SessionOptions* options_p = reinterpret_cast<bmqt::SessionOptions*>(
         *options_obj);
     delete options_p;

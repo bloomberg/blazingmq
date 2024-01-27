@@ -25,7 +25,7 @@ int z_bmqa_OpenQueueStatus__createFull(z_bmqa_OpenQueueStatus** status_obj,
 bool z_bmqa_OpenQueueStatus__toBool(const z_bmqa_OpenQueueStatus* status_obj);
 
 int z_bmqa_OpenQueueStatus__queueId(const z_bmqa_OpenQueueStatus* status_obj,
-                                    z_bmqa_QueueId const**        queueId_obj);
+                                    const z_bmqa_QueueId**        queueId_obj);
 
 int z_bmqa_OpenQueueStatus__result(const z_bmqa_OpenQueueStatus* status_obj);
 

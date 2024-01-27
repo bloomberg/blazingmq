@@ -1,6 +1,21 @@
 #include <bmqa_messageiterator.h>
 #include <z_bmqa_messageiterator.h>
 
+int z_bmqa_MessageIterator__delete(
+    z_bmqa_MessageIterator** messageIterator_obj)
+{
+    using namespace BloombergLP;
+
+    BSLS_ASSERT(messageIterator_obj != NULL);
+
+    bmqa::MessageIterator* messageIterator_p =
+        reinterpret_cast<bmqa::MessageIterator*>(*messageIterator_obj);
+    delete messageIterator_p;
+    *messageIterator_obj = NULL;
+
+    return 0;
+}
+
 int z_bmqa_MessageIterator__create(
     z_bmqa_MessageIterator** messageIterator_obj)
 {
@@ -10,19 +25,6 @@ int z_bmqa_MessageIterator__create(
 
     *messageIterator_obj = reinterpret_cast<z_bmqa_MessageIterator*>(
         messageIterator_p);
-
-    return 0;
-}
-
-int z_bmqa_MessageIterator__delete(
-    z_bmqa_MessageIterator** messageIterator_obj)
-{
-    using namespace BloombergLP;
-
-    bmqa::MessageIterator* messageIterator_p =
-        reinterpret_cast<bmqa::MessageIterator*>(messageIterator_obj);
-    delete messageIterator_p;
-    *messageIterator_obj = NULL;
 
     return 0;
 }
@@ -40,7 +42,7 @@ bool z_bmqa_MessageIterator__nextMessage(
 
 int z_bmqa_MessageIterator__message(
     const z_bmqa_MessageIterator* messageIterator_obj,
-    z_bmqa_Message const**        message_obj)
+    const z_bmqa_Message**        message_obj)
 {
     using namespace BloombergLP;
 

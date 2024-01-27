@@ -14,9 +14,6 @@ typedef struct z_bmqa_MessageEventBuilder z_bmqa_MessageEventBuilder;
 int z_bmqa_MessageEventBuilder__delete(
     z_bmqa_MessageEventBuilder** builder_obj);
 
-int z_bmqa_MessageEventBuilder__deleteConst(
-    z_bmqa_MessageEventBuilder const** builder_obj);
-
 int z_bmqa_MessageEventBuilder__create(
     z_bmqa_MessageEventBuilder** builder_obj);
 
@@ -32,7 +29,7 @@ int z_bmqa_MessageEventBuilder__reset(z_bmqa_MessageEventBuilder* builder_obj);
 
 int z_bmqa_MessageEventBuilder__messageEvent(
     z_bmqa_MessageEventBuilder* builder_obj,
-    z_bmqa_MessageEvent const** event_obj);
+    const z_bmqa_MessageEvent** event_obj);
 
 int z_bmqa_MessageEventBuilder__currentMessage(
     z_bmqa_MessageEventBuilder* builder_obj,
