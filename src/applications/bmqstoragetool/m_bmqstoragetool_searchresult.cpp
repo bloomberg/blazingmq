@@ -32,24 +32,30 @@ namespace m_bmqstoragetool {
 namespace {
 
 // Helpers to print journal and data files meta
-void printDataFileMeta(
-    bsl::ostream&                                    ostream,
-    Parameters::FileHandler<mqbs::DataFileIterator>* dataFile_p)
+void printDataFileMeta(bsl::ostream&           ostream,
+                       mqbs::DataFileIterator* dataFile_p)
 {
-    if (dataFile_p->path().empty() || !dataFile_p->resetIterator(ostream)) {
+    // TODO: do we really need the following?
+//    if (dataFile_p->path().empty() || !dataFile_p->resetIterator(ostream)) {
+//        return;
+//    }
+    if (!dataFile_p) {
         return;
     }
     ostream << "\nDetails of data file: \n"
-            << dataFile_p->mappedFileDescriptor() << " "
-            << dataFile_p->iterator()->header();
+            << *dataFile_p->mappedFileDescriptor() << " "
+            << dataFile_p->header();
 }
 
-void printJournalFileMeta(
-    bsl::ostream&                                       ostream,
-    Parameters::FileHandler<mqbs::JournalFileIterator>* journalFile_p)
+void printJournalFileMeta(bsl::ostream&              ostream,
+                          mqbs::JournalFileIterator* journalFile_p)
 {
-    if (journalFile_p->path().empty() ||
-        !journalFile_p->resetIterator(ostream)) {
+    // TODO: do we really need following?
+//    if (journalFile_p->path().empty() ||
+//        !journalFile_p->resetIterator(ostream)) {
+//        return;
+//    }
+    if (!journalFile_p) {
         return;
     }
 
@@ -57,8 +63,8 @@ void printJournalFileMeta(
     ostream << journalFile_p->mappedFileDescriptor();
     mqbs::FileStoreProtocolPrinter::printHeader(
         ostream,
-        journalFile_p->iterator()->header(),
-        journalFile_p->mappedFileDescriptor());
+        journalFile_p->header(),
+        *journalFile_p->mappedFileDescriptor());
 
     // Print journal-specific fields
     ostream << "Journal SyncPoint:\n";
@@ -78,7 +84,7 @@ void printJournalFileMeta(
 
     mwcu::AlignedPrinter printer(ostream, &fields);
     bsls::Types::Uint64  lastRecPos =
-        journalFile_p->iterator()->lastRecordPosition();
+        journalFile_p->lastRecordPosition();
     printer << lastRecPos;
     if (0 == lastRecPos) {
         // No valid record
@@ -87,7 +93,7 @@ void printJournalFileMeta(
     }
     else {
         mqbs::OffsetPtr<const mqbs::RecordHeader> recHeader(
-            journalFile_p->mappedFileDescriptor().block(),
+            journalFile_p->mappedFileDescriptor()->block(),
             lastRecPos);
         printer << recHeader->type();
         bdlt::Datetime      datetime;
@@ -103,7 +109,7 @@ void printJournalFileMeta(
     }
 
     bsls::Types::Uint64 syncPointPos =
-        journalFile_p->iterator()->lastSyncPointPosition();
+        journalFile_p->lastSyncPointPosition();
 
     printer << syncPointPos;
     if (0 == syncPointPos) {
@@ -117,7 +123,7 @@ void printJournalFileMeta(
     }
     else {
         const mqbs::JournalOpRecord& syncPt =
-            journalFile_p->iterator()->lastSyncPoint();
+            journalFile_p->lastSyncPoint();
 
         BSLS_ASSERT_OPT(mqbs::JournalOpType::e_SYNCPOINT == syncPt.type());
 
@@ -140,19 +146,18 @@ void printJournalFileMeta(
 
 }  // close unnamed namespace
 
-// =====================
+// ==================
 // class SearchResult
-// =====================
+// ==================
 
-SearchResult::SearchResult(
-    bsl::ostream&                                    ostream,
-    bool                                             withDetails,
-    bool                                             dumpPayload,
-    unsigned int                                     dumpLimit,
-    Parameters::FileHandler<mqbs::DataFileIterator>* dataFile_p,
-    QueueMap&                                        queueMap,
-    Filters&                                         filters,
-    bslma::Allocator*                                allocator)
+SearchResult::SearchResult(bsl::ostream&           ostream,
+                           bool                    withDetails,
+                           bool                    dumpPayload,
+                           unsigned int            dumpLimit,
+                           mqbs::DataFileIterator* dataFile_p,
+                           const QueueMap&         queueMap,
+                           Filters&                filters,
+                           bslma::Allocator*       allocator)
 : d_ostream(ostream)
 , d_withDetails(withDetails)
 , d_dumpPayload(dumpPayload)
@@ -311,7 +316,7 @@ void SearchResult::outputOutstandingRatio()
 void SearchResult::outputPayload(bsls::Types::Uint64 messageOffsetDwords)
 {
     auto recordOffset = messageOffsetDwords * bmqp::Protocol::k_DWORD_SIZE;
-    auto it           = d_dataFile_p->iterator();
+    auto it           = d_dataFile_p;
 
     // Flip iterator direction depending on recordOffset
     if ((it->recordOffset() > recordOffset && !it->isReverseMode()) ||
@@ -397,15 +402,14 @@ void SearchResult::outputPayload(bsls::Types::Uint64 messageOffsetDwords)
 // class SearchAllResult
 // =====================
 
-SearchAllResult::SearchAllResult(
-    bsl::ostream&                                    ostream,
-    bool                                             withDetails,
-    bool                                             dumpPayload,
-    unsigned int                                     dumpLimit,
-    Parameters::FileHandler<mqbs::DataFileIterator>* dataFile_p,
-    QueueMap&                                        queueMap,
-    Filters&                                         filters,
-    bslma::Allocator*                                allocator)
+SearchAllResult::SearchAllResult(bsl::ostream&           ostream,
+                                 bool                    withDetails,
+                                 bool                    dumpPayload,
+                                 unsigned int            dumpLimit,
+                                 mqbs::DataFileIterator* dataFile_p,
+                                 const QueueMap&         queueMap,
+                                 Filters&                filters,
+                                 bslma::Allocator*       allocator)
 : SearchResult(ostream,
                withDetails,
                dumpPayload,
@@ -449,16 +453,15 @@ void SearchAllResult::outputResult(bool outputRatio)
 // class SearchGuidResult
 // ======================
 
-SearchGuidResult::SearchGuidResult(
-    bsl::ostream&                                    ostream,
-    bool                                             withDetails,
-    bool                                             dumpPayload,
-    unsigned int                                     dumpLimit,
-    Parameters::FileHandler<mqbs::DataFileIterator>* dataFile_p,
-    QueueMap&                                        queueMap,
-    const bsl::vector<bsl::string>&                  guids,
-    Filters&                                         filters,
-    bslma::Allocator*                                allocator)
+SearchGuidResult::SearchGuidResult(bsl::ostream&                   ostream,
+                                   bool                            withDetails,
+                                   bool                            dumpPayload,
+                                   unsigned int                    dumpLimit,
+                                   mqbs::DataFileIterator*         dataFile_p,
+                                   const QueueMap&                 queueMap,
+                                   const bsl::vector<bsl::string>& guids,
+                                   Filters&                        filters,
+                                   bslma::Allocator*               allocator)
 : SearchResult(ostream,
                withDetails,
                dumpPayload,
@@ -468,11 +471,13 @@ SearchGuidResult::SearchGuidResult(
                filters,
                allocator)
 , d_guidsMap(allocator)
+, d_guids(allocator)
 {
     // Build MessageGUID->StrGUID Map
     for (const auto& guidStr : guids) {
         bmqt::MessageGUID guid;
-        d_guidsMap[guid.fromHex(guidStr.c_str())] = guidStr;
+        d_guidsMap[guid.fromHex(guidStr.c_str())] =
+            d_guids.insert(d_guids.cend(), guidStr);
     }
 }
 
@@ -489,12 +494,13 @@ bool SearchGuidResult::processMessageRecord(const mqbs::MessageRecord& record,
         }
         else {
             // Output result immediately.
-            d_ostream << it->second << '\n';
+            d_ostream << *it->second << '\n';
             if (d_dumpPayload) {
                 outputPayload(record.messageOffsetDwords());
             }
         }
         // Remove processed GUID from map.
+        d_guids.erase(it->second);
         d_guidsMap.erase(it);
         d_foundMessagesCount++;
     }
@@ -519,12 +525,12 @@ void SearchGuidResult::outputResult(bool outputRatio)
 {
     SearchResult::outputResult(false);
     // Print non found GUIDs
-    if (auto nonFoundCount = d_guidsMap.size(); nonFoundCount > 0) {
+    if (!d_guids.empty()) {
         d_ostream << '\n'
-                  << "The following " << nonFoundCount
+                  << "The following " << d_guids.size()
                   << " GUID(s) not found:" << '\n';
-        for (const auto& item : d_guidsMap) {
-            d_ostream << item.second << '\n';
+        for (const auto& guid : d_guids) {
+            d_ostream << guid << '\n';
         }
     }
 }
@@ -534,14 +540,14 @@ void SearchGuidResult::outputResult(bool outputRatio)
 // =============================
 
 SearchOutstandingResult::SearchOutstandingResult(
-    bsl::ostream&                                    ostream,
-    bool                                             withDetails,
-    bool                                             dumpPayload,
-    unsigned int                                     dumpLimit,
-    Parameters::FileHandler<mqbs::DataFileIterator>* dataFile_p,
-    QueueMap&                                        queueMap,
-    Filters&                                         filters,
-    bslma::Allocator*                                allocator)
+    bsl::ostream&           ostream,
+    bool                    withDetails,
+    bool                    dumpPayload,
+    unsigned int            dumpLimit,
+    mqbs::DataFileIterator* dataFile_p,
+    const QueueMap&         queueMap,
+    Filters&                filters,
+    bslma::Allocator*       allocator)
 : SearchResult(ostream,
                withDetails,
                dumpPayload,
@@ -590,14 +596,14 @@ bool SearchOutstandingResult::processDeletionRecord(
 // ===========================
 
 SearchConfirmedResult::SearchConfirmedResult(
-    bsl::ostream&                                    ostream,
-    bool                                             withDetails,
-    bool                                             dumpPayload,
-    unsigned int                                     dumpLimit,
-    Parameters::FileHandler<mqbs::DataFileIterator>* dataFile_p,
-    QueueMap&                                        queueMap,
-    Filters&                                         filters,
-    bslma::Allocator*                                allocator)
+    bsl::ostream&           ostream,
+    bool                    withDetails,
+    bool                    dumpPayload,
+    unsigned int            dumpLimit,
+    mqbs::DataFileIterator* dataFile_p,
+    const QueueMap&         queueMap,
+    Filters&                filters,
+    bslma::Allocator*       allocator)
 : SearchResult(ostream,
                withDetails,
                dumpPayload,
@@ -645,14 +651,14 @@ void SearchConfirmedResult::outputResult(bool outputRatio)
 // ====================================
 
 SearchPartiallyConfirmedResult::SearchPartiallyConfirmedResult(
-    bsl::ostream&                                    ostream,
-    bool                                             withDetails,
-    bool                                             dumpPayload,
-    unsigned int                                     dumpLimit,
-    Parameters::FileHandler<mqbs::DataFileIterator>* dataFile_p,
-    QueueMap&                                        queueMap,
-    Filters&                                         filters,
-    bslma::Allocator*                                allocator)
+    bsl::ostream&           ostream,
+    bool                    withDetails,
+    bool                    dumpPayload,
+    unsigned int            dumpLimit,
+    mqbs::DataFileIterator* dataFile_p,
+    const QueueMap&         queueMap,
+    Filters&                filters,
+    bslma::Allocator*       allocator)
 : SearchResult(ostream,
                withDetails,
                dumpPayload,
@@ -738,12 +744,12 @@ void SearchPartiallyConfirmedResult::outputResult(bool outputRatio)
 // ====================================
 
 SearchSummaryResult::SearchSummaryResult(
-    bsl::ostream&                                       ostream,
-    Parameters::FileHandler<mqbs::JournalFileIterator>* journalFile_p,
-    Parameters::FileHandler<mqbs::DataFileIterator>*    dataFile_p,
-    QueueMap&                                           queueMap,
-    Filters&                                            filters,
-    bslma::Allocator*                                   allocator)
+    bsl::ostream&              ostream,
+    mqbs::JournalFileIterator* journalFile_p,
+    mqbs::DataFileIterator*    dataFile_p,
+    const QueueMap&            queueMap,
+    Filters&                   filters,
+    bslma::Allocator*          allocator)
 : SearchResult(ostream,
                false,
                false,

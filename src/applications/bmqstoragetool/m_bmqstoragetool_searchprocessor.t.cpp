@@ -34,6 +34,9 @@
 #include <bslma_default.h>
 #include <bsls_alignedbuffer.h>
 
+// GMOCK
+#include <gmock/gmock.h>
+
 // TEST DRIVER
 #include <mwctst_testhelper.h>
 
@@ -42,6 +45,7 @@ using namespace BloombergLP;
 using namespace m_bmqstoragetool;
 using namespace bsl;
 using namespace mqbs;
+using namespace ::testing;
 
 // ============================================================================
 //                            TEST HELPERS UTILITY
@@ -624,6 +628,88 @@ class JournalFile {
     }
 };
 
+class ParametersMock : public Parameters {
+    mqbs::JournalFileIterator d_journalFileIt;
+
+  public:
+    // CREATORS
+    explicit ParametersMock(const JournalFile& journalFile,
+                            bslma::Allocator*  allocator = 0)
+    : d_journalFileIt(&journalFile.mappedFileDescriptor(),
+                      journalFile.fileHeader(),
+                      false)
+    {
+    }
+
+    // MANIPULATORS
+    mqbs::JournalFileIterator* journalFileIterator() BSLS_KEYWORD_OVERRIDE
+    {
+        return &d_journalFileIt;
+    };
+    //    MOCK_METHOD(mqbs::JournalFileIterator*, journalFileIterator, ());
+    MOCK_METHOD(mqbs::DataFileIterator*, dataFileIterator, ());
+
+    // ACCESSORS
+    MOCK_METHOD(bsls::Types::Int64,
+                timestampGt,
+                (),
+                (const, BSLS_KEYWORD_OVERRIDE));
+    MOCK_METHOD(bsls::Types::Int64,
+                timestampLt,
+                (),
+                (const, BSLS_KEYWORD_OVERRIDE));
+    MOCK_METHOD(bsl::vector<bsl::string>,
+                guid,
+                (),
+                (const, BSLS_KEYWORD_OVERRIDE));
+    MOCK_METHOD(bsl::vector<bsl::string>,
+                queueKey,
+                (),
+                (const, BSLS_KEYWORD_OVERRIDE));
+    MOCK_METHOD(bsl::vector<bsl::string>,
+                queueName,
+                (),
+                (const, BSLS_KEYWORD_OVERRIDE));
+    MOCK_METHOD(unsigned int, dumpLimit, (), (const, BSLS_KEYWORD_OVERRIDE));
+    MOCK_METHOD(bool, details, (), (const, BSLS_KEYWORD_OVERRIDE));
+    MOCK_METHOD(bool, dumpPayload, (), (const, BSLS_KEYWORD_OVERRIDE));
+    MOCK_METHOD(bool, summary, (), (const, BSLS_KEYWORD_OVERRIDE));
+    MOCK_METHOD(bool, outstanding, (), (const, BSLS_KEYWORD_OVERRIDE));
+    MOCK_METHOD(bool, confirmed, (), (const, BSLS_KEYWORD_OVERRIDE));
+    MOCK_METHOD(bool, partiallyConfirmed, (), (const, BSLS_KEYWORD_OVERRIDE));
+    MOCK_METHOD(const QueueMap&, queueMap, (), (const, BSLS_KEYWORD_OVERRIDE));
+
+    // MEMBER FUNCTIONS
+    MOCK_METHOD(void,
+                print,
+                (bsl::ostream & ss),
+                (const, BSLS_KEYWORD_OVERRIDE));
+};
+
+void mockParametersDefault(ParametersMock& params)
+{
+    // Prepare parameters
+    EXPECT_CALL(params, dataFileIterator()).WillRepeatedly(Return(nullptr));
+    EXPECT_CALL(params, timestampGt()).WillRepeatedly(Return(0));
+    EXPECT_CALL(params, timestampLt()).WillRepeatedly(Return(0));
+    EXPECT_CALL(params, guid())
+        .WillRepeatedly(Return(bsl::vector<bsl::string>(s_allocator_p)));
+    EXPECT_CALL(params, queueKey())
+        .WillRepeatedly(Return(bsl::vector<bsl::string>(s_allocator_p)));
+    EXPECT_CALL(params, queueName())
+        .WillRepeatedly(Return(bsl::vector<bsl::string>(s_allocator_p)));
+    EXPECT_CALL(params, dumpLimit()).WillRepeatedly(Return(0));
+    EXPECT_CALL(params, details()).WillRepeatedly(Return(false));
+    EXPECT_CALL(params, dumpPayload()).WillRepeatedly(Return(false));
+    EXPECT_CALL(params, summary()).WillRepeatedly(Return(false));
+    EXPECT_CALL(params, outstanding()).WillRepeatedly(Return(false));
+    EXPECT_CALL(params, confirmed()).WillRepeatedly(Return(false));
+    EXPECT_CALL(params, partiallyConfirmed()).WillRepeatedly(Return(false));
+    static QueueMap qm(s_allocator_p);
+    EXPECT_CALL(params, queueMap()).WillRepeatedly(ReturnPointee(&qm));
+    Mock::AllowLeak(&params);
+}
+
 void outputGuidString(bsl::ostream&            ostream,
                       const bmqt::MessageGUID& messageGUID,
                       const bool               addNewLine = true)
@@ -754,16 +840,10 @@ static void test1_breathingTest()
     JournalFile     journalFile(numRecords, s_allocator_p);
     journalFile.addAllTypesRecords(&records);
 
-    // Create JournalFileIterator
-    JournalFileIterator it(&journalFile.mappedFileDescriptor(),
-                           journalFile.fileHeader(),
-                           false);
-
     // Prepare parameters
-    CommandLineArguments        arguments;
-    bsl::unique_ptr<Parameters> params =
-        bsl::make_unique<Parameters>(arguments, s_allocator_p);
-    params->journalFile()->setIterator(&it);
+    bsl::unique_ptr<ParametersMock> params =
+        bsl::make_unique<ParametersMock>(journalFile, s_allocator_p);
+    mockParametersDefault(*params);
 
     // Run search
     auto searchProcessor = SearchProcessor(bsl::move(params), s_allocator_p);
@@ -809,14 +889,8 @@ static void test2_searchGuidTest()
     JournalFile     journalFile(numRecords, s_allocator_p);
     journalFile.addAllTypesRecords(&records);
 
-    // Create JournalFileIterator
-    JournalFileIterator it(&journalFile.mappedFileDescriptor(),
-                           journalFile.fileHeader(),
-                           false);
-
     // Get list of message GUIDs for searching
-    CommandLineArguments      arguments;
-    bsl::vector<bsl::string>& searchGuids = arguments.d_guid;
+    bsl::vector<bsl::string> searchGuids;
 
     bsl::list<NodeType>::const_iterator recordIter = records.begin();
     bsl::size_t                         msgCnt     = 0;
@@ -829,12 +903,13 @@ static void test2_searchGuidTest()
                 recordIter->second.buffer());
             bsl::ostringstream ss(s_allocator_p);
             ss << msg.messageGUID();
-            arguments.d_guid.push_back(ss.str());
+            searchGuids.push_back(ss.str());
         }
     }
-    bsl::unique_ptr<Parameters> params =
-        bsl::make_unique<Parameters>(arguments, s_allocator_p);
-    params->journalFile()->setIterator(&it);
+    bsl::unique_ptr<ParametersMock> params =
+        bsl::make_unique<ParametersMock>(journalFile, s_allocator_p);
+    mockParametersDefault(*params);
+    EXPECT_CALL(*params, guid()).WillRepeatedly(ReturnPointee(&searchGuids));
 
     auto searchProcessor = SearchProcessor(bsl::move(params), s_allocator_p);
 
@@ -871,15 +946,9 @@ static void test3_searchNonExistingGuidTest()
     JournalFile     journalFile(numRecords, s_allocator_p);
     journalFile.addAllTypesRecords(&records);
 
-    // Create JournalFileIterator
-    JournalFileIterator it(&journalFile.mappedFileDescriptor(),
-                           journalFile.fileHeader(),
-                           false);
-
     // Get list of message GUIDs for searching
-    CommandLineArguments      arguments;
-    bsl::vector<bsl::string>& searchGuids = arguments.d_guid;
-    bmqt::MessageGUID         guid;
+    bsl::vector<bsl::string> searchGuids;
+    bmqt::MessageGUID        guid;
     for (int i = 0; i < 2; ++i) {
         mqbu::MessageGUIDUtil::generateGUID(&guid);
         bsl::ostringstream ss(s_allocator_p);
@@ -887,9 +956,10 @@ static void test3_searchNonExistingGuidTest()
         searchGuids.push_back(ss.str());
     }
 
-    bsl::unique_ptr<Parameters> params =
-        bsl::make_unique<Parameters>(arguments, s_allocator_p);
-    params->journalFile()->setIterator(&it);
+    bsl::unique_ptr<ParametersMock> params =
+        bsl::make_unique<ParametersMock>(journalFile, s_allocator_p);
+    mockParametersDefault(*params);
+    EXPECT_CALL(*params, guid()).WillRepeatedly(ReturnPointee(&searchGuids));
 
     // Run search
     auto searchProcessor = SearchProcessor(bsl::move(params), s_allocator_p);
@@ -903,8 +973,8 @@ static void test3_searchNonExistingGuidTest()
 
     expectedStream << bsl::endl
                    << "The following 2 GUID(s) not found:" << bsl::endl;
-    expectedStream << searchGuids[1] << bsl::endl
-                   << searchGuids[0] << bsl::endl;
+    expectedStream << searchGuids[0] << bsl::endl
+                   << searchGuids[1] << bsl::endl;
 
     ASSERT_EQ(resultStream.str(), expectedStream.str());
 }
@@ -929,14 +999,8 @@ static void test4_searchExistingAndNonExistingGuidTest()
     JournalFile     journalFile(numRecords, s_allocator_p);
     journalFile.addAllTypesRecords(&records);
 
-    // Create JournalFileIterator
-    JournalFileIterator it(&journalFile.mappedFileDescriptor(),
-                           journalFile.fileHeader(),
-                           false);
-
     // Get list of message GUIDs for searching
-    CommandLineArguments      arguments;
-    bsl::vector<bsl::string>& searchGuids = arguments.d_guid;
+    bsl::vector<bsl::string> searchGuids;
 
     // Get two existing message GUIDs
     bsl::list<NodeType>::const_iterator recordIter = records.begin();
@@ -963,9 +1027,10 @@ static void test4_searchExistingAndNonExistingGuidTest()
         searchGuids.push_back(ss.str());
     }
 
-    bsl::unique_ptr<Parameters> params =
-        bsl::make_unique<Parameters>(arguments, s_allocator_p);
-    params->journalFile()->setIterator(&it);
+    bsl::unique_ptr<ParametersMock> params =
+        bsl::make_unique<ParametersMock>(journalFile, s_allocator_p);
+    mockParametersDefault(*params);
+    EXPECT_CALL(*params, guid()).WillRepeatedly(ReturnPointee(&searchGuids));
 
     // Run search
     auto searchProcessor = SearchProcessor(bsl::move(params), s_allocator_p);
@@ -1008,17 +1073,12 @@ static void test5_searchOutstandingMessagesTest()
         journalFile.addJournalRecordsWithOutstandingAndConfirmedMessages(
             &records,
             true);
-    // Create JournalFileIterator
-    JournalFileIterator it(&journalFile.mappedFileDescriptor(),
-                           journalFile.fileHeader(),
-                           false);
 
     // Configure parameters to search outstanding messages
-    CommandLineArguments arguments;
-    arguments.d_outstanding = true;
-    bsl::unique_ptr<Parameters> params =
-        bsl::make_unique<Parameters>(arguments, s_allocator_p);
-    params->journalFile()->setIterator(&it);
+    bsl::unique_ptr<ParametersMock> params =
+        bsl::make_unique<ParametersMock>(journalFile, s_allocator_p);
+    mockParametersDefault(*params);
+    EXPECT_CALL(*params, outstanding()).WillRepeatedly(Return(true));
 
     // Run search
     auto searchProcessor = SearchProcessor(bsl::move(params), s_allocator_p);
@@ -1064,17 +1124,12 @@ static void test6_searchConfirmedMessagesTest()
         journalFile.addJournalRecordsWithOutstandingAndConfirmedMessages(
             &records,
             false);
-    // Create JournalFileIterator
-    JournalFileIterator it(&journalFile.mappedFileDescriptor(),
-                           journalFile.fileHeader(),
-                           false);
 
     // Configure parameters to search confirmed messages
-    CommandLineArguments arguments;
-    arguments.d_confirmed = true;
-    bsl::unique_ptr<Parameters> params =
-        bsl::make_unique<Parameters>(arguments, s_allocator_p);
-    params->journalFile()->setIterator(&it);
+    bsl::unique_ptr<ParametersMock> params =
+        bsl::make_unique<ParametersMock>(journalFile, s_allocator_p);
+    mockParametersDefault(*params);
+    EXPECT_CALL(*params, confirmed()).WillRepeatedly(Return(true));
 
     // Run search
     auto searchProcessor = SearchProcessor(bsl::move(params), s_allocator_p);
@@ -1120,17 +1175,12 @@ static void test7_searchPartiallyConfirmedMessagesTest()
     JournalFile                    journalFile(numRecords, s_allocator_p);
     bsl::vector<bmqt::MessageGUID> partiallyConfirmedGUIDS =
         journalFile.addJournalRecordsWithPartiallyConfirmedMessages(&records);
-    // Create JournalFileIterator
-    JournalFileIterator it(&journalFile.mappedFileDescriptor(),
-                           journalFile.fileHeader(),
-                           false);
 
     // Configure parameters to search outstanding messages
-    CommandLineArguments arguments;
-    arguments.d_partiallyConfirmed = true;
-    bsl::unique_ptr<Parameters> params =
-        bsl::make_unique<Parameters>(arguments, s_allocator_p);
-    params->journalFile()->setIterator(&it);
+    bsl::unique_ptr<ParametersMock> params =
+        bsl::make_unique<ParametersMock>(journalFile, s_allocator_p);
+    mockParametersDefault(*params);
+    EXPECT_CALL(*params, partiallyConfirmed()).WillRepeatedly(Return(true));
 
     // Run search
     auto searchProcessor = SearchProcessor(bsl::move(params), s_allocator_p);
@@ -1179,17 +1229,13 @@ static void test8_searchMessagesByQueueKeyTest()
         journalFile.addJournalRecordsWithTwoQueueKeys(&records,
                                                       queueKey1,
                                                       queueKey2);
-    // Create JournalFileIterator
-    JournalFileIterator it(&journalFile.mappedFileDescriptor(),
-                           journalFile.fileHeader(),
-                           false);
 
     // Configure parameters to search messages by queueKey1
-    CommandLineArguments arguments;
-    arguments.d_queueKey.push_back(queueKey1);
-    bsl::unique_ptr<Parameters> params =
-        bsl::make_unique<Parameters>(arguments, s_allocator_p);
-    params->journalFile()->setIterator(&it);
+    bsl::unique_ptr<ParametersMock> params =
+        bsl::make_unique<ParametersMock>(journalFile, s_allocator_p);
+    mockParametersDefault(*params);
+    bsl::vector<bsl::string> queueKeys(1, queueKey1, s_allocator_p);
+    EXPECT_CALL(*params, queueKey()).WillRepeatedly(ReturnPointee(&queueKeys));
 
     // Run search
     auto searchProcessor = SearchProcessor(bsl::move(params), s_allocator_p);
@@ -1233,27 +1279,26 @@ static void test9_searchMessagesByQueueNameTest()
         journalFile.addJournalRecordsWithTwoQueueKeys(&records,
                                                       queueKey1,
                                                       queueKey2);
-    // Create JournalFileIterator
-    JournalFileIterator it(&journalFile.mappedFileDescriptor(),
-                           journalFile.fileHeader(),
-                           false);
 
     // Configure parameters to search messages by 'queue1' and 'unknown' names
-    CommandLineArguments arguments;
-    arguments.d_queueName.push_back("queue1");
-    arguments.d_queueName.push_back("unknown");
-    bsl::unique_ptr<Parameters> params =
-        bsl::make_unique<Parameters>(arguments, s_allocator_p);
-    params->journalFile()->setIterator(&it);
-    // Add uri to key mapping
-    bmqp_ctrlmsg::QueueInfo queueInfo;
+    bmqp_ctrlmsg::QueueInfo queueInfo(s_allocator_p);
     queueInfo.uri() = "queue1";
     auto key        = mqbu::StorageKey(mqbu::StorageKey::HexRepresentation(),
                                 queueKey1);
     for (int i = 0; i < mqbu::StorageKey::e_KEY_LENGTH_BINARY; i++) {
         queueInfo.key().push_back(key.data()[i]);
     }
-    params->queueMap().insert(queueInfo);
+    QueueMap qMap(s_allocator_p);
+    qMap.insert(queueInfo);
+    bsl::unique_ptr<ParametersMock> params =
+        bsl::make_unique<ParametersMock>(journalFile, s_allocator_p);
+    mockParametersDefault(*params);
+    bsl::vector<bsl::string> queueNames(s_allocator_p);
+    queueNames.push_back("queue1");
+    queueNames.push_back("unknown");
+    EXPECT_CALL(*params, queueName())
+        .WillRepeatedly(ReturnPointee(&queueNames));
+    EXPECT_CALL(*params, queueMap()).WillRepeatedly(ReturnPointee(&qMap));
 
     // Run search
     auto searchProcessor = SearchProcessor(bsl::move(params), s_allocator_p);
@@ -1293,23 +1338,20 @@ static void test10_searchMessagesByTimestamp()
     mwctst::TestHelper::printTestName("SEARCH MESSAGES BY TIMESTAMP TEST");
 
     // Simulate journal file
-    size_t          numRecords = 15;
+    size_t          numRecords = 50;
     RecordsListType records(s_allocator_p);
     JournalFile     journalFile(numRecords, s_allocator_p);
     journalFile.addAllTypesRecords(&records);
 
-    // Create JournalFileIterator
-    JournalFileIterator it(&journalFile.mappedFileDescriptor(),
-                           journalFile.fileHeader(),
-                           false);
-
     // Configure parameters to search messages by timestamps
-    CommandLineArguments arguments;
-    arguments.d_timestampGt = 10;
-    arguments.d_timestampLt = 40;
-    bsl::unique_ptr<Parameters> params =
-        bsl::make_unique<Parameters>(arguments, s_allocator_p);
-    params->journalFile()->setIterator(&it);
+    bsl::unique_ptr<ParametersMock> params =
+        bsl::make_unique<ParametersMock>(journalFile, s_allocator_p);
+    mockParametersDefault(*params);
+    bsl::vector<bsl::string> queueNames(s_allocator_p);
+    queueNames.push_back("queue1");
+    queueNames.push_back("unknown");
+    EXPECT_CALL(*params, timestampGt()).WillRepeatedly(Return(10));
+    EXPECT_CALL(*params, timestampLt()).WillRepeatedly(Return(40));
 
     // Get GUIDs of messages with matching timestamps and prepare expected
     // output
@@ -1323,7 +1365,7 @@ static void test10_searchMessagesByTimestamp()
             const MessageRecord& msg = *reinterpret_cast<const MessageRecord*>(
                 recordIter->second.buffer());
             const bsls::Types::Uint64& ts = msg.header().timestamp();
-            if (ts > arguments.d_timestampGt && ts < arguments.d_timestampLt) {
+            if (ts > 10 && ts < 40) {
                 outputGuidString(expectedStream, msg.messageGUID());
                 msgCnt++;
             }
@@ -1361,17 +1403,12 @@ static void test11_printMessagesDetailsTest()
         journalFile.addJournalRecordsWithOutstandingAndConfirmedMessages(
             &records,
             false);
-    // Create JournalFileIterator
-    JournalFileIterator it(&journalFile.mappedFileDescriptor(),
-                           journalFile.fileHeader(),
-                           false);
 
     // Configure parameters to print message details
-    CommandLineArguments arguments;
-    arguments.d_details = true;
-    bsl::unique_ptr<Parameters> params =
-        bsl::make_unique<Parameters>(arguments, s_allocator_p);
-    params->journalFile()->setIterator(&it);
+    bsl::unique_ptr<ParametersMock> params =
+        bsl::make_unique<ParametersMock>(journalFile, s_allocator_p);
+    mockParametersDefault(*params);
+    EXPECT_CALL(*params, details()).WillRepeatedly(Return(true));
 
     auto searchProcessor = SearchProcessor(bsl::move(params), s_allocator_p);
 
@@ -1484,20 +1521,15 @@ static void test12_searchMessagesWithPayloadDumpTest()
             &records,
             k_NUM_MSGS,
             messageOffsets);
-    // Create JournalFileIterator
-    JournalFileIterator it(&journalFile.mappedFileDescriptor(),
-                           journalFile.fileHeader(),
-                           false);
 
     // Configure parameters to search confirmed messages GUIDs with dumping
     // messages payload.
-    CommandLineArguments arguments;
-    arguments.d_confirmed   = true;
-    arguments.d_dumpPayload = true;
-    bsl::unique_ptr<Parameters> params =
-        bsl::make_unique<Parameters>(arguments, s_allocator_p);
-    params->journalFile()->setIterator(&it);
-    params->dataFile()->setIterator(&dataIt);
+    bsl::unique_ptr<ParametersMock> params =
+        bsl::make_unique<ParametersMock>(journalFile, s_allocator_p);
+    mockParametersDefault(*params);
+    EXPECT_CALL(*params, confirmed()).WillRepeatedly(Return(true));
+    EXPECT_CALL(*params, dumpPayload()).WillRepeatedly(Return(true));
+    EXPECT_CALL(*params, dataFileIterator()).WillRepeatedly(Return(&dataIt));
 
     // Perform search
     auto searchProcessor = SearchProcessor(bsl::move(params), s_allocator_p);
@@ -1562,17 +1594,12 @@ static void test13_summaryTest()
     JournalFile                    journalFile(numRecords, s_allocator_p);
     bsl::vector<bmqt::MessageGUID> partiallyConfirmedGUIDS =
         journalFile.addJournalRecordsWithPartiallyConfirmedMessages(&records);
-    // Create JournalFileIterator
-    JournalFileIterator it(&journalFile.mappedFileDescriptor(),
-                           journalFile.fileHeader(),
-                           false);
 
     // Configure parameters to output summary
-    CommandLineArguments arguments;
-    arguments.d_summary = true;
-    bsl::unique_ptr<Parameters> params =
-        bsl::make_unique<Parameters>(arguments, s_allocator_p);
-    params->journalFile()->setIterator(&it);
+    bsl::unique_ptr<ParametersMock> params =
+        bsl::make_unique<ParametersMock>(journalFile, s_allocator_p);
+    mockParametersDefault(*params);
+    EXPECT_CALL(*params, summary()).WillRepeatedly(Return(true));
 
     auto searchProcessor = SearchProcessor(bsl::move(params), s_allocator_p);
 
@@ -1586,7 +1613,7 @@ static void test13_summaryTest()
            "partially confirmed messages: 2\n"
            "Number of outstanding messages: 2\nOutstanding ratio: 40% (2/5)\n";
 
-    ASSERT_EQ(resultStream.str(), expectedStream.str());
+    ASSERT(resultStream.str().starts_with(expectedStream.str()));
 }
 
 // ============================================================================

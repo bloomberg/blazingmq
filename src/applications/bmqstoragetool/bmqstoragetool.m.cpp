@@ -147,8 +147,9 @@ int main(int argc, const char* argv[])
 
     bsl::unique_ptr<Parameters> parameters;
     try {
-        parameters = bsl::make_unique<Parameters>(arguments,
-                                                  bslma::Default::allocator());
+        parameters = bsl::make_unique<ParametersReal>(
+            arguments,
+            bslma::Default::allocator());
     }
     catch (const bsl::exception& e) {
         bsl::cerr << e.what();

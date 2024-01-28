@@ -81,7 +81,7 @@ class MessageDetails {
 
     // ACCESSORS
 
-    void print(bsl::ostream& os, QueueMap& queueMap) const;
+    void print(bsl::ostream& os, const QueueMap& queueMap) const;
     // Prints this object to the specified `os` stream.
 
     unsigned int dataRecordOffset() const;
