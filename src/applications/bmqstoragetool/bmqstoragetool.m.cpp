@@ -30,11 +30,11 @@ parseArgs(CommandLineArguments& arguments, int argc, const char* argv[])
     bool showHelp = false;
 
     balcl::OptionInfo specTable[] = {
-        {"path",
-         "path",
+        {"journal-path",
+         "journal path",
          "'*'-ended file path pattern, where the tool will try to find "
-         "journal, data and csl files",
-         balcl::TypeInfo(&arguments.d_path),
+         "journal and data files",
+         balcl::TypeInfo(&arguments.d_journalPath),
          balcl::OccurrenceInfo::e_OPTIONAL},
         {"journal-file",
          "journal file",
@@ -147,8 +147,9 @@ int main(int argc, const char* argv[])
 
     bsl::unique_ptr<Parameters> parameters;
     try {
-        parameters = bsl::make_unique<Parameters>(arguments,
-                                                  bslma::Default::allocator());
+        parameters = bsl::make_unique<ParametersReal>(
+            arguments,
+            bslma::Default::allocator());
     }
     catch (const bsl::exception& e) {
         bsl::cerr << e.what();

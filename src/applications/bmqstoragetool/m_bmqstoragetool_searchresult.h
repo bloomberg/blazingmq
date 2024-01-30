@@ -27,6 +27,7 @@
 
 // BDE
 #include <bsl_iostream.h>
+#include <bsl_list.h>
 #include <bsl_unordered_map.h>
 #include <bsl_unordered_set.h>
 #include <bsl_vector.h>
@@ -69,17 +70,17 @@ class SearchResult : public SearchResultInterface {
 
     // DATA
 
-    bsl::ostream&                                    d_ostream;
-    bool                                             d_withDetails;
-    bool                                             d_dumpPayload;
-    unsigned int                                     d_dumpLimit;
-    Parameters::FileHandler<mqbs::DataFileIterator>* d_dataFile_p;
-    QueueMap&                                        d_queueMap;
-    Filters&                                         d_filters;
-    bsl::size_t                                      d_totalMessagesCount;
-    bsl::size_t                                      d_foundMessagesCount;
-    bsl::size_t                                      d_deletedMessagesCount;
-    bslma::Allocator*                                d_allocator_p;
+    bsl::ostream&           d_ostream;
+    bool                    d_withDetails;
+    bool                    d_dumpPayload;
+    unsigned int            d_dumpLimit;
+    mqbs::DataFileIterator* d_dataFile_p;
+    const QueueMap&         d_queueMap;
+    Filters&                d_filters;
+    bsl::size_t             d_totalMessagesCount;
+    bsl::size_t             d_foundMessagesCount;
+    bsl::size_t             d_deletedMessagesCount;
+    bslma::Allocator*       d_allocator_p;
 
     MessagesDetails d_messagesDetails;
 
@@ -102,15 +103,14 @@ class SearchResult : public SearchResultInterface {
 
   public:
     // CREATORS
-    explicit SearchResult(
-        bsl::ostream&                                    ostream,
-        bool                                             withDetails,
-        bool                                             dumpPayload,
-        unsigned int                                     dumpLimit,
-        Parameters::FileHandler<mqbs::DataFileIterator>* dataFile_p,
-        QueueMap&                                        queueMap,
-        Filters&                                         filters,
-        bslma::Allocator*                                allocator);
+    explicit SearchResult(bsl::ostream&           ostream,
+                          bool                    withDetails,
+                          bool                    dumpPayload,
+                          unsigned int            dumpLimit,
+                          mqbs::DataFileIterator* dataFile_p,
+                          const QueueMap&         queueMap,
+                          Filters&                filters,
+                          bslma::Allocator*       allocator);
 
     // MANIPULATORS
     bool processMessageRecord(const mqbs::MessageRecord& record,
@@ -139,15 +139,14 @@ class SearchResult : public SearchResultInterface {
 class SearchAllResult : public SearchResult {
   public:
     // CREATORS
-    explicit SearchAllResult(
-        bsl::ostream&                                    ostream,
-        bool                                             withDetails,
-        bool                                             dumpPayload,
-        unsigned int                                     dumpLimit,
-        Parameters::FileHandler<mqbs::DataFileIterator>* dataFile_p,
-        QueueMap&                                        queueMap,
-        Filters&                                         filters,
-        bslma::Allocator*                                allocator);
+    explicit SearchAllResult(bsl::ostream&           ostream,
+                             bool                    withDetails,
+                             bool                    dumpPayload,
+                             unsigned int            dumpLimit,
+                             mqbs::DataFileIterator* dataFile_p,
+                             const QueueMap&         queueMap,
+                             Filters&                filters,
+                             bslma::Allocator*       allocator);
 
     // MANIPULATORS
     bool processMessageRecord(const mqbs::MessageRecord& record,
@@ -163,20 +162,21 @@ class SearchAllResult : public SearchResult {
 // =====================
 class SearchGuidResult : public SearchResult {
   private:
-    bsl::unordered_map<bmqt::MessageGUID, bsl::string> d_guidsMap;
+    typedef bsl::list<bsl::string>::iterator          GuidListIt;
+    bsl::unordered_map<bmqt::MessageGUID, GuidListIt> d_guidsMap;
+    bsl::list<bsl::string>                            d_guids;
 
   public:
     // CREATORS
-    explicit SearchGuidResult(
-        bsl::ostream&                                    ostream,
-        bool                                             withDetails,
-        bool                                             dumpPayload,
-        unsigned int                                     dumpLimit,
-        Parameters::FileHandler<mqbs::DataFileIterator>* dataFile_p,
-        QueueMap&                                        queueMap,
-        const bsl::vector<bsl::string>&                  guids,
-        Filters&                                         filters,
-        bslma::Allocator*                                allocator);
+    explicit SearchGuidResult(bsl::ostream&                   ostream,
+                              bool                            withDetails,
+                              bool                            dumpPayload,
+                              unsigned int                    dumpLimit,
+                              mqbs::DataFileIterator*         dataFile_p,
+                              const QueueMap&                 queueMap,
+                              const bsl::vector<bsl::string>& guids,
+                              Filters&                        filters,
+                              bslma::Allocator*               allocator);
 
     // MANIPULATORS
     bool processMessageRecord(const mqbs::MessageRecord& record,
@@ -196,15 +196,14 @@ class SearchGuidResult : public SearchResult {
 class SearchOutstandingResult : public SearchResult {
   public:
     // CREATORS
-    explicit SearchOutstandingResult(
-        bsl::ostream&                                    ostream,
-        bool                                             withDetails,
-        bool                                             dumpPayload,
-        unsigned int                                     dumpLimit,
-        Parameters::FileHandler<mqbs::DataFileIterator>* dataFile_p,
-        QueueMap&                                        queueMap,
-        Filters&                                         filters,
-        bslma::Allocator*                                allocator);
+    explicit SearchOutstandingResult(bsl::ostream&           ostream,
+                                     bool                    withDetails,
+                                     bool                    dumpPayload,
+                                     unsigned int            dumpLimit,
+                                     mqbs::DataFileIterator* dataFile_p,
+                                     const QueueMap&         queueMap,
+                                     Filters&                filters,
+                                     bslma::Allocator*       allocator);
 
     // MANIPULATORS
     bool processMessageRecord(const mqbs::MessageRecord& record,
@@ -222,21 +221,16 @@ class SearchOutstandingResult : public SearchResult {
 // class SearchConfirmedResult
 // =====================
 class SearchConfirmedResult : public SearchResult {
-  private:
-    // DATA
-    // bsl::unordered_set<bmqt::MessageGUID> d_messageGUIDS;
-
   public:
     // CREATORS
-    explicit SearchConfirmedResult(
-        bsl::ostream&                                    ostream,
-        bool                                             withDetails,
-        bool                                             dumpPayload,
-        unsigned int                                     dumpLimit,
-        Parameters::FileHandler<mqbs::DataFileIterator>* dataFile_p,
-        QueueMap&                                        queueMap,
-        Filters&                                         filters,
-        bslma::Allocator*                                allocator);
+    explicit SearchConfirmedResult(bsl::ostream&           ostream,
+                                   bool                    withDetails,
+                                   bool                    dumpPayload,
+                                   unsigned int            dumpLimit,
+                                   mqbs::DataFileIterator* dataFile_p,
+                                   const QueueMap&         queueMap,
+                                   Filters&                filters,
+                                   bslma::Allocator*       allocator);
 
     // MANIPULATORS
     bool processMessageRecord(const mqbs::MessageRecord& record,
@@ -260,15 +254,14 @@ class SearchPartiallyConfirmedResult : public SearchResult {
 
   public:
     // CREATORS
-    explicit SearchPartiallyConfirmedResult(
-        bsl::ostream&                                    ostream,
-        bool                                             withDetails,
-        bool                                             dumpPayload,
-        unsigned int                                     dumpLimit,
-        Parameters::FileHandler<mqbs::DataFileIterator>* dataFile_p,
-        QueueMap&                                        queueMap,
-        Filters&                                         filters,
-        bslma::Allocator*                                allocator);
+    explicit SearchPartiallyConfirmedResult(bsl::ostream& ostream,
+                                            bool          withDetails,
+                                            bool          dumpPayload,
+                                            unsigned int  dumpLimit,
+                                            mqbs::DataFileIterator* dataFile_p,
+                                            const QueueMap&         queueMap,
+                                            Filters&                filters,
+                                            bslma::Allocator*       allocator);
 
     // MANIPULATORS
     bool processMessageRecord(const mqbs::MessageRecord& record,
@@ -293,20 +286,19 @@ class SearchSummaryResult : public SearchResult {
   private:
     // DATA
     bsl::unordered_map<bmqt::MessageGUID, size_t> d_partiallyConfirmedGUIDS;
-    Parameters::FileHandler<mqbs::JournalFileIterator>* d_journalFile_p;
+    mqbs::JournalFileIterator*                    d_journalFile_p;
 
   protected:
     bool hasCache() const BSLS_KEYWORD_OVERRIDE;
 
   public:
     // CREATORS
-    explicit SearchSummaryResult(
-        bsl::ostream&                                       ostream,
-        Parameters::FileHandler<mqbs::JournalFileIterator>* journalFile_p,
-        Parameters::FileHandler<mqbs::DataFileIterator>*    dataFile_p,
-        QueueMap&                                           queueMap,
-        Filters&                                            filters,
-        bslma::Allocator*                                   allocator);
+    explicit SearchSummaryResult(bsl::ostream&              ostream,
+                                 mqbs::JournalFileIterator* journalFile_p,
+                                 mqbs::DataFileIterator*    dataFile_p,
+                                 const QueueMap&            queueMap,
+                                 Filters&                   filters,
+                                 bslma::Allocator*          allocator);
 
     // MANIPULATORS
     bool processMessageRecord(const mqbs::MessageRecord& record,

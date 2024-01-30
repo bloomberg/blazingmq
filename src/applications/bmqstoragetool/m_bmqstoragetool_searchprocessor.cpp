@@ -132,7 +132,7 @@ void SearchProcessor::process(bsl::ostream& ostream)
                                                   d_parameters->details(),
                                                   d_parameters->dumpPayload(),
                                                   d_parameters->dumpLimit(),
-                                                  d_parameters->dataFile(),
+                                                  d_parameters->dataFileIterator(),
                                                   d_parameters->queueMap(),
                                                   d_parameters->guid(),
                                                   filters,
@@ -142,8 +142,8 @@ void SearchProcessor::process(bsl::ostream& ostream)
     else if (d_parameters->summary()) {
         searchResult_p.reset(new (*d_allocator_p) SearchSummaryResult(
                                  ostream,
-                                 d_parameters->journalFile(),
-                                 d_parameters->dataFile(),
+                                 d_parameters->journalFileIterator(),
+                                 d_parameters->dataFileIterator(),
                                  d_parameters->queueMap(),
                                  filters,
                                  d_allocator_p),
@@ -155,7 +155,7 @@ void SearchProcessor::process(bsl::ostream& ostream)
                                  d_parameters->details(),
                                  d_parameters->dumpPayload(),
                                  d_parameters->dumpLimit(),
-                                 d_parameters->dataFile(),
+                                 d_parameters->dataFileIterator(),
                                  d_parameters->queueMap(),
                                  filters,
                                  d_allocator_p),
@@ -167,7 +167,7 @@ void SearchProcessor::process(bsl::ostream& ostream)
                                  d_parameters->details(),
                                  d_parameters->dumpPayload(),
                                  d_parameters->dumpLimit(),
-                                 d_parameters->dataFile(),
+                                 d_parameters->dataFileIterator(),
                                  d_parameters->queueMap(),
                                  filters,
                                  d_allocator_p),
@@ -180,7 +180,7 @@ void SearchProcessor::process(bsl::ostream& ostream)
                                                d_parameters->details(),
                                                d_parameters->dumpPayload(),
                                                d_parameters->dumpLimit(),
-                                               d_parameters->dataFile(),
+                                               d_parameters->dataFileIterator(),
                                                d_parameters->queueMap(),
                                                filters,
                                                d_allocator_p),
@@ -192,7 +192,7 @@ void SearchProcessor::process(bsl::ostream& ostream)
                                                  d_parameters->details(),
                                                  d_parameters->dumpPayload(),
                                                  d_parameters->dumpLimit(),
-                                                 d_parameters->dataFile(),
+                                                 d_parameters->dataFileIterator(),
                                                  d_parameters->queueMap(),
                                                  filters,
                                                  d_allocator_p),
@@ -211,7 +211,7 @@ void SearchProcessor::process(bsl::ostream& ostream)
     bool needTimestampSearch = d_parameters->timestampGt() > 0;
 
     // Iterate through all Journal file records
-    mqbs::JournalFileIterator* iter = d_parameters->journalFile()->iterator();
+    mqbs::JournalFileIterator* iter = d_parameters->journalFileIterator();
     while (true) {
         if (stopSearch || !iter->hasRecordSizeRemaining()) {
             searchResult_p->outputResult();

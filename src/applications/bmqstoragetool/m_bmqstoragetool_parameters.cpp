@@ -78,7 +78,7 @@ bool isValidQueueKeyHexRepresentation(const char* queueKeyBuf)
 // ==========================
 
 CommandLineArguments::CommandLineArguments(bslma::Allocator* allocator)
-: d_path(allocator)
+: d_journalPath(allocator)
 , d_journalFile(allocator)
 , d_dataFile(allocator)
 , d_cslFile(allocator)
@@ -101,14 +101,14 @@ bool CommandLineArguments::validate(bsl::string* error)
 {
     mwcu::MemOutStream ss;
 
-    if (d_path.empty() && d_journalFile.empty()) {
-        ss << "Niether path nor journal file are specified\n";
+    if (d_journalPath.empty() && d_journalFile.empty()) {
+        ss << "Niether journal path nor journal file are specified\n";
     }
-    else if (!d_path.empty()) {
-        if (d_journalFile.empty() && d_dataFile.empty() && d_cslFile.empty()) {
+    else if (!d_journalPath.empty()) {
+        if (d_journalFile.empty() && d_dataFile.empty()) {
             // Try to find files by path
             bsl::vector<bsl::string> result;
-            bdls::FilesystemUtil::findMatchingPaths(&result, d_path.c_str());
+            bdls::FilesystemUtil::findMatchingPaths(&result, d_journalPath.c_str());
             bsl::vector<bsl::string>::const_iterator it = result.cbegin();
             for (; it != result.cend(); ++it) {
                 if (it->ends_with(".bmq_journal")) {
@@ -127,16 +127,6 @@ bool CommandLineArguments::validate(bsl::string* error)
                     }
                     else {
                         ss << "Several data files match the pattern, can't "
-                              "define the needed one\n";
-                        break;
-                    }
-                }
-                if (it->ends_with(".bmq_csl")) {
-                    if (d_cslFile.empty()) {
-                        d_cslFile = *it;
-                    }
-                    else {
-                        ss << "Several CSL files match the pattern, can't "
                               "define the needed one\n";
                         break;
                     }
@@ -225,89 +215,83 @@ bool CommandLineArguments::validate(bsl::string* error)
 // class Parameters
 // ================
 
-bsls::Types::Int64 Parameters::timestampGt() const
+bsls::Types::Int64 ParametersReal::timestampGt() const
 {
     return d_timestampGt;
 }
 
-bsls::Types::Int64 Parameters::timestampLt() const
+bsls::Types::Int64 ParametersReal::timestampLt() const
 {
     return d_timestampLt;
 }
 
-Parameters::FileHandler<mqbs::JournalFileIterator>* Parameters::journalFile()
+mqbs::JournalFileIterator* ParametersReal::journalFileIterator()
 {
-    return &d_journalFile;
+    return d_journalFile.iterator();
 }
 
-Parameters::FileHandler<mqbs::DataFileIterator>* Parameters::dataFile()
+mqbs::DataFileIterator* ParametersReal::dataFileIterator()
 {
-    return &d_dataFile;
+    return d_dataFile.iterator();
 }
 
-bsl::vector<bsl::string> Parameters::guid() const
+bsl::vector<bsl::string> ParametersReal::guid() const
 {
     return d_guid;
 }
 
-bsl::vector<bsl::string> Parameters::queueKey() const
+bsl::vector<bsl::string> ParametersReal::queueKey() const
 {
     return d_queueKey;
 }
 
-bsl::vector<bsl::string> Parameters::queueName() const
+bsl::vector<bsl::string> ParametersReal::queueName() const
 {
     return d_queueName;
 }
 
-unsigned int Parameters::dumpLimit() const
+unsigned int ParametersReal::dumpLimit() const
 {
     return d_dumpLimit;
 }
 
-bool Parameters::details() const
+bool ParametersReal::details() const
 {
     return d_details;
 }
 
-bool Parameters::dumpPayload() const
+bool ParametersReal::dumpPayload() const
 {
     return d_dumpPayload;
 }
 
-bool Parameters::summary() const
+bool ParametersReal::summary() const
 {
     return d_summary;
 }
 
-bool Parameters::outstanding() const
+bool ParametersReal::outstanding() const
 {
     return d_outstanding;
 }
 
-bool Parameters::confirmed() const
+bool ParametersReal::confirmed() const
 {
     return d_confirmed;
 }
 
-bool Parameters::partiallyConfirmed() const
+bool ParametersReal::partiallyConfirmed() const
 {
     return d_partiallyConfirmed;
 }
 
-const QueueMap& Parameters::queueMap() const
-{
-    return d_queueMap;
-}
-
-// TODO: used for testing, find better way
-QueueMap& Parameters::queueMap()
+const QueueMap& ParametersReal::queueMap() const
 {
     return d_queueMap;
 }
 
 // MANIPULATORS
-bool Parameters::buildQueueMap(bsl::ostream& ss, bslma::Allocator* allocator)
+bool ParametersReal::buildQueueMap(bsl::ostream& ss, bslma::Allocator* allocator)
 {
     // Required for ledger operations
     bmqp::Crc32c::initialize();
@@ -441,7 +425,7 @@ bool Parameters::buildQueueMap(bsl::ostream& ss, bslma::Allocator* allocator)
     return true;
 }
 
-Parameters::Parameters(const CommandLineArguments& arguments,
+ParametersReal::ParametersReal(const CommandLineArguments& arguments,
                        bslma::Allocator*           allocator)
 : d_journalFile(arguments.d_journalFile, allocator)
 , d_dataFile(arguments.d_dataFile, allocator)
@@ -471,7 +455,7 @@ Parameters::Parameters(const CommandLineArguments& arguments,
     }
 }
 
-void Parameters::print(bsl::ostream& ss) const
+void ParametersReal::print(bsl::ostream& ss) const
 {
     ss << "PARAMETERS :\n";
     ss << "journal-file :\t" << d_journalFile.path() << bsl::endl;
@@ -505,7 +489,7 @@ void Parameters::print(bsl::ostream& ss) const
 // =============================
 
 template <typename ITER>
-bool Parameters::FileHandler<ITER>::resetIterator(
+bool ParametersReal::FileHandler<ITER>::resetIterator(
     std::ostream& errorDescription)
 {
     // 1) Open

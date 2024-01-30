@@ -29,14 +29,7 @@ CommandProcessorFactory::createCommandProcessor(
     bslma::Allocator*           allocator)
 {
     bsl::unique_ptr<CommandProcessor> result;
-
-    //    if (params->timestampGt() > 0 || params->timestampLt() > 0) {
-    //         TODO : implement binary search by timestamps
-    //         result = bsl::make_unique<TimestampSearchProcessor>(params);
-    //    }
-    //    else {
     result = bsl::make_unique<SearchProcessor>(bsl::move(params), allocator);
-    //    }
 
     return result;
 }

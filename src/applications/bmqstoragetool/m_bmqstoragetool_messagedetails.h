@@ -97,7 +97,7 @@ class MessageDetails {
 
     /// Print this object to the specified `os` stream, using specified
     /// 'queueMap'.
-    void print(bsl::ostream& os, QueueMap& queueMap) const;
+    void print(bsl::ostream& os, const QueueMap& queueMap) const;
 
     /// Return message's data record offset.
     unsigned int dataRecordOffset() const;

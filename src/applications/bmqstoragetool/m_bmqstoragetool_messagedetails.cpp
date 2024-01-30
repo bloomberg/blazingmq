@@ -235,7 +235,7 @@ void MessageDetails::addDeleteRecord(const mqbs::DeletionRecord& record,
                                                          recordOffset);
 }
 
-void MessageDetails::print(bsl::ostream& os, QueueMap& queueMap) const
+void MessageDetails::print(bsl::ostream& os, const QueueMap& queueMap) const
 {
     // Check if queueInfo is present for queue key
     bmqp_ctrlmsg::QueueInfo queueInfo;
