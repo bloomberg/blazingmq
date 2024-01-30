@@ -424,7 +424,18 @@ bool ParametersReal::buildQueueMap(bsl::ostream&     ss,
         }
     }
 
-    return true;
+    // Validate given queue names agains existing in csl file
+    mqbu::StorageKey key;
+    bool             validationRes = true;
+    for (const auto& uri : d_queueName) {
+        if (!d_queueMap.findKeyByUri(&key, uri)) {
+            ss << "Queue name: '" << uri << "' is not found in Csl file."
+               << bsl::endl;
+            validationRes = false;
+        }
+    }
+
+    return validationRes;
 }
 
 ParametersReal::ParametersReal(const CommandLineArguments& arguments,

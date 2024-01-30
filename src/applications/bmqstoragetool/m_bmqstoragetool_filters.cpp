@@ -45,16 +45,10 @@ Filters::Filters(const bsl::vector<bsl::string>& queueHexKeys,
         }
     }
     else if (!queueURIS.empty()) {
+        mqbu::StorageKey key;
         for (const auto& uri : queueURIS) {
-            // Check if given queue name is in map
-            mqbu::StorageKey key;
             if (queueMap.findKeyByUri(&key, uri)) {
                 d_queueKeys.push_back(key);
-            }
-            else {
-                ostream << "Queue name: '" << uri
-                        << "' is not found in Csl file. Skipping..."
-                        << bsl::endl;
             }
         }
     }
