@@ -78,7 +78,7 @@ bool isValidQueueKeyHexRepresentation(const char* queueKeyBuf)
 // ==========================
 
 CommandLineArguments::CommandLineArguments(bslma::Allocator* allocator)
-: d_path(allocator)
+: d_journalPath(allocator)
 , d_journalFile(allocator)
 , d_dataFile(allocator)
 , d_cslFile(allocator)
@@ -101,14 +101,14 @@ bool CommandLineArguments::validate(bsl::string* error)
 {
     mwcu::MemOutStream ss;
 
-    if (d_path.empty() && d_journalFile.empty()) {
-        ss << "Niether path nor journal file are specified\n";
+    if (d_journalPath.empty() && d_journalFile.empty()) {
+        ss << "Niether journal path nor journal file are specified\n";
     }
-    else if (!d_path.empty()) {
-        if (d_journalFile.empty() && d_dataFile.empty() && d_cslFile.empty()) {
+    else if (!d_journalPath.empty()) {
+        if (d_journalFile.empty() && d_dataFile.empty()) {
             // Try to find files by path
             bsl::vector<bsl::string> result;
-            bdls::FilesystemUtil::findMatchingPaths(&result, d_path.c_str());
+            bdls::FilesystemUtil::findMatchingPaths(&result, d_journalPath.c_str());
             bsl::vector<bsl::string>::const_iterator it = result.cbegin();
             for (; it != result.cend(); ++it) {
                 if (it->ends_with(".bmq_journal")) {
@@ -127,16 +127,6 @@ bool CommandLineArguments::validate(bsl::string* error)
                     }
                     else {
                         ss << "Several data files match the pattern, can't "
-                              "define the needed one\n";
-                        break;
-                    }
-                }
-                if (it->ends_with(".bmq_csl")) {
-                    if (d_cslFile.empty()) {
-                        d_cslFile = *it;
-                    }
-                    else {
-                        ss << "Several CSL files match the pattern, can't "
                               "define the needed one\n";
                         break;
                     }
@@ -296,12 +286,6 @@ const QueueMap& ParametersReal::queueMap() const
 {
     return d_queueMap;
 }
-
-//// TODO: used for testing, find better way
-//QueueMap& ParametersReal::queueMap()
-//{
-//    return d_queueMap;
-//}
 
 // MANIPULATORS
 bool ParametersReal::buildQueueMap(bsl::ostream& ss, bslma::Allocator* allocator)

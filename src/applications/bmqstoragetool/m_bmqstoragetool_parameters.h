@@ -61,7 +61,7 @@ struct CommandLineArguments {
     // Filter messages by minimum timestamp
     bsls::Types::Int64 d_timestampLt;
     // Filter messages by maximum timestamp
-    bsl::string d_path;
+    bsl::string d_journalPath;
     // Path to find all files from
     bsl::string d_journalFile;
     // Path to read journal files from
