@@ -17,6 +17,14 @@
 #ifndef INCLUDED_M_BMQSTORAGETOOL_COMMANDPROCESSOR
 #define INCLUDED_M_BMQSTORAGETOOL_COMMANDPROCESSOR
 
+//@PURPOSE: Provide a command processor interface to process commands.
+//
+//@CLASSES:
+//  m_bmqstoragetool::CommandProcessor: command processor interface.
+//
+//@DESCRIPTION: 'CommandProcessor' provides interface
+// to process commands.
+
 // bmqstoragetool
 #include <m_bmqstoragetool_parameters.h>
 
@@ -32,21 +40,31 @@ namespace m_bmqstoragetool {
 
 class CommandProcessor {
   protected:
-    /// PRIVATE DATA
+    // PRIVATE DATA
     const bsl::unique_ptr<Parameters> d_parameters;
 
   public:
-    /// CREATORS
+    // CREATORS
+
+    /// Constructor using the specified `params`.
     explicit CommandProcessor(bsl::unique_ptr<Parameters> params);
 
     virtual ~CommandProcessor() = default;
 
+    // MANIPULATORS
+
+    /// Process command and output result into specified 'ostream'.
     virtual void process(bsl::ostream& ostream) = 0;
 };
+
+// ============================================================================
+//                             INLINE DEFINITIONS
+// ============================================================================
 
 inline CommandProcessor::CommandProcessor(bsl::unique_ptr<Parameters> params)
 : d_parameters(bsl::move(params))
 {
+    // NOTHING
 }
 
 }  // close package namespace

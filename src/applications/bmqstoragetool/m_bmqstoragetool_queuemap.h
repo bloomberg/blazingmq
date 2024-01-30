@@ -17,6 +17,14 @@
 #ifndef INCLUDED_M_BMQSTORAGETOOL_QUEUEMAP
 #define INCLUDED_M_BMQSTORAGETOOL_QUEUEMAP
 
+//@PURPOSE: Provide a mapping between queue uri and queue key.
+//
+//@CLASSES:
+//  m_bmqstoragetool::QueueMap: a mapping between queue uri and queue key.
+//
+//@DESCRIPTION: 'QueueMap' provides a mapping of queue uri to queue key
+// and mapping of queue key to queue info.
+
 // BMQ
 #include <bmqp_ctrlmsg_messages.h>
 
@@ -30,40 +38,48 @@ namespace BloombergLP {
 namespace m_bmqstoragetool {
 
 typedef bsl::unordered_map<mqbu::StorageKey, bmqp_ctrlmsg::QueueInfo>
-                                                          QueueKeyToInfoMap;
+    QueueKeyToInfoMap;
+// 'QueueKeyToInfoMap' is a alias for unordered map that maps queue key to
+// queue info.
 typedef bsl::unordered_map<bsl::string, mqbu::StorageKey> QueueUriToKeyMap;
+// 'QueueUriToKeyMap' is a alias for unordered map that maps queue uri to queue
+// key.
 
 // ==============
 // class QueueMap
 // ==============
 class QueueMap {
+  private:
+    // PRIVATE DATA
+
     QueueKeyToInfoMap d_queueKeyToInfoMap;
     QueueUriToKeyMap  d_queueUriToKeyMap;
 
   public:
     // CREATORS
 
+    /// Constructor using the specified 'allocator'.
     explicit QueueMap(bslma::Allocator* allocator);
 
     // MANIPULATORS
 
+    /// Insert queue info into internal maps
     void insert(const bmqp_ctrlmsg::QueueInfo& queueInfo);
-    // Insert queue info data into internal maps
 
+    /// Update queue info in internal maps
     void update(const bmqp_ctrlmsg::QueueInfoUpdate& queueUpdateInfo);
-    // Update queue info data in internal maps
 
     // ACCESSORS
 
+    /// Find queue info by queue key. Return 'true' if key found and
+    /// queueInfo_p contains valid data, 'false' otherwise.
     bool findInfoByKey(bmqp_ctrlmsg::QueueInfo* queueInfo_p,
                        const mqbu::StorageKey&  key) const;
-    // Find queue info by queue key. Return 'true' if key found and
-    // queueInfo_p contains valid data, 'false' otherwise.
 
+    /// Find queue key by queue uri. Return 'true' if uri found and
+    /// queueKey_p contains valid data, 'false' otherwise.
     bool findKeyByUri(mqbu::StorageKey*  queueKey_p,
                       const bsl::string& uri) const;
-    // Find queue info by queue key. Return 'true' if uri found and
-    // queueKey_p contains valid data, 'false' otherwise.
 };
 
 }  // close package namespace

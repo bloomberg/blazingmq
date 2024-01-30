@@ -22,15 +22,15 @@
 #include <m_bmqstoragetool_messagedetails.h>
 #include <m_bmqstoragetool_parameters.h>
 
+// MQB
+#include <mqbs_filestoreprotocolprinter.h>
+
 // BDE
 #include <bsl_iostream.h>
 #include <bsl_unordered_map.h>
 #include <bsl_unordered_set.h>
 #include <bsl_vector.h>
 #include <bsls_keyword.h>
-
-// MQB
-#include <mqbs_filestoreprotocolprinter.h>
 
 namespace BloombergLP {
 namespace m_bmqstoragetool {

@@ -20,9 +20,9 @@
 namespace BloombergLP {
 namespace m_bmqstoragetool {
 
-// =====================
+// =============
 // class Filters
-// =====================
+// =============
 
 Filters::Filters(const bsl::vector<bsl::string>& queueHexKeys,
                  const bsl::vector<bsl::string>& queueURIS,
@@ -35,6 +35,7 @@ Filters::Filters(const bsl::vector<bsl::string>& queueHexKeys,
 , d_timestampGt(timestampGt)
 , d_timestampLt(timestampLt)
 {
+    // Fill internal structures
     if (!queueHexKeys.empty()) {
         d_queueKeys.reserve(queueHexKeys.size());
         for (const auto& key : queueHexKeys) {

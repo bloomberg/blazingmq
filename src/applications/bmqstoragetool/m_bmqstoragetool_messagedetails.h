@@ -17,6 +17,14 @@
 #ifndef INCLUDED_M_BMQSTORAGETOOL_MESSGEDETAILS
 #define INCLUDED_M_BMQSTORAGETOOL_MESSGEDETAILS
 
+//@PURPOSE: Provide a representation of message details.
+//
+//@CLASSES:
+//  m_bmqstoragetool::MessageDetails: representation of message details.
+//
+//@DESCRIPTION: 'MessageDetails' provides a representation of message details.
+
+// bmqstoragetool
 #include <m_bmqstoragetool_queuemap.h>
 
 // MQB
@@ -29,10 +37,11 @@ namespace m_bmqstoragetool {
 // class MessageDetails
 // =====================
 
-// Value-semantic type representing message details.
 class MessageDetails {
   private:
-    // TYPES
+    // PRIVATE TYPES
+
+    // Value-semantic type representing message details.
     template <typename RECORD_TYPE>
     struct RecordDetails {
         RECORD_TYPE         d_record;
@@ -65,30 +74,36 @@ class MessageDetails {
 
   public:
     // CREATORS
+
+    /// Constructor using the specified arguments.
     explicit MessageDetails(const mqbs::MessageRecord& record,
                             bsls::Types::Uint64        recordIndex,
                             bsls::Types::Uint64        recordOffset,
                             bslma::Allocator*          allocator);
 
     // MANIPULATORS
+
+    /// Add confirmation record to message details.
     void addConfirmRecord(const mqbs::ConfirmRecord& record,
                           bsls::Types::Uint64        recordIndex,
                           bsls::Types::Uint64        recordOffset);
 
+    /// Add deletion record to message details.
     void addDeleteRecord(const mqbs::DeletionRecord& record,
                          bsls::Types::Uint64         recordIndex,
                          bsls::Types::Uint64         recordOffset);
 
     // ACCESSORS
 
+    /// Print this object to the specified `os` stream, using specified
+    /// 'queueMap'.
     void print(bsl::ostream& os, QueueMap& queueMap) const;
-    // Prints this object to the specified `os` stream.
 
+    /// Return message's data record offset.
     unsigned int dataRecordOffset() const;
-    // Return message's data record offset.
 
+    /// Return message record index in Journal file.
     bsls::Types::Uint64 messageRecordIndex() const;
-    // Return message record index in Journal file.
 };
 
 }  // close package namespace
