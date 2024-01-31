@@ -104,13 +104,14 @@ jobs:
           pytest src/python
       - name: Run Integration Tests
         run: |
+          echo '/var/crash/core.%e.%p.%t' > /proc/sys/kernel/core_pattern
           pip install -r ${{ github.workspace }}/src/python/requirements.txt
           ${{ github.workspace }}/src/integration-tests/run-tests \
-            --log-cli-level debug                    \
+            --log-level=error \
             --log-file-level=debug               \
             --bmq-tolerate-dirty-shutdown       \
             --bmq-log-dir=failure-logs          \
-            --bmq-log-level=INFO,blazingmq.dev.it:debug                \
+            --bmq-log-level=info,blazingmq.dev.it:debug                \
             --junitxml=integration-tests.xml    \
             --tb line                           \
             --reruns=3                          \
