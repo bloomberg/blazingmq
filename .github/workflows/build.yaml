@@ -106,14 +106,15 @@ jobs:
         run: |
           pip install -r ${{ github.workspace }}/src/python/requirements.txt
           ${{ github.workspace }}/src/integration-tests/run-tests \
-            --log-level info                    \
-            --log-file-level=info               \
+            --log-level debug                    \
+            --log-file-level=debug               \
             --bmq-tolerate-dirty-shutdown       \
             --bmq-log-dir=failure-logs          \
-            --bmq-log-level=INFO                \
+            --bmq-log-level=INFO,blazingmq.dev.it:debug                \
             --junitxml=integration-tests.xml    \
             --tb line                           \
             --reruns=3                          \
+            -v -k 'test_verify_broadcast[single_node]' \
             -n 4 -v
       - name: Archive Integration Test Failure Logs and Cores
         if: always()
@@ -145,22 +146,6 @@ jobs:
           pip install -r ${{ github.workspace }}/src/python/requirements.txt
       - name: Build BlazingMQ
         run: bin/build-darwin.sh
-            -n 4 -v -k 'test_verify_broadcast[single_node]'
-      - name: temp1
-        if: always()
-        run: ls -l /proc/sys/kernel
-      - name: temp2
-        if: always()
-        run: cat /proc/sys/kernel/core_pattern
-      - name: temp3
-        if: always()
-        run: ls -lR
-      - name: Archive Integration Test Failure Logs and Cores
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: integration-test-results
-          path: ${{ github.workspace }}/src/integration-tests/failure-logs
       - uses: actions/cache@v3
         with:
           path: |
