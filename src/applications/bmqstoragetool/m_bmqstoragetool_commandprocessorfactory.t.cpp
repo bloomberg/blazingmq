@@ -43,7 +43,7 @@ static void test1_breathingTest()
     // Empty parameters
     CommandLineArguments        arguments;
     bsl::unique_ptr<Parameters> params =
-            bsl::make_unique<ParametersReal>(arguments, s_allocator_p);
+        bsl::make_unique<ParametersReal>(arguments, s_allocator_p);
 
     auto cmdProcessor = CommandProcessorFactory::createCommandProcessor(
         bsl::move(params),

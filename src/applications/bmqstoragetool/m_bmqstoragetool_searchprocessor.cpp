@@ -127,16 +127,16 @@ void SearchProcessor::process(bsl::ostream& ostream)
     // bsl::unique_ptr<SearchResult> searchResult_p;
     bsl::shared_ptr<SearchResultInterface> searchResult_p;
     if (!d_parameters->guid().empty()) {
-        searchResult_p.reset(new (*d_allocator_p)
-                                 SearchGuidResult(ostream,
-                                                  d_parameters->details(),
-                                                  d_parameters->dumpPayload(),
-                                                  d_parameters->dumpLimit(),
-                                                  d_parameters->dataFileIterator(),
-                                                  d_parameters->queueMap(),
-                                                  d_parameters->guid(),
-                                                  filters,
-                                                  d_allocator_p),
+        searchResult_p.reset(new (*d_allocator_p) SearchGuidResult(
+                                 ostream,
+                                 d_parameters->details(),
+                                 d_parameters->dumpPayload(),
+                                 d_parameters->dumpLimit(),
+                                 d_parameters->dataFileIterator(),
+                                 d_parameters->queueMap(),
+                                 d_parameters->guid(),
+                                 filters,
+                                 d_allocator_p),
                              d_allocator_p);
     }
     else if (d_parameters->summary()) {
@@ -174,28 +174,28 @@ void SearchProcessor::process(bsl::ostream& ostream)
                              d_allocator_p);
     }
     else if (d_parameters->partiallyConfirmed()) {
-        searchResult_p.reset(
-            new (*d_allocator_p)
-                SearchPartiallyConfirmedResult(ostream,
-                                               d_parameters->details(),
-                                               d_parameters->dumpPayload(),
-                                               d_parameters->dumpLimit(),
-                                               d_parameters->dataFileIterator(),
-                                               d_parameters->queueMap(),
-                                               filters,
-                                               d_allocator_p),
-            d_allocator_p);
+        searchResult_p.reset(new (*d_allocator_p)
+                                 SearchPartiallyConfirmedResult(
+                                     ostream,
+                                     d_parameters->details(),
+                                     d_parameters->dumpPayload(),
+                                     d_parameters->dumpLimit(),
+                                     d_parameters->dataFileIterator(),
+                                     d_parameters->queueMap(),
+                                     filters,
+                                     d_allocator_p),
+                             d_allocator_p);
     }
     else {
-        searchResult_p.reset(new (*d_allocator_p)
-                                 SearchAllResult(ostream,
-                                                 d_parameters->details(),
-                                                 d_parameters->dumpPayload(),
-                                                 d_parameters->dumpLimit(),
-                                                 d_parameters->dataFileIterator(),
-                                                 d_parameters->queueMap(),
-                                                 filters,
-                                                 d_allocator_p),
+        searchResult_p.reset(new (*d_allocator_p) SearchAllResult(
+                                 ostream,
+                                 d_parameters->details(),
+                                 d_parameters->dumpPayload(),
+                                 d_parameters->dumpLimit(),
+                                 d_parameters->dataFileIterator(),
+                                 d_parameters->queueMap(),
+                                 filters,
+                                 d_allocator_p),
                              d_allocator_p);
     }
     if (d_parameters->timestampLt() > 0) {

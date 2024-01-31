@@ -36,9 +36,10 @@ void printDataFileMeta(bsl::ostream&           ostream,
                        mqbs::DataFileIterator* dataFile_p)
 {
     // TODO: do we really need the following?
-//    if (dataFile_p->path().empty() || !dataFile_p->resetIterator(ostream)) {
-//        return;
-//    }
+    //    if (dataFile_p->path().empty() ||
+    //    !dataFile_p->resetIterator(ostream)) {
+    //        return;
+    //    }
     if (!dataFile_p) {
         return;
     }
@@ -50,11 +51,11 @@ void printDataFileMeta(bsl::ostream&           ostream,
 void printJournalFileMeta(bsl::ostream&              ostream,
                           mqbs::JournalFileIterator* journalFile_p)
 {
-    // TODO: do we really need following?
-//    if (journalFile_p->path().empty() ||
-//        !journalFile_p->resetIterator(ostream)) {
-//        return;
-//    }
+    // TODO: do we really need the following?
+    //    if (journalFile_p->path().empty() ||
+    //        !journalFile_p->resetIterator(ostream)) {
+    //        return;
+    //    }
     if (!journalFile_p) {
         return;
     }
@@ -83,8 +84,7 @@ void printJournalFileMeta(bsl::ostream&              ostream,
     fields.push_back("SyncPoint QlistFileOffset (WORDS)");
 
     mwcu::AlignedPrinter printer(ostream, &fields);
-    bsls::Types::Uint64  lastRecPos =
-        journalFile_p->lastRecordPosition();
+    bsls::Types::Uint64  lastRecPos = journalFile_p->lastRecordPosition();
     printer << lastRecPos;
     if (0 == lastRecPos) {
         // No valid record
@@ -108,8 +108,7 @@ void printJournalFileMeta(bsl::ostream&              ostream,
         printer << epochValue;
     }
 
-    bsls::Types::Uint64 syncPointPos =
-        journalFile_p->lastSyncPointPosition();
+    bsls::Types::Uint64 syncPointPos = journalFile_p->lastSyncPointPosition();
 
     printer << syncPointPos;
     if (0 == syncPointPos) {
@@ -122,8 +121,7 @@ void printJournalFileMeta(bsl::ostream&              ostream,
                 << "** NA **";
     }
     else {
-        const mqbs::JournalOpRecord& syncPt =
-            journalFile_p->lastSyncPoint();
+        const mqbs::JournalOpRecord& syncPt = journalFile_p->lastSyncPoint();
 
         BSLS_ASSERT_OPT(mqbs::JournalOpType::e_SYNCPOINT == syncPt.type());
 

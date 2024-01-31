@@ -129,7 +129,7 @@ class ParametersReal : public Parameters {
     // PRIVATE TYPES
     template <typename ITER>
     class FileHandler {
-    public:
+      public:
         const bsl::string          d_path;
         ITER                       d_iter;
         mqbs::MappedFileDescriptor d_mfd;
@@ -229,8 +229,9 @@ class ParametersReal : public Parameters {
 // ============================================================================
 
 template <typename ITER>
-inline ParametersReal::FileHandler<ITER>::FileHandler(const bsl::string& path,
-                                      bslma::Allocator*  allocator)
+inline ParametersReal::FileHandler<ITER>::FileHandler(
+    const bsl::string& path,
+    bslma::Allocator*  allocator)
 : d_path(path, allocator)
 {
     // NOTHING

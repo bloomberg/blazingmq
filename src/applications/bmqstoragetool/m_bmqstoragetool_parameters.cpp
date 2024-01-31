@@ -108,7 +108,8 @@ bool CommandLineArguments::validate(bsl::string* error)
         if (d_journalFile.empty() && d_dataFile.empty()) {
             // Try to find files by path
             bsl::vector<bsl::string> result;
-            bdls::FilesystemUtil::findMatchingPaths(&result, d_journalPath.c_str());
+            bdls::FilesystemUtil::findMatchingPaths(&result,
+                                                    d_journalPath.c_str());
             bsl::vector<bsl::string>::const_iterator it = result.cbegin();
             for (; it != result.cend(); ++it) {
                 if (it->ends_with(".bmq_journal")) {
@@ -291,7 +292,8 @@ const QueueMap& ParametersReal::queueMap() const
 }
 
 // MANIPULATORS
-bool ParametersReal::buildQueueMap(bsl::ostream& ss, bslma::Allocator* allocator)
+bool ParametersReal::buildQueueMap(bsl::ostream&     ss,
+                                   bslma::Allocator* allocator)
 {
     // Required for ledger operations
     bmqp::Crc32c::initialize();
@@ -426,7 +428,7 @@ bool ParametersReal::buildQueueMap(bsl::ostream& ss, bslma::Allocator* allocator
 }
 
 ParametersReal::ParametersReal(const CommandLineArguments& arguments,
-                       bslma::Allocator*           allocator)
+                               bslma::Allocator*           allocator)
 : d_journalFile(arguments.d_journalFile, allocator)
 , d_dataFile(arguments.d_dataFile, allocator)
 , d_cslFile(arguments.d_cslFile, allocator)
