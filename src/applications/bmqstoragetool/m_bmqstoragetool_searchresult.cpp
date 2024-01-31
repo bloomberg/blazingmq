@@ -35,12 +35,7 @@ namespace {
 void printDataFileMeta(bsl::ostream&           ostream,
                        mqbs::DataFileIterator* dataFile_p)
 {
-    // TODO: do we really need the following?
-    //    if (dataFile_p->path().empty() ||
-    //    !dataFile_p->resetIterator(ostream)) {
-    //        return;
-    //    }
-    if (!dataFile_p) {
+    if (!dataFile_p || !dataFile_p->isValid()) {
         return;
     }
     ostream << "\nDetails of data file: \n"
@@ -51,12 +46,7 @@ void printDataFileMeta(bsl::ostream&           ostream,
 void printJournalFileMeta(bsl::ostream&              ostream,
                           mqbs::JournalFileIterator* journalFile_p)
 {
-    // TODO: do we really need the following?
-    //    if (journalFile_p->path().empty() ||
-    //        !journalFile_p->resetIterator(ostream)) {
-    //        return;
-    //    }
-    if (!journalFile_p) {
+    if (!journalFile_p || !journalFile_p->isValid()) {
         return;
     }
 

@@ -646,44 +646,25 @@ class ParametersMock : public Parameters {
     {
         return &d_journalFileIt;
     };
-    //    MOCK_METHOD(mqbs::JournalFileIterator*, journalFileIterator, ());
-    MOCK_METHOD(mqbs::DataFileIterator*, dataFileIterator, ());
+    MOCK_METHOD0(dataFileIterator, mqbs::DataFileIterator*());
 
     // ACCESSORS
-    MOCK_METHOD(bsls::Types::Int64,
-                timestampGt,
-                (),
-                (const, BSLS_KEYWORD_OVERRIDE));
-    MOCK_METHOD(bsls::Types::Int64,
-                timestampLt,
-                (),
-                (const, BSLS_KEYWORD_OVERRIDE));
-    MOCK_METHOD(bsl::vector<bsl::string>,
-                guid,
-                (),
-                (const, BSLS_KEYWORD_OVERRIDE));
-    MOCK_METHOD(bsl::vector<bsl::string>,
-                queueKey,
-                (),
-                (const, BSLS_KEYWORD_OVERRIDE));
-    MOCK_METHOD(bsl::vector<bsl::string>,
-                queueName,
-                (),
-                (const, BSLS_KEYWORD_OVERRIDE));
-    MOCK_METHOD(unsigned int, dumpLimit, (), (const, BSLS_KEYWORD_OVERRIDE));
-    MOCK_METHOD(bool, details, (), (const, BSLS_KEYWORD_OVERRIDE));
-    MOCK_METHOD(bool, dumpPayload, (), (const, BSLS_KEYWORD_OVERRIDE));
-    MOCK_METHOD(bool, summary, (), (const, BSLS_KEYWORD_OVERRIDE));
-    MOCK_METHOD(bool, outstanding, (), (const, BSLS_KEYWORD_OVERRIDE));
-    MOCK_METHOD(bool, confirmed, (), (const, BSLS_KEYWORD_OVERRIDE));
-    MOCK_METHOD(bool, partiallyConfirmed, (), (const, BSLS_KEYWORD_OVERRIDE));
-    MOCK_METHOD(const QueueMap&, queueMap, (), (const, BSLS_KEYWORD_OVERRIDE));
+    MOCK_CONST_METHOD0(timestampGt, bsls::Types::Int64());
+    MOCK_CONST_METHOD0(timestampLt, bsls::Types::Int64());
+    MOCK_CONST_METHOD0(guid, bsl::vector<bsl::string>());
+    MOCK_CONST_METHOD0(queueKey, bsl::vector<bsl::string>());
+    MOCK_CONST_METHOD0(queueName, bsl::vector<bsl::string>());
+    MOCK_CONST_METHOD0(dumpLimit, unsigned int());
+    MOCK_CONST_METHOD0(details, bool());
+    MOCK_CONST_METHOD0(dumpPayload, bool());
+    MOCK_CONST_METHOD0(summary, bool());
+    MOCK_CONST_METHOD0(outstanding, bool());
+    MOCK_CONST_METHOD0(confirmed, bool());
+    MOCK_CONST_METHOD0(partiallyConfirmed, bool());
+    MOCK_CONST_METHOD0(queueMap, const QueueMap&());
 
     // MEMBER FUNCTIONS
-    MOCK_METHOD(void,
-                print,
-                (bsl::ostream & ss),
-                (const, BSLS_KEYWORD_OVERRIDE));
+    MOCK_CONST_METHOD1(print, void(bsl::ostream&));
 };
 
 void mockParametersDefault(ParametersMock& params)
@@ -1038,25 +1019,17 @@ static void test4_searchExistingAndNonExistingGuidTest()
     bsl::ostringstream resultStream(s_allocator_p);
     searchProcessor.process(resultStream);
 
-    // Check that substrings are present in resultStream in correct order
-    auto        resultString = resultStream.str();
-    size_t      startIdx     = 0;
-    const char* infodMsg =
-        "2 message GUID(s) found.\n\nThe following 2 GUID(s) not found:";
-    // Check that there are two found GUIDS in expected order, then info
-    // message, then two not found GUIDs w/o order.
-    for (int i = 0; i < searchGuids.size(); ++i) {
-        bsl::string guid     = searchGuids[i];
-        size_t      foundIdx = resultString.find(guid, startIdx);
-        ASSERT_D(guid, (foundIdx != bsl::string::npos));
-        if (i < 2)
-            startIdx = foundIdx + guid.size();
-        if (i == 1) {
-            size_t foundIdx = resultString.find(infodMsg, startIdx);
-            ASSERT_D(infodMsg, (foundIdx != bsl::string::npos));
-            startIdx = foundIdx + bsl::strlen(infodMsg);
-        }
-    }
+    // Prepare expected output
+    bsl::ostringstream expectedStream(s_allocator_p);
+    expectedStream << searchGuids[0] << bsl::endl
+                   << searchGuids[1] << bsl::endl;
+    expectedStream << "2 message GUID(s) found." << bsl::endl;
+    expectedStream << bsl::endl
+                   << "The following 2 GUID(s) not found:" << bsl::endl;
+    expectedStream << searchGuids[2] << bsl::endl
+                   << searchGuids[3] << bsl::endl;
+
+    ASSERT_EQ(resultStream.str(), expectedStream.str());
 }
 
 static void test5_searchOutstandingMessagesTest()
@@ -1324,10 +1297,7 @@ static void test9_searchMessagesByQueueNameTest()
     auto foundMessagesCount = queueKey1GUIDS.size();
     expectedStream << foundMessagesCount << " message GUID(s) found."
                    << bsl::endl;
-    float outstandingRatio = float(foundMessagesCount) / foundMessagesCount *
-                             100.0;
 
-    // TODO: fix ordering issue (sporadic fail)
     ASSERT_EQ(resultStream.str(), expectedStream.str());
 }
 
