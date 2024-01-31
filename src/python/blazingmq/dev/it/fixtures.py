@@ -195,6 +195,7 @@ def cluster_fixture(request, configure) -> Generator:
             log_file_path = re.sub(r"^[^:]+::", "", request.node.nodeid)
             log_file_path = re.sub(r"/", "-", log_file_path)
             log_file_path = (log_dir / (log_file_path + ".log")).resolve()
+            logger.debug("log file = %s", log_file_path)
             log_file_handler = logging.FileHandler(
                 log_file_path, mode="w", encoding="UTF-8"
             )

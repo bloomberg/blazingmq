@@ -106,7 +106,7 @@ jobs:
         run: |
           pip install -r ${{ github.workspace }}/src/python/requirements.txt
           ${{ github.workspace }}/src/integration-tests/run-tests \
-            --log-level ERROR                   \
+            --log-level info                    \
             --log-file-level=info               \
             --bmq-tolerate-dirty-shutdown       \
             --bmq-log-dir=failure-logs          \
