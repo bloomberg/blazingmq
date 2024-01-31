@@ -76,6 +76,7 @@ set_property( DIRECTORY
               APPEND
               PROPERTY COMPILE_WARNING_AS_ERROR ON )
 if( "${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU|(Apple)?Clang" )
+  set_property(DIRECTORY APPEND PROPERTY COMPILE_OPTIONS "-Wno-conversion")
   # Disable warnings about unused functions or variables when not in Debug
   # build, so that we don't get warn (and build failure due to warn-as-error)
   # for code only used within BSLS_ASSERT_SAFE.
