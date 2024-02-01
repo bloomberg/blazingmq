@@ -104,19 +104,26 @@ jobs:
           pytest src/python
       - name: Run Integration Tests
         run: |
-          echo '/var/crash/core.%e.%p.%t' > /proc/sys/kernel/core_pattern
-          pip install -r ${{ github.workspace }}/src/python/requirements.txt
           ${{ github.workspace }}/src/integration-tests/run-tests \
             --log-level=info \
-            --log-file-level=debug               \
             --bmq-tolerate-dirty-shutdown       \
             --bmq-log-dir=failure-logs          \
-            --bmq-log-level=info,blazingmq.dev.it:debug                \
             --junitxml=integration-tests.xml    \
             --tb line                           \
             --reruns=3                          \
             -k 'test_verify_broadcast[single_node]' \
             -n 4 -v
+      - name: Copy Tasks
+        if: always()
+        working-directory: ${{ github.workspace }}/src/integration-tests/failure-logs
+        run: |
+          coreCount=$(ls -A core.* | wc -l)
+          if [[ $coreCount -ne 0 ]]
+          then
+              echo "Found $coreCount core(s); copying bmqbrkr.tsk"
+              find ${{ github.workspace }} -name bmqbrkr.tsk -exec cp {} . \;
+              echo > .gdbinit "set substitute-path ${{ github.workspace }} .."
+          fi
       - name: Archive Integration Test Failure Logs and Cores
         if: always()
         uses: actions/upload-artifact@v4
