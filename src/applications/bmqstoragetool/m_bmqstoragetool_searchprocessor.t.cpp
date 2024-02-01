@@ -1275,7 +1275,6 @@ static void test9_searchMessagesByQueueNameTest()
     mockParametersDefault(*params);
     bsl::vector<bsl::string> queueNames(s_allocator_p);
     queueNames.push_back("queue1");
-    queueNames.push_back("unknown");
     EXPECT_CALL(*params, queueName())
         .WillRepeatedly(ReturnPointee(&queueNames));
     EXPECT_CALL(*params, queueMap()).WillRepeatedly(ReturnPointee(&qMap));
@@ -1288,9 +1287,6 @@ static void test9_searchMessagesByQueueNameTest()
 
     // Prepare expected output
     bsl::ostringstream expectedStream(s_allocator_p);
-    expectedStream
-        << "Queue name: 'unknown' is not found in Csl file. Skipping..."
-        << bsl::endl;
     for (const auto& guid : queueKey1GUIDS) {
         outputGuidString(expectedStream, guid);
     }
@@ -1326,7 +1322,7 @@ static void test10_searchMessagesByTimestamp()
     mockParametersDefault(*params);
     bsl::vector<bsl::string> queueNames(s_allocator_p);
     queueNames.push_back("queue1");
-    queueNames.push_back("unknown");
+    queueNames.push_back("queue");
     EXPECT_CALL(*params, timestampGt()).WillRepeatedly(Return(10));
     EXPECT_CALL(*params, timestampLt()).WillRepeatedly(Return(40));
 

@@ -122,6 +122,14 @@ void SearchProcessor::process(bsl::ostream& ostream)
                     ostream,
                     d_allocator_p);
 
+    bsl::shared_ptr<PayloadDumper> payloadDumper;
+    if (d_parameters->dumpPayload())
+        payloadDumper.reset(new (*d_allocator_p)
+                                PayloadDumper(ostream,
+                                              d_parameters->dataFileIterator(),
+                                              d_parameters->dumpLimit()),
+                            d_allocator_p);
+
     // TODO: consider to introduce SearchResultFactory and move all logic there
     // TODO: why unique_ptr doesn't support deleter in reset()
     // bsl::unique_ptr<SearchResult> searchResult_p;
@@ -150,28 +158,102 @@ void SearchProcessor::process(bsl::ostream& ostream)
                              d_allocator_p);
     }
     else if (d_parameters->outstanding()) {
-        searchResult_p.reset(new (*d_allocator_p) SearchOutstandingResult(
-                                 ostream,
-                                 d_parameters->details(),
-                                 d_parameters->dumpPayload(),
-                                 d_parameters->dumpLimit(),
-                                 d_parameters->dataFileIterator(),
-                                 d_parameters->queueMap(),
-                                 filters,
-                                 d_allocator_p),
-                             d_allocator_p);
+        // searchResult_p.reset(new (*d_allocator_p) SearchOutstandingResult(
+        //                          ostream,
+        //                          d_parameters->details(),
+        //                          d_parameters->dumpPayload(),
+        //                          d_parameters->dumpLimit(),
+        //                          d_parameters->dataFileIterator(),
+        //                          d_parameters->queueMap(),
+        //                          filters,
+        //                          d_allocator_p),
+        //                      d_allocator_p);
+
+        if (d_parameters->details()) {
+            // Base: Details
+            searchResult_p.reset(new (*d_allocator_p) SearchDetailResult(
+                                     ostream,
+                                     //  filters,
+                                     d_parameters->queueMap(),
+                                     payloadDumper,
+                                     d_allocator_p,
+                                     false,
+                                     true,
+                                     false),
+                                 d_allocator_p);
+            // Decorator
+            searchResult_p.reset(new (*d_allocator_p)
+                                     SearchOutstandingDecorator(searchResult_p,
+                                                                ostream,
+                                                                d_allocator_p),
+                                 d_allocator_p);
+        }
+        else {
+            // Base: Short
+            searchResult_p.reset(new (*d_allocator_p)
+                                     SearchShortResult(ostream,
+                                                       payloadDumper,
+                                                       d_allocator_p,
+                                                       false,
+                                                       false,
+                                                       true),
+                                 d_allocator_p);
+            // Decorator
+            searchResult_p.reset(new (*d_allocator_p)
+                                     SearchOutstandingDecorator(searchResult_p,
+                                                                ostream,
+                                                                d_allocator_p),
+                                 d_allocator_p);
+        }
     }
     else if (d_parameters->confirmed()) {
-        searchResult_p.reset(new (*d_allocator_p) SearchConfirmedResult(
-                                 ostream,
-                                 d_parameters->details(),
-                                 d_parameters->dumpPayload(),
-                                 d_parameters->dumpLimit(),
-                                 d_parameters->dataFileIterator(),
-                                 d_parameters->queueMap(),
-                                 filters,
-                                 d_allocator_p),
-                             d_allocator_p);
+        // searchResult_p.reset(new (*d_allocator_p) SearchConfirmedResult(
+        //                          ostream,
+        //                          d_parameters->details(),
+        //                          d_parameters->dumpPayload(),
+        //                          d_parameters->dumpLimit(),
+        //                          d_parameters->dataFileIterator(),
+        //                          d_parameters->queueMap(),
+        //                          filters,
+        //                          d_allocator_p),
+        //                      d_allocator_p);
+
+        if (d_parameters->details()) {
+            // Base: Details
+            searchResult_p.reset(new (*d_allocator_p) SearchDetailResult(
+                                     ostream,
+                                     //  filters,
+                                     d_parameters->queueMap(),
+                                     payloadDumper,
+                                     d_allocator_p,
+                                     true,
+                                     true,
+                                     true),
+                                 d_allocator_p);
+            // Decorator
+            searchResult_p.reset(new (*d_allocator_p)
+                                     SearchOutstandingDecorator(searchResult_p,
+                                                                ostream,
+                                                                d_allocator_p),
+                                 d_allocator_p);
+        }
+        else {
+            // Base: Short
+            searchResult_p.reset(new (*d_allocator_p)
+                                     SearchShortResult(ostream,
+                                                       payloadDumper,
+                                                       d_allocator_p,
+                                                       false,
+                                                       true,
+                                                       true),
+                                 d_allocator_p);
+            // Decorator
+            searchResult_p.reset(new (*d_allocator_p)
+                                     SearchOutstandingDecorator(searchResult_p,
+                                                                ostream,
+                                                                d_allocator_p),
+                                 d_allocator_p);
+        }
     }
     else if (d_parameters->partiallyConfirmed()) {
         searchResult_p.reset(new (*d_allocator_p)
@@ -187,16 +269,43 @@ void SearchProcessor::process(bsl::ostream& ostream)
                              d_allocator_p);
     }
     else {
-        searchResult_p.reset(new (*d_allocator_p) SearchAllResult(
-                                 ostream,
-                                 d_parameters->details(),
-                                 d_parameters->dumpPayload(),
-                                 d_parameters->dumpLimit(),
-                                 d_parameters->dataFileIterator(),
-                                 d_parameters->queueMap(),
-                                 filters,
-                                 d_allocator_p),
-                             d_allocator_p);
+        if (d_parameters->details()) {
+            // searchResult_p.reset(new (*d_allocator_p)
+            //                         SearchAllResult(ostream,
+            //                                         d_parameters->details(),
+            //                                         d_parameters->dumpPayload(),
+            //                                         d_parameters->dumpLimit(),
+            //                                         d_parameters->dataFile(),
+            //                                         d_parameters->queueMap(),
+            //                                         filters,
+            //                                         d_allocator_p),
+            //                     d_allocator_p);
+
+            // Base: Details
+            searchResult_p.reset(new (*d_allocator_p) SearchDetailResult(
+                                     ostream,
+                                     d_parameters->queueMap(),
+                                     payloadDumper,
+                                     d_allocator_p),
+                                 d_allocator_p);
+            // Decorator
+            searchResult_p.reset(new (*d_allocator_p)
+                                     SearchAllDecorator(searchResult_p),
+                                 d_allocator_p);
+        }
+        else {
+            // Base: Short
+            searchResult_p.reset(new (*d_allocator_p)
+                                     SearchShortResult(ostream,
+                                                       //  filters,
+                                                       payloadDumper,
+                                                       d_allocator_p),
+                                 d_allocator_p);
+            // Decorator
+            searchResult_p.reset(new (*d_allocator_p)
+                                     SearchAllDecorator(searchResult_p),
+                                 d_allocator_p);
+        }
     }
     if (d_parameters->timestampLt() > 0) {
         searchResult_p.reset(
@@ -238,10 +347,13 @@ void SearchProcessor::process(bsl::ostream& ostream)
         // MessageRecord
         if (iter->recordType() == mqbs::RecordType::e_MESSAGE) {
             const mqbs::MessageRecord& record = iter->asMessageRecord();
-            stopSearch = searchResult_p->processMessageRecord(
-                record,
-                iter->recordIndex(),
-                iter->recordOffset());
+            // Apply filters
+            if (filters.apply(record)) {
+                stopSearch = searchResult_p->processMessageRecord(
+                    record,
+                    iter->recordIndex(),
+                    iter->recordOffset());
+            }
         }
         // ConfirmRecord
         else if (iter->recordType() == mqbs::RecordType::e_CONFIRM) {
