@@ -585,6 +585,77 @@ class SearchPartiallyConfirmedDecorator : public SearchResultDecorator {
     void outputResult(bool outputRatio = true) BSLS_KEYWORD_OVERRIDE;
 };
 
+// =========================
+// class SearchGuidDecorator
+// =========================
+class SearchGuidDecorator : public SearchResultDecorator {
+  private:
+    // TYPES
+    typedef bsl::list<bsl::string>::iterator GuidListIt;
+
+    // DATA
+    bsl::ostream&                                     d_ostream;
+    bool                                              d_withDetails;
+    bsl::unordered_map<bmqt::MessageGUID, GuidListIt> d_guidsMap;
+    bsl::list<bsl::string>                            d_guids;
+
+  public:
+    // CREATORS
+    explicit SearchGuidDecorator(
+        const bsl::shared_ptr<SearchResultInterface> component,
+        const bsl::vector<bsl::string>&              guids,
+        bsl::ostream&                                ostream,
+        bool                                         withDetails,
+        bslma::Allocator*                            allocator);
+
+    // MANIPULATORS
+    bool processMessageRecord(const mqbs::MessageRecord& record,
+                              bsls::Types::Uint64        recordIndex,
+                              bsls::Types::Uint64        recordOffset)
+        BSLS_KEYWORD_OVERRIDE;
+    bool processDeletionRecord(const mqbs::DeletionRecord& record,
+                               bsls::Types::Uint64         recordIndex,
+                               bsls::Types::Uint64         recordOffset)
+        BSLS_KEYWORD_OVERRIDE;
+    void outputResult(bool outputRatio = false) BSLS_KEYWORD_OVERRIDE;
+};
+
+// ======================
+// class SummaryProcessor
+// ======================
+class SummaryProcessor : public SearchResultInterface {
+  private:
+    // DATA
+    bsl::ostream&                                 d_ostream;
+    mqbs::JournalFileIterator*                    d_journalFile_p;
+    mqbs::DataFileIterator*                       d_dataFile_p;
+    bsl::size_t                                   d_foundMessagesCount;
+    bsl::size_t                                   d_deletedMessagesCount;
+    bsl::unordered_map<bmqt::MessageGUID, size_t> d_partiallyConfirmedGUIDS;
+
+  public:
+    // CREATORS
+    explicit SummaryProcessor(bsl::ostream&              ostream,
+                              mqbs::JournalFileIterator* journalFile_p,
+                              mqbs::DataFileIterator*    dataFile_p,
+                              bslma::Allocator*          allocator);
+
+    // MANIPULATORS
+    bool processMessageRecord(const mqbs::MessageRecord& record,
+                              bsls::Types::Uint64        recordIndex,
+                              bsls::Types::Uint64        recordOffset)
+        BSLS_KEYWORD_OVERRIDE;
+    bool processConfirmRecord(const mqbs::ConfirmRecord& record,
+                              bsls::Types::Uint64        recordIndex,
+                              bsls::Types::Uint64        recordOffset)
+        BSLS_KEYWORD_OVERRIDE;
+    bool processDeletionRecord(const mqbs::DeletionRecord& record,
+                               bsls::Types::Uint64         recordIndex,
+                               bsls::Types::Uint64         recordOffset)
+        BSLS_KEYWORD_OVERRIDE;
+    void outputResult(bool outputRatio = true) BSLS_KEYWORD_OVERRIDE;
+};
+
 }  // close package namespace
 }  // close enterprise namespace
 

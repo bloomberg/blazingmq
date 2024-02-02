@@ -1278,9 +1278,9 @@ void SearchOutstandingDecorator::outputResult(bool outputRatio)
                            d_deletedMessagesCount);
 }
 
-// ================================
+// =======================================
 // class SearchPartiallyConfirmedDecorator
-// ================================
+// =======================================
 SearchPartiallyConfirmedDecorator::SearchPartiallyConfirmedDecorator(
     const bsl::shared_ptr<SearchResultInterface> component,
     bsl::ostream&                                ostream,
@@ -1356,6 +1356,165 @@ void SearchPartiallyConfirmedDecorator::outputResult(bool outputRatio)
     outputOutstandingRatio(d_ostream,
                            d_foundMessagesCount,
                            d_deletedMessagesCount);
+}
+
+// =========================
+// class SearchGuidDecorator
+// =========================
+SearchGuidDecorator::SearchGuidDecorator(
+    const bsl::shared_ptr<SearchResultInterface> component,
+    const bsl::vector<bsl::string>&              guids,
+    bsl::ostream&                                ostream,
+    bool                                         withDetails,
+    bslma::Allocator*                            allocator)
+: SearchResultDecorator(component)
+, d_ostream(ostream)
+, d_withDetails(withDetails)
+, d_guidsMap(allocator)
+, d_guids(allocator)
+{
+    // Build MessageGUID->StrGUID Map
+    for (const auto& guidStr : guids) {
+        bmqt::MessageGUID guid;
+        d_guidsMap[guid.fromHex(guidStr.c_str())] =
+            d_guids.insert(d_guids.cend(), guidStr);
+    }
+}
+
+bool SearchGuidDecorator::processMessageRecord(
+    const mqbs::MessageRecord& record,
+    bsls::Types::Uint64        recordIndex,
+    bsls::Types::Uint64        recordOffset)
+{
+    if (auto it = d_guidsMap.find(record.messageGUID());
+        it != d_guidsMap.end()) {
+        SearchResultDecorator::processMessageRecord(record,
+                                                    recordIndex,
+                                                    recordOffset);
+        // Remove processed GUID from map.
+        d_guids.erase(it->second);
+        d_guidsMap.erase(it);
+    }
+
+    // return true (stop search) if no detail is needed and map is empty.
+    return (!d_withDetails && d_guidsMap.empty());
+}
+
+bool SearchGuidDecorator::processDeletionRecord(
+    const mqbs::DeletionRecord& record,
+    bsls::Types::Uint64         recordIndex,
+    bsls::Types::Uint64         recordOffset)
+{
+    SearchResultDecorator::processDeletionRecord(record,
+                                                 recordIndex,
+                                                 recordOffset);
+    // return true (stop search) when details needed and search is done (map is
+    // empty).
+    return (d_withDetails && d_guidsMap.empty());
+}
+
+void SearchGuidDecorator::outputResult(BSLS_ANNOTATION_UNUSED bool outputRatio)
+{
+    SearchResultDecorator::outputResult(false);
+    // Print non found GUIDs
+    if (!d_guids.empty()) {
+        d_ostream << '\n'
+                  << "The following " << d_guids.size()
+                  << " GUID(s) not found:" << '\n';
+        for (const auto& guid : d_guids) {
+            d_ostream << guid << '\n';
+        }
+    }
+}
+
+// ======================
+// class SummaryProcessor
+// ======================
+
+SummaryProcessor::SummaryProcessor(bsl::ostream&              ostream,
+                                   mqbs::JournalFileIterator* journalFile_p,
+                                   mqbs::DataFileIterator*    dataFile_p,
+                                   bslma::Allocator*          allocator)
+: d_ostream(ostream)
+, d_journalFile_p(journalFile_p)
+, d_dataFile_p(dataFile_p)
+, d_foundMessagesCount(0)
+, d_deletedMessagesCount(0)
+, d_partiallyConfirmedGUIDS(allocator)
+{
+    // NOTHING
+}
+
+bool SummaryProcessor::processMessageRecord(
+    const mqbs::MessageRecord& record,
+    BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 recordIndex,
+    BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 recordOffset)
+{
+    d_partiallyConfirmedGUIDS[record.messageGUID()] = 0;
+    d_foundMessagesCount++;
+
+    return false;
+}
+
+bool SummaryProcessor::processConfirmRecord(const mqbs::ConfirmRecord& record,
+                                            bsls::Types::Uint64 recordIndex,
+                                            bsls::Types::Uint64 recordOffset)
+{
+    if (auto it = d_partiallyConfirmedGUIDS.find(record.messageGUID());
+        it != d_partiallyConfirmedGUIDS.end()) {
+        // Message is partially confirmed, increase counter.
+        it->second++;
+    }
+
+    return false;
+}
+
+bool SummaryProcessor::processDeletionRecord(
+    const mqbs::DeletionRecord& record,
+    BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 recordIndex,
+    BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 recordOffset)
+{
+    if (auto it = d_partiallyConfirmedGUIDS.find(record.messageGUID());
+        it != d_partiallyConfirmedGUIDS.end()) {
+        // Message is confirmed, remove it.
+        d_partiallyConfirmedGUIDS.erase(it);
+        d_deletedMessagesCount++;
+    }
+
+    return false;
+}
+
+void SummaryProcessor::outputResult(BSLS_ANNOTATION_UNUSED bool outputRatio)
+{
+    // Calculate number of partially confirmed messages
+    size_t partiallyConfirmedMessagesCount = 0;
+    for (const auto& item : d_partiallyConfirmedGUIDS) {
+        auto confirmCount = item.second;
+        if (confirmCount > 0) {
+            partiallyConfirmedMessagesCount++;
+        }
+    }
+
+    if (d_foundMessagesCount == 0) {
+        d_ostream << "No messages found." << '\n';
+        return;  // RETURN
+    }
+
+    d_ostream << d_foundMessagesCount << " message(s) found." << '\n';
+    d_ostream << "Number of confirmed messages: " << d_deletedMessagesCount
+              << '\n';
+    d_ostream << "Number of partially confirmed messages: "
+              << partiallyConfirmedMessagesCount << '\n';
+    d_ostream << "Number of outstanding messages: "
+              << (d_foundMessagesCount - d_deletedMessagesCount) << '\n';
+
+    outputOutstandingRatio(d_ostream,
+                           d_foundMessagesCount,
+                           d_deletedMessagesCount);
+
+    // Print meta data of opened files
+    printJournalFileMeta(d_ostream, d_journalFile_p);
+    printDataFileMeta(d_ostream, d_dataFile_p);
 }
 
 }  // close package namespace

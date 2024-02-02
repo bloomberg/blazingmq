@@ -135,25 +135,63 @@ void SearchProcessor::process(bsl::ostream& ostream)
     // bsl::unique_ptr<SearchResult> searchResult_p;
     bsl::shared_ptr<SearchResultInterface> searchResult_p;
     if (!d_parameters->guid().empty()) {
-        searchResult_p.reset(new (*d_allocator_p) SearchGuidResult(
-                                 ostream,
-                                 d_parameters->details(),
-                                 d_parameters->dumpPayload(),
-                                 d_parameters->dumpLimit(),
-                                 d_parameters->dataFileIterator(),
-                                 d_parameters->queueMap(),
-                                 d_parameters->guid(),
-                                 filters,
-                                 d_allocator_p),
+        // searchResult_p.reset(new (*d_allocator_p) SearchGuidResult(
+        //                          ostream,
+        //                          d_parameters->details(),
+        //                          d_parameters->dumpPayload(),
+        //                          d_parameters->dumpLimit(),
+        //                          d_parameters->dataFileIterator(),
+        //                          d_parameters->queueMap(),
+        //                          d_parameters->guid(),
+        //                          filters,
+        //                          d_allocator_p),
+        //                      d_allocator_p);
+        if (d_parameters->details()) {
+            // Base: Details
+            searchResult_p.reset(new (*d_allocator_p) SearchDetailResult(
+                                     ostream,
+                                     //  filters,
+                                     d_parameters->queueMap(),
+                                     payloadDumper,
+                                     d_allocator_p,
+                                     true,
+                                     true,
+                                     true),
+                                 d_allocator_p);
+        }
+        else {
+            // Base: Short
+            searchResult_p.reset(new (*d_allocator_p)
+                                     SearchShortResult(ostream,
+                                                       payloadDumper,
+                                                       d_allocator_p,
+                                                       true,
+                                                       true,
+                                                       true),
+                                 d_allocator_p);
+        }
+        // Decorator
+        searchResult_p.reset(new (*d_allocator_p)
+                                 SearchGuidDecorator(searchResult_p,
+                                                     d_parameters->guid(),
+                                                     ostream,
+                                                     d_parameters->details(),
+                                                     d_allocator_p),
                              d_allocator_p);
     }
     else if (d_parameters->summary()) {
-        searchResult_p.reset(new (*d_allocator_p) SearchSummaryResult(
+        // searchResult_p.reset(new (*d_allocator_p) SearchSummaryResult(
+        //                          ostream,
+        //                          d_parameters->journalFileIterator(),
+        //                          d_parameters->dataFileIterator(),
+        //                          d_parameters->queueMap(),
+        //                          filters,
+        //                          d_allocator_p),
+        //                      d_allocator_p);
+        searchResult_p.reset(new (*d_allocator_p) SummaryProcessor(
                                  ostream,
                                  d_parameters->journalFileIterator(),
                                  d_parameters->dataFileIterator(),
-                                 d_parameters->queueMap(),
-                                 filters,
                                  d_allocator_p),
                              d_allocator_p);
     }
