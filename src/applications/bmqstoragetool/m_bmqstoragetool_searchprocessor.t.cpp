@@ -1150,13 +1150,15 @@ static void test7_searchPartiallyConfirmedMessagesTest()
         "SEARCH PARTIALLY CONFIRMED MESSAGES TEST");
 
     // Simulate journal file
-    size_t                         numRecords = 15;
+    // numRecords must be multiple 3 plus one to cover all combinations
+    // (confirmed, deleted, not confirmed)
+    size_t                         numRecords = 16;
     RecordsListType                records(s_allocator_p);
     JournalFile                    journalFile(numRecords, s_allocator_p);
     bsl::vector<bmqt::MessageGUID> partiallyConfirmedGUIDS =
         journalFile.addJournalRecordsWithPartiallyConfirmedMessages(&records);
 
-    // Configure parameters to search outstanding messages
+    // Configure parameters to search partially confirmed messages
     bsl::unique_ptr<ParametersMock> params =
         bsl::make_unique<ParametersMock>(journalFile, s_allocator_p);
     mockParametersDefault(*params);
@@ -1175,11 +1177,11 @@ static void test7_searchPartiallyConfirmedMessagesTest()
     }
     expectedStream << partiallyConfirmedGUIDS.size()
                    << " message GUID(s) found." << bsl::endl;
-    float messageCount     = numRecords / 3.0;
-    float outstandingRatio = float(partiallyConfirmedGUIDS.size()) /
+    float messageCount     = ceil(numRecords / 3.0);
+    float outstandingRatio = float(partiallyConfirmedGUIDS.size() + 1) /
                              messageCount * 100.0;
     expectedStream << "Outstanding ratio: " << outstandingRatio << "% ("
-                   << partiallyConfirmedGUIDS.size() << "/" << messageCount
+                   << partiallyConfirmedGUIDS.size() + 1 << "/" << messageCount
                    << ")" << bsl::endl;
 
     ASSERT_EQ(resultStream.str(), expectedStream.str());

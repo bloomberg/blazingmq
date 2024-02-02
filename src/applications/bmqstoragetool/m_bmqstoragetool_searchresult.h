@@ -58,6 +58,8 @@ class SearchResultInterface {
                                        bsls::Types::Uint64         recordIndex,
                                        bsls::Types::Uint64 recordOffset) = 0;
     virtual void outputResult(bool outputRatio = true)                   = 0;
+    virtual void
+    outputResult(bsl::unordered_set<bmqt::MessageGUID>& guidFilter){};
 };
 
 // ==================
@@ -187,6 +189,8 @@ class SearchShortResult : public SearchResultInterface {
                                bsls::Types::Uint64         recordOffset)
         BSLS_KEYWORD_OVERRIDE;
     void outputResult(bool outputRatio = true) BSLS_KEYWORD_OVERRIDE;
+    void outputResult(bsl::unordered_set<bmqt::MessageGUID>& guidFilter)
+        BSLS_KEYWORD_OVERRIDE;
 };
 
 // ========================
@@ -249,6 +253,8 @@ class SearchDetailResult : public SearchResultInterface {
                                bsls::Types::Uint64         recordOffset)
         BSLS_KEYWORD_OVERRIDE;
     void outputResult(bool outputRatio = true) BSLS_KEYWORD_OVERRIDE;
+    void outputResult(bsl::unordered_set<bmqt::MessageGUID>& guidFilter)
+        BSLS_KEYWORD_OVERRIDE;
 };
 
 // =====================
@@ -460,6 +466,8 @@ class SearchResultDecorator : public SearchResultInterface {
                                bsls::Types::Uint64         recordOffset)
         BSLS_KEYWORD_OVERRIDE;
     void outputResult(bool outputRatio = true) BSLS_KEYWORD_OVERRIDE;
+    void outputResult(bsl::unordered_set<bmqt::MessageGUID>& guidFilter)
+        BSLS_KEYWORD_OVERRIDE;
 };
 
 // ====================================
@@ -514,6 +522,8 @@ class SearchAllDecorator : public SearchResultDecorator {
 // ================================
 class SearchOutstandingDecorator : public SearchResultDecorator {
   private:
+    // DATA
+
     bsl::ostream&                         d_ostream;
     bsl::size_t                           d_foundMessagesCount;
     bsl::size_t                           d_deletedMessagesCount;
@@ -521,13 +531,50 @@ class SearchOutstandingDecorator : public SearchResultDecorator {
 
   public:
     // CREATORS
+
     explicit SearchOutstandingDecorator(
         const bsl::shared_ptr<SearchResultInterface> component,
         bsl::ostream&                                ostream,
         bslma::Allocator*                            allocator);
 
     // MANIPULATORS
+
     bool processMessageRecord(const mqbs::MessageRecord& record,
+                              bsls::Types::Uint64        recordIndex,
+                              bsls::Types::Uint64        recordOffset)
+        BSLS_KEYWORD_OVERRIDE;
+    bool processDeletionRecord(const mqbs::DeletionRecord& record,
+                               bsls::Types::Uint64         recordIndex,
+                               bsls::Types::Uint64         recordOffset)
+        BSLS_KEYWORD_OVERRIDE;
+    void outputResult(bool outputRatio = true) BSLS_KEYWORD_OVERRIDE;
+};
+
+// ======================================
+// class SearchPartiallyConfirmedDecorator
+// ======================================
+class SearchPartiallyConfirmedDecorator : public SearchResultDecorator {
+  private:
+    // DATA
+
+    bsl::ostream&                                 d_ostream;
+    bsl::size_t                                   d_foundMessagesCount;
+    bsl::size_t                                   d_deletedMessagesCount;
+    bsl::unordered_map<bmqt::MessageGUID, size_t> d_partiallyConfirmedGUIDS;
+
+  public:
+    // CREATORS
+    explicit SearchPartiallyConfirmedDecorator(
+        const bsl::shared_ptr<SearchResultInterface> component,
+        bsl::ostream&                                ostream,
+        bslma::Allocator*                            allocator);
+
+    // MANIPULATORS
+    bool processMessageRecord(const mqbs::MessageRecord& record,
+                              bsls::Types::Uint64        recordIndex,
+                              bsls::Types::Uint64        recordOffset)
+        BSLS_KEYWORD_OVERRIDE;
+    bool processConfirmRecord(const mqbs::ConfirmRecord& record,
                               bsls::Types::Uint64        recordIndex,
                               bsls::Types::Uint64        recordOffset)
         BSLS_KEYWORD_OVERRIDE;

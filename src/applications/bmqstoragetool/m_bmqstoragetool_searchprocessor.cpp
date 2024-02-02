@@ -244,17 +244,48 @@ void SearchProcessor::process(bsl::ostream& ostream)
                              d_allocator_p);
     }
     else if (d_parameters->partiallyConfirmed()) {
-        searchResult_p.reset(new (*d_allocator_p)
-                                 SearchPartiallyConfirmedResult(
+        // searchResult_p.reset(new (*d_allocator_p)
+        //                          SearchPartiallyConfirmedResult(
+        //                              ostream,
+        //                              d_parameters->details(),
+        //                              d_parameters->dumpPayload(),
+        //                              d_parameters->dumpLimit(),
+        //                              d_parameters->dataFileIterator(),
+        //                              d_parameters->queueMap(),
+        //                              filters,
+        //                              d_allocator_p),
+        //                      d_allocator_p);
+        if (d_parameters->details()) {
+            // Base: Details
+            searchResult_p.reset(new (*d_allocator_p) SearchDetailResult(
                                      ostream,
-                                     d_parameters->details(),
-                                     d_parameters->dumpPayload(),
-                                     d_parameters->dumpLimit(),
-                                     d_parameters->dataFileIterator(),
+                                     //  filters,
                                      d_parameters->queueMap(),
-                                     filters,
-                                     d_allocator_p),
-                             d_allocator_p);
+                                     payloadDumper,
+                                     d_allocator_p,
+                                     false,
+                                     true,
+                                     false),
+                                 d_allocator_p);
+        }
+        else {
+            // Base: Short
+            searchResult_p.reset(new (*d_allocator_p)
+                                     SearchShortResult(ostream,
+                                                       payloadDumper,
+                                                       d_allocator_p,
+                                                       false,
+                                                       false,
+                                                       true),
+                                 d_allocator_p);
+        }
+        // Decorator
+        searchResult_p.reset(
+            new (*d_allocator_p)
+                SearchPartiallyConfirmedDecorator(searchResult_p,
+                                                  ostream,
+                                                  d_allocator_p),
+            d_allocator_p);
     }
     else {
         // searchResult_p.reset(new (*d_allocator_p)
