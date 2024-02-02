@@ -790,7 +790,7 @@ class FileStore : public DataStore {
                            const mqbu::StorageKey&  queueKey,
                            const mqbu::StorageKey&  appKey,
                            bsls::Types::Uint64      timestamp,
-                           bool onReject) BSLS_KEYWORD_OVERRIDE;
+                           ConfirmReason::Enum reason) BSLS_KEYWORD_OVERRIDE;
 
     /// Write a DELETION record to the journal with the specified
     /// `queueKey`, `flag`, `guid` and `timestamp` to the journal.  Return

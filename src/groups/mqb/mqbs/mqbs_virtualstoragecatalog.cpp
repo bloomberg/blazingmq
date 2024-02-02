@@ -204,6 +204,17 @@ VirtualStorageCatalog::virtualStorage(const mqbu::StorageKey& appKey)
     return it->second.get();
 }
 
+void VirtualStorageCatalog::autoConfirm(const bmqt::MessageGUID& msgGUID,
+                                        const mqbu::StorageKey&  appKey)
+{
+    BSLS_ASSERT_SAFE(!appKey.isNull());
+
+    VirtualStoragesIter it = d_virtualStorages.find(appKey);
+    BSLS_ASSERT_SAFE(it != d_virtualStorages.end());
+
+    it->second->autoConfirm(msgGUID);
+}
+
 // ACCESSORS
 bool VirtualStorageCatalog::hasVirtualStorage(const mqbu::StorageKey& appKey,
                                               bsl::string* appId) const

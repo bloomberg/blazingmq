@@ -623,7 +623,7 @@ class DataStore : public mqbi::DispatcherClient {
                                    const mqbu::StorageKey&  queueKey,
                                    const mqbu::StorageKey&  appKey,
                                    bsls::Types::Uint64      timestamp,
-                                   bool                     onReject) = 0;
+                                   ConfirmReason::Enum      reason) = 0;
 
     /// Write a DELETION record to the data store with the specified
     /// `queueKey`, `flag`, `guid` and `timestamp`.  Return zero on success,

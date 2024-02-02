@@ -393,6 +393,13 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
     virtual void afterAppIdUnregistered(
         const mqbi::Storage::AppIdKeyPair& appIdKeyPair) BSLS_KEYWORD_OVERRIDE;
 
+    mqbi::StorageResult::Enum evaluateAutoSubscriptions(
+        const bmqp::PutHeader&              putHeader,
+        const bsl::shared_ptr<bdlbb::Blob>& appData,
+        const bsl::shared_ptr<bdlbb::Blob>& options,
+        const bmqp::MessagePropertiesInfo&  mpi,
+        bsls::Types::Uint64                 timestamp) BSLS_KEYWORD_OVERRIDE;
+
     // ACCESSORS
     //   (virtual mqbi::QueueEngine)
 

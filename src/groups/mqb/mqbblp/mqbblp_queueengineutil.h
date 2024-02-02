@@ -31,6 +31,7 @@
 
 #include <mqbblp_routers.h>
 #include <mqbcfg_messages.h>
+#include <mqbconfm_messages.h>
 #include <mqbi_queue.h>
 #include <mqbi_storage.h>
 
@@ -381,6 +382,11 @@ struct QueueEngineUtil_AppState {
 
     bsls::AtomicBool d_isScheduled;
 
+    mqbconfm::Expression d_subcriptionExpression;
+
+    Routers::Expression d_autoSubscription;
+    // Evaluator of the auto subscription
+
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(QueueEngineUtil_AppState,
                                    bslma::UsesBslmaAllocator)
@@ -502,6 +508,10 @@ struct QueueEngineUtil_AppState {
     Routers::Result
     selectConsumer(const Routers::Visitor&      visitor,
                    const mqbi::StorageIterator* currentMessage);
+
+    int setSubscription(const mqbconfm::Expression& value);
+
+    bool evaluateAutoSubcription();
 
     // ACCESSORS
     size_t redeliveryListSize() const;

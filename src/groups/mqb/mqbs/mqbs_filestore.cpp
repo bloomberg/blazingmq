@@ -4456,6 +4456,7 @@ int FileStore::writeJournalRecord(const bmqp::StorageHeader& header,
     QueueOpType::Enum        queueOpType   = QueueOpType::e_UNDEFINED;
     JournalOpType::Enum      journalOpType = JournalOpType::e_UNDEFINED;
     ReplicatedStorage*       rstorage      = 0;
+    mqbs::ConfirmReason::Enum confirmReason = mqbs::ConfirmReason::e_CONFIRMED;
 
     if (bmqp::StorageMessageType::e_CONFIRM == messageType) {
         OffsetPtr<const ConfirmRecord> confRec(journal.block(), recordOffset);
@@ -4465,6 +4466,7 @@ int FileStore::writeJournalRecord(const bmqp::StorageHeader& header,
         recordType = RecordType::e_CONFIRM;
         activeFileSet->d_outstandingBytesJournal +=
             FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
+        confirmReason = confRec->reason();
     }
     else if (bmqp::StorageMessageType::e_DELETION == messageType) {
         OffsetPtr<const DeletionRecord> delRec(journal.block(), recordOffset);
@@ -4555,7 +4557,7 @@ int FileStore::writeJournalRecord(const bmqp::StorageHeader& header,
         DataStoreRecordHandle handle;
         insertDataStoreRecord(&handle, key, record);
 
-        rstorage->processConfirmRecord(*guid, *appKey, handle);
+        rstorage->processConfirmRecord(*guid, *appKey, confirmReason, handle);
     }
     else if (RecordType::e_DELETION == recordType) {
         // Keep track of record's offset.
@@ -5815,7 +5817,7 @@ int FileStore::writeConfirmRecord(DataStoreRecordHandle*   handle,
                                   const mqbu::StorageKey&  queueKey,
                                   const mqbu::StorageKey&  appKey,
                                   bsls::Types::Uint64      timestamp,
-                                  bool                     onReject)
+                                  ConfirmReason::Enum      reason)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(handle);
@@ -5868,9 +5870,7 @@ int FileStore::writeConfirmRecord(DataStoreRecordHandle*   handle,
         .setTimestamp(timestamp);
     confRec->setQueueKey(queueKey).setMessageGUID(guid);
 
-    if (onReject) {
-        confRec->setReason(ConfirmReason::e_REJECTED);
-    }
+    confRec->setReason(reason);
 
     if (!appKey.isNull()) {
         confRec->setAppKey(appKey);

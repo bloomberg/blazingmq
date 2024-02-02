@@ -1251,7 +1251,8 @@ bsl::ostream& operator<<(bsl::ostream& stream, const MessageRecord& rhs);
 /// precisely the reason for confirming the message.
 struct ConfirmReason {
     // TYPES
-    enum Enum { e_CONFIRMED = 0, e_REJECTED = 1 };
+    // This is a bitmask, not enumeration
+    enum Enum { e_CONFIRMED = 0, e_REJECTED = 1, e_AUTO_CONFIRMED = 2 };
 
     // CLASS METHODS
 

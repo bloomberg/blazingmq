@@ -214,6 +214,7 @@
       <element name='maxDeliveryAttempts' type='int' default='0'/>
       <element name='deduplicationTimeMs' type='int' default='300000'/>   <!-- 5 minutes -->
       <element name='consistency'         type='mqbconfm:Consistency'/>
+      <element name='subscriptions'       type='mqbconfm:Subscription' maxOccurs='unbounded'/>
     </sequence>
   </complexType>
 
@@ -335,6 +336,51 @@
     </sequence>
   </complexType>
 
+  <simpleType name='ExpressionVersion'>
+    <annotation>
+      <documentation>
+        Enumeration of the various expression versions.
+      </documentation>
+    </annotation>
+    <restriction base='string' bdem:preserveEnumOrder='1'>
+      <enumeration value='E_UNDEFINED' bdem:id='0'/>
+      <enumeration value='E_VERSION_1' bdem:id='1'/>
+    </restriction>
+  </simpleType>
+
+  <complexType name='Expression'>
+    <annotation>
+      <documentation>
+        This complex type contains expression to evaluate when selecting
+        Subscription for delivery.
+
+        version................: expression version (default is HSL)
+        text...................: textual representation of the expression
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='version' type='tns:ExpressionVersion' default='E_UNDEFINED'/>
+      <element name='text' type='string'/>
+    </sequence>
+  </complexType>
+  
+  <complexType name='Subscription'>
+    <annotation>
+      <documentation>
+        This complex type contains various parameters required by an upstream
+        node to configure subscription for a queue handle that has already been
+        created.
+
+        sId....................: subscription identifier
+        consumers..............: consumer parameters
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='appId'      type='string'     />
+      <element name='expression' type='tns:Expression'   />
+    </sequence>
+  </complexType>
+    
   <!-- ========================================================================
                                     STORAGE
   ========================================================================= -->

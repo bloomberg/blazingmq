@@ -432,28 +432,49 @@ void LocalQueue::postMessage(const bmqp::PutHeader&              putHeader,
 
     // Absence of 'queueHandle' in the 'attributes' means no 'e_ACK_REQUESTED'.
 
-    // Note that arrival timepoint is used only at the primary node, for
-    // calculating and reporting the time interval for which a message
-    // stays in the queue.
-    mqbi::StorageMessageAttributes attributes(
-        bdlt::EpochUtil::convertToTimeT64(bdlt::CurrentTime::utc()),
-        d_queueEngine_mp->messageReferenceCount(),
-        translation,
-        putHeader.compressionAlgorithmType(),
-        !d_haveStrongConsistency,
-        doAck ? source : 0,
-        putHeader.crc32c(),
-        timeStamp);  // Arrival Timepoint
+    bsls::Types::Uint64 timestamp = bdlt::EpochUtil::convertToTimeT64(
+        bdlt::CurrentTime::utc());
 
-    mqbi::StorageResult::Enum res = d_state_p->storage()->put(
-        &attributes,
-        putHeader.messageGUID(),
-        appData,
-        options);
+    // EXPERIMENTAL:
+    //  Evaluate 'auto' subscriptions
+    mqbi::StorageResult::Enum res =
+        d_queueEngine_mp->evaluateAutoSubscriptions(putHeader,
+                                                    appData,
+                                                    options,
+                                                    translation,
+                                                    timestamp);
+
+    bool         haveReceipt = true;
+    unsigned int refCount    = d_queueEngine_mp->messageReferenceCount();
+
+    if (res == mqbi::StorageResult::e_SUCCESS) {
+        if (refCount) {
+            // Note that arrival timepoint is used only at the primary node,
+            // for calculating and reporting the time interval for which a
+            // message stays in the queue.
+            mqbi::StorageMessageAttributes attributes(
+                timestamp,
+                refCount,
+                translation,
+                putHeader.compressionAlgorithmType(),
+                !d_haveStrongConsistency,
+                doAck ? source : 0,
+                putHeader.crc32c(),
+                timeStamp);  // Arrival Timepoint
+
+            res = d_state_p->storage()->put(&attributes,
+                                            putHeader.messageGUID(),
+                                            appData,
+                                            options);
+
+            haveReceipt = attributes.hasReceipt();
+        }
+        // else all subscriptions are negative
+    }
 
     // Send acknowledgement if post failed or if ack was requested (both could
     // be true as well).
-    if (res != mqbi::StorageResult::e_SUCCESS || attributes.hasReceipt()) {
+    if (res != mqbi::StorageResult::e_SUCCESS || haveReceipt) {
         // Calculate time delta between PUT and ACK
         const bsls::Types::Int64 timeDelta =
             mwcsys::Time::highResolutionTimer() - timeStamp;
@@ -488,7 +509,7 @@ void LocalQueue::postMessage(const bmqp::PutHeader&              putHeader,
         d_state_p->stats().onEvent(mqbstat::QueueStatsDomain::EventType::e_PUT,
                                    appData->length());
 
-        if (attributes.hasReceipt()) {
+        if (haveReceipt && refCount) {
             d_hasNewMessages = true;
         }
     }

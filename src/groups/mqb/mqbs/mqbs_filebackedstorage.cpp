@@ -131,6 +131,8 @@ FileBackedStorage::FileBackedStorage(
 , d_isEmpty(1)
 , d_defaultRdaInfo(defaultRdaInfo)
 , d_hasReceipts(!config.consistency().isStrongValue())
+, d_currentlyAutoConfirming()
+, d_ephemeralConfirms(d_allocator_p)
 {
     BSLS_ASSERT(d_store_p);
 
@@ -336,11 +338,19 @@ FileBackedStorage::put(mqbi::StorageMessageAttributes*     attributes,
         // Looks like extra lookup in
         // VirtualStorageIterator::loadMessageAndAttributes() can be avoided
         // if we keep `irc` (like we keep 'DataStoreRecordHandle').
+
         d_virtualStorageCatalog.put(msgGUID,
                                     msgSize,
                                     d_defaultRdaInfo,
                                     bmqp::Protocol::k_DEFAULT_SUBSCRIPTION_ID,
                                     mqbu::StorageKey::k_NULL_KEY);
+
+        // Move auto confirms to the data record
+        for (unsigned int i = 0; i < d_ephemeralConfirms.size(); ++i) {
+            irc.first->second.d_array.push_back(d_ephemeralConfirms[i]);
+        }
+        d_ephemeralConfirms.clear();
+        d_currentlyAutoConfirming = bmqt::MessageGUID();
 
         BSLS_ASSERT_SAFE(d_queue_p);
         d_queue_p->stats()->onEvent(
@@ -432,12 +442,13 @@ FileBackedStorage::releaseRef(const bmqt::MessageGUID& msgGUID,
     BSLS_ASSERT_SAFE(!handles.empty());
 
     DataStoreRecordHandle handle;
-    int                   rc = d_store_p->writeConfirmRecord(&handle,
-                                           msgGUID,
-                                           d_queueKey,
-                                           appKey,
-                                           timestamp,
-                                           onReject);
+    int                   rc = d_store_p->writeConfirmRecord(
+        &handle,
+        msgGUID,
+        d_queueKey,
+        appKey,
+        timestamp,
+        onReject ? ConfirmReason::e_REJECTED : ConfirmReason::e_CONFIRMED);
     if (0 != rc) {
         // If 'appKey' isn't null, we have already removed 'msgGUID' from the
         // virtual storage of 'appKey'.  This is ok, because if above 'write'
@@ -795,6 +806,18 @@ void FileBackedStorage::processMessageRecord(
                                     bmqp::Protocol::k_DEFAULT_SUBSCRIPTION_ID,
                                     mqbu::StorageKey::k_NULL_KEY);
 
+        if (!d_currentlyAutoConfirming.isUnset()) {
+            if (d_currentlyAutoConfirming == guid) {
+                // Move auto confirms to the data record
+                for (unsigned int i = 0; i < d_ephemeralConfirms.size(); ++i) {
+                    irc.first->second.d_array.push_back(
+                        d_ephemeralConfirms[i]);
+                }
+            }
+            d_ephemeralConfirms.clear();
+            d_currentlyAutoConfirming = bmqt::MessageGUID();
+        }
+
         // Update the messages & bytes monitors, and the stats.
         d_capacityMeter.forceCommit(1, msgLen);  // Return value ignored.
 
@@ -822,9 +845,23 @@ void FileBackedStorage::processMessageRecord(
 void FileBackedStorage::processConfirmRecord(
     const bmqt::MessageGUID&     guid,
     const mqbu::StorageKey&      appKey,
+    ConfirmReason::Enum          reason,
     const DataStoreRecordHandle& handle)
 {
     BSLS_ASSERT_SAFE(RecordType::e_CONFIRM == handle.type());
+
+    if (reason == ConfirmReason::e_AUTO_CONFIRMED) {
+        if (d_currentlyAutoConfirming != guid) {
+            if (!d_currentlyAutoConfirming.isUnset()) {
+                clearSelection();
+            }
+            d_currentlyAutoConfirming = guid;
+        }
+
+        d_virtualStorageCatalog.autoConfirm(d_currentlyAutoConfirming, appKey);
+        d_ephemeralConfirms.push_back(handle);
+        return;  // RETURN
+    }
 
     RecordHandleMapIter it = d_handles.find(guid);
     if (it == d_handles.end()) {
@@ -966,6 +1003,45 @@ void FileBackedStorage::purge(const mqbu::StorageKey& appKey)
 
         d_queue_p->queueEngine()->afterQueuePurged(appId, appKey);
     }
+}
+
+void FileBackedStorage::startAutoConfirming(const bmqt::MessageGUID& msgGUID)
+{
+    clearSelection();
+    d_currentlyAutoConfirming = msgGUID;
+}
+
+mqbi::StorageResult::Enum
+FileBackedStorage::autoConfirm(const mqbu::StorageKey& appKey,
+                               bsls::Types::Uint64     timestamp)
+{
+    BSLS_ASSERT_SAFE(!appKey.isNull());
+    BSLS_ASSERT_SAFE(!d_currentlyAutoConfirming.isUnset());
+
+    DataStoreRecordHandle handle;
+    int                   rc = d_store_p->writeConfirmRecord(&handle,
+                                           d_currentlyAutoConfirming,
+                                           d_queueKey,
+                                           appKey,
+                                           timestamp,
+                                           ConfirmReason::e_AUTO_CONFIRMED);
+    if (0 != rc) {
+        return mqbi::StorageResult::e_WRITE_FAILURE;  // RETURN
+    }
+    d_ephemeralConfirms.push_back(handle);
+    d_virtualStorageCatalog.autoConfirm(d_currentlyAutoConfirming, appKey);
+
+    return mqbi::StorageResult::e_SUCCESS;
+}
+
+void FileBackedStorage::clearSelection()
+{
+    for (unsigned int i = 0; i < d_ephemeralConfirms.size(); ++i) {
+        d_store_p->removeRecordRaw(d_ephemeralConfirms[i]);
+    }
+    d_ephemeralConfirms.clear();
+
+    d_currentlyAutoConfirming = bmqt::MessageGUID();
 }
 
 // -------------------------------

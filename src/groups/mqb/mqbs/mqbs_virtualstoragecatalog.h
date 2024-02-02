@@ -174,6 +174,9 @@ class VirtualStorageCatalog {
 
     mqbi::Storage* virtualStorage(const mqbu::StorageKey& appKey);
 
+    void autoConfirm(const bmqt::MessageGUID& msgGUID,
+                     const mqbu::StorageKey&  appKey);
+
     // ACCESSORS
 
     /// Return the number of virtual storages registered with this instance.

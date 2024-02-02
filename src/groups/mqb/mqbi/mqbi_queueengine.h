@@ -205,6 +205,13 @@ class QueueEngine {
     virtual void
     afterAppIdUnregistered(const mqbi::Storage::AppIdKeyPair& appIdKeyPair);
 
+    virtual StorageResult::Enum
+    evaluateAutoSubscriptions(const bmqp::PutHeader&              putHeader,
+                              const bsl::shared_ptr<bdlbb::Blob>& appData,
+                              const bsl::shared_ptr<bdlbb::Blob>& options,
+                              const bmqp::MessagePropertiesInfo&  mpi,
+                              bsls::Types::Uint64 timestamp) = 0;
+
     // ACCESSORS
 
     /// Return the reference count that should be applied to a message

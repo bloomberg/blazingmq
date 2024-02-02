@@ -79,6 +79,7 @@ class ReplicatedStorage : public mqbi::Storage {
     /// nodes, and the record will not be replicated to peer nodes.
     virtual void processConfirmRecord(const bmqt::MessageGUID&     guid,
                                       const mqbu::StorageKey&      appKey,
+                                      ConfirmReason::Enum          reason,
                                       const DataStoreRecordHandle& handle) = 0;
 
     /// Process the DELETION having the specified `guid`.  Note that this
