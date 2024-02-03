@@ -133,7 +133,7 @@ void SearchProcessor::process(bsl::ostream& ostream)
     // TODO: consider to introduce SearchResultFactory and move all logic there
     // TODO: why unique_ptr doesn't support deleter in reset()
     // bsl::unique_ptr<SearchResult> searchResult_p;
-    bsl::shared_ptr<SearchResultInterface> searchResult_p;
+    bsl::shared_ptr<SearchResult> searchResult_p;
     if (!d_parameters->guid().empty()) {
         // searchResult_p.reset(new (*d_allocator_p) SearchGuidResult(
         //                          ostream,

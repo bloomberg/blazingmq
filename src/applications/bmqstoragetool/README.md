@@ -13,19 +13,25 @@ the project. From the command-line, there are a few options you can use when
 invoking the tool.
 
 ```bash
-Usage:   bmqstoragetool.tsk [--journal-file-pattern <pattern>]
+Usage:   bmqstoragetool.tsk [--journal-path <journal path>]
                             [--journal-file <journal file>]
-                            [--data-file <data file>] [--csl-file <csl file>]
-                            [--guid <guid>]* [--queue-name <queue name>]*
+                            [--data-file <data file>]
+                            [--csl-file <csl file>]
+                            [--guid <guid>]*
+                            [--queue-name <queue name>]*
                             [--queue-key <queue key>]*
                             [--timestamp-gt <timestamp greater than>]
                             [--timestamp-lt <timestamp less than>]
-                            [--outstanding] [--confirmed]
-                            [--partially-confirmed] [--details]
-                            [--dump-payload] [--dump-limit <dump limit>]
-                            [--summary] [-h|help]
+                            [--outstanding]
+                            [--confirmed]
+                            [--partially-confirmed]
+                            [--details]
+                            [--dump-payload]
+                            [--dump-limit <dump limit>]
+                            [--summary]
+                            [-h|help]
 Where:
-       --journal-file-pattern <pattern>
+       --journal-path <pattern>
           '*'-ended file path pattern, where the tool will try to find journal
           and data files
        --journal-file         <journal file>
