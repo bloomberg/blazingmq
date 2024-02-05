@@ -878,7 +878,7 @@ void QueueHandle::deliverMessage(
 
             // Increasing resource usage ('update()' above) made us hit our
             // maxUnconfirmed limit.
-            BALL_LOG_INFO
+            BALL_LOGTHROTTLE_INFO(k_MAX_INSTANT_MESSAGES, k_NS_PER_MESSAGE)
                 << "Queue '" << d_queue_sp->description()
                 << "' with subscription [" << subscriptions[i] << "]"
                 << " of client '"
