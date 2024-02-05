@@ -132,6 +132,40 @@ void printJournalFileMeta(bsl::ostream&              ostream,
     }
 }
 
+void outputGuidString(bsl::ostream&            ostream,
+                      const bmqt::MessageGUID& messageGUID,
+                      const bool               addNewLine = true)
+{
+    ostream << messageGUID;
+
+    if (addNewLine)
+        ostream << '\n';
+}
+
+void outputOutstandingRatio(bsl::ostream& ostream,
+                            std::size_t   totalMessagesCount,
+                            bsl::size_t   deletedMessagesCount)
+{
+    if (totalMessagesCount > 0) {
+        bsl::size_t outstandingMessages = totalMessagesCount -
+                                          deletedMessagesCount;
+        ostream << "Outstanding ratio: "
+                << bsl::round(float(outstandingMessages) /
+                              float(totalMessagesCount) * 100.0)
+                << "% (" << outstandingMessages << "/" << totalMessagesCount
+                << ")" << '\n';
+    }
+}
+
+void outputFooter(bsl::ostream& ostream, std::size_t foundMessagesCount)
+{
+    const char* captionForFound    = " message GUID(s) found.";
+    const char* captionForNotFound = "No message GUID found.";
+    foundMessagesCount > 0 ? (ostream << foundMessagesCount << captionForFound)
+                           : ostream << captionForNotFound;
+    ostream << '\n';
+}
+
 }  // close unnamed namespace
 
 // ==================
@@ -158,7 +192,7 @@ SearchResult::SearchResult(bsl::ostream&           ostream,
 , d_deletedMessagesCount(0)
 , d_allocator_p(bslma::Default::allocator(allocator))
 , d_messagesDetails(allocator)
-, dataRecordOffsetMap(allocator)
+// , dataRecordOffsetMap(allocator)
 {
     // NOTHING
 }
@@ -729,9 +763,9 @@ void SearchPartiallyConfirmedResult::outputResult(
     outputOutstandingRatio();
 }
 
-// ====================================
+// =========================
 // class SearchSummaryResult
-// ====================================
+// =========================
 
 SearchSummaryResult::SearchSummaryResult(
     bsl::ostream&              ostream,
@@ -835,6 +869,10 @@ void SearchSummaryResult::outputResult(BSLS_ANNOTATION_UNUSED bool outputRatio)
     printDataFileMeta(d_ostream, d_dataFile_p);
 }
 
+// ===========================
+// class SearchResultDecorator
+// ===========================
+
 SearchResultDecorator::SearchResultDecorator(
     const bsl::shared_ptr<SearchResultInterface> component)
 : d_searchResult(component)
@@ -875,6 +913,16 @@ void SearchResultDecorator::outputResult(bool outputRatio)
 {
     d_searchResult->outputResult(outputRatio);
 }
+
+void SearchResultDecorator::outputResult(
+    bsl::unordered_set<bmqt::MessageGUID>& guidFilter)
+{
+    d_searchResult->outputResult(guidFilter);
+}
+
+// ====================================
+// class SearchResultTimestampDecorator
+// ====================================
 
 bool SearchResultTimestampDecorator::stop(bsls::Types::Uint64 timestamp) const
 {
@@ -920,6 +968,394 @@ bool SearchResultTimestampDecorator::processDeletionRecord(
                                                         recordIndex,
                                                         recordOffset) ||
            stop(record.header().timestamp());
+}
+
+// =======================
+// class SearchShortResult
+// =======================
+
+SearchShortResult::SearchShortResult(
+    bsl::ostream&                  ostream,
+    bsl::shared_ptr<PayloadDumper> payloadDumper,
+    bslma::Allocator*              allocator,
+    const bool                     printImmediately,
+    const bool                     printOnDelete,
+    const bool                     eraseDeleted)
+: d_ostream(ostream)
+, d_payloadDumper(payloadDumper)
+, d_printImmediately(printImmediately)
+, d_printOnDelete(printOnDelete)
+, d_eraseDeleted(eraseDeleted)
+, d_printedMessagesCount(0)
+, d_guidMap(allocator)
+, d_guidList(allocator)
+{
+    // NOTHING
+}
+
+bool SearchShortResult::processMessageRecord(
+    const mqbs::MessageRecord& record,
+    bsls::Types::Uint64        recordIndex,
+    BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 recordOffset)
+{
+    GuidData guidData = bsl::make_pair(record.messageGUID(),
+                                       record.messageOffsetDwords());
+
+    if (d_printImmediately) {
+        outputGuidData(guidData);
+    }
+    else {
+        d_guidMap[record.messageGUID()] = d_guidList.insert(d_guidList.cend(),
+                                                            guidData);
+    }
+
+    return false;
+}
+
+bool SearchShortResult::processConfirmRecord(
+    const mqbs::ConfirmRecord& record,
+    BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 recordIndex,
+    BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 recordOffset)
+{
+    return false;
+}
+
+bool SearchShortResult::processDeletionRecord(
+    const mqbs::DeletionRecord& record,
+    bsls::Types::Uint64         recordIndex,
+    bsls::Types::Uint64         recordOffset)
+{
+    if (!d_printImmediately && (d_printOnDelete || d_eraseDeleted)) {
+        if (auto it = d_guidMap.find(record.messageGUID());
+            it != d_guidMap.end()) {
+            if (d_printOnDelete) {
+                outputGuidData(*it->second);
+            }
+            if (d_eraseDeleted) {
+                d_guidList.erase(it->second);
+                d_guidMap.erase(it);
+            }
+        }
+    }
+    return false;
+}
+
+void SearchShortResult::outputResult(BSLS_ANNOTATION_UNUSED bool outputRatio)
+{
+    if (!d_printOnDelete) {
+        // Print results that were not printed on Delete record processing
+        for (const auto& guidData : d_guidList) {
+            outputGuidData(guidData);
+        }
+    }
+
+    outputFooter(d_ostream, d_printedMessagesCount);
+}
+
+void SearchShortResult::outputResult(
+    bsl::unordered_set<bmqt::MessageGUID>& guidFilter)
+{
+    // Remove guids from list that do not match filter
+    bsl::erase_if(d_guidList, [&guidFilter](const GuidData& guidData) {
+        return bsl::find(guidFilter.begin(),
+                         guidFilter.end(),
+                         guidData.first) == guidFilter.end();
+    });
+
+    outputResult();
+}
+
+void SearchShortResult::outputGuidData(GuidData guidData)
+{
+    outputGuidString(d_ostream, guidData.first);
+    if (d_payloadDumper)
+        d_payloadDumper->outputPayload(guidData.second);
+
+    d_printedMessagesCount++;
+}
+
+// ========================
+// class SearchDetailResult
+// ========================
+
+SearchDetailResult::SearchDetailResult(
+    bsl::ostream&                  ostream,
+    const QueueMap&                queueMap,
+    bsl::shared_ptr<PayloadDumper> payloadDumper,
+    bslma::Allocator*              allocator,
+    const bool                     printImmediately,
+    const bool                     eraseDeleted,
+    const bool                     cleanUnprinted)
+: d_ostream(ostream)
+, d_queueMap(queueMap)
+, d_payloadDumper(payloadDumper)
+, d_allocator_p(allocator)
+, d_printImmediately(printImmediately)
+, d_eraseDeleted(eraseDeleted)
+, d_cleanUnprinted(cleanUnprinted)
+, d_printedMessagesCount(0)
+, d_messagesDetails(allocator)
+, d_messageIndexToGuidMap(allocator)
+{
+    // NOTHING
+}
+
+bool SearchDetailResult::processMessageRecord(
+    const mqbs::MessageRecord& record,
+    bsls::Types::Uint64        recordIndex,
+    bsls::Types::Uint64        recordOffset)
+{
+    // Store record details for further output
+    addMessageDetails(record, recordIndex, recordOffset);
+
+    return false;
+}
+
+bool SearchDetailResult::processConfirmRecord(
+    const mqbs::ConfirmRecord& record,
+    bsls::Types::Uint64        recordIndex,
+    bsls::Types::Uint64        recordOffset)
+{
+    // Store record details for further output
+    if (auto it = d_messagesDetails.find(record.messageGUID());
+        it != d_messagesDetails.end()) {
+        it->second.addConfirmRecord(record, recordIndex, recordOffset);
+    }
+
+    return false;
+}
+
+bool SearchDetailResult::processDeletionRecord(
+    const mqbs::DeletionRecord& record,
+    bsls::Types::Uint64         recordIndex,
+    bsls::Types::Uint64         recordOffset)
+{
+    if (auto it = d_messagesDetails.find(record.messageGUID());
+        it != d_messagesDetails.end()) {
+        if (d_printImmediately) {
+            // Print message details immediately
+            it->second.addDeleteRecord(record, recordIndex, recordOffset);
+            outputMessageDetails(it->second);
+        }
+        if (d_eraseDeleted) {
+            // Delete record if it is not needed anymore
+            deleteMessageDetails(it);
+        }
+    }
+
+    return false;
+}
+
+void SearchDetailResult::outputResult(BSLS_ANNOTATION_UNUSED bool outputRatio)
+{
+    if (d_cleanUnprinted) {
+        d_messageIndexToGuidMap.clear();
+    }
+
+    for (const auto& item : d_messageIndexToGuidMap) {
+        auto messageDetails = d_messagesDetails.at(item.second);
+        outputMessageDetails(messageDetails);
+    }
+
+    outputFooter(d_ostream, d_printedMessagesCount);
+}
+
+void SearchDetailResult::outputResult(
+    bsl::unordered_set<bmqt::MessageGUID>& guidFilter)
+{
+    // Remove guids from map that do not match filter
+    bsl::erase_if(
+        d_messageIndexToGuidMap,
+        [&guidFilter](
+            const bsl::pair<bsls::Types::Uint64, bmqt::MessageGUID> pair) {
+            return bsl::find(guidFilter.begin(),
+                             guidFilter.end(),
+                             pair.second) == guidFilter.end();
+        });
+
+    outputResult();
+}
+
+void SearchDetailResult::addMessageDetails(const mqbs::MessageRecord& record,
+                                           bsls::Types::Uint64 recordIndex,
+                                           bsls::Types::Uint64 recordOffset)
+{
+    d_messagesDetails.emplace(
+        record.messageGUID(),
+        MessageDetails(record, recordIndex, recordOffset, d_allocator_p));
+    d_messageIndexToGuidMap.emplace(recordIndex, record.messageGUID());
+}
+
+void SearchDetailResult::deleteMessageDetails(
+    MessagesDetails::iterator iterator)
+{
+    // Erase record from both maps
+    d_messagesDetails.erase(iterator);
+    d_messageIndexToGuidMap.erase(iterator->second.messageRecordIndex());
+}
+
+void SearchDetailResult::outputMessageDetails(
+    const MessageDetails& messageDetails)
+{
+    messageDetails.print(d_ostream, d_queueMap);
+    if (d_payloadDumper)
+        d_payloadDumper->outputPayload(messageDetails.dataRecordOffset());
+
+    d_printedMessagesCount++;
+}
+
+// ========================
+// class SearchAllDecorator
+// ========================
+SearchAllDecorator::SearchAllDecorator(
+    const bsl::shared_ptr<SearchResultInterface> component)
+: SearchResultDecorator(component)
+{
+    // NOTHING
+}
+
+bool SearchAllDecorator::processMessageRecord(
+    const mqbs::MessageRecord& record,
+    bsls::Types::Uint64        recordIndex,
+    bsls::Types::Uint64        recordOffset)
+{
+    SearchResultDecorator::processMessageRecord(record,
+                                                recordIndex,
+                                                recordOffset);
+    return false;
+}
+
+// ================================
+// class SearchOutstandingDecorator
+// ================================
+SearchOutstandingDecorator::SearchOutstandingDecorator(
+    const bsl::shared_ptr<SearchResultInterface> component,
+    bsl::ostream&                                ostream,
+    bslma::Allocator*                            allocator)
+: SearchResultDecorator(component)
+, d_ostream(ostream)
+, d_foundMessagesCount(0)
+, d_deletedMessagesCount(0)
+, d_guids(allocator)
+{
+    // NOTHING
+}
+
+bool SearchOutstandingDecorator::processMessageRecord(
+    const mqbs::MessageRecord& record,
+    bsls::Types::Uint64        recordIndex,
+    bsls::Types::Uint64        recordOffset)
+{
+    SearchResultDecorator::processMessageRecord(record,
+                                                recordIndex,
+                                                recordOffset);
+    d_guids.insert(record.messageGUID());
+    d_foundMessagesCount++;
+    return false;
+}
+
+bool SearchOutstandingDecorator::processDeletionRecord(
+    const mqbs::DeletionRecord& record,
+    bsls::Types::Uint64         recordIndex,
+    bsls::Types::Uint64         recordOffset)
+{
+    SearchResultDecorator::processDeletionRecord(record,
+                                                 recordIndex,
+                                                 recordOffset);
+    if (auto it = d_guids.find(record.messageGUID()); it != d_guids.end()) {
+        d_guids.erase(it);
+        d_deletedMessagesCount++;
+    }
+
+    return false;
+}
+
+void SearchOutstandingDecorator::outputResult(bool outputRatio)
+{
+    SearchResultDecorator::outputResult(outputRatio);
+    outputOutstandingRatio(d_ostream,
+                           d_foundMessagesCount,
+                           d_deletedMessagesCount);
+}
+
+// ================================
+// class SearchPartiallyConfirmedDecorator
+// ================================
+SearchPartiallyConfirmedDecorator::SearchPartiallyConfirmedDecorator(
+    const bsl::shared_ptr<SearchResultInterface> component,
+    bsl::ostream&                                ostream,
+    bslma::Allocator*                            allocator)
+: SearchResultDecorator(component)
+, d_ostream(ostream)
+, d_foundMessagesCount(0)
+, d_deletedMessagesCount(0)
+, d_partiallyConfirmedGUIDS(allocator)
+{
+    // NOTHING
+}
+
+bool SearchPartiallyConfirmedDecorator::processMessageRecord(
+    const mqbs::MessageRecord& record,
+    bsls::Types::Uint64        recordIndex,
+    bsls::Types::Uint64        recordOffset)
+{
+    SearchResultDecorator::processMessageRecord(record,
+                                                recordIndex,
+                                                recordOffset);
+    // Init confirm count
+    d_partiallyConfirmedGUIDS[record.messageGUID()] = 0;
+    d_foundMessagesCount++;
+    return false;
+}
+
+bool SearchPartiallyConfirmedDecorator::processConfirmRecord(
+    const mqbs::ConfirmRecord& record,
+    bsls::Types::Uint64        recordIndex,
+    bsls::Types::Uint64        recordOffset)
+{
+    SearchResultDecorator::processConfirmRecord(record,
+                                                recordIndex,
+                                                recordOffset);
+    if (auto it = d_partiallyConfirmedGUIDS.find(record.messageGUID());
+        it != d_partiallyConfirmedGUIDS.end()) {
+        // Message is partially confirmed, increase counter.
+        it->second++;
+    }
+
+    return false;
+}
+
+bool SearchPartiallyConfirmedDecorator::processDeletionRecord(
+    const mqbs::DeletionRecord& record,
+    bsls::Types::Uint64         recordIndex,
+    bsls::Types::Uint64         recordOffset)
+{
+    SearchResultDecorator::processDeletionRecord(record,
+                                                 recordIndex,
+                                                 recordOffset);
+    if (auto it = d_partiallyConfirmedGUIDS.find(record.messageGUID());
+        it != d_partiallyConfirmedGUIDS.end()) {
+        // Message is confirmed, remove it.
+        d_partiallyConfirmedGUIDS.erase(it);
+        d_deletedMessagesCount++;
+    }
+
+    return false;
+}
+
+void SearchPartiallyConfirmedDecorator::outputResult(bool outputRatio)
+{
+    // Build a filter of partially confirmed guids
+    bsl::unordered_set<bmqt::MessageGUID> guidFilter;
+    for (const auto& pair : d_partiallyConfirmedGUIDS) {
+        if (pair.second > 0) {
+            guidFilter.insert(pair.first);
+        }
+    }
+    SearchResultDecorator::outputResult(guidFilter);
+    outputOutstandingRatio(d_ostream,
+                           d_foundMessagesCount,
+                           d_deletedMessagesCount);
 }
 
 }  // close package namespace
