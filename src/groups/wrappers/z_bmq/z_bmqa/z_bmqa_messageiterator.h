@@ -1,12 +1,12 @@
 #ifndef INCLUDED_Z_BMQA_MESSAGEITERATOR
 #define INCLUDED_Z_BMQA_MESSAGEITERATOR
 
-#include <stdbool.h>
-#include <z_bmqa_message.h>
-
 #if defined(__cplusplus)
 extern "C" {
 #endif
+
+#include <stdbool.h>
+#include <z_bmqa_message.h>
 
 typedef struct z_bmqa_MessageIterator z_bmqa_MessageIterator;
 

@@ -1,11 +1,11 @@
 #ifndef INCLUDED_Z_BMQA_EVENT
 #define INCLUDED_Z_BMQA_EVENT
 
-#include <z_bmqa_sessionevent.h>
-
 #if defined(__cplusplus)
 extern "C" {
 #endif
+
+#include <z_bmqa_sessionevent.h>
 
 typedef struct z_bmqa_Event z_bmqa_Event;
 

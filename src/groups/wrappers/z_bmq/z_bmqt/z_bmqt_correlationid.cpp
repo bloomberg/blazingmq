@@ -1,4 +1,6 @@
 #include <bmqt_correlationid.h>
+#include <bsl_sstream.h>
+#include <bsl_string.h>
 #include <z_bmqt_correlationid.h>
 
 int z_bmqt_CorrelationId__delete(z_bmqt_CorrelationId** correlationId_obj)
@@ -25,8 +27,23 @@ int z_bmqt_CorrelationId__create(z_bmqt_CorrelationId** correlationId_obj)
     return 0;
 }
 
-int z_bmqt_CorrelationId__create(z_bmqt_CorrelationId** correlationId_obj,
-                                 int64_t                numeric)
+int z_bmqt_CorrelationId__createCopy(z_bmqt_CorrelationId** correlationId_obj,
+                                     const z_bmqt_CorrelationId* other_obj)
+{
+    using namespace BloombergLP;
+
+    const bmqt::CorrelationId* other_p =
+        reinterpret_cast<const bmqt::CorrelationId*>(other_obj);
+    bmqt::CorrelationId* correlationId_p = new bmqt::CorrelationId(*other_p);
+    *correlationId_obj = reinterpret_cast<z_bmqt_CorrelationId*>(
+        correlationId_p);
+
+    return 0;
+}
+
+int z_bmqt_CorrelationId__createFromNumeric(
+    z_bmqt_CorrelationId** correlationId_obj,
+    int64_t                numeric)
 {
     using namespace BloombergLP;
 
@@ -36,8 +53,9 @@ int z_bmqt_CorrelationId__create(z_bmqt_CorrelationId** correlationId_obj,
     return 0;
 }
 
-int z_bmqt_CorrelationId__create(z_bmqt_CorrelationId** correlationId_obj,
-                                 void*                  pointer)
+int z_bmqt_CorrelationId__createFromPointer(
+    z_bmqt_CorrelationId** correlationId_obj,
+    void*                  pointer)
 {
     using namespace BloombergLP;
 
@@ -79,7 +97,7 @@ int z_bmqt_CorrelationId__setPointer(z_bmqt_CorrelationId* correlationId_obj,
     return 0;
 }
 
-int z_bmqt_CorrelationId__isUnset(
+bool z_bmqt_CorrelationId__isUnset(
     const z_bmqt_CorrelationId* correlationId_obj)
 {
     using namespace BloombergLP;
@@ -89,7 +107,7 @@ int z_bmqt_CorrelationId__isUnset(
     return correlationId_p->isUnset();
 }
 
-int z_bmqt_CorrelationId__isNumeric(
+bool z_bmqt_CorrelationId__isNumeric(
     const z_bmqt_CorrelationId* correlationId_obj)
 {
     using namespace BloombergLP;
@@ -99,7 +117,7 @@ int z_bmqt_CorrelationId__isNumeric(
     return correlationId_p->isNumeric();
 }
 
-int z_bmqt_CorrelationId__isPointer(
+bool z_bmqt_CorrelationId__isPointer(
     const z_bmqt_CorrelationId* correlationId_obj)
 {
     using namespace BloombergLP;
@@ -109,17 +127,7 @@ int z_bmqt_CorrelationId__isPointer(
     return correlationId_p->isPointer();
 }
 
-int z_bmqt_CorrelationId__isSharedPtr(
-    const z_bmqt_CorrelationId* correlationId_obj)
-{
-    using namespace BloombergLP;
-    const bmqt::CorrelationId* correlationId_p =
-        reinterpret_cast<const bmqt::CorrelationId*>(correlationId_obj);
-
-    return correlationId_p->isSharedPtr();
-}
-
-int z_bmqt_CorrelationId__isAutoValue(
+bool z_bmqt_CorrelationId__isAutoValue(
     const z_bmqt_CorrelationId* correlationId_obj)
 {
     using namespace BloombergLP;
@@ -167,6 +175,54 @@ int z_bmqt_CorrelationId__autoValue(z_bmqt_CorrelationId** correlationId_obj)
         bmqt::CorrelationId::autoValue());
     *correlationId_obj = reinterpret_cast<z_bmqt_CorrelationId*>(
         correlationId_p);
+
+    return 0;
+}
+
+int z_bmqt_CorrelationId__compare(const z_bmqt_CorrelationId* a,
+                                  const z_bmqt_CorrelationId* b)
+{
+    using namespace BloombergLP;
+
+    const bmqt::CorrelationId* a_p =
+        reinterpret_cast<const bmqt::CorrelationId*>(a);
+    const bmqt::CorrelationId* b_p =
+        reinterpret_cast<const bmqt::CorrelationId*>(b);
+
+    if (*a_p == *b_p) {
+        return 0;
+    }
+
+    return *a_p < *b_p ? -1 : 1;
+}
+
+int z_bmqt_CorrelationId__assign(z_bmqt_CorrelationId**      dst,
+                                 const z_bmqt_CorrelationId* src)
+{
+    using namespace BloombergLP;
+
+    bmqt::CorrelationId* dst_p = reinterpret_cast<bmqt::CorrelationId*>(*dst);
+    const bmqt::CorrelationId* src_p =
+        reinterpret_cast<const bmqt::CorrelationId*>(src);
+
+    *dst_p = *src_p;
+
+    return 0;
+}
+
+int z_bmqt_CorrelationId__toString(
+    const z_bmqt_CorrelationId* correlationId_obj,
+    char**                      out)
+{
+    using namespace BloombergLP;
+
+    bsl::ostringstream         ss;
+    const bmqt::CorrelationId* correlationId_p =
+        reinterpret_cast<const bmqt::CorrelationId*>(correlationId_obj);
+    ss << *correlationId_p;
+    bsl::string out_str = ss.str();
+    *out                = new char[out_str.length() + 1];
+    strcpy(*out, out_str.c_str());
 
     return 0;
 }

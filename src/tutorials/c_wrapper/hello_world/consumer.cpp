@@ -40,10 +40,10 @@
 #include <z_bmqa_confirmeventbuilder.h>
 #include <z_bmqa_messageevent.h>
 #include <z_bmqa_openqueuestatus.h>
-#include <z_bmqt_queueflags.h>
 #include <z_bmqa_session.h>
 #include <z_bmqa_sessionevent.h>
 #include <z_bmqt_correlationid.h>
+#include <z_bmqt_queueflags.h>
 
 // SYSTEM
 #include <signal.h>
@@ -111,6 +111,7 @@ void onMessageEvent(const z_bmqa_MessageEvent* messageEvent, void* data)
             }
 
             delete[] messageGUID_str;
+            delete[] data;
         }
 
         // Confirm reception of the messages so that it can be deleted from the
@@ -130,6 +131,8 @@ void onMessageEvent(const z_bmqa_MessageEvent* messageEvent, void* data)
 
             z_bmqa_ConfirmEventBuilder__reset(confirmBuilder);
         }
+
+        z_bmqa_MessageIterator__delete(&msgIter);
     }
     else {
         const char* eventType = z_bmqt_MessageEventType::toAscii(
@@ -148,13 +151,14 @@ void onSessionEvent(const z_bmqa_SessionEvent* sessionEvent, void* data)
     char* out;
     z_bmqa_SessionEvent__toString(sessionEvent, &out);
     bsl::cout << "Got session event: " << bsl::string(out) << "\n";
-    delete [] out;
+    delete[] out;
 }
 
 void setSession(void* args, void* eventHandlerData)
 {
-    SetSessionArgs* args_p = static_cast<SetSessionArgs*>(args);
-    z_bmqa_Session** session_p = static_cast<z_bmqa_Session**>(eventHandlerData);
+    SetSessionArgs*  args_p    = static_cast<SetSessionArgs*>(args);
+    z_bmqa_Session** session_p = static_cast<z_bmqa_Session**>(
+        eventHandlerData);
     *session_p = args_p->session;
 }
 
@@ -232,7 +236,6 @@ static void consume(z_bmqa_Session* session)
     bsl::cerr << "Queue ['" << k_QUEUE_URL << "'] has been shut down "
               << "gracefully and is now closed.\n";
 
-
     // Must delete all objects
     z_bmqa_QueueId__delete(&queueId);
     z_bmqt_QueueOptions__delete(&options);
@@ -263,7 +266,9 @@ int main(BSLS_ANNOTATION_UNUSED int         argc,
 
     SetSessionArgs setSessionArgs;
     setSessionArgs.session = session;
-    z_bmqa_SessionEventHandler__callCustomFunction(eventHandler, setSession, &setSessionArgs);
+    z_bmqa_SessionEventHandler__callCustomFunction(eventHandler,
+                                                   setSession,
+                                                   &setSessionArgs);
 
     int rc = z_bmqa_Session__start((z_bmqa_Session*)(session), 0);
     if (rc != 0) {

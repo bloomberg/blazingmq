@@ -1,6 +1,10 @@
 #ifndef INCLUDED_Z_BMQT_COMPRESSIONALGORITHMTYPE
 #define INCLUDED_Z_BMQT_COMPRESSIONALGORITHMTYPE
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
 #include <stdbool.h>
 
 struct z_bmqt_CompressionAlgorithmType {
@@ -61,5 +65,9 @@ struct z_bmqt_CompressionAlgorithmType {
     /// return false and populate the specified `stream` with error message.
     static bool isValid(const char* str);
 };
+
+#if defined(__cplusplus)
+}
+#endif
 
 #endif

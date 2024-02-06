@@ -1,6 +1,10 @@
 #ifndef INCLUDED_Z_BMQA_MESSAGE
 #define INCLUDED_Z_BMQA_MESSAGE
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
 #include <stdbool.h>
 #include <z_bmqa_messageproperties.h>
 #include <z_bmqa_queueid.h>
@@ -8,10 +12,6 @@
 #include <z_bmqt_correlationid.h>
 #include <z_bmqt_messageguid.h>
 #include <z_bmqt_subscription.h>
-
-#if defined(__cplusplus)
-extern "C" {
-#endif
 
 typedef struct z_bmqa_Message z_bmqa_Message;
 

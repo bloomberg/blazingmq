@@ -1,12 +1,12 @@
 #ifndef INCLUDED_Z_BMQA_CONFIRMEVENTBUILDER
 #define INCLUDED_Z_BMQA_CONFIRMEVENTBUILDER
 
-#include <z_bmqa_message.h>
-#include <z_bmqt_types.h>
-
 #if defined(__cplusplus)
 extern "C" {
 #endif
+
+#include <z_bmqa_message.h>
+#include <z_bmqt_types.h>
 
 typedef struct z_bmqa_ConfirmEventBuilder z_bmqa_ConfirmEventBuilder;
 typedef struct z_bmqa_MessageConfirmationCookie

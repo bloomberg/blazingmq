@@ -61,8 +61,7 @@ int z_bmqa_MessageEvent__toString(const z_bmqa_MessageEvent* event_obj,
     event_p->print(ss);
     bsl::string out_str = ss.str();
 
-    *out                     = new char[out_str.length() + 1];
-    (*out)[out_str.length()] = '\0';
+    *out = new char[out_str.length() + 1];
     strcpy(*out, out_str.c_str());
 
     return 0;

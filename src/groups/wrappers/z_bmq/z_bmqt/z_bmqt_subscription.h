@@ -1,12 +1,12 @@
 #ifndef INCLUDED_Z_BMQT_SUBSCRIPTION
 #define INCLUDED_Z_BMQT_SUBSCRIPTION
 
-#include <stdbool.h>
-#include <z_bmqt_correlationid.h>
-
 #if defined(__cplusplus)
 extern "C" {
 #endif
+
+#include <stdbool.h>
+#include <z_bmqt_correlationid.h>
 
 // ========================
 // class SubscriptionHandle

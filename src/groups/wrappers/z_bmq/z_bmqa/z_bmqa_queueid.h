@@ -1,14 +1,14 @@
 #ifndef INCLUDED_Z_BMQA_QUEUEID
 #define INCLUDED_Z_BMQA_QUEUEID
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
 #include <stdint.h>
 #include <z_bmqt_correlationid.h>
 #include <z_bmqt_queueoptions.h>
 #include <z_bmqt_uri.h>
-
-#if defined(__cplusplus)
-extern "C" {
-#endif
 
 typedef struct z_bmqa_QueueId z_bmqa_QueueId;
 

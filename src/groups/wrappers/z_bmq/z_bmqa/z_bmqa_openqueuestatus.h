@@ -1,12 +1,12 @@
 #ifndef INCLUDED_Z_BMQA_OPENQUEUESTATUS
 #define INCLUDED_Z_BMQA_OPENQUEUESTATUS
 
-#include <stdbool.h>
-#include <z_bmqa_queueid.h>
-
 #if defined(__cplusplus)
 extern "C" {
 #endif
+
+#include <stdbool.h>
+#include <z_bmqa_queueid.h>
 
 typedef struct z_bmqa_OpenQueueStatus z_bmqa_OpenQueueStatus;
 

@@ -1,12 +1,12 @@
 #ifndef INCLUDED_Z_BMQA_CONFIGUREQUEUESTATUS
 #define INCLUDED_Z_BMQA_CONFIGUREQUEUESTATUS
 
-#include <stdbool.h>
-#include <z_bmqa_queueid.h>
-
 #if defined(__cplusplus)
 extern "C" {
 #endif
+
+#include <stdbool.h>
+#include <z_bmqa_queueid.h>
 
 typedef struct z_bmqa_ConfigureQueueStatus z_bmqa_ConfigureQueueStatus;
 

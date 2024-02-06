@@ -1,6 +1,10 @@
 #ifndef INCLUDED_Z_BMQA_SESSION
 #define INCLUDED_Z_BMQA_SESSION
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
 #include <stdint.h>
 #include <z_bmqa_closequeuestatus.h>
 #include <z_bmqa_configurequeuestatus.h>
@@ -14,10 +18,6 @@
 #include <z_bmqa_queueid.h>
 #include <z_bmqt_sessionoptions.h>
 #include <z_bmqt_uri.h>
-
-#if defined(__cplusplus)
-extern "C" {
-#endif
 
 typedef struct z_bmqa_SessionEventHandler z_bmqa_SessionEventHandler;
 

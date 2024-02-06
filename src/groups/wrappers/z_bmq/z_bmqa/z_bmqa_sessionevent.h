@@ -1,13 +1,13 @@
 #ifndef INCLUDED_Z_BMQA_SESSIONEVENT
 #define INCLUDED_Z_BMQA_SESSIONEVENT
 
-#include <z_bmqa_queueid.h>
-#include <z_bmqt_correlationid.h>
-#include <z_bmqt_sessioneventtype.h>
-
 #if defined(__cplusplus)
 extern "C" {
 #endif
+
+#include <z_bmqa_queueid.h>
+#include <z_bmqt_correlationid.h>
+#include <z_bmqt_sessioneventtype.h>
 
 typedef struct z_bmqa_SessionEvent z_bmqa_SessionEvent;
 

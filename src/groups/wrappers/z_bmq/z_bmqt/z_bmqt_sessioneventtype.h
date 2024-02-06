@@ -1,11 +1,11 @@
 #ifndef INCLUDED_Z_BMQT_SESSIONEVENTTYPE
 #define INCLUDED_Z_BMQT_SESSIONEVENTTYPE
 
-#include <stdbool.h>
-
 #if defined(__cplusplus)
 extern "C" {
 #endif
+
+#include <stdbool.h>
 
 struct z_bmqt_SessionEventType {
     // TYPES

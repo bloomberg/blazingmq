@@ -1,13 +1,13 @@
 #ifndef INCLUDED_Z_BMQT_QUEUEOPTIONS
 #define INCLUDED_Z_BMQT_QUEUEOPTIONS
 
-#include <stdbool.h>
-#include <z_bmqt_subscription.h>
-#include <z_bmqt_types.h>
-
 #if defined(__cplusplus)
 extern "C" {
 #endif
+
+#include <stdbool.h>
+#include <z_bmqt_subscription.h>
+#include <z_bmqt_types.h>
 
 typedef struct z_bmqt_QueueOptions z_bmqt_QueueOptions;
 

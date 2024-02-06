@@ -1,13 +1,13 @@
 #ifndef INCLUDED_Z_BMQA_MESSAGEEVENTBUILDER
 #define INCLUDED_Z_BMQA_MESSAGEEVENTBUILDER
-
-#include <z_bmqa_message.h>
-#include <z_bmqa_messageevent.h>
 #include <z_bmqa_queueid.h>
 
 #if defined(__cplusplus)
 extern "C" {
 #endif
+
+#include <z_bmqa_message.h>
+#include <z_bmqa_messageevent.h>
 
 typedef struct z_bmqa_MessageEventBuilder z_bmqa_MessageEventBuilder;
 
