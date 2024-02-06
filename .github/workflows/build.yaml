@@ -17,7 +17,7 @@ jobs:
     name: "Check if BlazingMQ can build, and pass unit and integration tests"
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Set up dependencies
         run: |
           sudo apt-get update
@@ -75,7 +75,7 @@ jobs:
             --tb line                           \
             --reruns=3                          \
             -n 4 -v
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         with:
           path: |
             build/blazingmq
@@ -88,8 +88,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: build_and_test
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/cache/@v3
+      - uses: actions/checkout@v4
+      - uses: actions/cache/@v4
         with:
           path: |
             build/blazingmq
@@ -155,7 +155,7 @@ jobs:
     name: "Documentation"
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Set up dependencies
         run: |
           sudo apt-get update
@@ -172,7 +172,7 @@ jobs:
         path:
           - 'src'
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Run clang-format style check for C/C++/Protobuf programs.
         uses: jidicula/clang-format-action@v4.11.0
         with:
@@ -183,7 +183,7 @@ jobs:
     name: Shellcheck
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Run ShellCheck
         uses: ludeeus/action-shellcheck@master
 
@@ -191,7 +191,7 @@ jobs:
     name: "Check whether docker single-node and cluster workflows build correctly."
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Docker Single-Node Workflow
         run: docker compose -f docker/single-node/docker-compose.yaml up --build -d
       - name: Docker Cluster Workflow
