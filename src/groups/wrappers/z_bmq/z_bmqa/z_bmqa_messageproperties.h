@@ -33,6 +33,40 @@ int z_bmqa_MessageProperties__setPropertyAsBool(
     const char*               name,
     bool                      value);
 
+int z_bmqa_MessageProperties__setPropertyAsChar(
+    z_bmqa_MessageProperties* properties_obj, 
+    const char* name, 
+    char value);
+
+int z_bmqa_MessageProperties__setPropertyAsShort(
+    z_bmqa_MessageProperties* properties_obj, 
+    const char* name, 
+    short value);
+
+int z_bmqa_MessageProperties__setPropertyAsInt32(
+    z_bmqa_MessageProperties* properties_obj, 
+    const char* name, 
+    int32_t value);
+
+int z_bmqa_MessageProperties__setPropertyAsInt64(
+    z_bmqa_MessageProperties* properties_obj, 
+    const char* name, 
+    long long value);
+
+int z_bmqa_MessageProperties__setPropertyAsString(
+    z_bmqa_MessageProperties* properties_obj, 
+    const char* name, 
+    char* value);
+
+int z_bmqa_MessageProperties__setPropertyAsBinary(
+    z_bmqa_MessageProperties* properties_obj, 
+    const char* name, 
+    const char* value, 
+    int size);
+
+int z_bmqa_MessageProperties__numProperties(
+    const z_bmqa_MessageProperties* properties_obj);
+
 int z_bmqa_MessageProperties__totalSize(
     const z_bmqa_MessageProperties* properties_obj);
 

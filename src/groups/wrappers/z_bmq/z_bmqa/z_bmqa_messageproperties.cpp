@@ -68,6 +68,107 @@ int z_bmqa_MessageProperties__setPropertyAsBool(
     return properties_p->setPropertyAsBool(name_str, value);
 }
 
+int z_bmqa_MessageProperties__setPropertyAsChar(
+    z_bmqa_MessageProperties* properties_obj,
+    const char* name,
+    char value)
+{
+    using namespace BloombergLP; 
+
+    bmqa::MessageProperties* properties_p = 
+        reinterpret_cast<bmqa::MessageProperties*>(properties_obj); 
+
+    bsl::string name_str(name); 
+    return properties_p->setPropertyAsChar(name_str,value);
+}
+
+int z_bmqa_MessageProperties__setPropertyAsShort(
+    z_bmqa_MessageProperties* properties_obj, 
+    const char* name, 
+    short value)
+{
+    using namespace BloombergLP; 
+
+    bmqa::MessageProperties* properties_p = 
+        reinterpret_cast<bmqa::MessageProperties*>(properties_obj); 
+    
+    bsl::string name_str(name);
+    return properties_p->setPropertyAsShort(name_str,value); 
+}
+
+int z_bmqa_MessageProperties__setPropertyAsInt32(
+    z_bmqa_MessageProperties* properties_obj, 
+    const char* name, 
+    int32_t value)
+{
+    using namespace BloombergLP; 
+
+    bmqa::MessageProperties* properties_p = 
+        reinterpret_cast<bmqa::MessageProperties*>(properties_obj); 
+    
+    bsl::string name_str(name);
+    return properties_p->setPropertyAsInt32(name_str,value); 
+}
+
+
+int z_bmqa_MessageProperties__setPropertyAsInt64(
+    z_bmqa_MessageProperties* properties_obj, 
+    const char* name, 
+    long long value)
+{
+    using namespace BloombergLP; 
+
+    bmqa::MessageProperties* properties_p = 
+        reinterpret_cast<bmqa::MessageProperties*>(properties_obj); 
+    
+    bsl::string name_str(name);
+    return properties_p->setPropertyAsInt64(name_str,value); 
+}
+
+//needs rigorous testing to see if value conversion to bsl::string is needed, or we use the char* value 
+int z_bmqa_MessageProperties__setPropertyAsString(
+    z_bmqa_MessageProperties* properties_obj, 
+    const char* name, 
+    const char* value)
+{
+    using namespace BloombergLP; 
+
+    bmqa::MessageProperties* properties_p = 
+        reinterpret_cast<bmqa::MessageProperties*>(properties_obj); 
+    
+    bsl::string name_str(name);
+    bsl::string val_str(value); 
+    return properties_p->setPropertyAsString(name_str,val_str); 
+}
+
+int z_bmqa_MessageProperties__setPropertyAsBinary(
+    z_bmqa_MessageProperties* properties_obj, 
+    const char* name, 
+    const char* value,
+    int size)
+{
+    using namespace BloombergLP; 
+
+    bmqa::MessageProperties* properties_p = 
+        reinterpret_cast<bmqa::MessageProperties*>(properties_obj); 
+    
+    bsl::string name_str(name);
+    bsl::vector<char> val_vec(value, value+size);
+    return properties_p->setPropertyAsBinary(name_str,val_vec); 
+}
+
+
+int z_bmqa_MessageProperties__numProperties(
+    const z_bmqa_MessageProperties* properties_obj) 
+{
+    using namespace BloombergLP; 
+
+    const bmqa::MessageProperties* properties_p = 
+        reinterpret_cast<const bmqa::MessageProperties*>(properties_obj); 
+    
+    return properties_p->numProperties(); 
+}
+
 int z_bmqa_MessageProperties__totalSize(
     const z_bmqa_MessageProperties* properties_obj)
 {
