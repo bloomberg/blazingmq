@@ -21,6 +21,47 @@
 namespace BloombergLP {
 namespace m_bmqstoragetool {
 
+namespace {
+
+// Helpers to create base searchResult implementation
+void createSearchDetailResult(bsl::shared_ptr<SearchResult>&  baseResult,
+                              bsl::ostream&                   ostream,
+                              const QueueMap&                 queueMap,
+                              bsl::shared_ptr<PayloadDumper>& payloadDumper,
+                              bslma::Allocator*               allocator,
+                              bool                            printImmediately,
+                              bool                            eraseDeleted,
+                              bool                            cleanUnprinted)
+{
+    baseResult.reset(new (*allocator) SearchDetailResult(ostream,
+                                                         queueMap,
+                                                         payloadDumper,
+                                                         allocator,
+                                                         printImmediately,
+                                                         eraseDeleted,
+                                                         cleanUnprinted),
+                     allocator);
+}
+
+void createSearchShortResult(bsl::shared_ptr<SearchResult>&  baseResult,
+                             bsl::ostream&                   ostream,
+                             bsl::shared_ptr<PayloadDumper>& payloadDumper,
+                             bslma::Allocator*               allocator,
+                             bool                            printImmediately,
+                             bool                            printOnDelete,
+                             bool                            eraseDeleted)
+{
+    baseResult.reset(new (*allocator) SearchShortResult(ostream,
+                                                        payloadDumper,
+                                                        allocator,
+                                                        printImmediately,
+                                                        printOnDelete,
+                                                        eraseDeleted),
+                     allocator);
+}
+
+}  // close unnamed namespace
+
 // =============================
 // class SearchResultFactory
 // =============================
@@ -39,36 +80,30 @@ SearchResultFactory::createSearchResult(Parameters*       params,
                                               params->dumpLimit()),
                             allocator);
 
-    // TODO: why unique_ptr doesn't support deleter in reset()
-    // bsl::unique_ptr<SearchResult> searchResult;
+    // Create searchResult implementation
+    bsl::shared_ptr<SearchResult> baseResult;
     bsl::shared_ptr<SearchResult> searchResult;
     if (!params->guid().empty()) {
-        if (params->details()) {
-            // Base: Details
-            searchResult.reset(new (*allocator)
-                                   SearchDetailResult(ostream,
-                                                      params->queueMap(),
-                                                      payloadDumper,
-                                                      allocator,
-                                                      true,
-                                                      true,
-                                                      true),
-                               allocator);
-        }
-        else {
-            // Base: Short
-            searchResult.reset(new (*allocator)
-                                   SearchShortResult(ostream,
-                                                     payloadDumper,
-                                                     allocator,
-                                                     true,
-                                                     true,
-                                                     true),
-                               allocator);
-        }
-        // Decorator
+        // Search GUIDs
+        if (params->details())
+            createSearchDetailResult(baseResult,
+                                     ostream,
+                                     params->queueMap(),
+                                     payloadDumper,
+                                     allocator,
+                                     true,
+                                     true,
+                                     true);
+        else
+            createSearchShortResult(baseResult,
+                                    ostream,
+                                    payloadDumper,
+                                    allocator,
+                                    true,
+                                    true,
+                                    true);
         searchResult.reset(new (*allocator)
-                               SearchGuidDecorator(searchResult,
+                               SearchGuidDecorator(baseResult,
                                                    params->guid(),
                                                    ostream,
                                                    params->details(),
@@ -76,6 +111,7 @@ SearchResultFactory::createSearchResult(Parameters*       params,
                            allocator);
     }
     else if (params->summary()) {
+        // Summary
         searchResult.reset(new (*allocator)
                                SummaryProcessor(ostream,
                                                 params->journalFileIterator(),
@@ -84,115 +120,98 @@ SearchResultFactory::createSearchResult(Parameters*       params,
                            allocator);
     }
     else if (params->outstanding()) {
-        if (params->details()) {
-            // Base: Details
-            searchResult.reset(new (*allocator)
-                                   SearchDetailResult(ostream,
-                                                      params->queueMap(),
-                                                      payloadDumper,
-                                                      allocator,
-                                                      false,
-                                                      true,
-                                                      false),
-                               allocator);
-        }
-        else {
-            // Base: Short
-            searchResult.reset(new (*allocator)
-                                   SearchShortResult(ostream,
-                                                     payloadDumper,
-                                                     allocator,
-                                                     false,
-                                                     false,
-                                                     true),
-                               allocator);
-        }
-        // Decorator
+        // Search outstanding
+        if (params->details())
+            createSearchDetailResult(baseResult,
+                                     ostream,
+                                     params->queueMap(),
+                                     payloadDumper,
+                                     allocator,
+                                     false,
+                                     true,
+                                     false);
+        else
+            createSearchShortResult(baseResult,
+                                    ostream,
+                                    payloadDumper,
+                                    allocator,
+                                    false,
+                                    false,
+                                    true);
         searchResult.reset(
             new (*allocator)
-                SearchOutstandingDecorator(searchResult, ostream, allocator),
+                SearchOutstandingDecorator(baseResult, ostream, allocator),
             allocator);
     }
     else if (params->confirmed()) {
-        if (params->details()) {
-            // Base: Details
-            searchResult.reset(new (*allocator)
-                                   SearchDetailResult(ostream,
-                                                      params->queueMap(),
-                                                      payloadDumper,
-                                                      allocator,
-                                                      true,
-                                                      true,
-                                                      true),
-                               allocator);
-        }
-        else {
-            // Base: Short
-            searchResult.reset(new (*allocator)
-                                   SearchShortResult(ostream,
-                                                     payloadDumper,
-                                                     allocator,
-                                                     false,
-                                                     true,
-                                                     true),
-                               allocator);
-        }
-        // Decorator
+        // Search confirmed
+        if (params->details())
+            createSearchDetailResult(baseResult,
+                                     ostream,
+                                     params->queueMap(),
+                                     payloadDumper,
+                                     allocator,
+                                     true,
+                                     true,
+                                     true);
+        else
+            createSearchShortResult(baseResult,
+                                    ostream,
+                                    payloadDumper,
+                                    allocator,
+                                    false,
+                                    true,
+                                    true);
         searchResult.reset(
             new (*allocator)
-                SearchOutstandingDecorator(searchResult, ostream, allocator),
+                SearchOutstandingDecorator(baseResult, ostream, allocator),
             allocator);
     }
     else if (params->partiallyConfirmed()) {
-        if (params->details()) {
-            // Base: Details
-            searchResult.reset(new (*allocator)
-                                   SearchDetailResult(ostream,
-                                                      params->queueMap(),
-                                                      payloadDumper,
-                                                      allocator,
-                                                      false,
-                                                      true,
-                                                      false),
-                               allocator);
-        }
-        else {
-            // Base: Short
-            searchResult.reset(new (*allocator)
-                                   SearchShortResult(ostream,
-                                                     payloadDumper,
-                                                     allocator,
-                                                     false,
-                                                     false,
-                                                     true),
-                               allocator);
-        }
-        // Decorator
+        // Search partially confirmed
+        if (params->details())
+            createSearchDetailResult(baseResult,
+                                     ostream,
+                                     params->queueMap(),
+                                     payloadDumper,
+                                     allocator,
+                                     false,
+                                     true,
+                                     false);
+        else
+            createSearchShortResult(baseResult,
+                                    ostream,
+                                    payloadDumper,
+                                    allocator,
+                                    false,
+                                    false,
+                                    true);
         searchResult.reset(new (*allocator)
-                               SearchPartiallyConfirmedDecorator(searchResult,
+                               SearchPartiallyConfirmedDecorator(baseResult,
                                                                  ostream,
                                                                  allocator),
                            allocator);
     }
     else {
-        if (params->details()) {
-            // Base: Details
-            searchResult.reset(new (*allocator)
-                                   SearchDetailResult(ostream,
-                                                      params->queueMap(),
-                                                      payloadDumper,
-                                                      allocator),
-                               allocator);
-        }
-        else {
-            // Base: Short
-            searchResult.reset(
-                new (*allocator)
-                    SearchShortResult(ostream, payloadDumper, allocator),
-                allocator);
-        }
-        // Decorator
-        searchResult.reset(new (*allocator) SearchAllDecorator(searchResult),
+        // Drefault: search all
+        if (params->details())
+            createSearchDetailResult(baseResult,
+                                     ostream,
+                                     params->queueMap(),
+                                     payloadDumper,
+                                     allocator,
+                                     true,
+                                     true,
+                                     false);
+        else
+            createSearchShortResult(baseResult,
+                                    ostream,
+                                    payloadDumper,
+                                    allocator,
+                                    true,
+                                    false,
+                                    false);
+        searchResult.reset(new (*allocator) SearchAllDecorator(baseResult),
                            allocator);
     }
 
