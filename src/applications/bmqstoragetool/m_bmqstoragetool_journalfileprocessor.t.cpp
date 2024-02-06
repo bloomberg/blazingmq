@@ -830,7 +830,7 @@ static void test1_breathingTest()
     // Run search
     bsl::ostringstream resultStream(s_allocator_p);
     auto searchProcessor = CommandProcessorFactory::createCommandProcessor(
-        bsl::move(params),
+        params,
         resultStream,
         s_allocator_p);
     searchProcessor->process();
@@ -898,7 +898,7 @@ static void test2_searchGuidTest()
     // Run search
     bsl::ostringstream resultStream(s_allocator_p);
     auto searchProcessor = CommandProcessorFactory::createCommandProcessor(
-        bsl::move(params),
+        params,
         resultStream,
         s_allocator_p);
     searchProcessor->process();
@@ -951,7 +951,7 @@ static void test3_searchNonExistingGuidTest()
     // Run search
     bsl::ostringstream resultStream(s_allocator_p);
     auto searchProcessor = CommandProcessorFactory::createCommandProcessor(
-        bsl::move(params),
+        params,
         resultStream,
         s_allocator_p);
     searchProcessor->process();
@@ -1024,7 +1024,7 @@ static void test4_searchExistingAndNonExistingGuidTest()
     // Run search
     bsl::ostringstream resultStream(s_allocator_p);
     auto searchProcessor = CommandProcessorFactory::createCommandProcessor(
-        bsl::move(params),
+        params,
         resultStream,
         s_allocator_p);
     searchProcessor->process();
@@ -1073,7 +1073,7 @@ static void test5_searchOutstandingMessagesTest()
     // Run search
     bsl::ostringstream resultStream(s_allocator_p);
     auto searchProcessor = CommandProcessorFactory::createCommandProcessor(
-        bsl::move(params),
+        params,
         resultStream,
         s_allocator_p);
     searchProcessor->process();
@@ -1126,7 +1126,7 @@ static void test6_searchConfirmedMessagesTest()
     // Run search
     bsl::ostringstream resultStream(s_allocator_p);
     auto searchProcessor = CommandProcessorFactory::createCommandProcessor(
-        bsl::move(params),
+        params,
         resultStream,
         s_allocator_p);
     searchProcessor->process();
@@ -1181,7 +1181,7 @@ static void test7_searchPartiallyConfirmedMessagesTest()
     // Run search
     bsl::ostringstream resultStream(s_allocator_p);
     auto searchProcessor = CommandProcessorFactory::createCommandProcessor(
-        bsl::move(params),
+        params,
         resultStream,
         s_allocator_p);
     searchProcessor->process();
@@ -1238,7 +1238,7 @@ static void test8_searchMessagesByQueueKeyTest()
     // Run search
     bsl::ostringstream resultStream(s_allocator_p);
     auto searchProcessor = CommandProcessorFactory::createCommandProcessor(
-        bsl::move(params),
+        params,
         resultStream,
         s_allocator_p);
     searchProcessor->process();
@@ -1302,7 +1302,7 @@ static void test9_searchMessagesByQueueNameTest()
     // Run search
     bsl::ostringstream resultStream(s_allocator_p);
     auto searchProcessor = CommandProcessorFactory::createCommandProcessor(
-        bsl::move(params),
+        params,
         resultStream,
         s_allocator_p);
     searchProcessor->process();
@@ -1371,7 +1371,7 @@ static void test10_searchMessagesByTimestamp()
     // Run search
     bsl::ostringstream resultStream(s_allocator_p);
     auto searchProcessor = CommandProcessorFactory::createCommandProcessor(
-        bsl::move(params),
+        params,
         resultStream,
         s_allocator_p);
     searchProcessor->process();
@@ -1410,7 +1410,7 @@ static void test11_printMessagesDetailsTest()
     // Run search
     bsl::ostringstream resultStream(s_allocator_p);
     auto searchProcessor = CommandProcessorFactory::createCommandProcessor(
-        bsl::move(params),
+        params,
         resultStream,
         s_allocator_p);
     searchProcessor->process();
@@ -1534,7 +1534,7 @@ static void test12_searchMessagesWithPayloadDumpTest()
     // Run search
     bsl::ostringstream resultStream(s_allocator_p);
     auto searchProcessor = CommandProcessorFactory::createCommandProcessor(
-        bsl::move(params),
+        params,
         resultStream,
         s_allocator_p);
     searchProcessor->process();
@@ -1605,7 +1605,7 @@ static void test13_summaryTest()
     // Run search
     bsl::ostringstream resultStream(s_allocator_p);
     auto searchProcessor = CommandProcessorFactory::createCommandProcessor(
-        bsl::move(params),
+        params,
         resultStream,
         s_allocator_p);
     searchProcessor->process();
