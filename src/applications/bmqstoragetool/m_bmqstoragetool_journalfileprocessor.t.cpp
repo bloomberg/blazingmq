@@ -823,8 +823,8 @@ static void test1_breathingTest()
     journalFile.addAllTypesRecords(&records);
 
     // Prepare parameters
-    bsl::unique_ptr<ParametersMock> params =
-        bsl::make_unique<ParametersMock>(journalFile, s_allocator_p);
+    bsl::shared_ptr<ParametersMock> params =
+        bsl::make_shared<ParametersMock>(journalFile, s_allocator_p);
     mockParametersDefault(*params);
 
     // Run search
@@ -890,8 +890,8 @@ static void test2_searchGuidTest()
             searchGuids.push_back(ss.str());
         }
     }
-    bsl::unique_ptr<ParametersMock> params =
-        bsl::make_unique<ParametersMock>(journalFile, s_allocator_p);
+    bsl::shared_ptr<ParametersMock> params =
+        bsl::make_shared<ParametersMock>(journalFile, s_allocator_p);
     mockParametersDefault(*params);
     EXPECT_CALL(*params, guid()).WillRepeatedly(ReturnPointee(&searchGuids));
 
@@ -943,8 +943,8 @@ static void test3_searchNonExistingGuidTest()
         searchGuids.push_back(ss.str());
     }
 
-    bsl::unique_ptr<ParametersMock> params =
-        bsl::make_unique<ParametersMock>(journalFile, s_allocator_p);
+    bsl::shared_ptr<ParametersMock> params =
+        bsl::make_shared<ParametersMock>(journalFile, s_allocator_p);
     mockParametersDefault(*params);
     EXPECT_CALL(*params, guid()).WillRepeatedly(ReturnPointee(&searchGuids));
 
@@ -1016,8 +1016,8 @@ static void test4_searchExistingAndNonExistingGuidTest()
         searchGuids.push_back(ss.str());
     }
 
-    bsl::unique_ptr<ParametersMock> params =
-        bsl::make_unique<ParametersMock>(journalFile, s_allocator_p);
+    bsl::shared_ptr<ParametersMock> params =
+        bsl::make_shared<ParametersMock>(journalFile, s_allocator_p);
     mockParametersDefault(*params);
     EXPECT_CALL(*params, guid()).WillRepeatedly(ReturnPointee(&searchGuids));
 
@@ -1065,8 +1065,8 @@ static void test5_searchOutstandingMessagesTest()
             true);
 
     // Configure parameters to search outstanding messages
-    bsl::unique_ptr<ParametersMock> params =
-        bsl::make_unique<ParametersMock>(journalFile, s_allocator_p);
+    bsl::shared_ptr<ParametersMock> params =
+        bsl::make_shared<ParametersMock>(journalFile, s_allocator_p);
     mockParametersDefault(*params);
     EXPECT_CALL(*params, outstanding()).WillRepeatedly(Return(true));
 
@@ -1118,8 +1118,8 @@ static void test6_searchConfirmedMessagesTest()
             false);
 
     // Configure parameters to search confirmed messages
-    bsl::unique_ptr<ParametersMock> params =
-        bsl::make_unique<ParametersMock>(journalFile, s_allocator_p);
+    bsl::shared_ptr<ParametersMock> params =
+        bsl::make_shared<ParametersMock>(journalFile, s_allocator_p);
     mockParametersDefault(*params);
     EXPECT_CALL(*params, confirmed()).WillRepeatedly(Return(true));
 
@@ -1173,8 +1173,8 @@ static void test7_searchPartiallyConfirmedMessagesTest()
         journalFile.addJournalRecordsWithPartiallyConfirmedMessages(&records);
 
     // Configure parameters to search partially confirmed messages
-    bsl::unique_ptr<ParametersMock> params =
-        bsl::make_unique<ParametersMock>(journalFile, s_allocator_p);
+    bsl::shared_ptr<ParametersMock> params =
+        bsl::make_shared<ParametersMock>(journalFile, s_allocator_p);
     mockParametersDefault(*params);
     EXPECT_CALL(*params, partiallyConfirmed()).WillRepeatedly(Return(true));
 
@@ -1229,8 +1229,8 @@ static void test8_searchMessagesByQueueKeyTest()
                                                       queueKey2);
 
     // Configure parameters to search messages by queueKey1
-    bsl::unique_ptr<ParametersMock> params =
-        bsl::make_unique<ParametersMock>(journalFile, s_allocator_p);
+    bsl::shared_ptr<ParametersMock> params =
+        bsl::make_shared<ParametersMock>(journalFile, s_allocator_p);
     mockParametersDefault(*params);
     bsl::vector<bsl::string> queueKeys(1, queueKey1, s_allocator_p);
     EXPECT_CALL(*params, queueKey()).WillRepeatedly(ReturnPointee(&queueKeys));
@@ -1290,8 +1290,8 @@ static void test9_searchMessagesByQueueNameTest()
     }
     QueueMap qMap(s_allocator_p);
     qMap.insert(queueInfo);
-    bsl::unique_ptr<ParametersMock> params =
-        bsl::make_unique<ParametersMock>(journalFile, s_allocator_p);
+    bsl::shared_ptr<ParametersMock> params =
+        bsl::make_shared<ParametersMock>(journalFile, s_allocator_p);
     mockParametersDefault(*params);
     bsl::vector<bsl::string> queueNames(s_allocator_p);
     queueNames.push_back("queue1");
@@ -1339,8 +1339,8 @@ static void test10_searchMessagesByTimestamp()
     journalFile.addAllTypesRecords(&records);
 
     // Configure parameters to search messages by timestamps
-    bsl::unique_ptr<ParametersMock> params =
-        bsl::make_unique<ParametersMock>(journalFile, s_allocator_p);
+    bsl::shared_ptr<ParametersMock> params =
+        bsl::make_shared<ParametersMock>(journalFile, s_allocator_p);
     mockParametersDefault(*params);
     bsl::vector<bsl::string> queueNames(s_allocator_p);
     queueNames.push_back("queue1");
@@ -1402,8 +1402,8 @@ static void test11_printMessagesDetailsTest()
             false);
 
     // Configure parameters to print message details
-    bsl::unique_ptr<ParametersMock> params =
-        bsl::make_unique<ParametersMock>(journalFile, s_allocator_p);
+    bsl::shared_ptr<ParametersMock> params =
+        bsl::make_shared<ParametersMock>(journalFile, s_allocator_p);
     mockParametersDefault(*params);
     EXPECT_CALL(*params, details()).WillRepeatedly(Return(true));
 
@@ -1524,8 +1524,8 @@ static void test12_searchMessagesWithPayloadDumpTest()
 
     // Configure parameters to search confirmed messages GUIDs with dumping
     // messages payload.
-    bsl::unique_ptr<ParametersMock> params =
-        bsl::make_unique<ParametersMock>(journalFile, s_allocator_p);
+    bsl::shared_ptr<ParametersMock> params =
+        bsl::make_shared<ParametersMock>(journalFile, s_allocator_p);
     mockParametersDefault(*params);
     EXPECT_CALL(*params, confirmed()).WillRepeatedly(Return(true));
     EXPECT_CALL(*params, dumpPayload()).WillRepeatedly(Return(true));
@@ -1597,8 +1597,8 @@ static void test13_summaryTest()
         journalFile.addJournalRecordsWithPartiallyConfirmedMessages(&records);
 
     // Configure parameters to output summary
-    bsl::unique_ptr<ParametersMock> params =
-        bsl::make_unique<ParametersMock>(journalFile, s_allocator_p);
+    bsl::shared_ptr<ParametersMock> params =
+        bsl::make_shared<ParametersMock>(journalFile, s_allocator_p);
     mockParametersDefault(*params);
     EXPECT_CALL(*params, summary()).WillRepeatedly(Return(true));
 

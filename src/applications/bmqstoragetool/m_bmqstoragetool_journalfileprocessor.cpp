@@ -104,11 +104,11 @@ static int moveToLowerBound(mqbs::JournalFileIterator* it,
 // CREATORS
 
 JournalFileProcessor::JournalFileProcessor(
-    bsl::unique_ptr<Parameters>   params,
+    bsl::shared_ptr<Parameters>   params,
     bsl::ostream&                 ostream,
     bsl::shared_ptr<SearchResult> searchResult_p,
     bslma::Allocator*             allocator)
-: CommandProcessor(bsl::move(params), ostream)
+: CommandProcessor(params, ostream)
 , d_searchResult_p(searchResult_p)
 , d_allocator_p(bslma::Default::allocator(allocator))
 {

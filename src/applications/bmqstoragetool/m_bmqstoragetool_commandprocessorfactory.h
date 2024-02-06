@@ -42,8 +42,8 @@ class CommandProcessorFactory {
 
     /// Create command processor for specified 'params' using specified
     /// 'ostream' and 'allocator'.
-    static bsl::unique_ptr<CommandProcessor>
-    createCommandProcessor(bsl::unique_ptr<Parameters> params,
+    static bsl::shared_ptr<CommandProcessor>
+    createCommandProcessor(bsl::shared_ptr<Parameters> params,
                            bsl::ostream&               ostream,
                            bslma::Allocator*           allocator);
 };

@@ -43,9 +43,9 @@ class SearchResultFactory {
     /// Create command processor for specified 'params' using specified
     /// 'ostream' and 'allocator'.
     static bsl::shared_ptr<SearchResult>
-    createSearchResult(Parameters*       params,
-                       bsl::ostream&     ostream,
-                       bslma::Allocator* allocator);
+    createSearchResult(bsl::shared_ptr<Parameters> params,
+                       bsl::ostream&               ostream,
+                       bslma::Allocator*           allocator);
 };
 
 }  // close package namespace

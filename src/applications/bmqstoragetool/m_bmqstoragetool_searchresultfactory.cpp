@@ -67,9 +67,9 @@ void createSearchShortResult(bsl::shared_ptr<SearchResult>&  baseResult,
 // =============================
 
 bsl::shared_ptr<SearchResult>
-SearchResultFactory::createSearchResult(Parameters*       params,
-                                        bsl::ostream&     ostream,
-                                        bslma::Allocator* allocator)
+SearchResultFactory::createSearchResult(bsl::shared_ptr<Parameters> params,
+                                        bsl::ostream&               ostream,
+                                        bslma::Allocator*           allocator)
 {
     // Create payload dumper
     bsl::shared_ptr<PayloadDumper> payloadDumper;

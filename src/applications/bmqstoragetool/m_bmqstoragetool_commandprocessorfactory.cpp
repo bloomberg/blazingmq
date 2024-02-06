@@ -24,23 +24,19 @@ namespace m_bmqstoragetool {
 // class CommandProcessorFactory
 // =============================
 
-bsl::unique_ptr<CommandProcessor>
+bsl::shared_ptr<CommandProcessor>
 CommandProcessorFactory::createCommandProcessor(
-    bsl::unique_ptr<Parameters> params,
+    bsl::shared_ptr<Parameters> params,
     bsl::ostream&               ostream,
     bslma::Allocator*           allocator)
 {
     // Create searchResult for given 'params'.
     bsl::shared_ptr<SearchResult> searchResult =
-        SearchResultFactory::createSearchResult(params.get(),
-                                                ostream,
-                                                allocator);
+        SearchResultFactory::createSearchResult(params, ostream, allocator);
     // Create commandProcessor.
-    bsl::unique_ptr<CommandProcessor> commandProcessor;
-    commandProcessor = bsl::make_unique<JournalFileProcessor>(
-        bsl::move(params),
-        ostream,
-        searchResult,
+    bsl::shared_ptr<CommandProcessor> commandProcessor(
+        new (*allocator)
+            JournalFileProcessor(params, ostream, searchResult, allocator),
         allocator);
     return commandProcessor;
 }

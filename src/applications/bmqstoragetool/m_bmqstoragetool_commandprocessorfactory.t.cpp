@@ -42,11 +42,12 @@ static void test1_breathingTest()
     mwctst::TestHelper::printTestName("BREATHING TEST");
     // Empty parameters
     CommandLineArguments        arguments;
-    bsl::unique_ptr<Parameters> params =
-        bsl::make_unique<ParametersReal>(arguments, s_allocator_p);
+    bsl::shared_ptr<Parameters> params(
+        new (*s_allocator_p) ParametersReal(arguments, s_allocator_p),
+        s_allocator_p);
 
     auto cmdProcessor = CommandProcessorFactory::createCommandProcessor(
-        bsl::move(params),
+        params,
         bsl::cout,
         s_allocator_p);
     ASSERT_NE(dynamic_cast<JournalFileProcessor*>(cmdProcessor.get()), nullptr)
