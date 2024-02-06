@@ -7,6 +7,8 @@ from blazingmq.schemas.mqbconf import (
     DomainDefinition,
     DomainResolver,
     DomainVariant,
+    Expression,
+    ExpressionVersion,
     Failure,
     FileBackedStorage,
     InMemoryStorage,
@@ -22,6 +24,7 @@ from blazingmq.schemas.mqbconf import (
     Response1,
     Storage,
     StorageDefinition,
+    Subscription,
     Request,
     Response,
 )
@@ -35,6 +38,8 @@ __all__ = [
     "DomainDefinition",
     "DomainResolver",
     "DomainVariant",
+    "Expression",
+    "ExpressionVersion",
     "Failure",
     "FileBackedStorage",
     "InMemoryStorage",
@@ -50,6 +55,7 @@ __all__ = [
     "Response1",
     "Storage",
     "StorageDefinition",
+    "Subscription",
     "Request",
     "Response",
 ]

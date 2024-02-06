@@ -968,11 +968,11 @@ void StorageManager::recoveredQueuesCbImpl(
     unsigned int        lastStrongConsistencyPrimaryLeaseId = 0;
 
     while (fsIt.next()) {
-        mqbu::StorageKey        appKey;
-        mqbu::StorageKey        queueKey;
-        bmqt::MessageGUID       guid;
-        mqbs::QueueOpType::Enum queueOpType = mqbs::QueueOpType::e_UNDEFINED;
-        unsigned int            refCount    = 0;
+        mqbu::StorageKey          appKey;
+        mqbu::StorageKey          queueKey;
+        bmqt::MessageGUID         guid;
+        mqbs::QueueOpType::Enum   queueOpType = mqbs::QueueOpType::e_UNDEFINED;
+        unsigned int              refCount    = 0;
         mqbs::ConfirmReason::Enum confirmReason =
             mqbs::ConfirmReason::e_CONFIRMED;
 
@@ -986,9 +986,9 @@ void StorageManager::recoveredQueuesCbImpl(
         else if (mqbs::RecordType::e_CONFIRM == fsIt.type()) {
             mqbs::ConfirmRecord confRec;
             fsIt.loadConfirmRecord(&confRec);
-            queueKey = confRec.queueKey();
-            appKey   = confRec.appKey();
-            guid     = confRec.messageGUID();
+            queueKey      = confRec.queueKey();
+            appKey        = confRec.appKey();
+            guid          = confRec.messageGUID();
             confirmReason = confRec.reason();
         }
         else if (mqbs::RecordType::e_QUEUE_OP == fsIt.type()) {

@@ -4449,13 +4449,13 @@ int FileStore::writeJournalRecord(const bmqp::StorageHeader& header,
     // copying it.  So we do this check after record has been written to the
     // file.  TBD: in case queueKey is unknown, roll back data & journal files?
 
-    const mqbu::StorageKey*  queueKey      = 0;
-    const mqbu::StorageKey*  appKey        = &(mqbu::StorageKey::k_NULL_KEY);
-    const bmqt::MessageGUID* guid          = 0;
-    RecordType::Enum         recordType    = RecordType::e_UNDEFINED;
-    QueueOpType::Enum        queueOpType   = QueueOpType::e_UNDEFINED;
-    JournalOpType::Enum      journalOpType = JournalOpType::e_UNDEFINED;
-    ReplicatedStorage*       rstorage      = 0;
+    const mqbu::StorageKey*   queueKey      = 0;
+    const mqbu::StorageKey*   appKey        = &(mqbu::StorageKey::k_NULL_KEY);
+    const bmqt::MessageGUID*  guid          = 0;
+    RecordType::Enum          recordType    = RecordType::e_UNDEFINED;
+    QueueOpType::Enum         queueOpType   = QueueOpType::e_UNDEFINED;
+    JournalOpType::Enum       journalOpType = JournalOpType::e_UNDEFINED;
+    ReplicatedStorage*        rstorage      = 0;
     mqbs::ConfirmReason::Enum confirmReason = mqbs::ConfirmReason::e_CONFIRMED;
 
     if (bmqp::StorageMessageType::e_CONFIRM == messageType) {

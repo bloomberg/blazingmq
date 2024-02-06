@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 from decimal import Decimal
+from enum import Enum
 from typing import List, Optional
 
 __NAMESPACE__ = "urn:x-bloomberg-com:mqbconfm"
@@ -94,6 +95,15 @@ class DomainResolver:
             "required": True,
         },
     )
+
+
+class ExpressionVersion(Enum):
+    """
+    Enumeration of the various expression versions.
+    """
+
+    E_UNDEFINED = "E_UNDEFINED"
+    E_VERSION_1 = "E_VERSION_1"
 
 
 @dataclass
@@ -331,6 +341,33 @@ class DomainConfigRequest:
 
 
 @dataclass
+class Expression:
+    """This complex type contains expression to evaluate when selecting
+    Subscription for delivery.
+
+    version................: expression version (default is HSL)
+    text...................: textual representation of the expression
+    """
+
+    version: ExpressionVersion = field(
+        default=ExpressionVersion.E_UNDEFINED,
+        metadata={
+            "type": "Element",
+            "namespace": "urn:x-bloomberg-com:mqbconfm",
+            "required": True,
+        },
+    )
+    text: Optional[str] = field(
+        default=None,
+        metadata={
+            "type": "Element",
+            "namespace": "urn:x-bloomberg-com:mqbconfm",
+            "required": True,
+        },
+    )
+
+
+@dataclass
 class QueueMode:
     """Choice of all the various modes a queue can be configured in.
 
@@ -464,6 +501,34 @@ class StorageDefinition:
         },
     )
     config: Optional[Storage] = field(
+        default=None,
+        metadata={
+            "type": "Element",
+            "namespace": "urn:x-bloomberg-com:mqbconfm",
+            "required": True,
+        },
+    )
+
+
+@dataclass
+class Subscription:
+    """This complex type contains various parameters required by an upstream node
+    to configure subscription for a queue handle that has already been created.
+
+    sId....................: subscription identifier
+    consumers..............: consumer parameters
+    """
+
+    app_id: Optional[str] = field(
+        default=None,
+        metadata={
+            "name": "appId",
+            "type": "Element",
+            "namespace": "urn:x-bloomberg-com:mqbconfm",
+            "required": True,
+        },
+    )
+    expression: Optional[Expression] = field(
         default=None,
         metadata={
             "type": "Element",
@@ -615,6 +680,14 @@ class Domain:
             "type": "Element",
             "namespace": "urn:x-bloomberg-com:mqbconfm",
             "required": True,
+        },
+    )
+    subscriptions: List[Subscription] = field(
+        default_factory=list,
+        metadata={
+            "type": "Element",
+            "namespace": "urn:x-bloomberg-com:mqbconfm",
+            "min_occurs": 1,
         },
     )
 

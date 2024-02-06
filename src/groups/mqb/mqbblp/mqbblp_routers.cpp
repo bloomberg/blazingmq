@@ -159,7 +159,7 @@ void Routers::MessagePropertiesReader::clear()
 
     d_currentMessage_p = 0;
     d_appData.reset();
-    d_isDirty          = true;
+    d_isDirty = true;
 }
 
 void Routers::MessagePropertiesReader::next(
