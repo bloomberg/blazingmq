@@ -26,8 +26,8 @@
 // corresponding command processor.
 
 // bmqstoragetool
+#include <m_bmqstoragetool_journalfileprocessor.h>
 #include <m_bmqstoragetool_parameters.h>
-#include <m_bmqstoragetool_searchprocessor.h>
 
 // BDE
 #include <bsl_memory.h>
@@ -47,6 +47,7 @@ class CommandProcessorFactory {
     /// 'allocator'.
     static bsl::unique_ptr<CommandProcessor>
     createCommandProcessor(bsl::unique_ptr<Parameters> params,
+                           bsl::ostream&               ostream,
                            bslma::Allocator*           allocator);
 };
 

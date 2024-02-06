@@ -47,8 +47,9 @@ static void test1_breathingTest()
 
     auto cmdProcessor = CommandProcessorFactory::createCommandProcessor(
         bsl::move(params),
+        bsl::cout,
         s_allocator_p);
-    ASSERT_NE(dynamic_cast<SearchProcessor*>(cmdProcessor.get()), nullptr)
+    ASSERT_NE(dynamic_cast<JournalFileProcessor*>(cmdProcessor.get()), nullptr)
 }
 
 // ============================================================================
