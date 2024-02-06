@@ -213,9 +213,8 @@ void assertEqual(const JournalFileIterator& it, const NodeType& node)
         ASSERT_EQ_D(i, 0, areEqual(m1, m2));
     } break;
     case RecordType::e_DELETION: {
-        const DeletionRecord& m1 =
-            *reinterpret_cast<const DeletionRecord*>(
-                node.second.buffer());
+        const DeletionRecord& m1 = *reinterpret_cast<const DeletionRecord*>(
+            node.second.buffer());
         const DeletionRecord& m2 = it.asDeletionRecord();
 
         ASSERT_EQ_D(i, 0, areEqual(m1, m2));
@@ -228,9 +227,8 @@ void assertEqual(const JournalFileIterator& it, const NodeType& node)
         ASSERT_EQ_D(i, 0, areEqual(m1, m2));
     } break;
     case RecordType::e_JOURNAL_OP: {
-        const JournalOpRecord& m1 =
-            *reinterpret_cast<const JournalOpRecord*>(
-                node.second.buffer());
+        const JournalOpRecord& m1 = *reinterpret_cast<const JournalOpRecord*>(
+            node.second.buffer());
 
         const JournalOpRecord& m2 = it.asJournalOpRecord();
 
