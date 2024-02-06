@@ -1649,7 +1649,6 @@ int main(int argc, char* argv[])
     } break;
     }
 
-    // TODO: consider check memory usage
-    // TEST_EPILOG(mwctst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    // TODO: consider enable e_CHECK_DEF_GBL_ALLOC
     TEST_EPILOG(mwctst::TestHelper::e_DEFAULT);
 }
