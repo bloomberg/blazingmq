@@ -66,5 +66,5 @@ add_custom_target("tutorials")
 add_subdirectory("advanced")
 add_subdirectory("hello_world")
 add_subdirectory("subscriptions")
-add_subdirectory("c_wrapper/advanced")
+# add_subdirectory("c_wrapper /advanced") - this will be added later
 add_subdirectory("c_wrapper/hello_world")
