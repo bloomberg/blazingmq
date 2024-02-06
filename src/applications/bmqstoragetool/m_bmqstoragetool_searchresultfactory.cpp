@@ -62,9 +62,9 @@ void createSearchShortResult(bsl::shared_ptr<SearchResult>&  baseResult,
 
 }  // close unnamed namespace
 
-// =============================
+// =========================
 // class SearchResultFactory
-// =============================
+// =========================
 
 bsl::shared_ptr<SearchResult>
 SearchResultFactory::createSearchResult(bsl::shared_ptr<Parameters> params,
