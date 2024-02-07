@@ -178,3 +178,68 @@ int z_bmqa_MessageProperties__totalSize(
         reinterpret_cast<const bmqa::MessageProperties*>(properties_obj);
     return properties_p->totalSize();
 }
+
+bool z_bmqa_MessageProperties__getPropertyAsBool(
+    const z_bmqa_MessageProperties* properties_obj, 
+    const char* name)
+{
+    using namespace BloombergLP; 
+
+    const bmqa::MessageProperties* properties_p = 
+        reinterpret_cast<const bmqa::MessageProperties*>(properties_obj);
+    
+    bsl::string name_str(name);
+    return properties_p->getPropertyAsBool(name_str);
+}
+
+char z_bmqa_MessageProperties__getPropertyAsChar(
+    const z_bmqa_MessageProperties* properties_obj, 
+    const char* name)
+{
+    using namespace BloombergLP; 
+
+    const bmqa::MessageProperties* properties_p = 
+        reinterpret_cast<const bmqa::MessageProperties*>(properties_obj);
+
+    bsl::string name_str(name);
+    return properties_p->getPropertyAsChar(name_str);
+}
+
+short z_bmqa_MessageProperties__getPropertyAsShort(
+    const z_bmqa_MessageProperties* properties_obj, 
+    const char* name) 
+{
+    using namespace BloombergLP;
+
+    const bmqa::MessageProperties* properties_p = 
+        reinterpret_cast<const bmqa::MessageProperties*>(properties_obj);
+    
+    bsl::string name_str(name);
+    return properties_p->getPropertyAsShort(name_str);
+}
+
+int32_t z_bmqa_MessageProperties__getPropertyAsInt32(
+    const z_bmqa_MessageProperties* properties_obj, 
+    const char* name)
+{
+    using namespace BloombergLP; 
+
+    const bmqa::MessageProperties* properties_p = 
+        reinterpret_cast<const bmqa::MessageProperties*>(properties_obj);
+    
+    bsl::string name_str(name);
+    return properties_p->getPropertyAsInt32(name_str);
+}
+
+long long z_bmqa_MessageProperties__getPropertyAsInt64(
+    const z_bmqa_MessageProperties* properties_obj, 
+    const char* name)
+{
+    using namespace BloombergLP; 
+
+    const bmqa::MessageProperties* properties_p = 
+        reinterpret_cast<const bmqa::MessageProperties*>(properties_obj);
+    
+    bsl::string name_str(name);
+    return properties_p->getPropertyAsInt64(name_str);
+}

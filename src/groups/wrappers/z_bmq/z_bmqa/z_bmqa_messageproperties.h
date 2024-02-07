@@ -70,6 +70,26 @@ int z_bmqa_MessageProperties__numProperties(
 int z_bmqa_MessageProperties__totalSize(
     const z_bmqa_MessageProperties* properties_obj);
 
+bool z_bmqa_MessageProperties__getPropertyAsBool(
+    const z_bmqa_MessageProperties* properties_obj, 
+    const char* name); 
+
+char z_bmqa_MessageProperties__getPropertyAsChar(
+    const z_bmqa_MessageProperties* properties_obj, 
+    const char* name); 
+
+short z_bmqa_MessageProperties__getPropertyAsShort(
+    const z_bmqa_MessageProperties* properties_obj, 
+    const char* name); 
+
+int32_t z_bmqa_MessageProperties__getPropertyAsInt32(
+    const z_bmqa_MessageProperties* properties_obj, 
+    const char* name); 
+
+long long z_bmqa_MessageProperties__getPropertyAsInt64(
+    const z_bmqa_MessageProperties* properties_obj, 
+    const char* name); 
+
 #if defined(__cplusplus)
 }
 #endif
