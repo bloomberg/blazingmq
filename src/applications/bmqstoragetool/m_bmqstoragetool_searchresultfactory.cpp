@@ -21,47 +21,6 @@
 namespace BloombergLP {
 namespace m_bmqstoragetool {
 
-namespace {
-
-// Helpers to create base searchResult implementation
-void createSearchDetailResult(bsl::shared_ptr<SearchResult>&  baseResult,
-                              bsl::ostream&                   ostream,
-                              const QueueMap&                 queueMap,
-                              bsl::shared_ptr<PayloadDumper>& payloadDumper,
-                              bslma::Allocator*               allocator,
-                              bool                            printImmediately,
-                              bool                            eraseDeleted,
-                              bool                            cleanUnprinted)
-{
-    baseResult.reset(new (*allocator) SearchDetailResult(ostream,
-                                                         queueMap,
-                                                         payloadDumper,
-                                                         allocator,
-                                                         printImmediately,
-                                                         eraseDeleted,
-                                                         cleanUnprinted),
-                     allocator);
-}
-
-void createSearchShortResult(bsl::shared_ptr<SearchResult>&  baseResult,
-                             bsl::ostream&                   ostream,
-                             bsl::shared_ptr<PayloadDumper>& payloadDumper,
-                             bslma::Allocator*               allocator,
-                             bool                            printImmediately,
-                             bool                            printOnDelete,
-                             bool                            eraseDeleted)
-{
-    baseResult.reset(new (*allocator) SearchShortResult(ostream,
-                                                        payloadDumper,
-                                                        allocator,
-                                                        printImmediately,
-                                                        printOnDelete,
-                                                        eraseDeleted),
-                     allocator);
-}
-
-}  // close unnamed namespace
-
 // =========================
 // class SearchResultFactory
 // =========================
@@ -80,30 +39,46 @@ SearchResultFactory::createSearchResult(bsl::shared_ptr<Parameters> params,
                                               params->dumpLimit()),
                             allocator);
 
+    // Set up processing flags
+    bool details = params->details();
+    // Print data immediately as soon as it is completed to save memory, except
+    // the foollowing cases, where data should be kept
+    bool printImmediately = !(params->outstanding() ||
+                              params->partiallyConfirmed() ||
+                              (params->confirmed() && !details));
+    // Always erase stored data when 'deletion' record received
+    bool eraseDeleted = true;
+    // Print data immediately on 'deletion' record receiving for specific case
+    bool printOnDelete = params->confirmed();
+    // Clean unprinted/unerased data for specific case
+    bool cleanUnprinted = params->confirmed();
+
     // Create searchResult implementation
-    bsl::shared_ptr<SearchResult> baseResult;
     bsl::shared_ptr<SearchResult> searchResult;
+    if (details)
+        searchResult.reset(new (*allocator)
+                               SearchDetailResult(ostream,
+                                                  params->queueMap(),
+                                                  payloadDumper,
+                                                  allocator,
+                                                  printImmediately,
+                                                  eraseDeleted,
+                                                  cleanUnprinted),
+                           allocator);
+    else
+        searchResult.reset(new (*allocator) SearchShortResult(ostream,
+                                                              payloadDumper,
+                                                              allocator,
+                                                              printImmediately,
+                                                              eraseDeleted,
+                                                              printOnDelete),
+                           allocator);
+
+    // Create Decorator for specific search
     if (!params->guid().empty()) {
         // Search GUIDs
-        if (params->details())
-            createSearchDetailResult(baseResult,
-                                     ostream,
-                                     params->queueMap(),
-                                     payloadDumper,
-                                     allocator,
-                                     true,
-                                     true,
-                                     true);
-        else
-            createSearchShortResult(baseResult,
-                                    ostream,
-                                    payloadDumper,
-                                    allocator,
-                                    true,
-                                    true,
-                                    true);
         searchResult.reset(new (*allocator)
-                               SearchGuidDecorator(baseResult,
+                               SearchGuidDecorator(searchResult,
                                                    params->guid(),
                                                    ostream,
                                                    params->details(),
@@ -121,97 +96,29 @@ SearchResultFactory::createSearchResult(bsl::shared_ptr<Parameters> params,
     }
     else if (params->outstanding()) {
         // Search outstanding
-        if (params->details())
-            createSearchDetailResult(baseResult,
-                                     ostream,
-                                     params->queueMap(),
-                                     payloadDumper,
-                                     allocator,
-                                     false,
-                                     true,
-                                     false);
-        else
-            createSearchShortResult(baseResult,
-                                    ostream,
-                                    payloadDumper,
-                                    allocator,
-                                    false,
-                                    false,
-                                    true);
         searchResult.reset(
             new (*allocator)
-                SearchOutstandingDecorator(baseResult, ostream, allocator),
+                SearchOutstandingDecorator(searchResult, ostream, allocator),
             allocator);
     }
     else if (params->confirmed()) {
         // Search confirmed
-        if (params->details())
-            createSearchDetailResult(baseResult,
-                                     ostream,
-                                     params->queueMap(),
-                                     payloadDumper,
-                                     allocator,
-                                     true,
-                                     true,
-                                     true);
-        else
-            createSearchShortResult(baseResult,
-                                    ostream,
-                                    payloadDumper,
-                                    allocator,
-                                    false,
-                                    true,
-                                    true);
         searchResult.reset(
             new (*allocator)
-                SearchOutstandingDecorator(baseResult, ostream, allocator),
+                SearchOutstandingDecorator(searchResult, ostream, allocator),
             allocator);
     }
     else if (params->partiallyConfirmed()) {
         // Search partially confirmed
-        if (params->details())
-            createSearchDetailResult(baseResult,
-                                     ostream,
-                                     params->queueMap(),
-                                     payloadDumper,
-                                     allocator,
-                                     false,
-                                     true,
-                                     false);
-        else
-            createSearchShortResult(baseResult,
-                                    ostream,
-                                    payloadDumper,
-                                    allocator,
-                                    false,
-                                    false,
-                                    true);
         searchResult.reset(new (*allocator)
-                               SearchPartiallyConfirmedDecorator(baseResult,
+                               SearchPartiallyConfirmedDecorator(searchResult,
                                                                  ostream,
                                                                  allocator),
                            allocator);
     }
     else {
         // Drefault: search all
-        if (params->details())
-            createSearchDetailResult(baseResult,
-                                     ostream,
-                                     params->queueMap(),
-                                     payloadDumper,
-                                     allocator,
-                                     true,
-                                     true,
-                                     false);
-        else
-            createSearchShortResult(baseResult,
-                                    ostream,
-                                    payloadDumper,
-                                    allocator,
-                                    true,
-                                    false,
-                                    false);
-        searchResult.reset(new (*allocator) SearchAllDecorator(baseResult),
+        searchResult.reset(new (*allocator) SearchAllDecorator(searchResult),
                            allocator);
     }
 
@@ -222,6 +129,7 @@ SearchResultFactory::createSearchResult(bsl::shared_ptr<Parameters> params,
                                params->timestampLt()),
                            allocator);
     }
+
     BSLS_ASSERT(searchResult);
 
     return searchResult;

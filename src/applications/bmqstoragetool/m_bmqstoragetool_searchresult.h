@@ -92,8 +92,15 @@ class SearchShortResult : public SearchResult {
     bsl::ostream&                        d_ostream;
     const bsl::shared_ptr<PayloadDumper> d_payloadDumper;
     const bool                           d_printImmediately;
-    const bool                           d_printOnDelete;
-    const bool                           d_eraseDeleted;
+    // If true, print message guid as soon as it is received (usually when
+    // 'message' record received) to save memory. If false, message guid
+    // remains stored in guid list for further processing.
+    const bool d_eraseDeleted;
+    // If true, erase data from guid list when 'deleted' record is received to
+    // save memory. If false, message data remains stored in guid list for
+    // further processing.
+    const bool d_printOnDelete;
+    // If true, print message guid when 'deleted' record is received.
 
     bsl::size_t d_printedMessagesCount;
 
@@ -110,8 +117,8 @@ class SearchShortResult : public SearchResult {
                                bsl::shared_ptr<PayloadDumper> payloadDumper,
                                bslma::Allocator*              allocator,
                                const bool printImmediately = true,
-                               const bool printOnDelete    = false,
-                               const bool eraseDeleted     = false);
+                               const bool eraseDeleted     = false,
+                               const bool printOnDelete    = false);
 
     // MANIPULATORS
     bool processMessageRecord(const mqbs::MessageRecord& record,
@@ -140,21 +147,32 @@ class SearchShortResult : public SearchResult {
 class SearchDetailResult : public SearchResult {
   private:
     // PRIVATE TYPES
+
     typedef bsl::unordered_map<bmqt::MessageGUID, MessageDetails>
         MessagesDetails;
     // Type that represents map for guid and message details.
 
     // PRIVATE DATA
 
-    bsl::ostream&                                    d_ostream;
-    const QueueMap&                                  d_queueMap;
-    const bsl::shared_ptr<PayloadDumper>             d_payloadDumper;
-    bslma::Allocator*                                d_allocator_p;
-    const bool                                       d_printImmediately;
-    const bool                                       d_eraseDeleted;
-    const bool                                       d_cleanUnprinted;
-    bsl::size_t                                      d_printedMessagesCount;
-    MessagesDetails                                  d_messagesDetails;
+    bsl::ostream&                        d_ostream;
+    const QueueMap&                      d_queueMap;
+    const bsl::shared_ptr<PayloadDumper> d_payloadDumper;
+    bslma::Allocator*                    d_allocator_p;
+    const bool                           d_printImmediately;
+    // If true, print message details as soon as it is complete (usually when
+    // 'deleted' record received) to save memory. If false, message data
+    // remains stored in MessagesDetails for further processing.
+    const bool d_eraseDeleted;
+    // If true, erase data from MessagesDetails when 'deleted' record is
+    // received to save memory. If false, message data remains stored in
+    // MessagesDetails for further processing.
+    const bool d_cleanUnprinted;
+    // If true, clean remaining data in MessagesDetails before printing final
+    // result.
+    bsl::size_t d_printedMessagesCount;
+    // Printed messages count.
+    MessagesDetails d_messagesDetails;
+    // Storage for messages details.
     bsl::map<bsls::Types::Uint64, bmqt::MessageGUID> d_messageIndexToGuidMap;
     // Map to store sorted indexes to preserve messages order for output.
 
