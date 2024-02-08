@@ -322,8 +322,7 @@ bool ParametersReal::buildQueueMap(bsl::ostream&     ss,
     BSLS_ASSERT(bdls::PathUtil::getDirname(&location, d_cslFile) == 0);
     ledgerConfig.setLocation(location)
         .setPattern(pattern)
-        .setMaxLogSize(
-            fileSize)  // TODO: what size should be? Assume size of Cls file.
+        .setMaxLogSize(fileSize)
         .setReserveOnDisk(false)
         .setPrefaultPages(false)
         .setLogIdGenerator(logIdGenerator)

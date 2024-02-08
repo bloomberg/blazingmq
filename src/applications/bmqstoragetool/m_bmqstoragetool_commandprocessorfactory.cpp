@@ -15,6 +15,7 @@
 
 // bmqstoragetool
 #include <m_bmqstoragetool_commandprocessorfactory.h>
+#include <m_bmqstoragetool_searchresultfactory.h>
 
 namespace BloombergLP {
 namespace m_bmqstoragetool {
@@ -23,15 +24,21 @@ namespace m_bmqstoragetool {
 // class CommandProcessorFactory
 // =============================
 
-bsl::unique_ptr<CommandProcessor>
+bsl::shared_ptr<CommandProcessor>
 CommandProcessorFactory::createCommandProcessor(
-    bsl::unique_ptr<Parameters> params,
+    bsl::shared_ptr<Parameters> params,
+    bsl::ostream&               ostream,
     bslma::Allocator*           allocator)
 {
-    bsl::unique_ptr<CommandProcessor> result;
-    result = bsl::make_unique<SearchProcessor>(bsl::move(params), allocator);
-
-    return result;
+    // Create searchResult for given 'params'.
+    bsl::shared_ptr<SearchResult> searchResult =
+        SearchResultFactory::createSearchResult(params, ostream, allocator);
+    // Create commandProcessor.
+    bsl::shared_ptr<CommandProcessor> commandProcessor(
+        new (*allocator)
+            JournalFileProcessor(params, ostream, searchResult, allocator),
+        allocator);
+    return commandProcessor;
 }
 
 }  // close package namespace

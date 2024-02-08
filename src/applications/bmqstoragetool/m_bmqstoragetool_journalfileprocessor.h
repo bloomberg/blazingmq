@@ -13,12 +13,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// m_bmqstoragetool_searchprocessor.h -*-C++-*-
-#ifndef INCLUDED_M_BMQSTORAGETOOL_SEARCHPROCESSOR
-#define INCLUDED_M_BMQSTORAGETOOL_SEARCHPROCESSOR
+// m_bmqstoragetool_journalfileprocessor.h -*-C++-*-
+#ifndef INCLUDED_M_BMQSTORAGETOOL_JOURNALFILEPROCESSOR
+#define INCLUDED_M_BMQSTORAGETOOL_JOURNALFILEPROCESSOR
 
 // bmqstoragetool
 #include <m_bmqstoragetool_commandprocessor.h>
+#include <m_bmqstoragetool_searchresult.h>
 
 // MQB
 #include <mqbs_datafileiterator.h>
@@ -32,24 +33,27 @@
 namespace BloombergLP {
 namespace m_bmqstoragetool {
 
-// =====================
-// class SearchProcessor
-// =====================
+// ==========================
+// class JournalFileProcessor
+// ==========================
 
-class SearchProcessor : public CommandProcessor {
+class JournalFileProcessor : public CommandProcessor {
   private:
     // DATA
-    bslma::Allocator* d_allocator_p;
+    bsl::shared_ptr<SearchResult> d_searchResult_p;
+    bslma::Allocator*             d_allocator_p;
 
     // MANIPULATORS
 
   public:
     // CREATORS
-    explicit SearchProcessor(bsl::unique_ptr<Parameters> params,
-                             bslma::Allocator*           allocator);
+    explicit JournalFileProcessor(bsl::shared_ptr<Parameters>   params,
+                                  bsl::ostream&                 ostream,
+                                  bsl::shared_ptr<SearchResult> searchResult_p,
+                                  bslma::Allocator*             allocator);
 
     // MANIPULATORS
-    void process(bsl::ostream& ostream) BSLS_KEYWORD_OVERRIDE;
+    void process() BSLS_KEYWORD_OVERRIDE;
 };
 
 }  // close package namespace

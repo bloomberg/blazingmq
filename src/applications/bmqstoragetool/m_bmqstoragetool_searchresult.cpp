@@ -51,7 +51,8 @@ void printJournalFileMeta(bsl::ostream&              ostream,
     }
 
     ostream << "\nDetails of journal file: \n";
-    ostream << journalFile_p->mappedFileDescriptor();
+    ostream << "File descriptor: " << journalFile_p->mappedFileDescriptor()
+            << '\n';
     mqbs::FileStoreProtocolPrinter::printHeader(
         ostream,
         journalFile_p->header(),
@@ -278,13 +279,13 @@ SearchShortResult::SearchShortResult(
     bsl::shared_ptr<PayloadDumper> payloadDumper,
     bslma::Allocator*              allocator,
     const bool                     printImmediately,
-    const bool                     printOnDelete,
-    const bool                     eraseDeleted)
+    const bool                     eraseDeleted,
+    const bool                     printOnDelete)
 : d_ostream(ostream)
 , d_payloadDumper(payloadDumper)
 , d_printImmediately(printImmediately)
-, d_printOnDelete(printOnDelete)
 , d_eraseDeleted(eraseDeleted)
+, d_printOnDelete(printOnDelete)
 , d_printedMessagesCount(0)
 , d_guidMap(allocator)
 , d_guidList(allocator)

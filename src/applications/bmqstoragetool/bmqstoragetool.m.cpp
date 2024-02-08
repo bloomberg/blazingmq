@@ -145,28 +145,33 @@ int main(int argc, const char* argv[])
         return 1;  // RETURN
     }
 
-    bsl::unique_ptr<Parameters> parameters;
+    // Init allocator
+    bslma::Allocator* allocator = bslma::Default::allocator();
+
+    // Create parameters
+    bsl::shared_ptr<Parameters> parameters;
     try {
-        parameters = bsl::make_unique<ParametersReal>(
-            arguments,
-            bslma::Default::allocator());
+        parameters.reset(new (*allocator) ParametersReal(arguments, allocator),
+                         allocator);
     }
     catch (const bsl::exception& e) {
         bsl::cerr << e.what();
         return 2;  // RETURN
     }
 
-    bsl::unique_ptr<CommandProcessor> processor =
-        CommandProcessorFactory::createCommandProcessor(
-            bsl::move(parameters),
-            bslma::Default::allocator());
+    // Create command processor
+    bsl::shared_ptr<CommandProcessor> processor =
+        CommandProcessorFactory::createCommandProcessor(parameters,
+                                                        bsl::cout,
+                                                        allocator);
 
     if (!processor) {
         bsl::cerr << "Failed to create processor";
         return 3;  // RETURN
     }
 
-    processor->process(bsl::cout);
+    // Run command processor
+    processor->process();
 
     return 0;
 }

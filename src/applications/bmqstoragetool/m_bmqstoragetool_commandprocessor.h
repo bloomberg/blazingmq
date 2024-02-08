@@ -41,28 +41,33 @@ namespace m_bmqstoragetool {
 class CommandProcessor {
   protected:
     // PRIVATE DATA
-    const bsl::unique_ptr<Parameters> d_parameters;
+    const bsl::shared_ptr<Parameters> d_parameters;
+    bsl::ostream&                     d_ostream;
 
   public:
     // CREATORS
 
-    /// Constructor using the specified `params`.
-    explicit CommandProcessor(bsl::unique_ptr<Parameters> params);
+    /// Constructor using the specified `params` and 'ostream'.
+    explicit CommandProcessor(const bsl::shared_ptr<Parameters> params,
+                              bsl::ostream&                     ostream);
 
     virtual ~CommandProcessor() = default;
 
     // MANIPULATORS
 
-    /// Process command and output result into specified 'ostream'.
-    virtual void process(bsl::ostream& ostream) = 0;
+    /// Process command.
+    virtual void process() = 0;
 };
 
 // ============================================================================
 //                             INLINE DEFINITIONS
 // ============================================================================
 
-inline CommandProcessor::CommandProcessor(bsl::unique_ptr<Parameters> params)
-: d_parameters(bsl::move(params))
+inline CommandProcessor::CommandProcessor(
+    const bsl::shared_ptr<Parameters> params,
+    bsl::ostream&                     ostream)
+: d_parameters(params)
+, d_ostream(ostream)
 {
     // NOTHING
 }

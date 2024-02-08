@@ -13,39 +13,39 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// m_bmqstoragetool_commandprocessorfactory.h -*-C++-*-
-#ifndef INCLUDED_M_BMQSTORAGETOOL_COMMANDPROCESSORFACTORY
-#define INCLUDED_M_BMQSTORAGETOOL_COMMANDPROCESSORFACTORY
+// m_bmqstoragetool_searchresultfactory.h -*-C++-*-
+#ifndef INCLUDED_M_BMQSTORAGETOOL_SEARCHRESULTFACTORY
+#define INCLUDED_M_BMQSTORAGETOOL_SEARCHRESULTFACTORY
 
-//@PURPOSE: Provide a factory to create corresponding command processor.
+//@PURPOSE: Provide a factory to create corresponding search result object.
 //
 //@CLASSES:
-//  m_bmqstoragetool::CommandProcessorFactory: command processor factory.
+//  m_bmqstoragetool::SearchResultFactory: search result factory.
 //
-//@DESCRIPTION: 'CommandProcessorFactory' provides a factory to create
-// corresponding command processor.
+//@DESCRIPTION: 'SearchResultFactory' provides a factory to create
+// corresponding search result object.
 
 // bmqstoragetool
-#include <m_bmqstoragetool_journalfileprocessor.h>
-#include <m_bmqstoragetool_parameters.h>
+#include <m_bmqstoragetool_payloaddumper.h>
+#include <m_bmqstoragetool_searchresult.h>
 
 namespace BloombergLP {
 namespace m_bmqstoragetool {
 
-// =============================
-// class CommandProcessorFactory
-// =============================
+// =========================
+// class SearchResultFactory
+// =========================
 
-class CommandProcessorFactory {
+class SearchResultFactory {
   public:
     // MANIPULATORS
 
     /// Create command processor for specified 'params' using specified
     /// 'ostream' and 'allocator'.
-    static bsl::shared_ptr<CommandProcessor>
-    createCommandProcessor(bsl::shared_ptr<Parameters> params,
-                           bsl::ostream&               ostream,
-                           bslma::Allocator*           allocator);
+    static bsl::shared_ptr<SearchResult>
+    createSearchResult(bsl::shared_ptr<Parameters> params,
+                       bsl::ostream&               ostream,
+                       bslma::Allocator*           allocator);
 };
 
 }  // close package namespace

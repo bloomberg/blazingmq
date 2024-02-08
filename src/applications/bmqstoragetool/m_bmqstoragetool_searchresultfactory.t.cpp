@@ -14,7 +14,7 @@
 // limitations under the License.
 
 // bmqstoragetool
-#include <m_bmqstoragetool_commandprocessorfactory.h>
+#include <m_bmqstoragetool_searchresultfactory.h>
 
 // TEST DRIVER
 #include <mwctst_testhelper.h>
@@ -46,11 +46,10 @@ static void test1_breathingTest()
         new (*s_allocator_p) ParametersReal(arguments, s_allocator_p),
         s_allocator_p);
 
-    auto cmdProcessor = CommandProcessorFactory::createCommandProcessor(
-        params,
-        bsl::cout,
-        s_allocator_p);
-    ASSERT_NE(dynamic_cast<JournalFileProcessor*>(cmdProcessor.get()), nullptr)
+    auto searchResult = SearchResultFactory::createSearchResult(params,
+                                                                bsl::cout,
+                                                                s_allocator_p);
+    ASSERT_NE(dynamic_cast<SearchResult*>(searchResult.get()), nullptr)
 }
 
 // ============================================================================

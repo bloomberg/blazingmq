@@ -106,8 +106,8 @@ Search all message GUIDs with payload dump in journal file
 ----------------------------------------------------------------------
 ```bash
 bmqstoragetool.tsk --journal-file=<journal-path> --data-file=<data-path> --dump-payload
-bmqstoragetool.tsk --journal-file-pattern=<path/pattern*> --dump-payload
-bmqstoragetool.tsk --journal-file-pattern=<path/pattern*> --dump-payload --payload-limit=64
+bmqstoragetool.tsk --journal-path=<path.*> --dump-payload
+bmqstoragetool.tsk --journal-path=<path.*> --dump-payload --payload-limit=64
 ```
 
 Applying search filters to above scenarios

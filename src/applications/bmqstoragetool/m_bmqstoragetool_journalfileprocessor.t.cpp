@@ -14,7 +14,8 @@
 // limitations under the License.
 
 // bmqstoragetool
-#include <m_bmqstoragetool_searchprocessor.h>
+#include <m_bmqstoragetool_commandprocessorfactory.h>
+#include <m_bmqstoragetool_journalfileprocessor.h>
 
 // BMQ
 #include <bmqt_messageguid.h>
@@ -822,15 +823,17 @@ static void test1_breathingTest()
     journalFile.addAllTypesRecords(&records);
 
     // Prepare parameters
-    bsl::unique_ptr<ParametersMock> params =
-        bsl::make_unique<ParametersMock>(journalFile, s_allocator_p);
+    bsl::shared_ptr<ParametersMock> params =
+        bsl::make_shared<ParametersMock>(journalFile, s_allocator_p);
     mockParametersDefault(*params);
 
     // Run search
-    auto searchProcessor = SearchProcessor(bsl::move(params), s_allocator_p);
-
     bsl::ostringstream resultStream(s_allocator_p);
-    searchProcessor.process(resultStream);
+    auto searchProcessor = CommandProcessorFactory::createCommandProcessor(
+        params,
+        resultStream,
+        s_allocator_p);
+    searchProcessor->process();
 
     // Prepare expected output with list of message GUIDs in Journal file
     bsl::ostringstream                  expectedStream(s_allocator_p);
@@ -859,7 +862,7 @@ static void test2_searchGuidTest()
 //   Search messages by GUIDs in journal file and output GUIDs.
 //
 // Testing:
-//   SearchProcessor::process()
+//   JournalFileProcessor::process()
 // ------------------------------------------------------------------------
 {
     mwctst::TestHelper::printTestName("SEARCH GUID");
@@ -887,15 +890,18 @@ static void test2_searchGuidTest()
             searchGuids.push_back(ss.str());
         }
     }
-    bsl::unique_ptr<ParametersMock> params =
-        bsl::make_unique<ParametersMock>(journalFile, s_allocator_p);
+    bsl::shared_ptr<ParametersMock> params =
+        bsl::make_shared<ParametersMock>(journalFile, s_allocator_p);
     mockParametersDefault(*params);
     EXPECT_CALL(*params, guid()).WillRepeatedly(ReturnPointee(&searchGuids));
 
-    auto searchProcessor = SearchProcessor(bsl::move(params), s_allocator_p);
-
+    // Run search
     bsl::ostringstream resultStream(s_allocator_p);
-    searchProcessor.process(resultStream);
+    auto searchProcessor = CommandProcessorFactory::createCommandProcessor(
+        params,
+        resultStream,
+        s_allocator_p);
+    searchProcessor->process();
 
     // Prepare expected output
     bsl::ostringstream expectedStream(s_allocator_p);
@@ -916,7 +922,7 @@ static void test3_searchNonExistingGuidTest()
 //   Search messages by non existing GUIDs in journal file and output result.
 //
 // Testing:
-//   SearchProcessor::process()
+//   JournalFileProcessor::process()
 // ------------------------------------------------------------------------
 {
     mwctst::TestHelper::printTestName("SEARCH NON EXISTING GUID");
@@ -937,16 +943,18 @@ static void test3_searchNonExistingGuidTest()
         searchGuids.push_back(ss.str());
     }
 
-    bsl::unique_ptr<ParametersMock> params =
-        bsl::make_unique<ParametersMock>(journalFile, s_allocator_p);
+    bsl::shared_ptr<ParametersMock> params =
+        bsl::make_shared<ParametersMock>(journalFile, s_allocator_p);
     mockParametersDefault(*params);
     EXPECT_CALL(*params, guid()).WillRepeatedly(ReturnPointee(&searchGuids));
 
     // Run search
-    auto searchProcessor = SearchProcessor(bsl::move(params), s_allocator_p);
-
     bsl::ostringstream resultStream(s_allocator_p);
-    searchProcessor.process(resultStream);
+    auto searchProcessor = CommandProcessorFactory::createCommandProcessor(
+        params,
+        resultStream,
+        s_allocator_p);
+    searchProcessor->process();
 
     // Prepare expected output
     bsl::ostringstream expectedStream(s_allocator_p);
@@ -969,7 +977,7 @@ static void test4_searchExistingAndNonExistingGuidTest()
 //   output result.
 //
 // Testing:
-//   SearchProcessor::process()
+//   JournalFileProcessor::process()
 // ------------------------------------------------------------------------
 {
     mwctst::TestHelper::printTestName("SEARCH EXISTING AND NON EXISTING GUID");
@@ -1008,16 +1016,18 @@ static void test4_searchExistingAndNonExistingGuidTest()
         searchGuids.push_back(ss.str());
     }
 
-    bsl::unique_ptr<ParametersMock> params =
-        bsl::make_unique<ParametersMock>(journalFile, s_allocator_p);
+    bsl::shared_ptr<ParametersMock> params =
+        bsl::make_shared<ParametersMock>(journalFile, s_allocator_p);
     mockParametersDefault(*params);
     EXPECT_CALL(*params, guid()).WillRepeatedly(ReturnPointee(&searchGuids));
 
     // Run search
-    auto searchProcessor = SearchProcessor(bsl::move(params), s_allocator_p);
-
     bsl::ostringstream resultStream(s_allocator_p);
-    searchProcessor.process(resultStream);
+    auto searchProcessor = CommandProcessorFactory::createCommandProcessor(
+        params,
+        resultStream,
+        s_allocator_p);
+    searchProcessor->process();
 
     // Prepare expected output
     bsl::ostringstream expectedStream(s_allocator_p);
@@ -1040,7 +1050,7 @@ static void test5_searchOutstandingMessagesTest()
 //   Search outstanding (not deleted) messages and output GUIDs.
 //
 // Testing:
-//   SearchProcessor::process()
+//   JournalFileProcessor::process()
 // ------------------------------------------------------------------------
 {
     mwctst::TestHelper::printTestName("SEARCH OUTSTANDING MESSAGES TEST");
@@ -1055,16 +1065,18 @@ static void test5_searchOutstandingMessagesTest()
             true);
 
     // Configure parameters to search outstanding messages
-    bsl::unique_ptr<ParametersMock> params =
-        bsl::make_unique<ParametersMock>(journalFile, s_allocator_p);
+    bsl::shared_ptr<ParametersMock> params =
+        bsl::make_shared<ParametersMock>(journalFile, s_allocator_p);
     mockParametersDefault(*params);
     EXPECT_CALL(*params, outstanding()).WillRepeatedly(Return(true));
 
     // Run search
-    auto searchProcessor = SearchProcessor(bsl::move(params), s_allocator_p);
-
     bsl::ostringstream resultStream(s_allocator_p);
-    searchProcessor.process(resultStream);
+    auto searchProcessor = CommandProcessorFactory::createCommandProcessor(
+        params,
+        resultStream,
+        s_allocator_p);
+    searchProcessor->process();
 
     // Prepare expected output
     bsl::ostringstream expectedStream(s_allocator_p);
@@ -1091,7 +1103,7 @@ static void test6_searchConfirmedMessagesTest()
 //   Search confirmed (deleted) messages  in journal file and output GUIDs.
 //
 // Testing:
-//   SearchProcessor::process()
+//   JournalFileProcessor::process()
 // ------------------------------------------------------------------------
 {
     mwctst::TestHelper::printTestName("SEARCH CONFIRMED MESSAGES TEST");
@@ -1106,16 +1118,18 @@ static void test6_searchConfirmedMessagesTest()
             false);
 
     // Configure parameters to search confirmed messages
-    bsl::unique_ptr<ParametersMock> params =
-        bsl::make_unique<ParametersMock>(journalFile, s_allocator_p);
+    bsl::shared_ptr<ParametersMock> params =
+        bsl::make_shared<ParametersMock>(journalFile, s_allocator_p);
     mockParametersDefault(*params);
     EXPECT_CALL(*params, confirmed()).WillRepeatedly(Return(true));
 
     // Run search
-    auto searchProcessor = SearchProcessor(bsl::move(params), s_allocator_p);
-
     bsl::ostringstream resultStream(s_allocator_p);
-    searchProcessor.process(resultStream);
+    auto searchProcessor = CommandProcessorFactory::createCommandProcessor(
+        params,
+        resultStream,
+        s_allocator_p);
+    searchProcessor->process();
 
     // Prepare expected output
     bsl::ostringstream expectedStream(s_allocator_p);
@@ -1143,7 +1157,7 @@ static void test7_searchPartiallyConfirmedMessagesTest()
 //   file and output GUIDs.
 //
 // Testing:
-//   SearchProcessor::process()
+//   JournalFileProcessor::process()
 // ------------------------------------------------------------------------
 {
     mwctst::TestHelper::printTestName(
@@ -1159,16 +1173,18 @@ static void test7_searchPartiallyConfirmedMessagesTest()
         journalFile.addJournalRecordsWithPartiallyConfirmedMessages(&records);
 
     // Configure parameters to search partially confirmed messages
-    bsl::unique_ptr<ParametersMock> params =
-        bsl::make_unique<ParametersMock>(journalFile, s_allocator_p);
+    bsl::shared_ptr<ParametersMock> params =
+        bsl::make_shared<ParametersMock>(journalFile, s_allocator_p);
     mockParametersDefault(*params);
     EXPECT_CALL(*params, partiallyConfirmed()).WillRepeatedly(Return(true));
 
     // Run search
-    auto searchProcessor = SearchProcessor(bsl::move(params), s_allocator_p);
-
     bsl::ostringstream resultStream(s_allocator_p);
-    searchProcessor.process(resultStream);
+    auto searchProcessor = CommandProcessorFactory::createCommandProcessor(
+        params,
+        resultStream,
+        s_allocator_p);
+    searchProcessor->process();
 
     // Prepare expected output
     bsl::ostringstream expectedStream(s_allocator_p);
@@ -1196,7 +1212,7 @@ static void test8_searchMessagesByQueueKeyTest()
 //   file and output GUIDs.
 //
 // Testing:
-//   SearchProcessor::process()
+//   JournalFileProcessor::process()
 // ------------------------------------------------------------------------
 {
     mwctst::TestHelper::printTestName("SEARCH MESSAGES BY QUEUE KEY TEST");
@@ -1213,17 +1229,19 @@ static void test8_searchMessagesByQueueKeyTest()
                                                       queueKey2);
 
     // Configure parameters to search messages by queueKey1
-    bsl::unique_ptr<ParametersMock> params =
-        bsl::make_unique<ParametersMock>(journalFile, s_allocator_p);
+    bsl::shared_ptr<ParametersMock> params =
+        bsl::make_shared<ParametersMock>(journalFile, s_allocator_p);
     mockParametersDefault(*params);
     bsl::vector<bsl::string> queueKeys(1, queueKey1, s_allocator_p);
     EXPECT_CALL(*params, queueKey()).WillRepeatedly(ReturnPointee(&queueKeys));
 
     // Run search
-    auto searchProcessor = SearchProcessor(bsl::move(params), s_allocator_p);
-
     bsl::ostringstream resultStream(s_allocator_p);
-    searchProcessor.process(resultStream);
+    auto searchProcessor = CommandProcessorFactory::createCommandProcessor(
+        params,
+        resultStream,
+        s_allocator_p);
+    searchProcessor->process();
 
     // Prepare expected output
     bsl::ostringstream expectedStream(s_allocator_p);
@@ -1246,7 +1264,7 @@ static void test9_searchMessagesByQueueNameTest()
 //   file and output GUIDs.
 //
 // Testing:
-//   SearchProcessor::process()
+//   JournalFileProcessor::process()
 // ------------------------------------------------------------------------
 {
     mwctst::TestHelper::printTestName("SEARCH MESSAGES BY QUEUE NAME TEST");
@@ -1272,8 +1290,8 @@ static void test9_searchMessagesByQueueNameTest()
     }
     QueueMap qMap(s_allocator_p);
     qMap.insert(queueInfo);
-    bsl::unique_ptr<ParametersMock> params =
-        bsl::make_unique<ParametersMock>(journalFile, s_allocator_p);
+    bsl::shared_ptr<ParametersMock> params =
+        bsl::make_shared<ParametersMock>(journalFile, s_allocator_p);
     mockParametersDefault(*params);
     bsl::vector<bsl::string> queueNames(s_allocator_p);
     queueNames.push_back("queue1");
@@ -1282,10 +1300,12 @@ static void test9_searchMessagesByQueueNameTest()
     EXPECT_CALL(*params, queueMap()).WillRepeatedly(ReturnPointee(&qMap));
 
     // Run search
-    auto searchProcessor = SearchProcessor(bsl::move(params), s_allocator_p);
-
     bsl::ostringstream resultStream(s_allocator_p);
-    searchProcessor.process(resultStream);
+    auto searchProcessor = CommandProcessorFactory::createCommandProcessor(
+        params,
+        resultStream,
+        s_allocator_p);
+    searchProcessor->process();
 
     // Prepare expected output
     bsl::ostringstream expectedStream(s_allocator_p);
@@ -1307,7 +1327,7 @@ static void test10_searchMessagesByTimestamp()
 //   Search messages by timestamp in journal file and output GUIDs.
 //
 // Testing:
-//   SearchProcessor::process()
+//   JournalFileProcessor::process()
 // ------------------------------------------------------------------------
 {
     mwctst::TestHelper::printTestName("SEARCH MESSAGES BY TIMESTAMP TEST");
@@ -1319,8 +1339,8 @@ static void test10_searchMessagesByTimestamp()
     journalFile.addAllTypesRecords(&records);
 
     // Configure parameters to search messages by timestamps
-    bsl::unique_ptr<ParametersMock> params =
-        bsl::make_unique<ParametersMock>(journalFile, s_allocator_p);
+    bsl::shared_ptr<ParametersMock> params =
+        bsl::make_shared<ParametersMock>(journalFile, s_allocator_p);
     mockParametersDefault(*params);
     bsl::vector<bsl::string> queueNames(s_allocator_p);
     queueNames.push_back("queue1");
@@ -1349,10 +1369,12 @@ static void test10_searchMessagesByTimestamp()
     expectedStream << msgCnt << " message GUID(s) found." << bsl::endl;
 
     // Run search
-    auto searchProcessor = SearchProcessor(bsl::move(params), s_allocator_p);
-
     bsl::ostringstream resultStream(s_allocator_p);
-    searchProcessor.process(resultStream);
+    auto searchProcessor = CommandProcessorFactory::createCommandProcessor(
+        params,
+        resultStream,
+        s_allocator_p);
+    searchProcessor->process();
 
     ASSERT_EQ(resultStream.str(), expectedStream.str());
 }
@@ -1365,7 +1387,7 @@ static void test11_printMessagesDetailsTest()
 //   Search messages in journal file and output message details.
 //
 // Testing:
-//   SearchProcessor::process()
+//   JournalFileProcessor::process()
 // ------------------------------------------------------------------------
 {
     mwctst::TestHelper::printTestName("PRINT MESSAGE DETAILS TEST");
@@ -1380,15 +1402,18 @@ static void test11_printMessagesDetailsTest()
             false);
 
     // Configure parameters to print message details
-    bsl::unique_ptr<ParametersMock> params =
-        bsl::make_unique<ParametersMock>(journalFile, s_allocator_p);
+    bsl::shared_ptr<ParametersMock> params =
+        bsl::make_shared<ParametersMock>(journalFile, s_allocator_p);
     mockParametersDefault(*params);
     EXPECT_CALL(*params, details()).WillRepeatedly(Return(true));
 
-    auto searchProcessor = SearchProcessor(bsl::move(params), s_allocator_p);
-
+    // Run search
     bsl::ostringstream resultStream(s_allocator_p);
-    searchProcessor.process(resultStream);
+    auto searchProcessor = CommandProcessorFactory::createCommandProcessor(
+        params,
+        resultStream,
+        s_allocator_p);
+    searchProcessor->process();
 
     // Check that substrings are present in resultStream in correct order
     auto        resultString         = resultStream.str();
@@ -1439,7 +1464,7 @@ static void test12_searchMessagesWithPayloadDumpTest()
 //   correctly.
 //
 // Testing:
-//   SearchProcessor::process()
+//   JournalFileProcessor::process()
 // ------------------------------------------------------------------------
 {
     mwctst::TestHelper::printTestName(
@@ -1499,19 +1524,20 @@ static void test12_searchMessagesWithPayloadDumpTest()
 
     // Configure parameters to search confirmed messages GUIDs with dumping
     // messages payload.
-    bsl::unique_ptr<ParametersMock> params =
-        bsl::make_unique<ParametersMock>(journalFile, s_allocator_p);
+    bsl::shared_ptr<ParametersMock> params =
+        bsl::make_shared<ParametersMock>(journalFile, s_allocator_p);
     mockParametersDefault(*params);
     EXPECT_CALL(*params, confirmed()).WillRepeatedly(Return(true));
     EXPECT_CALL(*params, dumpPayload()).WillRepeatedly(Return(true));
     EXPECT_CALL(*params, dataFileIterator()).WillRepeatedly(Return(&dataIt));
 
-    // Perform search
-    auto searchProcessor = SearchProcessor(bsl::move(params), s_allocator_p);
-
+    // Run search
     bsl::ostringstream resultStream(s_allocator_p);
-
-    searchProcessor.process(resultStream);
+    auto searchProcessor = CommandProcessorFactory::createCommandProcessor(
+        params,
+        resultStream,
+        s_allocator_p);
+    searchProcessor->process();
 
     // Prepare expected data
     bsl::string              resultString             = resultStream.str();
@@ -1558,7 +1584,7 @@ static void test13_summaryTest()
 //   Search messages in journal file and output summary.
 //
 // Testing:
-//   SearchProcessor::process()
+//   JournalFileProcessor::process()
 // ------------------------------------------------------------------------
 {
     mwctst::TestHelper::printTestName("OUTPUT SUMMARY TEST");
@@ -1571,15 +1597,18 @@ static void test13_summaryTest()
         journalFile.addJournalRecordsWithPartiallyConfirmedMessages(&records);
 
     // Configure parameters to output summary
-    bsl::unique_ptr<ParametersMock> params =
-        bsl::make_unique<ParametersMock>(journalFile, s_allocator_p);
+    bsl::shared_ptr<ParametersMock> params =
+        bsl::make_shared<ParametersMock>(journalFile, s_allocator_p);
     mockParametersDefault(*params);
     EXPECT_CALL(*params, summary()).WillRepeatedly(Return(true));
 
-    auto searchProcessor = SearchProcessor(bsl::move(params), s_allocator_p);
-
+    // Run search
     bsl::ostringstream resultStream(s_allocator_p);
-    searchProcessor.process(resultStream);
+    auto searchProcessor = CommandProcessorFactory::createCommandProcessor(
+        params,
+        resultStream,
+        s_allocator_p);
+    searchProcessor->process();
 
     // Prepare expected output
     bsl::ostringstream expectedStream(s_allocator_p);
@@ -1620,7 +1649,6 @@ int main(int argc, char* argv[])
     } break;
     }
 
-    // TODO: consider memory usage
-    // TEST_EPILOG(mwctst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    // TODO: consider enable e_CHECK_DEF_GBL_ALLOC
     TEST_EPILOG(mwctst::TestHelper::e_DEFAULT);
 }
