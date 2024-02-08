@@ -440,7 +440,6 @@ void LocalQueue::postMessage(const bmqp::PutHeader&              putHeader,
     mqbi::StorageResult::Enum res =
         d_queueEngine_mp->evaluateAutoSubscriptions(putHeader,
                                                     appData,
-                                                    options,
                                                     translation,
                                                     timestamp);
 

@@ -205,10 +205,14 @@ class QueueEngine {
     virtual void
     afterAppIdUnregistered(const mqbi::Storage::AppIdKeyPair& appIdKeyPair);
 
+    /// Given the specified 'putHeader', 'appData', 'mpi', and 'timestamp',
+    /// evaluate all Auto (Application) subscriptions and exclude applications
+    /// with negative results from message delivery.
+    ///
+    /// THREAD: This method is called from the Queue's dispatcher thread.
     virtual StorageResult::Enum
     evaluateAutoSubscriptions(const bmqp::PutHeader&              putHeader,
                               const bsl::shared_ptr<bdlbb::Blob>& appData,
-                              const bsl::shared_ptr<bdlbb::Blob>& options,
                               const bmqp::MessagePropertiesInfo&  mpi,
                               bsls::Types::Uint64 timestamp) = 0;
 

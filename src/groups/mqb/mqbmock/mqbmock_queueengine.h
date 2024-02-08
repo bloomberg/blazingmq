@@ -203,7 +203,6 @@ class QueueEngine : public mqbi::QueueEngine {
     virtual mqbi::StorageResult::Enum evaluateAutoSubscriptions(
         const bmqp::PutHeader&              putHeader,
         const bsl::shared_ptr<bdlbb::Blob>& appData,
-        const bsl::shared_ptr<bdlbb::Blob>& options,
         const bmqp::MessagePropertiesInfo&  mpi,
         bsls::Types::Uint64                 timestamp) BSLS_KEYWORD_OVERRIDE;
 

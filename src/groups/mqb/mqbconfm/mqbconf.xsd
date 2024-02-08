@@ -198,6 +198,7 @@
                               message for the purpose of detecting duplicate
                               PUTs.
         consistency.........: optional consistency mode.
+        subscriptions.......: optional Auto (Application) subscriptions
       </documentation>
     </annotation>
     <sequence>
@@ -354,7 +355,7 @@
         This complex type contains expression to evaluate when selecting
         Subscription for delivery.
 
-        version................: expression version (default is HSL)
+        version................: expression version (default is no expression)
         text...................: textual representation of the expression
       </documentation>
     </annotation>

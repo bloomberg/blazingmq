@@ -494,7 +494,7 @@ class Storage {
     virtual StorageResult::Enum autoConfirm(const mqbu::StorageKey& appKey,
                                             bsls::Types::Uint64 timestamp) = 0;
     /// The sequence of calls is 'startAutoConfirming', then zero or more
-    /// 'autoConfirm', then 'put' - all for the same specified 'msgFUID'.
+    /// 'autoConfirm', then 'put' - all for the same specified 'msgGUID'.
     /// 'autoConfirm' replicates ephemeral auto CONFIRM for the specified
     /// 'appKey' in persistent storage.
     /// Any other sequence removes auto CONFIRMs.

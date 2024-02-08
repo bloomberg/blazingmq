@@ -373,13 +373,13 @@ class VirtualStorage : public mqbi::Storage {
     bool
     removeVirtualStorage(const mqbu::StorageKey& appKey) BSLS_KEYWORD_OVERRIDE;
 
+    /// Behavior is undefined if these methods are ever invoked.  These methods
+    /// need to be implemented as their part of the base protocol.
     void startAutoConfirming(const bmqt::MessageGUID& msgGUID)
         BSLS_KEYWORD_OVERRIDE;
     mqbi::StorageResult::Enum
     autoConfirm(const mqbu::StorageKey& appKey,
                 bsls::Types::Uint64     timestamp) BSLS_KEYWORD_OVERRIDE;
-    /// Behavior is undefined if these methods is ever invoked.  This method
-    /// needs to be implemented as its part of base protocol.
 
     void autoConfirm(const bmqt::MessageGUID& msgGUID);
 };

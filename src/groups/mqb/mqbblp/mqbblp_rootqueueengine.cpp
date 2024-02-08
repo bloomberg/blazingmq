@@ -48,6 +48,7 @@
 
 // BDE
 #include <bdlb_print.h>
+#include <bdlb_scopeexit.h>
 #include <bdlb_string.h>
 #include <bdlt_currenttime.h>
 #include <bdlt_epochutil.h>
@@ -1636,18 +1637,20 @@ void RootQueueEngine::afterAppIdUnregistered(
 mqbi::StorageResult::Enum RootQueueEngine::evaluateAutoSubscriptions(
     const bmqp::PutHeader&              putHeader,
     const bsl::shared_ptr<bdlbb::Blob>& appData,
-    const bsl::shared_ptr<bdlbb::Blob>& options,
     const bmqp::MessagePropertiesInfo&  mpi,
     bsls::Types::Uint64                 timestamp)
 {
-    (void)options;
     mqbi::StorageResult::Enum result = mqbi::StorageResult::e_SUCCESS;
 
     Routers::QueueRoutingContext& queue = d_queueState_p->routingContext();
 
-    // queue.d_evaluationContext.setPropertiesReader(queue.d_preader.get());
+    // 'setPropertiesReader' is done in 'QueueRoutingContext' ctor
 
     queue.d_preader->next(appData, mpi);
+
+    bdlb::ScopeExitAny guard(
+        bdlf::BindUtil::bind(&Routers::MessagePropertiesReader::clear,
+                             queue.d_preader));
 
     d_queueState_p->storage()->startAutoConfirming(putHeader.messageGUID());
 
@@ -1662,8 +1665,6 @@ mqbi::StorageResult::Enum RootQueueEngine::evaluateAutoSubscriptions(
             }
         }
     }
-
-    queue.d_preader->clear();
 
     return result;
 }
