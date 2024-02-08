@@ -36,6 +36,9 @@ namespace m_bmqstoragetool {
 // class SearchProcessor
 // =====================
 
+int moveToLowerBound(mqbs::JournalFileIterator* it,
+                     const bsls::Types::Uint64& timestamp);
+
 class SearchProcessor : public CommandProcessor {
   private:
     // DATA
