@@ -305,12 +305,13 @@ struct StorageUtil {
     ///
     /// THREAD: Executed by the Queue's dispatcher thread for the specified
     ///         `partitionId`.
-    static void purgeDomainDispatched(
-        bsl::vector<bsl::vector<mqbcmd::PurgeQueueResult> >* purgedQueuesVec,
-        bslmt::Latch*                                        latch,
-        int                                                  partitionId,
-        const FileStores&                                    fileStores,
-        const bsl::string&                                   domainName);
+    static void
+    purgeDomainDispatched(bsl::vector<bsl::vector<mqbcmd::PurgeQueueResult> >*
+                                             purgedQueuesResultsVec,
+                          bslmt::Latch*      latch,
+                          int                partitionId,
+                          const FileStores&  fileStores,
+                          const bsl::string& domainName);
 
     /// Execute the queue purge command for the specified `storage` and the
     /// specified `appId`, associated with the specified `fileStore`.  The
@@ -321,11 +322,12 @@ struct StorageUtil {
     ///
     /// THREAD: Executed by the Queue's dispatcher thread for the specified
     ///         `fileStore`.
-    static void purgeQueueDispatched(mqbcmd::PurgeQueueResult* purgedQueue,
-                                     bslmt::Semaphore*  purgeFinishedSemaphore,
-                                     mqbs::FileStore*   fileStore,
-                                     mqbi::Storage*     storage,
-                                     const bsl::string* appId);
+    static void
+    purgeQueueDispatched(mqbcmd::PurgeQueueResult* purgedQueueResult,
+                         bslmt::Semaphore*         purgeFinishedSemaphore,
+                         mqbs::FileStore*          fileStore,
+                         mqbi::Storage*            storage,
+                         const bsl::string*        appId);
 
     /// Execute the specified `job` for each partition in the specified
     /// `fileStores`.  Each partition will receive its partitionId and a

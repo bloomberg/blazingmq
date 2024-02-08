@@ -746,9 +746,10 @@ class FileStore : public DataStore {
     void purgeDomain(bsl::vector<mqbcmd::PurgeQueueResult>* purgedQueues,
                      const bsl::string&                     domainName);
 
-    /// Remove all outstanding messages from the queue with the specified
-    /// 'appId' associated with the specified 'storage', and load the
-    /// details of the purged queue into the specified `result` object.
+    /// Remove all outstanding messages from the queue associated with
+    /// the optionally specified 'appId' associated with the specified
+    /// 'storage', and load the details of the purged queue into the
+    /// specified `result` object.
     /// Empty `appId` means to purge from ALL appIds.
     ///
     /// THREAD: this method is invoked in this FileStore's dispatcher thread.

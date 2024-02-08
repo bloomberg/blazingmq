@@ -770,7 +770,7 @@ int Domain::processCommand(mqbcmd::DomainResult*        result,
 
         if (clusterResult.isErrorValue()) {
             result->makeError(clusterResult.error());
-            return rc;
+            return rc;  // RETURN
         }
 
         BSLS_ASSERT_SAFE(clusterResult.isStorageResultValue());
@@ -780,7 +780,7 @@ int Domain::processCommand(mqbcmd::DomainResult*        result,
         purgedQueues.queues() =
             clusterResult.storageResult().purgedQueues().queues();
 
-        return 0;
+        return 0;  // RETURN
     }
     else if (command.isInfoValue()) {
         mqbcmd::DomainInfo& domainInfo = result->makeDomainInfo();
@@ -877,7 +877,7 @@ int Domain::processCommand(mqbcmd::DomainResult*        result,
             rc = d_cluster_sp->processCommand(&clusterResult, clusterCommand);
             if (clusterResult.isErrorValue()) {
                 result->makeError(clusterResult.error());
-                return rc;
+                return rc;  // RETURN
             }
 
             BSLS_ASSERT_SAFE(clusterResult.isStorageResultValue());
@@ -887,7 +887,7 @@ int Domain::processCommand(mqbcmd::DomainResult*        result,
             mqbcmd::PurgedQueues& purgedQueues = result->makePurgedQueues();
             result->makeQueueResult().makePurgedQueues().queues() =
                 clusterResult.storageResult().purgedQueues().queues();
-            return rc;
+            return rc;  // RETURN
         }
 
         bsl::shared_ptr<mqbi::Queue> queue;

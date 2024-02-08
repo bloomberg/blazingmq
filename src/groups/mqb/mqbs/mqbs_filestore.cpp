@@ -7108,11 +7108,11 @@ void FileStore::purgeQueue(mqbcmd::PurgeQueueResult* result,
     if (!d_isPrimary) {
         mwcu::MemOutStream errorMsg;
         errorMsg << "Not purging queue '" << storage.queueUri() << "' "
-                 << " with  primary node: " << primaryNode()->nodeDescription()
+                 << " with primary node: " << primaryNode()->nodeDescription()
                  << "[reason: queue is NOT local]";
         mqbcmd::Error& error = result->makeError();
         error.message()      = errorMsg.str();
-        return;
+        return;  // RETURN
     }
 
     mqbu::StorageKey appKey;
@@ -7136,7 +7136,7 @@ void FileStore::purgeQueue(mqbcmd::PurgeQueueResult* result,
     const bsls::Types::Uint64 numMsgs  = storage.numMessages(appKey);
     const bsls::Types::Uint64 numBytes = storage.numBytes(appKey);
 
-    mqbi::StorageResult::Enum rc = storage.removeAll(appKey);
+    const mqbi::StorageResult::Enum rc = storage.removeAll(appKey);
     if (rc != mqbi::StorageResult::e_SUCCESS) {
         mwcu::MemOutStream errorMsg;
         errorMsg << "Failed to purge appId '" << appId << "', appKey '"
