@@ -63,14 +63,15 @@ typedef bsl::list<NodeType> RecordsListType;
 
 class JournalFile {
   private:
-    size_t               d_numRecords;
-    MappedFileDescriptor d_mfd;
-    char*                d_mem_p;
-    MemoryBlock          d_block;
-    bsls::Types::Uint64  d_currPos;
-    FileHeader           d_fileHeader;
-    JournalFileIterator  d_iterator;
-    bslma::Allocator*    d_allocator_p;
+    size_t                    d_numRecords;
+    MappedFileDescriptor      d_mfd;
+    char*                     d_mem_p;
+    MemoryBlock               d_block;
+    bsls::Types::Uint64       d_currPos;
+    const bsls::Types::Uint64 d_timestampIncrement;
+    FileHeader                d_fileHeader;
+    JournalFileIterator       d_iterator;
+    bslma::Allocator*         d_allocator_p;
 
     // MANIPULATORS
 
@@ -92,6 +93,7 @@ class JournalFile {
     // CREATORS
     JournalFile(const size_t numRecords, bslma::Allocator* allocator)
     : d_numRecords(numRecords)
+    , d_timestampIncrement(100)
     , d_allocator_p(allocator)
     {
         bsls::Types::Uint64 totalSize =
@@ -117,6 +119,11 @@ class JournalFile {
 
     const FileHeader& fileHeader() const { return d_fileHeader; }
 
+    const bsls::Types::Uint64 timestampIncrement()
+    {
+        return d_timestampIncrement;
+    }
+
     // MANIPULATORS
 
     void addAllTypesRecords(RecordsListType* records)
@@ -131,7 +138,7 @@ class JournalFile {
                 rec->header()
                     .setPrimaryLeaseId(100)
                     .setSequenceNumber(i)
-                    .setTimestamp(i);
+                    .setTimestamp(i * d_timestampIncrement);
                 rec->setRefCount(i %
                                  FileStoreProtocol::k_MAX_MSG_REF_COUNT_HARD)
                     .setQueueKey(mqbu::StorageKey(
@@ -162,7 +169,7 @@ class JournalFile {
                 rec->header()
                     .setPrimaryLeaseId(100)
                     .setSequenceNumber(i)
-                    .setTimestamp(i);
+                    .setTimestamp(i * d_timestampIncrement);
                 rec->setReason(ConfirmReason::e_REJECTED)
                     .setQueueKey(mqbu::StorageKey(
                         mqbu::StorageKey::BinaryRepresentation(),
@@ -188,7 +195,7 @@ class JournalFile {
                 rec->header()
                     .setPrimaryLeaseId(100)
                     .setSequenceNumber(i)
-                    .setTimestamp(i);
+                    .setTimestamp(i * d_timestampIncrement);
                 rec->setDeletionRecordFlag(
                        DeletionRecordFlag::e_IMPLICIT_CONFIRM)
                     .setQueueKey(mqbu::StorageKey(
@@ -211,7 +218,7 @@ class JournalFile {
                 rec->header()
                     .setPrimaryLeaseId(100)
                     .setSequenceNumber(i)
-                    .setTimestamp(i);
+                    .setTimestamp(i * d_timestampIncrement);
                 rec->setFlags(3)
                     .setQueueKey(mqbu::StorageKey(
                         mqbu::StorageKey::BinaryRepresentation(),
@@ -243,7 +250,7 @@ class JournalFile {
                 rec->header()
                     .setPrimaryLeaseId(100)
                     .setSequenceNumber(i)
-                    .setTimestamp(i);
+                    .setTimestamp(i * d_timestampIncrement);
                 RecordBufferType buf;
                 bsl::memcpy(buf.buffer(),
                             rec.get(),
@@ -271,7 +278,10 @@ class JournalFile {
                 mqbu::MessageGUIDUtil::generateGUID(&lastMessageGUID);
                 OffsetPtr<MessageRecord> rec(d_block, d_currPos);
                 new (rec.get()) MessageRecord();
-                rec->header().setPrimaryLeaseId(100).setSequenceNumber(i);
+                rec->header()
+                    .setPrimaryLeaseId(100)
+                    .setSequenceNumber(i)
+                    .setTimestamp(i * d_timestampIncrement);
                 rec->setRefCount(i %
                                  FileStoreProtocol::k_MAX_MSG_REF_COUNT_HARD)
                     .setQueueKey(mqbu::StorageKey(
@@ -298,7 +308,10 @@ class JournalFile {
                 bmqt::MessageGUID        g = lastMessageGUID;
                 OffsetPtr<ConfirmRecord> rec(d_block, d_currPos);
                 new (rec.get()) ConfirmRecord();
-                rec->header().setPrimaryLeaseId(100).setSequenceNumber(i);
+                rec->header()
+                    .setPrimaryLeaseId(100)
+                    .setSequenceNumber(i)
+                    .setTimestamp(i * d_timestampIncrement);
                 rec->setReason(ConfirmReason::e_REJECTED)
                     .setQueueKey(mqbu::StorageKey(
                         mqbu::StorageKey::BinaryRepresentation(),
@@ -331,7 +344,10 @@ class JournalFile {
                 outstandingFlag = !outstandingFlag;
                 OffsetPtr<DeletionRecord> rec(d_block, d_currPos);
                 new (rec.get()) DeletionRecord();
-                rec->header().setPrimaryLeaseId(100).setSequenceNumber(i);
+                rec->header()
+                    .setPrimaryLeaseId(100)
+                    .setSequenceNumber(i)
+                    .setTimestamp(i * d_timestampIncrement);
                 rec->setDeletionRecordFlag(
                        DeletionRecordFlag::e_IMPLICIT_CONFIRM)
                     .setQueueKey(mqbu::StorageKey(
@@ -373,7 +389,10 @@ class JournalFile {
                 mqbu::MessageGUIDUtil::generateGUID(&lastMessageGUID);
                 OffsetPtr<MessageRecord> rec(d_block, d_currPos);
                 new (rec.get()) MessageRecord();
-                rec->header().setPrimaryLeaseId(100).setSequenceNumber(i);
+                rec->header()
+                    .setPrimaryLeaseId(100)
+                    .setSequenceNumber(i)
+                    .setTimestamp(i * d_timestampIncrement);
                 rec->setRefCount(i %
                                  FileStoreProtocol::k_MAX_MSG_REF_COUNT_HARD)
                     .setQueueKey(mqbu::StorageKey(
@@ -400,7 +419,10 @@ class JournalFile {
                 bmqt::MessageGUID        g = lastMessageGUID;
                 OffsetPtr<ConfirmRecord> rec(d_block, d_currPos);
                 new (rec.get()) ConfirmRecord();
-                rec->header().setPrimaryLeaseId(100).setSequenceNumber(i);
+                rec->header()
+                    .setPrimaryLeaseId(100)
+                    .setSequenceNumber(i)
+                    .setTimestamp(i * d_timestampIncrement);
                 rec->setReason(ConfirmReason::e_REJECTED)
                     .setQueueKey(mqbu::StorageKey(
                         mqbu::StorageKey::BinaryRepresentation(),
@@ -430,7 +452,10 @@ class JournalFile {
                 partialyConfirmedFlag = !partialyConfirmedFlag;
                 OffsetPtr<DeletionRecord> rec(d_block, d_currPos);
                 new (rec.get()) DeletionRecord();
-                rec->header().setPrimaryLeaseId(100).setSequenceNumber(i);
+                rec->header()
+                    .setPrimaryLeaseId(100)
+                    .setSequenceNumber(i)
+                    .setTimestamp(i * d_timestampIncrement);
                 rec->setDeletionRecordFlag(
                        DeletionRecordFlag::e_IMPLICIT_CONFIRM)
                     .setQueueKey(mqbu::StorageKey(
@@ -476,7 +501,10 @@ class JournalFile {
                 }
                 OffsetPtr<MessageRecord> rec(d_block, d_currPos);
                 new (rec.get()) MessageRecord();
-                rec->header().setPrimaryLeaseId(100).setSequenceNumber(i);
+                rec->header()
+                    .setPrimaryLeaseId(100)
+                    .setSequenceNumber(i)
+                    .setTimestamp(i * d_timestampIncrement);
                 rec->setRefCount(i %
                                  FileStoreProtocol::k_MAX_MSG_REF_COUNT_HARD)
                     .setQueueKey(
@@ -503,7 +531,10 @@ class JournalFile {
                 bmqt::MessageGUID        g = lastMessageGUID;
                 OffsetPtr<ConfirmRecord> rec(d_block, d_currPos);
                 new (rec.get()) ConfirmRecord();
-                rec->header().setPrimaryLeaseId(100).setSequenceNumber(i);
+                rec->header()
+                    .setPrimaryLeaseId(100)
+                    .setSequenceNumber(i)
+                    .setTimestamp(i * d_timestampIncrement);
                 rec->setReason(ConfirmReason::e_REJECTED)
                     .setQueueKey(
                         mqbu::StorageKey(mqbu::StorageKey::HexRepresentation(),
@@ -525,7 +556,10 @@ class JournalFile {
                 bmqt::MessageGUID         g = lastMessageGUID;
                 OffsetPtr<DeletionRecord> rec(d_block, d_currPos);
                 new (rec.get()) DeletionRecord();
-                rec->header().setPrimaryLeaseId(100).setSequenceNumber(i);
+                rec->header()
+                    .setPrimaryLeaseId(100)
+                    .setSequenceNumber(i)
+                    .setTimestamp(i * d_timestampIncrement);
                 rec->setDeletionRecordFlag(
                        DeletionRecordFlag::e_IMPLICIT_CONFIRM)
                     .setQueueKey(
@@ -567,7 +601,10 @@ class JournalFile {
             expectedGUIDs.push_back(g);
             OffsetPtr<MessageRecord> rec(d_block, d_currPos);
             new (rec.get()) MessageRecord();
-            rec->header().setPrimaryLeaseId(100).setSequenceNumber(i + 1);
+            rec->header()
+                .setPrimaryLeaseId(100)
+                .setSequenceNumber(i + 1)
+                .setTimestamp(i * d_timestampIncrement);
             rec->setRefCount(i % FileStoreProtocol::k_MAX_MSG_REF_COUNT_HARD)
                 .setQueueKey(
                     mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
@@ -608,7 +645,10 @@ class JournalFile {
 
             OffsetPtr<DeletionRecord> rec(d_block, d_currPos);
             new (rec.get()) DeletionRecord();
-            rec->header().setPrimaryLeaseId(100).setSequenceNumber(i + 1);
+            rec->header()
+                .setPrimaryLeaseId(100)
+                .setSequenceNumber(i + 1)
+                .setTimestamp(i * d_timestampIncrement);
             rec->setDeletionRecordFlag(DeletionRecordFlag::e_IMPLICIT_CONFIRM)
                 .setQueueKey(
                     mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
@@ -640,6 +680,26 @@ class ParametersMock : public Parameters {
                       journalFile.fileHeader(),
                       false)
     {
+        // Prepare parameters
+        EXPECT_CALL(*this, dataFileIterator()).WillRepeatedly(Return(nullptr));
+        EXPECT_CALL(*this, timestampGt()).WillRepeatedly(Return(0));
+        EXPECT_CALL(*this, timestampLt()).WillRepeatedly(Return(0));
+        EXPECT_CALL(*this, guid())
+            .WillRepeatedly(Return(bsl::vector<bsl::string>(s_allocator_p)));
+        EXPECT_CALL(*this, queueKey())
+            .WillRepeatedly(Return(bsl::vector<bsl::string>(s_allocator_p)));
+        EXPECT_CALL(*this, queueName())
+            .WillRepeatedly(Return(bsl::vector<bsl::string>(s_allocator_p)));
+        EXPECT_CALL(*this, dumpLimit()).WillRepeatedly(Return(0));
+        EXPECT_CALL(*this, details()).WillRepeatedly(Return(false));
+        EXPECT_CALL(*this, dumpPayload()).WillRepeatedly(Return(false));
+        EXPECT_CALL(*this, summary()).WillRepeatedly(Return(false));
+        EXPECT_CALL(*this, outstanding()).WillRepeatedly(Return(false));
+        EXPECT_CALL(*this, confirmed()).WillRepeatedly(Return(false));
+        EXPECT_CALL(*this, partiallyConfirmed()).WillRepeatedly(Return(false));
+        static QueueMap qm(s_allocator_p);
+        EXPECT_CALL(*this, queueMap()).WillRepeatedly(ReturnPointee(&qm));
+        Mock::AllowLeak(this);
     }
 
     // MANIPULATORS
@@ -667,30 +727,6 @@ class ParametersMock : public Parameters {
     // MEMBER FUNCTIONS
     MOCK_CONST_METHOD1(print, void(bsl::ostream&));
 };
-
-void mockParametersDefault(ParametersMock& params)
-{
-    // Prepare parameters
-    EXPECT_CALL(params, dataFileIterator()).WillRepeatedly(Return(nullptr));
-    EXPECT_CALL(params, timestampGt()).WillRepeatedly(Return(0));
-    EXPECT_CALL(params, timestampLt()).WillRepeatedly(Return(0));
-    EXPECT_CALL(params, guid())
-        .WillRepeatedly(Return(bsl::vector<bsl::string>(s_allocator_p)));
-    EXPECT_CALL(params, queueKey())
-        .WillRepeatedly(Return(bsl::vector<bsl::string>(s_allocator_p)));
-    EXPECT_CALL(params, queueName())
-        .WillRepeatedly(Return(bsl::vector<bsl::string>(s_allocator_p)));
-    EXPECT_CALL(params, dumpLimit()).WillRepeatedly(Return(0));
-    EXPECT_CALL(params, details()).WillRepeatedly(Return(false));
-    EXPECT_CALL(params, dumpPayload()).WillRepeatedly(Return(false));
-    EXPECT_CALL(params, summary()).WillRepeatedly(Return(false));
-    EXPECT_CALL(params, outstanding()).WillRepeatedly(Return(false));
-    EXPECT_CALL(params, confirmed()).WillRepeatedly(Return(false));
-    EXPECT_CALL(params, partiallyConfirmed()).WillRepeatedly(Return(false));
-    static QueueMap qm(s_allocator_p);
-    EXPECT_CALL(params, queueMap()).WillRepeatedly(ReturnPointee(&qm));
-    Mock::AllowLeak(&params);
-}
 
 void outputGuidString(bsl::ostream&            ostream,
                       const bmqt::MessageGUID& messageGUID,
@@ -825,7 +861,6 @@ static void test1_breathingTest()
     // Prepare parameters
     bsl::shared_ptr<ParametersMock> params =
         bsl::make_shared<ParametersMock>(journalFile, s_allocator_p);
-    mockParametersDefault(*params);
 
     // Run search
     bsl::ostringstream resultStream(s_allocator_p);
@@ -892,7 +927,6 @@ static void test2_searchGuidTest()
     }
     bsl::shared_ptr<ParametersMock> params =
         bsl::make_shared<ParametersMock>(journalFile, s_allocator_p);
-    mockParametersDefault(*params);
     EXPECT_CALL(*params, guid()).WillRepeatedly(ReturnPointee(&searchGuids));
 
     // Run search
@@ -945,7 +979,6 @@ static void test3_searchNonExistingGuidTest()
 
     bsl::shared_ptr<ParametersMock> params =
         bsl::make_shared<ParametersMock>(journalFile, s_allocator_p);
-    mockParametersDefault(*params);
     EXPECT_CALL(*params, guid()).WillRepeatedly(ReturnPointee(&searchGuids));
 
     // Run search
@@ -1018,7 +1051,6 @@ static void test4_searchExistingAndNonExistingGuidTest()
 
     bsl::shared_ptr<ParametersMock> params =
         bsl::make_shared<ParametersMock>(journalFile, s_allocator_p);
-    mockParametersDefault(*params);
     EXPECT_CALL(*params, guid()).WillRepeatedly(ReturnPointee(&searchGuids));
 
     // Run search
@@ -1067,7 +1099,6 @@ static void test5_searchOutstandingMessagesTest()
     // Configure parameters to search outstanding messages
     bsl::shared_ptr<ParametersMock> params =
         bsl::make_shared<ParametersMock>(journalFile, s_allocator_p);
-    mockParametersDefault(*params);
     EXPECT_CALL(*params, outstanding()).WillRepeatedly(Return(true));
 
     // Run search
@@ -1120,7 +1151,6 @@ static void test6_searchConfirmedMessagesTest()
     // Configure parameters to search confirmed messages
     bsl::shared_ptr<ParametersMock> params =
         bsl::make_shared<ParametersMock>(journalFile, s_allocator_p);
-    mockParametersDefault(*params);
     EXPECT_CALL(*params, confirmed()).WillRepeatedly(Return(true));
 
     // Run search
@@ -1175,7 +1205,6 @@ static void test7_searchPartiallyConfirmedMessagesTest()
     // Configure parameters to search partially confirmed messages
     bsl::shared_ptr<ParametersMock> params =
         bsl::make_shared<ParametersMock>(journalFile, s_allocator_p);
-    mockParametersDefault(*params);
     EXPECT_CALL(*params, partiallyConfirmed()).WillRepeatedly(Return(true));
 
     // Run search
@@ -1231,7 +1260,6 @@ static void test8_searchMessagesByQueueKeyTest()
     // Configure parameters to search messages by queueKey1
     bsl::shared_ptr<ParametersMock> params =
         bsl::make_shared<ParametersMock>(journalFile, s_allocator_p);
-    mockParametersDefault(*params);
     bsl::vector<bsl::string> queueKeys(1, queueKey1, s_allocator_p);
     EXPECT_CALL(*params, queueKey()).WillRepeatedly(ReturnPointee(&queueKeys));
 
@@ -1292,7 +1320,6 @@ static void test9_searchMessagesByQueueNameTest()
     qMap.insert(queueInfo);
     bsl::shared_ptr<ParametersMock> params =
         bsl::make_shared<ParametersMock>(journalFile, s_allocator_p);
-    mockParametersDefault(*params);
     bsl::vector<bsl::string> queueNames(s_allocator_p);
     queueNames.push_back("queue1");
     EXPECT_CALL(*params, queueName())
@@ -1337,16 +1364,14 @@ static void test10_searchMessagesByTimestamp()
     RecordsListType records(s_allocator_p);
     JournalFile     journalFile(numRecords, s_allocator_p);
     journalFile.addAllTypesRecords(&records);
+    const bsls::Types::Uint64 ts1 = 10 * journalFile.timestampIncrement();
+    const bsls::Types::Uint64 ts2 = 40 * journalFile.timestampIncrement();
 
     // Configure parameters to search messages by timestamps
     bsl::shared_ptr<ParametersMock> params =
         bsl::make_shared<ParametersMock>(journalFile, s_allocator_p);
-    mockParametersDefault(*params);
-    bsl::vector<bsl::string> queueNames(s_allocator_p);
-    queueNames.push_back("queue1");
-    queueNames.push_back("queue");
-    EXPECT_CALL(*params, timestampGt()).WillRepeatedly(Return(10));
-    EXPECT_CALL(*params, timestampLt()).WillRepeatedly(Return(40));
+    EXPECT_CALL(*params, timestampGt()).WillRepeatedly(Return(ts1));
+    EXPECT_CALL(*params, timestampLt()).WillRepeatedly(Return(ts2));
 
     // Get GUIDs of messages with matching timestamps and prepare expected
     // output
@@ -1360,7 +1385,7 @@ static void test10_searchMessagesByTimestamp()
             const MessageRecord& msg = *reinterpret_cast<const MessageRecord*>(
                 recordIter->second.buffer());
             const bsls::Types::Uint64& ts = msg.header().timestamp();
-            if (ts > 10 && ts < 40) {
+            if (ts > ts1 && ts < ts2) {
                 outputGuidString(expectedStream, msg.messageGUID());
                 msgCnt++;
             }
@@ -1404,7 +1429,6 @@ static void test11_printMessagesDetailsTest()
     // Configure parameters to print message details
     bsl::shared_ptr<ParametersMock> params =
         bsl::make_shared<ParametersMock>(journalFile, s_allocator_p);
-    mockParametersDefault(*params);
     EXPECT_CALL(*params, details()).WillRepeatedly(Return(true));
 
     // Run search
@@ -1526,7 +1550,6 @@ static void test12_searchMessagesWithPayloadDumpTest()
     // messages payload.
     bsl::shared_ptr<ParametersMock> params =
         bsl::make_shared<ParametersMock>(journalFile, s_allocator_p);
-    mockParametersDefault(*params);
     EXPECT_CALL(*params, confirmed()).WillRepeatedly(Return(true));
     EXPECT_CALL(*params, dumpPayload()).WillRepeatedly(Return(true));
     EXPECT_CALL(*params, dataFileIterator()).WillRepeatedly(Return(&dataIt));
@@ -1599,7 +1622,6 @@ static void test13_summaryTest()
     // Configure parameters to output summary
     bsl::shared_ptr<ParametersMock> params =
         bsl::make_shared<ParametersMock>(journalFile, s_allocator_p);
-    mockParametersDefault(*params);
     EXPECT_CALL(*params, summary()).WillRepeatedly(Return(true));
 
     // Run search
@@ -1618,6 +1640,130 @@ static void test13_summaryTest()
            "Number of outstanding messages: 2\nOutstanding ratio: 40% (2/5)\n";
 
     ASSERT(resultStream.str().starts_with(expectedStream.str()));
+}
+
+static void test14_timestampSearchTest()
+// ------------------------------------------------------------------------
+// TIMESTAMP SEARCH TEST
+//
+// Concerns:
+//   Find the first message in journal file with timestamp more than the
+//   specified 'ts' and move the specified JournalFileIterator to it.
+//
+// Testing:
+//   m_bmqstoragetool::moveToLowerBound()
+// ------------------------------------------------------------------------
+{
+    mwctst::TestHelper::printTestName("TIMESTAMP SEARCH TEST");
+
+    // Simulate journal file
+    size_t          numRecords = 50;
+    RecordsListType records(s_allocator_p);
+    JournalFile     journalFile(numRecords, s_allocator_p);
+    journalFile.addAllTypesRecords(&records);
+
+    struct ResultChecker {
+        static void check(mqbs::JournalFileIterator& it,
+                          const bsls::Types::Uint64& ts)
+        {
+            ASSERT_GT(it.recordHeader().timestamp(), ts);
+            ASSERT(!it.isReverseMode());
+            // Check previous record
+            it.flipDirection();
+            ASSERT_EQ(it.nextRecord(), 1);
+            ASSERT_LE(it.recordHeader().timestamp(), ts);
+            // Set 'it' to its original state
+            it.flipDirection();
+            ASSERT_EQ(it.nextRecord(), 1);
+        }
+    };
+
+    {
+        // Find existing timestamp
+        const bsls::Types::Uint64 ts = numRecords / 2 *
+                                       journalFile.timestampIncrement();
+        mqbs::JournalFileIterator journalFileIt(
+            &journalFile.mappedFileDescriptor(),
+            journalFile.fileHeader(),
+            false);
+        // Move the iterator to the beginning of the file
+        ASSERT_EQ(journalFileIt.nextRecord(), 1);
+        ASSERT_EQ(m_bmqstoragetool::moveToLowerBound(&journalFileIt, ts), 1);
+        ResultChecker::check(journalFileIt, ts);
+    }
+
+    {
+        // Find existing timestamps starting from different places of the file
+        const bsls::Types::Uint64 ts1 = 10 * journalFile.timestampIncrement();
+        const bsls::Types::Uint64 ts2 = 40 * journalFile.timestampIncrement();
+        mqbs::JournalFileIterator journalFileIt(
+            &journalFile.mappedFileDescriptor(),
+            journalFile.fileHeader(),
+            false);
+
+        // Move the iterator to the center of the file
+        ASSERT_EQ(journalFileIt.nextRecord(), 1);
+        ASSERT_EQ(journalFileIt.advance(numRecords / 2), 1);
+
+        // Find record with lower timestamp than the record pointed by the
+        // specified iterator, which is initially forward
+        ASSERT_GT(journalFileIt.recordHeader().timestamp(), ts1);
+        ASSERT_EQ(m_bmqstoragetool::moveToLowerBound(&journalFileIt, ts1), 1);
+        ResultChecker::check(journalFileIt, ts1);
+
+        // Find record with higher timestamp than the record pointed by the
+        // specified iterator, which is initially forward
+        ASSERT_LT(journalFileIt.recordHeader().timestamp(), ts2);
+        ASSERT_EQ(m_bmqstoragetool::moveToLowerBound(&journalFileIt, ts2), 1);
+        ResultChecker::check(journalFileIt, ts2);
+
+        // Find record with lower timestamp than the record pointed by the
+        // specified iterator, which is initially backward
+        ASSERT_GT(journalFileIt.recordHeader().timestamp(), ts1);
+        journalFileIt.flipDirection();
+        ASSERT(journalFileIt.isReverseMode());
+        ASSERT_EQ(m_bmqstoragetool::moveToLowerBound(&journalFileIt, ts1), 1);
+        ResultChecker::check(journalFileIt, ts1);
+
+        // Find record with higher timestamp than the record pointed by the
+        // specified iterator, which is initially backward
+        ASSERT_LT(journalFileIt.recordHeader().timestamp(), ts2);
+        journalFileIt.flipDirection();
+        ASSERT(journalFileIt.isReverseMode());
+        ASSERT_EQ(m_bmqstoragetool::moveToLowerBound(&journalFileIt, ts2), 1);
+        ResultChecker::check(journalFileIt, ts2);
+    }
+
+    {
+        // Timestamp more than last record in the file
+        const bsls::Types::Uint64 ts = numRecords * 2 *
+                                       journalFile.timestampIncrement();
+        mqbs::JournalFileIterator journalFileIt(
+            &journalFile.mappedFileDescriptor(),
+            journalFile.fileHeader(),
+            false);
+        // Move the iterator to the beginning of the file
+        ASSERT_EQ(journalFileIt.nextRecord(), 1);
+        ASSERT_EQ(m_bmqstoragetool::moveToLowerBound(&journalFileIt, ts), 0);
+        ASSERT_EQ(journalFileIt.recordIndex(), numRecords - 1);
+        ASSERT_LT(journalFileIt.recordHeader().timestamp(), ts);
+        ASSERT(!journalFileIt.isReverseMode());
+    }
+
+    {
+        // Timestamp less than first record in the file
+        const bsls::Types::Uint64 ts = journalFile.timestampIncrement() / 2;
+        mqbs::JournalFileIterator journalFileIt(
+            &journalFile.mappedFileDescriptor(),
+            journalFile.fileHeader(),
+            false);
+        // Move the iterator to the beginning of the file
+        ASSERT_EQ(journalFileIt.nextRecord(), 1);
+        ASSERT_EQ(m_bmqstoragetool::moveToLowerBound(&journalFileIt, ts), 1);
+        ASSERT_EQ(journalFileIt.recordIndex(), 0);
+        ASSERT_GT(journalFileIt.recordHeader().timestamp(), ts);
+        ASSERT(!journalFileIt.isReverseMode());
+    }
 }
 
 // ============================================================================
@@ -1643,6 +1789,7 @@ int main(int argc, char* argv[])
     case 11: test11_printMessagesDetailsTest(); break;
     case 12: test12_searchMessagesWithPayloadDumpTest(); break;
     case 13: test13_summaryTest(); break;
+    case 14: test14_timestampSearchTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
         s_testStatus = -1;

@@ -38,15 +38,13 @@
 namespace BloombergLP {
 namespace m_bmqstoragetool {
 
-namespace {
-
 /// Move the journal iterator pointed by the specified 'it' to the first
 /// message whose timestamp is more then the specified 'timestamp'.  Returns
 /// '1' on success, '0" if there are no such records (also the iterator is
 /// invalidated).  Behavior is undefined unless last call to `nextRecord`
 /// returned 1 and the iterator points to a valid record.
-static int moveToLowerBound(mqbs::JournalFileIterator* it,
-                            const bsls::Types::Uint64& timestamp)
+int moveToLowerBound(mqbs::JournalFileIterator* it,
+                     const bsls::Types::Uint64& timestamp)
 {
     int                rc         = 1;
     const unsigned int recordSize = it->header().recordWords() *
@@ -87,15 +85,13 @@ static int moveToLowerBound(mqbs::JournalFileIterator* it,
         }
         else {
             // It's the last record, so there are no messages with timestamp
-            // greater than the specified 'ts' in the file.
+            // greater than the specified 'timestamp' in the file.
             rc = 0;
         }
     }
 
     return rc;  // RETURN
 }
-
-}  // close unnamed namespace
 
 // ==========================
 // class JournalFileProcessor
