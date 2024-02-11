@@ -123,7 +123,7 @@ def test_purge_breathing(single_node: Cluster):
     Concerns:
     - Purge queue command removes all messages stored in a queue entirely from the first call.
     - Purge domain command removes all messages stored in a domain entirely from the first call.
-    - For fanout domains, purge commands remove messages precisely for their scope, be it for app_id or entire domain.
+    - For fanout domains, purge commands remove messages precisely for their scope, be it for app_id or for entire domain.
     - Broker storage is not corrupted after purge commands and ready to store new messages.
     """
 
@@ -140,8 +140,8 @@ def test_purge_breathing(single_node: Cluster):
     admin.connect(host, port)
 
     # Stage 1: purge PRIORITY queue
-    for i in range(5):
-        task = PostRecord(tc.DOMAIN_PRIORITY, "test_queue", i + 1)
+    for i in range(1, 6):
+        task = PostRecord(tc.DOMAIN_PRIORITY, "test_queue", num=i)
         post_n_msgs(producer, task)
 
         res = admin.send_admin(f"DOMAINS DOMAIN {task.domain} QUEUE {task.queue_name} PURGE *")
@@ -151,9 +151,9 @@ def test_purge_breathing(single_node: Cluster):
         assert f"Purged 0 message(s)" in res
 
     # Stage 2: purge PRIORITY domain
-    for i in range(5):
-        q1_task = PostRecord(tc.DOMAIN_PRIORITY, "queue1", i + 1)
-        q2_task = PostRecord(tc.DOMAIN_PRIORITY, "queue2", i + 1)
+    for i in range(1, 6):
+        q1_task = PostRecord(tc.DOMAIN_PRIORITY, "queue1", num=i)
+        q2_task = PostRecord(tc.DOMAIN_PRIORITY, "queue2", num=i)
 
         post_n_msgs(producer, q1_task)
         post_n_msgs(producer, q2_task)
@@ -165,8 +165,8 @@ def test_purge_breathing(single_node: Cluster):
         assert f"Purged 0 message(s)" in res
 
     # Stage 3: purge FANOUT queues and domain
-    for i in range(5):
-        task = PostRecord(tc.DOMAIN_FANOUT, tc.TEST_QUEUE, i + 1)
+    for i in range(1, 6):
+        task = PostRecord(tc.DOMAIN_FANOUT, tc.TEST_QUEUE, num=i)
         post_n_msgs(producer, task)
 
         res = admin.send_admin(f"DOMAINS DOMAIN {task.domain} QUEUE {task.queue_name} PURGE {tc.TEST_APPIDS[0]}")
@@ -188,54 +188,81 @@ def test_purge_breathing(single_node: Cluster):
     # Stop the admin session
     admin.stop()
 
-def test_purge_priority(single_node: Cluster):
+
+def test_purge_inactive(single_node: Cluster):
+    """
+    Test: queue purge and domain purge also work for inactive queues.
+
+    Stage 1: data preparation
+    - Post initial messages to PRIORITY and FANOUT queues.
+    - Restart the cluster to make existing queues inactive.
+    - Post another part of messages: the queues taking part in this stage
+    will be active.
+    - Open an admin session.
+
+    Stage 2: PRIORITY purge
+    - Verify that the observed number of active queues in PRIORITY domain is expected.
+    - Purge a subset of PRIORITY queues one by one using queue purge command,
+    some of these queues are inactive.
+    - Purge the skipped queues in the PRIORITY domain using domain purge command.
+    - Cycle through all PRIORITY queues again and verify that we purged everything.
+
+    Stage 3: FANOUT purge
+    - Verify that the observed number of active queues in FANOUT domain is expected.
+    - Purge a subset of FANOUT queues one by one using queue purge command with app_id
+    parameter specified, some of these queues are inactive. For each
+    - Cycle through all FANOUT queues again and verify that we purged everything.
+
+    Concerns:
+    - Purge commands work on inactive queues.
+    - Purge queue with app_id specified works for inactive queues.
+    """
     cluster: Cluster = single_node
 
+    # Stage 1: data preparation
     posted: Dict[str, PostRecord] = {}
+    posted_fanout: Dict[str, PostRecord] = {}
 
     proxies = cluster.proxy_cycle()
     proxy = next(proxies)
     producer: Client = proxy.create_client("producer")
     # Post messages to the first PRIORITY domain
-    for i in range(5):
-        task = PostRecord(tc.DOMAIN_PRIORITY, f"inactive{i + 1}", i + 1)
+    for i in range(1, 6):
+        task = PostRecord(tc.DOMAIN_PRIORITY, f"inactive{i}", num=i)
         post_n_msgs(producer, task, posted)
-    for i in range(5):
-        task = PostRecord(tc.DOMAIN_PRIORITY, f"inactive_to_active{i + 1}", i + 1)
+    for i in range(1, 6):
+        task = PostRecord(tc.DOMAIN_PRIORITY, f"active{i}", num=i)
         post_n_msgs(producer, task, posted)
-    for i in range(5):
-        task = PostRecord(tc.DOMAIN_PRIORITY, f"skip_inactive{i + 1}", i + 1)
+    for i in range(1, 6):
+        task = PostRecord(tc.DOMAIN_PRIORITY, f"skip_inactive{i}", num=i)
         post_n_msgs(producer, task, posted)
 
     # Post messages to the second FANOUT domain
-    for i in range(5):
-        task = PostRecord(tc.DOMAIN_FANOUT, f"irrelevant_inactive{i + 1}", i + 1)
-        post_n_msgs(producer, task)
+    for i in range(1, 6):
+        task = PostRecord(tc.DOMAIN_FANOUT, f"irrelevant_inactive{i}", num=i)
+        post_n_msgs(producer, task, posted_fanout)
     producer.stop()
 
-    # Now, restart the cluster.
+    # Restart the cluster, to make brokers forget in-memory state for opened queues.
     cluster.stop()
     cluster.start(wait_leader=True, wait_ready=True)
     # Note that all the queues which were opened before "stop" are now inactive.
 
     producer: Client = proxy.create_client("producer")
     # Post messages to the first PRIORITY domain
-    for i in range(5):
+    for i in range(1, 6):
         # These queues existed before the cluster was restarted, and here we make
         # them active again by actively posting new messages.
-        task = PostRecord(tc.DOMAIN_PRIORITY, f"inactive_to_active{i + 1}", i + 1)
+        task = PostRecord(tc.DOMAIN_PRIORITY, f"active{i}", num=i)
         post_n_msgs(producer, task, posted)
-    for i in range(5):
-        task = PostRecord(tc.DOMAIN_PRIORITY, f"active{i + 1}", i + 1)
-        post_n_msgs(producer, task, posted)
-    for i in range(5):
-        task = PostRecord(tc.DOMAIN_PRIORITY, f"skip_active{i + 1}", i + 1)
+    for i in range(1, 6):
+        task = PostRecord(tc.DOMAIN_PRIORITY, f"skip_active{i}", num=i)
         post_n_msgs(producer, task, posted)
 
     # Post messages to the second FANOUT domain
-    for i in range(5):
-        task = PostRecord(tc.DOMAIN_FANOUT, f"irrelevant_active{i + 1}", i + 1)
-        post_n_msgs(producer, task)
+    for i in range(1, 6):
+        task = PostRecord(tc.DOMAIN_FANOUT, f"irrelevant_active{i}", num=i)
+        post_n_msgs(producer, task, posted_fanout)
     producer.stop()
 
     host, port = get_endpoint(cluster)
@@ -243,6 +270,15 @@ def test_purge_priority(single_node: Cluster):
     # Start the admin client.
     admin = AdminClient()
     admin.connect(host, port)
+
+    # Stage 2: PRIORITY purge
+
+    # Verify the number of active queues for PRIORITY domain.
+    # Note that active queues num is less than the total number of queues.
+    expected_active_num = len([uri for uri in posted if "inactive" not in uri])
+    assert expected_active_num < len(posted)
+    res = admin.send_admin(f"DOMAINS DOMAIN {tc.DOMAIN_PRIORITY} INFOS")
+    assert f"ActiveQueues ..: {expected_active_num}" in res
 
     # Finally, start purging queues one by one.
     # Note that we are skipping queues named with "skip" word in PRIORITY domain and
@@ -275,6 +311,29 @@ def test_purge_priority(single_node: Cluster):
 
     # Also check that purge domain for PRIORITY could not purge more messages.
     res = admin.send_admin(f"DOMAINS DOMAIN {tc.DOMAIN_PRIORITY} PURGE")
+    assert f"Purged 0 message(s)" in res
+
+    # Stage 3: FANOUT purge
+
+    # Verify the number of active queues for FANOUT domain.
+    # Note that active queues num is less than the total number of queues.
+    expected_active_num = len([uri for uri in posted_fanout if "inactive" not in uri])
+    assert expected_active_num < len(posted_fanout)
+    res = admin.send_admin(f"DOMAINS DOMAIN {tc.DOMAIN_FANOUT} INFOS")
+    assert f"ActiveQueues ..: {expected_active_num}" in res
+
+    for record in posted_fanout.values():
+        for app_id in tc.TEST_APPIDS:
+            res = admin.send_admin(f"DOMAINS DOMAIN {record.domain} QUEUE {record.queue_name} PURGE {app_id}")
+            assert f"Purged {record.num} message(s)" in res
+
+        record.num = 0
+
+        res = admin.send_admin(f"DOMAINS DOMAIN {record.domain} QUEUE {record.queue_name} PURGE *")
+        assert f"Purged 0 message(s)" in res
+
+    # Also check that purge domain for FANOUT could not purge more messages.
+    res = admin.send_admin(f"DOMAINS DOMAIN {tc.DOMAIN_FANOUT} PURGE")
     assert f"Purged 0 message(s)" in res
 
     # Stop the admin session
