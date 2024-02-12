@@ -310,7 +310,9 @@ struct StorageUtil {
                                              purgedQueuesResultsVec,
                           bslmt::Latch*      latch,
                           int                partitionId,
-                          const FileStores&  fileStores,
+                          const FileStores*  fileStores,
+                          StorageSpMapVec*   storageMapVec,
+                          bslmt::Mutex*      storagesLock,
                           const bsl::string& domainName);
 
     /// Execute the queue purge command for the specified `storage` and the
@@ -325,9 +327,9 @@ struct StorageUtil {
     static void
     purgeQueueDispatched(mqbcmd::PurgeQueueResult* purgedQueueResult,
                          bslmt::Semaphore*         purgeFinishedSemaphore,
-                         mqbs::FileStore*          fileStore,
+                         const mqbs::FileStore*    fileStore,
                          mqbi::Storage*            storage,
-                         const bsl::string*        appId);
+                         const bsl::string&        appId);
 
     /// Execute the specified `job` for each partition in the specified
     /// `fileStores`.  Each partition will receive its partitionId and a

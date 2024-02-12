@@ -738,25 +738,6 @@ class FileStore : public DataStore {
                        const mqbu::StorageKey&             queueKey,
                        mqbi::Domain* domain) BSLS_KEYWORD_OVERRIDE;
 
-    /// Remove all outstanding messages from all the queues from the specified
-    /// 'domainName', and load the details of the purged queues into the
-    /// specified `purgedQueues` object.
-    ///
-    /// THREAD: this method is invoked in this FileStore's dispatcher thread.
-    void purgeDomain(bsl::vector<mqbcmd::PurgeQueueResult>* purgedQueues,
-                     const bsl::string&                     domainName);
-
-    /// Remove all outstanding messages from the queue associated with
-    /// the optionally specified 'appId' associated with the specified
-    /// 'storage', and load the details of the purged queue into the
-    /// specified `result` object.
-    /// Empty `appId` means to purge from ALL appIds.
-    ///
-    /// THREAD: this method is invoked in this FileStore's dispatcher thread.
-    void purgeQueue(mqbcmd::PurgeQueueResult* result,
-                    mqbi::Storage&            storage,
-                    const bsl::string&        appId = "");
-
     /// Payload related
     /// ---------------
 
