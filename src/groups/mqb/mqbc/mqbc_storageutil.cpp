@@ -2714,13 +2714,13 @@ void StorageUtil::purgeDomainDispatched(
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(fileStores);
-    BSLS_ASSERT_SAFE(fileStores[partitionId]->inDispatcherThread());
+    BSLS_ASSERT_SAFE((*fileStores)[partitionId]->inDispatcherThread());
     BSLS_ASSERT_SAFE(latch);
     BSLS_ASSERT_SAFE(purgedQueuesResultsVec);
     BSLS_ASSERT_SAFE(0 <= partitionId);
     BSLS_ASSERT_SAFE(static_cast<unsigned int>(partitionId) <
-                     fileStores.size());
-    BSLS_ASSERT_SAFE(purgedQueuesResultsVec->size() == fileStores.size());
+                     fileStores->size());
+    BSLS_ASSERT_SAFE(purgedQueuesResultsVec->size() == fileStores->size());
     BSLS_ASSERT_SAFE(storageMapVec);
     BSLS_ASSERT_SAFE(storagesLock);
 
@@ -2834,7 +2834,7 @@ void StorageUtil::purgeQueueDispatched(
     }
 
     if (storage->queue()) {
-        BSLS_ASSERT_SAFE(storage.queue()->queueEngine());
+        BSLS_ASSERT_SAFE(storage->queue()->queueEngine());
         storage->queue()->queueEngine()->afterQueuePurged(appId, appKey);
     }
 
