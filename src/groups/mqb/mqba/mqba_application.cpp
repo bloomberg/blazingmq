@@ -27,6 +27,7 @@
 #include <mqbcfg_messages.h>
 #include <mqbcmd_commandlist.h>
 #include <mqbcmd_humanprinter.h>
+#include <mqbcmd_jsonprinter.h>
 #include <mqbcmd_messages.h>
 #include <mqbcmd_parseutil.h>
 #include <mqbcmd_util.h>
@@ -613,8 +614,14 @@ int Application::processCommand(const bslstl::StringRef& source,
     mqbcmd::Result result;
     mqbcmd::Util::flatten(&result, cmdResult);
 
-    // Pretty print
-    mqbcmd::HumanPrinter::print(os, result);
+
+    const bool jsonPrint = true;
+    if (jsonPrint) {
+        mqbcmd::JsonPrinter::print(os, result);
+    } else {
+        // Pretty print
+        mqbcmd::HumanPrinter::print(os, result);
+    }
 
     return 0;
 }
