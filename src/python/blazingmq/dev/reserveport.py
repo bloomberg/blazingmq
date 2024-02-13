@@ -105,11 +105,11 @@ def tcp_address(address: str, port: int) -> TcpAddress:
 def reserve_port() -> typing.Iterator[TcpAddress]:
     """Return a TCP address with a reserved port for 'bind'ing."""
 
-    sock = socket.socket()
-    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    sock.bind(("0.0.0.0", 0))
-    sockname = sock.getsockname()
+    with socket.socket() as sock:
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        sock.bind(("0.0.0.0", 0))
+        sockname = sock.getsockname()
+    
+        address = tcp_address(sockname[0], sockname[1])
 
-    yield tcp_address(sockname[0], sockname[1])
-
-    sock.close()
+    yield address
