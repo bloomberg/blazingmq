@@ -241,6 +241,15 @@ class Broker:
 
     def deploy_domains(self, site: "Site") -> None:
         site.create_json_file("etc/clusters.json", self.clusters)
+
+        for cluster in self.clusters.my_clusters:
+            for storage_dir in (
+                Path(cluster.partition_config.location), # type: ignore
+                Path(cluster.partition_config.archive_location), # type: ignore
+            ):
+                if storage_dir != Path():
+                    site.mkdir(storage_dir)
+
         site.rmdir("etc/domains")
 
         for domain in self.domains.values():
@@ -283,6 +292,11 @@ class AbstractCluster:
 
 
 class Cluster(AbstractCluster):
+    def domain(self, parameters: mqbconf.Domain) -> "Domain":
+        domain = mqbconf.DomainDefinition(self.name, parameters)
+
+        return self._add_domain(Domain(self, domain))
+
     def broadcast_domain(self, name: str) -> "Domain":
         parameters = self.configurator.domain_definition()
         parameters.name = name
@@ -324,6 +338,10 @@ class VirtualCluster(AbstractCluster):
 
 class Site(abc.ABC):
     configurator: "Configurator"
+
+    @abc.abstractmethod
+    def __str__(self) -> str:
+        ...
 
     @abc.abstractmethod
     def install(self, from_path: Union[str, Path], to_path: Union[str, Path]) -> None:
@@ -749,6 +767,9 @@ class LocalSite(Site):
 
     def __init__(self, root_dir: Union[Path, str]):
         self.root_dir = Path(root_dir)
+
+    def __str__(self) -> str:
+        return str(self.root_dir)
 
     def mkdir(self, path: Union[str, Path]) -> None:
         target = self.root_dir / path

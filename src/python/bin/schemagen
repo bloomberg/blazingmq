@@ -12,5 +12,5 @@ if [ ! "$(which xsdata)" ]; then
 fi
 
 cd "${python_root}"
-xsdata generate --package bmq.schemas "${blazingmq_root}/src/groups/mqb/mqbcfg/mqbcfg.xsd"
-xsdata generate --package bmq.schemas "${blazingmq_root}/src/groups/mqb/mqbconfm/mqbconf.xsd"
+xsdata generate --package blazingmq.schemas "${blazingmq_root}/src/groups/mqb/mqbcfg/mqbcfg.xsd"
+xsdata generate --package blazingmq.schemas "${blazingmq_root}/src/groups/mqb/mqbconfm/mqbconf.xsd"

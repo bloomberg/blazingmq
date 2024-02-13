@@ -34,7 +34,6 @@ class Broker(blazingmq.dev.it.process.bmqproc.BMQProcess):
     def __init__(self, config: cfg.Broker, cluster, **kwargs):
         cwd: Path = kwargs["cwd"]
         (cwd / "bmqbrkr.ctl").unlink(missing_ok=True)
-        cwd.joinpath("storage", "archive").mkdir(parents=True)
         super().__init__(
             config.name,
             ["bin/bmqbrkr.tsk", "etc"],
