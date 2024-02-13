@@ -18,6 +18,12 @@
   </complexType>
 
   <complexType name="InternalResult">
+    <annotation>
+      <documentation>
+        The type represents a command execution result with all intermediate
+        structures created after each command dispatch.
+      </documentation>
+    </annotation>
     <choice>
       <element name="error"                      type="tns:Error"/>
       <element name="success"                    type="tns:Void"/>
@@ -35,6 +41,13 @@
   </complexType>
 
   <complexType name="Result">
+    <annotation>
+      <documentation>
+        The type represents a command execution result flattened for a calling
+        client.  Client doesn't need to know about dispatcher hops happened to
+        process a command.
+      </documentation>
+    </annotation>
     <choice>
       <element name="error"                      type="tns:Error"/>
       <element name="success"                    type="tns:Void"/>

@@ -40,7 +40,6 @@
 // Thread safe.
 
 // MQB
-
 #include <mqbc_clusterdata.h>
 #include <mqbc_clusterstate.h>
 #include <mqbc_partitionfsm.h>
@@ -158,9 +157,7 @@ class StorageManager
 
     typedef ClusterStateQueueInfo::AppIdInfosCIter AppIdInfosCIter;
 
-    typedef bsl::vector<StorageSpMap>       StorageSpMapVec;
-    typedef StorageSpMapVec::iterator       StorageSpMapVecIter;
-    typedef StorageSpMapVec::const_iterator StorageSpMapVecConstIter;
+    typedef mqbi::StorageManager::StorageSpMapVec StorageSpMapVec;
 
     typedef bsl::vector<AppKeys>       AppKeysVec;
     typedef AppKeysVec::iterator       AppKeysVecIter;

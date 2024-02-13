@@ -2705,9 +2705,9 @@ void StorageUtil::purgeDomainDispatched(
                        purgedQueuesResultsVec,
     bslmt::Latch*      latch,
     int                partitionId,
-    const FileStores*  fileStores,
     StorageSpMapVec*   storageMapVec,
     bslmt::Mutex*      storagesLock,
+    const FileStores*  fileStores,
     const bsl::string& domainName)
 {
     // executed by *QUEUE_DISPATCHER* thread with the specified 'partitionId'
@@ -2741,6 +2741,8 @@ void StorageUtil::purgeDomainDispatched(
                 domainStorages.push_back(it->second.get());
             }
         }
+        // Prepare a vector of storages to purge and release `storagesLock`
+        // as fast as possible.
     }
 
     bsl::vector<mqbcmd::PurgeQueueResult>& purgedQueuesResults =
@@ -2751,7 +2753,7 @@ void StorageUtil::purgeDomainDispatched(
         mqbcmd::PurgeQueueResult result;
         // No need to pass a Semaphore here because we call it in
         // a synchronous way
-        purgeQueueDispatched(&result, NULL, fileStore, domainStorages[i], "");
+        purgeQueueDispatched(&result, NULL, domainStorages[i], fileStore, "");
         purgedQueuesResults.push_back(result);
     }
 
@@ -2761,8 +2763,8 @@ void StorageUtil::purgeDomainDispatched(
 void StorageUtil::purgeQueueDispatched(
     mqbcmd::PurgeQueueResult* purgedQueueResult,
     bslmt::Semaphore*         purgeFinishedSemaphore,
-    const mqbs::FileStore*    fileStore,
     mqbi::Storage*            storage,
+    const mqbs::FileStore*    fileStore,
     const bsl::string&        appId)
 {
     // executed by *QUEUE_DISPATCHER* thread with the specified 'fileStore'
@@ -2926,14 +2928,19 @@ int StorageUtil::processCommand(mqbcmd::StorageResult*     result,
                 purgedQueuesVec;
             purgedQueuesVec.resize(fileStores->size());
 
+            // To purge a domain, we have to purge queues in each partition
+            // from the correct thread.  This is achieved by parallel launch
+            // of `purgeDomainDispatched` across all FileStore's threads.
+            // We need to wait here, using `latch`, until the command completes
+            // in all threads.
             executeForEachPartitions(
                 bdlf::BindUtil::bind(&purgeDomainDispatched,
                                      &purgedQueuesVec,
                                      bdlf::PlaceHolders::_2,  // latch
                                      bdlf::PlaceHolders::_1,  // partitionId
-                                     fileStores,
                                      storageMapVec,
                                      storagesLock,
+                                     fileStores,
                                      command.domain().name()),
                 *fileStores);
 
@@ -2993,8 +3000,8 @@ int StorageUtil::processCommand(mqbcmd::StorageResult*     result,
         fileStore->execute(bdlf::BindUtil::bind(&purgeQueueDispatched,
                                                 &purgedQueueResult,
                                                 &purgeFinishedSemaphore,
-                                                fileStore.get(),
                                                 queueStorage,
+                                                fileStore.get(),
                                                 appId));
 
         purgeFinishedSemaphore.wait();

@@ -296,40 +296,47 @@ struct StorageUtil {
                                  int                            partitionId,
                                  const FileStores&              fileStores);
 
-    /// Execute the domain purge command for the specified `partitionId`,
-    /// while selecting the appropriate FileStore from the specified
-    /// `fileStores`.  The specified `domainName` is the name of a domain
-    /// to purge.  Purge results are stored in the specified `purgedQueuesVec`.
-    /// Use the specified `latch` upon completion to synchronize domain purge
-    /// across all partitions ids.
-    ///
-    /// THREAD: Executed by the Queue's dispatcher thread for the specified
-    ///         `partitionId`.
     static void
     purgeDomainDispatched(bsl::vector<bsl::vector<mqbcmd::PurgeQueueResult> >*
                                              purgedQueuesResultsVec,
                           bslmt::Latch*      latch,
                           int                partitionId,
-                          const FileStores*  fileStores,
                           StorageSpMapVec*   storageMapVec,
                           bslmt::Mutex*      storagesLock,
+                          const FileStores*  fileStores,
                           const bsl::string& domainName);
-
-    /// Execute the queue purge command for the specified `storage` and the
-    /// specified `appId`, associated with the specified `fileStore`.  The
-    /// empty `appId` means purge of all app ids for this queue.  Purge results
-    /// are stored in the specified `purgedQueue`.   Use the specified
-    /// `purgeFinishedSemaphore` upon completion to synchronize queue purge
-    /// with the caller.
+    /// Execute the domain purge command for the specified `domainName` within
+    /// the specified `partitionId`.  The specified `storageMapVec` contains
+    /// mutable storages to search for domain's queues, while the specified
+    /// `storagesLock` controls thread-safe access to this container.  The
+    /// specified `latch` used to notify the calling thread that this operation
+    /// has finished.  The specified `purgedQueuesResultsVec` is used to store
+    /// execution results.  The specified `fileStores` contains FileStore
+    /// objects used to verify correctness and thread-safety of calling this
+    /// method.
+    ///
+    /// NOTE: designed to be called for all `partitionId`s in parallel by
+    ///       `executeForEachPartition`.
     ///
     /// THREAD: Executed by the Queue's dispatcher thread for the specified
-    ///         `fileStore`.
+    ///         `partitionId`.
+
     static void
     purgeQueueDispatched(mqbcmd::PurgeQueueResult* purgedQueueResult,
                          bslmt::Semaphore*         purgeFinishedSemaphore,
-                         const mqbs::FileStore*    fileStore,
                          mqbi::Storage*            storage,
+                         const mqbs::FileStore*    fileStore,
                          const bsl::string&        appId);
+    /// Execute the queue purge command for the specified `storage` with
+    /// the specified `appId`.  The optionally specified
+    /// `purgeFinishedSemaphore` used to notify the calling thread that this
+    /// operation has finished. The specified `purgedQueuesResult` is used to
+    /// store execution result. The specified `fileStore` contains FileStore
+    /// object used to verify correctness and thread-safety of calling this
+    /// method.
+    ///
+    /// THREAD: Executed by the Queue's dispatcher thread for the specified
+    ///         `fileStore`.
 
     /// Execute the specified `job` for each partition in the specified
     /// `fileStores`.  Each partition will receive its partitionId and a
