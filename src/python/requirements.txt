@@ -1,0 +1,11 @@
+docker
+psutil
+pytest
+pytest-order
+pytest-repeat
+pytest-rerunfailures
+pytest-xdist
+pyyaml
+termcolor
+xsdata
+xsdata[cli]

@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   build_and_test:
-    name: "Check if BlazingMQ can build and pass unit tests"
+    name: "Check if BlazingMQ can build, and pass unit and integration tests"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -25,6 +25,7 @@ jobs:
             gdb \
             curl \
             python3.10 \
+            python3-pip \
             cmake \
             ninja-build \
             pkg-config \
@@ -33,6 +34,7 @@ jobs:
             libbenchmark-dev \
             libgmock-dev \
             libz-dev
+          pip install -r ${{ github.workspace }}/src/python/requirements.txt
       - name: Create dependency fetcher working directory
         run: mkdir -p deps
       - name: Fetch & Build non packaged dependencies
@@ -42,7 +44,7 @@ jobs:
         env:
           PKG_CONFIG_PATH: /usr/lib/x86_64-linux-gnu/pkgconfig:/opt/bb/lib64/pkgconfig
         run: |
-          cmake -S . -B cmake.bld/Linux -G Ninja \
+          cmake -S . -B build/blazingmq -G Ninja \
             -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/deps/srcs/bde-tools/BdeBuildSystem/toolchains/linux/gcc-default.cmake \
             -DCMAKE_BUILD_TYPE=Debug \
             -DBDE_BUILD_TARGET_SAFE=ON \
@@ -50,15 +52,34 @@ jobs:
             -DBDE_BUILD_TARGET_CPP17=ON \
             -DCMAKE_PREFIX_PATH=${{ github.workspace }}/deps/srcs/bde-tools/BdeBuildSystem \
             -DCMAKE_INSTALL_LIBDIR=lib64
-          cmake --build cmake.bld/Linux --parallel 8 --target all all.t
-      - name: Run Unit Tests
+          cmake --build build/blazingmq --parallel 8 --target all all.t
+      - name: Run C++ Unit Tests
         run: |
-          cd cmake.bld/Linux
+          cd build/blazingmq
           ctest -E mwcsys_executil.t --output-on-failure
+      - name: Run Python Unit Tests
+        env:
+          PYTHONPATH: src/python
+        run: |
+          src/python/bin/schemagen
+          src/python/bin/tweakgen
+          pytest src/python
+      - name: Run Integration Tests
+        run: |
+          ${{ github.workspace }}/src/integration-tests/run-tests \
+            --log-level ERROR                   \
+            --log-file-level=info               \
+            --bmq-tolerate-dirty-shutdown       \
+            --bmq-log-dir=failure-logs          \
+            --bmq-log-level=INFO                \
+            --junitxml=integration-tests.xml    \
+            --tb line                           \
+            --reruns=3                          \
+            -n 4 -v
       - uses: actions/cache@v3
         with:
           path: |
-            cmake.bld/Linux
+            build/blazingmq
             deps
             /opt/bb/include
           key: cache-${{ github.sha }}
@@ -72,7 +93,7 @@ jobs:
       - uses: actions/cache/@v3
         with:
           path: |
-            cmake.bld/Linux
+            build/blazingmq
             deps
             /opt/bb/include
           key: cache-${{ github.sha }}
@@ -102,7 +123,7 @@ jobs:
         env:
           PKG_CONFIG_PATH: /usr/lib/x86_64-linux-gnu/pkgconfig:/opt/bb/lib64/pkgconfig
         run: |
-          cmake -S . -B cmake.bld/Linux -G Ninja \
+          cmake -S . -B build/blazingmq -G Ninja \
             -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/deps/srcs/bde-tools/BdeBuildSystem/toolchains/linux/gcc-default.cmake \
             -DCMAKE_BUILD_TYPE=Debug \
             -DBDE_BUILD_TARGET_SAFE=ON \
@@ -111,7 +132,7 @@ jobs:
             -DCMAKE_PREFIX_PATH=${{ github.workspace }}/deps/srcs/bde-tools/BdeBuildSystem \
             -DCMAKE_INSTALL_LIBDIR=lib64 \
             -DINSTALL_TARGETS=prometheus
-          cmake --build cmake.bld/Linux --parallel 8 --target all
+          cmake --build build/blazingmq --parallel 8 --target all
       - name: Create prometheus dir
         run:  mkdir -p prometheus_dir
       - name: Download Prometheus
@@ -123,14 +144,14 @@ jobs:
           docker pull prom/pushgateway
           docker run -d -p 9091:9091 prom/pushgateway
       - name: Run BMQPrometheus plugin integration test in "pull" mode
-        run: ${{ github.workspace }}/src/plugins/bmqprometheus/tests/bmqprometheus_prometheusstatconsumer_test.py -p ${{ github.workspace }}/cmake.bld/Linux -m pull --no-docker
+        run: ${{ github.workspace }}/src/plugins/bmqprometheus/tests/bmqprometheus_prometheusstatconsumer_test.py -p ${{ github.workspace }}/build/blazingmq -m pull --no-docker
       - name: Clear Prometheus database and restart
         run: |
           curl -X POST "http://localhost:9090/-/quit"
           rm -rf prometheus_dir/data
           ./prometheus_dir/prometheus-2.45.1.linux-amd64/prometheus --config.file=${{ github.workspace }}/src/plugins/bmqprometheus/tests/prometheus_localhost.yaml --web.enable-lifecycle --storage.tsdb.path=${{ github.workspace }}/prometheus_dir/data &
       - name: Run Prometheus plugin integration test in "push" mode
-        run: ${{ github.workspace }}/src/plugins/bmqprometheus/tests/bmqprometheus_prometheusstatconsumer_test.py -p ${{ github.workspace }}/cmake.bld/Linux -m push --no-docker
+        run: ${{ github.workspace }}/src/plugins/bmqprometheus/tests/bmqprometheus_prometheusstatconsumer_test.py -p ${{ github.workspace }}/build/blazingmq -m push --no-docker
 
   Documentation:
     name: "Documentation"
@@ -144,7 +165,7 @@ jobs:
       - name: Build docs
         run: |
           doxygen Doxyfile
-  
+
   formatting-check:
     name: Formatting Check
     runs-on: ubuntu-latest

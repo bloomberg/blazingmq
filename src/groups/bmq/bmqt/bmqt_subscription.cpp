@@ -22,6 +22,7 @@
 #include <bslim_printer.h>
 #include <bslma_allocator.h>
 #include <bslma_default.h>
+#include <bslmt_once.h>
 #include <bsls_annotation.h>
 
 namespace BloombergLP {
@@ -43,9 +44,16 @@ const int Subscription::k_DEFAULT_CONSUMER_PRIORITY        = 0;
 
 unsigned int SubscriptionHandle::nextId()
 {
-    static bsls::AtomicUint s_id = k_INVALID_HANDLE_ID;
+    static bsls::AtomicUint* s_id = 0;
 
-    return ++s_id;
+    BSLMT_ONCE_DO
+    {
+        s_id = new bsls::AtomicUint(k_INVALID_HANDLE_ID);
+        // Heap allocate it to prevent 'exit-time-destructor needed' compiler
+        // warning.  Causes valgrind-reported memory leak.
+    }
+
+    return ++(*s_id);
 }
 
 }  // close package namespace

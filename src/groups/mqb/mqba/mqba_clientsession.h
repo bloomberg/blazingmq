@@ -387,6 +387,10 @@ class ClientSession : public mqbnet::Session,
     // execution of the queue handle
     // deconfigure callbacks.
 
+    ShutdownCb d_shutdownCallback;
+    // If present, call when 'tearDownAllQueuesDone'.
+    // This is the callback given in 'initiateShutdown'
+
   private:
     // NOT IMPLEMENTED
 
@@ -594,6 +598,8 @@ class ClientSession : public mqbnet::Session,
                             bsl::shared_ptr<bdlbb::Blob>*   optionsSp,
                             const bmqp::PutMessageIterator& putIt);
 
+    void closeChannel();
+
     // PRIVATE ACCESSORS
 
     /// Return true if the session is `e_DISCONNECTED` or worse (`e_DEAD`).
@@ -653,6 +659,7 @@ class ClientSession : public mqbnet::Session,
     /// Initiate the shutdown of the session and invoke the specified
     /// `callback` upon completion of (asynchronous) shutdown sequence or
     /// if the specified `timeout` is expired.
+    /// The shutdown is complete when 'tearDownAllQueuesDone'.
     void
     initiateShutdown(const ShutdownCb&         callback,
                      const bsls::TimeInterval& timeout) BSLS_KEYWORD_OVERRIDE;
