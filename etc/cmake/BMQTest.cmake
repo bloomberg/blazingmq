@@ -53,16 +53,16 @@ function(bmq_add_test target)
   # Use the current source directory if none is specified
   if(NOT _SOURCE_DIR)
     set(_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
-      endif()
+  endif()
 
   # Check that BDE metadata exists and load it
   if(NOT DEFINED ${uor_name}_PACKAGES)
-        if(EXISTS ${_SOURCE_DIR}/group)
-            bbs_read_metadata(GROUP ${uor_name}
+    if(EXISTS ${_SOURCE_DIR}/group)
+      bbs_read_metadata(GROUP ${uor_name}
         SOURCE_DIR ${_SOURCE_DIR}
         CUSTOM_PACKAGES "${_CUSTOM_PACKAGES}")
     else()
-            if(EXISTS ${_SOURCE_DIR}/package)
+      if(EXISTS ${_SOURCE_DIR}/package)
         bbs_read_metadata(PACKAGE ${uor_name}
           SOURCE_DIR ${_SOURCE_DIR})
       endif()
