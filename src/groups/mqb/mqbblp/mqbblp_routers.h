@@ -563,10 +563,13 @@ class Routers {
         bdld::Datum get(const bsl::string& name,
                         bslma::Allocator*  allocator) BSLS_KEYWORD_OVERRIDE;
 
+        // Prepare the reader for the next message given the specified
+        // 'currentMessage' or 'appData' and 'messagePropertiesInfo'.
         void next(const mqbi::StorageIterator* currentMessage);
         void next(const bsl::shared_ptr<bdlbb::Blob>& appData,
                   const bmqp::MessagePropertiesInfo&  messagePropertiesInfo);
         void clear();
+        // Reset the reader to the state of empty properties.
     };
 
     /// Mechanism to assist `Expression`s evaluation optimization to avoid

@@ -228,6 +228,7 @@ class InMemoryStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     // Message being evaluated and possibly auto confirmed.
 
     unsigned int d_numAutoConfirms;
+    // Current number of auto confirmed Apps for 'd_currentlyAutoConfirming'.
 
   private:
     // NOT IMPLEMENTED
@@ -392,7 +393,7 @@ class InMemoryStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     virtual bool
     removeVirtualStorage(const mqbu::StorageKey& appKey) BSLS_KEYWORD_OVERRIDE;
 
-    virtual void startAutoConfirming(const bmqt::MessageGUID& msgGUID)
+    virtual void selectForAutoConfirming(const bmqt::MessageGUID& msgGUID)
         BSLS_KEYWORD_OVERRIDE;
     virtual mqbi::StorageResult::Enum
     autoConfirm(const mqbu::StorageKey& appKey,

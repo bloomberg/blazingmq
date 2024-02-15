@@ -491,7 +491,7 @@ bool InMemoryStorage::gcHistory()
                       k_GC_MESSAGES_BATCH_SIZE);
 }
 
-void InMemoryStorage::startAutoConfirming(const bmqt::MessageGUID& msgGUID)
+void InMemoryStorage::selectForAutoConfirming(const bmqt::MessageGUID& msgGUID)
 {
     d_numAutoConfirms         = 0;
     d_currentlyAutoConfirming = msgGUID;
@@ -503,6 +503,8 @@ InMemoryStorage::autoConfirm(const mqbu::StorageKey& appKey,
 {
     (void)timestamp;
     d_virtualStorageCatalog.autoConfirm(d_currentlyAutoConfirming, appKey);
+
+    ++d_numAutoConfirms;
 
     return mqbi::StorageResult::e_SUCCESS;
 }

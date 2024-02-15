@@ -1321,16 +1321,19 @@ int QueueEngineUtil_AppState::setSubscription(
     const mqbconfm::Expression& value)
 {
     d_subcriptionExpression = value;
-    int rc                  = 0;
 
     if (mqbconfm::ExpressionVersion::E_VERSION_1 == value.version()) {
         if (d_subcriptionExpression.text().length()) {
-            rc = d_autoSubscription.d_evaluator.compile(
+            int rc = d_autoSubscription.d_evaluator.compile(
                 d_subcriptionExpression.text(),
                 d_routing_sp->d_compilationContext);
+            return rc;  // RETURN
         }
     }
-    return rc;
+    // Reset
+    d_autoSubscription.d_evaluator = bmqeval::SimpleEvaluator();
+
+    return 0;
 }
 
 bool QueueEngineUtil_AppState::evaluateAutoSubcription()

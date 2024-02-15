@@ -222,6 +222,7 @@ class FileBackedStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     // PRIVATE MANIPULATORS
     void purgeCommon(const mqbu::StorageKey& appKey);
 
+    /// Clear the state created by 'selectForAutoConfirming'.
     void clearSelection();
 
   public:
@@ -505,7 +506,7 @@ class FileBackedStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
 
     virtual void purge(const mqbu::StorageKey& appKey) BSLS_KEYWORD_OVERRIDE;
 
-    virtual void startAutoConfirming(const bmqt::MessageGUID& msgGUID)
+    virtual void selectForAutoConfirming(const bmqt::MessageGUID& msgGUID)
         BSLS_KEYWORD_OVERRIDE;
     virtual mqbi::StorageResult::Enum
     autoConfirm(const mqbu::StorageKey& appKey,
@@ -525,6 +526,7 @@ class FileBackedStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
 
     virtual bool isStrongConsistency() const BSLS_KEYWORD_OVERRIDE;
 
+    /// Return the number of auto confirmed Apps for the current message.
     virtual unsigned int numAutoConfirms() const BSLS_KEYWORD_OVERRIDE;
 };
 

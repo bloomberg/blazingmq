@@ -490,10 +490,10 @@ class Storage {
     /// become invalid after this method returns.
     virtual bool removeVirtualStorage(const mqbu::StorageKey& appKey) = 0;
 
-    virtual void startAutoConfirming(const bmqt::MessageGUID& msgGUID)     = 0;
+    virtual void selectForAutoConfirming(const bmqt::MessageGUID& msgGUID) = 0;
     virtual StorageResult::Enum autoConfirm(const mqbu::StorageKey& appKey,
                                             bsls::Types::Uint64 timestamp) = 0;
-    /// The sequence of calls is 'startAutoConfirming', then zero or more
+    /// The sequence of calls is 'selectForAutoConfirming', then zero or more
     /// 'autoConfirm', then 'put' - all for the same specified 'msgGUID'.
     /// 'autoConfirm' replicates ephemeral auto CONFIRM for the specified
     /// 'appKey' in persistent storage.
@@ -600,6 +600,7 @@ class Storage {
     /// appKey for all the virtual storages registered with this instance.
     virtual void loadVirtualStorageDetails(AppIdKeyPairs* buffer) const = 0;
 
+    /// Return the number of auto confirmed Apps for the current message.
     virtual unsigned int numAutoConfirms() const = 0;
 };
 

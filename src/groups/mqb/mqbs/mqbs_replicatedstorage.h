@@ -72,9 +72,9 @@ class ReplicatedStorage : public mqbi::Storage {
                                       unsigned int                 refCount,
                                       const DataStoreRecordHandle& handle) = 0;
 
-    /// Process the CONFIRM record having the specified `guid` and `appKey`
-    /// and use the specified `handle` to retrieve the confirm record from
-    /// the underlying persistent store.  Note that `appKey` can be null.
+    /// Process the CONFIRM record having the specified `guid`, `appKey`, and
+    /// `reason`.  Use the specified `handle` to retrieve the confirm record
+    /// from the underlying persistent store.  Note that `appKey` can be null.
     /// Also note that this routine is supposed to be invoked at replica
     /// nodes, and the record will not be replicated to peer nodes.
     virtual void processConfirmRecord(const bmqt::MessageGUID&     guid,

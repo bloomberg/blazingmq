@@ -200,6 +200,12 @@ class QueueEngine : public mqbi::QueueEngine {
     virtual void
     onTimer(bsls::Types::Int64 currentTimer) BSLS_KEYWORD_OVERRIDE;
 
+    /// Given the specified 'putHeader', 'appData', 'mpi', and 'timestamp',
+    /// evaluate all Auto (Application) subscriptions and exclude applications
+    /// with negative results from message delivery.
+    /// Return 0 on success or an non-zero error code on failure.
+    ///
+    /// THREAD: This method is called from the Queue's dispatcher thread.
     virtual mqbi::StorageResult::Enum evaluateAutoSubscriptions(
         const bmqp::PutHeader&              putHeader,
         const bsl::shared_ptr<bdlbb::Blob>& appData,

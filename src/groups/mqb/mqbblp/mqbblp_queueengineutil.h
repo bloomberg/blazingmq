@@ -383,6 +383,7 @@ struct QueueEngineUtil_AppState {
     bsls::AtomicBool d_isScheduled;
 
     mqbconfm::Expression d_subcriptionExpression;
+    // The auto subscription expression if any.
 
     Routers::Expression d_autoSubscription;
     // Evaluator of the auto subscription
@@ -509,8 +510,10 @@ struct QueueEngineUtil_AppState {
     selectConsumer(const Routers::Visitor&      visitor,
                    const mqbi::StorageIterator* currentMessage);
 
+    // Set the auto subscription
     int setSubscription(const mqbconfm::Expression& value);
 
+    // Evaluate the auto subscription
     bool evaluateAutoSubcription();
 
     // ACCESSORS

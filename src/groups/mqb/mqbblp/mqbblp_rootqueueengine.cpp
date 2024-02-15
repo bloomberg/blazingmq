@@ -264,6 +264,17 @@ RootQueueEngine::RootQueueEngine(QueueState*             queueState,
 //   (virtual mqbi::QueueEngine)
 int RootQueueEngine::configure(bsl::ostream& errorDescription)
 {
+    enum RcEnum {
+        // Return values
+        rc_SUCCESS = 0  // No error
+        ,
+        rc_APP_INITIALIZATION_ERROR = -1  // No Virtual Storage
+        ,
+        rc_AUTO_SUBSCRIPTION_ERROR = -2  // Wrong expression
+        ,
+        rc_AUTO_SUBSCRIPTIONS_ERROR = -3  // Wrong number of auto subscriptions
+    };
+
     // Populate map of appId to appKey for statically registered consumers
     size_t numApps = 0;
 
@@ -277,7 +288,7 @@ int RootQueueEngine::configure(bsl::ostream& errorDescription)
             if (initializeAppId(cfgAppIds[numApps],
                                 errorDescription,
                                 bmqp::QueueId::k_UNASSIGNED_SUBQUEUE_ID)) {
-                return -1;  // RETURN
+                return rc_APP_INITIALIZATION_ERROR;  // RETURN
             }
         }
         for (unsigned int i = 0; i < subscriptions.size(); ++i) {
@@ -295,7 +306,7 @@ int RootQueueEngine::configure(bsl::ostream& errorDescription)
                                    << "\", rc: " << rc << ", reason: \""
                                    << bmqeval::ErrorType::toString(errorType)
                                    << "\"";
-                    return -1;  // RETURN
+                    return rc_AUTO_SUBSCRIPTION_ERROR;  // RETURN
                 }
             }
         }
@@ -305,31 +316,39 @@ int RootQueueEngine::configure(bsl::ostream& errorDescription)
         if (initializeAppId(bmqp::ProtocolUtil::k_DEFAULT_APP_ID,
                             errorDescription,
                             bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID)) {
-            return -1;  // RETURN
+            return rc_APP_INITIALIZATION_ERROR;  // RETURN
         }
         // TODO: what is auto subscription "appId" for priority/broadcast?
         if (subscriptions.size() > 1) {
-            BALL_LOG_ERROR << "Cannot have more than 1 subscription";
-            return -1;  // RETURN
+            BALL_LOG_ERROR << "Queue '"
+                           << d_queueState_p->queue()->description()
+                           << "' Cannot have more than 1 subscription";
+
+            return rc_AUTO_SUBSCRIPTIONS_ERROR;  // RETURN
         }
+
+        Apps::iterator itApp = d_apps.begin();
+        BSLS_ASSERT_SAFE(itApp != d_apps.end());
+
+        int rc = 0;
         if (subscriptions.size() == 1) {
-            Apps::iterator itApp = d_apps.begin();
-            BSLS_ASSERT_SAFE(itApp != d_apps.end());
-
-            int rc = itApp->value()->setSubscription(
+            rc = itApp->value()->setSubscription(
                 subscriptions[0].expression());
+        }
+        else {
+            mqbconfm::Expression empty(d_allocator_p);
+            rc = itApp->value()->setSubscription(empty);
+        }
 
-            if (rc != 0) {
-                bmqeval::ErrorType::Enum errorType =
-                    static_cast<bmqeval::ErrorType::Enum>(rc);
+        if (rc != 0) {
+            bmqeval::ErrorType::Enum errorType =
+                static_cast<bmqeval::ErrorType::Enum>(rc);
 
-                BALL_LOG_ERROR << "Failed to compile expression: \""
-                               << subscriptions[0].expression().text()
-                               << "\", rc: " << rc << ", reason: \""
-                               << bmqeval::ErrorType::toString(errorType)
-                               << "\"";
-                return -1;  // RETURN
-            }
+            BALL_LOG_ERROR << "Failed to compile expression: \""
+                           << subscriptions[0].expression().text()
+                           << "\", rc: " << rc << ", reason: \""
+                           << bmqeval::ErrorType::toString(errorType) << "\"";
+            return rc_AUTO_SUBSCRIPTION_ERROR;  // RETURN
         }
     }
 
@@ -339,7 +358,7 @@ int RootQueueEngine::configure(bsl::ostream& errorDescription)
             bdlt::TimeUnitRatio::k_NANOSECONDS_PER_SECOND);
     }
 
-    return 0;
+    return rc_SUCCESS;
 }
 
 int RootQueueEngine::initializeAppId(const bsl::string& appId,
@@ -1652,7 +1671,8 @@ mqbi::StorageResult::Enum RootQueueEngine::evaluateAutoSubscriptions(
         bdlf::BindUtil::bind(&Routers::MessagePropertiesReader::clear,
                              queue.d_preader));
 
-    d_queueState_p->storage()->startAutoConfirming(putHeader.messageGUID());
+    d_queueState_p->storage()->selectForAutoConfirming(
+        putHeader.messageGUID());
 
     for (Apps::iterator it = d_apps.begin(); it != d_apps.end(); ++it) {
         AppStateSp& app = it->value();
@@ -1686,9 +1706,7 @@ unsigned int RootQueueEngine::messageReferenceCount() const
 
     BSLS_ASSERT_SAFE(numNegative <= refCount);
 
-    refCount -= numNegative;
-
-    return refCount;
+    return refCount - numNegative;
 }
 
 void RootQueueEngine::loadInternals(mqbcmd::QueueEngine* out) const

@@ -369,16 +369,15 @@
     <annotation>
       <documentation>
         This complex type contains various parameters required by an upstream
-        node to configure subscription for a queue handle that has already been
-        created.
+        node to configure subscription for an app.
 
-        sId....................: subscription identifier
+        appId..................: app identifier
         consumers..............: consumer parameters
       </documentation>
     </annotation>
     <sequence>
-      <element name='appId'      type='string'     />
-      <element name='expression' type='tns:Expression'   />
+      <element name='appId'      type='string'/>
+      <element name='expression' type='tns:Expression'/>
     </sequence>
   </complexType>
     

@@ -616,7 +616,7 @@ class DataStore : public mqbi::DispatcherClient {
     /// ---------------
 
     /// Write a CONFIRM record to the data store with the specified
-    /// `queueKey`, optional `appKey`, `guid`, `timestamp` and `onReject`.
+    /// `queueKey`, optional `appKey`, `guid`, `timestamp` and `reason`.
     /// Return zero on success, non-zero value otherwise.
     virtual int writeConfirmRecord(DataStoreRecordHandle*   handle,
                                    const bmqt::MessageGUID& guid,

@@ -116,7 +116,7 @@ mqbi::StorageResult::Enum VirtualStorage::put(const bmqt::MessageGUID& msgGUID,
 
         d_autoConfirm = bmqt::MessageGUID();
         if (isAutoConfirmed) {
-            return mqbi::StorageResult::e_SUCCESS;
+            return mqbi::StorageResult::e_SUCCESS;  // RETURN
         }
     }
 
@@ -304,7 +304,7 @@ bool VirtualStorage::removeVirtualStorage(
     return false;
 }
 
-void VirtualStorage::startAutoConfirming(const bmqt::MessageGUID& msgGUID)
+void VirtualStorage::selectForAutoConfirming(const bmqt::MessageGUID& msgGUID)
 {
     BSLS_ASSERT_SAFE(false && "Should not be invoked.");
 }

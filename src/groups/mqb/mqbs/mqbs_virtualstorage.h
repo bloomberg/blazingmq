@@ -216,6 +216,8 @@ class VirtualStorage : public mqbi::Storage {
     void loadVirtualStorageDetails(AppIdKeyPairs* buffer) const
         BSLS_KEYWORD_OVERRIDE;
 
+    /// Behavior is undefined if these methods are ever invoked.  These methods
+    /// need to be implemented as their part of the base protocol.
     unsigned int numAutoConfirms() const BSLS_KEYWORD_OVERRIDE;
 
     /// Store in the specified `msgSize` the size, in bytes, of the message
@@ -375,12 +377,14 @@ class VirtualStorage : public mqbi::Storage {
 
     /// Behavior is undefined if these methods are ever invoked.  These methods
     /// need to be implemented as their part of the base protocol.
-    void startAutoConfirming(const bmqt::MessageGUID& msgGUID)
+    void selectForAutoConfirming(const bmqt::MessageGUID& msgGUID)
         BSLS_KEYWORD_OVERRIDE;
     mqbi::StorageResult::Enum
     autoConfirm(const mqbu::StorageKey& appKey,
                 bsls::Types::Uint64     timestamp) BSLS_KEYWORD_OVERRIDE;
 
+    /// Ignore the specified 'msgGUID' in the subsequent 'put' call because the
+    /// App has auto confirmed it.
     void autoConfirm(const bmqt::MessageGUID& msgGUID);
 };
 

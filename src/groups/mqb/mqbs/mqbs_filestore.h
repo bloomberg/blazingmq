@@ -783,7 +783,7 @@ class FileStore : public DataStore {
     /// ---------------
 
     /// Write a CONFIRM record to the journal with the specified `queueKey`,
-    /// optional `appKey`, `guid`, `timestamp` and `onReject` to the
+    /// optional `appKey`, `guid`, `timestamp` and `reason` to the
     /// journal.  Return zero on success, non-zero value otherwise.
     int writeConfirmRecord(DataStoreRecordHandle*   handle,
                            const bmqt::MessageGUID& guid,

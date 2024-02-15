@@ -425,7 +425,7 @@ void LocalQueue::postMessage(const bmqp::PutHeader&              putHeader,
         return;  // RETURN
     }
 
-    const bsls::Types::Int64 timeStamp = mwcsys::Time::highResolutionTimer();
+    const bsls::Types::Int64 timePoint = mwcsys::Time::highResolutionTimer();
     const bool               doAck     = bmqp::PutHeaderFlagUtil::isSet(
         putHeader.flags(),
         bmqp::PutHeaderFlags::e_ACK_REQUESTED);
@@ -459,7 +459,7 @@ void LocalQueue::postMessage(const bmqp::PutHeader&              putHeader,
                 !d_haveStrongConsistency,
                 doAck ? source : 0,
                 putHeader.crc32c(),
-                timeStamp);  // Arrival Timepoint
+                timePoint);  // Arrival Timepoint
 
             res = d_state_p->storage()->put(&attributes,
                                             putHeader.messageGUID(),
@@ -476,7 +476,7 @@ void LocalQueue::postMessage(const bmqp::PutHeader&              putHeader,
     if (res != mqbi::StorageResult::e_SUCCESS || haveReceipt) {
         // Calculate time delta between PUT and ACK
         const bsls::Types::Int64 timeDelta =
-            mwcsys::Time::highResolutionTimer() - timeStamp;
+            mwcsys::Time::highResolutionTimer() - timePoint;
         d_state_p->stats().onEvent(
             mqbstat::QueueStatsDomain::EventType::e_ACK_TIME,
             timeDelta);

@@ -813,9 +813,12 @@ void FileBackedStorage::processMessageRecord(
                     irc.first->second.d_array.push_back(
                         d_ephemeralConfirms[i]);
                 }
+                d_ephemeralConfirms.clear();
+                d_currentlyAutoConfirming = bmqt::MessageGUID();
             }
-            d_ephemeralConfirms.clear();
-            d_currentlyAutoConfirming = bmqt::MessageGUID();
+            else {
+                clearSelection();
+            }
         }
 
         // Update the messages & bytes monitors, and the stats.
@@ -1005,7 +1008,8 @@ void FileBackedStorage::purge(const mqbu::StorageKey& appKey)
     }
 }
 
-void FileBackedStorage::startAutoConfirming(const bmqt::MessageGUID& msgGUID)
+void FileBackedStorage::selectForAutoConfirming(
+    const bmqt::MessageGUID& msgGUID)
 {
     clearSelection();
     d_currentlyAutoConfirming = msgGUID;

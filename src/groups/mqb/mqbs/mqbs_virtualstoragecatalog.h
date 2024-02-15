@@ -174,6 +174,8 @@ class VirtualStorageCatalog {
 
     mqbi::Storage* virtualStorage(const mqbu::StorageKey& appKey);
 
+    /// Ignore the specified 'msgGUID' in the subsequent 'put' call for the
+    /// specified 'appKey'  because the App has auto confirmed it.
     void autoConfirm(const bmqt::MessageGUID& msgGUID,
                      const mqbu::StorageKey&  appKey);
 

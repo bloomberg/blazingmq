@@ -4460,9 +4460,8 @@ namespace mqbconfm {
 
 class Subscription {
     // This complex type contains various parameters required by an upstream
-    // node to configure subscription for a queue handle that has already been
-    // created.
-    // sId....................: subscription identifier
+    // node to configure subscription for an app.
+    // appId..................: app identifier
     // consumers..............: consumer parameters
 
     // INSTANCE DATA
