@@ -90,6 +90,49 @@ long long z_bmqa_MessageProperties__getPropertyAsInt64(
     const z_bmqa_MessageProperties* properties_obj, 
     const char* name); 
 
+const char* z_bmqa_MessageProperties__getPropertyAsString(
+    const z_bmqa_MessageProperties* properties_obj, 
+    const char* name); 
+
+const char* z_bmqa_MessageProperties__getPropertyAsBinary(
+    const z_bmqa_MessageProperties* properties_obj, 
+    const char* name); 
+
+bool z_bmqa_MessageProperties__getPropertyAsBoolOr(
+    const z_bmqa_MessageProperties* properties_obj, 
+    const char* name, 
+    bool value); 
+
+char z_bmqa_MessageProperties__getPropertyAsCharOr(
+    const z_bmqa_MessageProperties* properties_obj, 
+    const bsl::string& name, 
+    char value);
+
+char z_bmqa_MessageProperties__getPropertyAsShortOr(
+    const z_bmqa_MessageProperties* properties_obj, 
+    const bsl::string& name, 
+    short value);
+
+int32_t z_bmqa_MessageProperties__getPropertyAsInt32Or(
+    const z_bmqa_MessageProperties* properties_obj, 
+    const bsl::string& name, 
+    int32_t value);
+
+long long z_bmqa_MessageProperties__getPropertyAsInt64Or(
+    const z_bmqa_MessageProperties* properties_obj, 
+    const bsl::string& name, 
+    long long value);
+
+const char* z_bmqa_MessageProperties__getPropertyAsStringOr(
+    const z_bmqa_MessageProperties* properties_obj, 
+    const char* name, 
+    const char* value); 
+
+const char* z_bmqa_MessageProperties__getPropertyAsBinaryOr(
+    const z_bmqa_MessageProperties* properties_obj, 
+    const char* name, 
+    const char* value); 
+
 #if defined(__cplusplus)
 }
 #endif

@@ -243,3 +243,146 @@ long long z_bmqa_MessageProperties__getPropertyAsInt64(
     bsl::string name_str(name);
     return properties_p->getPropertyAsInt64(name_str);
 }
+
+//docstring needs to include freeing cStr
+const char* z_bmqa_MessageProperties__getPropertyAsString(
+    const z_bmqa_MessageProperties* properties_obj, 
+    const char* name)
+{
+    using namespace BloombergLP; 
+
+    const bmqa::MessageProperties* properties_p = 
+        reinterpret_cast<const bmqa::MessageProperties*>(properties_obj); 
+
+    bsl::string name_str(name); 
+    bsl::string propertyAsBSLString = properties_p->getPropertyAsString(name_str); 
+    int n = propertyAsBSLString.size(); 
+    char* cStr = (char*)calloc(n+1,sizeof(char)); 
+    for(int i = 0; i < n; i++) {
+        cStr[i] = propertyAsBSLString[i]; 
+    }
+    cStr[n] = '\0'; 
+    return cStr;
+}
+
+
+//docstring needs to include freeing cBinVec
+const char* z_bmqa_MessageProperties__getPropertyAsBinary(
+    const z_bmqa_MessageProperties* properties_obj, 
+    const char* name) 
+{
+    using namespace BloombergLP; 
+
+    const bmqa::MessageProperties* properties_p = 
+        reinterpret_cast<const bmqa::MessageProperties*>(properties_obj); 
+
+    bsl::string name_str(name); 
+    bsl::vector<char> propertyAsBSLVec = properties_p->getPropertyAsBinary(name_str); 
+    int n = propertyAsBSLVec.size(); 
+    char* cBinVec = (char*)calloc(n, sizeof(char)); 
+    for(int i = 0; i < n; i++) {
+        cBinVec[i] = propertyAsBSLVec[i]; 
+    }
+    return cBinVec;
+}
+
+bool z_bmqa_MessageProperties__getPropertyAsBoolOr(
+    const z_bmqa_MessageProperties* properties_obj, 
+    const char* name, 
+    bool value)
+{ 
+    using namespace BloombergLP; 
+
+    const bmqa::MessageProperties* properties_p = 
+        reinterpret_cast<const bmqa::MessageProperties*>(properties_obj); 
+
+    bsl::string name_str(name); 
+    return properties_p->getPropertyAsBoolOr(name_str, value); 
+}
+
+char z_bmqa_MessageProperties__getPropertyAsCharOr(
+    const z_bmqa_MessageProperties* properties_obj, 
+    const bsl::string& name, 
+    char value) 
+{
+    using namespace BloombergLP; 
+
+    const bmqa::MessageProperties* properties_p = 
+        reinterpret_cast<const bmqa::MessageProperties*>(properties_obj); 
+    
+    bsl::string name_str(name); 
+    return properties_p->getPropertyAsCharOr(name_str, value); 
+}
+
+char z_bmqa_MessageProperties__getPropertyAsShortOr(
+    const z_bmqa_MessageProperties* properties_obj, 
+    const bsl::string& name, 
+    short value) 
+{
+    using namespace BloombergLP; 
+
+    const bmqa::MessageProperties* properties_p = 
+        reinterpret_cast<const bmqa::MessageProperties*>(properties_obj); 
+
+    bsl::string name_str(name); 
+    return properties_p->getPropertyAsShortOr(name_str, value); 
+}
+
+int32_t z_bmqa_MessageProperties__getPropertyAsInt32Or(
+    const z_bmqa_MessageProperties* properties_obj, 
+    const bsl::string& name, 
+    int32_t value)
+{ 
+    using namespace BloombergLP; 
+
+    const bmqa::MessageProperties* properties_p = 
+        reinterpret_cast<const bmqa::MessageProperties*>(properties_obj); 
+
+    bsl::string name_str(name); 
+    return properties_p->getPropertyAsInt32Or(name_str, value); 
+}
+
+long long z_bmqa_MessageProperties__getPropertyAsInt64Or(
+    const z_bmqa_MessageProperties* properties_obj, 
+    const bsl::string& name, 
+    long long value)
+{
+    using namespace BloombergLP; 
+
+    const bmqa::MessageProperties* properties_p = 
+        reinterpret_cast<const bmqa::MessageProperties*>(properties_obj); 
+    
+    bsl::string name_str(name);
+    return properties_p->getPropertyAsInt64Or(name_str, value);  
+}
+
+
+const char* z_bmqa_MessageProperties__getPropertyAsStringOr(
+    const z_bmqa_MessageProperties* properties_obj, 
+    const char* name, 
+    const char* value)
+{
+    using namespace BloombergLP; 
+
+    const bmqa::MessageProperties* properties_p = 
+        reinterpret_cast<const bmqa::MessageProperties*>(properties_obj); 
+
+    bsl::string name_str(name); 
+    bsl::string value_str(value); 
+    bsl::string propertyAsBSLStringOr = properties_p->getPropertyAsStringOr(name_str, value_str); 
+    int n = propertyAsBSLStringOr.size(); 
+    char* cStr = (char*)calloc(n+1,sizeof(char)); 
+    for(int i = 0; i < n; i++) {
+        cStr[i] = propertyAsBSLStringOr[i]; 
+    }
+    cStr[n] = '\0'; 
+    return cStr; 
+}
+
+const char* z_bmqa_MessageProperties__getPropertyAsBinaryOr(
+    const z_bmqa_MessageProperties* properties_obj, 
+    const char* name, 
+    const char* value)
+{ 
+    //HELP 
+}
