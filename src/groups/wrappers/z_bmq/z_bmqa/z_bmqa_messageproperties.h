@@ -131,7 +131,8 @@ const char* z_bmqa_MessageProperties__getPropertyAsStringOr(
 const char* z_bmqa_MessageProperties__getPropertyAsBinaryOr(
     const z_bmqa_MessageProperties* properties_obj, 
     const char* name, 
-    const char* value); 
+    const char* value, 
+    int size); 
 
 #if defined(__cplusplus)
 }

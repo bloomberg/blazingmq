@@ -381,8 +381,23 @@ const char* z_bmqa_MessageProperties__getPropertyAsStringOr(
 
 const char* z_bmqa_MessageProperties__getPropertyAsBinaryOr(
     const z_bmqa_MessageProperties* properties_obj, 
-    const char* name, 
-    const char* value)
-{ 
-    //HELP 
+    const char* name,
+    const char* value,
+    int size) 
+{
+    using namespace BloombergLP; 
+
+    const bmqa::MessageProperties* properties_p = 
+        reinterpret_cast<const bmqa::MessageProperties*>(properties_obj); 
+
+    bsl::string name_str(name); 
+    bsl::vector<char> value_vec(value, value + size); 
+    bsl::vector<char> propertyAsBSLVec = properties_p->getPropertyAsBinaryOr(name_str, value_vec); 
+    int n = propertyAsBSLVec.size(); 
+    char* cBinVec = (char*)calloc(n, sizeof(char)); 
+    for(int i = 0; i < n; i++) {
+        cBinVec[i] = propertyAsBSLVec[i]; 
+    }
+    
+    return cBinVec;
 }
