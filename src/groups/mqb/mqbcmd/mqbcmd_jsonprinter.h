@@ -17,15 +17,14 @@
 #ifndef INCLUDED_MQBCMD_JSONPRINTER
 #define INCLUDED_MQBCMD_JSONPRINTER
 
-//@PURPOSE: Provide a namespace of utilities to software-friendly print
-// results.
+//@PURPOSE: Provide a namespace of utilities to print results in json.
 //
 //@CLASSES:
-//  JsonPrinter: Utilities to print results in a software-friendly way.
+//  JsonPrinter: Utilities to print results in json.
 //
 //@DESCRIPTION:
 // This component provides a namespace, 'mqbcmd::JsonPrinter', containing
-// utilities to print results in a software-friendly way.
+// utilities to print results in json.
 //
 
 // MQB
@@ -41,10 +40,9 @@ namespace mqbcmd {
 // struct JsonPrinter
 // ==================
 
-/// This `struct` provides a namespace of utilities to print results in a
-/// software-friendly way.
+/// This `struct` provides a namespace of utilities to print results in json.
 struct JsonPrinter {
-    /// Pretty-print the specified `result` to the specified `os` at the
+    /// Print the specified `result` to the specified `os` at the
     /// (absolute value of) the optionally specified indentation `level` and
     /// return a reference to `stream`.  If `level` is specified, optionally
     /// specify `spacesPerLevel`, the number of spaces per indentation level
