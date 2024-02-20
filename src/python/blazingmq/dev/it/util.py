@@ -26,6 +26,12 @@ import random
 import string
 import time
 
+from typing import List, Generic, TypeVar
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from blazingmq.dev.it.process.client import Client
+
 
 def random_string(len):
     letters = string.ascii_lowercase
@@ -114,7 +120,7 @@ class Queue:
     action is to close the queue (if it has not yet been explicitly closed).
     """
 
-    def __init__(self, client, uri, flags, **kw):
+    def __init__(self, client: "Client", uri: str, flags: List[str], **kw):
         """Open the queue specified by 'uri' via the specified 'client, using the
         specified 'flags'.
         """
@@ -139,7 +145,7 @@ class Queue:
     def list(self, *args, **kwargs):
         return self.client.list(self.uri, *args, **kwargs)
 
-    def confirm(self, *args, **kwargs):
+    def confirm(self, *args, **kwargs) -> int | None:
         return self.client.confirm(self.uri, *args, **kwargs)
 
     def configure(self, *args, **kwargs):
@@ -151,7 +157,10 @@ class Queue:
         return rc
 
 
-class ListContextManager(list):
+_T = TypeVar("_T")
+
+
+class ListContextManager(list[_T]):
     def __enter__(self):
         return self
 

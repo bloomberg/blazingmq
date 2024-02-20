@@ -1,4 +1,4 @@
-// Copyright 2014-2024 Bloomberg Finance L.P.
+// Copyright 2024 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,7 +12,6 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
 // mqbcfg_messages.h             *DO NOT EDIT*             @generated -*-C++-*-
 #ifndef INCLUDED_MQBCFG_MESSAGES
 #define INCLUDED_MQBCFG_MESSAGES
@@ -102,7 +101,7 @@ namespace mqbcfg {
 class TcpClusterNodeConnection;
 }
 namespace mqbcfg {
-class TcpInterfaceConfig;
+class TcpInterfaceListener;
 }
 namespace mqbcfg {
 class VirtualClusterInformation;
@@ -117,19 +116,22 @@ namespace mqbcfg {
 class LogController;
 }
 namespace mqbcfg {
-class NetworkInterfaces;
-}
-namespace mqbcfg {
 class PartitionConfig;
 }
 namespace mqbcfg {
 class StatPluginConfigPrometheus;
 }
 namespace mqbcfg {
+class TcpInterfaceConfig;
+}
+namespace mqbcfg {
 class ClusterNode;
 }
 namespace mqbcfg {
 class DispatcherConfig;
+}
+namespace mqbcfg {
+class NetworkInterfaces;
 }
 namespace mqbcfg {
 class ReversedClusterConnection;
@@ -4020,73 +4022,31 @@ BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
 
 namespace mqbcfg {
 
-// ========================
-// class TcpInterfaceConfig
-// ========================
+// ==========================
+// class TcpInterfaceListener
+// ==========================
 
-class TcpInterfaceConfig {
-    // lowWatermark.........: highWatermark........: Watermarks used for
-    // channels with a client or proxy.  nodeLowWatermark.....:
-    // nodeHighWatermark....: Reduced watermarks for communication between
-    // cluster nodes where BlazingMQ maintains its own cache.
-    // heartbeatIntervalMs..: How often (in milliseconds) to check if the
-    // channel received data, and emit heartbeat.  0 to globally disable.
+class TcpInterfaceListener {
+    // This type describes the information needed for the broker to open a TCP
+    // listener.
+    // name.................: A name to associate this listener to.
+    // port.................: The port this listener will accept connections
+    // on.
 
     // INSTANCE DATA
-    bsls::Types::Int64 d_lowWatermark;
-    bsls::Types::Int64 d_highWatermark;
-    bsls::Types::Int64 d_nodeLowWatermark;
-    bsls::Types::Int64 d_nodeHighWatermark;
-    bsl::string        d_name;
-    int                d_port;
-    int                d_ioThreads;
-    int                d_maxConnections;
-    int                d_heartbeatIntervalMs;
-
-    // PRIVATE ACCESSORS
-    template <typename t_HASH_ALGORITHM>
-    void hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const;
-
-    bool isEqualTo(const TcpInterfaceConfig& rhs) const;
+    bsl::string d_name;
+    int         d_port;
 
   public:
     // TYPES
-    enum {
-        ATTRIBUTE_ID_NAME                  = 0,
-        ATTRIBUTE_ID_PORT                  = 1,
-        ATTRIBUTE_ID_IO_THREADS            = 2,
-        ATTRIBUTE_ID_MAX_CONNECTIONS       = 3,
-        ATTRIBUTE_ID_LOW_WATERMARK         = 4,
-        ATTRIBUTE_ID_HIGH_WATERMARK        = 5,
-        ATTRIBUTE_ID_NODE_LOW_WATERMARK    = 6,
-        ATTRIBUTE_ID_NODE_HIGH_WATERMARK   = 7,
-        ATTRIBUTE_ID_HEARTBEAT_INTERVAL_MS = 8
-    };
+    enum { ATTRIBUTE_ID_NAME = 0, ATTRIBUTE_ID_PORT = 1 };
 
-    enum { NUM_ATTRIBUTES = 9 };
+    enum { NUM_ATTRIBUTES = 2 };
 
-    enum {
-        ATTRIBUTE_INDEX_NAME                  = 0,
-        ATTRIBUTE_INDEX_PORT                  = 1,
-        ATTRIBUTE_INDEX_IO_THREADS            = 2,
-        ATTRIBUTE_INDEX_MAX_CONNECTIONS       = 3,
-        ATTRIBUTE_INDEX_LOW_WATERMARK         = 4,
-        ATTRIBUTE_INDEX_HIGH_WATERMARK        = 5,
-        ATTRIBUTE_INDEX_NODE_LOW_WATERMARK    = 6,
-        ATTRIBUTE_INDEX_NODE_HIGH_WATERMARK   = 7,
-        ATTRIBUTE_INDEX_HEARTBEAT_INTERVAL_MS = 8
-    };
+    enum { ATTRIBUTE_INDEX_NAME = 0, ATTRIBUTE_INDEX_PORT = 1 };
 
     // CONSTANTS
     static const char CLASS_NAME[];
-
-    static const int DEFAULT_INITIALIZER_MAX_CONNECTIONS;
-
-    static const bsls::Types::Int64 DEFAULT_INITIALIZER_NODE_LOW_WATERMARK;
-
-    static const bsls::Types::Int64 DEFAULT_INITIALIZER_NODE_HIGH_WATERMARK;
-
-    static const int DEFAULT_INITIALIZER_HEARTBEAT_INTERVAL_MS;
 
     static const bdlat_AttributeInfo ATTRIBUTE_INFO_ARRAY[];
 
@@ -4103,29 +4063,29 @@ class TcpInterfaceConfig {
     // exists, and 0 otherwise.
 
     // CREATORS
-    explicit TcpInterfaceConfig(bslma::Allocator* basicAllocator = 0);
-    // Create an object of type 'TcpInterfaceConfig' having the default
+    explicit TcpInterfaceListener(bslma::Allocator* basicAllocator = 0);
+    // Create an object of type 'TcpInterfaceListener' having the default
     // value.  Use the optionally specified 'basicAllocator' to supply
     // memory.  If 'basicAllocator' is 0, the currently installed default
     // allocator is used.
 
-    TcpInterfaceConfig(const TcpInterfaceConfig& original,
-                       bslma::Allocator*         basicAllocator = 0);
-    // Create an object of type 'TcpInterfaceConfig' having the value of
+    TcpInterfaceListener(const TcpInterfaceListener& original,
+                         bslma::Allocator*           basicAllocator = 0);
+    // Create an object of type 'TcpInterfaceListener' having the value of
     // the specified 'original' object.  Use the optionally specified
     // 'basicAllocator' to supply memory.  If 'basicAllocator' is 0, the
     // currently installed default allocator is used.
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    TcpInterfaceConfig(TcpInterfaceConfig&& original) noexcept;
-    // Create an object of type 'TcpInterfaceConfig' having the value of
+    TcpInterfaceListener(TcpInterfaceListener&& original) noexcept;
+    // Create an object of type 'TcpInterfaceListener' having the value of
     // the specified 'original' object.  After performing this action, the
     // 'original' object will be left in a valid, but unspecified state.
 
-    TcpInterfaceConfig(TcpInterfaceConfig&& original,
-                       bslma::Allocator*    basicAllocator);
-    // Create an object of type 'TcpInterfaceConfig' having the value of
+    TcpInterfaceListener(TcpInterfaceListener&& original,
+                         bslma::Allocator*      basicAllocator);
+    // Create an object of type 'TcpInterfaceListener' having the value of
     // the specified 'original' object.  After performing this action, the
     // 'original' object will be left in a valid, but unspecified state.
     // Use the optionally specified 'basicAllocator' to supply memory.  If
@@ -4133,16 +4093,16 @@ class TcpInterfaceConfig {
     // used.
 #endif
 
-    ~TcpInterfaceConfig();
+    ~TcpInterfaceListener();
     // Destroy this object.
 
     // MANIPULATORS
-    TcpInterfaceConfig& operator=(const TcpInterfaceConfig& rhs);
+    TcpInterfaceListener& operator=(const TcpInterfaceListener& rhs);
     // Assign to this object the value of the specified 'rhs' object.
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    TcpInterfaceConfig& operator=(TcpInterfaceConfig&& rhs);
+    TcpInterfaceListener& operator=(TcpInterfaceListener&& rhs);
     // Assign to this object the value of the specified 'rhs' object.
     // After performing this action, the 'rhs' object will be left in a
     // valid, but unspecified state.
@@ -4188,34 +4148,6 @@ class TcpInterfaceConfig {
     int& port();
     // Return a reference to the modifiable "Port" attribute of this
     // object.
-
-    int& ioThreads();
-    // Return a reference to the modifiable "IoThreads" attribute of this
-    // object.
-
-    int& maxConnections();
-    // Return a reference to the modifiable "MaxConnections" attribute of
-    // this object.
-
-    bsls::Types::Int64& lowWatermark();
-    // Return a reference to the modifiable "LowWatermark" attribute of
-    // this object.
-
-    bsls::Types::Int64& highWatermark();
-    // Return a reference to the modifiable "HighWatermark" attribute of
-    // this object.
-
-    bsls::Types::Int64& nodeLowWatermark();
-    // Return a reference to the modifiable "NodeLowWatermark" attribute of
-    // this object.
-
-    bsls::Types::Int64& nodeHighWatermark();
-    // Return a reference to the modifiable "NodeHighWatermark" attribute
-    // of this object.
-
-    int& heartbeatIntervalMs();
-    // Return a reference to the modifiable "HeartbeatIntervalMs" attribute
-    // of this object.
 
     // ACCESSORS
     bsl::ostream&
@@ -4267,48 +4199,25 @@ class TcpInterfaceConfig {
     int port() const;
     // Return the value of the "Port" attribute of this object.
 
-    int ioThreads() const;
-    // Return the value of the "IoThreads" attribute of this object.
-
-    int maxConnections() const;
-    // Return the value of the "MaxConnections" attribute of this object.
-
-    bsls::Types::Int64 lowWatermark() const;
-    // Return the value of the "LowWatermark" attribute of this object.
-
-    bsls::Types::Int64 highWatermark() const;
-    // Return the value of the "HighWatermark" attribute of this object.
-
-    bsls::Types::Int64 nodeLowWatermark() const;
-    // Return the value of the "NodeLowWatermark" attribute of this object.
-
-    bsls::Types::Int64 nodeHighWatermark() const;
-    // Return the value of the "NodeHighWatermark" attribute of this
-    // object.
-
-    int heartbeatIntervalMs() const;
-    // Return the value of the "HeartbeatIntervalMs" attribute of this
-    // object.
-
     // HIDDEN FRIENDS
-    friend bool operator==(const TcpInterfaceConfig& lhs,
-                           const TcpInterfaceConfig& rhs)
+    friend bool operator==(const TcpInterfaceListener& lhs,
+                           const TcpInterfaceListener& rhs)
     // Return 'true' if the specified 'lhs' and 'rhs' attribute objects
     // have the same value, and 'false' otherwise.  Two attribute objects
     // have the same value if each respective attribute has the same value.
     {
-        return lhs.isEqualTo(rhs);
+        return lhs.name() == rhs.name() && lhs.port() == rhs.port();
     }
 
-    friend bool operator!=(const TcpInterfaceConfig& lhs,
-                           const TcpInterfaceConfig& rhs)
+    friend bool operator!=(const TcpInterfaceListener& lhs,
+                           const TcpInterfaceListener& rhs)
     // Returns '!(lhs == rhs)'
     {
         return !(lhs == rhs);
     }
 
-    friend bsl::ostream& operator<<(bsl::ostream&             stream,
-                                    const TcpInterfaceConfig& rhs)
+    friend bsl::ostream& operator<<(bsl::ostream&               stream,
+                                    const TcpInterfaceListener& rhs)
     // Format the specified 'rhs' to the specified output 'stream' and
     // return a reference to the modifiable 'stream'.
     {
@@ -4316,14 +4225,16 @@ class TcpInterfaceConfig {
     }
 
     template <typename t_HASH_ALGORITHM>
-    friend void hashAppend(t_HASH_ALGORITHM&         hashAlg,
-                           const TcpInterfaceConfig& object)
+    friend void hashAppend(t_HASH_ALGORITHM&           hashAlg,
+                           const TcpInterfaceListener& object)
     // Pass the specified 'object' to the specified 'hashAlg'.  This
     // function integrates with the 'bslh' modular hashing system and
     // effectively provides a 'bsl::hash' specialization for
-    // 'TcpInterfaceConfig'.
+    // 'TcpInterfaceListener'.
     {
-        object.hashAppendImpl(hashAlg);
+        using bslh::hashAppend;
+        hashAppend(hashAlg, object.name());
+        hashAppend(hashAlg, object.port());
     }
 };
 
@@ -4332,7 +4243,7 @@ class TcpInterfaceConfig {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcfg::TcpInterfaceConfig)
+    mqbcfg::TcpInterfaceListener)
 
 namespace mqbcfg {
 
@@ -5286,227 +5197,6 @@ BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
 
 namespace mqbcfg {
 
-// =======================
-// class NetworkInterfaces
-// =======================
-
-class NetworkInterfaces {
-    // INSTANCE DATA
-    bdlb::NullableValue<TcpInterfaceConfig> d_tcpInterface;
-    Heartbeat                               d_heartbeats;
-
-  public:
-    // TYPES
-    enum { ATTRIBUTE_ID_HEARTBEATS = 0, ATTRIBUTE_ID_TCP_INTERFACE = 1 };
-
-    enum { NUM_ATTRIBUTES = 2 };
-
-    enum { ATTRIBUTE_INDEX_HEARTBEATS = 0, ATTRIBUTE_INDEX_TCP_INTERFACE = 1 };
-
-    // CONSTANTS
-    static const char CLASS_NAME[];
-
-    static const bdlat_AttributeInfo ATTRIBUTE_INFO_ARRAY[];
-
-  public:
-    // CLASS METHODS
-    static const bdlat_AttributeInfo* lookupAttributeInfo(int id);
-    // Return attribute information for the attribute indicated by the
-    // specified 'id' if the attribute exists, and 0 otherwise.
-
-    static const bdlat_AttributeInfo* lookupAttributeInfo(const char* name,
-                                                          int nameLength);
-    // Return attribute information for the attribute indicated by the
-    // specified 'name' of the specified 'nameLength' if the attribute
-    // exists, and 0 otherwise.
-
-    // CREATORS
-    explicit NetworkInterfaces(bslma::Allocator* basicAllocator = 0);
-    // Create an object of type 'NetworkInterfaces' having the default
-    // value.  Use the optionally specified 'basicAllocator' to supply
-    // memory.  If 'basicAllocator' is 0, the currently installed default
-    // allocator is used.
-
-    NetworkInterfaces(const NetworkInterfaces& original,
-                      bslma::Allocator*        basicAllocator = 0);
-    // Create an object of type 'NetworkInterfaces' having the value of the
-    // specified 'original' object.  Use the optionally specified
-    // 'basicAllocator' to supply memory.  If 'basicAllocator' is 0, the
-    // currently installed default allocator is used.
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    NetworkInterfaces(NetworkInterfaces&& original) noexcept;
-    // Create an object of type 'NetworkInterfaces' having the value of the
-    // specified 'original' object.  After performing this action, the
-    // 'original' object will be left in a valid, but unspecified state.
-
-    NetworkInterfaces(NetworkInterfaces&& original,
-                      bslma::Allocator*   basicAllocator);
-    // Create an object of type 'NetworkInterfaces' having the value of the
-    // specified 'original' object.  After performing this action, the
-    // 'original' object will be left in a valid, but unspecified state.
-    // Use the optionally specified 'basicAllocator' to supply memory.  If
-    // 'basicAllocator' is 0, the currently installed default allocator is
-    // used.
-#endif
-
-    ~NetworkInterfaces();
-    // Destroy this object.
-
-    // MANIPULATORS
-    NetworkInterfaces& operator=(const NetworkInterfaces& rhs);
-    // Assign to this object the value of the specified 'rhs' object.
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    NetworkInterfaces& operator=(NetworkInterfaces&& rhs);
-    // Assign to this object the value of the specified 'rhs' object.
-    // After performing this action, the 'rhs' object will be left in a
-    // valid, but unspecified state.
-#endif
-
-    void reset();
-    // Reset this object to the default value (i.e., its value upon
-    // default construction).
-
-    template <typename t_MANIPULATOR>
-    int manipulateAttributes(t_MANIPULATOR& manipulator);
-    // Invoke the specified 'manipulator' sequentially on the address of
-    // each (modifiable) attribute of this object, supplying 'manipulator'
-    // with the corresponding attribute information structure until such
-    // invocation returns a non-zero value.  Return the value from the
-    // last invocation of 'manipulator' (i.e., the invocation that
-    // terminated the sequence).
-
-    template <typename t_MANIPULATOR>
-    int manipulateAttribute(t_MANIPULATOR& manipulator, int id);
-    // Invoke the specified 'manipulator' on the address of
-    // the (modifiable) attribute indicated by the specified 'id',
-    // supplying 'manipulator' with the corresponding attribute
-    // information structure.  Return the value returned from the
-    // invocation of 'manipulator' if 'id' identifies an attribute of this
-    // class, and -1 otherwise.
-
-    template <typename t_MANIPULATOR>
-    int manipulateAttribute(t_MANIPULATOR& manipulator,
-                            const char*    name,
-                            int            nameLength);
-    // Invoke the specified 'manipulator' on the address of
-    // the (modifiable) attribute indicated by the specified 'name' of the
-    // specified 'nameLength', supplying 'manipulator' with the
-    // corresponding attribute information structure.  Return the value
-    // returned from the invocation of 'manipulator' if 'name' identifies
-    // an attribute of this class, and -1 otherwise.
-
-    Heartbeat& heartbeats();
-    // Return a reference to the modifiable "Heartbeats" attribute of this
-    // object.
-
-    bdlb::NullableValue<TcpInterfaceConfig>& tcpInterface();
-    // Return a reference to the modifiable "TcpInterface" attribute of
-    // this object.
-
-    // ACCESSORS
-    bsl::ostream&
-    print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
-    // Format this object to the specified output 'stream' at the
-    // optionally specified indentation 'level' and return a reference to
-    // the modifiable 'stream'.  If 'level' is specified, optionally
-    // specify 'spacesPerLevel', the number of spaces per indentation level
-    // for this and all of its nested objects.  Each line is indented by
-    // the absolute value of 'level * spacesPerLevel'.  If 'level' is
-    // negative, suppress indentation of the first line.  If
-    // 'spacesPerLevel' is negative, suppress line breaks and format the
-    // entire output on one line.  If 'stream' is initially invalid, this
-    // operation has no effect.  Note that a trailing newline is provided
-    // in multiline mode only.
-
-    template <typename t_ACCESSOR>
-    int accessAttributes(t_ACCESSOR& accessor) const;
-    // Invoke the specified 'accessor' sequentially on each
-    // (non-modifiable) attribute of this object, supplying 'accessor'
-    // with the corresponding attribute information structure until such
-    // invocation returns a non-zero value.  Return the value from the
-    // last invocation of 'accessor' (i.e., the invocation that terminated
-    // the sequence).
-
-    template <typename t_ACCESSOR>
-    int accessAttribute(t_ACCESSOR& accessor, int id) const;
-    // Invoke the specified 'accessor' on the (non-modifiable) attribute
-    // of this object indicated by the specified 'id', supplying 'accessor'
-    // with the corresponding attribute information structure.  Return the
-    // value returned from the invocation of 'accessor' if 'id' identifies
-    // an attribute of this class, and -1 otherwise.
-
-    template <typename t_ACCESSOR>
-    int accessAttribute(t_ACCESSOR& accessor,
-                        const char* name,
-                        int         nameLength) const;
-    // Invoke the specified 'accessor' on the (non-modifiable) attribute
-    // of this object indicated by the specified 'name' of the specified
-    // 'nameLength', supplying 'accessor' with the corresponding attribute
-    // information structure.  Return the value returned from the
-    // invocation of 'accessor' if 'name' identifies an attribute of this
-    // class, and -1 otherwise.
-
-    const Heartbeat& heartbeats() const;
-    // Return a reference offering non-modifiable access to the
-    // "Heartbeats" attribute of this object.
-
-    const bdlb::NullableValue<TcpInterfaceConfig>& tcpInterface() const;
-    // Return a reference offering non-modifiable access to the
-    // "TcpInterface" attribute of this object.
-
-    // HIDDEN FRIENDS
-    friend bool operator==(const NetworkInterfaces& lhs,
-                           const NetworkInterfaces& rhs)
-    // Return 'true' if the specified 'lhs' and 'rhs' attribute objects
-    // have the same value, and 'false' otherwise.  Two attribute objects
-    // have the same value if each respective attribute has the same value.
-    {
-        return lhs.heartbeats() == rhs.heartbeats() &&
-               lhs.tcpInterface() == rhs.tcpInterface();
-    }
-
-    friend bool operator!=(const NetworkInterfaces& lhs,
-                           const NetworkInterfaces& rhs)
-    // Returns '!(lhs == rhs)'
-    {
-        return !(lhs == rhs);
-    }
-
-    friend bsl::ostream& operator<<(bsl::ostream&            stream,
-                                    const NetworkInterfaces& rhs)
-    // Format the specified 'rhs' to the specified output 'stream' and
-    // return a reference to the modifiable 'stream'.
-    {
-        return rhs.print(stream, 0, -1);
-    }
-
-    template <typename t_HASH_ALGORITHM>
-    friend void hashAppend(t_HASH_ALGORITHM&        hashAlg,
-                           const NetworkInterfaces& object)
-    // Pass the specified 'object' to the specified 'hashAlg'.  This
-    // function integrates with the 'bslh' modular hashing system and
-    // effectively provides a 'bsl::hash' specialization for
-    // 'NetworkInterfaces'.
-    {
-        using bslh::hashAppend;
-        hashAppend(hashAlg, object.heartbeats());
-        hashAppend(hashAlg, object.tcpInterface());
-    }
-};
-
-}  // close package namespace
-
-// TRAITS
-
-BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    mqbcfg::NetworkInterfaces)
-
-namespace mqbcfg {
-
 // =====================
 // class PartitionConfig
 // =====================
@@ -6098,6 +5788,338 @@ BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
 
 namespace mqbcfg {
 
+// ========================
+// class TcpInterfaceConfig
+// ========================
+
+class TcpInterfaceConfig {
+    // name.................: The name of the TCP session manager.
+    // port.................: (Deprecated) The port to receive connections.
+    // lowWatermark.........: highWatermark........: Watermarks used for
+    // channels with a client or proxy.  nodeLowWatermark.....:
+    // nodeHighWatermark....: Reduced watermarks for communication between
+    // cluster nodes where BlazingMQ maintains its own cache.
+    // heartbeatIntervalMs..: How often (in milliseconds) to check if the
+    // channel received data, and emit heartbeat.  0 to globally disable.
+    // listeners: A list of listener interfaces to receive TCP connections
+    // from.  When non-empty this option overrides the listener specified by
+    // port.
+
+    // INSTANCE DATA
+    bsls::Types::Int64                d_lowWatermark;
+    bsls::Types::Int64                d_highWatermark;
+    bsls::Types::Int64                d_nodeLowWatermark;
+    bsls::Types::Int64                d_nodeHighWatermark;
+    bsl::vector<TcpInterfaceListener> d_listeners;
+    bsl::string                       d_name;
+    int                               d_port;
+    int                               d_ioThreads;
+    int                               d_maxConnections;
+    int                               d_heartbeatIntervalMs;
+
+    // PRIVATE ACCESSORS
+    template <typename t_HASH_ALGORITHM>
+    void hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const;
+
+    bool isEqualTo(const TcpInterfaceConfig& rhs) const;
+
+  public:
+    // TYPES
+    enum {
+        ATTRIBUTE_ID_NAME                  = 0,
+        ATTRIBUTE_ID_PORT                  = 1,
+        ATTRIBUTE_ID_IO_THREADS            = 2,
+        ATTRIBUTE_ID_MAX_CONNECTIONS       = 3,
+        ATTRIBUTE_ID_LOW_WATERMARK         = 4,
+        ATTRIBUTE_ID_HIGH_WATERMARK        = 5,
+        ATTRIBUTE_ID_NODE_LOW_WATERMARK    = 6,
+        ATTRIBUTE_ID_NODE_HIGH_WATERMARK   = 7,
+        ATTRIBUTE_ID_HEARTBEAT_INTERVAL_MS = 8,
+        ATTRIBUTE_ID_LISTENERS             = 9
+    };
+
+    enum { NUM_ATTRIBUTES = 10 };
+
+    enum {
+        ATTRIBUTE_INDEX_NAME                  = 0,
+        ATTRIBUTE_INDEX_PORT                  = 1,
+        ATTRIBUTE_INDEX_IO_THREADS            = 2,
+        ATTRIBUTE_INDEX_MAX_CONNECTIONS       = 3,
+        ATTRIBUTE_INDEX_LOW_WATERMARK         = 4,
+        ATTRIBUTE_INDEX_HIGH_WATERMARK        = 5,
+        ATTRIBUTE_INDEX_NODE_LOW_WATERMARK    = 6,
+        ATTRIBUTE_INDEX_NODE_HIGH_WATERMARK   = 7,
+        ATTRIBUTE_INDEX_HEARTBEAT_INTERVAL_MS = 8,
+        ATTRIBUTE_INDEX_LISTENERS             = 9
+    };
+
+    // CONSTANTS
+    static const char CLASS_NAME[];
+
+    static const int DEFAULT_INITIALIZER_MAX_CONNECTIONS;
+
+    static const bsls::Types::Int64 DEFAULT_INITIALIZER_NODE_LOW_WATERMARK;
+
+    static const bsls::Types::Int64 DEFAULT_INITIALIZER_NODE_HIGH_WATERMARK;
+
+    static const int DEFAULT_INITIALIZER_HEARTBEAT_INTERVAL_MS;
+
+    static const bdlat_AttributeInfo ATTRIBUTE_INFO_ARRAY[];
+
+  public:
+    // CLASS METHODS
+    static const bdlat_AttributeInfo* lookupAttributeInfo(int id);
+    // Return attribute information for the attribute indicated by the
+    // specified 'id' if the attribute exists, and 0 otherwise.
+
+    static const bdlat_AttributeInfo* lookupAttributeInfo(const char* name,
+                                                          int nameLength);
+    // Return attribute information for the attribute indicated by the
+    // specified 'name' of the specified 'nameLength' if the attribute
+    // exists, and 0 otherwise.
+
+    // CREATORS
+    explicit TcpInterfaceConfig(bslma::Allocator* basicAllocator = 0);
+    // Create an object of type 'TcpInterfaceConfig' having the default
+    // value.  Use the optionally specified 'basicAllocator' to supply
+    // memory.  If 'basicAllocator' is 0, the currently installed default
+    // allocator is used.
+
+    TcpInterfaceConfig(const TcpInterfaceConfig& original,
+                       bslma::Allocator*         basicAllocator = 0);
+    // Create an object of type 'TcpInterfaceConfig' having the value of
+    // the specified 'original' object.  Use the optionally specified
+    // 'basicAllocator' to supply memory.  If 'basicAllocator' is 0, the
+    // currently installed default allocator is used.
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+    TcpInterfaceConfig(TcpInterfaceConfig&& original) noexcept;
+    // Create an object of type 'TcpInterfaceConfig' having the value of
+    // the specified 'original' object.  After performing this action, the
+    // 'original' object will be left in a valid, but unspecified state.
+
+    TcpInterfaceConfig(TcpInterfaceConfig&& original,
+                       bslma::Allocator*    basicAllocator);
+    // Create an object of type 'TcpInterfaceConfig' having the value of
+    // the specified 'original' object.  After performing this action, the
+    // 'original' object will be left in a valid, but unspecified state.
+    // Use the optionally specified 'basicAllocator' to supply memory.  If
+    // 'basicAllocator' is 0, the currently installed default allocator is
+    // used.
+#endif
+
+    ~TcpInterfaceConfig();
+    // Destroy this object.
+
+    // MANIPULATORS
+    TcpInterfaceConfig& operator=(const TcpInterfaceConfig& rhs);
+    // Assign to this object the value of the specified 'rhs' object.
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+    TcpInterfaceConfig& operator=(TcpInterfaceConfig&& rhs);
+    // Assign to this object the value of the specified 'rhs' object.
+    // After performing this action, the 'rhs' object will be left in a
+    // valid, but unspecified state.
+#endif
+
+    void reset();
+    // Reset this object to the default value (i.e., its value upon
+    // default construction).
+
+    template <typename t_MANIPULATOR>
+    int manipulateAttributes(t_MANIPULATOR& manipulator);
+    // Invoke the specified 'manipulator' sequentially on the address of
+    // each (modifiable) attribute of this object, supplying 'manipulator'
+    // with the corresponding attribute information structure until such
+    // invocation returns a non-zero value.  Return the value from the
+    // last invocation of 'manipulator' (i.e., the invocation that
+    // terminated the sequence).
+
+    template <typename t_MANIPULATOR>
+    int manipulateAttribute(t_MANIPULATOR& manipulator, int id);
+    // Invoke the specified 'manipulator' on the address of
+    // the (modifiable) attribute indicated by the specified 'id',
+    // supplying 'manipulator' with the corresponding attribute
+    // information structure.  Return the value returned from the
+    // invocation of 'manipulator' if 'id' identifies an attribute of this
+    // class, and -1 otherwise.
+
+    template <typename t_MANIPULATOR>
+    int manipulateAttribute(t_MANIPULATOR& manipulator,
+                            const char*    name,
+                            int            nameLength);
+    // Invoke the specified 'manipulator' on the address of
+    // the (modifiable) attribute indicated by the specified 'name' of the
+    // specified 'nameLength', supplying 'manipulator' with the
+    // corresponding attribute information structure.  Return the value
+    // returned from the invocation of 'manipulator' if 'name' identifies
+    // an attribute of this class, and -1 otherwise.
+
+    bsl::string& name();
+    // Return a reference to the modifiable "Name" attribute of this
+    // object.
+
+    int& port();
+    // Return a reference to the modifiable "Port" attribute of this
+    // object.
+
+    int& ioThreads();
+    // Return a reference to the modifiable "IoThreads" attribute of this
+    // object.
+
+    int& maxConnections();
+    // Return a reference to the modifiable "MaxConnections" attribute of
+    // this object.
+
+    bsls::Types::Int64& lowWatermark();
+    // Return a reference to the modifiable "LowWatermark" attribute of
+    // this object.
+
+    bsls::Types::Int64& highWatermark();
+    // Return a reference to the modifiable "HighWatermark" attribute of
+    // this object.
+
+    bsls::Types::Int64& nodeLowWatermark();
+    // Return a reference to the modifiable "NodeLowWatermark" attribute of
+    // this object.
+
+    bsls::Types::Int64& nodeHighWatermark();
+    // Return a reference to the modifiable "NodeHighWatermark" attribute
+    // of this object.
+
+    int& heartbeatIntervalMs();
+    // Return a reference to the modifiable "HeartbeatIntervalMs" attribute
+    // of this object.
+
+    bsl::vector<TcpInterfaceListener>& listeners();
+    // Return a reference to the modifiable "Listeners" attribute of this
+    // object.
+
+    // ACCESSORS
+    bsl::ostream&
+    print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
+    // Format this object to the specified output 'stream' at the
+    // optionally specified indentation 'level' and return a reference to
+    // the modifiable 'stream'.  If 'level' is specified, optionally
+    // specify 'spacesPerLevel', the number of spaces per indentation level
+    // for this and all of its nested objects.  Each line is indented by
+    // the absolute value of 'level * spacesPerLevel'.  If 'level' is
+    // negative, suppress indentation of the first line.  If
+    // 'spacesPerLevel' is negative, suppress line breaks and format the
+    // entire output on one line.  If 'stream' is initially invalid, this
+    // operation has no effect.  Note that a trailing newline is provided
+    // in multiline mode only.
+
+    template <typename t_ACCESSOR>
+    int accessAttributes(t_ACCESSOR& accessor) const;
+    // Invoke the specified 'accessor' sequentially on each
+    // (non-modifiable) attribute of this object, supplying 'accessor'
+    // with the corresponding attribute information structure until such
+    // invocation returns a non-zero value.  Return the value from the
+    // last invocation of 'accessor' (i.e., the invocation that terminated
+    // the sequence).
+
+    template <typename t_ACCESSOR>
+    int accessAttribute(t_ACCESSOR& accessor, int id) const;
+    // Invoke the specified 'accessor' on the (non-modifiable) attribute
+    // of this object indicated by the specified 'id', supplying 'accessor'
+    // with the corresponding attribute information structure.  Return the
+    // value returned from the invocation of 'accessor' if 'id' identifies
+    // an attribute of this class, and -1 otherwise.
+
+    template <typename t_ACCESSOR>
+    int accessAttribute(t_ACCESSOR& accessor,
+                        const char* name,
+                        int         nameLength) const;
+    // Invoke the specified 'accessor' on the (non-modifiable) attribute
+    // of this object indicated by the specified 'name' of the specified
+    // 'nameLength', supplying 'accessor' with the corresponding attribute
+    // information structure.  Return the value returned from the
+    // invocation of 'accessor' if 'name' identifies an attribute of this
+    // class, and -1 otherwise.
+
+    const bsl::string& name() const;
+    // Return a reference offering non-modifiable access to the "Name"
+    // attribute of this object.
+
+    int port() const;
+    // Return the value of the "Port" attribute of this object.
+
+    int ioThreads() const;
+    // Return the value of the "IoThreads" attribute of this object.
+
+    int maxConnections() const;
+    // Return the value of the "MaxConnections" attribute of this object.
+
+    bsls::Types::Int64 lowWatermark() const;
+    // Return the value of the "LowWatermark" attribute of this object.
+
+    bsls::Types::Int64 highWatermark() const;
+    // Return the value of the "HighWatermark" attribute of this object.
+
+    bsls::Types::Int64 nodeLowWatermark() const;
+    // Return the value of the "NodeLowWatermark" attribute of this object.
+
+    bsls::Types::Int64 nodeHighWatermark() const;
+    // Return the value of the "NodeHighWatermark" attribute of this
+    // object.
+
+    int heartbeatIntervalMs() const;
+    // Return the value of the "HeartbeatIntervalMs" attribute of this
+    // object.
+
+    const bsl::vector<TcpInterfaceListener>& listeners() const;
+    // Return a reference offering non-modifiable access to the "Listeners"
+    // attribute of this object.
+
+    // HIDDEN FRIENDS
+    friend bool operator==(const TcpInterfaceConfig& lhs,
+                           const TcpInterfaceConfig& rhs)
+    // Return 'true' if the specified 'lhs' and 'rhs' attribute objects
+    // have the same value, and 'false' otherwise.  Two attribute objects
+    // have the same value if each respective attribute has the same value.
+    {
+        return lhs.isEqualTo(rhs);
+    }
+
+    friend bool operator!=(const TcpInterfaceConfig& lhs,
+                           const TcpInterfaceConfig& rhs)
+    // Returns '!(lhs == rhs)'
+    {
+        return !(lhs == rhs);
+    }
+
+    friend bsl::ostream& operator<<(bsl::ostream&             stream,
+                                    const TcpInterfaceConfig& rhs)
+    // Format the specified 'rhs' to the specified output 'stream' and
+    // return a reference to the modifiable 'stream'.
+    {
+        return rhs.print(stream, 0, -1);
+    }
+
+    template <typename t_HASH_ALGORITHM>
+    friend void hashAppend(t_HASH_ALGORITHM&         hashAlg,
+                           const TcpInterfaceConfig& object)
+    // Pass the specified 'object' to the specified 'hashAlg'.  This
+    // function integrates with the 'bslh' modular hashing system and
+    // effectively provides a 'bsl::hash' specialization for
+    // 'TcpInterfaceConfig'.
+    {
+        object.hashAppendImpl(hashAlg);
+    }
+};
+
+}  // close package namespace
+
+// TRAITS
+
+BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
+    mqbcfg::TcpInterfaceConfig)
+
+namespace mqbcfg {
+
 // =================
 // class ClusterNode
 // =================
@@ -6546,6 +6568,227 @@ class DispatcherConfig {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::DispatcherConfig)
+
+namespace mqbcfg {
+
+// =======================
+// class NetworkInterfaces
+// =======================
+
+class NetworkInterfaces {
+    // INSTANCE DATA
+    bdlb::NullableValue<TcpInterfaceConfig> d_tcpInterface;
+    Heartbeat                               d_heartbeats;
+
+  public:
+    // TYPES
+    enum { ATTRIBUTE_ID_HEARTBEATS = 0, ATTRIBUTE_ID_TCP_INTERFACE = 1 };
+
+    enum { NUM_ATTRIBUTES = 2 };
+
+    enum { ATTRIBUTE_INDEX_HEARTBEATS = 0, ATTRIBUTE_INDEX_TCP_INTERFACE = 1 };
+
+    // CONSTANTS
+    static const char CLASS_NAME[];
+
+    static const bdlat_AttributeInfo ATTRIBUTE_INFO_ARRAY[];
+
+  public:
+    // CLASS METHODS
+    static const bdlat_AttributeInfo* lookupAttributeInfo(int id);
+    // Return attribute information for the attribute indicated by the
+    // specified 'id' if the attribute exists, and 0 otherwise.
+
+    static const bdlat_AttributeInfo* lookupAttributeInfo(const char* name,
+                                                          int nameLength);
+    // Return attribute information for the attribute indicated by the
+    // specified 'name' of the specified 'nameLength' if the attribute
+    // exists, and 0 otherwise.
+
+    // CREATORS
+    explicit NetworkInterfaces(bslma::Allocator* basicAllocator = 0);
+    // Create an object of type 'NetworkInterfaces' having the default
+    // value.  Use the optionally specified 'basicAllocator' to supply
+    // memory.  If 'basicAllocator' is 0, the currently installed default
+    // allocator is used.
+
+    NetworkInterfaces(const NetworkInterfaces& original,
+                      bslma::Allocator*        basicAllocator = 0);
+    // Create an object of type 'NetworkInterfaces' having the value of the
+    // specified 'original' object.  Use the optionally specified
+    // 'basicAllocator' to supply memory.  If 'basicAllocator' is 0, the
+    // currently installed default allocator is used.
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+    NetworkInterfaces(NetworkInterfaces&& original) noexcept;
+    // Create an object of type 'NetworkInterfaces' having the value of the
+    // specified 'original' object.  After performing this action, the
+    // 'original' object will be left in a valid, but unspecified state.
+
+    NetworkInterfaces(NetworkInterfaces&& original,
+                      bslma::Allocator*   basicAllocator);
+    // Create an object of type 'NetworkInterfaces' having the value of the
+    // specified 'original' object.  After performing this action, the
+    // 'original' object will be left in a valid, but unspecified state.
+    // Use the optionally specified 'basicAllocator' to supply memory.  If
+    // 'basicAllocator' is 0, the currently installed default allocator is
+    // used.
+#endif
+
+    ~NetworkInterfaces();
+    // Destroy this object.
+
+    // MANIPULATORS
+    NetworkInterfaces& operator=(const NetworkInterfaces& rhs);
+    // Assign to this object the value of the specified 'rhs' object.
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+    NetworkInterfaces& operator=(NetworkInterfaces&& rhs);
+    // Assign to this object the value of the specified 'rhs' object.
+    // After performing this action, the 'rhs' object will be left in a
+    // valid, but unspecified state.
+#endif
+
+    void reset();
+    // Reset this object to the default value (i.e., its value upon
+    // default construction).
+
+    template <typename t_MANIPULATOR>
+    int manipulateAttributes(t_MANIPULATOR& manipulator);
+    // Invoke the specified 'manipulator' sequentially on the address of
+    // each (modifiable) attribute of this object, supplying 'manipulator'
+    // with the corresponding attribute information structure until such
+    // invocation returns a non-zero value.  Return the value from the
+    // last invocation of 'manipulator' (i.e., the invocation that
+    // terminated the sequence).
+
+    template <typename t_MANIPULATOR>
+    int manipulateAttribute(t_MANIPULATOR& manipulator, int id);
+    // Invoke the specified 'manipulator' on the address of
+    // the (modifiable) attribute indicated by the specified 'id',
+    // supplying 'manipulator' with the corresponding attribute
+    // information structure.  Return the value returned from the
+    // invocation of 'manipulator' if 'id' identifies an attribute of this
+    // class, and -1 otherwise.
+
+    template <typename t_MANIPULATOR>
+    int manipulateAttribute(t_MANIPULATOR& manipulator,
+                            const char*    name,
+                            int            nameLength);
+    // Invoke the specified 'manipulator' on the address of
+    // the (modifiable) attribute indicated by the specified 'name' of the
+    // specified 'nameLength', supplying 'manipulator' with the
+    // corresponding attribute information structure.  Return the value
+    // returned from the invocation of 'manipulator' if 'name' identifies
+    // an attribute of this class, and -1 otherwise.
+
+    Heartbeat& heartbeats();
+    // Return a reference to the modifiable "Heartbeats" attribute of this
+    // object.
+
+    bdlb::NullableValue<TcpInterfaceConfig>& tcpInterface();
+    // Return a reference to the modifiable "TcpInterface" attribute of
+    // this object.
+
+    // ACCESSORS
+    bsl::ostream&
+    print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
+    // Format this object to the specified output 'stream' at the
+    // optionally specified indentation 'level' and return a reference to
+    // the modifiable 'stream'.  If 'level' is specified, optionally
+    // specify 'spacesPerLevel', the number of spaces per indentation level
+    // for this and all of its nested objects.  Each line is indented by
+    // the absolute value of 'level * spacesPerLevel'.  If 'level' is
+    // negative, suppress indentation of the first line.  If
+    // 'spacesPerLevel' is negative, suppress line breaks and format the
+    // entire output on one line.  If 'stream' is initially invalid, this
+    // operation has no effect.  Note that a trailing newline is provided
+    // in multiline mode only.
+
+    template <typename t_ACCESSOR>
+    int accessAttributes(t_ACCESSOR& accessor) const;
+    // Invoke the specified 'accessor' sequentially on each
+    // (non-modifiable) attribute of this object, supplying 'accessor'
+    // with the corresponding attribute information structure until such
+    // invocation returns a non-zero value.  Return the value from the
+    // last invocation of 'accessor' (i.e., the invocation that terminated
+    // the sequence).
+
+    template <typename t_ACCESSOR>
+    int accessAttribute(t_ACCESSOR& accessor, int id) const;
+    // Invoke the specified 'accessor' on the (non-modifiable) attribute
+    // of this object indicated by the specified 'id', supplying 'accessor'
+    // with the corresponding attribute information structure.  Return the
+    // value returned from the invocation of 'accessor' if 'id' identifies
+    // an attribute of this class, and -1 otherwise.
+
+    template <typename t_ACCESSOR>
+    int accessAttribute(t_ACCESSOR& accessor,
+                        const char* name,
+                        int         nameLength) const;
+    // Invoke the specified 'accessor' on the (non-modifiable) attribute
+    // of this object indicated by the specified 'name' of the specified
+    // 'nameLength', supplying 'accessor' with the corresponding attribute
+    // information structure.  Return the value returned from the
+    // invocation of 'accessor' if 'name' identifies an attribute of this
+    // class, and -1 otherwise.
+
+    const Heartbeat& heartbeats() const;
+    // Return a reference offering non-modifiable access to the
+    // "Heartbeats" attribute of this object.
+
+    const bdlb::NullableValue<TcpInterfaceConfig>& tcpInterface() const;
+    // Return a reference offering non-modifiable access to the
+    // "TcpInterface" attribute of this object.
+
+    // HIDDEN FRIENDS
+    friend bool operator==(const NetworkInterfaces& lhs,
+                           const NetworkInterfaces& rhs)
+    // Return 'true' if the specified 'lhs' and 'rhs' attribute objects
+    // have the same value, and 'false' otherwise.  Two attribute objects
+    // have the same value if each respective attribute has the same value.
+    {
+        return lhs.heartbeats() == rhs.heartbeats() &&
+               lhs.tcpInterface() == rhs.tcpInterface();
+    }
+
+    friend bool operator!=(const NetworkInterfaces& lhs,
+                           const NetworkInterfaces& rhs)
+    // Returns '!(lhs == rhs)'
+    {
+        return !(lhs == rhs);
+    }
+
+    friend bsl::ostream& operator<<(bsl::ostream&            stream,
+                                    const NetworkInterfaces& rhs)
+    // Format the specified 'rhs' to the specified output 'stream' and
+    // return a reference to the modifiable 'stream'.
+    {
+        return rhs.print(stream, 0, -1);
+    }
+
+    template <typename t_HASH_ALGORITHM>
+    friend void hashAppend(t_HASH_ALGORITHM&        hashAlg,
+                           const NetworkInterfaces& object)
+    // Pass the specified 'object' to the specified 'hashAlg'.  This
+    // function integrates with the 'bslh' modular hashing system and
+    // effectively provides a 'bsl::hash' specialization for
+    // 'NetworkInterfaces'.
+    {
+        using bslh::hashAppend;
+        hashAppend(hashAlg, object.heartbeats());
+        hashAppend(hashAlg, object.tcpInterface());
+    }
+};
+
+}  // close package namespace
+
+// TRAITS
+
+BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
+    mqbcfg::NetworkInterfaces)
 
 namespace mqbcfg {
 
@@ -12717,42 +12960,14 @@ inline const bsl::string& TcpClusterNodeConnection::endpoint() const
     return d_endpoint;
 }
 
-// ------------------------
-// class TcpInterfaceConfig
-// ------------------------
-
-// PRIVATE ACCESSORS
-template <typename t_HASH_ALGORITHM>
-void TcpInterfaceConfig::hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const
-{
-    using bslh::hashAppend;
-    hashAppend(hashAlgorithm, this->name());
-    hashAppend(hashAlgorithm, this->port());
-    hashAppend(hashAlgorithm, this->ioThreads());
-    hashAppend(hashAlgorithm, this->maxConnections());
-    hashAppend(hashAlgorithm, this->lowWatermark());
-    hashAppend(hashAlgorithm, this->highWatermark());
-    hashAppend(hashAlgorithm, this->nodeLowWatermark());
-    hashAppend(hashAlgorithm, this->nodeHighWatermark());
-    hashAppend(hashAlgorithm, this->heartbeatIntervalMs());
-}
-
-inline bool TcpInterfaceConfig::isEqualTo(const TcpInterfaceConfig& rhs) const
-{
-    return this->name() == rhs.name() && this->port() == rhs.port() &&
-           this->ioThreads() == rhs.ioThreads() &&
-           this->maxConnections() == rhs.maxConnections() &&
-           this->lowWatermark() == rhs.lowWatermark() &&
-           this->highWatermark() == rhs.highWatermark() &&
-           this->nodeLowWatermark() == rhs.nodeLowWatermark() &&
-           this->nodeHighWatermark() == rhs.nodeHighWatermark() &&
-           this->heartbeatIntervalMs() == rhs.heartbeatIntervalMs();
-}
+// --------------------------
+// class TcpInterfaceListener
+// --------------------------
 
 // CLASS METHODS
 // MANIPULATORS
 template <typename t_MANIPULATOR>
-int TcpInterfaceConfig::manipulateAttributes(t_MANIPULATOR& manipulator)
+int TcpInterfaceListener::manipulateAttributes(t_MANIPULATOR& manipulator)
 {
     int ret;
 
@@ -12766,56 +12981,12 @@ int TcpInterfaceConfig::manipulateAttributes(t_MANIPULATOR& manipulator)
         return ret;
     }
 
-    ret = manipulator(&d_ioThreads,
-                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_IO_THREADS]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = manipulator(&d_maxConnections,
-                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MAX_CONNECTIONS]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = manipulator(&d_lowWatermark,
-                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LOW_WATERMARK]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = manipulator(&d_highWatermark,
-                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HIGH_WATERMARK]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = manipulator(
-        &d_nodeLowWatermark,
-        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NODE_LOW_WATERMARK]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = manipulator(
-        &d_nodeHighWatermark,
-        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NODE_HIGH_WATERMARK]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = manipulator(
-        &d_heartbeatIntervalMs,
-        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HEARTBEAT_INTERVAL_MS]);
-    if (ret) {
-        return ret;
-    }
-
     return 0;
 }
 
 template <typename t_MANIPULATOR>
-int TcpInterfaceConfig::manipulateAttribute(t_MANIPULATOR& manipulator, int id)
+int TcpInterfaceListener::manipulateAttribute(t_MANIPULATOR& manipulator,
+                                              int            id)
 {
     enum { NOT_FOUND = -1 };
 
@@ -12828,48 +12999,14 @@ int TcpInterfaceConfig::manipulateAttribute(t_MANIPULATOR& manipulator, int id)
         return manipulator(&d_port,
                            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PORT]);
     }
-    case ATTRIBUTE_ID_IO_THREADS: {
-        return manipulator(&d_ioThreads,
-                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_IO_THREADS]);
-    }
-    case ATTRIBUTE_ID_MAX_CONNECTIONS: {
-        return manipulator(
-            &d_maxConnections,
-            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MAX_CONNECTIONS]);
-    }
-    case ATTRIBUTE_ID_LOW_WATERMARK: {
-        return manipulator(
-            &d_lowWatermark,
-            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LOW_WATERMARK]);
-    }
-    case ATTRIBUTE_ID_HIGH_WATERMARK: {
-        return manipulator(
-            &d_highWatermark,
-            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HIGH_WATERMARK]);
-    }
-    case ATTRIBUTE_ID_NODE_LOW_WATERMARK: {
-        return manipulator(
-            &d_nodeLowWatermark,
-            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NODE_LOW_WATERMARK]);
-    }
-    case ATTRIBUTE_ID_NODE_HIGH_WATERMARK: {
-        return manipulator(
-            &d_nodeHighWatermark,
-            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NODE_HIGH_WATERMARK]);
-    }
-    case ATTRIBUTE_ID_HEARTBEAT_INTERVAL_MS: {
-        return manipulator(
-            &d_heartbeatIntervalMs,
-            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HEARTBEAT_INTERVAL_MS]);
-    }
     default: return NOT_FOUND;
     }
 }
 
 template <typename t_MANIPULATOR>
-int TcpInterfaceConfig::manipulateAttribute(t_MANIPULATOR& manipulator,
-                                            const char*    name,
-                                            int            nameLength)
+int TcpInterfaceListener::manipulateAttribute(t_MANIPULATOR& manipulator,
+                                              const char*    name,
+                                              int            nameLength)
 {
     enum { NOT_FOUND = -1 };
 
@@ -12882,54 +13019,19 @@ int TcpInterfaceConfig::manipulateAttribute(t_MANIPULATOR& manipulator,
     return manipulateAttribute(manipulator, attributeInfo->d_id);
 }
 
-inline bsl::string& TcpInterfaceConfig::name()
+inline bsl::string& TcpInterfaceListener::name()
 {
     return d_name;
 }
 
-inline int& TcpInterfaceConfig::port()
+inline int& TcpInterfaceListener::port()
 {
     return d_port;
 }
 
-inline int& TcpInterfaceConfig::ioThreads()
-{
-    return d_ioThreads;
-}
-
-inline int& TcpInterfaceConfig::maxConnections()
-{
-    return d_maxConnections;
-}
-
-inline bsls::Types::Int64& TcpInterfaceConfig::lowWatermark()
-{
-    return d_lowWatermark;
-}
-
-inline bsls::Types::Int64& TcpInterfaceConfig::highWatermark()
-{
-    return d_highWatermark;
-}
-
-inline bsls::Types::Int64& TcpInterfaceConfig::nodeLowWatermark()
-{
-    return d_nodeLowWatermark;
-}
-
-inline bsls::Types::Int64& TcpInterfaceConfig::nodeHighWatermark()
-{
-    return d_nodeHighWatermark;
-}
-
-inline int& TcpInterfaceConfig::heartbeatIntervalMs()
-{
-    return d_heartbeatIntervalMs;
-}
-
 // ACCESSORS
 template <typename t_ACCESSOR>
-int TcpInterfaceConfig::accessAttributes(t_ACCESSOR& accessor) const
+int TcpInterfaceListener::accessAttributes(t_ACCESSOR& accessor) const
 {
     int ret;
 
@@ -12943,54 +13045,11 @@ int TcpInterfaceConfig::accessAttributes(t_ACCESSOR& accessor) const
         return ret;
     }
 
-    ret = accessor(d_ioThreads,
-                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_IO_THREADS]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = accessor(d_maxConnections,
-                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MAX_CONNECTIONS]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = accessor(d_lowWatermark,
-                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LOW_WATERMARK]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = accessor(d_highWatermark,
-                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HIGH_WATERMARK]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = accessor(d_nodeLowWatermark,
-                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NODE_LOW_WATERMARK]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = accessor(d_nodeHighWatermark,
-                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NODE_HIGH_WATERMARK]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = accessor(
-        d_heartbeatIntervalMs,
-        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HEARTBEAT_INTERVAL_MS]);
-    if (ret) {
-        return ret;
-    }
-
     return 0;
 }
 
 template <typename t_ACCESSOR>
-int TcpInterfaceConfig::accessAttribute(t_ACCESSOR& accessor, int id) const
+int TcpInterfaceListener::accessAttribute(t_ACCESSOR& accessor, int id) const
 {
     enum { NOT_FOUND = -1 };
 
@@ -13001,45 +13060,14 @@ int TcpInterfaceConfig::accessAttribute(t_ACCESSOR& accessor, int id) const
     case ATTRIBUTE_ID_PORT: {
         return accessor(d_port, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PORT]);
     }
-    case ATTRIBUTE_ID_IO_THREADS: {
-        return accessor(d_ioThreads,
-                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_IO_THREADS]);
-    }
-    case ATTRIBUTE_ID_MAX_CONNECTIONS: {
-        return accessor(d_maxConnections,
-                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MAX_CONNECTIONS]);
-    }
-    case ATTRIBUTE_ID_LOW_WATERMARK: {
-        return accessor(d_lowWatermark,
-                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LOW_WATERMARK]);
-    }
-    case ATTRIBUTE_ID_HIGH_WATERMARK: {
-        return accessor(d_highWatermark,
-                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HIGH_WATERMARK]);
-    }
-    case ATTRIBUTE_ID_NODE_LOW_WATERMARK: {
-        return accessor(
-            d_nodeLowWatermark,
-            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NODE_LOW_WATERMARK]);
-    }
-    case ATTRIBUTE_ID_NODE_HIGH_WATERMARK: {
-        return accessor(
-            d_nodeHighWatermark,
-            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NODE_HIGH_WATERMARK]);
-    }
-    case ATTRIBUTE_ID_HEARTBEAT_INTERVAL_MS: {
-        return accessor(
-            d_heartbeatIntervalMs,
-            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HEARTBEAT_INTERVAL_MS]);
-    }
     default: return NOT_FOUND;
     }
 }
 
 template <typename t_ACCESSOR>
-int TcpInterfaceConfig::accessAttribute(t_ACCESSOR& accessor,
-                                        const char* name,
-                                        int         nameLength) const
+int TcpInterfaceListener::accessAttribute(t_ACCESSOR& accessor,
+                                          const char* name,
+                                          int         nameLength) const
 {
     enum { NOT_FOUND = -1 };
 
@@ -13052,49 +13080,14 @@ int TcpInterfaceConfig::accessAttribute(t_ACCESSOR& accessor,
     return accessAttribute(accessor, attributeInfo->d_id);
 }
 
-inline const bsl::string& TcpInterfaceConfig::name() const
+inline const bsl::string& TcpInterfaceListener::name() const
 {
     return d_name;
 }
 
-inline int TcpInterfaceConfig::port() const
+inline int TcpInterfaceListener::port() const
 {
     return d_port;
-}
-
-inline int TcpInterfaceConfig::ioThreads() const
-{
-    return d_ioThreads;
-}
-
-inline int TcpInterfaceConfig::maxConnections() const
-{
-    return d_maxConnections;
-}
-
-inline bsls::Types::Int64 TcpInterfaceConfig::lowWatermark() const
-{
-    return d_lowWatermark;
-}
-
-inline bsls::Types::Int64 TcpInterfaceConfig::highWatermark() const
-{
-    return d_highWatermark;
-}
-
-inline bsls::Types::Int64 TcpInterfaceConfig::nodeLowWatermark() const
-{
-    return d_nodeLowWatermark;
-}
-
-inline bsls::Types::Int64 TcpInterfaceConfig::nodeHighWatermark() const
-{
-    return d_nodeHighWatermark;
-}
-
-inline int TcpInterfaceConfig::heartbeatIntervalMs() const
-{
-    return d_heartbeatIntervalMs;
 }
 
 // -------------------------------
@@ -13899,144 +13892,6 @@ inline const SyslogConfig& LogController::syslog() const
     return d_syslog;
 }
 
-// -----------------------
-// class NetworkInterfaces
-// -----------------------
-
-// CLASS METHODS
-// MANIPULATORS
-template <typename t_MANIPULATOR>
-int NetworkInterfaces::manipulateAttributes(t_MANIPULATOR& manipulator)
-{
-    int ret;
-
-    ret = manipulator(&d_heartbeats,
-                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HEARTBEATS]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = manipulator(&d_tcpInterface,
-                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_TCP_INTERFACE]);
-    if (ret) {
-        return ret;
-    }
-
-    return 0;
-}
-
-template <typename t_MANIPULATOR>
-int NetworkInterfaces::manipulateAttribute(t_MANIPULATOR& manipulator, int id)
-{
-    enum { NOT_FOUND = -1 };
-
-    switch (id) {
-    case ATTRIBUTE_ID_HEARTBEATS: {
-        return manipulator(&d_heartbeats,
-                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HEARTBEATS]);
-    }
-    case ATTRIBUTE_ID_TCP_INTERFACE: {
-        return manipulator(
-            &d_tcpInterface,
-            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_TCP_INTERFACE]);
-    }
-    default: return NOT_FOUND;
-    }
-}
-
-template <typename t_MANIPULATOR>
-int NetworkInterfaces::manipulateAttribute(t_MANIPULATOR& manipulator,
-                                           const char*    name,
-                                           int            nameLength)
-{
-    enum { NOT_FOUND = -1 };
-
-    const bdlat_AttributeInfo* attributeInfo = lookupAttributeInfo(name,
-                                                                   nameLength);
-    if (0 == attributeInfo) {
-        return NOT_FOUND;
-    }
-
-    return manipulateAttribute(manipulator, attributeInfo->d_id);
-}
-
-inline Heartbeat& NetworkInterfaces::heartbeats()
-{
-    return d_heartbeats;
-}
-
-inline bdlb::NullableValue<TcpInterfaceConfig>&
-NetworkInterfaces::tcpInterface()
-{
-    return d_tcpInterface;
-}
-
-// ACCESSORS
-template <typename t_ACCESSOR>
-int NetworkInterfaces::accessAttributes(t_ACCESSOR& accessor) const
-{
-    int ret;
-
-    ret = accessor(d_heartbeats,
-                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HEARTBEATS]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = accessor(d_tcpInterface,
-                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_TCP_INTERFACE]);
-    if (ret) {
-        return ret;
-    }
-
-    return 0;
-}
-
-template <typename t_ACCESSOR>
-int NetworkInterfaces::accessAttribute(t_ACCESSOR& accessor, int id) const
-{
-    enum { NOT_FOUND = -1 };
-
-    switch (id) {
-    case ATTRIBUTE_ID_HEARTBEATS: {
-        return accessor(d_heartbeats,
-                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HEARTBEATS]);
-    }
-    case ATTRIBUTE_ID_TCP_INTERFACE: {
-        return accessor(d_tcpInterface,
-                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_TCP_INTERFACE]);
-    }
-    default: return NOT_FOUND;
-    }
-}
-
-template <typename t_ACCESSOR>
-int NetworkInterfaces::accessAttribute(t_ACCESSOR& accessor,
-                                       const char* name,
-                                       int         nameLength) const
-{
-    enum { NOT_FOUND = -1 };
-
-    const bdlat_AttributeInfo* attributeInfo = lookupAttributeInfo(name,
-                                                                   nameLength);
-    if (0 == attributeInfo) {
-        return NOT_FOUND;
-    }
-
-    return accessAttribute(accessor, attributeInfo->d_id);
-}
-
-inline const Heartbeat& NetworkInterfaces::heartbeats() const
-{
-    return d_heartbeats;
-}
-
-inline const bdlb::NullableValue<TcpInterfaceConfig>&
-NetworkInterfaces::tcpInterface() const
-{
-    return d_tcpInterface;
-}
-
 // ---------------------
 // class PartitionConfig
 // ---------------------
@@ -14664,6 +14519,419 @@ inline int StatPluginConfigPrometheus::port() const
     return d_port;
 }
 
+// ------------------------
+// class TcpInterfaceConfig
+// ------------------------
+
+// PRIVATE ACCESSORS
+template <typename t_HASH_ALGORITHM>
+void TcpInterfaceConfig::hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const
+{
+    using bslh::hashAppend;
+    hashAppend(hashAlgorithm, this->name());
+    hashAppend(hashAlgorithm, this->port());
+    hashAppend(hashAlgorithm, this->ioThreads());
+    hashAppend(hashAlgorithm, this->maxConnections());
+    hashAppend(hashAlgorithm, this->lowWatermark());
+    hashAppend(hashAlgorithm, this->highWatermark());
+    hashAppend(hashAlgorithm, this->nodeLowWatermark());
+    hashAppend(hashAlgorithm, this->nodeHighWatermark());
+    hashAppend(hashAlgorithm, this->heartbeatIntervalMs());
+    hashAppend(hashAlgorithm, this->listeners());
+}
+
+inline bool TcpInterfaceConfig::isEqualTo(const TcpInterfaceConfig& rhs) const
+{
+    return this->name() == rhs.name() && this->port() == rhs.port() &&
+           this->ioThreads() == rhs.ioThreads() &&
+           this->maxConnections() == rhs.maxConnections() &&
+           this->lowWatermark() == rhs.lowWatermark() &&
+           this->highWatermark() == rhs.highWatermark() &&
+           this->nodeLowWatermark() == rhs.nodeLowWatermark() &&
+           this->nodeHighWatermark() == rhs.nodeHighWatermark() &&
+           this->heartbeatIntervalMs() == rhs.heartbeatIntervalMs() &&
+           this->listeners() == rhs.listeners();
+}
+
+// CLASS METHODS
+// MANIPULATORS
+template <typename t_MANIPULATOR>
+int TcpInterfaceConfig::manipulateAttributes(t_MANIPULATOR& manipulator)
+{
+    int ret;
+
+    ret = manipulator(&d_name, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NAME]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(&d_port, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PORT]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(&d_ioThreads,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_IO_THREADS]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(&d_maxConnections,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MAX_CONNECTIONS]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(&d_lowWatermark,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LOW_WATERMARK]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(&d_highWatermark,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HIGH_WATERMARK]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(
+        &d_nodeLowWatermark,
+        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NODE_LOW_WATERMARK]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(
+        &d_nodeHighWatermark,
+        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NODE_HIGH_WATERMARK]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(
+        &d_heartbeatIntervalMs,
+        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HEARTBEAT_INTERVAL_MS]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(&d_listeners,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LISTENERS]);
+    if (ret) {
+        return ret;
+    }
+
+    return 0;
+}
+
+template <typename t_MANIPULATOR>
+int TcpInterfaceConfig::manipulateAttribute(t_MANIPULATOR& manipulator, int id)
+{
+    enum { NOT_FOUND = -1 };
+
+    switch (id) {
+    case ATTRIBUTE_ID_NAME: {
+        return manipulator(&d_name,
+                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NAME]);
+    }
+    case ATTRIBUTE_ID_PORT: {
+        return manipulator(&d_port,
+                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PORT]);
+    }
+    case ATTRIBUTE_ID_IO_THREADS: {
+        return manipulator(&d_ioThreads,
+                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_IO_THREADS]);
+    }
+    case ATTRIBUTE_ID_MAX_CONNECTIONS: {
+        return manipulator(
+            &d_maxConnections,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MAX_CONNECTIONS]);
+    }
+    case ATTRIBUTE_ID_LOW_WATERMARK: {
+        return manipulator(
+            &d_lowWatermark,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LOW_WATERMARK]);
+    }
+    case ATTRIBUTE_ID_HIGH_WATERMARK: {
+        return manipulator(
+            &d_highWatermark,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HIGH_WATERMARK]);
+    }
+    case ATTRIBUTE_ID_NODE_LOW_WATERMARK: {
+        return manipulator(
+            &d_nodeLowWatermark,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NODE_LOW_WATERMARK]);
+    }
+    case ATTRIBUTE_ID_NODE_HIGH_WATERMARK: {
+        return manipulator(
+            &d_nodeHighWatermark,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NODE_HIGH_WATERMARK]);
+    }
+    case ATTRIBUTE_ID_HEARTBEAT_INTERVAL_MS: {
+        return manipulator(
+            &d_heartbeatIntervalMs,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HEARTBEAT_INTERVAL_MS]);
+    }
+    case ATTRIBUTE_ID_LISTENERS: {
+        return manipulator(&d_listeners,
+                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LISTENERS]);
+    }
+    default: return NOT_FOUND;
+    }
+}
+
+template <typename t_MANIPULATOR>
+int TcpInterfaceConfig::manipulateAttribute(t_MANIPULATOR& manipulator,
+                                            const char*    name,
+                                            int            nameLength)
+{
+    enum { NOT_FOUND = -1 };
+
+    const bdlat_AttributeInfo* attributeInfo = lookupAttributeInfo(name,
+                                                                   nameLength);
+    if (0 == attributeInfo) {
+        return NOT_FOUND;
+    }
+
+    return manipulateAttribute(manipulator, attributeInfo->d_id);
+}
+
+inline bsl::string& TcpInterfaceConfig::name()
+{
+    return d_name;
+}
+
+inline int& TcpInterfaceConfig::port()
+{
+    return d_port;
+}
+
+inline int& TcpInterfaceConfig::ioThreads()
+{
+    return d_ioThreads;
+}
+
+inline int& TcpInterfaceConfig::maxConnections()
+{
+    return d_maxConnections;
+}
+
+inline bsls::Types::Int64& TcpInterfaceConfig::lowWatermark()
+{
+    return d_lowWatermark;
+}
+
+inline bsls::Types::Int64& TcpInterfaceConfig::highWatermark()
+{
+    return d_highWatermark;
+}
+
+inline bsls::Types::Int64& TcpInterfaceConfig::nodeLowWatermark()
+{
+    return d_nodeLowWatermark;
+}
+
+inline bsls::Types::Int64& TcpInterfaceConfig::nodeHighWatermark()
+{
+    return d_nodeHighWatermark;
+}
+
+inline int& TcpInterfaceConfig::heartbeatIntervalMs()
+{
+    return d_heartbeatIntervalMs;
+}
+
+inline bsl::vector<TcpInterfaceListener>& TcpInterfaceConfig::listeners()
+{
+    return d_listeners;
+}
+
+// ACCESSORS
+template <typename t_ACCESSOR>
+int TcpInterfaceConfig::accessAttributes(t_ACCESSOR& accessor) const
+{
+    int ret;
+
+    ret = accessor(d_name, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NAME]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_port, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PORT]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_ioThreads,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_IO_THREADS]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_maxConnections,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MAX_CONNECTIONS]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_lowWatermark,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LOW_WATERMARK]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_highWatermark,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HIGH_WATERMARK]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_nodeLowWatermark,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NODE_LOW_WATERMARK]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_nodeHighWatermark,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NODE_HIGH_WATERMARK]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(
+        d_heartbeatIntervalMs,
+        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HEARTBEAT_INTERVAL_MS]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_listeners,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LISTENERS]);
+    if (ret) {
+        return ret;
+    }
+
+    return 0;
+}
+
+template <typename t_ACCESSOR>
+int TcpInterfaceConfig::accessAttribute(t_ACCESSOR& accessor, int id) const
+{
+    enum { NOT_FOUND = -1 };
+
+    switch (id) {
+    case ATTRIBUTE_ID_NAME: {
+        return accessor(d_name, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NAME]);
+    }
+    case ATTRIBUTE_ID_PORT: {
+        return accessor(d_port, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PORT]);
+    }
+    case ATTRIBUTE_ID_IO_THREADS: {
+        return accessor(d_ioThreads,
+                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_IO_THREADS]);
+    }
+    case ATTRIBUTE_ID_MAX_CONNECTIONS: {
+        return accessor(d_maxConnections,
+                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MAX_CONNECTIONS]);
+    }
+    case ATTRIBUTE_ID_LOW_WATERMARK: {
+        return accessor(d_lowWatermark,
+                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LOW_WATERMARK]);
+    }
+    case ATTRIBUTE_ID_HIGH_WATERMARK: {
+        return accessor(d_highWatermark,
+                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HIGH_WATERMARK]);
+    }
+    case ATTRIBUTE_ID_NODE_LOW_WATERMARK: {
+        return accessor(
+            d_nodeLowWatermark,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NODE_LOW_WATERMARK]);
+    }
+    case ATTRIBUTE_ID_NODE_HIGH_WATERMARK: {
+        return accessor(
+            d_nodeHighWatermark,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NODE_HIGH_WATERMARK]);
+    }
+    case ATTRIBUTE_ID_HEARTBEAT_INTERVAL_MS: {
+        return accessor(
+            d_heartbeatIntervalMs,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HEARTBEAT_INTERVAL_MS]);
+    }
+    case ATTRIBUTE_ID_LISTENERS: {
+        return accessor(d_listeners,
+                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LISTENERS]);
+    }
+    default: return NOT_FOUND;
+    }
+}
+
+template <typename t_ACCESSOR>
+int TcpInterfaceConfig::accessAttribute(t_ACCESSOR& accessor,
+                                        const char* name,
+                                        int         nameLength) const
+{
+    enum { NOT_FOUND = -1 };
+
+    const bdlat_AttributeInfo* attributeInfo = lookupAttributeInfo(name,
+                                                                   nameLength);
+    if (0 == attributeInfo) {
+        return NOT_FOUND;
+    }
+
+    return accessAttribute(accessor, attributeInfo->d_id);
+}
+
+inline const bsl::string& TcpInterfaceConfig::name() const
+{
+    return d_name;
+}
+
+inline int TcpInterfaceConfig::port() const
+{
+    return d_port;
+}
+
+inline int TcpInterfaceConfig::ioThreads() const
+{
+    return d_ioThreads;
+}
+
+inline int TcpInterfaceConfig::maxConnections() const
+{
+    return d_maxConnections;
+}
+
+inline bsls::Types::Int64 TcpInterfaceConfig::lowWatermark() const
+{
+    return d_lowWatermark;
+}
+
+inline bsls::Types::Int64 TcpInterfaceConfig::highWatermark() const
+{
+    return d_highWatermark;
+}
+
+inline bsls::Types::Int64 TcpInterfaceConfig::nodeLowWatermark() const
+{
+    return d_nodeLowWatermark;
+}
+
+inline bsls::Types::Int64 TcpInterfaceConfig::nodeHighWatermark() const
+{
+    return d_nodeHighWatermark;
+}
+
+inline int TcpInterfaceConfig::heartbeatIntervalMs() const
+{
+    return d_heartbeatIntervalMs;
+}
+
+inline const bsl::vector<TcpInterfaceListener>&
+TcpInterfaceConfig::listeners() const
+{
+    return d_listeners;
+}
+
 // -----------------
 // class ClusterNode
 // -----------------
@@ -15039,6 +15307,144 @@ inline const DispatcherProcessorConfig& DispatcherConfig::queues() const
 inline const DispatcherProcessorConfig& DispatcherConfig::clusters() const
 {
     return d_clusters;
+}
+
+// -----------------------
+// class NetworkInterfaces
+// -----------------------
+
+// CLASS METHODS
+// MANIPULATORS
+template <typename t_MANIPULATOR>
+int NetworkInterfaces::manipulateAttributes(t_MANIPULATOR& manipulator)
+{
+    int ret;
+
+    ret = manipulator(&d_heartbeats,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HEARTBEATS]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(&d_tcpInterface,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_TCP_INTERFACE]);
+    if (ret) {
+        return ret;
+    }
+
+    return 0;
+}
+
+template <typename t_MANIPULATOR>
+int NetworkInterfaces::manipulateAttribute(t_MANIPULATOR& manipulator, int id)
+{
+    enum { NOT_FOUND = -1 };
+
+    switch (id) {
+    case ATTRIBUTE_ID_HEARTBEATS: {
+        return manipulator(&d_heartbeats,
+                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HEARTBEATS]);
+    }
+    case ATTRIBUTE_ID_TCP_INTERFACE: {
+        return manipulator(
+            &d_tcpInterface,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_TCP_INTERFACE]);
+    }
+    default: return NOT_FOUND;
+    }
+}
+
+template <typename t_MANIPULATOR>
+int NetworkInterfaces::manipulateAttribute(t_MANIPULATOR& manipulator,
+                                           const char*    name,
+                                           int            nameLength)
+{
+    enum { NOT_FOUND = -1 };
+
+    const bdlat_AttributeInfo* attributeInfo = lookupAttributeInfo(name,
+                                                                   nameLength);
+    if (0 == attributeInfo) {
+        return NOT_FOUND;
+    }
+
+    return manipulateAttribute(manipulator, attributeInfo->d_id);
+}
+
+inline Heartbeat& NetworkInterfaces::heartbeats()
+{
+    return d_heartbeats;
+}
+
+inline bdlb::NullableValue<TcpInterfaceConfig>&
+NetworkInterfaces::tcpInterface()
+{
+    return d_tcpInterface;
+}
+
+// ACCESSORS
+template <typename t_ACCESSOR>
+int NetworkInterfaces::accessAttributes(t_ACCESSOR& accessor) const
+{
+    int ret;
+
+    ret = accessor(d_heartbeats,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HEARTBEATS]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_tcpInterface,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_TCP_INTERFACE]);
+    if (ret) {
+        return ret;
+    }
+
+    return 0;
+}
+
+template <typename t_ACCESSOR>
+int NetworkInterfaces::accessAttribute(t_ACCESSOR& accessor, int id) const
+{
+    enum { NOT_FOUND = -1 };
+
+    switch (id) {
+    case ATTRIBUTE_ID_HEARTBEATS: {
+        return accessor(d_heartbeats,
+                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HEARTBEATS]);
+    }
+    case ATTRIBUTE_ID_TCP_INTERFACE: {
+        return accessor(d_tcpInterface,
+                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_TCP_INTERFACE]);
+    }
+    default: return NOT_FOUND;
+    }
+}
+
+template <typename t_ACCESSOR>
+int NetworkInterfaces::accessAttribute(t_ACCESSOR& accessor,
+                                       const char* name,
+                                       int         nameLength) const
+{
+    enum { NOT_FOUND = -1 };
+
+    const bdlat_AttributeInfo* attributeInfo = lookupAttributeInfo(name,
+                                                                   nameLength);
+    if (0 == attributeInfo) {
+        return NOT_FOUND;
+    }
+
+    return accessAttribute(accessor, attributeInfo->d_id);
+}
+
+inline const Heartbeat& NetworkInterfaces::heartbeats() const
+{
+    return d_heartbeats;
+}
+
+inline const bdlb::NullableValue<TcpInterfaceConfig>&
+NetworkInterfaces::tcpInterface() const
+{
+    return d_tcpInterface;
 }
 
 // -------------------------------
@@ -17688,6 +18094,6 @@ inline const AppConfig& Configuration::appConfig() const
 }  // close enterprise namespace
 #endif
 
-// GENERATED BY @BLP_BAS_CODEGEN_VERSION@
+// GENERATED BY BLP_BAS_CODEGEN_2024.07.18
 // USING bas_codegen.pl -m msg --noAggregateConversion --noExternalization
 // --noIdent --package mqbcfg --msgComponent messages mqbcfg.xsd
