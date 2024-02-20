@@ -559,7 +559,7 @@ static void test9_searchMessagesByQueueNameTest()
                                                       queueKey1,
                                                       queueKey2);
 
-    // Configure parameters to search messages by 'queue1' and 'unknown' names
+    // Configure parameters to search messages by 'queue1' name
     bmqp_ctrlmsg::QueueInfo queueInfo(s_allocator_p);
     queueInfo.uri() = "queue1";
     auto key        = mqbu::StorageKey(mqbu::StorageKey::HexRepresentation(),
@@ -599,7 +599,78 @@ static void test9_searchMessagesByQueueNameTest()
     ASSERT_EQ(resultStream.str(), expectedStream.str());
 }
 
-static void test10_searchMessagesByTimestamp()
+static void test10_searchMessagesByQueueNameAndQueueKeyTest()
+// ------------------------------------------------------------------------
+// SEARCH MESSAGES BY QUEUE NAME AND QUEUE KEY TEST
+//
+// Concerns:
+//   Search messages by queue name and queue key in journal
+//   file and output GUIDs.
+//
+// Testing:
+//   JournalFileProcessor::process()
+// ------------------------------------------------------------------------
+{
+    mwctst::TestHelper::printTestName(
+        "SEARCH MESSAGES BY QUEUE NAME AND QUEUE KEY TEST");
+
+    // Simulate journal file
+    size_t                         numRecords = 15;
+    RecordsListType                records(s_allocator_p);
+    JournalFile                    journalFile(numRecords, s_allocator_p);
+    const char*                    queueKey1 = "ABCDE12345";
+    const char*                    queueKey2 = "12345ABCDE";
+    bsl::vector<bmqt::MessageGUID> queueKey1GUIDS =
+        journalFile.addJournalRecordsWithTwoQueueKeys(&records,
+                                                      queueKey1,
+                                                      queueKey2,
+                                                      true);
+
+    // Configure parameters to search messages by 'queue1' name and queueKey2
+    // key.
+    bmqp_ctrlmsg::QueueInfo queueInfo(s_allocator_p);
+    queueInfo.uri() = "queue1";
+    auto key        = mqbu::StorageKey(mqbu::StorageKey::HexRepresentation(),
+                                queueKey1);
+    for (int i = 0; i < mqbu::StorageKey::e_KEY_LENGTH_BINARY; i++) {
+        queueInfo.key().push_back(key.data()[i]);
+    }
+    QueueMap qMap(s_allocator_p);
+
+    bsl::shared_ptr<Parameters> params = bsl::make_shared<Parameters>(
+        s_allocator_p);
+    params->d_queueName.push_back("queue1");
+    params->d_queueMap.insert(queueInfo);
+
+    bsl::vector<bsl::string> queueKeys(1, queueKey2, s_allocator_p);
+    params->d_queueKey = bsl::move(queueKeys);
+
+    // Prepare file manager
+    bsl::shared_ptr<FileManager> fileManager =
+        bsl::make_shared<FileManagerMock>(journalFile, s_allocator_p);
+
+    // Run search
+    bsl::ostringstream resultStream(s_allocator_p);
+    auto searchProcessor = CommandProcessorFactory::createCommandProcessor(
+        params,
+        fileManager,
+        resultStream,
+        s_allocator_p);
+    searchProcessor->process();
+
+    // Prepare expected output
+    bsl::ostringstream expectedStream(s_allocator_p);
+    for (const auto& guid : queueKey1GUIDS) {
+        outputGuidString(expectedStream, guid);
+    }
+    auto foundMessagesCount = queueKey1GUIDS.size();
+    expectedStream << foundMessagesCount << " message GUID(s) found."
+                   << bsl::endl;
+
+    ASSERT_EQ(resultStream.str(), expectedStream.str());
+}
+
+static void test11_searchMessagesByTimestamp()
 // ------------------------------------------------------------------------
 // SEARCH MESSAGES BY TIMESTAMP TEST
 //
@@ -661,7 +732,7 @@ static void test10_searchMessagesByTimestamp()
     ASSERT_EQ(resultStream.str(), expectedStream.str());
 }
 
-static void test11_printMessagesDetailsTest()
+static void test12_printMessagesDetailsTest()
 // ------------------------------------------------------------------------
 // PRINT MESSAGE DETAILS TEST
 //
@@ -736,7 +807,7 @@ static void test11_printMessagesDetailsTest()
     }
 }
 
-static void test12_searchMessagesWithPayloadDumpTest()
+static void test13_searchMessagesWithPayloadDumpTest()
 // ------------------------------------------------------------------------
 // SEARCH MESSAGES WITH PAYLOAD DUMP TEST
 //
@@ -865,7 +936,7 @@ static void test12_searchMessagesWithPayloadDumpTest()
     s_allocator_p->deallocate(pd);
 }
 
-static void test13_summaryTest()
+static void test14_summaryTest()
 // ------------------------------------------------------------------------
 // OUTPUT SUMMARY TEST
 //
@@ -912,7 +983,7 @@ static void test13_summaryTest()
     ASSERT(resultStream.str().starts_with(expectedStream.str()));
 }
 
-static void test14_timestampSearchTest()
+static void test15_timestampSearchTest()
 // ------------------------------------------------------------------------
 // TIMESTAMP SEARCH TEST
 //
@@ -1055,11 +1126,12 @@ int main(int argc, char* argv[])
     case 7: test7_searchPartiallyConfirmedMessagesTest(); break;
     case 8: test8_searchMessagesByQueueKeyTest(); break;
     case 9: test9_searchMessagesByQueueNameTest(); break;
-    case 10: test10_searchMessagesByTimestamp(); break;
-    case 11: test11_printMessagesDetailsTest(); break;
-    case 12: test12_searchMessagesWithPayloadDumpTest(); break;
-    case 13: test13_summaryTest(); break;
-    case 14: test14_timestampSearchTest(); break;
+    case 10: test10_searchMessagesByQueueNameAndQueueKeyTest(); break;
+    case 11: test11_searchMessagesByTimestamp(); break;
+    case 12: test12_printMessagesDetailsTest(); break;
+    case 13: test13_searchMessagesWithPayloadDumpTest(); break;
+    case 14: test14_summaryTest(); break;
+    case 15: test15_timestampSearchTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
         s_testStatus = -1;

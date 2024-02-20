@@ -35,18 +35,17 @@ Filters::Filters(const bsl::vector<bsl::string>& queueHexKeys,
 {
     // Fill internal structures
     if (!queueHexKeys.empty()) {
-        d_queueKeys.reserve(queueHexKeys.size());
         for (const auto& key : queueHexKeys) {
-            d_queueKeys.push_back(
+            d_queueKeys.insert(
                 mqbu::StorageKey(mqbu::StorageKey::HexRepresentation(),
                                  key.c_str()));
         }
     }
-    else if (!queueURIS.empty()) {
+    if (!queueURIS.empty()) {
         mqbu::StorageKey key;
         for (const auto& uri : queueURIS) {
             if (queueMap.findKeyByUri(&key, uri)) {
-                d_queueKeys.push_back(key);
+                d_queueKeys.insert(key);
             }
         }
     }

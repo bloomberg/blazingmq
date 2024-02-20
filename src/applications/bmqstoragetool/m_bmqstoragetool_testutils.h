@@ -118,12 +118,14 @@ class JournalFile {
 
     // Generate sequence of MessageRecord, ConfirmRecord and DeleteRecord
     // records. MessageRecord ConfirmRecord and DeletionRecord records have the
-    // same GUID. queueKey1 is used for even records, queueKey1 for odd ones.
-    // Returns GUIDs with queueKey1.
+    // same GUID. queueKey1 is used for even records, queueKey2 for odd ones.
+    // Returns GUIDs for queueKey1 if 'captureAllGUIDs' is false or all GUIds
+    // otherwise.
     bsl::vector<bmqt::MessageGUID>
     addJournalRecordsWithTwoQueueKeys(RecordsListType* records,
                                       const char*      queueKey1,
-                                      const char*      queueKey2);
+                                      const char*      queueKey2,
+                                      bool captureAllGUIDs = false);
 
     bsl::vector<bmqt::MessageGUID>
     addJournalRecordsWithConfirmedMessagesWithDifferentOrder(

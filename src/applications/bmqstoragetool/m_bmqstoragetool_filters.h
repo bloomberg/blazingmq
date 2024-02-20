@@ -29,6 +29,9 @@
 // MQB
 #include <mqbu_storagekey.h>
 
+// BDE
+#include <bsl_unordered_set.h>
+
 namespace BloombergLP {
 namespace m_bmqstoragetool {
 
@@ -39,9 +42,9 @@ namespace m_bmqstoragetool {
 class Filters {
   private:
     // DATA
-    bsl::vector<mqbu::StorageKey> d_queueKeys;
-    const bsls::Types::Int64      d_timestampGt;
-    const bsls::Types::Int64      d_timestampLt;
+    bsl::unordered_set<mqbu::StorageKey> d_queueKeys;
+    const bsls::Types::Int64             d_timestampGt;
+    const bsls::Types::Int64             d_timestampLt;
 
   public:
     // CREATORS

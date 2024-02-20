@@ -406,7 +406,8 @@ JournalFile::addJournalRecordsWithPartiallyConfirmedMessages(
 bsl::vector<bmqt::MessageGUID>
 JournalFile::addJournalRecordsWithTwoQueueKeys(RecordsListType* records,
                                                const char*      queueKey1,
-                                               const char*      queueKey2)
+                                               const char*      queueKey2,
+                                               bool captureAllGUIDs)
 {
     bmqt::MessageGUID              lastMessageGUID;
     bsl::vector<bmqt::MessageGUID> expectedGUIDs;
@@ -417,7 +418,7 @@ JournalFile::addJournalRecordsWithTwoQueueKeys(RecordsListType* records,
         unsigned int remainder = i % 3;
         if (1 == remainder) {
             mqbu::MessageGUIDUtil::generateGUID(&lastMessageGUID);
-            if (queueKey == queueKey1) {
+            if (captureAllGUIDs || queueKey == queueKey1) {
                 expectedGUIDs.push_back(lastMessageGUID);
             }
             OffsetPtr<MessageRecord> rec(d_block, d_currPos);
