@@ -15,6 +15,8 @@
 
 // bmqstoragetool
 #include <m_bmqstoragetool_commandprocessorfactory.h>
+#include <m_bmqstoragetool_filemanager.h>
+#include <m_bmqstoragetool_testutils.h>
 
 // TEST DRIVER
 #include <mwctst_testhelper.h>
@@ -23,6 +25,8 @@
 using namespace BloombergLP;
 using namespace m_bmqstoragetool;
 using namespace bsl;
+using namespace ::testing;
+using namespace TestUtils;
 
 // ============================================================================
 //                                    TESTS
@@ -43,14 +47,19 @@ static void test1_breathingTest()
     // Empty parameters
     CommandLineArguments        arguments;
     bsl::shared_ptr<Parameters> params(
-        new (*s_allocator_p) ParametersReal(arguments, s_allocator_p),
+        new (*s_allocator_p) Parameters(arguments, s_allocator_p),
         s_allocator_p);
+    bsl::shared_ptr<FileManager> fileManager(new (*s_allocator_p)
+                                                 FileManagerMock(),
+                                             s_allocator_p);
 
     auto cmdProcessor = CommandProcessorFactory::createCommandProcessor(
         params,
+        fileManager,
         bsl::cout,
         s_allocator_p);
-    ASSERT_NE(dynamic_cast<JournalFileProcessor*>(cmdProcessor.get()), nullptr)
+    ASSERT_NE(dynamic_cast<JournalFileProcessor*>(cmdProcessor.get()),
+              nullptr);
 }
 
 // ============================================================================

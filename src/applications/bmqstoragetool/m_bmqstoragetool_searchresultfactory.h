@@ -26,6 +26,7 @@
 // corresponding search result object.
 
 // bmqstoragetool
+#include <m_bmqstoragetool_filemanager.h>
 #include <m_bmqstoragetool_payloaddumper.h>
 #include <m_bmqstoragetool_searchresult.h>
 
@@ -43,9 +44,10 @@ class SearchResultFactory {
     /// Create command processor for specified 'params' using specified
     /// 'ostream' and 'allocator'.
     static bsl::shared_ptr<SearchResult>
-    createSearchResult(bsl::shared_ptr<Parameters> params,
-                       bsl::ostream&               ostream,
-                       bslma::Allocator*           allocator);
+    createSearchResult(const bsl::shared_ptr<Parameters>&  params,
+                       const bsl::shared_ptr<FileManager>& fileManager,
+                       bsl::ostream&                       ostream,
+                       bslma::Allocator*                   allocator);
 };
 
 }  // close package namespace

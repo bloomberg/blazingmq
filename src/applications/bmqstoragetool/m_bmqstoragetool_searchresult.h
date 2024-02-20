@@ -157,7 +157,6 @@ class SearchDetailResult : public SearchResult {
     bsl::ostream&                        d_ostream;
     const QueueMap&                      d_queueMap;
     const bsl::shared_ptr<PayloadDumper> d_payloadDumper;
-    bslma::Allocator*                    d_allocator_p;
     const bool                           d_printImmediately;
     // If true, print message details as soon as it is complete (usually when
     // 'deleted' record received) to save memory. If false, message data
@@ -175,6 +174,7 @@ class SearchDetailResult : public SearchResult {
     // Storage for messages details.
     bsl::map<bsls::Types::Uint64, bmqt::MessageGUID> d_messageIndexToGuidMap;
     // Map to store sorted indexes to preserve messages order for output.
+    bslma::Allocator* d_allocator_p;
 
     // MANIPULATORS
     void addMessageDetails(const mqbs::MessageRecord& record,

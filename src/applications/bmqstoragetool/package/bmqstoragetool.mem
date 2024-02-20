@@ -1,4 +1,5 @@
 m_bmqstoragetool_commandprocessorfactory
+m_bmqstoragetool_filemanager
 m_bmqstoragetool_filters
 m_bmqstoragetool_journalfileprocessor
 m_bmqstoragetool_messagedetails
@@ -7,3 +8,4 @@ m_bmqstoragetool_payloaddumper
 m_bmqstoragetool_queuemap
 m_bmqstoragetool_searchresult
 m_bmqstoragetool_searchresultfactory
+m_bmqstoragetool_testutils

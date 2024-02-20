@@ -101,10 +101,11 @@ int moveToLowerBound(mqbs::JournalFileIterator* it,
 
 JournalFileProcessor::JournalFileProcessor(
     bsl::shared_ptr<Parameters>   params,
+    bsl::shared_ptr<FileManager>  fileManager,
     bsl::ostream&                 ostream,
     bsl::shared_ptr<SearchResult> searchResult_p,
     bslma::Allocator*             allocator)
-: CommandProcessor(params, ostream)
+: CommandProcessor(params, fileManager, ostream)
 , d_searchResult_p(searchResult_p)
 , d_allocator_p(bslma::Default::allocator(allocator))
 {
@@ -113,19 +114,19 @@ JournalFileProcessor::JournalFileProcessor(
 
 void JournalFileProcessor::process()
 {
-    Filters filters(d_parameters->queueKey(),
-                    d_parameters->queueName(),
-                    d_parameters->queueMap(),
-                    d_parameters->timestampGt(),
-                    d_parameters->timestampLt(),
+    Filters filters(d_parameters->d_queueKey,
+                    d_parameters->d_queueName,
+                    d_parameters->d_queueMap,
+                    d_parameters->d_timestampGt,
+                    d_parameters->d_timestampLt,
                     d_ostream,
                     d_allocator_p);
 
     bool stopSearch          = false;
-    bool needTimestampSearch = d_parameters->timestampGt() > 0;
+    bool needTimestampSearch = d_parameters->d_timestampGt > 0;
 
     // Iterate through all Journal file records
-    mqbs::JournalFileIterator* iter = d_parameters->journalFileIterator();
+    mqbs::JournalFileIterator* iter = d_fileManager->journalFileIterator();
     while (true) {
         if (stopSearch || !iter->hasRecordSizeRemaining()) {
             d_searchResult_p->outputResult();
@@ -137,7 +138,7 @@ void JournalFileProcessor::process()
             return;  // RETURN
         }
         if (needTimestampSearch) {
-            rc = moveToLowerBound(iter, d_parameters->timestampGt());
+            rc = moveToLowerBound(iter, d_parameters->d_timestampGt);
             if (rc == 0) {
                 stopSearch = true;
                 continue;

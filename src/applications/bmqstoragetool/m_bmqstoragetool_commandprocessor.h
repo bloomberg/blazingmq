@@ -26,6 +26,7 @@
 // to process commands.
 
 // bmqstoragetool
+#include <m_bmqstoragetool_filemanager.h>
 #include <m_bmqstoragetool_parameters.h>
 
 // BDE
@@ -41,15 +42,17 @@ namespace m_bmqstoragetool {
 class CommandProcessor {
   protected:
     // PRIVATE DATA
-    const bsl::shared_ptr<Parameters> d_parameters;
-    bsl::ostream&                     d_ostream;
+    const bsl::shared_ptr<Parameters>  d_parameters;
+    const bsl::shared_ptr<FileManager> d_fileManager;
+    bsl::ostream&                      d_ostream;
 
   public:
     // CREATORS
 
     /// Constructor using the specified `params` and 'ostream'.
-    explicit CommandProcessor(const bsl::shared_ptr<Parameters> params,
-                              bsl::ostream&                     ostream);
+    explicit CommandProcessor(const bsl::shared_ptr<Parameters>&  params,
+                              const bsl::shared_ptr<FileManager>& fileManager,
+                              bsl::ostream&                       ostream);
 
     virtual ~CommandProcessor() = default;
 
@@ -64,9 +67,11 @@ class CommandProcessor {
 // ============================================================================
 
 inline CommandProcessor::CommandProcessor(
-    const bsl::shared_ptr<Parameters> params,
-    bsl::ostream&                     ostream)
+    const bsl::shared_ptr<Parameters>&  params,
+    const bsl::shared_ptr<FileManager>& fileManager,
+    bsl::ostream&                       ostream)
 : d_parameters(params)
+, d_fileManager(fileManager)
 , d_ostream(ostream)
 {
     // NOTHING

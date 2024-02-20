@@ -139,19 +139,19 @@ parseArgs(CommandLineArguments& arguments, int argc, const char* argv[])
 
 int main(int argc, const char* argv[])
 {
+    // Init allocator
+    bslma::Allocator* allocator = bslma::Default::allocator();
+
     // Arguments parsing
-    CommandLineArguments arguments;
+    CommandLineArguments arguments(allocator);
     if (!parseArgs(arguments, argc, argv)) {
         return 1;  // RETURN
     }
 
-    // Init allocator
-    bslma::Allocator* allocator = bslma::Default::allocator();
-
     // Create parameters
     bsl::shared_ptr<Parameters> parameters;
     try {
-        parameters.reset(new (*allocator) ParametersReal(arguments, allocator),
+        parameters.reset(new (*allocator) Parameters(arguments, allocator),
                          allocator);
     }
     catch (const bsl::exception& e) {
@@ -159,15 +159,35 @@ int main(int argc, const char* argv[])
         return 2;  // RETURN
     }
 
+    // Create file manager
+    bsl::shared_ptr<FileManager> fileManager;
+    try {
+        fileManager.reset(new (*allocator)
+                              FileManagerReal(arguments.d_journalFile,
+                                              arguments.d_dataFile,
+                                              allocator));
+        if (!arguments.d_cslFile.empty()) {
+            QueueMap queueMap =
+                FileManagerReal::buildQueueMap(arguments.d_cslFile, allocator);
+            parameters->d_queueMap = bsl::move(queueMap);
+            parameters->validateQueueNames();
+        }
+    }
+    catch (const bsl::exception& e) {
+        bsl::cerr << e.what();
+        return 3;  // RETURN
+    }
+
     // Create command processor
     bsl::shared_ptr<CommandProcessor> processor =
         CommandProcessorFactory::createCommandProcessor(parameters,
+                                                        fileManager,
                                                         bsl::cout,
                                                         allocator);
 
     if (!processor) {
         bsl::cerr << "Failed to create processor";
-        return 3;  // RETURN
+        return 4;  // RETURN
     }
 
     // Run command processor
