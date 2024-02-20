@@ -10,11 +10,12 @@ broker, as well as the generated corresponding messages component.
 
 /Hierarchical Synopsis
 /---------------------
- The 'mqbcfg' package currently has 2 components having 2 level of physical
+ The 'mqbcfg' package currently has 3 components having 2 levels of physical
  dependency.  The list below shows the hierarchical ordering of the components.
 ..
   1. mqbcfg_messages
   2. mqbcfg_brokerconfig
+  2. mqbcfg_tcpinterfaceconfigvalidator
 ..
 
 /Component Synopsis
@@ -23,3 +24,5 @@ broker, as well as the generated corresponding messages component.
 :      BMQBroker generated configuration messages.
 : 'mqbcfg_brokerconfig'
 :      Provide global access to broker configuration.
+: 'mqbcfg_tcpinterfaceconfigvalidator'
+:      Provide validation logic for `appConfig/networkInterfaces/tcpInterface/listeners` in the broker configuration.

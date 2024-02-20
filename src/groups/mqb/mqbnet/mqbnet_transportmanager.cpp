@@ -22,6 +22,7 @@
 
 // MQB
 #include <mqbcfg_brokerconfig.h>
+#include <mqbcfg_messages.h>
 #include <mqbnet_cluster.h>
 #include <mqbnet_clusterimp.h>
 #include <mqbnet_session.h>
@@ -389,6 +390,9 @@ int TransportManager::start(bsl::ostream& errorDescription)
 
     // Create and start the TCPInterface, if any
     const mqbcfg::AppConfig& brkrCfg = mqbcfg::BrokerConfig::get();
+
+    // If the new network interfaces exist, use them. Otherwise, fall back to
+    // the old network interface config.
     if (!brkrCfg.networkInterfaces().tcpInterface().isNull()) {
         rc = createAndStartTcpInterface(
             errorDescription,

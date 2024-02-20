@@ -233,6 +233,10 @@
   <complexType name='TcpInterfaceConfig'>
     <annotation>
       <documentation>
+        name.................:
+            The name of the TCP session manager.
+        port.................:
+            (Deprecated) The port to receive connections.
         lowWatermark.........:
         highWatermark........:
             Watermarks used for channels with a client or proxy.
@@ -243,6 +247,9 @@
         heartbeatIntervalMs..:
             How often (in milliseconds) to check if the channel received data,
             and emit heartbeat.  0 to globally disable.
+        listeners:
+            A list of listener interfaces to receive TCP connections from. When non-empty
+            this option overrides the listener specified by port.
       </documentation>
     </annotation>
     <sequence>
@@ -255,6 +262,24 @@
       <element name='nodeLowWatermark'    type='long' default='1024'/>
       <element name='nodeHighWatermark'   type='long' default='2048'/>
       <element name='heartbeatIntervalMs' type='int' default='3000'/>
+      <element name='listeners'           type='tns:TcpInterfaceListener' minOccurs='0' maxOccurs='unbounded'/>
+   </sequence>
+  </complexType>
+
+  <complexType name='TcpInterfaceListener'>
+    <annotation>
+      <documentation>
+      This type describes the information needed for the broker to open a TCP listener.
+
+      name.................:
+        A name to associate this listener to.
+      port.................:
+        The port this listener will accept connections on.
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='name'                type='string'/>
+      <element name='port'                type='int'/>
     </sequence>
   </complexType>
 

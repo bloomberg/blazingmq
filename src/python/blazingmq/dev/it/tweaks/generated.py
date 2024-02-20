@@ -652,6 +652,27 @@ class TweakFactory:
 
                     heartbeat_interval_ms = HeartbeatIntervalMs()
 
+                    class Listeners(metaclass=TweakMetaclass):
+                        class Name(metaclass=TweakMetaclass):
+
+                            def __call__(
+                                self, value: typing.Union[str, NoneType]
+                            ) -> Callable: ...
+
+                        name = Name()
+
+                        class Port(metaclass=TweakMetaclass):
+
+                            def __call__(
+                                self, value: typing.Union[int, NoneType]
+                            ) -> Callable: ...
+
+                        port = Port()
+
+                        def __call__(self, value: None) -> Callable: ...
+
+                    listeners = Listeners()
+
                     def __call__(
                         self,
                         value: typing.Union[

@@ -37,7 +37,8 @@ import shutil
 import tempfile
 from enum import IntEnum
 from pathlib import Path
-from typing import Callable, Generator, Iterator, List, Optional, Tuple
+from typing import Callable, List, Optional, Tuple
+from collections.abc import Generator, Iterator
 import psutil
 
 import pytest
@@ -197,7 +198,7 @@ def task_log_params(normalized_levels):
     return (broker_threshold, broker_category_levels, tool_threshold)
 
 
-def cluster_fixture(request, configure) -> Generator:
+def cluster_fixture(request, configure) -> Iterator[Cluster]:
     # Get a temporary directory and also add a unique suffix to the dir name to
     # further avoid name collision on a machine.
 
@@ -602,6 +603,92 @@ multi_node_cluster_params = [
 
 @pytest.fixture(params=multi_node_cluster_params)
 def multi_node(request):
+    yield from cluster_fixture(request, request.param)
+
+
+###############################################################################
+# multi_node cluster with multiple TCP listeners
+
+
+def multi_interface_cluster_config(
+    configurator: cfg.Configurator,
+    port_allocator: Iterator[int],
+    mode: Mode,
+    listener_count: int,
+    reverse_proxy: bool = False,
+) -> None:
+    """A factory for cluster configurations containing multiple open TCP interfaces.
+
+    This function generates configuration for a 4-node BlazingMQ cluster, a proxy in
+    each data center region, and adds domains to the cluster to be used by tests.
+
+    Cluster: east1, east2, west1, west2
+    Proxies: eastp, westp
+
+    Args:
+        configurator: The Configurator used to generate and manage cluster and broker
+            configuration definitions
+        port_allocator: An iterator providing port numbers for brokers
+        mode: The cluster operation mode
+        listener_count: The number of listeners that should be opened on a broker. The
+            minimum number of listeners is 1.
+        reverse_proxy: If True, configure reverse proxy brokers for the cluster.
+            Otherwise, configure regular proxies for the cluster.
+    """
+    mode.tweak(configurator.proto.cluster)
+
+    assert listener_count > 0
+
+    cluster = configurator.cluster(
+        name="itCluster",
+        nodes=[
+            configurator.broker(
+                name=f"{data_center}{broker}",
+                tcp_host="localhost",
+                tcp_port=-1,
+                listeners=[("BROKER", next(port_allocator))]
+                + [
+                    (f"listener{i}", next(port_allocator))
+                    for i in range(listener_count - 1)
+                ],
+                data_center=data_center,
+            )
+            for data_center in ("east", "west")
+            for broker in ("1", "2")
+        ],
+    )
+
+    add_test_domains(cluster)
+
+    for data_center in ("east", "west"):
+        configurator.broker(
+            name=f"{data_center}p",
+            tcp_host="localhost",
+            tcp_port=-1,
+            listeners=[
+                (f"listener{i}", next(port_allocator)) for i in range(listener_count)
+            ],
+            data_center=data_center,
+        ).proxy(cluster, reverse=reverse_proxy)
+
+
+multi_interface_cluster_params = [
+    pytest.param(
+        functools.partial(multi_interface_cluster_config, mode=mode, listener_count=2),
+        id=f"multi_interface{mode.suffix}",
+        marks=[
+            pytest.mark.integrationtest,
+            pytest.mark.pr_integrationtest,
+            pytest.mark.multi,
+            *mode.marks,
+        ],
+    )
+    for mode in Mode.__members__.values()
+]
+
+
+@pytest.fixture(params=multi_interface_cluster_params)
+def multi_interface(request):
     yield from cluster_fixture(request, request.param)
 
 

@@ -19,16 +19,18 @@
 #include <mqbscm_version.h>
 /// Implementation Notes
 ///====================
-// When a channel is being created, the following methods are always called, in
-// order, regardless of the success or failure of the negotiation:
-//: o !channelStateCallback!
-//: o !negotiate!
-//: o !negotiationComplete!
-//
-// When a channel goes down, 'onClose()' is the only method being invoked.
+/// When a channel is being created, the following methods are always called,
+/// in order, regardless of the success or failure of the negotiation:
+/// - `channelStateCallback`
+/// - `negotiate`
+/// - `negotiationComplete`
+///
+/// When a channel goes down, `onClose()` is the only method being invoked.
 
 // MQB
 #include <mqbcfg_brokerconfig.h>
+#include <mqbcfg_messages.h>
+#include <mqbcfg_tcpinterfaceconfigvalidator.h>
 #include <mqbnet_cluster.h>
 #include <mqbnet_session.h>
 
@@ -705,7 +707,8 @@ void TCPSessionFactory::channelStateCallback(
             ++d_nbActiveChannels;
 
             // Register as observer of the channel to get the 'onClose'
-            channel->onClose(bdlf::BindUtil::bind(
+            channel->onClose(bdlf::BindUtil::bindS(
+                d_allocator_p,
                 &TCPSessionFactory::onClose,
                 this,
                 channel,
@@ -951,15 +954,15 @@ TCPSessionFactory::TCPSessionFactory(
 , d_heartbeatSchedulerActive(false)
 , d_heartbeatChannels(allocator)
 , d_initialMissedHeartbeatCounter(calculateInitialMissedHbCounter(config))
+, d_listeningHandles(allocator)
 , d_isListening(false)
 , d_timestampMap(allocator)
+, d_listenContexts(allocator)
 , d_allocator_p(allocator)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(scheduler->clockType() ==
                      bsls::SystemClockType::e_MONOTONIC);
-
-    BALL_LOG_INFO << "Creating TcpSessionFactory: " << config;
 
     // Resolve the default address of this host
     bsl::string hostname;
@@ -1001,6 +1004,27 @@ TCPSessionFactory::~TCPSessionFactory()
     d_self.invalidate();
 }
 
+int TCPSessionFactory::validateTcpInterfaces() const
+{
+    mqbcfg::TcpInterfaceConfigValidator validator;
+    return validator(d_config);
+}
+
+void TCPSessionFactory::cancelListeners()
+{
+    for (ListeningHandleMap::iterator it  = d_listeningHandles.begin(),
+                                      end = d_listeningHandles.end();
+         it != end;
+         ++it) {
+        BSLS_ASSERT_SAFE(it->second);
+        it->second->cancel();
+        it->second.reset();
+    }
+
+    d_listeningHandles.clear();
+    d_listenContexts.clear();
+}
+
 int TCPSessionFactory::start(bsl::ostream& errorDescription)
 {
     // PRECONDITIONS
@@ -1010,6 +1034,15 @@ int TCPSessionFactory::start(bsl::ostream& errorDescription)
     BALL_LOG_INFO << "Starting TCPSessionFactory '" << d_config.name() << "'";
 
     int rc = 0;
+
+    rc = validateTcpInterfaces();
+
+    if (rc != 0) {
+        errorDescription << "Failed to validate the TCP interface config for "
+                         << "TCPSessionFactory '" << d_config.name()
+                         << "' [rc: " << rc << "]";
+        return rc;  // RETURN
+    }
 
     ntca::InterfaceConfig interfaceConfig = ntcCreateInterfaceConfig(d_config);
 
@@ -1141,14 +1174,38 @@ int TCPSessionFactory::startListening(bsl::ostream&         errorDescription,
 {
     BSLS_ASSERT_SAFE(d_isStarted && "TCPSessionFactory must be started first");
 
-    int rc = listen(d_config.port(), resultCallback);
-    if (rc != 0) {
-        errorDescription << "Failed listening to port '" << d_config.port()
-                         << "' for TCPSessionFactory '" << d_config.name()
-                         << "' [rc: " << rc << "]";
-        return rc;  // RETURN
+    // Adapt a legacy listener configuration
+    if (d_config.listeners().empty()) {
+        mqbcfg::TcpInterfaceListener listener;
+        listener.name() = d_config.name();
+        listener.port() = d_config.port();
+        int rc          = listen(listener, resultCallback);
+        if (rc != 0) {
+            errorDescription << "Failed listening to port '" << d_config.port()
+                             << "' for TCPSessionFactory '" << d_config.name()
+                             << "' [rc: " << rc << "]";
+            cancelListeners();
+            return rc;  // RETURN
+        }
+    }
+    else {
+        for (bsl::vector<mqbcfg::TcpInterfaceListener>::const_iterator
+                 it  = d_config.listeners().cbegin(),
+                 end = d_config.listeners().cend();
+             it != end;
+             ++it) {
+            int rc = listen(*it, resultCallback);
+            if (rc != 0) {
+                errorDescription << "Failed listening to port '" << it->port()
+                                 << "' for TCPSessionFactory '"
+                                 << d_config.name() << "' [rc: " << rc << "]";
+                cancelListeners();
+                return rc;  // RETURN
+            }
+        }
     }
 
+    d_isListening = true;
     return 0;
 }
 
@@ -1162,9 +1219,7 @@ void TCPSessionFactory::stopListening()
     }
     d_isListening = false;
 
-    BSLS_ASSERT_SAFE(d_listeningHandle_mp);
-    d_listeningHandle_mp->cancel();
-    d_listeningHandle_mp.reset();
+    cancelListeners();
 
     // NOTE: This is done here as a temporary workaround until channels are
     //       properly stopped (see 'mqba::Application::stop'), because in the
@@ -1315,20 +1370,20 @@ void TCPSessionFactory::stop()
     BALL_LOG_INFO << "Stopped TCPSessionFactory '" << d_config.name() << "'";
 }
 
-int TCPSessionFactory::listen(int port, const ResultCallback& resultCallback)
+int TCPSessionFactory::listen(const mqbcfg::TcpInterfaceListener& listener,
+                              const ResultCallback& resultCallback)
 {
-    // Supporting only one 'listen' call.
-    BSLS_ASSERT_SAFE(!d_isListening);
-    BSLS_ASSERT_SAFE(!d_listenContext_mp);
+    const int port = listener.port();
+
+    BSLS_ASSERT_SAFE(d_listenContexts.find(port) == d_listenContexts.cend());
 
     // Maintain ownership of 'OperationContext' instead of passing it to
     // 'ChannelFactory::listen' because it may delete the context
     // (on stopListening) while operation (readCallback / negotiation) is in
     // progress.
-    OperationContext* context = new (*d_allocator_p) OperationContext();
-    d_listenContext_mp.load(context, d_allocator_p);
-    bsl::shared_ptr<OperationContext> contextSp;
-    contextSp.reset(context, bslstl::SharedPtrNilDeleter());
+    bsl::shared_ptr<OperationContext> context =
+        bsl::allocate_shared<OperationContext>(d_allocator_p);
+    d_listenContexts.emplace(port, context);
 
     context->d_resultCb      = resultCallback;
     context->d_isIncoming    = true;
@@ -1340,19 +1395,19 @@ int TCPSessionFactory::listen(int port, const ResultCallback& resultCallback)
     bmqio::ListenOptions listenOptions;
     listenOptions.setEndpoint(endpoint.str());
 
-    d_isListening = true;
+    OpHandleMp& listeningHandle = d_listeningHandles[port];
 
     bmqio::Status status;
     d_statChannelFactory_mp->listen(
         &status,
-        &d_listeningHandle_mp,
+        &listeningHandle,
         listenOptions,
         bdlf::BindUtil::bind(&TCPSessionFactory::channelStateCallback,
                              this,
                              bdlf::PlaceHolders::_1,  // event
                              bdlf::PlaceHolders::_2,  // status
                              bdlf::PlaceHolders::_3,  // channel
-                             contextSp));
+                             context));
     if (!status) {
         BALL_LOG_ERROR << "#TCP_LISTEN_FAILED "
                        << "TCPSessionFactory '" << d_config.name() << "' "
@@ -1362,7 +1417,7 @@ int TCPSessionFactory::listen(int port, const ResultCallback& resultCallback)
         return status.category();  // RETURN
     }
 
-    BSLS_ASSERT_SAFE(d_listeningHandle_mp);
+    BSLS_ASSERT_SAFE(listeningHandle);
     BALL_LOG_INFO << "TCPSessionFactory '" << d_config.name() << "' "
                   << "successfully listening to '" << endpoint.str() << "'";
 
@@ -1468,8 +1523,25 @@ bool TCPSessionFactory::isEndpointLoopback(const bslstl::StringRef& uri) const
 {
     bmqio::TCPEndpoint endpoint(uri);
 
-    return (endpoint.port() == d_config.port()) &&
-           bmqio::ChannelUtil::isLocalHost(endpoint.host());
+    // Use the original port specification method
+    if (d_config.listeners().empty()) {
+        return (endpoint.port() == d_config.port()) &&
+               bmqio::ChannelUtil::isLocalHost(endpoint.host());
+    }
+
+    struct PortMatcher {
+        int d_port;
+
+        bool operator()(const mqbcfg::TcpInterfaceListener& listener)
+        {
+            return listener.port() == d_port;
+        }
+    };
+
+    PortMatcher portMatcher = {endpoint.port()};
+    return bsl::any_of(d_config.listeners().cbegin(),
+                       d_config.listeners().cend(),
+                       portMatcher);
 }
 
 // ------------------------------------

@@ -1,4 +1,4 @@
-// Copyright 2014-2024 Bloomberg Finance L.P.
+// Copyright 2024 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,7 +12,6 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
 // mqbcfg_messages.cpp            *DO NOT EDIT*            @generated -*-C++-*-
 
 #include <mqbcfg_messages.h>
@@ -2261,25 +2260,15 @@ bsl::ostream& TcpClusterNodeConnection::print(bsl::ostream& stream,
     return stream;
 }
 
-// ------------------------
-// class TcpInterfaceConfig
-// ------------------------
+// --------------------------
+// class TcpInterfaceListener
+// --------------------------
 
 // CONSTANTS
 
-const char TcpInterfaceConfig::CLASS_NAME[] = "TcpInterfaceConfig";
+const char TcpInterfaceListener::CLASS_NAME[] = "TcpInterfaceListener";
 
-const int TcpInterfaceConfig::DEFAULT_INITIALIZER_MAX_CONNECTIONS = 10000;
-
-const bsls::Types::Int64
-    TcpInterfaceConfig::DEFAULT_INITIALIZER_NODE_LOW_WATERMARK = 1024;
-
-const bsls::Types::Int64
-    TcpInterfaceConfig::DEFAULT_INITIALIZER_NODE_HIGH_WATERMARK = 2048;
-
-const int TcpInterfaceConfig::DEFAULT_INITIALIZER_HEARTBEAT_INTERVAL_MS = 3000;
-
-const bdlat_AttributeInfo TcpInterfaceConfig::ATTRIBUTE_INFO_ARRAY[] = {
+const bdlat_AttributeInfo TcpInterfaceListener::ATTRIBUTE_INFO_ARRAY[] = {
     {ATTRIBUTE_ID_NAME,
      "name",
      sizeof("name") - 1,
@@ -2289,51 +2278,16 @@ const bdlat_AttributeInfo TcpInterfaceConfig::ATTRIBUTE_INFO_ARRAY[] = {
      "port",
      sizeof("port") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
-    {ATTRIBUTE_ID_IO_THREADS,
-     "ioThreads",
-     sizeof("ioThreads") - 1,
-     "",
-     bdlat_FormattingMode::e_DEC},
-    {ATTRIBUTE_ID_MAX_CONNECTIONS,
-     "maxConnections",
-     sizeof("maxConnections") - 1,
-     "",
-     bdlat_FormattingMode::e_DEC},
-    {ATTRIBUTE_ID_LOW_WATERMARK,
-     "lowWatermark",
-     sizeof("lowWatermark") - 1,
-     "",
-     bdlat_FormattingMode::e_DEC},
-    {ATTRIBUTE_ID_HIGH_WATERMARK,
-     "highWatermark",
-     sizeof("highWatermark") - 1,
-     "",
-     bdlat_FormattingMode::e_DEC},
-    {ATTRIBUTE_ID_NODE_LOW_WATERMARK,
-     "nodeLowWatermark",
-     sizeof("nodeLowWatermark") - 1,
-     "",
-     bdlat_FormattingMode::e_DEC},
-    {ATTRIBUTE_ID_NODE_HIGH_WATERMARK,
-     "nodeHighWatermark",
-     sizeof("nodeHighWatermark") - 1,
-     "",
-     bdlat_FormattingMode::e_DEC},
-    {ATTRIBUTE_ID_HEARTBEAT_INTERVAL_MS,
-     "heartbeatIntervalMs",
-     sizeof("heartbeatIntervalMs") - 1,
-     "",
      bdlat_FormattingMode::e_DEC}};
 
 // CLASS METHODS
 
 const bdlat_AttributeInfo*
-TcpInterfaceConfig::lookupAttributeInfo(const char* name, int nameLength)
+TcpInterfaceListener::lookupAttributeInfo(const char* name, int nameLength)
 {
-    for (int i = 0; i < 9; ++i) {
+    for (int i = 0; i < 2; ++i) {
         const bdlat_AttributeInfo& attributeInfo =
-            TcpInterfaceConfig::ATTRIBUTE_INFO_ARRAY[i];
+            TcpInterfaceListener::ATTRIBUTE_INFO_ARRAY[i];
 
         if (nameLength == attributeInfo.d_nameLength &&
             0 == bsl::memcmp(attributeInfo.d_name_p, name, nameLength)) {
@@ -2344,107 +2298,59 @@ TcpInterfaceConfig::lookupAttributeInfo(const char* name, int nameLength)
     return 0;
 }
 
-const bdlat_AttributeInfo* TcpInterfaceConfig::lookupAttributeInfo(int id)
+const bdlat_AttributeInfo* TcpInterfaceListener::lookupAttributeInfo(int id)
 {
     switch (id) {
     case ATTRIBUTE_ID_NAME: return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NAME];
     case ATTRIBUTE_ID_PORT: return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PORT];
-    case ATTRIBUTE_ID_IO_THREADS:
-        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_IO_THREADS];
-    case ATTRIBUTE_ID_MAX_CONNECTIONS:
-        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MAX_CONNECTIONS];
-    case ATTRIBUTE_ID_LOW_WATERMARK:
-        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LOW_WATERMARK];
-    case ATTRIBUTE_ID_HIGH_WATERMARK:
-        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HIGH_WATERMARK];
-    case ATTRIBUTE_ID_NODE_LOW_WATERMARK:
-        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NODE_LOW_WATERMARK];
-    case ATTRIBUTE_ID_NODE_HIGH_WATERMARK:
-        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NODE_HIGH_WATERMARK];
-    case ATTRIBUTE_ID_HEARTBEAT_INTERVAL_MS:
-        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HEARTBEAT_INTERVAL_MS];
     default: return 0;
     }
 }
 
 // CREATORS
 
-TcpInterfaceConfig::TcpInterfaceConfig(bslma::Allocator* basicAllocator)
-: d_lowWatermark()
-, d_highWatermark()
-, d_nodeLowWatermark(DEFAULT_INITIALIZER_NODE_LOW_WATERMARK)
-, d_nodeHighWatermark(DEFAULT_INITIALIZER_NODE_HIGH_WATERMARK)
-, d_name(basicAllocator)
+TcpInterfaceListener::TcpInterfaceListener(bslma::Allocator* basicAllocator)
+: d_name(basicAllocator)
 , d_port()
-, d_ioThreads()
-, d_maxConnections(DEFAULT_INITIALIZER_MAX_CONNECTIONS)
-, d_heartbeatIntervalMs(DEFAULT_INITIALIZER_HEARTBEAT_INTERVAL_MS)
 {
 }
 
-TcpInterfaceConfig::TcpInterfaceConfig(const TcpInterfaceConfig& original,
-                                       bslma::Allocator* basicAllocator)
-: d_lowWatermark(original.d_lowWatermark)
-, d_highWatermark(original.d_highWatermark)
-, d_nodeLowWatermark(original.d_nodeLowWatermark)
-, d_nodeHighWatermark(original.d_nodeHighWatermark)
-, d_name(original.d_name, basicAllocator)
+TcpInterfaceListener::TcpInterfaceListener(
+    const TcpInterfaceListener& original,
+    bslma::Allocator*           basicAllocator)
+: d_name(original.d_name, basicAllocator)
 , d_port(original.d_port)
-, d_ioThreads(original.d_ioThreads)
-, d_maxConnections(original.d_maxConnections)
-, d_heartbeatIntervalMs(original.d_heartbeatIntervalMs)
 {
 }
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-TcpInterfaceConfig::TcpInterfaceConfig(TcpInterfaceConfig&& original) noexcept
-: d_lowWatermark(bsl::move(original.d_lowWatermark)),
-  d_highWatermark(bsl::move(original.d_highWatermark)),
-  d_nodeLowWatermark(bsl::move(original.d_nodeLowWatermark)),
-  d_nodeHighWatermark(bsl::move(original.d_nodeHighWatermark)),
-  d_name(bsl::move(original.d_name)),
-  d_port(bsl::move(original.d_port)),
-  d_ioThreads(bsl::move(original.d_ioThreads)),
-  d_maxConnections(bsl::move(original.d_maxConnections)),
-  d_heartbeatIntervalMs(bsl::move(original.d_heartbeatIntervalMs))
+TcpInterfaceListener::TcpInterfaceListener(TcpInterfaceListener&& original)
+    noexcept : d_name(bsl::move(original.d_name)),
+               d_port(bsl::move(original.d_port))
 {
 }
 
-TcpInterfaceConfig::TcpInterfaceConfig(TcpInterfaceConfig&& original,
-                                       bslma::Allocator*    basicAllocator)
-: d_lowWatermark(bsl::move(original.d_lowWatermark))
-, d_highWatermark(bsl::move(original.d_highWatermark))
-, d_nodeLowWatermark(bsl::move(original.d_nodeLowWatermark))
-, d_nodeHighWatermark(bsl::move(original.d_nodeHighWatermark))
-, d_name(bsl::move(original.d_name), basicAllocator)
+TcpInterfaceListener::TcpInterfaceListener(TcpInterfaceListener&& original,
+                                           bslma::Allocator* basicAllocator)
+: d_name(bsl::move(original.d_name), basicAllocator)
 , d_port(bsl::move(original.d_port))
-, d_ioThreads(bsl::move(original.d_ioThreads))
-, d_maxConnections(bsl::move(original.d_maxConnections))
-, d_heartbeatIntervalMs(bsl::move(original.d_heartbeatIntervalMs))
 {
 }
 #endif
 
-TcpInterfaceConfig::~TcpInterfaceConfig()
+TcpInterfaceListener::~TcpInterfaceListener()
 {
 }
 
 // MANIPULATORS
 
-TcpInterfaceConfig&
-TcpInterfaceConfig::operator=(const TcpInterfaceConfig& rhs)
+TcpInterfaceListener&
+TcpInterfaceListener::operator=(const TcpInterfaceListener& rhs)
 {
     if (this != &rhs) {
-        d_name                = rhs.d_name;
-        d_port                = rhs.d_port;
-        d_ioThreads           = rhs.d_ioThreads;
-        d_maxConnections      = rhs.d_maxConnections;
-        d_lowWatermark        = rhs.d_lowWatermark;
-        d_highWatermark       = rhs.d_highWatermark;
-        d_nodeLowWatermark    = rhs.d_nodeLowWatermark;
-        d_nodeHighWatermark   = rhs.d_nodeHighWatermark;
-        d_heartbeatIntervalMs = rhs.d_heartbeatIntervalMs;
+        d_name = rhs.d_name;
+        d_port = rhs.d_port;
     }
 
     return *this;
@@ -2452,54 +2358,34 @@ TcpInterfaceConfig::operator=(const TcpInterfaceConfig& rhs)
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-TcpInterfaceConfig& TcpInterfaceConfig::operator=(TcpInterfaceConfig&& rhs)
+TcpInterfaceListener&
+TcpInterfaceListener::operator=(TcpInterfaceListener&& rhs)
 {
     if (this != &rhs) {
-        d_name                = bsl::move(rhs.d_name);
-        d_port                = bsl::move(rhs.d_port);
-        d_ioThreads           = bsl::move(rhs.d_ioThreads);
-        d_maxConnections      = bsl::move(rhs.d_maxConnections);
-        d_lowWatermark        = bsl::move(rhs.d_lowWatermark);
-        d_highWatermark       = bsl::move(rhs.d_highWatermark);
-        d_nodeLowWatermark    = bsl::move(rhs.d_nodeLowWatermark);
-        d_nodeHighWatermark   = bsl::move(rhs.d_nodeHighWatermark);
-        d_heartbeatIntervalMs = bsl::move(rhs.d_heartbeatIntervalMs);
+        d_name = bsl::move(rhs.d_name);
+        d_port = bsl::move(rhs.d_port);
     }
 
     return *this;
 }
 #endif
 
-void TcpInterfaceConfig::reset()
+void TcpInterfaceListener::reset()
 {
     bdlat_ValueTypeFunctions::reset(&d_name);
     bdlat_ValueTypeFunctions::reset(&d_port);
-    bdlat_ValueTypeFunctions::reset(&d_ioThreads);
-    d_maxConnections = DEFAULT_INITIALIZER_MAX_CONNECTIONS;
-    bdlat_ValueTypeFunctions::reset(&d_lowWatermark);
-    bdlat_ValueTypeFunctions::reset(&d_highWatermark);
-    d_nodeLowWatermark    = DEFAULT_INITIALIZER_NODE_LOW_WATERMARK;
-    d_nodeHighWatermark   = DEFAULT_INITIALIZER_NODE_HIGH_WATERMARK;
-    d_heartbeatIntervalMs = DEFAULT_INITIALIZER_HEARTBEAT_INTERVAL_MS;
 }
 
 // ACCESSORS
 
-bsl::ostream& TcpInterfaceConfig::print(bsl::ostream& stream,
-                                        int           level,
-                                        int           spacesPerLevel) const
+bsl::ostream& TcpInterfaceListener::print(bsl::ostream& stream,
+                                          int           level,
+                                          int           spacesPerLevel) const
 {
     bslim::Printer printer(&stream, level, spacesPerLevel);
     printer.start();
     printer.printAttribute("name", this->name());
     printer.printAttribute("port", this->port());
-    printer.printAttribute("ioThreads", this->ioThreads());
-    printer.printAttribute("maxConnections", this->maxConnections());
-    printer.printAttribute("lowWatermark", this->lowWatermark());
-    printer.printAttribute("highWatermark", this->highWatermark());
-    printer.printAttribute("nodeLowWatermark", this->nodeLowWatermark());
-    printer.printAttribute("nodeHighWatermark", this->nodeHighWatermark());
-    printer.printAttribute("heartbeatIntervalMs", this->heartbeatIntervalMs());
     printer.end();
     return stream;
 }
@@ -3227,135 +3113,6 @@ LogController::print(bsl::ostream& stream, int level, int spacesPerLevel) const
     return stream;
 }
 
-// -----------------------
-// class NetworkInterfaces
-// -----------------------
-
-// CONSTANTS
-
-const char NetworkInterfaces::CLASS_NAME[] = "NetworkInterfaces";
-
-const bdlat_AttributeInfo NetworkInterfaces::ATTRIBUTE_INFO_ARRAY[] = {
-    {ATTRIBUTE_ID_HEARTBEATS,
-     "heartbeats",
-     sizeof("heartbeats") - 1,
-     "",
-     bdlat_FormattingMode::e_DEFAULT},
-    {ATTRIBUTE_ID_TCP_INTERFACE,
-     "tcpInterface",
-     sizeof("tcpInterface") - 1,
-     "",
-     bdlat_FormattingMode::e_DEFAULT}};
-
-// CLASS METHODS
-
-const bdlat_AttributeInfo*
-NetworkInterfaces::lookupAttributeInfo(const char* name, int nameLength)
-{
-    for (int i = 0; i < 2; ++i) {
-        const bdlat_AttributeInfo& attributeInfo =
-            NetworkInterfaces::ATTRIBUTE_INFO_ARRAY[i];
-
-        if (nameLength == attributeInfo.d_nameLength &&
-            0 == bsl::memcmp(attributeInfo.d_name_p, name, nameLength)) {
-            return &attributeInfo;
-        }
-    }
-
-    return 0;
-}
-
-const bdlat_AttributeInfo* NetworkInterfaces::lookupAttributeInfo(int id)
-{
-    switch (id) {
-    case ATTRIBUTE_ID_HEARTBEATS:
-        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HEARTBEATS];
-    case ATTRIBUTE_ID_TCP_INTERFACE:
-        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_TCP_INTERFACE];
-    default: return 0;
-    }
-}
-
-// CREATORS
-
-NetworkInterfaces::NetworkInterfaces(bslma::Allocator* basicAllocator)
-: d_tcpInterface(basicAllocator)
-, d_heartbeats()
-{
-}
-
-NetworkInterfaces::NetworkInterfaces(const NetworkInterfaces& original,
-                                     bslma::Allocator*        basicAllocator)
-: d_tcpInterface(original.d_tcpInterface, basicAllocator)
-, d_heartbeats(original.d_heartbeats)
-{
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-NetworkInterfaces::NetworkInterfaces(NetworkInterfaces&& original) noexcept
-: d_tcpInterface(bsl::move(original.d_tcpInterface)),
-  d_heartbeats(bsl::move(original.d_heartbeats))
-{
-}
-
-NetworkInterfaces::NetworkInterfaces(NetworkInterfaces&& original,
-                                     bslma::Allocator*   basicAllocator)
-: d_tcpInterface(bsl::move(original.d_tcpInterface), basicAllocator)
-, d_heartbeats(bsl::move(original.d_heartbeats))
-{
-}
-#endif
-
-NetworkInterfaces::~NetworkInterfaces()
-{
-}
-
-// MANIPULATORS
-
-NetworkInterfaces& NetworkInterfaces::operator=(const NetworkInterfaces& rhs)
-{
-    if (this != &rhs) {
-        d_heartbeats   = rhs.d_heartbeats;
-        d_tcpInterface = rhs.d_tcpInterface;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-NetworkInterfaces& NetworkInterfaces::operator=(NetworkInterfaces&& rhs)
-{
-    if (this != &rhs) {
-        d_heartbeats   = bsl::move(rhs.d_heartbeats);
-        d_tcpInterface = bsl::move(rhs.d_tcpInterface);
-    }
-
-    return *this;
-}
-#endif
-
-void NetworkInterfaces::reset()
-{
-    bdlat_ValueTypeFunctions::reset(&d_heartbeats);
-    bdlat_ValueTypeFunctions::reset(&d_tcpInterface);
-}
-
-// ACCESSORS
-
-bsl::ostream& NetworkInterfaces::print(bsl::ostream& stream,
-                                       int           level,
-                                       int           spacesPerLevel) const
-{
-    bslim::Printer printer(&stream, level, spacesPerLevel);
-    printer.start();
-    printer.printAttribute("heartbeats", this->heartbeats());
-    printer.printAttribute("tcpInterface", this->tcpInterface());
-    printer.end();
-    return stream;
-}
-
 // ---------------------
 // class PartitionConfig
 // ---------------------
@@ -3784,6 +3541,264 @@ bsl::ostream& StatPluginConfigPrometheus::print(bsl::ostream& stream,
     return stream;
 }
 
+// ------------------------
+// class TcpInterfaceConfig
+// ------------------------
+
+// CONSTANTS
+
+const char TcpInterfaceConfig::CLASS_NAME[] = "TcpInterfaceConfig";
+
+const int TcpInterfaceConfig::DEFAULT_INITIALIZER_MAX_CONNECTIONS = 10000;
+
+const bsls::Types::Int64
+    TcpInterfaceConfig::DEFAULT_INITIALIZER_NODE_LOW_WATERMARK = 1024;
+
+const bsls::Types::Int64
+    TcpInterfaceConfig::DEFAULT_INITIALIZER_NODE_HIGH_WATERMARK = 2048;
+
+const int TcpInterfaceConfig::DEFAULT_INITIALIZER_HEARTBEAT_INTERVAL_MS = 3000;
+
+const bdlat_AttributeInfo TcpInterfaceConfig::ATTRIBUTE_INFO_ARRAY[] = {
+    {ATTRIBUTE_ID_NAME,
+     "name",
+     sizeof("name") - 1,
+     "",
+     bdlat_FormattingMode::e_TEXT},
+    {ATTRIBUTE_ID_PORT,
+     "port",
+     sizeof("port") - 1,
+     "",
+     bdlat_FormattingMode::e_DEC},
+    {ATTRIBUTE_ID_IO_THREADS,
+     "ioThreads",
+     sizeof("ioThreads") - 1,
+     "",
+     bdlat_FormattingMode::e_DEC},
+    {ATTRIBUTE_ID_MAX_CONNECTIONS,
+     "maxConnections",
+     sizeof("maxConnections") - 1,
+     "",
+     bdlat_FormattingMode::e_DEC},
+    {ATTRIBUTE_ID_LOW_WATERMARK,
+     "lowWatermark",
+     sizeof("lowWatermark") - 1,
+     "",
+     bdlat_FormattingMode::e_DEC},
+    {ATTRIBUTE_ID_HIGH_WATERMARK,
+     "highWatermark",
+     sizeof("highWatermark") - 1,
+     "",
+     bdlat_FormattingMode::e_DEC},
+    {ATTRIBUTE_ID_NODE_LOW_WATERMARK,
+     "nodeLowWatermark",
+     sizeof("nodeLowWatermark") - 1,
+     "",
+     bdlat_FormattingMode::e_DEC},
+    {ATTRIBUTE_ID_NODE_HIGH_WATERMARK,
+     "nodeHighWatermark",
+     sizeof("nodeHighWatermark") - 1,
+     "",
+     bdlat_FormattingMode::e_DEC},
+    {ATTRIBUTE_ID_HEARTBEAT_INTERVAL_MS,
+     "heartbeatIntervalMs",
+     sizeof("heartbeatIntervalMs") - 1,
+     "",
+     bdlat_FormattingMode::e_DEC},
+    {ATTRIBUTE_ID_LISTENERS,
+     "listeners",
+     sizeof("listeners") - 1,
+     "",
+     bdlat_FormattingMode::e_DEFAULT}};
+
+// CLASS METHODS
+
+const bdlat_AttributeInfo*
+TcpInterfaceConfig::lookupAttributeInfo(const char* name, int nameLength)
+{
+    for (int i = 0; i < 10; ++i) {
+        const bdlat_AttributeInfo& attributeInfo =
+            TcpInterfaceConfig::ATTRIBUTE_INFO_ARRAY[i];
+
+        if (nameLength == attributeInfo.d_nameLength &&
+            0 == bsl::memcmp(attributeInfo.d_name_p, name, nameLength)) {
+            return &attributeInfo;
+        }
+    }
+
+    return 0;
+}
+
+const bdlat_AttributeInfo* TcpInterfaceConfig::lookupAttributeInfo(int id)
+{
+    switch (id) {
+    case ATTRIBUTE_ID_NAME: return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NAME];
+    case ATTRIBUTE_ID_PORT: return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PORT];
+    case ATTRIBUTE_ID_IO_THREADS:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_IO_THREADS];
+    case ATTRIBUTE_ID_MAX_CONNECTIONS:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MAX_CONNECTIONS];
+    case ATTRIBUTE_ID_LOW_WATERMARK:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LOW_WATERMARK];
+    case ATTRIBUTE_ID_HIGH_WATERMARK:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HIGH_WATERMARK];
+    case ATTRIBUTE_ID_NODE_LOW_WATERMARK:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NODE_LOW_WATERMARK];
+    case ATTRIBUTE_ID_NODE_HIGH_WATERMARK:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NODE_HIGH_WATERMARK];
+    case ATTRIBUTE_ID_HEARTBEAT_INTERVAL_MS:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HEARTBEAT_INTERVAL_MS];
+    case ATTRIBUTE_ID_LISTENERS:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LISTENERS];
+    default: return 0;
+    }
+}
+
+// CREATORS
+
+TcpInterfaceConfig::TcpInterfaceConfig(bslma::Allocator* basicAllocator)
+: d_lowWatermark()
+, d_highWatermark()
+, d_nodeLowWatermark(DEFAULT_INITIALIZER_NODE_LOW_WATERMARK)
+, d_nodeHighWatermark(DEFAULT_INITIALIZER_NODE_HIGH_WATERMARK)
+, d_listeners(basicAllocator)
+, d_name(basicAllocator)
+, d_port()
+, d_ioThreads()
+, d_maxConnections(DEFAULT_INITIALIZER_MAX_CONNECTIONS)
+, d_heartbeatIntervalMs(DEFAULT_INITIALIZER_HEARTBEAT_INTERVAL_MS)
+{
+}
+
+TcpInterfaceConfig::TcpInterfaceConfig(const TcpInterfaceConfig& original,
+                                       bslma::Allocator* basicAllocator)
+: d_lowWatermark(original.d_lowWatermark)
+, d_highWatermark(original.d_highWatermark)
+, d_nodeLowWatermark(original.d_nodeLowWatermark)
+, d_nodeHighWatermark(original.d_nodeHighWatermark)
+, d_listeners(original.d_listeners, basicAllocator)
+, d_name(original.d_name, basicAllocator)
+, d_port(original.d_port)
+, d_ioThreads(original.d_ioThreads)
+, d_maxConnections(original.d_maxConnections)
+, d_heartbeatIntervalMs(original.d_heartbeatIntervalMs)
+{
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+TcpInterfaceConfig::TcpInterfaceConfig(TcpInterfaceConfig&& original) noexcept
+: d_lowWatermark(bsl::move(original.d_lowWatermark)),
+  d_highWatermark(bsl::move(original.d_highWatermark)),
+  d_nodeLowWatermark(bsl::move(original.d_nodeLowWatermark)),
+  d_nodeHighWatermark(bsl::move(original.d_nodeHighWatermark)),
+  d_listeners(bsl::move(original.d_listeners)),
+  d_name(bsl::move(original.d_name)),
+  d_port(bsl::move(original.d_port)),
+  d_ioThreads(bsl::move(original.d_ioThreads)),
+  d_maxConnections(bsl::move(original.d_maxConnections)),
+  d_heartbeatIntervalMs(bsl::move(original.d_heartbeatIntervalMs))
+{
+}
+
+TcpInterfaceConfig::TcpInterfaceConfig(TcpInterfaceConfig&& original,
+                                       bslma::Allocator*    basicAllocator)
+: d_lowWatermark(bsl::move(original.d_lowWatermark))
+, d_highWatermark(bsl::move(original.d_highWatermark))
+, d_nodeLowWatermark(bsl::move(original.d_nodeLowWatermark))
+, d_nodeHighWatermark(bsl::move(original.d_nodeHighWatermark))
+, d_listeners(bsl::move(original.d_listeners), basicAllocator)
+, d_name(bsl::move(original.d_name), basicAllocator)
+, d_port(bsl::move(original.d_port))
+, d_ioThreads(bsl::move(original.d_ioThreads))
+, d_maxConnections(bsl::move(original.d_maxConnections))
+, d_heartbeatIntervalMs(bsl::move(original.d_heartbeatIntervalMs))
+{
+}
+#endif
+
+TcpInterfaceConfig::~TcpInterfaceConfig()
+{
+}
+
+// MANIPULATORS
+
+TcpInterfaceConfig&
+TcpInterfaceConfig::operator=(const TcpInterfaceConfig& rhs)
+{
+    if (this != &rhs) {
+        d_name                = rhs.d_name;
+        d_port                = rhs.d_port;
+        d_ioThreads           = rhs.d_ioThreads;
+        d_maxConnections      = rhs.d_maxConnections;
+        d_lowWatermark        = rhs.d_lowWatermark;
+        d_highWatermark       = rhs.d_highWatermark;
+        d_nodeLowWatermark    = rhs.d_nodeLowWatermark;
+        d_nodeHighWatermark   = rhs.d_nodeHighWatermark;
+        d_heartbeatIntervalMs = rhs.d_heartbeatIntervalMs;
+        d_listeners           = rhs.d_listeners;
+    }
+
+    return *this;
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+TcpInterfaceConfig& TcpInterfaceConfig::operator=(TcpInterfaceConfig&& rhs)
+{
+    if (this != &rhs) {
+        d_name                = bsl::move(rhs.d_name);
+        d_port                = bsl::move(rhs.d_port);
+        d_ioThreads           = bsl::move(rhs.d_ioThreads);
+        d_maxConnections      = bsl::move(rhs.d_maxConnections);
+        d_lowWatermark        = bsl::move(rhs.d_lowWatermark);
+        d_highWatermark       = bsl::move(rhs.d_highWatermark);
+        d_nodeLowWatermark    = bsl::move(rhs.d_nodeLowWatermark);
+        d_nodeHighWatermark   = bsl::move(rhs.d_nodeHighWatermark);
+        d_heartbeatIntervalMs = bsl::move(rhs.d_heartbeatIntervalMs);
+        d_listeners           = bsl::move(rhs.d_listeners);
+    }
+
+    return *this;
+}
+#endif
+
+void TcpInterfaceConfig::reset()
+{
+    bdlat_ValueTypeFunctions::reset(&d_name);
+    bdlat_ValueTypeFunctions::reset(&d_port);
+    bdlat_ValueTypeFunctions::reset(&d_ioThreads);
+    d_maxConnections = DEFAULT_INITIALIZER_MAX_CONNECTIONS;
+    bdlat_ValueTypeFunctions::reset(&d_lowWatermark);
+    bdlat_ValueTypeFunctions::reset(&d_highWatermark);
+    d_nodeLowWatermark    = DEFAULT_INITIALIZER_NODE_LOW_WATERMARK;
+    d_nodeHighWatermark   = DEFAULT_INITIALIZER_NODE_HIGH_WATERMARK;
+    d_heartbeatIntervalMs = DEFAULT_INITIALIZER_HEARTBEAT_INTERVAL_MS;
+    bdlat_ValueTypeFunctions::reset(&d_listeners);
+}
+
+// ACCESSORS
+
+bsl::ostream& TcpInterfaceConfig::print(bsl::ostream& stream,
+                                        int           level,
+                                        int           spacesPerLevel) const
+{
+    bslim::Printer printer(&stream, level, spacesPerLevel);
+    printer.start();
+    printer.printAttribute("name", this->name());
+    printer.printAttribute("port", this->port());
+    printer.printAttribute("ioThreads", this->ioThreads());
+    printer.printAttribute("maxConnections", this->maxConnections());
+    printer.printAttribute("lowWatermark", this->lowWatermark());
+    printer.printAttribute("highWatermark", this->highWatermark());
+    printer.printAttribute("nodeLowWatermark", this->nodeLowWatermark());
+    printer.printAttribute("nodeHighWatermark", this->nodeHighWatermark());
+    printer.printAttribute("heartbeatIntervalMs", this->heartbeatIntervalMs());
+    printer.printAttribute("listeners", this->listeners());
+    printer.end();
+    return stream;
+}
+
 // -----------------
 // class ClusterNode
 // -----------------
@@ -4021,6 +4036,135 @@ bsl::ostream& DispatcherConfig::print(bsl::ostream& stream,
     printer.printAttribute("sessions", this->sessions());
     printer.printAttribute("queues", this->queues());
     printer.printAttribute("clusters", this->clusters());
+    printer.end();
+    return stream;
+}
+
+// -----------------------
+// class NetworkInterfaces
+// -----------------------
+
+// CONSTANTS
+
+const char NetworkInterfaces::CLASS_NAME[] = "NetworkInterfaces";
+
+const bdlat_AttributeInfo NetworkInterfaces::ATTRIBUTE_INFO_ARRAY[] = {
+    {ATTRIBUTE_ID_HEARTBEATS,
+     "heartbeats",
+     sizeof("heartbeats") - 1,
+     "",
+     bdlat_FormattingMode::e_DEFAULT},
+    {ATTRIBUTE_ID_TCP_INTERFACE,
+     "tcpInterface",
+     sizeof("tcpInterface") - 1,
+     "",
+     bdlat_FormattingMode::e_DEFAULT}};
+
+// CLASS METHODS
+
+const bdlat_AttributeInfo*
+NetworkInterfaces::lookupAttributeInfo(const char* name, int nameLength)
+{
+    for (int i = 0; i < 2; ++i) {
+        const bdlat_AttributeInfo& attributeInfo =
+            NetworkInterfaces::ATTRIBUTE_INFO_ARRAY[i];
+
+        if (nameLength == attributeInfo.d_nameLength &&
+            0 == bsl::memcmp(attributeInfo.d_name_p, name, nameLength)) {
+            return &attributeInfo;
+        }
+    }
+
+    return 0;
+}
+
+const bdlat_AttributeInfo* NetworkInterfaces::lookupAttributeInfo(int id)
+{
+    switch (id) {
+    case ATTRIBUTE_ID_HEARTBEATS:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HEARTBEATS];
+    case ATTRIBUTE_ID_TCP_INTERFACE:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_TCP_INTERFACE];
+    default: return 0;
+    }
+}
+
+// CREATORS
+
+NetworkInterfaces::NetworkInterfaces(bslma::Allocator* basicAllocator)
+: d_tcpInterface(basicAllocator)
+, d_heartbeats()
+{
+}
+
+NetworkInterfaces::NetworkInterfaces(const NetworkInterfaces& original,
+                                     bslma::Allocator*        basicAllocator)
+: d_tcpInterface(original.d_tcpInterface, basicAllocator)
+, d_heartbeats(original.d_heartbeats)
+{
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+NetworkInterfaces::NetworkInterfaces(NetworkInterfaces&& original) noexcept
+: d_tcpInterface(bsl::move(original.d_tcpInterface)),
+  d_heartbeats(bsl::move(original.d_heartbeats))
+{
+}
+
+NetworkInterfaces::NetworkInterfaces(NetworkInterfaces&& original,
+                                     bslma::Allocator*   basicAllocator)
+: d_tcpInterface(bsl::move(original.d_tcpInterface), basicAllocator)
+, d_heartbeats(bsl::move(original.d_heartbeats))
+{
+}
+#endif
+
+NetworkInterfaces::~NetworkInterfaces()
+{
+}
+
+// MANIPULATORS
+
+NetworkInterfaces& NetworkInterfaces::operator=(const NetworkInterfaces& rhs)
+{
+    if (this != &rhs) {
+        d_heartbeats   = rhs.d_heartbeats;
+        d_tcpInterface = rhs.d_tcpInterface;
+    }
+
+    return *this;
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+NetworkInterfaces& NetworkInterfaces::operator=(NetworkInterfaces&& rhs)
+{
+    if (this != &rhs) {
+        d_heartbeats   = bsl::move(rhs.d_heartbeats);
+        d_tcpInterface = bsl::move(rhs.d_tcpInterface);
+    }
+
+    return *this;
+}
+#endif
+
+void NetworkInterfaces::reset()
+{
+    bdlat_ValueTypeFunctions::reset(&d_heartbeats);
+    bdlat_ValueTypeFunctions::reset(&d_tcpInterface);
+}
+
+// ACCESSORS
+
+bsl::ostream& NetworkInterfaces::print(bsl::ostream& stream,
+                                       int           level,
+                                       int           spacesPerLevel) const
+{
+    bslim::Printer printer(&stream, level, spacesPerLevel);
+    printer.start();
+    printer.printAttribute("heartbeats", this->heartbeats());
+    printer.printAttribute("tcpInterface", this->tcpInterface());
     printer.end();
     return stream;
 }
@@ -5823,13 +5967,6 @@ Configuration::print(bsl::ostream& stream, int level, int spacesPerLevel) const
 }  // close package namespace
 }  // close enterprise namespace
 
-// GENERATED BY @BLP_BAS_CODEGEN_VERSION@
+// GENERATED BY BLP_BAS_CODEGEN_2024.07.18
 // USING bas_codegen.pl -m msg --noAggregateConversion --noExternalization
 // --noIdent --package mqbcfg --msgComponent messages mqbcfg.xsd
-// ----------------------------------------------------------------------------
-// NOTICE:
-//      Copyright 2024 Bloomberg Finance L.P. All rights reserved.
-//      Property of Bloomberg Finance L.P. (BFLP)
-//      This software is made available solely pursuant to the
-//      terms of a BFLP license agreement which governs its use.
-// ------------------------------- END-OF-FILE --------------------------------

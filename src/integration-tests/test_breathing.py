@@ -28,6 +28,7 @@ from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
     cluster,
     order,
     multi_node,
+    multi_interface,
     start_cluster,
     tweak,
 )
@@ -659,6 +660,58 @@ def test_verify_partial_close(multi_node: Cluster):
     producer1.capture(r"ACK #0: \[ type = ACK status = SUCCESS", 2)
 
     _stop_clients([producer1, producer2])
+
+
+def test_multi_interface_connect(multi_interface: Cluster):
+    """Simple test to connect to a cluster with multiple ports listening."""
+    cluster = multi_interface
+    brokers = cluster.nodes() + cluster.proxies()
+    for broker in brokers:
+        for i, listener in enumerate(broker.config.listeners):
+            port = listener.port
+            producer = broker.create_client(f"producer{i}", port=port)
+            consumer = broker.create_client(f"consumer{i}", port=port)
+            producer.open(tc.URI_PRIORITY, flags=["write", "ack"], succeed=True)
+            consumer.open(
+                tc.URI_PRIORITY,
+                flags=["read"],
+                consumer_priority=1,
+                max_unconfirmed_messages=1,
+                succeed=True,
+            )
+            producer.post(
+                tc.URI_PRIORITY, payload=[f"{i}"], succeed=True, wait_ack=True
+            )
+            assert consumer.wait_push_event()
+            msgs = consumer.list(block=True)
+            assert len(msgs) == 1
+            assert msgs[0].payload == f"{i}"
+            consumer.confirm(tc.URI_PRIORITY, msgs[0].guid, succeed=True)
+            _stop_clients([producer, consumer])
+
+
+def test_multi_interface_share_queues(multi_interface: Cluster):
+    """Check that clients connecting on different ports still work together."""
+    cluster = multi_interface
+    broker = next(cluster.proxy_cycle())
+    [listener1, listener2] = broker.config.listeners
+    producer = broker.create_client("producer", port=listener1.port)
+    consumer = broker.create_client("consumer", port=listener2.port)
+    producer.open(tc.URI_PRIORITY, flags=["write", "ack"], succeed=True)
+    consumer.open(
+        tc.URI_PRIORITY,
+        flags=["read"],
+        consumer_priority=1,
+        max_unconfirmed_messages=1,
+        succeed=True,
+    )
+    producer.post(tc.URI_PRIORITY, payload=["foo"], succeed=True, wait_ack=True)
+    assert consumer.wait_push_event()
+    msgs = consumer.list(block=True)
+    assert len(msgs) == 1
+    assert msgs[0].payload == "foo"
+    consumer.confirm(tc.URI_PRIORITY, msgs[0].guid, succeed=True)
+    _stop_clients([producer, consumer])
 
 
 @start_cluster(True, True, True)

@@ -129,7 +129,25 @@ class Configurator:
         name: str,
         instance: Optional[str] = None,
         data_center: str = "dc",
+        listeners: List[Tuple[str, int]] = [],
     ) -> Broker:
+        """Create a broker config and add it to the list of broker configs in
+        the current configs.
+
+        Args:
+            tcp_host: config/app_config/network_interfaces/tcp_interface/name
+            tcp_port: config/app_config/network_interfaces/tcp_interface/port
+            name: The host name for this broker.
+            instance: The BlazingMQ instance this broker belongs to.
+            data_center: A name for the data center region this broker belongs
+                to.
+            listeners: A list of TCP interfaces the broker will listen on. The
+                option overrides tcp_host and tcp_port if non-empty.
+
+        Returns:
+            A Broker object representing the fully configured broker
+                configuration.
+        """
         config = self.broker_configuration()
         assert config.app_config is not None
         assert config.app_config.network_interfaces is not None
@@ -139,6 +157,10 @@ class Configurator:
         config.app_config.broker_instance_name = instance
         config.app_config.network_interfaces.tcp_interface.name = tcp_host
         config.app_config.network_interfaces.tcp_interface.port = tcp_port
+        config.app_config.network_interfaces.tcp_interface.listeners = [
+            mqbcfg.TcpInterfaceListener(name=host, port=port)
+            for (host, port) in listeners
+        ]
         broker = Broker(self, next(self.host_id_allocator), config)
         self.brokers[name] = broker
 
@@ -150,6 +172,16 @@ class Configurator:
         if name in self.clusters:
             raise ConfiguratorError(f"cluster '{name}' already exists")
 
+        def port(tcp_interface: mqbcfg.TcpInterfaceConfig) -> int:
+            if tcp_interface.listeners:
+                return next(
+                    listener.port
+                    for listener in tcp_interface.listeners
+                    if listener.name == "BROKER"
+                )
+            else:
+                return tcp_interface.port
+
         definition.name = name
         definition.nodes = [
             mqbcfg.ClusterNode(
@@ -160,7 +192,7 @@ class Configurator:
                     mqbcfg.TcpClusterNodeConnection(
                         "tcp://{host}:{port}".format(
                             host=tcp_interface.name,  # type: ignore
-                            port=tcp_interface.port,  # type: ignore
+                            port=port(tcp_interface),  # type: ignore
                         )
                     )
                 ),
@@ -172,6 +204,21 @@ class Configurator:
         ]
 
     def cluster(self, name: str, nodes: List[Broker]) -> Cluster:
+        """Create a cluster config and add it to the list of cluster configs in the
+        current configs.
+
+        If a broker specifies listeners in its TCP interface config, the inter-broker
+        listener URI will be constructed as tcp://<broker.tcp_host>:<port> where <port>
+        is specified by the special listener named "BROKER". Otherwise, the port is
+        taken from the port field in the TCP interface config.
+
+        Args:
+            name: The name of the cluster.
+            nodes: The broker members of the cluster.
+
+        Returns:
+            A cluster config definition.
+        """
         definition = self.cluster_definition()
         self._prepare_cluster(name, nodes, definition)
 

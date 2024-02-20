@@ -31,6 +31,10 @@ from dataclasses import dataclass, field
 from decimal import Decimal
 from pathlib import Path
 from typing import Dict, Iterator, List, Optional, Set, Tuple, Union
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from blazingmq.dev.configurator import Configurator
 
 from blazingmq.dev.configurator.site import Site
 from blazingmq.dev.paths import required_paths as paths
@@ -105,6 +109,10 @@ class Broker:
     def config_dir(self) -> Path:
         return Path(self.name) / "etc"
 
+    @property
+    def listeners(self) -> List[mqbcfg.TcpInterfaceListener]:
+        return self.config.app_config.network_interfaces.tcp_interface.listeners
+
     def add_proxy_definition(self, cluster: "AbstractCluster"):
         self.proxy_clusters.add(cluster.name)
         self.clusters.proxy_clusters.append(
@@ -166,13 +174,24 @@ class Broker:
                         reversed_cluster_connections
                     )
 
-                reversed_cluster_connections.connections.append(
-                    mqbcfg.ClusterNodeConnection(
-                        mqbcfg.TcpClusterNodeConnection(
-                            f"tcp://{self.host}:{self.port}"
+                if self.listeners:
+                    for listener in self.listeners:
+                        print(listener)
+                        reversed_cluster_connections.connections.append(
+                            mqbcfg.ClusterNodeConnection(
+                                mqbcfg.TcpClusterNodeConnection(
+                                    f"tcp://{self.host}:{listener.port}"
+                                )
+                            )
+                        )
+                else:
+                    reversed_cluster_connections.connections.append(
+                        mqbcfg.ClusterNodeConnection(
+                            mqbcfg.TcpClusterNodeConnection(
+                                f"tcp://{self.host}:{self.port}"
+                            )
                         )
                     )
-                )
 
         return self
 
