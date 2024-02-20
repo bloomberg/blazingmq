@@ -57,7 +57,7 @@
   <complexType name='AppConfig'>
     <annotation>
       <documentation>
-        Top level typ for the broker's configuration.
+        Top level type for the broker's configuration.
 
         brokerInstanceName...: name of the broker instance
         brokerVersion........: version of the broker
@@ -75,7 +75,7 @@
         bmqconfConfig........: configuration for bmqconf
         plugins..............: configuration for the plugins
         msgPropertiesSupport.: information about if/how to advertise support for v2 message properties
-        configureStream......: send new ConfigureStream instead of old ConfigureQueue/>
+        configureStream......: send new ConfigureStream instead of old ConfigureQueue
       </documentation>
     </annotation>
     <sequence>
@@ -255,6 +255,24 @@
       <element name='nodeHighWatermark'   type='long' default='2048'/>
       <element name='heartbeatIntervalMs' type='int' default='3000'/>
       <element name='useNtf'              type='boolean' default='false'/>
+      <element name='listeners'           type='tns:TcpInterfaceListener' minOccurs='0' maxOccurs='unbounded'/>
+   </sequence>
+  </complexType>
+
+  <complexType name='TcpInterfaceListener'>
+    <annotation>
+      <documentation>
+      This type describes the information needed for the broker to open a TCP listener.
+
+      name.................:
+        A name to associate this listener to.
+      port.................:
+        The port this listener will accept connections on.
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='name'                type='string'/>
+      <element name='port'                type='int'/>
     </sequence>
   </complexType>
 
