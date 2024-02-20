@@ -41,8 +41,9 @@ class PostRecord:
 
 def post_n_msgs(producer: Client, task: PostRecord, posted: Optional[Dict[str, PostRecord]] = None) -> None:
     """
-    Open a connection for the specified 'producer' to the specified 'uri'
-    and post the specified 'n' messages.
+    Execute the specified 'task' with the specified 'producer'.
+    The summary of the executed post task is appended to the optionally
+    specified 'posted'.
     """
     producer.open(task.uri, flags=["write,ack"], succeed=True)
     for _ in range(task.num):
@@ -210,7 +211,7 @@ def test_purge_inactive(single_node: Cluster):
     Stage 3: FANOUT purge
     - Verify that the observed number of active queues in FANOUT domain is expected.
     - Purge a subset of FANOUT queues one by one using queue purge command with app_id
-    parameter specified, some of these queues are inactive. For each
+    parameter specified, some of these queues are inactive.
     - Cycle through all FANOUT queues again and verify that we purged everything.
 
     Concerns:
