@@ -51,6 +51,7 @@ class JournalFileProcessor : public CommandProcessor {
   public:
     // CREATORS
     explicit JournalFileProcessor(bsl::shared_ptr<Parameters>   params,
+                                  bsl::shared_ptr<FileManager>  fileManager,
                                   bsl::ostream&                 ostream,
                                   bsl::shared_ptr<SearchResult> searchResult_p,
                                   bslma::Allocator*             allocator);

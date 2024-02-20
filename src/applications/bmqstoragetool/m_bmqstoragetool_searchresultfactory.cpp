@@ -25,40 +25,41 @@ namespace m_bmqstoragetool {
 // class SearchResultFactory
 // =========================
 
-bsl::shared_ptr<SearchResult>
-SearchResultFactory::createSearchResult(bsl::shared_ptr<Parameters> params,
-                                        bsl::ostream&               ostream,
-                                        bslma::Allocator*           allocator)
+bsl::shared_ptr<SearchResult> SearchResultFactory::createSearchResult(
+    const bsl::shared_ptr<Parameters>&  params,
+    const bsl::shared_ptr<FileManager>& fileManager,
+    bsl::ostream&                       ostream,
+    bslma::Allocator*                   allocator)
 {
     // Create payload dumper
     bsl::shared_ptr<PayloadDumper> payloadDumper;
-    if (params->dumpPayload())
+    if (params->d_dumpPayload)
         payloadDumper.reset(new (*allocator)
                                 PayloadDumper(ostream,
-                                              params->dataFileIterator(),
-                                              params->dumpLimit()),
+                                              fileManager->dataFileIterator(),
+                                              params->d_dumpLimit),
                             allocator);
 
     // Set up processing flags
-    bool details = params->details();
+    bool details = params->d_details;
     // Print data immediately as soon as it is completed to save memory, except
     // the foollowing cases, where data should be kept
-    bool printImmediately = !(params->outstanding() ||
-                              params->partiallyConfirmed() ||
-                              (params->confirmed() && !details));
+    bool printImmediately = !(params->d_outstanding ||
+                              params->d_partiallyConfirmed ||
+                              (params->d_confirmed && !details));
     // Always erase stored data when 'deletion' record received
     bool eraseDeleted = true;
     // Print data immediately on 'deletion' record receiving for specific case
-    bool printOnDelete = params->confirmed();
+    bool printOnDelete = params->d_confirmed;
     // Clean unprinted/unerased data for specific case
-    bool cleanUnprinted = params->confirmed();
+    bool cleanUnprinted = params->d_confirmed;
 
     // Create searchResult implementation
     bsl::shared_ptr<SearchResult> searchResult;
     if (details)
         searchResult.reset(new (*allocator)
                                SearchDetailResult(ostream,
-                                                  params->queueMap(),
+                                                  params->d_queueMap,
                                                   payloadDumper,
                                                   allocator,
                                                   printImmediately,
@@ -75,40 +76,40 @@ SearchResultFactory::createSearchResult(bsl::shared_ptr<Parameters> params,
                            allocator);
 
     // Create Decorator for specific search
-    if (!params->guid().empty()) {
+    if (!params->d_guid.empty()) {
         // Search GUIDs
         searchResult.reset(new (*allocator)
                                SearchGuidDecorator(searchResult,
-                                                   params->guid(),
+                                                   params->d_guid,
                                                    ostream,
-                                                   params->details(),
+                                                   params->d_details,
                                                    allocator),
                            allocator);
     }
-    else if (params->summary()) {
+    else if (params->d_summary) {
         // Summary
-        searchResult.reset(new (*allocator)
-                               SummaryProcessor(ostream,
-                                                params->journalFileIterator(),
-                                                params->dataFileIterator(),
-                                                allocator),
+        searchResult.reset(new (*allocator) SummaryProcessor(
+                               ostream,
+                               fileManager->journalFileIterator(),
+                               fileManager->dataFileIterator(),
+                               allocator),
                            allocator);
     }
-    else if (params->outstanding()) {
+    else if (params->d_outstanding) {
         // Search outstanding
         searchResult.reset(
             new (*allocator)
                 SearchOutstandingDecorator(searchResult, ostream, allocator),
             allocator);
     }
-    else if (params->confirmed()) {
+    else if (params->d_confirmed) {
         // Search confirmed
         searchResult.reset(
             new (*allocator)
                 SearchOutstandingDecorator(searchResult, ostream, allocator),
             allocator);
     }
-    else if (params->partiallyConfirmed()) {
+    else if (params->d_partiallyConfirmed) {
         // Search partially confirmed
         searchResult.reset(new (*allocator)
                                SearchPartiallyConfirmedDecorator(searchResult,
@@ -123,10 +124,10 @@ SearchResultFactory::createSearchResult(bsl::shared_ptr<Parameters> params,
     }
 
     // Add TimestampDecorator if 'timestampLt' is given.
-    if (params->timestampLt() > 0) {
+    if (params->d_timestampLt > 0) {
         searchResult.reset(new (*allocator) SearchResultTimestampDecorator(
                                searchResult,
-                               params->timestampLt()),
+                               params->d_timestampLt),
                            allocator);
     }
 

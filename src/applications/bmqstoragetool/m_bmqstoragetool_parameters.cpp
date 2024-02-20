@@ -17,16 +17,14 @@
 #include <m_bmqstoragetool_parameters.h>
 
 // BMQ
-#include <bmqp_crc32c.h>
 #include <bmqt_messageguid.h>
 #include <bmqt_queueflags.h>
 
 // MQB
-#include <mqbs_filestoreprotocolutil.h>
-
 #include <mqbc_clusterstateledgerutil.h>
 #include <mqbc_incoreclusterstateledgeriterator.h>
 #include <mqbmock_logidgenerator.h>
+#include <mqbs_filestoreprotocolutil.h>
 #include <mqbsl_ledger.h>
 #include <mqbsl_memorymappedondisklog.h>
 
@@ -67,7 +65,6 @@ bool isValidQueueKeyHexRepresentation(const char* queueKeyBuf)
             return false;  // RETURN
         }
     }
-
     return true;
 }
 
@@ -212,237 +209,26 @@ bool CommandLineArguments::validate(bsl::string* error)
     return error->empty();
 }
 
-// ================
-// class Parameters
-// ================
-
-bsls::Types::Int64 ParametersReal::timestampGt() const
+Parameters::Parameters(bslma::Allocator* allocator)
+: d_guid(allocator)
+, d_queueKey(allocator)
+, d_queueName(allocator)
+, d_timestampGt(0)
+, d_timestampLt(0)
+, d_dumpLimit(0)
+, d_summary(false)
+, d_details(false)
+, d_dumpPayload(false)
+, d_outstanding(false)
+, d_confirmed(false)
+, d_partiallyConfirmed(false)
+, d_queueMap(allocator)
 {
-    return d_timestampGt;
 }
 
-bsls::Types::Int64 ParametersReal::timestampLt() const
-{
-    return d_timestampLt;
-}
-
-mqbs::JournalFileIterator* ParametersReal::journalFileIterator()
-{
-    return d_journalFile.iterator();
-}
-
-mqbs::DataFileIterator* ParametersReal::dataFileIterator()
-{
-    return d_dataFile.iterator();
-}
-
-bsl::vector<bsl::string> ParametersReal::guid() const
-{
-    return d_guid;
-}
-
-bsl::vector<bsl::string> ParametersReal::queueKey() const
-{
-    return d_queueKey;
-}
-
-bsl::vector<bsl::string> ParametersReal::queueName() const
-{
-    return d_queueName;
-}
-
-unsigned int ParametersReal::dumpLimit() const
-{
-    return d_dumpLimit;
-}
-
-bool ParametersReal::details() const
-{
-    return d_details;
-}
-
-bool ParametersReal::dumpPayload() const
-{
-    return d_dumpPayload;
-}
-
-bool ParametersReal::summary() const
-{
-    return d_summary;
-}
-
-bool ParametersReal::outstanding() const
-{
-    return d_outstanding;
-}
-
-bool ParametersReal::confirmed() const
-{
-    return d_confirmed;
-}
-
-bool ParametersReal::partiallyConfirmed() const
-{
-    return d_partiallyConfirmed;
-}
-
-const QueueMap& ParametersReal::queueMap() const
-{
-    return d_queueMap;
-}
-
-// MANIPULATORS
-bool ParametersReal::buildQueueMap(bsl::ostream&     ss,
-                                   bslma::Allocator* allocator)
-{
-    // Required for ledger operations
-    bmqp::Crc32c::initialize();
-
-    // Ledger config stubs
-    auto onRolloverCallback = [](const mqbu::StorageKey& oldLogId,
-                                 const mqbu::StorageKey& newLogId) {
-        return 0;
-    };
-    auto cleanupCallback = [](const bsl::string& logPath) {
-        return 0;
-    };
-
-    // Instantiate ledger config
-    mqbsi::LedgerConfig                    ledgerConfig(allocator);
-    bsl::shared_ptr<mqbsi::LogIdGenerator> logIdGenerator(
-        new (*allocator) mqbmock::LogIdGenerator("bmq_csl_", allocator),
-        allocator);
-    bsl::shared_ptr<mqbsi::LogFactory> logFactory(
-        new (*allocator) mqbsl::MemoryMappedOnDiskLogFactory(allocator),
-        allocator);
-    auto fileSize = bdls::FilesystemUtil::getFileSize(d_cslFile.c_str());
-    bsl::string pattern(allocator);
-    bsl::string location(allocator);
-    BSLS_ASSERT(bdls::PathUtil::getBasename(&pattern, d_cslFile) == 0);
-    BSLS_ASSERT(bdls::PathUtil::getDirname(&location, d_cslFile) == 0);
-    ledgerConfig.setLocation(location)
-        .setPattern(pattern)
-        .setMaxLogSize(fileSize)
-        .setReserveOnDisk(false)
-        .setPrefaultPages(false)
-        .setLogIdGenerator(logIdGenerator)
-        .setLogFactory(logFactory)
-        .setExtractLogIdCallback(&mqbc::ClusterStateLedgerUtil::extractLogId)
-        .setRolloverCallback(onRolloverCallback)
-        .setCleanupCallback(cleanupCallback)
-        .setValidateLogCallback(mqbc::ClusterStateLedgerUtil::validateLog);
-
-    // Create and open the ledger
-    mqbsl::Ledger ledger(ledgerConfig, allocator);
-    BSLS_ASSERT(ledger.open(mqbsi::Ledger::e_READ_ONLY) == 0);
-    // Set guard to close the ledger
-    auto closeLedger = [](mqbsl::Ledger* ledger) {
-        BSLS_ASSERT(ledger->close() == 0);
-    };
-    bdlb::ScopeExitAny guard(bdlf::BindUtil::bind(closeLedger, &ledger));
-
-    // Iterate through each record in the ledger to find the last snapshot
-    // record
-    mqbc::IncoreClusterStateLedgerIterator cslIt(&ledger);
-    mqbc::IncoreClusterStateLedgerIterator lastSnapshotIt(&ledger);
-    while (true) {
-        int rc = cslIt.next();
-        if (rc != 0) {
-            // End iterator reached or CSL file is corrupted or incomplete
-            if (!lastSnapshotIt.isValid()) {
-                ss << "No Snapshot found in csl file." << bsl::endl;
-                return false;  // RETURN
-            }
-            break;
-        }
-
-        if (cslIt.header().recordType() ==
-            mqbc::ClusterStateRecordType::Enum::e_SNAPSHOT) {
-            // Save snapshot iterator
-            lastSnapshotIt = cslIt;
-        }
-    }
-
-    // Process last snapshot
-    bmqp_ctrlmsg::ClusterMessage clusterMessage;
-    lastSnapshotIt.loadClusterMessage(&clusterMessage);
-    BSLS_ASSERT(
-        clusterMessage.choice().selectionId() ==
-        bmqp_ctrlmsg::ClusterMessageChoice::SELECTION_ID_LEADER_ADVISORY);
-
-    // Get queue info from snapshot (leaderAdvisory) record
-    auto leaderAdvisory = clusterMessage.choice().leaderAdvisory();
-    auto queuesInfo     = leaderAdvisory.queues();
-    // Fill queue map
-    bsl::for_each(queuesInfo.begin(),
-                  queuesInfo.end(),
-                  [this](const bmqp_ctrlmsg::QueueInfo& queueInfo) {
-                      d_queueMap.insert(queueInfo);
-                  });
-
-    // Iterate from last snapshot to get updates
-    while (true) {
-        int rc = lastSnapshotIt.next();
-        if (rc != 0) {
-            // End iterator reached or CSL file is corrupted or incomplete
-            break;
-        }
-
-        if (lastSnapshotIt.header().recordType() ==
-            mqbc::ClusterStateRecordType::Enum::e_UPDATE) {
-            lastSnapshotIt.loadClusterMessage(&clusterMessage);
-            // Process queueAssignmentAdvisory record
-            if (clusterMessage.choice().selectionId() ==
-                bmqp_ctrlmsg::ClusterMessageChoice::
-                    SELECTION_ID_QUEUE_ASSIGNMENT_ADVISORY) {
-                auto queueAdvisory =
-                    clusterMessage.choice().queueAssignmentAdvisory();
-                auto updateQueuesInfo = queueAdvisory.queues();
-                bsl::for_each(
-                    updateQueuesInfo.begin(),
-                    updateQueuesInfo.end(),
-                    [this](const bmqp_ctrlmsg::QueueInfo& queueInfo) {
-                        d_queueMap.insert(queueInfo);
-                    });
-            }
-            else if (clusterMessage.choice().selectionId() ==
-                     // Process queueUpdateAdvisory record
-                     bmqp_ctrlmsg::ClusterMessageChoice::
-                         SELECTION_ID_QUEUE_UPDATE_ADVISORY) {
-                auto queueUpdateAdvisory =
-                    clusterMessage.choice().queueUpdateAdvisory();
-                auto queueInfoUpdates = queueUpdateAdvisory.queueUpdates();
-                bsl::for_each(
-                    queueInfoUpdates.begin(),
-                    queueInfoUpdates.end(),
-                    [this](
-                        const bmqp_ctrlmsg::QueueInfoUpdate& queueInfoUpdate) {
-                        d_queueMap.update(queueInfoUpdate);
-                    });
-            }
-        }
-    }
-
-    // Validate given queue names agains existing in csl file
-    mqbu::StorageKey key;
-    bool             validationRes = true;
-    for (const auto& uri : d_queueName) {
-        if (!d_queueMap.findKeyByUri(&key, uri)) {
-            ss << "Queue name: '" << uri << "' is not found in Csl file."
-               << bsl::endl;
-            validationRes = false;
-        }
-    }
-
-    return validationRes;
-}
-
-ParametersReal::ParametersReal(const CommandLineArguments& arguments,
-                               bslma::Allocator*           allocator)
-: d_journalFile(arguments.d_journalFile, allocator)
-, d_dataFile(arguments.d_dataFile, allocator)
-, d_cslFile(arguments.d_cslFile, allocator)
-, d_guid(arguments.d_guid, allocator)
+Parameters::Parameters(const CommandLineArguments& arguments,
+                       bslma::Allocator*           allocator)
+: d_guid(arguments.d_guid, allocator)
 , d_queueKey(arguments.d_queueKey, allocator)
 , d_queueName(arguments.d_queueName, allocator)
 , d_timestampGt(arguments.d_timestampGt)
@@ -456,88 +242,22 @@ ParametersReal::ParametersReal(const CommandLineArguments& arguments,
 , d_partiallyConfirmed(arguments.d_partiallyConfirmed)
 , d_queueMap(allocator)
 {
-    mwcu::MemOutStream ss;
-    if ((!d_journalFile.path().empty() && !d_journalFile.resetIterator(ss)) ||
-        (!d_dataFile.path().empty() && !d_dataFile.resetIterator(ss))) {
-        throw bsl::runtime_error(ss.str());
-    }
-
-    if (!d_cslFile.empty() && !buildQueueMap(ss, allocator)) {
-        throw bsl::runtime_error(ss.str());
-    }
 }
 
-void ParametersReal::print(bsl::ostream& ss) const
+void Parameters::validateQueueNames(bslma::Allocator* allocator) const
 {
-    ss << "PARAMETERS :\n";
-    ss << "journal-file :\t" << d_journalFile.path() << bsl::endl;
-    ss << "data-file :\t" << d_dataFile.path() << bsl::endl;
-    ss << "csl-file :\t" << d_cslFile << bsl::endl;
-    ss << "guids :\n";
-    for (bsl::size_t i = 0; i < d_guid.size(); ++i) {
-        ss << "[" << i << "] :\t" << d_guid[i] << bsl::endl;
+    // Validate given queue names agains existing in csl file
+    mwcu::MemOutStream ss(allocator);
+    mqbu::StorageKey   key;
+    for (const auto& uri : d_queueName) {
+        if (!d_queueMap.findKeyByUri(&key, uri)) {
+            ss << "Queue name: '" << uri << "' is not found in Csl file."
+               << bsl::endl;
+        }
     }
-    ss << "queue names:\n";
-    for (bsl::size_t i = 0; i < d_queueName.size(); ++i) {
-        ss << "[" << i << "] :\t" << d_queueName[i] << bsl::endl;
+    if (!ss.isEmpty()) {
+        throw bsl::runtime_error(ss.str());
     }
-    ss << "queue key:\n";
-    for (bsl::size_t i = 0; i < d_queueKey.size(); ++i) {
-        ss << "[" << i << "] :\t" << d_queueKey[i] << bsl::endl;
-    }
-    ss << "timestamp-gt :\t" << d_timestampGt << bsl::endl;
-    ss << "timestamp-lt :\t" << d_timestampLt << bsl::endl;
-    ss << "outstanding :\t" << d_outstanding << bsl::endl;
-    ss << "confirmed :\t" << d_confirmed << bsl::endl;
-    ss << "partiallyConfirmed :\t" << d_partiallyConfirmed << bsl::endl;
-    ss << "details :\t" << d_details << bsl::endl;
-    ss << "dump-payload :\t" << d_dumpPayload << bsl::endl;
-    ss << "dump-limit :\t" << d_dumpLimit << bsl::endl;
-    ss << "summary :\t" << d_summary << bsl::endl;
-}
-
-// =============================
-// class Parameters::FileHandler
-// =============================
-
-template <typename ITER>
-bool ParametersReal::FileHandler<ITER>::resetIterator(
-    std::ostream& errorDescription)
-{
-    // 1) Open
-    mwcu::MemOutStream errorDesc;
-    int                rc = mqbs::FileSystemUtil::open(
-        &d_mfd,
-        d_path.c_str(),
-        bdls::FilesystemUtil::getFileSize(d_path),
-        true,  // read only
-        errorDesc);
-    if (0 != rc) {
-        errorDescription << "Failed to open file [" << d_path << "] rc: " << rc
-                         << ", error: " << errorDesc.str() << "\n";
-        return false;  // RETURN
-    }
-
-    // 2) Basic sanity check
-    rc = mqbs::FileStoreProtocolUtil::hasBmqHeader(d_mfd);
-    if (0 != rc) {
-        errorDescription << "Missing BlazingMQ header from file [" << d_path
-                         << "] rc: " << rc << "\n";
-        mqbs::FileSystemUtil::close(&d_mfd);
-        return false;  // RETURN
-    }
-
-    // 3) Load iterator and check
-    rc = d_iter.reset(&d_mfd, mqbs::FileStoreProtocolUtil::bmqHeader(d_mfd));
-    if (0 != rc) {
-        errorDescription << "Failed to create iterator for file [" << d_path
-                         << "] rc: " << rc << "\n";
-        mqbs::FileSystemUtil::close(&d_mfd);
-        return false;  // RETURN
-    }
-
-    BSLS_ASSERT_OPT(d_iter.isValid());
-    return true;  // RETURN
 }
 
 }  // close package namespace

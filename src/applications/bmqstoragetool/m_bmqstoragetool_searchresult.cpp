@@ -394,13 +394,13 @@ SearchDetailResult::SearchDetailResult(
 : d_ostream(ostream)
 , d_queueMap(queueMap)
 , d_payloadDumper(payloadDumper)
-, d_allocator_p(allocator)
 , d_printImmediately(printImmediately)
 , d_eraseDeleted(eraseDeleted)
 , d_cleanUnprinted(cleanUnprinted)
 , d_printedMessagesCount(0)
 , d_messagesDetails(allocator)
 , d_messageIndexToGuidMap(allocator)
+, d_allocator_p(allocator)
 {
     // NOTHING
 }

@@ -13,9 +13,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// m_bmqtool_parameters.h                                             -*-C++-*-
-#ifndef INCLUDED_M_BMQTOOL_PARAMETERS
-#define INCLUDED_M_BMQTOOL_PARAMETERS
+// m_bmqstoragetool_parameters.h -*-C++-*-
+#ifndef INCLUDED_M_BMQSTORAGETOOL_PARAMETERS
+#define INCLUDED_M_BMQSTORAGETOOL_PARAMETERS
 
 //@PURPOSE: Provide a class holding command line parameters for 'bmqtool'.
 //
@@ -34,7 +34,6 @@
 // MQB
 #include <mqbs_datafileiterator.h>
 #include <mqbs_filestoreprotocol.h>
-#include <mqbs_filesystemutil.h>
 #include <mqbs_journalfileiterator.h>
 #include <mqbs_mappedfiledescriptor.h>
 
@@ -98,75 +97,12 @@ struct CommandLineArguments {
     bool validate(bsl::string* error);
 };
 
-class Parameters {
-  public:
-    // MANIPULATORS
-    virtual mqbs::JournalFileIterator* journalFileIterator() = 0;
-    virtual mqbs::DataFileIterator*    dataFileIterator()    = 0;
-
-    // ACCESSORS
-    virtual bsls::Types::Int64       timestampGt() const        = 0;
-    virtual bsls::Types::Int64       timestampLt() const        = 0;
-    virtual bsl::vector<bsl::string> guid() const               = 0;
-    virtual bsl::vector<bsl::string> queueKey() const           = 0;
-    virtual bsl::vector<bsl::string> queueName() const          = 0;
-    virtual unsigned int             dumpLimit() const          = 0;
-    virtual bool                     details() const            = 0;
-    virtual bool                     dumpPayload() const        = 0;
-    virtual bool                     summary() const            = 0;
-    virtual bool                     outstanding() const        = 0;
-    virtual bool                     confirmed() const          = 0;
-    virtual bool                     partiallyConfirmed() const = 0;
-    virtual const QueueMap&          queueMap() const           = 0;
-
-    // MEMBER FUNCTIONS
-    /// Print all the parameters
-    virtual void print(bsl::ostream& ss) const = 0;
-};
-
-class ParametersReal : public Parameters {
-  private:
-    // PRIVATE TYPES
-    template <typename ITER>
-    class FileHandler {
-      public:
-        const bsl::string          d_path;
-        ITER                       d_iter;
-        mqbs::MappedFileDescriptor d_mfd;
-
-      public:
-        // CREATORS
-        explicit FileHandler(const bsl::string& path,
-                             bslma::Allocator*  allocator = 0);
-
-        ~FileHandler();
-
-        // ACCESSORS
-        /// File path
-        bsl::string path() const;
-
-        // MANIPULATORS
-        /// iterator resetter
-        bool resetIterator(bsl::ostream& errorDescription);
-
-        /// Mapped file iterator
-        ITER* iterator();
-
-        /// Mapped file descriptor
-        mqbs::MappedFileDescriptor& mappedFileDescriptor();
-    };
-
-    // PRIVATE DATA
+struct Parameters {
+    // PUBLIC DATA
     bsls::Types::Int64 d_timestampGt;
     // Filter messages by minimum timestamp
     bsls::Types::Int64 d_timestampLt;
     // Filter messages by maximum timestamp
-    FileHandler<mqbs::JournalFileIterator> d_journalFile;
-    // Handler of journal file
-    FileHandler<mqbs::DataFileIterator> d_dataFile;
-    // Handler of data file
-    bsl::string d_cslFile;
-    // CSL file path
     bsl::vector<bsl::string> d_guid;
     // Filter messages by message guids
     bsl::vector<bsl::string> d_queueKey;
@@ -190,80 +126,15 @@ class ParametersReal : public Parameters {
     QueueMap d_queueMap;
     // Queue map containing uri to key and key to info mappings
 
-    // MANIPULATORS
-    bool buildQueueMap(bsl::ostream& ss, bslma::Allocator* allocator);
-    // Build queue map from csl file.
-
-  public:
     // CREATORS
     /// Default constructor
-    explicit ParametersReal(const CommandLineArguments& aruments,
-                            bslma::Allocator*           allocator = 0);
+    explicit Parameters(bslma::Allocator* allocator = 0);
+    /// Constructor from the specified 'aruments'
+    explicit Parameters(const CommandLineArguments& aruments,
+                        bslma::Allocator*           allocator = 0);
 
-    // MANIPULATORS
-    mqbs::JournalFileIterator* journalFileIterator() BSLS_KEYWORD_OVERRIDE;
-    mqbs::DataFileIterator*    dataFileIterator() BSLS_KEYWORD_OVERRIDE;
-
-    // ACCESSORS
-    bsls::Types::Int64       timestampGt() const BSLS_KEYWORD_OVERRIDE;
-    bsls::Types::Int64       timestampLt() const BSLS_KEYWORD_OVERRIDE;
-    bsl::vector<bsl::string> guid() const BSLS_KEYWORD_OVERRIDE;
-    bsl::vector<bsl::string> queueKey() const BSLS_KEYWORD_OVERRIDE;
-    bsl::vector<bsl::string> queueName() const BSLS_KEYWORD_OVERRIDE;
-    unsigned int             dumpLimit() const BSLS_KEYWORD_OVERRIDE;
-    bool                     details() const BSLS_KEYWORD_OVERRIDE;
-    bool                     dumpPayload() const BSLS_KEYWORD_OVERRIDE;
-    bool                     summary() const BSLS_KEYWORD_OVERRIDE;
-    bool                     outstanding() const BSLS_KEYWORD_OVERRIDE;
-    bool                     confirmed() const BSLS_KEYWORD_OVERRIDE;
-    bool                     partiallyConfirmed() const BSLS_KEYWORD_OVERRIDE;
-    const QueueMap&          queueMap() const BSLS_KEYWORD_OVERRIDE;
-
-    // MEMBER FUNCTIONS
-    /// Print all the parameters
-    void print(bsl::ostream& ss) const BSLS_KEYWORD_OVERRIDE;
+    void validateQueueNames(bslma::Allocator* allocator = 0) const;
 };
-
-// ============================================================================
-//                             INLINE DEFINITIONS
-// ============================================================================
-
-template <typename ITER>
-inline ParametersReal::FileHandler<ITER>::FileHandler(
-    const bsl::string& path,
-    bslma::Allocator*  allocator)
-: d_path(path, allocator)
-{
-    // NOTHING
-}
-
-template <typename ITER>
-inline ParametersReal::FileHandler<ITER>::~FileHandler()
-{
-    d_iter.clear();
-    if (d_mfd.isValid()) {
-        mqbs::FileSystemUtil::close(&d_mfd);
-    }
-}
-
-template <typename ITER>
-inline bsl::string ParametersReal::FileHandler<ITER>::path() const
-{
-    return d_path;
-}
-
-template <typename ITER>
-inline ITER* ParametersReal::FileHandler<ITER>::iterator()
-{
-    return &d_iter;
-}
-
-template <typename ITER>
-inline mqbs::MappedFileDescriptor&
-ParametersReal::FileHandler<ITER>::mappedFileDescriptor()
-{
-    return d_mfd;
-}
 
 }  // close package namespace
 

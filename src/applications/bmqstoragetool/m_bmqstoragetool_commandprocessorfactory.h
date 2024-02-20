@@ -43,9 +43,10 @@ class CommandProcessorFactory {
     /// Create command processor for specified 'params' using specified
     /// 'ostream' and 'allocator'.
     static bsl::shared_ptr<CommandProcessor>
-    createCommandProcessor(bsl::shared_ptr<Parameters> params,
-                           bsl::ostream&               ostream,
-                           bslma::Allocator*           allocator);
+    createCommandProcessor(const bsl::shared_ptr<Parameters>&  params,
+                           const bsl::shared_ptr<FileManager>& fileManager,
+                           bsl::ostream&                       ostream,
+                           bslma::Allocator*                   allocator);
 };
 
 }  // close package namespace
