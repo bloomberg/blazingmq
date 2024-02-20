@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// m_bmqstoragetool_filemanager.h -*-C++-*-
 #ifndef INCLUDED_M_BMQSTORAGETOOL_FILEMANAGER_H
 #define INCLUDED_M_BMQSTORAGETOOL_FILEMANAGER_H
 

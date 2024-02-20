@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// m_bmqstoragetool_queuemap.h -*-C++-*-
 #ifndef INCLUDED_M_BMQSTORAGETOOL_QUEUEMAP
 #define INCLUDED_M_BMQSTORAGETOOL_QUEUEMAP
 

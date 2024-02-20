@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// m_bmqtool_parameters.cpp                                           -*-C++-*-
 #include <m_bmqstoragetool_parameters.h>
 
 // BMQ

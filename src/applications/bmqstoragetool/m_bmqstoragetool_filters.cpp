@@ -13,8 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// m_bmqstoragetool_filters.cpp                                       -*-C++-*-
-
 #include <m_bmqstoragetool_filters.h>
 
 namespace BloombergLP {

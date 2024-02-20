@@ -13,8 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// m_bmqstoragetool_searchresultfactory.cpp -*-C++-*-
-
 // bmqstoragetool
 #include <m_bmqstoragetool_searchresultfactory.h>
 
