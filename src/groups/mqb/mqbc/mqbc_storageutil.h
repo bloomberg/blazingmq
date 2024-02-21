@@ -109,6 +109,7 @@ struct StorageUtil {
 
     typedef mqbi::StorageManager::StorageSp             StorageSp;
     typedef mqbi::StorageManager::StorageSpMap          StorageSpMap;
+    typedef mqbi::StorageManager::StorageSpMapVec       StorageSpMapVec;
     typedef mqbi::StorageManager::StorageSpMapIter      StorageSpMapIter;
     typedef mqbi::StorageManager::StorageSpMapConstIter StorageSpMapConstIter;
 
@@ -294,6 +295,48 @@ struct StorageUtil {
                                  bslmt::Latch*                  latch,
                                  int                            partitionId,
                                  const FileStores&              fileStores);
+
+    static void
+    purgeDomainDispatched(bsl::vector<bsl::vector<mqbcmd::PurgeQueueResult> >*
+                                             purgedQueuesResultsVec,
+                          bslmt::Latch*      latch,
+                          int                partitionId,
+                          StorageSpMapVec*   storageMapVec,
+                          bslmt::Mutex*      storagesLock,
+                          const FileStores*  fileStores,
+                          const bsl::string& domainName);
+    /// Execute the domain purge command for the specified `domainName` within
+    /// the specified `partitionId`.  The specified `storageMapVec` contains
+    /// mutable storages to search for domain's queues, while the specified
+    /// `storagesLock` controls thread-safe access to this container.  The
+    /// specified `latch` used to notify the calling thread that this operation
+    /// has finished.  The specified `purgedQueuesResultsVec` is used to store
+    /// execution results.  The specified `fileStores` contains FileStore
+    /// objects used to verify correctness and thread-safety of calling this
+    /// method.
+    ///
+    /// NOTE: designed to be called for all `partitionId`s in parallel by
+    ///       `executeForEachPartition`.
+    ///
+    /// THREAD: Executed by the Queue's dispatcher thread for the specified
+    ///         `partitionId`.
+
+    static void
+    purgeQueueDispatched(mqbcmd::PurgeQueueResult* purgedQueueResult,
+                         bslmt::Semaphore*         purgeFinishedSemaphore,
+                         mqbi::Storage*            storage,
+                         const mqbs::FileStore*    fileStore,
+                         const bsl::string&        appId);
+    /// Execute the queue purge command for the specified `storage` with
+    /// the specified `appId`.  The optionally specified
+    /// `purgeFinishedSemaphore` used to notify the calling thread that this
+    /// operation has finished. The specified `purgedQueuesResult` is used to
+    /// store execution result. The specified `fileStore` contains FileStore
+    /// object used to verify correctness and thread-safety of calling this
+    /// method.
+    ///
+    /// THREAD: Executed by the Queue's dispatcher thread for the specified
+    ///         `fileStore`.
 
     /// Execute the specified `job` for each partition in the specified
     /// `fileStores`.  Each partition will receive its partitionId and a
@@ -644,13 +687,17 @@ struct StorageUtil {
     /// `domainFactory` and `partitionLocation`, and load the result to the
     /// specified `result`.  The command might modify the specified
     /// `replicationFactor` and the corresponding value in each partition of
-    /// the specified `fileStores`.  Use the specified `allocator` for
-    /// memory allocations.  Return 0 if the command was successfully
-    /// processed, or a non-zero value otherwise.  This function can be
-    /// invoked from any thread, and will block until the potentially
-    /// asynchronous operation is complete.
+    /// the specified `fileStores`.  The specified `storageMapVec` might be
+    /// used to find a storage for a specific queue, the specified
+    /// `storagesLock` is used to access this container safely.  Use the
+    /// specified `allocator` for memory allocations.  Return 0 if the command
+    /// was successfully processed, or a non-zero value otherwise.  This
+    /// function can be invoked from any thread, and will block until the
+    /// potentially asynchronous operation is complete.
     static int processCommand(mqbcmd::StorageResult*        result,
                               FileStores*                   fileStores,
+                              StorageSpMapVec*              storageMapVec,
+                              bslmt::Mutex*                 storagesLock,
                               const mqbi::DomainFactory*    domainFactory,
                               int*                          replicationFactor,
                               const mqbcmd::StorageCommand& command,

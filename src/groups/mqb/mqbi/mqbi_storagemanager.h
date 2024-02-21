@@ -177,6 +177,10 @@ class StorageManager : public mqbi::AppKeyGenerator {
     typedef StorageSpMap::iterator                   StorageSpMapIter;
     typedef StorageSpMap::const_iterator             StorageSpMapConstIter;
 
+    typedef bsl::vector<StorageSpMap>       StorageSpMapVec;
+    typedef StorageSpMapVec::iterator       StorageSpMapVecIter;
+    typedef StorageSpMapVec::const_iterator StorageSpMapVecConstIter;
+
     /// Type of the functor required by `applyForEachQueue`.
     typedef bsl::function<void(mqbi::Queue*)> QueueFunctor;
 
