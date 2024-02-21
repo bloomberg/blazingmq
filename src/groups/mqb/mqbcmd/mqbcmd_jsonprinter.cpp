@@ -35,6 +35,7 @@ const char k_LOG_CATEGORY[] = "MQBCMD.JSONPRINTER";
 
 bsl::ostream& JsonPrinter::print(bsl::ostream& os,
                                  const Result& result,
+                                 bool          pretty,
                                  int           level,
                                  int           spacesPerLevel)
 {
@@ -42,7 +43,8 @@ bsl::ostream& JsonPrinter::print(bsl::ostream& os,
 
     baljsn::Encoder        encoder(alloc);
     baljsn::EncoderOptions options;
-    options.setEncodingStyle(baljsn::EncoderOptions::e_PRETTY);
+    options.setEncodingStyle(pretty ? baljsn::EncoderOptions::e_PRETTY
+                                    : baljsn::EncoderOptions::e_COMPACT);
     options.setInitialIndentLevel(level);
     options.setSpacesPerLevel(spacesPerLevel);
 

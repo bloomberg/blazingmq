@@ -223,40 +223,64 @@ int parseClearCache(ClearCache*              command,
                     WordGenerator            next,
                     const bslstl::StringRef& commandPrefix);
 
+int parseEncodingFormat(EncodingFormat::Value* format,
+                        bsl::string*           error,
+                        WordGenerator&         next);
+
 /// entry point (i.e. `root`) of the command parsing
 int parseCommand(Command* command, bsl::string* error, WordGenerator next)
 {
-    const bslstl::StringRef word = next();
+    bslstl::StringRef word = next();
     if (word.empty()) {
         *error = "Command must contain at least one word.";
         return -1;  // RETURN
     }
 
+    if (equalCaseless(word, "ENCODING")) {
+        if (0 != parseEncodingFormat(&command->outputFormat(), error, next)) {
+            return -1;  // RETURN
+        }
+
+        word = next();
+        if (word.empty()) {
+            *error = "Command must contain at least one word.";
+            return -1;  // RETURN
+        }
+    }
+
     if (equalCaseless(word, "HELP")) {
-        return parseHelp(&command->makeHelp(), error, next);  // RETURN
+        return parseHelp(&command->choice().makeHelp(),
+                         error,
+                         next);  // RETURN
     }
     else if (equalCaseless(word, "DOMAINS")) {
-        return parseDomainsCommand(&command->makeDomains(),
+        return parseDomainsCommand(&command->choice().makeDomains(),
                                    error,
                                    next);  // RETURN
     }
     else if (equalCaseless(word, "CONFIGPROVIDER")) {
-        return parseConfigProvider(&command->makeConfigProvider(),
+        return parseConfigProvider(&command->choice().makeConfigProvider(),
                                    error,
                                    next);  // RETURN
     }
     else if (equalCaseless(word, "STAT")) {
-        return parseStat(&command->makeStat(), error, next);  // RETURN
+        return parseStat(&command->choice().makeStat(),
+                         error,
+                         next);  // RETURN
     }
     else if (equalCaseless(word, "CLUSTERS")) {
-        return parseClustersCommand(&command->makeClusters(), error, next);
+        return parseClustersCommand(&command->choice().makeClusters(),
+                                    error,
+                                    next);
         // RETURN
     }
     else if (equalCaseless(word, "DANGER")) {
-        return parseDanger(&command->makeDanger(), error, next);  // RETURN
+        return parseDanger(&command->choice().makeDanger(),
+                           error,
+                           next);  // RETURN
     }
     else if (equalCaseless(word, "BROKERCONFIG")) {
-        return parseBrokerConfig(&command->makeBrokerConfig(),
+        return parseBrokerConfig(&command->choice().makeBrokerConfig(),
                                  error,
                                  next);  // RETURN
     }
@@ -264,6 +288,41 @@ int parseCommand(Command* command, bsl::string* error, WordGenerator next)
     *error = "Invalid command. Send \"HELP\" for list of commands. Invalid "
              "command word: " +
              word;
+    return -1;
+}
+
+// ENCODING ...
+int parseEncodingFormat(EncodingFormat::Value* format,
+                        bsl::string*           error,
+                        WordGenerator&         next)
+{
+    const bslstl::StringRef word = next();
+
+    const char errorCommon[] = "The ENCODING option must be followed by one "
+                               "of the [TEXT, JSON_COMPACT, JSON_PRETTY] "
+                               "settings (default: TEXT)";
+
+    if (word.empty()) {
+        *error += errorCommon;
+        *error += ", but no setting was specified.";
+        return -1;  // RETURN
+    }
+
+    if (equalCaseless(word, "TEXT")) {
+        *format = EncodingFormat::Value::TEXT;
+        return 0;  // RETURN
+    }
+    else if (equalCaseless(word, "JSON_COMPACT")) {
+        *format = EncodingFormat::Value::JSON_COMPACT;
+        return 0;  // RETURN
+    }
+    else if (equalCaseless(word, "JSON_PRETTY")) {
+        *format = EncodingFormat::Value::JSON_PRETTY;
+        return 0;  // RETURN
+    }
+
+    *error = errorCommon;
+    *error += ", but the following was given: " + word;
     return -1;
 }
 

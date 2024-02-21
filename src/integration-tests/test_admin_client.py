@@ -7,7 +7,11 @@ import json
 import re
 from typing import Dict, Optional, Tuple
 
-from blazingmq.dev.it.fixtures import Cluster, single_node, order  # pylint: disable=unused-import
+from blazingmq.dev.it.fixtures import (
+    Cluster,
+    single_node,
+    order,
+)  # pylint: disable=unused-import
 from blazingmq.dev.it.process.admin import AdminClient
 from blazingmq.dev.it.process.client import Client
 import blazingmq.dev.it.testconstants as tc
@@ -39,7 +43,9 @@ class PostRecord:
         self.num += other.num
 
 
-def post_n_msgs(producer: Client, task: PostRecord, posted: Optional[Dict[str, PostRecord]] = None) -> None:
+def post_n_msgs(
+    producer: Client, task: PostRecord, posted: Optional[Dict[str, PostRecord]] = None
+) -> None:
     """
     Execute the specified 'task' with the specified 'producer'.
     The summary of the executed post task is appended to the optionally
@@ -58,7 +64,7 @@ def post_n_msgs(producer: Client, task: PostRecord, posted: Optional[Dict[str, P
             posted[task.uri] = task
 
 
-def test_breathing(single_node: Cluster):
+def test_breathing(single_node: Cluster) -> None:
     """
     Test: basic admin session usage.
     - Send 'HELP' admin command and check its expected output.
@@ -96,7 +102,62 @@ def test_breathing(single_node: Cluster):
     admin.stop()
 
 
-def test_purge_breathing(single_node: Cluster):
+def test_admin_encoding(single_node: Cluster) -> None:
+    host, port = get_endpoint(single_node)
+
+    def is_compact(json_str: str) -> bool:
+        return "    " not in json_str
+
+    # Start the admin client
+    admin = AdminClient()
+    admin.connect(host, port)
+
+    # Encoding TEXT
+    cmds = [json.dumps({"help": {}, "outputFormat": "TEXT"}), "ENCODING TEXT HELP"]
+    for cmd in cmds:
+        res = admin.send_admin(cmd)
+        assert "This process responds to the following CMD subcommands:" in res
+
+    # Encoding JSON_COMPACT
+    cmds = [
+        json.dumps({"help": {}, "outputFormat": "JSON_COMPACT"}),
+        "ENCODING JSON_COMPACT HELP",
+    ]
+    for cmd in cmds:
+        res = admin.send_admin(cmd)
+        assert "help" in json.loads(res)
+        assert is_compact(res)
+
+    # Encoding JSON_PRETTY
+    cmds = [
+        json.dumps({"help": {}, "outputFormat": "JSON_PRETTY"}),
+        "ENCODING JSON_PRETTY HELP",
+    ]
+    for cmd in cmds:
+        res = admin.send_admin(cmd)
+        assert "help" in json.loads(res)
+        assert not is_compact(res)
+
+    # Incorrect encoding
+    cmds = [
+        json.dumps({"help": {}, "outputFormat": "INCORRECT"}),
+        "ENCODING INCORRECT HELP",
+    ]
+    for cmd in cmds:
+        res = admin.send_admin(cmd)
+        assert "Unable to decode command" in res
+
+    # No encoding
+    cmds = [json.dumps({"help": {}}), "HELP"]
+    for cmd in cmds:
+        res = admin.send_admin(cmd)
+        assert "This process responds to the following CMD subcommands:" in res
+
+    # Stop the admin session
+    admin.stop()
+
+
+def test_purge_breathing(single_node: Cluster) -> None:
     """
     Test: basic purge queue/purge domain commands usage.
     Preconditions:
@@ -145,10 +206,14 @@ def test_purge_breathing(single_node: Cluster):
         task = PostRecord(tc.DOMAIN_PRIORITY, "test_queue", num=i)
         post_n_msgs(producer, task)
 
-        res = admin.send_admin(f"DOMAINS DOMAIN {task.domain} QUEUE {task.queue_name} PURGE *")
+        res = admin.send_admin(
+            f"DOMAINS DOMAIN {task.domain} QUEUE {task.queue_name} PURGE *"
+        )
         assert f"Purged {task.num} message(s)" in res
 
-        res = admin.send_admin(f"DOMAINS DOMAIN {task.domain} QUEUE {task.queue_name} PURGE *")
+        res = admin.send_admin(
+            f"DOMAINS DOMAIN {task.domain} QUEUE {task.queue_name} PURGE *"
+        )
         assert f"Purged 0 message(s)" in res
 
     # Stage 2: purge PRIORITY domain
@@ -170,17 +235,23 @@ def test_purge_breathing(single_node: Cluster):
         task = PostRecord(tc.DOMAIN_FANOUT, tc.TEST_QUEUE, num=i)
         post_n_msgs(producer, task)
 
-        res = admin.send_admin(f"DOMAINS DOMAIN {task.domain} QUEUE {task.queue_name} PURGE {tc.TEST_APPIDS[0]}")
+        res = admin.send_admin(
+            f"DOMAINS DOMAIN {task.domain} QUEUE {task.queue_name} PURGE {tc.TEST_APPIDS[0]}"
+        )
         assert f"Purged {task.num} message(s)" in res
 
-        res = admin.send_admin(f"DOMAINS DOMAIN {task.domain} QUEUE {task.queue_name} PURGE {tc.TEST_APPIDS[1]}")
+        res = admin.send_admin(
+            f"DOMAINS DOMAIN {task.domain} QUEUE {task.queue_name} PURGE {tc.TEST_APPIDS[1]}"
+        )
         assert f"Purged {task.num} message(s)" in res
 
         res = admin.send_admin(f"DOMAINS DOMAIN {task.domain} PURGE")
         assert f"Purged {task.num} message(s)" in res
 
         for app_id in tc.TEST_APPIDS:
-            res = admin.send_admin(f"DOMAINS DOMAIN {task.domain} QUEUE {task.queue_name} PURGE {app_id}")
+            res = admin.send_admin(
+                f"DOMAINS DOMAIN {task.domain} QUEUE {task.queue_name} PURGE {app_id}"
+            )
             assert f"Purged 0 message(s)" in res
 
         res = admin.send_admin(f"DOMAINS DOMAIN {task.domain} PURGE")
@@ -190,7 +261,7 @@ def test_purge_breathing(single_node: Cluster):
     admin.stop()
 
 
-def test_purge_inactive(single_node: Cluster):
+def test_purge_inactive(single_node: Cluster) -> None:
     """
     Test: queue purge and domain purge also work for inactive queues.
 
@@ -289,7 +360,9 @@ def test_purge_inactive(single_node: Cluster):
             continue
 
         record = posted[uri]
-        res = admin.send_admin(f"DOMAINS DOMAIN {record.domain} QUEUE {record.queue_name} PURGE *")
+        res = admin.send_admin(
+            f"DOMAINS DOMAIN {record.domain} QUEUE {record.queue_name} PURGE *"
+        )
         assert f"Purged {record.num} message(s)" in res
 
         record.num = 0
@@ -307,7 +380,9 @@ def test_purge_inactive(single_node: Cluster):
     for record in posted.values():
         assert record.num == 0
 
-        res = admin.send_admin(f"DOMAINS DOMAIN {record.domain} QUEUE {record.queue_name} PURGE *")
+        res = admin.send_admin(
+            f"DOMAINS DOMAIN {record.domain} QUEUE {record.queue_name} PURGE *"
+        )
         assert f"Purged 0 message(s)" in res
 
     # Also check that purge domain for PRIORITY could not purge more messages.
@@ -325,12 +400,16 @@ def test_purge_inactive(single_node: Cluster):
 
     for record in posted_fanout.values():
         for app_id in tc.TEST_APPIDS:
-            res = admin.send_admin(f"DOMAINS DOMAIN {record.domain} QUEUE {record.queue_name} PURGE {app_id}")
+            res = admin.send_admin(
+                f"DOMAINS DOMAIN {record.domain} QUEUE {record.queue_name} PURGE {app_id}"
+            )
             assert f"Purged {record.num} message(s)" in res
 
         record.num = 0
 
-        res = admin.send_admin(f"DOMAINS DOMAIN {record.domain} QUEUE {record.queue_name} PURGE *")
+        res = admin.send_admin(
+            f"DOMAINS DOMAIN {record.domain} QUEUE {record.queue_name} PURGE *"
+        )
         assert f"Purged 0 message(s)" in res
 
     # Also check that purge domain for FANOUT could not purge more messages.

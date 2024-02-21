@@ -6,16 +6,32 @@
         targetNamespace="http://bloomberg.com/schemas/schema">
 
   <complexType name="Command">
-    <choice>
-      <element name="help"           type="tns:HelpCommand"/>
-      <element name="domains"        type="tns:DomainsCommand"/>
-      <element name="configProvider" type="tns:ConfigProviderCommand"/>
-      <element name="stat"           type="tns:StatCommand"/>
-      <element name="clusters"       type="tns:ClustersCommand"/>
-      <element name="danger"         type="tns:DangerCommand"/>
-      <element name="brokerConfig"   type="tns:BrokerConfigCommand"/>
-    </choice>
+    <sequence>
+      <choice>
+        <element name="help"           type="tns:HelpCommand"/>
+        <element name="domains"        type="tns:DomainsCommand"/>
+        <element name="configProvider" type="tns:ConfigProviderCommand"/>
+        <element name="stat"           type="tns:StatCommand"/>
+        <element name="clusters"       type="tns:ClustersCommand"/>
+        <element name="danger"         type="tns:DangerCommand"/>
+        <element name="brokerConfig"   type="tns:BrokerConfigCommand"/>
+      </choice>
+      <element   name='outputFormat'   type='tns:EncodingFormat' default='TEXT'/>
+    </sequence>
   </complexType>
+  
+  <simpleType name='EncodingFormat'>
+    <annotation>
+      <documentation>
+        Enumeration of the various encoding format versions.
+      </documentation>
+    </annotation>
+    <restriction base='string' bdem:preserveEnumOrder='1'>
+      <enumeration value='TEXT'         bdem:id='0'/>
+      <enumeration value='JSON_COMPACT' bdem:id='1'/>
+      <enumeration value='JSON_PRETTY'  bdem:id='2'/>
+    </restriction>
+  </simpleType>
 
   <complexType name="InternalResult">
     <annotation>

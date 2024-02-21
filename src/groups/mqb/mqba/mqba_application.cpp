@@ -504,13 +504,17 @@ int Application::processCommand(const bslstl::StringRef& source,
     BALL_LOG_INFO << "Received command '" << cmd << "' "
                   << "[source: " << source << "]";
 
-    mqbcmd::Command command;
+    mqbcmd::Command commandWithOptions;
     bsl::string     parseError;
-    if (const int rc = mqbcmd::ParseUtil::parse(&command, &parseError, cmd)) {
+    if (const int rc = mqbcmd::ParseUtil::parse(&commandWithOptions,
+                                                &parseError,
+                                                cmd)) {
         os << "Unable to decode command "
            << "(rc: " << rc << ", error: '" << parseError << "')";
         return rc;  // RETURN
     }
+
+    mqbcmd::CommandChoice& command = commandWithOptions.choice();
 
     mqbcmd::InternalResult cmdResult;
     int                    rc = 0;
@@ -614,13 +618,18 @@ int Application::processCommand(const bslstl::StringRef& source,
     mqbcmd::Result result;
     mqbcmd::Util::flatten(&result, cmdResult);
 
-
-    const bool jsonPrint = true;
-    if (jsonPrint) {
-        mqbcmd::JsonPrinter::print(os, result);
-    } else {
+    switch (commandWithOptions.outputFormat()) {
+    case mqbcmd::EncodingFormat::TEXT: {
         // Pretty print
         mqbcmd::HumanPrinter::print(os, result);
+    } break;  // BREAK
+    case mqbcmd::EncodingFormat::JSON_COMPACT: {
+        mqbcmd::JsonPrinter::print(os, result, false);
+    } break;  // BREAK
+    case mqbcmd::EncodingFormat::JSON_PRETTY: {
+        mqbcmd::JsonPrinter::print(os, result, true);
+    } break;  // BREAK
+    default: BSLS_ASSERT_SAFE(false && "Unsupported encoding");
     }
 
     return 0;
