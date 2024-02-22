@@ -237,7 +237,7 @@ int parseCommand(Command* command, bsl::string* error, WordGenerator next)
     }
 
     if (equalCaseless(word, "ENCODING")) {
-        if (0 != parseEncodingFormat(&command->outputFormat(), error, next)) {
+        if (0 != parseEncodingFormat(&command->encoding(), error, next)) {
             return -1;  // RETURN
         }
 

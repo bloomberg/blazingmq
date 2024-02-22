@@ -24396,22 +24396,27 @@ namespace mqbcmd {
 // =============
 
 class Command {
+    // The type represents a variant representing Command with options common
+    // for all commands.
+    // The optionally specified 'encoding' option contains the desired output
+    // format of this command output.
+
     // INSTANCE DATA
     CommandChoice         d_choice;
-    EncodingFormat::Value d_outputFormat;
+    EncodingFormat::Value d_encoding;
 
   public:
     // TYPES
-    enum { ATTRIBUTE_ID_CHOICE = 0, ATTRIBUTE_ID_OUTPUT_FORMAT = 1 };
+    enum { ATTRIBUTE_ID_CHOICE = 0, ATTRIBUTE_ID_ENCODING = 1 };
 
     enum { NUM_ATTRIBUTES = 2 };
 
-    enum { ATTRIBUTE_INDEX_CHOICE = 0, ATTRIBUTE_INDEX_OUTPUT_FORMAT = 1 };
+    enum { ATTRIBUTE_INDEX_CHOICE = 0, ATTRIBUTE_INDEX_ENCODING = 1 };
 
     // CONSTANTS
     static const char CLASS_NAME[];
 
-    static const EncodingFormat::Value DEFAULT_INITIALIZER_OUTPUT_FORMAT;
+    static const EncodingFormat::Value DEFAULT_INITIALIZER_ENCODING;
 
     static const bdlat_AttributeInfo ATTRIBUTE_INFO_ARRAY[];
 
@@ -24508,9 +24513,9 @@ class Command {
     // Return a reference to the modifiable "Choice" attribute of this
     // object.
 
-    EncodingFormat::Value& outputFormat();
-    // Return a reference to the modifiable "OutputFormat" attribute of
-    // this object.
+    EncodingFormat::Value& encoding();
+    // Return a reference to the modifiable "Encoding" attribute of this
+    // object.
 
     // ACCESSORS
     bsl::ostream&
@@ -24559,8 +24564,8 @@ class Command {
     // Return a reference offering non-modifiable access to the "Choice"
     // attribute of this object.
 
-    EncodingFormat::Value outputFormat() const;
-    // Return the value of the "OutputFormat" attribute of this object.
+    EncodingFormat::Value encoding() const;
+    // Return the value of the "Encoding" attribute of this object.
 };
 
 // FREE OPERATORS
@@ -44741,8 +44746,8 @@ int Command::manipulateAttributes(t_MANIPULATOR& manipulator)
         return ret;
     }
 
-    ret = manipulator(&d_outputFormat,
-                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_OUTPUT_FORMAT]);
+    ret = manipulator(&d_encoding,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ENCODING]);
     if (ret) {
         return ret;
     }
@@ -44760,10 +44765,9 @@ int Command::manipulateAttribute(t_MANIPULATOR& manipulator, int id)
         return manipulator(&d_choice,
                            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CHOICE]);
     }
-    case ATTRIBUTE_ID_OUTPUT_FORMAT: {
-        return manipulator(
-            &d_outputFormat,
-            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_OUTPUT_FORMAT]);
+    case ATTRIBUTE_ID_ENCODING: {
+        return manipulator(&d_encoding,
+                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ENCODING]);
     }
     default: return NOT_FOUND;
     }
@@ -44790,9 +44794,9 @@ inline CommandChoice& Command::choice()
     return d_choice;
 }
 
-inline EncodingFormat::Value& Command::outputFormat()
+inline EncodingFormat::Value& Command::encoding()
 {
-    return d_outputFormat;
+    return d_encoding;
 }
 
 // ACCESSORS
@@ -44806,8 +44810,7 @@ int Command::accessAttributes(t_ACCESSOR& accessor) const
         return ret;
     }
 
-    ret = accessor(d_outputFormat,
-                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_OUTPUT_FORMAT]);
+    ret = accessor(d_encoding, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ENCODING]);
     if (ret) {
         return ret;
     }
@@ -44825,9 +44828,9 @@ int Command::accessAttribute(t_ACCESSOR& accessor, int id) const
         return accessor(d_choice,
                         ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CHOICE]);
     }
-    case ATTRIBUTE_ID_OUTPUT_FORMAT: {
-        return accessor(d_outputFormat,
-                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_OUTPUT_FORMAT]);
+    case ATTRIBUTE_ID_ENCODING: {
+        return accessor(d_encoding,
+                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ENCODING]);
     }
     default: return NOT_FOUND;
     }
@@ -44854,9 +44857,9 @@ inline const CommandChoice& Command::choice() const
     return d_choice;
 }
 
-inline EncodingFormat::Value Command::outputFormat() const
+inline EncodingFormat::Value Command::encoding() const
 {
-    return d_outputFormat;
+    return d_encoding;
 }
 
 // -----------------
@@ -50860,8 +50863,7 @@ void mqbcmd::hashAppend(t_HASH_ALGORITHM&                hashAlg,
 inline bool mqbcmd::operator==(const mqbcmd::Command& lhs,
                                const mqbcmd::Command& rhs)
 {
-    return lhs.choice() == rhs.choice() &&
-           lhs.outputFormat() == rhs.outputFormat();
+    return lhs.choice() == rhs.choice() && lhs.encoding() == rhs.encoding();
 }
 
 inline bool mqbcmd::operator!=(const mqbcmd::Command& lhs,
@@ -50882,7 +50884,7 @@ void mqbcmd::hashAppend(t_HASH_ALGORITHM&      hashAlg,
 {
     using bslh::hashAppend;
     hashAppend(hashAlg, object.choice());
-    hashAppend(hashAlg, object.outputFormat());
+    hashAppend(hashAlg, object.encoding());
 }
 
 inline bool mqbcmd::operator==(const mqbcmd::QueueEngine& lhs,

@@ -103,6 +103,37 @@ def test_breathing(single_node: Cluster) -> None:
 
 
 def test_admin_encoding(single_node: Cluster) -> None:
+    """
+    Test: admin commands output format.
+    Preconditions:
+    - Establish admin session with the cluster.
+
+    Stage 1:
+    - Send json and plaintext admin commands with 'TEXT' output encoding.
+    - Expect the received responses in text format.
+
+    Stage 2:
+    - Send json and plaintext admin commands with 'JSON_COMPACT' output encoding.
+    - Expect the received responses in compact json format.
+
+    Stage 3:
+    - Send json and plaintext admin commands with 'JSON_PRETTY' output encoding.
+    - Expect the received responses in pretty json format.
+
+    Stage 4:
+    - Send json and plaintext admin commands with incorrect output encoding.
+    - Expect the received responses with decode error message.
+
+    Stage 5:
+    - Send json and plaintext admin commands without output encoding option.
+    - Expect the received responses in text format.
+
+    Concerns:
+    - It's possible to pass output encoding option to both json and plaintext encoded admin commands.
+    - TEXT, JSON_COMPACT, JSON_PRETTY encoding formats are correctly supported.
+    - Commands with incorrect encoding are handled with decode error.
+    - Commands without encoding return text output for backward compatibility.
+    """
     host, port = get_endpoint(single_node)
 
     def is_compact(json_str: str) -> bool:
@@ -112,15 +143,15 @@ def test_admin_encoding(single_node: Cluster) -> None:
     admin = AdminClient()
     admin.connect(host, port)
 
-    # Encoding TEXT
-    cmds = [json.dumps({"help": {}, "outputFormat": "TEXT"}), "ENCODING TEXT HELP"]
+    # Stage 1: encode as TEXT
+    cmds = [json.dumps({"help": {}, "encoding": "TEXT"}), "ENCODING TEXT HELP"]
     for cmd in cmds:
         res = admin.send_admin(cmd)
         assert "This process responds to the following CMD subcommands:" in res
 
-    # Encoding JSON_COMPACT
+    # Stage 2: encode as JSON_COMPACT
     cmds = [
-        json.dumps({"help": {}, "outputFormat": "JSON_COMPACT"}),
+        json.dumps({"help": {}, "encoding": "JSON_COMPACT"}),
         "ENCODING JSON_COMPACT HELP",
     ]
     for cmd in cmds:
@@ -128,9 +159,9 @@ def test_admin_encoding(single_node: Cluster) -> None:
         assert "help" in json.loads(res)
         assert is_compact(res)
 
-    # Encoding JSON_PRETTY
+    # Stage 3: encode as JSON_PRETTY
     cmds = [
-        json.dumps({"help": {}, "outputFormat": "JSON_PRETTY"}),
+        json.dumps({"help": {}, "encoding": "JSON_PRETTY"}),
         "ENCODING JSON_PRETTY HELP",
     ]
     for cmd in cmds:
@@ -138,16 +169,19 @@ def test_admin_encoding(single_node: Cluster) -> None:
         assert "help" in json.loads(res)
         assert not is_compact(res)
 
-    # Incorrect encoding
+    # Stage 4: incorrect encoding
     cmds = [
-        json.dumps({"help": {}, "outputFormat": "INCORRECT"}),
+        json.dumps({"help": {}, "encoding": "INCORRECT"}),
         "ENCODING INCORRECT HELP",
+        "ENCODING HELP",
+        "ENCODING TEXT",
+        "ENCODING",
     ]
     for cmd in cmds:
         res = admin.send_admin(cmd)
         assert "Unable to decode command" in res
 
-    # No encoding
+    # Stage 5: no encoding
     cmds = [json.dumps({"help": {}}), "HELP"]
     for cmd in cmds:
         res = admin.send_admin(cmd)

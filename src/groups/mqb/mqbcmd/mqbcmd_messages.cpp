@@ -23087,7 +23087,7 @@ bsl::ostream& FanoutQueueEngine::print(bsl::ostream& stream,
 
 const char Command::CLASS_NAME[] = "Command";
 
-const EncodingFormat::Value Command::DEFAULT_INITIALIZER_OUTPUT_FORMAT =
+const EncodingFormat::Value Command::DEFAULT_INITIALIZER_ENCODING =
     EncodingFormat::TEXT;
 
 const bdlat_AttributeInfo Command::ATTRIBUTE_INFO_ARRAY[] = {
@@ -23096,9 +23096,9 @@ const bdlat_AttributeInfo Command::ATTRIBUTE_INFO_ARRAY[] = {
      sizeof("Choice") - 1,
      "",
      bdlat_FormattingMode::e_DEFAULT | bdlat_FormattingMode::e_UNTAGGED},
-    {ATTRIBUTE_ID_OUTPUT_FORMAT,
-     "outputFormat",
-     sizeof("outputFormat") - 1,
+    {ATTRIBUTE_ID_ENCODING,
+     "encoding",
+     sizeof("encoding") - 1,
      "",
      bdlat_FormattingMode::e_DEFAULT}};
 
@@ -23153,8 +23153,8 @@ const bdlat_AttributeInfo* Command::lookupAttributeInfo(int id)
     switch (id) {
     case ATTRIBUTE_ID_CHOICE:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CHOICE];
-    case ATTRIBUTE_ID_OUTPUT_FORMAT:
-        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_OUTPUT_FORMAT];
+    case ATTRIBUTE_ID_ENCODING:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ENCODING];
     default: return 0;
     }
 }
@@ -23163,13 +23163,13 @@ const bdlat_AttributeInfo* Command::lookupAttributeInfo(int id)
 
 Command::Command(bslma::Allocator* basicAllocator)
 : d_choice(basicAllocator)
-, d_outputFormat(DEFAULT_INITIALIZER_OUTPUT_FORMAT)
+, d_encoding(DEFAULT_INITIALIZER_ENCODING)
 {
 }
 
 Command::Command(const Command& original, bslma::Allocator* basicAllocator)
 : d_choice(original.d_choice, basicAllocator)
-, d_outputFormat(original.d_outputFormat)
+, d_encoding(original.d_encoding)
 {
 }
 
@@ -23177,13 +23177,13 @@ Command::Command(const Command& original, bslma::Allocator* basicAllocator)
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
 Command::Command(Command&& original) noexcept
 : d_choice(bsl::move(original.d_choice)),
-  d_outputFormat(bsl::move(original.d_outputFormat))
+  d_encoding(bsl::move(original.d_encoding))
 {
 }
 
 Command::Command(Command&& original, bslma::Allocator* basicAllocator)
 : d_choice(bsl::move(original.d_choice), basicAllocator)
-, d_outputFormat(bsl::move(original.d_outputFormat))
+, d_encoding(bsl::move(original.d_encoding))
 {
 }
 #endif
@@ -23197,8 +23197,8 @@ Command::~Command()
 Command& Command::operator=(const Command& rhs)
 {
     if (this != &rhs) {
-        d_choice       = rhs.d_choice;
-        d_outputFormat = rhs.d_outputFormat;
+        d_choice   = rhs.d_choice;
+        d_encoding = rhs.d_encoding;
     }
 
     return *this;
@@ -23209,8 +23209,8 @@ Command& Command::operator=(const Command& rhs)
 Command& Command::operator=(Command&& rhs)
 {
     if (this != &rhs) {
-        d_choice       = bsl::move(rhs.d_choice);
-        d_outputFormat = bsl::move(rhs.d_outputFormat);
+        d_choice   = bsl::move(rhs.d_choice);
+        d_encoding = bsl::move(rhs.d_encoding);
     }
 
     return *this;
@@ -23220,7 +23220,7 @@ Command& Command::operator=(Command&& rhs)
 void Command::reset()
 {
     bdlat_ValueTypeFunctions::reset(&d_choice);
-    d_outputFormat = DEFAULT_INITIALIZER_OUTPUT_FORMAT;
+    d_encoding = DEFAULT_INITIALIZER_ENCODING;
 }
 
 // ACCESSORS
@@ -23231,7 +23231,7 @@ Command::print(bsl::ostream& stream, int level, int spacesPerLevel) const
     bslim::Printer printer(&stream, level, spacesPerLevel);
     printer.start();
     printer.printAttribute("choice", this->choice());
-    printer.printAttribute("outputFormat", this->outputFormat());
+    printer.printAttribute("encoding", this->encoding());
     printer.end();
     return stream;
 }

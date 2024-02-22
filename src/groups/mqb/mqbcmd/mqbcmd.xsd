@@ -6,6 +6,15 @@
         targetNamespace="http://bloomberg.com/schemas/schema">
 
   <complexType name="Command">
+    <annotation>
+      <documentation>
+        The type represents a variant representing Command with options
+        common for all commands.
+
+        The optionally specified 'encoding' option contains the desired output
+        format of this command output.
+      </documentation>
+    </annotation>
     <sequence>
       <choice>
         <element name="help"           type="tns:HelpCommand"/>
@@ -16,7 +25,7 @@
         <element name="danger"         type="tns:DangerCommand"/>
         <element name="brokerConfig"   type="tns:BrokerConfigCommand"/>
       </choice>
-      <element   name='outputFormat'   type='tns:EncodingFormat' default='TEXT'/>
+      <element   name='encoding'       type='tns:EncodingFormat' default='TEXT'/>
     </sequence>
   </complexType>
   

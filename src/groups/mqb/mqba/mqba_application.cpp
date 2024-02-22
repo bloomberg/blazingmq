@@ -618,7 +618,7 @@ int Application::processCommand(const bslstl::StringRef& source,
     mqbcmd::Result result;
     mqbcmd::Util::flatten(&result, cmdResult);
 
-    switch (commandWithOptions.outputFormat()) {
+    switch (commandWithOptions.encoding()) {
     case mqbcmd::EncodingFormat::TEXT: {
         // Pretty print
         mqbcmd::HumanPrinter::print(os, result);
