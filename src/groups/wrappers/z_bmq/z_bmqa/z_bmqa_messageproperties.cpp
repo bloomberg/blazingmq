@@ -369,14 +369,14 @@ const char* z_bmqa_MessageProperties__getPropertyAsStringOr(
 
     bsl::string name_str(name); 
     bsl::string value_str(value); 
-    bsl::string propertyAsBSLStringOr = properties_p->getPropertyAsStringOr(name_str, value_str); 
-    int n = propertyAsBSLStringOr.size(); 
-    char* cStr = (char*)calloc(n+1,sizeof(char)); 
-    for(int i = 0; i < n; i++) {
-        cStr[i] = propertyAsBSLStringOr[i]; 
-    }
-    cStr[n] = '\0'; 
-    return cStr; 
+    const bsl::string& propertyAsBSLStringOr = properties_p->getPropertyAsStringOr(name_str, value_str); 
+    // int n = propertyAsBSLStringOr.size(); 
+    // char* cStr = (char*)calloc(n+1,sizeof(char)); 
+    // for(int i = 0; i < n; i++) {
+    //     cStr[i] = propertyAsBSLStringOr[i]; 
+    // }
+    // cStr[n] = '\0'; 
+    return propertyAsBSLStringOr.c_str(); 
 }
 
 const char* z_bmqa_MessageProperties__getPropertyAsBinaryOr(
