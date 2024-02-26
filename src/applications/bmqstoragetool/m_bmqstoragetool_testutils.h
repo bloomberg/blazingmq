@@ -87,10 +87,8 @@ class JournalFile {
   public:
     // CREATORS
     JournalFile(const size_t numRecords, bslma::Allocator* allocator);
-    ;
 
     ~JournalFile();
-    ;
 
     // ACCESSORS
 

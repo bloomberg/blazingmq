@@ -31,6 +31,7 @@
 #include <mwcu_memoutstream.h>
 
 // BDE
+#include <bdlb_chartype.h>
 #include <bdlb_string.h>
 #include <bdls_filesystemutil.h>
 #include <bdls_pathutil.h>
@@ -59,8 +60,8 @@ bool isValidQueueKeyHexRepresentation(const char* queueKeyBuf)
         return false;  // RETURN
 
     for (int i = 0; i < queueKeyHexLength; ++i) {
-        if (!(queueKeyBuf[i] >= '0' && queueKeyBuf[i] <= '9') &&
-            !(queueKeyBuf[i] >= 'A' && queueKeyBuf[i] <= 'F')) {
+        if (!bdlb::CharType::isDigit(queueKeyBuf[i]) &&
+            !bdlb::CharType::isUpper(queueKeyBuf[i])) {
             return false;  // RETURN
         }
     }

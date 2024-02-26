@@ -16,7 +16,7 @@
 #ifndef INCLUDED_M_BMQSTORAGETOOL_COMMANDPROCESSORFACTORY
 #define INCLUDED_M_BMQSTORAGETOOL_COMMANDPROCESSORFACTORY
 
-//@PURPOSE: Provide a factory to create corresponding command processor.
+//@PURPOSE: Provide a factory to create an instance of command processor.
 //
 //@CLASSES:
 //  m_bmqstoragetool::CommandProcessorFactory: command processor factory.
