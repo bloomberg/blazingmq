@@ -498,7 +498,7 @@ static void test8_searchMessagesByQueueKeyTest()
                                                       queueKey2);
 
     // Configure parameters to search messages by queueKey1
-    Parameters params(s_allocator_p);
+    Parameters               params(s_allocator_p);
     bsl::vector<bsl::string> queueKeys(1, queueKey1, s_allocator_p);
     params.d_queueKey = bsl::move(queueKeys);
     // Prepare file manager
