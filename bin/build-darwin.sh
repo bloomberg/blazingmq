@@ -82,7 +82,8 @@ if [ ! -e "${DIR_BUILD}/ntf/.complete" ]; then
                 --output "${DIR_BUILD}/ntf" \
                 --without-warnings-as-errors \
                 --without-usage-examples \
-                --without-applications
+                --without-applications \
+                --ufid opt_64_cpp17
     make -j 16
     make install
     popd
