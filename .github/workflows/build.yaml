@@ -104,6 +104,7 @@ jobs:
             bison \
             flex \
             google-benchmark
+          python3 -m pip install --upgrade pip
           pip install -r ${{ github.workspace }}/src/python/requirements.txt
       - name: Build BlazingMQ
         run: bin/build_darwin.sh
