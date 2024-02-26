@@ -66,7 +66,7 @@ PATH="${DIR_THIRDPARTY}/bde-tools/bin:$PATH"
 
 if [ ! -e "${DIR_BUILD}/bde/.complete" ]; then
     pushd "${DIR_THIRDPARTY}/bde"
-    eval "$(bbs_build_env -u opt_64_cpp20 -b "${DIR_BUILD}/bde" -i "${DIR_INSTALL}")"
+    eval "$(bbs_build_env -u opt_64_cpp17 -b "${DIR_BUILD}/bde" -i "${DIR_INSTALL}")"
     bbs_build configure --prefix="${DIR_INSTALL}"
     bbs_build build --prefix="${DIR_INSTALL}"
     bbs_build install --install_dir="/" --prefix="${DIR_INSTALL}"
