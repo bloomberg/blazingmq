@@ -89,6 +89,8 @@ jobs:
     strategy:
       matrix:
         include:
+          - os: macos-11
+            arch: x86_64
           - os: macos-14
             arch: arm64
     steps:
