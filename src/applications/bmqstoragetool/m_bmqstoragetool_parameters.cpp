@@ -60,8 +60,8 @@ bool isValidQueueKeyHexRepresentation(const char* queueKeyBuf)
         return false;  // RETURN
 
     for (int i = 0; i < queueKeyHexLength; ++i) {
-        if (!bdlb::CharType::isDigit(queueKeyBuf[i]) &&
-            !bdlb::CharType::isUpper(queueKeyBuf[i])) {
+        if (!bsl::isxdigit(queueKeyBuf[i]) ||
+            bdlb::CharType::isLower(queueKeyBuf[i])) {
             return false;  // RETURN
         }
     }
