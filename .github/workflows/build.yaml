@@ -101,7 +101,6 @@ jobs:
             gdb \
             curl \
             python@3.10 \
-            python3-pip \
             cmake \
             ninja-build \
             pkg-config \
