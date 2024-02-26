@@ -83,6 +83,36 @@ jobs:
             /opt/bb/include
           key: cache-${{ github.sha }}
 
+  build_macosx:
+    name: Build macosx_${{ matrix.arch }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: macos-11
+            arch: x86_64
+          - os: macos-14
+            arch: arm64
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up dependencies
+        run: |
+          brew install -y \
+            gdb \
+            curl \
+            python3.10 \
+            python3-pip \
+            cmake \
+            ninja-build \
+            pkg-config \
+            bison \
+            libfl-dev \
+            libbenchmark-dev \
+            libz-dev
+          pip install -r ${{ github.workspace }}/src/python/requirements.txt
+      - name: Build BlazingMQ
+        run: bin/build_darwin.sh
+
   build_and_test_bmqprometheus_plugin:
     name: "Check if BMQPrometheus plugin can build and pass tests"
     runs-on: ubuntu-latest
