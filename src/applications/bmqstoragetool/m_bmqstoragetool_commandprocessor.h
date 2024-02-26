@@ -41,7 +41,7 @@ namespace m_bmqstoragetool {
 class CommandProcessor {
   protected:
     // PRIVATE DATA
-    const bsl::shared_ptr<Parameters>  d_parameters;
+    const Parameters*                  d_parameters;
     const bsl::shared_ptr<FileManager> d_fileManager;
     bsl::ostream&                      d_ostream;
 
@@ -49,7 +49,7 @@ class CommandProcessor {
     // CREATORS
 
     /// Constructor using the specified `params` and 'ostream'.
-    explicit CommandProcessor(const bsl::shared_ptr<Parameters>&  params,
+    explicit CommandProcessor(const Parameters*                   params,
                               const bsl::shared_ptr<FileManager>& fileManager,
                               bsl::ostream&                       ostream);
 
@@ -66,7 +66,7 @@ class CommandProcessor {
 // ============================================================================
 
 inline CommandProcessor::CommandProcessor(
-    const bsl::shared_ptr<Parameters>&  params,
+    const Parameters*                   params,
     const bsl::shared_ptr<FileManager>& fileManager,
     bsl::ostream&                       ostream)
 : d_parameters(params)

@@ -75,8 +75,7 @@ static void test1_breathingTest()
     journalFile.addAllTypesRecords(&records);
 
     // Prepare parameters
-    bsl::shared_ptr<Parameters> params = bsl::make_shared<Parameters>(
-        s_allocator_p);
+    Parameters params(s_allocator_p);
     // Prepare file manager
     bsl::shared_ptr<FileManager> fileManager =
         bsl::make_shared<FileManagerMock>(journalFile, s_allocator_p);
@@ -84,7 +83,7 @@ static void test1_breathingTest()
     // Run search
     bsl::ostringstream resultStream(s_allocator_p);
     auto searchProcessor = CommandProcessorFactory::createCommandProcessor(
-        params,
+        &params,
         fileManager,
         resultStream,
         s_allocator_p);
@@ -146,9 +145,8 @@ static void test2_searchGuidTest()
         }
     }
     // Prepare parameters
-    bsl::shared_ptr<Parameters> params = bsl::make_shared<Parameters>(
-        s_allocator_p);
-    params->d_guid = bsl::move(searchGuids);
+    Parameters params(s_allocator_p);
+    params.d_guid = bsl::move(searchGuids);
     // Prepare file manager
     bsl::shared_ptr<FileManager> fileManager =
         bsl::make_shared<FileManagerMock>(journalFile, s_allocator_p);
@@ -156,7 +154,7 @@ static void test2_searchGuidTest()
     // Run search
     bsl::ostringstream resultStream(s_allocator_p);
     auto searchProcessor = CommandProcessorFactory::createCommandProcessor(
-        params,
+        &params,
         fileManager,
         resultStream,
         s_allocator_p);
@@ -203,9 +201,8 @@ static void test3_searchNonExistingGuidTest()
     }
 
     // Prepare parameters
-    bsl::shared_ptr<Parameters> params = bsl::make_shared<Parameters>(
-        s_allocator_p);
-    params->d_guid = bsl::move(searchGuids);
+    Parameters params(s_allocator_p);
+    params.d_guid = bsl::move(searchGuids);
     // Prepare file manager
     bsl::shared_ptr<FileManager> fileManager =
         bsl::make_shared<FileManagerMock>(journalFile, s_allocator_p);
@@ -213,7 +210,7 @@ static void test3_searchNonExistingGuidTest()
     // Run search
     bsl::ostringstream resultStream(s_allocator_p);
     auto searchProcessor = CommandProcessorFactory::createCommandProcessor(
-        params,
+        &params,
         fileManager,
         resultStream,
         s_allocator_p);
@@ -280,9 +277,8 @@ static void test4_searchExistingAndNonExistingGuidTest()
     }
 
     // Prepare parameters
-    bsl::shared_ptr<Parameters> params = bsl::make_shared<Parameters>(
-        s_allocator_p);
-    params->d_guid = bsl::move(searchGuids);
+    Parameters params(s_allocator_p);
+    params.d_guid = bsl::move(searchGuids);
     // Prepare file manager
     bsl::shared_ptr<FileManager> fileManager =
         bsl::make_shared<FileManagerMock>(journalFile, s_allocator_p);
@@ -290,7 +286,7 @@ static void test4_searchExistingAndNonExistingGuidTest()
     // Run search
     bsl::ostringstream resultStream(s_allocator_p);
     auto searchProcessor = CommandProcessorFactory::createCommandProcessor(
-        params,
+        &params,
         fileManager,
         resultStream,
         s_allocator_p);
@@ -332,9 +328,8 @@ static void test5_searchOutstandingMessagesTest()
             true);
 
     // Configure parameters to search outstanding messages
-    bsl::shared_ptr<Parameters> params = bsl::make_shared<Parameters>(
-        s_allocator_p);
-    params->d_outstanding = true;
+    Parameters params(s_allocator_p);
+    params.d_outstanding = true;
     // Prepare file manager
     bsl::shared_ptr<FileManager> fileManager =
         bsl::make_shared<FileManagerMock>(journalFile, s_allocator_p);
@@ -342,7 +337,7 @@ static void test5_searchOutstandingMessagesTest()
     // Run search
     bsl::ostringstream resultStream(s_allocator_p);
     auto searchProcessor = CommandProcessorFactory::createCommandProcessor(
-        params,
+        &params,
         fileManager,
         resultStream,
         s_allocator_p);
@@ -388,9 +383,8 @@ static void test6_searchConfirmedMessagesTest()
             false);
 
     // Configure parameters to search confirmed messages
-    bsl::shared_ptr<Parameters> params = bsl::make_shared<Parameters>(
-        s_allocator_p);
-    params->d_confirmed = true;
+    Parameters params(s_allocator_p);
+    params.d_confirmed = true;
     // Prepare file manager
     bsl::shared_ptr<FileManager> fileManager =
         bsl::make_shared<FileManagerMock>(journalFile, s_allocator_p);
@@ -398,7 +392,7 @@ static void test6_searchConfirmedMessagesTest()
     // Run search
     bsl::ostringstream resultStream(s_allocator_p);
     auto searchProcessor = CommandProcessorFactory::createCommandProcessor(
-        params,
+        &params,
         fileManager,
         resultStream,
         s_allocator_p);
@@ -446,9 +440,8 @@ static void test7_searchPartiallyConfirmedMessagesTest()
         journalFile.addJournalRecordsWithPartiallyConfirmedMessages(&records);
 
     // Configure parameters to search partially confirmed messages
-    bsl::shared_ptr<Parameters> params = bsl::make_shared<Parameters>(
-        s_allocator_p);
-    params->d_partiallyConfirmed = true;
+    Parameters params(s_allocator_p);
+    params.d_partiallyConfirmed = true;
     // Prepare file manager
     bsl::shared_ptr<FileManager> fileManager =
         bsl::make_shared<FileManagerMock>(journalFile, s_allocator_p);
@@ -456,7 +449,7 @@ static void test7_searchPartiallyConfirmedMessagesTest()
     // Run search
     bsl::ostringstream resultStream(s_allocator_p);
     auto searchProcessor = CommandProcessorFactory::createCommandProcessor(
-        params,
+        &params,
         fileManager,
         resultStream,
         s_allocator_p);
@@ -505,10 +498,9 @@ static void test8_searchMessagesByQueueKeyTest()
                                                       queueKey2);
 
     // Configure parameters to search messages by queueKey1
-    bsl::shared_ptr<Parameters> params = bsl::make_shared<Parameters>(
-        s_allocator_p);
+    Parameters params(s_allocator_p);
     bsl::vector<bsl::string> queueKeys(1, queueKey1, s_allocator_p);
-    params->d_queueKey = bsl::move(queueKeys);
+    params.d_queueKey = bsl::move(queueKeys);
     // Prepare file manager
     bsl::shared_ptr<FileManager> fileManager =
         bsl::make_shared<FileManagerMock>(journalFile, s_allocator_p);
@@ -516,7 +508,7 @@ static void test8_searchMessagesByQueueKeyTest()
     // Run search
     bsl::ostringstream resultStream(s_allocator_p);
     auto searchProcessor = CommandProcessorFactory::createCommandProcessor(
-        params,
+        &params,
         fileManager,
         resultStream,
         s_allocator_p);
@@ -569,10 +561,9 @@ static void test9_searchMessagesByQueueNameTest()
     }
     QueueMap qMap(s_allocator_p);
 
-    bsl::shared_ptr<Parameters> params = bsl::make_shared<Parameters>(
-        s_allocator_p);
-    params->d_queueName.push_back("queue1");
-    params->d_queueMap.insert(queueInfo);
+    Parameters params(s_allocator_p);
+    params.d_queueName.push_back("queue1");
+    params.d_queueMap.insert(queueInfo);
 
     // Prepare file manager
     bsl::shared_ptr<FileManager> fileManager =
@@ -581,7 +572,7 @@ static void test9_searchMessagesByQueueNameTest()
     // Run search
     bsl::ostringstream resultStream(s_allocator_p);
     auto searchProcessor = CommandProcessorFactory::createCommandProcessor(
-        params,
+        &params,
         fileManager,
         resultStream,
         s_allocator_p);
@@ -637,13 +628,12 @@ static void test10_searchMessagesByQueueNameAndQueueKeyTest()
     }
     QueueMap qMap(s_allocator_p);
 
-    bsl::shared_ptr<Parameters> params = bsl::make_shared<Parameters>(
-        s_allocator_p);
-    params->d_queueName.push_back("queue1");
-    params->d_queueMap.insert(queueInfo);
+    Parameters params(s_allocator_p);
+    params.d_queueName.push_back("queue1");
+    params.d_queueMap.insert(queueInfo);
 
     bsl::vector<bsl::string> queueKeys(1, queueKey2, s_allocator_p);
-    params->d_queueKey = bsl::move(queueKeys);
+    params.d_queueKey = bsl::move(queueKeys);
 
     // Prepare file manager
     bsl::shared_ptr<FileManager> fileManager =
@@ -652,7 +642,7 @@ static void test10_searchMessagesByQueueNameAndQueueKeyTest()
     // Run search
     bsl::ostringstream resultStream(s_allocator_p);
     auto searchProcessor = CommandProcessorFactory::createCommandProcessor(
-        params,
+        &params,
         fileManager,
         resultStream,
         s_allocator_p);
@@ -692,10 +682,9 @@ static void test11_searchMessagesByTimestamp()
     const bsls::Types::Uint64 ts2 = 40 * journalFile.timestampIncrement();
 
     // Configure parameters to search messages by timestamps
-    bsl::shared_ptr<Parameters> params = bsl::make_shared<Parameters>(
-        s_allocator_p);
-    params->d_timestampGt = ts1;
-    params->d_timestampLt = ts2;
+    Parameters params(s_allocator_p);
+    params.d_timestampGt = ts1;
+    params.d_timestampLt = ts2;
     // Prepare file manager
     bsl::shared_ptr<FileManager> fileManager =
         bsl::make_shared<FileManagerMock>(journalFile, s_allocator_p);
@@ -723,7 +712,7 @@ static void test11_searchMessagesByTimestamp()
     // Run search
     bsl::ostringstream resultStream(s_allocator_p);
     auto searchProcessor = CommandProcessorFactory::createCommandProcessor(
-        params,
+        &params,
         fileManager,
         resultStream,
         s_allocator_p);
@@ -755,9 +744,8 @@ static void test12_printMessagesDetailsTest()
             false);
 
     // Configure parameters to print message details
-    bsl::shared_ptr<Parameters> params = bsl::make_shared<Parameters>(
-        s_allocator_p);
-    params->d_details = true;
+    Parameters params(s_allocator_p);
+    params.d_details = true;
     // Prepare file manager
     bsl::shared_ptr<FileManager> fileManager =
         bsl::make_shared<FileManagerMock>(journalFile, s_allocator_p);
@@ -765,7 +753,7 @@ static void test12_printMessagesDetailsTest()
     // Run search
     bsl::ostringstream resultStream(s_allocator_p);
     auto searchProcessor = CommandProcessorFactory::createCommandProcessor(
-        params,
+        &params,
         fileManager,
         resultStream,
         s_allocator_p);
@@ -880,10 +868,9 @@ static void test13_searchMessagesWithPayloadDumpTest()
 
     // Configure parameters to search confirmed messages GUIDs with dumping
     // messages payload.
-    bsl::shared_ptr<Parameters> params = bsl::make_shared<Parameters>(
-        s_allocator_p);
-    params->d_confirmed   = true;
-    params->d_dumpPayload = true;
+    Parameters params(s_allocator_p);
+    params.d_confirmed   = true;
+    params.d_dumpPayload = true;
     // Prepare file manager
     bsl::shared_ptr<FileManagerMock> fileManager =
         bsl::make_shared<FileManagerMock>(journalFile, s_allocator_p);
@@ -893,7 +880,7 @@ static void test13_searchMessagesWithPayloadDumpTest()
     // Run search
     bsl::ostringstream resultStream(s_allocator_p);
     auto searchProcessor = CommandProcessorFactory::createCommandProcessor(
-        params,
+        &params,
         fileManager,
         resultStream,
         s_allocator_p);
@@ -957,9 +944,8 @@ static void test14_summaryTest()
         journalFile.addJournalRecordsWithPartiallyConfirmedMessages(&records);
 
     // Configure parameters to output summary
-    bsl::shared_ptr<Parameters> params = bsl::make_shared<Parameters>(
-        s_allocator_p);
-    params->d_summary = true;
+    Parameters params(s_allocator_p);
+    params.d_summary = true;
     // Prepare file manager
     bsl::shared_ptr<FileManager> fileManager =
         bsl::make_shared<FileManagerMock>(journalFile, s_allocator_p);
@@ -967,7 +953,7 @@ static void test14_summaryTest()
     // Run search
     bsl::ostringstream resultStream(s_allocator_p);
     auto searchProcessor = CommandProcessorFactory::createCommandProcessor(
-        params,
+        &params,
         fileManager,
         resultStream,
         s_allocator_p);

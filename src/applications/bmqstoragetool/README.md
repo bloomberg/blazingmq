@@ -13,23 +13,23 @@ the project. From the command-line, there are a few options you can use when
 invoking the tool.
 
 ```bash
-Usage:   bmqstoragetool.tsk [--journal-path <journal path>]
-                            [--journal-file <journal file>]
-                            [--data-file <data file>]
-                            [--csl-file <csl file>]
-                            [--guid <guid>]*
-                            [--queue-name <queue name>]*
-                            [--queue-key <queue key>]*
-                            [--timestamp-gt <timestamp greater than>]
-                            [--timestamp-lt <timestamp less than>]
-                            [--outstanding]
-                            [--confirmed]
-                            [--partially-confirmed]
-                            [--details]
-                            [--dump-payload]
-                            [--dump-limit <dump limit>]
-                            [--summary]
-                            [-h|help]
+Usage:   bmqstoragetool [--journal-path <journal path>]
+                        [--journal-file <journal file>]
+                        [--data-file <data file>]
+                        [--csl-file <csl file>]
+                        [--guid <guid>]*
+                        [--queue-name <queue name>]*
+                        [--queue-key <queue key>]*
+                        [--timestamp-gt <timestamp greater than>]
+                        [--timestamp-lt <timestamp less than>]
+                        [--outstanding]
+                        [--confirmed]
+                        [--partially-confirmed]
+                        [--details]
+                        [--dump-payload]
+                        [--dump-limit <dump limit>]
+                        [--summary]
+                        [-h|help]
 Where:
        --journal-path <pattern>
           '*'-ended file path pattern, where the tool will try to find journal
@@ -76,38 +76,38 @@ Output summary for journal file
 ----------------------------------------
 Example:
 ```bash
-bmqstoragetool.tsk --journal-file=<path> --summary
+bmqstoragetool --journal-file=<path> --summary
 ```
 
 Search and otput all message GUIDs in journal file
 --------------------------------------------------
 Example:
 ```bash
-bmqstoragetool.tsk --journal-file=<path>
+bmqstoragetool --journal-file=<path>
 ```
 
 Search and otput all messages details in journal file
 -----------------------------------------------------
 Example:
 ```bash
-bmqstoragetool.tsk --journal-file=<path> --details
+bmqstoragetool --journal-file=<path> --details
 ```
 
 Search and otput all outstanding/confirmed/partially-confirmed message GUIDs in journal file
 --------------------------------------------------------------------------------------------
 Example:
 ```bash
-bmqstoragetool.tsk --journal-file=<path> --outstanding
-bmqstoragetool.tsk --journal-file=<path> --confirmed 
-bmqstoragetool.tsk --journal-file=<path> --partially-confirmed 
+bmqstoragetool --journal-file=<path> --outstanding
+bmqstoragetool --journal-file=<path> --confirmed 
+bmqstoragetool --journal-file=<path> --partially-confirmed 
 ```
 
 Search all message GUIDs with payload dump in journal file
 ----------------------------------------------------------------------
 ```bash
-bmqstoragetool.tsk --journal-file=<journal-path> --data-file=<data-path> --dump-payload
-bmqstoragetool.tsk --journal-path=<path.*> --dump-payload
-bmqstoragetool.tsk --journal-path=<path.*> --dump-payload --payload-limit=64
+bmqstoragetool --journal-file=<journal-path> --data-file=<data-path> --dump-payload
+bmqstoragetool --journal-path=<path.*> --dump-payload
+bmqstoragetool --journal-path=<path.*> --dump-payload --payload-limit=64
 ```
 
 Applying search filters to above scenarios
@@ -117,7 +117,7 @@ Filter messages with corresponding GUIDs
 ----------------------------------------
 Example:
 ```bash
-bmqstoragetool.tsk --journal-file=<path> --guid=<guid_1> --guid=<guid_N>
+bmqstoragetool --journal-file=<path> --guid=<guid_1> --guid=<guid_N>
 ```
 NOTE: no other filters are allowed with this one
 
@@ -125,22 +125,22 @@ Filter messages within time range
 ---------------------------------
 Example:
 ```bash
-bmqstoragetool.tsk --journal-file=<path> --timestamp-lt=<stamp>
-bmqstoragetool.tsk --journal-file=<path> --timestamp-gt=<stamp>
-bmqstoragetool.tsk --journal-file=<path> --timestamp-lt=<stamp1> --timestamp-gt=<stamp2>
+bmqstoragetool --journal-file=<path> --timestamp-lt=<stamp>
+bmqstoragetool --journal-file=<path> --timestamp-gt=<stamp>
+bmqstoragetool --journal-file=<path> --timestamp-lt=<stamp1> --timestamp-gt=<stamp2>
 ```
 
 Filter messages by queue key
 ----------------------------
 Example:
 ```bash
-bmqstoragetool.tsk --journal-file=<path> --queue-key=<key_1> --queue-key=<key_N>
+bmqstoragetool --journal-file=<path> --queue-key=<key_1> --queue-key=<key_N>
 ```
 
 Filter messages by queue Uri
 ----------------------------
 Example:
 ```bash
-bmqstoragetool.tsk --journal-file=<journal_path> --csl-file=<csl_path> --queue-name=<queue_uri_1> --queue-name=<queue_uri_N>
+bmqstoragetool --journal-file=<journal_path> --csl-file=<csl_path> --queue-name=<queue_uri_1> --queue-name=<queue_uri_N>
 ```
 NOTE: CSL file is required

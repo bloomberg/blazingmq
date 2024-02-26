@@ -24,7 +24,7 @@ namespace m_bmqstoragetool {
 // =========================
 
 bsl::shared_ptr<SearchResult> SearchResultFactory::createSearchResult(
-    const bsl::shared_ptr<Parameters>&  params,
+    const Parameters*                   params,
     const bsl::shared_ptr<FileManager>& fileManager,
     bsl::ostream&                       ostream,
     bslma::Allocator*                   allocator)

@@ -149,15 +149,7 @@ int main(int argc, const char* argv[])
     }
 
     // Create parameters
-    bsl::shared_ptr<Parameters> parameters;
-    try {
-        parameters.reset(new (*allocator) Parameters(arguments, allocator),
-                         allocator);
-    }
-    catch (const bsl::exception& e) {
-        bsl::cerr << e.what();
-        return 2;  // RETURN
-    }
+    Parameters parameters(arguments, allocator);
 
     // Create file manager
     bsl::shared_ptr<FileManager> fileManager;
@@ -167,10 +159,9 @@ int main(int argc, const char* argv[])
                                               arguments.d_dataFile,
                                               allocator));
         if (!arguments.d_cslFile.empty()) {
-            QueueMap queueMap =
+            parameters.d_queueMap =
                 FileManagerReal::buildQueueMap(arguments.d_cslFile, allocator);
-            parameters->d_queueMap = bsl::move(queueMap);
-            parameters->validateQueueNames();
+            parameters.validateQueueNames();
         }
     }
     catch (const bsl::exception& e) {
@@ -180,7 +171,7 @@ int main(int argc, const char* argv[])
 
     // Create command processor
     bsl::shared_ptr<CommandProcessor> processor =
-        CommandProcessorFactory::createCommandProcessor(parameters,
+        CommandProcessorFactory::createCommandProcessor(&parameters,
                                                         fileManager,
                                                         bsl::cout,
                                                         allocator);

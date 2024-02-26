@@ -26,7 +26,7 @@ namespace m_bmqstoragetool {
 
 bsl::shared_ptr<CommandProcessor>
 CommandProcessorFactory::createCommandProcessor(
-    const bsl::shared_ptr<Parameters>&  params,
+    const Parameters*                   params,
     const bsl::shared_ptr<FileManager>& fileManager,
     bsl::ostream&                       ostream,
     bslma::Allocator*                   allocator)
@@ -41,8 +41,8 @@ CommandProcessorFactory::createCommandProcessor(
     bsl::shared_ptr<CommandProcessor> commandProcessor(
         new (*allocator) JournalFileProcessor(params,
                                               fileManager,
-                                              ostream,
                                               searchResult,
+                                              ostream,
                                               allocator),
         allocator);
     return commandProcessor;
