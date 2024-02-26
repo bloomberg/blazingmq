@@ -30,9 +30,9 @@ jobs:
             ninja-build \
             pkg-config \
             bison \
-            libfl-dev \
-            libbenchmark-dev \
-            libz-dev
+            flex \
+            google-benchmark \
+            zlib
           pip install -r ${{ github.workspace }}/src/python/requirements.txt
       - name: Create dependency fetcher working directory
         run: mkdir -p deps
