@@ -30,9 +30,9 @@ jobs:
             ninja-build \
             pkg-config \
             bison \
-            flex \
-            google-benchmark \
-            zlib
+            libfl-dev \
+            libbenchmark-dev \
+            libz-dev
           pip install -r ${{ github.workspace }}/src/python/requirements.txt
       - name: Create dependency fetcher working directory
         run: mkdir -p deps
@@ -105,9 +105,9 @@ jobs:
             ninja \
             pkg-config \
             bison \
-            libfl-dev \
-            libbenchmark-dev \
-            libz-dev
+            flex \
+            google-benchmark \
+            zlib
           pip install -r ${{ github.workspace }}/src/python/requirements.txt
       - name: Build BlazingMQ
         run: bin/build_darwin.sh
