@@ -40,12 +40,21 @@ mkdir -p "${DIR_INSTALL}"
 # :: Clone dependencies :::::::::::::::::::::::::::::::::::::::::::::::::::::::
 if [ ! -d "${DIR_THIRDPARTY}/bde-tools" ]; then
     git clone https://github.com/bloomberg/bde-tools "${DIR_THIRDPARTY}/bde-tools"
+    pushd bde-tools
+    git checkout 3.117.0.0
+    popd
 fi
 if [ ! -d "${DIR_THIRDPARTY}/bde" ]; then
     git clone https://github.com/bloomberg/bde.git "${DIR_THIRDPARTY}/bde"
+    pushd bde
+    git checkout 3.117.0.0
+    popd
 fi
 if [ ! -d "${DIR_THIRDPARTY}/ntf-core" ]; then
     git clone https://github.com/bloomberg/ntf-core.git "${DIR_THIRDPARTY}/ntf-core"
+    pushd ntf-core
+    git checkout latest
+    popd
 fi
 
 
