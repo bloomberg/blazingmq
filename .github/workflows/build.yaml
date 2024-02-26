@@ -97,7 +97,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Set up dependencies
         run: |
-          brew install -y \
+          brew install \
             gdb \
             curl \
             python3.10 \
