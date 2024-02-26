@@ -27,7 +27,7 @@ jobs:
             python3.10 \
             python3-pip \
             cmake \
-            ninja-build \
+            ninja \
             pkg-config \
             bison \
             libfl-dev \
