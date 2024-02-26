@@ -98,16 +98,12 @@ jobs:
       - name: Set up dependencies
         run: |
           brew install \
-            gdb \
             curl \
             python@3.10 \
-            cmake \
             ninja \
-            pkg-config \
             bison \
             flex \
-            google-benchmark \
-            zlib
+            google-benchmark
           pip install -r ${{ github.workspace }}/src/python/requirements.txt
       - name: Build BlazingMQ
         run: bin/build_darwin.sh
