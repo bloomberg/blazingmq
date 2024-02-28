@@ -77,12 +77,12 @@ jobs:
         env:
           PYTHONPATH: src/python
         run: |
-          src/python/bin/schemagen
-          src/python/bin/tweakgen
-          pytest src/python
+          ${{ github.workspace }}/src/python/bin/schemagen
+          ${{ github.workspace }}/src/python/bin/tweakgen
+          pytest ${{ github.workspace }}/src/python
       - name: Run C++ Unit Tests
         run: |
-          cd build/blazingmq
+          cd ${{ github.workspace }}/build/blazingmq
           ctest -E mwcsys_executil.t --output-on-failure
 
   integration_tests_ubuntu:
