@@ -132,7 +132,8 @@ jobs:
             ninja \
             bison \
             flex \
-            google-benchmark
+            google-benchmark \
+            googletest
           python3 -m pip install --upgrade pip
           pip install -r ${{ github.workspace }}/src/python/requirements.txt
       - name: Build BlazingMQ
