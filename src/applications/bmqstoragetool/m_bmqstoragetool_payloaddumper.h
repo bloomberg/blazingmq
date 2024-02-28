@@ -19,7 +19,7 @@
 //@PURPOSE: Provide a message payload dumping.
 //
 //@CLASSES:
-//  m_bmqstoragetool::PayloadDumper: dump message payload.
+//  m_bmqstoragetool::PayloadDumper: dumps message payload to output stream.
 //
 //@DESCRIPTION: 'PayloadDumper' provides a message payload dumping.
 
@@ -34,17 +34,27 @@ namespace m_bmqstoragetool {
 // ===================
 class PayloadDumper {
   private:
-    // DATA
-    bsl::ostream&           d_ostream;
+    // PRIVATE DATA
+
+    bsl::ostream& d_ostream;
+    // Reference to output stream.
     mqbs::DataFileIterator* d_dataFile_p;
-    unsigned int            d_dumpLimit;
+    // Pointer to data file iterator.
+    unsigned int d_dumpLimit;
+    // Dump limit value.
 
   public:
     // CREATORS
+
+    /// Constructor using the specified `ostream`, `dataFile_p` and
+    /// `dumpLimit`.
     explicit PayloadDumper(bsl::ostream&           ostream,
                            mqbs::DataFileIterator* dataFile_p,
                            unsigned int            dumpLimit);
 
+    // MANIPULATORS
+
+    /// Output message payload from the specified offset in Data file.
     void outputPayload(bsls::Types::Uint64 messageOffsetDwords);
 };
 

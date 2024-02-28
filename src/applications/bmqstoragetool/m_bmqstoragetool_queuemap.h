@@ -38,11 +38,9 @@ namespace m_bmqstoragetool {
 
 typedef bsl::unordered_map<mqbu::StorageKey, bmqp_ctrlmsg::QueueInfo>
     QueueKeyToInfoMap;
-// 'QueueKeyToInfoMap' is a alias for unordered map that maps queue key to
-// queue info.
+// Map of queue key -> queue info.
 typedef bsl::unordered_map<bsl::string, mqbu::StorageKey> QueueUriToKeyMap;
-// 'QueueUriToKeyMap' is a alias for unordered map that maps queue uri to queue
-// key.
+// Map of queue uri -> queue key.
 
 // ==============
 // class QueueMap
@@ -52,31 +50,33 @@ class QueueMap {
     // PRIVATE DATA
 
     QueueKeyToInfoMap d_queueKeyToInfoMap;
-    QueueUriToKeyMap  d_queueUriToKeyMap;
+    // Map of queue key -> queue info.
+    QueueUriToKeyMap d_queueUriToKeyMap;
+    // Map of queue uri -> queue key.
 
   public:
     // CREATORS
 
-    /// Constructor using the specified 'allocator'.
+    /// Constructor using the specified `allocator`.
     explicit QueueMap(bslma::Allocator* allocator);
 
     // MANIPULATORS
 
-    /// Insert queue info into internal maps
+    /// Insert queue info into internal maps.
     void insert(const bmqp_ctrlmsg::QueueInfo& queueInfo);
 
-    /// Update queue info in internal maps
+    /// Update queue info in internal maps.
     void update(const bmqp_ctrlmsg::QueueInfoUpdate& queueUpdateInfo);
 
     // ACCESSORS
 
-    /// Find queue info by queue key. Return 'true' if key found and
-    /// queueInfo_p contains valid data, 'false' otherwise.
+    /// Find queue info by queue key. Return `true` if key found and
+    /// queueInfo_p contains valid data, `false` otherwise.
     bool findInfoByKey(bmqp_ctrlmsg::QueueInfo* queueInfo_p,
                        const mqbu::StorageKey&  key) const;
 
-    /// Find queue key by queue uri. Return 'true' if uri found and
-    /// queueKey_p contains valid data, 'false' otherwise.
+    /// Find queue key by queue uri. Return `true` if uri found and
+    /// queueKey_p contains valid data, `false` otherwise.
     bool findKeyByUri(mqbu::StorageKey*  queueKey_p,
                       const bsl::string& uri) const;
 };

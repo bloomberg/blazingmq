@@ -51,7 +51,7 @@ void PayloadDumper::outputPayload(bsls::Types::Uint64 messageOffsetDwords)
     }
     // Search record in data file
     while (it->recordOffset() != recordOffset) {
-        int rc = it->nextRecord();
+        const int rc = it->nextRecord();
 
         if (rc != 1) {
             d_ostream << "Failed to retrieve message from DATA "

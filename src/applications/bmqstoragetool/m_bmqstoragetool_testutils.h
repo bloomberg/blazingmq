@@ -16,6 +16,17 @@
 #ifndef INCLUDED_M_BMQSTORAGETOOL_TESTUTILS_H
 #define INCLUDED_M_BMQSTORAGETOOL_TESTUTILS_H
 
+//@PURPOSE: Provide helper classes and mocks for unit testing.
+//
+//@CLASSES:
+//  m_bmqstoragetool::TestUtils::JournalFile: provides methods to create
+//  in-memory journal file with required content.
+//  m_bmqstoragetool::TestUtils::FileManagerMock: provides FileManager
+//  implementation with mocked methods.
+//
+//@DESCRIPTION: Helper class to create in-memory journal file and FileManager
+// mock for unit testing.
+
 // bmqstoragetool
 #include <m_bmqstoragetool_filemanager.h>
 #include <m_bmqstoragetool_parameters.h>
@@ -68,63 +79,102 @@ typedef bsl::pair<RecordType::Enum, RecordBufferType> NodeType;
 
 typedef bsl::list<NodeType> RecordsListType;
 
+// =================
+// class JournalFile
+// =================
+
+/// This class provides methods to create in-memory journal file with required
+/// content.
 class JournalFile {
   private:
-    size_t                    d_numRecords;
-    MappedFileDescriptor      d_mfd;
-    char*                     d_mem_p;
-    MemoryBlock               d_block;
-    bsls::Types::Uint64       d_currPos;
-    const bsls::Types::Uint64 d_timestampIncrement;
-    FileHeader                d_fileHeader;
-    JournalFileIterator       d_iterator;
-    bslma::Allocator*         d_allocator_p;
+    // PRIVATE DATA
 
-    // MANIPULATORS
+    size_t d_numRecords;
+    // Number of records.
+    MappedFileDescriptor d_mfd;
+    // Mapped file descriptor.
+    char* d_mem_p;
+    // Pointer to allocated memory for journal file.
+    MemoryBlock d_block;
+    // Current memory block.
+    bsls::Types::Uint64 d_currPos;
+    // Current position.
+    const bsls::Types::Uint64 d_timestampIncrement;
+    // Value of timestamp incrementation.
+    FileHeader d_fileHeader;
+    // File header data.
+    JournalFileIterator d_iterator;
+    // Journal file iterator.
+    bslma::Allocator* d_allocator_p;
+    // Allocator to be used.
+
+    // PRIVATE MANIPULATORS
 
     void createFileHeader();
+    // Fill journal file header with test data.
 
   public:
     // CREATORS
+
+    /// Constructor using the specified `numRecords` and `allocator`.
     JournalFile(const size_t numRecords, bslma::Allocator* allocator);
 
+    /// Destructor for releasing allocated resource `d_mem_p`.
     ~JournalFile();
 
     // ACCESSORS
 
+    /// Return reference to mapped file descriptor.
     const MappedFileDescriptor& mappedFileDescriptor() const;
 
+    /// Return reference to file header.
     const FileHeader& fileHeader() const;
 
-    const bsls::Types::Uint64 timestampIncrement();
+    /// Return value of timestamp incrementation.
+    const bsls::Types::Uint64 timestampIncrement() const;
 
     // MANIPULATORS
 
+    /// Generate sequence of all types records. Store list of created records
+    /// in the specified `records`.
     void addAllTypesRecords(RecordsListType* records);
 
+    /// Generate sequence of MessageRecord, ConfirmRecord and DeleteRecord
+    /// records. MessageRecord and ConfirmRecord records have the same GUID.
+    /// DeleteRecord records even records have the same GUID as MessageRecord,
+    /// odd ones - not the same. Store list of created records in the specified
+    /// `records`. If `expectOutstandingResult` is `true`, return GUIDs of
+    /// outstanding messages. Otherwise return GUIDs of confirmed messages.
     bsl::vector<bmqt::MessageGUID>
     addJournalRecordsWithOutstandingAndConfirmedMessages(
         RecordsListType* records,
         bool             expectOutstandingResult);
 
-    // Generate sequence of MessageRecord, ConfirmRecord and DeleteRecord
-    // records. MessageRecord and ConfirmRecord records have the same GUID.
-    // DeleteRecord records even records have the same GUID as MessageRecord,
-    // odd ones - not the same.
+    /// Generate sequence of MessageRecord, ConfirmRecord and DeleteRecord
+    /// records. MessageRecord and ConfirmRecord records have the same GUID.
+    /// DeleteRecord records even records have the same GUID as MessageRecord,
+    /// odd ones - not the same. Store list of created records in the specified
+    /// `records`. Return GUIDs of partially confirmed messages.
     bsl::vector<bmqt::MessageGUID>
     addJournalRecordsWithPartiallyConfirmedMessages(RecordsListType* records);
 
-    // Generate sequence of MessageRecord, ConfirmRecord and DeleteRecord
-    // records. MessageRecord ConfirmRecord and DeletionRecord records have the
-    // same GUID. queueKey1 is used for even records, queueKey2 for odd ones.
-    // Returns GUIDs for queueKey1 if 'captureAllGUIDs' is false or all GUIds
-    // otherwise.
+    /// Generate sequence of MessageRecord, ConfirmRecord and DeleteRecord
+    /// records. MessageRecord ConfirmRecord and DeletionRecord records have
+    /// the same GUID. queueKey1 is used for even records, queueKey2 for odd
+    /// ones. Store list of created records in the specified `records`. Returns
+    /// GUIDs for queueKey1 if `captureAllGUIDs` is `false` or all GUIds
+    /// otherwise.
     bsl::vector<bmqt::MessageGUID>
     addJournalRecordsWithTwoQueueKeys(RecordsListType* records,
                                       const char*      queueKey1,
                                       const char*      queueKey2,
                                       bool captureAllGUIDs = false);
 
+    /// Generate sequence of MessageRecord and DeleteRecord
+    /// records with size `numMessages`. Change GUIDs order for 2nd and 3rd
+    /// DeleteRecord. Set message offsets from the given `messageOffsets`.
+    /// Store list of created records in the specified `records`.
+    /// Return confirmed GUIDs.
     bsl::vector<bmqt::MessageGUID>
     addJournalRecordsWithConfirmedMessagesWithDifferentOrder(
         RecordsListType*           records,
@@ -132,16 +182,20 @@ class JournalFile {
         bsl::vector<unsigned int>& messageOffsets);
 };
 
+/// Output the specified `messageGUID` as a string to the specified `ostream`.
 void outputGuidString(bsl::ostream&            ostream,
                       const bmqt::MessageGUID& messageGUID,
                       const bool               addNewLine = true);
 
+/// Value semantic type representing data message parameters.
 struct DataMessage {
     int         d_line;
     const char* d_appData_p;
     const char* d_options_p;
 };
 
+/// Allocate in memory storage data file and generate sequence of data records
+/// using the specified arguments. Return pointer to allocated memory.
 char* addDataRecords(bslma::Allocator*          ta,
                      MappedFileDescriptor*      mfd,
                      FileHeader*                fileHeader,
@@ -149,26 +203,40 @@ char* addDataRecords(bslma::Allocator*          ta,
                      const unsigned int         numMessages,
                      bsl::vector<unsigned int>& messageOffsets);
 
+// =====================
+// class FileManagerMock
+// =====================
+
+/// This class provides FileManager implementation with mocked methods.
 class FileManagerMock : public FileManager {
+  private:
+    // PRIVATE DATA
+
     mqbs::JournalFileIterator d_journalFileIt;
+    // Journal file iterator.
 
   public:
     // CREATORS
+
+    /// Constructor using the specified `allocator`.
     explicit FileManagerMock(bslma::Allocator* allocator = 0)
     {
         EXPECT_CALL(*this, dataFileIterator()).WillRepeatedly(Return(nullptr));
     }
+
+    /// Constructor using the specified `journalFile` and `allocator`.
     explicit FileManagerMock(const JournalFile& journalFile,
                              bslma::Allocator*  allocator = 0)
     : d_journalFileIt(&journalFile.mappedFileDescriptor(),
                       journalFile.fileHeader(),
                       false)
     {
-        // Prepare parameters
         EXPECT_CALL(*this, dataFileIterator()).WillRepeatedly(Return(nullptr));
     }
 
     // MANIPULATORS
+
+    /// Return pointer to modifiable journal file iterator.
     mqbs::JournalFileIterator* journalFileIterator() BSLS_KEYWORD_OVERRIDE
     {
         return &d_journalFileIt;
@@ -191,7 +259,7 @@ inline const FileHeader& JournalFile::fileHeader() const
     return d_fileHeader;
 }
 
-inline const bsls::Types::Uint64 JournalFile::timestampIncrement()
+inline const bsls::Types::Uint64 JournalFile::timestampIncrement() const
 {
     return d_timestampIncrement;
 }

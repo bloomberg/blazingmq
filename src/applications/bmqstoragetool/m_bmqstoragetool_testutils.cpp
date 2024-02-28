@@ -26,6 +26,10 @@ namespace m_bmqstoragetool {
 
 namespace TestUtils {
 
+// =================
+// class JournalFile
+// =================
+
 void JournalFile::createFileHeader()
 {
     d_currPos = 0;

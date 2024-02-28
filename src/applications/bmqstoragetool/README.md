@@ -3,10 +3,10 @@ BMQStorageTool
 
 BMQStorageTool is a command-line tool for analyzing of BlazingMQ Broker storage
 files. It allows to search messages in `journal` file with set of different 
-filters and output found message GUIDs or message detail information. 
-As input it expects `journal` file (*.bmq_journal)
-and `data` file (*.bmq_data) if payload dump is required. Cluster state
-ledger (CSL) file (*.bmq_csl) is required to filter by queue Uri.
+filters and output found message GUIDs or message detail information.
+As input, a `journal` file (*.bmq_journal) is *always* required. To dump 
+payload, `data` file (*.bmq_data) is required. To filter by queue Uri, cluster
+state ledger (CSL) file (*.bmq_csl) is required.
 
 The tool can be found under your `CMAKE` build directory after making 
 the project. From the command-line, there are a few options you can use when
@@ -31,7 +31,7 @@ Usage:   bmqstoragetool [--journal-path <journal path>]
                         [--summary]
                         [-h|help]
 Where:
-       --journal-path <pattern>
+       --journal-path         <pattern>
           '*'-ended file path pattern, where the tool will try to find journal
           and data files
        --journal-file         <journal file>
@@ -104,10 +104,11 @@ bmqstoragetool --journal-file=<path> --partially-confirmed
 
 Search all message GUIDs with payload dump in journal file
 ----------------------------------------------------------------------
+Example:
 ```bash
 bmqstoragetool --journal-file=<journal-path> --data-file=<data-path> --dump-payload
 bmqstoragetool --journal-path=<path.*> --dump-payload
-bmqstoragetool --journal-path=<path.*> --dump-payload --payload-limit=64
+bmqstoragetool --journal-path=<path.*> --dump-payload --dump-limit=64
 ```
 
 Applying search filters to above scenarios
