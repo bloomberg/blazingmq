@@ -29,7 +29,7 @@ namespace m_bmqstoragetool {
 
 namespace {
 
-// Helpers to print journal and data files meta
+// Helper to print data file meta data
 void printDataFileMeta(bsl::ostream&           ostream,
                        mqbs::DataFileIterator* dataFile_p)
 {
@@ -41,6 +41,7 @@ void printDataFileMeta(bsl::ostream&           ostream,
             << dataFile_p->header();
 }
 
+// Helper to print journal file meta data
 void printJournalFileMeta(bsl::ostream&              ostream,
                           mqbs::JournalFileIterator* journalFile_p)
 {
@@ -87,7 +88,8 @@ void printJournalFileMeta(bsl::ostream&              ostream,
         printer << recHeader->type();
         bdlt::Datetime      datetime;
         bsls::Types::Uint64 epochValue = recHeader->timestamp();
-        int rc = bdlt::EpochUtil::convertFromTimeT64(&datetime, epochValue);
+        const int           rc = bdlt::EpochUtil::convertFromTimeT64(&datetime,
+                                                           epochValue);
         if (0 != rc) {
             printer << 0;
         }
@@ -97,7 +99,8 @@ void printJournalFileMeta(bsl::ostream&              ostream,
         printer << epochValue;
     }
 
-    bsls::Types::Uint64 syncPointPos = journalFile_p->lastSyncPointPosition();
+    const bsls::Types::Uint64 syncPointPos =
+        journalFile_p->lastSyncPointPosition();
 
     printer << syncPointPos;
     if (0 == syncPointPos) {
@@ -131,6 +134,7 @@ void printJournalFileMeta(bsl::ostream&              ostream,
     }
 }
 
+// Helper to print message GUID as a string
 void outputGuidString(bsl::ostream&            ostream,
                       const bmqt::MessageGUID& messageGUID,
                       const bool               addNewLine = true)
@@ -141,8 +145,9 @@ void outputGuidString(bsl::ostream&            ostream,
         ostream << '\n';
 }
 
+// Helper to calculate and print outstanding ratio
 void outputOutstandingRatio(bsl::ostream& ostream,
-                            std::size_t   totalMessagesCount,
+                            bsl::size_t   totalMessagesCount,
                             bsl::size_t   deletedMessagesCount)
 {
     if (totalMessagesCount > 0) {
@@ -156,7 +161,8 @@ void outputOutstandingRatio(bsl::ostream& ostream,
     }
 }
 
-void outputFooter(bsl::ostream& ostream, std::size_t foundMessagesCount)
+// Helper to print summary of search result
+void outputFooter(bsl::ostream& ostream, bsl::size_t foundMessagesCount)
 {
     const char* captionForFound    = " message GUID(s) found.";
     const char* captionForNotFound = "No message GUID found.";

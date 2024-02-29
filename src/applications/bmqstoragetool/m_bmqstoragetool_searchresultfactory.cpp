@@ -39,22 +39,22 @@ bsl::shared_ptr<SearchResult> SearchResultFactory::createSearchResult(
                             allocator);
 
     // Set up processing flags
-    bool details = params->d_details;
+    const bool details = params->d_details;
     // Print data immediately as soon as it is completed to save memory, except
     // the foollowing cases, where data should be kept
-    bool printImmediately = !(params->d_outstanding ||
-                              params->d_partiallyConfirmed ||
-                              (params->d_confirmed && !details));
+    const bool printImmediately = !(params->d_outstanding ||
+                                    params->d_partiallyConfirmed ||
+                                    (params->d_confirmed && !details));
     // Always erase stored data when 'deletion' record received
-    bool eraseDeleted = true;
+    const bool eraseDeleted = true;
     // Print data immediately on 'deletion' record receiving for specific case
-    bool printOnDelete = params->d_confirmed;
+    const bool printOnDelete = params->d_confirmed;
     // Clean unprinted/unerased data for specific case
-    bool cleanUnprinted = params->d_confirmed;
+    const bool cleanUnprinted = params->d_confirmed;
 
     // Create searchResult implementation
     bsl::shared_ptr<SearchResult> searchResult;
-    if (details)
+    if (details) {
         searchResult.reset(new (*allocator)
                                SearchDetailResult(ostream,
                                                   params->d_queueMap,
@@ -64,7 +64,8 @@ bsl::shared_ptr<SearchResult> SearchResultFactory::createSearchResult(
                                                   eraseDeleted,
                                                   cleanUnprinted),
                            allocator);
-    else
+    }
+    else {
         searchResult.reset(new (*allocator) SearchShortResult(ostream,
                                                               payloadDumper,
                                                               allocator,
@@ -72,6 +73,7 @@ bsl::shared_ptr<SearchResult> SearchResultFactory::createSearchResult(
                                                               eraseDeleted,
                                                               printOnDelete),
                            allocator);
+    }
 
     // Create Decorator for specific search
     if (!params->d_guid.empty()) {
@@ -93,15 +95,8 @@ bsl::shared_ptr<SearchResult> SearchResultFactory::createSearchResult(
                                allocator),
                            allocator);
     }
-    else if (params->d_outstanding) {
-        // Search outstanding
-        searchResult.reset(
-            new (*allocator)
-                SearchOutstandingDecorator(searchResult, ostream, allocator),
-            allocator);
-    }
-    else if (params->d_confirmed) {
-        // Search confirmed
+    else if (params->d_outstanding || params->d_confirmed) {
+        // Search outstanding or confirmed
         searchResult.reset(
             new (*allocator)
                 SearchOutstandingDecorator(searchResult, ostream, allocator),

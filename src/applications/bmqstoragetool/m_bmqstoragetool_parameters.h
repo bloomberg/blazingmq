@@ -16,13 +16,11 @@
 #ifndef INCLUDED_M_BMQSTORAGETOOL_PARAMETERS
 #define INCLUDED_M_BMQSTORAGETOOL_PARAMETERS
 
-//@PURPOSE: Provide a class holding command line parameters for 'bmqtool'.
+//@PURPOSE: Provide a class holding command line parameters for
+//'bmqstoragetool'.
 //
 //@CLASSES:
-//  m_bmqtool::ParametersVerbosity: enum for verbosity mode.
-//  m_bmqtool::ParametersMode     : enum for the tool mode.
-//  m_bmqtool::ParametersLatency  : enum for latency mode.
-//  m_bmqtool::Parameters         : holds all parameter values
+// m_bmqtool::Parameters: holds all parameter values.
 //
 //@DESCRIPTION: This component provides a value-semantic type holding the
 // command-line parameters for the 'bmqtool' program.

@@ -19,9 +19,27 @@
 //@PURPOSE: Provide a logic of search and output results.
 //
 //@CLASSES:
-//  m_bmqstoragetool::SearchResult: an interface for search processors.
+// m_bmqstoragetool::SearchResult: an interface for search processors.
+// m_bmqstoragetool::SearchShortResult: provides logic to handle and output
+//  short result (only GUIDs).
+// m_bmqstoragetool::SearchDetailResult: provides
+//  logic to handle and output detail result.
+// m_bmqstoragetool::SearchResultDecorator: provides a base decorator for
+//  search processor.
+// m_bmqstoragetool::SearchResultTimestampDecorator:
+//  provides decorator to handle timestamps.
+// m_bmqstoragetool::SearchAllDecorator: provides decorator to handle all
+//  messages.
+// m_bmqstoragetool::SearchOutstandingDecorator: provides decorator
+//  to handle outstanding or confirmed messages.
+// m_bmqstoragetool::SearchPartiallyConfirmedDecorator: provides decorator to
+//  handle partially confirmed messages.
+// m_bmqstoragetool::SearchGuidDecorator:
+//  provides decorator to handle search of given GUIDs.
+// m_bmqstoragetool::SummaryProcessor: provides logic to collect summary of
+//  journal file.
 //
-//@DESCRIPTION: 'SearchResult' and implementation classes provide
+//@DESCRIPTION: 'SearchResult' interface and implementation classes provide
 // a logic of search and output results.
 
 // bmqstoragetool
@@ -52,21 +70,36 @@ namespace m_bmqstoragetool {
 class SearchResult {
   protected:
     virtual bool hasCache() const { return false; }
+    // Return `false` if all required data is processed, e.g. all given GUIDs
+    // are output and search could be stopped. Return `true` to indicate that
+    // there is incomplete data.
 
   public:
+    // CREATORS
+
+    /// Destructor
     virtual ~SearchResult() = default;
 
     // MANIPULATORS
+
+    /// Process `message` record with the specified `record`, `recordIndex` and
+    /// `recordOffset`.
     virtual bool processMessageRecord(const mqbs::MessageRecord& record,
                                       bsls::Types::Uint64        recordIndex,
-                                      bsls::Types::Uint64 recordOffset)  = 0;
+                                      bsls::Types::Uint64 recordOffset) = 0;
+    /// Process `confirm` record with the specified `record`, `recordIndex` and
+    /// `recordOffset`.
     virtual bool processConfirmRecord(const mqbs::ConfirmRecord& record,
                                       bsls::Types::Uint64        recordIndex,
-                                      bsls::Types::Uint64 recordOffset)  = 0;
+                                      bsls::Types::Uint64 recordOffset) = 0;
+    /// Process `deletion` record with the specified `record`, `recordIndex`
+    /// and `recordOffset`.
     virtual bool processDeletionRecord(const mqbs::DeletionRecord& record,
                                        bsls::Types::Uint64         recordIndex,
                                        bsls::Types::Uint64 recordOffset) = 0;
-    virtual void outputResult()                                          = 0;
+    /// Output result of a search.
+    virtual void outputResult() = 0;
+    /// Output result of a search filtered by the specified GUIDs filter.
     virtual void
     outputResult(bsl::unordered_set<bmqt::MessageGUID>& guidFilter) = 0;
 };
@@ -88,30 +121,46 @@ class SearchShortResult : public SearchResult {
 
     // PRIVATE DATA
 
-    bsl::ostream&                        d_ostream;
+    bsl::ostream& d_ostream;
+    // Reference to output stream.
     const bsl::shared_ptr<PayloadDumper> d_payloadDumper;
-    const bool                           d_printImmediately;
-    // If true, print message guid as soon as it is received (usually when
-    // 'message' record received) to save memory. If false, message guid
+    // Pointer to 'PayloadDumper' instance.
+    const bool d_printImmediately;
+    // If 'true', print message guid as soon as it is received (usually when
+    // 'message' record received) to save memory. If 'false', message guid
     // remains stored in guid list for further processing.
     const bool d_eraseDeleted;
-    // If true, erase data from guid list when 'deleted' record is received to
-    // save memory. If false, message data remains stored in guid list for
+    // If 'true', erase data from guid list when 'deleted' record is received
+    // to save memory. If 'false', message data remains stored in guid list for
     // further processing.
     const bool d_printOnDelete;
-    // If true, print message guid when 'deleted' record is received.
+    // If 'true', print message guid when 'deleted' record is received.
 
     bsl::size_t d_printedMessagesCount;
+    // Counter of already output (printed) messages.
 
     bsl::unordered_map<bmqt::MessageGUID, GuidListIt> d_guidMap;
     // Map to store guid and list iterator, for fast searching by guid.
     bsl::list<GuidData> d_guidList;
     // List to store ordered guid data to preserve messages order for output.
 
+    // PRIVATE MANIPULATORS
+
     void outputGuidData(GuidData guidData);
+    // Output result in short format (only GUIDs).
+
+    // PRIVATE ACCESSORS
+
+    bool hasCache() const BSLS_KEYWORD_OVERRIDE;
+    // Return 'false' if all required data is processed, e.g. all given GUIDs
+    // are output and search could be stopped. Return 'true' to indicate that
+    // there is incomplete data.
 
   public:
     // CREATORS
+
+    /// Constructor using the specified `ostream`, `payloadDumper`, `allocator`
+    /// `printImmediately`, `eraseDeleted`, and `printOnDelete`.
     explicit SearchShortResult(bsl::ostream&                  ostream,
                                bsl::shared_ptr<PayloadDumper> payloadDumper,
                                bslma::Allocator*              allocator,
@@ -120,22 +169,30 @@ class SearchShortResult : public SearchResult {
                                const bool printOnDelete    = false);
 
     // MANIPULATORS
+
+    /// Process `message` record with the specified `record`, `recordIndex` and
+    /// `recordOffset`.
     bool processMessageRecord(const mqbs::MessageRecord& record,
                               bsls::Types::Uint64        recordIndex,
                               bsls::Types::Uint64        recordOffset)
         BSLS_KEYWORD_OVERRIDE;
+    /// Process `confirm` record with the specified `record`, `recordIndex` and
+    /// `recordOffset`.
     bool processConfirmRecord(const mqbs::ConfirmRecord& record,
                               bsls::Types::Uint64        recordIndex,
                               bsls::Types::Uint64        recordOffset)
         BSLS_KEYWORD_OVERRIDE;
+    /// Process `deletion` record with the specified `record`, `recordIndex`
+    /// and `recordOffset`.
     bool processDeletionRecord(const mqbs::DeletionRecord& record,
                                bsls::Types::Uint64         recordIndex,
                                bsls::Types::Uint64         recordOffset)
         BSLS_KEYWORD_OVERRIDE;
+    /// Output result of a search.
     void outputResult() BSLS_KEYWORD_OVERRIDE;
+    /// Output result of a search filtered by the specified GUIDs filter.
     void outputResult(bsl::unordered_set<bmqt::MessageGUID>& guidFilter)
         BSLS_KEYWORD_OVERRIDE;
-    bool hasCache() const BSLS_KEYWORD_OVERRIDE;
 };
 
 // ========================
@@ -153,10 +210,13 @@ class SearchDetailResult : public SearchResult {
 
     // PRIVATE DATA
 
-    bsl::ostream&                        d_ostream;
-    const QueueMap&                      d_queueMap;
+    bsl::ostream& d_ostream;
+    // Reference to output stream.
+    const QueueMap& d_queueMap;
+    // Reference to 'QueueMap' instance.
     const bsl::shared_ptr<PayloadDumper> d_payloadDumper;
-    const bool                           d_printImmediately;
+    // Pointer to 'PayloadDumper' instance.
+    const bool d_printImmediately;
     // If true, print message details as soon as it is complete (usually when
     // 'deleted' record received) to save memory. If false, message data
     // remains stored in MessagesDetails for further processing.
@@ -175,15 +235,31 @@ class SearchDetailResult : public SearchResult {
     // Map to store sorted indexes to preserve messages order for output.
     bslma::Allocator* d_allocator_p;
 
-    // MANIPULATORS
+    // PRIVATE MANIPULATORS
+
     void addMessageDetails(const mqbs::MessageRecord& record,
                            bsls::Types::Uint64        recordIndex,
                            bsls::Types::Uint64        recordOffset);
+    // Add message details into internal storage with the specified 'record',
+    // 'recordIndex' and 'recordOffset'.
     void deleteMessageDetails(MessagesDetails::iterator iterator);
+    // Delete message details into internal storage with the specified
+    // 'iterator'.
     void outputMessageDetails(const MessageDetails& messageDetails);
+    // Output message details with the specified 'messageDetails'.
+
+    // PRIVATE ACCESSORS
+
+    bool hasCache() const BSLS_KEYWORD_OVERRIDE;
+    // Return 'false' if all required data is processed, e.g. all given GUIDs
+    // are output and search could be stopped. Return 'true' to indicate that
+    // there is incomplete data.
 
   public:
     // CREATORS
+
+    /// Constructor using the specified `ostream`, `queueMap`, `payloadDumper`,
+    /// `allocator` `printImmediately`, `eraseDeleted`, and `cleanUnprinted`.
     explicit SearchDetailResult(bsl::ostream&                  ostream,
                                 const QueueMap&                queueMap,
                                 bsl::shared_ptr<PayloadDumper> payloadDumper,
@@ -193,22 +269,30 @@ class SearchDetailResult : public SearchResult {
                                 const bool cleanUnprinted   = false);
 
     // MANIPULATORS
+
+    /// Process `message` record with the specified `record`, `recordIndex` and
+    /// `recordOffset`.
     bool processMessageRecord(const mqbs::MessageRecord& record,
                               bsls::Types::Uint64        recordIndex,
                               bsls::Types::Uint64        recordOffset)
         BSLS_KEYWORD_OVERRIDE;
+    /// Process `confirm` record with the specified `record`, `recordIndex` and
+    /// `recordOffset`.
     bool processConfirmRecord(const mqbs::ConfirmRecord& record,
                               bsls::Types::Uint64        recordIndex,
                               bsls::Types::Uint64        recordOffset)
         BSLS_KEYWORD_OVERRIDE;
+    /// Process `deletion` record with the specified `record`, `recordIndex`
+    /// and `recordOffset`.
     bool processDeletionRecord(const mqbs::DeletionRecord& record,
                                bsls::Types::Uint64         recordIndex,
                                bsls::Types::Uint64         recordOffset)
         BSLS_KEYWORD_OVERRIDE;
+    /// Output result of a search.
     void outputResult() BSLS_KEYWORD_OVERRIDE;
+    /// Output result of a search filtered by the specified GUIDs filter.
     void outputResult(bsl::unordered_set<bmqt::MessageGUID>& guidFilter)
         BSLS_KEYWORD_OVERRIDE;
-    bool hasCache() const BSLS_KEYWORD_OVERRIDE;
 };
 
 // ===========================
@@ -216,29 +300,42 @@ class SearchDetailResult : public SearchResult {
 // ===========================
 
 /// This class provides a base decorator that handles
-/// given 'component'.
+/// given `component`.
 class SearchResultDecorator : public SearchResult {
   protected:
     bsl::shared_ptr<SearchResult> d_searchResult;
+    // Pointer to object that is decorated.
 
   public:
     // CREATORS
-    SearchResultDecorator(const bsl::shared_ptr<SearchResult> component);
+
+    /// Constructor using the specified `component`.
+    explicit SearchResultDecorator(
+        const bsl::shared_ptr<SearchResult> component);
 
     // MANIPULATORS
+
+    /// Process `message` record with the specified `record`, `recordIndex` and
+    /// `recordOffset`.
     bool processMessageRecord(const mqbs::MessageRecord& record,
                               bsls::Types::Uint64        recordIndex,
                               bsls::Types::Uint64        recordOffset)
         BSLS_KEYWORD_OVERRIDE;
+    /// Process `confirm` record with the specified `record`, `recordIndex` and
+    /// `recordOffset`.
     bool processConfirmRecord(const mqbs::ConfirmRecord& record,
                               bsls::Types::Uint64        recordIndex,
                               bsls::Types::Uint64        recordOffset)
         BSLS_KEYWORD_OVERRIDE;
+    /// Process `deletion` record with the specified `record`, `recordIndex`
+    /// and `recordOffset`.
     bool processDeletionRecord(const mqbs::DeletionRecord& record,
                                bsls::Types::Uint64         recordIndex,
                                bsls::Types::Uint64         recordOffset)
         BSLS_KEYWORD_OVERRIDE;
+    /// Output result of a search.
     void outputResult() BSLS_KEYWORD_OVERRIDE;
+    /// Output result of a search filtered by the specified GUIDs filter.
     void outputResult(bsl::unordered_set<bmqt::MessageGUID>& guidFilter)
         BSLS_KEYWORD_OVERRIDE;
 };
@@ -246,28 +343,43 @@ class SearchResultDecorator : public SearchResult {
 // ====================================
 // class SearchResultTimestampDecorator
 // ====================================
+
+/// This class provides decorator to handle timestamps.
 class SearchResultTimestampDecorator : public SearchResultDecorator {
   private:
     const bsls::Types::Uint64 d_timestampLt;
+    // Higher bound timestamp.
 
     // ACCESSORS
+
     bool stop(bsls::Types::Uint64 timestamp) const;
+    // Return 'true' if the specified 'timestamp' is greated than
+    // 'd_timestampLt' and internal cache is empty.
 
   public:
     // CREATORS
+
+    /// Constructor using the specified `component` and `timestampLt`.
     SearchResultTimestampDecorator(
         const bsl::shared_ptr<SearchResult> component,
         const bsls::Types::Uint64           timestampLt);
 
     // MANIPULATORS
+
+    /// Process `message` record with the specified `record`, `recordIndex` and
+    /// `recordOffset`.
     bool processMessageRecord(const mqbs::MessageRecord& record,
                               bsls::Types::Uint64        recordIndex,
                               bsls::Types::Uint64        recordOffset)
         BSLS_KEYWORD_OVERRIDE;
+    /// Process `confirm` record with the specified `record`, `recordIndex` and
+    /// `recordOffset`.
     bool processConfirmRecord(const mqbs::ConfirmRecord& record,
                               bsls::Types::Uint64        recordIndex,
                               bsls::Types::Uint64        recordOffset)
         BSLS_KEYWORD_OVERRIDE;
+    /// Process `deletion` record with the specified `record`, `recordIndex`
+    /// and `recordOffset`.
     bool processDeletionRecord(const mqbs::DeletionRecord& record,
                                bsls::Types::Uint64         recordIndex,
                                bsls::Types::Uint64         recordOffset)
@@ -277,12 +389,19 @@ class SearchResultTimestampDecorator : public SearchResultDecorator {
 // ========================
 // class SearchAllDecorator
 // ========================
+
+/// This class provides decorator to handle all found messages.
 class SearchAllDecorator : public SearchResultDecorator {
   public:
     // CREATORS
+
+    /// Constructor using the specified `component`.
     explicit SearchAllDecorator(const bsl::shared_ptr<SearchResult> component);
 
     // MANIPULATORS
+
+    /// Process `message` record with the specified `record`, `recordIndex` and
+    /// `recordOffset`.
     bool processMessageRecord(const mqbs::MessageRecord& record,
                               bsls::Types::Uint64        recordIndex,
                               bsls::Types::Uint64        recordOffset)
@@ -292,18 +411,25 @@ class SearchAllDecorator : public SearchResultDecorator {
 // ================================
 // class SearchOutstandingDecorator
 // ================================
+
+/// This class provides decorator to handle outstanding or confirmed messages.
 class SearchOutstandingDecorator : public SearchResultDecorator {
   private:
     // PRIVATE DATA
 
-    bsl::ostream&                         d_ostream;
-    bsl::size_t                           d_foundMessagesCount;
-    bsl::size_t                           d_deletedMessagesCount;
+    bsl::ostream& d_ostream;
+    // Reference to output stream.
+    bsl::size_t d_foundMessagesCount;
+    // Counter of found messages.
+    bsl::size_t d_deletedMessagesCount;
+    // Counter of deleted messages.
     bsl::unordered_set<bmqt::MessageGUID> d_guids;
+    // Set of found non-deleted message GUIDs.
 
   public:
     // CREATORS
 
+    /// Constructor using the specified `component`, `ostream` and `allocator`.
     explicit SearchOutstandingDecorator(
         const bsl::shared_ptr<SearchResult> component,
         bsl::ostream&                       ostream,
@@ -311,68 +437,102 @@ class SearchOutstandingDecorator : public SearchResultDecorator {
 
     // MANIPULATORS
 
+    /// Process `message` record with the specified `record`, `recordIndex` and
+    /// `recordOffset`.
     bool processMessageRecord(const mqbs::MessageRecord& record,
                               bsls::Types::Uint64        recordIndex,
                               bsls::Types::Uint64        recordOffset)
         BSLS_KEYWORD_OVERRIDE;
+    /// Process `deletion` record with the specified `record`, `recordIndex`
+    /// and `recordOffset`.
     bool processDeletionRecord(const mqbs::DeletionRecord& record,
                                bsls::Types::Uint64         recordIndex,
                                bsls::Types::Uint64         recordOffset)
         BSLS_KEYWORD_OVERRIDE;
+    /// Output result of a search.
     void outputResult() BSLS_KEYWORD_OVERRIDE;
 };
 
 // =======================================
 // class SearchPartiallyConfirmedDecorator
 // =======================================
+
+/// This class provides decorator to handle partially confirmed messages.
 class SearchPartiallyConfirmedDecorator : public SearchResultDecorator {
   private:
     // PRIVATE DATA
 
-    bsl::ostream&                                 d_ostream;
-    bsl::size_t                                   d_foundMessagesCount;
-    bsl::size_t                                   d_deletedMessagesCount;
+    bsl::ostream& d_ostream;
+    // Reference to output stream.
+    bsl::size_t d_foundMessagesCount;
+    // Counter of found messages.
+    bsl::size_t d_deletedMessagesCount;
+    // Counter of deleted messages.
     bsl::unordered_map<bmqt::MessageGUID, size_t> d_partiallyConfirmedGUIDS;
+    // Map guid -> counter of confirmed messages. If counter is greater than
+    // zero and record exists, it means that this message is partially
+    // confirmed.
 
   public:
     // CREATORS
+
+    /// Constructor using the specified `component`, `ostream` and `allocator`.
     explicit SearchPartiallyConfirmedDecorator(
         const bsl::shared_ptr<SearchResult> component,
         bsl::ostream&                       ostream,
         bslma::Allocator*                   allocator);
 
     // MANIPULATORS
+
+    /// Process `message` record with the specified `record`, `recordIndex` and
+    /// `recordOffset`.
     bool processMessageRecord(const mqbs::MessageRecord& record,
                               bsls::Types::Uint64        recordIndex,
                               bsls::Types::Uint64        recordOffset)
         BSLS_KEYWORD_OVERRIDE;
+    /// Process `confirm` record with the specified `record`, `recordIndex` and
+    /// `recordOffset`.
     bool processConfirmRecord(const mqbs::ConfirmRecord& record,
                               bsls::Types::Uint64        recordIndex,
                               bsls::Types::Uint64        recordOffset)
         BSLS_KEYWORD_OVERRIDE;
+    /// Process `deletion` record with the specified `record`, `recordIndex`
+    /// and `recordOffset`.
     bool processDeletionRecord(const mqbs::DeletionRecord& record,
                                bsls::Types::Uint64         recordIndex,
                                bsls::Types::Uint64         recordOffset)
         BSLS_KEYWORD_OVERRIDE;
+    /// Output result of a search.
     void outputResult() BSLS_KEYWORD_OVERRIDE;
 };
 
 // =========================
 // class SearchGuidDecorator
 // =========================
+
+/// This class provides decorator to handle search of given GUIDs.
 class SearchGuidDecorator : public SearchResultDecorator {
   private:
     // PRIVATE TYPES
+
     typedef bsl::list<bsl::string>::iterator GuidListIt;
+    // Guids list iterator.
 
     // PRIVATE DATA
-    bsl::ostream&                                     d_ostream;
-    bool                                              d_withDetails;
+    bsl::ostream& d_ostream;
+    // Reference to output stream.
+    bool d_withDetails;
+    // If 'true', output detailed result, output short one otherwise.
     bsl::unordered_map<bmqt::MessageGUID, GuidListIt> d_guidsMap;
-    bsl::list<bsl::string>                            d_guids;
+    // Map guid -> guids list iterator.
+    bsl::list<bsl::string> d_guids;
+    // List to store ordered guid data to preserve messages order for output.
 
   public:
     // CREATORS
+
+    /// Constructor using the specified `component`, `guids`, `ostream`,
+    /// `withDetails` and `allocator`.
     explicit SearchGuidDecorator(const bsl::shared_ptr<SearchResult> component,
                                  const bsl::vector<bsl::string>&     guids,
                                  bsl::ostream&                       ostream,
@@ -380,51 +540,79 @@ class SearchGuidDecorator : public SearchResultDecorator {
                                  bslma::Allocator* allocator);
 
     // MANIPULATORS
+
+    /// Process `message` record with the specified `record`, `recordIndex` and
+    /// `recordOffset`.
     bool processMessageRecord(const mqbs::MessageRecord& record,
                               bsls::Types::Uint64        recordIndex,
                               bsls::Types::Uint64        recordOffset)
         BSLS_KEYWORD_OVERRIDE;
+    /// Process `deletion` record with the specified `record`, `recordIndex`
+    /// and `recordOffset`.
     bool processDeletionRecord(const mqbs::DeletionRecord& record,
                                bsls::Types::Uint64         recordIndex,
                                bsls::Types::Uint64         recordOffset)
         BSLS_KEYWORD_OVERRIDE;
+    /// Output result of a search.
     void outputResult() BSLS_KEYWORD_OVERRIDE;
 };
 
 // ======================
 // class SummaryProcessor
 // ======================
+
+/// This class provides logic to process summary of journal file.
 class SummaryProcessor : public SearchResult {
   private:
     // PRIVATE DATA
-    bsl::ostream&                                 d_ostream;
-    mqbs::JournalFileIterator*                    d_journalFile_p;
-    mqbs::DataFileIterator*                       d_dataFile_p;
-    bsl::size_t                                   d_foundMessagesCount;
-    bsl::size_t                                   d_deletedMessagesCount;
+    bsl::ostream& d_ostream;
+    // Reference to output stream.
+    mqbs::JournalFileIterator* d_journalFile_p;
+    // Pointer to journal file iterator.
+    mqbs::DataFileIterator* d_dataFile_p;
+    // Pointer to data file iterator.
+    bsl::size_t d_foundMessagesCount;
+    // Counter of found messages.
+    bsl::size_t d_deletedMessagesCount;
+    // Counter of deleted messages.
     bsl::unordered_map<bmqt::MessageGUID, size_t> d_partiallyConfirmedGUIDS;
+    // Map guid -> counter of confirmed messages. If counter is greater than
+    // zero and record exists, it means that this message is partially
+    // confirmed.
 
   public:
     // CREATORS
+
+    /// Constructor using the specified `component`, `journalFile_p`,
+    /// `dataFile_p` and `allocator`.
     explicit SummaryProcessor(bsl::ostream&              ostream,
                               mqbs::JournalFileIterator* journalFile_p,
                               mqbs::DataFileIterator*    dataFile_p,
                               bslma::Allocator*          allocator);
 
     // MANIPULATORS
+
+    /// Process `message` record with the specified `record`, `recordIndex` and
+    /// `recordOffset`.
     bool processMessageRecord(const mqbs::MessageRecord& record,
                               bsls::Types::Uint64        recordIndex,
                               bsls::Types::Uint64        recordOffset)
         BSLS_KEYWORD_OVERRIDE;
+    /// Process `confirm` record with the specified `record`, `recordIndex` and
+    /// `recordOffset`.
     bool processConfirmRecord(const mqbs::ConfirmRecord& record,
                               bsls::Types::Uint64        recordIndex,
                               bsls::Types::Uint64        recordOffset)
         BSLS_KEYWORD_OVERRIDE;
+    /// Process `deletion` record with the specified `record`, `recordIndex`
+    /// and `recordOffset`.
     bool processDeletionRecord(const mqbs::DeletionRecord& record,
                                bsls::Types::Uint64         recordIndex,
                                bsls::Types::Uint64         recordOffset)
         BSLS_KEYWORD_OVERRIDE;
+    /// Output result of a search.
     void outputResult() BSLS_KEYWORD_OVERRIDE;
+    /// Output result of a search filtered by the specified GUIDs filter.
     void outputResult(bsl::unordered_set<bmqt::MessageGUID>& guidFilter)
         BSLS_KEYWORD_OVERRIDE;
 };
