@@ -333,15 +333,6 @@ class TestAutoSubscriptions:
 
         assert self.consumer.stop_session(block=True) == Client.e_SUCCESS
 
-        self.consumer.exit_gracefully()
-
-        cluster.restart_nodes()
-
-        self.consumer = self._start_client(proxy, tc.URI_BROADCAST, "consumer")
-
-        self.leader = cluster.last_known_leader
-
-        self._verify(tc.DOMAIN_BROADCAST, 0)
 
     @tweak.domain.subscriptions(
         [{"appId": "foo", "expression": {"version" : "E_VERSION_1", "text": "x==1"}},

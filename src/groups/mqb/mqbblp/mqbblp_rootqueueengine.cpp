@@ -301,13 +301,22 @@ int RootQueueEngine::configure(bsl::ostream& errorDescription)
                     bmqeval::ErrorType::Enum errorType =
                         static_cast<bmqeval::ErrorType::Enum>(rc);
 
-                    BALL_LOG_ERROR << "Failed to compile expression: \""
-                                   << subscriptions[i].expression().text()
-                                   << "\", rc: " << rc << ", reason: \""
-                                   << bmqeval::ErrorType::toString(errorType)
-                                   << "\"";
+                    BALL_LOG_ERROR
+                        << "#QUEUE_CONFIGURE_FAILURE Queue '"
+                        << d_queueState_p->queue()->description()
+                        << "' failed to compile auto subscription: '"
+                        << subscriptions[i].expression().text()
+                        << "' for the '" << itApp->key1()
+                        << "' app, rc: " << rc << ", reason: '"
+                        << bmqeval::ErrorType::toString(errorType) << "'";
                     return rc_AUTO_SUBSCRIPTION_ERROR;  // RETURN
                 }
+            }
+            else {
+                BALL_LOG_WARN << "Queue \""
+                              << d_queueState_p->queue()->description()
+                              << "' ignores auto subscription: '"
+                              << subscriptions[i].appId() << "'";
             }
         }
     }
@@ -320,9 +329,9 @@ int RootQueueEngine::configure(bsl::ostream& errorDescription)
         }
         // TODO: what is auto subscription "appId" for priority/broadcast?
         if (subscriptions.size() > 1) {
-            BALL_LOG_ERROR << "Queue '"
+            BALL_LOG_ERROR << "#QUEUE_CONFIGURE_FAILURE  Queue '"
                            << d_queueState_p->queue()->description()
-                           << "' Cannot have more than 1 subscription";
+                           << "' Cannot have more than 1 auto subscription";
 
             return rc_AUTO_SUBSCRIPTIONS_ERROR;  // RETURN
         }
@@ -344,10 +353,12 @@ int RootQueueEngine::configure(bsl::ostream& errorDescription)
             bmqeval::ErrorType::Enum errorType =
                 static_cast<bmqeval::ErrorType::Enum>(rc);
 
-            BALL_LOG_ERROR << "Failed to compile expression: \""
+            BALL_LOG_ERROR << "#QUEUE_CONFIGURE_FAILURE Queue '"
+                           << d_queueState_p->queue()->description()
+                           << "' Failed to compile auto subscription: '"
                            << subscriptions[0].expression().text()
-                           << "\", rc: " << rc << ", reason: \""
-                           << bmqeval::ErrorType::toString(errorType) << "\"";
+                           << "', rc: " << rc << ", reason: '"
+                           << bmqeval::ErrorType::toString(errorType) << "'";
             return rc_AUTO_SUBSCRIPTION_ERROR;  // RETURN
         }
     }

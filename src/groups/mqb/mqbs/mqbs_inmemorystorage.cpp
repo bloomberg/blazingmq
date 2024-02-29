@@ -225,6 +225,8 @@ InMemoryStorage::put(mqbi::StorageMessageAttributes*     attributes,
         // crashes, the primary may deliver again the same messages to us.
         return mqbi::StorageResult::e_SUCCESS;  // RETURN
     }
+    // 'storageKeys' is not empty only when proxy receives PUSH.
+    // Auto confirming does no apply then.
 
     // Specific appKeys have been specified.  Insert the guid in the
     // corresponding virtual storages.

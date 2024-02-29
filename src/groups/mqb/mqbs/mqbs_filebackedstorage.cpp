@@ -361,6 +361,8 @@ FileBackedStorage::put(mqbi::StorageMessageAttributes*     attributes,
 
         return mqbi::StorageResult::e_SUCCESS;  // RETURN
     }
+    // 'storageKeys' is not empty only when proxy receives PUSH.
+    // Auto confirming does no apply then.
 
     // Store the specified message only in the virtual storages identified by
     // the specified 'storageKeys'.  Note that since message is not added to
