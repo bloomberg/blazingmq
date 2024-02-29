@@ -39,13 +39,13 @@ mkdir -p "${DIR_INSTALL}"
 
 # :: Clone dependencies :::::::::::::::::::::::::::::::::::::::::::::::::::::::
 if [ ! -d "${DIR_THIRDPARTY}/bde-tools" ]; then
-    git clone https://github.com/bloomberg/bde-tools "${DIR_THIRDPARTY}/bde-tools"
+    git clone --depth 1 --branch 3.117.0.0 https://github.com/bloomberg/bde-tools "${DIR_THIRDPARTY}/bde-tools"
 fi
 if [ ! -d "${DIR_THIRDPARTY}/bde" ]; then
-    git clone https://github.com/bloomberg/bde.git "${DIR_THIRDPARTY}/bde"
+    git clone --depth 1 --branch 3.117.0.0 https://github.com/bloomberg/bde.git "${DIR_THIRDPARTY}/bde"
 fi
 if [ ! -d "${DIR_THIRDPARTY}/ntf-core" ]; then
-    git clone https://github.com/bloomberg/ntf-core.git "${DIR_THIRDPARTY}/ntf-core"
+    git clone --depth 1 --branch latest https://github.com/bloomberg/ntf-core.git "${DIR_THIRDPARTY}/ntf-core"
 fi
 
 
@@ -73,7 +73,8 @@ if [ ! -e "${DIR_BUILD}/ntf/.complete" ]; then
                 --output "${DIR_BUILD}/ntf" \
                 --without-warnings-as-errors \
                 --without-usage-examples \
-                --without-applications
+                --without-applications \
+                --ufid opt_64_cpp17
     make -j 16
     make install
     popd

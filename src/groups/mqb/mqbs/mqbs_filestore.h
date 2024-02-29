@@ -85,6 +85,7 @@ namespace BloombergLP {
 // FORWARD DECLARATIONS
 namespace mqbcmd {
 class FileStore;
+class PurgeQueueResult;
 }
 namespace mqbi {
 class Dispatcher;
