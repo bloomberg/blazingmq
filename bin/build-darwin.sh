@@ -87,10 +87,10 @@ brew install flex bison google-benchmark googletest zlib
 
 # Determine paths based on Intel vs Apple Silicon CPU
 if [ "$(uname -p)" == 'arm' ]; then
-    BREW_PKG_CONFIG_PATH="/opt/homebrew/lib/pkgconfig:/opt/homebrew/opt/zlib/lib/pkgconfig"
+    BREW_PKG_CONFIG_PATH="/opt/homebrew/lib/pkgconfig:/opt/homebrew/opt/zlib/lib/pkgconfig:/opt/homebrew/Cellar/googletest/1.14.0/lib/pkgconfig"
     FLEX_ROOT="/opt/homebrew/opt/flex"
 else
-    BREW_PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:/usr/local/opt/zlib/lib/pkgconfig"
+    BREW_PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:/usr/local/opt/zlib/lib/pkgconfig:/usr/local/opt/Cellar/googletest/1.14.0/lib/pkgconfig"
     FLEX_ROOT="/usr/local/opt/flex"
 fi
 
