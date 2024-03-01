@@ -28,6 +28,9 @@
 #include <m_bmqstoragetool_journalfileprocessor.h>
 #include <m_bmqstoragetool_parameters.h>
 
+// BDE
+#include <bslma_managedptr.h>
+
 namespace BloombergLP {
 namespace m_bmqstoragetool {
 
@@ -41,11 +44,11 @@ class CommandProcessorFactory {
 
     /// Create command processor for specified 'params' using specified
     /// 'ostream' and 'allocator'.
-    static bsl::shared_ptr<CommandProcessor>
-    createCommandProcessor(const Parameters*                   params,
-                           const bsl::shared_ptr<FileManager>& fileManager,
-                           bsl::ostream&                       ostream,
-                           bslma::Allocator*                   allocator);
+    static bslma::ManagedPtr<CommandProcessor>
+    createCommandProcessor(const Parameters*               params,
+                           bslma::ManagedPtr<FileManager>& fileManager,
+                           bsl::ostream&                   ostream,
+                           bslma::Allocator*               allocator);
 };
 
 }  // close package namespace

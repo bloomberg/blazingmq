@@ -13,6 +13,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//@PURPOSE: Provide the main function for the 'bmqstoragetool' application.
+//
+//@DESCRIPTION: This component provides the 'main' function and arguments
+// parsing scheme for the 'bmqstoragetool' application.
+
 // bmqstoragetool
 #include <m_bmqstoragetool_commandprocessorfactory.h>
 #include <m_bmqstoragetool_parameters.h>
@@ -20,6 +25,7 @@
 // BDE
 #include <balcl_commandline.h>
 #include <bsl_iostream.h>
+#include <bslma_managedptr.h>
 
 using namespace BloombergLP;
 using namespace m_bmqstoragetool;
@@ -117,7 +123,6 @@ parseArgs(CommandLineArguments& arguments, int argc, const char* argv[])
          "print usage)",
          balcl::TypeInfo(&showHelp),
          balcl::OccurrenceInfo::e_OPTIONAL}};
-
     balcl::CommandLine commandLine(specTable);
     if (commandLine.parse(argc, argv) != 0 || showHelp) {
         commandLine.printUsage();
@@ -139,38 +144,46 @@ parseArgs(CommandLineArguments& arguments, int argc, const char* argv[])
 
 int main(int argc, const char* argv[])
 {
+    enum RcEnum {
+        // Enum for the various RC error categories
+        rc_SUCCESS                       = 0,
+        rc_ARGUMENTS_PARSING_FAILED      = -1,
+        rc_FILE_MANAGER_INIT_FAILED      = -2,
+        rc_COMMAND_PROCESSOR_INIT_FAILED = -3
+    };
+
     // Init allocator
     bslma::Allocator* allocator = bslma::Default::allocator();
 
     // Arguments parsing
     CommandLineArguments arguments(allocator);
     if (!parseArgs(arguments, argc, argv)) {
-        return 1;  // RETURN
+        return rc_ARGUMENTS_PARSING_FAILED;  // RETURN
     }
 
     // Create parameters
     Parameters parameters(arguments, allocator);
 
     // Create file manager
-    bsl::shared_ptr<FileManager> fileManager;
+    bslma::ManagedPtr<FileManager> fileManager;
     try {
-        fileManager.reset(new (*allocator)
-                              FileManagerReal(arguments.d_journalFile,
-                                              arguments.d_dataFile,
-                                              allocator));
+        fileManager.load(new (*allocator)
+                             FileManagerImpl(arguments.d_journalFile,
+                                             arguments.d_dataFile,
+                                             allocator));
         if (!arguments.d_cslFile.empty()) {
             parameters.d_queueMap =
-                FileManagerReal::buildQueueMap(arguments.d_cslFile, allocator);
+                FileManagerImpl::buildQueueMap(arguments.d_cslFile, allocator);
             parameters.validateQueueNames();
         }
     }
     catch (const bsl::exception& e) {
         bsl::cerr << e.what();
-        return 3;  // RETURN
+        return rc_FILE_MANAGER_INIT_FAILED;  // RETURN
     }
 
     // Create command processor
-    bsl::shared_ptr<CommandProcessor> processor =
+    bslma::ManagedPtr<CommandProcessor> processor =
         CommandProcessorFactory::createCommandProcessor(&parameters,
                                                         fileManager,
                                                         bsl::cout,
@@ -178,7 +191,7 @@ int main(int argc, const char* argv[])
 
     if (!processor) {
         bsl::cerr << "Failed to create processor";
-        return 4;  // RETURN
+        return rc_COMMAND_PROCESSOR_INIT_FAILED;  // RETURN
     }
 
     // Run command processor

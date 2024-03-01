@@ -33,43 +33,68 @@
 #include <bdls_filesystemutil.h>
 #include <bdls_pathutil.h>
 
-// ==================================
-// class FileManagerReal::FileHandler
-// ==================================
-
 namespace BloombergLP {
 namespace m_bmqstoragetool {
 
-mqbs::JournalFileIterator* FileManagerReal::journalFileIterator()
+namespace {
+
+// Ledger config stubs
+int onRolloverCallback(BSLS_ANNOTATION_UNUSED const mqbu::StorageKey& oldLogId,
+                       BSLS_ANNOTATION_UNUSED const mqbu::StorageKey& newLogId)
+{
+    return 0;  // RETURN
+}
+
+int cleanupCallback(BSLS_ANNOTATION_UNUSED const bsl::string& logPath)
+{
+    return 0;  // RETURN
+}
+
+}  // close unnamed namespace
+
+// =====================
+// class FileManagerReal
+// =====================
+
+// CREATORS
+
+FileManagerImpl::FileManagerImpl(const bsl::string& journalFile,
+                                 const bsl::string& dataFile,
+                                 bslma::Allocator*  allocator)
+: d_journalFile(journalFile, allocator)
+, d_dataFile(dataFile, allocator)
+{
+    mwcu::MemOutStream ss(allocator);
+    if ((!d_journalFile.path().empty() && !d_journalFile.resetIterator(ss)) ||
+        (!d_dataFile.path().empty() && !d_dataFile.resetIterator(ss))) {
+        throw bsl::runtime_error(ss.str());  // THROW
+    }
+}
+
+// MANIPULATORS
+
+mqbs::JournalFileIterator* FileManagerImpl::journalFileIterator()
 {
     return d_journalFile.iterator();
 }
 
-mqbs::DataFileIterator* FileManagerReal::dataFileIterator()
+mqbs::DataFileIterator* FileManagerImpl::dataFileIterator()
 {
     return d_dataFile.iterator();
 }
 
-// MANIPULATORS
-QueueMap FileManagerReal::buildQueueMap(const bsl::string& cslFile,
+// PUBLIC FUNCTIONS
+
+QueueMap FileManagerImpl::buildQueueMap(const bsl::string& cslFile,
                                         bslma::Allocator*  allocator)
 {
     if (cslFile.empty()) {
-        throw bsl::runtime_error("empty CSL file path");
+        throw bsl::runtime_error("empty CSL file path");  // THROW
     }
     QueueMap d_queueMap(allocator);
 
     // Required for ledger operations
     bmqp::Crc32c::initialize();
-
-    // Ledger config stubs
-    auto onRolloverCallback = [](const mqbu::StorageKey& oldLogId,
-                                 const mqbu::StorageKey& newLogId) {
-        return 0;
-    };
-    auto cleanupCallback = [](const bsl::string& logPath) {
-        return 0;
-    };
 
     // Instantiate ledger config
     mqbsi::LedgerConfig                    ledgerConfig(allocator);
@@ -110,13 +135,13 @@ QueueMap FileManagerReal::buildQueueMap(const bsl::string& cslFile,
     mqbc::IncoreClusterStateLedgerIterator cslIt(&ledger);
     mqbc::IncoreClusterStateLedgerIterator lastSnapshotIt(&ledger);
     while (true) {
-        int rc = cslIt.next();
-        if (rc != 0) {
+        if (cslIt.next() != 0) {
             // End iterator reached or CSL file is corrupted or incomplete
             if (!lastSnapshotIt.isValid()) {
-                throw bsl::runtime_error("No Snapshot found in csl file");
+                throw bsl::runtime_error(
+                    "No Snapshot found in csl file");  // THROW
             }
-            break;
+            break;  // BREAK
         }
 
         if (cslIt.header().recordType() ==
@@ -145,10 +170,9 @@ QueueMap FileManagerReal::buildQueueMap(const bsl::string& cslFile,
 
     // Iterate from last snapshot to get updates
     while (true) {
-        int rc = lastSnapshotIt.next();
-        if (rc != 0) {
+        if (lastSnapshotIt.next() != 0) {
             // End iterator reached or CSL file is corrupted or incomplete
-            break;
+            break;  // BREAK
         }
 
         if (lastSnapshotIt.header().recordType() ==
@@ -187,21 +211,12 @@ QueueMap FileManagerReal::buildQueueMap(const bsl::string& cslFile,
     return d_queueMap;
 }
 
-FileManagerReal::FileManagerReal(const bsl::string& journalFile,
-                                 const bsl::string& dataFile,
-                                 bslma::Allocator*  allocator)
-: d_journalFile(journalFile, allocator)
-, d_dataFile(dataFile, allocator)
-{
-    mwcu::MemOutStream ss(allocator);
-    if ((!d_journalFile.path().empty() && !d_journalFile.resetIterator(ss)) ||
-        (!d_dataFile.path().empty() && !d_dataFile.resetIterator(ss))) {
-        throw bsl::runtime_error(ss.str());
-    }
-}
+// ==================================
+// class FileManagerReal::FileHandler
+// ==================================
 
 template <typename ITER>
-bool FileManagerReal::FileHandler<ITER>::resetIterator(
+bool FileManagerImpl::FileHandler<ITER>::resetIterator(
     std::ostream& errorDescription)
 {
     // 1) Open

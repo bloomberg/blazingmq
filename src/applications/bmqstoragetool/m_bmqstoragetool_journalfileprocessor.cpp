@@ -37,49 +37,50 @@ namespace BloombergLP {
 namespace m_bmqstoragetool {
 
 /// Move the journal iterator pointed by the specified 'it' to the first
-/// message whose timestamp is more then the specified 'timestamp'.  Returns
-/// '1' on success, '0" if there are no such records (also the iterator is
-/// invalidated).  Behavior is undefined unless last call to `nextRecord`
-/// returned 1 and the iterator points to a valid record.
-int moveToLowerBound(mqbs::JournalFileIterator* it,
+/// message whose timestamp is more then the specified 'timestamp'.  Return '1'
+/// on success, '0' if there are no such records or negative value if an error
+/// was encountered.  Note that if this method returns < 0, the specified 'it'
+/// is invalidated.  Behavior is undefined unless last call to `nextRecord` or
+/// 'advance' returned '1' and the iterator points to a valid record.
+int moveToLowerBound(mqbs::JournalFileIterator* jit,
                      const bsls::Types::Uint64& timestamp)
 {
     int                rc         = 1;
-    const unsigned int recordSize = it->header().recordWords() *
+    const unsigned int recordSize = jit->header().recordWords() *
                                     bmqp::Protocol::k_WORD_SIZE;
-    const bsls::Types::Uint64 recordsNumber = (it->lastRecordPosition() -
-                                               it->firstRecordPosition()) /
+    const bsls::Types::Uint64 recordsNumber = (jit->lastRecordPosition() -
+                                               jit->firstRecordPosition()) /
                                               recordSize;
     bsls::Types::Uint64 left  = 0;
     bsls::Types::Uint64 right = recordsNumber;
     while (right > left + 1) {
-        const bool goBackwards = it->recordHeader().timestamp() > timestamp;
-        if (goBackwards != it->isReverseMode()) {
-            it->flipDirection();
+        const bool goBackwards = jit->recordHeader().timestamp() > timestamp;
+        if (goBackwards != jit->isReverseMode()) {
+            jit->flipDirection();
         }
         if (goBackwards) {
-            if (it->recordIndex() == 0) {
-                break;
+            if (jit->recordIndex() == 0) {
+                break;  // BREAK
             }
-            right = it->recordIndex();
+            right = jit->recordIndex();
         }
         else {
-            if (it->recordIndex() == recordsNumber) {
-                break;
+            if (jit->recordIndex() == recordsNumber) {
+                break;  // BREAK
             }
-            left = it->recordIndex();
+            left = jit->recordIndex();
         }
-        rc = it->advance(bsl::max((right - left) / 2, 1ULL));
+        rc = jit->advance(bsl::max((right - left) / 2, 1ULL));
         if (rc != 1) {
             return rc;  // RETURN
         }
     }
-    if (it->isReverseMode()) {
-        it->flipDirection();
+    if (jit->isReverseMode()) {
+        jit->flipDirection();
     }
-    if (it->recordHeader().timestamp() <= timestamp) {
-        if (it->recordIndex() < recordsNumber) {
-            rc = it->nextRecord();
+    if (jit->recordHeader().timestamp() <= timestamp) {
+        if (jit->recordIndex() < recordsNumber) {
+            rc = jit->nextRecord();
         }
         else {
             // It's the last record, so there are no messages with timestamp
@@ -99,11 +100,13 @@ int moveToLowerBound(mqbs::JournalFileIterator* it,
 
 JournalFileProcessor::JournalFileProcessor(
     const Parameters*                    params,
-    const bsl::shared_ptr<FileManager>&  fileManager,
+    bslma::ManagedPtr<FileManager>&      fileManager,
     const bsl::shared_ptr<SearchResult>& searchResult_p,
     bsl::ostream&                        ostream,
     bslma::Allocator*                    allocator)
-: CommandProcessor(params, fileManager, ostream)
+: d_parameters(params)
+, d_fileManager(fileManager)
+, d_ostream(ostream)
 , d_searchResult_p(searchResult_p)
 , d_allocator_p(bslma::Default::allocator(allocator))
 {
@@ -139,7 +142,7 @@ void JournalFileProcessor::process()
             rc = moveToLowerBound(iter, d_parameters->d_timestampGt);
             if (rc == 0) {
                 stopSearch = true;
-                continue;
+                continue;  // CONTINUE
             }
             else if (rc < 0) {
                 d_ostream << "Binary search by timesamp aborted (exit status "

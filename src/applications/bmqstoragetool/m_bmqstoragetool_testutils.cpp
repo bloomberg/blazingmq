@@ -201,14 +201,13 @@ void JournalFile::addAllTypesRecords(RecordsListType* records)
     }
 }
 
-bsl::vector<bmqt::MessageGUID>
-JournalFile::addJournalRecordsWithOutstandingAndConfirmedMessages(
-    RecordsListType* records,
-    bool             expectOutstandingResult)
+void JournalFile::addJournalRecordsWithOutstandingAndConfirmedMessages(
+    RecordsListType*                records,
+    bsl::vector<bmqt::MessageGUID>* expectedGUIDs,
+    bool                            expectOutstandingResult)
 {
-    bool                           outstandingFlag = false;
-    bmqt::MessageGUID              lastMessageGUID;
-    bsl::vector<bmqt::MessageGUID> expectedGUIDs;
+    bool              outstandingFlag = false;
+    bmqt::MessageGUID lastMessageGUID;
 
     for (unsigned int i = 1; i <= d_numRecords; ++i) {
         unsigned int remainder = i % 3;
@@ -271,12 +270,12 @@ JournalFile::addJournalRecordsWithOutstandingAndConfirmedMessages(
             if (outstandingFlag) {
                 mqbu::MessageGUIDUtil::generateGUID(&g);
                 if (expectOutstandingResult)
-                    expectedGUIDs.push_back(lastMessageGUID);
+                    expectedGUIDs->push_back(lastMessageGUID);
             }
             else {
                 g = lastMessageGUID;
                 if (!expectOutstandingResult)
-                    expectedGUIDs.push_back(lastMessageGUID);
+                    expectedGUIDs->push_back(lastMessageGUID);
             }
             outstandingFlag = !outstandingFlag;
             OffsetPtr<DeletionRecord> rec(d_block, d_currPos);
@@ -301,17 +300,14 @@ JournalFile::addJournalRecordsWithOutstandingAndConfirmedMessages(
 
         d_currPos += FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
     }
-
-    return expectedGUIDs;
 }
 
-bsl::vector<bmqt::MessageGUID>
-JournalFile::addJournalRecordsWithPartiallyConfirmedMessages(
-    RecordsListType* records)
+void JournalFile::addJournalRecordsWithPartiallyConfirmedMessages(
+    RecordsListType*                records,
+    bsl::vector<bmqt::MessageGUID>* expectedGUIDs)
 {
-    bool                           partialyConfirmedFlag = false;
-    bmqt::MessageGUID              lastMessageGUID;
-    bsl::vector<bmqt::MessageGUID> expectedGUIDs;
+    bool              partialyConfirmedFlag = false;
+    bmqt::MessageGUID lastMessageGUID;
 
     for (unsigned int i = 1; i <= d_numRecords; ++i) {
         unsigned int remainder = i % 3;
@@ -375,7 +371,7 @@ JournalFile::addJournalRecordsWithPartiallyConfirmedMessages(
             bmqt::MessageGUID g;
             if (partialyConfirmedFlag) {
                 mqbu::MessageGUIDUtil::generateGUID(&g);
-                expectedGUIDs.push_back(lastMessageGUID);
+                expectedGUIDs->push_back(lastMessageGUID);
             }
             else {
                 g = lastMessageGUID;
@@ -403,18 +399,16 @@ JournalFile::addJournalRecordsWithPartiallyConfirmedMessages(
 
         d_currPos += FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
     }
-
-    return expectedGUIDs;
 }
 
-bsl::vector<bmqt::MessageGUID>
-JournalFile::addJournalRecordsWithTwoQueueKeys(RecordsListType* records,
-                                               const char*      queueKey1,
-                                               const char*      queueKey2,
-                                               bool captureAllGUIDs)
+void JournalFile::addJournalRecordsWithTwoQueueKeys(
+    RecordsListType* records,
+    GuidVectorType*  expectedGUIDs,
+    const char*      queueKey1,
+    const char*      queueKey2,
+    bool             captureAllGUIDs)
 {
-    bmqt::MessageGUID              lastMessageGUID;
-    bsl::vector<bmqt::MessageGUID> expectedGUIDs;
+    bmqt::MessageGUID lastMessageGUID;
 
     for (unsigned int i = 1; i <= d_numRecords; ++i) {
         const char* queueKey = (i % 2 != 0) ? queueKey1 : queueKey2;
@@ -423,7 +417,7 @@ JournalFile::addJournalRecordsWithTwoQueueKeys(RecordsListType* records,
         if (1 == remainder) {
             mqbu::MessageGUIDUtil::generateGUID(&lastMessageGUID);
             if (captureAllGUIDs || queueKey == queueKey1) {
-                expectedGUIDs.push_back(lastMessageGUID);
+                expectedGUIDs->push_back(lastMessageGUID);
             }
             OffsetPtr<MessageRecord> rec(d_block, d_currPos);
             new (rec.get()) MessageRecord();
@@ -501,18 +495,14 @@ JournalFile::addJournalRecordsWithTwoQueueKeys(RecordsListType* records,
 
         d_currPos += FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
     }
-
-    return expectedGUIDs;
 }
 
-bsl::vector<bmqt::MessageGUID>
-JournalFile::addJournalRecordsWithConfirmedMessagesWithDifferentOrder(
+void JournalFile::addJournalRecordsWithConfirmedMessagesWithDifferentOrder(
     RecordsListType*           records,
+    GuidVectorType*            expectedGUIDs,
     size_t                     numMessages,
     bsl::vector<unsigned int>& messageOffsets)
 {
-    bsl::vector<bmqt::MessageGUID> expectedGUIDs;
-
     ASSERT(numMessages == messageOffsets.size());
     ASSERT(numMessages >= 3);
     ASSERT(d_numRecords == numMessages * 2);
@@ -521,7 +511,7 @@ JournalFile::addJournalRecordsWithConfirmedMessagesWithDifferentOrder(
     for (unsigned int i = 0; i < numMessages; ++i) {
         bmqt::MessageGUID g;
         mqbu::MessageGUIDUtil::generateGUID(&g);
-        expectedGUIDs.push_back(g);
+        expectedGUIDs->push_back(g);
         OffsetPtr<MessageRecord> rec(d_block, d_currPos);
         new (rec.get()) MessageRecord();
         rec->header()
@@ -557,13 +547,13 @@ JournalFile::addJournalRecordsWithConfirmedMessagesWithDifferentOrder(
         bmqt::MessageGUID g;
         // Change GUIDs order for 2nd and 3rd deletion records
         if (i == 1) {
-            g = expectedGUIDs.at(2);
+            g = expectedGUIDs->at(2);
         }
         else if (i == 2) {
-            g = expectedGUIDs.at(1);
+            g = expectedGUIDs->at(1);
         }
         else {
-            g = expectedGUIDs.at(i);
+            g = expectedGUIDs->at(i);
         }
 
         OffsetPtr<DeletionRecord> rec(d_block, d_currPos);
@@ -587,8 +577,6 @@ JournalFile::addJournalRecordsWithConfirmedMessagesWithDifferentOrder(
 
         d_currPos += FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
     }
-
-    return expectedGUIDs;
 }
 
 char* addDataRecords(bslma::Allocator*          ta,

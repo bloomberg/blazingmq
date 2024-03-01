@@ -22,8 +22,8 @@ namespace m_bmqstoragetool {
 // class Filters
 // =============
 
-Filters::Filters(const bsl::vector<bsl::string>& queueHexKeys,
-                 const bsl::vector<bsl::string>& queueURIS,
+Filters::Filters(const bsl::vector<bsl::string>& queueKeys,
+                 const bsl::vector<bsl::string>& queueUris,
                  const QueueMap&                 queueMap,
                  const bsls::Types::Int64        timestampGt,
                  const bsls::Types::Int64        timestampLt,
@@ -34,17 +34,19 @@ Filters::Filters(const bsl::vector<bsl::string>& queueHexKeys,
 , d_timestampLt(timestampLt)
 {
     // Fill internal structures
-    if (!queueHexKeys.empty()) {
-        for (const auto& key : queueHexKeys) {
+    if (!queueKeys.empty()) {
+        bsl::vector<bsl::string>::const_iterator keyIt = queueKeys.cbegin();
+        for (; keyIt != queueKeys.cend(); ++keyIt) {
             d_queueKeys.insert(
                 mqbu::StorageKey(mqbu::StorageKey::HexRepresentation(),
-                                 key.c_str()));
+                                 keyIt->c_str()));
         }
     }
-    if (!queueURIS.empty()) {
-        mqbu::StorageKey key;
-        for (const auto& uri : queueURIS) {
-            if (queueMap.findKeyByUri(&key, uri)) {
+    if (!queueUris.empty()) {
+        mqbu::StorageKey                         key;
+        bsl::vector<bsl::string>::const_iterator uriIt = queueUris.cbegin();
+        for (; uriIt != queueUris.cend(); ++uriIt) {
+            if (queueMap.findKeyByUri(&key, *uriIt)) {
                 d_queueKeys.insert(key);
             }
         }
@@ -53,15 +55,17 @@ Filters::Filters(const bsl::vector<bsl::string>& queueHexKeys,
 
 bool Filters::apply(const mqbs::MessageRecord& record)
 {
-    if (!d_queueKeys.empty())
+    if (!d_queueKeys.empty()) {
         // Match by queueKey
-        if (auto it = bsl::find(d_queueKeys.begin(),
-                                d_queueKeys.end(),
-                                record.queueKey());
-            it == d_queueKeys.end()) {
+        bsl::unordered_set<mqbu::StorageKey>::const_iterator it = bsl::find(
+            d_queueKeys.cbegin(),
+            d_queueKeys.cend(),
+            record.queueKey());
+        if (it == d_queueKeys.cend()) {
             // Not matched
             return false;  // RETURN
         }
+    }
     const bsls::Types::Uint64& ts = record.header().timestamp();
     if ((d_timestampGt > 0 && ts <= d_timestampGt) ||
         (d_timestampLt > 0 && ts >= d_timestampLt)) {

@@ -35,11 +35,15 @@ namespace {
 // mqbs::FileStoreProtocolPrinter::printRecord() methods.
 // ----------------------------------------------------------------------------
 
+/// Print the specified message record `rec` and QueueInfo pointed by the
+/// specified `queueInfo_p` to the specified `stream`, using the specified
+/// `allocator` for memory allocation.
 void printRecord(bsl::ostream&                  stream,
                  const mqbs::MessageRecord&     rec,
-                 const bmqp_ctrlmsg::QueueInfo* queueInfo_p)
+                 const bmqp_ctrlmsg::QueueInfo* queueInfo_p,
+                 bslma::Allocator*              allocator)
 {
-    bsl::vector<const char*> fields;
+    bsl::vector<const char*> fields(allocator);
     fields.push_back("PrimaryLeaseId");
     fields.push_back("SequenceNumber");
     fields.push_back("Timestamp");
@@ -58,7 +62,7 @@ void printRecord(bsl::ostream&                  stream,
 
     bsls::Types::Uint64 epochValue = rec.header().timestamp();
     bdlt::Datetime      datetime;
-    int rc = bdlt::EpochUtil::convertFromTimeT64(&datetime, epochValue);
+    const int rc = bdlt::EpochUtil::convertFromTimeT64(&datetime, epochValue);
     if (0 != rc) {
         printer << 0;
     }
@@ -66,7 +70,7 @@ void printRecord(bsl::ostream&                  stream,
         printer << datetime;
     }
 
-    mwcu::MemOutStream fileKeyStr, queueKeyStr;
+    mwcu::MemOutStream fileKeyStr(allocator), queueKeyStr(allocator);
     fileKeyStr << rec.fileKey();
     queueKeyStr << rec.queueKey();
 
@@ -79,10 +83,13 @@ void printRecord(bsl::ostream&                  stream,
     stream << "\n";
 }
 
+/// Find AppId in the specified `appIds` by the specified `appKey` and store
+/// the result in the specified `appId`. Return `true` on success and `false
+/// otherwise.
 bool findQueueAppIdByAppKey(
-    bsl::string*                                            appId,
-    const bsl::vector<BloombergLP::bmqp_ctrlmsg::AppIdInfo> appIds,
-    const mqbu::StorageKey&                                 appKey)
+    bsl::string*                                             appId,
+    const bsl::vector<BloombergLP::bmqp_ctrlmsg::AppIdInfo>& appIds,
+    const mqbu::StorageKey&                                  appKey)
 {
     if (appKey.isNull())
         return false;  // RETURN
@@ -103,11 +110,15 @@ bool findQueueAppIdByAppKey(
     return false;
 }
 
+/// Print the specified confirm record `rec` and QueueInfo pointed by the
+/// specified `queueInfo_p` to the specified `stream`, using the specified
+/// `allocator` for memory allocation.
 void printRecord(bsl::ostream&                  stream,
                  const mqbs::ConfirmRecord&     rec,
-                 const bmqp_ctrlmsg::QueueInfo* queueInfo_p)
+                 const bmqp_ctrlmsg::QueueInfo* queueInfo_p,
+                 bslma::Allocator*              allocator)
 {
-    bsl::vector<const char*> fields;
+    bsl::vector<const char*> fields(allocator);
     fields.push_back("PrimaryLeaseId");
     fields.push_back("SequenceNumber");
     fields.push_back("Timestamp");
@@ -120,7 +131,7 @@ void printRecord(bsl::ostream&                  stream,
         fields.push_back("AppId");
     fields.push_back("GUID");
 
-    mwcu::MemOutStream queueKeyStr, appKeyStr;
+    mwcu::MemOutStream queueKeyStr(allocator), appKeyStr(allocator);
     queueKeyStr << rec.queueKey();
 
     if (rec.appKey().isNull()) {
@@ -144,7 +155,7 @@ void printRecord(bsl::ostream&                  stream,
 
     bsls::Types::Uint64 epochValue = rec.header().timestamp();
     bdlt::Datetime      datetime;
-    int rc = bdlt::EpochUtil::convertFromTimeT64(&datetime, epochValue);
+    const int rc = bdlt::EpochUtil::convertFromTimeT64(&datetime, epochValue);
     if (0 != rc) {
         printer << 0;
     }
@@ -162,11 +173,15 @@ void printRecord(bsl::ostream&                  stream,
     stream << "\n";
 }
 
+/// Print the specified delete record `rec` and QueueInfo pointed by the
+/// specified `queueInfo_p` to the specified `stream`, using the specified
+/// `allocator` for memory allocation.
 void printRecord(bsl::ostream&                  stream,
                  const mqbs::DeletionRecord&    rec,
-                 const bmqp_ctrlmsg::QueueInfo* queueInfo_p)
+                 const bmqp_ctrlmsg::QueueInfo* queueInfo_p,
+                 bslma::Allocator*              allocator)
 {
-    bsl::vector<const char*> fields;
+    bsl::vector<const char*> fields(allocator);
     fields.push_back("PrimaryLeaseId");
     fields.push_back("SequenceNumber");
     fields.push_back("Timestamp");
@@ -177,7 +192,7 @@ void printRecord(bsl::ostream&                  stream,
     fields.push_back("DeletionFlag");
     fields.push_back("GUID");
 
-    mwcu::MemOutStream queueKeyStr;
+    mwcu::MemOutStream queueKeyStr(allocator);
     queueKeyStr << rec.queueKey();
 
     mwcu::AlignedPrinter printer(stream, &fields);
@@ -185,7 +200,7 @@ void printRecord(bsl::ostream&                  stream,
 
     bsls::Types::Uint64 epochValue = rec.header().timestamp();
     bdlt::Datetime      datetime;
-    int rc = bdlt::EpochUtil::convertFromTimeT64(&datetime, epochValue);
+    const int rc = bdlt::EpochUtil::convertFromTimeT64(&datetime, epochValue);
     if (0 != rc) {
         printer << 0;
     }
@@ -213,6 +228,7 @@ MessageDetails::MessageDetails(const mqbs::MessageRecord& record,
 : d_messageRecord(
       RecordDetails<mqbs::MessageRecord>(record, recordIndex, recordOffset))
 , d_confirmRecords(allocator)
+, d_allocator_p(allocator)
 {
     // NOTHING
 }
@@ -237,28 +253,28 @@ void MessageDetails::addDeleteRecord(const mqbs::DeletionRecord& record,
 void MessageDetails::print(bsl::ostream& os, const QueueMap& queueMap) const
 {
     // Check if queueInfo is present for queue key
-    bmqp_ctrlmsg::QueueInfo queueInfo;
-    bool                    queueInfoPresent = queueMap.findInfoByKey(
+    bmqp_ctrlmsg::QueueInfo queueInfo(d_allocator_p);
+    const bool              queueInfoPresent = queueMap.findInfoByKey(
         &queueInfo,
         d_messageRecord.d_record.queueKey());
     bmqp_ctrlmsg::QueueInfo* queueInfo_p = queueInfoPresent ? &queueInfo
                                                             : nullptr;
 
     // Print message record
-    bsl::stringstream ss;
+    mwcu::MemOutStream ss(d_allocator_p);
     ss << "MESSAGE Record, index: " << d_messageRecord.d_recordIndex
        << ", offset: " << d_messageRecord.d_recordOffset;
-    bsl::string delimiter(ss.str().size(), '=');
+    bsl::string delimiter(ss.length(), '=', d_allocator_p);
     os << delimiter << '\n' << ss.str() << '\n';
 
-    printRecord(os, d_messageRecord.d_record, queueInfo_p);
+    printRecord(os, d_messageRecord.d_record, queueInfo_p, d_allocator_p);
 
     // Print confirmations records
     if (!d_confirmRecords.empty()) {
         for (auto& rec : d_confirmRecords) {
             os << "CONFIRM Record, index: " << rec.d_recordIndex
                << ", offset: " << rec.d_recordOffset << '\n';
-            printRecord(os, rec.d_record, queueInfo_p);
+            printRecord(os, rec.d_record, queueInfo_p, d_allocator_p);
         }
     }
 
@@ -266,7 +282,7 @@ void MessageDetails::print(bsl::ostream& os, const QueueMap& queueMap) const
     if (d_deleteRecord.d_isValid) {
         os << "DELETE Record, index: " << d_deleteRecord.d_recordIndex
            << ", offset: " << d_deleteRecord.d_recordOffset << '\n';
-        printRecord(os, d_deleteRecord.d_record, queueInfo_p);
+        printRecord(os, d_deleteRecord.d_record, queueInfo_p, d_allocator_p);
     }
 }
 

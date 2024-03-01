@@ -30,6 +30,7 @@
 
 // BDE
 #include <bsl_ostream.h>
+#include <bsls_keyword.h>
 
 namespace BloombergLP {
 namespace m_bmqstoragetool {
@@ -39,19 +40,11 @@ namespace m_bmqstoragetool {
 // ======================
 
 class CommandProcessor {
-  protected:
-    // PRIVATE DATA
-    const Parameters*                  d_parameters;
-    const bsl::shared_ptr<FileManager> d_fileManager;
-    bsl::ostream&                      d_ostream;
-
   public:
     // CREATORS
 
-    /// Constructor using the specified `params` and 'ostream'.
-    explicit CommandProcessor(const Parameters*                   params,
-                              const bsl::shared_ptr<FileManager>& fileManager,
-                              bsl::ostream&                       ostream);
+    /// Default constructor.
+    CommandProcessor() = default;
 
     virtual ~CommandProcessor() = default;
 
@@ -60,21 +53,6 @@ class CommandProcessor {
     /// Process command.
     virtual void process() = 0;
 };
-
-// ============================================================================
-//                             INLINE DEFINITIONS
-// ============================================================================
-
-inline CommandProcessor::CommandProcessor(
-    const Parameters*                   params,
-    const bsl::shared_ptr<FileManager>& fileManager,
-    bsl::ostream&                       ostream)
-: d_parameters(params)
-, d_fileManager(fileManager)
-, d_ostream(ostream)
-{
-    // NOTHING
-}
 
 }  // close package namespace
 }  // close enterprise namespace

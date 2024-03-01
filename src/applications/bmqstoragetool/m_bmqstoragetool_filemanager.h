@@ -16,6 +16,20 @@
 #ifndef INCLUDED_M_BMQSTORAGETOOL_FILEMANAGER_H
 #define INCLUDED_M_BMQSTORAGETOOL_FILEMANAGER_H
 
+//@PURPOSE: Provide a factory to create an instance of command processor.
+//
+//@CLASSES:
+//  m_bmqstoragetool::FileManager                 : an interface class
+//  m_bmqstoragetool::FileManagerImpl             : an implementation class
+//  m_bmqstoragetool::FileManagerImpl::FileHandler: a RAII file wrapper class
+//
+//@DESCRIPTION:
+//  'FileManager' provides an interface to access iterators.
+//  'FileManagerImpl' works with real files. Provides access to journal and
+//    data files interators. Also retrieves a map of queue keys and names from
+//    a csl file.
+//  'FileHandler' opens and closes the required files in RAII technique.
+
 // bmqstoragetool
 #include <m_bmqstoragetool_queuemap.h>
 
@@ -43,7 +57,7 @@ class FileManager {
     virtual ~FileManager(){};
 };
 
-class FileManagerReal : public FileManager {
+class FileManagerImpl : public FileManager {
   private:
     // PRIVATE TYPES
     template <typename ITER>
@@ -62,7 +76,7 @@ class FileManagerReal : public FileManager {
 
         // ACCESSORS
         /// File path
-        bsl::string path() const;
+        const bsl::string& path() const;
 
         // MANIPULATORS
         /// iterator resetter
@@ -84,7 +98,7 @@ class FileManagerReal : public FileManager {
   public:
     // CREATORS
     /// Default constructor
-    explicit FileManagerReal(const bsl::string& journalFile,
+    explicit FileManagerImpl(const bsl::string& journalFile,
                              const bsl::string& dataFile,
                              bslma::Allocator*  allocator = 0);
 
@@ -103,7 +117,7 @@ class FileManagerReal : public FileManager {
 // ============================================================================
 
 template <typename ITER>
-inline FileManagerReal::FileHandler<ITER>::FileHandler(
+inline FileManagerImpl::FileHandler<ITER>::FileHandler(
     const bsl::string& path,
     bslma::Allocator*  allocator)
 : d_path(path, allocator)
@@ -112,7 +126,7 @@ inline FileManagerReal::FileHandler<ITER>::FileHandler(
 }
 
 template <typename ITER>
-inline FileManagerReal::FileHandler<ITER>::~FileHandler()
+inline FileManagerImpl::FileHandler<ITER>::~FileHandler()
 {
     d_iter.clear();
     if (d_mfd.isValid()) {
@@ -121,20 +135,20 @@ inline FileManagerReal::FileHandler<ITER>::~FileHandler()
 }
 
 template <typename ITER>
-inline bsl::string FileManagerReal::FileHandler<ITER>::path() const
+inline const bsl::string& FileManagerImpl::FileHandler<ITER>::path() const
 {
     return d_path;
 }
 
 template <typename ITER>
-inline ITER* FileManagerReal::FileHandler<ITER>::iterator()
+inline ITER* FileManagerImpl::FileHandler<ITER>::iterator()
 {
     return &d_iter;
 }
 
 template <typename ITER>
 inline mqbs::MappedFileDescriptor&
-FileManagerReal::FileHandler<ITER>::mappedFileDescriptor()
+FileManagerImpl::FileHandler<ITER>::mappedFileDescriptor()
 {
     return d_mfd;
 }

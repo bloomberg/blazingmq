@@ -24,19 +24,19 @@ namespace m_bmqstoragetool {
 // =========================
 
 bsl::shared_ptr<SearchResult> SearchResultFactory::createSearchResult(
-    const Parameters*                   params,
-    const bsl::shared_ptr<FileManager>& fileManager,
-    bsl::ostream&                       ostream,
-    bslma::Allocator*                   allocator)
+    const Parameters*                     params,
+    const bslma::ManagedPtr<FileManager>& fileManager,
+    bsl::ostream&                         ostream,
+    bslma::Allocator*                     allocator)
 {
     // Create payload dumper
-    bsl::shared_ptr<PayloadDumper> payloadDumper;
+    bslma::ManagedPtr<PayloadDumper> payloadDumper;
     if (params->d_dumpPayload)
-        payloadDumper.reset(new (*allocator)
-                                PayloadDumper(ostream,
-                                              fileManager->dataFileIterator(),
-                                              params->d_dumpLimit),
-                            allocator);
+        payloadDumper.load(new (*allocator)
+                               PayloadDumper(ostream,
+                                             fileManager->dataFileIterator(),
+                                             params->d_dumpLimit),
+                           allocator);
 
     // Set up processing flags
     const bool details = params->d_details;
@@ -78,12 +78,11 @@ bsl::shared_ptr<SearchResult> SearchResultFactory::createSearchResult(
     // Create Decorator for specific search
     if (!params->d_guid.empty()) {
         // Search GUIDs
-        searchResult.reset(new (*allocator)
-                               SearchGuidDecorator(searchResult,
-                                                   params->d_guid,
-                                                   ostream,
-                                                   params->d_details,
-                                                   allocator),
+        searchResult.reset(new (*allocator) SearchGuidDecorator(searchResult,
+                                                                params->d_guid,
+                                                                ostream,
+                                                                details,
+                                                                allocator),
                            allocator);
     }
     else if (params->d_summary) {
@@ -112,7 +111,8 @@ bsl::shared_ptr<SearchResult> SearchResultFactory::createSearchResult(
     }
     else {
         // Drefault: search all
-        searchResult.reset(new (*allocator) SearchAllDecorator(searchResult),
+        searchResult.reset(new (*allocator)
+                               SearchAllDecorator(searchResult, allocator),
                            allocator);
     }
 
@@ -120,7 +120,8 @@ bsl::shared_ptr<SearchResult> SearchResultFactory::createSearchResult(
     if (params->d_timestampLt > 0) {
         searchResult.reset(new (*allocator) SearchResultTimestampDecorator(
                                searchResult,
-                               params->d_timestampLt),
+                               params->d_timestampLt,
+                               allocator),
                            allocator);
     }
 

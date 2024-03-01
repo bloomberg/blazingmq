@@ -128,7 +128,7 @@ class JournalFileIterator {
 
     // ACCESSORS
 
-    /// Return true if this iterator is initialized and valid, and `next()`
+    /// Return true if this iterator is initialized and valid, and `nextRecord`
     /// can be called on this instance, or return false in all other cases.
     bool isValid() const;
 
@@ -148,21 +148,23 @@ class JournalFileIterator {
     const JournalFileHeader& header() const;
 
     /// Return the header of the record currently pointed to by this
-    /// iterator.  Behavior is undefined unless last call to `next()`
-    /// returned 1.
+    /// iterator.  Behavior is undefined unless last call to `nextRecord` or
+    /// `advance` returned 1.
     const RecordHeader& recordHeader() const;
 
     /// Return the type of the record currently pointed to by this iterator.
-    /// Behavior is undefined unless last call to `next()` returned 1.
+    /// Behavior is undefined unless last call to `nextRecord` or `advance`
+    /// returned 1.
     RecordType::Enum recordType() const;
 
     /// Return the offset of the record currently pointed by this iterator.
-    /// Behavior is undefined unless last call to `nextRecord` returned 1.
+    /// Behavior is undefined unless last call to `nextRecord` or `advance`
+    /// returned 1.
     bsls::Types::Uint64 recordOffset() const;
 
     /// Return the index of the record in the file currently pointed to by
     /// this iterator.  Behaviour is undefined unless the last call to
-    /// `nextRecord` returned 1.  Indices are zero-indexed.
+    /// `nextRecord` or `advance` returned 1.  Indices are zero-indexed.
     bsls::Types::Uint64 recordIndex() const;
 
     const MessageRecord&  asMessageRecord() const;
@@ -172,8 +174,8 @@ class JournalFileIterator {
 
     /// Return a reference offering non-modifiable access to the record
     /// currently pointed to by this iterator.  The behavior is undefined
-    /// unless last call to `next()` returned 1 and `recordType(`) returned
-    /// the same record type.
+    /// unless last call to `nextRecord` or 'advance' returned 1 and
+    /// `recordType` returned the same record type.
     const JournalOpRecord& asJournalOpRecord() const;
 
     /// Return the position of the last valid sync point record in the

@@ -16,12 +16,12 @@
 #ifndef INCLUDED_M_BMQSTORAGETOOL_FILTERS
 #define INCLUDED_M_BMQSTORAGETOOL_FILTERS
 
-//@PURPOSE: Provide a filters for search engine.
+//@PURPOSE: Provide filters for search engine.
 //
 //@CLASSES:
-//  m_bmqstoragetool::Filters: filters for search engine.
+//  m_bmqstoragetool::Filters: Filters for search engine.
 //
-//@DESCRIPTION: 'Filters' provides a filters for search engine.
+//@DESCRIPTION: 'Filters' provides filters for search engine.
 
 // bmqstoragetool
 #include <m_bmqstoragetool_parameters.h>
@@ -50,8 +50,8 @@ class Filters {
     // CREATORS
 
     /// Constructor using the specified arguments.
-    explicit Filters(const bsl::vector<bsl::string>& queueHexKeys,
-                     const bsl::vector<bsl::string>& queueURIS,
+    explicit Filters(const bsl::vector<bsl::string>& queueKeys,
+                     const bsl::vector<bsl::string>& queueUris,
                      const QueueMap&                 queueMap,
                      const bsls::Types::Int64        timestampGt,
                      const bsls::Types::Int64        timestampLt,

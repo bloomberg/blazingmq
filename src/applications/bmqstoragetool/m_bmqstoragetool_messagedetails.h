@@ -43,20 +43,30 @@ class MessageDetails {
     // Value-semantic type representing message details.
     template <typename RECORD_TYPE>
     struct RecordDetails {
-        RECORD_TYPE         d_record;
+        // DATA
+        RECORD_TYPE d_record;
+        // Record from journal file.
         bsls::Types::Uint64 d_recordIndex;
+        // Index of the record from journal file.
         bsls::Types::Uint64 d_recordOffset;
-        bool                d_isValid;
+        // Offset of the record from journal file.
+        bool d_isValid;
+        // A flag indicating if the object is in valid state.
 
+        // CREATORS
+
+        /// Default constructor
         RecordDetails()
         : d_isValid(false)
         {
             // NOTHING
         }
 
-        explicit RecordDetails(RECORD_TYPE         record,
-                               bsls::Types::Uint64 recordIndex,
-                               bsls::Types::Uint64 recordOffset)
+        /// Constructor with the specified `record`, `recordIndex` and
+        /// `recordOffset`.
+        RecordDetails(RECORD_TYPE         record,
+                      bsls::Types::Uint64 recordIndex,
+                      bsls::Types::Uint64 recordOffset)
         : d_record(record)
         , d_recordIndex(recordIndex)
         , d_recordOffset(recordOffset)
@@ -67,9 +77,14 @@ class MessageDetails {
     };
 
     // DATA
-    RecordDetails<mqbs::MessageRecord>               d_messageRecord;
+    RecordDetails<mqbs::MessageRecord> d_messageRecord;
+    // Message record
     bsl::vector<RecordDetails<mqbs::ConfirmRecord> > d_confirmRecords;
-    RecordDetails<mqbs::DeletionRecord>              d_deleteRecord;
+    // All the confirm records related to the `d_messageRecord`
+    RecordDetails<mqbs::DeletionRecord> d_deleteRecord;
+    // Delete record related to the `d_messageRecord`
+    bslma::Allocator* d_allocator_p;
+    // Allocator used inside te class
 
   public:
     // CREATORS

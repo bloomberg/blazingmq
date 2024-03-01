@@ -101,7 +101,7 @@ class SearchResult {
     virtual void outputResult() = 0;
     /// Output result of a search filtered by the specified GUIDs filter.
     virtual void
-    outputResult(bsl::unordered_set<bmqt::MessageGUID>& guidFilter) = 0;
+    outputResult(const bsl::unordered_set<bmqt::MessageGUID>& guidFilter) = 0;
 };
 
 // =======================
@@ -123,7 +123,7 @@ class SearchShortResult : public SearchResult {
 
     bsl::ostream& d_ostream;
     // Reference to output stream.
-    const bsl::shared_ptr<PayloadDumper> d_payloadDumper;
+    const bslma::ManagedPtr<PayloadDumper> d_payloadDumper;
     // Pointer to 'PayloadDumper' instance.
     const bool d_printImmediately;
     // If 'true', print message guid as soon as it is received (usually when
@@ -135,14 +135,14 @@ class SearchShortResult : public SearchResult {
     // further processing.
     const bool d_printOnDelete;
     // If 'true', print message guid when 'deleted' record is received.
-
     bsl::size_t d_printedMessagesCount;
     // Counter of already output (printed) messages.
-
     bsl::unordered_map<bmqt::MessageGUID, GuidListIt> d_guidMap;
     // Map to store guid and list iterator, for fast searching by guid.
     bsl::list<GuidData> d_guidList;
     // List to store ordered guid data to preserve messages order for output.
+    bslma::Allocator* d_allocator_p;
+    // Allocator used inside the class.
 
     // PRIVATE MANIPULATORS
 
@@ -161,9 +161,9 @@ class SearchShortResult : public SearchResult {
 
     /// Constructor using the specified `ostream`, `payloadDumper`, `allocator`
     /// `printImmediately`, `eraseDeleted`, and `printOnDelete`.
-    explicit SearchShortResult(bsl::ostream&                  ostream,
-                               bsl::shared_ptr<PayloadDumper> payloadDumper,
-                               bslma::Allocator*              allocator,
+    explicit SearchShortResult(bsl::ostream&                     ostream,
+                               bslma::ManagedPtr<PayloadDumper>& payloadDumper,
+                               bslma::Allocator*                 allocator,
                                const bool printImmediately = true,
                                const bool eraseDeleted     = false,
                                const bool printOnDelete    = false);
@@ -191,7 +191,7 @@ class SearchShortResult : public SearchResult {
     /// Output result of a search.
     void outputResult() BSLS_KEYWORD_OVERRIDE;
     /// Output result of a search filtered by the specified GUIDs filter.
-    void outputResult(bsl::unordered_set<bmqt::MessageGUID>& guidFilter)
+    void outputResult(const bsl::unordered_set<bmqt::MessageGUID>& guidFilter)
         BSLS_KEYWORD_OVERRIDE;
 };
 
@@ -214,7 +214,7 @@ class SearchDetailResult : public SearchResult {
     // Reference to output stream.
     const QueueMap& d_queueMap;
     // Reference to 'QueueMap' instance.
-    const bsl::shared_ptr<PayloadDumper> d_payloadDumper;
+    const bslma::ManagedPtr<PayloadDumper> d_payloadDumper;
     // Pointer to 'PayloadDumper' instance.
     const bool d_printImmediately;
     // If true, print message details as soon as it is complete (usually when
@@ -234,6 +234,7 @@ class SearchDetailResult : public SearchResult {
     bsl::map<bsls::Types::Uint64, bmqt::MessageGUID> d_messageIndexToGuidMap;
     // Map to store sorted indexes to preserve messages order for output.
     bslma::Allocator* d_allocator_p;
+    // Allocator used inside the class.
 
     // PRIVATE MANIPULATORS
 
@@ -260,13 +261,13 @@ class SearchDetailResult : public SearchResult {
 
     /// Constructor using the specified `ostream`, `queueMap`, `payloadDumper`,
     /// `allocator` `printImmediately`, `eraseDeleted`, and `cleanUnprinted`.
-    explicit SearchDetailResult(bsl::ostream&                  ostream,
-                                const QueueMap&                queueMap,
-                                bsl::shared_ptr<PayloadDumper> payloadDumper,
-                                bslma::Allocator*              allocator,
-                                const bool printImmediately = true,
-                                const bool eraseDeleted     = true,
-                                const bool cleanUnprinted   = false);
+    SearchDetailResult(bsl::ostream&                     ostream,
+                       const QueueMap&                   queueMap,
+                       bslma::ManagedPtr<PayloadDumper>& payloadDumper,
+                       bslma::Allocator*                 allocator,
+                       const bool printImmediately = true,
+                       const bool eraseDeleted     = true,
+                       const bool cleanUnprinted   = false);
 
     // MANIPULATORS
 
@@ -291,7 +292,7 @@ class SearchDetailResult : public SearchResult {
     /// Output result of a search.
     void outputResult() BSLS_KEYWORD_OVERRIDE;
     /// Output result of a search filtered by the specified GUIDs filter.
-    void outputResult(bsl::unordered_set<bmqt::MessageGUID>& guidFilter)
+    void outputResult(const bsl::unordered_set<bmqt::MessageGUID>& guidFilter)
         BSLS_KEYWORD_OVERRIDE;
 };
 
@@ -305,13 +306,15 @@ class SearchResultDecorator : public SearchResult {
   protected:
     bsl::shared_ptr<SearchResult> d_searchResult;
     // Pointer to object that is decorated.
+    bslma::Allocator* d_allocator_p;
+    // Pointer to allocator that is used inside the class.
 
   public:
     // CREATORS
 
-    /// Constructor using the specified `component`.
-    explicit SearchResultDecorator(
-        const bsl::shared_ptr<SearchResult> component);
+    /// Constructor using the specified `component` and `allocator`.
+    SearchResultDecorator(const bsl::shared_ptr<SearchResult> component,
+                          bslma::Allocator*                   allocator);
 
     // MANIPULATORS
 
@@ -336,7 +339,7 @@ class SearchResultDecorator : public SearchResult {
     /// Output result of a search.
     void outputResult() BSLS_KEYWORD_OVERRIDE;
     /// Output result of a search filtered by the specified GUIDs filter.
-    void outputResult(bsl::unordered_set<bmqt::MessageGUID>& guidFilter)
+    void outputResult(const bsl::unordered_set<bmqt::MessageGUID>& guidFilter)
         BSLS_KEYWORD_OVERRIDE;
 };
 
@@ -359,10 +362,12 @@ class SearchResultTimestampDecorator : public SearchResultDecorator {
   public:
     // CREATORS
 
-    /// Constructor using the specified `component` and `timestampLt`.
+    /// Constructor using the specified `component`, `timestampLt` and
+    /// `allocator`.
     SearchResultTimestampDecorator(
         const bsl::shared_ptr<SearchResult> component,
-        const bsls::Types::Uint64           timestampLt);
+        const bsls::Types::Uint64           timestampLt,
+        bslma::Allocator*                   allocator);
 
     // MANIPULATORS
 
@@ -395,8 +400,9 @@ class SearchAllDecorator : public SearchResultDecorator {
   public:
     // CREATORS
 
-    /// Constructor using the specified `component`.
-    explicit SearchAllDecorator(const bsl::shared_ptr<SearchResult> component);
+    /// Constructor using the specified `component` and `allocator`.
+    SearchAllDecorator(const bsl::shared_ptr<SearchResult> component,
+                       bslma::Allocator*                   allocator);
 
     // MANIPULATORS
 
@@ -430,10 +436,9 @@ class SearchOutstandingDecorator : public SearchResultDecorator {
     // CREATORS
 
     /// Constructor using the specified `component`, `ostream` and `allocator`.
-    explicit SearchOutstandingDecorator(
-        const bsl::shared_ptr<SearchResult> component,
-        bsl::ostream&                       ostream,
-        bslma::Allocator*                   allocator);
+    SearchOutstandingDecorator(const bsl::shared_ptr<SearchResult> component,
+                               bsl::ostream&                       ostream,
+                               bslma::Allocator*                   allocator);
 
     // MANIPULATORS
 
@@ -477,7 +482,7 @@ class SearchPartiallyConfirmedDecorator : public SearchResultDecorator {
     // CREATORS
 
     /// Constructor using the specified `component`, `ostream` and `allocator`.
-    explicit SearchPartiallyConfirmedDecorator(
+    SearchPartiallyConfirmedDecorator(
         const bsl::shared_ptr<SearchResult> component,
         bsl::ostream&                       ostream,
         bslma::Allocator*                   allocator);
@@ -533,11 +538,11 @@ class SearchGuidDecorator : public SearchResultDecorator {
 
     /// Constructor using the specified `component`, `guids`, `ostream`,
     /// `withDetails` and `allocator`.
-    explicit SearchGuidDecorator(const bsl::shared_ptr<SearchResult> component,
-                                 const bsl::vector<bsl::string>&     guids,
-                                 bsl::ostream&                       ostream,
-                                 bool              withDetails,
-                                 bslma::Allocator* allocator);
+    SearchGuidDecorator(const bsl::shared_ptr<SearchResult> component,
+                        const bsl::vector<bsl::string>&     guids,
+                        bsl::ostream&                       ostream,
+                        bool                                withDetails,
+                        bslma::Allocator*                   allocator);
 
     // MANIPULATORS
 
@@ -613,7 +618,7 @@ class SummaryProcessor : public SearchResult {
     /// Output result of a search.
     void outputResult() BSLS_KEYWORD_OVERRIDE;
     /// Output result of a search filtered by the specified GUIDs filter.
-    void outputResult(bsl::unordered_set<bmqt::MessageGUID>& guidFilter)
+    void outputResult(const bsl::unordered_set<bmqt::MessageGUID>& guidFilter)
         BSLS_KEYWORD_OVERRIDE;
 };
 

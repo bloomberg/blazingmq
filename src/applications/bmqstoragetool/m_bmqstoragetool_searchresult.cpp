@@ -178,8 +178,10 @@ void outputFooter(bsl::ostream& ostream, bsl::size_t foundMessagesCount)
 // ===========================
 
 SearchResultDecorator::SearchResultDecorator(
-    const bsl::shared_ptr<SearchResult> component)
+    const bsl::shared_ptr<SearchResult> component,
+    bslma::Allocator*                   allocator)
 : d_searchResult(component)
+, d_allocator_p(allocator)
 {
 }
 
@@ -219,7 +221,7 @@ void SearchResultDecorator::outputResult()
 }
 
 void SearchResultDecorator::outputResult(
-    bsl::unordered_set<bmqt::MessageGUID>& guidFilter)
+    const bsl::unordered_set<bmqt::MessageGUID>& guidFilter)
 {
     d_searchResult->outputResult(guidFilter);
 }
@@ -235,8 +237,9 @@ bool SearchResultTimestampDecorator::stop(bsls::Types::Uint64 timestamp) const
 
 SearchResultTimestampDecorator::SearchResultTimestampDecorator(
     const bsl::shared_ptr<SearchResult> component,
-    bsls::Types::Uint64                 timestampLt)
-: SearchResultDecorator(component)
+    bsls::Types::Uint64                 timestampLt,
+    bslma::Allocator*                   allocator)
+: SearchResultDecorator(component, allocator)
 , d_timestampLt(timestampLt)
 {
 }
@@ -279,12 +282,12 @@ bool SearchResultTimestampDecorator::processDeletionRecord(
 // =======================
 
 SearchShortResult::SearchShortResult(
-    bsl::ostream&                  ostream,
-    bsl::shared_ptr<PayloadDumper> payloadDumper,
-    bslma::Allocator*              allocator,
-    const bool                     printImmediately,
-    const bool                     eraseDeleted,
-    const bool                     printOnDelete)
+    bsl::ostream&                     ostream,
+    bslma::ManagedPtr<PayloadDumper>& payloadDumper,
+    bslma::Allocator*                 allocator,
+    const bool                        printImmediately,
+    const bool                        eraseDeleted,
+    const bool                        printOnDelete)
 : d_ostream(ostream)
 , d_payloadDumper(payloadDumper)
 , d_printImmediately(printImmediately)
@@ -293,6 +296,7 @@ SearchShortResult::SearchShortResult(
 , d_printedMessagesCount(0)
 , d_guidMap(allocator)
 , d_guidList(allocator)
+, d_allocator_p(allocator)
 {
     // NOTHING
 }
@@ -357,7 +361,7 @@ void SearchShortResult::outputResult()
 }
 
 void SearchShortResult::outputResult(
-    bsl::unordered_set<bmqt::MessageGUID>& guidFilter)
+    const bsl::unordered_set<bmqt::MessageGUID>& guidFilter)
 {
     // Remove guids from list that do not match filter
     bsl::erase_if(d_guidList, [&guidFilter](const GuidData& guidData) {
@@ -388,13 +392,13 @@ bool SearchShortResult::hasCache() const
 // ========================
 
 SearchDetailResult::SearchDetailResult(
-    bsl::ostream&                  ostream,
-    const QueueMap&                queueMap,
-    bsl::shared_ptr<PayloadDumper> payloadDumper,
-    bslma::Allocator*              allocator,
-    const bool                     printImmediately,
-    const bool                     eraseDeleted,
-    const bool                     cleanUnprinted)
+    bsl::ostream&                     ostream,
+    const QueueMap&                   queueMap,
+    bslma::ManagedPtr<PayloadDumper>& payloadDumper,
+    bslma::Allocator*                 allocator,
+    const bool                        printImmediately,
+    const bool                        eraseDeleted,
+    const bool                        cleanUnprinted)
 : d_ostream(ostream)
 , d_queueMap(queueMap)
 , d_payloadDumper(payloadDumper)
@@ -462,7 +466,7 @@ void SearchDetailResult::outputResult()
     }
 
     for (const auto& item : d_messageIndexToGuidMap) {
-        auto messageDetails = d_messagesDetails.at(item.second);
+        const auto& messageDetails = d_messagesDetails.at(item.second);
         outputMessageDetails(messageDetails);
     }
 
@@ -470,13 +474,13 @@ void SearchDetailResult::outputResult()
 }
 
 void SearchDetailResult::outputResult(
-    bsl::unordered_set<bmqt::MessageGUID>& guidFilter)
+    const bsl::unordered_set<bmqt::MessageGUID>& guidFilter)
 {
     // Remove guids from map that do not match filter
     bsl::erase_if(
         d_messageIndexToGuidMap,
         [&guidFilter](
-            const bsl::pair<bsls::Types::Uint64, bmqt::MessageGUID> pair) {
+            const bsl::pair<bsls::Types::Uint64, bmqt::MessageGUID>& pair) {
             return bsl::find(guidFilter.begin(),
                              guidFilter.end(),
                              pair.second) == guidFilter.end();
@@ -522,8 +526,9 @@ bool SearchDetailResult::hasCache() const
 // class SearchAllDecorator
 // ========================
 SearchAllDecorator::SearchAllDecorator(
-    const bsl::shared_ptr<SearchResult> component)
-: SearchResultDecorator(component)
+    const bsl::shared_ptr<SearchResult> component,
+    bslma::Allocator*                   allocator)
+: SearchResultDecorator(component, allocator)
 {
     // NOTHING
 }
@@ -546,7 +551,7 @@ SearchOutstandingDecorator::SearchOutstandingDecorator(
     const bsl::shared_ptr<SearchResult> component,
     bsl::ostream&                       ostream,
     bslma::Allocator*                   allocator)
-: SearchResultDecorator(component)
+: SearchResultDecorator(component, allocator)
 , d_ostream(ostream)
 , d_foundMessagesCount(0)
 , d_deletedMessagesCount(0)
@@ -599,7 +604,7 @@ SearchPartiallyConfirmedDecorator::SearchPartiallyConfirmedDecorator(
     const bsl::shared_ptr<SearchResult> component,
     bsl::ostream&                       ostream,
     bslma::Allocator*                   allocator)
-: SearchResultDecorator(component)
+: SearchResultDecorator(component, allocator)
 , d_ostream(ostream)
 , d_foundMessagesCount(0)
 , d_deletedMessagesCount(0)
@@ -660,7 +665,7 @@ bool SearchPartiallyConfirmedDecorator::processDeletionRecord(
 void SearchPartiallyConfirmedDecorator::outputResult()
 {
     // Build a filter of partially confirmed guids
-    bsl::unordered_set<bmqt::MessageGUID> guidFilter;
+    bsl::unordered_set<bmqt::MessageGUID> guidFilter(d_allocator_p);
     for (const auto& pair : d_partiallyConfirmedGUIDS) {
         if (pair.second > 0) {
             guidFilter.insert(pair.first);
@@ -681,7 +686,7 @@ SearchGuidDecorator::SearchGuidDecorator(
     bsl::ostream&                       ostream,
     bool                                withDetails,
     bslma::Allocator*                   allocator)
-: SearchResultDecorator(component)
+: SearchResultDecorator(component, allocator)
 , d_ostream(ostream)
 , d_withDetails(withDetails)
 , d_guidsMap(allocator)
@@ -833,7 +838,8 @@ void SummaryProcessor::outputResult()
 }
 
 void SummaryProcessor::outputResult(
-    BSLS_ANNOTATION_UNUSED bsl::unordered_set<bmqt::MessageGUID>& guidFilter)
+    BSLS_ANNOTATION_UNUSED const bsl::unordered_set<bmqt::MessageGUID>&
+                                 guidFilter)
 {
     outputResult();
 }

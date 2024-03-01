@@ -48,9 +48,9 @@ class PayloadDumper {
 
     /// Constructor using the specified `ostream`, `dataFile_p` and
     /// `dumpLimit`.
-    explicit PayloadDumper(bsl::ostream&           ostream,
-                           mqbs::DataFileIterator* dataFile_p,
-                           unsigned int            dumpLimit);
+    PayloadDumper(bsl::ostream&           ostream,
+                  mqbs::DataFileIterator* dataFile_p,
+                  unsigned int            dumpLimit);
 
     // MANIPULATORS
 

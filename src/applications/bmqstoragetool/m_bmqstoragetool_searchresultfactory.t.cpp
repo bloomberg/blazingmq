@@ -45,16 +45,17 @@ static void test1_breathingTest()
 {
     mwctst::TestHelper::printTestName("BREATHING TEST");
     // Empty parameters
-    CommandLineArguments         arguments;
-    Parameters                   params(arguments, s_allocator_p);
-    bsl::shared_ptr<FileManager> fileManager(new (*s_allocator_p)
-                                                 FileManagerMock(),
-                                             s_allocator_p);
+    CommandLineArguments           arguments;
+    Parameters                     params(arguments, s_allocator_p);
+    bslma::ManagedPtr<FileManager> fileManager(
+        new (*s_allocator_p) FileManagerMock(s_allocator_p),
+        s_allocator_p);
 
-    auto searchResult = SearchResultFactory::createSearchResult(&params,
-                                                                fileManager,
-                                                                bsl::cout,
-                                                                s_allocator_p);
+    bsl::shared_ptr<SearchResult> searchResult =
+        SearchResultFactory::createSearchResult(&params,
+                                                fileManager,
+                                                bsl::cout,
+                                                s_allocator_p);
     ASSERT_NE(dynamic_cast<SearchResult*>(searchResult.get()), nullptr);
 }
 

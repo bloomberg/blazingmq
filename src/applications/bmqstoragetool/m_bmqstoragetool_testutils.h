@@ -79,12 +79,12 @@ typedef bsl::pair<RecordType::Enum, RecordBufferType> NodeType;
 
 typedef bsl::list<NodeType> RecordsListType;
 
+typedef bsl::vector<bmqt::MessageGUID> GuidVectorType;
+
 // =================
 // class JournalFile
 // =================
 
-/// This class provides methods to create in-memory journal file with required
-/// content.
 class JournalFile {
   private:
     // PRIVATE DATA
@@ -143,41 +143,44 @@ class JournalFile {
     /// records. MessageRecord and ConfirmRecord records have the same GUID.
     /// DeleteRecord records even records have the same GUID as MessageRecord,
     /// odd ones - not the same. Store list of created records in the specified
-    /// `records`. If `expectOutstandingResult` is `true`, return GUIDs of
-    /// outstanding messages. Otherwise return GUIDs of confirmed messages.
-    bsl::vector<bmqt::MessageGUID>
-    addJournalRecordsWithOutstandingAndConfirmedMessages(
+    /// `records`. If `expectOutstandingResult` is `true`, store GUIDs of
+    /// outstanding messages in the specified `expectedGUIDs`. Otherwise store
+    /// GUIDs of confirmed messages.
+    void addJournalRecordsWithOutstandingAndConfirmedMessages(
         RecordsListType* records,
+        GuidVectorType*  expectedGUIDs,
         bool             expectOutstandingResult);
 
     /// Generate sequence of MessageRecord, ConfirmRecord and DeleteRecord
     /// records. MessageRecord and ConfirmRecord records have the same GUID.
     /// DeleteRecord records even records have the same GUID as MessageRecord,
     /// odd ones - not the same. Store list of created records in the specified
-    /// `records`. Return GUIDs of partially confirmed messages.
-    bsl::vector<bmqt::MessageGUID>
-    addJournalRecordsWithPartiallyConfirmedMessages(RecordsListType* records);
+    /// `records`. Store GUIDs of partially confirmed messages in the specified
+    /// `expectedGUIDs`.
+    void addJournalRecordsWithPartiallyConfirmedMessages(
+        RecordsListType* records,
+        GuidVectorType*  expectedGUIDs);
 
     /// Generate sequence of MessageRecord, ConfirmRecord and DeleteRecord
     /// records. MessageRecord ConfirmRecord and DeletionRecord records have
     /// the same GUID. queueKey1 is used for even records, queueKey2 for odd
-    /// ones. Store list of created records in the specified `records`. Returns
-    /// GUIDs for queueKey1 if `captureAllGUIDs` is `false` or all GUIds
-    /// otherwise.
-    bsl::vector<bmqt::MessageGUID>
-    addJournalRecordsWithTwoQueueKeys(RecordsListType* records,
-                                      const char*      queueKey1,
-                                      const char*      queueKey2,
-                                      bool captureAllGUIDs = false);
+    /// ones. Store list of created records in the specified `records`. Store
+    /// GUIDs for `queueKey1` in the specified `expectedGUIDs` if
+    /// `captureAllGUIDs` is `false` or all GUIds otherwise.
+    void addJournalRecordsWithTwoQueueKeys(RecordsListType* records,
+                                           GuidVectorType*  expectedGUIDs,
+                                           const char*      queueKey1,
+                                           const char*      queueKey2,
+                                           bool captureAllGUIDs = false);
 
     /// Generate sequence of MessageRecord and DeleteRecord
     /// records with size `numMessages`. Change GUIDs order for 2nd and 3rd
     /// DeleteRecord. Set message offsets from the given `messageOffsets`.
-    /// Store list of created records in the specified `records`.
-    /// Return confirmed GUIDs.
-    bsl::vector<bmqt::MessageGUID>
-    addJournalRecordsWithConfirmedMessagesWithDifferentOrder(
+    /// Store list of created records in the specified `records`. Store
+    /// confirmed GUIDs in the specified `expectedGUIDs`.
+    void addJournalRecordsWithConfirmedMessagesWithDifferentOrder(
         RecordsListType*           records,
+        GuidVectorType*            expectedGUIDs,
         size_t                     numMessages,
         bsl::vector<unsigned int>& messageOffsets);
 };

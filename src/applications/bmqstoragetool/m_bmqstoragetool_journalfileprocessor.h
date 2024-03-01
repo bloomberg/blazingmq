@@ -16,6 +16,14 @@
 #ifndef INCLUDED_M_BMQSTORAGETOOL_JOURNALFILEPROCESSOR
 #define INCLUDED_M_BMQSTORAGETOOL_JOURNALFILEPROCESSOR
 
+//@PURPOSE: Provide engine for searching in a journal file.
+//
+//@CLASSES:
+//  m_bmqstoragetool::JournalFileProcessor: search engine.
+//
+//@DESCRIPTION: 'JournalFileProcessor' provides engine for iterating a journal
+//  file and searching records in it.
+
 // bmqstoragetool
 #include <m_bmqstoragetool_commandprocessor.h>
 #include <m_bmqstoragetool_searchresult.h>
@@ -32,7 +40,7 @@
 namespace BloombergLP {
 namespace m_bmqstoragetool {
 
-int moveToLowerBound(mqbs::JournalFileIterator* it,
+int moveToLowerBound(mqbs::JournalFileIterator* jit,
                      const bsls::Types::Uint64& timestamp);
 
 // ==========================
@@ -41,22 +49,27 @@ int moveToLowerBound(mqbs::JournalFileIterator* it,
 
 class JournalFileProcessor : public CommandProcessor {
   private:
-    // DATA
-    bsl::shared_ptr<SearchResult> d_searchResult_p;
-    bslma::Allocator*             d_allocator_p;
+    // PRIVATE DATA
+    const Parameters*                    d_parameters;
+    const bslma::ManagedPtr<FileManager> d_fileManager;
+    bsl::ostream&                        d_ostream;
+    bsl::shared_ptr<SearchResult>        d_searchResult_p;
+    bslma::Allocator*                    d_allocator_p;
 
     // MANIPULATORS
 
   public:
     // CREATORS
-    explicit JournalFileProcessor(
-        const Parameters*                    params,
-        const bsl::shared_ptr<FileManager>&  fileManager,
-        const bsl::shared_ptr<SearchResult>& searchResult_p,
-        bsl::ostream&                        ostream,
-        bslma::Allocator*                    allocator);
+    /// Constructor using the specified `params`, 'fileManager',
+    /// 'searchResult_p', 'ostream' and 'allocator'.
+    JournalFileProcessor(const Parameters*                    params,
+                         bslma::ManagedPtr<FileManager>&      fileManager,
+                         const bsl::shared_ptr<SearchResult>& searchResult_p,
+                         bsl::ostream&                        ostream,
+                         bslma::Allocator*                    allocator);
 
     // MANIPULATORS
+    /// Process the journal file and print result.
     void process() BSLS_KEYWORD_OVERRIDE;
 };
 
