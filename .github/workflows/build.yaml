@@ -20,6 +20,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Set up dependencies
         run: |
+          sudo bash -c "echo '/var/crash/core.%e.%p.%t' > /proc/sys/kernel/core_pattern"
           sudo apt-get update
           sudo apt-get install -qy build-essential \
             gdb \
@@ -115,14 +116,16 @@ jobs:
             -n 4 -v
       - name: Copy Tasks
         if: always()
-        working-directory: ${{ github.workspace }}/src/integration-tests/failure-logs
         run: |
-          coreCount=$(ls -A core.* | wc -l)
-          if [[ $coreCount -ne 0 ]]
-          then
-              echo "Found $coreCount core(s); copying bmqbrkr.tsk"
-              find ${{ github.workspace }} -name bmqbrkr.tsk -exec cp {} . \;
-              echo > .gdbinit "set substitute-path ${{ github.workspace }} .."
+          if [ -d src/integration-tests/failure-logs ]
+            cd src/integration-tests/failure-logs
+            coreCount=$(ls -A core.* | wc -l)
+            if [[ $coreCount -ne 0 ]]
+            then
+                echo "Found $coreCount core(s); copying bmqbrkr.tsk"
+                find ${{ github.workspace }} -name bmqbrkr.tsk -exec cp {} . \;
+                echo > .gdbinit "set substitute-path ${{ github.workspace }} .."
+            fi
           fi
       - name: Archive Integration Test Failure Logs and Cores
         if: always()
