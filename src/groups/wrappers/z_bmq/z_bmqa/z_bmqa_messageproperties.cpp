@@ -14,6 +14,33 @@ const int z_bmqa_MessageProperties::k_MAX_PROPERTY_NAME_LENGTH =
 const int z_bmqa_MessageProperties::k_MAX_PROPERTY_VALUE_LENGTH =
     BloombergLP::bmqa::MessageProperties::k_MAX_PROPERTY_VALUE_LENGTH;
 
+void z_bmqa_MessageProperties__clear(
+    z_bmqa_MessageProperties* properties_obj) 
+{
+    using namespace BloombergLP; 
+
+    bmqa::MessageProperties* properties_p = 
+        reinterpret_cast<bmqa::MessageProperties*>(properties_obj); 
+
+    properties_p->clear(); 
+}
+
+bool z_bmqa_MessageProperties__remove(
+    z_bmqa_MessageProperties* properties_obj, 
+    const char* name, 
+    Enum *buffer)
+{
+    using namespace BloombergLP; 
+
+    bmqa::MessageProperties* properties_p = 
+        reinterpret_cast<bmqa::MessageProperties*>(properties_obj); 
+
+    //can I just use Enum like this? 
+    bsl::string name_str(name); 
+    // bmqt::PropertyType::Enum enum_transform = buffer; 
+    // return properties_p->remove(name_str, buffer); 
+}
+
 int z_bmqa_MessageProperties__delete(z_bmqa_MessageProperties** properties_obj)
 {
     using namespace BloombergLP;
@@ -255,14 +282,8 @@ const char* z_bmqa_MessageProperties__getPropertyAsString(
         reinterpret_cast<const bmqa::MessageProperties*>(properties_obj); 
 
     bsl::string name_str(name); 
-    bsl::string propertyAsBSLString = properties_p->getPropertyAsString(name_str); 
-    int n = propertyAsBSLString.size(); 
-    char* cStr = (char*)calloc(n+1,sizeof(char)); 
-    for(int i = 0; i < n; i++) {
-        cStr[i] = propertyAsBSLString[i]; 
-    }
-    cStr[n] = '\0'; 
-    return cStr;
+    const bsl::string& propertyAsBSLString = properties_p->getPropertyAsString(name_str); 
+    return propertyAsBSLString.c_str();
 }
 
 
@@ -370,12 +391,6 @@ const char* z_bmqa_MessageProperties__getPropertyAsStringOr(
     bsl::string name_str(name); 
     bsl::string value_str(value); 
     const bsl::string& propertyAsBSLStringOr = properties_p->getPropertyAsStringOr(name_str, value_str); 
-    // int n = propertyAsBSLStringOr.size(); 
-    // char* cStr = (char*)calloc(n+1,sizeof(char)); 
-    // for(int i = 0; i < n; i++) {
-    //     cStr[i] = propertyAsBSLStringOr[i]; 
-    // }
-    // cStr[n] = '\0'; 
     return propertyAsBSLStringOr.c_str(); 
 }
 

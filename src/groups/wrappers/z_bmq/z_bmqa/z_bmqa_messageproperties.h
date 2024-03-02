@@ -14,6 +14,25 @@ typedef struct z_bmqa_MessageProperties {
     static const int k_MAX_PROPERTY_VALUE_LENGTH;
 } z_bmqa_MessageProperties;
 
+enum Enum {
+    e_UNDEFINED = 0,
+    e_BOOL      = 1,
+    e_CHAR      = 2,
+    e_SHORT     = 3,
+    e_INT32     = 4,
+    e_INT64     = 5,
+    e_STRING    = 6,
+    e_BINARY    = 7
+};
+
+void z_bmqa_MessageProperties__clear(
+    z_bmqa_MessageProperties* properties_obj);
+
+bool z_bmqa_MessageProperties__remove(
+    z_bmqa_MessageProperties* properties_obj, 
+    const char* name, 
+    Enum *buffer);
+
 int z_bmqa_MessageProperties__delete(
     z_bmqa_MessageProperties** properties_obj);
 
