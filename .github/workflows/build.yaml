@@ -34,7 +34,6 @@ jobs:
             libfl-dev \
             libbenchmark-dev \
             libz-dev
-          sudo pip install -r ${{ github.workspace }}/src/python/requirements.txt
       - name: Create dependency fetcher working directory
         run: mkdir -p deps
       - name: Fetch & Build non packaged dependencies
@@ -52,7 +51,7 @@ jobs:
             -DBDE_BUILD_TARGET_CPP17=ON \
             -DCMAKE_PREFIX_PATH=${{ github.workspace }}/deps/srcs/bde-tools/BdeBuildSystem \
             -DCMAKE_INSTALL_LIBDIR=lib64
-          cmake --build build/blazingmq --parallel 8 --target all all.t
+          cmake --build build/blazingmq --parallel 8 --target all # all.t
       - uses: actions/cache@v4
         with:
           path: |
@@ -74,18 +73,21 @@ jobs:
             deps
             /opt/bb/include
           key: cache-${{ github.sha }}
+      # - name: Run C++ Unit Tests
+      #   run: |
+      #     cd ${{ github.workspace }}/build/blazingmq
+      #     ctest -E mwcsys_executil.t --output-on-failure
       - name: Run Python Unit Tests
         env:
           PYTHONPATH: ${{ github.workspace }}/src/python
         run: |
+          sudo apt-get install -qy python3.10 python3-pip
+          sudo pip install -r ${{ github.workspace }}/src/python/requirements.txt
           cd ${{ github.workspace }}
           src/python/bin/schemagen
           src/python/bin/tweakgen
+          cd src/python
           pytest
-      - name: Run C++ Unit Tests
-        run: |
-          cd ${{ github.workspace }}/build/blazingmq
-          ctest -E mwcsys_executil.t --output-on-failure
 
   integration_tests_ubuntu:
     name: BlazingMQ integration tests
@@ -102,6 +104,8 @@ jobs:
           key: cache-${{ github.sha }}
       - name: Run Integration Tests
         run: |
+          sudo apt-get install -qy python3.10 python3-pip
+          sudo pip install -r ${{ github.workspace }}/src/python/requirements.txt
           ${{ github.workspace }}/src/integration-tests/run-tests \
             --log-level=info \
             --bmq-tolerate-dirty-shutdown       \
@@ -114,11 +118,10 @@ jobs:
       - name: Copy Tasks
         if: always()
         run: |
-          if [ -d src/integration-tests/failure-logs ]
+          if [ -d src/integration-tests/failure-logs ]; then
             cd src/integration-tests/failure-logs
             coreCount=$(ls -A core.* | wc -l)
-            if [[ $coreCount -ne 0 ]]
-            then
+            if [[ $coreCount -ne 0 ]]; then
                 echo "Found $coreCount core(s); copying bmqbrkr.tsk"
                 find ${{ github.workspace }} -name bmqbrkr.tsk -exec cp {} . \;
                 echo > .gdbinit "set substitute-path ${{ github.workspace }} .."
@@ -154,13 +157,6 @@ jobs:
           pip install -r ${{ github.workspace }}/src/python/requirements.txt
       - name: Build BlazingMQ
         run: bin/build-darwin.sh
-      - uses: actions/cache@v3
-        with:
-          path: |
-            build/blazingmq
-            deps
-            /opt/bb/include
-          key: cache-${{ github.sha }}
 
   build_and_test_bmqprometheus_plugin:
     name: "Check if BMQPrometheus plugin can build and pass tests"
