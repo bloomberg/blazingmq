@@ -31,12 +31,14 @@ bsl::shared_ptr<SearchResult> SearchResultFactory::createSearchResult(
 {
     // Create payload dumper
     bslma::ManagedPtr<PayloadDumper> payloadDumper;
-    if (params->d_dumpPayload)
+    if (params->d_dumpPayload) {
         payloadDumper.load(new (*allocator)
                                PayloadDumper(ostream,
                                              fileManager->dataFileIterator(),
-                                             params->d_dumpLimit),
+                                             params->d_dumpLimit,
+                                             allocator),
                            allocator);
+    }
 
     // Set up processing flags
     const bool details = params->d_details;

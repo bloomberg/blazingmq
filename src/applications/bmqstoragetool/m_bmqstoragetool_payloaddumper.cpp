@@ -31,10 +31,12 @@ namespace m_bmqstoragetool {
 
 PayloadDumper::PayloadDumper(bsl::ostream&           ostream,
                              mqbs::DataFileIterator* dataFile_p,
-                             unsigned int            dumpLimit)
+                             unsigned int            dumpLimit,
+                             bslma::Allocator*       allocator)
 : d_ostream(ostream)
 , d_dataFile_p(dataFile_p)
 , d_dumpLimit(dumpLimit)
+, d_allocator_p(allocator)
 {
     // NOTHING
 }
@@ -60,9 +62,9 @@ void PayloadDumper::outputPayload(bsls::Types::Uint64 messageOffsetDwords)
         }
     }
 
-    mwcu::MemOutStream dataHeaderOsstr;
-    mwcu::MemOutStream optionsOsstr;
-    mwcu::MemOutStream propsOsstr;
+    mwcu::MemOutStream dataHeaderOsstr(d_allocator_p);
+    mwcu::MemOutStream optionsOsstr(d_allocator_p);
+    mwcu::MemOutStream propsOsstr(d_allocator_p);
 
     dataHeaderOsstr << it->dataHeader();
 
@@ -97,7 +99,7 @@ void PayloadDumper::outputPayload(bsls::Types::Uint64 messageOffsetDwords)
     }
 
     // Payload
-    mwcu::MemOutStream payloadOsstr;
+    mwcu::MemOutStream payloadOsstr(d_allocator_p);
     unsigned int minLen = d_dumpLimit > 0 ? bsl::min(appDataLen, d_dumpLimit)
                                           : appDataLen;
     payloadOsstr << "First " << minLen << " bytes of payload:" << '\n';

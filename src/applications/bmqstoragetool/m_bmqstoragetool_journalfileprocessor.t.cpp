@@ -916,8 +916,8 @@ static void test13_searchMessagesWithPayloadDumpTest()
     searchProcessor->process();
 
     // Prepare expected data
-    bsl::string              resultString = resultStream.str();
-    size_t                   startIdx     = 0;
+    bsl::string              resultString(resultStream.str(), s_allocator_p);
+    size_t                   startIdx = 0;
     bsl::vector<bsl::string> expectedPayloadSubstring(s_allocator_p);
     expectedPayloadSubstring.push_back("DATA_1");
     expectedPayloadSubstring.push_back("DATA_3");
@@ -1159,7 +1159,5 @@ int main(int argc, char* argv[])
     } break;
     }
 
-    // TODO: consider enable e_CHECK_DEF_GBL_ALLOC
-    // update: only two tests use default allocator by now (13 and 14)
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_GBL_ALLOC);
+    TEST_EPILOG(mwctst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }

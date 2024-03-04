@@ -146,7 +146,7 @@ class SearchShortResult : public SearchResult {
 
     // PRIVATE MANIPULATORS
 
-    void outputGuidData(GuidData guidData);
+    void outputGuidData(const GuidData& guidData);
     // Output result in short format (only GUIDs).
 
     // PRIVATE ACCESSORS
@@ -313,8 +313,8 @@ class SearchResultDecorator : public SearchResult {
     // CREATORS
 
     /// Constructor using the specified `component` and `allocator`.
-    SearchResultDecorator(const bsl::shared_ptr<SearchResult> component,
-                          bslma::Allocator*                   allocator);
+    SearchResultDecorator(const bsl::shared_ptr<SearchResult>& component,
+                          bslma::Allocator*                    allocator);
 
     // MANIPULATORS
 
@@ -365,9 +365,9 @@ class SearchResultTimestampDecorator : public SearchResultDecorator {
     /// Constructor using the specified `component`, `timestampLt` and
     /// `allocator`.
     SearchResultTimestampDecorator(
-        const bsl::shared_ptr<SearchResult> component,
-        const bsls::Types::Uint64           timestampLt,
-        bslma::Allocator*                   allocator);
+        const bsl::shared_ptr<SearchResult>& component,
+        const bsls::Types::Uint64            timestampLt,
+        bslma::Allocator*                    allocator);
 
     // MANIPULATORS
 
@@ -401,8 +401,8 @@ class SearchAllDecorator : public SearchResultDecorator {
     // CREATORS
 
     /// Constructor using the specified `component` and `allocator`.
-    SearchAllDecorator(const bsl::shared_ptr<SearchResult> component,
-                       bslma::Allocator*                   allocator);
+    SearchAllDecorator(const bsl::shared_ptr<SearchResult>& component,
+                       bslma::Allocator*                    allocator);
 
     // MANIPULATORS
 
@@ -436,9 +436,9 @@ class SearchOutstandingDecorator : public SearchResultDecorator {
     // CREATORS
 
     /// Constructor using the specified `component`, `ostream` and `allocator`.
-    SearchOutstandingDecorator(const bsl::shared_ptr<SearchResult> component,
-                               bsl::ostream&                       ostream,
-                               bslma::Allocator*                   allocator);
+    SearchOutstandingDecorator(const bsl::shared_ptr<SearchResult>& component,
+                               bsl::ostream&                        ostream,
+                               bslma::Allocator*                    allocator);
 
     // MANIPULATORS
 
@@ -483,9 +483,9 @@ class SearchPartiallyConfirmedDecorator : public SearchResultDecorator {
 
     /// Constructor using the specified `component`, `ostream` and `allocator`.
     SearchPartiallyConfirmedDecorator(
-        const bsl::shared_ptr<SearchResult> component,
-        bsl::ostream&                       ostream,
-        bslma::Allocator*                   allocator);
+        const bsl::shared_ptr<SearchResult>& component,
+        bsl::ostream&                        ostream,
+        bslma::Allocator*                    allocator);
 
     // MANIPULATORS
 
@@ -538,11 +538,11 @@ class SearchGuidDecorator : public SearchResultDecorator {
 
     /// Constructor using the specified `component`, `guids`, `ostream`,
     /// `withDetails` and `allocator`.
-    SearchGuidDecorator(const bsl::shared_ptr<SearchResult> component,
-                        const bsl::vector<bsl::string>&     guids,
-                        bsl::ostream&                       ostream,
-                        bool                                withDetails,
-                        bslma::Allocator*                   allocator);
+    SearchGuidDecorator(const bsl::shared_ptr<SearchResult>& component,
+                        const bsl::vector<bsl::string>&      guids,
+                        bsl::ostream&                        ostream,
+                        bool                                 withDetails,
+                        bslma::Allocator*                    allocator);
 
     // MANIPULATORS
 
@@ -584,6 +584,8 @@ class SummaryProcessor : public SearchResult {
     // Map guid -> counter of confirmed messages. If counter is greater than
     // zero and record exists, it means that this message is partially
     // confirmed.
+    bslma::Allocator* d_allocator_p;
+    // Pointer to allocator that is used inside the class.
 
   public:
     // CREATORS

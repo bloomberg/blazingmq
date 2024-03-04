@@ -187,7 +187,7 @@ int JournalFileIterator::nextRecord()
     return advance(1);
 }
 
-int JournalFileIterator::advance(const bsls::Types::Uint64 records)
+int JournalFileIterator::advance(const bsls::Types::Uint64 distance)
 {
     enum RcEnum {
         // Value for the various RC error categories
@@ -212,9 +212,9 @@ int JournalFileIterator::advance(const bsls::Types::Uint64 records)
     }
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
-            d_blockIter.advance(records == 1
+            d_blockIter.advance(distance == 1
                                     ? d_advanceLength
-                                    : records * d_recordSize) == false)) {
+                                    : distance * d_recordSize) == false)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
         clear();
         return rc_AT_END;  // RETURN
@@ -267,10 +267,10 @@ int JournalFileIterator::advance(const bsls::Types::Uint64 records)
     d_advanceLength = d_recordSize;
 
     if (d_blockIter.isForwardIterator()) {
-        d_journalRecordIndex += records;
+        d_journalRecordIndex += distance;
     }
     else {
-        d_journalRecordIndex -= records;
+        d_journalRecordIndex -= distance;
     }
 
     return rc_HAS_NEXT;

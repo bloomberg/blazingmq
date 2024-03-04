@@ -42,6 +42,8 @@ class PayloadDumper {
     // Pointer to data file iterator.
     unsigned int d_dumpLimit;
     // Dump limit value.
+    bslma::Allocator* d_allocator_p;
+    // Pointer to allocator that is used inside the class.
 
   public:
     // CREATORS
@@ -50,7 +52,8 @@ class PayloadDumper {
     /// `dumpLimit`.
     PayloadDumper(bsl::ostream&           ostream,
                   mqbs::DataFileIterator* dataFile_p,
-                  unsigned int            dumpLimit);
+                  unsigned int            dumpLimit,
+                  bslma::Allocator*       allocator);
 
     // MANIPULATORS
 

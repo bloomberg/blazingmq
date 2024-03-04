@@ -43,7 +43,8 @@ void printDataFileMeta(bsl::ostream&           ostream,
 
 // Helper to print journal file meta data
 void printJournalFileMeta(bsl::ostream&              ostream,
-                          mqbs::JournalFileIterator* journalFile_p)
+                          mqbs::JournalFileIterator* journalFile_p,
+                          bslma::Allocator*          allocator)
 {
     if (!journalFile_p || !journalFile_p->isValid()) {
         return;
@@ -55,11 +56,12 @@ void printJournalFileMeta(bsl::ostream&              ostream,
     mqbs::FileStoreProtocolPrinter::printHeader(
         ostream,
         journalFile_p->header(),
-        *journalFile_p->mappedFileDescriptor());
+        *journalFile_p->mappedFileDescriptor(),
+        allocator);
 
     // Print journal-specific fields
     ostream << "Journal SyncPoint:\n";
-    bsl::vector<const char*> fields;
+    bsl::vector<const char*> fields(allocator);
     fields.push_back("Last Valid Record Offset");
     fields.push_back("Record Type");
     fields.push_back("Record Timestamp");
@@ -140,7 +142,6 @@ void outputGuidString(bsl::ostream&            ostream,
                       const bool               addNewLine = true)
 {
     ostream << messageGUID;
-
     if (addNewLine)
         ostream << '\n';
 }
@@ -178,8 +179,8 @@ void outputFooter(bsl::ostream& ostream, bsl::size_t foundMessagesCount)
 // ===========================
 
 SearchResultDecorator::SearchResultDecorator(
-    const bsl::shared_ptr<SearchResult> component,
-    bslma::Allocator*                   allocator)
+    const bsl::shared_ptr<SearchResult>& component,
+    bslma::Allocator*                    allocator)
 : d_searchResult(component)
 , d_allocator_p(allocator)
 {
@@ -236,9 +237,9 @@ bool SearchResultTimestampDecorator::stop(bsls::Types::Uint64 timestamp) const
 }
 
 SearchResultTimestampDecorator::SearchResultTimestampDecorator(
-    const bsl::shared_ptr<SearchResult> component,
-    bsls::Types::Uint64                 timestampLt,
-    bslma::Allocator*                   allocator)
+    const bsl::shared_ptr<SearchResult>& component,
+    bsls::Types::Uint64                  timestampLt,
+    bslma::Allocator*                    allocator)
 : SearchResultDecorator(component, allocator)
 , d_timestampLt(timestampLt)
 {
@@ -373,7 +374,7 @@ void SearchShortResult::outputResult(
     outputResult();
 }
 
-void SearchShortResult::outputGuidData(GuidData guidData)
+void SearchShortResult::outputGuidData(const GuidData& guidData)
 {
     outputGuidString(d_ostream, guidData.first);
     if (d_payloadDumper)
@@ -526,8 +527,8 @@ bool SearchDetailResult::hasCache() const
 // class SearchAllDecorator
 // ========================
 SearchAllDecorator::SearchAllDecorator(
-    const bsl::shared_ptr<SearchResult> component,
-    bslma::Allocator*                   allocator)
+    const bsl::shared_ptr<SearchResult>& component,
+    bslma::Allocator*                    allocator)
 : SearchResultDecorator(component, allocator)
 {
     // NOTHING
@@ -548,9 +549,9 @@ bool SearchAllDecorator::processMessageRecord(
 // class SearchOutstandingDecorator
 // ================================
 SearchOutstandingDecorator::SearchOutstandingDecorator(
-    const bsl::shared_ptr<SearchResult> component,
-    bsl::ostream&                       ostream,
-    bslma::Allocator*                   allocator)
+    const bsl::shared_ptr<SearchResult>& component,
+    bsl::ostream&                        ostream,
+    bslma::Allocator*                    allocator)
 : SearchResultDecorator(component, allocator)
 , d_ostream(ostream)
 , d_foundMessagesCount(0)
@@ -601,9 +602,9 @@ void SearchOutstandingDecorator::outputResult()
 // class SearchPartiallyConfirmedDecorator
 // =======================================
 SearchPartiallyConfirmedDecorator::SearchPartiallyConfirmedDecorator(
-    const bsl::shared_ptr<SearchResult> component,
-    bsl::ostream&                       ostream,
-    bslma::Allocator*                   allocator)
+    const bsl::shared_ptr<SearchResult>& component,
+    bsl::ostream&                        ostream,
+    bslma::Allocator*                    allocator)
 : SearchResultDecorator(component, allocator)
 , d_ostream(ostream)
 , d_foundMessagesCount(0)
@@ -681,11 +682,11 @@ void SearchPartiallyConfirmedDecorator::outputResult()
 // class SearchGuidDecorator
 // =========================
 SearchGuidDecorator::SearchGuidDecorator(
-    const bsl::shared_ptr<SearchResult> component,
-    const bsl::vector<bsl::string>&     guids,
-    bsl::ostream&                       ostream,
-    bool                                withDetails,
-    bslma::Allocator*                   allocator)
+    const bsl::shared_ptr<SearchResult>& component,
+    const bsl::vector<bsl::string>&      guids,
+    bsl::ostream&                        ostream,
+    bool                                 withDetails,
+    bslma::Allocator*                    allocator)
 : SearchResultDecorator(component, allocator)
 , d_ostream(ostream)
 , d_withDetails(withDetails)
@@ -760,6 +761,7 @@ SummaryProcessor::SummaryProcessor(bsl::ostream&              ostream,
 , d_foundMessagesCount(0)
 , d_deletedMessagesCount(0)
 , d_partiallyConfirmedGUIDS(allocator)
+, d_allocator_p(allocator)
 {
     // NOTHING
 }
@@ -833,7 +835,7 @@ void SummaryProcessor::outputResult()
                            d_deletedMessagesCount);
 
     // Print meta data of opened files
-    printJournalFileMeta(d_ostream, d_journalFile_p);
+    printJournalFileMeta(d_ostream, d_journalFile_p, d_allocator_p);
     printDataFileMeta(d_ostream, d_dataFile_p);
 }
 

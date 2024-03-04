@@ -668,7 +668,7 @@ char* addDataRecords(bslma::Allocator*          ta,
     return p;
 }
 
-void outputGuidString(std::ostream&            ostream,
+void outputGuidString(bsl::ostream&            ostream,
                       const bmqt::MessageGUID& messageGUID,
                       const bool               addNewLine)
 {
