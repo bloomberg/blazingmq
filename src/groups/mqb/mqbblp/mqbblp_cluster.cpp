@@ -3136,6 +3136,23 @@ void Cluster::processClusterControlMessage(
                 source),
             this);
     } break;  // BREAK
+    case MsgChoice::SELECTION_ID_STATE_NOTIFICATION: {
+        dispatcher()->execute(
+            bdlf::BindUtil::bind(
+                &ClusterOrchestrator::processStateNotification,
+                &d_clusterOrchestrator,
+                message,
+                source),
+            this);
+    } break;  // BREAK
+    case MsgChoice::SELECTION_ID_STOP_REQUEST: {
+        dispatcher()->execute(
+            bdlf::BindUtil::bind(&ClusterOrchestrator::processStopRequest,
+                                 &d_clusterOrchestrator,
+                                 message,
+                                 source),
+            this);
+    } break;  // BREAK
     case MsgChoice::SELECTION_ID_CLUSTER_STATE_F_S_M_MESSAGE: {
         dispatcher()->execute(
             bdlf::BindUtil::bind(
@@ -3144,7 +3161,7 @@ void Cluster::processClusterControlMessage(
                 message,
                 source),
             this);
-    } break;
+    } break;  // BREAK
     case MsgChoice::SELECTION_ID_PARTITION_MESSAGE: {
         dispatcher()->execute(
             bdlf::BindUtil::bind(&ClusterOrchestrator::processPartitionMessage,
@@ -3152,7 +3169,7 @@ void Cluster::processClusterControlMessage(
                                  message,
                                  source),
             this);
-    } break;
+    } break;  // BREAK
     case MsgChoice::SELECTION_ID_UNDEFINED:
     default: {
         MWCTSK_ALARMLOG_ALARM("CLUSTER")
