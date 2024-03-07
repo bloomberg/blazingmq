@@ -20,8 +20,8 @@
 //@PURPOSE: Provide a VST representing the non-persistent state of a cluster.
 //
 //@CLASSES:
-//  mqbc::ClusterDataIdentity:      VST for the identity of a cluster
-//  mqbc::ClusterData:              VST for non-persistent state of a cluster
+//  mqbc::ClusterDataIdentity: VST for the identity of a cluster
+//  mqbc::ClusterData:         VST for non-persistent state of a cluster
 //
 //@DESCRIPTION: 'mqbc::ClusterData' is a value-semantic type representing the
 // non-persistent state of a cluster.
@@ -79,10 +79,6 @@ class ClusterDataIdentity {
   private:
     // DATA
 
-    // from mqbblp::ClusterState
-    bslma::Allocator* d_allocator_p;
-    // Allocator to use
-
     bsl::string d_name;
     // Name of the cluster
 
@@ -95,33 +91,19 @@ class ClusterDataIdentity {
     // request to that node
 
   public:
-    // TRAITS
-    BSLMF_NESTED_TRAIT_DECLARATION(ClusterDataIdentity,
-                                   bslma::UsesBslmaAllocator)
-
     // CREATORS
 
     /// Create a `mqbc::ClusterDataIdentity` with the specified `name`,
-    /// `identity` and `selfNode` values.  Use the optionally specified
-    /// `allocator` for any memory allocation.
+    /// `description` and `identity`.
     ClusterDataIdentity(const bsl::string&                  name,
-                        const bmqp_ctrlmsg::ClientIdentity& identity,
-                        bslma::Allocator*                   allocator = 0);
-
-    // MANIPULATORS
-    ClusterDataIdentity& setName(const bsl::string& value);
-    ClusterDataIdentity& setDescription(const bsl::string& value);
-
-    /// Set the corresponding member to the specified `value` and return a
-    /// reference offering modifiable access to this object.
-    ClusterDataIdentity&
-    setIdentity(const bmqp_ctrlmsg::ClientIdentity& value);
+                        const bsl::string&                  description,
+                        const bmqp_ctrlmsg::ClientIdentity& identity);
 
     // ACCESSORS
-    const bsl::string& name() const;
-    const bsl::string& description() const;
 
     /// Return the value of the corresponding member of this object.
+    const bsl::string&                  name() const;
+    const bsl::string&                  description() const;
     const bmqp_ctrlmsg::ClientIdentity& identity() const;
 };
 
@@ -321,42 +303,13 @@ class ClusterData {
 // CREATORS
 inline ClusterDataIdentity::ClusterDataIdentity(
     const bsl::string&                  name,
-    const bmqp_ctrlmsg::ClientIdentity& identity,
-    bslma::Allocator*                   allocator)
-: d_allocator_p(bslma::Default::allocator(allocator))
-, d_name(name)
-, d_description(allocator)
+    const bsl::string&                  description,
+    const bmqp_ctrlmsg::ClientIdentity& identity)
+: d_name(name)
+, d_description(description)
 , d_identity(identity)
 {
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_allocator_p);
-
-    bdlma::LocalSequentialAllocator<256> localAllocator(d_allocator_p);
-    mwcu::MemOutStream                   os(&localAllocator);
-    os << "Cluster (" << d_name << ")";
-    d_description.assign(os.str().data(), os.str().length());
-}
-
-// MANIPULATORS
-inline ClusterDataIdentity&
-ClusterDataIdentity::setName(const bsl::string& value)
-{
-    d_name = value;
-    return *this;
-}
-
-inline ClusterDataIdentity&
-ClusterDataIdentity::setDescription(const bsl::string& value)
-{
-    d_description = value;
-    return *this;
-}
-
-inline ClusterDataIdentity&
-ClusterDataIdentity::setIdentity(const bmqp_ctrlmsg::ClientIdentity& value)
-{
-    d_identity = value;
-    return *this;
+    // NOTHING
 }
 
 // ACCESSORS
