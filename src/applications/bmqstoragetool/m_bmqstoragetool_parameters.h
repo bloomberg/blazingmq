@@ -96,6 +96,8 @@ struct CommandLineArguments {
 
 struct Parameters {
     // PUBLIC DATA
+    QueueMap d_queueMap;
+    // Queue map containing uri to key and key to info mappings
     bsls::Types::Int64 d_timestampGt;
     // Filter messages by minimum timestamp
     bsls::Types::Int64 d_timestampLt;
@@ -120,8 +122,6 @@ struct Parameters {
     // Show only messages, confirmed by all the appId's
     bool d_partiallyConfirmed;
     // Show only messages, confirmed by some of the appId's
-    QueueMap d_queueMap;
-    // Queue map containing uri to key and key to info mappings
 
     // CREATORS
     /// Default constructor

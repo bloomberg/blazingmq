@@ -56,7 +56,8 @@ static void test1_breathingTest()
                                                 fileManager,
                                                 bsl::cout,
                                                 s_allocator_p);
-    ASSERT_NE(dynamic_cast<SearchResult*>(searchResult.get()), nullptr);
+    ASSERT_NE(dynamic_cast<SearchResult*>(searchResult.get()),
+              bsl::nullptr_t());
 }
 
 // ============================================================================

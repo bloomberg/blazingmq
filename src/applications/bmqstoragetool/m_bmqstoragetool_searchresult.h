@@ -69,6 +69,14 @@ namespace m_bmqstoragetool {
 /// This class provides an interface for search processors.
 class SearchResult {
   protected:
+    // PROTECTED TYPES
+
+    typedef bsl::list<bmqt::MessageGUID> GuidsList;
+    // List of message guids.
+    typedef bsl::unordered_map<bmqt::MessageGUID, GuidsList::iterator>
+        GuidsMap;
+    // Hash map of message guids to iterators of GuidsList.
+
     virtual bool hasCache() const { return false; }
     // Return `false` if all required data is processed, e.g. all given GUIDs
     // are output and search could be stopped. Return `true` to indicate that
@@ -78,7 +86,7 @@ class SearchResult {
     // CREATORS
 
     /// Destructor
-    virtual ~SearchResult() = default;
+    virtual ~SearchResult(){};
 
     // MANIPULATORS
 
@@ -100,8 +108,7 @@ class SearchResult {
     /// Output result of a search.
     virtual void outputResult() = 0;
     /// Output result of a search filtered by the specified GUIDs filter.
-    virtual void
-    outputResult(const bsl::unordered_set<bmqt::MessageGUID>& guidFilter) = 0;
+    virtual void outputResult(const GuidsList& guidFilter) = 0;
 };
 
 // =======================
@@ -116,8 +123,13 @@ class SearchShortResult : public SearchResult {
 
     typedef bsl::pair<bmqt::MessageGUID, bsls::Types::Uint64> GuidData;
     // Pair that represents guid short result.
-    typedef bsl::list<GuidData>::iterator GuidListIt;
+    typedef bsl::list<GuidData> GuidDataList;
     // List iterator for guid short result.
+    typedef bsl::list<GuidData>::iterator GuidDataListIt;
+    // List iterator for guid short result.
+    typedef bsl::unordered_map<bmqt::MessageGUID, GuidDataListIt> GuidDataMap;
+    // Hash map of message guids to iterators pointing to coresponding GuidData
+    // objects in a list.
 
     // PRIVATE DATA
 
@@ -137,7 +149,7 @@ class SearchShortResult : public SearchResult {
     // If 'true', print message guid when 'deleted' record is received.
     bsl::size_t d_printedMessagesCount;
     // Counter of already output (printed) messages.
-    bsl::unordered_map<bmqt::MessageGUID, GuidListIt> d_guidMap;
+    GuidDataMap d_guidMap;
     // Map to store guid and list iterator, for fast searching by guid.
     bsl::list<GuidData> d_guidList;
     // List to store ordered guid data to preserve messages order for output.
@@ -191,8 +203,7 @@ class SearchShortResult : public SearchResult {
     /// Output result of a search.
     void outputResult() BSLS_KEYWORD_OVERRIDE;
     /// Output result of a search filtered by the specified GUIDs filter.
-    void outputResult(const bsl::unordered_set<bmqt::MessageGUID>& guidFilter)
-        BSLS_KEYWORD_OVERRIDE;
+    void outputResult(const GuidsList& guidFilter) BSLS_KEYWORD_OVERRIDE;
 };
 
 // ========================
@@ -204,9 +215,11 @@ class SearchDetailResult : public SearchResult {
   private:
     // PRIVATE TYPES
 
-    typedef bsl::unordered_map<bmqt::MessageGUID, MessageDetails>
-        MessagesDetails;
-    // Type that represents map for guid and message details.
+    typedef bsl::list<MessageDetails> DetailsList;
+    // List of message details.
+    typedef bsl::unordered_map<bmqt::MessageGUID, DetailsList::iterator>
+        DetailsMap;
+    // Hash map of message guids to message details.
 
     // PRIVATE DATA
 
@@ -229,10 +242,11 @@ class SearchDetailResult : public SearchResult {
     // result.
     bsl::size_t d_printedMessagesCount;
     // Printed messages count.
-    MessagesDetails d_messagesDetails;
-    // Storage for messages details.
-    bsl::map<bsls::Types::Uint64, bmqt::MessageGUID> d_messageIndexToGuidMap;
-    // Map to store sorted indexes to preserve messages order for output.
+    DetailsList d_messageDetailsList;
+    // List of message details to preserve messages order for output.
+    DetailsMap d_messageDetailsMap;
+    // Hash map of message guids to message details for fast access.
+
     bslma::Allocator* d_allocator_p;
     // Allocator used inside the class.
 
@@ -243,7 +257,7 @@ class SearchDetailResult : public SearchResult {
                            bsls::Types::Uint64        recordOffset);
     // Add message details into internal storage with the specified 'record',
     // 'recordIndex' and 'recordOffset'.
-    void deleteMessageDetails(MessagesDetails::iterator iterator);
+    void deleteMessageDetails(DetailsMap::iterator iterator);
     // Delete message details into internal storage with the specified
     // 'iterator'.
     void outputMessageDetails(const MessageDetails& messageDetails);
@@ -292,8 +306,7 @@ class SearchDetailResult : public SearchResult {
     /// Output result of a search.
     void outputResult() BSLS_KEYWORD_OVERRIDE;
     /// Output result of a search filtered by the specified GUIDs filter.
-    void outputResult(const bsl::unordered_set<bmqt::MessageGUID>& guidFilter)
-        BSLS_KEYWORD_OVERRIDE;
+    void outputResult(const GuidsList& guidFilter) BSLS_KEYWORD_OVERRIDE;
 };
 
 // ===========================
@@ -339,8 +352,7 @@ class SearchResultDecorator : public SearchResult {
     /// Output result of a search.
     void outputResult() BSLS_KEYWORD_OVERRIDE;
     /// Output result of a search filtered by the specified GUIDs filter.
-    void outputResult(const bsl::unordered_set<bmqt::MessageGUID>& guidFilter)
-        BSLS_KEYWORD_OVERRIDE;
+    void outputResult(const GuidsList& guidFilter) BSLS_KEYWORD_OVERRIDE;
 };
 
 // ====================================
@@ -473,10 +485,15 @@ class SearchPartiallyConfirmedDecorator : public SearchResultDecorator {
     // Counter of found messages.
     bsl::size_t d_deletedMessagesCount;
     // Counter of deleted messages.
-    bsl::unordered_map<bmqt::MessageGUID, size_t> d_partiallyConfirmedGUIDS;
-    // Map guid -> counter of confirmed messages. If counter is greater than
-    // zero and record exists, it means that this message is partially
-    // confirmed.
+    GuidsList d_guidsList;
+    // List of message guids to retain the order thir original order.
+    GuidsMap d_notConfirmedGuids;
+    // Map guid -> iterator to d_guidsList. Messages stored here have neither
+    // confirmation messages no delete message associated with them.
+    GuidsMap d_partiallyConfirmedGuids;
+    // Map guid -> iterator to d_guidsList list of messages. Messages stored
+    // here have at leas one confirmation message and no delete message
+    // associated with them.
 
   public:
     // CREATORS
@@ -518,19 +535,14 @@ class SearchPartiallyConfirmedDecorator : public SearchResultDecorator {
 /// This class provides decorator to handle search of given GUIDs.
 class SearchGuidDecorator : public SearchResultDecorator {
   private:
-    // PRIVATE TYPES
-
-    typedef bsl::list<bsl::string>::iterator GuidListIt;
-    // Guids list iterator.
-
     // PRIVATE DATA
     bsl::ostream& d_ostream;
     // Reference to output stream.
     bool d_withDetails;
     // If 'true', output detailed result, output short one otherwise.
-    bsl::unordered_map<bmqt::MessageGUID, GuidListIt> d_guidsMap;
+    GuidsMap d_guidsMap;
     // Map guid -> guids list iterator.
-    bsl::list<bsl::string> d_guids;
+    GuidsList d_guids;
     // List to store ordered guid data to preserve messages order for output.
 
   public:
@@ -569,6 +581,10 @@ class SearchGuidDecorator : public SearchResultDecorator {
 /// This class provides logic to process summary of journal file.
 class SummaryProcessor : public SearchResult {
   private:
+    // PTIVATE TYPES
+    typedef bsl::unordered_set<bmqt::MessageGUID> GuidsSet;
+    // Set of message guids.
+
     // PRIVATE DATA
     bsl::ostream& d_ostream;
     // Reference to output stream.
@@ -580,10 +596,12 @@ class SummaryProcessor : public SearchResult {
     // Counter of found messages.
     bsl::size_t d_deletedMessagesCount;
     // Counter of deleted messages.
-    bsl::unordered_map<bmqt::MessageGUID, size_t> d_partiallyConfirmedGUIDS;
-    // Map guid -> counter of confirmed messages. If counter is greater than
-    // zero and record exists, it means that this message is partially
-    // confirmed.
+    GuidsSet d_notConfirmedGuids;
+    // Set of message guids. Messages stored here have neither confirmation
+    // messages no delete message associated with them.
+    GuidsSet d_partiallyConfirmedGuids;
+    // Set of message guids. Messages stored here have at leas one confirmation
+    // message and no delete message associated with them.
     bslma::Allocator* d_allocator_p;
     // Pointer to allocator that is used inside the class.
 
@@ -620,8 +638,7 @@ class SummaryProcessor : public SearchResult {
     /// Output result of a search.
     void outputResult() BSLS_KEYWORD_OVERRIDE;
     /// Output result of a search filtered by the specified GUIDs filter.
-    void outputResult(const bsl::unordered_set<bmqt::MessageGUID>& guidFilter)
-        BSLS_KEYWORD_OVERRIDE;
+    void outputResult(const GuidsList& guidFilter) BSLS_KEYWORD_OVERRIDE;
 };
 
 }  // close package namespace

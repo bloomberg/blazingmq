@@ -24,6 +24,9 @@
 #include <mwcu_alignedprinter.h>
 #include <mwcu_memoutstream.h>
 
+// BDE
+#include <bsl_cmath.h>
+
 namespace BloombergLP {
 namespace m_bmqstoragetool {
 
@@ -155,8 +158,10 @@ void outputOutstandingRatio(bsl::ostream& ostream,
         bsl::size_t outstandingMessages = totalMessagesCount -
                                           deletedMessagesCount;
         ostream << "Outstanding ratio: "
-                << bsl::round(float(outstandingMessages) /
-                              float(totalMessagesCount) * 100.0)
+                << static_cast<int>(bsl::floor(float(outstandingMessages) /
+                                                   float(totalMessagesCount) *
+                                                   100.0f +
+                                               0.5f))
                 << "% (" << outstandingMessages << "/" << totalMessagesCount
                 << ")" << '\n';
     }
@@ -221,8 +226,7 @@ void SearchResultDecorator::outputResult()
     d_searchResult->outputResult();
 }
 
-void SearchResultDecorator::outputResult(
-    const bsl::unordered_set<bmqt::MessageGUID>& guidFilter)
+void SearchResultDecorator::outputResult(const GuidsList& guidFilter)
 {
     d_searchResult->outputResult(guidFilter);
 }
@@ -335,8 +339,8 @@ bool SearchShortResult::processDeletionRecord(
     BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 recordOffset)
 {
     if (!d_printImmediately && (d_printOnDelete || d_eraseDeleted)) {
-        if (auto it = d_guidMap.find(record.messageGUID());
-            it != d_guidMap.end()) {
+        GuidDataMap::iterator it = d_guidMap.find(record.messageGUID());
+        if (it != d_guidMap.end()) {
             if (d_printOnDelete) {
                 outputGuidData(*it->second);
             }
@@ -353,25 +357,33 @@ void SearchShortResult::outputResult()
 {
     if (!d_printOnDelete) {
         // Print results that were not printed on Delete record processing
-        for (const auto& guidData : d_guidList) {
-            outputGuidData(guidData);
+        bsl::list<GuidData>::const_iterator it = d_guidList.cbegin();
+        for (; it != d_guidList.cend(); ++it) {
+            outputGuidData(*it);
         }
     }
 
     outputFooter(d_ostream, d_printedMessagesCount);
 }
 
-void SearchShortResult::outputResult(
-    const bsl::unordered_set<bmqt::MessageGUID>& guidFilter)
+void SearchShortResult::outputResult(const GuidsList& guidFilter)
 {
-    // Remove guids from list that do not match filter
-    bsl::erase_if(d_guidList, [&guidFilter](const GuidData& guidData) {
-        return bsl::find(guidFilter.begin(),
-                         guidFilter.end(),
-                         guidData.first) == guidFilter.end();
-    });
+    // Print only Guids from `guidFilter`
+    if (!d_printOnDelete) {
+        GuidsList::const_iterator it = guidFilter.cbegin();
+        for (; it != guidFilter.cend(); ++it) {
+            GuidDataMap::const_iterator gIt = d_guidMap.find(*it);
+            if (gIt != d_guidMap.end()) {
+                outputGuidData(*gIt->second);
+            }
+            else {
+                // this should not happen
+                d_ostream << "Logic error : guid " << *it << " not found\n";
+            }
+        }
+    }
 
-    outputResult();
+    outputFooter(d_ostream, d_printedMessagesCount);
 }
 
 void SearchShortResult::outputGuidData(const GuidData& guidData)
@@ -385,7 +397,7 @@ void SearchShortResult::outputGuidData(const GuidData& guidData)
 
 bool SearchShortResult::hasCache() const
 {
-    return d_guidList.size() > 0;
+    return !d_guidList.empty();
 }
 
 // ========================
@@ -407,8 +419,8 @@ SearchDetailResult::SearchDetailResult(
 , d_eraseDeleted(eraseDeleted)
 , d_cleanUnprinted(cleanUnprinted)
 , d_printedMessagesCount(0)
-, d_messagesDetails(allocator)
-, d_messageIndexToGuidMap(allocator)
+, d_messageDetailsList(allocator)
+, d_messageDetailsMap(allocator)
 , d_allocator_p(allocator)
 {
     // NOTHING
@@ -431,9 +443,9 @@ bool SearchDetailResult::processConfirmRecord(
     bsls::Types::Uint64        recordOffset)
 {
     // Store record details for further output
-    if (auto it = d_messagesDetails.find(record.messageGUID());
-        it != d_messagesDetails.end()) {
-        it->second.addConfirmRecord(record, recordIndex, recordOffset);
+    DetailsMap::iterator it = d_messageDetailsMap.find(record.messageGUID());
+    if (it != d_messageDetailsMap.end()) {
+        it->second->addConfirmRecord(record, recordIndex, recordOffset);
     }
 
     return false;
@@ -444,12 +456,12 @@ bool SearchDetailResult::processDeletionRecord(
     bsls::Types::Uint64         recordIndex,
     bsls::Types::Uint64         recordOffset)
 {
-    if (auto it = d_messagesDetails.find(record.messageGUID());
-        it != d_messagesDetails.end()) {
+    DetailsMap::iterator it = d_messageDetailsMap.find(record.messageGUID());
+    if (it != d_messageDetailsMap.end()) {
         if (d_printImmediately) {
             // Print message details immediately
-            it->second.addDeleteRecord(record, recordIndex, recordOffset);
-            outputMessageDetails(it->second);
+            it->second->addDeleteRecord(record, recordIndex, recordOffset);
+            outputMessageDetails(*it->second);
         }
         if (d_eraseDeleted) {
             // Delete record if it is not needed anymore
@@ -462,50 +474,52 @@ bool SearchDetailResult::processDeletionRecord(
 
 void SearchDetailResult::outputResult()
 {
-    if (d_cleanUnprinted) {
-        d_messageIndexToGuidMap.clear();
-    }
-
-    for (const auto& item : d_messageIndexToGuidMap) {
-        const auto& messageDetails = d_messagesDetails.at(item.second);
-        outputMessageDetails(messageDetails);
+    if (!d_cleanUnprinted) {
+        DetailsList::const_iterator it = d_messageDetailsList.cbegin();
+        for (; it != d_messageDetailsList.cend(); ++it) {
+            outputMessageDetails(*it);
+        }
     }
 
     outputFooter(d_ostream, d_printedMessagesCount);
 }
 
-void SearchDetailResult::outputResult(
-    const bsl::unordered_set<bmqt::MessageGUID>& guidFilter)
+void SearchDetailResult::outputResult(const GuidsList& guidFilter)
 {
-    // Remove guids from map that do not match filter
-    bsl::erase_if(
-        d_messageIndexToGuidMap,
-        [&guidFilter](
-            const bsl::pair<bsls::Types::Uint64, bmqt::MessageGUID>& pair) {
-            return bsl::find(guidFilter.begin(),
-                             guidFilter.end(),
-                             pair.second) == guidFilter.end();
-        });
+    // Print only Guids from `guidFilter`
+    if (!d_cleanUnprinted) {
+        GuidsList::const_iterator it = guidFilter.cbegin();
+        for (; it != guidFilter.cend(); ++it) {
+            DetailsMap::const_iterator dIt = d_messageDetailsMap.find(*it);
+            if (dIt != d_messageDetailsMap.end()) {
+                outputMessageDetails(*dIt->second);
+            }
+            else {
+                // this should not happen
+                d_ostream << "Logic error : guid " << *it << " not found\n";
+            }
+        }
+    }
 
-    outputResult();
+    outputFooter(d_ostream, d_printedMessagesCount);
 }
 
 void SearchDetailResult::addMessageDetails(const mqbs::MessageRecord& record,
                                            bsls::Types::Uint64 recordIndex,
                                            bsls::Types::Uint64 recordOffset)
 {
-    d_messagesDetails.emplace(
+    d_messageDetailsMap.emplace(
         record.messageGUID(),
-        MessageDetails(record, recordIndex, recordOffset, d_allocator_p));
-    d_messageIndexToGuidMap.emplace(recordIndex, record.messageGUID());
+        d_messageDetailsList.insert(
+            d_messageDetailsList.cend(),
+            MessageDetails(record, recordIndex, recordOffset, d_allocator_p)));
 }
 
-void SearchDetailResult::deleteMessageDetails(
-    MessagesDetails::iterator iterator)
+void SearchDetailResult::deleteMessageDetails(DetailsMap::iterator iterator)
 {
-    // Erase record from both maps
-    d_messagesDetails.erase(iterator);
-    d_messageIndexToGuidMap.erase(iterator->second.messageRecordIndex());
+    // Erase record from both containers
+    d_messageDetailsList.erase(iterator->second);
+    d_messageDetailsMap.erase(iterator);
 }
 
 void SearchDetailResult::outputMessageDetails(
@@ -520,7 +534,7 @@ void SearchDetailResult::outputMessageDetails(
 
 bool SearchDetailResult::hasCache() const
 {
-    return d_messagesDetails.size() > 0;
+    return !d_messageDetailsMap.empty();
 }
 
 // ========================
@@ -582,7 +596,9 @@ bool SearchOutstandingDecorator::processDeletionRecord(
     SearchResultDecorator::processDeletionRecord(record,
                                                  recordIndex,
                                                  recordOffset);
-    if (auto it = d_guids.find(record.messageGUID()); it != d_guids.end()) {
+    bsl::unordered_set<bmqt::MessageGUID>::iterator it = d_guids.find(
+        record.messageGUID());
+    if (it != d_guids.end()) {
         d_guids.erase(it);
         d_deletedMessagesCount++;
     }
@@ -609,7 +625,9 @@ SearchPartiallyConfirmedDecorator::SearchPartiallyConfirmedDecorator(
 , d_ostream(ostream)
 , d_foundMessagesCount(0)
 , d_deletedMessagesCount(0)
-, d_partiallyConfirmedGUIDS(allocator)
+, d_guidsList(allocator)
+, d_notConfirmedGuids(allocator)
+, d_partiallyConfirmedGuids(allocator)
 {
     // NOTHING
 }
@@ -622,8 +640,9 @@ bool SearchPartiallyConfirmedDecorator::processMessageRecord(
     SearchResultDecorator::processMessageRecord(record,
                                                 recordIndex,
                                                 recordOffset);
-    // Init confirm count
-    d_partiallyConfirmedGUIDS[record.messageGUID()] = 0;
+    d_notConfirmedGuids.emplace(record.messageGUID(),
+                                d_guidsList.insert(d_guidsList.cend(),
+                                                   record.messageGUID()));
     d_foundMessagesCount++;
     return false;
 }
@@ -636,10 +655,11 @@ bool SearchPartiallyConfirmedDecorator::processConfirmRecord(
     SearchResultDecorator::processConfirmRecord(record,
                                                 recordIndex,
                                                 recordOffset);
-    if (auto it = d_partiallyConfirmedGUIDS.find(record.messageGUID());
-        it != d_partiallyConfirmedGUIDS.end()) {
-        // Message is partially confirmed, increase counter.
-        it->second++;
+    GuidsMap::iterator it = d_notConfirmedGuids.find(record.messageGUID());
+    if (it != d_notConfirmedGuids.end()) {
+        // Message is partially confirmed, move it to the dedicated map.
+        d_partiallyConfirmedGuids.emplace(*it);
+        d_notConfirmedGuids.erase(it);
     }
 
     return false;
@@ -653,10 +673,12 @@ bool SearchPartiallyConfirmedDecorator::processDeletionRecord(
     SearchResultDecorator::processDeletionRecord(record,
                                                  recordIndex,
                                                  recordOffset);
-    if (auto it = d_partiallyConfirmedGUIDS.find(record.messageGUID());
-        it != d_partiallyConfirmedGUIDS.end()) {
+    GuidsMap::iterator it = d_partiallyConfirmedGuids.find(
+        record.messageGUID());
+    if (it != d_partiallyConfirmedGuids.end()) {
         // Message is confirmed, remove it.
-        d_partiallyConfirmedGUIDS.erase(it);
+        d_guidsList.erase(it->second);
+        d_partiallyConfirmedGuids.erase(it);
         d_deletedMessagesCount++;
     }
 
@@ -665,14 +687,11 @@ bool SearchPartiallyConfirmedDecorator::processDeletionRecord(
 
 void SearchPartiallyConfirmedDecorator::outputResult()
 {
-    // Build a filter of partially confirmed guids
-    bsl::unordered_set<bmqt::MessageGUID> guidFilter(d_allocator_p);
-    for (const auto& pair : d_partiallyConfirmedGUIDS) {
-        if (pair.second > 0) {
-            guidFilter.insert(pair.first);
-        }
+    GuidsMap::const_iterator it = d_notConfirmedGuids.cbegin();
+    for (; it != d_notConfirmedGuids.cend(); ++it) {
+        d_guidsList.erase(it->second);
     }
-    SearchResultDecorator::outputResult(guidFilter);
+    SearchResultDecorator::outputResult(d_guidsList);
     outputOutstandingRatio(d_ostream,
                            d_foundMessagesCount,
                            d_deletedMessagesCount);
@@ -694,10 +713,11 @@ SearchGuidDecorator::SearchGuidDecorator(
 , d_guids(allocator)
 {
     // Build MessageGUID->StrGUID Map
-    for (const auto& guidStr : guids) {
+    bsl::vector<bsl::string>::const_iterator it = guids.cbegin();
+    for (; it != guids.cend(); ++it) {
         bmqt::MessageGUID guid;
-        d_guidsMap[guid.fromHex(guidStr.c_str())] =
-            d_guids.insert(d_guids.cend(), guidStr);
+        guid.fromHex(it->c_str());
+        d_guidsMap.emplace(guid, d_guids.insert(d_guids.cend(), guid));
     }
 }
 
@@ -706,8 +726,8 @@ bool SearchGuidDecorator::processMessageRecord(
     bsls::Types::Uint64        recordIndex,
     bsls::Types::Uint64        recordOffset)
 {
-    if (auto it = d_guidsMap.find(record.messageGUID());
-        it != d_guidsMap.end()) {
+    GuidsMap::iterator it = d_guidsMap.find(record.messageGUID());
+    if (it != d_guidsMap.end()) {
         SearchResultDecorator::processMessageRecord(record,
                                                     recordIndex,
                                                     recordOffset);
@@ -741,8 +761,9 @@ void SearchGuidDecorator::outputResult()
         d_ostream << '\n'
                   << "The following " << d_guids.size()
                   << " GUID(s) not found:" << '\n';
-        for (const auto& guid : d_guids) {
-            d_ostream << guid << '\n';
+        GuidsList::const_iterator it = d_guids.cbegin();
+        for (; it != d_guids.cend(); ++it) {
+            outputGuidString(d_ostream, *it);
         }
     }
 }
@@ -760,7 +781,8 @@ SummaryProcessor::SummaryProcessor(bsl::ostream&              ostream,
 , d_dataFile_p(dataFile_p)
 , d_foundMessagesCount(0)
 , d_deletedMessagesCount(0)
-, d_partiallyConfirmedGUIDS(allocator)
+, d_notConfirmedGuids(allocator)
+, d_partiallyConfirmedGuids(allocator)
 , d_allocator_p(allocator)
 {
     // NOTHING
@@ -771,7 +793,7 @@ bool SummaryProcessor::processMessageRecord(
     BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 recordIndex,
     BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 recordOffset)
 {
-    d_partiallyConfirmedGUIDS[record.messageGUID()] = 0;
+    d_notConfirmedGuids.emplace(record.messageGUID());
     d_foundMessagesCount++;
 
     return false;
@@ -782,10 +804,11 @@ bool SummaryProcessor::processConfirmRecord(
     BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 recordIndex,
     BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 recordOffset)
 {
-    if (auto it = d_partiallyConfirmedGUIDS.find(record.messageGUID());
-        it != d_partiallyConfirmedGUIDS.end()) {
-        // Message is partially confirmed, increase counter.
-        it->second++;
+    GuidsSet::iterator it = d_notConfirmedGuids.find(record.messageGUID());
+    if (it != d_notConfirmedGuids.end()) {
+        // Message is partially confirmed, move it to the dedeicated set.
+        d_partiallyConfirmedGuids.emplace(*it);
+        d_notConfirmedGuids.erase(it);
     }
 
     return false;
@@ -796,10 +819,11 @@ bool SummaryProcessor::processDeletionRecord(
     BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 recordIndex,
     BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 recordOffset)
 {
-    if (auto it = d_partiallyConfirmedGUIDS.find(record.messageGUID());
-        it != d_partiallyConfirmedGUIDS.end()) {
+    GuidsSet::iterator it = d_partiallyConfirmedGuids.find(
+        record.messageGUID());
+    if (it != d_partiallyConfirmedGuids.end()) {
         // Message is confirmed, remove it.
-        d_partiallyConfirmedGUIDS.erase(it);
+        d_partiallyConfirmedGuids.erase(it);
         d_deletedMessagesCount++;
     }
 
@@ -808,15 +832,6 @@ bool SummaryProcessor::processDeletionRecord(
 
 void SummaryProcessor::outputResult()
 {
-    // Calculate number of partially confirmed messages
-    size_t partiallyConfirmedMessagesCount = 0;
-    for (const auto& item : d_partiallyConfirmedGUIDS) {
-        auto confirmCount = item.second;
-        if (confirmCount > 0) {
-            partiallyConfirmedMessagesCount++;
-        }
-    }
-
     if (d_foundMessagesCount == 0) {
         d_ostream << "No messages found." << '\n';
         return;  // RETURN
@@ -826,7 +841,7 @@ void SummaryProcessor::outputResult()
     d_ostream << "Number of confirmed messages: " << d_deletedMessagesCount
               << '\n';
     d_ostream << "Number of partially confirmed messages: "
-              << partiallyConfirmedMessagesCount << '\n';
+              << d_partiallyConfirmedGuids.size() << '\n';
     d_ostream << "Number of outstanding messages: "
               << (d_foundMessagesCount - d_deletedMessagesCount) << '\n';
 
@@ -840,8 +855,7 @@ void SummaryProcessor::outputResult()
 }
 
 void SummaryProcessor::outputResult(
-    BSLS_ANNOTATION_UNUSED const bsl::unordered_set<bmqt::MessageGUID>&
-                                 guidFilter)
+    BSLS_ANNOTATION_UNUSED const GuidsList& guidFilter)
 {
     outputResult();
 }

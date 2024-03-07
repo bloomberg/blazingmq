@@ -57,7 +57,7 @@ static void test1_breathingTest()
                                                         bsl::cout,
                                                         s_allocator_p);
     ASSERT_NE(dynamic_cast<JournalFileProcessor*>(cmdProcessor.get()),
-              nullptr);
+              bsl::nullptr_t());
 }
 
 // ============================================================================

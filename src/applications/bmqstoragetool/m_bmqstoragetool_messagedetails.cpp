@@ -35,6 +35,24 @@ namespace {
 // mqbs::FileStoreProtocolPrinter::printRecord() methods.
 // ----------------------------------------------------------------------------
 
+class AppKeyMatcher {
+    const mqbu::StorageKey* d_appKey;
+
+  public:
+    AppKeyMatcher(const mqbu::StorageKey& appKey)
+    : d_appKey(&appKey)
+    {
+    }
+
+    bool operator()(const bmqp_ctrlmsg::AppIdInfo& appIdInfo)
+    {
+        const mqbu::StorageKey key = mqbu::StorageKey(
+            mqbu::StorageKey::BinaryRepresentation(),
+            appIdInfo.appKey().begin());
+        return (key == *d_appKey);
+    }
+};
+
 /// Print the specified message record `rec` and QueueInfo pointed by the
 /// specified `queueInfo_p` to the specified `stream`, using the specified
 /// `allocator` for memory allocation.
@@ -94,14 +112,8 @@ bool findQueueAppIdByAppKey(
     if (appKey.isNull())
         return false;  // RETURN
 
-    auto it = bsl::find_if(appIds.begin(),
-                           appIds.end(),
-                           [&](const bmqp_ctrlmsg::AppIdInfo& appIdInfo) {
-                               auto key = mqbu::StorageKey(
-                                   mqbu::StorageKey::BinaryRepresentation(),
-                                   appIdInfo.appKey().begin());
-                               return (key == appKey);
-                           });
+    bsl::vector<BloombergLP::bmqp_ctrlmsg::AppIdInfo>::const_iterator it =
+        bsl::find_if(appIds.cbegin(), appIds.cend(), AppKeyMatcher(appKey));
 
     if (it != appIds.end()) {
         *appId = it->appId();
@@ -257,8 +269,7 @@ void MessageDetails::print(bsl::ostream& os, const QueueMap& queueMap) const
     const bool              queueInfoPresent = queueMap.findInfoByKey(
         &queueInfo,
         d_messageRecord.d_record.queueKey());
-    bmqp_ctrlmsg::QueueInfo* queueInfo_p = queueInfoPresent ? &queueInfo
-                                                            : nullptr;
+    bmqp_ctrlmsg::QueueInfo* queueInfo_p = queueInfoPresent ? &queueInfo : 0;
 
     // Print message record
     mwcu::MemOutStream ss(d_allocator_p);
@@ -271,10 +282,12 @@ void MessageDetails::print(bsl::ostream& os, const QueueMap& queueMap) const
 
     // Print confirmations records
     if (!d_confirmRecords.empty()) {
-        for (auto& rec : d_confirmRecords) {
-            os << "CONFIRM Record, index: " << rec.d_recordIndex
-               << ", offset: " << rec.d_recordOffset << '\n';
-            printRecord(os, rec.d_record, queueInfo_p, d_allocator_p);
+        bsl::vector<RecordDetails<mqbs::ConfirmRecord> >::const_iterator it =
+            d_confirmRecords.begin();
+        for (; it != d_confirmRecords.end(); ++it) {
+            os << "CONFIRM Record, index: " << it->d_recordIndex
+               << ", offset: " << it->d_recordOffset << '\n';
+            printRecord(os, it->d_record, queueInfo_p, d_allocator_p);
         }
     }
 

@@ -30,7 +30,6 @@
 
 // BDE
 #include <bsl_ostream.h>
-#include <bsls_keyword.h>
 
 namespace BloombergLP {
 namespace m_bmqstoragetool {
@@ -44,9 +43,9 @@ class CommandProcessor {
     // CREATORS
 
     /// Default constructor.
-    CommandProcessor() = default;
+    CommandProcessor(){};
 
-    virtual ~CommandProcessor() = default;
+    virtual ~CommandProcessor(){};
 
     // MANIPULATORS
 

@@ -50,6 +50,11 @@ int cleanupCallback(BSLS_ANNOTATION_UNUSED const bsl::string& logPath)
     return 0;  // RETURN
 }
 
+void closeLedger(mqbsl::Ledger* ledger)
+{
+    BSLS_ASSERT(ledger->close() == 0);
+}
+
 }  // close unnamed namespace
 
 // =====================
@@ -88,6 +93,9 @@ mqbs::DataFileIterator* FileManagerImpl::dataFileIterator()
 QueueMap FileManagerImpl::buildQueueMap(const bsl::string& cslFile,
                                         bslma::Allocator*  allocator)
 {
+    using namespace bmqp_ctrlmsg;
+    typedef bsl::vector<QueueInfo>     QueueInfos;
+    typedef QueueInfos::const_iterator QueueInfosIt;
     if (cslFile.empty()) {
         throw bsl::runtime_error("empty CSL file path");  // THROW
     }
@@ -104,7 +112,8 @@ QueueMap FileManagerImpl::buildQueueMap(const bsl::string& cslFile,
     bsl::shared_ptr<mqbsi::LogFactory> logFactory(
         new (*allocator) mqbsl::MemoryMappedOnDiskLogFactory(allocator),
         allocator);
-    auto        fileSize = bdls::FilesystemUtil::getFileSize(cslFile.c_str());
+    bdls::FilesystemUtil::Offset fileSize = bdls::FilesystemUtil::getFileSize(
+        cslFile.c_str());
     bsl::string pattern(allocator);
     bsl::string location(allocator);
     BSLS_ASSERT(bdls::PathUtil::getBasename(&pattern, cslFile) == 0);
@@ -125,9 +134,6 @@ QueueMap FileManagerImpl::buildQueueMap(const bsl::string& cslFile,
     mqbsl::Ledger ledger(ledgerConfig, allocator);
     BSLS_ASSERT(ledger.open(mqbsi::Ledger::e_READ_ONLY) == 0);
     // Set guard to close the ledger
-    auto closeLedger = [](mqbsl::Ledger* ledger) {
-        BSLS_ASSERT(ledger->close() == 0);
-    };
     bdlb::ScopeExitAny guard(bdlf::BindUtil::bind(closeLedger, &ledger));
 
     // Iterate through each record in the ledger to find the last snapshot
@@ -145,28 +151,28 @@ QueueMap FileManagerImpl::buildQueueMap(const bsl::string& cslFile,
         }
 
         if (cslIt.header().recordType() ==
-            mqbc::ClusterStateRecordType::Enum::e_SNAPSHOT) {
+            mqbc::ClusterStateRecordType::e_SNAPSHOT) {
             // Save snapshot iterator
             lastSnapshotIt = cslIt;
         }
     }
 
     // Process last snapshot
-    bmqp_ctrlmsg::ClusterMessage clusterMessage;
+    ClusterMessage clusterMessage;
     lastSnapshotIt.loadClusterMessage(&clusterMessage);
-    BSLS_ASSERT(
-        clusterMessage.choice().selectionId() ==
-        bmqp_ctrlmsg::ClusterMessageChoice::SELECTION_ID_LEADER_ADVISORY);
+    BSLS_ASSERT(clusterMessage.choice().selectionId() ==
+                ClusterMessageChoice::SELECTION_ID_LEADER_ADVISORY);
 
     // Get queue info from snapshot (leaderAdvisory) record
-    auto leaderAdvisory = clusterMessage.choice().leaderAdvisory();
-    auto queuesInfo     = leaderAdvisory.queues();
-    // Fill queue map
-    bsl::for_each(queuesInfo.begin(),
-                  queuesInfo.end(),
-                  [&](const bmqp_ctrlmsg::QueueInfo& queueInfo) {
-                      d_queueMap.insert(queueInfo);
-                  });
+    LeaderAdvisory& leaderAdvisory = clusterMessage.choice().leaderAdvisory();
+    QueueInfos&     queuesInfo     = leaderAdvisory.queues();
+    {
+        // Fill queue map
+        QueueInfosIt it = queuesInfo.cbegin();
+        for (; it != queuesInfo.cend(); ++it) {
+            d_queueMap.insert(*it);
+        }
+    }
 
     // Iterate from last snapshot to get updates
     while (true) {
@@ -176,34 +182,32 @@ QueueMap FileManagerImpl::buildQueueMap(const bsl::string& cslFile,
         }
 
         if (lastSnapshotIt.header().recordType() ==
-            mqbc::ClusterStateRecordType::Enum::e_UPDATE) {
+            mqbc::ClusterStateRecordType::e_UPDATE) {
             lastSnapshotIt.loadClusterMessage(&clusterMessage);
             // Process queueAssignmentAdvisory record
             if (clusterMessage.choice().selectionId() ==
-                bmqp_ctrlmsg::ClusterMessageChoice::
-                    SELECTION_ID_QUEUE_ASSIGNMENT_ADVISORY) {
-                auto queueAdvisory =
+                ClusterMessageChoice::SELECTION_ID_QUEUE_ASSIGNMENT_ADVISORY) {
+                QueueAssignmentAdvisory& queueAdvisory =
                     clusterMessage.choice().queueAssignmentAdvisory();
-                auto updateQueuesInfo = queueAdvisory.queues();
-                bsl::for_each(updateQueuesInfo.begin(),
-                              updateQueuesInfo.end(),
-                              [&](const bmqp_ctrlmsg::QueueInfo& queueInfo) {
-                                  d_queueMap.insert(queueInfo);
-                              });
+                const QueueInfos& updateQueuesInfo = queueAdvisory.queues();
+                QueueInfosIt      it               = updateQueuesInfo.cbegin();
+                for (; it != updateQueuesInfo.cend(); ++it) {
+                    d_queueMap.insert(*it);
+                }
             }
             else if (clusterMessage.choice().selectionId() ==
                      // Process queueUpdateAdvisory record
-                     bmqp_ctrlmsg::ClusterMessageChoice::
+                     ClusterMessageChoice::
                          SELECTION_ID_QUEUE_UPDATE_ADVISORY) {
-                auto queueUpdateAdvisory =
+                QueueUpdateAdvisory queueUpdateAdvisory =
                     clusterMessage.choice().queueUpdateAdvisory();
-                auto queueInfoUpdates = queueUpdateAdvisory.queueUpdates();
-                bsl::for_each(
-                    queueInfoUpdates.begin(),
-                    queueInfoUpdates.end(),
-                    [&](const bmqp_ctrlmsg::QueueInfoUpdate& queueInfoUpdate) {
-                        d_queueMap.update(queueInfoUpdate);
-                    });
+                const bsl::vector<QueueInfoUpdate>& queueInfoUpdates =
+                    queueUpdateAdvisory.queueUpdates();
+                bsl::vector<QueueInfoUpdate>::const_iterator it =
+                    queueInfoUpdates.cbegin();
+                for (; it != queueInfoUpdates.cend(); ++it) {
+                    d_queueMap.update(*it);
+                }
             }
         }
     }
@@ -217,7 +221,7 @@ QueueMap FileManagerImpl::buildQueueMap(const bsl::string& cslFile,
 
 template <typename ITER>
 bool FileManagerImpl::FileHandler<ITER>::resetIterator(
-    std::ostream& errorDescription)
+    bsl::ostream& errorDescription)
 {
     // 1) Open
     mwcu::MemOutStream errorDesc;

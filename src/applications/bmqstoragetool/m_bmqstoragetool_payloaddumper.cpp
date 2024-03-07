@@ -43,8 +43,9 @@ PayloadDumper::PayloadDumper(bsl::ostream&           ostream,
 
 void PayloadDumper::outputPayload(bsls::Types::Uint64 messageOffsetDwords)
 {
-    auto recordOffset = messageOffsetDwords * bmqp::Protocol::k_DWORD_SIZE;
-    auto it           = d_dataFile_p;
+    const bsls::Types::Uint64 recordOffset = messageOffsetDwords *
+                                             bmqp::Protocol::k_DWORD_SIZE;
+    mqbs::DataFileIterator* it = d_dataFile_p;
 
     // Flip iterator direction depending on recordOffset
     if ((it->recordOffset() > recordOffset && !it->isReverseMode()) ||

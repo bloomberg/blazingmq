@@ -224,7 +224,8 @@ class FileManagerMock : public FileManager {
     /// Constructor using the specified `allocator`.
     explicit FileManagerMock(bslma::Allocator* allocator = 0)
     {
-        EXPECT_CALL(*this, dataFileIterator()).WillRepeatedly(Return(nullptr));
+        EXPECT_CALL(*this, dataFileIterator())
+            .WillRepeatedly(Return(bsl::nullptr_t()));
     }
 
     /// Constructor using the specified `journalFile` and `allocator`.
@@ -234,7 +235,8 @@ class FileManagerMock : public FileManager {
                       journalFile.fileHeader(),
                       false)
     {
-        EXPECT_CALL(*this, dataFileIterator()).WillRepeatedly(Return(nullptr));
+        EXPECT_CALL(*this, dataFileIterator())
+            .WillRepeatedly(Return(bsl::nullptr_t()));
     }
 
     // MANIPULATORS

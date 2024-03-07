@@ -19,6 +19,26 @@
 namespace BloombergLP {
 namespace m_bmqstoragetool {
 
+namespace {
+
+class AppIdMatcher {
+    const bsl::vector<bmqp_ctrlmsg::AppIdInfo>* d_appIds_p;
+
+  public:
+    AppIdMatcher(const bsl::vector<bmqp_ctrlmsg::AppIdInfo>& appIds)
+    : d_appIds_p(&appIds)
+    {
+    }
+
+    bool operator()(const bmqp_ctrlmsg::AppIdInfo& appIdInfo)
+    {
+        return bsl::find(d_appIds_p->begin(), d_appIds_p->end(), appIdInfo) !=
+               d_appIds_p->end();
+    }
+};
+
+}  // close unnamed namespace
+
 // ==============
 // class QueueMap
 // ==============
@@ -36,33 +56,27 @@ QueueMap::QueueMap(bslma::Allocator* allocator)
 
 void QueueMap::insert(const bmqp_ctrlmsg::QueueInfo& queueInfo)
 {
-    auto queueKey = mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
-                                     queueInfo.key().begin());
+    mqbu::StorageKey queueKey(mqbu::StorageKey::BinaryRepresentation(),
+                              queueInfo.key().begin());
     d_queueKeyToInfoMap[queueKey]       = queueInfo;
     d_queueUriToKeyMap[queueInfo.uri()] = queueKey;
 }
 
 void QueueMap::update(const bmqp_ctrlmsg::QueueInfoUpdate& queueInfoUpdate)
 {
-    auto queueKey = mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
-                                     queueInfoUpdate.key().begin());
-    if (auto it = d_queueKeyToInfoMap.find(queueKey);
-        it != d_queueKeyToInfoMap.end()) {
+    mqbu::StorageKey queueKey(mqbu::StorageKey::BinaryRepresentation(),
+                              queueInfoUpdate.key().begin());
+    QueueKeyToInfoMap::iterator it = d_queueKeyToInfoMap.find(queueKey);
+    if (it != d_queueKeyToInfoMap.end()) {
         bsl::vector<bmqp_ctrlmsg::AppIdInfo>& appIds = it->second.appIds();
         // Remove AppIds
         const bsl::vector<bmqp_ctrlmsg::AppIdInfo>& removedAppIds =
             queueInfoUpdate.removedAppIds();
-        bsl::erase_if(
-            appIds,
-            [&removedAppIds](const bmqp_ctrlmsg::AppIdInfo& appIdInfo) {
-                return bsl::find(removedAppIds.begin(),
-                                 removedAppIds.end(),
-                                 appIdInfo) != removedAppIds.end();
-            });
+        bsl::erase_if(appIds, AppIdMatcher(removedAppIds));
         // Add AppIds
         const bsl::vector<bmqp_ctrlmsg::AppIdInfo>& addedAppIds =
             queueInfoUpdate.addedAppIds();
-        appIds.insert(appIds.end(), addedAppIds.begin(), addedAppIds.end());
+        appIds.insert(appIds.cend(), addedAppIds.begin(), addedAppIds.end());
     }
 }
 
@@ -71,8 +85,8 @@ void QueueMap::update(const bmqp_ctrlmsg::QueueInfoUpdate& queueInfoUpdate)
 bool QueueMap::findInfoByKey(bmqp_ctrlmsg::QueueInfo* queueInfo_p,
                              const mqbu::StorageKey&  key) const
 {
-    if (auto it = d_queueKeyToInfoMap.find(key);
-        it != d_queueKeyToInfoMap.end()) {
+    QueueKeyToInfoMap::const_iterator it = d_queueKeyToInfoMap.find(key);
+    if (it != d_queueKeyToInfoMap.end()) {
         *queueInfo_p = it->second;
         return true;
     }
@@ -82,8 +96,8 @@ bool QueueMap::findInfoByKey(bmqp_ctrlmsg::QueueInfo* queueInfo_p,
 bool QueueMap::findKeyByUri(mqbu::StorageKey*  queueKey_p,
                             const bsl::string& uri) const
 {
-    if (auto it = d_queueUriToKeyMap.find(uri);
-        it != d_queueUriToKeyMap.end()) {
+    QueueUriToKeyMap::const_iterator it = d_queueUriToKeyMap.find(uri);
+    if (it != d_queueUriToKeyMap.end()) {
         *queueKey_p = it->second;
         return true;
     }

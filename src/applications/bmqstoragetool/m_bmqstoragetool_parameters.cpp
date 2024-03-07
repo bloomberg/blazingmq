@@ -59,7 +59,7 @@ bool isValidQueueKeyHexRepresentation(const char* queueKeyBuf)
     if (bsl::strlen(queueKeyBuf) != queueKeyHexLength)
         return false;  // RETURN
 
-    for (int i = 0; i < queueKeyHexLength; ++i) {
+    for (size_t i = 0; i < queueKeyHexLength; ++i) {
         if (!bsl::isxdigit(queueKeyBuf[i]) ||
             bdlb::CharType::isLower(queueKeyBuf[i])) {
             return false;  // RETURN
@@ -75,19 +75,19 @@ bool isValidQueueKeyHexRepresentation(const char* queueKeyBuf)
 // ==========================
 
 CommandLineArguments::CommandLineArguments(bslma::Allocator* allocator)
-: d_journalPath(allocator)
+: d_timestampGt(0)
+, d_timestampLt(0)
+, d_journalPath(allocator)
 , d_journalFile(allocator)
 , d_dataFile(allocator)
 , d_cslFile(allocator)
 , d_guid(allocator)
 , d_queueKey(allocator)
 , d_queueName(allocator)
-, d_timestampGt(0)
-, d_timestampLt(0)
 , d_dumpLimit(0)
-, d_summary(false)
 , d_details(false)
 , d_dumpPayload(false)
+, d_summary(false)
 , d_outstanding(false)
 , d_confirmed(false)
 , d_partiallyConfirmed(false)
@@ -210,48 +210,49 @@ bool CommandLineArguments::validate(bsl::string* error)
 }
 
 Parameters::Parameters(bslma::Allocator* allocator)
-: d_guid(allocator)
-, d_queueKey(allocator)
-, d_queueName(allocator)
+: d_queueMap(allocator)
 , d_timestampGt(0)
 , d_timestampLt(0)
+, d_guid(allocator)
+, d_queueKey(allocator)
+, d_queueName(allocator)
 , d_dumpLimit(0)
-, d_summary(false)
 , d_details(false)
 , d_dumpPayload(false)
+, d_summary(false)
 , d_outstanding(false)
 , d_confirmed(false)
 , d_partiallyConfirmed(false)
-, d_queueMap(allocator)
 {
 }
 
 Parameters::Parameters(const CommandLineArguments& arguments,
                        bslma::Allocator*           allocator)
-: d_guid(arguments.d_guid, allocator)
-, d_queueKey(arguments.d_queueKey, allocator)
-, d_queueName(arguments.d_queueName, allocator)
+: d_queueMap(allocator)
 , d_timestampGt(arguments.d_timestampGt)
 , d_timestampLt(arguments.d_timestampLt)
+, d_guid(arguments.d_guid, allocator)
+, d_queueKey(arguments.d_queueKey, allocator)
+, d_queueName(arguments.d_queueName, allocator)
 , d_dumpLimit(arguments.d_dumpLimit)
-, d_summary(arguments.d_summary)
 , d_details(arguments.d_details)
 , d_dumpPayload(arguments.d_dumpPayload)
+, d_summary(arguments.d_summary)
 , d_outstanding(arguments.d_outstanding)
 , d_confirmed(arguments.d_confirmed)
 , d_partiallyConfirmed(arguments.d_partiallyConfirmed)
-, d_queueMap(allocator)
 {
 }
 
 void Parameters::validateQueueNames(bslma::Allocator* allocator) const
 {
     // Validate given queue names agains existing in csl file
-    mwcu::MemOutStream ss(allocator);
-    mqbu::StorageKey   key;
-    for (const auto& uri : d_queueName) {
-        if (!d_queueMap.findKeyByUri(&key, uri)) {
-            ss << "Queue name: '" << uri << "' is not found in Csl file."
+    mwcu::MemOutStream                       ss(allocator);
+    mqbu::StorageKey                         key;
+    bsl::vector<bsl::string>::const_iterator it = d_queueName.cbegin();
+    for (; it != d_queueName.cend(); ++it) {
+        if (!d_queueMap.findKeyByUri(&key, *it)) {
+            ss << "Queue name: '" << *it << "' is not found in Csl file."
                << bsl::endl;
         }
     }
