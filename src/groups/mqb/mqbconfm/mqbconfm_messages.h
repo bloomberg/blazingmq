@@ -23,6 +23,8 @@
 
 #include <bdlat_attributeinfo.h>
 
+#include <bdlat_enumeratorinfo.h>
+
 #include <bdlat_selectioninfo.h>
 
 #include <bdlat_typetraits.h>
@@ -44,6 +46,9 @@
 
 #include <bsl_iosfwd.h>
 #include <bsl_limits.h>
+
+#include <bsl_ostream.h>
+#include <bsl_string.h>
 
 namespace BloombergLP {
 
@@ -97,6 +102,9 @@ namespace mqbconfm {
 class DomainConfigRequest;
 }
 namespace mqbconfm {
+class Expression;
+}
+namespace mqbconfm {
 class QueueMode;
 }
 namespace mqbconfm {
@@ -110,6 +118,9 @@ class Request;
 }
 namespace mqbconfm {
 class StorageDefinition;
+}
+namespace mqbconfm {
+class Subscription;
 }
 namespace mqbconfm {
 class Domain;
@@ -761,6 +772,67 @@ void hashAppend(t_HASH_ALGORITHM& hashAlg, const DomainResolver& object);
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbconfm::DomainResolver)
+
+namespace mqbconfm {
+
+// =======================
+// class ExpressionVersion
+// =======================
+
+struct ExpressionVersion {
+    // Enumeration of the various expression versions.
+
+  public:
+    // TYPES
+    enum Value { E_UNDEFINED = 0, E_VERSION_1 = 1 };
+
+    enum { NUM_ENUMERATORS = 2 };
+
+    // CONSTANTS
+    static const char CLASS_NAME[];
+
+    static const bdlat_EnumeratorInfo ENUMERATOR_INFO_ARRAY[];
+
+    // CLASS METHODS
+    static const char* toString(Value value);
+    // Return the string representation exactly matching the enumerator
+    // name corresponding to the specified enumeration 'value'.
+
+    static int fromString(Value* result, const char* string, int stringLength);
+    // Load into the specified 'result' the enumerator matching the
+    // specified 'string' of the specified 'stringLength'.  Return 0 on
+    // success, and a non-zero value with no effect on 'result' otherwise
+    // (i.e., 'string' does not match any enumerator).
+
+    static int fromString(Value* result, const bsl::string& string);
+    // Load into the specified 'result' the enumerator matching the
+    // specified 'string'.  Return 0 on success, and a non-zero value with
+    // no effect on 'result' otherwise (i.e., 'string' does not match any
+    // enumerator).
+
+    static int fromInt(Value* result, int number);
+    // Load into the specified 'result' the enumerator matching the
+    // specified 'number'.  Return 0 on success, and a non-zero value with
+    // no effect on 'result' otherwise (i.e., 'number' does not match any
+    // enumerator).
+
+    static bsl::ostream& print(bsl::ostream& stream, Value value);
+    // Write to the specified 'stream' the string representation of
+    // the specified enumeration 'value'.  Return a reference to
+    // the modifiable 'stream'.
+};
+
+// FREE OPERATORS
+inline bsl::ostream& operator<<(bsl::ostream&            stream,
+                                ExpressionVersion::Value rhs);
+// Format the specified 'rhs' to the specified output 'stream' and
+// return a reference to the modifiable 'stream'.
+
+}  // close package namespace
+
+// TRAITS
+
+BDLAT_DECL_ENUMERATION_TRAITS(mqbconfm::ExpressionVersion)
 
 namespace mqbconfm {
 
@@ -3070,6 +3142,214 @@ BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
 
 namespace mqbconfm {
 
+// ================
+// class Expression
+// ================
+
+class Expression {
+    // This complex type contains expression to evaluate when selecting
+    // Subscription for delivery.
+    // version................: expression version (default is no expression)
+    // text...................: textual representation of the expression
+
+    // INSTANCE DATA
+    bsl::string              d_text;
+    ExpressionVersion::Value d_version;
+
+  public:
+    // TYPES
+    enum { ATTRIBUTE_ID_VERSION = 0, ATTRIBUTE_ID_TEXT = 1 };
+
+    enum { NUM_ATTRIBUTES = 2 };
+
+    enum { ATTRIBUTE_INDEX_VERSION = 0, ATTRIBUTE_INDEX_TEXT = 1 };
+
+    // CONSTANTS
+    static const char CLASS_NAME[];
+
+    static const ExpressionVersion::Value DEFAULT_INITIALIZER_VERSION;
+
+    static const bdlat_AttributeInfo ATTRIBUTE_INFO_ARRAY[];
+
+  public:
+    // CLASS METHODS
+    static const bdlat_AttributeInfo* lookupAttributeInfo(int id);
+    // Return attribute information for the attribute indicated by the
+    // specified 'id' if the attribute exists, and 0 otherwise.
+
+    static const bdlat_AttributeInfo* lookupAttributeInfo(const char* name,
+                                                          int nameLength);
+    // Return attribute information for the attribute indicated by the
+    // specified 'name' of the specified 'nameLength' if the attribute
+    // exists, and 0 otherwise.
+
+    // CREATORS
+    explicit Expression(bslma::Allocator* basicAllocator = 0);
+    // Create an object of type 'Expression' having the default value.  Use
+    // the optionally specified 'basicAllocator' to supply memory.  If
+    // 'basicAllocator' is 0, the currently installed default allocator is
+    // used.
+
+    Expression(const Expression& original,
+               bslma::Allocator* basicAllocator = 0);
+    // Create an object of type 'Expression' having the value of the
+    // specified 'original' object.  Use the optionally specified
+    // 'basicAllocator' to supply memory.  If 'basicAllocator' is 0, the
+    // currently installed default allocator is used.
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+    Expression(Expression&& original) noexcept;
+    // Create an object of type 'Expression' having the value of the
+    // specified 'original' object.  After performing this action, the
+    // 'original' object will be left in a valid, but unspecified state.
+
+    Expression(Expression&& original, bslma::Allocator* basicAllocator);
+    // Create an object of type 'Expression' having the value of the
+    // specified 'original' object.  After performing this action, the
+    // 'original' object will be left in a valid, but unspecified state.
+    // Use the optionally specified 'basicAllocator' to supply memory.  If
+    // 'basicAllocator' is 0, the currently installed default allocator is
+    // used.
+#endif
+
+    ~Expression();
+    // Destroy this object.
+
+    // MANIPULATORS
+    Expression& operator=(const Expression& rhs);
+    // Assign to this object the value of the specified 'rhs' object.
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+    Expression& operator=(Expression&& rhs);
+    // Assign to this object the value of the specified 'rhs' object.
+    // After performing this action, the 'rhs' object will be left in a
+    // valid, but unspecified state.
+#endif
+
+    void reset();
+    // Reset this object to the default value (i.e., its value upon
+    // default construction).
+
+    template <typename t_MANIPULATOR>
+    int manipulateAttributes(t_MANIPULATOR& manipulator);
+    // Invoke the specified 'manipulator' sequentially on the address of
+    // each (modifiable) attribute of this object, supplying 'manipulator'
+    // with the corresponding attribute information structure until such
+    // invocation returns a non-zero value.  Return the value from the
+    // last invocation of 'manipulator' (i.e., the invocation that
+    // terminated the sequence).
+
+    template <typename t_MANIPULATOR>
+    int manipulateAttribute(t_MANIPULATOR& manipulator, int id);
+    // Invoke the specified 'manipulator' on the address of
+    // the (modifiable) attribute indicated by the specified 'id',
+    // supplying 'manipulator' with the corresponding attribute
+    // information structure.  Return the value returned from the
+    // invocation of 'manipulator' if 'id' identifies an attribute of this
+    // class, and -1 otherwise.
+
+    template <typename t_MANIPULATOR>
+    int manipulateAttribute(t_MANIPULATOR& manipulator,
+                            const char*    name,
+                            int            nameLength);
+    // Invoke the specified 'manipulator' on the address of
+    // the (modifiable) attribute indicated by the specified 'name' of the
+    // specified 'nameLength', supplying 'manipulator' with the
+    // corresponding attribute information structure.  Return the value
+    // returned from the invocation of 'manipulator' if 'name' identifies
+    // an attribute of this class, and -1 otherwise.
+
+    ExpressionVersion::Value& version();
+    // Return a reference to the modifiable "Version" attribute of this
+    // object.
+
+    bsl::string& text();
+    // Return a reference to the modifiable "Text" attribute of this
+    // object.
+
+    // ACCESSORS
+    bsl::ostream&
+    print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
+    // Format this object to the specified output 'stream' at the
+    // optionally specified indentation 'level' and return a reference to
+    // the modifiable 'stream'.  If 'level' is specified, optionally
+    // specify 'spacesPerLevel', the number of spaces per indentation level
+    // for this and all of its nested objects.  Each line is indented by
+    // the absolute value of 'level * spacesPerLevel'.  If 'level' is
+    // negative, suppress indentation of the first line.  If
+    // 'spacesPerLevel' is negative, suppress line breaks and format the
+    // entire output on one line.  If 'stream' is initially invalid, this
+    // operation has no effect.  Note that a trailing newline is provided
+    // in multiline mode only.
+
+    template <typename t_ACCESSOR>
+    int accessAttributes(t_ACCESSOR& accessor) const;
+    // Invoke the specified 'accessor' sequentially on each
+    // (non-modifiable) attribute of this object, supplying 'accessor'
+    // with the corresponding attribute information structure until such
+    // invocation returns a non-zero value.  Return the value from the
+    // last invocation of 'accessor' (i.e., the invocation that terminated
+    // the sequence).
+
+    template <typename t_ACCESSOR>
+    int accessAttribute(t_ACCESSOR& accessor, int id) const;
+    // Invoke the specified 'accessor' on the (non-modifiable) attribute
+    // of this object indicated by the specified 'id', supplying 'accessor'
+    // with the corresponding attribute information structure.  Return the
+    // value returned from the invocation of 'accessor' if 'id' identifies
+    // an attribute of this class, and -1 otherwise.
+
+    template <typename t_ACCESSOR>
+    int accessAttribute(t_ACCESSOR& accessor,
+                        const char* name,
+                        int         nameLength) const;
+    // Invoke the specified 'accessor' on the (non-modifiable) attribute
+    // of this object indicated by the specified 'name' of the specified
+    // 'nameLength', supplying 'accessor' with the corresponding attribute
+    // information structure.  Return the value returned from the
+    // invocation of 'accessor' if 'name' identifies an attribute of this
+    // class, and -1 otherwise.
+
+    ExpressionVersion::Value version() const;
+    // Return the value of the "Version" attribute of this object.
+
+    const bsl::string& text() const;
+    // Return a reference offering non-modifiable access to the "Text"
+    // attribute of this object.
+};
+
+// FREE OPERATORS
+inline bool operator==(const Expression& lhs, const Expression& rhs);
+// Return 'true' if the specified 'lhs' and 'rhs' attribute objects have
+// the same value, and 'false' otherwise.  Two attribute objects have the
+// same value if each respective attribute has the same value.
+
+inline bool operator!=(const Expression& lhs, const Expression& rhs);
+// Return 'true' if the specified 'lhs' and 'rhs' attribute objects do not
+// have the same value, and 'false' otherwise.  Two attribute objects do
+// not have the same value if one or more respective attributes differ in
+// values.
+
+inline bsl::ostream& operator<<(bsl::ostream& stream, const Expression& rhs);
+// Format the specified 'rhs' to the specified output 'stream' and
+// return a reference to the modifiable 'stream'.
+
+template <typename t_HASH_ALGORITHM>
+void hashAppend(t_HASH_ALGORITHM& hashAlg, const Expression& object);
+// Pass the specified 'object' to the specified 'hashAlg'.  This function
+// integrates with the 'bslh' modular hashing system and effectively
+// provides a 'bsl::hash' specialization for 'Expression'.
+
+}  // close package namespace
+
+// TRAITS
+
+BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbconfm::Expression)
+
+namespace mqbconfm {
+
 // ===============
 // class QueueMode
 // ===============
@@ -4174,6 +4454,214 @@ BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbconfm::StorageDefinition)
 
 namespace mqbconfm {
 
+// ==================
+// class Subscription
+// ==================
+
+class Subscription {
+    // This complex type contains various parameters required by an upstream
+    // node to configure subscription for an app.
+    // appId..................: app identifier
+    // consumers..............: consumer parameters
+
+    // INSTANCE DATA
+    bsl::string d_appId;
+    Expression  d_expression;
+
+  public:
+    // TYPES
+    enum { ATTRIBUTE_ID_APP_ID = 0, ATTRIBUTE_ID_EXPRESSION = 1 };
+
+    enum { NUM_ATTRIBUTES = 2 };
+
+    enum { ATTRIBUTE_INDEX_APP_ID = 0, ATTRIBUTE_INDEX_EXPRESSION = 1 };
+
+    // CONSTANTS
+    static const char CLASS_NAME[];
+
+    static const bdlat_AttributeInfo ATTRIBUTE_INFO_ARRAY[];
+
+  public:
+    // CLASS METHODS
+    static const bdlat_AttributeInfo* lookupAttributeInfo(int id);
+    // Return attribute information for the attribute indicated by the
+    // specified 'id' if the attribute exists, and 0 otherwise.
+
+    static const bdlat_AttributeInfo* lookupAttributeInfo(const char* name,
+                                                          int nameLength);
+    // Return attribute information for the attribute indicated by the
+    // specified 'name' of the specified 'nameLength' if the attribute
+    // exists, and 0 otherwise.
+
+    // CREATORS
+    explicit Subscription(bslma::Allocator* basicAllocator = 0);
+    // Create an object of type 'Subscription' having the default value.
+    // Use the optionally specified 'basicAllocator' to supply memory.  If
+    // 'basicAllocator' is 0, the currently installed default allocator is
+    // used.
+
+    Subscription(const Subscription& original,
+                 bslma::Allocator*   basicAllocator = 0);
+    // Create an object of type 'Subscription' having the value of the
+    // specified 'original' object.  Use the optionally specified
+    // 'basicAllocator' to supply memory.  If 'basicAllocator' is 0, the
+    // currently installed default allocator is used.
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+    Subscription(Subscription&& original) noexcept;
+    // Create an object of type 'Subscription' having the value of the
+    // specified 'original' object.  After performing this action, the
+    // 'original' object will be left in a valid, but unspecified state.
+
+    Subscription(Subscription&& original, bslma::Allocator* basicAllocator);
+    // Create an object of type 'Subscription' having the value of the
+    // specified 'original' object.  After performing this action, the
+    // 'original' object will be left in a valid, but unspecified state.
+    // Use the optionally specified 'basicAllocator' to supply memory.  If
+    // 'basicAllocator' is 0, the currently installed default allocator is
+    // used.
+#endif
+
+    ~Subscription();
+    // Destroy this object.
+
+    // MANIPULATORS
+    Subscription& operator=(const Subscription& rhs);
+    // Assign to this object the value of the specified 'rhs' object.
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+    Subscription& operator=(Subscription&& rhs);
+    // Assign to this object the value of the specified 'rhs' object.
+    // After performing this action, the 'rhs' object will be left in a
+    // valid, but unspecified state.
+#endif
+
+    void reset();
+    // Reset this object to the default value (i.e., its value upon
+    // default construction).
+
+    template <typename t_MANIPULATOR>
+    int manipulateAttributes(t_MANIPULATOR& manipulator);
+    // Invoke the specified 'manipulator' sequentially on the address of
+    // each (modifiable) attribute of this object, supplying 'manipulator'
+    // with the corresponding attribute information structure until such
+    // invocation returns a non-zero value.  Return the value from the
+    // last invocation of 'manipulator' (i.e., the invocation that
+    // terminated the sequence).
+
+    template <typename t_MANIPULATOR>
+    int manipulateAttribute(t_MANIPULATOR& manipulator, int id);
+    // Invoke the specified 'manipulator' on the address of
+    // the (modifiable) attribute indicated by the specified 'id',
+    // supplying 'manipulator' with the corresponding attribute
+    // information structure.  Return the value returned from the
+    // invocation of 'manipulator' if 'id' identifies an attribute of this
+    // class, and -1 otherwise.
+
+    template <typename t_MANIPULATOR>
+    int manipulateAttribute(t_MANIPULATOR& manipulator,
+                            const char*    name,
+                            int            nameLength);
+    // Invoke the specified 'manipulator' on the address of
+    // the (modifiable) attribute indicated by the specified 'name' of the
+    // specified 'nameLength', supplying 'manipulator' with the
+    // corresponding attribute information structure.  Return the value
+    // returned from the invocation of 'manipulator' if 'name' identifies
+    // an attribute of this class, and -1 otherwise.
+
+    bsl::string& appId();
+    // Return a reference to the modifiable "AppId" attribute of this
+    // object.
+
+    Expression& expression();
+    // Return a reference to the modifiable "Expression" attribute of this
+    // object.
+
+    // ACCESSORS
+    bsl::ostream&
+    print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
+    // Format this object to the specified output 'stream' at the
+    // optionally specified indentation 'level' and return a reference to
+    // the modifiable 'stream'.  If 'level' is specified, optionally
+    // specify 'spacesPerLevel', the number of spaces per indentation level
+    // for this and all of its nested objects.  Each line is indented by
+    // the absolute value of 'level * spacesPerLevel'.  If 'level' is
+    // negative, suppress indentation of the first line.  If
+    // 'spacesPerLevel' is negative, suppress line breaks and format the
+    // entire output on one line.  If 'stream' is initially invalid, this
+    // operation has no effect.  Note that a trailing newline is provided
+    // in multiline mode only.
+
+    template <typename t_ACCESSOR>
+    int accessAttributes(t_ACCESSOR& accessor) const;
+    // Invoke the specified 'accessor' sequentially on each
+    // (non-modifiable) attribute of this object, supplying 'accessor'
+    // with the corresponding attribute information structure until such
+    // invocation returns a non-zero value.  Return the value from the
+    // last invocation of 'accessor' (i.e., the invocation that terminated
+    // the sequence).
+
+    template <typename t_ACCESSOR>
+    int accessAttribute(t_ACCESSOR& accessor, int id) const;
+    // Invoke the specified 'accessor' on the (non-modifiable) attribute
+    // of this object indicated by the specified 'id', supplying 'accessor'
+    // with the corresponding attribute information structure.  Return the
+    // value returned from the invocation of 'accessor' if 'id' identifies
+    // an attribute of this class, and -1 otherwise.
+
+    template <typename t_ACCESSOR>
+    int accessAttribute(t_ACCESSOR& accessor,
+                        const char* name,
+                        int         nameLength) const;
+    // Invoke the specified 'accessor' on the (non-modifiable) attribute
+    // of this object indicated by the specified 'name' of the specified
+    // 'nameLength', supplying 'accessor' with the corresponding attribute
+    // information structure.  Return the value returned from the
+    // invocation of 'accessor' if 'name' identifies an attribute of this
+    // class, and -1 otherwise.
+
+    const bsl::string& appId() const;
+    // Return a reference offering non-modifiable access to the "AppId"
+    // attribute of this object.
+
+    const Expression& expression() const;
+    // Return a reference offering non-modifiable access to the
+    // "Expression" attribute of this object.
+};
+
+// FREE OPERATORS
+inline bool operator==(const Subscription& lhs, const Subscription& rhs);
+// Return 'true' if the specified 'lhs' and 'rhs' attribute objects have
+// the same value, and 'false' otherwise.  Two attribute objects have the
+// same value if each respective attribute has the same value.
+
+inline bool operator!=(const Subscription& lhs, const Subscription& rhs);
+// Return 'true' if the specified 'lhs' and 'rhs' attribute objects do not
+// have the same value, and 'false' otherwise.  Two attribute objects do
+// not have the same value if one or more respective attributes differ in
+// values.
+
+inline bsl::ostream& operator<<(bsl::ostream& stream, const Subscription& rhs);
+// Format the specified 'rhs' to the specified output 'stream' and
+// return a reference to the modifiable 'stream'.
+
+template <typename t_HASH_ALGORITHM>
+void hashAppend(t_HASH_ALGORITHM& hashAlg, const Subscription& object);
+// Pass the specified 'object' to the specified 'hashAlg'.  This function
+// integrates with the 'bslh' modular hashing system and effectively
+// provides a 'bsl::hash' specialization for 'Subscription'.
+
+}  // close package namespace
+
+// TRAITS
+
+BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
+    mqbconfm::Subscription)
+
+namespace mqbconfm {
+
 // ============
 // class Domain
 // ============
@@ -4199,10 +4687,11 @@ class Domain {
     // queue.  Zero (the default) means unlimited deduplicationTimeMs.:
     // timeout, in milliseconds, to keep GUID of PUT message for the purpose of
     // detecting duplicate PUTs.  consistency.........: optional consistency
-    // mode.
+    // mode.  subscriptions.......: optional Auto (Application) subscriptions
 
     // INSTANCE DATA
     bsls::Types::Int64                    d_messageTtl;
+    bsl::vector<Subscription>             d_subscriptions;
     bsl::string                           d_name;
     bdlb::NullableValue<MsgGroupIdConfig> d_msgGroupIdConfig;
     StorageDefinition                     d_storage;
@@ -4229,10 +4718,11 @@ class Domain {
         ATTRIBUTE_ID_MESSAGE_TTL           = 8,
         ATTRIBUTE_ID_MAX_DELIVERY_ATTEMPTS = 9,
         ATTRIBUTE_ID_DEDUPLICATION_TIME_MS = 10,
-        ATTRIBUTE_ID_CONSISTENCY           = 11
+        ATTRIBUTE_ID_CONSISTENCY           = 11,
+        ATTRIBUTE_ID_SUBSCRIPTIONS         = 12
     };
 
-    enum { NUM_ATTRIBUTES = 12 };
+    enum { NUM_ATTRIBUTES = 13 };
 
     enum {
         ATTRIBUTE_INDEX_NAME                  = 0,
@@ -4246,7 +4736,8 @@ class Domain {
         ATTRIBUTE_INDEX_MESSAGE_TTL           = 8,
         ATTRIBUTE_INDEX_MAX_DELIVERY_ATTEMPTS = 9,
         ATTRIBUTE_INDEX_DEDUPLICATION_TIME_MS = 10,
-        ATTRIBUTE_INDEX_CONSISTENCY           = 11
+        ATTRIBUTE_INDEX_CONSISTENCY           = 11,
+        ATTRIBUTE_INDEX_SUBSCRIPTIONS         = 12
     };
 
     // CONSTANTS
@@ -4403,6 +4894,10 @@ class Domain {
     // Return a reference to the modifiable "Consistency" attribute of this
     // object.
 
+    bsl::vector<Subscription>& subscriptions();
+    // Return a reference to the modifiable "Subscriptions" attribute of
+    // this object.
+
     // ACCESSORS
     bsl::ostream&
     print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
@@ -4488,6 +4983,10 @@ class Domain {
     const Consistency& consistency() const;
     // Return a reference offering non-modifiable access to the
     // "Consistency" attribute of this object.
+
+    const bsl::vector<Subscription>& subscriptions() const;
+    // Return a reference offering non-modifiable access to the
+    // "Subscriptions" attribute of this object.
 };
 
 // FREE OPERATORS
@@ -5393,6 +5892,25 @@ inline const bsl::string& DomainResolver::name() const
 inline const bsl::string& DomainResolver::cluster() const
 {
     return d_cluster;
+}
+
+// -----------------------
+// class ExpressionVersion
+// -----------------------
+
+// CLASS METHODS
+inline int ExpressionVersion::fromString(Value*             result,
+                                         const bsl::string& string)
+{
+    return fromString(result,
+                      string.c_str(),
+                      static_cast<int>(string.length()));
+}
+
+inline bsl::ostream& ExpressionVersion::print(bsl::ostream&            stream,
+                                              ExpressionVersion::Value value)
+{
+    return stream << toString(value);
 }
 
 // -------------
@@ -6676,6 +7194,137 @@ inline const bsl::string& DomainConfigRequest::domainName() const
     return d_domainName;
 }
 
+// ----------------
+// class Expression
+// ----------------
+
+// CLASS METHODS
+// MANIPULATORS
+template <typename t_MANIPULATOR>
+int Expression::manipulateAttributes(t_MANIPULATOR& manipulator)
+{
+    int ret;
+
+    ret = manipulator(&d_version,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_VERSION]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(&d_text, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_TEXT]);
+    if (ret) {
+        return ret;
+    }
+
+    return 0;
+}
+
+template <typename t_MANIPULATOR>
+int Expression::manipulateAttribute(t_MANIPULATOR& manipulator, int id)
+{
+    enum { NOT_FOUND = -1 };
+
+    switch (id) {
+    case ATTRIBUTE_ID_VERSION: {
+        return manipulator(&d_version,
+                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_VERSION]);
+    }
+    case ATTRIBUTE_ID_TEXT: {
+        return manipulator(&d_text,
+                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_TEXT]);
+    }
+    default: return NOT_FOUND;
+    }
+}
+
+template <typename t_MANIPULATOR>
+int Expression::manipulateAttribute(t_MANIPULATOR& manipulator,
+                                    const char*    name,
+                                    int            nameLength)
+{
+    enum { NOT_FOUND = -1 };
+
+    const bdlat_AttributeInfo* attributeInfo = lookupAttributeInfo(name,
+                                                                   nameLength);
+    if (0 == attributeInfo) {
+        return NOT_FOUND;
+    }
+
+    return manipulateAttribute(manipulator, attributeInfo->d_id);
+}
+
+inline ExpressionVersion::Value& Expression::version()
+{
+    return d_version;
+}
+
+inline bsl::string& Expression::text()
+{
+    return d_text;
+}
+
+// ACCESSORS
+template <typename t_ACCESSOR>
+int Expression::accessAttributes(t_ACCESSOR& accessor) const
+{
+    int ret;
+
+    ret = accessor(d_version, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_VERSION]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_text, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_TEXT]);
+    if (ret) {
+        return ret;
+    }
+
+    return 0;
+}
+
+template <typename t_ACCESSOR>
+int Expression::accessAttribute(t_ACCESSOR& accessor, int id) const
+{
+    enum { NOT_FOUND = -1 };
+
+    switch (id) {
+    case ATTRIBUTE_ID_VERSION: {
+        return accessor(d_version,
+                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_VERSION]);
+    }
+    case ATTRIBUTE_ID_TEXT: {
+        return accessor(d_text, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_TEXT]);
+    }
+    default: return NOT_FOUND;
+    }
+}
+
+template <typename t_ACCESSOR>
+int Expression::accessAttribute(t_ACCESSOR& accessor,
+                                const char* name,
+                                int         nameLength) const
+{
+    enum { NOT_FOUND = -1 };
+
+    const bdlat_AttributeInfo* attributeInfo = lookupAttributeInfo(name,
+                                                                   nameLength);
+    if (0 == attributeInfo) {
+        return NOT_FOUND;
+    }
+
+    return accessAttribute(accessor, attributeInfo->d_id);
+}
+
+inline ExpressionVersion::Value Expression::version() const
+{
+    return d_version;
+}
+
+inline const bsl::string& Expression::text() const
+{
+    return d_text;
+}
+
 // ---------------
 // class QueueMode
 // ---------------
@@ -7213,6 +7862,138 @@ inline const Storage& StorageDefinition::config() const
     return d_config;
 }
 
+// ------------------
+// class Subscription
+// ------------------
+
+// CLASS METHODS
+// MANIPULATORS
+template <typename t_MANIPULATOR>
+int Subscription::manipulateAttributes(t_MANIPULATOR& manipulator)
+{
+    int ret;
+
+    ret = manipulator(&d_appId, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_APP_ID]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(&d_expression,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_EXPRESSION]);
+    if (ret) {
+        return ret;
+    }
+
+    return 0;
+}
+
+template <typename t_MANIPULATOR>
+int Subscription::manipulateAttribute(t_MANIPULATOR& manipulator, int id)
+{
+    enum { NOT_FOUND = -1 };
+
+    switch (id) {
+    case ATTRIBUTE_ID_APP_ID: {
+        return manipulator(&d_appId,
+                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_APP_ID]);
+    }
+    case ATTRIBUTE_ID_EXPRESSION: {
+        return manipulator(&d_expression,
+                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_EXPRESSION]);
+    }
+    default: return NOT_FOUND;
+    }
+}
+
+template <typename t_MANIPULATOR>
+int Subscription::manipulateAttribute(t_MANIPULATOR& manipulator,
+                                      const char*    name,
+                                      int            nameLength)
+{
+    enum { NOT_FOUND = -1 };
+
+    const bdlat_AttributeInfo* attributeInfo = lookupAttributeInfo(name,
+                                                                   nameLength);
+    if (0 == attributeInfo) {
+        return NOT_FOUND;
+    }
+
+    return manipulateAttribute(manipulator, attributeInfo->d_id);
+}
+
+inline bsl::string& Subscription::appId()
+{
+    return d_appId;
+}
+
+inline Expression& Subscription::expression()
+{
+    return d_expression;
+}
+
+// ACCESSORS
+template <typename t_ACCESSOR>
+int Subscription::accessAttributes(t_ACCESSOR& accessor) const
+{
+    int ret;
+
+    ret = accessor(d_appId, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_APP_ID]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_expression,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_EXPRESSION]);
+    if (ret) {
+        return ret;
+    }
+
+    return 0;
+}
+
+template <typename t_ACCESSOR>
+int Subscription::accessAttribute(t_ACCESSOR& accessor, int id) const
+{
+    enum { NOT_FOUND = -1 };
+
+    switch (id) {
+    case ATTRIBUTE_ID_APP_ID: {
+        return accessor(d_appId, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_APP_ID]);
+    }
+    case ATTRIBUTE_ID_EXPRESSION: {
+        return accessor(d_expression,
+                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_EXPRESSION]);
+    }
+    default: return NOT_FOUND;
+    }
+}
+
+template <typename t_ACCESSOR>
+int Subscription::accessAttribute(t_ACCESSOR& accessor,
+                                  const char* name,
+                                  int         nameLength) const
+{
+    enum { NOT_FOUND = -1 };
+
+    const bdlat_AttributeInfo* attributeInfo = lookupAttributeInfo(name,
+                                                                   nameLength);
+    if (0 == attributeInfo) {
+        return NOT_FOUND;
+    }
+
+    return accessAttribute(accessor, attributeInfo->d_id);
+}
+
+inline const bsl::string& Subscription::appId() const
+{
+    return d_appId;
+}
+
+inline const Expression& Subscription::expression() const
+{
+    return d_expression;
+}
+
 // ------------
 // class Domain
 // ------------
@@ -7297,6 +8078,12 @@ int Domain::manipulateAttributes(t_MANIPULATOR& manipulator)
         return ret;
     }
 
+    ret = manipulator(&d_subscriptions,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SUBSCRIPTIONS]);
+    if (ret) {
+        return ret;
+    }
+
     return 0;
 }
 
@@ -7359,6 +8146,11 @@ int Domain::manipulateAttribute(t_MANIPULATOR& manipulator, int id)
     case ATTRIBUTE_ID_CONSISTENCY: {
         return manipulator(&d_consistency,
                            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CONSISTENCY]);
+    }
+    case ATTRIBUTE_ID_SUBSCRIPTIONS: {
+        return manipulator(
+            &d_subscriptions,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SUBSCRIPTIONS]);
     }
     default: return NOT_FOUND;
     }
@@ -7440,6 +8232,11 @@ inline Consistency& Domain::consistency()
     return d_consistency;
 }
 
+inline bsl::vector<Subscription>& Domain::subscriptions()
+{
+    return d_subscriptions;
+}
+
 // ACCESSORS
 template <typename t_ACCESSOR>
 int Domain::accessAttributes(t_ACCESSOR& accessor) const
@@ -7517,6 +8314,12 @@ int Domain::accessAttributes(t_ACCESSOR& accessor) const
         return ret;
     }
 
+    ret = accessor(d_subscriptions,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SUBSCRIPTIONS]);
+    if (ret) {
+        return ret;
+    }
+
     return 0;
 }
 
@@ -7574,6 +8377,10 @@ int Domain::accessAttribute(t_ACCESSOR& accessor, int id) const
     case ATTRIBUTE_ID_CONSISTENCY: {
         return accessor(d_consistency,
                         ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CONSISTENCY]);
+    }
+    case ATTRIBUTE_ID_SUBSCRIPTIONS: {
+        return accessor(d_subscriptions,
+                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SUBSCRIPTIONS]);
     }
     default: return NOT_FOUND;
     }
@@ -7654,6 +8461,11 @@ inline int Domain::deduplicationTimeMs() const
 inline const Consistency& Domain::consistency() const
 {
     return d_consistency;
+}
+
+inline const bsl::vector<Subscription>& Domain::subscriptions() const
+{
+    return d_subscriptions;
 }
 
 // ----------------------
@@ -7969,6 +8781,13 @@ void mqbconfm::hashAppend(t_HASH_ALGORITHM&               hashAlg,
     using bslh::hashAppend;
     hashAppend(hashAlg, object.name());
     hashAppend(hashAlg, object.cluster());
+}
+
+inline bsl::ostream&
+mqbconfm::operator<<(bsl::ostream&                      stream,
+                     mqbconfm::ExpressionVersion::Value rhs)
+{
+    return mqbconfm::ExpressionVersion::print(stream, rhs);
 }
 
 inline bool mqbconfm::operator==(const mqbconfm::Failure& lhs,
@@ -8327,6 +9146,33 @@ void mqbconfm::hashAppend(t_HASH_ALGORITHM&                    hashAlg,
     hashAppend(hashAlg, object.domainName());
 }
 
+inline bool mqbconfm::operator==(const mqbconfm::Expression& lhs,
+                                 const mqbconfm::Expression& rhs)
+{
+    return lhs.version() == rhs.version() && lhs.text() == rhs.text();
+}
+
+inline bool mqbconfm::operator!=(const mqbconfm::Expression& lhs,
+                                 const mqbconfm::Expression& rhs)
+{
+    return !(lhs == rhs);
+}
+
+inline bsl::ostream& mqbconfm::operator<<(bsl::ostream&               stream,
+                                          const mqbconfm::Expression& rhs)
+{
+    return rhs.print(stream, 0, -1);
+}
+
+template <typename t_HASH_ALGORITHM>
+void mqbconfm::hashAppend(t_HASH_ALGORITHM&           hashAlg,
+                          const mqbconfm::Expression& object)
+{
+    using bslh::hashAppend;
+    hashAppend(hashAlg, object.version());
+    hashAppend(hashAlg, object.text());
+}
+
 inline bool mqbconfm::operator==(const mqbconfm::QueueMode& lhs,
                                  const mqbconfm::QueueMode& rhs)
 {
@@ -8561,6 +9407,33 @@ void mqbconfm::hashAppend(t_HASH_ALGORITHM&                  hashAlg,
     hashAppend(hashAlg, object.config());
 }
 
+inline bool mqbconfm::operator==(const mqbconfm::Subscription& lhs,
+                                 const mqbconfm::Subscription& rhs)
+{
+    return lhs.appId() == rhs.appId() && lhs.expression() == rhs.expression();
+}
+
+inline bool mqbconfm::operator!=(const mqbconfm::Subscription& lhs,
+                                 const mqbconfm::Subscription& rhs)
+{
+    return !(lhs == rhs);
+}
+
+inline bsl::ostream& mqbconfm::operator<<(bsl::ostream&                 stream,
+                                          const mqbconfm::Subscription& rhs)
+{
+    return rhs.print(stream, 0, -1);
+}
+
+template <typename t_HASH_ALGORITHM>
+void mqbconfm::hashAppend(t_HASH_ALGORITHM&             hashAlg,
+                          const mqbconfm::Subscription& object)
+{
+    using bslh::hashAppend;
+    hashAppend(hashAlg, object.appId());
+    hashAppend(hashAlg, object.expression());
+}
+
 inline bool mqbconfm::operator==(const mqbconfm::Domain& lhs,
                                  const mqbconfm::Domain& rhs)
 {
@@ -8574,7 +9447,8 @@ inline bool mqbconfm::operator==(const mqbconfm::Domain& lhs,
            lhs.messageTtl() == rhs.messageTtl() &&
            lhs.maxDeliveryAttempts() == rhs.maxDeliveryAttempts() &&
            lhs.deduplicationTimeMs() == rhs.deduplicationTimeMs() &&
-           lhs.consistency() == rhs.consistency();
+           lhs.consistency() == rhs.consistency() &&
+           lhs.subscriptions() == rhs.subscriptions();
 }
 
 inline bool mqbconfm::operator!=(const mqbconfm::Domain& lhs,
@@ -8606,6 +9480,7 @@ void mqbconfm::hashAppend(t_HASH_ALGORITHM&       hashAlg,
     hashAppend(hashAlg, object.maxDeliveryAttempts());
     hashAppend(hashAlg, object.deduplicationTimeMs());
     hashAppend(hashAlg, object.consistency());
+    hashAppend(hashAlg, object.subscriptions());
 }
 
 inline bool mqbconfm::operator==(const mqbconfm::DomainDefinition& lhs,
@@ -8694,4 +9569,11 @@ void mqbconfm::hashAppend(t_HASH_ALGORITHM&              hashAlg,
 // GENERATED BY BLP_BAS_CODEGEN_2023.11.25
 // USING bas_codegen.pl -m msg --noAggregateConversion --noExternalization
 // --noIdent --package mqbconfm --msgComponent messages mqbconf.xsd SERVICE
-// VERSION bmqconf:183474-1.0
+// SERVICE VERSION bmqconf:183474-1.0
+// ----------------------------------------------------------------------------
+// NOTICE:
+//      Copyright 2024 Bloomberg Finance L.P. All rights reserved.
+//      Property of Bloomberg Finance L.P. (BFLP)
+//      This software is made available solely pursuant to the
+//      terms of a BFLP license agreement which governs its use.
+// ------------------------------- END-OF-FILE --------------------------------

@@ -783,14 +783,14 @@ class FileStore : public DataStore {
     /// ---------------
 
     /// Write a CONFIRM record to the journal with the specified `queueKey`,
-    /// optional `appKey`, `guid`, `timestamp` and `onReject` to the
+    /// optional `appKey`, `guid`, `timestamp` and `reason` to the
     /// journal.  Return zero on success, non-zero value otherwise.
     int writeConfirmRecord(DataStoreRecordHandle*   handle,
                            const bmqt::MessageGUID& guid,
                            const mqbu::StorageKey&  queueKey,
                            const mqbu::StorageKey&  appKey,
                            bsls::Types::Uint64      timestamp,
-                           bool onReject) BSLS_KEYWORD_OVERRIDE;
+                           ConfirmReason::Enum reason) BSLS_KEYWORD_OVERRIDE;
 
     /// Write a DELETION record to the journal with the specified
     /// `queueKey`, `flag`, `guid` and `timestamp` to the journal.  Return
