@@ -182,7 +182,7 @@ void ClusterProxy::initiateShutdownDispatched(const VoidFunctor& callback)
     SessionSpVec             sessions;
     bsls::TimeInterval       shutdownTimeout;
     shutdownTimeout.addMilliseconds(
-        d_clusterProxyConfig.queueOperations().shutdownTimeoutMs());
+        clusterProxyConfig()->queueOperations().shutdownTimeoutMs());
 
     for (mqbnet::TransportManagerIterator sessIt(
              d_clusterData.transportManager());
@@ -1020,12 +1020,12 @@ ClusterProxy::ClusterProxy(
 : d_allocator_p(allocator)
 , d_isStarted(false)
 , d_isStopping(false)
-, d_clusterProxyConfig(clusterProxyConfig)
 , d_clusterData(name,
                 scheduler,
                 bufferFactory,
                 blobSpPool,
                 mqbcfg::ClusterDefinition(allocator),
+                clusterProxyConfig,
                 netCluster,
                 this,
                 0,

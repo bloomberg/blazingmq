@@ -248,19 +248,20 @@ Cluster::Cluster(bdlbb::BlobBufferFactory* bufferFactory,
     d_dispatcherClientData.setDispatcher(&d_dispatcher);
     d_dispatcher._setInDispatcherThread(true);
 
-    d_clusterData_mp.load(new (*d_allocator_p)
-                              mqbc::ClusterData(d_clusterDefinition.name(),
-                                                &d_scheduler,
-                                                d_bufferFactory_p,
-                                                &d_blobSpPool,
-                                                d_clusterDefinition,
-                                                d_netCluster_mp,
-                                                this,
-                                                0,  // domainFactory
-                                                0,  // transportManager
-                                                d_statContext_sp.get(),
-                                                d_statContexts,
-                                                d_allocator_p),
+    d_clusterData_mp.load(new (*d_allocator_p) mqbc::ClusterData(
+                              d_clusterDefinition.name(),
+                              &d_scheduler,
+                              d_bufferFactory_p,
+                              &d_blobSpPool,
+                              d_clusterDefinition,
+                              mqbcfg::ClusterProxyDefinition(d_allocator_p),
+                              d_netCluster_mp,
+                              this,
+                              0,  // domainFactory
+                              0,  // transportManager
+                              d_statContext_sp.get(),
+                              d_statContexts,
+                              d_allocator_p),
                           d_allocator_p);
 
     // Set cluster state's dispatcher

@@ -211,10 +211,6 @@ class ClusterProxy : public mqbc::ClusterStateObserver,
     // stopping.  This flag is exposed via
     // an accessor.
 
-    mqbcfg::ClusterProxyDefinition d_clusterProxyConfig;
-    // Cluster proxy configuration to use
-    // TODO: Merge into mqbc::ClusterData
-
     mqbc::ClusterData d_clusterData;
     // The transient data associated with
     // the cluster
@@ -769,7 +765,7 @@ inline const mqbcfg::ClusterDefinition* ClusterProxy::clusterConfig() const
 inline const mqbcfg::ClusterProxyDefinition*
 ClusterProxy::clusterProxyConfig() const
 {
-    return &d_clusterProxyConfig;
+    return &d_clusterData.clusterProxyConfig();
 }
 
 // ACCESSORS

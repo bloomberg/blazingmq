@@ -91,24 +91,27 @@ mqbc::ClusterDataIdentity clusterIdentity(const bslstl::StringRef& name,
 // -----------------
 
 // CREATORS
-ClusterData::ClusterData(const bslstl::StringRef&           name,
-                         bdlmt::EventScheduler*             scheduler,
-                         bdlbb::BlobBufferFactory*          bufferFactory,
-                         BlobSpPool*                        blobSpPool,
-                         const mqbcfg::ClusterDefinition&   clusterConfig,
-                         bslma::ManagedPtr<mqbnet::Cluster> netCluster,
-                         mqbi::Cluster*                     cluster,
-                         mqbi::DomainFactory*               domainFactory,
-                         mqbnet::TransportManager*          transportManager,
-                         mwcst::StatContext*    clustersStatContext,
-                         const StatContextsMap& statContexts,
-                         bslma::Allocator*      allocator)
+ClusterData::ClusterData(
+    const bslstl::StringRef&              name,
+    bdlmt::EventScheduler*                scheduler,
+    bdlbb::BlobBufferFactory*             bufferFactory,
+    BlobSpPool*                           blobSpPool,
+    const mqbcfg::ClusterDefinition&      clusterConfig,
+    const mqbcfg::ClusterProxyDefinition& clusterProxyConfig,
+    bslma::ManagedPtr<mqbnet::Cluster>    netCluster,
+    mqbi::Cluster*                        cluster,
+    mqbi::DomainFactory*                  domainFactory,
+    mqbnet::TransportManager*             transportManager,
+    mwcst::StatContext*                   clustersStatContext,
+    const StatContextsMap&                statContexts,
+    bslma::Allocator*                     allocator)
 : d_allocator_p(allocator)
 , d_scheduler_p(scheduler)
 , d_bufferFactory_p(bufferFactory)
 , d_blobSpPool_p(blobSpPool)
 , d_dispatcherClientData()
 , d_clusterConfig(clusterConfig)
+, d_clusterProxyConfig(clusterProxyConfig)
 , d_electorInfo(cluster)
 , d_membership(netCluster, allocator)
 , d_identity(
