@@ -1020,7 +1020,6 @@ ClusterProxy::ClusterProxy(
 : d_allocator_p(allocator)
 , d_isStarted(false)
 , d_isStopping(false)
-, d_description("ClusterProxy (" + name + ")", d_allocator_p)
 , d_clusterProxyConfig(clusterProxyConfig)
 , d_clusterData(name,
                 scheduler,
@@ -1038,7 +1037,7 @@ ClusterProxy::ClusterProxy(
           0,  // Partition count.  Proxy has no notion of partition.
           allocator)
 , d_activeNodeManager(d_clusterData.membership().netCluster()->nodes(),
-                      d_description,
+                      description(),
                       mqbcfg::BrokerConfig::get().hostDataCenter())
 , d_queueHelper(&d_clusterData, &d_state, 0, allocator)
 , d_nodeStatsMap(allocator)

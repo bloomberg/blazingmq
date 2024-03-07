@@ -214,8 +214,6 @@ Cluster::Cluster(bdlbb::BlobBufferFactory* bufferFactory,
 , d_scheduler(bsls::SystemClockType::e_MONOTONIC, allocator)
 , d_timeSource(&d_scheduler)
 , d_isStarted(false)
-, d_name(allocator)
-, d_description(allocator)
 , d_clusterDefinition(allocator)
 , d_itemPool(mqbnet::Channel::k_ITEM_SIZE, allocator)
 , d_channels(allocator)
@@ -507,14 +505,14 @@ const mqbi::DispatcherClientData& Cluster::dispatcherClientData() const
 
 const bsl::string& Cluster::description() const
 {
-    return d_description;
+    return d_clusterData_mp->identity().description();
 }
 
 // ACCESSORS
 //   (virtual: mqbi::Cluster)
 const bsl::string& Cluster::name() const
 {
-    return d_name;
+    return d_clusterData_mp->identity().name();
 }
 
 const mqbnet::Cluster& Cluster::netCluster() const

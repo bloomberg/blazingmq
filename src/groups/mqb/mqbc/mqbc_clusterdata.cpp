@@ -147,7 +147,7 @@ ClusterData::ClusterData(const bslstl::StringRef&           name,
     // Initialize the clusterStats object - under the hood this creates a new
     // subcontext to be held by this object to be used by all lower level
     // components created here.
-    d_stats.initialize(cluster->name(),
+    d_stats.initialize(name,
                        clusterConfig.partitionConfig().numPartitions(),
                        clustersStatContext,
                        d_allocator_p);
