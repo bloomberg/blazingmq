@@ -13,7 +13,7 @@
           "name": "gallifrey",
           "transport": {
             "tcp": {
-              "endpoint": "tcp://gallifrey:30114"
+              "endpoint": "tcp://localhost:30114"
             }
           }
         },
@@ -23,7 +23,7 @@
           "name": "skaro",
           "transport": {
             "tcp": {
-              "endpoint": "tcp://skaro:30114"
+              "endpoint": "tcp://localhost:30115"
             }
           }
         },

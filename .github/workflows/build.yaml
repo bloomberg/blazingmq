@@ -20,7 +20,6 @@ jobs:
       - uses: actions/checkout@v4
       - name: Set up dependencies
         run: |
-          sudo bash -c "echo '/var/crash/core.%e.%p.%t' > /proc/sys/kernel/core_pattern"
           sudo apt-get update
           sudo apt-get install -qy build-essential \
             gdb \
@@ -106,17 +105,19 @@ jobs:
         run: |
           sudo apt-get install -qy python3.10 python3-pip
           sudo pip install -r ${{ github.workspace }}/src/python/requirements.txt
+          sudo bash -c "echo '/var/crash/core.%e.%p.%t' > /proc/sys/kernel/core_pattern"
           ${{ github.workspace }}/src/integration-tests/run-tests \
-            --log-level=info \
+            --log-cli-level=info \
             --bmq-tolerate-dirty-shutdown       \
             --bmq-log-dir=failure-logs          \
             --junitxml=integration-tests.xml    \
             --tb line                           \
-            --reruns=3                          \
             -k 'test_verify_broadcast[single_node]' \
-            -n 4 -v
+            --mq-log-level=warning,blazingmq.dev.it.cluster:info
+            # --reruns=3                          \
+            # -n 4 -v
       - name: Copy Tasks
-        if: always()
+        if: ${{ failure() }}
         run: |
           if [ -d src/integration-tests/failure-logs ]; then
             cd src/integration-tests/failure-logs
@@ -128,7 +129,7 @@ jobs:
             fi
           fi
       - name: Archive Integration Test Failure Logs and Cores
-        if: always()
+        if: ${{ failure() }}
         uses: actions/upload-artifact@v4
         with:
           name: integration-test-results

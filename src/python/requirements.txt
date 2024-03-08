@@ -1,5 +1,4 @@
 docker
-docker
 psutil
 pytest
 pytest-order
