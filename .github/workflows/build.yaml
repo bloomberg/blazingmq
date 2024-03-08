@@ -105,7 +105,8 @@ jobs:
         run: |
           sudo apt-get install -qy python3.10 python3-pip
           sudo pip install -r ${{ github.workspace }}/src/python/requirements.txt
-          sudo bash -c "echo '/var/crash/core.%e.%p.%t' > /proc/sys/kernel/core_pattern"
+          cat /proc/sys/kernel/core_pattern
+          sudo bash -- -c "echo '/var/crash/core.%e.%p.%t' > /proc/sys/kernel/core_pattern"
           cat /proc/sys/kernel/core_pattern
           ${{ github.workspace }}/src/integration-tests/run-tests \
             --log-cli-level=info \
