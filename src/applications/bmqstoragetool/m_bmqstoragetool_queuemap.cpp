@@ -21,15 +21,22 @@ namespace m_bmqstoragetool {
 
 namespace {
 
+/// This class implements unary predicate for checking if a particular
+/// AppIdInfo is presented in a vector of them.
 class AppIdMatcher {
+    // PRIVATE DATA
     const bsl::vector<bmqp_ctrlmsg::AppIdInfo>* d_appIds_p;
+    // Pointer to a vector of AppIdInfo for searching in it.
 
   public:
-    AppIdMatcher(const bsl::vector<bmqp_ctrlmsg::AppIdInfo>& appIds)
+    /// Constructor with the specified `appIds`.
+    explicit AppIdMatcher(const bsl::vector<bmqp_ctrlmsg::AppIdInfo>& appIds)
     : d_appIds_p(&appIds)
     {
     }
 
+    /// Checks if the cpesified `appIdInfo` is presented in the internal
+    /// vector. Return `true` if such instance is found, `false` otherwise.
     bool operator()(const bmqp_ctrlmsg::AppIdInfo& appIdInfo)
     {
         return bsl::find(d_appIds_p->begin(), d_appIds_p->end(), appIdInfo) !=
