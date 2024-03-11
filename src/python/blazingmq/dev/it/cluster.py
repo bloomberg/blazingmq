@@ -183,6 +183,7 @@ class Cluster(contextlib.AbstractContextManager):
             try:
                 with open("/proc/sys/kernel/core_pattern") as core_pattern_file:
                     pattern = core_pattern_file.readline().strip()
+                    self._logger.info("core pattern: %s", pattern)
                     if "%p" in pattern:
                         cores_dir = Path(pattern).parent
                         if not cores_dir.is_absolute():
