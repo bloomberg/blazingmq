@@ -114,8 +114,7 @@ jobs:
             --bmq-log-dir=failure-logs          \
             --junitxml=integration-tests.xml    \
             --tb line                           \
-            -k 'test_verify_broadcast[single_node]' \
-            --bmq-log-level=warning,blazingmq.dev.it.cluster:info
+            -k 'test_verify_broadcast[single_node]'
             # --reruns=3                          \
             # -n 4 -v
       - name: Copy Tasks
