@@ -186,6 +186,7 @@ class Cluster(contextlib.AbstractContextManager):
                     self._logger.info("core pattern: %s", pattern)
                     if "%p" in pattern:
                         cores_dir = Path(pattern).parent
+                        self._logger.info("cores directory: %s", cores_dir)
                         if not cores_dir.is_absolute():
                             self._logger.warning(
                                 "core pattern '%s' is not an absolute path, cores will not be saved",
@@ -210,6 +211,7 @@ class Cluster(contextlib.AbstractContextManager):
                 if self.copy_cores and cores_dir:
                     core_found = False
                     for core in cores_dir.iterdir():
+                        self._logger.info("found core file %s", core)
                         if core.is_file and str(process.pid) in str(core):
                             core_found = True
                             logger.info("copying core %s to %s", core, self.copy_cores)
