@@ -1046,14 +1046,7 @@ void Application::producerThread()
         }
     }
 
-    // Finished posting messages in auto mode?
-    // If shutDownGrace is set, signal to the main thread to exit.
-    if (d_parameters_p->mode() == ParametersMode::e_AUTO &&
-        d_parameters_p->shutdownGrace() != 0) {
-        // We do not need to sleep the grace period, since it is done
-        // by the main thread, in the stop() function.
-        d_shutdownSemaphore_p->post();
-    }
+    d_shutdownSemaphore_p->post();
 }
 
 // CLASS METHODS

@@ -548,6 +548,8 @@ class Routers {
 
         bmqp::MessageProperties      d_properties;
         const mqbi::StorageIterator* d_currentMessage_p;
+        bsl::shared_ptr<bdlbb::Blob> d_appData;
+        bmqp::MessagePropertiesInfo  d_messagePropertiesInfo;
         bool                         d_isDirty;
 
       public:
@@ -561,7 +563,13 @@ class Routers {
         bdld::Datum get(const bsl::string& name,
                         bslma::Allocator*  allocator) BSLS_KEYWORD_OVERRIDE;
 
+        // Prepare the reader for the next message given the specified
+        // 'currentMessage' or 'appData' and 'messagePropertiesInfo'.
         void next(const mqbi::StorageIterator* currentMessage);
+        void next(const bsl::shared_ptr<bdlbb::Blob>& appData,
+                  const bmqp::MessagePropertiesInfo&  messagePropertiesInfo);
+        void clear();
+        // Reset the reader to the state of empty properties.
     };
 
     /// Mechanism to assist `Expression`s evaluation optimization to avoid
@@ -837,6 +845,7 @@ inline Routers::QueueRoutingContext::QueueRoutingContext(
 , d_evaluationContext(0, allocator)
 , d_allocator_p(allocator)
 {
+    d_evaluationContext.setPropertiesReader(d_preader.get());
 }
 
 inline Routers::QueueRoutingContext::~QueueRoutingContext()

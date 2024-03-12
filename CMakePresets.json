@@ -22,7 +22,6 @@
             "inherits": "base",
             "cacheVariables": {
                 "VCPKG_INSTALL_OPTIONS": "--allow-unsupported",
-                "FL_LIBRARY": "/opt/homebrew/opt/flex/lib/libfl.a",
                 "FLEX_INCLUDE_DIR": "/opt/homebrew/opt/flex/include"
             }
         },
@@ -33,7 +32,6 @@
             "inherits": "base",
             "cacheVariables": {
                 "VCPKG_INSTALL_OPTIONS": "--allow-unsupported",
-                "FL_LIBRARY": "/usr/local/lib/opt/flex/lib/libfl.a",
                 "FLEX_INCLUDE_DIR": "/usr/local/lib/opt/flex/include"
             }
         },

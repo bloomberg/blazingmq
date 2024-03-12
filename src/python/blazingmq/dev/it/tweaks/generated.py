@@ -805,6 +805,36 @@ class TweakFactory:
                 ...
         consistency = Consistency()
         
+        class Subscriptions(metaclass=TweakMetaclass):
+            class AppId(metaclass=TweakMetaclass):
+            
+                def __call__(self, value: typing.Union[str,NoneType]) -> Callable:
+                    ...
+            app_id = AppId()
+            
+            class Expression(metaclass=TweakMetaclass):
+                class Version(metaclass=TweakMetaclass):
+                
+                    def __call__(self, value: blazingmq.schemas.mqbconf.ExpressionVersion) -> Callable:
+                        ...
+                version = Version()
+                
+                class Text(metaclass=TweakMetaclass):
+                
+                    def __call__(self, value: typing.Union[str,NoneType]) -> Callable:
+                        ...
+                text = Text()
+                
+            
+                def __call__(self, value: typing.Union[blazingmq.schemas.mqbconf.Expression,NoneType]) -> Callable:
+                    ...
+            expression = Expression()
+            
+        
+            def __call__(self, value: None) -> Callable:
+                ...
+        subscriptions = Subscriptions()
+        
     class Cluster:
         class Name(metaclass=TweakMetaclass):
         

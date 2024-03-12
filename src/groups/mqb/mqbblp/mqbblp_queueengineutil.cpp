@@ -823,6 +823,9 @@ QueueEngineUtil_AppState::QueueEngineUtil_AppState(
     // nodes don't load the domain config.
     BSLS_ASSERT_SAFE(d_scheduler_p);
 
+    d_autoSubscription.d_evaluationContext_p =
+        &d_routing_sp->d_queue.d_evaluationContext;
+
     d_throttledEarlyExits.initialize(1, 5 * bdlt::TimeUnitRatio::k_NS_PER_S);
 }
 
@@ -1312,6 +1315,30 @@ Routers::Result QueueEngineUtil_AppState::selectConsumer(
     }
 
     return result;
+}
+
+int QueueEngineUtil_AppState::setSubscription(
+    const mqbconfm::Expression& value)
+{
+    d_subcriptionExpression = value;
+
+    if (mqbconfm::ExpressionVersion::E_VERSION_1 == value.version()) {
+        if (d_subcriptionExpression.text().length()) {
+            int rc = d_autoSubscription.d_evaluator.compile(
+                d_subcriptionExpression.text(),
+                d_routing_sp->d_compilationContext);
+            return rc;  // RETURN
+        }
+    }
+    // Reset
+    d_autoSubscription.d_evaluator = bmqeval::SimpleEvaluator();
+
+    return 0;
+}
+
+bool QueueEngineUtil_AppState::evaluateAutoSubcription()
+{
+    return d_autoSubscription.evaluate();
 }
 
 bslma::ManagedPtr<mqbi::StorageIterator> QueueEngineUtil_AppState::head() const

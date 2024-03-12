@@ -117,12 +117,18 @@ bdld::Datum Routers::MessagePropertiesReader::get(const bsl::string& name,
                                                   bslma::Allocator*  allocator)
 {
     if (d_isDirty) {
-        if (d_currentMessage_p && d_currentMessage_p->appData()) {
-            int rc = d_schemaLearner.read(
-                d_schemaLearnerContext,
-                &d_properties,
-                d_currentMessage_p->attributes().messagePropertiesInfo(),
-                *d_currentMessage_p->appData());
+        if (!d_appData) {
+            if (d_currentMessage_p && d_currentMessage_p->appData()) {
+                d_appData = d_currentMessage_p->appData();
+                d_messagePropertiesInfo =
+                    d_currentMessage_p->attributes().messagePropertiesInfo();
+            }
+        }
+        if (d_appData) {
+            int rc = d_schemaLearner.read(d_schemaLearnerContext,
+                                          &d_properties,
+                                          d_messagePropertiesInfo,
+                                          *d_appData);
             if (rc != 0) {
                 BALL_LOG_TRACE << "Failed to read message schema [rc: " << rc
                                << "]";
@@ -137,14 +143,33 @@ bdld::Datum Routers::MessagePropertiesReader::get(const bsl::string& name,
 void Routers::MessagePropertiesReader::next(
     const mqbi::StorageIterator* currentMessage)
 {
-    if (currentMessage == d_currentMessage_p) {
+    if (currentMessage == d_currentMessage_p && currentMessage) {
         return;  // RETURN
     }
+    // Not loading mqbi::StorageIterator::appData to check equality
 
-    d_properties.clear();
+    clear();
 
     d_currentMessage_p = currentMessage;
-    d_isDirty          = true;
+}
+
+void Routers::MessagePropertiesReader::clear()
+{
+    d_properties.clear();
+
+    d_currentMessage_p = 0;
+    d_appData.reset();
+    d_isDirty = true;
+}
+
+void Routers::MessagePropertiesReader::next(
+    const bsl::shared_ptr<bdlbb::Blob>& appData,
+    const bmqp::MessagePropertiesInfo&  messagePropertiesInfo)
+{
+    clear();
+
+    d_appData               = appData;
+    d_messagePropertiesInfo = messagePropertiesInfo;
 }
 
 // ==========================
