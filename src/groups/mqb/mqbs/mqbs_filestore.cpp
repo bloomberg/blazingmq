@@ -7083,7 +7083,7 @@ void FileStore::flush()
     // 'gcHistory' attempts to iterate all old items. If there are more of them
     // than the batchSize (1000), it returns 'true'.  In this case, re-enable
     // flush client to call it again next Idle time.
-    // If it returns 'false', there is no immediate work.  Wait for the the
+    // If it returns 'false', there is no immediate work.  Wait for the
     // next k_GC_MESSAGES_INTERVAL_SECONDS.
 
     if (haveMore || haveMoreHistory) {
