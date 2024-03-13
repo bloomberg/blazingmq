@@ -130,7 +130,7 @@ struct RecoveryUtil {
         mqbs::JournalFileIterator&                   journalIt);
 
     /// This function operates on the record currently being pointed by the
-    /// the specified `journalIt`. It uses the specified `dataFd` if the
+    /// specified `journalIt`. It uses the specified `dataFd` if the
     /// record is a data record, the specified `qlistFd` if the record is
     /// a qlist record and the specified `fsmWorkflow` value is false. It
     /// populates the specified `storageMsgType`, `payloadRecordBase` and
