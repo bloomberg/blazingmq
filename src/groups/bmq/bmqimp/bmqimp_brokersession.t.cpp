@@ -2590,7 +2590,7 @@ void TestSession::verifyCloseQueueResult(
     ASSERT(waitForQueueState(queue, state));
 
     if (state == bmqimp::QueueState::e_CLOSED) {
-        // Verify that the queue is removed from the the active queue list
+        // Verify that the queue is removed from the active queue list
         ASSERT(waitForQueueRemoved(queue));
     }
     ASSERT_EQ(queue->isValid(), false);
