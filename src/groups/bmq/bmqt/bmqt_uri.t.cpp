@@ -670,11 +670,11 @@ static void test8_testUriParserOverflow()
     // Initialize bmqt::UriParser many times, and then deinitialize
     // it the same number of times according to the usage contract.
     const bsls::Types::Int64 k_INIT_NUM = 2200000000LL;
-    for (size_t i = 0; i < k_INIT_NUM; i++) {
+    for (bsls::Types::Int64 i = 0; i < k_INIT_NUM; i++) {
         bmqt::UriParser::initialize(s_allocator_p);
     }
 
-    for (size_t i = 0; i < k_INIT_NUM; i++) {
+    for (bsls::Types::Int64 i = 0; i < k_INIT_NUM; i++) {
         bmqt::UriParser::shutdown();
     }
 }
