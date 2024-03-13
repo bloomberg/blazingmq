@@ -242,7 +242,7 @@ class SequentialContext {
     /// Return the number of outstanding jobs for this execution context,
     /// that is defined as the number of function objects that have been
     /// added to the context via its associated executor, but not yet
-    /// invoked, plus the the number of function objects that are currently
+    /// invoked, plus the number of function objects that are currently
     /// being invoked within the context, which is either 0 or 1.
     size_t outstandingJobs() const BSLS_KEYWORD_NOEXCEPT;
 

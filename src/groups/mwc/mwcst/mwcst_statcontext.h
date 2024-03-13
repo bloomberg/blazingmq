@@ -135,7 +135,7 @@
 // update the values of the 'mwcstm::StatContextUpdate' to represent the value
 // changes in that snapshot.  This update may then be applied to another
 // 'StatContext', which will add or remove subcontexts and update its values
-// based on the the update.  Since the update component is serializable, this
+// based on the update.  Since the update component is serializable, this
 // context can reside in another process.
 //
 // 'StatContext' additionally provides a way to generate a complete
@@ -151,7 +151,7 @@
 // track of:
 //: o The number of messages and bytes sent and received via the interface,
 //    since the beginning;
-//: o The the number of messages per second and bytes per second sent and
+//: o The number of messages per second and bytes per second sent and
 //    received over the last 10 seconds.
 // So basically we need 4 metrics for input and the same 4 metrics for
 // output.
@@ -451,7 +451,7 @@
 //..
 // Now lets record some data points.
 //..
-//  int memInUse = 50000;    // size of the the allocator in bytes
+//  int memInUse = 50000;    // size of the allocator in bytes
 //  context.setValue(0, memInUse);
 //
 //  memInUse = 1500;

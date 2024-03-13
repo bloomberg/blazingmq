@@ -1144,7 +1144,7 @@ static void test12_future_creators()
 //
 //   2. Construct a non-specialized future object with a shared state.
 //      Check that the future is valid and has acquired the ownership of
-//      the shared state. Then destroy the future and check the the shared
+//      the shared state. Then destroy the future and check the shared
 //      state ownership has been released.
 //
 //   3. Default-construct a void-specialized future object. Check the
@@ -1152,7 +1152,7 @@ static void test12_future_creators()
 //
 //   4. Construct a void-specialized future object with a shared state.
 //      Check that the future is valid and has acquired the ownership of
-//      the shared state. Then destroy the future and check the the shared
+//      the shared state. Then destroy the future and check the shared
 //      state ownership has been released.
 //
 //   5. Default-construct a reference-specialized future object. Check the
@@ -1161,7 +1161,7 @@ static void test12_future_creators()
 //   6. Construct a reference-specialized future object with a shared
 //      state. Check that the future is valid and has acquired the
 //      ownership of the shared state. Then destroy the future and check
-//      the the shared state ownership has been released.
+//      the shared state ownership has been released.
 //
 // Testing:
 //   'mwcex::Future's constructors

@@ -67,7 +67,7 @@ struct ZLib {
 
     // CLASS METHODS
 
-    /// Return a buffer sufficient to hold the the specified number of
+    /// Return a buffer sufficient to hold the specified number of
     /// `items`, each having the specified `size`, using the specified
     /// `opaque` casted to a `bslma::Allocator *` to supply memory.
     static void*

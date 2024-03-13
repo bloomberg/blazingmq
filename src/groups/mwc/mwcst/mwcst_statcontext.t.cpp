@@ -199,7 +199,7 @@ static void usageExample(bsl::ostream& stream, bslma::Allocator* allocator)
     // track of:
     // - The number of messages and bytes sent and received via the interface,
     //   since the beginning;
-    // - The the number of messages per second and bytes per second sent and
+    // - The number of messages per second and bytes per second sent and
     //   received over the last 10 seconds.
     // So basically we need 4 metrics for input and the same 4 metrics for
     // output.
@@ -622,7 +622,7 @@ static void subcontextUsageExample(bsl::ostream&     stream,
             .value("Memory", numSnapshots));
 
     // Now lets record some data points.
-    int memInUse = 50000;  // size of the the allocator in bytes
+    int memInUse = 50000;  // size of the allocator in bytes
     context.setValue(0, memInUse);
 
     memInUse = 1500;
@@ -668,7 +668,7 @@ static void subcontextUsageExampleUpdate(bsl::ostream&     stream,
         mwcst::StatContextConfiguration("Interface Allocator")
             .value("Memory", numSnapshots));
 
-    int memInUse = 50000;  // size of the the allocator in bytes
+    int memInUse = 50000;  // size of the allocator in bytes
     context.setValue(0, memInUse);
 
     memInUse = 1500;

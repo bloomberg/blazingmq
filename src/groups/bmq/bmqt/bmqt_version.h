@@ -112,11 +112,11 @@ class Version {
 bsl::ostream& operator<<(bsl::ostream& stream, const Version& rhs);
 
 /// Return `true` if the object in the specified `lhs` represents the same
-/// version as the the one in the specified `rhs`, return false otherwise.
+/// version as the one in the specified `rhs`, return false otherwise.
 bool operator==(const Version& lhs, const Version& rhs);
 
 /// Return `true` if the object in the specified `lhs` represents a
-/// different version than the the one in the specified `rhs`, return false
+/// different version than the one in the specified `rhs`, return false
 /// otherwise.
 bool operator!=(const Version& lhs, const Version& rhs);
 
