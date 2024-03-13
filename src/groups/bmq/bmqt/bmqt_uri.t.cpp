@@ -657,6 +657,28 @@ static void test7_testLongUri()
     bmqt::UriParser::shutdown();
 }
 
+static void test8_testUriParserOverflow()
+{
+    s_ignoreCheckDefAlloc = true;
+    // Disable the default allocator check. When 'bmqt::Uri'
+    // is created from a long uri string error message is
+    // logged via 'BALL_LOG_ERROR' which allocates using
+    // the default allocator.
+
+    mwctst::TestHelper::printTestName("URI PARSER OVERFLOW TEST");
+
+    // Initialize bmqt::UriParser many times, and then deinitialize
+    // it the same number of times according to the usage contract.
+    const bsls::Types::Int64 k_INIT_NUM = 2200000000LL;
+    for (size_t i = 0; i < k_INIT_NUM; i++) {
+        bmqt::UriParser::initialize(s_allocator_p);
+    }
+
+    for (size_t i = 0; i < k_INIT_NUM; i++) {
+        bmqt::UriParser::shutdown();
+    }
+}
+
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
@@ -667,6 +689,7 @@ int main(int argc, char* argv[])
 
     switch (_testCase) {
     case 0:
+    case 8: test8_testUriParserOverflow(); break;
     case 7: test7_testLongUri(); break;
     case 6: test6_hashAppend(); break;
     case 5: test5_testPrint(); break;
