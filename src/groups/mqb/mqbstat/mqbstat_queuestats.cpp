@@ -21,6 +21,7 @@
 #include <bmqt_queueflags.h>
 
 // MQB
+#include <mqbcfg_brokerconfig.h>
 #include <mqbi_cluster.h>
 #include <mqbi_domain.h>
 #include <mqbi_queue.h>
@@ -181,6 +182,29 @@ bool filterDirect(const mwcst::TableRecords::Record& record)
     return record.type() == mwcst::StatContext::DMCST_TOTAL_VALUE;
 }
 
+/// Functor object returning `true`, i.e., filter out, if the specified 'name'
+/// matches context's name
+class ContextNameMatcher {
+  private:
+    // DATA
+    const bsl::string d_name;
+
+  public:
+    // CREATORS
+    ContextNameMatcher(const bsl::string& name)
+    : d_name(name)
+    {
+        // NOTHING
+    }
+
+    // ACCESSORS
+    bool
+    operator()(const bslma::ManagedPtr<mwcst::StatContext> context_mp) const
+    {
+        return (context_mp->name() == d_name);
+    }
+};
+
 }  // close unnamed namespace
 
 // ----------------------
@@ -340,6 +364,7 @@ QueueStatsDomain::getValue(const mwcst::StatContext& context,
 
 QueueStatsDomain::QueueStatsDomain()
 : d_statContext_mp(0)
+, d_subContexts_mp(0)
 {
     // NOTHING
 }
@@ -382,6 +407,29 @@ void QueueStatsDomain::initialize(const bmqt::Uri&  uri,
     builder.pushBack("tier", bdld::Datum::copyString(uri.tier(), alloc));
 
     datum->adopt(builder.commit());
+
+    // Create subcontexts if queue mode is `fanout `and domain name is in
+    // appIdTaggedDomains list. bsl::vector<xxx> =
+    // mqbcfg::BrokerConfig::get().stats().appIdTaggedDomains();
+    // TODO: temp before integration with new config
+    bsl::vector<bsl::string> appIdTaggedDomains;
+    appIdTaggedDomains.push_back("bmq.test.mem.fanout");
+
+    if (domain->config().mode().isFanoutValue() &&
+        (bsl::find(appIdTaggedDomains.begin(),
+                   appIdTaggedDomains.end(),
+                   uri.domain()) != appIdTaggedDomains.end())) {
+        d_subContexts_mp.load(new (*allocator)
+                                  bsl::list<StatSubContextMp>(allocator));
+        const bsl::vector<bsl::string>& appIDs =
+            domain->config().mode().fanout().appIDs();
+        for (bsl::vector<bsl::string>::const_iterator cit = appIDs.begin();
+             cit != appIDs.end();
+             ++cit) {
+            d_subContexts_mp->push_back(d_statContext_mp->addSubcontext(
+                mwcst::StatContextConfiguration(*cit, &localAllocator)));
+        }
+    }
 }
 
 QueueStatsDomain& QueueStatsDomain::setReaderCount(int readerCount)
@@ -424,10 +472,6 @@ void QueueStatsDomain::onEvent(EventType::Enum type, bsls::Types::Int64 value)
     case EventType::e_CONFIRM: {
         // For CONFIRM, we don't care about the bytes value ..
         d_statContext_mp->adjustValue(DomainQueueStats::e_STAT_CONFIRM, 1);
-    } break;
-    case EventType::e_CONFIRM_TIME: {
-        d_statContext_mp->reportValue(DomainQueueStats::e_STAT_CONFIRM_TIME,
-                                      value);
     } break;
     case EventType::e_REJECT: {
         d_statContext_mp->adjustValue(DomainQueueStats::e_STAT_REJECT, 1);
@@ -481,8 +525,80 @@ void QueueStatsDomain::onEvent(EventType::Enum type, bsls::Types::Int64 value)
 void QueueStatsDomain::setQueueContentRaw(bsls::Types::Int64 messages,
                                           bsls::Types::Int64 bytes)
 {
+    BSLS_ASSERT_SAFE(d_statContext_mp && "initialize was not called");
+
     d_statContext_mp->setValue(DomainQueueStats::e_STAT_BYTES, bytes);
     d_statContext_mp->setValue(DomainQueueStats::e_STAT_MESSAGES, messages);
+}
+
+void QueueStatsDomain::reportConfirmTime(bsls::Types::Int64 value,
+                                         const bsl::string& appId)
+{
+    BSLS_ASSERT_SAFE(d_statContext_mp && "initialize was not called");
+
+    // If there is no subcontexts, report `confirm time` metric to the queue
+    // context
+    if (!d_subContexts_mp) {
+        return d_statContext_mp->reportValue(
+            DomainQueueStats::e_STAT_CONFIRM_TIME,
+            value);  // RETURN
+    }
+
+    // Report `confirm time` metric to corresponding AppId subcontext
+    //  TODO: check why it is not working
+    //  bsl::list<StatSubContextMp>::iterator it =
+    //  bsl::find_if(d_subContexts_mp->begin(), d_subContexts_mp->end(),
+    //  ContextNameMatcher(appId)); if (it != d_subContexts_mp->end())
+    //  {
+    //      it->get()->reportValue(DomainQueueStats::e_STAT_CONFIRM_TIME,
+    //      value);
+    //  }
+
+    for (bsl::list<StatSubContextMp>::iterator it = d_subContexts_mp->begin();
+         it != d_subContexts_mp->end();
+         ++it) {
+        mwcst::StatContext* subCtx_p = it->get();
+        if (subCtx_p->name() == appId) {
+            subCtx_p->reportValue(DomainQueueStats::e_STAT_CONFIRM_TIME,
+                                  value);
+            return;  // RETURN
+        }
+    }
+}
+
+void QueueStatsDomain::updateDomainAppIds(
+    const bsl::vector<bsl::string>& appIds)
+{
+    bdlma::LocalSequentialAllocator<2048> localAllocator;
+
+    if (!d_subContexts_mp) {
+        return;
+    }
+
+    // Add subcontexts for appIds that are not already present
+    for (bsl::vector<bsl::string>::const_iterator cit = appIds.begin();
+         cit != appIds.end();
+         ++cit) {
+        if (bsl::find_if(d_subContexts_mp->begin(),
+                         d_subContexts_mp->end(),
+                         ContextNameMatcher(*cit)) ==
+            d_subContexts_mp->end()) {
+            d_subContexts_mp->push_back(d_statContext_mp->addSubcontext(
+                mwcst::StatContextConfiguration(*cit, &localAllocator)));
+        }
+    }
+
+    // Remove subcontexts if appIds are not present in updated AppIds
+    bsl::list<StatSubContextMp>::iterator it = d_subContexts_mp->begin();
+    while (it != d_subContexts_mp->end()) {
+        if (bsl::find(appIds.begin(), appIds.end(), it->get()->name()) ==
+            appIds.end()) {
+            it = d_subContexts_mp->erase(it);
+        }
+        else {
+            ++it;
+        }
+    }
 }
 
 // -----------------------------

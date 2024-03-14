@@ -225,7 +225,8 @@ class QueueHandle : public mqbi::QueueHandle {
     mqbu::ResourceUsageMonitorStateTransition::Enum
     updateMonitor(mqbi::QueueHandle::UnconfirmedMessageInfoMap::iterator it,
                   Subscription*         subscription,
-                  bmqp::EventType::Enum type);
+                  bmqp::EventType::Enum type,
+                  const bsl::string&    appId);
 
     /// THREAD: this method must be called from the Queue dispatcher thread.
     void configureDispatched(
