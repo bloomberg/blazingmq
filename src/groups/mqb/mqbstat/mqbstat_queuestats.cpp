@@ -409,16 +409,14 @@ void QueueStatsDomain::initialize(const bmqt::Uri&  uri,
     datum->adopt(builder.commit());
 
     // Create subcontexts if queue mode is `fanout `and domain name is in
-    // appIdTaggedDomains list. bsl::vector<xxx> =
-    // mqbcfg::BrokerConfig::get().stats().appIdTaggedDomains();
-    // TODO: temp before integration with new config
-    bsl::vector<bsl::string> appIdTaggedDomains;
-    appIdTaggedDomains.push_back("bmq.test.mem.fanout");
+    // `appIdPostingDomains` list.
+    const bsl::vector<bsl::string>& appIdPostingDomains =
+        mqbcfg::BrokerConfig::get().stats().appIdPostingDomains();
 
     if (domain->config().mode().isFanoutValue() &&
-        (bsl::find(appIdTaggedDomains.begin(),
-                   appIdTaggedDomains.end(),
-                   uri.domain()) != appIdTaggedDomains.end())) {
+        (bsl::find(appIdPostingDomains.begin(),
+                   appIdPostingDomains.end(),
+                   uri.domain()) != appIdPostingDomains.end())) {
         d_subContexts_mp.load(new (*allocator)
                                   bsl::list<StatSubContextMp>(allocator),
                               allocator);
