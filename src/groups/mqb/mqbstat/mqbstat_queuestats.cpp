@@ -420,7 +420,8 @@ void QueueStatsDomain::initialize(const bmqt::Uri&  uri,
                    appIdTaggedDomains.end(),
                    uri.domain()) != appIdTaggedDomains.end())) {
         d_subContexts_mp.load(new (*allocator)
-                                  bsl::list<StatSubContextMp>(allocator));
+                                  bsl::list<StatSubContextMp>(allocator),
+                              allocator);
         const bsl::vector<bsl::string>& appIDs =
             domain->config().mode().fanout().appIDs();
         for (bsl::vector<bsl::string>::const_iterator cit = appIDs.begin();
