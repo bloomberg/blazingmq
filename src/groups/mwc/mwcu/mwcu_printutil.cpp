@@ -183,7 +183,8 @@ prettyBytes(bsl::ostream& stream, bsls::Types::Int64 bytes, int precision)
     if (precision == 0 || unit == 0) {
         // When no decimal part is required, we round up the value and print it
         bsls::Types::Int64 quot = lround(
-            static_cast<double>(bytes) / bsl::pow(1024., static_cast<double>(unit)));
+            static_cast<double>(bytes) /
+            bsl::pow(1024., static_cast<double>(unit)));
         if (quot == 1024 && unit != k_UNITS_COUNT - 1) {
             // This is a special case when the round up leads to the next unit
             quot = 1;
@@ -281,7 +282,8 @@ bsl::ostream& prettyTimeInterval(bsl::ostream&      stream,
         // precision digits
         const bsls::Types::Int64 quot      = timeNs / div;
         const long               remainder = lround(
-            (static_cast<double>(timeNs - quot * div) / static_cast<double>(div)) *
+            (static_cast<double>(timeNs - quot * div) /
+             static_cast<double>(div)) *
             bsl::pow(10., static_cast<double>(precision)));
         temp << quot << "." << bsl::setw(precision) << bsl::setfill('0')
              << remainder;
