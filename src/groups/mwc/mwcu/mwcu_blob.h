@@ -132,7 +132,7 @@ class BlobSection {
     /// Return a modifiable reference to the start position.
     BlobPosition& start();
 
-    /// Return a modifiable reference to the the end position.
+    /// Return a modifiable reference to the end position.
     BlobPosition& end();
 
     // ACCESSORS
