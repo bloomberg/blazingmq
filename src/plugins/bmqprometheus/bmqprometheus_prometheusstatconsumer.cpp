@@ -116,6 +116,12 @@ class Tagger {
         return *this;
     }
 
+    Tagger& setAppId(const bslstl::StringRef& value)
+    {
+        labels["AppId"] = value;
+        return *this;
+    }
+
     // ACCESSORS
     ::prometheus::Labels& getLabels() { return labels; }
 };
@@ -285,6 +291,11 @@ void PrometheusStatConsumer::captureQueueStats()
 
             const auto labels = tagger.getLabels();
 
+            static const DatapointDef confirmTimeDataPoint = {
+                "queue_confirm_time_max",
+                Stat::e_CONFIRM_TIME_MAX,
+                false};
+
             // Heartbeat metric
             {
                 // This metric is *always* reported for every queue, so that
@@ -314,11 +325,7 @@ void PrometheusStatConsumer::captureQueueStats()
                     {"queue_confirm_msgs", Stat::e_CONFIRM_DELTA, true},
                     {"queue_confirm_time_avg",
                      Stat::e_CONFIRM_TIME_AVG,
-                     false},
-                    {"queue_confirm_time_max",
-                     Stat::e_CONFIRM_TIME_MAX,
-                     false},
-                };
+                     false}};
 
                 for (DatapointDefCIter dpIt = bdlb::ArrayUtil::begin(defs);
                      dpIt != bdlb::ArrayUtil::end(defs);
@@ -330,6 +337,18 @@ void PrometheusStatConsumer::captureQueueStats()
                             static_cast<mqbstat::QueueStatsDomain::Stat::Enum>(
                                 dpIt->d_stat));
                     updateMetric(dpIt, labels, value);
+                }
+
+                if (queueIt->numSubcontexts() == 0) {
+                    const bsls::Types::Int64 value =
+                        mqbstat::QueueStatsDomain::getValue(
+                            *queueIt,
+                            d_snapshotId,
+                            static_cast<mqbstat::QueueStatsDomain::Stat::Enum>(
+                                confirmTimeDataPoint.d_stat));
+                    updateMetric(&confirmTimeDataPoint,
+                                 tagger.getLabels(),
+                                 value);
                 }
             }
 
@@ -360,6 +379,24 @@ void PrometheusStatConsumer::captureQueueStats()
                             static_cast<mqbstat::QueueStatsDomain::Stat::Enum>(
                                 dpIt->d_stat));
                     updateMetric(dpIt, labels, value);
+                }
+            }
+
+            for (mwcst::StatContextIterator appIdIt =
+                     queueIt->subcontextIterator();
+                 appIdIt;
+                 ++appIdIt) {
+                auto value = mqbstat::QueueStatsDomain::getValue(
+                    *appIdIt,
+                    d_snapshotId,
+                    mqbstat::QueueStatsDomain::Stat::e_CONFIRM_TIME_MAX);
+                if (value) {
+                    BALL_LOG_WARN << "AppId name: " << appIdIt->name()
+                                  << " CONFIRM_TIME_MAX: " << value;
+                    tagger.setAppId(appIdIt->name());
+                    updateMetric(&confirmTimeDataPoint,
+                                 tagger.getLabels(),
+                                 value);
                 }
             }
         }
