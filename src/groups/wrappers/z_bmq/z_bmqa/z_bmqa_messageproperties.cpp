@@ -25,22 +25,6 @@ void z_bmqa_MessageProperties__clear(
     properties_p->clear(); 
 }
 
-bool z_bmqa_MessageProperties__remove(
-    z_bmqa_MessageProperties* properties_obj, 
-    const char* name, 
-    Enum *buffer)
-{
-    using namespace BloombergLP; 
-
-    bmqa::MessageProperties* properties_p = 
-        reinterpret_cast<bmqa::MessageProperties*>(properties_obj); 
-
-    //can I just use Enum like this? 
-    bsl::string name_str(name); 
-    // bmqt::PropertyType::Enum enum_transform = buffer; 
-    // return properties_p->remove(name_str, buffer); 
-}
-
 int z_bmqa_MessageProperties__delete(z_bmqa_MessageProperties** properties_obj)
 {
     using namespace BloombergLP;
@@ -271,7 +255,6 @@ long long z_bmqa_MessageProperties__getPropertyAsInt64(
     return properties_p->getPropertyAsInt64(name_str);
 }
 
-//docstring needs to include freeing cStr
 const char* z_bmqa_MessageProperties__getPropertyAsString(
     const z_bmqa_MessageProperties* properties_obj, 
     const char* name)

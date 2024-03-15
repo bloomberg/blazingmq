@@ -50,12 +50,32 @@ struct z_bmqt_SessionEventType {
         ec_QUEUE_RESUMED = 16  // Queue has resumed operation
     };
 
+    /**
+     * @brief Converts a z_bmqt_SessionEventType::Enum value to its corresponding ASCII representation.
+     * 
+     * This function converts a z_bmqt_SessionEventType::Enum value to its corresponding ASCII representation
+     * using the bmqt::SessionEventType::toAscii function from the BloombergLP namespace.
+     * 
+     * @param value The z_bmqt_SessionEventType::Enum value to be converted.
+     * @return Returns a pointer to a const char containing the ASCII representation of the input value.
+     */
     static const char* toAscii(z_bmqt_SessionEventType::Enum value);
 
-    /// Return true and fills the specified `out` with the enum value
-    /// corresponding to the specified `str`, if valid, or return false and
-    /// leave `out` untouched if `str` doesn't correspond to any value of
-    /// the enum.
+    /**
+     * @brief Converts a string representation to a SessionEventType Enum value.
+     *
+     * This function converts the given null-terminated C-string representing a SessionEventType
+     * to its corresponding Enum value and assigns it to the provided output pointer.
+     * Return true and fills the specified `out` with the enum value
+     * corresponding to the specified `str`, if valid, or return false and
+     * leave `out` untouched if `str` doesn't correspond to any value of
+     * the enum.
+     * 
+     * @param out A pointer to a z_bmqt_SessionEventType::Enum variable where the converted value will be stored.
+     * @param str A pointer to a null-terminated C-string containing the string representation of the SessionEventType.
+     * 
+     * @returns True if the conversion is successful, false otherwise.
+     */
     static bool fromAscii(z_bmqt_SessionEventType::Enum* out, const char* str);
 };
 
