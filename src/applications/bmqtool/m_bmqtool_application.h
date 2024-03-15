@@ -44,6 +44,7 @@
 #include <mwctsk_consoleobserver.h>
 
 // BDE
+#include "m_bmqtool_poster.h"
 #include <ball_multiplexobserver.h>
 #include <bdlbb_blob.h>
 #include <bdlbb_pooledblobbufferfactory.h>
@@ -77,17 +78,6 @@ class Application : public bmqa::SessionEventHandler {
     // TYPES
     typedef bslma::ManagedPtr<mwcst::StatContext> StatContextMP;
 
-    /// This structure holds context created by `bmqa::Session`.
-    /// It must be destructed before the `d_session_mp`.
-    struct SessionContext {
-        bmqa::QueueId d_queueId;
-
-        bmqa::MessageEventBuilder d_eventBuilder;
-        // Message event builder.
-
-        SessionContext(bslma::Allocator* d_allocator);
-    };
-
     // DATA
     bslma::Allocator* d_allocator_p;
     // Held, not owned
@@ -103,6 +93,9 @@ class Application : public bmqa::SessionEventHandler {
     bslmt::ThreadUtil::Handle d_runningThread;
     // Handle on the running thread
     // (producer mode)
+
+    bmqa::QueueId d_queueId;
+    // Queue to send/receive messages
 
     StatContextMP d_statContext_mp;
     // StatContext for msg/event stats
@@ -123,26 +116,8 @@ class Application : public bmqa::SessionEventHandler {
 
     mwctsk::ConsoleObserver d_consoleObserver;
 
-    bdlbb::PooledBlobBufferFactory d_bufferFactory;
-    // Buffer factory for the payload of the
-    // published message
-
-    bdlbb::PooledBlobBufferFactory d_timeBufferFactory;
-    // Small buffer factory for the first
-    // blob of the published message, to
-    // hold the timestamp information
-
-    bdlbb::Blob d_blob;
-    // Blob to post
-
-    bslma::ManagedPtr<SessionContext> d_sessionContext_mp;
-
     bslma::ManagedPtr<bmqa::Session> d_session_mp;
     // Session with the BlazingMQ broker.
-
-    int d_msgUntilNextTimestamp;
-    // Number of messages remaining to send
-    // until stamping one with latency.
 
     Interactive d_interactive;
 

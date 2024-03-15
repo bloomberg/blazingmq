@@ -65,6 +65,7 @@
 #include <bsls_assert.h>
 #include <bsls_timeutil.h>
 #include <bsls_types.h>
+#include <bsl_thread.h>
 
 namespace BloombergLP {
 namespace m_bmqtool {
@@ -597,10 +598,6 @@ int Application::initialize()
             d_allocator_p);
     }
 
-    d_sessionContext_mp.load(new (*d_allocator_p)
-                                 SessionContext(d_allocator_p),
-                             d_allocator_p);
-
     if (d_parameters_p->mode() == ParametersMode::e_CLI) {
         // Initialize the interactive mode
         rc = d_interactive.initialize(d_session_mp.ptr(), this);
@@ -624,65 +621,30 @@ int Application::initialize()
                            << bmqt::GenericResult::Enum(rc) << "]";
             return e_START_SESSION_ERROR + rc;  // RETURN
         }
-        BSLS_ASSERT_SAFE(d_sessionContext_mp);
 
         BALL_LOG_INFO << "Session started.";
 
-        d_session_mp->loadMessageEventBuilder(
-            &d_sessionContext_mp->d_eventBuilder);
-
-        // Open the queue if in AutoMode
         bmqt::QueueOptions queueOptions;
         queueOptions
             .setMaxUnconfirmedMessages(d_parameters_p->maxUnconfirmedMsgs())
             .setMaxUnconfirmedBytes(d_parameters_p->maxUnconfirmedBytes());
 
         if (!InputUtil::populateSubscriptions(
-                &queueOptions,
-                d_parameters_p->subscriptions())) {
+            &queueOptions,
+            d_parameters_p->subscriptions())) {
             BALL_LOG_ERROR << "Invalid subscriptions";
             return e_VALIDATE_SUBSCRIPTION_ERROR;  // RETURN
         }
 
         bmqa::OpenQueueStatus result = d_session_mp->openQueueSync(
-            &d_sessionContext_mp->d_queueId,
+            &d_queueId,
             d_parameters_p->queueUri(),
             d_parameters_p->queueFlags(),
             queueOptions);
         if (!result) {
             BALL_LOG_ERROR << "Error while opening queue: [result: " << result
                            << "]";
-            return e_OPEN_QUEUE_ERROR;  // RETURN
-        }
-
-        // If in producer mode, prepare the blob that we will post over and
-        // over again
-        if (bmqt::QueueFlagsUtil::isWriter(d_parameters_p->queueFlags())) {
-            if (d_parameters_p->sequentialMessagePattern().empty()) {
-                int msgPayloadSize = d_parameters_p->msgSize();
-
-                if (d_parameters_p->latency() != ParametersLatency::e_NONE) {
-                    // To optimize, if asked to insert latency, we put in a
-                    // first blob of 8 bytes that will be swapped out at every
-                    // post with a new timestamp value.
-                    bdlbb::BlobBuffer latencyBuffer;
-                    d_timeBufferFactory.allocate(&latencyBuffer);
-                    latencyBuffer.setSize(sizeof(bdlb::BigEndianInt64));
-                    bdlb::BigEndianInt64 zero = bdlb::BigEndianInt64::make(0);
-                    bsl::memcpy(latencyBuffer.buffer().get(),
-                                &zero,
-                                sizeof(zero));
-                    d_blob.appendDataBuffer(latencyBuffer);
-                    msgPayloadSize -= sizeof(bdlb::BigEndianInt64);
-                }
-
-                // Initialize a buffer of the right published size, with
-                // alphabet's letters
-                for (int i = 0; i < msgPayloadSize; ++i) {
-                    char c = static_cast<char>('A' + i % 26);
-                    bdlbb::BlobUtil::append(&d_blob, &c, 1);
-                }
-            }
+            return e_OPEN_QUEUE_ERROR;
         }
 
         // Schedule a clock to collect / dump stats
@@ -723,7 +685,6 @@ void Application::onMessageEvent(const bmqa::MessageEvent& event)
         BALL_LOG_INFO << "==> EVENT received: " << event;
     }
 
-    BSLS_ASSERT_SAFE(d_sessionContext_mp);
     BSLS_ASSERT_SAFE(d_session_mp);
 
     // Update stats if push ...
@@ -894,157 +855,24 @@ void Application::onMessageEvent(const bmqa::MessageEvent& event)
 
 void Application::producerThread()
 {
-    BSLS_ASSERT_SAFE(d_sessionContext_mp);
     BSLS_ASSERT_SAFE(d_session_mp);
-
-    bmqa::MessageEventBuilder& eventBuilder =
-        d_sessionContext_mp->d_eventBuilder;
-    bmqa::QueueId& queueId = d_sessionContext_mp->d_queueId;
 
     bslmt::Turnstile turnstile(1000.0);
     if (d_parameters_p->postInterval() != 0) {
         turnstile.reset(1000.0 / d_parameters_p->postInterval());
     }
 
-    int msgSeqId = 0;  // number of messages posted since the beginning
+    Poster poster(d_session_mp.get(),
+                  d_parameters_p,
+                  &d_fileLogger,
+                  d_queueId,
+                  d_allocator_p);
 
-    // If eventsCount == 0, this means unlimited posting, else we'll
-    // decrement, and set to -1 when we should break out
-    int remainingEvents = d_parameters_p->eventsCount();
-
-    bmqa::MessageProperties out(d_allocator_p);
-
-    InputUtil::populateProperties(&out, d_parameters_p->messageProperties());
-
-    while (d_isRunning && remainingEvents != -1) {
-        if (!d_isConnected) {
-            // Not connected, we can't post... update the turnstile (and also
-            // wait) so that it won't try to catchup once connection is
-            // reestablished.
-            turnstile.waitTurn();
-            continue;  // CONTINUE
-        }
-
-        for (int evtId = 0;
-             evtId < d_parameters_p->postRate() && remainingEvents != -1;
-             ++evtId) {
-            if (d_parameters_p->eventSize() == 0) {
-                // To get nice stats chart with round numbers in bench mode, we
-                // usually start with eventSize == 0; however posting Events
-                // with 0 message in them cause an assert or an error to spew,
-                // so just avoid it.
-                break;  // BREAK
-            }
-
-            eventBuilder.reset();
-            for (bsl::uint64_t msgId = 0; msgId < d_parameters_p->eventSize();
-                 ++msgId, ++msgSeqId) {
-                bmqa::Message& msg    = eventBuilder.startMessage();
-                int            length = 0;
-
-                // Set a correlationId if queue is open in ACK mode
-                if (bmqt::QueueFlagsUtil::isAck(
-                        d_parameters_p->queueFlags())) {
-                    bmqt::CorrelationId cId(bmqt::CorrelationId::autoValue());
-                    msg.setCorrelationId(cId);
-                }
-
-                if (!d_parameters_p->sequentialMessagePattern().empty()) {
-                    char buffer[128];
-                    length = snprintf(
-                        buffer,
-                        sizeof(buffer),
-                        d_parameters_p->sequentialMessagePattern().c_str(),
-                        msgSeqId);
-                    msg.setDataRef(buffer, length);
-                }
-                else {
-                    // Insert latency if required...
-                    if (d_parameters_p->latency() !=
-                        ParametersLatency::e_NONE) {
-                        bdlb::BigEndianInt64 timeNs;
-
-                        if (d_msgUntilNextTimestamp != 0) {
-                            --d_msgUntilNextTimestamp;
-                            timeNs = bdlb::BigEndianInt64::make(0);
-                        }
-                        else {
-                            // Insert the timestamp
-                            timeNs = bdlb::BigEndianInt64::make(
-                                getNowAsNs(d_parameters_p->latency()));
-
-                            // Update the number of messages until next
-                            // timestamp:
-                            int nbMsgPerSec = d_parameters_p->eventSize() *
-                                              d_parameters_p->postRate() *
-                                              1000 /
-                                              d_parameters_p->postInterval();
-                            d_msgUntilNextTimestamp = nbMsgPerSec *
-                                                      k_LATENCY_INTERVAL_MS /
-                                                      1000;
-                        }
-
-                        bdlbb::BlobBuffer buffer;
-                        d_timeBufferFactory.allocate(&buffer);
-                        buffer.setSize(sizeof(bdlb::BigEndianInt64));
-                        bsl::memcpy(buffer.buffer().get(),
-                                    &timeNs,
-                                    sizeof(timeNs));
-                        d_blob.swapBufferRaw(0, &buffer);
-                    }
-                    msg.setDataRef(&d_blob);
-
-                    length = d_blob.length();
-                }
-
-                if (out.numProperties()) {
-                    msg.setPropertiesRef(&out);
-                }
-                bmqt::EventBuilderResult::Enum rc = eventBuilder.packMessage(
-                    queueId);
-                if (rc != 0) {
-                    BALL_LOG_ERROR << "Failed to pack message [rc: " << rc
-                                   << "]";
-                    continue;  // CONTINUE
-                }
-                d_statContext_mp->adjustValue(k_STAT_MSG, length);
-            }
-
-            // Now publish the event
-            const bmqa::MessageEvent& messageEvent =
-                eventBuilder.messageEvent();
-
-            // Write PUTs to log file before posting
-            if (d_fileLogger.isOpen()) {
-                bmqa::MessageIterator it = messageEvent.messageIterator();
-                while (it.nextMessage()) {
-                    const bmqa::Message& message = it.message();
-                    d_fileLogger.writePutMessage(message);
-                }
-            }
-
-            int rc = d_session_mp->post(messageEvent);
-
-            if (rc != 0) {
-                BALL_LOG_ERROR
-                    << "Failed to post: " << bmqt::PostResult::Enum(rc) << " ("
-                    << rc << ")";
-                continue;  // CONTINUE
-            }
-
-            const bsl::shared_ptr<bmqimp::Event>& eventImpl =
-                reinterpret_cast<const bsl::shared_ptr<bmqimp::Event>&>(
-                    messageEvent);
-            d_statContext_mp->adjustValue(
-                k_STAT_EVT,
-                eventImpl->rawEvent().blob()->length());
-
-            if (d_parameters_p->eventsCount() > 0) {
-                if (--remainingEvents == 0) {
-                    remainingEvents = -1;  // So that we exit the main loop
-                    break;                 // BREAK
-                }
-            }
+    while (d_isRunning && poster.pendingPost()) {
+        if (d_isConnected) {
+            bsl::pair<size_t, size_t> numPosted = poster.postNext();
+            d_statContext_mp->adjustValue(k_STAT_EVT, numPosted.first);
+            d_statContext_mp->adjustValue(k_STAT_MSG, numPosted.second);
         }
 
         if (d_parameters_p->postInterval() != 0) {
@@ -1119,13 +947,10 @@ Application::Application(Parameters*       parameters,
 , d_parameters_p(parameters)
 , d_shutdownSemaphore_p(shutdownSemaphore)
 , d_runningThread(bslmt::ThreadUtil::invalidHandle())
+, d_queueId(d_allocator_p)
 , d_isConnected(false)
 , d_isRunning(false)
 , d_consoleObserver(d_allocator_p)
-, d_bufferFactory(4096, d_allocator_p)
-, d_timeBufferFactory(sizeof(bdlb::BigEndianInt64), d_allocator_p)
-, d_blob(&d_bufferFactory, d_allocator_p)
-, d_msgUntilNextTimestamp(0)
 , d_interactive(parameters, d_allocator_p)
 , d_storageInspector(d_allocator_p)
 , d_fileLogger(d_parameters_p->logFilePath(), d_allocator_p)
@@ -1139,12 +964,6 @@ Application::Application(Parameters*       parameters,
 }
 
 Application::~Application()
-{
-    // NOTHING
-}
-
-Application::SessionContext::SessionContext(bslma::Allocator* allocator)
-: d_queueId(k_QUEUEID_ID, allocator)
 {
     // NOTHING
 }
@@ -1169,7 +988,6 @@ int Application::start()
         if (d_session_mp) {
             d_session_mp->stop();
         }
-        d_sessionContext_mp.reset();
         d_session_mp.reset();
         d_scheduler.stop();
         tearDownLog();
@@ -1234,11 +1052,11 @@ void Application::stop()
             bslmt::ThreadUtil::sleep(
                 bsls::TimeInterval(d_parameters_p->shutdownGrace()));
         }
+        if (d_queueId.isValid()) {
+            d_session_mp->closeQueueSync(&d_queueId);
+        }
         d_session_mp->stop();
     }
-
-    // Must release SessionContext before the session
-    d_sessionContext_mp.reset();
 
     // Delete the session
     d_session_mp.reset();
