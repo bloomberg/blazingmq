@@ -52,7 +52,7 @@ def generate(cls: Type, indent: int, file: IO[str]):
                 assert False, f"add support for {origin}"
 
             for item_type in nested_types:
-                if hasattr(item_type, "__annotations__"):
+                if dataclasses.is_dataclass(item_type):
                     generate(item_type, indent + 1, file)
 
         print_indented(

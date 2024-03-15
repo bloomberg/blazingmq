@@ -57,7 +57,11 @@ jobs:
           cd build/blazingmq
           ctest -E mwcsys_executil.t --output-on-failure
       - name: Run Python Unit Tests
+        env:
+          PYTHONPATH: src/python
         run: |
+          src/python/bin/schemagen
+          src/python/bin/tweakgen
           pytest src/python
       - name: Run Integration Tests
         run: |
