@@ -13,6 +13,7 @@ RUN apt-get update && \
     bison \
     libfl-dev \
     libbenchmark-dev \
+    libgmock-dev \
     libz-dev \
     && apt clean \
     && rm -rf /var/lib/apt/lists/*

@@ -267,9 +267,10 @@ namespace FileStoreProtocolPrinter {
 
 void printHeader(bsl::ostream&                     stream,
                  const mqbs::JournalFileHeader&    header,
-                 const mqbs::MappedFileDescriptor& journalFd)
+                 const mqbs::MappedFileDescriptor& journalFd,
+                 bslma::Allocator*                 allocator)
 {
-    bsl::vector<const char*> fields;
+    bsl::vector<const char*> fields(allocator);
     fields.push_back("HeaderWords");
     fields.push_back("RecordWords");
     fields.push_back("First SyncPointRecord offset words");
