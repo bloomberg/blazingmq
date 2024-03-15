@@ -12,7 +12,7 @@ const int z_bmqa_MessageProperties::k_MAX_PROPERTY_NAME_LENGTH =
     BloombergLP::bmqa::MessageProperties::k_MAX_PROPERTY_NAME_LENGTH;
 
 const int z_bmqa_MessageProperties::k_MAX_PROPERTY_VALUE_LENGTH =
-    BloombergLP::bmqa::MessageProp  erties::k_MAX_PROPERTY_VALUE_LENGTH;
+    BloombergLP::bmqa::MessageProperties::k_MAX_PROPERTY_VALUE_LENGTH;
 
 void z_bmqa_MessageProperties__clear(
     z_bmqa_MessageProperties* properties_obj) 
