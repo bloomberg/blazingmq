@@ -52,7 +52,9 @@ int cleanupCallback(BSLS_ANNOTATION_UNUSED const bsl::string& logPath)
 
 void closeLedger(mqbsl::Ledger* ledger)
 {
-    BSLS_ASSERT(ledger->close() == 0);
+    const int rc = ledger->close();
+    BSLS_ASSERT(rc == 0);
+    (void)rc;  // Compiler happiness
 }
 
 }  // close unnamed namespace

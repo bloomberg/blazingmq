@@ -27,7 +27,7 @@
 //  'FileManager' provides an interface to access iterators.
 //  'FileManagerImpl' works with real files. Provides access to journal and
 //    data files interators. Also retrieves a map of queue keys and names from
-//    a csl file.
+//    a CSL file.
 //  'FileHandler' opens and closes the required files in RAII technique.
 
 // bmqstoragetool

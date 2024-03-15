@@ -430,7 +430,8 @@ class SearchAllDecorator : public SearchResultDecorator {
 // class SearchOutstandingDecorator
 // ================================
 
-/// This class provides decorator to handle outstanding or confirmed messages.
+/// This class provides decorator to handle outstanding or unconfirmed
+/// messages.
 class SearchOutstandingDecorator : public SearchResultDecorator {
   private:
     // PRIVATE DATA

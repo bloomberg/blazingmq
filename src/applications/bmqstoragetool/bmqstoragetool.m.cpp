@@ -197,5 +197,5 @@ int main(int argc, const char* argv[])
     // Run command processor
     processor->process();
 
-    return 0;
+    return rc_SUCCESS;
 }

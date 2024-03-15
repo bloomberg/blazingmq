@@ -36,10 +36,10 @@
 namespace BloombergLP {
 namespace m_bmqstoragetool {
 
-/// Move the journal iterator pointed by the specified 'it' to the first
+/// Move the journal iterator pointed by the specified 'jit' to the first
 /// message whose timestamp is more then the specified 'timestamp'.  Return '1'
 /// on success, '0' if there are no such records or negative value if an error
-/// was encountered.  Note that if this method returns < 0, the specified 'it'
+/// was encountered.  Note that if this method returns < 0, the specified 'jit'
 /// is invalidated.  Behavior is undefined unless last call to `nextRecord` or
 /// 'advance' returned '1' and the iterator points to a valid record.
 int moveToLowerBound(mqbs::JournalFileIterator* jit,
