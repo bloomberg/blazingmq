@@ -60,10 +60,10 @@ const char* ChannelWatermarkType::toAscii(ChannelWatermarkType::Enum value)
 bool ChannelWatermarkType::fromAscii(ChannelWatermarkType::Enum* out,
                                      const bslstl::StringRef&    str)
 {
-#define CHECKVALUE(M)                                                         \
+#define CHECKVALUE(M)                                                                            \
     if (bdlb::String::areEqualCaseless(toAscii(ChannelWatermarkType::e_##M),  \
                                        str.data(),                            \
-                                       str.length())) {                       \
+                                       static_cast<int>(str.length())) {                       \
         *out = ChannelWatermarkType::e_##M;                                   \
         return true;                                                          \
     }
