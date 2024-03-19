@@ -2735,6 +2735,8 @@ const int TcpInterfaceConfig::DEFAULT_INITIALIZER_HEARTBEAT_INTERVAL_MS = 3000;
 
 const bool TcpInterfaceConfig::DEFAULT_INITIALIZER_USE_NTF = false;
 
+const bool TcpInterfaceConfig::DEFAULT_INITIALIZER_USE_TLS = false;
+
 const bdlat_AttributeInfo TcpInterfaceConfig::ATTRIBUTE_INFO_ARRAY[] = {
     {ATTRIBUTE_ID_NAME,
      "name",
@@ -2785,6 +2787,11 @@ const bdlat_AttributeInfo TcpInterfaceConfig::ATTRIBUTE_INFO_ARRAY[] = {
      "useNtf",
      sizeof("useNtf") - 1,
      "",
+     bdlat_FormattingMode::e_TEXT},
+    {ATTRIBUTE_ID_USE_TLS,
+     "useTls",
+     sizeof("useTls") - 1,
+     "",
      bdlat_FormattingMode::e_TEXT}};
 
 // CLASS METHODS
@@ -2792,7 +2799,7 @@ const bdlat_AttributeInfo TcpInterfaceConfig::ATTRIBUTE_INFO_ARRAY[] = {
 const bdlat_AttributeInfo*
 TcpInterfaceConfig::lookupAttributeInfo(const char* name, int nameLength)
 {
-    for (int i = 0; i < 10; ++i) {
+    for (int i = 0; i < 11; ++i) {
         const bdlat_AttributeInfo& attributeInfo =
             TcpInterfaceConfig::ATTRIBUTE_INFO_ARRAY[i];
 
@@ -2826,6 +2833,8 @@ const bdlat_AttributeInfo* TcpInterfaceConfig::lookupAttributeInfo(int id)
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HEARTBEAT_INTERVAL_MS];
     case ATTRIBUTE_ID_USE_NTF:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_USE_NTF];
+    case ATTRIBUTE_ID_USE_TLS:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_USE_TLS];
     default: return 0;
     }
 }
@@ -2843,6 +2852,7 @@ TcpInterfaceConfig::TcpInterfaceConfig(bslma::Allocator* basicAllocator)
 , d_maxConnections(DEFAULT_INITIALIZER_MAX_CONNECTIONS)
 , d_heartbeatIntervalMs(DEFAULT_INITIALIZER_HEARTBEAT_INTERVAL_MS)
 , d_useNtf(DEFAULT_INITIALIZER_USE_NTF)
+, d_useTls(DEFAULT_INITIALIZER_USE_TLS)
 {
 }
 
@@ -2858,6 +2868,7 @@ TcpInterfaceConfig::TcpInterfaceConfig(const TcpInterfaceConfig& original,
 , d_maxConnections(original.d_maxConnections)
 , d_heartbeatIntervalMs(original.d_heartbeatIntervalMs)
 , d_useNtf(original.d_useNtf)
+, d_useTls(original.d_useTls)
 {
 }
 
@@ -2873,7 +2884,8 @@ TcpInterfaceConfig::TcpInterfaceConfig(TcpInterfaceConfig&& original) noexcept
   d_ioThreads(bsl::move(original.d_ioThreads)),
   d_maxConnections(bsl::move(original.d_maxConnections)),
   d_heartbeatIntervalMs(bsl::move(original.d_heartbeatIntervalMs)),
-  d_useNtf(bsl::move(original.d_useNtf))
+  d_useNtf(bsl::move(original.d_useNtf)),
+  d_useTls(bsl::move(original.d_useTls))
 {
 }
 
@@ -2889,6 +2901,7 @@ TcpInterfaceConfig::TcpInterfaceConfig(TcpInterfaceConfig&& original,
 , d_maxConnections(bsl::move(original.d_maxConnections))
 , d_heartbeatIntervalMs(bsl::move(original.d_heartbeatIntervalMs))
 , d_useNtf(bsl::move(original.d_useNtf))
+, d_useTls(bsl::move(original.d_useTls))
 {
 }
 #endif
@@ -2913,6 +2926,7 @@ TcpInterfaceConfig::operator=(const TcpInterfaceConfig& rhs)
         d_nodeHighWatermark   = rhs.d_nodeHighWatermark;
         d_heartbeatIntervalMs = rhs.d_heartbeatIntervalMs;
         d_useNtf              = rhs.d_useNtf;
+        d_useTls              = rhs.d_useTls;
     }
 
     return *this;
@@ -2933,6 +2947,7 @@ TcpInterfaceConfig& TcpInterfaceConfig::operator=(TcpInterfaceConfig&& rhs)
         d_nodeHighWatermark   = bsl::move(rhs.d_nodeHighWatermark);
         d_heartbeatIntervalMs = bsl::move(rhs.d_heartbeatIntervalMs);
         d_useNtf              = bsl::move(rhs.d_useNtf);
+        d_useTls              = bsl::move(rhs.d_useTls);
     }
 
     return *this;
@@ -2951,6 +2966,7 @@ void TcpInterfaceConfig::reset()
     d_nodeHighWatermark   = DEFAULT_INITIALIZER_NODE_HIGH_WATERMARK;
     d_heartbeatIntervalMs = DEFAULT_INITIALIZER_HEARTBEAT_INTERVAL_MS;
     d_useNtf              = DEFAULT_INITIALIZER_USE_NTF;
+    d_useTls              = DEFAULT_INITIALIZER_USE_TLS;
 }
 
 // ACCESSORS
@@ -2971,6 +2987,165 @@ bsl::ostream& TcpInterfaceConfig::print(bsl::ostream& stream,
     printer.printAttribute("nodeHighWatermark", this->nodeHighWatermark());
     printer.printAttribute("heartbeatIntervalMs", this->heartbeatIntervalMs());
     printer.printAttribute("useNtf", this->useNtf());
+    printer.printAttribute("useTls", this->useTls());
+    printer.end();
+    return stream;
+}
+
+// ---------------
+// class TlsConfig
+// ---------------
+
+// CONSTANTS
+
+const char TlsConfig::CLASS_NAME[] = "TlsConfig";
+
+const bdlat_AttributeInfo TlsConfig::ATTRIBUTE_INFO_ARRAY[] = {
+    {ATTRIBUTE_ID_CERTIFICATE_AUTHORITY,
+     "certificateAuthority",
+     sizeof("certificateAuthority") - 1,
+     "",
+     bdlat_FormattingMode::e_TEXT},
+    {ATTRIBUTE_ID_CERTIFICATE,
+     "certificate",
+     sizeof("certificate") - 1,
+     "",
+     bdlat_FormattingMode::e_TEXT},
+    {ATTRIBUTE_ID_KEY,
+     "key",
+     sizeof("key") - 1,
+     "",
+     bdlat_FormattingMode::e_TEXT},
+    {ATTRIBUTE_ID_VERSION,
+     "version",
+     sizeof("version") - 1,
+     "",
+     bdlat_FormattingMode::e_TEXT}};
+
+// CLASS METHODS
+
+const bdlat_AttributeInfo* TlsConfig::lookupAttributeInfo(const char* name,
+                                                          int nameLength)
+{
+    for (int i = 0; i < 4; ++i) {
+        const bdlat_AttributeInfo& attributeInfo =
+            TlsConfig::ATTRIBUTE_INFO_ARRAY[i];
+
+        if (nameLength == attributeInfo.d_nameLength &&
+            0 == bsl::memcmp(attributeInfo.d_name_p, name, nameLength)) {
+            return &attributeInfo;
+        }
+    }
+
+    return 0;
+}
+
+const bdlat_AttributeInfo* TlsConfig::lookupAttributeInfo(int id)
+{
+    switch (id) {
+    case ATTRIBUTE_ID_CERTIFICATE_AUTHORITY:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CERTIFICATE_AUTHORITY];
+    case ATTRIBUTE_ID_CERTIFICATE:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CERTIFICATE];
+    case ATTRIBUTE_ID_KEY: return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_KEY];
+    case ATTRIBUTE_ID_VERSION:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_VERSION];
+    default: return 0;
+    }
+}
+
+// CREATORS
+
+TlsConfig::TlsConfig(bslma::Allocator* basicAllocator)
+: d_certificateAuthority(basicAllocator)
+, d_certificate(basicAllocator)
+, d_key(basicAllocator)
+, d_version(basicAllocator)
+{
+}
+
+TlsConfig::TlsConfig(const TlsConfig&  original,
+                     bslma::Allocator* basicAllocator)
+: d_certificateAuthority(original.d_certificateAuthority, basicAllocator)
+, d_certificate(original.d_certificate, basicAllocator)
+, d_key(original.d_key, basicAllocator)
+, d_version(original.d_version, basicAllocator)
+{
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+TlsConfig::TlsConfig(TlsConfig&& original) noexcept
+: d_certificateAuthority(bsl::move(original.d_certificateAuthority)),
+  d_certificate(bsl::move(original.d_certificate)),
+  d_key(bsl::move(original.d_key)),
+  d_version(bsl::move(original.d_version))
+{
+}
+
+TlsConfig::TlsConfig(TlsConfig&& original, bslma::Allocator* basicAllocator)
+: d_certificateAuthority(bsl::move(original.d_certificateAuthority),
+                         basicAllocator)
+, d_certificate(bsl::move(original.d_certificate), basicAllocator)
+, d_key(bsl::move(original.d_key), basicAllocator)
+, d_version(bsl::move(original.d_version), basicAllocator)
+{
+}
+#endif
+
+TlsConfig::~TlsConfig()
+{
+}
+
+// MANIPULATORS
+
+TlsConfig& TlsConfig::operator=(const TlsConfig& rhs)
+{
+    if (this != &rhs) {
+        d_certificateAuthority = rhs.d_certificateAuthority;
+        d_certificate          = rhs.d_certificate;
+        d_key                  = rhs.d_key;
+        d_version              = rhs.d_version;
+    }
+
+    return *this;
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+TlsConfig& TlsConfig::operator=(TlsConfig&& rhs)
+{
+    if (this != &rhs) {
+        d_certificateAuthority = bsl::move(rhs.d_certificateAuthority);
+        d_certificate          = bsl::move(rhs.d_certificate);
+        d_key                  = bsl::move(rhs.d_key);
+        d_version              = bsl::move(rhs.d_version);
+    }
+
+    return *this;
+}
+#endif
+
+void TlsConfig::reset()
+{
+    bdlat_ValueTypeFunctions::reset(&d_certificateAuthority);
+    bdlat_ValueTypeFunctions::reset(&d_certificate);
+    bdlat_ValueTypeFunctions::reset(&d_key);
+    bdlat_ValueTypeFunctions::reset(&d_version);
+}
+
+// ACCESSORS
+
+bsl::ostream&
+TlsConfig::print(bsl::ostream& stream, int level, int spacesPerLevel) const
+{
+    bslim::Printer printer(&stream, level, spacesPerLevel);
+    printer.start();
+    printer.printAttribute("certificateAuthority",
+                           this->certificateAuthority());
+    printer.printAttribute("certificate", this->certificate());
+    printer.printAttribute("key", this->key());
+    printer.printAttribute("version", this->version());
     printer.end();
     return stream;
 }
@@ -5754,14 +5929,19 @@ const bdlat_AttributeInfo AppConfig::ATTRIBUTE_INFO_ARRAY[] = {
      "configureStream",
      sizeof("configureStream") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT}};
+     bdlat_FormattingMode::e_TEXT},
+    {ATTRIBUTE_ID_TLS_CONFIG,
+     "tlsConfig",
+     sizeof("tlsConfig") - 1,
+     "",
+     bdlat_FormattingMode::e_DEFAULT}};
 
 // CLASS METHODS
 
 const bdlat_AttributeInfo* AppConfig::lookupAttributeInfo(const char* name,
                                                           int nameLength)
 {
-    for (int i = 0; i < 17; ++i) {
+    for (int i = 0; i < 18; ++i) {
         const bdlat_AttributeInfo& attributeInfo =
             AppConfig::ATTRIBUTE_INFO_ARRAY[i];
 
@@ -5811,6 +5991,8 @@ const bdlat_AttributeInfo* AppConfig::lookupAttributeInfo(int id)
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MESSAGE_PROPERTIES_V2];
     case ATTRIBUTE_ID_CONFIGURE_STREAM:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CONFIGURE_STREAM];
+    case ATTRIBUTE_ID_TLS_CONFIG:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_TLS_CONFIG];
     default: return 0;
     }
 }
@@ -5825,6 +6007,7 @@ AppConfig::AppConfig(bslma::Allocator* basicAllocator)
 , d_hostDataCenter(basicAllocator)
 , d_latencyMonitorDomain(DEFAULT_INITIALIZER_LATENCY_MONITOR_DOMAIN,
                          basicAllocator)
+, d_tlsConfig(basicAllocator)
 , d_stats(basicAllocator)
 , d_plugins(basicAllocator)
 , d_networkInterfaces(basicAllocator)
@@ -5847,6 +6030,7 @@ AppConfig::AppConfig(const AppConfig&  original,
 , d_hostTags(original.d_hostTags, basicAllocator)
 , d_hostDataCenter(original.d_hostDataCenter, basicAllocator)
 , d_latencyMonitorDomain(original.d_latencyMonitorDomain, basicAllocator)
+, d_tlsConfig(original.d_tlsConfig, basicAllocator)
 , d_stats(original.d_stats, basicAllocator)
 , d_plugins(original.d_plugins, basicAllocator)
 , d_networkInterfaces(original.d_networkInterfaces, basicAllocator)
@@ -5870,6 +6054,7 @@ AppConfig::AppConfig(AppConfig&& original) noexcept
   d_hostTags(bsl::move(original.d_hostTags)),
   d_hostDataCenter(bsl::move(original.d_hostDataCenter)),
   d_latencyMonitorDomain(bsl::move(original.d_latencyMonitorDomain)),
+  d_tlsConfig(bsl::move(original.d_tlsConfig)),
   d_stats(bsl::move(original.d_stats)),
   d_plugins(bsl::move(original.d_plugins)),
   d_networkInterfaces(bsl::move(original.d_networkInterfaces)),
@@ -5893,6 +6078,7 @@ AppConfig::AppConfig(AppConfig&& original, bslma::Allocator* basicAllocator)
 , d_hostDataCenter(bsl::move(original.d_hostDataCenter), basicAllocator)
 , d_latencyMonitorDomain(bsl::move(original.d_latencyMonitorDomain),
                          basicAllocator)
+, d_tlsConfig(bsl::move(original.d_tlsConfig), basicAllocator)
 , d_stats(bsl::move(original.d_stats), basicAllocator)
 , d_plugins(bsl::move(original.d_plugins), basicAllocator)
 , d_networkInterfaces(bsl::move(original.d_networkInterfaces), basicAllocator)
@@ -5934,6 +6120,7 @@ AppConfig& AppConfig::operator=(const AppConfig& rhs)
         d_plugins              = rhs.d_plugins;
         d_messagePropertiesV2  = rhs.d_messagePropertiesV2;
         d_configureStream      = rhs.d_configureStream;
+        d_tlsConfig            = rhs.d_tlsConfig;
     }
 
     return *this;
@@ -5961,6 +6148,7 @@ AppConfig& AppConfig::operator=(AppConfig&& rhs)
         d_plugins              = bsl::move(rhs.d_plugins);
         d_messagePropertiesV2  = bsl::move(rhs.d_messagePropertiesV2);
         d_configureStream      = bsl::move(rhs.d_configureStream);
+        d_tlsConfig            = bsl::move(rhs.d_tlsConfig);
     }
 
     return *this;
@@ -5986,6 +6174,7 @@ void AppConfig::reset()
     bdlat_ValueTypeFunctions::reset(&d_plugins);
     bdlat_ValueTypeFunctions::reset(&d_messagePropertiesV2);
     d_configureStream = DEFAULT_INITIALIZER_CONFIGURE_STREAM;
+    bdlat_ValueTypeFunctions::reset(&d_tlsConfig);
 }
 
 // ACCESSORS
@@ -6013,6 +6202,7 @@ AppConfig::print(bsl::ostream& stream, int level, int spacesPerLevel) const
     printer.printAttribute("plugins", this->plugins());
     printer.printAttribute("messagePropertiesV2", this->messagePropertiesV2());
     printer.printAttribute("configureStream", this->configureStream());
+    printer.printAttribute("tlsConfig", this->tlsConfig());
     printer.end();
     return stream;
 }
@@ -6330,13 +6520,6 @@ Configuration::print(bsl::ostream& stream, int level, int spacesPerLevel) const
 }  // close package namespace
 }  // close enterprise namespace
 
-// GENERATED BY BLP_BAS_CODEGEN_2023.10.07
+// GENERATED BY BLP_BAS_CODEGEN_2023.12.02
 // USING bas_codegen.pl -m msg --noAggregateConversion --noExternalization
 // --noIdent --package mqbcfg --msgComponent messages mqbcfg.xsd
-// ----------------------------------------------------------------------------
-// NOTICE:
-//      Copyright 2023 Bloomberg Finance L.P. All rights reserved.
-//      Property of Bloomberg Finance L.P. (BFLP)
-//      This software is made available solely pursuant to the
-//      terms of a BFLP license agreement which governs its use.
-// ------------------------------- END-OF-FILE --------------------------------
