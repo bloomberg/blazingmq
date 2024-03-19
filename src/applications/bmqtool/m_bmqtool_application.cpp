@@ -394,7 +394,7 @@ void Application::printFinalStats()
         ss << "produced ";
     }
     else {
-        BSLS_ASSERT_OPT(false  && "Neither writer nor reader flags are set");
+        BSLS_ASSERT_OPT(false && "Neither writer nor reader flags are set");
     }
 
     ss << mwcu::PrintUtil::prettyNumber(nbMsg) << " messages ["
