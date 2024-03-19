@@ -153,7 +153,7 @@
 //  void
 //  MyService::asyncDoStuff()
 //  {
-//      // acquire the shared resource and bind to the the async operation
+//      // acquire the shared resource and bind to the async operation
 //      d_threadPool_p->enqueueJob(bdlf::BindUtil::bind(&MyService::doStuff,
 //                                                      d_self.acquire()));
 //  }
@@ -178,7 +178,7 @@
 //  void
 //  MyService::asyncDoStuff()
 //  {
-//      // acquire the shared resource and bind to the the async operation
+//      // acquire the shared resource and bind to the async operation
 //      d_threadPool_p->enqueueJob(mwcu::WeakMemFnUtil::weakMemFn(
 //                                                      &MyService::doStuff,
 //                                                      d_self.acquireWeak()));

@@ -1105,7 +1105,7 @@ static void test3_flagUtils()
 
             int flags = 0;
 
-            // 1. Check that the the flag is not 'isSet'.
+            // 1. Check that the flag is not 'isSet'.
             ASSERT(!bmqp::PutHeaderFlagUtil::isSet(flags, test.d_value));
 
             // 2. Set the flag.  Verify that it is set, and that no other
@@ -1170,7 +1170,7 @@ static void test3_flagUtils()
 
             int flags = 0;
 
-            // 1. Check that the the flag is not 'isSet'.
+            // 1. Check that the flag is not 'isSet'.
             ASSERT(!bmqp::PushHeaderFlagUtil::isSet(flags, test.d_value));
 
             // 2. Set the flag.  Verify that it is set, and that no other
@@ -1236,7 +1236,7 @@ static void test3_flagUtils()
 
             int flags = 0;
 
-            // 1. Check that the the flag is not 'isSet'.
+            // 1. Check that the flag is not 'isSet'.
             ASSERT(!bmqp::StorageHeaderFlagUtil::isSet(flags, test.d_value));
 
             // 2. Set the flag.  Verify that it is set, and that no other flag

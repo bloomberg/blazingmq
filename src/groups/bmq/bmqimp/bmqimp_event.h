@@ -332,7 +332,7 @@ class Event {
     Event& configureAsMessageEvent(const bmqp::Event& rawEvent);
 
     /// Configure this instance as a message event in write mode with the
-    /// the specified `bufferFactory` to allocate blob buffers when needed.
+    /// specified `bufferFactory` to allocate blob buffers when needed.
     /// Behavior is undefined unless `bufferFactory` points to a valid blob
     /// buffer factory.  Also change the type of this Event to be
     /// `MESSAGEEVENT`, and type of message event mode to `WRITE`.
