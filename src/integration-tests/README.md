@@ -18,6 +18,6 @@ To run the tests:
     * `BLAZINGMQ_BROKER` - the file name of bmqbrkr (including path);
        default: `{build_dir}/src/applications/bmqbrkr/bmqbrkr.tsk`
     * `BLAZINGMQ_TOOL` - the file name of bmqtool (including path);
-       default: `{build_dir}/src/applications/bmqbrkr/bmqbrkr.tsk`
+       default: `{build_dir}/src/applications/bmqtool/bmqtool.tsk`
     * `BLAZINGMQ_PLUGINS` - the directory containing plugins.
 
