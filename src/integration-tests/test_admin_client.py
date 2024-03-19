@@ -7,14 +7,16 @@ import json
 import re
 from typing import Dict, Optional, Tuple
 
-from blazingmq.dev.it.fixtures import (
+import blazingmq.dev.it.testconstants as tc
+from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
     Cluster,
-    single_node,
     order,
-)  # pylint: disable=unused-import
+    single_node,
+)
 from blazingmq.dev.it.process.admin import AdminClient
 from blazingmq.dev.it.process.client import Client
-import blazingmq.dev.it.testconstants as tc
+
+pytestmark = order(1)
 
 
 def get_endpoint(cluster: Cluster) -> Tuple[str, int]:
