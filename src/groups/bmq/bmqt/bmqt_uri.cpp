@@ -55,7 +55,7 @@ bsls::ObjectBuffer<bdlpcre::RegEx> s_regex;
 // 'random' ordering for creation of static
 // objects by the compiler.
 
-int s_initialized = 0;
+bsls::Types::Int64 s_initialized = 0;
 // Integer to keep track of the number of
 // calls to 'initialize' for the
 // 'UriParser'.  If the value is non-zero,
@@ -193,6 +193,7 @@ void UriParser::initialize(bslma::Allocator* allocator)
     //       not work correctly with versions of IBM xlc12 released following
     //       the 'Dec 2015 PTF'.
     ++s_initialized;
+    BSLS_ASSERT(s_initialized > 0);
     if (s_initialized > 1) {
         return;  // RETURN
     }
@@ -241,8 +242,8 @@ void UriParser::initialize(bslma::Allocator* allocator)
 void UriParser::shutdown()
 {
     bslmt::QLockGuard qlockGuard(&s_initLock);
-    BSLS_ASSERT_SAFE(s_initialized > 0);
 
+    BSLS_ASSERT(s_initialized > 0);
     if (--s_initialized != 0) {
         return;  // RETURN
     }
