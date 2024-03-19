@@ -111,10 +111,9 @@ class Queue;
 namespace bmqimp {
 
 struct SubscriptionId {
-    const int          d_queueId;
-    const unsigned int d_subscriptionId;
-
-    SubscriptionId(int queueId, unsigned int subscriptionId);
+const int          d_queueId;
+const unsigned int d_subscriptionId;
+SubscriptionId(int queueId, unsigned int subscriptionId);
 };
 
 // ===========

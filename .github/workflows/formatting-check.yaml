@@ -19,8 +19,9 @@ jobs:
           - 'src'
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: clang-format style check
         run: |
-          export FORMAT_DIFF=`git clang-format-14 --diff -q`
-          echo ${FORMAT_DIFF}
-          if [ -n "${FORMAT_DIFF}" ]; then exit 1; fi
+          git clang-format-14 --diff -q origin/main | tee format_diff.txt
+          if [ -s format_diff.txt ]; then exit 1; fi

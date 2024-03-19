@@ -83,11 +83,11 @@ Event::Event(const Event& other, bslma::Allocator* allocator)
 , d_putMsgIter(other.d_bufferFactory_p, allocator)
 , d_putEventBuilderBuffer()
 , d_isPutEventBuilderConstructed(false)
-, d_correlationIds(other.d_correlationIds, allocator)
+,     d_correlationIds(other.d_correlationIds, allocator)
 
 {
     // PRECONDITIONS
-    BSLS_ASSERT_OPT(EventType::e_MESSAGE != other.d_type ||
+            BSLS_ASSERT_OPT(EventType::e_MESSAGE != other.d_type ||
                     MessageEventMode::e_WRITE != other.d_msgEventMode);
     // Per contract, it is undefined behavior if 'other' instance is in
     // MessageEventMode::e_WRITE.  This is enforced because logically, it
@@ -233,7 +233,7 @@ void Event::clear()
         d_doneCallback();
     }
 
-    reset();
+            reset();
 }
 
 Event& Event::configureAsRawEvent(const bmqp::Event& rawEvent)
