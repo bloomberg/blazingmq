@@ -13,10 +13,6 @@ jobs:
   formatting_check:
     name: Formatting Check
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        path:
-          - 'src'
     steps:
       - uses: actions/checkout@v4
         with:
