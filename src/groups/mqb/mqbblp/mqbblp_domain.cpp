@@ -749,86 +749,36 @@ void Domain::unregisterQueue(mqbi::Queue* queue)
     }
 }
 
-void Domain::purgeAllQueues(
-    bsl::vector<bsl::vector<mqbcmd::PurgeQueueResult> >* purgedQueuesVec,
-    const mqbi::Dispatcher::ProcessorHandle&             pHandle)
-{
-    // executed by each of the QUEUES dispatcher thread
-
-    // Grab the element (vector) corresponding to the 'pHandle' which needs to
-    // be populated.  Note that other vectors in 'purgedQueuesVec' are being
-    // manipulated by other dispatcher threads.
-    bsl::vector<mqbcmd::PurgeQueueResult>& purgedQueues =
-        (*purgedQueuesVec)[pHandle];
-
-    // Collect queues which need to be purged for this processor handle.  We
-    // don't want to invoke 'purge' on queue objects while hold 'd_mutex' lock
-    // as purging can be a long operation if a lot of messages need to be
-    // merged.  Doing so while holding the lock will lead to contention across
-    // all queue-dispatcher threads attempting to purge queues.
-    bsl::vector<bsl::shared_ptr<mqbi::Queue> > queues;
-
-    {
-        bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
-
-        for (QueueMap::const_iterator it = d_queues.begin();
-             it != d_queues.end();
-             ++it) {
-            const mqbi::Dispatcher::ProcessorHandle currentPHandle =
-                it->second->dispatcherClientData().processorHandle();
-            if (currentPHandle != pHandle) {
-                continue;  // CONTINUE
-            }
-
-            queues.push_back(it->second);
-        }
-    }
-
-    // Now invoke purge on all collected queues.
-    for (size_t i = 0; i < queues.size(); ++i) {
-        mqbcmd::PurgeQueueResult purgeQueueResult;
-        queues[i]->purge(&purgeQueueResult, "");  // "" means ALL appIds
-
-        if (!purgeQueueResult.isUndefinedValue()) {
-            // A purge action has been attempted if the queue was local
-            purgedQueues.push_back(purgeQueueResult);
-        }
-    }
-}
-
 int Domain::processCommand(mqbcmd::DomainResult*        result,
                            const mqbcmd::DomainCommand& command)
 {
     // executed by *any* thread
 
     if (command.isPurgeValue()) {
-        bslmt::Semaphore                                    finalizePurgeSem;
-        bsl::vector<bsl::vector<mqbcmd::PurgeQueueResult> > purgedQueuesVec;
-        purgedQueuesVec.resize(d_dispatcher_p->numProcessors(
-            mqbi::DispatcherClientType::e_QUEUE));
+        // Some queues might be inactive.  They don't have associated
+        // mqbi::Queue objects registered in Domain.  To purge these queues, we
+        // need to send purge command to the storage level.
+        mqbcmd::ClusterCommand clusterCommand;
+        mqbcmd::StorageDomain& domain =
+            clusterCommand.makeStorage().makeDomain();
+        domain.name() = d_name;
+        domain.command().makePurge();
 
-        d_dispatcher_p->execute(
-            bdlf::BindUtil::bind(&Domain::purgeAllQueues,
-                                 this,
-                                 &purgedQueuesVec,
-                                 bdlf::PlaceHolders::_1),
-            mqbi::DispatcherClientType::e_QUEUE,
-            bdlf::MemFnUtil::memFn(static_cast<void (bslmt::Semaphore::*)()>(
-                                       &bslmt::Semaphore::post),
-                                   &finalizePurgeSem));
+        mqbcmd::ClusterResult clusterResult;
+        const int             rc = d_cluster_sp->processCommand(&clusterResult,
+                                                    clusterCommand);
 
-        finalizePurgeSem.wait();
+        if (clusterResult.isErrorValue()) {
+            result->makeError(clusterResult.error());
+            return rc;  // RETURN
+        }
+
+        BSLS_ASSERT_SAFE(clusterResult.isStorageResultValue());
+        BSLS_ASSERT_SAFE(clusterResult.storageResult().isPurgedQueuesValue());
 
         mqbcmd::PurgedQueues& purgedQueues = result->makePurgedQueues();
-
-        for (size_t i = 0; i < purgedQueuesVec.size(); ++i) {
-            const bsl::vector<mqbcmd::PurgeQueueResult>& purgedQs =
-                purgedQueuesVec[i];
-
-            purgedQueues.queues().insert(purgedQueues.queues().begin(),
-                                         purgedQs.begin(),
-                                         purgedQs.end());
-        }
+        purgedQueues.queues() =
+            clusterResult.storageResult().purgedQueues().queues();
 
         return 0;  // RETURN
     }
@@ -900,6 +850,44 @@ int Domain::processCommand(mqbcmd::DomainResult*        result,
             os << "Unable to build queue uri with error '" << uriError << "'";
             result->makeError().message() = os.str();
             return -1;  // RETURN
+        }
+
+        if (command.queue().command().isPurgeAppIdValue()) {
+            const bsl::string& purgeAppId =
+                command.queue().command().purgeAppId();
+
+            if (purgeAppId.empty()) {
+                mqbcmd::Error& error = result->makeError();
+                error.message() = "Queue Purge requires a non-empty appId ("
+                                  "Specify '*' to purge the entire queue).";
+                return -1;  // RETURN
+            }
+
+            // Some queues might be inactive.  They don't have associated
+            // mqbi::Queue objects registered in Domain.  The only way to purge
+            // both active/inactive queues is to execute purge on the storage
+            // level.
+            mqbcmd::ClusterCommand clusterCommand;
+            mqbcmd::StorageQueue&  queue =
+                clusterCommand.makeStorage().makeQueue();
+            queue.canonicalUri()             = uri.canonical();
+            queue.command().makePurgeAppId() = purgeAppId;
+
+            mqbcmd::ClusterResult clusterResult;
+            rc = d_cluster_sp->processCommand(&clusterResult, clusterCommand);
+            if (clusterResult.isErrorValue()) {
+                result->makeError(clusterResult.error());
+                return rc;  // RETURN
+            }
+
+            BSLS_ASSERT_SAFE(clusterResult.isStorageResultValue());
+            BSLS_ASSERT_SAFE(
+                clusterResult.storageResult().isPurgedQueuesValue());
+
+            mqbcmd::PurgedQueues& purgedQueues = result->makePurgedQueues();
+            result->makeQueueResult().makePurgedQueues().queues() =
+                clusterResult.storageResult().purgedQueues().queues();
+            return rc;  // RETURN
         }
 
         bsl::shared_ptr<mqbi::Queue> queue;

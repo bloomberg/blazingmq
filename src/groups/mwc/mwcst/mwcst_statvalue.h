@@ -214,7 +214,7 @@ class StatValue {
         /// A continuous value logically represents a curve that is moved
         /// with `adjustValue` and `setValue`.  When adding two continuous
         /// StatValues, imagine them being stacked into a single continuous
-        /// value.  For example the max of the added value will the the sum
+        /// value.  For example the max of the added value will be the sum
         /// of the maxes of the values being added.
         DMCST_CONTINUOUS,
 

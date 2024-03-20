@@ -27,7 +27,7 @@ Before we dive in, it is worth noting that:
    transient issues and support high performance, BlazingMQ C++ and Java
    libraries are quite stateful, highly asynchronous and carefully designed.
    If the goal of author of BlazingMQ client library is to reach as many
-   audience as possible, they should attempt to do same with their library
+   audience as possible, they should attempt to do the same with their library
    design and implementation.
 
 3. Ideally, the author should be willing to help us maintain the client library
@@ -109,7 +109,7 @@ above.  Some important things to know about:
   `EventHeader`.  If BlazingMQ brokers derived the size of `EventHeader` using,
   `sizeof(EventHeader)` in C++, old BlazingMQ brokers will continue to assume
   that the size of `EventHeader` is still 8 bytes, and will interpret the new 4
-  bytes as next part of the packet (e.g., a sub-header, payload, etc).
+  bytes as the next part of the packet (e.g., a sub-header, payload, etc).
   However, instead of using `sizeof` operators, if BlazingMQ broker code reads
   size of the header from the `HeaderWords` field of the received packet, old
   brokers will know that `EventHeader` is 12 bytes instead of 8.  Obviously,
@@ -291,7 +291,7 @@ When serializing binary messages, one needs to be careful about endianness.
 Readers may already be aware that network byte order is big-endian.  As of
 writing this, BlazingMQ runs on both little-endian (x86) as well as big-endian
 (SPARC, PowerPC) architectures.  In order to minimize errors when
-(de)serializing BlazingMQ network packets, BlazingMQ uses some helpers classes.
+(de)serializing BlazingMQ network packets, BlazingMQ uses some helper classes.
 
 In Java, there are two wrapper classes in BlazingMQ --
 [`ByteBufferInputStream`](https://github.com/bloomberg/blazingmq-sdk-java/blob/main/bmq-sdk/src/main/java/com/bloomberg/bmq/impl/infr/io/ByteBufferInputStream.java)
@@ -387,7 +387,7 @@ To describe above layout in words:
   example, broker can read one or more message properties to evaluate a
   subscription expression.
 
-- `Message Paylaod` is, well, the payload of the message.  BlazingMQ does not
+- `Message Payload` is the payload of the message.  BlazingMQ does not
   peek into the message payload.  Producer application can indicate to the SDK
   to compress a PUT message, in which case, SDK will compress only the message
   payload (any header, options and message properties are not compressed).
@@ -843,13 +843,13 @@ Let's look at the fields of this
 
   - `consumers`: This field is an array of type
     [`ConsumerInfo`](https://github.com/bloomberg/blazingmq/blob/9b692fe25f74543e954a27e30b6b15b0ae057c8d/src/groups/bmq/bmqp/bmqp_ctrlmsg.xsd#L428-L453),
-    and represents various attributes related a subscription.
+    and represents various attributes related to a subscription.
 
 > [!NOTE]
 > As previously mentioned, opening a queue in BlazingMQ is a two-step operation
 > -- the client needs to send `OpenQueue` request, followed by
 > `ConfigureStream` request.  At the API level, both of these steps should be
-> hidden by simply exposing someting like `openQueue` API, similar to the
+> hidden by simply exposing something like `openQueue` API, similar to the
 > [C++](https://github.com/bloomberg/blazingmq/blob/9b692fe25f74543e954a27e30b6b15b0ae057c8d/src/groups/bmq/bmqa/bmqa_session.h#L819-L840)
 > and
 > [Java](https://github.com/bloomberg/blazingmq-sdk-java/blob/ed0eb848f5ac2897cfe32cc481575d689a4cb1c2/bmq-sdk/src/main/java/com/bloomberg/bmq/Queue.java#L24-L34)
@@ -999,7 +999,7 @@ multiple PUSH messages to the application in one go.
 #### Consume API Implementation
 
 The wire layout of a PUSH event was described in a [previous](#push-event)
-section.  As far as implemention is concerned, the SDK logic should keep some
+section.  As far as implementation is concerned, the SDK logic should keep some
 of these things in mind when receiving and dispatching a PUSH event:
 
 - Ensure that the queue is still open, and not closed or being closed by the
@@ -1169,7 +1169,7 @@ We list some guiding principles for designing BlazingMQ client APIs:
 
 3. For certain higher level languages like Python, Ruby, etc., APIs can be
    opinionated and expose a minimal "surface area", which can simplify the APIs
-   while also catering to the needs of majority of the users.
+   while also catering to the needs of the majority of users.
 
 4. For languages where people often write high performance applications, APIs
    should be asynchronous as much as possible, while also providing synchronous
@@ -1188,7 +1188,7 @@ find useful:
 1. The network I/O logic could be made asynchronous (i.e., could use
    non-blocking sockets).  This is not very important for higher level
    languages like Python, etc. but is for languages like Rust, etc.
-   Non-blocking I/O can enable client appliactions to achieve higher
+   Non-blocking I/O can enable client applications to achieve higher
    throughput, at the cost of higher complexity of SDK implementation.  One
    could leverage some well known open source libraries which make it easier to
    achieve async I/O.  For example, the Java SDK uses
@@ -1207,8 +1207,8 @@ find useful:
    callbacks, etc.  Any incoming or outgoing event (initiated by any entity
    like the user, timer, network, etc) on the queue or the top level session
    object can be applied to the appropriate FSM (queue or session), and desired
-   outcome (state transition) and action can dispatched from the FSM table.  As
-   an example, the C++ SDK takes this approach (but only partially) by
+   outcome (state transition) and action can be dispatched from the FSM table.
+   As an example, the C++ SDK takes this approach (but only partially) by
    introducing concepts like:
 
    - [`QueueFSM`](https://github.com/bloomberg/blazingmq/blob/58044d8e4579665fffa0419df820c8be5cdbc2eb/src/groups/bmq/bmqimp/bmqimp_brokersession.h#L456)

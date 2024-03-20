@@ -497,7 +497,7 @@ class MyMockQueueHandle : public mqbmock::QueueHandle {
 
     // ACCESSORS
 
-    /// Returns the the captured messages.
+    /// Returns the captured messages.
     const bsl::vector<Post>& postedMessages() const
     {
         return d_postedMessages;

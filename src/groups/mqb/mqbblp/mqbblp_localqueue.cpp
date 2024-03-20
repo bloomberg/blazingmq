@@ -425,38 +425,58 @@ void LocalQueue::postMessage(const bmqp::PutHeader&              putHeader,
         return;  // RETURN
     }
 
-    const bsls::Types::Int64 timeStamp = mwcsys::Time::highResolutionTimer();
+    const bsls::Types::Int64 timePoint = mwcsys::Time::highResolutionTimer();
     const bool               doAck     = bmqp::PutHeaderFlagUtil::isSet(
         putHeader.flags(),
         bmqp::PutHeaderFlags::e_ACK_REQUESTED);
 
     // Absence of 'queueHandle' in the 'attributes' means no 'e_ACK_REQUESTED'.
 
-    // Note that arrival timepoint is used only at the primary node, for
-    // calculating and reporting the time interval for which a message
-    // stays in the queue.
-    mqbi::StorageMessageAttributes attributes(
-        bdlt::EpochUtil::convertToTimeT64(bdlt::CurrentTime::utc()),
-        d_queueEngine_mp->messageReferenceCount(),
-        translation,
-        putHeader.compressionAlgorithmType(),
-        !d_haveStrongConsistency,
-        doAck ? source : 0,
-        putHeader.crc32c(),
-        timeStamp);  // Arrival Timepoint
+    bsls::Types::Uint64 timestamp = bdlt::EpochUtil::convertToTimeT64(
+        bdlt::CurrentTime::utc());
 
-    mqbi::StorageResult::Enum res = d_state_p->storage()->put(
-        &attributes,
-        putHeader.messageGUID(),
-        appData,
-        options);
+    // EXPERIMENTAL:
+    //  Evaluate 'auto' subscriptions
+    mqbi::StorageResult::Enum res =
+        d_queueEngine_mp->evaluateAutoSubscriptions(putHeader,
+                                                    appData,
+                                                    translation,
+                                                    timestamp);
+
+    bool         haveReceipt = true;
+    unsigned int refCount    = d_queueEngine_mp->messageReferenceCount();
+
+    if (res == mqbi::StorageResult::e_SUCCESS) {
+        if (refCount) {
+            // Note that arrival timepoint is used only at the primary node,
+            // for calculating and reporting the time interval for which a
+            // message stays in the queue.
+            mqbi::StorageMessageAttributes attributes(
+                timestamp,
+                refCount,
+                translation,
+                putHeader.compressionAlgorithmType(),
+                !d_haveStrongConsistency,
+                doAck ? source : 0,
+                putHeader.crc32c(),
+                timePoint);  // Arrival Timepoint
+
+            res = d_state_p->storage()->put(&attributes,
+                                            putHeader.messageGUID(),
+                                            appData,
+                                            options);
+
+            haveReceipt = attributes.hasReceipt();
+        }
+        // else all subscriptions are negative
+    }
 
     // Send acknowledgement if post failed or if ack was requested (both could
     // be true as well).
-    if (res != mqbi::StorageResult::e_SUCCESS || attributes.hasReceipt()) {
+    if (res != mqbi::StorageResult::e_SUCCESS || haveReceipt) {
         // Calculate time delta between PUT and ACK
         const bsls::Types::Int64 timeDelta =
-            mwcsys::Time::highResolutionTimer() - timeStamp;
+            mwcsys::Time::highResolutionTimer() - timePoint;
         d_state_p->stats().onEvent(
             mqbstat::QueueStatsDomain::EventType::e_ACK_TIME,
             timeDelta);
@@ -488,7 +508,7 @@ void LocalQueue::postMessage(const bmqp::PutHeader&              putHeader,
         d_state_p->stats().onEvent(mqbstat::QueueStatsDomain::EventType::e_PUT,
                                    appData->length());
 
-        if (attributes.hasReceipt()) {
+        if (haveReceipt && refCount) {
             d_hasNewMessages = true;
         }
     }
@@ -647,61 +667,6 @@ int LocalQueue::rejectMessage(const bmqt::MessageGUID& msgGUID,
     return d_queueEngine_mp->onRejectMessage(source,
                                              msgGUID,
                                              upstreamSubQueueId);
-}
-
-void LocalQueue::purge(mqbcmd::PurgeQueueResult* result,
-                       const bsl::string&        appId)
-{
-    // executed by the *QUEUE* dispatcher thread
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_state_p->queue()->dispatcher()->inDispatcherThread(
-        d_state_p->queue()));
-
-    mqbu::StorageKey appKey;
-    if (appId.empty()) {
-        // Entire queue needs to be purged.  Note that
-        // 'bmqp::ProtocolUtil::k_NULL_APP_ID' is the empty string.
-        appKey = mqbu::StorageKey::k_NULL_KEY;
-    }
-    else {
-        // A specific appId (i.e., virtual storage) needs to be purged.
-        if (!d_state_p->storage()->hasVirtualStorage(appId, &appKey)) {
-            mwcu::MemOutStream errorMsg;
-            errorMsg << "Specified appId '" << appId << "' not found in the "
-                     << "storage of queue '" << d_state_p->uri() << "'.";
-            mqbcmd::Error& error = result->makeError();
-            error.message()      = errorMsg.str();
-            return;  // RETURN
-        }
-    }
-
-    const bsls::Types::Uint64 numMsgs = d_state_p->storage()->numMessages(
-        appKey);
-    const bsls::Types::Uint64 numBytes = d_state_p->storage()->numBytes(
-        appKey);
-
-    mqbi::StorageResult::Enum rc = d_state_p->storage()->removeAll(appKey);
-    if (rc != mqbi::StorageResult::e_SUCCESS) {
-        mwcu::MemOutStream errorMsg;
-        errorMsg << "Failed to purge appId '" << appId << "', appKey '"
-                 << appKey << "' of queue '" << d_state_p->description()
-                 << "' [reason: " << mqbi::StorageResult::toAscii(rc) << "]";
-        BALL_LOG_WARN << "#QUEUE_PURGE_FAILURE " << errorMsg.str();
-        mqbcmd::Error& error = result->makeError();
-        error.message()      = errorMsg.str();
-        return;  // RETURN
-    }
-
-    d_queueEngine_mp->afterQueuePurged(appId, appKey);
-
-    mqbcmd::PurgedQueueDetails& queueDetails = result->makeQueue();
-    queueDetails.queueUri()                  = d_state_p->uri().asString();
-    queueDetails.appId()                     = appId;
-    mwcu::MemOutStream appKeyStr;
-    appKeyStr << appKey;
-    queueDetails.appKey()            = appKeyStr.str();
-    queueDetails.numMessagesPurged() = numMsgs;
-    queueDetails.numBytesPurged()    = numBytes;
 }
 
 void LocalQueue::loadInternals(mqbcmd::LocalQueue* out) const

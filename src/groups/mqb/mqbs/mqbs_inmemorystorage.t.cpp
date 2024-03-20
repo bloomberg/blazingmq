@@ -547,8 +547,11 @@ TEST_F(Test, unsupportedOperations)
                                                             msgLen,
                                                             refCount,
                                                             handle));
-    ASSERT_OPT_FAIL(
-        d_tester.storage().processConfirmRecord(guid, appKey, handle));
+    ASSERT_OPT_FAIL(d_tester.storage().processConfirmRecord(
+        guid,
+        appKey,
+        mqbs::ConfirmReason::e_CONFIRMED,
+        handle));
     ASSERT_OPT_FAIL(d_tester.storage().processDeletionRecord(guid));
     ASSERT_OPT_FAIL(d_tester.storage().purge(appKey));
 }

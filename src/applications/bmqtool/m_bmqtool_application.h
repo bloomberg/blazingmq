@@ -110,7 +110,7 @@ class Application : public bmqa::SessionEventHandler {
     bdlmt::EventScheduler d_scheduler;
     // Used to schedule stat snapshots
 
-    bool d_isConnected;
+    bsls::AtomicBool d_isConnected;
     // Are we connected to bmqbrkr?  (to
     // know whether to dump stats/publish
     // message or not)

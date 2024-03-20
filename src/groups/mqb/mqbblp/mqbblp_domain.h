@@ -307,15 +307,6 @@ class Domain : public mqbi::Domain, public mqbc::ClusterStateObserver {
     /// any, or a null pointer otherwise.
     mqbu::CapacityMeter* capacityMeter() BSLS_KEYWORD_OVERRIDE;
 
-    /// Remove all pending messages from all queues of the domain which are
-    /// associated with the specified `pHandle` processor handle, and
-    /// populate the vector at the `pHandle` index in the specified
-    /// `purgedQueuesVec` list with statistics about all queues having been
-    /// purged.
-    void purgeAllQueues(
-        bsl::vector<bsl::vector<mqbcmd::PurgeQueueResult> >* purgedQueuesVec,
-        const mqbi::Dispatcher::ProcessorHandle&             pHandle);
-
     /// Process the specified `command`, and load the result in the
     /// specified `result`.  Return zero on success, or a nonzero value
     /// otherwise.

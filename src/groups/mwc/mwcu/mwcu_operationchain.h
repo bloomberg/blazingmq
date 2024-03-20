@@ -31,7 +31,7 @@
 // called a "link". A link can contain one or more operations executing in
 // parallel. Links are indexed and ordered, such that the first link has index
 // 0, operations in the link 'N' starts executing after the completion of all
-// operations in the the link 'N - 1', and operations in link 0 starts
+// operations in the link 'N - 1', and operations in link 0 starts
 // executing as soon as the chain is started. After all operations in link 0
 // are executed, the link is removed from the chain and the next link in line
 // becomes link 0.
@@ -400,7 +400,7 @@ class OperationChain_Job {
     unsigned d_id;
 
     // Uses an on-stack buffer to allocate memory for "small" objects, and
-    // falls back to requesting memory from the the supplied allocator if
+    // falls back to requesting memory from the supplied allocator if
     // the buffer is not large enough. Note that the size of the on-stack
     // buffer is an arbitrary value.
     mwcu::ObjectPlaceHolder<sizeof(Target<Dummy, Dummy>)> d_target;
