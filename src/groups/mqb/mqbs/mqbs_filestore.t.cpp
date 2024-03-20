@@ -498,7 +498,7 @@ struct Tester {
                                             rec.d_queueKey,
                                             mqbu::StorageKey(),
                                             rec.d_timestamp,
-                                            false);  // onReject
+                                            mqbs::ConfirmReason::e_CONFIRMED);
                 if (0 != rc) {
                     bsl::cout << "Error writing ConfirmRecord, rc: " << rc
                               << bsl::endl;

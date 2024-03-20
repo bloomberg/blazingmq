@@ -206,6 +206,12 @@ class FileBackedStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
 
     const bool d_hasReceipts;
 
+    bmqt::MessageGUID d_currentlyAutoConfirming;
+    // Message being evaluated and possibly auto confirmed.
+
+    RecordHandlesArray d_ephemeralConfirms;
+    // Auto CONFIRMs waiting for 'put' or 'processMessageRecord'
+
   private:
     // NOT IMPLEMENTED
     FileBackedStorage(const FileBackedStorage&) BSLS_KEYWORD_DELETED;
@@ -215,6 +221,9 @@ class FileBackedStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
   private:
     // PRIVATE MANIPULATORS
     void purgeCommon(const mqbu::StorageKey& appKey);
+
+    /// Clear the state created by 'selectForAutoConfirming'.
+    void clearSelection();
 
   public:
     // TRAITS
@@ -387,7 +396,7 @@ class FileBackedStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     virtual bslma::ManagedPtr<mqbi::StorageIterator>
     getIterator(const mqbu::StorageKey& appKey) BSLS_KEYWORD_OVERRIDE;
 
-    /// Load into the the specified `out` an iterator for items stored in
+    /// Load into the specified `out` an iterator for items stored in
     /// the virtual storage identified by the specified `appKey`, initially
     /// pointing to the item associated with the specified `msgGUID`.
     /// Return zero on success, and a non-zero code if `msgGUID` was not
@@ -485,6 +494,7 @@ class FileBackedStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
 
     virtual void processConfirmRecord(const bmqt::MessageGUID&     guid,
                                       const mqbu::StorageKey&      appKey,
+                                      ConfirmReason::Enum          reason,
                                       const DataStoreRecordHandle& handle)
         BSLS_KEYWORD_OVERRIDE;
 
@@ -496,6 +506,18 @@ class FileBackedStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
 
     virtual void purge(const mqbu::StorageKey& appKey) BSLS_KEYWORD_OVERRIDE;
 
+    virtual void selectForAutoConfirming(const bmqt::MessageGUID& msgGUID)
+        BSLS_KEYWORD_OVERRIDE;
+    virtual mqbi::StorageResult::Enum
+    autoConfirm(const mqbu::StorageKey& appKey,
+                bsls::Types::Uint64     timestamp) BSLS_KEYWORD_OVERRIDE;
+    /// The sequence of calls is 'startAutoConfirming', then zero or more
+    /// 'autoConfirm', then 'put' - all for the same specified 'msgGUID'.
+    /// 'autoConfirm' replicates ephemeral auto CONFIRM for the specified
+    /// 'appKey' in persistent storage.
+    /// Any other sequence removes auto CONFIRMs.
+    /// Auto-confirmed Apps do not PUSH the message.
+
     // ACCESSORS (for mqbs::ReplicatedStorage)
     virtual int partitionId() const BSLS_KEYWORD_OVERRIDE;
 
@@ -503,6 +525,9 @@ class FileBackedStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     queueOpRecordHandles() const BSLS_KEYWORD_OVERRIDE;
 
     virtual bool isStrongConsistency() const BSLS_KEYWORD_OVERRIDE;
+
+    /// Return the number of auto confirmed Apps for the current message.
+    virtual unsigned int numAutoConfirms() const BSLS_KEYWORD_OVERRIDE;
 };
 
 // ===============================
@@ -780,6 +805,11 @@ inline void
 FileBackedStorage::loadVirtualStorageDetails(AppIdKeyPairs* buffer) const
 {
     return d_virtualStorageCatalog.loadVirtualStorageDetails(buffer);
+}
+
+inline unsigned int FileBackedStorage::numAutoConfirms() const
+{
+    return d_ephemeralConfirms.size();
 }
 
 }  // close package namespace

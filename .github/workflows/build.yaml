@@ -13,11 +13,11 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build_and_test:
-    name: "Check if BlazingMQ can build, and pass unit and integration tests"
+  build_ubuntu:
+    name: BlazingMQ build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Set up dependencies
         run: |
           sudo apt-get update
@@ -32,8 +32,8 @@ jobs:
             bison \
             libfl-dev \
             libbenchmark-dev \
+            libgmock-dev \
             libz-dev
-          pip install -r ${{ github.workspace }}/src/python/requirements.txt
       - name: Create dependency fetcher working directory
         run: mkdir -p deps
       - name: Fetch & Build non packaged dependencies
@@ -52,19 +52,57 @@ jobs:
             -DCMAKE_PREFIX_PATH=${{ github.workspace }}/deps/srcs/bde-tools/BdeBuildSystem \
             -DCMAKE_INSTALL_LIBDIR=lib64
           cmake --build build/blazingmq --parallel 8 --target all all.t
-      - name: Run C++ Unit Tests
-        run: |
-          cd build/blazingmq
-          ctest -E mwcsys_executil.t --output-on-failure
+      - uses: actions/cache@v4
+        with:
+          path: |
+            build/blazingmq
+            deps
+            /opt/bb/include
+          key: cache-${{ github.sha }}
+
+  unit_tests_ubuntu:
+    name: BlazingMQ unit tests
+    runs-on: ubuntu-latest
+    needs: build_ubuntu
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache/@v4
+        with:
+          path: |
+            build/blazingmq
+            deps
+            /opt/bb/include
+          key: cache-${{ github.sha }}
       - name: Run Python Unit Tests
         env:
-          PYTHONPATH: src/python
+          PYTHONPATH: ${{ github.workspace }}/src/python
         run: |
+          pip install -r ${{ github.workspace }}/src/python/requirements.txt
+          cd ${{ github.workspace }}
           src/python/bin/schemagen
           src/python/bin/tweakgen
           pytest src/python
+      - name: Run C++ Unit Tests
+        run: |
+          cd ${{ github.workspace }}/build/blazingmq
+          ctest -E mwcsys_executil.t --output-on-failure
+
+  integration_tests_ubuntu:
+    name: BlazingMQ integration tests
+    runs-on: ubuntu-latest
+    needs: build_ubuntu
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache/@v4
+        with:
+          path: |
+            build/blazingmq
+            deps
+            /opt/bb/include
+          key: cache-${{ github.sha }}
       - name: Run Integration Tests
         run: |
+          pip install -r ${{ github.workspace }}/src/python/requirements.txt
           ${{ github.workspace }}/src/integration-tests/run-tests \
             --log-level ERROR                   \
             --log-file-level=info               \
@@ -75,21 +113,38 @@ jobs:
             --tb line                           \
             --reruns=3                          \
             -n 4 -v
-      - uses: actions/cache@v3
-        with:
-          path: |
-            build/blazingmq
-            deps
-            /opt/bb/include
-          key: cache-${{ github.sha }}
+
+  build_macosx:
+    name: Build macosx_${{ matrix.arch }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: macos-14
+            arch: arm64
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up dependencies
+        run: |
+          brew install \
+            curl \
+            python@3.10 \
+            ninja \
+            bison \
+            flex \
+            google-benchmark
+          python3 -m pip install --upgrade pip
+          pip install -r ${{ github.workspace }}/src/python/requirements.txt
+      - name: Build BlazingMQ
+        run: bin/build-darwin.sh
 
   build_and_test_bmqprometheus_plugin:
     name: "Check if BMQPrometheus plugin can build and pass tests"
     runs-on: ubuntu-latest
-    needs: build_and_test
+    needs: build_ubuntu
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/cache/@v3
+      - uses: actions/checkout@v4
+      - uses: actions/cache/@v4
         with:
           path: |
             build/blazingmq
@@ -109,6 +164,7 @@ jobs:
             bison \
             libfl-dev \
             libbenchmark-dev \
+            libgmock-dev \
             libz-dev \
             autoconf \
             libtool
@@ -155,7 +211,7 @@ jobs:
     name: "Documentation"
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Set up dependencies
         run: |
           sudo apt-get update
@@ -172,7 +228,7 @@ jobs:
         path:
           - 'src'
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Run clang-format style check for C/C++/Protobuf programs.
         uses: jidicula/clang-format-action@v4.11.0
         with:
@@ -183,7 +239,7 @@ jobs:
     name: Shellcheck
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Run ShellCheck
         uses: ludeeus/action-shellcheck@master
 
@@ -191,7 +247,7 @@ jobs:
     name: "Check whether docker single-node and cluster workflows build correctly."
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Docker Single-Node Workflow
         run: docker compose -f docker/single-node/docker-compose.yaml up --build -d
       - name: Docker Cluster Workflow

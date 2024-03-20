@@ -76,12 +76,9 @@ target_sources(bmqeval-iface
                ${FLEX_SimpleEvaluatorScanner_OUTPUTS})
 
 target_include_directories(bmqeval-iface PRIVATE ${CMAKE_CURRENT_BINARY_DIR} ${FLEX_INCLUDE_DIRS})
-if(NOT CMAKE_HOST_SYSTEM_NAME MATCHES "Darwin")
-  target_link_libraries(bmq PUBLIC "${FLEX_LIBRARIES}")
-endif()
 
 target_include_directories(bmqeval_simpleevaluator.t
                            PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}")
 
-target_link_libraries(bmqeval_simpleevaluator.t PUBLIC bmq "${FLEX_LIBRARIES}" benchmark)
+target_link_libraries(bmqeval_simpleevaluator.t PUBLIC bmq benchmark)
 

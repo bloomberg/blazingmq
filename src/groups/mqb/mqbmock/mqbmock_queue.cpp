@@ -387,12 +387,6 @@ int Queue::processCommand(mqbcmd::QueueResult*        result,
     return -1;
 }
 
-void Queue::purge(BSLS_ANNOTATION_UNUSED mqbcmd::PurgeQueueResult* queueResult,
-                  BSLS_ANNOTATION_UNUSED const bsl::string& appId)
-{
-    // NOT IMPLENTED
-}
-
 // MANIPULATORS
 //   (specific to mqbmock::Queue)
 Queue& Queue::_setDispatcher(mqbi::Dispatcher* value)

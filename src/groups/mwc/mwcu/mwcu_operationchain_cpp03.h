@@ -366,7 +366,7 @@ class OperationChain_Job {
 
     mwcu::ObjectPlaceHolder<sizeof(Target<Dummy, Dummy>)> d_target;
     // Uses an on-stack buffer to allocate memory for "small" objects, and
-    // falls back to requesting memory from the the supplied allocator if
+    // falls back to requesting memory from the supplied allocator if
     // the buffer is not large enough. Note that the size of the on-stack
     // buffer is an arbitrary value.
 

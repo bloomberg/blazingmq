@@ -358,12 +358,6 @@ class Queue BSLS_CPP11_FINAL : public mqbi::Queue {
     processCommand(mqbcmd::QueueResult*        result,
                    const mqbcmd::QueueCommand& command) BSLS_KEYWORD_OVERRIDE;
 
-    /// Remove all outstanding messages from that queue and load the details
-    /// of the purged queue into the specified `result` object. Empty
-    /// `appId` means to purge from ALL appIds.
-    void purge(mqbcmd::PurgeQueueResult* result,
-               const bsl::string&        appId = "") BSLS_KEYWORD_OVERRIDE;
-
     // ACCESSORS
     //   (virtual mqbi::Queue)
 

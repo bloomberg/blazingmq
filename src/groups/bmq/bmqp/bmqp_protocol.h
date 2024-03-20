@@ -1873,8 +1873,7 @@ struct AckMessage {
     //                  message
     //  MessageGUID...: MessageGUID associated to this message by the broker
     //  QueueId.......: Id of the queue (as advertised during open queue by the
-    //                  the producer of the Put event this Ack is a response
-    //                  of)
+    //                  producer of the Put event this Ack is a response of)
     //..
 
   private:
@@ -3378,7 +3377,7 @@ struct MessagePropertiesInfo {
     MessagePropertiesInfo(const MessagePropertiesInfo& other);
 
     /// Construct object indicating MessageProperties presence as the
-    /// the specified `isPresent` with Schema id as the specified `schemaId`
+    /// specified `isPresent` with Schema id as the specified `schemaId`
     /// and the specified `isRecycled`.
     MessagePropertiesInfo(bool         isPresent,
                           SchemaIdType schemaId,

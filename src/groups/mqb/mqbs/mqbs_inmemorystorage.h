@@ -223,6 +223,13 @@ class InMemoryStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
 
     bmqp::RdaInfo d_defaultRdaInfo;
     // Use in all 'put' operations.
+
+    bmqt::MessageGUID d_currentlyAutoConfirming;
+    // Message being evaluated and possibly auto confirmed.
+
+    unsigned int d_numAutoConfirms;
+    // Current number of auto confirmed Apps for 'd_currentlyAutoConfirming'.
+
   private:
     // NOT IMPLEMENTED
     InMemoryStorage(const InMemoryStorage&) BSLS_KEYWORD_DELETED;
@@ -283,7 +290,7 @@ class InMemoryStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     virtual bslma::ManagedPtr<mqbi::StorageIterator>
     getIterator(const mqbu::StorageKey& appKey) BSLS_KEYWORD_OVERRIDE;
 
-    /// Load into the the specified `out` an iterator for items stored in
+    /// Load into the specified `out` an iterator for items stored in
     /// the virtual storage identified by the specified `appKey`, initially
     /// pointing to the item associated with the specified `msgGUID`.
     /// Return zero on success, and a non-zero code if `msgGUID` was not
@@ -385,6 +392,16 @@ class InMemoryStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     /// become invalid after this method returns.
     virtual bool
     removeVirtualStorage(const mqbu::StorageKey& appKey) BSLS_KEYWORD_OVERRIDE;
+
+    virtual void selectForAutoConfirming(const bmqt::MessageGUID& msgGUID)
+        BSLS_KEYWORD_OVERRIDE;
+    virtual mqbi::StorageResult::Enum
+    autoConfirm(const mqbu::StorageKey& appKey,
+                bsls::Types::Uint64     timestamp) BSLS_KEYWORD_OVERRIDE;
+    /// The sequence of calls is 'startAutoConfirming', then zero or more
+    /// 'autoConfirm', then 'put' - all for the same specified 'msgGUID'.
+    /// Any other sequence removes auto CONFIRMs.
+    /// Auto-confirmed Apps do not PUSH the message.
 
     // ACCESSORS
     //   (virtual mqbi::Storage)
@@ -490,6 +507,8 @@ class InMemoryStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     // Load into the specified 'buffer' the list of pairs of appId and
     // appKey for all the virtual storages registered with this instance.
 
+    virtual unsigned int numAutoConfirms() const BSLS_KEYWORD_OVERRIDE;
+
     // MANIPULATORS
     //   (virtual mqbs::ReplicatedStorage)
     virtual void processMessageRecord(const bmqt::MessageGUID&     guid,
@@ -500,6 +519,7 @@ class InMemoryStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
 
     virtual void processConfirmRecord(const bmqt::MessageGUID&     guid,
                                       const mqbu::StorageKey&      appKey,
+                                      ConfirmReason::Enum          reason,
                                       const DataStoreRecordHandle& handle)
         BSLS_KEYWORD_OVERRIDE;
 
@@ -819,6 +839,11 @@ InMemoryStorage::loadVirtualStorageDetails(AppIdKeyPairs* buffer) const
 
 {
     return d_virtualStorageCatalog.loadVirtualStorageDetails(buffer);
+}
+
+inline unsigned int InMemoryStorage::numAutoConfirms() const
+{
+    return d_numAutoConfirms;
 }
 
 inline mqbu::CapacityMeter* InMemoryStorage::capacityMeter()

@@ -968,11 +968,13 @@ void StorageManager::recoveredQueuesCbImpl(
     unsigned int        lastStrongConsistencyPrimaryLeaseId = 0;
 
     while (fsIt.next()) {
-        mqbu::StorageKey        appKey;
-        mqbu::StorageKey        queueKey;
-        bmqt::MessageGUID       guid;
-        mqbs::QueueOpType::Enum queueOpType = mqbs::QueueOpType::e_UNDEFINED;
-        unsigned int            refCount    = 0;
+        mqbu::StorageKey          appKey;
+        mqbu::StorageKey          queueKey;
+        bmqt::MessageGUID         guid;
+        mqbs::QueueOpType::Enum   queueOpType = mqbs::QueueOpType::e_UNDEFINED;
+        unsigned int              refCount    = 0;
+        mqbs::ConfirmReason::Enum confirmReason =
+            mqbs::ConfirmReason::e_CONFIRMED;
 
         if (mqbs::RecordType::e_MESSAGE == fsIt.type()) {
             mqbs::MessageRecord msgRec;
@@ -984,9 +986,10 @@ void StorageManager::recoveredQueuesCbImpl(
         else if (mqbs::RecordType::e_CONFIRM == fsIt.type()) {
             mqbs::ConfirmRecord confRec;
             fsIt.loadConfirmRecord(&confRec);
-            queueKey = confRec.queueKey();
-            appKey   = confRec.appKey();
-            guid     = confRec.messageGUID();
+            queueKey      = confRec.queueKey();
+            appKey        = confRec.appKey();
+            guid          = confRec.messageGUID();
+            confirmReason = confRec.reason();
         }
         else if (mqbs::RecordType::e_QUEUE_OP == fsIt.type()) {
             // TODO_CSL When we logically delete the QLIST file, will we still
@@ -1123,7 +1126,7 @@ void StorageManager::recoveredQueuesCbImpl(
                     << "]. Dropping this record." << MWCTSK_ALARMLOG_END;
                 continue;  // CONTINUE
             }
-            rs->processConfirmRecord(guid, appKey, handle);
+            rs->processConfirmRecord(guid, appKey, confirmReason, handle);
         }
         else {
             BSLS_ASSERT(false);
@@ -2857,6 +2860,8 @@ int StorageManager::processCommand(mqbcmd::StorageResult*        result,
     return mqbc::StorageUtil::processCommand(
         result,
         &d_fileStores,
+        &d_storages,
+        &d_storagesLock,
         d_domainFactory_p,
         &d_replicationFactor,
         command,

@@ -119,6 +119,9 @@ class VirtualStorage : public mqbi::Storage {
     // Total size (in bytes) of all the messages that
     // it holds.
 
+    bmqt::MessageGUID d_autoConfirm;
+    // This App should not 'put' this guid because it is auto confirmed.
+
   private:
     // NOT IMPLEMENTED
     VirtualStorage(const VirtualStorage&);             // = delete
@@ -213,6 +216,10 @@ class VirtualStorage : public mqbi::Storage {
     void loadVirtualStorageDetails(AppIdKeyPairs* buffer) const
         BSLS_KEYWORD_OVERRIDE;
 
+    /// Behavior is undefined if these methods are ever invoked.  These methods
+    /// need to be implemented as their part of the base protocol.
+    unsigned int numAutoConfirms() const BSLS_KEYWORD_OVERRIDE;
+
     /// Store in the specified `msgSize` the size, in bytes, of the message
     /// having the specified `msgGUID` if found and return success, or
     /// return a non-zero return code and leave `msgSize` untouched if no
@@ -299,7 +306,7 @@ class VirtualStorage : public mqbi::Storage {
     bslma::ManagedPtr<mqbi::StorageIterator>
     getIterator(const mqbu::StorageKey& appKey) BSLS_KEYWORD_OVERRIDE;
 
-    /// Load into the the specified `out` an iterator for items stored in
+    /// Load into the specified `out` an iterator for items stored in
     /// the virtual storage identified by the specified `appKey`, initially
     /// pointing to the item associated with the specified `msgGUID`.
     /// Return zero on success, and a non-zero code if `msgGUID` was not
@@ -367,6 +374,18 @@ class VirtualStorage : public mqbi::Storage {
     /// needs to be implemented as its part of base protocol.
     bool
     removeVirtualStorage(const mqbu::StorageKey& appKey) BSLS_KEYWORD_OVERRIDE;
+
+    /// Behavior is undefined if these methods are ever invoked.  These methods
+    /// need to be implemented as their part of the base protocol.
+    void selectForAutoConfirming(const bmqt::MessageGUID& msgGUID)
+        BSLS_KEYWORD_OVERRIDE;
+    mqbi::StorageResult::Enum
+    autoConfirm(const mqbu::StorageKey& appKey,
+                bsls::Types::Uint64     timestamp) BSLS_KEYWORD_OVERRIDE;
+
+    /// Ignore the specified 'msgGUID' in the subsequent 'put' call because the
+    /// App has auto confirmed it.
+    void autoConfirm(const bmqt::MessageGUID& msgGUID);
 };
 
 // ============================

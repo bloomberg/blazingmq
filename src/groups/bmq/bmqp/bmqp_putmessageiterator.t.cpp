@@ -66,7 +66,7 @@ static void test1_breathingTest()
 //     decompress flag is set to true. The iterator has messages which
 //     have not been compressed.
 //   - Create a valid iterator which allows decompression i.e. the
-//     the decompress flag is set to true. The iterator has messages which
+//     decompress flag is set to true. The iterator has messages which
 //     have been compressed using ZLIB compression algorithm.
 //
 // Testing:
