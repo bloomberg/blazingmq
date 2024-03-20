@@ -209,6 +209,9 @@ InMemoryStorage::put(mqbi::StorageMessageAttributes*     attributes,
                                     bmqp::Protocol::k_DEFAULT_SUBSCRIPTION_ID,
                                     mqbu::StorageKey::k_NULL_KEY);
 
+        d_currentlyAutoConfirming = bmqt::MessageGUID();
+        d_numAutoConfirms         = 0;
+
         if (d_queue_p) {
             d_queue_p->stats()->onEvent(
                 mqbstat::QueueStatsDomain::EventType::e_ADD_MESSAGE,
@@ -222,6 +225,8 @@ InMemoryStorage::put(mqbi::StorageMessageAttributes*     attributes,
         // crashes, the primary may deliver again the same messages to us.
         return mqbi::StorageResult::e_SUCCESS;  // RETURN
     }
+    // 'storageKeys' is not empty only when proxy receives PUSH.
+    // Auto confirming does no apply then.
 
     // Specific appKeys have been specified.  Insert the guid in the
     // corresponding virtual storages.
@@ -488,6 +493,24 @@ bool InMemoryStorage::gcHistory()
                       k_GC_MESSAGES_BATCH_SIZE);
 }
 
+void InMemoryStorage::selectForAutoConfirming(const bmqt::MessageGUID& msgGUID)
+{
+    d_numAutoConfirms         = 0;
+    d_currentlyAutoConfirming = msgGUID;
+}
+
+mqbi::StorageResult::Enum
+InMemoryStorage::autoConfirm(const mqbu::StorageKey& appKey,
+                             bsls::Types::Uint64     timestamp)
+{
+    (void)timestamp;
+    d_virtualStorageCatalog.autoConfirm(d_currentlyAutoConfirming, appKey);
+
+    ++d_numAutoConfirms;
+
+    return mqbi::StorageResult::e_SUCCESS;
+}
+
 // ACCESSORS
 //   (virtual mqbi::Storage)
 mqbi::StorageResult::Enum
@@ -536,7 +559,8 @@ void InMemoryStorage::processMessageRecord(
 
 void InMemoryStorage::processConfirmRecord(
     BSLS_ANNOTATION_UNUSED const bmqt::MessageGUID& guid,
-    BSLS_ANNOTATION_UNUSED const mqbu::StorageKey&      appKey,
+    BSLS_ANNOTATION_UNUSED const mqbu::StorageKey& appKey,
+    BSLS_ANNOTATION_UNUSED ConfirmReason::Enum          reason,
     BSLS_ANNOTATION_UNUSED const DataStoreRecordHandle& handle)
 {
     // Replicated in-memory storage is not yet supported.

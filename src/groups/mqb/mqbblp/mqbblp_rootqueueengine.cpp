@@ -48,6 +48,7 @@
 
 // BDE
 #include <bdlb_print.h>
+#include <bdlb_scopeexit.h>
 #include <bdlb_string.h>
 #include <bdlt_currenttime.h>
 #include <bdlt_epochutil.h>
@@ -263,8 +264,22 @@ RootQueueEngine::RootQueueEngine(QueueState*             queueState,
 //   (virtual mqbi::QueueEngine)
 int RootQueueEngine::configure(bsl::ostream& errorDescription)
 {
+    enum RcEnum {
+        // Return values
+        rc_SUCCESS = 0  // No error
+        ,
+        rc_APP_INITIALIZATION_ERROR = -1  // No Virtual Storage
+        ,
+        rc_AUTO_SUBSCRIPTION_ERROR = -2  // Wrong expression
+        ,
+        rc_AUTO_SUBSCRIPTIONS_ERROR = -3  // Wrong number of auto subscriptions
+    };
+
     // Populate map of appId to appKey for statically registered consumers
     size_t numApps = 0;
+
+    const bsl::vector<mqbconfm::Subscription>& subscriptions =
+        d_queueState_p->domain()->config().subscriptions();
 
     if (d_isFanout) {
         const bsl::vector<bsl::string>& cfgAppIds =
@@ -273,7 +288,35 @@ int RootQueueEngine::configure(bsl::ostream& errorDescription)
             if (initializeAppId(cfgAppIds[numApps],
                                 errorDescription,
                                 bmqp::QueueId::k_UNASSIGNED_SUBQUEUE_ID)) {
-                return -1;  // RETURN
+                return rc_APP_INITIALIZATION_ERROR;  // RETURN
+            }
+        }
+        for (unsigned int i = 0; i < subscriptions.size(); ++i) {
+            Apps::iterator itApp = d_apps.findByKey1(subscriptions[i].appId());
+            if (itApp != d_apps.end()) {
+                int rc = itApp->value()->setSubscription(
+                    subscriptions[i].expression());
+
+                if (rc != 0) {
+                    bmqeval::ErrorType::Enum errorType =
+                        static_cast<bmqeval::ErrorType::Enum>(rc);
+
+                    BALL_LOG_ERROR
+                        << "#QUEUE_CONFIGURE_FAILURE Queue '"
+                        << d_queueState_p->queue()->description()
+                        << "' failed to compile auto subscription: '"
+                        << subscriptions[i].expression().text()
+                        << "' for the '" << itApp->key1()
+                        << "' app, rc: " << rc << ", reason: '"
+                        << bmqeval::ErrorType::toString(errorType) << "'";
+                    return rc_AUTO_SUBSCRIPTION_ERROR;  // RETURN
+                }
+            }
+            else {
+                BALL_LOG_WARN << "Queue \""
+                              << d_queueState_p->queue()->description()
+                              << "' ignores auto subscription: '"
+                              << subscriptions[i].appId() << "'";
             }
         }
     }
@@ -282,7 +325,41 @@ int RootQueueEngine::configure(bsl::ostream& errorDescription)
         if (initializeAppId(bmqp::ProtocolUtil::k_DEFAULT_APP_ID,
                             errorDescription,
                             bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID)) {
-            return -1;  // RETURN
+            return rc_APP_INITIALIZATION_ERROR;  // RETURN
+        }
+        // TODO: what is auto subscription "appId" for priority/broadcast?
+        if (subscriptions.size() > 1) {
+            BALL_LOG_ERROR << "#QUEUE_CONFIGURE_FAILURE  Queue '"
+                           << d_queueState_p->queue()->description()
+                           << "' Cannot have more than 1 auto subscription";
+
+            return rc_AUTO_SUBSCRIPTIONS_ERROR;  // RETURN
+        }
+
+        Apps::iterator itApp = d_apps.begin();
+        BSLS_ASSERT_SAFE(itApp != d_apps.end());
+
+        int rc = 0;
+        if (subscriptions.size() == 1) {
+            rc = itApp->value()->setSubscription(
+                subscriptions[0].expression());
+        }
+        else {
+            mqbconfm::Expression empty(d_allocator_p);
+            rc = itApp->value()->setSubscription(empty);
+        }
+
+        if (rc != 0) {
+            bmqeval::ErrorType::Enum errorType =
+                static_cast<bmqeval::ErrorType::Enum>(rc);
+
+            BALL_LOG_ERROR << "#QUEUE_CONFIGURE_FAILURE Queue '"
+                           << d_queueState_p->queue()->description()
+                           << "' Failed to compile auto subscription: '"
+                           << subscriptions[0].expression().text()
+                           << "', rc: " << rc << ", reason: '"
+                           << bmqeval::ErrorType::toString(errorType) << "'";
+            return rc_AUTO_SUBSCRIPTION_ERROR;  // RETURN
         }
     }
 
@@ -292,7 +369,7 @@ int RootQueueEngine::configure(bsl::ostream& errorDescription)
             bdlt::TimeUnitRatio::k_NANOSECONDS_PER_SECOND);
     }
 
-    return 0;
+    return rc_SUCCESS;
 }
 
 int RootQueueEngine::initializeAppId(const bsl::string& appId,
@@ -1587,18 +1664,60 @@ void RootQueueEngine::afterAppIdUnregistered(
     d_consumptionMonitor.unregisterSubStream(appKey);
 }
 
+mqbi::StorageResult::Enum RootQueueEngine::evaluateAutoSubscriptions(
+    const bmqp::PutHeader&              putHeader,
+    const bsl::shared_ptr<bdlbb::Blob>& appData,
+    const bmqp::MessagePropertiesInfo&  mpi,
+    bsls::Types::Uint64                 timestamp)
+{
+    mqbi::StorageResult::Enum result = mqbi::StorageResult::e_SUCCESS;
+
+    Routers::QueueRoutingContext& queue = d_queueState_p->routingContext();
+
+    // 'setPropertiesReader' is done in 'QueueRoutingContext' ctor
+
+    queue.d_preader->next(appData, mpi);
+
+    bdlb::ScopeExitAny guard(
+        bdlf::BindUtil::bind(&Routers::MessagePropertiesReader::clear,
+                             queue.d_preader));
+
+    d_queueState_p->storage()->selectForAutoConfirming(
+        putHeader.messageGUID());
+
+    for (Apps::iterator it = d_apps.begin(); it != d_apps.end(); ++it) {
+        AppStateSp& app = it->value();
+        if (!app->evaluateAutoSubcription()) {
+            result = d_queueState_p->storage()->autoConfirm(it->key2().first,
+                                                            timestamp);
+
+            if (result != mqbi::StorageResult::e_SUCCESS) {
+                return result;
+            }
+        }
+    }
+
+    return result;
+}
+
 // ACCESSORS
 //   (virtual mqbi::QueueEngine)
 unsigned int RootQueueEngine::messageReferenceCount() const
 {
-    return d_isFanout ? d_queueState_p->domain()
-                            ->config()
+    unsigned refCount = d_isFanout ? d_queueState_p->domain()
+                                         ->config()
 
-                            .mode()
-                            .fanout()
-                            .appIDs()
-                            .size()
-                      : 1;
+                                         .mode()
+                                         .fanout()
+                                         .appIDs()
+                                         .size()
+                                   : 1;
+
+    unsigned int numNegative = d_queueState_p->storage()->numAutoConfirms();
+
+    BSLS_ASSERT_SAFE(numNegative <= refCount);
+
+    return refCount - numNegative;
 }
 
 void RootQueueEngine::loadInternals(mqbcmd::QueueEngine* out) const

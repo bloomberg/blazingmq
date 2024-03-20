@@ -389,7 +389,7 @@ class Storage {
     virtual bslma::ManagedPtr<StorageIterator>
     getIterator(const mqbu::StorageKey& appKey) = 0;
 
-    /// Load into the the specified `out` an iterator for items stored in
+    /// Load into the specified `out` an iterator for items stored in
     /// the virtual storage identified by the specified `appKey`, initially
     /// pointing to the item associated with the specified `msgGUID`.
     /// Return zero on success, and a non-zero code if `msgGUID` was not
@@ -490,6 +490,16 @@ class Storage {
     /// become invalid after this method returns.
     virtual bool removeVirtualStorage(const mqbu::StorageKey& appKey) = 0;
 
+    virtual void selectForAutoConfirming(const bmqt::MessageGUID& msgGUID) = 0;
+    virtual StorageResult::Enum autoConfirm(const mqbu::StorageKey& appKey,
+                                            bsls::Types::Uint64 timestamp) = 0;
+    /// The sequence of calls is 'selectForAutoConfirming', then zero or more
+    /// 'autoConfirm', then 'put' - all for the same specified 'msgGUID'.
+    /// 'autoConfirm' replicates ephemeral auto CONFIRM for the specified
+    /// 'appKey' in persistent storage.
+    /// Any other sequence removes auto CONFIRMs.
+    /// Auto-confirmed Apps do not PUSH the message.
+
     // ACCESSORS
 
     /// Return the URI of the queue this storage is associated with.
@@ -589,6 +599,9 @@ class Storage {
     /// Load into the specified `buffer` the list of pairs of appId and
     /// appKey for all the virtual storages registered with this instance.
     virtual void loadVirtualStorageDetails(AppIdKeyPairs* buffer) const = 0;
+
+    /// Return the number of auto confirmed Apps for the current message.
+    virtual unsigned int numAutoConfirms() const = 0;
 };
 
 // ============================================================================

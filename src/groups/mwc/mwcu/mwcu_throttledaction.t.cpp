@@ -278,7 +278,7 @@ static void test3_throttleWithDefaultReset()
     mwcu::ThrottledActionParams obj(k_INTERVAL_MS, k_MAX_COUNT_PER_INTERVAL);
 
     // 1. Do a 'MWCU_THROTTLEDACTION_THROTTLE' up to and including the
-    //    the maximum number of times (within the specified time interval)
+    //    maximum number of times (within the specified time interval)
     //    and ensure that the specified 'ACTION' was executed exactly the
     //      maximum number of times and the default reset function was not
     //      called.

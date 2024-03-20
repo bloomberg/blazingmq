@@ -41,6 +41,7 @@ VirtualStorage::VirtualStorage(mqbi::Storage*          storage,
 , d_appKey(appKey)
 , d_guids(allocator)
 , d_totalBytes(0)
+, d_autoConfirm()
 {
     BSLS_ASSERT_SAFE(d_storage_p);
     BSLS_ASSERT_SAFE(allocator);
@@ -110,6 +111,15 @@ mqbi::StorageResult::Enum VirtualStorage::put(const bmqt::MessageGUID& msgGUID,
                                               const bmqp::RdaInfo&     rdaInfo,
                                               unsigned int subScriptionId)
 {
+    if (!d_autoConfirm.isUnset()) {
+        const bool isAutoConfirmed = (d_autoConfirm == msgGUID);
+
+        d_autoConfirm = bmqt::MessageGUID();
+        if (isAutoConfirmed) {
+            return mqbi::StorageResult::e_SUCCESS;  // RETURN
+        }
+    }
+
     if (d_guids
             .insert(bsl::make_pair(
                 msgGUID,
@@ -257,6 +267,12 @@ void VirtualStorage::loadVirtualStorageDetails(
     BSLS_ASSERT_OPT(false && "Should not be invoked.");
 }
 
+unsigned int VirtualStorage::numAutoConfirms() const
+{
+    BSLS_ASSERT_OPT(false && "Should not be invoked.");
+    return 0;
+}
+
 int VirtualStorage::gcExpiredMessages(
     BSLS_ANNOTATION_UNUSED bsls::Types::Uint64* latestGcMsgTimestampEpoch,
     BSLS_ANNOTATION_UNUSED bsls::Types::Int64* configuredTtlValue,
@@ -286,6 +302,25 @@ bool VirtualStorage::removeVirtualStorage(
 {
     BSLS_ASSERT_OPT(false && "Should not be invoked.");
     return false;
+}
+
+void VirtualStorage::selectForAutoConfirming(const bmqt::MessageGUID& msgGUID)
+{
+    BSLS_ASSERT_SAFE(false && "Should not be invoked.");
+}
+
+mqbi::StorageResult::Enum
+VirtualStorage::autoConfirm(const mqbu::StorageKey& appKey,
+                            bsls::Types::Uint64     timestamp)
+{
+    BSLS_ASSERT_SAFE(false && "Should not be invoked.");
+
+    return mqbi::StorageResult::e_INVALID_OPERATION;
+}
+
+void VirtualStorage::autoConfirm(const bmqt::MessageGUID& msgGUID)
+{
+    d_autoConfirm = msgGUID;
 }
 
 // ----------------------------

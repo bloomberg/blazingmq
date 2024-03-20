@@ -90,11 +90,12 @@ namespace FileStoreProtocolPrinter {
 
 // FREE FUNCTIONS
 
-/// Print the specified `header` while using the specified `journalFd`
-/// to the specified `stream`.
+/// Print the specified `header` while using the specified `journalFd` and the
+/// specified `allocator` to the specified `stream`.
 void printHeader(bsl::ostream&                     stream,
                  const mqbs::JournalFileHeader&    header,
-                 const mqbs::MappedFileDescriptor& journalFd);
+                 const mqbs::MappedFileDescriptor& journalFd,
+                 bslma::Allocator*                 allocator = 0);
 
 /// Print the data from the data file currently pointed by the specified
 /// `it`.
