@@ -112,9 +112,9 @@ void TCPEndpoint::fromUriRaw(const bsl::string& uri)
     const size_t separator = uri.find_last_of(':');
 
     const long port = bsl::strtol(uri.c_str() + separator + 1, 0, 10);
-    if (temp_port > 0 && temp_port <= INT_MAX) {
+    if (port >= 0 && port <= 65535) {
         // Maintaining strtol long value and casting if port is in range
-        d_port = static_cast<int>(temp_port);
+        d_port = static_cast<int>(port);
     }
     d_host.assign(uri, k_SCHEME_LEN, separator - k_SCHEME_LEN);
 }
