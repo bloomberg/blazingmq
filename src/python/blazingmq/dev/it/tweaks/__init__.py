@@ -2,7 +2,7 @@ import logging
 import re
 from typing import Any, Callable, List, Optional
 
-from blazingmq.dev.configurator import Configurator
+from blazingmq.dev.configurator.configurator import Configurator
 
 Tweak = Callable[[Configurator], None]
 

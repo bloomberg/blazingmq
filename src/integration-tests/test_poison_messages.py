@@ -10,7 +10,7 @@ from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
     start_cluster,
     tweak,
 )
-from blazingmq.dev.configurator import Configurator
+from blazingmq.dev.configurator.configurator import Configurator
 
 pytestmark = order(5)
 
