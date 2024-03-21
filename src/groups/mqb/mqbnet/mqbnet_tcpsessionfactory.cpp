@@ -585,13 +585,11 @@ void TCPSessionFactory::negotiationComplete(
                              bdlf::PlaceHolders::_3,  // blob
                              info.get()));
 
-    if (!result || !d_isListening) {
-        // TODO: Revisit if still needed, following move to mwcio.
-        //
-        //       If 'stopListening' have been called, 'tearDown' may or may not
-        //       have been called, depending whether the 'callback' has been
-        //       called before or after 'stopListening'.  Invoke 'tearDown'
-        //       explicitly (it supports subsequent calls).
+    if (!result) {
+        // If 'stopListening' have been called, 'tearDown' may or may not have
+        // been called, depending whether the 'callback' has been called before
+        // or after 'stopListening'.  Invoke 'tearDown' explicitly (it supports
+        // subsequent calls).
 
         BALL_LOG_WARN << "#TCP_UNEXPECTED_STATE "
                       << "TCPSessionFactory '" << d_config.name()
