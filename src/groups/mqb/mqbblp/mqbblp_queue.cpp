@@ -180,6 +180,7 @@ void Queue::configureDispatched(int*          result,
 }
 
 void Queue::getHandleDispatched(
+    const mqbi::OpenQueueConfirmationCookie&                  context,
     const bsl::shared_ptr<mqbi::QueueHandleRequesterContext>& clientContext,
     const bmqp_ctrlmsg::QueueHandleParameters&                handleParameters,
     unsigned int                                upstreamSubQueueId,
@@ -194,13 +195,15 @@ void Queue::getHandleDispatched(
         mqbi::QueueHandleRequesterContext::k_INVALID_REQUESTER_ID);
 
     if (d_localQueue_mp) {
-        d_localQueue_mp->getHandle(clientContext,
+        d_localQueue_mp->getHandle(context,
+                                   clientContext,
                                    handleParameters,
                                    upstreamSubQueueId,
                                    callback);
     }
     else if (d_remoteQueue_mp) {
-        d_remoteQueue_mp->getHandle(clientContext,
+        d_remoteQueue_mp->getHandle(context,
+                                    clientContext,
                                     handleParameters,
                                     upstreamSubQueueId,
                                     callback);
@@ -663,6 +666,7 @@ int Queue::configure(bsl::ostream& errorDescription,
 }
 
 void Queue::getHandle(
+    const mqbi::OpenQueueConfirmationCookie&                  context,
     const bsl::shared_ptr<mqbi::QueueHandleRequesterContext>& clientContext,
     const bmqp_ctrlmsg::QueueHandleParameters&                handleParameters,
     unsigned int                                upstreamSubQueueId,
@@ -676,6 +680,7 @@ void Queue::getHandle(
 
     dispatcher()->execute(bdlf::BindUtil::bind(&Queue::getHandleDispatched,
                                                this,
+                                               context,
                                                clientContext,
                                                handleParameters,
                                                upstreamSubQueueId,
