@@ -136,6 +136,7 @@ void ConfigProvider::stop()
 void ConfigProvider::getDomainConfig(const bslstl::StringRef& domainName,
                                      const GetDomainConfigCb& callback)
 {
+    BSLS_ASSERT_SAFE(false);
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // mutex LOCKED
 
     // First, check in the cache

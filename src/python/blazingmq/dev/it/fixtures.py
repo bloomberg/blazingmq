@@ -195,6 +195,7 @@ def cluster_fixture(request, configure) -> Generator:
             log_file_path = re.sub(r"^[^:]+::", "", request.node.nodeid)
             log_file_path = re.sub(r"/", "-", log_file_path)
             log_file_path = (log_dir / (log_file_path + ".log")).resolve()
+            logger.debug("log file = %s", log_file_path)
             log_file_handler = logging.FileHandler(
                 log_file_path, mode="w", encoding="UTF-8"
             )
@@ -222,10 +223,7 @@ def cluster_fixture(request, configure) -> Generator:
                 if failures == request.session.testsfailed and not get_option_ini(
                     request.config, "bmq_keep_logs"
                 ):
-                    try:
-                        log_file_path.unlink()
-                    except:
-                        pass
+                    log_file_path.unlink(missing_ok=True)
 
             on_exit.callback(remove_log_file_handler)
 

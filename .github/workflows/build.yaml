@@ -51,7 +51,7 @@ jobs:
             -DBDE_BUILD_TARGET_CPP17=ON \
             -DCMAKE_PREFIX_PATH=${{ github.workspace }}/deps/srcs/bde-tools/BdeBuildSystem \
             -DCMAKE_INSTALL_LIBDIR=lib64
-          cmake --build build/blazingmq --parallel 8 --target all all.t
+          cmake --build build/blazingmq --parallel 8 --target all # all.t
       - uses: actions/cache@v4
         with:
           path: |
@@ -73,19 +73,21 @@ jobs:
             deps
             /opt/bb/include
           key: cache-${{ github.sha }}
+      # - name: Run C++ Unit Tests
+      #   run: |
+      #     cd ${{ github.workspace }}/build/blazingmq
+      #     ctest -E mwcsys_executil.t --output-on-failure
       - name: Run Python Unit Tests
         env:
           PYTHONPATH: ${{ github.workspace }}/src/python
         run: |
-          pip install -r ${{ github.workspace }}/src/python/requirements.txt
+          sudo apt-get install -qy python3.10 python3-pip
+          sudo pip install -r ${{ github.workspace }}/src/python/requirements.txt
           cd ${{ github.workspace }}
           src/python/bin/schemagen
           src/python/bin/tweakgen
-          pytest src/python
-      - name: Run C++ Unit Tests
-        run: |
-          cd ${{ github.workspace }}/build/blazingmq
-          ctest -E mwcsys_executil.t --output-on-failure
+          cd src/python
+          pytest
 
   integration_tests_ubuntu:
     name: BlazingMQ integration tests
@@ -102,17 +104,38 @@ jobs:
           key: cache-${{ github.sha }}
       - name: Run Integration Tests
         run: |
-          pip install -r ${{ github.workspace }}/src/python/requirements.txt
+          sudo apt-get install -qy python3.10 python3-pip
+          sudo pip install -r ${{ github.workspace }}/src/python/requirements.txt
+          cat 2>&1 /proc/sys/kernel/core_pattern
+          sudo -- bash -c "echo '/var/crash/core.%e.%p.%t' > /proc/sys/kernel/core_pattern"
+          cat 2>&1 /proc/sys/kernel/core_pattern
           ${{ github.workspace }}/src/integration-tests/run-tests \
-            --log-level ERROR                   \
-            --log-file-level=info               \
+            --log-cli-level=info \
             --bmq-tolerate-dirty-shutdown       \
             --bmq-log-dir=failure-logs          \
-            --bmq-log-level=INFO                \
             --junitxml=integration-tests.xml    \
             --tb line                           \
-            --reruns=3                          \
-            -n 4 -v
+            -k 'test_verify_broadcast[single_node]'
+            # --reruns=3                          \
+            # -n 4 -v
+      - name: Copy Tasks
+        if: ${{ failure() }}
+        run: |
+          if [ -d src/integration-tests/failure-logs ]; then
+            cd src/integration-tests/failure-logs
+            coreCount=$(ls -A core.* | wc -l)
+            if [[ $coreCount -ne 0 ]]; then
+                echo "Found $coreCount core(s); copying bmqbrkr.tsk"
+                find ${{ github.workspace }} -name bmqbrkr.tsk -exec cp {} . \;
+                echo > .gdbinit "set substitute-path ${{ github.workspace }} .."
+            fi
+          fi
+      - name: Archive Integration Test Failure Logs and Cores
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-test-results
+          path: src/integration-tests/failure-logs
 
   build_macosx:
     name: Build macosx_${{ matrix.arch }}
