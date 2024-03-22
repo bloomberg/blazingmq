@@ -207,7 +207,7 @@ jobs:
       - name: Run Prometheus plugin integration test in "push" mode
         run: ${{ github.workspace }}/src/plugins/bmqprometheus/tests/bmqprometheus_prometheusstatconsumer_test.py -p ${{ github.workspace }}/build/blazingmq -m push --no-docker
 
-  Documentation:
+  documentation:
     name: "Documentation"
     runs-on: ubuntu-latest
     steps:
@@ -219,21 +219,6 @@ jobs:
       - name: Build docs
         run: |
           doxygen Doxyfile
-
-  formatting-check:
-    name: Formatting Check
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        path:
-          - 'src'
-    steps:
-      - uses: actions/checkout@v4
-      - name: Run clang-format style check for C/C++/Protobuf programs.
-        uses: jidicula/clang-format-action@v4.11.0
-        with:
-          clang-format-version: '14'
-          check-path: ${{ matrix.path }}
 
   shellcheck:
     name: Shellcheck

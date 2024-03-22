@@ -1650,6 +1650,76 @@ const char* ElectorState::toString(ElectorState::Value value)
     return 0;
 }
 
+// --------------------
+// class EncodingFormat
+// --------------------
+
+// CONSTANTS
+
+const char EncodingFormat::CLASS_NAME[] = "EncodingFormat";
+
+const bdlat_EnumeratorInfo EncodingFormat::ENUMERATOR_INFO_ARRAY[] = {
+    {EncodingFormat::TEXT, "TEXT", sizeof("TEXT") - 1, ""},
+    {EncodingFormat::JSON_COMPACT,
+     "JSON_COMPACT",
+     sizeof("JSON_COMPACT") - 1,
+     ""},
+    {EncodingFormat::JSON_PRETTY,
+     "JSON_PRETTY",
+     sizeof("JSON_PRETTY") - 1,
+     ""}};
+
+// CLASS METHODS
+
+int EncodingFormat::fromInt(EncodingFormat::Value* result, int number)
+{
+    switch (number) {
+    case EncodingFormat::TEXT:
+    case EncodingFormat::JSON_COMPACT:
+    case EncodingFormat::JSON_PRETTY:
+        *result = static_cast<EncodingFormat::Value>(number);
+        return 0;
+    default: return -1;
+    }
+}
+
+int EncodingFormat::fromString(EncodingFormat::Value* result,
+                               const char*            string,
+                               int                    stringLength)
+{
+    for (int i = 0; i < 3; ++i) {
+        const bdlat_EnumeratorInfo& enumeratorInfo =
+            EncodingFormat::ENUMERATOR_INFO_ARRAY[i];
+
+        if (stringLength == enumeratorInfo.d_nameLength &&
+            0 == bsl::memcmp(enumeratorInfo.d_name_p, string, stringLength)) {
+            *result = static_cast<EncodingFormat::Value>(
+                enumeratorInfo.d_value);
+            return 0;
+        }
+    }
+
+    return -1;
+}
+
+const char* EncodingFormat::toString(EncodingFormat::Value value)
+{
+    switch (value) {
+    case TEXT: {
+        return "TEXT";
+    }
+    case JSON_COMPACT: {
+        return "JSON_COMPACT";
+    }
+    case JSON_PRETTY: {
+        return "JSON_PRETTY";
+    }
+    }
+
+    BSLS_ASSERT(!"invalid enumerator");
+    return 0;
+}
+
 // -----------
 // class Error
 // -----------
@@ -22121,15 +22191,15 @@ bsl::ostream& RelayQueueEngine::print(bsl::ostream& stream,
     return stream;
 }
 
-// -------------
-// class Command
-// -------------
+// -------------------
+// class CommandChoice
+// -------------------
 
 // CONSTANTS
 
-const char Command::CLASS_NAME[] = "Command";
+const char CommandChoice::CLASS_NAME[] = "CommandChoice";
 
-const bdlat_SelectionInfo Command::SELECTION_INFO_ARRAY[] = {
+const bdlat_SelectionInfo CommandChoice::SELECTION_INFO_ARRAY[] = {
     {SELECTION_ID_HELP,
      "help",
      sizeof("help") - 1,
@@ -22168,12 +22238,12 @@ const bdlat_SelectionInfo Command::SELECTION_INFO_ARRAY[] = {
 
 // CLASS METHODS
 
-const bdlat_SelectionInfo* Command::lookupSelectionInfo(const char* name,
-                                                        int         nameLength)
+const bdlat_SelectionInfo* CommandChoice::lookupSelectionInfo(const char* name,
+                                                              int nameLength)
 {
     for (int i = 0; i < 7; ++i) {
         const bdlat_SelectionInfo& selectionInfo =
-            Command::SELECTION_INFO_ARRAY[i];
+            CommandChoice::SELECTION_INFO_ARRAY[i];
 
         if (nameLength == selectionInfo.d_nameLength &&
             0 == bsl::memcmp(selectionInfo.d_name_p, name, nameLength)) {
@@ -22184,7 +22254,7 @@ const bdlat_SelectionInfo* Command::lookupSelectionInfo(const char* name,
     return 0;
 }
 
-const bdlat_SelectionInfo* Command::lookupSelectionInfo(int id)
+const bdlat_SelectionInfo* CommandChoice::lookupSelectionInfo(int id)
 {
     switch (id) {
     case SELECTION_ID_HELP: return &SELECTION_INFO_ARRAY[SELECTION_INDEX_HELP];
@@ -22205,7 +22275,8 @@ const bdlat_SelectionInfo* Command::lookupSelectionInfo(int id)
 
 // CREATORS
 
-Command::Command(const Command& original, bslma::Allocator* basicAllocator)
+CommandChoice::CommandChoice(const CommandChoice& original,
+                             bslma::Allocator*    basicAllocator)
 : d_selectionId(original.d_selectionId)
 , d_allocator_p(bslma::Default::allocator(basicAllocator))
 {
@@ -22243,7 +22314,7 @@ Command::Command(const Command& original, bslma::Allocator* basicAllocator)
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-Command::Command(Command&& original) noexcept
+CommandChoice::CommandChoice(CommandChoice&& original) noexcept
 : d_selectionId(original.d_selectionId),
   d_allocator_p(original.d_allocator_p)
 {
@@ -22282,7 +22353,8 @@ Command::Command(Command&& original) noexcept
     }
 }
 
-Command::Command(Command&& original, bslma::Allocator* basicAllocator)
+CommandChoice::CommandChoice(CommandChoice&&   original,
+                             bslma::Allocator* basicAllocator)
 : d_selectionId(original.d_selectionId)
 , d_allocator_p(bslma::Default::allocator(basicAllocator))
 {
@@ -22324,7 +22396,7 @@ Command::Command(Command&& original, bslma::Allocator* basicAllocator)
 
 // MANIPULATORS
 
-Command& Command::operator=(const Command& rhs)
+CommandChoice& CommandChoice::operator=(const CommandChoice& rhs)
 {
     if (this != &rhs) {
         switch (rhs.d_selectionId) {
@@ -22360,7 +22432,7 @@ Command& Command::operator=(const Command& rhs)
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-Command& Command::operator=(Command&& rhs)
+CommandChoice& CommandChoice::operator=(CommandChoice&& rhs)
 {
     if (this != &rhs) {
         switch (rhs.d_selectionId) {
@@ -22395,7 +22467,7 @@ Command& Command::operator=(Command&& rhs)
 }
 #endif
 
-void Command::reset()
+void CommandChoice::reset()
 {
     switch (d_selectionId) {
     case SELECTION_ID_HELP: {
@@ -22425,7 +22497,7 @@ void Command::reset()
     d_selectionId = SELECTION_ID_UNDEFINED;
 }
 
-int Command::makeSelection(int selectionId)
+int CommandChoice::makeSelection(int selectionId)
 {
     switch (selectionId) {
     case SELECTION_ID_HELP: {
@@ -22457,7 +22529,7 @@ int Command::makeSelection(int selectionId)
     return 0;
 }
 
-int Command::makeSelection(const char* name, int nameLength)
+int CommandChoice::makeSelection(const char* name, int nameLength)
 {
     const bdlat_SelectionInfo* selectionInfo = lookupSelectionInfo(name,
                                                                    nameLength);
@@ -22468,7 +22540,7 @@ int Command::makeSelection(const char* name, int nameLength)
     return makeSelection(selectionInfo->d_id);
 }
 
-HelpCommand& Command::makeHelp()
+HelpCommand& CommandChoice::makeHelp()
 {
     if (SELECTION_ID_HELP == d_selectionId) {
         bdlat_ValueTypeFunctions::reset(&d_help.object());
@@ -22482,7 +22554,7 @@ HelpCommand& Command::makeHelp()
     return d_help.object();
 }
 
-HelpCommand& Command::makeHelp(const HelpCommand& value)
+HelpCommand& CommandChoice::makeHelp(const HelpCommand& value)
 {
     if (SELECTION_ID_HELP == d_selectionId) {
         d_help.object() = value;
@@ -22498,7 +22570,7 @@ HelpCommand& Command::makeHelp(const HelpCommand& value)
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-HelpCommand& Command::makeHelp(HelpCommand&& value)
+HelpCommand& CommandChoice::makeHelp(HelpCommand&& value)
 {
     if (SELECTION_ID_HELP == d_selectionId) {
         d_help.object() = bsl::move(value);
@@ -22513,7 +22585,7 @@ HelpCommand& Command::makeHelp(HelpCommand&& value)
 }
 #endif
 
-DomainsCommand& Command::makeDomains()
+DomainsCommand& CommandChoice::makeDomains()
 {
     if (SELECTION_ID_DOMAINS == d_selectionId) {
         bdlat_ValueTypeFunctions::reset(&d_domains.object());
@@ -22527,7 +22599,7 @@ DomainsCommand& Command::makeDomains()
     return d_domains.object();
 }
 
-DomainsCommand& Command::makeDomains(const DomainsCommand& value)
+DomainsCommand& CommandChoice::makeDomains(const DomainsCommand& value)
 {
     if (SELECTION_ID_DOMAINS == d_selectionId) {
         d_domains.object() = value;
@@ -22543,7 +22615,7 @@ DomainsCommand& Command::makeDomains(const DomainsCommand& value)
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-DomainsCommand& Command::makeDomains(DomainsCommand&& value)
+DomainsCommand& CommandChoice::makeDomains(DomainsCommand&& value)
 {
     if (SELECTION_ID_DOMAINS == d_selectionId) {
         d_domains.object() = bsl::move(value);
@@ -22559,7 +22631,7 @@ DomainsCommand& Command::makeDomains(DomainsCommand&& value)
 }
 #endif
 
-ConfigProviderCommand& Command::makeConfigProvider()
+ConfigProviderCommand& CommandChoice::makeConfigProvider()
 {
     if (SELECTION_ID_CONFIG_PROVIDER == d_selectionId) {
         bdlat_ValueTypeFunctions::reset(&d_configProvider.object());
@@ -22574,7 +22646,7 @@ ConfigProviderCommand& Command::makeConfigProvider()
 }
 
 ConfigProviderCommand&
-Command::makeConfigProvider(const ConfigProviderCommand& value)
+CommandChoice::makeConfigProvider(const ConfigProviderCommand& value)
 {
     if (SELECTION_ID_CONFIG_PROVIDER == d_selectionId) {
         d_configProvider.object() = value;
@@ -22592,7 +22664,7 @@ Command::makeConfigProvider(const ConfigProviderCommand& value)
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
 ConfigProviderCommand&
-Command::makeConfigProvider(ConfigProviderCommand&& value)
+CommandChoice::makeConfigProvider(ConfigProviderCommand&& value)
 {
     if (SELECTION_ID_CONFIG_PROVIDER == d_selectionId) {
         d_configProvider.object() = bsl::move(value);
@@ -22608,7 +22680,7 @@ Command::makeConfigProvider(ConfigProviderCommand&& value)
 }
 #endif
 
-StatCommand& Command::makeStat()
+StatCommand& CommandChoice::makeStat()
 {
     if (SELECTION_ID_STAT == d_selectionId) {
         bdlat_ValueTypeFunctions::reset(&d_stat.object());
@@ -22622,7 +22694,7 @@ StatCommand& Command::makeStat()
     return d_stat.object();
 }
 
-StatCommand& Command::makeStat(const StatCommand& value)
+StatCommand& CommandChoice::makeStat(const StatCommand& value)
 {
     if (SELECTION_ID_STAT == d_selectionId) {
         d_stat.object() = value;
@@ -22638,7 +22710,7 @@ StatCommand& Command::makeStat(const StatCommand& value)
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-StatCommand& Command::makeStat(StatCommand&& value)
+StatCommand& CommandChoice::makeStat(StatCommand&& value)
 {
     if (SELECTION_ID_STAT == d_selectionId) {
         d_stat.object() = bsl::move(value);
@@ -22653,7 +22725,7 @@ StatCommand& Command::makeStat(StatCommand&& value)
 }
 #endif
 
-ClustersCommand& Command::makeClusters()
+ClustersCommand& CommandChoice::makeClusters()
 {
     if (SELECTION_ID_CLUSTERS == d_selectionId) {
         bdlat_ValueTypeFunctions::reset(&d_clusters.object());
@@ -22667,7 +22739,7 @@ ClustersCommand& Command::makeClusters()
     return d_clusters.object();
 }
 
-ClustersCommand& Command::makeClusters(const ClustersCommand& value)
+ClustersCommand& CommandChoice::makeClusters(const ClustersCommand& value)
 {
     if (SELECTION_ID_CLUSTERS == d_selectionId) {
         d_clusters.object() = value;
@@ -22683,7 +22755,7 @@ ClustersCommand& Command::makeClusters(const ClustersCommand& value)
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-ClustersCommand& Command::makeClusters(ClustersCommand&& value)
+ClustersCommand& CommandChoice::makeClusters(ClustersCommand&& value)
 {
     if (SELECTION_ID_CLUSTERS == d_selectionId) {
         d_clusters.object() = bsl::move(value);
@@ -22699,7 +22771,7 @@ ClustersCommand& Command::makeClusters(ClustersCommand&& value)
 }
 #endif
 
-DangerCommand& Command::makeDanger()
+DangerCommand& CommandChoice::makeDanger()
 {
     if (SELECTION_ID_DANGER == d_selectionId) {
         bdlat_ValueTypeFunctions::reset(&d_danger.object());
@@ -22713,7 +22785,7 @@ DangerCommand& Command::makeDanger()
     return d_danger.object();
 }
 
-DangerCommand& Command::makeDanger(const DangerCommand& value)
+DangerCommand& CommandChoice::makeDanger(const DangerCommand& value)
 {
     if (SELECTION_ID_DANGER == d_selectionId) {
         d_danger.object() = value;
@@ -22729,7 +22801,7 @@ DangerCommand& Command::makeDanger(const DangerCommand& value)
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-DangerCommand& Command::makeDanger(DangerCommand&& value)
+DangerCommand& CommandChoice::makeDanger(DangerCommand&& value)
 {
     if (SELECTION_ID_DANGER == d_selectionId) {
         d_danger.object() = bsl::move(value);
@@ -22744,7 +22816,7 @@ DangerCommand& Command::makeDanger(DangerCommand&& value)
 }
 #endif
 
-BrokerConfigCommand& Command::makeBrokerConfig()
+BrokerConfigCommand& CommandChoice::makeBrokerConfig()
 {
     if (SELECTION_ID_BROKER_CONFIG == d_selectionId) {
         bdlat_ValueTypeFunctions::reset(&d_brokerConfig.object());
@@ -22759,7 +22831,7 @@ BrokerConfigCommand& Command::makeBrokerConfig()
 }
 
 BrokerConfigCommand&
-Command::makeBrokerConfig(const BrokerConfigCommand& value)
+CommandChoice::makeBrokerConfig(const BrokerConfigCommand& value)
 {
     if (SELECTION_ID_BROKER_CONFIG == d_selectionId) {
         d_brokerConfig.object() = value;
@@ -22775,7 +22847,8 @@ Command::makeBrokerConfig(const BrokerConfigCommand& value)
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-BrokerConfigCommand& Command::makeBrokerConfig(BrokerConfigCommand&& value)
+BrokerConfigCommand&
+CommandChoice::makeBrokerConfig(BrokerConfigCommand&& value)
 {
     if (SELECTION_ID_BROKER_CONFIG == d_selectionId) {
         d_brokerConfig.object() = bsl::move(value);
@@ -22793,7 +22866,7 @@ BrokerConfigCommand& Command::makeBrokerConfig(BrokerConfigCommand&& value)
 // ACCESSORS
 
 bsl::ostream&
-Command::print(bsl::ostream& stream, int level, int spacesPerLevel) const
+CommandChoice::print(bsl::ostream& stream, int level, int spacesPerLevel) const
 {
     bslim::Printer printer(&stream, level, spacesPerLevel);
     printer.start();
@@ -22825,7 +22898,7 @@ Command::print(bsl::ostream& stream, int level, int spacesPerLevel) const
     return stream;
 }
 
-const char* Command::selectionName() const
+const char* CommandChoice::selectionName() const
 {
     switch (d_selectionId) {
     case SELECTION_ID_HELP:
@@ -23002,6 +23075,163 @@ bsl::ostream& FanoutQueueEngine::print(bsl::ostream& stream,
     printer.printAttribute("mode", this->mode());
     printer.printAttribute("consumerStates", this->consumerStates());
     printer.printAttribute("routing", this->routing());
+    printer.end();
+    return stream;
+}
+
+// -------------
+// class Command
+// -------------
+
+// CONSTANTS
+
+const char Command::CLASS_NAME[] = "Command";
+
+const EncodingFormat::Value Command::DEFAULT_INITIALIZER_ENCODING =
+    EncodingFormat::TEXT;
+
+const bdlat_AttributeInfo Command::ATTRIBUTE_INFO_ARRAY[] = {
+    {ATTRIBUTE_ID_CHOICE,
+     "Choice",
+     sizeof("Choice") - 1,
+     "",
+     bdlat_FormattingMode::e_DEFAULT | bdlat_FormattingMode::e_UNTAGGED},
+    {ATTRIBUTE_ID_ENCODING,
+     "encoding",
+     sizeof("encoding") - 1,
+     "",
+     bdlat_FormattingMode::e_DEFAULT}};
+
+// CLASS METHODS
+
+const bdlat_AttributeInfo* Command::lookupAttributeInfo(const char* name,
+                                                        int         nameLength)
+{
+    if (bdlb::String::areEqualCaseless("help", name, nameLength)) {
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CHOICE];
+    }
+
+    if (bdlb::String::areEqualCaseless("domains", name, nameLength)) {
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CHOICE];
+    }
+
+    if (bdlb::String::areEqualCaseless("configProvider", name, nameLength)) {
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CHOICE];
+    }
+
+    if (bdlb::String::areEqualCaseless("stat", name, nameLength)) {
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CHOICE];
+    }
+
+    if (bdlb::String::areEqualCaseless("clusters", name, nameLength)) {
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CHOICE];
+    }
+
+    if (bdlb::String::areEqualCaseless("danger", name, nameLength)) {
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CHOICE];
+    }
+
+    if (bdlb::String::areEqualCaseless("brokerConfig", name, nameLength)) {
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CHOICE];
+    }
+
+    for (int i = 0; i < 2; ++i) {
+        const bdlat_AttributeInfo& attributeInfo =
+            Command::ATTRIBUTE_INFO_ARRAY[i];
+
+        if (nameLength == attributeInfo.d_nameLength &&
+            0 == bsl::memcmp(attributeInfo.d_name_p, name, nameLength)) {
+            return &attributeInfo;
+        }
+    }
+
+    return 0;
+}
+
+const bdlat_AttributeInfo* Command::lookupAttributeInfo(int id)
+{
+    switch (id) {
+    case ATTRIBUTE_ID_CHOICE:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CHOICE];
+    case ATTRIBUTE_ID_ENCODING:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ENCODING];
+    default: return 0;
+    }
+}
+
+// CREATORS
+
+Command::Command(bslma::Allocator* basicAllocator)
+: d_choice(basicAllocator)
+, d_encoding(DEFAULT_INITIALIZER_ENCODING)
+{
+}
+
+Command::Command(const Command& original, bslma::Allocator* basicAllocator)
+: d_choice(original.d_choice, basicAllocator)
+, d_encoding(original.d_encoding)
+{
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+Command::Command(Command&& original) noexcept
+: d_choice(bsl::move(original.d_choice)),
+  d_encoding(bsl::move(original.d_encoding))
+{
+}
+
+Command::Command(Command&& original, bslma::Allocator* basicAllocator)
+: d_choice(bsl::move(original.d_choice), basicAllocator)
+, d_encoding(bsl::move(original.d_encoding))
+{
+}
+#endif
+
+Command::~Command()
+{
+}
+
+// MANIPULATORS
+
+Command& Command::operator=(const Command& rhs)
+{
+    if (this != &rhs) {
+        d_choice   = rhs.d_choice;
+        d_encoding = rhs.d_encoding;
+    }
+
+    return *this;
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+Command& Command::operator=(Command&& rhs)
+{
+    if (this != &rhs) {
+        d_choice   = bsl::move(rhs.d_choice);
+        d_encoding = bsl::move(rhs.d_encoding);
+    }
+
+    return *this;
+}
+#endif
+
+void Command::reset()
+{
+    bdlat_ValueTypeFunctions::reset(&d_choice);
+    d_encoding = DEFAULT_INITIALIZER_ENCODING;
+}
+
+// ACCESSORS
+
+bsl::ostream&
+Command::print(bsl::ostream& stream, int level, int spacesPerLevel) const
+{
+    bslim::Printer printer(&stream, level, spacesPerLevel);
+    printer.start();
+    printer.printAttribute("choice", this->choice());
+    printer.printAttribute("encoding", this->encoding());
     printer.end();
     return stream;
 }
@@ -29063,6 +29293,6 @@ const char* InternalResult::selectionName() const
 }  // close package namespace
 }  // close enterprise namespace
 
-// GENERATED BY BLP_BAS_CODEGEN_2023.12.23
+// GENERATED BY BLP_BAS_CODEGEN_2024.02.10
 // USING bas_codegen.pl -m msg --noAggregateConversion --noExternalization
 // --noIdent --package mqbcmd --msgComponent messages mqbcmd.xsd
