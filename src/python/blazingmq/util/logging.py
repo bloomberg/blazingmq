@@ -108,6 +108,7 @@ class Action(argparse.Action):
     """
 
     def __call__(self, parser, namespace, level_spec, option_string=None):
+        setattr(namespace, self.dest, level_spec)
         levels = normalize_log_levels(level_spec)
         logging.basicConfig(level=levels[0])
         apply_normalized_log_levels(levels)
