@@ -391,8 +391,6 @@ void PrometheusStatConsumer::captureQueueStats()
                     d_snapshotId,
                     mqbstat::QueueStatsDomain::Stat::e_CONFIRM_TIME_MAX);
                 if (value) {
-                    BALL_LOG_WARN << "AppId name: " << appIdIt->name()
-                                  << " CONFIRM_TIME_MAX: " << value;
                     tagger.setAppId(appIdIt->name());
                     updateMetric(&confirmTimeDataPoint,
                                  tagger.getLabels(),
