@@ -192,8 +192,8 @@ void UriParser::initialize(bslma::Allocator* allocator)
     //       conditional check below because the post-increment of an int does
     //       not work correctly with versions of IBM xlc12 released following
     //       the 'Dec 2015 PTF'.
+    BSLS_ASSERT(s_initialized < bsl::numeric_limits<bsls::Types::Int64>::max());
     ++s_initialized;
-    BSLS_ASSERT(s_initialized > 0);
     if (s_initialized > 1) {
         return;  // RETURN
     }
