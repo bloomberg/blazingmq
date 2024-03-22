@@ -199,7 +199,7 @@ class ContextNameMatcher {
 
     // ACCESSORS
     bool
-    operator()(const bslma::ManagedPtr<mwcst::StatContext> context_mp) const
+    operator()(const bslma::ManagedPtr<mwcst::StatContext>& context_mp) const
     {
         return (context_mp->name() == d_name);
     }
@@ -544,24 +544,12 @@ void QueueStatsDomain::reportConfirmTime(bsls::Types::Int64 value,
     }
 
     // Report `confirm time` metric to corresponding AppId subcontext
-    //  TODO: check why it is not working
-    //  bsl::list<StatSubContextMp>::iterator it =
-    //  bsl::find_if(d_subContexts_mp->begin(), d_subContexts_mp->end(),
-    //  ContextNameMatcher(appId)); if (it != d_subContexts_mp->end())
-    //  {
-    //      it->get()->reportValue(DomainQueueStats::e_STAT_CONFIRM_TIME,
-    //      value);
-    //  }
-
-    for (bsl::list<StatSubContextMp>::iterator it = d_subContexts_mp->begin();
-         it != d_subContexts_mp->end();
-         ++it) {
-        mwcst::StatContext* subCtx_p = it->get();
-        if (subCtx_p->name() == appId) {
-            subCtx_p->reportValue(DomainQueueStats::e_STAT_CONFIRM_TIME,
-                                  value);
-            return;  // RETURN
-        }
+    bsl::list<StatSubContextMp>::iterator it = bsl::find_if(
+        d_subContexts_mp->begin(),
+        d_subContexts_mp->end(),
+        ContextNameMatcher(appId));
+    if (it != d_subContexts_mp->end()) {
+        it->get()->reportValue(DomainQueueStats::e_STAT_CONFIRM_TIME, value);
     }
 }
 
