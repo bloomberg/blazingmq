@@ -306,11 +306,15 @@ class FileStore : public DataStore {
 
     volatile bool d_isOpen;
     // Flag to indicate open/close status
-    // of this instance
+    // of this instance.
 
     bool d_isStopping;
     // Flag to indicate if self node is
     // stopping.
+
+    bool d_flushWhenClosing;
+    // Flag to indicate if flush when this
+    // instance is closing.
 
     bool d_lastSyncPtReceived;
     // Flag to indicate if self is

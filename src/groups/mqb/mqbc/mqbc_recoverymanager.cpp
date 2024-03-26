@@ -32,6 +32,7 @@
 #include <mqbc_clusterutil.h>
 #include <mqbc_recoveryutil.h>
 #include <mqbnet_cluster.h>
+#include <mqbs_datafileiterator.h>
 #include <mqbs_fileset.h>
 #include <mqbs_filestoreprotocol.h>
 #include <mqbs_filestoreprotocolutil.h>
@@ -103,19 +104,12 @@ void RecoveryManager::ChunkDeleter::operator()(
 // MANIPULATORS
 void RecoveryManager::ReceiveDataContext::reset()
 {
-    d_liveDataSource_p     = 0;
     d_recoveryDataSource_p = 0;
     d_expectChunks         = false;
     d_recoveryRequestId    = -1;
     d_beginSeqNum.reset();
     d_endSeqNum.reset();
     d_currSeqNum.reset();
-    mqbs::FileSystemUtil::close(&d_mappedJournalFd);
-    d_journalFilePosition = 0;
-    mqbs::FileSystemUtil::close(&d_mappedDataFd);
-    d_dataFilePosition = 0;
-    d_recoveryFileSet.reset();
-    d_bufferedEvents.clear();
 }
 
 // ---------------------
@@ -132,13 +126,13 @@ RecoveryManager::RecoveryManager(
 , d_clusterConfig(clusterConfig)
 , d_dataStoreConfig(dataStoreConfig)
 , d_clusterData_p(clusterData)
-, d_receiveDataContextVec(allocator)
+, d_recoveryContextVec(allocator)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(clusterData);
     BSLS_ASSERT_SAFE(allocator);
 
-    d_receiveDataContextVec.resize(
+    d_recoveryContextVec.resize(
         clusterConfig.partitionConfig().numPartitions());
 }
 
@@ -169,87 +163,117 @@ void RecoveryManager::deprecateFileSet(int partitionId)
                      partitionId <
                          d_clusterConfig.partitionConfig().numPartitions());
 
-    ReceiveDataContext& receiveDataCtx = d_receiveDataContextVec[partitionId];
-    mwcu::MemOutStream  errorDesc;
-    int                 rc = -1;
-    if (receiveDataCtx.d_mappedJournalFd.isValid()) {
-        rc = mqbs::FileSystemUtil::truncate(
-            &receiveDataCtx.d_mappedJournalFd,
-            receiveDataCtx.d_journalFilePosition,
-            errorDesc);
-        if (rc != 0) {
-            MWCTSK_ALARMLOG_ALARM("FILE_IO")
-                << d_clusterData_p->identity().description()
-                << " PartitionId [" << partitionId << "]: "
-                << "Failed to truncate journal file ["
-                << receiveDataCtx.d_recoveryFileSet.journalFile()
-                << "], rc: " << rc << ", error: " << errorDesc.str()
-                << MWCTSK_ALARMLOG_END;
-        }
-
-        rc = mqbs::FileSystemUtil::close(&receiveDataCtx.d_mappedJournalFd);
-        if (rc != 0) {
-            MWCTSK_ALARMLOG_ALARM("FILE_IO")
-                << d_clusterData_p->identity().description()
-                << " PartitionId [" << partitionId << "]: "
-                << "Failed to close journal file ["
-                << receiveDataCtx.d_recoveryFileSet.journalFile()
-                << "], rc: " << rc << MWCTSK_ALARMLOG_END;
-        }
-    }
-    rc = mqbs::FileSystemUtil::move(
-        receiveDataCtx.d_recoveryFileSet.journalFile(),
-        d_dataStoreConfig.archiveLocation());
-    if (0 != rc) {
-        MWCTSK_ALARMLOG_ALARM("FILE_IO")
-            << d_clusterData_p->identity().description() << " PartitionId ["
-            << partitionId << "]: "
-            << "Failed to move file ["
-            << receiveDataCtx.d_recoveryFileSet.journalFile() << "] "
-            << "to location [" << d_dataStoreConfig.archiveLocation()
-            << "] rc: " << rc << MWCTSK_ALARMLOG_END;
-    }
-
-    if (receiveDataCtx.d_mappedDataFd.isValid()) {
-        rc = mqbs::FileSystemUtil::truncate(&receiveDataCtx.d_mappedDataFd,
-                                            receiveDataCtx.d_dataFilePosition,
+    RecoveryContext&   recoveryCtx = d_recoveryContextVec[partitionId];
+    mwcu::MemOutStream errorDesc;
+    int                rc = -1;
+    if (recoveryCtx.d_mappedJournalFd.isValid()) {
+        rc = mqbs::FileSystemUtil::truncate(&recoveryCtx.d_mappedJournalFd,
+                                            recoveryCtx.d_journalFilePosition,
                                             errorDesc);
         if (rc != 0) {
             MWCTSK_ALARMLOG_ALARM("FILE_IO")
-                << d_clusterData_p->identity().description()
-                << " PartitionId [" << partitionId << "]: "
-                << "Failed to truncate data file ["
-                << receiveDataCtx.d_recoveryFileSet.dataFile()
+                << d_clusterData_p->identity().description() << " Partition ["
+                << partitionId << "]: "
+                << "Failed to truncate journal file ["
+                << recoveryCtx.d_recoveryFileSet.journalFile()
                 << "], rc: " << rc << ", error: " << errorDesc.str()
                 << MWCTSK_ALARMLOG_END;
+            errorDesc.reset();
         }
 
-        rc = mqbs::FileSystemUtil::close(&receiveDataCtx.d_mappedDataFd);
+        rc = mqbs::FileSystemUtil::flush(
+            recoveryCtx.d_mappedJournalFd.mapping(),
+            recoveryCtx.d_journalFilePosition,
+            errorDesc);
         if (rc != 0) {
             MWCTSK_ALARMLOG_ALARM("FILE_IO")
-                << d_clusterData_p->identity().description()
-                << " PartitionId [" << partitionId << "]: "
-                << "Failed to close data file ["
-                << receiveDataCtx.d_recoveryFileSet.dataFile()
+                << d_clusterData_p->identity().description() << " Partition ["
+                << partitionId << "]: "
+                << "Failed to flush journal file ["
+                << recoveryCtx.d_recoveryFileSet.journalFile()
+                << "], rc: " << rc << ", error: " << errorDesc.str()
+                << MWCTSK_ALARMLOG_END;
+            errorDesc.reset();
+        }
+
+        rc = mqbs::FileSystemUtil::close(&recoveryCtx.d_mappedJournalFd);
+        if (rc != 0) {
+            MWCTSK_ALARMLOG_ALARM("FILE_IO")
+                << d_clusterData_p->identity().description() << " Partition ["
+                << partitionId << "]: "
+                << "Failed to close journal file ["
+                << recoveryCtx.d_recoveryFileSet.journalFile()
                 << "], rc: " << rc << MWCTSK_ALARMLOG_END;
         }
     }
     rc = mqbs::FileSystemUtil::move(
-        receiveDataCtx.d_recoveryFileSet.dataFile(),
+        recoveryCtx.d_recoveryFileSet.journalFile(),
         d_dataStoreConfig.archiveLocation());
     if (0 != rc) {
         MWCTSK_ALARMLOG_ALARM("FILE_IO")
-            << d_clusterData_p->identity().description() << " PartitionId ["
+            << d_clusterData_p->identity().description() << " Partition ["
             << partitionId << "]: "
             << "Failed to move file ["
-            << receiveDataCtx.d_recoveryFileSet.dataFile() << "] "
+            << recoveryCtx.d_recoveryFileSet.journalFile() << "] "
             << "to location [" << d_dataStoreConfig.archiveLocation()
             << "] rc: " << rc << MWCTSK_ALARMLOG_END;
     }
+    recoveryCtx.d_journalFilePosition = 0;
+
+    if (recoveryCtx.d_mappedDataFd.isValid()) {
+        rc = mqbs::FileSystemUtil::truncate(&recoveryCtx.d_mappedDataFd,
+                                            recoveryCtx.d_dataFilePosition,
+                                            errorDesc);
+        if (rc != 0) {
+            MWCTSK_ALARMLOG_ALARM("FILE_IO")
+                << d_clusterData_p->identity().description() << " Partition ["
+                << partitionId << "]: "
+                << "Failed to truncate data file ["
+                << recoveryCtx.d_recoveryFileSet.dataFile() << "], rc: " << rc
+                << ", error: " << errorDesc.str() << MWCTSK_ALARMLOG_END;
+            errorDesc.reset();
+        }
+
+        rc = mqbs::FileSystemUtil::flush(recoveryCtx.d_mappedDataFd.mapping(),
+                                         recoveryCtx.d_dataFilePosition,
+                                         errorDesc);
+        if (rc != 0) {
+            MWCTSK_ALARMLOG_ALARM("FILE_IO")
+                << d_clusterData_p->identity().description() << " Partition ["
+                << partitionId << "]: "
+                << "Failed to flush data file ["
+                << recoveryCtx.d_recoveryFileSet.dataFile() << "], rc: " << rc
+                << ", error: " << errorDesc.str() << MWCTSK_ALARMLOG_END;
+            errorDesc.reset();
+        }
+
+        rc = mqbs::FileSystemUtil::close(&recoveryCtx.d_mappedDataFd);
+        if (rc != 0) {
+            MWCTSK_ALARMLOG_ALARM("FILE_IO")
+                << d_clusterData_p->identity().description() << " Partition ["
+                << partitionId << "]: "
+                << "Failed to close data file ["
+                << recoveryCtx.d_recoveryFileSet.dataFile() << "], rc: " << rc
+                << MWCTSK_ALARMLOG_END;
+        }
+    }
+    rc = mqbs::FileSystemUtil::move(recoveryCtx.d_recoveryFileSet.dataFile(),
+                                    d_dataStoreConfig.archiveLocation());
+    if (0 != rc) {
+        MWCTSK_ALARMLOG_ALARM("FILE_IO")
+            << d_clusterData_p->identity().description() << " Partition ["
+            << partitionId << "]: "
+            << "Failed to move file ["
+            << recoveryCtx.d_recoveryFileSet.dataFile() << "] "
+            << "to location [" << d_dataStoreConfig.archiveLocation()
+            << "] rc: " << rc << MWCTSK_ALARMLOG_END;
+    }
+    recoveryCtx.d_dataFilePosition = 0;
 }
 
-int RecoveryManager::setExpectedDataChunkRange(
+void RecoveryManager::setExpectedDataChunkRange(
     int                                          partitionId,
+    const mqbs::FileStore&                       fs,
     mqbnet::ClusterNode*                         source,
     const bmqp_ctrlmsg::PartitionSequenceNumber& beginSeqNum,
     const bmqp_ctrlmsg::PartitionSequenceNumber& endSeqNum,
@@ -264,18 +288,11 @@ int RecoveryManager::setExpectedDataChunkRange(
     BSLS_ASSERT_SAFE(source);
     BSLS_ASSERT_SAFE(beginSeqNum < endSeqNum);
 
-    enum RcEnum {
-        // Value for the various RC error categories
-        rc_SUCCESS               = 0,
-        rc_OPEN_FILE_SET_FAILURE = -1,
-        rc_INVALID_FILE_SET      = -2
-    };
-
-    ReceiveDataContext& receiveDataCtx = d_receiveDataContextVec[partitionId];
-
+    RecoveryContext&    recoveryCtx    = d_recoveryContextVec[partitionId];
+    ReceiveDataContext& receiveDataCtx = recoveryCtx.d_receiveDataContext;
     if (receiveDataCtx.d_expectChunks) {
         BALL_LOG_ERROR << d_clusterData_p->identity().description()
-                       << " PartitionId [" << partitionId << "]: "
+                       << " Partition [" << partitionId << "]: "
                        << "Got notification to expect chunks when self is "
                        << "already expecting chunks.  Self's view: "
                        << "recovery requestId = "
@@ -292,11 +309,21 @@ int RecoveryManager::setExpectedDataChunkRange(
     receiveDataCtx.d_beginSeqNum          = beginSeqNum;
     receiveDataCtx.d_endSeqNum            = endSeqNum;
     receiveDataCtx.d_currSeqNum           = beginSeqNum;
+    if (fs.isOpen()) {
+        BSLS_ASSERT_SAFE(receiveDataCtx.d_currSeqNum.primaryLeaseId() ==
+                         fs.primaryLeaseId());
+        BSLS_ASSERT_SAFE(receiveDataCtx.d_currSeqNum.sequenceNumber() ==
+                         fs.sequenceNumber());
+    }
+    else {
+        BSLS_ASSERT_SAFE(recoveryCtx.d_mappedJournalFd.isValid() &&
+                         recoveryCtx.d_mappedDataFd.isValid());
+    }
 
     BALL_LOG_INFO_BLOCK
     {
         BALL_LOG_OUTPUT_STREAM << d_clusterData_p->identity().description()
-                               << " PartitionId [" << partitionId << "]: "
+                               << " Partition [" << partitionId << "]: "
                                << "Got notification to expect data chunks "
                                << "of range " << beginSeqNum << " to "
                                << endSeqNum << " from "
@@ -306,52 +333,6 @@ int RecoveryManager::setExpectedDataChunkRange(
                                    << ".";
         }
     }
-
-    if (receiveDataCtx.d_mappedJournalFd.isValid() &&
-        receiveDataCtx.d_mappedDataFd.isValid()) {
-        return rc_SUCCESS;  // RETURN
-    }
-
-    // Open journal and data files, if not already open.
-    mwcu::MemOutStream errorDesc;
-    int                rc = mqbs::FileStoreUtil::openFileSetWriteMode(
-        errorDesc,
-        receiveDataCtx.d_recoveryFileSet,
-        d_dataStoreConfig.hasPreallocate(),
-        false,  // deleteOnFailure
-        receiveDataCtx.d_mappedJournalFd.isValid()
-                           ? 0
-                           : &receiveDataCtx.d_mappedJournalFd,
-        receiveDataCtx.d_mappedDataFd.isValid()
-                           ? 0
-                           : &receiveDataCtx.d_mappedDataFd,
-        0,  // qlistFd
-        d_dataStoreConfig.hasPrefaultPages());
-    if (rc != 0) {
-        BALL_LOG_ERROR << d_clusterData_p->identity().description()
-                       << " PartitionId [" << partitionId
-                       << "]: file set: " << receiveDataCtx.d_recoveryFileSet
-                       << " failed to open. Reason: " << errorDesc.str()
-                       << ", rc: " << rc;
-        return rc_OPEN_FILE_SET_FAILURE;  // RETURN
-    }
-
-    rc = mqbs::FileStoreUtil::validateFileSet(receiveDataCtx.d_mappedJournalFd,
-                                              receiveDataCtx.d_mappedDataFd,
-                                              mqbs::MappedFileDescriptor());
-
-    if (rc != 0) {
-        BALL_LOG_ERROR << d_clusterData_p->identity().description()
-                       << "PartitionId [" << partitionId
-                       << "]: file set: " << receiveDataCtx.d_recoveryFileSet
-                       << " validation failed, rc: " << rc;
-        mqbs::FileSystemUtil::close(&receiveDataCtx.d_mappedJournalFd);
-        mqbs::FileSystemUtil::close(&receiveDataCtx.d_mappedDataFd);
-
-        return rc_INVALID_FILE_SET;  // RETURN
-    }
-
-    return rc_SUCCESS;
 }
 
 void RecoveryManager::resetReceiveDataCtx(int partitionId)
@@ -363,7 +344,7 @@ void RecoveryManager::resetReceiveDataCtx(int partitionId)
                      partitionId <
                          d_clusterConfig.partitionConfig().numPartitions());
 
-    d_receiveDataContextVec[partitionId].reset();
+    d_recoveryContextVec[partitionId].d_receiveDataContext.reset();
 }
 
 int RecoveryManager::processSendDataChunks(
@@ -545,7 +526,7 @@ int RecoveryManager::processSendDataChunks(
 
     if (currentSeqNum != endSeqNum) {
         BALL_LOG_WARN << d_clusterData_p->identity().description()
-                      << " PartitionId [" << partitionId
+                      << " Partition [" << partitionId
                       << "]: incomplete replay of partition. Sequence number "
                       << "of last record sent: " << currentSeqNum
                       << ", was supposed to send up to: " << endSeqNum
@@ -565,8 +546,9 @@ int RecoveryManager::processSendDataChunks(
     }
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
-                  << " Partition [" << partitionId << "]: sent data chunks "
-                  << "from " << beginSeqNum << " to " << endSeqNum
+                  << " Partition [" << partitionId << "]: "
+                  << "Sent data chunks from " << beginSeqNum << " to "
+                  << endSeqNum
                   << " to node: " << destination->nodeDescription() << ".";
 
     return rc_SUCCESS;
@@ -601,24 +583,25 @@ int RecoveryManager::processReceiveDataChunks(
         rc_INVALID_QUEUE_RECORD   = -10
     };
 
-    ReceiveDataContext& receiveDataCtx = d_receiveDataContextVec[partitionId];
+    RecoveryContext&    recoveryCtx    = d_recoveryContextVec[partitionId];
+    ReceiveDataContext& receiveDataCtx = recoveryCtx.d_receiveDataContext;
     if (!receiveDataCtx.d_expectChunks) {
         MWCTSK_ALARMLOG_ALARM("RECOVERY")
-            << d_clusterData_p->identity().description()
-            << ": For PartitionId [" << partitionId
-            << "], received partition-sync event from node "
+            << d_clusterData_p->identity().description() << " Partition ["
+            << partitionId << "]: "
+            << "Received partition-sync event from node "
             << source->nodeDescription()
-            << ", but self is not expecting data chunks."
+            << ", but self is not expecting data chunks. "
             << "Ignoring this event." << MWCTSK_ALARMLOG_END;
         return rc_UNEXPECTED_DATA;  // RETURN
     }
 
     BSLS_ASSERT_SAFE(receiveDataCtx.d_recoveryDataSource_p);
-    if (receiveDataCtx.d_recoveryDataSource_p != source) {
+    if (receiveDataCtx.d_recoveryDataSource_p->nodeId() != source->nodeId()) {
         MWCTSK_ALARMLOG_ALARM("RECOVERY")
-            << d_clusterData_p->identity().description()
-            << ": For PartitionId [" << partitionId
-            << "], received partition-sync event from node "
+            << d_clusterData_p->identity().description() << " Partition ["
+            << partitionId << "]: "
+            << "Received partition-sync event from node "
             << source->nodeDescription()
             << ", which is not identified as recovery peer node "
             << receiveDataCtx.d_recoveryDataSource_p->nodeDescription()
@@ -642,8 +625,8 @@ int RecoveryManager::processReceiveDataChunks(
         }
         else if (receiveDataCtx.d_currSeqNum > receiveDataCtx.d_endSeqNum) {
             MWCTSK_ALARMLOG_ALARM("REPLICATION")
-                << d_clusterData_p->identity().description()
-                << " PartitionId [" << partitionId << "]: "
+                << d_clusterData_p->identity().description() << " Partition ["
+                << partitionId << "]: "
                 << "The last partition sync msg inside a storage event "
                 << "processed by FileStore has sequenceNumber "
                 << receiveDataCtx.d_currSeqNum
@@ -670,7 +653,7 @@ int RecoveryManager::processReceiveDataChunks(
 
         mwcu::MemOutStream partitionDesc;
         partitionDesc << d_clusterData_p->identity().description()
-                      << " PartitionId [" << partitionId << "]: ";
+                      << " Partition [" << partitionId << "]: ";
 
         int rc = mqbs::StorageUtil::loadRecordHeaderAndPos(
             &recHeader,
@@ -691,8 +674,8 @@ int RecoveryManager::processReceiveDataChunks(
 
         if (recordSeqNum <= receiveDataCtx.d_currSeqNum) {
             MWCTSK_ALARMLOG_ALARM("REPLICATION")
-                << d_clusterData_p->identity().description()
-                << " PartitionId [" << partitionId << "]: "
+                << d_clusterData_p->identity().description() << " Partition ["
+                << partitionId << "]: "
                 << "Received partition sync msg of type "
                 << header.messageType() << " with sequenceNumber "
                 << recordSeqNum
@@ -706,8 +689,8 @@ int RecoveryManager::processReceiveDataChunks(
 
         if (recordSeqNum > receiveDataCtx.d_endSeqNum) {
             MWCTSK_ALARMLOG_ALARM("REPLICATION")
-                << d_clusterData_p->identity().description()
-                << " PartitionId [" << partitionId << "]: "
+                << d_clusterData_p->identity().description() << " Partition ["
+                << partitionId << "]: "
                 << "Received partition sync msg of type "
                 << header.messageType() << " with sequenceNumber "
                 << recordSeqNum
@@ -721,8 +704,8 @@ int RecoveryManager::processReceiveDataChunks(
 
         // Local refs for convenience.
 
-        mqbs::MappedFileDescriptor& journal = receiveDataCtx.d_mappedJournalFd;
-        bsls::Types::Uint64& journalPos = receiveDataCtx.d_journalFilePosition;
+        mqbs::MappedFileDescriptor& journal = recoveryCtx.d_mappedJournalFd;
+        bsls::Types::Uint64& journalPos = recoveryCtx.d_journalFilePosition;
         BSLS_ASSERT_SAFE(journal.isValid());
 
         // Ensure that JOURNAL offset of source and self match.
@@ -735,8 +718,8 @@ int RecoveryManager::processReceiveDataChunks(
             // Source's and self views of the journal have diverged.
 
             MWCTSK_ALARMLOG_ALARM("REPLICATION")
-                << d_clusterData_p->identity().description()
-                << " PartitionId [" << partitionId << "]: "
+                << d_clusterData_p->identity().description() << " Partition ["
+                << partitionId << "]: "
                 << "Received journal record of type [" << header.messageType()
                 << "] with journal offset mismatch. "
                 << "Source's journal offset: " << sourceJournalOffset
@@ -793,11 +776,9 @@ int RecoveryManager::processReceiveDataChunks(
                 return 10 * rc + rc_INCOMPLETE_PAYLOAD;  // RETURN
             }
 
-            mqbs::MappedFileDescriptor& dataFile =
-                receiveDataCtx.d_mappedDataFd;
-            bsls::Types::Uint64& dataFilePos =
-                receiveDataCtx.d_dataFilePosition;
-            bsls::Types::Uint64 dataOffset = dataFilePos;
+            mqbs::MappedFileDescriptor& dataFile = recoveryCtx.d_mappedDataFd;
+            bsls::Types::Uint64& dataFilePos = recoveryCtx.d_dataFilePosition;
+            bsls::Types::Uint64  dataOffset  = dataFilePos;
 
             BSLS_ASSERT_SAFE(dataFile.isValid());
             BSLS_ASSERT_SAFE(0 == dataOffset % bmqp::Protocol::k_DWORD_SIZE);
@@ -876,7 +857,7 @@ int RecoveryManager::processReceiveDataChunks(
                     mqbs::QueueOpType::e_ADDITION != queueRec->type()) {
                     BALL_LOG_ERROR
                         << d_clusterData_p->identity().description()
-                        << " PartitionId [" << partitionId << "]: "
+                        << " Partition [" << partitionId << "]: "
                         << " Unexpected QueueOpType: " << queueRec->type();
                     return rc_INVALID_QUEUE_RECORD;  // RETURN
                 }
@@ -902,7 +883,7 @@ int RecoveryManager::createRecoveryFileSet(bsl::ostream&    errorDescription,
     bsl::shared_ptr<mqbs::FileSet> fileSetSp;
 
     mwcu::MemOutStream partitionDesc;
-    partitionDesc << "PartitionId [" << partitionId
+    partitionDesc << "Partition [" << partitionId
                   << "] (cluster: " << d_clusterData_p->cluster()->name()
                   << "): ";
 
@@ -918,15 +899,31 @@ int RecoveryManager::createRecoveryFileSet(bsl::ostream&    errorDescription,
         return rc;  // RETURN
     }
 
-    ReceiveDataContext& receiveDataCtx = d_receiveDataContextVec[partitionId];
-    mqbs::FileStoreUtil::loadCurrentFiles(&receiveDataCtx.d_recoveryFileSet,
+    RecoveryContext& recoveryCtx = d_recoveryContextVec[partitionId];
+    recoveryCtx.d_recoveryFileSet.setJournalFile(fileSetSp->d_journalFileName)
+        .setJournalFileSize(d_dataStoreConfig.maxJournalFileSize())
+        .setDataFile(fileSetSp->d_dataFileName)
+        .setDataFileSize(d_dataStoreConfig.maxDataFileSize());
+
+    mqbs::FileStoreUtil::loadCurrentFiles(&recoveryCtx.d_recoveryFileSet,
                                           *fileSetSp,
                                           false);  // needQList
 
-    receiveDataCtx.d_mappedJournalFd     = fileSetSp->d_journalFile;
-    receiveDataCtx.d_journalFilePosition = fileSetSp->d_journalFilePosition;
-    receiveDataCtx.d_mappedDataFd        = fileSetSp->d_dataFile;
-    receiveDataCtx.d_dataFilePosition    = fileSetSp->d_dataFilePosition;
+    recoveryCtx.d_mappedJournalFd     = fileSetSp->d_journalFile;
+    recoveryCtx.d_journalFilePosition = fileSetSp->d_journalFilePosition;
+    recoveryCtx.d_mappedDataFd        = fileSetSp->d_dataFile;
+    recoveryCtx.d_dataFilePosition    = fileSetSp->d_dataFilePosition;
+    BSLS_ASSERT_SAFE(recoveryCtx.d_mappedJournalFd.isValid());
+    BSLS_ASSERT_SAFE(recoveryCtx.d_mappedDataFd.isValid());
+
+    BALL_LOG_INFO << d_clusterData_p->identity().description()
+                  << " Partition [" << partitionId << "]: "
+                  << "Created recovery data file store set: "
+                  << recoveryCtx.d_recoveryFileSet
+                  << ", journal file position: "
+                  << recoveryCtx.d_journalFilePosition
+                  << ", data file position: "
+                  << recoveryCtx.d_dataFilePosition;
 
     return 0;
 }
@@ -941,28 +938,255 @@ int RecoveryManager::openRecoveryFileSet(bsl::ostream& errorDescription,
                      partitionId <
                          d_clusterConfig.partitionConfig().numPartitions());
 
-    const int           k_MAX_NUM_FILE_SETS_TO_CHECK = 2;
-    ReceiveDataContext& receiveDataCtx = d_receiveDataContextVec[partitionId];
+    enum RcEnum {
+        // Value for the various RC error categories
+        rc_NO_FILE_SETS_TO_RECOVER = 1  // Special rc, do not change
+        ,
+        rc_SUCCESS               = 0,
+        rc_OPEN_FILE_SET_FAILURE = -1,
+        rc_INVALID_FILE_SET      = -2,
+        rc_FILE_ITERATOR_FAILURE = -3
+    };
 
-    const int rc = mqbs::FileStoreUtil::openRecoveryFileSet(
+    const int        k_MAX_NUM_FILE_SETS_TO_CHECK = 2;
+    RecoveryContext& recoveryCtx = d_recoveryContextVec[partitionId];
+
+    if (recoveryCtx.d_mappedJournalFd.isValid()) {
+        BSLS_ASSERT_SAFE(recoveryCtx.d_mappedDataFd.isValid());
+
+        BALL_LOG_INFO << d_clusterData_p->identity().description()
+                      << " Partition [" << partitionId << "]: "
+                      << "Not opening recovery file set because it's already "
+                      << "opened.  Current recovery file set: "
+                      << recoveryCtx.d_recoveryFileSet
+                      << ", journal file position: "
+                      << recoveryCtx.d_journalFilePosition
+                      << ", data file position: "
+                      << recoveryCtx.d_dataFilePosition << ".";
+        return rc_SUCCESS;  // RETURN
+    }
+    BSLS_ASSERT_SAFE(!recoveryCtx.d_mappedDataFd.isValid());
+
+    int rc = mqbs::FileStoreUtil::openRecoveryFileSet(
         errorDescription,
-        &receiveDataCtx.d_mappedJournalFd,
-        &receiveDataCtx.d_recoveryFileSet,
+        &recoveryCtx.d_mappedJournalFd,
+        &recoveryCtx.d_mappedDataFd,
+        &recoveryCtx.d_recoveryFileSet,
+        &recoveryCtx.d_journalFilePosition,
+        &recoveryCtx.d_dataFilePosition,
         partitionId,
         k_MAX_NUM_FILE_SETS_TO_CHECK,
         d_dataStoreConfig,
         false,  // readOnly
         true);  // isFSMWorkflow
-    if (rc != 0) {
-        return rc;  // RETURN
+    if (rc == 1) {
+        return rc_NO_FILE_SETS_TO_RECOVER;  // RETURN
+    }
+    else if (rc != 0) {
+        return rc * 10 + rc_OPEN_FILE_SET_FAILURE;  // RETURN
     }
 
-    receiveDataCtx.d_journalFilePosition = bdls::FilesystemUtil::getFileSize(
-        receiveDataCtx.d_recoveryFileSet.journalFile());
-    receiveDataCtx.d_dataFilePosition = bdls::FilesystemUtil::getFileSize(
-        receiveDataCtx.d_recoveryFileSet.dataFile());
+    rc = mqbs::FileStoreUtil::validateFileSet(recoveryCtx.d_mappedJournalFd,
+                                              recoveryCtx.d_mappedDataFd,
+                                              mqbs::MappedFileDescriptor());
 
-    return 0;
+    if (rc != 0) {
+        errorDescription << d_clusterData_p->identity().description()
+                         << " Partition [" << partitionId << "]: "
+                         << "File set: " << recoveryCtx.d_recoveryFileSet
+                         << " validation failed, rc: " << rc;
+        mqbs::FileSystemUtil::close(&recoveryCtx.d_mappedJournalFd);
+        mqbs::FileSystemUtil::close(&recoveryCtx.d_mappedDataFd);
+
+        return rc * 10 + rc_INVALID_FILE_SET;  // RETURN
+    }
+
+    // Set journal and data file position to the last record of the journal and
+    // data file respectively.
+    mqbs::JournalFileIterator jit;
+    mqbs::DataFileIterator    dit;
+    rc = mqbs::FileStoreUtil::loadIterators(errorDescription,
+                                            &jit,
+                                            &dit,  // dit
+                                            0,     // qit
+                                            recoveryCtx.d_mappedJournalFd,
+                                            recoveryCtx.d_mappedDataFd,
+                                            mqbs::MappedFileDescriptor(),
+                                            recoveryCtx.d_recoveryFileSet,
+                                            false,  // needQList
+                                            true);  // needData
+    if (rc != 0) {
+        return 10 * rc + rc_FILE_ITERATOR_FAILURE;  // RETURN
+    }
+
+    mqbs::FileStoreUtil::setFileHeaderOffsets(
+        &recoveryCtx.d_journalFilePosition,
+        &recoveryCtx.d_dataFilePosition,
+        jit,
+        dit,
+        false);  // needQList
+
+    bool isLastJournalRecord = true;  // ie, first in iteration
+    while (1 == (rc = jit.nextRecord())) {
+        const mqbs::RecordHeader& recHeader = jit.recordHeader();
+        mqbs::RecordType::Enum    rt        = recHeader.type();
+
+        if (isLastJournalRecord) {
+            isLastJournalRecord               = false;
+            recoveryCtx.d_journalFilePosition = jit.recordOffset() +
+                                                (jit.header().recordWords() *
+                                                 bmqp::Protocol::k_WORD_SIZE);
+        }
+
+        if (mqbs::RecordType::e_MESSAGE == rt) {
+            const mqbs::MessageRecord& rec = jit.asMessageRecord();
+            // Update 'd_dataFilePosition' if its the last message record (ie,
+            // first in the iteration since we are iterating backwards).
+
+            bsls::Types::Uint64 dataHeaderOffset =
+                static_cast<bsls::Types::Uint64>(rec.messageOffsetDwords()) *
+                bmqp::Protocol::k_DWORD_SIZE;
+
+            mqbs::OffsetPtr<const mqbs::DataHeader> dataHeader(
+                dit.mappedFileDescriptor()->block(),
+                dataHeaderOffset);
+            const unsigned int totalLen = dataHeader->messageWords() *
+                                          bmqp::Protocol::k_WORD_SIZE;
+
+            recoveryCtx.d_dataFilePosition = dataHeaderOffset + totalLen;
+
+            break;  // BREAK
+        }
+    }
+
+    BALL_LOG_INFO << d_clusterData_p->identity().description()
+                  << " Partition [" << partitionId << "]: "
+                  << "Opened recovery file set: "
+                  << recoveryCtx.d_recoveryFileSet
+                  << ", journal file position: "
+                  << recoveryCtx.d_journalFilePosition
+                  << ", data file position: " << recoveryCtx.d_dataFilePosition
+                  << ".";
+
+    return rc_SUCCESS;
+}
+
+int RecoveryManager::closeRecoveryFileSet(int partitionId)
+{
+    // executed by the *STORAGE (QUEUE) DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(partitionId >= 0 &&
+                     partitionId <
+                         d_clusterConfig.partitionConfig().numPartitions());
+
+    enum RcEnum {
+        // Value for the various RC error categories
+        rc_SUCCESS                  = 0,
+        rc_JOURNAL_FD_CLOSE_FAILURE = -1,
+        rc_DATA_FD_CLOSE_FAILURE    = -2
+    };
+
+    RecoveryContext& recoveryCtx = d_recoveryContextVec[partitionId];
+
+    int                rc = rc_SUCCESS;
+    mwcu::MemOutStream errorDesc;
+    if (recoveryCtx.d_mappedJournalFd.isValid()) {
+        rc = mqbs::FileSystemUtil::truncate(&recoveryCtx.d_mappedJournalFd,
+                                            recoveryCtx.d_journalFilePosition,
+                                            errorDesc);
+        if (rc != 0) {
+            MWCTSK_ALARMLOG_ALARM("FILE_IO")
+                << d_clusterData_p->identity().description() << " Partition ["
+                << partitionId << "]: "
+                << "Failed to truncate journal file ["
+                << recoveryCtx.d_recoveryFileSet.journalFile()
+                << "], rc: " << rc << ", error: " << errorDesc.str()
+                << MWCTSK_ALARMLOG_END;
+            errorDesc.reset();
+        }
+
+        rc = mqbs::FileSystemUtil::flush(
+            recoveryCtx.d_mappedJournalFd.mapping(),
+            recoveryCtx.d_journalFilePosition,
+            errorDesc);
+        if (rc != 0) {
+            MWCTSK_ALARMLOG_ALARM("FILE_IO")
+                << d_clusterData_p->identity().description() << " Partition ["
+                << partitionId << "]: "
+                << "Failed to flush journal file ["
+                << recoveryCtx.d_recoveryFileSet.journalFile()
+                << "], rc: " << rc << ", error: " << errorDesc.str()
+                << MWCTSK_ALARMLOG_END;
+            errorDesc.reset();
+        }
+
+        rc = mqbs::FileSystemUtil::close(&recoveryCtx.d_mappedJournalFd);
+        if (rc != 0) {
+            MWCTSK_ALARMLOG_ALARM("FILE_IO")
+                << d_clusterData_p->identity().description() << " Partition ["
+                << partitionId << "]: "
+                << "Failed to close journal file ["
+                << recoveryCtx.d_recoveryFileSet.journalFile()
+                << "], rc: " << rc << MWCTSK_ALARMLOG_END;
+            return rc * 10 + rc_JOURNAL_FD_CLOSE_FAILURE;  // RETURN
+        }
+
+        BALL_LOG_INFO << d_clusterData_p->identity().description()
+                      << " Partition [" << partitionId << "]: "
+                      << "Closed journal file in recovery file set; "
+                      << "journal file position was "
+                      << recoveryCtx.d_journalFilePosition;
+    }
+    recoveryCtx.d_journalFilePosition = 0;
+
+    if (recoveryCtx.d_mappedDataFd.isValid()) {
+        rc = mqbs::FileSystemUtil::truncate(&recoveryCtx.d_mappedDataFd,
+                                            recoveryCtx.d_dataFilePosition,
+                                            errorDesc);
+        if (rc != 0) {
+            MWCTSK_ALARMLOG_ALARM("FILE_IO")
+                << d_clusterData_p->identity().description() << " Partition ["
+                << partitionId << "]: "
+                << "Failed to truncate data file ["
+                << recoveryCtx.d_recoveryFileSet.dataFile() << "], rc: " << rc
+                << ", error: " << errorDesc.str() << MWCTSK_ALARMLOG_END;
+            errorDesc.reset();
+        }
+
+        rc = mqbs::FileSystemUtil::flush(recoveryCtx.d_mappedDataFd.mapping(),
+                                         recoveryCtx.d_dataFilePosition,
+                                         errorDesc);
+        if (rc != 0) {
+            MWCTSK_ALARMLOG_ALARM("FILE_IO")
+                << d_clusterData_p->identity().description() << " Partition ["
+                << partitionId << "]: "
+                << "Failed to flush data file ["
+                << recoveryCtx.d_recoveryFileSet.dataFile() << "], rc: " << rc
+                << ", error: " << errorDesc.str() << MWCTSK_ALARMLOG_END;
+            errorDesc.reset();
+        }
+
+        rc = mqbs::FileSystemUtil::close(&recoveryCtx.d_mappedDataFd);
+        if (rc != 0) {
+            MWCTSK_ALARMLOG_ALARM("FILE_IO")
+                << d_clusterData_p->identity().description() << " Partition ["
+                << partitionId << "]: "
+                << "Failed to close data file ["
+                << recoveryCtx.d_recoveryFileSet.dataFile() << "], rc: " << rc
+                << MWCTSK_ALARMLOG_END;
+            return rc * 10 + rc_DATA_FD_CLOSE_FAILURE;  // RETURN
+        }
+
+        BALL_LOG_INFO << d_clusterData_p->identity().description()
+                      << " Partition [" << partitionId << "]: "
+                      << "Closed data file in recovery file set; "
+                      << "data file position was "
+                      << recoveryCtx.d_dataFilePosition;
+    }
+    recoveryCtx.d_dataFilePosition = 0;
+
+    return rc_SUCCESS;
 }
 
 int RecoveryManager::recoverSeqNum(
@@ -984,80 +1208,77 @@ int RecoveryManager::recoverSeqNum(
         rc_FILE_ITERATOR_FAILURE = -4
     };
 
-    mwcu::MemOutStream  errorDesc;
-    ReceiveDataContext& receiveDataCtx = d_receiveDataContextVec[partitionId];
-    int                 rc             = rc_UNKNOWN;
+    mwcu::MemOutStream errorDesc;
+    RecoveryContext&   recoveryCtx = d_recoveryContextVec[partitionId];
+    int                rc          = rc_UNKNOWN;
 
-    if (!receiveDataCtx.d_mappedJournalFd.isValid()) {
-        // Open journal and data files, if not already open.
-        rc = mqbs::FileStoreUtil::openFileSetWriteMode(
-            errorDesc,
-            receiveDataCtx.d_recoveryFileSet,
-            d_dataStoreConfig.hasPreallocate(),
-            false,  // deleteOnFailure
-            &receiveDataCtx.d_mappedJournalFd,
-            0,  // dataFd
-            0,  // qlistFd
-            d_dataStoreConfig.hasPrefaultPages());
-        if (rc != 0) {
-            BALL_LOG_ERROR << d_clusterData_p->identity().description()
-                           << " PartitionId [" << partitionId
-                           << "]: file set: "
-                           << receiveDataCtx.d_recoveryFileSet
-                           << " failed to open. Reason: " << errorDesc.str()
-                           << ", rc: " << rc;
-            return rc_OPEN_FILE_SET_FAILURE;  // RETURN
-        }
-
-        rc = mqbs::FileStoreUtil::validateFileSet(
-            receiveDataCtx.d_mappedJournalFd,
-            mqbs::MappedFileDescriptor(),
-            mqbs::MappedFileDescriptor());
-
-        if (rc != 0) {
-            BALL_LOG_ERROR << d_clusterData_p->identity().description()
-                           << "PartitionId [" << partitionId << "]: file set: "
-                           << receiveDataCtx.d_recoveryFileSet
-                           << " validation failed, rc: " << rc;
-            mqbs::FileSystemUtil::close(&receiveDataCtx.d_mappedJournalFd);
-
-            return rc_INVALID_FILE_SET;  // RETURN
-        }
-    }
+    BSLS_ASSERT_SAFE(recoveryCtx.d_mappedJournalFd.isValid());
 
     mqbs::JournalFileIterator jit;
     rc = mqbs::FileStoreUtil::loadIterators(errorDesc,
                                             &jit,
                                             0,  // dit
                                             0,  // qit
-                                            receiveDataCtx.d_mappedJournalFd,
+                                            recoveryCtx.d_mappedJournalFd,
                                             mqbs::MappedFileDescriptor(),
                                             mqbs::MappedFileDescriptor(),
-                                            receiveDataCtx.d_recoveryFileSet,
+                                            recoveryCtx.d_recoveryFileSet,
                                             false,   // needQList
                                             false);  // needData
-
     if (rc != 0) {
-        BALL_LOG_ERROR << "Error while iterating recovered files for Partition"
-                       << " [" << partitionId << "] and return code " << rc
-                       << " with description " << errorDesc.str();
+        BALL_LOG_ERROR << d_clusterData_p->identity().description()
+                       << " Partition [" << partitionId << "]: "
+                       << "Error while iterating recovered files, rc: " << rc
+                       << ", description: " << errorDesc.str();
         return 10 * rc + rc_FILE_ITERATOR_FAILURE;  // RETURN
     }
 
     if (jit.hasRecordSizeRemaining()) {
         const mqbs::RecordHeader& lastRecordHeader = jit.lastRecordHeader();
 
-        BALL_LOG_INFO << "Recovered Sequence Number ["
+        BALL_LOG_INFO << d_clusterData_p->identity().description()
+                      << " Partition [" << partitionId << "]: "
+                      << "Recovered Sequence Number "
                       << lastRecordHeader.partitionSequenceNumber()
-                      << "] for Partition [" << partitionId << "] from"
-                      << "journal file ["
-                      << receiveDataCtx.d_recoveryFileSet.journalFile()
-                      << "].";
+                      << " from journal file ["
+                      << recoveryCtx.d_recoveryFileSet.journalFile() << "].";
 
         *seqNum = lastRecordHeader.partitionSequenceNumber();
     }
+    else {
+        BALL_LOG_INFO << d_clusterData_p->identity().description()
+                      << " Partition [" << partitionId << "]: "
+                      << "Journal file has no record. Storing (0, 0) as self "
+                      << "sequence number.";
+
+        seqNum->reset();
+    }
 
     return rc_SUCCESS;
+}
+
+void RecoveryManager::setLiveDataSource(mqbnet::ClusterNode* source,
+                                        int                  partitionId)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(source);
+    BSLS_ASSERT_SAFE(0 <= partitionId);
+    BSLS_ASSERT_SAFE(partitionId < d_recoveryContextVec.size());
+
+    RecoveryContext& recoveryCtx = d_recoveryContextVec[partitionId];
+
+    BALL_LOG_INFO << d_clusterData_p->identity().description()
+                  << " Partition [" << partitionId << "]: "
+                  << "Setting live data source from "
+                  << (recoveryCtx.d_liveDataSource_p
+                          ? recoveryCtx.d_liveDataSource_p->nodeDescription()
+                          : "** NULL **")
+                  << " to " << source->nodeDescription() << ", while clearing "
+                  << recoveryCtx.d_bufferedEvents.size()
+                  << " buffered storage events.";
+
+    recoveryCtx.d_liveDataSource_p = source;
+    recoveryCtx.d_bufferedEvents.clear();
 }
 
 void RecoveryManager::bufferStorageEvent(
@@ -1069,28 +1290,26 @@ void RecoveryManager::bufferStorageEvent(
     BSLS_ASSERT_SAFE(0 <= partitionId);
     BSLS_ASSERT_SAFE(source);
 
-    ReceiveDataContext& receiveDataCtx = d_receiveDataContextVec[partitionId];
-    if (!receiveDataCtx.d_liveDataSource_p) {
-        receiveDataCtx.d_liveDataSource_p = source;
-    }
-    else if (receiveDataCtx.d_liveDataSource_p != source) {
+    RecoveryContext& recoveryCtx = d_recoveryContextVec[partitionId];
+    BSLS_ASSERT_SAFE(recoveryCtx.d_liveDataSource_p);
+    if (recoveryCtx.d_liveDataSource_p->nodeId() != source->nodeId()) {
         BALL_LOG_ERROR << d_clusterData_p->identity().description()
-                       << ": For PartitionId [" << partitionId
-                       << ", storage event from node "
+                       << " Partition [" << partitionId << "]: "
+                       << "Storage event from node "
                        << source->nodeDescription() << "cannot be buffered, "
                        << "because it is different from the expected live "
                        << "data source node "
-                       << receiveDataCtx.d_liveDataSource_p->nodeDescription()
+                       << recoveryCtx.d_liveDataSource_p->nodeDescription()
                        << ".";
 
         return;  // RETURN
     }
 
-    receiveDataCtx.d_bufferedEvents.push_back(blob);
+    recoveryCtx.d_bufferedEvents.push_back(blob);
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
-                  << ": For PartitionId [" << partitionId
-                  << "], buffered a storage event from primary node "
+                  << " Partition [" << partitionId << "]: "
+                  << "Buffered a storage event from primary node "
                   << source->nodeDescription()
                   << " as self is still healing the partition.";
 }
@@ -1107,30 +1326,30 @@ int RecoveryManager::loadBufferedStorageEvents(
 
     enum { rc_SUCCESS = 0, rc_UNEXPECTED_SOURCE = -1 };
 
-    ReceiveDataContext& receiveDataCtx = d_receiveDataContextVec[partitionId];
-    if (receiveDataCtx.d_bufferedEvents.empty()) {
+    RecoveryContext& recoveryCtx = d_recoveryContextVec[partitionId];
+    if (recoveryCtx.d_bufferedEvents.empty()) {
         // We did not buffer any storage event.
         return rc_SUCCESS;  // RETURN
     }
-    BSLS_ASSERT_SAFE(receiveDataCtx.d_liveDataSource_p);
+    BSLS_ASSERT_SAFE(recoveryCtx.d_liveDataSource_p);
 
-    if (receiveDataCtx.d_liveDataSource_p != source) {
+    if (recoveryCtx.d_liveDataSource_p->nodeId() != source->nodeId()) {
         BALL_LOG_ERROR << d_clusterData_p->identity().description()
-                       << ": For PartitionId [" << partitionId
-                       << ", storage event from node "
-                       << source->nodeDescription() << "cannot be buffered, "
-                       << "because it is different from the expected live "
+                       << " Partition [" << partitionId << "]: "
+                       << "Cannot load buffered storage events from node "
+                       << source->nodeDescription()
+                       << " because it is different from the expected live "
                        << "data source node "
-                       << receiveDataCtx.d_liveDataSource_p->nodeDescription()
+                       << recoveryCtx.d_liveDataSource_p->nodeDescription()
                        << ".";
 
         return rc_UNEXPECTED_SOURCE;  // RETURN
     }
 
-    *out = receiveDataCtx.d_bufferedEvents;
+    *out = recoveryCtx.d_bufferedEvents;
 
-    receiveDataCtx.d_liveDataSource_p = 0;
-    receiveDataCtx.d_bufferedEvents.clear();
+    recoveryCtx.d_liveDataSource_p = 0;
+    recoveryCtx.d_bufferedEvents.clear();
 
     return rc_SUCCESS;
 }
@@ -1147,7 +1366,7 @@ void RecoveryManager::loadReplicaDataResponsePush(
                          d_clusterConfig.partitionConfig().numPartitions());
 
     const ReceiveDataContext& receiveDataCtx =
-        d_receiveDataContextVec[partitionId];
+        d_recoveryContextVec[partitionId].d_receiveDataContext;
 
     out->rId() = receiveDataCtx.d_recoveryRequestId;
 
