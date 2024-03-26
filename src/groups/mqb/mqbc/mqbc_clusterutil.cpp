@@ -798,8 +798,6 @@ void ClusterUtil::populateQueueAssignmentAdvisory(
     BSLS_ASSERT_SAFE(domain);
     BSLS_ASSERT_SAFE(clusterData->electorInfo().isSelfActiveLeader());
 
-    BALL_LOG_SET_CATEGORY(k_LOG_CATEGORY);
-
     clusterData->electorInfo().nextLeaderMessageSequence(
         &advisory->sequenceNumber());
     advisory->queues().resize(1);
@@ -836,8 +834,6 @@ void ClusterUtil::populateQueueUnassignedAdvisory(
     BSLS_ASSERT_SAFE((0 <= partitionId) && (static_cast<size_t>(partitionId) <
                                             clusterState.partitions().size()));
     BSLS_ASSERT_SAFE(clusterData->electorInfo().isSelfActiveLeader());
-
-    BALL_LOG_SET_CATEGORY(k_LOG_CATEGORY);
 
     clusterData->electorInfo().nextLeaderMessageSequence(
         &advisory->sequenceNumber());

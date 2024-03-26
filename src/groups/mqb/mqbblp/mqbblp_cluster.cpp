@@ -3628,6 +3628,14 @@ Cluster::sendRequest(const Cluster::RequestManagerType::RequestSp& request,
                      mqbnet::ClusterNode*                          target,
                      bsls::TimeInterval                            timeout)
 {
+    // executed by the cluster *DISPATCHER* thread or the *QUEUE DISPATCHER*
+    // thread
+    //
+    // It is safe to invoke this function from non-cluster threads because
+    // `d_clusterData.electorInfo().leaderNodeId()` is only modified upon
+    // elector transition, while `d_clusterData.requestManager().sendRequest`
+    // is guarded by a mutex on its own.
+
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(target != 0 ||
                      d_clusterData.electorInfo().leaderNodeId() !=
