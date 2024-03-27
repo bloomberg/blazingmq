@@ -42,6 +42,7 @@
 #include <mwcst_tablerecords.h>
 
 // BDE
+#include <bsl_list.h>
 #include <bsl_memory.h>
 #include <bsl_string.h>
 #include <bslma_allocator.h>
@@ -68,6 +69,8 @@ namespace mqbstat {
 /// Mechanism to keep track of individual overall statistics of a queue in a
 /// domain.
 class QueueStatsDomain {
+    BALL_LOG_SET_CLASS_CATEGORY("MQBSTAT.QUEUESTATS");
+
   public:
     // TYPES
 
@@ -173,9 +176,15 @@ class QueueStatsDomain {
     };
 
   private:
-    // DATA
+    // PRIVATE TYPE
+    typedef bslma::ManagedPtr<mwcst::StatContext> StatSubContextMp;
+
+    // PRIVATE DATA
     bslma::ManagedPtr<mwcst::StatContext> d_statContext_mp;
     // StatContext
+    bslma::ManagedPtr<bsl::list<StatSubContextMp> > d_subContexts_mp;
+    // List of appId subcontexts. It is initialized if domain name is in the
+    // list of enabled domains in broker's `stats` configuration.
 
   private:
     // NOT IMPLEMENTED
@@ -230,6 +239,13 @@ class QueueStatsDomain {
     /// absolute `messages` and `bytes` values.
     void setQueueContentRaw(bsls::Types::Int64 messages,
                             bsls::Types::Int64 bytes);
+
+    /// Report `confirmation time` metric for corresponding appId.
+    void reportConfirmTime(bsls::Types::Int64 value, const bsl::string& appId);
+
+    /// Update subcontexts in case of domain reconfigure with the given list of
+    /// AppIds.
+    void updateDomainAppIds(const bsl::vector<bsl::string>& appIds);
 
     /// Return a pointer to the statcontext.
     mwcst::StatContext* statContext();

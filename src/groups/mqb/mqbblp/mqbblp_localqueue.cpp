@@ -186,6 +186,13 @@ int LocalQueue::configure(bsl::ostream& errorDescription, bool isReconfigure)
         mqbstat::QueueStatsDomain::EventType::e_CFG_BYTES,
         domainCfg.storage().queueLimits().bytes());
 
+    if (isReconfigure) {
+        if (domainCfg.mode().isFanoutValue()) {
+            d_state_p->stats().updateDomainAppIds(
+                domainCfg.mode().fanout().appIDs());
+        }
+    }
+
     BALL_LOG_INFO << "Created a LocalQueue "
                   << "[uri: '" << d_state_p->uri() << "'"
                   << ", key: '" << d_state_p->key()

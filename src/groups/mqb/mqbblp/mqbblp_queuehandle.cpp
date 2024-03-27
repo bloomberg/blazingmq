@@ -320,9 +320,8 @@ QueueHandle::updateMonitor(const bsl::shared_ptr<Downstream>& subStream,
     }
 
     SubscriptionSp subscription = d_subscriptions[it->second.d_subscriptionId];
-    resourceUsageStateChange    = updateMonitor(it,
-                                             subscription.get(),
-                                             eventType);
+    resourceUsageStateChange =
+        updateMonitor(it, subscription.get(), eventType, subStream->d_appId);
     messages->erase(it);
 
     // As mentioned above, if we hit the maxUnconfirmed and are now back to
@@ -364,7 +363,8 @@ QueueHandle::updateMonitor(const bsl::shared_ptr<Downstream>& subStream,
 mqbu::ResourceUsageMonitorStateTransition::Enum QueueHandle::updateMonitor(
     mqbi::QueueHandle::UnconfirmedMessageInfoMap::iterator it,
     Subscription*                                          subscription,
-    bmqp::EventType::Enum                                  type)
+    bmqp::EventType::Enum                                  type,
+    const bsl::string&                                     appId)
 {
     const unsigned int msgSize = it->second.d_size;
     // NOTE: if we don't convert msgSize to Int64 and instead below just
@@ -405,9 +405,7 @@ mqbu::ResourceUsageMonitorStateTransition::Enum QueueHandle::updateMonitor(
 
         // Report CONFIRM time only at first hop
         if (d_clientContext_sp->isFirstHop()) {
-            d_domainStats_p->onEvent(
-                mqbstat::QueueStatsDomain::EventType::e_CONFIRM_TIME,
-                timeDelta);
+            d_domainStats_p->reportConfirmTime(timeDelta, appId);
         }
     }
 
@@ -454,7 +452,8 @@ void QueueHandle::clearClientDispatched(bool hasLostClient)
                 updateMonitor(
                     it,
                     d_subscriptions[it->second.d_subscriptionId].get(),
-                    bmqp::EventType::e_REJECT);
+                    bmqp::EventType::e_REJECT,
+                    downstream->d_appId);
 
                 // Do not call 'onHandleUsable' because 'd_clientContext_sp' is
                 // reset
