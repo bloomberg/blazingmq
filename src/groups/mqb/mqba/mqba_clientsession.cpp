@@ -854,6 +854,8 @@ void ClientSession::initiateShutdownDispatched(
         return;  // RETURN
     }
 
+    flush();  // Flush any pending messages
+
     // Wait for tearDown.
     d_shutdownCallback = callback;
 
@@ -2813,7 +2815,10 @@ void ClientSession::initiateShutdown(const ShutdownCb&         callback,
                              this,
                              callback,
                              timeout),
-        this);
+        this,
+        mqbi::DispatcherEventType::e_DISPATCHER);
+    // Use 'mqbi::DispatcherEventType::e_DISPATCHER' to avoid (re)enabling
+    // 'd_flushList'
 }
 
 void ClientSession::invalidate()
