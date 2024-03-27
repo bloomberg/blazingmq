@@ -276,9 +276,7 @@ bool waitRealTime(bslmt::TimedSemaphore* sem)
 
 bool isConfigure(const bmqp_ctrlmsg::ControlMessage& request)
 {
-    return bmqscm::Version::versionAsInt() == bmqp::Protocol::k_DEV_VERSION
-               ? request.choice().isConfigureStreamValue()
-               : request.choice().isConfigureQueueStreamValue();
+    return request.choice().isConfigureStreamValue();
 }
 
 void makeResponse(bmqp_ctrlmsg::ControlMessage*       response,

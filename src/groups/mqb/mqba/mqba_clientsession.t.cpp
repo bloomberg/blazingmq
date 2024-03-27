@@ -2584,9 +2584,11 @@ int main(int argc, char* argv[])
         mwcsys::Time::initialize(s_allocator_p);
 
         mqbcfg::AppConfig brokerConfig(s_allocator_p);
-        brokerConfig.brokerVersion() = 999999;  // required for test case 8
-                                                // to convert msg properties
-                                                // from v1 to v2
+
+        // Assuming brokerConfig.messagePropertiesV2().MessagePropertiesV2()
+        // .advertiseV2Support() == true by default.
+        //
+        // Required for test case 8 to convert msg properties from v1 to v2
         mqbcfg::BrokerConfig::set(brokerConfig);
 
         bsl::shared_ptr<mwcst::StatContext> statContext =
