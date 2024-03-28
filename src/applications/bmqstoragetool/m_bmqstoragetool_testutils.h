@@ -51,6 +51,15 @@
 
 // GMOCK
 #include <gmock/gmock.h>
+// Undefine macroses from gtest.h which are defined in mwctst_testhelper.h
+#undef ASSERT_EQ
+#undef ASSERT_NE
+#undef ASSERT_LT
+#undef ASSERT_LE
+#undef ASSERT_GT
+#undef ASSERT_GE
+#undef TEST_F
+#undef TEST
 
 // TEST DRIVER
 #include <mwctst_testhelper.h>

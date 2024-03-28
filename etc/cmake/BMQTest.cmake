@@ -194,6 +194,13 @@ function(bmq_add_application_test target)
       add_custom_target(${target}.t)
     endif()
     add_dependencies(${target}.t ${lib_target}.t)
+
+    if(_COMPAT)
+      if (NOT TARGET ${target}.td)
+        add_custom_target(${target}.td)
+      endif()
+      add_dependencies(${target}.td ${lib_target}.t)
+    endif()
   endif()
 
   if (${lib_target}_TEST_TARGETS)
@@ -203,16 +210,6 @@ function(bmq_add_application_test target)
   set(td_manifest)
 
   if(${lib_target}_TEST_TARGETS)
-
-    if(NOT TARGET ${lib_target}.t)
-      add_custom_target(${lib_target}.t)      
-      if(_COMPAT)
-        add_custom_target(${lib_target}.td)
-      endif()
-    endif()
-
-    add_dependencies(${lib_target}.t ${${lib_target}_TEST_TARGETS})
-
     if(_COMPAT)
       foreach(test_target ${${lib_target}_TEST_TARGETS})
         string(REPLACE ".t" "" component ${test_target})
