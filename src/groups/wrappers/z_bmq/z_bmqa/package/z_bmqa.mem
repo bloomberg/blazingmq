@@ -1,0 +1,13 @@
+z_bmqa_configurequeuestatus
+z_bmqa_confirmeventbuilder
+z_bmqa_closequeuestatus
+z_bmqa_event
+z_bmqa_message
+z_bmqa_messageevent
+z_bmqa_messageeventbuilder
+z_bmqa_messageiterator
+z_bmqa_messageproperties
+z_bmqa_queueid
+z_bmqa_session
+z_bmqa_sessionevent
+z_bmqa_openqueuestatus
