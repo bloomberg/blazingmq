@@ -90,11 +90,11 @@ bool TCPEndpoint::fromUri(const bsl::string& uri)
     }
 
     // Extract the port part: i.e. after the last ':'
-    d_port = bsl::strtol(uri.c_str() + colon + 1, 0, 10);
-
-    if (d_port == 0) {
+    const long port = bsl::strtol(uri.c_str() + colon + 1, 0, 10);
+    if (port < 0 || port > 65535) {
         return false;  // RETURN
     }
+    d_port = static_cast<int>(port);
 
     // Extract the host part: i.e. between '/' and ':'
     d_host.assign(uri, k_SCHEME_LEN, colon - k_SCHEME_LEN);
@@ -111,7 +111,11 @@ void TCPEndpoint::fromUriRaw(const bsl::string& uri)
 
     const size_t separator = uri.find_last_of(':');
 
-    d_port = bsl::strtol(uri.c_str() + separator + 1, 0, 10);
+    const long port = bsl::strtol(uri.c_str() + separator + 1, 0, 10);
+    if (port >= 0 && port <= 65535) {
+        // Maintaining strtol long value and casting if port is in range
+        d_port = static_cast<int>(port);
+    }
     d_host.assign(uri, k_SCHEME_LEN, separator - k_SCHEME_LEN);
 }
 
