@@ -10,3 +10,4 @@ CMakeUserPresets.json
 /include/
 /lib/
 **/__pycache__/
+/thirdparty
