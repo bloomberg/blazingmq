@@ -1,0 +1,23 @@
+name: Formatting check
+
+on:
+  pull_request:
+    types:
+      - "opened"
+      - "reopened"
+      - "synchronize"
+      - "labeled"
+      - "unlabeled"
+
+jobs:
+  formatting_check:
+    name: Formatting Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: clang-format style check
+        run: |
+          git clang-format-14 --diff -q origin/main | tee format_diff.txt
+          if [ -s format_diff.txt ]; then exit 1; fi

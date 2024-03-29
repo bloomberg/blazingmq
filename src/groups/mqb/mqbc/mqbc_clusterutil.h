@@ -163,14 +163,14 @@ struct ClusterUtil {
     static int getNextPartitionId(const ClusterState& clusterState,
                                   const bmqt::Uri&    uri);
 
-    /// Callback invoked when the specified `partitionId` gets assigned to
-    /// the specified `primary` with the specified `leaseId`, replacing the
-    /// specified `oldPrimary` with the specified `oldLeaseId`, using the
-    /// specified `clusterData` and notifying the specified
-    /// `storageManager`.  Note that null is a valid value for the
-    /// `primary`, and it implies that there is no primary for that
-    /// partition.  Also note that this method will be invoked when the
-    /// `primary` or it status or both change.
+    /// Callback invoked when the specified 'partitionId' gets assigned to
+    /// the specified 'primary' with the specified 'leaseId' and the
+    /// specified 'status', replacing the specified 'oldPrimary' with the
+    /// specified 'oldLeaseId', using the specified 'clusterData' and
+    /// notifying the specified 'storageManager'.  Note that null is a valid
+    /// value for the 'primary', and it implies that there is no primary for
+    /// that partition.  Also note that this method will be invoked when the
+    /// 'primary' or it status or both change.
     ///
     /// THREAD: This method is invoked in the associated cluster's
     ///         dispatcher thread.
@@ -180,8 +180,9 @@ struct ClusterUtil {
                                  int                   partitionId,
                                  mqbnet::ClusterNode*  primary,
                                  unsigned int          leaseId,
-                                 mqbnet::ClusterNode*  oldPrimary,
-                                 unsigned int          oldLeaseId);
+                                 bmqp_ctrlmsg::PrimaryStatus::Value status,
+                                 mqbnet::ClusterNode*               oldPrimary,
+                                 unsigned int oldLeaseId);
 
     /// Process the queue assignment in the specified `request`, received
     /// from the specified `requester`, using the specified `clusterState`,
@@ -398,7 +399,9 @@ struct ClusterUtil {
 
     /// Load into the specified `out` the latest LSN stored in the specified
     /// `ledger`, using the specified `clusterData`.  Return 0 on success,
-    /// and a non-zero error code on failure.
+    /// and a non-zero error code on failure.  Note that this involves
+    /// iteration over the entire ledger which can be an expensive operation.
+    /// static
     static int latestLedgerLSN(bmqp_ctrlmsg::LeaderMessageSequence* out,
                                const ClusterStateLedger&            ledger,
                                const ClusterData& clusterData);

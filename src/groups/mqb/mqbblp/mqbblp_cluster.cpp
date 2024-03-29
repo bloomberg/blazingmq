@@ -154,7 +154,6 @@ void Cluster::startDispatched(bsl::ostream* errorDescription, int* rc)
                       &d_clusterData,
                       d_state,
                       d_clusterData.domainFactory(),
-                      &d_clusterOrchestrator.queueHelper(),
                       dispatcher(),
                       k_PARTITION_FSM_WATCHDOG_TIMEOUT_DURATION,
                       bdlf::BindUtil::bind(&Cluster::onRecoveryStatus,
@@ -162,6 +161,12 @@ void Cluster::startDispatched(bsl::ostream* errorDescription, int* rc)
                                            bdlf::PlaceHolders::_1,  // status
                                            bsl::vector<unsigned int>(),
                                            statRecorder),
+                      bdlf::BindUtil::bind(
+                          &ClusterOrchestrator::onPartitionPrimaryStatus,
+                          &d_clusterOrchestrator,
+                          bdlf::PlaceHolders::_1,   // partitionId
+                          bdlf::PlaceHolders::_2,   // status
+                          bdlf::PlaceHolders::_3),  // primary leaseId
                       storageManagerAllocator))
             : static_cast<mqbi::StorageManager*>(
                   new (*storageManagerAllocator) mqbblp::StorageManager(
@@ -2503,6 +2508,7 @@ Cluster::Cluster(const bslstl::StringRef&           name,
                 bufferFactory,
                 blobSpPool,
                 clusterConfig,
+                mqbcfg::ClusterProxyDefinition(allocator),
                 netCluster,
                 this,
                 domainFactory,
@@ -3148,6 +3154,23 @@ void Cluster::processClusterControlMessage(
                                  source),
             this);
     } break;  // BREAK
+    case MsgChoice::SELECTION_ID_CLUSTER_STATE_F_S_M_MESSAGE: {
+        dispatcher()->execute(
+            bdlf::BindUtil::bind(
+                &ClusterOrchestrator::processClusterStateFSMMessage,
+                &d_clusterOrchestrator,
+                message,
+                source),
+            this);
+    } break;  // BREAK
+    case MsgChoice::SELECTION_ID_PARTITION_MESSAGE: {
+        dispatcher()->execute(
+            bdlf::BindUtil::bind(&ClusterOrchestrator::processPartitionMessage,
+                                 &d_clusterOrchestrator,
+                                 message,
+                                 source),
+            this);
+    } break;  // BREAK
     case MsgChoice::SELECTION_ID_UNDEFINED:
     default: {
         MWCTSK_ALARMLOG_ALARM("CLUSTER")
@@ -3605,7 +3628,13 @@ Cluster::sendRequest(const Cluster::RequestManagerType::RequestSp& request,
                      mqbnet::ClusterNode*                          target,
                      bsls::TimeInterval                            timeout)
 {
-    // executed by the cluster *DISPATCHER* thread
+    // executed by the cluster *DISPATCHER* thread or the *QUEUE DISPATCHER*
+    // thread
+    //
+    // It is safe to invoke this function from non-cluster threads because
+    // `d_clusterData.electorInfo().leaderNodeId()` is only modified upon
+    // elector transition, while `d_clusterData.requestManager().sendRequest`
+    // is guarded by a mutex on its own.
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(target != 0 ||

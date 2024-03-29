@@ -459,6 +459,23 @@ class ClusterOrchestrator {
     void processStopRequest(const bmqp_ctrlmsg::ControlMessage& request,
                             mqbnet::ClusterNode*                source);
 
+    // Process the specified cluster state FSM 'message' from the specified
+    // 'source'.
+    //
+    // THREAD: This method is invoked in the associated cluster's
+    //         dispatcher thread.
+    void
+    processClusterStateFSMMessage(const bmqp_ctrlmsg::ControlMessage& message,
+                                  mqbnet::ClusterNode*                source);
+
+    // Process the specified partition FSM 'message' from the specified
+    // 'source'.
+    //
+    // THREAD: This method is invoked in the associated cluster's
+    //         dispatcher thread.
+    void processPartitionMessage(const bmqp_ctrlmsg::ControlMessage& message,
+                                 mqbnet::ClusterNode*                source);
+
     /// Invoked by `mqbblp::Cluster` when recovery has succeeded.
     ///
     /// TBD: this is mostly temporary.

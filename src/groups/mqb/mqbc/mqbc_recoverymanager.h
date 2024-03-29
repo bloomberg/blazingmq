@@ -101,7 +101,7 @@ class RecoveryManager {
     /// This class contains important information to keep track of when
     /// receiving data chunks from an up-to-date node during recovery, such
     /// as the recovery data source, range of sequence numbers to recover,
-    /// current sequence number offset, and mapped journal/data fds.
+    /// and current sequence number offset.
     class ReceiveDataContext {
       public:
         // TYPES
@@ -109,10 +109,6 @@ class RecoveryManager {
 
       public:
         // DATA
-        mqbnet::ClusterNode* d_liveDataSource_p;
-        // Peer node from which we are
-        // receiving live data.
-
         mqbnet::ClusterNode* d_recoveryDataSource_p;
         // Peer node from which we are
         // receiving recovery data.
@@ -149,6 +145,39 @@ class RecoveryManager {
         // Self's current sequence
         // number.
 
+      public:
+        // CREATORS
+        ReceiveDataContext();
+        // Create a default 'ReceiveDataContext' object.
+
+        ReceiveDataContext(const ReceiveDataContext& other);
+        // Create a 'ReceiveDataContext' object copying the specified
+        // 'other'.
+
+        // MANIPULATORS
+        void reset();
+        // Reset the members of this object.
+    };
+
+    // =====================
+    // class RecoveryContext
+    // =====================
+
+    class RecoveryContext {
+        // Private class.  Implementation detail of 'mqbc::RecoveryManager'.
+        // This class contains important information to keep track during
+        // recovery, such as recovery file set, mapped journal/data fds,
+        // buffered storage events, and receive data context.
+
+      public:
+        // TYPES
+        typedef bsl::vector<bsl::shared_ptr<bdlbb::Blob> > StorageEvents;
+
+      public:
+        // DATA
+        mqbs::FileStoreSet d_recoveryFileSet;
+        // Recovery file set.
+
         mqbs::MappedFileDescriptor d_mappedJournalFd;
         // Journal file descriptor to
         // use for recovery.
@@ -165,8 +194,9 @@ class RecoveryManager {
         // Write offset of the data
         // file.
 
-        mqbs::FileStoreSet d_recoveryFileSet;
-        // Recovery file set.
+        mqbnet::ClusterNode* d_liveDataSource_p;
+        // Peer node from which we are
+        // receiving live data.
 
         StorageEvents d_bufferedEvents;
         // List of storage events which
@@ -177,22 +207,24 @@ class RecoveryManager {
         // the node up-to-date with
         // this partition.
 
+        ReceiveDataContext d_receiveDataContext;
+        // Receive data context.
+
       public:
         // TRAITS
-        BSLMF_NESTED_TRAIT_DECLARATION(ReceiveDataContext,
+        BSLMF_NESTED_TRAIT_DECLARATION(RecoveryContext,
                                        bslma::UsesBslmaAllocator)
 
         // CREATORS
 
-        /// Create a default `ReceiveDataContext` object, using the
-        /// specified `basicAllocator` for memory allocations.
-        ReceiveDataContext(bslma::Allocator* basicAllocator = 0);
+        /// Create a default `RecoveryContext` object, using the specified
+        /// `basicAllocator` for memory allocations.
+        RecoveryContext(bslma::Allocator* basicAllocator = 0);
 
-        /// Create a `ReceiveDataContext` object copying the specified
-        /// `other`, using the specified `basicAllocator` for memory
-        /// allocations.
-        ReceiveDataContext(const ReceiveDataContext& other,
-                           bslma::Allocator*         basicAllocator = 0);
+        /// Create a `RecoveryContext` object copying the specified 'other',
+        /// using the specified `basicAllocator` for memory allocations.
+        RecoveryContext(const RecoveryContext& other,
+                        bslma::Allocator*      basicAllocator = 0);
 
         // MANIPULATORS
 
@@ -215,9 +247,9 @@ class RecoveryManager {
         void(int partitionId, mqbnet::ClusterNode* destination, int status)>
         PartitionDoneSendDataChunksCb;
 
-    typedef bsl::vector<ReceiveDataContext> ReceiveDataContextVec;
+    typedef bsl::vector<RecoveryContext> RecoveryContextVec;
     // Vector per partition of
-    // ReceiveDataContext.
+    // RecoveryContext.
 
     // This callback is only used when the self node is a replica.
     bsl::function<
@@ -239,10 +271,9 @@ class RecoveryManager {
     // Associated non-persistent cluster
     // data for this node
 
-    ReceiveDataContextVec d_receiveDataContextVec;
+    RecoveryContextVec d_recoveryContextVec;
     // Vector per partition which maintains
-    // information about
-    // ReceiveDataContext.
+    // information about RecoveryContext.
 
   private:
     // NOT IMPLEMENTED
@@ -285,15 +316,17 @@ class RecoveryManager {
     void deprecateFileSet(int partitionId);
 
     /// Set the expected receive data chunk range for the specified
-    /// `partitionId` to be from the specified `source` from the specified
-    /// `beginSeqNum` to the specified `endSeqNum`, based on information
-    /// from the optionally specified `requestId`.  Return 0 on success and
-    /// non-zero error code on error.
+    /// 'partitionId' to be from the specified 'source' from the specified
+    /// 'beginSeqNum' to the specified 'endSeqNum', based on information
+    /// from the optionally specified 'requestId'.  If the specified 'fs' is
+    /// not open, ensure that the journal and data files in the recovery
+    /// file set is open.
     ///
     /// THREAD: Executed in the dispatcher thread associated with the
-    /// specified `partitionId`.
-    int setExpectedDataChunkRange(
+    /// specified 'partitionId'.
+    void setExpectedDataChunkRange(
         int                                          partitionId,
+        const mqbs::FileStore&                       fs,
         mqbnet::ClusterNode*                         source,
         const bmqp_ctrlmsg::PartitionSequenceNumber& beginSeqNum,
         const bmqp_ctrlmsg::PartitionSequenceNumber& endSeqNum,
@@ -347,11 +380,19 @@ class RecoveryManager {
     /// that no recovery file set is found.
     int openRecoveryFileSet(bsl::ostream& errorDescription, int partitionId);
 
+    /// Close the recovery file set for the specified 'partitionId'.  Return
+    /// 0 on success, non zero value otherwise.
+    int closeRecoveryFileSet(int partitionId);
+
     /// Recover latest sequence number from storage for the specified
     /// `partitionId` and populate the output in the specified `seqNum`.
     /// Return 0 on success and non-zero otherwise.
     int recoverSeqNum(bmqp_ctrlmsg::PartitionSequenceNumber* seqNum,
                       int                                    partitionId);
+
+    /// Set the live data source of the specified 'partitionId' to the
+    /// specified 'source', and clear any existing buffered storage events.
+    void setLiveDataSource(mqbnet::ClusterNode* source, int partitionId);
 
     /// Buffer the storage event for the specified `partitionId` contained
     /// in the specified `blob` sent from the specified `source`.
@@ -407,41 +448,59 @@ inline RecoveryManager::ChunkDeleter::ChunkDeleter(
 // ------------------------
 
 // CREATORS
-inline RecoveryManager::ReceiveDataContext::ReceiveDataContext(
-    bslma::Allocator* basicAllocator)
-: d_liveDataSource_p(0)
-, d_recoveryDataSource_p(0)
+inline RecoveryManager::ReceiveDataContext::ReceiveDataContext()
+: d_recoveryDataSource_p(0)
 , d_expectChunks(false)
 , d_recoveryRequestId(-1)
 , d_beginSeqNum()
 , d_endSeqNum()
 , d_currSeqNum()
-, d_mappedJournalFd()
-, d_journalFilePosition(0)
-, d_mappedDataFd()
-, d_dataFilePosition(0)
-, d_recoveryFileSet(basicAllocator)
-, d_bufferedEvents(basicAllocator)
 {
     // NOTHING
 }
 
 inline RecoveryManager::ReceiveDataContext::ReceiveDataContext(
-    const ReceiveDataContext& other,
-    bslma::Allocator*         basicAllocator)
-: d_liveDataSource_p(other.d_liveDataSource_p)
-, d_recoveryDataSource_p(other.d_recoveryDataSource_p)
+    const ReceiveDataContext& other)
+: d_recoveryDataSource_p(other.d_recoveryDataSource_p)
 , d_expectChunks(other.d_expectChunks)
 , d_recoveryRequestId(other.d_recoveryRequestId)
 , d_beginSeqNum(other.d_beginSeqNum)
 , d_endSeqNum(other.d_endSeqNum)
 , d_currSeqNum(other.d_currSeqNum)
+{
+    // NOTHING
+}
+
+// ---------------------
+// class RecoveryContext
+// ---------------------
+
+// CREATORS
+inline RecoveryManager::RecoveryContext::RecoveryContext(
+    bslma::Allocator* basicAllocator)
+: d_recoveryFileSet(basicAllocator)
+, d_mappedJournalFd()
+, d_journalFilePosition(0)
+, d_mappedDataFd()
+, d_dataFilePosition(0)
+, d_liveDataSource_p(0)
+, d_bufferedEvents(basicAllocator)
+, d_receiveDataContext()
+{
+    // NOTHING
+}
+
+inline RecoveryManager::RecoveryContext::RecoveryContext(
+    const RecoveryContext& other,
+    bslma::Allocator*      basicAllocator)
+: d_recoveryFileSet(other.d_recoveryFileSet, basicAllocator)
 , d_mappedJournalFd(other.d_mappedJournalFd)
 , d_journalFilePosition(other.d_journalFilePosition)
 , d_mappedDataFd(other.d_mappedDataFd)
 , d_dataFilePosition(other.d_dataFilePosition)
-, d_recoveryFileSet(other.d_recoveryFileSet, basicAllocator)
-, d_bufferedEvents(other.d_bufferedEvents, basicAllocator)
+, d_liveDataSource_p(other.d_liveDataSource_p)
+, d_bufferedEvents(other.d_bufferedEvents)
+, d_receiveDataContext(other.d_receiveDataContext)
 {
     // NOTHING
 }
@@ -458,7 +517,8 @@ inline bool RecoveryManager::expectedDataChunks(int partitionId) const
                      partitionId <
                          d_clusterConfig.partitionConfig().numPartitions());
 
-    return d_receiveDataContextVec[partitionId].d_expectChunks;
+    return d_recoveryContextVec[partitionId]
+        .d_receiveDataContext.d_expectChunks;
 }
 
 }  // close package namespace
