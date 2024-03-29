@@ -67,10 +67,6 @@ bsls::ObjectBuffer<bdlbb::Blob> g_heartbeatRspBlob;
 /// heartbeat response and an empty blob.
 bsls::ObjectBuffer<bdlbb::Blob> g_emptyBlob;
 
-/// A static SubQueueInfoArray prefilled with the default subQueueId and an
-/// unlimited RDA counter.
-bsls::ObjectBuffer<Protocol::SubQueueInfosArray> g_defaultSubQueueInfoArray;
-
 /// Integer to keep track of the number of calls to `initialize` for the
 /// `ProtocolUtil`.  If the value is non-zero, then it has already been
 /// initialized, otherwise it can be initialized.  Each call to `initialize`
@@ -168,13 +164,6 @@ void ProtocolUtil::initialize(bslma::Allocator* allocator)
 
     // Create empty blob
     new (g_emptyBlob.buffer()) bdlbb::Blob(alloc);
-
-    // Populate the default subQueueInfo array with the default subQueueId and
-    // an unlimited RDA counter
-    new (g_defaultSubQueueInfoArray.buffer()) Protocol::SubQueueInfosArray(
-        1,
-        SubQueueInfo(Protocol::k_DEFAULT_SUBSCRIPTION_ID),
-        alloc);
 }
 
 void ProtocolUtil::shutdown()
@@ -187,12 +176,6 @@ void ProtocolUtil::shutdown()
     if (--g_initialized != 0) {
         return;  // RETURN
     }
-
-    g_defaultSubQueueInfoArray.object()
-        .mwcc::Array<SubQueueInfo, 16>::Array::~Array();
-    // Above expression, particularly the 'Array::' before '~Array()' is
-    // required if passing '-Wpedantic' flag in our build, which is what we
-    // are doing when building with clang.
 
     g_heartbeatRspBlob.object().bdlbb::Blob::~Blob();
     g_heartbeatReqBlob.object().bdlbb::Blob::~Blob();
@@ -337,14 +320,6 @@ void ProtocolUtil::binaryToHex(char*       buffer,
         buffer[index]     = k_INT_TO_HEX_TABLE[ch >> 4];
         buffer[index + 1] = k_INT_TO_HEX_TABLE[ch & 0xF];
     }
-}
-
-const Protocol::SubQueueInfosArray& ProtocolUtil::defaultSubQueueInfoArray()
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(g_initialized && "Not initialized");
-
-    return g_defaultSubQueueInfoArray.object();
 }
 
 int ProtocolUtil::ackResultToCode(bmqt::AckResult::Enum value)
