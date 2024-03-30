@@ -91,6 +91,7 @@ bool TCPEndpoint::fromUri(const bsl::string& uri)
 
     // Extract the port part: i.e. after the last ':'
     const long port = bsl::strtol(uri.c_str() + colon + 1, 0, 10);
+
     // For simplicity, do not accept ambiguous `port` value 0
     if (port <= 0 || port > 65535) {
         return false;  // RETURN
@@ -117,6 +118,7 @@ void TCPEndpoint::fromUriRaw(const bsl::string& uri)
     }
 
     const long port = bsl::strtol(uri.c_str() + separator + 1, 0, 10);
+
     // For simplicity, do not accept ambiguous `port` value 0
     if (port <= 0 || port > 65535) {
         return;  // RETURN
