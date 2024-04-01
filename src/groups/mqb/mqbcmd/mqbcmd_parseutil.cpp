@@ -309,15 +309,15 @@ int parseEncodingFormat(EncodingFormat::Value* format,
     }
 
     if (equalCaseless(word, "TEXT")) {
-        *format = EncodingFormat::Value::TEXT;
+        *format = EncodingFormat::TEXT;
         return 0;  // RETURN
     }
     else if (equalCaseless(word, "JSON_COMPACT")) {
-        *format = EncodingFormat::Value::JSON_COMPACT;
+        *format = EncodingFormat::JSON_COMPACT;
         return 0;  // RETURN
     }
     else if (equalCaseless(word, "JSON_PRETTY")) {
-        *format = EncodingFormat::Value::JSON_PRETTY;
+        *format = EncodingFormat::JSON_PRETTY;
         return 0;  // RETURN
     }
 
