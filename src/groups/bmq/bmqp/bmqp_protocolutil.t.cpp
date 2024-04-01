@@ -528,52 +528,7 @@ static void test6_heartbeatAndEmptyBlobs()
     bmqp::ProtocolUtil::shutdown();
 }
 
-static void test7_defaultSubQueueInfoArray()
-// ------------------------------------------------------------------------
-// DEFAULT SUBQUEUEINFO ARRAY
-//
-// Concerns:
-//   1. If 'initialize' has not been called, unable to obtain the default
-//      SubQueueInfoArray.
-//   2. After 'initialize' has been called, should be able to obtain a
-//      reference not offering modifiable access to the statically created
-//      default SubQueueInfoArray containing one element: The default
-//      subQueueId with an unlimited RDA counter.
-//
-// Plan:
-//   1. Assert failure of calling 'defaultSubQueueInfoArray' without prior
-//      call to 'initialize'.
-//   2. Initialize the 'ProtocolUtil' and verify obtaining the default
-//      SubQueueInfoArray.
-//
-// Testing:
-//   defaultSubQueueInfoArray
-//   ----------------------------------------------------------------------
-{
-    mwctst::TestHelper::printTestName("DEFAULT SUBQUEUEINFOARRAY");
-
-    // 1. If 'initialize' has not been called, unable to obtain the default
-    //    SubQueueInfoArray.
-    ASSERT_SAFE_FAIL(bmqp::ProtocolUtil::defaultSubQueueInfoArray());
-
-    // 2. After 'initialize' has been called, should be able to obtain a
-    //    reference not offering modifiable access to the statically created
-    //    default SubQueueInfoArray containing one element: The default
-    //    subQueueId with an unlimited RDA counter.
-    bmqp::ProtocolUtil::initialize(s_allocator_p);
-
-    ASSERT_SAFE_PASS(bmqp::ProtocolUtil::defaultSubQueueInfoArray());
-
-    const bmqp::Protocol::SubQueueInfosArray& subQueueInfoArray =
-        bmqp::ProtocolUtil::defaultSubQueueInfoArray();
-    ASSERT_EQ(subQueueInfoArray.size(), 1U);
-    ASSERT_EQ(subQueueInfoArray[0].id(), bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID);
-    ASSERT_EQ(subQueueInfoArray[0].rdaInfo().isUnlimited(), true);
-
-    bmqp::ProtocolUtil::shutdown();
-}
-
-static void test8_ackResultToCode()
+static void test7_ackResultToCode()
 // ------------------------------------------------------------------------
 // ACK RESULT TO CODE
 //
@@ -621,7 +576,7 @@ static void test8_ackResultToCode()
     }
 }
 
-static void test9_ackResultFromCode()
+static void test8_ackResultFromCode()
 // ------------------------------------------------------------------------
 // ACK RESULT FROM CODE
 //
@@ -665,7 +620,7 @@ static void test9_ackResultFromCode()
     }
 }
 
-static void test10_loadFieldValues()
+static void test9_loadFieldValues()
 // ------------------------------------------------------------------------
 // LOAD FIELD VALUES
 //
@@ -802,7 +757,7 @@ static void encodeDecodeHelper(E encodingType)
     ASSERT_EQ(decodedClusterMessage, clusterMessage);
 }
 
-static void test11_encodeDecodeMessage()
+static void test10_encodeDecodeMessage()
 // ------------------------------------------------------------------------
 // ENCODE DECODE MESSAGE
 //
@@ -868,7 +823,7 @@ static void populateBlob(bdlbb::Blob* blob, int atLeastLen)
     }
 }
 
-static void test12_parseMessageProperties()
+static void test11_parseMessageProperties()
 // ------------------------------------------------------------------------
 // TESTS PARSING AS IT IS USED IN QueueEngineUtil::logRejectMessage
 //
@@ -953,12 +908,11 @@ int main(int argc, char* argv[])
 
     switch (_testCase) {
     case 0:
-    case 12: test12_parseMessageProperties(); break;
-    case 11: test11_encodeDecodeMessage(); break;
-    case 10: test10_loadFieldValues(); break;
-    case 9: test9_ackResultFromCode(); break;
-    case 8: test8_ackResultToCode(); break;
-    case 7: test7_defaultSubQueueInfoArray(); break;
+    case 11: test11_parseMessageProperties(); break;
+    case 10: test10_encodeDecodeMessage(); break;
+    case 9: test9_loadFieldValues(); break;
+    case 8: test8_ackResultFromCode(); break;
+    case 7: test7_ackResultToCode(); break;
     case 6: test6_heartbeatAndEmptyBlobs(); break;
     case 5: test5_paddingBlob(); break;
     case 4: test4_paddingChar(); break;

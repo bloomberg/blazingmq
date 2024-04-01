@@ -1022,7 +1022,10 @@ bool QueueEngineUtil_AppState::visitBroadcast(
         message->guid(),
         message->attributes(),
         "",  // msgGroupId
-        bmqp::ProtocolUtil::defaultSubQueueInfoArray());
+        bmqp::Protocol::SubQueueInfosArray(
+            1,
+            bmqp::SubQueueInfo(subscription->d_downstreamSubscriptionId)));
+
     return false;
 }
 
