@@ -1,3 +1,4 @@
+# Build env
 /build/
 /cmake.bld/
 /vcpkg_installed/
@@ -6,7 +7,23 @@ compile_commands.json
 /.cache/
 CMakeUserPresets.json
 /thirdparty/
-/.vscode/
 /include/
 /lib/
+**/.idea
+
+# Eclipse IDE
+.project
+.cproject
+
+# Mac DS_Store files
+**/.DS_Store
+.lcldev/
+.vscode/*
+settings.json
+
+# Python files
+*.pyc
 **/__pycache__/
+.pytest_cache/
+.cache/
+.venv/
