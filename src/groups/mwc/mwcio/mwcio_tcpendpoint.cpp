@@ -109,23 +109,8 @@ bool TCPEndpoint::fromUri(const bsl::string& uri)
 
 void TCPEndpoint::fromUriRaw(const bsl::string& uri)
 {
-    d_uri = uri;
-
-    const size_t separator = uri.find_last_of(':');
-
-    if (separator == bsl::string::npos) {
-        return;  // RETURN
-    }
-
-    const long port = bsl::strtol(uri.c_str() + separator + 1, 0, 10);
-
-    // For simplicity, do not accept ambiguous `port` value 0
-    if (port <= 0 || port > 65535) {
-        return;  // RETURN
-    }
-
-    d_port = static_cast<int>(port);
-    d_host.assign(uri, k_SCHEME_LEN, separator - k_SCHEME_LEN);
+    const bool res = fromUri(uri);
+    BSLS_ASSERT(res);
 }
 
 TCPEndpoint& TCPEndpoint::assign(const bslstl::StringRef& host, int port)
