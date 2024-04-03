@@ -39,7 +39,6 @@
 #include <mqbc_clustermembership.h>
 #include <mqbc_clusterstate.h>
 #include <mqbc_electorinfo.h>
-#include <mqbc_partitionfsmobserver.h>
 #include <mqbcfg_messages.h>
 #include <mqbi_cluster.h>
 #include <mqbi_clusterstatemanager.h>
@@ -99,7 +98,6 @@ namespace mqbblp {
 
 /// Mechanism to manage queues on a cluster.
 class ClusterQueueHelper : public mqbc::ClusterStateObserver,
-                           public mqbc::PartitionFSMObserver,
                            public mqbc::ClusterMembershipObserver,
                            public mqbc::ElectorInfoObserver {
   private:
@@ -991,15 +989,6 @@ class ClusterQueueHelper : public mqbc::ClusterStateObserver,
                                 const AppIdInfos& removedAppIds = AppIdInfos())
         BSLS_KEYWORD_OVERRIDE;
 
-    // PRIVATE MANIPULATORS
-    //   (virtual: mqbc::PartitionFSMObserver)
-    void onTransitionToPrimaryHealed(
-        int                                  partitionId,
-        mqbc::PartitionStateTableState::Enum oldState) BSLS_KEYWORD_OVERRIDE;
-    void onTransitionToReplicaHealed(
-        int                                  partitionId,
-        mqbc::PartitionStateTableState::Enum oldState) BSLS_KEYWORD_OVERRIDE;
-
   private:
     // NOT IMPLEMENTED
 
@@ -1127,6 +1116,9 @@ class ClusterQueueHelper : public mqbc::ClusterStateObserver,
         const bsl::vector<int>*             partitions = 0,
         const VoidFunctor&                  callback   = VoidFunctor());
 
+    void onLeaderAvailable();
+    // Called upon leader becoming available.
+
     // ACCESSORS
 
     /// Return the queue having the specified `id`, or a null pointer if no
@@ -1235,6 +1227,10 @@ inline bool ClusterQueueHelper::hasActiveAvailablePrimary(
         return false;  // RETURN
     }
 
+    if (d_cluster_p->isFSMWorkflow()) {
+        return true;  // RETURN
+    }
+
     mqbc::ClusterNodeSession* ns =
         d_clusterData_p->membership().getClusterNodeSession(
             pinfo.primaryNode());
@@ -1296,9 +1292,16 @@ inline bool ClusterQueueHelper::isQueuePrimaryAvailable(
 
 inline bool ClusterQueueHelper::isSelfAvailablePrimary(int partitionId) const
 {
-    return d_clusterState_p->isSelfPrimary(partitionId) &&
-           bmqp_ctrlmsg::NodeStatus::E_AVAILABLE ==
-               d_clusterData_p->membership().selfNodeStatus();
+    if (!d_clusterState_p->isSelfPrimary(partitionId)) {
+        return false;  // RETURN
+    }
+
+    if (d_cluster_p->isFSMWorkflow()) {
+        return true;  // RETURN
+    }
+
+    return bmqp_ctrlmsg::NodeStatus::E_AVAILABLE ==
+           d_clusterData_p->membership().selfNodeStatus();
 }
 
 inline void

@@ -34,6 +34,7 @@
 #include <mqbs_fileset.h>
 #include <mqbs_filestoreprotocol.h>
 #include <mqbs_filestoreset.h>
+#include <mqbs_qlistfileiterator.h>
 
 // BMQ
 #include <bmqp_ctrlmsg_messages.h>
@@ -46,6 +47,7 @@
 #include <bsl_string.h>
 #include <bsl_vector.h>
 #include <bslma_allocator.h>
+#include <bsls_types.h>
 
 namespace BloombergLP {
 namespace mqbs {
@@ -54,7 +56,6 @@ namespace mqbs {
 class DataFileIterator;
 class JournalFileIterator;
 class MappedFileDescriptor;
-class QlistFileIterator;
 
 // ====================
 // struct FileStoreUtil
@@ -261,31 +262,48 @@ struct FileStoreUtil {
                                const MappedFileDescriptor& qlistFd);
 
     /// Retrieve the appropriate file set belonging to the specified
-    /// `partitionId` from the specified `config` location from which
+    /// 'partitionId' from the specified 'config' location from which
     /// recovery needs to be performed, checking a maximum of the specified
-    /// `numSetsToCheck` file sets if multiple sets are present, open the
+    /// 'numSetsToCheck' file sets if multiple sets are present, open the
     /// corresponding journal, data and qlist files (if **specified**) in
-    /// the specified `journalFd`, and the optionally specified `dataFd` and
-    /// `qlistFd` respectively, and update the specified `recoveryFileSet`
-    /// with the retrieved set, and archive the remaining sets to the
-    /// specified `config` archiveLocation.  If the specified `readOnly` is
-    /// true, open the files in read-only mode. The behavior also depends
-    /// on the specified `isFSMWorkflow` flag.  Return 0 on success, non
-    /// zero value otherwise along with populating the specified
-    /// `errorDescription` with a brief reason for logging purposes.  Note
-    /// that a return value of `1` is special and indicates that no file
-    /// sets were present at `config` location.  Also note that in case of
-    /// error, this method closes any files it opened.
+    /// the specified 'journalFd' and 'dataFd', and the optionally specified
+    /// 'qlistFd' respectively, and update the specified 'recoveryFileSet'
+    /// with the retrieved set, update the specified 'journalFilePos' and
+    /// 'dataFilePos' with the corresponding write offsets, and archive the
+    /// remaining sets to the specified 'config' archiveLocation.  If the
+    /// specified 'readOnly' is true, open the files in read-only mode. The
+    /// behavior also depends on the specified 'isFSMWorkflow' flag.  Return
+    /// 0 on success, non zero value otherwise along with populating the
+    /// specified 'errorDescription' with a brief reason for logging
+    /// purposes.  Note that a return value of '1' is special and indicates
+    /// that no file sets were present at 'config' location.  Also note that
+    /// in case of error, this method closes any files it opened.
     static int openRecoveryFileSet(bsl::ostream&         errorDescription,
                                    MappedFileDescriptor* journalFd,
+                                   MappedFileDescriptor* dataFd,
                                    FileStoreSet*         recoveryFileSet,
+                                   bsls::Types::Uint64*  journalFilePos,
+                                   bsls::Types::Uint64*  dataFilePos,
                                    int                   partitionId,
                                    int                   numSetsToCheck,
                                    const mqbs::DataStoreConfig& config,
                                    bool                         readOnly,
                                    bool                         isFSMWorkflow,
-                                   MappedFileDescriptor*        dataFd  = 0,
                                    MappedFileDescriptor*        qlistFd = 0);
+
+    /// Set the specified 'journalOffset' and 'dataOffset' to the end of
+    /// Journal/Data file header respectively based on the specified 'jit'
+    /// and 'dit'.  If the specified 'needQList' is true, set the optionally
+    /// specified 'qlistOffset' to the end of Qlist file header based on the
+    /// optionally specified 'qit'.
+    static void
+    setFileHeaderOffsets(bsls::Types::Uint64*       journalOffset,
+                         bsls::Types::Uint64*       dataOffset,
+                         const JournalFileIterator& jit,
+                         const DataFileIterator&    dit,
+                         bool                       needQList,
+                         bsls::Types::Uint64*       qlistOffset = 0,
+                         const QlistFileIterator&   qit = QlistFileIterator());
 
     /// Load into the specified `jit`, `dit` and `qit` the iterators
     /// corresponding to the already opened specified `journalFd`, `dataFd`

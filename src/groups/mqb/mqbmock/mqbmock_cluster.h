@@ -169,12 +169,6 @@ class Cluster : public mqbi::Cluster {
     // Flag to indicate start/stop status This
     // flag is used only inside this component
 
-    bsl::string d_name;
-    // Name of this cluster
-
-    bsl::string d_description;
-    // Description of this object
-
     mqbcfg::ClusterDefinition d_clusterDefinition;
     // Cluster definition
 

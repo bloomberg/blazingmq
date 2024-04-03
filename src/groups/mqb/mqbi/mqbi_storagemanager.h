@@ -49,6 +49,7 @@
 #include <bsl_string.h>
 #include <bsl_unordered_map.h>
 #include <bsl_unordered_set.h>
+#include <bsl_utility.h>
 #include <bsl_vector.h>
 #include <bslma_managedptr.h>
 #include <bsls_cpp11.h>
@@ -162,13 +163,23 @@ class StorageManagerIterator {
 class StorageManager : public mqbi::AppKeyGenerator {
   public:
     // TYPES
-    typedef mqbi::Storage::AppIdKeyPair  AppIdKeyPair;
-    typedef mqbi::Storage::AppIdKeyPairs AppIdKeyPairs;
+    typedef mqbi::Storage::AppIdKeyPair   AppIdKeyPair;
+    typedef mqbi::Storage::AppIdKeyPairs  AppIdKeyPairs;
+    typedef AppIdKeyPairs::const_iterator AppIdKeyPairsCIter;
+
+    typedef bsl::unordered_set<bsl::string> AppIds;
+    typedef AppIds::iterator                AppIdsIter;
+    typedef AppIds::const_iterator          AppIdsConstIter;
+    typedef bsl::pair<AppIdsIter, bool>     AppIdsInsertRc;
 
     typedef bsl::unordered_set<mqbu::StorageKey> AppKeys;
     typedef AppKeys::iterator                    AppKeysIter;
     typedef AppKeys::const_iterator              AppKeysConstIter;
     typedef bsl::pair<AppKeysIter, bool>         AppKeysInsertRc;
+
+    typedef bsl::vector<AppKeys>       AppKeysVec;
+    typedef AppKeysVec::iterator       AppKeysVecIter;
+    typedef AppKeysVec::const_iterator AppKeysVecConstIter;
 
     typedef bsl::shared_ptr<mqbs::ReplicatedStorage> StorageSp;
 
@@ -183,6 +194,10 @@ class StorageManager : public mqbi::AppKeyGenerator {
 
     /// Type of the functor required by `applyForEachQueue`.
     typedef bsl::function<void(mqbi::Queue*)> QueueFunctor;
+
+    typedef bsl::function<
+        void(int partitionId, int status, unsigned int primaryLeaseId)>
+        PartitionPrimaryStatusCb;
 
   public:
     // CREATORS
@@ -275,30 +290,28 @@ class StorageManager : public mqbi::AppKeyGenerator {
     virtual void
     setQueueRaw(mqbi::Queue* queue, const bmqt::Uri& uri, int partitionId) = 0;
 
-    /// Executed in cluster dispatcher thread.  Behavior is undefined unless
-    /// the specified `partitionId` is in range and the specified
-    /// `primaryNode` is not null.
+    /// Behavior is undefined unless the specified 'partitionId' is in range
+    /// and the specified 'primaryNode' is not null.
+    ///
+    /// THREAD: Executed in cluster dispatcher thread.
     virtual void setPrimaryForPartition(int                  partitionId,
                                         mqbnet::ClusterNode* primaryNode,
                                         unsigned int primaryLeaseId) = 0;
 
-    /// Executed in cluster dispatcher thread.  Behavior is undefined unless
-    /// the specified `partitionId` is in range and the specified
-    /// `primaryNode` is not null.
+    /// Behavior is undefined unless the specified 'partitionId' is in range
+    /// and the specified 'primaryNode' is not null.
+    ///
+    /// THREAD: Executed in cluster dispatcher thread.
     virtual void clearPrimaryForPartition(int                  partitionId,
                                           mqbnet::ClusterNode* primary) = 0;
 
-    /// Apply DETECT_SelfPrimary event to PartitionFSM using the specified
-    /// `partitionId`, `primaryNode`, `primaryLeaseId`.
-    virtual void processPrimaryDetect(int                  partitionId,
-                                      mqbnet::ClusterNode* primaryNode,
-                                      unsigned int         primaryLeaseId) = 0;
-
-    /// Apply DETECT_SelfReplica event to StorageFSM using the specified
-    /// `partitionId`, `primaryNode` and `primaryLeaseId`.
-    virtual void processReplicaDetect(int                  partitionId,
-                                      mqbnet::ClusterNode* primaryNode,
-                                      unsigned int         primaryLeaseId) = 0;
+    /// Set the primary status of the specified 'partitionId' to the specified
+    /// 'value'.
+    ///
+    /// THREAD: Executed in cluster dispatcher thread.
+    virtual void
+    setPrimaryStatusForPartition(int partitionId,
+                                 bmqp_ctrlmsg::PrimaryStatus::Value value) = 0;
 
     /// Process primary state request received from the specified `source`
     /// with the specified `message`.
@@ -315,20 +328,8 @@ class StorageManager : public mqbi::AppKeyGenerator {
     /// Process replica data request received from the specified `source`
     /// with the specified `message`.
     virtual void
-    processReplicaDataRequestPull(const bmqp_ctrlmsg::ControlMessage& message,
-                                  mqbnet::ClusterNode* source) = 0;
-
-    /// Process replica data request received from the specified `source`
-    /// with the specified `message`.
-    virtual void
-    processReplicaDataRequestPush(const bmqp_ctrlmsg::ControlMessage& message,
-                                  mqbnet::ClusterNode* source) = 0;
-
-    /// Process replica data request received from the specified `source`
-    /// with the specified `message`.
-    virtual void
-    processReplicaDataRequestDrop(const bmqp_ctrlmsg::ControlMessage& message,
-                                  mqbnet::ClusterNode* source) = 0;
+    processReplicaDataRequest(const bmqp_ctrlmsg::ControlMessage& message,
+                              mqbnet::ClusterNode*                source) = 0;
 
     virtual int makeStorage(bsl::ostream&                     errorDescription,
                             bslma::ManagedPtr<mqbi::Storage>* out,

@@ -43,6 +43,6 @@ def test_leader_node_delay(cluster: Cluster):
 
     for follower in followers:
         assert follower.outputs_regex(
-            "#ELECTOR_INFO: leader.*transitioning from PASSIVE to ACTIVE",
+            "#ELECTOR_INFO: leader.*transitioning status from PASSIVE to ACTIVE",
             timeout=60,
         )

@@ -420,6 +420,8 @@ void printFileStoreSummary(bsl::ostream&           os,
     }
 
     const ActiveFileSet& activeFileSet = summary.activeFileSet();
+    BSLS_ASSERT_SAFE(activeFileSet.dataFile().sizeBytes() > 0);
+    BSLS_ASSERT_SAFE(activeFileSet.journalFile().sizeBytes() > 0);
     os << '\n'
        << newlineAndIndent(level + 1, spacesPerLevel)
        << "Active file set details: "
@@ -441,15 +443,21 @@ void printFileStoreSummary(bsl::ostream&           os,
        << " %). Outstanding bytes: "
        << prettyNumber(static_cast<bsls::Types::Int64>(
               activeFileSet.journalFile().outstandingBytes()))
-       << newlineAndIndent(level + 2, spacesPerLevel)
-       << "Qlist file size   (used/total): "
-       << prettyBytes(activeFileSet.qlistFile().positionBytes()) << " / "
-       << prettyBytes(activeFileSet.qlistFile().sizeBytes()) << "  ("
-       << ((activeFileSet.qlistFile().positionBytes() * 100) /
-           activeFileSet.qlistFile().sizeBytes())
-       << " %). Outstanding bytes: "
-       << prettyNumber(static_cast<bsls::Types::Int64>(
-              activeFileSet.qlistFile().outstandingBytes()));
+       << newlineAndIndent(level + 2, spacesPerLevel);
+
+    // QList will be deprecated when CSL mode with FSM workflow is enabled.
+    //
+    // TODO CSL Remove this code block
+    if (activeFileSet.qlistFile().sizeBytes() > 0) {
+        os << "Qlist file size   (used/total): "
+           << prettyBytes(activeFileSet.qlistFile().positionBytes()) << " / "
+           << prettyBytes(activeFileSet.qlistFile().sizeBytes()) << "  ("
+           << ((activeFileSet.qlistFile().positionBytes() * 100) /
+               activeFileSet.qlistFile().sizeBytes())
+           << " %). Outstanding bytes: "
+           << prettyNumber(static_cast<bsls::Types::Int64>(
+                  activeFileSet.qlistFile().outstandingBytes()));
+    }
 
     os << '\n'
        << newlineAndIndent(level + 1, spacesPerLevel)
