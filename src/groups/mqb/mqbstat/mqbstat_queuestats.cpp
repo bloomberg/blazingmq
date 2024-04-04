@@ -410,23 +410,23 @@ void QueueStatsDomain::initialize(const bmqt::Uri&  uri,
 
     // Create subcontexts if queue mode is `fanout `and domain name is in
     // `appIdPostingDomains` list.
-    const bsl::vector<bsl::string>& appIdPostingDomains =
-        mqbcfg::BrokerConfig::get().stats().appIdPostingDomains();
-
-    if (domain->config().mode().isFanoutValue() &&
-        (bsl::find(appIdPostingDomains.begin(),
-                   appIdPostingDomains.end(),
-                   uri.domain()) != appIdPostingDomains.end())) {
-        d_subContexts_mp.load(new (*allocator)
-                                  bsl::list<StatSubContextMp>(allocator),
-                              allocator);
-        const bsl::vector<bsl::string>& appIDs =
-            domain->config().mode().fanout().appIDs();
-        for (bsl::vector<bsl::string>::const_iterator cit = appIDs.begin();
-             cit != appIDs.end();
-             ++cit) {
-            d_subContexts_mp->push_back(d_statContext_mp->addSubcontext(
-                mwcst::StatContextConfiguration(*cit, &localAllocator)));
+    if (domain->config().mode().isFanoutValue()) {
+        const bsl::vector<bsl::string>& appIdPostingDomains =
+            mqbcfg::BrokerConfig::get().stats().appIdPostingDomains();
+        if (bsl::find(appIdPostingDomains.begin(),
+                      appIdPostingDomains.end(),
+                      uri.domain()) != appIdPostingDomains.end()) {
+            d_subContexts_mp.load(new (*allocator)
+                                      bsl::list<StatSubContextMp>(allocator),
+                                  allocator);
+            const bsl::vector<bsl::string>& appIDs =
+                domain->config().mode().fanout().appIDs();
+            for (bsl::vector<bsl::string>::const_iterator cit = appIDs.begin();
+                 cit != appIDs.end();
+                 ++cit) {
+                d_subContexts_mp->push_back(d_statContext_mp->addSubcontext(
+                    mwcst::StatContextConfiguration(*cit, &localAllocator)));
+            }
         }
     }
 }
