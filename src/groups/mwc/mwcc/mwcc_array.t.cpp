@@ -397,11 +397,11 @@ static void test1_breathingTest()
             ObjType obj1(s_allocator_p);
             ObjType obj2(s_allocator_p);
 
-            for (size_t i = 0; i < 50; ++i) {
+            for (int i = 0; i < 50; ++i) {
                 obj1.push_back(TestType("a", s_allocator_p));
             }
 
-            for (size_t i = 0; i < 100; ++i) {
+            for (int i = 0; i < 100; ++i) {
                 obj2.push_back(TestType("b", s_allocator_p));
             }
 
@@ -416,11 +416,11 @@ static void test1_breathingTest()
             ObjType obj1(s_allocator_p);
             ObjType obj2(s_allocator_p);
 
-            for (size_t i = 0; i < 50; ++i) {
+            for (int i = 0; i < 50; ++i) {
                 obj1.push_back(TestType("a", s_allocator_p));
             }
 
-            for (size_t i = 0; i < 100; ++i) {
+            for (int i = 0; i < 100; ++i) {
                 obj2.push_back(TestType("b", s_allocator_p));
             }
 
@@ -434,7 +434,7 @@ static void test1_breathingTest()
         {
             ObjType* obj = new (*s_allocator_p) ObjType(s_allocator_p);
 
-            for (size_t i = 0; i < 50; ++i) {
+            for (int i = 0; i < 50; ++i) {
                 obj->push_back(TestType("a", s_allocator_p));
             }
 
@@ -629,12 +629,12 @@ static void test6_assign()
     bslma::TestAllocator ta("testAlloc");
 
     ObjType obj(&ta);
-    for (size_t i = 0; i < k_STATIC_LEN + 5; ++i) {
+    for (int i = 0; i < k_STATIC_LEN + 5; ++i) {
         obj.push_back(TestType(i, s_allocator_p));
     }
 
     bsl::vector<TestType> srcVec(s_allocator_p);
-    for (size_t i = 0; i < 2 * k_STATIC_LEN; ++i) {
+    for (int i = 0; i < 2 * k_STATIC_LEN; ++i) {
         srcVec.push_back(TestType(10 * i, s_allocator_p));
     }
 
