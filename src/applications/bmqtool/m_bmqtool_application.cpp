@@ -770,7 +770,7 @@ void Application::onMessageEvent(const bmqa::MessageEvent& event)
             d_fileLogger.writeAckMessage(message);
 
             if (d_numExpectedAcks != 0 &&
-                d_numExpectedAcks == ++d_numPostedAcknowledged) {
+                d_numExpectedAcks == ++d_numAcknowledged) {
                 BALL_LOG_INFO << "All posted messages have been acknowledged";
                 d_shutdownSemaphore_p->post();
             }
@@ -1133,7 +1133,7 @@ Application::Application(Parameters*       parameters,
 , d_autoReadInProgress(false)
 , d_autoReadActivity(false)
 , d_numExpectedAcks(0)
-, d_numPostedAcknowledged(0)
+, d_numAcknowledged(0)
 {
     // NOTHING
 }
@@ -1200,7 +1200,7 @@ int Application::run()
         if (bmqt::QueueFlagsUtil::isWriter(d_parameters_p->queueFlags())) {
             d_numExpectedAcks = d_parameters_p->eventsCount() *
                                 d_parameters_p->eventSize();
-            d_numPostedAcknowledged = 0;
+            d_numAcknowledged = 0;
 
             // Start the thread
             rc = bslmt::ThreadUtil::create(

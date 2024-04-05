@@ -174,7 +174,7 @@ class Application : public bmqa::SessionEventHandler {
     // messages, after which the shutdown semaphore will
     // be posted.
 
-    bsl::uint64_t d_numPostedAcknowledged;
+    bsl::uint64_t d_numAcknowledged;
     // Auto-produce mode only. The number of acknowledged
     // messages. When the value of this field becomes equal
     // to d_numExpectedAcks, the shutdown semaphore will be
