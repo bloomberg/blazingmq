@@ -70,7 +70,6 @@ jobs:
         with:
           path: |
             build/blazingmq
-            deps
             /opt/bb/include
           key: cache-${{ github.sha }}
       - name: Run Python Unit Tests
@@ -97,7 +96,6 @@ jobs:
         with:
           path: |
             build/blazingmq
-            deps
             /opt/bb/include
           key: cache-${{ github.sha }}
       - name: Run Integration Tests
@@ -146,7 +144,6 @@ jobs:
         with:
           path: |
             build/blazingmq
-            deps
             /opt/bb/include
           key: cache-${{ github.sha }}
       - name: Set up plugins dependencies
