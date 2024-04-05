@@ -17,23 +17,26 @@
 #ifndef INCLUDED_BMQA_MESSAGEITERATOR
 #define INCLUDED_BMQA_MESSAGEITERATOR
 
-//@PURPOSE: Provide a mechanism to iterate over the messages of a MessageEvent.
-//
-//@CLASSES:
-//  bmqa::MessageIterator: read-only sequential iterator on 'Message' objects
-//
-//@DESCRIPTION: 'bmqa::MessageIterator' is an iterator-like mechanism providing
-// read-only sequential access to messages contained into a MessageEvent.
-//
-/// Usage
-///-----
-// Typical usage of this iterator should follow the following pattern:
-//..
-//  while (messageIterator.nextMessage()) {
-//    const Message& message = messageIterator.message();
-//    // Do something with message
-//  }
-//..
+/// @file bmqa_messageiterator.h
+///
+/// @brief Provide a mechanism to iterate over the messages of a
+///        @bbref{bmqa::MessageEvent}.
+///
+///
+/// @bbref{bmqa::MessageIterator} is an iterator-like mechanism providing
+/// read-only sequential access to messages contained into a
+/// @bbref{bmqa::MessageEvent}.
+///
+/// Usage                                         {#bmqa_messageiterator_usage}
+/// =====
+///
+/// Typical usage of this iterator should follow the following pattern:
+/// ```
+/// while (messageIterator.nextMessage()) {
+///   const Message& message = messageIterator.message();
+///   // Do something with message
+/// }
+/// ```
 
 // BMQ
 

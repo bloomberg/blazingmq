@@ -17,22 +17,24 @@
 #ifndef INCLUDED_BMQA_OPENQUEUESTATUS
 #define INCLUDED_BMQA_OPENQUEUESTATUS
 
-//@PURPOSE: Provide Value-Semantic Type for an open queue operation status
-//
-//@CLASSES:
-//  bmqa::OpenQueueStatus: value-semantic type for an openQueue result
-//
-//@DESCRIPTION: This component provides a specific value-semantic type for the
-// result of an open queue operation with the BlazingMQ broker, providing
-// applications with the result and context of the requested operation.
-//
-// A 'bmqa::OpenQueueStatus' type is composed of 3 attributes:
-//: o !result!:           indicates the status of the operation (success,
-//:                       failure, etc.) as specified in the corresponding
-//:                       result code enum, 'bmqt::OpenQueueResult::Enum'
-//: o !queueId!:          queueId associated with the open queue operation
-//: o !errorDescription!: optional string with a human readable description of
-//:                       the error, if any
+/// @file bmqa_openqueuestatus.h
+///
+/// @brief Provide Value-Semantic Type for an open queue operation status
+///
+/// This component provides a specific value-semantic type for the result of an
+/// open queue operation with the BlazingMQ broker, providing applications with
+/// the result and context of the requested operation.
+///
+/// A @bbref{bmqa::OpenQueueStatus} type is composed of 3 attributes:
+///
+///   1. **result**: indicates the status of the operation (success, failure,
+///      etc.) as specified in the corresponding result code enum,
+///      @bbref{bmqt::OpenQueueResult::Enum}.
+///
+///   2. **queueId**: queueId associated with the open queue operation
+///
+///   3. **errorDescription**: optional string with a human readable
+///      description of the error, if any
 
 // BMQ
 

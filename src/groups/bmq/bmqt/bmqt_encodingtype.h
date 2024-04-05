@@ -17,22 +17,21 @@
 #ifndef INCLUDED_BMQT_ENCODINGTYPE
 #define INCLUDED_BMQT_ENCODINGTYPE
 
-//@PURPOSE: Provide an enumeration for different message encoding types.
-//
-//@CLASSES:
-//  bmqt::EncodingType: Enumeration for different message encoding types.
-//
-//@DESCRIPTION: Provide an enumeration, 'bmqt::EncodingType' for different
-// message encoding types.
-//
-//: o !UNDEFINED!: No encoding was specified
-//: o !RAW!: The encoding is RAW, i.e., binary
-//: o !BER!: Binary encoding using the BER codec
-//: o !BDEX!: Binary encoding using the BDEX codec
-//: o !XML!: Text encoding, using the XML format
-//: o !JSON!: Text encoding, using the JSON format
-//: o !TEXT!: Plain text encoding, using a custom user-specific format
-//: o !MULTIPARTS!: Message is part of a multipart message
+/// @file bmqt_encodingtype.h
+///
+/// @brief Provide an enumeration for different message encoding types.
+///
+/// Provide an enumeration, @bbref{bmqt::EncodingType} for different message
+/// encoding types.
+///
+///   - *UNDEFINED*: No encoding was specified
+///   - *RAW*: The encoding is RAW, i.e., binary
+///   - *BER*: Binary encoding using the BER codec
+///   - *BDEX*: Binary encoding using the BDEX codec
+///   - *XML*: Text encoding, using the XML format
+///   - *JSON*: Text encoding, using the JSON format
+///   - *TEXT*: Plain text encoding, using a custom user-specific format
+///   - *MULTIPARTS*: Message is part of a multipart message
 
 // BMQ
 
