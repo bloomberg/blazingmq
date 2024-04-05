@@ -17,57 +17,60 @@
 #ifndef INCLUDED_BMQT_MESSAGEGUID
 #define INCLUDED_BMQT_MESSAGEGUID
 
-//@PURPOSE: Provide a value-semantic global unique identifier for BlazingMQ
-// messages.
-//
-//@CLASSES:
-//  bmqt::MessageGUID         : Value-semantic global unique ID for BlazingMQ
-//                              message
-//  bmqt::MessageGUIDLess     : Binary function for comparing GUIDs.
-//  bmqt::MessageGUIDHashAlgo : Provide a hashing algorithm for Message GUID.
-//
-//@DESCRIPTION: 'bmqt::MessageGUID' provides a value-semantic global unique
-// identifier for BlazingMQ messages.  Each bmqa::Message delivered to
-// BlazingMQ client from BlazingMQ broker contains a unique MessageGUID.  The
-// binary function 'bmqt::MessageGUIDLess' can be used for comparing GUIDs, and
-// an optimized custom hash function is provided with
-// 'bmqt::MessageGUIDHashAlgo'.
-//
-//
-/// Externalization
-///---------------
-// For convenience, this class provides 'toHex' method that can be used to
-// externalize a 'bmqt::MessageGUID' instance.  Applications can persist the
-// resultant buffer (on filesystem, in database) to keep track of last
-// processed message ID across task instantiations.  'fromHex' method can be
-// used to convert a valid externalized buffer back to a message ID.
-//
-/// Efficient comparison and hash function
-///--------------------------------------
-// This component also provides efficient comparison and hash functions for
-// convenience, and thus, applications can use this component as a key in
-// associative containers.
-//
-//
-/// Example 1: Externalizing
-///  - - - - - - - - - - - -
-//..
-//  // Below, 'msg' is a valid instance of 'bmqa::Message' obtained from an
-//  // instance of 'bmqa::Session':
-//
-//  bmqt::MessageGUID g1 = msg.messageId();
-//
-//  char buffer[bmqt::MessageGUID::e_SIZE_HEX];
-//  g1.toHex(buffer);
-//
-//  BSLS_ASSERT(true == bmqt::MessageGUID::isValidHexRepresentation(buffer));
-//
-//  bmqt::MessageGUID g2;
-//  g2.fromHex(buffer);
-//
-//  BSLS_ASSERT(g1 == g2);
-//..
-//
+/// @file bmqt_messageguid.h
+///
+/// @brief Provide a value-semantic global unique identifier for BlazingMQ
+/// messages.
+///
+/// @bbref{bmqt::MessageGUID} provides a value-semantic global unique
+/// identifier for BlazingMQ messages.  Each @bbref{bmqa::Message} delivered to
+/// BlazingMQ client from BlazingMQ broker contains a unique
+/// @bbref{bmqt::MessageGUID}.  The binary functor
+/// @bbref{bmqt::MessageGUIDLess} can be used for comparing GUIDs, and an
+/// optimized custom hash function is provided with
+/// @bbref{bmqt::MessageGUIDHashAlgo}.
+///
+///
+/// Externalization                         {#bmqt_messageguid_externalization}
+/// ===============
+///
+/// For convenience, this class provides `toHex` method that can be used to
+/// externalize a @bbref{bmqt::MessageGUID} instance.  Applications can persist
+/// the resultant buffer (on filesystem, in database) to keep track of last
+/// processed message ID across task instantiations.  `fromHex` method can be
+/// used to convert a valid externalized buffer back to a message ID.
+///
+/// Efficient comparison and hash function        {#bmqt_messageguid_efficient}
+/// ======================================
+///
+/// This component also provides efficient comparison and hash functions for
+/// convenience, and thus, applications can use this component as a key in
+/// associative containers.
+///
+/// Usage                                             {#bmqt_messageguid_usage}
+/// =====
+///
+/// This section illustrates intended use of this component.
+///
+/// Example 1: Externalizing                            {#bmqt_messageguid_ex1}
+/// ------------------------
+///
+/// ```
+/// // Below, 'msg' is a valid instance of 'bmqa::Message' obtained from an
+/// // instance of 'bmqa::Session':
+///
+/// bmqt::MessageGUID g1 = msg.messageId();
+///
+/// char buffer[bmqt::MessageGUID::e_SIZE_HEX];
+/// g1.toHex(buffer);
+///
+/// BSLS_ASSERT(true == bmqt::MessageGUID::isValidHexRepresentation(buffer));
+///
+/// bmqt::MessageGUID g2;
+/// g2.fromHex(buffer);
+///
+/// BSLS_ASSERT(g1 == g2);
+/// ```
 
 // BMQ
 

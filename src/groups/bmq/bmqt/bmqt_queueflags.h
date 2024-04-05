@@ -17,16 +17,14 @@
 #ifndef INCLUDED_BMQT_QUEUEFLAGS
 #define INCLUDED_BMQT_QUEUEFLAGS
 
-//@PURPOSE: Provide enumerators for flags to use at Queue open.
-//
-//@CLASSES:
-//  bmqt::QueueFlags:     flags to use at Queue open
-//  bmqt::QueueFlagsUtil: utilities to manipulate queue flags bit-mask values
-//
-//@DESCRIPTION: This file contains an enum, 'bmqt::QueueFlags' of all the flags
-// that can be used at Queue open.  Each value of the enum correspond to a bit
-// of a bit-mask integer.  It also exposes a set of utilities, in the
-// 'bmqt::QueueFlagsUtil' namespace to manipulate such bit-mask value.
+/// @file bmqt_queueflags.h
+///
+/// @brief Provide enumerators for flags to use at Queue open.
+///
+/// This file contains an enum, @bbref{bmqt::QueueFlags} of all the flags that
+/// can be used at Queue open.  Each value of the enum correspond to a bit of a
+/// bit-mask integer.  It also exposes a set of utilities, in the
+/// @bbref{bmqt::QueueFlagsUtil} namespace to manipulate such bit-mask value.
 
 // BMQ
 

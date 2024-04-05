@@ -17,520 +17,528 @@
 #ifndef INCLUDED_BMQA_MOCKSESSION
 #define INCLUDED_BMQA_MOCKSESSION
 
-//@PURPOSE: Provide a mock session, implementing 'bmqa::AbstractSession'.
-//
-//@CLASSES:
-//  bmqa::MockSession:     mechanism to mock a 'bmqa::Session'
-//  bmqa::MockSessionUtil: utility methods to create 'bmqa' events
-//
-//@DESCRIPTION: This component provides a mechanism implementing the
-// 'bmqa::AbstractSession' protocol, for mocking a 'bmqa::Session' and can be
-// used to write a test for an application that uses BMQ.  The
-// 'bmqa::MockSession' provides all the methods that 'Session' provides, with
-// added methods to specify return codes and emitted events and expected calls.
-// This can be used to test BlazingMQ application code without a connection to
-// the broker.  'bmqa::MockSessionUtil' is a utility namespace providing useful
-// methods to build 'bmqa::Event' objects that are typically only emitted from
-// the broker.
-//
-// The following documentation elucidates the API that this component provides
-// and some simple use cases to get you started.
-//
-//
-/// Disclaimer
-///----------
-// THIS COMPONENT SHOULD ONLY BE USED IN TEST DRIVERS.  IT WILL NOT WORK WITH
-// PRODUCTION CODE.
-//
-//
-/// Usable Components
-///-----------------
-//: o !BMQA_EXPECT_CALL!: Macro to specify an expected call to a
-//:                       'bmqa::MockSession' object. This macro is used to
-//:                       specify which is the next expected call on the
-//:                       'bmqa::MockSession'.  If an incorrect call is invoked
-//:                       or incorrect parameters are used, an assert will be
-//:                       invoked.
-//
-//: o !returning!       : Specify a return value for the expected call.  This
-//:                       is the value that will be returned when the method on
-//:                       'bmqa::MockSession' is invoked.
-//
-//: o !emitting!        : Specify an event to be 'emitted' when the expected
-//:                       call is invoked.  The events specified are enqueued
-//:                       to the internal event queue and are delivered to the
-//:                       application when 'emitEvent' is invoked.
-//
-/// Static Helper Methods
-///---------------------
-//: o !createAckEvent!            : Create an acknowledgment message event for
-//:                                 messages posted to BMQ.
-//
-//: o !createPushEvent!           : Create a push message event for messages to
-//:                                 be consumed from BMQ.
-//
-//: o !createOpenQueueStatus!     : Create an openQueue result (relating to an
-//:                                 async open queue operation)
-//
-//: o !createConfigureQueueStatus!: Create a configureQueue result (relating to
-//:                                 an async configure queue operation)
-//
-//: o !createCloseQueueStatus!    : Create a closeQueue result (relating to an
-//:                                 async close queue operation)
-//
-//: o !createSessionEvent!        : Create a specified type of session event
-//:                                 except for events related to open, close
-//:                                 and configure queue.
-//
-// The static event builder specified above are typically built inside the
-// broker but are now available to be built in the SDK.  The expected use of
-// such events is to build them and specify them to either the
-// 'BMQA_EXPECT_CALL' macro in the 'emitting' parameter, or enqueued to the
-// 'bmqa::MockSession' directly through the 'enqueueEvent' method.  They can
-// then be emitted by invoking the 'emitEvent' method, which in turn would be
-// processed through the application-provided 'bmqa::SessionEventHandler'.
-//
-/// Additional Note
-///---------------
-// 'MockSession' does not check if methods have been invoked in the correct
-// order.  The user is responsible for ensuring that the methods are invoked
-// and events enqueued in the correct order.
-//
-// The following methods do not emit events:
-//: o 'getQueueId'
-//: o 'loadMessageEventBuilder'
-//: o 'loadConfirmEventBuilder'
-//: o 'loadMessageProperties'
-//: o 'confirmMessage'
-//: o 'confirmMessages'
-//
-// Calls to the following methods do not require an expect:
-//: o 'getQueueId'
-//: o 'loadMessageEventBuilder'
-//: o 'loadConfirmEventBuilder'
-//: o 'loadMessageProperties'
-//
-//
-/// Creating a mock session in asynchronous mode
-///--------------------------------------------
-// The 'MockSession' is created in asynchronous mode when a
-// 'SessionEventHandler' is provided to it.  If it is not provided a handler,
-// the 'MockSession' is started in synchronous mode, requiring the application
-// to call 'nextEvent' to access enqueued events.  A sample handler could look
-// like this:
-//
-//..
-//  class MyEventHandler : public bmqa::SessionEventHandler {
-//
-//    private:
-//      // DATA
-//      bsl::deque<bmqa::SessionEvent>    d_sessionEventsQueue;
-//      bsl::deque<bmqa::MessageEvents>   d_messageEventsQueue;
-//      bsl::deque<bmqa::OpenQueueStatus> d_openQueueResultsQueue;
-//      ...
-//
-//    public:
-//      // MANIPULATORS
-//      virtual void onSessionEvent(const bmqa::SessionEvent& event)
-//      {
-//          bsl::cout << "Received session event " << event << "\n";
-//          // some business logic, typically a switch case on
-//          // 'bmqt::SessionEventType'
-//          d_sessionEventsQueue.push_back(event);
-//      }
-//
-//      virtual void onMessageEvent(const bmqa::MessageEvent& event)
-//      {
-//          bsl::cout << "Received message event " << event << "\n";
-//          // some business logic, typically a switch case on
-//          // 'bmqt::MessageEventType'
-//          d_messageEventsQueue.push_back(event);
-//      }
-//
-//      void onOpenQueueStatus(const bmqa::OpenQueueStatus& result)
-//      {
-//          bsl::cout << "Received open queue result: " << result << "\n";
-//          // Some business logic
-//          d_openQueueResultsQueue.push_back(result);
-//      }
-//      ...
-//
-//      bmqa::SessionEvent popSessionEvent()
-//      {
-//          BSLS_ASSERT(d_sessionEventsQueue.size() > 0);
-//          bmqa::SessionEvent ret(d_receivedSessionEvents.front());
-//          d_receivedSessionEvents.pop_front();
-//          return ret;
-//      }
-//
-//      bmqa::MessageEvent popMessageEvent()
-//      {
-//          BSLS_ASSERT(d_messageEventsSize.size() > 0);
-//          bmqa::MessageEvent ret(d_receivedMessageEvents.front());
-//          d_receivedMessageEvents.erase(d_receivedMessageEvents.begin());
-//          return ret;
-//      }
-//
-//      bmqa::OpenQueueStatus popOpenQueueStatus()
-//      {
-//          BSLS_ASSERT(d_openQueueResultsQueue.size() > 0);
-//          bmqa::OpenQueueStatus ret(d_openQueueResultsQueue.front());
-//          d_openQueueResultsQueue.erase(d_openQueueResultsQueue.begin());
-//          return ret;
-//      }
-//      ...
-//  };
-//..
-//
-/// Usage
-///-----
-// This section illustrates intended use of this component.
-//
-/// Example 1
-///- - - - -
-// The folowing example shows a simple producer in asynchronous mode, which
-// will start the session, open a queue, post a message to the queue, generate
-// an ack for that message and finally stop the session (skipping over close
-// queue because it is analogous to opening a queue).  In theory, you can use
-// 'emitting' on the 'BMQA_EXPECT_CALL' macro and 'enqueueEvent'
-// interchangeably, but in practice it is important to note that events from
-// the broker are generated asynchronously, which means that they are not
-// emitted as you call the method.  You can control emission of events,
-// however, by delaying the call to 'emitEvent'.
-//
-// NOTE: As with 'bmqa::Session', calling 'nextEvent' is meaningless in
-//       asynchronous mode.
-//
-//..
-//  void unitTest()
-//  {
-//       // Create an event handler
-//       EventHandler eventHandler(d_allocator_p);
-//
-//       // The following static initializer method calls all the appropriate
-//       // static initializers of the underlying components needed for the
-//       // 'MockSession'.  The constructor of 'MockSession' will call it in
-//       // any case but if events need to be built outside the scope of the
-//       // creation of 'MockSession' you will need to explicitly invoke this
-//       // static initializer method.
-//       // bmqa::MockSession::initialize(s_allocator_p);
-//
-//       bslma::ManagedPtr<bmqa::SessionEventHandler> handlerMp;
-//       handlerMp.load(&eventHandler, 0, bslma::ManagedPtrUtil::noOpDeleter);
-//
-//       bmqa::MockSession mockSession(handlerMp,
-//                                     bmqt::SessionOptions(d_allocator_p),
-//                                     d_allocator_p);
-//
-//       bmqa::QueueId       queueId(bmqt::CorrelationId(1), d_allocator_p);
-//       bmqt::CorrelationId corrId(1);
-//
-//       // Expect a call to start and the call emits an 'e_CONNECTED' event.
-//       BMQA_EXPECT_CALL(mockSession, startAsync())
-//           .returning(0)
-//           .emitting(bmqa::MockSessionUtil::createSessionEvent(
-//                         bmqt::SessionEventType::e_CONNECTED,
-//                         0,   // statusCode
-//                         "",  // errorDescription
-//                         d_allocator_p));
-//
-//       // Make a call to startAsync and emit the event that is enqueued from
-//       // that call.
-//       ASSERT_EQ(mockSession.startAsync(), 0);
-//
-//       // Emit our enqueued event.  This fully sets up the session which is
-//       // now ready to use.  Typically you would have some business logic on
-//       // 'e_CONNECTED' that makes your application ready to use.
-//       ASSERT_EQ(mockSession.emitEvent(), true);
-//
-//       // Our event handler internally just stores the event emitted, so pop
-//       // it out and examine.
-//       bmqa::SessionEvent startEvent(eventHandler.popSessionEvent());
-//
-//       ASSERT_EQ(startEvent.type(), bmqt::SessionEventType::e_CONNECTED);
-//       ASSERT_EQ(startEvent.statusCode(), 0);
-//
-//       // Create the uri to your queue as you would in your application.
-//       const bmqt::Uri uri("bmq://my.domain/queue");
-//
-//       // Initialize the queue flags for a producer with acks enabled
-//       bsls::Types::Uint64 flags = 0;
-//       bmqt::QueueFlagsUtil::setWriter(&flags);
-//       bmqt::QueueFlagsUtil::setAck(&flags);
-//
-//       // We use the macro to expect a call to 'openQueueAsync', binding the
-//       // 'uri' and 'queueId' objects as well as the 'flags' that we created.
-//       bmqa::MockSession::OpenQueueCallback openQueueCallback =
-//           bdlf::BindUtil::bind(&EventHandler::onOpenQueueStatus,
-//                                &eventHandler,
-//                                bdlf::PlaceHolders::_1); // result
-//
-//       BMQA_EXPECT_CALL(mockSession,
-//                        openQueueAsync(uri1,
-//                                       flags,
-//                                       openQueueCallback));
-//       BMQA_EXPECT_CALL(mockSession,
-//                        openQueueAsync(uri, flags, openQueueCallback));
-//
-//       // Now that we have set our expectations we can try to open the queue.
-//       mockSession.openQueueAsync(uri1, flags, openQueueCallback);
-//
-//       // Since the application may not have direct access to the queue, we
-//       // need to get the 'queueId' from the session.  We can then bind this
-//       // retrieved 'queueId' to the 'e_QUEUE_OPEN_RESULT' session event and
-//       // enqueue it to the 'MockSession'.
-//       // Note: You can only get the 'queueId' after 'openQueue' or
-//       //       'openQueueAsync' has been invoked on the session.
-//       bmqa::QueueId         queueId1(corrId1);
-//       bmqa::OpenQueueStatus openQueueResult =
-//           bmqa::MockSessionUtil::createOpenQueueStatus(
-//                       queueId1,
-//                       bmqt::OpenQueueResult::e_TIMEOUT,  // statusCode
-//                       "Local Timeout",                   // errorDescription
-//                       d_allocator_p);
-//       mockSession.enqueueEvent(openQueueResult);
-//
-//       // We just enqueued a 'bmqa::OpenQueueStatus' to be emitted.  We can
-//       // emit it using 'emitEvent'.
-//       ASSERT_EQ(mockSession.emitEvent(), true);
-//
-//       //  Pop out this event from the handler and examine it.
-//       bmqa::OpenQueueStatus result = eventHandler.popOpenQueueStatus();
-//       ASSERT_EQ(result, openQueueResult);
-//
-//       // On emission of 'bmqa::OpenQueueStatus', the queue is fully open and
-//       // we can now post to it.
-//       bmqa::MessageEventBuilder builder;
-//       mockSession.loadMessageEventBuilder(&builder);
-//
-//       BMQA_EXPECT_CALL(mockSession, post(builder.messageEvent()))
-//           .returning(0);
-//
-//       // Use the builder to build a mesage event and pack it for the queue
-//       // that has been opened.  If you try to pack the message for an
-//       // invalid or closed queue, packing the message will fail. This has
-//       // been elided for brevity.
-//
-//       // Now that the event has been built we can 'post' it to BMQ.
-//       ASSERT_EQ(mockSession.post(builder.messageEvent()), 0);
-//
-//       // Simply creating a blob buffer factory on the stack to be used by
-//       // 'createAckEvent'.  Typically you would have one for the component.
-//       bdlbb::PooledBlobBufferFactory bufferFactory(4 * 1024, d_allocator_p);
-//
-//       // The method 'createAckEvent' takes a vector of 'AckParams' to
-//       // specify multiple acks per event, but here we are only acknowledging
-//       // 1 message.  Specify a positive ack with 'e_SUCCESS' here but you
-//       // can specify any from 'bmqt::AckResult::Enum'.
-//       bsl::vector<bmqa::MockSessionUtil::AckParams> acks(d_allocator_p);
-//       acks.emplace_back(bmqt::AckResult::e_SUCCESS,
-//                         bmqt::CorrelationId(1),
-//                         bmqt::MessageGUID(), // Real GUID needed if you want
-//                                              // to record ack messages.
-//                         bmqa::QueueId(1));
-//
-//       // Enqueuing ack event to be emitted.  We use the helper function
-//       // 'createAckEvent' to generate this event.
-//       mockSession.enqueueEvent(bmqa::MockSessionUtil::createAckEvent(
-//                                                             acks,
-//                                                             &bufferFactory,
-//                                                             d_allocator_p));
-//
-//       // Emit the enqueued ack event.
-//       ASSERT_EQ(mockSession.emitEvent(), true);
-//
-//       // As we did earlier, pop it out and examine.
-//       bmqa::MessageEvent ackEvent(eventHandler.popMessageEvent());
-//       ASSERT_EQ(ackEvent.type(), bmqt::MessageEventType::e_ACK);
-//       bmqa::MessageIterator mIter = ackEvent.messageIterator();
-//       mIter.nextMessage();
-//       ASSERT_EQ(mIter.message().ackStatus(), bmqt::AckResult::e_SUCCESS);
-//
-//       // This is a simple test.  After posting our message and receiving the
-//       // ack, we are now shutting down our application.  Therefore we expect
-//       // a 'stopAsync' call.
-//       BMQA_EXPECT_CALL(mockSession, stopAsync());
-//
-//       // Now make a call to 'stopAsync' to stop our session.
-//       mockSession.stopAsync();
-//
-//       // Here we are enqueuing an 'e_DISCONNECTED' event as you would
-//       // receive from the broker on a successful shutdown.
-//       mockSession.enqueueEvent(bmqa::MockSessionUtil::createSessionEvent(
-//                                      bmqt::SessionEventType::e_DISCONNECTED,
-//                                      0,   // statusCode
-//                                      "",  // errorDescription
-//                                      d_allocator_p));
-//       ASSERT_EQ(mockSession.emitEvent(), true);
-//
-//       // Our event handler internally just stores the event emitted, so pop
-//       // it out and examine.
-//       bmqa::SessionEvent stopEvent(eventHandler.popSessionEvent());
-//       ASSERT_EQ(stopEvent.type(), bmqt::SessionEventType::e_DISCONNECTED);
-//       ASSERT_EQ(stopEvent.statusCode(), 0);
-//
-//      // The corresponding pendant operation of the 'initialize' which would
-//      // need to be called only if 'initialize' was explicitly called.
-//      // bmqa::MockSession::shutdown();
-//   }
-//..
-//
-/// Example 2
-///- - - - -
-// The folowing example shows a consumer in synchronous mode, which will start
-// the session, generate a push message (simulating the broker), confirm the
-// message and then stop the session.  Additionally, this test case also sets
-// all expectations up front before running the code, as this is the alternate
-// way of writing your test driver.
-//
-// NOTE: Using 'enqueue' or 'emitEvent' on 'bmqa::MockSession' or 'emitting' on
-//       the 'BMQA_EXPECT_CALL' macro in synchronous mode is meaningless.
-//
-//..
-//  void unitTest()
-//  {
-//      // MockSession created without an eventHandler.
-//      bmqa::MockSession mockSession(bmqt::SessionOptions(d_allocator_p),
-//                                    d_allocator_p);
-//
-//      // The following static initializer method calls all the appropriate
-//      // static initializers of the underlying components needed for the
-//      // 'MockSession'.  The constructor of 'MockSession' will call it in
-//      // any case but if events need to be built outside the scope of the
-//      // creation of 'MockSession' you will need to explicitly invoke this
-//      // static initializer method.
-//      // bmqa::MockSession::initialize(s_allocator_p);
-//
-//      // Create simple queueIds and corrIds
-//      bmqa::QueueId       queueId(1);
-//      bmqt::CorrelationId corrId(1);
-//
-//      // Create the uri to your queue as you would in your application.
-//      bmqt::Uri uri("bmq://my.domain/queue");
-//
-//      // Expecting that 'startAsync' will be called on the MockSession.
-//      BMQA_EXPECT_CALL(mockSession, startAsync())
-//          .returning(0);
-//
-//      // Simply creating a blob buffer factory on the stack to be used by
-//      // 'createAckEvent'.  Typically you would have one for the component.
-//      bdlbb::PooledBlobBufferFactory bufferFactory(4 * 1024, d_allocator_p);
-//
-//      // We then expect that 'nextEvent' will be called to return the
-//      // 'e_CONNECTED' event from the broker
-//      BMQA_EXPECT_CALL(mockSession, nextEvent(bsls::TimeInterval()))
-//          .returning(bmqa::MockSessionUtil::createSessionEvent(
-//                         bmqt::SessionEventType::e_CONNECTED,
-//                         bmqt::CorrelationId::autoValue(),
-//                         0,   // errorCode
-//                         "",  // errorDescription
-//                         d_allocator_p));
-//          // Note that we use an 'autoValue' for correlationId because it's
-//          // irrelevant for a 'CONNECTED' event.
-//
-//       // Initialize the queue flags for a consumer
-//       bsls::Types::Uint64 flags = 0;
-//       bmqt::QueueFlagsUtil::setReader(&flags);
-//
-//      // We use the macro to expect a call to 'openQueueSync', binding the
-//      // 'uri' and 'queueId' objects as well as the flags that we created.
-//      // Note that the 'queueId' object will be modified as 'openQueueSync'
-//      // takes it as an output parameter.
-//      bmqa::OpenQueueStatus expectedResult =
-//          bmqa::MockSessionUtil::createOpenQueueStatus(
-//                       queueId,
-//                       bmqt::OpenQueueResult::e_SUCCESS,  // statusCode
-//                       "",                                // errorDescription
-//                       d_allocator_p);
-//      BMQA_EXPECT_CALL(mockSession, openQueueSync(&queueId, uri, flags))
-//          .returning(expectedResult);
-//
-//      // Build our incoming message event.
-//      bsl::vector<bmqa::MockSessionUtil::PushMessageParams> pushMsgs(
-//                                                              d_allocator_p);
-//      bdlbb::Blob payload(&bufferFactory, d_allocator_p);
-//      bdlbb::BlobUtil::append(&payload, "hello", 6);
-//
-//      const char        guidHex[] = "00000000000000000000000000000001";
-//      bmqt::MessageGUID guid;
-//      guid.fromHex(guidHex);
-//
-//      bmqa::MessageProperties properties;
-//      mockSession.loadMessageProperties(&properties);
-//
-//      // For each message that we are supposed to receive from the broker,
-//      // we need to specify the payload, the queueId, a guid (the hex is
-//      // random but unique within your test driver) and properties which
-//      // could be empty.
-//      pushMsgs.emplace_back(payload, queueId, guid, properties);
-//      bmqa::Event pushMsgEvent = bmqa::MockSessionUtil::createPushEvent(
-//                                                              pushMsgs,
-//                                                              &bufferFactory,
-//                                                              d_allocator_p);
-//      BMQA_EXPECT_CALL(mockSession, nextEvent(bsls::TimeInterval()))
-//          .returning(pushMsgEvent);
-//
-//      // Next we expect a call to 'confirmMessages', to confirm the 1 message
-//      // that we received from the broker.
-//      bmqa::ConfirmEventBuilder confirmBuilder;
-//      mockSession.loadConfirmEventBuilder(&confirmBuilder);
-//      BMQA_EXPECT_CALL(mockSession, confirmMessages(&confirmBuilder))
-//          .returning(0);
-//
-//      // Expectations have been set up.  Now we run the code.
-//      // 'startAsync' is the first call.  We expect it to return 0 and we
-//      // expect 'nextEvent' to return the 'e_CONNECTED' session event.
-//      int rc = mockSession.startAsync();
-//      ASSERT_EQ(rc, 0);
-//      bmqa::SessionEvent startEvent = mockSession.nextEvent(
-//                                                        bsls::TimeInterval())
-//          .sessionEvent();
-//      ASSERT_EQ(startEvent.type(), bmqt::SessionEventType::e_CONNECTED);
-//      ASSERT_EQ(startEvent.statusCode(),       0);
-//      ASSERT_EQ(startEvent.errorDescription(), "");
-//
-//      // Next we expect a call to 'openQueue' to open the queue.
-//      bmqa::OpenQueueStatus result = mockSession.openQueueSync(&queueId,
-//                                                               uri,
-//                                                               flags);
-//      ASSERT_EQ(result, expectedResult);
-//
-//      // Now our call to 'nextEvent' will generate a push message from the
-//      // broker, which we will then go on to confirm.
-//      bmqa::MessageEvent pushMsgEvt(mockSession.nextEvent(
-//                                                        bsls::TimeInterval())
-//                                                            .messageEvent());
-//      ASSERT_EQ(pushMsgEvt.type(), bmqt::MessageEventType::e_PUSH);
-//
-//      // Now that we have received a push message which has yet to be
-//      // confirmed, we can confirm that 1 unconfirmed message exists.
-//      ASSERT_EQ(mockSession.unconfirmedMessages(), 1U);
-//
-//      // Since there is only 1 message in our message event, we dont have to
-//      // iterate over the event but in reality you will want to iterate over
-//      // each message and add it to the confirm builder.
-//      bmqa::MessageIterator mIter = pushMsgEvt.messageIterator();
-//      mIter.nextMessage();
-//      confirmBuilder.addMessageConfirmation(mIter.message());
-//      ASSERT_EQ(confirmBuilder.messageCount(), 1);
-//
-//      // Confirm the messages using the builder that has been populated.
-//      rc = mockSession.confirmMessages(&confirmBuilder);
-//      ASSERT_EQ(rc, 0);
-//
-//      // Voila! We now have no unconfirmed messages.
-//      ASSERT_EQ(mockSession.unconfirmedMessages(), 0u);
-//      // 'stop' has been elided for brevity and is analogous to 'start'
-//
-//      // The corresponding pendant operation of the 'initialize' which would
-//      // need to be called only if 'initialize' was explicitly called.
-//      // bmqa::MockSession::shutdown();
-//  }
-//..
-//
-/// Thread Safety
-///-------------
-// THREAD SAFE.
+/// @file bmqa_mocksession.h
+///
+/// @brief Provide a mock session, implementing @bbref{bmqa::AbstractSession}.
+///
+/// This component provides a mechanism implementing the
+/// @bbref{bmqa::AbstractSession} protocol, for mocking a @bbref{bmqa::Session}
+/// and can be used to write a test for an application that uses BMQ.  The
+/// @bbref{bmqa::MockSession} provides all the methods that
+/// @bbref{bmqa::Session} provides, with added methods to specify return codes
+/// and emitted events and expected calls.  This can be used to test BlazingMQ
+/// application code without a connection to the broker.
+/// @bbref{bmqa::MockSessionUtil} is a utility namespace providing useful
+/// methods to build @bbref{bmqa::Event} objects that are typically only
+/// emitted from the broker.
+///
+/// The following documentation elucidates the API that this component provides
+/// and some simple use cases to get you started.
+///
+///
+/// Disclaimer                                   {#bmqa_mocksession_disclaimer}
+/// ==========
+///
+/// @warning THIS COMPONENT SHOULD ONLY BE USED IN TEST DRIVERS.  IT WILL NOT
+/// WORK WITH PRODUCTION CODE.
+///
+/// Usable Components                                {#bmqa_mocksession_usable}
+/// =================
+///
+///   - **BMQA_EXPECT_CALL**: Macro to specify an expected call to a
+///     @bbref{bmqa::MockSession} object. This macro is used to specify which
+///     is the next expected call on the @bbref{bmqa::MockSession}.  If an
+///     incorrect call is invoked or incorrect parameters are used, an assert
+///     will be invoked.
+///
+///   - **returning**: Specify a return value for the expected call.  This is
+///     the value that will be returned when the method on
+///     @bbref{bmqa::MockSession} is invoked.
+///
+///   - **emitting**: Specify an event to be `emitted` when the expected call
+///     is invoked.  The events specified are enqueued to the internal event
+///     queue and are delivered to the application when `emitEvent` is invoked.
+///
+/// Static Helper Methods                            {#bmqa_mocksession_helper}
+/// =====================
+///
+///   - **createAckEvent**: Create an acknowledgment message event for messages
+///     posted to BMQ.
+///
+///   - **createPushEvent**: Create a push message event for messages to be
+///     consumed from BMQ.
+///
+///   - **createOpenQueueStatus**: Create an openQueue result (relating to an
+///     async open queue operation)
+///
+///   - **createConfigureQueueStatus**: Create a configureQueue result
+///     (relating to an async configure queue operation)
+///
+///   - **createCloseQueueStatus**: Create a closeQueue result (relating to an
+///     async close queue operation)
+///
+///   - **createSessionEvent**: Create a specified type of session event except
+///     for events related to open, close and configure queue.
+///
+/// The static event builder specified above are typically built inside the
+/// broker but are now available to be built in the SDK.  The expected use of
+/// such events is to build them and specify them to either the @ref
+/// BMQA_EXPECT_CALL macro in the `emitting` parameter, or enqueued to the
+/// @bbref{bmqa::MockSession} directly through the `enqueueEvent` method.  They
+/// can then be emitted by invoking the `emitEvent` method, which in turn would
+/// be processed through the application-provided
+/// @bbref{bmqa::SessionEventHandler}.
+///
+/// Additional Note                              {#bmqa_mocksession_additional}
+/// ===============
+///
+/// @bbref{bmqa::MockSession} does not check if methods have been invoked
+/// in the correct order.  The user is responsible for ensuring that the
+/// methods are invoked and events enqueued in the correct order.
+///
+/// The following methods do not emit events:
+///
+///   - `getQueueId`
+///   - `loadMessageEventBuilder`
+///   - `loadConfirmEventBuilder`
+///   - `loadMessageProperties`
+///   - `confirmMessage`
+///   - `confirmMessages`
+///
+/// Calls to the following methods do not require an expect:
+///
+///   - `getQueueId`
+///   - `loadMessageEventBuilder`
+///   - `loadConfirmEventBuilder`
+///   - `loadMessageProperties`
+///
+///
+/// Creating a mock session in asynchronous mode   {#bmqa_mocksession_creating}
+/// ============================================
+///
+/// The @bbref{bmqa::MockSession} is created in asynchronous mode when a
+/// @bbref{bmqa::SessionEventHandler} is provided to it.  If it is not provided
+/// a handler, the @bbref{bmqa::MockSession} is started in synchronous mode,
+/// requiring the application to call `nextEvent` to access enqueued events.  A
+/// sample handler could look like this:
+///
+/// ```
+/// class MyEventHandler : public bmqa::SessionEventHandler {
+///
+///   private:
+///     // DATA
+///     bsl::deque<bmqa::SessionEvent>    d_sessionEventsQueue;
+///     bsl::deque<bmqa::MessageEvents>   d_messageEventsQueue;
+///     bsl::deque<bmqa::OpenQueueStatus> d_openQueueResultsQueue;
+///     ...
+///
+///   public:
+///     // MANIPULATORS
+///     virtual void onSessionEvent(const bmqa::SessionEvent& event)
+///     {
+///         bsl::cout << "Received session event " << event << "\n";
+///         // some business logic, typically a switch case on
+///         // 'bmqt::SessionEventType'
+///         d_sessionEventsQueue.push_back(event);
+///     }
+///
+///     virtual void onMessageEvent(const bmqa::MessageEvent& event)
+///     {
+///         bsl::cout << "Received message event " << event << "\n";
+///         // some business logic, typically a switch case on
+///         // 'bmqt::MessageEventType'
+///         d_messageEventsQueue.push_back(event);
+///     }
+///
+///     void onOpenQueueStatus(const bmqa::OpenQueueStatus& result)
+///     {
+///         bsl::cout << "Received open queue result: " << result << "\n";
+///         // Some business logic
+///         d_openQueueResultsQueue.push_back(result);
+///     }
+///     ...
+///
+///     bmqa::SessionEvent popSessionEvent()
+///     {
+///         BSLS_ASSERT(d_sessionEventsQueue.size() > 0);
+///         bmqa::SessionEvent ret(d_receivedSessionEvents.front());
+///         d_receivedSessionEvents.pop_front();
+///         return ret;
+///     }
+///
+///     bmqa::MessageEvent popMessageEvent()
+///     {
+///         BSLS_ASSERT(d_messageEventsSize.size() > 0);
+///         bmqa::MessageEvent ret(d_receivedMessageEvents.front());
+///         d_receivedMessageEvents.erase(d_receivedMessageEvents.begin());
+///         return ret;
+///     }
+///
+///     bmqa::OpenQueueStatus popOpenQueueStatus()
+///     {
+///         BSLS_ASSERT(d_openQueueResultsQueue.size() > 0);
+///         bmqa::OpenQueueStatus ret(d_openQueueResultsQueue.front());
+///         d_openQueueResultsQueue.erase(d_openQueueResultsQueue.begin());
+///         return ret;
+///     }
+///     ...
+/// };
+/// ```
+///
+/// Usage                                             {#bmqa_mocksession_usage}
+/// =====
+///
+/// This section illustrates intended use of this component.
+///
+/// Example 1                                           {#bmqa_mocksession_ex1}
+/// ---------
+///
+/// The folowing example shows a simple producer in asynchronous mode, which
+/// will start the session, open a queue, post a message to the queue, generate
+/// an ack for that message and finally stop the session (skipping over close
+/// queue because it is analogous to opening a queue).  In theory, you can use
+/// `emitting` on the @ref BMQA_EXPECT_CALL macro and `enqueueEvent`
+/// interchangeably, but in practice it is important to note that events from
+/// the broker are generated asynchronously, which means that they are not
+/// emitted as you call the method.  You can control emission of events,
+/// however, by delaying the call to `emitEvent`.
+///
+/// @note As with @bbref{bmqa::Session}, calling `nextEvent` is meaningless in
+///       asynchronous mode.
+///
+/// ```
+/// void unitTest()
+/// {
+///     // Create an event handler
+///     EventHandler eventHandler(d_allocator_p);
+///
+///     // The following static initializer method calls all the appropriate
+///     // static initializers of the underlying components needed for the
+///     // 'MockSession'.  The constructor of 'MockSession' will call it in
+///     // any case but if events need to be built outside the scope of the
+///     // creation of 'MockSession' you will need to explicitly invoke this
+///     // static initializer method.
+///     // bmqa::MockSession::initialize(s_allocator_p);
+///
+///     bslma::ManagedPtr<bmqa::SessionEventHandler> handlerMp;
+///     handlerMp.load(&eventHandler, 0, bslma::ManagedPtrUtil::noOpDeleter);
+///
+///     bmqa::MockSession mockSession(handlerMp,
+///                                   bmqt::SessionOptions(d_allocator_p),
+///                                   d_allocator_p);
+///
+///     bmqa::QueueId       queueId(bmqt::CorrelationId(1), d_allocator_p);
+///     bmqt::CorrelationId corrId(1);
+///
+///     // Expect a call to start and the call emits an 'e_CONNECTED' event.
+///     BMQA_EXPECT_CALL(mockSession, startAsync())
+///         .returning(0)
+///         .emitting(bmqa::MockSessionUtil::createSessionEvent(
+///                       bmqt::SessionEventType::e_CONNECTED,
+///                       0,   // statusCode
+///                       "",  // errorDescription
+///                       d_allocator_p));
+///
+///     // Make a call to startAsync and emit the event that is enqueued from
+///     // that call.
+///     ASSERT_EQ(mockSession.startAsync(), 0);
+///
+///     // Emit our enqueued event.  This fully sets up the session which is
+///     // now ready to use.  Typically you would have some business logic on
+///     // 'e_CONNECTED' that makes your application ready to use.
+///     ASSERT_EQ(mockSession.emitEvent(), true);
+///
+///     // Our event handler internally just stores the event emitted, so pop
+///     // it out and examine.
+///     bmqa::SessionEvent startEvent(eventHandler.popSessionEvent());
+///
+///     ASSERT_EQ(startEvent.type(), bmqt::SessionEventType::e_CONNECTED);
+///     ASSERT_EQ(startEvent.status Code(), 0);
+///
+///     // Create the uri to your queue as you would in your application.
+///     const bmqt::Uri uri("bmq://my.domain/queue");
+///
+///     // Initialize the queue flags for a producer with acks enabled
+///     bsls::Types::Uint64 flags = 0;
+///     bmqt::QueueFlagsUtil::setWriter(&flags);
+///     bmqt::QueueFlagsUtil::setAck(&flags);
+///
+///     // We use the macro to expect a call to 'openQueueAsync', binding the
+///     // 'uri' and 'queueId' objects as well as the 'flags' that we created.
+///     bmqa::MockSession::OpenQueueCallback openQueueCallback =
+///         bdlf::BindUtil::bind(&EventHandler::onOpenQueueStatus,
+///                              &eventHandler,
+///                              bdlf::PlaceHolders::_1); // result
+///
+///     BMQA_EXPECT_CALL(mockSession,
+///                      openQueueAsync(uri1,
+///                                     flags,
+///                                     openQueueCallback));
+///     BMQA_EXPECT_CALL(mockSession,
+///                      openQueueAsync(uri, flags, openQueueCallback));
+///
+///     // Now that we have set our expectations we can try to open the queue.
+///     mockSession.openQueueAsync(uri1, flags, openQueueCallback);
+///
+///     // Since the application may not have direct access to the queue, we
+///     // need to get the 'queueId' from the session.  We can then bind this
+///     // retrieved 'queueId' to the 'e_QUEUE_OPEN_RESULT' session event and
+///     // enqueue it to the 'MockSession'.
+///     // Note: You can only get the 'queueId' after 'openQueue' or
+///     //       'openQueueAsync' has been invoked on the session.
+///     bmqa::QueueId         queueId1(corrId1);
+///     bmqa::OpenQueueStatus openQueueResult =
+///         bmqa::MockSessionUtil::createOpenQueueStatus(
+///                     queueId1,
+///                     bmqt::OpenQueueResult::e_TIMEOUT,  // statusCode
+///                     "Local Timeout",                   // errorDescription
+///                     d_allocator_p);
+///     mockSession.enqueueEvent(openQueueResult);
+///
+///     // We just enqueued a 'bmqa::OpenQueueStatus' to be emitted.  We can
+///     // emit it using 'emitEvent'.
+///     ASSERT_EQ(mockSession.emitEvent(), true);
+///
+///     //  Pop out this event from the handler and examine it.
+///     bmqa::OpenQueueStatus result = eventHandler.popOpenQueueStatus();
+///     ASSERT_EQ(result, openQueueResult);
+///
+///     // On emission of 'bmqa::OpenQueueStatus', the queue is fully open and
+///     // we can now post to it.
+///     bmqa::MessageEventBuilder builder;
+///     mockSession.loadMessageEventBuilder(&builder);
+///
+///     BMQA_EXPECT_CALL(mockSession, post(builder.messageEvent()))
+///         .returning(0);
+///
+///     // Use the builder to build a mesage event and pack it for the queue
+///     // that has been opened.  If you try to pack the message for an
+///     // invalid or closed queue, packing the message will fail. This has
+///     // been elided for brevity.
+///
+///     // Now that the event has been built we can 'post' it to BMQ.
+///     ASSERT_EQ(mockSession.post(builder.messageEvent()), 0);
+///
+///     // Simply creating a blob buffer factory on the stack to be used by
+///     // 'createAckEvent'.  Typically you would have one for the component.
+///     bdlbb::PooledBlobBufferFactory bufferFactory(4 * 1024, d_allocator_p);
+///
+///     // The method 'createAckEvent' takes a vector of 'AckParams' to
+///     // specify multiple acks per event, but here we are only acknowledging
+///     // 1 message.  Specify a positive ack with 'e_SUCCESS' here but you
+///     // can specify any from 'bmqt::AckResult::Enum'.
+///     bsl::vector<bmqa::MockSessionUtil::AckParams> acks(d_allocator_p);
+///     acks.emplace_back(bmqt::AckResult::e_SUCCESS,
+///                       bmqt::CorrelationId(1),
+///                       bmqt::MessageGUID(), // Real GUID needed if you want
+///                                            // to record ack messages.
+///                       bmqa::QueueId(1));
+///
+///     // Enqueuing ack event to be emitted.  We use the helper function
+///     // 'createAckEvent' to generate this event.
+///     mockSession.enqueueEvent(bmqa::MockSessionUtil::createAckEvent(
+///                                                           acks,
+///                                                           &bufferFactory,
+///                                                           d_allocator_p));
+///
+///     // Emit the enqueued ack event.
+///     ASSERT_EQ(mockSession.emitEvent(), true);
+///
+///     // As we did earlier, pop it out and examine.
+///     bmqa::MessageEvent ackEvent(eventHandler.popMessageEvent());
+///     ASSERT_EQ(ackEvent.type(), bmqt::MessageEventType::e_ACK);
+///     bmqa::MessageIterator mIter = ackEvent.messageIterator();
+///     mIter.nextMessage();
+///     ASSERT_EQ(mIter.message().ackStatus(), bmqt::AckResult::e_SUCCESS);
+///
+///     // This is a simple test.  After posting our message and receiving the
+///     // ack, we are now shutting down our application.  Therefore we expect
+///     // a 'stopAsync' call.
+///     BMQA_EXPECT_CALL(mockSession, stopAsync());
+///
+///     // Now make a call to 'stopAsync' to stop our session.
+///     mockSession.stopAsync();
+///
+///     // Here we are enqueuing an 'e_DISCONNECTED' event as you would
+///     // receive from the broker on a successful shutdown.
+///     mockSession.enqueueEvent(bmqa::MockSessionUtil::createSessionEvent(
+///                                    bmqt::SessionEventType::e_DISCONNECTED,
+///                                    0,   // statusCode
+///                                    "",  // errorDescription
+///                                    d_allocator_p));
+///     ASSERT_EQ(mockSession.emitEvent(), true);
+///
+///     // Our event handler internally just stores the event emitted, so pop
+///     // it out and examine.
+///     bmqa::SessionEvent stopEvent(eventHandler.popSessionEvent());
+///     ASSERT_EQ(stopEvent.type(), bmqt::SessionEventType::e_DISCONNECTED);
+///     ASSERT_EQ(stopEvent.statusCode(), 0);
+///
+///     // The corresponding pendant operation of the 'initialize' which would
+///     // need to be called only if 'initialize' was explicitly called.
+///     // bmqa::MockSession::shutdown();
+/// }
+/// ```
+///
+/// Example 2                                           {#bmqa_mocksession_ex2}
+/// ---------
+///
+/// The folowing example shows a consumer in synchronous mode, which will start
+/// the session, generate a push message (simulating the broker), confirm the
+/// message and then stop the session.  Additionally, this test case also sets
+/// all expectations up front before running the code, as this is the alternate
+/// way of writing your test driver.
+///
+/// @note Using `enqueue` or `emitEvent` on @bbref{bmqa::MockSession} or
+///       `emitting` on the @ref BMQA_EXPECT_CALL macro in synchronous mode is
+///       meaningless.
+///
+///```
+/// void unitTest()
+/// {
+///     // MockSession created without an eventHandler.
+///     bmqa::MockSession mockSession(bmqt::SessionOptions(d_allocator_p),
+///                                   d_allocator_p);
+///
+///     // The following static initializer method calls all the appropriate
+///     // static initializers of the underlying components needed for the
+///     // 'MockSession'.  The constructor of 'MockSession' will call it in
+///     // any case but if events need to be built outside the scope of the
+///     // creation of 'MockSession' you will need to explicitly invoke this
+///     // static initializer method.
+///     // bmqa::MockSession::initialize(s_allocator_p);
+///
+///     // Create simple queueIds and corrIds
+///     bmqa::QueueId       queueId(1);
+///     bmqt::CorrelationId corrId(1);
+///
+///     // Create the uri to your queue as you would in your application.
+///     bmqt::Uri uri("bmq://my.domain/queue");
+///
+///     // Expecting that 'startAsync' will be called on the MockSession.
+///     BMQA_EXPECT_CALL(mockSession, startAsync())
+///         .returning(0);
+///
+///     // Simply creating a blob buffer factory on the stack to be used by
+///     // 'createAckEvent'.  Typically you would have one for the component.
+///     bdlbb::PooledBlobBufferFactory bufferFactory(4 * 1024, d_allocator_p);
+///
+///     // We then expect that 'nextEvent' will be called to return the
+///     // 'e_CONNECTED' event from the broker
+///     BMQA_EXPECT_CALL(mockSession, nextEvent(bsls::TimeInterval()))
+///         .returning(bmqa::MockSessionUtil::createSessionEvent(
+///                        bmqt::SessionEventType::e_CONNECTED,
+///                        bmqt::CorrelationId::autoValue(),
+///                        0,   // errorCode
+///                        "",  // errorDescription
+///                        d_allocator_p));
+///         // Note that we use an 'autoValue' for correlationId because it's
+///         // irrelevant for a 'CONNECTED' event.
+///
+///      // Initialize the queue flags for a consumer
+///      bsls::Types::Uint64 flags = 0;
+///      bmqt::QueueFlagsUtil::setReader(&flags);
+///
+///     // We use the macro to expect a call to 'openQueueSync', binding the
+///     // 'uri' and 'queueId' objects as well as the flags that we created.
+///     // Note that the 'queueId' object will be modified as 'openQueueSync'
+///     // takes it as an output parameter.
+///     bmqa::OpenQueueStatus expectedResult =
+///         bmqa::MockSessionUtil::createOpenQueueStatus(
+///                      queueId,
+///                      bmqt::OpenQueueResult::e_SUCCESS,  // statusCode
+///                      "",                                // errorDescription
+///                      d_allocator_p);
+///     BMQA_EXPECT_CALL(mockSession, openQueueSync(&queueId, uri, flags))
+///         .returning(expectedResult);
+///
+///     // Build our incoming message event.
+///     bsl::vector<bmqa::MockSessionUtil::PushMessageParams> pushMsgs(
+///                                                             d_allocator_p);
+///     bdlbb::Blob payload(&bufferFactory, d_allocator_p);
+///     bdlbb::BlobUtil::append(&payload, "hello", 6);
+///
+///     const char        guidHex[] = "00000000000000000000000000000001";
+///     bmqt::MessageGUID guid;
+///     guid.fromHex(guidHex);
+///
+///     bmqa::MessageProperties properties;
+///     mockSession.loadMessageProperties(&properties);
+///
+///     // For each message that we are supposed to receive from the broker,
+///     // we need to specify the payload, the queueId, a guid (the hex is
+///     // random but unique within your test driver) and properties which
+///     // could be empty.
+///     pushMsgs.emplace_back(payload, queueId, guid, properties);
+///     bmqa::Event pushMsgEvent = bmqa::MockSessionUtil::createPushEvent(
+///                                                             pushMsgs,
+///                                                             &bufferFactory,
+///                                                             d_allocator_p);
+///     BMQA_EXPECT_CALL(mockSession, nextEvent(bsls::TimeInterval()))
+///         .returning(pushMsgEvent);
+///
+///     // Next we expect a call to 'confirmMessages', to confirm the 1 message
+///     // that we received from the broker.
+///     bmqa::ConfirmEventBuilder confirmBuilder;
+///     mockSession.loadConfirmEventBuilder(&confirmBuilder);
+///     BMQA_EXPECT_CALL(mockSession, confirmMessages(&confirmBuilder))
+///         .returning(0);
+///
+///     // Expectations have been set up.  Now we run the code.
+///     // 'startAsync' is the first call.  We expect it to return 0 and we
+///     // expect 'nextEvent' to return the 'e_CONNECTED' session event.
+///     int rc = mockSession.startAsync();
+///     ASSERT_EQ(rc, 0);
+///     bmqa::SessionEvent startEvent = mockSession.nextEvent(
+///                                                       bsls::TimeInterval())
+///         .sessionEvent();
+///     ASSERT_EQ(startEvent.type(), bmqt::SessionEventType::e_CONNECTED);
+///     ASSERT_EQ(startEvent.statusCode(),       0);
+///     ASSERT_EQ(startEvent.errorDescription(), "");
+///
+///     // Next we expect a call to 'openQueue' to open the queue.
+///     bmqa::OpenQueueStatus result = mockSession.openQueueSync(&queueId,
+///                                                              uri,
+///                                                              flags);
+///     ASSERT_EQ(result, expectedResult);
+///
+///     // Now our call to 'nextEvent' will generate a push message from the
+///     // broker, which we will then go on to confirm.
+///     bmqa::MessageEvent pushMsgEvt(mockSession.nextEvent(
+///                                                       bsls::TimeInterval())
+///                                                           .messageEvent());
+///     ASSERT_EQ(pushMsgEvt.type(), bmqt::MessageEventType::e_PUSH);
+///
+///     // Now that we have received a push message which has yet to be
+///     // confirmed, we can confirm that 1 unconfirmed message exists.
+///     ASSERT_EQ(mockSession.unconfirmedMessages(), 1U);
+///
+///     // Since there is only 1 message in our message event, we dont have to
+///     // iterate over the event but in reality you will want to iterate over
+///     // each message and add it to the confirm builder.
+///     bmqa::MessageIterator mIter = pushMsgEvt.messageIterator();
+///     mIter.nextMessage();
+///     confirmBuilder.addMessageConfirmation(mIter.message());
+///     ASSERT_EQ(confirmBuilder.messageCount(), 1);
+///
+///     // Confirm the messages using the builder that has been populated.
+///     rc = mockSession.confirmMessages(&confirmBuilder);
+///     ASSERT_EQ(rc, 0);
+///
+///     // Voila! We now have no unconfirmed messages.
+///     ASSERT_EQ(mockSession.unconfirmedMessages(), 0u);
+///     // 'stop' has been elided for brevity and is analogous to 'start'
+///
+///     // The corresponding pendant operation of the 'initialize' which would
+///     // need to be called only if 'initialize' was explicitly called.
+///     // bmqa::MockSession::shutdown();
+/// }
+/// ```
+///
+/// Thread Safety                                    {#bmqa_mocksession_thread}
+/// -------------
+///
+/// THREAD SAFE.
 
 // BMQ
 #include <bmqa_abstractsession.h>

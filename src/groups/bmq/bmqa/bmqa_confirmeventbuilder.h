@@ -17,83 +17,87 @@
 #ifndef INCLUDED_BMQA_CONFIRMEVENTBUILDER
 #define INCLUDED_BMQA_CONFIRMEVENTBUILDER
 
-//@PURPOSE: Provide a builder for batching confirmation messages.
-//
-//@CLASSES:
-//  bmqa::ConfirmEventBuilder: builder for batching confirmation messages.
-//
-//@DESCRIPTION: This component implements a mechanism,
-// 'bmqa::ConfirmEventBuilder', that can be used for batching CONFIRM messages.
-// The resulting batch can be sent to the BlazingMQ broker using the
-// 'bmqa::Session' (refer to 'bmqa_session' for details).  Wherever possible, a
-// BlazingMQ consumer should try to send a batch of CONFIRM messages, which is
-// more efficient than confirming messages individually.
-//
-// The builder holds a batch of CONFIRM messages under construction, and
-// provides two flavors of 'addMessageConfirmation' method to add a CONFIRM
-// message to the batch.  It also provides a routine to retrieve number of
-// CONFIRM messages added to the batch.  Once application is done creating the
-// batch, it can retrieve the blob (wire-representation) of the batch and send
-// it via 'bmqa::Session'.  See 'Usage' section for more details.
-//
-/// Usage
-///-----
-//: o An instance of bmqa::ConfirmEventBuilder (the builder) can be used to
-//:   create multiple batches of CONFIRM messages.  The recommended approach is
-//:   to create one instance of the builder and use it throughout the lifetime
-//:   of the task (if the task is multi-threaded, an instance per thread must
-//:   be created and maintained).  See usage example #1 for an illustration.
-//:
-//: o The lifetime of an instance of the builder is bound by the bmqa::Session
-//:   from which it was created.  In other words, bmqa::Session instance must
-//:   outlive the builder instance.
-//
-/// Example 1 - Basic Usage
-///-----------------------
-//..
-//   // In this snippet, we will send a batch of CONFIRMs for all the
-//   // 'bmqa::Message' messages received in a 'bmqa::MessageEvent'.
-//
-//   // Note that error handling is omitted from the snippet for the sake of
-//   // brevity.
-//
-//   bmqa::Session session;
-//       // Session start up logic elided.
-//
-//   // Create and load an instance of the ConfirmEventBuilder.  Note that in
-//   // this example, we are creating the builder on the stack everytime a
-//   // message event is received.  Another approach can be to maintain the
-//   // builder as a data member and use it everytime.
-//
-//   bmqa::ConfirmEventBuilder builder;
-//   session.loadConfirmEventBuilder(&builder);
-//
-//   // Assuming that a 'bmqa::MessageEvent' is received.
-//
-//   bmqa::MessageIterator iter = messageEvent.messageIterator();
-//   while (iter.nextMessage()) {
-//       const bmqa::Message& msg = iter.message();
-//
-//       // Business logic for processing 'msg' elided.
-//
-//       int rc = builder.addMessageConfirmation(msg);
-//           // Error handling elided.
-//   }
-//
-//   // All messages in the event have been processed and their corresponding
-//   // CONFIRM messages have been batched.  Now its time to send the batch to
-//   // the BlazingMQ broker.
-//
-//   int rc = session.confirmMessages(&builder);
-//       // Error handling elided.  Note that in case of success, above method
-//       // will also reset the 'builder'.
-//..
-//
-/// Thread Safety
-///-------------
-// This component is *NOT* thread safe.  If it is desired to create a batch of
-// CONFIRM messages from multiple threads, an instance of the builder must be
-// created and maintained *per* *thread*.
+/// @file bmqa_confirmeventbuilder.h
+///
+/// @brief Provide a builder for batching confirmation messages.
+///
+/// This component implements a mechanism, @bbref{bmqa::ConfirmEventBuilder},
+/// that can be used for batching CONFIRM messages.  The resulting batch can be
+/// sent to the BlazingMQ broker using the @bbref{bmqa::Session} (refer to @ref
+/// bmqa_session.h for details).  Wherever possible, a BlazingMQ consumer
+/// should try to send a batch of CONFIRM messages, which is more efficient
+/// than confirming messages individually.
+///
+/// The builder holds a batch of CONFIRM messages under construction, and
+/// provides two flavors of addMessageConfirmation method to add a CONFIRM
+/// message to the batch.  It also provides a routine to retrieve number of
+/// CONFIRM messages added to the batch.  Once application is done creating the
+/// batch, it can retrieve the blob (wire-representation) of the batch and send
+/// it via @bbref{bmqa::Session}.  See [the usage
+/// section](#bmqa_confirmeventbuilder_usage) for more details.
+///
+/// Usage                                     {#bmqa_confirmeventbuilder_usage}
+/// =====
+///
+///   - An instance of @bbref{bmqa::ConfirmEventBuilder} (the builder) can be
+///     used to create multiple batches of CONFIRM messages.  The recommended
+///     approach is to create one instance of the builder and use it throughout
+///     the lifetime of the task (if the task is multi-threaded, an instance
+///     per thread must be created and maintained).  See [usage example
+///     1](#bmqa_confirmeventbuilder_ex1) for an illustration.
+///
+///   - The lifetime of an instance of the builder is bound by the
+///     @bbref{bmqa::Session} from which it was created.  In other words,
+///     @bbref{bmqa::Session} instance must outlive the builder instance.
+///
+/// Example 1 - Basic Usage                     {#bmqa_confirmeventbuilder_ex1}
+/// -----------------------
+///
+/// ```
+/// // In this snippet, we will send a batch of CONFIRMs for all the
+/// // 'bmqa::Message' messages received in a 'bmqa::MessageEvent'.
+///
+/// // Note that error handling is omitted from the snippet for the sake of
+/// // brevity.
+///
+/// bmqa::Session session;
+///     // Session start up logic elided.
+///
+/// // Create and load an instance of the ConfirmEventBuilder.  Note that in
+/// // this example, we are creating the builder on the stack everytime a
+/// // message event is received.  Another approach can be to maintain the
+/// // builder as a data member and use it everytime.
+///
+/// bmqa::ConfirmEventBuilder builder;
+/// session.loadConfirmEventBuilder(&builder);
+///
+/// // Assuming that a 'bmqa::MessageEvent' is received.
+///
+/// bmqa::MessageIterator iter = messageEvent.messageIterator();
+/// while (iter.nextMessage()) {
+///     const bmqa::Message& msg = iter.message();
+///
+///     // Business logic for processing 'msg' elided.
+///
+///     int rc = builder.addMessageConfirmation(msg);
+///         // Error handling elided.
+/// }
+///
+/// // All messages in the event have been processed and their corresponding
+/// // CONFIRM messages have been batched.  Now its time to send the batch to
+/// // the BlazingMQ broker.
+///
+/// int rc = session.confirmMessages(&builder);
+///     // Error handling elided.  Note that in case of success, above method
+///     // will also reset the 'builder'.
+/// ```
+///
+/// Thread Safety                            {#bmqa_confirmeventbuilder_thread}
+/// =============
+///
+/// This component is *NOT* thread safe.  If it is desired to create a batch of
+/// CONFIRM messages from multiple threads, an instance of the builder must be
+/// created and maintained *per* *thread*.
 
 // BMQ
 

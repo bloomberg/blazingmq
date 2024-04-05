@@ -17,32 +17,36 @@
 #ifndef INCLUDED_BMQA_SESSIONEVENT
 #define INCLUDED_BMQA_SESSIONEVENT
 
-//@PURPOSE: Provide value-semantic type for system event session notifications.
-//
-//@CLASSES:
-//  bmqa::SessionEvent: type for notification events related to the 'Session'.
-//
-//@SEE_ALSO:
-// bmqt::SessionEventType: Enum of the various type of notifications
-//
-//@DESCRIPTION: This component provides a generic 'bmqa::SessionEvent'
-// notification object used by the 'bmqa::Session' to provide BlazingMQ
-// applications with information regarding changes in the session status or the
-// result of operations with the message queue broker.
-//
-// A 'SessionEvent' is composed of 4 attributes:
-//: o !type!:             indicate the type of the notification
-//: o !statusCode!:       indicate the status of the operation (success,
-//:                       failure)
-//: o !correlationId!:    optional correlationId used during async response
-//: o !queueId!:          optional queueId associated with the event, of type
-//:                       'OPEN', 'CONFIGURE', 'CLOSE', 'REOPEN'
-//: o !errorDescription!: optional string with a human readable description of
-//:                       the error, if any
-//
-// Note that 'SessionEvent' is implemented using the pimpl idiom, so copying a
-// 'SessionEvent' is very cheap (a pointer copy).  All copies of this
-// 'SessionEvent' will share the same underlying implementation.
+/// @file bmqa_sessionevent.h
+///
+/// @brief Provide value-semantic type for system event session notifications.
+///
+/// @see @bbref{bmqt::SessionEventType}: Enum of the various type of
+/// notifications
+///
+/// This component provides a generic @bbref{bmqa::SessionEvent} notification
+/// object used by the @bbref{bmqa::Session} to provide BlazingMQ applications
+/// with information regarding changes in the session status or the result of
+/// operations with the message queue broker.
+///
+/// A @bbref{bmqa::SessionEvent} is composed of 4 attributes:
+///
+///   - **type**: indicate the type of the notification
+///
+///   - **statusCode**: indicate the status of the operation (success, failure)
+///
+///   - **correlationId**: optional correlationId used during async response
+///
+///   - **queueId**: optional queueId associated with the event, of type
+///     `OPEN`, `CONFIGURE`, `CLOSE`, `REOPEN`
+///
+///   - **errorDescription**: optional string with a human readable description
+///     of the error, if any
+///
+/// Note that @bbref{bmqa::SessionEvent} is implemented using the pimpl idiom,
+/// so copying a @bbref{bmqa::SessionEvent} is very cheap (a pointer copy).
+/// All copies of this @bbref{bmqa::SessionEvent} will share the same
+/// underlying implementation.
 
 // BMQ
 

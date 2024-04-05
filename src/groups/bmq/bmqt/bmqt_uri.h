@@ -17,106 +17,114 @@
 #ifndef INCLUDED_BMQT_URI
 #define INCLUDED_BMQT_URI
 
-//@PURPOSE: Provide value-semantic type and utilities for a BlazingMQ queue
-// URI.
-//
-//@CLASSES:
-//  bmqt::Uri        : value-semantic type representing a URI
-//  bmqt::UriParser  : utility to parse a string into a URI
-//  bmqt::UriBuilder : builder mechanism to create a URI
-//
-//@DESCRIPTION: This component provides a value-semantic type, 'bmqt::Uri'
-// representing a URI for a BlazingMQ queue.  A 'bmqt:Uri' can be built by
-// parsing from a string representation, using the 'bmqt::UriParser', or built
-// using the 'bmqt::UriBuilder'.
-//
-//@SEE_ALSO:
-//----------
-// https://tools.ietf.org/html/rfc3986
-//
-/// URI format
-///----------
-// In a nutshell, a URI representing an application queue managed by a
-// BlazingMQ broker on a given machine looks like one of the following:
-//..
-//  bmq://ts.trades.myapp/my.queue
-//  bmq://ts.trades.myapp.~bt/my.queue
-//  bmq://ts.trades.myapp/my.queue?id=foo
-//..
-// where:
-//
-//: o The URI scheme is always "bmq".
-//
-//: o The URI authority is the name of BlazingMQ domain (such as
-//    "ts.trades.myapp")
-//:   as registered with the BlazingMQ infrastructure.  The domain name may
-//:   contain alphanumeric characters, dots and dashes (it has to match the
-//:   following regular expression: '[-a-zA-Z0-9\\._]+').  The domain may be
-//:   followed by an optional tier, introduced by the ".~" sequence and
-//:   consisting of alphanumeric characters and dashes.  The ".~" sequence is
-//:   not part of the tier.
-//
-//: o The URI path is the name of the queue ("my.queue" above) and may contain
-//:   alphanumeric characters, dashes, underscores and tild (it has to match
-//:   the following regular expression: '[-a-zA-Z0-9_~\\.]+').  The queue name
-//:   must be less than 'bmqt::Uri::k_QUEUENAME_MAX_LENGTH' characters long.
-//
-//: o The name of the queue ("my.queue" above) may contain alphanumeric
-//:   characters and dots.
-//
-//: o The URI may contain an optional query with a key-value pair.  Currently
-//:   supported keys are:
-//:   o !id!: the corresponding value represents a name that will be used by
-//:     BlazingMQ broker to uniquely identify the client.
-//
-//: o The URI fragment part is currently unused.
-//
-/// Usage Example 1
-///---------------
-// First, call the 'initialize' method of the 'UriParser'.  This call is only
-// needed one time; you can call it when your task starts.
-//
-// Note that the 'bmq' library takes care of that, so users of 'bmq' don't
-// have to explicitly do it themselves.
-//..
-//  bmqt::UriParser::initialize();
-//..
-// Then, parse a URI string created on the stack to populate a 'Uri' object.
-// The parse function takes an optional error string which is populated with a
-// short error message if the URI is not formatted correctly.
-//..
-//   bsl::string input = "bmq://my.domain/queue";
-//   bmqt::Uri   uri(allocator);
-//   bsl::string errorDescription;
-//
-//   int         rc = bmqt::UriParser::parse(&uri, &errorDescription, input);
-//   if (rc != 0) {
-//      BALL_LOG_ERROR << "Invalid URI [error: " << errorDescription << "]";
-//   }
-//   assert(rc == 0);
-//   assert(error == "");
-//   assert(uri.scheme()    == "bmq");
-//   assert(uri.domain()    == "my.domain");
-//   assert(uri.queue()     == "queue");
-//..
-//
-/// Usage Example 2
-///----------------
-// Instantiate a 'Uri' object with a string representation of the URI and an
-// allocator.
-//..
-//  bmqt::Uri uri("bmq://my.domain/queue", allocator);
-//  assert(uri.scheme() == "bmq");
-//  assert(uri.domain() == "my.domain");
-//  assert(uri.queue()  == "queue");
-//..
-
-/// Thread Safety
-///-------------
-//: o 'bmqt::UriBuilder' is NOT thread safe
-//: o 'bmqt::UriParser' should be thread safe: the component depends on
-//:   'bdepcre_regex' that is a wrapper around "pcre.h".  See
-//:    http://www.pcre.org/pcre.txt.
+/// @file bmqt_uri.h
+///
+/// @brief Provide value-semantic type and utilities for a BlazingMQ queue URI.
+///
+///
+/// This component provides a value-semantic type, @bbref{bmqt::Uri}
+/// representing a URI for a BlazingMQ queue.  A @bbref{bmqt::Uri} can be built
+/// by parsing from a string representation, using the @bbref{bmqt::UriParser},
+/// or built using the @bbref{bmqt::UriBuilder}.
+///
+/// @see https://tools.ietf.org/html/rfc3986
+///
+/// URI format                                               {#bmqt_uri_format}
+/// ==========
+///
+/// In a nutshell, a URI representing an application queue managed by a
+/// BlazingMQ broker on a given machine looks like one of the following:
+///
+/// ```
+/// bmq://ts.trades.myapp/my.queue
+/// bmq://ts.trades.myapp.~bt/my.queue
+/// bmq://ts.trades.myapp/my.queue?id=foo
+/// ```
+///
+/// where:
+///
+///   - The URI scheme is always "bmq".
+///
+///   - The URI authority is the name of BlazingMQ domain (such as
+///     "ts.trades.myapp") as registered with the BlazingMQ infrastructure.
+///     The domain name may contain alphanumeric characters, dots and dashes
+///     (it has to match the following regular expression:
+///     `[-a-zA-Z0-9\\._]+`).  The domain may be followed by an optional tier,
+///     introduced by the ".~" sequence and consisting of alphanumeric
+///     characters and dashes.  The ".~" sequence is not part of the tier.
+///
+///   - The URI path is the name of the queue ("my.queue" above) and may
+///     contain alphanumeric characters, dashes, underscores and tild (it has
+///     to match the following regular expression: `[-a-zA-Z0-9_~\\.]+`).  The
+///     queue name must be less than @bbref{bmqt::Uri::k_QUEUENAME_MAX_LENGTH}
+///     characters long.
+///
+///   - The name of the queue ("my.queue" above) may contain alphanumeric
+///     characters and dots.
+///
+///   - The URI may contain an optional query with a key-value pair.  Currently
+///     supported keys are:
+///
+///       * *id*: the corresponding value represents a name that will be used
+///         by BlazingMQ broker to uniquely identify the client.
+///
+///   - The URI fragment part is currently unused.
+///
+/// Usage Example 1                                             {#bmqt_uri_ex1}
+/// ===============
+///
+/// First, call the `initialize` method of the @bbref{bmqt::UriParser}.  This
+/// call is only needed one time; you can call it when your task starts.
+///
+/// Note that the `bmq` library takes care of that, so users of `bmq` don't
+/// have to explicitly do it themselves.
+///
+/// ```
+/// bmqt::UriParser::initialize();
+/// ```
+///
+/// Then, parse a URI string created on the stack to populate a
+/// @bbref{bmqt::Uri} object.  The parse function takes an optional error
+/// string which is populated with a short error message if the URI is not
+/// formatted correctly.
+///
+/// ```
+/// bsl::string input = "bmq://my.domain/queue";
+/// bmqt::Uri   uri(allocator);
+/// bsl::string errorDescription;
+///
+/// int         rc = bmqt::UriParser::parse(&uri, &errorDescription, input);
+/// if (rc != 0) {
+///    BALL_LOG_ERROR << "Invalid URI [error: " << errorDescription << "]";
+/// }
+/// assert(rc == 0);
+/// assert(error == "");
+/// assert(uri.scheme()    == "bmq");
+/// assert(uri.domain()    == "my.domain");
+/// assert(uri.queue()     == "queue");
+/// ```
+///
+/// Usage Example 2                                             {#bmqt_uri_ex2}
+/// ===============
+///
+/// Instantiate a @bbref{bmqt::Uri} object with a string representation of the
+/// URI and an allocator.
+///
+/// ```
+/// bmqt::Uri uri("bmq://my.domain/queue", allocator);
+/// assert(uri.scheme() == "bmq");
+/// assert(uri.domain() == "my.domain");
+/// assert(uri.queue()  == "queue");
+/// ```
+///
+/// Thread Safety                                            {#bmqt_uri_thread}
+/// =============
+///
+///   - @bbref{bmqt::UriBuilder} is NOT thread safe.
+///
+///   - @bbref{bmqt::UriParser} should be thread safe: the component depends on
+///     `bdepcre_regex` that is a wrapper around "pcre.h".  See
+///     http://www.pcre.org/pcre.txt.
 
 // BMQ
 
