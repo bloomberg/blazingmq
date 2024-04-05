@@ -55,6 +55,7 @@ jobs:
       - name: Clean-up build directories before caching
         run: |
           find . -name "*.o" -type f -delete
+          find . -name "*.a" -type f -delete
       - uses: actions/cache@v4
         with:
           path: |
