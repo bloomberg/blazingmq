@@ -167,6 +167,19 @@ class Application : public bmqa::SessionEventHandler {
     // message was seen during the current
     // grace period.
 
+    bsl::uint64_t d_numExpectedAcks;
+    // Auto-produce mode only. The total number of messages
+    // the tool will send. After posting is finished
+    // the tool will be waiting for this number of ACK
+    // messages, after which the shutdown semaphore will
+    // be posted.
+
+    bsl::uint64_t d_numPostedAcknowledged;
+    // Auto-produce mode only. The number of acknowledged
+    // messages. When the value of this field becomes equal
+    // to d_numExpectedAcks, the shutdown semaphore will be
+    // posted.
+
     // PRIVATE MANIPULATORS
     //   (virtual: bmqa::SessionEventHandler)
 

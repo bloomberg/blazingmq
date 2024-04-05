@@ -209,7 +209,7 @@ class Parameters {
     bool d_confirmMsg;
     // Confirm messages upon reception
 
-    int d_eventSize;
+    bsl::uint64_t d_eventSize;
     // Number of messages per event
     // Default: 1
 
@@ -226,7 +226,7 @@ class Parameters {
     // Interval to publish events (in ms)
     // Default: 1000
 
-    int d_eventsCount;
+    bsl::uint64_t d_eventsCount;
     // if >= 0, number of events to post (in
     // producer mode) before stopping to produce;
     // else infinite
@@ -283,11 +283,11 @@ class Parameters {
     Parameters& setLatencyReportPath(const bsl::string& value);
     Parameters& setDumpMsg(bool value);
     Parameters& setConfirmMsg(bool value);
-    Parameters& setEventSize(int value);
+    Parameters& setEventSize(bsl::uint64_t value);
     Parameters& setMsgSize(int value);
     Parameters& setPostRate(int value);
     Parameters& setPostInterval(int value);
-    Parameters& setEventsCount(int value);
+    Parameters& setEventsCount(bsl::uint64_t value);
     Parameters& setMaxUnconfirmedMsgs(int value);
     Parameters& setMaxUnconfirmedBytes(int value);
     Parameters& setVerbosity(ParametersVerbosity::Value value);
@@ -344,11 +344,11 @@ class Parameters {
     const bsl::string&                  logFilePath() const;
     bool                                dumpMsg() const;
     bool                                confirmMsg() const;
-    int                                 eventSize() const;
+    bsl::uint64_t                       eventSize() const;
     int                                 msgSize() const;
     int                                 postRate() const;
     int                                 postInterval() const;
-    int                                 eventsCount() const;
+    bsl::uint64_t                       eventsCount() const;
     int                                 maxUnconfirmedMsgs() const;
     int                                 maxUnconfirmedBytes() const;
     ParametersVerbosity::Value          verbosity() const;
@@ -423,7 +423,7 @@ inline Parameters& Parameters::setConfirmMsg(bool value)
     return *this;
 }
 
-inline Parameters& Parameters::setEventSize(int value)
+inline Parameters& Parameters::setEventSize(bsl::uint64_t value)
 {
     d_eventSize = value;
     return *this;
@@ -447,7 +447,7 @@ inline Parameters& Parameters::setPostInterval(int value)
     return *this;
 }
 
-inline Parameters& Parameters::setEventsCount(int value)
+inline Parameters& Parameters::setEventsCount(bsl::uint64_t value)
 {
     d_eventsCount = value;
     return *this;
@@ -629,7 +629,7 @@ inline bool Parameters::confirmMsg() const
     return d_confirmMsg;
 }
 
-inline int Parameters::eventSize() const
+inline bsl::uint64_t Parameters::eventSize() const
 {
     return d_eventSize;
 }
@@ -649,7 +649,7 @@ inline int Parameters::postInterval() const
     return d_postInterval;
 }
 
-inline int Parameters::eventsCount() const
+inline bsl::uint64_t Parameters::eventsCount() const
 {
     return d_eventsCount;
 }

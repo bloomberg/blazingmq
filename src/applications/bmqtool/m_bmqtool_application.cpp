@@ -768,6 +768,12 @@ void Application::onMessageEvent(const bmqa::MessageEvent& event)
 
             // Write to log file
             d_fileLogger.writeAckMessage(message);
+
+            if (d_numExpectedAcks != 0 &&
+                d_numExpectedAcks == ++d_numPostedAcknowledged) {
+                BALL_LOG_INFO << "All posted messages have been acknowledged";
+                d_shutdownSemaphore_p->post();
+            }
         }
         else {
             // Message is a push message
@@ -931,7 +937,7 @@ void Application::producerThread()
             }
 
             eventBuilder.reset();
-            for (int msgId = 0; msgId < d_parameters_p->eventSize();
+            for (bsl::uint64_t msgId = 0; msgId < d_parameters_p->eventSize();
                  ++msgId, ++msgSeqId) {
                 bmqa::Message& msg    = eventBuilder.startMessage();
                 int            length = 0;
@@ -1046,12 +1052,7 @@ void Application::producerThread()
         }
     }
 
-    // Finished posting messages in auto mode?
-    // If shutDownGrace is set, signal to the main thread to exit.
-    if (d_parameters_p->mode() == ParametersMode::e_AUTO &&
-        d_parameters_p->shutdownGrace() != 0) {
-        // We do not need to sleep the grace period, since it is done
-        // by the main thread, in the stop() function.
+    if (!bmqt::QueueFlagsUtil::isAck(d_parameters_p->queueFlags())) {
         d_shutdownSemaphore_p->post();
     }
 }
@@ -1131,6 +1132,8 @@ Application::Application(Parameters*       parameters,
 , d_latencies(allocator)
 , d_autoReadInProgress(false)
 , d_autoReadActivity(false)
+, d_numExpectedAcks(0)
+, d_numPostedAcknowledged(0)
 {
     // NOTHING
 }
@@ -1194,8 +1197,12 @@ int Application::run()
         d_shutdownSemaphore_p->post();
     }
     else {
-        // Start the thread
         if (bmqt::QueueFlagsUtil::isWriter(d_parameters_p->queueFlags())) {
+            d_numExpectedAcks = d_parameters_p->eventsCount() *
+                                d_parameters_p->eventSize();
+            d_numPostedAcknowledged = 0;
+
+            // Start the thread
             rc = bslmt::ThreadUtil::create(
                 &d_runningThread,
                 bdlf::MemFnUtil::memFn(&Application::producerThread, this));
