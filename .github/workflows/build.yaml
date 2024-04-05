@@ -52,6 +52,9 @@ jobs:
             -DCMAKE_PREFIX_PATH=${{ github.workspace }}/deps/srcs/bde-tools/BdeBuildSystem \
             -DCMAKE_INSTALL_LIBDIR=lib64
           cmake --build build/blazingmq --parallel 8 --target all all.t
+      - name: Clean-up build directories before caching
+        run: |
+          find . -name "*.o" -type f -delete
       - uses: actions/cache@v4
         with:
           path: |
@@ -70,6 +73,7 @@ jobs:
         with:
           path: |
             build/blazingmq
+            deps
             /opt/bb/include
           key: cache-${{ github.sha }}
       - name: Run Python Unit Tests
@@ -96,6 +100,7 @@ jobs:
         with:
           path: |
             build/blazingmq
+            deps
             /opt/bb/include
           key: cache-${{ github.sha }}
       - name: Run Integration Tests
@@ -144,6 +149,7 @@ jobs:
         with:
           path: |
             build/blazingmq
+            deps
             /opt/bb/include
           key: cache-${{ github.sha }}
       - name: Set up plugins dependencies
