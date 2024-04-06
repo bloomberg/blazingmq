@@ -25,53 +25,53 @@ typedef struct z_bmqt_CorrelationId {
 /**
  * @brief Deletes the memory allocated for a pointer to a bmqt::CorrelationId object.
  *
- * @param correlationId_obj A pointer to a pointer to a bmqt::CorrelationId object.
+ * @param correlationId A pointer to a pointer to a bmqt::CorrelationId object.
  *                          Upon successful completion, this pointer will be set to NULL.
  * @return Returns 0 upon successful deletion.
  */
-int z_bmqt_CorrelationId__delete(z_bmqt_CorrelationId** correlationId_obj);
+int z_bmqt_CorrelationId__delete(z_bmqt_CorrelationId** correlationId);
 
 /**
  * @brief Creates a new bmqt::CorrelationId object and assigns its pointer to the provided pointer.
  *
  * This function dynamically allocates memory for a new bmqt::CorrelationId object and assigns its pointer to the provided pointer.
  * 
- * @param correlationId_obj A pointer to a pointer to a bmqt::CorrelationId object.
+ * @param correlationId A pointer to a pointer to a bmqt::CorrelationId object.
  *                          Upon successful completion, this pointer will be set to point to the newly allocated bmqt::CorrelationId object.
  * @return Returns 0 upon successful creation.
  */
-int z_bmqt_CorrelationId__create(z_bmqt_CorrelationId** correlationId_obj);
+int z_bmqt_CorrelationId__create(z_bmqt_CorrelationId** correlationId);
 
 /**
  * @brief Creates a copy of a bmqt::CorrelationId object.
  *
  * This function creates a deep copy of the input bmqt::CorrelationId object 'other_obj'
- * and stores it in the memory pointed to by 'correlationId_obj'. Upon successful completion,
- * the pointer 'correlationId_obj' will point to the newly created copy.
+ * and stores it in the memory pointed to by 'correlationId'. Upon successful completion,
+ * the pointer 'correlationId' will point to the newly created copy.
  * 
- * @param correlationId_obj A pointer to a pointer to a bmqt::CorrelationId object where
+ * @param correlationId A pointer to a pointer to a bmqt::CorrelationId object where
  *                          the copy will be stored. Upon successful completion, this pointer
  *                          will point to the newly created copy.
  * @param other_obj         A pointer to a bmqt::CorrelationId object which will be copied.
  * 
  * @return Returns 0 upon successful creation of the copy.
  */
-int z_bmqt_CorrelationId__createCopy(z_bmqt_CorrelationId** correlationId_obj,
+int z_bmqt_CorrelationId__createCopy(z_bmqt_CorrelationId** correlationId,
                                      const z_bmqt_CorrelationId* other_obj);
 
 /**
  * @brief Creates a new correlation ID from a numeric value.
  *
  * This function allocates memory for a new bmqt::CorrelationId object initialized with the provided numeric value.
- * The pointer to the created object is stored in 'correlationId_obj'.
+ * The pointer to the created object is stored in 'correlationId'.
  * 
- * @param correlationId_obj A pointer to a pointer to a bmqt::CorrelationId object.
+ * @param correlationId A pointer to a pointer to a bmqt::CorrelationId object.
  *                          Upon successful completion, this pointer will hold the address of the newly created object.
  * @param numeric The numeric value used to initialize the new correlation ID object.
  * @return Returns 0 upon successful creation of the correlation ID object.
  */
 int z_bmqt_CorrelationId__createFromNumeric(
-    z_bmqt_CorrelationId** correlationId_obj,
+    z_bmqt_CorrelationId** correlationId,
     int64_t                numeric);
 
 /**
@@ -79,13 +79,13 @@ int z_bmqt_CorrelationId__createFromNumeric(
  *
  * This function creates a bmqt::CorrelationId object using the provided pointer and assigns it to the input pointer to a bmqt::CorrelationId object.
  * 
- * @param correlationId_obj A pointer to a pointer to a bmqt::CorrelationId object.
+ * @param correlationId A pointer to a pointer to a bmqt::CorrelationId object.
  *                          Upon successful completion, this pointer will point to the newly created bmqt::CorrelationId object.
  * @param pointer The pointer used to create the bmqt::CorrelationId object.
  * @return Returns 0 upon successful creation.
  */
 int z_bmqt_CorrelationId__createFromPointer(
-    z_bmqt_CorrelationId** correlationId_obj,
+    z_bmqt_CorrelationId** correlationId,
     void*                  pointer);
 
 /**
@@ -93,7 +93,7 @@ int z_bmqt_CorrelationId__createFromPointer(
  *
  * This function invokes the 'makeUnset' method of the input bmqt::CorrelationId object.
  * 
- * @param correlationId_obj A pointer to a bmqt::CorrelationId object.
+ * @param correlationId A pointer to a bmqt::CorrelationId object.
  *                          This object will be made unset upon successful completion.
  * 
  * @return Returns 0 upon successful invocation of 'makeUnset' on the bmqt::CorrelationId object.
@@ -103,7 +103,7 @@ int z_bmqt_CorrelationId__makeUnset(z_bmqt_CorrelationId* correlation_Id_obj);
 /**
  * @brief Sets the numeric value for a bmqt::CorrelationId object.
  *
- * @param correlationId_obj A pointer to a bmqt::CorrelationId object.
+ * @param correlationId A pointer to a bmqt::CorrelationId object.
  * @param numeric The numeric value to be set for the bmqt::CorrelationId object.
  * @return Returns 0 upon successful completion.
  */
@@ -115,7 +115,7 @@ int z_bmqt_CorrelationId__setNumeric(z_bmqt_CorrelationId* correlation_Id_obj,
  *
  * This function sets a pointer within the given bmqt::CorrelationId object to the specified value.
  * 
- * @param correlationId_obj A pointer to a bmqt::CorrelationId object.
+ * @param correlationId A pointer to a bmqt::CorrelationId object.
  * @param pointer           The pointer value to be set within the bmqt::CorrelationId object.
  * 
  * @return Returns 0 upon successful completion.
@@ -128,7 +128,7 @@ int z_bmqt_CorrelationId__setPointer(z_bmqt_CorrelationId* correlation_Id_obj,
  *
  * This function checks if the correlation ID pointed to by the input pointer is unset.
  * 
- * @param correlationId_obj A pointer to a constant z_bmqt_CorrelationId object.
+ * @param correlationId A pointer to a constant z_bmqt_CorrelationId object.
  * @return Returns true if the correlation ID is unset, false otherwise.
  */
 bool z_bmqt_CorrelationId__isUnset(
@@ -137,9 +137,9 @@ bool z_bmqt_CorrelationId__isUnset(
 /**
  * @brief Checks if the given correlation ID is numeric.
  *
- * This function checks whether the correlation ID pointed to by 'correlationId_obj' is numeric.
+ * This function checks whether the correlation ID pointed to by 'correlationId' is numeric.
  * 
- * @param correlationId_obj A pointer to a z_bmqt_CorrelationId object.
+ * @param correlationId A pointer to a z_bmqt_CorrelationId object.
  * @return Returns true if the correlation ID is numeric, false otherwise.
  */
 bool z_bmqt_CorrelationId__isNumeric(
@@ -148,7 +148,7 @@ bool z_bmqt_CorrelationId__isNumeric(
 /**
  * @brief Checks if the given object is a pointer.
  *
- * @param correlationId_obj A pointer to a const z_bmqt_CorrelationId object.
+ * @param correlationId A pointer to a const z_bmqt_CorrelationId object.
  * @return Returns true if the object is a pointer; otherwise, returns false.
  */
 bool z_bmqt_CorrelationId__isPointer(
@@ -159,7 +159,7 @@ bool z_bmqt_CorrelationId__isPointer(
  *
  * This function checks whether the given correlation ID is an auto-generated value.
  * 
- * @param correlationId_obj A pointer to a constant z_bmqt_CorrelationId object.
+ * @param correlationId A pointer to a constant z_bmqt_CorrelationId object.
  * @return Returns true if the correlation ID is auto-generated, false otherwise.
  */
 bool z_bmqt_CorrelationId__isAutoValue(
@@ -170,7 +170,7 @@ bool z_bmqt_CorrelationId__isAutoValue(
  *
  * This function retrieves the numeric value of the specified CorrelationId object.
  * 
- * @param correlationId_obj A pointer to a const z_bmqt_CorrelationId object from which to retrieve the numeric value.
+ * @param correlationId A pointer to a const z_bmqt_CorrelationId object from which to retrieve the numeric value.
  * @return Returns the numeric value of the CorrelationId.
  */
 int64_t z_bmqt_CorrelationId__theNumeric(
@@ -181,7 +181,7 @@ int64_t z_bmqt_CorrelationId__theNumeric(
  *
  * This function returns the pointer stored within the input bmqt::CorrelationId object.
  * 
- * @param correlationId_obj A pointer to a bmqt::CorrelationId object.
+ * @param correlationId A pointer to a bmqt::CorrelationId object.
  * 
  * @return Returns the pointer stored within the bmqt::CorrelationId object.
  */
@@ -191,24 +191,24 @@ void* z_bmqt_CorrelationId__thePointer(
 /**
  * @brief Retrieves the type of a z_bmqt_CorrelationId object.
  *
- * This function returns the type of the z_bmqt_CorrelationId object specified by 'correlationId_obj'.
+ * This function returns the type of the z_bmqt_CorrelationId object specified by 'correlationId'.
  * 
- * @param correlationId_obj A pointer to a z_bmqt_CorrelationId object.
+ * @param correlationId A pointer to a z_bmqt_CorrelationId object.
  * @return Returns the type of the z_bmqt_CorrelationId object.
  */
 z_bmqt_CorrelationId::Type
-z_bmqt_CorrelationId__type(const z_bmqt_CorrelationId* correlationId_obj);
+z_bmqt_CorrelationId__type(const z_bmqt_CorrelationId* correlationId);
 
 /**
  * @brief Generates an auto value for a bmqt::CorrelationId object and assigns it to a pointer.
  *
  * This function creates a new bmqt::CorrelationId object with an auto-generated value and assigns it to the pointer provided.
  * 
- * @param correlationId_obj A pointer to a pointer to a bmqt::CorrelationId object.
+ * @param correlationId A pointer to a pointer to a bmqt::CorrelationId object.
  *                          Upon successful completion, this pointer will hold the auto-generated correlation ID.
  * @return Returns 0 upon successful generation of the auto value.
  */
-int z_bmqt_CorrelationId__autoValue(z_bmqt_CorrelationId** correlationId_obj);
+int z_bmqt_CorrelationId__autoValue(z_bmqt_CorrelationId** correlationId);
 
 /**
  * @brief Compares two z_bmqt_CorrelationId objects.
@@ -241,14 +241,14 @@ int z_bmqt_CorrelationId__assign(z_bmqt_CorrelationId**      dst,
  * This function converts the given bmqt::CorrelationId object to a string representation and stores it in the output buffer.
  * The memory for the output buffer is allocated dynamically and should be deallocated by the caller.
  * 
- * @param correlationId_obj A pointer to a bmqt::CorrelationId object to be converted to a string.
+ * @param correlationId A pointer to a bmqt::CorrelationId object to be converted to a string.
  * @param out               A pointer to a pointer to a character buffer where the string representation will be stored.
  *                          Upon successful completion, this pointer will point to the dynamically allocated buffer containing the string.
  *                          The caller is responsible for deallocating the memory allocated for this buffer.
  * @return Returns 0 upon successful conversion.
  */
 int z_bmqt_CorrelationId__toString(
-    const z_bmqt_CorrelationId* correlationId_obj,
+    const z_bmqt_CorrelationId* correlationId,
     char**                      out);
 
 #if defined(__cplusplus)
