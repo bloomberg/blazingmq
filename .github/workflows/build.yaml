@@ -61,7 +61,6 @@ jobs:
           find . -name "*.o" -type f -delete
           find . -name "*.a" -type f -delete
           find . -name "*.t.tsk" -type f -delete
-          du -h -a
       - uses: actions/cache@v4
         with:
           path: |
