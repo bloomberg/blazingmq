@@ -30,9 +30,11 @@
 #include <bsls_assert.h>
 #include <bsls_types.h>
 
+#include <bsl_cstring.h>
 #include <bsl_iomanip.h>
 #include <bsl_limits.h>
 #include <bsl_ostream.h>
+#include <bsl_utility.h>
 
 namespace BloombergLP {
 namespace m_bmqtool {
@@ -194,36 +196,7 @@ const bdlat_AttributeInfo* CloseStorageCommand::lookupAttributeInfo(int id)
 
 // CREATORS
 
-CloseStorageCommand::CloseStorageCommand()
-{
-}
-
-CloseStorageCommand::CloseStorageCommand(const CloseStorageCommand& original)
-{
-    (void)original;
-}
-
-CloseStorageCommand::~CloseStorageCommand()
-{
-}
-
 // MANIPULATORS
-
-CloseStorageCommand&
-CloseStorageCommand::operator=(const CloseStorageCommand& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-CloseStorageCommand& CloseStorageCommand::operator=(CloseStorageCommand&& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-#endif
 
 void CloseStorageCommand::reset()
 {
@@ -231,12 +204,8 @@ void CloseStorageCommand::reset()
 
 // ACCESSORS
 
-bsl::ostream& CloseStorageCommand::print(bsl::ostream& stream,
-                                         int           level,
-                                         int           spacesPerLevel) const
+bsl::ostream& CloseStorageCommand::print(bsl::ostream& stream, int, int) const
 {
-    (void)level;
-    (void)spacesPerLevel;
     return stream;
 }
 
@@ -1296,35 +1265,7 @@ const bdlat_AttributeInfo* ListQueuesCommand::lookupAttributeInfo(int id)
 
 // CREATORS
 
-ListQueuesCommand::ListQueuesCommand()
-{
-}
-
-ListQueuesCommand::ListQueuesCommand(const ListQueuesCommand& original)
-{
-    (void)original;
-}
-
-ListQueuesCommand::~ListQueuesCommand()
-{
-}
-
 // MANIPULATORS
-
-ListQueuesCommand& ListQueuesCommand::operator=(const ListQueuesCommand& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-ListQueuesCommand& ListQueuesCommand::operator=(ListQueuesCommand&& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-#endif
 
 void ListQueuesCommand::reset()
 {
@@ -1332,12 +1273,8 @@ void ListQueuesCommand::reset()
 
 // ACCESSORS
 
-bsl::ostream& ListQueuesCommand::print(bsl::ostream& stream,
-                                       int           level,
-                                       int           spacesPerLevel) const
+bsl::ostream& ListQueuesCommand::print(bsl::ostream& stream, int, int) const
 {
-    (void)level;
-    (void)spacesPerLevel;
     return stream;
 }
 
@@ -1428,35 +1365,7 @@ const bdlat_AttributeInfo* MetadataCommand::lookupAttributeInfo(int id)
 
 // CREATORS
 
-MetadataCommand::MetadataCommand()
-{
-}
-
-MetadataCommand::MetadataCommand(const MetadataCommand& original)
-{
-    (void)original;
-}
-
-MetadataCommand::~MetadataCommand()
-{
-}
-
 // MANIPULATORS
-
-MetadataCommand& MetadataCommand::operator=(const MetadataCommand& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-MetadataCommand& MetadataCommand::operator=(MetadataCommand&& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-#endif
 
 void MetadataCommand::reset()
 {
@@ -1464,12 +1373,8 @@ void MetadataCommand::reset()
 
 // ACCESSORS
 
-bsl::ostream& MetadataCommand::print(bsl::ostream& stream,
-                                     int           level,
-                                     int           spacesPerLevel) const
+bsl::ostream& MetadataCommand::print(bsl::ostream& stream, int, int) const
 {
-    (void)level;
-    (void)spacesPerLevel;
     return stream;
 }
 
@@ -2225,37 +2130,7 @@ StartCommand::StartCommand()
 {
 }
 
-StartCommand::StartCommand(const StartCommand& original)
-: d_async(original.d_async)
-{
-}
-
-StartCommand::~StartCommand()
-{
-}
-
 // MANIPULATORS
-
-StartCommand& StartCommand::operator=(const StartCommand& rhs)
-{
-    if (this != &rhs) {
-        d_async = rhs.d_async;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-StartCommand& StartCommand::operator=(StartCommand&& rhs)
-{
-    if (this != &rhs) {
-        d_async = bsl::move(rhs.d_async);
-    }
-
-    return *this;
-}
-#endif
 
 void StartCommand::reset()
 {
@@ -2325,37 +2200,7 @@ StopCommand::StopCommand()
 {
 }
 
-StopCommand::StopCommand(const StopCommand& original)
-: d_async(original.d_async)
-{
-}
-
-StopCommand::~StopCommand()
-{
-}
-
 // MANIPULATORS
-
-StopCommand& StopCommand::operator=(const StopCommand& rhs)
-{
-    if (this != &rhs) {
-        d_async = rhs.d_async;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-StopCommand& StopCommand::operator=(StopCommand&& rhs)
-{
-    if (this != &rhs) {
-        d_async = bsl::move(rhs.d_async);
-    }
-
-    return *this;
-}
-#endif
 
 void StopCommand::reset()
 {
@@ -2832,37 +2677,7 @@ DataCommand::DataCommand()
 {
 }
 
-DataCommand::DataCommand(const DataCommand& original)
-: d_choice(original.d_choice)
-{
-}
-
-DataCommand::~DataCommand()
-{
-}
-
 // MANIPULATORS
-
-DataCommand& DataCommand::operator=(const DataCommand& rhs)
-{
-    if (this != &rhs) {
-        d_choice = rhs.d_choice;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-DataCommand& DataCommand::operator=(DataCommand&& rhs)
-{
-    if (this != &rhs) {
-        d_choice = bsl::move(rhs.d_choice);
-    }
-
-    return *this;
-}
-#endif
 
 void DataCommand::reset()
 {
@@ -4101,37 +3916,7 @@ QlistCommand::QlistCommand()
 {
 }
 
-QlistCommand::QlistCommand(const QlistCommand& original)
-: d_choice(original.d_choice)
-{
-}
-
-QlistCommand::~QlistCommand()
-{
-}
-
 // MANIPULATORS
-
-QlistCommand& QlistCommand::operator=(const QlistCommand& rhs)
-{
-    if (this != &rhs) {
-        d_choice = rhs.d_choice;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-QlistCommand& QlistCommand::operator=(QlistCommand&& rhs)
-{
-    if (this != &rhs) {
-        d_choice = bsl::move(rhs.d_choice);
-    }
-
-    return *this;
-}
-#endif
 
 void QlistCommand::reset()
 {
@@ -4175,7 +3960,8 @@ const bool CommandLineParameters::DEFAULT_INITIALIZER_DUMP_MSG = false;
 
 const bool CommandLineParameters::DEFAULT_INITIALIZER_CONFIRM_MSG = false;
 
-const int CommandLineParameters::DEFAULT_INITIALIZER_EVENT_SIZE = 1;
+const bsls::Types::Int64
+    CommandLineParameters::DEFAULT_INITIALIZER_EVENT_SIZE = 1;
 
 const int CommandLineParameters::DEFAULT_INITIALIZER_MSG_SIZE = 1024;
 
@@ -4415,7 +4201,8 @@ const bdlat_AttributeInfo* CommandLineParameters::lookupAttributeInfo(int id)
 // CREATORS
 
 CommandLineParameters::CommandLineParameters(bslma::Allocator* basicAllocator)
-: d_subscriptions(basicAllocator)
+: d_eventSize(DEFAULT_INITIALIZER_EVENT_SIZE)
+, d_subscriptions(basicAllocator)
 , d_messageProperties(basicAllocator)
 , d_mode(DEFAULT_INITIALIZER_MODE, basicAllocator)
 , d_broker(DEFAULT_INITIALIZER_BROKER, basicAllocator)
@@ -4431,7 +4218,6 @@ CommandLineParameters::CommandLineParameters(bslma::Allocator* basicAllocator)
 , d_log(DEFAULT_INITIALIZER_LOG, basicAllocator)
 , d_sequentialMessagePattern(DEFAULT_INITIALIZER_SEQUENTIAL_MESSAGE_PATTERN,
                              basicAllocator)
-, d_eventSize(DEFAULT_INITIALIZER_EVENT_SIZE)
 , d_msgSize(DEFAULT_INITIALIZER_MSG_SIZE)
 , d_postRate(DEFAULT_INITIALIZER_POST_RATE)
 , d_postInterval(DEFAULT_INITIALIZER_POST_INTERVAL)
@@ -4447,7 +4233,8 @@ CommandLineParameters::CommandLineParameters(bslma::Allocator* basicAllocator)
 CommandLineParameters::CommandLineParameters(
     const CommandLineParameters& original,
     bslma::Allocator*            basicAllocator)
-: d_subscriptions(original.d_subscriptions, basicAllocator)
+: d_eventSize(original.d_eventSize)
+, d_subscriptions(original.d_subscriptions, basicAllocator)
 , d_messageProperties(original.d_messageProperties, basicAllocator)
 , d_mode(original.d_mode, basicAllocator)
 , d_broker(original.d_broker, basicAllocator)
@@ -4463,7 +4250,6 @@ CommandLineParameters::CommandLineParameters(
 , d_log(original.d_log, basicAllocator)
 , d_sequentialMessagePattern(original.d_sequentialMessagePattern,
                              basicAllocator)
-, d_eventSize(original.d_eventSize)
 , d_msgSize(original.d_msgSize)
 , d_postRate(original.d_postRate)
 , d_postInterval(original.d_postInterval)
@@ -4480,7 +4266,8 @@ CommandLineParameters::CommandLineParameters(
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
 CommandLineParameters::CommandLineParameters(
     CommandLineParameters&& original) noexcept
-: d_subscriptions(bsl::move(original.d_subscriptions)),
+: d_eventSize(bsl::move(original.d_eventSize)),
+  d_subscriptions(bsl::move(original.d_subscriptions)),
   d_messageProperties(bsl::move(original.d_messageProperties)),
   d_mode(bsl::move(original.d_mode)),
   d_broker(bsl::move(original.d_broker)),
@@ -4495,7 +4282,6 @@ CommandLineParameters::CommandLineParameters(
   d_storage(bsl::move(original.d_storage)),
   d_log(bsl::move(original.d_log)),
   d_sequentialMessagePattern(bsl::move(original.d_sequentialMessagePattern)),
-  d_eventSize(bsl::move(original.d_eventSize)),
   d_msgSize(bsl::move(original.d_msgSize)),
   d_postRate(bsl::move(original.d_postRate)),
   d_postInterval(bsl::move(original.d_postInterval)),
@@ -4510,7 +4296,8 @@ CommandLineParameters::CommandLineParameters(
 
 CommandLineParameters::CommandLineParameters(CommandLineParameters&& original,
                                              bslma::Allocator* basicAllocator)
-: d_subscriptions(bsl::move(original.d_subscriptions), basicAllocator)
+: d_eventSize(bsl::move(original.d_eventSize))
+, d_subscriptions(bsl::move(original.d_subscriptions), basicAllocator)
 , d_messageProperties(bsl::move(original.d_messageProperties), basicAllocator)
 , d_mode(bsl::move(original.d_mode), basicAllocator)
 , d_broker(bsl::move(original.d_broker), basicAllocator)
@@ -4526,7 +4313,6 @@ CommandLineParameters::CommandLineParameters(CommandLineParameters&& original,
 , d_log(bsl::move(original.d_log), basicAllocator)
 , d_sequentialMessagePattern(bsl::move(original.d_sequentialMessagePattern),
                              basicAllocator)
-, d_eventSize(bsl::move(original.d_eventSize))
 , d_msgSize(bsl::move(original.d_msgSize))
 , d_postRate(bsl::move(original.d_postRate))
 , d_postInterval(bsl::move(original.d_postInterval))
@@ -6504,6 +6290,6 @@ const char* Command::selectionName() const
 }  // close package namespace
 }  // close enterprise namespace
 
-// GENERATED BY @BLP_BAS_CODEGEN_VERSION@
+// GENERATED BY BLP_BAS_CODEGEN_2024.03.30
 // USING bas_codegen.pl -m msg --noAggregateConversion --noExternalization
 // --noIdent --package m_bmqtool --msgComponent messages bmqtoolcmd.xsd
