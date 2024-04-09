@@ -1645,7 +1645,7 @@ bool RelayQueueEngine::subscriptionId2upstreamSubQueueId(
     if (subscriptionId == bmqp::Protocol::k_DEFAULT_SUBSCRIPTION_ID) {
         BSLS_ASSERT_SAFE(d_apps.find(bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID) !=
                          d_apps.end());
-        *subQueueId = bmqp::Protocol::k_DEFAULT_SUBSCRIPTION_ID;
+        *subQueueId = bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID;
     }
     else {
         const Routers::SubscriptionIds::SharedItem itId =
