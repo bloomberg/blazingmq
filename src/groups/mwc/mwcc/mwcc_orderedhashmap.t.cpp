@@ -215,7 +215,7 @@ static void test3_insert()
     const int k_NUM_ELEMENTS = 1000 * 1000;  // 1M
 #else
     // Avoid timeout on AIX and Solaris
-    const int k_NUM_ELEMENTS = 100 * 1000;   // 100K
+    const int k_NUM_ELEMENTS = 100 * 1000;  // 100K
 #endif
 
     // Insert 1M elements
@@ -826,7 +826,7 @@ static void test14_localIterator()
 
     const size_t bucketCount = map.bucket_count();
 
-    int key         = bucketCount / 2;
+    int key         = static_cast<int>(bucketCount / 2);
     int originalKey = key;
 
     map.insert(bsl::make_pair(key, key * key));
@@ -853,7 +853,7 @@ static void test14_localIterator()
     // Add keys such that they all map to same bucket in the table, while
     // ensuring that table is not rehashed.
     for (unsigned int i = 0; i < (bucketCount - 2); ++i) {
-        key += bucketCount;
+        key += static_cast<int>(bucketCount);
         map.insert(bsl::make_pair(key, key * key));
     }
 
@@ -861,7 +861,8 @@ static void test14_localIterator()
     localEndIt = map.end(bucket);
 
     key = originalKey;
-    for (; localIt != localEndIt; ++localIt, key += bucketCount) {
+    for (; localIt != localEndIt;
+         ++localIt, key += static_cast<int>(bucketCount)) {
         ASSERT_EQ(localIt->first, key);
         ASSERT_EQ(localIt->second, key * key);
     }
@@ -1115,7 +1116,7 @@ testN1_insertPerformanceOrdered_GoogleBenchmark(benchmark::State& state)
         // OrderedHashMap
         typedef mwcc::OrderedHashMap<int, int> MyMapType;
 
-        MyMapType map(state.range(0), s_allocator_p);
+        MyMapType map(static_cast<int>(state.range(0)), s_allocator_p);
         for (auto _ : state) {
             for (int i = 0; i < state.range(0); ++i) {
                 map.insert(bsl::make_pair(i, i));
@@ -1190,7 +1191,7 @@ static void testN3_profile_GoogleBenchmark(benchmark::State& state)
     // This case can be used to profile the component.
 
     typedef mwcc::OrderedHashMap<int, int> MyMapType;
-    MyMapType                              map(state.range(0), s_allocator_p);
+    MyMapType map(static_cast<int>(state.range(0)), s_allocator_p);
 
     // Insert elements.
     for (auto _ : state) {

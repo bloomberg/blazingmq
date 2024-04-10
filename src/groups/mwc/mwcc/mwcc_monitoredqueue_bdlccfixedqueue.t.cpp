@@ -110,8 +110,7 @@ static void performanceTestPusher(int                        iterations,
 static void printProcessedItems(int numItems, bsls::Types::Int64 elapsedTime)
 {
     const double numSeconds = static_cast<double>(elapsedTime) / 1000000000LL;
-    const bsls::Types::Int64 itemsPerSec = static_cast<bsls::Types::Int64>(
-        numItems / numSeconds);
+    const bsls::Types::Int64 itemsPerSec = numItems / numSeconds;
 
     bsl::cout << "Processed " << numItems << " items in "
               << mwcu::PrintUtil::prettyTimeInterval(elapsedTime) << ". "
