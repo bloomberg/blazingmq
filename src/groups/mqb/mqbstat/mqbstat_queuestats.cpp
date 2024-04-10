@@ -408,7 +408,7 @@ void QueueStatsDomain::initialize(const bmqt::Uri&  uri,
 
     datum->adopt(builder.commit());
 
-    // Create subcontexts if queue mode is `fanout `and domain name is in
+    // Create subcontexts if queue mode is `fanout` and domain name is in
     // `appIdPostingDomains` list.
     if (domain->config().mode().isFanoutValue()) {
         const bsl::vector<bsl::string>& appIdPostingDomains =

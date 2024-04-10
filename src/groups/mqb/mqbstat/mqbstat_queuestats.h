@@ -69,8 +69,6 @@ namespace mqbstat {
 /// Mechanism to keep track of individual overall statistics of a queue in a
 /// domain.
 class QueueStatsDomain {
-    BALL_LOG_SET_CLASS_CATEGORY("MQBSTAT.QUEUESTATS");
-
   public:
     // TYPES
 
