@@ -861,7 +861,8 @@ static void test14_localIterator()
     localEndIt = map.end(bucket);
 
     key = originalKey;
-    for (; localIt != localEndIt; ++localIt, key += static_cast<int>(bucketCount)) {
+    for (; localIt != localEndIt;
+         ++localIt, key += static_cast<int>(bucketCount)) {
         ASSERT_EQ(localIt->first, key);
         ASSERT_EQ(localIt->second, key * key);
     }
@@ -1190,7 +1191,7 @@ static void testN3_profile_GoogleBenchmark(benchmark::State& state)
     // This case can be used to profile the component.
 
     typedef mwcc::OrderedHashMap<int, int> MyMapType;
-    MyMapType                              map(static_cast<int>(state.range(0)), s_allocator_p);
+    MyMapType map(static_cast<int>(state.range(0)), s_allocator_p);
 
     // Insert elements.
     for (auto _ : state) {
