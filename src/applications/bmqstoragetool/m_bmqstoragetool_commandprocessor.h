@@ -43,9 +43,9 @@ class CommandProcessor {
     // CREATORS
 
     /// Default constructor.
-    CommandProcessor(){};
+    CommandProcessor() {}
 
-    virtual ~CommandProcessor(){};
+    virtual ~CommandProcessor() {}
 
     // MANIPULATORS
 

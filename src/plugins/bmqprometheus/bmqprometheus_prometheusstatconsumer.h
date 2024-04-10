@@ -79,7 +79,7 @@ class PrometheusStatExporter {
 
     virtual ~PrometheusStatExporter() = default;
 
-    virtual void onData(){};
+    virtual void onData() {}
     virtual int  start() = 0;
     virtual void stop()  = 0;
 };
