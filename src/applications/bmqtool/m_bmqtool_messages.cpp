@@ -1,4 +1,4 @@
-// Copyright 2014-2023 Bloomberg Finance L.P.
+// Copyright 2014-2024 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -38,6 +38,220 @@
 
 namespace BloombergLP {
 namespace m_bmqtool {
+
+// ----------------------
+// class BatchPostCommand
+// ----------------------
+
+// CONSTANTS
+
+const char BatchPostCommand::CLASS_NAME[] = "BatchPostCommand";
+
+const int BatchPostCommand::DEFAULT_INITIALIZER_MSG_SIZE = 1024;
+
+const bsls::Types::Int64 BatchPostCommand::DEFAULT_INITIALIZER_EVENT_SIZE = 1;
+
+const bsls::Types::Int64 BatchPostCommand::DEFAULT_INITIALIZER_EVENTS_COUNT =
+    0;
+
+const int BatchPostCommand::DEFAULT_INITIALIZER_POST_INTERVAL = 1000;
+
+const int BatchPostCommand::DEFAULT_INITIALIZER_POST_RATE = 1;
+
+const bdlat_AttributeInfo BatchPostCommand::ATTRIBUTE_INFO_ARRAY[] = {
+    {ATTRIBUTE_ID_URI,
+     "uri",
+     sizeof("uri") - 1,
+     "",
+     bdlat_FormattingMode::e_TEXT},
+    {ATTRIBUTE_ID_PAYLOAD,
+     "payload",
+     sizeof("payload") - 1,
+     "",
+     bdlat_FormattingMode::e_TEXT},
+    {ATTRIBUTE_ID_MSG_SIZE,
+     "msgSize",
+     sizeof("msgSize") - 1,
+     "",
+     bdlat_FormattingMode::e_DEC},
+    {ATTRIBUTE_ID_EVENT_SIZE,
+     "eventSize",
+     sizeof("eventSize") - 1,
+     "",
+     bdlat_FormattingMode::e_DEC},
+    {ATTRIBUTE_ID_EVENTS_COUNT,
+     "eventsCount",
+     sizeof("eventsCount") - 1,
+     "",
+     bdlat_FormattingMode::e_DEC},
+    {ATTRIBUTE_ID_POST_INTERVAL,
+     "postInterval",
+     sizeof("postInterval") - 1,
+     "",
+     bdlat_FormattingMode::e_DEC},
+    {ATTRIBUTE_ID_POST_RATE,
+     "postRate",
+     sizeof("postRate") - 1,
+     "",
+     bdlat_FormattingMode::e_DEC}};
+
+// CLASS METHODS
+
+const bdlat_AttributeInfo*
+BatchPostCommand::lookupAttributeInfo(const char* name, int nameLength)
+{
+    for (int i = 0; i < 7; ++i) {
+        const bdlat_AttributeInfo& attributeInfo =
+            BatchPostCommand::ATTRIBUTE_INFO_ARRAY[i];
+
+        if (nameLength == attributeInfo.d_nameLength &&
+            0 == bsl::memcmp(attributeInfo.d_name_p, name, nameLength)) {
+            return &attributeInfo;
+        }
+    }
+
+    return 0;
+}
+
+const bdlat_AttributeInfo* BatchPostCommand::lookupAttributeInfo(int id)
+{
+    switch (id) {
+    case ATTRIBUTE_ID_URI: return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_URI];
+    case ATTRIBUTE_ID_PAYLOAD:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PAYLOAD];
+    case ATTRIBUTE_ID_MSG_SIZE:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MSG_SIZE];
+    case ATTRIBUTE_ID_EVENT_SIZE:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_EVENT_SIZE];
+    case ATTRIBUTE_ID_EVENTS_COUNT:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_EVENTS_COUNT];
+    case ATTRIBUTE_ID_POST_INTERVAL:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_POST_INTERVAL];
+    case ATTRIBUTE_ID_POST_RATE:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_POST_RATE];
+    default: return 0;
+    }
+}
+
+// CREATORS
+
+BatchPostCommand::BatchPostCommand(bslma::Allocator* basicAllocator)
+: d_eventSize(DEFAULT_INITIALIZER_EVENT_SIZE)
+, d_eventsCount(DEFAULT_INITIALIZER_EVENTS_COUNT)
+, d_payload(basicAllocator)
+, d_uri(basicAllocator)
+, d_msgSize(DEFAULT_INITIALIZER_MSG_SIZE)
+, d_postInterval(DEFAULT_INITIALIZER_POST_INTERVAL)
+, d_postRate(DEFAULT_INITIALIZER_POST_RATE)
+{
+}
+
+BatchPostCommand::BatchPostCommand(const BatchPostCommand& original,
+                                   bslma::Allocator*       basicAllocator)
+: d_eventSize(original.d_eventSize)
+, d_eventsCount(original.d_eventsCount)
+, d_payload(original.d_payload, basicAllocator)
+, d_uri(original.d_uri, basicAllocator)
+, d_msgSize(original.d_msgSize)
+, d_postInterval(original.d_postInterval)
+, d_postRate(original.d_postRate)
+{
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+BatchPostCommand::BatchPostCommand(BatchPostCommand&& original) noexcept
+: d_eventSize(bsl::move(original.d_eventSize)),
+  d_eventsCount(bsl::move(original.d_eventsCount)),
+  d_payload(bsl::move(original.d_payload)),
+  d_uri(bsl::move(original.d_uri)),
+  d_msgSize(bsl::move(original.d_msgSize)),
+  d_postInterval(bsl::move(original.d_postInterval)),
+  d_postRate(bsl::move(original.d_postRate))
+{
+}
+
+BatchPostCommand::BatchPostCommand(BatchPostCommand&& original,
+                                   bslma::Allocator*  basicAllocator)
+: d_eventSize(bsl::move(original.d_eventSize))
+, d_eventsCount(bsl::move(original.d_eventsCount))
+, d_payload(bsl::move(original.d_payload), basicAllocator)
+, d_uri(bsl::move(original.d_uri), basicAllocator)
+, d_msgSize(bsl::move(original.d_msgSize))
+, d_postInterval(bsl::move(original.d_postInterval))
+, d_postRate(bsl::move(original.d_postRate))
+{
+}
+#endif
+
+BatchPostCommand::~BatchPostCommand()
+{
+}
+
+// MANIPULATORS
+
+BatchPostCommand& BatchPostCommand::operator=(const BatchPostCommand& rhs)
+{
+    if (this != &rhs) {
+        d_uri          = rhs.d_uri;
+        d_payload      = rhs.d_payload;
+        d_msgSize      = rhs.d_msgSize;
+        d_eventSize    = rhs.d_eventSize;
+        d_eventsCount  = rhs.d_eventsCount;
+        d_postInterval = rhs.d_postInterval;
+        d_postRate     = rhs.d_postRate;
+    }
+
+    return *this;
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+BatchPostCommand& BatchPostCommand::operator=(BatchPostCommand&& rhs)
+{
+    if (this != &rhs) {
+        d_uri          = bsl::move(rhs.d_uri);
+        d_payload      = bsl::move(rhs.d_payload);
+        d_msgSize      = bsl::move(rhs.d_msgSize);
+        d_eventSize    = bsl::move(rhs.d_eventSize);
+        d_eventsCount  = bsl::move(rhs.d_eventsCount);
+        d_postInterval = bsl::move(rhs.d_postInterval);
+        d_postRate     = bsl::move(rhs.d_postRate);
+    }
+
+    return *this;
+}
+#endif
+
+void BatchPostCommand::reset()
+{
+    bdlat_ValueTypeFunctions::reset(&d_uri);
+    bdlat_ValueTypeFunctions::reset(&d_payload);
+    d_msgSize      = DEFAULT_INITIALIZER_MSG_SIZE;
+    d_eventSize    = DEFAULT_INITIALIZER_EVENT_SIZE;
+    d_eventsCount  = DEFAULT_INITIALIZER_EVENTS_COUNT;
+    d_postInterval = DEFAULT_INITIALIZER_POST_INTERVAL;
+    d_postRate     = DEFAULT_INITIALIZER_POST_RATE;
+}
+
+// ACCESSORS
+
+bsl::ostream& BatchPostCommand::print(bsl::ostream& stream,
+                                      int           level,
+                                      int           spacesPerLevel) const
+{
+    bslim::Printer printer(&stream, level, spacesPerLevel);
+    printer.start();
+    printer.printAttribute("uri", this->uri());
+    printer.printAttribute("payload", this->payload());
+    printer.printAttribute("msgSize", this->msgSize());
+    printer.printAttribute("eventSize", this->eventSize());
+    printer.printAttribute("eventsCount", this->eventsCount());
+    printer.printAttribute("postInterval", this->postInterval());
+    printer.printAttribute("postRate", this->postRate());
+    printer.end();
+    return stream;
+}
 
 // -----------------------
 // class CloseQueueCommand
@@ -4875,6 +5089,11 @@ const bdlat_SelectionInfo Command::SELECTION_INFO_ARRAY[] = {
      sizeof("confirm") - 1,
      "",
      bdlat_FormattingMode::e_DEFAULT},
+    {SELECTION_ID_BATCH_POST,
+     "batch-post",
+     sizeof("batch-post") - 1,
+     "",
+     bdlat_FormattingMode::e_DEFAULT},
     {SELECTION_ID_OPEN_STORAGE,
      "openStorage",
      sizeof("openStorage") - 1,
@@ -4921,7 +5140,7 @@ const bdlat_SelectionInfo Command::SELECTION_INFO_ARRAY[] = {
 const bdlat_SelectionInfo* Command::lookupSelectionInfo(const char* name,
                                                         int         nameLength)
 {
-    for (int i = 0; i < 16; ++i) {
+    for (int i = 0; i < 17; ++i) {
         const bdlat_SelectionInfo& selectionInfo =
             Command::SELECTION_INFO_ARRAY[i];
 
@@ -4950,6 +5169,8 @@ const bdlat_SelectionInfo* Command::lookupSelectionInfo(int id)
     case SELECTION_ID_LIST: return &SELECTION_INFO_ARRAY[SELECTION_INDEX_LIST];
     case SELECTION_ID_CONFIRM:
         return &SELECTION_INFO_ARRAY[SELECTION_INDEX_CONFIRM];
+    case SELECTION_ID_BATCH_POST:
+        return &SELECTION_INFO_ARRAY[SELECTION_INDEX_BATCH_POST];
     case SELECTION_ID_OPEN_STORAGE:
         return &SELECTION_INFO_ARRAY[SELECTION_INDEX_OPEN_STORAGE];
     case SELECTION_ID_CLOSE_STORAGE:
@@ -5006,6 +5227,10 @@ Command::Command(const Command& original, bslma::Allocator* basicAllocator)
     case SELECTION_ID_CONFIRM: {
         new (d_confirm.buffer())
             ConfirmCommand(original.d_confirm.object(), d_allocator_p);
+    } break;
+    case SELECTION_ID_BATCH_POST: {
+        new (d_batchPost.buffer())
+            BatchPostCommand(original.d_batchPost.object(), d_allocator_p);
     } break;
     case SELECTION_ID_OPEN_STORAGE: {
         new (d_openStorage.buffer())
@@ -5082,6 +5307,11 @@ Command::Command(Command&& original) noexcept
         new (d_confirm.buffer())
             ConfirmCommand(bsl::move(original.d_confirm.object()),
                            d_allocator_p);
+    } break;
+    case SELECTION_ID_BATCH_POST: {
+        new (d_batchPost.buffer())
+            BatchPostCommand(bsl::move(original.d_batchPost.object()),
+                             d_allocator_p);
     } break;
     case SELECTION_ID_OPEN_STORAGE: {
         new (d_openStorage.buffer())
@@ -5161,6 +5391,11 @@ Command::Command(Command&& original, bslma::Allocator* basicAllocator)
             ConfirmCommand(bsl::move(original.d_confirm.object()),
                            d_allocator_p);
     } break;
+    case SELECTION_ID_BATCH_POST: {
+        new (d_batchPost.buffer())
+            BatchPostCommand(bsl::move(original.d_batchPost.object()),
+                             d_allocator_p);
+    } break;
     case SELECTION_ID_OPEN_STORAGE: {
         new (d_openStorage.buffer())
             OpenStorageCommand(bsl::move(original.d_openStorage.object()),
@@ -5230,6 +5465,9 @@ Command& Command::operator=(const Command& rhs)
         case SELECTION_ID_CONFIRM: {
             makeConfirm(rhs.d_confirm.object());
         } break;
+        case SELECTION_ID_BATCH_POST: {
+            makeBatchPost(rhs.d_batchPost.object());
+        } break;
         case SELECTION_ID_OPEN_STORAGE: {
             makeOpenStorage(rhs.d_openStorage.object());
         } break;
@@ -5293,6 +5531,9 @@ Command& Command::operator=(Command&& rhs)
         case SELECTION_ID_CONFIRM: {
             makeConfirm(bsl::move(rhs.d_confirm.object()));
         } break;
+        case SELECTION_ID_BATCH_POST: {
+            makeBatchPost(bsl::move(rhs.d_batchPost.object()));
+        } break;
         case SELECTION_ID_OPEN_STORAGE: {
             makeOpenStorage(bsl::move(rhs.d_openStorage.object()));
         } break;
@@ -5354,6 +5595,9 @@ void Command::reset()
     case SELECTION_ID_CONFIRM: {
         d_confirm.object().~ConfirmCommand();
     } break;
+    case SELECTION_ID_BATCH_POST: {
+        d_batchPost.object().~BatchPostCommand();
+    } break;
     case SELECTION_ID_OPEN_STORAGE: {
         d_openStorage.object().~OpenStorageCommand();
     } break;
@@ -5410,6 +5654,9 @@ int Command::makeSelection(int selectionId)
     } break;
     case SELECTION_ID_CONFIRM: {
         makeConfirm();
+    } break;
+    case SELECTION_ID_BATCH_POST: {
+        makeBatchPost();
     } break;
     case SELECTION_ID_OPEN_STORAGE: {
         makeOpenStorage();
@@ -5821,6 +6068,52 @@ ConfirmCommand& Command::makeConfirm(ConfirmCommand&& value)
 }
 #endif
 
+BatchPostCommand& Command::makeBatchPost()
+{
+    if (SELECTION_ID_BATCH_POST == d_selectionId) {
+        bdlat_ValueTypeFunctions::reset(&d_batchPost.object());
+    }
+    else {
+        reset();
+        new (d_batchPost.buffer()) BatchPostCommand(d_allocator_p);
+        d_selectionId = SELECTION_ID_BATCH_POST;
+    }
+
+    return d_batchPost.object();
+}
+
+BatchPostCommand& Command::makeBatchPost(const BatchPostCommand& value)
+{
+    if (SELECTION_ID_BATCH_POST == d_selectionId) {
+        d_batchPost.object() = value;
+    }
+    else {
+        reset();
+        new (d_batchPost.buffer()) BatchPostCommand(value, d_allocator_p);
+        d_selectionId = SELECTION_ID_BATCH_POST;
+    }
+
+    return d_batchPost.object();
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+BatchPostCommand& Command::makeBatchPost(BatchPostCommand&& value)
+{
+    if (SELECTION_ID_BATCH_POST == d_selectionId) {
+        d_batchPost.object() = bsl::move(value);
+    }
+    else {
+        reset();
+        new (d_batchPost.buffer())
+            BatchPostCommand(bsl::move(value), d_allocator_p);
+        d_selectionId = SELECTION_ID_BATCH_POST;
+    }
+
+    return d_batchPost.object();
+}
+#endif
+
 OpenStorageCommand& Command::makeOpenStorage()
 {
     if (SELECTION_ID_OPEN_STORAGE == d_selectionId) {
@@ -6217,6 +6510,9 @@ Command::print(bsl::ostream& stream, int level, int spacesPerLevel) const
     case SELECTION_ID_CONFIRM: {
         printer.printAttribute("confirm", d_confirm.object());
     } break;
+    case SELECTION_ID_BATCH_POST: {
+        printer.printAttribute("batchPost", d_batchPost.object());
+    } break;
     case SELECTION_ID_OPEN_STORAGE: {
         printer.printAttribute("openStorage", d_openStorage.object());
     } break;
@@ -6266,6 +6562,8 @@ const char* Command::selectionName() const
         return SELECTION_INFO_ARRAY[SELECTION_INDEX_LIST].name();
     case SELECTION_ID_CONFIRM:
         return SELECTION_INFO_ARRAY[SELECTION_INDEX_CONFIRM].name();
+    case SELECTION_ID_BATCH_POST:
+        return SELECTION_INFO_ARRAY[SELECTION_INDEX_BATCH_POST].name();
     case SELECTION_ID_OPEN_STORAGE:
         return SELECTION_INFO_ARRAY[SELECTION_INDEX_OPEN_STORAGE].name();
     case SELECTION_ID_CLOSE_STORAGE:

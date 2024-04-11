@@ -75,6 +75,10 @@ namespace m_bmqtool {
 /// Main application class for `bmqtool`.
 class Application : public bmqa::SessionEventHandler {
   private:
+    // CLASS METHODS
+    static mwcst::StatContext createStatContext(int historySize,
+                                                bslma::Allocator* allocator);
+
     // TYPES
     typedef bslma::ManagedPtr<mwcst::StatContext> StatContextMP;
 
@@ -97,7 +101,7 @@ class Application : public bmqa::SessionEventHandler {
     bmqa::QueueId d_queueId;
     // Queue to send/receive messages
 
-    StatContextMP d_statContext_mp;
+    mwcst::StatContext d_statContext;
     // StatContext for msg/event stats
 
     bdlmt::EventScheduler d_scheduler;
@@ -119,13 +123,17 @@ class Application : public bmqa::SessionEventHandler {
     bslma::ManagedPtr<bmqa::Session> d_session_mp;
     // Session with the BlazingMQ broker.
 
-    Interactive d_interactive;
-
     StorageInspector d_storageInspector;
 
     FileLogger d_fileLogger;
     // Logger to use in case events logging
     // to file has been enabled.
+
+    Poster d_poster;
+    // A factory for posting series of messages.
+
+    Interactive d_interactive;
+    // CLI handler.
 
     bsl::list<bsls::Types::Int64> d_latencies;
     // List of all message latencies (in

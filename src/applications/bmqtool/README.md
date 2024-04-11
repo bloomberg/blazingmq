@@ -117,6 +117,7 @@ opened regularly (without specifying a mode).  To run the `bmqtool`, you invoke
 | `post`    | `uri=string payload=string [, ...] [async=true]` | Post a message (the `payload`) to the queue at the given `uri`. |
 | `list`    | N/A            | List the messages that have yet to be ACKed by the tool.     |
 | `confirm` | `guid=string`  | Confirm (ACK) the message matching the given GUID.           |
+| `batch-post` | `uri=string payload=string [, ...] (eventSize=N) (eventsCount=M) (postInterval=P) (postRate=R)` | Post M messages to the queue at the given `uri`. |  
 | `help`    | N/A            | Show the help dialog.                                        |
 | `bye`     | N/A            | Exit the tool.                                               |
 | `quit`    | N/A            | Exit the tool.                                               |
