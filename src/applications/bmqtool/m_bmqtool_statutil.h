@@ -51,16 +51,14 @@ const int k_STAT_DUMP_INTERVAL = 1;
 const int k_LATENCY_INTERVAL_MS = 5;
 
 struct StatUtil {
-
     /// Return the current time -in nanoseconds- using either the system time
     /// or the performance timer (depending on the value of the specified
     /// 'resolutionTimer'
     static bsls::Types::Int64
     getNowAsNs(ParametersLatency::Value resolutionTimer);
 
-    /// Compute the `k`th percentile value of the specified `data` (data must be
-    /// sorted).
-    /// Formula:
+    /// Compute the `k`th percentile value of the specified `data` (data must
+    /// be sorted). Formula:
     ///  - compute the index (k percent * data size)
     ///  - if index is not a whole number, round up to nearest whole number and
     ///    return value at that index

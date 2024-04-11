@@ -154,7 +154,8 @@ void Interactive::printHelp()
         << bsl::endl
         << "  batch-post uri=\"bmq://bmq.test.persistent.priority/qqq\" "
            "payload=[\"sample message\"] eventsCount=300 postRate=10 "
-           "postInterval=5000" << bsl::endl
+           "postInterval=5000"
+        << bsl::endl
         << "    - 'batch-post' command requires 'uri' argument, "
            "all the rest are optional"
         << bsl::endl

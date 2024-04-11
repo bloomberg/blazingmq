@@ -123,7 +123,6 @@ class PostingContext {
     PostingContext& operator=(const PostingContext&);
 };
 
-
 // ============
 // class Poster
 // ============
@@ -168,7 +167,6 @@ class Poster {
     Poster(const Poster&);
     Poster& operator=(const Poster&);
 };
-
 
 }  // close package namespace
 }  // close enterprise namespace

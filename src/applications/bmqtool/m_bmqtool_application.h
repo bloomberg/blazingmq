@@ -76,7 +76,7 @@ namespace m_bmqtool {
 class Application : public bmqa::SessionEventHandler {
   private:
     // CLASS METHODS
-    static mwcst::StatContext createStatContext(int historySize,
+    static mwcst::StatContext createStatContext(int               historySize,
                                                 bslma::Allocator* allocator);
 
     // TYPES

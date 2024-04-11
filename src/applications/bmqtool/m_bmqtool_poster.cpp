@@ -16,9 +16,9 @@
 // m_bmqtool_poster.cpp                                               -*-C++-*-
 
 // BMQTOOL
-#include <m_bmqtool_statutil.h>
 #include <m_bmqtool_inpututil.h>
 #include <m_bmqtool_poster.h>
+#include <m_bmqtool_statutil.h>
 
 // BMQ
 #include <bmqimp_event.h>
@@ -78,9 +78,7 @@ PostingContext::PostingContext(
             d_timeBufferFactory_p->allocate(&latencyBuffer);
             latencyBuffer.setSize(sizeof(bdlb::BigEndianInt64));
             bdlb::BigEndianInt64 zero = bdlb::BigEndianInt64::make(0);
-            bsl::memcpy(latencyBuffer.buffer().get(),
-                        &zero,
-                        sizeof(zero));
+            bsl::memcpy(latencyBuffer.buffer().get(), &zero, sizeof(zero));
             d_blob.appendDataBuffer(latencyBuffer);
             msgPayloadSize -= sizeof(bdlb::BigEndianInt64);
         }
@@ -108,8 +106,7 @@ void PostingContext::postNext()
     bmqa::MessageEventBuilder eventBuilder;
     d_session_p->loadMessageEventBuilder(&eventBuilder);
 
-    for (int evtId = 0;
-         evtId < d_parameters_p->postRate() && pendingPost();
+    for (int evtId = 0; evtId < d_parameters_p->postRate() && pendingPost();
          ++evtId) {
         if (d_parameters_p->eventSize() == 0) {
             // To get nice stats chart with round numbers in bench mode, we
@@ -126,7 +123,7 @@ void PostingContext::postNext()
             int            length = 0;
 
             // Set a correlationId if queue is open in ACK mode
-            if  (bmqt::QueueFlagsUtil::isAck(d_parameters_p->queueFlags())) {
+            if (bmqt::QueueFlagsUtil::isAck(d_parameters_p->queueFlags())) {
                 msg.setCorrelationId(bmqt::CorrelationId::autoValue());
             }
 
@@ -156,11 +153,10 @@ void PostingContext::postNext()
                         // Update the number of messages until next
                         // timestamp:
                         int nbMsgPerSec = d_parameters_p->eventSize() *
-                                          d_parameters_p->postRate() *
-                                          1000 /
+                                          d_parameters_p->postRate() * 1000 /
                                           d_parameters_p->postInterval();
                         d_msgUntilNextTimestamp = nbMsgPerSec *
-                            k_LATENCY_INTERVAL_MS / 1000;
+                                                  k_LATENCY_INTERVAL_MS / 1000;
                     }
 
                     bdlbb::BlobBuffer buffer;
@@ -182,16 +178,14 @@ void PostingContext::postNext()
             bmqt::EventBuilderResult::Enum rc = eventBuilder.packMessage(
                 d_queueId);
             if (rc != 0) {
-                BALL_LOG_ERROR << "Failed to pack message [rc: " << rc
-                               << "]";
+                BALL_LOG_ERROR << "Failed to pack message [rc: " << rc << "]";
                 continue;  // CONTINUE
             }
             d_statContext_p->adjustValue(k_STAT_MSG, length);
         }
 
         // Now publish the event
-        const bmqa::MessageEvent& messageEvent =
-            eventBuilder.messageEvent();
+        const bmqa::MessageEvent& messageEvent = eventBuilder.messageEvent();
 
         // Write PUTs to log file before posting
         if (d_fileLogger && d_fileLogger->isOpen()) {
@@ -205,9 +199,8 @@ void PostingContext::postNext()
         int rc = d_session_p->post(messageEvent);
 
         if (rc != 0) {
-            BALL_LOG_ERROR
-                << "Failed to post: " << bmqt::PostResult::Enum(rc) << " ("
-                << rc << ")";
+            BALL_LOG_ERROR << "Failed to post: " << bmqt::PostResult::Enum(rc)
+                           << " (" << rc << ")";
             continue;  // CONTINUE
         }
 
@@ -237,10 +230,9 @@ Poster::Poster(FileLogger*         fileLogger,
     BSLS_ASSERT_SAFE(allocator);
 }
 
-PostingContext Poster::createPostingContext(
-    bmqa::Session* session,
-    Parameters* parameters,
-    const bmqa::QueueId& queueId)
+PostingContext Poster::createPostingContext(bmqa::Session*       session,
+                                            Parameters*          parameters,
+                                            const bmqa::QueueId& queueId)
 {
     return PostingContext(session,
                           parameters,
@@ -251,7 +243,6 @@ PostingContext Poster::createPostingContext(
                           &d_timeBufferFactory,
                           d_allocator_p);
 }
-
 
 }  // close package namespace
 }  // close enterprise namespace

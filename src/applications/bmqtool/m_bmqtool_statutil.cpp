@@ -46,7 +46,7 @@ StatUtil::getNowAsNs(ParametersLatency::Value resolutionTimer)
 
 bsls::Types::Int64
 StatUtil::computePercentile(const bsl::vector<bsls::Types::Int64>& data,
-                            double k)
+                            double                                 k)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(!data.empty());

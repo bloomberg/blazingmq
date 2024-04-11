@@ -170,8 +170,8 @@ class Interactive {
 
     /// Constructor using the specified `parameters`, 'poster',
     /// and `allocator`.
-    Interactive(Parameters* parameters,
-                Poster* poster,
+    Interactive(Parameters*       parameters,
+                Poster*           poster,
                 bslma::Allocator* allocator);
 
     // MANIPULATORS
