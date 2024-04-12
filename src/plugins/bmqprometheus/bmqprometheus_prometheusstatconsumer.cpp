@@ -339,6 +339,8 @@ void PrometheusStatConsumer::captureQueueStats()
                     updateMetric(dpIt, labels, value);
                 }
 
+                // If there are no subcontexts, add `queue_confirm_time_max`
+                // from queue context.
                 if (queueIt->numSubcontexts() == 0) {
                     const bsls::Types::Int64 value =
                         mqbstat::QueueStatsDomain::getValue(
@@ -346,14 +348,17 @@ void PrometheusStatConsumer::captureQueueStats()
                             d_snapshotId,
                             static_cast<mqbstat::QueueStatsDomain::Stat::Enum>(
                                 confirmTimeDataPoint.d_stat));
-                    updateMetric(&confirmTimeDataPoint,
-                                 tagger.getLabels(),
-                                 value);
+                    updateMetric(&confirmTimeDataPoint, labels, value);
                 }
             }
 
             // The following metrics only make sense to be reported from the
             // primary node only.
+            static const DatapointDef queueTimeDataPoint = {
+                "queue_queue_time_max",
+                Stat::e_QUEUE_TIME_MAX,
+                false};
+
             if (role == mqbstat::QueueStatsDomain::Role::e_PRIMARY) {
                 static const DatapointDef defs[] = {
                     {"queue_gc_msgs", Stat::e_GC_MSGS_DELTA, true},
@@ -362,7 +367,6 @@ void PrometheusStatConsumer::captureQueueStats()
                     {"queue_content_msgs", Stat::e_MESSAGES_MAX, false},
                     {"queue_content_bytes", Stat::e_BYTES_MAX, false},
                     {"queue_queue_time_avg", Stat::e_QUEUE_TIME_AVG, false},
-                    {"queue_queue_time_max", Stat::e_QUEUE_TIME_MAX, false},
                     {"queue_reject_msgs", Stat::e_REJECT_DELTA, true},
                     {"queue_nack_noquorum_msgs",
                      Stat::e_NO_SC_MSGS_DELTA,
@@ -380,21 +384,45 @@ void PrometheusStatConsumer::captureQueueStats()
                                 dpIt->d_stat));
                     updateMetric(dpIt, labels, value);
                 }
+
+                // If there are no subcontexts, add `queue_queue_time_max` from
+                // queue context.
+                if (queueIt->numSubcontexts() == 0) {
+                    const bsls::Types::Int64 value =
+                        mqbstat::QueueStatsDomain::getValue(
+                            *queueIt,
+                            d_snapshotId,
+                            static_cast<mqbstat::QueueStatsDomain::Stat::Enum>(
+                                queueTimeDataPoint.d_stat));
+                    updateMetric(&queueTimeDataPoint, labels, value);
+                }
             }
 
+            // Add `appId` tag to `queue_confirm_time_max` and
+            // `queue_queue_time_max` metrics.
             for (mwcst::StatContextIterator appIdIt =
                      queueIt->subcontextIterator();
                  appIdIt;
                  ++appIdIt) {
+                tagger.setAppId(appIdIt->name());
+                const auto labels = tagger.getLabels();
+
                 auto value = mqbstat::QueueStatsDomain::getValue(
                     *appIdIt,
                     d_snapshotId,
                     mqbstat::QueueStatsDomain::Stat::e_CONFIRM_TIME_MAX);
                 if (value) {
-                    tagger.setAppId(appIdIt->name());
-                    updateMetric(&confirmTimeDataPoint,
-                                 tagger.getLabels(),
-                                 value);
+                    updateMetric(&confirmTimeDataPoint, labels, value);
+                }
+
+                if (role == mqbstat::QueueStatsDomain::Role::e_PRIMARY) {
+                    value = mqbstat::QueueStatsDomain::getValue(
+                        *appIdIt,
+                        d_snapshotId,
+                        mqbstat::QueueStatsDomain::Stat::e_QUEUE_TIME_MAX);
+                    if (value) {
+                        updateMetric(&queueTimeDataPoint, labels, value);
+                    }
                 }
             }
         }

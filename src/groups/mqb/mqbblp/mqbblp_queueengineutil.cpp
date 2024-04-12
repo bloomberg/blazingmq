@@ -220,14 +220,14 @@ int QueueEngineUtil::validateUri(
 
 void QueueEngineUtil::reportQueueTimeMetric(
     mqbstat::QueueStatsDomain*            domainStats,
-    const mqbi::StorageMessageAttributes& attributes)
+    const mqbi::StorageMessageAttributes& attributes,
+    const bsl::string&                    appId)
 {
     // Report delivered message's queue-time.
     bsls::Types::Int64 timeDelta;
     mqbs::StorageUtil::loadArrivalTimeDelta(&timeDelta, attributes);
 
-    domainStats->onEvent(mqbstat::QueueStatsDomain::EventType::e_QUEUE_TIME,
-                         timeDelta);
+    domainStats->reportQueueTime(timeDelta, appId);
 }
 
 // static
@@ -779,7 +779,9 @@ void QueueEngineUtil_AppsDeliveryContext::deliverMessage()
 
         if (bmqp::QueueId::k_PRIMARY_QUEUE_ID == d_queue_p->id()) {
             QueueEngineUtil::reportQueueTimeMetric(d_queue_p->stats(),
-                                                   attributes);
+                                                   attributes,
+                                                   ""  // appId
+            );
         }
 
         if (d_currentMessage->advance()) {
@@ -890,7 +892,8 @@ QueueEngineUtil_AppState::deliverMessages(bsls::TimeInterval*     delay,
             if (bmqp::QueueId::k_PRIMARY_QUEUE_ID == d_queue_p->id()) {
                 QueueEngineUtil::reportQueueTimeMetric(
                     d_queue_p->stats(),
-                    storageIter_p->attributes());
+                    storageIter_p->attributes(),
+                    appId);
             }
             ++numMessages;
         }
@@ -1103,7 +1106,8 @@ QueueEngineUtil_AppState::processDeliveryList(bsls::TimeInterval*     delay,
             ++numMessages;
             if (bmqp::QueueId::k_PRIMARY_QUEUE_ID == d_queue_p->id()) {
                 QueueEngineUtil::reportQueueTimeMetric(d_queue_p->stats(),
-                                                       message->attributes());
+                                                       message->attributes(),
+                                                       appId);
             }
         }
         else {

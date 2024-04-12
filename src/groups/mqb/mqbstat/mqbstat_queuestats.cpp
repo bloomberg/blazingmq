@@ -475,10 +475,6 @@ void QueueStatsDomain::onEvent(EventType::Enum type, bsls::Types::Int64 value)
     case EventType::e_REJECT: {
         d_statContext_mp->adjustValue(DomainQueueStats::e_STAT_REJECT, 1);
     } break;
-    case EventType::e_QUEUE_TIME: {
-        d_statContext_mp->reportValue(DomainQueueStats::e_STAT_QUEUE_TIME,
-                                      value);
-    } break;
     case EventType::e_PUSH: {
         d_statContext_mp->adjustValue(DomainQueueStats::e_STAT_PUSH, value);
     } break;
@@ -543,13 +539,45 @@ void QueueStatsDomain::reportConfirmTime(bsls::Types::Int64 value,
             value);  // RETURN
     }
 
-    // Report `confirm time` metric to corresponding AppId subcontext
+    // Report `confirm time` metric to corresponding appId subcontext
     bsl::list<StatSubContextMp>::iterator it = bsl::find_if(
         d_subContexts_mp->begin(),
         d_subContexts_mp->end(),
         ContextNameMatcher(appId));
     if (it != d_subContexts_mp->end()) {
         it->get()->reportValue(DomainQueueStats::e_STAT_CONFIRM_TIME, value);
+    }
+}
+
+void QueueStatsDomain::reportQueueTime(bsls::Types::Int64 value,
+                                       const bsl::string& appId)
+{
+    BSLS_ASSERT_SAFE(d_statContext_mp && "initialize was not called");
+
+    // If there is no subcontexts, report `queue time` metric to the queue
+    // context
+    if (!d_subContexts_mp) {
+        return d_statContext_mp->reportValue(
+            DomainQueueStats::e_STAT_QUEUE_TIME,
+            value);  // RETURN
+    }
+
+    if (appId.empty()) {
+        // Report `queue time` metric to all subcontexts
+        bsl::list<StatSubContextMp>::iterator it = d_subContexts_mp->begin();
+        for (it; it != d_subContexts_mp->end(); ++it) {
+            it->get()->reportValue(DomainQueueStats::e_STAT_QUEUE_TIME, value);
+        }
+    }
+    else {
+        // Report `queue time` metric to corresponding appId subcontext
+        bsl::list<StatSubContextMp>::iterator it = bsl::find_if(
+            d_subContexts_mp->begin(),
+            d_subContexts_mp->end(),
+            ContextNameMatcher(appId));
+        if (it != d_subContexts_mp->end()) {
+            it->get()->reportValue(DomainQueueStats::e_STAT_QUEUE_TIME, value);
+        }
     }
 }
 

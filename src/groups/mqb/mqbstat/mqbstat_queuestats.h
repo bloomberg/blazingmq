@@ -238,8 +238,11 @@ class QueueStatsDomain {
     void setQueueContentRaw(bsls::Types::Int64 messages,
                             bsls::Types::Int64 bytes);
 
-    /// Report `confirmation time` metric for corresponding appId.
+    /// Report `confirmation time` metric for the specified `appId`.
     void reportConfirmTime(bsls::Types::Int64 value, const bsl::string& appId);
+
+    /// Report `queue time` metric for the specified `appId`.
+    void reportQueueTime(bsls::Types::Int64 value, const bsl::string& appId);
 
     /// Update subcontexts in case of domain reconfigure with the given list of
     /// AppIds.
