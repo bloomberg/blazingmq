@@ -1386,7 +1386,7 @@ OrderedHashMap<KEY, VALUE, HASH, VALUE_TYPE>::erase(const_iterator position)
     iterator nextPosition(position.d_link_p->nextInList());
     Node*    nodeToErase = static_cast<Node*>(position.d_link_p);
 
-    int count = erase(get_key(nodeToErase->value()));
+    size_t count = erase(get_key(nodeToErase->value()));
     BSLS_ASSERT(1 == count && "Invalid iterator provided");
     static_cast<void>(count);  // suppress compiler warning
     return nextPosition;
