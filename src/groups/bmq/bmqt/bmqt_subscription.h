@@ -46,7 +46,7 @@ namespace BloombergLP {
 
 // FORWARD DECLARATION
 namespace bmqa {
-class MessageImpl;
+struct MessageImpl;
 }
 namespace bmqa {
 class MessageIterator;
@@ -61,7 +61,7 @@ class QueueOptions;
 
 /// Value-semantic type for unique Subscription id.
 class SubscriptionHandle {
-    friend class bmqa::MessageImpl;
+    friend struct bmqa::MessageImpl;
     friend class bmqa::MessageIterator;
 
   public:
