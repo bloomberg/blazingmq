@@ -122,8 +122,8 @@ static void test1_breathingTest()
 
     // Breathing test
     typedef mwcc::OrderedHashMap<size_t, bsl::string> MyMapType;
-    typedef MyMapType::iterator                    IterType;
-    typedef MyMapType::const_iterator              ConstIterType;
+    typedef MyMapType::iterator                       IterType;
+    typedef MyMapType::const_iterator                 ConstIterType;
 
     const bsl::string s("foo", s_allocator_p);
 
@@ -205,9 +205,9 @@ static void test3_insert()
     mwctst::TestHelper::printTestName("INSERT");
 
     typedef mwcc::OrderedHashMap<size_t, size_t> MyMapType;
-    typedef MyMapType::iterator            IterType;
-    typedef MyMapType::const_iterator      ConstIterType;
-    typedef bsl::pair<IterType, bool>      RcType;
+    typedef MyMapType::iterator                  IterType;
+    typedef MyMapType::const_iterator            ConstIterType;
+    typedef bsl::pair<IterType, bool>            RcType;
 
     MyMapType map(s_allocator_p);
 
@@ -215,7 +215,7 @@ static void test3_insert()
     const size_t k_NUM_ELEMENTS = 1000 * 1000;  // 1M
 #else
     // Avoid timeout on AIX and Solaris
-    const size_t k_NUM_ELEMENTS = 100 * 1000;   // 100K
+    const size_t k_NUM_ELEMENTS = 100 * 1000;  // 100K
 #endif
 
     // Insert 1M elements
@@ -233,7 +233,7 @@ static void test3_insert()
     // Iterate and confirm
     {
         const MyMapType& cmap = map;
-        size_t              i    = 0;
+        size_t           i    = 0;
         for (ConstIterType cit = cmap.begin(); cit != cmap.end(); ++cit) {
             ASSERT_EQ_D(i, true, i < k_NUM_ELEMENTS);
             ASSERT_EQ_D(i, i, cit->first);
@@ -245,7 +245,7 @@ static void test3_insert()
     // Reverse iterate using --(end()) and confirm
     {
         const MyMapType& cmap = map;
-        size_t              i    = k_NUM_ELEMENTS - 1;
+        size_t           i    = k_NUM_ELEMENTS - 1;
         ConstIterType    cit  = --(cmap.end());  // last element
         for (; cit != cmap.begin(); --cit) {
             ASSERT_EQ_D(i, true, i > 0);
@@ -296,7 +296,7 @@ static void test4_rinsert()
     // Iterate and confirm
     {
         const MyMapType& cmap = map;
-        size_t              i    = k_NUM_ELEMENTS - 1;
+        size_t           i    = k_NUM_ELEMENTS - 1;
         for (ConstIterType cit = cmap.begin(); cit != cmap.end(); ++cit) {
             ASSERT_EQ_D(i, i, cit->first);
             ASSERT_EQ_D(i, (i + 1), cit->second);
@@ -307,7 +307,7 @@ static void test4_rinsert()
     // Reverse iterate using --(end()) and confirm
     {
         const MyMapType& cmap = map;
-        size_t              i    = 0;
+        size_t           i    = 0;
         ConstIterType    cit  = --(cmap.end());  // last element
         for (; cit != cmap.begin(); --cit) {
             ASSERT_EQ_D(i, true, i < k_NUM_ELEMENTS);
@@ -330,9 +330,9 @@ static void test5_insertEraseInsert()
 
     // insert/erase/insert test
     typedef mwcc::OrderedHashMap<size_t, size_t> MyMapType;
-    typedef MyMapType::iterator            IterType;
-    typedef MyMapType::const_iterator      ConstIterType;
-    typedef bsl::pair<IterType, bool>      RcType;
+    typedef MyMapType::iterator                  IterType;
+    typedef MyMapType::const_iterator            ConstIterType;
+    typedef bsl::pair<IterType, bool>            RcType;
 
     MyMapType map(s_allocator_p);
 
@@ -351,7 +351,7 @@ static void test5_insertEraseInsert()
     // Iterate and confirm
     {
         const MyMapType& cmap = map;
-        size_t              i    = 0;
+        size_t           i    = 0;
         for (ConstIterType cit = cmap.begin(); cit != cmap.end(); ++cit) {
             ASSERT_EQ_D(i, true, i < k_NUM_ELEMENTS);
             ASSERT_EQ_D(i, i, cit->first);
@@ -373,7 +373,7 @@ static void test5_insertEraseInsert()
     // Iterate and confirm
     {
         const MyMapType& cmap = map;
-        size_t              i    = 1;
+        size_t           i    = 1;
         for (ConstIterType cit = cmap.begin(); cit != cmap.end(); ++cit) {
             ASSERT_EQ_D(i, true, i < k_NUM_ELEMENTS);
             ASSERT_EQ_D(i, i, cit->first);
@@ -397,7 +397,7 @@ static void test5_insertEraseInsert()
     // Iterate and confirm
     {
         IterType it = map.begin();
-        size_t      i  = 1;
+        size_t   i  = 1;
 
         // Iterate over original elements
         for (; it != map.end(); ++it) {
@@ -486,7 +486,7 @@ static void test7_erase()
     typedef bsl::pair<IterType, bool>      RcType;
 
     const size_t k_NUM_ELEMENTS = 100;
-    MyMapType map(s_allocator_p);
+    MyMapType    map(s_allocator_p);
 
     // Insert elements
     for (size_t i = 0; i < k_NUM_ELEMENTS; ++i) {
@@ -523,7 +523,7 @@ static void test8_eraseClear()
     typedef bsl::pair<IterType, bool>                        RcType;
 
     const size_t k_NUM_ELEMENTS = 100;
-    MyMapType map(s_allocator_p);
+    MyMapType    map(s_allocator_p);
 
     // Insert elements
     for (size_t i = 0; i < k_NUM_ELEMENTS; ++i) {
@@ -561,11 +561,11 @@ static void test9_insertFailure()
 
     // insert (key, value) already present in the container
     typedef mwcc::OrderedHashMap<size_t, size_t> MyMapType;
-    typedef MyMapType::iterator            IterType;
-    typedef bsl::pair<IterType, bool>      RcType;
+    typedef MyMapType::iterator                  IterType;
+    typedef bsl::pair<IterType, bool>            RcType;
 
     const size_t k_NUM_ELEMENTS = 100000;
-    MyMapType map(s_allocator_p);
+    MyMapType    map(s_allocator_p);
 
     // Insert elements
     for (size_t i = 0; i < k_NUM_ELEMENTS; ++i) {
@@ -594,11 +594,11 @@ static void test10_erasureIterator()
     // Use iterator returned by erase(const_iterator)
 
     typedef mwcc::OrderedHashMap<size_t, size_t> MyMapType;
-    typedef MyMapType::iterator            IterType;
-    typedef bsl::pair<IterType, bool>      RcType;
+    typedef MyMapType::iterator                  IterType;
+    typedef bsl::pair<IterType, bool>            RcType;
 
     const size_t k_NUM_ELEMENTS = 10000;
-    MyMapType map(s_allocator_p);
+    MyMapType    map(s_allocator_p);
 
     // Insert elements
     for (size_t i = 0; i < k_NUM_ELEMENTS; ++i) {
@@ -640,9 +640,9 @@ static void test11_copyConstructor()
     // Assert that object 2 has same elements etc.
 
     typedef mwcc::OrderedHashMap<size_t, size_t> MyMapType;
-    typedef MyMapType::iterator            IterType;
-    typedef MyMapType::const_iterator      ConstIterType;
-    typedef bsl::pair<IterType, bool>      RcType;
+    typedef MyMapType::iterator                  IterType;
+    typedef MyMapType::const_iterator            ConstIterType;
+    typedef bsl::pair<IterType, bool>            RcType;
 
     const size_t k_NUM_ELEMENTS = 10000;
 
@@ -693,9 +693,9 @@ static void test12_assignmentOperator()
     // Assert that object 2 has same elements as object 1 etc.
 
     typedef mwcc::OrderedHashMap<size_t, size_t> MyMapType;
-    typedef MyMapType::iterator            IterType;
-    typedef MyMapType::const_iterator      ConstIterType;
-    typedef bsl::pair<IterType, bool>      RcType;
+    typedef MyMapType::iterator                  IterType;
+    typedef MyMapType::const_iterator            ConstIterType;
+    typedef bsl::pair<IterType, bool>            RcType;
 
     const size_t k_NUM_ELEMENTS = 10000;
 
@@ -762,7 +762,7 @@ static void test13_previousEndIterator()
     IterType      endIt  = map.end();
     ConstIterType endCit = cmap.end();
 
-    size_t                       i  = 0;
+    size_t                    i  = 0;
     bsl::pair<IterType, bool> rc = map.insert(bsl::make_pair(i, i * i));
 
     ASSERT_EQ(true, rc.first == endIt);
@@ -818,8 +818,8 @@ static void test14_localIterator()
     // to the same bucket in the table.
 
     typedef mwcc::OrderedHashMap<size_t, size_t, IdentityHasher> MyMapType;
-    typedef MyMapType::local_iterator                      LocalIterType;
-    typedef MyMapType::const_local_iterator                ConstLocalIterType;
+    typedef MyMapType::local_iterator                            LocalIterType;
+    typedef MyMapType::const_local_iterator ConstLocalIterType;
 
     MyMapType        map(s_allocator_p);
     const MyMapType& cmap = map;
@@ -861,8 +861,7 @@ static void test14_localIterator()
     localEndIt = map.end(bucket);
 
     key = originalKey;
-    for (; localIt != localEndIt;
-         ++localIt, key += bucketCount) {
+    for (; localIt != localEndIt; ++localIt, key += bucketCount) {
         ASSERT_EQ(localIt->first, key);
         ASSERT_EQ(localIt->second, key * key);
     }
@@ -890,12 +889,12 @@ static void test15_eraseRange()
 
     // erase
     typedef mwcc::OrderedHashMap<size_t, size_t> MyMapType;
-    typedef MyMapType::iterator            IterType;
-    typedef MyMapType::const_iterator      ConstIterType;
-    typedef bsl::pair<IterType, bool>      RcType;
+    typedef MyMapType::iterator                  IterType;
+    typedef MyMapType::const_iterator            ConstIterType;
+    typedef bsl::pair<IterType, bool>            RcType;
 
     const size_t k_NUM_ELEMENTS = 100;
-    MyMapType map(s_allocator_p);
+    MyMapType    map(s_allocator_p);
 
     // Insert elements
     for (size_t i = 0; i < k_NUM_ELEMENTS; ++i) {
@@ -942,7 +941,7 @@ static void testN1_insertPerformanceOrdered()
     mwctst::TestHelper::printTestName("INSERT PERFORMANCE");
 
     // Performance comparison of insert() with bsl::unordered_map
-    const size_t          k_NUM_ELEMENTS = 5000000;
+    const size_t       k_NUM_ELEMENTS = 5000000;
     bsls::Types::Int64 ohmTime;
 
     {
@@ -970,7 +969,7 @@ static void testN1_insertPerformanceUnordered()
     mwctst::TestHelper::printTestName("INSERT PERFORMANCE");
 
     // Performance comparison of insert() with bsl::unordered_map
-    const size_t          k_NUM_ELEMENTS = 5000000;
+    const size_t       k_NUM_ELEMENTS = 5000000;
     bsls::Types::Int64 umTime;
     {
         // bsl::unordered_map
@@ -1000,12 +999,12 @@ BSLA_MAYBE_UNUSED static void testN2_erasePerformanceOrdered()
 
     // Insert elements, iterate and erase while iterating
 
-    const size_t          k_NUM_ELEMENTS = 5000000;
+    const size_t       k_NUM_ELEMENTS = 5000000;
     bsls::Types::Int64 ohmTime;
     {
         typedef mwcc::OrderedHashMap<size_t, size_t> MyMapType;
-        typedef MyMapType::iterator            IterType;
-        typedef bsl::pair<IterType, bool>      RcType;
+        typedef MyMapType::iterator                  IterType;
+        typedef bsl::pair<IterType, bool>            RcType;
 
         MyMapType map(s_allocator_p);
         // Insert 1M elements
@@ -1038,12 +1037,12 @@ BSLA_MAYBE_UNUSED static void testN2_erasePerformanceUnordered()
 
     // Insert elements, iterate and erase while iterating
 
-    const size_t          k_NUM_ELEMENTS = 5000000;
+    const size_t       k_NUM_ELEMENTS = 5000000;
     bsls::Types::Int64 umTime;
     {
         typedef bsl::unordered_map<size_t, size_t> MyMapType;
-        typedef MyMapType::iterator          IterType;
-        typedef bsl::pair<IterType, bool>    RcType;
+        typedef MyMapType::iterator                IterType;
+        typedef bsl::pair<IterType, bool>          RcType;
 
         MyMapType map(s_allocator_p);
         // Insert 1M elements
@@ -1077,7 +1076,7 @@ BSLA_MAYBE_UNUSED static void testN3_profile()
     const size_t k_NUM_ELEMENTS = 5000000;
 
     typedef mwcc::OrderedHashMap<size_t, size_t> MyMapType;
-    MyMapType                              map(k_NUM_ELEMENTS, s_allocator_p);
+    MyMapType map(k_NUM_ELEMENTS, s_allocator_p);
 
     // Insert elements.
     for (size_t i = 0; i < k_NUM_ELEMENTS; ++i) {
@@ -1130,8 +1129,8 @@ testN2_erasePerformanceUnordered_GoogleBenchmark(benchmark::State& state)
 {
     // Unordered Map Erase Performance Test
     typedef bsl::unordered_map<size_t, size_t> MyMapType;
-    typedef MyMapType::iterator          IterType;
-    typedef bsl::pair<IterType, bool>    RcType;
+    typedef MyMapType::iterator                IterType;
+    typedef bsl::pair<IterType, bool>          RcType;
 
     MyMapType map(s_allocator_p);
     for (auto _ : state) {
@@ -1159,8 +1158,8 @@ testN2_erasePerformanceOrdered_GoogleBenchmark(benchmark::State& state)
 
     // Insert elements, iterate and erase while iterating
     typedef mwcc::OrderedHashMap<size_t, size_t> MyMapType;
-    typedef MyMapType::iterator            IterType;
-    typedef bsl::pair<IterType, bool>      RcType;
+    typedef MyMapType::iterator                  IterType;
+    typedef bsl::pair<IterType, bool>            RcType;
 
     MyMapType map(s_allocator_p);
     // Insert 1M elements
