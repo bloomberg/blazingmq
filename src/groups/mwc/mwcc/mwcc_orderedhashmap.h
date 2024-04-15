@@ -1194,7 +1194,8 @@ bool OrderedHashMap<KEY, VALUE, HASH, VALUE_TYPE>::rehashIfNeeded()
         // Reserve in nodepool.
 
         if (d_bucketArraySize > d_numElements) {
-            d_nodePool.reserveCapacity(static_cast<int>(d_bucketArraySize - d_numElements));
+            d_nodePool.reserveCapacity(
+                static_cast<int>(d_bucketArraySize - d_numElements));
         }
 
         // Destroy & deallocate old bucket array.
