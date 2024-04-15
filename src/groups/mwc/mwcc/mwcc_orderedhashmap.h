@@ -1082,7 +1082,7 @@ inline void OrderedHashMap<KEY, VALUE, HASH, VALUE_TYPE>::initialize()
         d_allocator_p->allocate(sizeof(Bucket) * d_bucketArraySize));
 
     bsl::fill_n(d_bucketArray_p, d_bucketArraySize, Bucket());
-    d_nodePool.reserveCapacity(d_bucketArraySize);
+    d_nodePool.reserveCapacity(static_cast<int>(d_bucketArraySize));
     d_sentinel_p = static_cast<Link*>(d_nodePool.allocate());
     new (d_sentinel_p) Link();
     d_sentinel_p->reset();
@@ -1194,7 +1194,7 @@ bool OrderedHashMap<KEY, VALUE, HASH, VALUE_TYPE>::rehashIfNeeded()
         // Reserve in nodepool.
 
         if (d_bucketArraySize > d_numElements) {
-            d_nodePool.reserveCapacity(d_bucketArraySize - d_numElements);
+            d_nodePool.reserveCapacity(static_cast<int>(d_bucketArraySize - d_numElements));
         }
 
         // Destroy & deallocate old bucket array.
