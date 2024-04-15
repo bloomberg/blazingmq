@@ -72,8 +72,8 @@
 #include <bsl_iosfwd.h>
 #include <bsl_memory.h>
 #include <bsl_string.h>
+#include <bsla_annotations.h>
 #include <bslma_allocator.h>
-#include <bsls_annotation.h>
 
 namespace BloombergLP {
 
@@ -210,8 +210,8 @@ class Message {
     /// `bmqa::MessageEventBuilder` component level documentation for
     /// correct usage).
     ///
-    /// This method is deprecated, please use `setDataRef()` instead.
-    Message& setData(const bdlbb::Blob* data) BSLS_ANNOTATION_DEPRECATED;
+    /// @deprecated Please use `setDataRef()` instead.
+    BSLA_DEPRECATED Message& setData(const bdlbb::Blob* data);
 
     /// Set the payload of this message to the specified `length` bytes
     /// starting at the specified `data` address.  The behavior is
@@ -221,9 +221,8 @@ class Message {
     /// message has been packed (see `bmqa::MessageEventBuilder`
     /// component level documentation for correct usage).
     ///
-    /// This method is deprecated, please use `setDataRef()` instead.
-    Message& setData(const char* data,
-                     size_t      length) BSLS_ANNOTATION_DEPRECATED;
+    /// @deprecated Please use `setDataRef()` instead.
+    BSLA_DEPRECATED Message& setData(const char* data, size_t length);
 
     /// Set the payload of this message to the blob pointed to by the
     /// specified `data`.  Behavior is undefined unless `data` is non-null
@@ -286,13 +285,13 @@ class Message {
     /// operation except assignment or destruction on an invalid message is
     /// an error.
     ///
-    /// This method is deprecated.
-    bool isValid() const;  // TBD:BSLS_ANNOTATION_DEPRECATED
+    /// @deprecated This method is deprecated.
+    BSLA_DEPRECATED bool isValid() const;
 
     /// Same as `isValid`.
     ///
-    /// This method is deprecated.
-    operator bool() const;  // TBD:BSLS_ANNOTATION_DEPRECATED
+    /// @deprecated This method is deprecated.
+    BSLA_DEPRECATED operator bool() const;
 
     /// Return a copy of this message, using the optionally specified
     /// `basicAllocator` with the copy holding all the data of this instance
