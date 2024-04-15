@@ -37,6 +37,7 @@ if( "${CMAKE_CXX_COMPILER_ID}" MATCHES "(Apple)?Clang" )
           "-Wno-padded"
           "-Wno-global-constructors"    # bmqp_protocol mask constants
           "-Wno-conversion"
+          "-Wno-undef"                  # BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES
           "-Wno-float-equal"            # operator== in generated classes
   )
 
