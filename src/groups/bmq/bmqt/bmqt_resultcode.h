@@ -54,6 +54,7 @@
 // BDE
 #include <bsl_iosfwd.h>
 #include <bsl_string.h>
+#include <bsla_annotations.h>
 
 namespace BloombergLP {
 namespace bmqt {
@@ -459,19 +460,24 @@ struct AckResult {
         ,
         e_LIMIT_BYTES = -101  // Bytes limit reached
 
-        // TBD:DEPRECATED >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         // >libbmq-1.3.5
         // The below 4 values are deprecated in favor of the above two ones
         ,
-        e_LIMIT_DOMAIN_MESSAGES = -100  // The domain is full (messages)
+        e_LIMIT_DOMAIN_MESSAGES BSLA_DEPRECATED =
+            -100  ///< The domain is full (messages).
+                  ///< @deprecated In favor of `e_LIMIT_MESSAGES` above.
         ,
-        e_LIMIT_DOMAIN_BYTES = -101  // The domain is full (bytes)
+        e_LIMIT_DOMAIN_BYTES BSLA_DEPRECATED =
+            -101  ///< The domain is full (bytes).
+                  ///< @deprecated In favor of `e_LIMIT_BYTES` above.
         ,
-        e_LIMIT_QUEUE_MESSAGES = -102  // The queue is full (messages)
+        e_LIMIT_QUEUE_MESSAGES BSLA_DEPRECATED =
+            -102  ///< The queue is full (messages).
+                  ///< @deprecated In favor of `e_LIMIT_MESSAGES` above.
         ,
-        e_LIMIT_QUEUE_BYTES = -103  // The queue is full (bytes)
-        // TBD:DEPRECATED >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-        // >libbmq-1.3.5
+        e_LIMIT_QUEUE_BYTES BSLA_DEPRECATED =
+            -103  ///< The queue is full (bytes).
+                  ///< @deprecated In favor of `e_LIMIT_BYTES` above.
         ,
         e_STORAGE_FAILURE = -104  // The storage (on disk) is full
     };

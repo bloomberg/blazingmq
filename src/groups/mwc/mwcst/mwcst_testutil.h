@@ -33,6 +33,7 @@
 #include <ball_loggermanager.h>
 #include <ball_loggermanagerconfiguration.h>
 #include <bdlbb_blob.h>
+#include <bsla_annotations.h>
 #include <bsls_asserttest.h>
 #include <bsls_bsltestutil.h>
 #include <mwcu_blob.h>
@@ -362,8 +363,8 @@ struct TestUtil {
 /// Compares the data in 2 blobs, and pretty-prints the two blobs if they
 /// are found not to be equal.
 ///
-/// DEPRECATED. Use `mwcu::BlobComparator` instead.
-class BlobDataComparer {
+/// @deprecated Use `mwcu::BlobComparator` instead.
+class BSLA_DEPRECATED BlobDataComparer {
   private:
     // DATA
     const bdlbb::Blob* d_blob_p;  // held, not owned: blob to compare

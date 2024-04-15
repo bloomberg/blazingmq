@@ -37,6 +37,10 @@
 
 #include <mwcst_statvalue.h>
 
+#ifndef INCLUDED_BSLA_ANNOTATIONS
+#include <bsla_annotations.h>
+#endif
+
 #ifndef INCLUDED_BSLS_TYPES
 #include <bsls_types.h>
 #endif
@@ -48,13 +52,13 @@ namespace mwcst {
 // struct StatUtil
 // ===============
 
-/// !DEPRECATED'!
-///
 /// Utilities for calculating statistics.  In all functions taking
 /// `firstSnapshot` and `secondSnapshot`, the behavior is undefined unless
 /// `firstSnapshot > secondSnapshot` and
 /// `firstSnapshot.level() == secondSnapshot.level()`
-struct StatUtil {
+///
+/// @deprecated Use `mwcst::MetricUtil` instead.
+struct BSLA_DEPRECATED StatUtil {
     // CLASS METHODS
 
     /// Return the value of the specified `snapshot` of the specified

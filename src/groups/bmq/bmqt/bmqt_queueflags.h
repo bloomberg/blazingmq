@@ -33,6 +33,7 @@
 // BDE
 #include <bsl_iosfwd.h>
 #include <bsl_string.h>
+#include <bsla_annotations.h>
 #include <bsls_types.h>
 
 namespace BloombergLP {
@@ -122,10 +123,11 @@ struct QueueFlagsUtil {
     /// Return true if the bit-mask in the specified `flags` has the
     /// specified `flag` set, or false if not.
     ///
-    /// DEPRECATED: This method is deprecated in favor of the below more
-    ///             specific accessors; and should be made private once all
-    ///             clients have been updated to the new APIs.
-    static bool isSet(bsls::Types::Uint64 flags, QueueFlags::Enum flag);
+    /// @deprecated This method is deprecated in favor of the below more
+    /// specific accessors; and should be made private once all clients have
+    /// been updated to the new APIs.
+    BSLA_DEPRECATED static bool isSet(bsls::Types::Uint64 flags,
+                                      QueueFlags::Enum    flag);
 
   public:
     // CLASS METHODS

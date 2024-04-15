@@ -124,6 +124,7 @@
 #include <bsl_iosfwd.h>
 #include <bsl_memory.h>
 #include <bsl_string.h>
+#include <bsla_annotations.h>
 #include <bslma_allocator.h>
 #include <bslma_usesbslmaallocator.h>
 #include <bslmf_nestedtraitdeclaration.h>
@@ -293,12 +294,10 @@ class SessionOptions {
     setTraceOptions(const bsl::shared_ptr<bmqpi::DTContext>& dtContext,
                     const bsl::shared_ptr<bmqpi::DTTracer>&  dtTracer);
 
-    /// DEPRECATED: Use 'configureEventQueue(int lowWatermark,
-    ///                                      int highWatermark)'
-    ///             instead.  This method will be marked as
-    ///             `BSLS_ANNOTATION_DEPRECATED` in future release of
-    ///             libbmq.
-    SessionOptions&
+    /// @deprecated Use `configureEventQueue(int lowWatermark,
+    ///                                      int highWatermark)`
+    /// instead.
+    BSLA_DEPRECATED SessionOptions&
     configureEventQueue(int queueSize, int lowWatermark, int highWatermark);
 
     /// Configure the EventQueue notification watermarks thresholds with the
@@ -353,9 +352,9 @@ class SessionOptions {
     int eventQueueLowWatermark() const;
     int eventQueueHighWatermark() const;
 
-    /// DEPRECATED: This parameter is no longer relevant and will be removed
-    /// in future release of libbmq.
-    int eventQueueSize() const;
+    /// @deprecated This parameter is no longer relevant and will be removed in
+    /// future release of libbmq.
+    BSLA_DEPRECATED int eventQueueSize() const;
 
     /// Format this object to the specified output `stream` at the (absolute
     /// value of) the optionally specified indentation `level` and return a
