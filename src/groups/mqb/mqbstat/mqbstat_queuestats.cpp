@@ -565,7 +565,7 @@ void QueueStatsDomain::reportQueueTime(bsls::Types::Int64 value,
     if (appId.empty()) {
         // Report `queue time` metric to all subcontexts
         bsl::list<StatSubContextMp>::iterator it = d_subContexts_mp->begin();
-        for (it; it != d_subContexts_mp->end(); ++it) {
+        for (; it != d_subContexts_mp->end(); ++it) {
             it->get()->reportValue(DomainQueueStats::e_STAT_QUEUE_TIME, value);
         }
     }
