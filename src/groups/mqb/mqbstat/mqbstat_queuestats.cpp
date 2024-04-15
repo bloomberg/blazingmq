@@ -557,9 +557,9 @@ void QueueStatsDomain::reportQueueTime(bsls::Types::Int64 value,
     // If there is no subcontexts, report `queue time` metric to the queue
     // context
     if (!d_subContexts_mp) {
-        return d_statContext_mp->reportValue(
-            DomainQueueStats::e_STAT_QUEUE_TIME,
-            value);  // RETURN
+        d_statContext_mp->reportValue(DomainQueueStats::e_STAT_QUEUE_TIME,
+                                      value);
+        return;  // RETURN
     }
 
     if (appId.empty()) {
