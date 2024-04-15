@@ -279,23 +279,21 @@ class AbstractSession {
         const bmqt::QueueOptions& options,
         const bsls::TimeInterval& timeout = bsls::TimeInterval());
 
+    /// Asynchronously configure the queue identified by the specified
+    /// `queueId` using the specified `options` to configure some advanced
+    /// settings.  The result of the operation is communicated to the specified
+    /// `callback` via a `bmqa::ConfigureQueueStatus`, providing the status and
+    /// context of the requested operation.  If the optionally specified
+    /// `timeout` is not populated, use the one defined in the session options.
+    ///
+    /// THREAD: The `callback` will *ALWAYS* be invoked from the
+    ///         EventHandler thread(s) (or if a SessionEventHandler was not
+    ///         specified, from the thread invoking `nextEvent`).
     virtual void configureQueueAsync(
         QueueId*                      queueId,
         const bmqt::QueueOptions&     options,
         const ConfigureQueueCallback& callback,
         const bsls::TimeInterval&     timeout = bsls::TimeInterval());
-
-    // Asynchronously configure the queue identified by the specified
-    // 'queueId' using the specified 'options' to configure some advanced
-    // settings.  The result of the operation is communicated to the
-    // specified 'callback' via a 'bmqa::ConfigureQueueStatus', providing
-    // the status and context of the requested operation.  If the
-    // optionally specified 'timeout' is not populated, use the one defined
-    // in the session options.
-    //
-    // THREAD: The 'callback' will *ALWAYS* be invoked from the
-    //         EventHandler thread(s) (or if a SessionEventHandler was not
-    //         specified, from the thread invoking 'nextEvent').
 
     /// DEPRECATED: Use the 'closeQueueSync(QueueId *queueId...) instead.
     ///             This method will be marked as

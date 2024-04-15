@@ -213,17 +213,17 @@ class Message {
     /// This method is deprecated, please use `setDataRef()` instead.
     Message& setData(const bdlbb::Blob* data) BSLS_ANNOTATION_DEPRECATED;
 
+    /// Set the payload of this message to the specified `length` bytes
+    /// starting at the specified `data` address.  The behavior is
+    /// undefined unless `data` is non-null and `length` is greater than
+    /// zero.  Note that payload pointed to by `data` is *not* copied
+    /// right away, and should not be destroyed or modified until this
+    /// message has been packed (see `bmqa::MessageEventBuilder`
+    /// component level documentation for correct usage).
+    ///
+    /// This method is deprecated, please use `setDataRef()` instead.
     Message& setData(const char* data,
                      size_t      length) BSLS_ANNOTATION_DEPRECATED;
-    // Set the payload of this message to the specified 'length' bytes
-    // starting at the specified 'data' address.  The behavior is undefined
-    // unless 'data' is non-null and 'length' is greater than zero.  Note
-    // that payload pointed to by 'data' is *not* copied right away, and
-    // should not be destroyed or modified until this message has been
-    // packed (see 'bmqa::MessageEventBuilder' component level
-    // documentation for correct usage).
-    //
-    // This method is deprecated, please use 'setDataRef()' instead.
 
     /// Set the payload of this message to the blob pointed to by the
     /// specified `data`.  Behavior is undefined unless `data` is non-null
