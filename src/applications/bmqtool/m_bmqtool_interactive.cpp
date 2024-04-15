@@ -715,8 +715,6 @@ void Interactive::processCommand(const BatchPostCommand& command)
     parameters.setEventSize(command.eventSize());
     parameters.setPostInterval(command.postInterval());
     parameters.setMsgSize(command.msgSize());
-    parameters.setQueueFlags(bmqt::QueueFlags::e_ACK |
-                             bmqt::QueueFlags::e_WRITE);
 
     // Lookup the Queue by URI
     bmqa::QueueId queueId;
@@ -724,6 +722,7 @@ void Interactive::processCommand(const BatchPostCommand& command)
         BALL_LOG_ERROR << "unknown queue '" << command.uri() << "'";
         return;  // RETURN
     }
+    parameters.setQueueFlags(queueId.flags());
 
     bslmt::Turnstile turnstile(1000.0);
     if (parameters.postInterval() != 0) {
