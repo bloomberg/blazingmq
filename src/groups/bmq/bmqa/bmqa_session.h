@@ -630,6 +630,7 @@ class SessionEventHandler {
 // struct SessionImpl
 // ==================
 
+/// @private
 /// Impl structure for the session data members, so that special task such
 /// as `bmqadm` can access them by reinterpret casting a `Session` object.
 /// Care should be taken though since `Session` is a polymorphic class.
