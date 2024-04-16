@@ -208,8 +208,7 @@ int z_bmqa_Session__openQueueSync(z_bmqa_Session*          session_obj,
  * @param queueId Pointer to the QueueId object.
  * @param options Pointer to the QueueOptions object.
  * @param timeoutMs Timeout duration for configuring the queue.
- * @param status
- *  * @param status Pointer to store the ConfigureQueueStatus object.
+ * @param status Pointer to store the ConfigureQueueStatus object.
  * 
  * @return Returns 0 upon successful configuration.
  */
