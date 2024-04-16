@@ -277,6 +277,7 @@ namespace bmqa {
 // struct MessageEventBuilderImpl
 // ==============================
 
+/// @private
 /// Struct containing the internal (private) members of MessageEventBuilder
 /// (That is so that bmqa::Session::loadMessageEventBuilder can access
 /// private members of MessageEventBuilder to initialize it, without having

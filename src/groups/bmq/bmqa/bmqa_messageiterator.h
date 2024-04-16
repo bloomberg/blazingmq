@@ -58,6 +58,7 @@ namespace bmqa {
 // struct MessageIteratorImpl
 // ==========================
 
+/// @private
 /// Struct to hold the impl of the `MessageIterator`; that is so that we can
 /// keep the real impl private and use some special cast to manipulate it,
 /// without publicly exposing private members.

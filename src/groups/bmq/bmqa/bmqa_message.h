@@ -90,6 +90,7 @@ class MessageProperties;
 // struct MessageImpl
 // ==================
 
+/// @private
 /// Struct containing the internal (private) members of Message (That is so
 /// that we can access private members of Message to initialize it, without
 /// having to expose them publicly).

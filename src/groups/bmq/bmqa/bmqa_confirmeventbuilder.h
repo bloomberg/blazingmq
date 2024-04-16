@@ -121,6 +121,7 @@ namespace bmqa {
 // struct ConfirmEventBuilderImpl
 // ==============================
 
+/// @private
 /// Component-private class.  Do not use.
 struct ConfirmEventBuilderImpl {
     // CONSTANTS
