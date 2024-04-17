@@ -541,10 +541,11 @@ struct QueueEngineUtil_AppsDeliveryContext {
                                bmqp::Protocol::SubQueueInfosArray>
         Consumers;
 
-    Consumers              d_consumers;
-    bool                   d_doRepeat;
-    mqbi::StorageIterator* d_currentMessage;
-    mqbi::Queue*           d_queue_p;
+    Consumers                d_consumers;
+    bool                     d_doRepeat;
+    mqbi::StorageIterator*   d_currentMessage;
+    mqbi::Queue*             d_queue_p;
+    bsl::vector<bsl::string> d_active_appIds;
 
     QueueEngineUtil_AppsDeliveryContext(mqbi::Queue*      queue,
                                         bslma::Allocator* allocator);

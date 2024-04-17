@@ -531,12 +531,12 @@ void QueueStatsDomain::reportConfirmTime(bsls::Types::Int64 value,
 {
     BSLS_ASSERT_SAFE(d_statContext_mp && "initialize was not called");
 
-    // If there is no subcontexts, report `confirm time` metric to the queue
+    // If there are no subcontexts, report `confirm time` metric to the queue
     // context
     if (!d_subContexts_mp) {
-        return d_statContext_mp->reportValue(
-            DomainQueueStats::e_STAT_CONFIRM_TIME,
-            value);  // RETURN
+        d_statContext_mp->reportValue(DomainQueueStats::e_STAT_CONFIRM_TIME,
+                                      value);
+        return;  // RETURN
     }
 
     // Report `confirm time` metric to corresponding appId subcontext
@@ -554,7 +554,7 @@ void QueueStatsDomain::reportQueueTime(bsls::Types::Int64 value,
 {
     BSLS_ASSERT_SAFE(d_statContext_mp && "initialize was not called");
 
-    // If there is no subcontexts, report `queue time` metric to the queue
+    // If there are no subcontexts, report `queue time` metric to the queue
     // context
     if (!d_subContexts_mp) {
         d_statContext_mp->reportValue(DomainQueueStats::e_STAT_QUEUE_TIME,
@@ -562,22 +562,13 @@ void QueueStatsDomain::reportQueueTime(bsls::Types::Int64 value,
         return;  // RETURN
     }
 
-    if (appId.empty()) {
-        // Report `queue time` metric to all subcontexts
-        bsl::list<StatSubContextMp>::iterator it = d_subContexts_mp->begin();
-        for (; it != d_subContexts_mp->end(); ++it) {
-            it->get()->reportValue(DomainQueueStats::e_STAT_QUEUE_TIME, value);
-        }
-    }
-    else {
-        // Report `queue time` metric to corresponding appId subcontext
-        bsl::list<StatSubContextMp>::iterator it = bsl::find_if(
-            d_subContexts_mp->begin(),
-            d_subContexts_mp->end(),
-            ContextNameMatcher(appId));
-        if (it != d_subContexts_mp->end()) {
-            it->get()->reportValue(DomainQueueStats::e_STAT_QUEUE_TIME, value);
-        }
+    // Report `queue time` metric to corresponding appId subcontext
+    bsl::list<StatSubContextMp>::iterator it = bsl::find_if(
+        d_subContexts_mp->begin(),
+        d_subContexts_mp->end(),
+        ContextNameMatcher(appId));
+    if (it != d_subContexts_mp->end()) {
+        it->get()->reportValue(DomainQueueStats::e_STAT_QUEUE_TIME, value);
     }
 }
 
