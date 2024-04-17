@@ -226,6 +226,8 @@ class FileManagerMock : public FileManager {
 
     mqbs::JournalFileIterator d_journalFileIt;
     // Journal file iterator.
+    mqbs::DataFileIterator d_dataFileIt;
+    // Data file iterator.
 
   public:
     // CREATORS
@@ -234,7 +236,7 @@ class FileManagerMock : public FileManager {
     explicit FileManagerMock(bslma::Allocator* allocator = 0)
     {
         EXPECT_CALL(*this, dataFileIterator())
-            .WillRepeatedly(Return(bsl::nullptr_t()));
+            .WillRepeatedly(Return(&d_dataFileIt));
     }
 
     /// Constructor using the specified `journalFile` and `allocator`.
@@ -245,7 +247,7 @@ class FileManagerMock : public FileManager {
                       false)
     {
         EXPECT_CALL(*this, dataFileIterator())
-            .WillRepeatedly(Return(bsl::nullptr_t()));
+            .WillRepeatedly(Return(&d_dataFileIt));
     }
 
     // MANIPULATORS

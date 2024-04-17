@@ -515,9 +515,8 @@ static void test8_searchMessagesByQueueKeyTest()
                                                   queueKey2);
 
     // Configure parameters to search messages by queueKey1
-    Parameters               params(s_allocator_p);
-    bsl::vector<bsl::string> queueKeys(1, queueKey1, s_allocator_p);
-    params.d_queueKey = bsl::move(queueKeys);
+    Parameters params(s_allocator_p);
+    params.d_queueKey.push_back(queueKey1);
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
         new (*s_allocator_p) FileManagerMock(journalFile, s_allocator_p),
@@ -652,9 +651,7 @@ static void test10_searchMessagesByQueueNameAndQueueKeyTest()
     Parameters params(s_allocator_p);
     params.d_queueName.push_back("queue1");
     params.d_queueMap.insert(queueInfo);
-
-    bsl::vector<bsl::string> queueKeys(1, queueKey2, s_allocator_p);
-    params.d_queueKey = bsl::move(queueKeys);
+    params.d_queueKey.push_back(queueKey2);
 
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
