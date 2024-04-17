@@ -1,7 +1,8 @@
+#include <z_bmqa_messageevent.h>
 #include <bmqa_messageevent.h>
 #include <bsl_sstream.h>
 #include <bsl_string.h>
-#include <z_bmqa_messageevent.h>
+
 
 int z_bmqa_MessageEvent__delete(z_bmqa_MessageEvent** messageEvent)
 {
@@ -62,7 +63,7 @@ int z_bmqa_MessageEvent__toString(const z_bmqa_MessageEvent* messageEvent,
     bsl::string out_str = ss.str();
 
     *out = new char[out_str.length() + 1];
-    strcpy(*out, out_str.c_str());
+    strncpy(*out, out_str.c_str());
 
     return 0;
 }

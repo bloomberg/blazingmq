@@ -33,8 +33,6 @@ static void test1_breathingTest()
 
     z_bmqa_SessionEvent * obj;
     z_bmqa_SessionEvent__create(&obj);
-
-    
 }
 
 // ============================================================================

@@ -24,6 +24,8 @@ extern "C" {
 #include <z_bmqt_sessionoptions.h>
 #include <z_bmqt_uri.h>
 
+typedef struct z_bmqa_Session z_bmqa_Session;
+
 typedef struct z_bmqa_SessionEventHandler z_bmqa_SessionEventHandler;
 
 typedef void (*z_bmqa_OnSessionEventCb)(
@@ -67,7 +69,6 @@ int z_bmqa_SessionEventHandler__callCustomFunction(
     z_bmqa_SessionEventHandlerMemberFunction cb,
     void*                                    args);
 
-typedef struct z_bmqa_Session z_bmqa_Session;
 
 /**
  * @brief Deletes a Session object.
@@ -290,10 +291,10 @@ int z_bmqa_Session__confirmMessages(z_bmqa_Session*             session,
 class z_bmqa_CustomSessionEventHandler
 : BloombergLP::bmqa::SessionEventHandler {
   private:
-    z_bmqa_OnSessionEventCb onSessionEventCb; /**< Callback function for session events. */
-    z_bmqa_OnMessageEventCb onMessageEventCb; /**< Callback function for message events. */
-    void*                   data;             /**< Custom data pointer. */
-    uint64_t                mSize;            /**< Size of the custom data. */
+    z_bmqa_OnSessionEventCb d_onSessionEventCb; /**< Callback function for session events. */
+    z_bmqa_OnMessageEventCb d_onMessageEventCb; /**< Callback function for message events. */
+    void*                   d_data;             /**< Custom data pointer. */
+    uint64_t                d_mSize;            /**< Size of the custom data. */
 
     BloombergLP::bslmt::Mutex mutex; /**< Mutex for thread safety. */
 

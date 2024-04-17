@@ -60,10 +60,12 @@ struct z_bmqt_CompressionAlgorithmType {
     static bool fromAscii(z_bmqt_CompressionAlgorithmType::Enum* out,
                           const char*                            str);
 
+
+    /// Pass in unassigned pointer for error
     /// Return true incase of valid specified `str` i.e. a enumerator name
     /// with the "ec_" prefix excluded.  Otherwise in case of invalid `str`
-    /// return false and populate the specified `stream` with error message.
-    static bool isValid(const char* str);
+    /// return false and populate the specified `error` with error message.
+    static bool isValid(const char* str, char** error);
 };
 
 #if defined(__cplusplus)

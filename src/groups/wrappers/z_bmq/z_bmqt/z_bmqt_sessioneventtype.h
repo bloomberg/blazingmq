@@ -50,6 +50,15 @@ struct z_bmqt_SessionEventType {
         ec_QUEUE_RESUMED = 16  // Queue has resumed operation
     };
 
+
+    /// Return the non-modifiable string representation corresponding to the
+    /// specified enumeration `value`, if it exists, and a unique (error)
+    /// string otherwise.  The string representation of `value` matches its
+    /// corresponding enumerator name with the `BMQT_` prefix elided.  Note
+    /// that specifying a `value` that does not match any of the enumerators
+    /// will result in a string representation that is distinct from any of
+    /// those corresponding to the enumerators, but is otherwise
+    /// unspecified.
     static const char* toAscii(z_bmqt_SessionEventType::Enum value);
 
     /// Return true and fills the specified `out` with the enum value

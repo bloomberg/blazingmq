@@ -223,14 +223,6 @@ int z_bmqa_Message__ackStatus(const z_bmqa_Message* message)
     return message_p->ackStatus();
 }
 
-// Add once we figure out how to handle Blobs in C
-// int z_bmqa_Message__getData(const z_bmqa_Message* message, z_bdlbb_Blob*
-// blob) {
-//     using namespace BloombergLP;
-// const bmqa::Message* message_p = reinterpret_cast<const
-// bmqa::Message*>(message);
-// }
-
 int z_bmqa_Message__getData(const z_bmqa_Message* message, char** buffer)
 {
     using namespace BloombergLP;

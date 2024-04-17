@@ -30,8 +30,6 @@ unsigned int z_bmqt_SubscriptionHandle__id(
     return subscriptionHandle_p->id();
 }
 
-///////
-
 int z_bmqt_SubscriptionExpression__create(
     z_bmqt_SubscriptionExpression** subscriptionExpression_obj)
 {
@@ -112,8 +110,6 @@ bool z_bmqt_SubscriptionExpression__isValid(
             subscriptionExpression_obj);
     return subscriptionExpression_p->isValid();
 }
-
-///////
 
 int z_bmqt_Subscription__create(z_bmqt_Subscription** subscription_obj)
 {

@@ -12,22 +12,22 @@ z_bmqa_CustomSessionEventHandler::z_bmqa_CustomSessionEventHandler(
     z_bmqa_OnMessageEventCb onMessageEventCb,
     uint64_t                mSize)
 {
-    this->mSize            = mSize;
-    this->onSessionEventCb = onSessionEventCb;
-    this->onMessageEventCb = onMessageEventCb;
+    this->d_mSize            = mSize;
+    this->d_onSessionEventCb = onSessionEventCb;
+    this->d_onMessageEventCb = onMessageEventCb;
 
     if (mSize != 0) {
-        data = static_cast<void*>(new char[mSize]);
+        d_data = static_cast<void*>(new char[mSize]);
     }
     else {
-        data = NULL;
+        d_data = NULL;
     }
 }
 
 z_bmqa_CustomSessionEventHandler::~z_bmqa_CustomSessionEventHandler()
 {
-    if (data != NULL) {
-        delete[] static_cast<char*>(data);
+    if (d_data != NULL) {
+        delete[] static_cast<char*>(d_data);
     }
 }
 
@@ -36,7 +36,7 @@ void z_bmqa_CustomSessionEventHandler::onSessionEvent(
 {
     const z_bmqa_SessionEvent* sessionEvent_p =
         reinterpret_cast<const z_bmqa_SessionEvent*>(&sessionEvent);
-    this->onSessionEventCb(sessionEvent_p, this->data);
+    this->d_onSessionEventCb(sessionEvent_p, this->d_data);
 }
 
 void z_bmqa_CustomSessionEventHandler::onMessageEvent(
@@ -44,14 +44,14 @@ void z_bmqa_CustomSessionEventHandler::onMessageEvent(
 {
     const z_bmqa_MessageEvent* messageEvent_p =
         reinterpret_cast<const z_bmqa_MessageEvent*>(&messageEvent);
-    this->onMessageEventCb(messageEvent_p, this->data);
+    this->d_onMessageEventCb(messageEvent_p, this->d_data);
 }
 
 void z_bmqa_CustomSessionEventHandler::callCustomFunction(
     z_bmqa_SessionEventHandlerMemberFunction function,
     void*                                    args)
 {
-    function(args, this->data);
+    function(args, this->d_data);
 }
 
 void z_bmqa_CustomSessionEventHandler::lock()

@@ -14,9 +14,9 @@ bool z_bmqt_PropertyType::fromAscii(z_bmqt_PropertyType::Enum* out,
 {
     using namespace BloombergLP;
 
-    bmqt::PropertyType::Enum p;
-    bool                     result = bmqt::PropertyType::fromAscii(&p, str);
-    *out = static_cast<z_bmqt_PropertyType::Enum>(p);
+    bmqt::PropertyType::Enum type;
+    bool                     result = bmqt::PropertyType::fromAscii(&type, str);
+    *out = static_cast<z_bmqt_PropertyType::Enum>(type);
 
     return result;
 }
