@@ -17,13 +17,12 @@ const char* z_bmqt_CompressionAlgorithmType::toAscii(
 bool fromAscii(z_bmqt_CompressionAlgorithmType::Enum* out, const char* str)
 {
     using namespace BloombergLP;
-    bmqt::CompressionAlgorithmType::Enum p;
-    bool result = bmqt::CompressionAlgorithmType::fromAscii(&p, str);
-    *out        = static_cast<z_bmqt_CompressionAlgorithmType::Enum>(p);
+    bmqt::CompressionAlgorithmType::Enum type;
+    bool result = bmqt::CompressionAlgorithmType::fromAscii(&type, str);
+    *out        = static_cast<z_bmqt_CompressionAlgorithmType::Enum>(type);
     return result;
 }
 
-// Pass in unassigned pointer for error
 bool isValid(const char* str, char** error)
 {
     using namespace BloombergLP;
@@ -36,7 +35,7 @@ bool isValid(const char* str, char** error)
     if (error_str.size() != 0) {
         *error                     = new char[error_str.size() + 1];
         (*error)[error_str.size()] = '\0';
-        strcpy(*error, error_str.c_str());
+        strncpy(*error, error_str.c_str());
     }
     else {
         *error = NULL;

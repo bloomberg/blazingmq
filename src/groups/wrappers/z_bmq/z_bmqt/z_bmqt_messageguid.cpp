@@ -34,7 +34,7 @@ int z_bmqt_MessageGUID__fromBinary(z_bmqt_MessageGUID*  messageGUID_obj,
 
     bmqt::MessageGUID* messageGUID_p = reinterpret_cast<bmqt::MessageGUID*>(
         messageGUID_obj);
-
+    messageGUID_p = messageGUID_p->fromBinary(buffer);
     return 0;
 }
 
@@ -45,7 +45,7 @@ int z_bmqt_MessageGUID__fromHex(z_bmqt_MessageGUID* messageGUID_obj,
 
     bmqt::MessageGUID* messageGUID_p = reinterpret_cast<bmqt::MessageGUID*>(
         messageGUID_obj);
-
+    messageGUID_p = messageGUID_p->fromHex(buffer);
     return 0;
 }
 
@@ -66,7 +66,7 @@ int z_bmqt_MessageGUID__toBinary(const z_bmqt_MessageGUID* messageGUID_obj,
 
     const bmqt::MessageGUID* messageGUID_p =
         reinterpret_cast<const bmqt::MessageGUID*>(messageGUID_obj);
-
+    messageGUID_p->toBinary(destination);
     return 0;
 }
 
@@ -77,7 +77,7 @@ int z_bmqt_MessageGUID__toHex(const z_bmqt_MessageGUID* messageGUID_obj,
 
     const bmqt::MessageGUID* messageGUID_p =
         reinterpret_cast<const bmqt::MessageGUID*>(messageGUID_obj);
-
+    messageGUID_p->toHex(destination);
     return 0;
 }
 
@@ -92,7 +92,7 @@ int z_bmqt_MessageGUID__toString(const z_bmqt_MessageGUID* messageGUID_obj,
     ss << *messageGUID_p;
     bsl::string out_str = ss.str();
     *out                = new char[out_str.length() + 1];
-    strcpy(*out, out_str.c_str());
+    strncpy(*out, out_str.c_str());
 
     return 0;
 }
