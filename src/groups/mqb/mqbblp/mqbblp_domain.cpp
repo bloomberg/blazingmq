@@ -422,6 +422,12 @@ int Domain::configure(bsl::ostream&           errorDescription,
         return rc_SUCCESS;  // RETURN
     }
 
+    // No configuration is required outside of the cluster.
+    if (d_cluster_sp->isRemote()) {
+        d_state = e_STARTED;
+        return rc_SUCCESS;  // RETURN
+    }
+
     // Validate config. Return early if the configuration is not valid.
     if (int rc = validateConfig(errorDescription, d_config, finalConfig)) {
         return (rc * 10 + rc_VALIDATION_FAILED);  // RETURN
