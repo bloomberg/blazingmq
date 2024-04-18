@@ -17,46 +17,45 @@
 #ifndef INCLUDED_BMQA_MESSAGEPROPERTIES
 #define INCLUDED_BMQA_MESSAGEPROPERTIES
 
-//@PURPOSE: Provide a VST representing message properties.
-//
-//@CLASSES:
-//  bmqa::MessageProperties:         VST representing message properties.
-//  bmqa::MessagePropertiesIterator: Mechanism to iterate over properties.
-//
-//@SEE ALSO: bmqt::PropertyType
-//
-//@DESCRIPTION: 'bmqa::MessageProperties' provides a VST representing message
-// properties.  Message properties are a collection of name-value pairs that
-// producer can associate with a message, and consumer can retrieve from the
-// corresponding message.  In order to keep their usage flexible, no schema is
-// enforced for the message properties, and their format (names and data types)
-// should be negotiated by producers and consumers.  Message properties can be
-// used for routing, pipelining or filtering messages within the application.
-// It can be efficient to specify such message attributes in the properties
-// instead of the message payload, because application does not have to decode
-// entire payload to retrieve these attributes.
-// 'bmqa::MessagePropertiesIterator' provides a mechanism to iterate over all
-// the properties of a 'bmqa::MessageProperties' object.
-//
-/// Restrictions on Property Names
-///------------------------------
-//
-//: o Length of a property name must be greater than zero and must *not* exceed
-//:   'bmqa::MessageProperties::k_MAX_PROPERTY_NAME_LENGTH'
-//
-//: o First character of the property name must be alpha-numeric.
-//
-/// Restrictions on Property Values
-///-------------------------------
-//
-//: o Length of a property value must be non-negative (ie, can be zero) and
-//:   must *not* exceed 'bmqa::MessageProperties::k_MAX_PROPERTY_VALUE_LENGTH'.
-//:   Note that this restriction is obviously applicable to property values
-//:   with types 'bmqt::PropertyType::e_STRING' and
-//:   'bmqt::PropertyType::e_BINARY', because for all other property value
-//:   types, size is implicitly applicable based on the type (see 'Data Types
-//:   and Size' section in 'bmqt::PropertyType' component).
-//
+/// @file bmqa_messageproperties.h
+///
+/// @brief Provide a VST representing message properties.
+///
+/// @bbref{bmqa::MessageProperties} provides a VST representing message
+/// properties.  Message properties are a collection of name-value pairs that
+/// producer can associate with a message, and consumer can retrieve from the
+/// corresponding message.  In order to keep their usage flexible, no schema is
+/// enforced for the message properties, and their format (names and data
+/// types) should be negotiated by producers and consumers.  Message properties
+/// can be used for routing, pipelining or filtering messages within the
+/// application.  It can be efficient to specify such message attributes in the
+/// properties instead of the message payload, because application does not
+/// have to decode entire payload to retrieve these attributes.
+/// @bbref{bmqa::MessagePropertiesIterator} provides a mechanism to iterate
+/// over all the properties of a @bbref{bmqa::MessageProperties} object.
+///
+/// Restrictions on Property Names   {#bmqa_messageproperties_namerestrictions}
+/// ==============================
+///
+///   - Length of a property name must be greater than zero and must *not*
+///     exceed @bbref{bmqa::MessageProperties::k_MAX_PROPERTY_NAME_LENGTH}.
+///
+///   - First character of the property name must be alpha-numeric.
+///
+/// Restrictions on Property Values {#bmqa_messageproperties_valuerestrictions}
+/// ===============================
+///
+///   - Length of a property value must be non-negative (ie, can be zero) and
+///     must *not* exceed
+///     @bbref{bmqa::MessageProperties::k_MAX_PROPERTY_VALUE_LENGTH}.  Note
+///     that this restriction is obviously applicable to property values with
+///     types @bbref{bmqt::PropertyType::e_STRING} and
+///     @bbref{bmqt::PropertyType::e_BINARY}, because for all other property
+///     value types, size is implicitly applicable based on the type (see @ref
+///     bmqt_propertytype_types section in @bbref{bmqt::PropertyType}
+///     component).
+///
+/// @see @bbref{bmqt::PropertyType}
 
 // BMQ
 

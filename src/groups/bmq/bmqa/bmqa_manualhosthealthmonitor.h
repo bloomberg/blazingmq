@@ -17,16 +17,15 @@
 #ifndef INCLUDED_BMQA_MANUALHOSTHEALTHMONITOR
 #define INCLUDED_BMQA_MANUALHOSTHEALTHMONITOR
 
-//@PURPOSE: Provide a minimal implementation of 'bmqpi::HostHealthMonitor'.
-//
-//@CLASSES:
-//  bmqa::ManualHostHealthMonitor: A 'HostHealthMonitor' that derives its host
-//  health state from a value explicitly set through a setter method.
-//
-//@DESCRIPTION:
-// 'bmqa::ManualHostHealthMonitor' is a minimal implementation of
-// 'bmqpi::HostHealthMonitor', which is primarily useful for unit-testing, and
-// for integrating with other systems for determining host health.
+/// @file bmqa_manualhosthealthmonitor.h
+///
+/// @brief Provide a minimal implementation of
+///        @bbref{bmqpi::HostHealthMonitor}.
+///
+/// @bbref{bmqa::ManualHostHealthMonitor} is a minimal implementation of
+/// @bbref{bmqpi::HostHealthMonitor}, which is primarily useful for
+/// unit-testing, and for integrating with other systems for determining host
+/// health.
 
 // BMQ
 

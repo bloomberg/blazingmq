@@ -17,15 +17,11 @@
 #ifndef INCLUDED_BMQA_ABSTRACTSESSION
 #define INCLUDED_BMQA_ABSTRACTSESSION
 
-//@PURPOSE: Provide a pure protocol for a BlazingMQ session.
-//
-//@CLASSES:
-//  bmqa::AbstractSession: Interface for a BlazingMQ session.
-//
-//@DESCRIPTION:
-// 'bmqa::AbstractSession' is a pure protocol for a BlazingMQ session.
-
-// BMQ
+/// @file bmqa_abstractsession.h
+///
+/// @brief Provide a pure protocol for a BlazingMQ session.
+///
+/// @bbref{bmqa::AbstractSession} is a pure protocol for a BlazingMQ session.
 
 #include <bmqa_closequeuestatus.h>
 #include <bmqa_configurequeuestatus.h>

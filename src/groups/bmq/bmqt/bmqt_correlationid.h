@@ -17,150 +17,159 @@
 #ifndef INCLUDED_BMQT_CORRELATIONID
 #define INCLUDED_BMQT_CORRELATIONID
 
-//@PURPOSE: Provide a value-semantic type usable as an efficient identifier.
-//
-//@CLASSES:
-//  bmqt::CorrelationId:     correlation ID class.
-//  bmqt::CorrelationIdLess: comparison functor for 'CorrelationId' as map key
-//  bsl::hash:               hash functor specialization
-//
-//@DESCRIPTION: This component implements a value-semantic class,
-// 'bmqt::CorrelationId', which can be used to identify any async operations.
-// The correlationId contains a value (64-bit integer, raw pointer or
-// sharedPtr) supplied by the application or uses an auto-assigned value.  The
-// type and the value of the correlationId can be set at construction time and
-// changed later via the 'setNumeric()', 'setPointer()' and 'setSharedPointer'
-// methods.  Alternatively, a 'CorrelationId::AutoValue' can be used to
-// generate a unique correlationId from within the process.  The
-// 'bmqt::CorrelationIdLess' comparison functor can be used for storing
-// 'CorrelationId' in a map as the key element; and a hash functor
-// specialization is provided in the 'bsl::hash' namespace.
-//
-/// AutoValue
-///---------
-// If the application doesn't care about the actual value of the correlation,
-// AutoValue type can be used to create a unique correlationId.  An AutoValue
-// correlationId behaves exactly the same as any other type of correlation,
-// with the exception that it's value can not be retrieved (but two
-// correlationId can be still compared equal).
-//..
-//  bmqt::CorrelationId corrId = bmqt::CorrelationId::autoValue();
-//..
-//
-/// Usage
-///-----
-// This section illustrates intended use of this component.
-//
-/// Example 1: Correlating Responses
-///  - - - - - - - - - - - - - - - -
-// Suppose that we have the following asynchronous messaging interface that we
-// want to use to implement a basic request/response class.
-//..
-//  class Messenger {
-//
-//    public:
-//      // TYPES
-//      typedef bsl::function<
-//        void(void                       *buffer,
-//             int                         bufferLength,
-//             const bmqt::CorrelationId&  correlationId)> MessageHandler;
-//          // 'MessageHandler' is an alias for a functor that handles received
-//          // messages consisting of the specified 'buffer', having the
-//          // specified 'bufferLength', as well as the specified associated
-//          // 'correlationId' if the message is in response to a previously
-//          // transmitted message.
-//
-//      // MANIPULATORS
-//      void sendMessage(void                       *buffer,
-//                       int                         bufferLength,
-//                       const bmqt::CorrelationId&  correlationId);
-//          // Send a message containing the specified 'buffer' of the
-//          // specified 'bufferLength', associating the specified
-//          // 'correlationId' with any messages later received in response.
-//
-//      void setMessageHandler(const MessageHandler& handler);
-//          // Set the functor to handle messages received by this object to
-//          // the specified 'handler'.
-//  };
-//..
-// First we declare a requester class.
-//..
-//  class Requester {
-//
-//      // DATA
-//      Messenger        *d_messenger_p;  // used to send messages (held)
-//      bslma::Allocator *d_allocator_p;  // memory supply (held)
-//
-//      // PRIVATE CLASS METHODS
-//      static void handleMessage(void                       *buffer,
-//                                int                         bufferLength,
-//                                const bmqt::CorrelationId&  correlationId);
-//          // Handle the response message consisting fo the specified 'buffer'
-//          // having the specified 'bufferLength', and associated
-//          // 'correlationId'.
-//
-//    public:
-//      // TYPES
-//      typedef bsl::function<void(void *buffer, int bufferLength)>
-//                                                            ResponseCallback;
-//          // 'ResponseCallback' is an alias for a functor that is used to
-//          // process received responses consisting of the specified 'buffer'
-//          // having the specified 'bufferLength'.
-//
-//      // CREATORS
-//      explicit Requester(Messenger        *messenger,
-//                         bslma::Allocator *basicAllocator);
-//          // Create a 'Requester' that uses the specified 'messenger' to send
-//          // requests and receive responses, and the specified
-//          // 'basicAllocator' to supply memory.
-//
-//      // MANIPULATORS
-//      void sendRequest(void                    *buffer,
-//                       int                      bufferLength,
-//                       const ResponseCallback&  callback);
-//          // Send a request consisting of the specified 'buffer' having the
-//          // specified 'bufferLength', and invoke the specified 'callback'
-//          // with any asynchronous response.
-//  };
-//..
-// Then, we implement the constructor, setting the message handler on the
-// provided 'Messenger' to our class method.
-//..
-//  Requester::Requester(Messenger        *messenger,
-//                       bslma::Allocator *basicAllocator)
-//  : d_messenger_p(messenger)
-//  , d_allocator_p(basicAllocator)
-//  {
-//      d_messenger_p->setMessageHandler(&Requester::handleMessage);
-//  }
-//..
-// Now, we implement 'sendRequest', copying the given 'callback' into a
-// correlationId that is provided to the messenger.
-//..
-//  void Requester::sendRequest(void                    *buffer,
-//                              int                      bufferLength,
-//                              const ResponseCallback&  callback)
-//  {
-//      bsl::shared_ptr<ResponseCallback> callbackCopy;
-//      callbackCopy.createInplace(d_allocator_p, callback, d_allocator_p);
-//      bmqt::CorrelationId correlationId(bsl::shared_ptr<void>(callbackCopy));
-//      d_messenger_p->sendMessage(buffer, bufferLength, correlationId);
-//  }
-//..
-// Finally, we implement our message handler, extracting the response callback
-// from the correlationId, and invoking it with the received response message.
-//..
-//  void Requester::handleMessage(void                       *buffer,
-//                                int                         bufferLength,
-//                                const bmqt::CorrelationId&  correlationId)
-//  {
-//      assert(correlationId.isSharedPtr());
-//      ResponseCallback *callback = static_cast<ResponseCallback *>(
-//                                         correlationId.theSharedPtr().get());
-//      (*callback)(buffer, bufferLength);
-//  }
-//..
-//
+/// @file bmqt_correlationid.h
+///
+/// @brief Provide a value-semantic type usable as an efficient identifier.
+///
+/// This component implements a value-semantic class,
+/// @bbref{bmqt::CorrelationId}, which can be used to identify any async
+/// operations.  The correlationId contains a value (64-bit integer, raw
+/// pointer or sharedPtr) supplied by the application or uses an auto-assigned
+/// value.  The type and the value of the correlationId can be set at
+/// construction time and changed later via the `setNumeric()`, `setPointer()`
+/// and `setSharedPointer()` methods.  Alternatively, an `AutoValue` can be
+/// used to generate a unique correlationId from within the process.  The
+/// @bbref{bmqt::CorrelationIdLess} comparison functor can be used for storing
+/// @bbref{bmqt::CorrelationId} in a map as the key element; and a hash functor
+/// specialization is provided in the `bsl::hash` namespace.
+///
+/// AutoValue                                   {#bmqt_correlationid_autovalue}
+/// =========
+///
+/// If the application doesn't care about the actual value of the correlation,
+/// `AutoValue` type can be used to create a unique correlationId.  An
+/// `AutoValue` correlationId behaves exactly the same as any other type of
+/// correlation, with the exception that it's value can not be retrieved (but
+/// two correlationId can be still compared equal).
+///
+/// ```
+/// bmqt::CorrelationId corrId = bmqt::CorrelationId::autoValue();
+/// ```
+///
+/// Usage                                           {#bmqt_correlationid_usage}
+/// =====
+///
+/// This section illustrates intended use of this component.
+///
+/// Example 1: Correlating Responses                  {#bmqt_correlationid_ex1}
+/// --------------------------------
+///
+/// Suppose that we have the following asynchronous messaging interface that we
+/// want to use to implement a basic request/response class.
+///
+/// ```
+/// class Messenger {
+///
+///   public:
+///     // TYPES
+///     typedef bsl::function<
+///       void(void                       *buffer,
+///            int                         bufferLength,
+///            const bmqt::CorrelationId&  correlationId)> MessageHandler;
+///         // 'MessageHandler' is an alias for a functor that handles received
+///         // messages consisting of the specified 'buffer', having the
+///         // specified 'bufferLength', as well as the specified associated
+///         // 'correlationId' if the message is in response to a previously
+///         // transmitted message.
+///
+///     // MANIPULATORS
+///     void sendMessage(void                       *buffer,
+///                      int                         bufferLength,
+///                      const bmqt::CorrelationId&  correlationId);
+///         // Send a message containing the specified 'buffer' of the
+///         // specified 'bufferLength', associating the specified
+///         // 'correlationId' with any messages later received in response.
+///
+///     void setMessageHandler(const MessageHandler& handler);
+///         // Set the functor to handle messages received by this object to
+///         // the specified 'handler'.
+/// };
+/// ```
+///
+/// First we declare a requester class.
+///
+/// ```
+/// class Requester {
+///
+///     // DATA
+///     Messenger        *d_messenger_p;  // used to send messages (held)
+///     bslma::Allocator *d_allocator_p;  // memory supply (held)
+///
+///     // PRIVATE CLASS METHODS
+///     static void handleMessage(void                       *buffer,
+///                               int                         bufferLength,
+///                               const bmqt::CorrelationId&  correlationId);
+///         // Handle the response message consisting fo the specified 'buffer'
+///         // having the specified 'bufferLength', and associated
+///         // 'correlationId'.
+///
+///   public:
+///     // TYPES
+///     typedef bsl::function<void(void *buffer, int bufferLength)>
+///                                                            ResponseCallback;
+///         // 'ResponseCallback' is an alias for a functor that is used to
+///         // process received responses consisting of the specified 'buffer'
+///         // having the specified 'bufferLength'.
+///
+///     // CREATORS
+///     explicit Requester(Messenger        *messenger,
+///                        bslma::Allocator *basicAllocator);
+///         // Create a 'Requester' that uses the specified 'messenger' to send
+///         // requests and receive responses, and the specified
+///         // 'basicAllocator' to supply memory.
+///
+///     // MANIPULATORS
+///     void sendRequest(void                    *buffer,
+///                      int                      bufferLength,
+///                      const ResponseCallback&  callback);
+///         // Send a request consisting of the specified 'buffer' having the
+///         // specified 'bufferLength', and invoke the specified 'callback'
+///         // with any asynchronous response.
+/// };
+/// ```
+///
+/// Then, we implement the constructor, setting the message handler on the
+/// provided 'Messenger' to our class method.
+///
+/// ```
+/// Requester::Requester(Messenger        *messenger,
+///                      bslma::Allocator *basicAllocator)
+/// : d_messenger_p(messenger)
+/// , d_allocator_p(basicAllocator)
+/// {
+///     d_messenger_p->setMessageHandler(&Requester::handleMessage);
+/// }
+/// ```
+///
+/// Now, we implement `sendRequest`, copying the given `callback` into a
+/// correlationId that is provided to the messenger.
+///
+/// ```
+/// void Requester::sendRequest(void                    *buffer,
+///                             int                      bufferLength,
+///                             const ResponseCallback&  callback)
+/// {
+///     bsl::shared_ptr<ResponseCallback> callbackCopy;
+///     callbackCopy.createInplace(d_allocator_p, callback, d_allocator_p);
+///     bmqt::CorrelationId correlationId(bsl::shared_ptr<void>(callbackCopy));
+///     d_messenger_p->sendMessage(buffer, bufferLength, correlationId);
+/// }
+/// ```
+///
+/// Finally, we implement our message handler, extracting the response callback
+/// from the correlationId, and invoking it with the received response message.
+///
+/// ```
+/// void Requester::handleMessage(void                       *buffer,
+///                               int                         bufferLength,
+///                               const bmqt::CorrelationId&  correlationId)
+/// {
+///     assert(correlationId.isSharedPtr());
+///     ResponseCallback *callback = static_cast<ResponseCallback *>(
+///                                        correlationId.theSharedPtr().get());
+///     (*callback)(buffer, bufferLength);
+/// }
+/// ```
 
 // BMQ
 

@@ -17,17 +17,16 @@
 #ifndef INCLUDED_BMQT_HOSTHEALTHSTATE
 #define INCLUDED_BMQT_HOSTHEALTHSTATE
 
-//@PURPOSE: Provide an enumeration for different host health states.
-//
-//@CLASSES:
-//  bmqt::HostHealthState: Enumeration for different host health states.
-//
-//@DESCRIPTION: Provide an enumeration, 'bmqt::HostHealthState' for different
-// representations of the health of a host.
-//
-//: o !UNKNOWN!: Host health could not be ascertained
-//: o !HEALTHY!: Host is considered to be healthy
-//: o !UNHEALTHY!: Host is not considered to be healthy
+/// @file bmqt_hosthealthstate.h
+///
+/// @brief Provide an enumeration for different host health states.
+///
+/// Provide an enumeration, @bbref{bmqt::HostHealthState} for different
+/// representations of the health of a host.
+///
+///   - *UNKNOWN*: Host health could not be ascertained
+///   - *HEALTHY*: Host is considered to be healthy
+///   - *UNHEALTHY*: Host is not considered to be healthy
 
 // BMQ
 

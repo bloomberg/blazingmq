@@ -17,39 +17,30 @@
 #ifndef INCLUDED_BMQT_PROPERTYTYPE
 #define INCLUDED_BMQT_PROPERTYTYPE
 
-//@PURPOSE: Provide enum for the supported data types for a message property.
-//
-//@CLASSES:
-//  bmqt::PropertyType: Enum for supported data types for a message property.
-//
-//@DESCRIPTION: This component contains 'bmqt::PropertyType' which describes
-// various data types that are supported for message properties.
-//
-/// Data Types and Size
-///-------------------
-// This section describes the size of each data type:
-//..
-//
-//  +----------------------------------------------------+
-//  | Data Type                      | Size (in bytes)   |
-//  +====================================================+
-//  | BOOL                           | 1
-//  | CHAR                           | 1                 |
-//  +----------------------------------------------------+
-//  | SHORT                          | 2                 |
-//  +----------------------------------------------------+
-//  | INT                            | 4                 |
-//  +----------------------------------------------------+
-//  | INT64                          | 8                 |
-//  +----------------------------------------------------+
-//  | STRING                         | variable          |
-//  +----------------------------------------------------+
-//  | BINARY                         | variable          |
-//  +----------------------------------------------------+
-//..
-//
-// Note that the difference between 'BINARY' and 'STRING' data types is that
-// the former allows null ('\0') character while the later does not.
+/// @file bmqt_propertytype.h
+///
+/// @brief Provide enum for the supported data types for a message property.
+///
+/// This component contains @bbref{bmqt::PropertyType} which describes various
+/// data types that are supported for message properties.
+///
+/// Data Types and Size                              {#bmqt_propertytype_types}
+/// ===================
+///
+/// This section describes the size of each data type:
+///
+/// | Data Type                      | Size (in bytes)   |
+/// | ------------------------------ | ----------------- |
+/// | BOOL                           | 1                 |
+/// | CHAR                           | 1                 |
+/// | SHORT                          | 2                 |
+/// | INT                            | 4                 |
+/// | INT64                          | 8                 |
+/// | STRING                         | variable          |
+/// | BINARY                         | variable          |
+///
+/// Note that the difference between `BINARY` and `STRING` data types is that
+/// the former allows null (`'\0'`) character while the later does not.
 
 // BMQ
 

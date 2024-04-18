@@ -17,23 +17,25 @@
 #ifndef INCLUDED_BMQA_MESSAGEEVENT
 #define INCLUDED_BMQA_MESSAGEEVENT
 
-//@PURPOSE: Provide the application with data event notifications.
-//
-//@CLASSES:
-//  bmqa::MessageEvent: Mechanism for data event notification.
-//
-//@SEE_ALSO:
-//  bmqa::MessageIterator: iterator over the messages in this event
-//  bmqa::Message:         type of the Message
-//
-//@DESCRIPTION: This component provides a 'bmqa::MessageEvent' notification
-// object used by the 'bmqa::Session' to provide BlazingMQ applications with
-// data messages received from the broker.  The application can consume the
-// messages by asking this 'MessageEvent' for a 'MessageIterator'.
-//
-// Note that 'MessageEvent' is implemented using the pimpl idiom, so copying a
-// 'MessageEvent' is very cheap (a pointer copy).  All copies of this
-// 'MessageEvent' will share the same underlying implementation.
+/// @file bmqa_messageevent.h
+///
+/// @brief Provide the application with data event notifications.
+///
+/// This component provides a @bbref{bmqa::MessageEvent} notification object
+/// used by the @bbref{bmqa::Session} to provide BlazingMQ applications with
+/// data messages received from the broker.  The application can consume the
+/// messages by asking this @bbref{bmqa::MessageEvent} for a
+/// @bbref{bmqa::MessageIterator}.
+///
+/// Note that @bbref{bmqa::MessageEvent} is implemented using the pimpl idiom,
+/// so copying a @bbref{bmqa::MessageEvent} is very cheap (a pointer copy).
+/// All copies of this @bbref{bmqa::MessageEvent} will share the same
+/// underlying implementation.
+///
+/// @see @bbref{bmqa::MessageIterator}:
+///      iterator over the messages in this event
+/// @see @bbref{bmqa::Message}:
+///      type of the Message
 
 // BMQ
 

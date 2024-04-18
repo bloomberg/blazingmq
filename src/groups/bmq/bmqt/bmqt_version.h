@@ -17,30 +17,30 @@
 #ifndef INCLUDED_BMQT_VERSION
 #define INCLUDED_BMQT_VERSION
 
-//@PURPOSE: Provide a value-semantic type representing a version (major minor).
-//
-//@CLASSES:
-//  bmqt::Version: version with major and minor parts.
-//
-//@DESCRIPTION: This component implements a simple value-semantic type,
-// 'bmqt::Version' representing the version of an object.  It is used in
-// particular to attach a version attribute to a 'bmqa::Message', so that a
-// consuming application receiving a message knows the version of the schema
-// that was used for publishing.
-//
-// A version is represented by two numbers: a major and a minor version.  Both
-// are positive integers within the range [0-255].
-//
-/// Usage Example
-///-------------
-//..
-//  bmqt::Version version(1, 3);
-//  BSLS_ASSERT(version.major() == 1);
-//  BSLS_ASSERT(version.minor() == 3);
-//  version.setMajor(2).setMinor(4);
-//  BSLS_ASSERT(version.major() == 2);
-//  BSLS_ASSERT(version.minor() == 4);
-//..
+/// @file bmqt_version.h
+///
+/// @brief Provide a value-semantic type representing a version (major minor).
+///
+/// This component implements a simple value-semantic type,
+/// @bbref{bmqt::Version} representing the version of an object.  It is used in
+/// particular to attach a version attribute to a @bbref{bmqa::Message}, so
+/// that a consuming application receiving a message knows the version of the
+/// schema that was used for publishing.
+///
+/// A version is represented by two numbers: a major and a minor version.  Both
+/// are positive integers within the range [0-255].
+///
+/// Usage Example                                           {#bmqt_version_ex1}
+/// =============
+///
+/// ```
+/// bmqt::Version version(1, 3);
+/// BSLS_ASSERT(version.major() == 1);
+/// BSLS_ASSERT(version.minor() == 3);
+/// version.setMajor(2).setMinor(4);
+/// BSLS_ASSERT(version.major() == 2);
+/// BSLS_ASSERT(version.minor() == 4);
+/// ```
 
 // BMQ
 
