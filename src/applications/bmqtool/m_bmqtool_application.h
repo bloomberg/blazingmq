@@ -29,6 +29,7 @@
 #include <m_bmqtool_filelogger.h>
 #include <m_bmqtool_interactive.h>
 #include <m_bmqtool_messages.h>
+#include <m_bmqtool_poster.h>
 #include <m_bmqtool_storageinspector.h>
 
 // MQB
@@ -44,7 +45,6 @@
 #include <mwctsk_consoleobserver.h>
 
 // BDE
-#include "m_bmqtool_poster.h"
 #include <ball_multiplexobserver.h>
 #include <bdlbb_blob.h>
 #include <bdlbb_pooledblobbufferfactory.h>

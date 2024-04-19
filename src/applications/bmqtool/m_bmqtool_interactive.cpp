@@ -153,8 +153,8 @@ void Interactive::printHelp()
         << "parameter 'messageProperties' is optional" << bsl::endl
         << bsl::endl
         << "  batch-post uri=\"bmq://bmq.test.persistent.priority/qqq\" "
-           "payload=[\"sample message\"] eventsCount=300 postRate=10 "
-           "postInterval=5000"
+           "payload=[\"sample message\"] eventsCount=300 postInterval=5000 "
+           "postRate=10"
         << bsl::endl
         << "    - 'batch-post' command requires 'uri' argument, "
            "all the rest are optional"
@@ -805,6 +805,10 @@ Interactive::Interactive(Parameters*       parameters,
 , d_poster_p(poster)
 , d_allocator_p(allocator)
 {
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(parameters);
+    BSLS_ASSERT_SAFE(poster);
+
     bdls::ProcessUtil::getProcessName(&d_producerIdProperty);  // ignore rc
 
     bsl::ostringstream pidStr;

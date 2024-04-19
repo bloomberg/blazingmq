@@ -115,9 +115,9 @@ opened regularly (without specifying a mode).  To run the `bmqtool`, you invoke
 | `open`    | `uri=string [async=true] [maxUnconfirmedMessages=N) (maxUnconfirmedByes=M)` | Open a connection with the queue at the given `uri`. |
 | `close`   | `uri=string [async=true]` | Close connection with the queue at the given `uri`. |
 | `post`    | `uri=string payload=string [, ...] [async=true]` | Post a message (the `payload`) to the queue at the given `uri`. |
+| `batch-post` | `uri=string payload=string [, ...] (msgSize=S) (eventSize=N) (eventsCount=M) (postInterval=P) (postRate=R)` | Post `M` events containing `N` messages containing provided `payload` or auto-generated and containing `S` bytes each to the queue at the given `uri` at a rate of `R/P` (where `P` is expressed in ms). `M=0` means endless posting. |
 | `list`    | N/A            | List the messages that have yet to be ACKed by the tool.     |
 | `confirm` | `guid=string`  | Confirm (ACK) the message matching the given GUID.           |
-| `batch-post` | `uri=string payload=string [, ...] (eventSize=N) (eventsCount=M) (postInterval=P) (postRate=R)` | Post M messages to the queue at the given `uri`. |  
 | `help`    | N/A            | Show the help dialog.                                        |
 | `bye`     | N/A            | Exit the tool.                                               |
 | `quit`    | N/A            | Exit the tool.                                               |

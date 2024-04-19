@@ -219,7 +219,7 @@ void PostingContext::postNext()
 Poster::Poster(FileLogger*         fileLogger,
                mwcst::StatContext* statContext,
                bslma::Allocator*   allocator)
-: d_allocator_p(allocator)
+: d_allocator_p(bslma::Default::allocator(allocator))
 , d_bufferFactory(4096, d_allocator_p)
 , d_timeBufferFactory(sizeof(bdlb::BigEndianInt64), d_allocator_p)
 , d_statContext(statContext)
