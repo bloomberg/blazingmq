@@ -291,11 +291,6 @@ void PrometheusStatConsumer::captureQueueStats()
 
             const auto labels = tagger.getLabels();
 
-            static const DatapointDef confirmTimeDataPoint = {
-                "queue_confirm_time_max",
-                Stat::e_CONFIRM_TIME_MAX,
-                false};
-
             // Heartbeat metric
             {
                 // This metric is *always* reported for every queue, so that
@@ -325,11 +320,22 @@ void PrometheusStatConsumer::captureQueueStats()
                     {"queue_confirm_msgs", Stat::e_CONFIRM_DELTA, true},
                     {"queue_confirm_time_avg",
                      Stat::e_CONFIRM_TIME_AVG,
+                     false},
+                    {"queue_confirm_time_max",
+                     Stat::e_CONFIRM_TIME_MAX,
                      false}};
 
                 for (DatapointDefCIter dpIt = bdlb::ArrayUtil::begin(defs);
                      dpIt != bdlb::ArrayUtil::end(defs);
                      ++dpIt) {
+                    // If there are subcontexts, skip 'confirm_time_max'
+                    // metric, it will be processed later.
+                    if (static_cast<mqbstat::QueueStatsDomain::Stat::Enum>(
+                            dpIt->d_stat) == Stat::e_CONFIRM_TIME_MAX &&
+                        queueIt->numSubcontexts() > 0) {
+                        continue;
+                    }
+
                     const bsls::Types::Int64 value =
                         mqbstat::QueueStatsDomain::getValue(
                             *queueIt,
@@ -338,27 +344,10 @@ void PrometheusStatConsumer::captureQueueStats()
                                 dpIt->d_stat));
                     updateMetric(dpIt, labels, value);
                 }
-
-                // If there are no subcontexts, add `queue_confirm_time_max`
-                // from queue context.
-                if (queueIt->numSubcontexts() == 0) {
-                    const bsls::Types::Int64 value =
-                        mqbstat::QueueStatsDomain::getValue(
-                            *queueIt,
-                            d_snapshotId,
-                            static_cast<mqbstat::QueueStatsDomain::Stat::Enum>(
-                                confirmTimeDataPoint.d_stat));
-                    updateMetric(&confirmTimeDataPoint, labels, value);
-                }
             }
 
             // The following metrics only make sense to be reported from the
             // primary node only.
-            static const DatapointDef queueTimeDataPoint = {
-                "queue_queue_time_max",
-                Stat::e_QUEUE_TIME_MAX,
-                false};
-
             if (role == mqbstat::QueueStatsDomain::Role::e_PRIMARY) {
                 static const DatapointDef defs[] = {
                     {"queue_gc_msgs", Stat::e_GC_MSGS_DELTA, true},
@@ -367,6 +356,7 @@ void PrometheusStatConsumer::captureQueueStats()
                     {"queue_content_msgs", Stat::e_MESSAGES_MAX, false},
                     {"queue_content_bytes", Stat::e_BYTES_MAX, false},
                     {"queue_queue_time_avg", Stat::e_QUEUE_TIME_AVG, false},
+                    {"queue_queue_time_max", Stat::e_QUEUE_TIME_MAX, false},
                     {"queue_reject_msgs", Stat::e_REJECT_DELTA, true},
                     {"queue_nack_noquorum_msgs",
                      Stat::e_NO_SC_MSGS_DELTA,
@@ -376,6 +366,14 @@ void PrometheusStatConsumer::captureQueueStats()
                 for (DatapointDefCIter dpIt = bdlb::ArrayUtil::begin(defs);
                      dpIt != bdlb::ArrayUtil::end(defs);
                      ++dpIt) {
+                    // If there are subcontexts, skip 'cqueue_time_max' metric,
+                    // it will be processed later.
+                    if (static_cast<mqbstat::QueueStatsDomain::Stat::Enum>(
+                            dpIt->d_stat) == Stat::e_QUEUE_TIME_MAX &&
+                        queueIt->numSubcontexts() > 0) {
+                        continue;
+                    }
+
                     const bsls::Types::Int64 value =
                         mqbstat::QueueStatsDomain::getValue(
                             *queueIt,
@@ -384,22 +382,18 @@ void PrometheusStatConsumer::captureQueueStats()
                                 dpIt->d_stat));
                     updateMetric(dpIt, labels, value);
                 }
-
-                // If there are no subcontexts, add `queue_queue_time_max` from
-                // queue context.
-                if (queueIt->numSubcontexts() == 0) {
-                    const bsls::Types::Int64 value =
-                        mqbstat::QueueStatsDomain::getValue(
-                            *queueIt,
-                            d_snapshotId,
-                            static_cast<mqbstat::QueueStatsDomain::Stat::Enum>(
-                                queueTimeDataPoint.d_stat));
-                    updateMetric(&queueTimeDataPoint, labels, value);
-                }
             }
 
             // Add `appId` tag to `queue_confirm_time_max` and
             // `queue_queue_time_max` metrics.
+            static const DatapointDef confirmTimeDataPoint = {
+                "queue_confirm_time_max",
+                Stat::e_CONFIRM_TIME_MAX,
+                false};
+            static const DatapointDef queueTimeDataPoint = {
+                "queue_queue_time_max",
+                Stat::e_QUEUE_TIME_MAX,
+                false};
             for (mwcst::StatContextIterator appIdIt =
                      queueIt->subcontextIterator();
                  appIdIt;
@@ -411,18 +405,14 @@ void PrometheusStatConsumer::captureQueueStats()
                     *appIdIt,
                     d_snapshotId,
                     mqbstat::QueueStatsDomain::Stat::e_CONFIRM_TIME_MAX);
-                if (value) {
-                    updateMetric(&confirmTimeDataPoint, labels, value);
-                }
+                updateMetric(&confirmTimeDataPoint, labels, value);
 
                 if (role == mqbstat::QueueStatsDomain::Role::e_PRIMARY) {
                     value = mqbstat::QueueStatsDomain::getValue(
                         *appIdIt,
                         d_snapshotId,
                         mqbstat::QueueStatsDomain::Stat::e_QUEUE_TIME_MAX);
-                    if (value) {
-                        updateMetric(&queueTimeDataPoint, labels, value);
-                    }
+                    updateMetric(&queueTimeDataPoint, labels, value);
                 }
             }
         }
