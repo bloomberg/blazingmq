@@ -531,11 +531,10 @@ void QueueStatsDomain::reportConfirmTime(bsls::Types::Int64 value,
 {
     BSLS_ASSERT_SAFE(d_statContext_mp && "initialize was not called");
 
-    // If there are no subcontexts, report `confirm time` metric to the queue
-    // context
+    // Report `confirm time` metric to the queue context
+    d_statContext_mp->reportValue(DomainQueueStats::e_STAT_CONFIRM_TIME,
+                                  value);
     if (!d_subContexts_mp) {
-        d_statContext_mp->reportValue(DomainQueueStats::e_STAT_CONFIRM_TIME,
-                                      value);
         return;  // RETURN
     }
 
@@ -554,11 +553,10 @@ void QueueStatsDomain::reportQueueTime(bsls::Types::Int64 value,
 {
     BSLS_ASSERT_SAFE(d_statContext_mp && "initialize was not called");
 
-    // If there are no subcontexts, report `queue time` metric to the queue
-    // context
+    // Report `queue time` metric to the queue context
+    d_statContext_mp->reportValue(DomainQueueStats::e_STAT_QUEUE_TIME, value);
+
     if (!d_subContexts_mp) {
-        d_statContext_mp->reportValue(DomainQueueStats::e_STAT_QUEUE_TIME,
-                                      value);
         return;  // RETURN
     }
 
