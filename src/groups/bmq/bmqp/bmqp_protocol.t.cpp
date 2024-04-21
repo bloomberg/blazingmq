@@ -1262,9 +1262,9 @@ static void test3_flagUtils()
                 bmqp::StorageHeaderFlags::Enum currFlag =
                     static_cast<bmqp::StorageHeaderFlags::Enum>(currFlagVal);
 
-                PVV(test.d_line
-                    << ": Testing: " << "    StorageHeaderFlagUtil::isSet('"
-                    << flagsString << "', " << currFlag << ")");
+                PVV(test.d_line << ": Testing: "
+                                << "    StorageHeaderFlagUtil::isSet('"
+                                << flagsString << "', " << currFlag << ")");
 
                 if (currFlag == test.d_value) {
                     const bool expectedIsSet = (currFlag == test.d_value);
