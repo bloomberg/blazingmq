@@ -717,7 +717,7 @@ static void test1_breathingTest()
         ASSERT_EQ(bmqp::StorageMessageType::e_DELETION, sh.messageType());
 
         ASSERT_EQ(bmqp::StorageHeaderFlagUtil::isSet(
-                      sh.flags(),
+                      static_cast<unsigned char>(sh.flags()),
                       bmqp::StorageHeaderFlags::e_RECEIPT_REQUESTED),
                   true);
     }
@@ -1237,7 +1237,9 @@ static void test3_flagUtils()
             int flags = 0;
 
             // 1. Check that the flag is not 'isSet'.
-            ASSERT(!bmqp::StorageHeaderFlagUtil::isSet(flags, test.d_value));
+            ASSERT(!bmqp::StorageHeaderFlagUtil::isSet(
+                static_cast<unsigned char>(flags),
+                test.d_value));
 
             // 2. Set the flag.  Verify that it is set, and that no other flag
             // is set.
@@ -1245,10 +1247,14 @@ static void test3_flagUtils()
                             << test.d_value << ")");
 
             bmqp::StorageHeaderFlagUtil::setFlag(&flags, test.d_value);
-            ASSERT(bmqp::StorageHeaderFlagUtil::isSet(flags, test.d_value));
+            ASSERT(bmqp::StorageHeaderFlagUtil::isSet(
+                static_cast<unsigned char>(flags),
+                test.d_value));
 
             mwcu::MemOutStream out(s_allocator_p);
-            bmqp::StorageHeaderFlagUtil::prettyPrint(out, flags);
+            bmqp::StorageHeaderFlagUtil::prettyPrint(
+                out,
+                static_cast<unsigned char>(flags));
             const bslstl::StringRef& flagsString = out.str();
             for (int currFlagVal = 1;
                  currFlagVal < (1 << bmqp::StorageHeaderFlags::k_VALUE_COUNT);
@@ -1256,15 +1262,16 @@ static void test3_flagUtils()
                 bmqp::StorageHeaderFlags::Enum currFlag =
                     static_cast<bmqp::StorageHeaderFlags::Enum>(currFlagVal);
 
-                PVV(test.d_line << ": Testing: "
-                                << "    StorageHeaderFlagUtil::isSet('"
-                                << flagsString << "', " << currFlag << ")");
+                PVV(test.d_line
+                    << ": Testing: " << "    StorageHeaderFlagUtil::isSet('"
+                    << flagsString << "', " << currFlag << ")");
 
                 if (currFlag == test.d_value) {
                     const bool expectedIsSet = (currFlag == test.d_value);
                     ASSERT_EQ_D(test.d_line,
-                                bmqp::StorageHeaderFlagUtil::isSet(flags,
-                                                                   currFlag),
+                                bmqp::StorageHeaderFlagUtil::isSet(
+                                    static_cast<unsigned char>(flags),
+                                    currFlag),
                                 expectedIsSet);
                 }
             }
@@ -1272,12 +1279,16 @@ static void test3_flagUtils()
             // 3. Verify that, with this flag set, the flags are correctly
             //    identified as 'isValid' or not 'isValid'.
             mwcu::MemOutStream errDesc(s_allocator_p);
-            ASSERT_EQ(bmqp::StorageHeaderFlagUtil::isValid(errDesc, flags),
+            ASSERT_EQ(bmqp::StorageHeaderFlagUtil::isValid(
+                          errDesc,
+                          static_cast<unsigned char>(flags)),
                       test.d_isValid);
 
             // 4. Unset flag and verify that it is unset.
             bmqp::StorageHeaderFlagUtil::unsetFlag(&flags, test.d_value);
-            ASSERT(!bmqp::StorageHeaderFlagUtil::isSet(flags, test.d_value));
+            ASSERT(!bmqp::StorageHeaderFlagUtil::isSet(
+                static_cast<unsigned char>(flags),
+                test.d_value));
         }
     }
 }
