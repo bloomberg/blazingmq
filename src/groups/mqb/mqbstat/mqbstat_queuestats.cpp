@@ -579,7 +579,7 @@ void QueueStatsDomain::updateDomainAppIds(
     bdlma::LocalSequentialAllocator<2048> localAllocator;
 
     if (!d_subContexts_mp) {
-        return;
+        return;  // RETURN
     }
 
     // Add subcontexts for appIds that are not already present
