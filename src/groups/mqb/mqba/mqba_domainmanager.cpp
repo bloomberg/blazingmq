@@ -60,7 +60,7 @@ namespace BloombergLP {
 namespace mqba {
 
 namespace {
-const int k_MAX_WAIT_SECONDS_AT_SHUTDOWN = 20;
+const int k_MAX_WAIT_SECONDS_AT_SHUTDOWN = 40;
 }  // close unnamed namespace
 
 // ===========================
