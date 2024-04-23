@@ -2811,10 +2811,11 @@ void ClientSession::initiateShutdown(const ShutdownCb&         callback,
     BALL_LOG_INFO << description() << ": initiateShutdown";
 
     dispatcher()->execute(
-        bdlf::BindUtil::bind(&ClientSession::initiateShutdownDispatched,
-                             this,
-                             callback,
-                             timeout),
+        bdlf::BindUtil::bind(
+            bdlf::MemFnUtil::memFn(&ClientSession::initiateShutdownDispatched,
+                                   d_self.acquire()),
+            callback,
+            timeout),
         this,
         mqbi::DispatcherEventType::e_DISPATCHER);
     // Use 'mqbi::DispatcherEventType::e_DISPATCHER' to avoid (re)enabling

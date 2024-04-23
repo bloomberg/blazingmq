@@ -17,16 +17,15 @@
 #ifndef INCLUDED_BMQT_COMPRESSIONALGORITHMTYPE
 #define INCLUDED_BMQT_COMPRESSIONALGORITHMTYPE
 
-//@PURPOSE: Provide an enumeration for different compression algorithm types.
-//
-//@CLASSES:
-//  bmqt::CompressionAlgorithmType: Type of compression algorithm
-//
-//@DESCRIPTION: Provide an enumeration, 'bmqt::CompressionAlgorithmType' for
-// different types of compression algorithm.
-//
-//: o !NONE!: No compression algorithm was specified
-//: o !ZLIB!: The compression algorithm is ZLIB
+/// @file bmqt_compressionalgorithmtype.h
+///
+/// @brief Provide an enumeration for different compression algorithm types.
+///
+/// Provide an enumeration, @bbref{bmqt::CompressionAlgorithmType} for
+/// different types of compression algorithm.
+///
+///   - *NONE*: No compression algorithm was specified
+///   - *ZLIB*: The compression algorithm is ZLIB
 
 // BMQ
 

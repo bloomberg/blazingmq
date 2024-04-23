@@ -206,7 +206,7 @@
       <element name='latencyReport'            type='string'  default=""/>
       <element name='dumpMsg'                  type='boolean' default="false"/>
       <element name='confirmMsg'               type='boolean' default="false"/>
-      <element name='eventSize'                type='int'     default="1"/>
+      <element name='eventSize'                type='long'    default="1"/>
       <element name='msgSize'                  type='int'     default="1024"/>
       <element name='postRate'                 type='int'     default="1"/>
       <element name='eventsCount'              type='string'  default="0"/>

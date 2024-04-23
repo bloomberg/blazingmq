@@ -17,22 +17,24 @@
 #ifndef INCLUDED_BMQA_CONFIGUREQUEUESTATUS
 #define INCLUDED_BMQA_CONFIGUREQUEUESTATUS
 
-//@PURPOSE: Provide Value-Semantic Type for a configure queue operation status
-//
-//@CLASSES:
-//  bmqa::ConfigureQueueStatus: value-semantic type for a configureQueue result
-//
-//@DESCRIPTION: This component provides a specific value-semantic type for the
-// result of a configure queue operation with the BlazingMQ broker, providing
-// applications with the result and context of the requested operation.
-//
-// A 'bmqa::ConfigureQueueStatus' type is composed of 3 attributes:
-//: o !result!:           indicates the status of the operation (success,
-//:                       failure, etc.) as specified in the corresponding
-//:                       result code enum, 'bmqt::ConfigureQueueResult::Enum'
-//: o !queueId!:          queueId associated with the configure queue operation
-//: o !errorDescription!: optional string with a human readable description of
-//:                       the error, if any
+/// @file bmqa_configurequeuestatus.h
+///
+/// @brief Provide Value-Semantic Type for a configure queue operation status
+///
+/// This component provides a specific value-semantic type for the result of a
+/// configure queue operation with the BlazingMQ broker, providing applications
+/// with the result and context of the requested operation.
+///
+///  A @bbref{bmqa::ConfigureQueueStatus} type is composed of 3 attributes:
+///
+///    1. **result**: indicates the status of the operation (success, failure,
+///       etc.) as specified in the corresponding result code enum,
+///       @bbref{bmqt::ConfigureQueueResult::Enum}.
+///
+///    2. **queueId**: queueId associated with the configure queue operation.
+///
+///    3. **errorDescription**: optional string with a human readable
+///       description of the error, if any
 
 // BMQ
 
