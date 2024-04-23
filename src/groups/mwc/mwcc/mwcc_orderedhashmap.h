@@ -136,8 +136,7 @@ struct OrderedHashMap_ImpDetails {
     /// is greater than the last prime number in the sequence.  Note that,
     /// typically, prime numbers in the sequence have increasing values that
     /// reflect a growth factor (e.g., each value in the sequence may be,
-    /// approximately, two times the preceding value).  Also note that all
-    /// the returned values are representable within a 32-bit signed integer.
+    /// approximately, two times the preceding value).
     static size_t nextPrime(size_t n);
 };
 
