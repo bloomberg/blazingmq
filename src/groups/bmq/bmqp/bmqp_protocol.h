@@ -4138,7 +4138,6 @@ inline SchemaWireId::SchemaWireId()
 // PUBLIC MODIFIERS
 inline void SchemaWireId::set(unsigned value)
 {
-    // Include precondition check or adjust function signature?
     d_value = static_cast<short unsigned int>(value);
 }
 
@@ -4353,9 +4352,9 @@ inline AckHeader& AckHeader::setHeaderWords(int value)
     BSLS_ASSERT_SAFE(value >= 0 &&
                      value <= (1 << k_HEADER_WORDS_NUM_BITS) - 1);
 
-    d_headerWordsAndPerMsgWords =
+    d_headerWordsAndPerMsgWords = static_cast<unsigned char>(
         (d_headerWordsAndPerMsgWords & k_PER_MSG_WORDS_MASK) |
-        static_cast<unsigned char>(value << k_HEADER_WORDS_START_IDX);
+        static_cast<unsigned char>(value << k_HEADER_WORDS_START_IDX));
     return *this;
 }
 
@@ -4365,9 +4364,9 @@ inline AckHeader& AckHeader::setPerMessageWords(int value)
     BSLS_ASSERT_SAFE(value >= 0 &&
                      value <= (1 << k_PER_MSG_WORDS_NUM_BITS) - 1);
 
-    d_headerWordsAndPerMsgWords =
+    d_headerWordsAndPerMsgWords = static_cast<unsigned char>(
         (d_headerWordsAndPerMsgWords & k_HEADER_WORDS_MASK) |
-        static_cast<unsigned char>(value & k_PER_MSG_WORDS_MASK);
+        static_cast<unsigned char>(value & k_PER_MSG_WORDS_MASK));
     return *this;
 }
 
