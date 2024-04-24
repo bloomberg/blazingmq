@@ -7,67 +7,69 @@ This plugin gathers BlazingMQ broker statistic and sends it to [Prometheus](http
 
 ### Configuration
 By default, plugin is disabled. To enable and configure it, edit `bmqbrkcfg.json` file as follows:
-1. Enable plugin and provide path to plugin library
-```json
-"appConfig": {
-    ...
 
-    "plugins": {
-        "libraries": ["<path-to-prometheus-plugin-library-folder>"],
-        "enabled": ["PrometheusStatConsumer"]
-    }
-}
-```
+1. Enable plugin and provide path to plugin library
+   ```json
+   "appConfig": {
+       ...
+       "plugins": {
+           "libraries": ["<path-to-prometheus-plugin-library-folder>"],
+           "enabled": ["PrometheusStatConsumer"]
+       }
+   }
+   ```
+
 2. Provide plugin configuration
-```json
-"appConfig": {
-    "stats": {
-        "snapshotInterval": 1,
-        "appIdPostingDomains": ["fanout-domain-1-name", "fanout-domain-2-name"],
-        "plugins": [
-            ...
-            {
-                "name": "PrometheusStatConsumer",
-                "publishInterval": 10,
-                "prometheusSpecific": {
-                    "host": "localhost",
-                    "port": 9091,
-                    "mode": "E_PUSH"    
-                }
-            }
-        ],
-        ...
-    }
-}
-```
+   ```json
+   "appConfig": {
+       "stats": {
+           "snapshotInterval": 1,
+           "appIdPostingDomains": ["fanout-domain-1-name", "fanout-domain-2-name"],
+           "plugins": [
+               ...
+               {
+                   "name": "PrometheusStatConsumer",
+                   "publishInterval": 10,
+                   "prometheusSpecific": {
+                       "host": "localhost",
+                       "port": 9091,
+                       "mode": "E_PUSH"
+                   }
+               }
+           ],
+           ...
+       }
+   }
+   ```
+
 where
 
 1. Common plugins configuration
 
-- `snapshotInterval`: represents how often stats are computed by broker
-  internally, in seconds (typically every 1s);
-- [OPTIONAL] `appIdPostingDomains`: used for troubleshooting, represents
-  the list of *fanout* mode domains for which *applicationId* tag will be
-  applied on `queue.confirm_time_max` and `queue.queue_time_max` metrics.
-  It can be *extremely* useful to detect slow responding consumer by
-  *application ID*. If this setting is omitted/empty, or domain name not
-  in the list - *applicationId* tag will not be applied;<br/>
-  **NOTE**: This feature is available for all BMQ broker roles except
-  *PROXY*;
+   - `snapshotInterval`: represents how often stats are computed by broker
+     internally, in seconds (typically every 1s);
+   - [OPTIONAL] `appIdPostingDomains`: used for troubleshooting, represents
+     the list of *fanout* mode domains for which *applicationId* tag will be
+     applied on `queue.confirm_time_max` and `queue.queue_time_max` metrics.
+     It can be *extremely* useful to detect slow responding consumer by
+     *application ID*. If this setting is omitted/empty, or domain name not
+     in the list - *applicationId* tag will not be applied;<br/>
+     **NOTE**: This feature is available for all BMQ broker roles except
+     *PROXY*;
 
 2. Prometheus plugin configuration
 
-- `name`: plugin name, must be "PrometheusStatConsumer";
-- `publishInterval` 
-  - in `push` mode: it is the time period (in seconds) to send statistic to Prometheus Push Gateway;
-  - in `pull` mode: it is time (in seconds) to update statistic;
-- `host`
-  - in `push` mode: Prometheus Push Gateway URL;
-  - in `pull` mode: Prometheus exposer (local http server) URL that should be accessable by Prometheus to pull the statistic, usually Host IP address;
-- `port`
-  - in `push` mode: Prometheus Push Gateway port, usually 9091;
-  - in `pull` mode: Prometheus exposer port that should be accessable by Prometheus to pull the statistic;
-- `mode`: interaction with Prometheus mode: `E_PUSH` or `E_PULL`;
+   - `name`: plugin name, must be "PrometheusStatConsumer";
+   - `publishInterval`
+     - in `push` mode: it is the time period (in seconds) to send statistic to Prometheus Push Gateway;
+     - in `pull` mode: it is time (in seconds) to update statistic;
+   - `host`
+     - in `push` mode: Prometheus Push Gateway URL;
+     - in `pull` mode: Prometheus exposer (local http server) URL that should be accessable by Prometheus to pull the statistic, usually Host IP address;
+   - `port`
+     - in `push` mode: Prometheus Push Gateway port, usually 9091;
+     - in `pull` mode: Prometheus exposer port that should be accessable by Prometheus to pull the statistic;
+   - `mode`: interaction with Prometheus mode: `E_PUSH` or `E_PULL`;
 
 ### Build and Run plugin in demo environment
 To build Prometheus plugin, pass '--plugins prometheus' argument to the build script, e.g.
@@ -75,41 +77,50 @@ To build Prometheus plugin, pass '--plugins prometheus' argument to the build sc
 bin/build-ubuntu.sh --plugins prometheus
 ```
 To run plugin in demo environment, perform the following steps:
+
 1. Set plugin configuration:
-  - For `push` mode:
-  ```
-    "host": "localhost",
-    "port": 9091,
-    "mode": "E_PUSH"
-  ```
-  - For `pull` mode:
-  ```
-    "host": "localhost",
-    "port": 8080,
-    "mode": "E_PULL"
-  ```
+   - For `push` mode:
+   ```json
+       {
+         "host": "localhost",
+         "port": 9091,
+         "mode": "E_PUSH"
+       }
+   ```
+   - For `pull` mode:
+   ```
+       {
+         "host": "localhost",
+         "port": 8080,
+         "mode": "E_PULL"
+       }
+   ```
+
 2. Run BlazingMQ broker, it will automatically load and configure the plugin;
+
 3. Run Prometheus and Grafana services in Docker:
-```bash
-docker compose -f docker/plugins/prometheus/docker-compose.yml up
-```
+   ```bash
+      docker compose -f docker/plugins/prometheus/docker-compose.yml up
+   ```
+
 4. In browser open link `http://localhost:9090/` with Prometheus UI to analyze available metrics;
+
 5. [Optional] In browser open link `http://localhost:3000/` with Grafana UI to analyze available metrics:
-  - Select `Prometrheus` data source;
-  - Set `http://prometheus:9090` as Prometheus server URL;
+   - Select `Prometrheus` data source;
+   - Set `http://prometheus:9090` as Prometheus server URL;
 
 ### Integration tests
 Test plan:
 1. Test Prometheus plugin in 'push' mode:
-  - Run Prometheus (in docker);
-  - Run broker with local cluster and enabled Prometheus plugin in sandbox (temp folder);
-  - Put several messages into different queues;
-  - Request metrics from Prometheus and compare them with expected metric values.
+   - Run Prometheus (in docker);
+   - Run broker with local cluster and enabled Prometheus plugin in sandbox (temp folder);
+   - Put several messages into different queues;
+   - Request metrics from Prometheus and compare them with expected metric values.
 2. Test Prometheus plugin in 'pull' mode:
-  - Run Prometheus (in docker);
-  - Run broker with local cluster and enabled Prometheus plugin in sandbox (temp folder);
-  - Put several messages into different queues;
-  - Request metrics from Prometheus and compare them with expected metric values.
+   - Run Prometheus (in docker);
+   - Run broker with local cluster and enabled Prometheus plugin in sandbox (temp folder);
+   - Put several messages into different queues;
+   - Request metrics from Prometheus and compare them with expected metric values.
 
 Prerequisites:
 1. bmqbroker, bmqtool and prometheus plugin library should be built;
@@ -146,10 +157,12 @@ Note that all metrics published to Prometheus are also dumped by BMQ broker on t
     <broker_path>/localBMQ/logs/stat.*
 
 These stat files can come in handy when Prometheus is unavailable or when metrics during certain time interval are missing from Prometheus for some reason.
+
 ### System metrics
 System metrics represent BMQ broker's overall operating system metrics. Every broker reports them, with 'Instance' label which is always set.
 
 #### CPU
+
 |Metric Name|Description|
 |-----------|-----------|
 |brkr_system_cpu_all|Average snapshot value over report interval window for the total system CPU usage.|
@@ -157,12 +170,14 @@ System metrics represent BMQ broker's overall operating system metrics. Every br
 |brkr_system_cpu_usr|Average snapshot value over report interval window for the total user CPU usage.|
 
 #### Operating System
+
 |Metric Name|Description|
 |-----------|-----------|
 |brkr_system_mem_res|Maximum snapshot value over report interval window for the resident memory usage.|
 |brkr_system_mem_virt|Maximum snapshot value over report interval window for the virtual memory usage.|
 
 #### Memory
+
 |Metric Name|Description|
 |-----------|-----------|
 |brkr_system_os_pagefaults_minor|Total number of times over the report interval window, a page fault serviced without any I/O activity. In this case, I/O activity is avoided by reclaiming a page frame from the list of pages awaiting reallocation.|
@@ -172,6 +187,7 @@ System metrics represent BMQ broker's overall operating system metrics. Every br
 |brkr_system_os_ctxswitch_voluntary|Total number of times, over the report interval window, a context switch resulted because a higher priority process ran, or the current process exceeded its time slice.|
 
 #### Network metrics
+
 |Metric Name|Description|
 |-----------|-----------|
 |brkr_system_net_local_in_bytes|Total number of 'bytes' received by the broker from local TCP connections over the report interval window.|
