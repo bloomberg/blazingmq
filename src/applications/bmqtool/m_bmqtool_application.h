@@ -29,6 +29,7 @@
 #include <m_bmqtool_filelogger.h>
 #include <m_bmqtool_interactive.h>
 #include <m_bmqtool_messages.h>
+#include <m_bmqtool_poster.h>
 #include <m_bmqtool_storageinspector.h>
 
 // MQB
@@ -74,19 +75,12 @@ namespace m_bmqtool {
 /// Main application class for `bmqtool`.
 class Application : public bmqa::SessionEventHandler {
   private:
+    // CLASS METHODS
+    static mwcst::StatContext createStatContext(int               historySize,
+                                                bslma::Allocator* allocator);
+
     // TYPES
     typedef bslma::ManagedPtr<mwcst::StatContext> StatContextMP;
-
-    /// This structure holds context created by `bmqa::Session`.
-    /// It must be destructed before the `d_session_mp`.
-    struct SessionContext {
-        bmqa::QueueId d_queueId;
-
-        bmqa::MessageEventBuilder d_eventBuilder;
-        // Message event builder.
-
-        SessionContext(bslma::Allocator* d_allocator);
-    };
 
     // DATA
     bslma::Allocator* d_allocator_p;
@@ -104,7 +98,10 @@ class Application : public bmqa::SessionEventHandler {
     // Handle on the running thread
     // (producer mode)
 
-    StatContextMP d_statContext_mp;
+    bmqa::QueueId d_queueId;
+    // Queue to send/receive messages
+
+    mwcst::StatContext d_statContext;
     // StatContext for msg/event stats
 
     bdlmt::EventScheduler d_scheduler;
@@ -123,34 +120,20 @@ class Application : public bmqa::SessionEventHandler {
 
     mwctsk::ConsoleObserver d_consoleObserver;
 
-    bdlbb::PooledBlobBufferFactory d_bufferFactory;
-    // Buffer factory for the payload of the
-    // published message
-
-    bdlbb::PooledBlobBufferFactory d_timeBufferFactory;
-    // Small buffer factory for the first
-    // blob of the published message, to
-    // hold the timestamp information
-
-    bdlbb::Blob d_blob;
-    // Blob to post
-
-    bslma::ManagedPtr<SessionContext> d_sessionContext_mp;
-
     bslma::ManagedPtr<bmqa::Session> d_session_mp;
     // Session with the BlazingMQ broker.
-
-    int d_msgUntilNextTimestamp;
-    // Number of messages remaining to send
-    // until stamping one with latency.
-
-    Interactive d_interactive;
 
     StorageInspector d_storageInspector;
 
     FileLogger d_fileLogger;
     // Logger to use in case events logging
     // to file has been enabled.
+
+    Poster d_poster;
+    // A factory for posting series of messages.
+
+    Interactive d_interactive;
+    // CLI handler.
 
     bsl::list<bsls::Types::Int64> d_latencies;
     // List of all message latencies (in

@@ -1,4 +1,4 @@
-// Copyright 2014-2023 Bloomberg Finance L.P.
+// Copyright 2014-2024 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,6 +19,7 @@
 // BMQTOOL
 #include <m_bmqtool_inpututil.h>
 #include <m_bmqtool_parameters.h>
+#include <m_bmqtool_poster.h>
 
 // BMQ
 #include <bmqa_event.h>
@@ -41,8 +42,8 @@
 #include <bdls_processutil.h>
 #include <bdlt_currenttime.h>
 #include <bsl_iostream.h>
-#include <bsl_utility.h>
 #include <bslmt_lockguard.h>
+#include <bslmt_turnstile.h>
 
 namespace BloombergLP {
 namespace m_bmqtool {
@@ -117,6 +118,9 @@ void Interactive::printHelp()
         << "    (messageProperties=[{\"name\": \"\", \"value\": \"\", "
            "\"type\": \"\"}])"
         << bsl::endl
+        << "  batch-post uri=\"\" payload=[\"\",\"\"] (msgSize=u) "
+           "(eventSize=v) (eventsCount=w) (postInterval=x) (postRate=y)"
+        << bsl::endl
         << "  list (uri=\"\")" << bsl::endl
         << "  confirm uri=\"\" guid=\"\" "
         << "('*' for all, '+/-n' for oldest/latest 'n')" << bsl::endl
@@ -147,6 +151,14 @@ void Interactive::printHelp()
         << bsl::endl
         << "    - 'post' command requires 'uri' and 'payload' arguments, "
         << "parameter 'messageProperties' is optional" << bsl::endl
+        << bsl::endl
+        << "  batch-post uri=\"bmq://bmq.test.persistent.priority/qqq\" "
+           "payload=[\"sample message\"] eventsCount=300 postInterval=5000 "
+           "postRate=10"
+        << bsl::endl
+        << "    - 'batch-post' command requires 'uri' argument, "
+           "all the rest are optional"
+        << bsl::endl
         << bsl::endl;
 }
 
@@ -695,6 +707,41 @@ void Interactive::processCommand(const ListCommand& command)
     }
 }
 
+void Interactive::processCommand(const BatchPostCommand& command)
+{
+    Parameters parameters(d_allocator_p);
+    parameters.setEventsCount(command.eventsCount());
+    parameters.setPostRate(command.postRate());
+    parameters.setEventSize(command.eventSize());
+    parameters.setPostInterval(command.postInterval());
+    parameters.setMsgSize(command.msgSize());
+
+    // Lookup the Queue by URI
+    bmqa::QueueId queueId;
+    if (d_session_p->getQueueId(&queueId, command.uri()) != 0) {
+        BALL_LOG_ERROR << "unknown queue '" << command.uri() << "'";
+        return;  // RETURN
+    }
+    parameters.setQueueFlags(queueId.flags());
+
+    bslmt::Turnstile turnstile(1000.0);
+    if (parameters.postInterval() != 0) {
+        turnstile.reset(1000.0 / parameters.postInterval());
+    }
+
+    PostingContext postingContext =
+        d_poster_p->createPostingContext(d_session_p, &parameters, queueId);
+
+    while (postingContext.pendingPost()) {
+        postingContext.postNext();
+        if (parameters.postInterval() != 0 && postingContext.pendingPost()) {
+            turnstile.waitTurn();
+        }
+    }
+
+    BALL_LOG_INFO << "All messages have been posted";
+}
+
 Interactive::UriEntryPtr
 Interactive::createUriEntry(const bsl::string&          uri,
                             Interactive::UriEntryStatus status)
@@ -746,15 +793,22 @@ void Interactive::eventHandlerThread()
     BALL_LOG_INFO << "EventHandlerThread terminated";
 }
 
-Interactive::Interactive(Parameters* parameters, bslma::Allocator* allocator)
+Interactive::Interactive(Parameters*       parameters,
+                         Poster*           poster,
+                         bslma::Allocator* allocator)
 : d_session_p(0)
 , d_sessionEventHandler_p(0)
 , d_parameters_p(parameters)
 , d_uris(allocator)
 , d_eventHandlerThreads(allocator)
 , d_producerIdProperty("** NONE **", allocator)
+, d_poster_p(poster)
 , d_allocator_p(allocator)
 {
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(parameters);
+    BSLS_ASSERT_SAFE(poster);
+
     bdls::ProcessUtil::getProcessName(&d_producerIdProperty);  // ignore rc
 
     bsl::ostringstream pidStr;
@@ -857,6 +911,12 @@ int Interactive::mainLoop()
             }
             else if (verb == "confirm") {
                 ConfirmCommand command;
+                if (InputUtil::parseCommand(&command, &error, jsonInput)) {
+                    processCommand(command);
+                }
+            }
+            else if (verb == "batch-post") {
+                BatchPostCommand command;
                 if (InputUtil::parseCommand(&command, &error, jsonInput)) {
                     processCommand(command);
                 }
