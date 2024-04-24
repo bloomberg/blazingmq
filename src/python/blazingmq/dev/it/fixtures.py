@@ -448,7 +448,7 @@ class Mode(IntEnum):
 
     @property
     def marks(self):
-        return [[], [pytest.mark.csl_mode], [pytest.mark.fsm_mode]][self]
+        return [[pytest.mark.legacy_mode], [pytest.mark.csl_mode], [pytest.mark.fsm_mode]][self]
 
 
 class ProxyConnection:

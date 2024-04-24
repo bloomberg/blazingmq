@@ -93,7 +93,10 @@ jobs:
           pytest src/python
 
   integration_tests_ubuntu:
-    name: BlazingMQ integration tests
+    name: BlazingMQ integration tests [${{ matrix.preset }}]
+    strategy:
+      matrix:
+        preset: ["legacy_mode", "fsm_mode"]
     runs-on: ubuntu-latest
     needs: build_ubuntu
     steps:
@@ -108,7 +111,7 @@ jobs:
       - name: Run Integration Tests
         run: |
           pip install -r ${{ github.workspace }}/src/python/requirements.txt
-          ${{ github.workspace }}/src/integration-tests/run-tests \
+          ${{ github.workspace }}/src/integration-tests/run-tests "${{ matrix.preset }}" \
             --log-level ERROR                   \
             --log-file-level=info               \
             --bmq-tolerate-dirty-shutdown       \
