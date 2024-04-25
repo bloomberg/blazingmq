@@ -146,7 +146,7 @@ jobs:
         run: bin/build-darwin.sh
 
   build_and_test_bmqprometheus_plugin:
-    name: "Build plugin [ubuntu]"
+    name: "Build Prometheus plugin [ubuntu]"
     runs-on: ubuntu-latest
     needs: build_ubuntu
     steps:
