@@ -100,6 +100,10 @@ const bsls::Types::Int64 k_NS_PER_MESSAGE =
     bdlt::TimeUnitRatio::k_NANOSECONDS_PER_MINUTE / k_MAX_INSTANT_MESSAGES;
 // Time interval between messages logged with throttling.
 
+#define BMQ_LOGTHROTTLE_INFO()                                                \
+    BALL_LOGTHROTTLE_INFO(k_MAX_INSTANT_MESSAGES, k_NS_PER_MESSAGE)           \
+        << "[THROTTLED] "
+
 /// This function is a simple wrapper around the specified `callback`, to
 /// ensure that the specified `refCount` is decremented after it gets
 /// invoked with the specified `status`, `queue` and `confirmationCookie`.
@@ -1696,7 +1700,7 @@ void ClusterQueueHelper::onConfigureQueueResponse(
 
     if (d_cluster_p->isStopping()) {
         // Self is stopping.  Drop the response.
-        BALL_LOGTHROTTLE_INFO(k_MAX_INSTANT_MESSAGES, k_NS_PER_MESSAGE)
+        BMQ_LOGTHROTTLE_INFO()
             << d_cluster_p->description()
             << ": Dropping (re)configureQueue response [reason: 'stopping'"
             << ", request: " << requestContext->request()
@@ -3303,7 +3307,7 @@ void ClusterQueueHelper::sendCloseQueueRequest(
         // will be advertised upstream.  So just like above, we indicate
         // success via 'callback'.
 
-        BALL_LOGTHROTTLE_INFO(k_MAX_INSTANT_MESSAGES, k_NS_PER_MESSAGE)
+        BMQ_LOGTHROTTLE_INFO()
             << d_cluster_p->description()
             << ": Failed to send close-queue request: " << request->request()
             << ", for queue [" << handleParameters.uri() << "] to "
