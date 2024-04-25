@@ -17,6 +17,7 @@
       <element name='post'           type='tns:PostCommand'/>
       <element name='list'           type='tns:ListCommand'/>
       <element name='confirm'        type='tns:ConfirmCommand'/>
+      <element name='batch-post'     type='tns:BatchPostCommand'/>
 
       <!-- Commands specific to e_STORAGE mode -->
       <element name='openStorage'        type='tns:OpenStorageCommand'/>
@@ -106,6 +107,19 @@
       <element name='guid' type='string'/>
     </sequence>
   </complexType>
+
+  <complexType name='BatchPostCommand'>
+    <sequence>
+      <element name='uri'                      type='string'/>
+      <element name='payload'                  type='string'  maxOccurs='unbounded'/>
+      <element name='msgSize'                  type='int'     default="1024"/>
+      <element name='eventSize'                type='long'    default="1"/>
+      <element name='eventsCount'              type='long'    default="0"/>
+      <element name='postInterval'             type='int'     default="1000"/>
+      <element name='postRate'                 type='int'     default="1"/>
+    </sequence>
+  </complexType>
+
 
   <!-- Commands specific to e_STORAGE mode -->
   <complexType name='OpenStorageCommand'>
@@ -206,7 +220,7 @@
       <element name='latencyReport'            type='string'  default=""/>
       <element name='dumpMsg'                  type='boolean' default="false"/>
       <element name='confirmMsg'               type='boolean' default="false"/>
-      <element name='eventSize'                type='int'     default="1"/>
+      <element name='eventSize'                type='long'    default="1"/>
       <element name='msgSize'                  type='int'     default="1024"/>
       <element name='postRate'                 type='int'     default="1"/>
       <element name='eventsCount'              type='string'  default="0"/>

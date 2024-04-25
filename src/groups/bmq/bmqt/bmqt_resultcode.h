@@ -17,37 +17,31 @@
 #ifndef INCLUDED_BMQT_RESULTCODE
 #define INCLUDED_BMQT_RESULTCODE
 
-//@PURPOSE: Provide enums for various publicly exposed result code.
-//
-//@CLASSES:
-//  bmqt::GenericResult:        generic common result values
-//  bmqt::AckResult:            result code status of an ack message
-//  bmqt::CloseQueueResult:     result of a close queue operation
-//  bmqt::EventBuilderResult:   result of eventBuilder pack operation
-//  bmqt::OpenQueueResult:      result of an open queue operation
-//  bmqt::ConfigureQueueResult: result of a configure queue operation
-//  bmqt::PostResult:           result of a post operation
-//
-//@DESCRIPTION: This file contains a list of Enums ('bmqt::GenericResult',
-// 'bmqt::AckResult', 'bmqt::CloseQueueResult', 'bmqt::EventBuilderResult',
-// 'bmqt::OpenQueueResult', 'bmqt::ConfigureQueueResult', and
-// 'bmqt::PostResult') that are publicly exposed to Application (via bmqa), but
-// whose value comes from the internal implementation (bmqimp).  Having them
-// defined in bmqt allows bmqa to return the enum returned by bmqimp with no
-// transformation.
-//
-// All enums are using the convention that < 0 values are errors, while > 0 are
-// warnings.
-//
-// The 'GenericStatus' enum contains values that are common for most or all of
-// the other status enums, such as 'success', 'timeout', ...  The values of its
-// members can range from -99 to 99.
-//
-// Each other enum should duplicate any values from the 'GenericStatus' one
-// that it intends to be able to represent (aliasing the values to the ones
-// from the 'GenericStatus' enum) and extend with specialized values in the
-// ']..., -99[' or ']99, ...[' ranges.
-//
+/// @file bmqt_resultcode.h
+///
+/// @brief Provide enums for various publicly exposed result code.
+///
+/// This file contains a list of Enums (@bbref{bmqt::GenericResult},
+/// @bbref{bmqt::AckResult}, @bbref{bmqt::CloseQueueResult},
+/// @bbref{bmqt::EventBuilderResult}, @bbref{bmqt::OpenQueueResult},
+/// @bbref{bmqt::ConfigureQueueResult}, and @bbref{bmqt::PostResult}) that are
+/// publicly exposed to Application (via `bmqa`), but whose value comes from
+/// the internal implementation (`bmqimp`).  Having them defined in `bmqt`
+/// allows `bmqa` to return the enum returned by `bmqimp` with no
+/// transformation.
+///
+/// All enums are using the convention that < 0 values are errors, while > 0
+/// are warnings.
+///
+/// The @bbref{bmqt::GenericResult} enum contains values that are common for
+/// most or all of the other status enums, such as `success`, `timeout`, ...
+/// The values of its members can range from -99 to 99.
+///
+/// Each other enum should duplicate any values from the
+/// @bbref{bmqt::GenericResult} one that it intends to be able to represent
+/// (aliasing the values to the ones from the @bbref{bmqt::GenericResult} enum)
+/// and extend with specialized values in the `]..., -99[` or `]99, ...[`
+/// ranges.
 
 // BMQ
 

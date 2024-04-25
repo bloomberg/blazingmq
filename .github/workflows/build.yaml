@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   build_ubuntu:
-    name: BlazingMQ build
+    name: Build [ubuntu]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -52,6 +52,15 @@ jobs:
             -DCMAKE_PREFIX_PATH=${{ github.workspace }}/deps/srcs/bde-tools/BdeBuildSystem \
             -DCMAKE_INSTALL_LIBDIR=lib64
           cmake --build build/blazingmq --parallel 8 --target all all.t
+      - name: Run C++ Unit Tests
+        run: |
+          cd ${{ github.workspace }}/build/blazingmq
+          ctest -E mwcsys_executil.t --output-on-failure
+      - name: Clean-up build directories before caching
+        run: |
+          find . -name "*.o" -type f -delete
+          find . -name "*.a" -type f -delete
+          find . -name "*.t.tsk" -type f -delete
       - uses: actions/cache@v4
         with:
           path: |
@@ -61,7 +70,7 @@ jobs:
           key: cache-${{ github.sha }}
 
   unit_tests_ubuntu:
-    name: BlazingMQ unit tests
+    name: UT [python]
     runs-on: ubuntu-latest
     needs: build_ubuntu
     steps:
@@ -82,13 +91,13 @@ jobs:
           src/python/bin/schemagen
           src/python/bin/tweakgen
           pytest src/python
-      - name: Run C++ Unit Tests
-        run: |
-          cd ${{ github.workspace }}/build/blazingmq
-          ctest -E mwcsys_executil.t --output-on-failure
 
   integration_tests_ubuntu:
-    name: BlazingMQ integration tests
+    name: IT [${{ matrix.cluster }}/${{ matrix.mode }}]
+    strategy:
+      matrix:
+        mode: ["legacy_mode", "fsm_mode"]
+        cluster: ["single", "multi"]
     runs-on: ubuntu-latest
     needs: build_ubuntu
     steps:
@@ -103,7 +112,7 @@ jobs:
       - name: Run Integration Tests
         run: |
           pip install -r ${{ github.workspace }}/src/python/requirements.txt
-          ${{ github.workspace }}/src/integration-tests/run-tests \
+          ${{ github.workspace }}/src/integration-tests/run-tests "${{ matrix.mode }} and ${{ matrix.cluster }}" \
             --log-level ERROR                   \
             --log-file-level=info               \
             --bmq-tolerate-dirty-shutdown       \
@@ -115,7 +124,7 @@ jobs:
             -n 4 -v
 
   build_macosx:
-    name: Build macosx_${{ matrix.arch }}
+    name: Build [macosx_${{ matrix.arch }}]
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -137,7 +146,7 @@ jobs:
         run: bin/build-darwin.sh
 
   build_and_test_bmqprometheus_plugin:
-    name: "Check if BMQPrometheus plugin can build and pass tests"
+    name: "Build Prometheus plugin [ubuntu]"
     runs-on: ubuntu-latest
     needs: build_ubuntu
     steps:
@@ -227,7 +236,7 @@ jobs:
         uses: ludeeus/action-shellcheck@master
 
   docker-build-check:
-    name: "Check whether docker single-node and cluster workflows build correctly."
+    name: "Build [docker]"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

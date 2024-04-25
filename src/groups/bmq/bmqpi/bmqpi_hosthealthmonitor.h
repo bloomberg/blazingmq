@@ -17,15 +17,13 @@
 #ifndef INCLUDED_BMQPI_HOSTHEALTHMONITOR
 #define INCLUDED_BMQPI_HOSTHEALTHMONITOR
 
-//@PURPOSE: Provide an interface for monitoring the health of the host.
-//
-//@CLASSES:
-//  bmqpi::HostHealthMonitor: Interface for a monitor of host health.
-//
-//@DESCRIPTION:
-// 'bmqpi::HostHealthMonitor' is a pure interface for a monitor of the health
-//   of the host. BlazingMQ sessions can use such objects to conditionally
-//   suspend queue activity while the host is marked unhealthy.
+/// @file bmqpi_hosthealthmonitor.h
+///
+/// @brief Provide an interface for monitoring the health of the host.
+///
+/// @bbref{bmqpi::HostHealthMonitor} is a pure interface for a monitor of the
+/// health of the host. BlazingMQ sessions can use such objects to
+/// conditionally suspend queue activity while the host is marked unhealthy.
 
 // BMQ
 

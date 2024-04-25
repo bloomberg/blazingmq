@@ -590,7 +590,7 @@ template <class QUEUE, class QUEUE_TRAITS>
 inline int MonitoredQueue<QUEUE, QUEUE_TRAITS>::pushBack(
     bslmf::MovableRef<ElementType> value)
 {
-    const int currentQueueLen = numElements();
+    const bsls::Types::Int64 currentQueueLen = numElements();
     if (currentQueueLen + 1 >= capacity()) {
         // We've filled the queue.  Alarm
         if (!Traits::isPushBackDisabled(d_queue) &&

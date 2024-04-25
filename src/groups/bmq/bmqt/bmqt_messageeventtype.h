@@ -17,19 +17,17 @@
 #ifndef INCLUDED_BMQT_MESSAGEEVENTTYPE
 #define INCLUDED_BMQT_MESSAGEEVENTTYPE
 
-//@PURPOSE: Provide an enumeration for the different types of message events.
-//
-//@CLASSES:
-//  bmqt::MessageEventType: Enumeration for the types of message events.
-//
-//@DESCRIPTION: Provide an enumeration, 'bmqt::MessageEventType', for the
-// different types of message events.
-//
-//: o !UNDEFINED!: Unknown message type
-//: o !ACK!:       Message is an ack
-//: o !PUSH!:      Message is a push
-//: o !PUT!:       Message is a put
-//
+/// @file bmqt_messageeventtype.h
+///
+/// @brief Provide an enumeration for the different types of message events.
+///
+/// Provide an enumeration, @bbref{bmqt::MessageEventType}, for the different
+/// types of message events.
+///
+///   - *UNDEFINED*: Unknown message type
+///   - *ACK*:       Message is an ack
+///   - *PUSH*:      Message is a push
+///   - *PUT*:       Message is a put
 
 // BMQ
 

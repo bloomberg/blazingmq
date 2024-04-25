@@ -17,30 +17,29 @@
 #ifndef INCLUDED_BMQT_QUEUEOPTIONS
 #define INCLUDED_BMQT_QUEUEOPTIONS
 
-//@PURPOSE: Provide a value-semantic type for options related to a queue.
-//
-//@CLASSES:
-//  bmqt::QueueOptions: options related to a queue.
-//
-//@DESCRIPTION: 'bmqt::QueueOptions' provides a value-semantic type,
-// 'QueueOptions', which is used to specify parameters for a queue.
-//
-//
-// The following parameters are supported:
-//: o !maxUnconfirmedMessages!:
-//:      Maximum number of outstanding messages that can be sent by the broker
-//:      without being confirmed.
-//:
-//: o !maxUnconfirmedBytes!:
-//:      Maximum accumulated bytes of all outstanding messages that can be sent
-//:      by the broker without being confirmed.
-//:
-//: o !consumerPriority!:
-//:      Priority of a consumer with respect to delivery of messages.
-//:
-//: o !suspendsOnBadHostHealth!:
-//:      Sets whether the queue should suspend operation when the host machine
-//:      is unhealthy.
+/// @file bmqt_queueoptions.h
+///
+/// @brief Provide a value-semantic type for options related to a queue.
+///
+/// @bbref{bmqt::QueueOptions} provides a value-semantic type, `QueueOptions`,
+/// which is used to specify parameters for a queue.
+///
+/// The following parameters are supported:
+///
+///   - *maxUnconfirmedMessages*:
+///     Maximum number of outstanding messages that can be sent by the broker
+///     without being confirmed.
+///
+///   - *maxUnconfirmedBytes*:
+///     Maximum accumulated bytes of all outstanding messages that can be sent
+///     by the broker without being confirmed.
+///
+///   - *consumerPriority*:
+///     Priority of a consumer with respect to delivery of messages.
+///
+///   - *suspendsOnBadHostHealth*:
+///     Sets whether the queue should suspend operation when the host machine
+///     is unhealthy.
 
 // BMQ
 

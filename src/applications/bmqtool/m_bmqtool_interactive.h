@@ -27,6 +27,7 @@
 
 // BMQTOOL
 #include <m_bmqtool_messages.h>
+#include <m_bmqtool_poster.h>
 
 // BMQ
 #include <bmqa_closequeuestatus.h>
@@ -128,8 +129,13 @@ class Interactive {
     // interactive mode.  Note that this string is
     // of the format '/path/to/this/bmqtool:<PID>'.
 
+    Poster* d_poster_p;
+    // A factory for posting series of messages.
+    // Held, not owned
+
     bslma::Allocator* d_allocator_p;
     // Held, not owned
+
   private:
     // PRIVATE MANIPULATORS
     void printHelp();
@@ -143,6 +149,7 @@ class Interactive {
     void processCommand(const PostCommand& command, bool hasMPs);
     void processCommand(const ConfirmCommand& command);
     void processCommand(const ListCommand& command);
+    void processCommand(const BatchPostCommand& command);
 
     /// Create and insert an entry keyed on the specified `uri` into the map
     /// of full uri to unconfirmed messages contained in this object.  The
@@ -161,8 +168,11 @@ class Interactive {
   public:
     // CREATORS
 
-    /// Constructor using the specified `parameters` and `allocator`.
-    Interactive(Parameters* parameters, bslma::Allocator* allocator);
+    /// Constructor using the specified `parameters`, 'poster',
+    /// and `allocator`.
+    Interactive(Parameters*       parameters,
+                Poster*           poster,
+                bslma::Allocator* allocator);
 
     // MANIPULATORS
 
