@@ -118,7 +118,7 @@ TCPEndpoint& TCPEndpoint::assign(const bslstl::StringRef& host, int port)
     bdlma::LocalSequentialAllocator<128> localAllocator;
     mwcu::MemOutStream                   ss(&localAllocator);
     ss << k_SCHEME << host << ":" << port;
-    
+
     const bool res = fromUri(uri);
     BSLS_ASSERT_SAFE(res);
 
