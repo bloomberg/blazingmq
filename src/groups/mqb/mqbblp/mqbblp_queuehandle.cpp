@@ -69,6 +69,10 @@ const bsls::Types::Int64 k_NS_PER_MESSAGE =
     bdlt::TimeUnitRatio::k_NANOSECONDS_PER_SECOND;
 // Time interval between messages logged with throttling.
 
+#define BMQ_LOGTHROTTLE_INFO()                                                \
+    BALL_LOGTHROTTLE_INFO(k_MAX_INSTANT_MESSAGES, k_NS_PER_MESSAGE)           \
+        << "[THROTTLED] "
+
 typedef bsl::function<void()> CompletionCallback;
 
 /// Utility function used in `mwcu::OperationChain` as the operation
@@ -613,11 +617,11 @@ void QueueHandle::registerSubscription(unsigned int downstreamSubId,
                                        const bmqp_ctrlmsg::ConsumerInfo& ci,
                                        unsigned int upstreamId)
 {
-    BALL_LOGTHROTTLE_INFO(k_MAX_INSTANT_MESSAGES, k_NS_PER_MESSAGE)
-        << "QueueHandle [" << this
-        << "] registering Subscription [id = " << downstreamId
-        << ", downstreamSubQueueId = " << downstreamSubId
-        << ", upstreamId = " << upstreamId << "]";
+    BMQ_LOGTHROTTLE_INFO() << "QueueHandle [" << this
+                           << "] registering Subscription [id = "
+                           << downstreamId
+                           << ", downstreamSubQueueId = " << downstreamSubId
+                           << ", upstreamId = " << upstreamId << "]";
 
     const bsl::shared_ptr<Downstream>& subStream = downstream(downstreamSubId);
 
@@ -719,7 +723,7 @@ bool QueueHandle::unregisterSubStream(
              itSubscription != d_subscriptions.end();) {
             const SubscriptionSp& subscription = itSubscription->second;
             if (subscription->d_downstreamSubQueueId == downstreamSubQueueId) {
-                BALL_LOGTHROTTLE_INFO(k_MAX_INSTANT_MESSAGES, k_NS_PER_MESSAGE)
+                BMQ_LOGTHROTTLE_INFO()
                     << "Queue '" << d_queue_sp->description() << "' handle "
                     << this << " removing Subscription "
                     << itSubscription->first;
@@ -878,7 +882,7 @@ void QueueHandle::deliverMessage(
 
             // Increasing resource usage ('update()' above) made us hit our
             // maxUnconfirmed limit.
-            BALL_LOGTHROTTLE_INFO(k_MAX_INSTANT_MESSAGES, k_NS_PER_MESSAGE)
+            BMQ_LOGTHROTTLE_INFO()
                 << "Queue '" << d_queue_sp->description()
                 << "' with subscription [" << subscriptions[i] << "]"
                 << " of client '"
