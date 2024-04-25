@@ -119,7 +119,7 @@ TCPEndpoint& TCPEndpoint::assign(const bslstl::StringRef& host, int port)
     mwcu::MemOutStream                   ss(&localAllocator);
     ss << k_SCHEME << host << ":" << port;
 
-    const bool res = fromUri(uri);
+    const bool res = fromUri(ss.str());
     BSLS_ASSERT_SAFE(res);
 
     return *this;
