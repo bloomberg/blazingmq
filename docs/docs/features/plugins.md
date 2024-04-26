@@ -35,7 +35,7 @@ By default, plugin is disabled. To enable and configure it, edit `bmqbrkcfg.json
    "appConfig": {
        "stats": {
            "snapshotInterval": 1,
-           "appIdPostingDomains": ["fanout-domain-1-name", "fanout-domain-2-name"],
+           "appIdTagDomains": ["<fanout-domain-1-name>", "<fanout-domain-2-name>"],
            "plugins": [
                ...
                {
@@ -59,19 +59,19 @@ where
 
    - `snapshotInterval`: represents how often stats are computed by broker
      internally, in seconds (typically every 1s);
-   - [OPTIONAL] `appIdPostingDomains`: used for troubleshooting, represents
+   - [OPTIONAL] `appIdTagDomains`: used for troubleshooting, represents
      the list of *fanout* mode domains for which *applicationId* tag will be
      applied on `queue.confirm_time_max` and `queue.queue_time_max` metrics.
      It can be *extremely* useful to detect slow responding consumer by
-     *application ID*. If this setting is omitted/empty, or domain name not
+     *applicationId*. If this setting is omitted/empty, or domain name not
      in the list - *applicationId* tag will not be applied;<br/>
-     **NOTE**: This feature is available for all BMQ broker roles except
+     **NOTE**: This feature is available for all BlazingMQ broker roles except
      *PROXY*;
 
 2. Prometheus plugin configuration
 
    - `name`: plugin name, must be "PrometheusStatConsumer";
-   - `publishInterval` 
+   - `publishInterval`: Specified as a number of seconds. Must be a multiple of the `snapshotInterval`.
      - in `push` mode: it is the time period (in seconds) to send statistic to Prometheus Push Gateway;
      - in `pull` mode: it is time (in seconds) to update statistic;
    - `host`
@@ -99,7 +99,7 @@ To run plugin in demo environment, perform the following steps:
        }
    ```
    - For `pull` mode:
-   ```
+   ```json
        {
          "host": "localhost",
          "port": 8080,
@@ -156,21 +156,21 @@ The following labels may be used by each metric, whenever applicable. Refer to e
 |Queue|name of the queue (e.g. my_queue)|
 |Role|role of the broker with regard to this queue (possible values are 'PRIMARY', 'PROXY', 'REPLICA', 'MEMBER')|
 |RemoteHost|name of the 'upstream' node or '_none_'|
-|AppId|application ID (e.g. my_app), applicable only in fanout mode, if feature is configured, see appIdPostingDomains setting|
+|AppId|application ID (e.g. my_app), applicable only in fanout mode, if feature is configured, see 'appIdTagDomains' setting|
 
 ### Available BlazingMQ metrics
-This section lists all the metrics reported to Prometheus by BMQ brokers. Note that any metric whose value is 0 is not published. The only exception to this rule is queue.heartbeat which is always published.
+This section lists all the metrics reported to Prometheus by BlazingMQ brokers. Note that any metric whose value is 0 is not published. The only exception to this rule is queue.heartbeat which is always published.
 
 In this section, report interval refers to how often stats are being published in `push` mode (typically every 30s) and snapshot represents how often stats are computed internally (typically every 1s).
 
-Note that all metrics published to Prometheus are also dumped by BMQ broker on the local machine in a file, which is located at either of these two locations:
+Note that all metrics published to Prometheus are also dumped by BlazingMQ broker on the local machine in a file, which is located at this location:
 
     <broker_path>/localBMQ/logs/stat.*
 
 These stat files can come in handy when Prometheus is unavailable or when metrics during certain time interval are missing from Prometheus for some reason.
 
 ### System metrics
-System metrics represent BMQ broker's overall operating system metrics. Every broker reports them, with 'Instance' label which is always set.
+System metrics represent BlazingMQ broker's overall operating system metrics. Every broker reports them, with 'Instance' label which is always set.
 
 #### CPU
 
@@ -215,7 +215,7 @@ Broker summary metrics represent high level aggregated view of the activity on t
 |brkr_summary_clients_count|Maximum snapshot'd value over the report interval window for the number of clients connected to the broker.|
 
 ### Cluster metrics
-Every broker reports this metric for each of the clusters it has created, with the following tags: 'Instance', 'Cluster' and 'Role' (which can only be 'PROXY ' or 'MEMBER'). If the 'role' is proxy, the remoteHost tag is also set (but can have the value '_none_').
+Every broker reports this metric for each of the clusters it has created, with the following tags: 'Instance', 'Cluster' and 'Role'. If the 'Role' is 'PROXY', the 'RemoteHost' tag is also set (but can have the value '_none_').
 
 |Metric Name|Description|
 |-----------|-----------|
@@ -240,7 +240,7 @@ Domain metrics represent high level metrics related to a domain. Only the leader
 |domain_queue_count|The maximum snapshot'd value over the report interval window for the number of opened queues (including inactive not yet gc’ed queues) on that domain.|
 
 ### Queue metrics
-Queue metrics represent detailed, per queue, metrics. For each of them, the following tags are set: 'Cluster', 'Domain', 'Tier', 'Queue', 'Role' (which value can only be one of 'PRIMARY', 'REPLICA' or 'PROXY') and instanceName. 'AppId' tag could be applied on 'queue.confirm_time_max' and 'queue.queue_time_max' metrics in fanout mode if this feature is configured (see 'appIdPostingDomains' setting).
+Queue metrics represent detailed, per queue, metrics. For each of them, the following tags are set: 'Cluster', 'Domain', 'Tier', 'Queue', 'Role' (which value can only be one of 'PRIMARY', 'REPLICA' or 'PROXY') and instanceName. 'AppId' tag could be applied on 'queue.confirm_time_max' and 'queue.queue_time_max' metrics in fanout mode if this feature is configured (see 'appIdTagDomains' setting).
 
 |Metric Name|Description|
 |-----------|-----------|
