@@ -187,7 +187,7 @@ bool filterDirect(const mwcst::TableRecords::Record& record)
 class ContextNameMatcher {
   private:
     // DATA
-    const bsl::string d_name;
+    const bsl::string& d_name;
 
   public:
     // CREATORS
@@ -408,17 +408,17 @@ void QueueStatsDomain::initialize(const bmqt::Uri&  uri,
 
     datum->adopt(builder.commit());
 
-    // Create subcontexts if queue mode is `fanout` and domain name is in
-    // `appIdPostingDomains` list.  At proxy nodes domain config is not
-    // available, hence we use queue-related StatContext to calculate the
-    // metrics without considering the AppIds.
+    // Create subcontexts for each AppId to store `e_CONFIRM_TIME_MAX` and
+    // `e_QUEUE_TIME_MAX` metrics if the node is not `proxy`, queue mode is
+    // `fanout` and domain name is in `appIdTagDomains` list.  Thus, the
+    // metrics can be inspected separately for each application.
     if (!domain->cluster()->isRemote() &&
         domain->config().mode().isFanoutValue()) {
-        const bsl::vector<bsl::string>& appIdPostingDomains =
-            mqbcfg::BrokerConfig::get().stats().appIdPostingDomains();
-        if (bsl::find(appIdPostingDomains.begin(),
-                      appIdPostingDomains.end(),
-                      uri.domain()) != appIdPostingDomains.end()) {
+        const bsl::vector<bsl::string>& appIdTagDomains =
+            mqbcfg::BrokerConfig::get().stats().appIdTagDomains();
+        if (bsl::find(appIdTagDomains.begin(),
+                      appIdTagDomains.end(),
+                      uri.domain()) != appIdTagDomains.end()) {
             d_subContexts_mp.load(new (*allocator)
                                       bsl::list<StatSubContextMp>(allocator),
                                   allocator);
@@ -576,11 +576,11 @@ void QueueStatsDomain::reportQueueTime(bsls::Types::Int64 value,
 void QueueStatsDomain::updateDomainAppIds(
     const bsl::vector<bsl::string>& appIds)
 {
-    bdlma::LocalSequentialAllocator<2048> localAllocator;
-
     if (!d_subContexts_mp) {
         return;  // RETURN
     }
+
+    bdlma::LocalSequentialAllocator<2048> localAllocator;
 
     // Add subcontexts for appIds that are not already present
     for (bsl::vector<bsl::string>::const_iterator cit = appIds.begin();

@@ -7936,7 +7936,7 @@ namespace mqbcfg {
 
 class StatsConfig {
     // INSTANCE DATA
-    bsl::vector<bsl::string>      d_appIdPostingDomains;
+    bsl::vector<bsl::string>      d_appIdTagDomains;
     bsl::vector<StatPluginConfig> d_plugins;
     StatsPrinterConfig            d_printer;
     int                           d_snapshotInterval;
@@ -7950,19 +7950,19 @@ class StatsConfig {
   public:
     // TYPES
     enum {
-        ATTRIBUTE_ID_SNAPSHOT_INTERVAL      = 0,
-        ATTRIBUTE_ID_APP_ID_POSTING_DOMAINS = 1,
-        ATTRIBUTE_ID_PLUGINS                = 2,
-        ATTRIBUTE_ID_PRINTER                = 3
+        ATTRIBUTE_ID_SNAPSHOT_INTERVAL  = 0,
+        ATTRIBUTE_ID_APP_ID_TAG_DOMAINS = 1,
+        ATTRIBUTE_ID_PLUGINS            = 2,
+        ATTRIBUTE_ID_PRINTER            = 3
     };
 
     enum { NUM_ATTRIBUTES = 4 };
 
     enum {
-        ATTRIBUTE_INDEX_SNAPSHOT_INTERVAL      = 0,
-        ATTRIBUTE_INDEX_APP_ID_POSTING_DOMAINS = 1,
-        ATTRIBUTE_INDEX_PLUGINS                = 2,
-        ATTRIBUTE_INDEX_PRINTER                = 3
+        ATTRIBUTE_INDEX_SNAPSHOT_INTERVAL  = 0,
+        ATTRIBUTE_INDEX_APP_ID_TAG_DOMAINS = 1,
+        ATTRIBUTE_INDEX_PLUGINS            = 2,
+        ATTRIBUTE_INDEX_PRINTER            = 3
     };
 
     // CONSTANTS
@@ -8066,9 +8066,9 @@ class StatsConfig {
     // Return a reference to the modifiable "SnapshotInterval" attribute of
     // this object.
 
-    bsl::vector<bsl::string>& appIdPostingDomains();
-    // Return a reference to the modifiable "AppIdPostingDomains" attribute
-    // of this object.
+    bsl::vector<bsl::string>& appIdTagDomains();
+    // Return a reference to the modifiable "AppIdTagDomains" attribute of
+    // this object.
 
     bsl::vector<StatPluginConfig>& plugins();
     // Return a reference to the modifiable "Plugins" attribute of this
@@ -8124,7 +8124,7 @@ class StatsConfig {
     int snapshotInterval() const;
     // Return the value of the "SnapshotInterval" attribute of this object.
 
-    const bsl::vector<bsl::string>& appIdPostingDomains() const;
+    const bsl::vector<bsl::string>& appIdTagDomains() const;
     // Return a reference offering non-modifiable access to the
     // "AppIdPostingDomains" attribute of this object.
 
@@ -16418,7 +16418,7 @@ void StatsConfig::hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const
 {
     using bslh::hashAppend;
     hashAppend(hashAlgorithm, this->snapshotInterval());
-    hashAppend(hashAlgorithm, this->appIdPostingDomains());
+    hashAppend(hashAlgorithm, this->appIdTagDomains());
     hashAppend(hashAlgorithm, this->plugins());
     hashAppend(hashAlgorithm, this->printer());
 }
@@ -16426,7 +16426,7 @@ void StatsConfig::hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const
 inline bool StatsConfig::isEqualTo(const StatsConfig& rhs) const
 {
     return this->snapshotInterval() == rhs.snapshotInterval() &&
-           this->appIdPostingDomains() == rhs.appIdPostingDomains() &&
+           this->appIdTagDomains() == rhs.appIdTagDomains() &&
            this->plugins() == rhs.plugins() &&
            this->printer() == rhs.printer();
 }
@@ -16445,8 +16445,8 @@ int StatsConfig::manipulateAttributes(t_MANIPULATOR& manipulator)
     }
 
     ret = manipulator(
-        &d_appIdPostingDomains,
-        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_APP_ID_POSTING_DOMAINS]);
+        &d_appIdTagDomains,
+        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_APP_ID_TAG_DOMAINS]);
     if (ret) {
         return ret;
     }
@@ -16477,10 +16477,10 @@ int StatsConfig::manipulateAttribute(t_MANIPULATOR& manipulator, int id)
             &d_snapshotInterval,
             ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SNAPSHOT_INTERVAL]);
     }
-    case ATTRIBUTE_ID_APP_ID_POSTING_DOMAINS: {
+    case ATTRIBUTE_ID_APP_ID_TAG_DOMAINS: {
         return manipulator(
-            &d_appIdPostingDomains,
-            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_APP_ID_POSTING_DOMAINS]);
+            &d_appIdTagDomains,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_APP_ID_TAG_DOMAINS]);
     }
     case ATTRIBUTE_ID_PLUGINS: {
         return manipulator(&d_plugins,
@@ -16515,9 +16515,9 @@ inline int& StatsConfig::snapshotInterval()
     return d_snapshotInterval;
 }
 
-inline bsl::vector<bsl::string>& StatsConfig::appIdPostingDomains()
+inline bsl::vector<bsl::string>& StatsConfig::appIdTagDomains()
 {
-    return d_appIdPostingDomains;
+    return d_appIdTagDomains;
 }
 
 inline bsl::vector<StatPluginConfig>& StatsConfig::plugins()
@@ -16542,9 +16542,8 @@ int StatsConfig::accessAttributes(t_ACCESSOR& accessor) const
         return ret;
     }
 
-    ret = accessor(
-        d_appIdPostingDomains,
-        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_APP_ID_POSTING_DOMAINS]);
+    ret = accessor(d_appIdTagDomains,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_APP_ID_TAG_DOMAINS]);
     if (ret) {
         return ret;
     }
@@ -16573,10 +16572,10 @@ int StatsConfig::accessAttribute(t_ACCESSOR& accessor, int id) const
             d_snapshotInterval,
             ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SNAPSHOT_INTERVAL]);
     }
-    case ATTRIBUTE_ID_APP_ID_POSTING_DOMAINS: {
+    case ATTRIBUTE_ID_APP_ID_TAG_DOMAINS: {
         return accessor(
-            d_appIdPostingDomains,
-            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_APP_ID_POSTING_DOMAINS]);
+            d_appIdTagDomains,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_APP_ID_TAG_DOMAINS]);
     }
     case ATTRIBUTE_ID_PLUGINS: {
         return accessor(d_plugins,
@@ -16611,9 +16610,9 @@ inline int StatsConfig::snapshotInterval() const
     return d_snapshotInterval;
 }
 
-inline const bsl::vector<bsl::string>& StatsConfig::appIdPostingDomains() const
+inline const bsl::vector<bsl::string>& StatsConfig::appIdTagDomains() const
 {
-    return d_appIdPostingDomains;
+    return d_appIdTagDomains;
 }
 
 inline const bsl::vector<StatPluginConfig>& StatsConfig::plugins() const

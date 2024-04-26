@@ -613,7 +613,7 @@ QueueEngineUtil_AppsDeliveryContext::QueueEngineUtil_AppsDeliveryContext(
 , d_doRepeat(true)
 , d_currentMessage(0)
 , d_queue_p(queue)
-, d_active_appIds(allocator)
+, d_activeAppIds(allocator)
 {
     // NOTHING
 }
@@ -623,7 +623,7 @@ void QueueEngineUtil_AppsDeliveryContext::reset()
     d_doRepeat       = false;
     d_currentMessage = 0;
     d_consumers.clear();
-    d_active_appIds.clear();
+    d_activeAppIds.clear();
 }
 
 bool QueueEngineUtil_AppsDeliveryContext::processApp(
@@ -728,7 +728,7 @@ bool QueueEngineUtil_AppsDeliveryContext::processApp(
     else {
         // Store appId of active consumer for domain stats (reporting queue
         // time metric)
-        d_active_appIds.push_back(app.d_appId);
+        d_activeAppIds.push_back(app.d_appId);
     }
 
     return isSelected;
@@ -786,9 +786,9 @@ void QueueEngineUtil_AppsDeliveryContext::deliverMessage()
 
         if (bmqp::QueueId::k_PRIMARY_QUEUE_ID == d_queue_p->id()) {
             // Report 'queue time' metric for all active appIds
-            bsl::vector<bsl::string>::const_iterator it =
-                d_active_appIds.begin();
-            for (; it != d_active_appIds.end(); ++it) {
+            bsl::vector<bslstl::StringRef>::const_iterator it =
+                d_activeAppIds.begin();
+            for (; it != d_activeAppIds.cend(); ++it) {
                 QueueEngineUtil::reportQueueTimeMetric(d_queue_p->stats(),
                                                        attributes,
                                                        *it  // appId
