@@ -615,11 +615,11 @@
       <element name='maxTimeLeader'     type='int' default='60'/>  <!-- 1 minute -->
       <element name='maxTimeMaster'     type='int' default='120'/> <!-- 2 minutes -->
       <element name='maxTimeNode'       type='int' default='120'/> <!-- 2 minutes -->
-      <element name='maxTimeFailover'   type='int' default='240'/> <!-- 4 minutes -->
+      <element name='maxTimeFailover'   type='int' default='600'/> <!-- 10 minutes -->
       <element name='thresholdLeader'   type='int' default='30'/>  <!-- 30 seconds -->
       <element name='thresholdMaster'   type='int' default='60'/>  <!-- 1 minute -->
       <element name='thresholdNode'     type='int' default='60'/>  <!-- 1 minute -->
-      <element name='thresholdFailover' type='int' default='120'/> <!-- 2 minutes -->
+      <element name='thresholdFailover' type='int' default='300'/> <!-- 5 minutes -->
     </sequence>
   </complexType>
 
