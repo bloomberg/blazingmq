@@ -13,7 +13,7 @@ from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
 )
 from blazingmq.dev.it.process.client import Client
 from blazingmq.dev.it.util import wait_until
-from blazingmq.dev.configurator import Configurator
+from blazingmq.dev.configurator.configurator import Configurator
 
 class TestAutoSubscriptions:
     """
@@ -384,4 +384,3 @@ class TestAutoSubscriptions:
         assert len(self.consumer.list(block=True)) == 0
         assert len(self.consumer_bar.list(block=True)) == 0
         assert len(self.consumer_baz.list(block=True)) == 0
-

@@ -16,7 +16,7 @@ import signal
 from blazingmq.dev.it.process import proc
 import blazingmq.dev.it.process.bmqproc
 import blazingmq.dev.it.testconstants as tc
-import blazingmq.dev.configurator as cfg
+import blazingmq.dev.configurator.configurator as cfg
 
 from blazingmq.dev.it.util import internal_use, ListContextManager, Queue
 

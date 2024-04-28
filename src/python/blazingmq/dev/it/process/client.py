@@ -18,7 +18,7 @@ from typing import Any, Callable, Dict, Optional, List
 import blazingmq.dev.it.process.bmqproc
 from blazingmq.dev.it.testconstants import *
 from blazingmq.dev.it.util import internal_use, ListContextManager, Queue
-import blazingmq.dev.configurator as cfg
+import blazingmq.dev.configurator.configurator as cfg
 
 Message = namedtuple("Message", "guid, uri, correlationId, payload")
 CommandResult = namedtuple("CommandResult", "error_code, matches")
