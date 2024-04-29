@@ -272,7 +272,7 @@ const int ClusterMonitorConfig::DEFAULT_INITIALIZER_MAX_TIME_MASTER = 120;
 
 const int ClusterMonitorConfig::DEFAULT_INITIALIZER_MAX_TIME_NODE = 120;
 
-const int ClusterMonitorConfig::DEFAULT_INITIALIZER_MAX_TIME_FAILOVER = 240;
+const int ClusterMonitorConfig::DEFAULT_INITIALIZER_MAX_TIME_FAILOVER = 600;
 
 const int ClusterMonitorConfig::DEFAULT_INITIALIZER_THRESHOLD_LEADER = 30;
 
@@ -280,7 +280,7 @@ const int ClusterMonitorConfig::DEFAULT_INITIALIZER_THRESHOLD_MASTER = 60;
 
 const int ClusterMonitorConfig::DEFAULT_INITIALIZER_THRESHOLD_NODE = 60;
 
-const int ClusterMonitorConfig::DEFAULT_INITIALIZER_THRESHOLD_FAILOVER = 120;
+const int ClusterMonitorConfig::DEFAULT_INITIALIZER_THRESHOLD_FAILOVER = 300;
 
 const bdlat_AttributeInfo ClusterMonitorConfig::ATTRIBUTE_INFO_ARRAY[] = {
     {ATTRIBUTE_ID_MAX_TIME_LEADER,

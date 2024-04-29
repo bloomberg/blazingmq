@@ -5,3 +5,5 @@ m_bmqtool_interactive
 m_bmqtool_storageinspector
 m_bmqtool_messages
 m_bmqtool_parameters
+m_bmqtool_poster
+m_bmqtool_statutil

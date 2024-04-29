@@ -1,4 +1,4 @@
-// Copyright 2014-2023 Bloomberg Finance L.P.
+// Copyright 2014-2024 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -56,6 +56,9 @@ namespace bslma {
 class Allocator;
 }
 
+namespace m_bmqtool {
+class BatchPostCommand;
+}
 namespace m_bmqtool {
 class CloseQueueCommand;
 }
@@ -125,6 +128,295 @@ class PostCommand;
 namespace m_bmqtool {
 class Command;
 }
+namespace m_bmqtool {
+
+// ======================
+// class BatchPostCommand
+// ======================
+
+class BatchPostCommand {
+    // INSTANCE DATA
+    bsls::Types::Int64       d_eventSize;
+    bsls::Types::Int64       d_eventsCount;
+    bsl::vector<bsl::string> d_payload;
+    bsl::string              d_uri;
+    int                      d_msgSize;
+    int                      d_postInterval;
+    int                      d_postRate;
+
+    // PRIVATE ACCESSORS
+    template <typename t_HASH_ALGORITHM>
+    void hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const;
+
+    bool isEqualTo(const BatchPostCommand& rhs) const;
+
+  public:
+    // TYPES
+    enum {
+        ATTRIBUTE_ID_URI           = 0,
+        ATTRIBUTE_ID_PAYLOAD       = 1,
+        ATTRIBUTE_ID_MSG_SIZE      = 2,
+        ATTRIBUTE_ID_EVENT_SIZE    = 3,
+        ATTRIBUTE_ID_EVENTS_COUNT  = 4,
+        ATTRIBUTE_ID_POST_INTERVAL = 5,
+        ATTRIBUTE_ID_POST_RATE     = 6
+    };
+
+    enum { NUM_ATTRIBUTES = 7 };
+
+    enum {
+        ATTRIBUTE_INDEX_URI           = 0,
+        ATTRIBUTE_INDEX_PAYLOAD       = 1,
+        ATTRIBUTE_INDEX_MSG_SIZE      = 2,
+        ATTRIBUTE_INDEX_EVENT_SIZE    = 3,
+        ATTRIBUTE_INDEX_EVENTS_COUNT  = 4,
+        ATTRIBUTE_INDEX_POST_INTERVAL = 5,
+        ATTRIBUTE_INDEX_POST_RATE     = 6
+    };
+
+    // CONSTANTS
+    static const char CLASS_NAME[];
+
+    static const int DEFAULT_INITIALIZER_MSG_SIZE;
+
+    static const bsls::Types::Int64 DEFAULT_INITIALIZER_EVENT_SIZE;
+
+    static const bsls::Types::Int64 DEFAULT_INITIALIZER_EVENTS_COUNT;
+
+    static const int DEFAULT_INITIALIZER_POST_INTERVAL;
+
+    static const int DEFAULT_INITIALIZER_POST_RATE;
+
+    static const bdlat_AttributeInfo ATTRIBUTE_INFO_ARRAY[];
+
+  public:
+    // CLASS METHODS
+    static const bdlat_AttributeInfo* lookupAttributeInfo(int id);
+    // Return attribute information for the attribute indicated by the
+    // specified 'id' if the attribute exists, and 0 otherwise.
+
+    static const bdlat_AttributeInfo* lookupAttributeInfo(const char* name,
+                                                          int nameLength);
+    // Return attribute information for the attribute indicated by the
+    // specified 'name' of the specified 'nameLength' if the attribute
+    // exists, and 0 otherwise.
+
+    // CREATORS
+    explicit BatchPostCommand(bslma::Allocator* basicAllocator = 0);
+    // Create an object of type 'BatchPostCommand' having the default
+    // value.  Use the optionally specified 'basicAllocator' to supply
+    // memory.  If 'basicAllocator' is 0, the currently installed default
+    // allocator is used.
+
+    BatchPostCommand(const BatchPostCommand& original,
+                     bslma::Allocator*       basicAllocator = 0);
+    // Create an object of type 'BatchPostCommand' having the value of the
+    // specified 'original' object.  Use the optionally specified
+    // 'basicAllocator' to supply memory.  If 'basicAllocator' is 0, the
+    // currently installed default allocator is used.
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+    BatchPostCommand(BatchPostCommand&& original) noexcept;
+    // Create an object of type 'BatchPostCommand' having the value of the
+    // specified 'original' object.  After performing this action, the
+    // 'original' object will be left in a valid, but unspecified state.
+
+    BatchPostCommand(BatchPostCommand&& original,
+                     bslma::Allocator*  basicAllocator);
+    // Create an object of type 'BatchPostCommand' having the value of the
+    // specified 'original' object.  After performing this action, the
+    // 'original' object will be left in a valid, but unspecified state.
+    // Use the optionally specified 'basicAllocator' to supply memory.  If
+    // 'basicAllocator' is 0, the currently installed default allocator is
+    // used.
+#endif
+
+    ~BatchPostCommand();
+    // Destroy this object.
+
+    // MANIPULATORS
+    BatchPostCommand& operator=(const BatchPostCommand& rhs);
+    // Assign to this object the value of the specified 'rhs' object.
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+    BatchPostCommand& operator=(BatchPostCommand&& rhs);
+    // Assign to this object the value of the specified 'rhs' object.
+    // After performing this action, the 'rhs' object will be left in a
+    // valid, but unspecified state.
+#endif
+
+    void reset();
+    // Reset this object to the default value (i.e., its value upon
+    // default construction).
+
+    template <typename t_MANIPULATOR>
+    int manipulateAttributes(t_MANIPULATOR& manipulator);
+    // Invoke the specified 'manipulator' sequentially on the address of
+    // each (modifiable) attribute of this object, supplying 'manipulator'
+    // with the corresponding attribute information structure until such
+    // invocation returns a non-zero value.  Return the value from the
+    // last invocation of 'manipulator' (i.e., the invocation that
+    // terminated the sequence).
+
+    template <typename t_MANIPULATOR>
+    int manipulateAttribute(t_MANIPULATOR& manipulator, int id);
+    // Invoke the specified 'manipulator' on the address of
+    // the (modifiable) attribute indicated by the specified 'id',
+    // supplying 'manipulator' with the corresponding attribute
+    // information structure.  Return the value returned from the
+    // invocation of 'manipulator' if 'id' identifies an attribute of this
+    // class, and -1 otherwise.
+
+    template <typename t_MANIPULATOR>
+    int manipulateAttribute(t_MANIPULATOR& manipulator,
+                            const char*    name,
+                            int            nameLength);
+    // Invoke the specified 'manipulator' on the address of
+    // the (modifiable) attribute indicated by the specified 'name' of the
+    // specified 'nameLength', supplying 'manipulator' with the
+    // corresponding attribute information structure.  Return the value
+    // returned from the invocation of 'manipulator' if 'name' identifies
+    // an attribute of this class, and -1 otherwise.
+
+    bsl::string& uri();
+    // Return a reference to the modifiable "Uri" attribute of this object.
+
+    bsl::vector<bsl::string>& payload();
+    // Return a reference to the modifiable "Payload" attribute of this
+    // object.
+
+    int& msgSize();
+    // Return a reference to the modifiable "MsgSize" attribute of this
+    // object.
+
+    bsls::Types::Int64& eventSize();
+    // Return a reference to the modifiable "EventSize" attribute of this
+    // object.
+
+    bsls::Types::Int64& eventsCount();
+    // Return a reference to the modifiable "EventsCount" attribute of this
+    // object.
+
+    int& postInterval();
+    // Return a reference to the modifiable "PostInterval" attribute of
+    // this object.
+
+    int& postRate();
+    // Return a reference to the modifiable "PostRate" attribute of this
+    // object.
+
+    // ACCESSORS
+    bsl::ostream&
+    print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
+    // Format this object to the specified output 'stream' at the
+    // optionally specified indentation 'level' and return a reference to
+    // the modifiable 'stream'.  If 'level' is specified, optionally
+    // specify 'spacesPerLevel', the number of spaces per indentation level
+    // for this and all of its nested objects.  Each line is indented by
+    // the absolute value of 'level * spacesPerLevel'.  If 'level' is
+    // negative, suppress indentation of the first line.  If
+    // 'spacesPerLevel' is negative, suppress line breaks and format the
+    // entire output on one line.  If 'stream' is initially invalid, this
+    // operation has no effect.  Note that a trailing newline is provided
+    // in multiline mode only.
+
+    template <typename t_ACCESSOR>
+    int accessAttributes(t_ACCESSOR& accessor) const;
+    // Invoke the specified 'accessor' sequentially on each
+    // (non-modifiable) attribute of this object, supplying 'accessor'
+    // with the corresponding attribute information structure until such
+    // invocation returns a non-zero value.  Return the value from the
+    // last invocation of 'accessor' (i.e., the invocation that terminated
+    // the sequence).
+
+    template <typename t_ACCESSOR>
+    int accessAttribute(t_ACCESSOR& accessor, int id) const;
+    // Invoke the specified 'accessor' on the (non-modifiable) attribute
+    // of this object indicated by the specified 'id', supplying 'accessor'
+    // with the corresponding attribute information structure.  Return the
+    // value returned from the invocation of 'accessor' if 'id' identifies
+    // an attribute of this class, and -1 otherwise.
+
+    template <typename t_ACCESSOR>
+    int accessAttribute(t_ACCESSOR& accessor,
+                        const char* name,
+                        int         nameLength) const;
+    // Invoke the specified 'accessor' on the (non-modifiable) attribute
+    // of this object indicated by the specified 'name' of the specified
+    // 'nameLength', supplying 'accessor' with the corresponding attribute
+    // information structure.  Return the value returned from the
+    // invocation of 'accessor' if 'name' identifies an attribute of this
+    // class, and -1 otherwise.
+
+    const bsl::string& uri() const;
+    // Return a reference offering non-modifiable access to the "Uri"
+    // attribute of this object.
+
+    const bsl::vector<bsl::string>& payload() const;
+    // Return a reference offering non-modifiable access to the "Payload"
+    // attribute of this object.
+
+    int msgSize() const;
+    // Return the value of the "MsgSize" attribute of this object.
+
+    bsls::Types::Int64 eventSize() const;
+    // Return the value of the "EventSize" attribute of this object.
+
+    bsls::Types::Int64 eventsCount() const;
+    // Return the value of the "EventsCount" attribute of this object.
+
+    int postInterval() const;
+    // Return the value of the "PostInterval" attribute of this object.
+
+    int postRate() const;
+    // Return the value of the "PostRate" attribute of this object.
+
+    // HIDDEN FRIENDS
+    friend bool operator==(const BatchPostCommand& lhs,
+                           const BatchPostCommand& rhs)
+    // Return 'true' if the specified 'lhs' and 'rhs' attribute objects
+    // have the same value, and 'false' otherwise.  Two attribute objects
+    // have the same value if each respective attribute has the same value.
+    {
+        return lhs.isEqualTo(rhs);
+    }
+
+    friend bool operator!=(const BatchPostCommand& lhs,
+                           const BatchPostCommand& rhs)
+    // Returns '!(lhs == rhs)'
+    {
+        return !(lhs == rhs);
+    }
+
+    friend bsl::ostream& operator<<(bsl::ostream&           stream,
+                                    const BatchPostCommand& rhs)
+    // Format the specified 'rhs' to the specified output 'stream' and
+    // return a reference to the modifiable 'stream'.
+    {
+        return rhs.print(stream, 0, -1);
+    }
+
+    template <typename t_HASH_ALGORITHM>
+    friend void hashAppend(t_HASH_ALGORITHM&       hashAlg,
+                           const BatchPostCommand& object)
+    // Pass the specified 'object' to the specified 'hashAlg'.  This
+    // function integrates with the 'bslh' modular hashing system and
+    // effectively provides a 'bsl::hash' specialization for
+    // 'BatchPostCommand'.
+    {
+        object.hashAppendImpl(hashAlg);
+    }
+};
+
+}  // close package namespace
+
+// TRAITS
+
+BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
+    m_bmqtool::BatchPostCommand)
+
 namespace m_bmqtool {
 
 // =======================
@@ -5676,6 +5968,7 @@ class Command {
         bsls::ObjectBuffer<PostCommand>           d_post;
         bsls::ObjectBuffer<ListCommand>           d_list;
         bsls::ObjectBuffer<ConfirmCommand>        d_confirm;
+        bsls::ObjectBuffer<BatchPostCommand>      d_batchPost;
         bsls::ObjectBuffer<OpenStorageCommand>    d_openStorage;
         bsls::ObjectBuffer<CloseStorageCommand>   d_closeStorage;
         bsls::ObjectBuffer<MetadataCommand>       d_metadata;
@@ -5708,17 +6001,18 @@ class Command {
         SELECTION_ID_POST            = 5,
         SELECTION_ID_LIST            = 6,
         SELECTION_ID_CONFIRM         = 7,
-        SELECTION_ID_OPEN_STORAGE    = 8,
-        SELECTION_ID_CLOSE_STORAGE   = 9,
-        SELECTION_ID_METADATA        = 10,
-        SELECTION_ID_LIST_QUEUES     = 11,
-        SELECTION_ID_DUMP_QUEUE      = 12,
-        SELECTION_ID_DATA            = 13,
-        SELECTION_ID_QLIST           = 14,
-        SELECTION_ID_JOURNAL         = 15
+        SELECTION_ID_BATCH_POST      = 8,
+        SELECTION_ID_OPEN_STORAGE    = 9,
+        SELECTION_ID_CLOSE_STORAGE   = 10,
+        SELECTION_ID_METADATA        = 11,
+        SELECTION_ID_LIST_QUEUES     = 12,
+        SELECTION_ID_DUMP_QUEUE      = 13,
+        SELECTION_ID_DATA            = 14,
+        SELECTION_ID_QLIST           = 15,
+        SELECTION_ID_JOURNAL         = 16
     };
 
-    enum { NUM_SELECTIONS = 16 };
+    enum { NUM_SELECTIONS = 17 };
 
     enum {
         SELECTION_INDEX_START           = 0,
@@ -5729,14 +6023,15 @@ class Command {
         SELECTION_INDEX_POST            = 5,
         SELECTION_INDEX_LIST            = 6,
         SELECTION_INDEX_CONFIRM         = 7,
-        SELECTION_INDEX_OPEN_STORAGE    = 8,
-        SELECTION_INDEX_CLOSE_STORAGE   = 9,
-        SELECTION_INDEX_METADATA        = 10,
-        SELECTION_INDEX_LIST_QUEUES     = 11,
-        SELECTION_INDEX_DUMP_QUEUE      = 12,
-        SELECTION_INDEX_DATA            = 13,
-        SELECTION_INDEX_QLIST           = 14,
-        SELECTION_INDEX_JOURNAL         = 15
+        SELECTION_INDEX_BATCH_POST      = 8,
+        SELECTION_INDEX_OPEN_STORAGE    = 9,
+        SELECTION_INDEX_CLOSE_STORAGE   = 10,
+        SELECTION_INDEX_METADATA        = 11,
+        SELECTION_INDEX_LIST_QUEUES     = 12,
+        SELECTION_INDEX_DUMP_QUEUE      = 13,
+        SELECTION_INDEX_DATA            = 14,
+        SELECTION_INDEX_QLIST           = 15,
+        SELECTION_INDEX_JOURNAL         = 16
     };
 
     // CONSTANTS
@@ -5895,6 +6190,16 @@ class Command {
     // specify the 'value' of the "Confirm".  If 'value' is not specified,
     // the default "Confirm" value is used.
 
+    BatchPostCommand& makeBatchPost();
+    BatchPostCommand& makeBatchPost(const BatchPostCommand& value);
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+    BatchPostCommand& makeBatchPost(BatchPostCommand&& value);
+#endif
+    // Set the value of this object to be a "BatchPost" value.  Optionally
+    // specify the 'value' of the "BatchPost".  If 'value' is not
+    // specified, the default "BatchPost" value is used.
+
     OpenStorageCommand& makeOpenStorage();
     OpenStorageCommand& makeOpenStorage(const OpenStorageCommand& value);
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
@@ -6024,6 +6329,11 @@ class Command {
     // object if "Confirm" is the current selection.  The behavior is
     // undefined unless "Confirm" is the selection of this object.
 
+    BatchPostCommand& batchPost();
+    // Return a reference to the modifiable "BatchPost" selection of this
+    // object if "BatchPost" is the current selection.  The behavior is
+    // undefined unless "BatchPost" is the selection of this object.
+
     OpenStorageCommand& openStorage();
     // Return a reference to the modifiable "OpenStorage" selection of this
     // object if "OpenStorage" is the current selection.  The behavior is
@@ -6132,6 +6442,11 @@ class Command {
     // object if "Confirm" is the current selection.  The behavior is
     // undefined unless "Confirm" is the selection of this object.
 
+    const BatchPostCommand& batchPost() const;
+    // Return a reference to the non-modifiable "BatchPost" selection of
+    // this object if "BatchPost" is the current selection.  The behavior
+    // is undefined unless "BatchPost" is the selection of this object.
+
     const OpenStorageCommand& openStorage() const;
     // Return a reference to the non-modifiable "OpenStorage" selection of
     // this object if "OpenStorage" is the current selection.  The behavior
@@ -6204,6 +6519,10 @@ class Command {
     bool isConfirmValue() const;
     // Return 'true' if the value of this object is a "Confirm" value, and
     // return 'false' otherwise.
+
+    bool isBatchPostValue() const;
+    // Return 'true' if the value of this object is a "BatchPost" value,
+    // and return 'false' otherwise.
 
     bool isOpenStorageValue() const;
     // Return 'true' if the value of this object is a "OpenStorage" value,
@@ -6290,6 +6609,310 @@ BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(m_bmqtool::Command)
 //=============================================================================
 
 namespace m_bmqtool {
+
+// ----------------------
+// class BatchPostCommand
+// ----------------------
+
+// PRIVATE ACCESSORS
+template <typename t_HASH_ALGORITHM>
+void BatchPostCommand::hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const
+{
+    using bslh::hashAppend;
+    hashAppend(hashAlgorithm, this->uri());
+    hashAppend(hashAlgorithm, this->payload());
+    hashAppend(hashAlgorithm, this->msgSize());
+    hashAppend(hashAlgorithm, this->eventSize());
+    hashAppend(hashAlgorithm, this->eventsCount());
+    hashAppend(hashAlgorithm, this->postInterval());
+    hashAppend(hashAlgorithm, this->postRate());
+}
+
+inline bool BatchPostCommand::isEqualTo(const BatchPostCommand& rhs) const
+{
+    return this->uri() == rhs.uri() && this->payload() == rhs.payload() &&
+           this->msgSize() == rhs.msgSize() &&
+           this->eventSize() == rhs.eventSize() &&
+           this->eventsCount() == rhs.eventsCount() &&
+           this->postInterval() == rhs.postInterval() &&
+           this->postRate() == rhs.postRate();
+}
+
+// CLASS METHODS
+// MANIPULATORS
+template <typename t_MANIPULATOR>
+int BatchPostCommand::manipulateAttributes(t_MANIPULATOR& manipulator)
+{
+    int ret;
+
+    ret = manipulator(&d_uri, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_URI]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(&d_payload,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PAYLOAD]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(&d_msgSize,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MSG_SIZE]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(&d_eventSize,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_EVENT_SIZE]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(&d_eventsCount,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_EVENTS_COUNT]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(&d_postInterval,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_POST_INTERVAL]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(&d_postRate,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_POST_RATE]);
+    if (ret) {
+        return ret;
+    }
+
+    return 0;
+}
+
+template <typename t_MANIPULATOR>
+int BatchPostCommand::manipulateAttribute(t_MANIPULATOR& manipulator, int id)
+{
+    enum { NOT_FOUND = -1 };
+
+    switch (id) {
+    case ATTRIBUTE_ID_URI: {
+        return manipulator(&d_uri, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_URI]);
+    }
+    case ATTRIBUTE_ID_PAYLOAD: {
+        return manipulator(&d_payload,
+                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PAYLOAD]);
+    }
+    case ATTRIBUTE_ID_MSG_SIZE: {
+        return manipulator(&d_msgSize,
+                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MSG_SIZE]);
+    }
+    case ATTRIBUTE_ID_EVENT_SIZE: {
+        return manipulator(&d_eventSize,
+                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_EVENT_SIZE]);
+    }
+    case ATTRIBUTE_ID_EVENTS_COUNT: {
+        return manipulator(&d_eventsCount,
+                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_EVENTS_COUNT]);
+    }
+    case ATTRIBUTE_ID_POST_INTERVAL: {
+        return manipulator(
+            &d_postInterval,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_POST_INTERVAL]);
+    }
+    case ATTRIBUTE_ID_POST_RATE: {
+        return manipulator(&d_postRate,
+                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_POST_RATE]);
+    }
+    default: return NOT_FOUND;
+    }
+}
+
+template <typename t_MANIPULATOR>
+int BatchPostCommand::manipulateAttribute(t_MANIPULATOR& manipulator,
+                                          const char*    name,
+                                          int            nameLength)
+{
+    enum { NOT_FOUND = -1 };
+
+    const bdlat_AttributeInfo* attributeInfo = lookupAttributeInfo(name,
+                                                                   nameLength);
+    if (0 == attributeInfo) {
+        return NOT_FOUND;
+    }
+
+    return manipulateAttribute(manipulator, attributeInfo->d_id);
+}
+
+inline bsl::string& BatchPostCommand::uri()
+{
+    return d_uri;
+}
+
+inline bsl::vector<bsl::string>& BatchPostCommand::payload()
+{
+    return d_payload;
+}
+
+inline int& BatchPostCommand::msgSize()
+{
+    return d_msgSize;
+}
+
+inline bsls::Types::Int64& BatchPostCommand::eventSize()
+{
+    return d_eventSize;
+}
+
+inline bsls::Types::Int64& BatchPostCommand::eventsCount()
+{
+    return d_eventsCount;
+}
+
+inline int& BatchPostCommand::postInterval()
+{
+    return d_postInterval;
+}
+
+inline int& BatchPostCommand::postRate()
+{
+    return d_postRate;
+}
+
+// ACCESSORS
+template <typename t_ACCESSOR>
+int BatchPostCommand::accessAttributes(t_ACCESSOR& accessor) const
+{
+    int ret;
+
+    ret = accessor(d_uri, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_URI]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_payload, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PAYLOAD]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_msgSize, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MSG_SIZE]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_eventSize,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_EVENT_SIZE]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_eventsCount,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_EVENTS_COUNT]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_postInterval,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_POST_INTERVAL]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_postRate,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_POST_RATE]);
+    if (ret) {
+        return ret;
+    }
+
+    return 0;
+}
+
+template <typename t_ACCESSOR>
+int BatchPostCommand::accessAttribute(t_ACCESSOR& accessor, int id) const
+{
+    enum { NOT_FOUND = -1 };
+
+    switch (id) {
+    case ATTRIBUTE_ID_URI: {
+        return accessor(d_uri, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_URI]);
+    }
+    case ATTRIBUTE_ID_PAYLOAD: {
+        return accessor(d_payload,
+                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PAYLOAD]);
+    }
+    case ATTRIBUTE_ID_MSG_SIZE: {
+        return accessor(d_msgSize,
+                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MSG_SIZE]);
+    }
+    case ATTRIBUTE_ID_EVENT_SIZE: {
+        return accessor(d_eventSize,
+                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_EVENT_SIZE]);
+    }
+    case ATTRIBUTE_ID_EVENTS_COUNT: {
+        return accessor(d_eventsCount,
+                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_EVENTS_COUNT]);
+    }
+    case ATTRIBUTE_ID_POST_INTERVAL: {
+        return accessor(d_postInterval,
+                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_POST_INTERVAL]);
+    }
+    case ATTRIBUTE_ID_POST_RATE: {
+        return accessor(d_postRate,
+                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_POST_RATE]);
+    }
+    default: return NOT_FOUND;
+    }
+}
+
+template <typename t_ACCESSOR>
+int BatchPostCommand::accessAttribute(t_ACCESSOR& accessor,
+                                      const char* name,
+                                      int         nameLength) const
+{
+    enum { NOT_FOUND = -1 };
+
+    const bdlat_AttributeInfo* attributeInfo = lookupAttributeInfo(name,
+                                                                   nameLength);
+    if (0 == attributeInfo) {
+        return NOT_FOUND;
+    }
+
+    return accessAttribute(accessor, attributeInfo->d_id);
+}
+
+inline const bsl::string& BatchPostCommand::uri() const
+{
+    return d_uri;
+}
+
+inline const bsl::vector<bsl::string>& BatchPostCommand::payload() const
+{
+    return d_payload;
+}
+
+inline int BatchPostCommand::msgSize() const
+{
+    return d_msgSize;
+}
+
+inline bsls::Types::Int64 BatchPostCommand::eventSize() const
+{
+    return d_eventSize;
+}
+
+inline bsls::Types::Int64 BatchPostCommand::eventsCount() const
+{
+    return d_eventsCount;
+}
+
+inline int BatchPostCommand::postInterval() const
+{
+    return d_postInterval;
+}
+
+inline int BatchPostCommand::postRate() const
+{
+    return d_postRate;
+}
 
 // -----------------------
 // class CloseQueueCommand
@@ -10776,6 +11399,9 @@ void Command::hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const
     case Class::SELECTION_ID_CONFIRM:
         hashAppend(hashAlgorithm, this->confirm());
         break;
+    case Class::SELECTION_ID_BATCH_POST:
+        hashAppend(hashAlgorithm, this->batchPost());
+        break;
     case Class::SELECTION_ID_OPEN_STORAGE:
         hashAppend(hashAlgorithm, this->openStorage());
         break;
@@ -10821,6 +11447,8 @@ inline bool Command::isEqualTo(const Command& rhs) const
         case Class::SELECTION_ID_LIST: return this->list() == rhs.list();
         case Class::SELECTION_ID_CONFIRM:
             return this->confirm() == rhs.confirm();
+        case Class::SELECTION_ID_BATCH_POST:
+            return this->batchPost() == rhs.batchPost();
         case Class::SELECTION_ID_OPEN_STORAGE:
             return this->openStorage() == rhs.openStorage();
         case Class::SELECTION_ID_CLOSE_STORAGE:
@@ -10887,6 +11515,9 @@ int Command::manipulateSelection(t_MANIPULATOR& manipulator)
     case Command::SELECTION_ID_CONFIRM:
         return manipulator(&d_confirm.object(),
                            SELECTION_INFO_ARRAY[SELECTION_INDEX_CONFIRM]);
+    case Command::SELECTION_ID_BATCH_POST:
+        return manipulator(&d_batchPost.object(),
+                           SELECTION_INFO_ARRAY[SELECTION_INDEX_BATCH_POST]);
     case Command::SELECTION_ID_OPEN_STORAGE:
         return manipulator(&d_openStorage.object(),
                            SELECTION_INFO_ARRAY[SELECTION_INDEX_OPEN_STORAGE]);
@@ -10964,6 +11595,12 @@ inline ConfirmCommand& Command::confirm()
 {
     BSLS_ASSERT(SELECTION_ID_CONFIRM == d_selectionId);
     return d_confirm.object();
+}
+
+inline BatchPostCommand& Command::batchPost()
+{
+    BSLS_ASSERT(SELECTION_ID_BATCH_POST == d_selectionId);
+    return d_batchPost.object();
 }
 
 inline OpenStorageCommand& Command::openStorage()
@@ -11048,6 +11685,9 @@ int Command::accessSelection(t_ACCESSOR& accessor) const
     case SELECTION_ID_CONFIRM:
         return accessor(d_confirm.object(),
                         SELECTION_INFO_ARRAY[SELECTION_INDEX_CONFIRM]);
+    case SELECTION_ID_BATCH_POST:
+        return accessor(d_batchPost.object(),
+                        SELECTION_INFO_ARRAY[SELECTION_INDEX_BATCH_POST]);
     case SELECTION_ID_OPEN_STORAGE:
         return accessor(d_openStorage.object(),
                         SELECTION_INFO_ARRAY[SELECTION_INDEX_OPEN_STORAGE]);
@@ -11122,6 +11762,12 @@ inline const ConfirmCommand& Command::confirm() const
 {
     BSLS_ASSERT(SELECTION_ID_CONFIRM == d_selectionId);
     return d_confirm.object();
+}
+
+inline const BatchPostCommand& Command::batchPost() const
+{
+    BSLS_ASSERT(SELECTION_ID_BATCH_POST == d_selectionId);
+    return d_batchPost.object();
 }
 
 inline const OpenStorageCommand& Command::openStorage() const
@@ -11210,6 +11856,11 @@ inline bool Command::isListValue() const
 inline bool Command::isConfirmValue() const
 {
     return SELECTION_ID_CONFIRM == d_selectionId;
+}
+
+inline bool Command::isBatchPostValue() const
+{
+    return SELECTION_ID_BATCH_POST == d_selectionId;
 }
 
 inline bool Command::isOpenStorageValue() const
