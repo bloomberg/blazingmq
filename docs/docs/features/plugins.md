@@ -154,7 +154,7 @@ The following labels may be used by each metric, whenever applicable. Refer to e
 |Domain|name of the domain (e.g. my.domain)|
 |Tier|value of the tier (e.g. pd)|
 |Queue|name of the queue (e.g. my_queue)|
-|Role|role of the broker with regard to this queue (possible values are 'PRIMARY', 'PROXY', 'REPLICA', 'MEMBER')|
+|Role|role of the broker with regard to this queue (possible values are 'PRIMARY', 'PROXY', 'REPLICA')|
 |RemoteHost|name of the 'upstream' node or '_none_'|
 |AppId|application ID (e.g. my_app), applicable only in fanout mode, if feature is configured, see 'appIdTagDomains' setting|
 
