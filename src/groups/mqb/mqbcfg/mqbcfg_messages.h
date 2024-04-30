@@ -7936,6 +7936,7 @@ namespace mqbcfg {
 
 class StatsConfig {
     // INSTANCE DATA
+    bsl::vector<bsl::string>      d_appIdTagDomains;
     bsl::vector<StatPluginConfig> d_plugins;
     StatsPrinterConfig            d_printer;
     int                           d_snapshotInterval;
@@ -7944,20 +7945,24 @@ class StatsConfig {
     template <typename t_HASH_ALGORITHM>
     void hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const;
 
+    bool isEqualTo(const StatsConfig& rhs) const;
+
   public:
     // TYPES
     enum {
-        ATTRIBUTE_ID_SNAPSHOT_INTERVAL = 0,
-        ATTRIBUTE_ID_PLUGINS           = 1,
-        ATTRIBUTE_ID_PRINTER           = 2
+        ATTRIBUTE_ID_SNAPSHOT_INTERVAL  = 0,
+        ATTRIBUTE_ID_APP_ID_TAG_DOMAINS = 1,
+        ATTRIBUTE_ID_PLUGINS            = 2,
+        ATTRIBUTE_ID_PRINTER            = 3
     };
 
-    enum { NUM_ATTRIBUTES = 3 };
+    enum { NUM_ATTRIBUTES = 4 };
 
     enum {
-        ATTRIBUTE_INDEX_SNAPSHOT_INTERVAL = 0,
-        ATTRIBUTE_INDEX_PLUGINS           = 1,
-        ATTRIBUTE_INDEX_PRINTER           = 2
+        ATTRIBUTE_INDEX_SNAPSHOT_INTERVAL  = 0,
+        ATTRIBUTE_INDEX_APP_ID_TAG_DOMAINS = 1,
+        ATTRIBUTE_INDEX_PLUGINS            = 2,
+        ATTRIBUTE_INDEX_PRINTER            = 3
     };
 
     // CONSTANTS
@@ -8061,6 +8066,10 @@ class StatsConfig {
     // Return a reference to the modifiable "SnapshotInterval" attribute of
     // this object.
 
+    bsl::vector<bsl::string>& appIdTagDomains();
+    // Return a reference to the modifiable "AppIdTagDomains" attribute of
+    // this object.
+
     bsl::vector<StatPluginConfig>& plugins();
     // Return a reference to the modifiable "Plugins" attribute of this
     // object.
@@ -8115,6 +8124,10 @@ class StatsConfig {
     int snapshotInterval() const;
     // Return the value of the "SnapshotInterval" attribute of this object.
 
+    const bsl::vector<bsl::string>& appIdTagDomains() const;
+    // Return a reference offering non-modifiable access to the
+    // "AppIdTagDomains" attribute of this object.
+
     const bsl::vector<StatPluginConfig>& plugins() const;
     // Return a reference offering non-modifiable access to the "Plugins"
     // attribute of this object.
@@ -8129,9 +8142,7 @@ class StatsConfig {
     // have the same value, and 'false' otherwise.  Two attribute objects
     // have the same value if each respective attribute has the same value.
     {
-        return lhs.snapshotInterval() == rhs.snapshotInterval() &&
-               lhs.plugins() == rhs.plugins() &&
-               lhs.printer() == rhs.printer();
+        return lhs.isEqualTo(rhs);
     }
 
     friend bool operator!=(const StatsConfig& lhs, const StatsConfig& rhs)
@@ -16407,8 +16418,17 @@ void StatsConfig::hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const
 {
     using bslh::hashAppend;
     hashAppend(hashAlgorithm, this->snapshotInterval());
+    hashAppend(hashAlgorithm, this->appIdTagDomains());
     hashAppend(hashAlgorithm, this->plugins());
     hashAppend(hashAlgorithm, this->printer());
+}
+
+inline bool StatsConfig::isEqualTo(const StatsConfig& rhs) const
+{
+    return this->snapshotInterval() == rhs.snapshotInterval() &&
+           this->appIdTagDomains() == rhs.appIdTagDomains() &&
+           this->plugins() == rhs.plugins() &&
+           this->printer() == rhs.printer();
 }
 
 // CLASS METHODS
@@ -16420,6 +16440,13 @@ int StatsConfig::manipulateAttributes(t_MANIPULATOR& manipulator)
 
     ret = manipulator(&d_snapshotInterval,
                       ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SNAPSHOT_INTERVAL]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(
+        &d_appIdTagDomains,
+        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_APP_ID_TAG_DOMAINS]);
     if (ret) {
         return ret;
     }
@@ -16449,6 +16476,11 @@ int StatsConfig::manipulateAttribute(t_MANIPULATOR& manipulator, int id)
         return manipulator(
             &d_snapshotInterval,
             ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SNAPSHOT_INTERVAL]);
+    }
+    case ATTRIBUTE_ID_APP_ID_TAG_DOMAINS: {
+        return manipulator(
+            &d_appIdTagDomains,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_APP_ID_TAG_DOMAINS]);
     }
     case ATTRIBUTE_ID_PLUGINS: {
         return manipulator(&d_plugins,
@@ -16483,6 +16515,11 @@ inline int& StatsConfig::snapshotInterval()
     return d_snapshotInterval;
 }
 
+inline bsl::vector<bsl::string>& StatsConfig::appIdTagDomains()
+{
+    return d_appIdTagDomains;
+}
+
 inline bsl::vector<StatPluginConfig>& StatsConfig::plugins()
 {
     return d_plugins;
@@ -16501,6 +16538,12 @@ int StatsConfig::accessAttributes(t_ACCESSOR& accessor) const
 
     ret = accessor(d_snapshotInterval,
                    ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SNAPSHOT_INTERVAL]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_appIdTagDomains,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_APP_ID_TAG_DOMAINS]);
     if (ret) {
         return ret;
     }
@@ -16528,6 +16571,11 @@ int StatsConfig::accessAttribute(t_ACCESSOR& accessor, int id) const
         return accessor(
             d_snapshotInterval,
             ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SNAPSHOT_INTERVAL]);
+    }
+    case ATTRIBUTE_ID_APP_ID_TAG_DOMAINS: {
+        return accessor(
+            d_appIdTagDomains,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_APP_ID_TAG_DOMAINS]);
     }
     case ATTRIBUTE_ID_PLUGINS: {
         return accessor(d_plugins,
@@ -16560,6 +16608,11 @@ int StatsConfig::accessAttribute(t_ACCESSOR& accessor,
 inline int StatsConfig::snapshotInterval() const
 {
     return d_snapshotInterval;
+}
+
+inline const bsl::vector<bsl::string>& StatsConfig::appIdTagDomains() const
+{
+    return d_appIdTagDomains;
 }
 
 inline const bsl::vector<StatPluginConfig>& StatsConfig::plugins() const
@@ -17633,7 +17686,7 @@ inline const AppConfig& Configuration::appConfig() const
 }  // close enterprise namespace
 #endif
 
-// GENERATED BY @BLP_BAS_CODEGEN_VERSION@
+// GENERATED BY BLP_BAS_CODEGEN_2024.04.18
 // USING bas_codegen.pl -m msg --noAggregateConversion --noExternalization
 // --noIdent --package mqbcfg --msgComponent messages mqbcfg.xsd
 // ----------------------------------------------------------------------------
