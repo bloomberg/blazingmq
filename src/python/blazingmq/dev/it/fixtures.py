@@ -538,6 +538,7 @@ def multi_node_cluster_config(
     reverse_proxy: bool = False,
 ) -> None:
     mode.tweak(configurator.proto.cluster)
+    configurator.proto.cluster.elector.leader_sync_delay_ms = 5000
 
     cluster = configurator.cluster(
         name="itCluster",
