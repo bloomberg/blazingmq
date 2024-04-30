@@ -2,6 +2,7 @@
 Testing runtime reconfiguration of domains.
 """
 import time
+from typing import Optional
 
 import blazingmq.dev.it.testconstants as tc
 from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
@@ -10,6 +11,7 @@ from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
     multi_node,
     tweak,
 )
+from blazingmq.dev.it.process.admin import AdminClient
 from blazingmq.dev.it.process.client import Client
 
 pytestmark = order(6)
@@ -36,7 +38,7 @@ class TestReconfigureDomains:
     # Returns 'True' if all of them succeed, and a false-y value otherwise.
     def post_n_msgs(self, uri, n):
         results = (
-            self.writer.post(uri, payload=["msg"], wait_ack=True) for _ in range(0, n)
+            self.writer.post(uri, payload=[f"msg{i}"], wait_ack=True) for i in range(0, n)
         )
         return all(res == Client.e_SUCCESS for res in results)
 
@@ -296,7 +298,7 @@ class TestReconfigureDomains:
 
     @tweak.domain.max_delivery_attempts(0)
     def test_reconfigure_max_delivery_attempts(self, multi_node: Cluster):
-        URI = f"bmq://{tc.DOMAIN_PRIORITY}/my-queue"
+        URI = f"bmq://{tc.DOMAIN_PRIORITY}/reconf-rda"
         proxy = next(multi_node.proxy_cycle())
 
         # Open the queue through the writer.
@@ -306,12 +308,12 @@ class TestReconfigureDomains:
             # Write one message to 'URI'.
             self.post_n_msgs(URI, 1)
 
-            # Open, read, and kill three consumers in sequence.
+            # Open, read, and kill five consumers in sequence.
             for idx in range(0, 5):
                 client = proxy.create_client(f"reader-unstable-{idx}")
                 client.open(URI, flags=["read"], succeed=True)
                 client.check_exit_code = False
-                client.wait_push_event()
+                client.wait_push_event(timeout=5)
                 client.kill()
                 client.wait()
 
@@ -322,7 +324,7 @@ class TestReconfigureDomains:
             if expect_success:
                 client.confirm(URI, "+1", succeed=True)
             else:
-                assert not client.wait_push_event()
+                assert not client.wait_push_event(timeout=5)
             client.stop_session(block=True)
 
         # Expect that message will not expire after failed deliveries.
@@ -336,3 +338,75 @@ class TestReconfigureDomains:
 
         # Expect that message will expire after failed deliveries.
         do_test(False)
+
+    @tweak.domain.max_delivery_attempts(0)
+    def test_reconfigure_max_delivery_attempts_on_existing_messages(self, multi_node: Cluster) -> None:
+        cluster: Cluster = multi_node
+
+        URI = f"bmq://{tc.DOMAIN_PRIORITY}/reconf-rda-on-existing-msgs"
+        proxy = next(multi_node.proxy_cycle())
+
+        # Open the queue through the writer.
+
+        self.writer.open(URI, flags=["write,ack"], succeed=True)
+        self.post_n_msgs(URI, 5)
+
+        def try_consume(consumer: Client) -> Optional[int]:
+            num_confirmed = 0
+            while consumer.wait_push_event(timeout=1, quiet=True):
+                msgs = consumer.list(URI, block=True)
+
+                assert len(msgs) == 1
+
+                if msgs[0].payload == "msg0":
+                    # In this test, do not expect any messages confirmed before the poisoned one
+                    assert num_confirmed == 0
+                    return None
+
+                consumer.confirm(URI, "+1", succeed=True)
+                num_confirmed += 1
+            return num_confirmed
+
+        def run_consumers(max_attempts: int) -> int:
+            for idx in range(0, max_attempts):
+                consumer: Client = proxy.create_client(f"reader-unstable-{idx}")
+                consumer.open(URI, flags=["read"], succeed=True, max_unconfirmed_messages=1)
+
+                num_confirmed = try_consume(consumer)
+
+                # Each consumer either crashes on the very first poisoned message
+                # Or it confirms all the remaining non-poisoned messages and exits
+                if num_confirmed is None:
+                    consumer.check_exit_code = False
+                    consumer.kill()
+                    consumer.wait()
+                    continue
+                return num_confirmed
+
+            # We return earlier if any messages confirmed
+            return 0
+
+        num_confirmed = run_consumers(max_attempts=10)
+        assert 0 == num_confirmed
+
+        host, port = cluster.admin_endpoint
+
+        # Start the admin client.
+        admin = AdminClient()
+        admin.connect(host, port)
+
+        res = admin.send_admin(f"DOMAINS DOMAIN {tc.DOMAIN_PRIORITY} INFOS")
+        assert "\"maxDeliveryAttempts\" : 0" in res
+
+        cluster.config.domains[tc.DOMAIN_PRIORITY].definition.parameters.max_delivery_attempts = 5
+        cluster.reconfigure_domain(tc.DOMAIN_PRIORITY, succeed=True)
+
+        res = admin.send_admin(f"DOMAINS DOMAIN {tc.DOMAIN_PRIORITY} INFOS")
+        assert "\"maxDeliveryAttempts\" : 5" in res
+
+        num_confirmed = run_consumers(max_attempts=10)
+        assert 4 == num_confirmed
+
+        # Stop the admin session
+        admin.stop()
+

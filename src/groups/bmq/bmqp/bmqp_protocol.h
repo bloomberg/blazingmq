@@ -3598,15 +3598,8 @@ inline RdaInfo& RdaInfo::setPotentiallyPoisonous(bool flag)
 inline RdaInfo& RdaInfo::setCounter(unsigned int counter)
 {
     BSLS_ASSERT_SAFE(counter <= k_MAX_COUNTER_VALUE);
-    if (isUnlimited()) {
-        d_counter &= ~e_UNLIMITED;
-        d_counter += counter;
-    }
-    else {
-        d_counter &= ~k_MAX_COUNTER_VALUE;
-        d_counter += counter;
-    }
-
+    // Drop e_UNLIMITED bit flag if set, but save e_POISONOUS bit
+    d_counter = counter | (d_counter & e_POISONOUS);
     return *this;
 }
 

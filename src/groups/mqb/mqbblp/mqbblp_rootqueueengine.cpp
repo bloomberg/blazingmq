@@ -47,6 +47,7 @@
 #include <mwcu_outstreamformatsaver.h>
 
 // BDE
+#include <ball_logthrottle.h>
 #include <bdlb_print.h>
 #include <bdlb_scopeexit.h>
 #include <bdlb_string.h>
@@ -64,6 +65,17 @@
 
 namespace BloombergLP {
 namespace mqbblp {
+
+namespace {
+
+const int k_MAX_INSTANT_MESSAGES = 10;
+// Maximum messages logged with throttling in a short period of time.
+
+const bsls::Types::Int64 k_NS_PER_MESSAGE =
+    bdlt::TimeUnitRatio::k_NANOSECONDS_PER_MINUTE / k_MAX_INSTANT_MESSAGES;
+// Time interval between messages logged with throttling.
+
+}  // close unnamed namespace
 
 // ---------------------
 // class RootQueueEngine
@@ -1356,6 +1368,59 @@ int RootQueueEngine::onRejectMessage(mqbi::QueueHandle*       handle,
         d_queueState_p->storage()->getIterator(&message, appKey, msgGUID);
 
     if (storageRc == mqbi::StorageResult::e_SUCCESS) {
+        // Handle 'maxDeliveryAttempts' parameter reconfigure.
+        // To do this, we need to take care of the following:
+        //   1. Change the default 'maxDeliveryAttempts' in message storage
+        // classes, so it is set as a default for any new message iterator.
+        //   2. If possible, update the existing messages with the new value
+        // of 'maxDeliveryAttempts'.
+        // This code does the 2nd part.  We need this fix to be able to get rid
+        // of poisonous messages already stored in a working cluster, without
+        // bouncing off.
+        //
+        // We use the domain's 'maxDeliveryAttempts' as a baseline to compare
+        // with each specific message's 'rdaInfo', and there might be a few
+        // cases:
+        // +=====================+===========+===============================+
+        // | maxDeliveryAttempts | rdaInfo   | Action:                       |
+        // +=====================+===========+===============================+
+        // | Unlimited           | Unlimited | Do nothing (same value)       |
+        // +---------------------+-----------+-------------------------------+
+        // | Unlimited           | Limited   | Set 'rdaInfo' to unlimited    |
+        // +---------------------+-----------+-------------------------------+
+        // | Limited             | Unlimited | Set 'rdaInfo' to limited      |
+        // |                     |           | 'maxDeliveryAttempts'         |
+        // +---------------------+-----------+-------------------------------+
+        // | Limited             | Limited   | Do nothing (not possible to   |
+        // |                     |           | deduce what to do in general) |
+        // +---------------------+-----------+-------------------------------+
+        // So this code handles only the situation when we want to switch
+        // 'rdaInfo' between limited and unlimited.
+        //
+        // See also: mqbblp_relayqueueengine
+        // Note that RelayQueueEngine doesn't contain a similar code to fix
+        // 'rdaInfo'.  This is because we work with an assumption that if we
+        // have a poisonous message, all the consumers will crash anyway, so a
+        // replica/proxy will free the corresponding handles, and all message
+        // iterators will be recreated with the correct 'rdaInfo' received from
+        // primary, if a new consumer connects to the replica/proxy.
+        const int maxDeliveryAttempts =
+            d_queueState_p->domain()->config().maxDeliveryAttempts();
+        const bool domainIsUnlimited = (maxDeliveryAttempts == 0);
+        if (domainIsUnlimited != message->rdaInfo().isUnlimited()) {
+            BALL_LOGTHROTTLE_ERROR(k_MAX_INSTANT_MESSAGES, k_NS_PER_MESSAGE)
+                << "[THROTTLED] Mismatch between the message's RdaInfo "
+                << message->rdaInfo() << " and the domain's "
+                << "'maxDeliveryAttempts' setting [" << maxDeliveryAttempts
+                << "], updating message's RdaInfo";
+            if (maxDeliveryAttempts > 0) {
+                message->rdaInfo().setCounter(maxDeliveryAttempts);
+            }
+            else {
+                message->rdaInfo().setUnlimited();
+            }
+        }
+
         counter = message->rdaInfo().counter();
 
         if (d_throttledRejectedMessages.requestPermission()) {
