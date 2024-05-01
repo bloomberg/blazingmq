@@ -34,11 +34,22 @@ jobs:
             libbenchmark-dev \
             libgmock-dev \
             libz-dev
+      - name: Get dependencies hash
+        id: get-hash
+        run: echo "deps_hash=`cat blazingmq/docker/build_deps.sh | shasum`" >> $GITHUB_OUTPUT
+      - uses: actions/cache@v4
+        with:
+          path: deps
+          key: deps-${{ steps.get-hash.outputs.deps_hash }}
       - name: Create dependency fetcher working directory
         run: mkdir -p deps
       - name: Fetch & Build non packaged dependencies
         working-directory: deps
         run: ../docker/build_deps.sh
+      - uses: actions/cache@v4
+        with:
+          path: deps
+          key: deps-${{ steps.get-hash.outputs.deps_hash }}
       - name: Build BlazingMQ
         env:
           PKG_CONFIG_PATH: /usr/lib/x86_64-linux-gnu/pkgconfig:/opt/bb/lib64/pkgconfig
