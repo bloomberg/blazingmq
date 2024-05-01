@@ -40,9 +40,6 @@ fetch_deps() {
 configure() {
     PATH="$PATH:$(realpath srcs/bde-tools/bin)"
     export PATH
-    if [ "$install_only" = true ]; then
-        return 0
-    fi
     eval "$(bbs_build_env -u opt_64_cpp17)"
 }
 
