@@ -5,6 +5,11 @@
 
 set -euxo pipefail
 
+install_only=false
+if [[ -n "${1-}" && "${1-}" = "--install-only" ]]; then
+    install_only=true
+fi
+
 fetch_git() {
     local org=$1
     local repo=$2
@@ -24,6 +29,9 @@ fetch_git() {
 }
 
 fetch_deps() {
+    if [ "$install_only" = true ]; then
+        return 0
+    fi
     fetch_git bloomberg bde-tools 4.8.0.0
     fetch_git bloomberg bde 4.8.0.0
     fetch_git bloomberg ntf-core latest
@@ -37,17 +45,21 @@ configure() {
 
 build_bde() {
     pushd srcs/bde
-    bbs_build configure
-    bbs_build build -j8
+    if [ "$install_only" = false ]; then
+        bbs_build configure
+        bbs_build build -j8
+    fi
     bbs_build --install=/opt/bb --prefix=/ install
     popd
 }
 
 build_ntf() {
     pushd srcs/ntf-core
-    sed -i s/CMakeLists.txt//g ./configure
-    ./configure --prefix /opt/bb --without-usage-examples --without-applications --ufid opt_64_cpp17
-    make -j8
+    if [ "$install_only" = false ]; then
+        sed -i s/CMakeLists.txt//g ./configure
+        ./configure --prefix /opt/bb --without-usage-examples --without-applications  --ufid opt_64_cpp17
+        make -j8
+    fi
     make install
     popd
 }
