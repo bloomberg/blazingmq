@@ -55,9 +55,7 @@ jobs:
         if: steps.cache-lookup.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
         with:
-          path: |
-            deps
-            /opt/bb/include
+          path: deps
           key: deps-${{ steps.get-hash.outputs.deps_hash }}
 
   build_ubuntu:
@@ -71,10 +69,11 @@ jobs:
         run: echo "deps_hash=`cat blazingmq/docker/build_deps.sh | shasum`" >> $GITHUB_OUTPUT
       - uses: actions/cache@v4
         with:
-          path: |
-            deps
-            /opt/bb/include
+          path: deps
           key: deps-${{ steps.get-hash.outputs.deps_hash }}
+      - name: Fetch non packaged dependencies
+        working-directory: deps
+        run: ../docker/build_deps.sh
       - name: Set up dependencies
         run: |
           sudo apt-get update
