@@ -119,8 +119,9 @@ class PostingContext {
     bool pendingPost() const;
 
   private:
-    PostingContext(const PostingContext&);
-    PostingContext& operator=(const PostingContext&);
+    // NOT IMPLEMENTED
+    PostingContext(const PostingContext&) BSLS_KEYWORD_DELETED;
+    PostingContext& operator=(const PostingContext&) BSLS_KEYWORD_DELETED;
 };
 
 // ============
@@ -159,13 +160,15 @@ class Poster {
            bslma::Allocator*   allocator);
 
     // MANIPULATORS
-    PostingContext createPostingContext(bmqa::Session*       session,
-                                        Parameters*          parameters,
-                                        const bmqa::QueueId& queueId);
+    bsl::shared_ptr<PostingContext>
+    createPostingContext(bmqa::Session*       session,
+                         Parameters*          parameters,
+                         const bmqa::QueueId& queueId);
 
   private:
-    Poster(const Poster&);
-    Poster& operator=(const Poster&);
+    // NOT IMPLEMENTED
+    Poster(const Poster&) BSLS_KEYWORD_DELETED;
+    Poster& operator=(const Poster&) BSLS_KEYWORD_DELETED;
 };
 
 }  // close package namespace
