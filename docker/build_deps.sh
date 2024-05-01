@@ -24,8 +24,8 @@ fetch_git() {
 }
 
 fetch_deps() {
-    fetch_git bloomberg bde-tools 3.117.0.0
-    fetch_git bloomberg bde 3.117.0.0
+    fetch_git bloomberg bde-tools 4.8.0.0
+    fetch_git bloomberg bde 4.8.0.0
     fetch_git bloomberg ntf-core latest
 }
 
@@ -46,7 +46,7 @@ build_bde() {
 build_ntf() {
     pushd srcs/ntf-core
     sed -i s/CMakeLists.txt//g ./configure
-    ./configure --prefix /opt/bb --without-usage-examples --without-applications
+    ./configure --prefix /opt/bb --without-usage-examples --without-applications --ufid opt_64_cpp17
     make -j8
     make install
     popd
