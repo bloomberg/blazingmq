@@ -38,6 +38,7 @@
 #include <bdld_manageddatum.h>
 #include <bdlma_localsequentialallocator.h>
 #include <bsl_limits.h>
+#include <bslmf_movableref.h>
 #include <bsls_assert.h>
 
 namespace BloombergLP {
@@ -427,8 +428,10 @@ void QueueStatsDomain::initialize(const bmqt::Uri&  uri,
             for (bsl::vector<bsl::string>::const_iterator cit = appIDs.begin();
                  cit != appIDs.end();
                  ++cit) {
-                d_subContexts_mp->push_back(d_statContext_mp->addSubcontext(
-                    mwcst::StatContextConfiguration(*cit, &localAllocator)));
+                StatSubContextMp subContext = d_statContext_mp->addSubcontext(
+                    mwcst::StatContextConfiguration(*cit, &localAllocator));
+                d_subContexts_mp->emplace_back(
+                    bslmf::MovableRefUtil::move(subContext));
             }
         }
     }
@@ -590,8 +593,10 @@ void QueueStatsDomain::updateDomainAppIds(
                          d_subContexts_mp->end(),
                          ContextNameMatcher(*cit)) ==
             d_subContexts_mp->end()) {
-            d_subContexts_mp->push_back(d_statContext_mp->addSubcontext(
-                mwcst::StatContextConfiguration(*cit, &localAllocator)));
+            StatSubContextMp subContext = d_statContext_mp->addSubcontext(
+                mwcst::StatContextConfiguration(*cit, &localAllocator));
+            d_subContexts_mp->emplace_back(
+                bslmf::MovableRefUtil::move(subContext));
         }
     }
 

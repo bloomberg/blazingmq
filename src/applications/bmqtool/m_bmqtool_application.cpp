@@ -141,8 +141,8 @@ void Application::tearDownLog()
     ball::LoggerManager::shutDownSingleton();
 }
 
-mwcst::StatContext Application::createStatContext(int historySize,
-                                                  bslma::Allocator* allocator)
+bsl::shared_ptr<mwcst::StatContext>
+Application::createStatContext(int historySize, bslma::Allocator* allocator)
 {
     // message: value is data bytes; increments is number of messages
     // event:   value is total (data + protocol) bytes; increments is number of
@@ -154,12 +154,12 @@ mwcst::StatContext Application::createStatContext(int historySize,
     config.value("message", historySize)
         .value("event", historySize)
         .value("latency", mwcst::StatValue::DMCST_DISCRETE, historySize);
-    return mwcst::StatContext(config, allocator);
+    return bsl::make_shared<mwcst::StatContext>(config, allocator);
 }
 
 void Application::snapshotStats()
 {
-    d_statContext.snapshot();
+    d_statContext_sp->snapshot();
 
     static unsigned int count = 0;
     if (++count % k_STAT_DUMP_INTERVAL == 0 &&
@@ -220,10 +220,10 @@ void Application::printStats(int interval) const
     printStatHeader();
 
     // Gather metrics
-    const mwcst::StatValue& msg = d_statContext.value(
+    const mwcst::StatValue& msg = d_statContext_sp->value(
         mwcst::StatContext::DMCST_DIRECT_VALUE,
         k_STAT_MSG);
-    const mwcst::StatValue& evt = d_statContext.value(
+    const mwcst::StatValue& evt = d_statContext_sp->value(
         mwcst::StatContext::DMCST_DIRECT_VALUE,
         k_STAT_EVT);
 
@@ -279,7 +279,7 @@ void Application::printStats(int interval) const
     // Latency
     if (bmqt::QueueFlagsUtil::isReader(d_parameters_p->queueFlags()) &&
         d_parameters_p->latency() != ParametersLatency::e_NONE) {
-        const mwcst::StatValue& latency = d_statContext.value(
+        const mwcst::StatValue& latency = d_statContext_sp->value(
             mwcst::StatContext::DMCST_DIRECT_VALUE,
             k_STAT_LAT);
         bsls::Types::Int64 latencyMin = mwcst::StatUtil::rangeMin(latency,
@@ -303,14 +303,14 @@ void Application::printStats(int interval) const
 
 void Application::printFinalStats()
 {
-    d_statContext.snapshot();
+    d_statContext_sp->snapshot();
 
     mwcst::StatValue::SnapshotLocation loc(0, 0);
 
-    const mwcst::StatValue& msg = d_statContext.value(
+    const mwcst::StatValue& msg = d_statContext_sp->value(
         mwcst::StatContext::DMCST_DIRECT_VALUE,
         k_STAT_MSG);
-    const mwcst::StatValue& evt = d_statContext.value(
+    const mwcst::StatValue& evt = d_statContext_sp->value(
         mwcst::StatContext::DMCST_DIRECT_VALUE,
         k_STAT_EVT);
 
@@ -343,7 +343,7 @@ void Application::printFinalStats()
     // Latency
     if (bmqt::QueueFlagsUtil::isReader(d_parameters_p->queueFlags()) &&
         d_parameters_p->latency() != ParametersLatency::e_NONE) {
-        const mwcst::StatValue& latency = d_statContext.value(
+        const mwcst::StatValue& latency = d_statContext_sp->value(
             mwcst::StatContext::DMCST_DIRECT_VALUE,
             k_STAT_LAT);
 
@@ -625,8 +625,8 @@ void Application::onMessageEvent(const bmqa::MessageEvent& event)
         // Update event size (i.e. including protocol overhead)
         const bsl::shared_ptr<bmqimp::Event>& eventImpl =
             reinterpret_cast<const bsl::shared_ptr<bmqimp::Event>&>(event);
-        d_statContext.adjustValue(k_STAT_EVT,
-                                  eventImpl->rawEvent().blob()->length());
+        d_statContext_sp->adjustValue(k_STAT_EVT,
+                                      eventImpl->rawEvent().blob()->length());
     }
 
     if (d_parameters_p->mode() == ParametersMode::e_AUTO) {
@@ -721,7 +721,7 @@ void Application::onMessageEvent(const bmqa::MessageEvent& event)
                         // Apparently, for some reasons, the delta sometimes
                         // comes up negative, don't report it so that the stats
                         // remain decently representative of actual measures.
-                        d_statContext.reportValue(k_STAT_LAT, delta);
+                        d_statContext_sp->reportValue(k_STAT_LAT, delta);
 
                         // Keep each individual latency when requested to
                         // generate a latency report.  Note that since only one
@@ -738,7 +738,7 @@ void Application::onMessageEvent(const bmqa::MessageEvent& event)
             }
 
             // Update msg/event stats
-            d_statContext.adjustValue(k_STAT_MSG, blob.length());
+            d_statContext_sp->adjustValue(k_STAT_MSG, blob.length());
 
             // Call 'onMessage' before logging PUSH message. 'onMessage' blocks
             // until open queue response is logged.  This is done for 'bmqit'
@@ -795,14 +795,14 @@ void Application::producerThread()
         turnstile.reset(1000.0 / d_parameters_p->postInterval());
     }
 
-    PostingContext postingContext = d_poster.createPostingContext(
-        d_session_mp.get(),
-        d_parameters_p,
-        d_queueId);
+    bsl::shared_ptr<PostingContext> postingContext =
+        d_poster.createPostingContext(d_session_mp.get(),
+                                      d_parameters_p,
+                                      d_queueId);
 
-    while (d_isRunning && postingContext.pendingPost()) {
+    while (d_isRunning && postingContext->pendingPost()) {
         if (d_isConnected) {
-            postingContext.postNext();
+            postingContext->postNext();
         }
         if (d_parameters_p->postInterval() != 0) {
             turnstile.waitTurn();
@@ -877,13 +877,13 @@ Application::Application(Parameters*       parameters,
 , d_shutdownSemaphore_p(shutdownSemaphore)
 , d_runningThread(bslmt::ThreadUtil::invalidHandle())
 , d_queueId(d_allocator_p)
-, d_statContext(createStatContext(10, d_allocator_p))
+, d_statContext_sp(createStatContext(10, d_allocator_p))
 , d_isConnected(false)
 , d_isRunning(false)
 , d_consoleObserver(d_allocator_p)
 , d_storageInspector(d_allocator_p)
 , d_fileLogger(d_parameters_p->logFilePath(), d_allocator_p)
-, d_poster(&d_fileLogger, &d_statContext, d_allocator_p)
+, d_poster(&d_fileLogger, d_statContext_sp.get(), d_allocator_p)
 , d_interactive(parameters, &d_poster, d_allocator_p)
 , d_latencies(allocator)
 , d_autoReadInProgress(false)

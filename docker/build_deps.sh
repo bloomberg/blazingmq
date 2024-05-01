@@ -32,8 +32,8 @@ fetch_deps() {
     if [ "$install_only" = true ]; then
         return 0
     fi
-    fetch_git bloomberg bde-tools 3.117.0.0
-    fetch_git bloomberg bde 3.117.0.0
+    fetch_git bloomberg bde-tools 4.8.0.0
+    fetch_git bloomberg bde 4.8.0.0
     fetch_git bloomberg ntf-core latest
 }
 
@@ -60,7 +60,7 @@ build_ntf() {
     pushd srcs/ntf-core
     if [ "$install_only" = false ]; then
         sed -i s/CMakeLists.txt//g ./configure
-        ./configure --prefix /opt/bb --without-usage-examples --without-applications
+        ./configure --prefix /opt/bb --without-usage-examples --without-applications  --ufid opt_64_cpp1700
         make -j8
     fi
     make install
