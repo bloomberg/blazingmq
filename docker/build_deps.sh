@@ -38,30 +38,31 @@ fetch_deps() {
 }
 
 configure() {
+    PATH="$PATH:$(realpath srcs/bde-tools/bin)"
+    export PATH
     if [ "$install_only" = true ]; then
         return 0
     fi
-    PATH="$PATH:$(realpath srcs/bde-tools/bin)"
-    export PATH
     eval "$(bbs_build_env -u opt_64_cpp17)"
 }
 
 build_bde() {
     pushd srcs/bde
-    bbs_build configure
-    bbs_build build -j8
+    if [ "$install_only" = false ]; then
+        bbs_build configure
+        bbs_build build -j8
+    fi
     bbs_build --install=/opt/bb --prefix=/ install
     popd
 }
 
 build_ntf() {
     pushd srcs/ntf-core
-    if [ "$install_only" = true ]; then
-        return 0
+    if [ "$install_only" = false ]; then
+        sed -i s/CMakeLists.txt//g ./configure
+        ./configure --prefix /opt/bb --without-usage-examples --without-applications
+        make -j8
     fi
-    sed -i s/CMakeLists.txt//g ./configure
-    ./configure --prefix /opt/bb --without-usage-examples --without-applications
-    make -j8
     make install
     popd
 }
