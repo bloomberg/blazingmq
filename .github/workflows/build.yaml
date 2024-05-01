@@ -25,7 +25,6 @@ jobs:
         uses: actions/cache/restore@v4
         id: cache-lookup
         with:
-          path: deps
           key: deps-${{ steps.get-hash.outputs.deps_hash }}
           lookup-only: true
       - name: Set up dependencies
@@ -55,7 +54,9 @@ jobs:
         if: steps.cache-lookup.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
         with:
-          path: deps
+          path: |
+            deps
+            /opt/bb/include
           key: deps-${{ steps.get-hash.outputs.deps_hash }}
 
   build_ubuntu:
@@ -69,7 +70,9 @@ jobs:
         run: echo "deps_hash=`cat blazingmq/docker/build_deps.sh | shasum`" >> $GITHUB_OUTPUT
       - uses: actions/cache@v4
         with:
-          path: deps
+          path: |
+            deps
+            /opt/bb/include
           key: deps-${{ steps.get-hash.outputs.deps_hash }}
       - name: Set up dependencies
         run: |
@@ -87,9 +90,6 @@ jobs:
             libbenchmark-dev \
             libgmock-dev \
             libz-dev
-      - name: Update runner with restored deps
-        working-directory: deps
-        run: ../docker/build_deps.sh
       - name: Build BlazingMQ
         env:
           PKG_CONFIG_PATH: /usr/lib/x86_64-linux-gnu/pkgconfig:/opt/bb/lib64/pkgconfig
