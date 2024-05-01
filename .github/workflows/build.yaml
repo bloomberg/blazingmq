@@ -42,7 +42,6 @@ jobs:
         with:
           path: deps
           key: deps-${{ steps.get-hash.outputs.deps_hash }}
-      
       - name: Create dependency fetcher working directory
         run: mkdir -p deps
       - name: Fetch & Build non packaged dependencies
@@ -61,6 +60,7 @@ jobs:
   build_ubuntu:
     name: Build [ubuntu]
     runs-on: ubuntu-latest
+    needs: build_dependencies
     steps:
       - uses: actions/checkout@v4
       - name: Set up dependencies
