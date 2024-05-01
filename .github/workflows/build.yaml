@@ -25,6 +25,7 @@ jobs:
         uses: actions/cache/restore@v4
         id: cache-lookup
         with:
+          path: deps
           key: deps-${{ steps.get-hash.outputs.deps_hash }}
           lookup-only: true
       - name: Set up dependencies
