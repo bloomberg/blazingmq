@@ -71,9 +71,9 @@ jobs:
         with:
           path: deps
           key: deps-${{ steps.get-hash.outputs.deps_hash }}
-      - name: Fetch non packaged dependencies
+      - name: Install cached non packaged dependencies
         working-directory: deps
-        run: ../docker/build_deps.sh
+        run: ../docker/build_deps.sh --install-only
       - name: Set up dependencies
         run: |
           sudo apt-get update
