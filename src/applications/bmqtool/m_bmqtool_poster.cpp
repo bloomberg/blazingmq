@@ -230,18 +230,19 @@ Poster::Poster(FileLogger*         fileLogger,
     BSLS_ASSERT_SAFE(allocator);
 }
 
-PostingContext Poster::createPostingContext(bmqa::Session*       session,
-                                            Parameters*          parameters,
-                                            const bmqa::QueueId& queueId)
+bsl::shared_ptr<PostingContext>
+Poster::createPostingContext(bmqa::Session*       session,
+                             Parameters*          parameters,
+                             const bmqa::QueueId& queueId)
 {
-    return PostingContext(session,
-                          parameters,
-                          queueId,
-                          d_fileLogger,
-                          d_statContext,
-                          &d_bufferFactory,
-                          &d_timeBufferFactory,
-                          d_allocator_p);
+    return bsl::make_shared<PostingContext>(session,
+                                            parameters,
+                                            queueId,
+                                            d_fileLogger,
+                                            d_statContext,
+                                            &d_bufferFactory,
+                                            &d_timeBufferFactory,
+                                            d_allocator_p);
 }
 
 }  // close package namespace
