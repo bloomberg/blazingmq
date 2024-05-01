@@ -64,6 +64,13 @@ jobs:
     needs: build_dependencies
     steps:
       - uses: actions/checkout@v4
+      - name: Get dependencies hash
+        id: get-hash
+        run: echo "deps_hash=`cat blazingmq/docker/build_deps.sh | shasum`" >> $GITHUB_OUTPUT
+      - uses: actions/cache@v4
+        with:
+          path: deps
+          key: deps-${{ steps.get-hash.outputs.deps_hash }}
       - name: Set up dependencies
         run: |
           sudo apt-get update
@@ -80,13 +87,6 @@ jobs:
             libbenchmark-dev \
             libgmock-dev \
             libz-dev
-      - name: Get dependencies hash
-        id: get-hash
-        run: echo "deps_hash=`cat blazingmq/docker/build_deps.sh | shasum`" >> $GITHUB_OUTPUT
-      - uses: actions/cache@v4
-        with:
-          path: deps
-          key: deps-${{ steps.get-hash.outputs.deps_hash }}
       - name: Update runner with restored deps
         working-directory: deps
         run: ../docker/build_deps.sh
