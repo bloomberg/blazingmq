@@ -67,7 +67,7 @@ jobs:
       - name: Get dependencies hash
         id: get-hash
         run: echo "deps_hash=`cat blazingmq/docker/build_deps.sh | shasum`" >> $GITHUB_OUTPUT
-      - uses: actions/cache@v4
+      - uses: actions/cache/restore@v4
         with:
           path: deps
           key: deps-${{ steps.get-hash.outputs.deps_hash }}
