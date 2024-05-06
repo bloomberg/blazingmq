@@ -418,7 +418,7 @@ void encode(bdlbb::Blob* blob, const PropertyMap& pmap)
         bmqp::MessagePropertyHeader        mph;
         mph.setPropertyType(tsvPair.first.first);
         mph.setPropertyNameLength(static_cast<int>(cit->first.length()));
-        mph.setPropertyValueLength(tsvPair.first.second);
+        mph.setPropertyValueLength(static_cast<int>(tsvPair.first.second));
 
         bdlbb::BlobUtil::append(blob,
                                 reinterpret_cast<const char*>(&mph),
@@ -429,7 +429,9 @@ void encode(bdlbb::Blob* blob, const PropertyMap& pmap)
     // Second pass.
     for (PropertyMapConstIter cit = pmap.begin(); cit != pmap.end(); ++cit) {
         const PropertyTypeSizeVariantPair& tsvPair = cit->second;
-        bdlbb::BlobUtil::append(blob, cit->first.c_str(), cit->first.length());
+        bdlbb::BlobUtil::append(blob,
+                                cit->first.c_str(),
+                                static_cast<int>(cit->first.length()));
         totalSize += static_cast<int>(cit->first.length());
 
         PropertyValueStreamOutVisitor visitor(blob);

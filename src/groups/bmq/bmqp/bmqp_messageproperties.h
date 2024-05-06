@@ -654,8 +654,8 @@ MessageProperties::setProperty(const bsl::string& name, const TYPE& value)
         d_isDirty = true;
     }
     else {
-        delta += static_cast<int>(name.length()) +
-                 sizeof(MessagePropertyHeader);
+        delta += static_cast<int>(name.length() +
+                                  sizeof(MessagePropertyHeader));
         if (0 == numProperties()) {
             // If its the 1st property, also include the size of struct
             // 'MessagePropertiesHeader'.
