@@ -1105,7 +1105,7 @@ inline TwoKeyHashMap<K1, K2, VALUE, H1, H2>::TwoKeyHashMap(
                                                   this));
 
     // copy elements from 'original' to '*this'
-    d_nodeAllocator->reserveCapacity(original.size());
+    d_nodeAllocator->reserveCapacity(static_cast<int>(original.size()));
     for (const_iterator it = original.cbegin(); it != original.cend(); ++it) {
         insert(*it);
     }

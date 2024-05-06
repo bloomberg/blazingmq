@@ -30,14 +30,15 @@ namespace mwcc {
 size_t OrderedHashMap_ImpDetails::nextPrime(size_t n)
 {
     // This routine is copied from bslstl_hashtable.h, which cannot be included
-    // in this component.
+    // in this component, and modified so that all values returned are
+    // representable in 32 bits.
 
     static const size_t s_primes[] = {
-        2,        5,         13,        29,        61,         127,
-        257,      521,       1049,      2099,      4201,       8419,
-        16843,    33703,     67409,     134837,    269513,     539039,
-        1078081,  2156171,   5312353,   10624709,  21249443,   42498893,
-        84997793, 169995589, 339991181, 679982363, 1359964751, 2719929503u};
+        2,        5,         13,        29,        61,        127,
+        257,      521,       1049,      2099,      4201,      8419,
+        16843,    33703,     67409,     134837,    269513,    539039,
+        1078081,  2156171,   5312353,   10624709,  21249443,  42498893,
+        84997793, 169995589, 339991181, 679982363, 1359964751};
 
     static const size_t s_nPrimes = sizeof(s_primes) / sizeof(s_primes[0]);
     static const size_t* const s_beginPrimes = s_primes;
