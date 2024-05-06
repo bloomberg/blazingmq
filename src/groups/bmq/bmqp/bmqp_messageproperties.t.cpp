@@ -142,12 +142,16 @@ class PropertyValueStreamOutVisitor {
 
     void operator()(const bsl::string& value)
     {
-        bdlbb::BlobUtil::append(d_blob_p, value.c_str(), value.length());
+        bdlbb::BlobUtil::append(d_blob_p,
+                                value.c_str(),
+                                static_cast<int>(value.length()));
     }
 
     void operator()(const bsl::vector<char>& value)
     {
-        bdlbb::BlobUtil::append(d_blob_p, value.data(), value.size());
+        bdlbb::BlobUtil::append(d_blob_p,
+                                value.data(),
+                                static_cast<int>(value.size()));
     }
 };
 
@@ -184,7 +188,8 @@ void populateProperties(bmqp::MessageProperties* properties,
 
         case 1: {
             osstr << "charPropName" << i << bsl::ends;
-            char value = bsl::numeric_limits<char>::max() / i;
+            char value = static_cast<char>(bsl::numeric_limits<char>::max() /
+                                           i);
 
             ASSERT_EQ_D(i, 0, p.setPropertyAsChar(osstr.str(), value));
 
@@ -199,7 +204,8 @@ void populateProperties(bmqp::MessageProperties* properties,
 
         case 2: {
             osstr << "shortPropName" << i << bsl::ends;
-            short value = bsl::numeric_limits<short>::max() / i;
+            short value = static_cast<short>(
+                bsl::numeric_limits<short>::max() / i);
 
             ASSERT_EQ_D(i, 0, p.setPropertyAsShort(osstr.str(), value));
 
@@ -214,7 +220,7 @@ void populateProperties(bmqp::MessageProperties* properties,
 
         case 3: {
             osstr << "intPropName" << i << bsl::ends;
-            int value = bsl::numeric_limits<int>::max() / i;
+            int value = static_cast<int>(bsl::numeric_limits<int>::max() / i);
 
             ASSERT_EQ_D(i, 0, p.setPropertyAsInt32(osstr.str(), value));
 
@@ -402,7 +408,7 @@ void encode(bdlbb::Blob* blob, const PropertyMap& pmap)
 
     mpsh->setHeaderSize(sizeof(bmqp::MessagePropertiesHeader));
     mpsh->setMessagePropertyHeaderSize(sizeof(bmqp::MessagePropertyHeader));
-    mpsh->setNumProperties(pmap.size());
+    mpsh->setNumProperties(static_cast<int>(pmap.size()));
 
     totalSize += sizeof(bmqp::MessagePropertiesHeader);
 
@@ -411,7 +417,7 @@ void encode(bdlbb::Blob* blob, const PropertyMap& pmap)
         const PropertyTypeSizeVariantPair& tsvPair = cit->second;
         bmqp::MessagePropertyHeader        mph;
         mph.setPropertyType(tsvPair.first.first);
-        mph.setPropertyNameLength(cit->first.length());
+        mph.setPropertyNameLength(static_cast<int>(cit->first.length()));
         mph.setPropertyValueLength(tsvPair.first.second);
 
         bdlbb::BlobUtil::append(blob,
@@ -424,11 +430,11 @@ void encode(bdlbb::Blob* blob, const PropertyMap& pmap)
     for (PropertyMapConstIter cit = pmap.begin(); cit != pmap.end(); ++cit) {
         const PropertyTypeSizeVariantPair& tsvPair = cit->second;
         bdlbb::BlobUtil::append(blob, cit->first.c_str(), cit->first.length());
-        totalSize += cit->first.length();
+        totalSize += static_cast<int>(cit->first.length());
 
         PropertyValueStreamOutVisitor visitor(blob);
         tsvPair.second.apply(visitor);
-        totalSize += tsvPair.first.second;
+        totalSize += static_cast<int>(tsvPair.first.second);
     }
 
     ASSERT_EQ(totalSize, b.length());
@@ -521,8 +527,9 @@ static void test1_breathingTest()
     ASSERT_EQ(true, p.remove("timestamp", &ptype));
     ASSERT_EQ(bmqt::PropertyType::e_INT64, ptype);
 
-    totalLen -= (sizeof(bmqp::MessagePropertyHeader) +
-                 bsl::strlen("timestamp") + sizeof(bsls::Types::Int64));
+    totalLen -= static_cast<int>(sizeof(bmqp::MessagePropertyHeader) +
+                                 bsl::strlen("timestamp") +
+                                 sizeof(bsls::Types::Int64));
 
     ASSERT_EQ(p.numProperties(), 1);
     ASSERT_EQ(p.hasProperty("category"), true);
