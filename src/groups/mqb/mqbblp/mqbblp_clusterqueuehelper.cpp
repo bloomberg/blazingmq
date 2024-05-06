@@ -62,6 +62,7 @@
 #include <mwcu_printutil.h>
 
 // BDE
+#include <ball_logthrottle.h>
 #include <ball_severity.h>
 #include <bdlb_nullablevalue.h>
 #include <bdlb_print.h>
@@ -91,6 +92,17 @@ namespace {
 const char k_MAXIMUM_NUMBER_OF_QUEUES_REACHED[] =
     "maximum number of queues reached";
 const char k_SELF_NODE_IS_STOPPING[] = "self node is stopping";
+
+const int k_MAX_INSTANT_MESSAGES = 10;
+// Maximum messages logged with throttling in a short period of time.
+
+const bsls::Types::Int64 k_NS_PER_MESSAGE =
+    bdlt::TimeUnitRatio::k_NANOSECONDS_PER_MINUTE / k_MAX_INSTANT_MESSAGES;
+// Time interval between messages logged with throttling.
+
+#define BMQ_LOGTHROTTLE_INFO()                                                \
+    BALL_LOGTHROTTLE_INFO(k_MAX_INSTANT_MESSAGES, k_NS_PER_MESSAGE)           \
+        << "[THROTTLED] "
 
 /// This function is a simple wrapper around the specified `callback`, to
 /// ensure that the specified `refCount` is decremented after it gets
@@ -1688,11 +1700,11 @@ void ClusterQueueHelper::onConfigureQueueResponse(
 
     if (d_cluster_p->isStopping()) {
         // Self is stopping.  Drop the response.
-        BALL_LOG_INFO << d_cluster_p->description()
-                      << ": Dropping (re)configureQueue response "
-                      << "[reason: 'stopping'"
-                      << ", request: " << requestContext->request()
-                      << ", response: " << requestContext->response() << "]";
+        BMQ_LOGTHROTTLE_INFO()
+            << d_cluster_p->description()
+            << ": Dropping (re)configureQueue response [reason: 'stopping'"
+            << ", request: " << requestContext->request()
+            << ", response: " << requestContext->response() << "]";
         return;  // RETURN
     }
 
@@ -3295,12 +3307,12 @@ void ClusterQueueHelper::sendCloseQueueRequest(
         // will be advertised upstream.  So just like above, we indicate
         // success via 'callback'.
 
-        BALL_LOG_WARN << d_cluster_p->description()
-                      << ": Failed to send close-queue request: "
-                      << request->request() << ", for queue ["
-                      << handleParameters.uri() << "] to "
-                      << upstreamNode->nodeDescription() << ", rc: " << rc
-                      << ", but still indicating success.";
+        BMQ_LOGTHROTTLE_INFO()
+            << d_cluster_p->description()
+            << ": Failed to send close-queue request: " << request->request()
+            << ", for queue [" << handleParameters.uri() << "] to "
+            << upstreamNode->nodeDescription() << ", rc: " << rc
+            << ", but still indicating success.";
 
         if (callback) {
             // As above, we use 'E_SUCCESS' for the category.  Perhaps a more

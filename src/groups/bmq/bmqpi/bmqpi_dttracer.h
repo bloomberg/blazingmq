@@ -17,13 +17,13 @@
 #ifndef INCLUDED_BMQPI_DTTRACER
 #define INCLUDED_BMQPI_DTTRACER
 
-//@PURPOSE: Provide an interface that can create new 'DTSpan' objects.
-//
-//@CLASSES:
-//  bmqpi::DTTracer: Interface for creators of 'DTSpan' objects.
-//
-//@DESCRIPTION:
-// 'bmqpi::DTTracer' is a pure interface for creators of new 'DTSpan' objects.
+/// @file bmqpi_dttracer.h
+///
+/// @brief Provide an interface that can create new @bbref{bmqpi::DTSpan}
+/// objects.
+///
+/// @bbref{bmqpi::DTTracer} is a pure interface for creators of new
+/// @bbref{bmqpi::DTSpan} objects.
 
 // BMQ
 

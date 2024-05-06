@@ -1,4 +1,4 @@
-------------------------- MODULE BMQLeaderElection -------------------------
+------------------------- MODULE BlazingMQLeaderElection -------------------------
 EXTENDS Naturals, FiniteSets, Sequences, Reals, TLC
 
 \* Input parameters

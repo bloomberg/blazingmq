@@ -17,16 +17,15 @@
 #ifndef INCLUDED_BMQA_QUEUEID
 #define INCLUDED_BMQA_QUEUEID
 
-//@PURPOSE: Provide a value-semantic efficient identifier for a queue.
-//
-//@CLASSES:
-//  bmqa::QueueId: Value-semantic efficient identifier for a queue.
-//
-//@DESCRIPTION: This component implements a value-semantic class,
-// 'bmqa::QueueId', which can be used to efficiently identify the queue
-// associated with a message event.  A 'bmqa::QueueId' instance can be created
-// with a 64-bit integer, raw pointer, shared pointer, or
-// 'bmqt::CorrelationId'.
+/// @file bmqa_queueid.h
+///
+/// @brief Provide a value-semantic efficient identifier for a queue.
+///
+/// This component implements a value-semantic class, @bbref{bmqa::QueueId},
+/// which can be used to efficiently identify the queue associated with a
+/// message event.  A @bbref{bmqa::QueueId} instance can be created with a
+/// 64-bit integer, raw pointer, shared pointer, or
+/// @bbref{bmqt::CorrelationId}.
 
 // BMQ
 

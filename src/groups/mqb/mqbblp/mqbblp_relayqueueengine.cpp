@@ -74,6 +74,10 @@ const bsls::Types::Int64 k_NS_PER_MESSAGE =
     bdlt::TimeUnitRatio::k_NANOSECONDS_PER_MINUTE / k_MAX_INSTANT_MESSAGES;
 // Time interval between messages logged with throttling.
 
+#define BMQ_LOGTHROTTLE_INFO()                                                \
+    BALL_LOGTHROTTLE_INFO(k_MAX_INSTANT_MESSAGES, k_NS_PER_MESSAGE)           \
+        << "[THROTTLED] "
+
 // ====================
 // class LimitedPrinter
 // ====================
@@ -279,27 +283,29 @@ void RelayQueueEngine::onHandleConfiguredDispatched(
         return;  // RETURN
     }
 
-    if (bmqp_ctrlmsg::StatusCategory::E_SUCCESS == status.category()) {
-        BALL_LOG_INFO << "Received success 'configure-stream' response for "
-                      << "handle [" << handle << "] for queue ["
-                      << d_queueState_p->uri() << "], for parameters "
-                      << downStreamParameters;
-    }
-    else {
-        BALL_LOG_WARN
-            << "#QUEUE_CONFIGURE_FAILURE "
-            << "Received failed 'configure-stream' response for handle '"
-            << handle->client() << ":" << handle->id() << "' for queue '"
-            << d_queueState_p->uri() << "', for parameters "
-            << downStreamParameters << ", but assuming success.";
-    }
-
     BALL_LOGTHROTTLE_INFO_BLOCK(k_MAX_INSTANT_MESSAGES, k_NS_PER_MESSAGE)
     {
+        if (bmqp_ctrlmsg::StatusCategory::E_SUCCESS == status.category()) {
+            BALL_LOG_INFO
+                << "[THROTTLED] Received success 'configure-stream' response"
+                << " for handle [" << handle << "] for queue ["
+                << d_queueState_p->uri() << "], for parameters "
+                << downStreamParameters;
+        }
+        else {
+            BALL_LOG_WARN
+                << "[THROTTLED] #QUEUE_CONFIGURE_FAILURE "
+                << "Received failed 'configure-stream' response for handle '"
+                << handle->client() << ":" << handle->id() << "' for queue '"
+                << d_queueState_p->uri() << "', for parameters "
+                << downStreamParameters << ", but assuming success.";
+        }
+
         mqbcmd::RoundRobinRouter outrr(d_allocator_p);
         context->d_routing_sp->loadInternals(&outrr);
 
-        BALL_LOG_OUTPUT_STREAM << "For queue [" << d_queueState_p->uri()
+        BALL_LOG_OUTPUT_STREAM << "[THROTTLED] For queue ["
+                               << d_queueState_p->uri()
                                << "] new routing will be "
                                << LimitedPrinter(outrr, 2048, d_allocator_p);
     }
@@ -332,7 +338,8 @@ void RelayQueueEngine::onHandleConfiguredDispatched(
         mqbcmd::QueueEngine outqe(d_allocator_p);
         loadInternals(&outqe);
 
-        BALL_LOG_OUTPUT_STREAM << "For queue [" << d_queueState_p->uri()
+        BALL_LOG_OUTPUT_STREAM << "[THROTTLED] For queue ["
+                               << d_queueState_p->uri()
                                << "], the engine config is "
                                << LimitedPrinter(outqe, 2048, d_allocator_p);
     }
@@ -687,9 +694,10 @@ void RelayQueueEngine::configureApp(
         &previousParameters,
         upstreamSubQueueId);
 
-    BALL_LOG_INFO << "For queue '" << d_queueState_p->uri() << "', about to "
-                  << "rebuild upstream state [current stream parameters: "
-                  << previousParameters << "]";
+    BMQ_LOGTHROTTLE_INFO()
+        << "For queue '" << d_queueState_p->uri()
+        << "', about to rebuild upstream state [current stream parameters: "
+        << previousParameters << "]";
 
     rebuildUpstreamState(context->d_routing_sp.get(),
                          &appState,
@@ -708,12 +716,13 @@ void RelayQueueEngine::configureApp(
     if (hadParameters && previousParameters == streamParamsToSend) {
         // Last advertised stream parameters for this queue are same as the
         // newly advertised ones.  No need to send any notification upstream.
-        BALL_LOG_INFO << "For queue [" << d_queueState_p->uri()
-                      << "], last advertised stream parameter by the queue"
-                      << " were same as newly advertised ones: "
-                      << previousParameters
-                      << ". Not sending configure-queue request upstream, but"
-                      << " returning success to downstream client.";
+
+        BMQ_LOGTHROTTLE_INFO()
+            << "For queue [" << d_queueState_p->uri()
+            << "], last advertised stream parameter by the queue"
+            << " were same as newly advertised ones: " << previousParameters
+            << ". Not sending configure-queue request upstream, but"
+            << " returning success to downstream client.";
 
         // Set the parameters and inform downstream client of success
         handle->setStreamParameters(streamParameters);
@@ -788,9 +797,10 @@ void RelayQueueEngine::rebuildUpstreamState(Routers::AppContext* context,
 
     d_queueState_p->setUpstreamParameters(upstreamParams, upstreamSubQueueId);
 
-    BALL_LOG_INFO << "For queue '" << d_queueState_p->uri() << "', rebuilt "
-                  << "upstream parameters [new upstream parameters: "
-                  << upstreamParams << "]";
+    BMQ_LOGTHROTTLE_INFO()
+        << "For queue '" << d_queueState_p->uri()
+        << "', rebuilt upstream parameters [new upstream parameters: "
+        << upstreamParams << "]";
 }
 
 void RelayQueueEngine::applyConfiguration(App_State&        app,

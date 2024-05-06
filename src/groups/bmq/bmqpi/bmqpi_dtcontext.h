@@ -17,27 +17,24 @@
 #ifndef INCLUDED_BMQPI_DTCONTEXT
 #define INCLUDED_BMQPI_DTCONTEXT
 
-//@PURPOSE: Provide an interface for a context with a notion of a current span.
-//
-//@CLASSES:
-//  bmqpi::DTContext: Interface for a context with a notion of a current span.
-//
-//@DESCRIPTION:
-// 'bmqpi::DTContext' is a pure interface representing a context which defines
-// a "current" 'bmqpi::DTSpan' for the calling thread. Implementations *may*
-// return different spans for each thread, or return a single span shared by
-// all calling threads.
-//
-// Many distributed trace libraries provide a well-defined thread-local storage
-// slot for the span currently under execution, which allows a function to
-// obtain a reference to its caller across library boundaries, without changes
-// to its API to facilitate dependency injection. This storage slot is set by
-// instantiating an RAII "Span Guard" that writes a span to the TLS at
-// construction, and reverts its state on destruction (emulating the semantics
-// of a call-stack). The API of 'bmqpi::DTContext' aims to make it easy to wrap
-// these common patterns in a library-agnostic manner, while also facilitating
-// test double implementations.
-//
+/// @file bmqpi_dtcontext.h
+///
+/// @brief Provide an interface for a context with a notion of a current span.
+///
+/// @bbref{bmqpi::DTContext} is a pure interface representing a context which
+/// defines a "current" @bbref{bmqpi::DTSpan} for the calling
+/// thread. Implementations *may* return different spans for each thread, or
+/// return a single span shared by all calling threads.
+///
+/// Many distributed trace libraries provide a well-defined thread-local
+/// storage slot for the span currently under execution, which allows a
+/// function to obtain a reference to its caller across library boundaries,
+/// without changes to its API to facilitate dependency injection. This storage
+/// slot is set by instantiating an RAII "Span Guard" that writes a span to the
+/// TLS at construction, and reverts its state on destruction (emulating the
+/// semantics of a call-stack). The API of @bbref{bmqpi::DTContext} aims to
+/// make it easy to wrap these common patterns in a library-agnostic manner,
+/// while also facilitating test double implementations.
 
 // BMQ
 

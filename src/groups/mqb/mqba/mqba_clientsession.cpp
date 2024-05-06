@@ -908,8 +908,6 @@ void ClientSession::invalidateDispatched()
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
 
-    BALL_LOG_INFO << description() << ": invalidateDispatched";
-
     if (d_operationState == e_DEAD) {
         return;  // RETURN
     }
@@ -2826,8 +2824,6 @@ void ClientSession::invalidate()
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(!dispatcher()->inDispatcherThread(this));
-
-    BALL_LOG_INFO << description() << ": invalidate";
 
     dispatcher()->execute(
         bdlf::BindUtil::bind(&ClientSession::invalidateDispatched, this),
