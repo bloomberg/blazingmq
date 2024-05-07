@@ -837,7 +837,28 @@ void RelayQueueEngine::applyConfiguration(App_State&        app,
 
     app.d_routing_sp->apply();
 
-    app.d_routing_sp->registerSubscriptions();
+    Routers::Consumers& consumers = app.d_routing_sp->d_consumers;
+
+    for (Routers::Consumers::const_iterator itConsumer = consumers.begin();
+         itConsumer != consumers.end();
+         ++itConsumer) {
+        Routers::Consumer& consumer = consumers.value(itConsumer);
+        mqbi::QueueHandle* handle   = itConsumer->first;
+
+        if (!d_queueState_p->handleCatalog().hasHandle(handle)) {
+            // This can happen with out-of-order Configure responses as in the
+            // case when network disconnects with two concurrent requests and
+            // the second gets (error) response before the first one gets
+            // cancelled.
+            itConsumer->second.lock()->invalidate();
+
+            app.d_priorityCount = app.d_routing_sp->finalize();
+
+            continue;  // CONTINUE
+        }
+
+        consumer.registerSubscriptions(handle);
+    }
 
     BALL_LOG_INFO << "For queue '" << d_queueState_p->uri() << "', "
                   << "rebuilt highest priority consumers: [count: "
