@@ -20,7 +20,7 @@
 #include <mwcst_printutil.h>
 
 namespace BloombergLP {
-namespace mwcu {
+namespace mwcst {
 
 // ---------------
 // class StringKey
@@ -42,11 +42,11 @@ void StringKey::makeCopy()
 bsl::ostream&
 StringKey::print(bsl::ostream& stream, int level, int spacesPerLevel) const
 {
-    return mwcstu::PrintUtil::stringRefPrint(stream,
-                                             bslstl::StringRef(d_string_p,
-                                                               d_length),
-                                             level,
-                                             spacesPerLevel);
+    return mwcst::PrintUtil::stringRefPrint(stream,
+                                            bslstl::StringRef(d_string_p,
+                                                              d_length),
+                                            level,
+                                            spacesPerLevel);
 }
 
 }  // close package namespace

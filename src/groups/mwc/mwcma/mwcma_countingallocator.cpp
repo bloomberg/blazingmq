@@ -124,7 +124,7 @@ void CountingAllocator::configureStatContextTableInfoProvider(
 
 void CountingAllocator::configureStatContextTableInfoProvider(
     mwcst::Table*                             table,
-    mwcu::BasicTableInfoProvider*             basicTableInfoProvider,
+    mwcst::BasicTableInfoProvider*            basicTableInfoProvider,
     const mwcst::StatValue::SnapshotLocation& startSnapshot,
     const mwcst::StatValue::SnapshotLocation& endSnapshot)
 {

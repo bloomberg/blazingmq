@@ -477,18 +477,18 @@ void Application::printStats(bool isFinal)
     os << "::::: TCP Channels >>";
     if (isFinal) {
         // For the final stats, no need to print the 'delta' columns
-        mwcst::Table                 table;
-        mwcu::BasicTableInfoProvider tip;
+        mwcst::Table                  table;
+        mwcst::BasicTableInfoProvider tip;
         mwcio::StatChannelFactoryUtil::initializeStatsTable(
             &table,
             &tip,
             d_channelsStatContext_mp.get());
         table.records().update();
-        mwcu::TableUtil::printTable(os, tip);
+        mwcst::TableUtil::printTable(os, tip);
     }
     else {
         d_channelsTable.records().update();
-        mwcu::TableUtil::printTable(os, d_channelsTip);
+        mwcst::TableUtil::printTable(os, d_channelsTip);
     }
 
     BALL_LOG_INFO << os.str();

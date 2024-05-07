@@ -376,17 +376,19 @@ struct QueueStatsUtil {
 
     /// Load in the specified `table` and `tip` the objects to print the
     /// specified `statContext` for the specified `historySize`.
-    static void initializeTableAndTipDomains(mwcst::Table* table,
-                                             mwcu::BasicTableInfoProvider* tip,
-                                             int                 historySize,
-                                             mwcst::StatContext* statContext);
+    static void
+    initializeTableAndTipDomains(mwcst::Table*                  table,
+                                 mwcst::BasicTableInfoProvider* tip,
+                                 int                            historySize,
+                                 mwcst::StatContext*            statContext);
 
     /// Load in the specified `table` and `tip` the objects to print the
     /// specified `statContext` for the specified `historySize`.
-    static void initializeTableAndTipClients(mwcst::Table* table,
-                                             mwcu::BasicTableInfoProvider* tip,
-                                             int                 historySize,
-                                             mwcst::StatContext* statContext);
+    static void
+    initializeTableAndTipClients(mwcst::Table*                  table,
+                                 mwcst::BasicTableInfoProvider* tip,
+                                 int                            historySize,
+                                 mwcst::StatContext*            statContext);
 };
 
 // ============================================================================

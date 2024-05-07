@@ -246,7 +246,7 @@ StatChannelFactoryUtil::createStatContext(const bsl::string& name,
 
 void StatChannelFactoryUtil::initializeStatsTable(
     mwcst::Table*                             table,
-    mwcu::BasicTableInfoProvider*             tip,
+    mwcst::BasicTableInfoProvider*            tip,
     mwcst::StatContext*                       rootStatContext,
     const mwcst::StatValue::SnapshotLocation& start,
     const mwcst::StatValue::SnapshotLocation& end)

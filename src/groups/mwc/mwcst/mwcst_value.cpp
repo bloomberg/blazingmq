@@ -24,7 +24,7 @@
 #include <bsl_cstring.h>
 
 namespace BloombergLP {
-namespace mwct {
+namespace mwcst {
 
 enum {
     VALUE_NULLTYPE,
@@ -127,7 +127,7 @@ size_t Value::hash() const
 }  // close package namespace
 
 // FREE OPERATORS
-bool mwct::operator<(const mwct::Value& lhs, const mwct::Value& rhs)
+bool mwcst::operator<(const mwcst::Value& lhs, const mwcst::Value& rhs)
 {
     // give a partial order between types and withint types
 
@@ -195,7 +195,8 @@ bool mwct::operator<(const mwct::Value& lhs, const mwct::Value& rhs)
     }
 }
 
-bsl::ostream& mwct::operator<<(bsl::ostream& stream, const mwct::Value& value)
+bsl::ostream& mwcst::operator<<(bsl::ostream&       stream,
+                                const mwcst::Value& value)
 {
     return stream << value.d_value;
 }

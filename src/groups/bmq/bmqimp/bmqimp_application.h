@@ -112,7 +112,7 @@ class Application {
 
     mwcst::Table d_channelsTable;
 
-    mwcu::BasicTableInfoProvider d_channelsTip;
+    mwcst::BasicTableInfoProvider d_channelsTip;
 
     bdlbb::PooledBlobBufferFactory d_blobBufferFactory;
     // Factory for blob buffers

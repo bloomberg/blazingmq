@@ -67,8 +67,8 @@ class DefaultIdColumn : public StatContextTableInfoProviderCustomColumn {
 
     // ACCESSORS
     int
-    getValueSize(int                       level,
-                 const mwcst::StatContext& context,
+    getValueSize(int                    level,
+                 const StatContext&     context,
                  StatContext::ValueType valueType) const BSLS_KEYWORD_OVERRIDE
     {
         int length = 0;
@@ -77,7 +77,7 @@ class DefaultIdColumn : public StatContextTableInfoProviderCustomColumn {
                 length = static_cast<int>(context.name().length());
             }
             else {
-                length = mwcstu::PrintUtil::printedValueLength(context.id());
+                length = mwcst::PrintUtil::printedValueLength(context.id());
             }
         }
         else if (valueType == StatContext::DMCST_DIRECT_VALUE) {
@@ -104,10 +104,10 @@ class DefaultIdColumn : public StatContextTableInfoProviderCustomColumn {
     }
 
     bsl::ostream&
-    printValue(bsl::ostream&             stream,
-               int                       level,
-               const mwcst::StatContext& context,
-               StatContext::ValueType    valueType) const BSLS_KEYWORD_OVERRIDE
+    printValue(bsl::ostream&          stream,
+               int                    level,
+               const StatContext&     context,
+               StatContext::ValueType valueType) const BSLS_KEYWORD_OVERRIDE
     {
         bslstl::StringRef name;
         if (valueType == StatContext::DMCST_TOTAL_VALUE) {
@@ -476,23 +476,23 @@ int StatContextTableInfoProvider::getValueSize(int row, int column) const
             }
             else if (colInfo.d_printType == DMCST_INT_VALUE) {
                 if (d_printSeparators) {
-                    return mwcstu::PrintUtil::printedValueLengthWithSeparator(
+                    return mwcst::PrintUtil::printedValueLengthWithSeparator(
                         funcValue,
                         3);
                 }
                 else {
-                    return mwcstu::PrintUtil::printedValueLength(funcValue);
+                    return mwcst::PrintUtil::printedValueLength(funcValue);
                 }
             }
             else {
-                return mwcstu::PrintUtil::printedTimeIntervalNsLength(
+                return mwcst::PrintUtil::printedTimeIntervalNsLength(
                     funcValue,
                     d_precision);
             }
         }
         else if (colInfo.d_doubleFunc) {
             double funcValue = colInfo.d_doubleFunc(value);
-            return mwcstu::PrintUtil::printedValueLength(
+            return mwcst::PrintUtil::printedValueLength(
                        (bsls::Types::Int64)funcValue) +
                    d_precision + 1;
         }
@@ -526,19 +526,19 @@ bsl::ostream& StatContextTableInfoProvider::printValue(bsl::ostream& stream,
             }
             else if (colInfo.d_printType == DMCST_INT_VALUE) {
                 if (d_printSeparators) {
-                    mwcstu::PrintUtil::printValueWithSeparator(stream,
-                                                               funcValue,
-                                                               3,
-                                                               ',');
+                    mwcst::PrintUtil::printValueWithSeparator(stream,
+                                                              funcValue,
+                                                              3,
+                                                              ',');
                 }
                 else {
                     stream << funcValue;
                 }
             }
             else {
-                mwcstu::PrintUtil::printTimeIntervalNs(stream,
-                                                       funcValue,
-                                                       d_precision);
+                mwcst::PrintUtil::printTimeIntervalNs(stream,
+                                                      funcValue,
+                                                      d_precision);
             }
         }
         else if (colInfo.d_doubleFunc) {
@@ -571,7 +571,7 @@ int StatContextTableInfoProvider::getParentHeader(int /*level*/,
 bsl::ostream&
 StatContextTableInfoProvider::printTitle(bsl::ostream& stream) const
 {
-    return mwcstu::PrintUtil::printStringCentered(stream, d_title);
+    return mwcst::PrintUtil::printStringCentered(stream, d_title);
 }
 
 bsl::ostream& StatContextTableInfoProvider::printHeader(bsl::ostream& stream,
@@ -580,13 +580,12 @@ bsl::ostream& StatContextTableInfoProvider::printHeader(bsl::ostream& stream,
                                                         int /*width*/) const
 {
     if (level == 0) {
-        return mwcstu::PrintUtil::printStringCentered(
-            stream,
-            d_columns[column].d_name);
+        return mwcst::PrintUtil::printStringCentered(stream,
+                                                     d_columns[column].d_name);
     }
     else {
-        return mwcstu::PrintUtil::printStringCentered(stream,
-                                                      d_columnGroups[column]);
+        return mwcst::PrintUtil::printStringCentered(stream,
+                                                     d_columnGroups[column]);
     }
 }
 

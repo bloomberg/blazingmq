@@ -23,7 +23,7 @@
 #include <stdlib.h>
 
 namespace BloombergLP {
-namespace mwcu {
+namespace mwcst {
 
 // ---------------
 // struct TestUtil
@@ -157,14 +157,14 @@ BlobDataComparer::BlobDataComparer(const bdlbb::Blob* blob,
 {
 }
 
-BlobDataComparer::BlobDataComparer(const bdlbb::Blob*  blob,
-                                   const BlobPosition& start,
-                                   bslma::Allocator*   allocator)
+BlobDataComparer::BlobDataComparer(const bdlbb::Blob*        blob,
+                                   const mwcu::BlobPosition& start,
+                                   bslma::Allocator*         allocator)
 : d_blob_p(blob)
 , d_offset()
 , d_allocator_p(allocator)
 {
-    BlobUtil::positionToOffset(&d_offset, *blob, start);
+    mwcu::BlobUtil::positionToOffset(&d_offset, *blob, start);
 }
 
 // ACCESSORS
@@ -186,8 +186,8 @@ bslma::Allocator* BlobDataComparer::allocator() const
 }  // close package namespace
 
 // FREE FUNCTIONS
-bool mwcu::operator==(const mwcu::BlobDataComparer& lhs,
-                      const mwcu::BlobDataComparer& rhs)
+bool mwcst::operator==(const mwcst::BlobDataComparer& lhs,
+                       const mwcst::BlobDataComparer& rhs)
 {
     bdlbb::Blob lhsCopy(lhs.allocator());
     bdlbb::BlobUtil::append(&lhsCopy, *lhs.blob(), lhs.offset());
@@ -198,8 +198,8 @@ bool mwcu::operator==(const mwcu::BlobDataComparer& lhs,
     return bdlbb::BlobUtil::compare(lhsCopy, rhsCopy) == 0;
 }
 
-bsl::ostream& mwcu::operator<<(bsl::ostream&                 stream,
-                               const mwcu::BlobDataComparer& val)
+bsl::ostream& mwcst::operator<<(bsl::ostream&                  stream,
+                                const mwcst::BlobDataComparer& val)
 {
     int length = val.blob()->length() - val.offset();
     return stream << "\n"

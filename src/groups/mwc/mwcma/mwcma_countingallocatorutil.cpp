@@ -128,7 +128,7 @@ void CountingAllocatorUtil::printAllocations(bsl::ostream&             stream,
     tip.setContext(&context);
     tip.update();
 
-    mwcu::TableUtil::printTable(stream, tip);
+    mwcst::TableUtil::printTable(stream, tip);
 }
 
 }  // close package namespace

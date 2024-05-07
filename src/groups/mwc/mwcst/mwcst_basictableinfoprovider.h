@@ -14,18 +14,19 @@
 // limitations under the License.
 
 // mwcst_basictableinfoprovider.h -*-C++-*-
-#ifndef INCLUDED_MWCU_BASICTABLEINFOPROVIDER
-#define INCLUDED_MWCU_BASICTABLEINFOPROVIDER
+#ifndef INCLUDED_MWCST_BASICTABLEINFOPROVIDER
+#define INCLUDED_MWCST_BASICTABLEINFOPROVIDER
 
-//@PURPOSE: Provide an adapter of 'mwcu::Table' to 'mwcu::TableInfoProvider'
+//@PURPOSE: Provide an adapter of 'mwcst::BaseTable' to
+//'mwcst::TableInfoProvider'
 //
 //@CLASSES:
-// mwcu::BasicTableInfoProvider
+// mwcst::BasicTableInfoProvider
 //
 //@DESCRIPTION: This component defines a mechanism,
-// 'mwcu::BasicTableInfoProvider', which adapts the 'mwcu::Table' protocol to
-// the 'mwcu::TableInfoProvider' protocol.  It allows the user to specifiy
-// exactly how a 'mwcu::Table' should be printed.
+// 'mwcst::BasicTableInfoProvider', which adapts the 'mwcst::BaseTable'
+// protocol to the 'mwcst::TableInfoProvider' protocol.  It allows the user to
+// specifiy exactly how a 'mwcst::BaseTable' should be printed.
 
 #include <mwcst_tableinfoprovider.h>
 
@@ -37,10 +38,11 @@
 #include <bslmf_nil.h>
 
 namespace BloombergLP {
-namespace mwcu {
+
+namespace mwcst {
 
 // FORWARD DECLARATIONS
-class Table;
+class BaseTable;
 class BasicTableInfoProvider;
 class BasicTableInfoProvider_ValueSizeVisitor;
 class BasicTableInfoProvider_ValuePrintVisitor;
@@ -143,7 +145,7 @@ class BasicTableInfoProvider_ColumnFormat {
 // class BasicTableInfoProvider_ValueSizeVisitor
 // =============================================
 
-/// A `mwct::Value` visitor that returns the printed size of the value
+/// A `mwcst::Value` visitor that returns the printed size of the value
 class BasicTableInfoProvider_ValueSizeVisitor {
   public:
     // PUBLIC TYPES
@@ -189,7 +191,7 @@ class BasicTableInfoProvider_ValueSizeVisitor {
 // class BasicTableInfoProvider_ValuePrintVisitor
 // ==============================================
 
-/// A `mwct::Value` visitor that prints the a value
+/// A `mwcst::Value` visitor that prints the a value
 class BasicTableInfoProvider_ValuePrintVisitor {
   public:
     // PUBLIC TYPES
@@ -236,8 +238,8 @@ class BasicTableInfoProvider_ValuePrintVisitor {
 // class BasicTableInfoProvider
 // ============================
 
-/// Adapts `mwcu::Table` to `mwcu::TableInfoProvider`
-class BasicTableInfoProvider : public mwcu::TableInfoProvider {
+/// Adapts `mwcst::BaseTable` to `mwcst::TableInfoProvider`
+class BasicTableInfoProvider : public mwcst::TableInfoProvider {
   public:
     // PUBLIC TYPES
     typedef BasicTableInfoProvider_ColumnFormat ColumnFormat;
@@ -249,7 +251,7 @@ class BasicTableInfoProvider : public mwcu::TableInfoProvider {
     typedef bsl::vector<ColumnFormat>                ColumnList;
 
     // DATA
-    mwcu::Table*              d_table_p;
+    mwcst::BaseTable*         d_table_p;
     bsl::string               d_title;
     bsl::vector<bsl::string>  d_columnGroups;
     ColumnList                d_columns;
@@ -263,7 +265,7 @@ class BasicTableInfoProvider : public mwcu::TableInfoProvider {
   public:
     // CREATORS
     BasicTableInfoProvider(bslma::Allocator* basicAllocator = 0);
-    BasicTableInfoProvider(mwcu::Table*      table,
+    BasicTableInfoProvider(mwcst::BaseTable* table,
                            bslma::Allocator* basicAllocator = 0);
 
     // MANIPULATORS
@@ -273,7 +275,7 @@ class BasicTableInfoProvider : public mwcu::TableInfoProvider {
 
     /// Set the table to be printed to the specified `table`.  Any added
     /// columns will continue to refer to the same column indices.
-    void setTable(mwcu::Table* table);
+    void setTable(mwcst::BaseTable* table);
 
     /// Find the right column indices in the current table corresponding to
     /// the source column names of the current columns.
@@ -295,7 +297,7 @@ class BasicTableInfoProvider : public mwcu::TableInfoProvider {
 
     // ACCESSORS
 
-    // mwcu::TableInfoProvider
+    // mwcst::TableInfoProvider
     int  numRows() const BSLS_KEYWORD_OVERRIDE;
     int  numColumns(int level) const BSLS_KEYWORD_OVERRIDE;
     bool hasTitle() const BSLS_KEYWORD_OVERRIDE;

@@ -17,21 +17,21 @@
 #ifndef INCLUDED_MWCST_STATCONTEXTTABLEINFOPROVIDER
 #define INCLUDED_MWCST_STATCONTEXTTABLEINFOPROVIDER
 
-//@PURPOSE: Provide a 'mwcu::TableInfoProvider' for a table 'StatContext'.
+//@PURPOSE: Provide a 'mwcst::TableInfoProvider' for a table 'StatContext'.
 //
 //@CLASSES:
 // mwcst::StatContextTableInfoProvider
 //
 //@SEE_ALSO: mwcst_statcontext
-//           mwcu_tableutil
+//           mwcst_tableutil
 //
 //@DESCRIPTION: This component defines a mechanism,
 // 'mwcst::StatContextTableInfoProvider' which is an implementation of
-// 'mwcu::TableInfoProvider' using a 'mwcst::StatContext'.  It gives an
+// 'mwcst::TableInfoProvider' using a 'mwcst::StatContext'.  It gives an
 // application a way of easily printing a table 'mwcst::StatContext' to a
 // stream.
 //
-// Refer to the documentation of 'mwcst::Table' and 'mwcu::TableUtil' for
+// Refer to the documentation of 'mwcst::Table' and 'mwcst::TableUtil' for
 // usage examples.
 
 #include <mwcst_statcontext.h>
@@ -64,26 +64,26 @@ class StatContextTableInfoProviderCustomColumn {
     /// Return the size of the value to print for the specified `valueType`
     /// of the specified `context` being printed at the specified
     /// indentation `level`
-    virtual int getValueSize(int                       level,
-                             const mwcst::StatContext& context,
-                             StatContext::ValueType    valueType) const = 0;
+    virtual int getValueSize(int                    level,
+                             const StatContext&     context,
+                             StatContext::ValueType valueType) const = 0;
 
     /// Print the value of the specified `valueType` of the specified
     /// `context` being printed at the specified indentation `level` to the
     /// specified `stream` and return the `stream`.
     virtual bsl::ostream&
-    printValue(bsl::ostream&             stream,
-               int                       level,
-               const mwcst::StatContext& context,
-               StatContext::ValueType    valueType) const = 0;
+    printValue(bsl::ostream&          stream,
+               int                    level,
+               const StatContext&     context,
+               StatContext::ValueType valueType) const = 0;
 };
 
 // ==================================
 // class StatContextTableInfoProvider
 // ==================================
 
-/// `mwcu::TableInfoProvider` for a table `mwcst::StatContext`
-class StatContextTableInfoProvider : public mwcu::TableInfoProvider {
+/// `mwcst::TableInfoProvider` for a table `mwcst::StatContext`
+class StatContextTableInfoProvider : public mwcst::TableInfoProvider {
   public:
     // PUBLIC TYPES
 
@@ -100,9 +100,9 @@ class StatContextTableInfoProvider : public mwcu::TableInfoProvider {
     typedef bsl::function<bool(const StatContext* lhs, const StatContext* rhs)>
         SortFn;
 
-    typedef bsl::function<bsls::Types::Int64(const mwcst::StatValue&)>
-                                                           IntValueFunctor;
-    typedef bsl::function<double(const mwcst::StatValue&)> DoubleValueFunctor;
+    typedef bsl::function<bsls::Types::Int64(const StatValue&)>
+                                                    IntValueFunctor;
+    typedef bsl::function<double(const StatValue&)> DoubleValueFunctor;
 
     enum PrintType { DMCST_INT_VALUE, DMCST_NS_INTERVAL_VALUE };
 
@@ -110,19 +110,19 @@ class StatContextTableInfoProvider : public mwcu::TableInfoProvider {
     // PRIVATE TYPES
     typedef StatContextTableInfoProviderCustomColumn CustomColumn;
 
-    typedef bsls::Types::Int64 (*Int0ArgFunc)(const mwcst::StatValue& value);
+    typedef bsls::Types::Int64 (*Int0ArgFunc)(const StatValue& value);
     typedef bsls::Types::Int64 (*Int1ArgFunc)(
-        const mwcst::StatValue&            value,
+        const StatValue&                   value,
         const StatValue::SnapshotLocation& arg1);
     typedef bsls::Types::Int64 (*Int2ArgFunc)(
-        const mwcst::StatValue&            value,
+        const StatValue&                   value,
         const StatValue::SnapshotLocation& arg1,
         const StatValue::SnapshotLocation& arg2);
 
-    typedef double (*Double0ArgFunc)(const mwcst::StatValue& value);
-    typedef double (*Double1ArgFunc)(const mwcst::StatValue&            value,
+    typedef double (*Double0ArgFunc)(const StatValue& value);
+    typedef double (*Double1ArgFunc)(const StatValue&                   value,
                                      const StatValue::SnapshotLocation& arg1);
-    typedef double (*Double2ArgFunc)(const mwcst::StatValue&            value,
+    typedef double (*Double2ArgFunc)(const StatValue&                   value,
                                      const StatValue::SnapshotLocation& arg1,
                                      const StatValue::SnapshotLocation& arg2);
 
@@ -348,7 +348,7 @@ class StatContextTableInfoProvider : public mwcu::TableInfoProvider {
 
     // ACCESSORS
 
-    // mwcu::TableInfoProvider
+    // mwcst::TableInfoProvider
 
     /// Return the number of data rows in the table
     int numRows() const BSLS_KEYWORD_OVERRIDE;

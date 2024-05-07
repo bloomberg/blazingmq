@@ -1,3 +1,4 @@
+mwcst_basetable
 mwcst_basictableinfoprovider
 mwcst_printutil
 mwcst_statcontext
@@ -13,5 +14,4 @@ mwcst_tableschema
 mwcst_tableutil
 mwcst_testtableinfoprovider
 mwcst_testutil
-mwcst_utable
 mwcst_value
