@@ -154,25 +154,23 @@ struct TableUtil {
     /// Print the table described by the specified `info` to the specified
     /// `stream`.  Return `0` on success or a negative value if the `info`
     /// is inconsistent.
-    static int printTable(bsl::ostream&                   stream,
-                          const mwcst::TableInfoProvider& info);
+    static int printTable(bsl::ostream& stream, const TableInfoProvider& info);
 
     /// Output the table described by the specified `info` to the specified
     /// `dest` vector<vector<string>>.  Note that only the first header row
     /// will be output to `dest`, as (*dest)[0].  Return `0` on success or
     /// a negative value if the `info` is inconsistent.
     static int outputToVector(bsl::vector<bsl::vector<bsl::string> >* dest,
-                              const mwcst::TableInfoProvider&         info);
+                              const TableInfoProvider&                info);
 
     /// Print the specified `table` to the specified
     /// `stream` as a csv with one line for the header, and one
     /// line per row.
-    static void printCsv(bsl::ostream& stream, const mwcst::BaseTable& table);
+    static void printCsv(bsl::ostream& stream, const BaseTable& table);
 
     /// Print the specified `info` to the specified `stream` in CSV format
     /// with one line for the header, and one line per row.
-    static void printCsv(bsl::ostream&                   stream,
-                         const mwcst::TableInfoProvider& info);
+    static void printCsv(bsl::ostream& stream, const TableInfoProvider& info);
 };
 
 }  // close package namespace

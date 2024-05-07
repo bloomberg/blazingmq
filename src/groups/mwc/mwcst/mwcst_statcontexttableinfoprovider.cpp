@@ -67,8 +67,8 @@ class DefaultIdColumn : public StatContextTableInfoProviderCustomColumn {
 
     // ACCESSORS
     int
-    getValueSize(int                       level,
-                 const mwcst::StatContext& context,
+    getValueSize(int                    level,
+                 const StatContext&     context,
                  StatContext::ValueType valueType) const BSLS_KEYWORD_OVERRIDE
     {
         int length = 0;
@@ -104,10 +104,10 @@ class DefaultIdColumn : public StatContextTableInfoProviderCustomColumn {
     }
 
     bsl::ostream&
-    printValue(bsl::ostream&             stream,
-               int                       level,
-               const mwcst::StatContext& context,
-               StatContext::ValueType    valueType) const BSLS_KEYWORD_OVERRIDE
+    printValue(bsl::ostream&          stream,
+               int                    level,
+               const StatContext&     context,
+               StatContext::ValueType valueType) const BSLS_KEYWORD_OVERRIDE
     {
         bslstl::StringRef name;
         if (valueType == StatContext::DMCST_TOTAL_VALUE) {

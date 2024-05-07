@@ -235,9 +235,7 @@ class Table : public mwcst::BaseTable {
 
     /// Load the specified `value` with the value located at the specified
     /// `row` and `column` indices.
-    void value(mwcst::Value* value,
-               int           row,
-               int           column) const BSLS_KEYWORD_OVERRIDE;
+    void value(Value* value, int row, int column) const BSLS_KEYWORD_OVERRIDE;
 };
 
 }  // close package namespace

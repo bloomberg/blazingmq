@@ -39,8 +39,7 @@ namespace mwcst {
 // ---------------
 
 // CLASS METHODS
-int TableUtil::printTable(bsl::ostream&                   stream,
-                          const mwcst::TableInfoProvider& info)
+int TableUtil::printTable(bsl::ostream& stream, const TableInfoProvider& info)
 {
     bdlma::LocalSequentialAllocator<5 * 1024> seqAlloc;
 
@@ -188,7 +187,7 @@ int TableUtil::printTable(bsl::ostream&                   stream,
 }
 
 int TableUtil::outputToVector(bsl::vector<bsl::vector<bsl::string> >* dest,
-                              const mwcst::TableInfoProvider&         info)
+                              const TableInfoProvider&                info)
 {
     bsls::AlignedBuffer<1024>   buf;
     bdlsb::FixedMemOutStreamBuf sb(buf.buffer(), sizeof(buf));
@@ -228,7 +227,7 @@ int TableUtil::outputToVector(bsl::vector<bsl::vector<bsl::string> >* dest,
     return 0;
 }
 
-void TableUtil::printCsv(bsl::ostream& stream, const mwcst::BaseTable& table)
+void TableUtil::printCsv(bsl::ostream& stream, const BaseTable& table)
 {
     int numRows    = table.numRows();
     int numColumns = table.numColumns();
@@ -242,7 +241,7 @@ void TableUtil::printCsv(bsl::ostream& stream, const mwcst::BaseTable& table)
     stream << '\n';
 
     // Output rows
-    mwcst::Value value;
+    Value value;
     for (int row = 0; row < numRows; ++row) {
         for (int col = 0; col < numColumns; ++col) {
             if (col != 0) {
@@ -255,8 +254,7 @@ void TableUtil::printCsv(bsl::ostream& stream, const mwcst::BaseTable& table)
     }
 }
 
-void TableUtil::printCsv(bsl::ostream&                   stream,
-                         const mwcst::TableInfoProvider& info)
+void TableUtil::printCsv(bsl::ostream& stream, const TableInfoProvider& info)
 {
     int numRows    = info.numRows();
     int numColumns = info.numColumns(0);

@@ -21,7 +21,7 @@
 //
 //@CLASSES:
 // mwcst::TableSchemaColumn : a column in a 'mwcst::TableSchema'.
-// mwcst::TableSchema       : the columns of a 'dcmst::Table'
+// mwcst::TableSchema       : the columns of a 'mwcst::Table'
 //
 //@SEE_ALSO: mwcst_table
 //
@@ -54,7 +54,7 @@ class TableSchema;
 class TableSchemaColumn {
   public:
     // PUBLIC TYPES
-    typedef bsl::function<void(mwcst::Value*          value,
+    typedef bsl::function<void(Value*                 value,
                                const StatContext&     context,
                                int                    level,
                                StatContext::ValueType type)>
@@ -84,7 +84,7 @@ class TableSchemaColumn {
     // ACCESSORS
     const bsl::string& name() const;
 
-    void evaluate(mwcst::Value*          value,
+    void evaluate(Value*                 value,
                   const StatContext&     context,
                   int                    level,
                   StatContext::ValueType type) const;

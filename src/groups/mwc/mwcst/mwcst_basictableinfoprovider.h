@@ -14,8 +14,8 @@
 // limitations under the License.
 
 // mwcst_basictableinfoprovider.h -*-C++-*-
-#ifndef INCLUDED_MWCU_BASICTABLEINFOPROVIDER
-#define INCLUDED_MWCU_BASICTABLEINFOPROVIDER
+#ifndef INCLUDED_MWCST_BASICTABLEINFOPROVIDER
+#define INCLUDED_MWCST_BASICTABLEINFOPROVIDER
 
 //@PURPOSE: Provide an adapter of 'mwcst::BaseTable' to
 //'mwcst::TableInfoProvider'

@@ -477,7 +477,7 @@ void Application::printStats(bool isFinal)
     os << "::::: TCP Channels >>";
     if (isFinal) {
         // For the final stats, no need to print the 'delta' columns
-        mwcst::Table                 table;
+        mwcst::Table                  table;
         mwcst::BasicTableInfoProvider tip;
         mwcio::StatChannelFactoryUtil::initializeStatsTable(
             &table,

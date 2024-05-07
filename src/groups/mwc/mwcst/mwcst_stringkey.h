@@ -310,8 +310,7 @@ inline size_t StringKey::hashValue() const
 }  // close package namespace
 
 // FREE OPERATORS
-inline bool mwcst::operator<(const mwcst::StringKey& lhs,
-                             const mwcst::StringKey& rhs)
+inline bool mwcst::operator<(const StringKey& lhs, const StringKey& rhs)
 {
     int ret = bsl::memcmp(lhs.string(),
                           rhs.string(),
@@ -325,8 +324,7 @@ inline bool mwcst::operator<(const mwcst::StringKey& lhs,
     }
 }
 
-inline bool mwcst::operator==(const mwcst::StringKey& lhs,
-                              const mwcst::StringKey& rhs)
+inline bool mwcst::operator==(const StringKey& lhs, const StringKey& rhs)
 {
     if ((lhs.length() != rhs.length()) ||
         (lhs.hashValue() != rhs.hashValue())) {
@@ -338,8 +336,7 @@ inline bool mwcst::operator==(const mwcst::StringKey& lhs,
                        bsl::min(lhs.length(), rhs.length())) == 0;
 }
 
-inline bool mwcst::operator!=(const mwcst::StringKey& lhs,
-                              const mwcst::StringKey& rhs)
+inline bool mwcst::operator!=(const StringKey& lhs, const StringKey& rhs)
 {
     if ((lhs.length() != rhs.length()) ||
         (lhs.hashValue() != rhs.hashValue())) {
@@ -351,8 +348,8 @@ inline bool mwcst::operator!=(const mwcst::StringKey& lhs,
                        bsl::min(lhs.length(), rhs.length())) != 0;
 }
 
-inline bsl::ostream& mwcst::operator<<(bsl::ostream&           stream,
-                                       const mwcst::StringKey& object)
+inline bsl::ostream& mwcst::operator<<(bsl::ostream&    stream,
+                                       const StringKey& object)
 {
     return object.print(stream, 0, -1);
 }

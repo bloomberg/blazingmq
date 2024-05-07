@@ -485,7 +485,6 @@
 //..
 
 #include <mwcst_statvalue.h>
-#include <mwcst_stringkey.h>
 
 #include <bdlb_variant.h>
 #include <bdlcc_objectpool.h>
@@ -545,7 +544,7 @@ class StatContext {
     };
 
     /// Callback to be invoked during a snapshot;
-    typedef bsl::function<void(const mwcst::StatContext&)> SnapshotCallback;
+    typedef bsl::function<void(const StatContext&)> SnapshotCallback;
 
   private:
     // PRIVATE TYPES
@@ -1483,8 +1482,8 @@ inline StatContextIterator::operator bool() const
 }  // close package namespace
 
 // FREE OPERATORS
-inline bsl::ostream& mwcst::operator<<(bsl::ostream&             stream,
-                                       const mwcst::StatContext& context)
+inline bsl::ostream& mwcst::operator<<(bsl::ostream&      stream,
+                                       const StatContext& context)
 {
     return context.print(stream, 0, -1);
 }

@@ -33,10 +33,9 @@
 namespace BloombergLP {
 
 namespace mwcst {
-class Value;
-}
 
-namespace mwcst {
+// FORWARD DECLARATIONS
+class Value;
 
 // ===============
 // class BaseTable

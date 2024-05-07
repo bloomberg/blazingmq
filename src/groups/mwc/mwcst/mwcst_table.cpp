@@ -59,7 +59,7 @@ bslstl::StringRef Table::columnName(int column) const
     return d_schema.column(column).name();
 }
 
-void Table::value(mwcst::Value* value, int row, int column) const
+void Table::value(Value* value, int row, int column) const
 {
     const TableRecords::Record& rec = d_records.record(row);
     d_schema.column(column).evaluate(value,
