@@ -141,7 +141,7 @@ static bool checkSnapshot(const StatValue& value,
     }
 
     bsl::vector<bsls::Types::Int64> expectedValues =
-        mwcu::TestUtil::int64Vector(snapshotDesc);
+        mwcst::TestUtil::int64Vector(snapshotDesc);
 
     ASSERT_EQUALS(expectedValues, snapshotValues);
     return expectedValues == snapshotValues;
@@ -1206,6 +1206,6 @@ int main(int argc, char** argv)
     // to indicate the number of assertion failures, or a negative
     // value to indicate that the test case was not found.  Special value 254
     // is used to skip a test, for example for Jenkins.
-    mwcu::TestUtil::printTestStatus(testStatus, verbose);
+    mwcst::TestUtil::printTestStatus(testStatus, verbose);
     return testStatus;
 }

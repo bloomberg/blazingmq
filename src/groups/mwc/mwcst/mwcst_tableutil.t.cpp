@@ -210,11 +210,11 @@ int main(int argc, char* argv[])
 
             mwcu::TestTableInfoProvider tip;
 
-            tip.addHeaderLevel(mwcu::TestUtil::stringVector(data.d_header));
+            tip.addHeaderLevel(mwcst::TestUtil::stringVector(data.d_header));
 
             const char* const* rows = data.d_rows;
             while (*rows) {
-                tip.addRow(mwcu::TestUtil::stringVector(*rows));
+                tip.addRow(mwcst::TestUtil::stringVector(*rows));
                 ++rows;
             }
 
@@ -282,10 +282,10 @@ case 3: {
       P(LINE);
 
       TestTableInfoProvider tip;
-      tip.addHeaderLevel(mwcu::TestUtil::stringVector(data.d_header));
+      tip.addHeaderLevel(mwcst::TestUtil::stringVector(data.d_header));
       const char * const *rows = data.d_rows;
       while (*rows) {
-          tip.addRow(mwcu::TestUtil::stringVector(*rows));
+          tip.addRow(mwcst::TestUtil::stringVector(*rows));
           ++rows;
       }
 
@@ -333,12 +333,12 @@ case 3: {
             mwcu::TestTableInfoProvider tip;
 
             bsl::vector<bsl::vector<bsl::string> > expected;
-            expected.push_back(mwcu::TestUtil::stringVector(data.d_header));
+            expected.push_back(mwcst::TestUtil::stringVector(data.d_header));
             tip.addHeaderLevel(expected.back());
 
             const char* const* rows = data.d_rows;
             while (*rows) {
-                expected.push_back(mwcu::TestUtil::stringVector(*rows));
+                expected.push_back(mwcst::TestUtil::stringVector(*rows));
                 tip.addRow(expected.back());
                 ++rows;
             }
