@@ -20,7 +20,7 @@
 #include <mwcst_printutil.h>
 
 namespace BloombergLP {
-namespace mwcu {
+namespace mwcst {
 
 // ---------------
 // class StringKey
