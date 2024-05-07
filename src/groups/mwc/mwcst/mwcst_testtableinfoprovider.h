@@ -17,16 +17,16 @@
 #ifndef INCLUDED_MWCST_TESTTABLEINFOPROVIDER
 #define INCLUDED_MWCST_TESTTABLEINFOPROVIDER
 
-//@PURPOSE: Provide a test implementation of 'mwcu::TableInfoProvider'
+//@PURPOSE: Provide a test implementation of 'mwcst::TableInfoProvider'
 //
 //@CLASSES:
-// mwcu::TestTableInfoProvider
+// mwcst::TestTableInfoProvider
 //
 //@SEE_ALSO:
 //
 //@DESCRIPTION: This component defines a mechanism,
-// 'mwcu::TestTableInfoProvider', which is a test implementation of the
-// 'mwcu::TableInfoProvider' protocol for use in test drivers.  It allows the
+// 'mwcst::TestTableInfoProvider', which is a test implementation of the
+// 'mwcst::TableInfoProvider' protocol for use in test drivers.  It allows the
 // user to specify the values returned by the TIP.
 
 #include <bsl_string.h>
@@ -34,13 +34,13 @@
 #include <mwcst_tableinfoprovider.h>
 
 namespace BloombergLP {
-namespace mwcu {
+namespace mwcst {
 
 // ===========================
 // class TestTableInfoProvider
 // ===========================
 
-/// Test implementation of `mwcu::TableInfoProvider`
+/// Test implementation of `mwcst::TableInfoProvider`
 class TestTableInfoProvider : public mwcst::TableInfoProvider {
   private:
     // PRIVATE TYPES

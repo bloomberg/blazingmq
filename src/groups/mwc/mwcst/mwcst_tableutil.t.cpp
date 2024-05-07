@@ -30,7 +30,6 @@
 #include <bsl_sstream.h>
 
 using namespace BloombergLP;
-// using namespace mwcst;
 using namespace bsl;
 
 //=============================================================================
@@ -208,7 +207,7 @@ int main(int argc, char* argv[])
 
             P(LINE);
 
-            mwcu::TestTableInfoProvider tip;
+            mwcst::TestTableInfoProvider tip;
 
             tip.addHeaderLevel(mwcst::TestUtil::stringVector(data.d_header));
 
@@ -244,7 +243,7 @@ int main(int argc, char* argv[])
         SimpleInfoProvider provider;
         mwcst::TableUtil::printTable(bsl::cout, provider);
     } break;
-        /* TODO fix this test once mwcu::TestTable is written
+        /* TODO fix this test once mwcst::TestTable is written
 case 3: {
   // --------------------------------------------------------------------
   // PRINT CSV TEST
@@ -330,7 +329,7 @@ case 3: {
 
             P(LINE);
 
-            mwcu::TestTableInfoProvider tip;
+            mwcst::TestTableInfoProvider tip;
 
             bsl::vector<bsl::vector<bsl::string> > expected;
             expected.push_back(mwcst::TestUtil::stringVector(data.d_header));
