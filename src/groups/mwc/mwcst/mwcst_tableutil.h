@@ -20,18 +20,18 @@
 //@PURPOSE: Provide a set of functions for working with tables
 //
 //@CLASSES:
-// mwcu::TableUtil
+// mwcst::TableUtil
 //
 //@SEE_ALSO:
 //
-//@DESCRIPTION: This component defines a utility, 'mwcu::TableUtil',
+//@DESCRIPTION: This component defines a utility, 'mwcst::TableUtil',
 //  containing functions for working with tables defined by a
-//  'mwcu::TableInfoProvider'.
+//  'mwcst::TableInfoProvider'.
 //
 /// printTable
 ///---------
 // This function prints a table of data to a stream by using a provided
-// 'mwcu::TableInfoProvider' object which provides information about the table
+// 'mwcst::TableInfoProvider' object which provides information about the table
 // to be printed.  It supports printing tables with an arbitrary
 // number of header rows, and ensures that all columns are sized correctly so
 // all their values fit.
@@ -42,7 +42,7 @@
 // form '(row x column)'.  To do this, we must define a 'TableInfoProvider'
 // implementation that will handle this for us.
 //..
-//  class SimpleInfoProvider : public mwcu::TableInfoProvider {
+//  class SimpleInfoProvider : public mwcst::TableInfoProvider {
 //
 //      // ACCESSORS
 //      virtual int numRows() const
@@ -138,12 +138,9 @@
 namespace BloombergLP {
 
 namespace mwcst {
-class BaseTable;
-}
-
-namespace mwcu {
 
 // FORWARD DECLARATIONS
+class BaseTable;
 class TableInfoProvider;
 
 // ================
@@ -157,14 +154,15 @@ struct TableUtil {
     /// Print the table described by the specified `info` to the specified
     /// `stream`.  Return `0` on success or a negative value if the `info`
     /// is inconsistent.
-    static int printTable(bsl::ostream& stream, const TableInfoProvider& info);
+    static int printTable(bsl::ostream&                   stream,
+                          const mwcst::TableInfoProvider& info);
 
     /// Output the table described by the specified `info` to the specified
     /// `dest` vector<vector<string>>.  Note that only the first header row
     /// will be output to `dest`, as (*dest)[0].  Return `0` on success or
     /// a negative value if the `info` is inconsistent.
     static int outputToVector(bsl::vector<bsl::vector<bsl::string> >* dest,
-                              const TableInfoProvider&                info);
+                              const mwcst::TableInfoProvider&         info);
 
     /// Print the specified `table` to the specified
     /// `stream` as a csv with one line for the header, and one
@@ -173,7 +171,8 @@ struct TableUtil {
 
     /// Print the specified `info` to the specified `stream` in CSV format
     /// with one line for the header, and one line per row.
-    static void printCsv(bsl::ostream& stream, const TableInfoProvider& info);
+    static void printCsv(bsl::ostream&                   stream,
+                         const mwcst::TableInfoProvider& info);
 };
 
 }  // close package namespace

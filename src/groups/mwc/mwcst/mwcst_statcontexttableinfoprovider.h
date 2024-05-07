@@ -17,21 +17,21 @@
 #ifndef INCLUDED_MWCST_STATCONTEXTTABLEINFOPROVIDER
 #define INCLUDED_MWCST_STATCONTEXTTABLEINFOPROVIDER
 
-//@PURPOSE: Provide a 'mwcu::TableInfoProvider' for a table 'StatContext'.
+//@PURPOSE: Provide a 'mwcst::TableInfoProvider' for a table 'StatContext'.
 //
 //@CLASSES:
 // mwcst::StatContextTableInfoProvider
 //
 //@SEE_ALSO: mwcst_statcontext
-//           mwcu_tableutil
+//           mwcst_tableutil
 //
 //@DESCRIPTION: This component defines a mechanism,
 // 'mwcst::StatContextTableInfoProvider' which is an implementation of
-// 'mwcu::TableInfoProvider' using a 'mwcst::StatContext'.  It gives an
+// 'mwcst::TableInfoProvider' using a 'mwcst::StatContext'.  It gives an
 // application a way of easily printing a table 'mwcst::StatContext' to a
 // stream.
 //
-// Refer to the documentation of 'mwcst::Table' and 'mwcu::TableUtil' for
+// Refer to the documentation of 'mwcst::Table' and 'mwcst::TableUtil' for
 // usage examples.
 
 #include <mwcst_statcontext.h>
@@ -82,8 +82,8 @@ class StatContextTableInfoProviderCustomColumn {
 // class StatContextTableInfoProvider
 // ==================================
 
-/// `mwcu::TableInfoProvider` for a table `mwcst::StatContext`
-class StatContextTableInfoProvider : public mwcu::TableInfoProvider {
+/// `mwcst::TableInfoProvider` for a table `mwcst::StatContext`
+class StatContextTableInfoProvider : public mwcst::TableInfoProvider {
   public:
     // PUBLIC TYPES
 
@@ -348,7 +348,7 @@ class StatContextTableInfoProvider : public mwcu::TableInfoProvider {
 
     // ACCESSORS
 
-    // mwcu::TableInfoProvider
+    // mwcst::TableInfoProvider
 
     /// Return the number of data rows in the table
     int numRows() const BSLS_KEYWORD_OVERRIDE;

@@ -60,7 +60,7 @@
 // of Messages".  While these names aren't necessary for stat collection, they
 // are useful to components that will want to process the 'StatContext'.  See
 // 'mwcst::StatContextTableInfoProvider' for an example of a generic component
-// that can be used with the 'mwcu::TableUtil' utility to print a table
+// that can be used with the 'mwcst::TableUtil' utility to print a table
 // 'StatContext' to a stream.
 //
 /// Stat Tables
@@ -125,7 +125,7 @@
 // monitoring function. To do this the application accesses all the snapshotted
 // values and presumably prints them in some way.  For example,
 // 'mwcst::StatContextTableInfoProvider' can be used in a call to
-// 'mwcu::TableUtil' to print a table 'StatContext' to a stream.
+// 'mwcst::TableUtil' to print a table 'StatContext' to a stream.
 //
 /// Serializable Updates
 ///--------------------
@@ -253,7 +253,7 @@
 //  tip.update();
 //
 //  if (verbose) {
-//      mwcu::TableUtil::printTable(bsl::cout, tip);
+//      mwcst::TableUtil::printTable(bsl::cout, tip);
 //  }
 //..
 // The input stats are printed as follow (output is removed for clarity):
@@ -289,7 +289,7 @@
 //          bsl::cout << bsl::endl << "After " << (i + 1) << " seconds:"
 //                    << bsl::endl;
 //          tip.update();
-//          mwcu::TableUtil::printTable(bsl::cout, tip);
+//          mwcst::TableUtil::printTable(bsl::cout, tip);
 //      }
 //  }
 //..
@@ -365,7 +365,7 @@
 //  tip.update();
 //
 //  if (verbose) {
-//      mwcu::TableUtil::printTable(bsl::cout, tip);
+//      mwcst::TableUtil::printTable(bsl::cout, tip);
 //  }
 //..
 // This will print the hierarchy of contexts as follow.  Note that there
@@ -388,7 +388,7 @@
 //  context.snapshot();
 //  tip.update();
 //  if (verbose) {
-//      mwcu::TableUtil::printTable(bsl::cout, tip);
+//      mwcst::TableUtil::printTable(bsl::cout, tip);
 //  }
 //..
 // Notice the parentheses around the name of deleted client:
@@ -409,7 +409,7 @@
 //  tip.setContext(&context);
 //  tip.update();
 //  if (verbose) {
-//      mwcu::TableUtil::printTable(bsl::cout, tip);
+//      mwcst::TableUtil::printTable(bsl::cout, tip);
 //  }
 //..
 // The code above will print:
@@ -471,7 +471,7 @@
 //  tip.addColumn("Max", 0, mwcst::StatUtil::absoluteMax);
 //  tip.update();
 //  if (verbose) {
-//      mwcu::TableUtil::printTable(bsl::cout, tip);
+//      mwcst::TableUtil::printTable(bsl::cout, tip);
 //  }
 //..
 // This is what it prints:

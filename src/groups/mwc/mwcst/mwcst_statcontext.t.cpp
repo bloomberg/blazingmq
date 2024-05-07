@@ -284,7 +284,7 @@ static void usageExample(bsl::ostream& stream, bslma::Allocator* allocator)
     tip.update();
 
     if (verbose) {
-        mwcu::TableUtil::printTable(stream, tip);
+        mwcst::TableUtil::printTable(stream, tip);
     }
 
     // The input stats are printed as follow (output is removed for clarity):
@@ -319,7 +319,7 @@ static void usageExample(bsl::ostream& stream, bslma::Allocator* allocator)
             stream << bsl::endl
                    << "After " << (i + 1) << " seconds:" << bsl::endl;
             tip.update();
-            mwcu::TableUtil::printTable(stream, tip);
+            mwcst::TableUtil::printTable(stream, tip);
         }
     }
 
@@ -385,7 +385,7 @@ static void usageExampleUpdate(bsl::ostream&     stream,
     tip.update();
 
     if (verbose) {
-        mwcu::TableUtil::printTable(stream, tip);
+        mwcst::TableUtil::printTable(stream, tip);
     }
 
     context.clearValues();
@@ -404,7 +404,7 @@ static void usageExampleUpdate(bsl::ostream&     stream,
             stream << bsl::endl
                    << "After " << (i + 1) << " seconds:" << bsl::endl;
             tip.update();
-            mwcu::TableUtil::printTable(stream, tip);
+            mwcst::TableUtil::printTable(stream, tip);
         }
     }
 }
@@ -471,7 +471,7 @@ static void tableUsageExample(bsl::ostream&     stream,
     tip.update();
 
     if (verbose) {
-        mwcu::TableUtil::printTable(stream, tip);
+        mwcst::TableUtil::printTable(stream, tip);
     }
 
     // This will print the hierarchy of contexts as follow.  Note that there
@@ -493,7 +493,7 @@ static void tableUsageExample(bsl::ostream&     stream,
     context.snapshot();
     tip.update();
     if (verbose) {
-        mwcu::TableUtil::printTable(stream, tip);
+        mwcst::TableUtil::printTable(stream, tip);
     }
 
     // Notice the parentheses around the name of deleted client:
@@ -513,7 +513,7 @@ static void tableUsageExample(bsl::ostream&     stream,
     tip.setContext(&context);
     tip.update();
     if (verbose) {
-        mwcu::TableUtil::printTable(stream, tip);
+        mwcst::TableUtil::printTable(stream, tip);
     }
 
     // The code above will print:
@@ -569,7 +569,7 @@ static void tableUsageExampleUpdate(bsl::ostream&     stream,
     tip.update();
 
     if (verbose) {
-        mwcu::TableUtil::printTable(stream, tip);
+        mwcst::TableUtil::printTable(stream, tip);
     }
 
     client1.clear();
@@ -577,14 +577,14 @@ static void tableUsageExampleUpdate(bsl::ostream&     stream,
     updatedContext.snapshotFromUpdate(update);
     tip.update();
     if (verbose) {
-        mwcu::TableUtil::printTable(stream, tip);
+        mwcst::TableUtil::printTable(stream, tip);
     }
 
     updatedContext.cleanup();
     tip.setContext(&updatedContext);
     tip.update();
     if (verbose) {
-        mwcu::TableUtil::printTable(stream, tip);
+        mwcst::TableUtil::printTable(stream, tip);
     }
 }
 
@@ -641,7 +641,7 @@ static void subcontextUsageExample(bsl::ostream&     stream,
     tip.addColumn("Max", 0, mwcst::StatUtil::absoluteMax);
     tip.update();
     if (verbose) {
-        mwcu::TableUtil::printTable(stream, tip);
+        mwcst::TableUtil::printTable(stream, tip);
     }
 
     // This is what it prints:
@@ -693,7 +693,7 @@ static void subcontextUsageExampleUpdate(bsl::ostream&     stream,
     tip.addColumn("Max", 0, mwcst::StatUtil::absoluteMax);
     tip.update();
     if (verbose) {
-        mwcu::TableUtil::printTable(stream, tip);
+        mwcst::TableUtil::printTable(stream, tip);
     }
 }
 
@@ -770,7 +770,7 @@ static void valueLevelUsageExample(bsl::ostream&     stream,
         tip.update();
         if (verbose) {
             stream << bsl::endl << "Minute number " << i;
-            mwcu::TableUtil::printTable(stream, tip);
+            mwcst::TableUtil::printTable(stream, tip);
         }
     }
 }
@@ -844,7 +844,7 @@ static void valueLevelUsageExampleUpdate(bsl::ostream&     stream,
         tip.update();
         if (verbose) {
             stream << bsl::endl << "Minute number " << i;
-            mwcu::TableUtil::printTable(stream, tip);
+            mwcst::TableUtil::printTable(stream, tip);
         }
     }
 }

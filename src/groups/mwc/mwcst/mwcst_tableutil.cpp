@@ -32,14 +32,15 @@
 #include <bsls_alignedbuffer.h>
 
 namespace BloombergLP {
-namespace mwcu {
+namespace mwcst {
 
 // ---------------
 // class TableUtil
 // ---------------
 
 // CLASS METHODS
-int TableUtil::printTable(bsl::ostream& stream, const TableInfoProvider& info)
+int TableUtil::printTable(bsl::ostream&                   stream,
+                          const mwcst::TableInfoProvider& info)
 {
     bdlma::LocalSequentialAllocator<5 * 1024> seqAlloc;
 
@@ -187,7 +188,7 @@ int TableUtil::printTable(bsl::ostream& stream, const TableInfoProvider& info)
 }
 
 int TableUtil::outputToVector(bsl::vector<bsl::vector<bsl::string> >* dest,
-                              const TableInfoProvider&                info)
+                              const mwcst::TableInfoProvider&         info)
 {
     bsls::AlignedBuffer<1024>   buf;
     bdlsb::FixedMemOutStreamBuf sb(buf.buffer(), sizeof(buf));
@@ -254,7 +255,8 @@ void TableUtil::printCsv(bsl::ostream& stream, const mwcst::BaseTable& table)
     }
 }
 
-void TableUtil::printCsv(bsl::ostream& stream, const TableInfoProvider& info)
+void TableUtil::printCsv(bsl::ostream&                   stream,
+                         const mwcst::TableInfoProvider& info)
 {
     int numRows    = info.numRows();
     int numColumns = info.numColumns(0);

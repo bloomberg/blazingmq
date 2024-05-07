@@ -241,8 +241,8 @@ class BasicTableInfoProvider_ValuePrintVisitor {
 // class BasicTableInfoProvider
 // ============================
 
-/// Adapts `mwcst::BaseTable` to `mwcu::TableInfoProvider`
-class BasicTableInfoProvider : public mwcu::TableInfoProvider {
+/// Adapts `mwcst::BaseTable` to `mwcst::TableInfoProvider`
+class BasicTableInfoProvider : public mwcst::TableInfoProvider {
   public:
     // PUBLIC TYPES
     typedef BasicTableInfoProvider_ColumnFormat ColumnFormat;

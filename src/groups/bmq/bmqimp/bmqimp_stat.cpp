@@ -44,7 +44,7 @@ void Stat::printStats(bsl::ostream& stream, bool includeDelta) const
                                                             : &d_tipNoDelta);
 
     table->records().update();
-    mwcu::TableUtil::printTable(stream, *tip);
+    mwcst::TableUtil::printTable(stream, *tip);
     stream << "\n";
 }
 

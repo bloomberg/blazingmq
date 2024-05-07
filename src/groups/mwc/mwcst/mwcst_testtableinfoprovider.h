@@ -41,7 +41,7 @@ namespace mwcu {
 // ===========================
 
 /// Test implementation of `mwcu::TableInfoProvider`
-class TestTableInfoProvider : public TableInfoProvider {
+class TestTableInfoProvider : public mwcst::TableInfoProvider {
   private:
     // PRIVATE TYPES
     typedef bsl::vector<bsl::string> Row;

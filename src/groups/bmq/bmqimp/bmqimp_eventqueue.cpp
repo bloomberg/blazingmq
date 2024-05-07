@@ -635,10 +635,10 @@ void EventQueue::printStats(bsl::ostream& stream, bool includeDelta) const
     BSLS_ASSERT_OPT(d_stats_mp && "Stats NOT initialized");
 
     if (includeDelta) {
-        mwcu::TableUtil::printTable(stream, d_statTip);
+        mwcst::TableUtil::printTable(stream, d_statTip);
     }
     else {
-        mwcu::TableUtil::printTable(stream, d_statTipNoDelta);
+        mwcst::TableUtil::printTable(stream, d_statTipNoDelta);
     }
     stream << "\n";
 }

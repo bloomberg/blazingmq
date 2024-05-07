@@ -484,11 +484,11 @@ void Application::printStats(bool isFinal)
             &tip,
             d_channelsStatContext_mp.get());
         table.records().update();
-        mwcu::TableUtil::printTable(os, tip);
+        mwcst::TableUtil::printTable(os, tip);
     }
     else {
         d_channelsTable.records().update();
-        mwcu::TableUtil::printTable(os, d_channelsTip);
+        mwcst::TableUtil::printTable(os, d_channelsTip);
     }
 
     BALL_LOG_INFO << os.str();

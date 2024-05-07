@@ -30,7 +30,7 @@
 #include <bsl_sstream.h>
 
 using namespace BloombergLP;
-using namespace mwcu;
+// using namespace mwcst;
 using namespace bsl;
 
 //=============================================================================
@@ -64,7 +64,7 @@ static int testStatus = 0;
 // class SimpleInfoProvider
 // ========================
 
-class SimpleInfoProvider : public mwcu::TableInfoProvider {
+class SimpleInfoProvider : public mwcst::TableInfoProvider {
     // ACCESSORS
     int  numRows() const BSLS_KEYWORD_OVERRIDE;
     int  numColumns(int level) const BSLS_KEYWORD_OVERRIDE;
@@ -208,7 +208,7 @@ int main(int argc, char* argv[])
 
             P(LINE);
 
-            TestTableInfoProvider tip;
+            mwcu::TestTableInfoProvider tip;
 
             tip.addHeaderLevel(mwcu::TestUtil::stringVector(data.d_header));
 
@@ -219,7 +219,7 @@ int main(int argc, char* argv[])
             }
 
             mwcu::MemOutStream stream;
-            TableUtil::printCsv(stream, tip);
+            mwcst::TableUtil::printCsv(stream, tip);
             ASSERT_EQUALS(stream.str(), data.d_expected);
         }
 
@@ -242,7 +242,7 @@ int main(int argc, char* argv[])
             cout << endl << "USAGE EXAMPLE" << endl << "=============" << endl;
 
         SimpleInfoProvider provider;
-        TableUtil::printTable(bsl::cout, provider);
+        mwcst::TableUtil::printTable(bsl::cout, provider);
     } break;
         /* TODO fix this test once mwcu::TestTable is written
 case 3: {
@@ -330,7 +330,7 @@ case 3: {
 
             P(LINE);
 
-            TestTableInfoProvider tip;
+            mwcu::TestTableInfoProvider tip;
 
             bsl::vector<bsl::vector<bsl::string> > expected;
             expected.push_back(mwcu::TestUtil::stringVector(data.d_header));
@@ -344,7 +344,7 @@ case 3: {
             }
 
             bsl::vector<bsl::vector<bsl::string> > output;
-            int ret = TableUtil::outputToVector(&output, tip);
+            int ret = mwcst::TableUtil::outputToVector(&output, tip);
             ASSERT_EQUALS(ret, 0);
             ASSERT_EQUALS(output, expected);
         }

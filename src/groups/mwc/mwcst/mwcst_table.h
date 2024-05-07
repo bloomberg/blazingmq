@@ -178,7 +178,7 @@
 // This function associates the columns of the table with the columns of the
 // table info provider.  It also sets up column groups and formatting options
 // like displaying blanks instead of zeros.  Refer to the documentation
-// in 'mwcu::TableUtil' for details.  The table that will be printed looks
+// in 'mwcst::TableUtil' for details.  The table that will be printed looks
 // like this (only showing IN; OUT is identical):
 //..
 //                |                    IN                     |
