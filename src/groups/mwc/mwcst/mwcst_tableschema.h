@@ -54,7 +54,7 @@ class TableSchema;
 class TableSchemaColumn {
   public:
     // PUBLIC TYPES
-    typedef bsl::function<void(mwct::Value*           value,
+    typedef bsl::function<void(mwcst::Value*          value,
                                const StatContext&     context,
                                int                    level,
                                StatContext::ValueType type)>
@@ -84,7 +84,7 @@ class TableSchemaColumn {
     // ACCESSORS
     const bsl::string& name() const;
 
-    void evaluate(mwct::Value*           value,
+    void evaluate(mwcst::Value*          value,
                   const StatContext&     context,
                   int                    level,
                   StatContext::ValueType type) const;

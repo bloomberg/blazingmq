@@ -143,7 +143,7 @@ class BasicTableInfoProvider_ColumnFormat {
 // class BasicTableInfoProvider_ValueSizeVisitor
 // =============================================
 
-/// A `mwct::Value` visitor that returns the printed size of the value
+/// A `mwcst::Value` visitor that returns the printed size of the value
 class BasicTableInfoProvider_ValueSizeVisitor {
   public:
     // PUBLIC TYPES
@@ -189,7 +189,7 @@ class BasicTableInfoProvider_ValueSizeVisitor {
 // class BasicTableInfoProvider_ValuePrintVisitor
 // ==============================================
 
-/// A `mwct::Value` visitor that prints the a value
+/// A `mwcst::Value` visitor that prints the a value
 class BasicTableInfoProvider_ValuePrintVisitor {
   public:
     // PUBLIC TYPES

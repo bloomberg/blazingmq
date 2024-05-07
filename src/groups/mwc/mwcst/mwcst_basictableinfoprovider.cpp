@@ -442,7 +442,7 @@ int BasicTableInfoProvider::numHeaderLevels() const
 int BasicTableInfoProvider::getValueSize(int row, int column) const
 {
     const ColumnFormat& fmt = d_columns[column];
-    mwct::Value         value;
+    mwcst::Value        value;
 
     if (fmt.d_tableColumnIndex >= 0) {
         d_table_p->value(&value, row, fmt.d_tableColumnIndex);
@@ -461,7 +461,7 @@ bsl::ostream& BasicTableInfoProvider::printValue(bsl::ostream& stream,
                                                  int /*width*/) const
 {
     const ColumnFormat& fmt = d_columns[column];
-    mwct::Value         value;
+    mwcst::Value        value;
 
     if (fmt.d_tableColumnIndex >= 0) {
         d_table_p->value(&value, row, fmt.d_tableColumnIndex);

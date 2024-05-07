@@ -241,7 +241,7 @@ void TableUtil::printCsv(bsl::ostream& stream, const Table& table)
     stream << '\n';
 
     // Output rows
-    mwct::Value value;
+    mwcst::Value value;
     for (int row = 0; row < numRows; ++row) {
         for (int col = 0; col < numColumns; ++col) {
             if (col != 0) {

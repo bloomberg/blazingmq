@@ -31,7 +31,7 @@
 
 namespace BloombergLP {
 
-namespace mwct {
+namespace mwcst {
 class Value;
 }
 
@@ -41,7 +41,7 @@ namespace mwcu {
 // class Table
 // ===========
 
-/// Protocol for a generic table of `mwct::Value`s
+/// Protocol for a generic table of `mwcst::Value`s
 class Table {
   public:
     // CREATORS
@@ -62,7 +62,7 @@ class Table {
 
     /// Load into the specified `value` the value in the specified `column`
     /// of the specified `row`.
-    virtual void value(mwct::Value* value, int row, int column) const = 0;
+    virtual void value(mwcst::Value* value, int row, int column) const = 0;
 };
 
 }  // close package namespace
