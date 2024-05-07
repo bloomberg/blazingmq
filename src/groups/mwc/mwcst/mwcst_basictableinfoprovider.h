@@ -18,15 +18,15 @@
 #define INCLUDED_MWCU_BASICTABLEINFOPROVIDER
 
 //@PURPOSE: Provide an adapter of 'mwcst::BaseTable' to
-//'mwcu::TableInfoProvider'
+//'mwcst::TableInfoProvider'
 //
 //@CLASSES:
-// mwcu::BasicTableInfoProvider
+// mwcst::BasicTableInfoProvider
 //
 //@DESCRIPTION: This component defines a mechanism,
-// 'mwcu::BasicTableInfoProvider', which adapts the 'mwcst::BaseTable' protocol
-// to the 'mwcu::TableInfoProvider' protocol.  It allows the user to specifiy
-// exactly how a 'mwcst::BaseTable' should be printed.
+// 'mwcst::BasicTableInfoProvider', which adapts the 'mwcst::BaseTable'
+// protocol to the 'mwcst::TableInfoProvider' protocol.  It allows the user to
+// specifiy exactly how a 'mwcst::BaseTable' should be printed.
 
 #include <mwcst_tableinfoprovider.h>
 
@@ -40,12 +40,9 @@
 namespace BloombergLP {
 
 namespace mwcst {
-class BaseTable;
-}
-
-namespace mwcu {
 
 // FORWARD DECLARATIONS
+class BaseTable;
 class BasicTableInfoProvider;
 class BasicTableInfoProvider_ValueSizeVisitor;
 class BasicTableInfoProvider_ValuePrintVisitor;
@@ -300,7 +297,7 @@ class BasicTableInfoProvider : public mwcst::TableInfoProvider {
 
     // ACCESSORS
 
-    // mwcu::TableInfoProvider
+    // mwcst::TableInfoProvider
     int  numRows() const BSLS_KEYWORD_OVERRIDE;
     int  numColumns(int level) const BSLS_KEYWORD_OVERRIDE;
     bool hasTitle() const BSLS_KEYWORD_OVERRIDE;

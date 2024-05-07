@@ -17,6 +17,7 @@
 #include <mwcst_table.h>
 
 #include <mwcscm_version.h>
+
 namespace BloombergLP {
 namespace mwcst {
 

@@ -146,11 +146,11 @@
 // argument 'numSamples' is the number of samples in the stat context.
 //
 // Now it is time to print this table, by creating a
-// 'mwcu::BasicTableInfoProvider' associated with the table (pass the table
+// 'mwcst::BasicTableInfoProvider' associated with the table (pass the table
 // in the constructor, and initializing it using the following function:
 //..
-//  void initTIP(mwcu::BasicTableInfoProvider *tip,
-//               int                           numSamples)
+//  void initTIP(mwcst::BasicTableInfoProvider *tip,
+//               int                            numSamples)
 //  {
 //      // ID
 //      tip->setColumnGroup("");

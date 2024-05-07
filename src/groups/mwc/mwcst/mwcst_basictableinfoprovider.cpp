@@ -26,7 +26,7 @@
 #include <bsl_limits.h>
 
 namespace BloombergLP {
-namespace mwcu {
+namespace mwcst {
 
 namespace {
 
@@ -413,7 +413,7 @@ BasicTableInfoProvider::addColumn(const bslstl::StringRef& tableColumnName,
 
 // ACCESSORS
 
-// mwcu::TableInfoProvider
+// mwcst::TableInfoProvider
 int BasicTableInfoProvider::numRows() const
 {
     return d_table_p->numRows();

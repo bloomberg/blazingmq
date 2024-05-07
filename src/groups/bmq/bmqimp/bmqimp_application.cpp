@@ -478,7 +478,7 @@ void Application::printStats(bool isFinal)
     if (isFinal) {
         // For the final stats, no need to print the 'delta' columns
         mwcst::Table                 table;
-        mwcu::BasicTableInfoProvider tip;
+        mwcst::BasicTableInfoProvider tip;
         mwcio::StatChannelFactoryUtil::initializeStatsTable(
             &table,
             &tip,
