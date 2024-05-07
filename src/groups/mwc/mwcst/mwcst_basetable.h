@@ -13,16 +13,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mwcst_utable.h -*-C++-*-
-#ifndef INCLUDED_MWCU_TABLE
-#define INCLUDED_MWCU_TABLE
+// mwcst_basetable.h -*-C++-*-
+#ifndef INCLUDED_MWCST_BASETABLE
+#define INCLUDED_MWCST_BASETABLE
 
-//@PURPOSE: Provide a generic Table protocol
+//@PURPOSE: Provide a generic BaseTable protocol
 //
 //@CLASSES:
-// mwcu::Table
+// mwcst::BaseTable
 //
-//@DESCRIPTION: This component defines a pure protocol, 'mwcu::Table', for a
+//@DESCRIPTION: This component defines a pure protocol, 'mwcst::BaseTable', for
+// a
 // generic 2-dimensional table of values.
 
 #ifndef INCLUDED_BSL_STRING
@@ -35,17 +36,17 @@ namespace mwcst {
 class Value;
 }
 
-namespace mwcu {
+namespace mwcst {
 
-// ===========
-// class Table
-// ===========
+// ===============
+// class BaseTable
+// ===============
 
 /// Protocol for a generic table of `mwcst::Value`s
-class Table {
+class BaseTable {
   public:
     // CREATORS
-    virtual ~Table();
+    virtual ~BaseTable();
 
     // MANIPULATORS
 

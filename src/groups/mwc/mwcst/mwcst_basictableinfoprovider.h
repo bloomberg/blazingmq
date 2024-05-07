@@ -17,15 +17,16 @@
 #ifndef INCLUDED_MWCU_BASICTABLEINFOPROVIDER
 #define INCLUDED_MWCU_BASICTABLEINFOPROVIDER
 
-//@PURPOSE: Provide an adapter of 'mwcu::Table' to 'mwcu::TableInfoProvider'
+//@PURPOSE: Provide an adapter of 'mwcst::BaseTable' to
+//'mwcu::TableInfoProvider'
 //
 //@CLASSES:
 // mwcu::BasicTableInfoProvider
 //
 //@DESCRIPTION: This component defines a mechanism,
-// 'mwcu::BasicTableInfoProvider', which adapts the 'mwcu::Table' protocol to
-// the 'mwcu::TableInfoProvider' protocol.  It allows the user to specifiy
-// exactly how a 'mwcu::Table' should be printed.
+// 'mwcu::BasicTableInfoProvider', which adapts the 'mwcst::BaseTable' protocol
+// to the 'mwcu::TableInfoProvider' protocol.  It allows the user to specifiy
+// exactly how a 'mwcst::BaseTable' should be printed.
 
 #include <mwcst_tableinfoprovider.h>
 
@@ -37,10 +38,14 @@
 #include <bslmf_nil.h>
 
 namespace BloombergLP {
+
+namespace mwcst {
+class BaseTable;
+}
+
 namespace mwcu {
 
 // FORWARD DECLARATIONS
-class Table;
 class BasicTableInfoProvider;
 class BasicTableInfoProvider_ValueSizeVisitor;
 class BasicTableInfoProvider_ValuePrintVisitor;
@@ -236,7 +241,7 @@ class BasicTableInfoProvider_ValuePrintVisitor {
 // class BasicTableInfoProvider
 // ============================
 
-/// Adapts `mwcu::Table` to `mwcu::TableInfoProvider`
+/// Adapts `mwcst::BaseTable` to `mwcu::TableInfoProvider`
 class BasicTableInfoProvider : public mwcu::TableInfoProvider {
   public:
     // PUBLIC TYPES
@@ -249,7 +254,7 @@ class BasicTableInfoProvider : public mwcu::TableInfoProvider {
     typedef bsl::vector<ColumnFormat>                ColumnList;
 
     // DATA
-    mwcu::Table*              d_table_p;
+    mwcst::BaseTable*         d_table_p;
     bsl::string               d_title;
     bsl::vector<bsl::string>  d_columnGroups;
     ColumnList                d_columns;
@@ -263,7 +268,7 @@ class BasicTableInfoProvider : public mwcu::TableInfoProvider {
   public:
     // CREATORS
     BasicTableInfoProvider(bslma::Allocator* basicAllocator = 0);
-    BasicTableInfoProvider(mwcu::Table*      table,
+    BasicTableInfoProvider(mwcst::BaseTable* table,
                            bslma::Allocator* basicAllocator = 0);
 
     // MANIPULATORS
@@ -273,7 +278,7 @@ class BasicTableInfoProvider : public mwcu::TableInfoProvider {
 
     /// Set the table to be printed to the specified `table`.  Any added
     /// columns will continue to refer to the same column indices.
-    void setTable(mwcu::Table* table);
+    void setTable(mwcst::BaseTable* table);
 
     /// Find the right column indices in the current table corresponding to
     /// the source column names of the current columns.

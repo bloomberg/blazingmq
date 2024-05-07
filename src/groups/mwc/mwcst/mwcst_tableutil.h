@@ -136,10 +136,14 @@
 #endif
 
 namespace BloombergLP {
+
+namespace mwcst {
+class BaseTable;
+}
+
 namespace mwcu {
 
 // FORWARD DECLARATIONS
-class Table;
 class TableInfoProvider;
 
 // ================
@@ -165,7 +169,7 @@ struct TableUtil {
     /// Print the specified `table` to the specified
     /// `stream` as a csv with one line for the header, and one
     /// line per row.
-    static void printCsv(bsl::ostream& stream, const Table& table);
+    static void printCsv(bsl::ostream& stream, const mwcst::BaseTable& table);
 
     /// Print the specified `info` to the specified `stream` in CSV format
     /// with one line for the header, and one line per row.

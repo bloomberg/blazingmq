@@ -188,9 +188,9 @@
 //     foo.tsk:123| 28,320| 28,320|  484.00| 120|   120|  2.00|
 //..
 
+#include <mwcst_basetable.h>
 #include <mwcst_tablerecords.h>
 #include <mwcst_tableschema.h>
-#include <mwcst_utable.h>
 
 namespace BloombergLP {
 namespace mwcst {
@@ -200,7 +200,7 @@ namespace mwcst {
 // ===========
 
 /// Table of values obtained from a `mwcst::StatContext`.
-class Table : public mwcu::Table {
+class Table : public mwcst::BaseTable {
   private:
     // DATA
     TableSchema d_schema;

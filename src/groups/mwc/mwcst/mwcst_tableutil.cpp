@@ -17,8 +17,8 @@
 #include <mwcst_tableutil.h>
 
 #include <mwcscm_version.h>
+#include <mwcst_basetable.h>
 #include <mwcst_tableinfoprovider.h>
-#include <mwcst_utable.h>
 
 #include <mwcst_value.h>
 
@@ -227,7 +227,7 @@ int TableUtil::outputToVector(bsl::vector<bsl::vector<bsl::string> >* dest,
     return 0;
 }
 
-void TableUtil::printCsv(bsl::ostream& stream, const Table& table)
+void TableUtil::printCsv(bsl::ostream& stream, const mwcst::BaseTable& table)
 {
     int numRows    = table.numRows();
     int numColumns = table.numColumns();

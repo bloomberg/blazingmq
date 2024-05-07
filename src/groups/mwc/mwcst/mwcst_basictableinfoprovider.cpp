@@ -17,8 +17,8 @@
 #include <mwcst_basictableinfoprovider.h>
 
 #include <mwcscm_version.h>
+#include <mwcst_basetable.h>
 #include <mwcst_printutil.h>
-#include <mwcst_utable.h>
 
 #include <mwcst_value.h>
 
@@ -34,7 +34,7 @@ namespace {
 const bslstl::StringRef NA_STRING("N/A");
 
 // FUNCTIONS
-int findColumn(mwcu::Table* table, const bslstl::StringRef& columnName)
+int findColumn(mwcst::BaseTable* table, const bslstl::StringRef& columnName)
 {
     if (table) {
         for (int i = 0; i < table->numColumns(); ++i) {
@@ -349,7 +349,7 @@ BasicTableInfoProvider::BasicTableInfoProvider(
 }
 
 BasicTableInfoProvider::BasicTableInfoProvider(
-    mwcu::Table*      table,
+    mwcst::BaseTable* table,
     bslma::Allocator* basicAllocator)
 : d_table_p(table)
 , d_title(basicAllocator)
@@ -367,7 +367,7 @@ void BasicTableInfoProvider::reset()
     d_columns.clear();
 }
 
-void BasicTableInfoProvider::setTable(mwcu::Table* table)
+void BasicTableInfoProvider::setTable(mwcst::BaseTable* table)
 {
     d_table_p = table;
 }
