@@ -19,5 +19,8 @@ macro(setup_package_provider)
 
         add_library(benchmark ALIAS benchmark::benchmark)
         add_library(zlib ALIAS ZLIB::ZLIB)
+
+        find_package(GTest CONFIG REQUIRED)
+        add_library(gmock ALIAS GTest::gmock)
     endif()
 endmacro()

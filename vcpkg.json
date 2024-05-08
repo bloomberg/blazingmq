@@ -1,11 +1,13 @@
 {
-  "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
-  "name": "blazingmq",
-  "version": "1.13.3",
-  "dependencies": [
-    "bde",
-    "ntf-core",
-    "benchmark",
-    "zlib"
-  ]
+    "$schema":
+        "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
+    "name": "blazingmq",
+    "version": "1.13.3",
+    "dependencies": [
+        "bde",
+        "ntf-core",
+        "benchmark",
+        "gtest",
+        "zlib"
+    ]
 }
