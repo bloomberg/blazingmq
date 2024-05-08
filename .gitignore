@@ -18,7 +18,6 @@ CMakeUserPresets.json
 # Mac DS_Store files
 **/.DS_Store
 .lcldev/
-.vscode/*
 settings.json
 
 # Python files
