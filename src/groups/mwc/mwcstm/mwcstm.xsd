@@ -57,8 +57,8 @@
       </xs:documentation>
     </xs:annotation>
     <xs:restriction base='xs:string'>
-      <xs:enumeration value='DMCSTM_CONTEXT_CREATED' bdem:id='0'/>
-      <xs:enumeration value='DMCSTM_CONTEXT_DELETED' bdem:id='1'/>
+      <xs:enumeration value='e_CONTEXT_CREATED' bdem:id='0'/>
+      <xs:enumeration value='e_CONTEXT_DELETED' bdem:id='1'/>
     </xs:restriction>
   </xs:simpleType>
 
@@ -94,8 +94,8 @@
       </xs:documentation>
     </xs:annotation>
     <xs:restriction base='xs:string'>
-      <xs:enumeration value='DMCSTM_IS_TABLE'             bdem:id='0'/>
-      <xs:enumeration value='DMCSTM_STORE_EXPIRED_VALUES' bdem:id='1'/>
+      <xs:enumeration value='e_IS_TABLE'             bdem:id='0'/>
+      <xs:enumeration value='e_STORE_EXPIRED_VALUES' bdem:id='1'/>
     </xs:restriction>
   </xs:simpleType>
 
@@ -124,8 +124,8 @@
       </xs:documentation>
     </xs:annotation>
     <xs:restriction base='xs:string'>
-      <xs:enumeration value='DMCSTM_CONTINUOUS' bdem:id='0'/>
-      <xs:enumeration value='DMCSTM_DISCRETE'   bdem:id='1'/>
+      <xs:enumeration value='e_CONTINUOUS' bdem:id='0'/>
+      <xs:enumeration value='e_DISCRETE'   bdem:id='1'/>
     </xs:restriction>
   </xs:simpleType>
 
@@ -157,15 +157,15 @@
       </xs:documentation>
     </xs:annotation>
     <xs:restriction base='xs:string'>
-      <xs:enumeration value='DMCSTM_ABSOLUTE_MIN' bdem:id='0'/>
-      <xs:enumeration value='DMCSTM_ABSOLUTE_MAX' bdem:id='1'/>
-      <xs:enumeration value='DMCSTM_MIN'          bdem:id='2'/>
-      <xs:enumeration value='DMCSTM_MAX'          bdem:id='3'/>
-      <xs:enumeration value='DMCSTM_EVENTS'       bdem:id='4'/>
-      <xs:enumeration value='DMCSTM_SUM'          bdem:id='5'/>
-      <xs:enumeration value='DMCSTM_VALUE'        bdem:id='6'/>
-      <xs:enumeration value='DMCSTM_INCREMENTS'   bdem:id='7'/>
-      <xs:enumeration value='DMCSTM_DECREMENTS'   bdem:id='8'/>
+      <xs:enumeration value='e_ABSOLUTE_MIN' bdem:id='0'/>
+      <xs:enumeration value='e_ABSOLUTE_MAX' bdem:id='1'/>
+      <xs:enumeration value='e_MIN'          bdem:id='2'/>
+      <xs:enumeration value='e_MAX'          bdem:id='3'/>
+      <xs:enumeration value='e_EVENTS'       bdem:id='4'/>
+      <xs:enumeration value='e_SUM'          bdem:id='5'/>
+      <xs:enumeration value='e_VALUE'        bdem:id='6'/>
+      <xs:enumeration value='e_INCREMENTS'   bdem:id='7'/>
+      <xs:enumeration value='e_DECREMENTS'   bdem:id='8'/>
     </xs:restriction>
   </xs:simpleType>
 

@@ -180,7 +180,7 @@ struct ClientStats {
 /// out).
 bool filterDirect(const mwcst::TableRecords::Record& record)
 {
-    return record.type() == mwcst::StatContext::DMCST_TOTAL_VALUE;
+    return record.type() == mwcst::StatContext::e_TOTAL_VALUE;
 }
 
 /// Functor object returning `true`, i.e., filter out, if the specified 'name'
@@ -224,12 +224,12 @@ QueueStatsDomain::getValue(const mwcst::StatContext& context,
 
 #define STAT_SINGLE(OPERATION, STAT)                                          \
     mwcst::StatUtil::OPERATION(                                               \
-        context.value(mwcst::StatContext::DMCST_DIRECT_VALUE, STAT),          \
+        context.value(mwcst::StatContext::e_DIRECT_VALUE, STAT),              \
         latestSnapshot)
 
 #define STAT_RANGE(OPERATION, STAT)                                           \
     mwcst::StatUtil::OPERATION(                                               \
-        context.value(mwcst::StatContext::DMCST_DIRECT_VALUE, STAT),          \
+        context.value(mwcst::StatContext::e_DIRECT_VALUE, STAT),              \
         latestSnapshot,                                                       \
         oldestSnapshot)
 
@@ -666,12 +666,12 @@ QueueStatsClient::getValue(const mwcst::StatContext& context,
 
 #define STAT_SINGLE(OPERATION, STAT)                                          \
     mwcst::StatUtil::OPERATION(                                               \
-        context.value(mwcst::StatContext::DMCST_DIRECT_VALUE, STAT),          \
+        context.value(mwcst::StatContext::e_DIRECT_VALUE, STAT),              \
         latestSnapshot)
 
 #define STAT_RANGE(OPERATION, STAT)                                           \
     mwcst::StatUtil::OPERATION(                                               \
-        context.value(mwcst::StatContext::DMCST_DIRECT_VALUE, STAT),          \
+        context.value(mwcst::StatContext::e_DIRECT_VALUE, STAT),              \
         latestSnapshot,                                                       \
         oldestSnapshot)
 
@@ -790,12 +790,12 @@ QueueStatsUtil::initializeStatContextDomains(int               historySize,
         .value("messages")
         .value("bytes")
         .value("ack")
-        .value("ack_time", mwcst::StatValue::DMCST_DISCRETE)
+        .value("ack_time", mwcst::StatValue::e_DISCRETE)
         .value("nack")
         .value("confirm")
-        .value("confirm_time", mwcst::StatValue::DMCST_DISCRETE)
+        .value("confirm_time", mwcst::StatValue::e_DISCRETE)
         .value("reject")
-        .value("queue_time", mwcst::StatValue::DMCST_DISCRETE)
+        .value("queue_time", mwcst::StatValue::e_DISCRETE)
         .value("gc")
         .value("push")
         .value("put")

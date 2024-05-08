@@ -152,7 +152,7 @@ Application::createStatContext(int historySize, bslma::Allocator* allocator)
     config.isTable(true);
     config.value("message", historySize)
         .value("event", historySize)
-        .value("latency", mwcst::StatValue::DMCST_DISCRETE, historySize);
+        .value("latency", mwcst::StatValue::e_DISCRETE, historySize);
     return bsl::make_shared<mwcst::StatContext>(config, allocator);
 }
 
@@ -220,10 +220,10 @@ void Application::printStats(int interval) const
 
     // Gather metrics
     const mwcst::StatValue& msg = d_statContext_sp->value(
-        mwcst::StatContext::DMCST_DIRECT_VALUE,
+        mwcst::StatContext::e_DIRECT_VALUE,
         k_STAT_MSG);
     const mwcst::StatValue& evt = d_statContext_sp->value(
-        mwcst::StatContext::DMCST_DIRECT_VALUE,
+        mwcst::StatContext::e_DIRECT_VALUE,
         k_STAT_EVT);
 
     mwcst::StatValue::SnapshotLocation t0(0, 0);
@@ -279,7 +279,7 @@ void Application::printStats(int interval) const
     if (bmqt::QueueFlagsUtil::isReader(d_parameters_p->queueFlags()) &&
         d_parameters_p->latency() != ParametersLatency::e_NONE) {
         const mwcst::StatValue& latency = d_statContext_sp->value(
-            mwcst::StatContext::DMCST_DIRECT_VALUE,
+            mwcst::StatContext::e_DIRECT_VALUE,
             k_STAT_LAT);
         bsls::Types::Int64 latencyMin = mwcst::StatUtil::rangeMin(latency,
                                                                   t0,
@@ -307,10 +307,10 @@ void Application::printFinalStats()
     mwcst::StatValue::SnapshotLocation loc(0, 0);
 
     const mwcst::StatValue& msg = d_statContext_sp->value(
-        mwcst::StatContext::DMCST_DIRECT_VALUE,
+        mwcst::StatContext::e_DIRECT_VALUE,
         k_STAT_MSG);
     const mwcst::StatValue& evt = d_statContext_sp->value(
-        mwcst::StatContext::DMCST_DIRECT_VALUE,
+        mwcst::StatContext::e_DIRECT_VALUE,
         k_STAT_EVT);
 
     bsls::Types::Int64 nbMsg    = mwcst::StatUtil::increments(msg, loc);
@@ -343,7 +343,7 @@ void Application::printFinalStats()
     if (bmqt::QueueFlagsUtil::isReader(d_parameters_p->queueFlags()) &&
         d_parameters_p->latency() != ParametersLatency::e_NONE) {
         const mwcst::StatValue& latency = d_statContext_sp->value(
-            mwcst::StatContext::DMCST_DIRECT_VALUE,
+            mwcst::StatContext::e_DIRECT_VALUE,
             k_STAT_LAT);
 
         bsls::Types::Int64 latencyMin = mwcst::StatUtil::absoluteMin(latency);

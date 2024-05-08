@@ -1,4 +1,4 @@
-// Copyright 2023 Bloomberg Finance L.P.
+// Copyright 2024 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,10 +17,6 @@
 #ifndef INCLUDED_MWCSTM_VALUES
 #define INCLUDED_MWCSTM_VALUES
 
-#include <bsls_ident.h>
-BSLS_IDENT_RCSID(mwcstm_values_h, "$Id$ $CSID$")
-BSLS_IDENT_PRAGMA_ONCE
-
 //@PURPOSE: Provide value-semantic attribute classes
 
 #include <bslalg_typetraits.h>
@@ -35,9 +31,6 @@ BSLS_IDENT_PRAGMA_ONCE
 
 #include <bslh_hash.h>
 #include <bsls_objectbuffer.h>
-
-#include <bslx_instreamfunctions.h>
-#include <bslx_outstreamfunctions.h>
 
 #include <bslma_default.h>
 
@@ -97,6 +90,12 @@ class StatContextConfigurationChoice {
     int               d_selectionId;
     bslma::Allocator* d_allocator_p;
 
+    // PRIVATE ACCESSORS
+    template <typename t_HASH_ALGORITHM>
+    void hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const;
+
+    bool isEqualTo(const StatContextConfigurationChoice& rhs) const;
+
   public:
     // TYPES
 
@@ -116,109 +115,88 @@ class StatContextConfigurationChoice {
     static const bdlat_SelectionInfo SELECTION_INFO_ARRAY[];
 
     // CLASS METHODS
-
-    /// Return the most current `bdex` streaming version number supported by
-    /// this class.  See the `bslx` package-level documentation for more
-    /// information on `bdex` streaming of value-semantic types and
-    /// containers.
-    static int maxSupportedBdexVersion();
-
-    /// Return selection information for the selection indicated by the
-    /// specified `id` if the selection exists, and 0 otherwise.
     static const bdlat_SelectionInfo* lookupSelectionInfo(int id);
+    // Return selection information for the selection indicated by the
+    // specified 'id' if the selection exists, and 0 otherwise.
 
-    /// Return selection information for the selection indicated by the
-    /// specified `name` of the specified `nameLength` if the selection
-    /// exists, and 0 otherwise.
     static const bdlat_SelectionInfo* lookupSelectionInfo(const char* name,
                                                           int nameLength);
+    // Return selection information for the selection indicated by the
+    // specified 'name' of the specified 'nameLength' if the selection
+    // exists, and 0 otherwise.
 
     // CREATORS
-
-    /// Create an object of type `StatContextConfigurationChoice` having the
-    /// default value.  Use the optionally specified `basicAllocator` to
-    /// supply memory.  If `basicAllocator` is 0, the currently installed
-    /// default allocator is used.
     explicit StatContextConfigurationChoice(
         bslma::Allocator* basicAllocator = 0);
+    // Create an object of type 'StatContextConfigurationChoice' having the
+    // default value.  Use the optionally specified 'basicAllocator' to
+    // supply memory.  If 'basicAllocator' is 0, the currently installed
+    // default allocator is used.
 
-    /// Create an object of type `StatContextConfigurationChoice` having the
-    /// value of the specified `original` object.  Use the optionally
-    /// specified `basicAllocator` to supply memory.  If `basicAllocator` is
-    /// 0, the currently installed default allocator is used.
     StatContextConfigurationChoice(
         const StatContextConfigurationChoice& original,
         bslma::Allocator*                     basicAllocator = 0);
+    // Create an object of type 'StatContextConfigurationChoice' having the
+    // value of the specified 'original' object.  Use the optionally
+    // specified 'basicAllocator' to supply memory.  If 'basicAllocator' is
+    // 0, the currently installed default allocator is used.
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    /// Create an object of type `StatContextConfigurationChoice` having the
-    /// value of the specified `original` object.  After performing this
-    /// action, the `original` object will be left in a valid, but
-    /// unspecified state.
     StatContextConfigurationChoice(
         StatContextConfigurationChoice&& original) noexcept;
+    // Create an object of type 'StatContextConfigurationChoice' having the
+    // value of the specified 'original' object.  After performing this
+    // action, the 'original' object will be left in a valid, but
+    // unspecified state.
 
-    /// Create an object of type `StatContextConfigurationChoice` having the
-    /// value of the specified `original` object.  After performing this
-    /// action, the `original` object will be left in a valid, but
-    /// unspecified state.  Use the optionally specified `basicAllocator` to
-    /// supply memory.  If `basicAllocator` is 0, the currently installed
-    /// default allocator is used.
     StatContextConfigurationChoice(StatContextConfigurationChoice&& original,
                                    bslma::Allocator* basicAllocator);
+    // Create an object of type 'StatContextConfigurationChoice' having the
+    // value of the specified 'original' object.  After performing this
+    // action, the 'original' object will be left in a valid, but
+    // unspecified state.  Use the optionally specified 'basicAllocator' to
+    // supply memory.  If 'basicAllocator' is 0, the currently installed
+    // default allocator is used.
 #endif
 
-    /// Destroy this object.
     ~StatContextConfigurationChoice();
+    // Destroy this object.
 
     // MANIPULATORS
-
-    /// Assign to this object the value of the specified `rhs` object.
     StatContextConfigurationChoice&
     operator=(const StatContextConfigurationChoice& rhs);
+    // Assign to this object the value of the specified 'rhs' object.
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    /// Assign to this object the value of the specified `rhs` object.
-    /// After performing this action, the `rhs` object will be left in a
-    /// valid, but unspecified state.
     StatContextConfigurationChoice&
     operator=(StatContextConfigurationChoice&& rhs);
+    // Assign to this object the value of the specified 'rhs' object.
+    // After performing this action, the 'rhs' object will be left in a
+    // valid, but unspecified state.
 #endif
 
-    /// Assign to this object the value read from the specified input
-    /// `stream` using the specified `version` format and return a reference
-    /// to the modifiable `stream`.  If `stream` is initially invalid, this
-    /// operation has no effect.  If `stream` becomes invalid during this
-    /// operation, this object is valid, but its value is undefined.  If
-    /// `version` is not supported, `stream` is marked invalid and this
-    /// object is unaltered.  Note that no version is read from `stream`.
-    /// See the `bslx` package-level documentation for more information on
-    /// `bdex` streaming of value-semantic types and containers.
-    template <typename t_STREAM>
-    t_STREAM& bdexStreamIn(t_STREAM& stream, int version);
-
-    /// Reset this object to the default value (i.e., its value upon default
-    /// construction).
     void reset();
+    // Reset this object to the default value (i.e., its value upon default
+    // construction).
 
-    /// Set the value of this object to be the default for the selection
-    /// indicated by the specified `selectionId`.  Return 0 on success, and
-    /// non-zero value otherwise (i.e., the selection is not found).
     int makeSelection(int selectionId);
+    // Set the value of this object to be the default for the selection
+    // indicated by the specified 'selectionId'.  Return 0 on success, and
+    // non-zero value otherwise (i.e., the selection is not found).
 
-    /// Set the value of this object to be the default for the selection
-    /// indicated by the specified `name` of the specified `nameLength`.
-    /// Return 0 on success, and non-zero value otherwise (i.e., the
-    /// selection is not found).
     int makeSelection(const char* name, int nameLength);
+    // Set the value of this object to be the default for the selection
+    // indicated by the specified 'name' of the specified 'nameLength'.
+    // Return 0 on success, and non-zero value otherwise (i.e., the
+    // selection is not found).
 
-    /// Set the value of this object to be a "Id" value.  Optionally specify
-    /// the `value` of the "Id".  If `value` is not specified, the default
-    /// "Id" value is used.
     bsls::Types::Int64& makeId();
     bsls::Types::Int64& makeId(bsls::Types::Int64 value);
+    // Set the value of this object to be a "Id" value.  Optionally specify
+    // the 'value' of the "Id".  If 'value' is not specified, the default
+    // "Id" value is used.
 
     bsl::string& makeName();
     bsl::string& makeName(const bsl::string& value);
@@ -230,111 +208,115 @@ class StatContextConfigurationChoice {
     // specify the 'value' of the "Name".  If 'value' is not specified, the
     // default "Name" value is used.
 
-    /// Invoke the specified `manipulator` on the address of the modifiable
-    /// selection, supplying `manipulator` with the corresponding selection
-    /// information structure.  Return the value returned from the
-    /// invocation of `manipulator` if this object has a defined selection,
-    /// and -1 otherwise.
     template <typename t_MANIPULATOR>
     int manipulateSelection(t_MANIPULATOR& manipulator);
+    // Invoke the specified 'manipulator' on the address of the modifiable
+    // selection, supplying 'manipulator' with the corresponding selection
+    // information structure.  Return the value returned from the
+    // invocation of 'manipulator' if this object has a defined selection,
+    // and -1 otherwise.
 
-    /// Return a reference to the modifiable "Id" selection of this object
-    /// if "Id" is the current selection.  The behavior is undefined unless
-    /// "Id" is the selection of this object.
     bsls::Types::Int64& id();
+    // Return a reference to the modifiable "Id" selection of this object
+    // if "Id" is the current selection.  The behavior is undefined unless
+    // "Id" is the selection of this object.
 
-    /// Return a reference to the modifiable "Name" selection of this object
-    /// if "Name" is the current selection.  The behavior is undefined
-    /// unless "Name" is the selection of this object.
     bsl::string& name();
+    // Return a reference to the modifiable "Name" selection of this object
+    // if "Name" is the current selection.  The behavior is undefined
+    // unless "Name" is the selection of this object.
 
     // ACCESSORS
-
-    /// Format this object to the specified output `stream` at the
-    /// optionally specified indentation `level` and return a reference to
-    /// the modifiable `stream`.  If `level` is specified, optionally
-    /// specify `spacesPerLevel`, the number of spaces per indentation level
-    /// for this and all of its nested objects.  Each line is indented by
-    /// the absolute value of `level * spacesPerLevel`.  If `level` is
-    /// negative, suppress indentation of the first line.  If
-    /// `spacesPerLevel` is negative, suppress line breaks and format the
-    /// entire output on one line.  If `stream` is initially invalid, this
-    /// operation has no effect.  Note that a trailing newline is provided
-    /// in multiline mode only.
     bsl::ostream&
     print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
+    // Format this object to the specified output 'stream' at the
+    // optionally specified indentation 'level' and return a reference to
+    // the modifiable 'stream'.  If 'level' is specified, optionally
+    // specify 'spacesPerLevel', the number of spaces per indentation level
+    // for this and all of its nested objects.  Each line is indented by
+    // the absolute value of 'level * spacesPerLevel'.  If 'level' is
+    // negative, suppress indentation of the first line.  If
+    // 'spacesPerLevel' is negative, suppress line breaks and format the
+    // entire output on one line.  If 'stream' is initially invalid, this
+    // operation has no effect.  Note that a trailing newline is provided
+    // in multiline mode only.
 
-    /// Write the value of this object to the specified output `stream`
-    /// using the specified `version` format and return a reference to the
-    /// modifiable `stream`.  If `version` is not supported, `stream` is
-    /// unmodified.  Note that `version` is not written to `stream`.
-    /// See the `bslx` package-level documentation for more information
-    /// on `bdex` streaming of value-semantic types and containers.
-    template <typename t_STREAM>
-    t_STREAM& bdexStreamOut(t_STREAM& stream, int version) const;
-
-    /// Return the id of the current selection if the selection is defined,
-    /// and -1 otherwise.
     int selectionId() const;
+    // Return the id of the current selection if the selection is defined,
+    // and -1 otherwise.
 
-    /// Invoke the specified `accessor` on the non-modifiable selection,
-    /// supplying `accessor` with the corresponding selection information
-    /// structure.  Return the value returned from the invocation of
-    /// `accessor` if this object has a defined selection, and -1 otherwise.
     template <typename t_ACCESSOR>
     int accessSelection(t_ACCESSOR& accessor) const;
+    // Invoke the specified 'accessor' on the non-modifiable selection,
+    // supplying 'accessor' with the corresponding selection information
+    // structure.  Return the value returned from the invocation of
+    // 'accessor' if this object has a defined selection, and -1 otherwise.
 
-    /// Return a reference to the non-modifiable "Id" selection of this
-    /// object if "Id" is the current selection.  The behavior is undefined
-    /// unless "Id" is the selection of this object.
     const bsls::Types::Int64& id() const;
+    // Return a reference to the non-modifiable "Id" selection of this
+    // object if "Id" is the current selection.  The behavior is undefined
+    // unless "Id" is the selection of this object.
 
-    /// Return a reference to the non-modifiable "Name" selection of this
-    /// object if "Name" is the current selection.  The behavior is
-    /// undefined unless "Name" is the selection of this object.
     const bsl::string& name() const;
+    // Return a reference to the non-modifiable "Name" selection of this
+    // object if "Name" is the current selection.  The behavior is
+    // undefined unless "Name" is the selection of this object.
 
-    /// Return `true` if the value of this object is a "Id" value, and
-    /// return `false` otherwise.
     bool isIdValue() const;
+    // Return 'true' if the value of this object is a "Id" value, and
+    // return 'false' otherwise.
 
-    /// Return `true` if the value of this object is a "Name" value, and
-    /// return `false` otherwise.
     bool isNameValue() const;
+    // Return 'true' if the value of this object is a "Name" value, and
+    // return 'false' otherwise.
 
-    /// Return `true` if the value of this object is undefined, and `false`
-    /// otherwise.
     bool isUndefinedValue() const;
+    // Return 'true' if the value of this object is undefined, and 'false'
+    // otherwise.
 
-    /// Return the symbolic name of the current selection of this object.
     const char* selectionName() const;
+    // Return the symbolic name of the current selection of this object.
+
+    // HIDDEN FRIENDS
+    friend bool operator==(const StatContextConfigurationChoice& lhs,
+                           const StatContextConfigurationChoice& rhs)
+    // Return 'true' if the specified 'lhs' and 'rhs' objects have the same
+    // value, and 'false' otherwise.  Two 'StatContextConfigurationChoice'
+    // objects have the same value if either the selections in both objects
+    // have the same ids and the same values, or both selections are
+    // undefined.
+    {
+        return lhs.isEqualTo(rhs);
+    }
+
+    friend bool operator!=(const StatContextConfigurationChoice& lhs,
+                           const StatContextConfigurationChoice& rhs)
+    // Return 'true' if the specified 'lhs' and 'rhs' objects do not have
+    // the same values, as determined by 'operator==', and 'false'
+    // otherwise.
+    {
+        return !(lhs == rhs);
+    }
+
+    friend bsl::ostream& operator<<(bsl::ostream& stream,
+                                    const StatContextConfigurationChoice& rhs)
+    // Format the specified 'rhs' to the specified output 'stream' and
+    // return a reference to the modifiable 'stream'.
+    {
+        return rhs.print(stream, 0, -1);
+    }
+
+    template <typename t_HASH_ALGORITHM>
+    friend void hashAppend(t_HASH_ALGORITHM&                     hashAlg,
+                           const StatContextConfigurationChoice& object)
+    // Pass the specified 'object' to the specified 'hashAlg'.  This
+    // function integrates with the 'bslh' modular hashing system and
+    // effectively provides a 'bsl::hash' specialization for
+    // 'StatContextConfigurationChoice'.
+    {
+        return object.hashAppendImpl(hashAlg);
+    }
 };
-
-// FREE OPERATORS
-
-/// Return `true` if the specified `lhs` and `rhs` objects have the same
-/// value, and `false` otherwise.  Two `StatContextConfigurationChoice` objects
-/// have the same value if either the selections in both objects have the same
-/// ids and the same values, or both selections are undefined.
-inline bool operator==(const StatContextConfigurationChoice& lhs,
-                       const StatContextConfigurationChoice& rhs);
-
-/// Return `true` if the specified `lhs` and `rhs` objects do not have the
-/// same values, as determined by `operator==`, and `false` otherwise.
-inline bool operator!=(const StatContextConfigurationChoice& lhs,
-                       const StatContextConfigurationChoice& rhs);
-
-/// Format the specified `rhs` to the specified output `stream` and
-/// return a reference to the modifiable `stream`.
-inline bsl::ostream& operator<<(bsl::ostream&                         stream,
-                                const StatContextConfigurationChoice& rhs);
-
-/// Pass the specified `object` to the specified `hashAlg`.  This function
-/// integrates with the `bslh` modular hashing system and effectively
-/// provides a `bsl::hash` specialization for `StatContextConfigurationChoice`.
-template <typename t_HASH_ALGORITHM>
-void hashAppend(t_HASH_ALGORITHM&                     hashAlg,
-                const StatContextConfigurationChoice& object);
 
 }  // close package namespace
 
@@ -349,14 +331,15 @@ namespace mwcstm {
 // class StatContextConfigurationFlags
 // ===================================
 
-/// This type enumerates the flags that can be set on a
-/// `StatContextConfiguration`.  A configuration having the `IS_TABLE` flag
-/// denotes that it is a table context, and `STORE_EXPIRED_VALUES` indicates
-/// it should remember the values of expired subcontexts.
 struct StatContextConfigurationFlags {
+    // This type enumerates the flags that can be set on a
+    // 'StatContextConfiguration'.  A configuration having the 'IS_TABLE' flag
+    // denotes that it is a table context, and 'STORE_EXPIRED_VALUES' indicates
+    // it should remember the values of expired subcontexts.
+
   public:
     // TYPES
-    enum Value { DMCSTM_IS_TABLE = 0, DMCSTM_STORE_EXPIRED_VALUES = 1 };
+    enum Value { E_IS_TABLE = 0, E_STORE_EXPIRED_VALUES = 1 };
 
     enum { NUM_ENUMERATORS = 2 };
 
@@ -366,70 +349,41 @@ struct StatContextConfigurationFlags {
     static const bdlat_EnumeratorInfo ENUMERATOR_INFO_ARRAY[];
 
     // CLASS METHODS
-
-    /// Return the most current `bdex` streaming version number supported by
-    /// this class.  See the `bslx` package-level documentation for more
-    /// information on `bdex` streaming of value-semantic types and
-    /// containers.
-    static int maxSupportedBdexVersion();
-
-    /// Return the string representation exactly matching the enumerator
-    /// name corresponding to the specified enumeration `value`.
     static const char* toString(Value value);
+    // Return the string representation exactly matching the enumerator
+    // name corresponding to the specified enumeration 'value'.
 
-    /// Load into the specified `result` the enumerator matching the
-    /// specified `string` of the specified `stringLength`.  Return 0 on
-    /// success, and a non-zero value with no effect on `result` otherwise
-    /// (i.e., `string` does not match any enumerator).
     static int fromString(Value* result, const char* string, int stringLength);
+    // Load into the specified 'result' the enumerator matching the
+    // specified 'string' of the specified 'stringLength'.  Return 0 on
+    // success, and a non-zero value with no effect on 'result' otherwise
+    // (i.e., 'string' does not match any enumerator).
 
-    /// Load into the specified `result` the enumerator matching the
-    /// specified `string`.  Return 0 on success, and a non-zero value with
-    /// no effect on `result` otherwise (i.e., `string` does not match any
-    /// enumerator).
     static int fromString(Value* result, const bsl::string& string);
+    // Load into the specified 'result' the enumerator matching the
+    // specified 'string'.  Return 0 on success, and a non-zero value with
+    // no effect on 'result' otherwise (i.e., 'string' does not match any
+    // enumerator).
 
-    /// Load into the specified `result` the enumerator matching the
-    /// specified `number`.  Return 0 on success, and a non-zero value with
-    /// no effect on `result` otherwise (i.e., `number` does not match any
-    /// enumerator).
     static int fromInt(Value* result, int number);
+    // Load into the specified 'result' the enumerator matching the
+    // specified 'number'.  Return 0 on success, and a non-zero value with
+    // no effect on 'result' otherwise (i.e., 'number' does not match any
+    // enumerator).
 
-    /// Assign to the specified `value` the value read from the specified
-    /// input `stream` using the specified `version` format and return a
-    /// reference to the modifiable `stream`.  If `stream` is initially
-    /// invalid, this operation has no effect.  If `stream` becomes invalid
-    /// during this operation, the `value` is valid, but its value is
-    /// undefined.  If the specified `version` is not supported, `stream` is
-    /// marked invalid, but `value` is unaltered.  Note that no version is
-    /// read from `stream`.  (See the package-group-level documentation for
-    /// more information on `bdex` streaming of container types.)
-    template <typename t_STREAM>
-    static t_STREAM& bdexStreamIn(t_STREAM& stream, Value& value, int version);
-
-    /// Write to the specified `stream` the string representation of
-    /// the specified enumeration `value`.  Return a reference to
-    /// the modifiable `stream`.
     static bsl::ostream& print(bsl::ostream& stream, Value value);
+    // Write to the specified 'stream' the string representation of
+    // the specified enumeration 'value'.  Return a reference to
+    // the modifiable 'stream'.
 
-    /// Write the specified `value` to the specified output `stream` and
-    /// return a reference to the modifiable `stream`.  Optionally specify
-    /// an explicit `version` format; by default, the maximum supported
-    /// version is written to `stream` and used as the format.  If `version`
-    /// is specified, that format is used but *not* written to `stream`.  If
-    /// `version` is not supported, `stream` is left unmodified.  (See the
-    /// package-group-level documentation for more information on `bdex`
-    /// streaming of container types).
-    template <typename t_STREAM>
-    static t_STREAM& bdexStreamOut(t_STREAM& stream, Value value, int version);
+    // HIDDEN FRIENDS
+    friend bsl::ostream& operator<<(bsl::ostream& stream, Value rhs)
+    // Format the specified 'rhs' to the specified output 'stream' and
+    // return a reference to the modifiable 'stream'.
+    {
+        return StatContextConfigurationFlags::print(stream, rhs);
+    }
 };
-
-// FREE OPERATORS
-
-/// Format the specified `rhs` to the specified output `stream` and
-/// return a reference to the modifiable `stream`.
-inline bsl::ostream& operator<<(bsl::ostream&                        stream,
-                                StatContextConfigurationFlags::Value rhs);
 
 }  // close package namespace
 
@@ -443,14 +397,15 @@ namespace mwcstm {
 // class StatContextUpdateFlags
 // ============================
 
-/// This type enumerates the flags that can be set on a `StatContext`.  A
-/// context having the `CONTEXT_CREATED` flag indicates that the context was
-/// just created, and the `CONTEXT_DELETED` flag indicates that it was
-/// deleted.
 struct StatContextUpdateFlags {
+    // This type enumerates the flags that can be set on a 'StatContext'.  A
+    // context having the 'CONTEXT_CREATED' flag indicates that the context was
+    // just created, and the 'CONTEXT_DELETED' flag indicates that it was
+    // deleted.
+
   public:
     // TYPES
-    enum Value { DMCSTM_CONTEXT_CREATED = 0, DMCSTM_CONTEXT_DELETED = 1 };
+    enum Value { E_CONTEXT_CREATED = 0, E_CONTEXT_DELETED = 1 };
 
     enum { NUM_ENUMERATORS = 2 };
 
@@ -460,70 +415,41 @@ struct StatContextUpdateFlags {
     static const bdlat_EnumeratorInfo ENUMERATOR_INFO_ARRAY[];
 
     // CLASS METHODS
-
-    /// Return the most current `bdex` streaming version number supported by
-    /// this class.  See the `bslx` package-level documentation for more
-    /// information on `bdex` streaming of value-semantic types and
-    /// containers.
-    static int maxSupportedBdexVersion();
-
-    /// Return the string representation exactly matching the enumerator
-    /// name corresponding to the specified enumeration `value`.
     static const char* toString(Value value);
+    // Return the string representation exactly matching the enumerator
+    // name corresponding to the specified enumeration 'value'.
 
-    /// Load into the specified `result` the enumerator matching the
-    /// specified `string` of the specified `stringLength`.  Return 0 on
-    /// success, and a non-zero value with no effect on `result` otherwise
-    /// (i.e., `string` does not match any enumerator).
     static int fromString(Value* result, const char* string, int stringLength);
+    // Load into the specified 'result' the enumerator matching the
+    // specified 'string' of the specified 'stringLength'.  Return 0 on
+    // success, and a non-zero value with no effect on 'result' otherwise
+    // (i.e., 'string' does not match any enumerator).
 
-    /// Load into the specified `result` the enumerator matching the
-    /// specified `string`.  Return 0 on success, and a non-zero value with
-    /// no effect on `result` otherwise (i.e., `string` does not match any
-    /// enumerator).
     static int fromString(Value* result, const bsl::string& string);
+    // Load into the specified 'result' the enumerator matching the
+    // specified 'string'.  Return 0 on success, and a non-zero value with
+    // no effect on 'result' otherwise (i.e., 'string' does not match any
+    // enumerator).
 
-    /// Load into the specified `result` the enumerator matching the
-    /// specified `number`.  Return 0 on success, and a non-zero value with
-    /// no effect on `result` otherwise (i.e., `number` does not match any
-    /// enumerator).
     static int fromInt(Value* result, int number);
+    // Load into the specified 'result' the enumerator matching the
+    // specified 'number'.  Return 0 on success, and a non-zero value with
+    // no effect on 'result' otherwise (i.e., 'number' does not match any
+    // enumerator).
 
-    /// Assign to the specified `value` the value read from the specified
-    /// input `stream` using the specified `version` format and return a
-    /// reference to the modifiable `stream`.  If `stream` is initially
-    /// invalid, this operation has no effect.  If `stream` becomes invalid
-    /// during this operation, the `value` is valid, but its value is
-    /// undefined.  If the specified `version` is not supported, `stream` is
-    /// marked invalid, but `value` is unaltered.  Note that no version is
-    /// read from `stream`.  (See the package-group-level documentation for
-    /// more information on `bdex` streaming of container types.)
-    template <typename t_STREAM>
-    static t_STREAM& bdexStreamIn(t_STREAM& stream, Value& value, int version);
-
-    /// Write to the specified `stream` the string representation of
-    /// the specified enumeration `value`.  Return a reference to
-    /// the modifiable `stream`.
     static bsl::ostream& print(bsl::ostream& stream, Value value);
+    // Write to the specified 'stream' the string representation of
+    // the specified enumeration 'value'.  Return a reference to
+    // the modifiable 'stream'.
 
-    /// Write the specified `value` to the specified output `stream` and
-    /// return a reference to the modifiable `stream`.  Optionally specify
-    /// an explicit `version` format; by default, the maximum supported
-    /// version is written to `stream` and used as the format.  If `version`
-    /// is specified, that format is used but *not* written to `stream`.  If
-    /// `version` is not supported, `stream` is left unmodified.  (See the
-    /// package-group-level documentation for more information on `bdex`
-    /// streaming of container types).
-    template <typename t_STREAM>
-    static t_STREAM& bdexStreamOut(t_STREAM& stream, Value value, int version);
+    // HIDDEN FRIENDS
+    friend bsl::ostream& operator<<(bsl::ostream& stream, Value rhs)
+    // Format the specified 'rhs' to the specified output 'stream' and
+    // return a reference to the modifiable 'stream'.
+    {
+        return StatContextUpdateFlags::print(stream, rhs);
+    }
 };
-
-// FREE OPERATORS
-
-/// Format the specified `rhs` to the specified output `stream` and
-/// return a reference to the modifiable `stream`.
-inline bsl::ostream& operator<<(bsl::ostream&                 stream,
-                                StatContextUpdateFlags::Value rhs);
 
 }  // close package namespace
 
@@ -537,21 +463,22 @@ namespace mwcstm {
 // class StatValueFields
 // =====================
 
-/// This type enumerates the different bit indices corresponding to fields
-/// in a stat value.
 struct StatValueFields {
+    // This type enumerates the different bit indices corresponding to fields
+    // in a stat value.
+
   public:
     // TYPES
     enum Value {
-        DMCSTM_ABSOLUTE_MIN = 0,
-        DMCSTM_ABSOLUTE_MAX = 1,
-        DMCSTM_MIN          = 2,
-        DMCSTM_MAX          = 3,
-        DMCSTM_EVENTS       = 4,
-        DMCSTM_SUM          = 5,
-        DMCSTM_VALUE        = 6,
-        DMCSTM_INCREMENTS   = 7,
-        DMCSTM_DECREMENTS   = 8
+        E_ABSOLUTE_MIN = 0,
+        E_ABSOLUTE_MAX = 1,
+        E_MIN          = 2,
+        E_MAX          = 3,
+        E_EVENTS       = 4,
+        E_SUM          = 5,
+        E_VALUE        = 6,
+        E_INCREMENTS   = 7,
+        E_DECREMENTS   = 8
     };
 
     enum { NUM_ENUMERATORS = 9 };
@@ -562,70 +489,41 @@ struct StatValueFields {
     static const bdlat_EnumeratorInfo ENUMERATOR_INFO_ARRAY[];
 
     // CLASS METHODS
-
-    /// Return the most current `bdex` streaming version number supported by
-    /// this class.  See the `bslx` package-level documentation for more
-    /// information on `bdex` streaming of value-semantic types and
-    /// containers.
-    static int maxSupportedBdexVersion();
-
-    /// Return the string representation exactly matching the enumerator
-    /// name corresponding to the specified enumeration `value`.
     static const char* toString(Value value);
+    // Return the string representation exactly matching the enumerator
+    // name corresponding to the specified enumeration 'value'.
 
-    /// Load into the specified `result` the enumerator matching the
-    /// specified `string` of the specified `stringLength`.  Return 0 on
-    /// success, and a non-zero value with no effect on `result` otherwise
-    /// (i.e., `string` does not match any enumerator).
     static int fromString(Value* result, const char* string, int stringLength);
+    // Load into the specified 'result' the enumerator matching the
+    // specified 'string' of the specified 'stringLength'.  Return 0 on
+    // success, and a non-zero value with no effect on 'result' otherwise
+    // (i.e., 'string' does not match any enumerator).
 
-    /// Load into the specified `result` the enumerator matching the
-    /// specified `string`.  Return 0 on success, and a non-zero value with
-    /// no effect on `result` otherwise (i.e., `string` does not match any
-    /// enumerator).
     static int fromString(Value* result, const bsl::string& string);
+    // Load into the specified 'result' the enumerator matching the
+    // specified 'string'.  Return 0 on success, and a non-zero value with
+    // no effect on 'result' otherwise (i.e., 'string' does not match any
+    // enumerator).
 
-    /// Load into the specified `result` the enumerator matching the
-    /// specified `number`.  Return 0 on success, and a non-zero value with
-    /// no effect on `result` otherwise (i.e., `number` does not match any
-    /// enumerator).
     static int fromInt(Value* result, int number);
+    // Load into the specified 'result' the enumerator matching the
+    // specified 'number'.  Return 0 on success, and a non-zero value with
+    // no effect on 'result' otherwise (i.e., 'number' does not match any
+    // enumerator).
 
-    /// Assign to the specified `value` the value read from the specified
-    /// input `stream` using the specified `version` format and return a
-    /// reference to the modifiable `stream`.  If `stream` is initially
-    /// invalid, this operation has no effect.  If `stream` becomes invalid
-    /// during this operation, the `value` is valid, but its value is
-    /// undefined.  If the specified `version` is not supported, `stream` is
-    /// marked invalid, but `value` is unaltered.  Note that no version is
-    /// read from `stream`.  (See the package-group-level documentation for
-    /// more information on `bdex` streaming of container types.)
-    template <typename t_STREAM>
-    static t_STREAM& bdexStreamIn(t_STREAM& stream, Value& value, int version);
-
-    /// Write to the specified `stream` the string representation of
-    /// the specified enumeration `value`.  Return a reference to
-    /// the modifiable `stream`.
     static bsl::ostream& print(bsl::ostream& stream, Value value);
+    // Write to the specified 'stream' the string representation of
+    // the specified enumeration 'value'.  Return a reference to
+    // the modifiable 'stream'.
 
-    /// Write the specified `value` to the specified output `stream` and
-    /// return a reference to the modifiable `stream`.  Optionally specify
-    /// an explicit `version` format; by default, the maximum supported
-    /// version is written to `stream` and used as the format.  If `version`
-    /// is specified, that format is used but *not* written to `stream`.  If
-    /// `version` is not supported, `stream` is left unmodified.  (See the
-    /// package-group-level documentation for more information on `bdex`
-    /// streaming of container types).
-    template <typename t_STREAM>
-    static t_STREAM& bdexStreamOut(t_STREAM& stream, Value value, int version);
+    // HIDDEN FRIENDS
+    friend bsl::ostream& operator<<(bsl::ostream& stream, Value rhs)
+    // Format the specified 'rhs' to the specified output 'stream' and
+    // return a reference to the modifiable 'stream'.
+    {
+        return StatValueFields::print(stream, rhs);
+    }
 };
-
-// FREE OPERATORS
-
-/// Format the specified `rhs` to the specified output `stream` and
-/// return a reference to the modifiable `stream`.
-inline bsl::ostream& operator<<(bsl::ostream&          stream,
-                                StatValueFields::Value rhs);
 
 }  // close package namespace
 
@@ -639,12 +537,13 @@ namespace mwcstm {
 // class StatValueType
 // ===================
 
-/// This type enumerates the different types of stat values, specifically
-/// `CONTINUOUS` and `DISCRETE` values.
 struct StatValueType {
+    // This type enumerates the different types of stat values, specifically
+    // 'CONTINUOUS' and 'DISCRETE' values.
+
   public:
     // TYPES
-    enum Value { DMCSTM_CONTINUOUS = 0, DMCSTM_DISCRETE = 1 };
+    enum Value { E_CONTINUOUS = 0, E_DISCRETE = 1 };
 
     enum { NUM_ENUMERATORS = 2 };
 
@@ -654,70 +553,41 @@ struct StatValueType {
     static const bdlat_EnumeratorInfo ENUMERATOR_INFO_ARRAY[];
 
     // CLASS METHODS
-
-    /// Return the most current `bdex` streaming version number supported by
-    /// this class.  See the `bslx` package-level documentation for more
-    /// information on `bdex` streaming of value-semantic types and
-    /// containers.
-    static int maxSupportedBdexVersion();
-
-    /// Return the string representation exactly matching the enumerator
-    /// name corresponding to the specified enumeration `value`.
     static const char* toString(Value value);
+    // Return the string representation exactly matching the enumerator
+    // name corresponding to the specified enumeration 'value'.
 
-    /// Load into the specified `result` the enumerator matching the
-    /// specified `string` of the specified `stringLength`.  Return 0 on
-    /// success, and a non-zero value with no effect on `result` otherwise
-    /// (i.e., `string` does not match any enumerator).
     static int fromString(Value* result, const char* string, int stringLength);
+    // Load into the specified 'result' the enumerator matching the
+    // specified 'string' of the specified 'stringLength'.  Return 0 on
+    // success, and a non-zero value with no effect on 'result' otherwise
+    // (i.e., 'string' does not match any enumerator).
 
-    /// Load into the specified `result` the enumerator matching the
-    /// specified `string`.  Return 0 on success, and a non-zero value with
-    /// no effect on `result` otherwise (i.e., `string` does not match any
-    /// enumerator).
     static int fromString(Value* result, const bsl::string& string);
+    // Load into the specified 'result' the enumerator matching the
+    // specified 'string'.  Return 0 on success, and a non-zero value with
+    // no effect on 'result' otherwise (i.e., 'string' does not match any
+    // enumerator).
 
-    /// Load into the specified `result` the enumerator matching the
-    /// specified `number`.  Return 0 on success, and a non-zero value with
-    /// no effect on `result` otherwise (i.e., `number` does not match any
-    /// enumerator).
     static int fromInt(Value* result, int number);
+    // Load into the specified 'result' the enumerator matching the
+    // specified 'number'.  Return 0 on success, and a non-zero value with
+    // no effect on 'result' otherwise (i.e., 'number' does not match any
+    // enumerator).
 
-    /// Assign to the specified `value` the value read from the specified
-    /// input `stream` using the specified `version` format and return a
-    /// reference to the modifiable `stream`.  If `stream` is initially
-    /// invalid, this operation has no effect.  If `stream` becomes invalid
-    /// during this operation, the `value` is valid, but its value is
-    /// undefined.  If the specified `version` is not supported, `stream` is
-    /// marked invalid, but `value` is unaltered.  Note that no version is
-    /// read from `stream`.  (See the package-group-level documentation for
-    /// more information on `bdex` streaming of container types.)
-    template <typename t_STREAM>
-    static t_STREAM& bdexStreamIn(t_STREAM& stream, Value& value, int version);
-
-    /// Write to the specified `stream` the string representation of
-    /// the specified enumeration `value`.  Return a reference to
-    /// the modifiable `stream`.
     static bsl::ostream& print(bsl::ostream& stream, Value value);
+    // Write to the specified 'stream' the string representation of
+    // the specified enumeration 'value'.  Return a reference to
+    // the modifiable 'stream'.
 
-    /// Write the specified `value` to the specified output `stream` and
-    /// return a reference to the modifiable `stream`.  Optionally specify
-    /// an explicit `version` format; by default, the maximum supported
-    /// version is written to `stream` and used as the format.  If `version`
-    /// is specified, that format is used but *not* written to `stream`.  If
-    /// `version` is not supported, `stream` is left unmodified.  (See the
-    /// package-group-level documentation for more information on `bdex`
-    /// streaming of container types).
-    template <typename t_STREAM>
-    static t_STREAM& bdexStreamOut(t_STREAM& stream, Value value, int version);
+    // HIDDEN FRIENDS
+    friend bsl::ostream& operator<<(bsl::ostream& stream, Value rhs)
+    // Format the specified 'rhs' to the specified output 'stream' and
+    // return a reference to the modifiable 'stream'.
+    {
+        return StatValueType::print(stream, rhs);
+    }
 };
-
-// FREE OPERATORS
-
-/// Format the specified `rhs` to the specified output `stream` and
-/// return a reference to the modifiable `stream`.
-inline bsl::ostream& operator<<(bsl::ostream&        stream,
-                                StatValueType::Value rhs);
 
 }  // close package namespace
 
@@ -731,13 +601,14 @@ namespace mwcstm {
 // class StatValueUpdate
 // =====================
 
-/// This type represents changes made to a particular state value.  The bits
-/// of the `fieldMask` indicate which actual fields in a stat value the
-/// elements of `fields` are updating.  For instance, if the value in
-/// question is a continuous value, and `fieldMask` is 0b001100, then
-/// `fields` should contain two elements, with `fields[0]` being the update
-/// to the `min` value, and `fields[1]` being the update to the `max` value.
 class StatValueUpdate {
+    // This type represents changes made to a particular state value.  The bits
+    // of the 'fieldMask' indicate which actual fields in a stat value the
+    // elements of 'fields' are updating.  For instance, if the value in
+    // question is a continuous value, and 'fieldMask' is 0b001100, then
+    // 'fields' should contain two elements, with 'fields[0]' being the update
+    // to the 'min' value, and 'fields[1]' being the update to the 'max' value.
+
     // INSTANCE DATA
     bsl::vector<bsls::Types::Int64> d_fields;
     unsigned int                    d_fieldMask;
@@ -757,208 +628,192 @@ class StatValueUpdate {
 
   public:
     // CLASS METHODS
-
-    /// Return the most current `bdex` streaming version number supported by
-    /// this class.  See the `bslx` package-level documentation for more
-    /// information on `bdex` streaming of value-semantic types and
-    /// containers.
-    static int maxSupportedBdexVersion();
-
-    /// Return attribute information for the attribute indicated by the
-    /// specified `id` if the attribute exists, and 0 otherwise.
     static const bdlat_AttributeInfo* lookupAttributeInfo(int id);
+    // Return attribute information for the attribute indicated by the
+    // specified 'id' if the attribute exists, and 0 otherwise.
 
-    /// Return attribute information for the attribute indicated by the
-    /// specified `name` of the specified `nameLength` if the attribute
-    /// exists, and 0 otherwise.
     static const bdlat_AttributeInfo* lookupAttributeInfo(const char* name,
                                                           int nameLength);
+    // Return attribute information for the attribute indicated by the
+    // specified 'name' of the specified 'nameLength' if the attribute
+    // exists, and 0 otherwise.
 
     // CREATORS
-
-    /// Create an object of type `StatValueUpdate` having the default value.
-    ///  Use the optionally specified `basicAllocator` to supply memory.  If
-    /// `basicAllocator` is 0, the currently installed default allocator is
-    /// used.
     explicit StatValueUpdate(bslma::Allocator* basicAllocator = 0);
+    // Create an object of type 'StatValueUpdate' having the default value.
+    //  Use the optionally specified 'basicAllocator' to supply memory.  If
+    // 'basicAllocator' is 0, the currently installed default allocator is
+    // used.
 
-    /// Create an object of type `StatValueUpdate` having the value of the
-    /// specified `original` object.  Use the optionally specified
-    /// `basicAllocator` to supply memory.  If `basicAllocator` is 0, the
-    /// currently installed default allocator is used.
     StatValueUpdate(const StatValueUpdate& original,
                     bslma::Allocator*      basicAllocator = 0);
+    // Create an object of type 'StatValueUpdate' having the value of the
+    // specified 'original' object.  Use the optionally specified
+    // 'basicAllocator' to supply memory.  If 'basicAllocator' is 0, the
+    // currently installed default allocator is used.
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    /// Create an object of type `StatValueUpdate` having the value of the
-    /// specified `original` object.  After performing this action, the
-    /// `original` object will be left in a valid, but unspecified state.
     StatValueUpdate(StatValueUpdate&& original) noexcept;
+    // Create an object of type 'StatValueUpdate' having the value of the
+    // specified 'original' object.  After performing this action, the
+    // 'original' object will be left in a valid, but unspecified state.
 
-    /// Create an object of type `StatValueUpdate` having the value of the
-    /// specified `original` object.  After performing this action, the
-    /// `original` object will be left in a valid, but unspecified state.
-    /// Use the optionally specified `basicAllocator` to supply memory.  If
-    /// `basicAllocator` is 0, the currently installed default allocator is
-    /// used.
     StatValueUpdate(StatValueUpdate&& original,
                     bslma::Allocator* basicAllocator);
+    // Create an object of type 'StatValueUpdate' having the value of the
+    // specified 'original' object.  After performing this action, the
+    // 'original' object will be left in a valid, but unspecified state.
+    // Use the optionally specified 'basicAllocator' to supply memory.  If
+    // 'basicAllocator' is 0, the currently installed default allocator is
+    // used.
 #endif
 
-    /// Destroy this object.
     ~StatValueUpdate();
+    // Destroy this object.
 
     // MANIPULATORS
-
-    /// Assign to this object the value of the specified `rhs` object.
     StatValueUpdate& operator=(const StatValueUpdate& rhs);
+    // Assign to this object the value of the specified 'rhs' object.
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    /// Assign to this object the value of the specified `rhs` object.
-    /// After performing this action, the `rhs` object will be left in a
-    /// valid, but unspecified state.
     StatValueUpdate& operator=(StatValueUpdate&& rhs);
+    // Assign to this object the value of the specified 'rhs' object.
+    // After performing this action, the 'rhs' object will be left in a
+    // valid, but unspecified state.
 #endif
 
-    /// Assign to this object the value read from the specified input
-    /// `stream` using the specified `version` format and return a reference
-    /// to the modifiable `stream`.  If `stream` is initially invalid, this
-    /// operation has no effect.  If `stream` becomes invalid during this
-    /// operation, this object is valid, but its value is undefined.  If
-    /// `version` is not supported, `stream` is marked invalid and this
-    /// object is unaltered.  Note that no version is read from `stream`.
-    /// See the `bslx` package-level documentation for more information on
-    /// `bdex` streaming of value-semantic types and containers.
-    template <typename t_STREAM>
-    t_STREAM& bdexStreamIn(t_STREAM& stream, int version);
-
-    /// Reset this object to the default value (i.e., its value upon
-    /// default construction).
     void reset();
+    // Reset this object to the default value (i.e., its value upon
+    // default construction).
 
-    /// Invoke the specified `manipulator` sequentially on the address of
-    /// each (modifiable) attribute of this object, supplying `manipulator`
-    /// with the corresponding attribute information structure until such
-    /// invocation returns a non-zero value.  Return the value from the
-    /// last invocation of `manipulator` (i.e., the invocation that
-    /// terminated the sequence).
     template <typename t_MANIPULATOR>
     int manipulateAttributes(t_MANIPULATOR& manipulator);
+    // Invoke the specified 'manipulator' sequentially on the address of
+    // each (modifiable) attribute of this object, supplying 'manipulator'
+    // with the corresponding attribute information structure until such
+    // invocation returns a non-zero value.  Return the value from the
+    // last invocation of 'manipulator' (i.e., the invocation that
+    // terminated the sequence).
 
-    /// Invoke the specified `manipulator` on the address of
-    /// the (modifiable) attribute indicated by the specified `id`,
-    /// supplying `manipulator` with the corresponding attribute
-    /// information structure.  Return the value returned from the
-    /// invocation of `manipulator` if `id` identifies an attribute of this
-    /// class, and -1 otherwise.
     template <typename t_MANIPULATOR>
     int manipulateAttribute(t_MANIPULATOR& manipulator, int id);
+    // Invoke the specified 'manipulator' on the address of
+    // the (modifiable) attribute indicated by the specified 'id',
+    // supplying 'manipulator' with the corresponding attribute
+    // information structure.  Return the value returned from the
+    // invocation of 'manipulator' if 'id' identifies an attribute of this
+    // class, and -1 otherwise.
 
-    /// Invoke the specified `manipulator` on the address of
-    /// the (modifiable) attribute indicated by the specified `name` of the
-    /// specified `nameLength`, supplying `manipulator` with the
-    /// corresponding attribute information structure.  Return the value
-    /// returned from the invocation of `manipulator` if `name` identifies
-    /// an attribute of this class, and -1 otherwise.
     template <typename t_MANIPULATOR>
     int manipulateAttribute(t_MANIPULATOR& manipulator,
                             const char*    name,
                             int            nameLength);
+    // Invoke the specified 'manipulator' on the address of
+    // the (modifiable) attribute indicated by the specified 'name' of the
+    // specified 'nameLength', supplying 'manipulator' with the
+    // corresponding attribute information structure.  Return the value
+    // returned from the invocation of 'manipulator' if 'name' identifies
+    // an attribute of this class, and -1 otherwise.
 
-    /// Return a reference to the modifiable "FieldMask" attribute of this
-    /// object.
     unsigned int& fieldMask();
+    // Return a reference to the modifiable "FieldMask" attribute of this
+    // object.
 
-    /// Return a reference to the modifiable "Fields" attribute of this
-    /// object.
     bsl::vector<bsls::Types::Int64>& fields();
+    // Return a reference to the modifiable "Fields" attribute of this
+    // object.
 
     // ACCESSORS
-
-    /// Format this object to the specified output `stream` at the
-    /// optionally specified indentation `level` and return a reference to
-    /// the modifiable `stream`.  If `level` is specified, optionally
-    /// specify `spacesPerLevel`, the number of spaces per indentation level
-    /// for this and all of its nested objects.  Each line is indented by
-    /// the absolute value of `level * spacesPerLevel`.  If `level` is
-    /// negative, suppress indentation of the first line.  If
-    /// `spacesPerLevel` is negative, suppress line breaks and format the
-    /// entire output on one line.  If `stream` is initially invalid, this
-    /// operation has no effect.  Note that a trailing newline is provided
-    /// in multiline mode only.
     bsl::ostream&
     print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
+    // Format this object to the specified output 'stream' at the
+    // optionally specified indentation 'level' and return a reference to
+    // the modifiable 'stream'.  If 'level' is specified, optionally
+    // specify 'spacesPerLevel', the number of spaces per indentation level
+    // for this and all of its nested objects.  Each line is indented by
+    // the absolute value of 'level * spacesPerLevel'.  If 'level' is
+    // negative, suppress indentation of the first line.  If
+    // 'spacesPerLevel' is negative, suppress line breaks and format the
+    // entire output on one line.  If 'stream' is initially invalid, this
+    // operation has no effect.  Note that a trailing newline is provided
+    // in multiline mode only.
 
-    /// Write the value of this object to the specified output `stream`
-    /// using the specified `version` format and return a reference to the
-    /// modifiable `stream`.  If `version` is not supported, `stream` is
-    /// unmodified.  Note that `version` is not written to `stream`.
-    /// See the `bslx` package-level documentation for more information
-    /// on `bdex` streaming of value-semantic types and containers.
-    template <typename t_STREAM>
-    t_STREAM& bdexStreamOut(t_STREAM& stream, int version) const;
-
-    /// Invoke the specified `accessor` sequentially on each
-    /// (non-modifiable) attribute of this object, supplying `accessor`
-    /// with the corresponding attribute information structure until such
-    /// invocation returns a non-zero value.  Return the value from the
-    /// last invocation of `accessor` (i.e., the invocation that terminated
-    /// the sequence).
     template <typename t_ACCESSOR>
     int accessAttributes(t_ACCESSOR& accessor) const;
+    // Invoke the specified 'accessor' sequentially on each
+    // (non-modifiable) attribute of this object, supplying 'accessor'
+    // with the corresponding attribute information structure until such
+    // invocation returns a non-zero value.  Return the value from the
+    // last invocation of 'accessor' (i.e., the invocation that terminated
+    // the sequence).
 
-    /// Invoke the specified `accessor` on the (non-modifiable) attribute
-    /// of this object indicated by the specified `id`, supplying `accessor`
-    /// with the corresponding attribute information structure.  Return the
-    /// value returned from the invocation of `accessor` if `id` identifies
-    /// an attribute of this class, and -1 otherwise.
     template <typename t_ACCESSOR>
     int accessAttribute(t_ACCESSOR& accessor, int id) const;
+    // Invoke the specified 'accessor' on the (non-modifiable) attribute
+    // of this object indicated by the specified 'id', supplying 'accessor'
+    // with the corresponding attribute information structure.  Return the
+    // value returned from the invocation of 'accessor' if 'id' identifies
+    // an attribute of this class, and -1 otherwise.
 
-    /// Invoke the specified `accessor` on the (non-modifiable) attribute
-    /// of this object indicated by the specified `name` of the specified
-    /// `nameLength`, supplying `accessor` with the corresponding attribute
-    /// information structure.  Return the value returned from the
-    /// invocation of `accessor` if `name` identifies an attribute of this
-    /// class, and -1 otherwise.
     template <typename t_ACCESSOR>
     int accessAttribute(t_ACCESSOR& accessor,
                         const char* name,
                         int         nameLength) const;
+    // Invoke the specified 'accessor' on the (non-modifiable) attribute
+    // of this object indicated by the specified 'name' of the specified
+    // 'nameLength', supplying 'accessor' with the corresponding attribute
+    // information structure.  Return the value returned from the
+    // invocation of 'accessor' if 'name' identifies an attribute of this
+    // class, and -1 otherwise.
 
-    /// Return the value of the "FieldMask" attribute of this object.
     unsigned int fieldMask() const;
+    // Return the value of the "FieldMask" attribute of this object.
 
-    /// Return a reference offering non-modifiable access to the "Fields"
-    /// attribute of this object.
     const bsl::vector<bsls::Types::Int64>& fields() const;
+    // Return a reference offering non-modifiable access to the "Fields"
+    // attribute of this object.
+
+    // HIDDEN FRIENDS
+    friend bool operator==(const StatValueUpdate& lhs,
+                           const StatValueUpdate& rhs)
+    // Return 'true' if the specified 'lhs' and 'rhs' attribute objects
+    // have the same value, and 'false' otherwise.  Two attribute objects
+    // have the same value if each respective attribute has the same value.
+    {
+        return lhs.fieldMask() == rhs.fieldMask() &&
+               lhs.fields() == rhs.fields();
+    }
+
+    friend bool operator!=(const StatValueUpdate& lhs,
+                           const StatValueUpdate& rhs)
+    // Returns '!(lhs == rhs)'
+    {
+        return !(lhs == rhs);
+    }
+
+    friend bsl::ostream& operator<<(bsl::ostream&          stream,
+                                    const StatValueUpdate& rhs)
+    // Format the specified 'rhs' to the specified output 'stream' and
+    // return a reference to the modifiable 'stream'.
+    {
+        return rhs.print(stream, 0, -1);
+    }
+
+    template <typename t_HASH_ALGORITHM>
+    friend void hashAppend(t_HASH_ALGORITHM&      hashAlg,
+                           const StatValueUpdate& object)
+    // Pass the specified 'object' to the specified 'hashAlg'.  This
+    // function integrates with the 'bslh' modular hashing system and
+    // effectively provides a 'bsl::hash' specialization for
+    // 'StatValueUpdate'.
+    {
+        using bslh::hashAppend;
+        hashAppend(hashAlg, object.fieldMask());
+        hashAppend(hashAlg, object.fields());
+    }
 };
-
-// FREE OPERATORS
-
-/// Return `true` if the specified `lhs` and `rhs` attribute objects have
-/// the same value, and `false` otherwise.  Two attribute objects have the
-/// same value if each respective attribute has the same value.
-inline bool operator==(const StatValueUpdate& lhs, const StatValueUpdate& rhs);
-
-/// Return `true` if the specified `lhs` and `rhs` attribute objects do not
-/// have the same value, and `false` otherwise.  Two attribute objects do
-/// not have the same value if one or more respective attributes differ in
-/// values.
-inline bool operator!=(const StatValueUpdate& lhs, const StatValueUpdate& rhs);
-
-/// Format the specified `rhs` to the specified output `stream` and
-/// return a reference to the modifiable `stream`.
-inline bsl::ostream& operator<<(bsl::ostream&          stream,
-                                const StatValueUpdate& rhs);
-
-/// Pass the specified `object` to the specified `hashAlg`.  This function
-/// integrates with the `bslh` modular hashing system and effectively
-/// provides a `bsl::hash` specialization for `StatValueUpdate`.
-template <typename t_HASH_ALGORITHM>
-void hashAppend(t_HASH_ALGORITHM& hashAlg, const StatValueUpdate& object);
 
 }  // close package namespace
 
@@ -973,14 +828,19 @@ namespace mwcstm {
 // class StatValueDefinition
 // =========================
 
-/// This type represents the definition of a stat collecting value, having a
-/// `name`, a `type` and an array of `historySizes` indicating the number of
-/// snapshots and levels of snapshots to keep.
 class StatValueDefinition {
+    // This type represents the definition of a stat collecting value, having a
+    // 'name', a 'type' and an array of 'historySizes' indicating the number of
+    // snapshots and levels of snapshots to keep.
+
     // INSTANCE DATA
     bsl::vector<unsigned int> d_historySizes;
     bsl::string               d_name;
     StatValueType::Value      d_type;
+
+    // PRIVATE ACCESSORS
+    template <typename t_HASH_ALGORITHM>
+    void hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const;
 
   public:
     // TYPES
@@ -1005,218 +865,198 @@ class StatValueDefinition {
 
   public:
     // CLASS METHODS
-
-    /// Return the most current `bdex` streaming version number supported by
-    /// this class.  See the `bslx` package-level documentation for more
-    /// information on `bdex` streaming of value-semantic types and
-    /// containers.
-    static int maxSupportedBdexVersion();
-
-    /// Return attribute information for the attribute indicated by the
-    /// specified `id` if the attribute exists, and 0 otherwise.
     static const bdlat_AttributeInfo* lookupAttributeInfo(int id);
+    // Return attribute information for the attribute indicated by the
+    // specified 'id' if the attribute exists, and 0 otherwise.
 
-    /// Return attribute information for the attribute indicated by the
-    /// specified `name` of the specified `nameLength` if the attribute
-    /// exists, and 0 otherwise.
     static const bdlat_AttributeInfo* lookupAttributeInfo(const char* name,
                                                           int nameLength);
+    // Return attribute information for the attribute indicated by the
+    // specified 'name' of the specified 'nameLength' if the attribute
+    // exists, and 0 otherwise.
 
     // CREATORS
-
-    /// Create an object of type `StatValueDefinition` having the default
-    /// value.  Use the optionally specified `basicAllocator` to supply
-    /// memory.  If `basicAllocator` is 0, the currently installed default
-    /// allocator is used.
     explicit StatValueDefinition(bslma::Allocator* basicAllocator = 0);
+    // Create an object of type 'StatValueDefinition' having the default
+    // value.  Use the optionally specified 'basicAllocator' to supply
+    // memory.  If 'basicAllocator' is 0, the currently installed default
+    // allocator is used.
 
-    /// Create an object of type `StatValueDefinition` having the value of
-    /// the specified `original` object.  Use the optionally specified
-    /// `basicAllocator` to supply memory.  If `basicAllocator` is 0, the
-    /// currently installed default allocator is used.
     StatValueDefinition(const StatValueDefinition& original,
                         bslma::Allocator*          basicAllocator = 0);
+    // Create an object of type 'StatValueDefinition' having the value of
+    // the specified 'original' object.  Use the optionally specified
+    // 'basicAllocator' to supply memory.  If 'basicAllocator' is 0, the
+    // currently installed default allocator is used.
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    /// Create an object of type `StatValueDefinition` having the value of
-    /// the specified `original` object.  After performing this action, the
-    /// `original` object will be left in a valid, but unspecified state.
     StatValueDefinition(StatValueDefinition&& original) noexcept;
+    // Create an object of type 'StatValueDefinition' having the value of
+    // the specified 'original' object.  After performing this action, the
+    // 'original' object will be left in a valid, but unspecified state.
 
-    /// Create an object of type `StatValueDefinition` having the value of
-    /// the specified `original` object.  After performing this action, the
-    /// `original` object will be left in a valid, but unspecified state.
-    /// Use the optionally specified `basicAllocator` to supply memory.  If
-    /// `basicAllocator` is 0, the currently installed default allocator is
-    /// used.
     StatValueDefinition(StatValueDefinition&& original,
                         bslma::Allocator*     basicAllocator);
+    // Create an object of type 'StatValueDefinition' having the value of
+    // the specified 'original' object.  After performing this action, the
+    // 'original' object will be left in a valid, but unspecified state.
+    // Use the optionally specified 'basicAllocator' to supply memory.  If
+    // 'basicAllocator' is 0, the currently installed default allocator is
+    // used.
 #endif
 
-    /// Destroy this object.
     ~StatValueDefinition();
+    // Destroy this object.
 
     // MANIPULATORS
-
-    /// Assign to this object the value of the specified `rhs` object.
     StatValueDefinition& operator=(const StatValueDefinition& rhs);
+    // Assign to this object the value of the specified 'rhs' object.
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    /// Assign to this object the value of the specified `rhs` object.
-    /// After performing this action, the `rhs` object will be left in a
-    /// valid, but unspecified state.
     StatValueDefinition& operator=(StatValueDefinition&& rhs);
+    // Assign to this object the value of the specified 'rhs' object.
+    // After performing this action, the 'rhs' object will be left in a
+    // valid, but unspecified state.
 #endif
 
-    /// Assign to this object the value read from the specified input
-    /// `stream` using the specified `version` format and return a reference
-    /// to the modifiable `stream`.  If `stream` is initially invalid, this
-    /// operation has no effect.  If `stream` becomes invalid during this
-    /// operation, this object is valid, but its value is undefined.  If
-    /// `version` is not supported, `stream` is marked invalid and this
-    /// object is unaltered.  Note that no version is read from `stream`.
-    /// See the `bslx` package-level documentation for more information on
-    /// `bdex` streaming of value-semantic types and containers.
-    template <typename t_STREAM>
-    t_STREAM& bdexStreamIn(t_STREAM& stream, int version);
-
-    /// Reset this object to the default value (i.e., its value upon
-    /// default construction).
     void reset();
+    // Reset this object to the default value (i.e., its value upon
+    // default construction).
 
-    /// Invoke the specified `manipulator` sequentially on the address of
-    /// each (modifiable) attribute of this object, supplying `manipulator`
-    /// with the corresponding attribute information structure until such
-    /// invocation returns a non-zero value.  Return the value from the
-    /// last invocation of `manipulator` (i.e., the invocation that
-    /// terminated the sequence).
     template <typename t_MANIPULATOR>
     int manipulateAttributes(t_MANIPULATOR& manipulator);
+    // Invoke the specified 'manipulator' sequentially on the address of
+    // each (modifiable) attribute of this object, supplying 'manipulator'
+    // with the corresponding attribute information structure until such
+    // invocation returns a non-zero value.  Return the value from the
+    // last invocation of 'manipulator' (i.e., the invocation that
+    // terminated the sequence).
 
-    /// Invoke the specified `manipulator` on the address of
-    /// the (modifiable) attribute indicated by the specified `id`,
-    /// supplying `manipulator` with the corresponding attribute
-    /// information structure.  Return the value returned from the
-    /// invocation of `manipulator` if `id` identifies an attribute of this
-    /// class, and -1 otherwise.
     template <typename t_MANIPULATOR>
     int manipulateAttribute(t_MANIPULATOR& manipulator, int id);
+    // Invoke the specified 'manipulator' on the address of
+    // the (modifiable) attribute indicated by the specified 'id',
+    // supplying 'manipulator' with the corresponding attribute
+    // information structure.  Return the value returned from the
+    // invocation of 'manipulator' if 'id' identifies an attribute of this
+    // class, and -1 otherwise.
 
-    /// Invoke the specified `manipulator` on the address of
-    /// the (modifiable) attribute indicated by the specified `name` of the
-    /// specified `nameLength`, supplying `manipulator` with the
-    /// corresponding attribute information structure.  Return the value
-    /// returned from the invocation of `manipulator` if `name` identifies
-    /// an attribute of this class, and -1 otherwise.
     template <typename t_MANIPULATOR>
     int manipulateAttribute(t_MANIPULATOR& manipulator,
                             const char*    name,
                             int            nameLength);
+    // Invoke the specified 'manipulator' on the address of
+    // the (modifiable) attribute indicated by the specified 'name' of the
+    // specified 'nameLength', supplying 'manipulator' with the
+    // corresponding attribute information structure.  Return the value
+    // returned from the invocation of 'manipulator' if 'name' identifies
+    // an attribute of this class, and -1 otherwise.
 
-    /// Return a reference to the modifiable "Name" attribute of this
-    /// object.
     bsl::string& name();
+    // Return a reference to the modifiable "Name" attribute of this
+    // object.
 
-    /// Return a reference to the modifiable "Type" attribute of this
-    /// object.
     StatValueType::Value& type();
+    // Return a reference to the modifiable "Type" attribute of this
+    // object.
 
-    /// Return a reference to the modifiable "HistorySizes" attribute of
-    /// this object.
     bsl::vector<unsigned int>& historySizes();
+    // Return a reference to the modifiable "HistorySizes" attribute of
+    // this object.
 
     // ACCESSORS
-
-    /// Format this object to the specified output `stream` at the
-    /// optionally specified indentation `level` and return a reference to
-    /// the modifiable `stream`.  If `level` is specified, optionally
-    /// specify `spacesPerLevel`, the number of spaces per indentation level
-    /// for this and all of its nested objects.  Each line is indented by
-    /// the absolute value of `level * spacesPerLevel`.  If `level` is
-    /// negative, suppress indentation of the first line.  If
-    /// `spacesPerLevel` is negative, suppress line breaks and format the
-    /// entire output on one line.  If `stream` is initially invalid, this
-    /// operation has no effect.  Note that a trailing newline is provided
-    /// in multiline mode only.
     bsl::ostream&
     print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
+    // Format this object to the specified output 'stream' at the
+    // optionally specified indentation 'level' and return a reference to
+    // the modifiable 'stream'.  If 'level' is specified, optionally
+    // specify 'spacesPerLevel', the number of spaces per indentation level
+    // for this and all of its nested objects.  Each line is indented by
+    // the absolute value of 'level * spacesPerLevel'.  If 'level' is
+    // negative, suppress indentation of the first line.  If
+    // 'spacesPerLevel' is negative, suppress line breaks and format the
+    // entire output on one line.  If 'stream' is initially invalid, this
+    // operation has no effect.  Note that a trailing newline is provided
+    // in multiline mode only.
 
-    /// Write the value of this object to the specified output `stream`
-    /// using the specified `version` format and return a reference to the
-    /// modifiable `stream`.  If `version` is not supported, `stream` is
-    /// unmodified.  Note that `version` is not written to `stream`.
-    /// See the `bslx` package-level documentation for more information
-    /// on `bdex` streaming of value-semantic types and containers.
-    template <typename t_STREAM>
-    t_STREAM& bdexStreamOut(t_STREAM& stream, int version) const;
-
-    /// Invoke the specified `accessor` sequentially on each
-    /// (non-modifiable) attribute of this object, supplying `accessor`
-    /// with the corresponding attribute information structure until such
-    /// invocation returns a non-zero value.  Return the value from the
-    /// last invocation of `accessor` (i.e., the invocation that terminated
-    /// the sequence).
     template <typename t_ACCESSOR>
     int accessAttributes(t_ACCESSOR& accessor) const;
+    // Invoke the specified 'accessor' sequentially on each
+    // (non-modifiable) attribute of this object, supplying 'accessor'
+    // with the corresponding attribute information structure until such
+    // invocation returns a non-zero value.  Return the value from the
+    // last invocation of 'accessor' (i.e., the invocation that terminated
+    // the sequence).
 
-    /// Invoke the specified `accessor` on the (non-modifiable) attribute
-    /// of this object indicated by the specified `id`, supplying `accessor`
-    /// with the corresponding attribute information structure.  Return the
-    /// value returned from the invocation of `accessor` if `id` identifies
-    /// an attribute of this class, and -1 otherwise.
     template <typename t_ACCESSOR>
     int accessAttribute(t_ACCESSOR& accessor, int id) const;
+    // Invoke the specified 'accessor' on the (non-modifiable) attribute
+    // of this object indicated by the specified 'id', supplying 'accessor'
+    // with the corresponding attribute information structure.  Return the
+    // value returned from the invocation of 'accessor' if 'id' identifies
+    // an attribute of this class, and -1 otherwise.
 
-    /// Invoke the specified `accessor` on the (non-modifiable) attribute
-    /// of this object indicated by the specified `name` of the specified
-    /// `nameLength`, supplying `accessor` with the corresponding attribute
-    /// information structure.  Return the value returned from the
-    /// invocation of `accessor` if `name` identifies an attribute of this
-    /// class, and -1 otherwise.
     template <typename t_ACCESSOR>
     int accessAttribute(t_ACCESSOR& accessor,
                         const char* name,
                         int         nameLength) const;
+    // Invoke the specified 'accessor' on the (non-modifiable) attribute
+    // of this object indicated by the specified 'name' of the specified
+    // 'nameLength', supplying 'accessor' with the corresponding attribute
+    // information structure.  Return the value returned from the
+    // invocation of 'accessor' if 'name' identifies an attribute of this
+    // class, and -1 otherwise.
 
-    /// Return a reference offering non-modifiable access to the "Name"
-    /// attribute of this object.
     const bsl::string& name() const;
+    // Return a reference offering non-modifiable access to the "Name"
+    // attribute of this object.
 
-    /// Return the value of the "Type" attribute of this object.
     StatValueType::Value type() const;
+    // Return the value of the "Type" attribute of this object.
 
-    /// Return a reference offering non-modifiable access to the
-    /// "HistorySizes" attribute of this object.
     const bsl::vector<unsigned int>& historySizes() const;
+    // Return a reference offering non-modifiable access to the
+    // "HistorySizes" attribute of this object.
+
+    // HIDDEN FRIENDS
+    friend bool operator==(const StatValueDefinition& lhs,
+                           const StatValueDefinition& rhs)
+    // Return 'true' if the specified 'lhs' and 'rhs' attribute objects
+    // have the same value, and 'false' otherwise.  Two attribute objects
+    // have the same value if each respective attribute has the same value.
+    {
+        return lhs.name() == rhs.name() && lhs.type() == rhs.type() &&
+               lhs.historySizes() == rhs.historySizes();
+    }
+
+    friend bool operator!=(const StatValueDefinition& lhs,
+                           const StatValueDefinition& rhs)
+    // Returns '!(lhs == rhs)'
+    {
+        return !(lhs == rhs);
+    }
+
+    friend bsl::ostream& operator<<(bsl::ostream&              stream,
+                                    const StatValueDefinition& rhs)
+    // Format the specified 'rhs' to the specified output 'stream' and
+    // return a reference to the modifiable 'stream'.
+    {
+        return rhs.print(stream, 0, -1);
+    }
+
+    template <typename t_HASH_ALGORITHM>
+    friend void hashAppend(t_HASH_ALGORITHM&          hashAlg,
+                           const StatValueDefinition& object)
+    // Pass the specified 'object' to the specified 'hashAlg'.  This
+    // function integrates with the 'bslh' modular hashing system and
+    // effectively provides a 'bsl::hash' specialization for
+    // 'StatValueDefinition'.
+    {
+        object.hashAppendImpl(hashAlg);
+    }
 };
-
-// FREE OPERATORS
-
-/// Return `true` if the specified `lhs` and `rhs` attribute objects have
-/// the same value, and `false` otherwise.  Two attribute objects have the
-/// same value if each respective attribute has the same value.
-inline bool operator==(const StatValueDefinition& lhs,
-                       const StatValueDefinition& rhs);
-
-/// Return `true` if the specified `lhs` and `rhs` attribute objects do not
-/// have the same value, and `false` otherwise.  Two attribute objects do
-/// not have the same value if one or more respective attributes differ in
-/// values.
-inline bool operator!=(const StatValueDefinition& lhs,
-                       const StatValueDefinition& rhs);
-
-/// Format the specified `rhs` to the specified output `stream` and
-/// return a reference to the modifiable `stream`.
-inline bsl::ostream& operator<<(bsl::ostream&              stream,
-                                const StatValueDefinition& rhs);
-
-/// Pass the specified `object` to the specified `hashAlg`.  This function
-/// integrates with the `bslh` modular hashing system and effectively
-/// provides a `bsl::hash` specialization for `StatValueDefinition`.
-template <typename t_HASH_ALGORITHM>
-void hashAppend(t_HASH_ALGORITHM& hashAlg, const StatValueDefinition& object);
 
 }  // close package namespace
 
@@ -1231,16 +1071,21 @@ namespace mwcstm {
 // class StatContextConfiguration
 // ==============================
 
-/// This type represents the configuration of a stat context, having some
-/// configuration `flags`, a user supplied `userId` that may either be a
-/// long integer `id` or a string `name`, and a set of `values` to track.
-/// Note that `values` may be omitted if this configuration is for a
-/// subcontext of a table context.
 class StatContextConfiguration {
+    // This type represents the configuration of a stat context, having some
+    // configuration 'flags', a user supplied 'userId' that may either be a
+    // long integer 'id' or a string 'name', and a set of 'values' to track.
+    // Note that 'values' may be omitted if this configuration is for a
+    // subcontext of a table context.
+
     // INSTANCE DATA
     bsl::vector<StatValueDefinition> d_values;
     StatContextConfigurationChoice   d_choice;
     unsigned int                     d_flags;
+
+    // PRIVATE ACCESSORS
+    template <typename t_HASH_ALGORITHM>
+    void hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const;
 
   public:
     // TYPES
@@ -1265,220 +1110,199 @@ class StatContextConfiguration {
 
   public:
     // CLASS METHODS
-
-    /// Return the most current `bdex` streaming version number supported by
-    /// this class.  See the `bslx` package-level documentation for more
-    /// information on `bdex` streaming of value-semantic types and
-    /// containers.
-    static int maxSupportedBdexVersion();
-
-    /// Return attribute information for the attribute indicated by the
-    /// specified `id` if the attribute exists, and 0 otherwise.
     static const bdlat_AttributeInfo* lookupAttributeInfo(int id);
+    // Return attribute information for the attribute indicated by the
+    // specified 'id' if the attribute exists, and 0 otherwise.
 
-    /// Return attribute information for the attribute indicated by the
-    /// specified `name` of the specified `nameLength` if the attribute
-    /// exists, and 0 otherwise.
     static const bdlat_AttributeInfo* lookupAttributeInfo(const char* name,
                                                           int nameLength);
+    // Return attribute information for the attribute indicated by the
+    // specified 'name' of the specified 'nameLength' if the attribute
+    // exists, and 0 otherwise.
 
     // CREATORS
-
-    /// Create an object of type `StatContextConfiguration` having the
-    /// default value.  Use the optionally specified `basicAllocator` to
-    /// supply memory.  If `basicAllocator` is 0, the currently installed
-    /// default allocator is used.
     explicit StatContextConfiguration(bslma::Allocator* basicAllocator = 0);
+    // Create an object of type 'StatContextConfiguration' having the
+    // default value.  Use the optionally specified 'basicAllocator' to
+    // supply memory.  If 'basicAllocator' is 0, the currently installed
+    // default allocator is used.
 
-    /// Create an object of type `StatContextConfiguration` having the value
-    /// of the specified `original` object.  Use the optionally specified
-    /// `basicAllocator` to supply memory.  If `basicAllocator` is 0, the
-    /// currently installed default allocator is used.
     StatContextConfiguration(const StatContextConfiguration& original,
                              bslma::Allocator* basicAllocator = 0);
+    // Create an object of type 'StatContextConfiguration' having the value
+    // of the specified 'original' object.  Use the optionally specified
+    // 'basicAllocator' to supply memory.  If 'basicAllocator' is 0, the
+    // currently installed default allocator is used.
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    /// Create an object of type `StatContextConfiguration` having the value
-    /// of the specified `original` object.  After performing this action,
-    /// the `original` object will be left in a valid, but unspecified
-    /// state.
     StatContextConfiguration(StatContextConfiguration&& original) noexcept;
+    // Create an object of type 'StatContextConfiguration' having the value
+    // of the specified 'original' object.  After performing this action,
+    // the 'original' object will be left in a valid, but unspecified
+    // state.
 
-    /// Create an object of type `StatContextConfiguration` having the value
-    /// of the specified `original` object.  After performing this action,
-    /// the `original` object will be left in a valid, but unspecified
-    /// state.  Use the optionally specified `basicAllocator` to supply
-    /// memory.  If `basicAllocator` is 0, the currently installed default
-    /// allocator is used.
     StatContextConfiguration(StatContextConfiguration&& original,
                              bslma::Allocator*          basicAllocator);
+    // Create an object of type 'StatContextConfiguration' having the value
+    // of the specified 'original' object.  After performing this action,
+    // the 'original' object will be left in a valid, but unspecified
+    // state.  Use the optionally specified 'basicAllocator' to supply
+    // memory.  If 'basicAllocator' is 0, the currently installed default
+    // allocator is used.
 #endif
 
-    /// Destroy this object.
     ~StatContextConfiguration();
+    // Destroy this object.
 
     // MANIPULATORS
-
-    /// Assign to this object the value of the specified `rhs` object.
     StatContextConfiguration& operator=(const StatContextConfiguration& rhs);
+    // Assign to this object the value of the specified 'rhs' object.
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    /// Assign to this object the value of the specified `rhs` object.
-    /// After performing this action, the `rhs` object will be left in a
-    /// valid, but unspecified state.
     StatContextConfiguration& operator=(StatContextConfiguration&& rhs);
+    // Assign to this object the value of the specified 'rhs' object.
+    // After performing this action, the 'rhs' object will be left in a
+    // valid, but unspecified state.
 #endif
 
-    /// Assign to this object the value read from the specified input
-    /// `stream` using the specified `version` format and return a reference
-    /// to the modifiable `stream`.  If `stream` is initially invalid, this
-    /// operation has no effect.  If `stream` becomes invalid during this
-    /// operation, this object is valid, but its value is undefined.  If
-    /// `version` is not supported, `stream` is marked invalid and this
-    /// object is unaltered.  Note that no version is read from `stream`.
-    /// See the `bslx` package-level documentation for more information on
-    /// `bdex` streaming of value-semantic types and containers.
-    template <typename t_STREAM>
-    t_STREAM& bdexStreamIn(t_STREAM& stream, int version);
-
-    /// Reset this object to the default value (i.e., its value upon
-    /// default construction).
     void reset();
+    // Reset this object to the default value (i.e., its value upon
+    // default construction).
 
-    /// Invoke the specified `manipulator` sequentially on the address of
-    /// each (modifiable) attribute of this object, supplying `manipulator`
-    /// with the corresponding attribute information structure until such
-    /// invocation returns a non-zero value.  Return the value from the
-    /// last invocation of `manipulator` (i.e., the invocation that
-    /// terminated the sequence).
     template <typename t_MANIPULATOR>
     int manipulateAttributes(t_MANIPULATOR& manipulator);
+    // Invoke the specified 'manipulator' sequentially on the address of
+    // each (modifiable) attribute of this object, supplying 'manipulator'
+    // with the corresponding attribute information structure until such
+    // invocation returns a non-zero value.  Return the value from the
+    // last invocation of 'manipulator' (i.e., the invocation that
+    // terminated the sequence).
 
-    /// Invoke the specified `manipulator` on the address of
-    /// the (modifiable) attribute indicated by the specified `id`,
-    /// supplying `manipulator` with the corresponding attribute
-    /// information structure.  Return the value returned from the
-    /// invocation of `manipulator` if `id` identifies an attribute of this
-    /// class, and -1 otherwise.
     template <typename t_MANIPULATOR>
     int manipulateAttribute(t_MANIPULATOR& manipulator, int id);
+    // Invoke the specified 'manipulator' on the address of
+    // the (modifiable) attribute indicated by the specified 'id',
+    // supplying 'manipulator' with the corresponding attribute
+    // information structure.  Return the value returned from the
+    // invocation of 'manipulator' if 'id' identifies an attribute of this
+    // class, and -1 otherwise.
 
-    /// Invoke the specified `manipulator` on the address of
-    /// the (modifiable) attribute indicated by the specified `name` of the
-    /// specified `nameLength`, supplying `manipulator` with the
-    /// corresponding attribute information structure.  Return the value
-    /// returned from the invocation of `manipulator` if `name` identifies
-    /// an attribute of this class, and -1 otherwise.
     template <typename t_MANIPULATOR>
     int manipulateAttribute(t_MANIPULATOR& manipulator,
                             const char*    name,
                             int            nameLength);
+    // Invoke the specified 'manipulator' on the address of
+    // the (modifiable) attribute indicated by the specified 'name' of the
+    // specified 'nameLength', supplying 'manipulator' with the
+    // corresponding attribute information structure.  Return the value
+    // returned from the invocation of 'manipulator' if 'name' identifies
+    // an attribute of this class, and -1 otherwise.
 
-    /// Return a reference to the modifiable "Flags" attribute of this
-    /// object.
     unsigned int& flags();
+    // Return a reference to the modifiable "Flags" attribute of this
+    // object.
 
-    /// Return a reference to the modifiable "Choice" attribute of this
-    /// object.
     StatContextConfigurationChoice& choice();
+    // Return a reference to the modifiable "Choice" attribute of this
+    // object.
 
-    /// Return a reference to the modifiable "Values" attribute of this
-    /// object.
     bsl::vector<StatValueDefinition>& values();
+    // Return a reference to the modifiable "Values" attribute of this
+    // object.
 
     // ACCESSORS
-
-    /// Format this object to the specified output `stream` at the
-    /// optionally specified indentation `level` and return a reference to
-    /// the modifiable `stream`.  If `level` is specified, optionally
-    /// specify `spacesPerLevel`, the number of spaces per indentation level
-    /// for this and all of its nested objects.  Each line is indented by
-    /// the absolute value of `level * spacesPerLevel`.  If `level` is
-    /// negative, suppress indentation of the first line.  If
-    /// `spacesPerLevel` is negative, suppress line breaks and format the
-    /// entire output on one line.  If `stream` is initially invalid, this
-    /// operation has no effect.  Note that a trailing newline is provided
-    /// in multiline mode only.
     bsl::ostream&
     print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
+    // Format this object to the specified output 'stream' at the
+    // optionally specified indentation 'level' and return a reference to
+    // the modifiable 'stream'.  If 'level' is specified, optionally
+    // specify 'spacesPerLevel', the number of spaces per indentation level
+    // for this and all of its nested objects.  Each line is indented by
+    // the absolute value of 'level * spacesPerLevel'.  If 'level' is
+    // negative, suppress indentation of the first line.  If
+    // 'spacesPerLevel' is negative, suppress line breaks and format the
+    // entire output on one line.  If 'stream' is initially invalid, this
+    // operation has no effect.  Note that a trailing newline is provided
+    // in multiline mode only.
 
-    /// Write the value of this object to the specified output `stream`
-    /// using the specified `version` format and return a reference to the
-    /// modifiable `stream`.  If `version` is not supported, `stream` is
-    /// unmodified.  Note that `version` is not written to `stream`.
-    /// See the `bslx` package-level documentation for more information
-    /// on `bdex` streaming of value-semantic types and containers.
-    template <typename t_STREAM>
-    t_STREAM& bdexStreamOut(t_STREAM& stream, int version) const;
-
-    /// Invoke the specified `accessor` sequentially on each
-    /// (non-modifiable) attribute of this object, supplying `accessor`
-    /// with the corresponding attribute information structure until such
-    /// invocation returns a non-zero value.  Return the value from the
-    /// last invocation of `accessor` (i.e., the invocation that terminated
-    /// the sequence).
     template <typename t_ACCESSOR>
     int accessAttributes(t_ACCESSOR& accessor) const;
+    // Invoke the specified 'accessor' sequentially on each
+    // (non-modifiable) attribute of this object, supplying 'accessor'
+    // with the corresponding attribute information structure until such
+    // invocation returns a non-zero value.  Return the value from the
+    // last invocation of 'accessor' (i.e., the invocation that terminated
+    // the sequence).
 
-    /// Invoke the specified `accessor` on the (non-modifiable) attribute
-    /// of this object indicated by the specified `id`, supplying `accessor`
-    /// with the corresponding attribute information structure.  Return the
-    /// value returned from the invocation of `accessor` if `id` identifies
-    /// an attribute of this class, and -1 otherwise.
     template <typename t_ACCESSOR>
     int accessAttribute(t_ACCESSOR& accessor, int id) const;
+    // Invoke the specified 'accessor' on the (non-modifiable) attribute
+    // of this object indicated by the specified 'id', supplying 'accessor'
+    // with the corresponding attribute information structure.  Return the
+    // value returned from the invocation of 'accessor' if 'id' identifies
+    // an attribute of this class, and -1 otherwise.
 
-    /// Invoke the specified `accessor` on the (non-modifiable) attribute
-    /// of this object indicated by the specified `name` of the specified
-    /// `nameLength`, supplying `accessor` with the corresponding attribute
-    /// information structure.  Return the value returned from the
-    /// invocation of `accessor` if `name` identifies an attribute of this
-    /// class, and -1 otherwise.
     template <typename t_ACCESSOR>
     int accessAttribute(t_ACCESSOR& accessor,
                         const char* name,
                         int         nameLength) const;
+    // Invoke the specified 'accessor' on the (non-modifiable) attribute
+    // of this object indicated by the specified 'name' of the specified
+    // 'nameLength', supplying 'accessor' with the corresponding attribute
+    // information structure.  Return the value returned from the
+    // invocation of 'accessor' if 'name' identifies an attribute of this
+    // class, and -1 otherwise.
 
-    /// Return the value of the "Flags" attribute of this object.
     unsigned int flags() const;
+    // Return the value of the "Flags" attribute of this object.
 
-    /// Return a reference offering non-modifiable access to the "Choice"
-    /// attribute of this object.
     const StatContextConfigurationChoice& choice() const;
+    // Return a reference offering non-modifiable access to the "Choice"
+    // attribute of this object.
 
-    /// Return a reference offering non-modifiable access to the "Values"
-    /// attribute of this object.
     const bsl::vector<StatValueDefinition>& values() const;
+    // Return a reference offering non-modifiable access to the "Values"
+    // attribute of this object.
+
+    // HIDDEN FRIENDS
+    friend bool operator==(const StatContextConfiguration& lhs,
+                           const StatContextConfiguration& rhs)
+    // Return 'true' if the specified 'lhs' and 'rhs' attribute objects
+    // have the same value, and 'false' otherwise.  Two attribute objects
+    // have the same value if each respective attribute has the same value.
+    {
+        return lhs.flags() == rhs.flags() && lhs.choice() == rhs.choice() &&
+               lhs.values() == rhs.values();
+    }
+
+    friend bool operator!=(const StatContextConfiguration& lhs,
+                           const StatContextConfiguration& rhs)
+    // Returns '!(lhs == rhs)'
+    {
+        return !(lhs == rhs);
+    }
+
+    friend bsl::ostream& operator<<(bsl::ostream&                   stream,
+                                    const StatContextConfiguration& rhs)
+    // Format the specified 'rhs' to the specified output 'stream' and
+    // return a reference to the modifiable 'stream'.
+    {
+        return rhs.print(stream, 0, -1);
+    }
+
+    template <typename t_HASH_ALGORITHM>
+    friend void hashAppend(t_HASH_ALGORITHM&               hashAlg,
+                           const StatContextConfiguration& object)
+    // Pass the specified 'object' to the specified 'hashAlg'.  This
+    // function integrates with the 'bslh' modular hashing system and
+    // effectively provides a 'bsl::hash' specialization for
+    // 'StatContextConfiguration'.
+    {
+        object.hashAppendImpl(hashAlg);
+    }
 };
-
-// FREE OPERATORS
-
-/// Return `true` if the specified `lhs` and `rhs` attribute objects have
-/// the same value, and `false` otherwise.  Two attribute objects have the
-/// same value if each respective attribute has the same value.
-inline bool operator==(const StatContextConfiguration& lhs,
-                       const StatContextConfiguration& rhs);
-
-/// Return `true` if the specified `lhs` and `rhs` attribute objects do not
-/// have the same value, and `false` otherwise.  Two attribute objects do
-/// not have the same value if one or more respective attributes differ in
-/// values.
-inline bool operator!=(const StatContextConfiguration& lhs,
-                       const StatContextConfiguration& rhs);
-
-/// Format the specified `rhs` to the specified output `stream` and
-/// return a reference to the modifiable `stream`.
-inline bsl::ostream& operator<<(bsl::ostream&                   stream,
-                                const StatContextConfiguration& rhs);
-
-/// Pass the specified `object` to the specified `hashAlg`.  This function
-/// integrates with the `bslh` modular hashing system and effectively
-/// provides a `bsl::hash` specialization for `StatContextConfiguration`.
-template <typename t_HASH_ALGORITHM>
-void hashAppend(t_HASH_ALGORITHM&               hashAlg,
-                const StatContextConfiguration& object);
 
 }  // close package namespace
 
@@ -1493,12 +1317,13 @@ namespace mwcstm {
 // class StatContextUpdate
 // =======================
 
-/// This type represents an externalizable `StatContext`, having an integer
-/// `id` distinct from all sibling contexts, a set of `flags` denoting if
-/// this is a new or deleted context, an optional `configuration` that
-/// describes the context structure that is excluded if redundant, a set of
-/// `directValues` and `expiredValues`, and a set of `subcontexts`.
 class StatContextUpdate {
+    // This type represents an externalizable 'StatContext', having an integer
+    // 'id' distinct from all sibling contexts, a set of 'flags' denoting if
+    // this is a new or deleted context, an optional 'configuration' that
+    // describes the context structure that is excluded if redundant, a set of
+    // 'directValues' and 'expiredValues', and a set of 'subcontexts'.
+
     // INSTANCE DATA
     bsls::Types::Int64                            d_timeStamp;
     bsl::vector<StatValueUpdate>                  d_directValues;
@@ -1507,6 +1332,12 @@ class StatContextUpdate {
     bdlb::NullableValue<StatContextConfiguration> d_configuration;
     unsigned int                                  d_flags;
     int                                           d_id;
+
+    // PRIVATE ACCESSORS
+    template <typename t_HASH_ALGORITHM>
+    void hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const;
+
+    bool isEqualTo(const StatContextUpdate& rhs) const;
 
   public:
     // TYPES
@@ -1539,247 +1370,226 @@ class StatContextUpdate {
 
   public:
     // CLASS METHODS
-
-    /// Return the most current `bdex` streaming version number supported by
-    /// this class.  See the `bslx` package-level documentation for more
-    /// information on `bdex` streaming of value-semantic types and
-    /// containers.
-    static int maxSupportedBdexVersion();
-
-    /// Return attribute information for the attribute indicated by the
-    /// specified `id` if the attribute exists, and 0 otherwise.
     static const bdlat_AttributeInfo* lookupAttributeInfo(int id);
+    // Return attribute information for the attribute indicated by the
+    // specified 'id' if the attribute exists, and 0 otherwise.
 
-    /// Return attribute information for the attribute indicated by the
-    /// specified `name` of the specified `nameLength` if the attribute
-    /// exists, and 0 otherwise.
     static const bdlat_AttributeInfo* lookupAttributeInfo(const char* name,
                                                           int nameLength);
+    // Return attribute information for the attribute indicated by the
+    // specified 'name' of the specified 'nameLength' if the attribute
+    // exists, and 0 otherwise.
 
     // CREATORS
-
-    /// Create an object of type `StatContextUpdate` having the default
-    /// value.  Use the optionally specified `basicAllocator` to supply
-    /// memory.  If `basicAllocator` is 0, the currently installed default
-    /// allocator is used.
     explicit StatContextUpdate(bslma::Allocator* basicAllocator = 0);
+    // Create an object of type 'StatContextUpdate' having the default
+    // value.  Use the optionally specified 'basicAllocator' to supply
+    // memory.  If 'basicAllocator' is 0, the currently installed default
+    // allocator is used.
 
-    /// Create an object of type `StatContextUpdate` having the value of the
-    /// specified `original` object.  Use the optionally specified
-    /// `basicAllocator` to supply memory.  If `basicAllocator` is 0, the
-    /// currently installed default allocator is used.
     StatContextUpdate(const StatContextUpdate& original,
                       bslma::Allocator*        basicAllocator = 0);
+    // Create an object of type 'StatContextUpdate' having the value of the
+    // specified 'original' object.  Use the optionally specified
+    // 'basicAllocator' to supply memory.  If 'basicAllocator' is 0, the
+    // currently installed default allocator is used.
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    /// Create an object of type `StatContextUpdate` having the value of the
-    /// specified `original` object.  After performing this action, the
-    /// `original` object will be left in a valid, but unspecified state.
     StatContextUpdate(StatContextUpdate&& original) noexcept;
+    // Create an object of type 'StatContextUpdate' having the value of the
+    // specified 'original' object.  After performing this action, the
+    // 'original' object will be left in a valid, but unspecified state.
 
-    /// Create an object of type `StatContextUpdate` having the value of the
-    /// specified `original` object.  After performing this action, the
-    /// `original` object will be left in a valid, but unspecified state.
-    /// Use the optionally specified `basicAllocator` to supply memory.  If
-    /// `basicAllocator` is 0, the currently installed default allocator is
-    /// used.
     StatContextUpdate(StatContextUpdate&& original,
                       bslma::Allocator*   basicAllocator);
+    // Create an object of type 'StatContextUpdate' having the value of the
+    // specified 'original' object.  After performing this action, the
+    // 'original' object will be left in a valid, but unspecified state.
+    // Use the optionally specified 'basicAllocator' to supply memory.  If
+    // 'basicAllocator' is 0, the currently installed default allocator is
+    // used.
 #endif
 
-    /// Destroy this object.
     ~StatContextUpdate();
+    // Destroy this object.
 
     // MANIPULATORS
-
-    /// Assign to this object the value of the specified `rhs` object.
     StatContextUpdate& operator=(const StatContextUpdate& rhs);
+    // Assign to this object the value of the specified 'rhs' object.
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    /// Assign to this object the value of the specified `rhs` object.
-    /// After performing this action, the `rhs` object will be left in a
-    /// valid, but unspecified state.
     StatContextUpdate& operator=(StatContextUpdate&& rhs);
+    // Assign to this object the value of the specified 'rhs' object.
+    // After performing this action, the 'rhs' object will be left in a
+    // valid, but unspecified state.
 #endif
 
-    /// Assign to this object the value read from the specified input
-    /// `stream` using the specified `version` format and return a reference
-    /// to the modifiable `stream`.  If `stream` is initially invalid, this
-    /// operation has no effect.  If `stream` becomes invalid during this
-    /// operation, this object is valid, but its value is undefined.  If
-    /// `version` is not supported, `stream` is marked invalid and this
-    /// object is unaltered.  Note that no version is read from `stream`.
-    /// See the `bslx` package-level documentation for more information on
-    /// `bdex` streaming of value-semantic types and containers.
-    template <typename t_STREAM>
-    t_STREAM& bdexStreamIn(t_STREAM& stream, int version);
-
-    /// Reset this object to the default value (i.e., its value upon
-    /// default construction).
     void reset();
+    // Reset this object to the default value (i.e., its value upon
+    // default construction).
 
-    /// Invoke the specified `manipulator` sequentially on the address of
-    /// each (modifiable) attribute of this object, supplying `manipulator`
-    /// with the corresponding attribute information structure until such
-    /// invocation returns a non-zero value.  Return the value from the
-    /// last invocation of `manipulator` (i.e., the invocation that
-    /// terminated the sequence).
     template <typename t_MANIPULATOR>
     int manipulateAttributes(t_MANIPULATOR& manipulator);
+    // Invoke the specified 'manipulator' sequentially on the address of
+    // each (modifiable) attribute of this object, supplying 'manipulator'
+    // with the corresponding attribute information structure until such
+    // invocation returns a non-zero value.  Return the value from the
+    // last invocation of 'manipulator' (i.e., the invocation that
+    // terminated the sequence).
 
-    /// Invoke the specified `manipulator` on the address of
-    /// the (modifiable) attribute indicated by the specified `id`,
-    /// supplying `manipulator` with the corresponding attribute
-    /// information structure.  Return the value returned from the
-    /// invocation of `manipulator` if `id` identifies an attribute of this
-    /// class, and -1 otherwise.
     template <typename t_MANIPULATOR>
     int manipulateAttribute(t_MANIPULATOR& manipulator, int id);
+    // Invoke the specified 'manipulator' on the address of
+    // the (modifiable) attribute indicated by the specified 'id',
+    // supplying 'manipulator' with the corresponding attribute
+    // information structure.  Return the value returned from the
+    // invocation of 'manipulator' if 'id' identifies an attribute of this
+    // class, and -1 otherwise.
 
-    /// Invoke the specified `manipulator` on the address of
-    /// the (modifiable) attribute indicated by the specified `name` of the
-    /// specified `nameLength`, supplying `manipulator` with the
-    /// corresponding attribute information structure.  Return the value
-    /// returned from the invocation of `manipulator` if `name` identifies
-    /// an attribute of this class, and -1 otherwise.
     template <typename t_MANIPULATOR>
     int manipulateAttribute(t_MANIPULATOR& manipulator,
                             const char*    name,
                             int            nameLength);
+    // Invoke the specified 'manipulator' on the address of
+    // the (modifiable) attribute indicated by the specified 'name' of the
+    // specified 'nameLength', supplying 'manipulator' with the
+    // corresponding attribute information structure.  Return the value
+    // returned from the invocation of 'manipulator' if 'name' identifies
+    // an attribute of this class, and -1 otherwise.
 
-    /// Return a reference to the modifiable "Id" attribute of this object.
     int& id();
+    // Return a reference to the modifiable "Id" attribute of this object.
 
-    /// Return a reference to the modifiable "Flags" attribute of this
-    /// object.
     unsigned int& flags();
+    // Return a reference to the modifiable "Flags" attribute of this
+    // object.
 
-    /// Return a reference to the modifiable "TimeStamp" attribute of this
-    /// object.
     bsls::Types::Int64& timeStamp();
+    // Return a reference to the modifiable "TimeStamp" attribute of this
+    // object.
 
-    /// Return a reference to the modifiable "Configuration" attribute of
-    /// this object.
     bdlb::NullableValue<StatContextConfiguration>& configuration();
+    // Return a reference to the modifiable "Configuration" attribute of
+    // this object.
 
-    /// Return a reference to the modifiable "DirectValues" attribute of
-    /// this object.
     bsl::vector<StatValueUpdate>& directValues();
+    // Return a reference to the modifiable "DirectValues" attribute of
+    // this object.
 
-    /// Return a reference to the modifiable "ExpiredValues" attribute of
-    /// this object.
     bsl::vector<StatValueUpdate>& expiredValues();
+    // Return a reference to the modifiable "ExpiredValues" attribute of
+    // this object.
 
-    /// Return a reference to the modifiable "Subcontexts" attribute of this
-    /// object.
     bsl::vector<StatContextUpdate>& subcontexts();
+    // Return a reference to the modifiable "Subcontexts" attribute of this
+    // object.
 
     // ACCESSORS
-
-    /// Format this object to the specified output `stream` at the
-    /// optionally specified indentation `level` and return a reference to
-    /// the modifiable `stream`.  If `level` is specified, optionally
-    /// specify `spacesPerLevel`, the number of spaces per indentation level
-    /// for this and all of its nested objects.  Each line is indented by
-    /// the absolute value of `level * spacesPerLevel`.  If `level` is
-    /// negative, suppress indentation of the first line.  If
-    /// `spacesPerLevel` is negative, suppress line breaks and format the
-    /// entire output on one line.  If `stream` is initially invalid, this
-    /// operation has no effect.  Note that a trailing newline is provided
-    /// in multiline mode only.
     bsl::ostream&
     print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
+    // Format this object to the specified output 'stream' at the
+    // optionally specified indentation 'level' and return a reference to
+    // the modifiable 'stream'.  If 'level' is specified, optionally
+    // specify 'spacesPerLevel', the number of spaces per indentation level
+    // for this and all of its nested objects.  Each line is indented by
+    // the absolute value of 'level * spacesPerLevel'.  If 'level' is
+    // negative, suppress indentation of the first line.  If
+    // 'spacesPerLevel' is negative, suppress line breaks and format the
+    // entire output on one line.  If 'stream' is initially invalid, this
+    // operation has no effect.  Note that a trailing newline is provided
+    // in multiline mode only.
 
-    /// Write the value of this object to the specified output `stream`
-    /// using the specified `version` format and return a reference to the
-    /// modifiable `stream`.  If `version` is not supported, `stream` is
-    /// unmodified.  Note that `version` is not written to `stream`.
-    /// See the `bslx` package-level documentation for more information
-    /// on `bdex` streaming of value-semantic types and containers.
-    template <typename t_STREAM>
-    t_STREAM& bdexStreamOut(t_STREAM& stream, int version) const;
-
-    /// Invoke the specified `accessor` sequentially on each
-    /// (non-modifiable) attribute of this object, supplying `accessor`
-    /// with the corresponding attribute information structure until such
-    /// invocation returns a non-zero value.  Return the value from the
-    /// last invocation of `accessor` (i.e., the invocation that terminated
-    /// the sequence).
     template <typename t_ACCESSOR>
     int accessAttributes(t_ACCESSOR& accessor) const;
+    // Invoke the specified 'accessor' sequentially on each
+    // (non-modifiable) attribute of this object, supplying 'accessor'
+    // with the corresponding attribute information structure until such
+    // invocation returns a non-zero value.  Return the value from the
+    // last invocation of 'accessor' (i.e., the invocation that terminated
+    // the sequence).
 
-    /// Invoke the specified `accessor` on the (non-modifiable) attribute
-    /// of this object indicated by the specified `id`, supplying `accessor`
-    /// with the corresponding attribute information structure.  Return the
-    /// value returned from the invocation of `accessor` if `id` identifies
-    /// an attribute of this class, and -1 otherwise.
     template <typename t_ACCESSOR>
     int accessAttribute(t_ACCESSOR& accessor, int id) const;
+    // Invoke the specified 'accessor' on the (non-modifiable) attribute
+    // of this object indicated by the specified 'id', supplying 'accessor'
+    // with the corresponding attribute information structure.  Return the
+    // value returned from the invocation of 'accessor' if 'id' identifies
+    // an attribute of this class, and -1 otherwise.
 
-    /// Invoke the specified `accessor` on the (non-modifiable) attribute
-    /// of this object indicated by the specified `name` of the specified
-    /// `nameLength`, supplying `accessor` with the corresponding attribute
-    /// information structure.  Return the value returned from the
-    /// invocation of `accessor` if `name` identifies an attribute of this
-    /// class, and -1 otherwise.
     template <typename t_ACCESSOR>
     int accessAttribute(t_ACCESSOR& accessor,
                         const char* name,
                         int         nameLength) const;
+    // Invoke the specified 'accessor' on the (non-modifiable) attribute
+    // of this object indicated by the specified 'name' of the specified
+    // 'nameLength', supplying 'accessor' with the corresponding attribute
+    // information structure.  Return the value returned from the
+    // invocation of 'accessor' if 'name' identifies an attribute of this
+    // class, and -1 otherwise.
 
-    /// Return the value of the "Id" attribute of this object.
     int id() const;
+    // Return the value of the "Id" attribute of this object.
 
-    /// Return the value of the "Flags" attribute of this object.
     unsigned int flags() const;
+    // Return the value of the "Flags" attribute of this object.
 
-    /// Return the value of the "TimeStamp" attribute of this object.
     bsls::Types::Int64 timeStamp() const;
+    // Return the value of the "TimeStamp" attribute of this object.
 
-    /// Return a reference offering non-modifiable access to the
-    /// "Configuration" attribute of this object.
     const bdlb::NullableValue<StatContextConfiguration>& configuration() const;
+    // Return a reference offering non-modifiable access to the
+    // "Configuration" attribute of this object.
 
-    /// Return a reference offering non-modifiable access to the
-    /// "DirectValues" attribute of this object.
     const bsl::vector<StatValueUpdate>& directValues() const;
+    // Return a reference offering non-modifiable access to the
+    // "DirectValues" attribute of this object.
 
-    /// Return a reference offering non-modifiable access to the
-    /// "ExpiredValues" attribute of this object.
     const bsl::vector<StatValueUpdate>& expiredValues() const;
+    // Return a reference offering non-modifiable access to the
+    // "ExpiredValues" attribute of this object.
 
-    /// Return a reference offering non-modifiable access to the
-    /// "Subcontexts" attribute of this object.
     const bsl::vector<StatContextUpdate>& subcontexts() const;
+    // Return a reference offering non-modifiable access to the
+    // "Subcontexts" attribute of this object.
+
+    // HIDDEN FRIENDS
+    friend bool operator==(const StatContextUpdate& lhs,
+                           const StatContextUpdate& rhs)
+    // Return 'true' if the specified 'lhs' and 'rhs' attribute objects
+    // have the same value, and 'false' otherwise.  Two attribute objects
+    // have the same value if each respective attribute has the same value.
+    {
+        return lhs.isEqualTo(rhs);
+    }
+
+    friend bool operator!=(const StatContextUpdate& lhs,
+                           const StatContextUpdate& rhs)
+    // Returns '!(lhs == rhs)'
+    {
+        return !(lhs == rhs);
+    }
+
+    friend bsl::ostream& operator<<(bsl::ostream&            stream,
+                                    const StatContextUpdate& rhs)
+    // Format the specified 'rhs' to the specified output 'stream' and
+    // return a reference to the modifiable 'stream'.
+    {
+        return rhs.print(stream, 0, -1);
+    }
+
+    template <typename t_HASH_ALGORITHM>
+    friend void hashAppend(t_HASH_ALGORITHM&        hashAlg,
+                           const StatContextUpdate& object)
+    // Pass the specified 'object' to the specified 'hashAlg'.  This
+    // function integrates with the 'bslh' modular hashing system and
+    // effectively provides a 'bsl::hash' specialization for
+    // 'StatContextUpdate'.
+    {
+        object.hashAppendImpl(hashAlg);
+    }
 };
-
-// FREE OPERATORS
-
-/// Return `true` if the specified `lhs` and `rhs` attribute objects have
-/// the same value, and `false` otherwise.  Two attribute objects have the
-/// same value if each respective attribute has the same value.
-inline bool operator==(const StatContextUpdate& lhs,
-                       const StatContextUpdate& rhs);
-
-/// Return `true` if the specified `lhs` and `rhs` attribute objects do not
-/// have the same value, and `false` otherwise.  Two attribute objects do
-/// not have the same value if one or more respective attributes differ in
-/// values.
-inline bool operator!=(const StatContextUpdate& lhs,
-                       const StatContextUpdate& rhs);
-
-/// Format the specified `rhs` to the specified output `stream` and
-/// return a reference to the modifiable `stream`.
-inline bsl::ostream& operator<<(bsl::ostream&            stream,
-                                const StatContextUpdate& rhs);
-
-/// Pass the specified `object` to the specified `hashAlg`.  This function
-/// integrates with the `bslh` modular hashing system and effectively
-/// provides a `bsl::hash` specialization for `StatContextUpdate`.
-template <typename t_HASH_ALGORITHM>
-void hashAppend(t_HASH_ALGORITHM& hashAlg, const StatContextUpdate& object);
 
 }  // close package namespace
 
@@ -1794,8 +1604,9 @@ namespace mwcstm {
 // class StatContextUpdateList
 // ===========================
 
-/// This type represents a sequence of `StatContext` objects.
 class StatContextUpdateList {
+    // This type represents a sequence of 'StatContext' objects.
+
     // INSTANCE DATA
     bsl::vector<StatContextUpdate> d_contexts;
 
@@ -1814,204 +1625,183 @@ class StatContextUpdateList {
 
   public:
     // CLASS METHODS
-
-    /// Return the most current `bdex` streaming version number supported by
-    /// this class.  See the `bslx` package-level documentation for more
-    /// information on `bdex` streaming of value-semantic types and
-    /// containers.
-    static int maxSupportedBdexVersion();
-
-    /// Return attribute information for the attribute indicated by the
-    /// specified `id` if the attribute exists, and 0 otherwise.
     static const bdlat_AttributeInfo* lookupAttributeInfo(int id);
+    // Return attribute information for the attribute indicated by the
+    // specified 'id' if the attribute exists, and 0 otherwise.
 
-    /// Return attribute information for the attribute indicated by the
-    /// specified `name` of the specified `nameLength` if the attribute
-    /// exists, and 0 otherwise.
     static const bdlat_AttributeInfo* lookupAttributeInfo(const char* name,
                                                           int nameLength);
+    // Return attribute information for the attribute indicated by the
+    // specified 'name' of the specified 'nameLength' if the attribute
+    // exists, and 0 otherwise.
 
     // CREATORS
-
-    /// Create an object of type `StatContextUpdateList` having the default
-    /// value.  Use the optionally specified `basicAllocator` to supply
-    /// memory.  If `basicAllocator` is 0, the currently installed default
-    /// allocator is used.
     explicit StatContextUpdateList(bslma::Allocator* basicAllocator = 0);
+    // Create an object of type 'StatContextUpdateList' having the default
+    // value.  Use the optionally specified 'basicAllocator' to supply
+    // memory.  If 'basicAllocator' is 0, the currently installed default
+    // allocator is used.
 
-    /// Create an object of type `StatContextUpdateList` having the value of
-    /// the specified `original` object.  Use the optionally specified
-    /// `basicAllocator` to supply memory.  If `basicAllocator` is 0, the
-    /// currently installed default allocator is used.
     StatContextUpdateList(const StatContextUpdateList& original,
                           bslma::Allocator*            basicAllocator = 0);
+    // Create an object of type 'StatContextUpdateList' having the value of
+    // the specified 'original' object.  Use the optionally specified
+    // 'basicAllocator' to supply memory.  If 'basicAllocator' is 0, the
+    // currently installed default allocator is used.
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    /// Create an object of type `StatContextUpdateList` having the value of
-    /// the specified `original` object.  After performing this action, the
-    /// `original` object will be left in a valid, but unspecified state.
     StatContextUpdateList(StatContextUpdateList&& original) noexcept;
+    // Create an object of type 'StatContextUpdateList' having the value of
+    // the specified 'original' object.  After performing this action, the
+    // 'original' object will be left in a valid, but unspecified state.
 
-    /// Create an object of type `StatContextUpdateList` having the value of
-    /// the specified `original` object.  After performing this action, the
-    /// `original` object will be left in a valid, but unspecified state.
-    /// Use the optionally specified `basicAllocator` to supply memory.  If
-    /// `basicAllocator` is 0, the currently installed default allocator is
-    /// used.
     StatContextUpdateList(StatContextUpdateList&& original,
                           bslma::Allocator*       basicAllocator);
+    // Create an object of type 'StatContextUpdateList' having the value of
+    // the specified 'original' object.  After performing this action, the
+    // 'original' object will be left in a valid, but unspecified state.
+    // Use the optionally specified 'basicAllocator' to supply memory.  If
+    // 'basicAllocator' is 0, the currently installed default allocator is
+    // used.
 #endif
 
-    /// Destroy this object.
     ~StatContextUpdateList();
+    // Destroy this object.
 
     // MANIPULATORS
-
-    /// Assign to this object the value of the specified `rhs` object.
     StatContextUpdateList& operator=(const StatContextUpdateList& rhs);
+    // Assign to this object the value of the specified 'rhs' object.
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    /// Assign to this object the value of the specified `rhs` object.
-    /// After performing this action, the `rhs` object will be left in a
-    /// valid, but unspecified state.
     StatContextUpdateList& operator=(StatContextUpdateList&& rhs);
+    // Assign to this object the value of the specified 'rhs' object.
+    // After performing this action, the 'rhs' object will be left in a
+    // valid, but unspecified state.
 #endif
 
-    /// Assign to this object the value read from the specified input
-    /// `stream` using the specified `version` format and return a reference
-    /// to the modifiable `stream`.  If `stream` is initially invalid, this
-    /// operation has no effect.  If `stream` becomes invalid during this
-    /// operation, this object is valid, but its value is undefined.  If
-    /// `version` is not supported, `stream` is marked invalid and this
-    /// object is unaltered.  Note that no version is read from `stream`.
-    /// See the `bslx` package-level documentation for more information on
-    /// `bdex` streaming of value-semantic types and containers.
-    template <typename t_STREAM>
-    t_STREAM& bdexStreamIn(t_STREAM& stream, int version);
-
-    /// Reset this object to the default value (i.e., its value upon
-    /// default construction).
     void reset();
+    // Reset this object to the default value (i.e., its value upon
+    // default construction).
 
-    /// Invoke the specified `manipulator` sequentially on the address of
-    /// each (modifiable) attribute of this object, supplying `manipulator`
-    /// with the corresponding attribute information structure until such
-    /// invocation returns a non-zero value.  Return the value from the
-    /// last invocation of `manipulator` (i.e., the invocation that
-    /// terminated the sequence).
     template <typename t_MANIPULATOR>
     int manipulateAttributes(t_MANIPULATOR& manipulator);
+    // Invoke the specified 'manipulator' sequentially on the address of
+    // each (modifiable) attribute of this object, supplying 'manipulator'
+    // with the corresponding attribute information structure until such
+    // invocation returns a non-zero value.  Return the value from the
+    // last invocation of 'manipulator' (i.e., the invocation that
+    // terminated the sequence).
 
-    /// Invoke the specified `manipulator` on the address of
-    /// the (modifiable) attribute indicated by the specified `id`,
-    /// supplying `manipulator` with the corresponding attribute
-    /// information structure.  Return the value returned from the
-    /// invocation of `manipulator` if `id` identifies an attribute of this
-    /// class, and -1 otherwise.
     template <typename t_MANIPULATOR>
     int manipulateAttribute(t_MANIPULATOR& manipulator, int id);
+    // Invoke the specified 'manipulator' on the address of
+    // the (modifiable) attribute indicated by the specified 'id',
+    // supplying 'manipulator' with the corresponding attribute
+    // information structure.  Return the value returned from the
+    // invocation of 'manipulator' if 'id' identifies an attribute of this
+    // class, and -1 otherwise.
 
-    /// Invoke the specified `manipulator` on the address of
-    /// the (modifiable) attribute indicated by the specified `name` of the
-    /// specified `nameLength`, supplying `manipulator` with the
-    /// corresponding attribute information structure.  Return the value
-    /// returned from the invocation of `manipulator` if `name` identifies
-    /// an attribute of this class, and -1 otherwise.
     template <typename t_MANIPULATOR>
     int manipulateAttribute(t_MANIPULATOR& manipulator,
                             const char*    name,
                             int            nameLength);
+    // Invoke the specified 'manipulator' on the address of
+    // the (modifiable) attribute indicated by the specified 'name' of the
+    // specified 'nameLength', supplying 'manipulator' with the
+    // corresponding attribute information structure.  Return the value
+    // returned from the invocation of 'manipulator' if 'name' identifies
+    // an attribute of this class, and -1 otherwise.
 
-    /// Return a reference to the modifiable "Contexts" attribute of this
-    /// object.
     bsl::vector<StatContextUpdate>& contexts();
+    // Return a reference to the modifiable "Contexts" attribute of this
+    // object.
 
     // ACCESSORS
-
-    /// Format this object to the specified output `stream` at the
-    /// optionally specified indentation `level` and return a reference to
-    /// the modifiable `stream`.  If `level` is specified, optionally
-    /// specify `spacesPerLevel`, the number of spaces per indentation level
-    /// for this and all of its nested objects.  Each line is indented by
-    /// the absolute value of `level * spacesPerLevel`.  If `level` is
-    /// negative, suppress indentation of the first line.  If
-    /// `spacesPerLevel` is negative, suppress line breaks and format the
-    /// entire output on one line.  If `stream` is initially invalid, this
-    /// operation has no effect.  Note that a trailing newline is provided
-    /// in multiline mode only.
     bsl::ostream&
     print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
+    // Format this object to the specified output 'stream' at the
+    // optionally specified indentation 'level' and return a reference to
+    // the modifiable 'stream'.  If 'level' is specified, optionally
+    // specify 'spacesPerLevel', the number of spaces per indentation level
+    // for this and all of its nested objects.  Each line is indented by
+    // the absolute value of 'level * spacesPerLevel'.  If 'level' is
+    // negative, suppress indentation of the first line.  If
+    // 'spacesPerLevel' is negative, suppress line breaks and format the
+    // entire output on one line.  If 'stream' is initially invalid, this
+    // operation has no effect.  Note that a trailing newline is provided
+    // in multiline mode only.
 
-    /// Write the value of this object to the specified output `stream`
-    /// using the specified `version` format and return a reference to the
-    /// modifiable `stream`.  If `version` is not supported, `stream` is
-    /// unmodified.  Note that `version` is not written to `stream`.
-    /// See the `bslx` package-level documentation for more information
-    /// on `bdex` streaming of value-semantic types and containers.
-    template <typename t_STREAM>
-    t_STREAM& bdexStreamOut(t_STREAM& stream, int version) const;
-
-    /// Invoke the specified `accessor` sequentially on each
-    /// (non-modifiable) attribute of this object, supplying `accessor`
-    /// with the corresponding attribute information structure until such
-    /// invocation returns a non-zero value.  Return the value from the
-    /// last invocation of `accessor` (i.e., the invocation that terminated
-    /// the sequence).
     template <typename t_ACCESSOR>
     int accessAttributes(t_ACCESSOR& accessor) const;
+    // Invoke the specified 'accessor' sequentially on each
+    // (non-modifiable) attribute of this object, supplying 'accessor'
+    // with the corresponding attribute information structure until such
+    // invocation returns a non-zero value.  Return the value from the
+    // last invocation of 'accessor' (i.e., the invocation that terminated
+    // the sequence).
 
-    /// Invoke the specified `accessor` on the (non-modifiable) attribute
-    /// of this object indicated by the specified `id`, supplying `accessor`
-    /// with the corresponding attribute information structure.  Return the
-    /// value returned from the invocation of `accessor` if `id` identifies
-    /// an attribute of this class, and -1 otherwise.
     template <typename t_ACCESSOR>
     int accessAttribute(t_ACCESSOR& accessor, int id) const;
+    // Invoke the specified 'accessor' on the (non-modifiable) attribute
+    // of this object indicated by the specified 'id', supplying 'accessor'
+    // with the corresponding attribute information structure.  Return the
+    // value returned from the invocation of 'accessor' if 'id' identifies
+    // an attribute of this class, and -1 otherwise.
 
-    /// Invoke the specified `accessor` on the (non-modifiable) attribute
-    /// of this object indicated by the specified `name` of the specified
-    /// `nameLength`, supplying `accessor` with the corresponding attribute
-    /// information structure.  Return the value returned from the
-    /// invocation of `accessor` if `name` identifies an attribute of this
-    /// class, and -1 otherwise.
     template <typename t_ACCESSOR>
     int accessAttribute(t_ACCESSOR& accessor,
                         const char* name,
                         int         nameLength) const;
+    // Invoke the specified 'accessor' on the (non-modifiable) attribute
+    // of this object indicated by the specified 'name' of the specified
+    // 'nameLength', supplying 'accessor' with the corresponding attribute
+    // information structure.  Return the value returned from the
+    // invocation of 'accessor' if 'name' identifies an attribute of this
+    // class, and -1 otherwise.
 
-    /// Return a reference offering non-modifiable access to the "Contexts"
-    /// attribute of this object.
     const bsl::vector<StatContextUpdate>& contexts() const;
+    // Return a reference offering non-modifiable access to the "Contexts"
+    // attribute of this object.
+
+    // HIDDEN FRIENDS
+    friend bool operator==(const StatContextUpdateList& lhs,
+                           const StatContextUpdateList& rhs)
+    // Return 'true' if the specified 'lhs' and 'rhs' attribute objects
+    // have the same value, and 'false' otherwise.  Two attribute objects
+    // have the same value if each respective attribute has the same value.
+    {
+        return lhs.contexts() == rhs.contexts();
+    }
+
+    friend bool operator!=(const StatContextUpdateList& lhs,
+                           const StatContextUpdateList& rhs)
+    // Returns '!(lhs == rhs)'
+    {
+        return !(lhs == rhs);
+    }
+
+    friend bsl::ostream& operator<<(bsl::ostream&                stream,
+                                    const StatContextUpdateList& rhs)
+    // Format the specified 'rhs' to the specified output 'stream' and
+    // return a reference to the modifiable 'stream'.
+    {
+        return rhs.print(stream, 0, -1);
+    }
+
+    template <typename t_HASH_ALGORITHM>
+    friend void hashAppend(t_HASH_ALGORITHM&            hashAlg,
+                           const StatContextUpdateList& object)
+    // Pass the specified 'object' to the specified 'hashAlg'.  This
+    // function integrates with the 'bslh' modular hashing system and
+    // effectively provides a 'bsl::hash' specialization for
+    // 'StatContextUpdateList'.
+    {
+        using bslh::hashAppend;
+        hashAppend(hashAlg, object.contexts());
+    }
 };
-
-// FREE OPERATORS
-
-/// Return `true` if the specified `lhs` and `rhs` attribute objects have
-/// the same value, and `false` otherwise.  Two attribute objects have the
-/// same value if each respective attribute has the same value.
-inline bool operator==(const StatContextUpdateList& lhs,
-                       const StatContextUpdateList& rhs);
-
-/// Return `true` if the specified `lhs` and `rhs` attribute objects do not
-/// have the same value, and `false` otherwise.  Two attribute objects do
-/// not have the same value if one or more respective attributes differ in
-/// values.
-inline bool operator!=(const StatContextUpdateList& lhs,
-                       const StatContextUpdateList& rhs);
-
-/// Format the specified `rhs` to the specified output `stream` and
-/// return a reference to the modifiable `stream`.
-inline bsl::ostream& operator<<(bsl::ostream&                stream,
-                                const StatContextUpdateList& rhs);
-
-/// Pass the specified `object` to the specified `hashAlg`.  This function
-/// integrates with the `bslh` modular hashing system and effectively
-/// provides a `bsl::hash` specialization for `StatContextUpdateList`.
-template <typename t_HASH_ALGORITHM>
-void hashAppend(t_HASH_ALGORITHM&            hashAlg,
-                const StatContextUpdateList& object);
 
 }  // close package namespace
 
@@ -2020,9 +1810,9 @@ void hashAppend(t_HASH_ALGORITHM&            hashAlg,
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mwcstm::StatContextUpdateList)
 
-// ============================================================================
-//                         INLINE FUNCTION DEFINITIONS
-// ============================================================================
+//=============================================================================
+//                          INLINE DEFINITIONS
+//=============================================================================
 
 namespace mwcstm {
 
@@ -2031,9 +1821,39 @@ namespace mwcstm {
 // ------------------------------------
 
 // CLASS METHODS
-inline int StatContextConfigurationChoice::maxSupportedBdexVersion()
+// PRIVATE ACCESSORS
+template <typename t_HASH_ALGORITHM>
+void StatContextConfigurationChoice::hashAppendImpl(
+    t_HASH_ALGORITHM& hashAlgorithm) const
 {
-    return 1;  // versions start at 1.
+    typedef StatContextConfigurationChoice Class;
+    using bslh::hashAppend;
+    hashAppend(hashAlgorithm, this->selectionId());
+    switch (this->selectionId()) {
+    case Class::SELECTION_ID_ID: hashAppend(hashAlgorithm, this->id()); break;
+    case Class::SELECTION_ID_NAME:
+        hashAppend(hashAlgorithm, this->name());
+        break;
+    default: BSLS_ASSERT(this->selectionId() == Class::SELECTION_ID_UNDEFINED);
+    }
+}
+
+inline bool StatContextConfigurationChoice::isEqualTo(
+    const StatContextConfigurationChoice& rhs) const
+{
+    typedef StatContextConfigurationChoice Class;
+    if (this->selectionId() == rhs.selectionId()) {
+        switch (rhs.selectionId()) {
+        case Class::SELECTION_ID_ID: return this->id() == rhs.id();
+        case Class::SELECTION_ID_NAME: return this->name() == rhs.name();
+        default:
+            BSLS_ASSERT(Class::SELECTION_ID_UNDEFINED == rhs.selectionId());
+            return true;
+        }
+    }
+    else {
+        return false;
+    }
 }
 
 // CREATORS
@@ -2050,45 +1870,6 @@ inline StatContextConfigurationChoice::~StatContextConfigurationChoice()
 }
 
 // MANIPULATORS
-template <typename t_STREAM>
-t_STREAM& StatContextConfigurationChoice::bdexStreamIn(t_STREAM& stream,
-                                                       int       version)
-{
-    if (stream) {
-        switch (version) {
-        case 1: {
-            short selectionId;
-            stream.getInt16(selectionId);
-            if (!stream) {
-                return stream;
-            }
-            switch (selectionId) {
-            case SELECTION_ID_ID: {
-                makeId();
-                bslx::InStreamFunctions::bdexStreamIn(stream,
-                                                      d_id.object(),
-                                                      1);
-            } break;
-            case SELECTION_ID_NAME: {
-                makeName();
-                bslx::InStreamFunctions::bdexStreamIn(stream,
-                                                      d_name.object(),
-                                                      1);
-            } break;
-            case SELECTION_ID_UNDEFINED: {
-                reset();
-            } break;
-            default: stream.invalidate();
-            }
-        } break;
-        default: {
-            stream.invalidate();
-        }
-        }
-    }
-    return stream;
-}
-
 template <typename t_MANIPULATOR>
 int StatContextConfigurationChoice::manipulateSelection(
     t_MANIPULATOR& manipulator)
@@ -2120,29 +1901,6 @@ inline bsl::string& StatContextConfigurationChoice::name()
 }
 
 // ACCESSORS
-template <typename t_STREAM>
-t_STREAM& StatContextConfigurationChoice::bdexStreamOut(t_STREAM& stream,
-                                                        int version) const
-{
-    switch (version) {
-    case 1: {
-        stream.putInt16(d_selectionId);
-        switch (d_selectionId) {
-        case SELECTION_ID_ID: {
-            bslx::OutStreamFunctions::bdexStreamOut(stream, d_id.object(), 1);
-        } break;
-        case SELECTION_ID_NAME: {
-            bslx::OutStreamFunctions::bdexStreamOut(stream,
-                                                    d_name.object(),
-                                                    1);
-        } break;
-        default: BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId);
-        }
-    } break;
-    }
-    return stream;
-}
-
 inline int StatContextConfigurationChoice::selectionId() const
 {
     return d_selectionId;
@@ -2194,11 +1952,6 @@ inline bool StatContextConfigurationChoice::isUndefinedValue() const
 // -----------------------------------
 
 // CLASS METHODS
-inline int StatContextConfigurationFlags::maxSupportedBdexVersion()
-{
-    return 1;  // versions start at 1
-}
-
 inline int StatContextConfigurationFlags::fromString(Value*             result,
                                                      const bsl::string& string)
 {
@@ -2214,53 +1967,11 @@ inline bsl::ostream& StatContextConfigurationFlags::print(
     return stream << toString(value);
 }
 
-template <typename t_STREAM>
-t_STREAM& StatContextConfigurationFlags::bdexStreamIn(
-    t_STREAM&                             stream,
-    StatContextConfigurationFlags::Value& value,
-    int                                   version)
-{
-    switch (version) {
-    case 1: {
-        int readValue;
-        stream.getInt32(readValue);
-        if (stream) {
-            if (fromInt(&value, readValue)) {
-                stream.invalidate();  // bad value in stream
-            }
-        }
-    } break;
-    default: {
-        stream.invalidate();  // unrecognized version number
-    } break;
-    }
-    return stream;
-}
-
-template <typename t_STREAM>
-t_STREAM& StatContextConfigurationFlags::bdexStreamOut(
-    t_STREAM&                            stream,
-    StatContextConfigurationFlags::Value value,
-    int                                  version)
-{
-    switch (version) {
-    case 1: {
-        stream.putInt32(value);  // Write the value as an int
-    } break;
-    }
-    return stream;
-}
-
 // ----------------------------
 // class StatContextUpdateFlags
 // ----------------------------
 
 // CLASS METHODS
-inline int StatContextUpdateFlags::maxSupportedBdexVersion()
-{
-    return 1;  // versions start at 1
-}
-
 inline int StatContextUpdateFlags::fromString(Value*             result,
                                               const bsl::string& string)
 {
@@ -2276,53 +1987,11 @@ StatContextUpdateFlags::print(bsl::ostream&                 stream,
     return stream << toString(value);
 }
 
-template <typename t_STREAM>
-t_STREAM&
-StatContextUpdateFlags::bdexStreamIn(t_STREAM&                      stream,
-                                     StatContextUpdateFlags::Value& value,
-                                     int                            version)
-{
-    switch (version) {
-    case 1: {
-        int readValue;
-        stream.getInt32(readValue);
-        if (stream) {
-            if (fromInt(&value, readValue)) {
-                stream.invalidate();  // bad value in stream
-            }
-        }
-    } break;
-    default: {
-        stream.invalidate();  // unrecognized version number
-    } break;
-    }
-    return stream;
-}
-
-template <typename t_STREAM>
-t_STREAM&
-StatContextUpdateFlags::bdexStreamOut(t_STREAM&                     stream,
-                                      StatContextUpdateFlags::Value value,
-                                      int                           version)
-{
-    switch (version) {
-    case 1: {
-        stream.putInt32(value);  // Write the value as an int
-    } break;
-    }
-    return stream;
-}
-
 // ---------------------
 // class StatValueFields
 // ---------------------
 
 // CLASS METHODS
-inline int StatValueFields::maxSupportedBdexVersion()
-{
-    return 1;  // versions start at 1
-}
-
 inline int StatValueFields::fromString(Value*             result,
                                        const bsl::string& string)
 {
@@ -2337,51 +2006,11 @@ inline bsl::ostream& StatValueFields::print(bsl::ostream&          stream,
     return stream << toString(value);
 }
 
-template <typename t_STREAM>
-t_STREAM& StatValueFields::bdexStreamIn(t_STREAM&               stream,
-                                        StatValueFields::Value& value,
-                                        int                     version)
-{
-    switch (version) {
-    case 1: {
-        int readValue;
-        stream.getInt32(readValue);
-        if (stream) {
-            if (fromInt(&value, readValue)) {
-                stream.invalidate();  // bad value in stream
-            }
-        }
-    } break;
-    default: {
-        stream.invalidate();  // unrecognized version number
-    } break;
-    }
-    return stream;
-}
-
-template <typename t_STREAM>
-t_STREAM& StatValueFields::bdexStreamOut(t_STREAM&              stream,
-                                         StatValueFields::Value value,
-                                         int                    version)
-{
-    switch (version) {
-    case 1: {
-        stream.putInt32(value);  // Write the value as an int
-    } break;
-    }
-    return stream;
-}
-
 // -------------------
 // class StatValueType
 // -------------------
 
 // CLASS METHODS
-inline int StatValueType::maxSupportedBdexVersion()
-{
-    return 1;  // versions start at 1
-}
-
 inline int StatValueType::fromString(Value* result, const bsl::string& string)
 {
     return fromString(result,
@@ -2395,69 +2024,12 @@ inline bsl::ostream& StatValueType::print(bsl::ostream&        stream,
     return stream << toString(value);
 }
 
-template <typename t_STREAM>
-t_STREAM& StatValueType::bdexStreamIn(t_STREAM&             stream,
-                                      StatValueType::Value& value,
-                                      int                   version)
-{
-    switch (version) {
-    case 1: {
-        int readValue;
-        stream.getInt32(readValue);
-        if (stream) {
-            if (fromInt(&value, readValue)) {
-                stream.invalidate();  // bad value in stream
-            }
-        }
-    } break;
-    default: {
-        stream.invalidate();  // unrecognized version number
-    } break;
-    }
-    return stream;
-}
-
-template <typename t_STREAM>
-t_STREAM& StatValueType::bdexStreamOut(t_STREAM&            stream,
-                                       StatValueType::Value value,
-                                       int                  version)
-{
-    switch (version) {
-    case 1: {
-        stream.putInt32(value);  // Write the value as an int
-    } break;
-    }
-    return stream;
-}
-
 // ---------------------
 // class StatValueUpdate
 // ---------------------
 
 // CLASS METHODS
-inline int StatValueUpdate::maxSupportedBdexVersion()
-{
-    return 1;  // versions start at 1.
-}
-
 // MANIPULATORS
-template <typename t_STREAM>
-t_STREAM& StatValueUpdate::bdexStreamIn(t_STREAM& stream, int version)
-{
-    if (stream) {
-        switch (version) {
-        case 1: {
-            bslx::InStreamFunctions::bdexStreamIn(stream, d_fieldMask, 1);
-            bslx::InStreamFunctions::bdexStreamIn(stream, d_fields, 1);
-        } break;
-        default: {
-            stream.invalidate();
-        }
-        }
-    }
-    return stream;
-}
-
 template <typename t_MANIPULATOR>
 int StatValueUpdate::manipulateAttributes(t_MANIPULATOR& manipulator)
 {
@@ -2522,18 +2094,6 @@ inline bsl::vector<bsls::Types::Int64>& StatValueUpdate::fields()
 }
 
 // ACCESSORS
-template <typename t_STREAM>
-t_STREAM& StatValueUpdate::bdexStreamOut(t_STREAM& stream, int version) const
-{
-    switch (version) {
-    case 1: {
-        bslx::OutStreamFunctions::bdexStreamOut(stream, this->fieldMask(), 1);
-        bslx::OutStreamFunctions::bdexStreamOut(stream, this->fields(), 1);
-    } break;
-    }
-    return stream;
-}
-
 template <typename t_ACCESSOR>
 int StatValueUpdate::accessAttributes(t_ACCESSOR& accessor) const
 {
@@ -2601,31 +2161,18 @@ inline const bsl::vector<bsls::Types::Int64>& StatValueUpdate::fields() const
 // class StatValueDefinition
 // -------------------------
 
+// PRIVATE ACCESSORS
+template <typename t_HASH_ALGORITHM>
+void StatValueDefinition::hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const
+{
+    using bslh::hashAppend;
+    hashAppend(hashAlgorithm, this->name());
+    hashAppend(hashAlgorithm, this->type());
+    hashAppend(hashAlgorithm, this->historySizes());
+}
+
 // CLASS METHODS
-inline int StatValueDefinition::maxSupportedBdexVersion()
-{
-    return 1;  // versions start at 1.
-}
-
 // MANIPULATORS
-template <typename t_STREAM>
-t_STREAM& StatValueDefinition::bdexStreamIn(t_STREAM& stream, int version)
-{
-    if (stream) {
-        switch (version) {
-        case 1: {
-            bslx::InStreamFunctions::bdexStreamIn(stream, d_name, 1);
-            StatValueType::bdexStreamIn(stream, d_type, 1);
-            bslx::InStreamFunctions::bdexStreamIn(stream, d_historySizes, 1);
-        } break;
-        default: {
-            stream.invalidate();
-        }
-        }
-    }
-    return stream;
-}
-
 template <typename t_MANIPULATOR>
 int StatValueDefinition::manipulateAttributes(t_MANIPULATOR& manipulator)
 {
@@ -2706,22 +2253,6 @@ inline bsl::vector<unsigned int>& StatValueDefinition::historySizes()
 }
 
 // ACCESSORS
-template <typename t_STREAM>
-t_STREAM& StatValueDefinition::bdexStreamOut(t_STREAM& stream,
-                                             int       version) const
-{
-    switch (version) {
-    case 1: {
-        bslx::OutStreamFunctions::bdexStreamOut(stream, this->name(), 1);
-        bslx::OutStreamFunctions::bdexStreamOut(stream, this->type(), 1);
-        bslx::OutStreamFunctions::bdexStreamOut(stream,
-                                                this->historySizes(),
-                                                1);
-    } break;
-    }
-    return stream;
-}
-
 template <typename t_ACCESSOR>
 int StatValueDefinition::accessAttributes(t_ACCESSOR& accessor) const
 {
@@ -2802,31 +2333,19 @@ StatValueDefinition::historySizes() const
 // class StatContextConfiguration
 // ------------------------------
 
+// PRIVATE ACCESSORS
+template <typename t_HASH_ALGORITHM>
+void StatContextConfiguration::hashAppendImpl(
+    t_HASH_ALGORITHM& hashAlgorithm) const
+{
+    using bslh::hashAppend;
+    hashAppend(hashAlgorithm, this->flags());
+    hashAppend(hashAlgorithm, this->choice());
+    hashAppend(hashAlgorithm, this->values());
+}
+
 // CLASS METHODS
-inline int StatContextConfiguration::maxSupportedBdexVersion()
-{
-    return 1;  // versions start at 1.
-}
-
 // MANIPULATORS
-template <typename t_STREAM>
-t_STREAM& StatContextConfiguration::bdexStreamIn(t_STREAM& stream, int version)
-{
-    if (stream) {
-        switch (version) {
-        case 1: {
-            bslx::InStreamFunctions::bdexStreamIn(stream, d_flags, 1);
-            bslx::InStreamFunctions::bdexStreamIn(stream, d_choice, 1);
-            bslx::InStreamFunctions::bdexStreamIn(stream, d_values, 1);
-        } break;
-        default: {
-            stream.invalidate();
-        }
-        }
-    }
-    return stream;
-}
-
 template <typename t_MANIPULATOR>
 int StatContextConfiguration::manipulateAttributes(t_MANIPULATOR& manipulator)
 {
@@ -2905,20 +2424,6 @@ inline bsl::vector<StatValueDefinition>& StatContextConfiguration::values()
 }
 
 // ACCESSORS
-template <typename t_STREAM>
-t_STREAM& StatContextConfiguration::bdexStreamOut(t_STREAM& stream,
-                                                  int       version) const
-{
-    switch (version) {
-    case 1: {
-        bslx::OutStreamFunctions::bdexStreamOut(stream, this->flags(), 1);
-        bslx::OutStreamFunctions::bdexStreamOut(stream, this->choice(), 1);
-        bslx::OutStreamFunctions::bdexStreamOut(stream, this->values(), 1);
-    } break;
-    }
-    return stream;
-}
-
 template <typename t_ACCESSOR>
 int StatContextConfiguration::accessAttributes(t_ACCESSOR& accessor) const
 {
@@ -3001,35 +2506,32 @@ StatContextConfiguration::values() const
 // class StatContextUpdate
 // -----------------------
 
+// PRIVATE ACCESSORS
+template <typename t_HASH_ALGORITHM>
+void StatContextUpdate::hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const
+{
+    using bslh::hashAppend;
+    hashAppend(hashAlgorithm, this->id());
+    hashAppend(hashAlgorithm, this->flags());
+    hashAppend(hashAlgorithm, this->timeStamp());
+    hashAppend(hashAlgorithm, this->configuration());
+    hashAppend(hashAlgorithm, this->directValues());
+    hashAppend(hashAlgorithm, this->expiredValues());
+    hashAppend(hashAlgorithm, this->subcontexts());
+}
+
+inline bool StatContextUpdate::isEqualTo(const StatContextUpdate& rhs) const
+{
+    return this->id() == rhs.id() && this->flags() == rhs.flags() &&
+           this->timeStamp() == rhs.timeStamp() &&
+           this->configuration() == rhs.configuration() &&
+           this->directValues() == rhs.directValues() &&
+           this->expiredValues() == rhs.expiredValues() &&
+           this->subcontexts() == rhs.subcontexts();
+}
+
 // CLASS METHODS
-inline int StatContextUpdate::maxSupportedBdexVersion()
-{
-    return 1;  // versions start at 1.
-}
-
 // MANIPULATORS
-template <typename t_STREAM>
-t_STREAM& StatContextUpdate::bdexStreamIn(t_STREAM& stream, int version)
-{
-    if (stream) {
-        switch (version) {
-        case 1: {
-            bslx::InStreamFunctions::bdexStreamIn(stream, d_id, 1);
-            bslx::InStreamFunctions::bdexStreamIn(stream, d_flags, 1);
-            bslx::InStreamFunctions::bdexStreamIn(stream, d_timeStamp, 1);
-            bslx::InStreamFunctions::bdexStreamIn(stream, d_configuration, 1);
-            bslx::InStreamFunctions::bdexStreamIn(stream, d_directValues, 1);
-            bslx::InStreamFunctions::bdexStreamIn(stream, d_expiredValues, 1);
-            bslx::InStreamFunctions::bdexStreamIn(stream, d_subcontexts, 1);
-        } break;
-        default: {
-            stream.invalidate();
-        }
-        }
-    }
-    return stream;
-}
-
 template <typename t_MANIPULATOR>
 int StatContextUpdate::manipulateAttributes(t_MANIPULATOR& manipulator)
 {
@@ -3171,31 +2673,6 @@ inline bsl::vector<StatContextUpdate>& StatContextUpdate::subcontexts()
 }
 
 // ACCESSORS
-template <typename t_STREAM>
-t_STREAM& StatContextUpdate::bdexStreamOut(t_STREAM& stream, int version) const
-{
-    switch (version) {
-    case 1: {
-        bslx::OutStreamFunctions::bdexStreamOut(stream, this->id(), 1);
-        bslx::OutStreamFunctions::bdexStreamOut(stream, this->flags(), 1);
-        bslx::OutStreamFunctions::bdexStreamOut(stream, this->timeStamp(), 1);
-        bslx::OutStreamFunctions::bdexStreamOut(stream,
-                                                this->configuration(),
-                                                1);
-        bslx::OutStreamFunctions::bdexStreamOut(stream,
-                                                this->directValues(),
-                                                1);
-        bslx::OutStreamFunctions::bdexStreamOut(stream,
-                                                this->expiredValues(),
-                                                1);
-        bslx::OutStreamFunctions::bdexStreamOut(stream,
-                                                this->subcontexts(),
-                                                1);
-    } break;
-    }
-    return stream;
-}
-
 template <typename t_ACCESSOR>
 int StatContextUpdate::accessAttributes(t_ACCESSOR& accessor) const
 {
@@ -3340,28 +2817,7 @@ StatContextUpdate::subcontexts() const
 // ---------------------------
 
 // CLASS METHODS
-inline int StatContextUpdateList::maxSupportedBdexVersion()
-{
-    return 1;  // versions start at 1.
-}
-
 // MANIPULATORS
-template <typename t_STREAM>
-t_STREAM& StatContextUpdateList::bdexStreamIn(t_STREAM& stream, int version)
-{
-    if (stream) {
-        switch (version) {
-        case 1: {
-            bslx::InStreamFunctions::bdexStreamIn(stream, d_contexts, 1);
-        } break;
-        default: {
-            stream.invalidate();
-        }
-        }
-    }
-    return stream;
-}
-
 template <typename t_MANIPULATOR>
 int StatContextUpdateList::manipulateAttributes(t_MANIPULATOR& manipulator)
 {
@@ -3413,18 +2869,6 @@ inline bsl::vector<StatContextUpdate>& StatContextUpdateList::contexts()
 }
 
 // ACCESSORS
-template <typename t_STREAM>
-t_STREAM& StatContextUpdateList::bdexStreamOut(t_STREAM& stream,
-                                               int       version) const
-{
-    switch (version) {
-    case 1: {
-        bslx::OutStreamFunctions::bdexStreamOut(stream, this->contexts(), 1);
-    } break;
-    }
-    return stream;
-}
-
 template <typename t_ACCESSOR>
 int StatContextUpdateList::accessAttributes(t_ACCESSOR& accessor) const
 {
@@ -3478,231 +2922,9 @@ StatContextUpdateList::contexts() const
 
 // FREE FUNCTIONS
 
-inline bool
-mwcstm::operator==(const mwcstm::StatContextConfigurationChoice& lhs,
-                   const mwcstm::StatContextConfigurationChoice& rhs)
-{
-    typedef mwcstm::StatContextConfigurationChoice Class;
-    if (lhs.selectionId() == rhs.selectionId()) {
-        switch (rhs.selectionId()) {
-        case Class::SELECTION_ID_ID: return lhs.id() == rhs.id();
-        case Class::SELECTION_ID_NAME: return lhs.name() == rhs.name();
-        default:
-            BSLS_ASSERT(Class::SELECTION_ID_UNDEFINED == rhs.selectionId());
-            return true;
-        }
-    }
-    else {
-        return false;
-    }
-}
-
-inline bool
-mwcstm::operator!=(const mwcstm::StatContextConfigurationChoice& lhs,
-                   const mwcstm::StatContextConfigurationChoice& rhs)
-{
-    return !(lhs == rhs);
-}
-
-inline bsl::ostream&
-mwcstm::operator<<(bsl::ostream&                                 stream,
-                   const mwcstm::StatContextConfigurationChoice& rhs)
-{
-    return rhs.print(stream, 0, -1);
-}
-
-template <typename t_HASH_ALGORITHM>
-void mwcstm::hashAppend(t_HASH_ALGORITHM&                             hashAlg,
-                        const mwcstm::StatContextConfigurationChoice& object)
-{
-    typedef mwcstm::StatContextConfigurationChoice Class;
-    using bslh::hashAppend;
-    hashAppend(hashAlg, object.selectionId());
-    switch (object.selectionId()) {
-    case Class::SELECTION_ID_ID: hashAppend(hashAlg, object.id()); break;
-    case Class::SELECTION_ID_NAME: hashAppend(hashAlg, object.name()); break;
-    default:
-        BSLS_ASSERT(Class::SELECTION_ID_UNDEFINED == object.selectionId());
-    }
-}
-
-inline bsl::ostream&
-mwcstm::operator<<(bsl::ostream&                                stream,
-                   mwcstm::StatContextConfigurationFlags::Value rhs)
-{
-    return mwcstm::StatContextConfigurationFlags::print(stream, rhs);
-}
-
-inline bsl::ostream&
-mwcstm::operator<<(bsl::ostream&                         stream,
-                   mwcstm::StatContextUpdateFlags::Value rhs)
-{
-    return mwcstm::StatContextUpdateFlags::print(stream, rhs);
-}
-
-inline bsl::ostream& mwcstm::operator<<(bsl::ostream&                  stream,
-                                        mwcstm::StatValueFields::Value rhs)
-{
-    return mwcstm::StatValueFields::print(stream, rhs);
-}
-
-inline bsl::ostream& mwcstm::operator<<(bsl::ostream&                stream,
-                                        mwcstm::StatValueType::Value rhs)
-{
-    return mwcstm::StatValueType::print(stream, rhs);
-}
-
-inline bool mwcstm::operator==(const mwcstm::StatValueUpdate& lhs,
-                               const mwcstm::StatValueUpdate& rhs)
-{
-    return lhs.fieldMask() == rhs.fieldMask() && lhs.fields() == rhs.fields();
-}
-
-inline bool mwcstm::operator!=(const mwcstm::StatValueUpdate& lhs,
-                               const mwcstm::StatValueUpdate& rhs)
-{
-    return !(lhs == rhs);
-}
-
-inline bsl::ostream& mwcstm::operator<<(bsl::ostream&                  stream,
-                                        const mwcstm::StatValueUpdate& rhs)
-{
-    return rhs.print(stream, 0, -1);
-}
-
-template <typename t_HASH_ALGORITHM>
-void mwcstm::hashAppend(t_HASH_ALGORITHM&              hashAlg,
-                        const mwcstm::StatValueUpdate& object)
-{
-    using bslh::hashAppend;
-    hashAppend(hashAlg, object.fieldMask());
-    hashAppend(hashAlg, object.fields());
-}
-
-inline bool mwcstm::operator==(const mwcstm::StatValueDefinition& lhs,
-                               const mwcstm::StatValueDefinition& rhs)
-{
-    return lhs.name() == rhs.name() && lhs.type() == rhs.type() &&
-           lhs.historySizes() == rhs.historySizes();
-}
-
-inline bool mwcstm::operator!=(const mwcstm::StatValueDefinition& lhs,
-                               const mwcstm::StatValueDefinition& rhs)
-{
-    return !(lhs == rhs);
-}
-
-inline bsl::ostream& mwcstm::operator<<(bsl::ostream& stream,
-                                        const mwcstm::StatValueDefinition& rhs)
-{
-    return rhs.print(stream, 0, -1);
-}
-
-template <typename t_HASH_ALGORITHM>
-void mwcstm::hashAppend(t_HASH_ALGORITHM&                  hashAlg,
-                        const mwcstm::StatValueDefinition& object)
-{
-    using bslh::hashAppend;
-    hashAppend(hashAlg, object.name());
-    hashAppend(hashAlg, object.type());
-    hashAppend(hashAlg, object.historySizes());
-}
-
-inline bool mwcstm::operator==(const mwcstm::StatContextConfiguration& lhs,
-                               const mwcstm::StatContextConfiguration& rhs)
-{
-    return lhs.flags() == rhs.flags() && lhs.choice() == rhs.choice() &&
-           lhs.values() == rhs.values();
-}
-
-inline bool mwcstm::operator!=(const mwcstm::StatContextConfiguration& lhs,
-                               const mwcstm::StatContextConfiguration& rhs)
-{
-    return !(lhs == rhs);
-}
-
-inline bsl::ostream&
-mwcstm::operator<<(bsl::ostream&                           stream,
-                   const mwcstm::StatContextConfiguration& rhs)
-{
-    return rhs.print(stream, 0, -1);
-}
-
-template <typename t_HASH_ALGORITHM>
-void mwcstm::hashAppend(t_HASH_ALGORITHM&                       hashAlg,
-                        const mwcstm::StatContextConfiguration& object)
-{
-    using bslh::hashAppend;
-    hashAppend(hashAlg, object.flags());
-    hashAppend(hashAlg, object.choice());
-    hashAppend(hashAlg, object.values());
-}
-
-inline bool mwcstm::operator==(const mwcstm::StatContextUpdate& lhs,
-                               const mwcstm::StatContextUpdate& rhs)
-{
-    return lhs.id() == rhs.id() && lhs.flags() == rhs.flags() &&
-           lhs.timeStamp() == rhs.timeStamp() &&
-           lhs.configuration() == rhs.configuration() &&
-           lhs.directValues() == rhs.directValues() &&
-           lhs.expiredValues() == rhs.expiredValues() &&
-           lhs.subcontexts() == rhs.subcontexts();
-}
-
-inline bool mwcstm::operator!=(const mwcstm::StatContextUpdate& lhs,
-                               const mwcstm::StatContextUpdate& rhs)
-{
-    return !(lhs == rhs);
-}
-
-inline bsl::ostream& mwcstm::operator<<(bsl::ostream& stream,
-                                        const mwcstm::StatContextUpdate& rhs)
-{
-    return rhs.print(stream, 0, -1);
-}
-
-template <typename t_HASH_ALGORITHM>
-void mwcstm::hashAppend(t_HASH_ALGORITHM&                hashAlg,
-                        const mwcstm::StatContextUpdate& object)
-{
-    using bslh::hashAppend;
-    hashAppend(hashAlg, object.id());
-    hashAppend(hashAlg, object.flags());
-    hashAppend(hashAlg, object.timeStamp());
-    hashAppend(hashAlg, object.configuration());
-    hashAppend(hashAlg, object.directValues());
-    hashAppend(hashAlg, object.expiredValues());
-    hashAppend(hashAlg, object.subcontexts());
-}
-
-inline bool mwcstm::operator==(const mwcstm::StatContextUpdateList& lhs,
-                               const mwcstm::StatContextUpdateList& rhs)
-{
-    return lhs.contexts() == rhs.contexts();
-}
-
-inline bool mwcstm::operator!=(const mwcstm::StatContextUpdateList& lhs,
-                               const mwcstm::StatContextUpdateList& rhs)
-{
-    return !(lhs == rhs);
-}
-
-inline bsl::ostream&
-mwcstm::operator<<(bsl::ostream&                        stream,
-                   const mwcstm::StatContextUpdateList& rhs)
-{
-    return rhs.print(stream, 0, -1);
-}
-
-template <typename t_HASH_ALGORITHM>
-void mwcstm::hashAppend(t_HASH_ALGORITHM&                    hashAlg,
-                        const mwcstm::StatContextUpdateList& object)
-{
-    using bslh::hashAppend;
-    hashAppend(hashAlg, object.contexts());
-}
-
 }  // close enterprise namespace
 #endif
 
-// GENERATED BY BLP_BAS_CODEGEN_2023.02.18
+// GENERATED BY BLP_BAS_CODEGEN_2024.05.02
+// USING bas_codegen.pl -m msg --noAggregateConversion --noExternalization
+// --noIdent --package mwcstm --msgComponent values mwcstm.xsd

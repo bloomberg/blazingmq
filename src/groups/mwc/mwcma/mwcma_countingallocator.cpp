@@ -51,13 +51,13 @@ bool statFilter(const mwcst::StatContext*     context,
                 BSLS_ANNOTATION_UNUSED int    level)
 {
     return (context->isDeleted() &&
-            valueType == mwcst::StatContext::DMCST_TOTAL_VALUE) ||
+            valueType == mwcst::StatContext::e_TOTAL_VALUE) ||
            (mwcst::StatUtil::value(context->value(valueType, 0), 0) > 0);
 }
 
 bool statFilter2(const mwcst::TableRecords::Record& rec)
 {
-    const bool isTotal = (rec.type() == mwcst::StatContext::DMCST_TOTAL_VALUE);
+    const bool isTotal = (rec.type() == mwcst::StatContext::e_TOTAL_VALUE);
     return (rec.context().isDeleted() && isTotal) ||
            (mwcst::StatUtil::increments(rec.context().value(rec.type(), 0),
                                         0) > 0);
@@ -66,9 +66,9 @@ bool statFilter2(const mwcst::TableRecords::Record& rec)
 bool statSort(const mwcst::StatContext* lhs, const mwcst::StatContext* rhs)
 {
     const mwcst::StatValue& lhsTotalValue =
-        lhs->value(mwcst::StatContext::DMCST_TOTAL_VALUE, 0);
+        lhs->value(mwcst::StatContext::e_TOTAL_VALUE, 0);
     const mwcst::StatValue& rhsTotalValue =
-        rhs->value(mwcst::StatContext::DMCST_TOTAL_VALUE, 0);
+        rhs->value(mwcst::StatContext::e_TOTAL_VALUE, 0);
 
     return mwcst::StatUtil::value(lhsTotalValue, 0) >
            mwcst::StatUtil::value(rhsTotalValue, 0);

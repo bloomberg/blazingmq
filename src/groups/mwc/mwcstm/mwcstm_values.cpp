@@ -1,4 +1,4 @@
-// Copyright 2023 Bloomberg Finance L.P.
+// Copyright 2024 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,9 +14,6 @@
 // limitations under the License.
 
 // mwcstm_values.cpp             *DO NOT EDIT*             @generated -*-C++-*-
-
-#include <bsls_ident.h>
-BSLS_IDENT_RCSID(mwcstm_values_cpp, "$Id$ $CSID$")
 
 #include <mwcstm_values.h>
 
@@ -362,13 +359,13 @@ const char StatContextConfigurationFlags::CLASS_NAME[] =
 
 const bdlat_EnumeratorInfo
     StatContextConfigurationFlags::ENUMERATOR_INFO_ARRAY[] = {
-        {StatContextConfigurationFlags::DMCSTM_IS_TABLE,
-         "DMCSTM_IS_TABLE",
-         sizeof("DMCSTM_IS_TABLE") - 1,
+        {StatContextConfigurationFlags::E_IS_TABLE,
+         "e_IS_TABLE",
+         sizeof("e_IS_TABLE") - 1,
          ""},
-        {StatContextConfigurationFlags::DMCSTM_STORE_EXPIRED_VALUES,
-         "DMCSTM_STORE_EXPIRED_VALUES",
-         sizeof("DMCSTM_STORE_EXPIRED_VALUES") - 1,
+        {StatContextConfigurationFlags::E_STORE_EXPIRED_VALUES,
+         "e_STORE_EXPIRED_VALUES",
+         sizeof("e_STORE_EXPIRED_VALUES") - 1,
          ""}};
 
 // CLASS METHODS
@@ -378,8 +375,8 @@ int StatContextConfigurationFlags::fromInt(
     int                                   number)
 {
     switch (number) {
-    case StatContextConfigurationFlags::DMCSTM_IS_TABLE:
-    case StatContextConfigurationFlags::DMCSTM_STORE_EXPIRED_VALUES:
+    case StatContextConfigurationFlags::E_IS_TABLE:
+    case StatContextConfigurationFlags::E_STORE_EXPIRED_VALUES:
         *result = static_cast<StatContextConfigurationFlags::Value>(number);
         return 0;
     default: return -1;
@@ -410,11 +407,11 @@ const char* StatContextConfigurationFlags::toString(
     StatContextConfigurationFlags::Value value)
 {
     switch (value) {
-    case DMCSTM_IS_TABLE: {
-        return "DMCSTM_IS_TABLE";
+    case E_IS_TABLE: {
+        return "e_IS_TABLE";
     }
-    case DMCSTM_STORE_EXPIRED_VALUES: {
-        return "DMCSTM_STORE_EXPIRED_VALUES";
+    case E_STORE_EXPIRED_VALUES: {
+        return "e_STORE_EXPIRED_VALUES";
     }
     }
 
@@ -431,13 +428,13 @@ const char* StatContextConfigurationFlags::toString(
 const char StatContextUpdateFlags::CLASS_NAME[] = "StatContextUpdateFlags";
 
 const bdlat_EnumeratorInfo StatContextUpdateFlags::ENUMERATOR_INFO_ARRAY[] = {
-    {StatContextUpdateFlags::DMCSTM_CONTEXT_CREATED,
-     "DMCSTM_CONTEXT_CREATED",
-     sizeof("DMCSTM_CONTEXT_CREATED") - 1,
+    {StatContextUpdateFlags::E_CONTEXT_CREATED,
+     "e_CONTEXT_CREATED",
+     sizeof("e_CONTEXT_CREATED") - 1,
      ""},
-    {StatContextUpdateFlags::DMCSTM_CONTEXT_DELETED,
-     "DMCSTM_CONTEXT_DELETED",
-     sizeof("DMCSTM_CONTEXT_DELETED") - 1,
+    {StatContextUpdateFlags::E_CONTEXT_DELETED,
+     "e_CONTEXT_DELETED",
+     sizeof("e_CONTEXT_DELETED") - 1,
      ""}};
 
 // CLASS METHODS
@@ -446,8 +443,8 @@ int StatContextUpdateFlags::fromInt(StatContextUpdateFlags::Value* result,
                                     int                            number)
 {
     switch (number) {
-    case StatContextUpdateFlags::DMCSTM_CONTEXT_CREATED:
-    case StatContextUpdateFlags::DMCSTM_CONTEXT_DELETED:
+    case StatContextUpdateFlags::E_CONTEXT_CREATED:
+    case StatContextUpdateFlags::E_CONTEXT_DELETED:
         *result = static_cast<StatContextUpdateFlags::Value>(number);
         return 0;
     default: return -1;
@@ -477,11 +474,11 @@ const char*
 StatContextUpdateFlags::toString(StatContextUpdateFlags::Value value)
 {
     switch (value) {
-    case DMCSTM_CONTEXT_CREATED: {
-        return "DMCSTM_CONTEXT_CREATED";
+    case E_CONTEXT_CREATED: {
+        return "e_CONTEXT_CREATED";
     }
-    case DMCSTM_CONTEXT_DELETED: {
-        return "DMCSTM_CONTEXT_DELETED";
+    case E_CONTEXT_DELETED: {
+        return "e_CONTEXT_DELETED";
     }
     }
 
@@ -498,32 +495,26 @@ StatContextUpdateFlags::toString(StatContextUpdateFlags::Value value)
 const char StatValueFields::CLASS_NAME[] = "StatValueFields";
 
 const bdlat_EnumeratorInfo StatValueFields::ENUMERATOR_INFO_ARRAY[] = {
-    {StatValueFields::DMCSTM_ABSOLUTE_MIN,
-     "DMCSTM_ABSOLUTE_MIN",
-     sizeof("DMCSTM_ABSOLUTE_MIN") - 1,
+    {StatValueFields::E_ABSOLUTE_MIN,
+     "e_ABSOLUTE_MIN",
+     sizeof("e_ABSOLUTE_MIN") - 1,
      ""},
-    {StatValueFields::DMCSTM_ABSOLUTE_MAX,
-     "DMCSTM_ABSOLUTE_MAX",
-     sizeof("DMCSTM_ABSOLUTE_MAX") - 1,
+    {StatValueFields::E_ABSOLUTE_MAX,
+     "e_ABSOLUTE_MAX",
+     sizeof("e_ABSOLUTE_MAX") - 1,
      ""},
-    {StatValueFields::DMCSTM_MIN, "DMCSTM_MIN", sizeof("DMCSTM_MIN") - 1, ""},
-    {StatValueFields::DMCSTM_MAX, "DMCSTM_MAX", sizeof("DMCSTM_MAX") - 1, ""},
-    {StatValueFields::DMCSTM_EVENTS,
-     "DMCSTM_EVENTS",
-     sizeof("DMCSTM_EVENTS") - 1,
+    {StatValueFields::E_MIN, "e_MIN", sizeof("e_MIN") - 1, ""},
+    {StatValueFields::E_MAX, "e_MAX", sizeof("e_MAX") - 1, ""},
+    {StatValueFields::E_EVENTS, "e_EVENTS", sizeof("e_EVENTS") - 1, ""},
+    {StatValueFields::E_SUM, "e_SUM", sizeof("e_SUM") - 1, ""},
+    {StatValueFields::E_VALUE, "e_VALUE", sizeof("e_VALUE") - 1, ""},
+    {StatValueFields::E_INCREMENTS,
+     "e_INCREMENTS",
+     sizeof("e_INCREMENTS") - 1,
      ""},
-    {StatValueFields::DMCSTM_SUM, "DMCSTM_SUM", sizeof("DMCSTM_SUM") - 1, ""},
-    {StatValueFields::DMCSTM_VALUE,
-     "DMCSTM_VALUE",
-     sizeof("DMCSTM_VALUE") - 1,
-     ""},
-    {StatValueFields::DMCSTM_INCREMENTS,
-     "DMCSTM_INCREMENTS",
-     sizeof("DMCSTM_INCREMENTS") - 1,
-     ""},
-    {StatValueFields::DMCSTM_DECREMENTS,
-     "DMCSTM_DECREMENTS",
-     sizeof("DMCSTM_DECREMENTS") - 1,
+    {StatValueFields::E_DECREMENTS,
+     "e_DECREMENTS",
+     sizeof("e_DECREMENTS") - 1,
      ""}};
 
 // CLASS METHODS
@@ -531,15 +522,15 @@ const bdlat_EnumeratorInfo StatValueFields::ENUMERATOR_INFO_ARRAY[] = {
 int StatValueFields::fromInt(StatValueFields::Value* result, int number)
 {
     switch (number) {
-    case StatValueFields::DMCSTM_ABSOLUTE_MIN:
-    case StatValueFields::DMCSTM_ABSOLUTE_MAX:
-    case StatValueFields::DMCSTM_MIN:
-    case StatValueFields::DMCSTM_MAX:
-    case StatValueFields::DMCSTM_EVENTS:
-    case StatValueFields::DMCSTM_SUM:
-    case StatValueFields::DMCSTM_VALUE:
-    case StatValueFields::DMCSTM_INCREMENTS:
-    case StatValueFields::DMCSTM_DECREMENTS:
+    case StatValueFields::E_ABSOLUTE_MIN:
+    case StatValueFields::E_ABSOLUTE_MAX:
+    case StatValueFields::E_MIN:
+    case StatValueFields::E_MAX:
+    case StatValueFields::E_EVENTS:
+    case StatValueFields::E_SUM:
+    case StatValueFields::E_VALUE:
+    case StatValueFields::E_INCREMENTS:
+    case StatValueFields::E_DECREMENTS:
         *result = static_cast<StatValueFields::Value>(number);
         return 0;
     default: return -1;
@@ -568,32 +559,32 @@ int StatValueFields::fromString(StatValueFields::Value* result,
 const char* StatValueFields::toString(StatValueFields::Value value)
 {
     switch (value) {
-    case DMCSTM_ABSOLUTE_MIN: {
-        return "DMCSTM_ABSOLUTE_MIN";
+    case E_ABSOLUTE_MIN: {
+        return "e_ABSOLUTE_MIN";
     }
-    case DMCSTM_ABSOLUTE_MAX: {
-        return "DMCSTM_ABSOLUTE_MAX";
+    case E_ABSOLUTE_MAX: {
+        return "e_ABSOLUTE_MAX";
     }
-    case DMCSTM_MIN: {
-        return "DMCSTM_MIN";
+    case E_MIN: {
+        return "e_MIN";
     }
-    case DMCSTM_MAX: {
-        return "DMCSTM_MAX";
+    case E_MAX: {
+        return "e_MAX";
     }
-    case DMCSTM_EVENTS: {
-        return "DMCSTM_EVENTS";
+    case E_EVENTS: {
+        return "e_EVENTS";
     }
-    case DMCSTM_SUM: {
-        return "DMCSTM_SUM";
+    case E_SUM: {
+        return "e_SUM";
     }
-    case DMCSTM_VALUE: {
-        return "DMCSTM_VALUE";
+    case E_VALUE: {
+        return "e_VALUE";
     }
-    case DMCSTM_INCREMENTS: {
-        return "DMCSTM_INCREMENTS";
+    case E_INCREMENTS: {
+        return "e_INCREMENTS";
     }
-    case DMCSTM_DECREMENTS: {
-        return "DMCSTM_DECREMENTS";
+    case E_DECREMENTS: {
+        return "e_DECREMENTS";
     }
     }
 
@@ -610,22 +601,19 @@ const char* StatValueFields::toString(StatValueFields::Value value)
 const char StatValueType::CLASS_NAME[] = "StatValueType";
 
 const bdlat_EnumeratorInfo StatValueType::ENUMERATOR_INFO_ARRAY[] = {
-    {StatValueType::DMCSTM_CONTINUOUS,
-     "DMCSTM_CONTINUOUS",
-     sizeof("DMCSTM_CONTINUOUS") - 1,
+    {StatValueType::E_CONTINUOUS,
+     "e_CONTINUOUS",
+     sizeof("e_CONTINUOUS") - 1,
      ""},
-    {StatValueType::DMCSTM_DISCRETE,
-     "DMCSTM_DISCRETE",
-     sizeof("DMCSTM_DISCRETE") - 1,
-     ""}};
+    {StatValueType::E_DISCRETE, "e_DISCRETE", sizeof("e_DISCRETE") - 1, ""}};
 
 // CLASS METHODS
 
 int StatValueType::fromInt(StatValueType::Value* result, int number)
 {
     switch (number) {
-    case StatValueType::DMCSTM_CONTINUOUS:
-    case StatValueType::DMCSTM_DISCRETE:
+    case StatValueType::E_CONTINUOUS:
+    case StatValueType::E_DISCRETE:
         *result = static_cast<StatValueType::Value>(number);
         return 0;
     default: return -1;
@@ -654,11 +642,11 @@ int StatValueType::fromString(StatValueType::Value* result,
 const char* StatValueType::toString(StatValueType::Value value)
 {
     switch (value) {
-    case DMCSTM_CONTINUOUS: {
-        return "DMCSTM_CONTINUOUS";
+    case E_CONTINUOUS: {
+        return "e_CONTINUOUS";
     }
-    case DMCSTM_DISCRETE: {
-        return "DMCSTM_DISCRETE";
+    case E_DISCRETE: {
+        return "e_DISCRETE";
     }
     }
 
@@ -1416,4 +1404,6 @@ bsl::ostream& StatContextUpdateList::print(bsl::ostream& stream,
 }  // close package namespace
 }  // close enterprise namespace
 
-// GENERATED BY BLP_BAS_CODEGEN_2023.02.18
+// GENERATED BY BLP_BAS_CODEGEN_2024.05.02
+// USING bas_codegen.pl -m msg --noAggregateConversion --noExternalization
+// --noIdent --package mwcstm --msgComponent values mwcstm.xsd
