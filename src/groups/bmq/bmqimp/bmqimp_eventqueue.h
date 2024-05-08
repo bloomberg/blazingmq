@@ -267,12 +267,12 @@ class EventQueue {
     // Table to use for dumping the
     // stats
 
-    mwcu::BasicTableInfoProvider d_statTip;
+    mwcst::BasicTableInfoProvider d_statTip;
     // Tip to use when printing stats,
     // include the delta stats fields
     // (diffs since previous print)
 
-    mwcu::BasicTableInfoProvider d_statTipNoDelta;
+    mwcst::BasicTableInfoProvider d_statTipNoDelta;
     // Tip to use when printing stats,
     // excluding the delta stats fields
     // (typically used when printing

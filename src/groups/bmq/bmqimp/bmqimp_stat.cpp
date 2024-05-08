@@ -40,11 +40,11 @@ Stat::Stat(bslma::Allocator* allocator)
 void Stat::printStats(bsl::ostream& stream, bool includeDelta) const
 {
     mwcst::Table* table = (includeDelta ? &d_table : &d_tableNoDelta);
-    const mwcu::BasicTableInfoProvider* tip = (includeDelta ? &d_tip
-                                                            : &d_tipNoDelta);
+    const mwcst::BasicTableInfoProvider* tip = (includeDelta ? &d_tip
+                                                             : &d_tipNoDelta);
 
     table->records().update();
-    mwcu::TableUtil::printTable(stream, *tip);
+    mwcst::TableUtil::printTable(stream, *tip);
     stream << "\n";
 }
 

@@ -27,7 +27,7 @@
 #include <bsl_set.h>
 
 using namespace BloombergLP;
-using namespace mwcu;
+using namespace mwcst;
 using namespace bsl;
 
 //=============================================================================

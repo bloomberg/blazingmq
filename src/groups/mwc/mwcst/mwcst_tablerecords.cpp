@@ -37,7 +37,7 @@ struct SortBufferComparator {
     }
 };
 
-}  // close anonymous namesapace
+}  // close anonymous namespace
 
 // ------------------------
 // class TableRecordsRecord

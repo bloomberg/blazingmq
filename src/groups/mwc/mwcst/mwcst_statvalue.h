@@ -376,7 +376,7 @@ struct StatValueUtil {
     /// otherwise only values that have changed between the last two
     /// snapshots are loaded.
     static void loadUpdateImp(mwcstm::StatValueUpdate* update,
-                              const mwcst::StatValue&  value,
+                              const StatValue&         value,
                               bsl::uint32_t            valueFieldMask,
                               bool                     fullUpdate);
 
@@ -388,7 +388,7 @@ struct StatValueUtil {
     /// control which attributes of this value are loaded into `update`.  If
     /// `valueFieldMask` is not specified, all attributes are saved.
     static void loadUpdate(mwcstm::StatValueUpdate* update,
-                           const mwcst::StatValue&  value,
+                           const StatValue&         value,
                            int valueFieldMask = 0xFFFFFFFF);
 
     /// Load into the specified `update` the latest snapshotted values of
@@ -397,7 +397,7 @@ struct StatValueUtil {
     /// loaded into `update`.  If `valueFieldMask` is not specified, all
     /// attributes are saved.
     static void loadFullUpdate(mwcstm::StatValueUpdate* update,
-                               const mwcst::StatValue&  value,
+                               const StatValue&         value,
                                int valueFieldMask = 0xFFFFFFFF);
 };
 
@@ -724,7 +724,7 @@ inline bsls::Types::Int64 StatValue::max() const
 // --------------------
 
 inline void StatValueUtil::loadUpdate(mwcstm::StatValueUpdate* update,
-                                      const mwcst::StatValue&  value,
+                                      const StatValue&         value,
                                       int                      valueFieldMask)
 {
     loadUpdateImp(update,
@@ -734,7 +734,7 @@ inline void StatValueUtil::loadUpdate(mwcstm::StatValueUpdate* update,
 }
 
 inline void StatValueUtil::loadFullUpdate(mwcstm::StatValueUpdate* update,
-                                          const mwcst::StatValue&  value,
+                                          const StatValue&         value,
                                           int valueFieldMask)
 {
     loadUpdateImp(update,
@@ -746,14 +746,14 @@ inline void StatValueUtil::loadFullUpdate(mwcstm::StatValueUpdate* update,
 }  // close package namespace
 
 // FREE OPERATORS
-inline bool mwcst::operator==(const mwcst::StatValue_SnapshotLocation& lhs,
-                              const mwcst::StatValue_SnapshotLocation& rhs)
+inline bool mwcst::operator==(const StatValue_SnapshotLocation& lhs,
+                              const StatValue_SnapshotLocation& rhs)
 {
     return lhs.level() == rhs.level() && lhs.index() == rhs.index();
 }
 
-inline bool mwcst::operator<(const mwcst::StatValue_SnapshotLocation& lhs,
-                             const mwcst::StatValue_SnapshotLocation& rhs)
+inline bool mwcst::operator<(const StatValue_SnapshotLocation& lhs,
+                             const StatValue_SnapshotLocation& rhs)
 {
     if (lhs.level() == rhs.level()) {
         return lhs.index() < rhs.index();
@@ -763,8 +763,8 @@ inline bool mwcst::operator<(const mwcst::StatValue_SnapshotLocation& lhs,
     }
 }
 
-inline bool mwcst::operator>(const mwcst::StatValue_SnapshotLocation& lhs,
-                             const mwcst::StatValue_SnapshotLocation& rhs)
+inline bool mwcst::operator>(const StatValue_SnapshotLocation& lhs,
+                             const StatValue_SnapshotLocation& rhs)
 {
     if (lhs.level() == rhs.level()) {
         return lhs.index() > rhs.index();
@@ -775,8 +775,8 @@ inline bool mwcst::operator>(const mwcst::StatValue_SnapshotLocation& lhs,
 }
 
 inline bsl::ostream&
-mwcst::operator<<(bsl::ostream&                            stream,
-                  const mwcst::StatValue_SnapshotLocation& location)
+mwcst::operator<<(bsl::ostream&                     stream,
+                  const StatValue_SnapshotLocation& location)
 {
     return location.print(stream, 0, -1);
 }

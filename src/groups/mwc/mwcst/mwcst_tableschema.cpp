@@ -38,7 +38,7 @@ const char EXPIRED_NAME[] = "*expired*";
 const char UNKNOWN_NAME[] = "*unknown*";
 
 // FUNCTIONS
-void intFuncWrapper(mwct::Value*           value,
+void intFuncWrapper(Value*                 value,
                     const StatContext&     context,
                     StatContext::ValueType type,
                     int                    statIndex,
@@ -48,7 +48,7 @@ void intFuncWrapper(mwct::Value*           value,
     value->set(fn(sv));
 }
 
-void doubleFuncWrapper(mwct::Value*           value,
+void doubleFuncWrapper(Value*                 value,
                        const StatContext&     context,
                        StatContext::ValueType type,
                        int                    statIndex,
@@ -58,7 +58,7 @@ void doubleFuncWrapper(mwct::Value*           value,
     value->set(fn(sv));
 }
 
-void defaultIdColumn(mwct::Value*           value,
+void defaultIdColumn(Value*                 value,
                      const StatContext&     context,
                      int                    level,
                      StatContext::ValueType type)
@@ -131,7 +131,7 @@ const bsl::string& TableSchemaColumn::name() const
     return d_name;
 }
 
-void TableSchemaColumn::evaluate(mwct::Value*           value,
+void TableSchemaColumn::evaluate(Value*                 value,
                                  const StatContext&     context,
                                  int                    level,
                                  StatContext::ValueType type) const

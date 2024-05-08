@@ -17,8 +17,8 @@
 #include <mwcst_tableutil.h>
 
 #include <mwcscm_version.h>
+#include <mwcst_basetable.h>
 #include <mwcst_tableinfoprovider.h>
-#include <mwcst_utable.h>
 
 #include <mwcst_value.h>
 
@@ -32,7 +32,7 @@
 #include <bsls_alignedbuffer.h>
 
 namespace BloombergLP {
-namespace mwcu {
+namespace mwcst {
 
 // ---------------
 // class TableUtil
@@ -227,7 +227,7 @@ int TableUtil::outputToVector(bsl::vector<bsl::vector<bsl::string> >* dest,
     return 0;
 }
 
-void TableUtil::printCsv(bsl::ostream& stream, const Table& table)
+void TableUtil::printCsv(bsl::ostream& stream, const BaseTable& table)
 {
     int numRows    = table.numRows();
     int numColumns = table.numColumns();
@@ -241,7 +241,7 @@ void TableUtil::printCsv(bsl::ostream& stream, const Table& table)
     stream << '\n';
 
     // Output rows
-    mwct::Value value;
+    Value value;
     for (int row = 0; row < numRows; ++row) {
         for (int col = 0; col < numColumns; ++col) {
             if (col != 0) {

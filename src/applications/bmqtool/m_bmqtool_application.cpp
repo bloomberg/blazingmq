@@ -55,7 +55,6 @@
 #include <bdlf_placeholder.h>
 #include <bdlt_timeunitratio.h>
 #include <bsl_numeric.h>
-#include <bsl_thread.h>
 #include <bsl_vector.h>
 #include <bslma_allocator.h>
 #include <bslma_managedptr.h>

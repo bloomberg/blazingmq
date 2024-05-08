@@ -838,10 +838,10 @@ QueueStatsUtil::initializeStatContextClients(int               historySize,
 }
 
 void QueueStatsUtil::initializeTableAndTipDomains(
-    mwcst::Table*                 table,
-    mwcu::BasicTableInfoProvider* tip,
-    int                           historySize,
-    mwcst::StatContext*           statContext)
+    mwcst::Table*                  table,
+    mwcst::BasicTableInfoProvider* tip,
+    int                            historySize,
+    mwcst::StatContext*            statContext)
 {
     // Use only one level for now ...
     mwcst::StatValue::SnapshotLocation start(0, 0);
@@ -1071,10 +1071,10 @@ void QueueStatsUtil::initializeTableAndTipDomains(
 }
 
 void QueueStatsUtil::initializeTableAndTipClients(
-    mwcst::Table*                 table,
-    mwcu::BasicTableInfoProvider* tip,
-    int                           historySize,
-    mwcst::StatContext*           statContext)
+    mwcst::Table*                  table,
+    mwcst::BasicTableInfoProvider* tip,
+    int                            historySize,
+    mwcst::StatContext*            statContext)
 {
     // Use only one level for now ...
     mwcst::StatValue::SnapshotLocation start(0, 0);
