@@ -1407,8 +1407,11 @@ int RootQueueEngine::onRejectMessage(mqbi::QueueHandle*       handle,
         const int maxDeliveryAttempts =
             d_queueState_p->domain()->config().maxDeliveryAttempts();
         const bool domainIsUnlimited = (maxDeliveryAttempts == 0);
-        if (domainIsUnlimited != message->rdaInfo().isUnlimited()) {
-            BALL_LOGTHROTTLE_ERROR(k_MAX_INSTANT_MESSAGES, k_NS_PER_MESSAGE)
+        if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
+                domainIsUnlimited != message->rdaInfo().isUnlimited())) {
+            BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+
+            BALL_LOGTHROTTLE_WARN(k_MAX_INSTANT_MESSAGES, k_NS_PER_MESSAGE)
                 << "[THROTTLED] Mismatch between the message's RdaInfo "
                 << message->rdaInfo() << " and the domain's "
                 << "'maxDeliveryAttempts' setting [" << maxDeliveryAttempts
