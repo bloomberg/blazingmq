@@ -360,12 +360,12 @@ const char StatContextConfigurationFlags::CLASS_NAME[] =
 const bdlat_EnumeratorInfo
     StatContextConfigurationFlags::ENUMERATOR_INFO_ARRAY[] = {
         {StatContextConfigurationFlags::E_IS_TABLE,
-         "e_IS_TABLE",
-         sizeof("e_IS_TABLE") - 1,
+         "E_IS_TABLE",
+         sizeof("E_IS_TABLE") - 1,
          ""},
         {StatContextConfigurationFlags::E_STORE_EXPIRED_VALUES,
-         "e_STORE_EXPIRED_VALUES",
-         sizeof("e_STORE_EXPIRED_VALUES") - 1,
+         "E_STORE_EXPIRED_VALUES",
+         sizeof("E_STORE_EXPIRED_VALUES") - 1,
          ""}};
 
 // CLASS METHODS
@@ -408,10 +408,10 @@ const char* StatContextConfigurationFlags::toString(
 {
     switch (value) {
     case E_IS_TABLE: {
-        return "e_IS_TABLE";
+        return "E_IS_TABLE";
     }
     case E_STORE_EXPIRED_VALUES: {
-        return "e_STORE_EXPIRED_VALUES";
+        return "E_STORE_EXPIRED_VALUES";
     }
     }
 
@@ -429,12 +429,12 @@ const char StatContextUpdateFlags::CLASS_NAME[] = "StatContextUpdateFlags";
 
 const bdlat_EnumeratorInfo StatContextUpdateFlags::ENUMERATOR_INFO_ARRAY[] = {
     {StatContextUpdateFlags::E_CONTEXT_CREATED,
-     "e_CONTEXT_CREATED",
-     sizeof("e_CONTEXT_CREATED") - 1,
+     "E_CONTEXT_CREATED",
+     sizeof("E_CONTEXT_CREATED") - 1,
      ""},
     {StatContextUpdateFlags::E_CONTEXT_DELETED,
-     "e_CONTEXT_DELETED",
-     sizeof("e_CONTEXT_DELETED") - 1,
+     "E_CONTEXT_DELETED",
+     sizeof("E_CONTEXT_DELETED") - 1,
      ""}};
 
 // CLASS METHODS
@@ -475,10 +475,10 @@ StatContextUpdateFlags::toString(StatContextUpdateFlags::Value value)
 {
     switch (value) {
     case E_CONTEXT_CREATED: {
-        return "e_CONTEXT_CREATED";
+        return "E_CONTEXT_CREATED";
     }
     case E_CONTEXT_DELETED: {
-        return "e_CONTEXT_DELETED";
+        return "E_CONTEXT_DELETED";
     }
     }
 
@@ -496,25 +496,25 @@ const char StatValueFields::CLASS_NAME[] = "StatValueFields";
 
 const bdlat_EnumeratorInfo StatValueFields::ENUMERATOR_INFO_ARRAY[] = {
     {StatValueFields::E_ABSOLUTE_MIN,
-     "e_ABSOLUTE_MIN",
-     sizeof("e_ABSOLUTE_MIN") - 1,
+     "E_ABSOLUTE_MIN",
+     sizeof("E_ABSOLUTE_MIN") - 1,
      ""},
     {StatValueFields::E_ABSOLUTE_MAX,
-     "e_ABSOLUTE_MAX",
-     sizeof("e_ABSOLUTE_MAX") - 1,
+     "E_ABSOLUTE_MAX",
+     sizeof("E_ABSOLUTE_MAX") - 1,
      ""},
-    {StatValueFields::E_MIN, "e_MIN", sizeof("e_MIN") - 1, ""},
-    {StatValueFields::E_MAX, "e_MAX", sizeof("e_MAX") - 1, ""},
-    {StatValueFields::E_EVENTS, "e_EVENTS", sizeof("e_EVENTS") - 1, ""},
-    {StatValueFields::E_SUM, "e_SUM", sizeof("e_SUM") - 1, ""},
-    {StatValueFields::E_VALUE, "e_VALUE", sizeof("e_VALUE") - 1, ""},
+    {StatValueFields::E_MIN, "E_MIN", sizeof("E_MIN") - 1, ""},
+    {StatValueFields::E_MAX, "E_MAX", sizeof("E_MAX") - 1, ""},
+    {StatValueFields::E_EVENTS, "E_EVENTS", sizeof("E_EVENTS") - 1, ""},
+    {StatValueFields::E_SUM, "E_SUM", sizeof("E_SUM") - 1, ""},
+    {StatValueFields::E_VALUE, "E_VALUE", sizeof("E_VALUE") - 1, ""},
     {StatValueFields::E_INCREMENTS,
-     "e_INCREMENTS",
-     sizeof("e_INCREMENTS") - 1,
+     "E_INCREMENTS",
+     sizeof("E_INCREMENTS") - 1,
      ""},
     {StatValueFields::E_DECREMENTS,
-     "e_DECREMENTS",
-     sizeof("e_DECREMENTS") - 1,
+     "E_DECREMENTS",
+     sizeof("E_DECREMENTS") - 1,
      ""}};
 
 // CLASS METHODS
@@ -560,31 +560,31 @@ const char* StatValueFields::toString(StatValueFields::Value value)
 {
     switch (value) {
     case E_ABSOLUTE_MIN: {
-        return "e_ABSOLUTE_MIN";
+        return "E_ABSOLUTE_MIN";
     }
     case E_ABSOLUTE_MAX: {
-        return "e_ABSOLUTE_MAX";
+        return "E_ABSOLUTE_MAX";
     }
     case E_MIN: {
-        return "e_MIN";
+        return "E_MIN";
     }
     case E_MAX: {
-        return "e_MAX";
+        return "E_MAX";
     }
     case E_EVENTS: {
-        return "e_EVENTS";
+        return "E_EVENTS";
     }
     case E_SUM: {
-        return "e_SUM";
+        return "E_SUM";
     }
     case E_VALUE: {
-        return "e_VALUE";
+        return "E_VALUE";
     }
     case E_INCREMENTS: {
-        return "e_INCREMENTS";
+        return "E_INCREMENTS";
     }
     case E_DECREMENTS: {
-        return "e_DECREMENTS";
+        return "E_DECREMENTS";
     }
     }
 
@@ -602,10 +602,10 @@ const char StatValueType::CLASS_NAME[] = "StatValueType";
 
 const bdlat_EnumeratorInfo StatValueType::ENUMERATOR_INFO_ARRAY[] = {
     {StatValueType::E_CONTINUOUS,
-     "e_CONTINUOUS",
-     sizeof("e_CONTINUOUS") - 1,
+     "E_CONTINUOUS",
+     sizeof("E_CONTINUOUS") - 1,
      ""},
-    {StatValueType::E_DISCRETE, "e_DISCRETE", sizeof("e_DISCRETE") - 1, ""}};
+    {StatValueType::E_DISCRETE, "E_DISCRETE", sizeof("E_DISCRETE") - 1, ""}};
 
 // CLASS METHODS
 
@@ -643,10 +643,10 @@ const char* StatValueType::toString(StatValueType::Value value)
 {
     switch (value) {
     case E_CONTINUOUS: {
-        return "e_CONTINUOUS";
+        return "E_CONTINUOUS";
     }
     case E_DISCRETE: {
-        return "e_DISCRETE";
+        return "E_DISCRETE";
     }
     }
 
