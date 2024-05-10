@@ -216,14 +216,14 @@ class StatValue {
         /// StatValues, imagine them being stacked into a single continuous
         /// value.  For example the max of the added value will be the sum
         /// of the maxes of the values being added.
-        DMCST_CONTINUOUS,
+        e_CONTINUOUS = 0,
 
         /// A discrete value logically represents a number of discrete
         /// events reported with `reportEvent`.  When two discrete values
         /// are added, their set of reported events is simply considered as
         /// a single stream of events.  For example, the max of two added
         /// discrete values will be the max of all the individual maxes.
-        DMCST_DISCRETE
+        e_DISCRETE = 1
     };
 
   private:
@@ -629,7 +629,7 @@ inline void StatValue::updateMinMax(bsls::Types::Int64 value)
 // MANIPULATORS
 inline void StatValue::adjustValue(bsls::Types::Int64 delta)
 {
-    BSLS_ASSERT(d_type == DMCST_CONTINUOUS);
+    BSLS_ASSERT(d_type == e_CONTINUOUS);
 
     bsls::Types::Int64 newValue = (d_currentStats.d_value += delta);
 
@@ -645,7 +645,7 @@ inline void StatValue::adjustValue(bsls::Types::Int64 delta)
 
 inline void StatValue::setValue(bsls::Types::Int64 value)
 {
-    BSLS_ASSERT(d_type == DMCST_CONTINUOUS);
+    BSLS_ASSERT(d_type == e_CONTINUOUS);
 
     bsls::Types::Int64 oldValue = d_currentStats.d_value.swap(value);
     updateMinMax(value);
@@ -660,7 +660,7 @@ inline void StatValue::setValue(bsls::Types::Int64 value)
 
 inline void StatValue::reportValue(bsls::Types::Int64 value)
 {
-    BSLS_ASSERT(d_type == DMCST_DISCRETE);
+    BSLS_ASSERT(d_type == e_DISCRETE);
 
     d_currentStats.d_decrementsOrSum += value;
     d_currentStats.d_incrementsOrEvents++;
@@ -670,7 +670,7 @@ inline void StatValue::reportValue(bsls::Types::Int64 value)
 
 inline void StatValue::clearCurrentStats()
 {
-    d_currentStats.reset(d_type == DMCST_DISCRETE, 0);
+    d_currentStats.reset(d_type == e_DISCRETE, 0);
 }
 
 // ACCESSORS

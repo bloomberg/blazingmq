@@ -104,7 +104,7 @@ class StatContextTableInfoProvider : public mwcst::TableInfoProvider {
                                                     IntValueFunctor;
     typedef bsl::function<double(const StatValue&)> DoubleValueFunctor;
 
-    enum PrintType { DMCST_INT_VALUE, DMCST_NS_INTERVAL_VALUE };
+    enum PrintType { e_INT_VALUE = 0, e_NS_INTERVAL_VALUE = 1 };
 
   private:
     // PRIVATE TYPES
@@ -185,7 +185,7 @@ class StatContextTableInfoProvider : public mwcst::TableInfoProvider {
         : d_groupIndex(groupIndex)
         , d_name(name, basicAllocator)
         , d_statValueIndex(0)
-        , d_printType(DMCST_INT_VALUE)
+        , d_printType(e_INT_VALUE)
         , d_intFunc(bsl::allocator_arg, basicAllocator)
         , d_doubleFunc(bsl::allocator_arg, basicAllocator)
         , d_customColumn_p(customColumn)

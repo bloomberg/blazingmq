@@ -332,7 +332,7 @@ void StatContext::snapshotImp(bsls::Types::Int64 snapshotTime)
             d_update_p->configuration().reset();
             d_update_p->flags() = bdlb::BitUtil::withBitCleared(
                 d_update_p->flags(),
-                mwcstm::StatContextUpdateFlags::DMCSTM_CONTEXT_CREATED);
+                mwcstm::StatContextUpdateFlags::E_CONTEXT_CREATED);
         }
     }
 
@@ -366,7 +366,7 @@ void StatContext::snapshotImp(bsls::Types::Int64 snapshotTime)
             if (update) {
                 update->flags() = bdlb::BitUtil::withBitSet(
                     update->flags(),
-                    mwcstm::StatContextUpdateFlags::DMCSTM_CONTEXT_DELETED);
+                    mwcstm::StatContextUpdateFlags::E_CONTEXT_DELETED);
             }
             d_subcontexts.erase(iter++);
         }
@@ -473,8 +473,7 @@ void StatContext::applyUpdate(const mwcstm::StatContextUpdate& update)
          i != update.subcontexts().end();
          ++i) {
         StatContext* context = 0;
-        if (bdlb::BitUtil::isBitSet(i->flags(),
-                                    Flags::DMCSTM_CONTEXT_CREATED)) {
+        if (bdlb::BitUtil::isBitSet(i->flags(), Flags::E_CONTEXT_CREATED)) {
             StatContextConfiguration config(*i);
 
             // Subcontexts added by an update are only deletable by another
@@ -494,8 +493,7 @@ void StatContext::applyUpdate(const mwcstm::StatContextUpdate& update)
         }
         BSLS_ASSERT(context);
 
-        if (bdlb::BitUtil::isBitSet(i->flags(),
-                                    Flags::DMCSTM_CONTEXT_DELETED)) {
+        if (bdlb::BitUtil::isBitSet(i->flags(), Flags::E_CONTEXT_DELETED)) {
             context->d_isDeleted = true;
         }
     }
@@ -739,7 +737,7 @@ void StatContext::initializeUpdate(mwcstm::StatContextUpdate* update) const
     update->id()    = d_uniqueId;
     update->flags() = bdlb::BitUtil::withBitSet(
         0u,
-        mwcstm::StatContextUpdateFlags::DMCSTM_CONTEXT_CREATED);
+        mwcstm::StatContextUpdateFlags::E_CONTEXT_CREATED);
 
     mwcstm::StatContextConfiguration& config =
         update->configuration().makeValue();
@@ -747,13 +745,12 @@ void StatContext::initializeUpdate(mwcstm::StatContextUpdate* update) const
     if (isTable()) {
         config.flags() = bdlb::BitUtil::withBitSet(
             config.flags(),
-            mwcstm::StatContextConfigurationFlags::DMCSTM_IS_TABLE);
+            mwcstm::StatContextConfigurationFlags::E_IS_TABLE);
     }
     if (d_storeExpiredValues) {
         config.flags() = bdlb::BitUtil::withBitSet(
             config.flags(),
-            mwcstm::StatContextConfigurationFlags::
-                DMCSTM_STORE_EXPIRED_VALUES);
+            mwcstm::StatContextConfigurationFlags::E_STORE_EXPIRED_VALUES);
     }
 
     if (hasName()) {
@@ -770,7 +767,7 @@ void StatContext::initializeUpdate(mwcstm::StatContextUpdate* update) const
 
     for (int i = 0; i < numValues(); ++i) {
         mwcstm::StatValueDefinition& definition = config.values()[i];
-        const StatValue& val = value(StatContext::DMCST_DIRECT_VALUE, i);
+        const StatValue& val = value(StatContext::e_DIRECT_VALUE, i);
         definition.name()    = valueName(i);
         definition.type()    = static_cast<mwcstm::StatValueType::Value>(
             val.type());
@@ -791,9 +788,7 @@ void StatContext::loadFullUpdate(mwcstm::StatContextUpdate* update,
         // value's latest snapshot is the same, so we just grab that.
 
         update->timeStamp() = convertToEpoch(
-            value(StatContext::DMCST_DIRECT_VALUE, 0)
-                .snapshot(0)
-                .snapshotTime());
+            value(StatContext::e_DIRECT_VALUE, 0).snapshot(0).snapshotTime());
 
         loadUpdatesFromValues(&update->directValues(),
                               d_directValues_p.ptr(),
@@ -862,7 +857,7 @@ StatContextConfiguration::StatContextConfiguration(
     BSLS_ASSERT(!update.configuration().isNull());
     BSLS_ASSERT(bdlb::BitUtil::isBitSet(
         update.flags(),
-        mwcstm::StatContextUpdateFlags::DMCSTM_CONTEXT_CREATED));
+        mwcstm::StatContextUpdateFlags::E_CONTEXT_CREATED));
     d_uniqueId = update.id();
 
     const mwcstm::StatContextConfiguration& config =
@@ -877,10 +872,10 @@ StatContextConfiguration::StatContextConfiguration(
 
     d_isTable = bdlb::BitUtil::isBitSet(
         config.flags(),
-        mwcstm::StatContextConfigurationFlags::DMCSTM_IS_TABLE);
+        mwcstm::StatContextConfigurationFlags::E_IS_TABLE);
     d_storeExpiredSubcontextValues = bdlb::BitUtil::isBitSet(
         config.flags(),
-        mwcstm::StatContextConfigurationFlags::DMCSTM_STORE_EXPIRED_VALUES);
+        mwcstm::StatContextConfigurationFlags::E_STORE_EXPIRED_VALUES);
 
     d_valueDefs.resize(config.values().size());
     for (bsl::size_t i = 0; i < d_valueDefs.size(); ++i) {

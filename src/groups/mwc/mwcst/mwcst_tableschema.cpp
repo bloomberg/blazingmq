@@ -64,15 +64,15 @@ void defaultIdColumn(Value*                 value,
                      StatContext::ValueType type)
 {
     bslstl::StringRef name;
-    if (type == StatContext::DMCST_TOTAL_VALUE) {
+    if (type == StatContext::e_TOTAL_VALUE) {
         if (context.hasName()) {
             name = context.name();
         }
     }
-    else if (type == StatContext::DMCST_DIRECT_VALUE) {
+    else if (type == StatContext::e_DIRECT_VALUE) {
         name = DIRECT_NAME;
     }
-    else if (type == StatContext::DMCST_EXPIRED_VALUE) {
+    else if (type == StatContext::e_EXPIRED_VALUE) {
         name = EXPIRED_NAME;
     }
     else {

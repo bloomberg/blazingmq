@@ -54,13 +54,13 @@ void Stat::printStats(bsl::ostream& stream, bool includeDelta) const
 
 bool StatUtil::filterDirect(const mwcst::TableRecords::Record& record)
 {
-    return record.type() == mwcst::StatContext::DMCST_TOTAL_VALUE;
+    return record.type() == mwcst::StatContext::e_TOTAL_VALUE;
 }
 
 bool StatUtil::filterDirectAndTopLevel(
     const mwcst::TableRecords::Record& record)
 {
-    return record.type() == mwcst::StatContext::DMCST_TOTAL_VALUE &&
+    return record.type() == mwcst::StatContext::e_TOTAL_VALUE &&
            record.level() != 0;
 }
 

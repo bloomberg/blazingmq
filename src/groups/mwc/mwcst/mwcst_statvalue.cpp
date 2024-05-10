@@ -78,7 +78,7 @@ void StatValue::aggregateLevel(int level, bsls::Types::Int64 snapshotTime)
 
 // CREATORS
 StatValue::StatValue(bslma::Allocator* basicAllocator)
-: d_type(DMCST_CONTINUOUS)
+: d_type(e_CONTINUOUS)
 , d_currentStats()
 , d_history(basicAllocator)
 , d_levelStartIndices(basicAllocator)
@@ -134,7 +134,7 @@ void StatValue::addSnapshot(const StatValue& other)
     const Snapshot& otherSnapshot =
         other.d_history[other.d_curSnapshotIndices[0]];
 
-    if (d_type == DMCST_CONTINUOUS) {
+    if (d_type == e_CONTINUOUS) {
         d_currentStats.d_value += otherSnapshot.d_value;
         d_currentStats.d_min += otherSnapshot.d_min;
         d_currentStats.d_max += otherSnapshot.d_max;
@@ -172,29 +172,29 @@ void StatValue::setFromUpdate(const mwcstm::StatValueUpdate& update)
          ++i) {
         if (bdlb::BitUtil::isBitSet(update.fieldMask(), i)) {
             switch (i) {
-            case Fields::DMCSTM_ABSOLUTE_MIN: {
+            case Fields::E_ABSOLUTE_MIN: {
                 d_min = *f;
             } break;
-            case Fields::DMCSTM_ABSOLUTE_MAX: {
+            case Fields::E_ABSOLUTE_MAX: {
                 d_max = *f;
             } break;
-            case Fields::DMCSTM_MIN: {
+            case Fields::E_MIN: {
                 d_currentStats.d_min = *f;
                 d_min = bsl::min(d_min, d_currentStats.d_min.load());
             } break;
-            case Fields::DMCSTM_MAX: {
+            case Fields::E_MAX: {
                 d_currentStats.d_max = *f;
                 d_max = bsl::max(d_max, d_currentStats.d_max.load());
             } break;
-            case Fields::DMCSTM_INCREMENTS:
-            case Fields::DMCSTM_EVENTS: {
+            case Fields::E_INCREMENTS:
+            case Fields::E_EVENTS: {
                 d_currentStats.d_incrementsOrEvents = *f;
             } break;
-            case Fields::DMCSTM_DECREMENTS:
-            case Fields::DMCSTM_SUM: {
+            case Fields::E_DECREMENTS:
+            case Fields::E_SUM: {
                 d_currentStats.d_decrementsOrSum = *f;
             } break;
-            case Fields::DMCSTM_VALUE: {
+            case Fields::E_VALUE: {
                 d_currentStats.d_value = *f;
             } break;
             }
@@ -213,7 +213,7 @@ void StatValue::takeSnapshot(bsls::Types::Int64 snapshotTime)
 
     incrementsOrEvents = d_currentStats.d_incrementsOrEvents;
     decrementsOrSum    = d_currentStats.d_decrementsOrSum;
-    if (d_type == DMCST_CONTINUOUS) {
+    if (d_type == e_CONTINUOUS) {
         min = d_currentStats.d_min.swap(value);
         max = d_currentStats.d_max.swap(value);
     }
@@ -246,14 +246,14 @@ void StatValue::takeSnapshot(bsls::Types::Int64 snapshotTime)
 
 void StatValue::clear(bsls::Types::Int64 snapshotTime)
 {
-    d_currentStats.reset(d_type == DMCST_DISCRETE, 0);
+    d_currentStats.reset(d_type == e_DISCRETE, 0);
     d_curSnapshotIndices.assign(d_curSnapshotIndices.size(), 0);
 
     for (size_t i = 0; i < d_history.size(); ++i) {
-        d_history[i].reset(d_type == DMCST_DISCRETE, snapshotTime);
+        d_history[i].reset(d_type == e_DISCRETE, snapshotTime);
     }
 
-    if (d_type == DMCST_DISCRETE) {
+    if (d_type == e_DISCRETE) {
         d_min = MAX_INT;
         d_max = MIN_INT;
     }
@@ -270,9 +270,9 @@ void StatValue::init(const bsl::vector<int>& sizes,
     d_type = type;
     d_levelStartIndices.resize(sizes.size() + 1);
     d_curSnapshotIndices.assign(sizes.size(), 0);
-    d_min = (d_type == DMCST_DISCRETE ? MAX_INT : 0);
-    d_max = (d_type == DMCST_DISCRETE ? MIN_INT : 0);
-    d_currentStats.reset(d_type == DMCST_DISCRETE, 0);
+    d_min = (d_type == e_DISCRETE ? MAX_INT : 0);
+    d_max = (d_type == e_DISCRETE ? MIN_INT : 0);
+    d_currentStats.reset(d_type == e_DISCRETE, 0);
 
     int historySize = 0;
     for (size_t i = 0; i < sizes.size(); ++i) {
@@ -285,7 +285,7 @@ void StatValue::init(const bsl::vector<int>& sizes,
     d_history.resize(historySize);
 
     for (size_t i = 0; i < d_history.size(); ++i) {
-        d_history[i].reset(d_type == DMCST_DISCRETE, snapshotTime);
+        d_history[i].reset(d_type == e_DISCRETE, snapshotTime);
     }
 }
 
@@ -351,7 +351,7 @@ void StatValueUtil::loadUpdateImp(mwcstm::StatValueUpdate* update,
     for (int i = 0; i < Fields::NUM_ENUMERATORS; ++i) {
         if (bdlb::BitUtil::isBitSet(valueFieldMask, i)) {
             switch (i) {
-            case Fields::DMCSTM_ABSOLUTE_MIN: {
+            case Fields::E_ABSOLUTE_MIN: {
                 if (full) {
                     // Only set on full update, as the 'MIN' update will catch
                     // any change here.
@@ -360,7 +360,7 @@ void StatValueUtil::loadUpdateImp(mwcstm::StatValueUpdate* update,
                     mask = bdlb::BitUtil::withBitSet(mask, i);
                 }
             } break;
-            case Fields::DMCSTM_ABSOLUTE_MAX: {
+            case Fields::E_ABSOLUTE_MAX: {
                 if (full) {
                     // Only set on full update, as the 'MAX' update will catch
                     // any change here.
@@ -369,48 +369,48 @@ void StatValueUtil::loadUpdateImp(mwcstm::StatValueUpdate* update,
                     mask = bdlb::BitUtil::withBitSet(mask, i);
                 }
             } break;
-            case Fields::DMCSTM_MIN: {
+            case Fields::E_MIN: {
                 if (full || current.min() != last->min()) {
                     update->fields().push_back(current.min());
                     mask = bdlb::BitUtil::withBitSet(mask, i);
                 }
             } break;
-            case Fields::DMCSTM_MAX: {
+            case Fields::E_MAX: {
                 if (full || current.max() != last->max()) {
                     update->fields().push_back(current.max());
                     mask = bdlb::BitUtil::withBitSet(mask, i);
                 }
             } break;
-            case Fields::DMCSTM_VALUE: {
-                if (StatValue::DMCST_CONTINUOUS == value.type() &&
+            case Fields::E_VALUE: {
+                if (StatValue::e_CONTINUOUS == value.type() &&
                     (full || current.value() != last->value())) {
                     update->fields().push_back(current.value());
                     mask = bdlb::BitUtil::withBitSet(mask, i);
                 }
             } break;
-            case Fields::DMCSTM_INCREMENTS: {
-                if (StatValue::DMCST_CONTINUOUS == value.type() &&
+            case Fields::E_INCREMENTS: {
+                if (StatValue::e_CONTINUOUS == value.type() &&
                     (full || current.increments() != last->increments())) {
                     update->fields().push_back(current.increments());
                     mask = bdlb::BitUtil::withBitSet(mask, i);
                 }
             } break;
-            case Fields::DMCSTM_DECREMENTS: {
-                if (StatValue::DMCST_CONTINUOUS == value.type() &&
+            case Fields::E_DECREMENTS: {
+                if (StatValue::e_CONTINUOUS == value.type() &&
                     (full || current.decrements() != last->decrements())) {
                     update->fields().push_back(current.decrements());
                     mask = bdlb::BitUtil::withBitSet(mask, i);
                 }
             } break;
-            case Fields::DMCSTM_EVENTS: {
-                if (StatValue::DMCST_DISCRETE == value.type() &&
+            case Fields::E_EVENTS: {
+                if (StatValue::e_DISCRETE == value.type() &&
                     (full || current.events() != last->events())) {
                     update->fields().push_back(current.events());
                     mask = bdlb::BitUtil::withBitSet(mask, i);
                 }
             } break;
-            case Fields::DMCSTM_SUM: {
-                if (StatValue::DMCST_DISCRETE == value.type() &&
+            case Fields::E_SUM: {
+                if (StatValue::e_DISCRETE == value.type() &&
                     (full || current.sum() != last->sum())) {
                     update->fields().push_back(current.sum());
                     mask = bdlb::BitUtil::withBitSet(mask, i);
