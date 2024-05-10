@@ -4,8 +4,7 @@ commands.
 """
 import dataclasses
 import json
-import re
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional
 
 import blazingmq.dev.it.testconstants as tc
 from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
@@ -17,16 +16,6 @@ from blazingmq.dev.it.process.admin import AdminClient
 from blazingmq.dev.it.process.client import Client
 
 pytestmark = order(1)
-
-
-def get_endpoint(cluster: Cluster) -> Tuple[str, int]:
-    endpoint: str = cluster.config.definition.nodes[0].transport.tcp.endpoint  # type: ignore
-
-    # Extract the (host, port) pair from the config
-    m = re.match(r".+://(.+):(\d+)", endpoint)  # tcp://host:port
-    assert m is not None
-
-    return str(m.group(1)), int(m.group(2))
 
 
 @dataclasses.dataclass
@@ -78,7 +67,7 @@ def test_breathing(single_node: Cluster) -> None:
     - The broker is able to accept admin commands via TCP interface.
     - Invalid admin commands are handled gracefully.
     """
-    host, port = get_endpoint(single_node)
+    host, port = single_node.admin_endpoint
 
     # Start the admin client
     admin = AdminClient()
@@ -136,7 +125,7 @@ def test_admin_encoding(single_node: Cluster) -> None:
     - Commands with incorrect encoding are handled with decode error.
     - Commands without encoding return text output for backward compatibility.
     """
-    host, port = get_endpoint(single_node)
+    host, port = single_node.admin_endpoint
 
     def is_compact(json_str: str) -> bool:
         return "    " not in json_str
@@ -231,7 +220,7 @@ def test_purge_breathing(single_node: Cluster) -> None:
     proxy = next(proxies)
     producer: Client = proxy.create_client("producer")
 
-    host, port = get_endpoint(cluster)
+    host, port = cluster.admin_endpoint
 
     # Start the admin client
     admin = AdminClient()
@@ -373,7 +362,7 @@ def test_purge_inactive(single_node: Cluster) -> None:
         post_n_msgs(producer, task, posted_fanout)
     producer.stop()
 
-    host, port = get_endpoint(cluster)
+    host, port = cluster.admin_endpoint
 
     # Start the admin client.
     admin = AdminClient()
@@ -451,6 +440,50 @@ def test_purge_inactive(single_node: Cluster) -> None:
     # Also check that purge domain for FANOUT could not purge more messages.
     res = admin.send_admin(f"DOMAINS DOMAIN {tc.DOMAIN_FANOUT} PURGE")
     assert f"Purged 0 message(s)" in res
+
+    # Stop the admin session
+    admin.stop()
+
+
+def test_commands_on_non_existing_domain(single_node: Cluster) -> None:
+    """
+    Test: domain admin commands work even if domain was not loaded from the disk yet.
+    This test works with an assumption that the cluster was just started before the test,
+    so the broker doesn't have any internal domain objects constructed in memory.
+
+    Stage 1: send commands to domains existing on disk but not yet loaded to the broker
+
+    Stage 2: send commands to domains not existing on disk
+
+    Concerns:
+    - DOMAINS DOMAIN ... command works if domain exists on disk.
+    - DOMAINS RECONFIGURE ... command works if domain exists on disk.
+    """
+    cluster: Cluster = single_node
+
+    host, port = cluster.admin_endpoint
+
+    # Start the admin client
+    admin = AdminClient()
+    admin.connect(host, port)
+
+    # Stage 1: send commands to domains existing on disk but not yet loaded to the broker
+    # Note that we use different domains for each test case, because we want to check each
+    # command with clear state for a domain.
+    res = admin.send_admin(f"domains domain {tc.DOMAIN_PRIORITY} infos")
+    assert "ActiveQueues ..: 0" in res
+
+    res = admin.send_admin(f"domains reconfigure {tc.DOMAIN_FANOUT}")
+    assert "SUCCESS" in res
+
+    # Stage 2: send commands to domains not existing on disk
+    not_existing_domain = "this.domain.doesnt.exist"
+
+    res = admin.send_admin(f"domains domain {not_existing_domain} infos")
+    assert f"Domain '{not_existing_domain}' doesn't exist" in res
+
+    res = admin.send_admin(f"domains reconfigure {not_existing_domain}")
+    assert f"Domain '{not_existing_domain}' doesn't exist" in res
 
     # Stop the admin session
     admin.stop()
