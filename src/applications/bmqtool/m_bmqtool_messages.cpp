@@ -47,6 +47,8 @@ namespace m_bmqtool {
 
 const char BatchPostCommand::CLASS_NAME[] = "BatchPostCommand";
 
+const char BatchPostCommand::DEFAULT_INITIALIZER_FILE[] = "";
+
 const int BatchPostCommand::DEFAULT_INITIALIZER_MSG_SIZE = 1024;
 
 const bsls::Types::Int64 BatchPostCommand::DEFAULT_INITIALIZER_EVENT_SIZE = 1;
@@ -67,6 +69,11 @@ const bdlat_AttributeInfo BatchPostCommand::ATTRIBUTE_INFO_ARRAY[] = {
     {ATTRIBUTE_ID_PAYLOAD,
      "payload",
      sizeof("payload") - 1,
+     "",
+     bdlat_FormattingMode::e_TEXT},
+    {ATTRIBUTE_ID_FILE,
+     "file",
+     sizeof("file") - 1,
      "",
      bdlat_FormattingMode::e_TEXT},
     {ATTRIBUTE_ID_MSG_SIZE,
@@ -100,7 +107,7 @@ const bdlat_AttributeInfo BatchPostCommand::ATTRIBUTE_INFO_ARRAY[] = {
 const bdlat_AttributeInfo*
 BatchPostCommand::lookupAttributeInfo(const char* name, int nameLength)
 {
-    for (int i = 0; i < 7; ++i) {
+    for (int i = 0; i < 8; ++i) {
         const bdlat_AttributeInfo& attributeInfo =
             BatchPostCommand::ATTRIBUTE_INFO_ARRAY[i];
 
@@ -119,6 +126,7 @@ const bdlat_AttributeInfo* BatchPostCommand::lookupAttributeInfo(int id)
     case ATTRIBUTE_ID_URI: return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_URI];
     case ATTRIBUTE_ID_PAYLOAD:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PAYLOAD];
+    case ATTRIBUTE_ID_FILE: return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_FILE];
     case ATTRIBUTE_ID_MSG_SIZE:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MSG_SIZE];
     case ATTRIBUTE_ID_EVENT_SIZE:
@@ -140,6 +148,7 @@ BatchPostCommand::BatchPostCommand(bslma::Allocator* basicAllocator)
 , d_eventsCount(DEFAULT_INITIALIZER_EVENTS_COUNT)
 , d_payload(basicAllocator)
 , d_uri(basicAllocator)
+, d_file(DEFAULT_INITIALIZER_FILE, basicAllocator)
 , d_msgSize(DEFAULT_INITIALIZER_MSG_SIZE)
 , d_postInterval(DEFAULT_INITIALIZER_POST_INTERVAL)
 , d_postRate(DEFAULT_INITIALIZER_POST_RATE)
@@ -152,6 +161,7 @@ BatchPostCommand::BatchPostCommand(const BatchPostCommand& original,
 , d_eventsCount(original.d_eventsCount)
 , d_payload(original.d_payload, basicAllocator)
 , d_uri(original.d_uri, basicAllocator)
+, d_file(original.d_file, basicAllocator)
 , d_msgSize(original.d_msgSize)
 , d_postInterval(original.d_postInterval)
 , d_postRate(original.d_postRate)
@@ -165,6 +175,7 @@ BatchPostCommand::BatchPostCommand(BatchPostCommand&& original) noexcept
   d_eventsCount(bsl::move(original.d_eventsCount)),
   d_payload(bsl::move(original.d_payload)),
   d_uri(bsl::move(original.d_uri)),
+  d_file(bsl::move(original.d_file)),
   d_msgSize(bsl::move(original.d_msgSize)),
   d_postInterval(bsl::move(original.d_postInterval)),
   d_postRate(bsl::move(original.d_postRate))
@@ -177,6 +188,7 @@ BatchPostCommand::BatchPostCommand(BatchPostCommand&& original,
 , d_eventsCount(bsl::move(original.d_eventsCount))
 , d_payload(bsl::move(original.d_payload), basicAllocator)
 , d_uri(bsl::move(original.d_uri), basicAllocator)
+, d_file(bsl::move(original.d_file), basicAllocator)
 , d_msgSize(bsl::move(original.d_msgSize))
 , d_postInterval(bsl::move(original.d_postInterval))
 , d_postRate(bsl::move(original.d_postRate))
@@ -195,6 +207,7 @@ BatchPostCommand& BatchPostCommand::operator=(const BatchPostCommand& rhs)
     if (this != &rhs) {
         d_uri          = rhs.d_uri;
         d_payload      = rhs.d_payload;
+        d_file         = rhs.d_file;
         d_msgSize      = rhs.d_msgSize;
         d_eventSize    = rhs.d_eventSize;
         d_eventsCount  = rhs.d_eventsCount;
@@ -212,6 +225,7 @@ BatchPostCommand& BatchPostCommand::operator=(BatchPostCommand&& rhs)
     if (this != &rhs) {
         d_uri          = bsl::move(rhs.d_uri);
         d_payload      = bsl::move(rhs.d_payload);
+        d_file         = bsl::move(rhs.d_file);
         d_msgSize      = bsl::move(rhs.d_msgSize);
         d_eventSize    = bsl::move(rhs.d_eventSize);
         d_eventsCount  = bsl::move(rhs.d_eventsCount);
@@ -227,6 +241,7 @@ void BatchPostCommand::reset()
 {
     bdlat_ValueTypeFunctions::reset(&d_uri);
     bdlat_ValueTypeFunctions::reset(&d_payload);
+    d_file         = DEFAULT_INITIALIZER_FILE;
     d_msgSize      = DEFAULT_INITIALIZER_MSG_SIZE;
     d_eventSize    = DEFAULT_INITIALIZER_EVENT_SIZE;
     d_eventsCount  = DEFAULT_INITIALIZER_EVENTS_COUNT;
@@ -244,6 +259,7 @@ bsl::ostream& BatchPostCommand::print(bsl::ostream& stream,
     printer.start();
     printer.printAttribute("uri", this->uri());
     printer.printAttribute("payload", this->payload());
+    printer.printAttribute("file", this->file());
     printer.printAttribute("msgSize", this->msgSize());
     printer.printAttribute("eventSize", this->eventSize());
     printer.printAttribute("eventsCount", this->eventsCount());
@@ -1502,7 +1518,12 @@ const char MessagePropertyType::CLASS_NAME[] = "MessagePropertyType";
 
 const bdlat_EnumeratorInfo MessagePropertyType::ENUMERATOR_INFO_ARRAY[] = {
     {MessagePropertyType::E_STRING, "E_STRING", sizeof("E_STRING") - 1, ""},
-    {MessagePropertyType::E_INT, "E_INT", sizeof("E_INT") - 1, ""}};
+    {MessagePropertyType::E_INT32, "E_INT32", sizeof("E_INT32") - 1, ""},
+    {MessagePropertyType::E_INT64, "E_INT64", sizeof("E_INT64") - 1, ""},
+    {MessagePropertyType::E_BOOL, "E_BOOL", sizeof("E_BOOL") - 1, ""},
+    {MessagePropertyType::E_CHAR, "E_CHAR", sizeof("E_CHAR") - 1, ""},
+    {MessagePropertyType::E_SHORT, "E_SHORT", sizeof("E_SHORT") - 1, ""},
+    {MessagePropertyType::E_BINARY, "E_BINARY", sizeof("E_BINARY") - 1, ""}};
 
 // CLASS METHODS
 
@@ -1511,7 +1532,12 @@ int MessagePropertyType::fromInt(MessagePropertyType::Value* result,
 {
     switch (number) {
     case MessagePropertyType::E_STRING:
-    case MessagePropertyType::E_INT:
+    case MessagePropertyType::E_INT32:
+    case MessagePropertyType::E_INT64:
+    case MessagePropertyType::E_BOOL:
+    case MessagePropertyType::E_CHAR:
+    case MessagePropertyType::E_SHORT:
+    case MessagePropertyType::E_BINARY:
         *result = static_cast<MessagePropertyType::Value>(number);
         return 0;
     default: return -1;
@@ -1522,7 +1548,7 @@ int MessagePropertyType::fromString(MessagePropertyType::Value* result,
                                     const char*                 string,
                                     int                         stringLength)
 {
-    for (int i = 0; i < 2; ++i) {
+    for (int i = 0; i < 7; ++i) {
         const bdlat_EnumeratorInfo& enumeratorInfo =
             MessagePropertyType::ENUMERATOR_INFO_ARRAY[i];
 
@@ -1543,8 +1569,23 @@ const char* MessagePropertyType::toString(MessagePropertyType::Value value)
     case E_STRING: {
         return "E_STRING";
     }
-    case E_INT: {
-        return "E_INT";
+    case E_INT32: {
+        return "E_INT32";
+    }
+    case E_INT64: {
+        return "E_INT64";
+    }
+    case E_BOOL: {
+        return "E_BOOL";
+    }
+    case E_CHAR: {
+        return "E_CHAR";
+    }
+    case E_SHORT: {
+        return "E_SHORT";
+    }
+    case E_BINARY: {
+        return "E_BINARY";
     }
     }
 
@@ -4848,6 +4889,8 @@ bsl::ostream& JournalCommand::print(bsl::ostream& stream,
 
 const char PostCommand::CLASS_NAME[] = "PostCommand";
 
+const char PostCommand::DEFAULT_INITIALIZER_FILE[] = "";
+
 const bool PostCommand::DEFAULT_INITIALIZER_ASYNC = false;
 
 const char PostCommand::DEFAULT_INITIALIZER_GROUPID[] = "";
@@ -4864,6 +4907,11 @@ const bdlat_AttributeInfo PostCommand::ATTRIBUTE_INFO_ARRAY[] = {
     {ATTRIBUTE_ID_PAYLOAD,
      "payload",
      sizeof("payload") - 1,
+     "",
+     bdlat_FormattingMode::e_TEXT},
+    {ATTRIBUTE_ID_FILE,
+     "file",
+     sizeof("file") - 1,
      "",
      bdlat_FormattingMode::e_TEXT},
     {ATTRIBUTE_ID_ASYNC,
@@ -4892,7 +4940,7 @@ const bdlat_AttributeInfo PostCommand::ATTRIBUTE_INFO_ARRAY[] = {
 const bdlat_AttributeInfo* PostCommand::lookupAttributeInfo(const char* name,
                                                             int nameLength)
 {
-    for (int i = 0; i < 6; ++i) {
+    for (int i = 0; i < 7; ++i) {
         const bdlat_AttributeInfo& attributeInfo =
             PostCommand::ATTRIBUTE_INFO_ARRAY[i];
 
@@ -4911,6 +4959,7 @@ const bdlat_AttributeInfo* PostCommand::lookupAttributeInfo(int id)
     case ATTRIBUTE_ID_URI: return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_URI];
     case ATTRIBUTE_ID_PAYLOAD:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PAYLOAD];
+    case ATTRIBUTE_ID_FILE: return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_FILE];
     case ATTRIBUTE_ID_ASYNC:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ASYNC];
     case ATTRIBUTE_ID_GROUPID:
@@ -4930,6 +4979,7 @@ PostCommand::PostCommand(bslma::Allocator* basicAllocator)
 : d_payload(basicAllocator)
 , d_messageProperties(basicAllocator)
 , d_uri(basicAllocator)
+, d_file(DEFAULT_INITIALIZER_FILE, basicAllocator)
 , d_groupid(DEFAULT_INITIALIZER_GROUPID, basicAllocator)
 , d_compressionAlgorithmType(DEFAULT_INITIALIZER_COMPRESSION_ALGORITHM_TYPE,
                              basicAllocator)
@@ -4942,6 +4992,7 @@ PostCommand::PostCommand(const PostCommand& original,
 : d_payload(original.d_payload, basicAllocator)
 , d_messageProperties(original.d_messageProperties, basicAllocator)
 , d_uri(original.d_uri, basicAllocator)
+, d_file(original.d_file, basicAllocator)
 , d_groupid(original.d_groupid, basicAllocator)
 , d_compressionAlgorithmType(original.d_compressionAlgorithmType,
                              basicAllocator)
@@ -4955,6 +5006,7 @@ PostCommand::PostCommand(PostCommand&& original) noexcept
 : d_payload(bsl::move(original.d_payload)),
   d_messageProperties(bsl::move(original.d_messageProperties)),
   d_uri(bsl::move(original.d_uri)),
+  d_file(bsl::move(original.d_file)),
   d_groupid(bsl::move(original.d_groupid)),
   d_compressionAlgorithmType(bsl::move(original.d_compressionAlgorithmType)),
   d_async(bsl::move(original.d_async))
@@ -4966,6 +5018,7 @@ PostCommand::PostCommand(PostCommand&&     original,
 : d_payload(bsl::move(original.d_payload), basicAllocator)
 , d_messageProperties(bsl::move(original.d_messageProperties), basicAllocator)
 , d_uri(bsl::move(original.d_uri), basicAllocator)
+, d_file(bsl::move(original.d_file), basicAllocator)
 , d_groupid(bsl::move(original.d_groupid), basicAllocator)
 , d_compressionAlgorithmType(bsl::move(original.d_compressionAlgorithmType),
                              basicAllocator)
@@ -4985,6 +5038,7 @@ PostCommand& PostCommand::operator=(const PostCommand& rhs)
     if (this != &rhs) {
         d_uri                      = rhs.d_uri;
         d_payload                  = rhs.d_payload;
+        d_file                     = rhs.d_file;
         d_async                    = rhs.d_async;
         d_groupid                  = rhs.d_groupid;
         d_compressionAlgorithmType = rhs.d_compressionAlgorithmType;
@@ -5001,6 +5055,7 @@ PostCommand& PostCommand::operator=(PostCommand&& rhs)
     if (this != &rhs) {
         d_uri                      = bsl::move(rhs.d_uri);
         d_payload                  = bsl::move(rhs.d_payload);
+        d_file                     = bsl::move(rhs.d_file);
         d_async                    = bsl::move(rhs.d_async);
         d_groupid                  = bsl::move(rhs.d_groupid);
         d_compressionAlgorithmType = bsl::move(rhs.d_compressionAlgorithmType);
@@ -5015,6 +5070,7 @@ void PostCommand::reset()
 {
     bdlat_ValueTypeFunctions::reset(&d_uri);
     bdlat_ValueTypeFunctions::reset(&d_payload);
+    d_file    = DEFAULT_INITIALIZER_FILE;
     d_async   = DEFAULT_INITIALIZER_ASYNC;
     d_groupid = DEFAULT_INITIALIZER_GROUPID;
     d_compressionAlgorithmType =
@@ -5031,6 +5087,7 @@ PostCommand::print(bsl::ostream& stream, int level, int spacesPerLevel) const
     printer.start();
     printer.printAttribute("uri", this->uri());
     printer.printAttribute("payload", this->payload());
+    printer.printAttribute("file", this->file());
     printer.printAttribute("async", this->async());
     printer.printAttribute("groupid", this->groupid());
     printer.printAttribute("compressionAlgorithmType",
@@ -6588,6 +6645,6 @@ const char* Command::selectionName() const
 }  // close package namespace
 }  // close enterprise namespace
 
-// GENERATED BY BLP_BAS_CODEGEN_2024.03.30
+// GENERATED BY BLP_BAS_CODEGEN_2024.04.25.2
 // USING bas_codegen.pl -m msg --noAggregateConversion --noExternalization
 // --noIdent --package m_bmqtool --msgComponent messages bmqtoolcmd.xsd

@@ -44,6 +44,8 @@
 #include <bsl_iostream.h>
 #include <bslmt_lockguard.h>
 #include <bslmt_turnstile.h>
+#include <bdlde_hexdecoder.h>
+#include <bdlb_tokenizer.h>
 
 namespace BloombergLP {
 namespace m_bmqtool {
@@ -83,6 +85,183 @@ void printMessage(bsl::ostream& out, int index, const bmqa::Message& message)
         out << ", with Group Id: " << message.groupId();
     }
 #endif
+}
+
+bool parseMessageProperties_1(bsl::vector<MessageProperty> *messageProperties, bsl::string propertiesStr)
+{
+    // Parsing state
+    enum State {
+        NAME,
+        TYPE,
+        VALUE
+    };
+
+    // Tokenize string by space and check markers
+    bdlb::Tokenizer tokenizer(propertiesStr, " ");
+    if (propertiesStr.at(0) != '[' || propertiesStr.back() != ']') {
+        return false;  // RETURN
+    }
+    bdlb::Tokenizer::iterator tokenizerIt = tokenizer.begin();
+    MessageProperty messageProperty;
+    State state = NAME;
+    for (++tokenizerIt; tokenizerIt != tokenizer.end(); ++tokenizerIt) {
+        bslstl::StringRef token = *tokenizerIt;
+        if (token == "=")
+            continue;
+
+        switch(state) {
+            case NAME: {
+                messageProperty.name() = token;
+                state = TYPE;
+            } break;  // BREAK
+            case TYPE: {
+                // Remove surrounding brackets, add enum prefix and convert to MessagePropertyType enum
+                const bsl::string typeStr = "E_" + bsl::string(token.substr(1, token.size() - 2));
+                if (MessagePropertyType::fromString(&messageProperty.type(), typeStr) != 0) {
+                    return false;  // RETURN
+                }
+                state = VALUE;
+            } break;  // BREAK
+            case VALUE: {
+                // Remove surrounding quotes if present
+                messageProperty.value() = token.at(0) == '"' ? token.substr(1, token.size() - 2) : token;
+                // Property is parsed, save it
+                messageProperties->push_back(messageProperty);
+                state = NAME;
+            } break;  // BREAK
+            default: {
+                BSLS_ASSERT_SAFE(false && "Unsupported state")
+            }
+        }
+    }
+
+    return true;
+}
+
+bool loadMessageFromFile(bsl::vector<bsl::string> *payload, bsl::vector<MessageProperty> *messageProperties, bsl::ostream& errorDescription, bsl::string& file)
+{
+    if (file.empty()) {
+        errorDescription << "Empty 'file' argument";
+        return false;  // RETURN
+    }
+
+    bsl::ifstream fileStream(file.c_str());
+    if (!fileStream.is_open()) {
+        errorDescription << "Failed to open file: " << file;
+        return false;  // RETURN
+    }
+
+    // Parse file according to format defined in QueueEngineUtil::dumpMessageInTempfile()
+    bsl::string line;
+    bsl::getline(fileStream, line);
+    if (line.compare("Message Properties:") == 0) {
+        char tmpBuffer[2];
+        fileStream.read(tmpBuffer, 1); // skip empty line
+
+        // Properties
+        bsl::getline(fileStream, line);
+        if (line.at(0) != '[') {
+            errorDescription << "Properties '[' marker missed";
+            return false;  // RETURN
+        }
+        mwcu::MemOutStream propertiesStream;
+        propertiesStream << line << '\n';
+        if (line.back() != ']') {
+            // Binary properties are multiline, read lines until close marker ']'
+            while(!fileStream.eof()) {
+                bsl::getline(fileStream, line);
+                propertiesStream << line;
+                // Check for close marker
+                if (line.back() == ']')
+                    break;  // BREAK
+                propertiesStream << '\n';
+            }
+            if (fileStream.eof()) {
+                errorDescription << "Properties ']' marker missed";
+                return false;  // RETURN
+            }
+        }
+
+        bsl::string parseError;
+        if (!InputUtil::parseProperties(messageProperties, propertiesStream.str(),&parseError)) {
+            errorDescription << "Message properties format error: " << parseError;
+            fileStream.close();
+            return false;
+        }
+
+        fileStream.read(tmpBuffer, 2); // skip empty lines
+
+        bsl::getline(fileStream, line);
+        if (line.compare("Message Payload:") != 0) {
+            errorDescription << "Unexpected file format";
+            fileStream.close();
+            return false;
+        }
+    } else if (line.compare("Application Data:") != 0) {
+         errorDescription << "Unexpected file format";
+         fileStream.close();
+         return false;
+    }
+
+    // Read and convert message payload
+    mwcu::MemOutStream resultStream;
+    bsl::string error;
+    if(!InputUtil::decodeHexDump(resultStream, fileStream, &error)) {
+        errorDescription << error;
+        fileStream.close();
+        return false;
+    }
+
+    // char outputBuffer[4];  // should be equal to k_BLOCK_SIZE in bdlb::Print::hexDump()
+    // bdlde::HexDecoder hexDecoder;
+
+    // mwcu::MemOutStream outStream;
+    // int             numOut = 0;
+    // int             numIn = 0;
+
+    // while (bsl::getline(fileStream, line)) {
+    //     // bsl::cout << line << '\n';
+
+    //     if (line.empty())
+    //         continue; // skip empty lines
+                
+    //     // Convert hexdump to binary, see format in bdlb::Print::hexDump()
+    //     bdlb::Tokenizer tokenizer(line, " ");
+    //     bdlb::Tokenizer::iterator tokenizerIt = tokenizer.begin();
+    //     for (++tokenizerIt; tokenizerIt != tokenizer.end(); ++tokenizerIt) {
+    //         bslstl::StringRef token = *tokenizerIt;
+
+    //         // Stop when ASCII representation is detected
+    //         if (token.at(0) == '|')
+    //             break;
+
+    //         // bsl::cout << token << bsl::endl;
+    //         int status = hexDecoder.convert(outputBuffer, &numOut, &numIn, token.begin(), token.end());
+    //         if (status < 0) {
+    //             errorDescription << "HexDecoder convert error: " << status;
+    //             return false;
+    //         }
+    //         outStream.write(outputBuffer, numOut);
+
+    //         // bsl::cout << numOut << " : " << numIn <<  bsl::endl;
+
+    //         // status = hexDecoder.endConvert();
+    //         // if (status < 0) {
+    //         //     errorDescription << "HexDecoder.endConvert error: " << status;
+    //         //     return false;
+    //         // }
+
+    //         // hexDecoder.reset();
+    //     }
+
+    // }
+
+    // bsl::cout << "Result: " << outStream.str() <<  bsl::endl;
+    payload->push_back(resultStream.str());
+
+    fileStream.close();
+
+    return true;
 }
 
 }  // close unnamed namespace
@@ -150,7 +329,7 @@ void Interactive::printHelp()
            "\"E_STRING\"}]"
         << bsl::endl
         << "    - 'post' command requires 'uri' and 'payload' arguments, "
-        << "parameter 'messageProperties' is optional" << bsl::endl
+        << "parameters 'messageProperties' and 'file' are optional" << bsl::endl
         << bsl::endl
         << "  batch-post uri=\"bmq://bmq.test.persistent.priority/qqq\" "
            "payload=[\"sample message\"] eventsCount=300 postInterval=5000 "
@@ -438,12 +617,13 @@ void Interactive::processCommand(const PostCommand& command, bool hasMPs)
         return;  // RETURN
     }
 
-    BALL_LOG_INFO << "--> Posting message: " << command;
+    BALL_LOG_INFO << "--> Posting messag!!!: " << command;
 
     int rc;
     // Build the messageEvent
     bmqa::MessageEventBuilder eventBuilder;
     d_session_p->loadMessageEventBuilder(&eventBuilder);
+    
     for (size_t i = 0; i < command.payload().size(); ++i) {
         bmqa::Message& msg = eventBuilder.startMessage();
 
@@ -474,14 +654,18 @@ void Interactive::processCommand(const PostCommand& command, bool hasMPs)
 
         if (hasMPs) {
             d_session_p->loadMessageProperties(&properties);
-
-            for (size_t j = 0; j < command.messageProperties().size(); ++j) {
-                InputUtil::populateProperties(&properties,
-                                              command.messageProperties());
-            }
+            // TODO: no need this cycle?
+            // for (size_t j = 0; j < command.messageProperties().size(); ++j) {
+            //     InputUtil::populateProperties(&properties,
+            //                                   command.messageProperties());
+            // }
+            InputUtil::populateProperties(&properties,
+                                            command.messageProperties());
 
             msg.setPropertiesRef(&properties);
+            BALL_LOG_WARN << "REAL MESSAGE PROPS: " << properties;
         }
+
 
         // Set data
         msg.setDataRef(command.payload()[i].c_str(),
@@ -504,7 +688,8 @@ void Interactive::processCommand(const PostCommand& command, bool hasMPs)
     }
 
     // Post
-    rc = d_session_p->post(eventBuilder.messageEvent());
+    rc = 0; //d_session_p->post(eventBuilder.messageEvent());
+    BALL_LOG_ERROR << "Post skipped for debug";
 
     ball::Severity::Level severity = (rc == 0 ? ball::Severity::INFO
                                               : ball::Severity::ERROR);
@@ -900,7 +1085,53 @@ int Interactive::mainLoop()
                     if (mps) {
                         hasMPs = keys.find(mps->name()) != keys.cend();
                     }
-                    processCommand(command, hasMPs);
+
+                    // Check if 'file' argument is present
+                    const bdlat_AttributeInfo* fileArg =
+                        PostCommand::lookupAttributeInfo(
+                            PostCommand::ATTRIBUTE_ID_FILE);
+                    bool hasFile = false;
+                    if (fileArg) {
+                        hasFile = keys.find(fileArg->name()) != keys.cend();
+                    }
+                                        
+                    bool isCommandError = false;
+                    if (hasFile) {
+                        BALL_LOG_INFO << "--> messageFilepath: " << command.file();
+                        // bsl::ostringstream ss;
+                        // ss << "Message Properties:\n\n" << "[ ]" << "\n\n\nMessage Payload:\n\n";
+                        // bsl::string s = "aaa Налоговый орган, который привязан к вашей прописке, «подтянется» автоматически.\n Если в течение этого года вы находились в России больше 183 дней, то вы - налоговый резидент РФ. bbb";
+                        // mwcu::MemOutStream dumpPayload;                     
+                        // dumpPayload << "Message Properties:\n\n" << "[ sample_str (STRING) = \"foo\" x (INT32) = 10  bin_data (BINARY) = 68656C6C6F20776F726C64 ]" << "\n\n\nMessage Payload:\n\n";
+                        // bdlb::Print::hexDump(dumpPayload, s.c_str(), s.size());
+                        // BALL_LOG_WARN << dumpPayload.str();
+
+
+                        if (hasMPs) {
+                            BALL_LOG_WARN << "'messageProperties' argument is skipped and will be replaced with content from 'file'";
+                            command.messageProperties().clear();
+                        }
+                        if (!command.payload().empty()) {
+                            BALL_LOG_WARN << "'payload' argument is skipped and will be replaced with content from 'file'";
+                            command.payload().clear();
+                        }
+
+                        // bsl::istringstream is(dumpPayload.str());
+                        mwcu::MemOutStream  errorDescription;                     
+                        if (!loadMessageFromFile(&command.payload(), &command.messageProperties(), errorDescription, command.file())) {
+                            BALL_LOG_ERROR << errorDescription.str();
+                            isCommandError = true;
+                        }
+                        
+                        hasMPs = !command.messageProperties().empty();
+                        // BALL_LOG_INFO << "PROPERTIES:";
+                        // for(auto prop : command.messageProperties()) {
+                        //     BALL_LOG_INFO << "NAME: " << prop.name() << " TYPE: " << prop.type() << " VAL: " << prop.value();
+                        // }
+                    }
+                    if (!isCommandError) {
+                        processCommand(command, hasMPs);
+                    }
                 }
             }
             else if (verb == "list") {
