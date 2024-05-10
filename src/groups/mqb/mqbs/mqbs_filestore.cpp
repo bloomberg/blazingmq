@@ -7213,6 +7213,10 @@ void FileStore::getStorages(StorageList*          storages,
 
 void FileStore::loadSummary(mqbcmd::FileStore* fileStore) const
 {
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(fileStore);
+
+    fileStore->partitionId() = d_config.partitionId();
     if (!isOpen()) {
         fileStore->state() = mqbcmd::FileStoreState::CLOSED;
         return;  // RETURN
@@ -7223,8 +7227,7 @@ void FileStore::loadSummary(mqbcmd::FileStore* fileStore) const
         return;  // RETURN
     }
 
-    fileStore->partitionId() = d_config.partitionId();
-    fileStore->state()       = mqbcmd::FileStoreState::OPEN;
+    fileStore->state() = mqbcmd::FileStoreState::OPEN;
     FileStorePrintUtil::loadSummary(&fileStore->summary(),
                                     d_primaryNode_p,
                                     d_primaryLeaseId,
