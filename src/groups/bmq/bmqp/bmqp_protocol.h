@@ -3599,7 +3599,8 @@ inline RdaInfo& RdaInfo::setCounter(unsigned int counter)
 {
     BSLS_ASSERT_SAFE(counter <= k_MAX_COUNTER_VALUE);
     // Drop e_UNLIMITED bit flag if set, but save e_POISONOUS bit
-    d_counter = static_cast<unsigned char>(counter | (d_counter & e_POISONOUS));
+    d_counter = static_cast<unsigned char>(counter |
+                                           (d_counter & e_POISONOUS));
     return *this;
 }
 
