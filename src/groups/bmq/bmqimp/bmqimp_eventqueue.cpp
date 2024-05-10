@@ -335,7 +335,7 @@ void EventQueue::initializeStats(
     bdlma::LocalSequentialAllocator<2048> localAllocator(d_allocator_p);
 
     mwcst::StatContextConfiguration config(k_STAT_NAME, &localAllocator);
-    config.value("Queue").value("Time", mwcst::StatValue::DMCST_DISCRETE);
+    config.value("Queue").value("Time", mwcst::StatValue::e_DISCRETE);
     d_stats_mp = rootStatContext->addSubcontext(config);
 
     // Create table

@@ -143,13 +143,13 @@ bsls::Types::Int64 ClusterStats::getValue(const mwcst::StatContext& context,
 
 #define STAT_SINGLE(OPERATION, STAT)                                          \
     mwcst::StatUtil::OPERATION(                                               \
-        context.value(mwcst::StatContext::DMCST_DIRECT_VALUE,                 \
+        context.value(mwcst::StatContext::e_DIRECT_VALUE,                     \
                       ClusterStatsIndex::STAT),                               \
         latestSnapshot)
 
 #define STAT_RANGE(OPERATION, STAT)                                           \
     mwcst::StatUtil::OPERATION(                                               \
-        context.value(mwcst::StatContext::DMCST_DIRECT_VALUE,                 \
+        context.value(mwcst::StatContext::e_DIRECT_VALUE,                     \
                       ClusterStatsIndex::STAT),                               \
         latestSnapshot,                                                       \
         oldestSnapshot)
@@ -437,12 +437,12 @@ ClusterNodeStats::getValue(const mwcst::StatContext& context,
 
 #define STAT_SINGLE(OPERATION, STAT)                                          \
     mwcst::StatUtil::OPERATION(                                               \
-        context.value(mwcst::StatContext::DMCST_DIRECT_VALUE, STAT),          \
+        context.value(mwcst::StatContext::e_DIRECT_VALUE, STAT),              \
         latestSnapshot)
 
 #define STAT_RANGE(OPERATION, STAT)                                           \
     mwcst::StatUtil::OPERATION(                                               \
-        context.value(mwcst::StatContext::DMCST_DIRECT_VALUE, STAT),          \
+        context.value(mwcst::StatContext::e_DIRECT_VALUE, STAT),              \
         latestSnapshot,                                                       \
         oldestSnapshot)
 
@@ -567,9 +567,9 @@ ClusterStatsUtil::initializeStatContextCluster(int               historySize,
         .value("cluster.partition.cfg_journal_bytes")
         .value("cluster.partition.cfg_data_bytes")
         .value("partition_status")
-        .value("partition.rollover_time", mwcst::StatValue::DMCST_DISCRETE)
-        .value("partition.data_bytes", mwcst::StatValue::DMCST_DISCRETE)
-        .value("partition.journal_bytes", mwcst::StatValue::DMCST_DISCRETE);
+        .value("partition.rollover_time", mwcst::StatValue::e_DISCRETE)
+        .value("partition.data_bytes", mwcst::StatValue::e_DISCRETE)
+        .value("partition.journal_bytes", mwcst::StatValue::e_DISCRETE);
 
     // NOTE: For the clusters, the stat context will have two levels of
     //       children, first level is per cluster, and second level is per
