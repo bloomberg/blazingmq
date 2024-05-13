@@ -44,9 +44,11 @@ libraries are available in C++, Java, and Python.
 BlazingMQ is an actively developed project and has been battle-tested in
 production at Bloomberg for 8+ years.
 
-This repository contains BlazingMQ message broker, BlazingMQ C++ client library
-and a BlazingMQ command line tool, while BlazingMQ Java client library can be
-found in [this](https://github.com/bloomberg/blazingmq-sdk-java) repository.
+This repository the contains BlazingMQ message broker, the BlazingMQ C++ client
+library, and a BlazingMQ command line tool. The BlazingMQ
+[Java client library](https://github.com/bloomberg/blazingmq-sdk-java) and
+[Python client library](https://github.com/bloomberg/blazingmq-sdk-python) are
+maintained in separate repositories.
 
 ---
 
