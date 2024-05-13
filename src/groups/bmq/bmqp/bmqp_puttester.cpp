@@ -159,7 +159,8 @@ void PutTester::populateBlob(bdlbb::Blob*              blob,
                                               compressed,
                                               &error,
                                               allocator);
-                int compare = bdlbb::BlobUtil::compare(dummy, data.d_appData);
+                BSLA_MAYBE_UNUSED int compare =
+                    bdlbb::BlobUtil::compare(dummy, data.d_appData);
                 BSLS_ASSERT_SAFE(compare == 0);
             }
 
@@ -299,10 +300,11 @@ void PutTester::populateBlob(bdlbb::Blob*             blob,
                                     payloadLength,
                                     &error,
                                     allocator);
-        int padding  = 0;
-        int numWords = bmqp::ProtocolUtil::calcNumWordsAndPadding(
-            &padding,
-            compressedBlob.length());
+        int                   padding = 0;
+        BSLA_MAYBE_UNUSED int numWords =
+            bmqp::ProtocolUtil::calcNumWordsAndPadding(
+                &padding,
+                compressedBlob.length());
         BSLS_ASSERT_SAFE(numWords >= 0);
         // Adding padding per BlazingMQ protocol
         bsl::string paddingCompressedBlob(padding, '\0');
@@ -484,10 +486,11 @@ void PutTester::populateBlob(bdlbb::Blob*                   blob,
                                eh->headerWords() *
                                    bmqp::Protocol::k_WORD_SIZE);
 
-    int rc = mwcu::BlobUtil::findOffsetSafe(&pos,
-                                            *blob,
-                                            mwcu::BlobPosition(),
-                                            sizeof(bmqp::EventHeader));
+    BSLA_MAYBE_UNUSED int rc = mwcu::BlobUtil::findOffsetSafe(
+        &pos,
+        *blob,
+        mwcu::BlobPosition(),
+        sizeof(bmqp::EventHeader));
     BSLS_ASSERT_SAFE(rc == 0);
 
     mwcu::BlobUtil::writeBytes(blob,

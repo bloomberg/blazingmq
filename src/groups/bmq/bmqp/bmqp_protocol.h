@@ -3761,7 +3761,7 @@ inline EventHeader& EventHeader::setType(EventType::Enum value)
 
     d_protocolVersionAndType = static_cast<unsigned char>(
         (d_protocolVersionAndType & k_PROTOCOL_VERSION_MASK) |
-        (static_cast<unsigned char>(value) & k_TYPE_MASK));
+        (value & k_TYPE_MASK));
 
     return *this;
 }
@@ -3969,7 +3969,7 @@ MessagePropertiesHeader::setMessagePropertyHeaderSize(int value)
     BSLS_ASSERT_SAFE(value >= 0 &&
                      value <= ((1 << k_MPH_SIZE_2X_NUM_BITS) - 1));
 
-    d_mphSize2xAndHeaderSize2x = static_cast<unsigned char>(
+    d_mphSize2xAndHeaderSize2x = static_cast<char>(
         (d_mphSize2xAndHeaderSize2x & k_HEADER_SIZE_2X_MASK) |
         (value << k_MPH_SIZE_2X_START_IDX));
     return *this;
@@ -3983,7 +3983,7 @@ MessagePropertiesHeader::setMessagePropertiesAreaWords(int value)
                      value <= ((1 << k_MSG_PROPS_AREA_WORDS_NUM_BITS) - 1));
 
     d_msgPropsAreaWordsLower = static_cast<unsigned short>(value & 0xFFFF);
-    d_msgPropsAreaWordsUpper = static_cast<unsigned char>(
+    d_msgPropsAreaWordsUpper = static_cast<unsigned short>(
         (value >> k_MSG_PROPS_AREA_WORDS_LOWER_NUM_BITS) & 0xFF);
 
     return *this;
@@ -4044,7 +4044,7 @@ inline MessagePropertyHeader& MessagePropertyHeader::setPropertyType(int value)
 
     d_propTypeAndPropValueLenUpper = static_cast<unsigned short>(
         (d_propTypeAndPropValueLenUpper & k_PROP_VALUE_LEN_UPPER_MASK) |
-        (static_cast<unsigned short>(value) << k_PROP_TYPE_START_IDX));
+        (value << k_PROP_TYPE_START_IDX));
 
     return *this;
 }
@@ -4059,8 +4059,7 @@ MessagePropertyHeader::setPropertyValueLength(int value)
 
     d_propTypeAndPropValueLenUpper = static_cast<unsigned short>(
         (d_propTypeAndPropValueLenUpper & k_PROP_TYPE_MASK) |
-        (static_cast<unsigned short>(value >>
-                                     k_PROP_VALUE_LEN_LOWER_NUM_BITS) &
+        ((value >> k_PROP_VALUE_LEN_LOWER_NUM_BITS) &
          k_PROP_VALUE_LEN_UPPER_MASK));
 
     return *this;
@@ -4133,12 +4132,12 @@ inline SchemaWireId::SchemaWireId()
 inline void SchemaWireId::set(unsigned value)
 {
     // Include precondition check or adjust function signature?
-    d_value = static_cast<short unsigned int>(value);
+    d_value = static_cast<unsigned short>(value);
 }
 
 inline unsigned SchemaWireId::value() const
 {
-    return static_cast<short unsigned int>(d_value);
+    return static_cast<unsigned short>(d_value);
 }
 
 // ---------------
@@ -5065,7 +5064,7 @@ RecoveryHeader::setFileChunkType(RecoveryFileChunkType::Enum value)
 
 inline RecoveryHeader& RecoveryHeader::setPartitionId(unsigned int value)
 {
-    d_partitionId = static_cast<short unsigned int>(value);
+    d_partitionId = static_cast<unsigned short>(value);
     return *this;
 }
 
