@@ -735,10 +735,10 @@ int IncoreClusterStateLedger::applyRecordInternal(
     const bmqp_ctrlmsg::LeaderMessageSequence& sequenceNumber,
     ClusterStateRecordType::Enum               recordType)
 {
-    mwcu::BlobPosition recordPosition;
-    int                rc = mwcu::BlobUtil::findOffsetSafe(&recordPosition,
-                                            record,
-                                            recordOffset);
+    mwcu::BlobPosition    recordPosition;
+    BSLA_MAYBE_UNUSED int rc = mwcu::BlobUtil::findOffsetSafe(&recordPosition,
+                                                              record,
+                                                              recordOffset);
     BSLS_ASSERT_SAFE(rc == 0);
 
     return applyRecordInternal(record,
@@ -756,10 +756,11 @@ int IncoreClusterStateLedger::applyRecordInternal(
     const bmqp_ctrlmsg::LeaderMessageSequence& sequenceNumber,
     ClusterStateRecordType::Enum               recordType)
 {
-    int recordOffset = 0;
-    int rc           = mwcu::BlobUtil::positionToOffsetSafe(&recordOffset,
-                                                  record,
-                                                  recordPosition);
+    int                   recordOffset = 0;
+    BSLA_MAYBE_UNUSED int rc           = mwcu::BlobUtil::positionToOffsetSafe(
+        &recordOffset,
+        record,
+        recordPosition);
     BSLS_ASSERT_SAFE(rc == 0);
 
     return applyRecordInternal(record,

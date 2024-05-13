@@ -333,10 +333,10 @@ mqbsi::Log::Offset ReadWriteOnDiskLog::write(const bdlbb::Blob&        entry,
     // writev() supports up to IOV_MAX iovecs, so batch it up
     struct iovec ioVectors[IOV_MAX];
 
-    int                rc;
-    int                remainingLength = length;
-    mwcu::BlobPosition currOffset      = offset;
-    mwcu::BlobPosition nextCurrOffset;
+    BSLA_MAYBE_UNUSED int rc;
+    int                   remainingLength = length;
+    mwcu::BlobPosition    currOffset      = offset;
+    mwcu::BlobPosition    nextCurrOffset;
     do {
         int iovecCount = 0;
         populateIoVectors(ioVectors,

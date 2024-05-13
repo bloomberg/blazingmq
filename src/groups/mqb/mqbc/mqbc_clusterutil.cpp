@@ -624,7 +624,7 @@ void ClusterUtil::onPartitionPrimaryAssignment(
     if (primary == oldPrimary) {
         if (leaseId == oldLeaseId) {
             // Leader has re-sent the primary info for this partition.
-            mqbc::ClusterNodeSession* ns =
+            BSLA_MAYBE_UNUSED mqbc::ClusterNodeSession* ns =
                 clusterData->membership().getClusterNodeSession(primary);
             BSLS_ASSERT_SAFE(ns && ns->isPrimaryForPartition(partitionId));
 
@@ -1035,7 +1035,7 @@ ClusterUtil::assignQueue(ClusterState*           clusterState,
         // In CSL mode, we assign the queue to ClusterState upon CSL commit
         // callback of QueueAssignmentAdvisory, so we don't assign it here.
 
-        const bool assignRc = clusterState->assignQueue(
+        BSLA_MAYBE_UNUSED const bool assignRc = clusterState->assignQueue(
             uri,
             key,
             queueAdvisory.queues().back().partitionId(),

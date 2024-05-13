@@ -1280,9 +1280,9 @@ void ClusterQueueHelper::onOpenQueueResponse(
         failure = false;
     }
 
-    QueueContext&                  qcontext = *context.d_queueContext_p;
-    QueueLiveState&                qinfo    = qcontext.d_liveQInfo;
-    const bmqp_ctrlmsg::OpenQueue& req =
+    QueueContext&           qcontext = *context.d_queueContext_p;
+    QueueLiveState&         qinfo    = qcontext.d_liveQInfo;
+    BSLA_MAYBE_UNUSED const bmqp_ctrlmsg::OpenQueue& req =
         requestContext->request().choice().openQueue();
     StreamsMap::iterator subStreamIt = qinfo.d_subQueueIds.findBySubId(
         context.d_upstreamSubQueueId);

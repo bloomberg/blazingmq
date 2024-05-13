@@ -103,7 +103,7 @@ Channel::~Channel()
 
     resetChannel();
 
-    int rc = bslmt::ThreadUtil::join(d_threadHandle);
+    BSLA_MAYBE_UNUSED int rc = bslmt::ThreadUtil::join(d_threadHandle);
     BSLS_ASSERT_SAFE(rc == 0);
 }
 

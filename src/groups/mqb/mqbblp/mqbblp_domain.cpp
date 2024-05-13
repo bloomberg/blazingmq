@@ -797,7 +797,9 @@ int Domain::processCommand(mqbcmd::DomainResult*        result,
             options.setEncodingStyle(baljsn::EncoderOptions::e_PRETTY);
             options.setSpacesPerLevel(2);
 
-            const int rc = encoder.encode(out, d_config.value(), options);
+            BSLA_MAYBE_UNUSED const int rc = encoder.encode(out,
+                                                            d_config.value(),
+                                                            options);
             BSLS_ASSERT_SAFE(rc == 0);
             domainInfo.configJson() = out.str();
         }
@@ -884,7 +886,8 @@ int Domain::processCommand(mqbcmd::DomainResult*        result,
             BSLS_ASSERT_SAFE(
                 clusterResult.storageResult().isPurgedQueuesValue());
 
-            mqbcmd::PurgedQueues& purgedQueues = result->makePurgedQueues();
+            BSLA_MAYBE_UNUSED mqbcmd::PurgedQueues& purgedQueues =
+                result->makePurgedQueues();
             result->makeQueueResult().makePurgedQueues().queues() =
                 clusterResult.storageResult().purgedQueues().queues();
             return rc;  // RETURN

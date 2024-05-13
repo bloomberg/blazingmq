@@ -2406,8 +2406,9 @@ void Cluster::loadNodesInfo(mqbcmd::NodeStatuses* out) const
                 nodeSession.clusterNode()->isAvailable());
         }
 
-        int rc = mqbcmd::NodeStatus::fromInt(&node.status(),
-                                             nodeSession.nodeStatus());
+        BSLA_MAYBE_UNUSED int rc = mqbcmd::NodeStatus::fromInt(
+            &node.status(),
+            nodeSession.nodeStatus());
         BSLS_ASSERT_SAFE(!rc && "Unsupported node status");
 
         const bsl::vector<int>& partitionVec = nodeSession.primaryPartitions();
@@ -2425,7 +2426,7 @@ void Cluster::loadElectorInfo(mqbcmd::ElectorInfo* out) const
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
 
-    int rc = mqbcmd::ElectorState::fromInt(
+    BSLA_MAYBE_UNUSED int rc = mqbcmd::ElectorState::fromInt(
         &out->electorState(),
         d_clusterData.electorInfo().electorState());
     BSLS_ASSERT_SAFE(!rc && "Unsupported elector state");
@@ -2471,8 +2472,9 @@ void Cluster::loadPartitionsInfo(mqbcmd::PartitionsInfo* out) const
                 pi.primaryNode()->nodeDescription());
         }
         partitions[i].primaryLeaseId() = pi.primaryLeaseId();
-        int rc = mqbcmd::PrimaryStatus::fromInt(&partitions[i].primaryStatus(),
-                                                pi.primaryStatus());
+        BSLA_MAYBE_UNUSED int rc       = mqbcmd::PrimaryStatus::fromInt(
+            &partitions[i].primaryStatus(),
+            pi.primaryStatus());
         BSLS_ASSERT_SAFE(!rc && "Unsupported primary status");
     }
 }

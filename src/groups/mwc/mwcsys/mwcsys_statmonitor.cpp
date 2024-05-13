@@ -263,7 +263,9 @@ void StatMonitor::snapshot()
                      "'start' was not called (or failed)");
 
     // System: report in seconds
-    d_systemStatContext.setValue(k_STAT_SYSTEM_UPTIME, it->elapsedTime());
+    d_systemStatContext.setValue(
+        k_STAT_SYSTEM_UPTIME,
+        static_cast<bsls::Types::Int64>(it->elapsedTime()));
 
     // Convenient macro to retrieve the value 'T' applying a multiplier 'M'
 #define PERFVAL(T, M)                                                         \

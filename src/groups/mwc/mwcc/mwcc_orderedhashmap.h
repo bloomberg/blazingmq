@@ -100,6 +100,7 @@
 //..
 
 // MWC
+#include <mwcu_safecast.h>
 
 // BDE
 #include <bdlma_pool.h>
