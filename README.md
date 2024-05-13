@@ -50,7 +50,6 @@ library, and a BlazingMQ command line tool. The BlazingMQ
 [Python client library](https://github.com/bloomberg/blazingmq-sdk-python) are
 maintained in separate repositories.
 
----
 
 ## Menu
 
@@ -63,14 +62,12 @@ maintained in separate repositories.
 - [Code of Conduct](#code-of-conduct)
 - [Security Vulnerability Reporting](#security-vulnerability-reporting)
 
----
 
 ## Documentation
 
 Comprehensive documentation about BlazingMQ can be found
 [here](https://bloomberg.github.io/blazingmq).
 
----
 
 ## Quick Start
 
@@ -83,7 +80,6 @@ In the
 article, readers can learn about some intermediate and advanced features of
 BlazingMQ and see them in action.
 
----
 
 ## Building
 
@@ -113,7 +109,6 @@ cmake --build cmake.bld
 
 For a list of presets, please look at the `*-vcpkg` configurations in [`CMakePresets.json`](./CMakePresets.json).
 
----
 
 ## Installation
 
@@ -121,7 +116,6 @@ For a list of presets, please look at the `*-vcpkg` configurations in [`CMakePre
 article describes the steps for installing a BlazingMQ cluster in a set of Docker
 containers, along with a recommended set of configurations.
 
----
 
 ## Contributions
 
@@ -135,13 +129,11 @@ Before sending a [Pull Request](../../pulls), please make sure you have read
 our [Contribution
 Guidelines](https://github.com/bloomberg/.github/blob/main/CONTRIBUTING.md).
 
----
 
 ## License
 
 BlazingMQ is Apache 2.0 licensed, as found in the [LICENSE](LICENSE) file.
 
----
 
 ## Code of Conduct
 
@@ -150,7 +142,6 @@ Conduct](https://github.com/bloomberg/.github/blob/main/CODE_OF_CONDUCT.md).
 If you have any concerns about the Code, or behavior which you have experienced
 in the project, please contact us at opensource@bloomberg.net.
 
----
 
 ## Security Vulnerability Reporting
 
@@ -161,5 +152,3 @@ the suspected issue and any methods you've found to reproduce it.
 Please do NOT open an issue in the GitHub repository, as we'd prefer to keep
 vulnerability reports private until we've had an opportunity to review and
 address them.
-
----
