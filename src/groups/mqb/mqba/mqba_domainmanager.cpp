@@ -719,6 +719,8 @@ void DomainManager::createDomain(
     const bsl::string&                         name,
     const mqbi::DomainFactory::CreateDomainCb& callback)
 {
+    // executed by *ANY* thread
+
     if (!d_isStarted) {
         BALL_LOG_INFO << "Not creating domain [" << name << "] at this time "
                       << "because self is stopping.";

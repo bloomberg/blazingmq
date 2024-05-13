@@ -33,7 +33,6 @@
 // This component is thread safe.
 
 // MQB
-
 #include <mqbconfm_messages.h>
 #include <mqbi_domain.h>
 
@@ -64,9 +63,6 @@ namespace BloombergLP {
 // FORWARD DECLARATION
 namespace bslmt {
 class Latch;
-}
-namespace bsls {
-class AtomicInt;
 }
 namespace mqbblp {
 class ClusterCatalog;
@@ -189,7 +185,7 @@ class DomainManager BSLS_CPP11_FINAL : public mqbi::DomainFactory {
     DomainSpMap d_domains;
     // Map of domains
 
-    bool d_isStarted;
+    bsls::AtomicBool d_isStarted;
     // Is the domain manager started
 
     bslma::Allocator* d_allocator_p;
