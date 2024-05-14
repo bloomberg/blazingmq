@@ -567,6 +567,15 @@ int RemoteQueue::configure(bsl::ostream& errorDescription, bool isReconfigure)
     BSLS_ASSERT_SAFE(d_state_p->queue()->dispatcher()->inDispatcherThread(
         d_state_p->queue()));
 
+    // Update stats
+    if (isReconfigure) {
+        const mqbconfm::Domain& domainCfg = d_state_p->domain()->config();
+        if (domainCfg.mode().isFanoutValue()) {
+            d_state_p->stats().updateDomainAppIds(
+                domainCfg.mode().fanout().appIDs());
+        }
+    }
+
     if (d_state_p->domain()->cluster()->isRemote()) {
         return configureAsProxy(errorDescription, isReconfigure);  // RETURN
     }

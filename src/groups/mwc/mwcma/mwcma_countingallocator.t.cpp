@@ -489,7 +489,7 @@ static void test7_configureStatContextTableInfoProvider_part2()
 // Testing:
 //   configureStatContextTableInfoProvider(
 //       mwcst::Table                              *table,
-//       mwcu::BasicTableInfoProvider              *basicTableInfoProvider,
+//       mwcst::BasicTableInfoProvider              *basicTableInfoProvider,
 //       const mwcst::StatValue::SnapshotLocation&  startSnapshot,
 //       const mwcst::StatValue::SnapshotLocation&  endSnapshot);
 // ------------------------------------------------------------------------
@@ -505,7 +505,7 @@ static void test7_configureStatContextTableInfoProvider_part2()
                                       " - part 2");
 
     mwcst::Table                       table(s_allocator_p);
-    mwcu::BasicTableInfoProvider       basicTableInfoProvider(s_allocator_p);
+    mwcst::BasicTableInfoProvider      basicTableInfoProvider(s_allocator_p);
     mwcst::StatValue::SnapshotLocation start;
     mwcst::StatValue::SnapshotLocation end;
 

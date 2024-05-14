@@ -20,7 +20,7 @@
 //@PURPOSE: Provide utilities for printing things
 //
 //@CLASSES:
-// mwcstu::PrintUtil
+// mwcst::PrintUtil
 //
 //@DESCRIPTION:
 // This component provides a set of utility functions useful for printing
@@ -43,7 +43,7 @@ namespace bsls {
 class Stopwatch;
 }
 
-namespace mwcstu {
+namespace mwcst {
 
 // FORWARD DECLARATIONS
 class TableInfoProvider;
@@ -257,24 +257,24 @@ Printer<TYPE>::print(bsl::ostream& stream, int level, int spacesPerLevel) const
 
 // FREE OPERATORS
 template <typename TYPE>
-bsl::ostream& mwcstu::operator<<(bsl::ostream&                stream,
-                                 const mwcstu::Printer<TYPE>& p)
+bsl::ostream& mwcst::operator<<(bsl::ostream&               stream,
+                                const mwcst::Printer<TYPE>& p)
 {
     return stream << p.obj();
 }
 
 template <typename TYPE>
-bsl::ostream& mwcstu::operator<<(bsl::ostream& stream,
-                                 const mwcstu::Printer<bsl::vector<TYPE> >& p)
+bsl::ostream& mwcst::operator<<(bsl::ostream& stream,
+                                const mwcst::Printer<bsl::vector<TYPE> >& p)
 {
     stream << "[";
 
     if (!p.obj().empty()) {
         for (size_t i = 0; i < p.obj().size() - 1; ++i) {
-            stream << mwcstu::Printer<TYPE>(&p.obj()[i]) << ", ";
+            stream << mwcst::Printer<TYPE>(&p.obj()[i]) << ", ";
         }
 
-        stream << mwcstu::Printer<TYPE>(&p.obj().back());
+        stream << mwcst::Printer<TYPE>(&p.obj().back());
     }
 
     return stream << "]";
@@ -282,8 +282,8 @@ bsl::ostream& mwcstu::operator<<(bsl::ostream& stream,
 
 template <typename TYPE1, typename TYPE2>
 bsl::ostream&
-mwcstu::operator<<(bsl::ostream&                                   stream,
-                   const mwcstu::Printer<bsl::map<TYPE1, TYPE2> >& p)
+mwcst::operator<<(bsl::ostream&                                  stream,
+                  const mwcst::Printer<bsl::map<TYPE1, TYPE2> >& p)
 {
     stream << "{";
 
@@ -292,20 +292,20 @@ mwcstu::operator<<(bsl::ostream&                                   stream,
         Iter iter     = p.obj().begin();
         Iter lastElem = --p.obj().end();
         for (; iter != lastElem; ++iter) {
-            stream << mwcstu::Printer<TYPE1>(&iter->first) << ":"
-                   << mwcstu::Printer<TYPE2>(&iter->second) << ", ";
+            stream << mwcst::Printer<TYPE1>(&iter->first) << ":"
+                   << mwcst::Printer<TYPE2>(&iter->second) << ", ";
         }
 
-        stream << mwcstu::Printer<TYPE1>(&iter->first) << ":"
-               << mwcstu::Printer<TYPE2>(&iter->second);
+        stream << mwcst::Printer<TYPE1>(&iter->first) << ":"
+               << mwcst::Printer<TYPE2>(&iter->second);
     }
 
     return stream << "}";
 }
 
 template <typename TYPE>
-bsl::ostream& mwcstu::operator<<(bsl::ostream& stream,
-                                 const mwcstu::Printer<bsl::set<TYPE> >& p)
+bsl::ostream& mwcst::operator<<(bsl::ostream&                          stream,
+                                const mwcst::Printer<bsl::set<TYPE> >& p)
 {
     stream << "{";
 
@@ -314,10 +314,10 @@ bsl::ostream& mwcstu::operator<<(bsl::ostream& stream,
         Iter                                            iter = p.obj().begin();
         Iter lastElem                                        = --p.obj().end();
         for (; iter != lastElem; ++iter) {
-            stream << mwcstu::Printer<TYPE>(&(*iter)) << ", ";
+            stream << mwcst::Printer<TYPE>(&(*iter)) << ", ";
         }
 
-        stream << mwcstu::Printer<TYPE>(&(*iter));
+        stream << mwcst::Printer<TYPE>(&(*iter));
     }
 
     return stream << "}";
@@ -325,8 +325,8 @@ bsl::ostream& mwcstu::operator<<(bsl::ostream& stream,
 
 template <typename TYPE>
 bsl::ostream&
-mwcstu::operator<<(bsl::ostream&                                     stream,
-                   const mwcstu::Printer<bsl::unordered_set<TYPE> >& p)
+mwcst::operator<<(bsl::ostream&                                    stream,
+                  const mwcst::Printer<bsl::unordered_set<TYPE> >& p)
 {
     stream << "{";
 
@@ -338,7 +338,7 @@ mwcstu::operator<<(bsl::ostream&                                     stream,
             if (iter != begin) {
                 stream << ", ";
             }
-            stream << mwcstu::Printer<TYPE>(&(*iter));
+            stream << mwcst::Printer<TYPE>(&(*iter));
         }
     }
 
@@ -347,8 +347,8 @@ mwcstu::operator<<(bsl::ostream&                                     stream,
 
 template <typename TYPE1, typename TYPE2>
 bsl::ostream&
-mwcstu::operator<<(bsl::ostream& stream,
-                   const mwcstu::Printer<bsl::unordered_map<TYPE1, TYPE2> >& p)
+mwcst::operator<<(bsl::ostream& stream,
+                  const mwcst::Printer<bsl::unordered_map<TYPE1, TYPE2> >& p)
 {
     stream << "{";
 
@@ -360,8 +360,8 @@ mwcstu::operator<<(bsl::ostream& stream,
             stream << ", ";
         }
 
-        stream << mwcstu::Printer<TYPE1>(&iter->first) << ":"
-               << mwcstu::Printer<TYPE2>(&iter->second);
+        stream << mwcst::Printer<TYPE1>(&iter->first) << ":"
+               << mwcst::Printer<TYPE2>(&iter->second);
     }
 
     return stream << "}";
@@ -369,8 +369,8 @@ mwcstu::operator<<(bsl::ostream& stream,
 
 template <typename TYPE1, typename TYPE2>
 bsl::ostream&
-mwcstu::operator<<(bsl::ostream&                                    stream,
-                   const mwcstu::Printer<bsl::pair<TYPE1, TYPE2> >& p)
+mwcst::operator<<(bsl::ostream&                                   stream,
+                  const mwcst::Printer<bsl::pair<TYPE1, TYPE2> >& p)
 {
     return stream << '<' << p.obj().first << ", " << p.obj().second << '>';
 }

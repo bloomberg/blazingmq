@@ -13,25 +13,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mwcst_utable.cpp -*-C++-*-
-#include <mwcst_utable.h>
+// mwcst_basetable.cpp -*-C++-*-
+#include <mwcst_basetable.h>
 
 #include <mwcscm_version.h>
 namespace BloombergLP {
-namespace mwcu {
+namespace mwcst {
 
-// -----------
-// class Table
-// -----------
+// ---------------
+// class BaseTable
+// ---------------
 
 // CREATORS
-Table::~Table()
+BaseTable::~BaseTable()
 {
+    // NOTHING
 }
-
-// MANIPULATORS
-
-// ACCESSORS
 
 }  // close package namespace
 }  // close enterprise namespace

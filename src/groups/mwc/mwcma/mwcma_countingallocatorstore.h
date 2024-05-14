@@ -210,7 +210,7 @@
 //      tip.setContext(allocatorStatContext);
 //      tip.update();
 //
-//      mwcu::TableUtil::printTable(stream, tip);
+//      mwcst::TableUtil::printTable(stream, tip);
 //      stream << bsl::endl;
 //  }
 //..

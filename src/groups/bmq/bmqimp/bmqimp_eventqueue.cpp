@@ -335,7 +335,7 @@ void EventQueue::initializeStats(
     bdlma::LocalSequentialAllocator<2048> localAllocator(d_allocator_p);
 
     mwcst::StatContextConfiguration config(k_STAT_NAME, &localAllocator);
-    config.value("Queue").value("Time", mwcst::StatValue::DMCST_DISCRETE);
+    config.value("Queue").value("Time", mwcst::StatValue::e_DISCRETE);
     d_stats_mp = rootStatContext->addSubcontext(config);
 
     // Create table
@@ -635,10 +635,10 @@ void EventQueue::printStats(bsl::ostream& stream, bool includeDelta) const
     BSLS_ASSERT_OPT(d_stats_mp && "Stats NOT initialized");
 
     if (includeDelta) {
-        mwcu::TableUtil::printTable(stream, d_statTip);
+        mwcst::TableUtil::printTable(stream, d_statTip);
     }
     else {
-        mwcu::TableUtil::printTable(stream, d_statTipNoDelta);
+        mwcst::TableUtil::printTable(stream, d_statTipNoDelta);
     }
     stream << "\n";
 }

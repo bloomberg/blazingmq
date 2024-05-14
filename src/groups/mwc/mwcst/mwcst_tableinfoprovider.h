@@ -20,13 +20,13 @@
 //@PURPOSE: Provide a protocol for an object that describes a printable table
 //
 //@CLASSES:
-// mwcu::TableInfoProvider
+// mwcst::TableInfoProvider
 //
-//@SEE_ALSO: mwcu_tableutil
+//@SEE_ALSO: mwcst_tableutil
 //
 //@DESCRIPTION:
-// This component defines a pure protocol, 'mwcu::TableInfoProvider', which
-// provides all the information necessary for 'mwcu::TableUtil' to print
+// This component defines a pure protocol, 'mwcst::TableInfoProvider', which
+// provides all the information necessary for 'mwcst::TableUtil' to print
 // any arbitrary table.
 //
 // A 'TableInfoProvider' can describe a table with an arbitrary number of
@@ -35,7 +35,7 @@
 //
 /// Usage Example
 ///-------------
-// See the usage example of 'mwcu::TableUtil' for a simple
+// See the usage example of 'mwcst::TableUtil' for a simple
 // implementation.
 
 #ifndef INCLUDED_BSL_OSTREAM
@@ -43,14 +43,14 @@
 #endif
 
 namespace BloombergLP {
-namespace mwcu {
+namespace mwcst {
 
 // =======================
 // class TableInfoProvider
 // =======================
 
 /// Protocol for an object that describes a table to be printed by
-/// `mwcu::PrintTableUtil`.
+/// `mwcst::PrintTableUtil`.
 class TableInfoProvider {
   public:
     // CREATORS

@@ -146,11 +146,11 @@
 // argument 'numSamples' is the number of samples in the stat context.
 //
 // Now it is time to print this table, by creating a
-// 'mwcu::BasicTableInfoProvider' associated with the table (pass the table
+// 'mwcst::BasicTableInfoProvider' associated with the table (pass the table
 // in the constructor, and initializing it using the following function:
 //..
-//  void initTIP(mwcu::BasicTableInfoProvider *tip,
-//               int                           numSamples)
+//  void initTIP(mwcst::BasicTableInfoProvider *tip,
+//               int                            numSamples)
 //  {
 //      // ID
 //      tip->setColumnGroup("");
@@ -178,7 +178,7 @@
 // This function associates the columns of the table with the columns of the
 // table info provider.  It also sets up column groups and formatting options
 // like displaying blanks instead of zeros.  Refer to the documentation
-// in 'mwcu::TableUtil' for details.  The table that will be printed looks
+// in 'mwcst::TableUtil' for details.  The table that will be printed looks
 // like this (only showing IN; OUT is identical):
 //..
 //                |                    IN                     |
@@ -188,9 +188,9 @@
 //     foo.tsk:123| 28,320| 28,320|  484.00| 120|   120|  2.00|
 //..
 
+#include <mwcst_basetable.h>
 #include <mwcst_tablerecords.h>
 #include <mwcst_tableschema.h>
-#include <mwcst_utable.h>
 
 namespace BloombergLP {
 namespace mwcst {
@@ -200,7 +200,7 @@ namespace mwcst {
 // ===========
 
 /// Table of values obtained from a `mwcst::StatContext`.
-class Table : public mwcu::Table {
+class Table : public mwcst::BaseTable {
   private:
     // DATA
     TableSchema d_schema;
@@ -235,8 +235,7 @@ class Table : public mwcu::Table {
 
     /// Load the specified `value` with the value located at the specified
     /// `row` and `column` indices.
-    void
-    value(mwct::Value* value, int row, int column) const BSLS_KEYWORD_OVERRIDE;
+    void value(Value* value, int row, int column) const BSLS_KEYWORD_OVERRIDE;
 };
 
 }  // close package namespace

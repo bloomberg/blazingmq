@@ -7,7 +7,7 @@ import itertools
 import logging
 import shutil
 import signal
-from typing import Any, Dict, List, Optional, Union
+from typing import Dict, List, Optional, Tuple, Union
 from pathlib import Path
 
 import blazingmq.dev.it.process.proc
@@ -79,7 +79,7 @@ class Cluster(contextlib.AbstractContextManager):
             logging.getLogger("blazingmq.test"), extra=log_extra
         )
 
-        self.last_known_leader = None
+        self.last_known_leader: Optional[Broker] = None
         self._processes: Dict[str, Union[Broker, Client]] = {}
         self._nodes: List[Broker] = []
         self._virtual_nodes: List[Broker] = []
@@ -100,6 +100,17 @@ class Cluster(contextlib.AbstractContextManager):
         """
 
         return self.config.name
+
+    @property
+    def admin_endpoint(self) -> Tuple[Optional[str], Optional[int]]:
+        """
+        Return a tuple containing (host, port) of an admin endpoint of this cluster, if the
+        admin endpoint is not decided, return (None, None) tuple
+        """
+        if not self.last_known_leader:
+            return None, None
+
+        return self.last_known_leader.config.host, int(self.last_known_leader.config.port)
 
     def start(self, wait_leader=True, wait_ready=False):
         """

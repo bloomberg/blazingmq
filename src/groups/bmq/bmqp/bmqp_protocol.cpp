@@ -454,7 +454,7 @@ bool PutHeaderFlags::fromAscii(PutHeaderFlags::Enum*    out,
 #define CHECKVALUE(M)                                                         \
     if (bdlb::String::areEqualCaseless(toAscii(PutHeaderFlags::e_##M),        \
                                        str.data(),                            \
-                                       str.length())) {                       \
+                                       static_cast<int>(str.length()))) {     \
         *out = PutHeaderFlags::e_##M;                                         \
         return true;                                                          \
     }
@@ -628,7 +628,7 @@ bool PushHeaderFlags::fromAscii(PushHeaderFlags::Enum*   out,
 #define CHECKVALUE(M)                                                         \
     if (bdlb::String::areEqualCaseless(toAscii(PushHeaderFlags::e_##M),       \
                                        str.data(),                            \
-                                       str.length())) {                       \
+                                       static_cast<int>(str.length()))) {     \
         *out = PushHeaderFlags::e_##M;                                        \
         return true;                                                          \
     }
@@ -833,7 +833,7 @@ bool StorageHeaderFlags::fromAscii(StorageHeaderFlags::Enum* out,
 #define CHECKVALUE(M)                                                         \
     if (bdlb::String::areEqualCaseless(toAscii(StorageHeaderFlags::e_##M),    \
                                        str.data(),                            \
-                                       str.length())) {                       \
+                                       static_cast<int>(str.length()))) {     \
         *out = StorageHeaderFlags::e_##M;                                     \
         return true;                                                          \
     }
@@ -909,7 +909,7 @@ int StorageHeaderFlagUtil::fromString(bsl::ostream&      errorDescription,
             rc = -1;
         }
         else {
-            *out |= value;
+            *out |= static_cast<unsigned char>(value);
         }
     }
 

@@ -76,11 +76,8 @@ namespace m_bmqtool {
 class Application : public bmqa::SessionEventHandler {
   private:
     // CLASS METHODS
-    static mwcst::StatContext createStatContext(int               historySize,
-                                                bslma::Allocator* allocator);
-
-    // TYPES
-    typedef bslma::ManagedPtr<mwcst::StatContext> StatContextMP;
+    static bsl::shared_ptr<mwcst::StatContext>
+    createStatContext(int historySize, bslma::Allocator* allocator);
 
     // DATA
     bslma::Allocator* d_allocator_p;
@@ -101,7 +98,7 @@ class Application : public bmqa::SessionEventHandler {
     bmqa::QueueId d_queueId;
     // Queue to send/receive messages
 
-    mwcst::StatContext d_statContext;
+    bsl::shared_ptr<mwcst::StatContext> d_statContext_sp;
     // StatContext for msg/event stats
 
     bdlmt::EventScheduler d_scheduler;

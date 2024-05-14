@@ -116,6 +116,12 @@ class Tagger {
         return *this;
     }
 
+    Tagger& setAppId(const bslstl::StringRef& value)
+    {
+        labels["AppId"] = value;
+        return *this;
+    }
+
     // ACCESSORS
     ::prometheus::Labels& getLabels() { return labels; }
 };
@@ -317,12 +323,19 @@ void PrometheusStatConsumer::captureQueueStats()
                      false},
                     {"queue_confirm_time_max",
                      Stat::e_CONFIRM_TIME_MAX,
-                     false},
-                };
+                     false}};
 
                 for (DatapointDefCIter dpIt = bdlb::ArrayUtil::begin(defs);
                      dpIt != bdlb::ArrayUtil::end(defs);
                      ++dpIt) {
+                    // If there are subcontexts, skip 'confirm_time_max'
+                    // metric, it will be processed later.
+                    if (static_cast<mqbstat::QueueStatsDomain::Stat::Enum>(
+                            dpIt->d_stat) == Stat::e_CONFIRM_TIME_MAX &&
+                        queueIt->numSubcontexts() > 0) {
+                        continue;
+                    }
+
                     const bsls::Types::Int64 value =
                         mqbstat::QueueStatsDomain::getValue(
                             *queueIt,
@@ -353,6 +366,14 @@ void PrometheusStatConsumer::captureQueueStats()
                 for (DatapointDefCIter dpIt = bdlb::ArrayUtil::begin(defs);
                      dpIt != bdlb::ArrayUtil::end(defs);
                      ++dpIt) {
+                    // If there are subcontexts, skip 'cqueue_time_max' metric,
+                    // it will be processed later.
+                    if (static_cast<mqbstat::QueueStatsDomain::Stat::Enum>(
+                            dpIt->d_stat) == Stat::e_QUEUE_TIME_MAX &&
+                        queueIt->numSubcontexts() > 0) {
+                        continue;
+                    }
+
                     const bsls::Types::Int64 value =
                         mqbstat::QueueStatsDomain::getValue(
                             *queueIt,
@@ -360,6 +381,38 @@ void PrometheusStatConsumer::captureQueueStats()
                             static_cast<mqbstat::QueueStatsDomain::Stat::Enum>(
                                 dpIt->d_stat));
                     updateMetric(dpIt, labels, value);
+                }
+            }
+
+            // Add `appId` tag to `queue_confirm_time_max` and
+            // `queue_queue_time_max` metrics.
+            static const DatapointDef confirmTimeDataPoint = {
+                "queue_confirm_time_max",
+                Stat::e_CONFIRM_TIME_MAX,
+                false};
+            static const DatapointDef queueTimeDataPoint = {
+                "queue_queue_time_max",
+                Stat::e_QUEUE_TIME_MAX,
+                false};
+            for (mwcst::StatContextIterator appIdIt =
+                     queueIt->subcontextIterator();
+                 appIdIt;
+                 ++appIdIt) {
+                tagger.setAppId(appIdIt->name());
+                const auto labels = tagger.getLabels();
+
+                auto value = mqbstat::QueueStatsDomain::getValue(
+                    *appIdIt,
+                    d_snapshotId,
+                    mqbstat::QueueStatsDomain::Stat::e_CONFIRM_TIME_MAX);
+                updateMetric(&confirmTimeDataPoint, labels, value);
+
+                if (role == mqbstat::QueueStatsDomain::Role::e_PRIMARY) {
+                    value = mqbstat::QueueStatsDomain::getValue(
+                        *appIdIt,
+                        d_snapshotId,
+                        mqbstat::QueueStatsDomain::Stat::e_QUEUE_TIME_MAX);
+                    updateMetric(&queueTimeDataPoint, labels, value);
                 }
             }
         }
