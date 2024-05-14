@@ -102,8 +102,8 @@ class JournalFile {
     // Number of records.
     MappedFileDescriptor d_mfd;
     // Mapped file descriptor.
-    char* d_mem_p;
-    // Pointer to allocated memory for journal file.
+    bsl::vector<char> d_mem;
+    // Buffer holding the memory allocated for journal file.
     MemoryBlock d_block;
     // Current memory block.
     bsls::Types::Uint64 d_currPos;
@@ -126,9 +126,9 @@ class JournalFile {
     // CREATORS
 
     /// Constructor using the specified `numRecords` and `allocator`.
-    JournalFile(const size_t numRecords, bslma::Allocator* allocator);
+    explicit JournalFile(size_t numRecords, bslma::Allocator* allocator);
 
-    /// Destructor for releasing allocated resource `d_mem_p`.
+    /// Default destructor.
     ~JournalFile();
 
     // ACCESSORS

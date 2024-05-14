@@ -44,17 +44,23 @@ void JournalFile::createFileHeader()
     d_currPos += sizeof(JournalFileHeader);
 }
 
-JournalFile::JournalFile(const size_t numRecords, bslma::Allocator* allocator)
+JournalFile::JournalFile(size_t numRecords, bslma::Allocator* allocator)
 : d_numRecords(numRecords)
+, d_mfd()
+, d_mem(allocator)
+, d_block()
+, d_currPos(0)
 , d_timestampIncrement(100)
+, d_fileHeader()
+, d_iterator()
 , d_allocator_p(allocator)
 {
     bsls::Types::Uint64 totalSize =
         sizeof(FileHeader) + sizeof(JournalFileHeader) +
         numRecords * FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
 
-    d_mem_p = static_cast<char*>(d_allocator_p->allocate(totalSize));
-    d_block.setBase(d_mem_p);
+    d_mem.resize(totalSize);
+    d_block.setBase(d_mem.data());
     d_block.setSize(totalSize);
 
     createFileHeader();
@@ -66,11 +72,14 @@ JournalFile::JournalFile(const size_t numRecords, bslma::Allocator* allocator)
 
 JournalFile::~JournalFile()
 {
-    d_allocator_p->deallocate(d_mem_p);
+    // NOTHING
 }
 
 void JournalFile::addAllTypesRecords(RecordsListType* records)
 {
+    // PRECONDITIONS
+    BSLS_ASSERT(records);
+
     for (unsigned int i = 1; i <= d_numRecords; ++i) {
         unsigned int remainder = i % 5;
         if (0 == remainder) {
@@ -206,6 +215,10 @@ void JournalFile::addJournalRecordsWithOutstandingAndConfirmedMessages(
     bsl::vector<bmqt::MessageGUID>* expectedGUIDs,
     bool                            expectOutstandingResult)
 {
+    // PRECONDITIONS
+    BSLS_ASSERT(records);
+    BSLS_ASSERT(expectedGUIDs);
+
     bool              outstandingFlag = false;
     bmqt::MessageGUID lastMessageGUID;
 
@@ -306,6 +319,10 @@ void JournalFile::addJournalRecordsWithPartiallyConfirmedMessages(
     RecordsListType*                records,
     bsl::vector<bmqt::MessageGUID>* expectedGUIDs)
 {
+    // PRECONDITIONS
+    BSLS_ASSERT(records);
+    BSLS_ASSERT(expectedGUIDs);
+
     bool              partialyConfirmedFlag = false;
     bmqt::MessageGUID lastMessageGUID;
 
