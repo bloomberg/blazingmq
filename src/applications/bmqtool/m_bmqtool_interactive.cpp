@@ -87,55 +87,9 @@ void printMessage(bsl::ostream& out, int index, const bmqa::Message& message)
 #endif
 }
 
-bool parseMessageProperties_1(bsl::vector<MessageProperty> *messageProperties, bsl::string propertiesStr)
+void closeFileStream(bsl::ifstream *fileStream)
 {
-    // Parsing state
-    enum State {
-        NAME,
-        TYPE,
-        VALUE
-    };
-
-    // Tokenize string by space and check markers
-    bdlb::Tokenizer tokenizer(propertiesStr, " ");
-    if (propertiesStr.at(0) != '[' || propertiesStr.back() != ']') {
-        return false;  // RETURN
-    }
-    bdlb::Tokenizer::iterator tokenizerIt = tokenizer.begin();
-    MessageProperty messageProperty;
-    State state = NAME;
-    for (++tokenizerIt; tokenizerIt != tokenizer.end(); ++tokenizerIt) {
-        bslstl::StringRef token = *tokenizerIt;
-        if (token == "=")
-            continue;
-
-        switch(state) {
-            case NAME: {
-                messageProperty.name() = token;
-                state = TYPE;
-            } break;  // BREAK
-            case TYPE: {
-                // Remove surrounding brackets, add enum prefix and convert to MessagePropertyType enum
-                const bsl::string typeStr = "E_" + bsl::string(token.substr(1, token.size() - 2));
-                if (MessagePropertyType::fromString(&messageProperty.type(), typeStr) != 0) {
-                    return false;  // RETURN
-                }
-                state = VALUE;
-            } break;  // BREAK
-            case VALUE: {
-                // Remove surrounding quotes if present
-                messageProperty.value() = token.at(0) == '"' ? token.substr(1, token.size() - 2) : token;
-                // Property is parsed, save it
-                messageProperties->push_back(messageProperty);
-                state = NAME;
-            } break;  // BREAK
-            default: {
-                BSLS_ASSERT_SAFE(false && "Unsupported state")
-            }
-        }
-    }
-
-    return true;
+    fileStream->close();
 }
 
 bool loadMessageFromFile(bsl::vector<bsl::string> *payload, bsl::vector<MessageProperty> *messageProperties, bsl::ostream& errorDescription, bsl::string& file)
@@ -150,6 +104,9 @@ bool loadMessageFromFile(bsl::vector<bsl::string> *payload, bsl::vector<MessageP
         errorDescription << "Failed to open file: " << file;
         return false;  // RETURN
     }
+
+    // Set guard to close the filestream
+    bdlb::ScopeExitAny guard(bdlf::BindUtil::bind(closeFileStream, &fileStream));
 
     // Parse file according to format defined in QueueEngineUtil::dumpMessageInTempfile()
     bsl::string line;
@@ -185,7 +142,6 @@ bool loadMessageFromFile(bsl::vector<bsl::string> *payload, bsl::vector<MessageP
         bsl::string parseError;
         if (!InputUtil::parseProperties(messageProperties, propertiesStream.str(),&parseError)) {
             errorDescription << "Message properties format error: " << parseError;
-            fileStream.close();
             return false;
         }
 
@@ -194,12 +150,10 @@ bool loadMessageFromFile(bsl::vector<bsl::string> *payload, bsl::vector<MessageP
         bsl::getline(fileStream, line);
         if (line.compare("Message Payload:") != 0) {
             errorDescription << "Unexpected file format";
-            fileStream.close();
             return false;
         }
     } else if (line.compare("Application Data:") != 0) {
          errorDescription << "Unexpected file format";
-         fileStream.close();
          return false;
     }
 
@@ -208,58 +162,11 @@ bool loadMessageFromFile(bsl::vector<bsl::string> *payload, bsl::vector<MessageP
     bsl::string error;
     if(!InputUtil::decodeHexDump(resultStream, fileStream, &error)) {
         errorDescription << error;
-        fileStream.close();
         return false;
     }
 
-    // char outputBuffer[4];  // should be equal to k_BLOCK_SIZE in bdlb::Print::hexDump()
-    // bdlde::HexDecoder hexDecoder;
-
-    // mwcu::MemOutStream outStream;
-    // int             numOut = 0;
-    // int             numIn = 0;
-
-    // while (bsl::getline(fileStream, line)) {
-    //     // bsl::cout << line << '\n';
-
-    //     if (line.empty())
-    //         continue; // skip empty lines
-                
-    //     // Convert hexdump to binary, see format in bdlb::Print::hexDump()
-    //     bdlb::Tokenizer tokenizer(line, " ");
-    //     bdlb::Tokenizer::iterator tokenizerIt = tokenizer.begin();
-    //     for (++tokenizerIt; tokenizerIt != tokenizer.end(); ++tokenizerIt) {
-    //         bslstl::StringRef token = *tokenizerIt;
-
-    //         // Stop when ASCII representation is detected
-    //         if (token.at(0) == '|')
-    //             break;
-
-    //         // bsl::cout << token << bsl::endl;
-    //         int status = hexDecoder.convert(outputBuffer, &numOut, &numIn, token.begin(), token.end());
-    //         if (status < 0) {
-    //             errorDescription << "HexDecoder convert error: " << status;
-    //             return false;
-    //         }
-    //         outStream.write(outputBuffer, numOut);
-
-    //         // bsl::cout << numOut << " : " << numIn <<  bsl::endl;
-
-    //         // status = hexDecoder.endConvert();
-    //         // if (status < 0) {
-    //         //     errorDescription << "HexDecoder.endConvert error: " << status;
-    //         //     return false;
-    //         // }
-
-    //         // hexDecoder.reset();
-    //     }
-
-    // }
-
     // bsl::cout << "Result: " << outStream.str() <<  bsl::endl;
     payload->push_back(resultStream.str());
-
-    fileStream.close();
 
     return true;
 }
@@ -688,9 +595,7 @@ void Interactive::processCommand(const PostCommand& command, bool hasMPs)
     }
 
     // Post
-    rc = 0; //d_session_p->post(eventBuilder.messageEvent());
-    BALL_LOG_ERROR << "Post skipped for debug";
-
+    rc = d_session_p->post(eventBuilder.messageEvent());
     ball::Severity::Level severity = (rc == 0 ? ball::Severity::INFO
                                               : ball::Severity::ERROR);
     BALL_LOG_STREAM(severity)

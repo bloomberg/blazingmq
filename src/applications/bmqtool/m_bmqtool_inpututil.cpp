@@ -172,7 +172,7 @@ void InputUtil::populateProperties(
 
         case MessagePropertyType::E_CHAR: {
             BSLA_MAYBE_UNUSED int result =
-                out->setPropertyAsChar(name, value.at(0));
+                out->setPropertyAsChar(name, static_cast<char>(bsl::stoi(value, 0, 16)));
             BSLS_ASSERT_SAFE(0 == result);
         } break;  // BREAK
 
@@ -193,15 +193,6 @@ void InputUtil::populateProperties(
                     out->setPropertyAsBinary(name, binaryBuf);
                 BSLS_ASSERT_SAFE(0 == result);
             }
-
-            // bdlde::HexDecoder decoder;
-            // const bsl::size_t bufSize = value.size() / 2;
-            // char buf[bufSize]; //MessageProperties::print()
-            // int status = decoder.convert(buf, value.begin(), value.end());
-            // bsl::vector<char> binaryBuf(buf, buf + bufSize);
-            // BSLA_MAYBE_UNUSED int result =
-            //     out->setPropertyAsBinary(name, binaryBuf);
-            // BSLS_ASSERT_SAFE(0 == result);
             
         } break;  // BREAK
 
@@ -214,6 +205,8 @@ void InputUtil::verifyProperties(
     const bmqa::MessageProperties&      in,
     const bsl::vector<MessageProperty>& properties)
 {
+    bsl::cout << "verifyProperties called!!!!!!!!!";
+    
     if (properties.size() == 0) {
         // If no 'messageProperties' was specified on the command line, and
         // '_random' is present, assume certain producer logic
@@ -306,13 +299,44 @@ void InputUtil::verifyProperties(
             BSLA_MAYBE_UNUSED const bsl::string& result =
                 in.getPropertyAsString(name);
             BSLS_ASSERT_SAFE(value == result);
+            BSLS_ASSERT(value == result);
         } break;  // BREAK
 
         case MessagePropertyType::E_INT32: {
             BSLA_MAYBE_UNUSED int result = in.getPropertyAsInt32(name);
             BSLS_ASSERT_SAFE(stoi(value) == result);
+            BSLS_ASSERT(stoi(value) == result);
         } break;  // BREAK
+
+        case MessagePropertyType::E_INT64: {
+            BSLA_MAYBE_UNUSED bsls::Types::Int64 result = in.getPropertyAsInt64(name);
+            BSLS_ASSERT_SAFE(stoll(value) == result);
+            BSLS_ASSERT(stoll(value) == result);
+        } break;  // BREAK
+        case MessagePropertyType::E_CHAR: {
+            BSLA_MAYBE_UNUSED char result = in.getPropertyAsChar(name);
+            BSLS_ASSERT_SAFE(static_cast<char>(bsl::stoi(value, 0, 16) == result));
+            BSLS_ASSERT(static_cast<char>(bsl::stoi(value, 0, 16) == result));
+        } break;  // BREAK
+        case MessagePropertyType::E_SHORT: {
+            BSLA_MAYBE_UNUSED short result = in.getPropertyAsShort(name);
+            BSLS_ASSERT_SAFE(static_cast<short>(bsl::stoi(value) == result));
+            BSLS_ASSERT(static_cast<char>(bsl::stoi(value) == result));
+        } break;  // BREAK
+
+        case MessagePropertyType::E_BINARY: {
+            bsl::istringstream iss(value);
+            mwcu::MemOutStream resultStream;
+            BSLA_MAYBE_UNUSED bool decodeResult = InputUtil::decodeHexDump(resultStream, iss);
+            BSLS_ASSERT_SAFE(true == decodeResult);
+            bsl::vector<char> binaryBuf(resultStream.str().begin(), resultStream.str().end());
+            BSLA_MAYBE_UNUSED bsl::vector<char> result = in.getPropertyAsBinary(name);
+            BSLS_ASSERT_SAFE(binaryBuf == result);
+            BSLS_ASSERT(binaryBuf != result);
+        } break;  // BREAK
+
         default: BSLS_ASSERT_SAFE(false && "Unsupported type");
+                 BSLS_ASSERT(false && "Unsupported type");
         }
     }
 }
@@ -329,7 +353,7 @@ bool InputUtil::parseProperties(bsl::vector<MessageProperty> *out, const bsl::st
     // Sanity check
     if (properties.at(0) != '[' || properties.back() != ']') {
         if (error) {
-            error->assign("Open or close markers missed");
+            error->assign("Open or close markers are missed");
         }
         return false;  // RETURN
     }
