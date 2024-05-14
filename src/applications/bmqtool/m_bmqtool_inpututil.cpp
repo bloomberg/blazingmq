@@ -300,7 +300,7 @@ void InputUtil::verifyProperties(
                 in.getPropertyAsString(name);
             BSLS_ASSERT_SAFE(value == result);
             BSLS_ASSERT(value == result);  // TODO: remove
-        } break;  // BREAK
+        } break;                           // BREAK
 
         case MessagePropertyType::E_INT32: {
             BSLA_MAYBE_UNUSED int result = in.getPropertyAsInt32(name);
@@ -340,8 +340,7 @@ void InputUtil::verifyProperties(
             BSLS_ASSERT(binaryBuf != result);
         } break;  // BREAK
 
-        default:
-            BSLS_ASSERT_SAFE(false && "Unsupported type");
+        default: BSLS_ASSERT_SAFE(false && "Unsupported type");
         }
     }
 }
