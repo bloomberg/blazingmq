@@ -211,11 +211,6 @@ bool compareByByte(const bsl::pair<mqbu::StorageKey, MessageByteCounter>& lhs,
     return lhs.second.second > rhs.second.second;
 }
 
-void noOp()
-{
-    // NOTHING
-}
-
 }  // close unnamed namespace
 
 // -------------------------------------
@@ -7125,8 +7120,8 @@ void FileStore::flush()
     // next k_GC_MESSAGES_INTERVAL_SECONDS.
 
     if (haveMore || haveMoreHistory) {
-        // Re-enable 'flush' by empty callback
-        dispatcher()->execute(&noOp,
+        // Explicitly schedule 'flush()' instead of relying on idleness
+        dispatcher()->execute(bdlf::BindUtil::bind(&FileStore::flush, this),
                               this,
                               mqbi::DispatcherEventType::e_CALLBACK);
     }
@@ -7213,6 +7208,10 @@ void FileStore::getStorages(StorageList*          storages,
 
 void FileStore::loadSummary(mqbcmd::FileStore* fileStore) const
 {
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(fileStore);
+
+    fileStore->partitionId() = d_config.partitionId();
     if (!isOpen()) {
         fileStore->state() = mqbcmd::FileStoreState::CLOSED;
         return;  // RETURN
@@ -7223,8 +7222,7 @@ void FileStore::loadSummary(mqbcmd::FileStore* fileStore) const
         return;  // RETURN
     }
 
-    fileStore->partitionId() = d_config.partitionId();
-    fileStore->state()       = mqbcmd::FileStoreState::OPEN;
+    fileStore->state() = mqbcmd::FileStoreState::OPEN;
     FileStorePrintUtil::loadSummary(&fileStore->summary(),
                                     d_primaryNode_p,
                                     d_primaryLeaseId,

@@ -25,7 +25,7 @@ namespace mwcst {
 namespace {
 
 // CONSTANTS
-const bsls::Types::Int64 DMCST_NS_PER_SEC = 1000000000;
+const bsls::Types::Int64 k_NS_PER_SEC = 1000000000;
 
 }  // close anonymous namespace
 
@@ -95,7 +95,7 @@ double StatUtil::incrementsPerSecond(
         value.snapshot(secondSnapshot).snapshotTime() -
         value.snapshot(firstSnapshot).snapshotTime();
 
-    double divisor = static_cast<double>(duration) / DMCST_NS_PER_SEC;
+    double divisor = static_cast<double>(duration) / k_NS_PER_SEC;
     return diff / divisor;
 }
 
@@ -145,7 +145,7 @@ double StatUtil::decrementsPerSecond(
         value.snapshot(secondSnapshot).snapshotTime() -
         value.snapshot(firstSnapshot).snapshotTime();
 
-    double divisor = static_cast<double>(duration) / DMCST_NS_PER_SEC;
+    double divisor = static_cast<double>(duration) / k_NS_PER_SEC;
     return diff / divisor;
 }
 
@@ -198,7 +198,7 @@ StatUtil::ratePerSecond(const StatValue&                   value,
         value.snapshot(secondSnapshot).snapshotTime() -
         value.snapshot(firstSnapshot).snapshotTime();
 
-    double divisor = static_cast<double>(duration) / DMCST_NS_PER_SEC;
+    double divisor = static_cast<double>(duration) / k_NS_PER_SEC;
     return diff / divisor;
 }
 
@@ -347,7 +347,7 @@ bsls::Types::Int64
 StatUtil::events(const StatValue&                   value,
                  const StatValue::SnapshotLocation& snapshot)
 {
-    BSLS_ASSERT(value.type() == StatValue::DMCST_DISCRETE);
+    BSLS_ASSERT(value.type() == StatValue::e_DISCRETE);
     return value.snapshot(snapshot).events();
 }
 
@@ -356,7 +356,7 @@ StatUtil::eventsDifference(const StatValue&                   value,
                            const StatValue::SnapshotLocation& firstSnapshot,
                            const StatValue::SnapshotLocation& secondSnapshot)
 {
-    BSLS_ASSERT(value.type() == StatValue::DMCST_DISCRETE);
+    BSLS_ASSERT(value.type() == StatValue::e_DISCRETE);
 
     return value.snapshot(firstSnapshot).events() -
            value.snapshot(secondSnapshot).events();
@@ -365,7 +365,7 @@ StatUtil::eventsDifference(const StatValue&                   value,
 bsls::Types::Int64 StatUtil::sum(const StatValue&                   value,
                                  const StatValue::SnapshotLocation& snapshot)
 {
-    BSLS_ASSERT(value.type() == StatValue::DMCST_DISCRETE);
+    BSLS_ASSERT(value.type() == StatValue::e_DISCRETE);
     return value.snapshot(snapshot).sum();
 }
 
@@ -374,7 +374,7 @@ StatUtil::sumDifference(const StatValue&                   value,
                         const StatValue::SnapshotLocation& firstSnapshot,
                         const StatValue::SnapshotLocation& secondSnapshot)
 {
-    BSLS_ASSERT(value.type() == StatValue::DMCST_DISCRETE);
+    BSLS_ASSERT(value.type() == StatValue::e_DISCRETE);
 
     return value.snapshot(firstSnapshot).sum() -
            value.snapshot(secondSnapshot).sum();
@@ -385,7 +385,7 @@ StatUtil::averagePerEvent(const StatValue&                   value,
                           const StatValue::SnapshotLocation& firstSnapshot,
                           const StatValue::SnapshotLocation& secondSnapshot)
 {
-    BSLS_ASSERT(value.type() == StatValue::DMCST_DISCRETE);
+    BSLS_ASSERT(value.type() == StatValue::e_DISCRETE);
 
     bsls::Types::Int64 events = eventsDifference(value,
                                                  firstSnapshot,
@@ -406,7 +406,7 @@ double StatUtil::averagePerEventReal(
     const StatValue::SnapshotLocation& firstSnapshot,
     const StatValue::SnapshotLocation& secondSnapshot)
 {
-    BSLS_ASSERT(value.type() == StatValue::DMCST_DISCRETE);
+    BSLS_ASSERT(value.type() == StatValue::e_DISCRETE);
 
     bsls::Types::Int64 events = eventsDifference(value,
                                                  firstSnapshot,

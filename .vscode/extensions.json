@@ -1,0 +1,10 @@
+{
+    "recommendations": [
+        "xaver.clang-format",
+        "llvm-vs-code-extensions.vscode-clangd",
+        "twxs.cmake",
+        "josetr.cmake-language-support-vscode",
+        "ms-vscode.cmake-tools",
+        "timonwong.shellcheck"
+    ]
+}

@@ -63,8 +63,38 @@ https://jekyllrb.com/docs/installation/windows/
 
 # Setup for developing locally (Linux)
 
-TBD
+This guide has been tested on Ubuntu 20.04
 
-## Useful Resources
+## Install dependencies
+
+Install prerequisites:
+```
+sudo apt-get install build-essential zlib1g-dev
+```
+Since there is only old version of Ruby (2.7) available in Ubuntu repos, we need to install RVM:
+
+* https://rvm.io
+
+Then install Ruby 3.1:
+```
+rvm install 3.1.0
+```
+Install Jekyll and Bundler:
+```
+gem install jekyll bundler
+```
+## Building locally
+
+```
+bundle exec jekyll build
+```
+
+## Running locally
+
+```
+bundle exec jekyll serve --livereload
+```
+
+# Useful Resources
 
 * https://jekyllrb.com/docs/installation/macos/

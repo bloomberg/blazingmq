@@ -821,12 +821,12 @@ void Interactive::processCommand(const BatchPostCommand& command)
         turnstile.reset(1000.0 / parameters.postInterval());
     }
 
-    PostingContext postingContext =
+    bsl::shared_ptr<PostingContext> postingContext =
         d_poster_p->createPostingContext(d_session_p, &parameters, queueId);
 
-    while (postingContext.pendingPost()) {
-        postingContext.postNext();
-        if (parameters.postInterval() != 0 && postingContext.pendingPost()) {
+    while (postingContext->pendingPost()) {
+        postingContext->postNext();
+        if (parameters.postInterval() != 0 && postingContext->pendingPost()) {
             turnstile.waitTurn();
         }
     }

@@ -31,7 +31,7 @@
 #include <bsl_ios.h>
 
 namespace BloombergLP {
-namespace mwcstu {
+namespace mwcst {
 
 namespace {
 
@@ -195,7 +195,7 @@ int PrintUtil::printedValueLength(bsls::Types::Int64 value)
 
 int PrintUtil::printedValueLength(double value, int precision)
 {
-    return mwcstu::PrintUtil::printedValueLength((bsls::Types::Int64)value) +
+    return mwcst::PrintUtil::printedValueLength((bsls::Types::Int64)value) +
            precision + 1;
 }
 
@@ -225,7 +225,7 @@ int PrintUtil::printedValueLengthWithSeparator(double value,
                                                int    precision,
                                                int    groupSize)
 {
-    return mwcstu::PrintUtil::printedValueLengthWithSeparator(
+    return mwcst::PrintUtil::printedValueLengthWithSeparator(
                (bsls::Types::Int64)value,
                groupSize) +
            precision + (precision > 0 ? 1 : 0);

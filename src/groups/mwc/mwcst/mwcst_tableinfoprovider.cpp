@@ -17,8 +17,9 @@
 #include <mwcst_tableinfoprovider.h>
 
 #include <mwcscm_version.h>
+
 namespace BloombergLP {
-namespace mwcu {
+namespace mwcst {
 
 // -----------------------
 // class TableInfoProvider

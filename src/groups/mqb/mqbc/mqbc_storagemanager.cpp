@@ -49,7 +49,7 @@ namespace BloombergLP {
 namespace mqbc {
 
 namespace {
-const int k_GC_MESSAGES_INTERVAL_SECONDS = 60;
+const int k_GC_MESSAGES_INTERVAL_SECONDS = 30;
 }  // close unnamed namespace
 
 // ----------------------------

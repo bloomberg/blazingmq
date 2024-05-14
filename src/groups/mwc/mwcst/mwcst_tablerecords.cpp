@@ -37,7 +37,7 @@ struct SortBufferComparator {
     }
 };
 
-}  // close anonymous namesapace
+}  // close anonymous namespace
 
 // ------------------------
 // class TableRecordsRecord
@@ -46,7 +46,7 @@ struct SortBufferComparator {
 // PRIVATE CREATORS
 TableRecordsRecord::TableRecordsRecord()
 : d_context_p(0)
-, d_type(StatContext::DMCST_TOTAL_VALUE)
+, d_type(StatContext::e_TOTAL_VALUE)
 , d_level(0)
 {
 }
@@ -87,7 +87,7 @@ void TableRecords::addContext(const StatContext* context,
 {
     if (!isFilteredOut) {
         d_records.push_back(
-            Record(context, StatContext::DMCST_TOTAL_VALUE, level));
+            Record(context, StatContext::e_TOTAL_VALUE, level));
     }
     else if (!d_considerChildrenOfFilteredContexts) {
         return;
@@ -106,8 +106,7 @@ void TableRecords::addContext(const StatContext* context,
         d_sortBuffer.resize(d_sortBuffer.size() + 1);
         d_sortBuffer.back().first = iter;
         if (!d_filter ||
-            d_filter(
-                Record(iter, StatContext::DMCST_TOTAL_VALUE, level + 1))) {
+            d_filter(Record(iter, StatContext::e_TOTAL_VALUE, level + 1))) {
             d_sortBuffer.back().second = false;
             haveUnfilteredChildren     = true;
         }
@@ -118,7 +117,7 @@ void TableRecords::addContext(const StatContext* context,
 
     // Add 'direct' row if we have any children left
     if (haveUnfilteredChildren && !isFilteredOut) {
-        Record rec(context, StatContext::DMCST_DIRECT_VALUE, level + 1);
+        Record rec(context, StatContext::e_DIRECT_VALUE, level + 1);
         if (!d_filter || d_filter(rec)) {
             d_records.push_back(rec);
         }
@@ -126,7 +125,7 @@ void TableRecords::addContext(const StatContext* context,
 
     // Add 'expired' row if the StatContext has any expired values
     if (context->hasExpiredValues() && !isFilteredOut) {
-        Record rec(context, StatContext::DMCST_EXPIRED_VALUE, level + 1);
+        Record rec(context, StatContext::e_EXPIRED_VALUE, level + 1);
         if (!d_filter || d_filter(rec)) {
             d_records.push_back(rec);
         }
@@ -189,7 +188,7 @@ void TableRecords::update()
         d_context_p,
         0,
         d_filter &&
-            !d_filter(Record(d_context_p, StatContext::DMCST_TOTAL_VALUE, 0)));
+            !d_filter(Record(d_context_p, StatContext::e_TOTAL_VALUE, 0)));
 }
 
 // ACCESSORS

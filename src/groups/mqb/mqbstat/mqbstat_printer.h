@@ -75,7 +75,7 @@ class Printer {
         mwcst::Table d_table;
         // Table
 
-        mwcu::BasicTableInfoProvider d_tip;
+        mwcst::BasicTableInfoProvider d_tip;
         // tip
     };
 

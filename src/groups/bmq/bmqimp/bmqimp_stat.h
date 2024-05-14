@@ -73,13 +73,13 @@ struct Stat {
     mutable mwcst::Table d_table;
     // Table with all data
 
-    mwcu::BasicTableInfoProvider d_tip;
+    mwcst::BasicTableInfoProvider d_tip;
     // Tip for all the data
 
     mutable mwcst::Table d_tableNoDelta;
     // Table without the delta data
 
-    mwcu::BasicTableInfoProvider d_tipNoDelta;
+    mwcst::BasicTableInfoProvider d_tipNoDelta;
     // Tip for the no delta data
 
     // TRAITS

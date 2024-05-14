@@ -30,7 +30,6 @@
 #include <bsl_sstream.h>
 
 using namespace BloombergLP;
-using namespace mwcu;
 using namespace bsl;
 
 //=============================================================================
@@ -64,7 +63,7 @@ static int testStatus = 0;
 // class SimpleInfoProvider
 // ========================
 
-class SimpleInfoProvider : public mwcu::TableInfoProvider {
+class SimpleInfoProvider : public mwcst::TableInfoProvider {
     // ACCESSORS
     int  numRows() const BSLS_KEYWORD_OVERRIDE;
     int  numColumns(int level) const BSLS_KEYWORD_OVERRIDE;
@@ -208,18 +207,18 @@ int main(int argc, char* argv[])
 
             P(LINE);
 
-            TestTableInfoProvider tip;
+            mwcst::TestTableInfoProvider tip;
 
-            tip.addHeaderLevel(mwcu::TestUtil::stringVector(data.d_header));
+            tip.addHeaderLevel(mwcst::TestUtil::stringVector(data.d_header));
 
             const char* const* rows = data.d_rows;
             while (*rows) {
-                tip.addRow(mwcu::TestUtil::stringVector(*rows));
+                tip.addRow(mwcst::TestUtil::stringVector(*rows));
                 ++rows;
             }
 
             mwcu::MemOutStream stream;
-            TableUtil::printCsv(stream, tip);
+            mwcst::TableUtil::printCsv(stream, tip);
             ASSERT_EQUALS(stream.str(), data.d_expected);
         }
 
@@ -242,9 +241,9 @@ int main(int argc, char* argv[])
             cout << endl << "USAGE EXAMPLE" << endl << "=============" << endl;
 
         SimpleInfoProvider provider;
-        TableUtil::printTable(bsl::cout, provider);
+        mwcst::TableUtil::printTable(bsl::cout, provider);
     } break;
-        /* TODO fix this test once mwcu::TestTable is written
+        /* TODO fix this test once mwcst::TestTable is written
 case 3: {
   // --------------------------------------------------------------------
   // PRINT CSV TEST
@@ -282,10 +281,10 @@ case 3: {
       P(LINE);
 
       TestTableInfoProvider tip;
-      tip.addHeaderLevel(mwcu::TestUtil::stringVector(data.d_header));
+      tip.addHeaderLevel(mwcst::TestUtil::stringVector(data.d_header));
       const char * const *rows = data.d_rows;
       while (*rows) {
-          tip.addRow(mwcu::TestUtil::stringVector(*rows));
+          tip.addRow(mwcst::TestUtil::stringVector(*rows));
           ++rows;
       }
 
@@ -330,21 +329,21 @@ case 3: {
 
             P(LINE);
 
-            TestTableInfoProvider tip;
+            mwcst::TestTableInfoProvider tip;
 
             bsl::vector<bsl::vector<bsl::string> > expected;
-            expected.push_back(mwcu::TestUtil::stringVector(data.d_header));
+            expected.push_back(mwcst::TestUtil::stringVector(data.d_header));
             tip.addHeaderLevel(expected.back());
 
             const char* const* rows = data.d_rows;
             while (*rows) {
-                expected.push_back(mwcu::TestUtil::stringVector(*rows));
+                expected.push_back(mwcst::TestUtil::stringVector(*rows));
                 tip.addRow(expected.back());
                 ++rows;
             }
 
             bsl::vector<bsl::vector<bsl::string> > output;
-            int ret = TableUtil::outputToVector(&output, tip);
+            int ret = mwcst::TableUtil::outputToVector(&output, tip);
             ASSERT_EQUALS(ret, 0);
             ASSERT_EQUALS(output, expected);
         }

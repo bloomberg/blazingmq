@@ -220,14 +220,14 @@ int QueueEngineUtil::validateUri(
 
 void QueueEngineUtil::reportQueueTimeMetric(
     mqbstat::QueueStatsDomain*            domainStats,
-    const mqbi::StorageMessageAttributes& attributes)
+    const mqbi::StorageMessageAttributes& attributes,
+    const bsl::string&                    appId)
 {
     // Report delivered message's queue-time.
     bsls::Types::Int64 timeDelta;
     mqbs::StorageUtil::loadArrivalTimeDelta(&timeDelta, attributes);
 
-    domainStats->onEvent(mqbstat::QueueStatsDomain::EventType::e_QUEUE_TIME,
-                         timeDelta);
+    domainStats->reportQueueTime(timeDelta, appId);
 }
 
 // static
@@ -613,6 +613,7 @@ QueueEngineUtil_AppsDeliveryContext::QueueEngineUtil_AppsDeliveryContext(
 , d_doRepeat(true)
 , d_currentMessage(0)
 , d_queue_p(queue)
+, d_activeAppIds(allocator)
 {
     // NOTHING
 }
@@ -622,6 +623,7 @@ void QueueEngineUtil_AppsDeliveryContext::reset()
     d_doRepeat       = false;
     d_currentMessage = 0;
     d_consumers.clear();
+    d_activeAppIds.clear();
 }
 
 bool QueueEngineUtil_AppsDeliveryContext::processApp(
@@ -723,6 +725,11 @@ bool QueueEngineUtil_AppsDeliveryContext::processApp(
                 bdlf::PlaceHolders::_1),
             app.d_storageIter_mp.get());
     }
+    else {
+        // Store appId of active consumer for domain stats (reporting queue
+        // time metric)
+        d_activeAppIds.push_back(app.d_appId);
+    }
 
     return isSelected;
 }
@@ -778,8 +785,15 @@ void QueueEngineUtil_AppsDeliveryContext::deliverMessage()
         }
 
         if (bmqp::QueueId::k_PRIMARY_QUEUE_ID == d_queue_p->id()) {
-            QueueEngineUtil::reportQueueTimeMetric(d_queue_p->stats(),
-                                                   attributes);
+            // Report 'queue time' metric for all active appIds
+            bsl::vector<bslstl::StringRef>::const_iterator it =
+                d_activeAppIds.begin();
+            for (; it != d_activeAppIds.cend(); ++it) {
+                QueueEngineUtil::reportQueueTimeMetric(d_queue_p->stats(),
+                                                       attributes,
+                                                       *it  // appId
+                );
+            }
         }
 
         if (d_currentMessage->advance()) {
@@ -890,7 +904,8 @@ QueueEngineUtil_AppState::deliverMessages(bsls::TimeInterval*     delay,
             if (bmqp::QueueId::k_PRIMARY_QUEUE_ID == d_queue_p->id()) {
                 QueueEngineUtil::reportQueueTimeMetric(
                     d_queue_p->stats(),
-                    storageIter_p->attributes());
+                    storageIter_p->attributes(),
+                    appId);
             }
             ++numMessages;
         }
@@ -1103,7 +1118,8 @@ QueueEngineUtil_AppState::processDeliveryList(bsls::TimeInterval*     delay,
             ++numMessages;
             if (bmqp::QueueId::k_PRIMARY_QUEUE_ID == d_queue_p->id()) {
                 QueueEngineUtil::reportQueueTimeMetric(d_queue_p->stats(),
-                                                       message->attributes());
+                                                       message->attributes(),
+                                                       appId);
             }
         }
         else {

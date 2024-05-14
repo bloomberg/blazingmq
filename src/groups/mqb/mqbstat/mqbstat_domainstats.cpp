@@ -71,12 +71,12 @@ bsls::Types::Int64 DomainStats::getValue(const mwcst::StatContext& context,
 
 #define STAT_SINGLE(OPERATION, STAT)                                          \
     mwcst::StatUtil::OPERATION(                                               \
-        context.value(mwcst::StatContext::DMCST_DIRECT_VALUE, STAT),          \
+        context.value(mwcst::StatContext::e_DIRECT_VALUE, STAT),              \
         latestSnapshot)
 
 #define STAT_RANGE(OPERATION, STAT)                                           \
     mwcst::StatUtil::OPERATION(                                               \
-        context.value(mwcst::StatContext::DMCST_DIRECT_VALUE, STAT),          \
+        context.value(mwcst::StatContext::e_DIRECT_VALUE, STAT),              \
         latestSnapshot,                                                       \
         oldestSnapshot)
 
