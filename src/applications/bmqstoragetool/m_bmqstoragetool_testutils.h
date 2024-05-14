@@ -102,7 +102,7 @@ class JournalFile {
     // Number of records.
     MappedFileDescriptor d_mfd;
     // Mapped file descriptor.
-    bsl::vector<char> d_mem;
+    bsl::vector<char> d_buffer;
     // Buffer holding the memory allocated for journal file.
     MemoryBlock d_block;
     // Current memory block.

@@ -47,7 +47,7 @@ void JournalFile::createFileHeader()
 JournalFile::JournalFile(size_t numRecords, bslma::Allocator* allocator)
 : d_numRecords(numRecords)
 , d_mfd()
-, d_mem(allocator)
+, d_buffer(allocator)
 , d_block()
 , d_currPos(0)
 , d_timestampIncrement(100)
@@ -59,8 +59,8 @@ JournalFile::JournalFile(size_t numRecords, bslma::Allocator* allocator)
         sizeof(FileHeader) + sizeof(JournalFileHeader) +
         numRecords * FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
 
-    d_mem.resize(totalSize);
-    d_block.setBase(d_mem.data());
+    d_buffer.resize(totalSize);
+    d_block.setBase(d_buffer.data());
     d_block.setSize(totalSize);
 
     createFileHeader();
@@ -83,8 +83,8 @@ void JournalFile::addAllTypesRecords(RecordsListType* records)
     for (unsigned int i = 1; i <= d_numRecords; ++i) {
         unsigned int remainder = i % 5;
         if (0 == remainder) {
-            bmqt::MessageGUID g;
-            mqbu::MessageGUIDUtil::generateGUID(&g);
+            bmqt::MessageGUID guid;
+            mqbu::MessageGUIDUtil::generateGUID(&guid);
             OffsetPtr<MessageRecord> rec(d_block, d_currPos);
             new (rec.get()) MessageRecord();
             rec->header()
@@ -99,7 +99,7 @@ void JournalFile::addAllTypesRecords(RecordsListType* records)
                     mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
                                      "12345"))
                 .setMessageOffsetDwords(i)
-                .setMessageGUID(g)
+                .setMessageGUID(guid)
                 .setCrc32c(i)
                 .setCompressionAlgorithmType(
                     bmqt::CompressionAlgorithmType::e_NONE)
@@ -113,8 +113,8 @@ void JournalFile::addAllTypesRecords(RecordsListType* records)
         }
         else if (1 == remainder) {
             // ConfRec
-            bmqt::MessageGUID g;
-            mqbu::MessageGUIDUtil::generateGUID(&g);
+            bmqt::MessageGUID guid;
+            mqbu::MessageGUIDUtil::generateGUID(&guid);
             OffsetPtr<ConfirmRecord> rec(d_block, d_currPos);
             new (rec.get()) ConfirmRecord();
             rec->header()
@@ -128,7 +128,7 @@ void JournalFile::addAllTypesRecords(RecordsListType* records)
                 .setAppKey(
                     mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
                                      "appid"))
-                .setMessageGUID(g)
+                .setMessageGUID(guid)
                 .setMagic(RecordHeader::k_MAGIC);
 
             RecordBufferType buf;
@@ -139,8 +139,8 @@ void JournalFile::addAllTypesRecords(RecordsListType* records)
         }
         else if (2 == remainder) {
             // DelRec
-            bmqt::MessageGUID g;
-            mqbu::MessageGUIDUtil::generateGUID(&g);
+            bmqt::MessageGUID guid;
+            mqbu::MessageGUIDUtil::generateGUID(&guid);
             OffsetPtr<DeletionRecord> rec(d_block, d_currPos);
             new (rec.get()) DeletionRecord();
             rec->header()
@@ -151,7 +151,7 @@ void JournalFile::addAllTypesRecords(RecordsListType* records)
                 .setQueueKey(
                     mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
                                      "abcde"))
-                .setMessageGUID(g)
+                .setMessageGUID(guid)
                 .setMagic(RecordHeader::k_MAGIC);
 
             RecordBufferType buf;
@@ -254,7 +254,7 @@ void JournalFile::addJournalRecordsWithOutstandingAndConfirmedMessages(
         }
         else if (2 == remainder) {
             // ConfRec
-            bmqt::MessageGUID        g = lastMessageGUID;
+            bmqt::MessageGUID        guid = lastMessageGUID;
             OffsetPtr<ConfirmRecord> rec(d_block, d_currPos);
             new (rec.get()) ConfirmRecord();
             rec->header()
@@ -268,7 +268,7 @@ void JournalFile::addJournalRecordsWithOutstandingAndConfirmedMessages(
                 .setAppKey(
                     mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
                                      "appid"))
-                .setMessageGUID(g)
+                .setMessageGUID(guid)
                 .setMagic(RecordHeader::k_MAGIC);
 
             RecordBufferType buf;
@@ -279,14 +279,14 @@ void JournalFile::addJournalRecordsWithOutstandingAndConfirmedMessages(
         }
         else {
             // DelRec
-            bmqt::MessageGUID g;
+            bmqt::MessageGUID guid;
             if (outstandingFlag) {
-                mqbu::MessageGUIDUtil::generateGUID(&g);
+                mqbu::MessageGUIDUtil::generateGUID(&guid);
                 if (expectOutstandingResult)
                     expectedGUIDs->push_back(lastMessageGUID);
             }
             else {
-                g = lastMessageGUID;
+                guid = lastMessageGUID;
                 if (!expectOutstandingResult)
                     expectedGUIDs->push_back(lastMessageGUID);
             }
@@ -301,7 +301,7 @@ void JournalFile::addJournalRecordsWithOutstandingAndConfirmedMessages(
                 .setQueueKey(
                     mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
                                      "abcde"))
-                .setMessageGUID(g)
+                .setMessageGUID(guid)
                 .setMagic(RecordHeader::k_MAGIC);
 
             RecordBufferType buf;
@@ -360,7 +360,7 @@ void JournalFile::addJournalRecordsWithPartiallyConfirmedMessages(
         }
         else if (2 == remainder) {
             // ConfRec
-            bmqt::MessageGUID        g = lastMessageGUID;
+            bmqt::MessageGUID        guid = lastMessageGUID;
             OffsetPtr<ConfirmRecord> rec(d_block, d_currPos);
             new (rec.get()) ConfirmRecord();
             rec->header()
@@ -374,7 +374,7 @@ void JournalFile::addJournalRecordsWithPartiallyConfirmedMessages(
                 .setAppKey(
                     mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
                                      "appid"))
-                .setMessageGUID(g)
+                .setMessageGUID(guid)
                 .setMagic(RecordHeader::k_MAGIC);
 
             RecordBufferType buf;
@@ -385,13 +385,13 @@ void JournalFile::addJournalRecordsWithPartiallyConfirmedMessages(
         }
         else {
             // DelRec
-            bmqt::MessageGUID g;
+            bmqt::MessageGUID guid;
             if (partialyConfirmedFlag) {
-                mqbu::MessageGUIDUtil::generateGUID(&g);
+                mqbu::MessageGUIDUtil::generateGUID(&guid);
                 expectedGUIDs->push_back(lastMessageGUID);
             }
             else {
-                g = lastMessageGUID;
+                guid = lastMessageGUID;
             }
             partialyConfirmedFlag = !partialyConfirmedFlag;
             OffsetPtr<DeletionRecord> rec(d_block, d_currPos);
@@ -404,7 +404,7 @@ void JournalFile::addJournalRecordsWithPartiallyConfirmedMessages(
                 .setQueueKey(
                     mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
                                      "abcde"))
-                .setMessageGUID(g)
+                .setMessageGUID(guid)
                 .setMagic(RecordHeader::k_MAGIC);
 
             RecordBufferType buf;
@@ -464,7 +464,7 @@ void JournalFile::addJournalRecordsWithTwoQueueKeys(
         }
         else if (2 == remainder) {
             // ConfRec
-            bmqt::MessageGUID        g = lastMessageGUID;
+            bmqt::MessageGUID        guid = lastMessageGUID;
             OffsetPtr<ConfirmRecord> rec(d_block, d_currPos);
             new (rec.get()) ConfirmRecord();
             rec->header()
@@ -478,7 +478,7 @@ void JournalFile::addJournalRecordsWithTwoQueueKeys(
                 .setAppKey(
                     mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
                                      "appid"))
-                .setMessageGUID(g)
+                .setMessageGUID(guid)
                 .setMagic(RecordHeader::k_MAGIC);
 
             RecordBufferType buf;
@@ -489,7 +489,7 @@ void JournalFile::addJournalRecordsWithTwoQueueKeys(
         }
         else {
             // DelRec
-            bmqt::MessageGUID         g = lastMessageGUID;
+            bmqt::MessageGUID         guid = lastMessageGUID;
             OffsetPtr<DeletionRecord> rec(d_block, d_currPos);
             new (rec.get()) DeletionRecord();
             rec->header()
@@ -500,7 +500,7 @@ void JournalFile::addJournalRecordsWithTwoQueueKeys(
                 .setQueueKey(
                     mqbu::StorageKey(mqbu::StorageKey::HexRepresentation(),
                                      queueKey))
-                .setMessageGUID(g)
+                .setMessageGUID(guid)
                 .setMagic(RecordHeader::k_MAGIC);
 
             RecordBufferType buf;
@@ -526,9 +526,9 @@ void JournalFile::addJournalRecordsWithConfirmedMessagesWithDifferentOrder(
 
     // Create messages
     for (unsigned int i = 0; i < numMessages; ++i) {
-        bmqt::MessageGUID g;
-        mqbu::MessageGUIDUtil::generateGUID(&g);
-        expectedGUIDs->push_back(g);
+        bmqt::MessageGUID guid;
+        mqbu::MessageGUIDUtil::generateGUID(&guid);
+        expectedGUIDs->push_back(guid);
         OffsetPtr<MessageRecord> rec(d_block, d_currPos);
         new (rec.get()) MessageRecord();
         rec->header()
@@ -543,7 +543,7 @@ void JournalFile::addJournalRecordsWithConfirmedMessagesWithDifferentOrder(
                 mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
                                  "12345"))
             .setMessageOffsetDwords(messageOffsets.at(i))
-            .setMessageGUID(g)
+            .setMessageGUID(guid)
             .setCrc32c(i)
             .setCompressionAlgorithmType(
                 bmqt::CompressionAlgorithmType::e_NONE)
@@ -561,16 +561,16 @@ void JournalFile::addJournalRecordsWithConfirmedMessagesWithDifferentOrder(
     // Create delete messages, and replace GUIDS for 2nd and 3rd message
     for (unsigned int i = 0; i < numMessages; ++i) {
         // DelRec
-        bmqt::MessageGUID g;
+        bmqt::MessageGUID guid;
         // Change GUIDs order for 2nd and 3rd deletion records
         if (i == 1) {
-            g = expectedGUIDs->at(2);
+            guid = expectedGUIDs->at(2);
         }
         else if (i == 2) {
-            g = expectedGUIDs->at(1);
+            guid = expectedGUIDs->at(1);
         }
         else {
-            g = expectedGUIDs->at(i);
+            guid = expectedGUIDs->at(i);
         }
 
         OffsetPtr<DeletionRecord> rec(d_block, d_currPos);
@@ -583,7 +583,7 @@ void JournalFile::addJournalRecordsWithConfirmedMessagesWithDifferentOrder(
             .setQueueKey(
                 mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
                                  "abcde"))
-            .setMessageGUID(g)
+            .setMessageGUID(guid)
             .setMagic(RecordHeader::k_MAGIC);
 
         RecordBufferType buf;
