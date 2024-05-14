@@ -165,7 +165,8 @@ void InputUtil::populateProperties(
         case MessagePropertyType::E_BOOL: {
             bool boolValue;
             bsl::istringstream(value) >> bsl::boolalpha >> boolValue;
-            BSLA_MAYBE_UNUSED int result = out->setPropertyAsBool(name, boolValue);
+            BSLA_MAYBE_UNUSED int result = out->setPropertyAsBool(name,
+                                                                  boolValue);
             BSLS_ASSERT_SAFE(0 == result);
         } break;  // BREAK
 
@@ -299,31 +300,26 @@ void InputUtil::verifyProperties(
             BSLA_MAYBE_UNUSED const bsl::string& result =
                 in.getPropertyAsString(name);
             BSLS_ASSERT_SAFE(value == result);
-            BSLS_ASSERT(value == result);  // TODO: remove
-        } break;                           // BREAK
+        } break;  // BREAK
 
         case MessagePropertyType::E_INT32: {
             BSLA_MAYBE_UNUSED int result = in.getPropertyAsInt32(name);
             BSLS_ASSERT_SAFE(stoi(value) == result);
-            BSLS_ASSERT(stoi(value) == result);
         } break;  // BREAK
 
         case MessagePropertyType::E_INT64: {
             BSLA_MAYBE_UNUSED bsls::Types::Int64 result =
                 in.getPropertyAsInt64(name);
             BSLS_ASSERT_SAFE(stoll(value) == result);
-            BSLS_ASSERT(stoll(value) == result);
         } break;  // BREAK
         case MessagePropertyType::E_CHAR: {
             BSLA_MAYBE_UNUSED char result = in.getPropertyAsChar(name);
             BSLS_ASSERT_SAFE(
                 static_cast<char>(bsl::stoi(value, 0, 16) == result));
-            BSLS_ASSERT(static_cast<char>(bsl::stoi(value, 0, 16) == result));
         } break;  // BREAK
         case MessagePropertyType::E_SHORT: {
             BSLA_MAYBE_UNUSED short result = in.getPropertyAsShort(name);
             BSLS_ASSERT_SAFE(static_cast<short>(bsl::stoi(value) == result));
-            BSLS_ASSERT(static_cast<char>(bsl::stoi(value) == result));
         } break;  // BREAK
 
         case MessagePropertyType::E_BINARY: {
@@ -337,7 +333,6 @@ void InputUtil::verifyProperties(
             BSLA_MAYBE_UNUSED bsl::vector<char> result =
                 in.getPropertyAsBinary(name);
             BSLS_ASSERT_SAFE(binaryBuf == result);
-            BSLS_ASSERT(binaryBuf != result);
         } break;  // BREAK
 
         default: BSLS_ASSERT_SAFE(false && "Unsupported type");
