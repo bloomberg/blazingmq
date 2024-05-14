@@ -113,7 +113,6 @@
     <sequence>
       <element name='uri'                      type='string'/>
       <element name='payload'                  type='string'  maxOccurs='unbounded'/>
-      <element name='file'                     type='string'  default=''/>
       <element name='msgSize'                  type='int'     default="1024"/>
       <element name='eventSize'                type='long'    default="1"/>
       <element name='eventsCount'              type='long'    default="0"/>

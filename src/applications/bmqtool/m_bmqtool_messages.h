@@ -125,7 +125,6 @@ class BatchPostCommand {
     bsls::Types::Int64       d_eventsCount;
     bsl::vector<bsl::string> d_payload;
     bsl::string              d_uri;
-    bsl::string              d_file;
     int                      d_msgSize;
     int                      d_postInterval;
     int                      d_postRate;
@@ -141,31 +140,27 @@ class BatchPostCommand {
     enum {
         ATTRIBUTE_ID_URI           = 0,
         ATTRIBUTE_ID_PAYLOAD       = 1,
-        ATTRIBUTE_ID_FILE          = 2,
-        ATTRIBUTE_ID_MSG_SIZE      = 3,
-        ATTRIBUTE_ID_EVENT_SIZE    = 4,
-        ATTRIBUTE_ID_EVENTS_COUNT  = 5,
-        ATTRIBUTE_ID_POST_INTERVAL = 6,
-        ATTRIBUTE_ID_POST_RATE     = 7
+        ATTRIBUTE_ID_MSG_SIZE      = 2,
+        ATTRIBUTE_ID_EVENT_SIZE    = 3,
+        ATTRIBUTE_ID_EVENTS_COUNT  = 4,
+        ATTRIBUTE_ID_POST_INTERVAL = 5,
+        ATTRIBUTE_ID_POST_RATE     = 6
     };
 
-    enum { NUM_ATTRIBUTES = 8 };
+    enum { NUM_ATTRIBUTES = 7 };
 
     enum {
         ATTRIBUTE_INDEX_URI           = 0,
         ATTRIBUTE_INDEX_PAYLOAD       = 1,
-        ATTRIBUTE_INDEX_FILE          = 2,
-        ATTRIBUTE_INDEX_MSG_SIZE      = 3,
-        ATTRIBUTE_INDEX_EVENT_SIZE    = 4,
-        ATTRIBUTE_INDEX_EVENTS_COUNT  = 5,
-        ATTRIBUTE_INDEX_POST_INTERVAL = 6,
-        ATTRIBUTE_INDEX_POST_RATE     = 7
+        ATTRIBUTE_INDEX_MSG_SIZE      = 2,
+        ATTRIBUTE_INDEX_EVENT_SIZE    = 3,
+        ATTRIBUTE_INDEX_EVENTS_COUNT  = 4,
+        ATTRIBUTE_INDEX_POST_INTERVAL = 5,
+        ATTRIBUTE_INDEX_POST_RATE     = 6
     };
 
     // CONSTANTS
     static const char CLASS_NAME[];
-
-    static const char DEFAULT_INITIALIZER_FILE[];
 
     static const int DEFAULT_INITIALIZER_MSG_SIZE;
 
@@ -277,10 +272,6 @@ class BatchPostCommand {
     // Return a reference to the modifiable "Payload" attribute of this
     // object.
 
-    bsl::string& file();
-    // Return a reference to the modifiable "File" attribute of this
-    // object.
-
     int& msgSize();
     // Return a reference to the modifiable "MsgSize" attribute of this
     // object.
@@ -350,10 +341,6 @@ class BatchPostCommand {
 
     const bsl::vector<bsl::string>& payload() const;
     // Return a reference offering non-modifiable access to the "Payload"
-    // attribute of this object.
-
-    const bsl::string& file() const;
-    // Return a reference offering non-modifiable access to the "File"
     // attribute of this object.
 
     int msgSize() const;
@@ -6640,7 +6627,6 @@ void BatchPostCommand::hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const
     using bslh::hashAppend;
     hashAppend(hashAlgorithm, this->uri());
     hashAppend(hashAlgorithm, this->payload());
-    hashAppend(hashAlgorithm, this->file());
     hashAppend(hashAlgorithm, this->msgSize());
     hashAppend(hashAlgorithm, this->eventSize());
     hashAppend(hashAlgorithm, this->eventsCount());
@@ -6651,7 +6637,7 @@ void BatchPostCommand::hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const
 inline bool BatchPostCommand::isEqualTo(const BatchPostCommand& rhs) const
 {
     return this->uri() == rhs.uri() && this->payload() == rhs.payload() &&
-           this->file() == rhs.file() && this->msgSize() == rhs.msgSize() &&
+           this->msgSize() == rhs.msgSize() &&
            this->eventSize() == rhs.eventSize() &&
            this->eventsCount() == rhs.eventsCount() &&
            this->postInterval() == rhs.postInterval() &&
@@ -6672,11 +6658,6 @@ int BatchPostCommand::manipulateAttributes(t_MANIPULATOR& manipulator)
 
     ret = manipulator(&d_payload,
                       ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PAYLOAD]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = manipulator(&d_file, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_FILE]);
     if (ret) {
         return ret;
     }
@@ -6726,10 +6707,6 @@ int BatchPostCommand::manipulateAttribute(t_MANIPULATOR& manipulator, int id)
     case ATTRIBUTE_ID_PAYLOAD: {
         return manipulator(&d_payload,
                            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PAYLOAD]);
-    }
-    case ATTRIBUTE_ID_FILE: {
-        return manipulator(&d_file,
-                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_FILE]);
     }
     case ATTRIBUTE_ID_MSG_SIZE: {
         return manipulator(&d_msgSize,
@@ -6782,11 +6759,6 @@ inline bsl::vector<bsl::string>& BatchPostCommand::payload()
     return d_payload;
 }
 
-inline bsl::string& BatchPostCommand::file()
-{
-    return d_file;
-}
-
 inline int& BatchPostCommand::msgSize()
 {
     return d_msgSize;
@@ -6824,11 +6796,6 @@ int BatchPostCommand::accessAttributes(t_ACCESSOR& accessor) const
     }
 
     ret = accessor(d_payload, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PAYLOAD]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = accessor(d_file, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_FILE]);
     if (ret) {
         return ret;
     }
@@ -6878,9 +6845,6 @@ int BatchPostCommand::accessAttribute(t_ACCESSOR& accessor, int id) const
         return accessor(d_payload,
                         ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PAYLOAD]);
     }
-    case ATTRIBUTE_ID_FILE: {
-        return accessor(d_file, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_FILE]);
-    }
     case ATTRIBUTE_ID_MSG_SIZE: {
         return accessor(d_msgSize,
                         ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MSG_SIZE]);
@@ -6929,11 +6893,6 @@ inline const bsl::string& BatchPostCommand::uri() const
 inline const bsl::vector<bsl::string>& BatchPostCommand::payload() const
 {
     return d_payload;
-}
-
-inline const bsl::string& BatchPostCommand::file() const
-{
-    return d_file;
 }
 
 inline int BatchPostCommand::msgSize() const
@@ -11990,7 +11949,7 @@ inline bool Command::isUndefinedValue() const
 }  // close enterprise namespace
 #endif
 
-// GENERATED BY BLP_BAS_CODEGEN_2024.04.25.2
+// GENERATED BY BLP_BAS_CODEGEN_2024.05.02
 // USING bas_codegen.pl -m msg --noAggregateConversion --noExternalization
 // --noIdent --package m_bmqtool --msgComponent messages bmqtoolcmd.xsd
 // ----------------------------------------------------------------------------

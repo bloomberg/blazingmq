@@ -92,7 +92,9 @@ void closeFileStream(bsl::ifstream *fileStream)
     fileStream->close();
 }
 
-bool loadMessageFromFile(bsl::vector<bsl::string> *payload, bsl::vector<MessageProperty> *messageProperties, bsl::ostream& errorDescription, bsl::string& file)
+// Load message content from dump file, created by QueueEngineUtil::dumpMessageInTempfile() method.
+// Return `true` on success or `false` otherwise. In case of `false`, `errorDescription` contains details.
+bool loadMessageContentFromFile(bsl::vector<bsl::string> *payload, bsl::vector<MessageProperty> *messageProperties, bsl::ostream& errorDescription, bsl::string& file)
 {
     if (file.empty()) {
         errorDescription << "Empty 'file' argument";
@@ -863,6 +865,26 @@ void Interactive::removeUriEntry(const bsl::string& uri)
     d_uris.erase(mapIter);
 }
 
+bool Interactive::loadMessageFromFile(PostCommand& command) {
+    if (!command.payload().empty()) {
+        BALL_LOG_WARN << "'payload' argument is skipped and will be replaced with content from 'file'";
+        command.payload().clear();
+    }
+
+    if (!command.messageProperties().empty()) {
+        BALL_LOG_WARN << "'messageProperties' argument is skipped and will be replaced with content from 'file'";
+        command.messageProperties().clear();
+    }
+
+    mwcu::MemOutStream  errorDescription;
+    if (!loadMessageContentFromFile(&command.payload(), &command.messageProperties(), errorDescription, command.file())) {
+        BALL_LOG_ERROR << errorDescription.str();
+        return false;  // RETURN
+    }
+    
+    return true;
+}
+
 void Interactive::eventHandlerThread()
 {
     while (true) {
@@ -991,50 +1013,12 @@ int Interactive::mainLoop()
                         hasMPs = keys.find(mps->name()) != keys.cend();
                     }
 
-                    // Check if 'file' argument is present
-                    const bdlat_AttributeInfo* fileArg =
-                        PostCommand::lookupAttributeInfo(
-                            PostCommand::ATTRIBUTE_ID_FILE);
-                    bool hasFile = false;
-                    if (fileArg) {
-                        hasFile = keys.find(fileArg->name()) != keys.cend();
-                    }
-                                        
-                    bool isCommandError = false;
-                    if (hasFile) {
-                        BALL_LOG_INFO << "--> messageFilepath: " << command.file();
-                        // bsl::ostringstream ss;
-                        // ss << "Message Properties:\n\n" << "[ ]" << "\n\n\nMessage Payload:\n\n";
-                        // bsl::string s = "aaa Налоговый орган, который привязан к вашей прописке, «подтянется» автоматически.\n Если в течение этого года вы находились в России больше 183 дней, то вы - налоговый резидент РФ. bbb";
-                        // mwcu::MemOutStream dumpPayload;                     
-                        // dumpPayload << "Message Properties:\n\n" << "[ sample_str (STRING) = \"foo\" x (INT32) = 10  bin_data (BINARY) = 68656C6C6F20776F726C64 ]" << "\n\n\nMessage Payload:\n\n";
-                        // bdlb::Print::hexDump(dumpPayload, s.c_str(), s.size());
-                        // BALL_LOG_WARN << dumpPayload.str();
-
-
-                        if (hasMPs) {
-                            BALL_LOG_WARN << "'messageProperties' argument is skipped and will be replaced with content from 'file'";
-                            command.messageProperties().clear();
-                        }
-                        if (!command.payload().empty()) {
-                            BALL_LOG_WARN << "'payload' argument is skipped and will be replaced with content from 'file'";
-                            command.payload().clear();
-                        }
-
-                        // bsl::istringstream is(dumpPayload.str());
-                        mwcu::MemOutStream  errorDescription;                     
-                        if (!loadMessageFromFile(&command.payload(), &command.messageProperties(), errorDescription, command.file())) {
-                            BALL_LOG_ERROR << errorDescription.str();
-                            isCommandError = true;
-                        }
-                        
+                    bool commandValid = true;
+                    if (!command.file().empty()) {
+                        commandValid = loadMessageFromFile(command);
                         hasMPs = !command.messageProperties().empty();
-                        // BALL_LOG_INFO << "PROPERTIES:";
-                        // for(auto prop : command.messageProperties()) {
-                        //     BALL_LOG_INFO << "NAME: " << prop.name() << " TYPE: " << prop.type() << " VAL: " << prop.value();
-                        // }
                     }
-                    if (!isCommandError) {
+                    if (commandValid) {
                         processCommand(command, hasMPs);
                     }
                 }
