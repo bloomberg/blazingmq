@@ -131,10 +131,11 @@ bool loadMessageContentFromFile(
             return false;  // RETURN
         }
         mwcu::MemOutStream propertiesStream;
-        propertiesStream << line << '\n';
+        propertiesStream << line;
         if (line.back() != ']') {
             // Binary properties are multiline, read lines until close marker
             // ']'
+            propertiesStream << '\n';
             while (!fileStream.eof()) {
                 bsl::getline(fileStream, line);
                 propertiesStream << line;
