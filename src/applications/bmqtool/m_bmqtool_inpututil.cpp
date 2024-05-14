@@ -163,9 +163,9 @@ void InputUtil::populateProperties(
         } break;  // BREAK
 
         case MessagePropertyType::E_BOOL: {
-            bool res;
-            bsl::istringstream(value) >> bsl::boolalpha >> res;
-            BSLA_MAYBE_UNUSED int result = out->setPropertyAsBool(name, res);
+            bool boolValue;
+            bsl::istringstream(value) >> bsl::boolalpha >> boolValue;
+            BSLA_MAYBE_UNUSED int result = out->setPropertyAsBool(name, boolValue);
             BSLS_ASSERT_SAFE(0 == result);
         } break;  // BREAK
 
@@ -431,7 +431,7 @@ bool InputUtil::parseProperties(bsl::vector<MessageProperty>* out,
             state = NAME;
         } break;  // BREAK
         default: {
-            BSLS_ASSERT_SAFE(false && "Unsupported state")
+            BSLS_ASSERT_SAFE(false && "Unsupported state");
         }
         }
     }
