@@ -36,16 +36,16 @@
 #include <baljsn_decoder.h>
 #include <baljsn_decoderoptions.h>
 #include <ball_log.h>
+#include <bdlb_tokenizer.h>
 #include <bdlbb_blob.h>
 #include <bdlbb_blobutil.h>
+#include <bdlde_hexdecoder.h>
 #include <bdlf_memfn.h>
 #include <bdls_processutil.h>
 #include <bdlt_currenttime.h>
 #include <bsl_iostream.h>
 #include <bslmt_lockguard.h>
 #include <bslmt_turnstile.h>
-#include <bdlde_hexdecoder.h>
-#include <bdlb_tokenizer.h>
 
 namespace BloombergLP {
 namespace m_bmqtool {
@@ -87,14 +87,19 @@ void printMessage(bsl::ostream& out, int index, const bmqa::Message& message)
 #endif
 }
 
-void closeFileStream(bsl::ifstream *fileStream)
+void closeFileStream(bsl::ifstream* fileStream)
 {
     fileStream->close();
 }
 
-// Load message content from dump file, created by QueueEngineUtil::dumpMessageInTempfile() method.
-// Return `true` on success or `false` otherwise. In case of `false`, `errorDescription` contains details.
-bool loadMessageContentFromFile(bsl::vector<bsl::string> *payload, bsl::vector<MessageProperty> *messageProperties, bsl::ostream& errorDescription, bsl::string& file)
+// Load message content from dump file, created by
+// QueueEngineUtil::dumpMessageInTempfile() method. Return `true` on success or
+// `false` otherwise. In case of `false`, `errorDescription` contains details.
+bool loadMessageContentFromFile(
+    bsl::vector<bsl::string>*     payload,
+    bsl::vector<MessageProperty>* messageProperties,
+    bsl::ostream&                 errorDescription,
+    bsl::string&                  file)
 {
     if (file.empty()) {
         errorDescription << "Empty 'file' argument";
@@ -108,14 +113,16 @@ bool loadMessageContentFromFile(bsl::vector<bsl::string> *payload, bsl::vector<M
     }
 
     // Set guard to close the filestream
-    bdlb::ScopeExitAny guard(bdlf::BindUtil::bind(closeFileStream, &fileStream));
+    bdlb::ScopeExitAny guard(
+        bdlf::BindUtil::bind(closeFileStream, &fileStream));
 
-    // Parse file according to format defined in QueueEngineUtil::dumpMessageInTempfile()
+    // Parse file according to format defined in
+    // QueueEngineUtil::dumpMessageInTempfile()
     bsl::string line;
     bsl::getline(fileStream, line);
-    if (line.compare("Message Properties:") == 0) {
+    if (line == "Message Properties:") {
         char tmpBuffer[2];
-        fileStream.read(tmpBuffer, 1); // skip empty line
+        fileStream.read(tmpBuffer, 1);  // skip empty line
 
         // Properties
         bsl::getline(fileStream, line);
@@ -126,8 +133,9 @@ bool loadMessageContentFromFile(bsl::vector<bsl::string> *payload, bsl::vector<M
         mwcu::MemOutStream propertiesStream;
         propertiesStream << line << '\n';
         if (line.back() != ']') {
-            // Binary properties are multiline, read lines until close marker ']'
-            while(!fileStream.eof()) {
+            // Binary properties are multiline, read lines until close marker
+            // ']'
+            while (!fileStream.eof()) {
                 bsl::getline(fileStream, line);
                 propertiesStream << line;
                 // Check for close marker
@@ -142,32 +150,35 @@ bool loadMessageContentFromFile(bsl::vector<bsl::string> *payload, bsl::vector<M
         }
 
         bsl::string parseError;
-        if (!InputUtil::parseProperties(messageProperties, propertiesStream.str(),&parseError)) {
-            errorDescription << "Message properties format error: " << parseError;
+        if (!InputUtil::parseProperties(messageProperties,
+                                        propertiesStream.str(),
+                                        &parseError)) {
+            errorDescription << "Message properties parse error: "
+                             << parseError;
             return false;
         }
 
-        fileStream.read(tmpBuffer, 2); // skip empty lines
+        fileStream.read(tmpBuffer, 2);  // skip empty lines
 
         bsl::getline(fileStream, line);
-        if (line.compare("Message Payload:") != 0) {
+        if (line != "Message Payload:") {
             errorDescription << "Unexpected file format";
             return false;
         }
-    } else if (line.compare("Application Data:") != 0) {
-         errorDescription << "Unexpected file format";
-         return false;
+    }
+    else if (line != "Application Data:") {
+        errorDescription << "Unexpected file format";
+        return false;
     }
 
     // Read and convert message payload
     mwcu::MemOutStream resultStream;
-    bsl::string error;
-    if(!InputUtil::decodeHexDump(resultStream, fileStream, &error)) {
+    bsl::string        error;
+    if (!InputUtil::decodeHexDump(resultStream, fileStream, &error)) {
         errorDescription << error;
         return false;
     }
 
-    // bsl::cout << "Result: " << outStream.str() <<  bsl::endl;
     payload->push_back(resultStream.str());
 
     return true;
@@ -238,7 +249,8 @@ void Interactive::printHelp()
            "\"E_STRING\"}]"
         << bsl::endl
         << "    - 'post' command requires 'uri' and 'payload' arguments, "
-        << "parameters 'messageProperties' and 'file' are optional" << bsl::endl
+        << "parameters 'messageProperties' and 'file' are optional"
+        << bsl::endl
         << bsl::endl
         << "  batch-post uri=\"bmq://bmq.test.persistent.priority/qqq\" "
            "payload=[\"sample message\"] eventsCount=300 postInterval=5000 "
@@ -526,13 +538,12 @@ void Interactive::processCommand(const PostCommand& command, bool hasMPs)
         return;  // RETURN
     }
 
-    BALL_LOG_INFO << "--> Posting messag!!!: " << command;
+    BALL_LOG_INFO << "--> Posting message: " << command;
 
     int rc;
     // Build the messageEvent
     bmqa::MessageEventBuilder eventBuilder;
     d_session_p->loadMessageEventBuilder(&eventBuilder);
-    
     for (size_t i = 0; i < command.payload().size(); ++i) {
         bmqa::Message& msg = eventBuilder.startMessage();
 
@@ -563,18 +574,13 @@ void Interactive::processCommand(const PostCommand& command, bool hasMPs)
 
         if (hasMPs) {
             d_session_p->loadMessageProperties(&properties);
-            // TODO: no need this cycle?
-            // for (size_t j = 0; j < command.messageProperties().size(); ++j) {
-            //     InputUtil::populateProperties(&properties,
-            //                                   command.messageProperties());
-            // }
             InputUtil::populateProperties(&properties,
-                                            command.messageProperties());
+                                          command.messageProperties());
 
             msg.setPropertiesRef(&properties);
-            BALL_LOG_WARN << "REAL MESSAGE PROPS: " << properties;
+            BALL_LOG_WARN << "REAL MESSAGE PROPS: "
+                          << properties;  // TODO: remove
         }
-
 
         // Set data
         msg.setDataRef(command.payload()[i].c_str(),
@@ -598,6 +604,7 @@ void Interactive::processCommand(const PostCommand& command, bool hasMPs)
 
     // Post
     rc = d_session_p->post(eventBuilder.messageEvent());
+
     ball::Severity::Level severity = (rc == 0 ? ball::Severity::INFO
                                               : ball::Severity::ERROR);
     BALL_LOG_STREAM(severity)
@@ -865,23 +872,29 @@ void Interactive::removeUriEntry(const bsl::string& uri)
     d_uris.erase(mapIter);
 }
 
-bool Interactive::loadMessageFromFile(PostCommand& command) {
+bool Interactive::loadMessageFromFile(PostCommand& command)
+{
     if (!command.payload().empty()) {
-        BALL_LOG_WARN << "'payload' argument is skipped and will be replaced with content from 'file'";
+        BALL_LOG_WARN << "'payload' argument is skipped and will be replaced "
+                         "with content from 'file'";
         command.payload().clear();
     }
 
     if (!command.messageProperties().empty()) {
-        BALL_LOG_WARN << "'messageProperties' argument is skipped and will be replaced with content from 'file'";
+        BALL_LOG_WARN << "'messageProperties' argument is skipped and will be "
+                         "replaced with content from 'file'";
         command.messageProperties().clear();
     }
 
-    mwcu::MemOutStream  errorDescription;
-    if (!loadMessageContentFromFile(&command.payload(), &command.messageProperties(), errorDescription, command.file())) {
+    mwcu::MemOutStream errorDescription;
+    if (!loadMessageContentFromFile(&command.payload(),
+                                    &command.messageProperties(),
+                                    errorDescription,
+                                    command.file())) {
         BALL_LOG_ERROR << errorDescription.str();
         return false;  // RETURN
     }
-    
+
     return true;
 }
 
@@ -1016,7 +1029,7 @@ int Interactive::mainLoop()
                     bool commandValid = true;
                     if (!command.file().empty()) {
                         commandValid = loadMessageFromFile(command);
-                        hasMPs = !command.messageProperties().empty();
+                        hasMPs       = !command.messageProperties().empty();
                     }
                     if (commandValid) {
                         processCommand(command, hasMPs);
