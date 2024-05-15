@@ -276,30 +276,30 @@ static void test4_rinsert()
 
 #ifdef BSLS_PLATFORM_OS_AIX
     // Avoid timeout on AIX
-    const size_t k_NUM_ELEMENTS = 100 * 1000;  // 100K
+    const int k_NUM_ELEMENTS = 100 * 1000;  // 100K
 #else
-    const size_t k_NUM_ELEMENTS = 1000 * 1000;  // 1M
+    const int k_NUM_ELEMENTS = 1000 * 1000;  // 1M
 #endif
 
     // Insert 1M elements
-    for (size_t i = 0; i < k_NUM_ELEMENTS; ++i) {
+    for (int i = 0; i < k_NUM_ELEMENTS; ++i) {
         RcType rc = map.rinsert(bsl::make_pair(i, i + 1));
         ASSERT_EQ_D(i, true, rc.second);
         ASSERT_EQ_D(i, true, rc.first != map.end());
-        ASSERT_EQ_D(i, static_cast<int>(i), rc.first->first);
-        ASSERT_EQ_D(i, static_cast<int>(i + 1), rc.first->second);
+        ASSERT_EQ_D(i, i, rc.first->first);
+        ASSERT_EQ_D(i, (i + 1), rc.first->second);
         ASSERT_EQ_D(i, true, 1.5 >= map.load_factor());
     }
 
-    ASSERT_EQ(map.size(), k_NUM_ELEMENTS);
+    ASSERT_EQ(map.size(), static_cast<size_t>(k_NUM_ELEMENTS));
 
     // Iterate and confirm
     {
         const MyMapType& cmap = map;
-        size_t           i    = k_NUM_ELEMENTS - 1;
+        int              i    = k_NUM_ELEMENTS - 1;
         for (ConstIterType cit = cmap.begin(); cit != cmap.end(); ++cit) {
-            ASSERT_EQ_D(i, static_cast<int>(i), cit->first);
-            ASSERT_EQ_D(i, static_cast<int>(i + 1), cit->second);
+            ASSERT_EQ_D(i, i, cit->first);
+            ASSERT_EQ_D(i, (i + 1), cit->second);
             --i;
         }
     }
@@ -307,17 +307,17 @@ static void test4_rinsert()
     // Reverse iterate using --(end()) and confirm
     {
         const MyMapType& cmap = map;
-        size_t           i    = 0;
+        int              i    = 0;
         ConstIterType    cit  = --(cmap.end());  // last element
         for (; cit != cmap.begin(); --cit) {
             ASSERT_EQ_D(i, true, i < k_NUM_ELEMENTS);
-            ASSERT_EQ_D(i, static_cast<int>(i), cit->first);
-            ASSERT_EQ_D(i, static_cast<int>(i + 1), cit->second);
+            ASSERT_EQ_D(i, i, cit->first);
+            ASSERT_EQ_D(i, (i + 1), cit->second);
             ++i;
         }
         ASSERT_EQ(true, cit == cmap.begin());
-        ASSERT_EQ(static_cast<int>(i), cit->first);
-        ASSERT_EQ(cit->second, static_cast<int>(i + 1));
+        ASSERT_EQ(i, cit->first);
+        ASSERT_EQ(cit->second, (i + 1));
     }
 }
 
@@ -450,20 +450,20 @@ static void test6_clear()
     ASSERT_EQ(0U, map.size());
     ASSERT_EQ(true, map.load_factor() == 0.0);
 
-    const size_t k_NUM_ELEMENTS = 100;
+    const int k_NUM_ELEMENTS = 100;
 
     // Insert elements
-    for (size_t i = 0; i < k_NUM_ELEMENTS; ++i) {
+    for (int i = 0; i < k_NUM_ELEMENTS; ++i) {
         RcType rc = map.insert(bsl::make_pair(i, i + 1));
         ASSERT_EQ_D(i, rc.second, true);
         ASSERT_EQ_D(i, true, rc.first != map.end());
-        ASSERT_EQ_D(i, static_cast<int>(i), rc.first->first);
-        ASSERT_EQ_D(i, static_cast<int>(i + 1), rc.first->second);
+        ASSERT_EQ_D(i, i, rc.first->first);
+        ASSERT_EQ_D(i, (i + 1), rc.first->second);
     }
 
     ASSERT_EQ(false, map.empty());
     ASSERT_EQ(true, map.begin() != map.end());
-    ASSERT_EQ(k_NUM_ELEMENTS, map.size());
+    ASSERT_EQ(static_cast<int>(k_NUM_ELEMENTS), map.size());
 
     map.clear();
     ASSERT_EQ(true, map.empty());
@@ -485,16 +485,16 @@ static void test7_erase()
     typedef MyMapType::const_iterator      ConstIterType;
     typedef bsl::pair<IterType, bool>      RcType;
 
-    const size_t k_NUM_ELEMENTS = 100;
+    const int k_NUM_ELEMENTS = 100;
     MyMapType    map(s_allocator_p);
 
     // Insert elements
-    for (size_t i = 0; i < k_NUM_ELEMENTS; ++i) {
+    for (int i = 0; i < k_NUM_ELEMENTS; ++i) {
         RcType rc = map.insert(bsl::make_pair(i, i));
         ASSERT_EQ_D(i, rc.second, true);
         ASSERT_EQ_D(i, true, rc.first != map.end());
-        ASSERT_EQ_D(i, static_cast<int>(i), rc.first->first);
-        ASSERT_EQ_D(i, static_cast<int>(i), rc.first->second);
+        ASSERT_EQ_D(i, i, rc.first->first);
+        ASSERT_EQ_D(i, i, rc.first->second);
     }
 
     const MyMapType& cmap = map;
@@ -762,33 +762,33 @@ static void test13_previousEndIterator()
     IterType      endIt  = map.end();
     ConstIterType endCit = cmap.end();
 
-    size_t                    i  = 0;
+    int                       i  = 0;
     bsl::pair<IterType, bool> rc = map.insert(bsl::make_pair(i, i * i));
 
     ASSERT_EQ(true, rc.first == endIt);
     ASSERT_EQ(true, rc.first == endCit);
 
-    ASSERT_EQ(static_cast<int>(i), endIt->first);
-    ASSERT_EQ(static_cast<int>(i * i), endIt->second);
+    ASSERT_EQ(i, endIt->first);
+    ASSERT_EQ((i * i), endIt->second);
 
     ++i;
     for (; i < 10000; ++i) {
         endIt = map.end();
         rc    = map.insert(bsl::make_pair(i, i * i));
         ASSERT_EQ_D(i, true, rc.first == endIt);
-        ASSERT_EQ_D(i, static_cast<int>(i), endIt->first);
-        ASSERT_EQ_D(i, static_cast<int>(i * i), endIt->second);
+        ASSERT_EQ_D(i, i, endIt->first);
+        ASSERT_EQ_D(i, (i * i), endIt->second);
     }
 
     // Erase last element
-    map.erase(static_cast<int>(i - 1));
-    ASSERT_EQ(static_cast<int>(i - 2), (--map.end())->first);
+    map.erase(i - 1);
+    ASSERT_EQ((i - 2), (--map.end())->first);
     endIt = map.end();
     ++i;
     rc = map.insert(bsl::make_pair(i, i * i));
     ASSERT_EQ(true, rc.first == endIt);
-    ASSERT_EQ(static_cast<int>(i), endIt->first);
-    ASSERT_EQ(static_cast<int>(i * i), endIt->second);
+    ASSERT_EQ(i, endIt->first);
+    ASSERT_EQ((i * i), endIt->second);
 
     // rinsert an element, which doesn't affect end().
     ++i;
@@ -798,8 +798,8 @@ static void test13_previousEndIterator()
     ++i;
     rc = map.insert(bsl::make_pair(i, i * i));
     ASSERT_EQ(true, endIt == rc.first);
-    ASSERT_EQ(static_cast<int>(i), endIt->first);
-    ASSERT_EQ(static_cast<int>(i * i), endIt->second);
+    ASSERT_EQ(i, endIt->first);
+    ASSERT_EQ((i * i), endIt->second);
 }
 
 static void test14_localIterator()

@@ -3311,7 +3311,7 @@ void FileStore::gcDispatched(int partitionId, FileSet* fileSet)
     // file set.
     d_fileSets.erase(it);
 
-    BSLA_MAYBE_UNUSED int rc = d_miscWorkThreadPool_p->enqueueJob(
+    BSLA_MAYBE_UNUSED const int rc = d_miscWorkThreadPool_p->enqueueJob(
         bdlf::BindUtil::bind(&FileStore::gcWorkerDispatched, this, fileSetSp));
     BSLS_ASSERT_SAFE(rc == 0);
 }

@@ -624,7 +624,7 @@ void ClusterUtil::onPartitionPrimaryAssignment(
     if (primary == oldPrimary) {
         if (leaseId == oldLeaseId) {
             // Leader has re-sent the primary info for this partition.
-            BSLA_MAYBE_UNUSED mqbc::ClusterNodeSession* ns =
+            BSLA_MAYBE_UNUSED const mqbc::ClusterNodeSession* ns =
                 clusterData->membership().getClusterNodeSession(primary);
             BSLS_ASSERT_SAFE(ns && ns->isPrimaryForPartition(partitionId));
 

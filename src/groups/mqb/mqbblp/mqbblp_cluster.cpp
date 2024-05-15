@@ -2406,7 +2406,7 @@ void Cluster::loadNodesInfo(mqbcmd::NodeStatuses* out) const
                 nodeSession.clusterNode()->isAvailable());
         }
 
-        BSLA_MAYBE_UNUSED int rc = mqbcmd::NodeStatus::fromInt(
+        BSLA_MAYBE_UNUSED const int rc = mqbcmd::NodeStatus::fromInt(
             &node.status(),
             nodeSession.nodeStatus());
         BSLS_ASSERT_SAFE(!rc && "Unsupported node status");
@@ -2472,7 +2472,7 @@ void Cluster::loadPartitionsInfo(mqbcmd::PartitionsInfo* out) const
                 pi.primaryNode()->nodeDescription());
         }
         partitions[i].primaryLeaseId() = pi.primaryLeaseId();
-        BSLA_MAYBE_UNUSED int rc       = mqbcmd::PrimaryStatus::fromInt(
+        BSLA_MAYBE_UNUSED const int rc       = mqbcmd::PrimaryStatus::fromInt(
             &partitions[i].primaryStatus(),
             pi.primaryStatus());
         BSLS_ASSERT_SAFE(!rc && "Unsupported primary status");

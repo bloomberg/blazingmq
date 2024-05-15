@@ -2129,8 +2129,8 @@ inline FileHeader& FileHeader::setBitness(Bitness::Enum value)
             (1 << k_BITNESS_START_IDX));
     }
     else {
-        d_bitnessAndFileType = d_bitnessAndFileType &
-                               static_cast<char>(k_FILE_TYPE_MASK);
+        d_bitnessAndFileType = static_cast<char>(d_bitnessAndFileType &
+                                                 k_FILE_TYPE_MASK);
     }
 
     return *this;
@@ -2163,15 +2163,15 @@ inline unsigned int FileHeader::magic2() const
 
 inline unsigned char FileHeader::protocolVersion() const
 {
-    return static_cast<unsigned char>(d_protoVerAndHeaderWords &
-                                      k_PROTOCOL_VERSION_MASK) >>
-           k_PROTOCOL_VERSION_START_IDX;
+    return static_cast<unsigned char>(
+        (d_protoVerAndHeaderWords & k_PROTOCOL_VERSION_MASK) >>
+        k_PROTOCOL_VERSION_START_IDX);
 }
 
 inline unsigned char FileHeader::headerWords() const
 {
-    return d_protoVerAndHeaderWords &
-           static_cast<unsigned char>(k_HEADER_WORDS_MASK);
+    return static_cast<unsigned char>(d_protoVerAndHeaderWords &
+                                      k_HEADER_WORDS_MASK);
 }
 
 inline Bitness::Enum FileHeader::bitness() const

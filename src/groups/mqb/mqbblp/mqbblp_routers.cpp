@@ -389,10 +389,10 @@ size_t Routers::AppContext::finalize()
 
     for (Priorities::iterator itPriority = d_priorities.begin();
          itPriority != d_priorities.end();) {
-        Priority&                 level       = itPriority->second;
-        BSLA_MAYBE_UNUSED int     priority    = itPriority->first;
-        Subscribers&              subscribers = level.d_subscribers;
-        Subscriber::Subscriptions remove(d_allocator_p);
+        Priority&                   level       = itPriority->second;
+        BSLA_MAYBE_UNUSED const int priority    = itPriority->first;
+        Subscribers&                subscribers = level.d_subscribers;
+        Subscriber::Subscriptions   remove(d_allocator_p);
 
         for (Subscribers::const_iterator itSubscriber = subscribers.begin();
              itSubscriber != subscribers.end();

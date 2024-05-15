@@ -886,8 +886,6 @@ int Domain::processCommand(mqbcmd::DomainResult*        result,
             BSLS_ASSERT_SAFE(
                 clusterResult.storageResult().isPurgedQueuesValue());
 
-            BSLA_MAYBE_UNUSED mqbcmd::PurgedQueues& purgedQueues =
-                result->makePurgedQueues();
             result->makeQueueResult().makePurgedQueues().queues() =
                 clusterResult.storageResult().purgedQueues().queues();
             return rc;  // RETURN

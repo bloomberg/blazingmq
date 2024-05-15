@@ -130,8 +130,8 @@ int StoragePrintUtil::listMessages(mqbcmd::QueueContents* queueContents,
     queueContents->messages().reserve(count);
     for (; listed < count && !it->atEnd(); ++i, ++listed, it->advance()) {
         queueContents->messages().resize(queueContents->messages().size() + 1);
-        mqbcmd::Message&      message = queueContents->messages().back();
-        BSLA_MAYBE_UNUSED int rc      = listMessage(&message, storage, *it);
+        mqbcmd::Message&            message = queueContents->messages().back();
+        BSLA_MAYBE_UNUSED const int rc = listMessage(&message, storage, *it);
         BSLS_ASSERT_SAFE(rc == 0);
     }
 

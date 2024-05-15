@@ -1346,7 +1346,7 @@ void StorageManager::do_storePrimarySeq(const PartitionFSMArgsSp& args)
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));
 
-    BSLA_MAYBE_UNUSED PartitionInfo& partitionInfo =
+    BSLA_MAYBE_UNUSED const PartitionInfo& partitionInfo =
         d_partitionInfoVec[partitionId];
     BSLS_ASSERT_SAFE(partitionInfo.primary() == eventData.source());
     BSLS_ASSERT_SAFE(d_partitionFSMVec[partitionId]->isSelfReplica());
