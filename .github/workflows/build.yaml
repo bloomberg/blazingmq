@@ -71,9 +71,6 @@ jobs:
         with:
           path: deps
           key: deps-${{ steps.get-hash.outputs.deps_hash }}
-      - name: Install cached non packaged dependencies
-        working-directory: deps
-        run: ../docker/build_deps.sh --install-only
       - name: Set up dependencies
         run: |
           sudo apt-get update
@@ -90,6 +87,9 @@ jobs:
             libbenchmark-dev \
             libgmock-dev \
             libz-dev
+      - name: Install cached non packaged dependencies
+        working-directory: deps
+        run: ../docker/build_deps.sh
       - name: Build BlazingMQ
         env:
           PKG_CONFIG_PATH: /usr/lib/x86_64-linux-gnu/pkgconfig:/opt/bb/lib64/pkgconfig
