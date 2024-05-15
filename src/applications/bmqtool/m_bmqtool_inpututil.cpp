@@ -414,12 +414,26 @@ bool InputUtil::parseProperties(bsl::vector<MessageProperty>* out,
 
                 messageProperty.value() = resultStream.str();
             }
+            else if (messageProperty.type() ==
+                     MessagePropertyType::Value::E_STRING) {
+                // Special handling for string value: it may contain spaces
+                // Join tokens by space (detokenize) inside surrounding quotes.
+                mwcu::MemOutStream resultStream;
+                for (; tokenizerIt != tokenizer.end(); ++tokenizerIt) {
+                    token = *tokenizerIt;
+                    resultStream << token;
+                    if (token.back() == '"') {
+                        break;  // BREAK
+                    }
+                    resultStream << ' ';
+                }
+                // Remove surrounding quotes and save
+                messageProperty.value() = resultStream.str().substr(
+                    1,
+                    resultStream.str().size() - 2);
+            }
             else {
-                // Remove surrounding quotes if present
-                messageProperty.value() = token.at(0) == '"'
-                                              ? token.substr(1,
-                                                             token.size() - 2)
-                                              : token;
+                messageProperty.value() = token;
             }
             // Property is parsed, save it
             out->push_back(messageProperty);
