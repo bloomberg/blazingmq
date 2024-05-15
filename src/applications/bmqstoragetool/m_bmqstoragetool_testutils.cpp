@@ -594,11 +594,13 @@ char* addDataRecords(bslma::Allocator*          ta,
     // the padding that we need for each record.
 
     for (unsigned int i = 0; i < numMessages; i++) {
-        unsigned int optionsLen = bsl::strlen(messages[i].d_options_p);
+        unsigned int optionsLen = static_cast<unsigned int>(
+            bsl::strlen(messages[i].d_options_p));
         BSLS_ASSERT_OPT(0 == optionsLen % bmqp::Protocol::k_WORD_SIZE);
 
-        unsigned int appDataLen     = bsl::strlen(messages[i].d_appData_p);
-        int          appDataPadding = 0;
+        unsigned int appDataLen = static_cast<unsigned int>(
+            bsl::strlen(messages[i].d_appData_p));
+        int appDataPadding = 0;
         bmqp::ProtocolUtil::calcNumDwordsAndPadding(&appDataPadding,
                                                     appDataLen + optionsLen +
                                                         dhSize);
@@ -631,12 +633,14 @@ char* addDataRecords(bslma::Allocator*          ta,
     currPos += sizeof(DataFileHeader);
 
     for (unsigned int i = 0; i < numMessages; i++) {
-        messageOffsets.push_back(currPos / bmqp::Protocol::k_DWORD_SIZE);
+        messageOffsets.push_back(
+            static_cast<unsigned int>(currPos / bmqp::Protocol::k_DWORD_SIZE));
 
         OffsetPtr<DataHeader> dh(block, currPos);
         new (dh.get()) DataHeader();
 
-        unsigned int optionsLen = bsl::strlen(messages[i].d_options_p);
+        unsigned int optionsLen = static_cast<unsigned int>(
+            bsl::strlen(messages[i].d_options_p));
         dh->setOptionsWords(optionsLen / bmqp::Protocol::k_WORD_SIZE);
         currPos += sizeof(DataHeader);
 
@@ -645,8 +649,9 @@ char* addDataRecords(bslma::Allocator*          ta,
         currPos += optionsLen;
         destination += optionsLen;
 
-        unsigned int appDataLen = bsl::strlen(messages[i].d_appData_p);
-        int          appDataPad = 0;
+        unsigned int appDataLen = static_cast<unsigned int>(
+            bsl::strlen(messages[i].d_appData_p));
+        int appDataPad = 0;
         bmqp::ProtocolUtil::calcNumDwordsAndPadding(&appDataPad,
                                                     appDataLen + optionsLen +
                                                         dhSize);

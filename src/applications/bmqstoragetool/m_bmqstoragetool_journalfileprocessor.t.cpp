@@ -81,7 +81,7 @@ static void test1_breathingTest()
     Parameters params(s_allocator_p);
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
-        new (*s_allocator_p) FileManagerMock(journalFile, s_allocator_p),
+        new (*s_allocator_p) FileManagerMock(journalFile),
         s_allocator_p);
 
     // Run search
@@ -151,7 +151,7 @@ static void test2_searchGuidTest()
     }
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
-        new (*s_allocator_p) FileManagerMock(journalFile, s_allocator_p),
+        new (*s_allocator_p) FileManagerMock(journalFile),
         s_allocator_p);
 
     // Run search
@@ -208,7 +208,7 @@ static void test3_searchNonExistingGuidTest()
 
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
-        new (*s_allocator_p) FileManagerMock(journalFile, s_allocator_p),
+        new (*s_allocator_p) FileManagerMock(journalFile),
         s_allocator_p);
 
     // Run search
@@ -285,7 +285,7 @@ static void test4_searchExistingAndNonExistingGuidTest()
 
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
-        new (*s_allocator_p) FileManagerMock(journalFile, s_allocator_p),
+        new (*s_allocator_p) FileManagerMock(journalFile),
         s_allocator_p);
 
     // Run search
@@ -338,7 +338,7 @@ static void test5_searchOutstandingMessagesTest()
     params.d_outstanding = true;
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
-        new (*s_allocator_p) FileManagerMock(journalFile, s_allocator_p),
+        new (*s_allocator_p) FileManagerMock(journalFile),
         s_allocator_p);
 
     // Run search
@@ -359,9 +359,9 @@ static void test5_searchOutstandingMessagesTest()
 
     expectedStream << outstandingGUIDS.size() << " message GUID(s) found."
                    << bsl::endl;
-    float messageCount     = k_NUM_RECORDS / 3.0;
-    float outstandingRatio = float(outstandingGUIDS.size()) / messageCount *
-                             100.0;
+    const size_t messageCount     = k_NUM_RECORDS / 3;
+    const float  outstandingRatio = float(outstandingGUIDS.size()) /
+                                   float(messageCount) * 100.0f;
     expectedStream << "Outstanding ratio: " << outstandingRatio << "% ("
                    << outstandingGUIDS.size() << "/" << messageCount << ")"
                    << bsl::endl;
@@ -397,7 +397,7 @@ static void test6_searchConfirmedMessagesTest()
     params.d_confirmed = true;
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
-        new (*s_allocator_p) FileManagerMock(journalFile, s_allocator_p),
+        new (*s_allocator_p) FileManagerMock(journalFile),
         s_allocator_p);
 
     // Run search
@@ -417,9 +417,10 @@ static void test6_searchConfirmedMessagesTest()
     }
     expectedStream << confirmedGUIDS.size() << " message GUID(s) found."
                    << bsl::endl;
-    float messageCount     = k_NUM_RECORDS / 3.0;
-    float outstandingRatio = float(messageCount - confirmedGUIDS.size()) /
-                             messageCount * 100.0;
+    const size_t messageCount     = k_NUM_RECORDS / 3;
+    const float  outstandingRatio = float(messageCount -
+                                         confirmedGUIDS.size()) /
+                                   float(messageCount) * 100.0f;
     expectedStream << "Outstanding ratio: " << outstandingRatio << "% ("
                    << (messageCount - confirmedGUIDS.size()) << "/"
                    << messageCount << ")" << bsl::endl;
@@ -458,7 +459,7 @@ static void test7_searchPartiallyConfirmedMessagesTest()
     params.d_partiallyConfirmed = true;
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
-        new (*s_allocator_p) FileManagerMock(journalFile, s_allocator_p),
+        new (*s_allocator_p) FileManagerMock(journalFile),
         s_allocator_p);
 
     // Run search
@@ -478,9 +479,9 @@ static void test7_searchPartiallyConfirmedMessagesTest()
     }
     expectedStream << partiallyConfirmedGUIDS.size()
                    << " message GUID(s) found." << bsl::endl;
-    float messageCount     = ceil(k_NUM_RECORDS / 3.0);
-    float outstandingRatio = float(partiallyConfirmedGUIDS.size() + 1) /
-                             messageCount * 100.0;
+    const size_t messageCount     = k_NUM_RECORDS / 3 + 1;
+    const float  outstandingRatio = float(partiallyConfirmedGUIDS.size() + 1) /
+                                   float(messageCount) * 100.0f;
     expectedStream << "Outstanding ratio: " << outstandingRatio << "% ("
                    << partiallyConfirmedGUIDS.size() + 1 << "/" << messageCount
                    << ")" << bsl::endl;
@@ -519,7 +520,7 @@ static void test8_searchMessagesByQueueKeyTest()
     params.d_queueKey.push_back(queueKey1);
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
-        new (*s_allocator_p) FileManagerMock(journalFile, s_allocator_p),
+        new (*s_allocator_p) FileManagerMock(journalFile),
         s_allocator_p);
 
     // Run search
@@ -585,7 +586,7 @@ static void test9_searchMessagesByQueueNameTest()
 
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
-        new (*s_allocator_p) FileManagerMock(journalFile, s_allocator_p),
+        new (*s_allocator_p) FileManagerMock(journalFile),
         s_allocator_p);
 
     // Run search
@@ -655,7 +656,7 @@ static void test10_searchMessagesByQueueNameAndQueueKeyTest()
 
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
-        new (*s_allocator_p) FileManagerMock(journalFile, s_allocator_p),
+        new (*s_allocator_p) FileManagerMock(journalFile),
         s_allocator_p);
 
     // Run search
@@ -707,7 +708,7 @@ static void test11_searchMessagesByTimestamp()
     params.d_timestampLt = ts2;
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
-        new (*s_allocator_p) FileManagerMock(journalFile, s_allocator_p),
+        new (*s_allocator_p) FileManagerMock(journalFile),
         s_allocator_p);
 
     // Get GUIDs of messages with matching timestamps and prepare expected
@@ -770,7 +771,7 @@ static void test12_printMessagesDetailsTest()
     params.d_details = true;
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
-        new (*s_allocator_p) FileManagerMock(journalFile, s_allocator_p),
+        new (*s_allocator_p) FileManagerMock(journalFile),
         s_allocator_p);
 
     // Run search
@@ -788,7 +789,7 @@ static void test12_printMessagesDetailsTest()
     const char* messageRecordCaption = "MESSAGE Record";
     const char* confirmRecordCaption = "CONFIRM Record";
     const char* deleteRecordCaption  = "DELETE Record";
-    for (int i = 0; i < confirmedGUIDS.size(); i++) {
+    for (size_t i = 0; i < confirmedGUIDS.size(); i++) {
         // Check Message type
         size_t foundIdx = resultString.find(messageRecordCaption, startIdx);
         ASSERT_D(messageRecordCaption, (foundIdx != bsl::string::npos));
@@ -897,7 +898,7 @@ static void test13_searchMessagesWithPayloadDumpTest()
     params.d_dumpPayload = true;
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
-        new (*s_allocator_p) FileManagerMock(journalFile, s_allocator_p),
+        new (*s_allocator_p) FileManagerMock(journalFile),
         s_allocator_p);
     EXPECT_CALL(static_cast<FileManagerMock&>(*fileManager),
                 dataFileIterator())
@@ -926,7 +927,7 @@ static void test13_searchMessagesWithPayloadDumpTest()
     bsl::swap(confirmedGUIDS[1], confirmedGUIDS[2]);
 
     // Check that substrings are present in resultStream in correct order
-    for (int i = 0; i < k_NUM_MSGS; i++) {
+    for (unsigned int i = 0; i < k_NUM_MSGS; i++) {
         // Check GUID
         bmqt::MessageGUID  guid = confirmedGUIDS.at(i);
         mwcu::MemOutStream ss(s_allocator_p);
@@ -978,7 +979,7 @@ static void test14_summaryTest()
     params.d_summary = true;
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
-        new (*s_allocator_p) FileManagerMock(journalFile, s_allocator_p),
+        new (*s_allocator_p) FileManagerMock(journalFile),
         s_allocator_p);
 
     // Run search
@@ -1119,7 +1120,7 @@ static void test15_timestampSearchTest()
         // Move the iterator to the beginning of the file
         ASSERT_EQ(journalFileIt.nextRecord(), 1);
         ASSERT_EQ(m_bmqstoragetool::moveToLowerBound(&journalFileIt, ts), 1);
-        ASSERT_EQ(journalFileIt.recordIndex(), 0);
+        ASSERT_EQ(journalFileIt.recordIndex(), 0U);
         ASSERT_GT(journalFileIt.recordHeader().timestamp(), ts);
         ASSERT(!journalFileIt.isReverseMode());
     }

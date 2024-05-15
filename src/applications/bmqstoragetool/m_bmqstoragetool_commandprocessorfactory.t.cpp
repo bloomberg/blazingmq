@@ -48,7 +48,7 @@ static void test1_breathingTest()
     CommandLineArguments           arguments;
     Parameters                     params(arguments, s_allocator_p);
     bslma::ManagedPtr<FileManager> fileManager(
-        new (*s_allocator_p) FileManagerMock(s_allocator_p),
+        new (*s_allocator_p) FileManagerMock(),
         s_allocator_p);
 
     bslma::ManagedPtr<CommandProcessor> cmdProcessor =

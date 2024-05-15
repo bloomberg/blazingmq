@@ -27,11 +27,10 @@ Filters::Filters(const bsl::vector<bsl::string>& queueKeys,
                  const QueueMap&                 queueMap,
                  const bsls::Types::Int64        timestampGt,
                  const bsls::Types::Int64        timestampLt,
-                 bsl::ostream&                   ostream,
                  bslma::Allocator*               allocator)
 : d_queueKeys(allocator)
-, d_timestampGt(timestampGt)
-, d_timestampLt(timestampLt)
+, d_timestampGt(static_cast<bsls::Types::Uint64>(timestampGt))
+, d_timestampLt(static_cast<bsls::Types::Uint64>(timestampLt))
 {
     // Fill internal structures
     if (!queueKeys.empty()) {
