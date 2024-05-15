@@ -2472,7 +2472,7 @@ void Cluster::loadPartitionsInfo(mqbcmd::PartitionsInfo* out) const
                 pi.primaryNode()->nodeDescription());
         }
         partitions[i].primaryLeaseId() = pi.primaryLeaseId();
-        BSLA_MAYBE_UNUSED const int rc       = mqbcmd::PrimaryStatus::fromInt(
+        BSLA_MAYBE_UNUSED const int rc = mqbcmd::PrimaryStatus::fromInt(
             &partitions[i].primaryStatus(),
             pi.primaryStatus());
         BSLS_ASSERT_SAFE(!rc && "Unsupported primary status");

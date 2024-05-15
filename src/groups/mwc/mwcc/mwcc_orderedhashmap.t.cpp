@@ -278,7 +278,7 @@ static void test4_rinsert()
     // Avoid timeout on AIX
     const int k_NUM_ELEMENTS = 100 * 1000;  // 100K
 #else
-    const int k_NUM_ELEMENTS = 1000 * 1000;  // 1M
+    const int    k_NUM_ELEMENTS = 1000 * 1000;  // 1M
 #endif
 
     // Insert 1M elements
@@ -486,7 +486,7 @@ static void test7_erase()
     typedef bsl::pair<IterType, bool>      RcType;
 
     const int k_NUM_ELEMENTS = 100;
-    MyMapType    map(s_allocator_p);
+    MyMapType map(s_allocator_p);
 
     // Insert elements
     for (int i = 0; i < k_NUM_ELEMENTS; ++i) {
