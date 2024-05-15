@@ -56,8 +56,13 @@ build_bde() {
 build_ntf() {
     pushd srcs/ntf-core
     if [ "$install_only" = false ]; then
-        sed -i s/CMakeLists.txt//g ./configure
-        ./configure --prefix /opt/bb --without-usage-examples --without-applications  --ufid opt_64_cpp17
+        ./configure                      \
+            --keep                       \
+            --prefix /opt/bb             \
+            --without-usage-examples     \
+            --without-applications       \
+            --without-warnings-as-errors \
+            --ufid opt_64_cpp17
         make -j8
     fi
     make install
