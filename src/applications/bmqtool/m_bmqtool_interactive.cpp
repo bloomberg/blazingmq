@@ -245,13 +245,16 @@ void Interactive::printHelp()
         << "  post uri=\"bmq://bmq.test.persistent.priority/qqq\" "
            "payload=[\"sample message\"] "
         << "messageProperties=[{\"name\": \"x\", \"value\": \"10\", \"type\": "
-           "\"E_INT\"}, "
+           "\"E_INT32\"}, "
         << "{\"name\": \"sample_str\", \"value\": \"foo\", \"type\": "
            "\"E_STRING\"}]"
         << bsl::endl
-        << "    - 'post' command requires 'uri' and 'payload' arguments, "
-        << "parameters 'messageProperties' and 'file' are optional"
+        << "  post uri=\"bmq://bmq.test.persistent.priority/qqq\" "
+           "file=[\"message.dump\"] "
         << bsl::endl
+        << "    - 'post' command requires 'uri' argument, 'payload',"
+        << " 'messageProperties' and 'file' arguments are optional."
+        << " NOTE: either 'payload' or 'file' must be present" << bsl::endl
         << bsl::endl
         << "  batch-post uri=\"bmq://bmq.test.persistent.priority/qqq\" "
            "payload=[\"sample message\"] eventsCount=300 postInterval=5000 "
