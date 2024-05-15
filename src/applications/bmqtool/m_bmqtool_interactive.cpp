@@ -582,8 +582,6 @@ void Interactive::processCommand(const PostCommand& command, bool hasMPs)
                                           command.messageProperties());
 
             msg.setPropertiesRef(&properties);
-            BALL_LOG_WARN << "REAL MESSAGE PROPS: "
-                          << properties;  // TODO: remove
         }
 
         // Set data
