@@ -13,11 +13,64 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build_ubuntu:
-    name: Build [ubuntu]
+  build_dependencies:
+    name: Build deps [ubuntu]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Get dependencies hash
+        id: get-hash
+        run: echo "deps_hash=`cat blazingmq/docker/build_deps.sh | shasum`" >> $GITHUB_OUTPUT
+      - name: Cache lookup
+        uses: actions/cache/restore@v4
+        id: cache-lookup
+        with:
+          path: deps
+          key: deps-${{ steps.get-hash.outputs.deps_hash }}
+          lookup-only: true
+      - name: Set up dependencies
+        if: steps.cache-lookup.outputs.cache-hit != 'true'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -qy build-essential \
+            gdb \
+            curl \
+            python3.10 \
+            python3-pip \
+            cmake \
+            ninja-build \
+            pkg-config \
+            bison \
+            libfl-dev \
+            libbenchmark-dev \
+            libgmock-dev \
+            libz-dev
+      - name: Fetch & Build non packaged dependencies
+        if: steps.cache-lookup.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p deps
+          cd deps
+          ../docker/build_deps.sh
+      - name: Cache save
+        if: steps.cache-lookup.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: deps
+          key: deps-${{ steps.get-hash.outputs.deps_hash }}
+
+  build_ubuntu:
+    name: Build [ubuntu]
+    runs-on: ubuntu-latest
+    needs: build_dependencies
+    steps:
+      - uses: actions/checkout@v4
+      - name: Get dependencies hash
+        id: get-hash
+        run: echo "deps_hash=`cat blazingmq/docker/build_deps.sh | shasum`" >> $GITHUB_OUTPUT
+      - uses: actions/cache/restore@v4
+        with:
+          path: deps
+          key: deps-${{ steps.get-hash.outputs.deps_hash }}
       - name: Set up dependencies
         run: |
           sudo apt-get update
@@ -34,9 +87,7 @@ jobs:
             libbenchmark-dev \
             libgmock-dev \
             libz-dev
-      - name: Create dependency fetcher working directory
-        run: mkdir -p deps
-      - name: Fetch & Build non packaged dependencies
+      - name: Install cached non packaged dependencies
         working-directory: deps
         run: ../docker/build_deps.sh
       - name: Build BlazingMQ

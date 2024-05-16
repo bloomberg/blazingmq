@@ -211,11 +211,6 @@ bool compareByByte(const bsl::pair<mqbu::StorageKey, MessageByteCounter>& lhs,
     return lhs.second.second > rhs.second.second;
 }
 
-void noOp()
-{
-    // NOTHING
-}
-
 }  // close unnamed namespace
 
 // -------------------------------------
@@ -7125,8 +7120,8 @@ void FileStore::flush()
     // next k_GC_MESSAGES_INTERVAL_SECONDS.
 
     if (haveMore || haveMoreHistory) {
-        // Re-enable 'flush' by empty callback
-        dispatcher()->execute(&noOp,
+        // Explicitly schedule 'flush()' instead of relying on idleness
+        dispatcher()->execute(bdlf::BindUtil::bind(&FileStore::flush, this),
                               this,
                               mqbi::DispatcherEventType::e_CALLBACK);
     }
