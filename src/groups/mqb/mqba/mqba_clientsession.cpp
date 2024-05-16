@@ -660,8 +660,7 @@ void ClientSession::tearDownImpl(bslmt::Semaphore*            semaphore,
          it != d_queueSessionManager.queues().end();
          ++it) {
         if (!it->second.d_hasReceivedFinalCloseQueue) {
-            mqbi::Queue* queue = it->second.d_handle_p->queue();
-            BSLS_ASSERT_SAFE(queue);
+            BSLS_ASSERT_SAFE(it->second.d_handle_p->queue());
 
             if (isBrokerShutdown ||
                 d_clientIdentity_p->clientType() ==

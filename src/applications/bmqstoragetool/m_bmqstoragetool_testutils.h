@@ -140,7 +140,7 @@ class JournalFile {
     const FileHeader& fileHeader() const;
 
     /// Return value of timestamp incrementation.
-    const bsls::Types::Uint64 timestampIncrement() const;
+    bsls::Types::Uint64 timestampIncrement() const;
 
     // MANIPULATORS
 
@@ -232,16 +232,15 @@ class FileManagerMock : public FileManager {
   public:
     // CREATORS
 
-    /// Constructor using the specified `allocator`.
-    explicit FileManagerMock(bslma::Allocator* allocator = 0)
+    /// Default constructor.
+    explicit FileManagerMock()
     {
         EXPECT_CALL(*this, dataFileIterator())
             .WillRepeatedly(Return(&d_dataFileIt));
     }
 
     /// Constructor using the specified `journalFile` and `allocator`.
-    explicit FileManagerMock(const JournalFile& journalFile,
-                             bslma::Allocator*  allocator = 0)
+    explicit FileManagerMock(const JournalFile& journalFile)
     : d_journalFileIt(&journalFile.mappedFileDescriptor(),
                       journalFile.fileHeader(),
                       false)
@@ -275,7 +274,7 @@ inline const FileHeader& JournalFile::fileHeader() const
     return d_fileHeader;
 }
 
-inline const bsls::Types::Uint64 JournalFile::timestampIncrement() const
+inline bsls::Types::Uint64 JournalFile::timestampIncrement() const
 {
     return d_timestampIncrement;
 }

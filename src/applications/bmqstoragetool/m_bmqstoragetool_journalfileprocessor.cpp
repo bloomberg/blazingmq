@@ -120,7 +120,6 @@ void JournalFileProcessor::process()
                     d_parameters->d_queueMap,
                     d_parameters->d_timestampGt,
                     d_parameters->d_timestampLt,
-                    d_ostream,
                     d_allocator_p);
 
     bool stopSearch          = false;
