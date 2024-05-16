@@ -109,7 +109,7 @@ def reserve_port() -> typing.Iterator[TcpAddress]:
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sock.bind(("0.0.0.0", 0))
         sockname = sock.getsockname()
-    
+
         address = tcp_address(sockname[0], sockname[1])
 
     yield address

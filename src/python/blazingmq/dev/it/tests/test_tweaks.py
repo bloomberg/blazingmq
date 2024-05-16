@@ -3,7 +3,7 @@ from blazingmq.dev.configurator import Configurator
 
 
 def apply_tweaks(configurator, tweaks, stage):
-    for (tweak_callable, tweak_stage) in tweaks:
+    for tweak_callable, tweak_stage in tweaks:
         if tweak_stage == stage:
             tweak_callable(configurator)
 

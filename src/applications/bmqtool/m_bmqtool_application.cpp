@@ -740,8 +740,8 @@ void Application::onMessageEvent(const bmqa::MessageEvent& event)
             d_statContext_sp->adjustValue(k_STAT_MSG, blob.length());
 
             // Call 'onMessage' before logging PUSH message. 'onMessage' blocks
-            // until open queue response is logged.  This is done for 'bmqit'
-            // which relies on order of those logs.
+            // until open queue response is logged.  This is done for
+            // integration tests that rely on order of those logs.
 
             if (d_parameters_p->mode() == ParametersMode::e_CLI &&
                 !d_parameters_p->confirmMsg()) {
