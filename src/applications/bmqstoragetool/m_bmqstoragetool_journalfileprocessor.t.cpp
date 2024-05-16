@@ -360,8 +360,9 @@ static void test5_searchOutstandingMessagesTest()
     expectedStream << outstandingGUIDS.size() << " message GUID(s) found."
                    << bsl::endl;
     const size_t messageCount     = k_NUM_RECORDS / 3;
-    const float  outstandingRatio = float(outstandingGUIDS.size()) /
-                                   float(messageCount) * 100.0f;
+    const float  outstandingRatio = static_cast<float>(
+                                       outstandingGUIDS.size()) /
+                                   static_cast<float>(messageCount) * 100.0f;
     expectedStream << "Outstanding ratio: " << outstandingRatio << "% ("
                    << outstandingGUIDS.size() << "/" << messageCount << ")"
                    << bsl::endl;
@@ -418,9 +419,9 @@ static void test6_searchConfirmedMessagesTest()
     expectedStream << confirmedGUIDS.size() << " message GUID(s) found."
                    << bsl::endl;
     const size_t messageCount     = k_NUM_RECORDS / 3;
-    const float  outstandingRatio = float(messageCount -
-                                         confirmedGUIDS.size()) /
-                                   float(messageCount) * 100.0f;
+    const float  outstandingRatio = static_cast<float>(messageCount -
+                                                      confirmedGUIDS.size()) /
+                                   static_cast<float>(messageCount) * 100.0f;
     expectedStream << "Outstanding ratio: " << outstandingRatio << "% ("
                    << (messageCount - confirmedGUIDS.size()) << "/"
                    << messageCount << ")" << bsl::endl;
@@ -479,9 +480,10 @@ static void test7_searchPartiallyConfirmedMessagesTest()
     }
     expectedStream << partiallyConfirmedGUIDS.size()
                    << " message GUID(s) found." << bsl::endl;
-    const size_t messageCount     = k_NUM_RECORDS / 3 + 1;
-    const float  outstandingRatio = float(partiallyConfirmedGUIDS.size() + 1) /
-                                   float(messageCount) * 100.0f;
+    const size_t messageCount     = (k_NUM_RECORDS + 2) / 3;
+    const float  outstandingRatio = static_cast<float>(
+                                       partiallyConfirmedGUIDS.size() + 1) /
+                                   static_cast<float>(messageCount) * 100.0f;
     expectedStream << "Outstanding ratio: " << outstandingRatio << "% ("
                    << partiallyConfirmedGUIDS.size() + 1 << "/" << messageCount
                    << ")" << bsl::endl;
