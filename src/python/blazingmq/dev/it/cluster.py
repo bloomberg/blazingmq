@@ -110,7 +110,9 @@ class Cluster(contextlib.AbstractContextManager):
         if not self.last_known_leader:
             return None, None
 
-        return self.last_known_leader.config.host, int(self.last_known_leader.config.port)
+        return self.last_known_leader.config.host, int(
+            self.last_known_leader.config.port
+        )
 
     def start(self, wait_leader=True, wait_ready=False):
         """

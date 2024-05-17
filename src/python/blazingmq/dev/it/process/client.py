@@ -77,7 +77,9 @@ class Client(blazingmq.dev.it.process.bmqproc.BMQProcess):
     e_INVALID_ARGUMENT = -7
     e_NOT_READY = -8
 
-    def __init__(self, name, broker: cfg.Broker, options=None, dump_messages=True, **kwargs):
+    def __init__(
+        self, name, broker: cfg.Broker, options=None, dump_messages=True, **kwargs
+    ):
         if options is None:
             options = []
         elif type(options) is str:
@@ -88,13 +90,13 @@ class Client(blazingmq.dev.it.process.bmqproc.BMQProcess):
 
         super().__init__(
             name,
-                [
-                    "bin/bmqtool.tsk",
-                    "-b",
-                    f"tcp://localhost:{broker.config.port}",
-                    f'--logFormat="{blazingmq.dev.it.process.bmqproc.PROC_LOG_FORMAT}"',
-                ]
-                + options,
+            [
+                "bin/bmqtool.tsk",
+                "-b",
+                f"tcp://localhost:{broker.config.port}",
+                f'--logFormat="{blazingmq.dev.it.process.bmqproc.PROC_LOG_FORMAT}"',
+            ]
+            + options,
             stdin=subprocess.PIPE,
             process_log_category="bmqtool",
             **kwargs,

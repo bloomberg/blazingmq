@@ -54,7 +54,6 @@ class TestPutsRetransmission:
     work_dir: Path
 
     def inspect_results(self, allow_duplicates=False):
-
         if self.active_node in self.cluster.virtual_nodes():
             self.active_node.wait_status(wait_leader=True, wait_ready=False)
 
@@ -82,7 +81,6 @@ class TestPutsRetransmission:
         self.parse_message_logs(allow_duplicates=allow_duplicates)
 
     def parse_message_logs(self, allow_duplicates=False):
-
         Put = namedtuple("Put", ["message_index", "guid"])
         Ack = namedtuple("Ack", ["message_index", "guid", "status"])
         Push = namedtuple("Push", ["message_index", "guid", "index"])
