@@ -13,6 +13,7 @@ mwcu_operationchain
 mwcu_operationchain_cpp03
 mwcu_outstreamformatsaver
 mwcu_printutil
+mwcu_safecast
 mwcu_samethreadchecker
 mwcu_sharedresource
 mwcu_stringutil
