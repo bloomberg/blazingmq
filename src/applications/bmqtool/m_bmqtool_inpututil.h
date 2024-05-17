@@ -75,10 +75,10 @@ struct InputUtil {
     /// Parse the specified `properties` (produced by
     /// `MessageProperties::print()`) into the specified `out`. Return true on
     /// success and false on error in which case load the error description
-    /// into the specified `error`.
+    /// into the optionally specified `error`.
     static bool parseProperties(bsl::vector<MessageProperty>* out,
                                 const bsl::string&            properties,
-                                bsl::string*                  error = 0);
+                                bsl::ostream*                 error = 0);
 
     static bool populateSubscriptions(bmqt::QueueOptions*              out,
                                       const bsl::vector<Subscription>& in);
@@ -89,11 +89,12 @@ struct InputUtil {
                              const bsl::string& jsonInput);
 
     /// Decode hexdump produced by bdlb::Print::hexDump() into binary format.
-    /// Read hexdump from the specified `in` and write binary into th specified
-    /// `out`. Return true on success and false on error in which case load the
-    /// error description into the specified `error`.
-    static bool
-    decodeHexDump(bsl::ostream& out, bsl::istream& in, bsl::string* error = 0);
+    /// Read hexdump from the specified `in` and write binary into the
+    /// specified `out`. Return true on success and false on error in which
+    /// case load the error description into the optionally specified `error`.
+    static bool decodeHexDump(bsl::ostream* out,
+                              bsl::istream& in,
+                              bsl::ostream* error = 0);
 
   private:
     // CLASS-SCOPE CATEGORY

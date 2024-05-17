@@ -87,34 +87,29 @@ void printMessage(bsl::ostream& out, int index, const bmqa::Message& message)
 #endif
 }
 
-void closeFileStream(bsl::ifstream* fileStream)
-{
-    fileStream->close();
-}
-
 // Load message content from dump file, created by
 // QueueEngineUtil::dumpMessageInTempfile() method. Return `true` on success or
 // `false` otherwise. In case of `false`, `errorDescription` contains details.
 bool loadMessageContentFromFile(
     bsl::vector<bsl::string>*     payload,
     bsl::vector<MessageProperty>* messageProperties,
-    bsl::ostream&                 errorDescription,
-    bsl::string&                  file)
+    bsl::ostream*                 errorDescription,
+    const bsl::string&            filePath)
 {
-    if (file.empty()) {
-        errorDescription << "Empty 'file' argument";
+    // PRECONDITIONS
+    BSLS_ASSERT(payload);
+    BSLS_ASSERT(errorDescription);
+
+    if (filePath.empty()) {
+        *errorDescription << "Empty 'file' argument";
         return false;  // RETURN
     }
 
-    bsl::ifstream fileStream(file.c_str());
+    bsl::ifstream fileStream(filePath.c_str());
     if (!fileStream.is_open()) {
-        errorDescription << "Failed to open file: " << file;
+        *errorDescription << "Failed to open file: " << filePath;
         return false;  // RETURN
     }
-
-    // Set guard to close the filestream
-    bdlb::ScopeExitAny guard(
-        bdlf::BindUtil::bind(closeFileStream, &fileStream));
 
     // Parse file according to format defined in
     // QueueEngineUtil::dumpMessageInTempfile()
@@ -127,7 +122,7 @@ bool loadMessageContentFromFile(
         // Properties
         bsl::getline(fileStream, line);
         if (line.at(0) != '[') {
-            errorDescription << "Properties '[' marker missed";
+            *errorDescription << "Properties '[' marker missed";
             return false;  // RETURN
         }
         mwcu::MemOutStream propertiesStream;
@@ -145,39 +140,39 @@ bool loadMessageContentFromFile(
                 propertiesStream << '\n';
             }
             if (fileStream.eof()) {
-                errorDescription << "Properties ']' marker missed";
+                *errorDescription << "Properties ']' marker missed";
                 return false;  // RETURN
             }
         }
 
-        bsl::string parseError;
+        mwcu::MemOutStream parseError;
         if (!InputUtil::parseProperties(messageProperties,
                                         propertiesStream.str(),
                                         &parseError)) {
-            errorDescription << "Message properties parse error: "
-                             << parseError;
-            return false;
+            *errorDescription << "Message properties parse error: "
+                              << parseError.str();
+            return false;  // RETURN
         }
 
         fileStream.read(tmpBuffer, 2);  // skip empty lines
 
         bsl::getline(fileStream, line);
         if (line != "Message Payload:") {
-            errorDescription << "Unexpected file format";
+            *errorDescription << "Unexpected file format";
             return false;
         }
     }
     else if (line != "Application Data:") {
-        errorDescription << "Unexpected file format";
-        return false;
+        *errorDescription << "Unexpected file format";
+        return false;  // RETURN
     }
 
     // Read and convert message payload
     mwcu::MemOutStream resultStream;
-    bsl::string        error;
-    if (!InputUtil::decodeHexDump(resultStream, fileStream, &error)) {
-        errorDescription << error;
-        return false;
+    if (!InputUtil::decodeHexDump(&resultStream,
+                                  fileStream,
+                                  errorDescription)) {
+        return false;  // RETURN
     }
 
     payload->push_back(resultStream.str());
@@ -891,7 +886,7 @@ bool Interactive::loadMessageFromFile(PostCommand& command)
     mwcu::MemOutStream errorDescription;
     if (!loadMessageContentFromFile(&command.payload(),
                                     &command.messageProperties(),
-                                    errorDescription,
+                                    &errorDescription,
                                     command.file())) {
         BALL_LOG_ERROR << errorDescription.str();
         return false;  // RETURN
@@ -1028,13 +1023,16 @@ int Interactive::mainLoop()
                         hasMPs = keys.find(mps->name()) != keys.cend();
                     }
 
-                    bool commandValid = true;
+                    bool commandIsValid = true;
                     if (!command.file().empty()) {
-                        commandValid = loadMessageFromFile(command);
-                        hasMPs       = !command.messageProperties().empty();
+                        commandIsValid = loadMessageFromFile(command);
+                        hasMPs         = !command.messageProperties().empty();
                     }
-                    if (commandValid) {
+                    if (commandIsValid) {
                         processCommand(command, hasMPs);
+                    }
+                    else {
+                        BALL_LOG_ERROR << verb << " command failed";
                     }
                 }
             }
