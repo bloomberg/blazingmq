@@ -5,13 +5,17 @@ payload in various scenarios as listed below:
 """
 
 import blazingmq.dev.it.testconstants as tc
-from blazingmq.dev.it.fixtures import Cluster, cluster, order  # pylint: disable=unused-import
+from blazingmq.dev.it.fixtures import (
+    Cluster,
+    cluster,
+    order,
+)  # pylint: disable=unused-import
 from blazingmq.dev.it.util import random_string
 
 pytestmark = order(10)
 
-def test_compression_restart(cluster: Cluster):
 
+def test_compression_restart(cluster: Cluster):
     # Start a producer and post a message.
     proxies = cluster.proxy_cycle()
     producer = next(proxies).create_client("producer")

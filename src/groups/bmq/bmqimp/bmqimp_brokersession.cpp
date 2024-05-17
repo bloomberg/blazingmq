@@ -180,6 +180,7 @@ void fillDTSpanQueueBaggage(bmqpi::DTSpan::Baggage* baggage,
     baggage->put("bmq.queue.uri", queue.uri().asString());
 }
 
+BSLA_MAYBE_UNUSED
 bool isConfigure(const bmqp_ctrlmsg::ControlMessage& request,
                  const bmqp_ctrlmsg::ControlMessage& response)
 {
@@ -190,6 +191,7 @@ bool isConfigure(const bmqp_ctrlmsg::ControlMessage& request,
                      response.choice().isConfigureQueueStreamResponseValue();
 }
 
+BSLA_MAYBE_UNUSED
 bool isConfigure(const bmqp_ctrlmsg::ControlMessage& request)
 {
     return bmqscm::Version::versionAsInt() == bmqp::Protocol::k_DEV_VERSION
@@ -197,6 +199,7 @@ bool isConfigure(const bmqp_ctrlmsg::ControlMessage& request)
                : request.choice().isConfigureQueueStreamValue();
 }
 
+BSLA_MAYBE_UNUSED
 bool isConfigureResponse(const bmqp_ctrlmsg::ControlMessage& request)
 {
     return bmqscm::Version::versionAsInt() == bmqp::Protocol::k_DEV_VERSION
@@ -2958,7 +2961,8 @@ BrokerSession::sendRequest(const RequestManagerType::RequestSp& context,
 
     BSLS_ASSERT_SAFE(d_fsmThreadChecker.inSameThread());
 
-    const bool isDisconnect = context->request().choice().isDisconnectValue();
+    BSLA_MAYBE_UNUSED const bool isDisconnect =
+        context->request().choice().isDisconnectValue();
 
     // For all requests except disconnect the d_acceptRequests should be true
     BSLS_ASSERT_SAFE(isDisconnect || d_acceptRequests);

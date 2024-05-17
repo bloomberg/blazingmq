@@ -95,29 +95,31 @@ mqbs::DataFileIterator* FileManagerImpl::dataFileIterator()
 QueueMap FileManagerImpl::buildQueueMap(const bsl::string& cslFile,
                                         bslma::Allocator*  allocator)
 {
+    bslma::Allocator* alloc = bslma::Default::allocator(allocator);
+
     using namespace bmqp_ctrlmsg;
     typedef bsl::vector<QueueInfo>     QueueInfos;
     typedef QueueInfos::const_iterator QueueInfosIt;
     if (cslFile.empty()) {
         throw bsl::runtime_error("empty CSL file path");  // THROW
     }
-    QueueMap d_queueMap(allocator);
+    QueueMap d_queueMap(alloc);
 
     // Required for ledger operations
     bmqp::Crc32c::initialize();
 
     // Instantiate ledger config
-    mqbsi::LedgerConfig                    ledgerConfig(allocator);
+    mqbsi::LedgerConfig                    ledgerConfig(alloc);
     bsl::shared_ptr<mqbsi::LogIdGenerator> logIdGenerator(
-        new (*allocator) mqbmock::LogIdGenerator("bmq_csl_", allocator),
-        allocator);
+        new (*alloc) mqbmock::LogIdGenerator("bmq_csl_", alloc),
+        alloc);
     bsl::shared_ptr<mqbsi::LogFactory> logFactory(
-        new (*allocator) mqbsl::MemoryMappedOnDiskLogFactory(allocator),
-        allocator);
+        new (*alloc) mqbsl::MemoryMappedOnDiskLogFactory(alloc),
+        alloc);
     bdls::FilesystemUtil::Offset fileSize = bdls::FilesystemUtil::getFileSize(
         cslFile.c_str());
-    bsl::string pattern(allocator);
-    bsl::string location(allocator);
+    bsl::string pattern(alloc);
+    bsl::string location(alloc);
     BSLS_ASSERT(bdls::PathUtil::getBasename(&pattern, cslFile) == 0);
     BSLS_ASSERT(bdls::PathUtil::getDirname(&location, cslFile) == 0);
     ledgerConfig.setLocation(location)
@@ -133,7 +135,7 @@ QueueMap FileManagerImpl::buildQueueMap(const bsl::string& cslFile,
         .setValidateLogCallback(mqbc::ClusterStateLedgerUtil::validateLog);
 
     // Create and open the ledger
-    mqbsl::Ledger ledger(ledgerConfig, allocator);
+    mqbsl::Ledger ledger(ledgerConfig, alloc);
     BSLS_ASSERT(ledger.open(mqbsi::Ledger::e_READ_ONLY) == 0);
     // Set guard to close the ledger
     bdlb::ScopeExitAny guard(bdlf::BindUtil::bind(closeLedger, &ledger));

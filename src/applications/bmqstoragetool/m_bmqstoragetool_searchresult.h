@@ -171,14 +171,14 @@ class SearchShortResult : public SearchResult {
   public:
     // CREATORS
 
-    /// Constructor using the specified `ostream`, `payloadDumper`, `allocator`
-    /// `printImmediately`, `eraseDeleted`, and `printOnDelete`.
+    /// Constructor using the specified `ostream`, `payloadDumper`,
+    /// `printImmediately`, `eraseDeleted`, `printOnDelete` and `allocator`.
     explicit SearchShortResult(bsl::ostream&                     ostream,
                                bslma::ManagedPtr<PayloadDumper>& payloadDumper,
-                               bslma::Allocator*                 allocator,
-                               const bool printImmediately = true,
-                               const bool eraseDeleted     = false,
-                               const bool printOnDelete    = false);
+                               bool              printImmediately = true,
+                               bool              eraseDeleted     = false,
+                               bool              printOnDelete    = false,
+                               bslma::Allocator* allocator        = 0);
 
     // MANIPULATORS
 
@@ -274,14 +274,14 @@ class SearchDetailResult : public SearchResult {
     // CREATORS
 
     /// Constructor using the specified `ostream`, `queueMap`, `payloadDumper`,
-    /// `allocator` `printImmediately`, `eraseDeleted`, and `cleanUnprinted`.
+    /// `printImmediately`, `eraseDeleted`, `cleanUnprinted` and `allocator`.
     SearchDetailResult(bsl::ostream&                     ostream,
                        const QueueMap&                   queueMap,
                        bslma::ManagedPtr<PayloadDumper>& payloadDumper,
-                       bslma::Allocator*                 allocator,
-                       const bool printImmediately = true,
-                       const bool eraseDeleted     = true,
-                       const bool cleanUnprinted   = false);
+                       bool              printImmediately = true,
+                       bool              eraseDeleted     = true,
+                       bool              cleanUnprinted   = false,
+                       bslma::Allocator* allocator        = 0);
 
     // MANIPULATORS
 

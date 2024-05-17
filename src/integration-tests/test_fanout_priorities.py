@@ -4,11 +4,16 @@ consumers .
 """
 
 
-from blazingmq.dev.it.fixtures import Cluster, cluster, order  # pylint: disable=unused-import
+from blazingmq.dev.it.fixtures import (
+    Cluster,
+    cluster,
+    order,
+)  # pylint: disable=unused-import
 from blazingmq.dev.it.process.client import Client
 from blazingmq.dev.it.util import wait_until
 
 pytestmark = order(4)
+
 
 def test_fanout_priorities(cluster: Cluster):
     # create foo, bar, and baz clients on every node.
@@ -70,7 +75,6 @@ def test_fanout_priorities(cluster: Cluster):
 
 
 def _verify_delivery(producers, message, highPriorityQueues, lowPriorityQueues):
-
     for i, producer in enumerate(producers):
         # there is one producer on each node
         assert (
