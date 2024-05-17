@@ -70,9 +70,8 @@ FileManagerImpl::FileManagerImpl(const bsl::string& journalFile,
                                  bslma::Allocator*  allocator)
 : d_journalFile(journalFile, allocator)
 , d_dataFile(dataFile, allocator)
-, d_allocator_p(bslma::Default::allocator(allocator))
 {
-    mwcu::MemOutStream ss(d_allocator_p);
+    mwcu::MemOutStream ss(allocator);
     if ((!d_journalFile.path().empty() && !d_journalFile.resetIterator(ss)) ||
         (!d_dataFile.path().empty() && !d_dataFile.resetIterator(ss))) {
         throw bsl::runtime_error(ss.str());  // THROW
