@@ -92,8 +92,12 @@ class FileManagerImpl : public FileManager {
     // PRIVATE DATA
     FileHandler<mqbs::JournalFileIterator> d_journalFile;
     // Handler of journal file
+
     FileHandler<mqbs::DataFileIterator> d_dataFile;
     // Handler of data file
+
+    bslma::Allocator* d_allocator_p;
+    // Allocator to use
 
   public:
     // CREATORS

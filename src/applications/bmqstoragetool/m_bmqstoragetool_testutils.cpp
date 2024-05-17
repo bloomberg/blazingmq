@@ -53,7 +53,6 @@ JournalFile::JournalFile(size_t numRecords, bslma::Allocator* allocator)
 , d_timestampIncrement(100)
 , d_fileHeader()
 , d_iterator()
-, d_allocator_p(allocator)
 {
     bsls::Types::Uint64 totalSize =
         sizeof(FileHeader) + sizeof(JournalFileHeader) +

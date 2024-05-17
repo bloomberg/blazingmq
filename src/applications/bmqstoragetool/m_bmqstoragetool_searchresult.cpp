@@ -37,7 +37,7 @@ void printDataFileMeta(bsl::ostream&           ostream,
                        mqbs::DataFileIterator* dataFile_p)
 {
     if (!dataFile_p || !dataFile_p->isValid()) {
-        return;
+        return;  // RETURN
     }
     ostream << "\nDetails of data file: \n"
             << *dataFile_p->mappedFileDescriptor() << " "
@@ -50,7 +50,7 @@ void printJournalFileMeta(bsl::ostream&              ostream,
                           bslma::Allocator*          allocator)
 {
     if (!journalFile_p || !journalFile_p->isValid()) {
-        return;
+        return;  // RETURN
     }
 
     ostream << "\nDetails of journal file: \n";
@@ -124,7 +124,8 @@ void printJournalFileMeta(bsl::ostream&              ostream,
 
         bsls::Types::Uint64 epochValue = syncPt.header().timestamp();
         bdlt::Datetime      datetime;
-        int rc = bdlt::EpochUtil::convertFromTimeT64(&datetime, epochValue);
+        const int           rc = bdlt::EpochUtil::convertFromTimeT64(&datetime,
+                                                           epochValue);
         if (0 != rc) {
             printer << 0;
         }
@@ -289,10 +290,10 @@ bool SearchResultTimestampDecorator::processDeletionRecord(
 SearchShortResult::SearchShortResult(
     bsl::ostream&                     ostream,
     bslma::ManagedPtr<PayloadDumper>& payloadDumper,
-    bslma::Allocator*                 allocator,
-    const bool                        printImmediately,
-    const bool                        eraseDeleted,
-    const bool                        printOnDelete)
+    bool                              printImmediately,
+    bool                              eraseDeleted,
+    bool                              printOnDelete,
+    bslma::Allocator*                 allocator)
 : d_ostream(ostream)
 , d_payloadDumper(payloadDumper)
 , d_printImmediately(printImmediately)
@@ -408,10 +409,10 @@ SearchDetailResult::SearchDetailResult(
     bsl::ostream&                     ostream,
     const QueueMap&                   queueMap,
     bslma::ManagedPtr<PayloadDumper>& payloadDumper,
-    bslma::Allocator*                 allocator,
-    const bool                        printImmediately,
-    const bool                        eraseDeleted,
-    const bool                        cleanUnprinted)
+    bool                              printImmediately,
+    bool                              eraseDeleted,
+    bool                              cleanUnprinted,
+    bslma::Allocator*                 allocator)
 : d_ostream(ostream)
 , d_queueMap(queueMap)
 , d_payloadDumper(payloadDumper)
@@ -540,6 +541,7 @@ bool SearchDetailResult::hasCache() const
 // ========================
 // class SearchAllDecorator
 // ========================
+
 SearchAllDecorator::SearchAllDecorator(
     const bsl::shared_ptr<SearchResult>& component,
     bslma::Allocator*                    allocator)

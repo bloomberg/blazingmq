@@ -114,8 +114,6 @@ class JournalFile {
     // File header data.
     JournalFileIterator d_iterator;
     // Journal file iterator.
-    bslma::Allocator* d_allocator_p;
-    // Allocator to be used.
 
     // PRIVATE MANIPULATORS
 
@@ -128,7 +126,7 @@ class JournalFile {
     /// Constructor using the specified `numRecords` and `allocator`.
     explicit JournalFile(size_t numRecords, bslma::Allocator* allocator);
 
-    /// Default destructor.
+    /// Destructor.
     ~JournalFile();
 
     // ACCESSORS
