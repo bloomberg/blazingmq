@@ -29,15 +29,20 @@ bsl::shared_ptr<SearchResult> SearchResultFactory::createSearchResult(
     bsl::ostream&                         ostream,
     bslma::Allocator*                     allocator)
 {
+    // PRECONDITIONS
+    BSLS_ASSERT(params);
+
+    bslma::Allocator* alloc = bslma::Default::allocator(allocator);
+
     // Create payload dumper
     bslma::ManagedPtr<PayloadDumper> payloadDumper;
     if (params->d_dumpPayload) {
-        payloadDumper.load(new (*allocator)
+        payloadDumper.load(new (*alloc)
                                PayloadDumper(ostream,
                                              fileManager->dataFileIterator(),
                                              params->d_dumpLimit,
-                                             allocator),
-                           allocator);
+                                             alloc),
+                           alloc);
     }
 
     // Set up processing flags
@@ -57,74 +62,73 @@ bsl::shared_ptr<SearchResult> SearchResultFactory::createSearchResult(
     // Create searchResult implementation
     bsl::shared_ptr<SearchResult> searchResult;
     if (details) {
-        searchResult.reset(new (*allocator)
-                               SearchDetailResult(ostream,
-                                                  params->d_queueMap,
-                                                  payloadDumper,
-                                                  allocator,
-                                                  printImmediately,
-                                                  eraseDeleted,
-                                                  cleanUnprinted),
-                           allocator);
+        searchResult.reset(new (*alloc) SearchDetailResult(ostream,
+                                                           params->d_queueMap,
+                                                           payloadDumper,
+                                                           printImmediately,
+                                                           eraseDeleted,
+                                                           cleanUnprinted,
+                                                           alloc),
+                           alloc);
     }
     else {
-        searchResult.reset(new (*allocator) SearchShortResult(ostream,
-                                                              payloadDumper,
-                                                              allocator,
-                                                              printImmediately,
-                                                              eraseDeleted,
-                                                              printOnDelete),
-                           allocator);
+        searchResult.reset(new (*alloc) SearchShortResult(ostream,
+                                                          payloadDumper,
+                                                          printImmediately,
+                                                          eraseDeleted,
+                                                          printOnDelete,
+                                                          alloc),
+                           alloc);
     }
 
     // Create Decorator for specific search
     if (!params->d_guid.empty()) {
         // Search GUIDs
-        searchResult.reset(new (*allocator) SearchGuidDecorator(searchResult,
-                                                                params->d_guid,
-                                                                ostream,
-                                                                details,
-                                                                allocator),
-                           allocator);
+        searchResult.reset(new (*alloc) SearchGuidDecorator(searchResult,
+                                                            params->d_guid,
+                                                            ostream,
+                                                            details,
+                                                            alloc),
+                           alloc);
     }
     else if (params->d_summary) {
         // Summary
-        searchResult.reset(new (*allocator) SummaryProcessor(
-                               ostream,
-                               fileManager->journalFileIterator(),
-                               fileManager->dataFileIterator(),
-                               allocator),
-                           allocator);
+        searchResult.reset(
+            new (*alloc) SummaryProcessor(ostream,
+                                          fileManager->journalFileIterator(),
+                                          fileManager->dataFileIterator(),
+                                          alloc),
+            alloc);
     }
     else if (params->d_outstanding || params->d_confirmed) {
         // Search outstanding or confirmed
         searchResult.reset(
-            new (*allocator)
-                SearchOutstandingDecorator(searchResult, ostream, allocator),
-            allocator);
+            new (*alloc)
+                SearchOutstandingDecorator(searchResult, ostream, alloc),
+            alloc);
     }
     else if (params->d_partiallyConfirmed) {
         // Search partially confirmed
-        searchResult.reset(new (*allocator)
+        searchResult.reset(new (*alloc)
                                SearchPartiallyConfirmedDecorator(searchResult,
                                                                  ostream,
-                                                                 allocator),
-                           allocator);
+                                                                 alloc),
+                           alloc);
     }
     else {
         // Drefault: search all
-        searchResult.reset(new (*allocator)
-                               SearchAllDecorator(searchResult, allocator),
-                           allocator);
+        searchResult.reset(new (*alloc)
+                               SearchAllDecorator(searchResult, alloc),
+                           alloc);
     }
 
     // Add TimestampDecorator if 'timestampLt' is given.
     if (params->d_timestampLt > 0) {
-        searchResult.reset(new (*allocator) SearchResultTimestampDecorator(
-                               searchResult,
-                               params->d_timestampLt,
-                               allocator),
-                           allocator);
+        searchResult.reset(
+            new (*alloc) SearchResultTimestampDecorator(searchResult,
+                                                        params->d_timestampLt,
+                                                        alloc),
+            alloc);
     }
 
     BSLS_ASSERT(searchResult);

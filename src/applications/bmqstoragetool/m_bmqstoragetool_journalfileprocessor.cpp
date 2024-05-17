@@ -45,6 +45,9 @@ namespace m_bmqstoragetool {
 int moveToLowerBound(mqbs::JournalFileIterator* jit,
                      const bsls::Types::Uint64& timestamp)
 {
+    // PRECONDITIONS
+    BSLS_ASSERT(jit);
+
     int                rc         = 1;
     const unsigned int recordSize = jit->header().recordWords() *
                                     bmqp::Protocol::k_WORD_SIZE;

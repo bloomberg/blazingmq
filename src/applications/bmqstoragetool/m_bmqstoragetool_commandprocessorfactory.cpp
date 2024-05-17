@@ -31,20 +31,25 @@ CommandProcessorFactory::createCommandProcessor(
     bsl::ostream&                   ostream,
     bslma::Allocator*               allocator)
 {
+    // PRECONDITIONS
+    BSLS_ASSERT(params);
+
+    bslma::Allocator* alloc = bslma::Default::allocator(allocator);
+
     // Create searchResult for given 'params'.
     bsl::shared_ptr<SearchResult> searchResult =
         SearchResultFactory::createSearchResult(params,
                                                 fileManager,
                                                 ostream,
-                                                allocator);
+                                                alloc);
     // Create commandProcessor.
     bslma::ManagedPtr<CommandProcessor> commandProcessor(
-        new (*allocator) JournalFileProcessor(params,
-                                              fileManager,
-                                              searchResult,
-                                              ostream,
-                                              allocator),
-        allocator);
+        new (*alloc) JournalFileProcessor(params,
+                                          fileManager,
+                                          searchResult,
+                                          ostream,
+                                          alloc),
+        alloc);
     return commandProcessor;
 }
 
