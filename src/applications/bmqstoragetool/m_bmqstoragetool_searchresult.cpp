@@ -619,6 +619,7 @@ void SearchOutstandingDecorator::outputResult()
 // =======================================
 // class SearchPartiallyConfirmedDecorator
 // =======================================
+
 SearchPartiallyConfirmedDecorator::SearchPartiallyConfirmedDecorator(
     const bsl::shared_ptr<SearchResult>& component,
     bsl::ostream&                        ostream,

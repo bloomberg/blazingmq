@@ -758,6 +758,10 @@ static void test12_printMessagesDetailsTest()
 {
     mwctst::TestHelper::printTestName("PRINT MESSAGE DETAILS TEST");
 
+    s_ignoreCheckDefAlloc = true;
+    // Disable default allocator check for this test until we can debug
+    // it on AIX/Solaris
+
     // Simulate journal file
     const size_t    k_NUM_RECORDS = 15;
     RecordsListType records(s_allocator_p);

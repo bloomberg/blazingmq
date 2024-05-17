@@ -130,7 +130,7 @@ static void test2_executeSystemFailure()
 
     PVV("Testing abnormal exit of the command");
     rc = mwcsys::ExecUtil::execute(&output,
-                                   "python -c 'import os,signal; "
+                                   "python3 -c 'import os,signal; "
                                    "os.kill(os.getpid(), signal.SIGKILL)'");
     ASSERT_EQ(rc, -2);
     ASSERT_EQ(output, "");

@@ -96,9 +96,6 @@ class FileManagerImpl : public FileManager {
     FileHandler<mqbs::DataFileIterator> d_dataFile;
     // Handler of data file
 
-    bslma::Allocator* d_allocator_p;
-    // Allocator to use
-
   public:
     // CREATORS
     /// Default constructor
