@@ -94,7 +94,8 @@ bool loadMessageContentFromFile(
     bsl::vector<bsl::string>*     payload,
     bsl::vector<MessageProperty>* messageProperties,
     bsl::ostream*                 errorDescription,
-    const bsl::string&            filePath)
+    const bsl::string&            filePath,
+    bslma::Allocator*             allocator)
 {
     // PRECONDITIONS
     BSLS_ASSERT(payload);
@@ -113,7 +114,7 @@ bool loadMessageContentFromFile(
 
     // Parse file according to format defined in
     // QueueEngineUtil::dumpMessageInTempfile()
-    bsl::string line;
+    bsl::string line(allocator);
     bsl::getline(fileStream, line);
     if (line == "Message Properties:") {
         char tmpBuffer[2];
@@ -125,7 +126,7 @@ bool loadMessageContentFromFile(
             *errorDescription << "Properties '[' marker missed";
             return false;  // RETURN
         }
-        mwcu::MemOutStream propertiesStream;
+        mwcu::MemOutStream propertiesStream(allocator);
         propertiesStream << line;
         if (line.back() != ']') {
             // Binary properties are multiline, read lines until close marker
@@ -148,6 +149,7 @@ bool loadMessageContentFromFile(
         mwcu::MemOutStream parseError;
         if (!InputUtil::parseProperties(messageProperties,
                                         propertiesStream.str(),
+                                        allocator,
                                         &parseError)) {
             *errorDescription << "Message properties parse error: "
                               << parseError.str();
@@ -887,7 +889,8 @@ bool Interactive::loadMessageFromFile(PostCommand& command)
     if (!loadMessageContentFromFile(&command.payload(),
                                     &command.messageProperties(),
                                     &errorDescription,
-                                    command.file())) {
+                                    command.file(),
+                                    d_allocator_p)) {
         BALL_LOG_ERROR << errorDescription.str();
         return false;  // RETURN
     }

@@ -78,6 +78,7 @@ struct InputUtil {
     /// into the optionally specified `error`.
     static bool parseProperties(bsl::vector<MessageProperty>* out,
                                 const bsl::string&            properties,
+                                bslma::Allocator*             allocator,
                                 bsl::ostream*                 error = 0);
 
     static bool populateSubscriptions(bmqt::QueueOptions*              out,

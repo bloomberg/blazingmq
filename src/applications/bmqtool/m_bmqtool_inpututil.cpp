@@ -47,7 +47,7 @@ bool validatePropertiesStr(bsl::ostream* error, const bsl::string& properties)
     }
     else if (properties.front() != '[') {
         if (error) {
-            *error << "Expected open marker '[]' missed";
+            *error << "Expected open marker '[' missed";
         }
         result = false;
     }
@@ -382,6 +382,7 @@ void InputUtil::verifyProperties(
 
 bool InputUtil::parseProperties(bsl::vector<MessageProperty>* out,
                                 const bsl::string&            properties,
+                                bslma::Allocator*             allocator,
                                 bsl::ostream*                 error)
 {
     // PRECONDITIONS
@@ -399,7 +400,7 @@ bool InputUtil::parseProperties(bsl::vector<MessageProperty>* out,
     // Tokenize string by space and check markers
     bdlb::Tokenizer           tokenizer(properties, " ");
     bdlb::Tokenizer::iterator tokenizerIt = tokenizer.begin();
-    MessageProperty           messageProperty;
+    MessageProperty           messageProperty(allocator);
     State                     state = e_NAME;
     // Process tokens skipping open marker
     for (++tokenizerIt; tokenizerIt != tokenizer.end(); ++tokenizerIt) {
@@ -416,7 +417,7 @@ bool InputUtil::parseProperties(bsl::vector<MessageProperty>* out,
         case e_TYPE: {
             // Add enum prefix, remove surrounding brackets, and convert to
             // MessagePropertyType enum
-            bsl::string typeStr = "E_";
+            bsl::string typeStr("E_", allocator);
             typeStr.append(token.substr(1, token.size() - 2));
             if (MessagePropertyType::fromString(&messageProperty.type(),
                                                 typeStr) != 0) {
@@ -441,7 +442,7 @@ bool InputUtil::parseProperties(bsl::vector<MessageProperty>* out,
                 }
                 // Join tokens by space (detokenize) inside surrounding quotes.
                 // Quote mark after end of the line is the end of hexdump.
-                mwcu::MemOutStream resultStream(' ');
+                mwcu::MemOutStream resultStream(' ', allocator);
                 // Process tokens skipping opening quote mark
                 for (++tokenizerIt; tokenizerIt != tokenizer.end();
                      ++tokenizerIt) {
@@ -460,7 +461,7 @@ bool InputUtil::parseProperties(bsl::vector<MessageProperty>* out,
                      MessagePropertyType::Value::E_STRING) {
                 // Special handling for string value: it may contain spaces
                 // Join tokens by space (detokenize) inside surrounding quotes.
-                mwcu::MemOutStream resultStream;
+                mwcu::MemOutStream resultStream(allocator);
                 for (; tokenizerIt != tokenizer.end(); ++tokenizerIt) {
                     token = *tokenizerIt;
                     resultStream << token;
