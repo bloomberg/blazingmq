@@ -244,8 +244,8 @@ class Broker:
 
         for cluster in self.clusters.my_clusters:
             for storage_dir in (
-                Path(cluster.partition_config.location), # type: ignore
-                Path(cluster.partition_config.archive_location), # type: ignore
+                Path(cluster.partition_config.location),  # type: ignore
+                Path(cluster.partition_config.archive_location),  # type: ignore
             ):
                 if storage_dir != Path():
                     site.mkdir(storage_dir)

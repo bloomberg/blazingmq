@@ -1,7 +1,11 @@
 from itertools import islice
 
 import blazingmq.dev.it.testconstants as tc
-from blazingmq.dev.it.fixtures import Cluster, cluster, order  # pylint: disable=unused-import
+from blazingmq.dev.it.fixtures import (
+    Cluster,
+    cluster,
+    order,
+)  # pylint: disable=unused-import
 from blazingmq.dev.it.process.client import Client
 
 pytestmark = order(3)

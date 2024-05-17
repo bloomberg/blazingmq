@@ -37,9 +37,9 @@ def test_logging_parser():
         parser.parse_args(["--log-level", "info"])
         logger_mock.assert_called_with(INFO)
 
-    with patch.object(getLogger("blazingmq"), "setLevel") as top_logger_mock, patch.object(
-        getLogger("foo.bar"), "setLevel"
-    ) as logger_mock:
+    with patch.object(
+        getLogger("blazingmq"), "setLevel"
+    ) as top_logger_mock, patch.object(getLogger("foo.bar"), "setLevel") as logger_mock:
         parser.parse_args(["--log-level", "info,foo.bar:debug"])
         top_logger_mock.assert_called_with(INFO)
         logger_mock.assert_called_with(DEBUG)

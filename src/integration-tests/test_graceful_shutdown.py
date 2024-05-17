@@ -62,7 +62,6 @@ def multi_cluster(request):
 
 class TestGracefulShutdown:
     def post_kill_confirm(self, node, peer):
-
         test_logger.info("posting...")
 
         # post 3 PUTs
@@ -250,7 +249,6 @@ class TestGracefulShutdown:
     def test_cancel_unconfirmed_timer(
         self, multi_node  # pylint: disable=unused-argument
     ):
-
         uriWrite = tc.URI_FANOUT
         uriRead = tc.URI_FANOUT_FOO
 
@@ -292,7 +290,6 @@ class TestGracefulShutdown:
     @tweak.cluster.queue_operations.stop_timeout_ms(3000)
     @tweak.cluster.queue_operations.shutdown_timeout_ms(2000)
     def test_multiple_stop_requests(self, multi_cluster: Cluster):
-
         cluster = multi_cluster
 
         uriWrite = tc.URI_FANOUT
