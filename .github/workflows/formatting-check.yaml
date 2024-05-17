@@ -23,6 +23,12 @@ jobs:
           if [ -s format_diff.txt ]; then exit 1; fi
 
   python_formatting_check:
+    # There might be differences how the formatter refactors the code locally
+    # and in the CI. If there is a problem with CI formatter mismatch, consider
+    # wrapping a troublesome python code with comments:
+    # "# fmt: off"
+    # "<Python code we don't want to format>"
+    # "# fmt: on"
     name: Python Formatting Check
     runs-on: ubuntu-latest
     steps:
