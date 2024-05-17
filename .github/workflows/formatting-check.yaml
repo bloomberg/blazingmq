@@ -10,8 +10,8 @@ on:
       - "unlabeled"
 
 jobs:
-  formatting_check:
-    name: Formatting Check
+  cpp_formatting_check:
+    name: C++ Formatting Check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -20,4 +20,18 @@ jobs:
       - name: clang-format style check
         run: |
           git clang-format-14 --diff -q origin/main | tee format_diff.txt
+          if [ -s format_diff.txt ]; then exit 1; fi
+
+  python_formatting_check:
+    name: Python Formatting Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: black style check
+        run: |
+          sudo apt-get install black
+          black .
+          git diff -q | tee format_diff.txt
           if [ -s format_diff.txt ]; then exit 1; fi
