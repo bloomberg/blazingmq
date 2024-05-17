@@ -4514,8 +4514,7 @@ ClusterQueueHelper::~ClusterQueueHelper()
     // NOTHING: Interface
 }
 
-int ClusterQueueHelper::initialize(
-    BSLS_ANNOTATION_UNUSED bsl::ostream& errorDescription)
+void ClusterQueueHelper::initialize()
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -4526,8 +4525,6 @@ int ClusterQueueHelper::initialize(
     d_clusterData_p->membership().registerObserver(this);
     d_clusterData_p->electorInfo().registerObserver(this);
     d_clusterState_p->registerObserver(this);
-
-    return 0;
 }
 
 void ClusterQueueHelper::teardown()
@@ -4537,6 +4534,7 @@ void ClusterQueueHelper::teardown()
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(
         d_cluster_p->dispatcher()->inDispatcherThread(d_cluster_p));
+
     d_clusterState_p->unregisterObserver(this);
     d_clusterData_p->electorInfo().unregisterObserver(this);
     d_clusterData_p->membership().unregisterObserver(this);

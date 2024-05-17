@@ -488,6 +488,9 @@ int TransportManager::createCluster(
     ConnectionMode                          connectionMode,
     bslma::ManagedPtr<void>*                userData)
 {
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(out);
+
     enum RcEnum {
         // Value for the various RC error categories
         rc_SUCCESS           = 0,
