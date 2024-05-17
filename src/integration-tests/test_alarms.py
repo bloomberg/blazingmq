@@ -5,7 +5,12 @@ Testing broker ALARMS.
 import time
 
 import blazingmq.dev.it.testconstants as tc
-from blazingmq.dev.it.fixtures import Cluster, cluster, order, tweak  # pylint: disable=unused-import
+from blazingmq.dev.it.fixtures import (
+    Cluster,
+    cluster,
+    order,
+    tweak,
+)  # pylint: disable=unused-import
 
 
 @tweak.cluster.queue_operations.consumption_monitor_period_ms(500)

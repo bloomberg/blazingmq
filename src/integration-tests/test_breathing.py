@@ -160,7 +160,6 @@ def _verify_max_messages_max_bytes_routing(producer, consumer, other_consumers):
 
 
 def _verify_priority_routing(producers, consumers, lowPriorityConsumers):
-
     # Verify no messages when we start
     for consumer in consumers + lowPriorityConsumers:
         try:

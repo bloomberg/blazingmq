@@ -5,7 +5,8 @@ Integration test that tests closing a queue when the broker is down.
 import blazingmq.dev.it.testconstants as tc
 from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
     Cluster,
-    single_node, order,
+    single_node,
+    order,
     multi_node,
     start_cluster,
     tweak,
