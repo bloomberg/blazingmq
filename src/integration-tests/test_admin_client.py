@@ -125,14 +125,13 @@ def test_admin_encoding(single_node: Cluster) -> None:
     - Commands with incorrect encoding are handled with decode error.
     - Commands without encoding return text output for backward compatibility.
     """
-    host, port = single_node.admin_endpoint
 
     def is_compact(json_str: str) -> bool:
         return "    " not in json_str
 
     # Start the admin client
     admin = AdminClient()
-    admin.connect(host, port)
+    admin.connect(*single_node.admin_endpoint)
 
     # Stage 1: encode as TEXT
     cmds = [json.dumps({"help": {}, "encoding": "TEXT"}), "ENCODING TEXT HELP"]
@@ -220,11 +219,9 @@ def test_purge_breathing(single_node: Cluster) -> None:
     proxy = next(proxies)
     producer: Client = proxy.create_client("producer")
 
-    host, port = cluster.admin_endpoint
-
     # Start the admin client
     admin = AdminClient()
-    admin.connect(host, port)
+    admin.connect(*cluster.admin_endpoint)
 
     # Stage 1: purge PRIORITY queue
     for i in range(1, 6):
@@ -362,11 +359,9 @@ def test_purge_inactive(single_node: Cluster) -> None:
         post_n_msgs(producer, task, posted_fanout)
     producer.stop()
 
-    host, port = cluster.admin_endpoint
-
     # Start the admin client.
     admin = AdminClient()
-    admin.connect(host, port)
+    admin.connect(*cluster.admin_endpoint)
 
     # Stage 2: PRIORITY purge
 
@@ -461,11 +456,9 @@ def test_commands_on_non_existing_domain(single_node: Cluster) -> None:
     """
     cluster: Cluster = single_node
 
-    host, port = cluster.admin_endpoint
-
     # Start the admin client
     admin = AdminClient()
-    admin.connect(host, port)
+    admin.connect(*cluster.admin_endpoint)
 
     # Stage 1: send commands to domains existing on disk but not yet loaded to the broker
     # Note that we use different domains for each test case, because we want to check each

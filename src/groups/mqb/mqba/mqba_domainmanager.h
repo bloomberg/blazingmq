@@ -56,6 +56,7 @@
 #include <bslma_usesbslmaallocator.h>
 #include <bslmf_nestedtraitdeclaration.h>
 #include <bslmt_mutex.h>
+#include <bsls_atomic.h>
 #include <bsls_cpp11.h>
 
 namespace BloombergLP {

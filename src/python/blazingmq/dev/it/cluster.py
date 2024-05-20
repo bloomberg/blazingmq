@@ -102,7 +102,7 @@ class Cluster(contextlib.AbstractContextManager):
         return self.config.name
 
     @property
-    def admin_endpoint(self) -> Tuple[Optional[str], Optional[int]]:
+    def admin_endpoint(self) -> Union[Tuple[str, int], Tuple[None, None]]:
         """
         Return a tuple containing (host, port) of an admin endpoint of this cluster, if the
         admin endpoint is not decided, return (None, None) tuple
