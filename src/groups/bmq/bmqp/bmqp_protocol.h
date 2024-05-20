@@ -644,6 +644,15 @@ struct MessagePropertiesFeatures {
     static const char k_MESSAGE_PROPERTIES_EX[];
 };
 
+/// TEMPORARILY. This struct defines feature names related to Subscriptions
+struct SubscriptionsFeatures {
+    /// Field name of the encoding features
+    static const char k_FIELD_NAME[];
+
+    // CONSTANTS
+    static const char k_CONFIGURE_STREAM[];
+};
+
 // =================
 // struct OptionType
 // =================
