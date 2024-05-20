@@ -61,6 +61,33 @@ namespace mqba {
 
 namespace {
 const int k_MAX_WAIT_SECONDS_AT_SHUTDOWN = 40;
+
+/// This function is a callback passed to domain manager for
+/// synchronization.  The specified 'status' is a return status
+/// of a function which called this callback.  The specified
+/// 'domain' is optional Domain returned from a caller.
+/// The specified 'latch' is used for synchronization with
+/// external source and called after all the interesting
+/// processing is done.
+void onDomain(const bmqp_ctrlmsg::Status& status,
+              mqbi::Domain*               domain,
+              bslmt::Latch*               latch)
+{
+    // executed by *ANY* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(latch);
+
+    if (bmqp_ctrlmsg::StatusCategory::E_SUCCESS != status.category()) {
+        BSLS_ASSERT_SAFE(0 == domain);
+    }
+    else {
+        BSLS_ASSERT_SAFE(domain);
+    }
+
+    latch->arrive();
+}
+
 }  // close unnamed namespace
 
 // ===========================
@@ -589,13 +616,31 @@ int DomainManager::processCommand(mqbcmd::DomainsResult*        result,
         return rc;  // RETURN
     }
     else if (command.isDomainValue()) {
+        const bsl::string& name = command.domain().name();
+
         DomainSp domainSp;
 
-        if (0 != locateDomain(&domainSp, command.domain().name())) {
-            mwcu::MemOutStream os;
-            os << "Domain '" << command.domain().name() << "' doesn't exist";
-            result->makeError().message() = os.str();
-            return -1;  // RETURN
+        if (0 != locateDomain(&domainSp, name)) {
+            BALL_LOG_WARN << "Domain '" << name << "' is not opened,"
+                          << " trying to initialize from configuration";
+
+            bslmt::Latch latch(1);
+            createDomain(
+                name,
+                bdlf::BindUtil::bind(&onDomain,
+                                     bdlf::PlaceHolders::_1,  // status
+                                     bdlf::PlaceHolders::_2,  // domain*
+                                     &latch));
+            // To return a result from command execution, we need to
+            // synchronize with the domain creation attempt
+            latch.wait();
+
+            if (0 != locateDomain(&domainSp, name)) {
+                mwcu::MemOutStream os;
+                os << "Domain '" << name << "' doesn't exist";
+                result->makeError().message() = os.str();
+                return -1;  // RETURN
+            }
         }
 
         mqbcmd::DomainResult domainResult;
@@ -614,14 +659,31 @@ int DomainManager::processCommand(mqbcmd::DomainsResult*        result,
         return rc;  // RETURN
     }
     else if (command.isReconfigureValue()) {
+        const bsl::string& name = command.reconfigure().domain();
+
         DomainSp domainSp;
 
-        if (0 != locateDomain(&domainSp, command.reconfigure().domain())) {
-            mwcu::MemOutStream os;
-            os << "Domain '" << command.reconfigure().domain()
-               << "' doesn't exist";
-            result->makeError().message() = os.str();
-            return -1;  // RETURN
+        if (0 != locateDomain(&domainSp, name)) {
+            BALL_LOG_WARN << "Domain '" << name << "' is not opened,"
+                          << " trying to initialize from configuration";
+
+            bslmt::Latch latch(1);
+            createDomain(
+                name,
+                bdlf::BindUtil::bind(&onDomain,
+                                     bdlf::PlaceHolders::_1,  // status
+                                     bdlf::PlaceHolders::_2,  // domain*
+                                     &latch));
+            // To return a result from command execution, we need to
+            // synchronize with the domain creation attempt
+            latch.wait();
+
+            if (0 != locateDomain(&domainSp, name)) {
+                mwcu::MemOutStream os;
+                os << "Domain '" << name << "' doesn't exist";
+                result->makeError().message() = os.str();
+                return -1;  // RETURN
+            }
         }
 
         DecodeAndUpsertValue unused;
@@ -657,6 +719,8 @@ void DomainManager::createDomain(
     const bsl::string&                         name,
     const mqbi::DomainFactory::CreateDomainCb& callback)
 {
+    // executed by *ANY* thread
+
     if (!d_isStarted) {
         BALL_LOG_INFO << "Not creating domain [" << name << "] at this time "
                       << "because self is stopping.";
