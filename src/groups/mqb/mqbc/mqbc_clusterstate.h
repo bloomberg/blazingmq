@@ -30,7 +30,6 @@
 // observers, implementing the 'mqbblp::ClusterStateObserver' interface.
 
 // MQB
-
 #include <mqbi_cluster.h>
 #include <mqbi_clusterstatemanager.h>
 #include <mqbnet_cluster.h>
