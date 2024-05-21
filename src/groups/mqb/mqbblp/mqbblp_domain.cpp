@@ -99,14 +99,16 @@ void afterAppIdUnregisteredDispatched(mqbi::Queue*       queue,
 /// checks that the implied reconfiguration is also valid.
 int validateConfig(bsl::ostream& errorDescription,
                    const bdlb::NullableValue<mqbconfm::Domain>& previousDefn,
-                   const mqbconfm::Domain&                      newConfig)
+                   const mqbconfm::Domain&                      newConfig,
+                   bslma::Allocator*                            allocator)
 {
     enum RcEnum {
         // Value for the various RC error categories
         rc_SUCCESS              = 0,
         rc_NON_BLOOMBERG_CFG    = -1,
         rc_CHANGED_DOMAIN_MODE  = -2,
-        rc_CHANGED_STORAGE_TYPE = -3
+        rc_CHANGED_STORAGE_TYPE = -3,
+        rc_INVALID_SUBSCRIPTION = -4
     };
 
     if (previousDefn.isNull()) {
@@ -136,7 +138,40 @@ int validateConfig(bsl::ostream& errorDescription,
         return rc_CHANGED_STORAGE_TYPE;  // RETURN
     }
 
-    return 0;
+    // Validate newConfig.subscriptions()
+
+    bsl::size_t size   = newConfig.subscriptions().size();
+    bool        result = true;
+
+    for (bsl::size_t i = 0; i < size; ++i) {
+        const mqbconfm::Expression& expression =
+            newConfig.subscriptions()[i].expression();
+
+        if (mqbconfm::ExpressionVersion::E_VERSION_1 == expression.version()) {
+            if (expression.text().length()) {
+                bmqeval::CompilationContext context(allocator);
+
+                if (!bmqeval::SimpleEvaluator::validate(expression.text(),
+                                                        context)) {
+                    errorDescription
+                        << "Expression validation failed: [ expression: "
+                        << expression << ", rc: " << context.lastError()
+                        << ", reason: \"" << context.lastErrorMessage()
+                        << "\" ]";
+                    result = false;
+                }
+            }
+        }
+        else {
+            if (expression.text().length()) {
+                errorDescription << "Invalid Expression: [ expression: "
+                                 << expression;
+                result = false;
+            }
+        }
+    }
+
+    return result ? 0 : rc_INVALID_SUBSCRIPTION;
 }
 
 /// Given a definition `defn` for `domain`, ensures that the values provided
@@ -429,7 +464,10 @@ int Domain::configure(bsl::ostream&           errorDescription,
     }
 
     // Validate config. Return early if the configuration is not valid.
-    if (int rc = validateConfig(errorDescription, d_config, finalConfig)) {
+    if (int rc = validateConfig(errorDescription,
+                                d_config,
+                                finalConfig,
+                                d_allocator_p)) {
         return (rc * 10 + rc_VALIDATION_FAILED);  // RETURN
     }
 
@@ -514,6 +552,7 @@ int Domain::configure(bsl::ostream&           errorDescription,
                       << " queues from "
                          "domain "
                       << d_name;
+
         QueueMap::iterator it = d_queues.begin();
         for (; it != d_queues.end(); it++) {
             bsl::function<int()> reconfigureQueueFn = bdlf::BindUtil::bind(
@@ -525,8 +564,7 @@ int Domain::configure(bsl::ostream&           errorDescription,
             d_dispatcher_p->execute(reconfigureQueueFn, cluster());
         }
     }
-    BALL_LOG_INFO << "Domain '" << d_name << "' successfully "
-                  << (isReconfigure ? "reconfigured" : "configured");
+    // 'wait==false', so the result of reconfiguration is not known
 
     d_state = e_STARTED;
     return rc_SUCCESS;

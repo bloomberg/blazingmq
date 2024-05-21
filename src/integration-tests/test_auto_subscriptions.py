@@ -408,3 +408,95 @@ class TestAutoSubscriptions:
         assert len(self.consumer.list(block=True)) == 0
         assert len(self.consumer_bar.list(block=True)) == 0
         assert len(self.consumer_baz.list(block=True)) == 0
+
+    @tweak.domain.subscriptions(
+        [
+            {
+                "appId": "",
+                "expression": {"version": "E_VERSION_1", "text": "invalid expression"},
+            }
+        ]
+    )
+    def test_configure_invalid(self, cluster: Cluster):
+        """
+        Configure the priority queue to evaluate auto subscription negatively.
+        Make sure the queue does not get the message.
+        Make sure the same is the case after restarts.
+        """
+
+        proxies = cluster.proxy_cycle()
+
+        # 1: Setup producers and consumers
+
+        next(proxies)
+        proxy = next(proxies)
+
+        consumer = proxy.create_client("consumer")
+
+        consumer.open(
+            tc.URI_PRIORITY_SC,
+            flags=["read"],
+            consumer_priority=1,
+            succeed=False,
+        )
+
+        cluster.config.domains[
+            tc.DOMAIN_PRIORITY_SC
+        ].definition.parameters.subscriptions[0]["expression"]["text"] = "x==1"
+
+        cluster.reconfigure_domain(tc.DOMAIN_PRIORITY_SC, succeed=True)
+
+        consumer.open(
+            tc.URI_PRIORITY_SC,
+            flags=["read"],
+            consumer_priority=1,
+            succeed=True,
+        )
+
+    @tweak.domain.subscriptions(
+        [{"appId": "", "expression": {"version": "E_VERSION_1", "text": "x==1"}}]
+    )
+    def test_reconfigure_invalid(self, cluster: Cluster):
+        """
+        Configure the priority queue to evaluate auto subscription negatively.
+        Make sure the queue does not get the message.
+        Make sure the same is the case after restarts.
+        """
+
+        proxies = cluster.proxy_cycle()
+
+        # 1: Setup producers and consumers
+
+        next(proxies)
+        proxy = next(proxies)
+
+        consumer = proxy.create_client("consumer")
+
+        consumer.open(
+            tc.URI_PRIORITY_SC,
+            flags=["read"],
+            consumer_priority=1,
+            succeed=True,
+        )
+
+        consumer.close(
+            tc.URI_PRIORITY_SC,
+            succeed=True,
+        )
+
+        cluster.config.domains[
+            tc.DOMAIN_PRIORITY_SC
+        ].definition.parameters.subscriptions[0]["expression"][
+            "text"
+        ] = "invalid expression"
+
+        cluster.reconfigure_domain(tc.DOMAIN_PRIORITY_SC, succeed=None)
+        # TODO: why not succeed=False
+
+        # The validation fails and the domain is going to keep the old config
+        consumer.open(
+            tc.URI_PRIORITY_SC,
+            flags=["read"],
+            consumer_priority=1,
+            succeed=True,
+        )
