@@ -113,8 +113,8 @@ void QueueSessionManager::onDomainQualifiedCb(
         // Failed to qualify domain..
         BALL_LOG_WARN << "#CLIENT_OPENQUEUE_FAILURE "
                       << d_dispatcherClient_p->description()
-                      << ": Error while qualifying domain: " << status
-                      << ", request: " << request;
+                      << ": Error while qualifying domain: [reason: " << status
+                      << ", request: " << request << "]";
 
         // Send an error from the client dispatcher thread
         dispatchErrorCallback(errorCallback,
@@ -195,7 +195,8 @@ void QueueSessionManager::onDomainOpenCb(
         // Failed to open domain
         BALL_LOG_WARN << "#CLIENT_OPENQUEUE_FAILURE "
                       << d_dispatcherClient_p->description()
-                      << ": Error while opening domain: " << status;
+                      << ": Error while opening domain: [reason: " << status
+                      << ", request: " << request << "]";
 
         // Send an error from the client dispatcher thread.
         dispatchErrorCallback(errorCallback,

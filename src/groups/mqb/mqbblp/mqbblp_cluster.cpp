@@ -108,9 +108,7 @@ void Cluster::startDispatched(bsl::ostream* errorDescription, int* rc)
         rc_SUCCESS             = 0,
         rc_STATE_MGR_FAILURE   = -1,
         rc_MISC_FAILURE        = -2,
-        rc_STORAGE_MGR_FAILURE = -3,
-        rc_QUEUE_HELPER        = -4,
-        rc_STATE_MONITOR       = -5
+        rc_STORAGE_MGR_FAILURE = -3
     };
 
     *rc = d_clusterOrchestrator.start(*errorDescription);
@@ -207,13 +205,7 @@ void Cluster::startDispatched(bsl::ostream* errorDescription, int* rc)
         return;  // RETURN
     }
 
-    *rc = d_clusterOrchestrator.queueHelper().initialize(*errorDescription);
-    if (*rc != 0) {
-        d_storageManager_mp->stop();
-        d_clusterOrchestrator.stop();
-        *rc = *rc * 10 + rc_QUEUE_HELPER;
-        return;  // RETURN
-    }
+    d_clusterOrchestrator.queueHelper().initialize();
 
     d_clusterOrchestrator.setStorageManager(d_storageManager_mp.get());
     d_clusterOrchestrator.queueHelper().setStorageManager(
@@ -249,14 +241,7 @@ void Cluster::startDispatched(bsl::ostream* errorDescription, int* rc)
     // Ready to read.
     netCluster->enableRead();
 
-    *rc = d_clusterMonitor.start(*errorDescription);
-    if (*rc != 0) {
-        d_clusterOrchestrator.queueHelper().teardown();
-        d_storageManager_mp->stop();
-        d_clusterOrchestrator.stop();
-        *rc = *rc * 10 + rc_STATE_MONITOR;
-        return;  // RETURN
-    }
+    d_clusterMonitor.start();
     d_clusterMonitor.registerObserver(this);
 
     // Start a recurring clock for summary print

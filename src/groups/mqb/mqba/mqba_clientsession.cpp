@@ -1289,8 +1289,8 @@ void ClientSession::openQueueCb(
         response.choice().makeStatus(status);
 
         BALL_LOG_WARN << "#CLIENT_OPENQUEUE_FAILURE " << description()
-                      << ": Error while opening queue: [reason: '" << status
-                      << "', request: " << handleParamsCtrlMsg << "]";
+                      << ": Error while opening queue: [reason: " << status
+                      << ", request: " << handleParamsCtrlMsg << "]";
     }
     else {
         bmqp_ctrlmsg::OpenQueueResponse& res =
