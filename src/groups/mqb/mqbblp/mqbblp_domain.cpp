@@ -140,8 +140,8 @@ int validateConfig(bsl::ostream& errorDescription,
 
     // Validate newConfig.subscriptions()
 
-    bsl::size_t size   = newConfig.subscriptions().size();
-    bool        result = true;
+    bsl::size_t size                     = newConfig.subscriptions().size();
+    bool        allSubscriptionsAreValid = true;
 
     for (bsl::size_t i = 0; i < size; ++i) {
         const mqbconfm::Expression& expression =
@@ -158,20 +158,18 @@ int validateConfig(bsl::ostream& errorDescription,
                         << expression << ", rc: " << context.lastError()
                         << ", reason: \"" << context.lastErrorMessage()
                         << "\" ]";
-                    result = false;
+                    allSubscriptionsAreValid = false;
                 }
             }
         }
         else {
-            if (expression.text().length()) {
-                errorDescription << "Invalid Expression: [ expression: "
-                                 << expression;
-                result = false;
-            }
+            errorDescription
+                << "Unsupported version: [ expression: " << expression << " ]";
+            allSubscriptionsAreValid = false;
         }
     }
 
-    return result ? 0 : rc_INVALID_SUBSCRIPTION;
+    return allSubscriptionsAreValid ? 0 : rc_INVALID_SUBSCRIPTION;
 }
 
 /// Given a definition `defn` for `domain`, ensures that the values provided
@@ -464,10 +462,10 @@ int Domain::configure(bsl::ostream&           errorDescription,
     }
 
     // Validate config. Return early if the configuration is not valid.
-    if (int rc = validateConfig(errorDescription,
-                                d_config,
-                                finalConfig,
-                                d_allocator_p)) {
+    if (const int rc = validateConfig(errorDescription,
+                                      d_config,
+                                      finalConfig,
+                                      d_allocator_p)) {
         return (rc * 10 + rc_VALIDATION_FAILED);  // RETURN
     }
 

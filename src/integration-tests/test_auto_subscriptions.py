@@ -419,9 +419,10 @@ class TestAutoSubscriptions:
     )
     def test_configure_invalid(self, cluster: Cluster):
         """
-        Configure the priority queue to evaluate auto subscription negatively.
-        Make sure the queue does not get the message.
-        Make sure the same is the case after restarts.
+        Configure the priority queue with invalid auto subscription.
+        Make sure a queue fails to open.
+        Reconfigure the priority queue with valid auto subscription.
+        Make sure a queue opens successfully.
         """
 
         proxies = cluster.proxy_cycle()
@@ -458,9 +459,11 @@ class TestAutoSubscriptions:
     )
     def test_reconfigure_invalid(self, cluster: Cluster):
         """
-        Configure the priority queue to evaluate auto subscription negatively.
-        Make sure the queue does not get the message.
-        Make sure the same is the case after restarts.
+        Configure the priority queue with valid auto subscription.
+        Make sure a queue opens successfully.
+        Reconfigure the priority queue with valid auto subscription.
+        Make sure the reconfigure command fails.
+        Make sure a queue opens successfully.
         """
 
         proxies = cluster.proxy_cycle()
@@ -491,7 +494,7 @@ class TestAutoSubscriptions:
         ] = "invalid expression"
 
         cluster.reconfigure_domain(tc.DOMAIN_PRIORITY_SC, succeed=None)
-        # TODO: why not succeed=False
+        cluster.last_known_leader.capture("Error processing command")
 
         # The validation fails and the domain is going to keep the old config
         consumer.open(

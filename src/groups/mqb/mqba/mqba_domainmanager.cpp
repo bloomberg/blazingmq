@@ -701,11 +701,12 @@ int DomainManager::processCommand(mqbcmd::DomainsResult*        result,
 
         if (configureResult.isError()) {
             result->makeError().message() = configureResult.error().d_details;
+            return -1;  // RETURN
         }
         else {
             result->makeSuccess();
+            return 0;  // RETURN
         }
-        return 0;  // RETURN
     }
 
     mwcu::MemOutStream os;
