@@ -136,15 +136,16 @@
 
   <complexType name="StatPluginConfig">
     <sequence>
-      <element name='name'               type='string'         default=''/>
-      <element name='queueSize'          type='int'            default='10000'/>
-      <element name='queueHighWatermark' type='int'            default='5000'/>
-      <element name='queueLowWatermark'  type='int'            default='1000'/>
-      <element name='publishInterval'    type='int'            default='30'/>  <!-- 0 to disable -->
-      <element name='namespacePrefix'    type='string'         default=''/>
-      <element name='hosts'              type='string'         maxOccurs='unbounded'/>
-      <element name='instanceId'         type='string'         default=''/>
-      <element name='prometheusSpecific' type='tns:StatPluginConfigPrometheus' minOccurs='0'/>
+      <element name='name'                     type='string'         default=''/>
+      <element name='queueSize'                type='int'            default='10000'/>
+      <element name='queueHighWatermark'       type='int'            default='5000'/>
+      <element name='queueLowWatermark'        type='int'            default='1000'/>
+      <element name='publishInterval'          type='int'            default='30'/>  <!-- 0 to disable -->
+      <element name='namespacePrefix'          type='string'         default=''/>
+      <element name='namespaceHighCardinality' type='string'         default=''/>
+      <element name='hosts'                    type='string'         maxOccurs='unbounded'/>
+      <element name='instanceId'               type='string'         default=''/>
+      <element name='prometheusSpecific'       type='tns:StatPluginConfigPrometheus' minOccurs='0'/>
     </sequence>
   </complexType>
 

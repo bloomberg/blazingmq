@@ -4199,6 +4199,9 @@ const int StatPluginConfig::DEFAULT_INITIALIZER_PUBLISH_INTERVAL = 30;
 
 const char StatPluginConfig::DEFAULT_INITIALIZER_NAMESPACE_PREFIX[] = "";
 
+const char StatPluginConfig::DEFAULT_INITIALIZER_NAMESPACE_HIGH_CARDINALITY[] =
+    "";
+
 const char StatPluginConfig::DEFAULT_INITIALIZER_INSTANCE_ID[] = "";
 
 const bdlat_AttributeInfo StatPluginConfig::ATTRIBUTE_INFO_ARRAY[] = {
@@ -4232,6 +4235,11 @@ const bdlat_AttributeInfo StatPluginConfig::ATTRIBUTE_INFO_ARRAY[] = {
      sizeof("namespacePrefix") - 1,
      "",
      bdlat_FormattingMode::e_TEXT},
+    {ATTRIBUTE_ID_NAMESPACE_HIGH_CARDINALITY,
+     "namespaceHighCardinality",
+     sizeof("namespaceHighCardinality") - 1,
+     "",
+     bdlat_FormattingMode::e_TEXT},
     {ATTRIBUTE_ID_HOSTS,
      "hosts",
      sizeof("hosts") - 1,
@@ -4253,7 +4261,7 @@ const bdlat_AttributeInfo StatPluginConfig::ATTRIBUTE_INFO_ARRAY[] = {
 const bdlat_AttributeInfo*
 StatPluginConfig::lookupAttributeInfo(const char* name, int nameLength)
 {
-    for (int i = 0; i < 9; ++i) {
+    for (int i = 0; i < 10; ++i) {
         const bdlat_AttributeInfo& attributeInfo =
             StatPluginConfig::ATTRIBUTE_INFO_ARRAY[i];
 
@@ -4280,6 +4288,9 @@ const bdlat_AttributeInfo* StatPluginConfig::lookupAttributeInfo(int id)
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PUBLISH_INTERVAL];
     case ATTRIBUTE_ID_NAMESPACE_PREFIX:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NAMESPACE_PREFIX];
+    case ATTRIBUTE_ID_NAMESPACE_HIGH_CARDINALITY:
+        return &ATTRIBUTE_INFO_ARRAY
+            [ATTRIBUTE_INDEX_NAMESPACE_HIGH_CARDINALITY];
     case ATTRIBUTE_ID_HOSTS:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HOSTS];
     case ATTRIBUTE_ID_INSTANCE_ID:
@@ -4296,6 +4307,8 @@ StatPluginConfig::StatPluginConfig(bslma::Allocator* basicAllocator)
 : d_hosts(basicAllocator)
 , d_name(DEFAULT_INITIALIZER_NAME, basicAllocator)
 , d_namespacePrefix(DEFAULT_INITIALIZER_NAMESPACE_PREFIX, basicAllocator)
+, d_namespaceHighCardinality(DEFAULT_INITIALIZER_NAMESPACE_HIGH_CARDINALITY,
+                             basicAllocator)
 , d_instanceId(DEFAULT_INITIALIZER_INSTANCE_ID, basicAllocator)
 , d_prometheusSpecific(basicAllocator)
 , d_queueSize(DEFAULT_INITIALIZER_QUEUE_SIZE)
@@ -4310,6 +4323,8 @@ StatPluginConfig::StatPluginConfig(const StatPluginConfig& original,
 : d_hosts(original.d_hosts, basicAllocator)
 , d_name(original.d_name, basicAllocator)
 , d_namespacePrefix(original.d_namespacePrefix, basicAllocator)
+, d_namespaceHighCardinality(original.d_namespaceHighCardinality,
+                             basicAllocator)
 , d_instanceId(original.d_instanceId, basicAllocator)
 , d_prometheusSpecific(original.d_prometheusSpecific, basicAllocator)
 , d_queueSize(original.d_queueSize)
@@ -4325,6 +4340,7 @@ StatPluginConfig::StatPluginConfig(StatPluginConfig&& original) noexcept
 : d_hosts(bsl::move(original.d_hosts)),
   d_name(bsl::move(original.d_name)),
   d_namespacePrefix(bsl::move(original.d_namespacePrefix)),
+  d_namespaceHighCardinality(bsl::move(original.d_namespaceHighCardinality)),
   d_instanceId(bsl::move(original.d_instanceId)),
   d_prometheusSpecific(bsl::move(original.d_prometheusSpecific)),
   d_queueSize(bsl::move(original.d_queueSize)),
@@ -4339,6 +4355,8 @@ StatPluginConfig::StatPluginConfig(StatPluginConfig&& original,
 : d_hosts(bsl::move(original.d_hosts), basicAllocator)
 , d_name(bsl::move(original.d_name), basicAllocator)
 , d_namespacePrefix(bsl::move(original.d_namespacePrefix), basicAllocator)
+, d_namespaceHighCardinality(bsl::move(original.d_namespaceHighCardinality),
+                             basicAllocator)
 , d_instanceId(bsl::move(original.d_instanceId), basicAllocator)
 , d_prometheusSpecific(bsl::move(original.d_prometheusSpecific),
                        basicAllocator)
@@ -4359,15 +4377,16 @@ StatPluginConfig::~StatPluginConfig()
 StatPluginConfig& StatPluginConfig::operator=(const StatPluginConfig& rhs)
 {
     if (this != &rhs) {
-        d_name               = rhs.d_name;
-        d_queueSize          = rhs.d_queueSize;
-        d_queueHighWatermark = rhs.d_queueHighWatermark;
-        d_queueLowWatermark  = rhs.d_queueLowWatermark;
-        d_publishInterval    = rhs.d_publishInterval;
-        d_namespacePrefix    = rhs.d_namespacePrefix;
-        d_hosts              = rhs.d_hosts;
-        d_instanceId         = rhs.d_instanceId;
-        d_prometheusSpecific = rhs.d_prometheusSpecific;
+        d_name                     = rhs.d_name;
+        d_queueSize                = rhs.d_queueSize;
+        d_queueHighWatermark       = rhs.d_queueHighWatermark;
+        d_queueLowWatermark        = rhs.d_queueLowWatermark;
+        d_publishInterval          = rhs.d_publishInterval;
+        d_namespacePrefix          = rhs.d_namespacePrefix;
+        d_namespaceHighCardinality = rhs.d_namespaceHighCardinality;
+        d_hosts                    = rhs.d_hosts;
+        d_instanceId               = rhs.d_instanceId;
+        d_prometheusSpecific       = rhs.d_prometheusSpecific;
     }
 
     return *this;
@@ -4378,15 +4397,16 @@ StatPluginConfig& StatPluginConfig::operator=(const StatPluginConfig& rhs)
 StatPluginConfig& StatPluginConfig::operator=(StatPluginConfig&& rhs)
 {
     if (this != &rhs) {
-        d_name               = bsl::move(rhs.d_name);
-        d_queueSize          = bsl::move(rhs.d_queueSize);
-        d_queueHighWatermark = bsl::move(rhs.d_queueHighWatermark);
-        d_queueLowWatermark  = bsl::move(rhs.d_queueLowWatermark);
-        d_publishInterval    = bsl::move(rhs.d_publishInterval);
-        d_namespacePrefix    = bsl::move(rhs.d_namespacePrefix);
-        d_hosts              = bsl::move(rhs.d_hosts);
-        d_instanceId         = bsl::move(rhs.d_instanceId);
-        d_prometheusSpecific = bsl::move(rhs.d_prometheusSpecific);
+        d_name                     = bsl::move(rhs.d_name);
+        d_queueSize                = bsl::move(rhs.d_queueSize);
+        d_queueHighWatermark       = bsl::move(rhs.d_queueHighWatermark);
+        d_queueLowWatermark        = bsl::move(rhs.d_queueLowWatermark);
+        d_publishInterval          = bsl::move(rhs.d_publishInterval);
+        d_namespacePrefix          = bsl::move(rhs.d_namespacePrefix);
+        d_namespaceHighCardinality = bsl::move(rhs.d_namespaceHighCardinality);
+        d_hosts                    = bsl::move(rhs.d_hosts);
+        d_instanceId               = bsl::move(rhs.d_instanceId);
+        d_prometheusSpecific       = bsl::move(rhs.d_prometheusSpecific);
     }
 
     return *this;
@@ -4401,6 +4421,8 @@ void StatPluginConfig::reset()
     d_queueLowWatermark  = DEFAULT_INITIALIZER_QUEUE_LOW_WATERMARK;
     d_publishInterval    = DEFAULT_INITIALIZER_PUBLISH_INTERVAL;
     d_namespacePrefix    = DEFAULT_INITIALIZER_NAMESPACE_PREFIX;
+    d_namespaceHighCardinality =
+        DEFAULT_INITIALIZER_NAMESPACE_HIGH_CARDINALITY;
     bdlat_ValueTypeFunctions::reset(&d_hosts);
     d_instanceId = DEFAULT_INITIALIZER_INSTANCE_ID;
     bdlat_ValueTypeFunctions::reset(&d_prometheusSpecific);
@@ -4420,6 +4442,8 @@ bsl::ostream& StatPluginConfig::print(bsl::ostream& stream,
     printer.printAttribute("queueLowWatermark", this->queueLowWatermark());
     printer.printAttribute("publishInterval", this->publishInterval());
     printer.printAttribute("namespacePrefix", this->namespacePrefix());
+    printer.printAttribute("namespaceHighCardinality",
+                           this->namespaceHighCardinality());
     printer.printAttribute("hosts", this->hosts());
     printer.printAttribute("instanceId", this->instanceId());
     printer.printAttribute("prometheusSpecific", this->prometheusSpecific());
@@ -5428,7 +5452,7 @@ AppConfig& AppConfig::operator=(const AppConfig& rhs)
         d_hostDataCenter         = rhs.d_hostDataCenter;
         d_isRunningOnDev         = rhs.d_isRunningOnDev;
         d_logsObserverMaxSize    = rhs.d_logsObserverMaxSize;
-        d_latencyMonitorDomain = rhs.d_latencyMonitorDomain;
+        d_latencyMonitorDomain   = rhs.d_latencyMonitorDomain;
         d_dispatcherConfig       = rhs.d_dispatcherConfig;
         d_stats                  = rhs.d_stats;
         d_networkInterfaces      = rhs.d_networkInterfaces;
@@ -5456,7 +5480,7 @@ AppConfig& AppConfig::operator=(AppConfig&& rhs)
         d_hostDataCenter         = bsl::move(rhs.d_hostDataCenter);
         d_isRunningOnDev         = bsl::move(rhs.d_isRunningOnDev);
         d_logsObserverMaxSize    = bsl::move(rhs.d_logsObserverMaxSize);
-        d_latencyMonitorDomain = bsl::move(rhs.d_latencyMonitorDomain);
+        d_latencyMonitorDomain   = bsl::move(rhs.d_latencyMonitorDomain);
         d_dispatcherConfig       = bsl::move(rhs.d_dispatcherConfig);
         d_stats                  = bsl::move(rhs.d_stats);
         d_networkInterfaces      = bsl::move(rhs.d_networkInterfaces);
@@ -5489,7 +5513,7 @@ void AppConfig::reset()
     bdlat_ValueTypeFunctions::reset(&d_bmqconfConfig);
     bdlat_ValueTypeFunctions::reset(&d_plugins);
     bdlat_ValueTypeFunctions::reset(&d_messagePropertiesV2);
-    d_configureStream = DEFAULT_INITIALIZER_CONFIGURE_STREAM;
+    d_configureStream        = DEFAULT_INITIALIZER_CONFIGURE_STREAM;
     d_advertiseSubscriptions = DEFAULT_INITIALIZER_ADVERTISE_SUBSCRIPTIONS;
 }
 
@@ -5837,7 +5861,7 @@ Configuration::print(bsl::ostream& stream, int level, int spacesPerLevel) const
 }  // close package namespace
 }  // close enterprise namespace
 
-// GENERATED BY @BLP_BAS_CODEGEN_VERSION@
+// GENERATED BY BLP_BAS_CODEGEN_2024.05.16
 // USING bas_codegen.pl -m msg --noAggregateConversion --noExternalization
 // --noIdent --package mqbcfg --msgComponent messages mqbcfg.xsd
 // ----------------------------------------------------------------------------

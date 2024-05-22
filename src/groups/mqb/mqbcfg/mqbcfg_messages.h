@@ -6798,6 +6798,7 @@ class StatPluginConfig {
     bsl::vector<bsl::string>                        d_hosts;
     bsl::string                                     d_name;
     bsl::string                                     d_namespacePrefix;
+    bsl::string                                     d_namespaceHighCardinality;
     bsl::string                                     d_instanceId;
     bdlb::NullableValue<StatPluginConfigPrometheus> d_prometheusSpecific;
     int                                             d_queueSize;
@@ -6814,29 +6815,31 @@ class StatPluginConfig {
   public:
     // TYPES
     enum {
-        ATTRIBUTE_ID_NAME                 = 0,
-        ATTRIBUTE_ID_QUEUE_SIZE           = 1,
-        ATTRIBUTE_ID_QUEUE_HIGH_WATERMARK = 2,
-        ATTRIBUTE_ID_QUEUE_LOW_WATERMARK  = 3,
-        ATTRIBUTE_ID_PUBLISH_INTERVAL     = 4,
-        ATTRIBUTE_ID_NAMESPACE_PREFIX     = 5,
-        ATTRIBUTE_ID_HOSTS                = 6,
-        ATTRIBUTE_ID_INSTANCE_ID          = 7,
-        ATTRIBUTE_ID_PROMETHEUS_SPECIFIC  = 8
+        ATTRIBUTE_ID_NAME                       = 0,
+        ATTRIBUTE_ID_QUEUE_SIZE                 = 1,
+        ATTRIBUTE_ID_QUEUE_HIGH_WATERMARK       = 2,
+        ATTRIBUTE_ID_QUEUE_LOW_WATERMARK        = 3,
+        ATTRIBUTE_ID_PUBLISH_INTERVAL           = 4,
+        ATTRIBUTE_ID_NAMESPACE_PREFIX           = 5,
+        ATTRIBUTE_ID_NAMESPACE_HIGH_CARDINALITY = 6,
+        ATTRIBUTE_ID_HOSTS                      = 7,
+        ATTRIBUTE_ID_INSTANCE_ID                = 8,
+        ATTRIBUTE_ID_PROMETHEUS_SPECIFIC        = 9
     };
 
-    enum { NUM_ATTRIBUTES = 9 };
+    enum { NUM_ATTRIBUTES = 10 };
 
     enum {
-        ATTRIBUTE_INDEX_NAME                 = 0,
-        ATTRIBUTE_INDEX_QUEUE_SIZE           = 1,
-        ATTRIBUTE_INDEX_QUEUE_HIGH_WATERMARK = 2,
-        ATTRIBUTE_INDEX_QUEUE_LOW_WATERMARK  = 3,
-        ATTRIBUTE_INDEX_PUBLISH_INTERVAL     = 4,
-        ATTRIBUTE_INDEX_NAMESPACE_PREFIX     = 5,
-        ATTRIBUTE_INDEX_HOSTS                = 6,
-        ATTRIBUTE_INDEX_INSTANCE_ID          = 7,
-        ATTRIBUTE_INDEX_PROMETHEUS_SPECIFIC  = 8
+        ATTRIBUTE_INDEX_NAME                       = 0,
+        ATTRIBUTE_INDEX_QUEUE_SIZE                 = 1,
+        ATTRIBUTE_INDEX_QUEUE_HIGH_WATERMARK       = 2,
+        ATTRIBUTE_INDEX_QUEUE_LOW_WATERMARK        = 3,
+        ATTRIBUTE_INDEX_PUBLISH_INTERVAL           = 4,
+        ATTRIBUTE_INDEX_NAMESPACE_PREFIX           = 5,
+        ATTRIBUTE_INDEX_NAMESPACE_HIGH_CARDINALITY = 6,
+        ATTRIBUTE_INDEX_HOSTS                      = 7,
+        ATTRIBUTE_INDEX_INSTANCE_ID                = 8,
+        ATTRIBUTE_INDEX_PROMETHEUS_SPECIFIC        = 9
     };
 
     // CONSTANTS
@@ -6853,6 +6856,8 @@ class StatPluginConfig {
     static const int DEFAULT_INITIALIZER_PUBLISH_INTERVAL;
 
     static const char DEFAULT_INITIALIZER_NAMESPACE_PREFIX[];
+
+    static const char DEFAULT_INITIALIZER_NAMESPACE_HIGH_CARDINALITY[];
 
     static const char DEFAULT_INITIALIZER_INSTANCE_ID[];
 
@@ -6973,6 +6978,10 @@ class StatPluginConfig {
     // Return a reference to the modifiable "NamespacePrefix" attribute of
     // this object.
 
+    bsl::string& namespaceHighCardinality();
+    // Return a reference to the modifiable "NamespaceHighCardinality"
+    // attribute of this object.
+
     bsl::vector<bsl::string>& hosts();
     // Return a reference to the modifiable "Hosts" attribute of this
     // object.
@@ -7049,6 +7058,10 @@ class StatPluginConfig {
     const bsl::string& namespacePrefix() const;
     // Return a reference offering non-modifiable access to the
     // "NamespacePrefix" attribute of this object.
+
+    const bsl::string& namespaceHighCardinality() const;
+    // Return a reference offering non-modifiable access to the
+    // "NamespaceHighCardinality" attribute of this object.
 
     const bsl::vector<bsl::string>& hosts() const;
     // Return a reference offering non-modifiable access to the "Hosts"
@@ -15234,6 +15247,7 @@ void StatPluginConfig::hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const
     hashAppend(hashAlgorithm, this->queueLowWatermark());
     hashAppend(hashAlgorithm, this->publishInterval());
     hashAppend(hashAlgorithm, this->namespacePrefix());
+    hashAppend(hashAlgorithm, this->namespaceHighCardinality());
     hashAppend(hashAlgorithm, this->hosts());
     hashAppend(hashAlgorithm, this->instanceId());
     hashAppend(hashAlgorithm, this->prometheusSpecific());
@@ -15247,6 +15261,8 @@ inline bool StatPluginConfig::isEqualTo(const StatPluginConfig& rhs) const
            this->queueLowWatermark() == rhs.queueLowWatermark() &&
            this->publishInterval() == rhs.publishInterval() &&
            this->namespacePrefix() == rhs.namespacePrefix() &&
+           this->namespaceHighCardinality() ==
+               rhs.namespaceHighCardinality() &&
            this->hosts() == rhs.hosts() &&
            this->instanceId() == rhs.instanceId() &&
            this->prometheusSpecific() == rhs.prometheusSpecific();
@@ -15292,6 +15308,13 @@ int StatPluginConfig::manipulateAttributes(t_MANIPULATOR& manipulator)
 
     ret = manipulator(&d_namespacePrefix,
                       ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NAMESPACE_PREFIX]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(
+        &d_namespaceHighCardinality,
+        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NAMESPACE_HIGH_CARDINALITY]);
     if (ret) {
         return ret;
     }
@@ -15350,6 +15373,11 @@ int StatPluginConfig::manipulateAttribute(t_MANIPULATOR& manipulator, int id)
         return manipulator(
             &d_namespacePrefix,
             ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NAMESPACE_PREFIX]);
+    }
+    case ATTRIBUTE_ID_NAMESPACE_HIGH_CARDINALITY: {
+        return manipulator(
+            &d_namespaceHighCardinality,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NAMESPACE_HIGH_CARDINALITY]);
     }
     case ATTRIBUTE_ID_HOSTS: {
         return manipulator(&d_hosts,
@@ -15414,6 +15442,11 @@ inline bsl::string& StatPluginConfig::namespacePrefix()
     return d_namespacePrefix;
 }
 
+inline bsl::string& StatPluginConfig::namespaceHighCardinality()
+{
+    return d_namespaceHighCardinality;
+}
+
 inline bsl::vector<bsl::string>& StatPluginConfig::hosts()
 {
     return d_hosts;
@@ -15471,6 +15504,13 @@ int StatPluginConfig::accessAttributes(t_ACCESSOR& accessor) const
         return ret;
     }
 
+    ret = accessor(
+        d_namespaceHighCardinality,
+        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NAMESPACE_HIGH_CARDINALITY]);
+    if (ret) {
+        return ret;
+    }
+
     ret = accessor(d_hosts, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HOSTS]);
     if (ret) {
         return ret;
@@ -15523,6 +15563,11 @@ int StatPluginConfig::accessAttribute(t_ACCESSOR& accessor, int id) const
         return accessor(
             d_namespacePrefix,
             ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NAMESPACE_PREFIX]);
+    }
+    case ATTRIBUTE_ID_NAMESPACE_HIGH_CARDINALITY: {
+        return accessor(
+            d_namespaceHighCardinality,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NAMESPACE_HIGH_CARDINALITY]);
     }
     case ATTRIBUTE_ID_HOSTS: {
         return accessor(d_hosts, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HOSTS]);
@@ -15584,6 +15629,11 @@ inline int StatPluginConfig::publishInterval() const
 inline const bsl::string& StatPluginConfig::namespacePrefix() const
 {
     return d_namespacePrefix;
+}
+
+inline const bsl::string& StatPluginConfig::namespaceHighCardinality() const
+{
+    return d_namespaceHighCardinality;
 }
 
 inline const bsl::vector<bsl::string>& StatPluginConfig::hosts() const
@@ -17736,7 +17786,7 @@ inline const AppConfig& Configuration::appConfig() const
 }  // close enterprise namespace
 #endif
 
-// GENERATED BY @BLP_BAS_CODEGEN_VERSION@
+// GENERATED BY BLP_BAS_CODEGEN_2024.05.16
 // USING bas_codegen.pl -m msg --noAggregateConversion --noExternalization
 // --noIdent --package mqbcfg --msgComponent messages mqbcfg.xsd
 // ----------------------------------------------------------------------------
