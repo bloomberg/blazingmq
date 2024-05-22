@@ -95,6 +95,34 @@ void afterAppIdUnregisteredDispatched(mqbi::Queue*       queue,
         mqbi::Storage::AppIdKeyPair(appId, mqbu::StorageKey()));
 }
 
+/// Validates an application subscription.
+bool validdateSubscriptionExpression(bsl::ostream& errorDescription,
+                                     const mqbconfm::Expression& expression,
+                                     bslma::Allocator*           allocator)
+{
+    if (mqbconfm::ExpressionVersion::E_VERSION_1 == expression.version()) {
+        if (!expression.text().empty()) {
+            bmqeval::CompilationContext context(allocator);
+
+            if (!bmqeval::SimpleEvaluator::validate(expression.text(),
+                                                    context)) {
+                errorDescription
+                    << "Expression validation failed: [ expression: "
+                    << expression << ", rc: " << context.lastError()
+                    << ", reason: \"" << context.lastErrorMessage() << "\" ]";
+                return false;  // RETURN
+            }
+        }
+    }
+    else {
+        errorDescription << "Unsupported version: [ expression: " << expression
+                         << " ]";
+        return false;  // RETURN
+    }
+
+    return true;
+}
+
 /// Validates a domain configuration. If `previousDefn` is provided, also
 /// checks that the implied reconfiguration is also valid.
 int validateConfig(bsl::ostream& errorDescription,
@@ -144,27 +172,10 @@ int validateConfig(bsl::ostream& errorDescription,
     bool        allSubscriptionsAreValid = true;
 
     for (bsl::size_t i = 0; i < size; ++i) {
-        const mqbconfm::Expression& expression =
-            newConfig.subscriptions()[i].expression();
-
-        if (mqbconfm::ExpressionVersion::E_VERSION_1 == expression.version()) {
-            if (expression.text().length()) {
-                bmqeval::CompilationContext context(allocator);
-
-                if (!bmqeval::SimpleEvaluator::validate(expression.text(),
-                                                        context)) {
-                    errorDescription
-                        << "Expression validation failed: [ expression: "
-                        << expression << ", rc: " << context.lastError()
-                        << ", reason: \"" << context.lastErrorMessage()
-                        << "\" ]";
-                    allSubscriptionsAreValid = false;
-                }
-            }
-        }
-        else {
-            errorDescription
-                << "Unsupported version: [ expression: " << expression << " ]";
+        if (!validdateSubscriptionExpression(
+                errorDescription,
+                newConfig.subscriptions()[i].expression(),
+                allocator)) {
             allSubscriptionsAreValid = false;
         }
     }
