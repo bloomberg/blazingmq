@@ -292,6 +292,22 @@ struct MessageEventBuilderImpl {
 
     bsl::shared_ptr<bmqp::MessageGUIDGenerator> d_guidGenerator_sp;
     // GUID generator object.
+
+    int d_messageCountFinal;
+    // The final number of messages in the current 'd_msgEvent' cached on
+    // switching this MessageEvent from WRITE to READ mode.
+    // This cached value exists because we are not able to access the
+    // underlying PutEventBuilder once downgraded to READ.
+    // CONTRACT: the stored value is correct every moment when in READ mode,
+    // and the value is not guaranteed to be correct when in WRITE mode.
+
+    int d_messageEventSizeFinal;
+    // The final message event size of the current 'd_msgEvent' cached on
+    // switching this MessageEvent from WRITE to READ mode.
+    // This cached value exists because we are not able to access the
+    // underlying PutEventBuilder once downgraded to READ.
+    // CONTRACT: the stored value is correct every moment when in READ mode,
+    // and the value is not guaranteed to be correct when in WRITE mode.
 };
 
 // =========================
