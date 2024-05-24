@@ -184,20 +184,25 @@ BSLA_MAYBE_UNUSED
 bool isConfigure(const bmqp_ctrlmsg::ControlMessage& request,
                  const bmqp_ctrlmsg::ControlMessage& response)
 {
-    return request.choice().isConfigureStreamValue() &&
-           response.choice().isConfigureStreamResponseValue();
+    return request.choice().isConfigureStreamValue()
+               ? response.choice().isConfigureStreamResponseValue()
+           : request.choice().isConfigureQueueStreamValue()
+               ? response.choice().isConfigureQueueStreamResponseValue()
+               : false;
 }
 
 BSLA_MAYBE_UNUSED
 bool isConfigure(const bmqp_ctrlmsg::ControlMessage& request)
 {
-    return request.choice().isConfigureStreamValue();
+    return request.choice().isConfigureStreamValue() ||
+           request.choice().isConfigureQueueStreamValue();
 }
 
 BSLA_MAYBE_UNUSED
-bool isConfigureResponse(const bmqp_ctrlmsg::ControlMessage& request)
+bool isConfigureResponse(const bmqp_ctrlmsg::ControlMessage& response)
 {
-    return request.choice().isConfigureStreamResponseValue();
+    return response.choice().isConfigureStreamResponseValue() ||
+           response.choice().isConfigureQueueStreamResponseValue();
 }
 
 void makeDeconfigure(bmqp_ctrlmsg::ControlMessage* request)
@@ -5191,87 +5196,134 @@ BrokerSession::createConfigureQueueContext(const bsl::shared_ptr<Queue>& queue,
     }
     context->setGroupId(grId);
 
-    // Make ConfigureStream request
-    bmqp_ctrlmsg::ConfigureStream& configureStream =
-        context->request().choice().makeConfigureStream();
-    configureStream.qId() = queue->id();
+    /// Temporary safety switch to control configure request.
+    int doConfigureStream = 0;
 
-    // Populate the request's streamParameters
-    bmqp_ctrlmsg::StreamParameters& streamParams =
-        configureStream.streamParameters();
+    d_channel_sp->properties().load(
+        &doConfigureStream,
+        NegotiatedChannelFactory::k_CHANNEL_PROPERTY_CONFIGURE_STREAM);
 
-    if (!queue->hasDefaultSubQueueId()) {
-        streamParams.appId() = queue->uri().id();
-    }  // else  "__default"
+    if (doConfigureStream) {
+        // Make ConfigureStream request
+        bmqp_ctrlmsg::ConfigureStream& configureStream =
+            context->request().choice().makeConfigureStream();
+        configureStream.qId() = queue->id();
 
-    if (isDeconfigure) {
-        // Empty Subscriptions
+        // Populate the request's streamParameters
+        bmqp_ctrlmsg::StreamParameters& streamParams =
+            configureStream.streamParameters();
+
+        if (!queue->hasDefaultSubQueueId()) {
+            streamParams.appId() = queue->uri().id();
+        }  // else  "__default"
+
+        if (isDeconfigure) {
+            // Empty Subscriptions
+            return context;  // RETURN
+        }
+
+        bmqt::QueueOptions::SubscriptionsSnapshot snapshot(d_allocator_p);
+        options.loadSubscriptions(&snapshot);
+
+        for (bmqt::QueueOptions::SubscriptionsSnapshot::const_iterator cit =
+                 snapshot.begin();
+             cit != snapshot.end();
+             ++cit) {
+            bmqp_ctrlmsg::ConsumerInfo ci;
+            const bmqt::Subscription&  from = cit->second;
+            if (from.hasMaxUnconfirmedMessages()) {
+                ci.maxUnconfirmedMessages() = from.maxUnconfirmedMessages();
+            }
+            else {
+                ci.maxUnconfirmedMessages() = options.maxUnconfirmedMessages();
+            }
+            if (from.hasMaxUnconfirmedBytes()) {
+                ci.maxUnconfirmedBytes() = from.maxUnconfirmedBytes();
+            }
+            else {
+                ci.maxUnconfirmedBytes() = options.maxUnconfirmedBytes();
+            }
+            if (from.hasConsumerPriority()) {
+                ci.consumerPriority() = from.consumerPriority();
+            }
+            else {
+                ci.consumerPriority() = options.consumerPriority();
+            }
+
+            ci.consumerPriorityCount() = 1;
+
+            bmqp_ctrlmsg::Subscription subscription(d_allocator_p);
+
+            const unsigned int internalSubscriptionId =
+                ++d_nextInternalSubscriptionId;
+
+            subscription.sId() = internalSubscriptionId;
+            // Using unique id instead of 'SubscriptionHandle::id()'
+
+            subscription.consumers().emplace_back(ci);
+
+            bmqp_ctrlmsg::ExpressionVersion::Value version;
+
+            switch (from.expression().version()) {
+            case bmqt::SubscriptionExpression::e_NONE:
+                version = bmqp_ctrlmsg::ExpressionVersion::E_UNDEFINED;
+                break;
+            case bmqt::SubscriptionExpression::e_VERSION_1:
+                version = bmqp_ctrlmsg::ExpressionVersion::E_VERSION_1;
+                break;
+            default:
+                BSLS_ASSERT_SAFE(false);
+                version = bmqp_ctrlmsg::ExpressionVersion::E_UNDEFINED;
+                break;
+            }
+            subscription.expression().version() = version;
+            subscription.expression().text()    = from.expression().text();
+
+            streamParams.subscriptions().emplace_back(subscription);
+            queue->registerInternalSubscriptionId(internalSubscriptionId,
+                                                  cit->first.id(),
+                                                  cit->first.correlationId());
+        }
         return context;  // RETURN
     }
 
-    bmqt::QueueOptions::SubscriptionsSnapshot snapshot(d_allocator_p);
-    options.loadSubscriptions(&snapshot);
+    // Make ConfigureQueueStream request
+    bmqp_ctrlmsg::ConfigureQueueStream& configureQueueStream =
+        context->request().choice().makeConfigureQueueStream();
+    configureQueueStream.qId() = queue->id();
 
-    for (bmqt::QueueOptions::SubscriptionsSnapshot::const_iterator cit =
-             snapshot.begin();
-         cit != snapshot.end();
-         ++cit) {
-        bmqp_ctrlmsg::ConsumerInfo ci;
-        const bmqt::Subscription&  from = cit->second;
-        if (from.hasMaxUnconfirmedMessages()) {
-            ci.maxUnconfirmedMessages() = from.maxUnconfirmedMessages();
-        }
-        else {
-            ci.maxUnconfirmedMessages() = options.maxUnconfirmedMessages();
-        }
-        if (from.hasMaxUnconfirmedBytes()) {
-            ci.maxUnconfirmedBytes() = from.maxUnconfirmedBytes();
-        }
-        else {
-            ci.maxUnconfirmedBytes() = options.maxUnconfirmedBytes();
-        }
-        if (from.hasConsumerPriority()) {
-            ci.consumerPriority() = from.consumerPriority();
-        }
-        else {
-            ci.consumerPriority() = options.consumerPriority();
-        }
+    // Populate the request's streamParameters
+    bmqp_ctrlmsg::QueueStreamParameters& streamParams =
+        configureQueueStream.streamParameters();
 
-        ci.consumerPriorityCount() = 1;
-
-        bmqp_ctrlmsg::Subscription subscription(d_allocator_p);
-
-        const unsigned int internalSubscriptionId =
-            ++d_nextInternalSubscriptionId;
-
-        subscription.sId() = internalSubscriptionId;
-        // Using unique id instead of 'SubscriptionHandle::id()'
-
-        subscription.consumers().emplace_back(ci);
-
-        bmqp_ctrlmsg::ExpressionVersion::Value version;
-
-        switch (from.expression().version()) {
-        case bmqt::SubscriptionExpression::e_NONE:
-            version = bmqp_ctrlmsg::ExpressionVersion::E_UNDEFINED;
-            break;
-        case bmqt::SubscriptionExpression::e_VERSION_1:
-            version = bmqp_ctrlmsg::ExpressionVersion::E_VERSION_1;
-            break;
-        default:
-            BSLS_ASSERT_SAFE(false);
-            version = bmqp_ctrlmsg::ExpressionVersion::E_UNDEFINED;
-            break;
-        }
-        subscription.expression().version() = version;
-        subscription.expression().text()    = from.expression().text();
-
-        streamParams.subscriptions().emplace_back(subscription);
-        queue->registerInternalSubscriptionId(internalSubscriptionId,
-                                              cit->first.id(),
-                                              cit->first.correlationId());
+    // Set the SubQueueIdInfo if non-default subQueueId
+    if (!queue->hasDefaultSubQueueId()) {
+        bmqp_ctrlmsg::SubQueueIdInfo& sqidInfo =
+            streamParams.subIdInfo().makeValueInplace();
+        sqidInfo.appId() = queue->uri().id();
+        sqidInfo.subId() = queue->subQueueId();
     }
-    return context;  // RETURN
+
+    streamParams.maxUnconfirmedMessages() = options.maxUnconfirmedMessages();
+    streamParams.maxUnconfirmedBytes()    = options.maxUnconfirmedBytes();
+    streamParams.consumerPriority()       = options.consumerPriority();
+
+    // Set consumerPriority and consumerPriorityCount
+    if (isDeconfigure) {
+        streamParams.consumerPriority() =
+            bmqp::Protocol::k_CONSUMER_PRIORITY_INVALID;
+        streamParams.consumerPriorityCount() = 0;
+    }
+    else {
+        streamParams.consumerPriority()      = options.consumerPriority();
+        streamParams.consumerPriorityCount() = 1;
+
+        queue->registerInternalSubscriptionId(queue->subQueueId(),
+                                              queue->subQueueId(),
+                                              bmqt::CorrelationId());
+    }
+
+    return context;
 }
 
 BrokerSession::RequestManagerType::RequestSp

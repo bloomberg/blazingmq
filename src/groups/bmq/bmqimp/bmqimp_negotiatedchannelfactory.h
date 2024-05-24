@@ -107,6 +107,9 @@ class NegotiatedChannelFactory : public mwcio::ChannelFactory {
     /// Temporary; shall remove after 2nd roll out of "new style" brokers.
     static const char* k_CHANNEL_PROPERTY_MPS_EX;
 
+    /// Temporary safety switch to control configure request.
+    static const char* k_CHANNEL_PROPERTY_CONFIGURE_STREAM;
+
   private:
     // PRIVATE DATA
     Config d_config;

@@ -100,6 +100,10 @@ NegotiatedChannelFactoryConfig::NegotiatedChannelFactoryConfig(
 const char* NegotiatedChannelFactory::k_CHANNEL_PROPERTY_MPS_EX =
     "broker.response.mps.ex";
 
+/// Temporary safety switch to control configure request.
+const char* NegotiatedChannelFactory::k_CHANNEL_PROPERTY_CONFIGURE_STREAM =
+    "broker.response.confgiure_stream";
+
 // PRIVATE ACCESSORS
 void NegotiatedChannelFactory::baseResultCallback(
     const ResultCallback&                  userCb,
@@ -320,6 +324,13 @@ void NegotiatedChannelFactory::onBrokerNegotiationResponse(
             bmqp::MessagePropertiesFeatures::k_MESSAGE_PROPERTIES_EX,
             response.brokerResponse().brokerIdentity().features())) {
         channel->properties().set(k_CHANNEL_PROPERTY_MPS_EX, 1);
+    }
+
+    if (bmqp::ProtocolUtil::hasFeature(
+            bmqp::SubscriptionsFeatures::k_FIELD_NAME,
+            bmqp::SubscriptionsFeatures::k_CONFIGURE_STREAM,
+            response.brokerResponse().brokerIdentity().features())) {
+        channel->properties().set(k_CHANNEL_PROPERTY_CONFIGURE_STREAM, 1);
     }
 
     cb(mwcio::ChannelFactoryEvent::e_CHANNEL_UP, mwcio::Status(), channel);
