@@ -99,7 +99,7 @@ bool CommandLineArguments::validate(bsl::string* error)
     mwcu::MemOutStream ss;
 
     if (d_journalPath.empty() && d_journalFile.empty()) {
-        ss << "Niether journal path nor journal file are specified\n";
+        ss << "Neither journal path nor journal file are specified\n";
     }
     else if (!d_journalPath.empty()) {
         if (d_journalFile.empty() && d_dataFile.empty()) {

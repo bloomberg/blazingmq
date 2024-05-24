@@ -1971,10 +1971,11 @@ void StorageManager::processReceiptEvent(
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_dispatcher_p->inDispatcherThread(d_cluster_p));
 
-    mwcu::BlobPosition position;
-    const int          rc = mwcu::BlobUtil::findOffsetSafe(&position,
-                                                  *event.blob(),
-                                                  sizeof(bmqp::EventHeader));
+    mwcu::BlobPosition          position;
+    BSLA_MAYBE_UNUSED const int rc = mwcu::BlobUtil::findOffsetSafe(
+        &position,
+        *event.blob(),
+        sizeof(bmqp::EventHeader));
     BSLS_ASSERT_SAFE(rc == 0);
 
     mwcu::BlobObjectProxy<bmqp::ReplicationReceipt> receipt(

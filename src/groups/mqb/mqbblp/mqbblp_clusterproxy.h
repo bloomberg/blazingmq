@@ -258,10 +258,8 @@ class ClusterProxy : public mqbc::ClusterStateObserver,
   private:
     // PRIVATE MANIPULATORS
 
-    /// Start the `Cluster` and populate the specified `rc` with the result
-    /// of the operation, 0 on success and non-zero otherwise populating the
-    /// specified `errorDescription` with the reason of the error.
-    void startDispatched(bsl::ostream* errorDescription, int* rc);
+    /// Start the `Cluster`.
+    void startDispatched();
 
     /// Initiate the shutdown of the cluster.  The specified `callback` will
     /// be called when the shutdown is completed.  This routine is invoked

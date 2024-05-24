@@ -565,13 +565,14 @@ ClusterState::PartitionIdExtractor::PartitionIdExtractor(
 : d_allocator_p(allocator)
 , d_regex(allocator)
 {
-    const char  pattern[] = "^\\S+\\.([0-9]+)\\.\\S+\\.\\S+$";
-    bsl::string error(d_allocator_p);
-    size_t      errorOffset;
-    const int   rc = d_regex.prepare(&error,
-                                   &errorOffset,
-                                   pattern,
-                                   bdlpcre::RegEx::k_FLAG_JIT);
+    const char                  pattern[] = "^\\S+\\.([0-9]+)\\.\\S+\\.\\S+$";
+    bsl::string                 error(d_allocator_p);
+    size_t                      errorOffset;
+    BSLA_MAYBE_UNUSED const int rc = d_regex.prepare(
+        &error,
+        &errorOffset,
+        pattern,
+        bdlpcre::RegEx::k_FLAG_JIT);
     BSLS_ASSERT_SAFE(rc == 0);
     BSLS_ASSERT_SAFE(d_regex.isPrepared() == true);
 }

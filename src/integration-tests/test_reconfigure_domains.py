@@ -412,10 +412,8 @@ class TestReconfigureDomains:
 
         # Stage 3: reconfigure maxDeliveryAttempts to enable poison pill detection.
         # Use an admin session to validate that the setting change reached the broker.
-        host, port = cluster.admin_endpoint
-
         admin = AdminClient()
-        admin.connect(host, port)
+        admin.connect(*cluster.admin_endpoint)
 
         res = admin.send_admin(f"DOMAINS DOMAIN {tc.DOMAIN_PRIORITY} INFOS")
         assert '"maxDeliveryAttempts" : 0' in res

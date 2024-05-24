@@ -224,9 +224,7 @@ class TestStrongConsistency:
                 ].definition.parameters.consistency = mqbconf.Consistency(  # type: ignore
                     strong=mqbconf.QueueConsistencyStrong()
                 )
-                multi_node.reconfigure_domain(
-                    tc.DOMAIN_PRIORITY, write_only=True
-                )
+                multi_node.reconfigure_domain(tc.DOMAIN_PRIORITY, write_only=True)
 
                 # Reconfigure domain to be strongly consistent.
                 for node in multi_node.nodes(exclude=suspended_nodes):

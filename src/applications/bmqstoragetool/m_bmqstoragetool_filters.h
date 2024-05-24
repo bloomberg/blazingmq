@@ -43,8 +43,8 @@ class Filters {
   private:
     // DATA
     bsl::unordered_set<mqbu::StorageKey> d_queueKeys;
-    const bsls::Types::Int64             d_timestampGt;
-    const bsls::Types::Int64             d_timestampLt;
+    const bsls::Types::Uint64            d_timestampGt;
+    const bsls::Types::Uint64            d_timestampLt;
 
   public:
     // CREATORS
@@ -55,7 +55,6 @@ class Filters {
                      const QueueMap&                 queueMap,
                      const bsls::Types::Int64        timestampGt,
                      const bsls::Types::Int64        timestampLt,
-                     bsl::ostream&                   ostream,
                      bslma::Allocator*               allocator);
 
     // MANIPULATORS

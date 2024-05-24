@@ -134,7 +134,5 @@ def pytest_collection_modifyitems(config, items):
             continue
 
         item.add_marker(
-            pytest.mark.skip(
-                reason=f"order = {order}, running {active_wave} only"
-            )
+            pytest.mark.skip(reason=f"order = {order}, running {active_wave} only")
         )

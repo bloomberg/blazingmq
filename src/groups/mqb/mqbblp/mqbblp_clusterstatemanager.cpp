@@ -1693,7 +1693,7 @@ void ClusterStateManager::processQueueAssignmentAdvisory(
                     // no need to update d_state_p->domainStates() entry
                     // , queue was already known and registered
 
-                    const bool rc = d_state_p->assignQueue(
+                    BSLA_MAYBE_UNUSED const bool rc = d_state_p->assignQueue(
                         uri,
                         queueKey,
                         queueInfo.partitionId(),

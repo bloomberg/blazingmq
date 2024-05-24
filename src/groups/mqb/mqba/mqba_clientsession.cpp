@@ -660,8 +660,7 @@ void ClientSession::tearDownImpl(bslmt::Semaphore*            semaphore,
          it != d_queueSessionManager.queues().end();
          ++it) {
         if (!it->second.d_hasReceivedFinalCloseQueue) {
-            mqbi::Queue* queue = it->second.d_handle_p->queue();
-            BSLS_ASSERT_SAFE(queue);
+            BSLS_ASSERT_SAFE(it->second.d_handle_p->queue());
 
             if (isBrokerShutdown ||
                 d_clientIdentity_p->clientType() ==
@@ -1290,8 +1289,8 @@ void ClientSession::openQueueCb(
         response.choice().makeStatus(status);
 
         BALL_LOG_WARN << "#CLIENT_OPENQUEUE_FAILURE " << description()
-                      << ": Error while opening queue: [reason: '" << status
-                      << "', request: " << handleParamsCtrlMsg << "]";
+                      << ": Error while opening queue: [reason: " << status
+                      << ", request: " << handleParamsCtrlMsg << "]";
     }
     else {
         bmqp_ctrlmsg::OpenQueueResponse& res =

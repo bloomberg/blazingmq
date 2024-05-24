@@ -450,8 +450,7 @@ ClusterStateMonitor::~ClusterStateMonitor()
     stop();
 }
 
-int ClusterStateMonitor::start(
-    BSLS_ANNOTATION_UNUSED bsl::ostream& errorDescription)
+void ClusterStateMonitor::start()
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(!d_isStarted && "Already started");
@@ -509,8 +508,6 @@ int ClusterStateMonitor::start(
 
     // Cluster is in an un-healthy state (default value of d_isHealthy)
     d_clusterData_p->stats().setHealthStatus(d_isHealthy);
-
-    return 0;
 }
 
 void ClusterStateMonitor::registerObserver(

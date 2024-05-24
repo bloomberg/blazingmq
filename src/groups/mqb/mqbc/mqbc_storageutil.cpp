@@ -1704,8 +1704,9 @@ void StorageUtil::recoveredQueuesCb(
                 for (AppIdKeyPairsCIter ait = appIdKeyPairs.begin();
                      ait != appIdKeyPairs.end();
                      ++ait) {
-                    const bsl::string&      appId  = ait->first;
-                    const mqbu::StorageKey& appKey = ait->second;
+                    BSLA_MAYBE_UNUSED const bsl::string& appId = ait->first;
+                    BSLA_MAYBE_UNUSED const mqbu::StorageKey& appKey =
+                        ait->second;
 
                     BSLS_ASSERT_SAFE(!appKey.isNull());
                     BSLS_ASSERT_SAFE(!appId.empty());

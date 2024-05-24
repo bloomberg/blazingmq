@@ -99,8 +99,6 @@
 //..
 //..
 
-// MWC
-
 // BDE
 #include <bdlma_pool.h>
 #include <bsl_algorithm.h>

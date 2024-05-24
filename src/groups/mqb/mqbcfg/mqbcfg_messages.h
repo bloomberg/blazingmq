@@ -8199,7 +8199,8 @@ class AppConfig {
     // configuration for the plugins msgPropertiesSupport.: information about
     // if/how to advertise support for v2 message properties
     // configureStream......: send new ConfigureStream instead of old
-    // ConfigureQueue/>
+    // ConfigureQueue advertiseSubscriptions.: temporarily control use of
+    // ConfigureStream in SDK/>
 
     // INSTANCE DATA
     bsl::string         d_brokerInstanceName;
@@ -8219,6 +8220,7 @@ class AppConfig {
     int                 d_logsObserverMaxSize;
     bool                d_isRunningOnDev;
     bool                d_configureStream;
+    bool                d_advertiseSubscriptions;
 
     // PRIVATE ACCESSORS
     template <typename t_HASH_ALGORITHM>
@@ -8229,45 +8231,47 @@ class AppConfig {
   public:
     // TYPES
     enum {
-        ATTRIBUTE_ID_BROKER_INSTANCE_NAME   = 0,
-        ATTRIBUTE_ID_BROKER_VERSION         = 1,
-        ATTRIBUTE_ID_CONFIG_VERSION         = 2,
-        ATTRIBUTE_ID_ETC_DIR                = 3,
-        ATTRIBUTE_ID_HOST_NAME              = 4,
-        ATTRIBUTE_ID_HOST_TAGS              = 5,
-        ATTRIBUTE_ID_HOST_DATA_CENTER       = 6,
-        ATTRIBUTE_ID_IS_RUNNING_ON_DEV      = 7,
-        ATTRIBUTE_ID_LOGS_OBSERVER_MAX_SIZE = 8,
-        ATTRIBUTE_ID_LATENCY_MONITOR_DOMAIN = 9,
-        ATTRIBUTE_ID_DISPATCHER_CONFIG      = 10,
-        ATTRIBUTE_ID_STATS                  = 11,
-        ATTRIBUTE_ID_NETWORK_INTERFACES     = 12,
-        ATTRIBUTE_ID_BMQCONF_CONFIG         = 13,
-        ATTRIBUTE_ID_PLUGINS                = 14,
-        ATTRIBUTE_ID_MESSAGE_PROPERTIES_V2  = 15,
-        ATTRIBUTE_ID_CONFIGURE_STREAM       = 16
+        ATTRIBUTE_ID_BROKER_INSTANCE_NAME    = 0,
+        ATTRIBUTE_ID_BROKER_VERSION          = 1,
+        ATTRIBUTE_ID_CONFIG_VERSION          = 2,
+        ATTRIBUTE_ID_ETC_DIR                 = 3,
+        ATTRIBUTE_ID_HOST_NAME               = 4,
+        ATTRIBUTE_ID_HOST_TAGS               = 5,
+        ATTRIBUTE_ID_HOST_DATA_CENTER        = 6,
+        ATTRIBUTE_ID_IS_RUNNING_ON_DEV       = 7,
+        ATTRIBUTE_ID_LOGS_OBSERVER_MAX_SIZE  = 8,
+        ATTRIBUTE_ID_LATENCY_MONITOR_DOMAIN  = 9,
+        ATTRIBUTE_ID_DISPATCHER_CONFIG       = 10,
+        ATTRIBUTE_ID_STATS                   = 11,
+        ATTRIBUTE_ID_NETWORK_INTERFACES      = 12,
+        ATTRIBUTE_ID_BMQCONF_CONFIG          = 13,
+        ATTRIBUTE_ID_PLUGINS                 = 14,
+        ATTRIBUTE_ID_MESSAGE_PROPERTIES_V2   = 15,
+        ATTRIBUTE_ID_CONFIGURE_STREAM        = 16,
+        ATTRIBUTE_ID_ADVERTISE_SUBSCRIPTIONS = 17
     };
 
-    enum { NUM_ATTRIBUTES = 17 };
+    enum { NUM_ATTRIBUTES = 18 };
 
     enum {
-        ATTRIBUTE_INDEX_BROKER_INSTANCE_NAME   = 0,
-        ATTRIBUTE_INDEX_BROKER_VERSION         = 1,
-        ATTRIBUTE_INDEX_CONFIG_VERSION         = 2,
-        ATTRIBUTE_INDEX_ETC_DIR                = 3,
-        ATTRIBUTE_INDEX_HOST_NAME              = 4,
-        ATTRIBUTE_INDEX_HOST_TAGS              = 5,
-        ATTRIBUTE_INDEX_HOST_DATA_CENTER       = 6,
-        ATTRIBUTE_INDEX_IS_RUNNING_ON_DEV      = 7,
-        ATTRIBUTE_INDEX_LOGS_OBSERVER_MAX_SIZE = 8,
-        ATTRIBUTE_INDEX_LATENCY_MONITOR_DOMAIN = 9,
-        ATTRIBUTE_INDEX_DISPATCHER_CONFIG      = 10,
-        ATTRIBUTE_INDEX_STATS                  = 11,
-        ATTRIBUTE_INDEX_NETWORK_INTERFACES     = 12,
-        ATTRIBUTE_INDEX_BMQCONF_CONFIG         = 13,
-        ATTRIBUTE_INDEX_PLUGINS                = 14,
-        ATTRIBUTE_INDEX_MESSAGE_PROPERTIES_V2  = 15,
-        ATTRIBUTE_INDEX_CONFIGURE_STREAM       = 16
+        ATTRIBUTE_INDEX_BROKER_INSTANCE_NAME    = 0,
+        ATTRIBUTE_INDEX_BROKER_VERSION          = 1,
+        ATTRIBUTE_INDEX_CONFIG_VERSION          = 2,
+        ATTRIBUTE_INDEX_ETC_DIR                 = 3,
+        ATTRIBUTE_INDEX_HOST_NAME               = 4,
+        ATTRIBUTE_INDEX_HOST_TAGS               = 5,
+        ATTRIBUTE_INDEX_HOST_DATA_CENTER        = 6,
+        ATTRIBUTE_INDEX_IS_RUNNING_ON_DEV       = 7,
+        ATTRIBUTE_INDEX_LOGS_OBSERVER_MAX_SIZE  = 8,
+        ATTRIBUTE_INDEX_LATENCY_MONITOR_DOMAIN  = 9,
+        ATTRIBUTE_INDEX_DISPATCHER_CONFIG       = 10,
+        ATTRIBUTE_INDEX_STATS                   = 11,
+        ATTRIBUTE_INDEX_NETWORK_INTERFACES      = 12,
+        ATTRIBUTE_INDEX_BMQCONF_CONFIG          = 13,
+        ATTRIBUTE_INDEX_PLUGINS                 = 14,
+        ATTRIBUTE_INDEX_MESSAGE_PROPERTIES_V2   = 15,
+        ATTRIBUTE_INDEX_CONFIGURE_STREAM        = 16,
+        ATTRIBUTE_INDEX_ADVERTISE_SUBSCRIPTIONS = 17
     };
 
     // CONSTANTS
@@ -8276,6 +8280,8 @@ class AppConfig {
     static const char DEFAULT_INITIALIZER_LATENCY_MONITOR_DOMAIN[];
 
     static const bool DEFAULT_INITIALIZER_CONFIGURE_STREAM;
+
+    static const bool DEFAULT_INITIALIZER_ADVERTISE_SUBSCRIPTIONS;
 
     static const bdlat_AttributeInfo ATTRIBUTE_INFO_ARRAY[];
 
@@ -8436,6 +8442,10 @@ class AppConfig {
     // Return a reference to the modifiable "ConfigureStream" attribute of
     // this object.
 
+    bool& advertiseSubscriptions();
+    // Return a reference to the modifiable "AdvertiseSubscriptions"
+    // attribute of this object.
+
     // ACCESSORS
     bsl::ostream&
     print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
@@ -8542,6 +8552,10 @@ class AppConfig {
 
     bool configureStream() const;
     // Return the value of the "ConfigureStream" attribute of this object.
+
+    bool advertiseSubscriptions() const;
+    // Return the value of the "AdvertiseSubscriptions" attribute of this
+    // object.
 
     // HIDDEN FRIENDS
     friend bool operator==(const AppConfig& lhs, const AppConfig& rhs)
@@ -16651,6 +16665,7 @@ void AppConfig::hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const
     hashAppend(hashAlgorithm, this->plugins());
     hashAppend(hashAlgorithm, this->messagePropertiesV2());
     hashAppend(hashAlgorithm, this->configureStream());
+    hashAppend(hashAlgorithm, this->advertiseSubscriptions());
 }
 
 inline bool AppConfig::isEqualTo(const AppConfig& rhs) const
@@ -16671,7 +16686,8 @@ inline bool AppConfig::isEqualTo(const AppConfig& rhs) const
            this->bmqconfConfig() == rhs.bmqconfConfig() &&
            this->plugins() == rhs.plugins() &&
            this->messagePropertiesV2() == rhs.messagePropertiesV2() &&
-           this->configureStream() == rhs.configureStream();
+           this->configureStream() == rhs.configureStream() &&
+           this->advertiseSubscriptions() == rhs.advertiseSubscriptions();
 }
 
 // CLASS METHODS
@@ -16787,6 +16803,13 @@ int AppConfig::manipulateAttributes(t_MANIPULATOR& manipulator)
         return ret;
     }
 
+    ret = manipulator(
+        &d_advertiseSubscriptions,
+        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ADVERTISE_SUBSCRIPTIONS]);
+    if (ret) {
+        return ret;
+    }
+
     return 0;
 }
 
@@ -16875,6 +16898,11 @@ int AppConfig::manipulateAttribute(t_MANIPULATOR& manipulator, int id)
         return manipulator(
             &d_configureStream,
             ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CONFIGURE_STREAM]);
+    }
+    case ATTRIBUTE_ID_ADVERTISE_SUBSCRIPTIONS: {
+        return manipulator(
+            &d_advertiseSubscriptions,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ADVERTISE_SUBSCRIPTIONS]);
     }
     default: return NOT_FOUND;
     }
@@ -16979,6 +17007,11 @@ inline MessagePropertiesV2& AppConfig::messagePropertiesV2()
 inline bool& AppConfig::configureStream()
 {
     return d_configureStream;
+}
+
+inline bool& AppConfig::advertiseSubscriptions()
+{
+    return d_advertiseSubscriptions;
 }
 
 // ACCESSORS
@@ -17089,6 +17122,13 @@ int AppConfig::accessAttributes(t_ACCESSOR& accessor) const
         return ret;
     }
 
+    ret = accessor(
+        d_advertiseSubscriptions,
+        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ADVERTISE_SUBSCRIPTIONS]);
+    if (ret) {
+        return ret;
+    }
+
     return 0;
 }
 
@@ -17173,6 +17213,11 @@ int AppConfig::accessAttribute(t_ACCESSOR& accessor, int id) const
         return accessor(
             d_configureStream,
             ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CONFIGURE_STREAM]);
+    }
+    case ATTRIBUTE_ID_ADVERTISE_SUBSCRIPTIONS: {
+        return accessor(
+            d_advertiseSubscriptions,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ADVERTISE_SUBSCRIPTIONS]);
     }
     default: return NOT_FOUND;
     }
@@ -17277,6 +17322,11 @@ inline const MessagePropertiesV2& AppConfig::messagePropertiesV2() const
 inline bool AppConfig::configureStream() const
 {
     return d_configureStream;
+}
+
+inline bool AppConfig::advertiseSubscriptions() const
+{
+    return d_advertiseSubscriptions;
 }
 
 // ------------------------
@@ -17686,7 +17736,7 @@ inline const AppConfig& Configuration::appConfig() const
 }  // close enterprise namespace
 #endif
 
-// GENERATED BY BLP_BAS_CODEGEN_2024.04.18
+// GENERATED BY @BLP_BAS_CODEGEN_VERSION@
 // USING bas_codegen.pl -m msg --noAggregateConversion --noExternalization
 // --noIdent --package mqbcfg --msgComponent messages mqbcfg.xsd
 // ----------------------------------------------------------------------------

@@ -279,7 +279,7 @@ class ClusterStateMonitor {
     // MANIPULATORS
 
     /// Start the monitor.
-    int start(bsl::ostream& errorDescription);
+    void start();
 
     /// Register the specified `observer` to be notified of threshold state
     /// notifications.

@@ -109,6 +109,9 @@ bool findQueueAppIdByAppKey(
     const bsl::vector<BloombergLP::bmqp_ctrlmsg::AppIdInfo>& appIds,
     const mqbu::StorageKey&                                  appKey)
 {
+    // PRECONDITIONS
+    BSLS_ASSERT(appId);
+
     if (appKey.isNull())
         return false;  // RETURN
 

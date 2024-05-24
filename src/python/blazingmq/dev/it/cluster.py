@@ -102,7 +102,7 @@ class Cluster(contextlib.AbstractContextManager):
         return self.config.name
 
     @property
-    def admin_endpoint(self) -> Tuple[Optional[str], Optional[int]]:
+    def admin_endpoint(self) -> Union[Tuple[str, int], Tuple[None, None]]:
         """
         Return a tuple containing (host, port) of an admin endpoint of this cluster, if the
         admin endpoint is not decided, return (None, None) tuple
@@ -110,7 +110,9 @@ class Cluster(contextlib.AbstractContextManager):
         if not self.last_known_leader:
             return None, None
 
-        return self.last_known_leader.config.host, int(self.last_known_leader.config.port)
+        return self.last_known_leader.config.host, int(
+            self.last_known_leader.config.port
+        )
 
     def start(self, wait_leader=True, wait_ready=False):
         """
