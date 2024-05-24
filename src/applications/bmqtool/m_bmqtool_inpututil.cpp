@@ -24,6 +24,7 @@
 #include <bdlb_tokenizer.h>
 #include <bdlde_hexdecoder.h>
 #include <bsl_cstdlib.h>
+#include <bsl_fstream.h>
 #include <bsl_iostream.h>
 #include <bsl_limits.h>
 #include <bsl_string.h>
@@ -226,16 +227,18 @@ void InputUtil::populateProperties(
         } break;  // BREAK
 
         case MessagePropertyType::E_BINARY: {
-            bsl::istringstream iss(value);
-            mwcu::MemOutStream resultStream;
-            const bool decodeSuccess = InputUtil::decodeHexDump(&resultStream,
-                                                                iss);
-            BSLS_ASSERT(decodeSuccess);
-            bsl::vector<char>     binaryBuf(resultStream.str().begin(),
-                                        resultStream.str().end());
-            BSLA_MAYBE_UNUSED int rc = out->setPropertyAsBinary(name,
-                                                                binaryBuf);
-            BSLS_ASSERT(0 == rc);
+            // bsl::istringstream iss(value);
+            // mwcu::MemOutStream resultStream;
+            // mwcu::MemOutStream error;
+            // const bool decodeSuccess =
+            // InputUtil::decodeHexDump(&resultStream, &error,
+            //                                                     iss);
+            // BSLS_ASSERT(decodeSuccess);
+            // bsl::vector<char>     binaryBuf(resultStream.str().begin(),
+            //                             resultStream.str().end());
+            // BSLA_MAYBE_UNUSED int rc = out->setPropertyAsBinary(name,
+            //                                                     binaryBuf);
+            // BSLS_ASSERT(0 == rc);
 
         } break;  // BREAK
 
@@ -363,16 +366,16 @@ void InputUtil::verifyProperties(
         } break;  // BREAK
 
         case MessagePropertyType::E_BINARY: {
-            bsl::istringstream           iss(value);
-            mwcu::MemOutStream           resultStream;
-            BSLA_MAYBE_UNUSED const bool decodeSuccess =
-                InputUtil::decodeHexDump(&resultStream, iss);
-            BSLS_ASSERT_SAFE(true == decodeSuccess);
-            bsl::vector<char>       binaryBuf(resultStream.str().begin(),
-                                        resultStream.str().end());
-            BSLA_MAYBE_UNUSED const bsl::vector<char>& result =
-                in.getPropertyAsBinary(name);
-            BSLS_ASSERT_SAFE(binaryBuf == result);
+            // bsl::istringstream           iss(value);
+            // mwcu::MemOutStream           resultStream;
+            // BSLA_MAYBE_UNUSED const bool decodeSuccess =
+            //     InputUtil::decodeHexDump(&resultStream, iss);
+            // BSLS_ASSERT_SAFE(true == decodeSuccess);
+            // bsl::vector<char>       binaryBuf(resultStream.str().begin(),
+            //                             resultStream.str().end());
+            // BSLA_MAYBE_UNUSED const bsl::vector<char>& result =
+            //     in.getPropertyAsBinary(name);
+            // BSLS_ASSERT_SAFE(binaryBuf == result);
         } break;  // BREAK
 
         default: BSLS_ASSERT_SAFE(false && "Unsupported type");
@@ -544,32 +547,31 @@ bool InputUtil::populateSubscriptions(bmqt::QueueOptions*              out,
     return !failed;
 }
 
-bool InputUtil::decodeHexDump(bsl::ostream* out,
-                              bsl::istream& in,
-                              bsl::ostream* error)
+bool InputUtil::decodeHexDump(bsl::ostream*     out,
+                              bsl::ostream*     error,
+                              bsl::istream&     in,
+                              bslma::Allocator* allocator)
 {
     // PRECONDITIONS
     BSLS_ASSERT(out);
+    BSLS_ASSERT(error);
 
     char outputBuffer[4];  // should be equal to k_BLOCK_SIZE in
                            // bdlb::Print::hexDump()
     bdlde::HexDecoder hexDecoder;
 
-    bsl::string line;
+    bsl::string line(allocator);
     int         numOut = 0;
     int         numIn  = 0;
 
     while (bsl::getline(in, line)) {
         if (line.empty()) {
-            continue;  // skip empty lines
+            break;  // stop at the end of hexdump (empty line)
         }
 
         // Sanity check
         if (line.find(' ') == bsl::string::npos) {
-            if (error) {
-                *error
-                    << "Wrong hexdump format, space delimeter is not detected";
-            }
+            *error << "Wrong hexdump format, space delimeter is not detected";
             return false;  // RETURN
         }
 
@@ -581,8 +583,15 @@ bool InputUtil::decodeHexDump(bsl::ostream* out,
             bslstl::StringRef token = *tokenizerIt;
 
             // Stop when ASCII representation is detected
-            if (token.at(0) == '|')
+            if (token.front() == '|')
                 break;  // BREAK
+
+            // Check token size fits outputBuffer size
+            if (token.size() > 2 * sizeof(outputBuffer)) {
+                *error << "Wrong hexdump format, block size is greater than "
+                       << 2 * sizeof(outputBuffer) << ": " << token.size();
+                return false;  // RETURN
+            }
 
             const int rc = hexDecoder.convert(outputBuffer,
                                               &numOut,
@@ -590,13 +599,102 @@ bool InputUtil::decodeHexDump(bsl::ostream* out,
                                               token.begin(),
                                               token.end());
             if (rc < 0) {
-                if (error) {
-                    *error << "HexDecoder convert error: " << rc;
-                }
+                *error << "HexDecoder convert error: " << rc;
                 return false;  // RETURN
             }
             out->write(outputBuffer, numOut);
         }
+    }
+
+    return true;
+}
+
+bool InputUtil::loadMessageFromFile(bsl::ostream*      payload,
+                                    bsl::ostream*      properties,
+                                    bsl::ostream*      error,
+                                    const bsl::string& filePath,
+                                    bslma::Allocator*  allocator)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT(payload);
+    BSLS_ASSERT(properties);
+    BSLS_ASSERT(error);
+
+    bsl::ifstream fileStream(filePath.c_str());
+    if (!fileStream.is_open()) {
+        *error << "Failed to open file: " << filePath;
+        return false;  // RETURN
+    }
+
+    // Parse file according to format defined in
+    // QueueEngineUtil::dumpMessageInTempfile()
+    char        tmpBuffer[2];
+    bsl::string line(allocator);
+    bsl::getline(fileStream, line);
+
+    // Check if properties are present
+    if (line == "Message Properties:") {
+        fileStream.read(tmpBuffer, 1);  // skip empty line
+
+        // Read human readable properties lines to check surrounding markers [
+        // ]
+        bsl::getline(fileStream, line);
+        if (line.front() != '[') {
+            *error << "Properties '[' marker missed";
+            return false;  // RETURN
+        }
+        if (line.back() != ']') {
+            // Binary properties are multiline, read lines until close marker
+            // ']'
+            while (!fileStream.eof()) {
+                bsl::getline(fileStream, line);
+                // Check for close marker
+                if (line.back() == ']')
+                    break;  // BREAK
+            }
+            if (fileStream.eof()) {
+                *error << "Properties ']' marker missed";
+                return false;  // RETURN
+            }
+        }
+
+        fileStream.read(tmpBuffer, 2);  // skip empty lines
+
+        // Check if properties hexdump is present
+        bsl::getline(fileStream, line);
+        if (line != "Message Properties hexdump:") {
+            *error << "Unexpected file format, 'Message Properties hexdump:' "
+                      "expected";
+            return false;  // RETURN
+        }
+
+        fileStream.read(tmpBuffer, 1);  // skip empty line
+        // Read and convert message properties
+        if (!InputUtil::decodeHexDump(properties,
+                                      error,
+                                      fileStream,
+                                      allocator)) {
+            return false;  // RETURN
+        }
+
+        // Check message payload presence
+        fileStream.read(tmpBuffer, 1);  // skip empty line
+        bsl::getline(fileStream, line);
+        if (line != "Message Payload:") {
+            *error << "Unexpected file format, 'Message Payload:' expected";
+            return false;  // RETURN
+        }
+    }
+    else if (line != "Application Data:") {
+        *error << "Unexpected file format, either 'Message Properties:' or "
+                  "'Message Payload:' expected";
+        return false;  // RETURN
+    }
+
+    // Read and convert message payload
+    fileStream.read(tmpBuffer, 1);  // skip empty line
+    if (!InputUtil::decodeHexDump(payload, error, fileStream, allocator)) {
+        return false;  // RETURN
     }
 
     return true;

@@ -139,10 +139,10 @@ struct QueueEngineUtil {
     /// indicates failure to create a temporary file and return value of -2
     /// indicates failure to open the temporary file.  If `properties` is
     /// `0`, dump the `payload` only.
-    static int
-    dumpMessageInTempfile(bsl::string*                   filepath,
-                          const bdlbb::Blob&             payload,
-                          const bmqp::MessageProperties* properties);
+    static int dumpMessageInTempfile(bsl::string*                   filepath,
+                                     const bdlbb::Blob&             payload,
+                                     const bmqp::MessageProperties* properties,
+                                     bslma::Allocator*              allocator);
 
     /// Dump message contents in temporary file after message has been fully
     /// rejected (with RDA reaching zero). Raise an alarm with the message

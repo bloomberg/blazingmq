@@ -90,12 +90,25 @@ struct InputUtil {
                              const bsl::string& jsonInput);
 
     /// Decode hexdump produced by bdlb::Print::hexDump() into binary format.
-    /// Read hexdump from the specified `in` and write binary into the
-    /// specified `out`. Return true on success and false on error in which
-    /// case load the error description into the optionally specified `error`.
-    static bool decodeHexDump(bsl::ostream* out,
-                              bsl::istream& in,
-                              bsl::ostream* error = 0);
+    /// Read hexdump from the specified `in` until empty line and write binary
+    /// into the specified `out`. Return true on success and false on error in
+    /// which case load the error description into the optionally specified
+    /// `error`.
+    static bool decodeHexDump(bsl::ostream*     out,
+                              bsl::ostream*     error,
+                              bsl::istream&     in,
+                              bslma::Allocator* allocator);
+
+    /// Load message content from dump file, created by
+    /// QueueEngineUtil::dumpMessageInTempfile() method (poison pill dump) into
+    /// the specified `payload` and `properties`. Return true on success and
+    /// false on error in which case load the error description into the
+    /// optionally specified `error`.
+    static bool loadMessageFromFile(bsl::ostream*      payload,
+                                    bsl::ostream*      properties,
+                                    bsl::ostream*      error,
+                                    const bsl::string& filePath,
+                                    bslma::Allocator*  allocator);
 
   private:
     // CLASS-SCOPE CATEGORY

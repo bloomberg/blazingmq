@@ -14,6 +14,7 @@
 // limitations under the License.
 
 // m_bmqtool_interactive.cpp                                          -*-C++-*-
+#include <bmqp_protocol.h>
 #include <m_bmqtool_interactive.h>
 
 // BMQTOOL
@@ -114,10 +115,10 @@ bool loadMessageContentFromFile(
 
     // Parse file according to format defined in
     // QueueEngineUtil::dumpMessageInTempfile()
+    char        tmpBuffer[2];
     bsl::string line(allocator);
     bsl::getline(fileStream, line);
     if (line == "Message Properties:") {
-        char tmpBuffer[2];
         fileStream.read(tmpBuffer, 1);  // skip empty line
 
         // Properties
@@ -170,14 +171,118 @@ bool loadMessageContentFromFile(
     }
 
     // Read and convert message payload
+    fileStream.read(tmpBuffer, 1);  // skip empty line
     mwcu::MemOutStream resultStream;
     if (!InputUtil::decodeHexDump(&resultStream,
+                                  errorDescription,
                                   fileStream,
-                                  errorDescription)) {
+                                  allocator)) {
         return false;  // RETURN
     }
 
     payload->push_back(resultStream.str());
+
+    return true;
+}
+
+// Load message content from dump file, created by
+// QueueEngineUtil::dumpMessageInTempfile() method into the specified `payload`
+// and `properties`. Return `true` on success or `false` otherwise. In case of
+// `false`, `errorDescription` contains details.
+bool loadMessageContentFromFile(bsl::string*       payload,
+                                bsl::string*       properties,
+                                bsl::ostream*      errorDescription,
+                                const bsl::string& filePath,
+                                bslma::Allocator*  allocator)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT(payload);
+    BSLS_ASSERT(properties);
+    BSLS_ASSERT(errorDescription);
+
+    bsl::ifstream fileStream(filePath.c_str());
+    if (!fileStream.is_open()) {
+        *errorDescription << "Failed to open file: " << filePath;
+        return false;  // RETURN
+    }
+
+    // Parse file according to format defined in
+    // QueueEngineUtil::dumpMessageInTempfile()
+    char        tmpBuffer[2];
+    bsl::string line(allocator);
+    bsl::getline(fileStream, line);
+    if (line == "Message Properties:") {
+        fileStream.read(tmpBuffer, 1);  // skip empty line
+
+        // Properties
+        bsl::getline(fileStream, line);
+        if (line.front() != '[') {
+            *errorDescription << "Properties '[' marker missed";
+            return false;  // RETURN
+        }
+        if (line.back() != ']') {
+            // Binary properties are multiline, read lines until close marker
+            // ']'
+            while (!fileStream.eof()) {
+                bsl::getline(fileStream, line);
+                // Check for close marker
+                if (line.back() == ']')
+                    break;  // BREAK
+            }
+            if (fileStream.eof()) {
+                *errorDescription << "Properties ']' marker missed";
+                return false;  // RETURN
+            }
+        }
+
+        fileStream.read(tmpBuffer, 2);  // skip empty lines
+
+        bsl::getline(fileStream, line);
+        if (line == "Message Properties hexdump:") {
+            // Read and convert message payload
+            fileStream.read(tmpBuffer, 1);  // skip empty line
+            mwcu::MemOutStream resultStream;
+            if (!InputUtil::decodeHexDump(&resultStream,
+                                          errorDescription,
+                                          fileStream,
+                                          allocator)) {
+                return false;  // RETURN
+            }
+
+            properties->assign(resultStream.str());
+            fileStream.read(tmpBuffer, 1);  // skip empty line
+            // Check Message Payload:
+            bsl::getline(fileStream, line);
+            if (line != "Message Payload:") {
+                *errorDescription
+                    << "Unexpected file format, 'Message Payload:' expected";
+                return false;  // RETURN
+            }
+        }
+        else if (line != "Message Payload:") {
+            *errorDescription
+                << "Unexpected file format, either 'Message Properties dump:' "
+                   "or 'Message Payload:' expected";
+            return false;  // RETURN
+        }
+    }
+    else if (line != "Application Data:") {
+        *errorDescription
+            << "Unexpected file format, 'Application Data:' expected";
+        return false;  // RETURN
+    }
+
+    // Read and convert message payload
+    fileStream.read(tmpBuffer, 1);  // skip empty line
+    mwcu::MemOutStream resultStream;
+    if (!InputUtil::decodeHexDump(&resultStream,
+                                  errorDescription,
+                                  fileStream,
+                                  allocator)) {
+        return false;  // RETURN
+    }
+
+    payload->assign(resultStream.str());
 
     return true;
 }
@@ -571,14 +676,59 @@ void Interactive::processCommand(const PostCommand& command, bool hasMPs)
                           << " type, message will be sent uncompressed.";
         }
 
-        bmqa::MessageProperties properties(d_allocator_p);
+        bmqa::MessageProperties        properties(d_allocator_p);
+        bmqa::MessageProperties        propertiesMy(d_allocator_p);
+        bdlbb::PooledBlobBufferFactory bufferFactory(1024, d_allocator_p);
 
         if (hasMPs) {
             d_session_p->loadMessageProperties(&properties);
             InputUtil::populateProperties(&properties,
                                           command.messageProperties());
 
-            msg.setPropertiesRef(&properties);
+            // msg.setPropertiesRef(&properties);
+
+            BALL_LOG_WARN << "REAL MESSAGE PROPS: "
+                          << properties;  // TODO: remove
+
+            // bmqa::MessageProperties propertiesCopy(properties,
+            // d_allocator_p);
+
+            const bdlbb::Blob& blob = properties.streamOut(&bufferFactory);
+
+            mwcu::MemOutStream dumpStream(d_allocator_p);
+            dumpStream << bdlbb::BlobUtilHexDumper(&blob);
+
+            BALL_LOG_WARN << "DUMP: ";
+            BALL_LOG_WARN << dumpStream.str();
+
+            mwcu::MemOutStream binaryStream(d_allocator_p);
+            mwcu::MemOutStream error(d_allocator_p);
+            bsl::istringstream inpStream(dumpStream.str(), d_allocator_p);
+            if (!InputUtil::decodeHexDump(&binaryStream,
+                                          &error,
+                                          inpStream,
+                                          d_allocator_p)) {
+                BALL_LOG_ERROR << error.str();
+            }
+
+            BALL_LOG_WARN << "DECODED";
+
+            bdlbb::Blob resultBlob(&bufferFactory, d_allocator_p);
+            bdlbb::BlobUtil::append(&resultBlob,
+                                    binaryStream.str().data(),
+                                    binaryStream.str().length());
+
+            BALL_LOG_WARN << "APPENDED";
+
+            int rc = propertiesMy.streamIn(resultBlob);
+            if (rc != 0) {
+                BALL_LOG_ERROR << "streamIn rc= " << rc;
+            }
+
+            BALL_LOG_WARN << "REAL MESSAGE MY PROPS: "
+                          << propertiesMy;  // TODO: remove
+
+            msg.setPropertiesRef(&propertiesMy);
         }
 
         // Set data
@@ -840,6 +990,101 @@ void Interactive::processCommand(const BatchPostCommand& command)
     BALL_LOG_INFO << "All messages have been posted";
 }
 
+void Interactive::processCommand(const LoadPostCommand& command)
+{
+    // Validate command parameters
+    if (command.uri().empty()) {
+        BALL_LOG_ERROR << "'uri' is mandatory";
+        return;  // RETURN
+    }
+    if (command.file().empty()) {
+        BALL_LOG_ERROR << "'file' is mandatory";
+        return;  // RETURN
+    }
+
+    // Lookup the Queue by URI
+    bmqa::QueueId queueId;
+    if (d_session_p->getQueueId(&queueId, command.uri()) != 0) {
+        BALL_LOG_ERROR << "unknown queue '" << command.uri() << "'";
+        return;  // RETURN
+    }
+
+    BALL_LOG_INFO << "--> Posting message: " << command;
+
+    int rc;
+    // Build the messageEvent
+    bmqa::MessageEventBuilder eventBuilder;
+    d_session_p->loadMessageEventBuilder(&eventBuilder);
+    bmqa::Message& msg = eventBuilder.startMessage();
+
+    // Put a correlationId if the queue was opened with ACK
+    if (bmqt::QueueFlagsUtil::isAck(queueId.flags())) {
+        bmqt::CorrelationId cid(bmqt::CorrelationId::autoValue());
+        msg.setCorrelationId(cid);
+        BALL_LOG_DEBUG << "PUT'ing msg with corrId: " << cid;
+    }
+    else {
+        BALL_LOG_DEBUG << "PUT'ing msg with no corrId";
+    }
+
+    // Load message content from the file
+    mwcu::MemOutStream payloadStream;
+    mwcu::MemOutStream propertiesStream;
+    mwcu::MemOutStream errorDescription;
+    if (!InputUtil::loadMessageFromFile(&payloadStream,
+                                        &propertiesStream,
+                                        &errorDescription,
+                                        command.file(),
+                                        d_allocator_p)) {
+        BALL_LOG_ERROR << "Failed to load message from file: "
+                       << errorDescription.str();
+        return;  // RETURN
+    }
+
+    // Set message properties
+    bsl::string                    properties = propertiesStream.str();
+    bmqa::MessageProperties        messageProperties(d_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(1024, d_allocator_p);
+    if (!properties.empty()) {
+        // Convert string to blob
+        bdlbb::Blob blob(&bufferFactory, d_allocator_p);
+        bdlbb::BlobUtil::append(&blob,
+                                properties.c_str(),
+                                static_cast<int>(properties.size()));
+
+        // Deserialize message properties from blob
+        int rc = messageProperties.streamIn(blob);
+        if (rc != 0) {
+            BALL_LOG_ERROR << "Failed to deserialize message properties, rc = "
+                           << rc;
+            return;  // RETURN
+        }
+        msg.setPropertiesRef(&messageProperties);
+        BALL_LOG_WARN << "REAL MESSAGE PROPS: "
+                      << messageProperties;  // TODO: remove
+    }
+
+    // Set payload
+    bsl::string payload = payloadStream.str();
+    msg.setDataRef(payload.c_str(), payload.size());
+    BALL_LOG_WARN << "PAYLOAD: " << payload;
+
+    bmqt::EventBuilderResult::Enum ebr = eventBuilder.packMessage(queueId);
+    if (bmqt::EventBuilderResult::e_SUCCESS != ebr) {
+        BALL_LOG_ERROR << "Failed to pack message. rc: " << ebr;
+        return;  // RETURN
+    }
+
+    // Post
+    rc = d_session_p->post(eventBuilder.messageEvent());
+
+    ball::Severity::Level severity = (rc == 0 ? ball::Severity::INFO
+                                              : ball::Severity::ERROR);
+    BALL_LOG_STREAM(severity)
+        << "<-- session.post() => " << bmqt::GenericResult::Enum(rc) << " ("
+        << rc << ")";
+}
+
 Interactive::UriEntryPtr
 Interactive::createUriEntry(const bsl::string&          uri,
                             Interactive::UriEntryStatus status)
@@ -1053,6 +1298,12 @@ int Interactive::mainLoop()
             }
             else if (verb == "batch-post") {
                 BatchPostCommand command;
+                if (InputUtil::parseCommand(&command, &error, jsonInput)) {
+                    processCommand(command);
+                }
+            }
+            else if (verb == "load-post") {
+                LoadPostCommand command;
                 if (InputUtil::parseCommand(&command, &error, jsonInput)) {
                     processCommand(command);
                 }

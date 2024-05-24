@@ -18,6 +18,7 @@
       <element name='list'           type='tns:ListCommand'/>
       <element name='confirm'        type='tns:ConfirmCommand'/>
       <element name='batch-post'     type='tns:BatchPostCommand'/>
+      <element name='load-post'      type='tns:LoadPostCommand'/>
 
       <!-- Commands specific to e_STORAGE mode -->
       <element name='openStorage'        type='tns:OpenStorageCommand'/>
@@ -93,6 +94,15 @@
       <element name='groupid'                  type='string' default=''/>
       <element name='compressionAlgorithmType' type='string' default='none'/>
       <element name='messageProperties'        type='tns:MessageProperty' maxOccurs='unbounded'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='LoadPostCommand'>
+    <sequence>
+      <element name='uri'                      type='string'/>
+      <element name='file'                     type='string' default=''/>
+      <element name='payloadBlob'              type='string'/>
+      <element name='messagePropertiesBlob'    type='string'/>
     </sequence>
   </complexType>
 
