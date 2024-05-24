@@ -133,7 +133,7 @@ static void test2_testMessageEventSizeCount()
     }
 
     // Make sure that 'messageEventSize' and 'messageCount' remain the same
-    // before packing the message
+    // since we do not pack the last started message
     ASSERT_EQ(messageEventSizeFinal, builder.messageEventSize());
     ASSERT_EQ(messageCountFinal, builder.messageCount());
 
