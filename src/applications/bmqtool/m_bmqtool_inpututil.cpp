@@ -461,7 +461,7 @@ bool InputUtil::loadMessageFromFile(bsl::ostream*      payload,
     }
     else if (line != "Application Data:") {
         *error << "Unexpected file format, either 'Message Properties:' or "
-                  "'Message Payload:' expected";
+                  "'Application Data:' expected";
         return false;  // RETURN
     }
 

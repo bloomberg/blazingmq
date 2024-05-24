@@ -33,7 +33,6 @@
 using namespace BloombergLP;
 using namespace m_bmqtool;
 using namespace bsl;
-// using namespace mqbs;
 
 // ============================================================================
 //                                    TESTS
@@ -73,7 +72,7 @@ static void test1_decodeHexDumpTest()
          true,
          "hello world!"},
         {L_,
-         "     0:    68656C6C 6F20776F 726C6421      |hello world!|\n\nsome "
+         "     0:    68656C6C 6F20776F 726C6421      |hello world!|\n\n\nsome "
          "text",
          "",
          true,
@@ -104,7 +103,7 @@ static void test1_decodeHexDumpTest()
                                  s_allocator_p);
         mwcu::MemOutStream output(s_allocator_p);
         mwcu::MemOutStream error(s_allocator_p);
-        bool               rc =
+        const bool         rc =
             InputUtil::decodeHexDump(&output, &error, input, s_allocator_p);
         // Check rc
         ASSERT_EQ_D(test.d_line, rc, test.d_expectedRc);
@@ -142,8 +141,8 @@ static void test2_loadMessageFromFileTest()
         // Bad formed file format
         {L_,
          "foo bar",
-         "Unexpected file format, either 'Message Properties:' or 'Message "
-         "Payload:' expected",
+         "Unexpected file format, either 'Message Properties:' or "
+         "'Application Data:' expected",
          false,
          ""},
         {L_,
@@ -267,22 +266,21 @@ static void test2_loadMessageFromFileTest()
 
         // Create temp file and write content
         mwcu::TempFile    tempFile(s_allocator_p);
-        const bsl::string filePath(tempFile.path(), s_allocator_p);
+        const bsl::string filePath = tempFile.path();
         {
             bsl::ofstream ofs(filePath.c_str());
-            BSLS_ASSERT(ofs.is_open());
+            ASSERT_EQ(ofs.is_open(), true);
             ofs << test.d_fileContent;
-            // ofs.close();
         }
 
         mwcu::MemOutStream payload(s_allocator_p);
         bsl::ostringstream properties(s_allocator_p);
         mwcu::MemOutStream error(s_allocator_p);
-        bool               rc = InputUtil::loadMessageFromFile(&payload,
-                                                 &properties,
-                                                 &error,
-                                                 filePath,
-                                                 s_allocator_p);
+        const bool         rc = InputUtil::loadMessageFromFile(&payload,
+                                                       &properties,
+                                                       &error,
+                                                       filePath,
+                                                       s_allocator_p);
         // Check rc
         ASSERT_EQ_D(test.d_line, rc, test.d_expectedRc);
         // Check error

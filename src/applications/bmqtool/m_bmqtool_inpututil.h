@@ -90,8 +90,8 @@ struct InputUtil {
                               bsl::istream&     in,
                               bslma::Allocator* allocator);
 
-    /// Load message content from dump file, created by
-    /// QueueEngineUtil::dumpMessageInTempfile() method (poison pill dump) into
+    /// Load message content from the specified `file` (created by
+    /// QueueEngineUtil::dumpMessageInTempfile() method) into
     /// the specified `payload` and `properties`. Return true on success and
     /// false on error in which case load the error description into the
     /// optionally specified `error`.
