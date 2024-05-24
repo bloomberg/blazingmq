@@ -184,27 +184,25 @@ BSLA_MAYBE_UNUSED
 bool isConfigure(const bmqp_ctrlmsg::ControlMessage& request,
                  const bmqp_ctrlmsg::ControlMessage& response)
 {
-    return bmqscm::Version::versionAsInt() == bmqp::Protocol::k_DEV_VERSION
-               ? request.choice().isConfigureStreamValue() &&
-                     response.choice().isConfigureStreamResponseValue()
-               : request.choice().isConfigureQueueStreamValue() &&
-                     response.choice().isConfigureQueueStreamResponseValue();
+    return request.choice().isConfigureStreamValue()
+               ? response.choice().isConfigureStreamResponseValue()
+           : request.choice().isConfigureQueueStreamValue()
+               ? response.choice().isConfigureQueueStreamResponseValue()
+               : false;
 }
 
 BSLA_MAYBE_UNUSED
 bool isConfigure(const bmqp_ctrlmsg::ControlMessage& request)
 {
-    return bmqscm::Version::versionAsInt() == bmqp::Protocol::k_DEV_VERSION
-               ? request.choice().isConfigureStreamValue()
-               : request.choice().isConfigureQueueStreamValue();
+    return request.choice().isConfigureStreamValue() ||
+           request.choice().isConfigureQueueStreamValue();
 }
 
 BSLA_MAYBE_UNUSED
-bool isConfigureResponse(const bmqp_ctrlmsg::ControlMessage& request)
+bool isConfigureResponse(const bmqp_ctrlmsg::ControlMessage& response)
 {
-    return bmqscm::Version::versionAsInt() == bmqp::Protocol::k_DEV_VERSION
-               ? request.choice().isConfigureStreamResponseValue()
-               : request.choice().isConfigureQueueStreamResponseValue();
+    return response.choice().isConfigureStreamResponseValue() ||
+           response.choice().isConfigureQueueStreamResponseValue();
 }
 
 void makeDeconfigure(bmqp_ctrlmsg::ControlMessage* request)
@@ -407,6 +405,11 @@ void BrokerSession::SessionFsm::setStarted(
 
     // Post on the semaphore (to wake-up a sync 'start', if any)
     d_session.d_startSemaphore.post();
+
+    // Temporary safety switch to control configure request.
+    d_session.d_channel_sp->properties().load(
+        &d_session.d_doConfigureStream,
+        NegotiatedChannelFactory::k_CHANNEL_PROPERTY_CONFIGURE_STREAM);
 }
 
 bmqt::GenericResult::Enum
@@ -5198,7 +5201,7 @@ BrokerSession::createConfigureQueueContext(const bsl::shared_ptr<Queue>& queue,
     }
     context->setGroupId(grId);
 
-    if (bmqscm::Version::versionAsInt() == bmqp::Protocol::k_DEV_VERSION) {
+    if (d_doConfigureStream) {
         // Make ConfigureStream request
         bmqp_ctrlmsg::ConfigureStream& configureStream =
             context->request().choice().makeConfigureStream();
@@ -5640,6 +5643,7 @@ BrokerSession::BrokerSession(
 , d_nextRequestGroupId(k_NON_BUFFERED_REQUEST_GROUP_ID)
 , d_queueRetransmissionTimeoutMap(allocator)
 , d_nextInternalSubscriptionId(bmqp::Protocol::k_DEFAULT_SUBSCRIPTION_ID)
+, d_doConfigureStream(0)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_scheduler_p->clockType() ==
