@@ -273,6 +273,9 @@ const char MessagePropertiesFeatures::k_FIELD_NAME[] = "MPS";
 const char MessagePropertiesFeatures::k_MESSAGE_PROPERTIES_EX[] =
     "MESSAGE_PROPERTIES_EX";
 
+const char SubscriptionsFeatures::k_FIELD_NAME[]       = "SUBSCRIPTIONS";
+const char SubscriptionsFeatures::k_CONFIGURE_STREAM[] = "CONFIGURE_STREAM";
+
 // -----------------
 // struct OptionType
 // -----------------

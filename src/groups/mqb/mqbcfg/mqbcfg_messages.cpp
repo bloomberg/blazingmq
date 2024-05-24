@@ -5158,6 +5158,8 @@ const char AppConfig::DEFAULT_INITIALIZER_LATENCY_MONITOR_DOMAIN[] =
 
 const bool AppConfig::DEFAULT_INITIALIZER_CONFIGURE_STREAM = false;
 
+const bool AppConfig::DEFAULT_INITIALIZER_ADVERTISE_SUBSCRIPTIONS = false;
+
 const bdlat_AttributeInfo AppConfig::ATTRIBUTE_INFO_ARRAY[] = {
     {ATTRIBUTE_ID_BROKER_INSTANCE_NAME,
      "brokerInstanceName",
@@ -5243,6 +5245,11 @@ const bdlat_AttributeInfo AppConfig::ATTRIBUTE_INFO_ARRAY[] = {
      "configureStream",
      sizeof("configureStream") - 1,
      "",
+     bdlat_FormattingMode::e_TEXT},
+    {ATTRIBUTE_ID_ADVERTISE_SUBSCRIPTIONS,
+     "advertiseSubscriptions",
+     sizeof("advertiseSubscriptions") - 1,
+     "",
      bdlat_FormattingMode::e_TEXT}};
 
 // CLASS METHODS
@@ -5250,7 +5257,7 @@ const bdlat_AttributeInfo AppConfig::ATTRIBUTE_INFO_ARRAY[] = {
 const bdlat_AttributeInfo* AppConfig::lookupAttributeInfo(const char* name,
                                                           int nameLength)
 {
-    for (int i = 0; i < 17; ++i) {
+    for (int i = 0; i < 18; ++i) {
         const bdlat_AttributeInfo& attributeInfo =
             AppConfig::ATTRIBUTE_INFO_ARRAY[i];
 
@@ -5300,6 +5307,8 @@ const bdlat_AttributeInfo* AppConfig::lookupAttributeInfo(int id)
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MESSAGE_PROPERTIES_V2];
     case ATTRIBUTE_ID_CONFIGURE_STREAM:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CONFIGURE_STREAM];
+    case ATTRIBUTE_ID_ADVERTISE_SUBSCRIPTIONS:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ADVERTISE_SUBSCRIPTIONS];
     default: return 0;
     }
 }
@@ -5325,6 +5334,7 @@ AppConfig::AppConfig(bslma::Allocator* basicAllocator)
 , d_logsObserverMaxSize()
 , d_isRunningOnDev()
 , d_configureStream(DEFAULT_INITIALIZER_CONFIGURE_STREAM)
+, d_advertiseSubscriptions(DEFAULT_INITIALIZER_ADVERTISE_SUBSCRIPTIONS)
 {
 }
 
@@ -5347,6 +5357,7 @@ AppConfig::AppConfig(const AppConfig&  original,
 , d_logsObserverMaxSize(original.d_logsObserverMaxSize)
 , d_isRunningOnDev(original.d_isRunningOnDev)
 , d_configureStream(original.d_configureStream)
+, d_advertiseSubscriptions(original.d_advertiseSubscriptions)
 {
 }
 
@@ -5369,7 +5380,8 @@ AppConfig::AppConfig(AppConfig&& original) noexcept
   d_configVersion(bsl::move(original.d_configVersion)),
   d_logsObserverMaxSize(bsl::move(original.d_logsObserverMaxSize)),
   d_isRunningOnDev(bsl::move(original.d_isRunningOnDev)),
-  d_configureStream(bsl::move(original.d_configureStream))
+  d_configureStream(bsl::move(original.d_configureStream)),
+  d_advertiseSubscriptions(bsl::move(original.d_advertiseSubscriptions))
 {
 }
 
@@ -5393,6 +5405,7 @@ AppConfig::AppConfig(AppConfig&& original, bslma::Allocator* basicAllocator)
 , d_logsObserverMaxSize(bsl::move(original.d_logsObserverMaxSize))
 , d_isRunningOnDev(bsl::move(original.d_isRunningOnDev))
 , d_configureStream(bsl::move(original.d_configureStream))
+, d_advertiseSubscriptions(bsl::move(original.d_advertiseSubscriptions))
 {
 }
 #endif
@@ -5406,23 +5419,24 @@ AppConfig::~AppConfig()
 AppConfig& AppConfig::operator=(const AppConfig& rhs)
 {
     if (this != &rhs) {
-        d_brokerInstanceName   = rhs.d_brokerInstanceName;
-        d_brokerVersion        = rhs.d_brokerVersion;
-        d_configVersion        = rhs.d_configVersion;
-        d_etcDir               = rhs.d_etcDir;
-        d_hostName             = rhs.d_hostName;
-        d_hostTags             = rhs.d_hostTags;
-        d_hostDataCenter       = rhs.d_hostDataCenter;
-        d_isRunningOnDev       = rhs.d_isRunningOnDev;
-        d_logsObserverMaxSize  = rhs.d_logsObserverMaxSize;
+        d_brokerInstanceName     = rhs.d_brokerInstanceName;
+        d_brokerVersion          = rhs.d_brokerVersion;
+        d_configVersion          = rhs.d_configVersion;
+        d_etcDir                 = rhs.d_etcDir;
+        d_hostName               = rhs.d_hostName;
+        d_hostTags               = rhs.d_hostTags;
+        d_hostDataCenter         = rhs.d_hostDataCenter;
+        d_isRunningOnDev         = rhs.d_isRunningOnDev;
+        d_logsObserverMaxSize    = rhs.d_logsObserverMaxSize;
         d_latencyMonitorDomain = rhs.d_latencyMonitorDomain;
-        d_dispatcherConfig     = rhs.d_dispatcherConfig;
-        d_stats                = rhs.d_stats;
-        d_networkInterfaces    = rhs.d_networkInterfaces;
-        d_bmqconfConfig        = rhs.d_bmqconfConfig;
-        d_plugins              = rhs.d_plugins;
-        d_messagePropertiesV2  = rhs.d_messagePropertiesV2;
-        d_configureStream      = rhs.d_configureStream;
+        d_dispatcherConfig       = rhs.d_dispatcherConfig;
+        d_stats                  = rhs.d_stats;
+        d_networkInterfaces      = rhs.d_networkInterfaces;
+        d_bmqconfConfig          = rhs.d_bmqconfConfig;
+        d_plugins                = rhs.d_plugins;
+        d_messagePropertiesV2    = rhs.d_messagePropertiesV2;
+        d_configureStream        = rhs.d_configureStream;
+        d_advertiseSubscriptions = rhs.d_advertiseSubscriptions;
     }
 
     return *this;
@@ -5433,23 +5447,24 @@ AppConfig& AppConfig::operator=(const AppConfig& rhs)
 AppConfig& AppConfig::operator=(AppConfig&& rhs)
 {
     if (this != &rhs) {
-        d_brokerInstanceName   = bsl::move(rhs.d_brokerInstanceName);
-        d_brokerVersion        = bsl::move(rhs.d_brokerVersion);
-        d_configVersion        = bsl::move(rhs.d_configVersion);
-        d_etcDir               = bsl::move(rhs.d_etcDir);
-        d_hostName             = bsl::move(rhs.d_hostName);
-        d_hostTags             = bsl::move(rhs.d_hostTags);
-        d_hostDataCenter       = bsl::move(rhs.d_hostDataCenter);
-        d_isRunningOnDev       = bsl::move(rhs.d_isRunningOnDev);
-        d_logsObserverMaxSize  = bsl::move(rhs.d_logsObserverMaxSize);
+        d_brokerInstanceName     = bsl::move(rhs.d_brokerInstanceName);
+        d_brokerVersion          = bsl::move(rhs.d_brokerVersion);
+        d_configVersion          = bsl::move(rhs.d_configVersion);
+        d_etcDir                 = bsl::move(rhs.d_etcDir);
+        d_hostName               = bsl::move(rhs.d_hostName);
+        d_hostTags               = bsl::move(rhs.d_hostTags);
+        d_hostDataCenter         = bsl::move(rhs.d_hostDataCenter);
+        d_isRunningOnDev         = bsl::move(rhs.d_isRunningOnDev);
+        d_logsObserverMaxSize    = bsl::move(rhs.d_logsObserverMaxSize);
         d_latencyMonitorDomain = bsl::move(rhs.d_latencyMonitorDomain);
-        d_dispatcherConfig     = bsl::move(rhs.d_dispatcherConfig);
-        d_stats                = bsl::move(rhs.d_stats);
-        d_networkInterfaces    = bsl::move(rhs.d_networkInterfaces);
-        d_bmqconfConfig        = bsl::move(rhs.d_bmqconfConfig);
-        d_plugins              = bsl::move(rhs.d_plugins);
-        d_messagePropertiesV2  = bsl::move(rhs.d_messagePropertiesV2);
-        d_configureStream      = bsl::move(rhs.d_configureStream);
+        d_dispatcherConfig       = bsl::move(rhs.d_dispatcherConfig);
+        d_stats                  = bsl::move(rhs.d_stats);
+        d_networkInterfaces      = bsl::move(rhs.d_networkInterfaces);
+        d_bmqconfConfig          = bsl::move(rhs.d_bmqconfConfig);
+        d_plugins                = bsl::move(rhs.d_plugins);
+        d_messagePropertiesV2    = bsl::move(rhs.d_messagePropertiesV2);
+        d_configureStream        = bsl::move(rhs.d_configureStream);
+        d_advertiseSubscriptions = bsl::move(rhs.d_advertiseSubscriptions);
     }
 
     return *this;
@@ -5475,6 +5490,7 @@ void AppConfig::reset()
     bdlat_ValueTypeFunctions::reset(&d_plugins);
     bdlat_ValueTypeFunctions::reset(&d_messagePropertiesV2);
     d_configureStream = DEFAULT_INITIALIZER_CONFIGURE_STREAM;
+    d_advertiseSubscriptions = DEFAULT_INITIALIZER_ADVERTISE_SUBSCRIPTIONS;
 }
 
 // ACCESSORS
@@ -5502,6 +5518,8 @@ AppConfig::print(bsl::ostream& stream, int level, int spacesPerLevel) const
     printer.printAttribute("plugins", this->plugins());
     printer.printAttribute("messagePropertiesV2", this->messagePropertiesV2());
     printer.printAttribute("configureStream", this->configureStream());
+    printer.printAttribute("advertiseSubscriptions",
+                           this->advertiseSubscriptions());
     printer.end();
     return stream;
 }
@@ -5819,7 +5837,7 @@ Configuration::print(bsl::ostream& stream, int level, int spacesPerLevel) const
 }  // close package namespace
 }  // close enterprise namespace
 
-// GENERATED BY BLP_BAS_CODEGEN_2024.04.18
+// GENERATED BY @BLP_BAS_CODEGEN_VERSION@
 // USING bas_codegen.pl -m msg --noAggregateConversion --noExternalization
 // --noIdent --package mqbcfg --msgComponent messages mqbcfg.xsd
 // ----------------------------------------------------------------------------
