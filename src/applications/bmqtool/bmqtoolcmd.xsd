@@ -262,7 +262,7 @@
     </annotation>
     <restriction base='string' bdem:preserveEnumOrder='1'>
       <enumeration value='E_STRING' bdem:id='0'/>
-      <enumeration value='E_INT'  bdem:id='1'/>
+      <enumeration value='E_INT'    bdem:id='1'/>
     </restriction>
   </simpleType>  
 </schema>
