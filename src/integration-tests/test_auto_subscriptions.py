@@ -417,11 +417,14 @@ class TestAutoSubscriptions:
             }
         ]
     )
-    def test_configure_invalid(self, cluster: Cluster):
+    def test_invalid_configuration(self, cluster: Cluster):
         """
-        Configure the priority queue with invalid auto subscription.
+        Configure priority domain with invalid auto subscription.
         Make sure a queue fails to open.
-        Reconfigure the priority queue with valid auto subscription.
+        Reconfigure the domain with valid auto subscription.
+        Make sure a queue opens successfully.
+        Reconfigure the domain with invalid auto subscription.
+        Make sure the reconfigure command fails.
         Make sure a queue opens successfully.
         """
 
@@ -454,34 +457,6 @@ class TestAutoSubscriptions:
             succeed=True,
         )
 
-    @tweak.domain.subscriptions(
-        [{"appId": "", "expression": {"version": "E_VERSION_1", "text": "x==1"}}]
-    )
-    def test_reconfigure_invalid(self, cluster: Cluster):
-        """
-        Configure the priority queue with valid auto subscription.
-        Make sure a queue opens successfully.
-        Reconfigure the priority queue with valid auto subscription.
-        Make sure the reconfigure command fails.
-        Make sure a queue opens successfully.
-        """
-
-        proxies = cluster.proxy_cycle()
-
-        # 1: Setup producers and consumers
-
-        next(proxies)
-        proxy = next(proxies)
-
-        consumer = proxy.create_client("consumer")
-
-        consumer.open(
-            tc.URI_PRIORITY_SC,
-            flags=["read"],
-            consumer_priority=1,
-            succeed=True,
-        )
-
         consumer.close(
             tc.URI_PRIORITY_SC,
             succeed=True,
@@ -494,7 +469,7 @@ class TestAutoSubscriptions:
         ] = "invalid expression"
 
         cluster.reconfigure_domain(tc.DOMAIN_PRIORITY_SC, succeed=None)
-        cluster.last_known_leader.capture("Error processing command")
+        assert cluster.last_known_leader.capture("Error processing command")
 
         # The validation fails and the domain is going to keep the old config
         consumer.open(
