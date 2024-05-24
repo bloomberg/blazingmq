@@ -126,10 +126,10 @@ static void test2_testMessageEventSizeCount()
     const int messageCountFinal     = builder.messageCount();
 
     {
-        // Avoid holding reference to the message for too long
         bmqa::Message& msg = builder.startMessage();
         msg.setCorrelationId(bmqt::CorrelationId::autoValue());
         msg.setDataRef(payload.c_str(), payload.size());
+        // Avoid holding reference to the 'msg' for too long
     }
 
     // Make sure that 'messageEventSize' and 'messageCount' remain the same
@@ -139,7 +139,10 @@ static void test2_testMessageEventSizeCount()
 
     // Stage 4: build MessageEvent
     // MessageEventBuilder switches from WRITE mode to READ:
-    const bmqa::MessageEvent& event = builder.messageEvent();
+    {
+        const bmqa::MessageEvent& event = builder.messageEvent();
+        // Avoid holding reference to the 'event' for too long
+    }
 
     // We had non-packed Message before, make sure it was not added to the blob
     ASSERT_EQ(messageEventSizeFinal, builder.messageEventSize());
