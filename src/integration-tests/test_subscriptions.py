@@ -166,13 +166,13 @@ class Producer:
 
         Example:
         __build_properties(x = -10, y = "sample")
-        -> [{"name": "x", "value": "-10",    "type": "E_INT32"},
+        -> [{"name": "x", "value": "-10",    "type": "E_INT"},
             {"name": "y", "value": "sample", "type": "E_STRING"}]
         """
 
         res = []
 
-        type_mapping = {str: "E_STRING", int: "E_INT32"}
+        type_mapping = {str: "E_STRING", int: "E_INT"}
         for name, value in kwargs.items():
             assert isinstance(name, str)
             assert type(value) in type_mapping

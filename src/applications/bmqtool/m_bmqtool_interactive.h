@@ -163,10 +163,6 @@ class Interactive {
     /// from the URIs map.
     void removeUriEntry(const bsl::string& uri);
 
-    /// Load message content from file for the specified `command`.
-    /// Return `true` on success or `false` otherwise.
-    bool loadMessageFromFile(PostCommand& command);
-
     /// `main` of the tread used for custom event handler
     void eventHandlerThread();
 

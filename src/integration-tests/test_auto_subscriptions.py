@@ -91,7 +91,7 @@ class TestAutoSubscriptions:
                 payload=["123"],
                 block=True,
                 wait_ack=True,
-                messageProperties=[{"name": "x", "value": "2", "type": "E_INT32"}]
+                messageProperties=[{"name": "x", "value": "2", "type": "E_INT"}]
             )
             == Client.e_SUCCESS
         )
@@ -166,7 +166,7 @@ class TestAutoSubscriptions:
                 payload=["123"],
                 block=True,
                 wait_ack=True,
-                messageProperties=[{"name": "x", "value": "2", "type": "E_INT32"}]
+                messageProperties=[{"name": "x", "value": "2", "type": "E_INT"}]
             )
             == Client.e_SUCCESS
         )
@@ -230,7 +230,7 @@ class TestAutoSubscriptions:
                 payload=["123"],
                 block=True,
                 wait_ack=True,
-                messageProperties=[{"name": "x", "value": "3", "type": "E_INT32"}]
+                messageProperties=[{"name": "x", "value": "3", "type": "E_INT"}]
             )
             == Client.e_SUCCESS
         )
@@ -248,7 +248,7 @@ class TestAutoSubscriptions:
                 payload=["123"],
                 block=True,
                 wait_ack=True,
-                messageProperties=[{"name": "x", "value": "4", "type": "E_INT32"}]
+                messageProperties=[{"name": "x", "value": "4", "type": "E_INT"}]
             )
             == Client.e_SUCCESS
         )
@@ -322,7 +322,7 @@ class TestAutoSubscriptions:
                 payload=["123"],
                 block=True,
                 wait_ack=True,
-                messageProperties=[{"name": "x", "value": "2", "type": "E_INT32"}]
+                messageProperties=[{"name": "x", "value": "2", "type": "E_INT"}]
             )
             == Client.e_SUCCESS
         )
@@ -367,7 +367,7 @@ class TestAutoSubscriptions:
                 payload=["123"],
                 block=True,
                 wait_ack=True,
-                messageProperties=[{"name": "x", "value": "0", "type": "E_INT32"}]
+                messageProperties=[{"name": "x", "value": "0", "type": "E_INT"}]
             )
             == Client.e_SUCCESS
         )

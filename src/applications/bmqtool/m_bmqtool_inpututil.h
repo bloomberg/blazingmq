@@ -72,15 +72,6 @@ struct InputUtil {
     verifyProperties(const bmqa::MessageProperties&      in,
                      const bsl::vector<MessageProperty>& properties);
 
-    /// Parse the specified `properties` (produced by
-    /// `MessageProperties::print()`) into the specified `out`. Return true on
-    /// success and false on error in which case load the error description
-    /// into the optionally specified `error`.
-    static bool parseProperties(bsl::vector<MessageProperty>* out,
-                                const bsl::string&            properties,
-                                bslma::Allocator*             allocator,
-                                bsl::ostream*                 error = 0);
-
     static bool populateSubscriptions(bmqt::QueueOptions*              out,
                                       const bsl::vector<Subscription>& in);
 

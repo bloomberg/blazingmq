@@ -2011,37 +2011,17 @@ class LoadPostCommand {
     // INSTANCE DATA
     bsl::string d_uri;
     bsl::string d_file;
-    bsl::string d_payloadBlob;
-    bsl::string d_messagePropertiesBlob;
-
-    // PRIVATE ACCESSORS
-    template <typename t_HASH_ALGORITHM>
-    void hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const;
-
-    bool isEqualTo(const LoadPostCommand& rhs) const;
 
   public:
     // TYPES
-    enum {
-        ATTRIBUTE_ID_URI                     = 0,
-        ATTRIBUTE_ID_FILE                    = 1,
-        ATTRIBUTE_ID_PAYLOAD_BLOB            = 2,
-        ATTRIBUTE_ID_MESSAGE_PROPERTIES_BLOB = 3
-    };
+    enum { ATTRIBUTE_ID_URI = 0, ATTRIBUTE_ID_FILE = 1 };
 
-    enum { NUM_ATTRIBUTES = 4 };
+    enum { NUM_ATTRIBUTES = 2 };
 
-    enum {
-        ATTRIBUTE_INDEX_URI                     = 0,
-        ATTRIBUTE_INDEX_FILE                    = 1,
-        ATTRIBUTE_INDEX_PAYLOAD_BLOB            = 2,
-        ATTRIBUTE_INDEX_MESSAGE_PROPERTIES_BLOB = 3
-    };
+    enum { ATTRIBUTE_INDEX_URI = 0, ATTRIBUTE_INDEX_FILE = 1 };
 
     // CONSTANTS
     static const char CLASS_NAME[];
-
-    static const char DEFAULT_INITIALIZER_FILE[];
 
     static const bdlat_AttributeInfo ATTRIBUTE_INFO_ARRAY[];
 
@@ -2143,14 +2123,6 @@ class LoadPostCommand {
     // Return a reference to the modifiable "File" attribute of this
     // object.
 
-    bsl::string& payloadBlob();
-    // Return a reference to the modifiable "PayloadBlob" attribute of this
-    // object.
-
-    bsl::string& messagePropertiesBlob();
-    // Return a reference to the modifiable "MessagePropertiesBlob"
-    // attribute of this object.
-
     // ACCESSORS
     bsl::ostream&
     print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
@@ -2202,14 +2174,6 @@ class LoadPostCommand {
     // Return a reference offering non-modifiable access to the "File"
     // attribute of this object.
 
-    const bsl::string& payloadBlob() const;
-    // Return a reference offering non-modifiable access to the
-    // "PayloadBlob" attribute of this object.
-
-    const bsl::string& messagePropertiesBlob() const;
-    // Return a reference offering non-modifiable access to the
-    // "MessagePropertiesBlob" attribute of this object.
-
     // HIDDEN FRIENDS
     friend bool operator==(const LoadPostCommand& lhs,
                            const LoadPostCommand& rhs)
@@ -2217,7 +2181,7 @@ class LoadPostCommand {
     // have the same value, and 'false' otherwise.  Two attribute objects
     // have the same value if each respective attribute has the same value.
     {
-        return lhs.isEqualTo(rhs);
+        return lhs.uri() == rhs.uri() && lhs.file() == rhs.file();
     }
 
     friend bool operator!=(const LoadPostCommand& lhs,
@@ -2243,7 +2207,9 @@ class LoadPostCommand {
     // effectively provides a 'bsl::hash' specialization for
     // 'LoadPostCommand'.
     {
-        object.hashAppendImpl(hashAlg);
+        using bslh::hashAppend;
+        hashAppend(hashAlg, object.uri());
+        hashAppend(hashAlg, object.file());
     }
 };
 
@@ -2265,17 +2231,9 @@ struct MessagePropertyType {
 
   public:
     // TYPES
-    enum Value {
-        E_STRING = 0,
-        E_INT32  = 1,
-        E_INT64  = 2,
-        E_BOOL   = 3,
-        E_CHAR   = 4,
-        E_SHORT  = 5,
-        E_BINARY = 6
-    };
+    enum Value { E_STRING = 0, E_INT = 1 };
 
-    enum { NUM_ENUMERATORS = 7 };
+    enum { NUM_ENUMERATORS = 2 };
 
     // CONSTANTS
     static const char CLASS_NAME[];
@@ -5952,7 +5910,6 @@ class PostCommand {
     bsl::vector<bsl::string>     d_payload;
     bsl::vector<MessageProperty> d_messageProperties;
     bsl::string                  d_uri;
-    bsl::string                  d_file;
     bsl::string                  d_groupid;
     bsl::string                  d_compressionAlgorithmType;
     bool                         d_async;
@@ -5968,29 +5925,25 @@ class PostCommand {
     enum {
         ATTRIBUTE_ID_URI                        = 0,
         ATTRIBUTE_ID_PAYLOAD                    = 1,
-        ATTRIBUTE_ID_FILE                       = 2,
-        ATTRIBUTE_ID_ASYNC                      = 3,
-        ATTRIBUTE_ID_GROUPID                    = 4,
-        ATTRIBUTE_ID_COMPRESSION_ALGORITHM_TYPE = 5,
-        ATTRIBUTE_ID_MESSAGE_PROPERTIES         = 6
+        ATTRIBUTE_ID_ASYNC                      = 2,
+        ATTRIBUTE_ID_GROUPID                    = 3,
+        ATTRIBUTE_ID_COMPRESSION_ALGORITHM_TYPE = 4,
+        ATTRIBUTE_ID_MESSAGE_PROPERTIES         = 5
     };
 
-    enum { NUM_ATTRIBUTES = 7 };
+    enum { NUM_ATTRIBUTES = 6 };
 
     enum {
         ATTRIBUTE_INDEX_URI                        = 0,
         ATTRIBUTE_INDEX_PAYLOAD                    = 1,
-        ATTRIBUTE_INDEX_FILE                       = 2,
-        ATTRIBUTE_INDEX_ASYNC                      = 3,
-        ATTRIBUTE_INDEX_GROUPID                    = 4,
-        ATTRIBUTE_INDEX_COMPRESSION_ALGORITHM_TYPE = 5,
-        ATTRIBUTE_INDEX_MESSAGE_PROPERTIES         = 6
+        ATTRIBUTE_INDEX_ASYNC                      = 2,
+        ATTRIBUTE_INDEX_GROUPID                    = 3,
+        ATTRIBUTE_INDEX_COMPRESSION_ALGORITHM_TYPE = 4,
+        ATTRIBUTE_INDEX_MESSAGE_PROPERTIES         = 5
     };
 
     // CONSTANTS
     static const char CLASS_NAME[];
-
-    static const char DEFAULT_INITIALIZER_FILE[];
 
     static const bool DEFAULT_INITIALIZER_ASYNC;
 
@@ -6097,10 +6050,6 @@ class PostCommand {
     // Return a reference to the modifiable "Payload" attribute of this
     // object.
 
-    bsl::string& file();
-    // Return a reference to the modifiable "File" attribute of this
-    // object.
-
     bool& async();
     // Return a reference to the modifiable "Async" attribute of this
     // object.
@@ -6166,10 +6115,6 @@ class PostCommand {
 
     const bsl::vector<bsl::string>& payload() const;
     // Return a reference offering non-modifiable access to the "Payload"
-    // attribute of this object.
-
-    const bsl::string& file() const;
-    // Return a reference offering non-modifiable access to the "File"
     // attribute of this object.
 
     bool async() const;
@@ -8155,24 +8100,6 @@ int ListQueuesCommand::accessAttribute(t_ACCESSOR& accessor,
 // class LoadPostCommand
 // ---------------------
 
-// PRIVATE ACCESSORS
-template <typename t_HASH_ALGORITHM>
-void LoadPostCommand::hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const
-{
-    using bslh::hashAppend;
-    hashAppend(hashAlgorithm, this->uri());
-    hashAppend(hashAlgorithm, this->file());
-    hashAppend(hashAlgorithm, this->payloadBlob());
-    hashAppend(hashAlgorithm, this->messagePropertiesBlob());
-}
-
-inline bool LoadPostCommand::isEqualTo(const LoadPostCommand& rhs) const
-{
-    return this->uri() == rhs.uri() && this->file() == rhs.file() &&
-           this->payloadBlob() == rhs.payloadBlob() &&
-           this->messagePropertiesBlob() == rhs.messagePropertiesBlob();
-}
-
 // CLASS METHODS
 // MANIPULATORS
 template <typename t_MANIPULATOR>
@@ -8186,19 +8113,6 @@ int LoadPostCommand::manipulateAttributes(t_MANIPULATOR& manipulator)
     }
 
     ret = manipulator(&d_file, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_FILE]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = manipulator(&d_payloadBlob,
-                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PAYLOAD_BLOB]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = manipulator(
-        &d_messagePropertiesBlob,
-        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MESSAGE_PROPERTIES_BLOB]);
     if (ret) {
         return ret;
     }
@@ -8218,15 +8132,6 @@ int LoadPostCommand::manipulateAttribute(t_MANIPULATOR& manipulator, int id)
     case ATTRIBUTE_ID_FILE: {
         return manipulator(&d_file,
                            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_FILE]);
-    }
-    case ATTRIBUTE_ID_PAYLOAD_BLOB: {
-        return manipulator(&d_payloadBlob,
-                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PAYLOAD_BLOB]);
-    }
-    case ATTRIBUTE_ID_MESSAGE_PROPERTIES_BLOB: {
-        return manipulator(
-            &d_messagePropertiesBlob,
-            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MESSAGE_PROPERTIES_BLOB]);
     }
     default: return NOT_FOUND;
     }
@@ -8258,16 +8163,6 @@ inline bsl::string& LoadPostCommand::file()
     return d_file;
 }
 
-inline bsl::string& LoadPostCommand::payloadBlob()
-{
-    return d_payloadBlob;
-}
-
-inline bsl::string& LoadPostCommand::messagePropertiesBlob()
-{
-    return d_messagePropertiesBlob;
-}
-
 // ACCESSORS
 template <typename t_ACCESSOR>
 int LoadPostCommand::accessAttributes(t_ACCESSOR& accessor) const
@@ -8280,19 +8175,6 @@ int LoadPostCommand::accessAttributes(t_ACCESSOR& accessor) const
     }
 
     ret = accessor(d_file, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_FILE]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = accessor(d_payloadBlob,
-                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PAYLOAD_BLOB]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = accessor(
-        d_messagePropertiesBlob,
-        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MESSAGE_PROPERTIES_BLOB]);
     if (ret) {
         return ret;
     }
@@ -8311,15 +8193,6 @@ int LoadPostCommand::accessAttribute(t_ACCESSOR& accessor, int id) const
     }
     case ATTRIBUTE_ID_FILE: {
         return accessor(d_file, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_FILE]);
-    }
-    case ATTRIBUTE_ID_PAYLOAD_BLOB: {
-        return accessor(d_payloadBlob,
-                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PAYLOAD_BLOB]);
-    }
-    case ATTRIBUTE_ID_MESSAGE_PROPERTIES_BLOB: {
-        return accessor(
-            d_messagePropertiesBlob,
-            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MESSAGE_PROPERTIES_BLOB]);
     }
     default: return NOT_FOUND;
     }
@@ -8349,16 +8222,6 @@ inline const bsl::string& LoadPostCommand::uri() const
 inline const bsl::string& LoadPostCommand::file() const
 {
     return d_file;
-}
-
-inline const bsl::string& LoadPostCommand::payloadBlob() const
-{
-    return d_payloadBlob;
-}
-
-inline const bsl::string& LoadPostCommand::messagePropertiesBlob() const
-{
-    return d_messagePropertiesBlob;
 }
 
 // -------------------------
@@ -11611,7 +11474,6 @@ void PostCommand::hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const
     using bslh::hashAppend;
     hashAppend(hashAlgorithm, this->uri());
     hashAppend(hashAlgorithm, this->payload());
-    hashAppend(hashAlgorithm, this->file());
     hashAppend(hashAlgorithm, this->async());
     hashAppend(hashAlgorithm, this->groupid());
     hashAppend(hashAlgorithm, this->compressionAlgorithmType());
@@ -11621,8 +11483,7 @@ void PostCommand::hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const
 inline bool PostCommand::isEqualTo(const PostCommand& rhs) const
 {
     return this->uri() == rhs.uri() && this->payload() == rhs.payload() &&
-           this->file() == rhs.file() && this->async() == rhs.async() &&
-           this->groupid() == rhs.groupid() &&
+           this->async() == rhs.async() && this->groupid() == rhs.groupid() &&
            this->compressionAlgorithmType() ==
                rhs.compressionAlgorithmType() &&
            this->messageProperties() == rhs.messageProperties();
@@ -11642,11 +11503,6 @@ int PostCommand::manipulateAttributes(t_MANIPULATOR& manipulator)
 
     ret = manipulator(&d_payload,
                       ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PAYLOAD]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = manipulator(&d_file, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_FILE]);
     if (ret) {
         return ret;
     }
@@ -11691,10 +11547,6 @@ int PostCommand::manipulateAttribute(t_MANIPULATOR& manipulator, int id)
     case ATTRIBUTE_ID_PAYLOAD: {
         return manipulator(&d_payload,
                            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PAYLOAD]);
-    }
-    case ATTRIBUTE_ID_FILE: {
-        return manipulator(&d_file,
-                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_FILE]);
     }
     case ATTRIBUTE_ID_ASYNC: {
         return manipulator(&d_async,
@@ -11744,11 +11596,6 @@ inline bsl::vector<bsl::string>& PostCommand::payload()
     return d_payload;
 }
 
-inline bsl::string& PostCommand::file()
-{
-    return d_file;
-}
-
 inline bool& PostCommand::async()
 {
     return d_async;
@@ -11781,11 +11628,6 @@ int PostCommand::accessAttributes(t_ACCESSOR& accessor) const
     }
 
     ret = accessor(d_payload, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PAYLOAD]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = accessor(d_file, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_FILE]);
     if (ret) {
         return ret;
     }
@@ -11828,9 +11670,6 @@ int PostCommand::accessAttribute(t_ACCESSOR& accessor, int id) const
     case ATTRIBUTE_ID_PAYLOAD: {
         return accessor(d_payload,
                         ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PAYLOAD]);
-    }
-    case ATTRIBUTE_ID_FILE: {
-        return accessor(d_file, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_FILE]);
     }
     case ATTRIBUTE_ID_ASYNC: {
         return accessor(d_async, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ASYNC]);
@@ -11877,11 +11716,6 @@ inline const bsl::string& PostCommand::uri() const
 inline const bsl::vector<bsl::string>& PostCommand::payload() const
 {
     return d_payload;
-}
-
-inline const bsl::string& PostCommand::file() const
-{
-    return d_file;
 }
 
 inline bool PostCommand::async() const

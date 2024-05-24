@@ -26,43 +26,10 @@
 #include <bsl_cstdlib.h>
 #include <bsl_fstream.h>
 #include <bsl_iostream.h>
-#include <bsl_limits.h>
 #include <bsl_string.h>
 
 namespace BloombergLP {
 namespace m_bmqtool {
-
-namespace {
-
-// Helper to validate properties string format
-bool validatePropertiesStr(bsl::ostream* error, const bsl::string& properties)
-{
-    bool result = true;
-
-    if (properties.empty()) {
-        if (error) {
-            *error << "Unexpected empty properties string, use empty brackets "
-                      "'[ ]' instead";
-        }
-        result = false;
-    }
-    else if (properties.front() != '[') {
-        if (error) {
-            *error << "Expected open marker '[' missed";
-        }
-        result = false;
-    }
-    else if (properties.back() != ']') {
-        if (error) {
-            *error << "Expected close marker ']' missed";
-        }
-        result = false;
-    }
-
-    return result;
-}
-
-}  // close unnamed namespace
 
 // ----------------
 // struct InputUtil
@@ -179,69 +146,16 @@ void InputUtil::populateProperties(
 
         switch (properties[i].type()) {
         case MessagePropertyType::E_STRING: {
-            const int rc = out->setPropertyAsString(name, value);
-            BSLS_ASSERT(0 == rc);
+            BSLA_MAYBE_UNUSED int result = out->setPropertyAsString(name,
+                                                                    value);
+            BSLS_ASSERT_SAFE(0 == result);
         } break;  // BREAK
 
-        case MessagePropertyType::E_INT32: {
-            BSLA_MAYBE_UNUSED const int rc =
-                out->setPropertyAsInt32(name, bsl::stoi(value));
-            BSLS_ASSERT(0 == rc);
+        case MessagePropertyType::E_INT: {
+            BSLA_MAYBE_UNUSED int result =
+                out->setPropertyAsInt32(name, stoi(value));
+            BSLS_ASSERT_SAFE(0 == result);
         } break;  // BREAK
-
-        case MessagePropertyType::E_INT64: {
-            BSLA_MAYBE_UNUSED const int rc =
-                out->setPropertyAsInt64(name, bsl::stoll(value));
-            BSLS_ASSERT(0 == rc);
-        } break;  // BREAK
-
-        case MessagePropertyType::E_BOOL: {
-            bool                         boolValue;
-            bsl::stringstream            iss(value);
-            BSLA_MAYBE_UNUSED const bool readSuccess =
-                (iss >> bsl::boolalpha >> boolValue).good();
-            BSLS_ASSERT(readSuccess);
-            BSLA_MAYBE_UNUSED const int rc = out->setPropertyAsBool(name,
-                                                                    boolValue);
-            BSLS_ASSERT(0 == rc);
-        } break;  // BREAK
-
-        case MessagePropertyType::E_CHAR: {
-            // Char value is represented in hex, convert it to int and check
-            // range
-            const int intVal = bsl::stoi(value, 0, 16);
-            BSLS_ASSERT(intVal <= bsl::numeric_limits<char>::max());
-            BSLS_ASSERT(intVal >= bsl::numeric_limits<char>::min());
-            BSLA_MAYBE_UNUSED const int rc =
-                out->setPropertyAsChar(name, static_cast<char>(intVal));
-            BSLS_ASSERT(0 == rc);
-        } break;  // BREAK
-
-        case MessagePropertyType::E_SHORT: {
-            const int intVal = bsl::stoi(value);
-            BSLS_ASSERT(intVal <= bsl::numeric_limits<short>::max());
-            BSLS_ASSERT(intVal >= bsl::numeric_limits<short>::min());
-            BSLA_MAYBE_UNUSED const int rc =
-                out->setPropertyAsShort(name, static_cast<short>(intVal));
-            BSLS_ASSERT(0 == rc);
-        } break;  // BREAK
-
-        case MessagePropertyType::E_BINARY: {
-            // bsl::istringstream iss(value);
-            // mwcu::MemOutStream resultStream;
-            // mwcu::MemOutStream error;
-            // const bool decodeSuccess =
-            // InputUtil::decodeHexDump(&resultStream, &error,
-            //                                                     iss);
-            // BSLS_ASSERT(decodeSuccess);
-            // bsl::vector<char>     binaryBuf(resultStream.str().begin(),
-            //                             resultStream.str().end());
-            // BSLA_MAYBE_UNUSED int rc = out->setPropertyAsBinary(name,
-            //                                                     binaryBuf);
-            // BSLS_ASSERT(0 == rc);
-
-        } break;  // BREAK
-
         default: BSLS_ASSERT_SAFE(false && "Unsupported type");
         }
     }
@@ -345,153 +259,13 @@ void InputUtil::verifyProperties(
             BSLS_ASSERT_SAFE(value == result);
         } break;  // BREAK
 
-        case MessagePropertyType::E_INT32: {
-            BSLA_MAYBE_UNUSED const int result = in.getPropertyAsInt32(name);
+        case MessagePropertyType::E_INT: {
+            BSLA_MAYBE_UNUSED int result = in.getPropertyAsInt32(name);
             BSLS_ASSERT_SAFE(stoi(value) == result);
         } break;  // BREAK
-
-        case MessagePropertyType::E_INT64: {
-            BSLA_MAYBE_UNUSED const bsls::Types::Int64 result =
-                in.getPropertyAsInt64(name);
-            BSLS_ASSERT_SAFE(stoll(value) == result);
-        } break;  // BREAK
-        case MessagePropertyType::E_CHAR: {
-            BSLA_MAYBE_UNUSED const char result = in.getPropertyAsChar(name);
-            BSLS_ASSERT_SAFE(static_cast<char>(bsl::stoi(value, 0, 16)) ==
-                             result);
-        } break;  // BREAK
-        case MessagePropertyType::E_SHORT: {
-            BSLA_MAYBE_UNUSED const short result = in.getPropertyAsShort(name);
-            BSLS_ASSERT_SAFE(static_cast<short>(bsl::stoi(value)) == result);
-        } break;  // BREAK
-
-        case MessagePropertyType::E_BINARY: {
-            // bsl::istringstream           iss(value);
-            // mwcu::MemOutStream           resultStream;
-            // BSLA_MAYBE_UNUSED const bool decodeSuccess =
-            //     InputUtil::decodeHexDump(&resultStream, iss);
-            // BSLS_ASSERT_SAFE(true == decodeSuccess);
-            // bsl::vector<char>       binaryBuf(resultStream.str().begin(),
-            //                             resultStream.str().end());
-            // BSLA_MAYBE_UNUSED const bsl::vector<char>& result =
-            //     in.getPropertyAsBinary(name);
-            // BSLS_ASSERT_SAFE(binaryBuf == result);
-        } break;  // BREAK
-
         default: BSLS_ASSERT_SAFE(false && "Unsupported type");
         }
     }
-}
-
-bool InputUtil::parseProperties(bsl::vector<MessageProperty>* out,
-                                const bsl::string&            properties,
-                                bslma::Allocator*             allocator,
-                                bsl::ostream*                 error)
-{
-    // PRECONDITIONS
-    BSLS_ASSERT(out);
-
-    // Parsing state which is changing circularly in the following order:
-    // e_NAME -> e_TYPE -> e_VALUE -> e_NAME -> ...
-    enum State { e_NAME, e_TYPE, e_VALUE };
-
-    // Sanity check
-    if (!validatePropertiesStr(error, properties)) {
-        return false;  // RETURN
-    }
-
-    // Tokenize string by space and check markers
-    bdlb::Tokenizer           tokenizer(properties, " ");
-    bdlb::Tokenizer::iterator tokenizerIt = tokenizer.begin();
-    MessageProperty           messageProperty(allocator);
-    State                     state = e_NAME;
-    // Process tokens skipping open marker
-    for (++tokenizerIt; tokenizerIt != tokenizer.end(); ++tokenizerIt) {
-        bslstl::StringRef token = *tokenizerIt;
-
-        if (token == "=" || token == "]")
-            continue;
-
-        switch (state) {
-        case e_NAME: {
-            messageProperty.name() = token;
-            state                  = e_TYPE;
-        } break;  // BREAK
-        case e_TYPE: {
-            // Add enum prefix, remove surrounding brackets, and convert to
-            // MessagePropertyType enum
-            bsl::string typeStr("E_", allocator);
-            typeStr.append(token.substr(1, token.size() - 2));
-            if (MessagePropertyType::fromString(&messageProperty.type(),
-                                                typeStr) != 0) {
-                if (error) {
-                    *error << "Failed to decode MessagePropertyType: "
-                           << token;
-                }
-                return false;  // RETURN
-            }
-            state = e_VALUE;
-        } break;  // BREAK
-        case e_VALUE: {
-            // Special handling for binary value
-            if (messageProperty.type() ==
-                MessagePropertyType::Value::E_BINARY) {
-                // Check opening quote mark presense
-                if (token.front() != '"') {
-                    if (error) {
-                        *error << "Binary value opening quote mark missed";
-                    }
-                    return false;  // RETURN
-                }
-                // Join tokens by space (detokenize) inside surrounding quotes.
-                // Quote mark after end of the line is the end of hexdump.
-                mwcu::MemOutStream resultStream(' ', allocator);
-                // Process tokens skipping opening quote mark
-                for (++tokenizerIt; tokenizerIt != tokenizer.end();
-                     ++tokenizerIt) {
-                    token = *tokenizerIt;
-                    // Check closing quote mark after end line
-                    if (token.find("|\n\"") != bsl::string::npos) {
-                        break;  // BREAK
-                    }
-
-                    resultStream << token << ' ';
-                }
-
-                messageProperty.value() = resultStream.str();
-            }
-            else if (messageProperty.type() ==
-                     MessagePropertyType::Value::E_STRING) {
-                // Special handling for string value: it may contain spaces
-                // Join tokens by space (detokenize) inside surrounding quotes.
-                mwcu::MemOutStream resultStream(allocator);
-                for (; tokenizerIt != tokenizer.end(); ++tokenizerIt) {
-                    token = *tokenizerIt;
-                    resultStream << token;
-                    if (token.back() == '"') {
-                        break;  // BREAK
-                    }
-                    resultStream << ' ';
-                }
-                // Remove surrounding quotes and save
-                messageProperty.value() = resultStream.str().substr(
-                    1,
-                    resultStream.str().size() - 2);
-            }
-            else {
-                messageProperty.value() = token;
-            }
-            // Property is parsed, save it
-            out->push_back(messageProperty);
-            state = e_NAME;
-        } break;  // BREAK
-        default: {
-            BSLS_ASSERT_SAFE(false && "Unsupported parsing state");
-        }
-        }
-    }
-
-    return true;
 }
 
 bool InputUtil::populateSubscriptions(bmqt::QueueOptions*              out,
