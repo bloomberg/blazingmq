@@ -14,7 +14,6 @@
 // limitations under the License.
 
 // m_bmqtool_interactive.cpp                                          -*-C++-*-
-#include <bmqp_protocol.h>
 #include <m_bmqtool_interactive.h>
 
 // BMQTOOL
@@ -765,7 +764,7 @@ void Interactive::processCommand(const LoadPostCommand& command)
         return;  // RETURN
     }
 
-    BALL_LOG_INFO << "--> Posting message: " << command;
+    BALL_LOG_INFO << "--> Loading and posting message: " << command;
 
     int rc;
     // Build the messageEvent
@@ -798,7 +797,7 @@ void Interactive::processCommand(const LoadPostCommand& command)
     }
 
     // Set message properties
-    bsl::string                    properties = propertiesStream.str();
+    const bsl::string              properties = propertiesStream.str();
     bmqa::MessageProperties        messageProperties(d_allocator_p);
     bdlbb::PooledBlobBufferFactory bufferFactory(1024, d_allocator_p);
     if (!properties.empty()) {
@@ -809,21 +808,18 @@ void Interactive::processCommand(const LoadPostCommand& command)
                                 static_cast<int>(properties.size()));
 
         // Deserialize message properties from blob
-        int rc = messageProperties.streamIn(blob);
+        const int rc = messageProperties.streamIn(blob);
         if (rc != 0) {
-            BALL_LOG_ERROR << "Failed to deserialize message properties, rc = "
+            BALL_LOG_ERROR << "Failed to streamIn message properties, rc = "
                            << rc;
             return;  // RETURN
         }
         msg.setPropertiesRef(&messageProperties);
-        BALL_LOG_WARN << "REAL MESSAGE PROPS: "
-                      << messageProperties;  // TODO: remove
     }
 
     // Set payload
     bsl::string payload = payloadStream.str();
     msg.setDataRef(payload.c_str(), payload.size());
-    BALL_LOG_WARN << "PAYLOAD: " << payload;
 
     bmqt::EventBuilderResult::Enum ebr = eventBuilder.packMessage(queueId);
     if (bmqt::EventBuilderResult::e_SUCCESS != ebr) {
