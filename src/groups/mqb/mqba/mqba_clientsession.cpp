@@ -2001,7 +2001,7 @@ void ClientSession::onPushEvent(const mqbi::DispatcherPushEvent& event)
             &filepath,
             *event.blob().get(),
             0,
-            d_state.d_allocator_p);
+            d_state.d_bufferFactory_p);
 
         // REVISIT: An alternative is to send Reject upstream
 
