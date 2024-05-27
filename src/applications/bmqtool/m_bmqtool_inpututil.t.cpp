@@ -116,7 +116,7 @@ static void test1_decodeHexDumpTest()
 
 static void test2_loadMessageFromFileTest()
 // ------------------------------------------------------------------------
-// LOADMESSAGEDROMFILE TEST
+// LOADMESSAGEFROMFILE TEST
 //
 // Concerns:
 //   Proper behavior of the 'loadMessageFromFile' method.
@@ -129,7 +129,7 @@ static void test2_loadMessageFromFileTest()
 //   loadMessageFromFile
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("LOADMESSAGEDROMFILE TEST");
+    mwctst::TestHelper::printTestName("LOADMESSAGEFROMFILE TEST");
 
     struct Test {
         int         d_line;
@@ -251,11 +251,11 @@ static void test2_loadMessageFromFileTest()
     {
         mwcu::MemOutStream stream(s_allocator_p);
         mwcu::MemOutStream error(s_allocator_p);
-        bool               rc = InputUtil::loadMessageFromFile(&stream,
-                                                 &stream,
-                                                 &error,
-                                                 "wrongFilePath",
-                                                 s_allocator_p);
+        const bool         rc = InputUtil::loadMessageFromFile(&stream,
+                                                       &stream,
+                                                       &error,
+                                                       "wrongFilePath",
+                                                       s_allocator_p);
         ASSERT_EQ(rc, false);
         ASSERT_EQ(error.str(), "Failed to open file: wrongFilePath");
     }
@@ -320,5 +320,5 @@ int main(int argc, char* argv[])
 
     // Check for default allocator is explicitly disabled as
     // 'bmqa::MessageProperties' or one of its data members may allocate
-    // temporaries with default allocator. The same for 'mwcu::TempFile'
+    // temporaries with default allocator. The same for 'mwcu::TempFile'.
 }
