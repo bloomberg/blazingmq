@@ -18,7 +18,6 @@
 
 #include <mqbscm_version.h>
 // BMQ
-#include <bdlbb_pooledblobbufferfactory.h>
 #include <bmqp_compression.h>
 #include <bmqp_messageproperties.h>
 #include <bmqp_protocol.h>
