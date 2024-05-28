@@ -408,3 +408,73 @@ class TestAutoSubscriptions:
         assert len(self.consumer.list(block=True)) == 0
         assert len(self.consumer_bar.list(block=True)) == 0
         assert len(self.consumer_baz.list(block=True)) == 0
+
+    @tweak.domain.subscriptions(
+        [
+            {
+                "appId": "",
+                "expression": {"version": "E_VERSION_1", "text": "invalid expression"},
+            }
+        ]
+    )
+    def test_invalid_configuration(self, cluster: Cluster):
+        """
+        Configure priority domain with invalid auto subscription.
+        Make sure a queue fails to open.
+        Reconfigure the domain with valid auto subscription.
+        Make sure a queue opens successfully.
+        Reconfigure the domain with invalid auto subscription.
+        Make sure the reconfigure command fails.
+        Make sure a queue opens successfully.
+        """
+
+        proxies = cluster.proxy_cycle()
+
+        # 1: Setup producers and consumers
+
+        next(proxies)
+        proxy = next(proxies)
+
+        consumer = proxy.create_client("consumer")
+
+        consumer.open(
+            tc.URI_PRIORITY_SC,
+            flags=["read"],
+            consumer_priority=1,
+            succeed=False,
+        )
+
+        cluster.config.domains[
+            tc.DOMAIN_PRIORITY_SC
+        ].definition.parameters.subscriptions[0]["expression"]["text"] = "x==1"
+
+        cluster.reconfigure_domain(tc.DOMAIN_PRIORITY_SC, succeed=True)
+
+        consumer.open(
+            tc.URI_PRIORITY_SC,
+            flags=["read"],
+            consumer_priority=1,
+            succeed=True,
+        )
+
+        consumer.close(
+            tc.URI_PRIORITY_SC,
+            succeed=True,
+        )
+
+        cluster.config.domains[
+            tc.DOMAIN_PRIORITY_SC
+        ].definition.parameters.subscriptions[0]["expression"][
+            "text"
+        ] = "invalid expression"
+
+        cluster.reconfigure_domain(tc.DOMAIN_PRIORITY_SC, succeed=None)
+        assert cluster.last_known_leader.capture("Error processing command")
+
+        # The validation fails and the domain is going to keep the old config
+        consumer.open(
+            tc.URI_PRIORITY_SC,
+            flags=["read"],
+            consumer_priority=1,
+            succeed=True,
+        )

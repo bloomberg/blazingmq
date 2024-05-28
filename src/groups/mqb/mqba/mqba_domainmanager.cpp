@@ -686,20 +686,27 @@ int DomainManager::processCommand(mqbcmd::DomainsResult*        result,
             }
         }
 
-        DecodeAndUpsertValue unused;
+        DecodeAndUpsertValue configureResult;
         d_configProvider_p->clearCache(domainSp->name());
         d_configProvider_p->getDomainConfig(
             domainSp->name(),
             bdlf::BindUtil::bind(
                 &DomainManager::decodeAndUpsert,
                 this,
-                &unused,
+                &configureResult,
                 bdlf::PlaceHolders::_1,  // configProviderStatus
                 bdlf::PlaceHolders::_2,  // configProviderResult
                 domainSp->name(),
                 domainSp->cluster()->name()));
-        result->makeSuccess();
-        return 0;  // RETURN
+
+        if (configureResult.isError()) {
+            result->makeError().message() = configureResult.error().d_details;
+            return -1;  // RETURN
+        }
+        else {
+            result->makeSuccess();
+            return 0;  // RETURN
+        }
     }
 
     mwcu::MemOutStream os;
