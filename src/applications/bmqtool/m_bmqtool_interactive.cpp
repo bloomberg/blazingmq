@@ -161,7 +161,7 @@ void Interactive::printHelp()
         << bsl::endl
         << bsl::endl
         << "  load-post uri=\"bmq://bmq.test.persistent.priority/qqq\" "
-           "file=[\"message.dump\"]"
+           "file=\"message.dump\""
         << bsl::endl
         << "    - 'load-post' command requires 'uri' and 'file' arguments"
         << bsl::endl
@@ -766,7 +766,6 @@ void Interactive::processCommand(const LoadPostCommand& command)
 
     BALL_LOG_INFO << "--> Loading and posting message: " << command;
 
-    int rc;
     // Build the messageEvent
     bmqa::MessageEventBuilder eventBuilder;
     d_session_p->loadMessageEventBuilder(&eventBuilder);
@@ -828,7 +827,7 @@ void Interactive::processCommand(const LoadPostCommand& command)
     }
 
     // Post
-    rc = d_session_p->post(eventBuilder.messageEvent());
+    const int rc = d_session_p->post(eventBuilder.messageEvent());
 
     ball::Severity::Level severity = (rc == 0 ? ball::Severity::INFO
                                               : ball::Severity::ERROR);

@@ -17,14 +17,16 @@
 #include <m_bmqtool_inpututil.h>
 
 // BMQ
-#include <bdlbb_pooledblobbufferfactory.h>
 #include <bmqa_messageproperties.h>
+
+// MWC
 #include <mwcu_memoutstream.h>
 #include <mwcu_tempfile.h>
 
 // BDE
 #include <bdlbb_blob.h>
 #include <bdlbb_blobutil.h>
+#include <bdlbb_pooledblobbufferfactory.h>
 
 // TEST DRIVER
 #include <mwctst_testhelper.h>

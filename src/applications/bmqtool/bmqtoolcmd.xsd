@@ -98,8 +98,8 @@
 
   <complexType name='LoadPostCommand'>
     <sequence>
-      <element name='uri'                      type='string'/>
-      <element name='file'                     type='string'/>
+      <element name='uri'  type='string'/>
+      <element name='file' type='string'/>
     </sequence>
   </complexType>
 

@@ -90,7 +90,7 @@ struct InputUtil {
                               bsl::istream&     in,
                               bslma::Allocator* allocator);
 
-    /// Load message content from the specified `file` (created by
+    /// Load message content from the specified `filePath` (created by
     /// QueueEngineUtil::dumpMessageInTempfile() method) into
     /// the specified `payload` and `properties`. Return true on success and
     /// false on error in which case load the error description into the

@@ -340,7 +340,8 @@ bool InputUtil::decodeHexDump(bsl::ostream*     out,
 
     while (bsl::getline(in, line)) {
         if (line.empty()) {
-            break;  // stop at the end of hexdump (empty line)
+            // Stop at the end of hexdump (empty line)
+            break;  // BREAK
         }
 
         // Sanity check
