@@ -184,6 +184,9 @@ void MessageEventBuilder::reset()
     typedef bsl::shared_ptr<bmqimp::Event> EventSP;
     EventSP& eventSpRef = reinterpret_cast<EventSP&>(d_impl.d_msgEvent);
 
+    d_impl.d_messageCountFinal     = 0;
+    d_impl.d_messageEventSizeFinal = 0;
+
     eventSpRef->upgradeMessageEventModeToWrite();
     // underlying PutEventBuilder is reset in
     // 'upgradeMessageEventModeToWrite'
@@ -194,6 +197,18 @@ const MessageEvent& MessageEventBuilder::messageEvent()
     // Get bmqimp::Event from bmqa::MessageEvent
     typedef bsl::shared_ptr<bmqimp::Event> EventSP;
     EventSP& eventSpRef = reinterpret_cast<EventSP&>(d_impl.d_msgEvent);
+
+    if (eventSpRef->messageEventMode() ==
+        bmqimp::Event::MessageEventMode::e_WRITE) {
+        // On this call of the 'messageEvent()', we switch from WRITE to READ.
+        // In READ mode, PutEventBuilder will not be accessible, so we have
+        // to cache the final properties of the built MessageEvent to be
+        // returned on demand.
+        d_impl.d_messageCountFinal =
+            eventSpRef->putEventBuilder()->messageCount();
+        d_impl.d_messageEventSizeFinal =
+            eventSpRef->putEventBuilder()->eventSize();
+    }
 
     eventSpRef->downgradeMessageEventModeToRead();  // builds the blob too
 
@@ -216,6 +231,14 @@ int MessageEventBuilder::messageCount() const
     const EventSP& eventSpRef = reinterpret_cast<const EventSP&>(
         d_impl.d_msgEvent);
 
+    if (eventSpRef->messageEventMode() ==
+        bmqimp::Event::MessageEventMode::e_READ) {
+        // In READ mode, we are not able to access PutEventBuilder anymore
+        // to get the message count.  In this case, we rely on the value
+        // cached on switching from WRITE to READ.
+        return d_impl.d_messageCountFinal;  // RETURN
+    }
+
     return eventSpRef->putEventBuilder()->messageCount();
 }
 
@@ -225,6 +248,14 @@ int MessageEventBuilder::messageEventSize() const
     typedef bsl::shared_ptr<bmqimp::Event> EventSP;
     const EventSP& eventSpRef = reinterpret_cast<const EventSP&>(
         d_impl.d_msgEvent);
+
+    if (eventSpRef->messageEventMode() ==
+        bmqimp::Event::MessageEventMode::e_READ) {
+        // In READ mode, we are not able to access PutEventBuilder anymore
+        // to get the event size.  In this case, we rely on the value
+        // cached on switching from WRITE to READ.
+        return d_impl.d_messageEventSizeFinal;  // RETURN
+    }
 
     return eventSpRef->putEventBuilder()->eventSize();
 }

@@ -90,11 +90,11 @@ void MonitoredQueueUtil::stateLogCallback(const bsl::string& queueName,
     BALL_LOG_SET_CATEGORY(k_LOG_CATEGORY);
 
     mwcu::MemOutStream buffer;
-    buffer << queueName
-           << " [Watermarks: " << mwcu::PrintUtil::prettyNumber(lowWatermark)
-           << ", " << mwcu::PrintUtil::prettyNumber(highWatermark) << ", "
-           << mwcu::PrintUtil::prettyNumber(highWatermark2) << ", "
-           << mwcu::PrintUtil::prettyNumber(queueSize) << "]";
+    buffer << queueName << " [Watermarks: low="
+           << mwcu::PrintUtil::prettyNumber(lowWatermark)
+           << ", high=" << mwcu::PrintUtil::prettyNumber(highWatermark)
+           << ", high2=" << mwcu::PrintUtil::prettyNumber(highWatermark2)
+           << ", limit=" << mwcu::PrintUtil::prettyNumber(queueSize) << "]";
 
     switch (state) {
     case MonitoredQueueState::e_NORMAL: {
