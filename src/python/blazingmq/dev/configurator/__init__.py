@@ -461,6 +461,7 @@ class Proto:
             partition_config=mqbcfg.PartitionConfig(
                 num_partitions=0,
                 location="/dev/null",
+                archive_location="/dev/null",
                 max_data_file_size=0,
                 max_journal_file_size=0,
                 max_qlist_file_size=0,
