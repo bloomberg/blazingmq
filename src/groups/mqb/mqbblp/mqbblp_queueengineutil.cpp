@@ -1234,16 +1234,6 @@ void QueueEngineUtil_AppState::cancelThrottle()
 
 void QueueEngineUtil_AppState::reset()
 {
-    if (!hasConsumers()) {
-        // This is the first consumer, reset the storage to point to the
-        // first message: we do so because when the last consumer went
-        // down, as an optimization, instead of enqueueing all its pending
-        // messages to the redelivery list, we did nothing, relying on this
-        // reset to point back to the beginning of the queue, which should
-        // be the first un-confirmed message.
-        d_storageIter_mp->reset();
-        d_putAsideList.clear();
-    }
     d_priorityCount = 0;
     cancelThrottle();
 
@@ -1285,34 +1275,6 @@ bool QueueEngineUtil_AppState::transferUnconfirmedMessages(
     mqbi::QueueHandle*                  handle,
     const bmqp_ctrlmsg::SubQueueIdInfo& subQueue)
 {
-    if (!hasConsumers()) {
-        // This handle was the last consumer; no need to transfer
-        // the 'unconfirmedMessageGUID' to the redelivery list;
-        // we'll simply reset the storage iterator to the beginning
-        // of the queue at the next consumer coming up.  However,
-        // we need to clear its 'unconfirmedMessageGUID' list: this
-        // is needed because the handle may not be deleted (it may
-        // still have 'write' capacity); and could potentially
-        // later get 'read' capacity again.  Also, we need to clear
-        // the redelivery list because when a reader comes up again
-        // we reset our storage iterator to point to the beginning
-        // of all unconfirmed messages.
-
-        BSLS_ASSERT_SAFE(d_storageIter_mp);
-        BSLS_ASSERT_SAFE(d_priorityCount == 0);
-
-        cancelThrottle();
-
-        d_storageIter_mp->reset();
-
-        handle->transferUnconfirmedMessageGUID(0, subQueue.subId());
-        d_redeliveryList.clear();
-
-        d_putAsideList.clear();
-
-        return false;  // RETURN
-    }                  // else there are other consumers of the given appId
-
     // Redistribute messages: append all pending messages to
     // the redelivery list.
 
@@ -1327,7 +1289,7 @@ bool QueueEngineUtil_AppState::transferUnconfirmedMessages(
     BALL_LOG_INFO << "Lost a reader for queue '" << d_queue_p->description()
                   << "', redelivering " << numMsgs << " message(s) to "
                   << consumers().size() << " remaining readers.";
-    return true;
+    return hasConsumers();
 }
 
 Routers::Result QueueEngineUtil_AppState::selectConsumer(
