@@ -142,7 +142,8 @@ struct QueueEngineUtil {
     static int
     dumpMessageInTempfile(bsl::string*                   filepath,
                           const bdlbb::Blob&             payload,
-                          const bmqp::MessageProperties* properties);
+                          const bmqp::MessageProperties* properties,
+                          bdlbb::BlobBufferFactory*      blobBufferFactory);
 
     /// Dump message contents in temporary file after message has been fully
     /// rejected (with RDA reaching zero). Raise an alarm with the message

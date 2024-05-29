@@ -150,6 +150,7 @@ class Interactive {
     void processCommand(const ConfirmCommand& command);
     void processCommand(const ListCommand& command);
     void processCommand(const BatchPostCommand& command);
+    void processCommand(const LoadPostCommand& command);
 
     /// Create and insert an entry keyed on the specified `uri` into the map
     /// of full uri to unconfirmed messages contained in this object.  The

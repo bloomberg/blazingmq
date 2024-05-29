@@ -1492,6 +1492,133 @@ bsl::ostream& ListQueuesCommand::print(bsl::ostream& stream, int, int) const
     return stream;
 }
 
+// ---------------------
+// class LoadPostCommand
+// ---------------------
+
+// CONSTANTS
+
+const char LoadPostCommand::CLASS_NAME[] = "LoadPostCommand";
+
+const bdlat_AttributeInfo LoadPostCommand::ATTRIBUTE_INFO_ARRAY[] = {
+    {ATTRIBUTE_ID_URI,
+     "uri",
+     sizeof("uri") - 1,
+     "",
+     bdlat_FormattingMode::e_TEXT},
+    {ATTRIBUTE_ID_FILE,
+     "file",
+     sizeof("file") - 1,
+     "",
+     bdlat_FormattingMode::e_TEXT}};
+
+// CLASS METHODS
+
+const bdlat_AttributeInfo*
+LoadPostCommand::lookupAttributeInfo(const char* name, int nameLength)
+{
+    for (int i = 0; i < 2; ++i) {
+        const bdlat_AttributeInfo& attributeInfo =
+            LoadPostCommand::ATTRIBUTE_INFO_ARRAY[i];
+
+        if (nameLength == attributeInfo.d_nameLength &&
+            0 == bsl::memcmp(attributeInfo.d_name_p, name, nameLength)) {
+            return &attributeInfo;
+        }
+    }
+
+    return 0;
+}
+
+const bdlat_AttributeInfo* LoadPostCommand::lookupAttributeInfo(int id)
+{
+    switch (id) {
+    case ATTRIBUTE_ID_URI: return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_URI];
+    case ATTRIBUTE_ID_FILE: return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_FILE];
+    default: return 0;
+    }
+}
+
+// CREATORS
+
+LoadPostCommand::LoadPostCommand(bslma::Allocator* basicAllocator)
+: d_uri(basicAllocator)
+, d_file(basicAllocator)
+{
+}
+
+LoadPostCommand::LoadPostCommand(const LoadPostCommand& original,
+                                 bslma::Allocator*      basicAllocator)
+: d_uri(original.d_uri, basicAllocator)
+, d_file(original.d_file, basicAllocator)
+{
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+LoadPostCommand::LoadPostCommand(LoadPostCommand&& original) noexcept
+: d_uri(bsl::move(original.d_uri)),
+  d_file(bsl::move(original.d_file))
+{
+}
+
+LoadPostCommand::LoadPostCommand(LoadPostCommand&& original,
+                                 bslma::Allocator* basicAllocator)
+: d_uri(bsl::move(original.d_uri), basicAllocator)
+, d_file(bsl::move(original.d_file), basicAllocator)
+{
+}
+#endif
+
+LoadPostCommand::~LoadPostCommand()
+{
+}
+
+// MANIPULATORS
+
+LoadPostCommand& LoadPostCommand::operator=(const LoadPostCommand& rhs)
+{
+    if (this != &rhs) {
+        d_uri  = rhs.d_uri;
+        d_file = rhs.d_file;
+    }
+
+    return *this;
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+LoadPostCommand& LoadPostCommand::operator=(LoadPostCommand&& rhs)
+{
+    if (this != &rhs) {
+        d_uri  = bsl::move(rhs.d_uri);
+        d_file = bsl::move(rhs.d_file);
+    }
+
+    return *this;
+}
+#endif
+
+void LoadPostCommand::reset()
+{
+    bdlat_ValueTypeFunctions::reset(&d_uri);
+    bdlat_ValueTypeFunctions::reset(&d_file);
+}
+
+// ACCESSORS
+
+bsl::ostream& LoadPostCommand::print(bsl::ostream& stream,
+                                     int           level,
+                                     int           spacesPerLevel) const
+{
+    bslim::Printer printer(&stream, level, spacesPerLevel);
+    printer.start();
+    printer.printAttribute("uri", this->uri());
+    printer.printAttribute("file", this->file());
+    printer.end();
+    return stream;
+}
+
 // -------------------------
 // class MessagePropertyType
 // -------------------------
@@ -5094,6 +5221,11 @@ const bdlat_SelectionInfo Command::SELECTION_INFO_ARRAY[] = {
      sizeof("batch-post") - 1,
      "",
      bdlat_FormattingMode::e_DEFAULT},
+    {SELECTION_ID_LOAD_POST,
+     "load-post",
+     sizeof("load-post") - 1,
+     "",
+     bdlat_FormattingMode::e_DEFAULT},
     {SELECTION_ID_OPEN_STORAGE,
      "openStorage",
      sizeof("openStorage") - 1,
@@ -5140,7 +5272,7 @@ const bdlat_SelectionInfo Command::SELECTION_INFO_ARRAY[] = {
 const bdlat_SelectionInfo* Command::lookupSelectionInfo(const char* name,
                                                         int         nameLength)
 {
-    for (int i = 0; i < 17; ++i) {
+    for (int i = 0; i < 18; ++i) {
         const bdlat_SelectionInfo& selectionInfo =
             Command::SELECTION_INFO_ARRAY[i];
 
@@ -5171,6 +5303,8 @@ const bdlat_SelectionInfo* Command::lookupSelectionInfo(int id)
         return &SELECTION_INFO_ARRAY[SELECTION_INDEX_CONFIRM];
     case SELECTION_ID_BATCH_POST:
         return &SELECTION_INFO_ARRAY[SELECTION_INDEX_BATCH_POST];
+    case SELECTION_ID_LOAD_POST:
+        return &SELECTION_INFO_ARRAY[SELECTION_INDEX_LOAD_POST];
     case SELECTION_ID_OPEN_STORAGE:
         return &SELECTION_INFO_ARRAY[SELECTION_INDEX_OPEN_STORAGE];
     case SELECTION_ID_CLOSE_STORAGE:
@@ -5231,6 +5365,10 @@ Command::Command(const Command& original, bslma::Allocator* basicAllocator)
     case SELECTION_ID_BATCH_POST: {
         new (d_batchPost.buffer())
             BatchPostCommand(original.d_batchPost.object(), d_allocator_p);
+    } break;
+    case SELECTION_ID_LOAD_POST: {
+        new (d_loadPost.buffer())
+            LoadPostCommand(original.d_loadPost.object(), d_allocator_p);
     } break;
     case SELECTION_ID_OPEN_STORAGE: {
         new (d_openStorage.buffer())
@@ -5312,6 +5450,11 @@ Command::Command(Command&& original) noexcept
         new (d_batchPost.buffer())
             BatchPostCommand(bsl::move(original.d_batchPost.object()),
                              d_allocator_p);
+    } break;
+    case SELECTION_ID_LOAD_POST: {
+        new (d_loadPost.buffer())
+            LoadPostCommand(bsl::move(original.d_loadPost.object()),
+                            d_allocator_p);
     } break;
     case SELECTION_ID_OPEN_STORAGE: {
         new (d_openStorage.buffer())
@@ -5396,6 +5539,11 @@ Command::Command(Command&& original, bslma::Allocator* basicAllocator)
             BatchPostCommand(bsl::move(original.d_batchPost.object()),
                              d_allocator_p);
     } break;
+    case SELECTION_ID_LOAD_POST: {
+        new (d_loadPost.buffer())
+            LoadPostCommand(bsl::move(original.d_loadPost.object()),
+                            d_allocator_p);
+    } break;
     case SELECTION_ID_OPEN_STORAGE: {
         new (d_openStorage.buffer())
             OpenStorageCommand(bsl::move(original.d_openStorage.object()),
@@ -5468,6 +5616,9 @@ Command& Command::operator=(const Command& rhs)
         case SELECTION_ID_BATCH_POST: {
             makeBatchPost(rhs.d_batchPost.object());
         } break;
+        case SELECTION_ID_LOAD_POST: {
+            makeLoadPost(rhs.d_loadPost.object());
+        } break;
         case SELECTION_ID_OPEN_STORAGE: {
             makeOpenStorage(rhs.d_openStorage.object());
         } break;
@@ -5534,6 +5685,9 @@ Command& Command::operator=(Command&& rhs)
         case SELECTION_ID_BATCH_POST: {
             makeBatchPost(bsl::move(rhs.d_batchPost.object()));
         } break;
+        case SELECTION_ID_LOAD_POST: {
+            makeLoadPost(bsl::move(rhs.d_loadPost.object()));
+        } break;
         case SELECTION_ID_OPEN_STORAGE: {
             makeOpenStorage(bsl::move(rhs.d_openStorage.object()));
         } break;
@@ -5598,6 +5752,9 @@ void Command::reset()
     case SELECTION_ID_BATCH_POST: {
         d_batchPost.object().~BatchPostCommand();
     } break;
+    case SELECTION_ID_LOAD_POST: {
+        d_loadPost.object().~LoadPostCommand();
+    } break;
     case SELECTION_ID_OPEN_STORAGE: {
         d_openStorage.object().~OpenStorageCommand();
     } break;
@@ -5657,6 +5814,9 @@ int Command::makeSelection(int selectionId)
     } break;
     case SELECTION_ID_BATCH_POST: {
         makeBatchPost();
+    } break;
+    case SELECTION_ID_LOAD_POST: {
+        makeLoadPost();
     } break;
     case SELECTION_ID_OPEN_STORAGE: {
         makeOpenStorage();
@@ -6114,6 +6274,52 @@ BatchPostCommand& Command::makeBatchPost(BatchPostCommand&& value)
 }
 #endif
 
+LoadPostCommand& Command::makeLoadPost()
+{
+    if (SELECTION_ID_LOAD_POST == d_selectionId) {
+        bdlat_ValueTypeFunctions::reset(&d_loadPost.object());
+    }
+    else {
+        reset();
+        new (d_loadPost.buffer()) LoadPostCommand(d_allocator_p);
+        d_selectionId = SELECTION_ID_LOAD_POST;
+    }
+
+    return d_loadPost.object();
+}
+
+LoadPostCommand& Command::makeLoadPost(const LoadPostCommand& value)
+{
+    if (SELECTION_ID_LOAD_POST == d_selectionId) {
+        d_loadPost.object() = value;
+    }
+    else {
+        reset();
+        new (d_loadPost.buffer()) LoadPostCommand(value, d_allocator_p);
+        d_selectionId = SELECTION_ID_LOAD_POST;
+    }
+
+    return d_loadPost.object();
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+LoadPostCommand& Command::makeLoadPost(LoadPostCommand&& value)
+{
+    if (SELECTION_ID_LOAD_POST == d_selectionId) {
+        d_loadPost.object() = bsl::move(value);
+    }
+    else {
+        reset();
+        new (d_loadPost.buffer())
+            LoadPostCommand(bsl::move(value), d_allocator_p);
+        d_selectionId = SELECTION_ID_LOAD_POST;
+    }
+
+    return d_loadPost.object();
+}
+#endif
+
 OpenStorageCommand& Command::makeOpenStorage()
 {
     if (SELECTION_ID_OPEN_STORAGE == d_selectionId) {
@@ -6513,6 +6719,9 @@ Command::print(bsl::ostream& stream, int level, int spacesPerLevel) const
     case SELECTION_ID_BATCH_POST: {
         printer.printAttribute("batchPost", d_batchPost.object());
     } break;
+    case SELECTION_ID_LOAD_POST: {
+        printer.printAttribute("loadPost", d_loadPost.object());
+    } break;
     case SELECTION_ID_OPEN_STORAGE: {
         printer.printAttribute("openStorage", d_openStorage.object());
     } break;
@@ -6564,6 +6773,8 @@ const char* Command::selectionName() const
         return SELECTION_INFO_ARRAY[SELECTION_INDEX_CONFIRM].name();
     case SELECTION_ID_BATCH_POST:
         return SELECTION_INFO_ARRAY[SELECTION_INDEX_BATCH_POST].name();
+    case SELECTION_ID_LOAD_POST:
+        return SELECTION_INFO_ARRAY[SELECTION_INDEX_LOAD_POST].name();
     case SELECTION_ID_OPEN_STORAGE:
         return SELECTION_INFO_ARRAY[SELECTION_INDEX_OPEN_STORAGE].name();
     case SELECTION_ID_CLOSE_STORAGE:
@@ -6588,6 +6799,6 @@ const char* Command::selectionName() const
 }  // close package namespace
 }  // close enterprise namespace
 
-// GENERATED BY BLP_BAS_CODEGEN_2024.03.30
+// GENERATED BY BLP_BAS_CODEGEN_2024.05.16
 // USING bas_codegen.pl -m msg --noAggregateConversion --noExternalization
 // --noIdent --package m_bmqtool --msgComponent messages bmqtoolcmd.xsd

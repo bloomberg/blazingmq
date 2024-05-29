@@ -22,8 +22,11 @@ target_bmq_default_compiler_flags(bmqtool)
 
 set_target_properties(bmqtool
   PROPERTIES OUTPUT_NAME "bmqtool.tsk")
-bbs_setup_target_uor(bmqtool)
+bbs_setup_target_uor(bmqtool SKIP_TESTS)
 bbs_add_target_bde_flags(bmqtool PUBLIC)
 bbs_add_target_thread_flags(bmqtool PUBLIC)
+
+include(BMQTest)
+bmq_add_application_test(bmqtool COMPAT)
 
 install(TARGETS bmqtool RUNTIME DESTINATION bin)

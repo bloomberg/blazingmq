@@ -258,7 +258,8 @@ bool QueueEngineUtil::loadMessageDelay(
 int QueueEngineUtil::dumpMessageInTempfile(
     bsl::string*                   filepath,
     const bdlbb::Blob&             payload,
-    const bmqp::MessageProperties* properties)
+    const bmqp::MessageProperties* properties,
+    bdlbb::BlobBufferFactory*      blobBufferFactory)
 {
     enum RcEnum {
         // Return values are part of function contract.  Do not change them
@@ -284,9 +285,17 @@ int QueueEngineUtil::dumpMessageInTempfile(
         return rc_FILE_OPEN_FAILURE;              // RETURN
     }
 
-    if (properties) {
-        msg << "Message Properties:\n\n"
-            << *properties << "\n\n\nMessage Payload:\n\n"
+    if (properties && properties->numProperties() > 0) {
+        msg << "Message Properties:\n\n" << *properties;
+
+        // Serialize properties into the blob and hexdump it
+        const bdlbb::Blob& blob = properties->streamOut(
+            blobBufferFactory,
+            bmqp::MessagePropertiesInfo::makeNoSchema());
+        msg << "\n\n\nMessage Properties hexdump:\n\n"
+            << bdlbb::BlobUtilHexDumper(&blob);
+
+        msg << "\n\nMessage Payload:\n\n"
             << bdlbb::BlobUtilHexDumper(&payload);
     }
     else {
@@ -344,11 +353,17 @@ void QueueEngineUtil::logRejectMessage(
             << " times to consumer(s). BlazingMQ failed to load message "
             << "properties with internal error code " << rc
             << "Dumping raw message." << MWCTSK_ALARMLOG_END;
-        rc = dumpMessageInTempfile(&filepath, *appData, 0);
+        rc = dumpMessageInTempfile(&filepath,
+                                   *appData,
+                                   0,
+                                   queueState->blobBufferFactory());
         // decoding failed
     }
     else {
-        rc = dumpMessageInTempfile(&filepath, payload, &properties);
+        rc = dumpMessageInTempfile(&filepath,
+                                   payload,
+                                   &properties,
+                                   queueState->blobBufferFactory());
     }
 
     if (rc == -1) {

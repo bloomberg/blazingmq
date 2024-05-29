@@ -2000,7 +2000,8 @@ void ClientSession::onPushEvent(const mqbi::DispatcherPushEvent& event)
         int         dumpRc = mqbblp::QueueEngineUtil::dumpMessageInTempfile(
             &filepath,
             *event.blob().get(),
-            0);
+            0,
+            d_state.d_bufferFactory_p);
 
         // REVISIT: An alternative is to send Reject upstream
 
