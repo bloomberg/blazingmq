@@ -96,7 +96,7 @@ typedef bsl::pair<unsigned int, bsls::Types::Uint64> MessageByteCounter;
 /// Soft limit, or threshold, percentage of space associated with
 /// outstanding data in a partition, used as a threshold to generate an
 /// alarm
-const bsls::Types::Uint64 k_SPACE_USED_PERCENT_SOFT = 40;
+const bsls::Types::Uint64 k_SPACE_USED_PERCENT_SOFT = 60;
 
 /// Interval, in seconds, to perform a check of available space in the
 /// partition.
