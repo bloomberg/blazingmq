@@ -1,5 +1,5 @@
 """
-BMQ Broker schemas.
+BlazingMQ Broker schemas.
 """
 
 from enum import IntEnum, IntFlag
@@ -54,7 +54,7 @@ class PutHeaderFlags(IntFlag):
 
 
 # =============================================================================
-#                      BMQ BROKER CONTROL MESSAGE SCHEMAS
+#                    BLAZINGMQ BROKER CONTROL MESSAGE SCHEMAS
 # =============================================================================
 
 
