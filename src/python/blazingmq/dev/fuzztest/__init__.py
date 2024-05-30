@@ -350,6 +350,7 @@ def fuzz(host: str, port: int, request: Optional[str] = None) -> None:
         receive_data_after_fuzz=True,
         web_port=None,
         fuzz_loggers=[FuzzLoggerLimited()],
+        fuzz_db_keep_only_n_pass_cases=1,
     )
 
     identity = boofuzz.Request(
