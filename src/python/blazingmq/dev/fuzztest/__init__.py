@@ -3,11 +3,12 @@ Utilities for fuzz testing BlazingMQ Broker.
 
 Public functions:
 o 'fuzz': launch fuzzing session with the given 'host':'port' of a BlazingMQ
-          Broker instance.
+          Broker instance.  If the optionally specified 'request' string is
+          provided, fuzz only the request with the given name.
 """
-
+import logging
 from enum import IntEnum
-from typing import List
+from typing import List, Optional
 
 import boofuzz
 from blazingmq.schemas import broker
@@ -81,16 +82,16 @@ def schema_to_boofuzz(schema: broker.SchemaDescription) -> BoofuzzSequence:
     representation.
     """
 
-    # delimeters will be checked on json decoding level in the broker and
+    # delimiters will be checked on json decoding level in the broker and
     # therefore it's a waste of time to check it during fuzz testing
-    fuzz_delimeters = False
+    fuzz_delimiters = False
 
     res = [boofuzz.Static(default_value="{")]
     for key, value in schema.items():
         assert isinstance(key, str)
 
         res.append(boofuzz.Static(default_value=f'"{key}"'))
-        res.append(boofuzz.Delim(default_value=":", fuzzable=fuzz_delimeters))
+        res.append(boofuzz.Delim(default_value=":", fuzzable=fuzz_delimiters))
 
         if isinstance(value, dict):
             res += schema_to_boofuzz(value)
@@ -110,9 +111,9 @@ def schema_to_boofuzz(schema: broker.SchemaDescription) -> BoofuzzSequence:
             raise NotImplementedError(
                 "Not implemented conversion of value of type " + str(type(value))
             )
-        res.append(boofuzz.Delim(default_value=",", fuzzable=fuzz_delimeters))
+        res.append(boofuzz.Delim(default_value=",", fuzzable=fuzz_delimiters))
 
-    # last boofuzz.Delimeter "," should be removed if presented
+    # last boofuzz.Delim "," should be removed if presented
     if len(res) > 0:
         res = res[:-1]
     res.append(boofuzz.Static(default_value="}"))
@@ -335,7 +336,7 @@ def make_control_message(schema: broker.SchemaDescription) -> BoofuzzSequence:
 # =============================================================================
 
 
-def fuzz(host: str, port: int) -> None:
+def fuzz(host: str, port: int, request: Optional[str] = None) -> None:
     """
     Launch a fuzzing session with the specified 'host' and 'port' of the
     launched BlazingMQ Broker instance.
@@ -377,17 +378,24 @@ def fuzz(host: str, port: int) -> None:
     )
 
     sequence = [
-        identity,
-        open_queue,
-        configure_queue_stream,
-        put,
-        confirm,
-        close_queue,
-        disconnect,
+        (identity, "identity"),
+        (open_queue, "open_queue"),
+        (configure_queue_stream, "configure_queue_stream"),
+        (put, "put"),
+        (confirm, "confirm"),
+        (close_queue, "close_queue"),
+        (disconnect, "disconnect"),
     ]
 
+    if request is not None:
+        disabled_count = 0
+        for req, name in sequence:
+            if name != request:
+                disable_fuzzing(req)
+                disabled_count += 1
+
     prev = None
-    for req in sequence:
+    for req, name in sequence:
         if prev is None:
             session.connect(req)
         else:

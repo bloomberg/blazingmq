@@ -3,7 +3,7 @@ Main function for running fuzz testing with a BlazingMQ Broker.
 usage:
 python3 -m blazingmq.dev.fuzztest
     [-h] [--host HOST] [--port PORT] [--broker-dir BROKER_DIR]
-    [--broker-cmd BROKER_CMD] [--time-limit TIME_LIMIT]
+    [--broker-cmd BROKER_CMD] [--time-limit TIME_LIMIT] [--request REQUEST]
 optional arguments:
   -h, --help                show this help message and exit
   --host HOST               Broker instance HOST for client connection
@@ -12,6 +12,8 @@ optional arguments:
                             used to start a broker on fuzzing start
   --broker-cmd BROKER_CMD   Command for launching a broker on fuzzing start
   --time-limit TIME_LIMIT   Timeout to deduce if broker is stuck during fuzz test
+  --request REQUEST         If specified, the name of the request to fuzz, fuzz all
+                            the known requests otherwise
 """
 
 import argparse
@@ -118,6 +120,15 @@ def main():
         help="Timeout to deduce if broker is stuck during fuzz test",
     )
 
+    parser.add_argument(
+        "--request",
+        default=None,
+        type=str,
+        action="store",
+        metavar="REQUEST",
+        help="If specified, the name of the request to fuzz, fuzz all the known requests otherwise",
+    )
+
     args = parser.parse_args()
 
     broker_thread = Thread(
@@ -130,7 +141,7 @@ def main():
     )
     broker_thread.start()
 
-    fuzztest.fuzz(args.host, args.port)
+    fuzztest.fuzz(args.host, args.port, args.request)
 
     stop_broker(Path(args.broker_dir), BROKER_TERMINATE_TIMEOUT)
 
