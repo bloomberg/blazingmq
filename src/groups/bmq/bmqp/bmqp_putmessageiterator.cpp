@@ -469,7 +469,8 @@ int PutMessageIterator::next()
         rc_PARSING_ERROR                   = -5,
         rc_INVALID_OPTIONS_OFFSET          = -6,
         rc_INVALID_ADVANCE_LENGTH          = -7,
-        rc_INVALID_APPLICATION_DATA_SIZE   = -8
+        rc_INVALID_APPLICATION_DATA_SIZE   = -8,
+        rc_INVALID_MESSAGE_PROPERTIES      = -9
     };
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!isValid())) {
@@ -581,13 +582,20 @@ int PutMessageIterator::next()
         return (rc * 10 + rc_INVALID_APPLICATION_DATA_OFFSET);  // RETURN
     }
 
-    bmqt::CompressionAlgorithmType::Enum cat =
-        d_header.compressionAlgorithmType();
-    int        flags = d_header.flags();
+    const int  flags = d_header.flags();
     const bool haveMPs =
         PutHeaderFlagUtil::isSet(flags, PutHeaderFlags::e_MESSAGE_PROPERTIES);
     const bool haveNewMPs = MessagePropertiesInfo::hasSchema(d_header);
-    int        length     = compressedApplicationDataSize();
+
+    // Validation: if new message properties schema is set, the flag
+    // e_MESSAGE_PROPERTIES must also be set.
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!haveMPs && haveNewMPs)) {
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+        d_advanceLength = -1;
+        return rc_INVALID_MESSAGE_PROPERTIES;  // RETURN
+    }
+
+    const int length = compressedApplicationDataSize();
 
     // Validation: 'length' is an unpadded application data size, with
     // substracted size of the padding bytes section.
@@ -612,6 +620,9 @@ int PutMessageIterator::next()
         // No need to write the header back to the blob since future events
         // will use 'header()' as their input (not the blob).
     }
+
+    bmqt::CompressionAlgorithmType::Enum cat =
+        d_header.compressionAlgorithmType();
 
     rc = ProtocolUtil::parse(0,  // do not separate MPs from data
                              &d_messagePropertiesSize,
