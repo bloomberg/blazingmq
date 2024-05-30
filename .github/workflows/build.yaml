@@ -20,7 +20,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Get dependencies hash
         id: get-hash
-        run: echo "deps_hash=`cat blazingmq/docker/build_deps.sh | shasum`" >> $GITHUB_OUTPUT
+        run: echo "deps_hash=`cat docker/build_deps.sh | shasum`" >> $GITHUB_OUTPUT
       - name: Cache lookup
         uses: actions/cache/restore@v4
         id: cache-lookup
@@ -66,7 +66,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Get dependencies hash
         id: get-hash
-        run: echo "deps_hash=`cat blazingmq/docker/build_deps.sh | shasum`" >> $GITHUB_OUTPUT
+        run: echo "deps_hash=`cat docker/build_deps.sh | shasum`" >> $GITHUB_OUTPUT
       - uses: actions/cache/restore@v4
         with:
           path: deps
