@@ -175,6 +175,26 @@ jobs:
             --reruns=3                          \
             -n 4 -v
 
+  fuzz_test_ubuntu:
+    name: Fuzz test [ubuntu]
+    runs-on: ubuntu-latest
+    needs: build_ubuntu
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache/@v4
+        with:
+          path: |
+            build/blazingmq
+            deps
+            /opt/bb/include
+          key: cache-${{ github.sha }}
+      - name: Run Fuzz Test
+        run: |
+          pip install -r ${{ github.workspace }}/src/python/requirements.txt
+          cd src/python
+          python3 -m blazingmq.dev.fuzztest --broker-dir ${{ github.workspace }}/build/blazingmq/src/applications/bmqbrkr
+
+
   build_macosx:
     name: Build [macosx_${{ matrix.arch }}]
     runs-on: ${{ matrix.os }}
