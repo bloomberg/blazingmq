@@ -582,9 +582,6 @@ int PutMessageIterator::next()
         return (rc * 10 + rc_INVALID_APPLICATION_DATA_OFFSET);  // RETURN
     }
 
-    const bmqt::CompressionAlgorithmType::Enum cat =
-        d_header.compressionAlgorithmType();
-
     const int  flags = d_header.flags();
     const bool haveMPs =
         PutHeaderFlagUtil::isSet(flags, PutHeaderFlags::e_MESSAGE_PROPERTIES);
@@ -618,12 +615,10 @@ int PutMessageIterator::next()
         // (with lengths, not offsets).  That style does not work with schema.
         // So, leave the schema absence. The only effect is de-compressing.
         decompressFlag = true;
-        d_header.setCompressionAlgorithmType(
-            bmqt::CompressionAlgorithmType::e_NONE);
-        // No need to write the header back to the blob since future events
-        // will use 'header()' as their input (not the blob).
     }
 
+    const bmqt::CompressionAlgorithmType::Enum cat =
+        d_header.compressionAlgorithmType();
     rc = ProtocolUtil::parse(0,  // do not separate MPs from data
                              &d_messagePropertiesSize,
                              &d_applicationData,
@@ -646,8 +641,11 @@ int PutMessageIterator::next()
         d_applicationDataSize = d_applicationData.length();
 
         if (haveMPs && !haveNewMPs && d_isDecompressingOldMPs) {
-            // Force decompressed.  Need to recalculate CRC32
+            // Force decompressed.  Need to recalculate CRC32 and set
+            // decompressed flag
 
+            d_header.setCompressionAlgorithmType(
+                bmqt::CompressionAlgorithmType::e_NONE);
             d_header.setCrc32c(Crc32c::calculate(d_applicationData));
 
             // No need to write the header back to the blob since future events
