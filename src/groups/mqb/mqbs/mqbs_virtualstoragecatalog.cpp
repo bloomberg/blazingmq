@@ -71,14 +71,18 @@ VirtualStorageCatalog::put(const bmqt::MessageGUID& msgGUID,
     }
 
     // Add guid to all virtual storages.
-
+    mqbi::StorageResult::Enum lastRc = mqbi::StorageResult::e_SUCCESS;
     for (VirtualStoragesIter it = d_virtualStorages.begin();
          it != d_virtualStorages.end();
          ++it) {
-        it->value()->put(msgGUID, msgSize, rdaInfo, subScriptionId);
+        mqbi::StorageResult::Enum rc =
+            it->value()->put(msgGUID, msgSize, rdaInfo, subScriptionId);
+        if (rc != mqbi::StorageResult::e_SUCCESS) {
+            lastRc = rc;
+        }
     }
 
-    return mqbi::StorageResult::e_SUCCESS;  // RETURN
+    return lastRc;  // RETURN
 }
 
 bslma::ManagedPtr<mqbi::StorageIterator>

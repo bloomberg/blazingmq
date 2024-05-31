@@ -60,7 +60,7 @@ class VirtualStorageCatalog {
     // PRIVATE TYPES
     typedef bsl::shared_ptr<VirtualStorage> VirtualStorageSp;
 
-    /// appKey -> virtualStorage
+    /// Any(appId, appKey) -> virtualStorage
     typedef mwcc::
         TwoKeyHashMap<bsl::string, mqbu::StorageKey, VirtualStorageSp>
             VirtualStorages;
