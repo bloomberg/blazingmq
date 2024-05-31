@@ -1,4 +1,4 @@
-"""BMQ Integration Tests
+"""BlazingMQ Integration Tests
 
 
 PURPOSE: Provide integration tests and components.

@@ -75,7 +75,8 @@
         bmqconfConfig........: configuration for bmqconf
         plugins..............: configuration for the plugins
         msgPropertiesSupport.: information about if/how to advertise support for v2 message properties
-        configureStream......: send new ConfigureStream instead of old ConfigureQueue/>
+        configureStream......: send new ConfigureStream instead of old ConfigureQueue
+        advertiseSubscriptions.: temporarily control use of ConfigureStream in SDK/>
       </documentation>
     </annotation>
     <sequence>
@@ -97,6 +98,7 @@
       <element name='plugins'              type='tns:Plugins'/>
       <element name='messagePropertiesV2'  type='tns:MessagePropertiesV2'/>
       <element name='configureStream'      type='boolean' default='false'/>
+      <element name='advertiseSubscriptions' type='boolean' default='false'/>
     </sequence>
   </complexType>
 
@@ -125,7 +127,8 @@
 
   <complexType name='StatsConfig'>
     <sequence>
-      <element name='snapshotInterval' type='int' default='1'/>  <!-- 0 to disable -->
+      <element name='snapshotInterval' type='int'                  default='1'/>  <!-- 0 to disable -->
+      <element name='appIdTagDomains'  type='string'               maxOccurs='unbounded'/>
       <element name='plugins'          type='tns:StatPluginConfig' maxOccurs='unbounded'/>
       <element name='printer'          type='tns:StatsPrinterConfig'/>
     </sequence>
@@ -615,11 +618,11 @@
       <element name='maxTimeLeader'     type='int' default='60'/>  <!-- 1 minute -->
       <element name='maxTimeMaster'     type='int' default='120'/> <!-- 2 minutes -->
       <element name='maxTimeNode'       type='int' default='120'/> <!-- 2 minutes -->
-      <element name='maxTimeFailover'   type='int' default='240'/> <!-- 4 minutes -->
+      <element name='maxTimeFailover'   type='int' default='600'/> <!-- 10 minutes -->
       <element name='thresholdLeader'   type='int' default='30'/>  <!-- 30 seconds -->
       <element name='thresholdMaster'   type='int' default='60'/>  <!-- 1 minute -->
       <element name='thresholdNode'     type='int' default='60'/>  <!-- 1 minute -->
-      <element name='thresholdFailover' type='int' default='120'/> <!-- 2 minutes -->
+      <element name='thresholdFailover' type='int' default='300'/> <!-- 5 minutes -->
     </sequence>
   </complexType>
 

@@ -15,12 +15,13 @@ from blazingmq.dev.it.process.client import Client
 from blazingmq.dev.it.util import wait_until
 from blazingmq.dev.configurator import Configurator
 
+
 class TestAutoSubscriptions:
     """
     This test verifies auto subscription for one or more substreams (apps)
     """
-    def _start_client(self, broker, uri, name, subscriptions=[]):
 
+    def _start_client(self, broker, uri, name, subscriptions=[]):
         consumer = broker.create_client(name)
         assert (
             consumer.open(
@@ -28,21 +29,20 @@ class TestAutoSubscriptions:
                 flags=["read"],
                 consumer_priority=1,
                 subscriptions=subscriptions,
-                block=True)
+                block=True,
+            )
             == Client.e_SUCCESS
         )
 
         return consumer
 
     def _verify(self, domain, num):
-
         assert len(self.consumer.list(block=True)) == 0
 
         self.leader.list_messages(domain, tc.TEST_QUEUE, 0, 2)
         assert self.leader.outputs_substr(f"Printing {num} message(s)", 1)
 
     def _verify_fanout(self, domain, positiveApps, negativeAppIds, num):
-
         for app in positiveApps:
             self._verify_delivery(app, num)
 
@@ -57,8 +57,11 @@ class TestAutoSubscriptions:
         assert msgs[0].payload == "123"
 
     @tweak.domain.subscriptions(
-        [{"appId": "foo", "expression": {"version" : "E_VERSION_1", "text": "x==1"}},
-         {"appId": "bar", "expression": {"version" : "E_VERSION_1", "text": "x==2"}}])
+        [
+            {"appId": "foo", "expression": {"version": "E_VERSION_1", "text": "x==1"}},
+            {"appId": "bar", "expression": {"version": "E_VERSION_1", "text": "x==2"}},
+        ]
+    )
     def test_auto_subscription_fanout(self, cluster: Cluster):
         proxies = cluster.proxy_cycle()
 
@@ -82,8 +85,12 @@ class TestAutoSubscriptions:
 
         self.consumer = self._start_client(proxy, tc.URI_FANOUT_SC_FOO, "consumerFoo")
 
-        self.consumer_bar = self._start_client(proxy, tc.URI_FANOUT_SC_BAR, "consumerBar")
-        self.consumer_baz = self._start_client(proxy, tc.URI_FANOUT_SC_BAZ, "consumerBaz")
+        self.consumer_bar = self._start_client(
+            proxy, tc.URI_FANOUT_SC_BAR, "consumerBar"
+        )
+        self.consumer_baz = self._start_client(
+            proxy, tc.URI_FANOUT_SC_BAZ, "consumerBaz"
+        )
 
         assert (
             producer.post(
@@ -91,7 +98,7 @@ class TestAutoSubscriptions:
                 payload=["123"],
                 block=True,
                 wait_ack=True,
-                messageProperties=[{"name": "x", "value": "2", "type": "E_INT"}]
+                messageProperties=[{"name": "x", "value": "2", "type": "E_INT"}],
             )
             == Client.e_SUCCESS
         )
@@ -100,10 +107,8 @@ class TestAutoSubscriptions:
 
         self._verify(tc.DOMAIN_FANOUT_SC, 1)
         self._verify_fanout(
-            tc.DOMAIN_FANOUT_SC,
-            [self.consumer_bar, self.consumer_baz],
-            ["foo"],
-            1)
+            tc.DOMAIN_FANOUT_SC, [self.consumer_bar, self.consumer_baz], ["foo"], 1
+        )
 
         assert self.consumer.stop_session(block=True) == Client.e_SUCCESS
         assert self.consumer_bar.stop_session(block=True) == Client.e_SUCCESS
@@ -117,17 +122,19 @@ class TestAutoSubscriptions:
 
         self.consumer = self._start_client(proxy, tc.URI_FANOUT_SC_FOO, "consumerFoo")
 
-        self.consumer_bar = self._start_client(proxy, tc.URI_FANOUT_SC_BAR, "consumerBar")
-        self.consumer_baz = self._start_client(proxy, tc.URI_FANOUT_SC_BAZ, "consumerBaz")
+        self.consumer_bar = self._start_client(
+            proxy, tc.URI_FANOUT_SC_BAR, "consumerBar"
+        )
+        self.consumer_baz = self._start_client(
+            proxy, tc.URI_FANOUT_SC_BAZ, "consumerBaz"
+        )
 
         self.leader = cluster.last_known_leader
 
         self._verify(tc.DOMAIN_FANOUT_SC, 1)
         self._verify_fanout(
-            tc.DOMAIN_FANOUT_SC,
-            [self.consumer_bar, self.consumer_baz],
-            ["foo"],
-            1)
+            tc.DOMAIN_FANOUT_SC, [self.consumer_bar, self.consumer_baz], ["foo"], 1
+        )
 
         self.consumer_bar.confirm(tc.URI_FANOUT_SC_BAR, "*", succeed=True)
         self.consumer_baz.confirm(tc.URI_FANOUT_SC_BAZ, "*", succeed=True)
@@ -137,7 +144,9 @@ class TestAutoSubscriptions:
         assert len(self.consumer_bar.list(block=True)) == 0
         assert len(self.consumer_baz.list(block=True)) == 0
 
-    @tweak.domain.subscriptions([{"appId": "", "expression": {"version" : "E_VERSION_1", "text": "x==1"}}])
+    @tweak.domain.subscriptions(
+        [{"appId": "", "expression": {"version": "E_VERSION_1", "text": "x==1"}}]
+    )
     def test_auto_subscription_priority(self, cluster: Cluster):
         """
         Configure the priority queue to evaluate auto subscription negatively.
@@ -166,7 +175,7 @@ class TestAutoSubscriptions:
                 payload=["123"],
                 block=True,
                 wait_ack=True,
-                messageProperties=[{"name": "x", "value": "2", "type": "E_INT"}]
+                messageProperties=[{"name": "x", "value": "2", "type": "E_INT"}],
             )
             == Client.e_SUCCESS
         )
@@ -188,8 +197,11 @@ class TestAutoSubscriptions:
         self._verify(tc.DOMAIN_PRIORITY_SC, 0)
 
     @tweak.domain.subscriptions(
-        [{"appId": "foo", "expression": {"version" : "E_VERSION_1", "text": "x==1"}},
-         {"appId": "bar", "expression": {"version" : "E_VERSION_1", "text": "x > 2"}}])
+        [
+            {"appId": "foo", "expression": {"version": "E_VERSION_1", "text": "x==1"}},
+            {"appId": "bar", "expression": {"version": "E_VERSION_1", "text": "x > 2"}},
+        ]
+    )
     def test_auto_subscription_with_consumer_subscription(self, cluster: Cluster):
         """
         Out of the 3 apps, configure two to evaluate auto subscriptions.
@@ -215,14 +227,18 @@ class TestAutoSubscriptions:
             proxy,
             tc.URI_FANOUT_SC_FOO,
             "consumerFoo",
-            subscriptions=[{"correlationId": 1, "expression": "x == 2"}])
+            subscriptions=[{"correlationId": 1, "expression": "x == 2"}],
+        )
 
         self.consumer_bar = self._start_client(
             proxy,
             tc.URI_FANOUT_SC_BAR,
             "consumerBar",
-            subscriptions=[{"correlationId": 1, "expression": "x > 3"}])
-        self.consumer_baz = self._start_client(proxy, tc.URI_FANOUT_SC_BAZ, "consumerBaz")
+            subscriptions=[{"correlationId": 1, "expression": "x > 3"}],
+        )
+        self.consumer_baz = self._start_client(
+            proxy, tc.URI_FANOUT_SC_BAZ, "consumerBaz"
+        )
 
         assert (
             producer.post(
@@ -230,7 +246,7 @@ class TestAutoSubscriptions:
                 payload=["123"],
                 block=True,
                 wait_ack=True,
-                messageProperties=[{"name": "x", "value": "3", "type": "E_INT"}]
+                messageProperties=[{"name": "x", "value": "3", "type": "E_INT"}],
             )
             == Client.e_SUCCESS
         )
@@ -248,7 +264,7 @@ class TestAutoSubscriptions:
                 payload=["123"],
                 block=True,
                 wait_ack=True,
-                messageProperties=[{"name": "x", "value": "4", "type": "E_INT"}]
+                messageProperties=[{"name": "x", "value": "4", "type": "E_INT"}],
             )
             == Client.e_SUCCESS
         )
@@ -271,14 +287,18 @@ class TestAutoSubscriptions:
             proxy,
             tc.URI_FANOUT_SC_FOO,
             "consumerFoo",
-            subscriptions=[{"correlationId": 1, "expression": "x == 2"}])
+            subscriptions=[{"correlationId": 1, "expression": "x == 2"}],
+        )
 
         self.consumer_bar = self._start_client(
             proxy,
             tc.URI_FANOUT_SC_BAR,
             "consumerBar",
-            subscriptions=[{"correlationId": 1, "expression": "x > 2"}])
-        self.consumer_baz = self._start_client(proxy, tc.URI_FANOUT_SC_BAZ, "consumerBaz")
+            subscriptions=[{"correlationId": 1, "expression": "x > 2"}],
+        )
+        self.consumer_baz = self._start_client(
+            proxy, tc.URI_FANOUT_SC_BAZ, "consumerBaz"
+        )
 
         self.leader = cluster.last_known_leader
 
@@ -294,7 +314,9 @@ class TestAutoSubscriptions:
         assert len(self.consumer_bar.list(block=True)) == 0
         assert len(self.consumer_baz.list(block=True)) == 0
 
-    @tweak.domain.subscriptions([{"appId": "", "expression": {"version" : "E_VERSION_1", "text": "x==1"}}])
+    @tweak.domain.subscriptions(
+        [{"appId": "", "expression": {"version": "E_VERSION_1", "text": "x==1"}}]
+    )
     def test_auto_subscription_broadcast(self, cluster: Cluster):
         """
         Configure the boadcast queue to evaluate auto subscription negatively.
@@ -322,7 +344,7 @@ class TestAutoSubscriptions:
                 payload=["123"],
                 block=True,
                 wait_ack=True,
-                messageProperties=[{"name": "x", "value": "2", "type": "E_INT"}]
+                messageProperties=[{"name": "x", "value": "2", "type": "E_INT"}],
             )
             == Client.e_SUCCESS
         )
@@ -333,11 +355,13 @@ class TestAutoSubscriptions:
 
         assert self.consumer.stop_session(block=True) == Client.e_SUCCESS
 
-
     @tweak.domain.subscriptions(
-        [{"appId": "foo", "expression": {"version" : "E_VERSION_1", "text": "x==1"}},
-         {"appId": "bar", "expression": {"version" : "E_VERSION_1", "text": "x==2"}},
-         {"appId": "baz", "expression": {"version" : "E_VERSION_1", "text": "x==3"}}])
+        [
+            {"appId": "foo", "expression": {"version": "E_VERSION_1", "text": "x==1"}},
+            {"appId": "bar", "expression": {"version": "E_VERSION_1", "text": "x==2"}},
+            {"appId": "baz", "expression": {"version": "E_VERSION_1", "text": "x==3"}},
+        ]
+    )
     def test_auto_subscription_fanout_all_negative(self, cluster: Cluster):
         """
         Configure all fanout Apps to evaluate auto subscriptions negatively.
@@ -358,8 +382,12 @@ class TestAutoSubscriptions:
 
         self.consumer = self._start_client(proxy, tc.URI_FANOUT_SC_FOO, "consumerFoo")
 
-        self.consumer_bar = self._start_client(proxy, tc.URI_FANOUT_SC_BAR, "consumerBar")
-        self.consumer_baz = self._start_client(proxy, tc.URI_FANOUT_SC_BAZ, "consumerBaz")
+        self.consumer_bar = self._start_client(
+            proxy, tc.URI_FANOUT_SC_BAR, "consumerBar"
+        )
+        self.consumer_baz = self._start_client(
+            proxy, tc.URI_FANOUT_SC_BAZ, "consumerBaz"
+        )
 
         assert (
             producer.post(
@@ -367,7 +395,7 @@ class TestAutoSubscriptions:
                 payload=["123"],
                 block=True,
                 wait_ack=True,
-                messageProperties=[{"name": "x", "value": "0", "type": "E_INT"}]
+                messageProperties=[{"name": "x", "value": "0", "type": "E_INT"}],
             )
             == Client.e_SUCCESS
         )
@@ -375,13 +403,78 @@ class TestAutoSubscriptions:
         self.leader = cluster.last_known_leader
 
         self._verify(tc.DOMAIN_FANOUT_SC, 0)
-        self._verify_fanout(
-            tc.DOMAIN_FANOUT_SC,
-            [],
-            ["foo", "bar", "baz"],
-            0)
+        self._verify_fanout(tc.DOMAIN_FANOUT_SC, [], ["foo", "bar", "baz"], 0)
 
         assert len(self.consumer.list(block=True)) == 0
         assert len(self.consumer_bar.list(block=True)) == 0
         assert len(self.consumer_baz.list(block=True)) == 0
 
+    @tweak.domain.subscriptions(
+        [
+            {
+                "appId": "",
+                "expression": {"version": "E_VERSION_1", "text": "invalid expression"},
+            }
+        ]
+    )
+    def test_invalid_configuration(self, cluster: Cluster):
+        """
+        Configure priority domain with invalid auto subscription.
+        Make sure a queue fails to open.
+        Reconfigure the domain with valid auto subscription.
+        Make sure a queue opens successfully.
+        Reconfigure the domain with invalid auto subscription.
+        Make sure the reconfigure command fails.
+        Make sure a queue opens successfully.
+        """
+
+        proxies = cluster.proxy_cycle()
+
+        # 1: Setup producers and consumers
+
+        next(proxies)
+        proxy = next(proxies)
+
+        consumer = proxy.create_client("consumer")
+
+        consumer.open(
+            tc.URI_PRIORITY_SC,
+            flags=["read"],
+            consumer_priority=1,
+            succeed=False,
+        )
+
+        cluster.config.domains[
+            tc.DOMAIN_PRIORITY_SC
+        ].definition.parameters.subscriptions[0]["expression"]["text"] = "x==1"
+
+        cluster.reconfigure_domain(tc.DOMAIN_PRIORITY_SC, succeed=True)
+
+        consumer.open(
+            tc.URI_PRIORITY_SC,
+            flags=["read"],
+            consumer_priority=1,
+            succeed=True,
+        )
+
+        consumer.close(
+            tc.URI_PRIORITY_SC,
+            succeed=True,
+        )
+
+        cluster.config.domains[
+            tc.DOMAIN_PRIORITY_SC
+        ].definition.parameters.subscriptions[0]["expression"][
+            "text"
+        ] = "invalid expression"
+
+        cluster.reconfigure_domain(tc.DOMAIN_PRIORITY_SC, succeed=None)
+        assert cluster.last_known_leader.capture("Error processing command")
+
+        # The validation fails and the domain is going to keep the old config
+        consumer.open(
+            tc.URI_PRIORITY_SC,
+            flags=["read"],
+            consumer_priority=1,
+            succeed=True,
+        )

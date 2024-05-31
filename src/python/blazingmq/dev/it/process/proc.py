@@ -441,7 +441,9 @@ class Process:
             except subprocess.TimeoutExpired:
                 return 1
 
-            self._internal_logger.debug("waiting for stdout consuming thread to exit...")
+            self._internal_logger.debug(
+                "waiting for stdout consuming thread to exit..."
+            )
             self._stdout_thread.join()
             self._stderr_thread.join()
 

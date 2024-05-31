@@ -17,19 +17,16 @@
 #ifndef INCLUDED_BMQPI_DTSPAN
 #define INCLUDED_BMQPI_DTSPAN
 
-//@PURPOSE: Provide an interface representing a span of a distributed trace.
-//
-//@CLASSES:
-//  bmqpi::DTSpan: Interface for a span of a distributed trace.
-//  bmqpi::DTSpan::Baggage: A set of key-values used to describe a 'DTSpan'.
-//
-//@DESCRIPTION:
-// 'bmqpi::DTSpan' is a pure interface representing a node within a distributed
-// trace graph (which forms a DAG with edges as invocations).
-//
-// 'bmqpi::DTSpan::Baggage' represents a set of key-values used to describe
-// metadata belonging to a 'DTSpan'. The phrase "baggage" is borrowed from the
-// OpenTelemetry standard's terminology.
+/// @file bmqpi_dtspan.h
+///
+/// @brief Provide an interface representing a span of a distributed trace.
+///
+/// @bbref{bmqpi::DTSpan} is a pure interface representing a node within a
+/// distributed trace graph (which forms a DAG with edges as invocations).
+///
+/// @bbref{bmqpi::DTSpan::Baggage} represents a set of key-values used to
+/// describe metadata belonging to a @bbref{bmqpi::DTSpan}. The phrase
+/// "baggage" is borrowed from the OpenTelemetry standard's terminology.
 
 // BMQ
 

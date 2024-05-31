@@ -10,6 +10,10 @@ fetch_git() {
     local repo=$2
     mkdir -p srcs
 
+    if [ -d "srcs/${repo}" ]; then
+        return 0
+    fi
+
     if [ -z "${3:-}" ]
     then
         # Clone the latest 'main' branch if no specific release tag provided
@@ -24,8 +28,8 @@ fetch_git() {
 }
 
 fetch_deps() {
-    fetch_git bloomberg bde-tools 3.117.0.0
-    fetch_git bloomberg bde 3.117.0.0
+    fetch_git bloomberg bde-tools 4.8.0.0
+    fetch_git bloomberg bde 4.8.0.0
     fetch_git bloomberg ntf-core latest
 }
 
@@ -45,8 +49,13 @@ build_bde() {
 
 build_ntf() {
     pushd srcs/ntf-core
-    sed -i s/CMakeLists.txt//g ./configure
-    ./configure --prefix /opt/bb --without-usage-examples --without-applications
+    ./configure                      \
+        --keep                       \
+        --prefix /opt/bb             \
+        --without-usage-examples     \
+        --without-applications       \
+        --without-warnings-as-errors \
+        --ufid opt_64_cpp17
     make -j8
     make install
     popd

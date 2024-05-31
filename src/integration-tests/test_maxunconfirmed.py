@@ -9,6 +9,7 @@ from blazingmq.dev.it.process.client import Client
 
 pytestmark = order(4)
 
+
 class TestMaxunconfirmed:
     def setup_cluster(self, multi_node):
         proxies = multi_node.proxy_cycle()

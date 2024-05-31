@@ -86,6 +86,7 @@ class TCPEndpoint {
     /// false if the uri failed to parse.
     bool fromUri(const bsl::string& uri);
 
+    /// DEPRECATED: use `fromUri` instead.
     /// Set the uri of this endpoint to `uri`.  Expects uri to be valid
     /// format.
     void fromUriRaw(const bsl::string& uri);

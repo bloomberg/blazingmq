@@ -220,14 +220,14 @@ int QueueEngineUtil::validateUri(
 
 void QueueEngineUtil::reportQueueTimeMetric(
     mqbstat::QueueStatsDomain*            domainStats,
-    const mqbi::StorageMessageAttributes& attributes)
+    const mqbi::StorageMessageAttributes& attributes,
+    const bsl::string&                    appId)
 {
     // Report delivered message's queue-time.
     bsls::Types::Int64 timeDelta;
     mqbs::StorageUtil::loadArrivalTimeDelta(&timeDelta, attributes);
 
-    domainStats->onEvent(mqbstat::QueueStatsDomain::EventType::e_QUEUE_TIME,
-                         timeDelta);
+    domainStats->reportQueueTime(timeDelta, appId);
 }
 
 // static
@@ -258,7 +258,8 @@ bool QueueEngineUtil::loadMessageDelay(
 int QueueEngineUtil::dumpMessageInTempfile(
     bsl::string*                   filepath,
     const bdlbb::Blob&             payload,
-    const bmqp::MessageProperties* properties)
+    const bmqp::MessageProperties* properties,
+    bdlbb::BlobBufferFactory*      blobBufferFactory)
 {
     enum RcEnum {
         // Return values are part of function contract.  Do not change them
@@ -284,9 +285,17 @@ int QueueEngineUtil::dumpMessageInTempfile(
         return rc_FILE_OPEN_FAILURE;              // RETURN
     }
 
-    if (properties) {
-        msg << "Message Properties:\n\n"
-            << *properties << "\n\n\nMessage Payload:\n\n"
+    if (properties && properties->numProperties() > 0) {
+        msg << "Message Properties:\n\n" << *properties;
+
+        // Serialize properties into the blob and hexdump it
+        const bdlbb::Blob& blob = properties->streamOut(
+            blobBufferFactory,
+            bmqp::MessagePropertiesInfo::makeNoSchema());
+        msg << "\n\n\nMessage Properties hexdump:\n\n"
+            << bdlbb::BlobUtilHexDumper(&blob);
+
+        msg << "\n\nMessage Payload:\n\n"
             << bdlbb::BlobUtilHexDumper(&payload);
     }
     else {
@@ -344,11 +353,17 @@ void QueueEngineUtil::logRejectMessage(
             << " times to consumer(s). BlazingMQ failed to load message "
             << "properties with internal error code " << rc
             << "Dumping raw message." << MWCTSK_ALARMLOG_END;
-        rc = dumpMessageInTempfile(&filepath, *appData, 0);
+        rc = dumpMessageInTempfile(&filepath,
+                                   *appData,
+                                   0,
+                                   queueState->blobBufferFactory());
         // decoding failed
     }
     else {
-        rc = dumpMessageInTempfile(&filepath, payload, &properties);
+        rc = dumpMessageInTempfile(&filepath,
+                                   payload,
+                                   &properties,
+                                   queueState->blobBufferFactory());
     }
 
     if (rc == -1) {
@@ -613,6 +628,7 @@ QueueEngineUtil_AppsDeliveryContext::QueueEngineUtil_AppsDeliveryContext(
 , d_doRepeat(true)
 , d_currentMessage(0)
 , d_queue_p(queue)
+, d_activeAppIds(allocator)
 {
     // NOTHING
 }
@@ -622,6 +638,7 @@ void QueueEngineUtil_AppsDeliveryContext::reset()
     d_doRepeat       = false;
     d_currentMessage = 0;
     d_consumers.clear();
+    d_activeAppIds.clear();
 }
 
 bool QueueEngineUtil_AppsDeliveryContext::processApp(
@@ -723,6 +740,11 @@ bool QueueEngineUtil_AppsDeliveryContext::processApp(
                 bdlf::PlaceHolders::_1),
             app.d_storageIter_mp.get());
     }
+    else {
+        // Store appId of active consumer for domain stats (reporting queue
+        // time metric)
+        d_activeAppIds.push_back(app.d_appId);
+    }
 
     return isSelected;
 }
@@ -778,8 +800,15 @@ void QueueEngineUtil_AppsDeliveryContext::deliverMessage()
         }
 
         if (bmqp::QueueId::k_PRIMARY_QUEUE_ID == d_queue_p->id()) {
-            QueueEngineUtil::reportQueueTimeMetric(d_queue_p->stats(),
-                                                   attributes);
+            // Report 'queue time' metric for all active appIds
+            bsl::vector<bslstl::StringRef>::const_iterator it =
+                d_activeAppIds.begin();
+            for (; it != d_activeAppIds.cend(); ++it) {
+                QueueEngineUtil::reportQueueTimeMetric(d_queue_p->stats(),
+                                                       attributes,
+                                                       *it  // appId
+                );
+            }
         }
 
         if (d_currentMessage->advance()) {
@@ -890,7 +919,8 @@ QueueEngineUtil_AppState::deliverMessages(bsls::TimeInterval*     delay,
             if (bmqp::QueueId::k_PRIMARY_QUEUE_ID == d_queue_p->id()) {
                 QueueEngineUtil::reportQueueTimeMetric(
                     d_queue_p->stats(),
-                    storageIter_p->attributes());
+                    storageIter_p->attributes(),
+                    appId);
             }
             ++numMessages;
         }
@@ -1022,7 +1052,10 @@ bool QueueEngineUtil_AppState::visitBroadcast(
         message->guid(),
         message->attributes(),
         "",  // msgGroupId
-        bmqp::ProtocolUtil::defaultSubQueueInfoArray());
+        bmqp::Protocol::SubQueueInfosArray(
+            1,
+            bmqp::SubQueueInfo(subscription->d_downstreamSubscriptionId)));
+
     return false;
 }
 
@@ -1100,7 +1133,8 @@ QueueEngineUtil_AppState::processDeliveryList(bsls::TimeInterval*     delay,
             ++numMessages;
             if (bmqp::QueueId::k_PRIMARY_QUEUE_ID == d_queue_p->id()) {
                 QueueEngineUtil::reportQueueTimeMetric(d_queue_p->stats(),
-                                                       message->attributes());
+                                                       message->attributes(),
+                                                       appId);
             }
         }
         else {

@@ -17,81 +17,85 @@
 #ifndef INCLUDED_BMQT_SESSIONEVENTTYPE
 #define INCLUDED_BMQT_SESSIONEVENTTYPE
 
-//@PURPOSE: Provide an enumeration for the different types of session events.
-//
-//@CLASSES:
-//  bmqt::SessionEventType: Enumeration for the types of session events.
-//
-//@DESCRIPTION: 'bmqt::SessionEventType' is an enumeration for the different
-// types of session events.
-//
-//: o !CONNECTED!: The connection with the broker is established, this event is
-//:   only fired once (if for any reason the connection gets lost and
-//:   automatically reconnected, this will emit a 'CONNECTION_RESTORED' event).
-//
-//: o !DISCONNECTED!: The connection with the broker is terminated (after the
-//:   user called stop on the session). This is the last event that will be
-//:   delivered.
-//
-//: o !CONNECTION_LOST!: The session was connected to the broker, but that
-//:   connection dropped.
-//
-//: o !RECONNECTED!: The connection to the broker has been re-established.
-//:   This event is followed by zero or more 'QUEUE_REOPEN_RESULT' events, and
-//:   one 'STATE_RESTORED' event.
-//
-//: o !STATE_RESTORED!: Session's state has been restored after connection
-//:   has been re-established with the broker. This event is preceded by one
-//:   'RECONNECTED' event, and zero or more 'QUEUE_REOPEN_RESULT' events.
-//
-//: o !CONNECTION_TIMEOUT!: The connection to the broker has timedout.
-//
-//: o !QUEUE_OPEN_RESULT!: Indicates the result of an 'openQueue' operation.
-//
-//: o !QUEUE_REOPEN_RESULT!: Indicates the result of an 'openQueue' operation,
-//:   which happens when the connection to the broker has been restored and
-//:   queues previously opened have been automatically reopened.  This event is
-//:   preceded by a 'RECONNECTED' event and followed by zero or more
-//:   'QUEUE_REOPEN_RESULT' events, and one 'STATE_RESTORED' event.
-//
-//: o !QUEUE_CLOSE_RESULT!: Indicates the result of a 'closeQueue' operation
-//
-//: o !SLOWCONSUMER_NORMAL!: Notifies that the EventQueue is back to its low
-//:   watermark level.
-//
-//: o !SLOWCONSUMER_HIGHWATERMARK!: Notifies that events are accumulating in
-//:   the EventQueue, which has now reached it's high watermark level.
-//
-//: o !QUEUE_CONFIGURE_RESULT!: Indicates the result of a 'configureQueue'
-//:   operation.
-//
-//: o !HOST_UNHEALTHY!: Indicates the host has become unhealthy. Only issued if
-//    a 'bmqpi::HostHealthMonitor' has been installed to the session, via the
-//    'bmqt::SessionOptions' object.
-//
-//: o !HOST_HEALTH_RESTORED!: Indicates the health of the host has restored,
-//    and all queues have resumed operation. Following a Host Health incident,
-//    this indicates that the application has resumed normal operation.
-//
-//: o !QUEUE_SUSPENDED!: Indicates that an open queue has suspended operation:
-//    * Consumers are configured to receive no more messages from broker
-//      (i.e., maxUnconfirmedMessages := 0, maxUnconfirmedBytes := 0,
-//      consumerPriority := INT_MIN).
-//    * Attempts to pack messages targeting queue will be rejected by
-//      'bmqa::MessageEventBuilder::pack()'. Clients may still attempt to POST
-//      existing packed events.
-//    * Attempts by client to reconfigure queue will not take effect until the
-//      queue has resumed.
-//
-//: o !QUEUE_RESUMED!: Indicates that a suspended queue has resumed normal
-//    operation (i.e., effects of QUEUE_SUSPENDED state no longer apply).
-//
-//: o !ERROR!: Indicates a generic error.
-//
-//: o !TIMEOUT! Indicates that the specified operation has timed out.
-//
-//: o !CANCELED!: Indicates that the specified operation was canceled.
-//
+/// @file bmqt_sessioneventtype.h
+///
+/// @brief Provide an enumeration for the different types of session events.
+///
+/// @bbref{bmqt::SessionEventType} is an enumeration for the different types of
+/// session events.
+///
+///   - *CONNECTED*: The connection with the broker is established, this event
+///     is only fired once (if for any reason the connection gets lost and
+///     automatically reconnected, this will emit a `CONNECTION_RESTORED`
+///     event).
+///
+///   - *DISCONNECTED*: The connection with the broker is terminated (after the
+///     user called stop on the session). This is the last event that will be
+///     delivered.
+///
+///   - *CONNECTION_LOST*: The session was connected to the broker, but that
+///     connection dropped.
+///
+///   - *RECONNECTED*: The connection to the broker has been re-established.
+///     This event is followed by zero or more `QUEUE_REOPEN_RESULT` events,
+///     and one `STATE_RESTORED` event.
+///
+///   - *STATE_RESTORED*: Session's state has been restored after connection
+///     has been re-established with the broker. This event is preceded by one
+///     `RECONNECTED` event, and zero or more `QUEUE_REOPEN_RESULT` events.
+///
+///   - *CONNECTION_TIMEOUT*: The connection to the broker has timedout.
+///
+///   - *QUEUE_OPEN_RESULT*: Indicates the result of an `openQueue` operation.
+///
+///   - *QUEUE_REOPEN_RESULT*: Indicates the result of an `openQueue`
+///     operation, which happens when the connection to the broker has been
+///     restored and queues previously opened have been automatically reopened.
+///     This event is preceded by a `RECONNECTED` event and followed by zero or
+///     more `QUEUE_REOPEN_RESULT` events, and one `STATE_RESTORED` event.
+///
+///   - *QUEUE_CLOSE_RESULT*: Indicates the result of a `closeQueue` operation.
+///
+///   - *SLOWCONSUMER_NORMAL*: Notifies that the `EventQueue` is back to its
+///     low watermark level.
+///
+///   - *SLOWCONSUMER_HIGHWATERMARK*: Notifies that events are accumulating in
+///     the `EventQueue`, which has now reached it's high watermark level.
+///
+///   - *QUEUE_CONFIGURE_RESULT*: Indicates the result of a `configureQueue`
+///     operation.
+///
+///   - *HOST_UNHEALTHY*: Indicates the host has become unhealthy. Only issued
+///     if a @bbref{bmqpi::HostHealthMonitor} has been installed to the
+///     session, via the @bbref{bmqt::SessionOptions} object.
+///
+///   - *HOST_HEALTH_RESTORED*: Indicates the health of the host has restored,
+///     and all queues have resumed operation. Following a Host Health
+///     incident, this indicates that the application has resumed normal
+///     operation.
+///
+///   - *QUEUE_SUSPENDED*: Indicates that an open queue has suspended
+///     operation:
+///
+///       * Consumers are configured to receive no more messages from broker
+///         (i.e., `maxUnconfirmedMessages` := 0, `maxUnconfirmedBytes` := 0,
+///         `consumerPriority` := `INT_MIN`).
+///
+///       * Attempts to pack messages targeting queue will be rejected by
+///         @bbref{bmqa::MessageEventBuilder::packMessage}'. Clients may still
+///         attempt to POST existing packed events.
+///
+///       * Attempts by client to reconfigure queue will not take effect until
+///         the queue has resumed.
+///
+///   - *QUEUE_RESUMED*: Indicates that a suspended queue has resumed normal
+///     operation (i.e., effects of `QUEUE_SUSPENDED` state no longer apply).
+///
+///   - *ERROR*: Indicates a generic error.
+///
+///   - *TIMEOUT* Indicates that the specified operation has timed out.
+///
+///   - *CANCELED*: Indicates that the specified operation was canceled.
 
 // BMQ
 

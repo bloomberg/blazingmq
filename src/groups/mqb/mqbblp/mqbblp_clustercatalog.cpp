@@ -198,6 +198,8 @@ int ClusterCatalog::createCluster(bsl::ostream& errorDescription,
 
         if (proxyDefinitionIter ==
             d_clustersDefinition.proxyClusters().end()) {
+            errorDescription << "Fetch proxy definition failed for cluster: '"
+                             << name << "'";
             return rc_FETCH_DEFINITION_FAILED;  // RETURN
         }
 
@@ -257,6 +259,10 @@ int ClusterCatalog::startCluster(bsl::ostream&  errorDescription,
     // contention on the IO (which potentially could lead to negotiation time
     // out), we don't want (and don't have) to start the Cluster under the
     // mutex locked.
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(cluster);
+
     int rc = cluster->start(errorDescription);
 
     if (rc != 0) {
@@ -419,6 +425,7 @@ int ClusterCatalog::loadBrokerClusterConfig(bsl::ostream& errorDescription)
         return rc_CONFIG_READ_ERROR * 10 +
                rc_BROKER_CLUSTER_CONFIG_LOADFAILURE;  // RETURN
     }
+    configStream.close();
 
     // 2. Decode the JSON stream
     baljsn::Decoder            decoder;
@@ -605,6 +612,9 @@ ClusterCatalog::getCluster(bsl::shared_ptr<mqbi::Cluster>* out,
     // NOTE: The 'out' should maybe be returned as a shared_ptr with a custom
     //       deleter, so that the cluster can be destroyed once no longer used
     //       (with eventually a small TTL).
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(out);
 
     bmqp_ctrlmsg::Status status;
     status.category() = bmqp_ctrlmsg::StatusCategory::E_SUCCESS;

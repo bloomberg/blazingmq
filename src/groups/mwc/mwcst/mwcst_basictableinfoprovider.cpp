@@ -17,8 +17,8 @@
 #include <mwcst_basictableinfoprovider.h>
 
 #include <mwcscm_version.h>
+#include <mwcst_basetable.h>
 #include <mwcst_printutil.h>
-#include <mwcst_utable.h>
 
 #include <mwcst_value.h>
 
@@ -26,7 +26,7 @@
 #include <bsl_limits.h>
 
 namespace BloombergLP {
-namespace mwcu {
+namespace mwcst {
 
 namespace {
 
@@ -34,7 +34,7 @@ namespace {
 const bslstl::StringRef NA_STRING("N/A");
 
 // FUNCTIONS
-int findColumn(mwcu::Table* table, const bslstl::StringRef& columnName)
+int findColumn(mwcst::BaseTable* table, const bslstl::StringRef& columnName)
 {
     if (table) {
         for (int i = 0; i < table->numColumns(); ++i) {
@@ -188,19 +188,19 @@ int BasicTableInfoProvider_ValueSizeVisitor::operator()(
         return static_cast<int>(d_fmt_p->d_zeroString.value().length());
     }
     else if (d_fmt_p->d_type == ColumnFormat::DMCU_NS_TIME_INTERVAL) {
-        return mwcstu::PrintUtil::printedTimeIntervalNsLength(
+        return mwcst::PrintUtil::printedTimeIntervalNsLength(
             value,
             d_fmt_p->d_precision);
     }
     else if (d_fmt_p->d_type == ColumnFormat::DMCU_MEMORY) {
-        return mwcstu::PrintUtil::printedMemoryLength(value,
-                                                      d_fmt_p->d_precision);
+        return mwcst::PrintUtil::printedMemoryLength(value,
+                                                     d_fmt_p->d_precision);
     }
     else if (d_fmt_p->d_printSeparators) {
-        return mwcstu::PrintUtil::printedValueLengthWithSeparator(value, 3);
+        return mwcst::PrintUtil::printedValueLengthWithSeparator(value, 3);
     }
     else {
-        return mwcstu::PrintUtil::printedValueLength(value);
+        return mwcst::PrintUtil::printedValueLength(value);
     }
 }
 
@@ -221,13 +221,13 @@ int BasicTableInfoProvider_ValueSizeVisitor::operator()(double value) const
         return static_cast<int>(d_fmt_p->d_zeroString.value().length());
     }
     else if (d_fmt_p->d_printSeparators) {
-        return mwcstu::PrintUtil::printedValueLengthWithSeparator(
+        return mwcst::PrintUtil::printedValueLengthWithSeparator(
             value,
             d_fmt_p->d_precision,
             3);
     }
 
-    return mwcstu::PrintUtil::printedValueLength(value, d_fmt_p->d_precision);
+    return mwcst::PrintUtil::printedValueLength(value, d_fmt_p->d_precision);
 }
 
 int BasicTableInfoProvider_ValueSizeVisitor::operator()(
@@ -273,17 +273,17 @@ int BasicTableInfoProvider_ValuePrintVisitor::operator()(
         (*d_stream_p) << d_fmt_p->d_zeroString;
     }
     else if (d_fmt_p->d_type == ColumnFormat::DMCU_NS_TIME_INTERVAL) {
-        mwcstu::PrintUtil::printTimeIntervalNs(*d_stream_p,
-                                               value,
-                                               d_fmt_p->d_precision);
+        mwcst::PrintUtil::printTimeIntervalNs(*d_stream_p,
+                                              value,
+                                              d_fmt_p->d_precision);
     }
     else if (d_fmt_p->d_type == ColumnFormat::DMCU_MEMORY) {
-        mwcstu::PrintUtil::printMemory(*d_stream_p,
-                                       value,
-                                       d_fmt_p->d_precision);
+        mwcst::PrintUtil::printMemory(*d_stream_p,
+                                      value,
+                                      d_fmt_p->d_precision);
     }
     else if (d_fmt_p->d_printSeparators) {
-        mwcstu::PrintUtil::printValueWithSeparator(*d_stream_p, value, 3, ',');
+        mwcst::PrintUtil::printValueWithSeparator(*d_stream_p, value, 3, ',');
     }
     else {
         (*d_stream_p) << value;
@@ -311,11 +311,11 @@ int BasicTableInfoProvider_ValuePrintVisitor::operator()(double value) const
         (*d_stream_p) << d_fmt_p->d_zeroString;
     }
     else if (d_fmt_p->d_printSeparators) {
-        mwcstu::PrintUtil::printValueWithSeparator(*d_stream_p,
-                                                   value,
-                                                   d_fmt_p->d_precision,
-                                                   3,
-                                                   ',');
+        mwcst::PrintUtil::printValueWithSeparator(*d_stream_p,
+                                                  value,
+                                                  d_fmt_p->d_precision,
+                                                  3,
+                                                  ',');
     }
     else {
         (*d_stream_p) << bsl::fixed << bsl::setprecision(d_fmt_p->d_precision)
@@ -349,7 +349,7 @@ BasicTableInfoProvider::BasicTableInfoProvider(
 }
 
 BasicTableInfoProvider::BasicTableInfoProvider(
-    mwcu::Table*      table,
+    mwcst::BaseTable* table,
     bslma::Allocator* basicAllocator)
 : d_table_p(table)
 , d_title(basicAllocator)
@@ -367,7 +367,7 @@ void BasicTableInfoProvider::reset()
     d_columns.clear();
 }
 
-void BasicTableInfoProvider::setTable(mwcu::Table* table)
+void BasicTableInfoProvider::setTable(mwcst::BaseTable* table)
 {
     d_table_p = table;
 }
@@ -413,7 +413,7 @@ BasicTableInfoProvider::addColumn(const bslstl::StringRef& tableColumnName,
 
 // ACCESSORS
 
-// mwcu::TableInfoProvider
+// mwcst::TableInfoProvider
 int BasicTableInfoProvider::numRows() const
 {
     return d_table_p->numRows();
@@ -442,7 +442,7 @@ int BasicTableInfoProvider::numHeaderLevels() const
 int BasicTableInfoProvider::getValueSize(int row, int column) const
 {
     const ColumnFormat& fmt = d_columns[column];
-    mwct::Value         value;
+    mwcst::Value        value;
 
     if (fmt.d_tableColumnIndex >= 0) {
         d_table_p->value(&value, row, fmt.d_tableColumnIndex);
@@ -461,7 +461,7 @@ bsl::ostream& BasicTableInfoProvider::printValue(bsl::ostream& stream,
                                                  int /*width*/) const
 {
     const ColumnFormat& fmt = d_columns[column];
-    mwct::Value         value;
+    mwcst::Value        value;
 
     if (fmt.d_tableColumnIndex >= 0) {
         d_table_p->value(&value, row, fmt.d_tableColumnIndex);
@@ -500,7 +500,7 @@ int BasicTableInfoProvider::getParentHeader(int /*level*/, int column) const
 
 bsl::ostream& BasicTableInfoProvider::printTitle(bsl::ostream& stream) const
 {
-    return mwcstu::PrintUtil::printStringCentered(stream, d_title);
+    return mwcst::PrintUtil::printStringCentered(stream, d_title);
 }
 
 bsl::ostream& BasicTableInfoProvider::printHeader(bsl::ostream& stream,
@@ -509,13 +509,13 @@ bsl::ostream& BasicTableInfoProvider::printHeader(bsl::ostream& stream,
                                                   int /*width*/) const
 {
     if (level == 0) {
-        return mwcstu::PrintUtil::printStringCentered(
+        return mwcst::PrintUtil::printStringCentered(
             stream,
             d_columns[column].d_printColumnName);
     }
     else {
-        return mwcstu::PrintUtil::printStringCentered(stream,
-                                                      d_columnGroups[column]);
+        return mwcst::PrintUtil::printStringCentered(stream,
+                                                     d_columnGroups[column]);
     }
 }
 

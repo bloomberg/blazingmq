@@ -17,225 +17,240 @@
 #ifndef INCLUDED_BMQA_MESSAGEEVENTBUILDER
 #define INCLUDED_BMQA_MESSAGEEVENTBUILDER
 
-//@PURPOSE: Provide a builder for 'MessageEvent' objects.
-//
-//@CLASSES:
-//  bmqa::MessageEventBuilder: a builder for 'MessageEvent'.
-//
-//@DESCRIPTION: This component implements a mechanism,
-// 'bmqa::MessageEventBuilder', that can be used for creating message events
-// containing one or multiple messages.  The resulting MessageEvent can be sent
-// to the BlazingMQ broker using the 'bmqa::Session' (refer to 'bmqa_session'
-// for details).
-//
-// The builder holds a 'MessageEvent' under construction, and provides methods
-// to return a reference to the current message (in order to set its various
-// members), as well as to append a new message.  Once the application is done,
-// the builder provides a method to get the message event that has been
-// constructed.  See 'Usage' section for more details.
-//
-// Note that publishing events containing multiple messages may be more
-// efficient than events limited to a single message for applications that send
-// large volume of small messages.
-//
-/// Usage
-///-----
-//: o An instance of bmqa::MessageEventBuilder (the builder) can be used to
-//:   create multiple bmqa::MessageEvent's, as long as the instance is reset in
-//:   between.  This reset is preferably to do right after sending the event to
-//:   guarantee that all user resources bound to the bmqa::MessageEvent (e.g.
-//:   CorrelationIds with user's shared_ptr) are kept no longer than expected
-//:   (e.g. until related ACK event is received).  The recommended approach is
-//:   to create one instance of the builder and use that throughout the
-//:   lifetime of the task (if the task is multi-threaded, an instance per
-//:   thread must be created and maintained).
-//:   See usage example #1 for an illustration.
-//:
-//: o The lifetime of an instance of the builder is bound by the bmqa::Session
-//:   from which it was created.  In other words, bmqa::Session instance must
-//:   outlive the builder instance.
-//:
-//: o If it is desired to post the same bmqa::Message to different queues,
-//:   'packMessage' can be called multiple times in a row with different queue
-//:   IDs.  The builder will append the previously packed message with the new
-//:   queue ID to the underlying message event.  Note that after calling
-//:   'packMessage', the message keeps all the attributes (payload, properties,
-//:   etc) that were previously set (except for the 'correlationId' which must
-//:   be set explicitly for each individual message).  If desired, any
-//:   attribute can be tweaked before being packing the message again.  Refer
-//:   to usage example #2 for an illustration.
-//
-/// Example 1 - Basic Usage
-///-----------------------
-//..
-//   // Note that error handling is omitted below for the sake of brevity
-//
-//   bmqa::Session session;
-//       // Session start up logic omitted for brevity.
-//
-//   // Obtain a valid instance of message properties.
-//   bmqt::MessageProperties properties;
-//   session.loadMessageProperties(&properties);
-//
-//   // Set common properties that will be applicable to all messages sent by
-//   // this application.
-//   int rc = properties.setPropertyAsChar(
-//                                   "encoding",
-//                                   static_cast<char>(MyEncodingEnum::e_BER));
-//
-//   rc = properties.setPropertyAsString("producerId", "MyUniqueId");
-//
-//   // Obtain a valid instance of message event builder.
-//   bmqa::MessageEventBuilder builder;
-//   session.loadMessageEventBuilder(&builder);
-//
-//   // Create and post a message event containing 1 message.  Associate
-//   // properties with this message.
-//   bmqa::Message& msg = builder.startMessage();
-//
-//   msg.setCorrelationId(myCorrelationId);
-//
-//   // Set payload (where 'myPayload' is of type 'bdlbb::Blob')
-//   msg.setDataRef(&myPayload);
-//
-//   // Set current timestamp as one of the properties.
-//   rc = properties.setPropertyAsInt64(
-//                "timestamp",
-//                bdlt::EpochUtil::convertToTimeT64(bdlt::CurrentTime::now()));
-//
-//   // Set properties.
-//   msg.setPropertiesRef(&properties);
-//
-//   // Pack the message.
-//   rc = builder.packMessage(myQueueId);
-//
-//   // Post message event
-//   rc = session.post(builder.messageEvent());
-//
-//
-//   // Create and post another message event containing 1 message.
-//
-//   // bmqa::MessageEventBuilder must be reset before reuse.
-//   builder.reset();
-//
-//   // Start a new message.
-//   bmqa::Message& msg = builder.startMessage();
-//
-//   msg.setCorrelationId(myAnotherCorrelationId);
-//   msg.setDataRef(&myAnotherPayload);
-//
-//   // It's okay (and recommended) to use same properties instance.
-//   rc = properties.setPropertyAsInt64(
-//                "timestamp",
-//                bdlt::EpochUtil::convertToTimeT64(bdlt::CurrentTime::now()));
-//
-//   msg.setPropertiesRef(&properties);
-//   rc = builder.packMessage(myAnotherQueueId);
-//
-//   // Post second message event
-//   rc = session.post(builder.messageEvent());
-//
-//   // Reset the builder to free resources earlier.
-//   builder.reset();
-//..
-//
-/// Example 2 - Packing multiple messages in a message event
-///--------------------------------------------------------
-//..
-//   // Note that error handling is omitted below for the sake of brevity
-//
-//   bmqa::Session session;
-//   // Session start up logic omitted for brevity.
-//
-//   // Obtain a valid instance of message properties.
-//   bmqt::MessageProperties properties;
-//   session.loadMessageProperties(&properties);
-//
-//   // Set common properties that will be applicable to all messages sent by
-//   // this application.
-//   int rc = properties.setPropertyAsChar(
-//                                   "encoding",
-//                                   static_cast<char>(MyEncodingEnum::e_BER));
-//
-//   rc = properties.setPropertyAsString("producerId", "MyUniqueId");
-//
-//   // Obtain a valid instance of message event builder.
-//   bmqa::MessageEventBuilder builder;
-//   session.loadMessageEventBuilder(&builder);
-//
-//   // Create and post a message event containing 4 messages.
-//   bmqa::Message& msg = builder.startMessage();
-//
-//   // Pack message #1
-//   msg.setCorrelationId(correlationId1);
-//   msg.setDataRef(&payload1);  // where 'payload1' is of type 'bdlbb::Blob'
-//
-//   // Set current timestamp as one of the properties.
-//   int rc = properties.setPropertyAsInt64(
-//                "timestamp",
-//                bdlt::EpochUtil::convertToTimeT64(bdlt::CurrentTime::now()));
-//
-//   // Pack the message.
-//   rc = builder.packMessage(queueId1);
-//
-//   // Pack message #2
-//   // We want to send message #1 to another queue.  In order to do so, we
-//   // just update the correlation ID of message #1.  There is no need to set
-//   // the payload or properties again.  Because 'payload1' and 'properties'
-//   // objects are being reused for the second message, they should not be
-//   // destroyed before packing the second message.
-//
-//   msg.setCorrelationId(correlationId2);
-//
-//   // Also note that the "timestamp" property for the second message will be
-//   // updated for this message.  There is no need to invoke
-//   // 'setPropertiesRef' on the message though.
-//   rc = properties.setPropertyAsInt64(
-//                "timestamp",
-//                bdlt::EpochUtil::convertToTimeT64(bdlt::CurrentTime::now()));
-//
-//   rc = builder.packMessage(queueId2);
-//
-//   // 'payload1' can be safely destroyed at this point if it will not be
-//   // reused again for another message.
-//
-//   // Pack message #3
-//   // Message #3 has a different payload, no properties and destined to
-//   // 'queueId1'.
-//   msg.setCorrelationId(correlationId3);
-//   msg.setDataRef(&payload2);  // where 'payload2' is of type 'bdlbb::Blob'
-//
-//   // We need to explicitly clear out the associated properties.
-//   msg.clearProperties();
-//
-//   rc = builder.packMessage(queueId1);
-//
-//   // Pack message #4
-//   // Message #4 has different payload and destined to 'queueId3'.
-//   msg.setCorrelationId(correlationId4);
-//   msg.setDataRef(&payload3);  // where 'payload3' is of type 'bdlbb::Blob'
-//
-//   // Update "timestamp" property.
-//   rc = properties.setPropertyAsInt64(
-//                "timestamp",
-//                bdlt::EpochUtil::convertToTimeT64(bdlt::CurrentTime::now()));
-//
-//   // Need to associate properties with the message, since they were cleared
-//   // out while packing message #3 above.
-//   msg.setPropertiesRef(&properties);
-//
-//   rc = builder.packMessage(queueId3);
-//
-//   // Post second message event
-//   rc = session.post(builder.messageEvent());
-//
-//   // Reset the builder to free resources earlier.
-//   builder.reset();
-//..
-//
-/// Thread Safety
-///-------------
-// This component is *NOT* thread safe.
+// Clang-format warns about an overlong line in this comment, which gives a
+// Markdown anchor to a header.  Unfortunately, by Markdown syntax rules, this
+// has to on the same line as the header, meaning we cannot introduce a
+// line-break here.
+
+// clang-format off
+
+/// @file bmqa_messageeventbuilder.h
+///
+/// @brief Provide a builder for @bbref{bmqa::MessageEvent} objects.
+///
+/// This component implements a mechanism, @bbref{bmqa::MessageEventBuilder},
+/// that can be used for creating message events containing one or multiple
+/// messages.  The resulting MessageEvent can be sent to the BlazingMQ broker
+/// using the @bbref{bmqa::Session} (refer to @ref bmqa_session.h for details).
+///
+/// The builder holds a @bbref{bmqa::MessageEvent} under construction, and
+/// provides methods to return a reference to the current message (in order to
+/// set its various members), as well as to append a new message.  Once the
+/// application is done, the builder provides a method to get the message event
+/// that has been constructed.  See @ref bmqa_messageeventbuilder_usage section
+/// for more details.
+///
+/// Note that publishing events containing multiple messages may be more
+/// efficient than events limited to a single message for applications that
+/// send large volume of small messages.
+///
+/// Usage                                     {#bmqa_messageeventbuilder_usage}
+/// =====
+///
+///   - An instance of @bbref{bmqa::MessageEventBuilder} (the builder) can be
+///     used to create multiple @bbref{bmqa::MessageEvent}'s, as long as the
+///     instance is reset in between.  This reset is preferably to do right
+///     after sending the event to guarantee that all user resources bound to
+///     the @bbref{bmqa::MessageEvent} (e.g.  CorrelationIds with user's
+///     shared_ptr) are kept no longer than expected (e.g. until related ACK
+///     event is received).  The recommended approach is to create one instance
+///     of the builder and use that throughout the lifetime of the task (if the
+///     task is multi-threaded, an instance per thread must be created and
+///     maintained).  See [usage example 1](#bmqa_messageeventbuilder_ex1) for
+///     an illustration.
+///
+///   - The lifetime of an instance of the builder is bound by the
+///     @bbref{bmqa::Session} from which it was created.  In other words,
+///     @bbref{bmqa::Session} instance must outlive the builder instance.
+///
+///   - If it is desired to post the same @bbref{bmqa::Message} to different
+///     queues, @bbref{bmqa::MessageEventBuilder::packMessage} can be called
+///     multiple times in a row with different queue IDs.  The builder will
+///     append the previously packed message with the new queue ID to the
+///     underlying message event.  Note that after calling
+///     @bbref{bmqa::MessageEventBuilder::packMessage}, the message keeps all
+///     the attributes (payload, properties, etc) that were previously set
+///     (except for the `correlationId` which must be set explicitly for each
+///     individual message).  If desired, any attribute can be tweaked before
+///     being packing the message again.  Refer to [usage example
+///     2](#bmqa_messageeventbuilder_ex2) for an illustration.
+///
+/// Example 1 - Basic Usage                     {#bmqa_messageeventbuilder_ex1}
+/// -----------------------
+///
+/// ```
+/// // Note that error handling is omitted below for the sake of brevity
+///
+/// bmqa::Session session;
+///     // Session start up logic omitted for brevity.
+///
+/// // Obtain a valid instance of message properties.
+/// bmqt::MessageProperties properties;
+/// session.loadMessageProperties(&properties);
+///
+/// // Set common properties that will be applicable to all messages sent by
+/// // this application.
+/// int rc = properties.setPropertyAsChar(
+///                                 "encoding",
+///                                 static_cast<char>(MyEncodingEnum::e_BER));
+///
+/// rc = properties.setPropertyAsString("producerId", "MyUniqueId");
+///
+/// // Obtain a valid instance of message event builder.
+/// bmqa::MessageEventBuilder builder;
+/// session.loadMessageEventBuilder(&builder);
+///
+/// // Create and post a message event containing 1 message.  Associate
+/// // properties with this message.
+/// bmqa::Message& msg = builder.startMessage();
+///
+/// msg.setCorrelationId(myCorrelationId);
+///
+/// // Set payload (where 'myPayload' is of type 'bdlbb::Blob')
+/// msg.setDataRef(&myPayload);
+///
+/// // Set current timestamp as one of the properties.
+/// rc = properties.setPropertyAsInt64(
+///              "timestamp",
+///              bdlt::EpochUtil::convertToTimeT64(bdlt::CurrentTime::now()));
+///
+/// // Set properties.
+/// msg.setPropertiesRef(&properties);
+///
+/// // Pack the message.
+/// rc = builder.packMessage(myQueueId);
+///
+/// // Post message event
+/// rc = session.post(builder.messageEvent());
+///
+///
+/// // Create and post another message event containing 1 message.
+///
+/// // bmqa::MessageEventBuilder must be reset before reuse.
+/// builder.reset();
+///
+/// // Start a new message.
+/// bmqa::Message& msg = builder.startMessage();
+///
+/// msg.setCorrelationId(myAnotherCorrelationId);
+/// msg.setDataRef(&myAnotherPayload);
+///
+/// // It's okay (and recommended) to use same properties instance.
+/// rc = properties.setPropertyAsInt64(
+///              "timestamp",
+///              bdlt::EpochUtil::convertToTimeT64(bdlt::CurrentTime::now()));
+///
+/// msg.setPropertiesRef(&properties);
+/// rc = builder.packMessage(myAnotherQueueId);
+///
+/// // Post second message event
+/// rc = session.post(builder.messageEvent());
+///
+/// // Reset the builder to free resources earlier.
+/// builder.reset();
+/// ```
+///
+/// Example 2 - Packing multiple messages in a message event  {#bmqa_messageeventbuilder_ex2}
+/// --------------------------------------------------------
+///
+/// ```
+/// // Note that error handling is omitted below for the sake of brevity
+///
+/// bmqa::Session session;
+/// // Session start up logic omitted for brevity.
+///
+/// // Obtain a valid instance of message properties.
+/// bmqt::MessageProperties properties;
+/// session.loadMessageProperties(&properties);
+///
+/// // Set common properties that will be applicable to all messages sent by
+/// // this application.
+/// int rc = properties.setPropertyAsChar(
+///                                 "encoding",
+///                                 static_cast<char>(MyEncodingEnum::e_BER));
+///
+/// rc = properties.setPropertyAsString("producerId", "MyUniqueId");
+///
+/// // Obtain a valid instance of message event builder.
+/// bmqa::MessageEventBuilder builder;
+/// session.loadMessageEventBuilder(&builder);
+///
+/// // Create and post a message event containing 4 messages.
+/// bmqa::Message& msg = builder.startMessage();
+///
+/// // Pack message #1
+/// msg.setCorrelationId(correlationId1);
+/// msg.setDataRef(&payload1);  // where 'payload1' is of type 'bdlbb::Blob'
+///
+/// // Set current timestamp as one of the properties.
+/// int rc = properties.setPropertyAsInt64(
+///              "timestamp",
+///              bdlt::EpochUtil::convertToTimeT64(bdlt::CurrentTime::now()));
+///
+/// // Pack the message.
+/// rc = builder.packMessage(queueId1);
+///
+/// // Pack message #2
+/// // We want to send message #1 to another queue.  In order to do so, we
+/// // just update the correlation ID of message #1.  There is no need to set
+/// // the payload or properties again.  Because 'payload1' and 'properties'
+/// // objects are being reused for the second message, they should not be
+/// // destroyed before packing the second message.
+///
+/// msg.setCorrelationId(correlationId2);
+///
+/// // Also note that the "timestamp" property for the second message will be
+/// // updated for this message.  There is no need to invoke
+/// // 'setPropertiesRef' on the message though.
+/// rc = properties.setPropertyAsInt64(
+///              "timestamp",
+///              bdlt::EpochUtil::convertToTimeT64(bdlt::CurrentTime::now()));
+///
+/// rc = builder.packMessage(queueId2);
+///
+/// // 'payload1' can be safely destroyed at this point if it will not be
+/// // reused again for another message.
+///
+/// // Pack message #3
+/// // Message #3 has a different payload, no properties and destined to
+/// // 'queueId1'.
+/// msg.setCorrelationId(correlationId3);
+/// msg.setDataRef(&payload2);  // where 'payload2' is of type 'bdlbb::Blob'
+///
+/// // We need to explicitly clear out the associated properties.
+/// msg.clearProperties();
+///
+/// rc = builder.packMessage(queueId1);
+///
+/// // Pack message #4
+/// // Message #4 has different payload and destined to 'queueId3'.
+/// msg.setCorrelationId(correlationId4);
+/// msg.setDataRef(&payload3);  // where 'payload3' is of type 'bdlbb::Blob'
+///
+/// // Update "timestamp" property.
+/// rc = properties.setPropertyAsInt64(
+///              "timestamp",
+///              bdlt::EpochUtil::convertToTimeT64(bdlt::CurrentTime::now()));
+///
+/// // Need to associate properties with the message, since they were cleared
+/// // out while packing message #3 above.
+/// msg.setPropertiesRef(&properties);
+///
+/// rc = builder.packMessage(queueId3);
+///
+/// // Post second message event
+/// rc = session.post(builder.messageEvent());
+///
+/// // Reset the builder to free resources earlier.
+/// builder.reset();
+/// ```
+///
+/// Thread Safety                            {#bmqa_messageeventbuilder_thread}
+/// =============
+///
+/// This component is *NOT* thread safe.
+
+// clang-format on
 
 // BMQ
 
@@ -262,6 +277,7 @@ namespace bmqa {
 // struct MessageEventBuilderImpl
 // ==============================
 
+/// @private
 /// Struct containing the internal (private) members of MessageEventBuilder
 /// (That is so that bmqa::Session::loadMessageEventBuilder can access
 /// private members of MessageEventBuilder to initialize it, without having
@@ -276,6 +292,22 @@ struct MessageEventBuilderImpl {
 
     bsl::shared_ptr<bmqp::MessageGUIDGenerator> d_guidGenerator_sp;
     // GUID generator object.
+
+    int d_messageCountFinal;
+    // The final number of messages in the current 'd_msgEvent' cached on
+    // switching this MessageEvent from WRITE to READ mode.
+    // This cached value exists because we are not able to access the
+    // underlying PutEventBuilder once downgraded to READ.
+    // CONTRACT: the stored value is correct every moment when in READ mode,
+    // and the value is not guaranteed to be correct when in WRITE mode.
+
+    int d_messageEventSizeFinal;
+    // The final message event size of the current 'd_msgEvent' cached on
+    // switching this MessageEvent from WRITE to READ mode.
+    // This cached value exists because we are not able to access the
+    // underlying PutEventBuilder once downgraded to READ.
+    // CONTRACT: the stored value is correct every moment when in READ mode,
+    // and the value is not guaranteed to be correct when in WRITE mode.
 };
 
 // =========================

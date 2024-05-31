@@ -17,22 +17,24 @@
 #ifndef INCLUDED_BMQA_CLOSEQUEUESTATUS
 #define INCLUDED_BMQA_CLOSEQUEUESTATUS
 
-//@PURPOSE: Provide Value-Semantic Type for a close queue operation status
-//
-//@CLASSES:
-//  bmqa::CloseQueueStatus: value-semantic type for a closeQueue result
-//
-//@DESCRIPTION: This component provides a specific value-semantic type for the
-// result of a close queue operation with the BlazingMQ broker, providing
-// applications with the result and context of the requested operation.
-//
-// A 'bmqa::CloseQueueStatus' type is composed of 3 attributes:
-//: o !result!:           indicates the status of the operation (success,
-//:                       failure, etc.) as specified in the corresponding
-//:                       result code enum, 'bmqt::CloseQueueResult::Enum'
-//: o !queueId!:          queueId associated with the close queue operation
-//: o !errorDescription!: optional string with a human readable description of
-//:                       the error, if any
+/// @file bmqa_closequeuestatus.h
+///
+/// @brief Provide Value-Semantic Type for a close queue operation status
+///
+/// This component provides a specific value-semantic type for the result of a
+/// close queue operation with the BlazingMQ broker, providing applications
+/// with the result and context of the requested operation.
+///
+/// A @bbref{bmqa::CloseQueueStatus} type is composed of 3 attributes:
+///
+///   1. **result**: indicates the status of the operation (success, failure,
+///      etc.) as specified in the corresponding result code enum,
+///      @bbref{bmqt::CloseQueueResult::Enum}.
+///
+///   2. **queueId**: queueId associated with the close queue operation.
+///
+///   3. **errorDescription**: optional string with a human readable
+///      description of the error, if any.
 
 // BMQ
 

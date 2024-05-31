@@ -318,7 +318,7 @@ def cluster_fixture(request, configure) -> Generator:
                     if request_context := getattr(request, request_location, None):
                         tweaks: List[Tuple[Tweak, bool]] = getattr(request_context, TWEAK_ATTRIBUTE, None)  # type: ignore
                         if tweaks:
-                            for (tweak_callable, tweak_stage) in tweaks:
+                            for tweak_callable, tweak_stage in tweaks:
                                 if tweak_stage == stage:
                                     tweak_callable(configurator)
 
@@ -448,7 +448,11 @@ class Mode(IntEnum):
 
     @property
     def marks(self):
-        return [[], [pytest.mark.csl_mode], [pytest.mark.fsm_mode]][self]
+        return [
+            [pytest.mark.legacy_mode],
+            [pytest.mark.csl_mode],
+            [pytest.mark.fsm_mode],
+        ][self]
 
 
 class ProxyConnection:
@@ -471,7 +475,7 @@ WorkspaceConfigurator = Callable[..., None]
 
 
 def add_test_domains(cluster: cfg.Cluster):
-    for (domain_factory, domain_name, *args) in (
+    for domain_factory, domain_name, *args in (
         (cluster.priority_domain, tc.DOMAIN_PRIORITY),
         (cluster.priority_domain, tc.DOMAIN_PRIORITY_SC),
         (cluster.fanout_domain, tc.DOMAIN_FANOUT, tc.TEST_APPIDS),

@@ -1154,22 +1154,25 @@ def test_numeric_limits(cluster: Cluster):
     """
     uri = tc.URI_PRIORITY
 
+    # fmt: off
+    # These lines might be auto formatted differently
     supported_ints = [
-        -(2**15),
-        2**15 - 1,
-        -(2**31),
-        2**31 - 1,
-        -(2**63) + 1,
-        2**63 - 1,
-        -(2**63),
+        -(2 ** 15),
+        2 ** 15 - 1,
+        -(2 ** 31),
+        2 ** 31 - 1,
+        -(2 ** 63) + 1,
+        2 ** 63 - 1,
+        -(2 ** 63),
     ]
     unsupported_ints = [
-        2**63,
-        -(2**127),
-        2**127 - 1,
-        -(2**255),
-        2**255 - 1,
+        2 ** 63,
+        -(2 ** 127),
+        2 ** 127 - 1,
+        -(2 ** 255),
+        2 ** 255 - 1,
     ]
+    # fmt: on
 
     producer = Producer(cluster, uri)
     consumer = Consumer(

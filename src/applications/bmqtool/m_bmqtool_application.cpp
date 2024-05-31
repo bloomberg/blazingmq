@@ -19,6 +19,7 @@
 // BMQTOOL
 #include <m_bmqtool_inpututil.h>
 #include <m_bmqtool_parameters.h>
+#include <m_bmqtool_statutil.h>
 
 // BMQ
 #include <bmqa_message.h>
@@ -48,14 +49,11 @@
 #include <ball_loggermanager.h>
 #include <ball_loggermanagerconfiguration.h>
 #include <ball_streamobserver.h>
-#include <bdlb_string.h>
 #include <bdlbb_blobutil.h>
 #include <bdlf_bind.h>
 #include <bdlf_memfn.h>
 #include <bdlf_placeholder.h>
-#include <bdlt_currenttime.h>
 #include <bdlt_timeunitratio.h>
-#include <bsl_algorithm.h>
 #include <bsl_numeric.h>
 #include <bsl_vector.h>
 #include <bslma_allocator.h>
@@ -63,80 +61,15 @@
 #include <bslmt_semaphore.h>
 #include <bslmt_turnstile.h>
 #include <bsls_assert.h>
-#include <bsls_timeutil.h>
 #include <bsls_types.h>
 
 namespace BloombergLP {
+
 namespace m_bmqtool {
 
 namespace {
 
 BALL_LOG_SET_NAMESPACE_CATEGORY("BMQTOOL.APPLICATION");
-
-// Index of stats in the stat context
-const int k_STAT_MSG = 0;  // Message
-const int k_STAT_EVT = 1;  // Event
-const int k_STAT_LAT = 2;  // Message Latency
-
-// Dump stats every 1 second
-const int k_STAT_DUMP_INTERVAL = 1;
-
-// How often (in ms) should a message be stamped with the latency: because
-// computing the current time is expensive, we will only insert the timestamp
-// inside a sample subset of the messages (1 every 'k_LATENCY_INTERVAL_MS'
-// time), as computed by the configured frequency of message publishing.
-const int k_LATENCY_INTERVAL_MS = 5;
-
-// Id of the Queue (in non interactive mode)
-const int k_QUEUEID_ID = 1;
-
-// Return the current time -in nanoseconds- using either the system time or the
-// performance timer (depending on the value of the specified 'resolutionTimer'
-bsls::Types::Int64 getNowAsNs(ParametersLatency::Value resolutionTimer)
-{
-    if (resolutionTimer == ParametersLatency::e_EPOCH) {
-        bsls::TimeInterval now = bdlt::CurrentTime::now();
-        return now.totalNanoseconds();  // RETURN
-    }
-    else if (resolutionTimer == ParametersLatency::e_HIRES) {
-        return bsls::TimeUtil::getTimer();  // RETURN
-    }
-    else {
-        BSLS_ASSERT_OPT(false && "Unsupported latency mode");
-    }
-
-    return 0;
-}
-
-/// Compute the `k`th percentile value of the specified `data` (data must be
-/// sorted).
-/// Formula:
-///  - compute the index (k percent * data size)
-///  - if index is not a whole number, round up to nearest whole number and
-///    return value at that index
-///  - if index it not a whole number, compute the average of the data at
-///    index and index + 1
-bsls::Types::Int64
-computePercentile(const bsl::vector<bsls::Types::Int64>& data, double k)
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(!data.empty());
-
-    // Special case (useless, but just to be complete)
-    if (bsl::abs(k) < bsl::numeric_limits<double>::epsilon()) {
-        return data[0];  // RETURN
-    }
-
-    const int    index     = bsl::floor(k * data.size() / 100.0);
-    const double remainder = bsl::fmod(k * data.size(), 100.0);
-
-    if (bsl::abs(remainder) < bsl::numeric_limits<double>::epsilon()) {
-        return data[index - 1];  // RETURN
-    }
-    else {
-        return (data[index - 1] + data[index]) / 2;  // RETURN
-    }
-}
 
 }  // close unnamed namespace
 
@@ -207,26 +140,25 @@ void Application::tearDownLog()
     ball::LoggerManager::shutDownSingleton();
 }
 
-void Application::initializeStatContext(int historySize)
+bsl::shared_ptr<mwcst::StatContext>
+Application::createStatContext(int historySize, bslma::Allocator* allocator)
 {
     // message: value is data bytes; increments is number of messages
     // event:   value is total (data + protocol) bytes; increments is number of
     //          events
     // latency: discrete value with nanoseconds of latency reported for each
     //          message (only used in consumer mode)
-    mwcst::StatContextConfiguration config("bmqtool", d_allocator_p);
+    mwcst::StatContextConfiguration config("bmqtool", allocator);
     config.isTable(true);
     config.value("message", historySize)
         .value("event", historySize)
-        .value("latency", mwcst::StatValue::DMCST_DISCRETE, historySize);
-    d_statContext_mp.load(new (*d_allocator_p)
-                              mwcst::StatContext(config, d_allocator_p),
-                          d_allocator_p);
+        .value("latency", mwcst::StatValue::e_DISCRETE, historySize);
+    return bsl::make_shared<mwcst::StatContext>(config, allocator);
 }
 
 void Application::snapshotStats()
 {
-    d_statContext_mp->snapshot();
+    d_statContext_sp->snapshot();
 
     static unsigned int count = 0;
     if (++count % k_STAT_DUMP_INTERVAL == 0 &&
@@ -287,11 +219,11 @@ void Application::printStats(int interval) const
     printStatHeader();
 
     // Gather metrics
-    const mwcst::StatValue& msg = d_statContext_mp->value(
-        mwcst::StatContext::DMCST_DIRECT_VALUE,
+    const mwcst::StatValue& msg = d_statContext_sp->value(
+        mwcst::StatContext::e_DIRECT_VALUE,
         k_STAT_MSG);
-    const mwcst::StatValue& evt = d_statContext_mp->value(
-        mwcst::StatContext::DMCST_DIRECT_VALUE,
+    const mwcst::StatValue& evt = d_statContext_sp->value(
+        mwcst::StatContext::e_DIRECT_VALUE,
         k_STAT_EVT);
 
     mwcst::StatValue::SnapshotLocation t0(0, 0);
@@ -346,8 +278,8 @@ void Application::printStats(int interval) const
     // Latency
     if (bmqt::QueueFlagsUtil::isReader(d_parameters_p->queueFlags()) &&
         d_parameters_p->latency() != ParametersLatency::e_NONE) {
-        const mwcst::StatValue& latency = d_statContext_mp->value(
-            mwcst::StatContext::DMCST_DIRECT_VALUE,
+        const mwcst::StatValue& latency = d_statContext_sp->value(
+            mwcst::StatContext::e_DIRECT_VALUE,
             k_STAT_LAT);
         bsls::Types::Int64 latencyMin = mwcst::StatUtil::rangeMin(latency,
                                                                   t0,
@@ -370,15 +302,15 @@ void Application::printStats(int interval) const
 
 void Application::printFinalStats()
 {
-    d_statContext_mp->snapshot();
+    d_statContext_sp->snapshot();
 
     mwcst::StatValue::SnapshotLocation loc(0, 0);
 
-    const mwcst::StatValue& msg = d_statContext_mp->value(
-        mwcst::StatContext::DMCST_DIRECT_VALUE,
+    const mwcst::StatValue& msg = d_statContext_sp->value(
+        mwcst::StatContext::e_DIRECT_VALUE,
         k_STAT_MSG);
-    const mwcst::StatValue& evt = d_statContext_mp->value(
-        mwcst::StatContext::DMCST_DIRECT_VALUE,
+    const mwcst::StatValue& evt = d_statContext_sp->value(
+        mwcst::StatContext::e_DIRECT_VALUE,
         k_STAT_EVT);
 
     bsls::Types::Int64 nbMsg    = mwcst::StatUtil::increments(msg, loc);
@@ -410,8 +342,8 @@ void Application::printFinalStats()
     // Latency
     if (bmqt::QueueFlagsUtil::isReader(d_parameters_p->queueFlags()) &&
         d_parameters_p->latency() != ParametersLatency::e_NONE) {
-        const mwcst::StatValue& latency = d_statContext_mp->value(
-            mwcst::StatContext::DMCST_DIRECT_VALUE,
+        const mwcst::StatValue& latency = d_statContext_sp->value(
+            mwcst::StatContext::e_DIRECT_VALUE,
             k_STAT_LAT);
 
         bsls::Types::Int64 latencyMin = mwcst::StatUtil::absoluteMin(latency);
@@ -486,13 +418,14 @@ void Application::generateLatencyReport()
                                                    0LL);
     const double             avg = static_cast<double>(sum) / dataSet.size();
 
-    const bsls::Types::Int64 median = computePercentile(dataSet, 50.0);
+    const bsls::Types::Int64 median = StatUtil::computePercentile(dataSet,
+                                                                  50.0);
 
-    const bsls::Types::Int64 p99 = computePercentile(dataSet, 99.0);
-    const bsls::Types::Int64 p98 = computePercentile(dataSet, 98.0);
-    const bsls::Types::Int64 p97 = computePercentile(dataSet, 97.0);
-    const bsls::Types::Int64 p96 = computePercentile(dataSet, 96.0);
-    const bsls::Types::Int64 p95 = computePercentile(dataSet, 95.0);
+    const bsls::Types::Int64 p99 = StatUtil::computePercentile(dataSet, 99.0);
+    const bsls::Types::Int64 p98 = StatUtil::computePercentile(dataSet, 98.0);
+    const bsls::Types::Int64 p97 = StatUtil::computePercentile(dataSet, 97.0);
+    const bsls::Types::Int64 p96 = StatUtil::computePercentile(dataSet, 96.0);
+    const bsls::Types::Int64 p95 = StatUtil::computePercentile(dataSet, 95.0);
 
     // 4. Print summary stats to stdout
     bsl::cout
@@ -597,10 +530,6 @@ int Application::initialize()
             d_allocator_p);
     }
 
-    d_sessionContext_mp.load(new (*d_allocator_p)
-                                 SessionContext(d_allocator_p),
-                             d_allocator_p);
-
     if (d_parameters_p->mode() == ParametersMode::e_CLI) {
         // Initialize the interactive mode
         rc = d_interactive.initialize(d_session_mp.ptr(), this);
@@ -624,14 +553,9 @@ int Application::initialize()
                            << bmqt::GenericResult::Enum(rc) << "]";
             return e_START_SESSION_ERROR + rc;  // RETURN
         }
-        BSLS_ASSERT_SAFE(d_sessionContext_mp);
 
         BALL_LOG_INFO << "Session started.";
 
-        d_session_mp->loadMessageEventBuilder(
-            &d_sessionContext_mp->d_eventBuilder);
-
-        // Open the queue if in AutoMode
         bmqt::QueueOptions queueOptions;
         queueOptions
             .setMaxUnconfirmedMessages(d_parameters_p->maxUnconfirmedMsgs())
@@ -645,7 +569,7 @@ int Application::initialize()
         }
 
         bmqa::OpenQueueStatus result = d_session_mp->openQueueSync(
-            &d_sessionContext_mp->d_queueId,
+            &d_queueId,
             d_parameters_p->queueUri(),
             d_parameters_p->queueFlags(),
             queueOptions);
@@ -653,36 +577,6 @@ int Application::initialize()
             BALL_LOG_ERROR << "Error while opening queue: [result: " << result
                            << "]";
             return e_OPEN_QUEUE_ERROR;  // RETURN
-        }
-
-        // If in producer mode, prepare the blob that we will post over and
-        // over again
-        if (bmqt::QueueFlagsUtil::isWriter(d_parameters_p->queueFlags())) {
-            if (d_parameters_p->sequentialMessagePattern().empty()) {
-                int msgPayloadSize = d_parameters_p->msgSize();
-
-                if (d_parameters_p->latency() != ParametersLatency::e_NONE) {
-                    // To optimize, if asked to insert latency, we put in a
-                    // first blob of 8 bytes that will be swapped out at every
-                    // post with a new timestamp value.
-                    bdlbb::BlobBuffer latencyBuffer;
-                    d_timeBufferFactory.allocate(&latencyBuffer);
-                    latencyBuffer.setSize(sizeof(bdlb::BigEndianInt64));
-                    bdlb::BigEndianInt64 zero = bdlb::BigEndianInt64::make(0);
-                    bsl::memcpy(latencyBuffer.buffer().get(),
-                                &zero,
-                                sizeof(zero));
-                    d_blob.appendDataBuffer(latencyBuffer);
-                    msgPayloadSize -= sizeof(bdlb::BigEndianInt64);
-                }
-
-                // Initialize a buffer of the right published size, with
-                // alphabet's letters
-                for (int i = 0; i < msgPayloadSize; ++i) {
-                    char c = static_cast<char>('A' + i % 26);
-                    bdlbb::BlobUtil::append(&d_blob, &c, 1);
-                }
-            }
         }
 
         // Schedule a clock to collect / dump stats
@@ -723,7 +617,6 @@ void Application::onMessageEvent(const bmqa::MessageEvent& event)
         BALL_LOG_INFO << "==> EVENT received: " << event;
     }
 
-    BSLS_ASSERT_SAFE(d_sessionContext_mp);
     BSLS_ASSERT_SAFE(d_session_mp);
 
     // Update stats if push ...
@@ -731,7 +624,7 @@ void Application::onMessageEvent(const bmqa::MessageEvent& event)
         // Update event size (i.e. including protocol overhead)
         const bsl::shared_ptr<bmqimp::Event>& eventImpl =
             reinterpret_cast<const bsl::shared_ptr<bmqimp::Event>&>(event);
-        d_statContext_mp->adjustValue(k_STAT_EVT,
+        d_statContext_sp->adjustValue(k_STAT_EVT,
                                       eventImpl->rawEvent().blob()->length());
     }
 
@@ -768,6 +661,12 @@ void Application::onMessageEvent(const bmqa::MessageEvent& event)
 
             // Write to log file
             d_fileLogger.writeAckMessage(message);
+
+            if (d_numExpectedAcks != 0 &&
+                d_numExpectedAcks == ++d_numAcknowledged) {
+                BALL_LOG_INFO << "All posted messages have been acknowledged";
+                d_shutdownSemaphore_p->post();
+            }
         }
         else {
             // Message is a push message
@@ -814,14 +713,14 @@ void Application::onMessageEvent(const bmqa::MessageEvent& event)
                 (void)rc;
 
                 if (time != 0) {
-                    bsls::Types::Int64 now = getNowAsNs(
+                    bsls::Types::Int64 now = StatUtil::getNowAsNs(
                         d_parameters_p->latency());
                     bsls::Types::Int64 delta = now - time;
                     if (delta >= 0) {
                         // Apparently, for some reasons, the delta sometimes
                         // comes up negative, don't report it so that the stats
                         // remain decently representative of actual measures.
-                        d_statContext_mp->reportValue(k_STAT_LAT, delta);
+                        d_statContext_sp->reportValue(k_STAT_LAT, delta);
 
                         // Keep each individual latency when requested to
                         // generate a latency report.  Note that since only one
@@ -838,11 +737,11 @@ void Application::onMessageEvent(const bmqa::MessageEvent& event)
             }
 
             // Update msg/event stats
-            d_statContext_mp->adjustValue(k_STAT_MSG, blob.length());
+            d_statContext_sp->adjustValue(k_STAT_MSG, blob.length());
 
             // Call 'onMessage' before logging PUSH message. 'onMessage' blocks
-            // until open queue response is logged.  This is done for 'bmqit'
-            // which relies on order of those logs.
+            // until open queue response is logged.  This is done for
+            // integration tests that rely on order of those logs.
 
             if (d_parameters_p->mode() == ParametersMode::e_CLI &&
                 !d_parameters_p->confirmMsg()) {
@@ -888,170 +787,28 @@ void Application::onMessageEvent(const bmqa::MessageEvent& event)
 
 void Application::producerThread()
 {
-    BSLS_ASSERT_SAFE(d_sessionContext_mp);
     BSLS_ASSERT_SAFE(d_session_mp);
-
-    bmqa::MessageEventBuilder& eventBuilder =
-        d_sessionContext_mp->d_eventBuilder;
-    bmqa::QueueId& queueId = d_sessionContext_mp->d_queueId;
 
     bslmt::Turnstile turnstile(1000.0);
     if (d_parameters_p->postInterval() != 0) {
         turnstile.reset(1000.0 / d_parameters_p->postInterval());
     }
 
-    int msgSeqId = 0;  // number of messages posted since the beginning
+    bsl::shared_ptr<PostingContext> postingContext =
+        d_poster.createPostingContext(d_session_mp.get(),
+                                      d_parameters_p,
+                                      d_queueId);
 
-    // If eventsCount == 0, this means unlimited posting, else we'll
-    // decrement, and set to -1 when we should break out
-    int remainingEvents = d_parameters_p->eventsCount();
-
-    bmqa::MessageProperties out(d_allocator_p);
-
-    InputUtil::populateProperties(&out, d_parameters_p->messageProperties());
-
-    while (d_isRunning && remainingEvents != -1) {
-        if (!d_isConnected) {
-            // Not connected, we can't post... update the turnstile (and also
-            // wait) so that it won't try to catchup once connection is
-            // reestablished.
-            turnstile.waitTurn();
-            continue;  // CONTINUE
+    while (d_isRunning && postingContext->pendingPost()) {
+        if (d_isConnected) {
+            postingContext->postNext();
         }
-
-        for (int evtId = 0;
-             evtId < d_parameters_p->postRate() && remainingEvents != -1;
-             ++evtId) {
-            if (d_parameters_p->eventSize() == 0) {
-                // To get nice stats chart with round numbers in bench mode, we
-                // usually start with eventSize == 0; however posting Events
-                // with 0 message in them cause an assert or an error to spew,
-                // so just avoid it.
-                break;  // BREAK
-            }
-
-            eventBuilder.reset();
-            for (int msgId = 0; msgId < d_parameters_p->eventSize();
-                 ++msgId, ++msgSeqId) {
-                bmqa::Message& msg    = eventBuilder.startMessage();
-                int            length = 0;
-
-                // Set a correlationId if queue is open in ACK mode
-                if (bmqt::QueueFlagsUtil::isAck(
-                        d_parameters_p->queueFlags())) {
-                    bmqt::CorrelationId cId(bmqt::CorrelationId::autoValue());
-                    msg.setCorrelationId(cId);
-                }
-
-                if (!d_parameters_p->sequentialMessagePattern().empty()) {
-                    char buffer[128];
-                    length = snprintf(
-                        buffer,
-                        sizeof(buffer),
-                        d_parameters_p->sequentialMessagePattern().c_str(),
-                        msgSeqId);
-                    msg.setDataRef(buffer, length);
-                }
-                else {
-                    // Insert latency if required...
-                    if (d_parameters_p->latency() !=
-                        ParametersLatency::e_NONE) {
-                        bdlb::BigEndianInt64 timeNs;
-
-                        if (d_msgUntilNextTimestamp != 0) {
-                            --d_msgUntilNextTimestamp;
-                            timeNs = bdlb::BigEndianInt64::make(0);
-                        }
-                        else {
-                            // Insert the timestamp
-                            timeNs = bdlb::BigEndianInt64::make(
-                                getNowAsNs(d_parameters_p->latency()));
-
-                            // Update the number of messages until next
-                            // timestamp:
-                            int nbMsgPerSec = d_parameters_p->eventSize() *
-                                              d_parameters_p->postRate() *
-                                              1000 /
-                                              d_parameters_p->postInterval();
-                            d_msgUntilNextTimestamp = nbMsgPerSec *
-                                                      k_LATENCY_INTERVAL_MS /
-                                                      1000;
-                        }
-
-                        bdlbb::BlobBuffer buffer;
-                        d_timeBufferFactory.allocate(&buffer);
-                        buffer.setSize(sizeof(bdlb::BigEndianInt64));
-                        bsl::memcpy(buffer.buffer().get(),
-                                    &timeNs,
-                                    sizeof(timeNs));
-                        d_blob.swapBufferRaw(0, &buffer);
-                    }
-                    msg.setDataRef(&d_blob);
-
-                    length = d_blob.length();
-                }
-
-                if (out.numProperties()) {
-                    msg.setPropertiesRef(&out);
-                }
-                bmqt::EventBuilderResult::Enum rc = eventBuilder.packMessage(
-                    queueId);
-                if (rc != 0) {
-                    BALL_LOG_ERROR << "Failed to pack message [rc: " << rc
-                                   << "]";
-                    continue;  // CONTINUE
-                }
-                d_statContext_mp->adjustValue(k_STAT_MSG, length);
-            }
-
-            // Now publish the event
-            const bmqa::MessageEvent& messageEvent =
-                eventBuilder.messageEvent();
-
-            // Write PUTs to log file before posting
-            if (d_fileLogger.isOpen()) {
-                bmqa::MessageIterator it = messageEvent.messageIterator();
-                while (it.nextMessage()) {
-                    const bmqa::Message& message = it.message();
-                    d_fileLogger.writePutMessage(message);
-                }
-            }
-
-            int rc = d_session_mp->post(messageEvent);
-
-            if (rc != 0) {
-                BALL_LOG_ERROR
-                    << "Failed to post: " << bmqt::PostResult::Enum(rc) << " ("
-                    << rc << ")";
-                continue;  // CONTINUE
-            }
-
-            const bsl::shared_ptr<bmqimp::Event>& eventImpl =
-                reinterpret_cast<const bsl::shared_ptr<bmqimp::Event>&>(
-                    messageEvent);
-            d_statContext_mp->adjustValue(
-                k_STAT_EVT,
-                eventImpl->rawEvent().blob()->length());
-
-            if (d_parameters_p->eventsCount() > 0) {
-                if (--remainingEvents == 0) {
-                    remainingEvents = -1;  // So that we exit the main loop
-                    break;                 // BREAK
-                }
-            }
-        }
-
         if (d_parameters_p->postInterval() != 0) {
             turnstile.waitTurn();
         }
     }
 
-    // Finished posting messages in auto mode?
-    // If shutDownGrace is set, signal to the main thread to exit.
-    if (d_parameters_p->mode() == ParametersMode::e_AUTO &&
-        d_parameters_p->shutdownGrace() != 0) {
-        // We do not need to sleep the grace period, since it is done
-        // by the main thread, in the stop() function.
+    if (!bmqt::QueueFlagsUtil::isAck(d_parameters_p->queueFlags())) {
         d_shutdownSemaphore_p->post();
     }
 }
@@ -1118,30 +875,25 @@ Application::Application(Parameters*       parameters,
 , d_parameters_p(parameters)
 , d_shutdownSemaphore_p(shutdownSemaphore)
 , d_runningThread(bslmt::ThreadUtil::invalidHandle())
+, d_queueId(d_allocator_p)
+, d_statContext_sp(createStatContext(10, d_allocator_p))
 , d_isConnected(false)
 , d_isRunning(false)
 , d_consoleObserver(d_allocator_p)
-, d_bufferFactory(4096, d_allocator_p)
-, d_timeBufferFactory(sizeof(bdlb::BigEndianInt64), d_allocator_p)
-, d_blob(&d_bufferFactory, d_allocator_p)
-, d_msgUntilNextTimestamp(0)
-, d_interactive(parameters, d_allocator_p)
 , d_storageInspector(d_allocator_p)
 , d_fileLogger(d_parameters_p->logFilePath(), d_allocator_p)
+, d_poster(&d_fileLogger, d_statContext_sp.get(), d_allocator_p)
+, d_interactive(parameters, &d_poster, d_allocator_p)
 , d_latencies(allocator)
 , d_autoReadInProgress(false)
 , d_autoReadActivity(false)
+, d_numExpectedAcks(0)
+, d_numAcknowledged(0)
 {
     // NOTHING
 }
 
 Application::~Application()
-{
-    // NOTHING
-}
-
-Application::SessionContext::SessionContext(bslma::Allocator* allocator)
-: d_queueId(k_QUEUEID_ID, allocator)
 {
     // NOTHING
 }
@@ -1154,7 +906,6 @@ int Application::start()
 
     d_scheduler.start();
 
-    initializeStatContext(10);
     if (!d_parameters_p->logFilePath().empty()) {
         bool rc = d_fileLogger.open();
         BSLS_ASSERT_SAFE(rc);
@@ -1166,7 +917,6 @@ int Application::start()
         if (d_session_mp) {
             d_session_mp->stop();
         }
-        d_sessionContext_mp.reset();
         d_session_mp.reset();
         d_scheduler.stop();
         tearDownLog();
@@ -1194,8 +944,12 @@ int Application::run()
         d_shutdownSemaphore_p->post();
     }
     else {
-        // Start the thread
         if (bmqt::QueueFlagsUtil::isWriter(d_parameters_p->queueFlags())) {
+            d_numExpectedAcks = d_parameters_p->eventsCount() *
+                                d_parameters_p->eventSize();
+            d_numAcknowledged = 0;
+
+            // Start the thread
             rc = bslmt::ThreadUtil::create(
                 &d_runningThread,
                 bdlf::MemFnUtil::memFn(&Application::producerThread, this));
@@ -1227,11 +981,11 @@ void Application::stop()
             bslmt::ThreadUtil::sleep(
                 bsls::TimeInterval(d_parameters_p->shutdownGrace()));
         }
+        if (d_queueId.isValid()) {
+            d_session_mp->closeQueueSync(&d_queueId);
+        }
         d_session_mp->stop();
     }
-
-    // Must release SessionContext before the session
-    d_sessionContext_mp.reset();
 
     // Delete the session
     d_session_mp.reset();

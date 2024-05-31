@@ -41,7 +41,9 @@
 
 // BDE
 #include <bdlb_print.h>
+#include <bdlb_scopeexit.h>
 #include <bdlb_stringrefutil.h>
+#include <bdlf_bind.h>
 #include <bdlf_memfn.h>
 #include <bdlma_localsequentialallocator.h>
 #include <bdls_filesystemutil.h>
@@ -82,6 +84,14 @@ class AppIdMatcher {
         return d_expectedAppId == appIdKeyPair.first;
     }
 };
+
+/// Post on the optionally specified `semaphore`.
+void optionalSemaphorePost(bslmt::Semaphore* semaphore)
+{
+    if (semaphore) {
+        semaphore->post();
+    }
+}
 
 }  // close unnamed namespace
 
@@ -1694,8 +1704,9 @@ void StorageUtil::recoveredQueuesCb(
                 for (AppIdKeyPairsCIter ait = appIdKeyPairs.begin();
                      ait != appIdKeyPairs.end();
                      ++ait) {
-                    const bsl::string&      appId  = ait->first;
-                    const mqbu::StorageKey& appKey = ait->second;
+                    BSLA_MAYBE_UNUSED const bsl::string& appId = ait->first;
+                    BSLA_MAYBE_UNUSED const mqbu::StorageKey& appKey =
+                        ait->second;
 
                     BSLS_ASSERT_SAFE(!appKey.isNull());
                     BSLS_ASSERT_SAFE(!appId.empty());
@@ -3579,6 +3590,10 @@ void StorageUtil::purgeQueueDispatched(
     BSLS_ASSERT_SAFE(fileStore->config().partitionId() ==
                      storage->partitionId());
 
+    // RAII to ensure we will post on the semaphore no matter how we return
+    bdlb::ScopeExitAny semaphorePost(
+        bdlf::BindUtil::bind(&optionalSemaphorePost, purgeFinishedSemaphore));
+
     if (!fileStore->primaryNode()) {
         mwcu::MemOutStream errorMsg;
         errorMsg << "Not purging queue '" << storage->queueUri() << "' "
@@ -3648,10 +3663,6 @@ void StorageUtil::purgeQueueDispatched(
     queueDetails.appKey()            = appKeyStr.str();
     queueDetails.numMessagesPurged() = numMsgs;
     queueDetails.numBytesPurged()    = numBytes;
-
-    if (purgeFinishedSemaphore) {
-        purgeFinishedSemaphore->post();
-    }
 }
 
 int StorageUtil::processCommand(mqbcmd::StorageResult*     result,

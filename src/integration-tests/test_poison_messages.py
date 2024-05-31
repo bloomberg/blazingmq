@@ -14,6 +14,7 @@ from blazingmq.dev.configurator import Configurator
 
 pytestmark = order(5)
 
+
 def message_throttling(high: int, low: int):
     def tweaker(configurator: Configurator):
         throttle_config = configurator.proto.cluster.message_throttle_config
@@ -477,9 +478,7 @@ class TestPoisonMessages:
         proxies = multi_node.proxy_cycle()
         next(proxies)
         proxy = next(proxies)
-        self._crash_consumer_connected_to_replica(
-            multi_node, proxy, tc.DOMAIN_PRIORITY
-        )
+        self._crash_consumer_connected_to_replica(multi_node, proxy, tc.DOMAIN_PRIORITY)
 
     @max_delivery_attempts(1)
     @message_throttling(high=0, low=0)

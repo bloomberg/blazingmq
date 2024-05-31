@@ -20,10 +20,10 @@
 //@PURPOSE: Provide a smart string key for associative containers.
 //
 //@CLASSES:
-// mwcu::StringKey: a better string key for containers
+// mwcst::StringKey: a better string key for containers
 //
 //@DESCRIPTION:
-// This class provides a mechanism, 'mwcu::StringKey', which is intended to be
+// This class provides a mechanism, 'mwcst::StringKey', which is intended to be
 // used as a more efficient string key in associative containers.  This is
 // done by allowing the 'StringKey' to either hold a reference to an existing
 // string, or to own its own copy of it.
@@ -87,7 +87,7 @@
 #endif
 
 namespace BloombergLP {
-namespace mwcu {
+namespace mwcst {
 
 // ===============
 // class StringKey
@@ -310,8 +310,7 @@ inline size_t StringKey::hashValue() const
 }  // close package namespace
 
 // FREE OPERATORS
-inline bool mwcu::operator<(const mwcu::StringKey& lhs,
-                            const mwcu::StringKey& rhs)
+inline bool mwcst::operator<(const StringKey& lhs, const StringKey& rhs)
 {
     int ret = bsl::memcmp(lhs.string(),
                           rhs.string(),
@@ -325,8 +324,7 @@ inline bool mwcu::operator<(const mwcu::StringKey& lhs,
     }
 }
 
-inline bool mwcu::operator==(const mwcu::StringKey& lhs,
-                             const mwcu::StringKey& rhs)
+inline bool mwcst::operator==(const StringKey& lhs, const StringKey& rhs)
 {
     if ((lhs.length() != rhs.length()) ||
         (lhs.hashValue() != rhs.hashValue())) {
@@ -338,8 +336,7 @@ inline bool mwcu::operator==(const mwcu::StringKey& lhs,
                        bsl::min(lhs.length(), rhs.length())) == 0;
 }
 
-inline bool mwcu::operator!=(const mwcu::StringKey& lhs,
-                             const mwcu::StringKey& rhs)
+inline bool mwcst::operator!=(const StringKey& lhs, const StringKey& rhs)
 {
     if ((lhs.length() != rhs.length()) ||
         (lhs.hashValue() != rhs.hashValue())) {
@@ -351,8 +348,8 @@ inline bool mwcu::operator!=(const mwcu::StringKey& lhs,
                        bsl::min(lhs.length(), rhs.length())) != 0;
 }
 
-inline bsl::ostream& mwcu::operator<<(bsl::ostream&          stream,
-                                      const mwcu::StringKey& object)
+inline bsl::ostream& mwcst::operator<<(bsl::ostream&    stream,
+                                       const StringKey& object)
 {
     return object.print(stream, 0, -1);
 }
@@ -362,21 +359,21 @@ inline bsl::ostream& mwcu::operator<<(bsl::ostream&          stream,
 namespace bsl {
 
 // =========================================
-// struct hash<BloombergLP::mwcu::StringKey>
+// struct hash<BloombergLP::mwcst::StringKey>
 // =========================================
 
 template <>
-struct hash<BloombergLP::mwcu::StringKey> {
+struct hash<BloombergLP::mwcst::StringKey> {
     // ACCESSORS
-    size_t operator()(const BloombergLP::mwcu::StringKey& key) const;
+    size_t operator()(const BloombergLP::mwcst::StringKey& key) const;
 };
 
 // -----------------------------------------
-// struct hash<BloombergLP::mwcu::StringKey>
+// struct hash<BloombergLP::mwcst::StringKey>
 // -----------------------------------------
 
-inline size_t hash<BloombergLP::mwcu::StringKey>::operator()(
-    const BloombergLP::mwcu::StringKey& key) const
+inline size_t hash<BloombergLP::mwcst::StringKey>::operator()(
+    const BloombergLP::mwcst::StringKey& key) const
 {
     return key.hashValue();
 }

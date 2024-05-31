@@ -45,19 +45,18 @@ static void test1_breathingTest()
 {
     mwctst::TestHelper::printTestName("BREATHING TEST");
     // Empty parameters
-    CommandLineArguments           arguments;
+    CommandLineArguments           arguments(s_allocator_p);
     Parameters                     params(arguments, s_allocator_p);
-    bslma::ManagedPtr<FileManager> fileManager(
-        new (*s_allocator_p) FileManagerMock(s_allocator_p),
-        s_allocator_p);
+    bslma::ManagedPtr<FileManager> fileManager(new (*s_allocator_p)
+                                                   FileManagerMock(),
+                                               s_allocator_p);
 
     bslma::ManagedPtr<CommandProcessor> cmdProcessor =
         CommandProcessorFactory::createCommandProcessor(&params,
                                                         fileManager,
                                                         bsl::cout,
                                                         s_allocator_p);
-    ASSERT_NE(dynamic_cast<JournalFileProcessor*>(cmdProcessor.get()),
-              bsl::nullptr_t());
+    ASSERT(dynamic_cast<JournalFileProcessor*>(cmdProcessor.get()) != 0);
 }
 
 // ============================================================================

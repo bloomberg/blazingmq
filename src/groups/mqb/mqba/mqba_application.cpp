@@ -599,8 +599,7 @@ int Application::processCommand(const bslstl::StringRef& source,
                                 mqbcfg::BrokerConfig::get(),
                                 options);
             if (rc != 0) {
-                cmdResult.makeError();
-                cmdResult.error().message() = brokerConfigOs.str();
+                cmdResult.makeError().message() = brokerConfigOs.str();
             }
             else {
                 cmdResult.makeBrokerConfig();
@@ -632,7 +631,7 @@ int Application::processCommand(const bslstl::StringRef& source,
     default: BSLS_ASSERT_SAFE(false && "Unsupported encoding");
     }
 
-    return 0;
+    return result.isErrorValue() ? -2 : 0;
 }
 
 int Application::processCommandCb(

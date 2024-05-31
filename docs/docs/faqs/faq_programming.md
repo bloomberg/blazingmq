@@ -95,6 +95,8 @@ queue.
 A broker will send an *ACK* message to the producer for each message that the
 producer posted with a correlation ID, irrespective of an `e_ACK` flag provided
 by the producer while opening the queue.
+For domains configured with [strong consistency](../docs/features/consistency_levels/#strong-consistency), the broker only sends an *ACK* once 
+the message has been replicated to a quorum number of nodes. 
 
 ---
 

@@ -1016,10 +1016,8 @@ class ClusterQueueHelper : public mqbc::ClusterStateObserver,
 
     // MANIPULATORS
 
-    /// Initialize this object and return 0 on success or a non-zero value
-    /// otherwise, populating the specified `errorDescription` with a
-    /// description of the error.
-    int initialize(bsl::ostream& errorDescription);
+    /// Initialize this object.
+    void initialize();
 
     /// Paired operation of the `initialize()`, undo any action that was
     /// performed during `initialize` and restore that object to a default

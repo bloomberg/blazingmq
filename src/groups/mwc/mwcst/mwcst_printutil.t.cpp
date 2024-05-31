@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mwcstu_printutil.t.cpp                                             -*-C++-*-
+// mwcst_printutil.t.cpp                                              -*-C++-*-
 
 #include <mwcst_printutil.h>
 
@@ -28,7 +28,7 @@
 #include <bsl_sstream.h>
 
 using namespace BloombergLP;
-using namespace mwcstu;
+using namespace mwcst;
 using namespace bsl;
 
 //=============================================================================
@@ -65,7 +65,7 @@ template <class TYPE>
 void checkStreamOutput(int line, const TYPE& obj, const char* expected)
 {
     bsl::ostringstream ss;
-    ss << mwcstu::Printer<TYPE>(&obj);
+    ss << mwcst::Printer<TYPE>(&obj);
 
     LOOP_ASSERT_EQUALS(line, ss.str(), expected);
 }
@@ -78,7 +78,7 @@ void checkPrintOutput(int         line,
                       const char* expected)
 {
     bsl::ostringstream    ss;
-    mwcstu::Printer<TYPE> printer(&obj);
+    mwcst::Printer<TYPE>  printer(&obj);
     printer.print(ss, level, spacesPerLevel);
     LOOP_ASSERT_EQUALS(line, ss.str(), expected);
 }

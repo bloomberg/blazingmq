@@ -17,18 +17,14 @@
 #ifndef INCLUDED_BMQT_SUBSCRIPTION
 #define INCLUDED_BMQT_SUBSCRIPTION
 
-//@PURPOSE: Provide a value-semantic types for subscription related API.
-//
-//@CLASSES:
-//  bmqt::SubscriptionHandle:       uniquely identifies Subscription
-//  bmqt::SubscriptionExpression:   Subscription criteria
-//  bmqt::Subscription:             Subscription parameters
-//
-//@DESCRIPTION: 'bmqt::Subscription' provides a value-semantic type carried
-// by 'bmqt::QueueOptions', when opening and configuring a queue.
-//
-//@NOTE: Experimental.  Do not use until this feature is announced.
-//
+/// @file bmqt_subscription.h
+///
+/// @brief Provide a value-semantic types for subscription related API.
+///
+/// @bbref{bmqt::Subscription} provides a value-semantic type carried by
+/// @bbref{bmqt::QueueOptions}, when opening and configuring a queue.
+///
+/// @note Experimental.  Do not use until this feature is announced.
 
 // BMQ
 
@@ -46,7 +42,7 @@ namespace BloombergLP {
 
 // FORWARD DECLARATION
 namespace bmqa {
-class MessageImpl;
+struct MessageImpl;
 }
 namespace bmqa {
 class MessageIterator;
@@ -61,7 +57,7 @@ class QueueOptions;
 
 /// Value-semantic type for unique Subscription id.
 class SubscriptionHandle {
-    friend class bmqa::MessageImpl;
+    friend struct bmqa::MessageImpl;
     friend class bmqa::MessageIterator;
 
   public:

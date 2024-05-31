@@ -409,9 +409,9 @@ ClusterStateFileHeader::setProtocolVersion(unsigned char value)
     // PRECONDITIONS: protect against overflow
     BSLS_ASSERT_SAFE(value <= (1 << k_PROTOCOL_VERSION_NUM_BITS) - 1);
 
-    d_protocolVersionAndHeaderWords = (d_protocolVersionAndHeaderWords &
-                                       k_HEADER_WORDS_MASK) |
-                                      (value << k_PROTOCOL_VERSION_START_IDX);
+    d_protocolVersionAndHeaderWords = static_cast<unsigned char>(
+        (d_protocolVersionAndHeaderWords & k_HEADER_WORDS_MASK) |
+        (value << k_PROTOCOL_VERSION_START_IDX));
 
     return *this;
 }
@@ -422,9 +422,9 @@ ClusterStateFileHeader::setHeaderWords(unsigned int value)
     // PRECONDITIONS: protect against overflow
     BSLS_ASSERT_SAFE(value <= (1 << k_HEADER_WORDS_NUM_BITS) - 1);
 
-    d_protocolVersionAndHeaderWords = (d_protocolVersionAndHeaderWords &
-                                       k_PROTOCOL_VERSION_MASK) |
-                                      (value << k_HEADER_WORDS_START_IDX);
+    d_protocolVersionAndHeaderWords = static_cast<unsigned char>(
+        (d_protocolVersionAndHeaderWords & k_PROTOCOL_VERSION_MASK) |
+        (value << k_HEADER_WORDS_START_IDX));
 
     return *this;
 }
@@ -442,8 +442,9 @@ ClusterStateFileHeader::setFileKey(const mqbu::StorageKey& value)
 // ACCESSORS
 inline unsigned char ClusterStateFileHeader::protocolVersion() const
 {
-    return (d_protocolVersionAndHeaderWords & k_PROTOCOL_VERSION_MASK) >>
-           k_PROTOCOL_VERSION_START_IDX;
+    return static_cast<unsigned char>(
+        (d_protocolVersionAndHeaderWords & k_PROTOCOL_VERSION_MASK) >>
+        k_PROTOCOL_VERSION_START_IDX);
 }
 
 inline unsigned int ClusterStateFileHeader::headerWords() const
@@ -479,9 +480,9 @@ ClusterStateRecordHeader::setHeaderWords(unsigned int value)
     // PRECONDITIONS: protect against overflow
     BSLS_ASSERT_SAFE(value <= (1 << k_HEADER_WORDS_NUM_BITS) - 1);
 
-    d_headerWordsAndRecordType = (d_headerWordsAndRecordType &
-                                  k_RECORD_TYPE_MASK) |
-                                 (value << k_HEADER_WORDS_START_IDX);
+    d_headerWordsAndRecordType = static_cast<unsigned char>(
+        (d_headerWordsAndRecordType & k_RECORD_TYPE_MASK) |
+        (value << k_HEADER_WORDS_START_IDX));
 
     return *this;
 }
@@ -489,9 +490,9 @@ ClusterStateRecordHeader::setHeaderWords(unsigned int value)
 inline ClusterStateRecordHeader&
 ClusterStateRecordHeader::setRecordType(ClusterStateRecordType::Enum value)
 {
-    d_headerWordsAndRecordType = (d_headerWordsAndRecordType &
-                                  k_HEADER_WORDS_MASK) |
-                                 (value << k_RECORD_TYPE_START_IDX);
+    d_headerWordsAndRecordType = static_cast<unsigned char>(
+        (d_headerWordsAndRecordType & k_HEADER_WORDS_MASK) |
+        (value << k_RECORD_TYPE_START_IDX));
 
     return *this;
 }

@@ -90,11 +90,13 @@ bool TCPEndpoint::fromUri(const bsl::string& uri)
     }
 
     // Extract the port part: i.e. after the last ':'
-    d_port = bsl::strtol(uri.c_str() + colon + 1, 0, 10);
+    const long port = bsl::strtol(uri.c_str() + colon + 1, 0, 10);
 
-    if (d_port == 0) {
+    // For simplicity, do not accept ambiguous `port` value 0
+    if (port <= 0 || port > 65535) {
         return false;  // RETURN
     }
+    d_port = static_cast<int>(port);
 
     // Extract the host part: i.e. between '/' and ':'
     d_host.assign(uri, k_SCHEME_LEN, colon - k_SCHEME_LEN);
@@ -107,12 +109,8 @@ bool TCPEndpoint::fromUri(const bsl::string& uri)
 
 void TCPEndpoint::fromUriRaw(const bsl::string& uri)
 {
-    d_uri = uri;
-
-    const size_t separator = uri.find_last_of(':');
-
-    d_port = bsl::strtol(uri.c_str() + separator + 1, 0, 10);
-    d_host.assign(uri, k_SCHEME_LEN, separator - k_SCHEME_LEN);
+    const bool res = fromUri(uri);
+    BSLS_ASSERT(res);
 }
 
 TCPEndpoint& TCPEndpoint::assign(const bslstl::StringRef& host, int port)
@@ -121,7 +119,8 @@ TCPEndpoint& TCPEndpoint::assign(const bslstl::StringRef& host, int port)
     mwcu::MemOutStream                   ss(&localAllocator);
     ss << k_SCHEME << host << ":" << port;
 
-    fromUriRaw(ss.str());
+    const bool res = fromUri(ss.str());
+    BSLS_ASSERT_SAFE(res);
 
     return *this;
 }

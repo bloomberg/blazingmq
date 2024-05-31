@@ -1,12 +1,17 @@
 import time
 
 import blazingmq.dev.it.testconstants as tc
-from blazingmq.dev.it.fixtures import Cluster, cluster, order  # pylint: disable=unused-import
+from blazingmq.dev.it.fixtures import (
+    Cluster,
+    cluster,
+    order,
+)  # pylint: disable=unused-import
 from blazingmq.dev.it.util import wait_until
 
 TIMEOUT = 30
 
 pytestmark = order(3)
+
 
 def expected_header(start, count, total, size):
     return (
@@ -16,7 +21,6 @@ def expected_header(start, count, total, size):
 
 
 def test_list_messages_fanout(cluster: Cluster):
-
     leader = cluster.last_known_leader
     proxies = cluster.proxy_cycle()
 

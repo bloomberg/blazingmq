@@ -20,8 +20,8 @@
 //@PURPOSE: Provide non-standard macros and utilities for use in test drivers.
 //
 //@CLASSES:
-// mwcu::TestUtil         : utility funcions for test drivers
-// mwcu::BlobDataComparer : compares and pretty-print two blobs
+// mwcst::TestUtil         : utility funcions for test drivers
+// mwcst::BlobDataComparer : compares and pretty-print two blobs
 //
 //@DESCRIPTION: This component defines macros and utilities useful in test
 // drivers.
@@ -312,7 +312,7 @@
 //-----------------------------------------------------------------------------
 
 namespace BloombergLP {
-namespace mwcu {
+namespace mwcst {
 
 // ===============
 // struct TestUtil
@@ -386,9 +386,9 @@ class BlobDataComparer {
     /// `allocator` used to supply memory.  If `allocator` is null, the
     /// default allocator is used.  The behavior is undefined unless `start`
     /// is a valid position in `blob`.
-    BlobDataComparer(const bdlbb::Blob*  blob,
-                     const BlobPosition& start,
-                     bslma::Allocator*   allocator = 0);
+    BlobDataComparer(const bdlbb::Blob*        blob,
+                     const mwcu::BlobPosition& start,
+                     bslma::Allocator*         allocator = 0);
 
     // ACCESSORS
 

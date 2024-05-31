@@ -146,6 +146,17 @@ void loadBrokerIdentity(bmqp_ctrlmsg::ClientIdentity* identity,
             .append(bmqp::MessagePropertiesFeatures::k_FIELD_NAME)
             .append(":")
             .append(bmqp::MessagePropertiesFeatures::k_MESSAGE_PROPERTIES_EX);
+
+        const mqbcfg::AppConfig& theConfig = mqbcfg::BrokerConfig::get();
+
+        if (theConfig.brokerVersion() == 999999 ||
+            (theConfig.configureStream() &&
+             theConfig.advertiseSubscriptions())) {
+            features.append(";")
+                .append(bmqp::SubscriptionsFeatures::k_FIELD_NAME)
+                .append(":")
+                .append(bmqp::SubscriptionsFeatures::k_CONFIGURE_STREAM);
+        }
     }
 
     identity->protocolVersion() = bmqp::Protocol::k_VERSION;
@@ -172,14 +183,13 @@ void loadBrokerIdentity(bmqp_ctrlmsg::ClientIdentity* identity,
     // as a means to prevent SDK from generating 'V2'.
     // Regardless of SDK, brokers now decompress MPs and send ConfigureStream.
 
-    if (mqbcfg::BrokerConfig::get().brokerVersion() == 999999) {
+    const mqbcfg::AppConfig& theConfig = mqbcfg::BrokerConfig::get();
+    if (theConfig.brokerVersion() == 999999) {
         // Always advertise v2 (EX) support in test build (developer workflow,
         // CI, Jenkins, etc).
         shouldExtendMessageProperties = true;
     }
-    else if (mqbcfg::BrokerConfig::get()
-                 .messagePropertiesV2()
-                 .advertiseV2Support()) {
+    else if (theConfig.messagePropertiesV2().advertiseV2Support()) {
         // In non test build (i.e., dev and non-dev deployments, advertise v2
         // (EX) support only if configured like that.
 

@@ -16,6 +16,10 @@
 // bmqa_messageeventbuilder.t.cpp                                     -*-C++-*-
 #include <bmqa_messageeventbuilder.h>
 
+// BMQ
+#include <bmqa_mocksession.h>
+#include <bmqt_queueflags.h>
+
 // TEST DRIVER
 #include <mwctst_testhelper.h>
 
@@ -39,6 +43,121 @@ static void test1_breathingTest()
     bmqa::MessageEventBuilder obj;
 }
 
+static void test2_testMessageEventSizeCount()
+{
+    s_ignoreCheckDefAlloc = true;
+    // Can't ensure no default memory is allocated because a default
+    // QueueId is instantiated and that uses the default allocator to
+    // allocate memory for an automatically generated CorrelationId.
+
+    mwctst::TestHelper::printTestName("MESSAGE EVENT SIZE AND COUNT TEST");
+
+    // Stage 1: preparation
+    // Start a session and open a queue
+    bmqa::MockSession session(bmqt::SessionOptions(s_allocator_p),
+                              s_allocator_p);
+
+    {
+        // Start session
+        BMQA_EXPECT_CALL(session, start()).returning(0);
+        const int rc = session.start();
+        ASSERT_EQ(rc, 0);
+    }
+
+    bmqt::Uri uri(s_allocator_p);
+
+    {
+        // Parse uri
+        bsl::string error(s_allocator_p);
+        bsl::string input("bmq://my.domain/queue", s_allocator_p);
+        const int   rc = bmqt::UriParser::parse(&uri, &error, input);
+        ASSERT_EQ(rc, 0);
+    }
+
+    bmqt::CorrelationId queueCId = bmqt::CorrelationId::autoValue();
+    bmqa::QueueId       queueId(queueCId, s_allocator_p);
+
+    {
+        // Open queue
+        BMQA_EXPECT_CALL(session,
+                         openQueue(&queueId, uri, bmqt::QueueFlags::e_WRITE))
+            .returning(0);
+        const int rc = session.openQueue(&queueId,
+                                         uri,
+                                         bmqt::QueueFlags::e_WRITE);
+        ASSERT_EQ(rc, 0);
+    }
+
+    // Stage 2: populate MessageEventBuilder
+    bmqa::MessageEventBuilder builder;
+    session.loadMessageEventBuilder(&builder);
+
+    // Empty MessageEvent should contain at least its header
+    ASSERT(builder.messageEventSize() > 0);
+    ASSERT_EQ(0, builder.messageCount());
+
+    const bsl::string payload("test payload", s_allocator_p);
+
+    // Pack some messages
+    for (int i = 1; i <= 5; i++) {
+        const int messageEventSizeBefore = builder.messageEventSize();
+        const int messageCountBefore     = builder.messageCount();
+
+        bmqa::Message& msg = builder.startMessage();
+        msg.setCorrelationId(bmqt::CorrelationId::autoValue());
+        msg.setDataRef(payload.c_str(), payload.size());
+
+        // Make sure that 'messageEventSize' and 'messageCount' remain the same
+        // before packing the message
+        ASSERT_EQ(messageEventSizeBefore, builder.messageEventSize());
+        ASSERT_EQ(messageCountBefore, builder.messageCount());
+
+        builder.packMessage(queueId);
+
+        // Make sure that 'messageEventSize' and 'messageCount' increase
+        // after packing the message
+        ASSERT_LT(messageEventSizeBefore, builder.messageEventSize());
+        ASSERT_LT(messageCountBefore, builder.messageCount());
+        ASSERT_EQ(i, builder.messageCount());
+    }
+
+    // Stage 3: start a new message but do not pack
+    const int messageEventSizeFinal = builder.messageEventSize();
+    const int messageCountFinal     = builder.messageCount();
+
+    {
+        bmqa::Message& msg = builder.startMessage();
+        msg.setCorrelationId(bmqt::CorrelationId::autoValue());
+        msg.setDataRef(payload.c_str(), payload.size());
+        // Avoid holding reference to the 'msg' for too long
+    }
+
+    // Make sure that 'messageEventSize' and 'messageCount' remain the same
+    // since we do not pack the last started message
+    ASSERT_EQ(messageEventSizeFinal, builder.messageEventSize());
+    ASSERT_EQ(messageCountFinal, builder.messageCount());
+
+    // Stage 4: build MessageEvent
+    // MessageEventBuilder switches from WRITE mode to READ:
+    {
+        const bmqa::MessageEvent& event = builder.messageEvent();
+        // Avoid holding reference to the 'event' for too long
+    }
+
+    // We had non-packed Message before, make sure it was not added to the blob
+    ASSERT_EQ(messageEventSizeFinal, builder.messageEventSize());
+    ASSERT_EQ(messageCountFinal, builder.messageCount());
+
+    // Stage 5: reset MessageEventBuilder
+    // MessageEventBuilder switches from READ mode to WRITE:
+    builder.reset();
+
+    // Since we resetted the MessageEventBuilder, the currently built message
+    // event is smaller than the populated one from the previous steps
+    ASSERT_LT(builder.messageEventSize(), messageEventSizeFinal);
+    ASSERT_EQ(0, builder.messageCount());
+}
+
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
@@ -50,6 +169,7 @@ int main(int argc, char* argv[])
     switch (_testCase) {
     case 0:
     case 1: test1_breathingTest(); break;
+    case 2: test2_testMessageEventSizeCount(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
         s_testStatus = -1;

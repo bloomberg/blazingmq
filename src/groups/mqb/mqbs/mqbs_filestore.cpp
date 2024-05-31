@@ -96,7 +96,7 @@ typedef bsl::pair<unsigned int, bsls::Types::Uint64> MessageByteCounter;
 /// Soft limit, or threshold, percentage of space associated with
 /// outstanding data in a partition, used as a threshold to generate an
 /// alarm
-const bsls::Types::Uint64 k_SPACE_USED_PERCENT_SOFT = 40;
+const bsls::Types::Uint64 k_SPACE_USED_PERCENT_SOFT = 60;
 
 /// Interval, in seconds, to perform a check of available space in the
 /// partition.
@@ -209,11 +209,6 @@ bool compareByByte(const bsl::pair<mqbu::StorageKey, MessageByteCounter>& lhs,
                    const bsl::pair<mqbu::StorageKey, MessageByteCounter>& rhs)
 {
     return lhs.second.second > rhs.second.second;
-}
-
-void noOp()
-{
-    // NOTHING
 }
 
 }  // close unnamed namespace
@@ -3311,7 +3306,7 @@ void FileStore::gcDispatched(int partitionId, FileSet* fileSet)
     // file set.
     d_fileSets.erase(it);
 
-    int rc = d_miscWorkThreadPool_p->enqueueJob(
+    BSLA_MAYBE_UNUSED const int rc = d_miscWorkThreadPool_p->enqueueJob(
         bdlf::BindUtil::bind(&FileStore::gcWorkerDispatched, this, fileSetSp));
     BSLS_ASSERT_SAFE(rc == 0);
 }
@@ -7125,8 +7120,8 @@ void FileStore::flush()
     // next k_GC_MESSAGES_INTERVAL_SECONDS.
 
     if (haveMore || haveMoreHistory) {
-        // Re-enable 'flush' by empty callback
-        dispatcher()->execute(&noOp,
+        // Explicitly schedule 'flush()' instead of relying on idleness
+        dispatcher()->execute(bdlf::BindUtil::bind(&FileStore::flush, this),
                               this,
                               mqbi::DispatcherEventType::e_CALLBACK);
     }
@@ -7213,6 +7208,10 @@ void FileStore::getStorages(StorageList*          storages,
 
 void FileStore::loadSummary(mqbcmd::FileStore* fileStore) const
 {
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(fileStore);
+
+    fileStore->partitionId() = d_config.partitionId();
     if (!isOpen()) {
         fileStore->state() = mqbcmd::FileStoreState::CLOSED;
         return;  // RETURN
@@ -7223,8 +7222,7 @@ void FileStore::loadSummary(mqbcmd::FileStore* fileStore) const
         return;  // RETURN
     }
 
-    fileStore->partitionId() = d_config.partitionId();
-    fileStore->state()       = mqbcmd::FileStoreState::OPEN;
+    fileStore->state() = mqbcmd::FileStoreState::OPEN;
     FileStorePrintUtil::loadSummary(&fileStore->summary(),
                                     d_primaryNode_p,
                                     d_primaryLeaseId,

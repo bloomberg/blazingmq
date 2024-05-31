@@ -114,11 +114,12 @@ struct QueueEngineUtil {
                     mqbi::QueueHandleRequesterContext());
 
     /// Report to the specified `domainStats` the queue-time metric of the
-    /// message having specified `attributes`.  Note that this method must
-    /// be invoked only at the primary node.
+    /// message having specified `attributes` and `appId`. Note that this
+    /// method must be invoked only at the primary node.
     static void
     reportQueueTimeMetric(mqbstat::QueueStatsDomain*            domainStats,
-                          const mqbi::StorageMessageAttributes& attributes);
+                          const mqbi::StorageMessageAttributes& attributes,
+                          const bsl::string&                    appId);
 
     /// Return true is the specified `queue` is of the broadcast type.
     static bool isBroadcastMode(const mqbi::Queue* queue);
@@ -141,7 +142,8 @@ struct QueueEngineUtil {
     static int
     dumpMessageInTempfile(bsl::string*                   filepath,
                           const bdlbb::Blob&             payload,
-                          const bmqp::MessageProperties* properties);
+                          const bmqp::MessageProperties* properties,
+                          bdlbb::BlobBufferFactory*      blobBufferFactory);
 
     /// Dump message contents in temporary file after message has been fully
     /// rejected (with RDA reaching zero). Raise an alarm with the message
@@ -540,10 +542,11 @@ struct QueueEngineUtil_AppsDeliveryContext {
                                bmqp::Protocol::SubQueueInfosArray>
         Consumers;
 
-    Consumers              d_consumers;
-    bool                   d_doRepeat;
-    mqbi::StorageIterator* d_currentMessage;
-    mqbi::Queue*           d_queue_p;
+    Consumers                      d_consumers;
+    bool                           d_doRepeat;
+    mqbi::StorageIterator*         d_currentMessage;
+    mqbi::Queue*                   d_queue_p;
+    bsl::vector<bslstl::StringRef> d_activeAppIds;
 
     QueueEngineUtil_AppsDeliveryContext(mqbi::Queue*      queue,
                                         bslma::Allocator* allocator);

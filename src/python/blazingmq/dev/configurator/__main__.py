@@ -1,7 +1,7 @@
 """
 Create a configurator for running a cluster.
 
-BMQ configurator generator
+BlazingMQ configurator generator
 
 usage: python-m blazingmq.dev.configurator
             [-h] [--log-level LEVELS]

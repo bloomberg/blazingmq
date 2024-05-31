@@ -49,7 +49,7 @@ namespace BloombergLP {
 namespace mqbc {
 
 namespace {
-const int k_GC_MESSAGES_INTERVAL_SECONDS = 60;
+const int k_GC_MESSAGES_INTERVAL_SECONDS = 30;
 }  // close unnamed namespace
 
 // ----------------------------
@@ -1346,7 +1346,8 @@ void StorageManager::do_storePrimarySeq(const PartitionFSMArgsSp& args)
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));
 
-    PartitionInfo& partitionInfo = d_partitionInfoVec[partitionId];
+    BSLA_MAYBE_UNUSED const PartitionInfo& partitionInfo =
+        d_partitionInfoVec[partitionId];
     BSLS_ASSERT_SAFE(partitionInfo.primary() == eventData.source());
     BSLS_ASSERT_SAFE(d_partitionFSMVec[partitionId]->isSelfReplica());
 
@@ -4094,10 +4095,11 @@ void StorageManager::processReceiptEvent(
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_dispatcher_p->inDispatcherThread(d_cluster_p));
 
-    mwcu::BlobPosition position;
-    const int          rc = mwcu::BlobUtil::findOffsetSafe(&position,
-                                                  *event.blob(),
-                                                  sizeof(bmqp::EventHeader));
+    mwcu::BlobPosition          position;
+    BSLA_MAYBE_UNUSED const int rc = mwcu::BlobUtil::findOffsetSafe(
+        &position,
+        *event.blob(),
+        sizeof(bmqp::EventHeader));
     BSLS_ASSERT_SAFE(rc == 0);
 
     mwcu::BlobObjectProxy<bmqp::ReplicationReceipt> receipt(

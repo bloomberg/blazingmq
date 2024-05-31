@@ -246,7 +246,7 @@ StatChannelFactoryUtil::createStatContext(const bsl::string& name,
 
 void StatChannelFactoryUtil::initializeStatsTable(
     mwcst::Table*                             table,
-    mwcu::BasicTableInfoProvider*             tip,
+    mwcst::BasicTableInfoProvider*            tip,
     mwcst::StatContext*                       rootStatContext,
     const mwcst::StatValue::SnapshotLocation& start,
     const mwcst::StatValue::SnapshotLocation& end)
@@ -289,7 +289,7 @@ void StatChannelFactoryUtil::initializeStatsTable(
     struct local {
         static bool filterDirect(const mwcst::TableRecords::Record& record)
         {
-            return record.type() == mwcst::StatContext::DMCST_TOTAL_VALUE;
+            return record.type() == mwcst::StatContext::e_TOTAL_VALUE;
         }
     };
 
@@ -330,12 +330,12 @@ StatChannelFactoryUtil::getValue(const mwcst::StatContext& context,
 
 #define STAT_SINGLE(OPERATION, STAT)                                          \
     mwcst::StatUtil::OPERATION(                                               \
-        context.value(mwcst::StatContext::DMCST_TOTAL_VALUE, STAT),           \
+        context.value(mwcst::StatContext::e_TOTAL_VALUE, STAT),               \
         latestSnapshot)
 
 #define STAT_RANGE(OPERATION, STAT)                                           \
     mwcst::StatUtil::OPERATION(                                               \
-        context.value(mwcst::StatContext::DMCST_TOTAL_VALUE, STAT),           \
+        context.value(mwcst::StatContext::e_TOTAL_VALUE, STAT),               \
         latestSnapshot,                                                       \
         oldestSnapshot)
 
