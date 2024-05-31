@@ -78,6 +78,8 @@ InMemoryStorage::InMemoryStorage(const bmqt::Uri&        uri,
 , d_nullAppKey()
 , d_isEmpty(1)
 , d_defaultRdaInfo(defaultRdaInfo)
+, d_currentlyAutoConfirming()
+, d_numAutoConfirms(0)
 {
     BSLS_ASSERT_SAFE(0 <= d_ttlSeconds);  // Broadcast queues can use 0 for TTL
 }
