@@ -565,12 +565,13 @@ class QueueHandle {
     /// for more information).
     ///
     /// THREAD: This method is called from the Queue's dispatcher thread.
-    virtual void deliverMessage(
-        const bsl::shared_ptr<bdlbb::Blob>&       message,
-        const bmqt::MessageGUID&                  msgGUID,
-        const StorageMessageAttributes&           attributes,
-        const bmqp::Protocol::MsgGroupId&         msgGroupId,
-        const bmqp::Protocol::SubQueueInfosArray& subscriptions) = 0;
+    virtual void
+    deliverMessage(const bsl::shared_ptr<bdlbb::Blob>&       message,
+                   const bmqt::MessageGUID&                  msgGUID,
+                   const StorageMessageAttributes&           attributes,
+                   const bmqp::Protocol::MsgGroupId&         msgGroupId,
+                   const bmqp::Protocol::SubQueueInfosArray& subscriptions,
+                   bool                                      isOutOfOrder) = 0;
 
     /// Called by the `Queue` to deliver the specified `message` with the
     /// specified `msgGUID`, `attributes` and `msgGroupId` for the specified
@@ -811,7 +812,8 @@ class Queue : public DispatcherClient {
         const bsl::shared_ptr<bdlbb::Blob>&  appData,
         const bsl::shared_ptr<bdlbb::Blob>&  options,
         const bmqp::MessagePropertiesInfo&   messagePropertiesInfo,
-        bmqt::CompressionAlgorithmType::Enum compressionAlgorithmType) = 0;
+        bmqt::CompressionAlgorithmType::Enum compressionAlgorithmType,
+        bool                                 isOutOfOrder) = 0;
 
     /// Confirm the message with the specified `msgGUID` for the specified
     /// `upstreamSubQueueId` stream of the queue on behalf of the client

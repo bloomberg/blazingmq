@@ -248,13 +248,14 @@ class QueueHandle : public mqbi::QueueHandle {
     /// subQueueId)' for more information).
     ///
     /// THREAD: This method is called from the Queue's dispatcher thread.
-    void deliverMessageImpl(
-        const bsl::shared_ptr<bdlbb::Blob>&       message,
-        const int                                 msgSize,
-        const bmqt::MessageGUID&                  msgGUID,
-        const mqbi::StorageMessageAttributes&     attributes,
-        const bmqp::Protocol::MsgGroupId&         msgGroupId,
-        const bmqp::Protocol::SubQueueInfosArray& subQueueInfos);
+    void
+    deliverMessageImpl(const bsl::shared_ptr<bdlbb::Blob>&       message,
+                       const int                                 msgSize,
+                       const bmqt::MessageGUID&                  msgGUID,
+                       const mqbi::StorageMessageAttributes&     attributes,
+                       const bmqp::Protocol::MsgGroupId&         msgGroupId,
+                       const bmqp::Protocol::SubQueueInfosArray& subQueueInfos,
+                       bool                                      isOutOfOrder);
 
     void makeSubStream(const bsl::string& appId,
                        unsigned int       downstreamSubQueueId,
@@ -378,8 +379,8 @@ class QueueHandle : public mqbi::QueueHandle {
                    const bmqt::MessageGUID&                  msgGUID,
                    const mqbi::StorageMessageAttributes&     attributes,
                    const bmqp::Protocol::MsgGroupId&         msgGroupId,
-                   const bmqp::Protocol::SubQueueInfosArray& subscriptions)
-        BSLS_KEYWORD_OVERRIDE;
+                   const bmqp::Protocol::SubQueueInfosArray& subscriptions,
+                   bool isOutOfOrder) BSLS_KEYWORD_OVERRIDE;
 
     /// Called by the `Queue` to deliver the specified `message` with the
     /// specified `msgGUID`, `attributes` and `msgGroupId` for the specified

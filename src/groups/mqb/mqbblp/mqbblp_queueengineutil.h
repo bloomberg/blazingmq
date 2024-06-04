@@ -438,7 +438,8 @@ struct QueueEngineUtil_AppState {
     /// round-robin manner, respecting their `readCount`.  Behavior is
     /// undefined unless `appData` is non-null.
     Routers::Result tryDeliverOneMessage(bsls::TimeInterval*          delay,
-                                         const mqbi::StorageIterator* message);
+                                         const mqbi::StorageIterator* message,
+                                         bool isOutOfOrder);
 
     /// Broadcast to all available consumers, the message having specified
     /// `appData`, `options`, `guid` and `attributes`.  Behavior is
