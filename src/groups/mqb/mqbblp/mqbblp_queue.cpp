@@ -750,7 +750,7 @@ void Queue::onPushMessage(
     const bsl::shared_ptr<bdlbb::Blob>&  options,
     const bmqp::MessagePropertiesInfo&   messagePropertiesInfo,
     bmqt::CompressionAlgorithmType::Enum compressionAlgorithmType,
-    bool                                 isReplayPush)
+    bool                                 isOutOfOrder)
 {
     // executed by the *CLUSTER* dispatcher thread
 
@@ -775,7 +775,7 @@ void Queue::onPushMessage(
         .setGuid(msgGUID)
         .setMessagePropertiesInfo(messagePropertiesInfo)
         .setCompressionAlgorithmType(compressionAlgorithmType)
-        .setOutOfOrderPush(isReplayPush);
+        .setOutOfOrderPush(isOutOfOrder);
 
     dispatcher()->dispatchEvent(dispEvent, this);
 }

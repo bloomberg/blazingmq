@@ -685,8 +685,8 @@ class DispatcherPushEvent {
     virtual bmqt::CompressionAlgorithmType::Enum
     compressionAlgorithmType() const = 0;
 
-    /// Return 'true' if the associated PUSH message is a Replay (not the first
-    /// delivery attempt) or put-aside (no matching subscription).
+    /// Return 'true' if the associated PUSH message is Out-of-Order - not the
+    /// first delivery attempt or put-aside (no matching subscription).
     virtual bool isOutOfOrderPush() const = 0;
 };
 

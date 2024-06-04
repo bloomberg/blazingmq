@@ -319,7 +319,7 @@ class RemoteQueue {
                 const bsl::shared_ptr<bdlbb::Blob>&  options,
                 const bmqp::MessagePropertiesInfo&   messagePropertiesInfo,
                 bmqt::CompressionAlgorithmType::Enum compressionAlgorithmType,
-                bool                                 isReplayPush);
+                bool                                 isOutOfOrder);
 
     SubStreamContext& subStreamContext(unsigned int upstreamSubQueueId);
 

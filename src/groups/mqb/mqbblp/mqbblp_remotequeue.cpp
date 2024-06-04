@@ -338,7 +338,7 @@ void RemoteQueue::pushMessage(
     const bsl::shared_ptr<bdlbb::Blob>&  options,
     const bmqp::MessagePropertiesInfo&   messagePropertiesInfo,
     bmqt::CompressionAlgorithmType::Enum compressionAlgorithmType,
-    bool                                 isReplayPush)
+    bool                                 isOutOfOrder)
 {
     // executed by the *QUEUE DISPATCHER* thread
 

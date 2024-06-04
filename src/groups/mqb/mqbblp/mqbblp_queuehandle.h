@@ -241,11 +241,11 @@ class QueueHandle : public mqbi::QueueHandle {
     void clearClientDispatched(bool hasLostClient);
 
     /// Called by the `Queue` to deliver the specified `message` with the
-    /// specified `msgSize`, `msgGUID`, `attributes` and `msgGroupId` for
-    /// the specified `subQueueInfos` streams of the queue.  The behavior is
-    /// undefined unless the queueHandle can send a message at this time for
-    /// all of the `subQueueInfos` streams (see 'canDeliver(unsigned int
-    /// subQueueId)' for more information).
+    /// specified `msgSize`, `msgGUID`, `attributes`, `isOutOfOrder`, and
+    /// `msgGroupId` for the specified `subQueueInfos` streams of the queue.
+    /// The behavior is undefined unless the queueHandle can send a message at
+    /// this time for all of the `subQueueInfos` streams (see
+    /// 'canDeliver(unsigned int subQueueId)' for more information).
     ///
     /// THREAD: This method is called from the Queue's dispatcher thread.
     void
@@ -367,11 +367,11 @@ class QueueHandle : public mqbi::QueueHandle {
     // optimizations.
 
     /// Called by the `Queue` to deliver the specified `message` with the
-    /// specified `msgGUID`, `attributes` and `msgGroupId` for the specified
-    /// `subscriptions` of the queue.  The behavior is undefined unless the
-    /// queueHandle can send a message at this time for each of the
-    /// corresponding subStreams(see `canDeliver(unsigned int subQueueId)`
-    /// for more information).
+    /// specified `msgSize`, `msgGUID`, `attributes`, `isOutOfOrder`, and
+    /// `msgGroupId` for the specified `subQueueInfos` streams of the queue.
+    /// The behavior is undefined unless the queueHandle can send a message at
+    /// this time for all of the `subQueueInfos` streams (see
+    /// 'canDeliver(unsigned int subQueueId)' for more information).
     ///
     /// THREAD: This method is called from the Queue's dispatcher thread.
     void
