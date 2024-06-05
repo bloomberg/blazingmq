@@ -9,8 +9,6 @@ endif()
 add_library(bmq)
 set_property(TARGET bmq PROPERTY POSITION_INDEPENDENT_CODE ON)
 
-target_compile_definitions(bmq PRIVATE "MWC_INTERNAL_USAGE")
-
 if("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU|(Apple)?Clang")
   target_compile_options(bmq PRIVATE "-msse4.2")
 endif()
