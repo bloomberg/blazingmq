@@ -17,18 +17,6 @@
 #ifndef INCLUDED_MWCSCM_VERSION
 #define INCLUDED_MWCSCM_VERSION
 
-#ifndef MWC_INTERNAL_USAGE
-#error "MWC is a private library and its usage is restricted !"
-// The 'mwc' library is an internal only library used by the middleware team,
-// and it's usage is restricted and limited.  Please contact the middleware
-// team if you are seeing this error.
-//
-// Do *NOT* ever define 'MWC_PRIVATE_USAGE' yourself.
-//
-// NOTE: Since 'mwcscm_version.h' is included by all headers of the 'mwc'
-//       library, we only need to put that validation check here.
-#endif
-
 //@PURPOSE: Provide source control management (versioning) information.
 //
 //@CLASSES:
