@@ -178,8 +178,6 @@ class InMemoryStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
 
     mqbconfm::Storage d_config;
 
-    mqbconfm::Limits d_limits;
-
     mqbu::CapacityMeter d_capacityMeter;
 
     ItemsMap d_items;

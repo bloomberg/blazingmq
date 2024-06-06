@@ -762,7 +762,7 @@ int MessageProperties::streamIn(const bdlbb::Blob& blob,
     int rc = streamInHeader(blob);
 
     if (rc != rc_SUCCESS) {
-        return rc;
+        return rc;  // RETURN
     }
 
     if (blob.length() < d_dataOffset) {
@@ -771,7 +771,7 @@ int MessageProperties::streamIn(const bdlbb::Blob& blob,
 
     rc = loadProperties(true, isNewStyleProperties);
     if (rc != rc_SUCCESS) {
-        return rc;
+        return rc;  // RETURN
     }
 
     cleaner.release();
