@@ -795,7 +795,8 @@ void QueueEngineUtil_AppsDeliveryContext::deliverMessage()
                                           d_currentMessage->guid(),
                                           attributes,
                                           "",  // msgGroupId,
-                                          it->second);
+                                          it->second,
+                                          false);
             }
         }
 
@@ -900,7 +901,7 @@ QueueEngineUtil_AppState::deliverMessages(bsls::TimeInterval*     delay,
             broadcastOneMessage(storageIter_p);
         }
         else {
-            result = tryDeliverOneMessage(delay, storageIter_p);
+            result = tryDeliverOneMessage(delay, storageIter_p, false);
 
             if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
                     result == Routers::e_NO_CAPACITY ||
@@ -932,7 +933,8 @@ QueueEngineUtil_AppState::deliverMessages(bsls::TimeInterval*     delay,
 
 Routers::Result QueueEngineUtil_AppState::tryDeliverOneMessage(
     bsls::TimeInterval*          delay,
-    const mqbi::StorageIterator* message)
+    const mqbi::StorageIterator* message,
+    bool                         isOutOfOrder)
 {
     // In order to try and deliver a message, we need to:
     //      1. Determine if a message has a delay based on its rdaInfo.
@@ -1003,7 +1005,8 @@ Routers::Result QueueEngineUtil_AppState::tryDeliverOneMessage(
                                      message->guid(),
                                      message->attributes(),
                                      "",  // msgGroupId
-                                     subQueueInfos);
+                                     subQueueInfos,
+                                     isOutOfOrder);
 
     visitor.d_consumer->d_timeLastMessageSent = now;
     visitor.d_consumer->d_lastSentMessage     = message->guid();
@@ -1118,7 +1121,9 @@ QueueEngineUtil_AppState::processDeliveryList(bsls::TimeInterval*     delay,
         // Instead, should communicate them upstream either in CloseQueue or in
         // Rejects.
 
-        Routers::Result result = tryDeliverOneMessage(delay, message.get());
+        Routers::Result result = tryDeliverOneMessage(delay,
+                                                      message.get(),
+                                                      true);
 
         if (result == Routers::e_NO_CAPACITY_ALL) {
             break;  // BREAK

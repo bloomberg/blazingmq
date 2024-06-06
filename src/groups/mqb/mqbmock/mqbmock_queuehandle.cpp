@@ -282,7 +282,8 @@ void QueueHandle::deliverMessage(
     const bmqt::MessageGUID&            msgGUID,
     BSLS_ANNOTATION_UNUSED const mqbi::StorageMessageAttributes& attributes,
     BSLS_ANNOTATION_UNUSED const bmqp::Protocol::MsgGroupId& msgGroupId,
-    const bmqp::Protocol::SubQueueInfosArray&                subscriptions)
+    const bmqp::Protocol::SubQueueInfosArray&                subscriptions,
+    BSLS_ANNOTATION_UNUSED bool                              isOutOfOrder)
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(
@@ -317,7 +318,12 @@ void QueueHandle::deliverMessageNoTrack(
     const bmqp::Protocol::SubQueueInfosArray& subscriptions)
 {
     // Delegate, from a simplified mock perspective.
-    deliverMessage(message, msgGUID, attributes, msgGroupId, subscriptions);
+    deliverMessage(message,
+                   msgGUID,
+                   attributes,
+                   msgGroupId,
+                   subscriptions,
+                   false);
 }
 
 void QueueHandle::configure(

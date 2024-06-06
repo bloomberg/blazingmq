@@ -241,20 +241,21 @@ class QueueHandle : public mqbi::QueueHandle {
     void clearClientDispatched(bool hasLostClient);
 
     /// Called by the `Queue` to deliver the specified `message` with the
-    /// specified `msgSize`, `msgGUID`, `attributes` and `msgGroupId` for
-    /// the specified `subQueueInfos` streams of the queue.  The behavior is
-    /// undefined unless the queueHandle can send a message at this time for
-    /// all of the `subQueueInfos` streams (see 'canDeliver(unsigned int
-    /// subQueueId)' for more information).
+    /// specified `msgSize`, `msgGUID`, `attributes`, `isOutOfOrder`, and
+    /// `msgGroupId` for the specified `subQueueInfos` streams of the queue.
+    /// The behavior is undefined unless the queueHandle can send a message at
+    /// this time for all of the `subQueueInfos` streams (see
+    /// 'canDeliver(unsigned int subQueueId)' for more information).
     ///
     /// THREAD: This method is called from the Queue's dispatcher thread.
-    void deliverMessageImpl(
-        const bsl::shared_ptr<bdlbb::Blob>&       message,
-        const int                                 msgSize,
-        const bmqt::MessageGUID&                  msgGUID,
-        const mqbi::StorageMessageAttributes&     attributes,
-        const bmqp::Protocol::MsgGroupId&         msgGroupId,
-        const bmqp::Protocol::SubQueueInfosArray& subQueueInfos);
+    void
+    deliverMessageImpl(const bsl::shared_ptr<bdlbb::Blob>&       message,
+                       const int                                 msgSize,
+                       const bmqt::MessageGUID&                  msgGUID,
+                       const mqbi::StorageMessageAttributes&     attributes,
+                       const bmqp::Protocol::MsgGroupId&         msgGroupId,
+                       const bmqp::Protocol::SubQueueInfosArray& subQueueInfos,
+                       bool                                      isOutOfOrder);
 
     void makeSubStream(const bsl::string& appId,
                        unsigned int       downstreamSubQueueId,
@@ -366,11 +367,11 @@ class QueueHandle : public mqbi::QueueHandle {
     // optimizations.
 
     /// Called by the `Queue` to deliver the specified `message` with the
-    /// specified `msgGUID`, `attributes` and `msgGroupId` for the specified
-    /// `subscriptions` of the queue.  The behavior is undefined unless the
-    /// queueHandle can send a message at this time for each of the
-    /// corresponding subStreams(see `canDeliver(unsigned int subQueueId)`
-    /// for more information).
+    /// specified `msgSize`, `msgGUID`, `attributes`, `isOutOfOrder`, and
+    /// `msgGroupId` for the specified `subQueueInfos` streams of the queue.
+    /// The behavior is undefined unless the queueHandle can send a message at
+    /// this time for all of the `subQueueInfos` streams (see
+    /// 'canDeliver(unsigned int subQueueId)' for more information).
     ///
     /// THREAD: This method is called from the Queue's dispatcher thread.
     void
@@ -378,8 +379,8 @@ class QueueHandle : public mqbi::QueueHandle {
                    const bmqt::MessageGUID&                  msgGUID,
                    const mqbi::StorageMessageAttributes&     attributes,
                    const bmqp::Protocol::MsgGroupId&         msgGroupId,
-                   const bmqp::Protocol::SubQueueInfosArray& subscriptions)
-        BSLS_KEYWORD_OVERRIDE;
+                   const bmqp::Protocol::SubQueueInfosArray& subscriptions,
+                   bool isOutOfOrder) BSLS_KEYWORD_OVERRIDE;
 
     /// Called by the `Queue` to deliver the specified `message` with the
     /// specified `msgGUID`, `attributes` and `msgGroupId` for the specified
