@@ -290,9 +290,9 @@ static void test2_loadMessageFromFileTest()
         // Check payload
         ASSERT_EQ_D(test.d_line, payload.str(), test.d_expectedPayload);
         // Check properties (deserialize into properties instance)
-        bmqa::MessageProperties        messageProperties(s_allocator_p);
         bdlbb::PooledBlobBufferFactory bufferFactory(128, s_allocator_p);
         bdlbb::Blob                    blob(&bufferFactory, s_allocator_p);
+        bmqa::MessageProperties        messageProperties(s_allocator_p);
         bdlbb::BlobUtil::append(&blob,
                                 properties.str().c_str(),
                                 static_cast<int>(properties.str().size()));
