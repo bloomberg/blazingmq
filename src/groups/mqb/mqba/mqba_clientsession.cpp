@@ -1947,10 +1947,18 @@ void ClientSession::onPushEvent(const mqbi::DispatcherPushEvent& event)
     }
 
     if (convertingRc == 0) {
+        int flags = 0;
+
+        if (event.isOutOfOrderPush()) {
+            bmqp::PushHeaderFlagUtil::setFlag(
+                &flags,
+                bmqp::PushHeaderFlags::e_OUT_OF_ORDER);
+        }
+
         d_state.d_pushBuilder.packMessage(*blob,
                                           event.queueId(),
                                           event.guid(),
-                                          0,
+                                          flags,
                                           cat,
                                           pushProperties);
 

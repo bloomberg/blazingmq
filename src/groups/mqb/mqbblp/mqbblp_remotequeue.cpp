@@ -337,7 +337,8 @@ void RemoteQueue::pushMessage(
     const bsl::shared_ptr<bdlbb::Blob>&  appData,
     const bsl::shared_ptr<bdlbb::Blob>&  options,
     const bmqp::MessagePropertiesInfo&   messagePropertiesInfo,
-    bmqt::CompressionAlgorithmType::Enum compressionAlgorithmType)
+    bmqt::CompressionAlgorithmType::Enum compressionAlgorithmType,
+    bool                                 isOutOfOrder)
 {
     // executed by the *QUEUE DISPATCHER* thread
 
@@ -823,7 +824,8 @@ void RemoteQueue::onDispatcherEvent(const mqbi::DispatcherEvent& event)
                     realEvent->blob(),
                     realEvent->options(),
                     realEvent->messagePropertiesInfo(),
-                    realEvent->compressionAlgorithmType());
+                    realEvent->compressionAlgorithmType(),
+                    realEvent->isOutOfOrderPush());
     } break;
     case mqbi::DispatcherEventType::e_PUT: {
         const mqbi::DispatcherPutEvent* realEvent = event.asPutEvent();

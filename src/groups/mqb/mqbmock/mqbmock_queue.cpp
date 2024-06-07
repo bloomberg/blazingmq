@@ -258,7 +258,8 @@ void Queue::onPushMessage(
     BSLS_ANNOTATION_UNUSED const bmqp::MessagePropertiesInfo&
                                  hasMessageProperties,
     BSLS_ANNOTATION_UNUSED       bmqt::CompressionAlgorithmType::Enum
-                                 compressionAlgorithmType)
+                                 compressionAlgorithmType,
+    BSLS_ANNOTATION_UNUSED bool  isOutOfOrder)
 {
     // NOTHING
 }

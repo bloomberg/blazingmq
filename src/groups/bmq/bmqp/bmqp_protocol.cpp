@@ -617,7 +617,7 @@ const char* PushHeaderFlags::toAscii(PushHeaderFlags::Enum value)
     switch (value) {
         CASE(IMPLICIT_PAYLOAD)
         CASE(MESSAGE_PROPERTIES)
-        CASE(UNUSED3)
+        CASE(OUT_OF_ORDER)
         CASE(UNUSED4)
     default: return "(* UNKNOWN *)";
     }
@@ -638,7 +638,7 @@ bool PushHeaderFlags::fromAscii(PushHeaderFlags::Enum*   out,
 
     CHECKVALUE(IMPLICIT_PAYLOAD)
     CHECKVALUE(MESSAGE_PROPERTIES)
-    CHECKVALUE(UNUSED3)
+    CHECKVALUE(OUT_OF_ORDER)
     CHECKVALUE(UNUSED4)
 
     // Invalid string
@@ -653,8 +653,7 @@ bool PushHeaderFlags::fromAscii(PushHeaderFlags::Enum*   out,
 
 bool PushHeaderFlagUtil::isValid(bsl::ostream& errorDescription, int flags)
 {
-    if (isSet(flags, PushHeaderFlags::e_UNUSED3) ||
-        isSet(flags, PushHeaderFlags::e_UNUSED4)) {
+    if (isSet(flags, PushHeaderFlags::e_UNUSED4)) {
         errorDescription << "UNUSED flags are invalid.";
         return false;  // RETURN
     }
@@ -675,7 +674,7 @@ bsl::ostream& PushHeaderFlagUtil::prettyPrint(bsl::ostream& stream, int flags)
 
     CHECKVALUE(IMPLICIT_PAYLOAD)
     CHECKVALUE(MESSAGE_PROPERTIES)
-    CHECKVALUE(UNUSED3)
+    CHECKVALUE(OUT_OF_ORDER)
     CHECKVALUE(UNUSED4)
 
     return stream;

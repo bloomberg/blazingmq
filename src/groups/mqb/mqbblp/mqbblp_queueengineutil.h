@@ -430,15 +430,16 @@ struct QueueEngineUtil_AppState {
                            mqbi::Storage&          storage,
                            const bsl::string&      appId);
 
-    /// Try to deliver to the next available consumer message having
-    /// specified `appData`, `options`, `guid`, `attributes` and `rdaInfo`.
-    /// Return true if the message was successfully delivered, or false if
-    /// all consumers were busy and no one could handle the message.  The
-    /// algorithm will try to deliver to highest priority consumers in a
-    /// round-robin manner, respecting their `readCount`.  Behavior is
-    /// undefined unless `appData` is non-null.
+    /// Try to deliver to the next available consumer the specified 'message'.
+    /// If poisonous message handling requires a delay in the delivery, iterate
+    /// all highest priority consumers, load the lowest delay into the
+    /// specified 'delay' and return 'e_DELAY.  If no delay is required, try to
+    /// send the 'message' to a highest priority consumer with matching
+    /// subscription.  Return corresponding result: 'e_SUCCESS',
+    /// 'e_NO_SUBSCRIPTION', 'e_NO_CAPACITY'. or 'e_NO_CAPACITY_ALL'.
     Routers::Result tryDeliverOneMessage(bsls::TimeInterval*          delay,
-                                         const mqbi::StorageIterator* message);
+                                         const mqbi::StorageIterator* message,
+                                         bool isOutOfOrder);
 
     /// Broadcast to all available consumers, the message having specified
     /// `appData`, `options`, `guid` and `attributes`.  Behavior is
