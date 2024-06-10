@@ -113,14 +113,6 @@ struct QueueEngineUtil {
                 const mqbi::QueueHandleRequesterContext&   clientContext =
                     mqbi::QueueHandleRequesterContext());
 
-    /// Report to the specified `domainStats` the queue-time metric of the
-    /// message having specified `attributes` and `appId`. Note that this
-    /// method must be invoked only at the primary node.
-    static void
-    reportQueueTimeMetric(mqbstat::QueueStatsDomain*            domainStats,
-                          const mqbi::StorageMessageAttributes& attributes,
-                          const bsl::string&                    appId);
-
     /// Return true is the specified `queue` is of the broadcast type.
     static bool isBroadcastMode(const mqbi::Queue* queue);
 
