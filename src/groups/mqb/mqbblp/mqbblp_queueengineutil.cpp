@@ -93,6 +93,15 @@ void releaseHandleAndInvoke(bdlmt::EventSchedulerEventHandle* handle,
     }
 }
 
+// Return delivered message's queue-time from the specified 'attributes'
+bsls::Types::Int64
+getMessageQueueTime(const mqbi::StorageMessageAttributes& attributes)
+{
+    bsls::Types::Int64 timeDelta;
+    mqbs::StorageUtil::loadArrivalTimeDelta(&timeDelta, attributes);
+    return timeDelta;
+}
+
 /// Callback to use in `QueueEngineUtil_AppState::tryDeliverOneMessage`
 struct Visitor {
     mqbi::QueueHandle* d_handle;
@@ -216,18 +225,6 @@ int QueueEngineUtil::validateUri(
     }
 
     return 0;
-}
-
-void QueueEngineUtil::reportQueueTimeMetric(
-    mqbstat::QueueStatsDomain*            domainStats,
-    const mqbi::StorageMessageAttributes& attributes,
-    const bsl::string&                    appId)
-{
-    // Report delivered message's queue-time.
-    bsls::Types::Int64 timeDelta;
-    mqbs::StorageUtil::loadArrivalTimeDelta(&timeDelta, attributes);
-
-    domainStats->reportQueueTime(timeDelta, appId);
 }
 
 // static
@@ -801,13 +798,22 @@ void QueueEngineUtil_AppsDeliveryContext::deliverMessage()
         }
 
         if (bmqp::QueueId::k_PRIMARY_QUEUE_ID == d_queue_p->id()) {
-            // Report 'queue time' metric for all active appIds
+            const bsls::Types::Int64 timeDelta = getMessageQueueTime(
+                attributes);
+
+            // First report 'queue time' metric for the entire queue
+            d_queue_p->stats()->onEvent(
+                mqbstat::QueueStatsDomain::EventType::e_QUEUE_TIME,
+                timeDelta);
+
+            // Then report 'queue time' metric for all active appIds
             bsl::vector<bslstl::StringRef>::const_iterator it =
                 d_activeAppIds.begin();
             for (; it != d_activeAppIds.cend(); ++it) {
-                QueueEngineUtil::reportQueueTimeMetric(d_queue_p->stats(),
-                                                       attributes,
-                                                       *it  // appId
+                d_queue_p->stats()->onEvent(
+                    mqbstat::QueueStatsDomain::EventType::e_QUEUE_TIME,
+                    timeDelta,
+                    *it  // appId
                 );
             }
         }
@@ -918,9 +924,18 @@ QueueEngineUtil_AppState::deliverMessages(bsls::TimeInterval*     delay,
 
         if (result == Routers::e_SUCCESS) {
             if (bmqp::QueueId::k_PRIMARY_QUEUE_ID == d_queue_p->id()) {
-                QueueEngineUtil::reportQueueTimeMetric(
-                    d_queue_p->stats(),
-                    storageIter_p->attributes(),
+                const bsls::Types::Int64 timeDelta = getMessageQueueTime(
+                    storageIter_p->attributes());
+
+                // First report 'queue time' metric for the entire queue
+                d_queue_p->stats()->onEvent(
+                    mqbstat::QueueStatsDomain::EventType::e_QUEUE_TIME,
+                    timeDelta);
+
+                // Then report 'queue time' metric for appId
+                d_queue_p->stats()->onEvent(
+                    mqbstat::QueueStatsDomain::EventType::e_QUEUE_TIME,
+                    timeDelta,
                     appId);
             }
             ++numMessages;
@@ -1137,9 +1152,19 @@ QueueEngineUtil_AppState::processDeliveryList(bsls::TimeInterval*     delay,
 
             ++numMessages;
             if (bmqp::QueueId::k_PRIMARY_QUEUE_ID == d_queue_p->id()) {
-                QueueEngineUtil::reportQueueTimeMetric(d_queue_p->stats(),
-                                                       message->attributes(),
-                                                       appId);
+                const bsls::Types::Int64 timeDelta = getMessageQueueTime(
+                    message->attributes());
+
+                // First report 'queue time' metric for the entire queue
+                d_queue_p->stats()->onEvent(
+                    mqbstat::QueueStatsDomain::EventType::e_QUEUE_TIME,
+                    timeDelta);
+
+                // Then report 'queue time' metric for appId
+                d_queue_p->stats()->onEvent(
+                    mqbstat::QueueStatsDomain::EventType::e_QUEUE_TIME,
+                    timeDelta,
+                    appId);
             }
         }
         else {

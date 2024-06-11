@@ -229,20 +229,21 @@ class QueueStatsDomain {
     QueueStatsDomain& setWriterCount(int writerCount);
 
     /// Update statistics for the event of the specified `type` and with the
-    /// specified `value` (depending on the `type`, `value` can represent
+    /// specified `value`.  Depending on the `type`, `value` can represent
     /// the number of bytes, a counter, ...
     void onEvent(EventType::Enum type, bsls::Types::Int64 value);
+
+    /// Update statistics for the event of the specified `type` and with the
+    /// specified `value` for the specified `appId`.  Depending on the `type`,
+    /// `value` can represent the number of bytes, a counter, ...
+    void onEvent(EventType::Enum    type,
+                 bsls::Types::Int64 value,
+                 const bsl::string& appId);
 
     /// Force set the stats of the content of the queue to the specified
     /// absolute `messages` and `bytes` values.
     void setQueueContentRaw(bsls::Types::Int64 messages,
                             bsls::Types::Int64 bytes);
-
-    /// Report `confirmation time` metric for the specified `appId`.
-    void reportConfirmTime(bsls::Types::Int64 value, const bsl::string& appId);
-
-    /// Report `queue time` metric for the specified `appId`.
-    void reportQueueTime(bsls::Types::Int64 value, const bsl::string& appId);
 
     /// Update subcontexts in case of domain reconfigure with the given list of
     /// AppIds.
