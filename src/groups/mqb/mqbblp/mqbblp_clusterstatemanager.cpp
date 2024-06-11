@@ -1590,7 +1590,6 @@ void ClusterStateManager::processQueueAssignmentAdvisory(
         const mqbu::StorageKey         queueKey(
             mqbu::StorageKey::BinaryRepresentation(),
             queueInfo.key().data());
-        BSLS_ASSERT_SAFE(queueInfo.appIds().empty());
 
         bool                    queueAlreadyAssigned = false;
         const DomainStatesCIter domCit = d_state_p->domainStates().find(
