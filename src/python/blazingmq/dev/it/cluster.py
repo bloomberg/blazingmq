@@ -457,7 +457,8 @@ class Cluster(contextlib.AbstractContextManager):
 
         client = Client(
             name,
-            broker,
+            ("localhost", broker.config.port),
+            tool_path="bin/bmqtool.tsk",
             cwd=(self.work_dir / broker.name),
             dump_messages=dump_messages,
             options=(self._tool_extra_args or []) + (options or []),

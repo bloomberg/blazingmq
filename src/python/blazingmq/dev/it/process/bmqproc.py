@@ -32,6 +32,9 @@ _LOG_LINE_REGEX = re.compile(
 
 
 class BMQProcess(Process):
+    logging.TRACE = logging.DEBUG - 1
+    logging.addLevelName(logging.TRACE, "TRACE")
+
     def __init__(self, name, *args, **kwargs):
         self._process_log_category = kwargs.pop("process_log_category")
         super().__init__(name, *args, **kwargs)
