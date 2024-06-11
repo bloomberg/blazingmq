@@ -466,7 +466,10 @@ void ClusterProxy::onPushEvent(const mqbi::DispatcherPushEvent& event)
                              appDataSp,
                              optionsSp,
                              logic,
-                             iter.header().compressionAlgorithmType());
+                             iter.header().compressionAlgorithmType(),
+                             bmqp::PushHeaderFlagUtil::isSet(
+                                 iter.header().flags(),
+                                 bmqp::PushHeaderFlags::e_OUT_OF_ORDER));
     }
 }
 

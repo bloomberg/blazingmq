@@ -684,6 +684,10 @@ class DispatcherPushEvent {
     /// event is compressed.
     virtual bmqt::CompressionAlgorithmType::Enum
     compressionAlgorithmType() const = 0;
+
+    /// Return 'true' if the associated PUSH message is Out-of-Order - not the
+    /// first delivery attempt or put-aside (no matching subscription).
+    virtual bool isOutOfOrderPush() const = 0;
 };
 
 // ========================
@@ -997,6 +1001,8 @@ class DispatcherEvent : public DispatcherDispatcherEvent,
 
     bmqt::CompressionAlgorithmType::Enum d_compressionAlgorithmType;
 
+    bool d_isOutOfOrder;
+
     bsls::Types::Uint64 d_genCount;
 
     bsl::shared_ptr<mwcu::AtomicState> d_state;
@@ -1048,6 +1054,7 @@ class DispatcherEvent : public DispatcherDispatcherEvent,
     messagePropertiesInfo() const BSLS_KEYWORD_OVERRIDE;
     bmqt::CompressionAlgorithmType::Enum
                         compressionAlgorithmType() const BSLS_KEYWORD_OVERRIDE;
+    bool                isOutOfOrderPush() const BSLS_KEYWORD_OVERRIDE;
     bsls::Types::Uint64 genCount() const BSLS_KEYWORD_OVERRIDE;
     // Return the value of the corresponding member.  Refer to the various
     // DispatcherEvent view interfaces for more specific information.
@@ -1086,6 +1093,10 @@ class DispatcherEvent : public DispatcherDispatcherEvent,
     /// reference offering modifiable access to this object.
     DispatcherEvent&
     setCompressionAlgorithmType(bmqt::CompressionAlgorithmType::Enum value);
+
+    /// Set the corresponding member to the specified `value` and return a
+    /// reference offering modifiable access to this object.
+    DispatcherEvent& setOutOfOrderPush(bool value);
 
     /// PUT messages carry `genCount`; if there is a mismatch between PUT
     /// `genCount` and current upstream 'genCount, then the PUT message gets
@@ -1299,6 +1310,7 @@ inline DispatcherEvent::DispatcherEvent(bslma::Allocator* allocator)
 , d_msgGroupId(allocator)
 , d_messagePropertiesInfo()
 , d_compressionAlgorithmType(bmqt::CompressionAlgorithmType::e_NONE)
+, d_isOutOfOrder(false)
 , d_genCount(0)
 {
     // NOTHING
@@ -1401,6 +1413,11 @@ inline bmqt::CompressionAlgorithmType::Enum
 DispatcherEvent::compressionAlgorithmType() const
 {
     return d_compressionAlgorithmType;
+}
+
+inline bool DispatcherEvent::isOutOfOrderPush() const
+{
+    return d_isOutOfOrder;
 }
 
 inline bsls::Types::Uint64 DispatcherEvent::genCount() const
@@ -1563,6 +1580,12 @@ inline DispatcherEvent& DispatcherEvent::setCompressionAlgorithmType(
     return *this;
 }
 
+inline DispatcherEvent& DispatcherEvent::setOutOfOrderPush(bool value)
+{
+    d_isOutOfOrder = value;
+    return *this;
+}
+
 inline DispatcherEvent& DispatcherEvent::setGenCount(unsigned int genCount)
 {
     d_genCount = genCount;
@@ -1598,6 +1621,7 @@ inline void DispatcherEvent::reset()
     d_msgGroupId.clear();
     d_messagePropertiesInfo    = bmqp::MessagePropertiesInfo();
     d_compressionAlgorithmType = bmqt::CompressionAlgorithmType::e_NONE;
+    d_isOutOfOrder             = false;
     d_genCount                 = 0;
     d_state.reset();
 }

@@ -31,9 +31,6 @@ function(bmq_add_plugin name)
     # Declare the plugin library.
     add_library(${name} MODULE ${${name}_SOURCE_FILES})
 
-    # Give plugins access to MWC.
-    target_compile_definitions(${name} PRIVATE "MWC_INTERNAL_USAGE")
-
     # Add './' to #include-paths.
     target_include_directories(${name} BEFORE PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR})

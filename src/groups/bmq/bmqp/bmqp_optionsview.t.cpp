@@ -234,7 +234,7 @@ void populateBlob(bdlbb::Blob*                        blob,
     const int               queueId = 123;
     const bmqt::MessageGUID guid;
 
-    ph.setFlags(bmqp::PushHeaderFlags::e_UNUSED3)
+    ph.setFlags(bmqp::PushHeaderFlags::e_OUT_OF_ORDER)
         .setOptionsWords(optionsWords)
         .setHeaderWords(sizeof(bmqp::PushHeader) / bmqp::Protocol::k_WORD_SIZE)
         .setQueueId(queueId)
@@ -334,7 +334,7 @@ void populatePackedBlob(bdlbb::Blob*                     blob,
     const int               queueId = 123;
     const bmqt::MessageGUID guid;
 
-    ph.setFlags(bmqp::PushHeaderFlags::e_UNUSED3)
+    ph.setFlags(bmqp::PushHeaderFlags::e_OUT_OF_ORDER)
         .setOptionsWords(optionsWords)
         .setHeaderWords(sizeof(bmqp::PushHeader) / bmqp::Protocol::k_WORD_SIZE)
         .setQueueId(queueId)

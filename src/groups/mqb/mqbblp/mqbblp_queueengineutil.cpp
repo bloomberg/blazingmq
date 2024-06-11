@@ -93,6 +93,15 @@ void releaseHandleAndInvoke(bdlmt::EventSchedulerEventHandle* handle,
     }
 }
 
+// Return delivered message's queue-time from the specified 'attributes'
+bsls::Types::Int64
+getMessageQueueTime(const mqbi::StorageMessageAttributes& attributes)
+{
+    bsls::Types::Int64 timeDelta;
+    mqbs::StorageUtil::loadArrivalTimeDelta(&timeDelta, attributes);
+    return timeDelta;
+}
+
 /// Callback to use in `QueueEngineUtil_AppState::tryDeliverOneMessage`
 struct Visitor {
     mqbi::QueueHandle* d_handle;
@@ -216,18 +225,6 @@ int QueueEngineUtil::validateUri(
     }
 
     return 0;
-}
-
-void QueueEngineUtil::reportQueueTimeMetric(
-    mqbstat::QueueStatsDomain*            domainStats,
-    const mqbi::StorageMessageAttributes& attributes,
-    const bsl::string&                    appId)
-{
-    // Report delivered message's queue-time.
-    bsls::Types::Int64 timeDelta;
-    mqbs::StorageUtil::loadArrivalTimeDelta(&timeDelta, attributes);
-
-    domainStats->reportQueueTime(timeDelta, appId);
 }
 
 // static
@@ -795,18 +792,28 @@ void QueueEngineUtil_AppsDeliveryContext::deliverMessage()
                                           d_currentMessage->guid(),
                                           attributes,
                                           "",  // msgGroupId,
-                                          it->second);
+                                          it->second,
+                                          false);
             }
         }
 
         if (bmqp::QueueId::k_PRIMARY_QUEUE_ID == d_queue_p->id()) {
-            // Report 'queue time' metric for all active appIds
+            const bsls::Types::Int64 timeDelta = getMessageQueueTime(
+                attributes);
+
+            // First report 'queue time' metric for the entire queue
+            d_queue_p->stats()->onEvent(
+                mqbstat::QueueStatsDomain::EventType::e_QUEUE_TIME,
+                timeDelta);
+
+            // Then report 'queue time' metric for all active appIds
             bsl::vector<bslstl::StringRef>::const_iterator it =
                 d_activeAppIds.begin();
             for (; it != d_activeAppIds.cend(); ++it) {
-                QueueEngineUtil::reportQueueTimeMetric(d_queue_p->stats(),
-                                                       attributes,
-                                                       *it  // appId
+                d_queue_p->stats()->onEvent(
+                    mqbstat::QueueStatsDomain::EventType::e_QUEUE_TIME,
+                    timeDelta,
+                    *it  // appId
                 );
             }
         }
@@ -900,7 +907,7 @@ QueueEngineUtil_AppState::deliverMessages(bsls::TimeInterval*     delay,
             broadcastOneMessage(storageIter_p);
         }
         else {
-            result = tryDeliverOneMessage(delay, storageIter_p);
+            result = tryDeliverOneMessage(delay, storageIter_p, false);
 
             if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
                     result == Routers::e_NO_CAPACITY ||
@@ -917,9 +924,18 @@ QueueEngineUtil_AppState::deliverMessages(bsls::TimeInterval*     delay,
 
         if (result == Routers::e_SUCCESS) {
             if (bmqp::QueueId::k_PRIMARY_QUEUE_ID == d_queue_p->id()) {
-                QueueEngineUtil::reportQueueTimeMetric(
-                    d_queue_p->stats(),
-                    storageIter_p->attributes(),
+                const bsls::Types::Int64 timeDelta = getMessageQueueTime(
+                    storageIter_p->attributes());
+
+                // First report 'queue time' metric for the entire queue
+                d_queue_p->stats()->onEvent(
+                    mqbstat::QueueStatsDomain::EventType::e_QUEUE_TIME,
+                    timeDelta);
+
+                // Then report 'queue time' metric for appId
+                d_queue_p->stats()->onEvent(
+                    mqbstat::QueueStatsDomain::EventType::e_QUEUE_TIME,
+                    timeDelta,
                     appId);
             }
             ++numMessages;
@@ -932,7 +948,8 @@ QueueEngineUtil_AppState::deliverMessages(bsls::TimeInterval*     delay,
 
 Routers::Result QueueEngineUtil_AppState::tryDeliverOneMessage(
     bsls::TimeInterval*          delay,
-    const mqbi::StorageIterator* message)
+    const mqbi::StorageIterator* message,
+    bool                         isOutOfOrder)
 {
     // In order to try and deliver a message, we need to:
     //      1. Determine if a message has a delay based on its rdaInfo.
@@ -1003,7 +1020,8 @@ Routers::Result QueueEngineUtil_AppState::tryDeliverOneMessage(
                                      message->guid(),
                                      message->attributes(),
                                      "",  // msgGroupId
-                                     subQueueInfos);
+                                     subQueueInfos,
+                                     isOutOfOrder);
 
     visitor.d_consumer->d_timeLastMessageSent = now;
     visitor.d_consumer->d_lastSentMessage     = message->guid();
@@ -1118,7 +1136,9 @@ QueueEngineUtil_AppState::processDeliveryList(bsls::TimeInterval*     delay,
         // Instead, should communicate them upstream either in CloseQueue or in
         // Rejects.
 
-        Routers::Result result = tryDeliverOneMessage(delay, message.get());
+        Routers::Result result = tryDeliverOneMessage(delay,
+                                                      message.get(),
+                                                      true);
 
         if (result == Routers::e_NO_CAPACITY_ALL) {
             break;  // BREAK
@@ -1132,9 +1152,19 @@ QueueEngineUtil_AppState::processDeliveryList(bsls::TimeInterval*     delay,
 
             ++numMessages;
             if (bmqp::QueueId::k_PRIMARY_QUEUE_ID == d_queue_p->id()) {
-                QueueEngineUtil::reportQueueTimeMetric(d_queue_p->stats(),
-                                                       message->attributes(),
-                                                       appId);
+                const bsls::Types::Int64 timeDelta = getMessageQueueTime(
+                    message->attributes());
+
+                // First report 'queue time' metric for the entire queue
+                d_queue_p->stats()->onEvent(
+                    mqbstat::QueueStatsDomain::EventType::e_QUEUE_TIME,
+                    timeDelta);
+
+                // Then report 'queue time' metric for appId
+                d_queue_p->stats()->onEvent(
+                    mqbstat::QueueStatsDomain::EventType::e_QUEUE_TIME,
+                    timeDelta,
+                    appId);
             }
         }
         else {
@@ -1234,16 +1264,6 @@ void QueueEngineUtil_AppState::cancelThrottle()
 
 void QueueEngineUtil_AppState::reset()
 {
-    if (!hasConsumers()) {
-        // This is the first consumer, reset the storage to point to the
-        // first message: we do so because when the last consumer went
-        // down, as an optimization, instead of enqueueing all its pending
-        // messages to the redelivery list, we did nothing, relying on this
-        // reset to point back to the beginning of the queue, which should
-        // be the first un-confirmed message.
-        d_storageIter_mp->reset();
-        d_putAsideList.clear();
-    }
     d_priorityCount = 0;
     cancelThrottle();
 
@@ -1285,34 +1305,6 @@ bool QueueEngineUtil_AppState::transferUnconfirmedMessages(
     mqbi::QueueHandle*                  handle,
     const bmqp_ctrlmsg::SubQueueIdInfo& subQueue)
 {
-    if (!hasConsumers()) {
-        // This handle was the last consumer; no need to transfer
-        // the 'unconfirmedMessageGUID' to the redelivery list;
-        // we'll simply reset the storage iterator to the beginning
-        // of the queue at the next consumer coming up.  However,
-        // we need to clear its 'unconfirmedMessageGUID' list: this
-        // is needed because the handle may not be deleted (it may
-        // still have 'write' capacity); and could potentially
-        // later get 'read' capacity again.  Also, we need to clear
-        // the redelivery list because when a reader comes up again
-        // we reset our storage iterator to point to the beginning
-        // of all unconfirmed messages.
-
-        BSLS_ASSERT_SAFE(d_storageIter_mp);
-        BSLS_ASSERT_SAFE(d_priorityCount == 0);
-
-        cancelThrottle();
-
-        d_storageIter_mp->reset();
-
-        handle->transferUnconfirmedMessageGUID(0, subQueue.subId());
-        d_redeliveryList.clear();
-
-        d_putAsideList.clear();
-
-        return false;  // RETURN
-    }                  // else there are other consumers of the given appId
-
     // Redistribute messages: append all pending messages to
     // the redelivery list.
 
@@ -1327,7 +1319,7 @@ bool QueueEngineUtil_AppState::transferUnconfirmedMessages(
     BALL_LOG_INFO << "Lost a reader for queue '" << d_queue_p->description()
                   << "', redelivering " << numMsgs << " message(s) to "
                   << consumers().size() << " remaining readers.";
-    return true;
+    return hasConsumers();
 }
 
 Routers::Result QueueEngineUtil_AppState::selectConsumer(
