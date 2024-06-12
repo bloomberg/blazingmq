@@ -1,12 +1,16 @@
-from blazingmq.dev.it.process.proc import Process
-
-import blazingmq.dev.it.logging
-
-import time
 import logging
 import re
+import time
+
+from blazingmq.dev.it.process.proc import Process
 
 logger = logging.getLogger(__name__)
+
+# BALL has a TRACE logging level, thus Python logging must have it as well,
+# because BALL logging is re-injected in Python logging.
+if not hasattr(logging, "TRACE"):
+    logging.TRACE = logging.DEBUG - 1
+    logging.addLevelName(logging.TRACE, "TRACE")
 
 
 _LOG_FORMAT_DEFINITION = [
@@ -32,9 +36,6 @@ _LOG_LINE_REGEX = re.compile(
 
 
 class BMQProcess(Process):
-    logging.TRACE = logging.DEBUG - 1
-    logging.addLevelName(logging.TRACE, "TRACE")
-
     def __init__(self, name, *args, **kwargs):
         self._process_log_category = kwargs.pop("process_log_category")
         super().__init__(name, *args, **kwargs)
@@ -45,11 +46,9 @@ class BMQProcess(Process):
         self._last_stdout_log_overrides = None
 
     def log_stdout(self, record):
-        self._internal_logger.log(logging.TRACE, 'parsing stdout: "%60s..."', record)
         parsed = _LOG_LINE_REGEX.match(record)
 
         if parsed:
-            self._internal_logger.log(logging.TRACE, "it is a BALL record")
             # A properly formatted record, i.e. one that contains a level, a
             # category, etc.
             (
@@ -87,13 +86,6 @@ class BMQProcess(Process):
             # Re-use the last seen level and category - can be None
             category = self._last_stdout_log_category
             level = self._last_stdout_log_level
-            self._internal_logger.log(
-                logging.TRACE,
-                "it is *not* a BALL record, reuse category (%s) and level (%s)"
-                " from previous record",
-                category,
-                logging.getLevelName(level),
-            )
 
         if level is None:
             # This is the output of the process to stdout *before* it started
