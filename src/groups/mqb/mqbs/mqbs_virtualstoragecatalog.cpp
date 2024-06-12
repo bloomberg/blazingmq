@@ -59,7 +59,7 @@ VirtualStorageCatalog::put(const bmqt::MessageGUID& msgGUID,
                            const bmqp::RdaInfo&     rdaInfo,
                            unsigned int             subScriptionId,
                            const mqbu::StorageKey&  appKey,
-                           const OnMessageUpdateCb& cb)
+                           const OnStorageUpdateCb& putCb)
 {
     if (!appKey.isNull()) {
         VirtualStoragesIter it = d_virtualStorages.findByKey2(appKey);
@@ -67,8 +67,8 @@ VirtualStorageCatalog::put(const bmqt::MessageGUID& msgGUID,
 
         const mqbi::StorageResult::Enum rc =
             it->value()->put(msgGUID, msgSize, rdaInfo, subScriptionId);
-        if (cb && mqbi::StorageResult::e_SUCCESS == rc) {
-            cb(msgSize, it->key1());
+        if (putCb && mqbi::StorageResult::e_SUCCESS == rc) {
+            putCb(msgSize, it->key1());
         }
 
         return rc;  // RETURN
@@ -86,8 +86,8 @@ VirtualStorageCatalog::put(const bmqt::MessageGUID& msgGUID,
             continue;  // CONTINUE
         }
 
-        if (cb) {
-            cb(msgSize, it->key1());
+        if (putCb) {
+            putCb(msgSize, it->key1());
         }
     }
 
@@ -121,17 +121,17 @@ mqbi::StorageResult::Enum VirtualStorageCatalog::getIterator(
 mqbi::StorageResult::Enum
 VirtualStorageCatalog::remove(const bmqt::MessageGUID& msgGUID,
                               const mqbu::StorageKey&  appKey,
-                              const OnMessageUpdateCb& cb)
+                              const OnStorageUpdateCb& removeCb)
 {
     if (!appKey.isNull()) {
         VirtualStoragesIter it = d_virtualStorages.findByKey2(appKey);
         BSLS_ASSERT_SAFE(it != d_virtualStorages.end());
 
-        if (cb) {
+        if (removeCb) {
             int                             msgSize = 0;
             const mqbi::StorageResult::Enum rc = it->value()->remove(msgGUID,
                                                                      &msgSize);
-            cb(msgSize, it->key1());
+            removeCb(msgSize, it->key1());
             return rc;  // RETURN
         }
         else {
@@ -143,10 +143,10 @@ VirtualStorageCatalog::remove(const bmqt::MessageGUID& msgGUID,
     for (VirtualStoragesIter it = d_virtualStorages.begin();
          it != d_virtualStorages.end();
          ++it) {
-        if (cb) {
+        if (removeCb) {
             int msgSize = 0;
             it->value()->remove(msgGUID, &msgSize);
-            cb(msgSize, it->key1());
+            removeCb(msgSize, it->key1());
         }
         else {
             it->value()->remove(msgGUID);  // ignore rc
@@ -158,14 +158,14 @@ VirtualStorageCatalog::remove(const bmqt::MessageGUID& msgGUID,
 
 mqbi::StorageResult::Enum
 VirtualStorageCatalog::removeAll(const mqbu::StorageKey&  appKey,
-                                 const OnMessageUpdateCb& cb)
+                                 const OnStorageUpdateCb& purgeCb)
 {
     if (!appKey.isNull()) {
         VirtualStoragesIter it = d_virtualStorages.findByKey2(appKey);
         BSLS_ASSERT_SAFE(it != d_virtualStorages.end());
         const mqbi::StorageResult::Enum rc = it->value()->removeAll(appKey);
-        if (cb) {
-            cb(0, it->key1());
+        if (purgeCb) {
+            purgeCb(0, it->key1());
         }
         return rc;  // RETURN
     }
@@ -175,8 +175,8 @@ VirtualStorageCatalog::removeAll(const mqbu::StorageKey&  appKey,
          it != d_virtualStorages.end();
          ++it) {
         it->value()->removeAll(it->key2());  // ignore rc
-        if (cb) {
-            cb(0, it->key1());
+        if (purgeCb) {
+            purgeCb(0, it->key1());
         }
     }
 
@@ -253,15 +253,6 @@ void VirtualStorageCatalog::autoConfirm(const bmqt::MessageGUID& msgGUID,
     BSLS_ASSERT_SAFE(it != d_virtualStorages.end());
 
     it->value()->autoConfirm(msgGUID);
-}
-
-void VirtualStorageCatalog::iterateAppIds(const AppIdVisitor& visitor)
-{
-    for (VirtualStoragesIter it = d_virtualStorages.begin();
-         it != d_virtualStorages.end();
-         ++it) {
-        visitor(it->key1());
-    }
 }
 
 // ACCESSORS

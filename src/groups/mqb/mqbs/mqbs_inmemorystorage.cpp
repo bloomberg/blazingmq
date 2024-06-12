@@ -205,7 +205,7 @@ InMemoryStorage::put(mqbi::StorageMessageAttributes*     attributes,
                                       Item(appData, options, *attributes)),
                        attributes->arrivalTimepoint());
 
-        mqbs::VirtualStorageCatalog::OnMessageUpdateCb cb;
+        mqbs::VirtualStorageCatalog::OnStorageUpdateCb cb;
         if (d_queue_p) {
             // disambiguate mqbstat::QueueStatsDomain::onEvent
             bdlf::MemFn<void (mqbstat::QueueStatsDomain::*)(
@@ -252,11 +252,15 @@ InMemoryStorage::put(mqbi::StorageMessageAttributes*     attributes,
     // corresponding virtual storages.
 
     for (size_t i = 0; i < storageKeys.size(); ++i) {
-        d_virtualStorageCatalog.put(msgGUID,
-                                    msgSize,
-                                    d_defaultRdaInfo,
-                                    bmqp::Protocol::k_DEFAULT_SUBSCRIPTION_ID,
-                                    storageKeys[i]);
+        d_virtualStorageCatalog.put(
+            msgGUID,
+            msgSize,
+            d_defaultRdaInfo,
+            bmqp::Protocol::k_DEFAULT_SUBSCRIPTION_ID,
+            storageKeys[i],
+            mqbs::VirtualStorageCatalog::
+                OnStorageUpdateCb());  // empty callback, do not track metrics
+                                       // in proxy
     }
 
     // If the guid also exists in the 'physical' storage, bump up its reference
@@ -291,7 +295,7 @@ mqbi::StorageResult::Enum InMemoryStorage::releaseRef(
     }
 
     if (!appKey.isNull()) {
-        mqbs::VirtualStorageCatalog::OnMessageUpdateCb cb;
+        mqbs::VirtualStorageCatalog::OnStorageUpdateCb cb;
         if (d_queue_p) {
             // disambiguate mqbstat::QueueStatsDomain::onEvent
             bdlf::MemFn<void (mqbstat::QueueStatsDomain::*)(
@@ -336,7 +340,7 @@ InMemoryStorage::remove(const bmqt::MessageGUID& msgGUID,
     }
 
     if (clearAll) {
-        mqbs::VirtualStorageCatalog::OnMessageUpdateCb cb;
+        mqbs::VirtualStorageCatalog::OnStorageUpdateCb cb;
         if (d_queue_p) {
             // disambiguate mqbstat::QueueStatsDomain::onEvent
             bdlf::MemFn<void (mqbstat::QueueStatsDomain::*)(
@@ -390,7 +394,7 @@ InMemoryStorage::removeAll(const mqbu::StorageKey& appKey)
     if (appKey.isNull()) {
         // Clear the 'physical' queue, as well as all virtual storages.
 
-        mqbs::VirtualStorageCatalog::OnMessageUpdateCb cb;
+        mqbs::VirtualStorageCatalog::OnStorageUpdateCb cb;
         if (d_queue_p) {
             // disambiguate mqbstat::QueueStatsDomain::onEvent
             bdlf::MemFn<void (mqbstat::QueueStatsDomain::*)(
@@ -489,7 +493,7 @@ InMemoryStorage::removeAll(const mqbu::StorageKey& appKey)
         iter->advance();
     }
 
-    mqbs::VirtualStorageCatalog::OnMessageUpdateCb cb;
+    mqbs::VirtualStorageCatalog::OnStorageUpdateCb cb;
     if (d_queue_p) {
         // disambiguate mqbstat::QueueStatsDomain::onEvent
         bdlf::MemFn<void (mqbstat::QueueStatsDomain::*)(
@@ -556,7 +560,7 @@ int InMemoryStorage::gcExpiredMessages(
                 msgLen);
         }
 
-        mqbs::VirtualStorageCatalog::OnMessageUpdateCb cb;
+        mqbs::VirtualStorageCatalog::OnStorageUpdateCb cb;
         if (d_queue_p) {
             // disambiguate mqbstat::QueueStatsDomain::onEvent
             bdlf::MemFn<void (mqbstat::QueueStatsDomain::*)(

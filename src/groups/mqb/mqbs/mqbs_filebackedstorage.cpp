@@ -71,7 +71,7 @@ void FileBackedStorage::purgeCommon(const mqbu::StorageKey& appKey)
     // to be purged, otherwise only the virtual storage associated with the
     // specified 'appKey'.
 
-    mqbs::VirtualStorageCatalog::OnMessageUpdateCb cb;
+    mqbs::VirtualStorageCatalog::OnStorageUpdateCb cb;
     if (d_queue_p) {
         // disambiguate mqbstat::QueueStatsDomain::onEvent
         bdlf::MemFn<void (mqbstat::QueueStatsDomain::*)(
@@ -364,7 +364,7 @@ FileBackedStorage::put(mqbi::StorageMessageAttributes*     attributes,
             const bsl::string&)>
             f(&mqbstat::QueueStatsDomain::onEvent);
 
-        mqbs::VirtualStorageCatalog::OnMessageUpdateCb cb =
+        mqbs::VirtualStorageCatalog::OnStorageUpdateCb cb =
             bdlf::BindUtil::bind(
                 f,
                 d_queue_p->stats(),
@@ -404,11 +404,15 @@ FileBackedStorage::put(mqbi::StorageMessageAttributes*     attributes,
     BSLS_ASSERT(hasMessage(msgGUID));
 
     for (size_t i = 0; i < storageKeys.size(); ++i) {
-        d_virtualStorageCatalog.put(msgGUID,
-                                    msgSize,
-                                    d_defaultRdaInfo,
-                                    bmqp::Protocol::k_DEFAULT_SUBSCRIPTION_ID,
-                                    storageKeys[i]);
+        d_virtualStorageCatalog.put(
+            msgGUID,
+            msgSize,
+            d_defaultRdaInfo,
+            bmqp::Protocol::k_DEFAULT_SUBSCRIPTION_ID,
+            storageKeys[i],
+            mqbs::VirtualStorageCatalog::
+                OnStorageUpdateCb());  // empty callback, do not track metrics
+                                       // in proxy
     }
 
     // Note that unlike 'InMemoryStorage', we don't add the message to the
@@ -466,7 +470,7 @@ FileBackedStorage::releaseRef(const bmqt::MessageGUID& msgGUID,
     }
 
     if (!appKey.isNull()) {
-        mqbs::VirtualStorageCatalog::OnMessageUpdateCb cb;
+        mqbs::VirtualStorageCatalog::OnStorageUpdateCb cb;
         if (d_queue_p) {
             // disambiguate mqbstat::QueueStatsDomain::onEvent
             bdlf::MemFn<void (mqbstat::QueueStatsDomain::*)(
@@ -529,7 +533,7 @@ FileBackedStorage::remove(const bmqt::MessageGUID& msgGUID,
     }
 
     if (clearAll) {
-        mqbs::VirtualStorageCatalog::OnMessageUpdateCb cb;
+        mqbs::VirtualStorageCatalog::OnStorageUpdateCb cb;
         if (d_queue_p) {
             // disambiguate mqbstat::QueueStatsDomain::onEvent
             bdlf::MemFn<void (mqbstat::QueueStatsDomain::*)(
@@ -812,7 +816,7 @@ int FileBackedStorage::gcExpiredMessages(
                 msgLen);
         }
 
-        mqbs::VirtualStorageCatalog::OnMessageUpdateCb cb;
+        mqbs::VirtualStorageCatalog::OnStorageUpdateCb cb;
         if (d_queue_p) {
             // disambiguate mqbstat::QueueStatsDomain::onEvent
             bdlf::MemFn<void (mqbstat::QueueStatsDomain::*)(
@@ -888,7 +892,7 @@ void FileBackedStorage::processMessageRecord(
         irc.first->second.d_array.push_back(handle);
         irc.first->second.d_refCount = refCount;
 
-        mqbs::VirtualStorageCatalog::OnMessageUpdateCb cb;
+        mqbs::VirtualStorageCatalog::OnStorageUpdateCb cb;
         if (d_queue_p) {
             // disambiguate mqbstat::QueueStatsDomain::onEvent
             bdlf::MemFn<void (mqbstat::QueueStatsDomain::*)(
@@ -1003,7 +1007,7 @@ void FileBackedStorage::processConfirmRecord(
     --it->second.d_refCount;  // Update outstanding refCount
 
     if (!appKey.isNull()) {
-        mqbs::VirtualStorageCatalog::OnMessageUpdateCb cb;
+        mqbs::VirtualStorageCatalog::OnStorageUpdateCb cb;
         if (d_queue_p) {
             // disambiguate mqbstat::QueueStatsDomain::onEvent
             bdlf::MemFn<void (mqbstat::QueueStatsDomain::*)(
@@ -1071,7 +1075,7 @@ void FileBackedStorage::processDeletionRecord(const bmqt::MessageGUID& guid)
             msgLen);
     }
 
-    mqbs::VirtualStorageCatalog::OnMessageUpdateCb cb;
+    mqbs::VirtualStorageCatalog::OnStorageUpdateCb cb;
     if (d_queue_p) {
         // disambiguate mqbstat::QueueStatsDomain::onEvent
         bdlf::MemFn<void (mqbstat::QueueStatsDomain::*)(
