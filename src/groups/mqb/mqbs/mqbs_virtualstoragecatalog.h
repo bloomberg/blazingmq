@@ -69,6 +69,9 @@ class VirtualStorageCatalog {
 
     typedef VirtualStorages::const_iterator VirtualStoragesConstIter;
 
+    typedef bsl::function<void(const bsl::string&)>
+        AppIdVisitor;  // todo remove
+
   private:
     // DATA
     mqbi::Storage* d_storage_p;  // Physical storage underlying all
@@ -98,6 +101,9 @@ class VirtualStorageCatalog {
 
     typedef mqbi::Storage::AppIdKeyPairs AppIdKeyPairs;
 
+    typedef bsl::function<void(bsls::Types::Int64, const bsl::string&)>
+        OnMessageUpdateCb;
+
     // CREATORS
 
     /// Create an instance of virtual storage catalog with the specified
@@ -113,11 +119,13 @@ class VirtualStorageCatalog {
     /// `rdaInfo` to the virtual storage associated with the specified
     /// `appKey`.  Note that if `appKey` is null, the message will be added
     /// to all virtual storages maintained by this instance.
-    mqbi::StorageResult::Enum put(const bmqt::MessageGUID& msgGUID,
-                                  int                      msgSize,
-                                  const bmqp::RdaInfo&     rdaInfo,
-                                  unsigned int             subScriptionId,
-                                  const mqbu::StorageKey&  appKey);
+    mqbi::StorageResult::Enum
+    put(const bmqt::MessageGUID& msgGUID,
+        int                      msgSize,
+        const bmqp::RdaInfo&     rdaInfo,
+        unsigned int             subScriptionId,
+        const mqbu::StorageKey&  appKey,
+        const OnMessageUpdateCb& cb = OnMessageUpdateCb());
 
     /// Get an iterator for items stored in the virtual storage identified
     /// by the specified `appKey`.  Iterator will point to point to the
@@ -150,15 +158,19 @@ class VirtualStorageCatalog {
     /// null, then remove the message from the storages for all clients.
     /// Return 0 on success, or a non-zero return code if the `msgGUID` was
     /// not found or the `appKey` is invalid.
-    mqbi::StorageResult::Enum remove(const bmqt::MessageGUID& msgGUID,
-                                     const mqbu::StorageKey&  appKey);
+    mqbi::StorageResult::Enum
+    remove(const bmqt::MessageGUID& msgGUID,
+           const mqbu::StorageKey&  appKey,
+           const OnMessageUpdateCb& cb = OnMessageUpdateCb());
 
     /// Remove all messages from the storage for the client identified by
     /// the specified `appKey`.  If `appKey` is null, then remove messages
     /// for all clients.  Return one of the return codes from:
     /// * **e_SUCCESS**          : `msgGUID` was not found
     /// * **e_APPKEY_NOT_FOUND** : Invalid `appKey` specified
-    mqbi::StorageResult::Enum removeAll(const mqbu::StorageKey& appKey);
+    mqbi::StorageResult::Enum
+    removeAll(const mqbu::StorageKey&  appKey,
+              const OnMessageUpdateCb& cb = OnMessageUpdateCb());
 
     /// Create, if it doesn't exist already, a virtual storage instance with
     /// the specified `appId` and `appKey`.  Return zero upon success and a
@@ -182,6 +194,8 @@ class VirtualStorageCatalog {
     /// specified 'appKey'  because the App has auto confirmed it.
     void autoConfirm(const bmqt::MessageGUID& msgGUID,
                      const mqbu::StorageKey&  appKey);
+
+    void iterateAppIds(const AppIdVisitor& visitor);
 
     // ACCESSORS
 
