@@ -7,8 +7,6 @@ endif()
 
 add_executable(bmqstoragetool)
 
-target_compile_definitions(bmqstoragetool PRIVATE "MWC_INTERNAL_USAGE")
-
 target_bmq_default_compiler_flags(bmqstoragetool)
 
 set_target_properties(bmqstoragetool

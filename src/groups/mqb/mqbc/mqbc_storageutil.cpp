@@ -1823,37 +1823,40 @@ void StorageUtil::recoveredQueuesCb(
         // Create and add virtual storages, if any.
         mwcu::MemOutStream errorDesc;
         int                rc;
-        for (AppIdKeyPairsCIter ait = appIdKeyPairs.begin();
-             ait != appIdKeyPairs.end();
-             ++ait) {
-            const bsl::string&      appId  = ait->first;
-            const mqbu::StorageKey& appKey = ait->second;
+        if (domain->config().mode().isFanoutValue()) {
+            for (AppIdKeyPairsCIter ait = appIdKeyPairs.begin();
+                 ait != appIdKeyPairs.end();
+                 ++ait) {
+                const bsl::string&      appId  = ait->first;
+                const mqbu::StorageKey& appKey = ait->second;
 
-            BSLS_ASSERT_SAFE(!appKey.isNull());
-            BSLS_ASSERT_SAFE(!appId.empty());
+                BSLS_ASSERT_SAFE(!appKey.isNull());
+                BSLS_ASSERT_SAFE(!appId.empty());
 
-            if (0 !=
-                (rc = rs_sp->addVirtualStorage(errorDesc, appId, appKey))) {
-                // TBD: does this mean storage is corrupt? Should we abort?
+                if (0 != (rc = rs_sp->addVirtualStorage(errorDesc,
+                                                        appId,
+                                                        appKey))) {
+                    // TBD: does this mean storage is corrupt? Should we abort?
 
-                MWCTSK_ALARMLOG_ALARM("RECOVERY")
-                    << clusterDescription << ": PartitionId [" << partitionId
-                    << "]: failed to create virtual storage with appId ["
-                    << appId << "], appKey [" << appKey << "] for queueUri ["
-                    << queueUri << "], queueKey [" << queueKey
-                    << "]. Reason: [" << errorDesc.str() << "], rc: " << rc
-                    << "." << MWCTSK_ALARMLOG_END;
-                continue;  // CONTINUE
+                    MWCTSK_ALARMLOG_ALARM("RECOVERY")
+                        << clusterDescription << ": PartitionId ["
+                        << partitionId
+                        << "]: failed to create virtual storage with appId ["
+                        << appId << "], appKey [" << appKey
+                        << "] for queueUri [" << queueUri << "], queueKey ["
+                        << queueKey << "]. Reason: [" << errorDesc.str()
+                        << "], rc: " << rc << "." << MWCTSK_ALARMLOG_END;
+                    continue;  // CONTINUE
+                }
+
+                BALL_LOG_INFO
+                    << clusterDescription << " PartitionId [" << partitionId
+                    << "]: Created virtual storage with appId [" << appId
+                    << "], appKey [" << appKey << "] for queueUri ["
+                    << queueUri << "], queueKey [" << queueKey << "].";
             }
-
-            BALL_LOG_INFO << clusterDescription << " PartitionId ["
-                          << partitionId
-                          << "]: Created virtual storage with appId [" << appId
-                          << "], appKey [" << appKey << "] for queueUri ["
-                          << queueUri << "], queueKey [" << queueKey << "].";
         }
-
-        if (!domain->config().mode().isFanoutValue()) {
+        else {
             // Fanout and non-fanout Queue Engines are converging.  Like Fanout
             // Queue Engine, non-fanout ones operate on appId which is
             // '__default' in non-fanout case.  For this reason, add a
