@@ -661,6 +661,23 @@ void QueueStatsDomain::updateDomainAppIds(
     }
 }
 
+QueueStatsDomain::EventCb
+QueueStatsDomain::buildEventCallback(EventType::Enum type)
+{
+    // disambiguate mqbstat::QueueStatsDomain::onEvent
+    bdlf::MemFn<void (mqbstat::QueueStatsDomain::*)(
+        mqbstat::QueueStatsDomain::EventType::Enum,
+        bsls::Types::Int64,
+        const bsl::string&)>
+        f(&mqbstat::QueueStatsDomain::onEvent);
+
+    return bdlf::BindUtil::bind(f,
+                                this,
+                                type,
+                                bdlf::PlaceHolders::_1,   // value
+                                bdlf::PlaceHolders::_2);  // appId
+}
+
 // -----------------------------
 // struct QueueStatsDomain::Role
 // -----------------------------

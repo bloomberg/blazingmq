@@ -73,19 +73,8 @@ void FileBackedStorage::purgeCommon(const mqbu::StorageKey& appKey)
 
     mqbs::VirtualStorageCatalog::OnStorageUpdateCb cb;
     if (d_queue_p) {
-        // disambiguate mqbstat::QueueStatsDomain::onEvent
-        bdlf::MemFn<void (mqbstat::QueueStatsDomain::*)(
-            mqbstat::QueueStatsDomain::EventType::Enum,
-            bsls::Types::Int64,
-            const bsl::string&)>
-            f(&mqbstat::QueueStatsDomain::onEvent);
-
-        cb = bdlf::BindUtil::bind(
-            f,
-            d_queue_p->stats(),
-            mqbstat::QueueStatsDomain::EventType::e_PURGE,
-            bdlf::PlaceHolders::_1,   // value
-            bdlf::PlaceHolders::_2);  // appId
+        cb = d_queue_p->stats()->buildEventCallback(
+            mqbstat::QueueStatsDomain::EventType::e_PURGE);
     }
 
     d_virtualStorageCatalog.removeAll(appKey, cb);
@@ -357,20 +346,9 @@ FileBackedStorage::put(mqbi::StorageMessageAttributes*     attributes,
         // if we keep `irc` (like we keep 'DataStoreRecordHandle').
 
         BSLS_ASSERT_SAFE(d_queue_p);
-        // disambiguate mqbstat::QueueStatsDomain::onEvent
-        bdlf::MemFn<void (mqbstat::QueueStatsDomain::*)(
-            mqbstat::QueueStatsDomain::EventType::Enum,
-            bsls::Types::Int64,
-            const bsl::string&)>
-            f(&mqbstat::QueueStatsDomain::onEvent);
-
         mqbs::VirtualStorageCatalog::OnStorageUpdateCb cb =
-            bdlf::BindUtil::bind(
-                f,
-                d_queue_p->stats(),
-                mqbstat::QueueStatsDomain::EventType::e_ADD_MESSAGE,
-                bdlf::PlaceHolders::_1,   // value
-                bdlf::PlaceHolders::_2);  // appId
+            d_queue_p->stats()->buildEventCallback(
+                mqbstat::QueueStatsDomain::EventType::e_ADD_MESSAGE);
 
         d_virtualStorageCatalog.put(msgGUID,
                                     msgSize,
@@ -404,15 +382,12 @@ FileBackedStorage::put(mqbi::StorageMessageAttributes*     attributes,
     BSLS_ASSERT(hasMessage(msgGUID));
 
     for (size_t i = 0; i < storageKeys.size(); ++i) {
-        d_virtualStorageCatalog.put(
-            msgGUID,
-            msgSize,
-            d_defaultRdaInfo,
-            bmqp::Protocol::k_DEFAULT_SUBSCRIPTION_ID,
-            storageKeys[i],
-            mqbs::VirtualStorageCatalog::
-                OnStorageUpdateCb());  // empty callback, do not track metrics
-                                       // in proxy
+        // No callback, do not track metrics in proxy
+        d_virtualStorageCatalog.put(msgGUID,
+                                    msgSize,
+                                    d_defaultRdaInfo,
+                                    bmqp::Protocol::k_DEFAULT_SUBSCRIPTION_ID,
+                                    storageKeys[i]);
     }
 
     // Note that unlike 'InMemoryStorage', we don't add the message to the
@@ -472,19 +447,8 @@ FileBackedStorage::releaseRef(const bmqt::MessageGUID& msgGUID,
     if (!appKey.isNull()) {
         mqbs::VirtualStorageCatalog::OnStorageUpdateCb cb;
         if (d_queue_p) {
-            // disambiguate mqbstat::QueueStatsDomain::onEvent
-            bdlf::MemFn<void (mqbstat::QueueStatsDomain::*)(
-                mqbstat::QueueStatsDomain::EventType::Enum,
-                bsls::Types::Int64,
-                const bsl::string&)>
-                f(&mqbstat::QueueStatsDomain::onEvent);
-
-            cb = bdlf::BindUtil::bind(
-                f,
-                d_queue_p->stats(),
-                mqbstat::QueueStatsDomain::EventType::e_DEL_MESSAGE,
-                bdlf::PlaceHolders::_1,   // value
-                bdlf::PlaceHolders::_2);  // appId
+            cb = d_queue_p->stats()->buildEventCallback(
+                mqbstat::QueueStatsDomain::EventType::e_DEL_MESSAGE);
         }
 
         const mqbi::StorageResult::Enum rc =
@@ -535,19 +499,8 @@ FileBackedStorage::remove(const bmqt::MessageGUID& msgGUID,
     if (clearAll) {
         mqbs::VirtualStorageCatalog::OnStorageUpdateCb cb;
         if (d_queue_p) {
-            // disambiguate mqbstat::QueueStatsDomain::onEvent
-            bdlf::MemFn<void (mqbstat::QueueStatsDomain::*)(
-                mqbstat::QueueStatsDomain::EventType::Enum,
-                bsls::Types::Int64,
-                const bsl::string&)>
-                f(&mqbstat::QueueStatsDomain::onEvent);
-
-            cb = bdlf::BindUtil::bind(
-                f,
-                d_queue_p->stats(),
-                mqbstat::QueueStatsDomain::EventType::e_DEL_MESSAGE,
-                bdlf::PlaceHolders::_1,   // value
-                bdlf::PlaceHolders::_2);  // appId
+            cb = d_queue_p->stats()->buildEventCallback(
+                mqbstat::QueueStatsDomain::EventType::e_DEL_MESSAGE);
         }
 
         d_virtualStorageCatalog.remove(msgGUID,
@@ -818,19 +771,8 @@ int FileBackedStorage::gcExpiredMessages(
 
         mqbs::VirtualStorageCatalog::OnStorageUpdateCb cb;
         if (d_queue_p) {
-            // disambiguate mqbstat::QueueStatsDomain::onEvent
-            bdlf::MemFn<void (mqbstat::QueueStatsDomain::*)(
-                mqbstat::QueueStatsDomain::EventType::Enum,
-                bsls::Types::Int64,
-                const bsl::string&)>
-                f(&mqbstat::QueueStatsDomain::onEvent);
-
-            cb = bdlf::BindUtil::bind(
-                f,
-                d_queue_p->stats(),
-                mqbstat::QueueStatsDomain::EventType::e_DEL_MESSAGE,
-                bdlf::PlaceHolders::_1,   // value
-                bdlf::PlaceHolders::_2);  // appId
+            cb = d_queue_p->stats()->buildEventCallback(
+                mqbstat::QueueStatsDomain::EventType::e_DEL_MESSAGE);
         }
 
         // Remove message from all virtual storages.
@@ -894,19 +836,8 @@ void FileBackedStorage::processMessageRecord(
 
         mqbs::VirtualStorageCatalog::OnStorageUpdateCb cb;
         if (d_queue_p) {
-            // disambiguate mqbstat::QueueStatsDomain::onEvent
-            bdlf::MemFn<void (mqbstat::QueueStatsDomain::*)(
-                mqbstat::QueueStatsDomain::EventType::Enum,
-                bsls::Types::Int64,
-                const bsl::string&)>
-                f(&mqbstat::QueueStatsDomain::onEvent);
-
-            cb = bdlf::BindUtil::bind(
-                f,
-                d_queue_p->stats(),
-                mqbstat::QueueStatsDomain::EventType::e_ADD_MESSAGE,
-                bdlf::PlaceHolders::_1,   // value
-                bdlf::PlaceHolders::_2);  // appId
+            cb = d_queue_p->stats()->buildEventCallback(
+                mqbstat::QueueStatsDomain::EventType::e_ADD_MESSAGE);
         }
 
         // Add 'guid' to all virtual storages, if any.
@@ -1009,19 +940,8 @@ void FileBackedStorage::processConfirmRecord(
     if (!appKey.isNull()) {
         mqbs::VirtualStorageCatalog::OnStorageUpdateCb cb;
         if (d_queue_p) {
-            // disambiguate mqbstat::QueueStatsDomain::onEvent
-            bdlf::MemFn<void (mqbstat::QueueStatsDomain::*)(
-                mqbstat::QueueStatsDomain::EventType::Enum,
-                bsls::Types::Int64,
-                const bsl::string&)>
-                f(&mqbstat::QueueStatsDomain::onEvent);
-
-            cb = bdlf::BindUtil::bind(
-                f,
-                d_queue_p->stats(),
-                mqbstat::QueueStatsDomain::EventType::e_DEL_MESSAGE,
-                bdlf::PlaceHolders::_1,   // value
-                bdlf::PlaceHolders::_2);  // appId
+            cb = d_queue_p->stats()->buildEventCallback(
+                mqbstat::QueueStatsDomain::EventType::e_DEL_MESSAGE);
         }
 
         const mqbi::StorageResult::Enum rc =
@@ -1077,19 +997,8 @@ void FileBackedStorage::processDeletionRecord(const bmqt::MessageGUID& guid)
 
     mqbs::VirtualStorageCatalog::OnStorageUpdateCb cb;
     if (d_queue_p) {
-        // disambiguate mqbstat::QueueStatsDomain::onEvent
-        bdlf::MemFn<void (mqbstat::QueueStatsDomain::*)(
-            mqbstat::QueueStatsDomain::EventType::Enum,
-            bsls::Types::Int64,
-            const bsl::string&)>
-            f(&mqbstat::QueueStatsDomain::onEvent);
-
-        cb = bdlf::BindUtil::bind(
-            f,
-            d_queue_p->stats(),
-            mqbstat::QueueStatsDomain::EventType::e_DEL_MESSAGE,
-            bdlf::PlaceHolders::_1,   // value
-            bdlf::PlaceHolders::_2);  // appId
+        cb = d_queue_p->stats()->buildEventCallback(
+            mqbstat::QueueStatsDomain::EventType::e_DEL_MESSAGE);
     }
 
     // Delete 'guid' from all virtual storages, if any.  Note that 'guid'

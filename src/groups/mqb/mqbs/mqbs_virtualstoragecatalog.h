@@ -119,12 +119,13 @@ class VirtualStorageCatalog {
     /// `rdaInfo` to the virtual storage associated with the specified
     /// `appKey`.  Note that if `appKey` is null, the message will be added
     /// to all virtual storages maintained by this instance.
-    mqbi::StorageResult::Enum put(const bmqt::MessageGUID& msgGUID,
-                                  int                      msgSize,
-                                  const bmqp::RdaInfo&     rdaInfo,
-                                  unsigned int             subScriptionId,
-                                  const mqbu::StorageKey&  appKey,
-                                  const OnStorageUpdateCb& putCb);
+    mqbi::StorageResult::Enum
+    put(const bmqt::MessageGUID& msgGUID,
+        int                      msgSize,
+        const bmqp::RdaInfo&     rdaInfo,
+        unsigned int             subScriptionId,
+        const mqbu::StorageKey&  appKey,
+        const OnStorageUpdateCb& putCb = OnStorageUpdateCb());
 
     /// Get an iterator for items stored in the virtual storage identified
     /// by the specified `appKey`.  Iterator will point to point to the
@@ -157,17 +158,19 @@ class VirtualStorageCatalog {
     /// null, then remove the message from the storages for all clients.
     /// Return 0 on success, or a non-zero return code if the `msgGUID` was
     /// not found or the `appKey` is invalid.
-    mqbi::StorageResult::Enum remove(const bmqt::MessageGUID& msgGUID,
-                                     const mqbu::StorageKey&  appKey,
-                                     const OnStorageUpdateCb& removeCb);
+    mqbi::StorageResult::Enum
+    remove(const bmqt::MessageGUID& msgGUID,
+           const mqbu::StorageKey&  appKey,
+           const OnStorageUpdateCb& removeCb = OnStorageUpdateCb());
 
     /// Remove all messages from the storage for the client identified by
     /// the specified `appKey`.  If `appKey` is null, then remove messages
     /// for all clients.  Return one of the return codes from:
     /// * **e_SUCCESS**          : `msgGUID` was not found
     /// * **e_APPKEY_NOT_FOUND** : Invalid `appKey` specified
-    mqbi::StorageResult::Enum removeAll(const mqbu::StorageKey&  appKey,
-                                        const OnStorageUpdateCb& purgeCb);
+    mqbi::StorageResult::Enum
+    removeAll(const mqbu::StorageKey&  appKey,
+              const OnStorageUpdateCb& purgeCb = OnStorageUpdateCb());
 
     /// Create, if it doesn't exist already, a virtual storage instance with
     /// the specified `appId` and `appKey`.  Return zero upon success and a
