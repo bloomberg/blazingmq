@@ -607,8 +607,8 @@
     /* Global Allocator */                                                    \
     /* NOTE: The global allocator has a static storage duration to outlive */ \
     /*       all static objects using that allocator.                      */ \
-    INIT_METRICS_REGISTRY()                                                   \
     static bslma::TestAllocator _gblAlloc("global", (s_verbosityLevel >= 4)); \
+    INIT_METRICS_REGISTRY()                                                   \
     bslma::Default::setGlobalAllocator(&_gblAlloc);
 
 #ifdef BSLS_PLATFORM_CMP_CLANG
