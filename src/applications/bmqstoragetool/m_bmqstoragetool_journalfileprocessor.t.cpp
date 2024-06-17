@@ -57,7 +57,14 @@ using namespace TestUtils;
 //                                    TESTS
 // ----------------------------------------------------------------------------
 
-static void test1_breathingTest()
+// This test has MemorySanitizer false positive, disable uninitialized checks.
+#if defined(__has_feature)
+#if __has_feature(memory_sanitizer)
+__attribute__((no_sanitize("memory")))
+#endif
+#endif
+static void
+test1_breathingTest()
 // ------------------------------------------------------------------------
 // BREATHING TEST
 //
@@ -112,7 +119,14 @@ static void test1_breathingTest()
     ASSERT_EQ(resultStream.str(), expectedStream.str());
 }
 
-static void test2_searchGuidTest()
+// This test has MemorySanitizer false positive, disable uninitialized checks.
+#if defined(__has_feature)
+#if __has_feature(memory_sanitizer)
+__attribute__((no_sanitize("memory")))
+#endif
+#endif
+static void
+test2_searchGuidTest()
 // ------------------------------------------------------------------------
 // SEARCH GUID TEST
 //
@@ -683,7 +697,14 @@ static void test10_searchMessagesByQueueNameAndQueueKeyTest()
     ASSERT_EQ(resultStream.str(), expectedStream.str());
 }
 
-static void test11_searchMessagesByTimestamp()
+// This test has MemorySanitizer false positive, disable uninitialized checks.
+#if defined(__has_feature)
+#if __has_feature(memory_sanitizer)
+__attribute__((no_sanitize("memory")))
+#endif
+#endif
+static void
+test11_searchMessagesByTimestamp()
 // ------------------------------------------------------------------------
 // SEARCH MESSAGES BY TIMESTAMP TEST
 //
