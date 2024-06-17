@@ -5252,7 +5252,7 @@ int FileStore::open(const QueueKeyInfoMap& queueKeyInfoMap)
         BALL_LOG_ERROR << partitionDesc() << "Failed to open in recovery mode,"
                        << " rc:" << rc << ", reason: ["
                        << errorDescription.str() << "].";
-        return rc_RECOVERY_MODE_FAILURE;  // RETURN
+        return rc * 10 + rc_RECOVERY_MODE_FAILURE;  // RETURN
     }
 
     BSLS_ASSERT_SAFE(d_isOpen);
