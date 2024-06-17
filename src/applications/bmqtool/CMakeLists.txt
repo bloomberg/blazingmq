@@ -7,8 +7,6 @@ endif()
 
 add_executable(bmqtool)
 
-target_compile_definitions(bmqtool PRIVATE "MWC_INTERNAL_USAGE")
-
 if("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU|(Apple)?Clang")
   # NOTE: The followings are using the 'deprecated' COMPILE_FLAGS property and
   # not COMPILE_OPTIONS because the later doesn't seem to work for a

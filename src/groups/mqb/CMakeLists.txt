@@ -10,8 +10,6 @@ endif()
 add_library( mqb )
 set_property( TARGET mqb PROPERTY POSITION_INDEPENDENT_CODE ON )
 
-target_compile_definitions( mqb PRIVATE "MWC_INTERNAL_USAGE" )
-
 # Pass build type to a source file so that it can print it in startup banner
 set_property(SOURCE "mqba/mqba_application.cpp"
              APPEND

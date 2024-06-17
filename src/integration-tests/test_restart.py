@@ -116,11 +116,13 @@ def test_migrate_domain_to_another_cluster(cluster: Cluster):
 @tweak.cluster.cluster_attributes.is_cslmode_enabled(False)
 @tweak.cluster.cluster_attributes.is_fsmworkflow(False)
 def test_restart_from_non_FSM_to_FSM(cluster: Cluster):
-    # Start a producer and post a message.
+    # Start a producer. Then, post a message on a priority queue and a fanout queue.
     proxies = cluster.proxy_cycle()
     producer = next(proxies).create_client("producer")
     producer.open(tc.URI_PRIORITY, flags=["write", "ack"], succeed=True)
     producer.post(tc.URI_PRIORITY, payload=["msg1"], wait_ack=True, succeed=True)
+    producer.open(tc.URI_FANOUT, flags=["write", "ack"], succeed=True)
+    producer.post(tc.URI_FANOUT, payload=["fanout_msg1"], wait_ack=True, succeed=True)
 
     ensureMessageAtStorageLayer(cluster)
 
@@ -141,8 +143,18 @@ def test_restart_from_non_FSM_to_FSM(cluster: Cluster):
         producer.wait_state_restored()
 
     producer.post(tc.URI_PRIORITY, payload=["msg2"], wait_ack=True, succeed=True)
+    producer.post(tc.URI_FANOUT, payload=["fanout_msg2"], wait_ack=True, succeed=True)
 
+    # Consumer for priority queue
     consumer = next(proxies).create_client("consumer")
     consumer.open(tc.URI_PRIORITY, flags=["read"], succeed=True)
     consumer.wait_push_event()
     assert wait_until(lambda: len(consumer.list(tc.URI_PRIORITY, block=True)) == 2, 2)
+
+    # Consumer for fanout queue
+    consumer_fanout = next(proxies).create_client("consumer_fanout")
+    consumer_fanout.open(tc.URI_FANOUT_FOO, flags=["read"], succeed=True)
+    consumer_fanout.wait_push_event()
+    assert wait_until(
+        lambda: len(consumer_fanout.list(tc.URI_FANOUT_FOO, block=True)) == 2, 2
+    )
