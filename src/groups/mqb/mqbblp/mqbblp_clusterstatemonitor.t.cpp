@@ -186,6 +186,7 @@ struct TestHelper {
                                  false,  // isLeader
                                  false,  // isCSLMode
                                  false,  // isFSMWorkflow
+                                 false,  // doesFSMwriteQLIST
                                  clusterNodeDefs,
                                  "testCluster",
                                  d_tempDir.path()),
