@@ -57,14 +57,7 @@ using namespace TestUtils;
 //                                    TESTS
 // ----------------------------------------------------------------------------
 
-// This test has MemorySanitizer false positive, disable uninitialized checks.
-#if defined(__has_feature)
-#if __has_feature(memory_sanitizer)
-__attribute__((no_sanitize("memory")))
-#endif
-#endif
-static void
-test1_breathingTest()
+static void test1_breathingTest()
 // ------------------------------------------------------------------------
 // BREATHING TEST
 //
@@ -104,7 +97,7 @@ test1_breathingTest()
     mwcu::MemOutStream                  expectedStream(s_allocator_p);
     bsl::list<NodeType>::const_iterator recordIter         = records.begin();
     bsl::size_t                         foundMessagesCount = 0;
-    while (recordIter++ != records.end()) {
+    for (; recordIter != records.end(); ++recordIter) {
         RecordType::Enum rtype = recordIter->first;
         if (rtype == RecordType::e_MESSAGE) {
             const MessageRecord& msg = *reinterpret_cast<const MessageRecord*>(
@@ -119,14 +112,7 @@ test1_breathingTest()
     ASSERT_EQ(resultStream.str(), expectedStream.str());
 }
 
-// This test has MemorySanitizer false positive, disable uninitialized checks.
-#if defined(__has_feature)
-#if __has_feature(memory_sanitizer)
-__attribute__((no_sanitize("memory")))
-#endif
-#endif
-static void
-test2_searchGuidTest()
+static void test2_searchGuidTest()
 // ------------------------------------------------------------------------
 // SEARCH GUID TEST
 //
@@ -151,7 +137,7 @@ test2_searchGuidTest()
     bsl::vector<bsl::string>&           searchGuids = params.d_guid;
     bsl::list<NodeType>::const_iterator recordIter  = records.begin();
     bsl::size_t                         msgCnt      = 0;
-    while (recordIter++ != records.end()) {
+    for (; recordIter != records.end(); ++recordIter) {
         RecordType::Enum rtype = recordIter->first;
         if (rtype == RecordType::e_MESSAGE) {
             if (msgCnt++ % 2 != 0)
@@ -275,7 +261,7 @@ static void test4_searchExistingAndNonExistingGuidTest()
     // Get two existing message GUIDs
     bsl::list<NodeType>::const_iterator recordIter = records.begin();
     size_t                              msgCnt     = 0;
-    while (recordIter++ != records.end()) {
+    for (; recordIter != records.end(); ++recordIter) {
         RecordType::Enum rtype = recordIter->first;
         if (rtype == RecordType::e_MESSAGE) {
             if (msgCnt++ == 2)
@@ -697,14 +683,7 @@ static void test10_searchMessagesByQueueNameAndQueueKeyTest()
     ASSERT_EQ(resultStream.str(), expectedStream.str());
 }
 
-// This test has MemorySanitizer false positive, disable uninitialized checks.
-#if defined(__has_feature)
-#if __has_feature(memory_sanitizer)
-__attribute__((no_sanitize("memory")))
-#endif
-#endif
-static void
-test11_searchMessagesByTimestamp()
+static void test11_searchMessagesByTimestamp()
 // ------------------------------------------------------------------------
 // SEARCH MESSAGES BY TIMESTAMP TEST
 //
@@ -740,7 +719,7 @@ test11_searchMessagesByTimestamp()
 
     bsl::list<NodeType>::const_iterator recordIter = records.begin();
     bsl::size_t                         msgCnt     = 0;
-    while (recordIter++ != records.end()) {
+    for (; recordIter != records.end(); ++recordIter) {
         RecordType::Enum rtype = recordIter->first;
         if (rtype == RecordType::e_MESSAGE) {
             const MessageRecord& msg = *reinterpret_cast<const MessageRecord*>(
