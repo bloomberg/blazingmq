@@ -408,8 +408,15 @@ mqbu::ResourceUsageMonitorStateTransition::Enum QueueHandle::updateMonitor(
             msgSize);
 
         // Report CONFIRM time only at first hop
+        // Note that we update metric per entire queue and also per `appId`
         if (d_clientContext_sp->isFirstHop()) {
-            d_domainStats_p->reportConfirmTime(timeDelta, appId);
+            d_domainStats_p->onEvent(
+                mqbstat::QueueStatsDomain::EventType::e_CONFIRM_TIME,
+                timeDelta);
+            d_domainStats_p->onEvent(
+                mqbstat::QueueStatsDomain::EventType::e_CONFIRM_TIME,
+                timeDelta,
+                appId);
         }
     }
 
@@ -477,7 +484,8 @@ void QueueHandle::deliverMessageImpl(
     const bmqt::MessageGUID&                  msgGUID,
     const mqbi::StorageMessageAttributes&     attributes,
     const bmqp::Protocol::MsgGroupId&         msgGroupId,
-    const bmqp::Protocol::SubQueueInfosArray& subQueueInfos)
+    const bmqp::Protocol::SubQueueInfosArray& subQueueInfos,
+    bool                                      isOutOfOrder)
 {
     // executed by the *QUEUE_DISPATCHER* thread
 
@@ -505,7 +513,8 @@ void QueueHandle::deliverMessageImpl(
             attributes.messagePropertiesInfo()))
         .setSubQueueInfos(subQueueInfos)
         .setMsgGroupId(msgGroupId)
-        .setCompressionAlgorithmType(attributes.compressionAlgorithmType());
+        .setCompressionAlgorithmType(attributes.compressionAlgorithmType())
+        .setOutOfOrderPush(isOutOfOrder);
 
     if (message) {
         event->setBlob(message);
@@ -793,7 +802,8 @@ void QueueHandle::deliverMessageNoTrack(
                        msgGUID,
                        attributes,
                        msgGroupId,
-                       subQueueInfos);
+                       subQueueInfos,
+                       false);
 }
 
 void QueueHandle::deliverMessage(
@@ -801,7 +811,8 @@ void QueueHandle::deliverMessage(
     const bmqt::MessageGUID&                  msgGUID,
     const mqbi::StorageMessageAttributes&     attributes,
     const bmqp::Protocol::MsgGroupId&         msgGroupId,
-    const bmqp::Protocol::SubQueueInfosArray& subscriptions)
+    const bmqp::Protocol::SubQueueInfosArray& subscriptions,
+    bool                                      isOutOfOrder)
 {
     // executed by the *QUEUE_DISPATCHER* thread
 
@@ -913,7 +924,8 @@ void QueueHandle::deliverMessage(
                        msgGUID,
                        attributes,
                        msgGroupId,
-                       targetSubscriptions);
+                       targetSubscriptions,
+                       isOutOfOrder);
 }
 
 void QueueHandle::postMessage(const bmqp::PutHeader&              putHeader,

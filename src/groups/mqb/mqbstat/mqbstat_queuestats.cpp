@@ -33,6 +33,7 @@
 
 // BDE
 #include <ball_log.h>
+#include <ball_logthrottle.h>
 #include <bdlb_print.h>
 #include <bdld_datummapbuilder.h>
 #include <bdld_manageddatum.h>
@@ -46,13 +47,22 @@ namespace mqbstat {
 
 namespace {
 
+const char k_LOG_CATEGORY[] = "MQBSTAT.QUEUESTATS";
+
 /// Name of the stat context to create (holding all domain's queues
 /// statistics)
-static const char k_DOMAIN_STAT_NAME[] = "domain";
+const char k_DOMAIN_STAT_NAME[] = "domain";
 
 /// Name of the stat context to create (holding all client's queues
 /// statistics)
-static const char k_CLIENT_STAT_NAME[] = "client";
+const char k_CLIENT_STAT_NAME[] = "client";
+
+/// Maximum messages logged with throttling in a short period of time.
+const int k_MAX_INSTANT_MESSAGES = 10;
+
+/// Time interval between messages logged with throttling.
+const bsls::Types::Int64 k_NS_PER_MESSAGE =
+    bdlt::TimeUnitRatio::k_NANOSECONDS_PER_MINUTE / k_MAX_INSTANT_MESSAGES;
 
 // -----------------------
 // struct DomainQueueStats
@@ -409,10 +419,9 @@ void QueueStatsDomain::initialize(const bmqt::Uri&  uri,
 
     datum->adopt(builder.commit());
 
-    // Create subcontexts for each AppId to store `e_CONFIRM_TIME_MAX` and
-    // `e_QUEUE_TIME_MAX` metrics if the node is not `proxy`, queue mode is
-    // `fanout` and domain name is in `appIdTagDomains` list.  Thus, the
-    // metrics can be inspected separately for each application.
+    // Create subcontexts for each AppId to store per-AppId metrics, such as
+    // `e_CONFIRM_TIME_MAX` or `e_QUEUE_TIME_MAX`, so the metrics can be
+    // inspected separately for each application.
     if (!domain->cluster()->isRemote() &&
         domain->config().mode().isFanoutValue()) {
         const bsl::vector<bsl::string>& appIdTagDomains =
@@ -478,8 +487,16 @@ void QueueStatsDomain::onEvent(EventType::Enum type, bsls::Types::Int64 value)
         // For CONFIRM, we don't care about the bytes value ..
         d_statContext_mp->adjustValue(DomainQueueStats::e_STAT_CONFIRM, 1);
     } break;
+    case EventType::e_CONFIRM_TIME: {
+        d_statContext_mp->reportValue(DomainQueueStats::e_STAT_CONFIRM_TIME,
+                                      value);
+    } break;
     case EventType::e_REJECT: {
         d_statContext_mp->adjustValue(DomainQueueStats::e_STAT_REJECT, 1);
+    } break;
+    case EventType::e_QUEUE_TIME: {
+        d_statContext_mp->reportValue(DomainQueueStats::e_STAT_QUEUE_TIME,
+                                      value);
     } break;
     case EventType::e_PUSH: {
         d_statContext_mp->adjustValue(DomainQueueStats::e_STAT_PUSH, value);
@@ -523,6 +540,71 @@ void QueueStatsDomain::onEvent(EventType::Enum type, bsls::Types::Int64 value)
     };
 }
 
+void QueueStatsDomain::onEvent(EventType::Enum    type,
+                               bsls::Types::Int64 value,
+                               const bsl::string& appId)
+{
+    BSLS_ASSERT_SAFE(d_statContext_mp && "initialize was not called");
+
+    BALL_LOG_SET_CATEGORY(k_LOG_CATEGORY);
+
+    if (!d_subContexts_mp) {
+        BALL_LOGTHROTTLE_WARN(k_MAX_INSTANT_MESSAGES, k_NS_PER_MESSAGE)
+            << "[THROTTLED] No built sub contexts";
+        return;  // RETURN
+    }
+
+    bsl::list<StatSubContextMp>::iterator it = bsl::find_if(
+        d_subContexts_mp->begin(),
+        d_subContexts_mp->end(),
+        ContextNameMatcher(appId));
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(it == d_subContexts_mp->end())) {
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+
+        BALL_LOGTHROTTLE_WARN(k_MAX_INSTANT_MESSAGES, k_NS_PER_MESSAGE)
+            << "[THROTTLED] No matching StatContext for appId: " << appId;
+        return;  // RETURN
+    }
+
+    mwcst::StatContext* appIdContext = it->get();
+    BSLS_ASSERT_SAFE(appIdContext);
+
+    switch (type) {
+    case EventType::e_CONFIRM_TIME: {
+        appIdContext->reportValue(DomainQueueStats::e_STAT_CONFIRM_TIME,
+                                  value);
+    } break;
+
+    case EventType::e_QUEUE_TIME: {
+        appIdContext->reportValue(DomainQueueStats::e_STAT_QUEUE_TIME, value);
+    } break;
+
+    // Some of these event types make no sense per appId and should be reported
+    // per entire queue instead
+    case EventType::e_ACK: BSLS_ANNOTATION_FALLTHROUGH;
+    case EventType::e_ACK_TIME: BSLS_ANNOTATION_FALLTHROUGH;
+    case EventType::e_NACK: BSLS_ANNOTATION_FALLTHROUGH;
+    case EventType::e_CONFIRM: BSLS_ANNOTATION_FALLTHROUGH;
+    case EventType::e_REJECT: BSLS_ANNOTATION_FALLTHROUGH;
+    case EventType::e_PUSH: BSLS_ANNOTATION_FALLTHROUGH;
+    case EventType::e_PUT: BSLS_ANNOTATION_FALLTHROUGH;
+    case EventType::e_ADD_MESSAGE: BSLS_ANNOTATION_FALLTHROUGH;
+    case EventType::e_DEL_MESSAGE: BSLS_ANNOTATION_FALLTHROUGH;
+    case EventType::e_GC_MESSAGE: BSLS_ANNOTATION_FALLTHROUGH;
+    case EventType::e_PURGE: BSLS_ANNOTATION_FALLTHROUGH;
+    case EventType::e_CHANGE_ROLE: BSLS_ANNOTATION_FALLTHROUGH;
+    case EventType::e_CFG_MSGS: BSLS_ANNOTATION_FALLTHROUGH;
+    case EventType::e_CFG_BYTES: BSLS_ANNOTATION_FALLTHROUGH;
+    case EventType::e_NO_SC_MESSAGE: {
+        BSLS_ASSERT_SAFE(false && "Unexpected event type for appId metric");
+    } break;
+
+    default: {
+        BSLS_ASSERT_SAFE(false && "Unknown event type");
+    } break;
+    };
+}
+
 void QueueStatsDomain::setQueueContentRaw(bsls::Types::Int64 messages,
                                           bsls::Types::Int64 bytes)
 {
@@ -530,50 +612,6 @@ void QueueStatsDomain::setQueueContentRaw(bsls::Types::Int64 messages,
 
     d_statContext_mp->setValue(DomainQueueStats::e_STAT_BYTES, bytes);
     d_statContext_mp->setValue(DomainQueueStats::e_STAT_MESSAGES, messages);
-}
-
-void QueueStatsDomain::reportConfirmTime(bsls::Types::Int64 value,
-                                         const bsl::string& appId)
-{
-    BSLS_ASSERT_SAFE(d_statContext_mp && "initialize was not called");
-
-    // Report `confirm time` metric to the queue context
-    d_statContext_mp->reportValue(DomainQueueStats::e_STAT_CONFIRM_TIME,
-                                  value);
-    if (!d_subContexts_mp) {
-        return;  // RETURN
-    }
-
-    // Report `confirm time` metric to corresponding appId subcontext
-    bsl::list<StatSubContextMp>::iterator it = bsl::find_if(
-        d_subContexts_mp->begin(),
-        d_subContexts_mp->end(),
-        ContextNameMatcher(appId));
-    if (it != d_subContexts_mp->end()) {
-        it->get()->reportValue(DomainQueueStats::e_STAT_CONFIRM_TIME, value);
-    }
-}
-
-void QueueStatsDomain::reportQueueTime(bsls::Types::Int64 value,
-                                       const bsl::string& appId)
-{
-    BSLS_ASSERT_SAFE(d_statContext_mp && "initialize was not called");
-
-    // Report `queue time` metric to the queue context
-    d_statContext_mp->reportValue(DomainQueueStats::e_STAT_QUEUE_TIME, value);
-
-    if (!d_subContexts_mp) {
-        return;  // RETURN
-    }
-
-    // Report `queue time` metric to corresponding appId subcontext
-    bsl::list<StatSubContextMp>::iterator it = bsl::find_if(
-        d_subContexts_mp->begin(),
-        d_subContexts_mp->end(),
-        ContextNameMatcher(appId));
-    if (it != d_subContexts_mp->end()) {
-        it->get()->reportValue(DomainQueueStats::e_STAT_QUEUE_TIME, value);
-    }
 }
 
 void QueueStatsDomain::updateDomainAppIds(

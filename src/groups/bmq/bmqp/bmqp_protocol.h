@@ -2188,7 +2188,7 @@ struct PushHeaderFlags {
     enum Enum {
         e_IMPLICIT_PAYLOAD   = (1 << 0),
         e_MESSAGE_PROPERTIES = (1 << 1),
-        e_UNUSED3            = (1 << 2),
+        e_OUT_OF_ORDER       = (1 << 2),
         e_UNUSED4            = (1 << 3)
     };
 

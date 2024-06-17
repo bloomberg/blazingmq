@@ -1608,9 +1608,10 @@ void ElectorStateMachine::enable(int selfId,
         return;  // RETURN
     }
 
+    // DO NOT set `d_term` to 0 because the Elector could have started with a
+    // non-zero initial term.
     d_state                    = ElectorState::e_FOLLOWER;
     d_reason                   = ElectorTransitionReason::e_STARTED;
-    d_term                     = 0;
     d_quorum                   = quorum;
     d_numTotalPeers            = numTotalPeers;
     d_selfId                   = selfId;

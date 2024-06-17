@@ -3,7 +3,7 @@
         {
             "name": "local",
             "clusterAttributes": {
-                "isCSLModeEnabled": true,
+                "isCSLModeEnabled": false,
                 "isFSMWorkflow": false
             },
             "nodes": [

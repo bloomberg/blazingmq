@@ -93,7 +93,6 @@ if(BMQ_TARGET_BMQBRKR_NEEDED)
   bbs_read_metadata(PACKAGE bmqbrkr)
 
   add_executable(bmqbrkr ${bmqbrkr_MAIN_SOURCE} ${bmqbrkr_SOURCE_FILES})
-  target_compile_definitions(bmqbrkr PRIVATE "MWC_INTERNAL_USAGE")
   target_include_directories(bmqbrkr
     BEFORE PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 

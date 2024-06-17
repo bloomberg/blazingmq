@@ -1901,10 +1901,18 @@ void Cluster::onPushEvent(const mqbi::DispatcherEvent& event)
             realEvent->subQueueInfos());
     }
     else {
+        int flags = 0;
+
+        if (realEvent->isOutOfOrderPush()) {
+            bmqp::PushHeaderFlagUtil::setFlag(
+                &flags,
+                bmqp::PushHeaderFlags::e_OUT_OF_ORDER);
+        }
+
         rc = ns->clusterNode()->channel().writePush(
             realEvent->queueId(),
             realEvent->guid(),
-            0,
+            flags,
             realEvent->compressionAlgorithmType(),
             realEvent->messagePropertiesInfo(),
             realEvent->subQueueInfos());
@@ -2035,7 +2043,10 @@ void Cluster::onRelayPushEvent(const mqbi::DispatcherEvent& event)
                              appDataSp,
                              optionsSp,
                              bmqp::MessagePropertiesInfo(pushHeader),
-                             pushHeader.compressionAlgorithmType());
+                             pushHeader.compressionAlgorithmType(),
+                             bmqp::PushHeaderFlagUtil::isSet(
+                                 pushHeader.flags(),
+                                 bmqp::PushHeaderFlags::e_OUT_OF_ORDER));
         // Note that passing the correct value of MessageProperties flag
         // above is not really needed, because self node (replica) will
         // retrieve the value of this flag from the storage when forwarding

@@ -1,5 +1,5 @@
 """
-BMQ Broker schemas.
+BlazingMQ Broker schemas.
 """
 
 from enum import IntEnum, IntFlag
@@ -54,7 +54,7 @@ class PutHeaderFlags(IntFlag):
 
 
 # =============================================================================
-#                      BMQ BROKER CONTROL MESSAGE SCHEMAS
+#                    BLAZINGMQ BROKER CONTROL MESSAGE SCHEMAS
 # =============================================================================
 
 
@@ -63,7 +63,7 @@ CLIENT_IDENTITY_SCHEMA: SchemaDescription = {
         "protocolVersion": 999999,
         "sdkVersion": 999999,
         "clientType": "E_TCPCLIENT",
-        "processName": "bmq_fuzztest",
+        "processName": "fuzztest",
         "pid": 0,
         "sessionId": 1,
         "hostName": "localhost",
@@ -71,7 +71,7 @@ CLIENT_IDENTITY_SCHEMA: SchemaDescription = {
         "clusterName": "",
         "clusterNodeId": -1,
         "sdkLanguage": "E_CPP",
-        "guidInfo": {"clientId": "bmqfuzzer", "nanoSecondsFromEpoch": 0},
+        "guidInfo": {"clientId": "fuzztest", "nanoSecondsFromEpoch": 0},
     }
 }
 
@@ -93,7 +93,7 @@ OPEN_QUEUE_SCHEMA: SchemaDescription = {
     "rId": 0,
     "openQueue": {
         "handleParameters": {
-            "uri": "bmq://bmq.test.mmap.priority/fuzztest",
+            "uri": "bmq://bmq.test.mem.priority/fuzz",
             "qId": 0,
             "subIdInfo": {"subId": 0, "appId": "__default"},
             "flags": QueueFlags.READ | QueueFlags.WRITE,
@@ -108,7 +108,7 @@ CLOSE_QUEUE_SCHEMA: SchemaDescription = {
     "rId": 0,
     "closeQueue": {
         "handleParameters": {
-            "uri": "bmq://bmq.test.mmap.priority/fuzztest",
+            "uri": "bmq://bmq.test.mem.priority/fuzz",
             "qId": 0,
             "subIdInfo": {"subId": 0, "appId": "__default"},
             "flags": QueueFlags.READ | QueueFlags.WRITE,

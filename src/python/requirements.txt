@@ -1,3 +1,5 @@
+boofuzz
+crc32c
 docker
 psutil
 pytest

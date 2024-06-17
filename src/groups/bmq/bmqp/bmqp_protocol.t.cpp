@@ -1160,7 +1160,7 @@ static void test3_flagUtils()
             bool                        d_isValid;
         } k_DATA[] = {{L_, bmqp::PushHeaderFlags::e_IMPLICIT_PAYLOAD, true},
                       {L_, bmqp::PushHeaderFlags::e_MESSAGE_PROPERTIES, true},
-                      {L_, bmqp::PushHeaderFlags::e_UNUSED3, false},
+                      {L_, bmqp::PushHeaderFlags::e_OUT_OF_ORDER, true},
                       {L_, bmqp::PushHeaderFlags::e_UNUSED4, false}};
 
         const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
@@ -1471,7 +1471,7 @@ static void test4_enumPrint()
             {L_,
              bmqp::PushHeaderFlags::e_MESSAGE_PROPERTIES,
              "MESSAGE_PROPERTIES"},
-            {L_, bmqp::PushHeaderFlags::e_UNUSED3, "UNUSED3"},
+            {L_, bmqp::PushHeaderFlags::e_OUT_OF_ORDER, "OUT_OF_ORDER"},
             {L_, bmqp::PushHeaderFlags::e_UNUSED4, "UNUSED4"},
             {L_, -1, "(* UNKNOWN *)"}};
 
@@ -1600,7 +1600,7 @@ static void test5_enumIsomorphism()
     // Enum PushHeaderFlags
     TEST_ISOMORPHISM(PushHeaderFlags, IMPLICIT_PAYLOAD)
     TEST_ISOMORPHISM(PushHeaderFlags, MESSAGE_PROPERTIES)
-    TEST_ISOMORPHISM(PushHeaderFlags, UNUSED3)
+    TEST_ISOMORPHISM(PushHeaderFlags, OUT_OF_ORDER)
     TEST_ISOMORPHISM(PushHeaderFlags, UNUSED4)
 
     // Enum StorageHeaderFlags
@@ -1658,12 +1658,13 @@ static void test6_enumFromString()
     PV("Testing PushHeaderFlagUtil toString method");
     int expectedFlags = bmqp::PushHeaderFlags::e_IMPLICIT_PAYLOAD |
                         bmqp::PushHeaderFlags::e_MESSAGE_PROPERTIES |
-                        bmqp::PushHeaderFlags::e_UNUSED3 |
+                        bmqp::PushHeaderFlags::e_OUT_OF_ORDER |
                         bmqp::PushHeaderFlags::e_UNUSED4;
-    bsl::string corrStr("IMPLICIT_PAYLOAD,MESSAGE_PROPERTIES,UNUSED3,UNUSED4",
-                        s_allocator_p);
+    bsl::string corrStr(
+        "IMPLICIT_PAYLOAD,MESSAGE_PROPERTIES,OUT_OF_ORDER,UNUSED4",
+        s_allocator_p);
     bsl::string incorrStr(
-        "IMPLICIT_PAYLOAD,MESSAGE_PROPERTIES,UNUSED3,INVLD1,INVLD2",
+        "IMPLICIT_PAYLOAD,MESSAGE_PROPERTIES,OUT_OF_ORDER,INVLD1,INVLD2",
         s_allocator_p);
     bsl::string errOutput("Invalid flag(s) 'INVLD1','INVLD2'", s_allocator_p);
     enumFromStringHelper<bmqp::PushHeaderFlagUtil>(expectedFlags,
