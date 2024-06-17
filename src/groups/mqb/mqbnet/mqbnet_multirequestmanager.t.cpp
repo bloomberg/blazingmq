@@ -257,6 +257,7 @@ TestContext::TestContext(int nodesCount, bslma::Allocator* allocator)
                                            false,  // isLeader
                                            false,  // isCSLMode
                                            false,  // isFSMWorkflow
+                                           false,  // doesFSMwriteQLIST
                                            defs,
                                            "testCluster",
                                            d_tempDir.path()),
@@ -486,6 +487,7 @@ static void test1_contextTest()
                                  false,  // isLeader
                                  false,  // isCSLMode
                                  false,  // isFSMWorkflow
+                                 false,  // doesFSMwriteQLIST
                                  defs,
                                  "testCluster",
                                  tempDir.path());
