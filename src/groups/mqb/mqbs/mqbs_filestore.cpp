@@ -5134,10 +5134,6 @@ FileStore::FileStore(const DataStoreConfig&  config,
 , d_fileSets(allocator)
 , d_cluster_p(cluster)
 , d_miscWorkThreadPool_p(miscWorkThreadPool)
-, d_storageEventBuilder(FileStoreProtocol::k_VERSION,
-                        bmqp::EventType::e_STORAGE,
-                        config.bufferFactory(),
-                        allocator)
 , d_syncPointEventHandle()
 , d_partitionHighwatermarkEventHandle()
 , d_isPrimary(false)
@@ -5150,6 +5146,10 @@ FileStore::FileStore(const DataStoreConfig&  config,
 , d_isFSMWorkflow(isFSMWorkflow)
 , d_ignoreCrc32c(false)
 , d_nagglePacketCount(k_NAGLE_PACKET_COUNT)
+, d_storageEventBuilder(FileStoreProtocol::k_VERSION,
+                        bmqp::EventType::e_STORAGE,
+                        config.bufferFactory(),
+                        allocator)
 {
     // PRECONDITIONS
     BSLS_ASSERT(allocator);
