@@ -16,23 +16,15 @@
 // mwcu_operationchain.cpp                                            -*-C++-*-
 #include <mwcu_operationchain.h>
 
+// MWC
 #include <mwcscm_version.h>
+
 // BDE
 #include <bsl_iterator.h>
-#include <bslmt_lockguard.h>
 #include <bslmt_mutexassert.h>
 
 namespace BloombergLP {
 namespace mwcu {
-
-namespace {
-
-// TYPES
-typedef bslmt::LockGuard<bslmt::Mutex> LockGuard;
-
-typedef bslmt::LockGuardUnlock<bslmt::Mutex> UnlockGuard;
-
-}  // close unnamed namespace
 
 // ------------------------------------
 // class OperationChain_Job::TargetBase
@@ -69,17 +61,18 @@ void OperationChain::onOperationCompleted(JobHandle handle)
     // decrement the number of links in this chain and continue executing
     // operations, given the chain is started and is not empty
     if (--d_numLinks != 0 && d_isStarted) {
-        run();
-        return;  // RETURN
+        run(&lock);  // UNLOCK
+        return;      // RETURN
     }
 
     // notify all waiting threads
     d_condition.broadcast();
 }
 
-void OperationChain::run() BSLS_KEYWORD_NOEXCEPT
+void OperationChain::run(LockGuard* lock) BSLS_KEYWORD_NOEXCEPT
 {
     // PRECONDITIONS
+    BSLS_ASSERT(lock);
     BSLMT_MUTEXASSERT_IS_LOCKED(&d_mutex);
     BSLS_ASSERT(d_isStarted);
     BSLS_ASSERT(d_numLinks != 0);
@@ -93,7 +86,7 @@ void OperationChain::run() BSLS_KEYWORD_NOEXCEPT
     unsigned          numJobs = d_numJobsRunning;
     JobList::iterator jobIt   = d_jobList.begin();
 
-    UnlockGuard unlock(&d_mutex);  // UNLOCK
+    lock->release()->unlock();  // UNLOCK
 
     // run jobs
     for (; numJobs != 0; --numJobs) {
@@ -166,7 +159,7 @@ void OperationChain::start()
     }
 
     // start executing operations
-    run();
+    run(&lock);  // UNLOCK
 }
 
 void OperationChain::stop() BSLS_KEYWORD_NOEXCEPT
@@ -218,7 +211,7 @@ void OperationChain::append(Link* const* links, size_t count)
     // if the chain is started and the first appended link is the first one in
     // the chain, start executing operations right away
     if (d_isStarted && d_numLinks != 0 && prevNumLinks == 0) {
-        run();
+        run(&lock);  // UNLOCK
     }
 }
 
