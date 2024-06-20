@@ -80,8 +80,11 @@ int ExecUtil::execute(bsl::string* output, const char* command)
     output->assign(cmdOutput.str().data(), cmdOutput.str().length());
 
     // Close the pipe, and retrieve the rc code of execution of the command.
-    int rc = pclose(pipe);
+    const int rc = pclose(pipe);
     if (rc != 0) {
+        if (WIFSIGNALED(rc)) {
+            return rc_COMMAND_FAILURE;  // RETURN
+        }
         if (WIFEXITED(rc)) {
             // Process normally exited with an 'exit', extract the lower 8 bits
             // return value.
