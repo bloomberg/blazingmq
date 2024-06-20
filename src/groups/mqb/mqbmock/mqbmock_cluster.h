@@ -129,6 +129,8 @@ class Cluster : public mqbi::Cluster {
         bdlcc::ObjectPoolFunctors::RemoveAll<bdlbb::Blob> >
         BlobSpPool;
 
+    typedef mqbc::ClusterData::MultiRequestManagerType MultiRequestManagerType;
+
   public:
     // TYPES
     typedef bsl::vector<mqbcfg::ClusterNode> ClusterNodeDefs;
@@ -313,6 +315,11 @@ class Cluster : public mqbi::Cluster {
     /// used by this cluster.
     RequestManagerType& requestManager() BSLS_KEYWORD_OVERRIDE;
 
+    // Return a reference offering modifiable access to the multi request
+    // manager used by this cluster.
+    mqbi::Cluster::MultiRequestManagerType&
+    multiRequestManager() BSLS_KEYWORD_OVERRIDE;
+
     /// Send the specified `request` with the specified `timeout` to the
     /// specified `target` node.  If `target` is 0, it is the Cluster's
     /// implementation responsibility to decide which node to use (in
@@ -413,13 +420,20 @@ class Cluster : public mqbi::Cluster {
     mqbc::ClusterData* _clusterData();
 
     /// Get a modifiable reference to this object's cluster state.
-    mqbc::ClusterState& _state();
+    mqbc::ClusterState&
+    _state();  // <--- WHY DOES THIS EXIST? It seems there are no references to
+               // it, so why have this?
 
     /// Move the test timer forward the specified `seconds`.
     void advanceTime(int seconds);
 
     /// Block until scheduler executes all the scheduled callbacks.
     void waitForScheduler();
+
+    // Gets all the nodes which are a primary for some partition of this
+    // cluster
+    void getPrimaryNodes(bsl::list<mqbnet::ClusterNode*>& outNodes,
+                         bool& outIsSelfPrimary) const BSLS_KEYWORD_OVERRIDE;
 
     // ACCESSORS
     //   (virtual: mqbi::DispatcherClient)
@@ -442,6 +456,9 @@ class Cluster : public mqbi::Cluster {
     /// Return a reference not offering modifiable access to the net cluster
     /// used by this cluster.
     const mqbnet::Cluster& netCluster() const BSLS_KEYWORD_OVERRIDE;
+
+    // Returns a reference to the cluster state describing this cluster
+    // const mqbc::ClusterState& clusterState() const BSLS_KEYWORD_OVERRIDE;
 
     /// Return true if this cluster is a local cluster.
     bool isLocal() const BSLS_KEYWORD_OVERRIDE;
@@ -567,6 +584,12 @@ inline void Cluster::advanceTime(int seconds)
     d_timeSource.advanceTime(bsls::TimeInterval(seconds));
 }
 
+inline void Cluster::getPrimaryNodes(bsl::list<mqbnet::ClusterNode*>& outNodes,
+                                     bool& outIsSelfPrimary) const
+{
+    // no implementation
+}
+
 // ACCESSORS
 //   (virtual: mqbi::Cluster)
 inline bool Cluster::isCSLModeEnabled() const
@@ -614,6 +637,11 @@ inline bsls::Types::Int64 Cluster::getTimeInt64() const
 {
     return d_timeSource.now().seconds();
 }
+
+// inline const mqbc::ClusterState& Cluster::clusterState() const
+// {
+//     return d_state;
+// }
 
 }  // close package namespace
 }  // close enterprise namespace

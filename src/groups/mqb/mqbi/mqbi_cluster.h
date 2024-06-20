@@ -70,6 +70,9 @@ namespace bmqt {
 class Uri;
 }
 namespace mqbc {
+class ClusterState;
+}
+namespace mqbc {
 class ClusterStateObserver;
 }
 namespace mqbcmd {
@@ -86,6 +89,10 @@ class Cluster;
 }
 namespace mqbnet {
 class ClusterNode;
+}
+namespace mqbnet {
+template <class REQUEST, class RESPONSE, class TARGET>
+class MultiRequestManager;
 }
 
 namespace mqbi {
@@ -237,6 +244,11 @@ class Cluster : public DispatcherClient {
                                  bmqp_ctrlmsg::ControlMessage>
         RequestManagerType;
 
+    typedef mqbnet::MultiRequestManager<bmqp_ctrlmsg::ControlMessage,
+                                        bmqp_ctrlmsg::ControlMessage,
+                                        mqbnet::ClusterNode*>
+        MultiRequestManagerType;
+
     /// Signature of a `void` functor method.
     typedef bsl::function<void(void)> VoidFunctor;
 
@@ -271,6 +283,10 @@ class Cluster : public DispatcherClient {
     /// Return a reference offering modifiable access to the request manager
     /// used by this cluster.
     virtual RequestManagerType& requestManager() = 0;
+
+    // Return a reference offering a modifiable access to the multi request
+    // manager used by this cluster.
+    virtual MultiRequestManagerType& multiRequestManager() = 0;
 
     /// Register the specified `observer` to be notified of cluster state
     /// changes.
@@ -412,6 +428,14 @@ class Cluster : public DispatcherClient {
     /// represents a proxy, otherwise null.
     virtual const mqbcfg::ClusterProxyDefinition*
     clusterProxyConfig() const = 0;
+
+    // Returns a reference to the cluster state of this `mqbi::Cluster`
+    // virtual const mqbc::ClusterState& clusterState() const = 0;
+
+    // Gets all the nodes which are a primary for some partition of this
+    // cluster
+    virtual void getPrimaryNodes(bsl::list<mqbnet::ClusterNode*>& outNodes,
+                                 bool& outIsSelfPrimary) const = 0;
 };
 
 // ============================================================================
