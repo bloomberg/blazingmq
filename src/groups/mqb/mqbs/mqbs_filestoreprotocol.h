@@ -2462,6 +2462,7 @@ inline unsigned int AppIdHeader::appIdLengthWords() const
 inline QueueRecordHeader::QueueRecordHeader()
 : d_queueUriLengthWords(bdlb::BigEndianUint16::make(0))
 , d_numAppIds(bdlb::BigEndianUint16::make(0))
+, d_headerWordsAndQueueRecordWords(bdlb::BigEndianUint32::make(0))
 {
     const size_t val = sizeof(QueueRecordHeader) / bmqp::Protocol::k_WORD_SIZE;
     setHeaderWords(val);

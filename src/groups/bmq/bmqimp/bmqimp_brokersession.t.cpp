@@ -9813,23 +9813,6 @@ static void test54_distributedTrace()
                                                bsls::TimeInterval(0.01)),
                       0);
         }
-
-        static bool waitForWriteCall(
-            const bsl::deque<mwcio::TestChannel::WriteCall>& calls,
-            const bsls::TimeInterval&                        timeout)
-        {
-            PVVV_SAFE("Waiting for any write event");
-
-            const bsls::TimeInterval expireAfter =
-                bsls::SystemTime::nowRealtimeClock() + timeout;
-            while (calls.empty() &&
-                   bsls::SystemTime::nowRealtimeClock() < expireAfter) {
-                bslmt::ThreadUtil::microSleep(
-                    TestSession::k_TIME_SOURCE_STEP.totalMicroseconds());
-            }
-
-            return !calls.empty();
-        }
     };
 
     bsl::vector<bsl::string>  dtEvents(s_allocator_p);
@@ -9927,8 +9910,7 @@ static void test54_distributedTrace()
                                                pQueue->options(),
                                                timeout);
     ASSERT_EQ(rc, bmqt::ConfigureQueueResult::e_SUCCESS);
-    ASSERT(localFns::waitForWriteCall(obj.channel().writeCalls(),
-                                      bsls::TimeInterval(0.1)));
+    ASSERT(obj.channel().waitFor(1, false, bsls::TimeInterval(1)));
 
     localFns::fillEventBufferFn(dtEvents, dtEventsQueue, 1u);
     ASSERT_EQ(dtEvents[0],
