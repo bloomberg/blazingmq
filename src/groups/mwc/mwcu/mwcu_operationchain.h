@@ -161,7 +161,6 @@
 //..
 
 // MWC
-
 #include <mwcu_noop.h>
 #include <mwcu_objectplaceholder.h>
 
@@ -178,6 +177,7 @@
 #include <bslmf_nestedtraitdeclaration.h>
 #include <bslmf_util.h>
 #include <bslmt_condition.h>
+#include <bslmt_lockguard.h>
 #include <bslmt_mutex.h>
 #include <bsls_assert.h>
 #include <bsls_compilerfeatures.h>
@@ -193,7 +193,7 @@
 
 #if BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES
 // Include version that can be compiled with C++03
-// Generated on Tue Jun 28 12:18:48 2022
+// Generated on Wed Jun 19 15:52:47 2024
 // Command line: sim_cpp11_features.pl mwcu_operationchain.h
 #define COMPILING_MWCU_OPERATIONCHAIN_H
 #include <mwcu_operationchain_cpp03.h>
@@ -475,6 +475,8 @@ class OperationChain {
 
     typedef JobList::iterator JobHandle;
 
+    typedef bslmt::LockGuard<bslmt::Mutex> LockGuard;
+
   private:
     // PRIVATE DATA
 
@@ -508,7 +510,9 @@ class OperationChain {
     void onOperationCompleted(JobHandle handle) BSLS_KEYWORD_NOEXCEPT;
 
     /// Execute all operations in the first link of this operation chain.
-    void run() BSLS_KEYWORD_NOEXCEPT;
+    /// Unlock the mutex associated with the specified 'lock' guard and
+    /// release the guard.
+    void run(LockGuard* lock) BSLS_KEYWORD_NOEXCEPT;
 
   private:
     // NOT IMPLEMENTED

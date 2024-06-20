@@ -97,7 +97,7 @@ static void test1_breathingTest()
     mwcu::MemOutStream                  expectedStream(s_allocator_p);
     bsl::list<NodeType>::const_iterator recordIter         = records.begin();
     bsl::size_t                         foundMessagesCount = 0;
-    while (recordIter++ != records.end()) {
+    for (; recordIter != records.end(); ++recordIter) {
         RecordType::Enum rtype = recordIter->first;
         if (rtype == RecordType::e_MESSAGE) {
             const MessageRecord& msg = *reinterpret_cast<const MessageRecord*>(
@@ -137,7 +137,7 @@ static void test2_searchGuidTest()
     bsl::vector<bsl::string>&           searchGuids = params.d_guid;
     bsl::list<NodeType>::const_iterator recordIter  = records.begin();
     bsl::size_t                         msgCnt      = 0;
-    while (recordIter++ != records.end()) {
+    for (; recordIter != records.end(); ++recordIter) {
         RecordType::Enum rtype = recordIter->first;
         if (rtype == RecordType::e_MESSAGE) {
             if (msgCnt++ % 2 != 0)
@@ -261,7 +261,7 @@ static void test4_searchExistingAndNonExistingGuidTest()
     // Get two existing message GUIDs
     bsl::list<NodeType>::const_iterator recordIter = records.begin();
     size_t                              msgCnt     = 0;
-    while (recordIter++ != records.end()) {
+    for (; recordIter != records.end(); ++recordIter) {
         RecordType::Enum rtype = recordIter->first;
         if (rtype == RecordType::e_MESSAGE) {
             if (msgCnt++ == 2)
@@ -719,7 +719,7 @@ static void test11_searchMessagesByTimestamp()
 
     bsl::list<NodeType>::const_iterator recordIter = records.begin();
     bsl::size_t                         msgCnt     = 0;
-    while (recordIter++ != records.end()) {
+    for (; recordIter != records.end(); ++recordIter) {
         RecordType::Enum rtype = recordIter->first;
         if (rtype == RecordType::e_MESSAGE) {
             const MessageRecord& msg = *reinterpret_cast<const MessageRecord*>(

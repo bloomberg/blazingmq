@@ -354,9 +354,6 @@ class FileStore : public DataStore {
     // work that can be offloaded to
     // non-partition-dispatcher threads.
 
-    bmqp::StorageEventBuilder d_storageEventBuilder;
-    // Storage event builder to use.
-
     RecurringEventHandle d_syncPointEventHandle;
 
     RecurringEventHandle d_partitionHighwatermarkEventHandle;
@@ -400,6 +397,9 @@ class FileStore : public DataStore {
     // flushing the builder.  Depending
     // the cluster channels load, it can
     // grow or shrink.
+
+    bmqp::StorageEventBuilder d_storageEventBuilder;
+    // Storage event builder to use.
 
   private:
     // NOT IMPLEMENTED

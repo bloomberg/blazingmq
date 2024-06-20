@@ -17,7 +17,7 @@
 
 // Automatically generated file.  **DO NOT EDIT**
 
-// Generated on Thu Jul 14 06:32:40 2022
+// Generated on Wed Jun 19 14:58:49 2024
 // Command line: sim_cpp11_features.pl mwcu_operationchain.cpp
 
 #define INCLUDED_MWCU_OPERATIONCHAIN_CPP03  // Disable inclusion
@@ -31,7 +31,7 @@
 #endif  // defined(COMPILING_MWCU_OPERATIONCHAIN_CPP)
 
 // ----------------------------------------------------------------------------
-// Copyright 2022-2023 Bloomberg Finance L.P.
+// Copyright 2024 Bloomberg Finance L.P.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
