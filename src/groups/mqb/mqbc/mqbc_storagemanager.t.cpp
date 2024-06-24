@@ -2025,7 +2025,7 @@ static void test11_primaryHealingStage2DetectSelfReplica()
     helper.d_cluster_mp->stop();
 }
 
-static void test12_replicaHealingStage1DetectSelfPrimary()
+static void test12_replicaHealingDetectSelfPrimary()
 // ------------------------------------------------------------------------
 // BREATHING TEST
 //
@@ -2035,7 +2035,7 @@ static void test12_replicaHealingStage1DetectSelfPrimary()
 // Plan:
 //  1) Create a StorageManager on the stack
 //  2) Invoke start.
-//  3) Transition to Replica healing stage 1 and then detect self primary.
+//  3) Transition to healing Replica and then detect self primary.
 //  4) Verify the actions as per FSM.
 //  5) Invoke stop.
 //
@@ -2043,9 +2043,9 @@ static void test12_replicaHealingStage1DetectSelfPrimary()
 //   Basic functionality.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("BREATHING TEST - "
-                                      "REPLICA HEALING STAGE 1 DETECTS SELF AS"
-                                      " PRIMARY");
+    mwctst::TestHelper::printTestName(
+        "BREATHING TEST - "
+        "HEALING REPLICA DETECTS SELF AS PRIMARY");
 
     TestHelper helper;
 
@@ -2102,7 +2102,7 @@ static void test12_replicaHealingStage1DetectSelfPrimary()
 
     BSLS_ASSERT_OPT(nodeToSeqNumCtxMap.size() == 1);
 
-    // Apply Detect Self Primary event to Self Node in replicaHealingStage1.
+    // Apply Detect Self Primary event to Self Node.
 
     storageManager.setPrimaryForPartition(k_PARTITION_ID,
                                           selfNode,
@@ -2120,7 +2120,7 @@ static void test12_replicaHealingStage1DetectSelfPrimary()
     helper.d_cluster_mp->stop();
 }
 
-static void test13_replicaHealingStage1ReceivesReplicaStateRqst()
+static void test13_replicaHealingReceivesReplicaStateRqst()
 // ------------------------------------------------------------------------
 // BREATHING TEST
 //
@@ -2130,7 +2130,7 @@ static void test13_replicaHealingStage1ReceivesReplicaStateRqst()
 // Plan:
 //  1) Create a StorageManager on the stack
 //  2) Invoke start.
-//  3) Transition to Replica healing stage 1.
+//  3) Transition to healing Replica.
 //  4) Send ReplicaStateRqst to this Replica.
 //  5) Check that Replica sends ReplicaStateRspn, stores primarySeqNum.
 //  6) Verify the actions as per FSM.
@@ -2140,9 +2140,9 @@ static void test13_replicaHealingStage1ReceivesReplicaStateRqst()
 //   Basic functionality.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("BREATHING TEST - "
-                                      "REPLICA HEALING STAGE 1 RECEIVES "
-                                      "REPLICA STATE REQUEST");
+    mwctst::TestHelper::printTestName(
+        "BREATHING TEST - "
+        "HEALING REPLICA RECEIVES REPLICA STATE REQUEST");
 
     TestHelper helper;
 
@@ -2227,7 +2227,7 @@ static void test13_replicaHealingStage1ReceivesReplicaStateRqst()
     helper.d_cluster_mp->stop();
 }
 
-static void test14_replicaHealingStage1ReceivesPrimaryStateRspn()
+static void test14_replicaHealingReceivesPrimaryStateRspn()
 // ------------------------------------------------------------------------
 // BREATHING TEST
 //
@@ -2237,7 +2237,7 @@ static void test14_replicaHealingStage1ReceivesPrimaryStateRspn()
 // Plan:
 //  1) Create a StorageManager on the stack
 //  2) Invoke start.
-//  3) Transition to Replica healing stage 1.
+//  3) Transition to healing Replica.
 //  4) Send PrimaryStateRspn to this Replica.
 //  5) Check that Replica stores primarySeqNum.
 //  6) Verify the actions as per FSM.
@@ -2247,9 +2247,9 @@ static void test14_replicaHealingStage1ReceivesPrimaryStateRspn()
 //   Basic functionality.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("BREATHING TEST - "
-                                      "REPLICA HEALING STAGE 1 RECEIVES "
-                                      "PRIMARY STATE RESPONSE");
+    mwctst::TestHelper::printTestName(
+        "BREATHING TEST - "
+        "HEALING REPLICA RECEIVES PRIMARY STATE RESPONSE");
 
     TestHelper helper;
 
@@ -2332,7 +2332,7 @@ static void test14_replicaHealingStage1ReceivesPrimaryStateRspn()
     helper.d_cluster_mp->stop();
 }
 
-static void test15_replicaHealingStage1ReceivesFailedPrimaryStateRspn()
+static void test15_replicaHealingReceivesFailedPrimaryStateRspn()
 // ------------------------------------------------------------------------
 // BREATHING TEST
 //
@@ -2342,7 +2342,7 @@ static void test15_replicaHealingStage1ReceivesFailedPrimaryStateRspn()
 // Plan:
 //  1) Create a StorageManager on the stack
 //  2) Invoke start.
-//  3) Transition to Replica healing stage 1.
+//  3) Transition to healing Replica.
 //  4) Send failed PrimaryStateRspn to this Replica.
 //  5) Check that Replica does not store primarySeqNum.
 //  6) Verify the actions as per FSM.
@@ -2352,9 +2352,9 @@ static void test15_replicaHealingStage1ReceivesFailedPrimaryStateRspn()
 //   Basic functionality.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("BREATHING TEST - "
-                                      "REPLICA HEALING STAGE 1 RECEIVES "
-                                      "FAILED PRIMARY STATE RESPONSE");
+    mwctst::TestHelper::printTestName(
+        "BREATHING TEST - "
+        "HEALING REPLICA RECEIVES FAILED PRIMARY STATE RESPONSE");
 
     TestHelper helper;
 
@@ -2426,7 +2426,7 @@ static void test15_replicaHealingStage1ReceivesFailedPrimaryStateRspn()
     helper.d_cluster_mp->stop();
 }
 
-static void test16_replicaHealingStage1ReceivesPrimaryStateRqst()
+static void test16_replicaHealingReceivesPrimaryStateRqst()
 // ------------------------------------------------------------------------
 // BREATHING TEST
 //
@@ -2436,7 +2436,7 @@ static void test16_replicaHealingStage1ReceivesPrimaryStateRqst()
 // Plan:
 //  1) Create a StorageManager on the stack
 //  2) Invoke start.
-//  3) Transition to Replica healing stage 1.
+//  3) Transition to healing Replica.
 //  4) Send PrimaryStateRqst to this Replica.
 //  5) Check that Replica sends failed PrimaryStateRspn.
 //  6) Verify the actions as per FSM.
@@ -2446,9 +2446,9 @@ static void test16_replicaHealingStage1ReceivesPrimaryStateRqst()
 //   Basic functionality.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("BREATHING TEST - "
-                                      "REPLICA HEALING STAGE 1 RECEIVES "
-                                      "PRIMARY STATE REQUEST");
+    mwctst::TestHelper::printTestName(
+        "BREATHING TEST - "
+        "HEALING REPLICA RECEIVES PRIMARY STATE REQUEST");
 
     TestHelper helper;
 
@@ -2539,7 +2539,7 @@ static void test16_replicaHealingStage1ReceivesPrimaryStateRqst()
     helper.d_cluster_mp->stop();
 }
 
-static void test17_replicaHealingStage2ReceivesReplicaDataRqstPull()
+static void test17_replicaHealingReceivesReplicaDataRqstPull()
 // ------------------------------------------------------------------------
 // BREATHING TEST
 //
@@ -2550,10 +2550,10 @@ static void test17_replicaHealingStage2ReceivesReplicaDataRqstPull()
 // Plan:
 //  1) Create a StorageManager on the stack
 //  2) Invoke start.
-//  3) Transition to Replica healing stage 1.
+//  3) Transition to healing Replica.
 //  4) Send ReplicaStateRqst to this Replica.
 //  5) Check that Replica sends ReplicaStateRspn, stores primarySeqNum.
-//  6) Transition Replica to healing stage 2 and send ReplicaDataRqstPull
+//  6) Send ReplicaDataRqstPull
 //  7) Check that Replica sends data chunks.
 //  8) Check that Replica sends ReplicaDataRspnPull.
 //  9) Invoke stop.
@@ -2562,9 +2562,9 @@ static void test17_replicaHealingStage2ReceivesReplicaDataRqstPull()
 //   Basic functionality.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("BREATHING TEST - "
-                                      "REPLICA HEALING STAGE 2 RECEIVES "
-                                      "REPLICA DATA REQUEST PULL");
+    mwctst::TestHelper::printTestName(
+        "BREATHING TEST - "
+        "HEALING REPLICA RECEIVES REPLICA DATA REQUEST PULL");
 
     // TODO: debug on why the global allocator check fails for fileStore
     // allocating some memory through default allocator.
@@ -2866,21 +2866,19 @@ int main(int argc, char* argv[])
     case 0:
         //      case 23:
         //      test23_primaryHealingStage2SendsReplicaDataRqstPushDrop();
-        //      break; case 22: test22_replicaHealingStage2DetectSelfPrimary();
+        //      break; case 22: test22_replicaHealingDetectSelfPrimary();
         //      break; case 21:
-        //      test21_replicaHealingStage2ReceivesReplicaDataRqstDrop();
+        //      test21_replicaHealingReceivesReplicaDataRqstDrop();
         //      break; case 20:
-        //      test20_replicaHealingStage2ReceivesReplicaDataRqstPush();
+        //      test20_replicaHealingReceivesReplicaDataRqstPush();
         //      break; case 19: test19_primaryHealedSendsDataChunks(); break;
     case 18: test18_primaryHealingStage1SelfHighestSendsDataChunks(); break;
-    case 17: test17_replicaHealingStage2ReceivesReplicaDataRqstPull(); break;
-    case 16: test16_replicaHealingStage1ReceivesPrimaryStateRqst(); break;
-    case 15:
-        test15_replicaHealingStage1ReceivesFailedPrimaryStateRspn();
-        break;
-    case 14: test14_replicaHealingStage1ReceivesPrimaryStateRspn(); break;
-    case 13: test13_replicaHealingStage1ReceivesReplicaStateRqst(); break;
-    case 12: test12_replicaHealingStage1DetectSelfPrimary(); break;
+    case 17: test17_replicaHealingReceivesReplicaDataRqstPull(); break;
+    case 16: test16_replicaHealingReceivesPrimaryStateRqst(); break;
+    case 15: test15_replicaHealingReceivesFailedPrimaryStateRspn(); break;
+    case 14: test14_replicaHealingReceivesPrimaryStateRspn(); break;
+    case 13: test13_replicaHealingReceivesReplicaStateRqst(); break;
+    case 12: test12_replicaHealingDetectSelfPrimary(); break;
     case 11: test11_primaryHealingStage2DetectSelfReplica(); break;
     case 10:
         test10_primaryHealingStage1QuorumSendsReplicaDataRequestPull();
