@@ -156,6 +156,7 @@
     </annotation>
     <sequence>
       <element name='command' type='string'/>
+      <element name='rerouted' type='boolean'/>
     </sequence>
   </complexType>
 

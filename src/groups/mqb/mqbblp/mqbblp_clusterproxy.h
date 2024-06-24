@@ -536,8 +536,8 @@ class ClusterProxy : public mqbc::ClusterStateObserver,
     /// Load the cluster state in the specified `out` object.
     void loadClusterStatus(mqbcmd::ClusterResult* out) BSLS_KEYWORD_OVERRIDE;
 
-    void getPrimaryNodes(bsl::list<mqbnet::ClusterNode*>& outNodes,
-                         bool& outIsSelfPrimary) const BSLS_KEYWORD_OVERRIDE;
+    void getPrimaryNodes(bsl::vector<mqbnet::ClusterNode*>* outNodes,
+                         bool* outIsSelfPrimary) const BSLS_KEYWORD_OVERRIDE;
 
     // MANIPULATORS
     //   (virtual: mqbi::DispatcherClient)
@@ -709,8 +709,8 @@ inline size_t ClusterProxy::ChannelBuffer::bytes() const
 // ------------------
 
 inline void
-ClusterProxy::getPrimaryNodes(bsl::list<mqbnet::ClusterNode*>& outNodes,
-                              bool& outIsSelfPrimary) const
+ClusterProxy::getPrimaryNodes(bsl::vector<mqbnet::ClusterNode*>* outNodes,
+                              bool* outIsSelfPrimary) const
 {
     // no implementation
 }

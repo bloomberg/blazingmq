@@ -434,8 +434,8 @@ class Cluster : public DispatcherClient {
 
     // Gets all the nodes which are a primary for some partition of this
     // cluster
-    virtual void getPrimaryNodes(bsl::list<mqbnet::ClusterNode*>& outNodes,
-                                 bool& outIsSelfPrimary) const = 0;
+    virtual void getPrimaryNodes(bsl::vector<mqbnet::ClusterNode*>* outNodes,
+                                 bool* outIsSelfPrimary) const = 0;
 };
 
 // ============================================================================

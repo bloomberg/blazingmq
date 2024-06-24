@@ -432,8 +432,8 @@ class Cluster : public mqbi::Cluster {
 
     // Gets all the nodes which are a primary for some partition of this
     // cluster
-    void getPrimaryNodes(bsl::list<mqbnet::ClusterNode*>& outNodes,
-                         bool& outIsSelfPrimary) const BSLS_KEYWORD_OVERRIDE;
+    void getPrimaryNodes(bsl::vector<mqbnet::ClusterNode*>* outNodes,
+                         bool* outIsSelfPrimary) const BSLS_KEYWORD_OVERRIDE;
 
     // ACCESSORS
     //   (virtual: mqbi::DispatcherClient)
@@ -584,8 +584,8 @@ inline void Cluster::advanceTime(int seconds)
     d_timeSource.advanceTime(bsls::TimeInterval(seconds));
 }
 
-inline void Cluster::getPrimaryNodes(bsl::list<mqbnet::ClusterNode*>& outNodes,
-                                     bool& outIsSelfPrimary) const
+inline void Cluster::getPrimaryNodes(bsl::vector<mqbnet::ClusterNode*>* outNodes,
+                                     bool* outIsSelfPrimary) const
 {
     // no implementation
 }

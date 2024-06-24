@@ -771,9 +771,10 @@ class Cluster : public mqbi::Cluster,
     // const mqbc::ClusterState& clusterState() const BSLS_KEYWORD_OVERRIDE;
 
     // Gets all the nodes which are a primary for some partition of this
-    // cluster
-    void getPrimaryNodes(bsl::list<mqbnet::ClusterNode*>& outNodes,
-                         bool& outIsSelfPrimary) const BSLS_KEYWORD_OVERRIDE;
+    // cluster and whether or not this node is a primary. The outNodes 
+    // vector will never include the self node.
+    void getPrimaryNodes(bsl::vector<mqbnet::ClusterNode*>* outNodes,
+                         bool* outIsSelfPrimary) const BSLS_KEYWORD_OVERRIDE;
 
     /// Print the state of the cluster to the specified `out`.
     ///

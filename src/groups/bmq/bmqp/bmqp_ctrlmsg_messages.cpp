@@ -1,4 +1,4 @@
-// Copyright 2014-2023 Bloomberg Finance L.P.
+// Copyright 2023 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,9 +30,11 @@
 #include <bsls_assert.h>
 #include <bsls_types.h>
 
+#include <bsl_cstring.h>
 #include <bsl_iomanip.h>
 #include <bsl_limits.h>
 #include <bsl_ostream.h>
+#include <bsl_utility.h>
 
 namespace BloombergLP {
 namespace bmqp_ctrlmsg {
@@ -50,6 +52,11 @@ const bdlat_AttributeInfo AdminCommand::ATTRIBUTE_INFO_ARRAY[] = {
      "command",
      sizeof("command") - 1,
      "",
+     bdlat_FormattingMode::e_TEXT},
+    {ATTRIBUTE_ID_REROUTED,
+     "rerouted",
+     sizeof("rerouted") - 1,
+     "",
      bdlat_FormattingMode::e_TEXT}};
 
 // CLASS METHODS
@@ -57,7 +64,7 @@ const bdlat_AttributeInfo AdminCommand::ATTRIBUTE_INFO_ARRAY[] = {
 const bdlat_AttributeInfo* AdminCommand::lookupAttributeInfo(const char* name,
                                                              int nameLength)
 {
-    for (int i = 0; i < 1; ++i) {
+    for (int i = 0; i < 2; ++i) {
         const bdlat_AttributeInfo& attributeInfo =
             AdminCommand::ATTRIBUTE_INFO_ARRAY[i];
 
@@ -75,6 +82,8 @@ const bdlat_AttributeInfo* AdminCommand::lookupAttributeInfo(int id)
     switch (id) {
     case ATTRIBUTE_ID_COMMAND:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_COMMAND];
+    case ATTRIBUTE_ID_REROUTED:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_REROUTED];
     default: return 0;
     }
 }
@@ -83,25 +92,27 @@ const bdlat_AttributeInfo* AdminCommand::lookupAttributeInfo(int id)
 
 AdminCommand::AdminCommand(bslma::Allocator* basicAllocator)
 : d_command(basicAllocator)
+, d_rerouted()
 {
 }
 
 AdminCommand::AdminCommand(const AdminCommand& original,
                            bslma::Allocator*   basicAllocator)
 : d_command(original.d_command, basicAllocator)
-{
-}
+, d_rerouted(original.d_rerouted){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-AdminCommand::AdminCommand(AdminCommand&& original) noexcept
-: d_command(bsl::move(original.d_command))
+AdminCommand::AdminCommand(AdminCommand && original) noexcept
+: d_command(bsl::move(original.d_command)),
+  d_rerouted(bsl::move(original.d_rerouted))
 {
 }
 
 AdminCommand::AdminCommand(AdminCommand&&    original,
                            bslma::Allocator* basicAllocator)
 : d_command(bsl::move(original.d_command), basicAllocator)
+, d_rerouted(bsl::move(original.d_rerouted))
 {
 }
 #endif
@@ -115,7 +126,8 @@ AdminCommand::~AdminCommand()
 AdminCommand& AdminCommand::operator=(const AdminCommand& rhs)
 {
     if (this != &rhs) {
-        d_command = rhs.d_command;
+        d_command  = rhs.d_command;
+        d_rerouted = rhs.d_rerouted;
     }
 
     return *this;
@@ -126,7 +138,8 @@ AdminCommand& AdminCommand::operator=(const AdminCommand& rhs)
 AdminCommand& AdminCommand::operator=(AdminCommand&& rhs)
 {
     if (this != &rhs) {
-        d_command = bsl::move(rhs.d_command);
+        d_command  = bsl::move(rhs.d_command);
+        d_rerouted = bsl::move(rhs.d_rerouted);
     }
 
     return *this;
@@ -136,6 +149,7 @@ AdminCommand& AdminCommand::operator=(AdminCommand&& rhs)
 void AdminCommand::reset()
 {
     bdlat_ValueTypeFunctions::reset(&d_command);
+    bdlat_ValueTypeFunctions::reset(&d_rerouted);
 }
 
 // ACCESSORS
@@ -146,6 +160,7 @@ AdminCommand::print(bsl::ostream& stream, int level, int spacesPerLevel) const
     bslim::Printer printer(&stream, level, spacesPerLevel);
     printer.start();
     printer.printAttribute("command", this->command());
+    printer.printAttribute("rerouted", this->rerouted());
     printer.end();
     return stream;
 }
@@ -201,14 +216,13 @@ AdminCommandResponse::AdminCommandResponse(bslma::Allocator* basicAllocator)
 AdminCommandResponse::AdminCommandResponse(
     const AdminCommandResponse& original,
     bslma::Allocator*           basicAllocator)
-: d_text(original.d_text, basicAllocator)
-{
-}
+: d_text(original.d_text, basicAllocator){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-AdminCommandResponse::AdminCommandResponse(AdminCommandResponse&& original)
-    noexcept : d_text(bsl::move(original.d_text))
+AdminCommandResponse::AdminCommandResponse(AdminCommandResponse &&
+                                           original) noexcept
+: d_text(bsl::move(original.d_text))
 {
 }
 
@@ -326,13 +340,11 @@ AppIdInfo::AppIdInfo(bslma::Allocator* basicAllocator)
 AppIdInfo::AppIdInfo(const AppIdInfo&  original,
                      bslma::Allocator* basicAllocator)
 : d_appKey(original.d_appKey, basicAllocator)
-, d_appId(original.d_appId, basicAllocator)
-{
-}
+, d_appId(original.d_appId, basicAllocator){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-AppIdInfo::AppIdInfo(AppIdInfo&& original) noexcept
+AppIdInfo::AppIdInfo(AppIdInfo && original) noexcept
 : d_appKey(bsl::move(original.d_appKey)),
   d_appId(bsl::move(original.d_appId))
 {
@@ -389,7 +401,7 @@ AppIdInfo::print(bsl::ostream& stream, int level, int spacesPerLevel) const
     printer.start();
     printer.printAttribute("appId", this->appId());
     {
-        bool multilineFlag = (0 <= level);
+        bool multilineFlag = (0 <= spacesPerLevel);
         bdlb::Print::indent(stream, level + 1, spacesPerLevel);
         stream << (multilineFlag ? "" : " ");
         stream << "appKey = [ ";
@@ -561,36 +573,7 @@ const bdlat_AttributeInfo* CloseQueueResponse::lookupAttributeInfo(int id)
 
 // CREATORS
 
-CloseQueueResponse::CloseQueueResponse()
-{
-}
-
-CloseQueueResponse::CloseQueueResponse(const CloseQueueResponse& original)
-{
-    (void)original;
-}
-
-CloseQueueResponse::~CloseQueueResponse()
-{
-}
-
 // MANIPULATORS
-
-CloseQueueResponse&
-CloseQueueResponse::operator=(const CloseQueueResponse& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-CloseQueueResponse& CloseQueueResponse::operator=(CloseQueueResponse&& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-#endif
 
 void CloseQueueResponse::reset()
 {
@@ -598,12 +581,8 @@ void CloseQueueResponse::reset()
 
 // ACCESSORS
 
-bsl::ostream& CloseQueueResponse::print(bsl::ostream& stream,
-                                        int           level,
-                                        int           spacesPerLevel) const
+bsl::ostream& CloseQueueResponse::print(bsl::ostream& stream, int, int) const
 {
-    (void)level;
-    (void)spacesPerLevel;
     return stream;
 }
 
@@ -634,36 +613,7 @@ const bdlat_AttributeInfo* ClusterSyncRequest::lookupAttributeInfo(int id)
 
 // CREATORS
 
-ClusterSyncRequest::ClusterSyncRequest()
-{
-}
-
-ClusterSyncRequest::ClusterSyncRequest(const ClusterSyncRequest& original)
-{
-    (void)original;
-}
-
-ClusterSyncRequest::~ClusterSyncRequest()
-{
-}
-
 // MANIPULATORS
-
-ClusterSyncRequest&
-ClusterSyncRequest::operator=(const ClusterSyncRequest& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-ClusterSyncRequest& ClusterSyncRequest::operator=(ClusterSyncRequest&& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-#endif
 
 void ClusterSyncRequest::reset()
 {
@@ -671,12 +621,8 @@ void ClusterSyncRequest::reset()
 
 // ACCESSORS
 
-bsl::ostream& ClusterSyncRequest::print(bsl::ostream& stream,
-                                        int           level,
-                                        int           spacesPerLevel) const
+bsl::ostream& ClusterSyncRequest::print(bsl::ostream& stream, int, int) const
 {
-    (void)level;
-    (void)spacesPerLevel;
     return stream;
 }
 
@@ -707,36 +653,7 @@ const bdlat_AttributeInfo* ClusterSyncResponse::lookupAttributeInfo(int id)
 
 // CREATORS
 
-ClusterSyncResponse::ClusterSyncResponse()
-{
-}
-
-ClusterSyncResponse::ClusterSyncResponse(const ClusterSyncResponse& original)
-{
-    (void)original;
-}
-
-ClusterSyncResponse::~ClusterSyncResponse()
-{
-}
-
 // MANIPULATORS
-
-ClusterSyncResponse&
-ClusterSyncResponse::operator=(const ClusterSyncResponse& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-ClusterSyncResponse& ClusterSyncResponse::operator=(ClusterSyncResponse&& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-#endif
 
 void ClusterSyncResponse::reset()
 {
@@ -744,12 +661,8 @@ void ClusterSyncResponse::reset()
 
 // ACCESSORS
 
-bsl::ostream& ClusterSyncResponse::print(bsl::ostream& stream,
-                                         int           level,
-                                         int           spacesPerLevel) const
+bsl::ostream& ClusterSyncResponse::print(bsl::ostream& stream, int, int) const
 {
-    (void)level;
-    (void)spacesPerLevel;
     return stream;
 }
 
@@ -836,46 +749,7 @@ ConsumerInfo::ConsumerInfo()
 {
 }
 
-ConsumerInfo::ConsumerInfo(const ConsumerInfo& original)
-: d_maxUnconfirmedMessages(original.d_maxUnconfirmedMessages)
-, d_maxUnconfirmedBytes(original.d_maxUnconfirmedBytes)
-, d_consumerPriority(original.d_consumerPriority)
-, d_consumerPriorityCount(original.d_consumerPriorityCount)
-{
-}
-
-ConsumerInfo::~ConsumerInfo()
-{
-}
-
 // MANIPULATORS
-
-ConsumerInfo& ConsumerInfo::operator=(const ConsumerInfo& rhs)
-{
-    if (this != &rhs) {
-        d_maxUnconfirmedMessages = rhs.d_maxUnconfirmedMessages;
-        d_maxUnconfirmedBytes    = rhs.d_maxUnconfirmedBytes;
-        d_consumerPriority       = rhs.d_consumerPriority;
-        d_consumerPriorityCount  = rhs.d_consumerPriorityCount;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-ConsumerInfo& ConsumerInfo::operator=(ConsumerInfo&& rhs)
-{
-    if (this != &rhs) {
-        d_maxUnconfirmedMessages = bsl::move(rhs.d_maxUnconfirmedMessages);
-        d_maxUnconfirmedBytes    = bsl::move(rhs.d_maxUnconfirmedBytes);
-        d_consumerPriority       = bsl::move(rhs.d_consumerPriority);
-        d_consumerPriorityCount  = bsl::move(rhs.d_consumerPriorityCount);
-    }
-
-    return *this;
-}
-#endif
 
 void ConsumerInfo::reset()
 {
@@ -929,35 +803,7 @@ const bdlat_AttributeInfo* Disconnect::lookupAttributeInfo(int id)
 
 // CREATORS
 
-Disconnect::Disconnect()
-{
-}
-
-Disconnect::Disconnect(const Disconnect& original)
-{
-    (void)original;
-}
-
-Disconnect::~Disconnect()
-{
-}
-
 // MANIPULATORS
-
-Disconnect& Disconnect::operator=(const Disconnect& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-Disconnect& Disconnect::operator=(Disconnect&& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-#endif
 
 void Disconnect::reset()
 {
@@ -965,11 +811,8 @@ void Disconnect::reset()
 
 // ACCESSORS
 
-bsl::ostream&
-Disconnect::print(bsl::ostream& stream, int level, int spacesPerLevel) const
+bsl::ostream& Disconnect::print(bsl::ostream& stream, int, int) const
 {
-    (void)level;
-    (void)spacesPerLevel;
     return stream;
 }
 
@@ -1000,36 +843,7 @@ const bdlat_AttributeInfo* DisconnectResponse::lookupAttributeInfo(int id)
 
 // CREATORS
 
-DisconnectResponse::DisconnectResponse()
-{
-}
-
-DisconnectResponse::DisconnectResponse(const DisconnectResponse& original)
-{
-    (void)original;
-}
-
-DisconnectResponse::~DisconnectResponse()
-{
-}
-
 // MANIPULATORS
-
-DisconnectResponse&
-DisconnectResponse::operator=(const DisconnectResponse& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-DisconnectResponse& DisconnectResponse::operator=(DisconnectResponse&& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-#endif
 
 void DisconnectResponse::reset()
 {
@@ -1037,12 +851,8 @@ void DisconnectResponse::reset()
 
 // ACCESSORS
 
-bsl::ostream& DisconnectResponse::print(bsl::ostream& stream,
-                                        int           level,
-                                        int           spacesPerLevel) const
+bsl::ostream& DisconnectResponse::print(bsl::ostream& stream, int, int) const
 {
-    (void)level;
-    (void)spacesPerLevel;
     return stream;
 }
 
@@ -1226,35 +1036,7 @@ const bdlat_AttributeInfo* ElectionProposal::lookupAttributeInfo(int id)
 
 // CREATORS
 
-ElectionProposal::ElectionProposal()
-{
-}
-
-ElectionProposal::ElectionProposal(const ElectionProposal& original)
-{
-    (void)original;
-}
-
-ElectionProposal::~ElectionProposal()
-{
-}
-
 // MANIPULATORS
-
-ElectionProposal& ElectionProposal::operator=(const ElectionProposal& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-ElectionProposal& ElectionProposal::operator=(ElectionProposal&& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-#endif
 
 void ElectionProposal::reset()
 {
@@ -1262,12 +1044,8 @@ void ElectionProposal::reset()
 
 // ACCESSORS
 
-bsl::ostream& ElectionProposal::print(bsl::ostream& stream,
-                                      int           level,
-                                      int           spacesPerLevel) const
+bsl::ostream& ElectionProposal::print(bsl::ostream& stream, int, int) const
 {
-    (void)level;
-    (void)spacesPerLevel;
     return stream;
 }
 
@@ -1298,35 +1076,7 @@ const bdlat_AttributeInfo* ElectionResponse::lookupAttributeInfo(int id)
 
 // CREATORS
 
-ElectionResponse::ElectionResponse()
-{
-}
-
-ElectionResponse::ElectionResponse(const ElectionResponse& original)
-{
-    (void)original;
-}
-
-ElectionResponse::~ElectionResponse()
-{
-}
-
 // MANIPULATORS
-
-ElectionResponse& ElectionResponse::operator=(const ElectionResponse& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-ElectionResponse& ElectionResponse::operator=(ElectionResponse&& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-#endif
 
 void ElectionResponse::reset()
 {
@@ -1334,12 +1084,8 @@ void ElectionResponse::reset()
 
 // ACCESSORS
 
-bsl::ostream& ElectionResponse::print(bsl::ostream& stream,
-                                      int           level,
-                                      int           spacesPerLevel) const
+bsl::ostream& ElectionResponse::print(bsl::ostream& stream, int, int) const
 {
-    (void)level;
-    (void)spacesPerLevel;
     return stream;
 }
 
@@ -1392,37 +1138,7 @@ ElectorNodeStatus::ElectorNodeStatus()
 {
 }
 
-ElectorNodeStatus::ElectorNodeStatus(const ElectorNodeStatus& original)
-: d_isAvailable(original.d_isAvailable)
-{
-}
-
-ElectorNodeStatus::~ElectorNodeStatus()
-{
-}
-
 // MANIPULATORS
-
-ElectorNodeStatus& ElectorNodeStatus::operator=(const ElectorNodeStatus& rhs)
-{
-    if (this != &rhs) {
-        d_isAvailable = rhs.d_isAvailable;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-ElectorNodeStatus& ElectorNodeStatus::operator=(ElectorNodeStatus&& rhs)
-{
-    if (this != &rhs) {
-        d_isAvailable = bsl::move(rhs.d_isAvailable);
-    }
-
-    return *this;
-}
-#endif
 
 void ElectorNodeStatus::reset()
 {
@@ -1537,38 +1253,7 @@ FollowerClusterStateRequest::lookupAttributeInfo(int id)
 
 // CREATORS
 
-FollowerClusterStateRequest::FollowerClusterStateRequest()
-{
-}
-
-FollowerClusterStateRequest::FollowerClusterStateRequest(
-    const FollowerClusterStateRequest& original)
-{
-    (void)original;
-}
-
-FollowerClusterStateRequest::~FollowerClusterStateRequest()
-{
-}
-
 // MANIPULATORS
-
-FollowerClusterStateRequest&
-FollowerClusterStateRequest::operator=(const FollowerClusterStateRequest& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-FollowerClusterStateRequest&
-FollowerClusterStateRequest::operator=(FollowerClusterStateRequest&& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-#endif
 
 void FollowerClusterStateRequest::reset()
 {
@@ -1576,12 +1261,9 @@ void FollowerClusterStateRequest::reset()
 
 // ACCESSORS
 
-bsl::ostream& FollowerClusterStateRequest::print(bsl::ostream& stream,
-                                                 int           level,
-                                                 int spacesPerLevel) const
+bsl::ostream&
+FollowerClusterStateRequest::print(bsl::ostream& stream, int, int) const
 {
-    (void)level;
-    (void)spacesPerLevel;
     return stream;
 }
 
@@ -1612,36 +1294,7 @@ const bdlat_AttributeInfo* FollowerLSNRequest::lookupAttributeInfo(int id)
 
 // CREATORS
 
-FollowerLSNRequest::FollowerLSNRequest()
-{
-}
-
-FollowerLSNRequest::FollowerLSNRequest(const FollowerLSNRequest& original)
-{
-    (void)original;
-}
-
-FollowerLSNRequest::~FollowerLSNRequest()
-{
-}
-
 // MANIPULATORS
-
-FollowerLSNRequest&
-FollowerLSNRequest::operator=(const FollowerLSNRequest& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-FollowerLSNRequest& FollowerLSNRequest::operator=(FollowerLSNRequest&& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-#endif
 
 void FollowerLSNRequest::reset()
 {
@@ -1649,12 +1302,8 @@ void FollowerLSNRequest::reset()
 
 // ACCESSORS
 
-bsl::ostream& FollowerLSNRequest::print(bsl::ostream& stream,
-                                        int           level,
-                                        int           spacesPerLevel) const
+bsl::ostream& FollowerLSNRequest::print(bsl::ostream& stream, int, int) const
 {
-    (void)level;
-    (void)spacesPerLevel;
     return stream;
 }
 
@@ -1722,13 +1371,11 @@ GuidInfo::GuidInfo(bslma::Allocator* basicAllocator)
 
 GuidInfo::GuidInfo(const GuidInfo& original, bslma::Allocator* basicAllocator)
 : d_nanoSecondsFromEpoch(original.d_nanoSecondsFromEpoch)
-, d_clientId(original.d_clientId, basicAllocator)
-{
-}
+, d_clientId(original.d_clientId, basicAllocator){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-GuidInfo::GuidInfo(GuidInfo&& original) noexcept
+GuidInfo::GuidInfo(GuidInfo && original) noexcept
 : d_nanoSecondsFromEpoch(bsl::move(original.d_nanoSecondsFromEpoch)),
   d_clientId(bsl::move(original.d_clientId))
 {
@@ -1817,35 +1464,7 @@ const bdlat_AttributeInfo* HeartbeatResponse::lookupAttributeInfo(int id)
 
 // CREATORS
 
-HeartbeatResponse::HeartbeatResponse()
-{
-}
-
-HeartbeatResponse::HeartbeatResponse(const HeartbeatResponse& original)
-{
-    (void)original;
-}
-
-HeartbeatResponse::~HeartbeatResponse()
-{
-}
-
 // MANIPULATORS
-
-HeartbeatResponse& HeartbeatResponse::operator=(const HeartbeatResponse& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-HeartbeatResponse& HeartbeatResponse::operator=(HeartbeatResponse&& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-#endif
 
 void HeartbeatResponse::reset()
 {
@@ -1853,12 +1472,8 @@ void HeartbeatResponse::reset()
 
 // ACCESSORS
 
-bsl::ostream& HeartbeatResponse::print(bsl::ostream& stream,
-                                       int           level,
-                                       int           spacesPerLevel) const
+bsl::ostream& HeartbeatResponse::print(bsl::ostream& stream, int, int) const
 {
-    (void)level;
-    (void)spacesPerLevel;
     return stream;
 }
 
@@ -1889,35 +1504,7 @@ const bdlat_AttributeInfo* LeaderHeartbeat::lookupAttributeInfo(int id)
 
 // CREATORS
 
-LeaderHeartbeat::LeaderHeartbeat()
-{
-}
-
-LeaderHeartbeat::LeaderHeartbeat(const LeaderHeartbeat& original)
-{
-    (void)original;
-}
-
-LeaderHeartbeat::~LeaderHeartbeat()
-{
-}
-
 // MANIPULATORS
-
-LeaderHeartbeat& LeaderHeartbeat::operator=(const LeaderHeartbeat& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-LeaderHeartbeat& LeaderHeartbeat::operator=(LeaderHeartbeat&& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-#endif
 
 void LeaderHeartbeat::reset()
 {
@@ -1925,12 +1512,8 @@ void LeaderHeartbeat::reset()
 
 // ACCESSORS
 
-bsl::ostream& LeaderHeartbeat::print(bsl::ostream& stream,
-                                     int           level,
-                                     int           spacesPerLevel) const
+bsl::ostream& LeaderHeartbeat::print(bsl::ostream& stream, int, int) const
 {
-    (void)level;
-    (void)spacesPerLevel;
     return stream;
 }
 
@@ -1991,43 +1574,7 @@ LeaderMessageSequence::LeaderMessageSequence()
 {
 }
 
-LeaderMessageSequence::LeaderMessageSequence(
-    const LeaderMessageSequence& original)
-: d_electorTerm(original.d_electorTerm)
-, d_sequenceNumber(original.d_sequenceNumber)
-{
-}
-
-LeaderMessageSequence::~LeaderMessageSequence()
-{
-}
-
 // MANIPULATORS
-
-LeaderMessageSequence&
-LeaderMessageSequence::operator=(const LeaderMessageSequence& rhs)
-{
-    if (this != &rhs) {
-        d_electorTerm    = rhs.d_electorTerm;
-        d_sequenceNumber = rhs.d_sequenceNumber;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-LeaderMessageSequence&
-LeaderMessageSequence::operator=(LeaderMessageSequence&& rhs)
-{
-    if (this != &rhs) {
-        d_electorTerm    = bsl::move(rhs.d_electorTerm);
-        d_sequenceNumber = bsl::move(rhs.d_sequenceNumber);
-    }
-
-    return *this;
-}
-#endif
 
 void LeaderMessageSequence::reset()
 {
@@ -2076,35 +1623,7 @@ const bdlat_AttributeInfo* LeaderPassive::lookupAttributeInfo(int id)
 
 // CREATORS
 
-LeaderPassive::LeaderPassive()
-{
-}
-
-LeaderPassive::LeaderPassive(const LeaderPassive& original)
-{
-    (void)original;
-}
-
-LeaderPassive::~LeaderPassive()
-{
-}
-
 // MANIPULATORS
-
-LeaderPassive& LeaderPassive::operator=(const LeaderPassive& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-LeaderPassive& LeaderPassive::operator=(LeaderPassive&& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-#endif
 
 void LeaderPassive::reset()
 {
@@ -2112,11 +1631,8 @@ void LeaderPassive::reset()
 
 // ACCESSORS
 
-bsl::ostream&
-LeaderPassive::print(bsl::ostream& stream, int level, int spacesPerLevel) const
+bsl::ostream& LeaderPassive::print(bsl::ostream& stream, int, int) const
 {
-    (void)level;
-    (void)spacesPerLevel;
     return stream;
 }
 
@@ -2147,36 +1663,7 @@ const bdlat_AttributeInfo* LeaderSyncDataQuery::lookupAttributeInfo(int id)
 
 // CREATORS
 
-LeaderSyncDataQuery::LeaderSyncDataQuery()
-{
-}
-
-LeaderSyncDataQuery::LeaderSyncDataQuery(const LeaderSyncDataQuery& original)
-{
-    (void)original;
-}
-
-LeaderSyncDataQuery::~LeaderSyncDataQuery()
-{
-}
-
 // MANIPULATORS
-
-LeaderSyncDataQuery&
-LeaderSyncDataQuery::operator=(const LeaderSyncDataQuery& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-LeaderSyncDataQuery& LeaderSyncDataQuery::operator=(LeaderSyncDataQuery&& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-#endif
 
 void LeaderSyncDataQuery::reset()
 {
@@ -2184,12 +1671,8 @@ void LeaderSyncDataQuery::reset()
 
 // ACCESSORS
 
-bsl::ostream& LeaderSyncDataQuery::print(bsl::ostream& stream,
-                                         int           level,
-                                         int           spacesPerLevel) const
+bsl::ostream& LeaderSyncDataQuery::print(bsl::ostream& stream, int, int) const
 {
-    (void)level;
-    (void)spacesPerLevel;
     return stream;
 }
 
@@ -2220,38 +1703,7 @@ const bdlat_AttributeInfo* LeaderSyncStateQuery::lookupAttributeInfo(int id)
 
 // CREATORS
 
-LeaderSyncStateQuery::LeaderSyncStateQuery()
-{
-}
-
-LeaderSyncStateQuery::LeaderSyncStateQuery(
-    const LeaderSyncStateQuery& original)
-{
-    (void)original;
-}
-
-LeaderSyncStateQuery::~LeaderSyncStateQuery()
-{
-}
-
 // MANIPULATORS
-
-LeaderSyncStateQuery&
-LeaderSyncStateQuery::operator=(const LeaderSyncStateQuery& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-LeaderSyncStateQuery&
-LeaderSyncStateQuery::operator=(LeaderSyncStateQuery&& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-#endif
 
 void LeaderSyncStateQuery::reset()
 {
@@ -2259,12 +1711,8 @@ void LeaderSyncStateQuery::reset()
 
 // ACCESSORS
 
-bsl::ostream& LeaderSyncStateQuery::print(bsl::ostream& stream,
-                                          int           level,
-                                          int           spacesPerLevel) const
+bsl::ostream& LeaderSyncStateQuery::print(bsl::ostream& stream, int, int) const
 {
-    (void)level;
-    (void)spacesPerLevel;
     return stream;
 }
 
@@ -2298,38 +1746,7 @@ LeadershipCessionNotification::lookupAttributeInfo(int id)
 
 // CREATORS
 
-LeadershipCessionNotification::LeadershipCessionNotification()
-{
-}
-
-LeadershipCessionNotification::LeadershipCessionNotification(
-    const LeadershipCessionNotification& original)
-{
-    (void)original;
-}
-
-LeadershipCessionNotification::~LeadershipCessionNotification()
-{
-}
-
 // MANIPULATORS
-
-LeadershipCessionNotification& LeadershipCessionNotification::operator=(
-    const LeadershipCessionNotification& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-LeadershipCessionNotification&
-LeadershipCessionNotification::operator=(LeadershipCessionNotification&& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-#endif
 
 void LeadershipCessionNotification::reset()
 {
@@ -2337,12 +1754,9 @@ void LeadershipCessionNotification::reset()
 
 // ACCESSORS
 
-bsl::ostream& LeadershipCessionNotification::print(bsl::ostream& stream,
-                                                   int           level,
-                                                   int spacesPerLevel) const
+bsl::ostream&
+LeadershipCessionNotification::print(bsl::ostream& stream, int, int) const
 {
-    (void)level;
-    (void)spacesPerLevel;
     return stream;
 }
 
@@ -2487,46 +1901,7 @@ PartitionPrimaryInfo::PartitionPrimaryInfo()
 {
 }
 
-PartitionPrimaryInfo::PartitionPrimaryInfo(
-    const PartitionPrimaryInfo& original)
-: d_primaryLeaseId(original.d_primaryLeaseId)
-, d_partitionId(original.d_partitionId)
-, d_primaryNodeId(original.d_primaryNodeId)
-{
-}
-
-PartitionPrimaryInfo::~PartitionPrimaryInfo()
-{
-}
-
 // MANIPULATORS
-
-PartitionPrimaryInfo&
-PartitionPrimaryInfo::operator=(const PartitionPrimaryInfo& rhs)
-{
-    if (this != &rhs) {
-        d_partitionId    = rhs.d_partitionId;
-        d_primaryNodeId  = rhs.d_primaryNodeId;
-        d_primaryLeaseId = rhs.d_primaryLeaseId;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-PartitionPrimaryInfo&
-PartitionPrimaryInfo::operator=(PartitionPrimaryInfo&& rhs)
-{
-    if (this != &rhs) {
-        d_partitionId    = bsl::move(rhs.d_partitionId);
-        d_primaryNodeId  = bsl::move(rhs.d_primaryNodeId);
-        d_primaryLeaseId = bsl::move(rhs.d_primaryLeaseId);
-    }
-
-    return *this;
-}
-#endif
 
 void PartitionPrimaryInfo::reset()
 {
@@ -2607,43 +1982,7 @@ PartitionSequenceNumber::PartitionSequenceNumber()
 {
 }
 
-PartitionSequenceNumber::PartitionSequenceNumber(
-    const PartitionSequenceNumber& original)
-: d_sequenceNumber(original.d_sequenceNumber)
-, d_primaryLeaseId(original.d_primaryLeaseId)
-{
-}
-
-PartitionSequenceNumber::~PartitionSequenceNumber()
-{
-}
-
 // MANIPULATORS
-
-PartitionSequenceNumber&
-PartitionSequenceNumber::operator=(const PartitionSequenceNumber& rhs)
-{
-    if (this != &rhs) {
-        d_primaryLeaseId = rhs.d_primaryLeaseId;
-        d_sequenceNumber = rhs.d_sequenceNumber;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-PartitionSequenceNumber&
-PartitionSequenceNumber::operator=(PartitionSequenceNumber&& rhs)
-{
-    if (this != &rhs) {
-        d_primaryLeaseId = bsl::move(rhs.d_primaryLeaseId);
-        d_sequenceNumber = bsl::move(rhs.d_sequenceNumber);
-    }
-
-    return *this;
-}
-#endif
 
 void PartitionSequenceNumber::reset()
 {
@@ -2734,46 +2073,7 @@ PartitionSyncDataQueryResponse::PartitionSyncDataQueryResponse()
 {
 }
 
-PartitionSyncDataQueryResponse::PartitionSyncDataQueryResponse(
-    const PartitionSyncDataQueryResponse& original)
-: d_endSequenceNum(original.d_endSequenceNum)
-, d_endPrimaryLeaseId(original.d_endPrimaryLeaseId)
-, d_partitionId(original.d_partitionId)
-{
-}
-
-PartitionSyncDataQueryResponse::~PartitionSyncDataQueryResponse()
-{
-}
-
 // MANIPULATORS
-
-PartitionSyncDataQueryResponse& PartitionSyncDataQueryResponse::operator=(
-    const PartitionSyncDataQueryResponse& rhs)
-{
-    if (this != &rhs) {
-        d_partitionId       = rhs.d_partitionId;
-        d_endPrimaryLeaseId = rhs.d_endPrimaryLeaseId;
-        d_endSequenceNum    = rhs.d_endSequenceNum;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-PartitionSyncDataQueryResponse&
-PartitionSyncDataQueryResponse::operator=(PartitionSyncDataQueryResponse&& rhs)
-{
-    if (this != &rhs) {
-        d_partitionId       = bsl::move(rhs.d_partitionId);
-        d_endPrimaryLeaseId = bsl::move(rhs.d_endPrimaryLeaseId);
-        d_endSequenceNum    = bsl::move(rhs.d_endSequenceNum);
-    }
-
-    return *this;
-}
-#endif
 
 void PartitionSyncDataQueryResponse::reset()
 {
@@ -2848,40 +2148,7 @@ PartitionSyncStateQuery::PartitionSyncStateQuery()
 {
 }
 
-PartitionSyncStateQuery::PartitionSyncStateQuery(
-    const PartitionSyncStateQuery& original)
-: d_partitionId(original.d_partitionId)
-{
-}
-
-PartitionSyncStateQuery::~PartitionSyncStateQuery()
-{
-}
-
 // MANIPULATORS
-
-PartitionSyncStateQuery&
-PartitionSyncStateQuery::operator=(const PartitionSyncStateQuery& rhs)
-{
-    if (this != &rhs) {
-        d_partitionId = rhs.d_partitionId;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-PartitionSyncStateQuery&
-PartitionSyncStateQuery::operator=(PartitionSyncStateQuery&& rhs)
-{
-    if (this != &rhs) {
-        d_partitionId = bsl::move(rhs.d_partitionId);
-    }
-
-    return *this;
-}
-#endif
 
 void PartitionSyncStateQuery::reset()
 {
@@ -3018,14 +2285,12 @@ QueueAssignmentRequest::QueueAssignmentRequest(
 QueueAssignmentRequest::QueueAssignmentRequest(
     const QueueAssignmentRequest& original,
     bslma::Allocator*             basicAllocator)
-: d_queueUri(original.d_queueUri, basicAllocator)
-{
-}
+: d_queueUri(original.d_queueUri, basicAllocator){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-QueueAssignmentRequest::QueueAssignmentRequest(
-    QueueAssignmentRequest&& original) noexcept
+QueueAssignmentRequest::QueueAssignmentRequest(QueueAssignmentRequest &&
+                                               original) noexcept
 : d_queueUri(bsl::move(original.d_queueUri))
 {
 }
@@ -3157,14 +2422,12 @@ QueueUnassignmentRequest::QueueUnassignmentRequest(
     bslma::Allocator*               basicAllocator)
 : d_queueKey(original.d_queueKey, basicAllocator)
 , d_queueUri(original.d_queueUri, basicAllocator)
-, d_partitionId(original.d_partitionId)
-{
-}
+, d_partitionId(original.d_partitionId){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-QueueUnassignmentRequest::QueueUnassignmentRequest(
-    QueueUnassignmentRequest&& original) noexcept
+QueueUnassignmentRequest::QueueUnassignmentRequest(QueueUnassignmentRequest &&
+                                                   original) noexcept
 : d_queueKey(bsl::move(original.d_queueKey)),
   d_queueUri(bsl::move(original.d_queueUri)),
   d_partitionId(bsl::move(original.d_partitionId))
@@ -3232,7 +2495,7 @@ bsl::ostream& QueueUnassignmentRequest::print(bsl::ostream& stream,
     printer.printAttribute("queueUri", this->queueUri());
     printer.printAttribute("partitionId", this->partitionId());
     {
-        bool multilineFlag = (0 <= level);
+        bool multilineFlag = (0 <= spacesPerLevel);
         bdlb::Print::indent(stream, level + 1, spacesPerLevel);
         stream << (multilineFlag ? "" : " ");
         stream << "queueKey = [ ";
@@ -3272,38 +2535,7 @@ const bdlat_AttributeInfo* RegistrationResponse::lookupAttributeInfo(int id)
 
 // CREATORS
 
-RegistrationResponse::RegistrationResponse()
-{
-}
-
-RegistrationResponse::RegistrationResponse(
-    const RegistrationResponse& original)
-{
-    (void)original;
-}
-
-RegistrationResponse::~RegistrationResponse()
-{
-}
-
 // MANIPULATORS
-
-RegistrationResponse&
-RegistrationResponse::operator=(const RegistrationResponse& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-RegistrationResponse&
-RegistrationResponse::operator=(RegistrationResponse&& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-#endif
 
 void RegistrationResponse::reset()
 {
@@ -3311,12 +2543,8 @@ void RegistrationResponse::reset()
 
 // ACCESSORS
 
-bsl::ostream& RegistrationResponse::print(bsl::ostream& stream,
-                                          int           level,
-                                          int           spacesPerLevel) const
+bsl::ostream& RegistrationResponse::print(bsl::ostream& stream, int, int) const
 {
-    (void)level;
-    (void)spacesPerLevel;
     return stream;
 }
 
@@ -3465,14 +2693,12 @@ ReverseConnectionRequest::ReverseConnectionRequest(
     bslma::Allocator*               basicAllocator)
 : d_clusterName(original.d_clusterName, basicAllocator)
 , d_protocolVersion(original.d_protocolVersion)
-, d_clusterNodeId(original.d_clusterNodeId)
-{
-}
+, d_clusterNodeId(original.d_clusterNodeId){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-ReverseConnectionRequest::ReverseConnectionRequest(
-    ReverseConnectionRequest&& original) noexcept
+ReverseConnectionRequest::ReverseConnectionRequest(ReverseConnectionRequest &&
+                                                   original) noexcept
 : d_clusterName(bsl::move(original.d_clusterName)),
   d_protocolVersion(bsl::move(original.d_protocolVersion)),
   d_clusterNodeId(bsl::move(original.d_clusterNodeId))
@@ -3593,40 +2819,7 @@ RoutingConfiguration::RoutingConfiguration()
 {
 }
 
-RoutingConfiguration::RoutingConfiguration(
-    const RoutingConfiguration& original)
-: d_flags(original.d_flags)
-{
-}
-
-RoutingConfiguration::~RoutingConfiguration()
-{
-}
-
 // MANIPULATORS
-
-RoutingConfiguration&
-RoutingConfiguration::operator=(const RoutingConfiguration& rhs)
-{
-    if (this != &rhs) {
-        d_flags = rhs.d_flags;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-RoutingConfiguration&
-RoutingConfiguration::operator=(RoutingConfiguration&& rhs)
-{
-    if (this != &rhs) {
-        d_flags = bsl::move(rhs.d_flags);
-    }
-
-    return *this;
-}
-#endif
 
 void RoutingConfiguration::reset()
 {
@@ -3759,35 +2952,7 @@ const bdlat_AttributeInfo* ScoutingRequest::lookupAttributeInfo(int id)
 
 // CREATORS
 
-ScoutingRequest::ScoutingRequest()
-{
-}
-
-ScoutingRequest::ScoutingRequest(const ScoutingRequest& original)
-{
-    (void)original;
-}
-
-ScoutingRequest::~ScoutingRequest()
-{
-}
-
 // MANIPULATORS
-
-ScoutingRequest& ScoutingRequest::operator=(const ScoutingRequest& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-ScoutingRequest& ScoutingRequest::operator=(ScoutingRequest&& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-#endif
 
 void ScoutingRequest::reset()
 {
@@ -3795,12 +2960,8 @@ void ScoutingRequest::reset()
 
 // ACCESSORS
 
-bsl::ostream& ScoutingRequest::print(bsl::ostream& stream,
-                                     int           level,
-                                     int           spacesPerLevel) const
+bsl::ostream& ScoutingRequest::print(bsl::ostream& stream, int, int) const
 {
-    (void)level;
-    (void)spacesPerLevel;
     return stream;
 }
 
@@ -3853,37 +3014,7 @@ ScoutingResponse::ScoutingResponse()
 {
 }
 
-ScoutingResponse::ScoutingResponse(const ScoutingResponse& original)
-: d_willVote(original.d_willVote)
-{
-}
-
-ScoutingResponse::~ScoutingResponse()
-{
-}
-
 // MANIPULATORS
-
-ScoutingResponse& ScoutingResponse::operator=(const ScoutingResponse& rhs)
-{
-    if (this != &rhs) {
-        d_willVote = rhs.d_willVote;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-ScoutingResponse& ScoutingResponse::operator=(ScoutingResponse&& rhs)
-{
-    if (this != &rhs) {
-        d_willVote = bsl::move(rhs.d_willVote);
-    }
-
-    return *this;
-}
-#endif
 
 void ScoutingResponse::reset()
 {
@@ -4060,13 +3191,11 @@ StopRequest::StopRequest(bslma::Allocator* basicAllocator)
 
 StopRequest::StopRequest(const StopRequest& original,
                          bslma::Allocator*  basicAllocator)
-: d_clusterName(original.d_clusterName, basicAllocator)
-{
-}
+: d_clusterName(original.d_clusterName, basicAllocator){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-StopRequest::StopRequest(StopRequest&& original) noexcept
+StopRequest::StopRequest(StopRequest && original) noexcept
 : d_clusterName(bsl::move(original.d_clusterName))
 {
 }
@@ -4173,13 +3302,11 @@ StopResponse::StopResponse(bslma::Allocator* basicAllocator)
 
 StopResponse::StopResponse(const StopResponse& original,
                            bslma::Allocator*   basicAllocator)
-: d_clusterName(original.d_clusterName, basicAllocator)
-{
-}
+: d_clusterName(original.d_clusterName, basicAllocator){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-StopResponse::StopResponse(StopResponse&& original) noexcept
+StopResponse::StopResponse(StopResponse && original) noexcept
 : d_clusterName(bsl::move(original.d_clusterName))
 {
 }
@@ -4381,13 +3508,11 @@ SubQueueIdInfo::SubQueueIdInfo(bslma::Allocator* basicAllocator)
 SubQueueIdInfo::SubQueueIdInfo(const SubQueueIdInfo& original,
                                bslma::Allocator*     basicAllocator)
 : d_appId(original.d_appId, basicAllocator)
-, d_subId(original.d_subId)
-{
-}
+, d_subId(original.d_subId){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-SubQueueIdInfo::SubQueueIdInfo(SubQueueIdInfo&& original) noexcept
+SubQueueIdInfo::SubQueueIdInfo(SubQueueIdInfo && original) noexcept
 : d_appId(bsl::move(original.d_appId)),
   d_subId(bsl::move(original.d_subId))
 {
@@ -4523,46 +3648,7 @@ SyncPoint::SyncPoint()
 {
 }
 
-SyncPoint::SyncPoint(const SyncPoint& original)
-: d_sequenceNum(original.d_sequenceNum)
-, d_primaryLeaseId(original.d_primaryLeaseId)
-, d_dataFileOffsetDwords(original.d_dataFileOffsetDwords)
-, d_qlistFileOffsetWords(original.d_qlistFileOffsetWords)
-{
-}
-
-SyncPoint::~SyncPoint()
-{
-}
-
 // MANIPULATORS
-
-SyncPoint& SyncPoint::operator=(const SyncPoint& rhs)
-{
-    if (this != &rhs) {
-        d_primaryLeaseId       = rhs.d_primaryLeaseId;
-        d_sequenceNum          = rhs.d_sequenceNum;
-        d_dataFileOffsetDwords = rhs.d_dataFileOffsetDwords;
-        d_qlistFileOffsetWords = rhs.d_qlistFileOffsetWords;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-SyncPoint& SyncPoint::operator=(SyncPoint&& rhs)
-{
-    if (this != &rhs) {
-        d_primaryLeaseId       = bsl::move(rhs.d_primaryLeaseId);
-        d_sequenceNum          = bsl::move(rhs.d_sequenceNum);
-        d_dataFileOffsetDwords = bsl::move(rhs.d_dataFileOffsetDwords);
-        d_qlistFileOffsetWords = bsl::move(rhs.d_qlistFileOffsetWords);
-    }
-
-    return *this;
-}
-#endif
 
 void SyncPoint::reset()
 {
@@ -4757,13 +3843,11 @@ ClientIdentity::ClientIdentity(const ClientIdentity& original,
 , d_sessionId(original.d_sessionId)
 , d_clusterNodeId(original.d_clusterNodeId)
 , d_clientType(original.d_clientType)
-, d_sdkLanguage(original.d_sdkLanguage)
-{
-}
+, d_sdkLanguage(original.d_sdkLanguage){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-ClientIdentity::ClientIdentity(ClientIdentity&& original) noexcept
+ClientIdentity::ClientIdentity(ClientIdentity && original) noexcept
 : d_processName(bsl::move(original.d_processName)),
   d_hostName(bsl::move(original.d_hostName)),
   d_features(bsl::move(original.d_features)),
@@ -4953,43 +4037,7 @@ DumpMessages::DumpMessages()
 {
 }
 
-DumpMessages::DumpMessages(const DumpMessages& original)
-: d_dumpActionValue(original.d_dumpActionValue)
-, d_msgTypeToDump(original.d_msgTypeToDump)
-, d_dumpActionType(original.d_dumpActionType)
-{
-}
-
-DumpMessages::~DumpMessages()
-{
-}
-
 // MANIPULATORS
-
-DumpMessages& DumpMessages::operator=(const DumpMessages& rhs)
-{
-    if (this != &rhs) {
-        d_msgTypeToDump   = rhs.d_msgTypeToDump;
-        d_dumpActionType  = rhs.d_dumpActionType;
-        d_dumpActionValue = rhs.d_dumpActionValue;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-DumpMessages& DumpMessages::operator=(DumpMessages&& rhs)
-{
-    if (this != &rhs) {
-        d_msgTypeToDump   = bsl::move(rhs.d_msgTypeToDump);
-        d_dumpActionType  = bsl::move(rhs.d_dumpActionType);
-        d_dumpActionValue = bsl::move(rhs.d_dumpActionValue);
-    }
-
-    return *this;
-}
-#endif
 
 void DumpMessages::reset()
 {
@@ -5873,13 +4921,11 @@ Expression::Expression(bslma::Allocator* basicAllocator)
 Expression::Expression(const Expression& original,
                        bslma::Allocator* basicAllocator)
 : d_text(original.d_text, basicAllocator)
-, d_version(original.d_version)
-{
-}
+, d_version(original.d_version){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-Expression::Expression(Expression&& original) noexcept
+Expression::Expression(Expression && original) noexcept
 : d_text(bsl::move(original.d_text)),
   d_version(bsl::move(original.d_version))
 {
@@ -5989,38 +5035,7 @@ FollowerLSNResponse::FollowerLSNResponse()
 {
 }
 
-FollowerLSNResponse::FollowerLSNResponse(const FollowerLSNResponse& original)
-: d_sequenceNumber(original.d_sequenceNumber)
-{
-}
-
-FollowerLSNResponse::~FollowerLSNResponse()
-{
-}
-
 // MANIPULATORS
-
-FollowerLSNResponse&
-FollowerLSNResponse::operator=(const FollowerLSNResponse& rhs)
-{
-    if (this != &rhs) {
-        d_sequenceNumber = rhs.d_sequenceNumber;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-FollowerLSNResponse& FollowerLSNResponse::operator=(FollowerLSNResponse&& rhs)
-{
-    if (this != &rhs) {
-        d_sequenceNumber = bsl::move(rhs.d_sequenceNumber);
-    }
-
-    return *this;
-}
-#endif
 
 void FollowerLSNResponse::reset()
 {
@@ -6089,37 +5104,7 @@ LeaderAdvisoryAck::LeaderAdvisoryAck()
 {
 }
 
-LeaderAdvisoryAck::LeaderAdvisoryAck(const LeaderAdvisoryAck& original)
-: d_sequenceNumberAcked(original.d_sequenceNumberAcked)
-{
-}
-
-LeaderAdvisoryAck::~LeaderAdvisoryAck()
-{
-}
-
 // MANIPULATORS
-
-LeaderAdvisoryAck& LeaderAdvisoryAck::operator=(const LeaderAdvisoryAck& rhs)
-{
-    if (this != &rhs) {
-        d_sequenceNumberAcked = rhs.d_sequenceNumberAcked;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-LeaderAdvisoryAck& LeaderAdvisoryAck::operator=(LeaderAdvisoryAck&& rhs)
-{
-    if (this != &rhs) {
-        d_sequenceNumberAcked = bsl::move(rhs.d_sequenceNumberAcked);
-    }
-
-    return *this;
-}
-#endif
 
 void LeaderAdvisoryAck::reset()
 {
@@ -6197,43 +5182,7 @@ LeaderAdvisoryCommit::LeaderAdvisoryCommit()
 {
 }
 
-LeaderAdvisoryCommit::LeaderAdvisoryCommit(
-    const LeaderAdvisoryCommit& original)
-: d_sequenceNumber(original.d_sequenceNumber)
-, d_sequenceNumberCommitted(original.d_sequenceNumberCommitted)
-{
-}
-
-LeaderAdvisoryCommit::~LeaderAdvisoryCommit()
-{
-}
-
 // MANIPULATORS
-
-LeaderAdvisoryCommit&
-LeaderAdvisoryCommit::operator=(const LeaderAdvisoryCommit& rhs)
-{
-    if (this != &rhs) {
-        d_sequenceNumber          = rhs.d_sequenceNumber;
-        d_sequenceNumberCommitted = rhs.d_sequenceNumberCommitted;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-LeaderAdvisoryCommit&
-LeaderAdvisoryCommit::operator=(LeaderAdvisoryCommit&& rhs)
-{
-    if (this != &rhs) {
-        d_sequenceNumber          = bsl::move(rhs.d_sequenceNumber);
-        d_sequenceNumberCommitted = bsl::move(rhs.d_sequenceNumberCommitted);
-    }
-
-    return *this;
-}
-#endif
 
 void LeaderAdvisoryCommit::reset()
 {
@@ -6309,40 +5258,7 @@ LeaderSyncStateQueryResponse::LeaderSyncStateQueryResponse()
 {
 }
 
-LeaderSyncStateQueryResponse::LeaderSyncStateQueryResponse(
-    const LeaderSyncStateQueryResponse& original)
-: d_leaderMessageSequence(original.d_leaderMessageSequence)
-{
-}
-
-LeaderSyncStateQueryResponse::~LeaderSyncStateQueryResponse()
-{
-}
-
 // MANIPULATORS
-
-LeaderSyncStateQueryResponse& LeaderSyncStateQueryResponse::operator=(
-    const LeaderSyncStateQueryResponse& rhs)
-{
-    if (this != &rhs) {
-        d_leaderMessageSequence = rhs.d_leaderMessageSequence;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-LeaderSyncStateQueryResponse&
-LeaderSyncStateQueryResponse::operator=(LeaderSyncStateQueryResponse&& rhs)
-{
-    if (this != &rhs) {
-        d_leaderMessageSequence = bsl::move(rhs.d_leaderMessageSequence);
-    }
-
-    return *this;
-}
-#endif
 
 void LeaderSyncStateQueryResponse::reset()
 {
@@ -6412,38 +5328,7 @@ NodeStatusAdvisory::NodeStatusAdvisory()
 {
 }
 
-NodeStatusAdvisory::NodeStatusAdvisory(const NodeStatusAdvisory& original)
-: d_status(original.d_status)
-{
-}
-
-NodeStatusAdvisory::~NodeStatusAdvisory()
-{
-}
-
 // MANIPULATORS
-
-NodeStatusAdvisory&
-NodeStatusAdvisory::operator=(const NodeStatusAdvisory& rhs)
-{
-    if (this != &rhs) {
-        d_status = rhs.d_status;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-NodeStatusAdvisory& NodeStatusAdvisory::operator=(NodeStatusAdvisory&& rhs)
-{
-    if (this != &rhs) {
-        d_status = bsl::move(rhs.d_status);
-    }
-
-    return *this;
-}
-#endif
 
 void NodeStatusAdvisory::reset()
 {
@@ -6526,14 +5411,12 @@ PartitionPrimaryAdvisory::PartitionPrimaryAdvisory(
     const PartitionPrimaryAdvisory& original,
     bslma::Allocator*               basicAllocator)
 : d_partitions(original.d_partitions, basicAllocator)
-, d_sequenceNumber(original.d_sequenceNumber)
-{
-}
+, d_sequenceNumber(original.d_sequenceNumber){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-PartitionPrimaryAdvisory::PartitionPrimaryAdvisory(
-    PartitionPrimaryAdvisory&& original) noexcept
+PartitionPrimaryAdvisory::PartitionPrimaryAdvisory(PartitionPrimaryAdvisory &&
+                                                   original) noexcept
 : d_partitions(bsl::move(original.d_partitions)),
   d_sequenceNumber(bsl::move(original.d_sequenceNumber))
 {
@@ -6656,41 +5539,7 @@ PrimaryStateRequest::PrimaryStateRequest()
 {
 }
 
-PrimaryStateRequest::PrimaryStateRequest(const PrimaryStateRequest& original)
-: d_sequenceNumber(original.d_sequenceNumber)
-, d_partitionId(original.d_partitionId)
-{
-}
-
-PrimaryStateRequest::~PrimaryStateRequest()
-{
-}
-
 // MANIPULATORS
-
-PrimaryStateRequest&
-PrimaryStateRequest::operator=(const PrimaryStateRequest& rhs)
-{
-    if (this != &rhs) {
-        d_partitionId    = rhs.d_partitionId;
-        d_sequenceNumber = rhs.d_sequenceNumber;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-PrimaryStateRequest& PrimaryStateRequest::operator=(PrimaryStateRequest&& rhs)
-{
-    if (this != &rhs) {
-        d_partitionId    = bsl::move(rhs.d_partitionId);
-        d_sequenceNumber = bsl::move(rhs.d_sequenceNumber);
-    }
-
-    return *this;
-}
-#endif
 
 void PrimaryStateRequest::reset()
 {
@@ -6769,43 +5618,7 @@ PrimaryStateResponse::PrimaryStateResponse()
 {
 }
 
-PrimaryStateResponse::PrimaryStateResponse(
-    const PrimaryStateResponse& original)
-: d_sequenceNumber(original.d_sequenceNumber)
-, d_partitionId(original.d_partitionId)
-{
-}
-
-PrimaryStateResponse::~PrimaryStateResponse()
-{
-}
-
 // MANIPULATORS
-
-PrimaryStateResponse&
-PrimaryStateResponse::operator=(const PrimaryStateResponse& rhs)
-{
-    if (this != &rhs) {
-        d_partitionId    = rhs.d_partitionId;
-        d_sequenceNumber = rhs.d_sequenceNumber;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-PrimaryStateResponse&
-PrimaryStateResponse::operator=(PrimaryStateResponse&& rhs)
-{
-    if (this != &rhs) {
-        d_partitionId    = bsl::move(rhs.d_partitionId);
-        d_sequenceNumber = bsl::move(rhs.d_sequenceNumber);
-    }
-
-    return *this;
-}
-#endif
 
 void PrimaryStateResponse::reset()
 {
@@ -6895,46 +5708,7 @@ PrimaryStatusAdvisory::PrimaryStatusAdvisory()
 {
 }
 
-PrimaryStatusAdvisory::PrimaryStatusAdvisory(
-    const PrimaryStatusAdvisory& original)
-: d_primaryLeaseId(original.d_primaryLeaseId)
-, d_partitionId(original.d_partitionId)
-, d_status(original.d_status)
-{
-}
-
-PrimaryStatusAdvisory::~PrimaryStatusAdvisory()
-{
-}
-
 // MANIPULATORS
-
-PrimaryStatusAdvisory&
-PrimaryStatusAdvisory::operator=(const PrimaryStatusAdvisory& rhs)
-{
-    if (this != &rhs) {
-        d_partitionId    = rhs.d_partitionId;
-        d_primaryLeaseId = rhs.d_primaryLeaseId;
-        d_status         = rhs.d_status;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-PrimaryStatusAdvisory&
-PrimaryStatusAdvisory::operator=(PrimaryStatusAdvisory&& rhs)
-{
-    if (this != &rhs) {
-        d_partitionId    = bsl::move(rhs.d_partitionId);
-        d_primaryLeaseId = bsl::move(rhs.d_primaryLeaseId);
-        d_status         = bsl::move(rhs.d_status);
-    }
-
-    return *this;
-}
-#endif
 
 void PrimaryStatusAdvisory::reset()
 {
@@ -7068,20 +5842,19 @@ QueueHandleParameters::QueueHandleParameters(
 , d_qId(original.d_qId)
 , d_readCount(original.d_readCount)
 , d_writeCount(original.d_writeCount)
-, d_adminCount(original.d_adminCount)
-{
-}
+, d_adminCount(original.d_adminCount){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-QueueHandleParameters::QueueHandleParameters(QueueHandleParameters&& original)
-    noexcept : d_flags(bsl::move(original.d_flags)),
-               d_uri(bsl::move(original.d_uri)),
-               d_subIdInfo(bsl::move(original.d_subIdInfo)),
-               d_qId(bsl::move(original.d_qId)),
-               d_readCount(bsl::move(original.d_readCount)),
-               d_writeCount(bsl::move(original.d_writeCount)),
-               d_adminCount(bsl::move(original.d_adminCount))
+QueueHandleParameters::QueueHandleParameters(QueueHandleParameters &&
+                                             original) noexcept
+: d_flags(bsl::move(original.d_flags)),
+  d_uri(bsl::move(original.d_uri)),
+  d_subIdInfo(bsl::move(original.d_subIdInfo)),
+  d_qId(bsl::move(original.d_qId)),
+  d_readCount(bsl::move(original.d_readCount)),
+  d_writeCount(bsl::move(original.d_writeCount)),
+  d_adminCount(bsl::move(original.d_adminCount))
 {
 }
 
@@ -7245,13 +6018,11 @@ QueueInfo::QueueInfo(const QueueInfo&  original,
 : d_key(original.d_key, basicAllocator)
 , d_appIds(original.d_appIds, basicAllocator)
 , d_uri(original.d_uri, basicAllocator)
-, d_partitionId(original.d_partitionId)
-{
-}
+, d_partitionId(original.d_partitionId){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-QueueInfo::QueueInfo(QueueInfo&& original) noexcept
+QueueInfo::QueueInfo(QueueInfo && original) noexcept
 : d_key(bsl::move(original.d_key)),
   d_appIds(bsl::move(original.d_appIds)),
   d_uri(bsl::move(original.d_uri)),
@@ -7318,7 +6089,7 @@ QueueInfo::print(bsl::ostream& stream, int level, int spacesPerLevel) const
     printer.start();
     printer.printAttribute("uri", this->uri());
     {
-        bool multilineFlag = (0 <= level);
+        bool multilineFlag = (0 <= spacesPerLevel);
         bdlb::Print::indent(stream, level + 1, spacesPerLevel);
         stream << (multilineFlag ? "" : " ");
         stream << "key = [ ";
@@ -7427,13 +6198,11 @@ QueueInfoUpdate::QueueInfoUpdate(const QueueInfoUpdate& original,
 , d_removedAppIds(original.d_removedAppIds, basicAllocator)
 , d_uri(original.d_uri, basicAllocator)
 , d_domain(original.d_domain, basicAllocator)
-, d_partitionId(original.d_partitionId)
-{
-}
+, d_partitionId(original.d_partitionId){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-QueueInfoUpdate::QueueInfoUpdate(QueueInfoUpdate&& original) noexcept
+QueueInfoUpdate::QueueInfoUpdate(QueueInfoUpdate && original) noexcept
 : d_key(bsl::move(original.d_key)),
   d_addedAppIds(bsl::move(original.d_addedAppIds)),
   d_removedAppIds(bsl::move(original.d_removedAppIds)),
@@ -7512,7 +6281,7 @@ bsl::ostream& QueueInfoUpdate::print(bsl::ostream& stream,
     printer.start();
     printer.printAttribute("uri", this->uri());
     {
-        bool multilineFlag = (0 <= level);
+        bool multilineFlag = (0 <= spacesPerLevel);
         bdlb::Print::indent(stream, level + 1, spacesPerLevel);
         stream << (multilineFlag ? "" : " ");
         stream << "key = [ ";
@@ -7629,14 +6398,12 @@ QueueStreamParameters::QueueStreamParameters(
 , d_maxUnconfirmedBytes(original.d_maxUnconfirmedBytes)
 , d_subIdInfo(original.d_subIdInfo, basicAllocator)
 , d_consumerPriority(original.d_consumerPriority)
-, d_consumerPriorityCount(original.d_consumerPriorityCount)
-{
-}
+, d_consumerPriorityCount(original.d_consumerPriorityCount){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-QueueStreamParameters::QueueStreamParameters(
-    QueueStreamParameters&& original) noexcept
+QueueStreamParameters::QueueStreamParameters(QueueStreamParameters &&
+                                             original) noexcept
 : d_maxUnconfirmedMessages(bsl::move(original.d_maxUnconfirmedMessages)),
   d_maxUnconfirmedBytes(bsl::move(original.d_maxUnconfirmedBytes)),
   d_subIdInfo(bsl::move(original.d_subIdInfo)),
@@ -7770,38 +6537,7 @@ RegistrationRequest::RegistrationRequest()
 {
 }
 
-RegistrationRequest::RegistrationRequest(const RegistrationRequest& original)
-: d_sequenceNumber(original.d_sequenceNumber)
-{
-}
-
-RegistrationRequest::~RegistrationRequest()
-{
-}
-
 // MANIPULATORS
-
-RegistrationRequest&
-RegistrationRequest::operator=(const RegistrationRequest& rhs)
-{
-    if (this != &rhs) {
-        d_sequenceNumber = rhs.d_sequenceNumber;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-RegistrationRequest& RegistrationRequest::operator=(RegistrationRequest&& rhs)
-{
-    if (this != &rhs) {
-        d_sequenceNumber = bsl::move(rhs.d_sequenceNumber);
-    }
-
-    return *this;
-}
-#endif
 
 void RegistrationRequest::reset()
 {
@@ -7894,47 +6630,7 @@ ReplicaDataRequest::ReplicaDataRequest()
 {
 }
 
-ReplicaDataRequest::ReplicaDataRequest(const ReplicaDataRequest& original)
-: d_beginSequenceNumber(original.d_beginSequenceNumber)
-, d_endSequenceNumber(original.d_endSequenceNumber)
-, d_partitionId(original.d_partitionId)
-, d_replicaDataType(original.d_replicaDataType)
-{
-}
-
-ReplicaDataRequest::~ReplicaDataRequest()
-{
-}
-
 // MANIPULATORS
-
-ReplicaDataRequest&
-ReplicaDataRequest::operator=(const ReplicaDataRequest& rhs)
-{
-    if (this != &rhs) {
-        d_replicaDataType     = rhs.d_replicaDataType;
-        d_partitionId         = rhs.d_partitionId;
-        d_beginSequenceNumber = rhs.d_beginSequenceNumber;
-        d_endSequenceNumber   = rhs.d_endSequenceNumber;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-ReplicaDataRequest& ReplicaDataRequest::operator=(ReplicaDataRequest&& rhs)
-{
-    if (this != &rhs) {
-        d_replicaDataType     = bsl::move(rhs.d_replicaDataType);
-        d_partitionId         = bsl::move(rhs.d_partitionId);
-        d_beginSequenceNumber = bsl::move(rhs.d_beginSequenceNumber);
-        d_endSequenceNumber   = bsl::move(rhs.d_endSequenceNumber);
-    }
-
-    return *this;
-}
-#endif
 
 void ReplicaDataRequest::reset()
 {
@@ -8033,47 +6729,7 @@ ReplicaDataResponse::ReplicaDataResponse()
 {
 }
 
-ReplicaDataResponse::ReplicaDataResponse(const ReplicaDataResponse& original)
-: d_beginSequenceNumber(original.d_beginSequenceNumber)
-, d_endSequenceNumber(original.d_endSequenceNumber)
-, d_partitionId(original.d_partitionId)
-, d_replicaDataType(original.d_replicaDataType)
-{
-}
-
-ReplicaDataResponse::~ReplicaDataResponse()
-{
-}
-
 // MANIPULATORS
-
-ReplicaDataResponse&
-ReplicaDataResponse::operator=(const ReplicaDataResponse& rhs)
-{
-    if (this != &rhs) {
-        d_replicaDataType     = rhs.d_replicaDataType;
-        d_partitionId         = rhs.d_partitionId;
-        d_beginSequenceNumber = rhs.d_beginSequenceNumber;
-        d_endSequenceNumber   = rhs.d_endSequenceNumber;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-ReplicaDataResponse& ReplicaDataResponse::operator=(ReplicaDataResponse&& rhs)
-{
-    if (this != &rhs) {
-        d_replicaDataType     = bsl::move(rhs.d_replicaDataType);
-        d_partitionId         = bsl::move(rhs.d_partitionId);
-        d_beginSequenceNumber = bsl::move(rhs.d_beginSequenceNumber);
-        d_endSequenceNumber   = bsl::move(rhs.d_endSequenceNumber);
-    }
-
-    return *this;
-}
-#endif
 
 void ReplicaDataResponse::reset()
 {
@@ -8156,41 +6812,7 @@ ReplicaStateRequest::ReplicaStateRequest()
 {
 }
 
-ReplicaStateRequest::ReplicaStateRequest(const ReplicaStateRequest& original)
-: d_sequenceNumber(original.d_sequenceNumber)
-, d_partitionId(original.d_partitionId)
-{
-}
-
-ReplicaStateRequest::~ReplicaStateRequest()
-{
-}
-
 // MANIPULATORS
-
-ReplicaStateRequest&
-ReplicaStateRequest::operator=(const ReplicaStateRequest& rhs)
-{
-    if (this != &rhs) {
-        d_partitionId    = rhs.d_partitionId;
-        d_sequenceNumber = rhs.d_sequenceNumber;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-ReplicaStateRequest& ReplicaStateRequest::operator=(ReplicaStateRequest&& rhs)
-{
-    if (this != &rhs) {
-        d_partitionId    = bsl::move(rhs.d_partitionId);
-        d_sequenceNumber = bsl::move(rhs.d_sequenceNumber);
-    }
-
-    return *this;
-}
-#endif
 
 void ReplicaStateRequest::reset()
 {
@@ -8269,43 +6891,7 @@ ReplicaStateResponse::ReplicaStateResponse()
 {
 }
 
-ReplicaStateResponse::ReplicaStateResponse(
-    const ReplicaStateResponse& original)
-: d_sequenceNumber(original.d_sequenceNumber)
-, d_partitionId(original.d_partitionId)
-{
-}
-
-ReplicaStateResponse::~ReplicaStateResponse()
-{
-}
-
 // MANIPULATORS
-
-ReplicaStateResponse&
-ReplicaStateResponse::operator=(const ReplicaStateResponse& rhs)
-{
-    if (this != &rhs) {
-        d_partitionId    = rhs.d_partitionId;
-        d_sequenceNumber = rhs.d_sequenceNumber;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-ReplicaStateResponse&
-ReplicaStateResponse::operator=(ReplicaStateResponse&& rhs)
-{
-    if (this != &rhs) {
-        d_partitionId    = bsl::move(rhs.d_partitionId);
-        d_sequenceNumber = bsl::move(rhs.d_sequenceNumber);
-    }
-
-    return *this;
-}
-#endif
 
 void ReplicaStateResponse::reset()
 {
@@ -8621,13 +7207,11 @@ Status::Status(bslma::Allocator* basicAllocator)
 Status::Status(const Status& original, bslma::Allocator* basicAllocator)
 : d_message(original.d_message, basicAllocator)
 , d_code(original.d_code)
-, d_category(original.d_category)
-{
-}
+, d_category(original.d_category){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-Status::Status(Status&& original) noexcept
+Status::Status(Status && original) noexcept
 : d_message(bsl::move(original.d_message)),
   d_code(bsl::move(original.d_code)),
   d_category(bsl::move(original.d_category))
@@ -8768,47 +7352,7 @@ StorageSyncResponse::StorageSyncResponse()
 {
 }
 
-StorageSyncResponse::StorageSyncResponse(const StorageSyncResponse& original)
-: d_beginSyncPoint(original.d_beginSyncPoint)
-, d_endSyncPoint(original.d_endSyncPoint)
-, d_partitionId(original.d_partitionId)
-, d_storageSyncResponseType(original.d_storageSyncResponseType)
-{
-}
-
-StorageSyncResponse::~StorageSyncResponse()
-{
-}
-
 // MANIPULATORS
-
-StorageSyncResponse&
-StorageSyncResponse::operator=(const StorageSyncResponse& rhs)
-{
-    if (this != &rhs) {
-        d_partitionId             = rhs.d_partitionId;
-        d_storageSyncResponseType = rhs.d_storageSyncResponseType;
-        d_beginSyncPoint          = rhs.d_beginSyncPoint;
-        d_endSyncPoint            = rhs.d_endSyncPoint;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-StorageSyncResponse& StorageSyncResponse::operator=(StorageSyncResponse&& rhs)
-{
-    if (this != &rhs) {
-        d_partitionId             = bsl::move(rhs.d_partitionId);
-        d_storageSyncResponseType = bsl::move(rhs.d_storageSyncResponseType);
-        d_beginSyncPoint          = bsl::move(rhs.d_beginSyncPoint);
-        d_endSyncPoint            = bsl::move(rhs.d_endSyncPoint);
-    }
-
-    return *this;
-}
-#endif
 
 void StorageSyncResponse::reset()
 {
@@ -8892,41 +7436,7 @@ SyncPointOffsetPair::SyncPointOffsetPair()
 {
 }
 
-SyncPointOffsetPair::SyncPointOffsetPair(const SyncPointOffsetPair& original)
-: d_offset(original.d_offset)
-, d_syncPoint(original.d_syncPoint)
-{
-}
-
-SyncPointOffsetPair::~SyncPointOffsetPair()
-{
-}
-
 // MANIPULATORS
-
-SyncPointOffsetPair&
-SyncPointOffsetPair::operator=(const SyncPointOffsetPair& rhs)
-{
-    if (this != &rhs) {
-        d_syncPoint = rhs.d_syncPoint;
-        d_offset    = rhs.d_offset;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-SyncPointOffsetPair& SyncPointOffsetPair::operator=(SyncPointOffsetPair&& rhs)
-{
-    if (this != &rhs) {
-        d_syncPoint = bsl::move(rhs.d_syncPoint);
-        d_offset    = bsl::move(rhs.d_offset);
-    }
-
-    return *this;
-}
-#endif
 
 void SyncPointOffsetPair::reset()
 {
@@ -9037,13 +7547,11 @@ BrokerResponse::BrokerResponse(const BrokerResponse& original,
 , d_brokerIdentity(original.d_brokerIdentity, basicAllocator)
 , d_protocolVersion(original.d_protocolVersion)
 , d_brokerVersion(original.d_brokerVersion)
-, d_isDeprecatedSdk(original.d_isDeprecatedSdk)
-{
-}
+, d_isDeprecatedSdk(original.d_isDeprecatedSdk){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-BrokerResponse::BrokerResponse(BrokerResponse&& original) noexcept
+BrokerResponse::BrokerResponse(BrokerResponse && original) noexcept
 : d_result(bsl::move(original.d_result)),
   d_brokerIdentity(bsl::move(original.d_brokerIdentity)),
   d_protocolVersion(bsl::move(original.d_protocolVersion)),
@@ -9186,13 +7694,11 @@ CloseQueue::CloseQueue(bslma::Allocator* basicAllocator)
 CloseQueue::CloseQueue(const CloseQueue& original,
                        bslma::Allocator* basicAllocator)
 : d_handleParameters(original.d_handleParameters, basicAllocator)
-, d_isFinal(original.d_isFinal)
-{
-}
+, d_isFinal(original.d_isFinal){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-CloseQueue::CloseQueue(CloseQueue&& original) noexcept
+CloseQueue::CloseQueue(CloseQueue && original) noexcept
 : d_handleParameters(bsl::move(original.d_handleParameters)),
   d_isFinal(bsl::move(original.d_isFinal))
 {
@@ -9313,15 +7819,14 @@ ConfigureQueueStream::ConfigureQueueStream(
     const ConfigureQueueStream& original,
     bslma::Allocator*           basicAllocator)
 : d_streamParameters(original.d_streamParameters, basicAllocator)
-, d_qId(original.d_qId)
-{
-}
+, d_qId(original.d_qId){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-ConfigureQueueStream::ConfigureQueueStream(ConfigureQueueStream&& original)
-    noexcept : d_streamParameters(bsl::move(original.d_streamParameters)),
-               d_qId(bsl::move(original.d_qId))
+ConfigureQueueStream::ConfigureQueueStream(ConfigureQueueStream &&
+                                           original) noexcept
+: d_streamParameters(bsl::move(original.d_streamParameters)),
+  d_qId(bsl::move(original.d_qId))
 {
 }
 
@@ -9478,40 +7983,7 @@ ElectorMessage::ElectorMessage()
 {
 }
 
-ElectorMessage::ElectorMessage(const ElectorMessage& original)
-: d_term(original.d_term)
-, d_choice(original.d_choice)
-{
-}
-
-ElectorMessage::~ElectorMessage()
-{
-}
-
 // MANIPULATORS
-
-ElectorMessage& ElectorMessage::operator=(const ElectorMessage& rhs)
-{
-    if (this != &rhs) {
-        d_term   = rhs.d_term;
-        d_choice = rhs.d_choice;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-ElectorMessage& ElectorMessage::operator=(ElectorMessage&& rhs)
-{
-    if (this != &rhs) {
-        d_term   = bsl::move(rhs.d_term);
-        d_choice = bsl::move(rhs.d_choice);
-    }
-
-    return *this;
-}
-#endif
 
 void ElectorMessage::reset()
 {
@@ -9602,13 +8074,11 @@ LeaderAdvisory::LeaderAdvisory(const LeaderAdvisory& original,
                                bslma::Allocator*     basicAllocator)
 : d_queues(original.d_queues, basicAllocator)
 , d_partitions(original.d_partitions, basicAllocator)
-, d_sequenceNumber(original.d_sequenceNumber)
-{
-}
+, d_sequenceNumber(original.d_sequenceNumber){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-LeaderAdvisory::LeaderAdvisory(LeaderAdvisory&& original) noexcept
+LeaderAdvisory::LeaderAdvisory(LeaderAdvisory && original) noexcept
 : d_queues(bsl::move(original.d_queues)),
   d_partitions(bsl::move(original.d_partitions)),
   d_sequenceNumber(bsl::move(original.d_sequenceNumber))
@@ -9728,13 +8198,11 @@ OpenQueue::OpenQueue(bslma::Allocator* basicAllocator)
 
 OpenQueue::OpenQueue(const OpenQueue&  original,
                      bslma::Allocator* basicAllocator)
-: d_handleParameters(original.d_handleParameters, basicAllocator)
-{
-}
+: d_handleParameters(original.d_handleParameters, basicAllocator){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-OpenQueue::OpenQueue(OpenQueue&& original) noexcept
+OpenQueue::OpenQueue(OpenQueue && original) noexcept
 : d_handleParameters(bsl::move(original.d_handleParameters))
 {
 }
@@ -10523,55 +8991,7 @@ PartitionSyncDataQuery::PartitionSyncDataQuery()
 {
 }
 
-PartitionSyncDataQuery::PartitionSyncDataQuery(
-    const PartitionSyncDataQuery& original)
-: d_lastSequenceNum(original.d_lastSequenceNum)
-, d_uptoSequenceNum(original.d_uptoSequenceNum)
-, d_lastSyncPointOffsetPair(original.d_lastSyncPointOffsetPair)
-, d_lastPrimaryLeaseId(original.d_lastPrimaryLeaseId)
-, d_uptoPrimaryLeaseId(original.d_uptoPrimaryLeaseId)
-, d_partitionId(original.d_partitionId)
-{
-}
-
-PartitionSyncDataQuery::~PartitionSyncDataQuery()
-{
-}
-
 // MANIPULATORS
-
-PartitionSyncDataQuery&
-PartitionSyncDataQuery::operator=(const PartitionSyncDataQuery& rhs)
-{
-    if (this != &rhs) {
-        d_partitionId             = rhs.d_partitionId;
-        d_lastPrimaryLeaseId      = rhs.d_lastPrimaryLeaseId;
-        d_lastSequenceNum         = rhs.d_lastSequenceNum;
-        d_uptoPrimaryLeaseId      = rhs.d_uptoPrimaryLeaseId;
-        d_uptoSequenceNum         = rhs.d_uptoSequenceNum;
-        d_lastSyncPointOffsetPair = rhs.d_lastSyncPointOffsetPair;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-PartitionSyncDataQuery&
-PartitionSyncDataQuery::operator=(PartitionSyncDataQuery&& rhs)
-{
-    if (this != &rhs) {
-        d_partitionId             = bsl::move(rhs.d_partitionId);
-        d_lastPrimaryLeaseId      = bsl::move(rhs.d_lastPrimaryLeaseId);
-        d_lastSequenceNum         = bsl::move(rhs.d_lastSequenceNum);
-        d_uptoPrimaryLeaseId      = bsl::move(rhs.d_uptoPrimaryLeaseId);
-        d_uptoSequenceNum         = bsl::move(rhs.d_uptoSequenceNum);
-        d_lastSyncPointOffsetPair = bsl::move(rhs.d_lastSyncPointOffsetPair);
-    }
-
-    return *this;
-}
-#endif
 
 void PartitionSyncDataQuery::reset()
 {
@@ -10668,14 +9088,12 @@ PartitionSyncDataQueryStatus::PartitionSyncDataQueryStatus(
     const PartitionSyncDataQueryStatus& original,
     bslma::Allocator*                   basicAllocator)
 : d_status(original.d_status, basicAllocator)
-, d_partitionId(original.d_partitionId)
-{
-}
+, d_partitionId(original.d_partitionId){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
 PartitionSyncDataQueryStatus::PartitionSyncDataQueryStatus(
-    PartitionSyncDataQueryStatus&& original) noexcept
+    PartitionSyncDataQueryStatus && original) noexcept
 : d_status(bsl::move(original.d_status)),
   d_partitionId(bsl::move(original.d_partitionId))
 {
@@ -10819,49 +9237,7 @@ PartitionSyncStateQueryResponse::PartitionSyncStateQueryResponse()
 {
 }
 
-PartitionSyncStateQueryResponse::PartitionSyncStateQueryResponse(
-    const PartitionSyncStateQueryResponse& original)
-: d_sequenceNum(original.d_sequenceNum)
-, d_lastSyncPointOffsetPair(original.d_lastSyncPointOffsetPair)
-, d_primaryLeaseId(original.d_primaryLeaseId)
-, d_partitionId(original.d_partitionId)
-{
-}
-
-PartitionSyncStateQueryResponse::~PartitionSyncStateQueryResponse()
-{
-}
-
 // MANIPULATORS
-
-PartitionSyncStateQueryResponse& PartitionSyncStateQueryResponse::operator=(
-    const PartitionSyncStateQueryResponse& rhs)
-{
-    if (this != &rhs) {
-        d_partitionId             = rhs.d_partitionId;
-        d_primaryLeaseId          = rhs.d_primaryLeaseId;
-        d_sequenceNum             = rhs.d_sequenceNum;
-        d_lastSyncPointOffsetPair = rhs.d_lastSyncPointOffsetPair;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-PartitionSyncStateQueryResponse& PartitionSyncStateQueryResponse::operator=(
-    PartitionSyncStateQueryResponse&& rhs)
-{
-    if (this != &rhs) {
-        d_partitionId             = bsl::move(rhs.d_partitionId);
-        d_primaryLeaseId          = bsl::move(rhs.d_primaryLeaseId);
-        d_sequenceNum             = bsl::move(rhs.d_sequenceNum);
-        d_lastSyncPointOffsetPair = bsl::move(rhs.d_lastSyncPointOffsetPair);
-    }
-
-    return *this;
-}
-#endif
 
 void PartitionSyncStateQueryResponse::reset()
 {
@@ -10950,14 +9326,12 @@ QueueAssignmentAdvisory::QueueAssignmentAdvisory(
     const QueueAssignmentAdvisory& original,
     bslma::Allocator*              basicAllocator)
 : d_queues(original.d_queues, basicAllocator)
-, d_sequenceNumber(original.d_sequenceNumber)
-{
-}
+, d_sequenceNumber(original.d_sequenceNumber){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-QueueAssignmentAdvisory::QueueAssignmentAdvisory(
-    QueueAssignmentAdvisory&& original) noexcept
+QueueAssignmentAdvisory::QueueAssignmentAdvisory(QueueAssignmentAdvisory &&
+                                                 original) noexcept
 : d_queues(bsl::move(original.d_queues)),
   d_sequenceNumber(bsl::move(original.d_sequenceNumber))
 {
@@ -11106,14 +9480,12 @@ QueueUnAssignmentAdvisory::QueueUnAssignmentAdvisory(
 : d_queues(original.d_queues, basicAllocator)
 , d_primaryLeaseId(original.d_primaryLeaseId)
 , d_primaryNodeId(original.d_primaryNodeId)
-, d_partitionId(original.d_partitionId)
-{
-}
+, d_partitionId(original.d_partitionId){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
 QueueUnAssignmentAdvisory::QueueUnAssignmentAdvisory(
-    QueueUnAssignmentAdvisory&& original) noexcept
+    QueueUnAssignmentAdvisory && original) noexcept
 : d_queues(bsl::move(original.d_queues)),
   d_primaryLeaseId(bsl::move(original.d_primaryLeaseId)),
   d_primaryNodeId(bsl::move(original.d_primaryNodeId)),
@@ -11280,14 +9652,12 @@ QueueUnassignedAdvisory::QueueUnassignedAdvisory(
 , d_sequenceNumber(original.d_sequenceNumber)
 , d_primaryLeaseId(original.d_primaryLeaseId)
 , d_partitionId(original.d_partitionId)
-, d_primaryNodeId(original.d_primaryNodeId)
-{
-}
+, d_primaryNodeId(original.d_primaryNodeId){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-QueueUnassignedAdvisory::QueueUnassignedAdvisory(
-    QueueUnassignedAdvisory&& original) noexcept
+QueueUnassignedAdvisory::QueueUnassignedAdvisory(QueueUnassignedAdvisory &&
+                                                 original) noexcept
 : d_queues(bsl::move(original.d_queues)),
   d_sequenceNumber(bsl::move(original.d_sequenceNumber)),
   d_primaryLeaseId(bsl::move(original.d_primaryLeaseId)),
@@ -11431,15 +9801,14 @@ QueueUpdateAdvisory::QueueUpdateAdvisory(bslma::Allocator* basicAllocator)
 QueueUpdateAdvisory::QueueUpdateAdvisory(const QueueUpdateAdvisory& original,
                                          bslma::Allocator* basicAllocator)
 : d_queueUpdates(original.d_queueUpdates, basicAllocator)
-, d_sequenceNumber(original.d_sequenceNumber)
-{
-}
+, d_sequenceNumber(original.d_sequenceNumber){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-QueueUpdateAdvisory::QueueUpdateAdvisory(QueueUpdateAdvisory&& original)
-    noexcept : d_queueUpdates(bsl::move(original.d_queueUpdates)),
-               d_sequenceNumber(bsl::move(original.d_sequenceNumber))
+QueueUpdateAdvisory::QueueUpdateAdvisory(QueueUpdateAdvisory &&
+                                         original) noexcept
+: d_queueUpdates(bsl::move(original.d_queueUpdates)),
+  d_sequenceNumber(bsl::move(original.d_sequenceNumber))
 {
 }
 
@@ -11554,37 +9923,7 @@ StateNotification::StateNotification()
 {
 }
 
-StateNotification::StateNotification(const StateNotification& original)
-: d_choice(original.d_choice)
-{
-}
-
-StateNotification::~StateNotification()
-{
-}
-
 // MANIPULATORS
-
-StateNotification& StateNotification::operator=(const StateNotification& rhs)
-{
-    if (this != &rhs) {
-        d_choice = rhs.d_choice;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-StateNotification& StateNotification::operator=(StateNotification&& rhs)
-{
-    if (this != &rhs) {
-        d_choice = bsl::move(rhs.d_choice);
-    }
-
-    return *this;
-}
-#endif
 
 void StateNotification::reset()
 {
@@ -11671,44 +10010,7 @@ StorageSyncRequest::StorageSyncRequest()
 {
 }
 
-StorageSyncRequest::StorageSyncRequest(const StorageSyncRequest& original)
-: d_beginSyncPointOffsetPair(original.d_beginSyncPointOffsetPair)
-, d_endSyncPointOffsetPair(original.d_endSyncPointOffsetPair)
-, d_partitionId(original.d_partitionId)
-{
-}
-
-StorageSyncRequest::~StorageSyncRequest()
-{
-}
-
 // MANIPULATORS
-
-StorageSyncRequest&
-StorageSyncRequest::operator=(const StorageSyncRequest& rhs)
-{
-    if (this != &rhs) {
-        d_partitionId              = rhs.d_partitionId;
-        d_beginSyncPointOffsetPair = rhs.d_beginSyncPointOffsetPair;
-        d_endSyncPointOffsetPair   = rhs.d_endSyncPointOffsetPair;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-StorageSyncRequest& StorageSyncRequest::operator=(StorageSyncRequest&& rhs)
-{
-    if (this != &rhs) {
-        d_partitionId              = bsl::move(rhs.d_partitionId);
-        d_beginSyncPointOffsetPair = bsl::move(rhs.d_beginSyncPointOffsetPair);
-        d_endSyncPointOffsetPair   = bsl::move(rhs.d_endSyncPointOffsetPair);
-    }
-
-    return *this;
-}
-#endif
 
 void StorageSyncRequest::reset()
 {
@@ -11802,13 +10104,11 @@ Subscription::Subscription(const Subscription& original,
                            bslma::Allocator*   basicAllocator)
 : d_consumers(original.d_consumers, basicAllocator)
 , d_expression(original.d_expression, basicAllocator)
-, d_sId(original.d_sId)
-{
-}
+, d_sId(original.d_sId){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-Subscription::Subscription(Subscription&& original) noexcept
+Subscription::Subscription(Subscription && original) noexcept
 : d_consumers(bsl::move(original.d_consumers)),
   d_expression(bsl::move(original.d_expression)),
   d_sId(bsl::move(original.d_sId))
@@ -11933,14 +10233,12 @@ ConfigureQueueStreamResponse::ConfigureQueueStreamResponse(
 ConfigureQueueStreamResponse::ConfigureQueueStreamResponse(
     const ConfigureQueueStreamResponse& original,
     bslma::Allocator*                   basicAllocator)
-: d_request(original.d_request, basicAllocator)
-{
-}
+: d_request(original.d_request, basicAllocator){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
 ConfigureQueueStreamResponse::ConfigureQueueStreamResponse(
-    ConfigureQueueStreamResponse&& original) noexcept
+    ConfigureQueueStreamResponse && original) noexcept
 : d_request(bsl::move(original.d_request))
 {
 }
@@ -12057,14 +10355,12 @@ FollowerClusterStateResponse::FollowerClusterStateResponse(
 FollowerClusterStateResponse::FollowerClusterStateResponse(
     const FollowerClusterStateResponse& original,
     bslma::Allocator*                   basicAllocator)
-: d_clusterStateSnapshot(original.d_clusterStateSnapshot, basicAllocator)
-{
-}
+: d_clusterStateSnapshot(original.d_clusterStateSnapshot, basicAllocator){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
 FollowerClusterStateResponse::FollowerClusterStateResponse(
-    FollowerClusterStateResponse&& original) noexcept
+    FollowerClusterStateResponse && original) noexcept
 : d_clusterStateSnapshot(bsl::move(original.d_clusterStateSnapshot))
 {
 }
@@ -12182,14 +10478,12 @@ LeaderSyncDataQueryResponse::LeaderSyncDataQueryResponse(
 LeaderSyncDataQueryResponse::LeaderSyncDataQueryResponse(
     const LeaderSyncDataQueryResponse& original,
     bslma::Allocator*                  basicAllocator)
-: d_leaderSyncData(original.d_leaderSyncData, basicAllocator)
-{
-}
+: d_leaderSyncData(original.d_leaderSyncData, basicAllocator){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
 LeaderSyncDataQueryResponse::LeaderSyncDataQueryResponse(
-    LeaderSyncDataQueryResponse&& original) noexcept
+    LeaderSyncDataQueryResponse && original) noexcept
 : d_leaderSyncData(bsl::move(original.d_leaderSyncData))
 {
 }
@@ -12741,13 +11035,11 @@ OpenQueueResponse::OpenQueueResponse(const OpenQueueResponse& original,
                                      bslma::Allocator*        basicAllocator)
 : d_routingConfiguration(original.d_routingConfiguration)
 , d_originalRequest(original.d_originalRequest, basicAllocator)
-, d_deduplicationTimeMs(original.d_deduplicationTimeMs)
-{
-}
+, d_deduplicationTimeMs(original.d_deduplicationTimeMs){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-OpenQueueResponse::OpenQueueResponse(OpenQueueResponse&& original) noexcept
+OpenQueueResponse::OpenQueueResponse(OpenQueueResponse && original) noexcept
 : d_routingConfiguration(bsl::move(original.d_routingConfiguration)),
   d_originalRequest(bsl::move(original.d_originalRequest)),
   d_deduplicationTimeMs(bsl::move(original.d_deduplicationTimeMs))
@@ -12902,37 +11194,7 @@ PartitionMessage::PartitionMessage()
 {
 }
 
-PartitionMessage::PartitionMessage(const PartitionMessage& original)
-: d_choice(original.d_choice)
-{
-}
-
-PartitionMessage::~PartitionMessage()
-{
-}
-
 // MANIPULATORS
-
-PartitionMessage& PartitionMessage::operator=(const PartitionMessage& rhs)
-{
-    if (this != &rhs) {
-        d_choice = rhs.d_choice;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-PartitionMessage& PartitionMessage::operator=(PartitionMessage&& rhs)
-{
-    if (this != &rhs) {
-        d_choice = bsl::move(rhs.d_choice);
-    }
-
-    return *this;
-}
-#endif
 
 void PartitionMessage::reset()
 {
@@ -13014,13 +11276,11 @@ StreamParameters::StreamParameters(bslma::Allocator* basicAllocator)
 StreamParameters::StreamParameters(const StreamParameters& original,
                                    bslma::Allocator*       basicAllocator)
 : d_subscriptions(original.d_subscriptions, basicAllocator)
-, d_appId(original.d_appId, basicAllocator)
-{
-}
+, d_appId(original.d_appId, basicAllocator){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-StreamParameters::StreamParameters(StreamParameters&& original) noexcept
+StreamParameters::StreamParameters(StreamParameters && original) noexcept
 : d_subscriptions(bsl::move(original.d_subscriptions)),
   d_appId(bsl::move(original.d_appId))
 {
@@ -13857,13 +12117,11 @@ ConfigureStream::ConfigureStream(bslma::Allocator* basicAllocator)
 ConfigureStream::ConfigureStream(const ConfigureStream& original,
                                  bslma::Allocator*      basicAllocator)
 : d_streamParameters(original.d_streamParameters, basicAllocator)
-, d_qId(original.d_qId)
-{
-}
+, d_qId(original.d_qId){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-ConfigureStream::ConfigureStream(ConfigureStream&& original) noexcept
+ConfigureStream::ConfigureStream(ConfigureStream && original) noexcept
 : d_streamParameters(bsl::move(original.d_streamParameters)),
   d_qId(bsl::move(original.d_qId))
 {
@@ -14015,14 +12273,12 @@ ClusterStateFSMMessage::ClusterStateFSMMessage(
 ClusterStateFSMMessage::ClusterStateFSMMessage(
     const ClusterStateFSMMessage& original,
     bslma::Allocator*             basicAllocator)
-: d_choice(original.d_choice, basicAllocator)
-{
-}
+: d_choice(original.d_choice, basicAllocator){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-ClusterStateFSMMessage::ClusterStateFSMMessage(
-    ClusterStateFSMMessage&& original) noexcept
+ClusterStateFSMMessage::ClusterStateFSMMessage(ClusterStateFSMMessage &&
+                                               original) noexcept
 : d_choice(bsl::move(original.d_choice))
 {
 }
@@ -14135,14 +12391,12 @@ ConfigureStreamResponse::ConfigureStreamResponse(
 ConfigureStreamResponse::ConfigureStreamResponse(
     const ConfigureStreamResponse& original,
     bslma::Allocator*              basicAllocator)
-: d_request(original.d_request, basicAllocator)
-{
-}
+: d_request(original.d_request, basicAllocator){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-ConfigureStreamResponse::ConfigureStreamResponse(
-    ConfigureStreamResponse&& original) noexcept
+ConfigureStreamResponse::ConfigureStreamResponse(ConfigureStreamResponse &&
+                                                 original) noexcept
 : d_request(bsl::move(original.d_request))
 {
 }
@@ -17306,13 +15560,11 @@ ClusterMessage::ClusterMessage(bslma::Allocator* basicAllocator)
 
 ClusterMessage::ClusterMessage(const ClusterMessage& original,
                                bslma::Allocator*     basicAllocator)
-: d_choice(original.d_choice, basicAllocator)
-{
-}
+: d_choice(original.d_choice, basicAllocator){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-ClusterMessage::ClusterMessage(ClusterMessage&& original) noexcept
+ClusterMessage::ClusterMessage(ClusterMessage && original) noexcept
 : d_choice(bsl::move(original.d_choice))
 {
 }
@@ -18884,13 +17136,11 @@ ControlMessage::ControlMessage(bslma::Allocator* basicAllocator)
 ControlMessage::ControlMessage(const ControlMessage& original,
                                bslma::Allocator*     basicAllocator)
 : d_choice(original.d_choice, basicAllocator)
-, d_rId(original.d_rId)
-{
-}
+, d_rId(original.d_rId){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-ControlMessage::ControlMessage(ControlMessage&& original) noexcept
+ControlMessage::ControlMessage(ControlMessage && original) noexcept
 : d_choice(bsl::move(original.d_choice)),
   d_rId(bsl::move(original.d_rId))
 {
@@ -18959,3 +17209,10 @@ bsl::ostream& ControlMessage::print(bsl::ostream& stream,
 // GENERATED BY @BLP_BAS_CODEGEN_VERSION@
 // USING bas_codegen.pl -m msg --noAggregateConversion --noExternalization
 // --noIdent --package bmqp_ctrlmsg --msgComponent messages bmqp_ctrlmsg.xsd
+// ----------------------------------------------------------------------------
+// NOTICE:
+//      Copyright 2024 Bloomberg Finance L.P. All rights reserved.
+//      Property of Bloomberg Finance L.P. (BFLP)
+//      This software is made available solely pursuant to the
+//      terms of a BFLP license agreement which governs its use.
+// ------------------------------- END-OF-FILE --------------------------------

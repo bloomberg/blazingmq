@@ -29,6 +29,7 @@
 // MQB
 
 #include <mqbconfm_messages.h>
+#include <mqbi_cluster.h>
 
 // MWC
 #include <mwcma_countingallocatorstore.h>
@@ -40,6 +41,7 @@
 #include <bdlcc_objectpool.h>
 #include <bdlcc_sharedobjectpool.h>
 #include <bdlmt_threadpool.h>
+#include <bmqp_requestmanager.h>
 #include <bsl_ostream.h>
 #include <bsl_string.h>
 #include <bsl_unordered_map.h>
@@ -68,9 +70,6 @@ class CommandChoice;
 }
 namespace mqbcmd {
 class InternalResult;
-}
-namespace mqbi {
-class Cluster;
 }
 namespace mqbnet {
 class TransportManager;
@@ -127,6 +126,12 @@ class Application {
         bdlcc::ObjectPoolFunctors::DefaultCreator,
         bdlcc::ObjectPoolFunctors::RemoveAll<bdlbb::Blob> >
         BlobSpPool;
+
+    typedef bsl::shared_ptr<
+        mqbnet::MultiRequestManagerRequestContext<bmqp_ctrlmsg::ControlMessage,
+                                                  bmqp_ctrlmsg::ControlMessage,
+                                                  mqbnet::ClusterNode*> >
+        MultiRequestContextSp;
 
     // Data members
     mwcma::CountingAllocatorStore d_allocators;
@@ -250,16 +255,13 @@ class Application {
     // Routes the given command to any primary nodes on the cluster (if they
     // are a primary for some partition)
     bool routeCommandToPrimaryNodes(mqbi::Cluster*     cluster,
+                                    bslmt::Latch*      latch,
                                     const bsl::string& cmd,
                                     bsl::ostream&      os);
 
-    void onRerouteCommandResponse(
-        const bsl::shared_ptr<mqbnet::MultiRequestManagerRequestContext<
-            bmqp_ctrlmsg::ControlMessage,
-            bmqp_ctrlmsg::ControlMessage,
-            mqbnet::ClusterNode*> >& requestContext,
-        bslmt::Latch&                latch,
-        bsl::ostream&                os);
+    void onRerouteCommandResponse(const MultiRequestContextSp& requestContext,
+                                  bslmt::Latch*              latch,
+                                  bsl::ostream&              os);
 
     int executeCommand(mqbcmd::CommandChoice&  command,
                        mqbcmd::InternalResult& cmdResult);
