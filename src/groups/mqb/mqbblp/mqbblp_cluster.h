@@ -311,6 +311,8 @@ class Cluster : public mqbi::Cluster,
     // responses from proxies and nodes,
     // and the cluster's shutdown callback.
 
+    mqbnet::Session::AdminCommandEnqueueCb d_adminCb;
+
   private:
     // NOT IMPLEMENTED
     Cluster(const Cluster&) BSLS_CPP11_DELETED;
@@ -515,7 +517,8 @@ class Cluster : public mqbi::Cluster,
             BlobSpPool*                        blobSpPool,
             bdlbb::BlobBufferFactory*          bufferFactory,
             mqbnet::TransportManager*          transportManager,
-            bslma::Allocator*                  allocator);
+            bslma::Allocator*                  allocator,
+            const mqbnet::Session::AdminCommandEnqueueCb& adminCb);
 
     /// Destructor
     ~Cluster() BSLS_KEYWORD_OVERRIDE;
@@ -626,6 +629,8 @@ class Cluster : public mqbi::Cluster,
     /// used by this cluster.
     RequestManagerType& requestManager() BSLS_KEYWORD_OVERRIDE;
 
+    mqbi::Cluster::MultiRequestManagerType& multiRequestManager() BSLS_KEYWORD_OVERRIDE;
+
     /// Load the cluster state to the specified `out` object.
     void loadClusterStatus(mqbcmd::ClusterResult* out) BSLS_KEYWORD_OVERRIDE;
 
@@ -638,6 +643,10 @@ class Cluster : public mqbi::Cluster,
     /// remote peer.
     void processEvent(const bmqp::Event&   event,
                       mqbnet::ClusterNode* source = 0) BSLS_KEYWORD_OVERRIDE;
+
+    void onProcessedAdminCommand(mqbnet::ClusterNode* source, 
+            const bmqp_ctrlmsg::ControlMessage& adminCommandCtrlMsg, 
+            int rc, const bsl::string& res);
 
     // MANIPULATORS
     //   (virtual: mqbi::DispatcherClient)
@@ -726,6 +735,14 @@ class Cluster : public mqbi::Cluster,
     /// used by this cluster.
     const mqbnet::Cluster& netCluster() const BSLS_KEYWORD_OVERRIDE;
 
+    // Returns a reference to the cluster state describing this cluster
+    // const mqbc::ClusterState& clusterState() const BSLS_KEYWORD_OVERRIDE;
+
+    // Gets all the nodes which are a primary for some partition of this 
+    // cluster
+    void getPrimaryNodes(bsl::list<mqbnet::ClusterNode*>& outNodes,
+                                 bool& outIsSelfPrimary) const BSLS_KEYWORD_OVERRIDE;
+
     /// Print the state of the cluster to the specified `out`.
     ///
     /// THREAD: These methods must be invoked from the DISPATCHER thread.
@@ -798,6 +815,10 @@ inline Cluster::RequestManagerType& Cluster::requestManager()
     return d_clusterData.requestManager();
 }
 
+inline Cluster::MultiRequestManagerType& Cluster::multiRequestManager() {
+    return d_clusterData.multiRequestManager();
+}
+
 inline const bsl::string& Cluster::name() const
 {
     return d_clusterData.identity().name();
@@ -837,6 +858,11 @@ inline const mqbnet::Cluster& Cluster::netCluster() const
 {
     return *(d_clusterData.membership().netCluster());
 }
+
+// inline const mqbc::ClusterState& Cluster::clusterState() const
+// {
+//     return d_state;
+// }
 
 inline const mqbcfg::ClusterDefinition* Cluster::clusterConfig() const
 {

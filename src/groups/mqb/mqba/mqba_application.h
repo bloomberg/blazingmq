@@ -48,19 +48,35 @@
 #include <bslma_managedptr.h>
 #include <bslma_usesbslmaallocator.h>
 #include <bslmf_nestedtraitdeclaration.h>
+#include <bslmt_latch.h>
 #include <bsls_cpp11.h>
 
 namespace BloombergLP {
 
 // FORWARD DECLARATION
+namespace bmqp_ctrlmsg {
+class ControlMessage;
+}
 namespace bdlmt {
 class EventScheduler;
 }
 namespace mqbblp {
 class ClusterCatalog;
 }
+namespace mqbcmd {
+class CommandChoice;
+}
+namespace mqbcmd {
+class InternalResult;
+}
+namespace mqbi {
+class Cluster;
+}
 namespace mqbnet {
 class TransportManager;
+}
+namespace mqbnet {
+class ClusterNode;
 }
 namespace mqbplug {
 class PluginManager;
@@ -70,6 +86,10 @@ class StatController;
 }
 namespace mwcst {
 class StatContext;
+}
+namespace mqbnet {
+template <class REQUEST, class RESPONSE, class TARGET>
+class MultiRequestManagerRequestContext;
 }
 
 namespace mqba {
@@ -215,6 +235,31 @@ class Application {
         const bslstl::StringRef&                            source,
         const bsl::string&                                  cmd,
         const bsl::function<void(int, const bsl::string&)>& onProcessedCb);
+  
+  private:
+    // HELPER FUNCTIONS FOR ADMIN API ROUTING
+
+    // Determines if the command should be executed on the primary node
+    bool isCommandForPrimary(mqbcmd::CommandChoice& command) const;
+
+    // Returns a pointer to the cluster instance that the given command needs
+    // to execute for.
+    mqbi::Cluster* getRelevantCluster(mqbcmd::CommandChoice& command, mqbcmd::InternalResult& cmdResult) const;
+
+    // Routes the given command to any primary nodes on the cluster (if they
+    // are a primary for some partition)
+    bool routeCommandToPrimaryNodes(mqbi::Cluster* cluster, const bsl::string& cmd, bsl::ostream& os);
+
+    void onRerouteCommandResponse(const bsl::shared_ptr<
+          mqbnet::MultiRequestManagerRequestContext<
+            bmqp_ctrlmsg::ControlMessage, 
+            bmqp_ctrlmsg::ControlMessage, 
+            mqbnet::ClusterNode*
+          >
+        >& requestContext, bslmt::Latch& latch, bsl::ostream& os);
+      
+    int executeCommand(mqbcmd::CommandChoice& command, 
+                       mqbcmd::InternalResult& cmdResult);
 };
 
 }  // close package namespace

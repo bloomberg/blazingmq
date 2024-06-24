@@ -280,6 +280,9 @@ class ClusterCatalog {
     StatContextsMap d_statContexts;
     // Map of stat contexts
 
+    mqbnet::Session::AdminCommandEnqueueCb d_adminCb;
+    // Callback function to enqueue admin commands
+
   private:
     // NOT IMPLEMENTED
     ClusterCatalog(const ClusterCatalog&) BSLS_CPP11_DELETED;
@@ -407,6 +410,12 @@ class ClusterCatalog {
     /// otherwise.
     int processCommand(mqbcmd::ClustersResult*        result,
                        const mqbcmd::ClustersCommand& command);
+
+    // Sets the callback to pass to created clusters in this catalog that runs
+    // when an admin command is received by the cluster.
+    void setAdminCommandEnqueueCallback(
+      const mqbnet::Session::AdminCommandEnqueueCb& value
+    );
 
     // ACCESSORS
 
@@ -546,6 +555,12 @@ inline mqbi::Cluster* ClusterCatalogIterator::cluster() const
     BSLS_ASSERT_SAFE(*this);
 
     return d_iterator->second.d_cluster_sp.get();
+}
+
+inline void ClusterCatalog::setAdminCommandEnqueueCallback(
+      const mqbnet::Session::AdminCommandEnqueueCb& value) 
+{
+  d_adminCb = value;
 }
 
 }  // close package namespace

@@ -356,6 +356,10 @@ class ClusterProxy : public mqbc::ClusterStateObserver,
     /// used by this cluster.
     RequestManagerType& requestManager() BSLS_KEYWORD_OVERRIDE;
 
+    // Return a reference offering modifiable access to the multi request
+    // manager used by this cluster.
+    mqbi::Cluster::MultiRequestManagerType& multiRequestManager() BSLS_KEYWORD_OVERRIDE;
+
     /// Send the specified `request` with the specified `timeout` to the
     /// specified `target` node.  If `target` is 0, it is the Cluster's
     /// implementation responsibility to decide which node to use (in
@@ -531,6 +535,9 @@ class ClusterProxy : public mqbc::ClusterStateObserver,
     /// Load the cluster state in the specified `out` object.
     void loadClusterStatus(mqbcmd::ClusterResult* out) BSLS_KEYWORD_OVERRIDE;
 
+    void getPrimaryNodes(bsl::list<mqbnet::ClusterNode*>& outNodes,
+                                 bool& outIsSelfPrimary) const BSLS_KEYWORD_OVERRIDE;
+
     // MANIPULATORS
     //   (virtual: mqbi::DispatcherClient)
 
@@ -632,6 +639,9 @@ class ClusterProxy : public mqbc::ClusterStateObserver,
     /// Return a reference not offering modifiable access to the net cluster
     /// used by this cluster.
     const mqbnet::Cluster& netCluster() const BSLS_KEYWORD_OVERRIDE;
+
+    // Returns a reference to the cluster state describing this cluster
+    // const mqbc::ClusterState& clusterState() const BSLS_KEYWORD_OVERRIDE;
 };
 
 // ============================================================================
@@ -697,11 +707,21 @@ inline size_t ClusterProxy::ChannelBuffer::bytes() const
 // class ClusterProxy
 // ------------------
 
+inline void ClusterProxy::getPrimaryNodes(bsl::list<mqbnet::ClusterNode*>& outNodes,
+                                 bool& outIsSelfPrimary) const {
+    // no implementation
+}
+
 // PRIVATE MANIPULATORS
 //   (virtual: mqbi::Cluster)
 inline ClusterProxy::RequestManagerType& ClusterProxy::requestManager()
 {
     return d_clusterData.requestManager();
+}
+
+inline mqbi::Cluster::MultiRequestManagerType& ClusterProxy::multiRequestManager()
+{
+    return d_clusterData.multiRequestManager();
 }
 
 // MANIPULATORS
@@ -790,6 +810,11 @@ inline const mqbnet::Cluster& ClusterProxy::netCluster() const
 {
     return *(d_clusterData.membership().netCluster());
 }
+
+// inline const mqbc::ClusterState& ClusterProxy::clusterState() const
+// {
+//     return d_state;
+// }
 
 }  // close package namespace
 }  // close enterprise namespace

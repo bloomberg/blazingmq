@@ -22,6 +22,7 @@
 #include <mqbc_clusterutil.h>
 #include <mqbc_storagemanager.h>
 #include <mqbc_storageutil.h>
+#include <mqbc_controlmessagetransmitter.h>
 #include <mqbcmd_humanprinter.h>
 #include <mqbcmd_messages.h>
 #include <mqbnet_elector.h>
@@ -2496,7 +2497,8 @@ Cluster::Cluster(const bslstl::StringRef&           name,
                  BlobSpPool*                        blobSpPool,
                  bdlbb::BlobBufferFactory*          bufferFactory,
                  mqbnet::TransportManager*          transportManager,
-                 bslma::Allocator*                  allocator)
+                 bslma::Allocator*                  allocator,
+                 const mqbnet::Session::AdminCommandEnqueueCb& adminCb)
 : d_allocator_p(allocator)
 , d_allocators(d_allocator_p)
 , d_isStarted(false)
@@ -2534,6 +2536,7 @@ Cluster::Cluster(const bslstl::StringRef&           name,
 , d_queueGcSchedulerHandle()
 , d_stopRequestsManager(&d_clusterData.requestManager(), allocator)
 , d_shutdownChain(allocator)
+, d_adminCb(adminCb)
 {
     // PRECONDITIONS
     BSLS_ASSERT(d_allocator_p);
@@ -2929,6 +2932,28 @@ void Cluster::processControlMessage(
             << description() << ": unexpected clusterMessage:" << message
             << MWCTSK_ALARMLOG_END;
     } break;  // BREAK
+    case MsgChoice::SELECTION_ID_ADMIN_COMMAND: {
+        BALL_LOG_INFO << "Received admin command through Control Message API";
+        const bsl::string& cmd = message.choice().adminCommand().command();
+        BALL_LOG_INFO << cmd;
+        // do we need to dispatch this?. or is the admin cb already
+        // invoking a dispatch event?
+        d_adminCb("reroute", cmd, bdlf::BindUtil::bind(
+            &Cluster::onProcessedAdminCommand, 
+            this,
+            source,
+            message,
+            bdlf::PlaceHolders::_1,
+            bdlf::PlaceHolders::_2
+        ));
+    } break;
+    case MsgChoice::SELECTION_ID_ADMIN_COMMAND_RESPONSE: {
+        BALL_LOG_INFO << "Received admin command response through Control Message API";
+        BALL_LOG_INFO << description() << ": " << message;
+        // const bmqp_ctrlmsg::AdminCommandResponse& response = message.choice().adminCommandResponse();
+        // TODO: trigger response callback? how does this work in the first place?
+        requestManager().processResponse(message);
+    }
     case MsgChoice::SELECTION_ID_UNDEFINED:
     default: {
         MWCTSK_ALARMLOG_ALARM("CLUSTER")
@@ -3555,6 +3580,37 @@ void Cluster::onFailoverThreshold()
     MWCTSK_ALARMLOG_PANIC("CLUSTER") << os.str() << MWCTSK_ALARMLOG_END;
 }
 
+void Cluster::onProcessedAdminCommand(mqbnet::ClusterNode* source, 
+                    const bmqp_ctrlmsg::ControlMessage& adminCommandCtrlMsg, 
+                    int rc, const bsl::string& res) {
+    // here we need to send this "res" back to the source!
+    BALL_LOG_INFO << rc;
+    BALL_LOG_INFO << res;
+    bdlma::LocalSequentialAllocator<2048> localAllocator(d_allocator_p);
+    bmqp_ctrlmsg::ControlMessage response(&localAllocator);
+
+    response.rId() = adminCommandCtrlMsg.rId().value();
+    response.choice().makeAdminCommandResponse();
+
+    response.choice().adminCommandResponse().text() = res;
+
+    // dispatcher()->execute(
+    //     bdlf::BindUtil::bind(
+    //         &mqbc::ControlMessageTransmitter::send,
+    //         &d_clusterData.messageTransmitter(),
+    //         response,
+    //         source), 
+    //     this);
+    d_clusterData.messageTransmitter().sendMessageSafe(response, source);
+
+    // need to do something about "schema event builder" thingy whatever
+
+    // TODO: look at mqba_adminsession.cpp to see how to implement this!
+
+    // bmqp::SchemaEventBuilder schemaEventBuilder;
+
+}
+
 void Cluster::loadClusterStatus(mqbcmd::ClusterResult* result)
 {
     // executed by the *DISPATCHER* thread
@@ -3672,6 +3728,48 @@ void Cluster::processResponse(const bmqp_ctrlmsg::ControlMessage& response)
                              response,
                              static_cast<mqbnet::ClusterNode*>(0)),  // source
         this);
+}
+
+void Cluster::getPrimaryNodes(bsl::list<mqbnet::ClusterNode*>& outNodes,
+                            bool& outIsSelfPrimary) const {
+    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+
+    const mqbnet::Cluster::NodesList& nodes = netCluster().nodes();
+    const mqbc::ClusterState::PartitionsInfo& partitionsInfo = d_state.partitionsInfo();
+
+    outIsSelfPrimary = false;
+    outNodes.clear();
+
+    for (mqbc::ClusterState::PartitionsInfo::const_iterator pit
+                    = partitionsInfo.begin();
+                    pit != partitionsInfo.end();
+                    pit++) {
+        bool foundPrimary = false;
+        for (mqbnet::Cluster::NodesList::const_iterator nit
+                    = nodes.begin();
+                    nit != nodes.end();
+                    nit++) {
+            mqbnet::ClusterNode* node = *nit;
+            // Check if this node is the primary for this partition
+            if (pit->primaryNodeId() == node->nodeId()) {
+                // If we already added this node, then don't add a duplicate
+                if (bsl::find(outNodes.begin(), outNodes.end(), node) != outNodes.end()) {
+                    continue;
+                }
+                if (d_state.isSelfPrimary(pit->partitionId())) {
+                    outIsSelfPrimary = true;
+                    continue;
+                }
+                outNodes.push_back(node);
+                foundPrimary = true;
+                break;
+            }
+        }
+        if (!foundPrimary) {
+            // TODO: Handle this case
+            // Approach may include putting into some buffer to callback later
+        }
+    }    
 }
 
 }  // close package namespace
