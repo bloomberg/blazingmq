@@ -152,14 +152,7 @@ class ClusterData {
     bslma::Allocator* d_allocator_p;
     // Allocator to use
 
-    bdlmt::EventScheduler* d_scheduler_p;
-    // EventScheduler to use
-
-    bdlbb::BlobBufferFactory* d_bufferFactory_p;
-    // Blob buffer factory to use
-
-    BlobSpPool* d_blobSpPool_p;  // from mqbblp::Cluster
-                                 // Pool of shared pointers to blob to use
+    const mqbi::ClusterResources d_resources;
 
     mqbi::DispatcherClientData d_dispatcherClientData;
     // Dispatcher client data associated to this
@@ -218,14 +211,12 @@ class ClusterData {
 
     // CREATORS
 
-    /// Create a `mqbc::ClusterData` with the specified `name`, `scheduler`,
-    /// `bufferFactory`, `blobSpPool`, `clusterConfig`, 'clusterProxyConfig',
-    /// `netCluster`, `cluster`, `clustersStatContext` and `statContexts`
-    /// values.  Use the specified `allocator` for any memory allocation.
+    /// Create a 'mqbc::ClusterData' with the specified 'name', 'resources',
+    /// 'clusterConfig', 'clusterProxyConfig', 'netCluster', 'cluster',
+    /// 'clustersStatContext' and 'statContexts' values.  Use the specified
+    /// 'allocator' for any memory allocation.
     ClusterData(const bslstl::StringRef&              name,
-                bdlmt::EventScheduler*                scheduler,
-                bdlbb::BlobBufferFactory*             bufferFactory,
-                BlobSpPool*                           blobSpPool,
+                const mqbi::ClusterResources&         resources,
                 const mqbcfg::ClusterDefinition&      clusterConfig,
                 const mqbcfg::ClusterProxyDefinition& clusterProxyConfig,
                 bslma::ManagedPtr<mqbnet::Cluster>    netCluster,
@@ -289,6 +280,7 @@ class ClusterData {
     /// Return the value of the corresponding member of this object.
     bdlmt::EventScheduler*                scheduler() const;
     bdlbb::BlobBufferFactory*             bufferFactory() const;
+    const mqbi::ClusterResources&         resources() const;
     const mqbi::DispatcherClientData&     dispatcherClientData() const;
     const mqbcfg::ClusterDefinition&      clusterConfig() const;
     const mqbcfg::ClusterProxyDefinition& clusterProxyConfig() const;
@@ -344,7 +336,7 @@ ClusterDataIdentity::identity() const
 // MANIPULATORS
 inline ClusterData::BlobSpPool* ClusterData::blobSpPool()
 {
-    return d_blobSpPool_p;
+    return d_resources.d_blobSpPool_p;
 }
 
 inline mqbi::DispatcherClientData& ClusterData::dispatcherClientData()
@@ -420,12 +412,17 @@ inline ClusterData::StatContextMp& ClusterData::clusterNodesStatContext()
 // ACCESSORS
 inline bdlmt::EventScheduler* ClusterData::scheduler() const
 {
-    return d_scheduler_p;
+    return d_resources.d_scheduler_p;
 }
 
 inline bdlbb::BlobBufferFactory* ClusterData::bufferFactory() const
 {
-    return d_bufferFactory_p;
+    return d_resources.d_bufferFactory_p;
+}
+
+inline const mqbi::ClusterResources& ClusterData::resources() const
+{
+    return d_resources;
 }
 
 inline const mqbi::DispatcherClientData&

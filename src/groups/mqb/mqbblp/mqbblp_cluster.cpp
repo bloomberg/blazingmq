@@ -2491,20 +2491,16 @@ Cluster::Cluster(const bslstl::StringRef&           name,
                  bslma::ManagedPtr<mqbnet::Cluster> netCluster,
                  const StatContextsMap&             statContexts,
                  mqbi::DomainFactory*               domainFactory,
-                 bdlmt::EventScheduler*             scheduler,
                  mqbi::Dispatcher*                  dispatcher,
-                 BlobSpPool*                        blobSpPool,
-                 bdlbb::BlobBufferFactory*          bufferFactory,
                  mqbnet::TransportManager*          transportManager,
+                 const mqbi::ClusterResources&      resources,
                  bslma::Allocator*                  allocator)
 : d_allocator_p(allocator)
 , d_allocators(d_allocator_p)
 , d_isStarted(false)
 , d_isStopping(false)
 , d_clusterData(name,
-                scheduler,
-                bufferFactory,
-                blobSpPool,
+                resources,
                 clusterConfig,
                 mqbcfg::ClusterProxyDefinition(allocator),
                 netCluster,
@@ -2539,7 +2535,8 @@ Cluster::Cluster(const bslstl::StringRef&           name,
     BSLS_ASSERT(d_allocator_p);
     mqbnet::Cluster* netCluster_p = d_clusterData.membership().netCluster();
     BSLS_ASSERT(netCluster_p && "NetCluster not set !");
-    BSLS_ASSERT(scheduler->clockType() == bsls::SystemClockType::e_MONOTONIC);
+    BSLS_ASSERT(resources.d_scheduler_p->clockType() ==
+                bsls::SystemClockType::e_MONOTONIC);
     BSLS_ASSERT_SAFE(d_clusterData.membership().selfNode() &&
                      "SelfNode not found in cluster!");
 

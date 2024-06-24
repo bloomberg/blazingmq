@@ -72,18 +72,16 @@ struct TestStorage {
                 1,
                 d_domainCfg,
                 &d_capacityMeter,
-                bmqp::RdaInfo(),
                 allocator)
     , d_iterator(d_storage.getIterator(mqbu::StorageKey()))
     , d_bufferFactory(32, allocator)
-    , d_queue_sp(new (*allocator) mqbmock::Queue(0, allocator), allocator)
+    , d_queue_sp(new(*allocator) mqbmock::Queue(0, allocator), allocator)
     , d_allocator_p(allocator)
 
     {
         bmqt::MessageGUID guid;
         guid.fromHex("00000000000000000000000000000001");
         mqbi::StorageMessageAttributes     attributes;
-        const mqbi::Storage::StorageKeys   storageKeys(allocator);
         const bsl::shared_ptr<bdlbb::Blob> appData(
             new (*allocator) bdlbb::Blob(&d_bufferFactory, allocator),
             allocator);
@@ -93,15 +91,12 @@ struct TestStorage {
         // TODO: put data for Expression evaluation
 
         mqbi::StorageResult::Enum rc =
-            d_storage.put(&attributes, guid, appData, options, storageKeys);
+            d_storage.put(&attributes, guid, appData, options);
 
         ASSERT_EQ(rc, mqbi::StorageResult::e_SUCCESS);
     }
 
-    ~TestStorage()
-    {
-        // d_storage.removeAll(mqbu::StorageKey());
-    }
+    ~TestStorage() { d_storage.removeAll(mqbu::StorageKey()); }
 
     mqbmock::QueueHandle getHandle()
     {
@@ -223,6 +218,41 @@ static void test2_priority()
                                   mqbblp::Routers::Subscriber(consumer,
                                                               s_allocator_p));
 }
+
+class MyAllocator : public bslma::Allocator {
+    // This class defines a concrete mechanism that adapts the system-supplied
+    // (native) global 'operator new' and 'operator delete' to the 'Allocator'
+    // protocol.  The class method 'singleton' returns a process-wide unique
+    // object of this class whose lifetime is guaranteed to extend from the
+    // first call to 'singleton' until the program terminates.  A second class
+    // method, 'allocator', allows for conveniently replacing a "null"
+    // allocator with this singleton object.  Note that this entire class
+    // should generally not be used directly by typical clients (see
+    // 'bslma_default' for more information).
+
+  private:
+    // NOT IMPLEMENTED
+    MyAllocator(const MyAllocator&);
+    MyAllocator& operator=(const MyAllocator&);
+
+  public:
+    // CLASS METHODS
+    static MyAllocator& singleton();
+
+    static Allocator* allocator(Allocator* basicAllocator);
+
+    // CREATORS
+    MyAllocator() {}
+
+    virtual ~MyAllocator() {}
+
+    // MANIPULATORS
+    virtual void* allocate(size_type size) { return new char[size]; }
+
+    virtual void deallocate(void* address) { delete[] address; }
+};
+
+MyAllocator ma;
 
 static void test3_parse()
 // ------------------------------------------------------------------------

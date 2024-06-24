@@ -150,9 +150,6 @@ class Cluster : public mqbi::Cluster {
     bslma::Allocator* d_allocator_p;
     // Allocator to use
 
-    bdlbb::BlobBufferFactory* d_bufferFactory_p;
-    // Buffer factory to use
-
     BlobSpPool d_blobSpPool;
     // Blob sp pool to use
 
@@ -161,6 +158,8 @@ class Cluster : public mqbi::Cluster {
 
     bdlmt::EventScheduler d_scheduler;
     // Event scheduler to use
+
+    mqbi::ClusterResources d_resources;
 
     bdlmt::EventSchedulerTestTimeSource d_timeSource;
     // Time source for the event scheduler
@@ -534,7 +533,7 @@ inline void Cluster::_setEventProcessor(const EventProcessor& processor)
 
 inline bdlbb::BlobBufferFactory* Cluster::_bufferFactory()
 {
-    return d_bufferFactory_p;
+    return d_resources.d_bufferFactory_p;
 }
 
 inline bdlmt::EventScheduler& Cluster::_scheduler()

@@ -108,6 +108,7 @@ struct Test : mwctst::Test {
     mqbmock::Cluster                          d_cluster;
     mqbmock::Domain                           d_domain;
     mqbmock::Queue                            d_queue;
+    mqbi::ClusterResources                    d_resources;
     QueueState                                d_queueState;
     QueueConsumptionMonitor                   d_monitor;
     mqbs::InMemoryStorage                     d_storage;
@@ -145,12 +146,14 @@ Test::Test()
 , d_cluster(&d_bufferFactory, s_allocator_p)
 , d_domain(&d_cluster, s_allocator_p)
 , d_queue(&d_domain, s_allocator_p)
+, d_resources()
 , d_queueState(&d_queue,
                d_uri,
                d_id,
                d_storageKey,
                d_partitionId,
                &d_domain,
+               d_resources,
                s_allocator_p)
 , d_monitor(&d_queueState, s_allocator_p)
 , d_storage(d_queue.uri(),
@@ -158,7 +161,6 @@ Test::Test()
             mqbs::DataStore::k_INVALID_PARTITION_ID,
             getDomainConfig(),
             d_domain.capacityMeter(),
-            bmqp::RdaInfo(),
             s_allocator_p)
 , d_advance(s_allocator_p)
 , d_clientId(0)
@@ -236,11 +238,7 @@ void Test::putMessage()
                                            0,
                                            bslma::ManagedPtrUtil::noOpDeleter);
 
-    ASSERT_EQ(d_storage.put(&messageAttributes,
-                            messageGUID,
-                            appData,
-                            options,
-                            mqbi::Storage::StorageKeys()),
+    ASSERT_EQ(d_storage.put(&messageAttributes, messageGUID, appData, options),
               mqbi::StorageResult::e_SUCCESS);
 }
 

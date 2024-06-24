@@ -622,6 +622,8 @@ class Routers {
         e_NO_CAPACITY_ALL = 3  // All Subscription(s) are without capacity
         ,
         e_DELAY = 4  // Delay due to Potentially Poisonous data
+        ,
+        e_INVALID = 5  // Not valid anymore due to Confirm/Purge
     };
 
     /// Class that implements round-robin routing policy.
@@ -684,6 +686,8 @@ class Routers {
 
         bmqeval::CompilationContext d_compilationContext;
 
+        unsigned int d_priorityCount;
+
         bslma::Allocator* d_allocator_p;
 
         AppContext(QueueRoutingContext& queue, bslma::Allocator* allocator);
@@ -710,7 +714,7 @@ class Routers {
 
         /// Make a pass on results of previous parsing and build round-robin
         /// lists of highest priority `Subscription`s.
-        size_t finalize();
+        unsigned int finalize();
 
         void registerSubscriptions();
 
@@ -736,7 +740,8 @@ class Routers {
         /// `true`.
         Routers::Result
         selectConsumer(const Visitor&               visitor,
-                       const mqbi::StorageIterator* currentMessage);
+                       const mqbi::StorageIterator* currentMessage,
+                       unsigned int                 subscriptionId);
 
         /// Iterate all highest priority `Subscriber`s and call the
         /// specified `visitor` for each highest priority `Subscription`
@@ -765,6 +770,8 @@ class Routers {
         void generate(bmqp_ctrlmsg::StreamParameters* streamParameters) const;
 
         bool hasHandle(mqbi::QueueHandle* handle) const;
+
+        unsigned int priorityCount() const;
     };
 };
 
@@ -816,6 +823,7 @@ inline Routers::AppContext::AppContext(QueueRoutingContext& queue,
 , d_queue(queue)
 , d_router(d_priorities)
 , d_compilationContext(allocator)
+, d_priorityCount(0)
 , d_allocator_p(allocator)
 {
     // NOTHING
@@ -830,6 +838,11 @@ inline Routers::AppContext::~AppContext()
 inline bool Routers::AppContext::hasHandle(mqbi::QueueHandle* handle) const
 {
     return d_consumers.hasItem(handle);
+}
+
+inline unsigned int Routers::AppContext::priorityCount() const
+{
+    return d_priorityCount;
 }
 
 // -----------------------------------
