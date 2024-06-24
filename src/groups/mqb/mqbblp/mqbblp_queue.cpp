@@ -454,14 +454,13 @@ Queue::Queue(const bmqt::Uri&                          uri,
              int                                       partitionId,
              mqbi::Domain*                             domain,
              mqbi::StorageManager*                     storageManager,
-             bdlbb::BlobBufferFactory*                 blobBufferFactory,
-             bdlmt::EventScheduler*                    scheduler,
+             const mqbi::ClusterResources&             resources,
              bdlmt::FixedThreadPool*                   threadPool,
              const bmqp_ctrlmsg::RoutingConfiguration& routingCfg,
              bslma::Allocator*                         allocator)
 : d_allocator_p(allocator)
 , d_schemaLearner(allocator)
-, d_state(this, uri, id, key, partitionId, domain, allocator)
+, d_state(this, uri, id, key, partitionId, domain, resources, allocator)
 , d_localQueue_mp(0)
 , d_remoteQueue_mp(0)
 {
@@ -486,8 +485,6 @@ Queue::Queue(const bmqt::Uri&                          uri,
 
     d_state.setStorageManager(storageManager)
         .setAppKeyGenerator(storageManager)
-        .setBlobBufferFactory(blobBufferFactory)
-        .setEventScheduler(scheduler)
         .setMiscWorkThreadPool(threadPool)
         .setRoutingConfig(routingCfg)
         .setMessageThrottleConfig(messageThrottleConfig);

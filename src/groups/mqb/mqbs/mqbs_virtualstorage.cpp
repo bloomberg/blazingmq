@@ -15,6 +15,7 @@
 
 // mqbs_virtualstorage.cpp                                            -*-C++-*-
 #include <mqbs_virtualstorage.h>
+#include <mqbs_virtualstoragecatalog.h>
 
 #include <mqbscm_version.h>
 // BDE
@@ -34,14 +35,15 @@ namespace mqbs {
 VirtualStorage::VirtualStorage(mqbi::Storage*          storage,
                                const bsl::string&      appId,
                                const mqbu::StorageKey& appKey,
+                               unsigned int            ordinal,
                                bslma::Allocator*       allocator)
 : d_allocator_p(allocator)
 , d_storage_p(storage)
 , d_appId(appId, allocator)
 , d_appKey(appKey)
-, d_guids(allocator)
-, d_totalBytes(0)
-, d_autoConfirm()
+, d_removedBytes(0)
+, d_numRemoved(0)
+, d_ordinal(ordinal)
 {
     BSLS_ASSERT_SAFE(d_storage_p);
     BSLS_ASSERT_SAFE(allocator);
@@ -56,204 +58,59 @@ VirtualStorage::~VirtualStorage()
 
 // MANIPULATORS
 mqbi::StorageResult::Enum
-VirtualStorage::get(bsl::shared_ptr<bdlbb::Blob>*   appData,
-                    bsl::shared_ptr<bdlbb::Blob>*   options,
-                    mqbi::StorageMessageAttributes* attributes,
-                    const bmqt::MessageGUID&        msgGUID) const
+VirtualStorage::confirm(DataStreamMessage* dataStreamMessage)
 {
-    if (!hasMessage(msgGUID)) {
+    mqbi::AppMessage& appMessage = dataStreamMessage->app(ordinal());
+
+    if (appMessage.isPending()) {
+        appMessage.onConfirm();
+
+        d_removedBytes += dataStreamMessage->d_size;
+        ++d_numRemoved;
+
+        return mqbi::StorageResult::e_SUCCESS;
+    }
+    else {
+        // already deleted
         return mqbi::StorageResult::e_GUID_NOT_FOUND;  // RETURN
     }
-
-    return d_storage_p->get(appData, options, attributes, msgGUID);
 }
 
 mqbi::StorageResult::Enum
-VirtualStorage::get(mqbi::StorageMessageAttributes* attributes,
-                    const bmqt::MessageGUID&        msgGUID) const
+VirtualStorage::remove(DataStreamMessage* dataStreamMessage)
 {
-    if (!hasMessage(msgGUID)) {
+    mqbi::AppMessage& appMessage = dataStreamMessage->app(ordinal());
+
+    if (appMessage.isPending()) {
+        appMessage.onRemove();
+
+        d_removedBytes += dataStreamMessage->d_size;
+        ++d_numRemoved;
+
+        return mqbi::StorageResult::e_SUCCESS;
+    }
+    else {
+        // already deleted
         return mqbi::StorageResult::e_GUID_NOT_FOUND;  // RETURN
     }
-
-    return d_storage_p->get(attributes, msgGUID);
 }
 
-int VirtualStorage::configure(
-    BSLS_ANNOTATION_UNUSED bsl::ostream& errorDescription,
-    BSLS_ANNOTATION_UNUSED const mqbconfm::Storage& config,
-    BSLS_ANNOTATION_UNUSED const mqbconfm::Limits& limits,
-    BSLS_ANNOTATION_UNUSED const bsls::Types::Int64 messageTtl,
-    BSLS_ANNOTATION_UNUSED const int                maxDeliveryAttempts)
+void VirtualStorage::onGC(const DataStreamMessage& dataStreamMessage)
 {
-    // NOTHING
-    return 0;
-}
+    if (!dataStreamMessage.d_apps.empty()) {
+        const mqbi::AppMessage& appMessage = dataStreamMessage.app(ordinal());
 
-void VirtualStorage::setQueue(BSLS_ANNOTATION_UNUSED mqbi::Queue* queue)
-{
-    BSLS_ASSERT_OPT(false && "Should not be invoked.");
-}
-
-mqbi::Queue* VirtualStorage::queue()
-{
-    BSLS_ASSERT_OPT(false && "Should not be invoked.");
-    return static_cast<mqbi::Queue*>(0);
-}
-
-void VirtualStorage::close()
-{
-    // NOTHING
-}
-
-mqbi::StorageResult::Enum VirtualStorage::put(const bmqt::MessageGUID& msgGUID,
-                                              int                      msgSize,
-                                              const bmqp::RdaInfo&     rdaInfo,
-                                              unsigned int subScriptionId)
-{
-    if (!d_autoConfirm.isUnset()) {
-        const bool isAutoConfirmed = (d_autoConfirm == msgGUID);
-
-        d_autoConfirm = bmqt::MessageGUID();
-        if (isAutoConfirmed) {
-            return mqbi::StorageResult::e_SUCCESS;  // RETURN
+        if (!appMessage.isPending()) {
+            d_removedBytes -= dataStreamMessage.d_size;
+            --d_numRemoved;
         }
     }
-
-    if (d_guids
-            .insert(bsl::make_pair(
-                msgGUID,
-                MessageContext(msgSize, rdaInfo, subScriptionId)))
-            .second == false) {
-        // Duplicate GUID
-        return mqbi::StorageResult::e_GUID_NOT_UNIQUE;  // RETURN
-    }
-
-    // Success: new GUID
-    d_totalBytes += msgSize;
-    return mqbi::StorageResult::e_SUCCESS;
 }
 
-mqbi::StorageResult::Enum VirtualStorage::put(
-    BSLS_ANNOTATION_UNUSED mqbi::StorageMessageAttributes* attributes,
-    BSLS_ANNOTATION_UNUSED const bmqt::MessageGUID& msgGUID,
-    BSLS_ANNOTATION_UNUSED const bsl::shared_ptr<bdlbb::Blob>& appData,
-    BSLS_ANNOTATION_UNUSED const bsl::shared_ptr<bdlbb::Blob>& options,
-    BSLS_ANNOTATION_UNUSED const mqbi::Storage::StorageKeys& storageKeys)
+void VirtualStorage::resetStats()
 {
-    BSLS_ASSERT_OPT(false && "Should not be invoked.");
-    return mqbi::StorageResult::e_INVALID_OPERATION;
-}
-
-bslma::ManagedPtr<mqbi::StorageIterator>
-VirtualStorage::getIterator(const mqbu::StorageKey& appKey)
-{
-    BSLS_ASSERT_SAFE(d_appKey == appKey);
-    static_cast<void>(appKey);
-
-    bslma::ManagedPtr<mqbi::StorageIterator> mp(
-        new (*d_allocator_p) VirtualStorageIterator(this, d_guids.begin()),
-        d_allocator_p);
-
-    return mp;
-}
-
-mqbi::StorageResult::Enum
-VirtualStorage::getIterator(bslma::ManagedPtr<mqbi::StorageIterator>* out,
-                            const mqbu::StorageKey&                   appKey,
-                            const bmqt::MessageGUID&                  msgGUID)
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_appKey == appKey);
-    static_cast<void>(appKey);
-
-    GuidListIter it = d_guids.find(msgGUID);
-    if (it == d_guids.end()) {
-        return mqbi::StorageResult::e_GUID_NOT_FOUND;  // RETURN
-    }
-
-    out->load(new (*d_allocator_p) VirtualStorageIterator(this, it),
-              d_allocator_p);
-
-    return mqbi::StorageResult::e_SUCCESS;
-}
-
-mqbi::StorageResult::Enum VirtualStorage::releaseRef(
-    BSLS_ANNOTATION_UNUSED const bmqt::MessageGUID& msgGUID,
-    BSLS_ANNOTATION_UNUSED const mqbu::StorageKey& appKey,
-    BSLS_ANNOTATION_UNUSED bsls::Types::Int64 timestamp,
-    BSLS_ANNOTATION_UNUSED bool               onReject)
-{
-    BSLS_ASSERT_OPT(false && "Should not be invoked.");
-    return mqbi::StorageResult::e_INVALID_OPERATION;
-}
-
-mqbi::StorageResult::Enum
-VirtualStorage::remove(const bmqt::MessageGUID&    msgGUID,
-                       int*                        msgSize,
-                       BSLS_ANNOTATION_UNUSED bool clearAll)
-
-{
-    GuidList::const_iterator it = d_guids.find(msgGUID);
-    if (it == d_guids.end()) {
-        return mqbi::StorageResult::e_GUID_NOT_FOUND;  // RETURN
-    }
-
-    if (msgSize) {
-        *msgSize = it->second.d_size;
-    }
-    d_totalBytes -= it->second.d_size;
-    d_guids.erase(it);
-    return mqbi::StorageResult::e_SUCCESS;
-}
-
-mqbi::StorageResult::Enum VirtualStorage::removeAll(
-    BSLS_ANNOTATION_UNUSED const mqbu::StorageKey& appKey)
-{
-    d_guids.clear();
-    d_totalBytes = 0;
-    return mqbi::StorageResult::e_SUCCESS;
-}
-
-void VirtualStorage::dispatcherFlush(bool, bool)
-{
-    BSLS_ASSERT_OPT(false && "Should not be invoked.");
-}
-
-// ACCESSORS
-mqbi::StorageResult::Enum
-VirtualStorage::getMessageSize(int*                     msgSize,
-                               const bmqt::MessageGUID& msgGUID) const
-{
-    GuidList::const_iterator cit = d_guids.find(msgGUID);
-    if (cit == d_guids.end()) {
-        return mqbi::StorageResult::e_GUID_NOT_FOUND;  // RETURN
-    }
-
-    *msgSize = cit->second.d_size;
-    return mqbi::StorageResult::e_SUCCESS;
-}
-
-int VirtualStorage::numVirtualStorages() const
-{
-    BSLS_ASSERT_OPT(false && "Should not be invoked.");
-    return 0;
-}
-
-bool VirtualStorage::hasVirtualStorage(
-    BSLS_ANNOTATION_UNUSED const mqbu::StorageKey& appKey,
-    BSLS_ANNOTATION_UNUSED bsl::string* appId) const
-{
-    BSLS_ASSERT_OPT(false && "Should not be invoked.");
-    return false;
-}
-
-bool VirtualStorage::hasVirtualStorage(
-    BSLS_ANNOTATION_UNUSED const bsl::string& appId,
-    BSLS_ANNOTATION_UNUSED mqbu::StorageKey* appKey) const
-{
-    BSLS_ASSERT_OPT(false && "Should not be invoked.");
-    return false;
+    d_removedBytes = 0;
+    d_numRemoved   = 0;
 }
 
 bool VirtualStorage::hasReceipt(const bmqt::MessageGUID& msgGUID) const
@@ -261,66 +118,9 @@ bool VirtualStorage::hasReceipt(const bmqt::MessageGUID& msgGUID) const
     return d_storage_p->hasReceipt(msgGUID);
 }
 
-void VirtualStorage::loadVirtualStorageDetails(
-    BSLS_ANNOTATION_UNUSED AppIdKeyPairs* buffer) const
+unsigned int VirtualStorage::ordinal() const
 {
-    BSLS_ASSERT_OPT(false && "Should not be invoked.");
-}
-
-unsigned int VirtualStorage::numAutoConfirms() const
-{
-    BSLS_ASSERT_OPT(false && "Should not be invoked.");
-    return 0;
-}
-
-int VirtualStorage::gcExpiredMessages(
-    BSLS_ANNOTATION_UNUSED bsls::Types::Uint64* latestGcMsgTimestampEpoch,
-    BSLS_ANNOTATION_UNUSED bsls::Types::Int64* configuredTtlValue,
-    BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 secondsFromEpoch)
-{
-    BSLS_ASSERT_OPT(false && "Should not be invoked.");
-    return 0;
-}
-
-bool VirtualStorage::gcHistory()
-{
-    BSLS_ASSERT_OPT(false && "Should not be invoked.");
-    return false;
-}
-
-int VirtualStorage::addVirtualStorage(
-    BSLS_ANNOTATION_UNUSED bsl::ostream& errorDescription,
-    BSLS_ANNOTATION_UNUSED const bsl::string& appId,
-    BSLS_ANNOTATION_UNUSED const mqbu::StorageKey& appKey)
-{
-    BSLS_ASSERT_OPT(false && "Should not be invoked.");
-    return -1;
-}
-
-bool VirtualStorage::removeVirtualStorage(
-    BSLS_ANNOTATION_UNUSED const mqbu::StorageKey& appKey)
-{
-    BSLS_ASSERT_OPT(false && "Should not be invoked.");
-    return false;
-}
-
-void VirtualStorage::selectForAutoConfirming(const bmqt::MessageGUID& msgGUID)
-{
-    BSLS_ASSERT_SAFE(false && "Should not be invoked.");
-}
-
-mqbi::StorageResult::Enum
-VirtualStorage::autoConfirm(const mqbu::StorageKey& appKey,
-                            bsls::Types::Uint64     timestamp)
-{
-    BSLS_ASSERT_SAFE(false && "Should not be invoked.");
-
-    return mqbi::StorageResult::e_INVALID_OPERATION;
-}
-
-void VirtualStorage::autoConfirm(const bmqt::MessageGUID& msgGUID)
-{
-    d_autoConfirm = msgGUID;
+    return d_ordinal;
 }
 
 // ----------------------------
@@ -328,7 +128,7 @@ void VirtualStorage::autoConfirm(const bmqt::MessageGUID& msgGUID)
 // ----------------------------
 
 // PRIVATE MANIPULATORS
-void VirtualStorageIterator::clear()
+void StorageIterator::clear()
 {
     // Clear previous state, if any.  This is required so that new state can be
     // loaded in 'appData', 'options' or 'attributes' routines.
@@ -339,16 +139,15 @@ void VirtualStorageIterator::clear()
 }
 
 // PRIVATE ACCESSORS
-bool VirtualStorageIterator::loadMessageAndAttributes() const
+bool StorageIterator::loadMessageAndAttributes() const
 {
     BSLS_ASSERT_SAFE(!atEnd());
 
     if (!d_appData_sp) {
-        mqbi::StorageResult::Enum rc = d_virtualStorage_p->d_storage_p->get(
-            &d_appData_sp,
-            &d_options_sp,
-            &d_attributes,
-            d_iterator->first);
+        mqbi::StorageResult::Enum rc = d_storage_p->get(&d_appData_sp,
+                                                        &d_options_sp,
+                                                        &d_attributes,
+                                                        d_iterator->first);
         BSLS_ASSERT_SAFE(mqbi::StorageResult::e_SUCCESS == rc);
         static_cast<void>(rc);  // suppress compiler warning
         return true;            // RETURN
@@ -357,26 +156,28 @@ bool VirtualStorageIterator::loadMessageAndAttributes() const
 }
 
 // CREATORS
-VirtualStorageIterator::VirtualStorageIterator(
-    VirtualStorage*                                 storage,
-    const VirtualStorage::GuidList::const_iterator& initialPosition)
-: d_virtualStorage_p(storage)
+StorageIterator::StorageIterator(
+    mqbi::Storage*                              storage,
+    VirtualStorageCatalog*                      owner,
+    const VirtualStorage::DataStream::iterator& initialPosition)
+: d_storage_p(storage)
+, d_owner_p(owner)
 , d_iterator(initialPosition)
 , d_attributes()
 , d_appData_sp()
 , d_options_sp()
 , d_haveReceipt(false)
 {
-    BSLS_ASSERT_SAFE(d_virtualStorage_p);
+    BSLS_ASSERT_SAFE(d_owner_p);
 }
 
-VirtualStorageIterator::~VirtualStorageIterator()
+StorageIterator::~StorageIterator()
 {
     // NOTHING
 }
 
 // MANIPULATORS
-bool VirtualStorageIterator::advance()
+bool StorageIterator::advance()
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(!atEnd());
@@ -386,16 +187,16 @@ bool VirtualStorageIterator::advance()
     return !atEnd();
 }
 
-void VirtualStorageIterator::reset()
+void StorageIterator::reset(const bmqt::MessageGUID& where)
 {
     clear();
 
     // Reset iterator to beginning
-    d_iterator = d_virtualStorage_p->d_guids.begin();
+    d_iterator = d_owner_p->begin(where);
 }
 
 // ACCESSORS
-const bmqt::MessageGUID& VirtualStorageIterator::guid() const
+const bmqt::MessageGUID& StorageIterator::guid() const
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(!atEnd());
@@ -403,36 +204,46 @@ const bmqt::MessageGUID& VirtualStorageIterator::guid() const
     return d_iterator->first;
 }
 
-bmqp::RdaInfo& VirtualStorageIterator::rdaInfo() const
+const mqbi::AppMessage&
+StorageIterator::appMessageView(unsigned int appOrdinal) const
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(!atEnd());
 
-    return d_iterator->second.d_rdaInfo;
+    const VirtualStorage::DataStreamMessage& dataStreamMessage =
+        d_iterator->second;
+
+    if (dataStreamMessage.d_apps.size() > appOrdinal) {
+        return d_iterator->second.app(appOrdinal);
+    }
+    return d_owner_p->defaultAppMessage();
 }
 
-unsigned int VirtualStorageIterator::subscriptionId() const
+mqbi::AppMessage& StorageIterator::appMessageState(unsigned int appOrdinal)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(!atEnd());
 
-    return d_iterator->second.d_subscriptionId;
+    VirtualStorage::DataStreamMessage* dataStreamMessage = &d_iterator->second;
+
+    d_owner_p->setup(dataStreamMessage);
+
+    return dataStreamMessage->app(appOrdinal);
 }
 
-const bsl::shared_ptr<bdlbb::Blob>& VirtualStorageIterator::appData() const
+const bsl::shared_ptr<bdlbb::Blob>& StorageIterator::appData() const
 {
     loadMessageAndAttributes();
     return d_appData_sp;
 }
 
-const bsl::shared_ptr<bdlbb::Blob>& VirtualStorageIterator::options() const
+const bsl::shared_ptr<bdlbb::Blob>& StorageIterator::options() const
 {
     loadMessageAndAttributes();
     return d_options_sp;
 }
 
-const mqbi::StorageMessageAttributes&
-VirtualStorageIterator::attributes() const
+const mqbi::StorageMessageAttributes& StorageIterator::attributes() const
 {
     // Do not load memory-mapped file message (expensive).
 
@@ -450,24 +261,57 @@ VirtualStorageIterator::attributes() const
     return d_attributes;
 }
 
-bool VirtualStorageIterator::atEnd() const
+bool StorageIterator::atEnd() const
 {
-    return (d_iterator == d_virtualStorage_p->d_guids.end());
+    return (d_iterator == d_owner_p->end());
 }
 
-bool VirtualStorageIterator::hasReceipt() const
+bool StorageIterator::hasReceipt() const
 {
     if (atEnd()) {
         return false;  // RETURN
     }
     if (!d_haveReceipt) {
         // 'd_attributes.hasReceipt' can be stale.  Double check by reloading
-        if (d_virtualStorage_p->d_storage_p->hasReceipt(d_iterator->first)) {
+        if (d_storage_p->hasReceipt(d_iterator->first)) {
             d_haveReceipt = true;
         }
     }
 
     return d_haveReceipt;
+}
+
+// CREATORS
+VirtualStorageIterator::VirtualStorageIterator(
+    VirtualStorage*                             virtualStorage,
+    mqbi::Storage*                              storage,
+    VirtualStorageCatalog*                      owner,
+    const VirtualStorage::DataStream::iterator& initialPosition)
+: StorageIterator(storage, owner, initialPosition)
+, d_virtualStorage_p(virtualStorage)
+{
+    BSLS_ASSERT_SAFE(d_virtualStorage_p);
+}
+
+VirtualStorageIterator::~VirtualStorageIterator()
+{
+    // NOTHING
+}
+
+// MANIPULATORS
+bool VirtualStorageIterator::advance()
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_virtualStorage_p);
+
+    while (StorageIterator::advance()) {
+        if (StorageIterator::appMessageView(d_virtualStorage_p->ordinal())
+                .isPending()) {
+            return true;  // RETURN
+        }
+    }
+
+    return false;
 }
 
 }  // close package namespace

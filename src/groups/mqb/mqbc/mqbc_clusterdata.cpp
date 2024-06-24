@@ -95,9 +95,7 @@ mqbc::ClusterDataIdentity clusterIdentity(const bslstl::StringRef& name,
 // CREATORS
 ClusterData::ClusterData(
     const bslstl::StringRef&              name,
-    bdlmt::EventScheduler*                scheduler,
-    bdlbb::BlobBufferFactory*             bufferFactory,
-    BlobSpPool*                           blobSpPool,
+    const mqbi::ClusterResources&         resources,
     const mqbcfg::ClusterDefinition&      clusterConfig,
     const mqbcfg::ClusterProxyDefinition& clusterProxyConfig,
     bslma::ManagedPtr<mqbnet::Cluster>    netCluster,
@@ -108,9 +106,7 @@ ClusterData::ClusterData(
     const StatContextsMap&                statContexts,
     bslma::Allocator*                     allocator)
 : d_allocator_p(allocator)
-, d_scheduler_p(scheduler)
-, d_bufferFactory_p(bufferFactory)
-, d_blobSpPool_p(blobSpPool)
+, d_resources(resources)
 , d_dispatcherClientData()
 , d_clusterConfig(clusterConfig)
 , d_clusterProxyConfig(clusterProxyConfig)
@@ -122,10 +118,13 @@ ClusterData::ClusterData(
                       cluster->isRemote(),
                       allocator))
 , d_cluster_p(cluster)
-, d_messageTransmitter(bufferFactory, cluster, transportManager, allocator)
+, d_messageTransmitter(resources.d_bufferFactory_p,
+                       cluster,
+                       transportManager,
+                       allocator)
 , d_requestManager(bmqp::EventType::e_CONTROL,
-                   bufferFactory,
-                   scheduler,
+                   resources.d_bufferFactory_p,
+                   resources.d_scheduler_p,
                    false,  // lateResponseMode
                    allocator)
 , d_multiRequestManager(&d_requestManager, allocator)
@@ -151,7 +150,8 @@ ClusterData::ClusterData(
     BSLS_ASSERT_SAFE(d_blobSpPool_p);
     BSLS_ASSERT_SAFE(d_cluster_p);
     BSLS_ASSERT_SAFE(d_transportManager_p);
-    BSLS_ASSERT(scheduler->clockType() == bsls::SystemClockType::e_MONOTONIC);
+    BSLS_ASSERT(resources.d_scheduler_p->clockType() ==
+                bsls::SystemClockType::e_MONOTONIC);
 
     // Initialize the clusterStats object - under the hood this creates a new
     // subcontext to be held by this object to be used by all lower level

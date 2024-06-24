@@ -429,20 +429,18 @@ class ClusterProxy : public mqbc::ClusterStateObserver,
     // CREATORS
 
     /// Create a new object representing a cluster having the specified
-    /// `name`, `clusterProxyConfig` and `statContexts`, associated to the
-    /// specified `netCluster` and using the specified `scheduler`,
-    /// `bufferFactory`, `blobSpPool` and `dispatcher`.  Use the specified
-    /// `allocator` for any memory allocation.
+    /// 'name', 'clusterConfig' and 'statContexts', associated to the
+    /// specified 'netCluster' and using the specified 'domainFactory',
+    /// 'scheduler', 'dispatcher', 'transportManager', and 'resources'.  Use
+    /// the specified 'allocator' for any memory allocation.
     ClusterProxy(const bslstl::StringRef&              name,
                  const mqbcfg::ClusterProxyDefinition& clusterProxyConfig,
                  bslma::ManagedPtr<mqbnet::Cluster>    netCluster,
                  const StatContextsMap&                statContexts,
-                 bdlmt::EventScheduler*                scheduler,
-                 bdlbb::BlobBufferFactory*             bufferFactory,
-                 BlobSpPool*                           blobSpPool,
                  mqbi::Dispatcher*                     dispatcher,
                  mqbnet::TransportManager*             transportManager,
                  StopRequestManagerType*               stopRequestsManager,
+                 const mqbi::ClusterResources&         resources,
                  bslma::Allocator*                     allocator);
 
     /// Destructor

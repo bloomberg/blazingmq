@@ -460,6 +460,33 @@ class Cluster : public DispatcherClient {
                                          int partitionId) const = 0;
 };
 
+struct ClusterResources {
+    // Resources to use for all queues in all clusters
+  public:
+    // TYPES
+
+    /// Pool of shared pointers to Blobs
+    typedef bdlcc::SharedObjectPool<
+        bdlbb::Blob,
+        bdlcc::ObjectPoolFunctors::DefaultCreator,
+        bdlcc::ObjectPoolFunctors::RemoveAll<bdlbb::Blob> >
+        BlobSpPool;
+
+    bdlmt::EventScheduler* d_scheduler_p;
+    // EventScheduler to use
+
+    bdlbb::BlobBufferFactory* d_bufferFactory_p;
+    // Blob buffer factory to use
+
+    BlobSpPool* d_blobSpPool_p;
+    // Pool of shared pointers to blob to
+    // use.
+
+    bdlma::ConcurrentPool* d_pushElementsPool_p;
+
+    ClusterResources();
+};
+
 // ============================================================================
 //                             INLINE DEFINITIONS
 // ============================================================================
@@ -472,6 +499,15 @@ inline bool Cluster::isCSLModeEnabled() const
 inline bool Cluster::isFSMWorkflow() const
 {
     return false;
+}
+
+inline ClusterResources::ClusterResources()
+: d_scheduler_p(0)
+, d_bufferFactory_p(0)
+, d_blobSpPool_p(0)
+, d_pushElementsPool_p(0)
+{
+    // NOTHING
 }
 
 }  // close package namespace

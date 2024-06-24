@@ -182,12 +182,10 @@ int ClusterCatalog::createCluster(bsl::ostream& errorDescription,
                     netCluster,
                     d_statContexts,
                     d_domainFactory_p,
-                    d_scheduler_p,
                     d_dispatcher_p,
-                    d_blobSpPool_p,
-                    d_bufferFactory_p,
                     d_transportManager_p,
                     &d_stopRequestsManager,
+                    d_resources,
                     clusterAllocator,
                     d_adminCb);
 
@@ -226,12 +224,10 @@ int ClusterCatalog::createCluster(bsl::ostream& errorDescription,
                          clusterProxyDefinition,
                          netCluster,
                          d_statContexts,
-                         d_scheduler_p,
-                         d_bufferFactory_p,
-                         d_blobSpPool_p,
                          d_dispatcher_p,
                          d_transportManager_p,
                          &d_stopRequestsManager,
+                         d_resources,
                          clusterAllocator);
 
         info.d_cluster_sp.reset(cluster, clusterAllocator);
@@ -362,20 +358,15 @@ int ClusterCatalog::initiateReversedClusterConnectionsImp(
     return rc;
 }
 
-ClusterCatalog::ClusterCatalog(bdlmt::EventScheduler*    scheduler,
-                               mqbi::Dispatcher*         dispatcher,
-                               mqbnet::TransportManager* transportManager,
-                               const StatContextsMap&    statContexts,
-                               bdlbb::BlobBufferFactory* bufferFactory,
-                               BlobSpPool*               blobSpPool,
-                               bslma::Allocator*         allocator)
+ClusterCatalog::ClusterCatalog(mqbi::Dispatcher*             dispatcher,
+                               mqbnet::TransportManager*     transportManager,
+                               const StatContextsMap&        statContexts,
+                               const mqbi::ClusterResources& resources,
+                               bslma::Allocator*             allocator)
 : d_allocator_p(allocator)
 , d_allocators(d_allocator_p)
 , d_isStarted(false)
-, d_scheduler_p(scheduler)
 , d_dispatcher_p(dispatcher)
-, d_bufferFactory_p(bufferFactory)
-, d_blobSpPool_p(blobSpPool)
 , d_transportManager_p(transportManager)
 , d_domainFactory_p(0)
 , d_clustersDefinition(d_allocator_p)
@@ -391,9 +382,10 @@ ClusterCatalog::ClusterCatalog(bdlmt::EventScheduler*    scheduler,
                    false,  // lateResponseMode
                    d_allocator_p)
 , d_stopRequestsManager(&d_requestManager, d_allocator_p)
+, d_resources(resources)
 {
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(scheduler->clockType() ==
+    BSLS_ASSERT_SAFE(d_resources.d_scheduler_p->clockType() ==
                      bsls::SystemClockType::e_MONOTONIC);
 }
 

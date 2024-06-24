@@ -146,6 +146,12 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
     QueueEngineUtil_AppsDeliveryContext d_appsDeliveryContext;
     // Reusable apps delivery context
 
+    bslma::ManagedPtr<mqbi::StorageIterator> d_storageIter_mp;
+    // Storage iterator to the logical stream of messages
+
+    bslma::ManagedPtr<mqbi::StorageIterator> d_realStorageIter_mp;
+    // Storage iterator to access storage state.
+
     bslma::Allocator* d_allocator_p;  // Allocator to use
 
   private:
@@ -159,15 +165,12 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
     // PRIVATE MANIPULATORS
 
     /// Attempt to deliver outstanding messages, if any, to the consumers
-    /// of the Fanout appId corresponding to the specified `app`.  Return
-    /// total number of re-routed messages.  If at least one message has
-    /// been delivered, update `d_consumptionMonitor` for the specified
-    /// `key`.
+    /// of the Fanout appId corresponding to the specified `app`.   If at least
+    /// one message has been delivered, update `d_consumptionMonitor` for the
+    /// key of the 'app'.
     ///
     /// THREAD: This method is called from the Queue's dispatcher thread.
-    size_t deliverMessages(AppState*               app,
-                           const bsl::string&      appId,
-                           const mqbu::StorageKey& key);
+    void deliverMessages(AppState* app);
 
     // PRIVATE ACCESSORS
 
@@ -196,7 +199,6 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
     Apps::iterator makeSubStream(const bsl::string& appId,
                                  const AppKeyCount& appKey,
                                  bool               isAuthorized,
-                                 bool               hasStorage,
                                  unsigned int       upstreamSubQueueId);
 
     bool validate(unsigned int upstreamSubQueueId) const;
@@ -412,6 +414,10 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
         const bsl::shared_ptr<bdlbb::Blob>& appData,
         const bmqp::MessagePropertiesInfo&  mpi,
         bsls::Types::Uint64                 timestamp) BSLS_KEYWORD_OVERRIDE;
+
+    /// Return storage iterator to the 1st un-delivered message including
+    /// 'put-aside' messages (those without matching Subscriptions).
+    bslma::ManagedPtr<mqbi::StorageIterator> head(const AppStateSp app) const;
 
     // ACCESSORS
     //   (virtual mqbi::QueueEngine)

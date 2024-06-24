@@ -539,21 +539,19 @@ class Cluster : public mqbi::Cluster,
     // CREATORS
 
     /// Create a new object representing a cluster having the specified
-    /// `name`, `clusterConfig` and `statContexts`, associated to the
-    /// specified `netCluster` and using the specified `domainFactory`,
-    /// `scheduler`, `dispatcher`, `blobSpPool` and `bufferFactory`.  Use
-    /// the specified `allocator` for any memory allocation.
+    /// 'name', 'clusterConfig' and 'statContexts', associated to the
+    /// specified 'netCluster' and using the specified 'domainFactory',
+    /// 'scheduler', 'dispatcher', 'transportManager', and 'resources'.  Use
+    /// the specified 'allocator' for any memory allocation.
     Cluster(const bslstl::StringRef&                      name,
             const mqbcfg::ClusterDefinition&              clusterConfig,
             bslma::ManagedPtr<mqbnet::Cluster>            netCluster,
             const StatContextsMap&                        statContexts,
             mqbi::DomainFactory*                          domainFactory,
-            bdlmt::EventScheduler*                        scheduler,
             mqbi::Dispatcher*                             dispatcher,
-            BlobSpPool*                                   blobSpPool,
-            bdlbb::BlobBufferFactory*                     bufferFactory,
             mqbnet::TransportManager*                     transportManager,
             StopRequestManagerType*                       stopRequestsManager,
+            const mqbi::ClusterResources&                 resources,
             bslma::Allocator*                             allocator,
             const mqbnet::Session::AdminCommandEnqueueCb& adminCb);
 

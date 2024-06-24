@@ -1047,20 +1047,16 @@ ClusterProxy::ClusterProxy(
     const mqbcfg::ClusterProxyDefinition& clusterProxyConfig,
     bslma::ManagedPtr<mqbnet::Cluster>    netCluster,
     const StatContextsMap&                statContexts,
-    bdlmt::EventScheduler*                scheduler,
-    bdlbb::BlobBufferFactory*             bufferFactory,
-    BlobSpPool*                           blobSpPool,
     mqbi::Dispatcher*                     dispatcher,
     mqbnet::TransportManager*             transportManager,
     StopRequestManagerType*               stopRequestsManager,
+    const mqbi::ClusterResources&         resources,
     bslma::Allocator*                     allocator)
 : d_allocator_p(allocator)
 , d_isStarted(false)
 , d_isStopping(false)
 , d_clusterData(name,
-                scheduler,
-                bufferFactory,
-                blobSpPool,
+                resources,
                 mqbcfg::ClusterDefinition(allocator),
                 clusterProxyConfig,
                 netCluster,
@@ -1088,7 +1084,7 @@ ClusterProxy::ClusterProxy(
     // PRECONDITIONS
     mqbnet::Cluster* netCluster_p = d_clusterData.membership().netCluster();
     BSLS_ASSERT_SAFE(netCluster_p && "NetCluster not set !");
-    BSLS_ASSERT_SAFE(scheduler->clockType() ==
+    BSLS_ASSERT_SAFE(resources.d_scheduler_p->clockType() ==
                      bsls::SystemClockType::e_MONOTONIC);
 
     d_clusterData.clusterConfig().queueOperations() =

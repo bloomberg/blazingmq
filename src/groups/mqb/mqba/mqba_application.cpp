@@ -23,6 +23,7 @@
 #include <mqba_domainmanager.h>
 #include <mqba_sessionnegotiator.h>
 #include <mqbblp_clustercatalog.h>
+#include <mqbblp_relayqueueengine.h>
 #include <mqbcfg_brokerconfig.h>
 #include <mqbcfg_messages.h>
 #include <mqbcmd_commandlist.h>
@@ -159,6 +160,8 @@ Application::Application(bdlmt::EventScheduler* scheduler,
                                     bdlf::PlaceHolders::_2),  // allocator
                k_BLOB_POOL_GROWTH_STRATEGY,
                d_allocators.get("BlobSpPool"))
+, d_pushElementsPool(sizeof(mqbblp::PushStream::Element),
+                     d_allocators.get("PushElementsPool"))
 , d_allocatorsStatContext_p(allocatorsStatContext)
 , d_pluginManager_mp()
 , d_statController_mp()
@@ -269,6 +272,13 @@ int Application::start(bsl::ostream& errorDescription)
         }
     }
 
+    mqbi::ClusterResources resources;
+
+    resources.d_blobSpPool_p       = &d_blobSpPool;
+    resources.d_bufferFactory_p    = &d_bufferFactory;
+    resources.d_scheduler_p        = d_scheduler_p;
+    resources.d_pushElementsPool_p = &d_pushElementsPool;
+
     // Start the StatController
     d_statController_mp.load(
         new (*d_allocator_p) mqbstat::StatController(
@@ -355,12 +365,10 @@ int Application::start(bsl::ostream& errorDescription)
 
     // Start the ClusterCatalog
     d_clusterCatalog_mp.load(new (*d_allocator_p) mqbblp::ClusterCatalog(
-                                 d_scheduler_p,
                                  d_dispatcher_mp.get(),
                                  d_transportManager_mp.get(),
                                  statContextsMap,
-                                 &d_bufferFactory,
-                                 &d_blobSpPool,
+                                 resources,
                                  d_allocators.get("ClusterCatalog")),
                              d_allocator_p);
 

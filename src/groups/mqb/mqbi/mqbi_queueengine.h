@@ -198,14 +198,14 @@ class QueueEngine {
     ///
     /// THREAD: This method is called from the Queue's dispatcher thread.
     virtual void
-    afterAppIdRegistered(const mqbi::Storage::AppIdKeyPair& appIdKeyPair);
+    afterAppIdRegistered(const mqbi::Storage::AppIdKeyPair& appIdKeyPair) = 0;
 
     /// Called after the specified `appIdKeyPair` has been dynamically
     /// unregistered.
     ///
     /// THREAD: This method is called from the Queue's dispatcher thread.
-    virtual void
-    afterAppIdUnregistered(const mqbi::Storage::AppIdKeyPair& appIdKeyPair);
+    virtual void afterAppIdUnregistered(
+        const mqbi::Storage::AppIdKeyPair& appIdKeyPair) = 0;
 
     /// Given the specified 'putHeader', 'appData', 'mpi', and 'timestamp',
     /// evaluate all Auto (Application) subscriptions and exclude applications

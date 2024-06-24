@@ -331,17 +331,14 @@ class RedeliveryList {
 
 /// Mechanism managing state of a group of consumers supporting priorities.
 struct QueueEngineUtil_AppState {
+  public:
     // PUBLIC TYPES
 
     /// Set of alive consumers
     typedef Routers::Consumers Consumers;
 
-    // PUBLIC DATA
-    bslma::ManagedPtr<mqbi::StorageIterator> d_storageIter_mp;
-    // Storage iterator to the logical
-    // stream of messages for this fanout
-    // consumer
-
+  private:
+    // PRIVATE DATA
     bsl::shared_ptr<Routers::AppContext> d_routing_sp;
     // Set of alive consumers and their
     // states
@@ -367,7 +364,7 @@ struct QueueEngineUtil_AppState {
     bdlmt::EventSchedulerEventHandle d_throttleEventHandle;
     // EventHandle for poison pill message
     // throttling.
-    const mqbu::StorageKey d_appKey;
+    mqbu::StorageKey       d_appKey;
     const bsl::string      d_appId;
 
     unsigned int d_upstreamSubQueueId;
@@ -382,6 +379,12 @@ struct QueueEngineUtil_AppState {
     Routers::Expression d_autoSubscription;
     // Evaluator of the auto subscription
 
+    unsigned int d_appOrdinal;
+
+    bmqt::MessageGUID d_resumePoint;
+    // When at capacity, resume point.
+
+  public:
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(QueueEngineUtil_AppState,
                                    bslma::UsesBslmaAllocator)
@@ -389,10 +392,8 @@ struct QueueEngineUtil_AppState {
     BALL_LOG_SET_CLASS_CATEGORY("MQBBLP.QUEUEENGINEUTIL_APPSTATE");
 
     // CREATORS
-    QueueEngineUtil_AppState(bslma::ManagedPtr<mqbi::StorageIterator> iterator,
-                             mqbi::Queue*                             queue,
+    QueueEngineUtil_AppState(mqbi::Queue*                  queue,
                              bdlmt::EventScheduler*        scheduler,
-                             bool                          isAuthorized,
                              Routers::QueueRoutingContext& queueContext,
                              unsigned int                  upstreamSubQueueId,
                              const bsl::string&            appId,
@@ -403,24 +404,24 @@ struct QueueEngineUtil_AppState {
 
     // MANIPULATORS
 
-    /// Called by Queue Engine before a message with the specified `msgGUID`
-    /// is removed.  If the specified `isExpired` is `true`, the message is
-    /// TTL expired, otherwise it was confirmed or rejected.
-    void beforeMessageRemoved(const bmqt::MessageGUID& msgGUID,
-                              bool                     isExpired);
-
     /// Reset the internal state to have no consumers.
     void undoRouting();
 
-    /// Deliver all messages in the storage to the consumer represented by
-    /// this instance.  Load the message delay into the specified `delay`.
+    /// Attempt to deliver all pending data up to the specified 'end' (the
+    /// iterator).  First, attempt to drain the Redelivery and PutAside Lists.
+    /// While doing so, load the message delay into the specified `delay` and
+    /// throttle the redelivery as in the case of a Poisonous message.
+    /// If the Redelivery List is empty, attempt to deliver data starting from
+    /// 'start' (the resumePoint or the beginning of the stream) to the 'end'.
+    /// This is what any QueueEngine calls whenever there is a chance for the
+    /// App to make progress: any configuration change, capacity availability.
     /// Note that depending upon queue's mode, messages are delivered either
     /// to all consumers (broadcast mode), or in a round-robin manner (every
     /// other mode).
-    size_t deliverMessages(bsls::TimeInterval*     delay,
-                           const mqbu::StorageKey& appKey,
-                           mqbi::Storage&          storage,
-                           const bsl::string&      appId);
+    size_t deliverMessages(bsls::TimeInterval*          delay,
+                           mqbi::StorageIterator*       reader,
+                           mqbi::StorageIterator*       start,
+                           const mqbi::StorageIterator* end);
 
     /// Try to deliver to the next available consumer the specified 'message'.
     /// If poisonous message handling requires a delay in the delivery, iterate
@@ -440,20 +441,16 @@ struct QueueEngineUtil_AppState {
     bool visitBroadcast(const mqbi::StorageIterator* message,
                         const Routers::Subscription* subscription);
 
-    size_t processDeliveryLists(bsls::TimeInterval*     delay,
-                                const mqbu::StorageKey& appKey,
-                                mqbi::Storage&          storage,
-                                const bsl::string&      appId);
+    size_t processDeliveryLists(bsls::TimeInterval* delay,
+            mqbi::StorageIterator *reader);
 
     /// Process delivery of messages in the redelivery list.  The specified
     /// `getMessageCb` provides message details for redelivery.  Load the
     /// lowest handle delay into the specified `delay`. Return number of
     /// re-delivered messages.
-    size_t processDeliveryList(bsls::TimeInterval*     delay,
-                               const mqbu::StorageKey& appKey,
-                               mqbi::Storage&          storage,
-                               const bsl::string&      appId,
-                               RedeliveryList&         list);
+    size_t processDeliveryList(bsls::TimeInterval* delay,
+            mqbi::StorageIterator *reader,
+                               RedeliveryList&     list);
 
     /// Load into the specified `out` object' internal information about
     /// this consumers group and associated queue handles.
@@ -501,9 +498,9 @@ struct QueueEngineUtil_AppState {
 
     void invalidate(mqbi::QueueHandle* handle);
 
-    Routers::Result
-    selectConsumer(const Routers::Visitor&      visitor,
-                   const mqbi::StorageIterator* currentMessage);
+    Routers::Result selectConsumer(const Routers::Visitor&      visitor,
+                                   const mqbi::StorageIterator* currentMessage,
+                                   unsigned int                 ordinal);
 
     // Set the auto subscription
     int setSubscription(const mqbconfm::Expression& value);
@@ -511,8 +508,43 @@ struct QueueEngineUtil_AppState {
     // Evaluate the auto subscription
     bool evaluateAutoSubcription();
 
+    /// Change the state to authorized, thus enabling delivery
+    bool authorize();
+
+    /// Change the state to authorized, thus disabling delivery.  Clear all
+    /// pending data.
+    void unauthorize();
+
+    /// Save the specified 'guid' in the PutAside list of messages for which
+    /// there is no matching subscription.  The delivery of those messages will
+    // be attempted upon configuration change.
+    void putAside(const bmqt::MessageGUID& guid);
+
+    /// Save the specified 'guid' in the Redelivery list of messages.  These
+    /// messages get delivered as Out-Of-Order.
+    void putForRedelivery(const bmqt::MessageGUID& guid);
+
+    /// Save the current position in the data stream to resume the delivery (by
+    /// 'deliverMessages').
+    void setResumePoint(const bmqt::MessageGUID& guid);
+
+    /// Return a reference offering modifiable access to the current routing
+    /// state controlling evaluation of subscriptions.
+    bsl::shared_ptr<Routers::AppContext>& routing();
+
+    /// Clear all pending data as in the case of either un-authorization,
+    /// purge operation, or Replica / Proxy losing last consumer.
+    void clear();
+
     // ACCESSORS
-    size_t redeliveryListSize() const;
+
+    /// Return 'true' if this App is not behind: authorized, empty Redelivery
+    /// List and no resume point.
+    bool isReadyForDelivery() const;
+
+    /// Return 'true' if this App does not have any never delivered data before
+    /// the queue iterator: empty PutAside List and no resume point.
+    bool isAtEndOfStorage() const;
 
     Routers::Consumer* findQueueHandleContext(mqbi::QueueHandle* handle);
 
@@ -520,9 +552,31 @@ struct QueueEngineUtil_AppState {
 
     bool hasConsumers() const;
 
-    /// Returns storage iterator to the 1st un-delivered message including
-    /// `put-aside` messages (those without matching Subscriptions).
-    bslma::ManagedPtr<mqbi::StorageIterator> head() const;
+    /// Return storage ordinal to access App state for each message.
+    unsigned int ordinal() const;
+
+    /// Return a reference offering non-modifiable access to the PutAside list
+    /// of messages for which there is no matching subscription.
+    const RedeliveryList&   putAsideList() const;
+
+    /// Return current storage key.
+    const mqbu::StorageKey& appKey() const;
+
+    /// Return the Id.
+    const bsl::string&      appId() const;
+
+    /// Return 'true' if this App is authorized.
+    bool isAuthorized() const;
+
+    /// Return the current resume point (empty when none).
+    const bmqt::MessageGUID& resumePoint() const;
+
+    /// Return a reference offering non-modifiable access to the current
+    /// routing state controlling evaluation of subscriptions.
+    const bsl::shared_ptr<Routers::AppContext>& routing() const;
+
+    /// Report queue stats upon delivery of the specified 'message'.
+    void reportStats(const mqbi::StorageIterator* message) const;
 };
 
 // ==========================================
@@ -535,27 +589,57 @@ struct QueueEngineUtil_AppsDeliveryContext {
                                bmqp::Protocol::SubQueueInfosArray>
         Consumers;
 
-    Consumers                      d_consumers;
-    bool                           d_doRepeat;
-    mqbi::StorageIterator*         d_currentMessage;
-    mqbi::Queue*                   d_queue_p;
-    bsl::vector<bslstl::StringRef> d_activeAppIds;
+  private:
+    Consumers                           d_consumers;
+    bool                                d_doRepeat;
+    mqbi::StorageIterator*              d_currentMessage;
+    mqbi::Queue*                        d_queue_p;
+    bsl::optional<bsls::Types::Int64>   d_timeDelta;
+    // Avoid reading the attributes if not necessary.  Get timeDelta on demand.
+    // See comment in 'QueueEngineUtil_AppsDeliveryContext::processApp'.
 
-    QueueEngineUtil_AppsDeliveryContext(mqbi::Queue*      queue,
-                                        bslma::Allocator* allocator);
+  public:
+    QueueEngineUtil_AppsDeliveryContext(mqbi::Queue*           queue,
+                                        mqbi::StorageIterator* currentMessage,
+                                        bslma::Allocator*      allocator);
 
-    /// Prepare the context to pick up and deliver next message.
+    /// Prepare the context to process next message.
     void reset();
 
-    /// Return true if the specified `app` has next available handle to
-    /// deliver the current message and prepare for `deliverMessage` call.
-    bool processApp(QueueEngineUtil_AppState& app);
+    /// Return 'true' if the specified 'app' is not a broadcast app and has an
+    /// available handle to deliver the current message with the specified
+    /// 'ordinal'.
+    /// 'false' return value indicates that the 'app' is either a  broadcast,
+    /// or unauthorized, or does not have matching subscription, or does not
+    /// have the capacity for any existing subscription or did not drain its
+    /// redelivery list, or is already behind.  In any case, an authorized app
+    /// sets its resume point, so the queue iterator can continue to advance
+    /// unless in the 'e_NO_CAPACITY_ALL' case when all apps have no capacity
+    /// for any existing subscription.
+    /// The  'ordinal' controls how we read the state from the data stream.  In
+    /// the case of 'RootQueueEngine' (Primary), the data stream is the storage
+    /// and the 'ordinal' is the App ordinal in the stream.
+    /// In the case of 'RelayQueueEngine', the stream is 'PushStream' and the
+    /// 'ordinal' is the offset in the received PUSH message.
+    bool processApp(QueueEngineUtil_AppState& app, unsigned int ordina);
+
+    /// Collect and prepare data for the subsequent 'deliverMessage' call.
     bool visit(const Routers::Subscription* subscription,
-               const mqbi::StorageIterator* message);
+            const mqbi::AppMessage& appView);
     bool visitBroadcast(const Routers::Subscription* subscription);
 
     /// Deliver message to the previously processed handles.
     void deliverMessage();
+
+    /// Return 'true' if the delivery can continue iterating dataStream
+    /// The 'false' return value indicates either the end of the dataStream or
+    /// the the 'e_NO_CAPACITY_ALL' case.
+    bool doRepeat() const;
+
+    /// Return 'true' if there is at least one delivery target selected.
+    bool isEmpty() const;
+
+    bsls::Types::Int64 timeDelta();
 };
 
 // ============================================================================
@@ -690,9 +774,9 @@ inline void RedeliveryList::trim(iterator* cit) const
 // struct QueueEngineUtil_AppState
 // -------------------------------
 
-inline size_t QueueEngineUtil_AppState::redeliveryListSize() const
+inline void QueueEngineUtil_AppState::putForRedelivery(const bmqt::MessageGUID& guid)
 {
-    return d_redeliveryList.size();
+    d_redeliveryList.add(guid);
 }
 
 inline Routers::Consumer*
@@ -718,16 +802,6 @@ QueueEngineUtil_AppState::find(mqbi::QueueHandle* handle)
     return d_routing_sp->d_consumers.find(handle);
 }
 
-inline bool QueueEngineUtil_AppState::hasConsumers() const
-{
-    return d_routing_sp ? !d_routing_sp->d_consumers.empty() : false;
-}
-
-inline unsigned int QueueEngineUtil_AppState::upstreamSubQueueId() const
-{
-    return d_upstreamSubQueueId;
-}
-
 inline void QueueEngineUtil_AppState::setUpstreamSubQueueId(unsigned int value)
 {
     d_upstreamSubQueueId = value;
@@ -744,6 +818,82 @@ inline void QueueEngineUtil_AppState::invalidate(mqbi::QueueHandle* handle)
 
         d_routing_sp->registerSubscriptions();
     }
+}
+
+inline void QueueEngineUtil_AppState::putAside(const bmqt::MessageGUID& guid)
+{
+    d_putAsideList.add(guid);
+}
+
+inline void
+QueueEngineUtil_AppState::setResumePoint(const bmqt::MessageGUID& guid)
+{
+    BSLS_ASSERT_SAFE(d_resumePoint.isUnset());
+    d_resumePoint = guid;
+}
+
+inline bsl::shared_ptr<Routers::AppContext>&
+QueueEngineUtil_AppState::routing()
+{
+    return d_routing_sp;
+}
+
+// ACCESSORS
+inline bool QueueEngineUtil_AppState::hasConsumers() const
+{
+    return d_routing_sp ? !d_routing_sp->d_consumers.empty() : false;
+}
+
+inline unsigned int QueueEngineUtil_AppState::upstreamSubQueueId() const
+{
+    return d_upstreamSubQueueId;
+}
+
+inline bool QueueEngineUtil_AppState::isReadyForDelivery() const
+{
+    return d_redeliveryList.size() == 0 && d_isAuthorized &&
+           d_resumePoint.isUnset();
+}
+
+inline bool QueueEngineUtil_AppState::isAtEndOfStorage() const
+{
+    return d_putAsideList.size() == 0 && d_resumePoint.isUnset();
+}
+
+inline unsigned int QueueEngineUtil_AppState::ordinal() const
+{
+    return d_appOrdinal;
+}
+
+inline const RedeliveryList& QueueEngineUtil_AppState::putAsideList() const
+{
+    return d_putAsideList;
+}
+
+inline const mqbu::StorageKey& QueueEngineUtil_AppState::appKey() const
+{
+    return d_appKey;
+}
+
+inline const bsl::string& QueueEngineUtil_AppState::appId() const
+{
+    return d_appId;
+}
+
+inline bool QueueEngineUtil_AppState::isAuthorized() const
+{
+    return d_isAuthorized;
+}
+
+inline const bmqt::MessageGUID& QueueEngineUtil_AppState::resumePoint() const
+{
+    return d_resumePoint;
+}
+
+inline const bsl::shared_ptr<Routers::AppContext>&
+QueueEngineUtil_AppState::routing() const
+{
+    return d_routing_sp;
 }
 
 // ------------------------------------------
