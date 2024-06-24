@@ -16,7 +16,7 @@
 // bmqstoragetool
 #include <m_bmqstoragetool_commandprocessorfactory.h>
 #include <m_bmqstoragetool_filemanager.h>
-#include <m_bmqstoragetool_testutils.h>
+#include <m_bmqstoragetool_filemanagermock.h>
 
 // TEST DRIVER
 #include <mwctst_testhelper.h>
@@ -24,9 +24,6 @@
 // CONVENIENCE
 using namespace BloombergLP;
 using namespace m_bmqstoragetool;
-using namespace bsl;
-using namespace ::testing;
-using namespace TestUtils;
 
 // ============================================================================
 //                                    TESTS
@@ -71,7 +68,8 @@ int main(int argc, char* argv[])
     case 0:
     case 1: test1_breathingTest(); break;
     default: {
-        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
+        bsl::cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND."
+                  << bsl::endl;
         s_testStatus = -1;
     } break;
     }

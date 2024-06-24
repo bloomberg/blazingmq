@@ -1,0 +1,23 @@
+name: License check
+
+on:
+  pull_request:
+    types:
+      - "opened"
+      - "reopened"
+      - "synchronize"
+      - "labeled"
+      - "unlabeled"
+
+jobs:
+  license_check:
+    runs-on: ubuntu-latest
+    name: License Check
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: license check
+        run: |
+          python3 ${{ github.workspace }}/.github/workflows/ext/check_license.py --path=${{ github.workspace }} | tee missing_licenses.txt
+          if [ -s missing_licenses.txt ]; then exit 1; fi

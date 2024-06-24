@@ -369,25 +369,35 @@ class Printer {
 // FREE OPERATORS
 template <typename TYPE>
 bsl::ostream& operator<<(bsl::ostream& stream, const Printer<TYPE>& printer);
-template <typename TYPE>
-bsl::ostream& operator<<(bsl::ostream&                      stream,
-                         const Printer<bsl::vector<TYPE> >& printer);
 
-template <typename TYPE1, typename TYPE2, typename TYPE3>
+template <typename TYPE, typename ALLOC>
+bsl::ostream& operator<<(bsl::ostream&                             stream,
+                         const Printer<bsl::vector<TYPE, ALLOC> >& printer);
+
+template <typename KEY, typename VAL, typename CMP, typename ALLOC>
 bsl::ostream&
-operator<<(bsl::ostream&                                  stream,
-           const Printer<bsl::map<TYPE1, TYPE2, TYPE3> >& printer);
-template <typename TYPE1, typename TYPE2>
-bsl::ostream& operator<<(bsl::ostream&                           stream,
-                         const Printer<bsl::set<TYPE1, TYPE2> >& printer);
-template <typename TYPE1, typename TYPE2, typename TYPE3, typename TYPE4>
+operator<<(bsl::ostream&                                   stream,
+           const Printer<bsl::map<KEY, VAL, CMP, ALLOC> >& printer);
+
+template <typename KEY, typename CMP, typename ALLOC>
+bsl::ostream& operator<<(bsl::ostream&                              stream,
+                         const Printer<bsl::set<KEY, CMP, ALLOC> >& printer);
+
+template <typename KEY,
+          typename VAL,
+          typename HASH,
+          typename KEY_EQ,
+          typename ALLOC>
+bsl::ostream&
+operator<<(bsl::ostream& stream,
+           const Printer<bsl::unordered_map<KEY, VAL, HASH, KEY_EQ, ALLOC> >&
+               printer);
+
+template <typename KEY, typename HASH, typename KEY_EQ, typename ALLOC>
 bsl::ostream& operator<<(
-    bsl::ostream&                                                   stream,
-    const Printer<bsl::unordered_map<TYPE1, TYPE2, TYPE3, TYPE4> >& printer);
-template <typename TYPE1, typename TYPE2, typename TYPE3>
-bsl::ostream&
-operator<<(bsl::ostream&                                            stream,
-           const Printer<bsl::unordered_set<TYPE1, TYPE2, TYPE3> >& printer);
+    bsl::ostream&                                                 stream,
+    const Printer<bsl::unordered_set<KEY, HASH, KEY_EQ, ALLOC> >& printer);
+
 template <typename TYPE1, typename TYPE2>
 bsl::ostream& operator<<(bsl::ostream&                            stream,
                          const Printer<bsl::pair<TYPE1, TYPE2> >& printer);
@@ -718,10 +728,10 @@ inline bsl::ostream& mwcu::operator<<(bsl::ostream&        stream,
     return stream << printer.obj();
 }
 
-template <typename TYPE>
+template <typename TYPE, typename ALLOC>
 inline bsl::ostream&
-mwcu::operator<<(bsl::ostream&                      stream,
-                 const Printer<bsl::vector<TYPE> >& printer)
+mwcu::operator<<(bsl::ostream&                             stream,
+                 const Printer<bsl::vector<TYPE, ALLOC> >& printer)
 {
     stream << "[";
 
@@ -738,24 +748,24 @@ mwcu::operator<<(bsl::ostream&                      stream,
     return stream;
 }
 
-template <typename TYPE1, typename TYPE2, typename TYPE3>
+template <typename KEY, typename VAL, typename CMP, typename ALLOC>
 inline bsl::ostream&
-mwcu::operator<<(bsl::ostream&                                  stream,
-                 const Printer<bsl::map<TYPE1, TYPE2, TYPE3> >& printer)
+mwcu::operator<<(bsl::ostream&                                   stream,
+                 const Printer<bsl::map<KEY, VAL, CMP, ALLOC> >& printer)
 {
     stream << "{";
 
     if (!printer.obj().empty()) {
-        typedef typename bsl::map<TYPE1, TYPE2, TYPE3>::const_iterator Iter;
+        typedef typename bsl::map<KEY, VAL, CMP, ALLOC>::const_iterator Iter;
         Iter iter     = printer.obj().begin();
         Iter lastElem = --printer.obj().end();
         for (; iter != lastElem; ++iter) {
-            stream << Printer<TYPE1>(&iter->first) << ":"
-                   << Printer<TYPE2>(&iter->second) << ", ";
+            stream << Printer<KEY>(&iter->first) << ":"
+                   << Printer<VAL>(&iter->second) << ", ";
         }
 
-        stream << Printer<TYPE1>(&iter->first) << ":"
-               << Printer<TYPE2>(&iter->second);
+        stream << Printer<KEY>(&iter->first) << ":"
+               << Printer<VAL>(&iter->second);
     }
 
     stream << "}";
@@ -763,22 +773,22 @@ mwcu::operator<<(bsl::ostream&                                  stream,
     return stream;
 }
 
-template <typename TYPE1, typename TYPE2>
+template <typename KEY, typename CMP, typename ALLOC>
 inline bsl::ostream&
-mwcu::operator<<(bsl::ostream&                           stream,
-                 const Printer<bsl::set<TYPE1, TYPE2> >& printer)
+mwcu::operator<<(bsl::ostream&                              stream,
+                 const Printer<bsl::set<KEY, CMP, ALLOC> >& printer)
 {
     stream << "{";
 
     if (!printer.obj().empty()) {
-        typedef typename bsl::set<TYPE1, TYPE2>::const_iterator Iter;
+        typedef typename bsl::set<KEY, CMP, ALLOC>::const_iterator Iter;
         Iter iter     = printer.obj().begin();
         Iter lastElem = --printer.obj().end();
         for (; iter != lastElem; ++iter) {
-            stream << Printer<TYPE1>(&(*iter)) << ", ";
+            stream << Printer<KEY>(&(*iter)) << ", ";
         }
 
-        stream << Printer<TYPE1>(&(*iter));
+        stream << Printer<KEY>(&(*iter));
     }
 
     stream << "}";
@@ -786,24 +796,23 @@ mwcu::operator<<(bsl::ostream&                           stream,
     return stream;
 }
 
-template <typename TYPE1, typename TYPE2, typename TYPE3>
+template <typename KEY, typename HASH, typename KEY_EQ, typename ALLOC>
 inline bsl::ostream& mwcu::operator<<(
-    bsl::ostream&                                            stream,
-    const Printer<bsl::unordered_set<TYPE1, TYPE2, TYPE3> >& printer)
+    bsl::ostream&                                                 stream,
+    const Printer<bsl::unordered_set<KEY, HASH, KEY_EQ, ALLOC> >& printer)
 {
     stream << "{";
 
     if (!printer.obj().empty()) {
-        typedef
-            typename bsl::unordered_set<TYPE1, TYPE2, TYPE3>::const_iterator
-                Iter;
-        Iter    begin = printer.obj().begin();
-        Iter    end   = printer.obj().end();
+        typedef typename bsl::unordered_set<KEY, HASH, KEY_EQ, ALLOC>::
+            const_iterator Iter;
+        Iter               begin = printer.obj().begin();
+        Iter               end   = printer.obj().end();
         for (Iter iter = begin; iter != end; ++iter) {
             if (iter != begin) {
                 stream << ", ";
             }
-            stream << Printer<TYPE1>(&(*iter));
+            stream << Printer<KEY>(&(*iter));
         }
     }
 
@@ -812,25 +821,28 @@ inline bsl::ostream& mwcu::operator<<(
     return stream;
 }
 
-template <typename TYPE1, typename TYPE2, typename TYPE3, typename TYPE4>
+template <typename KEY,
+          typename VAL,
+          typename HASH,
+          typename KEY_EQ,
+          typename ALLOC>
 inline bsl::ostream& mwcu::operator<<(
-    bsl::ostream&                                                   stream,
-    const Printer<bsl::unordered_map<TYPE1, TYPE2, TYPE3, TYPE4> >& printer)
+    bsl::ostream&                                                      stream,
+    const Printer<bsl::unordered_map<KEY, VAL, HASH, KEY_EQ, ALLOC> >& printer)
 {
     stream << "{";
 
-    typedef
-        typename bsl::unordered_map<TYPE1, TYPE2, TYPE3, TYPE4>::const_iterator
-            Iter;
-    Iter    begin = printer.obj().begin();
-    Iter    end   = printer.obj().end();
+    typedef typename bsl::unordered_map<KEY, VAL, HASH, KEY_EQ, ALLOC>::
+        const_iterator Iter;
+    Iter               begin = printer.obj().begin();
+    Iter               end   = printer.obj().end();
     for (Iter iter = begin; iter != end; ++iter) {
         if (iter != begin) {
             stream << ", ";
         }
 
-        stream << Printer<TYPE1>(&iter->first) << ":"
-               << Printer<TYPE2>(&iter->second);
+        stream << Printer<KEY>(&iter->first) << ":"
+               << Printer<VAL>(&iter->second);
     }
 
     stream << "}";

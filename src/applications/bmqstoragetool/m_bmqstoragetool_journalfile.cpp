@@ -14,17 +14,23 @@
 // limitations under the License.
 
 // bmqstoragetool
-#include <m_bmqstoragetool_testutils.h>
+#include <m_bmqstoragetool_journalfile.h>
+
+// MQB
+#include <mqbs_memoryblock.h>
+#include <mqbs_offsetptr.h>
+#include <mqbu_messageguidutil.h>
 
 namespace BloombergLP {
 
 namespace m_bmqstoragetool {
 
+// CONVENIENCE
+using namespace mqbs;
+
 // ============================================================================
 //                            TEST HELPERS UTILITY
 // ----------------------------------------------------------------------------
-
-namespace TestUtils {
 
 // =================
 // class JournalFile
@@ -519,9 +525,10 @@ void JournalFile::addJournalRecordsWithConfirmedMessagesWithDifferentOrder(
     size_t                     numMessages,
     bsl::vector<unsigned int>& messageOffsets)
 {
-    ASSERT(numMessages == messageOffsets.size());
-    ASSERT(numMessages >= 3);
-    ASSERT(d_numRecords == numMessages * 2);
+    // PRECONDITIONS
+    BSLS_ASSERT(numMessages == messageOffsets.size());
+    BSLS_ASSERT(numMessages >= 3);
+    BSLS_ASSERT(d_numRecords == numMessages * 2);
 
     // Create messages
     for (unsigned int i = 0; i < numMessages; ++i) {
@@ -594,111 +601,6 @@ void JournalFile::addJournalRecordsWithConfirmedMessagesWithDifferentOrder(
         d_currPos += FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
     }
 }
-
-char* addDataRecords(bslma::Allocator*          ta,
-                     MappedFileDescriptor*      mfd,
-                     FileHeader*                fileHeader,
-                     const DataMessage*         messages,
-                     const unsigned int         numMessages,
-                     bsl::vector<unsigned int>& messageOffsets)
-{
-    bsls::Types::Uint64 currPos = 0;
-    const unsigned int  dhSize  = sizeof(DataHeader);
-    unsigned int totalSize      = sizeof(FileHeader) + sizeof(DataFileHeader);
-
-    // Have to compute the 'totalSize' we need for the 'MemoryBlock' based on
-    // the padding that we need for each record.
-
-    for (unsigned int i = 0; i < numMessages; i++) {
-        unsigned int optionsLen = static_cast<unsigned int>(
-            bsl::strlen(messages[i].d_options_p));
-        BSLS_ASSERT_OPT(0 == optionsLen % bmqp::Protocol::k_WORD_SIZE);
-
-        unsigned int appDataLen = static_cast<unsigned int>(
-            bsl::strlen(messages[i].d_appData_p));
-        int appDataPadding = 0;
-        bmqp::ProtocolUtil::calcNumDwordsAndPadding(&appDataPadding,
-                                                    appDataLen + optionsLen +
-                                                        dhSize);
-
-        totalSize += dhSize + appDataLen + appDataPadding + optionsLen;
-    }
-
-    // Allocate the memory now.
-    char* p = static_cast<char*>(ta->allocate(totalSize));
-
-    // Create the 'MemoryBlock'
-    MemoryBlock block(p, totalSize);
-
-    // Set the MFD
-    mfd->setFd(-1);
-    mfd->setBlock(block);
-    mfd->setFileSize(totalSize);
-
-    // Add the entries to the block.
-    OffsetPtr<FileHeader> fh(block, currPos);
-    new (fh.get()) FileHeader();
-    fh->setHeaderWords(sizeof(FileHeader) / bmqp::Protocol::k_WORD_SIZE);
-    fh->setMagic1(FileHeader::k_MAGIC1);
-    fh->setMagic2(FileHeader::k_MAGIC2);
-    currPos += sizeof(FileHeader);
-
-    OffsetPtr<DataFileHeader> dfh(block, currPos);
-    new (dfh.get()) DataFileHeader();
-    dfh->setHeaderWords(sizeof(DataFileHeader) / bmqp::Protocol::k_WORD_SIZE);
-    currPos += sizeof(DataFileHeader);
-
-    for (unsigned int i = 0; i < numMessages; i++) {
-        messageOffsets.push_back(
-            static_cast<unsigned int>(currPos / bmqp::Protocol::k_DWORD_SIZE));
-
-        OffsetPtr<DataHeader> dh(block, currPos);
-        new (dh.get()) DataHeader();
-
-        unsigned int optionsLen = static_cast<unsigned int>(
-            bsl::strlen(messages[i].d_options_p));
-        dh->setOptionsWords(optionsLen / bmqp::Protocol::k_WORD_SIZE);
-        currPos += sizeof(DataHeader);
-
-        char* destination = reinterpret_cast<char*>(block.base() + currPos);
-        bsl::memcpy(destination, messages[i].d_options_p, optionsLen);
-        currPos += optionsLen;
-        destination += optionsLen;
-
-        unsigned int appDataLen = static_cast<unsigned int>(
-            bsl::strlen(messages[i].d_appData_p));
-        int appDataPad = 0;
-        bmqp::ProtocolUtil::calcNumDwordsAndPadding(&appDataPad,
-                                                    appDataLen + optionsLen +
-                                                        dhSize);
-
-        bsl::memcpy(destination, messages[i].d_appData_p, appDataLen);
-        currPos += appDataLen;
-        destination += appDataLen;
-        bmqp::ProtocolUtil::appendPaddingDwordRaw(destination, appDataPad);
-        currPos += appDataPad;
-
-        unsigned int messageOffset = dh->headerWords() +
-                                     ((appDataLen + appDataPad + optionsLen) /
-                                      bmqp::Protocol::k_WORD_SIZE);
-        dh->setMessageWords(messageOffset);
-    }
-
-    *fileHeader = *fh;
-
-    return p;
-}
-
-void outputGuidString(bsl::ostream&            ostream,
-                      const bmqt::MessageGUID& messageGUID,
-                      const bool               addNewLine)
-{
-    ostream << messageGUID;
-    if (addNewLine)
-        ostream << bsl::endl;
-}
-
-}  // close TestUtils namespace
 
 }  // close package namespace
 

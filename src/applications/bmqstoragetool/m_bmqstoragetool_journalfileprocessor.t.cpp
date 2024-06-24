@@ -15,14 +15,10 @@
 
 // bmqstoragetool
 #include <m_bmqstoragetool_commandprocessorfactory.h>
+#include <m_bmqstoragetool_filemanagermock.h>
 #include <m_bmqstoragetool_journalfileprocessor.h>
-#include <m_bmqstoragetool_testutils.h>
-
-// BMQ
-#include <bmqt_messageguid.h>
 
 // MQB
-#include <mqbs_filestoreprotocol.h>
 #include <mqbs_mappedfiledescriptor.h>
 #include <mqbs_memoryblock.h>
 #include <mqbs_offsetptr.h>
@@ -32,15 +28,9 @@
 #include <mwcu_memoutstream.h>
 
 // BDE
-#include <bsl_iostream.h>
-#include <bsl_limits.h>
 #include <bsl_list.h>
 #include <bsl_utility.h>
-#include <bslma_default.h>
-#include <bsls_alignedbuffer.h>
-
-// GMOCK
-#include <gmock/gmock.h>
+#include <bslma_allocator.h>
 
 // TEST DRIVER
 #include <mwctst_testhelper.h>
@@ -50,12 +40,129 @@ using namespace BloombergLP;
 using namespace m_bmqstoragetool;
 using namespace bsl;
 using namespace mqbs;
-using namespace ::testing;
-using namespace TestUtils;
 
 // ============================================================================
 //                                    TESTS
 // ----------------------------------------------------------------------------
+
+namespace {
+
+/// Value semantic type representing data message parameters.
+struct DataMessage {
+    int         d_line;
+    const char* d_appData_p;
+    const char* d_options_p;
+};
+
+/// Allocate in memory storage data file and generate sequence of data
+/// records using the specified arguments. Return pointer to allocated
+/// memory.
+char* addDataRecords(bslma::Allocator*          ta,
+                     MappedFileDescriptor*      mfd,
+                     FileHeader*                fileHeader,
+                     const DataMessage*         messages,
+                     const unsigned int         numMessages,
+                     bsl::vector<unsigned int>& messageOffsets)
+{
+    bsls::Types::Uint64 currPos = 0;
+    const unsigned int  dhSize  = sizeof(DataHeader);
+    unsigned int totalSize      = sizeof(FileHeader) + sizeof(DataFileHeader);
+
+    // Have to compute the 'totalSize' we need for the 'MemoryBlock' based on
+    // the padding that we need for each record.
+
+    for (unsigned int i = 0; i < numMessages; i++) {
+        unsigned int optionsLen = static_cast<unsigned int>(
+            bsl::strlen(messages[i].d_options_p));
+        BSLS_ASSERT_OPT(0 == optionsLen % bmqp::Protocol::k_WORD_SIZE);
+
+        unsigned int appDataLen = static_cast<unsigned int>(
+            bsl::strlen(messages[i].d_appData_p));
+        int appDataPadding = 0;
+        bmqp::ProtocolUtil::calcNumDwordsAndPadding(&appDataPadding,
+                                                    appDataLen + optionsLen +
+                                                        dhSize);
+
+        totalSize += dhSize + appDataLen + appDataPadding + optionsLen;
+    }
+
+    // Allocate the memory now.
+    char* p = static_cast<char*>(ta->allocate(totalSize));
+
+    // Create the 'MemoryBlock'
+    MemoryBlock block(p, totalSize);
+
+    // Set the MFD
+    mfd->setFd(-1);
+    mfd->setBlock(block);
+    mfd->setFileSize(totalSize);
+
+    // Add the entries to the block.
+    OffsetPtr<FileHeader> fh(block, currPos);
+    new (fh.get()) FileHeader();
+    fh->setHeaderWords(sizeof(FileHeader) / bmqp::Protocol::k_WORD_SIZE);
+    fh->setMagic1(FileHeader::k_MAGIC1);
+    fh->setMagic2(FileHeader::k_MAGIC2);
+    currPos += sizeof(FileHeader);
+
+    OffsetPtr<DataFileHeader> dfh(block, currPos);
+    new (dfh.get()) DataFileHeader();
+    dfh->setHeaderWords(sizeof(DataFileHeader) / bmqp::Protocol::k_WORD_SIZE);
+    currPos += sizeof(DataFileHeader);
+
+    for (unsigned int i = 0; i < numMessages; i++) {
+        messageOffsets.push_back(
+            static_cast<unsigned int>(currPos / bmqp::Protocol::k_DWORD_SIZE));
+
+        OffsetPtr<DataHeader> dh(block, currPos);
+        new (dh.get()) DataHeader();
+
+        unsigned int optionsLen = static_cast<unsigned int>(
+            bsl::strlen(messages[i].d_options_p));
+        dh->setOptionsWords(optionsLen / bmqp::Protocol::k_WORD_SIZE);
+        currPos += sizeof(DataHeader);
+
+        char* destination = reinterpret_cast<char*>(block.base() + currPos);
+        bsl::memcpy(destination, messages[i].d_options_p, optionsLen);
+        currPos += optionsLen;
+        destination += optionsLen;
+
+        unsigned int appDataLen = static_cast<unsigned int>(
+            bsl::strlen(messages[i].d_appData_p));
+        int appDataPad = 0;
+        bmqp::ProtocolUtil::calcNumDwordsAndPadding(&appDataPad,
+                                                    appDataLen + optionsLen +
+                                                        dhSize);
+
+        bsl::memcpy(destination, messages[i].d_appData_p, appDataLen);
+        currPos += appDataLen;
+        destination += appDataLen;
+        bmqp::ProtocolUtil::appendPaddingDwordRaw(destination, appDataPad);
+        currPos += appDataPad;
+
+        unsigned int messageOffset = dh->headerWords() +
+                                     ((appDataLen + appDataPad + optionsLen) /
+                                      bmqp::Protocol::k_WORD_SIZE);
+        dh->setMessageWords(messageOffset);
+    }
+
+    *fileHeader = *fh;
+
+    return p;
+}
+
+/// Output the specified `messageGUID` as a string to the specified
+/// `ostream`.
+void outputGuidString(bsl::ostream&            ostream,
+                      const bmqt::MessageGUID& messageGUID,
+                      bool                     addNewLine = true)
+{
+    ostream << messageGUID;
+    if (addNewLine)
+        ostream << bsl::endl;
+}
+
+}  // close unnamed namespace
 
 static void test1_breathingTest()
 // ------------------------------------------------------------------------
@@ -73,8 +180,8 @@ static void test1_breathingTest()
 
     // Simulate journal file
     const size_t    k_NUM_RECORDS = 15;
-    RecordsListType records(s_allocator_p);
-    JournalFile     journalFile(k_NUM_RECORDS, s_allocator_p);
+    JournalFile::RecordsListType records(s_allocator_p);
+    JournalFile                  journalFile(k_NUM_RECORDS, s_allocator_p);
     journalFile.addAllTypesRecords(&records);
 
     // Prepare parameters
@@ -95,7 +202,8 @@ static void test1_breathingTest()
 
     // Prepare expected output with list of message GUIDs in Journal file
     mwcu::MemOutStream                  expectedStream(s_allocator_p);
-    bsl::list<NodeType>::const_iterator recordIter         = records.begin();
+    bsl::list<JournalFile::NodeType>::const_iterator recordIter =
+        records.begin();
     bsl::size_t                         foundMessagesCount = 0;
     for (; recordIter != records.end(); ++recordIter) {
         RecordType::Enum rtype = recordIter->first;
@@ -127,15 +235,16 @@ static void test2_searchGuidTest()
 
     // Simulate journal file
     const size_t    k_NUM_RECORDS = 15;
-    RecordsListType records(s_allocator_p);
-    JournalFile     journalFile(k_NUM_RECORDS, s_allocator_p);
+    JournalFile::RecordsListType records(s_allocator_p);
+    JournalFile                  journalFile(k_NUM_RECORDS, s_allocator_p);
     journalFile.addAllTypesRecords(&records);
 
     // Prepare parameters
     Parameters params(s_allocator_p);
     // Get list of message GUIDs for searching
     bsl::vector<bsl::string>&           searchGuids = params.d_guid;
-    bsl::list<NodeType>::const_iterator recordIter  = records.begin();
+    bsl::list<JournalFile::NodeType>::const_iterator recordIter =
+        records.begin();
     bsl::size_t                         msgCnt      = 0;
     for (; recordIter != records.end(); ++recordIter) {
         RecordType::Enum rtype = recordIter->first;
@@ -190,8 +299,8 @@ static void test3_searchNonExistingGuidTest()
 
     // Simulate journal file
     const size_t    k_NUM_RECORDS = 15;
-    RecordsListType records(s_allocator_p);
-    JournalFile     journalFile(k_NUM_RECORDS, s_allocator_p);
+    JournalFile::RecordsListType records(s_allocator_p);
+    JournalFile                  journalFile(k_NUM_RECORDS, s_allocator_p);
     journalFile.addAllTypesRecords(&records);
 
     // Prepare parameters
@@ -248,8 +357,8 @@ static void test4_searchExistingAndNonExistingGuidTest()
 
     // Simulate journal file
     const size_t    k_NUM_RECORDS = 15;
-    RecordsListType records(s_allocator_p);
-    JournalFile     journalFile(k_NUM_RECORDS, s_allocator_p);
+    JournalFile::RecordsListType records(s_allocator_p);
+    JournalFile                  journalFile(k_NUM_RECORDS, s_allocator_p);
     journalFile.addAllTypesRecords(&records);
 
     // Prepare parameters
@@ -259,7 +368,8 @@ static void test4_searchExistingAndNonExistingGuidTest()
     bsl::vector<bsl::string>& searchGuids = params.d_guid;
 
     // Get two existing message GUIDs
-    bsl::list<NodeType>::const_iterator recordIter = records.begin();
+    bsl::list<JournalFile::NodeType>::const_iterator recordIter =
+        records.begin();
     size_t                              msgCnt     = 0;
     for (; recordIter != records.end(); ++recordIter) {
         RecordType::Enum rtype = recordIter->first;
@@ -325,9 +435,9 @@ static void test5_searchOutstandingMessagesTest()
 
     // Simulate journal file
     const size_t    k_NUM_RECORDS = 15;
-    RecordsListType records(s_allocator_p);
-    JournalFile     journalFile(k_NUM_RECORDS, s_allocator_p);
-    GuidVectorType  outstandingGUIDS(s_allocator_p);
+    JournalFile::RecordsListType records(s_allocator_p);
+    JournalFile                  journalFile(k_NUM_RECORDS, s_allocator_p);
+    JournalFile::GuidVectorType  outstandingGUIDS(s_allocator_p);
     journalFile.addJournalRecordsWithOutstandingAndConfirmedMessages(
         &records,
         &outstandingGUIDS,
@@ -352,7 +462,8 @@ static void test5_searchOutstandingMessagesTest()
 
     // Prepare expected output
     mwcu::MemOutStream             expectedStream(s_allocator_p);
-    GuidVectorType::const_iterator guidIt = outstandingGUIDS.cbegin();
+    JournalFile::GuidVectorType::const_iterator guidIt =
+        outstandingGUIDS.cbegin();
     for (; guidIt != outstandingGUIDS.cend(); ++guidIt) {
         outputGuidString(expectedStream, *guidIt);
     }
@@ -385,9 +496,9 @@ static void test6_searchConfirmedMessagesTest()
 
     // Simulate journal file
     const size_t    k_NUM_RECORDS = 15;
-    RecordsListType records(s_allocator_p);
-    JournalFile     journalFile(k_NUM_RECORDS, s_allocator_p);
-    GuidVectorType  confirmedGUIDS(s_allocator_p);
+    JournalFile::RecordsListType records(s_allocator_p);
+    JournalFile                  journalFile(k_NUM_RECORDS, s_allocator_p);
+    JournalFile::GuidVectorType  confirmedGUIDS(s_allocator_p);
     journalFile.addJournalRecordsWithOutstandingAndConfirmedMessages(
         &records,
         &confirmedGUIDS,
@@ -412,7 +523,8 @@ static void test6_searchConfirmedMessagesTest()
 
     // Prepare expected output
     mwcu::MemOutStream             expectedStream(s_allocator_p);
-    GuidVectorType::const_iterator guidIt = confirmedGUIDS.cbegin();
+    JournalFile::GuidVectorType::const_iterator guidIt =
+        confirmedGUIDS.cbegin();
     for (; guidIt != confirmedGUIDS.cend(); ++guidIt) {
         outputGuidString(expectedStream, *guidIt);
     }
@@ -448,9 +560,9 @@ static void test7_searchPartiallyConfirmedMessagesTest()
     // k_NUM_RECORDS must be multiple 3 plus one to cover all combinations
     // (confirmed, deleted, not confirmed)
     const size_t    k_NUM_RECORDS = 16;
-    RecordsListType records(s_allocator_p);
-    JournalFile     journalFile(k_NUM_RECORDS, s_allocator_p);
-    GuidVectorType  partiallyConfirmedGUIDS(s_allocator_p);
+    JournalFile::RecordsListType records(s_allocator_p);
+    JournalFile                  journalFile(k_NUM_RECORDS, s_allocator_p);
+    JournalFile::GuidVectorType  partiallyConfirmedGUIDS(s_allocator_p);
     journalFile.addJournalRecordsWithPartiallyConfirmedMessages(
         &records,
         &partiallyConfirmedGUIDS);
@@ -474,7 +586,8 @@ static void test7_searchPartiallyConfirmedMessagesTest()
 
     // Prepare expected output
     mwcu::MemOutStream             expectedStream(s_allocator_p);
-    GuidVectorType::const_iterator guidIt = partiallyConfirmedGUIDS.cbegin();
+    JournalFile::GuidVectorType::const_iterator guidIt =
+        partiallyConfirmedGUIDS.cbegin();
     for (; guidIt != partiallyConfirmedGUIDS.cend(); ++guidIt) {
         outputGuidString(expectedStream, *guidIt);
     }
@@ -507,11 +620,11 @@ static void test8_searchMessagesByQueueKeyTest()
 
     // Simulate journal file
     const size_t    k_NUM_RECORDS = 15;
-    RecordsListType records(s_allocator_p);
-    JournalFile     journalFile(k_NUM_RECORDS, s_allocator_p);
+    JournalFile::RecordsListType records(s_allocator_p);
+    JournalFile                  journalFile(k_NUM_RECORDS, s_allocator_p);
     const char*     queueKey1 = "ABCDE12345";
     const char*     queueKey2 = "12345ABCDE";
-    GuidVectorType  queueKey1GUIDS(s_allocator_p);
+    JournalFile::GuidVectorType  queueKey1GUIDS(s_allocator_p);
     journalFile.addJournalRecordsWithTwoQueueKeys(&records,
                                                   &queueKey1GUIDS,
                                                   queueKey1,
@@ -536,7 +649,8 @@ static void test8_searchMessagesByQueueKeyTest()
 
     // Prepare expected output
     mwcu::MemOutStream             expectedStream(s_allocator_p);
-    GuidVectorType::const_iterator guidIt = queueKey1GUIDS.cbegin();
+    JournalFile::GuidVectorType::const_iterator guidIt =
+        queueKey1GUIDS.cbegin();
     for (; guidIt != queueKey1GUIDS.cend(); ++guidIt) {
         outputGuidString(expectedStream, *guidIt);
     }
@@ -563,11 +677,11 @@ static void test9_searchMessagesByQueueNameTest()
 
     // Simulate journal file
     const size_t    k_NUM_RECORDS = 15;
-    RecordsListType records(s_allocator_p);
-    JournalFile     journalFile(k_NUM_RECORDS, s_allocator_p);
+    JournalFile::RecordsListType records(s_allocator_p);
+    JournalFile                  journalFile(k_NUM_RECORDS, s_allocator_p);
     const char*     queueKey1 = "ABCDE12345";
     const char*     queueKey2 = "12345ABCDE";
-    GuidVectorType  queueKey1GUIDS(s_allocator_p);
+    JournalFile::GuidVectorType  queueKey1GUIDS(s_allocator_p);
     journalFile.addJournalRecordsWithTwoQueueKeys(&records,
                                                   &queueKey1GUIDS,
                                                   queueKey1,
@@ -602,7 +716,8 @@ static void test9_searchMessagesByQueueNameTest()
 
     // Prepare expected output
     mwcu::MemOutStream             expectedStream(s_allocator_p);
-    GuidVectorType::const_iterator guidIt = queueKey1GUIDS.cbegin();
+    JournalFile::GuidVectorType::const_iterator guidIt =
+        queueKey1GUIDS.cbegin();
     for (; guidIt != queueKey1GUIDS.cend(); ++guidIt) {
         outputGuidString(expectedStream, *guidIt);
     }
@@ -630,11 +745,11 @@ static void test10_searchMessagesByQueueNameAndQueueKeyTest()
 
     // Simulate journal file
     const size_t    k_NUM_RECORDS = 15;
-    RecordsListType records(s_allocator_p);
-    JournalFile     journalFile(k_NUM_RECORDS, s_allocator_p);
+    JournalFile::RecordsListType records(s_allocator_p);
+    JournalFile                  journalFile(k_NUM_RECORDS, s_allocator_p);
     const char*     queueKey1 = "ABCDE12345";
     const char*     queueKey2 = "12345ABCDE";
-    GuidVectorType  queueKey1GUIDS(s_allocator_p);
+    JournalFile::GuidVectorType  queueKey1GUIDS(s_allocator_p);
     journalFile.addJournalRecordsWithTwoQueueKeys(&records,
                                                   &queueKey1GUIDS,
                                                   queueKey1,
@@ -672,7 +787,8 @@ static void test10_searchMessagesByQueueNameAndQueueKeyTest()
 
     // Prepare expected output
     mwcu::MemOutStream             expectedStream(s_allocator_p);
-    GuidVectorType::const_iterator guidIt = queueKey1GUIDS.cbegin();
+    JournalFile::GuidVectorType::const_iterator guidIt =
+        queueKey1GUIDS.cbegin();
     for (; guidIt != queueKey1GUIDS.cend(); ++guidIt) {
         outputGuidString(expectedStream, *guidIt);
     }
@@ -698,8 +814,8 @@ static void test11_searchMessagesByTimestamp()
 
     // Simulate journal file
     const size_t    k_NUM_RECORDS = 50;
-    RecordsListType records(s_allocator_p);
-    JournalFile     journalFile(k_NUM_RECORDS, s_allocator_p);
+    JournalFile::RecordsListType records(s_allocator_p);
+    JournalFile                  journalFile(k_NUM_RECORDS, s_allocator_p);
     journalFile.addAllTypesRecords(&records);
     const bsls::Types::Uint64 ts1 = 10 * journalFile.timestampIncrement();
     const bsls::Types::Uint64 ts2 = 40 * journalFile.timestampIncrement();
@@ -717,7 +833,8 @@ static void test11_searchMessagesByTimestamp()
     // output
     mwcu::MemOutStream expectedStream(s_allocator_p);
 
-    bsl::list<NodeType>::const_iterator recordIter = records.begin();
+    bsl::list<JournalFile::NodeType>::const_iterator recordIter =
+        records.begin();
     bsl::size_t                         msgCnt     = 0;
     for (; recordIter != records.end(); ++recordIter) {
         RecordType::Enum rtype = recordIter->first;
@@ -766,9 +883,9 @@ static void test12_printMessagesDetailsTest()
 
     // Simulate journal file
     const size_t    k_NUM_RECORDS = 15;
-    RecordsListType records(s_allocator_p);
-    JournalFile     journalFile(k_NUM_RECORDS, s_allocator_p);
-    GuidVectorType  confirmedGUIDS(s_allocator_p);
+    JournalFile::RecordsListType records(s_allocator_p);
+    JournalFile                  journalFile(k_NUM_RECORDS, s_allocator_p);
+    JournalFile::GuidVectorType  confirmedGUIDS(s_allocator_p);
     journalFile.addJournalRecordsWithOutstandingAndConfirmedMessages(
         &records,
         &confirmedGUIDS,
@@ -890,9 +1007,9 @@ static void test13_searchMessagesWithPayloadDumpTest()
     const size_t k_NUM_RECORDS =
         k_NUM_MSGS * 2;  // k_NUM_MSGS records + k_NUM_MSGS deletion records
 
-    RecordsListType records(s_allocator_p);
-    JournalFile     journalFile(k_NUM_RECORDS, s_allocator_p);
-    GuidVectorType  confirmedGUIDS(s_allocator_p);
+    JournalFile::RecordsListType records(s_allocator_p);
+    JournalFile                  journalFile(k_NUM_RECORDS, s_allocator_p);
+    JournalFile::GuidVectorType  confirmedGUIDS(s_allocator_p);
     journalFile.addJournalRecordsWithConfirmedMessagesWithDifferentOrder(
         &records,
         &confirmedGUIDS,
@@ -910,7 +1027,7 @@ static void test13_searchMessagesWithPayloadDumpTest()
         s_allocator_p);
     EXPECT_CALL(static_cast<FileManagerMock&>(*fileManager),
                 dataFileIterator())
-        .WillRepeatedly(Return(&dataIt));
+        .WillRepeatedly(testing::Return(&dataIt));
 
     // Run search
     mwcu::MemOutStream                  resultStream(s_allocator_p);
@@ -975,9 +1092,9 @@ static void test14_summaryTest()
 
     // Simulate journal file
     const size_t    k_NUM_RECORDS = 15;
-    RecordsListType records(s_allocator_p);
-    JournalFile     journalFile(k_NUM_RECORDS, s_allocator_p);
-    GuidVectorType  partiallyConfirmedGUIDS(s_allocator_p);
+    JournalFile::RecordsListType records(s_allocator_p);
+    JournalFile                  journalFile(k_NUM_RECORDS, s_allocator_p);
+    JournalFile::GuidVectorType  partiallyConfirmedGUIDS(s_allocator_p);
     journalFile.addJournalRecordsWithPartiallyConfirmedMessages(
         &records,
         &partiallyConfirmedGUIDS);
@@ -1026,8 +1143,8 @@ static void test15_timestampSearchTest()
 
     // Simulate journal file
     const size_t    k_NUM_RECORDS = 50;
-    RecordsListType records(s_allocator_p);
-    JournalFile     journalFile(k_NUM_RECORDS, s_allocator_p);
+    JournalFile::RecordsListType records(s_allocator_p);
+    JournalFile                  journalFile(k_NUM_RECORDS, s_allocator_p);
     journalFile.addAllTypesRecords(&records);
 
     struct ResultChecker {
