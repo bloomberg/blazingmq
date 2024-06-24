@@ -20,9 +20,9 @@
 // MQB
 #include <mqbblp_storagemanager.h>
 #include <mqbc_clusterutil.h>
+#include <mqbc_controlmessagetransmitter.h>
 #include <mqbc_storagemanager.h>
 #include <mqbc_storageutil.h>
-#include <mqbc_controlmessagetransmitter.h>
 #include <mqbcmd_humanprinter.h>
 #include <mqbcmd_messages.h>
 #include <mqbnet_elector.h>
@@ -2938,20 +2938,23 @@ void Cluster::processControlMessage(
         BALL_LOG_INFO << cmd;
         // do we need to dispatch this?. or is the admin cb already
         // invoking a dispatch event?
-        d_adminCb("reroute", cmd, bdlf::BindUtil::bind(
-            &Cluster::onProcessedAdminCommand, 
-            this,
-            source,
-            message,
-            bdlf::PlaceHolders::_1,
-            bdlf::PlaceHolders::_2
-        ));
+        d_adminCb("reroute",
+                  cmd,
+                  bdlf::BindUtil::bind(&Cluster::onProcessedAdminCommand,
+                                       this,
+                                       source,
+                                       message,
+                                       bdlf::PlaceHolders::_1,
+                                       bdlf::PlaceHolders::_2));
     } break;
     case MsgChoice::SELECTION_ID_ADMIN_COMMAND_RESPONSE: {
-        BALL_LOG_INFO << "Received admin command response through Control Message API";
+        BALL_LOG_INFO
+            << "Received admin command response through Control Message API";
         BALL_LOG_INFO << description() << ": " << message;
-        // const bmqp_ctrlmsg::AdminCommandResponse& response = message.choice().adminCommandResponse();
-        // TODO: trigger response callback? how does this work in the first place?
+        // const bmqp_ctrlmsg::AdminCommandResponse& response =
+        // message.choice().adminCommandResponse();
+        // TODO: trigger response callback? how does this work in the first
+        // place?
         requestManager().processResponse(message);
     }
     case MsgChoice::SELECTION_ID_UNDEFINED:
@@ -3580,14 +3583,17 @@ void Cluster::onFailoverThreshold()
     MWCTSK_ALARMLOG_PANIC("CLUSTER") << os.str() << MWCTSK_ALARMLOG_END;
 }
 
-void Cluster::onProcessedAdminCommand(mqbnet::ClusterNode* source, 
-                    const bmqp_ctrlmsg::ControlMessage& adminCommandCtrlMsg, 
-                    int rc, const bsl::string& res) {
+void Cluster::onProcessedAdminCommand(
+    mqbnet::ClusterNode*                source,
+    const bmqp_ctrlmsg::ControlMessage& adminCommandCtrlMsg,
+    int                                 rc,
+    const bsl::string&                  res)
+{
     // here we need to send this "res" back to the source!
     BALL_LOG_INFO << rc;
     BALL_LOG_INFO << res;
     bdlma::LocalSequentialAllocator<2048> localAllocator(d_allocator_p);
-    bmqp_ctrlmsg::ControlMessage response(&localAllocator);
+    bmqp_ctrlmsg::ControlMessage          response(&localAllocator);
 
     response.rId() = adminCommandCtrlMsg.rId().value();
     response.choice().makeAdminCommandResponse();
@@ -3599,7 +3605,7 @@ void Cluster::onProcessedAdminCommand(mqbnet::ClusterNode* source,
     //         &mqbc::ControlMessageTransmitter::send,
     //         &d_clusterData.messageTransmitter(),
     //         response,
-    //         source), 
+    //         source),
     //     this);
     d_clusterData.messageTransmitter().sendMessageSafe(response, source);
 
@@ -3608,7 +3614,6 @@ void Cluster::onProcessedAdminCommand(mqbnet::ClusterNode* source,
     // TODO: look at mqba_adminsession.cpp to see how to implement this!
 
     // bmqp::SchemaEventBuilder schemaEventBuilder;
-
 }
 
 void Cluster::loadClusterStatus(mqbcmd::ClusterResult* result)
@@ -3731,29 +3736,31 @@ void Cluster::processResponse(const bmqp_ctrlmsg::ControlMessage& response)
 }
 
 void Cluster::getPrimaryNodes(bsl::list<mqbnet::ClusterNode*>& outNodes,
-                            bool& outIsSelfPrimary) const {
+                              bool& outIsSelfPrimary) const
+{
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
 
-    const mqbnet::Cluster::NodesList& nodes = netCluster().nodes();
-    const mqbc::ClusterState::PartitionsInfo& partitionsInfo = d_state.partitionsInfo();
+    const mqbnet::Cluster::NodesList&         nodes = netCluster().nodes();
+    const mqbc::ClusterState::PartitionsInfo& partitionsInfo =
+        d_state.partitionsInfo();
 
     outIsSelfPrimary = false;
     outNodes.clear();
 
-    for (mqbc::ClusterState::PartitionsInfo::const_iterator pit
-                    = partitionsInfo.begin();
-                    pit != partitionsInfo.end();
-                    pit++) {
+    for (mqbc::ClusterState::PartitionsInfo::const_iterator pit =
+             partitionsInfo.begin();
+         pit != partitionsInfo.end();
+         pit++) {
         bool foundPrimary = false;
-        for (mqbnet::Cluster::NodesList::const_iterator nit
-                    = nodes.begin();
-                    nit != nodes.end();
-                    nit++) {
+        for (mqbnet::Cluster::NodesList::const_iterator nit = nodes.begin();
+             nit != nodes.end();
+             nit++) {
             mqbnet::ClusterNode* node = *nit;
             // Check if this node is the primary for this partition
             if (pit->primaryNodeId() == node->nodeId()) {
                 // If we already added this node, then don't add a duplicate
-                if (bsl::find(outNodes.begin(), outNodes.end(), node) != outNodes.end()) {
+                if (bsl::find(outNodes.begin(), outNodes.end(), node) !=
+                    outNodes.end()) {
                     continue;
                 }
                 if (d_state.isSelfPrimary(pit->partitionId())) {
@@ -3769,7 +3776,7 @@ void Cluster::getPrimaryNodes(bsl::list<mqbnet::ClusterNode*>& outNodes,
             // TODO: Handle this case
             // Approach may include putting into some buffer to callback later
         }
-    }    
+    }
 }
 
 }  // close package namespace

@@ -317,7 +317,8 @@ class Cluster : public mqbi::Cluster {
 
     // Return a reference offering modifiable access to the multi request
     // manager used by this cluster.
-    mqbi::Cluster::MultiRequestManagerType& multiRequestManager() BSLS_KEYWORD_OVERRIDE;
+    mqbi::Cluster::MultiRequestManagerType&
+    multiRequestManager() BSLS_KEYWORD_OVERRIDE;
 
     /// Send the specified `request` with the specified `timeout` to the
     /// specified `target` node.  If `target` is 0, it is the Cluster's
@@ -419,7 +420,9 @@ class Cluster : public mqbi::Cluster {
     mqbc::ClusterData* _clusterData();
 
     /// Get a modifiable reference to this object's cluster state.
-    mqbc::ClusterState& _state(); // <--- WHY DOES THIS EXIST? It seems there are no references to it, so why have this?
+    mqbc::ClusterState&
+    _state();  // <--- WHY DOES THIS EXIST? It seems there are no references to
+               // it, so why have this?
 
     /// Move the test timer forward the specified `seconds`.
     void advanceTime(int seconds);
@@ -427,10 +430,10 @@ class Cluster : public mqbi::Cluster {
     /// Block until scheduler executes all the scheduled callbacks.
     void waitForScheduler();
 
-    // Gets all the nodes which are a primary for some partition of this 
+    // Gets all the nodes which are a primary for some partition of this
     // cluster
     void getPrimaryNodes(bsl::list<mqbnet::ClusterNode*>& outNodes,
-                                 bool& outIsSelfPrimary) const BSLS_KEYWORD_OVERRIDE;
+                         bool& outIsSelfPrimary) const BSLS_KEYWORD_OVERRIDE;
 
     // ACCESSORS
     //   (virtual: mqbi::DispatcherClient)
@@ -582,7 +585,8 @@ inline void Cluster::advanceTime(int seconds)
 }
 
 inline void Cluster::getPrimaryNodes(bsl::list<mqbnet::ClusterNode*>& outNodes,
-                                 bool& outIsSelfPrimary) const {
+                                     bool& outIsSelfPrimary) const
+{
     // no implementation
 }
 

@@ -235,7 +235,7 @@ class Application {
         const bslstl::StringRef&                            source,
         const bsl::string&                                  cmd,
         const bsl::function<void(int, const bsl::string&)>& onProcessedCb);
-  
+
   private:
     // HELPER FUNCTIONS FOR ADMIN API ROUTING
 
@@ -244,21 +244,24 @@ class Application {
 
     // Returns a pointer to the cluster instance that the given command needs
     // to execute for.
-    mqbi::Cluster* getRelevantCluster(mqbcmd::CommandChoice& command, mqbcmd::InternalResult& cmdResult) const;
+    mqbi::Cluster* getRelevantCluster(mqbcmd::CommandChoice&  command,
+                                      mqbcmd::InternalResult& cmdResult) const;
 
     // Routes the given command to any primary nodes on the cluster (if they
     // are a primary for some partition)
-    bool routeCommandToPrimaryNodes(mqbi::Cluster* cluster, const bsl::string& cmd, bsl::ostream& os);
+    bool routeCommandToPrimaryNodes(mqbi::Cluster*     cluster,
+                                    const bsl::string& cmd,
+                                    bsl::ostream&      os);
 
-    void onRerouteCommandResponse(const bsl::shared_ptr<
-          mqbnet::MultiRequestManagerRequestContext<
-            bmqp_ctrlmsg::ControlMessage, 
-            bmqp_ctrlmsg::ControlMessage, 
-            mqbnet::ClusterNode*
-          >
-        >& requestContext, bslmt::Latch& latch, bsl::ostream& os);
-      
-    int executeCommand(mqbcmd::CommandChoice& command, 
+    void onRerouteCommandResponse(
+        const bsl::shared_ptr<mqbnet::MultiRequestManagerRequestContext<
+            bmqp_ctrlmsg::ControlMessage,
+            bmqp_ctrlmsg::ControlMessage,
+            mqbnet::ClusterNode*> >& requestContext,
+        bslmt::Latch&                latch,
+        bsl::ostream&                os);
+
+    int executeCommand(mqbcmd::CommandChoice&  command,
                        mqbcmd::InternalResult& cmdResult);
 };
 
