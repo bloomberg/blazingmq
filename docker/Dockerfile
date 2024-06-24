@@ -1,4 +1,4 @@
-FROM docker.io/ubuntu:22.04 AS builder
+FROM docker.io/ubuntu:24.04 AS builder
 
 # Set up CA certificates first before installing other dependencies
 RUN apt-get update && \
@@ -6,8 +6,9 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     build-essential \
     gdb \
+    cmake \
     curl \
-    python3.10 \
+    python3 \
     ninja-build \
     pkg-config \
     bison \
@@ -17,14 +18,6 @@ RUN apt-get update && \
     libz-dev \
     && apt clean \
     && rm -rf /var/lib/apt/lists/*
-
-# BDE build requires CMake > 3.24, which is not available in Ubuntu 22.04 yet
-# Consider installation of cmake from apt once it's met BDE requirements
-RUN mkdir -p /deps_build/CMake \
-    && cd /deps_build/CMake \
-    && curl -s -L -O https://github.com/Kitware/CMake/releases/download/v3.27.1/cmake-3.27.1-linux-x86_64.sh \
-    && /bin/bash cmake-3.27.1-linux-x86_64.sh -- --skip-license --prefix=/usr/local \
-    && rm -rf /deps_build
 
 WORKDIR /workspace
 
@@ -55,12 +48,12 @@ RUN cd srcs/bmq \
     && mv /bmq/bin/bmqbrkr.tsk /bmq/bin/bmqbrkr \
     && mv /bmq/bin/bmqtool.tsk /bmq/bin/bmqtool
 
-FROM docker.io/ubuntu:22.04
+FROM docker.io/ubuntu:24.04
 
 COPY --from=builder /bmq /usr/local
 
-RUN addgroup bmq \
-    && adduser bmq --home /var/local/bmq --system --ingroup bmq --shell /usr/bin/bash
+RUN groupadd bmq \
+    && useradd bmq --home /var/local/bmq --system --gid bmq --shell /usr/bin/bash
 USER bmq
 WORKDIR /var/local/bmq
 RUN mkdir -p logs storage/archive
