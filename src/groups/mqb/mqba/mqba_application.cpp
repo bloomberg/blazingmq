@@ -577,6 +577,8 @@ void Application::onRerouteCommandResponse(const bsl::shared_ptr<
     {
         bsl::pair<mqbnet::ClusterNode *, bmqp_ctrlmsg::ControlMessage> pair = *pairIt;
         BALL_LOG_INFO << "response from " << pair.first->nodeId();
+        
+        // os >> pair.second.choice().adminCommandResponse().text();
         pair.second.print(os);
     }
 
