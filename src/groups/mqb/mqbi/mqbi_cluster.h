@@ -246,7 +246,8 @@ class Cluster : public DispatcherClient {
 
     typedef mqbnet::MultiRequestManager<bmqp_ctrlmsg::ControlMessage,
                                         bmqp_ctrlmsg::ControlMessage,
-                                        mqbnet::ClusterNode*> MultiRequestManagerType;
+                                        mqbnet::ClusterNode*>
+        MultiRequestManagerType;
 
     /// Signature of a `void` functor method.
     typedef bsl::function<void(void)> VoidFunctor;
@@ -431,7 +432,7 @@ class Cluster : public DispatcherClient {
     // Returns a reference to the cluster state of this `mqbi::Cluster`
     // virtual const mqbc::ClusterState& clusterState() const = 0;
 
-    // Gets all the nodes which are a primary for some partition of this 
+    // Gets all the nodes which are a primary for some partition of this
     // cluster
     virtual void getPrimaryNodes(bsl::list<mqbnet::ClusterNode*>& outNodes,
                                  bool& outIsSelfPrimary) const = 0;

@@ -358,7 +358,8 @@ class ClusterProxy : public mqbc::ClusterStateObserver,
 
     // Return a reference offering modifiable access to the multi request
     // manager used by this cluster.
-    mqbi::Cluster::MultiRequestManagerType& multiRequestManager() BSLS_KEYWORD_OVERRIDE;
+    mqbi::Cluster::MultiRequestManagerType&
+    multiRequestManager() BSLS_KEYWORD_OVERRIDE;
 
     /// Send the specified `request` with the specified `timeout` to the
     /// specified `target` node.  If `target` is 0, it is the Cluster's
@@ -536,7 +537,7 @@ class ClusterProxy : public mqbc::ClusterStateObserver,
     void loadClusterStatus(mqbcmd::ClusterResult* out) BSLS_KEYWORD_OVERRIDE;
 
     void getPrimaryNodes(bsl::list<mqbnet::ClusterNode*>& outNodes,
-                                 bool& outIsSelfPrimary) const BSLS_KEYWORD_OVERRIDE;
+                         bool& outIsSelfPrimary) const BSLS_KEYWORD_OVERRIDE;
 
     // MANIPULATORS
     //   (virtual: mqbi::DispatcherClient)
@@ -707,8 +708,10 @@ inline size_t ClusterProxy::ChannelBuffer::bytes() const
 // class ClusterProxy
 // ------------------
 
-inline void ClusterProxy::getPrimaryNodes(bsl::list<mqbnet::ClusterNode*>& outNodes,
-                                 bool& outIsSelfPrimary) const {
+inline void
+ClusterProxy::getPrimaryNodes(bsl::list<mqbnet::ClusterNode*>& outNodes,
+                              bool& outIsSelfPrimary) const
+{
     // no implementation
 }
 
@@ -719,7 +722,8 @@ inline ClusterProxy::RequestManagerType& ClusterProxy::requestManager()
     return d_clusterData.requestManager();
 }
 
-inline mqbi::Cluster::MultiRequestManagerType& ClusterProxy::multiRequestManager()
+inline mqbi::Cluster::MultiRequestManagerType&
+ClusterProxy::multiRequestManager()
 {
     return d_clusterData.multiRequestManager();
 }

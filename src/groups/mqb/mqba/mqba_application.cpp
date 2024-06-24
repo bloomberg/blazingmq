@@ -505,7 +505,7 @@ void Application::stop()
 #undef STOP_OBJ
 }
 
-bool Application::isCommandForPrimary(mqbcmd::CommandChoice& command) const 
+bool Application::isCommandForPrimary(mqbcmd::CommandChoice& command) const
 {
     if (command.isDomainsValue()) {
         mqbcmd::DomainsCommand& domains = command.domains();
@@ -534,7 +534,10 @@ bool Application::isCommandForPrimary(mqbcmd::CommandChoice& command) const
     return false;
 }
 
-mqbi::Cluster* Application::getRelevantCluster(mqbcmd::CommandChoice& command, mqbcmd::InternalResult& cmdResult) const {
+mqbi::Cluster*
+Application::getRelevantCluster(mqbcmd::CommandChoice&  command,
+                                mqbcmd::InternalResult& cmdResult) const
+{
     if (command.isDomainsValue()) {
         const bsl::string& domainName = command.domains().domain().name();
         bsl::shared_ptr<mqbi::Domain> domainSp;
@@ -552,7 +555,7 @@ mqbi::Cluster* Application::getRelevantCluster(mqbcmd::CommandChoice& command, m
         const bsl::string& clusterName = command.clusters().cluster().name();
         bsl::shared_ptr<mqbi::Cluster> clusterOut;
         // ClusterCatalog::findCluster acquires a lock internally, so this
-        // should be safe to execute from Application 
+        // should be safe to execute from Application
         d_clusterCatalog_mp->findCluster(&clusterOut, clusterName);
         return clusterOut.get();
     }
@@ -560,24 +563,26 @@ mqbi::Cluster* Application::getRelevantCluster(mqbcmd::CommandChoice& command, m
     return nullptr;
 }
 
-void Application::onRerouteCommandResponse(const bsl::shared_ptr<
-          mqbnet::MultiRequestManagerRequestContext<
-            bmqp_ctrlmsg::ControlMessage, 
-            bmqp_ctrlmsg::ControlMessage, 
-            mqbnet::ClusterNode*
-          >
-        >& requestContext, bslmt::Latch& latch, bsl::ostream& os) {
-    bsl::vector<bsl::pair<mqbnet::ClusterNode *, bmqp_ctrlmsg::ControlMessage>>  
-            responses = requestContext->response();
+void Application::onRerouteCommandResponse(
+    const bsl::shared_ptr<mqbnet::MultiRequestManagerRequestContext<
+        bmqp_ctrlmsg::ControlMessage,
+        bmqp_ctrlmsg::ControlMessage,
+        mqbnet::ClusterNode*> >& requestContext,
+    bslmt::Latch&                latch,
+    bsl::ostream&                os)
+{
+    bsl::vector<bsl::pair<mqbnet::ClusterNode*, bmqp_ctrlmsg::ControlMessage> >
+        responses = requestContext->response();
 
-    for (bsl::vector<bsl::pair<mqbnet::ClusterNode *, bmqp_ctrlmsg::ControlMessage>>::const_iterator 
-            pairIt = responses.begin();
-            pairIt != responses.end();
-            pairIt++)
-    {
-        bsl::pair<mqbnet::ClusterNode *, bmqp_ctrlmsg::ControlMessage> pair = *pairIt;
+    for (bsl::vector<bsl::pair<mqbnet::ClusterNode*,
+                               bmqp_ctrlmsg::ControlMessage> >::const_iterator
+             pairIt = responses.begin();
+         pairIt != responses.end();
+         pairIt++) {
+        bsl::pair<mqbnet::ClusterNode*, bmqp_ctrlmsg::ControlMessage> pair =
+            *pairIt;
         BALL_LOG_INFO << "response from " << pair.first->nodeId();
-        
+
         // os >> pair.second.choice().adminCommandResponse().text();
         pair.second.print(os);
     }
@@ -587,33 +592,30 @@ void Application::onRerouteCommandResponse(const bsl::shared_ptr<
     latch.countDown(1);
 }
 
-bool Application::routeCommandToPrimaryNodes(mqbi::Cluster* cluster, const bsl::string& cmd, bsl::ostream& os) {
-    bsl::shared_ptr<
-        bmqp::RequestManagerRequest<
-            bmqp_ctrlmsg::ControlMessage,
-            bmqp_ctrlmsg::ControlMessage
-        >
-    > request = cluster->requestManager().createRequest();
+bool Application::routeCommandToPrimaryNodes(mqbi::Cluster*     cluster,
+                                             const bsl::string& cmd,
+                                             bsl::ostream&      os)
+{
+    bsl::shared_ptr<bmqp::RequestManagerRequest<bmqp_ctrlmsg::ControlMessage,
+                                                bmqp_ctrlmsg::ControlMessage> >
+        request = cluster->requestManager().createRequest();
 
-    bmqp_ctrlmsg::AdminCommand& adminCommand = 
-                            request->request().choice().makeAdminCommand();
+    bmqp_ctrlmsg::AdminCommand& adminCommand =
+        request->request().choice().makeAdminCommand();
     adminCommand.command() = cmd;
 
     bsls::TimeInterval timeoutMs;
     timeoutMs.setTotalMilliseconds(1000);
 
     bsl::list<mqbnet::ClusterNode*> nodes;
-    bool isSelfPrimary;
+    bool                            isSelfPrimary;
     BALL_LOG_INFO << "dispatching (??????)";
     cluster->dispatcher()->execute(
-        bdlf::BindUtil::bind(
-            &mqbi::Cluster::getPrimaryNodes,
-            cluster,
-            bsl::ref(nodes),
-            bsl::ref(isSelfPrimary)
-        ),
-        cluster
-    );
+        bdlf::BindUtil::bind(&mqbi::Cluster::getPrimaryNodes,
+                             cluster,
+                             bsl::ref(nodes),
+                             bsl::ref(isSelfPrimary)),
+        cluster);
     BALL_LOG_INFO << "synchronizing......";
     cluster->dispatcher()->synchronize(cluster);
 
@@ -627,18 +629,16 @@ bool Application::routeCommandToPrimaryNodes(mqbi::Cluster* cluster, const bsl::
 
     // 1 solution to make sure that never happens is to use a shared_ptr
 
-    // ok, definitely not a use-after-free because ClusterNode instance is 
+    // ok, definitely not a use-after-free because ClusterNode instance is
     // stored on the stack.
 
     if (nodes.size() > 0) {
-        bsl::vector<mqbnet::ClusterNode*> nodesVector{ nodes.begin(), nodes.end() };
+        bsl::vector<mqbnet::ClusterNode*> nodesVector{nodes.begin(),
+                                                      nodes.end()};
         mqbi::Cluster::MultiRequestManagerType::RequestContextSp contextSp =
             cluster->multiRequestManager().createRequestContext();
 
-        contextSp->request()
-            .choice()
-            .makeAdminCommand()
-            .command() = cmd;
+        contextSp->request().choice().makeAdminCommand().command() = cmd;
 
         contextSp->setDestinationNodes(nodesVector);
 
@@ -646,12 +646,13 @@ bool Application::routeCommandToPrimaryNodes(mqbi::Cluster* cluster, const bsl::
 
         contextSp->setResponseCb(
             bdlf::BindUtil::bind(&Application::onRerouteCommandResponse,
-                                this,
-                                bdlf::PlaceHolders::_1,
-                                bsl::ref(latch),
-                                bsl::ref(os)));
+                                 this,
+                                 bdlf::PlaceHolders::_1,
+                                 bsl::ref(latch),
+                                 bsl::ref(os)));
 
-        cluster->multiRequestManager().sendRequest(contextSp, bsls::TimeInterval(3));
+        cluster->multiRequestManager().sendRequest(contextSp,
+                                                   bsls::TimeInterval(3));
 
         latch.wait();
     }
@@ -659,7 +660,7 @@ bool Application::routeCommandToPrimaryNodes(mqbi::Cluster* cluster, const bsl::
     return isSelfPrimary;
 }
 
-int Application::executeCommand(mqbcmd::CommandChoice& command, 
+int Application::executeCommand(mqbcmd::CommandChoice&  command,
                                 mqbcmd::InternalResult& cmdResult)
 {
     int rc;
@@ -686,7 +687,7 @@ int Application::executeCommand(mqbcmd::CommandChoice& command,
     else if (command.isConfigProviderValue()) {
         mqbcmd::Error error;
         rc = d_configProvider_mp->processCommand(command.configProvider(),
-                                                &error);
+                                                 &error);
         if (rc == 0) {
             cmdResult.makeSuccess();
         }
@@ -783,10 +784,10 @@ int Application::processCommand(const bslstl::StringRef& source,
     mqbcmd::InternalResult cmdResult;
     int                    rc = 0;
 
-    bool isSourceReroute = source == "reroute";
+    bool isSourceReroute  = source == "reroute";
     bool isPrimaryCommand = isCommandForPrimary(command);
-    bool isSelfPrimary = false;
-    
+    bool isSelfPrimary    = false;
+
     if (!isSourceReroute && isPrimaryCommand) {
         mqbi::Cluster* cluster = getRelevantCluster(command, cmdResult);
         if (!cmdResult.isErrorValue()) {
@@ -794,16 +795,18 @@ int Application::processCommand(const bslstl::StringRef& source,
             cmdResult.makeSuccess();
         }
     }
-    
+
     // 3 cases to execute this route
     //  1. the command wasn't for a primary
     //  2. the command was for a primary and we are primary
-    //  3. the command was for a primary and we are a reroute 
+    //  3. the command was for a primary and we are a reroute
 
     // this logic should be cleaned up somehow
-    if (!cmdResult.isErrorValue() && (!isPrimaryCommand || isSelfPrimary || isSourceReroute)) { // messy logic currently
+    if (!cmdResult.isErrorValue() &&
+        (!isPrimaryCommand || isSelfPrimary ||
+         isSourceReroute)) {  // messy logic currently
         if (executeCommand(command, cmdResult)) {
-            return 0; // early exit (caused by "dangerous" command)
+            return 0;  // early exit (caused by "dangerous" command)
         }
     }
 

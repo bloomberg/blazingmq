@@ -414,8 +414,7 @@ class ClusterCatalog {
     // Sets the callback to pass to created clusters in this catalog that runs
     // when an admin command is received by the cluster.
     void setAdminCommandEnqueueCallback(
-      const mqbnet::Session::AdminCommandEnqueueCb& value
-    );
+        const mqbnet::Session::AdminCommandEnqueueCb& value);
 
     // ACCESSORS
 
@@ -558,9 +557,9 @@ inline mqbi::Cluster* ClusterCatalogIterator::cluster() const
 }
 
 inline void ClusterCatalog::setAdminCommandEnqueueCallback(
-      const mqbnet::Session::AdminCommandEnqueueCb& value) 
+    const mqbnet::Session::AdminCommandEnqueueCb& value)
 {
-  d_adminCb = value;
+    d_adminCb = value;
 }
 
 }  // close package namespace

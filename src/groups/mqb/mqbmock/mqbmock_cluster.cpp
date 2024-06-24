@@ -375,7 +375,8 @@ Cluster::RequestManagerType& Cluster::requestManager()
     return d_clusterData_mp->requestManager();
 }
 
-mqbc::ClusterData::MultiRequestManagerType& Cluster::multiRequestManager() {
+mqbc::ClusterData::MultiRequestManagerType& Cluster::multiRequestManager()
+{
     return d_clusterData_mp->multiRequestManager();
 }
 
@@ -567,8 +568,6 @@ const mqbcfg::ClusterProxyDefinition* Cluster::clusterProxyConfig() const
 {
     return 0;
 }
-
-
 
 }  // close package namespace
 }  // close enterprise namespace
