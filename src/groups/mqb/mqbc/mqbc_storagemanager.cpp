@@ -1151,43 +1151,6 @@ void StorageManager::do_stopWatchDog(const PartitionFSMArgsSp& args)
     d_watchDogEventHandles[partitionId].release();
 }
 
-void StorageManager::do_populateQueueKeyInfoMap(
-    BSLS_ANNOTATION_UNUSED const PartitionFSMArgsSp& args)
-{
-    if (!bsl::all_of(d_queueKeyInfoMapVec.cbegin(),
-                     d_queueKeyInfoMapVec.cend(),
-                     bdlf::MemFnUtil::memFn(&QueueKeyInfoMap::empty))) {
-        // If the queue key info map vec has already been populated, no need to
-        // populate again.
-
-        return;  // RETURN
-    }
-
-    // Populate 'd_queueKeyInfoMapVec' from cluster state
-    for (DomainStatesCIter dscit = d_clusterState.domainStates().cbegin();
-         dscit != d_clusterState.domainStates().cend();
-         ++dscit) {
-        for (UriToQueueInfoMapCIter cit = dscit->second->queuesInfo().cbegin();
-             cit != dscit->second->queuesInfo().cend();
-             ++cit) {
-            BSLS_ASSERT_SAFE(cit->second);
-            const ClusterStateQueueInfo& csQinfo = *(cit->second);
-
-            mqbs::DataStoreConfigQueueInfo qinfo;
-            qinfo.setCanonicalQueueUri(csQinfo.uri().asString());
-            qinfo.setPartitionId(csQinfo.partitionId());
-            for (AppIdInfosCIter appIdCit = csQinfo.appIdInfos().cbegin();
-                 appIdCit != csQinfo.appIdInfos().cend();
-                 ++appIdCit) {
-                qinfo.addAppIdKeyPair(*appIdCit);
-            }
-
-            d_queueKeyInfoMapVec.at(csQinfo.partitionId())
-                .insert(bsl::make_pair(csQinfo.key(), qinfo));
-        }
-    }
-}
-
 void StorageManager::do_openRecoveryFileSet(const PartitionFSMArgsSp& args)
 {
     // executed by the *DISPATCHER* thread
@@ -2675,8 +2638,10 @@ void StorageManager::do_resetReceiveDataCtx(const PartitionFSMArgsSp& args)
 void StorageManager::do_openStorage(const PartitionFSMArgsSp& args)
 {
     // executed by the *DISPATCHER* thread
+
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(!args->eventsQueue()->empty());
+    BSLS_ASSERT_SAFE(d_isQueueKeyInfoMapVecInitialized);
 
     const PartitionFSM::EventWithData& eventWithData =
         args->eventsQueue()->front();
@@ -3216,6 +3181,7 @@ StorageManager::StorageManager(
 , d_nodeToSeqNumCtxMapVec(allocator)
 , d_seqNumQuorum((d_clusterConfig.nodes().size() / 2) + 1)  // TODO: Config??
 , d_numReplicaDataResponsesReceivedVec(allocator)
+, d_isQueueKeyInfoMapVecInitialized(false)
 , d_queueKeyInfoMapVec(allocator)
 , d_minimumRequiredDiskSpace(0)
 , d_storageMonitorEventHandle()
@@ -3446,6 +3412,50 @@ void StorageManager::stop()
                              this,
                              bdlf::PlaceHolders::_1,    // partitionId
                              bdlf::PlaceHolders::_2));  // latch
+}
+
+void StorageManager::initializeQueueKeyInfoMap(const mqbc::ClusterState* clusterState)
+{
+    // executed by the *CLUSTER DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_dispatcher_p->inDispatcherThread(d_cluster_p));
+    BSLS_ASSERT_SAFE(clusterState);
+
+    if (d_isQueueKeyInfoMapVecInitialized) {
+        // The queue key info map vec should only be initialized once.
+        return;  // RETURN
+    }
+
+    BSLS_ASSERT_SAFE(bsl::all_of(d_queueKeyInfoMapVec.cbegin(),
+                     d_queueKeyInfoMapVec.cend(),
+                     bdlf::MemFnUtil::memFn(&QueueKeyInfoMap::empty)));
+
+    // Populate 'd_queueKeyInfoMapVec' from cluster state
+    for (DomainStatesCIter dscit = clusterState->domainStates().cbegin();
+         dscit != clusterState->domainStates().cend();
+         ++dscit) {
+        for (UriToQueueInfoMapCIter cit = dscit->second->queuesInfo().cbegin();
+             cit != dscit->second->queuesInfo().cend();
+             ++cit) {
+            BSLS_ASSERT_SAFE(cit->second);
+            const ClusterStateQueueInfo& csQinfo = *(cit->second);
+
+            mqbs::DataStoreConfigQueueInfo qinfo;
+            qinfo.setCanonicalQueueUri(csQinfo.uri().asString());
+            qinfo.setPartitionId(csQinfo.partitionId());
+            for (AppIdInfosCIter appIdCit = csQinfo.appIdInfos().cbegin();
+                 appIdCit != csQinfo.appIdInfos().cend();
+                 ++appIdCit) {
+                qinfo.addAppIdKeyPair(*appIdCit);
+            }
+
+            d_queueKeyInfoMapVec.at(csQinfo.partitionId())
+                .insert(bsl::make_pair(csQinfo.key(), qinfo));
+        }
+    }
+
+    d_isQueueKeyInfoMapVecInitialized = true;
 }
 
 void StorageManager::registerQueue(const bmqt::Uri&        uri,
@@ -3742,10 +3752,13 @@ void StorageManager::clearPrimaryForPartition(int                  partitionId,
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));
     BSLS_ASSERT_SAFE(primary);
+    BSLS_ASSERT_SAFE(primary->nodeId() ==
+                     d_partitionInfoVec[partitionId].primary()->nodeId());
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
                   << " Partition [" << partitionId << "]: "
                   << "Self Transition back to Unknown in the Partition FSM.";
+
 
     EventData eventDataVec;
     eventDataVec.emplace_back(d_clusterData_p->membership().selfNode(),
@@ -3753,7 +3766,7 @@ void StorageManager::clearPrimaryForPartition(int                  partitionId,
                               partitionId,
                               1,
                               primary,
-                              1);
+                              d_partitionInfoVec[partitionId].primaryLeaseId());
 
     mqbs::FileStore* fs = d_fileStores[partitionId].get();
     BSLS_ASSERT_SAFE(fs);

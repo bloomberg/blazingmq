@@ -506,6 +506,10 @@ class StorageManager : public mqbi::StorageManager {
     /// Stop this storage manager.
     virtual void stop() BSLS_KEYWORD_OVERRIDE;
 
+    /// Initialize the queue key info map based on information in the specified
+    /// `clusterState`.
+    virtual void initializeQueueKeyInfoMap(const mqbc::ClusterState* clusterState) BSLS_KEYWORD_OVERRIDE;
+
     /// Register a queue with the specified `uri`, `queueKey` and
     /// `partitionId`, having the specified `appIdKeyPairs`, and belonging
     /// to the specified `domain`.  Load into the specified `storage` the

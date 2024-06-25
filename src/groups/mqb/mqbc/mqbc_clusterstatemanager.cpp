@@ -21,6 +21,7 @@
 #include <mqbc_clusterstateledgeriterator.h>
 #include <mqbc_clusterutil.h>
 #include <mqbi_cluster.h>
+#include <mqbi_storagemanager.h>
 #include <mqbnet_cluster.h>
 #include <mqbu_exit.h>
 
@@ -256,6 +257,17 @@ void ClusterStateManager::do_applyCSLSelf(const ClusterFSMArgsSp& args)
                           : metadata.highestLSNNode()->nodeDescription())
                   << " to self: " << clusterStateSnapshot;
     d_clusterStateLedger_mp->apply(clusterStateSnapshot);
+}
+
+void ClusterStateManager::do_initializeQueueKeyInfoMap(const ClusterFSMArgsSp& args)
+{
+    // executed by the cluster *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(d_cluster_p));
+    BSLS_ASSERT_SAFE(d_clusterFSM.isSelfHealed());
+
+    d_storageManager_p->initializeQueueKeyInfoMap(d_state_p);
 }
 
 void ClusterStateManager::do_sendFollowerLSNRequests(

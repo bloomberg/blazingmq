@@ -1510,6 +1510,17 @@ void StorageManager::stop()
                              bdlf::PlaceHolders::_2));  // latch
 }
 
+void StorageManager::initializeQueueKeyInfoMap(
+    BSLS_ANNOTATION_UNUSED const mqbc::ClusterState* clusterState)
+{
+    // executed by cluster *DISPATCHER* thread
+
+    // PRECONDITION
+    BSLS_ASSERT_SAFE(d_dispatcher_p->inDispatcherThread(d_cluster_p));
+
+    BSLS_ASSERT_OPT(false && "This method should only be invoked in FSM mode");
+}
+
 void StorageManager::setPrimaryForPartition(int                  partitionId,
                                             mqbnet::ClusterNode* primaryNode,
                                             unsigned int primaryLeaseId)

@@ -216,6 +216,8 @@ class ClusterStateTableActions {
 
     virtual void do_applyCSLSelf(const ARGS& args) = 0;
 
+    virtual void do_initializeQueueKeyInfoMap(const ARGS& args) = 0;
+
     virtual void do_sendFollowerLSNRequests(const ARGS& args) = 0;
 
     virtual void do_sendFollowerLSNResponse(const ARGS& args) = 0;
@@ -275,6 +277,8 @@ class ClusterStateTableActions {
     void do_stopWatchDog_cancelRequests(const ARGS& args);
 
     void do_stopWatchDog_cancelRequests_reapplyEvent(const ARGS& args);
+
+    void do_stopWatchDog_initializeQueueKeyInfoMap(const ARGS& args);
 
     void do_stopWatchDog_cleanupLSNs_cancelRequests(const ARGS& args);
 
@@ -395,7 +399,7 @@ class ClusterStateTable
                 FOL_CSL_RQST,
                 sendFollowerClusterStateResponse,
                 FOL_HEALING);
-        CST_CFG(FOL_HEALING, CSL_CMT_SUCCESS, stopWatchDog, FOL_HEALED);
+        CST_CFG(FOL_HEALING, CSL_CMT_SUCCESS, stopWatchDog_initializeQueueKeyInfoMap, FOL_HEALED);
         CST_CFG(FOL_HEALING, CSL_CMT_FAIL, triggerWatchDog, UNKNOWN);
         CST_CFG(FOL_HEALING,
                 RST_UNKNOWN,
@@ -509,7 +513,7 @@ class ClusterStateTable
                 REGISTRATION_RQST,
                 storeFollowerLSNs_sendRegistrationResponse,
                 LDR_HEALING_STG2);
-        CST_CFG(LDR_HEALING_STG2, CSL_CMT_SUCCESS, stopWatchDog, LDR_HEALED);
+        CST_CFG(LDR_HEALING_STG2, CSL_CMT_SUCCESS, stopWatchDog_initializeQueueKeyInfoMap, LDR_HEALED);
         CST_CFG(LDR_HEALING_STG2, CSL_CMT_FAIL, triggerWatchDog, UNKNOWN);
         CST_CFG(LDR_HEALING_STG2,
                 RST_UNKNOWN,
@@ -622,6 +626,14 @@ void ClusterStateTableActions<
     do_stopWatchDog(args);
     do_cancelRequests(args);
     do_reapplyEvent(args);
+}
+
+template <typename ARGS>
+void ClusterStateTableActions<ARGS>::do_stopWatchDog_initializeQueueKeyInfoMap(
+    const ARGS& args)
+{
+    do_stopWatchDog(args);
+    do_initializeQueueKeyInfoMap(args);
 }
 
 template <typename ARGS>

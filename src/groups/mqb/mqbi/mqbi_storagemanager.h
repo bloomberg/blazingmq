@@ -58,6 +58,10 @@
 namespace BloombergLP {
 
 // FORWARD DECLARATION
+namespace mqbc {
+class ClusterState;
+}
+
 namespace mqbcmd {
 class StorageCommand;
 }
@@ -217,6 +221,10 @@ class StorageManager : public mqbi::AppKeyGenerator {
 
     /// Stop this storage manager.
     virtual void stop() = 0;
+
+    /// Initialize the queue key info map based on information in the specified
+    /// `clusterState`.
+    virtual void initializeQueueKeyInfoMap(const mqbc::ClusterState* clusterState) = 0;
 
     /// Register a queue with the specified `uri`, `queueKey` and
     /// `partitionId`, having the specified `appIdKeyPairs`, and belonging

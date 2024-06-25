@@ -209,8 +209,6 @@ class PartitionStateTableActions {
 
     virtual void do_stopWatchDog(const ARGS& args) = 0;
 
-    virtual void do_populateQueueKeyInfoMap(const ARGS& args) = 0;
-
     virtual void do_openRecoveryFileSet(const ARGS& args) = 0;
 
     virtual void do_closeRecoveryFileSet(const ARGS& args) = 0;
@@ -300,11 +298,11 @@ class PartitionStateTableActions {
     virtual void do_reapplyDetectSelfReplica(const ARGS& args) = 0;
 
     void
-    do_startWatchDog_storePartitionInfo_openRecoveryFileSet_storeSelfSeq_replicaStateRequest_checkQuorumSeq_populateQueueKeyInfoMap(
+    do_startWatchDog_storePartitionInfo_openRecoveryFileSet_storeSelfSeq_replicaStateRequest_checkQuorumSeq(
         const ARGS& args);
 
     void
-    do_startWatchDog_storePartitionInfo_openRecoveryFileSet_storeSelfSeq_primaryStateRequest_populateQueueKeyInfoMap(
+    do_startWatchDog_storePartitionInfo_openRecoveryFileSet_storeSelfSeq_primaryStateRequest(
         const ARGS& args);
 
     void
@@ -444,12 +442,12 @@ class PartitionStateTable
         PST_CFG(
             UNKNOWN,
             DETECT_SELF_PRIMARY,
-            startWatchDog_storePartitionInfo_openRecoveryFileSet_storeSelfSeq_replicaStateRequest_checkQuorumSeq_populateQueueKeyInfoMap,
+            startWatchDog_storePartitionInfo_openRecoveryFileSet_storeSelfSeq_replicaStateRequest_checkQuorumSeq,
             PRIMARY_HEALING_STG1);
         PST_CFG(
             UNKNOWN,
             DETECT_SELF_REPLICA,
-            startWatchDog_storePartitionInfo_openRecoveryFileSet_storeSelfSeq_primaryStateRequest_populateQueueKeyInfoMap,
+            startWatchDog_storePartitionInfo_openRecoveryFileSet_storeSelfSeq_primaryStateRequest,
             REPLICA_HEALING);
         PST_CFG(UNKNOWN, PUT, nackPut, UNKNOWN);
         PST_CFG(PRIMARY_HEALING_STG1,
@@ -704,7 +702,7 @@ void PartitionStateTableActions<ARGS>::do_none(const ARGS& args)
 
 template <typename ARGS>
 void PartitionStateTableActions<ARGS>::
-    do_startWatchDog_storePartitionInfo_openRecoveryFileSet_storeSelfSeq_replicaStateRequest_checkQuorumSeq_populateQueueKeyInfoMap(
+    do_startWatchDog_storePartitionInfo_openRecoveryFileSet_storeSelfSeq_replicaStateRequest_checkQuorumSeq(
         const ARGS& args)
 {
     do_startWatchDog(args);
@@ -713,12 +711,11 @@ void PartitionStateTableActions<ARGS>::
     do_storeSelfSeq(args);
     do_replicaStateRequest(args);
     do_checkQuorumSeq(args);
-    do_populateQueueKeyInfoMap(args);
 }
 
 template <typename ARGS>
 void PartitionStateTableActions<ARGS>::
-    do_startWatchDog_storePartitionInfo_openRecoveryFileSet_storeSelfSeq_primaryStateRequest_populateQueueKeyInfoMap(
+    do_startWatchDog_storePartitionInfo_openRecoveryFileSet_storeSelfSeq_primaryStateRequest(
         const ARGS& args)
 {
     do_startWatchDog(args);
@@ -726,7 +723,6 @@ void PartitionStateTableActions<ARGS>::
     do_openRecoveryFileSet(args);
     do_storeSelfSeq(args);
     do_primaryStateRequest(args);
-    do_populateQueueKeyInfoMap(args);
 }
 
 template <typename ARGS>

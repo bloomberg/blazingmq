@@ -2603,6 +2603,7 @@ static void test17_replicaHealingReceivesReplicaDataRqstPull()
 
     int rc = storageManager.start(errorDescription);
     BSLS_ASSERT_OPT(rc == 0);
+    storageManager.initializeQueueKeyInfoMap(&helper.d_cluster_mp->_state());
 
     mqbs::FileStore& fs = storageManager.fileStore(k_PARTITION_ID);
     fs.setIgnoreCrc32c(true);
@@ -2745,6 +2746,7 @@ static void test18_primaryHealingStage1SelfHighestSendsDataChunks()
 
     const int rc = storageManager.start(errorDescription);
     BSLS_ASSERT_OPT(rc == 0);
+    storageManager.initializeQueueKeyInfoMap(&helper.d_cluster_mp->_state());
 
     mqbs::FileStore& fs = storageManager.fileStore(k_PARTITION_ID);
     fs.setIgnoreCrc32c(true);

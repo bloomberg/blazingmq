@@ -356,6 +356,9 @@ class StorageManager
     // responses received, indexed by
     // partitionId.
 
+    bsls::AtomicBool d_isQueueKeyInfoMapVecInitialized;
+    // Whether 'd_queueKeyInfoMapVec' has been initialized.
+
     QueueKeyInfoMapVec d_queueKeyInfoMapVec;
     // Mapping from queue key to queue
     // info indexed by partitionId,
@@ -365,6 +368,11 @@ class StorageManager
     // when recovering messages, and to
     // create domains and file-backed
     // storages during 'recoveredQueuesCb'.
+    //
+    // THREAD: This data member **must** be initialized in the cluster
+    //         dispatcher thread, where 'd_isQueueKeyInfoMapVecInitialized'
+    //         will be set to 'true'.  Afterwards, it **must not** be modified
+    //         again, and hence is safe to read from any thread.
 
     bsls::Types::Uint64 d_minimumRequiredDiskSpace;
     // The bare minimum space required for
@@ -572,9 +580,6 @@ class StorageManager
     virtual void
     do_stopWatchDog(const PartitionFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;
 
-    virtual void do_populateQueueKeyInfoMap(const PartitionFSMArgsSp& args)
-        BSLS_KEYWORD_OVERRIDE;
-
     virtual void do_openRecoveryFileSet(const PartitionFSMArgsSp& args)
         BSLS_KEYWORD_OVERRIDE;
 
@@ -767,6 +772,10 @@ class StorageManager
     ///
     /// THREAD: Executed by the cluster's dispatcher thread.
     virtual void stop() BSLS_KEYWORD_OVERRIDE;
+
+    /// Initialize the queue key info map based on information in the specified
+    /// `clusterState`.
+    virtual void initializeQueueKeyInfoMap(const mqbc::ClusterState* clusterState) BSLS_KEYWORD_OVERRIDE;
 
     /// Register a queue with the specified `uri`, `queueKey` and
     /// `partitionId`, having the spcified `appIdKeyPairs`, and belonging to
