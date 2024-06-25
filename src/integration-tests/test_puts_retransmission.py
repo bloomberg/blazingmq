@@ -508,7 +508,12 @@ class TestPutsRetransmission:
         # If shutting down primary, the replica needs to wait for new primary.
         self.active_node.wait_status(wait_leader=True, wait_ready=False)
 
-        self.inspect_results(allow_duplicates=False)
+        # Do allow duplicates for the scenario when a CONFIRM had passed Proxy
+        # but did not reach the replication.  New Primary then redelivers and
+        # the Proxy cannot detect the duplicate because it had removed the GUID
+        # upon the first CONFIRM
+
+        self.inspect_results(allow_duplicates=True)
 
     def test_shutdown_replica(self, multi_node: Cluster):
         self.setup_cluster_fanout(multi_node)
@@ -521,7 +526,12 @@ class TestPutsRetransmission:
         # Because the quorum is 3, cluster is still healthy after shutting down
         # replica.
 
-        self.inspect_results(allow_duplicates=False)
+        # Do allow duplicates for the scenario when a CONFIRM had passed Proxy
+        # but did not reach the replication.  New Primary then redelivers and
+        # the Proxy cannot detect the duplicate because it had removed the GUID
+        # upon the first CONFIRM
+
+        self.inspect_results(allow_duplicates=True)
 
     def test_kill_primary_convert_replica(self, multi_node: Cluster):
         self.setup_cluster_fanout(multi_node)
