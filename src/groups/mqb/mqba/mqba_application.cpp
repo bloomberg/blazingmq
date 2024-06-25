@@ -583,7 +583,7 @@ void Application::onRerouteCommandResponse(
             *pairIt;
         BALL_LOG_INFO << "response from " << pair.first->nodeId();
 
-        // os >> pair.second.choice().adminCommandResponse().text();
+        const bsl::string& output = pair.second.choice().adminCommandResponse().text();
         pair.second.print(os);
     }
 
@@ -607,16 +607,16 @@ bool Application::routeCommandToPrimaryNodes(mqbi::Cluster*     cluster,
     bsls::TimeInterval timeoutMs;
     timeoutMs.setTotalMilliseconds(1000);
 
-    bsl::list<mqbnet::ClusterNode*> nodes;
+    bsl::vector<mqbnet::ClusterNode*> nodes;
     bool                            isSelfPrimary;
-    BALL_LOG_INFO << "dispatching (??????)";
+
     cluster->dispatcher()->execute(
         bdlf::BindUtil::bind(&mqbi::Cluster::getPrimaryNodes,
                              cluster,
                              bsl::ref(nodes),
                              bsl::ref(isSelfPrimary)),
         cluster);
-    BALL_LOG_INFO << "synchronizing......";
+
     cluster->dispatcher()->synchronize(cluster);
 
     BALL_LOG_INFO << "collected " << nodes.size() << " nodes";
@@ -633,14 +633,15 @@ bool Application::routeCommandToPrimaryNodes(mqbi::Cluster*     cluster,
     // stored on the stack.
 
     if (nodes.size() > 0) {
-        bsl::vector<mqbnet::ClusterNode*> nodesVector{nodes.begin(),
-                                                      nodes.end()};
         mqbi::Cluster::MultiRequestManagerType::RequestContextSp contextSp =
             cluster->multiRequestManager().createRequestContext();
 
-        contextSp->request().choice().makeAdminCommand().command() = cmd;
+        bmqp_ctrlmsg::AdminCommand& adminCommand = contextSp->request().choice().makeAdminCommand();
 
-        contextSp->setDestinationNodes(nodesVector);
+        adminCommand.command() = cmd;
+        adminCommand.rerouted() = true;
+
+        contextSp->setDestinationNodes(nodes);
 
         bslmt::Latch latch{1};
 
@@ -784,7 +785,7 @@ int Application::processCommand(const bslstl::StringRef& source,
     mqbcmd::InternalResult cmdResult;
     int                    rc = 0;
 
-    bool isSourceReroute  = source == "reroute";
+    bool isSourceReroute = source == "reroute";
     bool isPrimaryCommand = isCommandForPrimary(command);
     bool isSelfPrimary    = false;
 
