@@ -1,6 +1,7 @@
 services:
   bmqbrkr:
     image: bmqbrkr:latest
+    platform: linux/amd64
     build:
       context: ../..
       dockerfile: docker/Dockerfile
@@ -11,6 +12,7 @@ services:
 
   bmqtool:
     image: bmqbrkr:latest
+    platform: linux/amd64
     build: 
       context: ../..
       dockerfile: docker/Dockerfile

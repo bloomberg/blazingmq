@@ -311,8 +311,8 @@ jobs:
       - name: Run ShellCheck
         uses: ludeeus/action-shellcheck@master
 
-  docker-build-check:
-    name: "Build [docker]"
+  docker_build_ubuntu:
+    name: "Docker [ubuntu]"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
