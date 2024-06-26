@@ -132,6 +132,8 @@ class Application {
                                                   bmqp_ctrlmsg::ControlMessage,
                                                   mqbnet::ClusterNode*> >
         MultiRequestContextSp;
+      
+    typedef bsl::vector<bsl::string> ResponseMessages;
 
     // Data members
     mwcma::CountingAllocatorStore d_allocators;
@@ -257,11 +259,14 @@ class Application {
     bool routeCommandToPrimaryNodes(mqbi::Cluster*     cluster,
                                     bslmt::Latch*      latch,
                                     const bsl::string& cmd,
-                                    bsl::ostream&      os);
+                                    ResponseMessages* responses);
+
+    // void routeCommandToCluster(mqbi::Cluster* cluster,
+    //                            bslmt::Latch* latch, const bsl::string& cmd, ResponseMessages* responses);
 
     void onRerouteCommandResponse(const MultiRequestContextSp& requestContext,
                                   bslmt::Latch*              latch,
-                                  bsl::ostream&              os);
+                                  ResponseMessages* responses);
 
     int executeCommand(mqbcmd::CommandChoice&  command,
                        mqbcmd::InternalResult& cmdResult);
