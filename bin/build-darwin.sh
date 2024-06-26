@@ -63,7 +63,7 @@ if [ ! -e "${DIR_BUILD}/bde/.complete" ]; then
     bbs_build install --install_dir="/" --prefix="${DIR_INSTALL}"
     eval "$(bbs_build_env unset)"
     popd
-    touch "${DIR_BUILD}/bde/.complete"-DBDE_BUILD_TARGET_64=1
+    touch "${DIR_BUILD}/bde/.complete"
 fi
 
 if [ ! -e "${DIR_BUILD}/ntf/.complete" ]; then
