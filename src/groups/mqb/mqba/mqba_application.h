@@ -225,7 +225,8 @@ class Application {
     /// `source`, and write the result of the command in the specified `os`.
     int processCommand(const bslstl::StringRef& source,
                        const bsl::string&       cmd,
-                       bsl::ostream&            os);
+                       bsl::ostream&            os,
+                       bool fromReroute=false);
 
     /// Process the command in the specified `cmd` coming from the specified
     /// `source`, and send the result of the command in the specified
@@ -233,7 +234,8 @@ class Application {
     int processCommandCb(
         const bslstl::StringRef&                            source,
         const bsl::string&                                  cmd,
-        const bsl::function<void(int, const bsl::string&)>& onProcessedCb);
+        const bsl::function<void(int, const bsl::string&)>& onProcessedCb,
+        bool fromReroute=false);
 
     /// Enqueue for execution the command in the specified `cmd` coming from
     /// the specified `source`.  The specified `onProcessedCb` callback is
@@ -241,7 +243,8 @@ class Application {
     int enqueueCommand(
         const bslstl::StringRef&                            source,
         const bsl::string&                                  cmd,
-        const bsl::function<void(int, const bsl::string&)>& onProcessedCb);
+        const bsl::function<void(int, const bsl::string&)>& onProcessedCb,
+        bool fromReroute=false);
 
   private:
     // HELPER FUNCTIONS FOR ADMIN API ROUTING
