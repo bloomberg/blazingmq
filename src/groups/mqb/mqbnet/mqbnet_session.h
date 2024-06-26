@@ -102,7 +102,8 @@ class Session : public SessionEventProcessor {
     /// `onProcessed` callback.
     typedef bsl::function<void(const bslstl::StringRef&       source,
                                const bsl::string&             command,
-                               const AdminCommandProcessedCb& onProcessed)>
+                               const AdminCommandProcessedCb& onProcessed,
+                               bool fromReroute)>
         AdminCommandEnqueueCb;
 
   public:
