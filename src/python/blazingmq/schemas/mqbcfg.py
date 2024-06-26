@@ -1776,6 +1776,16 @@ class ClusterProxyDefinition:
 
 @dataclass
 class StatsConfig:
+    app_id_tag_domains: List[str] = field(
+        default_factory=list,
+        metadata={
+            "name": "appIdTagDomains",
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+            "min_occurs": 1,
+            "required": True,
+        },
+    )
     snapshot_interval: int = field(
         default=1,
         metadata={

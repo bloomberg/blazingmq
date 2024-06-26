@@ -523,7 +523,7 @@ def test_verify_broadcast(cluster: Cluster):
 def test_verify_redelivery(cluster: Cluster):
     """Drop one consumer having unconfirmed message while there is another
     consumer unable to take the message (due to max_unconfirmed_messages
-    limit).  Then start new consumer and make sure it does not crash (DRQS
+    limit).  Then start new consumer and make sure it does not crash (Ticket
     156808957) and receives that unconfirmed message.
     """
     proxies = cluster.proxy_cycle()

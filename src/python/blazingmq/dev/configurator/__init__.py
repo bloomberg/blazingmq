@@ -535,6 +535,7 @@ class Proto:
                     ),
                 ),
                 stats=mqbcfg.StatsConfig(
+                    app_id_tag_domains=[],
                     plugins=[],
                     snapshot_interval=1,
                     printer=mqbcfg.StatsPrinterConfig(

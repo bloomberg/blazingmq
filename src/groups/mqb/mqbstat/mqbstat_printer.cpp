@@ -18,7 +18,6 @@
 
 #include <mqbscm_version.h>
 // MQB
-#include <mqbscm_versiontag.h>
 #include <mqbstat_queuestats.h>
 
 // MWC
