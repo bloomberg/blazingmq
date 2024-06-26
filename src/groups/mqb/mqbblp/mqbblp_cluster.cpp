@@ -2932,15 +2932,10 @@ void Cluster::processControlMessage(
             << MWCTSK_ALARMLOG_END;
     } break;  // BREAK
     case MsgChoice::SELECTION_ID_ADMIN_COMMAND: {
-        BALL_LOG_INFO << "Received admin command through Control Message API";
         const bmqp_ctrlmsg::AdminCommand& adminCommand =
             message.choice().adminCommand();
         const bsl::string& cmd      = adminCommand.command();
         const bool         rerouted = adminCommand.rerouted();
-        BALL_LOG_INFO << cmd;
-        BALL_LOG_INFO << rerouted;
-        // do we need to dispatch this?. or is the admin cb already
-        // invoking a dispatch event?
         d_adminCb(source->hostName(),
                   cmd,
                   bdlf::BindUtil::bind(&Cluster::onProcessedAdminCommand,
@@ -2952,8 +2947,6 @@ void Cluster::processControlMessage(
                   rerouted);
     } break;
     case MsgChoice::SELECTION_ID_ADMIN_COMMAND_RESPONSE: {
-        BALL_LOG_INFO
-            << "Received admin command response through Control Message API";
         requestManager().processResponse(message);
     } break;
     case MsgChoice::SELECTION_ID_UNDEFINED:
