@@ -262,7 +262,8 @@ void AdminSession::enqueueAdminCommand(
                                  d_self.acquireWeak()),
                              adminCommandCtrlMsg,
                              bdlf::PlaceHolders::_1,    // rc
-                             bdlf::PlaceHolders::_2));  // commandExecResults
+                             bdlf::PlaceHolders::_2),  // commandExecResults
+                            false);
 }
 
 // CREATORS

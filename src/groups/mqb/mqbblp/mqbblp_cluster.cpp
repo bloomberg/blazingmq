@@ -2948,7 +2948,8 @@ void Cluster::processControlMessage(
                                        source,
                                        message,
                                        bdlf::PlaceHolders::_1,
-                                       bdlf::PlaceHolders::_2));
+                                       bdlf::PlaceHolders::_2),
+                  rerouted);
     } break;
     case MsgChoice::SELECTION_ID_ADMIN_COMMAND_RESPONSE: {
         BALL_LOG_INFO
