@@ -50,8 +50,6 @@ namespace m_bmqtool {
 
 namespace {
 
-const char k_LOG_CATEGORY[] = "APPLICATION";
-
 /// Print to stdout the specified `message` prefixed by the specified
 /// `prefix`.
 void printMessage(bsl::ostream& out, int index, const bmqa::Message& message)
