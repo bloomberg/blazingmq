@@ -132,7 +132,7 @@ class Application {
                                                   bmqp_ctrlmsg::ControlMessage,
                                                   mqbnet::ClusterNode*> >
         MultiRequestContextSp;
-      
+
     typedef bsl::vector<bsl::string> ResponseMessages;
 
     // Data members
@@ -226,7 +226,7 @@ class Application {
     int processCommand(const bslstl::StringRef& source,
                        const bsl::string&       cmd,
                        bsl::ostream&            os,
-                       bool fromReroute=false);
+                       bool                     fromReroute = false);
 
     /// Process the command in the specified `cmd` coming from the specified
     /// `source`, and send the result of the command in the specified
@@ -235,7 +235,7 @@ class Application {
         const bslstl::StringRef&                            source,
         const bsl::string&                                  cmd,
         const bsl::function<void(int, const bsl::string&)>& onProcessedCb,
-        bool fromReroute=false);
+        bool fromReroute = false);
 
     /// Enqueue for execution the command in the specified `cmd` coming from
     /// the specified `source`.  The specified `onProcessedCb` callback is
@@ -244,7 +244,7 @@ class Application {
         const bslstl::StringRef&                            source,
         const bsl::string&                                  cmd,
         const bsl::function<void(int, const bsl::string&)>& onProcessedCb,
-        bool fromReroute=false);
+        bool fromReroute = false);
 
   private:
     // HELPER FUNCTIONS FOR ADMIN API ROUTING
@@ -262,14 +262,15 @@ class Application {
     bool routeCommandToPrimaryNodes(mqbi::Cluster*     cluster,
                                     bslmt::Latch*      latch,
                                     const bsl::string& cmd,
-                                    ResponseMessages* responses);
+                                    ResponseMessages*  responses);
 
     // void routeCommandToCluster(mqbi::Cluster* cluster,
-    //                            bslmt::Latch* latch, const bsl::string& cmd, ResponseMessages* responses);
+    //                            bslmt::Latch* latch, const bsl::string& cmd,
+    //                            ResponseMessages* responses);
 
     void onRerouteCommandResponse(const MultiRequestContextSp& requestContext,
-                                  bslmt::Latch*              latch,
-                                  ResponseMessages* responses);
+                                  bslmt::Latch*                latch,
+                                  ResponseMessages*            responses);
 
     int executeCommand(mqbcmd::CommandChoice&  command,
                        mqbcmd::InternalResult& cmdResult);

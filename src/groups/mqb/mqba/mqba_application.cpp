@@ -265,8 +265,8 @@ int Application::start(bsl::ostream& errorDescription)
         new (*d_allocator_p) mqbstat::StatController(
             bdlf::BindUtil::bind(&Application::processCommand,
                                  this,
-                                 bdlf::PlaceHolders::_1,   // source
-                                 bdlf::PlaceHolders::_2,   // cmd
+                                 bdlf::PlaceHolders::_1,  // source
+                                 bdlf::PlaceHolders::_2,  // cmd
                                  bdlf::PlaceHolders::_3,  // os
                                  false),
             d_pluginManager_mp.get(),
@@ -358,10 +358,10 @@ int Application::start(bsl::ostream& errorDescription)
     d_clusterCatalog_mp->setAdminCommandEnqueueCallback(
         bdlf::BindUtil::bind(&Application::enqueueCommand,
                              this,
-                             bdlf::PlaceHolders::_1,    // source
-                             bdlf::PlaceHolders::_2,    // cmd
-                             bdlf::PlaceHolders::_3,    // onProcessedCb
-                             bdlf::PlaceHolders::_4     // fromReroute
+                             bdlf::PlaceHolders::_1,  // source
+                             bdlf::PlaceHolders::_2,  // cmd
+                             bdlf::PlaceHolders::_3,  // onProcessedCb
+                             bdlf::PlaceHolders::_4   // fromReroute
                              ));
 
     // Register the ClusterCatalog and TransportManager to the
@@ -570,20 +570,20 @@ Application::getRelevantCluster(mqbcmd::CommandChoice&  command,
 void Application::onRerouteCommandResponse(
     const MultiRequestContextSp& requestContext,
     bslmt::Latch*                latch,
-    ResponseMessages* responses)
+    ResponseMessages*            responses)
 {
     BSLS_ASSERT_SAFE(latch);
     BSLS_ASSERT_SAFE(responses);
 
-    typedef bsl::pair<mqbnet::ClusterNode*, bmqp_ctrlmsg::ControlMessage> NodePair;
+    typedef bsl::pair<mqbnet::ClusterNode*, bmqp_ctrlmsg::ControlMessage>
+                                  NodePair;
     typedef bsl::vector<NodePair> NodePairs;
 
     NodePairs responsePairs = requestContext->response();
 
     responses->clear();
 
-    for (NodePairs::const_iterator
-             pairIt = responsePairs.begin();
+    for (NodePairs::const_iterator pairIt = responsePairs.begin();
          pairIt != responsePairs.end();
          pairIt++) {
         NodePair pair = *pairIt;
@@ -597,7 +597,8 @@ void Application::onRerouteCommandResponse(
         }
         else {
             // something went wrong... possibly timeout?
-            responses->push_back("Error occurred sending command to node " + pair.first->hostName());
+            responses->push_back("Error occurred sending command to node " +
+                                 pair.first->hostName());
         }
     }
 
@@ -607,7 +608,7 @@ void Application::onRerouteCommandResponse(
 bool Application::routeCommandToPrimaryNodes(mqbi::Cluster*     cluster,
                                              bslmt::Latch*      latch,
                                              const bsl::string& cmd,
-                                             ResponseMessages* responses)
+                                             ResponseMessages*  responses)
 {
     // PRECONDITIONS
 
@@ -616,8 +617,9 @@ bool Application::routeCommandToPrimaryNodes(mqbi::Cluster*     cluster,
     BSLS_ASSERT_SAFE(responses);
 
     typedef mqbnet::MultiRequestManager<bmqp_ctrlmsg::ControlMessage,
-                                    bmqp_ctrlmsg::ControlMessage,
-                                    mqbnet::ClusterNode*>::RequestContextSp RequestContextSp;
+                                        bmqp_ctrlmsg::ControlMessage,
+                                        mqbnet::ClusterNode*>::RequestContextSp
+        RequestContextSp;
 
     typedef bsl::vector<mqbnet::ClusterNode*> NodeList;
 
@@ -634,7 +636,8 @@ bool Application::routeCommandToPrimaryNodes(mqbi::Cluster*     cluster,
     cluster->dispatcher()->synchronize(cluster);
 
     if (primaryNodes.size() > 0) {
-        RequestContextSp contextSp = cluster->multiRequestManager().createRequestContext();
+        RequestContextSp contextSp =
+            cluster->multiRequestManager().createRequestContext();
 
         bmqp_ctrlmsg::AdminCommand& adminCommand =
             contextSp->request().choice().makeAdminCommand();
@@ -646,7 +649,9 @@ bool Application::routeCommandToPrimaryNodes(mqbi::Cluster*     cluster,
 
         mwcu::MemOutStream os;
         os << "Rerouting command to the following primary nodes [";
-        for (NodeList::const_iterator nit = primaryNodes.begin(); nit != primaryNodes.end(); nit++) {
+        for (NodeList::const_iterator nit = primaryNodes.begin();
+             nit != primaryNodes.end();
+             nit++) {
             os << (*nit)->hostName();
             if (nit + 1 != primaryNodes.end()) {
                 os << ", ";
@@ -666,7 +671,7 @@ bool Application::routeCommandToPrimaryNodes(mqbi::Cluster*     cluster,
                                                    bsls::TimeInterval(3));
     }
     else {
-        // If there are no nodes to wait on then immediately count the latch. 
+        // If there are no nodes to wait on then immediately count the latch.
         latch->countDown(1);
     }
 
@@ -778,7 +783,7 @@ int Application::executeCommand(mqbcmd::CommandChoice&  command,
 int Application::processCommand(const bslstl::StringRef& source,
                                 const bsl::string&       cmd,
                                 bsl::ostream&            os,
-                                bool fromReroute)
+                                bool                     fromReroute)
 {
     BALL_LOG_INFO << "Received command '" << cmd << "' "
                   << "[source: " << source << "]";
@@ -801,19 +806,22 @@ int Application::processCommand(const bslstl::StringRef& source,
     bool isPrimaryCommand = isCommandForPrimary(command);
     bool isClusterCommand = false;
 
-    bool isSelfPrimary    = false;
+    bool isSelfPrimary = false;
 
     ResponseMessages responses;
-    bslmt::Latch latch{1};
+    bslmt::Latch     latch{1};
 
     // If we should attempt to route the command
     if (!fromReroute) {
         if (isPrimaryCommand) {
-            // cmdResult is turned into an "error" if there was not associated cluster.
+            // cmdResult is turned into an "error" if there was not associated
+            // cluster.
             mqbi::Cluster* cluster = getRelevantCluster(command, cmdResult);
             if (!cmdResult.isErrorValue()) {
-                isSelfPrimary =
-                    routeCommandToPrimaryNodes(cluster, &latch, cmd, &responses);
+                isSelfPrimary = routeCommandToPrimaryNodes(cluster,
+                                                           &latch,
+                                                           cmd,
+                                                           &responses);
                 cmdResult.makeSuccess();
             }
             else {
@@ -834,9 +842,8 @@ int Application::processCommand(const bslstl::StringRef& source,
     //  3. the command was for a primary and we are a reroute
 
     // this logic should be cleaned up somehow
-    if (!cmdResult.isErrorValue() &&
-        (!isPrimaryCommand || isSelfPrimary ||
-         fromReroute)) {  // messy logic currently
+    if (!cmdResult.isErrorValue() && (!isPrimaryCommand || isSelfPrimary ||
+                                      fromReroute)) {  // messy logic currently
         if (executeCommand(command, cmdResult)) {
             return 0;  // early exit (caused by "dangerous" command)
         }
@@ -867,8 +874,8 @@ int Application::processCommand(const bslstl::StringRef& source,
     latch.wait();
 
     for (ResponseMessages::const_iterator respIt = responses.begin();
-                    respIt != responses.end();
-                    respIt++) {
+         respIt != responses.end();
+         respIt++) {
         os << *respIt;
     }
 
@@ -879,7 +886,7 @@ int Application::processCommandCb(
     const bslstl::StringRef&                            source,
     const bsl::string&                                  cmd,
     const bsl::function<void(int, const bsl::string&)>& onProcessedCb,
-    bool fromReroute)
+    bool                                                fromReroute)
 {
     mwcu::MemOutStream os;
     int                rc = processCommand(source, cmd, os, fromReroute);
@@ -893,7 +900,7 @@ int Application::enqueueCommand(
     const bslstl::StringRef&                            source,
     const bsl::string&                                  cmd,
     const bsl::function<void(int, const bsl::string&)>& onProcessedCb,
-    bool fromReroute)
+    bool                                                fromReroute)
 {
     BALL_LOG_TRACE << "Enqueuing admin command '" << cmd
                    << "' [source: " << source
