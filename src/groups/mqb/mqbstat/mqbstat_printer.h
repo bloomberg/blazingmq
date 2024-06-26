@@ -26,7 +26,6 @@
 // It holds the tables and table info providers which can be printed.
 
 // MQB
-
 #include <mqbcfg_messages.h>
 
 // MWC

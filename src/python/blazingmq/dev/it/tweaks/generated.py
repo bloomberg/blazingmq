@@ -407,6 +407,12 @@ class TweakFactory:
             dispatcher_config = DispatcherConfig()
 
             class Stats(metaclass=TweakMetaclass):
+                class AppIdTagDomains(metaclass=TweakMetaclass):
+                    def __call__(self, value: None) -> Callable:
+                        ...
+
+                app_id_tag_domains = AppIdTagDomains()
+
                 class SnapshotInterval(metaclass=TweakMetaclass):
                     def __call__(self, value: int) -> Callable:
                         ...

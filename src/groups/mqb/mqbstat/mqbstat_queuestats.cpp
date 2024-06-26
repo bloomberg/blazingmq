@@ -218,6 +218,61 @@ class ContextNameMatcher {
 
 }  // close unnamed namespace
 
+// -----------------------------
+// struct QueueStatsDomain::Stat
+// -----------------------------
+
+const char* QueueStatsDomain::Stat::toString(Stat::Enum value)
+{
+#define MQBSTAT_CASE(VAL, DESC)                                               \
+    case (VAL): {                                                             \
+        return (DESC);                                                        \
+    } break;
+
+    switch (value) {
+        MQBSTAT_CASE(e_NB_PRODUCER, "queue_producers_count")
+        MQBSTAT_CASE(e_NB_CONSUMER, "queue_consumers_count")
+        MQBSTAT_CASE(e_MESSAGES_CURRENT, "queue_msgs_current")
+        MQBSTAT_CASE(e_MESSAGES_MAX, "queue_content_msgs")
+        MQBSTAT_CASE(e_BYTES_CURRENT, "queue_bytes_current")
+        MQBSTAT_CASE(e_BYTES_MAX, "queue_content_bytes")
+        MQBSTAT_CASE(e_PUT_MESSAGES_DELTA, "queue_put_msgs")
+        MQBSTAT_CASE(e_PUT_BYTES_DELTA, "queue_put_bytes")
+        MQBSTAT_CASE(e_PUT_MESSAGES_ABS, "queue_put_msgs_abs")
+        MQBSTAT_CASE(e_PUT_BYTES_ABS, "queue_put_bytes_abs")
+        MQBSTAT_CASE(e_PUSH_MESSAGES_DELTA, "queue_push_msgs")
+        MQBSTAT_CASE(e_PUSH_BYTES_DELTA, "queue_push_bytes")
+        MQBSTAT_CASE(e_PUSH_MESSAGES_ABS, "queue_push_msgs_abs")
+        MQBSTAT_CASE(e_PUSH_BYTES_ABS, "queue_push_bytes_abs")
+        MQBSTAT_CASE(e_ACK_DELTA, "queue_ack_msgs")
+        MQBSTAT_CASE(e_ACK_ABS, "queue_ack_msgs_abs")
+        MQBSTAT_CASE(e_ACK_TIME_AVG, "queue_ack_time_avg")
+        MQBSTAT_CASE(e_ACK_TIME_MAX, "queue_ack_time_max")
+        MQBSTAT_CASE(e_NACK_DELTA, "queue_nack_msgs")
+        MQBSTAT_CASE(e_NACK_ABS, "queue_nack_msgs_abs")
+        MQBSTAT_CASE(e_CONFIRM_DELTA, "queue_confirm_msgs")
+        MQBSTAT_CASE(e_CONFIRM_ABS, "queue_confirm_msgs_abs")
+        MQBSTAT_CASE(e_CONFIRM_TIME_AVG, "queue_confirm_time_avg")
+        MQBSTAT_CASE(e_CONFIRM_TIME_MAX, "queue_confirm_time_max")
+        MQBSTAT_CASE(e_REJECT_ABS, "queue_reject_msgs_abs")
+        MQBSTAT_CASE(e_REJECT_DELTA, "queue_reject_msgs")
+        MQBSTAT_CASE(e_QUEUE_TIME_AVG, "queue_queue_time_avg")
+        MQBSTAT_CASE(e_QUEUE_TIME_MAX, "queue_queue_time_max")
+        MQBSTAT_CASE(e_GC_MSGS_DELTA, "queue_gc_msgs")
+        MQBSTAT_CASE(e_GC_MSGS_ABS, "queue_gc_msgs_abs")
+        MQBSTAT_CASE(e_ROLE, "queue_role")
+        MQBSTAT_CASE(e_CFG_MSGS, "queue_cfg_msgs")
+        MQBSTAT_CASE(e_CFG_BYTES, "queue_cfg_bytes")
+        MQBSTAT_CASE(e_NO_SC_MSGS_DELTA, "queue_nack_noquorum_msgs")
+        MQBSTAT_CASE(e_NO_SC_MSGS_ABS, "queue_nack_noquorum_msgs_abs")
+    }
+
+    BSLS_ASSERT(!"invalid enumerator");
+    return 0;
+
+#undef MQBSTAT_CASE
+}
+
 // ----------------------
 // class QueueStatsDomain
 // ----------------------
@@ -230,7 +285,15 @@ QueueStatsDomain::getValue(const mwcst::StatContext& context,
     // invoked from the SNAPSHOT thread
 
     const mwcst::StatValue::SnapshotLocation latestSnapshot(0, 0);
-    const mwcst::StatValue::SnapshotLocation oldestSnapshot(0, snapshotId);
+
+#define OLDEST_SNAPSHOT(STAT)                                                 \
+    (mwcst::StatValue::SnapshotLocation(                                      \
+        0,                                                                    \
+        (snapshotId >= 0)                                                     \
+            ? snapshotId                                                      \
+            : (context.value(mwcst::StatContext::e_DIRECT_VALUE, (STAT))      \
+                   .historySize(0) -                                          \
+               1)))
 
 #define STAT_SINGLE(OPERATION, STAT)                                          \
     mwcst::StatUtil::OPERATION(                                               \
@@ -241,7 +304,7 @@ QueueStatsDomain::getValue(const mwcst::StatContext& context,
     mwcst::StatUtil::OPERATION(                                               \
         context.value(mwcst::StatContext::e_DIRECT_VALUE, STAT),              \
         latestSnapshot,                                                       \
-        oldestSnapshot)
+        OLDEST_SNAPSHOT(STAT))
 
     switch (stat) {
     case QueueStatsDomain::Stat::e_NB_PRODUCER: {

@@ -26,6 +26,7 @@ from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
     Cluster,
     order,
     single_node,
+    tweak,
 )
 from blazingmq.dev.it.process.admin import AdminClient
 from blazingmq.dev.it.process.client import Client
@@ -70,6 +71,53 @@ def post_n_msgs(
             posted[task.uri] = task
 
 
+def extract_stats(admin_response: str) -> dict:
+    """
+    Extracts the dictionary containing stats from the specified 'admin_response'.
+    Note that due to xsd schema limitations it's not possible to make a schema for a json
+    containing random keys. Due to this, the stats encoding is not ideal:
+    - The outer layer is a 'str' response from the admin session
+    - Next layer is a 'dict' containing "stats" field with 'str' text
+    - The last layer is another 'dict' containing the stats itself
+    """
+    d1 = json.loads(admin_response)
+    d2 = json.loads(d1["stats"])
+    return d2
+
+
+class GreaterThan:
+    def __init__(self, value):
+        self.value = value
+
+
+def expect_same_structure(obj, expected) -> None:
+    """
+    Check if the specified 'obj' dictionary has the same structure as the specified 'expected' dictionary.
+    Assert on failure.
+    """
+
+    if isinstance(expected, dict):
+        assert isinstance(obj, dict)
+        assert expected.keys() == obj.keys()
+        for key in expected:
+            expect_same_structure(obj[key], expected[key])
+    elif isinstance(expected, list):
+        assert isinstance(obj, list)
+        assert len(expected) == len(obj)
+        for obj2, expected2 in zip(obj, expected):
+            expect_same_structure(obj2, expected2)
+    elif isinstance(expected, str):
+        assert isinstance(obj, str)
+        assert expected == obj
+    else:
+        assert isinstance(obj, int)
+        if isinstance(expected, GreaterThan):
+            assert obj > expected.value
+        else:
+            assert isinstance(expected, int)
+            assert obj == expected
+
+
 def test_breathing(single_node: Cluster) -> None:
     """
     Test: basic admin session usage.
@@ -105,6 +153,234 @@ def test_breathing(single_node: Cluster) -> None:
     assert broker_config["networkInterfaces"]["tcpInterface"]["port"] == port
 
     # Stop the admin session
+    admin.stop()
+
+
+@tweak.broker.app_config.stats.app_id_tag_domains([tc.DOMAIN_FANOUT])
+def test_stats(single_node: Cluster) -> None:
+    """
+    Test: queue metrics via admin command.
+    Preconditions:
+    - Establish admin session with the cluster.
+
+    Stage 1: check stats after posting messages
+    - Open a producer
+    - Post messages to a fanout queue
+    - Verify stats acquired via admin command with the expected stats
+
+    Stage 2: check stats after confirming messages
+    - Open a consumer for each appId
+    - Confirm a portion of messages for each consumer
+    - Verify stats acquired via admin command with the expected stats
+
+    Stage 3: check too-often stats safeguard
+    - Send several 'stat show' requests
+    - Verify that the admin session complains about too often stat request
+
+    Concerns:
+    - The broker is able to report queue metrics for fanout queue.
+    - Safeguarding mechanism prevents from getting stats too often.
+
+    Note: when the metrics collection evolves, it might be necessary to update
+          the expected stats in the test. To do so, it's possible to copy values
+          observed in the debugger for this test and paste them as a dictionary,
+          while replacing non-fixed parameters such as time intervals with a
+          condition placeholders (see 'GreaterThan').
+    """
+
+    # Preconditions
+    admin = AdminClient()
+    admin.connect(*single_node.admin_endpoint)
+
+    # Stage 1: check stats after posting messages
+    cluster: Cluster = single_node
+    proxies = cluster.proxy_cycle()
+    proxy = next(proxies)
+    producer: Client = proxy.create_client("producer")
+
+    task = PostRecord(tc.DOMAIN_FANOUT, "test_stats", num=32)
+    post_n_msgs(producer, task)
+
+    stats = extract_stats(admin.send_admin("encoding json_pretty stat show"))
+    queue_stats = stats["domainQueues"]["domains"][tc.DOMAIN_FANOUT][task.uri]
+
+    expected_stats_after_post = {
+        "appIds": {
+            "bar": {
+                "values": {
+                    "queue_confirm_time_max": 0,
+                    "queue_confirm_time_avg": 0,
+                    "queue_nack_msgs": 0,
+                    "queue_ack_time_max": 0,
+                    "queue_ack_msgs": 0,
+                    "queue_confirm_msgs": 0,
+                    "queue_push_bytes": 0,
+                    "queue_consumers_count": 0,
+                    "queue_producers_count": 0,
+                    "queue_push_msgs": 0,
+                    "queue_ack_time_avg": 0,
+                    "queue_put_bytes": 0,
+                    "queue_put_msgs": 0,
+                }
+            },
+            "baz": {
+                "values": {
+                    "queue_confirm_time_max": 0,
+                    "queue_confirm_time_avg": 0,
+                    "queue_nack_msgs": 0,
+                    "queue_ack_time_max": 0,
+                    "queue_ack_msgs": 0,
+                    "queue_confirm_msgs": 0,
+                    "queue_push_bytes": 0,
+                    "queue_consumers_count": 0,
+                    "queue_producers_count": 0,
+                    "queue_push_msgs": 0,
+                    "queue_ack_time_avg": 0,
+                    "queue_put_bytes": 0,
+                    "queue_put_msgs": 0,
+                }
+            },
+            "foo": {
+                "values": {
+                    "queue_confirm_time_max": 0,
+                    "queue_confirm_time_avg": 0,
+                    "queue_nack_msgs": 0,
+                    "queue_ack_time_max": 0,
+                    "queue_ack_msgs": 0,
+                    "queue_confirm_msgs": 0,
+                    "queue_push_bytes": 0,
+                    "queue_consumers_count": 0,
+                    "queue_producers_count": 0,
+                    "queue_push_msgs": 0,
+                    "queue_ack_time_avg": 0,
+                    "queue_put_bytes": 0,
+                    "queue_put_msgs": 0,
+                }
+            },
+        },
+        "values": {
+            "queue_confirm_time_max": 0,
+            "queue_confirm_time_avg": 0,
+            "queue_nack_msgs": 0,
+            "queue_ack_time_max": GreaterThan(0),
+            "queue_ack_msgs": 32,
+            "queue_confirm_msgs": 0,
+            "queue_push_bytes": 0,
+            "queue_consumers_count": 0,
+            "queue_producers_count": 0,
+            "queue_push_msgs": 0,
+            "queue_ack_time_avg": GreaterThan(0),
+            "queue_put_bytes": 96,
+            "queue_put_msgs": 32,
+        },
+    }
+    expect_same_structure(queue_stats, expected_stats_after_post)
+
+    # Stage 2: check stats after confirming messages
+    consumer_foo: Client = proxy.create_client("consumer_foo")
+    consumer_foo.open(f"{task.uri}?id=foo", flags=["read"], succeed=True)
+    consumer_foo.confirm(f"{task.uri}?id=foo", "*", succeed=True)
+
+    consumer_bar: Client = proxy.create_client("consumer_bar")
+    consumer_bar.open(f"{task.uri}?id=bar", flags=["read"], succeed=True)
+    consumer_bar.confirm(f"{task.uri}?id=bar", "+22", succeed=True)
+
+    consumer_baz: Client = proxy.create_client("consumer_baz")
+    consumer_baz.open(f"{task.uri}?id=baz", flags=["read"], succeed=True)
+    consumer_baz.confirm(f"{task.uri}?id=baz", "+11", succeed=True)
+
+    stats = extract_stats(admin.send_admin("encoding json_pretty stat show"))
+    queue_stats = stats["domainQueues"]["domains"][tc.DOMAIN_FANOUT][task.uri]
+
+    expected_stats_after_confirm = {
+        "appIds": {
+            "bar": {
+                "values": {
+                    "queue_confirm_time_max": GreaterThan(0),
+                    "queue_confirm_time_avg": GreaterThan(0),
+                    "queue_nack_msgs": 0,
+                    "queue_ack_time_max": 0,
+                    "queue_ack_msgs": 0,
+                    "queue_confirm_msgs": 0,
+                    "queue_push_bytes": 0,
+                    "queue_consumers_count": 0,
+                    "queue_producers_count": 0,
+                    "queue_push_msgs": 0,
+                    "queue_ack_time_avg": 0,
+                    "queue_put_bytes": 0,
+                    "queue_put_msgs": 0,
+                }
+            },
+            "baz": {
+                "values": {
+                    "queue_confirm_time_max": GreaterThan(0),
+                    "queue_confirm_time_avg": GreaterThan(0),
+                    "queue_nack_msgs": 0,
+                    "queue_ack_time_max": 0,
+                    "queue_ack_msgs": 0,
+                    "queue_confirm_msgs": 0,
+                    "queue_push_bytes": 0,
+                    "queue_consumers_count": 0,
+                    "queue_producers_count": 0,
+                    "queue_push_msgs": 0,
+                    "queue_ack_time_avg": 0,
+                    "queue_put_bytes": 0,
+                    "queue_put_msgs": 0,
+                }
+            },
+            "foo": {
+                "values": {
+                    "queue_confirm_time_max": GreaterThan(0),
+                    "queue_confirm_time_avg": GreaterThan(0),
+                    "queue_nack_msgs": 0,
+                    "queue_ack_time_max": 0,
+                    "queue_ack_msgs": 0,
+                    "queue_confirm_msgs": 0,
+                    "queue_push_bytes": 0,
+                    "queue_consumers_count": 0,
+                    "queue_producers_count": 0,
+                    "queue_push_msgs": 0,
+                    "queue_ack_time_avg": 0,
+                    "queue_put_bytes": 0,
+                    "queue_put_msgs": 0,
+                }
+            },
+        },
+        "values": {
+            "queue_confirm_time_max": GreaterThan(0),
+            "queue_confirm_time_avg": GreaterThan(0),
+            "queue_nack_msgs": 0,
+            "queue_ack_time_max": GreaterThan(0),
+            "queue_ack_msgs": 32,
+            "queue_confirm_msgs": 65,
+            "queue_push_bytes": 288,
+            "queue_consumers_count": 3,
+            "queue_producers_count": 0,
+            "queue_push_msgs": 96,
+            "queue_ack_time_avg": GreaterThan(0),
+            "queue_put_bytes": 96,
+            "queue_put_msgs": 32,
+        },
+    }
+    expect_same_structure(queue_stats, expected_stats_after_confirm)
+
+    consumer_foo.close(f"{task.uri}?id=foo")
+    consumer_bar.close(f"{task.uri}?id=bar")
+    consumer_baz.close(f"{task.uri}?id=baz")
+
+    # Stage 3: check too-often stats safeguard
+    for i in range(5):
+        admin.send_admin("encoding json_pretty stat show")
+    res = admin.send_admin("encoding json_pretty stat show")
+    obj = json.loads(res)
+
+    too_often_snapshots_message = {
+        "error": {
+            "message": "Cannot save the recent snapshot, trying to make snapshots too often"
+        }
+    }
+    expect_same_structure(obj, too_often_snapshots_message)
+
     admin.stop()
 
 
