@@ -15,8 +15,8 @@
 
 // bmqstoragetool
 #include <m_bmqstoragetool_filemanager.h>
+#include <m_bmqstoragetool_filemanagermock.h>
 #include <m_bmqstoragetool_searchresultfactory.h>
-#include <m_bmqstoragetool_testutils.h>
 
 // TEST DRIVER
 #include <mwctst_testhelper.h>
@@ -25,8 +25,6 @@
 using namespace BloombergLP;
 using namespace m_bmqstoragetool;
 using namespace bsl;
-using namespace ::testing;
-using namespace TestUtils;
 
 // ============================================================================
 //                                    TESTS
