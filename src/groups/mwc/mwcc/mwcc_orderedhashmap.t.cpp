@@ -214,9 +214,11 @@ static void test3_insert()
 #if defined(BSLS_PLATFORM_OS_AIX) || defined(BSLS_PLATFORM_OS_SOLARIS)
     // Avoid timeout on AIX and Solaris
     const int k_NUM_ELEMENTS = 100 * 1000;  // 100K
-#elif defined(__has_feature) && __has_feature(memory_sanitizer)
+#elif defined(__has_feature)
     // Avoid timeout under MemorySanitizer
-    const int k_NUM_ELEMENTS = 100 * 1000;  // 100K
+    const int k_NUM_ELEMENTS = __has_feature(memory_sanitizer)
+                                   ? 100 * 1000    // 100K
+                                   : 1000 * 1000;  // 1M
 #elif defined(__SANITIZE_MEMORY__)
     // GCC-supported macros for checking MSAN
     const int k_NUM_ELEMENTS = 100 * 1000;  // 100K
@@ -283,9 +285,11 @@ static void test4_rinsert()
 #if defined(BSLS_PLATFORM_OS_AIX) || defined(BSLS_PLATFORM_OS_SOLARIS)
     // Avoid timeout on AIX and Solaris
     const int k_NUM_ELEMENTS = 100 * 1000;  // 100K
-#elif defined(__has_feature) && __has_feature(memory_sanitizer)
+#elif defined(__has_feature)
     // Avoid timeout under MemorySanitizer
-    const int k_NUM_ELEMENTS = 100 * 1000;  // 100K
+    const int k_NUM_ELEMENTS = __has_feature(memory_sanitizer)
+                                   ? 100 * 1000    // 100K
+                                   : 1000 * 1000;  // 1M
 #elif defined(__SANITIZE_MEMORY__)
     // GCC-supported macros for checking MSAN
     const int k_NUM_ELEMENTS = 100 * 1000;  // 100K
