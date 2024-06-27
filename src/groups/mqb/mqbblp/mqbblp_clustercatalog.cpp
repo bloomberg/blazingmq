@@ -50,10 +50,6 @@
 namespace BloombergLP {
 namespace mqbblp {
 
-namespace {
-const char k_LOG_CATEGORY[] = "MQBBLP.CLUSTERCATALOG";
-}  // close unnamed namespace
-
 // --------------------
 // class ClusterCatalog
 // --------------------
