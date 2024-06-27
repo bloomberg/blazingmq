@@ -138,7 +138,7 @@ jobs:
           PYTHONPATH: ${{ github.workspace }}/src/python
         run: |
           pip install -r ${{ github.workspace }}/src/python/requirements.txt
-          pip install --force-reinstall ruff=0.4.10
+          pip install --force-reinstall ruff==0.4.10
           cd ${{ github.workspace }}
           src/python/bin/schemagen
           src/python/bin/tweakgen
