@@ -131,9 +131,9 @@ class Application {
         mqbnet::MultiRequestManagerRequestContext<bmqp_ctrlmsg::ControlMessage,
                                                   bmqp_ctrlmsg::ControlMessage,
                                                   mqbnet::ClusterNode*> >
-        MultiRequestContextSp;
-
-    typedef bsl::vector<bsl::string> ResponseMessages;
+                                              MultiRequestContextSp;
+    typedef bsl::vector<bsl::string>          ResponseMessages;
+    typedef bsl::vector<mqbnet::ClusterNode*> NodesVector;
 
     // Data members
     mwcma::CountingAllocatorStore d_allocators;
@@ -249,31 +249,53 @@ class Application {
   private:
     // HELPER FUNCTIONS FOR ADMIN API ROUTING
 
+    enum RoutingMode { PRIMARIES, CLUSTER, NONE };
+
     // Determines if the command should be executed on the primary node
-    bool isCommandForPrimary(mqbcmd::CommandChoice& command) const;
+    // bool isCommandForPrimary(const mqbcmd::CommandChoice& command) const;
+
+    // // Determines if the command should be executed by the entire cluster
+    // bool isCommandForCluster(const mqbcmd::CommandChoice& command) const;
+
+    RoutingMode
+    getCommandRoutingMode(const mqbcmd::CommandChoice& command) const;
 
     // Returns a pointer to the cluster instance that the given command needs
     // to execute for.
-    mqbi::Cluster* getRelevantCluster(mqbcmd::CommandChoice&  command,
-                                      mqbcmd::InternalResult& cmdResult) const;
+    mqbi::Cluster* getRelevantCluster(const mqbcmd::CommandChoice& command,
+                                      mqbcmd::InternalResult* cmdResult) const;
 
-    // Routes the given command to any primary nodes on the cluster (if they
-    // are a primary for some partition)
-    bool routeCommandToPrimaryNodes(mqbi::Cluster*     cluster,
+    // Routes the command to the given nodes and populates the given responses
+    // vector.
+    void routeCommand(const bsl::string& cmd,
+                      const NodesVector& nodes,
+                      mqbi::Cluster*     cluster,
+                      bslmt::Latch*      latch,
+                      ResponseMessages*  responses);
+
+    // Called when all nodes that a request was routed to have given some
+    // response.
+    void onRouteCommandResponse(const MultiRequestContextSp& requestContext,
+                                bslmt::Latch*                latch,
+                                ResponseMessages*            responses);
+
+    // Routes the given command to all primary nodes on the cluster (if they
+    // are a primary for some partition). Does not route to itself.
+    bool routeCommandToPrimaryNodes(const bsl::string& cmd,
+                                    mqbi::Cluster*     cluster,
                                     bslmt::Latch*      latch,
-                                    const bsl::string& cmd,
                                     ResponseMessages*  responses);
 
-    // void routeCommandToCluster(mqbi::Cluster* cluster,
-    //                            bslmt::Latch* latch, const bsl::string& cmd,
-    //                            ResponseMessages* responses);
+    // Routes the given command to all nodes on the cluster except itself.
+    void routeCommandToClusterNodes(const bsl::string& cmd,
+                                    mqbi::Cluster*     cluster,
+                                    bslmt::Latch*      latch,
+                                    ResponseMessages*  responses);
 
-    void onRerouteCommandResponse(const MultiRequestContextSp& requestContext,
-                                  bslmt::Latch*                latch,
-                                  ResponseMessages*            responses);
-
-    int executeCommand(mqbcmd::CommandChoice&  command,
-                       mqbcmd::InternalResult& cmdResult);
+    // Executes the logic of the given command and outputs the result in
+    // cmdResult
+    int executeCommand(const mqbcmd::CommandChoice& command,
+                       mqbcmd::InternalResult*      cmdResult);
 };
 
 }  // close package namespace
