@@ -3581,9 +3581,8 @@ void Cluster::onProcessedAdminCommand(
     int                                 rc,
     const bsl::string&                  res)
 {
-    // here we need to send this "res" back to the source!
-    BALL_LOG_INFO << rc;
-    BALL_LOG_INFO << res;
+    // Send the admin command response back to the source for the client to
+    // read.
     bdlma::LocalSequentialAllocator<2048> localAllocator(d_allocator_p);
     bmqp_ctrlmsg::ControlMessage          response(&localAllocator);
 
