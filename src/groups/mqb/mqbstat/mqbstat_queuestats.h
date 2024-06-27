@@ -31,8 +31,6 @@
 // 'mqbstat::QueueStatsUtil' is a utility namespace exposing methods to
 // initialize the stat contexts and associated objects.
 
-// MQB
-
 // BMQ
 #include <bmqt_uri.h>
 
@@ -42,6 +40,7 @@
 #include <mwcst_tablerecords.h>
 
 // BDE
+#include <bsl_functional.h>
 #include <bsl_list.h>
 #include <bsl_memory.h>
 #include <bsl_string.h>
@@ -71,6 +70,9 @@ namespace mqbstat {
 class QueueStatsDomain {
   public:
     // TYPES
+
+    typedef bsl::function<void(bsls::Types::Int64, const bsl::string&)>
+        EventCb;
 
     /// Enum representing the various type of events for which statistics
     /// are monitored.
@@ -251,6 +253,8 @@ class QueueStatsDomain {
 
     /// Return a pointer to the statcontext.
     mwcst::StatContext* statContext();
+
+    EventCb buildEventCallback(EventType::Enum type);
 };
 
 // FREE OPERATORS

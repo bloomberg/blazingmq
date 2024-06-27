@@ -205,11 +205,18 @@ InMemoryStorage::put(mqbi::StorageMessageAttributes*     attributes,
                                       Item(appData, options, *attributes)),
                        attributes->arrivalTimepoint());
 
+        mqbs::VirtualStorageCatalog::OnStorageUpdateCb cb;
+        if (d_queue_p) {
+            cb = d_queue_p->stats()->buildEventCallback(
+                mqbstat::QueueStatsDomain::EventType::e_ADD_MESSAGE);
+        }
+
         d_virtualStorageCatalog.put(msgGUID,
                                     msgSize,
                                     d_defaultRdaInfo,
                                     bmqp::Protocol::k_DEFAULT_SUBSCRIPTION_ID,
-                                    mqbu::StorageKey::k_NULL_KEY);
+                                    mqbu::StorageKey::k_NULL_KEY,
+                                    cb);
 
         d_currentlyAutoConfirming = bmqt::MessageGUID();
         d_numAutoConfirms         = 0;
@@ -234,6 +241,7 @@ InMemoryStorage::put(mqbi::StorageMessageAttributes*     attributes,
     // corresponding virtual storages.
 
     for (size_t i = 0; i < storageKeys.size(); ++i) {
+        // No callback, do not track metrics in proxy
         d_virtualStorageCatalog.put(msgGUID,
                                     msgSize,
                                     d_defaultRdaInfo,
@@ -273,8 +281,14 @@ mqbi::StorageResult::Enum InMemoryStorage::releaseRef(
     }
 
     if (!appKey.isNull()) {
-        mqbi::StorageResult::Enum rc = d_virtualStorageCatalog.remove(msgGUID,
-                                                                      appKey);
+        mqbs::VirtualStorageCatalog::OnStorageUpdateCb cb;
+        if (d_queue_p) {
+            cb = d_queue_p->stats()->buildEventCallback(
+                mqbstat::QueueStatsDomain::EventType::e_DEL_MESSAGE);
+        }
+
+        const mqbi::StorageResult::Enum rc =
+            d_virtualStorageCatalog.remove(msgGUID, appKey, cb);
         if (mqbi::StorageResult::e_SUCCESS != rc) {
             return rc;  // RETURN
         }
@@ -301,7 +315,15 @@ InMemoryStorage::remove(const bmqt::MessageGUID& msgGUID,
     }
 
     if (clearAll) {
-        d_virtualStorageCatalog.remove(msgGUID, mqbu::StorageKey::k_NULL_KEY);
+        mqbs::VirtualStorageCatalog::OnStorageUpdateCb cb;
+        if (d_queue_p) {
+            cb = d_queue_p->stats()->buildEventCallback(
+                mqbstat::QueueStatsDomain::EventType::e_DEL_MESSAGE);
+        }
+
+        d_virtualStorageCatalog.remove(msgGUID,
+                                       mqbu::StorageKey::k_NULL_KEY,
+                                       cb);
     }
 
     BSLS_ASSERT_SAFE(!d_virtualStorageCatalog.hasMessage(msgGUID));
@@ -336,7 +358,13 @@ InMemoryStorage::removeAll(const mqbu::StorageKey& appKey)
     if (appKey.isNull()) {
         // Clear the 'physical' queue, as well as all virtual storages.
 
-        d_virtualStorageCatalog.removeAll(mqbu::StorageKey::k_NULL_KEY);
+        mqbs::VirtualStorageCatalog::OnStorageUpdateCb cb;
+        if (d_queue_p) {
+            cb = d_queue_p->stats()->buildEventCallback(
+                mqbstat::QueueStatsDomain::EventType::e_PURGE);
+        }
+
+        d_virtualStorageCatalog.removeAll(mqbu::StorageKey::k_NULL_KEY, cb);
         d_items.clear();
         d_capacityMeter.clear();
 
@@ -418,10 +446,16 @@ InMemoryStorage::removeAll(const mqbu::StorageKey& appKey)
         iter->advance();
     }
 
+    mqbs::VirtualStorageCatalog::OnStorageUpdateCb cb;
+    if (d_queue_p) {
+        cb = d_queue_p->stats()->buildEventCallback(
+            mqbstat::QueueStatsDomain::EventType::e_PURGE);
+    }
+
     // Clear out the virtual storage associated with the specified 'appKey'.
     // Note that this cannot be done while iterating over the it in the above
     // 'while' loop for obvious reasons.
-    d_virtualStorageCatalog.removeAll(appKey);
+    d_virtualStorageCatalog.removeAll(appKey, cb);
 
     if (d_items.empty()) {
         d_isEmpty.storeRelaxed(1);
@@ -468,10 +502,17 @@ int InMemoryStorage::gcExpiredMessages(
                 msgLen);
         }
 
+        mqbs::VirtualStorageCatalog::OnStorageUpdateCb cb;
+        if (d_queue_p) {
+            cb = d_queue_p->stats()->buildEventCallback(
+                mqbstat::QueueStatsDomain::EventType::e_DEL_MESSAGE);
+        }
+
         // Remove message from all virtual storages and the physical (this)
         // storage.
         d_virtualStorageCatalog.remove(cit->first,
-                                       mqbu::StorageKey::k_NULL_KEY);
+                                       mqbu::StorageKey::k_NULL_KEY,
+                                       cb);
         d_items.erase(cit, now);
         ++numMsgsDeleted;
     }

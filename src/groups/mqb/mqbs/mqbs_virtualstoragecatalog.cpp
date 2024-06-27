@@ -58,16 +58,20 @@ VirtualStorageCatalog::put(const bmqt::MessageGUID& msgGUID,
                            int                      msgSize,
                            const bmqp::RdaInfo&     rdaInfo,
                            unsigned int             subScriptionId,
-                           const mqbu::StorageKey&  appKey)
+                           const mqbu::StorageKey&  appKey,
+                           const OnStorageUpdateCb& putCb)
 {
     if (!appKey.isNull()) {
         VirtualStoragesIter it = d_virtualStorages.findByKey2(appKey);
         BSLS_ASSERT_SAFE(it != d_virtualStorages.end());
 
-        return it->value()->put(msgGUID,
-                                msgSize,
-                                rdaInfo,
-                                subScriptionId);  // RETURN
+        const mqbi::StorageResult::Enum rc =
+            it->value()->put(msgGUID, msgSize, rdaInfo, subScriptionId);
+        if (putCb && mqbi::StorageResult::e_SUCCESS == rc) {
+            putCb(msgSize, it->key1());
+        }
+
+        return rc;  // RETURN
     }
 
     // Add guid to all virtual storages.
@@ -77,8 +81,13 @@ VirtualStorageCatalog::put(const bmqt::MessageGUID& msgGUID,
          ++it) {
         mqbi::StorageResult::Enum rc =
             it->value()->put(msgGUID, msgSize, rdaInfo, subScriptionId);
-        if (rc != mqbi::StorageResult::e_SUCCESS) {
+        if (mqbi::StorageResult::e_SUCCESS != rc) {
             lastRc = rc;
+            continue;  // CONTINUE
+        }
+
+        if (putCb) {
+            putCb(msgSize, it->key1());
         }
     }
 
@@ -111,31 +120,54 @@ mqbi::StorageResult::Enum VirtualStorageCatalog::getIterator(
 
 mqbi::StorageResult::Enum
 VirtualStorageCatalog::remove(const bmqt::MessageGUID& msgGUID,
-                              const mqbu::StorageKey&  appKey)
+                              const mqbu::StorageKey&  appKey,
+                              const OnStorageUpdateCb& removeCb)
 {
     if (!appKey.isNull()) {
         VirtualStoragesIter it = d_virtualStorages.findByKey2(appKey);
         BSLS_ASSERT_SAFE(it != d_virtualStorages.end());
-        return it->value()->remove(msgGUID);  // RETURN
+
+        if (removeCb) {
+            int                             msgSize = 0;
+            const mqbi::StorageResult::Enum rc = it->value()->remove(msgGUID,
+                                                                     &msgSize);
+            removeCb(msgSize, it->key1());
+            return rc;  // RETURN
+        }
+        else {
+            return it->value()->remove(msgGUID);  // RETURN
+        }
     }
 
     // Remove guid from all virtual storages.
     for (VirtualStoragesIter it = d_virtualStorages.begin();
          it != d_virtualStorages.end();
          ++it) {
-        it->value()->remove(msgGUID);  // ignore rc
+        if (removeCb) {
+            int msgSize = 0;
+            it->value()->remove(msgGUID, &msgSize);
+            removeCb(msgSize, it->key1());
+        }
+        else {
+            it->value()->remove(msgGUID);  // ignore rc
+        }
     }
 
     return mqbi::StorageResult::e_SUCCESS;
 }
 
 mqbi::StorageResult::Enum
-VirtualStorageCatalog::removeAll(const mqbu::StorageKey& appKey)
+VirtualStorageCatalog::removeAll(const mqbu::StorageKey&  appKey,
+                                 const OnStorageUpdateCb& purgeCb)
 {
     if (!appKey.isNull()) {
         VirtualStoragesIter it = d_virtualStorages.findByKey2(appKey);
         BSLS_ASSERT_SAFE(it != d_virtualStorages.end());
-        return it->value()->removeAll(appKey);  // RETURN
+        const mqbi::StorageResult::Enum rc = it->value()->removeAll(appKey);
+        if (purgeCb) {
+            purgeCb(0, it->key1());
+        }
+        return rc;  // RETURN
     }
 
     // Clear all virtual storages.
@@ -143,6 +175,9 @@ VirtualStorageCatalog::removeAll(const mqbu::StorageKey& appKey)
          it != d_virtualStorages.end();
          ++it) {
         it->value()->removeAll(it->key2());  // ignore rc
+        if (purgeCb) {
+            purgeCb(0, it->key1());
+        }
     }
 
     return mqbi::StorageResult::e_SUCCESS;
