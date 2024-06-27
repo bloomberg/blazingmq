@@ -211,11 +211,19 @@ static void test3_insert()
 
     MyMapType map(s_allocator_p);
 
-#ifdef BSLS_PLATFORM_OS_LINUX
-    const size_t k_NUM_ELEMENTS = 1000 * 1000;  // 1M
-#else
+#if defined(BSLS_PLATFORM_OS_AIX) || defined(BSLS_PLATFORM_OS_SOLARIS)
     // Avoid timeout on AIX and Solaris
-    const size_t k_NUM_ELEMENTS = 100 * 1000;   // 100K
+    const int k_NUM_ELEMENTS = 100 * 1000;  // 100K
+#elif defined(__has_feature)
+    // Avoid timeout under MemorySanitizer
+    const int k_NUM_ELEMENTS = __has_feature(memory_sanitizer)
+                                   ? 100 * 1000    // 100K
+                                   : 1000 * 1000;  // 1M
+#elif defined(__SANITIZE_MEMORY__)
+    // GCC-supported macros for checking MSAN
+    const int k_NUM_ELEMENTS = 100 * 1000;  // 100K
+#else
+    const int k_NUM_ELEMENTS = 1000 * 1000;  // 1M
 #endif
 
     // Insert 1M elements
@@ -274,11 +282,19 @@ static void test4_rinsert()
 
     MyMapType map(s_allocator_p);
 
-#ifdef BSLS_PLATFORM_OS_AIX
-    // Avoid timeout on AIX
+#if defined(BSLS_PLATFORM_OS_AIX) || defined(BSLS_PLATFORM_OS_SOLARIS)
+    // Avoid timeout on AIX and Solaris
+    const int k_NUM_ELEMENTS = 100 * 1000;  // 100K
+#elif defined(__has_feature)
+    // Avoid timeout under MemorySanitizer
+    const int k_NUM_ELEMENTS = __has_feature(memory_sanitizer)
+                                   ? 100 * 1000    // 100K
+                                   : 1000 * 1000;  // 1M
+#elif defined(__SANITIZE_MEMORY__)
+    // GCC-supported macros for checking MSAN
     const int k_NUM_ELEMENTS = 100 * 1000;  // 100K
 #else
-    const int    k_NUM_ELEMENTS = 1000 * 1000;  // 1M
+    const int k_NUM_ELEMENTS = 1000 * 1000;  // 1M
 #endif
 
     // Insert 1M elements
