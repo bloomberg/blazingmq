@@ -217,6 +217,9 @@ static void test3_insert()
 #elif defined(__has_feature) && __has_feature(memory_sanitizer)
     // Avoid timeout under MemorySanitizer
     const int k_NUM_ELEMENTS = 100 * 1000;  // 100K
+#elif defined(__SANITIZE_ADDRESS__) || defined(__SANITIZE_THREAD__)
+    // GCC-supported macros for checking ASAN and TSAN.
+    const int k_NUM_ELEMENTS = 100 * 1000;  // 100K
 #else
     const int k_NUM_ELEMENTS = 1000 * 1000;  // 1M
 #endif
@@ -282,6 +285,9 @@ static void test4_rinsert()
     const int k_NUM_ELEMENTS = 100 * 1000;  // 100K
 #elif defined(__has_feature) && __has_feature(memory_sanitizer)
     // Avoid timeout under MemorySanitizer
+    const int k_NUM_ELEMENTS = 100 * 1000;  // 100K
+#elif defined(__SANITIZE_ADDRESS__) || defined(__SANITIZE_THREAD__)
+    // GCC-supported macros for checking ASAN and TSAN.
     const int k_NUM_ELEMENTS = 100 * 1000;  // 100K
 #else
     const int k_NUM_ELEMENTS = 1000 * 1000;  // 1M
