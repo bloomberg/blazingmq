@@ -211,10 +211,11 @@ static void test3_insert()
 
     MyMapType map(s_allocator_p);
 
-#if defined(BSLS_PLATFORM_OS_LINUX) && !defined(__has_feature)
+#if defined(BSLS_PLATFORM_OS_LINUX) &&                                        \
+    !(defined(__has_feature) && __has_feature(memory_sanitizer))
     const size_t k_NUM_ELEMENTS = 1000 * 1000;  // 1M
 #else
-    // Avoid timeout on AIX, Solaris and sanitizers
+    // Avoid timeout on AIX, Solaris and memory sanitizer
     const size_t k_NUM_ELEMENTS = 100 * 1000;   // 100K
 #endif
 
@@ -274,8 +275,9 @@ static void test4_rinsert()
 
     MyMapType map(s_allocator_p);
 
-#if defined(BSLS_PLATFORM_OS_AIX) || defined(__has_feature)
-    // Avoid timeout on AIX and sanitizers
+#if defined(BSLS_PLATFORM_OS_AIX) ||                                          \
+    (defined(__has_feature) && __has_feature(memory_sanitizer))
+    // Avoid timeout on AIX and memory sanitizer
     const int k_NUM_ELEMENTS = 100 * 1000;  // 100K
 #else
     const int    k_NUM_ELEMENTS = 1000 * 1000;  // 1M
