@@ -26,3 +26,14 @@ settings.json
 .pytest_cache/
 .cache/
 .venv/
+
+# Symlink from 'src/applications/bmqbrkr/run'
+src/applications/bmqbrkr/etc/etc
+
+# 'sim_cpp11_features.pl' backups
+src/groups/mwc/mwcex/mwcex_bindutil.h.bak
+src/groups/mwc/mwcex/mwcex_future.h.bak
+src/groups/mwc/mwcex/mwcex_promise.h.bak
+src/groups/mwc/mwcu/mwcu_noop.h.bak
+src/groups/mwc/mwcu/mwcu_objectplaceholder.h.bak
+src/groups/mwc/mwcu/mwcu_operationchain.h.bak

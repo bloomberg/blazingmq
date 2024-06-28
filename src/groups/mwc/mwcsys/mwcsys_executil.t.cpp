@@ -114,7 +114,7 @@ static void test2_executeSystemFailure()
 //
 // Plan:
 //   - Execute a suicidal command that terminates by sending itself a
-//     SIGINT.
+//     SIGKILL.
 //   - Use 'setrlimit()' [http://linux.die.net/man/2/setrlimit] to change
 //     the maximum number of file descriptor for the current process, so
 //     that the command will fail to execute.
@@ -137,6 +137,11 @@ static void test2_executeSystemFailure()
                                    "python3.8 -c 'import os,signal; "
                                    "os.kill(os.getpid(), signal.SIGKILL)'");
 #else
+    rc = mwcsys::ExecUtil::execute(&output, "python3 --version");
+    ASSERT_EQ_D("'python3 --version' exec failed, python3 might be missing",
+                rc,
+                0);
+
     rc = mwcsys::ExecUtil::execute(&output,
                                    "python3 -c 'import os,signal; "
                                    "os.kill(os.getpid(), signal.SIGKILL)'");
