@@ -15,26 +15,9 @@ from blazingmq.dev.it.fixtures import (
 from blazingmq.dev.it.process.admin import AdminClient
 from blazingmq.dev.it.process.client import Client
 
-# @dataclasses.dataclass
-# class PostRecord:
-#     domain: str
-#     queue_name: str
-#     num: int
-
-#     @property
-#     def uri(self) -> str:
-#         return f"bmq://{self.domain}/{self.queue_name}"
-    
-#     def append(self, other: "PostRecord") -> None:
-#         assert self.domain == other.domain
-#         assert self.queue_name == other.queue_name
-#         self.num += other.num
-
-# def post_n_msgs(
-#     producer: Client, task: PostRecord, posted: Optional[Dict[str, PostRecord]]=None
-# ) -> None:
-
 def test_primary_rerouting(multi_node: Cluster) -> None:
+    print(multi_node.name)
+
     admin = AdminClient()
     
     # find the first node which is not a known leader
@@ -59,23 +42,49 @@ def test_primary_rerouting(multi_node: Cluster) -> None:
 
     producer.open(tc.URI_FANOUT, flags=["write,ack"], succeed=True)
 
-    # now try to purge that domain with a member node
+    # Try DOMAINS DOMAIN <domain> PURGE
     res = admin.send_admin(f"DOMAINS DOMAIN {tc.DOMAIN_FANOUT} PURGE")
 
     print(res)
 
-    # we can tell that the command failed if it mentioned errors
-    assert "Errors encountered" not in res
-    # otherwise, we will assume it was routed properly and succeeded
+    # response should say "Purged XX messages..."
+    assert "Purged" in res
 
-    # also try "DOMAINS DOMAIN <name> QUEUE <queue_name> PURGE <appId>"
-    # res = admin.send_admin(
-    #     f"DOMAINS DOMAIN {tc.DOMAIN_PRIORITY} QUEUE {tc.TEST_QUEUE} PURGE {tc.TEST_APPIDS[0]}")
+    # Try DOMAINS DOMAIN <name> QUEUE <queue_name> PURGE <appId>
+    res = admin.send_admin(
+        f"DOMAINS DOMAIN {tc.DOMAIN_FANOUT} QUEUE {tc.TEST_QUEUE} PURGE {tc.TEST_APPIDS[0]}")
 
-    # print(res)
+    print(res)
 
-    # assert "Errors encountered" not in res
+    assert "Purged" in res
+
+    # Try CLUSTERS CLUSTER <name> FORCE_GC_QUEUES
+    # Difficult to test since currently this command returns "SUCCESS" no matter what
+    #       (i.e. even if it fails due to not being ran on the primary)
+    # res = admin.send_admin(f"CLUSTERS CLUSTER {multi_node.name} FORCE_GC_QUEUES")
+
 
     admin.stop()
+
+def test_cluster_rerouting(multi_node: Cluster) -> None:
+    admin = AdminClient()
+
+    node = multi_node.nodes()[0]
+
+    admin.connect(node.config.host, int(node.config.port))
+
+    proxies = multi_node.proxy_cycle()
+    proxy = next(proxies)
+    producer: Client = proxy.create_client("producer")
+
+    producer.open(tc.URI_PRIORITY, flags=["write,ack"], succeed=True)
+
+    # Try DOMAINS RECONFIGURE <domain> 
+    res = admin.send_admin(f"DOMAINS RECONFIGURE {tc.DOMAIN_PRIORITY}")
+
+    # Expect 4 "SUCCESS" responses
+    success_count = res.split().count("SUCCESS")
+
+    assert success_count == 4
 
 
