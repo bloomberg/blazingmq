@@ -252,12 +252,6 @@ class Application {
 
     enum RoutingMode { PRIMARIES, CLUSTER, NONE };
 
-    // Determines if the command should be executed on the primary node
-    // bool isCommandForPrimary(const mqbcmd::CommandChoice& command) const;
-
-    // // Determines if the command should be executed by the entire cluster
-    // bool isCommandForCluster(const mqbcmd::CommandChoice& command) const;
-
     RoutingMode
     getCommandRoutingMode(const mqbcmd::CommandChoice& command) const;
 
@@ -272,26 +266,26 @@ class Application {
                       const NodesVector& nodes,
                       mqbi::Cluster*     cluster,
                       bslmt::Latch*      latch,
-                      ResponseMessages*  responses);
+                      ResponseMessages*  responses) const;
 
     // Called when all nodes that a request was routed to have given some
     // response.
     void onRouteCommandResponse(const MultiRequestContextSp& requestContext,
                                 bslmt::Latch*                latch,
-                                ResponseMessages*            responses);
+                                ResponseMessages*            responses) const;
 
     // Routes the given command to all primary nodes on the cluster (if they
     // are a primary for some partition). Does not route to itself.
     bool routeCommandToPrimaryNodes(const bsl::string& cmd,
                                     mqbi::Cluster*     cluster,
                                     bslmt::Latch*      latch,
-                                    ResponseMessages*  responses);
+                                    ResponseMessages*  responses) const;
 
     // Routes the given command to all nodes on the cluster except itself.
     void routeCommandToClusterNodes(const bsl::string& cmd,
                                     mqbi::Cluster*     cluster,
                                     bslmt::Latch*      latch,
-                                    ResponseMessages*  responses);
+                                    ResponseMessages*  responses) const;
 
     // Executes the logic of the given command and outputs the result in
     // cmdResult
