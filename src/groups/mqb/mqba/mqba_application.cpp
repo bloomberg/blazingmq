@@ -603,7 +603,7 @@ Application::getRelevantCluster(const mqbcmd::CommandChoice& command,
 void Application::onRouteCommandResponse(
     const MultiRequestContextSp& requestContext,
     bslmt::Latch*                latch,
-    ResponseMessages*            responses)
+    ResponseMessages*            responses) const
 {
     BSLS_ASSERT_SAFE(latch);
     BSLS_ASSERT_SAFE(responses);
@@ -641,7 +641,7 @@ void Application::routeCommand(const bsl::string& cmd,
                                const NodesVector& nodes,
                                mqbi::Cluster*     cluster,
                                bslmt::Latch*      latch,
-                               ResponseMessages*  responses)
+                               ResponseMessages*  responses) const
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(cluster);
@@ -690,7 +690,7 @@ void Application::routeCommand(const bsl::string& cmd,
 bool Application::routeCommandToPrimaryNodes(const bsl::string& cmd,
                                              mqbi::Cluster*     cluster,
                                              bslmt::Latch*      latch,
-                                             ResponseMessages*  responses)
+                                             ResponseMessages*  responses) const
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(latch);
@@ -723,7 +723,7 @@ bool Application::routeCommandToPrimaryNodes(const bsl::string& cmd,
 void Application::routeCommandToClusterNodes(const bsl::string& cmd,
                                              mqbi::Cluster*     cluster,
                                              bslmt::Latch*      latch,
-                                             ResponseMessages*  responses)
+                                             ResponseMessages*  responses) const
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(latch);
@@ -888,10 +888,13 @@ int Application::processCommand(const bslstl::StringRef& source,
     ResponseMessages responses;
     bslmt::Latch     latch{1};
 
+    bsl::string ourName = "self";
+
     // If we should attempt to route the command
     if (routingMode != RoutingMode::NONE && !fromReroute) {
         mqbi::Cluster* cluster = getRelevantCluster(command, &cmdResult);
         if (!cmdResult.isErrorValue()) {
+            ourName = cluster->netCluster().selfNode()->hostName(); 
             if (routingMode == RoutingMode::PRIMARIES) {
                 shouldSelfExecute = routeCommandToPrimaryNodes(cmd,
                                                                cluster,
@@ -960,7 +963,7 @@ int Application::processCommand(const bslstl::StringRef& source,
                 os << "[" << node->hostName() << "]\n";
             }
             else {
-                os << "[self]\n";
+                os << "[" << ourName << " (self)]\n";
             }
             os << response << bsl::endl;
         }
