@@ -588,7 +588,7 @@ Application::getRelevantCluster(const mqbcmd::CommandChoice& command,
         if (!d_clusterCatalog_mp->findCluster(&clusterOut, clusterName)) {
             mwcu::MemOutStream os;
             os << "Cluster '" << clusterName << "' doesn't exist";
-            cmdResult->makeError().message() = os.str(); 
+            cmdResult->makeError().message() = os.str();
             return nullptr;
         }
         return clusterOut.get();
@@ -625,8 +625,9 @@ void Application::onRouteCommandResponse(
         }
         else {
             // something went wrong... possibly timeout?
-            responses->push_back({pair.first,"Error occurred sending command to node " +
-                                 pair.first->hostName()});
+            responses->push_back({pair.first,
+                                  "Error occurred sending command to node " +
+                                      pair.first->hostName()});
         }
     }
 
@@ -936,7 +937,9 @@ int Application::processCommand(const bslstl::StringRef& source,
         default: BSLS_ASSERT_SAFE(false && "Unsupported encoding");
         }
 
-        responses.push_back({nullptr, cmdOs.str()}); // nullptr refers to self (for now; probably bad)
+        responses.push_back(
+            {nullptr,
+             cmdOs.str()});  // nullptr refers to self (for now; probably bad)
     }
 
     latch.wait();
@@ -944,8 +947,8 @@ int Application::processCommand(const bslstl::StringRef& source,
     for (ResponseMessages::const_iterator respIt = responses.begin();
          respIt != responses.end();
          ++respIt) {
-        mqbnet::ClusterNode* node = respIt->first;
-        const bsl::string& response = respIt->second;
+        mqbnet::ClusterNode* node     = respIt->first;
+        const bsl::string&   response = respIt->second;
 
         if (!fromReroute) {
             if (node) {
