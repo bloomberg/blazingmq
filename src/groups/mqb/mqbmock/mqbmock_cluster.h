@@ -584,8 +584,9 @@ inline void Cluster::advanceTime(int seconds)
     d_timeSource.advanceTime(bsls::TimeInterval(seconds));
 }
 
-inline void Cluster::getPrimaryNodes(bsl::vector<mqbnet::ClusterNode*>* outNodes,
-                                     bool* outIsSelfPrimary) const
+inline void
+Cluster::getPrimaryNodes(bsl::vector<mqbnet::ClusterNode*>* outNodes,
+                         bool* outIsSelfPrimary) const
 {
     // no implementation
 }

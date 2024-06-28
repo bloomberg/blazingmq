@@ -588,7 +588,12 @@ Application::getRelevantCluster(const mqbcmd::CommandChoice& command,
     else if (command.isClustersValue()) {
         const bsl::string& clusterName = command.clusters().cluster().name();
         bsl::shared_ptr<mqbi::Cluster> clusterOut;
-        d_clusterCatalog_mp->findCluster(&clusterOut, clusterName);
+        if (!d_clusterCatalog_mp->findCluster(&clusterOut, clusterName)) {
+            mwcu::MemOutStream os;
+            os << "Cluster '" << clusterName << "' doesn't exist";
+            cmdResult->makeError().message() = os.str();
+            return nullptr;
+        }
         return clusterOut.get();
     }
 
@@ -609,8 +614,6 @@ void Application::onRouteCommandResponse(
 
     NodePairsVector responsePairs = requestContext->response();
 
-    responses->clear();
-
     for (NodePairsVector::const_iterator pairIt = responsePairs.begin();
          pairIt != responsePairs.end();
          pairIt++) {
@@ -621,12 +624,13 @@ void Application::onRouteCommandResponse(
         if (message.choice().isAdminCommandResponseValue()) {
             const bsl::string& output =
                 message.choice().adminCommandResponse().text();
-            responses->push_back(output);
+            responses->push_back({pair.first, output});
         }
         else {
             // something went wrong... possibly timeout?
-            responses->push_back("Error occurred sending command to node " +
-                                 pair.first->hostName());
+            responses->push_back({pair.first,
+                                  "Error occurred sending command to node " +
+                                      pair.first->hostName()});
         }
     }
 
@@ -915,7 +919,7 @@ int Application::processCommand(const bslstl::StringRef& source,
     }
 
     // Only format result if we executed a command or had an error.
-    // i.e. don't create a result object if we were only responsible for
+    // i.e. don't create a result object if we were *only* responsible for
     // routing the command to other nodes.
     if (cmdResult.isErrorValue() || shouldSelfExecute) {
         // Flatten into the final result
@@ -938,15 +942,35 @@ int Application::processCommand(const bslstl::StringRef& source,
         default: BSLS_ASSERT_SAFE(false && "Unsupported encoding");
         }
 
-        responses.push_back(cmdOs.str());
+        responses.push_back(
+            {nullptr,
+             cmdOs.str()});  // nullptr refers to self (for now; probably bad)
     }
 
     latch.wait();
 
     for (ResponseMessages::const_iterator respIt = responses.begin();
          respIt != responses.end();
-         respIt++) {
-        os << *respIt;
+         ++respIt) {
+        mqbnet::ClusterNode* node     = respIt->first;
+        const bsl::string&   response = respIt->second;
+
+        if (!fromReroute) {
+            if (node) {
+                os << "[" << node->hostName() << "]\n";
+            }
+            else {
+                os << "[self]\n";
+            }
+            os << response << bsl::endl;
+        }
+        else {
+            // if we were from a reroute then we should only have 1 response
+            // to display.
+            BSLS_ASSERT_SAFE(responses.size() == 1);
+
+            os << response;
+        }
     }
 
     return cmdResult.isErrorValue() ? -2 : 0;

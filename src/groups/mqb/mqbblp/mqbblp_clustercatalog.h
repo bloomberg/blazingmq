@@ -411,8 +411,8 @@ class ClusterCatalog {
     int processCommand(mqbcmd::ClustersResult*        result,
                        const mqbcmd::ClustersCommand& command);
 
-    // Sets the callback to pass to created clusters in this catalog that runs
-    // when an admin command is received by the cluster.
+    /// Sets the callback to pass to created clusters in this catalog that runs
+    /// when an admin command is received by the cluster.
     void setAdminCommandEnqueueCallback(
         const mqbnet::Session::AdminCommandEnqueueCb& value);
 
