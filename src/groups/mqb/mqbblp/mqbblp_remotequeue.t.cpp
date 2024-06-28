@@ -144,6 +144,8 @@ class TestBench {
     bdlmt::EventSchedulerTestTimeSource d_timeSource;
     TestClock                           d_testClock;
     StateSpPool                         d_stateSpPool;
+    bdlma::ConcurrentPool               d_pushElementsPool;
+    mqbi::ClusterResources              d_resources;
     bslma::Allocator*                   d_allocator_p;
 
     TestBench(bslma::Allocator* allocator_p);
@@ -179,6 +181,8 @@ TestBench::TestBench(bslma::Allocator* allocator_p)
 , d_timeSource(&d_scheduler)
 , d_testClock(d_timeSource)
 , d_stateSpPool(8192, allocator_p)
+, d_pushElementsPool(sizeof(mqbblp::PushStream::Element), allocator_p)
+, d_resources()
 , d_allocator_p(allocator_p)
 {
     d_params.flags() |= bmqt::QueueFlags::e_WRITE;
@@ -194,6 +198,11 @@ TestBench::TestBench(bslma::Allocator* allocator_p)
         bdlf::BindUtil::bind(&TestClock::realtimeClock, &d_testClock),
         bdlf::BindUtil::bind(&TestClock::monotonicClock, &d_testClock),
         bdlf::BindUtil::bind(&TestClock::highResTimer, &d_testClock));
+
+    d_resources.d_blobSpPool_p       = 0;
+    d_resources.d_bufferFactory_p    = &d_bufferFactory;
+    d_resources.d_scheduler_p        = &d_scheduler;
+    d_resources.d_pushElementsPool_p = &d_pushElementsPool;
 
     d_scheduler.start();
 }
@@ -289,6 +298,7 @@ TestBench::TestRemoteQueue::TestRemoteQueue(
                d_storageKey,
                1,  // partition
                &theBench.d_domain,
+               theBench.d_resources,
                theBench.d_allocator_p)
 , d_remoteQueue(&d_queueState,
                 timeout,
@@ -297,8 +307,6 @@ TestBench::TestRemoteQueue::TestRemoteQueue(
                 theBench.d_allocator_p)
 {
     d_queueState.setRoutingConfig(routingConfig);
-    d_queueState.setEventScheduler(&theBench.d_scheduler);
-    d_remoteQueue.setEventScheduler(&theBench.d_scheduler);
     d_queue_sp->_setDispatcherEventHandler(
         bdlf::BindUtil::bind(&mqbblp::RemoteQueue::onDispatcherEvent,
                              &d_remoteQueue,

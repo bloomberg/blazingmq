@@ -381,9 +381,9 @@ void Routers::AppContext::load(
     }
 }
 
-size_t Routers::AppContext::finalize()
+unsigned int Routers::AppContext::finalize()
 {
-    size_t count = 0;
+    d_priorityCount = 0;
 
     clean();
 
@@ -443,7 +443,7 @@ size_t Routers::AppContext::finalize()
                     group.d_highestSubscriptions.emplace_back(&subscription);
 
                     level.d_count += n;
-                    count += n;
+                    d_priorityCount += n;
                 }
                 else {
                     // This 'subscription' has the 'expression' which is used
@@ -460,7 +460,7 @@ size_t Routers::AppContext::finalize()
         }
     }
 
-    return count;
+    return d_priorityCount;
 }
 
 void Routers::AppContext::registerSubscriptions()
@@ -602,18 +602,18 @@ void Routers::AppContext::reset()
 
 Routers::Result Routers::AppContext::selectConsumer(
     const Visitor&               visitor,
-    const mqbi::StorageIterator* currentMessage)
+    const mqbi::StorageIterator* currentMessage,
+    unsigned int                 subscriptionId)
 {
     BSLS_ASSERT_SAFE(currentMessage);
-
-    unsigned int sId = currentMessage->subscriptionId();
 
     PriorityGroup* group = 0;
     d_queue.d_evaluationContext.setPropertiesReader(d_queue.d_preader.get());
     ScopeExit scope(d_queue, currentMessage);
 
-    if (sId != bmqp::Protocol::k_DEFAULT_SUBSCRIPTION_ID) {
-        SubscriptionIds::SharedItem itId = d_queue.d_groupIds.find(sId);
+    if (subscriptionId != bmqp::Protocol::k_DEFAULT_SUBSCRIPTION_ID) {
+        SubscriptionIds::SharedItem itId = d_queue.d_groupIds.find(
+            subscriptionId);
 
         if (itId) {
             // Use already selected existing Group

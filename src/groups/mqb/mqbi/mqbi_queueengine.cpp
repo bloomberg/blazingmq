@@ -35,17 +35,5 @@ QueueEngine::~QueueEngine()
     // NOTHING
 }
 
-void QueueEngine::afterAppIdRegistered(
-    BSLS_ANNOTATION_UNUSED const mqbi::Storage::AppIdKeyPair& appIdKeyPair)
-{
-    // NOTHING
-}
-
-void QueueEngine::afterAppIdUnregistered(
-    BSLS_ANNOTATION_UNUSED const mqbi::Storage::AppIdKeyPair& appIdKeyPair)
-{
-    // NOTHING
-}
-
 }  // close package namespace
 }  // close enterprise namespace

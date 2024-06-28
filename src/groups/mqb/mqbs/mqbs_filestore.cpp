@@ -5313,16 +5313,6 @@ void FileStore::createStorage(bsl::shared_ptr<ReplicatedStorage>* storageSp,
 
     BSLS_ASSERT_SAFE(!storageCfg.isUndefinedValue());
 
-    bmqp::RdaInfo rdaInfo;
-    if (domain->config().maxDeliveryAttempts()) {
-        rdaInfo.setCounter(domain->config().maxDeliveryAttempts());
-    }
-    else {
-        // For Initialization of RdaInfo, value of 0 for config
-        // maxDeliveryAttempts symbolizes Infinity so we dont set the counter
-        // as constructor for rdaInfo initializes counter with Unlimited.
-    }
-
     bslma::Allocator* storageAlloc = d_storageAllocatorStore.baseAllocator();
     if (storageCfg.isInMemoryValue()) {
         storageSp->reset(new (*storageAlloc)
@@ -5331,7 +5321,6 @@ void FileStore::createStorage(bsl::shared_ptr<ReplicatedStorage>* storageSp,
                                              config().partitionId(),
                                              domain->config(),
                                              domain->capacityMeter(),
-                                             rdaInfo,
                                              storageAlloc,
                                              &d_storageAllocatorStore),
                          storageAlloc);
@@ -5343,7 +5332,6 @@ void FileStore::createStorage(bsl::shared_ptr<ReplicatedStorage>* storageSp,
                                                queueKey,
                                                domain->config(),
                                                domain->capacityMeter(),
-                                               rdaInfo,
                                                storageAlloc,
                                                &d_storageAllocatorStore),
                          storageAlloc);

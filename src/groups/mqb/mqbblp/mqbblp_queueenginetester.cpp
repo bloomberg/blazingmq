@@ -382,22 +382,17 @@ QueueEngineTester::QueueEngineTester(const mqbconfm::Domain& domainConfig,
 , d_deletedHandles(allocator)
 , d_messageCount(0)
 , d_scheduler(bsls::SystemClockType::e_MONOTONIC, allocator)
+, d_pushElementsPool(sizeof(mqbblp::PushStream::Element), allocator)
 , d_allocator_p(allocator)
 {
     oneTimeInit();
 
-    const int maxDeliveryAttempts = domainConfig.maxDeliveryAttempts();
+    mqbconfm::Domain config = domainConfig;
 
-    // A value of zero represents unlimited delivery attempts.
-    if (maxDeliveryAttempts == 0 ||
-        maxDeliveryAttempts > bmqp::RdaInfo::k_MAX_COUNTER_VALUE) {
-        d_rdaInfo = bmqp::RdaInfo();  // Default constructed is unlimited
-    }
-    else {
-        d_rdaInfo = bmqp::RdaInfo().setCounter(maxDeliveryAttempts);
-    }
+    config.deduplicationTimeMs() = 0;  // No history
+    config.messageTtl()          = k_MAX_MESSAGES;
 
-    init(domainConfig);
+    init(config);
     // Scheduler
     if (startScheduler) {
         int rc = d_scheduler.start();
@@ -494,6 +489,14 @@ void QueueEngineTester::init(const mqbconfm::Domain& domainConfig)
     BSLS_ASSERT_OPT(
         d_mockDispatcher_mp->inDispatcherThread(d_mockCluster_mp.get()));
 
+    mqbi::ClusterResources resources;
+
+    resources.d_blobSpPool_p = 0;
+
+    resources.d_bufferFactory_p    = 0;
+    resources.d_scheduler_p        = &d_scheduler;
+    resources.d_pushElementsPool_p = &d_pushElementsPool;
+
     // Queue State
     d_queueState_mp.load(new (*d_allocator_p)
                              mqbblp::QueueState(d_mockQueue_sp.get(),
@@ -502,11 +505,11 @@ void QueueEngineTester::init(const mqbconfm::Domain& domainConfig)
                                                 k_NULL_QUEUE_KEY,
                                                 k_PARTITION_ID,
                                                 d_mockDomain_mp.get(),
+                                                resources,
                                                 d_allocator_p),
                          d_allocator_p);
 
     d_queueState_mp->setAppKeyGenerator(&d_appKeyGenerator);
-    d_queueState_mp->setEventScheduler(&d_scheduler);
 
     bmqp_ctrlmsg::RoutingConfiguration routingConfig;
 
@@ -532,17 +535,13 @@ void QueueEngineTester::init(const mqbconfm::Domain& domainConfig)
     d_queueState_mp->setRoutingConfig(routingConfig);
 
     // Create Storage
-    mqbconfm::Domain domainCfg;
-    domainCfg.deduplicationTimeMs() = 0;  // No history is maintained at proxy
-    domainCfg.messageTtl()          = k_MAX_MESSAGES;
 
     mqbi::Storage* storage_p = new (*d_allocator_p)
         mqbs::InMemoryStorage(d_mockQueue_sp->uri(),
                               k_NULL_QUEUE_KEY,
-                              mqbs::DataStore::k_INVALID_PARTITION_ID,
-                              domainCfg,
+                              k_PARTITION_ID,
+                              domainConfig,
                               d_mockDomain_mp->capacityMeter(),
-                              d_rdaInfo,
                               d_allocator_p);
 
     mqbconfm::Storage config;
@@ -555,8 +554,8 @@ void QueueEngineTester::init(const mqbconfm::Domain& domainConfig)
     rc = storage_p->configure(errorDescription,
                               config,
                               limits,
-                              domainCfg.messageTtl(),
-                              domainCfg.maxDeliveryAttempts());
+                              domainConfig.messageTtl(),
+                              domainConfig.maxDeliveryAttempts());
     BSLS_ASSERT_OPT(rc == 0 && "storage configure fail");
 
     // Add virtual storages
@@ -582,6 +581,7 @@ void QueueEngineTester::init(const mqbconfm::Domain& domainConfig)
     }
 
     d_mockQueue_sp->_setStorage(storage_p);
+    storage_p->setQueue(d_mockQueue_sp.get());
 
     bslma::ManagedPtr<mqbi::Storage> storage_mp(storage_p, d_allocator_p);
     d_queueState_mp->setStorage(storage_mp);
@@ -599,17 +599,7 @@ void QueueEngineTester::init(const mqbconfm::Domain& domainConfig)
     const_cast<QueueHandleCatalog&>(d_queueState_mp->handleCatalog())
         .setHandleFactory(handleFactory_mp);
 
-    d_subStreamMessages_mp.load(new (*d_allocator_p)
-                                    mqbs::VirtualStorageCatalog(storage_p,
-                                                                d_allocator_p),
-                                d_allocator_p);
-
     if (!isFanoutMode) {
-        rc = d_subStreamMessages_mp->addVirtualStorage(
-            errorDescription,
-            bmqp::ProtocolUtil::k_DEFAULT_APP_ID,
-            mqbi::QueueEngine::k_DEFAULT_APP_KEY);
-        BSLS_ASSERT_SAFE(rc == 0);
         rc = storage_p->addVirtualStorage(
             errorDescription,
             bmqp::ProtocolUtil::k_DEFAULT_APP_ID,
@@ -893,6 +883,8 @@ int QueueEngineTester::configureHandle(const bsl::string& clientText)
         streamParams.appId() = appId;
 
         // Temporary
+        // Assume, RelayQueueEngine will use upstreramSubQueueIds as the
+        // subscriptionIds.  This needs to be in accord with the 'post' logic.
         BSLS_ASSERT_SAFE(streamParams.subscriptions().size() == 1);
 
         streamParams.subscriptions()[0].sId() = subIdCiter->second;
@@ -926,7 +918,8 @@ QueueEngineTester::client(const bslstl::StringRef& clientKey)
     return d_handles.find(clientKey)->second;
 }
 
-void QueueEngineTester::post(const bslstl::StringRef& messages)
+void QueueEngineTester::post(const bslstl::StringRef& messages,
+                             RelayQueueEngine*        downstream)
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(d_queueEngine_mp &&
@@ -934,6 +927,24 @@ void QueueEngineTester::post(const bslstl::StringRef& messages)
 
     bsl::vector<bsl::string> msgs(d_allocator_p);
     parseMessages(&msgs, messages);
+
+    bmqp::Protocol::SubQueueInfosArray subscriptions(d_allocator_p);
+
+    if (d_subIds.empty()) {
+        subscriptions.push_back(
+            bmqp::SubQueueInfo(bmqp::Protocol::k_DEFAULT_SUBSCRIPTION_ID));
+    }
+    else {
+        // Assume, RelayQueueEngine will use upstreramSubQueueIds as the
+        // subscriptionIds.
+        // This needs to be in accord with the 'confgiureHandle' logic.
+
+        for (SubIdsMap::const_iterator cit = d_subIds.cbegin();
+             cit != d_subIds.cend();
+             ++cit) {
+            subscriptions.push_back(bmqp::SubQueueInfo(cit->second));
+        }
+    }
 
     for (unsigned int i = 0; i < msgs.size(); ++i) {
         // Put in storage
@@ -954,19 +965,21 @@ void QueueEngineTester::post(const bslstl::StringRef& messages)
                                 msgs[i].data(),
                                 msgs[i].length());
 
+        // Consider this non-Proxy.  Imitate replication or Primary PUT
+        // ('d_mockCluster_mp->_setIsClusterMember(true)')
+
         int rc = d_queueState_mp->storage()->put(&msgAttributes,
                                                  msgGUID,
                                                  appData,
                                                  options);
         BSLS_ASSERT_OPT((rc == 0) && "Storage put failure");
 
-        if (d_subStreamMessages_mp) {
-            d_subStreamMessages_mp->put(
-                msgGUID,
-                appData->length(),
-                d_rdaInfo,
-                bmqp::Protocol::k_DEFAULT_SUBSCRIPTION_ID,
-                mqbu::StorageKey::k_NULL_KEY);
+        if (downstream) {
+            downstream->push(&msgAttributes,
+                             msgGUID,
+                             bsl::shared_ptr<bdlbb::Blob>(),
+                             subscriptions,
+                             false);
         }
 
         // Insert into messages maps
@@ -1188,13 +1201,6 @@ void QueueEngineTester::purgeQueue(const bslstl::StringRef& appId)
                             "Requested to purgeQueue for a subStream that"
                             " was not found");
         }
-    }
-
-    // Remove all messages from the virtual storages, if applicable
-    if (d_subStreamMessages_mp && !isFanout) {
-        rc = d_subStreamMessages_mp->removeAll(appKey);
-        BSLS_ASSERT_OPT((rc == mqbi::StorageResult::e_SUCCESS) &&
-                        "'msgGUID' was not found in virtual storage");
     }
 
     // Remove all messages from physical/in-memory storage

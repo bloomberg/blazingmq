@@ -166,8 +166,7 @@ class Queue BSLS_CPP11_FINAL : public mqbi::Queue {
           int                                       partitionId,
           mqbi::Domain*                             domain,
           mqbi::StorageManager*                     storageManager,
-          bdlbb::BlobBufferFactory*                 blobBufferFactory,
-          bdlmt::EventScheduler*                    scheduler,
+          const mqbi::ClusterResources&             resources,
           bdlmt::FixedThreadPool*                   threadPool,
           const bmqp_ctrlmsg::RoutingConfiguration& routingCfg,
           bslma::Allocator*                         allocator);
