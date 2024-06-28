@@ -140,7 +140,7 @@ class SimpleEvaluator {
     /// derived.
     class Expression {
       public:
-        virtual ~Expression() {}
+        virtual ~Expression();
 
         /// Evaluate a Expression.
         virtual bdld::Datum evaluate(EvaluationContext& context) const = 0;

@@ -139,6 +139,15 @@ bool SimpleEvaluator::evaluate(EvaluationContext& context) const
     return value.theBoolean();
 }
 
+// ---------------------------------
+// class SimpleEvaluator::Expression
+// ---------------------------------
+
+SimpleEvaluator::Expression::~Expression()
+{
+    // NOTHING
+}
+
 // -------------------------------
 // class SimpleEvaluator::Property
 // -------------------------------
