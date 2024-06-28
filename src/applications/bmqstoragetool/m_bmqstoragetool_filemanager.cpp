@@ -59,8 +59,17 @@ void closeLedger(mqbsl::Ledger* ledger)
 
 }  // close unnamed namespace
 
+// ==============================
+// class FileManager::FileHandler
+// ==============================
+
+FileManager::~FileManager()
+{
+    // NOTHING
+}
+
 // =====================
-// class FileManagerReal
+// class FileManagerImpl
 // =====================
 
 // CREATORS
@@ -220,7 +229,7 @@ QueueMap FileManagerImpl::buildQueueMap(const bsl::string& cslFile,
 }
 
 // ==================================
-// class FileManagerReal::FileHandler
+// class FileManagerImpl::FileHandler
 // ==================================
 
 template <typename ITER>

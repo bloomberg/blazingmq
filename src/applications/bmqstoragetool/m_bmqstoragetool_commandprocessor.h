@@ -45,7 +45,7 @@ class CommandProcessor {
     /// Default constructor.
     CommandProcessor() {}
 
-    virtual ~CommandProcessor() {}
+    virtual ~CommandProcessor();
 
     // MANIPULATORS
 

@@ -86,7 +86,7 @@ class SearchResult {
     // CREATORS
 
     /// Destructor
-    virtual ~SearchResult() {}
+    virtual ~SearchResult();
 
     // MANIPULATORS
 
