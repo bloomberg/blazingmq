@@ -1120,7 +1120,8 @@ static void test4_cancelHandleTest()
                                        __has_feature(thread_sanitizer) ||
                                        __has_feature(
                                            undefined_behavior_sanitizer);
-#elif defined(__SANITIZE_MEMORY__) || defined(__SANITIZE_THREAD__)
+#elif defined(__SANITIZE_MEMORY__) || defined(__SANITIZE_THREAD__) ||         \
+    defined(__SANITIZE_UNDEFINED__)
     // GCC-supported macros for checking MSAN and TSAN.
     const bool skipTestForSanitizers = true;
 #else
