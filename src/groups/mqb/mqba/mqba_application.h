@@ -132,7 +132,7 @@ class Application {
                                                   bmqp_ctrlmsg::ControlMessage,
                                                   mqbnet::ClusterNode*> >
                                               MultiRequestContextSp;
-    typedef bsl::vector<bsl::string>          ResponseMessages;
+    typedef bsl::vector<bsl::pair<mqbnet::ClusterNode*, bsl::string>>          ResponseMessages;
     typedef bsl::vector<mqbnet::ClusterNode*> NodesVector;
 
     // Data members
