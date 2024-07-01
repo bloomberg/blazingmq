@@ -27,6 +27,7 @@
 #include <mqbcfg_brokerconfig.h>
 #include <mqbcfg_messages.h>
 #include <mqbcmd_commandlist.h>
+#include <mqbcmd_commandrouter.h>
 #include <mqbcmd_humanprinter.h>
 #include <mqbcmd_jsonprinter.h>
 #include <mqbcmd_messages.h>
@@ -752,6 +753,65 @@ void Application::routeCommandToClusterNodes(const bsl::string& cmd,
     }
 }
 
+void Application::printResponses(const ResponseMessages& responses, const mqbcmd::EncodingFormat::Value format, bool fromReroute, const bsl::string& ourName, bsl::ostream& os) const {
+    // Always expect at least 1 response to print
+    BSLS_ASSERT_SAFE(responses.size() > 0);
+
+    if (responses.size() == 1) {
+        os << responses[0].second;        
+        return; // RETURN
+    }
+    
+    switch (format) {
+    case mqbcmd::EncodingFormat::TEXT: {
+        for (ResponseMessages::const_iterator respIt = responses.begin();
+            respIt != responses.end();
+            ++respIt) {
+            mqbnet::ClusterNode* node     = respIt->first;
+            const bsl::string&   response = respIt->second;
+
+            if (node) {
+                os << "[" << node->hostName() << "]\n";
+            }
+            else {
+                os << "[" << ourName << " (self)]\n";
+            }
+            os << response << bsl::endl;
+        }
+    } break;
+    case mqbcmd::EncodingFormat::JSON_COMPACT: {
+        os << "[";
+        for (ResponseMessages::const_iterator respIt = responses.begin();
+            respIt != responses.end();
+            ++respIt) {
+            mqbnet::ClusterNode* node     = respIt->first;
+            const bsl::string&   response = respIt->second;
+
+            if (!fromReroute) {
+                if (node) {
+                    os << "[" << node->hostName() << "]\n";
+                }
+                else {
+                    os << "[" << ourName << " (self)]\n";
+                }
+                os << response << bsl::endl;
+            }
+            else {
+                // if we were from a reroute then we should only have 1 response
+                // to display.
+                BSLS_ASSERT_SAFE(responses.size() == 1);
+
+                os << response;
+            }
+        }
+        os << "]";
+    } break;
+    case mqbcmd::EncodingFormat::JSON_PRETTY: {
+
+    } break;
+    }
+}
+
 int Application::executeCommand(const mqbcmd::CommandChoice& command,
                                 mqbcmd::InternalResult*      cmdResult)
 {
@@ -858,6 +918,26 @@ int Application::executeCommand(const mqbcmd::CommandChoice& command,
     return 0;
 }
 
+void Application::printCommandResult(const mqbcmd::InternalResult& cmdResult, mqbcmd::EncodingFormat::Value encoding, bsl::ostream& os) {
+    // Flatten into the final result
+    mqbcmd::Result result;
+    mqbcmd::Util::flatten(&result, cmdResult);
+
+    switch (encoding) {
+    case mqbcmd::EncodingFormat::TEXT: {
+        // Pretty print
+        mqbcmd::HumanPrinter::print(os, result);
+    } break;  // BREAK
+    case mqbcmd::EncodingFormat::JSON_COMPACT: {
+        mqbcmd::JsonPrinter::print(os, result, false);
+    } break;  // BREAK
+    case mqbcmd::EncodingFormat::JSON_PRETTY: {
+        mqbcmd::JsonPrinter::print(os, result, true);
+    } break;  // BREAK
+    default: BSLS_ASSERT_SAFE(false && "Unsupported encoding");
+    }
+}
+
 int Application::processCommand(const bslstl::StringRef& source,
                                 const bsl::string&       cmd,
                                 bsl::ostream&            os,
@@ -880,6 +960,18 @@ int Application::processCommand(const bslstl::StringRef& source,
 
     mqbcmd::InternalResult cmdResult;
     int                    rc = 0;
+
+    // easy path, just execute the command
+    if (fromReroute) {
+        if (executeCommand(command, &cmdResult)) {
+            return 0;  // early exit (caused by "dangerous" command)
+        }
+        printCommandResult(cmdResult, commandWithOptions.encoding(), os);
+        return cmdResult.isErrorValue() ? -2 : 0;;
+    }
+
+    // otherwise, this is an original call. utilize router if necessary
+    // mqbcmd::CommandRouter router(cmd, commandWithOptions);
 
     RoutingMode routingMode = getCommandRoutingMode(command);
 
@@ -925,25 +1017,9 @@ int Application::processCommand(const bslstl::StringRef& source,
     // i.e. don't create a result object if we were *only* responsible for
     // routing the command to other nodes.
     if (cmdResult.isErrorValue() || shouldSelfExecute) {
-        // Flatten into the final result
-        mqbcmd::Result result;
-        mqbcmd::Util::flatten(&result, cmdResult);
-
         mwcu::MemOutStream cmdOs;
-
-        switch (commandWithOptions.encoding()) {
-        case mqbcmd::EncodingFormat::TEXT: {
-            // Pretty print
-            mqbcmd::HumanPrinter::print(cmdOs, result);
-        } break;  // BREAK
-        case mqbcmd::EncodingFormat::JSON_COMPACT: {
-            mqbcmd::JsonPrinter::print(cmdOs, result, false);
-        } break;  // BREAK
-        case mqbcmd::EncodingFormat::JSON_PRETTY: {
-            mqbcmd::JsonPrinter::print(cmdOs, result, true);
-        } break;  // BREAK
-        default: BSLS_ASSERT_SAFE(false && "Unsupported encoding");
-        }
+        
+        printCommandResult(cmdResult, commandWithOptions.encoding(), cmdOs);
 
         responses.push_back(
             {nullptr,
