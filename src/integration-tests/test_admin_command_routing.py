@@ -59,10 +59,11 @@ def test_primary_rerouting(multi_node: Cluster) -> None:
     assert "Purged" in res
 
     # Try CLUSTERS CLUSTER <name> FORCE_GC_QUEUES
-    # Difficult to test since currently this command returns "SUCCESS" no matter what
-    #       (i.e. even if it fails due to not being ran on the primary)
-    # res = admin.send_admin(f"CLUSTERS CLUSTER {multi_node.name} FORCE_GC_QUEUES")
+    res = admin.send_admin(f"CLUSTERS CLUSTER {multi_node.name} FORCE_GC_QUEUES")
 
+    print(res)
+
+    assert "SUCCESS" in res 
 
     admin.stop()
 

@@ -29,6 +29,7 @@
 // MQB
 
 #include <mqbconfm_messages.h>
+#include <mqbcmd_messages.h>
 #include <mqbi_cluster.h>
 
 // MWC
@@ -286,6 +287,12 @@ class Application {
                                     mqbi::Cluster*     cluster,
                                     bslmt::Latch*      latch,
                                     ResponseMessages*  responses) const;
+
+    void printResponses(const ResponseMessages& responses, 
+                        const mqbcmd::EncodingFormat::Value format,
+                        bool fromReroute, const bsl::string& ourName, bsl::ostream& os) const;
+
+    void printCommandResult(const mqbcmd::InternalResult& result, mqbcmd::EncodingFormat::Value encoding, bsl::ostream& os);
 
     // Executes the logic of the given command and outputs the result in
     // cmdResult

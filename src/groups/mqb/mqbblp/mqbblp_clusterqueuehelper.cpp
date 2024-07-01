@@ -5853,7 +5853,7 @@ void ClusterQueueHelper::onCloseQueueResponse(
                   << contextSp->d_peer->nodeDescription();
 }
 
-void ClusterQueueHelper::gcExpiredQueues(bool immediate)
+void ClusterQueueHelper::gcExpiredQueues(bool immediate, mqbcmd::ClusterResult* result)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -5862,12 +5862,17 @@ void ClusterQueueHelper::gcExpiredQueues(bool immediate)
         d_cluster_p->dispatcher()->inDispatcherThread(d_cluster_p));
 
     if (d_cluster_p->isStopping()) {
+        if (result) {
+            result->makeError().message() = "Cluster is stopping";
+        }
         return;  // RETURN
     }
 
     if (!d_clusterState_p->isSelfActivePrimary()) {
         // Fast path -- self is not active primary for *any* partition.
-
+        if (result) {
+            result->makeError().message() = "Must be primary node for some partition";
+        }
         return;  // RETURN
     }
 

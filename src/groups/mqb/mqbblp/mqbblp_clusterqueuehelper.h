@@ -1086,7 +1086,9 @@ class ClusterQueueHelper : public mqbc::ClusterStateObserver,
     /// expired.  If the optionally specified `immediate` flag is true,
     /// delete the qualified queues immediately instead of marking them for
     /// deletion in future.
-    void gcExpiredQueues(bool immediate = false);
+    /// Optionally specify a command result object to populate if there is an
+    /// error.
+    void gcExpiredQueues(bool immediate = false, mqbcmd::ClusterResult* result = nullptr);
 
     ClusterQueueHelper& setOnQueueAssignedCb(const OnQueueAssignedCb& value);
 
