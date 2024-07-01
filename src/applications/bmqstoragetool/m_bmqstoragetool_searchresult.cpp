@@ -180,6 +180,15 @@ void outputFooter(bsl::ostream& ostream, bsl::size_t foundMessagesCount)
 
 }  // close unnamed namespace
 
+// ==================
+// class SearchResult
+// ==================
+
+SearchResult::~SearchResult()
+{
+    // NOTHING
+}
+
 // ===========================
 // class SearchResultDecorator
 // ===========================

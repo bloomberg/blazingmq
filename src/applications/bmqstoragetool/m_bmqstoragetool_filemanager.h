@@ -54,7 +54,7 @@ class FileManager {
     virtual mqbs::JournalFileIterator* journalFileIterator() = 0;
     virtual mqbs::DataFileIterator*    dataFileIterator()    = 0;
 
-    virtual ~FileManager() {}
+    virtual ~FileManager();
 };
 
 class FileManagerImpl : public FileManager {
