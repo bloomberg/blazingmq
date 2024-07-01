@@ -98,7 +98,7 @@ static const ChannelWatermarkType::Enum WAT_HIGH =
 static const ChannelWatermarkType::Enum WAT_LOW =
     ChannelWatermarkType::e_LOW_WATERMARK;
 
-#ifdef BSLS_PLATFORM_OS_AIX
+#ifdef BSLS_PLATFORM_OS_SOLARIS
 static const bool skipTest = true;
 #elif defined(                                                                \
     __has_feature)  // Clang-supported method for checking sanitizers.
