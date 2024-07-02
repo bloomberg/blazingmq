@@ -52,7 +52,7 @@ def test_close_queue(single_node: Cluster):
 @start_cluster(False)
 def test_close_while_reopening(multi_node: Cluster):
     """
-    DRQS 169125974.  Closing queue while reopen response is pending should
+    Ticket 169125974.  Closing queue while reopen response is pending should
     not result in a dangling handle.
     """
 
@@ -116,7 +116,7 @@ def test_close_while_reopening(multi_node: Cluster):
 
 def test_close_open(multi_node: Cluster):
     """
-    DRQS 169326671.  Close, followed by Open with a different subId.
+    Ticket 169326671.  Close, followed by Open with a different subId.
     """
     proxies = multi_node.proxy_cycle()
     # pick proxy in datacenter opposite to the primary's
@@ -140,7 +140,7 @@ def test_close_open(multi_node: Cluster):
 @tweak.cluster.queue_operations.reopen_retry_interval_ms(1234)
 def test_close_while_retrying_reopen(multi_node: Cluster):
     """
-    DRQS 170043950.  Trigger reopen failure causing proxy to retry on
+    Ticket 170043950.  Trigger reopen failure causing proxy to retry on
     timeout. While waiting, close the queue and make sure, the retry
     accounts for that close.
     """

@@ -138,6 +138,10 @@ class QueueStatsDomain {
             e_NO_SC_MSGS_DELTA,
             e_NO_SC_MSGS_ABS
         };
+
+        /// Return the non-modifiable string description corresponding to
+        /// the specified enumeration `value`.
+        static const char* toString(Stat::Enum value);
     };
 
     struct Role {
@@ -198,7 +202,8 @@ class QueueStatsDomain {
     /// represented by its associated specified `context` as the difference
     /// between the latest snapshot-ed value (i.e., `snapshotId == 0`) and
     /// the value that was recorded at the specified `snapshotId` snapshots
-    /// ago.
+    /// ago.  Any negative `snapshotId` means that the oldest available
+    /// snapshot should be used.
     ///
     /// THREAD: This method can only be invoked from the `snapshot` thread.
     static bsls::Types::Int64 getValue(const mwcst::StatContext& context,

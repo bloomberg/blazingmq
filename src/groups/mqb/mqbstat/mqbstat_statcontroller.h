@@ -30,6 +30,7 @@
 // MQB
 
 #include <mqbcmd_messages.h>
+#include <mqbstat_jsonprinter.h>
 #include <mqbstat_printer.h>
 
 // MWC
@@ -129,6 +130,7 @@ class StatController {
     typedef bsl::shared_ptr<mwcst::StatContext>           StatContextSp;
     typedef bslma::ManagedPtr<mwcsys::StatMonitor>        SystemStatMonitorMp;
     typedef bslma::ManagedPtr<Printer>                    PrinterMp;
+    typedef bslma::ManagedPtr<JsonPrinter>                JsonPrinterMp;
     typedef bslma::ManagedPtr<mqbplug::StatPublisher>     StatPublisherMp;
     typedef bslma::ManagedPtr<mqbplug::StatConsumer>      StatConsumerMp;
 
@@ -154,67 +156,72 @@ class StatController {
         StatContextDetailsMap;
 
     // DATA
+    /// Allocator store to spawn new allocators
+    /// for sub-components.
     mwcma::CountingAllocatorStore d_allocators;
-    // Allocator store to spawn new allocators
-    // for sub-components.
 
+    /// This component should use it's own
+    /// scheduler to not have stats interfere
+    /// with critical other parts.
     SchedulerMp d_scheduler_mp;
-    // This component should use it's own
-    // scheduler to not have stats interfere
-    // with critical other parts.
 
+    /// Time at which snapshot was last called.
     bsls::Types::Int64 d_lastSnapshotTime;
-    // Time at which snapshot was last called.
 
-    bdlmt::Throttle d_lastSnapshotLogLimiter;
-    // Throttler for alarming on excessive
-    // snapshots.
+    /// Throttler for safeguarding against too often snapshot invocations.
+    /// Note that snapshots are done periodically via EventScheduler, but
+    /// also it is possible to make urgent out-of-order snapshot with
+    /// admin command.
+    bdlmt::Throttle d_snapshotThrottle;
 
+    /// Stat context of the counting allocators,
+    /// if used.
     mwcst::StatContext* d_allocatorsStatContext_p;
-    // Stat context of the counting allocators,
-    // if used.
 
+    /// Map holding all the stat contexts
     StatContextDetailsMap d_statContextsMap;
-    // Map holding all the stat contexts
 
+    /// 'local' child stat context of the
+    /// 'channels' stat context
     StatContextMp d_statContextChannelsLocal_mp;
-    // 'local' child stat context of the
-    // 'channels' stat context
 
+    /// 'remote' child stat context of the
+    /// 'channels' stat context
     StatContextMp d_statContextChannelsRemote_mp;
-    // 'remote' child stat context of the
-    // 'channels' stat context
 
+    /// System stat monitor (for cpu and
+    /// memory).
     SystemStatMonitorMp d_systemStatMonitor_mp;
-    // System stat monitor (for cpu and
-    // memory).
 
+    /// Used to instantiate 'StatConsumer'
+    /// plugins at start-time.
     mqbplug::PluginManager* d_pluginManager_p;
-    // Used to instantiate 'StatConsumer'
-    // plugins at start-time.
 
+    /// Buffer factory for a StatsProvider if
+    /// provided as a plugin.
     bdlbb::BlobBufferFactory* d_bufferFactory_p;
-    // Buffer factory for a StatsProvider if
-    // provided as a plugin.
 
+    /// Function to invoke when receiving a command
+    /// from a command processor plugin.
     CommandProcessorFn d_commandProcessorFn;
-    // Function to invoke when receiving a
-    // command from a command processor plugin.
 
+    /// Console and log file stats printer
     PrinterMp d_printer_mp;
-    // Printer
 
+    /// JsonPrinter used for admin commands processing
+    JsonPrinterMp d_jsonPrinter_mp;
+
+    /// Registered stat consumers
     bsl::vector<StatConsumerMp> d_statConsumers;
 
+    /// StatConsumer max publish interval
     int d_statConsumerMaxPublishInterval;
-    // StatConsumer max publish interval
 
+    /// Event scheduler passed in from application
     bdlmt::EventScheduler* d_eventScheduler_p;
-    // Event scheduler passed in from
-    // application
 
+    /// Allocator to use.
     bslma::Allocator* d_allocator_p;
-    // Allocator to use.
 
   private:
     // PRIVATE MANIPULATORS
@@ -222,14 +229,12 @@ class StatController {
     /// Initialize all the stat contexts and associated Tables and TIPs.
     void initializeStats();
 
-    /// Capture the stats and store the stats in the specified `result`
-    /// object.
-    void captureStats(mqbcmd::StatResult* result);
-
     /// Capture the stats to the specified `result`' object and post on the
     /// specified `semaphore` once done.
-    void captureStatsAndSemaphorePost(mqbcmd::StatResult* result,
-                                      bslmt::Semaphore*   semaphore);
+    void captureStatsAndSemaphorePost(
+        mqbcmd::StatResult*                  result,
+        bslmt::Semaphore*                    semaphore,
+        const mqbcmd::EncodingFormat::Value& encoding);
 
     /// Process specified `tunable` subcommand and load the result into the
     /// specified `result` and post on the optionally specified `semaphore`
@@ -251,8 +256,14 @@ class StatController {
     void listTunables(mqbcmd::StatResult* result,
                       bslmt::Semaphore*   semaphore = 0);
 
-    /// Snapshot the stats.
-    void snapshot();
+    /// Try to snapshot the stats.
+    /// Return `true` upon success and `false` otherwise.  The attempt to make
+    /// a snapshot might fail if we try to call `snapshot()` too often.
+    bool snapshot();
+
+    /// Try to snapshot the stats and notify all the registered stat consumers
+    /// upon success.
+    void snapshotAndNotify();
 
     // PRIVATE ACCESSORS
 
@@ -301,8 +312,9 @@ class StatController {
     /// Process the specified `command`, and write the result to the
     /// `result`' object.  Return zero on success or a nonzero value
     /// otherwise.
-    int processCommand(mqbcmd::StatResult*        result,
-                       const mqbcmd::StatCommand& command);
+    int processCommand(mqbcmd::StatResult*                  result,
+                       const mqbcmd::StatCommand&           command,
+                       const mqbcmd::EncodingFormat::Value& encoding);
 
     /// Retrieve the domains top-level stat context.
     mwcst::StatContext* domainsStatContext();

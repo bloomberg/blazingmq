@@ -339,7 +339,7 @@ class StatValue {
     /// Return the snapshot referred to by the specified `location`.  The
     /// behavior is undefined unless
     /// `location.level() < numLevels()` and
-    /// `location.index() <= historySize(location.level())`
+    /// `location.index() < historySize(location.level())`
     const Snapshot& snapshot(const SnapshotLocation& location) const;
 
     /// Return the minimum value of this StatValue since creation.
