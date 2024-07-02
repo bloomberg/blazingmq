@@ -27,9 +27,9 @@
 // used by the BlazingMQ broker.
 
 // MQB
-
-#include <mqbconfm_messages.h>
+#include <mqba_commandrouter.h>
 #include <mqbcmd_messages.h>
+#include <mqbconfm_messages.h>
 #include <mqbi_cluster.h>
 
 // MWC
@@ -128,14 +128,14 @@ class Application {
         bdlcc::ObjectPoolFunctors::RemoveAll<bdlbb::Blob> >
         BlobSpPool;
 
-    typedef bsl::shared_ptr<
-        mqbnet::MultiRequestManagerRequestContext<bmqp_ctrlmsg::ControlMessage,
-                                                  bmqp_ctrlmsg::ControlMessage,
-                                                  mqbnet::ClusterNode*> >
-        MultiRequestContextSp;
-    typedef bsl::vector<bsl::pair<mqbnet::ClusterNode*, bsl::string> >
-                                              ResponseMessages;
-    typedef bsl::vector<mqbnet::ClusterNode*> NodesVector;
+    // typedef bsl::shared_ptr<
+    //     mqbnet::MultiRequestManagerRequestContext<bmqp_ctrlmsg::ControlMessage,
+    //                                               bmqp_ctrlmsg::ControlMessage,
+    //                                               mqbnet::ClusterNode*> >
+    //     MultiRequestContextSp;
+    // typedef bsl::vector<bsl::pair<mqbnet::ClusterNode*, bsl::string> >
+    //                                           ResponseMessages;
+    // typedef bsl::vector<mqbnet::ClusterNode*> NodesVector;
 
     // Data members
     mwcma::CountingAllocatorStore d_allocators;
@@ -251,48 +251,19 @@ class Application {
   private:
     // HELPER FUNCTIONS FOR ADMIN API ROUTING
 
-    enum RoutingMode { PRIMARIES, CLUSTER, NONE };
-
-    RoutingMode
-    getCommandRoutingMode(const mqbcmd::CommandChoice& command) const;
-
     // Returns a pointer to the cluster instance that the given command needs
     // to execute for.
     mqbi::Cluster* getRelevantCluster(const mqbcmd::CommandChoice& command,
                                       mqbcmd::InternalResult* cmdResult) const;
 
-    // Routes the command to the given nodes and populates the given responses
-    // vector.
-    void routeCommand(const bsl::string& cmd,
-                      const NodesVector& nodes,
-                      mqbi::Cluster*     cluster,
-                      bslmt::Latch*      latch,
-                      ResponseMessages*  responses) const;
-
-    // Called when all nodes that a request was routed to have given some
-    // response.
-    void onRouteCommandResponse(const MultiRequestContextSp& requestContext,
-                                bslmt::Latch*                latch,
-                                ResponseMessages*            responses) const;
-
-    // Routes the given command to all primary nodes on the cluster (if they
-    // are a primary for some partition). Does not route to itself.
-    bool routeCommandToPrimaryNodes(const bsl::string& cmd,
-                                    mqbi::Cluster*     cluster,
-                                    bslmt::Latch*      latch,
-                                    ResponseMessages*  responses) const;
-
-    // Routes the given command to all nodes on the cluster except itself.
-    void routeCommandToClusterNodes(const bsl::string& cmd,
-                                    mqbi::Cluster*     cluster,
-                                    bslmt::Latch*      latch,
-                                    ResponseMessages*  responses) const;
-
-    void printResponses(const ResponseMessages& responses, 
+    void printCommandResponses(const mqba::CommandRouter::ResponseMessages&             responses,
                         const mqbcmd::EncodingFormat::Value format,
-                        bool fromReroute, const bsl::string& ourName, bsl::ostream& os) const;
+                        const bsl::string&                  ourName,
+                        bsl::ostream&                       os) const;
 
-    void printCommandResult(const mqbcmd::InternalResult& result, mqbcmd::EncodingFormat::Value encoding, bsl::ostream& os);
+    void printCommandResult(const mqbcmd::InternalResult& result,
+                            mqbcmd::EncodingFormat::Value encoding,
+                            bsl::ostream&                 os);
 
     // Executes the logic of the given command and outputs the result in
     // cmdResult

@@ -1088,7 +1088,8 @@ class ClusterQueueHelper : public mqbc::ClusterStateObserver,
     /// deletion in future.
     /// Optionally specify a command result object to populate if there is an
     /// error.
-    void gcExpiredQueues(bool immediate = false, mqbcmd::ClusterResult* result = nullptr);
+    void gcExpiredQueues(bool                   immediate = false,
+                         mqbcmd::ClusterResult* result    = nullptr);
 
     ClusterQueueHelper& setOnQueueAssignedCb(const OnQueueAssignedCb& value);
 

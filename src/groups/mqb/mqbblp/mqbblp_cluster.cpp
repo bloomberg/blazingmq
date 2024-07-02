@@ -581,9 +581,11 @@ void Cluster::processCommandDispatched(mqbcmd::ClusterResult*        result,
         return;  // RETURN
     }
     else if (command.isForceGcQueuesValue()) {
-        d_clusterOrchestrator.queueHelper().gcExpiredQueues(true);
+        d_clusterOrchestrator.queueHelper().gcExpiredQueues(true, result);
         // 'true' implies immediate
-        result->makeSuccess();
+        if (!result->isErrorValue()) {
+            result->makeSuccess();
+        }
         return;  // RETURN
     }
     else if (command.isStorageValue()) {
