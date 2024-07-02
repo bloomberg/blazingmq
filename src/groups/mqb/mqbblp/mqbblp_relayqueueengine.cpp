@@ -659,7 +659,10 @@ void RelayQueueEngine::processAppRedelivery(unsigned int upstreamSubQueueId,
     }
 
     bsls::TimeInterval delay;
-    app->deliverMessages(&delay, d_realStorageIter_mp.get(), start, d_storageIter_mp.get());
+    app->deliverMessages(&delay,
+                         d_realStorageIter_mp.get(),
+                         start,
+                         d_storageIter_mp.get());
 
     if (delay != bsls::TimeInterval()) {
         app->scheduleThrottle(

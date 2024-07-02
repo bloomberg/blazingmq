@@ -678,7 +678,6 @@ bool QueueEngineUtil_AppsDeliveryContext::processApp(
 
     if (!app.isReadyForDelivery()) {
         if (app.resumePoint().isUnset() && app.isAuthorized()) {
-
             // The 'app' needs to resume (in 'deliverMessages').
             // The queue iterator can advance leaving the 'app' behind.
             app.setResumePoint(d_currentMessage->guid());
@@ -692,7 +691,6 @@ bool QueueEngineUtil_AppsDeliveryContext::processApp(
     Routers::Result result = Routers::e_SUCCESS;
 
     if (appView.isNew()) {
-
         // NOTE: We avoid calling 'StorageIterator::appData'associated with the
         // message unless necessary.  This is being done so that we don't end
         // up aliasing the corresponding message and options area to the mapped
@@ -729,7 +727,6 @@ bool QueueEngineUtil_AppsDeliveryContext::processApp(
             BSLS_ASSERT_SAFE(result == Routers::e_NO_SUBSCRIPTION ||
                              result == Routers::e_NO_CAPACITY);
 
-
             // This app does not have capacity to deliver.  Still, move on and
             // consider (evaluate) subsequent messages for the 'app'.
             app.putAside(d_currentMessage->guid());
@@ -744,13 +741,13 @@ bool QueueEngineUtil_AppsDeliveryContext::processApp(
 
 bool QueueEngineUtil_AppsDeliveryContext::visit(
     const Routers::Subscription* subscription,
-    const mqbi::AppMessage& appView)
+    const mqbi::AppMessage&      appView)
 {
     BSLS_ASSERT_SAFE(subscription);
 
-    d_consumers[subscription->handle()].push_back(bmqp::SubQueueInfo(
-        subscription->d_downstreamSubscriptionId,
-        appView.d_rdaInfo));
+    d_consumers[subscription->handle()].push_back(
+        bmqp::SubQueueInfo(subscription->d_downstreamSubscriptionId,
+                           appView.d_rdaInfo));
 
     return true;
 }
@@ -1084,8 +1081,8 @@ bool QueueEngineUtil_AppState::visitBroadcast(
 }
 
 size_t
-QueueEngineUtil_AppState::processDeliveryLists(bsls::TimeInterval* delay,
-        mqbi::StorageIterator *reader)
+QueueEngineUtil_AppState::processDeliveryLists(bsls::TimeInterval*    delay,
+                                               mqbi::StorageIterator* reader)
 {
     size_t numMessages = processDeliveryList(delay, reader, d_redeliveryList);
     if (*delay == bsls::TimeInterval()) {
@@ -1095,10 +1092,10 @@ QueueEngineUtil_AppState::processDeliveryLists(bsls::TimeInterval* delay,
     return numMessages;
 }
 
-size_t QueueEngineUtil_AppState::processDeliveryList(
-        bsls::TimeInterval* delay,
-        mqbi::StorageIterator *reader,
-        RedeliveryList& list)
+size_t
+QueueEngineUtil_AppState::processDeliveryList(bsls::TimeInterval*    delay,
+                                              mqbi::StorageIterator* reader,
+                                              RedeliveryList&        list)
 {
     if (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(list.empty())) {
         return 0;  // RETURN
@@ -1121,18 +1118,20 @@ size_t QueueEngineUtil_AppState::processDeliveryList(
             // The message got gc'ed or purged
             BMQ_LOGTHROTTLE_INFO()
                 << "#STORAGE_UNKNOWN_MESSAGE "
-                << "Queue: " << "'" << d_queue_p->description() << "', app: '"
-                << appId() << "' could not redeliver GUID: '" << *it
+                << "Queue: "
+                << "'" << d_queue_p->description() << "', app: '" << appId()
+                << "' could not redeliver GUID: '" << *it
                 << "' (not in the storage)";
         }
-        else if (!reader->appMessageView(ordinal()).isPending()){
+        else if (!reader->appMessageView(ordinal()).isPending()) {
             BMQ_LOGTHROTTLE_INFO()
                 << "#STORAGE_UNKNOWN_MESSAGE "
-                << "Queue: " << "'" << d_queue_p->description() << "', app: '"
-                << appId() << "' could not redeliver GUID: '" << *it
-                << "' (wrong state "
+                << "Queue: "
+                << "'" << d_queue_p->description() << "', app: '" << appId()
+                << "' could not redeliver GUID: '" << *it << "' (wrong state "
                 << reader->appMessageView(ordinal()).d_state << ")";
-        } else {
+        }
+        else {
             result = tryDeliverOneMessage(delay, reader, true);
         }
         // TEMPORARILY handling unknown 'Group's in RelayQE by reevaluating.
@@ -1308,15 +1307,17 @@ bool QueueEngineUtil_AppState::transferUnconfirmedMessages(
     // We lost a reader, try to redeliver any potential messages
     // that need redelivery.
     if (numMsgs) {
-    BALL_LOG_INFO << "Lost a reader for queue '" << d_queue_p->description()
-                  << "' " << appId() << ", redelivering " << numMsgs
-                  << " message(s) to " << consumers().size()
-                  << " remaining readers starting from "
-                  << *d_redeliveryList.begin();
+        BALL_LOG_INFO << "Lost a reader for queue '"
+                      << d_queue_p->description() << "' " << appId()
+                      << ", redelivering " << numMsgs << " message(s) to "
+                      << consumers().size()
+                      << " remaining readers starting from "
+                      << *d_redeliveryList.begin();
     }
     else {
-        BALL_LOG_INFO << "Lost a reader for queue '" << d_queue_p->description()
-                      << "' " << appId() << ", nothing to redeliver.";
+        BALL_LOG_INFO << "Lost a reader for queue '"
+                      << d_queue_p->description() << "' " << appId()
+                      << ", nothing to redeliver.";
     }
     return hasConsumers();
 }

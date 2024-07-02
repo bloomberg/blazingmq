@@ -73,7 +73,7 @@ class VirtualStorage {
 
   public:
     struct DataStreamMessage {
-        int                           d_size;
+        int d_size;
         // The message size
 
         bsl::vector<mqbi::AppMessage> d_apps;

@@ -119,7 +119,7 @@ void RootQueueEngine::deliverMessages(AppState* app)
 
     bsls::TimeInterval delay;
     size_t             numMessages = app->deliverMessages(&delay,
-            d_realStorageIter_mp.get(),
+                                              d_realStorageIter_mp.get(),
                                               start,
                                               d_storageIter_mp.get());
 
@@ -459,8 +459,8 @@ void RootQueueEngine::resetState(bool isShuttingDown)
         mqbu::StorageKey::k_NULL_KEY);
 
     if (!d_storageIter_mp->atEnd()) {
-        BALL_LOG_INFO <<  "Queue [" << d_queueState_p->uri()
-                << "] starting at " << d_storageIter_mp->guid();
+        BALL_LOG_INFO << "Queue [" << d_queueState_p->uri() << "] starting at "
+                      << d_storageIter_mp->guid();
     }
     }
 }
@@ -1287,8 +1287,6 @@ void RootQueueEngine::afterNewMessage(
 
     while (context.doRepeat()) {
         context.reset();
-
-
 
         // Assume, all Apps need to deliver (some may be at capacity)
         for (Apps::iterator iter = d_apps.begin(); iter != d_apps.end();

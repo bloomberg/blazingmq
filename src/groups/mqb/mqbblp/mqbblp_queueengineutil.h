@@ -441,16 +441,16 @@ struct QueueEngineUtil_AppState {
     bool visitBroadcast(const mqbi::StorageIterator* message,
                         const Routers::Subscription* subscription);
 
-    size_t processDeliveryLists(bsls::TimeInterval* delay,
-            mqbi::StorageIterator *reader);
+    size_t processDeliveryLists(bsls::TimeInterval*    delay,
+                                mqbi::StorageIterator* reader);
 
     /// Process delivery of messages in the redelivery list.  The specified
     /// `getMessageCb` provides message details for redelivery.  Load the
     /// lowest handle delay into the specified `delay`. Return number of
     /// re-delivered messages.
-    size_t processDeliveryList(bsls::TimeInterval* delay,
-            mqbi::StorageIterator *reader,
-                               RedeliveryList&     list);
+    size_t processDeliveryList(bsls::TimeInterval*    delay,
+                               mqbi::StorageIterator* reader,
+                               RedeliveryList&        list);
 
     /// Load into the specified `out` object' internal information about
     /// this consumers group and associated queue handles.
@@ -557,13 +557,13 @@ struct QueueEngineUtil_AppState {
 
     /// Return a reference offering non-modifiable access to the PutAside list
     /// of messages for which there is no matching subscription.
-    const RedeliveryList&   putAsideList() const;
+    const RedeliveryList& putAsideList() const;
 
     /// Return current storage key.
     const mqbu::StorageKey& appKey() const;
 
     /// Return the Id.
-    const bsl::string&      appId() const;
+    const bsl::string& appId() const;
 
     /// Return 'true' if this App is authorized.
     bool isAuthorized() const;
@@ -590,11 +590,11 @@ struct QueueEngineUtil_AppsDeliveryContext {
         Consumers;
 
   private:
-    Consumers                           d_consumers;
-    bool                                d_doRepeat;
-    mqbi::StorageIterator*              d_currentMessage;
-    mqbi::Queue*                        d_queue_p;
-    bsl::optional<bsls::Types::Int64>   d_timeDelta;
+    Consumers                         d_consumers;
+    bool                              d_doRepeat;
+    mqbi::StorageIterator*            d_currentMessage;
+    mqbi::Queue*                      d_queue_p;
+    bsl::optional<bsls::Types::Int64> d_timeDelta;
     // Avoid reading the attributes if not necessary.  Get timeDelta on demand.
     // See comment in 'QueueEngineUtil_AppsDeliveryContext::processApp'.
 
@@ -625,7 +625,7 @@ struct QueueEngineUtil_AppsDeliveryContext {
 
     /// Collect and prepare data for the subsequent 'deliverMessage' call.
     bool visit(const Routers::Subscription* subscription,
-            const mqbi::AppMessage& appView);
+               const mqbi::AppMessage&      appView);
     bool visitBroadcast(const Routers::Subscription* subscription);
 
     /// Deliver message to the previously processed handles.
