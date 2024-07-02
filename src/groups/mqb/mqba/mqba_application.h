@@ -29,6 +29,7 @@
 // MQB
 
 #include <mqbconfm_messages.h>
+#include <mqbi_cluster.h>
 
 // MWC
 #include <mwcma_countingallocatorstore.h>
@@ -40,6 +41,7 @@
 #include <bdlcc_objectpool.h>
 #include <bdlcc_sharedobjectpool.h>
 #include <bdlmt_threadpool.h>
+#include <bmqp_requestmanager.h>
 #include <bsl_ostream.h>
 #include <bsl_string.h>
 #include <bsl_unordered_map.h>
@@ -48,19 +50,32 @@
 #include <bslma_managedptr.h>
 #include <bslma_usesbslmaallocator.h>
 #include <bslmf_nestedtraitdeclaration.h>
+#include <bslmt_latch.h>
 #include <bsls_cpp11.h>
 
 namespace BloombergLP {
 
 // FORWARD DECLARATION
+namespace bmqp_ctrlmsg {
+class ControlMessage;
+}
 namespace bdlmt {
 class EventScheduler;
 }
 namespace mqbblp {
 class ClusterCatalog;
 }
+namespace mqbcmd {
+class CommandChoice;
+}
+namespace mqbcmd {
+class InternalResult;
+}
 namespace mqbnet {
 class TransportManager;
+}
+namespace mqbnet {
+class ClusterNode;
 }
 namespace mqbplug {
 class PluginManager;
@@ -70,6 +85,10 @@ class StatController;
 }
 namespace mwcst {
 class StatContext;
+}
+namespace mqbnet {
+template <class REQUEST, class RESPONSE, class TARGET>
+class MultiRequestManagerRequestContext;
 }
 
 namespace mqba {
@@ -107,6 +126,15 @@ class Application {
         bdlcc::ObjectPoolFunctors::DefaultCreator,
         bdlcc::ObjectPoolFunctors::RemoveAll<bdlbb::Blob> >
         BlobSpPool;
+
+    typedef bsl::shared_ptr<
+        mqbnet::MultiRequestManagerRequestContext<bmqp_ctrlmsg::ControlMessage,
+                                                  bmqp_ctrlmsg::ControlMessage,
+                                                  mqbnet::ClusterNode*> >
+        MultiRequestContextSp;
+    typedef bsl::vector<bsl::pair<mqbnet::ClusterNode*, bsl::string> >
+                                              ResponseMessages;
+    typedef bsl::vector<mqbnet::ClusterNode*> NodesVector;
 
     // Data members
     mwcma::CountingAllocatorStore d_allocators;
@@ -198,7 +226,8 @@ class Application {
     /// `source`, and write the result of the command in the specified `os`.
     int processCommand(const bslstl::StringRef& source,
                        const bsl::string&       cmd,
-                       bsl::ostream&            os);
+                       bsl::ostream&            os,
+                       bool                     fromReroute = false);
 
     /// Process the command in the specified `cmd` coming from the specified
     /// `source`, and send the result of the command in the specified
@@ -206,7 +235,8 @@ class Application {
     int processCommandCb(
         const bslstl::StringRef&                            source,
         const bsl::string&                                  cmd,
-        const bsl::function<void(int, const bsl::string&)>& onProcessedCb);
+        const bsl::function<void(int, const bsl::string&)>& onProcessedCb,
+        bool fromReroute = false);
 
     /// Enqueue for execution the command in the specified `cmd` coming from
     /// the specified `source`.  The specified `onProcessedCb` callback is
@@ -214,7 +244,59 @@ class Application {
     int enqueueCommand(
         const bslstl::StringRef&                            source,
         const bsl::string&                                  cmd,
-        const bsl::function<void(int, const bsl::string&)>& onProcessedCb);
+        const bsl::function<void(int, const bsl::string&)>& onProcessedCb,
+        bool fromReroute = false);
+
+  private:
+    // HELPER FUNCTIONS FOR ADMIN API ROUTING
+
+    enum RoutingMode { PRIMARIES, CLUSTER, NONE };
+
+    // Determines if the command should be executed on the primary node
+    // bool isCommandForPrimary(const mqbcmd::CommandChoice& command) const;
+
+    // // Determines if the command should be executed by the entire cluster
+    // bool isCommandForCluster(const mqbcmd::CommandChoice& command) const;
+
+    RoutingMode
+    getCommandRoutingMode(const mqbcmd::CommandChoice& command) const;
+
+    // Returns a pointer to the cluster instance that the given command needs
+    // to execute for.
+    mqbi::Cluster* getRelevantCluster(const mqbcmd::CommandChoice& command,
+                                      mqbcmd::InternalResult* cmdResult) const;
+
+    // Routes the command to the given nodes and populates the given responses
+    // vector.
+    void routeCommand(const bsl::string& cmd,
+                      const NodesVector& nodes,
+                      mqbi::Cluster*     cluster,
+                      bslmt::Latch*      latch,
+                      ResponseMessages*  responses);
+
+    // Called when all nodes that a request was routed to have given some
+    // response.
+    void onRouteCommandResponse(const MultiRequestContextSp& requestContext,
+                                bslmt::Latch*                latch,
+                                ResponseMessages*            responses);
+
+    // Routes the given command to all primary nodes on the cluster (if they
+    // are a primary for some partition). Does not route to itself.
+    bool routeCommandToPrimaryNodes(const bsl::string& cmd,
+                                    mqbi::Cluster*     cluster,
+                                    bslmt::Latch*      latch,
+                                    ResponseMessages*  responses);
+
+    // Routes the given command to all nodes on the cluster except itself.
+    void routeCommandToClusterNodes(const bsl::string& cmd,
+                                    mqbi::Cluster*     cluster,
+                                    bslmt::Latch*      latch,
+                                    ResponseMessages*  responses);
+
+    // Executes the logic of the given command and outputs the result in
+    // cmdResult
+    int executeCommand(const mqbcmd::CommandChoice& command,
+                       mqbcmd::InternalResult*      cmdResult);
 };
 
 }  // close package namespace
