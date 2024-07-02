@@ -23,6 +23,7 @@
 #include <mqbnet_multirequestmanager.h>
 
 // BDE
+#include <bsl_iostream.h>
 #include <ball_log.h>
 
 namespace BloombergLP {
@@ -94,6 +95,31 @@ CommandRouter::SinglePartitionPrimaryRouter::SinglePartitionPrimaryRouter(
 
 bool CommandRouter::SinglePartitionPrimaryRouter::routeCommand()
 {
+    mqbnet::ClusterNode* node = nullptr;
+    bool        isSelfPrimary = false;
+
+    router()->cluster()->dispatcher()->execute(
+        bdlf::BindUtil::bind(&mqbi::Cluster::getPartitionPrimaryNode,
+                             router()->cluster(),
+                             &node,
+                             &isSelfPrimary,
+                             d_partitionId),
+        router()->cluster());
+
+    router()->cluster()->dispatcher()->synchronize(router()->cluster());
+
+    if (node) {
+        // Put node into vector to be acceptable for "routeCommand"
+        NodesVector nodes;
+        nodes.push_back(node);
+        router()->routeCommand(nodes);
+    }
+    else {
+        // Only self will execute, so count down latch immediately
+        router()->countDownLatch();
+    }
+
+    return isSelfPrimary;
 }
 
 CommandRouter::ClusterRouter::ClusterRouter(CommandRouter* router)

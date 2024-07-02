@@ -3736,7 +3736,7 @@ void Cluster::getPrimaryNodes(bsl::vector<mqbnet::ClusterNode*>* outNodes,
 
     const mqbnet::Cluster::NodesList&         nodes = netCluster().nodes();
     const mqbc::ClusterState::PartitionsInfo& partitionsInfo =
-        d_state.partitionsInfo();
+        d_state.partitions();
 
     *outIsSelfPrimary = false;
     outNodes->clear();
@@ -3745,32 +3745,60 @@ void Cluster::getPrimaryNodes(bsl::vector<mqbnet::ClusterNode*>* outNodes,
              partitionsInfo.begin();
          pit != partitionsInfo.end();
          pit++) {
-        bool foundPrimary = false;
-        for (mqbnet::Cluster::NodesList::const_iterator nit = nodes.begin();
-             nit != nodes.end();
-             nit++) {
-            mqbnet::ClusterNode* node = *nit;
-            // Check if this node is the primary for this partition
-            if (pit->primaryNodeId() == node->nodeId()) {
-                // If we already added this node, then don't add a duplicate
-                if (bsl::find(outNodes->begin(), outNodes->end(), node) !=
-                    outNodes->end()) {
-                    continue;
-                }
-                if (d_state.isSelfPrimary(pit->partitionId())) {
-                    *outIsSelfPrimary = true;
-                    continue;
-                }
-                outNodes->push_back(node);
-                foundPrimary = true;
-                break;
+        mqbnet::ClusterNode* primary = pit->primaryNode();
+
+        if (primary) {
+            if (bsl::find(outNodes->begin(), outNodes->end(), primary) !=
+                outNodes->end()) {
+                continue;
             }
+            if (d_state.isSelfActivePrimary(pit->partitionId())) {
+                *outIsSelfPrimary = true;
+                continue;
+            }
+            outNodes->push_back(primary);
         }
-        if (!foundPrimary) {
-            // TODO: Handle this case
-            // Approach may include putting into some buffer to callback later
+        else {
+            // TODO: handle this case
+            // Approach may include putting into some buffer to callback later?
         }
     }
+}
+
+void Cluster::getPartitionPrimaryNode(mqbnet::ClusterNode** outNode, bool* outIsSelfPrimary, int partitionId) const {
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(outNode);
+    BSLS_ASSERT_SAFE(outIsSelfPrimary);
+    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    
+    const mqbc::ClusterState::PartitionsInfo& partitionsInfo =
+        d_state.partitions();
+    
+    for (mqbc::ClusterState::PartitionsInfo::const_iterator pit = 
+        partitionsInfo.begin(); pit != partitionsInfo.end(); pit++) {
+        if (pit->partitionId() == partitionId) {
+            mqbnet::ClusterNode* primary = pit->primaryNode();
+            if (d_state.isSelfActivePrimary(partitionId)) {
+                *outIsSelfPrimary = true;
+                return; // RETURN
+            }
+            if (primary) {
+                *outNode = primary;
+                return; // RETURN
+            }
+            else {
+                // TODO: handle this case
+                // ...
+                return; // RETURN
+            }
+        }
+    }
+
+    // Didn't find a corresponding partition for the given partitionId
+    // TODO: handle this case
+    // For now just execute on this node and an appropriate error response
+    // will be generated.
+    *outIsSelfPrimary = true;
 }
 
 }  // close package namespace

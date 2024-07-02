@@ -538,6 +538,9 @@ class ClusterProxy : public mqbc::ClusterStateObserver,
 
     void getPrimaryNodes(bsl::vector<mqbnet::ClusterNode*>* outNodes,
                          bool* outIsSelfPrimary) const BSLS_KEYWORD_OVERRIDE;
+    
+    void getPartitionPrimaryNode(mqbnet::ClusterNode** outNodes,
+                                 bool* outIsSelfPrimary, int partitionId) const BSLS_KEYWORD_OVERRIDE;
 
     // MANIPULATORS
     //   (virtual: mqbi::DispatcherClient)
@@ -711,6 +714,13 @@ inline size_t ClusterProxy::ChannelBuffer::bytes() const
 inline void
 ClusterProxy::getPrimaryNodes(bsl::vector<mqbnet::ClusterNode*>* outNodes,
                               bool* outIsSelfPrimary) const
+{
+    // no implementation
+}
+
+inline void
+ClusterProxy::getPartitionPrimaryNode(mqbnet::ClusterNode** outNode,
+                              bool* outIsSelfPrimary, int partitionId) const
 {
     // no implementation
 }
