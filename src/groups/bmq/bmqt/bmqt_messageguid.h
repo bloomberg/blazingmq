@@ -356,34 +356,33 @@ MessageGUIDHashAlgo::operator()(const void*                   data,
     // version has data dependency, so its not the ILP but probably the absence
     // of branching which makes it faster than the looped version.
 
-    d_result = 5381ULL;
+    struct LocalFuncs {
+        inline static bsls::Types::Uint64 mix(bsls::Types::Uint64 x)
+        {
+            x ^= x >> 32;
+            x *= 0xbea225f9eb34556d;
+            x ^= x >> 29;
+            x *= 0xbea225f9eb34556d;
+            x ^= x >> 32;
+            x *= 0xbea225f9eb34556d;
+            x ^= x >> 29;
+            return x;
+        }
 
-    const char* start = reinterpret_cast<const char*>(data);
-    d_result          = (d_result << 5) + d_result + start[0];
-    d_result          = (d_result << 5) + d_result + start[1];
-    d_result          = (d_result << 5) + d_result + start[2];
-    d_result          = (d_result << 5) + d_result + start[3];
-    d_result          = (d_result << 5) + d_result + start[4];
-    d_result          = (d_result << 5) + d_result + start[5];
-    d_result          = (d_result << 5) + d_result + start[6];
-    d_result          = (d_result << 5) + d_result + start[7];
-    d_result          = (d_result << 5) + d_result + start[8];
-    d_result          = (d_result << 5) + d_result + start[9];
-    d_result          = (d_result << 5) + d_result + start[10];
-    d_result          = (d_result << 5) + d_result + start[11];
-    d_result          = (d_result << 5) + d_result + start[12];
-    d_result          = (d_result << 5) + d_result + start[13];
-    d_result          = (d_result << 5) + d_result + start[14];
-    d_result          = (d_result << 5) + d_result + start[15];
+        inline static bsls::Types::Uint64 combine(bsls::Types::Uint64 lhs,
+                                                  bsls::Types::Uint64 rhs)
+        {
+            lhs ^= rhs + 0x517cc1b727220a95 + (lhs << 6) + (lhs >> 2);
+            return lhs;
+        }
+    };
 
-    // For reference, 'loop' version of djb2 algorithm:
-    //..
-    //  size_t index = 0;
-    //  while (index++ < numBytes) {
-    //      d_result = (d_result << 5) + d_result +  // same as 'd_result * 33'
-    //                 (reinterpret_cast<const char*>(data))[index];
-    //  }
-    //..
+    // Alignment
+    const uint64_t* start = reinterpret_cast<const uint64_t*>(data);
+    const uint64_t  h1    = LocalFuncs::mix(start[0]);
+    const uint64_t  h2    = LocalFuncs::mix(start[1]);
+    d_result              = LocalFuncs::combine(h1, h2);
+    // d_result = LocalFuncs::mix(LocalFuncs::combine(start[0], start[1]));
 }
 
 inline MessageGUIDHashAlgo::result_type MessageGUIDHashAlgo::computeHash()
