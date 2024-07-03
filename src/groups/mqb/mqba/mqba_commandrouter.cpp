@@ -29,7 +29,7 @@
 namespace BloombergLP {
 namespace mqba {
 
-CommandRouter::CommandRouter(const bsl::string& commandString, const mqbcmd::Command& command)
+RouteCommandManager::RouteCommandManager(const bsl::string& commandString, const mqbcmd::Command& command)
 : d_allPartitionPrimariesRoutingMode(this)
 , d_singlePartitionPrimaryRoutingMode(this)
 , d_clusterRoutingMode(this)
@@ -45,23 +45,23 @@ CommandRouter::CommandRouter(const bsl::string& commandString, const mqbcmd::Com
     }
 }
 
-CommandRouter::RoutingMode::RoutingMode(CommandRouter* router)
+RouteCommandManager::RoutingMode::RoutingMode(RouteCommandManager* router)
 : d_router(router)
 {
 }
 
-CommandRouter::RoutingMode::~RoutingMode()
+RouteCommandManager::RoutingMode::~RoutingMode()
 {
 }
 
-CommandRouter::AllPartitionPrimariesRoutingMode::AllPartitionPrimariesRoutingMode(
-    CommandRouter* router)
+RouteCommandManager::AllPartitionPrimariesRoutingMode::AllPartitionPrimariesRoutingMode(
+    RouteCommandManager* router)
 : RoutingMode(router)
 {
     BSLS_ASSERT_SAFE(router);
 }
 
-CommandRouter::RouteMembers CommandRouter::AllPartitionPrimariesRoutingMode::getRouteMembers()
+RouteCommandManager::RouteMembers RouteCommandManager::AllPartitionPrimariesRoutingMode::getRouteMembers()
 {
     NodesVector primaryNodes;
     bool        isSelfPrimary;
@@ -81,14 +81,14 @@ CommandRouter::RouteMembers CommandRouter::AllPartitionPrimariesRoutingMode::get
     };
 }
 
-CommandRouter::SinglePartitionPrimaryRoutingMode::SinglePartitionPrimaryRoutingMode(
-    CommandRouter* router)
+RouteCommandManager::SinglePartitionPrimaryRoutingMode::SinglePartitionPrimaryRoutingMode(
+    RouteCommandManager* router)
 : RoutingMode(router)
 {
     BSLS_ASSERT_SAFE(router);
 }
 
-CommandRouter::RouteMembers CommandRouter::SinglePartitionPrimaryRoutingMode::getRouteMembers()
+RouteCommandManager::RouteMembers RouteCommandManager::SinglePartitionPrimaryRoutingMode::getRouteMembers()
 {
     mqbnet::ClusterNode* node = nullptr;
     bool        isSelfPrimary = false;
@@ -115,13 +115,13 @@ CommandRouter::RouteMembers CommandRouter::SinglePartitionPrimaryRoutingMode::ge
     };
 }
 
-CommandRouter::ClusterRoutingMode::ClusterRoutingMode(CommandRouter* router)
+RouteCommandManager::ClusterRoutingMode::ClusterRoutingMode(RouteCommandManager* router)
 : RoutingMode(router)
 {
     BSLS_ASSERT_SAFE(router);
 }
 
-CommandRouter::RouteMembers CommandRouter::ClusterRoutingMode::getRouteMembers()
+RouteCommandManager::RouteMembers RouteCommandManager::ClusterRoutingMode::getRouteMembers()
 {
     // collect all nodes in cluster
     const mqbnet::Cluster::NodesList& allNodes = router()->cluster()->netCluster().nodes();
@@ -142,11 +142,11 @@ CommandRouter::RouteMembers CommandRouter::ClusterRoutingMode::getRouteMembers()
     };
 }
 
-bool CommandRouter::isRoutingNeeded() const {
+bool RouteCommandManager::isRoutingNeeded() const {
     return d_routingMode != nullptr;
 }
 
-bool CommandRouter::processCommand(mqbi::Cluster* cluster) {
+bool RouteCommandManager::processCommand(mqbi::Cluster* cluster) {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_routingMode);
 
@@ -164,7 +164,7 @@ bool CommandRouter::processCommand(mqbi::Cluster* cluster) {
     return routeMembers.self;
 }
 
-void CommandRouter::onRouteCommandResponse(const MultiRequestContextSp& requestContext) {
+void RouteCommandManager::onRouteCommandResponse(const MultiRequestContextSp& requestContext) {
     typedef bsl::pair<mqbnet::ClusterNode*, bmqp_ctrlmsg::ControlMessage>
                                   NodePair;
     typedef bsl::vector<NodePair> NodePairsVector;
@@ -194,7 +194,7 @@ void CommandRouter::onRouteCommandResponse(const MultiRequestContextSp& requestC
     countDownLatch();
 }
 
-CommandRouter::RoutingMode* CommandRouter::getCommandRoutingMode()
+RouteCommandManager::RoutingMode* RouteCommandManager::getCommandRoutingMode()
 {
     if (d_command.isDomainsValue()) {
         const mqbcmd::DomainsCommand& domains = d_command.domains();
@@ -250,7 +250,7 @@ CommandRouter::RoutingMode* CommandRouter::getCommandRoutingMode()
     return nullptr;
 }
 
-void CommandRouter::routeCommand(const NodesVector& nodes) {
+void RouteCommandManager::routeCommand(const NodesVector& nodes) {
      // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_cluster);
 
@@ -283,7 +283,7 @@ void CommandRouter::routeCommand(const NodesVector& nodes) {
     // BALL_LOG_INFO << os.str();
 
     contextSp->setResponseCb(
-        bdlf::BindUtil::bind(&CommandRouter::onRouteCommandResponse,
+        bdlf::BindUtil::bind(&RouteCommandManager::onRouteCommandResponse,
                              this,
                              bdlf::PlaceHolders::_1));
 

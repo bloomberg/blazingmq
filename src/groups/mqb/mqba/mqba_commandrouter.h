@@ -55,7 +55,7 @@ class MultiRequestManagerRequestContext;
 
 namespace mqba {
 
-class CommandRouter {
+class RouteCommandManager {
   public:
     typedef bsl::shared_ptr<
         mqbnet::MultiRequestManagerRequestContext<bmqp_ctrlmsg::ControlMessage,
@@ -73,18 +73,18 @@ class CommandRouter {
 
     class RoutingMode {
       private:
-        CommandRouter* d_router;
+        RouteCommandManager* d_router;
       public:
-        RoutingMode(CommandRouter* router);
+        RoutingMode(RouteCommandManager* router);
         virtual ~RoutingMode() = 0;
 
         virtual RouteMembers getRouteMembers() = 0;
 
-        const CommandRouter* router() const;
+        const RouteCommandManager* router() const;
     };
     class AllPartitionPrimariesRoutingMode : public RoutingMode {
       public:
-        AllPartitionPrimariesRoutingMode(CommandRouter* router);
+        AllPartitionPrimariesRoutingMode(RouteCommandManager* router);
 
         RouteMembers getRouteMembers() BSLS_KEYWORD_OVERRIDE;
     };
@@ -93,14 +93,14 @@ class CommandRouter {
         int d_partitionId;
 
       public:
-        SinglePartitionPrimaryRoutingMode(CommandRouter* router);
+        SinglePartitionPrimaryRoutingMode(RouteCommandManager* router);
 
         void setPartitionID(int id);
         RouteMembers getRouteMembers() BSLS_KEYWORD_OVERRIDE;
     };
     class ClusterRoutingMode : public RoutingMode {
       public:
-        ClusterRoutingMode(CommandRouter* router);
+        ClusterRoutingMode(RouteCommandManager* router);
 
         RouteMembers getRouteMembers() BSLS_KEYWORD_OVERRIDE;
     };
@@ -116,15 +116,15 @@ class CommandRouter {
     const mqbcmd::Command&       d_commandWithOptions;
     const mqbcmd::CommandChoice& d_command;
 
-    CommandRouter::ResponseMessages d_responses;
+    RouteCommandManager::ResponseMessages d_responses;
 
     mqbi::Cluster* d_cluster;
 
-    CommandRouter::RoutingMode* d_routingMode;
+    RouteCommandManager::RoutingMode* d_routingMode;
   public:
     /// Sets up a command router with the given command string and parsed
     /// command object. This will  
-    CommandRouter(const bsl::string& commandString, const mqbcmd::Command& command);
+    RouteCommandManager(const bsl::string& commandString, const mqbcmd::Command& command);
 
     /// Returns true if this command router is necessary to route the command
     /// that it was set up with. If the command does not require routing, then
@@ -171,30 +171,30 @@ class CommandRouter {
 //     CommandRouter::Router* d_router;
 // };
 
-inline const CommandRouter* CommandRouter::RoutingMode::router() const {
+inline const RouteCommandManager* RouteCommandManager::RoutingMode::router() const {
     return d_router;
 }
 
-inline void CommandRouter::SinglePartitionPrimaryRoutingMode::setPartitionID(int id)
+inline void RouteCommandManager::SinglePartitionPrimaryRoutingMode::setPartitionID(int id)
 {
     d_partitionId = id;
 }
 
-inline CommandRouter::ResponseMessages& CommandRouter::responses() {
+inline RouteCommandManager::ResponseMessages& RouteCommandManager::responses() {
     return d_responses;
 }
 
-inline void CommandRouter::waitForResponses() {
+inline void RouteCommandManager::waitForResponses() {
     d_latch.wait();
 }
 
-inline mqbi::Cluster* CommandRouter::cluster() const {
+inline mqbi::Cluster* RouteCommandManager::cluster() const {
     BSLS_ASSERT_SAFE(d_cluster);
 
     return d_cluster;
 }
 
-inline void CommandRouter::countDownLatch() {
+inline void RouteCommandManager::countDownLatch() {
     d_latch.countDown(1);
 }
 

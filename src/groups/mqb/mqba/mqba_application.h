@@ -128,15 +128,6 @@ class Application {
         bdlcc::ObjectPoolFunctors::RemoveAll<bdlbb::Blob> >
         BlobSpPool;
 
-    // typedef bsl::shared_ptr<
-    //     mqbnet::MultiRequestManagerRequestContext<bmqp_ctrlmsg::ControlMessage,
-    //                                               bmqp_ctrlmsg::ControlMessage,
-    //                                               mqbnet::ClusterNode*> >
-    //     MultiRequestContextSp;
-    // typedef bsl::vector<bsl::pair<mqbnet::ClusterNode*, bsl::string> >
-    //                                           ResponseMessages;
-    // typedef bsl::vector<mqbnet::ClusterNode*> NodesVector;
-
     // Data members
     mwcma::CountingAllocatorStore d_allocators;
     // Allocator store to spawn new allocators
@@ -256,7 +247,7 @@ class Application {
     mqbi::Cluster* getRelevantCluster(const mqbcmd::CommandChoice& command,
                                       mqbcmd::InternalResult* cmdResult) const;
 
-    void printCommandResponses(const mqba::CommandRouter::ResponseMessages&             responses,
+    void printCommandResponses(const mqba::RouteCommandManager::ResponseMessages&             responses,
                         const mqbcmd::EncodingFormat::Value format,
                         const bsl::string&                  ourName,
                         bsl::ostream&                       os) const;

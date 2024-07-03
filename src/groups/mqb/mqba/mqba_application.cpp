@@ -695,7 +695,7 @@ void Application::printCommandResult(const mqbcmd::InternalResult& cmdResult,
     }
 }
 
-void Application::printCommandResponses(const mqba::CommandRouter::ResponseMessages&             responses,
+void Application::printCommandResponses(const mqba::RouteCommandManager::ResponseMessages&             responses,
                                  const mqbcmd::EncodingFormat::Value format,
                                  const bsl::string& ourName,
                                  bsl::ostream&      os) const
@@ -710,7 +710,7 @@ void Application::printCommandResponses(const mqba::CommandRouter::ResponseMessa
 
     switch (format) {
     case mqbcmd::EncodingFormat::TEXT: {
-        for (mqba::CommandRouter::ResponseMessages::const_iterator respIt = responses.begin();
+        for (mqba::RouteCommandManager::ResponseMessages::const_iterator respIt = responses.begin();
              respIt != responses.end();
              ++respIt) {
             mqbnet::ClusterNode* node     = respIt->first;
@@ -727,7 +727,7 @@ void Application::printCommandResponses(const mqba::CommandRouter::ResponseMessa
     } break;
     case mqbcmd::EncodingFormat::JSON_COMPACT: {
         os << "[";
-        for (mqba::CommandRouter::ResponseMessages::const_iterator respIt = responses.begin();
+        for (mqba::RouteCommandManager::ResponseMessages::const_iterator respIt = responses.begin();
              respIt != responses.end();
              ++respIt) {
             mqbnet::ClusterNode* node     = respIt->first;
@@ -782,8 +782,37 @@ int Application::processCommand(const bslstl::StringRef& source,
         return cmdResult.isErrorValue() ? -2 : 0;
     }
 
+    // alternate workflow:
+    // mqba::CommandRouterContext routeContext = d_commandRouter.createContext(cmd, command);
+    
+    // bool shouldSelfExecute = true;
+    // bsl::string selfName;
+    
+    // if (routeContext.isRoutingNeeded()) {
+    //     mqbi::Cluster* cluster = getRelevantCluster(command, &cmdResult);
+    //     if (cluster == nullptr) { // error
+    //         printCommandResult(cmdResult, commandWithOptions.encoding(), os);
+    //         return -2;
+    //     }
+
+    //     selfName = cluster->netCluster().selfNode()->hostName();
+
+    //     routeContext.setRelevantCluster(cluster);
+    //     shouldSelfExecute = d_commandRouter.routeContext(routeContext);
+    // }
+
+    // if (shouldSelfExecute) {
+    //     if (executeCommand(command, &cmdResult)) {
+    //         return 0; // early exit (caused by "dangerous" command)
+    //     }
+    // }
+
+    // routeContext.waitForResponses();
+
+    // mqba::CommandRouter::ResponseMessages& responses = routeContext.responses();
+
     // otherwise, this is an original call. utilize router if necessary
-    mqba::CommandRouter router(cmd, commandWithOptions);
+    mqba::RouteCommandManager router(cmd, commandWithOptions);
 
     bool shouldSelfExecute = true;
     bsl::string selfName;
@@ -806,7 +835,7 @@ int Application::processCommand(const bslstl::StringRef& source,
 
     router.waitForResponses();
 
-    mqba::CommandRouter::ResponseMessages& responses = router.responses();
+    mqba::RouteCommandManager::ResponseMessages& responses = router.responses();
 
     if (shouldSelfExecute) {
         // Add self response
