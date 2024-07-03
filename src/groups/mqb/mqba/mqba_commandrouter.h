@@ -56,40 +56,6 @@ class MultiRequestManagerRequestContext;
 namespace mqba {
 
 class CommandRouter {
-  private:
-    class Router {
-      private:
-        CommandRouter* d_router;
-
-      public:
-        Router(CommandRouter* router);
-        virtual ~Router() = 0;
-
-        virtual bool   routeCommand() = 0;
-        CommandRouter* router();
-    };
-    class AllPartitionPrimariesRouter : public Router {
-      public:
-        AllPartitionPrimariesRouter(CommandRouter* router);
-
-        bool routeCommand() BSLS_KEYWORD_OVERRIDE;
-    };
-    class SinglePartitionPrimaryRouter : public Router {
-      private:
-        int d_partitionId;
-
-      public:
-        SinglePartitionPrimaryRouter(CommandRouter* router);
-
-        void setPartitionID(int id);
-        bool routeCommand() BSLS_KEYWORD_OVERRIDE;
-    };
-    class ClusterRouter : public Router {
-      public:
-        ClusterRouter(CommandRouter* router);
-
-        bool routeCommand() BSLS_KEYWORD_OVERRIDE;
-    };
   public:
     typedef bsl::shared_ptr<
         mqbnet::MultiRequestManagerRequestContext<bmqp_ctrlmsg::ControlMessage,
@@ -100,10 +66,49 @@ class CommandRouter {
             ResponseMessages;
     typedef bsl::vector<mqbnet::ClusterNode*> NodesVector;
   private:
+    struct RouteMembers {
+      NodesVector nodes;
+      bool self;
+    };
+
+    class RoutingMode {
+      private:
+        CommandRouter* d_router;
+      public:
+        RoutingMode(CommandRouter* router);
+        virtual ~RoutingMode() = 0;
+
+        virtual RouteMembers getRouteMembers() = 0;
+
+        const CommandRouter* router() const;
+    };
+    class AllPartitionPrimariesRoutingMode : public RoutingMode {
+      public:
+        AllPartitionPrimariesRoutingMode(CommandRouter* router);
+
+        RouteMembers getRouteMembers() BSLS_KEYWORD_OVERRIDE;
+    };
+    class SinglePartitionPrimaryRoutingMode : public RoutingMode {
+      private:
+        int d_partitionId;
+
+      public:
+        SinglePartitionPrimaryRoutingMode(CommandRouter* router);
+
+        void setPartitionID(int id);
+        RouteMembers getRouteMembers() BSLS_KEYWORD_OVERRIDE;
+    };
+    class ClusterRoutingMode : public RoutingMode {
+      public:
+        ClusterRoutingMode(CommandRouter* router);
+
+        RouteMembers getRouteMembers() BSLS_KEYWORD_OVERRIDE;
+    };
+  private:
     // store an instance of each type of router
-    AllPartitionPrimariesRouter  d_allPartitionPrimariesRouter;
-    SinglePartitionPrimaryRouter d_singlePartitionPrimaryRouter;
-    ClusterRouter                d_clusterRouter;
+    AllPartitionPrimariesRoutingMode  d_allPartitionPrimariesRoutingMode;
+    SinglePartitionPrimaryRoutingMode d_singlePartitionPrimaryRoutingMode;
+    ClusterRoutingMode                d_clusterRoutingMode;
 
     bslmt::Latch d_latch;
 
@@ -111,11 +116,11 @@ class CommandRouter {
     const mqbcmd::Command&       d_commandWithOptions;
     const mqbcmd::CommandChoice& d_command;
 
-    ResponseMessages d_responses;
-
-    Router* d_router;
+    CommandRouter::ResponseMessages d_responses;
 
     mqbi::Cluster* d_cluster;
+
+    CommandRouter::RoutingMode* d_routingMode;
   public:
     /// Sets up a command router with the given command string and parsed
     /// command object. This will  
@@ -141,7 +146,7 @@ class CommandRouter {
     mqbi::Cluster* cluster() const;
 
   private:
-    Router* getCommandRouter();
+    RoutingMode* getCommandRoutingMode();
 
     void countDownLatch();
 
@@ -150,11 +155,27 @@ class CommandRouter {
     void routeCommand(const NodesVector& nodes);
 };
 
-inline CommandRouter* CommandRouter::Router::router() {
+
+// class CommandRouterContext {
+//   private:
+//     bslmt::Latch d_latch;
+
+//     const bsl::string&           d_commandString;
+//     const mqbcmd::Command&       d_commandWithOptions;
+//     const mqbcmd::CommandChoice& d_command;
+
+//     CommandRouter::ResponseMessages d_responses;
+
+//     mqbi::Cluster* d_cluster;
+
+//     CommandRouter::Router* d_router;
+// };
+
+inline const CommandRouter* CommandRouter::RoutingMode::router() const {
     return d_router;
 }
 
-inline void CommandRouter::SinglePartitionPrimaryRouter::setPartitionID(int id)
+inline void CommandRouter::SinglePartitionPrimaryRoutingMode::setPartitionID(int id)
 {
     d_partitionId = id;
 }
