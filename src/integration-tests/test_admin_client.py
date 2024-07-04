@@ -19,7 +19,7 @@ commands.
 """
 import dataclasses
 import json
-from typing import Dict, Optional
+from typing import Dict, Optional, Union
 
 import blazingmq.dev.it.testconstants as tc
 from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
@@ -28,6 +28,7 @@ from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
     single_node,
     tweak,
 )
+from blazingmq.dev.it.data import data_metrics as dt
 from blazingmq.dev.it.process.admin import AdminClient
 from blazingmq.dev.it.process.client import Client
 
@@ -85,37 +86,37 @@ def extract_stats(admin_response: str) -> dict:
     return d2
 
 
-class GreaterThan:
-    def __init__(self, value):
-        self.value = value
-
-
-def expect_same_structure(obj, expected) -> None:
+def expect_same_structure(
+    entry: Union[dict, list, str, int],
+    expected: Union[dict, list, str, int, dt.ValueConstraint],
+) -> None:
     """
-    Check if the specified 'obj' dictionary has the same structure as the specified 'expected' dictionary.
+    Check if the specified 'entry' has the same structure as the specified 'expected'.
+    Note that the 'expected' param could have fixed parameters as well as value constraint
+    placeholders that are used to represent a value non-fixed across different test launches.
     Assert on failure.
     """
 
     if isinstance(expected, dict):
-        assert isinstance(obj, dict)
-        assert expected.keys() == obj.keys()
+        assert isinstance(entry, dict)
+        assert expected.keys() == entry.keys()
         for key in expected:
-            expect_same_structure(obj[key], expected[key])
+            expect_same_structure(entry[key], expected[key])
     elif isinstance(expected, list):
-        assert isinstance(obj, list)
-        assert len(expected) == len(obj)
-        for obj2, expected2 in zip(obj, expected):
+        assert isinstance(entry, list)
+        assert len(expected) == len(entry)
+        for obj2, expected2 in zip(entry, expected):
             expect_same_structure(obj2, expected2)
     elif isinstance(expected, str):
-        assert isinstance(obj, str)
-        assert expected == obj
+        assert isinstance(entry, str)
+        assert expected == entry
     else:
-        assert isinstance(obj, int)
-        if isinstance(expected, GreaterThan):
-            assert obj > expected.value
+        assert isinstance(entry, int)
+        if isinstance(expected, dt.ValueConstraint):
+            assert expected.check(entry)
         else:
             assert isinstance(expected, int)
-            assert obj == expected
+            assert entry == expected
 
 
 def test_breathing(single_node: Cluster) -> None:
@@ -157,7 +158,7 @@ def test_breathing(single_node: Cluster) -> None:
 
 
 @tweak.broker.app_config.stats.app_id_tag_domains([tc.DOMAIN_FANOUT])
-def test_stats(single_node: Cluster) -> None:
+def test_queue_stats(single_node: Cluster) -> None:
     """
     Test: queue metrics via admin command.
     Preconditions:
@@ -180,12 +181,6 @@ def test_stats(single_node: Cluster) -> None:
     Concerns:
     - The broker is able to report queue metrics for fanout queue.
     - Safeguarding mechanism prevents from getting stats too often.
-
-    Note: when the metrics collection evolves, it might be necessary to update
-          the expected stats in the test. To do so, it's possible to copy values
-          observed in the debugger for this test and paste them as a dictionary,
-          while replacing non-fixed parameters such as time intervals with a
-          condition placeholders (see 'GreaterThan').
     """
 
     # Preconditions
@@ -204,77 +199,7 @@ def test_stats(single_node: Cluster) -> None:
     stats = extract_stats(admin.send_admin("encoding json_pretty stat show"))
     queue_stats = stats["domainQueues"]["domains"][tc.DOMAIN_FANOUT][task.uri]
 
-    expected_stats_after_post = {
-        "appIds": {
-            "bar": {
-                "values": {
-                    "queue_confirm_time_max": 0,
-                    "queue_confirm_time_avg": 0,
-                    "queue_nack_msgs": 0,
-                    "queue_ack_time_max": 0,
-                    "queue_ack_msgs": 0,
-                    "queue_confirm_msgs": 0,
-                    "queue_push_bytes": 0,
-                    "queue_consumers_count": 0,
-                    "queue_producers_count": 0,
-                    "queue_push_msgs": 0,
-                    "queue_ack_time_avg": 0,
-                    "queue_put_bytes": 0,
-                    "queue_put_msgs": 0,
-                }
-            },
-            "baz": {
-                "values": {
-                    "queue_confirm_time_max": 0,
-                    "queue_confirm_time_avg": 0,
-                    "queue_nack_msgs": 0,
-                    "queue_ack_time_max": 0,
-                    "queue_ack_msgs": 0,
-                    "queue_confirm_msgs": 0,
-                    "queue_push_bytes": 0,
-                    "queue_consumers_count": 0,
-                    "queue_producers_count": 0,
-                    "queue_push_msgs": 0,
-                    "queue_ack_time_avg": 0,
-                    "queue_put_bytes": 0,
-                    "queue_put_msgs": 0,
-                }
-            },
-            "foo": {
-                "values": {
-                    "queue_confirm_time_max": 0,
-                    "queue_confirm_time_avg": 0,
-                    "queue_nack_msgs": 0,
-                    "queue_ack_time_max": 0,
-                    "queue_ack_msgs": 0,
-                    "queue_confirm_msgs": 0,
-                    "queue_push_bytes": 0,
-                    "queue_consumers_count": 0,
-                    "queue_producers_count": 0,
-                    "queue_push_msgs": 0,
-                    "queue_ack_time_avg": 0,
-                    "queue_put_bytes": 0,
-                    "queue_put_msgs": 0,
-                }
-            },
-        },
-        "values": {
-            "queue_confirm_time_max": 0,
-            "queue_confirm_time_avg": 0,
-            "queue_nack_msgs": 0,
-            "queue_ack_time_max": GreaterThan(0),
-            "queue_ack_msgs": 32,
-            "queue_confirm_msgs": 0,
-            "queue_push_bytes": 0,
-            "queue_consumers_count": 0,
-            "queue_producers_count": 0,
-            "queue_push_msgs": 0,
-            "queue_ack_time_avg": GreaterThan(0),
-            "queue_put_bytes": 96,
-            "queue_put_msgs": 32,
-        },
-    }
-    expect_same_structure(queue_stats, expected_stats_after_post)
+    expect_same_structure(queue_stats, dt.TEST_QUEUE_STATS_AFTER_POST)
 
     # Stage 2: check stats after confirming messages
     consumer_foo: Client = proxy.create_client("consumer_foo")
@@ -292,77 +217,7 @@ def test_stats(single_node: Cluster) -> None:
     stats = extract_stats(admin.send_admin("encoding json_pretty stat show"))
     queue_stats = stats["domainQueues"]["domains"][tc.DOMAIN_FANOUT][task.uri]
 
-    expected_stats_after_confirm = {
-        "appIds": {
-            "bar": {
-                "values": {
-                    "queue_confirm_time_max": GreaterThan(0),
-                    "queue_confirm_time_avg": GreaterThan(0),
-                    "queue_nack_msgs": 0,
-                    "queue_ack_time_max": 0,
-                    "queue_ack_msgs": 0,
-                    "queue_confirm_msgs": 0,
-                    "queue_push_bytes": 0,
-                    "queue_consumers_count": 0,
-                    "queue_producers_count": 0,
-                    "queue_push_msgs": 0,
-                    "queue_ack_time_avg": 0,
-                    "queue_put_bytes": 0,
-                    "queue_put_msgs": 0,
-                }
-            },
-            "baz": {
-                "values": {
-                    "queue_confirm_time_max": GreaterThan(0),
-                    "queue_confirm_time_avg": GreaterThan(0),
-                    "queue_nack_msgs": 0,
-                    "queue_ack_time_max": 0,
-                    "queue_ack_msgs": 0,
-                    "queue_confirm_msgs": 0,
-                    "queue_push_bytes": 0,
-                    "queue_consumers_count": 0,
-                    "queue_producers_count": 0,
-                    "queue_push_msgs": 0,
-                    "queue_ack_time_avg": 0,
-                    "queue_put_bytes": 0,
-                    "queue_put_msgs": 0,
-                }
-            },
-            "foo": {
-                "values": {
-                    "queue_confirm_time_max": GreaterThan(0),
-                    "queue_confirm_time_avg": GreaterThan(0),
-                    "queue_nack_msgs": 0,
-                    "queue_ack_time_max": 0,
-                    "queue_ack_msgs": 0,
-                    "queue_confirm_msgs": 0,
-                    "queue_push_bytes": 0,
-                    "queue_consumers_count": 0,
-                    "queue_producers_count": 0,
-                    "queue_push_msgs": 0,
-                    "queue_ack_time_avg": 0,
-                    "queue_put_bytes": 0,
-                    "queue_put_msgs": 0,
-                }
-            },
-        },
-        "values": {
-            "queue_confirm_time_max": GreaterThan(0),
-            "queue_confirm_time_avg": GreaterThan(0),
-            "queue_nack_msgs": 0,
-            "queue_ack_time_max": GreaterThan(0),
-            "queue_ack_msgs": 32,
-            "queue_confirm_msgs": 65,
-            "queue_push_bytes": 288,
-            "queue_consumers_count": 3,
-            "queue_producers_count": 0,
-            "queue_push_msgs": 96,
-            "queue_ack_time_avg": GreaterThan(0),
-            "queue_put_bytes": 96,
-            "queue_put_msgs": 32,
-        },
-    }
-    expect_same_structure(queue_stats, expected_stats_after_confirm)
+    expect_same_structure(queue_stats, dt.TEST_QUEUE_STATS_AFTER_CONFIRM)
 
     consumer_foo.close(f"{task.uri}?id=foo")
     consumer_bar.close(f"{task.uri}?id=bar")
@@ -374,12 +229,7 @@ def test_stats(single_node: Cluster) -> None:
     res = admin.send_admin("encoding json_pretty stat show")
     obj = json.loads(res)
 
-    too_often_snapshots_message = {
-        "error": {
-            "message": "Cannot save the recent snapshot, trying to make snapshots too often"
-        }
-    }
-    expect_same_structure(obj, too_often_snapshots_message)
+    expect_same_structure(obj, dt.TEST_QUEUE_STATS_TOO_OFTEN_SNAPSHOTS)
 
     admin.stop()
 

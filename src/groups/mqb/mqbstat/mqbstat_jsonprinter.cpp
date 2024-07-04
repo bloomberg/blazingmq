@@ -40,7 +40,7 @@ namespace {
 // ---------------------
 
 /// The implementation class for JsonPrinter, containing all the cached options
-/// for printing statistics as json.  This implementation exists and is hidden
+/// for printing statistics as JSON.  This implementation exists and is hidden
 /// from the package include for the following reasons:
 /// - Don't want to expose `bdljsn` names and symbols to the outer scope.
 /// - Member fields and functions defined for this implementation are used only
@@ -52,20 +52,14 @@ class JsonPrinterImpl {
 
   private:
     // PRIVATE TYPES
-    typedef bsl::unordered_map<bsl::string, mwcst::StatContext*>
-        StatContextsMap;
-
-    typedef mqbstat::QueueStatsDomain::Stat Stat;
+    typedef JsonPrinter::StatContextsMap StatContextsMap;
 
   private:
     // DATA
-    /// Config to use
-    const mqbcfg::StatsConfig& d_config;
-
-    /// Options for printing a compact json
+    /// Options for printing a compact JSON
     const bdljsn::WriteOptions d_opsCompact;
 
-    /// Options for printing a pretty json
+    /// Options for printing a pretty JSON
     const bdljsn::WriteOptions d_opsPretty;
 
     /// StatContext-s map
@@ -79,89 +73,98 @@ class JsonPrinterImpl {
 
     // ACCESSORS
 
-    /// "domainQueues"
+    /// "domainQueues" stat context:
     /// Populate the specified `bdljsn::JsonObject*` with the values
     /// from the specified `ctx`.
-    void populateQueueValues(bdljsn::JsonObject*       queueObject,
-                             const mwcst::StatContext& ctx) const;
-    void populateQueueStats(bdljsn::JsonObject*       domainObject,
-                            const mwcst::StatContext& ctx) const;
-    void populateDomainQueueStats(bdljsn::JsonObject*       parent,
-                                  const mwcst::StatContext& ctx) const;
+    static void populateAllDomainsStats(bdljsn::JsonObject*       parent,
+                                        const mwcst::StatContext& ctx);
+    static void populateOneDomainStats(bdljsn::JsonObject*       domainObject,
+                                       const mwcst::StatContext& ctx);
+    static void populateQueueStats(bdljsn::JsonObject*       queueObject,
+                                   const mwcst::StatContext& ctx);
+    static void populateMetric(bdljsn::JsonObject*       metricsObject,
+                               const mwcst::StatContext& ctx,
+                               mqbstat::QueueStatsDomain::Stat::Enum metric);
 
   public:
-    // TRAITS
-    BSLMF_NESTED_TRAIT_DECLARATION(JsonPrinterImpl, bslma::UsesBslmaAllocator)
-
     // CREATORS
 
-    /// Create a new `JsonPrinterImpl` object, using the specified `config`,
+    /// Create a new `JsonPrinterImpl` object, using the specified
     /// `statContextsMap` and the specified `allocator`.
-    JsonPrinterImpl(const mqbcfg::StatsConfig& config,
-                    const StatContextsMap&     statContextsMap,
-                    bslma::Allocator*          allocator);
+    explicit JsonPrinterImpl(const StatContextsMap& statContextsMap,
+                             bslma::Allocator*      allocator);
 
     // ACCESSORS
 
-    /// Print the json-encoded stats to the specified `out`.
-    /// If the specified `compact` flag is `true`, the json is printed in a
-    /// compact form, otherwise the json is printed in a pretty form.
+    /// Print the JSON-encoded stats to the specified `out`.
+    /// If the specified `compact` flag is `true`, the JSON is printed in a
+    /// compact form, otherwise the JSON is printed in a pretty form.
     /// Return `0` on success, and non-zero return code on failure.
     ///
     /// THREAD: This method is called in the *StatController scheduler* thread.
     int printStats(bsl::string* out, bool compact) const;
 };
 
-inline JsonPrinterImpl::JsonPrinterImpl(const mqbcfg::StatsConfig& config,
-                                        const StatContextsMap& statContextsMap,
+inline JsonPrinterImpl::JsonPrinterImpl(const StatContextsMap& statContextsMap,
                                         bslma::Allocator*      allocator)
-: d_config(config)
-, d_opsCompact(bdljsn::WriteOptions().setSpacesPerLevel(0).setStyle(
+: d_opsCompact(bdljsn::WriteOptions().setSpacesPerLevel(0).setStyle(
       bdljsn::WriteStyle::e_COMPACT))
 , d_opsPretty(bdljsn::WriteOptions().setSpacesPerLevel(4).setStyle(
       bdljsn::WriteStyle::e_PRETTY))
 , d_contexts(statContextsMap, allocator)
 {
+    // NOTHING
 }
 
 inline void
-JsonPrinterImpl::populateQueueValues(bdljsn::JsonObject*       queueObject,
-                                     const mwcst::StatContext& ctx) const
+JsonPrinterImpl::populateMetric(bdljsn::JsonObject*       metricsObject,
+                                const mwcst::StatContext& ctx,
+                                mqbstat::QueueStatsDomain::Stat::Enum metric)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(metricsObject);
+
+    const bsls::Types::Int64 value =
+        mqbstat::QueueStatsDomain::getValue(ctx, -1, metric);
+
+    (*metricsObject)[mqbstat::QueueStatsDomain::Stat::toString(metric)]
+        .makeNumber() = value;
+}
+
+inline void
+JsonPrinterImpl::populateQueueStats(bdljsn::JsonObject*       queueObject,
+                                    const mwcst::StatContext& ctx)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(queueObject);
 
-    static const bsl::vector<Stat::Enum> defs = {Stat::e_NB_PRODUCER,
-                                                 Stat::e_NB_CONSUMER,
-                                                 Stat::e_PUT_MESSAGES_DELTA,
-                                                 Stat::e_PUT_BYTES_DELTA,
-                                                 Stat::e_PUSH_MESSAGES_DELTA,
-                                                 Stat::e_PUSH_BYTES_DELTA,
-                                                 Stat::e_ACK_DELTA,
-                                                 Stat::e_ACK_TIME_AVG,
-                                                 Stat::e_ACK_TIME_MAX,
-                                                 Stat::e_NACK_DELTA,
-                                                 Stat::e_CONFIRM_DELTA,
-                                                 Stat::e_CONFIRM_TIME_AVG,
-                                                 Stat::e_CONFIRM_TIME_MAX};
-
-    if (ctx.numValues() > 0) {
-        bdljsn::JsonObject& values = (*queueObject)["values"].makeObject();
-
-        for (int i = 0; i < defs.size(); i++) {
-            Stat::Enum d = defs[i];
-
-            const bsls::Types::Int64 value =
-                mqbstat::QueueStatsDomain::getValue(ctx, -1, d);
-
-            values[Stat::toString(d)].makeNumber() = value;
-        }
+    if (ctx.numValues() == 0) {
+        // Prefer to omit an empty "values" object
+        return;  // RETURN
     }
+
+    bdljsn::JsonObject& values = (*queueObject)["values"].makeObject();
+
+    typedef mqbstat::QueueStatsDomain::Stat Stat;
+
+    populateMetric(&values, ctx, Stat::e_NB_PRODUCER);
+    populateMetric(&values, ctx, Stat::e_NB_CONSUMER);
+    populateMetric(&values, ctx, Stat::e_PUT_MESSAGES_DELTA);
+    populateMetric(&values, ctx, Stat::e_PUT_BYTES_DELTA);
+    populateMetric(&values, ctx, Stat::e_PUSH_MESSAGES_DELTA);
+    populateMetric(&values, ctx, Stat::e_PUSH_BYTES_DELTA);
+    populateMetric(&values, ctx, Stat::e_ACK_DELTA);
+    populateMetric(&values, ctx, Stat::e_ACK_TIME_AVG);
+    populateMetric(&values, ctx, Stat::e_ACK_TIME_MAX);
+    populateMetric(&values, ctx, Stat::e_NACK_DELTA);
+    populateMetric(&values, ctx, Stat::e_CONFIRM_DELTA);
+    populateMetric(&values, ctx, Stat::e_CONFIRM_TIME_AVG);
+    populateMetric(&values, ctx, Stat::e_CONFIRM_TIME_MAX);
 }
 
 inline void
-JsonPrinterImpl::populateQueueStats(bdljsn::JsonObject*       domainObject,
-                                    const mwcst::StatContext& ctx) const
+JsonPrinterImpl::populateOneDomainStats(bdljsn::JsonObject*       domainObject,
+                                        const mwcst::StatContext& ctx)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(domainObject);
@@ -171,7 +174,7 @@ JsonPrinterImpl::populateQueueStats(bdljsn::JsonObject*       domainObject,
          ++queueIt) {
         bdljsn::JsonObject& queueObj =
             (*domainObject)[queueIt->name()].makeObject();
-        populateQueueValues(&queueObj, *queueIt);
+        populateQueueStats(&queueObj, *queueIt);
 
         if (queueIt->numSubcontexts() > 0) {
             bdljsn::JsonObject& appIdsObject = queueObj["appIds"].makeObject();
@@ -184,17 +187,16 @@ JsonPrinterImpl::populateQueueStats(bdljsn::JsonObject*       domainObject,
                 // Do not expect another nested StatContext within appId
                 BSLS_ASSERT_SAFE(0 == appIdIt->numSubcontexts());
 
-                populateQueueValues(
-                    &appIdsObject[appIdIt->name()].makeObject(),
-                    *appIdIt);
+                populateQueueStats(&appIdsObject[appIdIt->name()].makeObject(),
+                                   *appIdIt);
             }
         }
     }
 }
 
 inline void
-JsonPrinterImpl::populateDomainQueueStats(bdljsn::JsonObject*       parent,
-                                          const mwcst::StatContext& ctx) const
+JsonPrinterImpl::populateAllDomainsStats(bdljsn::JsonObject*       parent,
+                                         const mwcst::StatContext& ctx)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(parent);
@@ -203,7 +205,8 @@ JsonPrinterImpl::populateDomainQueueStats(bdljsn::JsonObject*       parent,
     for (mwcst::StatContextIterator domainIt = ctx.subcontextIterator();
          domainIt;
          ++domainIt) {
-        populateQueueStats(&nodes[domainIt->name()].makeObject(), *domainIt);
+        populateOneDomainStats(&nodes[domainIt->name()].makeObject(),
+                               *domainIt);
     }
 }
 
@@ -222,7 +225,7 @@ inline int JsonPrinterImpl::printStats(bsl::string* out, bool compact) const
             *d_contexts.find("domainQueues")->second;
         bdljsn::JsonObject& domainQueuesObj = obj["domainQueues"].makeObject();
 
-        populateDomainQueueStats(&domainQueuesObj, ctx);
+        populateAllDomainsStats(&domainQueuesObj, ctx);
     }
 
     const bdljsn::WriteOptions& ops = compact ? d_opsCompact : d_opsPretty;
@@ -230,7 +233,7 @@ inline int JsonPrinterImpl::printStats(bsl::string* out, bool compact) const
     mwcu::MemOutStream os;
     const int          rc = bdljsn::JsonUtil::write(os, json, ops);
     if (0 != rc) {
-        BALL_LOG_ERROR << "failed to encode stats json, rc = " << rc;
+        BALL_LOG_ERROR << "Failed to encode stats JSON, rc = " << rc;
         return rc;  // RETURN
     }
     (*out) = os.str();
@@ -243,14 +246,13 @@ inline int JsonPrinterImpl::printStats(bsl::string* out, bool compact) const
 // class JsonPrinter
 // -----------------
 
-JsonPrinter::JsonPrinter(const mqbcfg::StatsConfig& config,
-                         const StatContextsMap&     statContextsMap,
-                         bslma::Allocator*          allocator)
-: d_allocator_p(bslma::Default::allocator(allocator))
-, d_impl_mp(new (*d_allocator_p)
-                JsonPrinterImpl(config, statContextsMap, d_allocator_p),
-            d_allocator_p)
+JsonPrinter::JsonPrinter(const StatContextsMap& statContextsMap,
+                         bslma::Allocator*      allocator)
 {
+    bslma::Allocator* alloc = bslma::Default::allocator(allocator);
+
+    d_impl_mp.load(new (*alloc) JsonPrinterImpl(statContextsMap, alloc),
+                   alloc);
 }
 
 int JsonPrinter::printStats(bsl::string* out, bool compact) const

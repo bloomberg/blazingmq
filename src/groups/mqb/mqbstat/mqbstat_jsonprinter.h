@@ -17,18 +17,15 @@
 #ifndef INCLUDED_MQBSTAT_JSONPRINTER
 #define INCLUDED_MQBSTAT_JSONPRINTER
 
-//@PURPOSE: Provide a mechanism to print statistics as a json
+//@PURPOSE: Provide a mechanism to print statistics as a JSON
 //
 //@CLASSES:
-//  mqbstat::JsonPrinter: statistics printer to json
+//  mqbstat::JsonPrinter: statistics printer to JSON
 //
 //@DESCRIPTION: 'mqbstat::JsonPrinter' handles the printing of the statistics
-// as a compact or pretty json.  It is responsible solely for printing, so any
+// as a compact or pretty JSON.  It is responsible solely for printing, so any
 // statistics updates (e.g. making a new snapshot of the used StatContexts)
 // must be done before calling to this component.
-
-// MQB
-#include <mqbcfg_messages.h>
 
 // MWC
 #include <mwcst_statcontext.h>
@@ -37,8 +34,6 @@
 #include <bsl_string.h>
 #include <bsl_unordered_map.h>
 #include <bslma_allocator.h>
-#include <bslma_usesbslmaallocator.h>
-#include <bslmf_nestedtraitdeclaration.h>
 
 namespace BloombergLP {
 
@@ -55,17 +50,9 @@ class JsonPrinterImpl;
 
 class JsonPrinter {
   private:
-    // PRIVATE TYPES
-    typedef bsl::unordered_map<bsl::string, mwcst::StatContext*>
-        StatContextsMap;
-
-  private:
     // DATA
-    /// Allocator to use
-    bslma::Allocator* d_allocator_p;
-
     /// Managed pointer to the printer implementation.
-    const bslma::ManagedPtr<JsonPrinterImpl> d_impl_mp;
+    bslma::ManagedPtr<JsonPrinterImpl> d_impl_mp;
 
   private:
     // NOT IMPLEMENTED
@@ -73,22 +60,22 @@ class JsonPrinter {
     JsonPrinter& operator=(const JsonPrinter& other) BSLS_CPP11_DELETED;
 
   public:
-    // TRAITS
-    BSLMF_NESTED_TRAIT_DECLARATION(JsonPrinter, bslma::UsesBslmaAllocator)
+    // PUBLIC TYPES
+    typedef bsl::unordered_map<bsl::string, mwcst::StatContext*>
+        StatContextsMap;
 
     // CREATORS
 
-    /// Create a new `JsonPrinter` object, using the specified `config`,
-    /// `statContextsMap` and the specified `allocator`.
-    JsonPrinter(const mqbcfg::StatsConfig& config,
-                const StatContextsMap&     statContextsMap,
-                bslma::Allocator*          allocator);
+    /// Create a new `JsonPrinter` object, using the specified
+    /// `statContextsMap` and the optionally specified `allocator`.
+    explicit JsonPrinter(const StatContextsMap& statContextsMap,
+                         bslma::Allocator*      allocator = 0);
 
     // ACCESSORS
 
-    /// Print the json-encoded stats to the specified `out`.
-    /// If the specified `compact` flag is `true`, the json is printed in
-    /// compact form, otherwise the json is printed in pretty form.
+    /// Print the JSON-encoded stats to the specified `out`.
+    /// If the specified `compact` flag is `true`, the JSON is printed in
+    /// compact form, otherwise the JSON is printed in pretty form.
     /// Return `0` on success, and non-zero return code on failure.
     ///
     /// THREAD: This method is called in the *StatController scheduler* thread.

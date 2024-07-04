@@ -230,7 +230,11 @@ class StatController {
     void initializeStats();
 
     /// Capture the stats to the specified `result`' object and post on the
-    /// specified `semaphore` once done.
+    /// specified `semaphore` once done.  The specified `encoding` parameter
+    /// controls whether the result should be in a text format or in a JSON.
+    /// Note that the JSON format is typically used within integration tests
+    /// so we make an out of order stats snapshot when compact or pretty JSON
+    /// encoding is passed.
     void captureStatsAndSemaphorePost(
         mqbcmd::StatResult*                  result,
         bslmt::Semaphore*                    semaphore,
@@ -309,9 +313,10 @@ class StatController {
     /// (allocators, systems, domainQueues, clients, ...).
     void loadStatContexts(StatContexts* contexts);
 
-    /// Process the specified `command`, and write the result to the
-    /// `result`' object.  Return zero on success or a nonzero value
-    /// otherwise.
+    /// Process the specified `command`, and write the result to the `result`
+    /// object.  Return zero on success or a nonzero value otherwise.
+    /// The specified `encoding` parameter controls whether the result should
+    /// be in a text format or in a JSON.
     int processCommand(mqbcmd::StatResult*                  result,
                        const mqbcmd::StatCommand&           command,
                        const mqbcmd::EncodingFormat::Value& encoding);

@@ -284,6 +284,9 @@ QueueStatsDomain::getValue(const mwcst::StatContext& context,
 {
     // invoked from the SNAPSHOT thread
 
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(snapshotId >= -1);  // do not support other negatives yet
+
     const mwcst::StatValue::SnapshotLocation latestSnapshot(0, 0);
 
 #define OLDEST_SNAPSHOT(STAT)                                                 \

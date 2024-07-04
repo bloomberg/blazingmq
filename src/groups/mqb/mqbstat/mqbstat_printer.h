@@ -127,10 +127,10 @@ class Printer {
     /// Create a new `Printer` object, using the specified `config`,
     /// `eventScheduler`, `statContextsMap` and the specified `allocator`
     /// for memory allocation.
-    Printer(const mqbcfg::StatsConfig& config,
-            bdlmt::EventScheduler*     eventScheduler,
-            const StatContextsMap&     statContextsMap,
-            bslma::Allocator*          allocator);
+    explicit Printer(const mqbcfg::StatsConfig& config,
+                     bdlmt::EventScheduler*     eventScheduler,
+                     const StatContextsMap&     statContextsMap,
+                     bslma::Allocator*          allocator);
 
     // MANIPULATORS
 

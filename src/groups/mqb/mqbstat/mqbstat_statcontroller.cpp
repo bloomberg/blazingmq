@@ -263,7 +263,10 @@ void StatController::captureStatsAndSemaphorePost(
     case mqbcmd::EncodingFormat::JSON_COMPACT: BSLS_ANNOTATION_FALLTHROUGH;
     case mqbcmd::EncodingFormat::JSON_PRETTY: {
         // Make an unscheduled snapshot, but do not notify stats consumers
-        // since it's not necessary
+        // since it's not necessary.  We typically use this code path to get
+        // the latests stats during integration tests, and this case we
+        // neither want to wait until the next scheduled snapshot nor get the
+        // outdated existing one.
         const bool savedNextSnapshot = snapshot();
         if (savedNextSnapshot) {
             const bool compact = (encoding ==
@@ -839,11 +842,10 @@ int StatController::start(bsl::ostream& errorDescription)
         errorStream.reset();
     }
 
-    // Start the json printer
-    d_jsonPrinter_mp.load(
-        new (*d_allocator_p)
-            JsonPrinter(brkrCfg.stats(), ctxPtrMap, d_allocator_p),
-        d_allocator_p);
+    // Create the json printer
+    d_jsonPrinter_mp.load(new (*d_allocator_p)
+                              JsonPrinter(ctxPtrMap, d_allocator_p),
+                          d_allocator_p);
 
     // Max value for the stat publish interval must be the minimum history size
     // of all stat contexts.

@@ -202,8 +202,8 @@ class QueueStatsDomain {
     /// represented by its associated specified `context` as the difference
     /// between the latest snapshot-ed value (i.e., `snapshotId == 0`) and
     /// the value that was recorded at the specified `snapshotId` snapshots
-    /// ago.  Any negative `snapshotId` means that the oldest available
-    /// snapshot should be used.
+    /// ago.  The negative `snapshotId == -1` means that the oldest available
+    /// snapshot should be used, while other negative values are not supported.
     ///
     /// THREAD: This method can only be invoked from the `snapshot` thread.
     static bsls::Types::Int64 getValue(const mwcst::StatContext& context,
