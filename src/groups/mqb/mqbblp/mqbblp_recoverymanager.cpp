@@ -1722,14 +1722,15 @@ int RecoveryManager::replayPartition(
         bmqp::StorageMessageType::Enum storageMsgType =
             bmqp::StorageMessageType::e_UNDEFINED;
 
-        rc = mqbc::RecoveryUtil::incrementCurrentSeqNum(&currentSeqNum,
-                                                        &journalRecordBase,
-                                                        fti->journalFd(),
-                                                        toSequenceNum,
-                                                        pid,
-                                                        *destination,
-                                                        *d_clusterData_p,
-                                                        journalIt);
+        rc = mqbc::RecoveryUtil::incrementCurrentSeqNum(
+            &currentSeqNum,
+            &journalRecordBase,
+            fti->journalFd(),
+            toSequenceNum,
+            pid,
+            *destination,
+            d_clusterData_p->identity().description(),
+            journalIt);
         if (rc != 0) {
             break;  // BREAK
         }

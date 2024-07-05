@@ -118,18 +118,19 @@ void RecoveryManager::ReceiveDataContext::reset()
 
 // CREATORS
 RecoveryManager::RecoveryManager(
+    bdlbb::BlobBufferFactory*        bufferFactory,
     const mqbcfg::ClusterDefinition& clusterConfig,
-    mqbc::ClusterData*               clusterData,
+    const mqbc::ClusterData&         clusterData,
     const mqbs::DataStoreConfig&     dataStoreConfig,
     bslma::Allocator*                allocator)
 : d_allocator_p(allocator)
+, d_bufferFactory_p(bufferFactory)
 , d_clusterConfig(clusterConfig)
 , d_dataStoreConfig(dataStoreConfig)
-, d_clusterData_p(clusterData)
+, d_clusterData(clusterData)
 , d_recoveryContextVec(allocator)
 {
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(clusterData);
     BSLS_ASSERT_SAFE(allocator);
 
     d_recoveryContextVec.resize(
@@ -156,7 +157,7 @@ void RecoveryManager::stop()
 
 void RecoveryManager::deprecateFileSet(int partitionId)
 {
-    // executed by the *STORAGE (QUEUE) DISPATCHER* thread
+    // executed by the *QUEUE DISPATCHER* thread associated with 'partitionId'
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(partitionId >= 0 &&
@@ -172,7 +173,7 @@ void RecoveryManager::deprecateFileSet(int partitionId)
                                             errorDesc);
         if (rc != 0) {
             MWCTSK_ALARMLOG_ALARM("FILE_IO")
-                << d_clusterData_p->identity().description() << " Partition ["
+                << d_clusterData.identity().description() << " Partition ["
                 << partitionId << "]: "
                 << "Failed to truncate journal file ["
                 << recoveryCtx.d_recoveryFileSet.journalFile()
@@ -187,7 +188,7 @@ void RecoveryManager::deprecateFileSet(int partitionId)
             errorDesc);
         if (rc != 0) {
             MWCTSK_ALARMLOG_ALARM("FILE_IO")
-                << d_clusterData_p->identity().description() << " Partition ["
+                << d_clusterData.identity().description() << " Partition ["
                 << partitionId << "]: "
                 << "Failed to flush journal file ["
                 << recoveryCtx.d_recoveryFileSet.journalFile()
@@ -199,7 +200,7 @@ void RecoveryManager::deprecateFileSet(int partitionId)
         rc = mqbs::FileSystemUtil::close(&recoveryCtx.d_mappedJournalFd);
         if (rc != 0) {
             MWCTSK_ALARMLOG_ALARM("FILE_IO")
-                << d_clusterData_p->identity().description() << " Partition ["
+                << d_clusterData.identity().description() << " Partition ["
                 << partitionId << "]: "
                 << "Failed to close journal file ["
                 << recoveryCtx.d_recoveryFileSet.journalFile()
@@ -211,7 +212,7 @@ void RecoveryManager::deprecateFileSet(int partitionId)
         d_dataStoreConfig.archiveLocation());
     if (0 != rc) {
         MWCTSK_ALARMLOG_ALARM("FILE_IO")
-            << d_clusterData_p->identity().description() << " Partition ["
+            << d_clusterData.identity().description() << " Partition ["
             << partitionId << "]: "
             << "Failed to move file ["
             << recoveryCtx.d_recoveryFileSet.journalFile() << "] "
@@ -226,7 +227,7 @@ void RecoveryManager::deprecateFileSet(int partitionId)
                                             errorDesc);
         if (rc != 0) {
             MWCTSK_ALARMLOG_ALARM("FILE_IO")
-                << d_clusterData_p->identity().description() << " Partition ["
+                << d_clusterData.identity().description() << " Partition ["
                 << partitionId << "]: "
                 << "Failed to truncate data file ["
                 << recoveryCtx.d_recoveryFileSet.dataFile() << "], rc: " << rc
@@ -239,7 +240,7 @@ void RecoveryManager::deprecateFileSet(int partitionId)
                                          errorDesc);
         if (rc != 0) {
             MWCTSK_ALARMLOG_ALARM("FILE_IO")
-                << d_clusterData_p->identity().description() << " Partition ["
+                << d_clusterData.identity().description() << " Partition ["
                 << partitionId << "]: "
                 << "Failed to flush data file ["
                 << recoveryCtx.d_recoveryFileSet.dataFile() << "], rc: " << rc
@@ -250,7 +251,7 @@ void RecoveryManager::deprecateFileSet(int partitionId)
         rc = mqbs::FileSystemUtil::close(&recoveryCtx.d_mappedDataFd);
         if (rc != 0) {
             MWCTSK_ALARMLOG_ALARM("FILE_IO")
-                << d_clusterData_p->identity().description() << " Partition ["
+                << d_clusterData.identity().description() << " Partition ["
                 << partitionId << "]: "
                 << "Failed to close data file ["
                 << recoveryCtx.d_recoveryFileSet.dataFile() << "], rc: " << rc
@@ -261,7 +262,7 @@ void RecoveryManager::deprecateFileSet(int partitionId)
                                     d_dataStoreConfig.archiveLocation());
     if (0 != rc) {
         MWCTSK_ALARMLOG_ALARM("FILE_IO")
-            << d_clusterData_p->identity().description() << " Partition ["
+            << d_clusterData.identity().description() << " Partition ["
             << partitionId << "]: "
             << "Failed to move file ["
             << recoveryCtx.d_recoveryFileSet.dataFile() << "] "
@@ -279,9 +280,10 @@ void RecoveryManager::setExpectedDataChunkRange(
     const bmqp_ctrlmsg::PartitionSequenceNumber& endSeqNum,
     int                                          requestId)
 {
-    // executed by the *STORAGE (QUEUE) DISPATCHER* thread
+    // executed by the *QUEUE DISPATCHER* thread associated with 'partitionId'
 
     // PRECONDITIONS
+    BSLS_ASSERT_SAFE(fs.inDispatcherThread());
     BSLS_ASSERT_SAFE(partitionId >= 0 &&
                      partitionId <
                          d_clusterConfig.partitionConfig().numPartitions());
@@ -291,7 +293,7 @@ void RecoveryManager::setExpectedDataChunkRange(
     RecoveryContext&    recoveryCtx    = d_recoveryContextVec[partitionId];
     ReceiveDataContext& receiveDataCtx = recoveryCtx.d_receiveDataContext;
     if (receiveDataCtx.d_expectChunks) {
-        BALL_LOG_ERROR << d_clusterData_p->identity().description()
+        BALL_LOG_ERROR << d_clusterData.identity().description()
                        << " Partition [" << partitionId << "]: "
                        << "Got notification to expect chunks when self is "
                        << "already expecting chunks.  Self's view: "
@@ -322,7 +324,7 @@ void RecoveryManager::setExpectedDataChunkRange(
 
     BALL_LOG_INFO_BLOCK
     {
-        BALL_LOG_OUTPUT_STREAM << d_clusterData_p->identity().description()
+        BALL_LOG_OUTPUT_STREAM << d_clusterData.identity().description()
                                << " Partition [" << partitionId << "]: "
                                << "Got notification to expect data chunks "
                                << "of range " << beginSeqNum << " to "
@@ -337,7 +339,7 @@ void RecoveryManager::setExpectedDataChunkRange(
 
 void RecoveryManager::resetReceiveDataCtx(int partitionId)
 {
-    // executed by the *STORAGE (QUEUE) DISPATCHER* thread
+    // executed by the *QUEUE DISPATCHER* thread associated with 'partitionId'
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(partitionId >= 0 &&
@@ -355,7 +357,10 @@ int RecoveryManager::processSendDataChunks(
     const mqbs::FileStore&                       fs,
     PartitionDoneSendDataChunksCb                doneDataChunksCb)
 {
-    // executed by the *STORAGE (QUEUE) DISPATCHER* thread
+    // executed by the *QUEUE DISPATCHER* thread associated with 'partitionId'
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(fs.inDispatcherThread());
 
     enum RcEnum {
         // Value for the various RC error categories
@@ -426,7 +431,7 @@ int RecoveryManager::processSendDataChunks(
 
     bmqp::StorageEventBuilder builder(mqbs::FileStoreProtocol::k_VERSION,
                                       bmqp::EventType::e_PARTITION_SYNC,
-                                      d_clusterData_p->bufferFactory(),
+                                      d_bufferFactory_p,
                                       d_allocator_p);
 
     // Note that partition has to be replayed from the record *after*
@@ -439,14 +444,15 @@ int RecoveryManager::processSendDataChunks(
         bmqp::StorageMessageType::Enum storageMsgType =
             bmqp::StorageMessageType::e_UNDEFINED;
 
-        rc = RecoveryUtil::incrementCurrentSeqNum(&currentSeqNum,
-                                                  &journalRecordBase,
-                                                  *mappedJournalFd,
-                                                  endSeqNum,
-                                                  partitionId,
-                                                  *destination,
-                                                  *d_clusterData_p,
-                                                  journalIt);
+        rc = RecoveryUtil::incrementCurrentSeqNum(
+            &currentSeqNum,
+            &journalRecordBase,
+            *mappedJournalFd,
+            endSeqNum,
+            partitionId,
+            *destination,
+            d_clusterData.identity().description(),
+            journalIt);
         if (rc == 1) {
             break;
         }
@@ -525,7 +531,7 @@ int RecoveryManager::processSendDataChunks(
     }
 
     if (currentSeqNum != endSeqNum) {
-        BALL_LOG_WARN << d_clusterData_p->identity().description()
+        BALL_LOG_WARN << d_clusterData.identity().description()
                       << " Partition [" << partitionId
                       << "]: incomplete replay of partition. Sequence number "
                       << "of last record sent: " << currentSeqNum
@@ -545,8 +551,8 @@ int RecoveryManager::processSendDataChunks(
         }
     }
 
-    BALL_LOG_INFO << d_clusterData_p->identity().description()
-                  << " Partition [" << partitionId << "]: "
+    BALL_LOG_INFO << d_clusterData.identity().description() << " Partition ["
+                  << partitionId << "]: "
                   << "Sent data chunks from " << beginSeqNum << " to "
                   << endSeqNum
                   << " to node: " << destination->nodeDescription() << ".";
@@ -560,11 +566,11 @@ int RecoveryManager::processReceiveDataChunks(
     mqbs::FileStore*                    fs,
     int                                 partitionId)
 {
-    // executed by the *STORAGE (QUEUE) DISPATCHER* thread
+    // executed by the *QUEUE DISPATCHER* thread associated with 'partitionId'
 
     // PRECONDITIONS
+    BSLS_ASSERT_SAFE(fs && fs->inDispatcherThread());
     BSLS_ASSERT_SAFE(source);
-    BSLS_ASSERT_SAFE(fs);
     BSLS_ASSERT_SAFE(0 <= partitionId);
 
     enum RcEnum {
@@ -587,7 +593,7 @@ int RecoveryManager::processReceiveDataChunks(
     ReceiveDataContext& receiveDataCtx = recoveryCtx.d_receiveDataContext;
     if (!receiveDataCtx.d_expectChunks) {
         MWCTSK_ALARMLOG_ALARM("RECOVERY")
-            << d_clusterData_p->identity().description() << " Partition ["
+            << d_clusterData.identity().description() << " Partition ["
             << partitionId << "]: "
             << "Received partition-sync event from node "
             << source->nodeDescription()
@@ -599,7 +605,7 @@ int RecoveryManager::processReceiveDataChunks(
     BSLS_ASSERT_SAFE(receiveDataCtx.d_recoveryDataSource_p);
     if (receiveDataCtx.d_recoveryDataSource_p->nodeId() != source->nodeId()) {
         MWCTSK_ALARMLOG_ALARM("RECOVERY")
-            << d_clusterData_p->identity().description() << " Partition ["
+            << d_clusterData.identity().description() << " Partition ["
             << partitionId << "]: "
             << "Received partition-sync event from node "
             << source->nodeDescription()
@@ -625,7 +631,7 @@ int RecoveryManager::processReceiveDataChunks(
         }
         else if (receiveDataCtx.d_currSeqNum > receiveDataCtx.d_endSeqNum) {
             MWCTSK_ALARMLOG_ALARM("REPLICATION")
-                << d_clusterData_p->identity().description() << " Partition ["
+                << d_clusterData.identity().description() << " Partition ["
                 << partitionId << "]: "
                 << "The last partition sync msg inside a storage event "
                 << "processed by FileStore has sequenceNumber "
@@ -652,7 +658,7 @@ int RecoveryManager::processReceiveDataChunks(
         mwcu::BlobObjectProxy<mqbs::RecordHeader> recHeader;
 
         mwcu::MemOutStream partitionDesc;
-        partitionDesc << d_clusterData_p->identity().description()
+        partitionDesc << d_clusterData.identity().description()
                       << " Partition [" << partitionId << "]: ";
 
         int rc = mqbs::StorageUtil::loadRecordHeaderAndPos(
@@ -674,7 +680,7 @@ int RecoveryManager::processReceiveDataChunks(
 
         if (recordSeqNum <= receiveDataCtx.d_currSeqNum) {
             MWCTSK_ALARMLOG_ALARM("REPLICATION")
-                << d_clusterData_p->identity().description() << " Partition ["
+                << d_clusterData.identity().description() << " Partition ["
                 << partitionId << "]: "
                 << "Received partition sync msg of type "
                 << header.messageType() << " with sequenceNumber "
@@ -689,7 +695,7 @@ int RecoveryManager::processReceiveDataChunks(
 
         if (recordSeqNum > receiveDataCtx.d_endSeqNum) {
             MWCTSK_ALARMLOG_ALARM("REPLICATION")
-                << d_clusterData_p->identity().description() << " Partition ["
+                << d_clusterData.identity().description() << " Partition ["
                 << partitionId << "]: "
                 << "Received partition sync msg of type "
                 << header.messageType() << " with sequenceNumber "
@@ -718,7 +724,7 @@ int RecoveryManager::processReceiveDataChunks(
             // Source's and self views of the journal have diverged.
 
             MWCTSK_ALARMLOG_ALARM("REPLICATION")
-                << d_clusterData_p->identity().description() << " Partition ["
+                << d_clusterData.identity().description() << " Partition ["
                 << partitionId << "]: "
                 << "Received journal record of type [" << header.messageType()
                 << "] with journal offset mismatch. "
@@ -856,7 +862,7 @@ int RecoveryManager::processReceiveDataChunks(
                 if (mqbs::QueueOpType::e_CREATION != queueRec->type() &&
                     mqbs::QueueOpType::e_ADDITION != queueRec->type()) {
                     BALL_LOG_ERROR
-                        << d_clusterData_p->identity().description()
+                        << d_clusterData.identity().description()
                         << " Partition [" << partitionId << "]: "
                         << " Unexpected QueueOpType: " << queueRec->type();
                     return rc_INVALID_QUEUE_RECORD;  // RETURN
@@ -877,14 +883,16 @@ int RecoveryManager::createRecoveryFileSet(bsl::ostream&    errorDescription,
                                            mqbs::FileStore* fs,
                                            int              partitionId)
 {
+    // executed by the *QUEUE DISPATCHER* thread associated with 'partitionId'
+
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(fs);
+    BSLS_ASSERT_SAFE(fs && fs->inDispatcherThread());
 
     bsl::shared_ptr<mqbs::FileSet> fileSetSp;
 
     mwcu::MemOutStream partitionDesc;
     partitionDesc << "Partition [" << partitionId
-                  << "] (cluster: " << d_clusterData_p->cluster()->name()
+                  << "] (cluster: " << d_clusterData.cluster()->name()
                   << "): ";
 
     int rc = mqbs::FileStoreUtil::create(errorDescription,
@@ -916,8 +924,8 @@ int RecoveryManager::createRecoveryFileSet(bsl::ostream&    errorDescription,
     BSLS_ASSERT_SAFE(recoveryCtx.d_mappedJournalFd.isValid());
     BSLS_ASSERT_SAFE(recoveryCtx.d_mappedDataFd.isValid());
 
-    BALL_LOG_INFO << d_clusterData_p->identity().description()
-                  << " Partition [" << partitionId << "]: "
+    BALL_LOG_INFO << d_clusterData.identity().description() << " Partition ["
+                  << partitionId << "]: "
                   << "Created recovery data file store set: "
                   << recoveryCtx.d_recoveryFileSet
                   << ", journal file position: "
@@ -931,7 +939,7 @@ int RecoveryManager::createRecoveryFileSet(bsl::ostream&    errorDescription,
 int RecoveryManager::openRecoveryFileSet(bsl::ostream& errorDescription,
                                          int           partitionId)
 {
-    // executed by the *STORAGE (QUEUE) DISPATCHER* thread
+    // executed by the *QUEUE DISPATCHER* thread associated with 'partitionId'
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(partitionId >= 0 &&
@@ -954,7 +962,7 @@ int RecoveryManager::openRecoveryFileSet(bsl::ostream& errorDescription,
     if (recoveryCtx.d_mappedJournalFd.isValid()) {
         BSLS_ASSERT_SAFE(recoveryCtx.d_mappedDataFd.isValid());
 
-        BALL_LOG_INFO << d_clusterData_p->identity().description()
+        BALL_LOG_INFO << d_clusterData.identity().description()
                       << " Partition [" << partitionId << "]: "
                       << "Not opening recovery file set because it's already "
                       << "opened.  Current recovery file set: "
@@ -991,7 +999,7 @@ int RecoveryManager::openRecoveryFileSet(bsl::ostream& errorDescription,
                                               mqbs::MappedFileDescriptor());
 
     if (rc != 0) {
-        errorDescription << d_clusterData_p->identity().description()
+        errorDescription << d_clusterData.identity().description()
                          << " Partition [" << partitionId << "]: "
                          << "File set: " << recoveryCtx.d_recoveryFileSet
                          << " validation failed, rc: " << rc;
@@ -1059,8 +1067,8 @@ int RecoveryManager::openRecoveryFileSet(bsl::ostream& errorDescription,
         }
     }
 
-    BALL_LOG_INFO << d_clusterData_p->identity().description()
-                  << " Partition [" << partitionId << "]: "
+    BALL_LOG_INFO << d_clusterData.identity().description() << " Partition ["
+                  << partitionId << "]: "
                   << "Opened recovery file set: "
                   << recoveryCtx.d_recoveryFileSet
                   << ", journal file position: "
@@ -1073,7 +1081,7 @@ int RecoveryManager::openRecoveryFileSet(bsl::ostream& errorDescription,
 
 int RecoveryManager::closeRecoveryFileSet(int partitionId)
 {
-    // executed by the *STORAGE (QUEUE) DISPATCHER* thread
+    // executed by the *QUEUE DISPATCHER* thread associated with 'partitionId'
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(partitionId >= 0 &&
@@ -1097,7 +1105,7 @@ int RecoveryManager::closeRecoveryFileSet(int partitionId)
                                             errorDesc);
         if (rc != 0) {
             MWCTSK_ALARMLOG_ALARM("FILE_IO")
-                << d_clusterData_p->identity().description() << " Partition ["
+                << d_clusterData.identity().description() << " Partition ["
                 << partitionId << "]: "
                 << "Failed to truncate journal file ["
                 << recoveryCtx.d_recoveryFileSet.journalFile()
@@ -1112,7 +1120,7 @@ int RecoveryManager::closeRecoveryFileSet(int partitionId)
             errorDesc);
         if (rc != 0) {
             MWCTSK_ALARMLOG_ALARM("FILE_IO")
-                << d_clusterData_p->identity().description() << " Partition ["
+                << d_clusterData.identity().description() << " Partition ["
                 << partitionId << "]: "
                 << "Failed to flush journal file ["
                 << recoveryCtx.d_recoveryFileSet.journalFile()
@@ -1124,7 +1132,7 @@ int RecoveryManager::closeRecoveryFileSet(int partitionId)
         rc = mqbs::FileSystemUtil::close(&recoveryCtx.d_mappedJournalFd);
         if (rc != 0) {
             MWCTSK_ALARMLOG_ALARM("FILE_IO")
-                << d_clusterData_p->identity().description() << " Partition ["
+                << d_clusterData.identity().description() << " Partition ["
                 << partitionId << "]: "
                 << "Failed to close journal file ["
                 << recoveryCtx.d_recoveryFileSet.journalFile()
@@ -1132,7 +1140,7 @@ int RecoveryManager::closeRecoveryFileSet(int partitionId)
             return rc * 10 + rc_JOURNAL_FD_CLOSE_FAILURE;  // RETURN
         }
 
-        BALL_LOG_INFO << d_clusterData_p->identity().description()
+        BALL_LOG_INFO << d_clusterData.identity().description()
                       << " Partition [" << partitionId << "]: "
                       << "Closed journal file in recovery file set; "
                       << "journal file position was "
@@ -1146,7 +1154,7 @@ int RecoveryManager::closeRecoveryFileSet(int partitionId)
                                             errorDesc);
         if (rc != 0) {
             MWCTSK_ALARMLOG_ALARM("FILE_IO")
-                << d_clusterData_p->identity().description() << " Partition ["
+                << d_clusterData.identity().description() << " Partition ["
                 << partitionId << "]: "
                 << "Failed to truncate data file ["
                 << recoveryCtx.d_recoveryFileSet.dataFile() << "], rc: " << rc
@@ -1159,7 +1167,7 @@ int RecoveryManager::closeRecoveryFileSet(int partitionId)
                                          errorDesc);
         if (rc != 0) {
             MWCTSK_ALARMLOG_ALARM("FILE_IO")
-                << d_clusterData_p->identity().description() << " Partition ["
+                << d_clusterData.identity().description() << " Partition ["
                 << partitionId << "]: "
                 << "Failed to flush data file ["
                 << recoveryCtx.d_recoveryFileSet.dataFile() << "], rc: " << rc
@@ -1170,7 +1178,7 @@ int RecoveryManager::closeRecoveryFileSet(int partitionId)
         rc = mqbs::FileSystemUtil::close(&recoveryCtx.d_mappedDataFd);
         if (rc != 0) {
             MWCTSK_ALARMLOG_ALARM("FILE_IO")
-                << d_clusterData_p->identity().description() << " Partition ["
+                << d_clusterData.identity().description() << " Partition ["
                 << partitionId << "]: "
                 << "Failed to close data file ["
                 << recoveryCtx.d_recoveryFileSet.dataFile() << "], rc: " << rc
@@ -1178,7 +1186,7 @@ int RecoveryManager::closeRecoveryFileSet(int partitionId)
             return rc * 10 + rc_DATA_FD_CLOSE_FAILURE;  // RETURN
         }
 
-        BALL_LOG_INFO << d_clusterData_p->identity().description()
+        BALL_LOG_INFO << d_clusterData.identity().description()
                       << " Partition [" << partitionId << "]: "
                       << "Closed data file in recovery file set; "
                       << "data file position was "
@@ -1193,7 +1201,7 @@ int RecoveryManager::recoverSeqNum(
     bmqp_ctrlmsg::PartitionSequenceNumber* seqNum,
     int                                    partitionId)
 {
-    // executed by the *STORAGE (QUEUE) DISPATCHER* thread
+    // executed by the *QUEUE DISPATCHER* thread associated with 'partitionId'
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(seqNum);
@@ -1226,7 +1234,7 @@ int RecoveryManager::recoverSeqNum(
                                             false,   // needQList
                                             false);  // needData
     if (rc != 0) {
-        BALL_LOG_ERROR << d_clusterData_p->identity().description()
+        BALL_LOG_ERROR << d_clusterData.identity().description()
                        << " Partition [" << partitionId << "]: "
                        << "Error while iterating recovered files, rc: " << rc
                        << ", description: " << errorDesc.str();
@@ -1236,7 +1244,7 @@ int RecoveryManager::recoverSeqNum(
     if (jit.hasRecordSizeRemaining()) {
         const mqbs::RecordHeader& lastRecordHeader = jit.lastRecordHeader();
 
-        BALL_LOG_INFO << d_clusterData_p->identity().description()
+        BALL_LOG_INFO << d_clusterData.identity().description()
                       << " Partition [" << partitionId << "]: "
                       << "Recovered Sequence Number "
                       << lastRecordHeader.partitionSequenceNumber()
@@ -1246,7 +1254,7 @@ int RecoveryManager::recoverSeqNum(
         *seqNum = lastRecordHeader.partitionSequenceNumber();
     }
     else {
-        BALL_LOG_INFO << d_clusterData_p->identity().description()
+        BALL_LOG_INFO << d_clusterData.identity().description()
                       << " Partition [" << partitionId << "]: "
                       << "Journal file has no record. Storing (0, 0) as self "
                       << "sequence number.";
@@ -1260,6 +1268,8 @@ int RecoveryManager::recoverSeqNum(
 void RecoveryManager::setLiveDataSource(mqbnet::ClusterNode* source,
                                         int                  partitionId)
 {
+    // executed by the *QUEUE DISPATCHER* thread associated with 'partitionId'
+
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(source);
     BSLS_ASSERT_SAFE(0 <= partitionId);
@@ -1267,8 +1277,8 @@ void RecoveryManager::setLiveDataSource(mqbnet::ClusterNode* source,
 
     RecoveryContext& recoveryCtx = d_recoveryContextVec[partitionId];
 
-    BALL_LOG_INFO << d_clusterData_p->identity().description()
-                  << " Partition [" << partitionId << "]: "
+    BALL_LOG_INFO << d_clusterData.identity().description() << " Partition ["
+                  << partitionId << "]: "
                   << "Setting live data source from "
                   << (recoveryCtx.d_liveDataSource_p
                           ? recoveryCtx.d_liveDataSource_p->nodeDescription()
@@ -1286,6 +1296,8 @@ void RecoveryManager::bufferStorageEvent(
     const bsl::shared_ptr<bdlbb::Blob>& blob,
     mqbnet::ClusterNode*                source)
 {
+    // executed by the *QUEUE DISPATCHER* thread associated with 'partitionId'
+
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(0 <= partitionId);
     BSLS_ASSERT_SAFE(source);
@@ -1293,7 +1305,7 @@ void RecoveryManager::bufferStorageEvent(
     RecoveryContext& recoveryCtx = d_recoveryContextVec[partitionId];
     BSLS_ASSERT_SAFE(recoveryCtx.d_liveDataSource_p);
     if (recoveryCtx.d_liveDataSource_p->nodeId() != source->nodeId()) {
-        BALL_LOG_ERROR << d_clusterData_p->identity().description()
+        BALL_LOG_ERROR << d_clusterData.identity().description()
                        << " Partition [" << partitionId << "]: "
                        << "Storage event from node "
                        << source->nodeDescription() << "cannot be buffered, "
@@ -1307,8 +1319,8 @@ void RecoveryManager::bufferStorageEvent(
 
     recoveryCtx.d_bufferedEvents.push_back(blob);
 
-    BALL_LOG_INFO << d_clusterData_p->identity().description()
-                  << " Partition [" << partitionId << "]: "
+    BALL_LOG_INFO << d_clusterData.identity().description() << " Partition ["
+                  << partitionId << "]: "
                   << "Buffered a storage event from primary node "
                   << source->nodeDescription()
                   << " as self is still healing the partition.";
@@ -1319,6 +1331,8 @@ int RecoveryManager::loadBufferedStorageEvents(
     const mqbnet::ClusterNode*                  source,
     int                                         partitionId)
 {
+    // executed by the *QUEUE DISPATCHER* thread associated with 'partitionId'
+
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(out);
     BSLS_ASSERT_SAFE(source);
@@ -1334,7 +1348,7 @@ int RecoveryManager::loadBufferedStorageEvents(
     BSLS_ASSERT_SAFE(recoveryCtx.d_liveDataSource_p);
 
     if (recoveryCtx.d_liveDataSource_p->nodeId() != source->nodeId()) {
-        BALL_LOG_ERROR << d_clusterData_p->identity().description()
+        BALL_LOG_ERROR << d_clusterData.identity().description()
                        << " Partition [" << partitionId << "]: "
                        << "Cannot load buffered storage events from node "
                        << source->nodeDescription()
@@ -1359,6 +1373,8 @@ void RecoveryManager::loadReplicaDataResponsePush(
     bmqp_ctrlmsg::ControlMessage* out,
     int                           partitionId) const
 {
+    // executed by the *QUEUE DISPATCHER* thread associated with 'partitionId'
+
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(out);
     BSLS_ASSERT_SAFE(partitionId >= 0 &&

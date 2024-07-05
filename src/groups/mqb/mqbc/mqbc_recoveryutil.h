@@ -42,11 +42,10 @@
 // BDE
 #include <ball_log.h>
 #include <bdlbb_blob.h>
+#include <bsl_string.h>
 #include <bslma_allocator.h>
 #include <bslma_default.h>
 #include <bsls_types.h>
-#include <bslstl_string.h>
-#include <bslstl_vector.h>
 
 namespace BloombergLP {
 
@@ -115,7 +114,7 @@ struct RecoveryUtil {
     /// than or equal to the specified `endSeqNum` or else it returns
     /// appropriate non-zero return code.
     /// This operation is performed for the specified `partitionId`, the
-    /// specified `destination` node and the specified `clusterData` is
+    /// specified `destination` node and the specified `clusterDescription` is
     /// used for logging purposes. The specified `journalIt` is used.
     /// The function return 0 if successful, 1 if end of journal file is
     /// reached, and non-zero for failure scenarios.
@@ -126,7 +125,7 @@ struct RecoveryUtil {
         const bmqp_ctrlmsg::PartitionSequenceNumber& endSeqNum,
         int                                          partitionId,
         const mqbnet::ClusterNode&                   destination,
-        const mqbc::ClusterData&                     clusterData,
+        const bsl::string&                           clusterDescription,
         mqbs::JournalFileIterator&                   journalIt);
 
     /// This function operates on the record currently being pointed by the

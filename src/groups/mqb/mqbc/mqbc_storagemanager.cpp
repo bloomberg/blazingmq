@@ -1022,15 +1022,6 @@ void StorageManager::processReplicaDataResponseDispatched(
                        << "ignoring.";
     } break;
     case bmqp_ctrlmsg::ReplicaDataType::E_PULL: {
-        if (d_recoveryManager_mp->expectedDataChunks(partitionId)) {
-            BALL_LOG_ERROR << d_clusterData_p->identity().description()
-                           << " Partition [" << partitionId
-                           << "]: Ignoring premature ReplicaDataResponse_PULL "
-                           << "because self is still expecting data chunks.";
-
-            return;  // RETURN
-        }
-
         dispatchEventToPartition(fs,
                                  PartitionFSM::Event::e_REPLICA_DATA_RSPN_PULL,
                                  eventDataVec);
