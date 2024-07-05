@@ -66,7 +66,7 @@ def test_reopen_empty_queue(multi_node: Cluster):
 
 def test_reopen_substream(multi_node: Cluster):
     """
-    DRQS 169527537.  Make a primary's client reopen the same appId with a
+    Ticket 169527537.  Make a primary's client reopen the same appId with a
     different subId.
     """
 

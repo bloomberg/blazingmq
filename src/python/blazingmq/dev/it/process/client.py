@@ -157,7 +157,14 @@ class Client(blazingmq.dev.it.process.bmqproc.BMQProcess):
         return res.error_code
 
     def open(
-        self, uri, flags, block=None, succeed=None, no_except=None, timeout=None, **kw
+        self,
+        uri,
+        flags: List[str],
+        block=None,
+        succeed=None,
+        no_except=None,
+        timeout=None,
+        **kw,
     ):
         """
         Open the queue with the specified 'uri' and the specified 'flags'.  If
