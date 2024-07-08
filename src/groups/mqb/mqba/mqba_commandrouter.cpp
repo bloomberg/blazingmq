@@ -29,16 +29,12 @@
 namespace BloombergLP {
 namespace mqba {
 
-RouteCommandManager::RouteCommandManager(const bsl::string&     commandString,
-                                         const mqbcmd::Command& command)
-: d_allPartitionPrimariesRoutingMode(this)
-, d_singlePartitionPrimaryRoutingMode(this)
-, d_clusterRoutingMode(this)
-, d_latch(1)
-, d_commandString(commandString)
-, d_commandWithOptions(command)
-, d_command(command.choice())
+RouteCommandManager::RouteCommandManager(const bsl::string& commandString,
+                                         const mqbcmd::CommandChoice& command)
+: d_commandString(commandString)
+, d_command(command)
 , d_routingMode(getCommandRoutingMode())
+, d_latch(1)
 {
     // Effectively negate the latch if we won't need to wait for responses.
     if (!isRoutingNeeded()) {
@@ -81,8 +77,10 @@ RouteCommandManager::AllPartitionPrimariesRoutingMode::getRouteMembers()
 }
 
 RouteCommandManager::SinglePartitionPrimaryRoutingMode::
-    SinglePartitionPrimaryRoutingMode(RouteCommandManager* router)
+    SinglePartitionPrimaryRoutingMode(RouteCommandManager* router,
+                                      int                  partitionId)
 : RoutingMode(router)
+, d_partitionId(partitionId)
 {
     BSLS_ASSERT_SAFE(router);
 }
@@ -122,13 +120,13 @@ RouteCommandManager::ClusterRoutingMode::ClusterRoutingMode(
 RouteCommandManager::RouteMembers
 RouteCommandManager::ClusterRoutingMode::getRouteMembers()
 {
+    typedef mqbnet::Cluster::NodesList NodesList;
     // collect all nodes in cluster
-    const mqbnet::Cluster::NodesList& allNodes =
-        router()->cluster()->netCluster().nodes();
+    const NodesList& allNodes = router()->cluster()->netCluster().nodes();
 
     NodesVector nodes;
 
-    for (mqbnet::Cluster::NodesList::const_iterator nit = allNodes.begin();
+    for (NodesList::const_iterator nit = allNodes.begin();
          nit != allNodes.end();
          nit++) {
         if (router()->cluster()->netCluster().selfNode() != *nit) {
@@ -140,11 +138,6 @@ RouteCommandManager::ClusterRoutingMode::getRouteMembers()
         nodes,
         true  // Cluster routing always requires original node to exec.
     };
-}
-
-bool RouteCommandManager::isRoutingNeeded() const
-{
-    return d_routingMode != nullptr;
 }
 
 bool RouteCommandManager::process(mqbi::Cluster* cluster)
@@ -188,7 +181,6 @@ void RouteCommandManager::onRouteCommandResponse(
             const bsl::string& output =
                 message.choice().adminCommandResponse().text();
             routeResponse.response() = output;
-            // d_responses.push_back({pair.first, output});
         }
         else {
             // something went wrong... possibly timeout?
@@ -196,10 +188,6 @@ void RouteCommandManager::onRouteCommandResponse(
             routeResponse.response() =
                 "Error ocurred sending command to node " +
                 pair.first->hostName();
-
-            // d_responses.push_back({pair.first,
-            //   "Error occurred sending command to node " +
-            //   pair.first->hostName()});
         }
         d_responses.responses().push_back(routeResponse);
     }
@@ -207,29 +195,27 @@ void RouteCommandManager::onRouteCommandResponse(
     countDownLatch();
 }
 
-RouteCommandManager::RoutingMode* RouteCommandManager::getCommandRoutingMode()
+RouteCommandManager::RoutingModeMp RouteCommandManager::getCommandRoutingMode()
 {
+    RouteCommandManager::RoutingMode* routingMode = nullptr;
     if (d_command.isDomainsValue()) {
         const mqbcmd::DomainsCommand& domains = d_command.domains();
         if (domains.isDomainValue()) {
             const mqbcmd::DomainCommand& domain = domains.domain().command();
             if (domain.isPurgeValue()) {
-                return &d_allPartitionPrimariesRoutingMode;  // DOMAINS DOMAIN
-                                                             // <name> PURGE
+                routingMode = new AllPartitionPrimariesRoutingMode(
+                    this);  // DOMAINS DOMAIN <name> PURGE
             }
             else if (domain.isQueueValue()) {
                 if (domain.queue().command().isPurgeAppIdValue()) {
-                    return &d_allPartitionPrimariesRoutingMode;  // DOMAINS
-                                                                 // DOMAIN
-                                                                 // <name>
-                                                                 // QUEUE
-                                                                 // <name>
-                                                                 // PURGE
+                    routingMode = new AllPartitionPrimariesRoutingMode(
+                        this);  // DOMAINS DOMAIN <name> QUEUE <name> PURGE
                 }
             }
         }
         else if (domains.isReconfigureValue()) {
-            return &d_clusterRoutingMode;  // DOMAINS RECONFIGURE <domain>
+            routingMode = new ClusterRoutingMode(
+                this);  // DOMAINS RECONFIGURE <domain>
         }
     }
     else if (d_command.isClustersValue()) {
@@ -238,24 +224,20 @@ RouteCommandManager::RoutingMode* RouteCommandManager::getCommandRoutingMode()
             const mqbcmd::ClusterCommand& cluster =
                 clusters.cluster().command();
             if (cluster.isForceGcQueuesValue()) {
-                return &d_clusterRoutingMode;  // CLUSTERS CLUSTER <name>
-                                               // FORCE_GC_QUEUES
+                routingMode = new ClusterRoutingMode(
+                    this);  // CLUSTERS CLUSTER <name> FORCE_GC_QUEUES
             }
             else if (cluster.isStorageValue()) {
                 const mqbcmd::StorageCommand& storage = cluster.storage();
                 if (storage.isPartitionValue()) {
                     if (storage.partition().command().isEnableValue() ||
                         storage.partition().command().isDisableValue()) {
-                        int partitionID = storage.partition().partitionId();
-                        d_singlePartitionPrimaryRoutingMode.setPartitionID(
-                            partitionID);
-                        return &d_singlePartitionPrimaryRoutingMode;  // CLUSTERS
-                                                                      // CLUSTER
-                                                                      // <name>
-                                                                      // STORAGE
-                                                                      // PARTITION
-                                                                      // <partitionId>
-                                                                      // [ENABLE|DISABLE]
+                        int partitionId = storage.partition().partitionId();
+                        routingMode = new SinglePartitionPrimaryRoutingMode(
+                            this,
+                            partitionId);  // CLUSTERS CLUSTER <name> STORAGE
+                                           // PARTITION <partitionId>
+                                           // [ENABLE|DISABLE]
                     }
                     // SUMMARY doesn't need to route to primary
                 }
@@ -263,7 +245,9 @@ RouteCommandManager::RoutingMode* RouteCommandManager::getCommandRoutingMode()
         }
     }
 
-    return nullptr;
+    bslma::ManagedPtr<RoutingMode> ret(routingMode);
+
+    return ret;
 }
 
 void RouteCommandManager::routeCommand(const NodesVector& nodes)

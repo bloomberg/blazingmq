@@ -249,7 +249,6 @@ class Application {
 
     void printCommandResponses(const mqbcmd::RouteResponseList& responseList,
                                const mqbcmd::EncodingFormat::Value format,
-                               const bsl::string&                  ourName,
                                bsl::ostream&                       os) const;
 
     void printCommandResult(const mqbcmd::InternalResult& result,

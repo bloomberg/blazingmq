@@ -531,7 +531,8 @@ Application::getRelevantCluster(const mqbcmd::CommandChoice& command,
             domainName = domains.reconfigure().domain();
         }
         else if (domains.isResolverValue()) {
-            // ?
+            // domainName = domains.resolver().clearCache().
+            // tricky... distinguish ALL or a particular domain
         }
         else {
             mwcu::MemOutStream os;
@@ -698,7 +699,6 @@ void Application::printCommandResult(const mqbcmd::InternalResult& cmdResult,
 void Application::printCommandResponses(
     const mqbcmd::RouteResponseList&    responseList,
     const mqbcmd::EncodingFormat::Value format,
-    const bsl::string&                  ourName,
     bsl::ostream&                       os) const
 {
     typedef bsl::vector<BloombergLP::mqbcmd::RouteResponse>
@@ -778,39 +778,8 @@ int Application::processCommand(const bslstl::StringRef& source,
         return cmdResult.isErrorValue() ? -2 : 0;
     }
 
-    // alternate workflow:
-    // mqba::CommandRouterContext routeContext =
-    // d_commandRouter.createContext(cmd, command);
-
-    // bool shouldSelfExecute = true;
-    // bsl::string selfName;
-
-    // if (routeContext.isRoutingNeeded()) {
-    //     mqbi::Cluster* cluster = getRelevantCluster(command, &cmdResult);
-    //     if (cluster == nullptr) { // error
-    //         printCommandResult(cmdResult, commandWithOptions.encoding(),
-    //         os); return -2;
-    //     }
-
-    //     selfName = cluster->netCluster().selfNode()->hostName();
-
-    //     routeContext.setRelevantCluster(cluster);
-    //     shouldSelfExecute = d_commandRouter.routeContext(routeContext);
-    // }
-
-    // if (shouldSelfExecute) {
-    //     if (executeCommand(command, &cmdResult)) {
-    //         return 0; // early exit (caused by "dangerous" command)
-    //     }
-    // }
-
-    // routeContext.waitForResponses();
-
-    // mqba::CommandRouter::ResponseMessages& responses =
-    // routeContext.responses();
-
     // otherwise, this is an original call. utilize router if necessary
-    mqba::RouteCommandManager routeCommandManager(cmd, commandWithOptions);
+    mqba::RouteCommandManager routeCommandManager(cmd, command);
 
     bool        shouldSelfExecute = true;
     bsl::string selfName;
@@ -836,18 +805,16 @@ int Application::processCommand(const bslstl::StringRef& source,
     mqbcmd::RouteResponseList& responses = routeCommandManager.responses();
 
     if (shouldSelfExecute) {
-        // Add self response
+        // Add self response (executed earlier)
         mwcu::MemOutStream cmdOs;
         printCommandResult(cmdResult, commandWithOptions.encoding(), cmdOs);
         mqbcmd::RouteResponse routeResponse;
         routeResponse.response() = cmdOs.str();
         routeResponse.source()   = selfName;
+        responses.responses().push_back(routeResponse);
     }
 
-    printCommandResponses(responses,
-                          commandWithOptions.encoding(),
-                          selfName,
-                          os);
+    printCommandResponses(responses, commandWithOptions.encoding(), os);
 
     return cmdResult.isErrorValue() ? -2 : 0;
 }

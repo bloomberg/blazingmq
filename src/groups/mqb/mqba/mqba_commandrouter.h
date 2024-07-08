@@ -30,6 +30,7 @@
 #include <bsl_iostream.h>
 #include <bsl_string.h>
 #include <bsl_vector.h>
+#include <bslma_managedptr.h>
 #include <bslmt_latch.h>
 #include <bslstl_sharedptr.h>
 
@@ -61,9 +62,7 @@ class RouteCommandManager {
         mqbnet::MultiRequestManagerRequestContext<bmqp_ctrlmsg::ControlMessage,
                                                   bmqp_ctrlmsg::ControlMessage,
                                                   mqbnet::ClusterNode*> >
-        MultiRequestContextSp;
-    typedef bsl::vector<bsl::pair<mqbnet::ClusterNode*, bsl::string> >
-                                              ResponseMessages;
+                                              MultiRequestContextSp;
     typedef bsl::vector<mqbnet::ClusterNode*> NodesVector;
 
   private:
@@ -95,9 +94,9 @@ class RouteCommandManager {
         int d_partitionId;
 
       public:
-        SinglePartitionPrimaryRoutingMode(RouteCommandManager* router);
+        SinglePartitionPrimaryRoutingMode(RouteCommandManager* router,
+                                          int                  partitionId);
 
-        void         setPartitionID(int id);
         RouteMembers getRouteMembers() BSLS_KEYWORD_OVERRIDE;
     };
     class ClusterRoutingMode : public RoutingMode {
@@ -107,30 +106,26 @@ class RouteCommandManager {
         RouteMembers getRouteMembers() BSLS_KEYWORD_OVERRIDE;
     };
 
+  public:
+    typedef bslma::ManagedPtr<RoutingMode> RoutingModeMp;
+
   private:
-    // store an instance of each type of router
-    AllPartitionPrimariesRoutingMode  d_allPartitionPrimariesRoutingMode;
-    SinglePartitionPrimaryRoutingMode d_singlePartitionPrimaryRoutingMode;
-    ClusterRoutingMode                d_clusterRoutingMode;
-
-    bslmt::Latch d_latch;
-
     const bsl::string&           d_commandString;
-    const mqbcmd::Command&       d_commandWithOptions;
     const mqbcmd::CommandChoice& d_command;
 
-    // RouteCommandManager::ResponseMessages d_responses;
     mqbcmd::RouteResponseList d_responses;
 
     mqbi::Cluster* d_cluster;
 
-    RouteCommandManager::RoutingMode* d_routingMode;
+    RoutingModeMp d_routingMode;
+
+    bslmt::Latch d_latch;
 
   public:
     /// Sets up a command router with the given command string and parsed
     /// command object. This will
-    RouteCommandManager(const bsl::string&     commandString,
-                        const mqbcmd::Command& command);
+    RouteCommandManager(const bsl::string&           commandString,
+                        const mqbcmd::CommandChoice& command);
 
     /// Returns true if this command router is necessary to route the command
     /// that it was set up with. If the command does not require routing, then
@@ -153,7 +148,7 @@ class RouteCommandManager {
     mqbi::Cluster* cluster() const;
 
   private:
-    RoutingMode* getCommandRoutingMode();
+    RoutingModeMp getCommandRoutingMode();
 
     void countDownLatch();
 
@@ -162,37 +157,16 @@ class RouteCommandManager {
     void routeCommand(const NodesVector& nodes);
 };
 
-// class CommandRouterContext {
-//   private:
-//     bslmt::Latch d_latch;
-
-//     const bsl::string&           d_commandString;
-//     const mqbcmd::Command&       d_commandWithOptions;
-//     const mqbcmd::CommandChoice& d_command;
-
-//     CommandRouter::ResponseMessages d_responses;
-
-//     mqbi::Cluster* d_cluster;
-
-//     CommandRouter::Router* d_router;
-// };
+inline bool RouteCommandManager::isRoutingNeeded() const
+{
+    return d_routingMode.get() != nullptr;
+}
 
 inline const RouteCommandManager*
 RouteCommandManager::RoutingMode::router() const
 {
     return d_router;
 }
-
-inline void
-RouteCommandManager::SinglePartitionPrimaryRoutingMode::setPartitionID(int id)
-{
-    d_partitionId = id;
-}
-
-// inline RouteCommandManager::ResponseMessages&
-// RouteCommandManager::responses() {
-//     return d_responses;
-// }
 
 inline mqbcmd::RouteResponseList& RouteCommandManager::responses()
 {
