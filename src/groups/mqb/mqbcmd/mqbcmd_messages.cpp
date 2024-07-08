@@ -1,18 +1,3 @@
-// Copyright 2019-2023 Bloomberg Finance L.P.
-// SPDX-License-Identifier: Apache-2.0
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 // mqbcmd_messages.cpp            *DO NOT EDIT*            @generated -*-C++-*-
 
 #include <mqbcmd_messages.h>
@@ -3505,6 +3490,134 @@ ResourceUsageMonitorState::toString(ResourceUsageMonitorState::Value value)
 
     BSLS_ASSERT(!"invalid enumerator");
     return 0;
+}
+
+// -------------------
+// class RouteResponse
+// -------------------
+
+// CONSTANTS
+
+const char RouteResponse::CLASS_NAME[] = "RouteResponse";
+
+const bdlat_AttributeInfo RouteResponse::ATTRIBUTE_INFO_ARRAY[] = {
+    {ATTRIBUTE_ID_SOURCE,
+     "source",
+     sizeof("source") - 1,
+     "",
+     bdlat_FormattingMode::e_TEXT},
+    {ATTRIBUTE_ID_RESPONSE,
+     "response",
+     sizeof("response") - 1,
+     "",
+     bdlat_FormattingMode::e_TEXT}};
+
+// CLASS METHODS
+
+const bdlat_AttributeInfo* RouteResponse::lookupAttributeInfo(const char* name,
+                                                              int nameLength)
+{
+    for (int i = 0; i < 2; ++i) {
+        const bdlat_AttributeInfo& attributeInfo =
+            RouteResponse::ATTRIBUTE_INFO_ARRAY[i];
+
+        if (nameLength == attributeInfo.d_nameLength &&
+            0 == bsl::memcmp(attributeInfo.d_name_p, name, nameLength)) {
+            return &attributeInfo;
+        }
+    }
+
+    return 0;
+}
+
+const bdlat_AttributeInfo* RouteResponse::lookupAttributeInfo(int id)
+{
+    switch (id) {
+    case ATTRIBUTE_ID_SOURCE:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SOURCE];
+    case ATTRIBUTE_ID_RESPONSE:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_RESPONSE];
+    default: return 0;
+    }
+}
+
+// CREATORS
+
+RouteResponse::RouteResponse(bslma::Allocator* basicAllocator)
+: d_source(basicAllocator)
+, d_response(basicAllocator)
+{
+}
+
+RouteResponse::RouteResponse(const RouteResponse& original,
+                             bslma::Allocator*    basicAllocator)
+: d_source(original.d_source, basicAllocator)
+, d_response(original.d_response, basicAllocator)
+{
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+RouteResponse::RouteResponse(RouteResponse&& original) noexcept
+: d_source(bsl::move(original.d_source)),
+  d_response(bsl::move(original.d_response))
+{
+}
+
+RouteResponse::RouteResponse(RouteResponse&&   original,
+                             bslma::Allocator* basicAllocator)
+: d_source(bsl::move(original.d_source), basicAllocator)
+, d_response(bsl::move(original.d_response), basicAllocator)
+{
+}
+#endif
+
+RouteResponse::~RouteResponse()
+{
+}
+
+// MANIPULATORS
+
+RouteResponse& RouteResponse::operator=(const RouteResponse& rhs)
+{
+    if (this != &rhs) {
+        d_source   = rhs.d_source;
+        d_response = rhs.d_response;
+    }
+
+    return *this;
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+RouteResponse& RouteResponse::operator=(RouteResponse&& rhs)
+{
+    if (this != &rhs) {
+        d_source   = bsl::move(rhs.d_source);
+        d_response = bsl::move(rhs.d_response);
+    }
+
+    return *this;
+}
+#endif
+
+void RouteResponse::reset()
+{
+    bdlat_ValueTypeFunctions::reset(&d_source);
+    bdlat_ValueTypeFunctions::reset(&d_response);
+}
+
+// ACCESSORS
+
+bsl::ostream&
+RouteResponse::print(bsl::ostream& stream, int level, int spacesPerLevel) const
+{
+    bslim::Printer printer(&stream, level, spacesPerLevel);
+    printer.start();
+    printer.printAttribute("source", this->source());
+    printer.printAttribute("response", this->response());
+    printer.end();
+    return stream;
 }
 
 // -------------------------
@@ -7628,6 +7741,120 @@ bsl::ostream& ResourceUsageMonitor::print(bsl::ostream& stream,
     printer.printAttribute("bytesHighWatermarkRatio",
                            this->bytesHighWatermarkRatio());
     printer.printAttribute("bytesCapacity", this->bytesCapacity());
+    printer.end();
+    return stream;
+}
+
+// -----------------------
+// class RouteResponseList
+// -----------------------
+
+// CONSTANTS
+
+const char RouteResponseList::CLASS_NAME[] = "RouteResponseList";
+
+const bdlat_AttributeInfo RouteResponseList::ATTRIBUTE_INFO_ARRAY[] = {
+    {ATTRIBUTE_ID_RESPONSES,
+     "responses",
+     sizeof("responses") - 1,
+     "",
+     bdlat_FormattingMode::e_DEFAULT}};
+
+// CLASS METHODS
+
+const bdlat_AttributeInfo*
+RouteResponseList::lookupAttributeInfo(const char* name, int nameLength)
+{
+    for (int i = 0; i < 1; ++i) {
+        const bdlat_AttributeInfo& attributeInfo =
+            RouteResponseList::ATTRIBUTE_INFO_ARRAY[i];
+
+        if (nameLength == attributeInfo.d_nameLength &&
+            0 == bsl::memcmp(attributeInfo.d_name_p, name, nameLength)) {
+            return &attributeInfo;
+        }
+    }
+
+    return 0;
+}
+
+const bdlat_AttributeInfo* RouteResponseList::lookupAttributeInfo(int id)
+{
+    switch (id) {
+    case ATTRIBUTE_ID_RESPONSES:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_RESPONSES];
+    default: return 0;
+    }
+}
+
+// CREATORS
+
+RouteResponseList::RouteResponseList(bslma::Allocator* basicAllocator)
+: d_responses(basicAllocator)
+{
+}
+
+RouteResponseList::RouteResponseList(const RouteResponseList& original,
+                                     bslma::Allocator*        basicAllocator)
+: d_responses(original.d_responses, basicAllocator)
+{
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+RouteResponseList::RouteResponseList(RouteResponseList&& original) noexcept
+: d_responses(bsl::move(original.d_responses))
+{
+}
+
+RouteResponseList::RouteResponseList(RouteResponseList&& original,
+                                     bslma::Allocator*   basicAllocator)
+: d_responses(bsl::move(original.d_responses), basicAllocator)
+{
+}
+#endif
+
+RouteResponseList::~RouteResponseList()
+{
+}
+
+// MANIPULATORS
+
+RouteResponseList& RouteResponseList::operator=(const RouteResponseList& rhs)
+{
+    if (this != &rhs) {
+        d_responses = rhs.d_responses;
+    }
+
+    return *this;
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+RouteResponseList& RouteResponseList::operator=(RouteResponseList&& rhs)
+{
+    if (this != &rhs) {
+        d_responses = bsl::move(rhs.d_responses);
+    }
+
+    return *this;
+}
+#endif
+
+void RouteResponseList::reset()
+{
+    bdlat_ValueTypeFunctions::reset(&d_responses);
+}
+
+// ACCESSORS
+
+bsl::ostream& RouteResponseList::print(bsl::ostream& stream,
+                                       int           level,
+                                       int           spacesPerLevel) const
+{
+    bslim::Printer printer(&stream, level, spacesPerLevel);
+    printer.start();
+    printer.printAttribute("responses", this->responses());
     printer.end();
     return stream;
 }
@@ -29293,6 +29520,13 @@ const char* InternalResult::selectionName() const
 }  // close package namespace
 }  // close enterprise namespace
 
-// GENERATED BY BLP_BAS_CODEGEN_2024.02.10
+// GENERATED BY @BLP_BAS_CODEGEN_VERSION@
 // USING bas_codegen.pl -m msg --noAggregateConversion --noExternalization
 // --noIdent --package mqbcmd --msgComponent messages mqbcmd.xsd
+// ----------------------------------------------------------------------------
+// NOTICE:
+//      Copyright 2024 Bloomberg Finance L.P. All rights reserved.
+//      Property of Bloomberg Finance L.P. (BFLP)
+//      This software is made available solely pursuant to the
+//      terms of a BFLP license agreement which governs its use.
+// ------------------------------- END-OF-FILE --------------------------------

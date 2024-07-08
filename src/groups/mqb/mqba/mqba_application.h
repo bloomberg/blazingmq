@@ -247,10 +247,10 @@ class Application {
     mqbi::Cluster* getRelevantCluster(const mqbcmd::CommandChoice& command,
                                       mqbcmd::InternalResult* cmdResult) const;
 
-    void printCommandResponses(const mqba::RouteCommandManager::ResponseMessages&             responses,
-                        const mqbcmd::EncodingFormat::Value format,
-                        const bsl::string&                  ourName,
-                        bsl::ostream&                       os) const;
+    void printCommandResponses(const mqbcmd::RouteResponseList& responseList,
+                               const mqbcmd::EncodingFormat::Value format,
+                               const bsl::string&                  ourName,
+                               bsl::ostream&                       os) const;
 
     void printCommandResult(const mqbcmd::InternalResult& result,
                             mqbcmd::EncodingFormat::Value encoding,

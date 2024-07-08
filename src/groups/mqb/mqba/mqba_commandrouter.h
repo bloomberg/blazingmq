@@ -63,17 +63,19 @@ class RouteCommandManager {
                                                   mqbnet::ClusterNode*> >
         MultiRequestContextSp;
     typedef bsl::vector<bsl::pair<mqbnet::ClusterNode*, bsl::string> >
-            ResponseMessages;
+                                              ResponseMessages;
     typedef bsl::vector<mqbnet::ClusterNode*> NodesVector;
+
   private:
     struct RouteMembers {
-      NodesVector nodes;
-      bool self;
+        NodesVector nodes;
+        bool        self;
     };
 
     class RoutingMode {
       private:
         RouteCommandManager* d_router;
+
       public:
         RoutingMode(RouteCommandManager* router);
         virtual ~RoutingMode() = 0;
@@ -95,7 +97,7 @@ class RouteCommandManager {
       public:
         SinglePartitionPrimaryRoutingMode(RouteCommandManager* router);
 
-        void setPartitionID(int id);
+        void         setPartitionID(int id);
         RouteMembers getRouteMembers() BSLS_KEYWORD_OVERRIDE;
     };
     class ClusterRoutingMode : public RoutingMode {
@@ -104,6 +106,7 @@ class RouteCommandManager {
 
         RouteMembers getRouteMembers() BSLS_KEYWORD_OVERRIDE;
     };
+
   private:
     // store an instance of each type of router
     AllPartitionPrimariesRoutingMode  d_allPartitionPrimariesRoutingMode;
@@ -116,15 +119,18 @@ class RouteCommandManager {
     const mqbcmd::Command&       d_commandWithOptions;
     const mqbcmd::CommandChoice& d_command;
 
-    RouteCommandManager::ResponseMessages d_responses;
+    // RouteCommandManager::ResponseMessages d_responses;
+    mqbcmd::RouteResponseList d_responses;
 
     mqbi::Cluster* d_cluster;
 
     RouteCommandManager::RoutingMode* d_routingMode;
+
   public:
     /// Sets up a command router with the given command string and parsed
-    /// command object. This will  
-    RouteCommandManager(const bsl::string& commandString, const mqbcmd::Command& command);
+    /// command object. This will
+    RouteCommandManager(const bsl::string&     commandString,
+                        const mqbcmd::Command& command);
 
     /// Returns true if this command router is necessary to route the command
     /// that it was set up with. If the command does not require routing, then
@@ -133,15 +139,16 @@ class RouteCommandManager {
 
     /// Performs any routing on the command and returns true if the caller
     /// should also execute the command.
-    bool processCommand(mqbi::Cluster* cluster);
+    bool process(mqbi::Cluster* cluster);
 
     /// Waits on a latch that triggers when the responses have been received.
     void waitForResponses();
 
     /// Returns a reference to the collected responses from routing.
-    ResponseMessages& responses();
+    // ResponseMessages& responses();
+    mqbcmd::RouteResponseList& responses();
 
-    /// Returns a pointer to the relevant cluster for this 
+    /// Returns a pointer to the relevant cluster for this
     /// command. The pointer can be guaranteed to be non-null.
     mqbi::Cluster* cluster() const;
 
@@ -154,7 +161,6 @@ class RouteCommandManager {
 
     void routeCommand(const NodesVector& nodes);
 };
-
 
 // class CommandRouterContext {
 //   private:
@@ -171,30 +177,42 @@ class RouteCommandManager {
 //     CommandRouter::Router* d_router;
 // };
 
-inline const RouteCommandManager* RouteCommandManager::RoutingMode::router() const {
+inline const RouteCommandManager*
+RouteCommandManager::RoutingMode::router() const
+{
     return d_router;
 }
 
-inline void RouteCommandManager::SinglePartitionPrimaryRoutingMode::setPartitionID(int id)
+inline void
+RouteCommandManager::SinglePartitionPrimaryRoutingMode::setPartitionID(int id)
 {
     d_partitionId = id;
 }
 
-inline RouteCommandManager::ResponseMessages& RouteCommandManager::responses() {
+// inline RouteCommandManager::ResponseMessages&
+// RouteCommandManager::responses() {
+//     return d_responses;
+// }
+
+inline mqbcmd::RouteResponseList& RouteCommandManager::responses()
+{
     return d_responses;
 }
 
-inline void RouteCommandManager::waitForResponses() {
+inline void RouteCommandManager::waitForResponses()
+{
     d_latch.wait();
 }
 
-inline mqbi::Cluster* RouteCommandManager::cluster() const {
+inline mqbi::Cluster* RouteCommandManager::cluster() const
+{
     BSLS_ASSERT_SAFE(d_cluster);
 
     return d_cluster;
 }
 
-inline void RouteCommandManager::countDownLatch() {
+inline void RouteCommandManager::countDownLatch()
+{
     d_latch.countDown(1);
 }
 
