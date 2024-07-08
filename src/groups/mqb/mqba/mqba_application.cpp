@@ -716,34 +716,14 @@ void Application::printCommandResponses(
 
     switch (format) {
     case mqbcmd::EncodingFormat::TEXT: {
-        for (RouteResponseVector::const_iterator respIt = responses.begin();
-             respIt != responses.end();
-             ++respIt) {
-            os << "[" << respIt->source() << "]\n";
-            os << respIt->response() << bsl::endl;
-        }
-    } break;
+        mqbcmd::HumanPrinter::printResponses(os, responseList);
+    } break;  // BREAK
     case mqbcmd::EncodingFormat::JSON_COMPACT: {
-        os << "[";
-        for (RouteResponseVector::const_iterator respIt = responses.begin();
-             respIt != responses.end();
-             ++respIt) {
-            os << "{";
-            os << "source:\"";
-            os << respIt->source();
-            os << "\",";
-            os << "response:";
-            os << respIt->response();
-            os << "}";
-
-            if (respIt + 1 != responses.end()) {
-                os << ",";
-            }
-        }
-        os << "]";
-    } break;
+        mqbcmd::JsonPrinter::printResponses(os, responseList, false);
+    } break;  // BREAK
     case mqbcmd::EncodingFormat::JSON_PRETTY: {
-    } break;
+        mqbcmd::JsonPrinter::printResponses(os, responseList, true);
+    } break;  // BREAK
     }
 }
 

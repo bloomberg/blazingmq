@@ -57,5 +57,48 @@ bsl::ostream& JsonPrinter::print(bsl::ostream& os,
     return os;
 }
 
+bsl::ostream&
+JsonPrinter::printResponses(bsl::ostream&            os,
+                            const RouteResponseList& responseList,
+                            bool                     pretty,
+                            int                      level,
+                            int                      spacesPerLevel)
+{
+    bslma::Allocator* alloc = bslma::Default::allocator(0);
+
+    baljsn::Encoder        encoder(alloc);
+    baljsn::EncoderOptions options;
+    options.setEncodingStyle(pretty ? baljsn::EncoderOptions::e_PRETTY
+                                    : baljsn::EncoderOptions::e_COMPACT);
+    options.setInitialIndentLevel(level);
+    options.setSpacesPerLevel(spacesPerLevel);
+
+    const int rc = encoder.encode(os, responseList, options);
+    if (0 != rc) {
+        BALL_LOG_SET_CATEGORY(k_LOG_CATEGORY);
+        BALL_LOG_ERROR << "failed to encode response list, rc = " << rc;
+    }
+    return os;
+
+    // ALTERNATE: manual
+    // os << "[";
+    // for (RouteResponseVector::const_iterator respIt = responses.begin();
+    //      respIt != responses.end();
+    //      ++respIt) {
+    //     os << "{";
+    //     os << "source:\"";
+    //     os << respIt->source();
+    //     os << "\",";
+    //     os << "response:";
+    //     os << respIt->response();
+    //     os << "}";
+
+    //     if (respIt + 1 != responses.end()) {
+    //         os << ",";
+    //     }
+    // }
+    // os << "]";
+}
+
 }  // close package namespace
 }  // close enterprise namespace
