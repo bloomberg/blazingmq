@@ -42,6 +42,7 @@ string(CONCAT TOOLCHAIN_SHARED_FLAGS
        "-fno-optimize-sibling-calls "
        "-fdiagnostics-show-option "
        "-isystem/usr/include "
+       "-isystem/usr/lib/llvm-18/lib/clang/18/include "
       )
 
 # Apply shared flags to each language.

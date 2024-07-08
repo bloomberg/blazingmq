@@ -45,6 +45,7 @@ string(CONCAT TOOLCHAIN_SHARED_FLAGS
        "-fsanitize=memory "
        "-fsanitize-blacklist=${MSAN_SUPPRESSION_LIST_PATH} "
        "-isystem/usr/include "
+       "-isystem/usr/lib/llvm-18/lib/clang/18/include "
       )
 
 # Apply shared flags to each language.

@@ -9,10 +9,9 @@ apt update && apt install -y lsb-release wget software-properties-common gnupg g
 ### NOTE: cmake : https://askubuntu.com/questions/355565/how-do-i-install-the-latest-version-of-cmake-from-the-command-line
 wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | tee /etc/apt/trusted.gpg.d/kitware.gpg >/dev/null
 apt-add-repository -y "deb https://apt.kitware.com/ubuntu/ $(lsb_release -cs) main"
-apt update && apt install -y cmake
 
-# FOR BMQ ONLY
-# apt-get update && apt-get install -y  bison libfl-dev pkg-config
+# CMAKE and FOR BMQ ONLY
+apt update && apt install -y cmake bison libfl-dev pkg-config
 
 # Install LLVM
 # wget https://apt.llvm.org/llvm.sh
@@ -29,14 +28,14 @@ ln -sf /usr/bin/llvm-symbolizer-${LLVM_VERSION} /usr/bin/llvm-symbolizer
 cfgquery() {
     jq "${1}" "sanitizers.json" --raw-output
 }
-SANITIZER_NAME="asan"
+SANITIZER_NAME="msan"
 LLVM_SANITIZER_NAME="$(cfgquery .${SANITIZER_NAME}.llvm_sanitizer_name)"
 # Check if llvm specific cmake options are present for the given sanitizer
 LLVM_SPECIFIC_CMAKE_OPTIONS="$(cfgquery .${SANITIZER_NAME}.llvm_specific_cmake_options)"
 if [[ "$LLVM_SPECIFIC_CMAKE_OPTIONS" == null ]]; then LLVM_SPECIFIC_CMAKE_OPTIONS=""; fi
 
 # Set some initial constants
-PARALLELISM=2
+PARALLELISM=4
 # PARALLELISM=8
 
 DIR_ROOT="/bmq"
@@ -59,9 +58,6 @@ checkoutGitRepo() {
 
     git clone -b ${ref} ${repo} \
         --depth 1 --single-branch --no-tags -c advice.detachedHead=false "${repoPath}"
-
-    # git -C "${repoPath}" clone -b ${ref} ${repo} \
-    #     --depth 1 --single-branch --no-tags -c advice.detachedHead=false
 }
 github_url() { echo "https://github.com/$1.git"; }
 
@@ -204,10 +200,6 @@ cmake --build "${DIR_SRCS_EXT}/zlib/cmake.bld" -j${PARALLELISM}
 cmake --install "${DIR_SRCS_EXT}/zlib/cmake.bld"
 
 # :: Build BlazingMQ ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-# cmake -B "${DIR_BUILD_BMQ}" -S "${DIR_SRC_BMQ}" \
-#     -DBDE_BUILD_TARGET_SAFE=1 ${CMAKE_OPTIONS}
-# cmake --build "${DIR_BUILD_BMQ}" -j${PARALLELISM} \
-#       --target all.t -v --clean-first
 
 PKG_CONFIG_PATH="/opt/bb/lib64/pkgconfig:/opt/bb/lib/pkgconfig:/opt/bb/share/pkgconfig:$(pkg-config --variable pc_path pkg-config)" \
 cmake -B "${DIR_BUILD_BMQ}" -S "${DIR_SRC_BMQ}" -G Ninja \
@@ -218,50 +210,42 @@ cmake -B "${DIR_BUILD_BMQ}" -S "${DIR_SRC_BMQ}" -G Ninja \
 cmake --build "${DIR_BUILD_BMQ}" -j${PARALLELISM} \
       --target all.t -v --clean-first
 
+# :: Create testing scripts :::::::::::::::::::::::::::::::::::::::::::::::::::
+envcfgquery() {
+    # Parses the '<build-name>.environment' object from 'sanitizers.json',
+    # and outputs a string of whitespace-separated 'VAR=VAL' pairs intended to
+    # be used to set the environment for a command.
+    #   e.g. 'asan' -> 'ASAN_OPTIONS="foo=bar:baz=baf" LSAN_OPTIONS="abc=fgh"'
+    #
+    echo $(cfgquery "                        \
+            .${1}.environment |              \
+            to_entries |                     \
+            map(\"\(.key)=\\\"\(.value |     \
+                to_entries |                 \
+                map(\"\(.key)=\(.value)\") | \
+                join(\":\"))\\\"\") |        \
+            join(\" \")") |
+        sed "s|%%SRC%%|$(realpath ${DIR_SRC_BMQ})|g" |
+        sed "s|%%ROOT%%|$(realpath ${DIR_ROOT})|g"
+}
 
-# cmake -S . -B build/blazingmq -G Ninja \
-# PKG_CONFIG_PATH="/opt/bb/lib64/pkgconfig:/opt/bb/lib/pkgconfig:$(pkg-config --variable pc_path pkg-config)" \
-# cmake -B "${DIR_BUILD_BMQ}" -S "${DIR_SRC_BMQ}" -G Ninja \
-# -DCMAKE_TOOLCHAIN_FILE="${DIR_SRCS_EXT}/bde-tools/BdeBuildSystem/toolchains/linux/gcc-default.cmake" \
-# -DCMAKE_BUILD_TYPE=Debug \
-# -DBDE_BUILD_TARGET_SAFE=ON \
-# -DBDE_BUILD_TARGET_64=ON \
-# -DBDE_BUILD_TARGET_CPP17=ON \
-# -DCMAKE_MODULE_PATH="${DIR_SRCS_EXT}/bde-tools/cmake;${DIR_SRCS_EXT}/bde-tools/BdeBuildSystem" \
-# -DCMAKE_PREFIX_PATH="${DIR_SRCS_EXT}/bde-tools/BdeBuildSystem" \
-# -DCMAKE_CXX_STANDARD=17 \
-# -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-# -DFLEX_ROOT=/usr/lib/x86_64-linux-gnu \
-# -DCMAKE_INSTALL_LIBDIR=lib64
-        #   cmake --build build/blazingmq --parallel 8 --target all
+mkscript() {
+    local cmd=${1}
+    local outfile=${2}
 
+    echo '#!/usr/bin/env bash' > ${outfile}
+    echo "${cmd}" >> ${outfile}
+    chmod +x ${outfile}
+}
 
-    # # -DBDE_BUILD_TARGET_64=1 \
-    # # -DCMAKE_BUILD_TYPE=Debug \
-    # # -DCMAKE_INSTALL_LIBDIR="lib" \
-    # -DCMAKE_INSTALL_PREFIX="${DIR_INSTALL}" \
-    # -DCMAKE_MODULE_PATH="${DIR_THIRDPARTY}/bde-tools/cmake;${DIR_THIRDPARTY}/bde-tools/BdeBuildSystem" \
-    # -DCMAKE_PREFIX_PATH="${DIR_INSTALL}" \
-    # -DCMAKE_TOOLCHAIN_FILE="${DIR_THIRDPARTY}/bde-tools/BdeBuildSystem/toolchains/linux/gcc-default.cmake" \
-    # -DCMAKE_CXX_STANDARD=17 \
-    # -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-    # -DFLEX_ROOT=/usr/lib/x86_64-linux-gnu)
+SANITIZER_ENV="BMQ_BUILD=$(realpath ${DIR_BUILD_BMQ}) "
+SANITIZER_ENV+="BMQ_REPO=${DIR_SRC_BMQ} "
+SANITIZER_ENV+="$(envcfgquery ${SANITIZER_NAME})"
 
-################################################
-# WORKS!!!
-# PATH="${DIR_SRCS_EXT}/bde-tools/bin:$PATH"
+# 'run-env.sh' runs a command with environment required of the sanitizer.
+mkscript "${SANITIZER_ENV} \${@}" "${DIR_BUILD_BMQ}/run-env.sh"
 
-# CMAKE_OPTIONS=(\
-#     -DBDE_BUILD_TARGET_64=1 \
-#     -DCMAKE_BUILD_TYPE=Debug \
-#     -DCMAKE_INSTALL_LIBDIR="lib" \
-#     -DCMAKE_MODULE_PATH="${DIR_SRCS_EXT}/bde-tools/cmake;${DIR_SRCS_EXT}/bde-tools/BdeBuildSystem" \
-#     -DCMAKE_TOOLCHAIN_FILE="${DIR_SRCS_EXT}/bde-tools/BdeBuildSystem/toolchains/linux/gcc-default.cmake" \
-#     -DCMAKE_CXX_STANDARD=17 \
-#     -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-#     -DFLEX_ROOT=/usr/lib/x86_64-linux-gnu)
-
-# PKG_CONFIG_PATH="/opt/bb/lib64/pkgconfig:/opt/bb/lib/pkgconfig:/opt/bb/share/pkgconfig:$(pkg-config --variable pc_path pkg-config)" \
-# cmake -B "${DIR_BUILD_BMQ}" -S "${DIR_SRC_BMQ}" "${CMAKE_OPTIONS[@]}"
-
-
+# 'run-unittests.sh' runs all instrumented unit-tests.
+CMD="cd $(realpath ${DIR_SRC_BMQ}) && "
+CMD+="${DIR_BUILD_BMQ}/run-env.sh ctest -E mwcsys_executil.t --output-on-failure"
+mkscript "${CMD}" "${DIR_BUILD_BMQ}/run-unittests.sh"
