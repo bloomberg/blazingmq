@@ -89,6 +89,6 @@ jobs:
       #   run: ls -lah ${{ github.workspace }}/deps/srcs/ntf-core
       # - name: List deps/_build
       #   run: ls -lah ${{ github.workspace }}/deps/_build
-      - name: List deps
-        run: ls -lah ${{ github.workspace }}/deps
+      # - name: List deps
+      #   run: ls -lah ${{ github.workspace }}/deps
         
