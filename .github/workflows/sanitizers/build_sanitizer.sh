@@ -37,8 +37,8 @@ echo ROOT: "${PWD}"
 # Install prerequisites
 sudo apt-get update && sudo apt-get install -qy lsb-release wget software-properties-common gnupg git curl jq ninja-build bison libfl-dev pkg-config
 
-# Prerequisites for LLVM installation: latest cmake version, Ubuntu apt repository contains cmake version 3.22.1
-# wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | sudo tee /etc/apt/trusted.gpg.d/kitware.gpg >/dev/null
+# Install prerequisites for LLVM: latest cmake version, Ubuntu apt repository contains cmake version 3.22.1
+wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | sudo tee /etc/apt/trusted.gpg.d/kitware.gpg >/dev/null
 sudo apt-add-repository -y "deb https://apt.kitware.com/ubuntu/ $(lsb_release -cs) main"
 sudo apt-get install -qy cmake
 
@@ -102,3 +102,28 @@ checkoutGitRepo "$(github_url google/googletest)" "${GOOGLETEST_TAG}" "googletes
 # Download zlib
 ZLIB_TAG="v1.3.1"
 checkoutGitRepo "$(github_url madler/zlib)" "${ZLIB_TAG}" "zlib"
+
+# :: Build libc++ with required instrumentation :::::::::::::::::::::::::::::::
+#
+# The extent to which all dependencies to be compiled with sanitizer-support
+# varies by sanitizer. MemorySanitizer is especially unforgiving: Failing to
+# link against an instrumented standard library will yield many false
+# positives.  Concensus is that compiling libc++ with `-fsanitize=memory` is a
+# significantly easier endeavor than doing the same with libstdc++ (the gcc
+# standard library).
+#
+# We therefore opt to use libc++ here, just to ensure maximum flexibility.  We
+# follow build instructions from https://libcxx.llvm.org/BuildingLibcxx.html
+LIBCXX_SRC_PATH="${DIR_SRCS_EXT}/llvm-project/runtimes"
+LIBCXX_BUILD_PATH="${LIBCXX_SRC_PATH}/cmake.bld"
+
+cmake   -B "${LIBCXX_BUILD_PATH}" \
+        -S "${LIBCXX_SRC_PATH}" \
+        -DCMAKE_BUILD_TYPE="Debug" \
+        -DCMAKE_C_COMPILER="clang" \
+        -DCMAKE_CXX_COMPILER="clang++" \
+        -DLLVM_ENABLE_RUNTIMES="libcxx;libcxxabi;libunwind" \
+        -DLLVM_USE_SANITIZER="${LLVM_SANITIZER_NAME}" \
+        ${LLVM_SPECIFIC_CMAKE_OPTIONS}
+
+cmake --build "${LIBCXX_BUILD_PATH}" -j${PARALLELISM} --target cxx cxxabi unwind generate-cxx-headers
