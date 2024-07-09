@@ -14,7 +14,7 @@ on:
 
 jobs:
   build_and_run_sanitizer:
-    name: Build and run Sanitizer: ${{ inputs.sanitizer-name }}
+    name: Build and run Sanitizer
     runs-on: ubuntu-latest
     # defaults:
     #   run:
