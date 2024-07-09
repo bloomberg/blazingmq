@@ -35,4 +35,4 @@ jobs:
       # - name: ROOT name
       #   run: pwd
       - name: Build BlazingMQ and dependencies with sanitizer instrumentation
-        run: ./.github/workflows/build_sanitizer.sh
+        run: ./.github/workflows/sanitizers/build_sanitizer.sh
