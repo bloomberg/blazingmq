@@ -35,6 +35,6 @@ echo SANITIZER_NAME: "${SANITIZER_NAME}"
 echo ROOT: "${PWD}"
 
 # Install prerequisites
-apt update && apt install -y lsb-release wget software-properties-common gnupg git curl jq ninja-build bison libfl-dev pkg-config cmake && rm -rf /var/lib/apt/lists/* /var/log/dpkg.log
+sudo apt-get update && sudo apt-get install -qy lsb-release wget software-properties-common gnupg git cmake curl jq ninja-build bison libfl-dev pkg-config
 
 echo cmake --version
