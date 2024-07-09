@@ -13,7 +13,7 @@ cmake_minimum_required (VERSION 3.25)
 #     endif()
 # endif()
 
-# include("/sanitizers/BBToolchain64.cmake")
+include("$ENV{DIR_SCRIPTS}/BBToolchain64.cmake")
 
 if(DEFINED ENV{CC})
   set(CMAKE_C_COMPILER $ENV{CC} CACHE STRING "Instrumentation C compiler" FORCE)

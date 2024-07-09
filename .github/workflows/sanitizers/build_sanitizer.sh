@@ -135,6 +135,7 @@ cmake --build "${LIBCXX_BUILD_PATH}" -j${PARALLELISM} --target cxx cxxabi unwind
 # Variables read by our custom CMake toolchain used to build everything else.
 export LIBCXX_BUILD_PATH="$(realpath ${LIBCXX_BUILD_PATH})"
 export DIR_SRC_BMQ="${DIR_SRC_BMQ}"
+export DIR_SCRIPTS="${DIR_SCRIPTS}"
 
 # :: Build BDE + NTF ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 TOOLCHAIN_PATH="${DIR_SCRIPTS}/clang-libcxx-${SANITIZER_NAME}.cmake"
