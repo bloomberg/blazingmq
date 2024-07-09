@@ -38,7 +38,7 @@ echo ROOT: "${PWD}"
 sudo apt-get update && sudo apt-get install -qy lsb-release wget software-properties-common gnupg git curl jq ninja-build bison libfl-dev pkg-config
 
 # Prerequisites for LLVM installation: latest cmake version, Ubuntu apt repository contains cmake version 3.22.1
-wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | sudo tee /etc/apt/trusted.gpg.d/kitware.gpg >/dev/null
+# wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | sudo tee /etc/apt/trusted.gpg.d/kitware.gpg >/dev/null
 sudo apt-add-repository -y "deb https://apt.kitware.com/ubuntu/ $(lsb_release -cs) main"
 sudo apt-get install -qy cmake
 
@@ -65,12 +65,40 @@ if [[ "$LLVM_SPECIFIC_CMAKE_OPTIONS" == null ]]; then LLVM_SPECIFIC_CMAKE_OPTION
 # Set some initial constants
 PARALLELISM=8
 
-# DIR_ROOT="${PWD}"
-# DIR_EXTERNAL="${DIR_ROOT}/_external"
-# DIR_SRCS_EXT="${DIR_EXTERNAL}/srcs"
-# DIR_BUILD_EXT="${DIR_SRCS_EXT}/cmake.bld"
+DIR_ROOT="${PWD}"
+DIR_EXTERNAL="${DIR_ROOT}/deps"
+DIR_SRCS_EXT="${DIR_EXTERNAL}/srcs"
+DIR_BUILD_EXT="${DIR_SRCS_EXT}/cmake.bld"
 
-# DIR_SRC_BMQ="${DIR_SRCS_EXT}/blazingmq"
-# DIR_BUILD_BMQ="${DIR_SRC_BMQ}/cmake.bld/Linux"
+# :: checkoutGitRepo() subroutine :::::::::::::::::::::::::::::::::::::::::::::
+checkoutGitRepo() {
+    local repo=$1
+    local ref=$2
+    local repoDir=$3
+    echo "Checking out ${repo} at ${ref}"
 
-echo LLVM_SANITIZER_NAME: ${LLVM_SANITIZER_NAME}
+    local repoPath="${DIR_SRCS_EXT}/${repoDir}"
+
+    git clone -b ${ref} ${repo} \
+        --depth 1 --single-branch --no-tags -c advice.detachedHead=false "${repoPath}"
+}
+github_url() { echo "https://github.com/$1.git"; }
+
+# :: Download external dependencies :::::::::::::::::::::::::::::::
+mkdir -p ${DIR_SRCS_EXT}
+
+# Download LLVM
+LLVM_TAG="llvmorg-18.1.8"
+checkoutGitRepo "$(github_url llvm/llvm-project)" "${LLVM_TAG}" "llvm-project"
+
+# Download google-benchmark
+GOOGLE_BENCHMARK_TAG="v1.8.4"
+checkoutGitRepo "$(github_url google/benchmark)" "${GOOGLE_BENCHMARK_TAG}" "google-benchmark"
+
+# Download googletest
+GOOGLETEST_TAG="v1.14.0"
+checkoutGitRepo "$(github_url google/googletest)" "${GOOGLETEST_TAG}" "googletest"
+
+# Download zlib
+ZLIB_TAG="v1.3.1"
+checkoutGitRepo "$(github_url madler/zlib)" "${ZLIB_TAG}" "zlib"
