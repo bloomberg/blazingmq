@@ -3745,6 +3745,13 @@ void Cluster::getPrimaryNodes(bsl::vector<mqbnet::ClusterNode*>* outNodes,
              partitionsInfo.begin();
          pit != partitionsInfo.end();
          pit++) {
+        if (pit->primaryStatus() !=
+            bmqp_ctrlmsg::PrimaryStatus::Value::E_ACTIVE) {
+            BALL_LOG_INFO << "While collecting primary nodes: Partition id "
+                          << pit->partitionId() << " is not active";
+            continue;
+        }
+
         mqbnet::ClusterNode* primary = pit->primaryNode();
 
         if (primary) {
@@ -3761,35 +3768,43 @@ void Cluster::getPrimaryNodes(bsl::vector<mqbnet::ClusterNode*>* outNodes,
         else {
             // TODO: handle this case
             // Approach may include putting into some buffer to callback later?
+            BALL_LOG_ERROR << "Error while collecting primary nodes: No "
+                              "primary found for partition id "
+                           << pit->partitionId();
         }
     }
 }
 
-void Cluster::getPartitionPrimaryNode(mqbnet::ClusterNode** outNode, bool* outIsSelfPrimary, int partitionId) const {
+void Cluster::getPartitionPrimaryNode(mqbnet::ClusterNode** outNode,
+                                      bool*                 outIsSelfPrimary,
+                                      int                   partitionId) const
+{
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(outNode);
     BSLS_ASSERT_SAFE(outIsSelfPrimary);
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
-    
+
     const mqbc::ClusterState::PartitionsInfo& partitionsInfo =
         d_state.partitions();
-    
-    for (mqbc::ClusterState::PartitionsInfo::const_iterator pit = 
-        partitionsInfo.begin(); pit != partitionsInfo.end(); pit++) {
+
+    for (mqbc::ClusterState::PartitionsInfo::const_iterator pit =
+             partitionsInfo.begin();
+         pit != partitionsInfo.end();
+         pit++) {
         if (pit->partitionId() == partitionId) {
             mqbnet::ClusterNode* primary = pit->primaryNode();
             if (d_state.isSelfActivePrimary(partitionId)) {
                 *outIsSelfPrimary = true;
-                return; // RETURN
+                return;  // RETURN
             }
             if (primary) {
                 *outNode = primary;
-                return; // RETURN
+                return;  // RETURN
             }
             else {
                 // TODO: handle this case
                 // ...
-                return; // RETURN
+                return;  // RETURN
             }
         }
     }
