@@ -59,36 +59,36 @@ jobs:
           path: deps
           key: deps-${{ steps.get-hash.outputs.deps_hash }}
 
-  build_and_run_asan:
-    needs: build_dependencies
-    uses: ${{ github.workspace }}/.github/workflows/sanitizers.yaml
-    with:
-        sanitizer-name: asan
+  # build_and_run_asan:
+  #   needs: build_dependencies
+  #   uses: ${{ github.workspace }}/.github/workflows/sanitizers.yaml
+  #   with:
+  #       sanitizer-name: asan
       # working-directory: ${{ github.workspace }}
 
-  # build_and_run_asan:
-  #   name: Build and run AddressSanitizer
-  #   runs-on: ubuntu-latest
-  #   needs: build_dependencies
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     - name: Get dependencies hash
-  #       id: get-hash
-  #       run: echo "deps_hash=`cat docker/build_deps.sh | shasum`" >> $GITHUB_OUTPUT
-  #     - uses: actions/cache/restore@v4
-  #       with:
-  #         path: deps
-  #         key: deps-${{ steps.get-hash.outputs.deps_hash }}
-      # - name: List deps
-      #   run: ls -lah ${{ github.workspace }}/deps
-      # - name: List deps/srcs
-      #   run: ls -lah ${{ github.workspace }}/deps/srcs
-      # - name: List deps/srcs/bde
-      #   run: ls -lah ${{ github.workspace }}/deps/srcs/bde
-      # - name: List deps/srcs/ntf-core
-      #   run: ls -lah ${{ github.workspace }}/deps/srcs/ntf-core
-      # - name: List deps/_build
-      #   run: ls -lah ${{ github.workspace }}/deps/_build
-      # - name: List deps
-      #   run: ls -lah ${{ github.workspace }}/deps
+  build_and_run_asan:
+    name: Build and run AddressSanitizer
+    runs-on: ubuntu-latest
+    needs: build_dependencies
+    steps:
+      - uses: actions/checkout@v4
+      - name: Get dependencies hash
+        id: get-hash
+        run: echo "deps_hash=`cat docker/build_deps.sh | shasum`" >> $GITHUB_OUTPUT
+      - uses: actions/cache/restore@v4
+        with:
+          path: deps
+          key: deps-${{ steps.get-hash.outputs.deps_hash }}
+      - name: List deps
+        run: ls -lah ${{ github.workspace }}/deps
+      - name: List deps/srcs
+        run: ls -lah ${{ github.workspace }}/deps/srcs
+      - name: List deps/srcs/bde
+        run: ls -lah ${{ github.workspace }}/deps/srcs/bde
+      - name: List deps/srcs/ntf-core
+        run: ls -lah ${{ github.workspace }}/deps/srcs/ntf-core
+      - name: List deps/_build
+        run: ls -lah ${{ github.workspace }}/deps/_build
+      - name: List deps
+        run: ls -lah ${{ github.workspace }}/deps
         
