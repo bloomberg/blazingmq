@@ -35,6 +35,11 @@ echo SANITIZER_NAME: "${SANITIZER_NAME}"
 echo ROOT: "${PWD}"
 
 # Install prerequisites
-sudo apt-get update && sudo apt-get install -qy lsb-release wget software-properties-common gnupg git cmake curl jq ninja-build bison libfl-dev pkg-config
+sudo apt-get update && sudo apt-get install -qy lsb-release wget software-properties-common gnupg git curl jq ninja-build bison libfl-dev pkg-config
 
-echo cmake --version
+# Prerequisites for LLVM installation: latest cmake version, Ubuntu apt repository contains cmake version 3.22.1
+wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | sudo tee /etc/apt/trusted.gpg.d/kitware.gpg >/dev/null
+apt-add-repository -y "deb https://apt.kitware.com/ubuntu/ $(lsb_release -cs) main"
+sudo apt-get update && sudo apt-get install -qy cmake
+
+cmake --version
