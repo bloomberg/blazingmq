@@ -7,18 +7,18 @@ on:
         description: Sanitizer name (asan/msan/tsan/ubsan)
         type: string
         required: true
-      # working-directory:
-      #   description: Working directory to use
-      #   type: string
-      #   default: './'
+      working-directory:
+        description: Working directory to use
+        type: string
+        default: './'
 
 jobs:
   build_and_run_sanitizer:
     name: Build and run Sanitizer
     runs-on: ubuntu-latest
-    # defaults:
-    #   run:
-    #     working-directory: ${{ inputs.working-directory }}
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
     steps:
       # - uses: actions/checkout@v4
       # - name: Get dependencies hash
@@ -33,4 +33,4 @@ jobs:
       - name: San name
         run: echo ${{ inputs.sanitizer-name }}
       - name: ROOT name
-        run: echo ${{ inputs.working-directory }}
+        run: pwd
