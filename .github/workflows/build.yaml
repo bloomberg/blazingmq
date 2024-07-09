@@ -60,7 +60,7 @@ jobs:
           key: deps-${{ steps.get-hash.outputs.deps_hash }}
 
   build_and_run_asan:
-    needs: build_dependencies
+    # needs: build_dependencies
     uses: ./.github/workflows/sanitizers.yaml
     with:
       sanitizer-name: 'asan'
