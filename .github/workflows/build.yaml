@@ -80,3 +80,6 @@ jobs:
         run: ls -lah ${{ github.workspace }}/deps/srcs/ntf-core
       - name: List deps/_build
         run: ls -lah ${{ github.workspace }}/deps/_build
+      - name: List deps/_build/unix-linux-x86_64-6.5.0-gcc-11.4.0-opt_64_cpp17
+        run: ls -lah ${{ github.workspace }}/deps/_build/unix-linux-x86_64-6.5.0-gcc-11.4.0-opt_64_cpp17
+        
