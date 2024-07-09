@@ -55,7 +55,7 @@ sudo ln -sf /usr/bin/llvm-symbolizer-${LLVM_VERSION} /usr/bin/llvm-symbolizer
 
 # Parse sanitizers config
 cfgquery() {
-    jq "${1}" "./.github/workflows/sanitizers/sanitizers.json" --raw-output
+    jq "${1}" "${DIR_SCRIPTS}/sanitizers.json" --raw-output
 }
 LLVM_SANITIZER_NAME="$(cfgquery .${SANITIZER_NAME}.llvm_sanitizer_name)"
 # Check if llvm specific cmake options are present for the given sanitizer
@@ -66,9 +66,13 @@ if [[ "$LLVM_SPECIFIC_CMAKE_OPTIONS" == null ]]; then LLVM_SPECIFIC_CMAKE_OPTION
 PARALLELISM=8
 
 DIR_ROOT="${PWD}"
+DIR_SCRIPTS="${DIR_ROOT}/.github/workflows/sanitizers"
 DIR_EXTERNAL="${DIR_ROOT}/deps"
 DIR_SRCS_EXT="${DIR_EXTERNAL}/srcs"
-DIR_BUILD_EXT="${DIR_SRCS_EXT}/cmake.bld"
+DIR_BUILD_EXT="${DIR_EXTERNAL}/cmake.bld"
+
+DIR_SRC_BMQ="${DIR_ROOT}"
+DIR_BUILD_BMQ="${DIR_SRC_BMQ}/cmake.bld/Linux"
 
 # :: checkoutGitRepo() subroutine :::::::::::::::::::::::::::::::::::::::::::::
 checkoutGitRepo() {
@@ -127,3 +131,42 @@ cmake   -B "${LIBCXX_BUILD_PATH}" \
         ${LLVM_SPECIFIC_CMAKE_OPTIONS}
 
 cmake --build "${LIBCXX_BUILD_PATH}" -j${PARALLELISM} --target cxx cxxabi unwind generate-cxx-headers
+
+# Variables read by our custom CMake toolchain used to build everything else.
+export LIBCXX_BUILD_PATH="$(realpath ${LIBCXX_BUILD_PATH})"
+export DIR_SRC_BMQ="${DIR_SRC_BMQ}"
+
+# :: Build BDE + NTF ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+TOOLCHAIN_PATH="${DIR_SCRIPTS}/clang-libcxx-${SANITIZER_NAME}.cmake"
+export CC="clang"
+export CXX="clang++"
+export BBS_BUILD_SYSTEM="ON"
+PATH="$PATH:$(realpath ${DIR_SRCS_EXT}/bde-tools/bin)"
+export PATH
+
+pushd ${DIR_SRCS_EXT}
+
+pushd "bde"
+eval "$(bbs_build_env -u dbg_64_safe_cpp20 -b "${DIR_BUILD_EXT}/bde")"
+bbs_build configure --toolchain "${TOOLCHAIN_PATH}"
+bbs_build build -j${PARALLELISM}
+bbs_build --install=/opt/bb --prefix=/ install
+popd
+
+pushd "ntf-core"
+# TODO The deprecated flag "-fcoroutines-ts" has been removed in clang
+# 17.0.1, but NTF is still using it.  We manually change this flag until
+# the fix in issue 175307231 is resolved.
+sed -i 's/fcoroutines-ts/fcoroutines/g' 'repository.cmake'
+
+./configure --keep \
+            --prefix /opt/bb             \
+            --output "${DIR_BUILD_EXT}/ntf" \
+            --without-warnings-as-errors \
+            --without-usage-examples \
+            --without-applications \
+            --ufid 'dbg_64_safe_cpp20' \
+            --toolchain "${TOOLCHAIN_PATH}"
+make -j${PARALLELISM}
+make install
+popd
