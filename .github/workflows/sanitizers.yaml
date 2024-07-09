@@ -20,16 +20,16 @@ jobs:
     #   run:
     #     working-directory: ${{ inputs.working-directory }}
     steps:
-      - uses: actions/checkout@v4
-      - name: Get dependencies hash
-        id: get-hash
-        run: echo "deps_hash=`cat docker/build_deps.sh | shasum`" >> $GITHUB_OUTPUT
-      - uses: actions/cache/restore@v4
-        with:
-          path: deps
-          key: deps-${{ steps.get-hash.outputs.deps_hash }}
-      - name: List deps/srcs
-        run: ls -lah ${{ github.workspace }}/deps/srcs
+      # - uses: actions/checkout@v4
+      # - name: Get dependencies hash
+      #   id: get-hash
+      #   run: echo "deps_hash=`cat docker/build_deps.sh | shasum`" >> $GITHUB_OUTPUT
+      # - uses: actions/cache/restore@v4
+      #   with:
+      #     path: deps
+      #     key: deps-${{ steps.get-hash.outputs.deps_hash }}
+      # - name: List deps/srcs
+      #   run: ls -lah ${{ github.workspace }}/deps/srcs
       - name: San name
         run: echo ${{ inputs.sanitizer-name }}
       - name: ROOT name
