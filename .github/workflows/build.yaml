@@ -74,7 +74,9 @@ jobs:
           key: deps-${{ steps.get-hash.outputs.deps_hash }}
       - name: List deps
         run: ls -lah ${{ github.workspace }}/deps
-      - name: List deps/bde
-        run: ls -lah ${{ github.workspace }}/deps/bde
-      - name: List deps/ntf-core
-        run: ls -lah ${{ github.workspace }}/deps/ntf-core
+      - name: List deps/srsc/bde
+        run: ls -lah ${{ github.workspace }}/deps/srsc/bde
+      - name: List deps/srsc/ntf-core
+        run: ls -lah ${{ github.workspace }}/deps/srsc/ntf-core
+      - name: List deps/_build
+        run: ls -lah ${{ github.workspace }}/deps/_build
