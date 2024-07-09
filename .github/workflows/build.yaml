@@ -63,8 +63,8 @@ jobs:
     needs: build_dependencies
     uses: ${{ github.workspace }}/.github/workflows/sanitizers.yaml
     with:
-      sanitizer-name: asan
-      working-directory: ${{ github.workspace }}
+        sanitizer-name: asan
+      # working-directory: ${{ github.workspace }}
 
   # build_and_run_asan:
   #   name: Build and run AddressSanitizer
