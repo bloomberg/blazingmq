@@ -53,15 +53,6 @@ sudo ln -sf /usr/bin/clang-${LLVM_VERSION} /usr/bin/clang
 sudo ln -sf /usr/bin/clang++-${LLVM_VERSION} /usr/bin/clang++ 
 sudo ln -sf /usr/bin/llvm-symbolizer-${LLVM_VERSION} /usr/bin/llvm-symbolizer
 
-# Parse sanitizers config
-cfgquery() {
-    jq "${1}" "${DIR_SCRIPTS}/sanitizers.json" --raw-output
-}
-LLVM_SANITIZER_NAME="$(cfgquery .${SANITIZER_NAME}.llvm_sanitizer_name)"
-# Check if llvm specific cmake options are present for the given sanitizer
-LLVM_SPECIFIC_CMAKE_OPTIONS="$(cfgquery .${SANITIZER_NAME}.llvm_specific_cmake_options)"
-if [[ "$LLVM_SPECIFIC_CMAKE_OPTIONS" == null ]]; then LLVM_SPECIFIC_CMAKE_OPTIONS=""; fi
-
 # Set some initial constants
 PARALLELISM=8
 
@@ -73,6 +64,15 @@ DIR_BUILD_EXT="${DIR_EXTERNAL}/cmake.bld"
 
 DIR_SRC_BMQ="${DIR_ROOT}"
 DIR_BUILD_BMQ="${DIR_SRC_BMQ}/cmake.bld/Linux"
+
+# Parse sanitizers config
+cfgquery() {
+    jq "${1}" "${DIR_SCRIPTS}/sanitizers.json" --raw-output
+}
+LLVM_SANITIZER_NAME="$(cfgquery .${SANITIZER_NAME}.llvm_sanitizer_name)"
+# Check if llvm specific cmake options are present for the given sanitizer
+LLVM_SPECIFIC_CMAKE_OPTIONS="$(cfgquery .${SANITIZER_NAME}.llvm_specific_cmake_options)"
+if [[ "$LLVM_SPECIFIC_CMAKE_OPTIONS" == null ]]; then LLVM_SPECIFIC_CMAKE_OPTIONS=""; fi
 
 # :: checkoutGitRepo() subroutine :::::::::::::::::::::::::::::::::::::::::::::
 checkoutGitRepo() {
