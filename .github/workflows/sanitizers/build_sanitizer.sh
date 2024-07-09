@@ -49,9 +49,9 @@ LLVM_VERSION=18
 sudo ./llvm.sh ${LLVM_VERSION} all
 
 # Create version-agnostic pointers to required LLVM binaries.
-ln -sf /usr/bin/clang-${LLVM_VERSION} /usr/bin/clang
-ln -sf /usr/bin/clang++-${LLVM_VERSION} /usr/bin/clang++ 
-ln -sf /usr/bin/llvm-symbolizer-${LLVM_VERSION} /usr/bin/llvm-symbolizer
+sudo ln -sf /usr/bin/clang-${LLVM_VERSION} /usr/bin/clang
+sudo ln -sf /usr/bin/clang++-${LLVM_VERSION} /usr/bin/clang++ 
+sudo ln -sf /usr/bin/llvm-symbolizer-${LLVM_VERSION} /usr/bin/llvm-symbolizer
 
 # Parse sanitizers config
 cfgquery() {
