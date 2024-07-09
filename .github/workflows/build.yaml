@@ -73,8 +73,8 @@ jobs:
           path: deps
           key: deps-${{ steps.get-hash.outputs.deps_hash }}
       - name: List deps
-        run: ls -lah deps
+        run: ls -lah ${{ github.workspace }}/deps
       - name: List deps/bde
-        run: ls -lah deps/bde
+        run: ls -lah ${{ github.workspace }}/deps/bde
       - name: List deps/ntf-core
-        run: ls -lah deps/bde-core
+        run: ls -lah ${{ github.workspace }}/deps/ntf-core
