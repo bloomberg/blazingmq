@@ -55,7 +55,7 @@ sudo ln -sf /usr/bin/llvm-symbolizer-${LLVM_VERSION} /usr/bin/llvm-symbolizer
 
 # Parse sanitizers config
 cfgquery() {
-    jq "${1}" "./.github/workflows/sanitizers.json" --raw-output
+    jq "${1}" "./.github/workflows/sanitizers/sanitizers.json" --raw-output
 }
 LLVM_SANITIZER_NAME="$(cfgquery .${SANITIZER_NAME}.llvm_sanitizer_name)"
 # Check if llvm specific cmake options are present for the given sanitizer
