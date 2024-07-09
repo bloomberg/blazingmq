@@ -42,4 +42,35 @@ wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | 
 sudo apt-add-repository -y "deb https://apt.kitware.com/ubuntu/ $(lsb_release -cs) main"
 sudo apt-get install -qy cmake
 
-cmake --version
+# Install LLVM
+wget https://apt.llvm.org/llvm.sh
+chmod +x llvm.sh 
+LLVM_VERSION=18
+sudo ./llvm.sh ${LLVM_VERSION} all
+
+# Create version-agnostic pointers to required LLVM binaries.
+ln -sf /usr/bin/clang-${LLVM_VERSION} /usr/bin/clang
+ln -sf /usr/bin/clang++-${LLVM_VERSION} /usr/bin/clang++ 
+ln -sf /usr/bin/llvm-symbolizer-${LLVM_VERSION} /usr/bin/llvm-symbolizer
+
+# Parse sanitizers config
+cfgquery() {
+    jq "${1}" "./.github/workflows/sanitizers.json" --raw-output
+}
+LLVM_SANITIZER_NAME="$(cfgquery .${SANITIZER_NAME}.llvm_sanitizer_name)"
+# Check if llvm specific cmake options are present for the given sanitizer
+LLVM_SPECIFIC_CMAKE_OPTIONS="$(cfgquery .${SANITIZER_NAME}.llvm_specific_cmake_options)"
+if [[ "$LLVM_SPECIFIC_CMAKE_OPTIONS" == null ]]; then LLVM_SPECIFIC_CMAKE_OPTIONS=""; fi
+
+# Set some initial constants
+PARALLELISM=8
+
+# DIR_ROOT="${PWD}"
+# DIR_EXTERNAL="${DIR_ROOT}/_external"
+# DIR_SRCS_EXT="${DIR_EXTERNAL}/srcs"
+# DIR_BUILD_EXT="${DIR_SRCS_EXT}/cmake.bld"
+
+# DIR_SRC_BMQ="${DIR_SRCS_EXT}/blazingmq"
+# DIR_BUILD_BMQ="${DIR_SRC_BMQ}/cmake.bld/Linux"
+
+echo LLVM_SANITIZER_NAME: ${LLVM_SANITIZER_NAME}
