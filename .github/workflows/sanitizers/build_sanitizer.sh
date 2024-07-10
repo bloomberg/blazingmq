@@ -121,16 +121,16 @@ checkoutGitRepo "$(github_url madler/zlib)" "${ZLIB_TAG}" "zlib"
 LIBCXX_SRC_PATH="${DIR_SRCS_EXT}/llvm-project/runtimes"
 LIBCXX_BUILD_PATH="${LIBCXX_SRC_PATH}/cmake.bld"
 
-# cmake   -B "${LIBCXX_BUILD_PATH}" \
-#         -S "${LIBCXX_SRC_PATH}" \
-#         -DCMAKE_BUILD_TYPE="Debug" \
-#         -DCMAKE_C_COMPILER="clang" \
-#         -DCMAKE_CXX_COMPILER="clang++" \
-#         -DLLVM_ENABLE_RUNTIMES="libcxx;libcxxabi;libunwind" \
-#         -DLLVM_USE_SANITIZER="${LLVM_SANITIZER_NAME}" \
-#         ${LLVM_SPECIFIC_CMAKE_OPTIONS}
+cmake   -B "${LIBCXX_BUILD_PATH}" \
+        -S "${LIBCXX_SRC_PATH}" \
+        -DCMAKE_BUILD_TYPE="Debug" \
+        -DCMAKE_C_COMPILER="clang" \
+        -DCMAKE_CXX_COMPILER="clang++" \
+        -DLLVM_ENABLE_RUNTIMES="libcxx;libcxxabi;libunwind" \
+        -DLLVM_USE_SANITIZER="${LLVM_SANITIZER_NAME}" \
+        ${LLVM_SPECIFIC_CMAKE_OPTIONS}
 
-# cmake --build "${LIBCXX_BUILD_PATH}" -j${PARALLELISM} --target cxx cxxabi unwind generate-cxx-headers
+cmake --build "${LIBCXX_BUILD_PATH}" -j${PARALLELISM} --target cxx cxxabi unwind generate-cxx-headers
 
 # Variables read by our custom CMake toolchain used to build everything else.
 export LIBCXX_BUILD_PATH="$(realpath ${LIBCXX_BUILD_PATH})"
