@@ -269,14 +269,11 @@ pushd ${DIR_SRCS_EXT}
 pushd "bde"
 eval "$(bbs_build_env -u dbg_64_safe_cpp20 -b "${DIR_BUILD_EXT}/bde")"
 bbs_build configure --toolchain "${TOOLCHAIN_PATH}"
-
-#################################################
-exit 0
-#################################################
-
 bbs_build build -j${PARALLELISM}
 bbs_build --install=/opt/bb --prefix=/ install
 popd
+
+exit 0
 
 pushd "ntf-core"
 # TODO The deprecated flag "-fcoroutines-ts" has been removed in clang
