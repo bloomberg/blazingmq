@@ -143,7 +143,7 @@ echo #################################################
 # sudo update-alternatives --all
 echo #################################################
 
-sudo apt-get purge llvm-14 clang-14 gcc-9 gcc-10 gcc-11 gcc-12 gcc-13
+sudo apt-get purge llvm-14 clang-14 gcc-9 gcc-10 gcc-11 gcc-12
 
 # sudo update-alternatives --remove-all gcc
 update-alternatives --display clang
