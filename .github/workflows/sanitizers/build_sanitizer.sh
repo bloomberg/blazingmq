@@ -143,7 +143,7 @@ echo #################################################
 # sudo update-alternatives --all
 echo #################################################
 
-sudo apt-get purge llvm-14 clang-14 gcc-11.4.0
+sudo apt-get purge llvm-14 clang-14 gcc-11.4
 
 function register_clang_version {
     local version=$1
