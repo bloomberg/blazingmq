@@ -15,7 +15,7 @@ on:
 jobs:
   build_and_run_sanitizer:
     name: Build and run Sanitizer
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     # defaults:
     #   run:
     #     working-directory: ${{ inputs.working-directory }}
@@ -28,11 +28,13 @@ jobs:
         with:
           path: deps
           key: deps-${{ steps.get-hash.outputs.deps_hash }}
-      - name: List deps/srcs
-        run: ls -lah ${{ github.workspace }}/deps/srcs
       # - name: San name
       #   run: echo ${{ inputs.sanitizer-name }}
       # - name: ROOT name
       #   run: pwd
       - name: Build BlazingMQ and dependencies with sanitizer instrumentation
         run: ./.github/workflows/sanitizers/build_sanitizer.sh ${{ inputs.sanitizer-name }}
+      - name: Run unit tests under sanitizer
+        run: |          
+          cd ${{ github.workspace }}/build/blazingmq
+          ./run-unittests.sh

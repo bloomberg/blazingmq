@@ -31,7 +31,9 @@ fi
 
 SANITIZER_NAME="${1}"
 
-# Uninstall uneeded tools which cause of versions clash
+# Github's 'ubuntu-22.04' image contains a lot of preinstalled tools,
+# see https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2204-Readme.md.
+# Uninstall uneeded tools which cause of versions clash.
 sudo apt-get purge llvm-14 clang-14 gcc-9 gcc-10 gcc-11 gcc-12
 
 # Install prerequisites
