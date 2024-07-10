@@ -146,6 +146,7 @@ echo #################################################
 # sudo update-alternatives --remove-all gcc
 # sudo update-alternatives --remove-all llvm
 sudo update-alternatives --remove-all clang
+sudo update-alternatives --remove-all clang++
 
 # sudo ln -sf /usr/bin/clang-${LLVM_VERSION} /usr/bin/clang
 # sudo ln -sf /usr/bin/clang++-${LLVM_VERSION} /usr/bin/clang++ 
