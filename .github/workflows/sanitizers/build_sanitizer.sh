@@ -140,12 +140,12 @@ export DIR_SCRIPTS="${DIR_SCRIPTS}"
 
 #################################################
 echo #################################################
-sudo update-alternatives --all
+# sudo update-alternatives --all
 echo #################################################
 
-sudo update-alternatives --remove-all gcc
-sudo update-alternatives --remove-all llvm
-sudo update-alternatives --remove-all clang
+# sudo update-alternatives --remove-all gcc
+# sudo update-alternatives --remove-all llvm
+# sudo update-alternatives --remove-all clang
 
 # sudo ln -sf /usr/bin/clang-${LLVM_VERSION} /usr/bin/clang
 # sudo ln -sf /usr/bin/clang++-${LLVM_VERSION} /usr/bin/clang++ 
@@ -155,7 +155,8 @@ sudo update-alternatives \
   --slave   /usr/bin/lld                   lld                    /usr/bin/lld-18 \
 
 echo #################################################
-sudo update-alternatives --all
+# sudo update-alternatives --all
+sudo update-alternatives --config clang
 echo #################################################
 #################################################
 
