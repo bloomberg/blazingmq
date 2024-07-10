@@ -241,6 +241,39 @@ RouteCommandManager::RoutingModeMp RouteCommandManager::getCommandRoutingMode()
                     }
                     // SUMMARY doesn't need to route to primary
                 }
+                if (storage.isReplicationValue()) {
+                    const mqbcmd::ReplicationCommand& replication = storage.replication();
+                    if (replication.isSetTunableValue()) {
+                        const mqbcmd::SetTunable& tunable = replication.setTunable();
+                        if (tunable.choice().isAllValue()) {
+                            routingMode = new ClusterRoutingMode(this);
+                        }
+                    }
+                    else if (replication.isGetTunableValue()) {
+                        const mqbcmd::GetTunable& tunable = replication.getTunable();
+                        if (tunable.choice().isAllValue()) {
+                            routingMode = new ClusterRoutingMode(this);
+                        }
+                    }
+                }
+            }
+            else if (cluster.isStateValue()) {
+                const mqbcmd::ClusterStateCommand state = cluster.state();
+                if (state.isElectorValue()) {
+                    const mqbcmd::ElectorCommand elector = state.elector();
+                    if (elector.isSetTunableValue()) {
+                        const mqbcmd::SetTunable& tunable = elector.setTunable();
+                        if (tunable.choice().isAllValue()) {
+                            routingMode = new ClusterRoutingMode(this);
+                        }
+                    }
+                    else if (elector.isGetTunableValue()) {
+                        const mqbcmd::GetTunable& tunable = elector.getTunable();
+                        if (tunable.choice().isAllValue()) {
+                            routingMode = new ClusterRoutingMode(this);
+                        }
+                    }
+                }
             }
         }
     }

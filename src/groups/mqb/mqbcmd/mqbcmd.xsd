@@ -825,7 +825,7 @@
   <complexType name="ElectorCommand">
     <choice>
       <element name="setTunable"   type="tns:SetTunable"/>
-      <element name="getTunable"   type="xs:string"/>
+      <element name="getTunable"   type="tns:GetTunable"/>
       <element name="listTunables" type="tns:Void"/>
     </choice>
 </complexType>
@@ -833,7 +833,7 @@
   <complexType name="ReplicationCommand">
     <choice>
       <element name="setTunable"   type="tns:SetTunable"/>
-      <element name="getTunable"   type="xs:string"/>
+      <element name="getTunable"   type="tns:GetTunable"/>
       <element name="listTunables" type="tns:Void"/>
     </choice>
   </complexType>
@@ -1060,6 +1060,20 @@
     <sequence>
       <element name="name"  type="xs:string"/>
       <element name="value" type="tns:Value"/>
+      <choice>
+        <element name="all" type="tns:Void"/>
+        <element name="self" type="tns:Void"/>
+      </choice>
+    </sequence>
+  </complexType>
+
+  <complexType name="GetTunable">
+    <sequence>
+      <element name="name"  type="xs:string"/>
+      <choice>
+        <element name="all" type="tns:Void"/>
+        <element name="self" type="tns:Void"/>
+      </choice>
     </sequence>
   </complexType>
 

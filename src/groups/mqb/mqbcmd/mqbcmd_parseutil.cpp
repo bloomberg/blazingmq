@@ -932,11 +932,11 @@ int parseElector(ElectorCommand* command,
         return -1;  // RETURN
     }
 
-    if (equalCaseless(subcommand, "SET")) {
+    if (equalCaseless(subcommand, "SET") || equalCaseless(subcommand, "SET_ALL")) {
         const bslstl::StringRef parameter = next();
 
         if (parameter.empty()) {
-            *error = "The command CLUSTERS CLUSTER <name> STATE ELECTOR SET "
+            *error = "The command CLUSTERS CLUSTER <name> STATE ELECTOR [SET|SET_ALL] "
                      "must be followed by a parameter name.";
             return -1;  // RETURN
         }
@@ -944,7 +944,7 @@ int parseElector(ElectorCommand* command,
         const bslstl::StringRef valueString = next();
 
         if (valueString.empty()) {
-            *error = "The command CLUSTERS CLUSTER <name> STATE ELECTOR SET "
+            *error = "The command CLUSTERS CLUSTER <name> STATE ELECTOR [SET|SET_ALL] "
                      "<parameter> must be followed by a new value for the "
                      "parameter.";
             return -1;  // RETURN
@@ -954,18 +954,33 @@ int parseElector(ElectorCommand* command,
         tunable.name()      = parameter;
         tunable.value()     = parseValue(valueString);
 
+        if (equalCaseless(subcommand, "SET")) {
+            tunable.choice().makeSelf();
+        }
+        else { // SET_ALL
+            tunable.choice().makeAll();
+        }
         return expectEnd(error, next);  // RETURN
     }
-    else if (equalCaseless(subcommand, "GET")) {
+    else if (equalCaseless(subcommand, "GET") || equalCaseless(subcommand, "GET_ALL")) {
         const bslstl::StringRef parameter = next();
 
         if (parameter.empty()) {
-            *error = "The command CLUSTERS CLUSTER <name> STATE ELECTOR GET "
+            *error = "The command CLUSTERS CLUSTER <name> STATE ELECTOR [GET|GET_ALL] "
                      "must be followed by a parameter name.";
             return -1;  // RETURN
         }
 
-        command->makeGetTunable(parameter);
+        GetTunable& tunable = command->makeGetTunable();
+        tunable.name() = parameter;
+        
+        if (equalCaseless(subcommand, "GET")) {
+            tunable.choice().makeSelf();
+        }
+        else {
+            tunable.choice().makeAll();
+        }
+
         return expectEnd(error, next);  // RETURN
     }
     else if (equalCaseless(subcommand, "LIST_TUNABLES")) {
@@ -1015,7 +1030,7 @@ int parseReplication(ReplicationCommand* command,
         return -1;  // RETURN
     }
 
-    if (equalCaseless(subcommand, "SET")) {
+    if (equalCaseless(subcommand, "SET") || equalCaseless(subcommand, "SET_ALL")) {
         const bslstl::StringRef parameter = next();
 
         if (parameter.empty()) {
@@ -1036,10 +1051,17 @@ int parseReplication(ReplicationCommand* command,
         SetTunable& tunable = command->makeSetTunable();
         tunable.name()      = parameter;
         tunable.value()     = parseValue(valueString);
+        
+        if (equalCaseless(subcommand, "SET")) {
+            tunable.choice().makeSelf();
+        }
+        else { // SET_ALL
+            tunable.choice().makeAll();
+        }
 
         return expectEnd(error, next);  // RETURN
     }
-    else if (equalCaseless(subcommand, "GET")) {
+    else if (equalCaseless(subcommand, "GET") || equalCaseless(subcommand, "GET_ALL")) {
         const bslstl::StringRef parameter = next();
 
         if (parameter.empty()) {
@@ -1048,7 +1070,16 @@ int parseReplication(ReplicationCommand* command,
             return -1;  // RETURN
         }
 
-        command->makeGetTunable(parameter);
+        GetTunable& tunable = command->makeGetTunable();
+        tunable.name() = parameter;
+
+        if (equalCaseless(subcommand, "GET")) {
+            tunable.choice().makeSelf();
+        }
+        else { // GET_ALL
+            tunable.choice().makeAll();
+        }
+
         return expectEnd(error, next);  // RETURN
     }
     else if (equalCaseless(subcommand, "LIST_TUNABLES")) {

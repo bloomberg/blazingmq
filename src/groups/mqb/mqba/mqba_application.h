@@ -257,7 +257,8 @@ class Application {
 
     // Executes the logic of the given command and outputs the result in
     // cmdResult
-    int executeCommand(const mqbcmd::CommandChoice& command,
+    int executeCommand(const mqbcmd::Command& commandWithOptions,
+                       const mqbcmd::CommandChoice& command,
                        mqbcmd::InternalResult*      cmdResult);
 };
 

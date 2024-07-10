@@ -122,24 +122,24 @@ struct CommandDefinition {
      "Show status of queues belonging to 'domain_name' in the storage of "
      "cluster 'name'"},
     {
-        "CLUSTERS CLUSTER <name> STORAGE REPLICATION SET <parameter> <value>",
+        "CLUSTERS CLUSTER <name> STORAGE REPLICATION [SET|SET_ALL] <parameter> <value>",
         "Set the value of the replication 'parameter' of cluster 'name'",
-        "Set the value of the replication 'parameter' of cluster 'name'",
+        "Set the value of the replication 'parameter' of cluster 'name'. If SET_ALL is used then set the parameter for all nodes in the cluster.",
     },
-    {"CLUSTERS CLUSTER <name> STORAGE REPLICATION GET <parameter>",
+    {"CLUSTERS CLUSTER <name> STORAGE REPLICATION [GET|GET_ALL] <parameter>",
      "Get the value of the replication 'parameter' of cluster 'name'",
-     "Get the value of the replication 'parameter' of cluster 'name'"},
+     "Get the value of the replication 'parameter' of cluster 'name'. If GET_ALL is used then get the paramter value for all nodes in the cluster."},
     {"CLUSTERS CLUSTER <name> STORAGE REPLICATION LIST_TUNABLES",
      "Get the supported settable parameters for the replication of cluster "
      "'name'",
      "Get the supported settable parameters for the replication of cluster "
      "'name'"},
-    {"CLUSTERS CLUSTER <name> STATE ELECTOR SET <parameter> <value>",
+    {"CLUSTERS CLUSTER <name> STATE ELECTOR [SET|SET_ALL] <parameter> <value>",
      "Set the 'parameter' of the elector of cluster 'name' to 'value'",
-     "Set the 'parameter' of the elector of cluster 'name' to 'value'"},
-    {"CLUSTERS CLUSTER <name> STATE ELECTOR GET <parameter>",
+     "Set the 'parameter' of the elector of cluster 'name' to 'value'. If SET_ALL is used then set the paramter for all nodes in the cluster."},
+    {"CLUSTERS CLUSTER <name> STATE ELECTOR [GET|GET_ALL] <parameter>",
      "Get the 'parameter' of the elector of cluster 'name'",
-     "Get the 'parameter' of the elector of cluster 'name'"},
+     "Get the 'parameter' of the elector of cluster 'name'. If GET_ALL is used then get the parameter value for all nodes in the cluster."},
     {"CLUSTERS CLUSTER <name> STATE ELECTOR LIST_TUNABLES",
      "Get the supported settable parameters for the elector of cluster "
      "'name'",
