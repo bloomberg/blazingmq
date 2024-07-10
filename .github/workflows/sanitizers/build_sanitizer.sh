@@ -121,16 +121,16 @@ checkoutGitRepo "$(github_url madler/zlib)" "${ZLIB_TAG}" "zlib"
 LIBCXX_SRC_PATH="${DIR_SRCS_EXT}/llvm-project/runtimes"
 LIBCXX_BUILD_PATH="${LIBCXX_SRC_PATH}/cmake.bld"
 
-cmake   -B "${LIBCXX_BUILD_PATH}" \
-        -S "${LIBCXX_SRC_PATH}" \
-        -DCMAKE_BUILD_TYPE="Debug" \
-        -DCMAKE_C_COMPILER="clang" \
-        -DCMAKE_CXX_COMPILER="clang++" \
-        -DLLVM_ENABLE_RUNTIMES="libcxx;libcxxabi;libunwind" \
-        -DLLVM_USE_SANITIZER="${LLVM_SANITIZER_NAME}" \
-        ${LLVM_SPECIFIC_CMAKE_OPTIONS}
+# cmake   -B "${LIBCXX_BUILD_PATH}" \
+#         -S "${LIBCXX_SRC_PATH}" \
+#         -DCMAKE_BUILD_TYPE="Debug" \
+#         -DCMAKE_C_COMPILER="clang" \
+#         -DCMAKE_CXX_COMPILER="clang++" \
+#         -DLLVM_ENABLE_RUNTIMES="libcxx;libcxxabi;libunwind" \
+#         -DLLVM_USE_SANITIZER="${LLVM_SANITIZER_NAME}" \
+#         ${LLVM_SPECIFIC_CMAKE_OPTIONS}
 
-cmake --build "${LIBCXX_BUILD_PATH}" -j${PARALLELISM} --target cxx cxxabi unwind generate-cxx-headers
+# cmake --build "${LIBCXX_BUILD_PATH}" -j${PARALLELISM} --target cxx cxxabi unwind generate-cxx-headers
 
 # Variables read by our custom CMake toolchain used to build everything else.
 export LIBCXX_BUILD_PATH="$(realpath ${LIBCXX_BUILD_PATH})"
@@ -143,6 +143,8 @@ echo #################################################
 # sudo update-alternatives --all
 echo #################################################
 
+sudo apt-get purge llvm-14 clang-14
+
 # sudo update-alternatives --remove-all gcc
 update-alternatives --display clang
 update-alternatives --display clang++
@@ -152,6 +154,7 @@ update-alternatives --display clang-format
 sudo update-alternatives --remove-all clang
 sudo update-alternatives --remove-all clang++
 sudo update-alternatives --remove-all clang-format
+sudo update-alternatives --remove-all clang-tidy
 
 # sudo ln -sf /usr/bin/clang-${LLVM_VERSION} /usr/bin/clang
 # sudo ln -sf /usr/bin/clang++-${LLVM_VERSION} /usr/bin/clang++ 
@@ -165,55 +168,55 @@ function register_clang_version {
     local version=$1
     local priority=$2
 
-    # sudo update-alternatives \
-    #      --verbose \
-    #     --install /usr/bin/llvm-config          llvm-config          /usr/bin/llvm-config-${version} ${priority} \
-    #     --slave   /usr/bin/llvm-ar              llvm-ar              /usr/bin/llvm-ar-${version} \
-    #     --slave   /usr/bin/llvm-as              llvm-as              /usr/bin/llvm-as-${version} \
-    #     --slave   /usr/bin/llvm-bcanalyzer      llvm-bcanalyzer      /usr/bin/llvm-bcanalyzer-${version} \
-    #     --slave   /usr/bin/llvm-c-test          llvm-c-test          /usr/bin/llvm-c-test-${version} \
-    #     --slave   /usr/bin/llvm-cat             llvm-cat             /usr/bin/llvm-cat-${version} \
-    #     --slave   /usr/bin/llvm-cfi-verify      llvm-cfi-verify      /usr/bin/llvm-cfi-verify-${version} \
-    #     --slave   /usr/bin/llvm-cov             llvm-cov             /usr/bin/llvm-cov-${version} \
-    #     --slave   /usr/bin/llvm-cvtres          llvm-cvtres          /usr/bin/llvm-cvtres-${version} \
-    #     --slave   /usr/bin/llvm-cxxdump         llvm-cxxdump         /usr/bin/llvm-cxxdump-${version} \
-    #     --slave   /usr/bin/llvm-cxxfilt         llvm-cxxfilt         /usr/bin/llvm-cxxfilt-${version} \
-    #     --slave   /usr/bin/llvm-diff            llvm-diff            /usr/bin/llvm-diff-${version} \
-    #     --slave   /usr/bin/llvm-dis             llvm-dis             /usr/bin/llvm-dis-${version} \
-    #     --slave   /usr/bin/llvm-dlltool         llvm-dlltool         /usr/bin/llvm-dlltool-${version} \
-    #     --slave   /usr/bin/llvm-dwarfdump       llvm-dwarfdump       /usr/bin/llvm-dwarfdump-${version} \
-    #     --slave   /usr/bin/llvm-dwp             llvm-dwp             /usr/bin/llvm-dwp-${version} \
-    #     --slave   /usr/bin/llvm-exegesis        llvm-exegesis        /usr/bin/llvm-exegesis-${version} \
-    #     --slave   /usr/bin/llvm-extract         llvm-extract         /usr/bin/llvm-extract-${version} \
-    #     --slave   /usr/bin/llvm-lib             llvm-lib             /usr/bin/llvm-lib-${version} \
-    #     --slave   /usr/bin/llvm-link            llvm-link            /usr/bin/llvm-link-${version} \
-    #     --slave   /usr/bin/llvm-lto             llvm-lto             /usr/bin/llvm-lto-${version} \
-    #     --slave   /usr/bin/llvm-lto2            llvm-lto2            /usr/bin/llvm-lto2-${version} \
-    #     --slave   /usr/bin/llvm-mc              llvm-mc              /usr/bin/llvm-mc-${version} \
-    #     --slave   /usr/bin/llvm-mca             llvm-mca             /usr/bin/llvm-mca-${version} \
-    #     --slave   /usr/bin/llvm-modextract      llvm-modextract      /usr/bin/llvm-modextract-${version} \
-    #     --slave   /usr/bin/llvm-mt              llvm-mt              /usr/bin/llvm-mt-${version} \
-    #     --slave   /usr/bin/llvm-nm              llvm-nm              /usr/bin/llvm-nm-${version} \
-    #     --slave   /usr/bin/llvm-objcopy         llvm-objcopy         /usr/bin/llvm-objcopy-${version} \
-    #     --slave   /usr/bin/llvm-objdump         llvm-objdump         /usr/bin/llvm-objdump-${version} \
-    #     --slave   /usr/bin/llvm-opt-report      llvm-opt-report      /usr/bin/llvm-opt-report-${version} \
-    #     --slave   /usr/bin/llvm-pdbutil         llvm-pdbutil         /usr/bin/llvm-pdbutil-${version} \
-    #     --slave   /usr/bin/llvm-PerfectShuffle  llvm-PerfectShuffle  /usr/bin/llvm-PerfectShuffle-${version} \
-    #     --slave   /usr/bin/llvm-profdata        llvm-profdata        /usr/bin/llvm-profdata-${version} \
-    #     --slave   /usr/bin/llvm-ranlib          llvm-ranlib          /usr/bin/llvm-ranlib-${version} \
-    #     --slave   /usr/bin/llvm-rc              llvm-rc              /usr/bin/llvm-rc-${version} \
-    #     --slave   /usr/bin/llvm-readelf         llvm-readelf         /usr/bin/llvm-readelf-${version} \
-    #     --slave   /usr/bin/llvm-readobj         llvm-readobj         /usr/bin/llvm-readobj-${version} \
-    #     --slave   /usr/bin/llvm-rtdyld          llvm-rtdyld          /usr/bin/llvm-rtdyld-${version} \
-    #     --slave   /usr/bin/llvm-size            llvm-size            /usr/bin/llvm-size-${version} \
-    #     --slave   /usr/bin/llvm-split           llvm-split           /usr/bin/llvm-split-${version} \
-    #     --slave   /usr/bin/llvm-stress          llvm-stress          /usr/bin/llvm-stress-${version} \
-    #     --slave   /usr/bin/llvm-strings         llvm-strings         /usr/bin/llvm-strings-${version} \
-    #     --slave   /usr/bin/llvm-strip           llvm-strip           /usr/bin/llvm-strip-${version} \
-    #     --slave   /usr/bin/llvm-symbolizer      llvm-symbolizer      /usr/bin/llvm-symbolizer-${version} \
-    #     --slave   /usr/bin/llvm-tblgen          llvm-tblgen          /usr/bin/llvm-tblgen-${version} \
-    #     --slave   /usr/bin/llvm-undname         llvm-undname         /usr/bin/llvm-undname-${version} \
-    #     --slave   /usr/bin/llvm-xray            llvm-xray            /usr/bin/llvm-xray-${version}
+    sudo update-alternatives \
+         --verbose \
+        --install /usr/bin/llvm-config          llvm-config          /usr/bin/llvm-config-${version} ${priority} \
+        --slave   /usr/bin/llvm-ar              llvm-ar              /usr/bin/llvm-ar-${version} \
+        --slave   /usr/bin/llvm-as              llvm-as              /usr/bin/llvm-as-${version} \
+        --slave   /usr/bin/llvm-bcanalyzer      llvm-bcanalyzer      /usr/bin/llvm-bcanalyzer-${version} \
+        --slave   /usr/bin/llvm-c-test          llvm-c-test          /usr/bin/llvm-c-test-${version} \
+        --slave   /usr/bin/llvm-cat             llvm-cat             /usr/bin/llvm-cat-${version} \
+        --slave   /usr/bin/llvm-cfi-verify      llvm-cfi-verify      /usr/bin/llvm-cfi-verify-${version} \
+        --slave   /usr/bin/llvm-cov             llvm-cov             /usr/bin/llvm-cov-${version} \
+        --slave   /usr/bin/llvm-cvtres          llvm-cvtres          /usr/bin/llvm-cvtres-${version} \
+        --slave   /usr/bin/llvm-cxxdump         llvm-cxxdump         /usr/bin/llvm-cxxdump-${version} \
+        --slave   /usr/bin/llvm-cxxfilt         llvm-cxxfilt         /usr/bin/llvm-cxxfilt-${version} \
+        --slave   /usr/bin/llvm-diff            llvm-diff            /usr/bin/llvm-diff-${version} \
+        --slave   /usr/bin/llvm-dis             llvm-dis             /usr/bin/llvm-dis-${version} \
+        --slave   /usr/bin/llvm-dlltool         llvm-dlltool         /usr/bin/llvm-dlltool-${version} \
+        --slave   /usr/bin/llvm-dwarfdump       llvm-dwarfdump       /usr/bin/llvm-dwarfdump-${version} \
+        --slave   /usr/bin/llvm-dwp             llvm-dwp             /usr/bin/llvm-dwp-${version} \
+        --slave   /usr/bin/llvm-exegesis        llvm-exegesis        /usr/bin/llvm-exegesis-${version} \
+        --slave   /usr/bin/llvm-extract         llvm-extract         /usr/bin/llvm-extract-${version} \
+        --slave   /usr/bin/llvm-lib             llvm-lib             /usr/bin/llvm-lib-${version} \
+        --slave   /usr/bin/llvm-link            llvm-link            /usr/bin/llvm-link-${version} \
+        --slave   /usr/bin/llvm-lto             llvm-lto             /usr/bin/llvm-lto-${version} \
+        --slave   /usr/bin/llvm-lto2            llvm-lto2            /usr/bin/llvm-lto2-${version} \
+        --slave   /usr/bin/llvm-mc              llvm-mc              /usr/bin/llvm-mc-${version} \
+        --slave   /usr/bin/llvm-mca             llvm-mca             /usr/bin/llvm-mca-${version} \
+        --slave   /usr/bin/llvm-modextract      llvm-modextract      /usr/bin/llvm-modextract-${version} \
+        --slave   /usr/bin/llvm-mt              llvm-mt              /usr/bin/llvm-mt-${version} \
+        --slave   /usr/bin/llvm-nm              llvm-nm              /usr/bin/llvm-nm-${version} \
+        --slave   /usr/bin/llvm-objcopy         llvm-objcopy         /usr/bin/llvm-objcopy-${version} \
+        --slave   /usr/bin/llvm-objdump         llvm-objdump         /usr/bin/llvm-objdump-${version} \
+        --slave   /usr/bin/llvm-opt-report      llvm-opt-report      /usr/bin/llvm-opt-report-${version} \
+        --slave   /usr/bin/llvm-pdbutil         llvm-pdbutil         /usr/bin/llvm-pdbutil-${version} \
+        --slave   /usr/bin/llvm-PerfectShuffle  llvm-PerfectShuffle  /usr/bin/llvm-PerfectShuffle-${version} \
+        --slave   /usr/bin/llvm-profdata        llvm-profdata        /usr/bin/llvm-profdata-${version} \
+        --slave   /usr/bin/llvm-ranlib          llvm-ranlib          /usr/bin/llvm-ranlib-${version} \
+        --slave   /usr/bin/llvm-rc              llvm-rc              /usr/bin/llvm-rc-${version} \
+        --slave   /usr/bin/llvm-readelf         llvm-readelf         /usr/bin/llvm-readelf-${version} \
+        --slave   /usr/bin/llvm-readobj         llvm-readobj         /usr/bin/llvm-readobj-${version} \
+        --slave   /usr/bin/llvm-rtdyld          llvm-rtdyld          /usr/bin/llvm-rtdyld-${version} \
+        --slave   /usr/bin/llvm-size            llvm-size            /usr/bin/llvm-size-${version} \
+        --slave   /usr/bin/llvm-split           llvm-split           /usr/bin/llvm-split-${version} \
+        --slave   /usr/bin/llvm-stress          llvm-stress          /usr/bin/llvm-stress-${version} \
+        --slave   /usr/bin/llvm-strings         llvm-strings         /usr/bin/llvm-strings-${version} \
+        --slave   /usr/bin/llvm-strip           llvm-strip           /usr/bin/llvm-strip-${version} \
+        --slave   /usr/bin/llvm-symbolizer      llvm-symbolizer      /usr/bin/llvm-symbolizer-${version} \
+        --slave   /usr/bin/llvm-tblgen          llvm-tblgen          /usr/bin/llvm-tblgen-${version} \
+        --slave   /usr/bin/llvm-undname         llvm-undname         /usr/bin/llvm-undname-${version} \
+        --slave   /usr/bin/llvm-xray            llvm-xray            /usr/bin/llvm-xray-${version}
         
 
     sudo update-alternatives \
