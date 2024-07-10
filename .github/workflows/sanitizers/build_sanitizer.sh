@@ -31,8 +31,8 @@ fi
 
 SANITIZER_NAME="${1}"
 
-echo SANITIZER_NAME: "${SANITIZER_NAME}"
-echo ROOT: "${PWD}"
+# Uninstall uneeded tools which cause of versions clash
+sudo apt-get purge llvm-14 clang-14 gcc-9 gcc-10 gcc-11 gcc-12
 
 # Install prerequisites
 sudo apt-get update && sudo apt-get install -qy lsb-release wget software-properties-common gnupg git curl jq ninja-build bison libfl-dev pkg-config
@@ -137,125 +137,6 @@ export LIBCXX_BUILD_PATH="$(realpath ${LIBCXX_BUILD_PATH})"
 export DIR_SRC_BMQ="${DIR_SRC_BMQ}"
 export DIR_SCRIPTS="${DIR_SCRIPTS}"
 
-
-#################################################
-echo #################################################
-# sudo update-alternatives --all
-echo #################################################
-
-sudo apt-get purge llvm-14 clang-14 gcc-9 gcc-10 gcc-11 gcc-12
-
-# # sudo update-alternatives --remove-all gcc
-# update-alternatives --display clang
-# update-alternatives --display clang++
-# update-alternatives --display clang-format
-
-# # sudo update-alternatives --remove-all llvm
-# sudo update-alternatives --remove-all clang
-# sudo update-alternatives --remove-all clang++
-# sudo update-alternatives --remove-all clang-format
-# sudo update-alternatives --remove-all clang-tidy
-
-# # sudo ln -sf /usr/bin/clang-${LLVM_VERSION} /usr/bin/clang
-# # sudo ln -sf /usr/bin/clang++-${LLVM_VERSION} /usr/bin/clang++ 
-# # sudo update-alternatives \
-# #   --install /usr/bin/clang                 clang                  /usr/bin/clang-18     100 \
-# #   --slave   /usr/bin/clang++               clang++                /usr/bin/clang++-18 \
-# #   --slave   /usr/bin/lld                   lld                    /usr/bin/lld-18 \
-
-
-# function register_clang_version {
-#     local version=$1
-#     local priority=$2
-
-#     sudo update-alternatives \
-#          --verbose \
-#         --install /usr/bin/llvm-config          llvm-config          /usr/bin/llvm-config-${version} ${priority} \
-#         --slave   /usr/bin/llvm-ar              llvm-ar              /usr/bin/llvm-ar-${version} \
-#         --slave   /usr/bin/llvm-as              llvm-as              /usr/bin/llvm-as-${version} \
-#         --slave   /usr/bin/llvm-bcanalyzer      llvm-bcanalyzer      /usr/bin/llvm-bcanalyzer-${version} \
-#         --slave   /usr/bin/llvm-c-test          llvm-c-test          /usr/bin/llvm-c-test-${version} \
-#         --slave   /usr/bin/llvm-cat             llvm-cat             /usr/bin/llvm-cat-${version} \
-#         --slave   /usr/bin/llvm-cfi-verify      llvm-cfi-verify      /usr/bin/llvm-cfi-verify-${version} \
-#         --slave   /usr/bin/llvm-cov             llvm-cov             /usr/bin/llvm-cov-${version} \
-#         --slave   /usr/bin/llvm-cvtres          llvm-cvtres          /usr/bin/llvm-cvtres-${version} \
-#         --slave   /usr/bin/llvm-cxxdump         llvm-cxxdump         /usr/bin/llvm-cxxdump-${version} \
-#         --slave   /usr/bin/llvm-cxxfilt         llvm-cxxfilt         /usr/bin/llvm-cxxfilt-${version} \
-#         --slave   /usr/bin/llvm-diff            llvm-diff            /usr/bin/llvm-diff-${version} \
-#         --slave   /usr/bin/llvm-dis             llvm-dis             /usr/bin/llvm-dis-${version} \
-#         --slave   /usr/bin/llvm-dlltool         llvm-dlltool         /usr/bin/llvm-dlltool-${version} \
-#         --slave   /usr/bin/llvm-dwarfdump       llvm-dwarfdump       /usr/bin/llvm-dwarfdump-${version} \
-#         --slave   /usr/bin/llvm-dwp             llvm-dwp             /usr/bin/llvm-dwp-${version} \
-#         --slave   /usr/bin/llvm-exegesis        llvm-exegesis        /usr/bin/llvm-exegesis-${version} \
-#         --slave   /usr/bin/llvm-extract         llvm-extract         /usr/bin/llvm-extract-${version} \
-#         --slave   /usr/bin/llvm-lib             llvm-lib             /usr/bin/llvm-lib-${version} \
-#         --slave   /usr/bin/llvm-link            llvm-link            /usr/bin/llvm-link-${version} \
-#         --slave   /usr/bin/llvm-lto             llvm-lto             /usr/bin/llvm-lto-${version} \
-#         --slave   /usr/bin/llvm-lto2            llvm-lto2            /usr/bin/llvm-lto2-${version} \
-#         --slave   /usr/bin/llvm-mc              llvm-mc              /usr/bin/llvm-mc-${version} \
-#         --slave   /usr/bin/llvm-mca             llvm-mca             /usr/bin/llvm-mca-${version} \
-#         --slave   /usr/bin/llvm-modextract      llvm-modextract      /usr/bin/llvm-modextract-${version} \
-#         --slave   /usr/bin/llvm-mt              llvm-mt              /usr/bin/llvm-mt-${version} \
-#         --slave   /usr/bin/llvm-nm              llvm-nm              /usr/bin/llvm-nm-${version} \
-#         --slave   /usr/bin/llvm-objcopy         llvm-objcopy         /usr/bin/llvm-objcopy-${version} \
-#         --slave   /usr/bin/llvm-objdump         llvm-objdump         /usr/bin/llvm-objdump-${version} \
-#         --slave   /usr/bin/llvm-opt-report      llvm-opt-report      /usr/bin/llvm-opt-report-${version} \
-#         --slave   /usr/bin/llvm-pdbutil         llvm-pdbutil         /usr/bin/llvm-pdbutil-${version} \
-#         --slave   /usr/bin/llvm-PerfectShuffle  llvm-PerfectShuffle  /usr/bin/llvm-PerfectShuffle-${version} \
-#         --slave   /usr/bin/llvm-profdata        llvm-profdata        /usr/bin/llvm-profdata-${version} \
-#         --slave   /usr/bin/llvm-ranlib          llvm-ranlib          /usr/bin/llvm-ranlib-${version} \
-#         --slave   /usr/bin/llvm-rc              llvm-rc              /usr/bin/llvm-rc-${version} \
-#         --slave   /usr/bin/llvm-readelf         llvm-readelf         /usr/bin/llvm-readelf-${version} \
-#         --slave   /usr/bin/llvm-readobj         llvm-readobj         /usr/bin/llvm-readobj-${version} \
-#         --slave   /usr/bin/llvm-rtdyld          llvm-rtdyld          /usr/bin/llvm-rtdyld-${version} \
-#         --slave   /usr/bin/llvm-size            llvm-size            /usr/bin/llvm-size-${version} \
-#         --slave   /usr/bin/llvm-split           llvm-split           /usr/bin/llvm-split-${version} \
-#         --slave   /usr/bin/llvm-stress          llvm-stress          /usr/bin/llvm-stress-${version} \
-#         --slave   /usr/bin/llvm-strings         llvm-strings         /usr/bin/llvm-strings-${version} \
-#         --slave   /usr/bin/llvm-strip           llvm-strip           /usr/bin/llvm-strip-${version} \
-#         --slave   /usr/bin/llvm-symbolizer      llvm-symbolizer      /usr/bin/llvm-symbolizer-${version} \
-#         --slave   /usr/bin/llvm-tblgen          llvm-tblgen          /usr/bin/llvm-tblgen-${version} \
-#         --slave   /usr/bin/llvm-undname         llvm-undname         /usr/bin/llvm-undname-${version} \
-#         --slave   /usr/bin/llvm-xray            llvm-xray            /usr/bin/llvm-xray-${version}
-        
-
-#     sudo update-alternatives \
-#          --verbose \
-#         --install /usr/bin/clang                clang                /usr/bin/clang-${version} ${priority} \
-#         --slave   /usr/bin/clang++              clang++              /usr/bin/clang++-${version}  \
-#         --slave   /usr/bin/clang-format         clang-format         /usr/bin/clang-format-${version}  \
-#         --slave   /usr/bin/clang-cpp            clang-cpp            /usr/bin/clang-cpp-${version} \
-#         --slave   /usr/bin/clang-cl             clang-cl             /usr/bin/clang-cl-${version} \
-#         --slave   /usr/bin/clangd               clangd               /usr/bin/clangd-${version} \
-#         --slave   /usr/bin/clang-tidy           clang-tidy           /usr/bin/clang-tidy-${version} \
-#         --slave   /usr/bin/clang-check          clang-check          /usr/bin/clang-check-${version} \
-#         --slave   /usr/bin/clang-query          clang-query          /usr/bin/clang-query-${version} \
-#         --slave   /usr/bin/asan_symbolize       asan_symbolize       /usr/bin/asan_symbolize-${version} \
-#         --slave   /usr/bin/bugpoint             bugpoint             /usr/bin/bugpoint-${version} \
-#         --slave   /usr/bin/dsymutil             dsymutil             /usr/bin/dsymutil-${version} \
-#         --slave   /usr/bin/lld                  lld                  /usr/bin/lld-${version} \
-#         --slave   /usr/bin/ld.lld               ld.lld               /usr/bin/ld.lld-${version} \
-#         --slave   /usr/bin/lld-link             lld-link             /usr/bin/lld-link-${version} \
-#         --slave   /usr/bin/llc                  llc                  /usr/bin/llc-${version} \
-#         --slave   /usr/bin/lli                  lli                  /usr/bin/lli-${version} \
-#         --slave   /usr/bin/obj2yaml             obj2yaml             /usr/bin/obj2yaml-${version} \
-#         --slave   /usr/bin/opt                  opt                  /usr/bin/opt-${version} \
-#         --slave   /usr/bin/sanstats             sanstats             /usr/bin/sanstats-${version} \
-#         --slave   /usr/bin/verify-uselistorder  verify-uselistorder  /usr/bin/verify-uselistorder-${version} \
-#         --slave   /usr/bin/wasm-ld              wasm-ld              /usr/bin/wasm-ld-${version} \
-#         --slave   /usr/bin/yaml2obj             yaml2obj             /usr/bin/yaml2obj-${version}
-        
-# }
-
-# register_clang_version 18 100
-
-
-# echo #################################################
-# # sudo update-alternatives --all
-# sudo update-alternatives --config clang
-# echo #################################################
-# #################################################
-
 # :: Build BDE + NTF ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 TOOLCHAIN_PATH="${DIR_SCRIPTS}/clang-libcxx-${SANITIZER_NAME}.cmake"
 export CC="clang"
@@ -290,3 +171,48 @@ sed -i 's/fcoroutines-ts/fcoroutines/g' 'repository.cmake'
 make -j${PARALLELISM}
 make install
 popd
+
+# Note: Hack to circumvent faulty behavior in "nts-targets.cmake"
+ln -sf "/opt/bb/include" "/opt/include"
+ln -sf "/opt/bb/lib64" "/opt/lib64"
+
+# pushd DIR_SRCS_EXT
+popd
+
+# :: Setup CMake options for all remaining builds :::::::::::::::::::::::::::::
+CMAKE_OPTIONS="\
+    -D BUILD_BITNESS=64 \
+    -D CMAKE_BUILD_TYPE=Debug \
+    -D CMAKE_INSTALL_INCLUDEDIR=include \
+    -D CMAKE_INSTALL_LIBDIR=lib64 \
+    -D CMAKE_TOOLCHAIN_FILE=${TOOLCHAIN_PATH}"
+
+# :: Build GoogleTest :::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+cmake -B "${DIR_SRCS_EXT}/googletest/cmake.bld" \
+      -S "${DIR_SRCS_EXT}/googletest" ${CMAKE_OPTIONS} \
+      -DCMAKE_INSTALL_PREFIX=/opt/bb
+cmake --build "${DIR_SRCS_EXT}/googletest/cmake.bld" -j${PARALLELISM}
+cmake --install "${DIR_SRCS_EXT}/googletest/cmake.bld" --prefix "/opt/bb"
+
+
+# :: Build Google Benchmark :::::::::::::::::::::::::::::::::::::::::::::::::::
+cmake -B "${DIR_SRCS_EXT}/google-benchmark/cmake.bld" \
+        -S "${DIR_SRCS_EXT}/google-benchmark" ${CMAKE_OPTIONS} \
+        -DCMAKE_INSTALL_PREFIX=/opt/bb \
+        -DBENCHMARK_DOWNLOAD_DEPENDENCIES="ON" \
+        -DBENCHMARK_ENABLE_GTEST_TESTS="false" \
+        -DBENCHMARK_ENABLE_TESTING="OFF"
+cmake --build "${DIR_SRCS_EXT}/google-benchmark/cmake.bld" -j${PARALLELISM}
+cmake --install "${DIR_SRCS_EXT}/google-benchmark/cmake.bld" --prefix "/opt/bb"
+
+## :: Build zlib ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# Note: zlib has completely broken CMake install rules, so we must
+# specify the install prefix *exactly* as it will be at configure
+# time
+# https://discourse.cmake.org/t/cmake-install-prefix-not-work/5040
+cmake -B "${DIR_SRCS_EXT}/zlib/cmake.bld" -S "${DIR_SRCS_EXT}/zlib" \
+        -D CMAKE_INSTALL_PREFIX="/opt/bb" \
+        ${CMAKE_OPTIONS}
+# Make and install zlib.
+cmake --build "${DIR_SRCS_EXT}/zlib/cmake.bld" -j${PARALLELISM}
+cmake --install "${DIR_SRCS_EXT}/zlib/cmake.bld"
