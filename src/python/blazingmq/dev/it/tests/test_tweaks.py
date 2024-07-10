@@ -1,5 +1,5 @@
 from blazingmq.dev.it.tweaks import tweak, TWEAK_ATTRIBUTE
-from blazingmq.dev.configurator import Configurator
+from blazingmq.dev.configurator.configurator import Configurator
 
 
 def apply_tweaks(configurator, tweaks, stage):
