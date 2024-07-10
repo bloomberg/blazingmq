@@ -273,8 +273,6 @@ bbs_build build -j${PARALLELISM}
 bbs_build --install=/opt/bb --prefix=/ install
 popd
 
-exit 0
-
 pushd "ntf-core"
 # TODO The deprecated flag "-fcoroutines-ts" has been removed in clang
 # 17.0.1, but NTF is still using it.  We manually change this flag until
