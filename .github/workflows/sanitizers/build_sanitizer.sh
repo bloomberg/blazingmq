@@ -159,7 +159,7 @@ function register_clang_version {
     local version=$1
     local priority=$2
 
-    update-alternatives \
+    sudo update-alternatives \
          --verbose \
         --install /usr/bin/llvm-config          llvm-config          /usr/bin/llvm-config-${version} ${priority} \
         --slave   /usr/bin/llvm-ar              llvm-ar              /usr/bin/llvm-ar-${version} \
@@ -210,7 +210,7 @@ function register_clang_version {
         --slave   /usr/bin/llvm-xray            llvm-xray            /usr/bin/llvm-xray-${version}
         
 
-    update-alternatives \
+    sudo update-alternatives \
          --verbose \
         --install /usr/bin/clang                clang                /usr/bin/clang-${version} ${priority} \
         --slave   /usr/bin/clang++              clang++              /usr/bin/clang++-${version}  \
