@@ -19,6 +19,7 @@
 #include <mqbscm_version.h>
 
 // BDE
+#include <baljsn_decoder.h>
 #include <baljsn_encoder.h>
 #include <ball_log.h>
 
@@ -64,6 +65,35 @@ JsonPrinter::printResponses(bsl::ostream&            os,
                             int                      level,
                             int                      spacesPerLevel)
 {
+    // First need to decode the string responses back to a result format.
+    baljsn::Decoder        decoder;
+    baljsn::DecoderOptions decoderOptions;
+    decoderOptions.setSkipUnknownElements(true);
+
+    mqbcmd::RouteResponseResultList responseResultList;
+
+    bsl::vector<mqbcmd::RouteResponseResult>& responseResults =
+        responseResultList.responses();
+
+    for (bsl::vector<mqbcmd::RouteResponse>::const_iterator rit =
+             responseList.responses().begin();
+         rit != responseList.responses().end();
+         rit++) {
+        mqbcmd::RouteResponseResult result;
+        result.source() = rit->source();
+        bsl::istringstream jsonStream(rit->response());
+        const int          rc = decoder.decode(jsonStream,
+                                      &result.result(),
+                                      decoderOptions);
+        if (0 != rc) {
+            BALL_LOG_SET_CATEGORY(k_LOG_CATEGORY);
+            BALL_LOG_ERROR << "failed to decode result [" << rit->response()
+                           << "] , rc = " << rc;
+            return os;
+        }
+        responseResults.push_back(result);
+    }
+
     bslma::Allocator* alloc = bslma::Default::allocator(0);
 
     baljsn::Encoder        encoder(alloc);
@@ -73,31 +103,12 @@ JsonPrinter::printResponses(bsl::ostream&            os,
     options.setInitialIndentLevel(level);
     options.setSpacesPerLevel(spacesPerLevel);
 
-    const int rc = encoder.encode(os, responseList, options);
+    const int rc = encoder.encode(os, responseResultList, options);
     if (0 != rc) {
         BALL_LOG_SET_CATEGORY(k_LOG_CATEGORY);
         BALL_LOG_ERROR << "failed to encode response list, rc = " << rc;
     }
     return os;
-
-    // ALTERNATE: manual
-    // os << "[";
-    // for (RouteResponseVector::const_iterator respIt = responses.begin();
-    //      respIt != responses.end();
-    //      ++respIt) {
-    //     os << "{";
-    //     os << "source:\"";
-    //     os << respIt->source();
-    //     os << "\",";
-    //     os << "response:";
-    //     os << respIt->response();
-    //     os << "}";
-
-    //     if (respIt + 1 != responses.end()) {
-    //         os << ",";
-    //     }
-    // }
-    // os << "]";
 }
 
 }  // close package namespace

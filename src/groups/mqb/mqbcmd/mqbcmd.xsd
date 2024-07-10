@@ -65,6 +65,19 @@
     </sequence>
   </complexType>
 
+  <complexType name="RouteResponseResult">
+    <sequence>
+      <element name="source" type="xs:string"/>
+      <element name="result" type="tns:Result"/>
+    </sequence>
+  </complexType>
+
+  <complexType name="RouteResponseResultList">
+    <sequence>
+      <element name="responses" type="tns:RouteResponseResult" maxOccurs="unbounded" minOccurs="0"/>
+    </sequence>
+  </complexType>
+
   <complexType name="InternalResult">
     <annotation>
       <documentation>

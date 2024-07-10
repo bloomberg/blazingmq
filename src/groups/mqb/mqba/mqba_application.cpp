@@ -530,10 +530,6 @@ Application::getRelevantCluster(const mqbcmd::CommandChoice& command,
         else if (domains.isReconfigureValue()) {
             domainName = domains.reconfigure().domain();
         }
-        else if (domains.isResolverValue()) {
-            // domainName = domains.resolver().clearCache().
-            // tricky... distinguish ALL or a particular domain
-        }
         else {
             mwcu::MemOutStream os;
             os << "Cannot extract cluster for that command";
@@ -707,9 +703,8 @@ void Application::printCommandResponses(
 
     RouteResponseVector responses = responseList.responses();
 
-    // Always expect at least 1 response to print
-    BSLS_ASSERT_SAFE(responses.size() > 0);
-
+    // When there is only 1 response (as in single reroute or self exec.)
+    // then just display that result. It should already be formatted properly.
     if (responses.size() == 1) {
         os << responses[0].response();
         return;  // RETURN

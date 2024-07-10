@@ -29,6 +29,10 @@
 namespace BloombergLP {
 namespace mqba {
 
+namespace {
+const char k_LOG_CATEGORY[] = "MQBA.COMMANDROUTER";
+}  // close unnamed namespace
+
 RouteCommandManager::RouteCommandManager(const bsl::string& commandString,
                                          const mqbcmd::CommandChoice& command)
 : d_commandString(commandString)
@@ -183,8 +187,7 @@ void RouteCommandManager::onRouteCommandResponse(
             routeResponse.response() = output;
         }
         else {
-            // something went wrong... possibly timeout?
-
+            // Something went wrong, possibly timed out
             routeResponse.response() =
                 "Error ocurred sending command to node " +
                 pair.first->hostName();
@@ -242,17 +245,24 @@ RouteCommandManager::RoutingModeMp RouteCommandManager::getCommandRoutingMode()
                     // SUMMARY doesn't need to route to primary
                 }
                 if (storage.isReplicationValue()) {
-                    const mqbcmd::ReplicationCommand& replication = storage.replication();
+                    const mqbcmd::ReplicationCommand& replication =
+                        storage.replication();
                     if (replication.isSetTunableValue()) {
-                        const mqbcmd::SetTunable& tunable = replication.setTunable();
+                        const mqbcmd::SetTunable& tunable =
+                            replication.setTunable();
                         if (tunable.choice().isAllValue()) {
-                            routingMode = new ClusterRoutingMode(this);
+                            routingMode = new ClusterRoutingMode(
+                                this);  // CLUSTERS CLUSTER <name> STORAGE
+                                        // REPLICATION SET_ALL
                         }
                     }
                     else if (replication.isGetTunableValue()) {
-                        const mqbcmd::GetTunable& tunable = replication.getTunable();
+                        const mqbcmd::GetTunable& tunable =
+                            replication.getTunable();
                         if (tunable.choice().isAllValue()) {
-                            routingMode = new ClusterRoutingMode(this);
+                            routingMode = new ClusterRoutingMode(
+                                this);  // CLUSTERS CLUSTER <name> STORAGE
+                                        // REPLICATION GET_ALL
                         }
                     }
                 }
@@ -262,15 +272,21 @@ RouteCommandManager::RoutingModeMp RouteCommandManager::getCommandRoutingMode()
                 if (state.isElectorValue()) {
                     const mqbcmd::ElectorCommand elector = state.elector();
                     if (elector.isSetTunableValue()) {
-                        const mqbcmd::SetTunable& tunable = elector.setTunable();
+                        const mqbcmd::SetTunable& tunable =
+                            elector.setTunable();
                         if (tunable.choice().isAllValue()) {
-                            routingMode = new ClusterRoutingMode(this);
+                            routingMode = new ClusterRoutingMode(
+                                this);  // CLUSTERS CLUSTER <name> STATE
+                                        // ELECTOR SET_ALL
                         }
                     }
                     else if (elector.isGetTunableValue()) {
-                        const mqbcmd::GetTunable& tunable = elector.getTunable();
+                        const mqbcmd::GetTunable& tunable =
+                            elector.getTunable();
                         if (tunable.choice().isAllValue()) {
-                            routingMode = new ClusterRoutingMode(this);
+                            routingMode = new ClusterRoutingMode(
+                                this);  // CLUSTERS CLUSTER <name> STATE
+                                        // ELECTOR GET_ALL
                         }
                     }
                 }
@@ -305,7 +321,7 @@ void RouteCommandManager::routeCommand(const NodesVector& nodes)
     contextSp->setDestinationNodes(nodes);
 
     mwcu::MemOutStream os;
-    os << "Rerouting command to the following nodes [";
+    os << "Routing command to the following nodes [";
     for (NodesVector::const_iterator nit = nodes.begin(); nit != nodes.end();
          nit++) {
         os << (*nit)->hostName();
@@ -314,7 +330,8 @@ void RouteCommandManager::routeCommand(const NodesVector& nodes)
         }
     }
     os << "]";
-    // BALL_LOG_INFO << os.str();
+    BALL_LOG_SET_CATEGORY(k_LOG_CATEGORY);
+    BALL_LOG_INFO << os.str();
 
     contextSp->setResponseCb(
         bdlf::BindUtil::bind(&RouteCommandManager::onRouteCommandResponse,

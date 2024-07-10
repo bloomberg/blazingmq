@@ -772,11 +772,12 @@ class Cluster : public mqbi::Cluster,
     /// vector will never include the self node.
     void getPrimaryNodes(bsl::vector<mqbnet::ClusterNode*>* outNodes,
                          bool* outIsSelfPrimary) const BSLS_KEYWORD_OVERRIDE;
-    
+
     /// Gets the node which is the primary for the given partitionId or sets
     /// outIsSelfPrimary to true if the caller is the primary.
     void getPartitionPrimaryNode(mqbnet::ClusterNode** outNodes,
-                                 bool* outIsSelfPrimary, int partitionId) const BSLS_KEYWORD_OVERRIDE;
+                                 bool*                 outIsSelfPrimary,
+                                 int partitionId) const BSLS_KEYWORD_OVERRIDE;
 
     /// Print the state of the cluster to the specified `out`.
     ///

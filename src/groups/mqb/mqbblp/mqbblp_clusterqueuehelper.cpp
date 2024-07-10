@@ -1969,7 +1969,7 @@ bool ClusterQueueHelper::createQueue(
                   << context.d_handleParameters << "]";
 
     mqbi::Cluster::OpenQueueConfirmationCookie confirmationCookie(
-        new (*d_allocator_p) mqbi::QueueHandle*(0),
+        new (*d_allocator_p) mqbi::QueueHandle * (0),
         bdlf::BindUtil::bind(
             &ClusterQueueHelper::onOpenQueueConfirmationCookieReleased,
             this,

@@ -429,12 +429,13 @@ class Cluster : public mqbi::Cluster {
 
     /// Block until scheduler executes all the scheduled callbacks.
     void waitForScheduler();
-    
+
     void getPrimaryNodes(bsl::vector<mqbnet::ClusterNode*>* outNodes,
                          bool* outIsSelfPrimary) const BSLS_KEYWORD_OVERRIDE;
 
     void getPartitionPrimaryNode(mqbnet::ClusterNode** outNodes,
-                                 bool* outIsSelfPrimary, int partitionId) const BSLS_KEYWORD_OVERRIDE;
+                                 bool*                 outIsSelfPrimary,
+                                 int partitionId) const BSLS_KEYWORD_OVERRIDE;
 
     // ACCESSORS
     //   (virtual: mqbi::DispatcherClient)
@@ -592,9 +593,9 @@ Cluster::getPrimaryNodes(bsl::vector<mqbnet::ClusterNode*>* outNodes,
     // no implementation
 }
 
-inline void
-Cluster::getPartitionPrimaryNode(mqbnet::ClusterNode** outNode,
-                              bool* outIsSelfPrimary, int partitionId) const
+inline void Cluster::getPartitionPrimaryNode(mqbnet::ClusterNode** outNode,
+                                             bool* outIsSelfPrimary,
+                                             int   partitionId) const
 {
     // no implementation
 }
