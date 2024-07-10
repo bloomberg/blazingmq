@@ -211,14 +211,6 @@ class ClusterProxy : public mqbc::ClusterStateObserver,
     // stopping.  This flag is exposed via
     // an accessor.
 
-    bsl::string d_description;
-    // Description of this object
-    // TODO: Merge into mqbc::ClusterData
-
-    mqbcfg::ClusterProxyDefinition d_clusterProxyConfig;
-    // Cluster proxy configuration to use
-    // TODO: Merge into mqbc::ClusterData
-
     mqbc::ClusterData d_clusterData;
     // The transient data associated with
     // the cluster
@@ -266,10 +258,8 @@ class ClusterProxy : public mqbc::ClusterStateObserver,
   private:
     // PRIVATE MANIPULATORS
 
-    /// Start the `Cluster` and populate the specified `rc` with the result
-    /// of the operation, 0 on success and non-zero otherwise populating the
-    /// specified `errorDescription` with the reason of the error.
-    void startDispatched(bsl::ostream* errorDescription, int* rc);
+    /// Start the `Cluster`.
+    void startDispatched();
 
     /// Initiate the shutdown of the cluster.  The specified `callback` will
     /// be called when the shutdown is completed.  This routine is invoked
@@ -773,7 +763,7 @@ inline const mqbcfg::ClusterDefinition* ClusterProxy::clusterConfig() const
 inline const mqbcfg::ClusterProxyDefinition*
 ClusterProxy::clusterProxyConfig() const
 {
-    return &d_clusterProxyConfig;
+    return &d_clusterData.clusterProxyConfig();
 }
 
 // ACCESSORS
@@ -791,7 +781,7 @@ ClusterProxy::dispatcherClientData() const
 
 inline const bsl::string& ClusterProxy::description() const
 {
-    return d_description;
+    return d_clusterData.identity().description();
 }
 
 // ACCESSORS

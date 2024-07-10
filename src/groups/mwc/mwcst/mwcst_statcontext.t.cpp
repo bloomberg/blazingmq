@@ -126,7 +126,7 @@ static bool checkSnapshot(const StatValue& value,
         StatValue::SnapshotLocation(level, index));
 
     bsl::vector<bsls::Types::Int64> snapshotValues;
-    if (value.type() == StatValue::DMCST_CONTINUOUS) {
+    if (value.type() == StatValue::e_CONTINUOUS) {
         snapshotValues.push_back(snapshot.value());
         snapshotValues.push_back(snapshot.min());
         snapshotValues.push_back(snapshot.max());
@@ -141,7 +141,7 @@ static bool checkSnapshot(const StatValue& value,
     }
 
     bsl::vector<bsls::Types::Int64> expectedValues =
-        mwcu::TestUtil::int64Vector(snapshotDesc);
+        mwcst::TestUtil::int64Vector(snapshotDesc);
 
     ASSERT_EQUALS(expectedValues, snapshotValues);
     return expectedValues == snapshotValues;
@@ -175,7 +175,7 @@ static bsls::Types::Int64 field(const mwcstm::StatContextUpdate& contextUpdate,
 
 static const StatValue& direct(const StatContext& context, int index)
 {
-    return context.value(StatContext::DMCST_DIRECT_VALUE, index);
+    return context.value(StatContext::e_DIRECT_VALUE, index);
 }
 
 //=============================================================================
@@ -199,7 +199,7 @@ static void usageExample(bsl::ostream& stream, bslma::Allocator* allocator)
     // track of:
     // - The number of messages and bytes sent and received via the interface,
     //   since the beginning;
-    // - The the number of messages per second and bytes per second sent and
+    // - The number of messages per second and bytes per second sent and
     //   received over the last 10 seconds.
     // So basically we need 4 metrics for input and the same 4 metrics for
     // output.
@@ -284,7 +284,7 @@ static void usageExample(bsl::ostream& stream, bslma::Allocator* allocator)
     tip.update();
 
     if (verbose) {
-        mwcu::TableUtil::printTable(stream, tip);
+        mwcst::TableUtil::printTable(stream, tip);
     }
 
     // The input stats are printed as follow (output is removed for clarity):
@@ -319,7 +319,7 @@ static void usageExample(bsl::ostream& stream, bslma::Allocator* allocator)
             stream << bsl::endl
                    << "After " << (i + 1) << " seconds:" << bsl::endl;
             tip.update();
-            mwcu::TableUtil::printTable(stream, tip);
+            mwcst::TableUtil::printTable(stream, tip);
         }
     }
 
@@ -385,7 +385,7 @@ static void usageExampleUpdate(bsl::ostream&     stream,
     tip.update();
 
     if (verbose) {
-        mwcu::TableUtil::printTable(stream, tip);
+        mwcst::TableUtil::printTable(stream, tip);
     }
 
     context.clearValues();
@@ -404,7 +404,7 @@ static void usageExampleUpdate(bsl::ostream&     stream,
             stream << bsl::endl
                    << "After " << (i + 1) << " seconds:" << bsl::endl;
             tip.update();
-            mwcu::TableUtil::printTable(stream, tip);
+            mwcst::TableUtil::printTable(stream, tip);
         }
     }
 }
@@ -471,7 +471,7 @@ static void tableUsageExample(bsl::ostream&     stream,
     tip.update();
 
     if (verbose) {
-        mwcu::TableUtil::printTable(stream, tip);
+        mwcst::TableUtil::printTable(stream, tip);
     }
 
     // This will print the hierarchy of contexts as follow.  Note that there
@@ -493,7 +493,7 @@ static void tableUsageExample(bsl::ostream&     stream,
     context.snapshot();
     tip.update();
     if (verbose) {
-        mwcu::TableUtil::printTable(stream, tip);
+        mwcst::TableUtil::printTable(stream, tip);
     }
 
     // Notice the parentheses around the name of deleted client:
@@ -513,7 +513,7 @@ static void tableUsageExample(bsl::ostream&     stream,
     tip.setContext(&context);
     tip.update();
     if (verbose) {
-        mwcu::TableUtil::printTable(stream, tip);
+        mwcst::TableUtil::printTable(stream, tip);
     }
 
     // The code above will print:
@@ -569,7 +569,7 @@ static void tableUsageExampleUpdate(bsl::ostream&     stream,
     tip.update();
 
     if (verbose) {
-        mwcu::TableUtil::printTable(stream, tip);
+        mwcst::TableUtil::printTable(stream, tip);
     }
 
     client1.clear();
@@ -577,14 +577,14 @@ static void tableUsageExampleUpdate(bsl::ostream&     stream,
     updatedContext.snapshotFromUpdate(update);
     tip.update();
     if (verbose) {
-        mwcu::TableUtil::printTable(stream, tip);
+        mwcst::TableUtil::printTable(stream, tip);
     }
 
     updatedContext.cleanup();
     tip.setContext(&updatedContext);
     tip.update();
     if (verbose) {
-        mwcu::TableUtil::printTable(stream, tip);
+        mwcst::TableUtil::printTable(stream, tip);
     }
 }
 
@@ -622,7 +622,7 @@ static void subcontextUsageExample(bsl::ostream&     stream,
             .value("Memory", numSnapshots));
 
     // Now lets record some data points.
-    int memInUse = 50000;  // size of the the allocator in bytes
+    int memInUse = 50000;  // size of the allocator in bytes
     context.setValue(0, memInUse);
 
     memInUse = 1500;
@@ -641,7 +641,7 @@ static void subcontextUsageExample(bsl::ostream&     stream,
     tip.addColumn("Max", 0, mwcst::StatUtil::absoluteMax);
     tip.update();
     if (verbose) {
-        mwcu::TableUtil::printTable(stream, tip);
+        mwcst::TableUtil::printTable(stream, tip);
     }
 
     // This is what it prints:
@@ -668,7 +668,7 @@ static void subcontextUsageExampleUpdate(bsl::ostream&     stream,
         mwcst::StatContextConfiguration("Interface Allocator")
             .value("Memory", numSnapshots));
 
-    int memInUse = 50000;  // size of the the allocator in bytes
+    int memInUse = 50000;  // size of the allocator in bytes
     context.setValue(0, memInUse);
 
     memInUse = 1500;
@@ -693,7 +693,7 @@ static void subcontextUsageExampleUpdate(bsl::ostream&     stream,
     tip.addColumn("Max", 0, mwcst::StatUtil::absoluteMax);
     tip.update();
     if (verbose) {
-        mwcu::TableUtil::printTable(stream, tip);
+        mwcst::TableUtil::printTable(stream, tip);
     }
 }
 
@@ -770,7 +770,7 @@ static void valueLevelUsageExample(bsl::ostream&     stream,
         tip.update();
         if (verbose) {
             stream << bsl::endl << "Minute number " << i;
-            mwcu::TableUtil::printTable(stream, tip);
+            mwcst::TableUtil::printTable(stream, tip);
         }
     }
 }
@@ -844,7 +844,7 @@ static void valueLevelUsageExampleUpdate(bsl::ostream&     stream,
         tip.update();
         if (verbose) {
             stream << bsl::endl << "Minute number " << i;
-            mwcu::TableUtil::printTable(stream, tip);
+            mwcst::TableUtil::printTable(stream, tip);
         }
     }
 }
@@ -877,10 +877,10 @@ static void testUpdates(bslma::Allocator* /*allocator*/)
 
     mwcstm::StatContextUpdate u1, u2;
     StatContext               c1(StatContextConfiguration("context1")
-                       .value("c", StatValue::DMCST_CONTINUOUS, 3)
+                       .value("c", StatValue::e_CONTINUOUS, 3)
                        .valueLevel(2)
                        .valueLevel(1)
-                       .value("d", StatValue::DMCST_DISCRETE, 2)
+                       .value("d", StatValue::e_DISCRETE, 2)
                        .valueLevel(1)
                        .enableUpdateCollection(&u1));
 
@@ -898,38 +898,38 @@ static void testUpdates(bslma::Allocator* /*allocator*/)
     ASSERT_EQUALS(u1, fullUpdate);
 
     ASSERT(2 == u1.directValues().size());
-    ASSERT(hasField(u1, 0, Fields::DMCSTM_ABSOLUTE_MIN));
-    ASSERT(hasField(u1, 0, Fields::DMCSTM_ABSOLUTE_MAX));
-    ASSERT(hasField(u1, 0, Fields::DMCSTM_MIN));
-    ASSERT(hasField(u1, 0, Fields::DMCSTM_MAX));
-    ASSERT(hasField(u1, 0, Fields::DMCSTM_VALUE));
-    ASSERT(hasField(u1, 0, Fields::DMCSTM_INCREMENTS));
-    ASSERT(hasField(u1, 0, Fields::DMCSTM_DECREMENTS));
-    ASSERT(!hasField(u1, 0, Fields::DMCSTM_EVENTS));
-    ASSERT(!hasField(u1, 0, Fields::DMCSTM_SUM));
-    ASSERT_EQUALS(0, field(u1, 0, Fields::DMCSTM_ABSOLUTE_MIN));
-    ASSERT_EQUALS(9, field(u1, 0, Fields::DMCSTM_ABSOLUTE_MAX));
-    ASSERT_EQUALS(0, field(u1, 0, Fields::DMCSTM_MIN));
-    ASSERT_EQUALS(9, field(u1, 0, Fields::DMCSTM_MAX));
-    ASSERT_EQUALS(9, field(u1, 0, Fields::DMCSTM_VALUE));
-    ASSERT_EQUALS(2, field(u1, 0, Fields::DMCSTM_INCREMENTS));
-    ASSERT_EQUALS(0, field(u1, 0, Fields::DMCSTM_DECREMENTS));
+    ASSERT(hasField(u1, 0, Fields::E_ABSOLUTE_MIN));
+    ASSERT(hasField(u1, 0, Fields::E_ABSOLUTE_MAX));
+    ASSERT(hasField(u1, 0, Fields::E_MIN));
+    ASSERT(hasField(u1, 0, Fields::E_MAX));
+    ASSERT(hasField(u1, 0, Fields::E_VALUE));
+    ASSERT(hasField(u1, 0, Fields::E_INCREMENTS));
+    ASSERT(hasField(u1, 0, Fields::E_DECREMENTS));
+    ASSERT(!hasField(u1, 0, Fields::E_EVENTS));
+    ASSERT(!hasField(u1, 0, Fields::E_SUM));
+    ASSERT_EQUALS(0, field(u1, 0, Fields::E_ABSOLUTE_MIN));
+    ASSERT_EQUALS(9, field(u1, 0, Fields::E_ABSOLUTE_MAX));
+    ASSERT_EQUALS(0, field(u1, 0, Fields::E_MIN));
+    ASSERT_EQUALS(9, field(u1, 0, Fields::E_MAX));
+    ASSERT_EQUALS(9, field(u1, 0, Fields::E_VALUE));
+    ASSERT_EQUALS(2, field(u1, 0, Fields::E_INCREMENTS));
+    ASSERT_EQUALS(0, field(u1, 0, Fields::E_DECREMENTS));
 
-    ASSERT(hasField(u1, 1, Fields::DMCSTM_ABSOLUTE_MIN));
-    ASSERT(hasField(u1, 1, Fields::DMCSTM_ABSOLUTE_MAX));
-    ASSERT(hasField(u1, 1, Fields::DMCSTM_MIN));
-    ASSERT(hasField(u1, 1, Fields::DMCSTM_MAX));
-    ASSERT(!hasField(u1, 1, Fields::DMCSTM_VALUE));
-    ASSERT(!hasField(u1, 1, Fields::DMCSTM_INCREMENTS));
-    ASSERT(!hasField(u1, 1, Fields::DMCSTM_DECREMENTS));
-    ASSERT(hasField(u1, 1, Fields::DMCSTM_EVENTS));
-    ASSERT(hasField(u1, 1, Fields::DMCSTM_SUM));
-    ASSERT_EQUALS(4, field(u1, 1, Fields::DMCSTM_ABSOLUTE_MIN));
-    ASSERT_EQUALS(5, field(u1, 1, Fields::DMCSTM_ABSOLUTE_MAX));
-    ASSERT_EQUALS(4, field(u1, 1, Fields::DMCSTM_MIN));
-    ASSERT_EQUALS(5, field(u1, 1, Fields::DMCSTM_MAX));
-    ASSERT_EQUALS(2, field(u1, 1, Fields::DMCSTM_EVENTS));
-    ASSERT_EQUALS(9, field(u1, 1, Fields::DMCSTM_SUM));
+    ASSERT(hasField(u1, 1, Fields::E_ABSOLUTE_MIN));
+    ASSERT(hasField(u1, 1, Fields::E_ABSOLUTE_MAX));
+    ASSERT(hasField(u1, 1, Fields::E_MIN));
+    ASSERT(hasField(u1, 1, Fields::E_MAX));
+    ASSERT(!hasField(u1, 1, Fields::E_VALUE));
+    ASSERT(!hasField(u1, 1, Fields::E_INCREMENTS));
+    ASSERT(!hasField(u1, 1, Fields::E_DECREMENTS));
+    ASSERT(hasField(u1, 1, Fields::E_EVENTS));
+    ASSERT(hasField(u1, 1, Fields::E_SUM));
+    ASSERT_EQUALS(4, field(u1, 1, Fields::E_ABSOLUTE_MIN));
+    ASSERT_EQUALS(5, field(u1, 1, Fields::E_ABSOLUTE_MAX));
+    ASSERT_EQUALS(4, field(u1, 1, Fields::E_MIN));
+    ASSERT_EQUALS(5, field(u1, 1, Fields::E_MAX));
+    ASSERT_EQUALS(2, field(u1, 1, Fields::E_EVENTS));
+    ASSERT_EQUALS(9, field(u1, 1, Fields::E_SUM));
 
     StatContext c2(StatContextConfiguration(u1).enableUpdateCollection(&u2));
     ASSERT_EQUALS(u1, u2);
@@ -948,34 +948,34 @@ static void testUpdates(bslma::Allocator* /*allocator*/)
     c2.snapshot();
     ASSERT(u2.configuration().isNull());
 
-    ASSERT(!hasField(u2, 0, Fields::DMCSTM_ABSOLUTE_MIN));
-    ASSERT(!hasField(u2, 0, Fields::DMCSTM_ABSOLUTE_MAX));
-    ASSERT(hasField(u2, 0, Fields::DMCSTM_MIN));
-    ASSERT(hasField(u2, 0, Fields::DMCSTM_MAX));
-    ASSERT(hasField(u2, 0, Fields::DMCSTM_VALUE));
-    ASSERT(hasField(u2, 0, Fields::DMCSTM_INCREMENTS));
-    ASSERT(hasField(u2, 0, Fields::DMCSTM_DECREMENTS));
-    ASSERT(!hasField(u2, 0, Fields::DMCSTM_EVENTS));
-    ASSERT(!hasField(u2, 0, Fields::DMCSTM_SUM));
-    ASSERT_EQUALS(8, field(u2, 0, Fields::DMCSTM_MIN));
-    ASSERT_EQUALS(10, field(u2, 0, Fields::DMCSTM_MAX));
-    ASSERT_EQUALS(8, field(u2, 0, Fields::DMCSTM_VALUE));
-    ASSERT_EQUALS(3, field(u2, 0, Fields::DMCSTM_INCREMENTS));
-    ASSERT_EQUALS(1, field(u2, 0, Fields::DMCSTM_DECREMENTS));
+    ASSERT(!hasField(u2, 0, Fields::E_ABSOLUTE_MIN));
+    ASSERT(!hasField(u2, 0, Fields::E_ABSOLUTE_MAX));
+    ASSERT(hasField(u2, 0, Fields::E_MIN));
+    ASSERT(hasField(u2, 0, Fields::E_MAX));
+    ASSERT(hasField(u2, 0, Fields::E_VALUE));
+    ASSERT(hasField(u2, 0, Fields::E_INCREMENTS));
+    ASSERT(hasField(u2, 0, Fields::E_DECREMENTS));
+    ASSERT(!hasField(u2, 0, Fields::E_EVENTS));
+    ASSERT(!hasField(u2, 0, Fields::E_SUM));
+    ASSERT_EQUALS(8, field(u2, 0, Fields::E_MIN));
+    ASSERT_EQUALS(10, field(u2, 0, Fields::E_MAX));
+    ASSERT_EQUALS(8, field(u2, 0, Fields::E_VALUE));
+    ASSERT_EQUALS(3, field(u2, 0, Fields::E_INCREMENTS));
+    ASSERT_EQUALS(1, field(u2, 0, Fields::E_DECREMENTS));
 
-    ASSERT(!hasField(u2, 1, Fields::DMCSTM_ABSOLUTE_MIN));
-    ASSERT(!hasField(u2, 1, Fields::DMCSTM_ABSOLUTE_MAX));
-    ASSERT(hasField(u2, 1, Fields::DMCSTM_MIN));
-    ASSERT(hasField(u2, 1, Fields::DMCSTM_MAX));
-    ASSERT(!hasField(u2, 1, Fields::DMCSTM_VALUE));
-    ASSERT(!hasField(u2, 1, Fields::DMCSTM_INCREMENTS));
-    ASSERT(!hasField(u2, 1, Fields::DMCSTM_DECREMENTS));
-    ASSERT(hasField(u2, 1, Fields::DMCSTM_EVENTS));
-    ASSERT(hasField(u2, 1, Fields::DMCSTM_SUM));
-    ASSERT_EQUALS(10, field(u2, 1, Fields::DMCSTM_MIN));
-    ASSERT_EQUALS(10, field(u2, 1, Fields::DMCSTM_MAX));
-    ASSERT_EQUALS(3, field(u2, 1, Fields::DMCSTM_EVENTS));
-    ASSERT_EQUALS(19, field(u2, 1, Fields::DMCSTM_SUM));
+    ASSERT(!hasField(u2, 1, Fields::E_ABSOLUTE_MIN));
+    ASSERT(!hasField(u2, 1, Fields::E_ABSOLUTE_MAX));
+    ASSERT(hasField(u2, 1, Fields::E_MIN));
+    ASSERT(hasField(u2, 1, Fields::E_MAX));
+    ASSERT(!hasField(u2, 1, Fields::E_VALUE));
+    ASSERT(!hasField(u2, 1, Fields::E_INCREMENTS));
+    ASSERT(!hasField(u2, 1, Fields::E_DECREMENTS));
+    ASSERT(hasField(u2, 1, Fields::E_EVENTS));
+    ASSERT(hasField(u2, 1, Fields::E_SUM));
+    ASSERT_EQUALS(10, field(u2, 1, Fields::E_MIN));
+    ASSERT_EQUALS(10, field(u2, 1, Fields::E_MAX));
+    ASSERT_EQUALS(3, field(u2, 1, Fields::E_EVENTS));
+    ASSERT_EQUALS(19, field(u2, 1, Fields::E_SUM));
 
     c1.snapshotFromUpdate(u2);
     ASSERT_EQUALS(u1, u2);
@@ -994,17 +994,17 @@ static void testUpdates(bslma::Allocator* /*allocator*/)
 
     c1.snapshot();
 
-    ASSERT(!hasField(u1, 1, Fields::DMCSTM_ABSOLUTE_MIN));
-    ASSERT(!hasField(u1, 1, Fields::DMCSTM_ABSOLUTE_MAX));
-    ASSERT(hasField(u1, 1, Fields::DMCSTM_MIN));
-    ASSERT(hasField(u1, 1, Fields::DMCSTM_MAX));
-    ASSERT(!hasField(u1, 1, Fields::DMCSTM_VALUE));
-    ASSERT(!hasField(u1, 1, Fields::DMCSTM_INCREMENTS));
-    ASSERT(!hasField(u1, 1, Fields::DMCSTM_DECREMENTS));
-    ASSERT(!hasField(u1, 1, Fields::DMCSTM_EVENTS));
-    ASSERT(!hasField(u1, 1, Fields::DMCSTM_SUM));
-    ASSERT_EQUALS(MAX_INT, field(u1, 1, Fields::DMCSTM_MIN));
-    ASSERT_EQUALS(MIN_INT, field(u1, 1, Fields::DMCSTM_MAX));
+    ASSERT(!hasField(u1, 1, Fields::E_ABSOLUTE_MIN));
+    ASSERT(!hasField(u1, 1, Fields::E_ABSOLUTE_MAX));
+    ASSERT(hasField(u1, 1, Fields::E_MIN));
+    ASSERT(hasField(u1, 1, Fields::E_MAX));
+    ASSERT(!hasField(u1, 1, Fields::E_VALUE));
+    ASSERT(!hasField(u1, 1, Fields::E_INCREMENTS));
+    ASSERT(!hasField(u1, 1, Fields::E_DECREMENTS));
+    ASSERT(!hasField(u1, 1, Fields::E_EVENTS));
+    ASSERT(!hasField(u1, 1, Fields::E_SUM));
+    ASSERT_EQUALS(MAX_INT, field(u1, 1, Fields::E_MIN));
+    ASSERT_EQUALS(MIN_INT, field(u1, 1, Fields::E_MAX));
 
     c2.snapshotFromUpdate(u1);
     ASSERT_EQUALS(u1, u2);
@@ -1206,6 +1206,6 @@ int main(int argc, char** argv)
     // to indicate the number of assertion failures, or a negative
     // value to indicate that the test case was not found.  Special value 254
     // is used to skip a test, for example for Jenkins.
-    mwcu::TestUtil::printTestStatus(testStatus, verbose);
+    mwcst::TestUtil::printTestStatus(testStatus, verbose);
     return testStatus;
 }

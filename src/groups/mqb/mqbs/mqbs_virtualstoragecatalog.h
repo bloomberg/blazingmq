@@ -31,6 +31,9 @@
 #include <mqbs_virtualstorage.h>
 #include <mqbu_storagekey.h>
 
+// MWC
+#include <mwcc_twokeyhashmap.h>
+
 // BMQ
 #include <bmqt_messageguid.h>
 
@@ -57,9 +60,10 @@ class VirtualStorageCatalog {
     // PRIVATE TYPES
     typedef bsl::shared_ptr<VirtualStorage> VirtualStorageSp;
 
-    /// appKey -> virtualStorage
-    typedef bsl::unordered_map<mqbu::StorageKey, VirtualStorageSp>
-        VirtualStorages;
+    /// Any(appId, appKey) -> virtualStorage
+    typedef mwcc::
+        TwoKeyHashMap<bsl::string, mqbu::StorageKey, VirtualStorageSp>
+            VirtualStorages;
 
     typedef VirtualStorages::iterator VirtualStoragesIter;
 
@@ -126,7 +130,7 @@ class VirtualStorageCatalog {
     bslma::ManagedPtr<mqbi::StorageIterator>
     getIterator(const mqbu::StorageKey& appKey);
 
-    /// Load into the the specified `out` an iterator for items stored in
+    /// Load into the specified `out` an iterator for items stored in
     /// the virtual storage identified by the specified `appKey`, initially
     /// pointing to the item associated with the specified `msgGUID`.
     /// Return zero on success, and a non-zero code if `msgGUID` was not
@@ -234,17 +238,17 @@ inline int VirtualStorageCatalog::numVirtualStorages() const
 inline bsls::Types::Int64
 VirtualStorageCatalog::numMessages(const mqbu::StorageKey& appKey) const
 {
-    VirtualStoragesConstIter cit = d_virtualStorages.find(appKey);
+    VirtualStoragesConstIter cit = d_virtualStorages.findByKey2(appKey);
     BSLS_ASSERT_SAFE(cit != d_virtualStorages.end());
-    return cit->second->numMessages(appKey);
+    return cit->value()->numMessages(appKey);
 }
 
 inline bsls::Types::Int64
 VirtualStorageCatalog::numBytes(const mqbu::StorageKey& appKey) const
 {
-    VirtualStoragesConstIter cit = d_virtualStorages.find(appKey);
+    VirtualStoragesConstIter cit = d_virtualStorages.findByKey2(appKey);
     BSLS_ASSERT_SAFE(cit != d_virtualStorages.end());
-    return cit->second->numBytes(appKey);
+    return cit->value()->numBytes(appKey);
 }
 
 }  // close package namespace

@@ -1,3 +1,18 @@
+# Copyright 2024 Bloomberg Finance L.P.
+# SPDX-License-Identifier: Apache-2.0
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """
 Integration test that tests closing a queue when the broker is down.
 """
@@ -5,7 +20,8 @@ Integration test that tests closing a queue when the broker is down.
 import blazingmq.dev.it.testconstants as tc
 from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
     Cluster,
-    single_node, order,
+    single_node,
+    order,
     multi_node,
     start_cluster,
     tweak,
@@ -36,7 +52,7 @@ def test_close_queue(single_node: Cluster):
 @start_cluster(False)
 def test_close_while_reopening(multi_node: Cluster):
     """
-    DRQS 169125974.  Closing queue while reopen response is pending should
+    Ticket 169125974.  Closing queue while reopen response is pending should
     not result in a dangling handle.
     """
 
@@ -100,7 +116,7 @@ def test_close_while_reopening(multi_node: Cluster):
 
 def test_close_open(multi_node: Cluster):
     """
-    DRQS 169326671.  Close, followed by Open with a different subId.
+    Ticket 169326671.  Close, followed by Open with a different subId.
     """
     proxies = multi_node.proxy_cycle()
     # pick proxy in datacenter opposite to the primary's
@@ -124,7 +140,7 @@ def test_close_open(multi_node: Cluster):
 @tweak.cluster.queue_operations.reopen_retry_interval_ms(1234)
 def test_close_while_retrying_reopen(multi_node: Cluster):
     """
-    DRQS 170043950.  Trigger reopen failure causing proxy to retry on
+    Ticket 170043950.  Trigger reopen failure causing proxy to retry on
     timeout. While waiting, close the queue and make sure, the retry
     accounts for that close.
     """

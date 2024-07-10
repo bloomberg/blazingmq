@@ -36,20 +36,16 @@
 // regions of C++11 code, then this header contains no code and is not
 // '#include'd in the original header.
 //
-// Generated on Tue Jun 28 12:27:23 2022
+// Generated on Wed Jun 19 15:52:47 2024
 // Command line: sim_cpp11_features.pl mwcu_operationchain.h
 
 #ifdef COMPILING_MWCU_OPERATIONCHAIN_H
 
 namespace BloombergLP {
 
-// FORWARD DECLARATION
-namespace bslma {
-class Allocator;
-}
-
 namespace mwcu {
 
+// FORWARD DECLARATION
 class OperationChain;
 class OperationChainLink;
 class OperationChain_Job;
@@ -58,6 +54,13 @@ class OperationChain_Job;
 // struct OperationChain_IsCompletionCallbackCompatible
 // ====================================================
 
+/// A metafunction returning whether or not the specified `TYPE` satisfies
+/// requirements for a completion callback. To satisfy those requirements
+/// `TYPE` must meet the requirements of Destructible and MoveConstructible
+/// as specified in the C++ standard.
+///
+/// Note that unless compiled with C++17 support, this metafunction always
+/// returns `true`.
 template <class TYPE>
 struct OperationChain_IsCompletionCallbackCompatible
 #if __cplusplus >= 201703L
@@ -69,19 +72,21 @@ struct OperationChain_IsCompletionCallbackCompatible
 : bsl::integral_constant<bool, true>
 #endif
 {
-    // A metafunction returning whether or not the specified 'TYPE' satisfies
-    // requirements for a completion callback. To satisfy those requirements
-    // 'TYPE' must meet the requirements of Destructible and MoveConstructible
-    // as specified in the C++ standard.
-    //
-    // Note that unless compiled with C++17 support, this metafunction always
-    // returns 'true'.
 };
 
 // ===================================================
 // struct OperationChain_IsOperationCallbackCompatible
 // ===================================================
 
+/// A metafunction returning whether or not the specified `TYPE` satisfies
+/// requirements for a operation callback. To satisfy those requirements
+/// `TYPE` must meet the requirements of Destructible and MoveConstructible
+/// as specified in the C++ standard, as well as be Invocable with a single
+/// parameter that is a functor object of unspecified type taking an
+/// arbitrary number of template arguments.
+///
+/// Note that unless compiled with C++17 support, this metafunction always
+/// returns `true`.
 template <class TYPE>
 struct OperationChain_IsOperationCallbackCompatible
 #if __cplusplus >= 201703L
@@ -95,34 +100,25 @@ struct OperationChain_IsOperationCallbackCompatible
 : bsl::integral_constant<bool, true>
 #endif
 {
-    // A metafunction returning whether or not the specified 'TYPE' satisfies
-    // requirements for a operation callback. To satisfy those requirements
-    // 'TYPE' must meet the requirements of Destructible and MoveConstructible
-    // as specified in the C++ standard, as well as be Invocable with a single
-    // parameter that is a functor object of unspecified type taking an
-    // arbitrary number of template arguments.
-    //
-    // Note that unless compiled with C++17 support, this metafunction always
-    // returns 'true'.
 };
 
 // ==============================================
 // class OperationChain_CompletionCallbackWrapper
 // ==============================================
 
+/// A wrapper around a completion callback object that invokes the callback
+/// and notifies the operation chain.
 template <class CO_CALLBACK>
 class OperationChain_CompletionCallbackWrapper {
-    // A wrapper around a completion callback object that invokes the callback
-    // and notifies the operation chain.
-
     // PRECONDITIONS
     BSLMF_ASSERT(
         OperationChain_IsCompletionCallbackCompatible<CO_CALLBACK>::value);
 
   public:
     // TYPES
+
+    /// Defines the result type of the call operator.
     typedef void ResultType;
-    // Defines the result type of the call operator.
 
     typedef bsl::list<OperationChain_Job>::iterator JobHandle;
 
@@ -136,13 +132,14 @@ class OperationChain_CompletionCallbackWrapper {
 
   public:
     // CREATORS
+
+    /// Create a `OperationChain_CompletionCallbackWrapper` object having
+    /// the associated operation `chain`, `jobHandle` and `coCallback`
+    /// completion callback.
     OperationChain_CompletionCallbackWrapper(OperationChain* chain,
                                              JobHandle       jobHandle,
                                              CO_CALLBACK*    coCallback)
         BSLS_KEYWORD_NOEXCEPT;
-    // Create a 'OperationChain_CompletionCallbackWrapper' object having
-    // the associated operation 'chain', 'jobHandle' and 'coCallback'
-    // completion callback.
 
   public:
     // ACCESSORS
@@ -155,6 +152,7 @@ class OperationChain_CompletionCallbackWrapper {
 #ifndef MWCU_OPERATIONCHAIN_VARIADIC_LIMIT_A
 #define MWCU_OPERATIONCHAIN_VARIADIC_LIMIT_A MWCU_OPERATIONCHAIN_VARIADIC_LIMIT
 #endif
+
 #if MWCU_OPERATIONCHAIN_VARIADIC_LIMIT_A >= 0
     void operator()() const;
 #endif  // MWCU_OPERATIONCHAIN_VARIADIC_LIMIT_A >= 0
@@ -273,6 +271,7 @@ class OperationChain_CompletionCallbackWrapper {
 #else
     // The generated code below is a workaround for the absence of perfect
     // forwarding in some compilers.
+
     template <class... ARGS>
     void operator()(BSLS_COMPILERFEATURES_FORWARD_REF(ARGS)... args) const;
 // }}} END GENERATED CODE
@@ -287,36 +286,36 @@ class OperationChain_CompletionCallbackWrapper {
 // class OperationChain_Job
 // ========================
 
+/// A job representing an async operation to be executed and accounted for.
 class OperationChain_Job {
-    // A job representing an async operation to be executed and accounted for.
-
   public:
     // TYPES
     typedef bsl::list<OperationChain_Job>::iterator JobHandle;
 
   private:
     // PRIVATE TYPES
-    class TargetBase {
-        // An interface used to implement the type erasure technique.
 
+    /// An interface used to implement the type erasure technique.
+    class TargetBase {
       public:
         // CREATORS
+
+        /// Destroy this object and the contained callback objects with it.
         virtual ~TargetBase();
-        // Destroy this object and the contained callback objects with it.
 
       public:
         // MANIPULATORS
+
+        /// Start executing the associated async operation bound to the
+        /// contained operation callback. On completion, invoke the
+        /// contained completion callback and notify the specified operation
+        /// `chain`.
         virtual void execute(OperationChain* chain, JobHandle jobHandle) = 0;
-        // Start executing the associated async operation bound to the
-        // contained operation callback. On completion, invoke the
-        // contained completion callback and notify the specified operation
-        // 'chain'.
     };
 
+    /// Provides an implementation of the `TargetBase` interface.
     template <class OP_CALLBACK, class CO_CALLBACK>
     class Target : public TargetBase {
-        // Provides an implementation of the 'TargetBase' interface.
-
         // PRECONDITIONS
         BSLMF_ASSERT(
             OperationChain_IsOperationCallbackCompatible<OP_CALLBACK>::value);
@@ -335,40 +334,42 @@ class OperationChain_Job {
 
       public:
         // CREATORS
+
+        /// Create a `Target` object containing the specified `opCallback`
+        /// operation callback and `coCallback` completion callback. Specify
+        /// an `allocator` used to supply memory.
         template <class OP_CALLBACK_ARG, class CO_CALLBACK_ARG>
         Target(BSLS_COMPILERFEATURES_FORWARD_REF(OP_CALLBACK_ARG) opCallback,
                BSLS_COMPILERFEATURES_FORWARD_REF(CO_CALLBACK_ARG) coCallback,
                bslma::Allocator* allocator);
-        // Create a 'Target' object containing the specified 'opCallback'
-        // operation callback and 'coCallback' completion callback. Specify
-        // an 'allocator' used to supply memory.
 
       public:
         // MANIPULATORS
+
+        /// Implements `TargetBase::execute`.
         void execute(OperationChain* chain,
                      JobHandle       jobHandle) BSLS_KEYWORD_OVERRIDE;
-        // Implements 'TargetBase::execute'.
     };
 
+    /// A "small" dummy functor used to help calculate the size of the
+    /// on-stack buffer.
     struct Dummy : public mwcu::NoOp {
-        // A "small" dummy functor used to help calculate the size of the
-        // on-stack buffer.
-
         void* d_padding[5];
     };
 
   private:
     // PRIVATE DATA
-    unsigned d_id;
+
     // Job ID, used to tell the number of jobs in a link. This value is
     // unique per link, starts with 1, and is incremented with each new
     // job inserted into a link.
+    unsigned d_id;
 
-    mwcu::ObjectPlaceHolder<sizeof(Target<Dummy, Dummy>)> d_target;
     // Uses an on-stack buffer to allocate memory for "small" objects, and
-    // falls back to requesting memory from the the supplied allocator if
+    // falls back to requesting memory from the supplied allocator if
     // the buffer is not large enough. Note that the size of the on-stack
     // buffer is an arbitrary value.
+    mwcu::ObjectPlaceHolder<sizeof(Target<Dummy, Dummy>)> d_target;
 
   private:
     // NOT IMPLEMENTED
@@ -378,6 +379,18 @@ class OperationChain_Job {
 
   public:
     // CREATORS
+
+    /// Create a `OperationChain_Job` object having the specified `id` and
+    /// containing the specified `opCallback` operation callback and
+    /// `coCallback` completion callback. Specify an `allocator` used to
+    /// supply memory.
+    ///
+    /// `bsl::decay_t<OP_CALLBACK>` and `bsl::decay_t<CO_CALLBACK>` must
+    /// meet the requirements of Destructible and MoveConstructible as
+    /// specified in the C++ standard. Given an object `f1` of type
+    /// `bsl::decay_t<OP_CALLBACK>&&`, `f1(f2)` shall be a valid
+    /// expression, where `f2` is a function object of unspecified type
+    /// callable with the same arguments as `bsl::decay_t<CO_CALLBACK>&&`.
     template <class OP_CALLBACK, class CO_CALLBACK>
     explicit OperationChain_Job(unsigned id,
                                 BSLS_COMPILERFEATURES_FORWARD_REF(OP_CALLBACK)
@@ -385,33 +398,24 @@ class OperationChain_Job {
                                 BSLS_COMPILERFEATURES_FORWARD_REF(CO_CALLBACK)
                                     coCallback,
                                 bslma::Allocator* allocator);
-    // Create a 'OperationChain_Job' object having the specified 'id' and
-    // containing the specified 'opCallback' operation callback and
-    // 'coCallback' completion callback. Specify an 'allocator' used to
-    // supply memory.
-    //
-    // 'bsl::decay_t<OP_CALLBACK>' and 'bsl::decay_t<CO_CALLBACK>' must
-    // meet the requirements of Destructible and MoveConstructible as
-    // specified in the C++ standard. Given an object 'f1' of type
-    // 'bsl::decay_t<OP_CALLBACK>&&', 'f1(f2)' shall be a valid
-    // expression, where 'f2' is a function object of unspecified type
-    // callable with the same arguments as 'bsl::decay_t<CO_CALLBACK>&&'.
 
+    /// Destroy this object and the contained callback objects with it.
     ~OperationChain_Job();
-    // Destroy this object and the contained callback objects with it.
 
   public:
     // MANIPULATORS
+
+    /// Start executing the associated async operation bound to the
+    /// contained operation callback. On completion, invoke the contained
+    /// completion callback and notify the specified operation `chain` using
+    /// the specified `jobHandle`.
     void execute(OperationChain* chain, JobHandle jobHandle) BSLS_NOTHROW_SPEC;
-    // Start executing the associated async operation bound to the
-    // contained operation callback. On completion, invoke the contained
-    // completion callback and notify the specified operation 'chain' using
-    // the specified 'jobHandle'.
 
   public:
     // ACCESSORS
+
+    /// Return the ID of this job.
     unsigned id() const BSLS_KEYWORD_NOEXCEPT;
-    // Return the ID of this job.
 
   public:
     // TRAITS
@@ -423,9 +427,8 @@ class OperationChain_Job {
 // class OperationChain
 // ====================
 
+/// A mechanism to serialize execution of async operations.
 class OperationChain {
-    // A mechanism to serialize execution of async operations.
-
   public:
     // TYPES
     typedef OperationChainLink Link;
@@ -438,25 +441,28 @@ class OperationChain {
 
     typedef JobList::iterator JobHandle;
 
+    typedef bslmt::LockGuard<bslmt::Mutex> LockGuard;
+
   private:
     // PRIVATE DATA
-    mutable bslmt::Mutex d_mutex;
+
     // Used for general thread-safety.
+    mutable bslmt::Mutex d_mutex;
 
-    mutable bslmt::Condition d_condition;
     // Used to synchronize with completion of async operations.
+    mutable bslmt::Condition d_condition;
 
-    bool d_isStarted;
     // Whether or not this operation chain is started.
+    bool d_isStarted;
 
-    unsigned d_numLinks;
     // The number of links in this operation chain.
+    unsigned d_numLinks;
 
-    unsigned d_numJobsRunning;
     // The number of jobs currently executing.
+    unsigned d_numJobsRunning;
 
-    JobList d_jobList;
     // Jobs executing async operations.
+    JobList d_jobList;
 
     // FRIENDS
     template <class>
@@ -464,12 +470,15 @@ class OperationChain {
 
   private:
     // PRIVATE MANIPULATORS
-    void onOperationCompleted(JobHandle handle) BSLS_KEYWORD_NOEXCEPT;
-    // Callback invoked to notify this operation chain an async
-    // operation identified by the specified 'handle' has completed.
 
-    void run() BSLS_KEYWORD_NOEXCEPT;
-    // Execute all operations in the first link of this operation chain.
+    /// Callback invoked to notify this operation chain an async
+    /// operation identified by the specified `handle` has completed.
+    void onOperationCompleted(JobHandle handle) BSLS_KEYWORD_NOEXCEPT;
+
+    /// Execute all operations in the first link of this operation chain.
+    /// Unlock the mutex associated with the specified 'lock' guard and
+    /// release the guard.
+    void run(LockGuard* lock) BSLS_KEYWORD_NOEXCEPT;
 
   private:
     // NOT IMPLEMENTED
@@ -478,82 +487,101 @@ class OperationChain {
 
   public:
     // CREATORS
+
+    /// Create a `OperationChain` object. Optionally specify a
+    /// `createStarted` flag used to create the chain in a started state. If
+    /// the flag is not specified or its value is `false`, create the chain
+    /// in a stopped state. Optionally specify a `basicAllocator` used to
+    /// supply memory. If `basicAllocator` is 0, the default memory
+    /// allocator is used.
     explicit OperationChain(bslma::Allocator* basicAllocator = 0);
     explicit OperationChain(bool              createStarted,
                             bslma::Allocator* basicAllocator = 0);
-    // Create a 'OperationChain' object. Optionally specify a
-    // 'createStarted' flag used to create the chain in a started state. If
-    // the flag is not specified or its value is 'false', create the chain
-    // in a stopped state. Optionally specify a 'basicAllocator' used to
-    // supply memory. If 'basicAllocator' is 0, the default memory
-    // allocator is used.
 
+    /// Destroy this object. Call `stop()` followed by `join()`. Destroy all
+    /// operation and completion callback objects left in the chain, if any.
     ~OperationChain();
-    // Destroy this object. Call 'stop()' followed by 'join()'. Destroy all
-    // operation and completion callback objects left in the chain, if any.
 
   public:
     // MANIPULATORS
+
+    /// Start executing operations in this operation chain. If the chain is
+    /// already started, this function has no effect.
+    ///
+    /// This function meets the strong exception guarantee. If an exception
+    /// is thrown, this function has no effect.
     void start();
-    // Start executing operations in this operation chain. If the chain is
-    // already started, this function has no effect.
-    //
-    // This function meets the strong exception guarantee. If an exception
-    // is thrown, this function has no effect.
 
+    /// Stop executing operations in this operation chain without blocking
+    /// the calling thread pending completion of any currently executing
+    /// operation. If the chain is already stopped, this function has no
+    /// effect.
     void stop() BSLS_KEYWORD_NOEXCEPT;
-    // Stop executing operations in this operation chain without blocking
-    // the calling thread pending completion of any currently executing
-    // operation. If the chain is already stopped, this function has no
-    // effect.
 
+    /// Block the calling thread until there is no operations executing
+    /// in this operation chain. If there is no operations currently
+    /// executing, return immediately.
     void join() BSLS_KEYWORD_NOEXCEPT;
-    // Block the calling thread until there is no operations executing
-    // in this operation chain. If there is no operations currently
-    // executing, return immediately.
 
+    /// Append the specified `link` to this operation chain. If the chain is
+    /// started and the appended `link` is the first one in the chain,
+    /// execute all operations in the appended `link` immediately. If the
+    /// appended `link` is empty, this function has no effect. After this
+    /// operation completes, `link` is left empty. The behavior is undefined
+    /// unless `link` uses the same allocator as this object.
+    ///
+    /// This function meets the strong exception guarantee. If an exception
+    /// is thrown, this function has no effect.
     void append(Link* link);
     void append(bslmf::MovableRef<Link> link);
-    // Append the specified 'link' to this operation chain. If the chain is
-    // started and the appended 'link' is the first one in the chain,
-    // execute all operations in the appended 'link' immediately. If the
-    // appended 'link' is empty, this function has no effect. After this
-    // operation completes, 'link' is left empty. The behavior is undefined
-    // unless 'link' uses the same allocator as this object.
-    //
-    // This function meets the strong exception guarantee. If an exception
-    // is thrown, this function has no effect.
 
 #ifdef BSLS_COMPILERFEATURES_SUPPORT_GENERALIZED_INITIALIZERS
+    /// Append all links from the specified `links` list to this operation
+    /// chain in the order they appear in the list. If the chain is started
+    /// and the first appended link is the first one in the chain, execute
+    /// all operations in the first appended link immediately. If the
+    /// `links` list is empty, this function has no effect. If the `links`
+    /// list contains empty links, ignore them. After this operation
+    /// completes, all links in the `links` list are left empty. The
+    /// behavior is undefined unless all links in the `links` list use the
+    /// same allocator as this object.
+    ///
+    /// This function meets the strong exception guarantee. If an exception
+    /// is thrown, this function has no effect.
     void append(bsl::initializer_list<Link*> links);
-    // Append all links from the specified 'links' list to this operation
-    // chain in the order they appear in the list. If the chain is started
-    // and the first appended link is the first one in the chain, execute
-    // all operations in the first appended link immediately. If the
-    // 'links' list is empty, this function has no effect. If the 'links'
-    // list contains empty links, ignore them. After this operation
-    // completes, all links in the 'links' list are left empty. The
-    // behavior is undefined unless all links in the 'links' list use the
-    // same allocator as this object.
-    //
-    // This function meets the strong exception guarantee. If an exception
-    // is thrown, this function has no effect.
 #endif
 
+    /// Append the specified `count` number of links from the specified
+    /// `links` array to this operation chain in the order they appear in
+    /// the array. If the chain is started and the first appended link is
+    /// the first one in the chain, execute all operations in the first
+    /// appended link immediately. If `count` is 0, this function has no
+    /// effect. If the `links` array contains empty links, ignore them.
+    /// After this operation completes, all links in the `links` array are
+    /// left empty. The behavior is undefined unless all links in the
+    /// `links` array use the same allocator as this object.
+    ///
+    /// This function meets the strong exception guarantee. If an exception
+    /// is thrown, this function has no effect.
     void append(Link* const* links, size_t count);
-    // Append the specified 'count' number of links from the specified
-    // 'links' array to this operation chain in the order they appear in
-    // the array. If the chain is started and the first appended link is
-    // the first one in the chain, execute all operations in the first
-    // appended link immediately. If 'count' is 0, this function has no
-    // effect. If the 'links' array contains empty links, ignore them.
-    // After this operation completes, all links in the 'links' array are
-    // left empty. The behavior is undefined unless all links in the
-    // 'links' array use the same allocator as this object.
-    //
-    // This function meets the strong exception guarantee. If an exception
-    // is thrown, this function has no effect.
 
+    /// Append a link containing a single operation represented by the
+    /// specified `opCallback` operation callback and the optionally
+    /// specified `coCallback` completion callback to this operation chain.
+    /// If no completion callback is specified, use `mwcu::NoOp`. If the
+    /// chain is started and the appended link is the first one in the
+    /// chain, execute the single operation in the appended link
+    /// immediately.
+    ///
+    /// This function meets the strong exception guarantee. If an exception
+    /// is thrown, this function has no effect.
+    ///
+    /// `bsl::decay_t<OP_CALLBACK>` and `bsl::decay_t<CO_CALLBACK>` must
+    /// meet the requirements of Destructible and MoveConstructible as
+    /// specified in the C++ standard. Given an object `f1` of type
+    /// `bsl::decay_t<OP_CALLBACK>&&`, `f1(f2)` shall be a valid
+    /// expression, where `f2` is a function object of unspecified type
+    /// callable with the same arguments as `bsl::decay_t<CO_CALLBACK>&&`.
     template <class OP_CALLBACK>
     void appendInplace(BSLS_COMPILERFEATURES_FORWARD_REF(OP_CALLBACK)
                            opCallback);
@@ -562,70 +590,55 @@ class OperationChain {
                            opCallback,
                        BSLS_COMPILERFEATURES_FORWARD_REF(CO_CALLBACK)
                            coCallback);
-    // Append a link containing a single operation represented by the
-    // specified 'opCallback' operation callback and the optionally
-    // specified 'coCallback' completion callback to this operation chain.
-    // If no completion callback is specified, use 'mwcu::NoOp'. If the
-    // chain is started and the appended link is the first one in the
-    // chain, execute the single operation in the appended link
-    // immediately.
-    //
-    // This function meets the strong exception guarantee. If an exception
-    // is thrown, this function has no effect.
-    //
-    // 'bsl::decay_t<OP_CALLBACK>' and 'bsl::decay_t<CO_CALLBACK>' must
-    // meet the requirements of Destructible and MoveConstructible as
-    // specified in the C++ standard. Given an object 'f1' of type
-    // 'bsl::decay_t<OP_CALLBACK>&&', 'f1(f2)' shall be a valid
-    // expression, where 'f2' is a function object of unspecified type
-    // callable with the same arguments as 'bsl::decay_t<CO_CALLBACK>&&'.
 
     int popBack() BSLS_KEYWORD_NOEXCEPT;
-    int popBack(Link* link) BSLS_KEYWORD_NOEXCEPT;
-    // Extract and remove the last link from this operation chain and load
-    // it into the optionally specified 'link'. Return 0 on success, and a
-    // non-zero value if the link can not be extracted, either because the
-    // chain is empty, or because operations in the extracted link are
-    // currently executing. On failure, this function has no effect and the
-    // contents of 'link' are unmodified. The behavior is undefined unless
-    // 'link' uses that same allocator as this object.
 
+    /// Extract and remove the last link from this operation chain and load
+    /// it into the optionally specified `link`. Return 0 on success, and a
+    /// non-zero value if the link can not be extracted, either because the
+    /// chain is empty, or because operations in the extracted link are
+    /// currently executing. On failure, this function has no effect and the
+    /// contents of `link` are unmodified. The behavior is undefined unless
+    /// `link` uses that same allocator as this object.
+    int popBack(Link* link) BSLS_KEYWORD_NOEXCEPT;
+
+    /// Remove all links from this operation chain. If operations in this
+    /// chain are currently executing, do not remove the first link. Return
+    /// the number of operations removed. If this chain is empty, this
+    /// function has no effect and 0 is returned.
     size_t removeAll() BSLS_KEYWORD_NOEXCEPT;
-    // Remove all links from this operation chain. If operations in this
-    // chain are currently executing, do not remove the first link. Return
-    // the number of operations removed. If this chain is empty, this
-    // function has no effect and 0 is returned.
 
   public:
     // ACCESSORS
+
+    /// Return `true` if this operation chain is started, and `false`
+    /// otherwise. Note that a stopped chain can still be executing
+    /// operations.
     bool isStarted() const BSLS_KEYWORD_NOEXCEPT;
-    // Return 'true' if this operation chain is started, and 'false'
-    // otherwise. Note that a stopped chain can still be executing
-    // operations.
 
+    /// Return `true` if this operation chain is currently executing at
+    /// least one operation, and `false` otherwise.
     bool isRunning() const BSLS_KEYWORD_NOEXCEPT;
-    // Return 'true' if this operation chain is currently executing at
-    // least one operation, and 'false' otherwise.
 
+    /// Return the number of links in this operation chain. A value of 0
+    /// means the chain is empty.
     size_t numLinks() const BSLS_KEYWORD_NOEXCEPT;
-    // Return the number of links in this operation chain. A value of 0
-    // means the chain is empty.
 
+    /// Return the number of operations in this operation chain, including
+    /// those that are currently executing (if any). A value of 0 means the
+    /// chain is empty.
     size_t numOperations() const BSLS_KEYWORD_NOEXCEPT;
-    // Return the number of operations in this operation chain, including
-    // those that are currently executing (if any). A value of 0 means the
-    // chain is empty.
 
+    /// Return the number of operations in this operation chain that are not
+    /// currently executing.
     size_t numOperationsPending() const BSLS_KEYWORD_NOEXCEPT;
-    // Return the number of operations in this operation chain that are not
-    // currently executing.
 
+    /// Return the number of operations in this operation chain that are
+    /// currently executing.
     size_t numOperationsExecuting() const BSLS_KEYWORD_NOEXCEPT;
-    // Return the number of operations in this operation chain that are
-    // currently executing.
 
+    /// Return the allocator used by this operation chain to supply memory.
     bslma::Allocator* allocator() const BSLS_KEYWORD_NOEXCEPT;
-    // Return the allocator used by this operation chain to supply memory.
 
   public:
     // TRAITS
@@ -636,9 +649,8 @@ class OperationChain {
 // class OperationChainLink
 // ========================
 
+/// A representation of a link in the operation chain.
 class OperationChainLink {
-    // A representation of a link in the operation chain.
-
   private:
     // PRIVATE TYPES
     typedef OperationChain_Job Job;
@@ -647,8 +659,9 @@ class OperationChainLink {
 
   private:
     // PRIVATE DATA
-    JobList d_jobList;
+
     // Jobs executing async operations.
+    JobList d_jobList;
 
     // FRIENDS
     friend class OperationChain;
@@ -661,64 +674,67 @@ class OperationChainLink {
 
   public:
     // CREATORS
-    explicit OperationChainLink(bslma::Allocator* basicAllocator = 0);
-    // Create a 'OperationChainLink' object initialized empty. Optionally
-    // specify a 'basicAllocator' used to supply memory. If
-    // 'basicAllocator' is 0, the default memory allocator is used.
 
+    /// Create a `OperationChainLink` object initialized empty. Optionally
+    /// specify a `basicAllocator` used to supply memory. If
+    /// `basicAllocator` is 0, the default memory allocator is used.
+    explicit OperationChainLink(bslma::Allocator* basicAllocator = 0);
+
+    /// Create a `OperationChainLink` object having the same value as the
+    /// specified `original` object by moving the contents of `original` to
+    /// the new link. The allocator associated with `original` is propagated
+    /// for use in the newly-created link. `original` is left empty.
     OperationChainLink(bslmf::MovableRef<OperationChainLink> original);
-    // Create a 'OperationChainLink' object having the same value as the
-    // specified 'original' object by moving the contents of 'original' to
-    // the new link. The allocator associated with 'original' is propagated
-    // for use in the newly-created link. 'original' is left empty.
 
   public:
     // MANIPULATORS
+
+    /// Assign to this object the value of the specified `rhs` object and
+    /// return a reference providing modifiable access to this object. The
+    /// contents of `rhs` are moved to this link. `rhs` is left empty. The
+    /// behavior is undefined unless `rhs` uses that same allocator as this
+    /// object.
     OperationChainLink&
     operator=(bslmf::MovableRef<OperationChainLink> rhs) BSLS_KEYWORD_NOEXCEPT;
-    // Assign to this object the value of the specified 'rhs' object and
-    // return a reference providing modifiable access to this object. The
-    // contents of 'rhs' are moved to this link. 'rhs' is left empty. The
-    // behavior is undefined unless 'rhs' uses that same allocator as this
-    // object.
 
+    /// Insert an operation into this link. Specify a `opCallback` operation
+    /// callback initiating the operation. Optionally specify a `coCallback`
+    /// completion callback to be passed to the operation callback as a
+    /// parameter. If no completion callback is specified, use `mwcu::NoOp`.
+    ///
+    /// This function meets the strong exception guarantee. If an exception
+    /// is thrown, this function has no effect.
+    ///
+    /// `bsl::decay_t<OP_CALLBACK>` and `bsl::decay_t<CO_CALLBACK>` must
+    /// meet the requirements of Destructible and MoveConstructible as
+    /// specified in the C++ standard. Given an object `f1` of type
+    /// `bsl::decay_t<OP_CALLBACK>&&`, `f1(f2)` shall be a valid
+    /// expression, where `f2` is a function object of unspecified type
+    /// callable with the same arguments as `bsl::decay_t<CO_CALLBACK>&&`.
     template <class OP_CALLBACK>
     void insert(BSLS_COMPILERFEATURES_FORWARD_REF(OP_CALLBACK) opCallback);
     template <class OP_CALLBACK, class CO_CALLBACK>
     void insert(BSLS_COMPILERFEATURES_FORWARD_REF(OP_CALLBACK) opCallback,
                 BSLS_COMPILERFEATURES_FORWARD_REF(CO_CALLBACK) coCallback);
-    // Insert an operation into this link. Specify a 'opCallback' operation
-    // callback initiating the operation. Optionally specify a 'coCallback'
-    // completion callback to be passed to the operation callback as a
-    // parameter. If no completion callback is specified, use 'mwcu::NoOp'.
-    //
-    // This function meets the strong exception guarantee. If an exception
-    // is thrown, this function has no effect.
-    //
-    // 'bsl::decay_t<OP_CALLBACK>' and 'bsl::decay_t<CO_CALLBACK>' must
-    // meet the requirements of Destructible and MoveConstructible as
-    // specified in the C++ standard. Given an object 'f1' of type
-    // 'bsl::decay_t<OP_CALLBACK>&&', 'f1(f2)' shall be a valid
-    // expression, where 'f2' is a function object of unspecified type
-    // callable with the same arguments as 'bsl::decay_t<CO_CALLBACK>&&'.
 
+    /// Remove all operations in this link, if any. Return the number of
+    /// operations removed.
     size_t removeAll() BSLS_KEYWORD_NOEXCEPT;
-    // Remove all operations in this link, if any. Return the number of
-    // operations removed.
 
+    /// Swap the contents of this object and the specified `other` object.
+    /// The behavior is undefined unless `other` uses that same allocator
+    /// as this object.
     void swap(OperationChainLink& other) BSLS_KEYWORD_NOEXCEPT;
-    // Swap the contents of this object and the specified 'other' object.
-    // The behavior is undefined unless 'other' uses that same allocator
-    // as this object.
 
   public:
     // ACCESSORS
-    size_t numOperations() const BSLS_KEYWORD_NOEXCEPT;
-    // Return the number of operations in this link. A value of 0 means the
-    // link is empty.
 
+    /// Return the number of operations in this link. A value of 0 means the
+    /// link is empty.
+    size_t numOperations() const BSLS_KEYWORD_NOEXCEPT;
+
+    /// Return the allocator used by this link to supply memory.
     bslma::Allocator* allocator() const BSLS_KEYWORD_NOEXCEPT;
-    // Return the allocator used by this link to supply memory.
 
   public:
     // TRAITS
@@ -727,10 +743,11 @@ class OperationChainLink {
 };
 
 // FREE OPERATORS
+
+/// Swap the contents of `lhs` and `rhs`. The behavior is undefined unless
+/// `lhs` and `rhs` use the same allocator.
 void swap(OperationChainLink& lhs,
           OperationChainLink& rhs) BSLS_KEYWORD_NOEXCEPT;
-// Swap the contents of 'lhs' and 'rhs'. The behavior is undefined unless
-// 'lhs' and 'rhs' use the same allocator.
 
 // ============================================================================
 //                            INLINE DEFINITIONS
@@ -767,9 +784,8 @@ inline OperationChain_CompletionCallbackWrapper<CO_CALLBACK>::
 #endif
 #if MWCU_OPERATIONCHAIN_VARIADIC_LIMIT_B >= 0
 template <class CO_CALLBACK>
-inline void OperationChain_CompletionCallbackWrapper<CO_CALLBACK>::operator()(
-
-) const
+inline void
+OperationChain_CompletionCallbackWrapper<CO_CALLBACK>::operator()() const
 {
     try {
         bslmf::Util::moveIfSupported((*d_coCallback_p))();
@@ -1274,7 +1290,7 @@ inline void mwcu::swap(OperationChainLink& lhs,
 #endif  // ! defined(INCLUDED_MWCU_OPERATIONCHAIN_CPP03)
 
 // ----------------------------------------------------------------------------
-// Copyright 2022-2023 Bloomberg Finance L.P.
+// Copyright 2024 Bloomberg Finance L.P.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.

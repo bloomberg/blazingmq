@@ -376,13 +376,6 @@ struct ProtocolUtil {
 
     /// Protocol miscellaneous
     ///----------------------
-
-    /// Return a reference not offering modifiable access to the statically
-    /// created default SubQueueInfoArray (a SubQueueInfosArray containing
-    /// the default subQueueId and an unlimited RDA counter).  The behavior
-    /// is undefined unless `initialize` has been called.
-    static const Protocol::SubQueueInfosArray& defaultSubQueueInfoArray();
-
     static int ackResultToCode(bmqt::AckResult::Enum value);
 
     /// Convert the specified `value` between an `AckResult` enum value

@@ -368,10 +368,13 @@ namespace mqbcmd {
 class RelayQueueEngine;
 }
 namespace mqbcmd {
-class Command;
+class CommandChoice;
 }
 namespace mqbcmd {
 class FanoutQueueEngine;
+}
+namespace mqbcmd {
+class Command;
 }
 namespace mqbcmd {
 class QueueEngine;
@@ -2629,6 +2632,67 @@ inline bsl::ostream& operator<<(bsl::ostream& stream, ElectorState::Value rhs);
 // TRAITS
 
 BDLAT_DECL_ENUMERATION_TRAITS(mqbcmd::ElectorState)
+
+namespace mqbcmd {
+
+// ====================
+// class EncodingFormat
+// ====================
+
+struct EncodingFormat {
+    // Enumeration of the various encoding format versions.
+
+  public:
+    // TYPES
+    enum Value { TEXT = 0, JSON_COMPACT = 1, JSON_PRETTY = 2 };
+
+    enum { NUM_ENUMERATORS = 3 };
+
+    // CONSTANTS
+    static const char CLASS_NAME[];
+
+    static const bdlat_EnumeratorInfo ENUMERATOR_INFO_ARRAY[];
+
+    // CLASS METHODS
+    static const char* toString(Value value);
+    // Return the string representation exactly matching the enumerator
+    // name corresponding to the specified enumeration 'value'.
+
+    static int fromString(Value* result, const char* string, int stringLength);
+    // Load into the specified 'result' the enumerator matching the
+    // specified 'string' of the specified 'stringLength'.  Return 0 on
+    // success, and a non-zero value with no effect on 'result' otherwise
+    // (i.e., 'string' does not match any enumerator).
+
+    static int fromString(Value* result, const bsl::string& string);
+    // Load into the specified 'result' the enumerator matching the
+    // specified 'string'.  Return 0 on success, and a non-zero value with
+    // no effect on 'result' otherwise (i.e., 'string' does not match any
+    // enumerator).
+
+    static int fromInt(Value* result, int number);
+    // Load into the specified 'result' the enumerator matching the
+    // specified 'number'.  Return 0 on success, and a non-zero value with
+    // no effect on 'result' otherwise (i.e., 'number' does not match any
+    // enumerator).
+
+    static bsl::ostream& print(bsl::ostream& stream, Value value);
+    // Write to the specified 'stream' the string representation of
+    // the specified enumeration 'value'.  Return a reference to
+    // the modifiable 'stream'.
+};
+
+// FREE OPERATORS
+inline bsl::ostream& operator<<(bsl::ostream&         stream,
+                                EncodingFormat::Value rhs);
+// Format the specified 'rhs' to the specified output 'stream' and
+// return a reference to the modifiable 'stream'.
+
+}  // close package namespace
+
+// TRAITS
+
+BDLAT_DECL_ENUMERATION_TRAITS(mqbcmd::EncodingFormat)
 
 namespace mqbcmd {
 
@@ -23727,11 +23791,11 @@ BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
 
 namespace mqbcmd {
 
-// =============
-// class Command
-// =============
+// ===================
+// class CommandChoice
+// ===================
 
-class Command {
+class CommandChoice {
     // INSTANCE DATA
     union {
         bsls::ObjectBuffer<HelpCommand>           d_help;
@@ -23789,44 +23853,45 @@ class Command {
     // exists, and 0 otherwise.
 
     // CREATORS
-    explicit Command(bslma::Allocator* basicAllocator = 0);
-    // Create an object of type 'Command' having the default value.  Use
-    // the optionally specified 'basicAllocator' to supply memory.  If
+    explicit CommandChoice(bslma::Allocator* basicAllocator = 0);
+    // Create an object of type 'CommandChoice' having the default value.
+    // Use the optionally specified 'basicAllocator' to supply memory.  If
     // 'basicAllocator' is 0, the currently installed default allocator is
     // used.
 
-    Command(const Command& original, bslma::Allocator* basicAllocator = 0);
-    // Create an object of type 'Command' having the value of the specified
-    // 'original' object.  Use the optionally specified 'basicAllocator' to
-    // supply memory.  If 'basicAllocator' is 0, the currently installed
-    // default allocator is used.
+    CommandChoice(const CommandChoice& original,
+                  bslma::Allocator*    basicAllocator = 0);
+    // Create an object of type 'CommandChoice' having the value of the
+    // specified 'original' object.  Use the optionally specified
+    // 'basicAllocator' to supply memory.  If 'basicAllocator' is 0, the
+    // currently installed default allocator is used.
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    Command(Command&& original) noexcept;
-    // Create an object of type 'Command' having the value of the specified
-    // 'original' object.  After performing this action, the 'original'
-    // object will be left in a valid, but unspecified state.
+    CommandChoice(CommandChoice&& original) noexcept;
+    // Create an object of type 'CommandChoice' having the value of the
+    // specified 'original' object.  After performing this action, the
+    // 'original' object will be left in a valid, but unspecified state.
 
-    Command(Command&& original, bslma::Allocator* basicAllocator);
-    // Create an object of type 'Command' having the value of the specified
-    // 'original' object.  After performing this action, the 'original'
-    // object will be left in a valid, but unspecified state.  Use the
-    // optionally specified 'basicAllocator' to supply memory.  If
+    CommandChoice(CommandChoice&& original, bslma::Allocator* basicAllocator);
+    // Create an object of type 'CommandChoice' having the value of the
+    // specified 'original' object.  After performing this action, the
+    // 'original' object will be left in a valid, but unspecified state.
+    // Use the optionally specified 'basicAllocator' to supply memory.  If
     // 'basicAllocator' is 0, the currently installed default allocator is
     // used.
 #endif
 
-    ~Command();
+    ~CommandChoice();
     // Destroy this object.
 
     // MANIPULATORS
-    Command& operator=(const Command& rhs);
+    CommandChoice& operator=(const CommandChoice& rhs);
     // Assign to this object the value of the specified 'rhs' object.
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    Command& operator=(Command&& rhs);
+    CommandChoice& operator=(CommandChoice&& rhs);
     // Assign to this object the value of the specified 'rhs' object.
     // After performing this action, the 'rhs' object will be left in a
     // valid, but unspecified state.
@@ -24063,31 +24128,32 @@ class Command {
 };
 
 // FREE OPERATORS
-inline bool operator==(const Command& lhs, const Command& rhs);
+inline bool operator==(const CommandChoice& lhs, const CommandChoice& rhs);
 // Return 'true' if the specified 'lhs' and 'rhs' objects have the same
-// value, and 'false' otherwise.  Two 'Command' objects have the same
+// value, and 'false' otherwise.  Two 'CommandChoice' objects have the same
 // value if either the selections in both objects have the same ids and
 // the same values, or both selections are undefined.
 
-inline bool operator!=(const Command& lhs, const Command& rhs);
+inline bool operator!=(const CommandChoice& lhs, const CommandChoice& rhs);
 // Return 'true' if the specified 'lhs' and 'rhs' objects do not have the
 // same values, as determined by 'operator==', and 'false' otherwise.
 
-inline bsl::ostream& operator<<(bsl::ostream& stream, const Command& rhs);
+inline bsl::ostream& operator<<(bsl::ostream&        stream,
+                                const CommandChoice& rhs);
 // Format the specified 'rhs' to the specified output 'stream' and
 // return a reference to the modifiable 'stream'.
 
 template <typename t_HASH_ALGORITHM>
-void hashAppend(t_HASH_ALGORITHM& hashAlg, const Command& object);
+void hashAppend(t_HASH_ALGORITHM& hashAlg, const CommandChoice& object);
 // Pass the specified 'object' to the specified 'hashAlg'.  This function
 // integrates with the 'bslh' modular hashing system and effectively
-// provides a 'bsl::hash' specialization for 'Command'.
+// provides a 'bsl::hash' specialization for 'CommandChoice'.
 
 }  // close package namespace
 
 // TRAITS
 
-BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::Command)
+BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::CommandChoice)
 
 namespace mqbcmd {
 
@@ -24322,6 +24388,213 @@ void hashAppend(t_HASH_ALGORITHM& hashAlg, const FanoutQueueEngine& object);
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbcmd::FanoutQueueEngine)
+
+namespace mqbcmd {
+
+// =============
+// class Command
+// =============
+
+class Command {
+    // The type represents a variant representing Command with options common
+    // for all commands.
+    // The optionally specified 'encoding' option contains the desired output
+    // format of this command output.
+
+    // INSTANCE DATA
+    CommandChoice         d_choice;
+    EncodingFormat::Value d_encoding;
+
+  public:
+    // TYPES
+    enum { ATTRIBUTE_ID_CHOICE = 0, ATTRIBUTE_ID_ENCODING = 1 };
+
+    enum { NUM_ATTRIBUTES = 2 };
+
+    enum { ATTRIBUTE_INDEX_CHOICE = 0, ATTRIBUTE_INDEX_ENCODING = 1 };
+
+    // CONSTANTS
+    static const char CLASS_NAME[];
+
+    static const EncodingFormat::Value DEFAULT_INITIALIZER_ENCODING;
+
+    static const bdlat_AttributeInfo ATTRIBUTE_INFO_ARRAY[];
+
+  public:
+    // CLASS METHODS
+    static const bdlat_AttributeInfo* lookupAttributeInfo(int id);
+    // Return attribute information for the attribute indicated by the
+    // specified 'id' if the attribute exists, and 0 otherwise.
+
+    static const bdlat_AttributeInfo* lookupAttributeInfo(const char* name,
+                                                          int nameLength);
+    // Return attribute information for the attribute indicated by the
+    // specified 'name' of the specified 'nameLength' if the attribute
+    // exists, and 0 otherwise.
+
+    // CREATORS
+    explicit Command(bslma::Allocator* basicAllocator = 0);
+    // Create an object of type 'Command' having the default value.  Use
+    // the optionally specified 'basicAllocator' to supply memory.  If
+    // 'basicAllocator' is 0, the currently installed default allocator is
+    // used.
+
+    Command(const Command& original, bslma::Allocator* basicAllocator = 0);
+    // Create an object of type 'Command' having the value of the specified
+    // 'original' object.  Use the optionally specified 'basicAllocator' to
+    // supply memory.  If 'basicAllocator' is 0, the currently installed
+    // default allocator is used.
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+    Command(Command&& original) noexcept;
+    // Create an object of type 'Command' having the value of the specified
+    // 'original' object.  After performing this action, the 'original'
+    // object will be left in a valid, but unspecified state.
+
+    Command(Command&& original, bslma::Allocator* basicAllocator);
+    // Create an object of type 'Command' having the value of the specified
+    // 'original' object.  After performing this action, the 'original'
+    // object will be left in a valid, but unspecified state.  Use the
+    // optionally specified 'basicAllocator' to supply memory.  If
+    // 'basicAllocator' is 0, the currently installed default allocator is
+    // used.
+#endif
+
+    ~Command();
+    // Destroy this object.
+
+    // MANIPULATORS
+    Command& operator=(const Command& rhs);
+    // Assign to this object the value of the specified 'rhs' object.
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+    Command& operator=(Command&& rhs);
+    // Assign to this object the value of the specified 'rhs' object.
+    // After performing this action, the 'rhs' object will be left in a
+    // valid, but unspecified state.
+#endif
+
+    void reset();
+    // Reset this object to the default value (i.e., its value upon
+    // default construction).
+
+    template <typename t_MANIPULATOR>
+    int manipulateAttributes(t_MANIPULATOR& manipulator);
+    // Invoke the specified 'manipulator' sequentially on the address of
+    // each (modifiable) attribute of this object, supplying 'manipulator'
+    // with the corresponding attribute information structure until such
+    // invocation returns a non-zero value.  Return the value from the
+    // last invocation of 'manipulator' (i.e., the invocation that
+    // terminated the sequence).
+
+    template <typename t_MANIPULATOR>
+    int manipulateAttribute(t_MANIPULATOR& manipulator, int id);
+    // Invoke the specified 'manipulator' on the address of
+    // the (modifiable) attribute indicated by the specified 'id',
+    // supplying 'manipulator' with the corresponding attribute
+    // information structure.  Return the value returned from the
+    // invocation of 'manipulator' if 'id' identifies an attribute of this
+    // class, and -1 otherwise.
+
+    template <typename t_MANIPULATOR>
+    int manipulateAttribute(t_MANIPULATOR& manipulator,
+                            const char*    name,
+                            int            nameLength);
+    // Invoke the specified 'manipulator' on the address of
+    // the (modifiable) attribute indicated by the specified 'name' of the
+    // specified 'nameLength', supplying 'manipulator' with the
+    // corresponding attribute information structure.  Return the value
+    // returned from the invocation of 'manipulator' if 'name' identifies
+    // an attribute of this class, and -1 otherwise.
+
+    CommandChoice& choice();
+    // Return a reference to the modifiable "Choice" attribute of this
+    // object.
+
+    EncodingFormat::Value& encoding();
+    // Return a reference to the modifiable "Encoding" attribute of this
+    // object.
+
+    // ACCESSORS
+    bsl::ostream&
+    print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
+    // Format this object to the specified output 'stream' at the
+    // optionally specified indentation 'level' and return a reference to
+    // the modifiable 'stream'.  If 'level' is specified, optionally
+    // specify 'spacesPerLevel', the number of spaces per indentation level
+    // for this and all of its nested objects.  Each line is indented by
+    // the absolute value of 'level * spacesPerLevel'.  If 'level' is
+    // negative, suppress indentation of the first line.  If
+    // 'spacesPerLevel' is negative, suppress line breaks and format the
+    // entire output on one line.  If 'stream' is initially invalid, this
+    // operation has no effect.  Note that a trailing newline is provided
+    // in multiline mode only.
+
+    template <typename t_ACCESSOR>
+    int accessAttributes(t_ACCESSOR& accessor) const;
+    // Invoke the specified 'accessor' sequentially on each
+    // (non-modifiable) attribute of this object, supplying 'accessor'
+    // with the corresponding attribute information structure until such
+    // invocation returns a non-zero value.  Return the value from the
+    // last invocation of 'accessor' (i.e., the invocation that terminated
+    // the sequence).
+
+    template <typename t_ACCESSOR>
+    int accessAttribute(t_ACCESSOR& accessor, int id) const;
+    // Invoke the specified 'accessor' on the (non-modifiable) attribute
+    // of this object indicated by the specified 'id', supplying 'accessor'
+    // with the corresponding attribute information structure.  Return the
+    // value returned from the invocation of 'accessor' if 'id' identifies
+    // an attribute of this class, and -1 otherwise.
+
+    template <typename t_ACCESSOR>
+    int accessAttribute(t_ACCESSOR& accessor,
+                        const char* name,
+                        int         nameLength) const;
+    // Invoke the specified 'accessor' on the (non-modifiable) attribute
+    // of this object indicated by the specified 'name' of the specified
+    // 'nameLength', supplying 'accessor' with the corresponding attribute
+    // information structure.  Return the value returned from the
+    // invocation of 'accessor' if 'name' identifies an attribute of this
+    // class, and -1 otherwise.
+
+    const CommandChoice& choice() const;
+    // Return a reference offering non-modifiable access to the "Choice"
+    // attribute of this object.
+
+    EncodingFormat::Value encoding() const;
+    // Return the value of the "Encoding" attribute of this object.
+};
+
+// FREE OPERATORS
+inline bool operator==(const Command& lhs, const Command& rhs);
+// Return 'true' if the specified 'lhs' and 'rhs' attribute objects have
+// the same value, and 'false' otherwise.  Two attribute objects have the
+// same value if each respective attribute has the same value.
+
+inline bool operator!=(const Command& lhs, const Command& rhs);
+// Return 'true' if the specified 'lhs' and 'rhs' attribute objects do not
+// have the same value, and 'false' otherwise.  Two attribute objects do
+// not have the same value if one or more respective attributes differ in
+// values.
+
+inline bsl::ostream& operator<<(bsl::ostream& stream, const Command& rhs);
+// Format the specified 'rhs' to the specified output 'stream' and
+// return a reference to the modifiable 'stream'.
+
+template <typename t_HASH_ALGORITHM>
+void hashAppend(t_HASH_ALGORITHM& hashAlg, const Command& object);
+// Pass the specified 'object' to the specified 'hashAlg'.  This function
+// integrates with the 'bslh' modular hashing system and effectively
+// provides a 'bsl::hash' specialization for 'Command'.
+
+}  // close package namespace
+
+// TRAITS
+
+BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::Command)
 
 namespace mqbcmd {
 
@@ -25741,6 +26014,10 @@ namespace mqbcmd {
 // ============
 
 class Result {
+    // The type represents a command execution result flattened for a calling
+    // client.  Client doesn't need to know about dispatcher hops happened to
+    // process a command.
+
     // INSTANCE DATA
     union {
         bsls::ObjectBuffer<Error>                 d_error;
@@ -27194,6 +27471,9 @@ namespace mqbcmd {
 // ====================
 
 class InternalResult {
+    // The type represents a command execution result with all intermediate
+    // structures created after each command dispatch.
+
     // INSTANCE DATA
     union {
         bsls::ObjectBuffer<Error>                 d_error;
@@ -29327,6 +29607,24 @@ inline int ElectorState::fromString(Value* result, const bsl::string& string)
 
 inline bsl::ostream& ElectorState::print(bsl::ostream&       stream,
                                          ElectorState::Value value)
+{
+    return stream << toString(value);
+}
+
+// --------------------
+// class EncodingFormat
+// --------------------
+
+// CLASS METHODS
+inline int EncodingFormat::fromString(Value* result, const bsl::string& string)
+{
+    return fromString(result,
+                      string.c_str(),
+                      static_cast<int>(string.length()));
+}
+
+inline bsl::ostream& EncodingFormat::print(bsl::ostream&         stream,
+                                           EncodingFormat::Value value)
 {
     return stream << toString(value);
 }
@@ -44028,107 +44326,107 @@ inline const Routing& RelayQueueEngine::routing() const
     return d_routing;
 }
 
-// -------------
-// class Command
-// -------------
+// -------------------
+// class CommandChoice
+// -------------------
 
 // CLASS METHODS
 // CREATORS
-inline Command::Command(bslma::Allocator* basicAllocator)
+inline CommandChoice::CommandChoice(bslma::Allocator* basicAllocator)
 : d_selectionId(SELECTION_ID_UNDEFINED)
 , d_allocator_p(bslma::Default::allocator(basicAllocator))
 {
 }
 
-inline Command::~Command()
+inline CommandChoice::~CommandChoice()
 {
     reset();
 }
 
 // MANIPULATORS
 template <typename t_MANIPULATOR>
-int Command::manipulateSelection(t_MANIPULATOR& manipulator)
+int CommandChoice::manipulateSelection(t_MANIPULATOR& manipulator)
 {
     switch (d_selectionId) {
-    case Command::SELECTION_ID_HELP:
+    case CommandChoice::SELECTION_ID_HELP:
         return manipulator(&d_help.object(),
                            SELECTION_INFO_ARRAY[SELECTION_INDEX_HELP]);
-    case Command::SELECTION_ID_DOMAINS:
+    case CommandChoice::SELECTION_ID_DOMAINS:
         return manipulator(&d_domains.object(),
                            SELECTION_INFO_ARRAY[SELECTION_INDEX_DOMAINS]);
-    case Command::SELECTION_ID_CONFIG_PROVIDER:
+    case CommandChoice::SELECTION_ID_CONFIG_PROVIDER:
         return manipulator(
             &d_configProvider.object(),
             SELECTION_INFO_ARRAY[SELECTION_INDEX_CONFIG_PROVIDER]);
-    case Command::SELECTION_ID_STAT:
+    case CommandChoice::SELECTION_ID_STAT:
         return manipulator(&d_stat.object(),
                            SELECTION_INFO_ARRAY[SELECTION_INDEX_STAT]);
-    case Command::SELECTION_ID_CLUSTERS:
+    case CommandChoice::SELECTION_ID_CLUSTERS:
         return manipulator(&d_clusters.object(),
                            SELECTION_INFO_ARRAY[SELECTION_INDEX_CLUSTERS]);
-    case Command::SELECTION_ID_DANGER:
+    case CommandChoice::SELECTION_ID_DANGER:
         return manipulator(&d_danger.object(),
                            SELECTION_INFO_ARRAY[SELECTION_INDEX_DANGER]);
-    case Command::SELECTION_ID_BROKER_CONFIG:
+    case CommandChoice::SELECTION_ID_BROKER_CONFIG:
         return manipulator(
             &d_brokerConfig.object(),
             SELECTION_INFO_ARRAY[SELECTION_INDEX_BROKER_CONFIG]);
     default:
-        BSLS_ASSERT(Command::SELECTION_ID_UNDEFINED == d_selectionId);
+        BSLS_ASSERT(CommandChoice::SELECTION_ID_UNDEFINED == d_selectionId);
         return -1;
     }
 }
 
-inline HelpCommand& Command::help()
+inline HelpCommand& CommandChoice::help()
 {
     BSLS_ASSERT(SELECTION_ID_HELP == d_selectionId);
     return d_help.object();
 }
 
-inline DomainsCommand& Command::domains()
+inline DomainsCommand& CommandChoice::domains()
 {
     BSLS_ASSERT(SELECTION_ID_DOMAINS == d_selectionId);
     return d_domains.object();
 }
 
-inline ConfigProviderCommand& Command::configProvider()
+inline ConfigProviderCommand& CommandChoice::configProvider()
 {
     BSLS_ASSERT(SELECTION_ID_CONFIG_PROVIDER == d_selectionId);
     return d_configProvider.object();
 }
 
-inline StatCommand& Command::stat()
+inline StatCommand& CommandChoice::stat()
 {
     BSLS_ASSERT(SELECTION_ID_STAT == d_selectionId);
     return d_stat.object();
 }
 
-inline ClustersCommand& Command::clusters()
+inline ClustersCommand& CommandChoice::clusters()
 {
     BSLS_ASSERT(SELECTION_ID_CLUSTERS == d_selectionId);
     return d_clusters.object();
 }
 
-inline DangerCommand& Command::danger()
+inline DangerCommand& CommandChoice::danger()
 {
     BSLS_ASSERT(SELECTION_ID_DANGER == d_selectionId);
     return d_danger.object();
 }
 
-inline BrokerConfigCommand& Command::brokerConfig()
+inline BrokerConfigCommand& CommandChoice::brokerConfig()
 {
     BSLS_ASSERT(SELECTION_ID_BROKER_CONFIG == d_selectionId);
     return d_brokerConfig.object();
 }
 
 // ACCESSORS
-inline int Command::selectionId() const
+inline int CommandChoice::selectionId() const
 {
     return d_selectionId;
 }
 
 template <typename t_ACCESSOR>
-int Command::accessSelection(t_ACCESSOR& accessor) const
+int CommandChoice::accessSelection(t_ACCESSOR& accessor) const
 {
     switch (d_selectionId) {
     case SELECTION_ID_HELP:
@@ -44156,84 +44454,84 @@ int Command::accessSelection(t_ACCESSOR& accessor) const
     }
 }
 
-inline const HelpCommand& Command::help() const
+inline const HelpCommand& CommandChoice::help() const
 {
     BSLS_ASSERT(SELECTION_ID_HELP == d_selectionId);
     return d_help.object();
 }
 
-inline const DomainsCommand& Command::domains() const
+inline const DomainsCommand& CommandChoice::domains() const
 {
     BSLS_ASSERT(SELECTION_ID_DOMAINS == d_selectionId);
     return d_domains.object();
 }
 
-inline const ConfigProviderCommand& Command::configProvider() const
+inline const ConfigProviderCommand& CommandChoice::configProvider() const
 {
     BSLS_ASSERT(SELECTION_ID_CONFIG_PROVIDER == d_selectionId);
     return d_configProvider.object();
 }
 
-inline const StatCommand& Command::stat() const
+inline const StatCommand& CommandChoice::stat() const
 {
     BSLS_ASSERT(SELECTION_ID_STAT == d_selectionId);
     return d_stat.object();
 }
 
-inline const ClustersCommand& Command::clusters() const
+inline const ClustersCommand& CommandChoice::clusters() const
 {
     BSLS_ASSERT(SELECTION_ID_CLUSTERS == d_selectionId);
     return d_clusters.object();
 }
 
-inline const DangerCommand& Command::danger() const
+inline const DangerCommand& CommandChoice::danger() const
 {
     BSLS_ASSERT(SELECTION_ID_DANGER == d_selectionId);
     return d_danger.object();
 }
 
-inline const BrokerConfigCommand& Command::brokerConfig() const
+inline const BrokerConfigCommand& CommandChoice::brokerConfig() const
 {
     BSLS_ASSERT(SELECTION_ID_BROKER_CONFIG == d_selectionId);
     return d_brokerConfig.object();
 }
 
-inline bool Command::isHelpValue() const
+inline bool CommandChoice::isHelpValue() const
 {
     return SELECTION_ID_HELP == d_selectionId;
 }
 
-inline bool Command::isDomainsValue() const
+inline bool CommandChoice::isDomainsValue() const
 {
     return SELECTION_ID_DOMAINS == d_selectionId;
 }
 
-inline bool Command::isConfigProviderValue() const
+inline bool CommandChoice::isConfigProviderValue() const
 {
     return SELECTION_ID_CONFIG_PROVIDER == d_selectionId;
 }
 
-inline bool Command::isStatValue() const
+inline bool CommandChoice::isStatValue() const
 {
     return SELECTION_ID_STAT == d_selectionId;
 }
 
-inline bool Command::isClustersValue() const
+inline bool CommandChoice::isClustersValue() const
 {
     return SELECTION_ID_CLUSTERS == d_selectionId;
 }
 
-inline bool Command::isDangerValue() const
+inline bool CommandChoice::isDangerValue() const
 {
     return SELECTION_ID_DANGER == d_selectionId;
 }
 
-inline bool Command::isBrokerConfigValue() const
+inline bool CommandChoice::isBrokerConfigValue() const
 {
     return SELECTION_ID_BROKER_CONFIG == d_selectionId;
 }
 
-inline bool Command::isUndefinedValue() const
+inline bool CommandChoice::isUndefinedValue() const
 {
     return SELECTION_ID_UNDEFINED == d_selectionId;
 }
@@ -44430,6 +44728,138 @@ FanoutQueueEngine::consumerStates() const
 inline const Routing& FanoutQueueEngine::routing() const
 {
     return d_routing;
+}
+
+// -------------
+// class Command
+// -------------
+
+// CLASS METHODS
+// MANIPULATORS
+template <typename t_MANIPULATOR>
+int Command::manipulateAttributes(t_MANIPULATOR& manipulator)
+{
+    int ret;
+
+    ret = manipulator(&d_choice, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CHOICE]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(&d_encoding,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ENCODING]);
+    if (ret) {
+        return ret;
+    }
+
+    return 0;
+}
+
+template <typename t_MANIPULATOR>
+int Command::manipulateAttribute(t_MANIPULATOR& manipulator, int id)
+{
+    enum { NOT_FOUND = -1 };
+
+    switch (id) {
+    case ATTRIBUTE_ID_CHOICE: {
+        return manipulator(&d_choice,
+                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CHOICE]);
+    }
+    case ATTRIBUTE_ID_ENCODING: {
+        return manipulator(&d_encoding,
+                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ENCODING]);
+    }
+    default: return NOT_FOUND;
+    }
+}
+
+template <typename t_MANIPULATOR>
+int Command::manipulateAttribute(t_MANIPULATOR& manipulator,
+                                 const char*    name,
+                                 int            nameLength)
+{
+    enum { NOT_FOUND = -1 };
+
+    const bdlat_AttributeInfo* attributeInfo = lookupAttributeInfo(name,
+                                                                   nameLength);
+    if (0 == attributeInfo) {
+        return NOT_FOUND;
+    }
+
+    return manipulateAttribute(manipulator, attributeInfo->d_id);
+}
+
+inline CommandChoice& Command::choice()
+{
+    return d_choice;
+}
+
+inline EncodingFormat::Value& Command::encoding()
+{
+    return d_encoding;
+}
+
+// ACCESSORS
+template <typename t_ACCESSOR>
+int Command::accessAttributes(t_ACCESSOR& accessor) const
+{
+    int ret;
+
+    ret = accessor(d_choice, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CHOICE]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_encoding, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ENCODING]);
+    if (ret) {
+        return ret;
+    }
+
+    return 0;
+}
+
+template <typename t_ACCESSOR>
+int Command::accessAttribute(t_ACCESSOR& accessor, int id) const
+{
+    enum { NOT_FOUND = -1 };
+
+    switch (id) {
+    case ATTRIBUTE_ID_CHOICE: {
+        return accessor(d_choice,
+                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CHOICE]);
+    }
+    case ATTRIBUTE_ID_ENCODING: {
+        return accessor(d_encoding,
+                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ENCODING]);
+    }
+    default: return NOT_FOUND;
+    }
+}
+
+template <typename t_ACCESSOR>
+int Command::accessAttribute(t_ACCESSOR& accessor,
+                             const char* name,
+                             int         nameLength) const
+{
+    enum { NOT_FOUND = -1 };
+
+    const bdlat_AttributeInfo* attributeInfo = lookupAttributeInfo(name,
+                                                                   nameLength);
+    if (0 == attributeInfo) {
+        return NOT_FOUND;
+    }
+
+    return accessAttribute(accessor, attributeInfo->d_id);
+}
+
+inline const CommandChoice& Command::choice() const
+{
+    return d_choice;
+}
+
+inline EncodingFormat::Value Command::encoding() const
+{
+    return d_encoding;
 }
 
 // -----------------
@@ -46876,6 +47306,12 @@ inline bsl::ostream& mqbcmd::operator<<(bsl::ostream&               stream,
                                         mqbcmd::ElectorState::Value rhs)
 {
     return mqbcmd::ElectorState::print(stream, rhs);
+}
+
+inline bsl::ostream& mqbcmd::operator<<(bsl::ostream&                 stream,
+                                        mqbcmd::EncodingFormat::Value rhs)
+{
+    return mqbcmd::EncodingFormat::print(stream, rhs);
 }
 
 inline bool mqbcmd::operator==(const mqbcmd::Error& lhs,
@@ -50323,10 +50759,10 @@ void mqbcmd::hashAppend(t_HASH_ALGORITHM&               hashAlg,
     hashAppend(hashAlg, object.routing());
 }
 
-inline bool mqbcmd::operator==(const mqbcmd::Command& lhs,
-                               const mqbcmd::Command& rhs)
+inline bool mqbcmd::operator==(const mqbcmd::CommandChoice& lhs,
+                               const mqbcmd::CommandChoice& rhs)
 {
-    typedef mqbcmd::Command Class;
+    typedef mqbcmd::CommandChoice Class;
     if (lhs.selectionId() == rhs.selectionId()) {
         switch (rhs.selectionId()) {
         case Class::SELECTION_ID_HELP: return lhs.help() == rhs.help();
@@ -50350,23 +50786,23 @@ inline bool mqbcmd::operator==(const mqbcmd::Command& lhs,
     }
 }
 
-inline bool mqbcmd::operator!=(const mqbcmd::Command& lhs,
-                               const mqbcmd::Command& rhs)
+inline bool mqbcmd::operator!=(const mqbcmd::CommandChoice& lhs,
+                               const mqbcmd::CommandChoice& rhs)
 {
     return !(lhs == rhs);
 }
 
-inline bsl::ostream& mqbcmd::operator<<(bsl::ostream&          stream,
-                                        const mqbcmd::Command& rhs)
+inline bsl::ostream& mqbcmd::operator<<(bsl::ostream&                stream,
+                                        const mqbcmd::CommandChoice& rhs)
 {
     return rhs.print(stream, 0, -1);
 }
 
 template <typename t_HASH_ALGORITHM>
-void mqbcmd::hashAppend(t_HASH_ALGORITHM&      hashAlg,
-                        const mqbcmd::Command& object)
+void mqbcmd::hashAppend(t_HASH_ALGORITHM&            hashAlg,
+                        const mqbcmd::CommandChoice& object)
 {
-    typedef mqbcmd::Command Class;
+    typedef mqbcmd::CommandChoice Class;
     using bslh::hashAppend;
     hashAppend(hashAlg, object.selectionId());
     switch (object.selectionId()) {
@@ -50422,6 +50858,33 @@ void mqbcmd::hashAppend(t_HASH_ALGORITHM&                hashAlg,
     hashAppend(hashAlg, object.mode());
     hashAppend(hashAlg, object.consumerStates());
     hashAppend(hashAlg, object.routing());
+}
+
+inline bool mqbcmd::operator==(const mqbcmd::Command& lhs,
+                               const mqbcmd::Command& rhs)
+{
+    return lhs.choice() == rhs.choice() && lhs.encoding() == rhs.encoding();
+}
+
+inline bool mqbcmd::operator!=(const mqbcmd::Command& lhs,
+                               const mqbcmd::Command& rhs)
+{
+    return !(lhs == rhs);
+}
+
+inline bsl::ostream& mqbcmd::operator<<(bsl::ostream&          stream,
+                                        const mqbcmd::Command& rhs)
+{
+    return rhs.print(stream, 0, -1);
+}
+
+template <typename t_HASH_ALGORITHM>
+void mqbcmd::hashAppend(t_HASH_ALGORITHM&      hashAlg,
+                        const mqbcmd::Command& object)
+{
+    using bslh::hashAppend;
+    hashAppend(hashAlg, object.choice());
+    hashAppend(hashAlg, object.encoding());
 }
 
 inline bool mqbcmd::operator==(const mqbcmd::QueueEngine& lhs,
@@ -51044,6 +51507,6 @@ void mqbcmd::hashAppend(t_HASH_ALGORITHM&             hashAlg,
 }  // close enterprise namespace
 #endif
 
-// GENERATED BY BLP_BAS_CODEGEN_2023.12.23
+// GENERATED BY BLP_BAS_CODEGEN_2024.02.10
 // USING bas_codegen.pl -m msg --noAggregateConversion --noExternalization
 // --noIdent --package mqbcmd --msgComponent messages mqbcmd.xsd

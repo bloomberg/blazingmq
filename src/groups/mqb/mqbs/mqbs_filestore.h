@@ -306,11 +306,15 @@ class FileStore : public DataStore {
 
     volatile bool d_isOpen;
     // Flag to indicate open/close status
-    // of this instance
+    // of this instance.
 
     bool d_isStopping;
     // Flag to indicate if self node is
     // stopping.
+
+    bool d_flushWhenClosing;
+    // Flag to indicate if flush when this
+    // instance is closing.
 
     bool d_lastSyncPtReceived;
     // Flag to indicate if self is
@@ -349,9 +353,6 @@ class FileStore : public DataStore {
     // Thread pool used for any standalone
     // work that can be offloaded to
     // non-partition-dispatcher threads.
-
-    bmqp::StorageEventBuilder d_storageEventBuilder;
-    // Storage event builder to use.
 
     RecurringEventHandle d_syncPointEventHandle;
 
@@ -396,6 +397,9 @@ class FileStore : public DataStore {
     // flushing the builder.  Depending
     // the cluster channels load, it can
     // grow or shrink.
+
+    bmqp::StorageEventBuilder d_storageEventBuilder;
+    // Storage event builder to use.
 
   private:
     // NOT IMPLEMENTED

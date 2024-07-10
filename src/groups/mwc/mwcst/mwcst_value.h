@@ -20,7 +20,7 @@
 //@PURPOSE: A variant value able to represent multiple types
 //
 //@CLASSES:
-//  mwct::Value: a variant value
+//  mwcst::Value: a variant value
 //
 //@DESCRIPTION:
 //  A variant Value that can hold any value of a number of types.  It is
@@ -46,7 +46,7 @@
 #include <bsls_types.h>
 
 namespace BloombergLP {
-namespace mwct {
+namespace mwcst {
 
 // ===========
 // class Value
@@ -263,7 +263,7 @@ inline typename VISITOR::ResultType Value::apply(const VISITOR& visitor) const
 }  // close package namespace
 
 // FREE OPERATORS
-inline bool mwct::operator==(const mwct::Value& lhs, const mwct::Value& rhs)
+inline bool mwcst::operator==(const mwcst::Value& lhs, const mwcst::Value& rhs)
 {
     if (lhs.hash() != rhs.hash()) {
         return false;
@@ -272,7 +272,7 @@ inline bool mwct::operator==(const mwct::Value& lhs, const mwct::Value& rhs)
     return lhs.d_value == rhs.d_value;
 }
 
-inline bool mwct::operator!=(const mwct::Value& lhs, const mwct::Value& rhs)
+inline bool mwcst::operator!=(const mwcst::Value& lhs, const mwcst::Value& rhs)
 {
     if (lhs.hash() != rhs.hash()) {
         return true;
@@ -290,14 +290,14 @@ inline bool mwct::operator!=(const mwct::Value& lhs, const mwct::Value& rhs)
 namespace bsl {
 
 template <>
-struct hash<BloombergLP::mwct::Value> {
+struct hash<BloombergLP::mwcst::Value> {
     // ACCESSORS
-    size_t operator()(const BloombergLP::mwct::Value& value) const;
+    size_t operator()(const BloombergLP::mwcst::Value& value) const;
 };
 
 // ACCESSORS
-inline size_t hash<BloombergLP::mwct::Value>::operator()(
-    const BloombergLP::mwct::Value& value) const
+inline size_t hash<BloombergLP::mwcst::Value>::operator()(
+    const BloombergLP::mwcst::Value& value) const
 {
     return value.hash();
 }

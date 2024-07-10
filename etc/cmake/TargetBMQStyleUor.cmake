@@ -57,7 +57,6 @@ function(target_bmq_style_uor TARGET)
   target_bmq_default_compiler_flags(${TARGET})
 
   add_library(${TARGET}-flags INTERFACE IMPORTED)
-  target_compile_definitions(${TARGET}-flags INTERFACE "MWC_INTERNAL_USAGE")
 
   bbs_setup_target_uor(${TARGET}
     SKIP_TESTS

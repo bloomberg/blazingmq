@@ -13,11 +13,64 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build_ubuntu:
-    name: BlazingMQ build
+  build_dependencies:
+    name: Build deps [ubuntu]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Get dependencies hash
+        id: get-hash
+        run: echo "deps_hash=`cat docker/build_deps.sh | shasum`" >> $GITHUB_OUTPUT
+      - name: Cache lookup
+        uses: actions/cache/restore@v4
+        id: cache-lookup
+        with:
+          path: deps
+          key: deps-${{ steps.get-hash.outputs.deps_hash }}
+          lookup-only: true
+      - name: Set up dependencies
+        if: steps.cache-lookup.outputs.cache-hit != 'true'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -qy build-essential \
+            gdb \
+            curl \
+            python3.10 \
+            python3-pip \
+            cmake \
+            ninja-build \
+            pkg-config \
+            bison \
+            libfl-dev \
+            libbenchmark-dev \
+            libgmock-dev \
+            libz-dev
+      - name: Fetch & Build non packaged dependencies
+        if: steps.cache-lookup.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p deps
+          cd deps
+          ../docker/build_deps.sh
+      - name: Cache save
+        if: steps.cache-lookup.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: deps
+          key: deps-${{ steps.get-hash.outputs.deps_hash }}
+
+  build_ubuntu:
+    name: Build [ubuntu]
+    runs-on: ubuntu-latest
+    needs: build_dependencies
+    steps:
+      - uses: actions/checkout@v4
+      - name: Get dependencies hash
+        id: get-hash
+        run: echo "deps_hash=`cat docker/build_deps.sh | shasum`" >> $GITHUB_OUTPUT
+      - uses: actions/cache/restore@v4
+        with:
+          path: deps
+          key: deps-${{ steps.get-hash.outputs.deps_hash }}
       - name: Set up dependencies
         run: |
           sudo apt-get update
@@ -32,10 +85,9 @@ jobs:
             bison \
             libfl-dev \
             libbenchmark-dev \
+            libgmock-dev \
             libz-dev
-      - name: Create dependency fetcher working directory
-        run: mkdir -p deps
-      - name: Fetch & Build non packaged dependencies
+      - name: Install cached non packaged dependencies
         working-directory: deps
         run: ../docker/build_deps.sh
       - name: Build BlazingMQ
@@ -50,7 +102,11 @@ jobs:
             -DBDE_BUILD_TARGET_CPP17=ON \
             -DCMAKE_PREFIX_PATH=${{ github.workspace }}/deps/srcs/bde-tools/BdeBuildSystem \
             -DCMAKE_INSTALL_LIBDIR=lib64
-          cmake --build build/blazingmq --parallel 8 --target all all.t
+          cmake --build build/blazingmq --parallel 8 --target all
+      - name: Clean-up build directories before caching
+        run: |
+          find . -name "*.o" -type f -delete
+          find . -name "*.a" -type f -delete
       - uses: actions/cache@v4
         with:
           path: |
@@ -59,8 +115,58 @@ jobs:
             /opt/bb/include
           key: cache-${{ github.sha }}
 
-  unit_tests_ubuntu:
-    name: BlazingMQ unit tests
+  unit_tests_cxx:
+    name: UT [c++]
+    runs-on: ubuntu-latest
+    needs: build_dependencies
+    steps:
+      - uses: actions/checkout@v4
+      - name: Get dependencies hash
+        id: get-hash
+        run: echo "deps_hash=`cat docker/build_deps.sh | shasum`" >> $GITHUB_OUTPUT
+      - uses: actions/cache/restore@v4
+        with:
+          path: deps
+          key: deps-${{ steps.get-hash.outputs.deps_hash }}
+      - name: Set up dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -qy build-essential \
+            gdb \
+            curl \
+            python3.10 \
+            python3-pip \
+            cmake \
+            ninja-build \
+            pkg-config \
+            bison \
+            libfl-dev \
+            libbenchmark-dev \
+            libgmock-dev \
+            libz-dev
+      - name: Install cached non packaged dependencies
+        working-directory: deps
+        run: ../docker/build_deps.sh
+      - name: Build BlazingMQ UTs
+        env:
+          PKG_CONFIG_PATH: /usr/lib/x86_64-linux-gnu/pkgconfig:/opt/bb/lib64/pkgconfig
+        run: |
+          cmake -S . -B build/blazingmq -G Ninja \
+            -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/deps/srcs/bde-tools/BdeBuildSystem/toolchains/linux/gcc-default.cmake \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DBDE_BUILD_TARGET_SAFE=ON \
+            -DBDE_BUILD_TARGET_64=ON \
+            -DBDE_BUILD_TARGET_CPP17=ON \
+            -DCMAKE_PREFIX_PATH=${{ github.workspace }}/deps/srcs/bde-tools/BdeBuildSystem \
+            -DCMAKE_INSTALL_LIBDIR=lib64
+          cmake --build build/blazingmq --parallel 8 --target all.t
+      - name: Run C++ Unit Tests
+        run: |
+          cd ${{ github.workspace }}/build/blazingmq
+          ctest -E mwcsys_executil.t --output-on-failure
+
+  unit_tests_python:
+    name: UT [python]
     runs-on: ubuntu-latest
     needs: build_ubuntu
     steps:
@@ -77,17 +183,19 @@ jobs:
           PYTHONPATH: ${{ github.workspace }}/src/python
         run: |
           pip install -r ${{ github.workspace }}/src/python/requirements.txt
+          pip install --force-reinstall ruff==0.4.10
           cd ${{ github.workspace }}
           src/python/bin/schemagen
           src/python/bin/tweakgen
           pytest src/python
-      - name: Run C++ Unit Tests
-        run: |
-          cd ${{ github.workspace }}/build/blazingmq
-          ctest -E mwcsys_executil.t --output-on-failure
 
   integration_tests_ubuntu:
-    name: BlazingMQ integration tests
+    name: IT [${{ matrix.cluster }}/${{ matrix.mode }}]
+    strategy:
+      matrix:
+        mode: ["legacy_mode", "fsm_mode"]
+        cluster: ["single", "multi"]
+      fail-fast: false
     runs-on: ubuntu-latest
     needs: build_ubuntu
     steps:
@@ -102,19 +210,42 @@ jobs:
       - name: Run Integration Tests
         run: |
           pip install -r ${{ github.workspace }}/src/python/requirements.txt
-          ${{ github.workspace }}/src/integration-tests/run-tests \
+          ${{ github.workspace }}/src/integration-tests/run-tests "${{ matrix.mode }} and ${{ matrix.cluster }}" \
             --log-level ERROR                   \
             --log-file-level=info               \
             --bmq-tolerate-dirty-shutdown       \
             --bmq-log-dir=failure-logs          \
             --bmq-log-level=INFO                \
             --junitxml=integration-tests.xml    \
-            --tb line                           \
+            --tb long                           \
             --reruns=3                          \
             -n 4 -v
 
+  fuzz_tests_ubuntu:
+    name: Fuzz test [${{ matrix.request }}]
+    strategy:
+      matrix:
+        request: ["identity", "open_queue", "configure_queue_stream", "put", "confirm", "close_queue", "disconnect"]
+      fail-fast: false
+    runs-on: ubuntu-latest
+    needs: build_ubuntu
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache/@v4
+        with:
+          path: |
+            build/blazingmq
+            deps
+            /opt/bb/include
+          key: cache-${{ github.sha }}
+      - name: Run Fuzz Test
+        run: |
+          pip install -r ${{ github.workspace }}/src/python/requirements.txt
+          cd src/python
+          python3 -m blazingmq.dev.fuzztest --broker-dir ${{ github.workspace }}/build/blazingmq/src/applications/bmqbrkr --request ${{ matrix.request }}
+
   build_macosx:
-    name: Build macosx_${{ matrix.arch }}
+    name: Build [macosx_${{ matrix.arch }}]
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -132,13 +263,11 @@ jobs:
             bison \
             flex \
             google-benchmark
-          python3 -m pip install --upgrade pip
-          pip install -r ${{ github.workspace }}/src/python/requirements.txt
       - name: Build BlazingMQ
         run: bin/build-darwin.sh
 
   build_and_test_bmqprometheus_plugin:
-    name: "Check if BMQPrometheus plugin can build and pass tests"
+    name: "Build Prometheus plugin [ubuntu]"
     runs-on: ubuntu-latest
     needs: build_ubuntu
     steps:
@@ -163,6 +292,7 @@ jobs:
             bison \
             libfl-dev \
             libbenchmark-dev \
+            libgmock-dev \
             libz-dev \
             autoconf \
             libtool
@@ -205,7 +335,7 @@ jobs:
       - name: Run Prometheus plugin integration test in "push" mode
         run: ${{ github.workspace }}/src/plugins/bmqprometheus/tests/bmqprometheus_prometheusstatconsumer_test.py -p ${{ github.workspace }}/build/blazingmq -m push --no-docker
 
-  Documentation:
+  documentation:
     name: "Documentation"
     runs-on: ubuntu-latest
     steps:
@@ -218,21 +348,6 @@ jobs:
         run: |
           doxygen Doxyfile
 
-  formatting-check:
-    name: Formatting Check
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        path:
-          - 'src'
-    steps:
-      - uses: actions/checkout@v4
-      - name: Run clang-format style check for C/C++/Protobuf programs.
-        uses: jidicula/clang-format-action@v4.11.0
-        with:
-          clang-format-version: '14'
-          check-path: ${{ matrix.path }}
-
   shellcheck:
     name: Shellcheck
     runs-on: ubuntu-latest
@@ -241,8 +356,8 @@ jobs:
       - name: Run ShellCheck
         uses: ludeeus/action-shellcheck@master
 
-  docker-build-check:
-    name: "Check whether docker single-node and cluster workflows build correctly."
+  docker_build_ubuntu:
+    name: "Docker [ubuntu]"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

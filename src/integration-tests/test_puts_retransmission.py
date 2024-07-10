@@ -1,3 +1,18 @@
+# Copyright 2024 Bloomberg Finance L.P.
+# SPDX-License-Identifier: Apache-2.0
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 # pylint: disable=protected-access; TODO: fix
 
 from pathlib import Path
@@ -54,7 +69,6 @@ class TestPutsRetransmission:
     work_dir: Path
 
     def inspect_results(self, allow_duplicates=False):
-
         if self.active_node in self.cluster.virtual_nodes():
             self.active_node.wait_status(wait_leader=True, wait_ready=False)
 
@@ -82,7 +96,6 @@ class TestPutsRetransmission:
         self.parse_message_logs(allow_duplicates=allow_duplicates)
 
     def parse_message_logs(self, allow_duplicates=False):
-
         Put = namedtuple("Put", ["message_index", "guid"])
         Ack = namedtuple("Ack", ["message_index", "guid", "status"])
         Push = namedtuple("Push", ["message_index", "guid", "index"])
@@ -495,7 +508,12 @@ class TestPutsRetransmission:
         # If shutting down primary, the replica needs to wait for new primary.
         self.active_node.wait_status(wait_leader=True, wait_ready=False)
 
-        self.inspect_results(allow_duplicates=False)
+        # Do allow duplicates for the scenario when a CONFIRM had passed Proxy
+        # but did not reach the replication.  New Primary then redelivers and
+        # the Proxy cannot detect the duplicate because it had removed the GUID
+        # upon the first CONFIRM
+
+        self.inspect_results(allow_duplicates=True)
 
     def test_shutdown_replica(self, multi_node: Cluster):
         self.setup_cluster_fanout(multi_node)
@@ -508,7 +526,12 @@ class TestPutsRetransmission:
         # Because the quorum is 3, cluster is still healthy after shutting down
         # replica.
 
-        self.inspect_results(allow_duplicates=False)
+        # Do allow duplicates for the scenario when a CONFIRM had passed Proxy
+        # but did not reach the replication.  New Primary then redelivers and
+        # the Proxy cannot detect the duplicate because it had removed the GUID
+        # upon the first CONFIRM
+
+        self.inspect_results(allow_duplicates=True)
 
     def test_kill_primary_convert_replica(self, multi_node: Cluster):
         self.setup_cluster_fanout(multi_node)

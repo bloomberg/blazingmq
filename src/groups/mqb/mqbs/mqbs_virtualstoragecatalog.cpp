@@ -61,24 +61,28 @@ VirtualStorageCatalog::put(const bmqt::MessageGUID& msgGUID,
                            const mqbu::StorageKey&  appKey)
 {
     if (!appKey.isNull()) {
-        VirtualStoragesIter it = d_virtualStorages.find(appKey);
+        VirtualStoragesIter it = d_virtualStorages.findByKey2(appKey);
         BSLS_ASSERT_SAFE(it != d_virtualStorages.end());
 
-        return it->second->put(msgGUID,
-                               msgSize,
-                               rdaInfo,
-                               subScriptionId);  // RETURN
+        return it->value()->put(msgGUID,
+                                msgSize,
+                                rdaInfo,
+                                subScriptionId);  // RETURN
     }
 
     // Add guid to all virtual storages.
-
+    mqbi::StorageResult::Enum lastRc = mqbi::StorageResult::e_SUCCESS;
     for (VirtualStoragesIter it = d_virtualStorages.begin();
          it != d_virtualStorages.end();
          ++it) {
-        it->second->put(msgGUID, msgSize, rdaInfo, subScriptionId);
+        mqbi::StorageResult::Enum rc =
+            it->value()->put(msgGUID, msgSize, rdaInfo, subScriptionId);
+        if (rc != mqbi::StorageResult::e_SUCCESS) {
+            lastRc = rc;
+        }
     }
 
-    return mqbi::StorageResult::e_SUCCESS;  // RETURN
+    return lastRc;  // RETURN
 }
 
 bslma::ManagedPtr<mqbi::StorageIterator>
@@ -87,9 +91,9 @@ VirtualStorageCatalog::getIterator(const mqbu::StorageKey& appKey)
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(!appKey.isNull());
 
-    VirtualStoragesIter it = d_virtualStorages.find(appKey);
+    VirtualStoragesIter it = d_virtualStorages.findByKey2(appKey);
     BSLS_ASSERT_SAFE(it != d_virtualStorages.end());
-    return it->second->getIterator(appKey);
+    return it->value()->getIterator(appKey);
 }
 
 mqbi::StorageResult::Enum VirtualStorageCatalog::getIterator(
@@ -100,9 +104,9 @@ mqbi::StorageResult::Enum VirtualStorageCatalog::getIterator(
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(!appKey.isNull());
 
-    VirtualStoragesIter it = d_virtualStorages.find(appKey);
+    VirtualStoragesIter it = d_virtualStorages.findByKey2(appKey);
     BSLS_ASSERT_SAFE(it != d_virtualStorages.end());
-    return it->second->getIterator(out, appKey, msgGUID);
+    return it->value()->getIterator(out, appKey, msgGUID);
 }
 
 mqbi::StorageResult::Enum
@@ -110,16 +114,16 @@ VirtualStorageCatalog::remove(const bmqt::MessageGUID& msgGUID,
                               const mqbu::StorageKey&  appKey)
 {
     if (!appKey.isNull()) {
-        VirtualStoragesIter it = d_virtualStorages.find(appKey);
+        VirtualStoragesIter it = d_virtualStorages.findByKey2(appKey);
         BSLS_ASSERT_SAFE(it != d_virtualStorages.end());
-        return it->second->remove(msgGUID);  // RETURN
+        return it->value()->remove(msgGUID);  // RETURN
     }
 
     // Remove guid from all virtual storages.
     for (VirtualStoragesIter it = d_virtualStorages.begin();
          it != d_virtualStorages.end();
          ++it) {
-        it->second->remove(msgGUID);  // ignore rc
+        it->value()->remove(msgGUID);  // ignore rc
     }
 
     return mqbi::StorageResult::e_SUCCESS;
@@ -129,16 +133,16 @@ mqbi::StorageResult::Enum
 VirtualStorageCatalog::removeAll(const mqbu::StorageKey& appKey)
 {
     if (!appKey.isNull()) {
-        VirtualStoragesIter it = d_virtualStorages.find(appKey);
+        VirtualStoragesIter it = d_virtualStorages.findByKey2(appKey);
         BSLS_ASSERT_SAFE(it != d_virtualStorages.end());
-        return it->second->removeAll(appKey);  // RETURN
+        return it->value()->removeAll(appKey);  // RETURN
     }
 
     // Clear all virtual storages.
     for (VirtualStoragesIter it = d_virtualStorages.begin();
          it != d_virtualStorages.end();
          ++it) {
-        it->second->removeAll(it->first);  // ignore rc
+        it->value()->removeAll(it->key2());  // ignore rc
     }
 
     return mqbi::StorageResult::e_SUCCESS;
@@ -152,9 +156,9 @@ int VirtualStorageCatalog::addVirtualStorage(bsl::ostream& errorDescription,
     BSLS_ASSERT_SAFE(!appId.empty());
     BSLS_ASSERT_SAFE(!appKey.isNull());
 
-    VirtualStoragesConstIter cit = d_virtualStorages.find(appKey);
+    VirtualStoragesConstIter cit = d_virtualStorages.findByKey2(appKey);
     if (cit != d_virtualStorages.end()) {
-        const VirtualStorage* vs = cit->second.get();
+        const VirtualStorage* vs = cit->value().get();
         BSLS_ASSERT_SAFE(!vs->appKey().isNull());
 
         errorDescription << "Virtual storage exists with same appKey. "
@@ -170,7 +174,7 @@ int VirtualStorageCatalog::addVirtualStorage(bsl::ostream& errorDescription,
                       appId,
                       appKey,
                       d_allocator_p);
-    d_virtualStorages.insert(bsl::make_pair(appKey, vsp));
+    d_virtualStorages.insert(appId, appKey, vsp);
 
     return 0;
 }
@@ -184,7 +188,7 @@ bool VirtualStorageCatalog::removeVirtualStorage(
         return true;  // RETURN
     }
 
-    VirtualStoragesConstIter it = d_virtualStorages.find(appKey);
+    VirtualStoragesConstIter it = d_virtualStorages.findByKey2(appKey);
     if (it != d_virtualStorages.end()) {
         d_virtualStorages.erase(it);
         return true;  // RETURN
@@ -199,9 +203,9 @@ VirtualStorageCatalog::virtualStorage(const mqbu::StorageKey& appKey)
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(!appKey.isNull());
 
-    VirtualStoragesIter it = d_virtualStorages.find(appKey);
+    VirtualStoragesIter it = d_virtualStorages.findByKey2(appKey);
     BSLS_ASSERT_SAFE(it != d_virtualStorages.end());
-    return it->second.get();
+    return it->value().get();
 }
 
 void VirtualStorageCatalog::autoConfirm(const bmqt::MessageGUID& msgGUID,
@@ -210,10 +214,10 @@ void VirtualStorageCatalog::autoConfirm(const bmqt::MessageGUID& msgGUID,
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(!appKey.isNull());
 
-    VirtualStoragesIter it = d_virtualStorages.find(appKey);
+    VirtualStoragesIter it = d_virtualStorages.findByKey2(appKey);
     BSLS_ASSERT_SAFE(it != d_virtualStorages.end());
 
-    it->second->autoConfirm(msgGUID);
+    it->value()->autoConfirm(msgGUID);
 }
 
 // ACCESSORS
@@ -223,12 +227,12 @@ bool VirtualStorageCatalog::hasVirtualStorage(const mqbu::StorageKey& appKey,
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(!appKey.isNull());
 
-    VirtualStoragesConstIter cit   = d_virtualStorages.find(appKey);
+    VirtualStoragesConstIter cit   = d_virtualStorages.findByKey2(appKey);
     const bool               hasVs = (cit != d_virtualStorages.end());
 
     if (appId) {
         if (hasVs) {
-            *appId = cit->second->appId();
+            *appId = cit->value()->appId();
             return true;  // RETURN
         }
 
@@ -244,22 +248,19 @@ bool VirtualStorageCatalog::hasVirtualStorage(const bsl::string& appId,
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(!appId.empty());
 
-    for (VirtualStoragesConstIter it = d_virtualStorages.begin();
-         it != d_virtualStorages.end();
-         ++it) {
-        if (it->second->appId() == appId) {
-            if (appKey) {
-                *appKey = it->first;
-            }
-            return true;  // RETURN
-        }
-    }
+    VirtualStoragesConstIter cit   = d_virtualStorages.findByKey1(appId);
+    const bool               hasVs = (cit != d_virtualStorages.end());
 
     if (appKey) {
+        if (hasVs) {
+            *appKey = cit->key2();
+            return true;  // RETURN
+        }
+
         *appKey = mqbu::StorageKey::k_NULL_KEY;
     }
 
-    return false;
+    return hasVs;
 }
 
 bool VirtualStorageCatalog::hasMessage(const bmqt::MessageGUID& msgGUID) const
@@ -267,7 +268,7 @@ bool VirtualStorageCatalog::hasMessage(const bmqt::MessageGUID& msgGUID) const
     for (VirtualStoragesConstIter it = d_virtualStorages.begin();
          it != d_virtualStorages.end();
          ++it) {
-        if (it->second->hasMessage(msgGUID)) {
+        if (it->value()->hasMessage(msgGUID)) {
             return true;  // RETURN
         }
     }
@@ -284,9 +285,8 @@ void VirtualStorageCatalog::loadVirtualStorageDetails(
     for (VirtualStoragesConstIter cit = d_virtualStorages.begin();
          cit != d_virtualStorages.end();
          ++cit) {
-        BSLS_ASSERT_SAFE(cit->first == cit->second->appKey());
-        buffer->push_back(
-            bsl::make_pair(cit->second->appId(), cit->second->appKey()));
+        BSLS_ASSERT_SAFE(cit->key2() == cit->value()->appKey());
+        buffer->push_back(bsl::make_pair(cit->key1(), cit->key2()));
     }
 }
 

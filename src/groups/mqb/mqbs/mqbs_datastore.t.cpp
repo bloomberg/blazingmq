@@ -136,6 +136,14 @@ static void test2_defaultHashUniqueness()
 
 #ifdef BSLS_PLATFORM_OS_AIX
     const bsls::Types::Int64 k_NUM_KEYS = 1000000;  // 1M
+#elif defined(__has_feature)
+    // Avoid timeout under MemorySanitizer
+    const bsls::Types::Int64 k_NUM_KEYS = __has_feature(memory_sanitizer)
+                                              ? 1000000    // 1M
+                                              : 10000000;  // 10M
+#elif defined(__SANITIZE_MEMORY__)
+    // GCC-supported macros for checking MSAN
+    const bsls::Types::Int64 k_NUM_KEYS = 1000000;  // 1M
 #else
     const bsls::Types::Int64 k_NUM_KEYS = 10000000;  // 10M
 #endif
@@ -212,6 +220,14 @@ static void test3_customHashUniqueness()
     mwctst::TestHelper::printTestName("CUSTOM HASH UNIQUENESS");
 
 #ifdef BSLS_PLATFORM_OS_AIX
+    const bsls::Types::Int64 k_NUM_KEYS = 5000000;  // 5M
+#elif defined(__has_feature)
+    // Avoid timeout under MemorySanitizer
+    const bsls::Types::Int64 k_NUM_KEYS = __has_feature(memory_sanitizer)
+                                              ? 5000000    // 5M
+                                              : 10000000;  // 10M
+#elif defined(__SANITIZE_MEMORY__)
+    // GCC-supported macros for checking MSAN
     const bsls::Types::Int64 k_NUM_KEYS = 5000000;  // 5M
 #else
     const bsls::Types::Int64 k_NUM_KEYS = 10000000;  // 10M

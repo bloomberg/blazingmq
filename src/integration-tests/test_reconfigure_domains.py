@@ -1,7 +1,23 @@
+# Copyright 2024 Bloomberg Finance L.P.
+# SPDX-License-Identifier: Apache-2.0
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """
 Testing runtime reconfiguration of domains.
 """
 import time
+from typing import Optional
 
 import blazingmq.dev.it.testconstants as tc
 from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
@@ -10,6 +26,7 @@ from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
     multi_node,
     tweak,
 )
+from blazingmq.dev.it.process.admin import AdminClient
 from blazingmq.dev.it.process.client import Client
 
 pytestmark = order(6)
@@ -36,7 +53,8 @@ class TestReconfigureDomains:
     # Returns 'True' if all of them succeed, and a false-y value otherwise.
     def post_n_msgs(self, uri, n):
         results = (
-            self.writer.post(uri, payload=["msg"], wait_ack=True) for _ in range(0, n)
+            self.writer.post(uri, payload=[f"msg{i}"], wait_ack=True)
+            for i in range(0, n)
         )
         return all(res == Client.e_SUCCESS for res in results)
 
@@ -296,7 +314,7 @@ class TestReconfigureDomains:
 
     @tweak.domain.max_delivery_attempts(0)
     def test_reconfigure_max_delivery_attempts(self, multi_node: Cluster):
-        URI = f"bmq://{tc.DOMAIN_PRIORITY}/my-queue"
+        URI = f"bmq://{tc.DOMAIN_PRIORITY}/reconf-rda"
         proxy = next(multi_node.proxy_cycle())
 
         # Open the queue through the writer.
@@ -306,12 +324,12 @@ class TestReconfigureDomains:
             # Write one message to 'URI'.
             self.post_n_msgs(URI, 1)
 
-            # Open, read, and kill three consumers in sequence.
+            # Open, read, and kill five consumers in sequence.
             for idx in range(0, 5):
                 client = proxy.create_client(f"reader-unstable-{idx}")
                 client.open(URI, flags=["read"], succeed=True)
                 client.check_exit_code = False
-                client.wait_push_event()
+                client.wait_push_event(timeout=5)
                 client.kill()
                 client.wait()
 
@@ -322,7 +340,7 @@ class TestReconfigureDomains:
             if expect_success:
                 client.confirm(URI, "+1", succeed=True)
             else:
-                assert not client.wait_push_event()
+                assert not client.wait_push_event(timeout=5)
             client.stop_session(block=True)
 
         # Expect that message will not expire after failed deliveries.
@@ -336,3 +354,109 @@ class TestReconfigureDomains:
 
         # Expect that message will expire after failed deliveries.
         do_test(False)
+
+    @tweak.domain.max_delivery_attempts(0)
+    def test_reconfigure_max_delivery_attempts_on_existing_messages(
+        self, multi_node: Cluster
+    ) -> None:
+        cluster: Cluster = multi_node
+
+        # Stage 1: data preparation
+        # On this stage, we open a producer to a queue and post 5 messages
+        # with serial payloads: ["msg0", "msg1", "msg2", "msg3", "msg4"].
+        # We consider the very first message "msg0" poisonous.
+        URI = f"bmq://{tc.DOMAIN_PRIORITY}/reconf-rda-on-existing-msgs"
+        proxy = next(multi_node.proxy_cycle())
+
+        self.writer.open(URI, flags=["write,ack"], succeed=True)
+
+        # Post a sequence of messages with serial payloads:
+        assert self.post_n_msgs(URI, 5)
+
+        poisoned_message: str = "msg0"
+
+        def try_consume(consumer: Client) -> Optional[int]:
+            num_confirmed = 0
+            while consumer.wait_push_event(timeout=1, quiet=True):
+                msgs = consumer.list(URI, block=True)
+
+                assert len(msgs) == 1
+
+                if msgs[0].payload == poisoned_message:
+                    # In this test, do not expect any messages confirmed before the poisoned one
+                    assert num_confirmed == 0
+                    return None
+
+                consumer.confirm(URI, "+1", succeed=True)
+                num_confirmed += 1
+            return num_confirmed
+
+        def run_consumers(max_attempts: int) -> int:
+            for idx in range(0, max_attempts):
+                consumer: Client = proxy.create_client(f"reader-unstable-{idx}")
+                consumer.open(
+                    URI, flags=["read"], succeed=True, max_unconfirmed_messages=1
+                )
+
+                num_confirmed = try_consume(consumer)
+
+                # Each consumer either crashes on the very first poisoned message
+                # Or it confirms all the remaining non-poisoned messages and exits
+                if num_confirmed is None:
+                    consumer.check_exit_code = False
+                    consumer.kill()
+                    consumer.wait()
+                    continue
+                return num_confirmed
+
+            # We return earlier if any messages confirmed
+            return 0
+
+        # Stage 2: try to consume messages without poison pill detection enabled.
+        # Expect all the attempts to process messages failed, since all the
+        # consumers will crash on the poisoned message "msg0".
+        #
+        # The timeline:
+        # Before: queue is ["msg0", "msg1", "msg2", "msg3", "msg4"]
+        # consumer1: ["msg0"] -> crash
+        # ... ... ...
+        # consumer10: ["msg0"] -> crash
+        # After: queue is ["msg0", "msg1", "msg2", "msg3", "msg4"]
+        num_confirmed = run_consumers(max_attempts=10)
+        assert 0 == num_confirmed
+
+        # Stage 3: reconfigure maxDeliveryAttempts to enable poison pill detection.
+        # Use an admin session to validate that the setting change reached the broker.
+        admin = AdminClient()
+        admin.connect(*cluster.admin_endpoint)
+
+        res = admin.send_admin(f"DOMAINS DOMAIN {tc.DOMAIN_PRIORITY} INFOS")
+        assert '"maxDeliveryAttempts" : 0' in res
+
+        cluster.config.domains[
+            tc.DOMAIN_PRIORITY
+        ].definition.parameters.max_delivery_attempts = 5
+        cluster.reconfigure_domain(tc.DOMAIN_PRIORITY, succeed=True)
+
+        res = admin.send_admin(f"DOMAINS DOMAIN {tc.DOMAIN_PRIORITY} INFOS")
+        assert '"maxDeliveryAttempts" : 5' in res
+
+        admin.stop()
+
+        # Stage 4: try to consume messages with poison pill detection enabled.
+        # Expect first 5 consumers to controllably crash on the very first message "msg0",
+        # and the 6th consumer will not receive message "msg0" anymore, since it was removed
+        # from the queue as poisonous. As a result, 6th consumer will receive the rest of the
+        # messages one by one and confirm them.
+        #
+        # The timeline:
+        # Before: queue is ["msg0", "msg1", "msg2", "msg3", "msg4"]
+        # consumer1: ["msg0"] -> crash
+        # consumer2: ["msg0"] -> crash
+        # consumer3: ["msg0"] -> crash
+        # consumer4: ["msg0"] -> crash
+        # consumer5: ["msg0"] -> crash -> "msg0" removed as poisonous after 5 attempts
+        # consumer6: ["msg1", "msg2", "msg3", "msg4"] -> confirm
+        # After: queue is []
+        num_confirmed = run_consumers(max_attempts=6)
+        assert 4 == num_confirmed

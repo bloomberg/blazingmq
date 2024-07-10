@@ -42,6 +42,7 @@
 #include <mwcst_tablerecords.h>
 
 // BDE
+#include <bsl_list.h>
 #include <bsl_memory.h>
 #include <bsl_string.h>
 #include <bslma_allocator.h>
@@ -137,6 +138,10 @@ class QueueStatsDomain {
             e_NO_SC_MSGS_DELTA,
             e_NO_SC_MSGS_ABS
         };
+
+        /// Return the non-modifiable string description corresponding to
+        /// the specified enumeration `value`.
+        static const char* toString(Stat::Enum value);
     };
 
     struct Role {
@@ -173,9 +178,15 @@ class QueueStatsDomain {
     };
 
   private:
-    // DATA
+    // PRIVATE TYPE
+    typedef bslma::ManagedPtr<mwcst::StatContext> StatSubContextMp;
+
+    // PRIVATE DATA
     bslma::ManagedPtr<mwcst::StatContext> d_statContext_mp;
     // StatContext
+    bslma::ManagedPtr<bsl::list<StatSubContextMp> > d_subContexts_mp;
+    // List of appId subcontexts. It is initialized if domain name is in the
+    // list of enabled domains in broker's `stats` configuration.
 
   private:
     // NOT IMPLEMENTED
@@ -191,7 +202,8 @@ class QueueStatsDomain {
     /// represented by its associated specified `context` as the difference
     /// between the latest snapshot-ed value (i.e., `snapshotId == 0`) and
     /// the value that was recorded at the specified `snapshotId` snapshots
-    /// ago.
+    /// ago.  The negative `snapshotId == -1` means that the oldest available
+    /// snapshot should be used, while other negative values are not supported.
     ///
     /// THREAD: This method can only be invoked from the `snapshot` thread.
     static bsls::Types::Int64 getValue(const mwcst::StatContext& context,
@@ -222,14 +234,25 @@ class QueueStatsDomain {
     QueueStatsDomain& setWriterCount(int writerCount);
 
     /// Update statistics for the event of the specified `type` and with the
-    /// specified `value` (depending on the `type`, `value` can represent
+    /// specified `value`.  Depending on the `type`, `value` can represent
     /// the number of bytes, a counter, ...
     void onEvent(EventType::Enum type, bsls::Types::Int64 value);
+
+    /// Update statistics for the event of the specified `type` and with the
+    /// specified `value` for the specified `appId`.  Depending on the `type`,
+    /// `value` can represent the number of bytes, a counter, ...
+    void onEvent(EventType::Enum    type,
+                 bsls::Types::Int64 value,
+                 const bsl::string& appId);
 
     /// Force set the stats of the content of the queue to the specified
     /// absolute `messages` and `bytes` values.
     void setQueueContentRaw(bsls::Types::Int64 messages,
                             bsls::Types::Int64 bytes);
+
+    /// Update subcontexts in case of domain reconfigure with the given list of
+    /// AppIds.
+    void updateDomainAppIds(const bsl::vector<bsl::string>& appIds);
 
     /// Return a pointer to the statcontext.
     mwcst::StatContext* statContext();
@@ -359,17 +382,19 @@ struct QueueStatsUtil {
 
     /// Load in the specified `table` and `tip` the objects to print the
     /// specified `statContext` for the specified `historySize`.
-    static void initializeTableAndTipDomains(mwcst::Table* table,
-                                             mwcu::BasicTableInfoProvider* tip,
-                                             int                 historySize,
-                                             mwcst::StatContext* statContext);
+    static void
+    initializeTableAndTipDomains(mwcst::Table*                  table,
+                                 mwcst::BasicTableInfoProvider* tip,
+                                 int                            historySize,
+                                 mwcst::StatContext*            statContext);
 
     /// Load in the specified `table` and `tip` the objects to print the
     /// specified `statContext` for the specified `historySize`.
-    static void initializeTableAndTipClients(mwcst::Table* table,
-                                             mwcu::BasicTableInfoProvider* tip,
-                                             int                 historySize,
-                                             mwcst::StatContext* statContext);
+    static void
+    initializeTableAndTipClients(mwcst::Table*                  table,
+                                 mwcst::BasicTableInfoProvider* tip,
+                                 int                            historySize,
+                                 mwcst::StatContext*            statContext);
 };
 
 // ============================================================================

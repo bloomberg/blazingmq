@@ -105,12 +105,16 @@ class PropertyValueStreamOutVisitor {
 
     void operator()(const bsl::string& value)
     {
-        bdlbb::BlobUtil::append(d_blob_p, value.c_str(), value.length());
+        bdlbb::BlobUtil::append(d_blob_p,
+                                value.c_str(),
+                                static_cast<int>(value.length()));
     }
 
     void operator()(const bsl::vector<char>& value)
     {
-        bdlbb::BlobUtil::append(d_blob_p, value.data(), value.size());
+        bdlbb::BlobUtil::append(d_blob_p,
+                                value.data(),
+                                static_cast<int>(value.size()));
     }
 };
 
@@ -450,8 +454,8 @@ bool MessageProperties::remove(const bsl::string&        name,
     // Decrement 'd_totalSize' by property name's length and length of struct
     // 'MessagePropertyHeader'.
 
-    d_totalSize -= it->first.length();
-    d_totalSize -= sizeof(MessagePropertyHeader);
+    d_totalSize -= static_cast<int>(it->first.length());
+    d_totalSize -= static_cast<int>(sizeof(MessagePropertyHeader));
 
     if (p.d_offset) {
         // Cannot remove the property since reading other properties needs
@@ -758,7 +762,7 @@ int MessageProperties::streamIn(const bdlbb::Blob& blob,
     int rc = streamInHeader(blob);
 
     if (rc != rc_SUCCESS) {
-        return rc;
+        return rc;  // RETURN
     }
 
     if (blob.length() < d_dataOffset) {
@@ -767,7 +771,7 @@ int MessageProperties::streamIn(const bdlbb::Blob& blob,
 
     rc = loadProperties(true, isNewStyleProperties);
     if (rc != rc_SUCCESS) {
-        return rc;
+        return rc;  // RETURN
     }
 
     cleaner.release();
@@ -942,7 +946,8 @@ MessageProperties::streamOut(bdlbb::BlobBufferFactory*          bufferFactory,
             true);  // write flag
         new (msgPropHeader.object()) MessagePropertyHeader();
         msgPropHeader->setPropertyType(p.d_type);
-        msgPropHeader->setPropertyNameLength(cit->first.length());
+        msgPropHeader->setPropertyNameLength(
+            static_cast<int>(cit->first.length()));
         if (info.isExtended()) {
             msgPropHeader->setPropertyValueLength(offset);
         }
@@ -952,7 +957,7 @@ MessageProperties::streamOut(bdlbb::BlobBufferFactory*          bufferFactory,
 
         msgPropHeader.reset();  // write out the header
         totalSize += sizeof(MessagePropertyHeader);
-        offset += cit->first.length();
+        offset += static_cast<int>(cit->first.length());
         offset += p.d_length;
     }
 
@@ -970,8 +975,10 @@ MessageProperties::streamOut(bdlbb::BlobBufferFactory*          bufferFactory,
         }
         // Append property name.
 
-        bdlbb::BlobUtil::append(blob, cit->first.c_str(), cit->first.length());
-        totalSize += cit->first.length();
+        bdlbb::BlobUtil::append(blob,
+                                cit->first.c_str(),
+                                static_cast<int>(cit->first.length()));
+        totalSize += static_cast<int>(cit->first.length());
 
         // Append property value.
 
@@ -1064,7 +1071,8 @@ bsl::ostream& MessageProperties::print(bsl::ostream& stream,
             bdlma::LocalSequentialAllocator<k_MAX_BYTES_DUMP> lsa(0);
 
             mwcu::MemOutStream os(k_MAX_BYTES_DUMP, &lsa);
-            os << bdlb::PrintStringHexDumper(&binaryVec[0], printSize);
+            os << bdlb::PrintStringHexDumper(&binaryVec[0],
+                                             static_cast<int>(printSize));
 
             printer.printAttribute(nameOs.str().data(), os.str());
         } break;

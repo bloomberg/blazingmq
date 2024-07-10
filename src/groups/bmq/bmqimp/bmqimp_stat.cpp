@@ -40,11 +40,11 @@ Stat::Stat(bslma::Allocator* allocator)
 void Stat::printStats(bsl::ostream& stream, bool includeDelta) const
 {
     mwcst::Table* table = (includeDelta ? &d_table : &d_tableNoDelta);
-    const mwcu::BasicTableInfoProvider* tip = (includeDelta ? &d_tip
-                                                            : &d_tipNoDelta);
+    const mwcst::BasicTableInfoProvider* tip = (includeDelta ? &d_tip
+                                                             : &d_tipNoDelta);
 
     table->records().update();
-    mwcu::TableUtil::printTable(stream, *tip);
+    mwcst::TableUtil::printTable(stream, *tip);
     stream << "\n";
 }
 
@@ -54,13 +54,13 @@ void Stat::printStats(bsl::ostream& stream, bool includeDelta) const
 
 bool StatUtil::filterDirect(const mwcst::TableRecords::Record& record)
 {
-    return record.type() == mwcst::StatContext::DMCST_TOTAL_VALUE;
+    return record.type() == mwcst::StatContext::e_TOTAL_VALUE;
 }
 
 bool StatUtil::filterDirectAndTopLevel(
     const mwcst::TableRecords::Record& record)
 {
-    return record.type() == mwcst::StatContext::DMCST_TOTAL_VALUE &&
+    return record.type() == mwcst::StatContext::e_TOTAL_VALUE &&
            record.level() != 0;
 }
 

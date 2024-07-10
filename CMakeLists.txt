@@ -37,6 +37,7 @@ if( "${CMAKE_CXX_COMPILER_ID}" MATCHES "(Apple)?Clang" )
           "-Wno-padded"
           "-Wno-global-constructors"    # bmqp_protocol mask constants
           "-Wno-conversion"
+          "-Wno-undef"                  # BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES
           "-Wno-float-equal"            # operator== in generated classes
   )
 
@@ -86,6 +87,11 @@ if( "${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU|(Apple)?Clang" )
   endif()
 endif()
 
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+  # In Debug build, ensure that BSLS_ASSERT_SAFE macro is enabled
+  add_definitions("-DBSLS_ASSERT_LEVEL_ASSERT_SAFE")
+endif()
+
 # This repo contains the canonical source of multiple, independently released,
 # UORs (mwc, bmq, bmqbrkr, bmqbrkrcfg, bmqtool).  When releasing a UOR, that
 # specific target is selected through injection of the 'INSTALL_TARGETS'
@@ -104,15 +110,16 @@ endif()
 
 if (NOT DEFINED INSTALL_TARGETS)
   # If no specic install targets has been set, then enable them all
-  set(BMQ_TARGET_BMQBRKR_NEEDED    YES)
-  set(BMQ_TARGET_BMQBRKRCFG_NEEDED YES)
-  set(BMQ_TARGET_BMQTOOL_NEEDED    YES)
-  set(BMQ_TARGET_MWC_NEEDED        YES)
-  set(BMQ_TARGET_BMQ_NEEDED        YES)
-  set(BMQ_TARGET_MQB_NEEDED        YES)
-  set(BMQ_TARGET_E_BMQBRKR_NEEDED  YES)
-  set(BMQ_TARGET_TUTORIAL_NEEDED   YES)
-  set(BMQ_TARGET_PROMETHEUS_NEEDED NO)
+  set(BMQ_TARGET_BMQBRKR_NEEDED        YES)
+  set(BMQ_TARGET_BMQBRKRCFG_NEEDED     YES)
+  set(BMQ_TARGET_BMQTOOL_NEEDED        YES)
+  set(BMQ_TARGET_BMQSTORAGETOOL_NEEDED YES)
+  set(BMQ_TARGET_MWC_NEEDED            YES)
+  set(BMQ_TARGET_BMQ_NEEDED            YES)
+  set(BMQ_TARGET_MQB_NEEDED            YES)
+  set(BMQ_TARGET_E_BMQBRKR_NEEDED      YES)
+  set(BMQ_TARGET_TUTORIAL_NEEDED       YES)
+  set(BMQ_TARGET_PROMETHEUS_NEEDED     NO)
 else()
   bbproject_check_install_target("bmqbrkr"         installBMQBRKR)
   bbproject_check_install_target("BMQBRKR_NIGHTLY" installNightly)
@@ -126,21 +133,23 @@ else()
 
   # Disable all by default, and then we'll enable selectively based on the
   # content of INSTALL_TARGETS
-  set(BMQ_TARGET_BMQBRKR_NEEDED    NO)
-  set(BMQ_TARGET_BMQBRKRCFG_NEEDED NO)
-  set(BMQ_TARGET_BMQTOOL_NEEDED    NO)
-  set(BMQ_TARGET_MWC_NEEDED        NO)
-  set(BMQ_TARGET_BMQ_NEEDED        NO)
-  set(BMQ_TARGET_MQB_NEEDED        NO)
-  set(BMQ_TARGET_TUTORIAL_NEEDED   NO)
-  set(BMQ_TARGET_PROMETHEUS_NEEDED NO)
+  set(BMQ_TARGET_BMQBRKR_NEEDED        NO)
+  set(BMQ_TARGET_BMQBRKRCFG_NEEDED     NO)
+  set(BMQ_TARGET_BMQTOOL_NEEDED        NO)
+  set(BMQ_TARGET_BMQSTORAGETOOL_NEEDED NO)
+  set(BMQ_TARGET_MWC_NEEDED            NO)
+  set(BMQ_TARGET_BMQ_NEEDED            NO)
+  set(BMQ_TARGET_MQB_NEEDED            NO)
+  set(BMQ_TARGET_TUTORIAL_NEEDED       NO)
+  set(BMQ_TARGET_PROMETHEUS_NEEDED     NO)
 
-  bbproject_check_install_target("mwc"        installMWC)
-  bbproject_check_install_target("bmq"        installBMQ)
-  bbproject_check_install_target("mqb"        installMQB)
-  bbproject_check_install_target("bmqbrkrcfg" installBMQBRKRCFG)
-  bbproject_check_install_target("bmqtool"    installBMQTOOL)
-  bbproject_check_install_target("prometheus" installPROMETHEUS)
+  bbproject_check_install_target("mwc"            installMWC)
+  bbproject_check_install_target("bmq"            installBMQ)
+  bbproject_check_install_target("mqb"            installMQB)
+  bbproject_check_install_target("bmqbrkrcfg"     installBMQBRKRCFG)
+  bbproject_check_install_target("bmqtool"        installBMQTOOL)
+  bbproject_check_install_target("bmqstoragetool" installBMQSTORAGETOOL)
+  bbproject_check_install_target("prometheus"     installPROMETHEUS)
 
   # NOTE: All targets should get 'mwc' from DPKG, except for the 'mwc' release
   #       itself (and the development work).
@@ -172,6 +181,12 @@ else()
     set(BMQ_TARGET_BMQ_NEEDED     YES)
     set(BMQ_TARGET_MQB_NEEDED     YES)
     set(BMQ_TARGET_BMQTOOL_NEEDED YES)
+  endif()
+
+  if (installBMQSTORAGETOOL)
+    set(BMQ_TARGET_BMQ_NEEDED            YES)
+    set(BMQ_TARGET_MQB_NEEDED            YES)
+    set(BMQ_TARGET_BMQSTORAGETOOL_NEEDED YES)
   endif()
 
   if (installPROMETHEUS)

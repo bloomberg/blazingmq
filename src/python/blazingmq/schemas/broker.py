@@ -1,5 +1,20 @@
+# Copyright 2024 Bloomberg Finance L.P.
+# SPDX-License-Identifier: Apache-2.0
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """
-BMQ Broker schemas.
+BlazingMQ Broker schemas.
 """
 
 from enum import IntEnum, IntFlag
@@ -54,7 +69,7 @@ class PutHeaderFlags(IntFlag):
 
 
 # =============================================================================
-#                      BMQ BROKER CONTROL MESSAGE SCHEMAS
+#                    BLAZINGMQ BROKER CONTROL MESSAGE SCHEMAS
 # =============================================================================
 
 
@@ -63,7 +78,7 @@ CLIENT_IDENTITY_SCHEMA: SchemaDescription = {
         "protocolVersion": 999999,
         "sdkVersion": 999999,
         "clientType": "E_TCPCLIENT",
-        "processName": "bmq_fuzztest",
+        "processName": "fuzztest",
         "pid": 0,
         "sessionId": 1,
         "hostName": "localhost",
@@ -71,7 +86,7 @@ CLIENT_IDENTITY_SCHEMA: SchemaDescription = {
         "clusterName": "",
         "clusterNodeId": -1,
         "sdkLanguage": "E_CPP",
-        "guidInfo": {"clientId": "bmqfuzzer", "nanoSecondsFromEpoch": 0},
+        "guidInfo": {"clientId": "fuzztest", "nanoSecondsFromEpoch": 0},
     }
 }
 
@@ -93,7 +108,7 @@ OPEN_QUEUE_SCHEMA: SchemaDescription = {
     "rId": 0,
     "openQueue": {
         "handleParameters": {
-            "uri": "bmq://bmq.test.mmap.priority/fuzztest",
+            "uri": "bmq://bmq.test.mem.priority/fuzz",
             "qId": 0,
             "subIdInfo": {"subId": 0, "appId": "__default"},
             "flags": QueueFlags.READ | QueueFlags.WRITE,
@@ -108,7 +123,7 @@ CLOSE_QUEUE_SCHEMA: SchemaDescription = {
     "rId": 0,
     "closeQueue": {
         "handleParameters": {
-            "uri": "bmq://bmq.test.mmap.priority/fuzztest",
+            "uri": "bmq://bmq.test.mem.priority/fuzz",
             "qId": 0,
             "subIdInfo": {"subId": 0, "appId": "__default"},
             "flags": QueueFlags.READ | QueueFlags.WRITE,

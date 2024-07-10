@@ -13,16 +13,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mwcst_utable.h -*-C++-*-
-#ifndef INCLUDED_MWCU_TABLE
-#define INCLUDED_MWCU_TABLE
+// mwcst_basetable.h -*-C++-*-
+#ifndef INCLUDED_MWCST_BASETABLE
+#define INCLUDED_MWCST_BASETABLE
 
-//@PURPOSE: Provide a generic Table protocol
+//@PURPOSE: Provide a generic BaseTable protocol
 //
 //@CLASSES:
-// mwcu::Table
+// mwcst::BaseTable
 //
-//@DESCRIPTION: This component defines a pure protocol, 'mwcu::Table', for a
+//@DESCRIPTION: This component defines a pure protocol, 'mwcst::BaseTable', for
+// a
 // generic 2-dimensional table of values.
 
 #ifndef INCLUDED_BSL_STRING
@@ -31,21 +32,20 @@
 
 namespace BloombergLP {
 
-namespace mwct {
+namespace mwcst {
+
+// FORWARD DECLARATIONS
 class Value;
-}
 
-namespace mwcu {
+// ===============
+// class BaseTable
+// ===============
 
-// ===========
-// class Table
-// ===========
-
-/// Protocol for a generic table of `mwct::Value`s
-class Table {
+/// Protocol for a generic table of `mwcst::Value`s
+class BaseTable {
   public:
     // CREATORS
-    virtual ~Table();
+    virtual ~BaseTable();
 
     // MANIPULATORS
 
@@ -62,7 +62,7 @@ class Table {
 
     /// Load into the specified `value` the value in the specified `column`
     /// of the specified `row`.
-    virtual void value(mwct::Value* value, int row, int column) const = 0;
+    virtual void value(mwcst::Value* value, int row, int column) const = 0;
 };
 
 }  // close package namespace

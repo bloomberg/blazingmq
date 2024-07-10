@@ -108,9 +108,7 @@ void Cluster::startDispatched(bsl::ostream* errorDescription, int* rc)
         rc_SUCCESS             = 0,
         rc_STATE_MGR_FAILURE   = -1,
         rc_MISC_FAILURE        = -2,
-        rc_STORAGE_MGR_FAILURE = -3,
-        rc_QUEUE_HELPER        = -4,
-        rc_STATE_MONITOR       = -5
+        rc_STORAGE_MGR_FAILURE = -3
     };
 
     *rc = d_clusterOrchestrator.start(*errorDescription);
@@ -154,7 +152,6 @@ void Cluster::startDispatched(bsl::ostream* errorDescription, int* rc)
                       &d_clusterData,
                       d_state,
                       d_clusterData.domainFactory(),
-                      &d_clusterOrchestrator.queueHelper(),
                       dispatcher(),
                       k_PARTITION_FSM_WATCHDOG_TIMEOUT_DURATION,
                       bdlf::BindUtil::bind(&Cluster::onRecoveryStatus,
@@ -162,6 +159,12 @@ void Cluster::startDispatched(bsl::ostream* errorDescription, int* rc)
                                            bdlf::PlaceHolders::_1,  // status
                                            bsl::vector<unsigned int>(),
                                            statRecorder),
+                      bdlf::BindUtil::bind(
+                          &ClusterOrchestrator::onPartitionPrimaryStatus,
+                          &d_clusterOrchestrator,
+                          bdlf::PlaceHolders::_1,   // partitionId
+                          bdlf::PlaceHolders::_2,   // status
+                          bdlf::PlaceHolders::_3),  // primary leaseId
                       storageManagerAllocator))
             : static_cast<mqbi::StorageManager*>(
                   new (*storageManagerAllocator) mqbblp::StorageManager(
@@ -202,13 +205,7 @@ void Cluster::startDispatched(bsl::ostream* errorDescription, int* rc)
         return;  // RETURN
     }
 
-    *rc = d_clusterOrchestrator.queueHelper().initialize(*errorDescription);
-    if (*rc != 0) {
-        d_storageManager_mp->stop();
-        d_clusterOrchestrator.stop();
-        *rc = *rc * 10 + rc_QUEUE_HELPER;
-        return;  // RETURN
-    }
+    d_clusterOrchestrator.queueHelper().initialize();
 
     d_clusterOrchestrator.setStorageManager(d_storageManager_mp.get());
     d_clusterOrchestrator.queueHelper().setStorageManager(
@@ -244,14 +241,7 @@ void Cluster::startDispatched(bsl::ostream* errorDescription, int* rc)
     // Ready to read.
     netCluster->enableRead();
 
-    *rc = d_clusterMonitor.start(*errorDescription);
-    if (*rc != 0) {
-        d_clusterOrchestrator.queueHelper().teardown();
-        d_storageManager_mp->stop();
-        d_clusterOrchestrator.stop();
-        *rc = *rc * 10 + rc_STATE_MONITOR;
-        return;  // RETURN
-    }
+    d_clusterMonitor.start();
     d_clusterMonitor.registerObserver(this);
 
     // Start a recurring clock for summary print
@@ -1911,10 +1901,18 @@ void Cluster::onPushEvent(const mqbi::DispatcherEvent& event)
             realEvent->subQueueInfos());
     }
     else {
+        int flags = 0;
+
+        if (realEvent->isOutOfOrderPush()) {
+            bmqp::PushHeaderFlagUtil::setFlag(
+                &flags,
+                bmqp::PushHeaderFlags::e_OUT_OF_ORDER);
+        }
+
         rc = ns->clusterNode()->channel().writePush(
             realEvent->queueId(),
             realEvent->guid(),
-            0,
+            flags,
             realEvent->compressionAlgorithmType(),
             realEvent->messagePropertiesInfo(),
             realEvent->subQueueInfos());
@@ -2045,7 +2043,10 @@ void Cluster::onRelayPushEvent(const mqbi::DispatcherEvent& event)
                              appDataSp,
                              optionsSp,
                              bmqp::MessagePropertiesInfo(pushHeader),
-                             pushHeader.compressionAlgorithmType());
+                             pushHeader.compressionAlgorithmType(),
+                             bmqp::PushHeaderFlagUtil::isSet(
+                                 pushHeader.flags(),
+                                 bmqp::PushHeaderFlags::e_OUT_OF_ORDER));
         // Note that passing the correct value of MessageProperties flag
         // above is not really needed, because self node (replica) will
         // retrieve the value of this flag from the storage when forwarding
@@ -2401,8 +2402,9 @@ void Cluster::loadNodesInfo(mqbcmd::NodeStatuses* out) const
                 nodeSession.clusterNode()->isAvailable());
         }
 
-        int rc = mqbcmd::NodeStatus::fromInt(&node.status(),
-                                             nodeSession.nodeStatus());
+        BSLA_MAYBE_UNUSED const int rc = mqbcmd::NodeStatus::fromInt(
+            &node.status(),
+            nodeSession.nodeStatus());
         BSLS_ASSERT_SAFE(!rc && "Unsupported node status");
 
         const bsl::vector<int>& partitionVec = nodeSession.primaryPartitions();
@@ -2420,7 +2422,7 @@ void Cluster::loadElectorInfo(mqbcmd::ElectorInfo* out) const
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
 
-    int rc = mqbcmd::ElectorState::fromInt(
+    BSLA_MAYBE_UNUSED int rc = mqbcmd::ElectorState::fromInt(
         &out->electorState(),
         d_clusterData.electorInfo().electorState());
     BSLS_ASSERT_SAFE(!rc && "Unsupported elector state");
@@ -2466,8 +2468,9 @@ void Cluster::loadPartitionsInfo(mqbcmd::PartitionsInfo* out) const
                 pi.primaryNode()->nodeDescription());
         }
         partitions[i].primaryLeaseId() = pi.primaryLeaseId();
-        int rc = mqbcmd::PrimaryStatus::fromInt(&partitions[i].primaryStatus(),
-                                                pi.primaryStatus());
+        BSLA_MAYBE_UNUSED const int rc = mqbcmd::PrimaryStatus::fromInt(
+            &partitions[i].primaryStatus(),
+            pi.primaryStatus());
         BSLS_ASSERT_SAFE(!rc && "Unsupported primary status");
     }
 }
@@ -2503,6 +2506,7 @@ Cluster::Cluster(const bslstl::StringRef&           name,
                 bufferFactory,
                 blobSpPool,
                 clusterConfig,
+                mqbcfg::ClusterProxyDefinition(allocator),
                 netCluster,
                 this,
                 domainFactory,
@@ -3148,6 +3152,23 @@ void Cluster::processClusterControlMessage(
                                  source),
             this);
     } break;  // BREAK
+    case MsgChoice::SELECTION_ID_CLUSTER_STATE_F_S_M_MESSAGE: {
+        dispatcher()->execute(
+            bdlf::BindUtil::bind(
+                &ClusterOrchestrator::processClusterStateFSMMessage,
+                &d_clusterOrchestrator,
+                message,
+                source),
+            this);
+    } break;  // BREAK
+    case MsgChoice::SELECTION_ID_PARTITION_MESSAGE: {
+        dispatcher()->execute(
+            bdlf::BindUtil::bind(&ClusterOrchestrator::processPartitionMessage,
+                                 &d_clusterOrchestrator,
+                                 message,
+                                 source),
+            this);
+    } break;  // BREAK
     case MsgChoice::SELECTION_ID_UNDEFINED:
     default: {
         MWCTSK_ALARMLOG_ALARM("CLUSTER")
@@ -3605,7 +3626,13 @@ Cluster::sendRequest(const Cluster::RequestManagerType::RequestSp& request,
                      mqbnet::ClusterNode*                          target,
                      bsls::TimeInterval                            timeout)
 {
-    // executed by the cluster *DISPATCHER* thread
+    // executed by the cluster *DISPATCHER* thread or the *QUEUE DISPATCHER*
+    // thread
+    //
+    // It is safe to invoke this function from non-cluster threads because
+    // `d_clusterData.electorInfo().leaderNodeId()` is only modified upon
+    // elector transition, while `d_clusterData.requestManager().sendRequest`
+    // is guarded by a mutex on its own.
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(target != 0 ||

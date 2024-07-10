@@ -96,7 +96,7 @@ typedef bsl::pair<unsigned int, bsls::Types::Uint64> MessageByteCounter;
 /// Soft limit, or threshold, percentage of space associated with
 /// outstanding data in a partition, used as a threshold to generate an
 /// alarm
-const bsls::Types::Uint64 k_SPACE_USED_PERCENT_SOFT = 40;
+const bsls::Types::Uint64 k_SPACE_USED_PERCENT_SOFT = 60;
 
 /// Interval, in seconds, to perform a check of available space in the
 /// partition.
@@ -112,43 +112,6 @@ const unsigned int k_REQUESTED_JOURNAL_SPACE =
 //             1 journal sync point if rolling over +
 //             1 journal sync point if self needs to issue another sync point
 //             in 'setPrimary' with old values
-
-void updateFileOffsets(bsls::Types::Uint64* journalOffset,
-                       bsls::Types::Uint64* dataOffset,
-                       JournalFileIterator* jit,
-                       DataFileIterator*    dit)
-{
-    *journalOffset = jit->header().headerWords() * bmqp::Protocol::k_WORD_SIZE;
-
-    *journalOffset += FileStoreProtocolUtil::bmqHeader(
-                          *(jit->mappedFileDescriptor()))
-                          .headerWords() *
-                      bmqp::Protocol::k_WORD_SIZE;
-
-    *dataOffset = dit->header().headerWords() * bmqp::Protocol::k_WORD_SIZE;
-
-    *dataOffset += FileStoreProtocolUtil::bmqHeader(
-                       *(dit->mappedFileDescriptor()))
-                       .headerWords() *
-                   bmqp::Protocol::k_WORD_SIZE;
-}
-
-void updateFileOffsets(bsls::Types::Uint64* journalOffset,
-                       bsls::Types::Uint64* qlistOffset,
-                       bsls::Types::Uint64* dataOffset,
-                       JournalFileIterator* jit,
-                       QlistFileIterator*   qit,
-                       DataFileIterator*    dit)
-{
-    updateFileOffsets(journalOffset, dataOffset, jit, dit);
-
-    *qlistOffset = qit->header().headerWords() * bmqp::Protocol::k_WORD_SIZE;
-
-    *qlistOffset += FileStoreProtocolUtil::bmqHeader(
-                        *(qit->mappedFileDescriptor()))
-                        .headerWords() *
-                    bmqp::Protocol::k_WORD_SIZE;
-}
 
 /// Return a rounded (down) percentage value (range [0-100]) representing
 /// the space in use on a file with the specified `capacity`, currently
@@ -246,11 +209,6 @@ bool compareByByte(const bsl::pair<mqbu::StorageKey, MessageByteCounter>& lhs,
                    const bsl::pair<mqbu::StorageKey, MessageByteCounter>& rhs)
 {
     return lhs.second.second > rhs.second.second;
-}
-
-void noOp()
-{
-    // NOTHING
 }
 
 }  // close unnamed namespace
@@ -359,15 +317,20 @@ int FileStore::openInRecoveryMode(bsl::ostream&          errorDescription,
 
     const int k_MAX_NUM_FILE_SETS_TO_CHECK = 2;
 
+    bsls::Types::Uint64 journalFilePos;
+    bsls::Types::Uint64 dataFilePos;
+
     int rc = FileStoreUtil::openRecoveryFileSet(errorDescription,
                                                 &journalFd,
+                                                &dataFd,
                                                 &recoveryFileSet,
+                                                &journalFilePos,
+                                                &dataFilePos,
                                                 d_config.partitionId(),
                                                 k_MAX_NUM_FILE_SETS_TO_CHECK,
                                                 d_config,
                                                 true,  // readOnly
                                                 d_isFSMWorkflow,
-                                                &dataFd,
                                                 needQList ? &qlistFd : 0);
 
     if (1 == rc) {
@@ -408,7 +371,7 @@ int FileStore::openInRecoveryMode(bsl::ostream&          errorDescription,
 
     // Print last sync point in the journal, if available.
 
-    if (!d_isFSMWorkflow && 0 != jit.lastSyncPointPosition()) {
+    if (0 != jit.lastSyncPointPosition()) {
         const JournalOpRecord& lsp = jit.lastSyncPoint();
         BSLS_ASSERT_SAFE(JournalOpType::e_SYNCPOINT == lsp.type());
 
@@ -425,11 +388,14 @@ int FileStore::openInRecoveryMode(bsl::ostream&          errorDescription,
             << ", SyncPoint offset in journal: " << jit.lastSyncPointPosition()
             << ", DataFileOffset: "
             << (static_cast<bsls::Types::Uint64>(lsp.dataFileOffsetDwords()) *
-                bmqp::Protocol::k_DWORD_SIZE)
-            << ", QlistFileOffset: "
-            << (static_cast<bsls::Types::Uint64>(lsp.qlistFileOffsetWords()) *
-                bmqp::Protocol::k_WORD_SIZE)
-            << ", Timestamp (epoch): " << lsp.header().timestamp()
+                bmqp::Protocol::k_DWORD_SIZE);
+        if (!d_isFSMWorkflow) {
+            out << ", QlistFileOffset: "
+                << (static_cast<bsls::Types::Uint64>(
+                        lsp.qlistFileOffsetWords()) *
+                    bmqp::Protocol::k_WORD_SIZE);
+        }
+        out << ", Timestamp (epoch): " << lsp.header().timestamp()
             << ", Last sync point is the last record: " << bsl::boolalpha
             << (jit.lastSyncPointPosition() == jit.lastRecordPosition());
 
@@ -450,7 +416,9 @@ int FileStore::openInRecoveryMode(bsl::ostream&          errorDescription,
         BALL_LOG_INFO << out.str();
     }
 
-    bool appendSyncPoint = false;
+    bool                appendSyncPoint    = false;
+    unsigned int        primaryLeaseIdCurr = d_primaryLeaseId;
+    bsls::Types::Uint64 sequenceNumcurr    = d_sequenceNum;
 
     if (d_isFSMWorkflow) {
         // In FSM workflow, we always point to last record regardless of sync
@@ -721,7 +689,7 @@ int FileStore::openInRecoveryMode(bsl::ostream&          errorDescription,
 
     BALL_LOG_INFO << partitionDesc() << "Retrieved primaryLeaseId and sequence"
                   << " number: (" << d_primaryLeaseId << ", " << d_sequenceNum
-                  << ")";
+                  << ").";
 
     // Create file set.
     FileSetSp fileSetSp;
@@ -999,10 +967,25 @@ int FileStore::openInRecoveryMode(bsl::ostream&          errorDescription,
 
     // Hand over recovered queues to the storage manager *after* files have
     // been successfully opened.
+    BSLS_ASSERT_SAFE(d_config.recoveredQueuesCb());
+    d_config.recoveredQueuesCb()(d_config.partitionId(), *queueKeyInfoMap_p);
 
-    if (!d_isFSMWorkflow) {
-        d_config.recoveredQueuesCb()(d_config.partitionId(),
-                                     *queueKeyInfoMap_p);
+    if (d_isFSMWorkflow) {
+        if (primaryLeaseIdCurr > d_primaryLeaseId ||
+            (primaryLeaseIdCurr == d_primaryLeaseId &&
+             sequenceNumcurr > d_sequenceNum)) {
+            BALL_LOG_INFO << partitionDesc() << "Current partitionSeqeNum: ("
+                          << primaryLeaseIdCurr << ", " << sequenceNumcurr
+                          << ") is higher than storage-retrieved "
+                          << "partitionSeqeNum: (" << d_primaryLeaseId << ", "
+                          << d_sequenceNum << ").  This is possible if self "
+                          << "replica has received primary status advisory "
+                          << "before opening FileStore.  Thus, we keep current"
+                          << " partitionSeqeNum.";
+
+            d_primaryLeaseId = primaryLeaseIdCurr;
+            d_sequenceNum    = sequenceNumcurr;
+        }
     }
 
     return rc_SUCCESS;
@@ -1063,20 +1046,13 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                                                     ? qit->mappedFileDescriptor()
                                                     : 0;
 
-    // Update each file offset to the end of Journal/Qlist/Data file header
-    // respectively.
-
-    if (needQList) {
-        updateFileOffsets(journalOffset,
-                          qlistOffset,
-                          dataOffset,
-                          jit,
-                          qit,
-                          dit);
-    }
-    else {
-        updateFileOffsets(journalOffset, dataOffset, jit, dit);
-    }
+    FileStoreUtil::setFileHeaderOffsets(journalOffset,
+                                        dataOffset,
+                                        *jit,
+                                        *dit,
+                                        needQList,
+                                        qlistOffset,
+                                        *qit);
 
     // Create scratch data structure to keep track of deleted queueKeys and
     // appKeys with their deletion record offsets.
@@ -3284,8 +3260,30 @@ void FileStore::gcDispatched(int partitionId, FileSet* fileSet)
     BSLS_ASSERT_SAFE(partitionId == d_config.partitionId());
     BSLS_ASSERT_SAFE(fileSet);
     BSLS_ASSERT_SAFE(0 < d_fileSets.size());
-    BSLS_ASSERT_SAFE(fileSet != d_fileSets[0].get());
     (void)partitionId;  // Compiler happiness
+
+    if (fileSet == d_fileSets[0].get()) {
+        // This occurs when FileStore::close() has happened.
+
+        BALL_LOG_INFO_BLOCK
+        {
+            BALL_LOG_OUTPUT_STREAM << partitionDesc() << "Closing file set ["
+                                   << fileSet->d_dataFileName << "], ["
+                                   << fileSet->d_journalFileName << "]";
+            if (!d_isFSMWorkflow) {
+                BALL_LOG_OUTPUT_STREAM << ", [" << fileSet->d_qlistFileName
+                                       << "]";
+            }
+            BALL_LOG_OUTPUT_STREAM << ".";
+        }
+
+        close(*fileSet, d_flushWhenClosing);
+        d_fileSets.erase(d_fileSets.begin());
+
+        return;  // RETURN
+    }
+
+    // This occurs when FileStore::rollover() has happened.
 
     FileSetSp          fileSetSp;
     FileSets::iterator it;
@@ -3308,7 +3306,7 @@ void FileStore::gcDispatched(int partitionId, FileSet* fileSet)
     // file set.
     d_fileSets.erase(it);
 
-    int rc = d_miscWorkThreadPool_p->enqueueJob(
+    BSLA_MAYBE_UNUSED const int rc = d_miscWorkThreadPool_p->enqueueJob(
         bdlf::BindUtil::bind(&FileStore::gcWorkerDispatched, this, fileSetSp));
     BSLS_ASSERT_SAFE(rc == 0);
 }
@@ -3766,6 +3764,7 @@ int FileStore::issueSyncPointInternal(SyncPointType::Enum type,
             sp.qlistFileOffsetWords() = fs->d_qlistFilePosition /
                                         bmqp::Protocol::k_WORD_SIZE;
         }
+
         spptr = &sp;
     }
 
@@ -4319,6 +4318,7 @@ int FileStore::writeQueueCreationRecord(
 
     if (!d_isCSLModeEnabled) {
         int status = 0;
+        BSLS_ASSERT_SAFE(d_config.queueCreationCb());
         d_config.queueCreationCb()(&status,
                                    d_config.partitionId(),
                                    quri,
@@ -4789,12 +4789,14 @@ int FileStore::writeJournalRecord(const bmqp::StorageHeader& header,
                 // No further logic for CSL mode.
                 return rc_SUCCESS;  // RETURN
             }
+            BSLS_ASSERT_SAFE(!d_isFSMWorkflow);
 
             // Once below callback returns, 'rstorage' will no longer be
             // valid.  So invoking this callback should be the last thing
             // to do in this 'else' snippet.
 
             int status = 0;
+            BSLS_ASSERT_SAFE(d_config.queueDeletionCb());
             d_config.queueDeletionCb()(&status,
                                        d_config.partitionId(),
                                        rstorage->queueUri(),
@@ -5122,6 +5124,7 @@ FileStore::FileStore(const DataStoreConfig&  config,
 , d_aliasedBufferDeleterSpPool(1024, d_allocators.get("AliasedBufferDeleters"))
 , d_isOpen(false)
 , d_isStopping(false)
+, d_flushWhenClosing(false)
 , d_lastSyncPtReceived(false)
 , d_records(10000, d_allocators.get("OutstandingRecords"))
 , d_unreceipted(d_allocators.get("UnreceiptedRecords"))
@@ -5131,10 +5134,6 @@ FileStore::FileStore(const DataStoreConfig&  config,
 , d_fileSets(allocator)
 , d_cluster_p(cluster)
 , d_miscWorkThreadPool_p(miscWorkThreadPool)
-, d_storageEventBuilder(FileStoreProtocol::k_VERSION,
-                        bmqp::EventType::e_STORAGE,
-                        config.bufferFactory(),
-                        allocator)
 , d_syncPointEventHandle()
 , d_partitionHighwatermarkEventHandle()
 , d_isPrimary(false)
@@ -5147,6 +5146,10 @@ FileStore::FileStore(const DataStoreConfig&  config,
 , d_isFSMWorkflow(isFSMWorkflow)
 , d_ignoreCrc32c(false)
 , d_nagglePacketCount(k_NAGLE_PACKET_COUNT)
+, d_storageEventBuilder(FileStoreProtocol::k_VERSION,
+                        bmqp::EventType::e_STORAGE,
+                        config.bufferFactory(),
+                        allocator)
 {
     // PRECONDITIONS
     BSLS_ASSERT(allocator);
@@ -5243,6 +5246,7 @@ void FileStore::close(bool flush)
 
     d_isOpen             = false;
     d_isStopping         = false;
+    d_flushWhenClosing   = flush;
     d_lastSyncPtReceived = false;
 
     d_config.scheduler()->cancelEventAndWait(&d_syncPointEventHandle);
@@ -5262,8 +5266,35 @@ void FileStore::close(bool flush)
     // After mapped data files have been gc'd, there should be only 1 file set
     // remaining in 'd_fileSets' (the active one).  Truncate and close it out.
     BSLS_ASSERT_SAFE(1 == d_fileSets.size());
-    truncate(d_fileSets[0].get());
-    close(*d_fileSets[0], flush);
+    FileSet* activeFileSet = d_fileSets[0].get();
+    truncate(activeFileSet);
+
+    if (0 == --activeFileSet->d_aliasedBlobBufferCount) {
+        BALL_LOG_INFO_BLOCK
+        {
+            BALL_LOG_OUTPUT_STREAM << partitionDesc() << "Closing file set ["
+                                   << activeFileSet->d_dataFileName << "], ["
+                                   << activeFileSet->d_journalFileName << "]";
+            if (!d_isFSMWorkflow) {
+                BALL_LOG_OUTPUT_STREAM
+                    << ", [" << activeFileSet->d_qlistFileName << "]";
+            }
+            BALL_LOG_OUTPUT_STREAM << ".";
+        }
+
+        close(*activeFileSet, flush);
+        d_fileSets.erase(d_fileSets.begin());
+    }
+    else {
+        BALL_LOG_INFO << partitionDesc() << "Closing: number of references to"
+                      << " active file set: "
+                      << activeFileSet->d_aliasedBlobBufferCount;
+        BSLS_ASSERT_SAFE(activeFileSet->d_dataFile.isValid());
+        BSLS_ASSERT_SAFE(activeFileSet->d_journalFile.isValid());
+        if (!d_isFSMWorkflow) {
+            BSLS_ASSERT_SAFE(activeFileSet->d_qlistFile.isValid());
+        }
+    }
 }
 
 void FileStore::createStorage(bsl::shared_ptr<ReplicatedStorage>* storageSp,
@@ -6215,7 +6246,9 @@ int FileStore::processRecoveryEvent(const bsl::shared_ptr<bdlbb::Blob>& blob)
         // File store encountered valid primaryLeaseId and sequence number in
         // 'open()'.
 
-        BSLS_ASSERT_SAFE(0 < d_sequenceNum);
+        if (!d_isFSMWorkflow) {
+            BSLS_ASSERT_SAFE(0 < d_sequenceNum);
+        }
         hasValidLeaseIdSeqNum = true;
     }
 
@@ -6345,7 +6378,7 @@ int FileStore::processRecoveryEvent(const bsl::shared_ptr<bdlbb::Blob>& blob)
                 << recHeader->sequenceNumber() << "), with journal "
                 << "offset (words): " << header.journalOffsetWords()
                 << ", rc: " << rc << MWCTSK_ALARMLOG_END;
-            return 100 * rc + rc_WRITE_FAILURE;  // RETURN
+            return 10 * rc + rc_WRITE_FAILURE;  // RETURN
         }
     }
 
@@ -7083,12 +7116,12 @@ void FileStore::flush()
     // 'gcHistory' attempts to iterate all old items. If there are more of them
     // than the batchSize (1000), it returns 'true'.  In this case, re-enable
     // flush client to call it again next Idle time.
-    // If it returns 'false', there is no immediate work.  Wait for the the
+    // If it returns 'false', there is no immediate work.  Wait for the
     // next k_GC_MESSAGES_INTERVAL_SECONDS.
 
     if (haveMore || haveMoreHistory) {
-        // Re-enable 'flush' by empty callback
-        dispatcher()->execute(&noOp,
+        // Explicitly schedule 'flush()' instead of relying on idleness
+        dispatcher()->execute(bdlf::BindUtil::bind(&FileStore::flush, this),
                               this,
                               mqbi::DispatcherEventType::e_CALLBACK);
     }
@@ -7175,6 +7208,10 @@ void FileStore::getStorages(StorageList*          storages,
 
 void FileStore::loadSummary(mqbcmd::FileStore* fileStore) const
 {
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(fileStore);
+
+    fileStore->partitionId() = d_config.partitionId();
     if (!isOpen()) {
         fileStore->state() = mqbcmd::FileStoreState::CLOSED;
         return;  // RETURN
@@ -7185,8 +7222,7 @@ void FileStore::loadSummary(mqbcmd::FileStore* fileStore) const
         return;  // RETURN
     }
 
-    fileStore->partitionId() = d_config.partitionId();
-    fileStore->state()       = mqbcmd::FileStoreState::OPEN;
+    fileStore->state() = mqbcmd::FileStoreState::OPEN;
     FileStorePrintUtil::loadSummary(&fileStore->summary(),
                                     d_primaryNode_p,
                                     d_primaryLeaseId,

@@ -39,10 +39,10 @@ mkdir -p "${DIR_INSTALL}"
 
 # :: Clone dependencies :::::::::::::::::::::::::::::::::::::::::::::::::::::::
 if [ ! -d "${DIR_THIRDPARTY}/bde-tools" ]; then
-    git clone --depth 1 --branch 3.117.0.0 https://github.com/bloomberg/bde-tools "${DIR_THIRDPARTY}/bde-tools"
+    git clone --depth 1 --branch 4.8.0.0 https://github.com/bloomberg/bde-tools "${DIR_THIRDPARTY}/bde-tools"
 fi
 if [ ! -d "${DIR_THIRDPARTY}/bde" ]; then
-    git clone --depth 1 --branch 3.117.0.0 https://github.com/bloomberg/bde.git "${DIR_THIRDPARTY}/bde"
+    git clone --depth 1 --branch 4.8.0.0 https://github.com/bloomberg/bde.git "${DIR_THIRDPARTY}/bde"
 fi
 if [ ! -d "${DIR_THIRDPARTY}/ntf-core" ]; then
     git clone --depth 1 --branch latest https://github.com/bloomberg/ntf-core.git "${DIR_THIRDPARTY}/ntf-core"
@@ -63,7 +63,7 @@ if [ ! -e "${DIR_BUILD}/bde/.complete" ]; then
     bbs_build install --install_dir="/" --prefix="${DIR_INSTALL}"
     eval "$(bbs_build_env unset)"
     popd
-    touch "${DIR_BUILD}/bde/.complete"-DBDE_BUILD_TARGET_64=1
+    touch "${DIR_BUILD}/bde/.complete"
 fi
 
 if [ ! -e "${DIR_BUILD}/ntf/.complete" ]; then
@@ -83,14 +83,14 @@ fi
 
 
 # Build other dependencies
-brew install flex bison google-benchmark zlib
+brew install flex bison google-benchmark googletest zlib
 
 # Determine paths based on Intel vs Apple Silicon CPU
 if [ "$(uname -p)" == 'arm' ]; then
-    BREW_PKG_CONFIG_PATH="/opt/homebrew/lib/pkgconfig:/opt/homebrew/opt/zlib/lib/pkgconfig"
+    BREW_PKG_CONFIG_PATH="/opt/homebrew/lib/pkgconfig:/opt/homebrew/opt/zlib/lib/pkgconfig:/opt/homebrew/opt/googletest/lib/pkgconfig"
     FLEX_ROOT="/opt/homebrew/opt/flex"
 else
-    BREW_PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:/usr/local/opt/zlib/lib/pkgconfig"
+    BREW_PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:/usr/local/opt/zlib/lib/pkgconfig:/usr/local/opt/googletest/lib/pkgconfig"
     FLEX_ROOT="/usr/local/opt/flex"
 fi
 
@@ -103,7 +103,7 @@ CMAKE_OPTIONS=(\
     -DCMAKE_INSTALL_PREFIX="${DIR_INSTALL}" \
     -DCMAKE_MODULE_PATH="${DIR_THIRDPARTY}/bde-tools/cmake;${DIR_THIRDPARTY}/bde-tools/BdeBuildSystem" \
     -DCMAKE_PREFIX_PATH="${DIR_INSTALL}" \
-    -DCMAKE_TOOLCHAIN_FILE="${DIR_THIRDPARTY}/bde-tools/BdeBuildSystem/toolchains/darwin/gcc-default.cmake" \
+    -DCMAKE_TOOLCHAIN_FILE="${DIR_THIRDPARTY}/bde-tools/BdeBuildSystem/toolchains/darwin/clang-default.cmake" \
     -DCMAKE_CXX_STANDARD=17 \
     -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
     -DFLEX_ROOT="${FLEX_ROOT}")

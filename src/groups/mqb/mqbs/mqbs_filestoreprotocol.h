@@ -2107,28 +2107,30 @@ inline FileHeader& FileHeader::setMagic2(unsigned int value)
 
 inline FileHeader& FileHeader::setProtocolVersion(unsigned char value)
 {
-    d_protoVerAndHeaderWords = (d_protoVerAndHeaderWords &
-                                k_HEADER_WORDS_MASK) |
-                               (value << k_PROTOCOL_VERSION_START_IDX);
+    d_protoVerAndHeaderWords = static_cast<unsigned char>(
+        (d_protoVerAndHeaderWords & k_HEADER_WORDS_MASK) |
+        (value << k_PROTOCOL_VERSION_START_IDX));
     return *this;
 }
 
 inline FileHeader& FileHeader::setHeaderWords(unsigned char value)
 {
-    d_protoVerAndHeaderWords = (d_protoVerAndHeaderWords &
-                                k_PROTOCOL_VERSION_MASK) |
-                               (value & k_HEADER_WORDS_MASK);
+    d_protoVerAndHeaderWords = static_cast<unsigned char>(
+        (d_protoVerAndHeaderWords & k_PROTOCOL_VERSION_MASK) |
+        (value & k_HEADER_WORDS_MASK));
     return *this;
 }
 
 inline FileHeader& FileHeader::setBitness(Bitness::Enum value)
 {
     if (Bitness::e_64 == value) {
-        d_bitnessAndFileType = (d_bitnessAndFileType & k_FILE_TYPE_MASK) |
-                               (1 << k_BITNESS_START_IDX);
+        d_bitnessAndFileType = static_cast<char>(
+            (d_bitnessAndFileType & k_FILE_TYPE_MASK) |
+            (1 << k_BITNESS_START_IDX));
     }
     else {
-        d_bitnessAndFileType = d_bitnessAndFileType & k_FILE_TYPE_MASK;
+        d_bitnessAndFileType = static_cast<char>(d_bitnessAndFileType &
+                                                 k_FILE_TYPE_MASK);
     }
 
     return *this;
@@ -2136,9 +2138,8 @@ inline FileHeader& FileHeader::setBitness(Bitness::Enum value)
 
 inline FileHeader& FileHeader::setFileType(FileType::Enum value)
 {
-    d_bitnessAndFileType = (d_bitnessAndFileType & k_BITNESS_MASK) |
-                           (static_cast<unsigned int>(value) &
-                            k_FILE_TYPE_MASK);
+    d_bitnessAndFileType = static_cast<char>(
+        (d_bitnessAndFileType & k_BITNESS_MASK) | (value & k_FILE_TYPE_MASK));
 
     return *this;
 }
@@ -2162,13 +2163,15 @@ inline unsigned int FileHeader::magic2() const
 
 inline unsigned char FileHeader::protocolVersion() const
 {
-    return (d_protoVerAndHeaderWords & k_PROTOCOL_VERSION_MASK) >>
-           k_PROTOCOL_VERSION_START_IDX;
+    return static_cast<unsigned char>(
+        (d_protoVerAndHeaderWords & k_PROTOCOL_VERSION_MASK) >>
+        k_PROTOCOL_VERSION_START_IDX);
 }
 
 inline unsigned char FileHeader::headerWords() const
 {
-    return d_protoVerAndHeaderWords & k_HEADER_WORDS_MASK;
+    return static_cast<unsigned char>(d_protoVerAndHeaderWords &
+                                      k_HEADER_WORDS_MASK);
 }
 
 inline Bitness::Enum FileHeader::bitness() const
@@ -2459,6 +2462,7 @@ inline unsigned int AppIdHeader::appIdLengthWords() const
 inline QueueRecordHeader::QueueRecordHeader()
 : d_queueUriLengthWords(bdlb::BigEndianUint16::make(0))
 , d_numAppIds(bdlb::BigEndianUint16::make(0))
+, d_headerWordsAndQueueRecordWords(bdlb::BigEndianUint32::make(0))
 {
     const size_t val = sizeof(QueueRecordHeader) / bmqp::Protocol::k_WORD_SIZE;
     setHeaderWords(val);
@@ -2534,15 +2538,15 @@ inline RecordHeader::RecordHeader()
 // MANIPULATORS
 inline RecordHeader& RecordHeader::setType(RecordType::Enum value)
 {
-    d_typeAndFlags = (d_typeAndFlags & k_FLAGS_MASK) |
-                     (static_cast<unsigned short>(value) << k_TYPE_START_IDX);
+    d_typeAndFlags = static_cast<unsigned short>(
+        (d_typeAndFlags & k_FLAGS_MASK) | (value << k_TYPE_START_IDX));
     return *this;
 }
 
 inline RecordHeader& RecordHeader::setFlags(unsigned int value)
 {
-    d_typeAndFlags = (d_typeAndFlags & k_TYPE_MASK) |
-                     static_cast<unsigned short>(value);
+    d_typeAndFlags = static_cast<unsigned short>(
+        (d_typeAndFlags & k_TYPE_MASK) | value);
     return *this;
 }
 
@@ -2642,7 +2646,8 @@ inline MessageRecord& MessageRecord::setCompressionAlgorithmType(
 
     d_reservedAndCAT = 0;
     d_reservedAndCAT = d_reservedAndCAT |
-                       (compressionAlgorithmType << k_CAT_START_IDX);
+                       static_cast<char>(compressionAlgorithmType
+                                         << k_CAT_START_IDX);
     return *this;
 }
 

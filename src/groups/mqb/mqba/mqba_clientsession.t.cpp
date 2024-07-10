@@ -497,7 +497,7 @@ class MyMockQueueHandle : public mqbmock::QueueHandle {
 
     // ACCESSORS
 
-    /// Returns the the captured messages.
+    /// Returns the captured messages.
     const bsl::vector<Post>& postedMessages() const
     {
         return d_postedMessages;
@@ -2155,7 +2155,8 @@ static void test11_initiateShutdown()
                                                   guid,
                                                   messageAttributes,
                                                   msgGroupId,
-                                                  subQueueInfos);
+                                                  subQueueInfos,
+                                                  false);
 
         // Verify there are unconfirmed messages in the handle
         ASSERT_EQ(1, tb.d_domain.d_queueHandle->countUnconfirmed());
@@ -2209,7 +2210,8 @@ static void test11_initiateShutdown()
                                                   guid,
                                                   messageAttributes,
                                                   msgGroupId,
-                                                  subQueueInfos);
+                                                  subQueueInfos,
+                                                  false);
 
         // Verify there are unconfirmed messages in the handle
         ASSERT_EQ(1, tb.d_domain.d_queueHandle->countUnconfirmed());
@@ -2274,7 +2276,8 @@ static void test11_initiateShutdown()
                                                       guid,
                                                       messageAttributes,
                                                       msgGroupId,
-                                                      subQueueInfos);
+                                                      subQueueInfos,
+                                                      false);
             guids.push_back(guid);
         }
         // Verify there are unconfirmed messages in the handle

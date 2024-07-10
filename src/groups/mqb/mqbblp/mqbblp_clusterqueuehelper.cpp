@@ -62,6 +62,7 @@
 #include <mwcu_printutil.h>
 
 // BDE
+#include <ball_logthrottle.h>
 #include <ball_severity.h>
 #include <bdlb_nullablevalue.h>
 #include <bdlb_print.h>
@@ -91,6 +92,17 @@ namespace {
 const char k_MAXIMUM_NUMBER_OF_QUEUES_REACHED[] =
     "maximum number of queues reached";
 const char k_SELF_NODE_IS_STOPPING[] = "self node is stopping";
+
+const int k_MAX_INSTANT_MESSAGES = 10;
+// Maximum messages logged with throttling in a short period of time.
+
+const bsls::Types::Int64 k_NS_PER_MESSAGE =
+    bdlt::TimeUnitRatio::k_NANOSECONDS_PER_MINUTE / k_MAX_INSTANT_MESSAGES;
+// Time interval between messages logged with throttling.
+
+#define BMQ_LOGTHROTTLE_INFO()                                                \
+    BALL_LOGTHROTTLE_INFO(k_MAX_INSTANT_MESSAGES, k_NS_PER_MESSAGE)           \
+        << "[THROTTLED] "
 
 /// This function is a simple wrapper around the specified `callback`, to
 /// ensure that the specified `refCount` is decremented after it gets
@@ -353,7 +365,8 @@ void ClusterQueueHelper::afterPartitionPrimaryAssignment(
 
     BSLS_ASSERT_SAFE(status != bmqp_ctrlmsg::PrimaryStatus::E_UNDEFINED);
 
-    if (!d_cluster_p->isFSMWorkflow()) {
+    if (!d_cluster_p->isFSMWorkflow() ||
+        status == bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE) {
         restoreState(partitionId);
     }
 
@@ -784,8 +797,9 @@ void ClusterQueueHelper::onQueueContextAssigned(
             return;  // RETURN
         }
 
-        if (bmqp_ctrlmsg::NodeStatus::E_AVAILABLE !=
-            d_clusterData_p->membership().selfNodeStatus()) {
+        if (!d_cluster_p->isFSMWorkflow() &&
+            bmqp_ctrlmsg::NodeStatus::E_AVAILABLE !=
+                d_clusterData_p->membership().selfNodeStatus()) {
             // Self is not available, we have to postpone processing the queue
             // opening.
 
@@ -1266,9 +1280,9 @@ void ClusterQueueHelper::onOpenQueueResponse(
         failure = false;
     }
 
-    QueueContext&                  qcontext = *context.d_queueContext_p;
-    QueueLiveState&                qinfo    = qcontext.d_liveQInfo;
-    const bmqp_ctrlmsg::OpenQueue& req =
+    QueueContext&           qcontext = *context.d_queueContext_p;
+    QueueLiveState&         qinfo    = qcontext.d_liveQInfo;
+    BSLA_MAYBE_UNUSED const bmqp_ctrlmsg::OpenQueue& req =
         requestContext->request().choice().openQueue();
     StreamsMap::iterator subStreamIt = qinfo.d_subQueueIds.findBySubId(
         context.d_upstreamSubQueueId);
@@ -1686,11 +1700,11 @@ void ClusterQueueHelper::onConfigureQueueResponse(
 
     if (d_cluster_p->isStopping()) {
         // Self is stopping.  Drop the response.
-        BALL_LOG_INFO << d_cluster_p->description()
-                      << ": Dropping (re)configureQueue response "
-                      << "[reason: 'stopping'"
-                      << ", request: " << requestContext->request()
-                      << ", response: " << requestContext->response() << "]";
+        BMQ_LOGTHROTTLE_INFO()
+            << d_cluster_p->description()
+            << ": Dropping (re)configureQueue response [reason: 'stopping'"
+            << ", request: " << requestContext->request()
+            << ", response: " << requestContext->response() << "]";
         return;  // RETURN
     }
 
@@ -2619,12 +2633,20 @@ void ClusterQueueHelper::notifyQueue(QueueContext*       queueContext,
     }
 
     if (isOpen) {
-        queue->dispatcher()->execute(
-            bdlf::BindUtil::bind(&mqbi::Queue::onOpenUpstream,
-                                 queue,
-                                 generationCount,
-                                 upstreamSubQueueId),
-            queue);
+        if (generationCount == 0) {
+            BALL_LOG_INFO << d_cluster_p->description()
+                          << ": has deconfigured queue ["
+                          << queueContext->uri() << "], subStream id ["
+                          << upstreamSubQueueId << "]";
+        }
+        else {
+            queue->dispatcher()->execute(
+                bdlf::BindUtil::bind(&mqbi::Queue::onOpenUpstream,
+                                     queue,
+                                     generationCount,
+                                     upstreamSubQueueId),
+                queue);
+        }
     }
     else {
         queue->dispatcher()->execute(
@@ -3293,12 +3315,12 @@ void ClusterQueueHelper::sendCloseQueueRequest(
         // will be advertised upstream.  So just like above, we indicate
         // success via 'callback'.
 
-        BALL_LOG_WARN << d_cluster_p->description()
-                      << ": Failed to send close-queue request: "
-                      << request->request() << ", for queue ["
-                      << handleParameters.uri() << "] to "
-                      << upstreamNode->nodeDescription() << ", rc: " << rc
-                      << ", but still indicating success.";
+        BMQ_LOGTHROTTLE_INFO()
+            << d_cluster_p->description()
+            << ": Failed to send close-queue request: " << request->request()
+            << ", for queue [" << handleParameters.uri() << "] to "
+            << upstreamNode->nodeDescription() << ", rc: " << rc
+            << ", but still indicating success.";
 
         if (callback) {
             // As above, we use 'E_SUCCESS' for the category.  Perhaps a more
@@ -4412,42 +4434,6 @@ void ClusterQueueHelper::onQueueUpdated(const bmqt::Uri&   uri,
                   << ", removedAppIds: " << printer2;
 }
 
-void ClusterQueueHelper::onTransitionToPrimaryHealed(
-    int                    partitionId,
-    BSLS_ANNOTATION_UNUSED mqbc::PartitionStateTableState::Enum oldState)
-{
-    // executed by *QUEUE_DISPATCHER* thread associated with 'partitionId'
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(
-        0 <= partitionId &&
-        partitionId < static_cast<int>(d_clusterState_p->partitions().size()));
-
-    d_cluster_p->dispatcher()->execute(
-        bdlf::BindUtil::bind(&ClusterQueueHelper::restoreState,
-                             this,
-                             partitionId),
-        d_cluster_p);
-}
-
-void ClusterQueueHelper::onTransitionToReplicaHealed(
-    int                    partitionId,
-    BSLS_ANNOTATION_UNUSED mqbc::PartitionStateTableState::Enum oldState)
-{
-    // executed by *QUEUE_DISPATCHER* thread associated with 'partitionId'
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(
-        0 <= partitionId &&
-        partitionId < static_cast<int>(d_clusterState_p->partitions().size()));
-
-    d_cluster_p->dispatcher()->execute(
-        bdlf::BindUtil::bind(&ClusterQueueHelper::restoreState,
-                             this,
-                             partitionId),
-        d_cluster_p);
-}
-
 void ClusterQueueHelper::onUpstreamNodeChange(mqbnet::ClusterNode* node,
                                               int                  partitionId)
 {
@@ -4536,8 +4522,7 @@ ClusterQueueHelper::~ClusterQueueHelper()
     // NOTHING: Interface
 }
 
-int ClusterQueueHelper::initialize(
-    BSLS_ANNOTATION_UNUSED bsl::ostream& errorDescription)
+void ClusterQueueHelper::initialize()
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -4548,8 +4533,6 @@ int ClusterQueueHelper::initialize(
     d_clusterData_p->membership().registerObserver(this);
     d_clusterData_p->electorInfo().registerObserver(this);
     d_clusterState_p->registerObserver(this);
-
-    return 0;
 }
 
 void ClusterQueueHelper::teardown()
@@ -4559,6 +4542,7 @@ void ClusterQueueHelper::teardown()
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(
         d_cluster_p->dispatcher()->inDispatcherThread(d_cluster_p));
+
     d_clusterState_p->unregisterObserver(this);
     d_clusterData_p->electorInfo().unregisterObserver(this);
     d_clusterData_p->membership().unregisterObserver(this);
@@ -5316,6 +5300,24 @@ void ClusterQueueHelper::processNodeStoppingNotification(
                       << clusterNode->nodeDescription()
                       << " to the previous one";
     }
+}
+
+void ClusterQueueHelper::onLeaderAvailable()
+{
+    // executed by the cluster *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(
+        d_cluster_p->dispatcher()->inDispatcherThread(d_cluster_p));
+
+    // This routine is invoked only in the cluster nodes.
+
+    BSLS_ASSERT_SAFE(!d_cluster_p->isRemote());
+
+    BALL_LOG_INFO << d_cluster_p->description()
+                  << ": On leader available, restoring state.";
+
+    restoreState(mqbs::DataStore::k_ANY_PARTITION_ID);
 }
 
 bool ClusterQueueHelper::setStopContext(

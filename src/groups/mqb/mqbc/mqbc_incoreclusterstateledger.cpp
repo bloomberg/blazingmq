@@ -235,7 +235,7 @@ int IncoreClusterStateLedger::onLogRolloverCb(const mqbu::StorageKey& oldLogId,
         rc_WRITE_RECORD_FAILURE = -3  // Fail to write record to ledger
     };
 
-    BALL_LOG_INFO << description() << "Rolling over from log with logId ["
+    BALL_LOG_INFO << description() << ": Rolling over from log with logId ["
                   << oldLogId << "] to new log with logId [" << newLogId
                   << "]";
 
@@ -399,7 +399,7 @@ int IncoreClusterStateLedger::applyAdvisoryInternal(
     if (sequenceNumber <
         d_clusterData_p->electorInfo().leaderMessageSequence()) {
         BALL_LOG_WARN << description()
-                      << "Failed to apply advisory: " << clusterMessage
+                      << ": Failed to apply advisory: " << clusterMessage
                       << ". Reason: advisory is stale (sequenceNumber: "
                       << sequenceNumber << ", leaderMessageSeq: "
                       << d_clusterData_p->electorInfo().leaderMessageSequence()
@@ -410,7 +410,7 @@ int IncoreClusterStateLedger::applyAdvisoryInternal(
     if (d_uncommittedAdvisories.find(sequenceNumber) !=
         d_uncommittedAdvisories.end()) {
         BALL_LOG_WARN << description()
-                      << "Failed to apply advisory: " << clusterMessage
+                      << ": Failed to apply advisory: " << clusterMessage
                       << ". Reason: advisory was already applied. ";
         return rc_ADVISORY_ALREADY_APPLIED;  // RETURN
     }
@@ -473,6 +473,17 @@ int IncoreClusterStateLedger::applyRecordInternal(
     switch (recordType) {
     case (ClusterStateRecordType::e_SNAPSHOT):
     case (ClusterStateRecordType::e_UPDATE): {
+        if (sequenceNumber <
+            d_clusterData_p->electorInfo().leaderMessageSequence()) {
+            BALL_LOG_ERROR
+                << description()
+                << ": Failed to apply record. [reason: record LSN ("
+                << sequenceNumber << ") is less than self LSN ("
+                << d_clusterData_p->electorInfo().leaderMessageSequence()
+                << ")]";
+            return rc * 10 + rc_WRITE_FAILURE;  // RETURN
+        }
+
         mqbsi::LedgerRecordId recordId;
         rc = d_ledger_mp->writeRecord(&recordId,
                                       record,
@@ -480,10 +491,17 @@ int IncoreClusterStateLedger::applyRecordInternal(
                                       record.length() - recordOffset);
         if (rc != 0) {
             BALL_LOG_ERROR << description()
-                           << "Failed to write record. [reason: write "
+                           << ": Failed to write record. [reason: write "
                            << "failure, record type: " << recordType
                            << ", rc: " << rc << "]";
             return rc * 10 + rc_WRITE_FAILURE;  // RETURN
+        }
+
+        if (d_clusterData_p->clusterConfig()
+                .clusterAttributes()
+                .isFSMWorkflow()) {
+            d_clusterData_p->electorInfo().setLeaderMessageSequence(
+                sequenceNumber);
         }
 
         ClusterMessageInfo info;
@@ -586,7 +604,7 @@ int IncoreClusterStateLedger::applyRecordInternal(
             commit.sequenceNumberCommitted());
         if (iter == d_uncommittedAdvisories.end()) {
             BALL_LOG_ERROR << description()
-                           << "Failed to apply 'LeaderAdvisoryCommit': "
+                           << ": Failed to apply 'LeaderAdvisoryCommit': "
                            << commit
                            << ". Reason: associated advisory not found. ";
             return rc_ADVISORY_NOT_FOUND;  // RETURN
@@ -600,10 +618,17 @@ int IncoreClusterStateLedger::applyRecordInternal(
                                       record.length() - recordOffset);
         if (rc != 0) {
             BALL_LOG_ERROR << description()
-                           << "Failed to write record. [reason: write "
+                           << ": Failed to write record. [reason: write "
                            << "failure, record type: " << recordType
                            << ", rc: " << rc << "]";
             return rc * 10 + rc_WRITE_FAILURE;  // RETURN
+        }
+
+        if (d_clusterData_p->clusterConfig()
+                .clusterAttributes()
+                .isFSMWorkflow()) {
+            d_clusterData_p->electorInfo().setLeaderMessageSequence(
+                sequenceNumber);
         }
 
         if (isSelfLeader()) {
@@ -645,7 +670,7 @@ int IncoreClusterStateLedger::applyRecordInternal(
             ack.sequenceNumberAcked());
         if (iter == d_uncommittedAdvisories.end()) {
             BALL_LOG_ERROR << description()
-                           << "Failed to apply 'LeaderAdvisoryAck': " << ack
+                           << ": Failed to apply 'LeaderAdvisoryAck': " << ack
                            << ". Reason: associated advisory not found. ";
             return rc_ADVISORY_NOT_FOUND;  // RETURN
         }
@@ -661,6 +686,14 @@ int IncoreClusterStateLedger::applyRecordInternal(
                 &commitAdvisory.sequenceNumber());
             commitAdvisory.sequenceNumberCommitted() =
                 ack.sequenceNumberAcked();
+            BSLS_ASSERT_SAFE(commitAdvisory.sequenceNumber() >
+                             commitAdvisory.sequenceNumberCommitted());
+
+            BALL_LOG_INFO << description() << "Quorum of " << d_ackQuorum
+                          << " acks is achieved for advisory of seqNum "
+                          << ack.sequenceNumberAcked()
+                          << ", creating and applying commit advisory: "
+                          << commitMessage << ".";
 
             bdlbb::Blob commitRecord(d_bufferFactory_p, d_allocator_p);
             rc = ClusterStateLedgerUtil::appendRecord(
@@ -702,10 +735,9 @@ int IncoreClusterStateLedger::applyRecordInternal(
     const bmqp_ctrlmsg::LeaderMessageSequence& sequenceNumber,
     ClusterStateRecordType::Enum               recordType)
 {
-    mwcu::BlobPosition recordPosition;
-    int                rc = mwcu::BlobUtil::findOffsetSafe(&recordPosition,
-                                            record,
-                                            recordOffset);
+    mwcu::BlobPosition          recordPosition;
+    BSLA_MAYBE_UNUSED const int rc =
+        mwcu::BlobUtil::findOffsetSafe(&recordPosition, record, recordOffset);
     BSLS_ASSERT_SAFE(rc == 0);
 
     return applyRecordInternal(record,
@@ -723,10 +755,11 @@ int IncoreClusterStateLedger::applyRecordInternal(
     const bmqp_ctrlmsg::LeaderMessageSequence& sequenceNumber,
     ClusterStateRecordType::Enum               recordType)
 {
-    int recordOffset = 0;
-    int rc           = mwcu::BlobUtil::positionToOffsetSafe(&recordOffset,
-                                                  record,
-                                                  recordPosition);
+    int                         recordOffset = 0;
+    BSLA_MAYBE_UNUSED const int rc = mwcu::BlobUtil::positionToOffsetSafe(
+        &recordOffset,
+        record,
+        recordPosition);
     BSLS_ASSERT_SAFE(rc == 0);
 
     return applyRecordInternal(record,
@@ -848,7 +881,7 @@ int IncoreClusterStateLedger::applyImpl(const bdlbb::Blob&   event,
 
     rc = ClusterStateLedgerUtil::validateRecordHeader(*recordHeader);
     if (rc != ClusterStateLedgerUtilRc::e_SUCCESS) {
-        BALL_LOG_ERROR << description() << "Failed to apply record from '"
+        BALL_LOG_ERROR << description() << ": Failed to apply record from '"
                        << source->nodeDescription()
                        << "'. Reason: invalid header.";
         return rc * 10 + rc_INVALID_HEADER;  // RETURN
@@ -862,7 +895,7 @@ int IncoreClusterStateLedger::applyImpl(const bdlbb::Blob&   event,
     if (recordHeader->recordType() != ClusterStateRecordType::e_ACK &&
         d_uncommittedAdvisories.find(seqNum) !=
             d_uncommittedAdvisories.end()) {
-        BALL_LOG_ERROR << description() << "Failed to apply record from '"
+        BALL_LOG_ERROR << description() << ": Failed to apply record from '"
                        << source->nodeDescription()
                        << "'. Reason: record was already applied. ";
         return rc_RECORD_ALREADY_APPLIED;  // RETURN
@@ -876,7 +909,7 @@ int IncoreClusterStateLedger::applyImpl(const bdlbb::Blob&   event,
 
         if (d_clusterData_p->electorInfo().leaderNode() != source) {
             // Different leader.  Ignore message.
-            BALL_LOG_ERROR << description() << "Ignoring event from '"
+            BALL_LOG_ERROR << description() << ": Ignoring event from '"
                            << source->nodeDescription()
                            << "'. Reason: Source node is not the leader"
                            << " [source: " << source->nodeDescription()
@@ -892,7 +925,7 @@ int IncoreClusterStateLedger::applyImpl(const bdlbb::Blob&   event,
 
         if (seqNum < d_clusterData_p->electorInfo().leaderMessageSequence()) {
             BALL_LOG_ERROR
-                << description() << "Failed to apply record from '"
+                << description() << ": Failed to apply record from '"
                 << source->nodeDescription() << "'. Reason: record is stale "
                 << "[sequenceNumber: " << seqNum << ", leaderMessageSeq: "
                 << d_clusterData_p->electorInfo().leaderMessageSequence()
@@ -1020,7 +1053,7 @@ int IncoreClusterStateLedger::applyImpl(const bdlbb::Blob&   event,
                 // 'onLeaderSyncDataQueryResponseDispatched' for similar check.
                 MWCTSK_ALARMLOG_ALARM("CLUSTER")
                     << d_clusterData_p->identity().description()
-                    << " PartitionId [" << info.partitionId()
+                    << ": Partition [" << info.partitionId()
                     << "]: self node views self as active/available primary, "
                     << "but a different node is proposed as primary in the "
                     << "partition/primary mapping: " << info << ". This "
@@ -1117,7 +1150,7 @@ int IncoreClusterStateLedger::applyImpl(const bdlbb::Blob&   event,
         }
     }
 
-    BALL_LOG_INFO << description() << " Applying cluster message from '"
+    BALL_LOG_INFO << description() << ": Applying cluster message from '"
                   << source->nodeDescription() << "': " << message;
 
     rc = applyRecordInternal(event,
@@ -1127,7 +1160,7 @@ int IncoreClusterStateLedger::applyImpl(const bdlbb::Blob&   event,
                              seqNum,
                              recordHeader->recordType());
     if (rc != 0) {
-        BALL_LOG_WARN << description() << "Failed to apply record from '"
+        BALL_LOG_WARN << description() << ": Failed to apply record from '"
                       << source->nodeDescription()
                       << "' [sequenceNumber: " << seqNum
                       << ", leaderMessageSeq: "

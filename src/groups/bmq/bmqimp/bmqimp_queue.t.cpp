@@ -485,13 +485,13 @@ static void test6_statTest()
     ASSERT_EQ(k_pSubContext->valueName(2), "compression_ratio");
 
     const mwcst::StatValue& k_IN_VALUE =
-        k_pSubContext->value(mwcst::StatContext::DMCST_TOTAL_VALUE, 0);
+        k_pSubContext->value(mwcst::StatContext::e_TOTAL_VALUE, 0);
 
     const mwcst::StatValue& k_OUT_VALUE =
-        k_pSubContext->value(mwcst::StatContext::DMCST_TOTAL_VALUE, 1);
+        k_pSubContext->value(mwcst::StatContext::e_TOTAL_VALUE, 1);
 
     const mwcst::StatValue& k_STAT_COMPRESSION_RATIO =
-        k_pSubContext->value(mwcst::StatContext::DMCST_TOTAL_VALUE, 2);
+        k_pSubContext->value(mwcst::StatContext::e_TOTAL_VALUE, 2);
 
     const int k_NEW_OUT_VALUE = 1024;
 

@@ -274,9 +274,9 @@ struct StatChannelFactoryUtil {
     /// between the specified `stat` and `end` are printed, otherwise only
     /// the current ones are.
     static void
-    initializeStatsTable(mwcst::Table*                 table,
-                         mwcu::BasicTableInfoProvider* tip,
-                         mwcst::StatContext*           rootStatContext,
+    initializeStatsTable(mwcst::Table*                  table,
+                         mwcst::BasicTableInfoProvider* tip,
+                         mwcst::StatContext*            rootStatContext,
                          const mwcst::StatValue::SnapshotLocation& start =
                              mwcst::StatValue::SnapshotLocation(),
                          const mwcst::StatValue::SnapshotLocation& end =

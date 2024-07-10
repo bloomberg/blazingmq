@@ -39,7 +39,6 @@
 #include <mqbc_clustermembership.h>
 #include <mqbc_clusterstate.h>
 #include <mqbc_electorinfo.h>
-#include <mqbc_partitionfsmobserver.h>
 #include <mqbcfg_messages.h>
 #include <mqbi_cluster.h>
 #include <mqbi_clusterstatemanager.h>
@@ -99,7 +98,6 @@ namespace mqbblp {
 
 /// Mechanism to manage queues on a cluster.
 class ClusterQueueHelper : public mqbc::ClusterStateObserver,
-                           public mqbc::PartitionFSMObserver,
                            public mqbc::ClusterMembershipObserver,
                            public mqbc::ElectorInfoObserver {
   private:
@@ -991,15 +989,6 @@ class ClusterQueueHelper : public mqbc::ClusterStateObserver,
                                 const AppIdInfos& removedAppIds = AppIdInfos())
         BSLS_KEYWORD_OVERRIDE;
 
-    // PRIVATE MANIPULATORS
-    //   (virtual: mqbc::PartitionFSMObserver)
-    void onTransitionToPrimaryHealed(
-        int                                  partitionId,
-        mqbc::PartitionStateTableState::Enum oldState) BSLS_KEYWORD_OVERRIDE;
-    void onTransitionToReplicaHealed(
-        int                                  partitionId,
-        mqbc::PartitionStateTableState::Enum oldState) BSLS_KEYWORD_OVERRIDE;
-
   private:
     // NOT IMPLEMENTED
 
@@ -1027,10 +1016,8 @@ class ClusterQueueHelper : public mqbc::ClusterStateObserver,
 
     // MANIPULATORS
 
-    /// Initialize this object and return 0 on success or a non-zero value
-    /// otherwise, populating the specified `errorDescription` with a
-    /// description of the error.
-    int initialize(bsl::ostream& errorDescription);
+    /// Initialize this object.
+    void initialize();
 
     /// Paired operation of the `initialize()`, undo any action that was
     /// performed during `initialize` and restore that object to a default
@@ -1126,6 +1113,9 @@ class ClusterQueueHelper : public mqbc::ClusterStateObserver,
         const bmqp_ctrlmsg::ControlMessage* request,
         const bsl::vector<int>*             partitions = 0,
         const VoidFunctor&                  callback   = VoidFunctor());
+
+    void onLeaderAvailable();
+    // Called upon leader becoming available.
 
     // ACCESSORS
 
@@ -1235,6 +1225,10 @@ inline bool ClusterQueueHelper::hasActiveAvailablePrimary(
         return false;  // RETURN
     }
 
+    if (d_cluster_p->isFSMWorkflow()) {
+        return true;  // RETURN
+    }
+
     mqbc::ClusterNodeSession* ns =
         d_clusterData_p->membership().getClusterNodeSession(
             pinfo.primaryNode());
@@ -1296,9 +1290,16 @@ inline bool ClusterQueueHelper::isQueuePrimaryAvailable(
 
 inline bool ClusterQueueHelper::isSelfAvailablePrimary(int partitionId) const
 {
-    return d_clusterState_p->isSelfPrimary(partitionId) &&
-           bmqp_ctrlmsg::NodeStatus::E_AVAILABLE ==
-               d_clusterData_p->membership().selfNodeStatus();
+    if (!d_clusterState_p->isSelfPrimary(partitionId)) {
+        return false;  // RETURN
+    }
+
+    if (d_cluster_p->isFSMWorkflow()) {
+        return true;  // RETURN
+    }
+
+    return bmqp_ctrlmsg::NodeStatus::E_AVAILABLE ==
+           d_clusterData_p->membership().selfNodeStatus();
 }
 
 inline void

@@ -342,8 +342,9 @@ Queue::Queue(bslma::Allocator* allocator)
 void Queue::registerStatContext(mwcst::StatContext* parentStatContext)
 {
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_uri.isValid() &&
-                     "Can not call registerStatContext on an empty queue");
+    BSLS_ASSERT_SAFE(
+        d_uri.isValid() &&
+        "Cannot call registerStatContext on an invalid queue URI");
     // This method should only be called on a valid queue, with an URI
     BSLS_ASSERT_SAFE(d_stats_mp == 0 && "Stats already initialized");
     BSLS_ASSERT_SAFE(d_state == static_cast<int>(QueueState::e_OPENED) &&

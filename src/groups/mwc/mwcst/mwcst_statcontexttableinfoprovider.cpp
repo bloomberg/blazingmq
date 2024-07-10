@@ -67,23 +67,23 @@ class DefaultIdColumn : public StatContextTableInfoProviderCustomColumn {
 
     // ACCESSORS
     int
-    getValueSize(int                       level,
-                 const mwcst::StatContext& context,
+    getValueSize(int                    level,
+                 const StatContext&     context,
                  StatContext::ValueType valueType) const BSLS_KEYWORD_OVERRIDE
     {
         int length = 0;
-        if (valueType == StatContext::DMCST_TOTAL_VALUE) {
+        if (valueType == StatContext::e_TOTAL_VALUE) {
             if (context.hasName()) {
                 length = static_cast<int>(context.name().length());
             }
             else {
-                length = mwcstu::PrintUtil::printedValueLength(context.id());
+                length = mwcst::PrintUtil::printedValueLength(context.id());
             }
         }
-        else if (valueType == StatContext::DMCST_DIRECT_VALUE) {
+        else if (valueType == StatContext::e_DIRECT_VALUE) {
             length = static_cast<int>(DIRECT_NAME.length());
         }
-        else if (valueType == StatContext::DMCST_EXPIRED_VALUE) {
+        else if (valueType == StatContext::e_EXPIRED_VALUE) {
             length = static_cast<int>(EXPIRED_NAME.length());
         }
         else {
@@ -104,21 +104,21 @@ class DefaultIdColumn : public StatContextTableInfoProviderCustomColumn {
     }
 
     bsl::ostream&
-    printValue(bsl::ostream&             stream,
-               int                       level,
-               const mwcst::StatContext& context,
-               StatContext::ValueType    valueType) const BSLS_KEYWORD_OVERRIDE
+    printValue(bsl::ostream&          stream,
+               int                    level,
+               const StatContext&     context,
+               StatContext::ValueType valueType) const BSLS_KEYWORD_OVERRIDE
     {
         bslstl::StringRef name;
-        if (valueType == StatContext::DMCST_TOTAL_VALUE) {
+        if (valueType == StatContext::e_TOTAL_VALUE) {
             if (context.hasName()) {
                 name = context.name();
             }
         }
-        else if (valueType == StatContext::DMCST_DIRECT_VALUE) {
+        else if (valueType == StatContext::e_DIRECT_VALUE) {
             name = DIRECT_NAME;
         }
-        else if (valueType == StatContext::DMCST_EXPIRED_VALUE) {
+        else if (valueType == StatContext::e_EXPIRED_VALUE) {
             name = EXPIRED_NAME;
         }
         else {
@@ -200,7 +200,7 @@ void StatContextTableInfoProvider::addContext(const StatContext* context,
 
     if (!isFilteredOut) {
         info.d_context_p = context;
-        info.d_valueType = StatContext::DMCST_TOTAL_VALUE;
+        info.d_valueType = StatContext::e_TOTAL_VALUE;
         info.d_level     = level;
         d_rows.push_back(info);
     }
@@ -219,7 +219,7 @@ void StatContextTableInfoProvider::addContext(const StatContext* context,
         contexts.resize(contexts.size() + 1);
         contexts.back().d_context_p = iter;
         if (!d_filter ||
-            d_filter(iter, StatContext::DMCST_TOTAL_VALUE, level + 1)) {
+            d_filter(iter, StatContext::e_TOTAL_VALUE, level + 1)) {
             contexts.back().d_filteredOut = false;
             haveUnfilteredChildren        = true;
         }
@@ -231,8 +231,8 @@ void StatContextTableInfoProvider::addContext(const StatContext* context,
     // Add 'direct' row if we have any children left
     if (haveUnfilteredChildren && !isFilteredOut) {
         if (!d_filter ||
-            d_filter(context, StatContext::DMCST_DIRECT_VALUE, level)) {
-            info.d_valueType = StatContext::DMCST_DIRECT_VALUE;
+            d_filter(context, StatContext::e_DIRECT_VALUE, level)) {
+            info.d_valueType = StatContext::e_DIRECT_VALUE;
             info.d_level     = level + 1;
             d_rows.push_back(info);
         }
@@ -241,8 +241,8 @@ void StatContextTableInfoProvider::addContext(const StatContext* context,
     // Add 'expired' row if the StatContext has any expired values
     if (context->hasExpiredValues() && !isFilteredOut) {
         if (!d_filter ||
-            d_filter(context, StatContext::DMCST_EXPIRED_VALUE, level)) {
-            info.d_valueType = StatContext::DMCST_EXPIRED_VALUE;
+            d_filter(context, StatContext::e_EXPIRED_VALUE, level)) {
+            info.d_valueType = StatContext::e_EXPIRED_VALUE;
             info.d_level     = level + 1;
             d_rows.push_back(info);
         }
@@ -301,7 +301,7 @@ void StatContextTableInfoProvider::update()
     addContext(d_context_p,
                0,
                d_filter &&
-                   !d_filter(d_context_p, StatContext::DMCST_TOTAL_VALUE, 0));
+                   !d_filter(d_context_p, StatContext::e_TOTAL_VALUE, 0));
 }
 
 void StatContextTableInfoProvider::setTitle(const bslstl::StringRef& title)
@@ -367,7 +367,7 @@ void StatContextTableInfoProvider::addColumn(const bslstl::StringRef& name,
                                              Int0ArgFunc func)
 {
     using namespace bdlf::PlaceHolders;
-    addColumn(name, statValueIndex, DMCST_INT_VALUE, IntValueFunctor(func));
+    addColumn(name, statValueIndex, e_INT_VALUE, IntValueFunctor(func));
 }
 
 void StatContextTableInfoProvider::addColumn(
@@ -378,7 +378,7 @@ void StatContextTableInfoProvider::addColumn(
 {
     using namespace bdlf::PlaceHolders;
     IntValueFunctor f = bdlf::BindUtil::bind(func, _1, arg1);
-    addColumn(name, statValueIndex, DMCST_INT_VALUE, f);
+    addColumn(name, statValueIndex, e_INT_VALUE, f);
 }
 
 void StatContextTableInfoProvider::addColumn(
@@ -390,7 +390,7 @@ void StatContextTableInfoProvider::addColumn(
 {
     using namespace bdlf::PlaceHolders;
     IntValueFunctor f = bdlf::BindUtil::bind(func, _1, arg1, arg2);
-    addColumn(name, statValueIndex, DMCST_INT_VALUE, f);
+    addColumn(name, statValueIndex, e_INT_VALUE, f);
 }
 
 void StatContextTableInfoProvider::addColumn(const bslstl::StringRef& name,
@@ -398,7 +398,7 @@ void StatContextTableInfoProvider::addColumn(const bslstl::StringRef& name,
                                              Double0ArgFunc func)
 {
     using namespace bdlf::PlaceHolders;
-    addColumn(name, statValueIndex, DMCST_INT_VALUE, DoubleValueFunctor(func));
+    addColumn(name, statValueIndex, e_INT_VALUE, DoubleValueFunctor(func));
 }
 
 void StatContextTableInfoProvider::addColumn(
@@ -409,7 +409,7 @@ void StatContextTableInfoProvider::addColumn(
 {
     using namespace bdlf::PlaceHolders;
     DoubleValueFunctor f = bdlf::BindUtil::bind(func, _1, arg1);
-    addColumn(name, statValueIndex, DMCST_INT_VALUE, f);
+    addColumn(name, statValueIndex, e_INT_VALUE, f);
 }
 
 void StatContextTableInfoProvider::addColumn(
@@ -421,7 +421,7 @@ void StatContextTableInfoProvider::addColumn(
 {
     using namespace bdlf::PlaceHolders;
     DoubleValueFunctor f = bdlf::BindUtil::bind(func, _1, arg1, arg2);
-    addColumn(name, statValueIndex, DMCST_INT_VALUE, f);
+    addColumn(name, statValueIndex, e_INT_VALUE, f);
 }
 
 // ACCESSORS
@@ -474,25 +474,25 @@ int StatContextTableInfoProvider::getValueSize(int row, int column) const
             if (funcValue == MAX_INT || funcValue == MIN_INT) {
                 return static_cast<int>(NA_STRING.length());
             }
-            else if (colInfo.d_printType == DMCST_INT_VALUE) {
+            else if (colInfo.d_printType == e_INT_VALUE) {
                 if (d_printSeparators) {
-                    return mwcstu::PrintUtil::printedValueLengthWithSeparator(
+                    return mwcst::PrintUtil::printedValueLengthWithSeparator(
                         funcValue,
                         3);
                 }
                 else {
-                    return mwcstu::PrintUtil::printedValueLength(funcValue);
+                    return mwcst::PrintUtil::printedValueLength(funcValue);
                 }
             }
             else {
-                return mwcstu::PrintUtil::printedTimeIntervalNsLength(
+                return mwcst::PrintUtil::printedTimeIntervalNsLength(
                     funcValue,
                     d_precision);
             }
         }
         else if (colInfo.d_doubleFunc) {
             double funcValue = colInfo.d_doubleFunc(value);
-            return mwcstu::PrintUtil::printedValueLength(
+            return mwcst::PrintUtil::printedValueLength(
                        (bsls::Types::Int64)funcValue) +
                    d_precision + 1;
         }
@@ -524,21 +524,21 @@ bsl::ostream& StatContextTableInfoProvider::printValue(bsl::ostream& stream,
             if (funcValue == MAX_INT || funcValue == MIN_INT) {
                 stream << NA_STRING;
             }
-            else if (colInfo.d_printType == DMCST_INT_VALUE) {
+            else if (colInfo.d_printType == e_INT_VALUE) {
                 if (d_printSeparators) {
-                    mwcstu::PrintUtil::printValueWithSeparator(stream,
-                                                               funcValue,
-                                                               3,
-                                                               ',');
+                    mwcst::PrintUtil::printValueWithSeparator(stream,
+                                                              funcValue,
+                                                              3,
+                                                              ',');
                 }
                 else {
                     stream << funcValue;
                 }
             }
             else {
-                mwcstu::PrintUtil::printTimeIntervalNs(stream,
-                                                       funcValue,
-                                                       d_precision);
+                mwcst::PrintUtil::printTimeIntervalNs(stream,
+                                                      funcValue,
+                                                      d_precision);
             }
         }
         else if (colInfo.d_doubleFunc) {
@@ -571,7 +571,7 @@ int StatContextTableInfoProvider::getParentHeader(int /*level*/,
 bsl::ostream&
 StatContextTableInfoProvider::printTitle(bsl::ostream& stream) const
 {
-    return mwcstu::PrintUtil::printStringCentered(stream, d_title);
+    return mwcst::PrintUtil::printStringCentered(stream, d_title);
 }
 
 bsl::ostream& StatContextTableInfoProvider::printHeader(bsl::ostream& stream,
@@ -580,13 +580,12 @@ bsl::ostream& StatContextTableInfoProvider::printHeader(bsl::ostream& stream,
                                                         int /*width*/) const
 {
     if (level == 0) {
-        return mwcstu::PrintUtil::printStringCentered(
-            stream,
-            d_columns[column].d_name);
+        return mwcst::PrintUtil::printStringCentered(stream,
+                                                     d_columns[column].d_name);
     }
     else {
-        return mwcstu::PrintUtil::printStringCentered(stream,
-                                                      d_columnGroups[column]);
+        return mwcst::PrintUtil::printStringCentered(stream,
+                                                     d_columnGroups[column]);
     }
 }
 

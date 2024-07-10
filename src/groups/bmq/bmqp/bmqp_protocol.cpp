@@ -273,6 +273,9 @@ const char MessagePropertiesFeatures::k_FIELD_NAME[] = "MPS";
 const char MessagePropertiesFeatures::k_MESSAGE_PROPERTIES_EX[] =
     "MESSAGE_PROPERTIES_EX";
 
+const char SubscriptionsFeatures::k_FIELD_NAME[]       = "SUBSCRIPTIONS";
+const char SubscriptionsFeatures::k_CONFIGURE_STREAM[] = "CONFIGURE_STREAM";
+
 // -----------------
 // struct OptionType
 // -----------------
@@ -454,7 +457,7 @@ bool PutHeaderFlags::fromAscii(PutHeaderFlags::Enum*    out,
 #define CHECKVALUE(M)                                                         \
     if (bdlb::String::areEqualCaseless(toAscii(PutHeaderFlags::e_##M),        \
                                        str.data(),                            \
-                                       str.length())) {                       \
+                                       static_cast<int>(str.length()))) {     \
         *out = PutHeaderFlags::e_##M;                                         \
         return true;                                                          \
     }
@@ -614,7 +617,7 @@ const char* PushHeaderFlags::toAscii(PushHeaderFlags::Enum value)
     switch (value) {
         CASE(IMPLICIT_PAYLOAD)
         CASE(MESSAGE_PROPERTIES)
-        CASE(UNUSED3)
+        CASE(OUT_OF_ORDER)
         CASE(UNUSED4)
     default: return "(* UNKNOWN *)";
     }
@@ -628,14 +631,14 @@ bool PushHeaderFlags::fromAscii(PushHeaderFlags::Enum*   out,
 #define CHECKVALUE(M)                                                         \
     if (bdlb::String::areEqualCaseless(toAscii(PushHeaderFlags::e_##M),       \
                                        str.data(),                            \
-                                       str.length())) {                       \
+                                       static_cast<int>(str.length()))) {     \
         *out = PushHeaderFlags::e_##M;                                        \
         return true;                                                          \
     }
 
     CHECKVALUE(IMPLICIT_PAYLOAD)
     CHECKVALUE(MESSAGE_PROPERTIES)
-    CHECKVALUE(UNUSED3)
+    CHECKVALUE(OUT_OF_ORDER)
     CHECKVALUE(UNUSED4)
 
     // Invalid string
@@ -650,8 +653,7 @@ bool PushHeaderFlags::fromAscii(PushHeaderFlags::Enum*   out,
 
 bool PushHeaderFlagUtil::isValid(bsl::ostream& errorDescription, int flags)
 {
-    if (isSet(flags, PushHeaderFlags::e_UNUSED3) ||
-        isSet(flags, PushHeaderFlags::e_UNUSED4)) {
+    if (isSet(flags, PushHeaderFlags::e_UNUSED4)) {
         errorDescription << "UNUSED flags are invalid.";
         return false;  // RETURN
     }
@@ -672,7 +674,7 @@ bsl::ostream& PushHeaderFlagUtil::prettyPrint(bsl::ostream& stream, int flags)
 
     CHECKVALUE(IMPLICIT_PAYLOAD)
     CHECKVALUE(MESSAGE_PROPERTIES)
-    CHECKVALUE(UNUSED3)
+    CHECKVALUE(OUT_OF_ORDER)
     CHECKVALUE(UNUSED4)
 
     return stream;
@@ -833,7 +835,7 @@ bool StorageHeaderFlags::fromAscii(StorageHeaderFlags::Enum* out,
 #define CHECKVALUE(M)                                                         \
     if (bdlb::String::areEqualCaseless(toAscii(StorageHeaderFlags::e_##M),    \
                                        str.data(),                            \
-                                       str.length())) {                       \
+                                       static_cast<int>(str.length()))) {     \
         *out = StorageHeaderFlags::e_##M;                                     \
         return true;                                                          \
     }
@@ -909,7 +911,7 @@ int StorageHeaderFlagUtil::fromString(bsl::ostream&      errorDescription,
             rc = -1;
         }
         else {
-            *out |= value;
+            *out |= static_cast<unsigned char>(value);
         }
     }
 

@@ -65,6 +65,8 @@
 #include <bsl_new.h>
 #include <bsl_ostream.h>
 #include <bsl_string.h>
+#include <bsl_unordered_map.h>
+#include <bsl_utility.h>
 #include <bsl_vector.h>
 #include <bslma_allocator.h>
 #include <bslma_managedptr.h>
@@ -151,17 +153,12 @@ class StorageManager
     typedef ClusterNodeVec::const_iterator    ClusterNodeVecCIter;
 
     typedef mqbs::DataStore::QueueKeyInfoMap QueueKeyInfoMap;
+    typedef bsl::vector<QueueKeyInfoMap>     QueueKeyInfoMapVec;
 
     typedef ClusterState::DomainStatesCIter      DomainStatesCIter;
     typedef ClusterState::UriToQueueInfoMapCIter UriToQueueInfoMapCIter;
 
     typedef ClusterStateQueueInfo::AppIdInfosCIter AppIdInfosCIter;
-
-    typedef mqbi::StorageManager::StorageSpMapVec StorageSpMapVec;
-
-    typedef bsl::vector<AppKeys>       AppKeysVec;
-    typedef AppKeysVec::iterator       AppKeysVecIter;
-    typedef AppKeysVec::const_iterator AppKeysVecConstIter;
 
   public:
     // TYPES
@@ -170,9 +167,18 @@ class StorageManager
     /// Pool of shared pointers to Blobs
     typedef StorageUtil::BlobSpPool BlobSpPool;
 
-    typedef mqbc::StorageUtil::NodeToSeqNumMap NodeToSeqNumMap;
-    typedef NodeToSeqNumMap::const_iterator    NodeToSeqNumMapCIter;
-    typedef bsl::vector<NodeToSeqNumMap>       NodeToSeqNumMapPartitionVec;
+    typedef bsl::pair<bmqp_ctrlmsg::PartitionSequenceNumber, bool>
+        NodeSeqNumContext;
+    // Pair of (node sequence number,
+    //          flag of whether recovery data has been sent to that node)
+    typedef bsl::unordered_map<mqbnet::ClusterNode*, NodeSeqNumContext>
+                                               NodeToSeqNumCtxMap;
+    typedef NodeToSeqNumCtxMap::iterator       NodeToSeqNumCtxMapIter;
+    typedef NodeToSeqNumCtxMap::const_iterator NodeToSeqNumCtxMapCIter;
+    typedef bsl::vector<NodeToSeqNumCtxMap>    NodeToSeqNumCtxMapPartitionVec;
+
+    typedef StorageUtil::DomainQueueMessagesCountMaps
+        DomainQueueMessagesCountMaps;
 
   private:
     // DATA
@@ -188,7 +194,7 @@ class StorageManager
 
     EventHandles d_watchDogEventHandles;
     // List of event handles for the watch
-    // dog, indexed by 'partitionId'
+    // dog, indexed by partitionId.
 
     bsls::TimeInterval d_watchDogTimeoutInterval;
     // Timeout interval for the watch dog
@@ -198,6 +204,17 @@ class StorageManager
     // warning was issued.  This flag is
     // used *only* for logging purposes
     // (see 'storageMonitorCb' impl)
+
+    DomainQueueMessagesCountMaps d_unrecognizedDomains;
+    // List of DomainQueueMessagesMap,
+    // indexed by 'partitionId'.
+    //
+    // Each DomainQueueMessagesMap is a map
+    // of [unrecognized domain name ->
+    // queue messages info] found during
+    // storage recovery either due to
+    // genuine domain migration or
+    // misconfiguration.
 
     BlobSpPool* d_blobSpPool_p;
     // SharedObjectPool of blobs to use
@@ -234,6 +251,8 @@ class StorageManager
     // by this object.
 
     RecoveryStatusCb d_recoveryStatusCb;
+
+    PartitionPrimaryStatusCb d_partitionPrimaryStatusCb;
 
     mutable bslmt::Mutex d_storagesLock;
     // Mutex to protect access to
@@ -295,10 +314,6 @@ class StorageManager
     // Vector of 'PartitionFSM' indexed by
     // partitionId
 
-    PartitionFSMObserver* d_partitionFSMObserver_p;
-    // Partition FSM observer provided at
-    // ctor
-
     bsls::AtomicInt d_numPartitionsRecoveredFully;
     // Number of partitions whose recovery
     // has been fully completed.  This
@@ -306,16 +321,25 @@ class StorageManager
     // it's touched from the dispatcher
     // threads of all partitions.
 
+    bsls::AtomicInt d_numPartitionsRecoveredQueues;
+    // Number of partitions which has
+    // completed recovery of file-backed
+    // queues and their virtual storages.
+    // This variable needs to be atomic
+    // because it's touched from the
+    // dispatcher threads of all
+    // partitions.
+
     bsl::vector<bsls::Types::Int64> d_recoveryStartTimes;
     // Vector of partition recovery start
     // times indexed by partitionId.
 
-    NodeToSeqNumMapPartitionVec d_nodeToSeqNumMapPartitionVec;
-    // Vector of 'NodeToSeqNumMap' indexed
-    // by partitionId. Note, that each
-    // element of the vector should only be
-    // accessed in corresponding thread
-    // attached to the partitionId.
+    NodeToSeqNumCtxMapPartitionVec d_nodeToSeqNumCtxMapVec;
+    // Vector of 'NodeToSeqNumCtxMap'
+    // indexed by partitionId. Note, that
+    // each element of the vector should
+    // only be accessed in corresponding
+    // thread attached to the partitionId.
     // Currently, false sharing is not much
     // of a performance bottleneck since
     // update to elements of this vector is
@@ -332,12 +356,15 @@ class StorageManager
     // responses received, indexed by
     // partitionId.
 
-    QueueKeyInfoMap d_queueKeyInfoMap;
+    QueueKeyInfoMapVec d_queueKeyInfoMapVec;
     // Mapping from queue key to queue
-    // info, populated from cluster state
-    // at startup.  This is used to
-    // validate against FileStore on-disk
-    // content when recovering messages.
+    // info indexed by partitionId,
+    // populated from cluster state at
+    // startup.  This is used to validate
+    // against FileStore on-disk content
+    // when recovering messages, and to
+    // create domains and file-backed
+    // storages during 'recoveredQueuesCb'.
 
     bsls::Types::Uint64 d_minimumRequiredDiskSpace;
     // The bare minimum space required for
@@ -370,6 +397,14 @@ class StorageManager
     /// Return the dispatcher of the associated cluster.
     mqbi::Dispatcher* dispatcher();
 
+    // Encode and send the specified schema 'message' to the specified peer
+    // 'destination'.
+    //
+    // THREAD: This method is invoked in the associated cluster's dispatcher
+    // thread.
+    void sendMessage(const bmqp_ctrlmsg::ControlMessage& message,
+                     mqbnet::ClusterNode*                destination);
+
     /// Callback to start the recovery for the specified `partitionId`.
     ///
     /// THREAD: This method is invoked in the associated Queue dispatcher
@@ -383,6 +418,15 @@ class StorageManager
     /// THREAD: Executed by the dispatcher thread associated with the
     ///         specified `partitionId`.
     void shutdownCb(int partitionId, bslmt::Latch* latch);
+
+    /// Callback executed when the partition having the specified
+    /// 'partitionId' has performed recovery and recovered file-backed
+    /// queues and their virtual storages in the specified
+    /// 'queueKeyInfoMap'.
+    ///
+    /// THREAD: Executed by the dispatcher thread of the partition.
+    void recoveredQueuesCb(int                    partitionId,
+                           const QueueKeyInfoMap& queueKeyInfoMap);
 
     /// Process the watch dog trigger event for the specified `partitionId`,
     /// indicating unhealthiness in the Partition FSM.
@@ -423,6 +467,45 @@ class StorageManager
     void dispatchEventToPartition(mqbs::FileStore*          fs,
                                   PartitionFSM::Event::Enum event,
                                   const EventData&          eventDataVec);
+
+    /// Set the primary status of the specified 'partitionId' to the specified
+    /// 'value'.
+    ///
+    /// THREAD: This method is invoked in the associated Queue dispatcher
+    ///         thread for the specified 'partitionId.
+    void setPrimaryStatusForPartitionDispatched(
+        int                                partitionId,
+        bmqp_ctrlmsg::PrimaryStatus::Value value);
+
+    /// Apply DETECT_SelfPrimary event to PartitionFSM using the specified
+    /// 'partitionId', 'primaryNode', 'primaryLeaseId'.
+    void processPrimaryDetect(int                  partitionId,
+                              mqbnet::ClusterNode* primaryNode,
+                              unsigned int         primaryLeaseId);
+
+    /// Apply DETECT_SelfReplica event to StorageFSM using the specified
+    /// 'partitionId', 'primaryNode' and 'primaryLeaseId'.
+    void processReplicaDetect(int                  partitionId,
+                              mqbnet::ClusterNode* primaryNode,
+                              unsigned int         primaryLeaseId);
+
+    // Process replica data request of type PULL received from the specified
+    // 'source' with the specified 'message'.
+    void
+    processReplicaDataRequestPull(const bmqp_ctrlmsg::ControlMessage& message,
+                                  mqbnet::ClusterNode*                source);
+
+    // Process replica data request of type PUSH received from the specified
+    // 'source' with the specified 'message'.
+    void
+    processReplicaDataRequestPush(const bmqp_ctrlmsg::ControlMessage& message,
+                                  mqbnet::ClusterNode*                source);
+
+    // Process replica data request of type DROP received from the specified
+    // 'source' with the specified 'message'.
+    void
+    processReplicaDataRequestDrop(const bmqp_ctrlmsg::ControlMessage& message,
+                                  mqbnet::ClusterNode*                source);
 
     /// Process the PrimaryStateResponse contained in the specified
     /// `context` from the specified `responder`.
@@ -490,6 +573,12 @@ class StorageManager
     do_stopWatchDog(const PartitionFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;
 
     virtual void do_populateQueueKeyInfoMap(const PartitionFSMArgsSp& args)
+        BSLS_KEYWORD_OVERRIDE;
+
+    virtual void do_openRecoveryFileSet(const PartitionFSMArgsSp& args)
+        BSLS_KEYWORD_OVERRIDE;
+
+    virtual void do_closeRecoveryFileSet(const PartitionFSMArgsSp& args)
         BSLS_KEYWORD_OVERRIDE;
 
     virtual void
@@ -588,6 +677,9 @@ class StorageManager
     virtual void
     do_removeStorage(const PartitionFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;
 
+    virtual void do_incrementNumRplcaDataRspn(const PartitionFSMArgsSp& args)
+        BSLS_KEYWORD_OVERRIDE;
+
     virtual void do_checkQuorumRplcaDataRspn(const PartitionFSMArgsSp& args)
         BSLS_KEYWORD_OVERRIDE;
 
@@ -604,6 +696,9 @@ class StorageManager
     do_findHighestSeq(const PartitionFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;
 
     virtual void do_flagFailedReplicaSeq(const PartitionFSMArgsSp& args)
+        BSLS_KEYWORD_OVERRIDE;
+
+    virtual void do_transitionToActivePrimary(const PartitionFSMArgsSp& args)
         BSLS_KEYWORD_OVERRIDE;
 
     virtual void do_reapplyDetectSelfPrimary(const PartitionFSMArgsSp& args)
@@ -626,17 +721,18 @@ class StorageManager
     /// which is associated with the specified `cluster` which uses the
     /// non-persistent data in the specified `clusterData` and the
     /// persistent data in the specified `clusterState`, using the
-    /// specified `domainFactory`, `domainFactory`, `dispatcher`,
-    /// `watchDogTimeoutDuration`, `recoveryStatusCb` and `allocator`.
+    /// specified `domainFactory`, `fsmObserver`, `dispatcher`,
+    /// `watchDogTimeoutDuration`, `recoveryStatusCb`,
+    /// 'partitionPrimaryStatusCb'  and `allocator`.
     StorageManager(const mqbcfg::ClusterDefinition& clusterConfig,
                    mqbi::Cluster*                   cluster,
                    mqbc::ClusterData*               clusterData,
                    const mqbc::ClusterState&        clusterState,
                    mqbi::DomainFactory*             domainFactory,
-                   PartitionFSMObserver*            fsmObserver,
                    mqbi::Dispatcher*                dispatcher,
                    bsls::Types::Int64               watchDogTimeoutDuration,
                    const RecoveryStatusCb&          recoveryStatusCb,
+                   const PartitionPrimaryStatusCb&  partitionPrimaryStatusCb,
                    bslma::Allocator*                allocator);
 
     /// Destroy this instance. Behavior is undefined unless this instance is
@@ -753,34 +849,30 @@ class StorageManager
                              const bmqt::Uri& uri,
                              int partitionId) BSLS_KEYWORD_OVERRIDE;
 
-    /// Executed in cluster dispatcher thread.  Behavior is undefined unless
-    /// the specified `partitionId` is in range and the specified
-    /// `primaryNode` is not null.
+    /// Behavior is undefined unless the specified 'partitionId' is in range
+    /// and the specified 'primaryNode' is not null.
+    ///
+    /// THREAD: Executed in cluster dispatcher thread.
     virtual void
     setPrimaryForPartition(int                  partitionId,
                            mqbnet::ClusterNode* primaryNode,
                            unsigned int primaryLeaseId) BSLS_KEYWORD_OVERRIDE;
 
-    /// Executed in cluster dispatcher thread.  Behavior is undefined unless
-    /// the specified `partitionId` is in range and the specified
-    /// `primaryNode` is not null.
+    /// Behavior is undefined unless the specified 'partitionId' is in range
+    /// and the specified 'primaryNode' is not null.
+    ///
+    /// THREAD: Executed in cluster dispatcher thread.
     virtual void clearPrimaryForPartition(int                  partitionId,
                                           mqbnet::ClusterNode* primary)
         BSLS_KEYWORD_OVERRIDE;
 
-    /// Apply DETECT_SelfPrimary event to PartitionFSM using the specified
-    /// `partitionId`, `primaryNode`, `primaryLeaseId`.
-    virtual void
-    processPrimaryDetect(int                  partitionId,
-                         mqbnet::ClusterNode* primaryNode,
-                         unsigned int primaryLeaseId) BSLS_KEYWORD_OVERRIDE;
-
-    /// Apply DETECT_SelfReplica event to StorageFSM using the specified
-    /// `partitionId`, `primaryNode` and `primaryLeaseId`.
-    virtual void
-    processReplicaDetect(int                  partitionId,
-                         mqbnet::ClusterNode* primaryNode,
-                         unsigned int primaryLeaseId) BSLS_KEYWORD_OVERRIDE;
+    /// Set the primary status of the specified 'partitionId' to the specified
+    /// 'value'.
+    ///
+    /// THREAD: Executed in cluster dispatcher thread.
+    virtual void setPrimaryStatusForPartition(
+        int                                partitionId,
+        bmqp_ctrlmsg::PrimaryStatus::Value value) BSLS_KEYWORD_OVERRIDE;
 
     /// Process primary state request received from the specified `source`
     /// with the specified `message`.
@@ -796,19 +888,7 @@ class StorageManager
 
     /// Process replica data request received from the specified `source`
     /// with the specified `message`.
-    virtual void processReplicaDataRequestPull(
-        const bmqp_ctrlmsg::ControlMessage& message,
-        mqbnet::ClusterNode*                source) BSLS_KEYWORD_OVERRIDE;
-
-    /// Process replica data request received from the specified `source`
-    /// with the specified `message`.
-    virtual void processReplicaDataRequestPush(
-        const bmqp_ctrlmsg::ControlMessage& message,
-        mqbnet::ClusterNode*                source) BSLS_KEYWORD_OVERRIDE;
-
-    /// Process replica data request received from the specified `source`
-    /// with the specified `message`.
-    virtual void processReplicaDataRequestDrop(
+    virtual void processReplicaDataRequest(
         const bmqp_ctrlmsg::ControlMessage& message,
         mqbnet::ClusterNode*                source) BSLS_KEYWORD_OVERRIDE;
 
@@ -926,9 +1006,9 @@ class StorageManager
     /// Return the health state of the specified `partitionId`.
     PartitionFSM::State::Enum partitionHealthState(int partitionId) const;
 
-    /// Return the mapping from nodes in the cluster to their sequence
-    /// numbers for the specified `partitionId`.
-    const NodeToSeqNumMap& nodeToSeqNumMap(int partitionId) const;
+    /// Return the mapping from node in the cluster to their sequence number
+    /// context for the specified 'partitionId'.
+    const NodeToSeqNumCtxMap& nodeToSeqNumCtxMap(int partitionId) const;
 };
 
 // ============================
@@ -1103,10 +1183,10 @@ StorageManager::partitionHealthState(int partitionId) const
     return d_partitionFSMVec[partitionId]->state();
 }
 
-inline const StorageManager::NodeToSeqNumMap&
-StorageManager::nodeToSeqNumMap(int partitionId) const
+inline const StorageManager::NodeToSeqNumCtxMap&
+StorageManager::nodeToSeqNumCtxMap(int partitionId) const
 {
-    return d_nodeToSeqNumMapPartitionVec[partitionId];
+    return d_nodeToSeqNumCtxMapVec[partitionId];
 }
 
 }  // close package namespace

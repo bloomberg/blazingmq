@@ -1,3 +1,18 @@
+# Copyright 2024 Bloomberg Finance L.P.
+# SPDX-License-Identifier: Apache-2.0
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """
 Tests for subscriptions.
 
@@ -1154,22 +1169,25 @@ def test_numeric_limits(cluster: Cluster):
     """
     uri = tc.URI_PRIORITY
 
+    # fmt: off
+    # These lines might be auto formatted differently
     supported_ints = [
-        -(2**15),
-        2**15 - 1,
-        -(2**31),
-        2**31 - 1,
-        -(2**63) + 1,
-        2**63 - 1,
-        -(2**63),
+        -(2 ** 15),
+        2 ** 15 - 1,
+        -(2 ** 31),
+        2 ** 31 - 1,
+        -(2 ** 63) + 1,
+        2 ** 63 - 1,
+        -(2 ** 63),
     ]
     unsupported_ints = [
-        2**63,
-        -(2**127),
-        2**127 - 1,
-        -(2**255),
-        2**255 - 1,
+        2 ** 63,
+        -(2 ** 127),
+        2 ** 127 - 1,
+        -(2 ** 255),
+        2 ** 255 - 1,
     ]
+    # fmt: on
 
     producer = Producer(cluster, uri)
     consumer = Consumer(
@@ -1436,7 +1454,7 @@ def test_no_capacity_all_optimization(cluster: Cluster):
     Test: delivery optimization works during routing when all subscriptions
     have no capacity.
 
-    DRQS  171509204
+    Ticket 171509204
 
     - Create 1 producer / 3 consumers: C1, C2, C3.
     - Consumers: max_unconfirmed_messages = 1.
@@ -1539,7 +1557,7 @@ def test_no_capacity_all_fanout(cluster: Cluster):
     Test: delivery optimization encountered with one app does not affect
     other apps.
 
-    DRQS  171509204
+    Ticket 171509204
 
     - Create 1 producer / 2 consumers: C_foo, C_bar.
     - C_foo: max_unconfirmed_messages = 128.

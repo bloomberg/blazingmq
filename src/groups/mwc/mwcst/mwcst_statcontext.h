@@ -56,11 +56,11 @@
 // The values and statistics can have names and types associated with them.
 // For example, if the application is interested in keeping track of the number
 // of messages being received over a connection, it might define a statistic
-// for a value, of type 'DMCST_NUM_INCREMENTS', and name this statistic "Number
+// for a value, of type 'e_NUM_INCREMENTS', and name this statistic "Number
 // of Messages".  While these names aren't necessary for stat collection, they
 // are useful to components that will want to process the 'StatContext'.  See
 // 'mwcst::StatContextTableInfoProvider' for an example of a generic component
-// that can be used with the 'mwcu::TableUtil' utility to print a table
+// that can be used with the 'mwcst::TableUtil' utility to print a table
 // 'StatContext' to a stream.
 //
 /// Stat Tables
@@ -125,7 +125,7 @@
 // monitoring function. To do this the application accesses all the snapshotted
 // values and presumably prints them in some way.  For example,
 // 'mwcst::StatContextTableInfoProvider' can be used in a call to
-// 'mwcu::TableUtil' to print a table 'StatContext' to a stream.
+// 'mwcst::TableUtil' to print a table 'StatContext' to a stream.
 //
 /// Serializable Updates
 ///--------------------
@@ -135,7 +135,7 @@
 // update the values of the 'mwcstm::StatContextUpdate' to represent the value
 // changes in that snapshot.  This update may then be applied to another
 // 'StatContext', which will add or remove subcontexts and update its values
-// based on the the update.  Since the update component is serializable, this
+// based on the update.  Since the update component is serializable, this
 // context can reside in another process.
 //
 // 'StatContext' additionally provides a way to generate a complete
@@ -151,7 +151,7 @@
 // track of:
 //: o The number of messages and bytes sent and received via the interface,
 //    since the beginning;
-//: o The the number of messages per second and bytes per second sent and
+//: o The number of messages per second and bytes per second sent and
 //    received over the last 10 seconds.
 // So basically we need 4 metrics for input and the same 4 metrics for
 // output.
@@ -253,7 +253,7 @@
 //  tip.update();
 //
 //  if (verbose) {
-//      mwcu::TableUtil::printTable(bsl::cout, tip);
+//      mwcst::TableUtil::printTable(bsl::cout, tip);
 //  }
 //..
 // The input stats are printed as follow (output is removed for clarity):
@@ -289,7 +289,7 @@
 //          bsl::cout << bsl::endl << "After " << (i + 1) << " seconds:"
 //                    << bsl::endl;
 //          tip.update();
-//          mwcu::TableUtil::printTable(bsl::cout, tip);
+//          mwcst::TableUtil::printTable(bsl::cout, tip);
 //      }
 //  }
 //..
@@ -365,7 +365,7 @@
 //  tip.update();
 //
 //  if (verbose) {
-//      mwcu::TableUtil::printTable(bsl::cout, tip);
+//      mwcst::TableUtil::printTable(bsl::cout, tip);
 //  }
 //..
 // This will print the hierarchy of contexts as follow.  Note that there
@@ -388,7 +388,7 @@
 //  context.snapshot();
 //  tip.update();
 //  if (verbose) {
-//      mwcu::TableUtil::printTable(bsl::cout, tip);
+//      mwcst::TableUtil::printTable(bsl::cout, tip);
 //  }
 //..
 // Notice the parentheses around the name of deleted client:
@@ -409,7 +409,7 @@
 //  tip.setContext(&context);
 //  tip.update();
 //  if (verbose) {
-//      mwcu::TableUtil::printTable(bsl::cout, tip);
+//      mwcst::TableUtil::printTable(bsl::cout, tip);
 //  }
 //..
 // The code above will print:
@@ -451,7 +451,7 @@
 //..
 // Now lets record some data points.
 //..
-//  int memInUse = 50000;    // size of the the allocator in bytes
+//  int memInUse = 50000;    // size of the allocator in bytes
 //  context.setValue(0, memInUse);
 //
 //  memInUse = 1500;
@@ -471,7 +471,7 @@
 //  tip.addColumn("Max", 0, mwcst::StatUtil::absoluteMax);
 //  tip.update();
 //  if (verbose) {
-//      mwcu::TableUtil::printTable(bsl::cout, tip);
+//      mwcst::TableUtil::printTable(bsl::cout, tip);
 //  }
 //..
 // This is what it prints:
@@ -485,7 +485,6 @@
 //..
 
 #include <mwcst_statvalue.h>
-#include <mwcst_stringkey.h>
 
 #include <bdlb_variant.h>
 #include <bdlcc_objectpool.h>
@@ -530,22 +529,22 @@ class StatContext {
 
         /// Total stats of all childen, direct and expired values (if
         /// configured to remember expired values)
-        DMCST_TOTAL_VALUE,
+        e_TOTAL_VALUE = 0,
 
         /// Total of all subcontexts of this StatContext
-        DMCST_ACTIVE_CHILDREN_TOTAL_VALUE,
+        e_ACTIVE_CHILDREN_TOTAL_VALUE = 1,
 
         /// Stats reported directly to this StatContext only
-        DMCST_DIRECT_VALUE,
+        e_DIRECT_VALUE = 2,
 
         /// Total of all subcontexts that have been deleted from this
         /// StatContext.  This is always `0` if this StatContext wasn't
         /// configured to store them.
-        DMCST_EXPIRED_VALUE
+        e_EXPIRED_VALUE = 3
     };
 
     /// Callback to be invoked during a snapshot;
-    typedef bsl::function<void(const mwcst::StatContext&)> SnapshotCallback;
+    typedef bsl::function<void(const StatContext&)> SnapshotCallback;
 
   private:
     // PRIVATE TYPES
@@ -562,7 +561,7 @@ class StatContext {
         ValueDefinition(bslma::Allocator* basicAllocator = 0)
         : d_name(basicAllocator)
         , d_sizes(basicAllocator)
-        , d_type(StatValue::DMCST_CONTINUOUS)
+        , d_type(StatValue::e_CONTINUOUS)
         {
         }
 
@@ -702,8 +701,8 @@ class StatContext {
     void applyUpdate(const mwcstm::StatContextUpdate& update);
 
     // NOT IMPLEMENTED
-    StatContext(const StatContext&);
-    StatContext& operator=(const StatContext&);
+    StatContext(const StatContext&) BSLS_KEYWORD_DELETED;
+    StatContext& operator=(const StatContext&) BSLS_KEYWORD_DELETED;
 
     // FRIENDS
     friend class StatContextConfiguration;
@@ -927,7 +926,7 @@ class StatContextConfiguration {
     /// Optionally specify a `basicAllocator` used to supply memory.  If
     /// `basicAllocator` is 0, the currently installed default allocator is
     /// used.  The behavior is undefined unless 'update.flags() &
-    /// mwcstm::StatContextUpdateFlags::DMCSTM_CONTEXT_CREATED' and
+    /// mwcstm::StatContextUpdateFlags::E_CONTEXT_CREATED' and
     /// `!update.configuration().isNull()`.  The behavior is also undefined
     /// if this configuration conflicts with that of `update`, e.g.,
     /// `isTable` differs, or the values differ.  Note that `update` is held
@@ -1179,15 +1178,15 @@ inline const StatValue& StatContext::value(ValueType valueType,
 {
     const ValueVec* valueVec = 0;
     switch (valueType) {
-    case DMCST_TOTAL_VALUE:
+    case e_TOTAL_VALUE:
         valueVec = d_totalValues_p.ptr() ? d_totalValues_p.ptr()
                                          : d_directValues_p.ptr();
         break;
-    case DMCST_ACTIVE_CHILDREN_TOTAL_VALUE:
+    case e_ACTIVE_CHILDREN_TOTAL_VALUE:
         valueVec = d_activeChildrenTotalValues_p.ptr();
         break;
-    case DMCST_DIRECT_VALUE: valueVec = d_directValues_p.ptr(); break;
-    case DMCST_EXPIRED_VALUE: valueVec = d_expiredValues_p.ptr(); break;
+    case e_DIRECT_VALUE: valueVec = d_directValues_p.ptr(); break;
+    case e_EXPIRED_VALUE: valueVec = d_expiredValues_p.ptr(); break;
     }
 
     return (*valueVec)[valueIndex];
@@ -1335,7 +1334,7 @@ StatContextConfiguration::defaultHistorySize(int level1,
 inline StatContextConfiguration&
 StatContextConfiguration::value(const bslstl::StringRef& name)
 {
-    return value(name, StatValue::DMCST_CONTINUOUS);
+    return value(name, StatValue::e_CONTINUOUS);
 }
 
 inline StatContextConfiguration&
@@ -1351,7 +1350,7 @@ StatContextConfiguration::value(const bslstl::StringRef& name,
 inline StatContextConfiguration&
 StatContextConfiguration::value(const bslstl::StringRef& name, int historySize)
 {
-    return value(name, StatValue::DMCST_CONTINUOUS, historySize);
+    return value(name, StatValue::e_CONTINUOUS, historySize);
 }
 
 inline StatContextConfiguration&
@@ -1483,8 +1482,8 @@ inline StatContextIterator::operator bool() const
 }  // close package namespace
 
 // FREE OPERATORS
-inline bsl::ostream& mwcst::operator<<(bsl::ostream&             stream,
-                                       const mwcst::StatContext& context)
+inline bsl::ostream& mwcst::operator<<(bsl::ostream&      stream,
+                                       const StatContext& context)
 {
     return context.print(stream, 0, -1);
 }

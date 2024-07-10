@@ -211,9 +211,9 @@ struct StatUtil {
     /// returned.
     static bsls::Types::Int64 absoluteMax(const StatValue& value);
 
-    // ** Discrete StatValue functions only           **
-    // ** The behavior is undefined unless            **
-    // ** 'value.type() == StatValue::DMCST_DISCRETE' **
+    // ** Discrete StatValue functions only       **
+    // ** The behavior is undefined unless        **
+    // ** 'value.type() == StatValue::e_DISCRETE' **
 
     /// Return the total number of events recorded by the
     /// specified `value` up to the specified `snapshot`.

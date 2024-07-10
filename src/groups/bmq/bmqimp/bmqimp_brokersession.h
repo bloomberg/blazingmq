@@ -855,6 +855,9 @@ class BrokerSession BSLS_CPP11_FINAL {
     unsigned int d_nextInternalSubscriptionId;
     // Assists generating unique ids for Configure requests.
 
+    int d_doConfigureStream;
+    // Temporary safety switch to control configure request.
+
   private:
     // NOT IMPLEMENTED
     BrokerSession(const BrokerSession&);

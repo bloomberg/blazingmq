@@ -112,7 +112,7 @@ class Application {
 
     mwcst::Table d_channelsTable;
 
-    mwcu::BasicTableInfoProvider d_channelsTip;
+    mwcst::BasicTableInfoProvider d_channelsTip;
 
     bdlbb::PooledBlobBufferFactory d_blobBufferFactory;
     // Factory for blob buffers
@@ -250,7 +250,7 @@ class Application {
     /// of this `Application`.
     const bmqt::SessionOptions& sessionOptions() const;
 
-    /// Return `true` if the the application is started, `false` otherwise.
+    /// Return `true` if the application is started, `false` otherwise.
     bool isStarted() const;
 
     // MANIPULATORS

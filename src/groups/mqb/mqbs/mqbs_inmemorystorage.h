@@ -178,8 +178,6 @@ class InMemoryStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
 
     mqbconfm::Storage d_config;
 
-    mqbconfm::Limits d_limits;
-
     mqbu::CapacityMeter d_capacityMeter;
 
     ItemsMap d_items;
@@ -290,7 +288,7 @@ class InMemoryStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     virtual bslma::ManagedPtr<mqbi::StorageIterator>
     getIterator(const mqbu::StorageKey& appKey) BSLS_KEYWORD_OVERRIDE;
 
-    /// Load into the the specified `out` an iterator for items stored in
+    /// Load into the specified `out` an iterator for items stored in
     /// the virtual storage identified by the specified `appKey`, initially
     /// pointing to the item associated with the specified `msgGUID`.
     /// Return zero on success, and a non-zero code if `msgGUID` was not

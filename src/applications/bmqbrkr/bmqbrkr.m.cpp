@@ -274,6 +274,7 @@ static int getConfig(bsl::ostream&      errorDescription,
                          << "[file: " << configFilename << "]";
         return rc_GENERATION_FAILED;  // RETURN
     }
+    configStream.close();
 
     // ----------------------------------
     // 2. JSON parse the config to object

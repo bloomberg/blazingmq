@@ -758,8 +758,10 @@ class Routers {
         void apply();
 
         // ACCESSORS
+
+        /// Load into the specified 'out', internal details about this object.
         void loadInternals(mqbcmd::RoundRobinRouter* out) const;
-        // Load into the specified 'out', internal details about this object.
+
         void generate(bmqp_ctrlmsg::StreamParameters* streamParameters) const;
 
         bool hasHandle(mqbi::QueueHandle* handle) const;

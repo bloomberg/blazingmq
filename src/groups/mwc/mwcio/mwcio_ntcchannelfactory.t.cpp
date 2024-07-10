@@ -39,12 +39,6 @@
 
 #include <mwctst_testhelper.h>
 
-#if defined(__has_feature)
-#if __has_feature(undefined_behavior_sanitizer)
-#define BMQ_UBSAN_ENABLED
-#endif
-#endif
-
 // CONVENIENCE
 using namespace BloombergLP;
 using namespace bsl;
@@ -103,6 +97,21 @@ static const ChannelWatermarkType::Enum WAT_HIGH =
     ChannelWatermarkType::e_HIGH_WATERMARK;
 static const ChannelWatermarkType::Enum WAT_LOW =
     ChannelWatermarkType::e_LOW_WATERMARK;
+
+#ifdef BSLS_PLATFORM_OS_SOLARIS
+static const bool skipTest = true;
+#elif defined(                                                                \
+    __has_feature)  // Clang-supported method for checking sanitizers.
+static const bool skipTest = __has_feature(memory_sanitizer) ||
+                             __has_feature(thread_sanitizer) ||
+                             __has_feature(undefined_behavior_sanitizer);
+#elif defined(__SANITIZE_MEMORY__) || defined(__SANITIZE_THREAD__) ||         \
+    defined(__SANITIZE_UNDEFINED__)
+// GCC-supported macros for checking MSAN, TSAN and UBSAN.
+static const bool skipTest = true;
+#else
+static const bool skipTest = false;  // Default to running the test.
+#endif
 
 // ========================
 // class Tester_ChannelInfo
@@ -1046,6 +1055,22 @@ static void test6_preCreationCbTest()
 {
     mwctst::TestHelper::printTestName("Pre Creation Cb Test");
 
+    if (skipTest) {
+        // This test has been disabled for Solaris/MSan/TSan/UBSan build. This
+        // test relies on the timings of certain callbacks being fired before
+        // or after certain operations. Normally this timing is always
+        // observed, but in msan/tsan/ubsan enabled build, the timing gets
+        // changed, leading to test failure. Of course, the right fix is to
+        // not rely on these timings, which can be worked on if the test starts
+        // failing in non-instrumented builds. Additionally, we could try to
+        // enable this test in MSan/TSan/UBSan build once all MSan/TSan/UBSan
+        // reports have been fixed to see if that helps (see `msansup.txt`,
+        // `tsansup.txt` and `ubsansup.txt`).
+        bsl::cout << "Test skipped (running on Solaris or under sanitizer)"
+                  << bsl::endl;
+        return;  // RETURN
+    }
+
     Tester t(s_allocator_p);
 
     // Concern 'a'
@@ -1080,6 +1105,22 @@ static void test5_visitChannelsTest()
 // ------------------------------------------------------------------------
 {
     mwctst::TestHelper::printTestName("Cancel Handle Test");
+
+    if (skipTest) {
+        // This test has been disabled for Solaris/MSan/TSan/UBSan build. This
+        // test relies on the timings of certain callbacks being fired before
+        // or after certain operations. Normally this timing is always
+        // observed, but in msan/tsan/ubsan enabled build, the timing gets
+        // changed, leading to test failure. Of course, the right fix is to
+        // not rely on these timings, which can be worked on if the test starts
+        // failing in non-instrumented builds. Additionally, we could try to
+        // enable this test in MSan/TSan/UBSan build once all MSan/TSan/UBSan
+        // reports have been fixed to see if that helps (see `msansup.txt`,
+        // `tsansup.txt` and `ubsansup.txt`).
+        bsl::cout << "Test skipped (running on Solaris or under sanitizer)"
+                  << bsl::endl;
+        return;  // RETURN
+    }
 
     Tester t(s_allocator_p);
 
@@ -1121,17 +1162,22 @@ static void test4_cancelHandleTest()
 {
     mwctst::TestHelper::printTestName("Cancel Handle Test");
 
-#ifdef BMQ_UBSAN_ENABLED
-    // This test has been disabled for UBSan build.  This test relies on the
-    // timings of certain callbacks being fired before or after certain
-    // operations.  Normally this timing is always observed, but in ubsan
-    // enabled build, the timing gets changed, leading to test failure.  Of
-    // course, the right fix is to not rely on these timings, which can be
-    // worked on if the test starts failing in non-instrumented builds.
-    // Additionally, we could try to enable this test in UBSan build once all
-    // UBSan reports have been fixed to see if that helps (see `ubsansup.txt`).
-    return;
-#else
+    if (skipTest) {
+        // This test has been disabled for Solaris/MSan/TSan/UBSan build. This
+        // test relies on the timings of certain callbacks being fired before
+        // or after certain operations. Normally this timing is always
+        // observed, but in msan/tsan/ubsan enabled build, the timing gets
+        // changed, leading to test failure. Of course, the right fix is to
+        // not rely on these timings, which can be worked on if the test starts
+        // failing in non-instrumented builds. Additionally, we could try to
+        // enable this test in MSan/TSan/UBSan build once all MSan/TSan/UBSan
+        // reports have been fixed to see if that helps (see `msansup.txt`,
+        // `tsansup.txt` and `ubsansup.txt`).
+        bsl::cout << "Test skipped (running on Solaris or under sanitizer)"
+                  << bsl::endl;
+        return;  // RETURN
+    }
+
     Tester t(s_allocator_p);
 
     // Concerns 'a'
@@ -1173,7 +1219,6 @@ static void test4_cancelHandleTest()
                           "connect4Handle",
                           ChannelFactoryEvent::e_CONNECT_ATTEMPT_FAILED,
                           StatusCategory::e_CONNECTION);
-#endif
 }
 
 static void test3_watermarkTest()
@@ -1186,6 +1231,22 @@ static void test3_watermarkTest()
 // ------------------------------------------------------------------------
 {
     mwctst::TestHelper::printTestName("Watermark Test");
+
+    if (skipTest) {
+        // This test has been disabled for Solaris/MSan/TSan/UBSan build. This
+        // test relies on the timings of certain callbacks being fired before
+        // or after certain operations. Normally this timing is always
+        // observed, but in msan/tsan/ubsan enabled build, the timing gets
+        // changed, leading to test failure. Of course, the right fix is to
+        // not rely on these timings, which can be worked on if the test starts
+        // failing in non-instrumented builds. Additionally, we could try to
+        // enable this test in MSan/TSan/UBSan build once all MSan/TSan/UBSan
+        // reports have been fixed to see if that helps (see `msansup.txt`,
+        // `tsansup.txt` and `ubsansup.txt`).
+        bsl::cout << "Test skipped (running on Solaris or under sanitizer)"
+                  << bsl::endl;
+        return;  // RETURN
+    }
 
     Tester t(s_allocator_p);
 
@@ -1275,6 +1336,22 @@ static void test1_breathingTest()
 // ------------------------------------------------------------------------
 {
     mwctst::TestHelper::printTestName("Breathing Test");
+
+    if (skipTest) {
+        // This test has been disabled for Solaris/MSan/TSan/UBSan build. This
+        // test relies on the timings of certain callbacks being fired before
+        // or after certain operations. Normally this timing is always
+        // observed, but in msan/tsan/ubsan enabled build, the timing gets
+        // changed, leading to test failure. Of course, the right fix is to
+        // not rely on these timings, which can be worked on if the test starts
+        // failing in non-instrumented builds. Additionally, we could try to
+        // enable this test in MSan/TSan/UBSan build once all MSan/TSan/UBSan
+        // reports have been fixed to see if that helps (see `msansup.txt`,
+        // `tsansup.txt` and `ubsansup.txt`).
+        bsl::cout << "Test skipped (running on Solaris or under sanitizer)"
+                  << bsl::endl;
+        return;  // RETURN
+    }
 
     Tester t(s_allocator_p);
     t.init(L_);

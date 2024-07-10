@@ -18,7 +18,6 @@
 
 #include <mqbscm_version.h>
 // MQB
-#include <mqbscm_versiontag.h>
 #include <mqbstat_queuestats.h>
 
 // MWC
@@ -221,28 +220,28 @@ void Printer::printStats(bsl::ostream& stream)
            << ":::::::::: :::::::::: DOMAINQUEUES >>";
     Context* context = d_contexts["domainQueues"].get();
     context->d_table.records().update();
-    mwcu::TableUtil::printTable(stream, context->d_tip);
+    mwcst::TableUtil::printTable(stream, context->d_tip);
 
     // CLIENTS
     stream << "\n"
            << ":::::::::: :::::::::: CLIENTS >>";
     context = d_contexts["clients"].get();
     context->d_table.records().update();
-    mwcu::TableUtil::printTable(stream, context->d_tip);
+    mwcst::TableUtil::printTable(stream, context->d_tip);
 
     // CLUSTERS
     stream << "\n"
            << ":::::::::: :::::::::: CLUSTERS >>";
     context = d_contexts["clusterNodes"].get();
     context->d_table.records().update();
-    mwcu::TableUtil::printTable(stream, context->d_tip);
+    mwcst::TableUtil::printTable(stream, context->d_tip);
 
     // CHANNELS
     stream << "\n"
            << ":::::::::: :::::::::: TCP CHANNELS >>";
     context = d_contexts["channels"].get();
     context->d_table.records().update();
-    mwcu::TableUtil::printTable(stream, context->d_tip);
+    mwcst::TableUtil::printTable(stream, context->d_tip);
 
     // ALLOCATORS
     stream << "\n"
@@ -265,7 +264,7 @@ void Printer::printStats(bsl::ostream& stream)
 
     context = it->second.get();
     context->d_table.records().update();
-    mwcu::TableUtil::printTable(stream, context->d_tip);
+    mwcst::TableUtil::printTable(stream, context->d_tip);
 }
 
 void Printer::logStats()

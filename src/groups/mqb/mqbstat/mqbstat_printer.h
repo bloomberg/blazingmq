@@ -26,7 +26,6 @@
 // It holds the tables and table info providers which can be printed.
 
 // MQB
-
 #include <mqbcfg_messages.h>
 
 // MWC
@@ -75,7 +74,7 @@ class Printer {
         mwcst::Table d_table;
         // Table
 
-        mwcu::BasicTableInfoProvider d_tip;
+        mwcst::BasicTableInfoProvider d_tip;
         // tip
     };
 
@@ -128,10 +127,10 @@ class Printer {
     /// Create a new `Printer` object, using the specified `config`,
     /// `eventScheduler`, `statContextsMap` and the specified `allocator`
     /// for memory allocation.
-    Printer(const mqbcfg::StatsConfig& config,
-            bdlmt::EventScheduler*     eventScheduler,
-            const StatContextsMap&     statContextsMap,
-            bslma::Allocator*          allocator);
+    explicit Printer(const mqbcfg::StatsConfig& config,
+                     bdlmt::EventScheduler*     eventScheduler,
+                     const StatContextsMap&     statContextsMap,
+                     bslma::Allocator*          allocator);
 
     // MANIPULATORS
 

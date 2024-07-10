@@ -1,26 +1,39 @@
+# Copyright 2024 Bloomberg Finance L.P.
+# SPDX-License-Identifier: Apache-2.0
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """
 This suite of test cases exercises admin session connection and some basic
 commands.
 """
+
 import dataclasses
 import json
-import re
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional, Union
 
-from blazingmq.dev.it.fixtures import Cluster, single_node, order  # pylint: disable=unused-import
+import blazingmq.dev.it.testconstants as tc
+from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
+    Cluster,
+    order,
+    single_node,
+    tweak,
+)
+from blazingmq.dev.it.data import data_metrics as dt
 from blazingmq.dev.it.process.admin import AdminClient
 from blazingmq.dev.it.process.client import Client
-import blazingmq.dev.it.testconstants as tc
 
-
-def get_endpoint(cluster: Cluster) -> Tuple[str, int]:
-    endpoint: str = cluster.config.definition.nodes[0].transport.tcp.endpoint  # type: ignore
-
-    # Extract the (host, port) pair from the config
-    m = re.match(r".+://(.+):(\d+)", endpoint)  # tcp://host:port
-    assert m is not None
-
-    return str(m.group(1)), int(m.group(2))
+pytestmark = order(1)
 
 
 @dataclasses.dataclass
@@ -39,7 +52,9 @@ class PostRecord:
         self.num += other.num
 
 
-def post_n_msgs(producer: Client, task: PostRecord, posted: Optional[Dict[str, PostRecord]] = None) -> None:
+def post_n_msgs(
+    producer: Client, task: PostRecord, posted: Optional[Dict[str, PostRecord]] = None
+) -> None:
     """
     Execute the specified 'task' with the specified 'producer'.
     The summary of the executed post task is appended to the optionally
@@ -58,7 +73,54 @@ def post_n_msgs(producer: Client, task: PostRecord, posted: Optional[Dict[str, P
             posted[task.uri] = task
 
 
-def test_breathing(single_node: Cluster):
+def extract_stats(admin_response: str) -> dict:
+    """
+    Extracts the dictionary containing stats from the specified 'admin_response'.
+    Note that due to xsd schema limitations it's not possible to make a schema for a json
+    containing random keys. Due to this, the stats encoding is not ideal:
+    - The outer layer is a 'str' response from the admin session
+    - Next layer is a 'dict' containing "stats" field with 'str' text
+    - The last layer is another 'dict' containing the stats itself
+    """
+    d1 = json.loads(admin_response)
+    d2 = json.loads(d1["stats"])
+    return d2
+
+
+def expect_same_structure(
+    entry: Union[dict, list, str, int],
+    expected: Union[dict, list, str, int, dt.ValueConstraint],
+) -> None:
+    """
+    Check if the specified 'entry' has the same structure as the specified 'expected'.
+    Note that the 'expected' param could have fixed parameters as well as value constraint
+    placeholders that are used to represent a value non-fixed across different test launches.
+    Assert on failure.
+    """
+
+    if isinstance(expected, dict):
+        assert isinstance(entry, dict)
+        assert expected.keys() == entry.keys()
+        for key in expected:
+            expect_same_structure(entry[key], expected[key])
+    elif isinstance(expected, list):
+        assert isinstance(entry, list)
+        assert len(expected) == len(entry)
+        for obj2, expected2 in zip(entry, expected):
+            expect_same_structure(obj2, expected2)
+    elif isinstance(expected, str):
+        assert isinstance(entry, str)
+        assert expected == entry
+    else:
+        assert isinstance(entry, int)
+        if isinstance(expected, dt.ValueConstraint):
+            assert expected.check(entry)
+        else:
+            assert isinstance(expected, int)
+            assert entry == expected
+
+
+def test_breathing(single_node: Cluster) -> None:
     """
     Test: basic admin session usage.
     - Send 'HELP' admin command and check its expected output.
@@ -70,7 +132,7 @@ def test_breathing(single_node: Cluster):
     - The broker is able to accept admin commands via TCP interface.
     - Invalid admin commands are handled gracefully.
     """
-    host, port = get_endpoint(single_node)
+    host, port = single_node.admin_endpoint
 
     # Start the admin client
     admin = AdminClient()
@@ -96,7 +158,172 @@ def test_breathing(single_node: Cluster):
     admin.stop()
 
 
-def test_purge_breathing(single_node: Cluster):
+@tweak.broker.app_config.stats.app_id_tag_domains([tc.DOMAIN_FANOUT])
+def test_queue_stats(single_node: Cluster) -> None:
+    """
+    Test: queue metrics via admin command.
+    Preconditions:
+    - Establish admin session with the cluster.
+
+    Stage 1: check stats after posting messages
+    - Open a producer
+    - Post messages to a fanout queue
+    - Verify stats acquired via admin command with the expected stats
+
+    Stage 2: check stats after confirming messages
+    - Open a consumer for each appId
+    - Confirm a portion of messages for each consumer
+    - Verify stats acquired via admin command with the expected stats
+
+    Stage 3: check too-often stats safeguard
+    - Send several 'stat show' requests
+    - Verify that the admin session complains about too often stat request
+
+    Concerns:
+    - The broker is able to report queue metrics for fanout queue.
+    - Safeguarding mechanism prevents from getting stats too often.
+    """
+
+    # Preconditions
+    admin = AdminClient()
+    admin.connect(*single_node.admin_endpoint)
+
+    # Stage 1: check stats after posting messages
+    cluster: Cluster = single_node
+    proxies = cluster.proxy_cycle()
+    proxy = next(proxies)
+    producer: Client = proxy.create_client("producer")
+
+    task = PostRecord(tc.DOMAIN_FANOUT, "test_stats", num=32)
+    post_n_msgs(producer, task)
+
+    stats = extract_stats(admin.send_admin("encoding json_pretty stat show"))
+    queue_stats = stats["domainQueues"]["domains"][tc.DOMAIN_FANOUT][task.uri]
+
+    expect_same_structure(queue_stats, dt.TEST_QUEUE_STATS_AFTER_POST)
+
+    # Stage 2: check stats after confirming messages
+    consumer_foo: Client = proxy.create_client("consumer_foo")
+    consumer_foo.open(f"{task.uri}?id=foo", flags=["read"], succeed=True)
+    consumer_foo.confirm(f"{task.uri}?id=foo", "*", succeed=True)
+
+    consumer_bar: Client = proxy.create_client("consumer_bar")
+    consumer_bar.open(f"{task.uri}?id=bar", flags=["read"], succeed=True)
+    consumer_bar.confirm(f"{task.uri}?id=bar", "+22", succeed=True)
+
+    consumer_baz: Client = proxy.create_client("consumer_baz")
+    consumer_baz.open(f"{task.uri}?id=baz", flags=["read"], succeed=True)
+    consumer_baz.confirm(f"{task.uri}?id=baz", "+11", succeed=True)
+
+    stats = extract_stats(admin.send_admin("encoding json_pretty stat show"))
+    queue_stats = stats["domainQueues"]["domains"][tc.DOMAIN_FANOUT][task.uri]
+
+    expect_same_structure(queue_stats, dt.TEST_QUEUE_STATS_AFTER_CONFIRM)
+
+    consumer_foo.close(f"{task.uri}?id=foo")
+    consumer_bar.close(f"{task.uri}?id=bar")
+    consumer_baz.close(f"{task.uri}?id=baz")
+
+    # Stage 3: check too-often stats safeguard
+    for i in range(5):
+        admin.send_admin("encoding json_pretty stat show")
+    res = admin.send_admin("encoding json_pretty stat show")
+    obj = json.loads(res)
+
+    expect_same_structure(obj, dt.TEST_QUEUE_STATS_TOO_OFTEN_SNAPSHOTS)
+
+    admin.stop()
+
+
+def test_admin_encoding(single_node: Cluster) -> None:
+    """
+    Test: admin commands output format.
+    Preconditions:
+    - Establish admin session with the cluster.
+
+    Stage 1:
+    - Send json and plaintext admin commands with 'TEXT' output encoding.
+    - Expect the received responses in text format.
+
+    Stage 2:
+    - Send json and plaintext admin commands with 'JSON_COMPACT' output encoding.
+    - Expect the received responses in compact json format.
+
+    Stage 3:
+    - Send json and plaintext admin commands with 'JSON_PRETTY' output encoding.
+    - Expect the received responses in pretty json format.
+
+    Stage 4:
+    - Send json and plaintext admin commands with incorrect output encoding.
+    - Expect the received responses with decode error message.
+
+    Stage 5:
+    - Send json and plaintext admin commands without output encoding option.
+    - Expect the received responses in text format.
+
+    Concerns:
+    - It's possible to pass output encoding option to both json and plaintext encoded admin commands.
+    - TEXT, JSON_COMPACT, JSON_PRETTY encoding formats are correctly supported.
+    - Commands with incorrect encoding are handled with decode error.
+    - Commands without encoding return text output for backward compatibility.
+    """
+
+    def is_compact(json_str: str) -> bool:
+        return "    " not in json_str
+
+    # Start the admin client
+    admin = AdminClient()
+    admin.connect(*single_node.admin_endpoint)
+
+    # Stage 1: encode as TEXT
+    cmds = [json.dumps({"help": {}, "encoding": "TEXT"}), "ENCODING TEXT HELP"]
+    for cmd in cmds:
+        res = admin.send_admin(cmd)
+        assert "This process responds to the following CMD subcommands:" in res
+
+    # Stage 2: encode as JSON_COMPACT
+    cmds = [
+        json.dumps({"help": {}, "encoding": "JSON_COMPACT"}),
+        "ENCODING JSON_COMPACT HELP",
+    ]
+    for cmd in cmds:
+        res = admin.send_admin(cmd)
+        assert "help" in json.loads(res)
+        assert is_compact(res)
+
+    # Stage 3: encode as JSON_PRETTY
+    cmds = [
+        json.dumps({"help": {}, "encoding": "JSON_PRETTY"}),
+        "ENCODING JSON_PRETTY HELP",
+    ]
+    for cmd in cmds:
+        res = admin.send_admin(cmd)
+        assert "help" in json.loads(res)
+        assert not is_compact(res)
+
+    # Stage 4: incorrect encoding
+    cmds = [
+        json.dumps({"help": {}, "encoding": "INCORRECT"}),
+        "ENCODING INCORRECT HELP",
+        "ENCODING HELP",
+        "ENCODING TEXT",
+        "ENCODING",
+    ]
+    for cmd in cmds:
+        res = admin.send_admin(cmd)
+        assert "Unable to decode command" in res
+
+    # Stage 5: no encoding
+    cmds = [json.dumps({"help": {}}), "HELP"]
+    for cmd in cmds:
+        res = admin.send_admin(cmd)
+        assert "This process responds to the following CMD subcommands:" in res
+
+    # Stop the admin session
+    admin.stop()
+
+
+def test_purge_breathing(single_node: Cluster) -> None:
     """
     Test: basic purge queue/purge domain commands usage.
     Preconditions:
@@ -134,21 +361,23 @@ def test_purge_breathing(single_node: Cluster):
     proxy = next(proxies)
     producer: Client = proxy.create_client("producer")
 
-    host, port = get_endpoint(cluster)
-
     # Start the admin client
     admin = AdminClient()
-    admin.connect(host, port)
+    admin.connect(*cluster.admin_endpoint)
 
     # Stage 1: purge PRIORITY queue
     for i in range(1, 6):
         task = PostRecord(tc.DOMAIN_PRIORITY, "test_queue", num=i)
         post_n_msgs(producer, task)
 
-        res = admin.send_admin(f"DOMAINS DOMAIN {task.domain} QUEUE {task.queue_name} PURGE *")
+        res = admin.send_admin(
+            f"DOMAINS DOMAIN {task.domain} QUEUE {task.queue_name} PURGE *"
+        )
         assert f"Purged {task.num} message(s)" in res
 
-        res = admin.send_admin(f"DOMAINS DOMAIN {task.domain} QUEUE {task.queue_name} PURGE *")
+        res = admin.send_admin(
+            f"DOMAINS DOMAIN {task.domain} QUEUE {task.queue_name} PURGE *"
+        )
         assert f"Purged 0 message(s)" in res
 
     # Stage 2: purge PRIORITY domain
@@ -170,17 +399,23 @@ def test_purge_breathing(single_node: Cluster):
         task = PostRecord(tc.DOMAIN_FANOUT, tc.TEST_QUEUE, num=i)
         post_n_msgs(producer, task)
 
-        res = admin.send_admin(f"DOMAINS DOMAIN {task.domain} QUEUE {task.queue_name} PURGE {tc.TEST_APPIDS[0]}")
+        res = admin.send_admin(
+            f"DOMAINS DOMAIN {task.domain} QUEUE {task.queue_name} PURGE {tc.TEST_APPIDS[0]}"
+        )
         assert f"Purged {task.num} message(s)" in res
 
-        res = admin.send_admin(f"DOMAINS DOMAIN {task.domain} QUEUE {task.queue_name} PURGE {tc.TEST_APPIDS[1]}")
+        res = admin.send_admin(
+            f"DOMAINS DOMAIN {task.domain} QUEUE {task.queue_name} PURGE {tc.TEST_APPIDS[1]}"
+        )
         assert f"Purged {task.num} message(s)" in res
 
         res = admin.send_admin(f"DOMAINS DOMAIN {task.domain} PURGE")
         assert f"Purged {task.num} message(s)" in res
 
         for app_id in tc.TEST_APPIDS:
-            res = admin.send_admin(f"DOMAINS DOMAIN {task.domain} QUEUE {task.queue_name} PURGE {app_id}")
+            res = admin.send_admin(
+                f"DOMAINS DOMAIN {task.domain} QUEUE {task.queue_name} PURGE {app_id}"
+            )
             assert f"Purged 0 message(s)" in res
 
         res = admin.send_admin(f"DOMAINS DOMAIN {task.domain} PURGE")
@@ -190,7 +425,7 @@ def test_purge_breathing(single_node: Cluster):
     admin.stop()
 
 
-def test_purge_inactive(single_node: Cluster):
+def test_purge_inactive(single_node: Cluster) -> None:
     """
     Test: queue purge and domain purge also work for inactive queues.
 
@@ -266,11 +501,9 @@ def test_purge_inactive(single_node: Cluster):
         post_n_msgs(producer, task, posted_fanout)
     producer.stop()
 
-    host, port = get_endpoint(cluster)
-
     # Start the admin client.
     admin = AdminClient()
-    admin.connect(host, port)
+    admin.connect(*cluster.admin_endpoint)
 
     # Stage 2: PRIORITY purge
 
@@ -289,7 +522,9 @@ def test_purge_inactive(single_node: Cluster):
             continue
 
         record = posted[uri]
-        res = admin.send_admin(f"DOMAINS DOMAIN {record.domain} QUEUE {record.queue_name} PURGE *")
+        res = admin.send_admin(
+            f"DOMAINS DOMAIN {record.domain} QUEUE {record.queue_name} PURGE *"
+        )
         assert f"Purged {record.num} message(s)" in res
 
         record.num = 0
@@ -307,7 +542,9 @@ def test_purge_inactive(single_node: Cluster):
     for record in posted.values():
         assert record.num == 0
 
-        res = admin.send_admin(f"DOMAINS DOMAIN {record.domain} QUEUE {record.queue_name} PURGE *")
+        res = admin.send_admin(
+            f"DOMAINS DOMAIN {record.domain} QUEUE {record.queue_name} PURGE *"
+        )
         assert f"Purged 0 message(s)" in res
 
     # Also check that purge domain for PRIORITY could not purge more messages.
@@ -325,17 +562,63 @@ def test_purge_inactive(single_node: Cluster):
 
     for record in posted_fanout.values():
         for app_id in tc.TEST_APPIDS:
-            res = admin.send_admin(f"DOMAINS DOMAIN {record.domain} QUEUE {record.queue_name} PURGE {app_id}")
+            res = admin.send_admin(
+                f"DOMAINS DOMAIN {record.domain} QUEUE {record.queue_name} PURGE {app_id}"
+            )
             assert f"Purged {record.num} message(s)" in res
 
         record.num = 0
 
-        res = admin.send_admin(f"DOMAINS DOMAIN {record.domain} QUEUE {record.queue_name} PURGE *")
+        res = admin.send_admin(
+            f"DOMAINS DOMAIN {record.domain} QUEUE {record.queue_name} PURGE *"
+        )
         assert f"Purged 0 message(s)" in res
 
     # Also check that purge domain for FANOUT could not purge more messages.
     res = admin.send_admin(f"DOMAINS DOMAIN {tc.DOMAIN_FANOUT} PURGE")
     assert f"Purged 0 message(s)" in res
+
+    # Stop the admin session
+    admin.stop()
+
+
+def test_commands_on_non_existing_domain(single_node: Cluster) -> None:
+    """
+    Test: domain admin commands work even if domain was not loaded from the disk yet.
+    This test works with an assumption that the cluster was just started before the test,
+    so the broker doesn't have any internal domain objects constructed in memory.
+
+    Stage 1: send commands to domains existing on disk but not yet loaded to the broker
+
+    Stage 2: send commands to domains not existing on disk
+
+    Concerns:
+    - DOMAINS DOMAIN ... command works if domain exists on disk.
+    - DOMAINS RECONFIGURE ... command works if domain exists on disk.
+    """
+    cluster: Cluster = single_node
+
+    # Start the admin client
+    admin = AdminClient()
+    admin.connect(*cluster.admin_endpoint)
+
+    # Stage 1: send commands to domains existing on disk but not yet loaded to the broker
+    # Note that we use different domains for each test case, because we want to check each
+    # command with clear state for a domain.
+    res = admin.send_admin(f"domains domain {tc.DOMAIN_PRIORITY} infos")
+    assert "ActiveQueues ..: 0" in res
+
+    res = admin.send_admin(f"domains reconfigure {tc.DOMAIN_FANOUT}")
+    assert "SUCCESS" in res
+
+    # Stage 2: send commands to domains not existing on disk
+    not_existing_domain = "this.domain.doesnt.exist"
+
+    res = admin.send_admin(f"domains domain {not_existing_domain} infos")
+    assert f"Domain '{not_existing_domain}' doesn't exist" in res
+
+    res = admin.send_admin(f"domains reconfigure {not_existing_domain}")
+    assert f"Domain '{not_existing_domain}' doesn't exist" in res
 
     # Stop the admin session
     admin.stop()

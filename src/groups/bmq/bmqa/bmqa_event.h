@@ -17,31 +17,31 @@
 #ifndef INCLUDED_BMQA_EVENT
 #define INCLUDED_BMQA_EVENT
 
-//@PURPOSE: Provide a generic variant encompassing all types of events.
-//
-//@CLASSES:
-//  bmqa::Event: variant encompassing all types of events.
-//
-//@SEE_ALSO:
-//  bmqa::MessageEvent : Data event notification.
-//  bmqa::SessionEvent : Session and queue status event notification.
-//
-//@DESCRIPTION: This component provides a generic 'bmqa::Event' notification
-// object used by the 'bmqa::Session' to provide BlazingMQ applications with
-// information regarding the status of the session or data coming from queues.
-// This 'bmqa::Event' object is only used when user wants to process messages
-// from the EventQueue using its own thread, by calling the
-// bmqa::Session::nextEvent method.
-//
-// A 'bmqa::Event' can either be a 'bmqa::SessionEvent' or a
-// 'bmqa::MessageEvent'.  The former describes notifications such as the result
-// of a session start or the opening of a queue.  The latter carries
-// application messages retrieved from a queue.
-//
-// Note that event is implemented using the pimpl idiom, so copying an event is
-// very cheap (a pointer copy).  All copies of this 'bmqa::Event', as well as
-// any 'SessionEvent' or 'MessageEvent' extracted from it will share the same
-// underlying implementation.
+/// @file bmqa_event.h
+///
+/// @brief Provide a generic variant encompassing all types of events.
+///
+/// This component provides a generic @bbref{bmqa::Event} notification object
+/// used by the @bbref{bmqa::Session} to provide BlazingMQ applications with
+/// information regarding the status of the session or data coming from queues.
+/// This @bbref{bmqa::Event} object is only used when user wants to process
+/// messages from the EventQueue using its own thread, by calling the
+/// @bbref{bmqa::Session::nextEvent} method.
+///
+/// A @bbref{bmqa::Event} can either be a @bbref{bmqa::SessionEvent} or a
+/// @bbref{bmqa::MessageEvent}.  The former describes notifications such as the
+/// result of a session start or the opening of a queue.  The latter carries
+/// application messages retrieved from a queue.
+///
+/// Note that event is implemented using the pimpl idiom, so copying an event
+/// is very cheap (a pointer copy).  All copies of this @bbref{bmqa::Event}, as
+/// well as any @bbref{bmqa::SessionEvent} or @bbref{bmqa::MessageEvent}
+/// extracted from it will share the same underlying implementation.
+///
+/// @see @bbref{bmqa::MessageEvent}:
+///      Data event notification.
+/// @see @bbref{bmqa::SessionEvent}:
+///      Session and queue status event notification.
 
 // BMQ
 

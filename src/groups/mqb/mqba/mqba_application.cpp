@@ -27,6 +27,7 @@
 #include <mqbcfg_messages.h>
 #include <mqbcmd_commandlist.h>
 #include <mqbcmd_humanprinter.h>
+#include <mqbcmd_jsonprinter.h>
 #include <mqbcmd_messages.h>
 #include <mqbcmd_parseutil.h>
 #include <mqbcmd_util.h>
@@ -503,13 +504,17 @@ int Application::processCommand(const bslstl::StringRef& source,
     BALL_LOG_INFO << "Received command '" << cmd << "' "
                   << "[source: " << source << "]";
 
-    mqbcmd::Command command;
+    mqbcmd::Command commandWithOptions;
     bsl::string     parseError;
-    if (const int rc = mqbcmd::ParseUtil::parse(&command, &parseError, cmd)) {
+    if (const int rc = mqbcmd::ParseUtil::parse(&commandWithOptions,
+                                                &parseError,
+                                                cmd)) {
         os << "Unable to decode command "
            << "(rc: " << rc << ", error: '" << parseError << "')";
         return rc;  // RETURN
     }
+
+    mqbcmd::CommandChoice& command = commandWithOptions.choice();
 
     mqbcmd::InternalResult cmdResult;
     int                    rc = 0;
@@ -546,7 +551,9 @@ int Application::processCommand(const bslstl::StringRef& source,
     }
     else if (command.isStatValue()) {
         mqbcmd::StatResult statResult;
-        d_statController_mp->processCommand(&statResult, command.stat());
+        d_statController_mp->processCommand(&statResult,
+                                            command.stat(),
+                                            commandWithOptions.encoding());
         if (statResult.isErrorValue()) {
             cmdResult.makeError(statResult.error());
         }
@@ -594,8 +601,7 @@ int Application::processCommand(const bslstl::StringRef& source,
                                 mqbcfg::BrokerConfig::get(),
                                 options);
             if (rc != 0) {
-                cmdResult.makeError();
-                cmdResult.error().message() = brokerConfigOs.str();
+                cmdResult.makeError().message() = brokerConfigOs.str();
             }
             else {
                 cmdResult.makeBrokerConfig();
@@ -613,10 +619,21 @@ int Application::processCommand(const bslstl::StringRef& source,
     mqbcmd::Result result;
     mqbcmd::Util::flatten(&result, cmdResult);
 
-    // Pretty print
-    mqbcmd::HumanPrinter::print(os, result);
+    switch (commandWithOptions.encoding()) {
+    case mqbcmd::EncodingFormat::TEXT: {
+        // Pretty print
+        mqbcmd::HumanPrinter::print(os, result);
+    } break;  // BREAK
+    case mqbcmd::EncodingFormat::JSON_COMPACT: {
+        mqbcmd::JsonPrinter::print(os, result, false);
+    } break;  // BREAK
+    case mqbcmd::EncodingFormat::JSON_PRETTY: {
+        mqbcmd::JsonPrinter::print(os, result, true);
+    } break;  // BREAK
+    default: BSLS_ASSERT_SAFE(false && "Unsupported encoding");
+    }
 
-    return 0;
+    return result.isErrorValue() ? -2 : 0;
 }
 
 int Application::processCommandCb(

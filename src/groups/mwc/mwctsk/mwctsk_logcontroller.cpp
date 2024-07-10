@@ -77,11 +77,10 @@ void printCategoryWithDelimiter(const bsl::shared_ptr<bsl::ostream>& os,
     *os << "\n";
 }
 
-static void
-bslsLogHandler(BSLS_ANNOTATION_UNUSED bsls::LogSeverity::Enum severity,
-               const char*                                    file,
-               int                                            line,
-               const char*                                    message)
+static void bslsLogHandler(bsls::LogSeverity::Enum severity,
+                           const char*             file,
+                           int                     line,
+                           const char*             message)
 {
     // Custom message handler for bsls::Log.  Redirect the specified
     // 'message', the specified 'file' and the specified 'line' to
@@ -122,8 +121,6 @@ LogControllerConfig::balToBslsLogLevel(ball::Severity::Level level)
     case ball::Severity::e_TRACE: return bsls::LogSeverity::e_TRACE;
     default: return bsls::LogSeverity::e_ERROR;
     };
-
-    return bsls::LogSeverity::e_ERROR;
 }
 
 LogControllerConfig::CategoryProperties::CategoryProperties(

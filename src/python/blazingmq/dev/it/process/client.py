@@ -1,3 +1,18 @@
+# Copyright 2024 Bloomberg Finance L.P.
+# SPDX-License-Identifier: Apache-2.0
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """
 blazingmq.dev.it.process.client
 
@@ -142,7 +157,14 @@ class Client(BMQProcess):
         return res.error_code
 
     def open(
-        self, uri, flags, block=None, succeed=None, no_except=None, timeout=None, **kw
+        self,
+        uri,
+        flags: List[str],
+        block=None,
+        succeed=None,
+        no_except=None,
+        timeout=None,
+        **kw,
     ):
         """
         Open the queue with the specified 'uri' and the specified 'flags'.  If

@@ -1,3 +1,18 @@
+# Copyright 2024 Bloomberg Finance L.P.
+# SPDX-License-Identifier: Apache-2.0
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """
 Integration test that tests some basic things while restarting *entire* cluster
 in the middle of things.  Note that this test does not test the HA
@@ -8,20 +23,19 @@ import re
 import time
 
 import blazingmq.dev.it.testconstants as tc
-from blazingmq.dev.it.fixtures import Cluster, cluster, order  # pylint: disable=unused-import
+from blazingmq.dev.it.fixtures import (
+    Cluster,
+    cluster,
+    order,
+    tweak,
+)  # pylint: disable=unused-import
 from blazingmq.dev.it.process.client import Client
 from blazingmq.dev.it.util import attempt, wait_until
 
 pytestmark = order(2)
 
 
-def test_basic(cluster: Cluster):
-    # Start a producer and post a message.
-    proxies = cluster.proxy_cycle()
-    producer = next(proxies).create_client("producer")
-    producer.open(tc.URI_PRIORITY, flags=["write", "ack"], succeed=True)
-    producer.post(tc.URI_PRIORITY, payload=["msg1"], wait_ack=True, succeed=True)
-
+def ensureMessageAtStorageLayer(cluster: Cluster):
     time.sleep(2)
     # Before restarting the cluster, ensure that all nodes in the cluster
     # have received the message at the storage layer.  This is necessary
@@ -42,6 +56,16 @@ def test_basic(cluster: Cluster):
         # where columns are: QueueKey, PartitionId, NumMsgs, NumBytes,
         # QueueUri respectively. Since we opened only 1 queue, we know that
         # it will be assigned to partitionId 0.
+
+
+def test_basic(cluster: Cluster):
+    # Start a producer and post a message.
+    proxies = cluster.proxy_cycle()
+    producer = next(proxies).create_client("producer")
+    producer.open(tc.URI_PRIORITY, flags=["write", "ack"], succeed=True)
+    producer.post(tc.URI_PRIORITY, payload=["msg1"], wait_ack=True, succeed=True)
+
+    ensureMessageAtStorageLayer(cluster)
 
     cluster.restart_nodes()
     # For a standard cluster, states have already been restored as part of
@@ -102,3 +126,50 @@ def test_migrate_domain_to_another_cluster(cluster: Cluster):
     cluster.restart_nodes()
 
     assert Client.e_SUCCESS != producer.open(tc.URI_FANOUT, flags=["write"], block=True)
+
+
+@tweak.cluster.cluster_attributes.is_cslmode_enabled(False)
+@tweak.cluster.cluster_attributes.is_fsmworkflow(False)
+def test_restart_from_non_FSM_to_FSM(cluster: Cluster):
+    # Start a producer. Then, post a message on a priority queue and a fanout queue.
+    proxies = cluster.proxy_cycle()
+    producer = next(proxies).create_client("producer")
+    producer.open(tc.URI_PRIORITY, flags=["write", "ack"], succeed=True)
+    producer.post(tc.URI_PRIORITY, payload=["msg1"], wait_ack=True, succeed=True)
+    producer.open(tc.URI_FANOUT, flags=["write", "ack"], succeed=True)
+    producer.post(tc.URI_FANOUT, payload=["fanout_msg1"], wait_ack=True, succeed=True)
+
+    ensureMessageAtStorageLayer(cluster)
+
+    cluster.stop_nodes()
+
+    # Reconfigure the cluster from non-FSM to FSM mode
+    for broker in cluster.configurator.brokers.values():
+        my_clusters = broker.clusters.my_clusters
+        if len(my_clusters) > 0:
+            my_clusters[0].cluster_attributes.is_cslmode_enabled = True
+            my_clusters[0].cluster_attributes.is_fsmworkflow = True
+    cluster.deploy_domains()
+
+    cluster.start_nodes(wait_leader=True, wait_ready=True)
+    # For a standard cluster, states have already been restored as part of
+    # leader re-election.
+    if cluster.is_single_node:
+        producer.wait_state_restored()
+
+    producer.post(tc.URI_PRIORITY, payload=["msg2"], wait_ack=True, succeed=True)
+    producer.post(tc.URI_FANOUT, payload=["fanout_msg2"], wait_ack=True, succeed=True)
+
+    # Consumer for priority queue
+    consumer = next(proxies).create_client("consumer")
+    consumer.open(tc.URI_PRIORITY, flags=["read"], succeed=True)
+    consumer.wait_push_event()
+    assert wait_until(lambda: len(consumer.list(tc.URI_PRIORITY, block=True)) == 2, 2)
+
+    # Consumer for fanout queue
+    consumer_fanout = next(proxies).create_client("consumer_fanout")
+    consumer_fanout.open(tc.URI_FANOUT_FOO, flags=["read"], succeed=True)
+    consumer_fanout.wait_push_event()
+    assert wait_until(
+        lambda: len(consumer_fanout.list(tc.URI_FANOUT_FOO, block=True)) == 2, 2
+    )

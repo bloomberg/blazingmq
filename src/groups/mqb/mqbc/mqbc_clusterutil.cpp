@@ -595,13 +595,14 @@ int ClusterUtil::getNextPartitionId(const ClusterState& clusterState,
 }
 
 void ClusterUtil::onPartitionPrimaryAssignment(
-    ClusterData*          clusterData,
-    mqbi::StorageManager* storageManager,
-    int                   partitionId,
-    mqbnet::ClusterNode*  primary,
-    unsigned int          leaseId,
-    mqbnet::ClusterNode*  oldPrimary,
-    unsigned int          oldLeaseId)
+    ClusterData*                       clusterData,
+    mqbi::StorageManager*              storageManager,
+    int                                partitionId,
+    mqbnet::ClusterNode*               primary,
+    unsigned int                       leaseId,
+    bmqp_ctrlmsg::PrimaryStatus::Value status,
+    mqbnet::ClusterNode*               oldPrimary,
+    unsigned int                       oldLeaseId)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -612,17 +613,29 @@ void ClusterUtil::onPartitionPrimaryAssignment(
         clusterData->cluster()));
     BSLS_ASSERT_SAFE(storageManager);
     BSLS_ASSERT_SAFE(0 <= partitionId);
+    if (primary) {
+        BSLS_ASSERT_SAFE(status != bmqp_ctrlmsg::PrimaryStatus::E_UNDEFINED);
+    }
+    else {
+        BSLS_ASSERT_SAFE(status == bmqp_ctrlmsg::PrimaryStatus::E_UNDEFINED);
+    }
 
     // Validation
     if (primary == oldPrimary) {
         if (leaseId == oldLeaseId) {
-            // Leader has re-sent the primary info for this partition.  We must
-            // continue with the logic (like notifying StorageMgr etc) because
-            // certain peers may not be aware that this node is (active)
-            // primary, and will need to be notified by StorageMgr of the same.
-            mqbc::ClusterNodeSession* ns =
+            // Leader has re-sent the primary info for this partition.
+            BSLA_MAYBE_UNUSED const mqbc::ClusterNodeSession* ns =
                 clusterData->membership().getClusterNodeSession(primary);
             BSLS_ASSERT_SAFE(ns && ns->isPrimaryForPartition(partitionId));
+
+            if (clusterData->clusterConfig()
+                    .clusterAttributes()
+                    .isFSMWorkflow()) {
+                storageManager->setPrimaryStatusForPartition(partitionId,
+                                                             status);
+            }
+
+            return;  // RETURN
         }
         else {
             // We do support the scenario where proposed primary node is same
@@ -773,8 +786,7 @@ void ClusterUtil::populateQueueAssignmentAdvisory(
     ClusterState*                          clusterState,
     ClusterData*                           clusterData,
     const bmqt::Uri&                       uri,
-    const mqbi::Domain*                    domain,
-    bool                                   isCSLMode)
+    const mqbi::Domain*                    domain)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(advisory);
@@ -797,10 +809,11 @@ void ClusterUtil::populateQueueAssignmentAdvisory(
                                           uri.asString());
     key->loadBinary(&queueInfo.key());
 
-    if (isCSLMode) {
-        // Generate appIds and appKeys
-        populateAppIdInfos(&queueInfo.appIds(), domain->config().mode());
-    }
+    // Generate appIds and appKeys
+    populateAppIdInfos(&queueInfo.appIds(), domain->config().mode());
+
+    BALL_LOG_INFO << clusterData->identity().description()
+                  << ": Populated QueueAssignmentAdvisory: " << *advisory;
 }
 
 void ClusterUtil::populateQueueUnassignedAdvisory(
@@ -836,6 +849,9 @@ void ClusterUtil::populateQueueUnassignedAdvisory(
                                             // advisory.partitionId instead but
                                             // still populated.
     key.loadBinary(&queueInfo.key());
+
+    BALL_LOG_INFO << clusterData->identity().description()
+                  << ": Populated QueueUnassignedAdvisory: " << *advisory;
 }
 
 ClusterUtil::QueueAssignmentResult::Enum
@@ -866,8 +882,9 @@ ClusterUtil::assignQueue(ClusterState*           clusterState,
 
     const bmqp_ctrlmsg::NodeStatus::Value nodeStatus =
         clusterData->membership().selfNodeStatus();
-    if (bmqp_ctrlmsg::NodeStatus::E_AVAILABLE != nodeStatus) {
-        BALL_LOG_INFO << cluster->description()
+    if (!cluster->isFSMWorkflow() &&
+        bmqp_ctrlmsg::NodeStatus::E_AVAILABLE != nodeStatus) {
+        BALL_LOG_WARN << cluster->description()
                       << " Cannot proceed with queueAssignment of '" << uri
                       << "' because self is " << nodeStatus;
 
@@ -987,22 +1004,18 @@ ClusterUtil::assignQueue(ClusterState*           clusterState,
                                     clusterState,
                                     clusterData,
                                     uri,
-                                    domIt->second->domain(),
-                                    cluster->isCSLModeEnabled());
+                                    domIt->second->domain());
     if (cluster->isCSLModeEnabled()) {
         // In CSL mode, we delay the insertion to queueKeys until
         // 'onQueueAssigned' observer callback.
 
         clusterState->queueKeys().erase(key);
     }
-    else {
-        BSLS_ASSERT_SAFE(queueAdvisory.queues().back().appIds().empty());
-    }
 
     // Apply 'queueAssignmentAdvisory' to CSL
-    BALL_LOG_DEBUG << clusterData->identity().description()
-                   << ": 'QueueAssignmentAdvisory' will be applied to "
-                   << " cluster state ledger: " << queueAdvisory;
+    BALL_LOG_INFO << clusterData->identity().description()
+                  << ": 'QueueAssignmentAdvisory' will be applied to "
+                  << " cluster state ledger: " << queueAdvisory;
 
     const int rc = ledger->apply(queueAdvisory);
     if (rc != 0) {
@@ -1015,7 +1028,7 @@ ClusterUtil::assignQueue(ClusterState*           clusterState,
         // In CSL mode, we assign the queue to ClusterState upon CSL commit
         // callback of QueueAssignmentAdvisory, so we don't assign it here.
 
-        const bool assignRc = clusterState->assignQueue(
+        BSLA_MAYBE_UNUSED const bool assignRc = clusterState->assignQueue(
             uri,
             key,
             queueAdvisory.queues().back().partitionId(),
@@ -1350,9 +1363,9 @@ void ClusterUtil::registerAppId(ClusterData*        clusterData,
     }
 
     // Apply 'queueUpdateAdvisory' to CSL
-    BALL_LOG_DEBUG << clusterData->identity().description()
-                   << ": 'QueueUpdateAdvisory' will be applied to cluster "
-                   << "state ledger: " << queueAdvisory;
+    BALL_LOG_INFO << clusterData->identity().description()
+                  << ": 'QueueUpdateAdvisory' will be applied to cluster "
+                  << "state ledger: " << queueAdvisory;
 
     const int rc = ledger->apply(queueAdvisory);
     if (rc != 0) {
@@ -1479,9 +1492,9 @@ void ClusterUtil::unregisterAppId(ClusterData*        clusterData,
     }
 
     // Apply 'queueUpdateAdvisory' to CSL
-    BALL_LOG_DEBUG << clusterData->identity().description()
-                   << ": 'QueueUpdateAdvisory' will be applied to cluster "
-                   << "state ledger: " << queueAdvisory;
+    BALL_LOG_INFO << clusterData->identity().description()
+                  << ": 'QueueUpdateAdvisory' will be applied to cluster "
+                  << "state ledger: " << queueAdvisory;
 
     const int rc = ledger->apply(queueAdvisory);
     if (rc != 0) {
@@ -1505,7 +1518,7 @@ void ClusterUtil::sendClusterState(
     mqbnet::ClusterNode*  node,
     const bsl::vector<bmqp_ctrlmsg::PartitionPrimaryInfo>& partitions)
 {
-    // executed by the *DISPATCHER* thread
+    // executed by the cluster *DISPATCHER* thread
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(clusterData);
@@ -1532,8 +1545,10 @@ void ClusterUtil::sendClusterState(
         return;  // RETURN
     }
 
-    BSLS_ASSERT_SAFE(bmqp_ctrlmsg::NodeStatus::E_AVAILABLE ==
-                     clusterData->membership().selfNodeStatus());
+    BSLS_ASSERT_SAFE(
+        clusterData->clusterConfig().clusterAttributes().isFSMWorkflow() ||
+        bmqp_ctrlmsg::NodeStatus::E_AVAILABLE ==
+            clusterData->membership().selfNodeStatus());
 
     bmqp_ctrlmsg::ControlMessage  controlMessage;
     bmqp_ctrlmsg::ClusterMessage& clusterMessage =
@@ -1603,7 +1618,13 @@ void ClusterUtil::sendClusterState(
     if (rc != 0) {
         BALL_LOG_ERROR << clusterData->identity().description()
                        << ": Failed to apply cluster message: "
-                       << clusterMessage << ", rc: " << rc;
+                       << clusterMessage << ", rc: " << rc
+                       << " as part of 'sendClusterState'";
+    }
+    else {
+        BALL_LOG_INFO << clusterData->identity().description()
+                      << ": Applied cluster message: " << clusterMessage
+                      << " as part of 'sendClusterState'";
     }
 }
 
@@ -1960,6 +1981,7 @@ void ClusterUtil::validateClusterStateLedger(mqbi::Cluster*            cluster,
         }
     }
 }
+
 int ClusterUtil::load(ClusterState*               state,
                       ClusterStateLedgerIterator* iterator,
                       const ClusterData&          clusterData,
@@ -2242,8 +2264,8 @@ int ClusterUtil::latestLedgerLSN(bmqp_ctrlmsg::LeaderMessageSequence* out,
 
     if (!ledger.isOpen()) {
         BALL_LOG_ERROR << clusterData.identity().description()
-                       << ": Ledger elector term cannot be found using ledger "
-                       << " at this time as it is not yet opened.";
+                       << ": Leader sequence number cannot be found using "
+                       << "ledger at this time as it is not yet opened.";
 
         return rc_LEDGER_NOT_OPENED;  // RETURN
     }
@@ -2267,6 +2289,11 @@ int ClusterUtil::latestLedgerLSN(bmqp_ctrlmsg::LeaderMessageSequence* out,
 
     out->electorTerm()    = header->electorTerm();
     out->sequenceNumber() = header->sequenceNumber();
+
+    BALL_LOG_INFO << clusterData.identity().description()
+                  << ": Retrieved latest leader sequence number from ledger to"
+                  << " be " << *out;
+
     return rc_SUCCESS;
 }
 

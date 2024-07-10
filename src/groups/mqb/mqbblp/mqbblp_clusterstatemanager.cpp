@@ -980,6 +980,7 @@ void ClusterStateManager::onPartitionPrimaryAssignment(
                                                         partitionId,
                                                         primary,
                                                         leaseId,
+                                                        status,
                                                         oldPrimary,
                                                         oldLeaseId);
 
@@ -1589,7 +1590,6 @@ void ClusterStateManager::processQueueAssignmentAdvisory(
         const mqbu::StorageKey         queueKey(
             mqbu::StorageKey::BinaryRepresentation(),
             queueInfo.key().data());
-        BSLS_ASSERT_SAFE(queueInfo.appIds().empty());
 
         bool                    queueAlreadyAssigned = false;
         const DomainStatesCIter domCit = d_state_p->domainStates().find(
@@ -1692,7 +1692,7 @@ void ClusterStateManager::processQueueAssignmentAdvisory(
                     // no need to update d_state_p->domainStates() entry
                     // , queue was already known and registered
 
-                    const bool rc = d_state_p->assignQueue(
+                    BSLA_MAYBE_UNUSED const bool rc = d_state_p->assignQueue(
                         uri,
                         queueKey,
                         queueInfo.partitionId(),

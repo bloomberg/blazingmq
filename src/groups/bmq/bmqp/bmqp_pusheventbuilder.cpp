@@ -57,8 +57,8 @@ bmqt::EventBuilderResult::Enum PushEventBuilder::packMessageImp(
     const MessagePropertiesInfo&         messagePropertiesInfo)
 {
     // PRECONDITIONS
-    const int optionsCount = d_options.optionsCount();
-    const int optionsSize  = d_options.size();
+    BSLA_MAYBE_UNUSED const int optionsCount = d_options.optionsCount();
+    const int                   optionsSize  = d_options.size();
     BSLS_ASSERT_SAFE((optionsCount > 0 && d_currPushHeader.isSet()) ||
                      (optionsCount == 0 && !d_currPushHeader.isSet()));
     BSLS_ASSERT_SAFE(optionsSize < PushHeader::k_MAX_OPTIONS_SIZE);

@@ -643,10 +643,10 @@ static void test6_workingStatsTest()
     ASSERT_EQ(pSubCtx->valueName(1), "Time");
 
     mwcst::StatValue valQueue =
-        pSubCtx->value(mwcst::StatContext::DMCST_DIRECT_VALUE, 0);
+        pSubCtx->value(mwcst::StatContext::e_DIRECT_VALUE, 0);
 
     mwcst::StatValue valTime =
-        pSubCtx->value(mwcst::StatContext::DMCST_DIRECT_VALUE, 1);
+        pSubCtx->value(mwcst::StatContext::e_DIRECT_VALUE, 1);
 
     ASSERT_EQ(valQueue.min(), 0);
     ASSERT_EQ(valQueue.max(), k_INITIAL_CAPACITY + 1);  // +1 for HighWatermark

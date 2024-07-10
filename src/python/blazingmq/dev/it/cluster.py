@@ -1,3 +1,18 @@
+# Copyright 2024 Bloomberg Finance L.P.
+# SPDX-License-Identifier: Apache-2.0
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """Run a cluster."""
 
 import collections
@@ -7,7 +22,7 @@ import itertools
 import logging
 import shutil
 import signal
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union, Tuple
 from pathlib import Path
 
 from blazingmq.dev.configurator.localsite import LocalSite
@@ -80,7 +95,7 @@ class Cluster(contextlib.AbstractContextManager):
             logging.getLogger("blazingmq.test"), extra=log_extra
         )
 
-        self.last_known_leader = None
+        self.last_known_leader: Optional[Broker] = None
         self._processes: Dict[str, Union[Broker, Client]] = {}
         self._nodes: List[Broker] = []
         self._virtual_nodes: List[Broker] = []
@@ -101,6 +116,19 @@ class Cluster(contextlib.AbstractContextManager):
         """
 
         return self.config.name
+
+    @property
+    def admin_endpoint(self) -> Union[Tuple[str, int], Tuple[None, None]]:
+        """
+        Return a tuple containing (host, port) of an admin endpoint of this cluster, if the
+        admin endpoint is not decided, return (None, None) tuple
+        """
+        if not self.last_known_leader:
+            return None, None
+
+        return self.last_known_leader.config.host, int(
+            self.last_known_leader.config.port
+        )
 
     def start(self, wait_leader=True, wait_ready=False):
         """

@@ -295,7 +295,7 @@ static void test1_breathingTest()
     mwcu::MemOutStream dummy;
 
     helper.d_cluster_mp->start(dummy);
-    monitor.start(dummy);
+    monitor.start();
 
     // False by default
     ASSERT_EQ(monitor.isHealthy(), false);
@@ -361,7 +361,7 @@ static void test2_checkAlarmsWithResetTest()
     mwcu::MemOutStream dummy;
 
     helper.d_cluster_mp->start(dummy);
-    monitor.start(dummy);
+    monitor.start();
 
     // False by default
     ASSERT_EQ(monitor.isHealthy(), false);
@@ -589,7 +589,7 @@ static void test3_alwaysInvalidStateTest()
     ASSERT_EQ(monitor.isHealthy(), false);
 
     helper.d_cluster_mp->start(dummy);
-    monitor.start(dummy);
+    monitor.start();
 
     // T: 30
     // - 1 leader passive notification

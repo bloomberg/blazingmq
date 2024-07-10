@@ -94,10 +94,10 @@ namespace {
 BALL_LOG_SET_NAMESPACE_CATEGORY("MQBNET.TCPSESSIONFACTORY");
 
 const int k_CONNECT_INTERVAL     = 2;
-const int k_SESSION_DESTROY_WAIT = 10;
+const int k_SESSION_DESTROY_WAIT = 20;
 // Maximum time to wait (in seconds) for all session to be destroyed
 // during stop sequence.
-const int k_CLIENT_CLOSE_WAIT = 10;
+const int k_CLIENT_CLOSE_WAIT = 20;
 // Time to wait incrementally (in seconds) for all clients and
 // proxies to be destroyed during stop sequence.
 

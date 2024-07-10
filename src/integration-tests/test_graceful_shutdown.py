@@ -1,3 +1,18 @@
+# Copyright 2024 Bloomberg Finance L.P.
+# SPDX-License-Identifier: Apache-2.0
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import functools
 import re
 from typing import Iterator
@@ -62,7 +77,6 @@ def multi_cluster(request):
 
 class TestGracefulShutdown:
     def post_kill_confirm(self, node, peer):
-
         test_logger.info("posting...")
 
         # post 3 PUTs
@@ -96,7 +110,7 @@ class TestGracefulShutdown:
 
         assert wait_until(lambda: num_broker_messages() == 3, 3)
 
-        # DRQS 168471730.   Downstream should update its opened subIds upon
+        # Ticket 168471730.   Downstream should update its opened subIds upon
         # closing and not attempt to deconfigure it upon StopRequest
         self.producer.close(tc.URI_FANOUT, block=True)
 
@@ -250,7 +264,6 @@ class TestGracefulShutdown:
     def test_cancel_unconfirmed_timer(
         self, multi_node  # pylint: disable=unused-argument
     ):
-
         uriWrite = tc.URI_FANOUT
         uriRead = tc.URI_FANOUT_FOO
 
@@ -292,7 +305,6 @@ class TestGracefulShutdown:
     @tweak.cluster.queue_operations.stop_timeout_ms(3000)
     @tweak.cluster.queue_operations.shutdown_timeout_ms(2000)
     def test_multiple_stop_requests(self, multi_cluster: Cluster):
-
         cluster = multi_cluster
 
         uriWrite = tc.URI_FANOUT
@@ -327,7 +339,7 @@ class TestGracefulShutdown:
     @tweak.cluster.queue_operations.shutdown_timeout_ms(999999)
     def test_active_node_down_stop_requests(self, multi_cluster: Cluster):
         """
-        DRQS 169782591
+        Ticket 169782591
         We have: Consumer -> Proxy -> active_node -> upstream_node.
         Start shutting down active_node (one of cluster.virtual_nodes())
         Because there are unconfirmed, Proxy lingers with StopResponse.

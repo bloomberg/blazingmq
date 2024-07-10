@@ -111,7 +111,7 @@ void ClusterProxy::generateNack(bmqt::AckResult::Enum               status,
                        << putHeader.messageGUID() << "], rc: " << rc << ".";);
 }
 
-void ClusterProxy::startDispatched(bsl::ostream* errorDescription, int* rc)
+void ClusterProxy::startDispatched()
 {
     // executed by the *DISPATCHER* thread
 
@@ -120,22 +120,15 @@ void ClusterProxy::startDispatched(bsl::ostream* errorDescription, int* rc)
     BSLS_ASSERT_SAFE(!d_isStarted &&
                      "start() can only be called once on this object");
 
-    enum { rc_SUCCESS = 0, rc_ACTIVE_NODE_MANAGER = -1, rc_QUEUE_HELPER = -2 };
-
-    *rc = d_queueHelper.initialize(*errorDescription);
-    if (*rc != 0) {
-        *rc = (*rc * 10) + rc_QUEUE_HELPER;
-        return;  // RETURN
-    }
+    d_queueHelper.initialize();
 
     d_clusterData.membership().netCluster()->registerObserver(this);
 
     // Start the monitor
-    d_clusterMonitor.start(*errorDescription);
+    d_clusterMonitor.start();
     d_clusterMonitor.registerObserver(this);
 
     d_isStarted = true;
-    *rc         = rc_SUCCESS;
 
     // Because the 'cluster' was already created, it may already had some
     // sessions up before we registered ourself as observer.  So scan all nodes
@@ -182,7 +175,7 @@ void ClusterProxy::initiateShutdownDispatched(const VoidFunctor& callback)
     SessionSpVec             sessions;
     bsls::TimeInterval       shutdownTimeout;
     shutdownTimeout.addMilliseconds(
-        d_clusterProxyConfig.queueOperations().shutdownTimeoutMs());
+        clusterProxyConfig()->queueOperations().shutdownTimeoutMs());
 
     for (mqbnet::TransportManagerIterator sessIt(
              d_clusterData.transportManager());
@@ -473,7 +466,10 @@ void ClusterProxy::onPushEvent(const mqbi::DispatcherPushEvent& event)
                              appDataSp,
                              optionsSp,
                              logic,
-                             iter.header().compressionAlgorithmType());
+                             iter.header().compressionAlgorithmType(),
+                             bmqp::PushHeaderFlagUtil::isSet(
+                                 iter.header().flags(),
+                                 bmqp::PushHeaderFlags::e_OUT_OF_ORDER));
     }
 }
 
@@ -1020,13 +1016,12 @@ ClusterProxy::ClusterProxy(
 : d_allocator_p(allocator)
 , d_isStarted(false)
 , d_isStopping(false)
-, d_description("ClusterProxy (" + name + ")", d_allocator_p)
-, d_clusterProxyConfig(clusterProxyConfig)
 , d_clusterData(name,
                 scheduler,
                 bufferFactory,
                 blobSpPool,
                 mqbcfg::ClusterDefinition(allocator),
+                clusterProxyConfig,
                 netCluster,
                 this,
                 0,
@@ -1038,7 +1033,7 @@ ClusterProxy::ClusterProxy(
           0,  // Partition count.  Proxy has no notion of partition.
           allocator)
 , d_activeNodeManager(d_clusterData.membership().netCluster()->nodes(),
-                      d_description,
+                      description(),
                       mqbcfg::BrokerConfig::get().hostDataCenter())
 , d_queueHelper(&d_clusterData, &d_state, 0, allocator)
 , d_nodeStatsMap(allocator)
@@ -1104,17 +1099,14 @@ ClusterProxy::~ClusterProxy()
 
 // MANIPULATORS
 //   (virtual: mqbi::Cluster)
-int ClusterProxy::start(bsl::ostream& errorDescription)
+int ClusterProxy::start(BSLS_ANNOTATION_UNUSED bsl::ostream& errorDescription)
 {
-    int rc;
     dispatcher()->execute(bdlf::BindUtil::bind(&ClusterProxy::startDispatched,
-                                               this,
-                                               &errorDescription,
-                                               &rc),
+                                               this),
                           this);
     dispatcher()->synchronize(this);
 
-    return rc;
+    return 0;
 }
 
 void ClusterProxy::initiateShutdown(const VoidFunctor& callback)

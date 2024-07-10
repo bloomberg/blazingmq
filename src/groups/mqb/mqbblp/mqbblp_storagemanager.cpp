@@ -23,24 +23,19 @@
 #include <mqbcmd_messages.h>
 #include <mqbi_cluster.h>
 #include <mqbi_queue.h>
-#include <mqbi_queueengine.h>
 #include <mqbnet_cluster.h>
 #include <mqbnet_elector.h>
 #include <mqbs_datastore.h>
 #include <mqbs_filestoreprintutil.h>
 #include <mqbs_filestoreprotocol.h>
-#include <mqbs_replicatedstorage.h>
 #include <mqbs_storageprintutil.h>
-#include <mqbs_storageutil.h>
 #include <mqbs_virtualstorage.h>
-#include <mqbu_exit.h>
 
 // BMQ
 #include <bmqp_ctrlmsg_messages.h>
 #include <bmqp_protocol.h>
 #include <bmqp_recoverymessageiterator.h>
 #include <bmqp_storagemessageiterator.h>
-#include <bmqt_messageguid.h>
 #include <mwcu_memoutstream.h>
 
 // MWC
@@ -51,9 +46,7 @@
 #include <mwcu_printutil.h>
 
 // BDE
-#include <bdlb_print.h>
 #include <bdlf_bind.h>
-#include <bdlf_memfn.h>
 #include <bdlf_placeholder.h>
 #include <bdlmt_fixedthreadpool.h>
 #include <bdls_filesystemutil.h>
@@ -61,13 +54,12 @@
 #include <bdlt_currenttime.h>
 #include <bdlt_epochutil.h>
 #include <bdlt_timeunitratio.h>
-#include <bsl_algorithm.h>
 #include <bsl_cstddef.h>
 #include <bsl_cstdlib.h>
 #include <bsl_cstring.h>
 #include <bsl_iostream.h>
-#include <bsl_map.h>
 #include <bsl_numeric.h>
+#include <bsl_utility.h>
 #include <bslma_managedptr.h>
 #include <bslmt_latch.h>
 #include <bslmt_lockguard.h>
@@ -81,7 +73,7 @@ namespace BloombergLP {
 namespace mqbblp {
 
 namespace {
-const int k_GC_MESSAGES_INTERVAL_SECONDS = 60;
+const int k_GC_MESSAGES_INTERVAL_SECONDS = 30;
 
 bsl::ostream& printRecoveryBanner(bsl::ostream&      out,
                                   const bsl::string& lastLineSuffix)
@@ -354,76 +346,12 @@ void StorageManager::onPartitionPrimarySync(int partitionId, int status)
     BSLS_ASSERT_SAFE(partitionId <
                      static_cast<int>(d_partitionInfoVec.size()));
 
-    if (d_cluster_p->isStopping()) {
-        BALL_LOG_WARN << d_clusterData_p->identity().description()
-                      << ": Cluster is stopping; skipping partition primary "
-                      << "sync notification.";
-        return;  // RETURN
-    }
-
-    mqbs::FileStore* fs = d_fileStores[partitionId].get();
-    BSLS_ASSERT_SAFE(fs);
-    BSLS_ASSERT_SAFE(fs->isOpen());
-
-    PartitionInfo& pinfo = d_partitionInfoVec[partitionId];
-
-    if (pinfo.primary() != d_clusterData_p->membership().selfNode()) {
-        // Looks like a new primary was assigned while self node was performing
-        // partition-primary-sync (after being chosen as the primary).  This
-        // could occur if this node failed to transition to active primary in
-        // the stipulated time, and the leader force-chose a new primary.  In
-        // such scenario, this node should initiate recovery or partition-sync
-        // with the new primary, *if* the new primary has transitioned to
-        // active.  If new node hasn't yet transitioned to active primary, this
-        // node should wait for that.  This should probably be checked in
-        // StorageMgr.processStorageEvent(). Currently all of this is not
-        // handled.
-
-        MWCTSK_ALARMLOG_ALARM("STORAGE")
-            << d_clusterData_p->identity().description() << " PartitionId ["
-            << partitionId << "]: new primary ("
-            << pinfo.primary()->nodeDescription() << ") with leaseId "
-            << pinfo.primaryLeaseId()
-            << " chosen while self node was undergoing partition-primary sync."
-            << " This scenario is not handled currently."
-            << MWCTSK_ALARMLOG_END;
-
-        // No need to inform via 'd_partitionPrimaryStatusCb' though, since
-        // this node is now an old primary.
-        return;  // RETURN
-    }
-
-    if (0 != status) {
-        MWCTSK_ALARMLOG_ALARM("STORAGE")
-            << d_clusterData_p->identity().description() << " PartitionId ["
-            << partitionId << "]: node failed to sync "
-            << "after being chosen as primary, with status: " << status
-            << MWCTSK_ALARMLOG_END;
-
-        d_partitionPrimaryStatusCb(partitionId,
-                                   status,
-                                   pinfo.primaryLeaseId());
-        return;  // RETURN
-
-        // TBD: the leader should have a timeout period for a node to declare
-        //      itself as active primary, once it's chosen as primary for a
-        //      partition.  If chosen node doesn't transition to active primary
-        //      during that time, leader should choose a new node as primary.
-    }
-
-    // Broadcast self as active primary of this partition.  This must be done
-    // before invoking 'FileStore::setPrimary'.
-    mqbc::StorageUtil::transitionToActivePrimary(&pinfo,
-                                                 d_clusterData_p,
-                                                 partitionId);
-
-    d_partitionPrimaryStatusCb(partitionId, status, pinfo.primaryLeaseId());
-
-    // Safe to inform partition now.  Note that partition will issue a sync
-    // point with old leaseId (if applicable) and another with new leaseId
-    // immediately.
-
-    fs->setPrimary(pinfo.primary(), pinfo.primaryLeaseId());
+    mqbc::StorageUtil::onPartitionPrimarySync(d_fileStores[partitionId].get(),
+                                              &d_partitionInfoVec[partitionId],
+                                              d_clusterData_p,
+                                              d_partitionPrimaryStatusCb,
+                                              partitionId,
+                                              status);
 }
 
 void StorageManager::shutdownCb(int partitionId, bslmt::Latch* latch)
@@ -529,621 +457,6 @@ void StorageManager::queueDeletionCb(int*                    status,
         d_cluster_p->isCSLModeEnabled());
 }
 
-void StorageManager::recoveredQueuesCbImpl(
-    int                    partitionId,
-    const QueueKeyInfoMap& queueKeyInfoMap)
-{
-    // executed by *QUEUE_DISPATCHER* thread associated with 'partitionId'
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(0 <= partitionId &&
-                     partitionId < static_cast<int>(d_fileStores.size()));
-    BSLS_ASSERT_SAFE(d_fileStores[partitionId]->inDispatcherThread());
-
-    BALL_LOG_INFO << d_clusterData_p->identity().description()
-                  << ": PartitionId [" << partitionId << "] recovered ["
-                  << queueKeyInfoMap.size() << "] queues";
-
-    bslmt::LockGuard<bslmt::Mutex> guard(&d_storagesLock);  // LOCK
-
-    mqbs::FileStore* fs = d_fileStores[partitionId].get();
-    BSLS_ASSERT_SAFE(fs);
-
-    // Create scratch data structures.
-
-    DomainMap domainMap;
-
-    typedef bsl::unordered_map<mqbu::StorageKey, mqbs::ReplicatedStorage*>
-                                         QueueKeyStorageMap;
-    typedef QueueKeyStorageMap::iterator QueueKeyStorageMapIterator;
-    QueueKeyStorageMap                   queueKeyStorageMap;
-
-    // In 1st pass over 'queueKeyInfoMap', create a unique list of domains
-    // encountered, for which we will need to create a concrete instance of
-    // 'mqbi::Domain'.  Additionally, also ensure that if a fanout queue has
-    // appId/appKey pairs associated with it, they are unique.  We don't have
-    // a global list of AppIds (in fact, we can't have that, because AppIds can
-    // clash), so we check uniqueness of AppIds only for a given queue.  But we
-    // do have a global unique list of AppKeys ('appKeys'), so we check each
-    // queue's AppKey against that list.
-
-    for (QueueKeyInfoMap::const_iterator qit = queueKeyInfoMap.begin();
-         qit != queueKeyInfoMap.end();
-         ++qit) {
-        const mqbs::DataStoreConfigQueueInfo& qinfo = qit->second;
-        bmqt::Uri                             uri(qinfo.canonicalQueueUri());
-        if (!uri.isValid()) {
-            MWCTSK_ALARMLOG_ALARM("RECOVERY")
-                << d_clusterData_p->identity().description()
-                << ": PartitionId [" << partitionId
-                << "]: encountered invalid CanonicalQueueUri [" << uri << "]."
-                << MWCTSK_ALARMLOG_END;
-            mqbu::ExitUtil::terminate(mqbu::ExitCode::e_RECOVERY_FAILURE);
-            // EXIT
-        }
-
-        if (qinfo.appIdKeyPairs().size() != 1 ||
-            qinfo.appIdKeyPairs()[0].first !=
-                bmqp::ProtocolUtil::k_DEFAULT_APP_ID) {
-            // This ia a fanout queue
-            AppIds appIds;
-
-            for (size_t n = 0; n < qinfo.appIdKeyPairs().size(); ++n) {
-                const AppIdKeyPair& p = qinfo.appIdKeyPairs()[n];
-
-                AppIdsInsertRc appIdsIrc = appIds.insert(p.first);
-                if (false == appIdsIrc.second) {
-                    // Duplicate AppId.
-
-                    MWCTSK_ALARMLOG_ALARM("RECOVERY")
-                        << d_clusterData_p->identity().description()
-                        << ": PartitionId [" << partitionId << "]: "
-                        << "encountered a duplicate AppId while processing "
-                        << "recovered queue [" << uri << "], "
-                        << "queueKey [" << qit->first << "]. AppId ["
-                        << *(appIdsIrc.first) << "]. AppKey [" << p.second
-                        << "]." << MWCTSK_ALARMLOG_END;
-                    mqbu::ExitUtil::terminate(
-                        mqbu::ExitCode::e_RECOVERY_FAILURE);
-                    // EXIT
-                }
-
-                bslmt::LockGuard<bslmt::Mutex> appLockGuard(&d_appKeysLock);
-                // LOCK
-
-                AppKeys&        appKeys    = d_appKeysVec[partitionId];
-                AppKeysInsertRc appKeysIrc = appKeys.insert(p.second);
-                if (!appKeysIrc.second && !d_cluster_p->isCSLModeEnabled()) {
-                    // Duplicate AppKey.  Error in non-csl mode.  In CSL mode,
-                    // this can occur because this queue (and thus its appIds &
-                    // appKeys) could be assigned at node startup, via
-                    // CQH::onQueueAssigned ->
-                    // StorageMgr::register/UpdateQueueReplica.
-                    MWCTSK_ALARMLOG_ALARM("RECOVERY")
-                        << d_clusterData_p->identity().description()
-                        << ": PartitionId [" << partitionId << "]: "
-                        << "encountered a duplicate AppKey while processing "
-                        << "recovered queue [" << uri << "], queueKey ["
-                        << qit->first << "]. AppKey [" << *(appKeysIrc.first)
-                        << "]. AppId [" << p.first << "]."
-                        << MWCTSK_ALARMLOG_END;
-                    mqbu::ExitUtil::terminate(
-                        mqbu::ExitCode::e_RECOVERY_FAILURE);
-                    // EXIT
-                }
-            }
-        }
-
-        // Domain (key) may already exist but we don't care.
-        domainMap.insert(bsl::make_pair(uri.qualifiedDomain(),
-                                        static_cast<mqbi::Domain*>(0)));
-    }
-
-    // Print the unique list of retrieved domain names (useful for debugging
-    // purposes).
-    mwcu::MemOutStream os;
-    os << d_clusterData_p->identity().description() << ": PartitionId ["
-       << partitionId << "]: "
-       << "retrieved "
-       << mwcu::PrintUtil::prettyNumber(
-              static_cast<bsls::Types::Int64>(queueKeyInfoMap.size()))
-       << " queues belonging to "
-       << mwcu::PrintUtil::prettyNumber(
-              static_cast<bsls::Types::Int64>(domainMap.size()))
-       << " domains.";
-
-    for (DomainMapIter it = domainMap.begin(); it != domainMap.end(); ++it) {
-        os << "\n  " << it->first;
-    }
-
-    BALL_LOG_INFO << os.str();
-
-    // For each domain name in the 'domainMap', request the domain factory to
-    // create the corresponding domain object.  Obtaining a domain object is
-    // async, but once we issue all domain creation requests, we block until
-    // all of them complete.  This keeps things manageable in this routine,
-    // which itself is executed by each partition.  Blocking is not ideal, but
-    // the broker is starting at this point, so its ok to do so.  Note that we
-    // first issue all domain creation requests, and then block, instead of
-    // issuing and blocking on one request at a time.
-    bslmt::Latch latch(domainMap.size());
-
-    for (DomainMapIter dit = domainMap.begin(); dit != domainMap.end();
-         ++dit) {
-        BALL_LOG_INFO << d_clusterData_p->identity().description()
-                      << ": PartitionId [" << partitionId
-                      << "]: requesting domain for [" << dit->first << "].";
-
-        d_domainFactory_p->createDomain(
-            dit->first,
-            bdlf::BindUtil::bind(&mqbc::StorageUtil::onDomain,
-                                 bdlf::PlaceHolders::_1,  // status
-                                 bdlf::PlaceHolders::_2,  // domain*
-                                 &(dit->second),
-                                 &latch,
-                                 d_clusterData_p->identity().description(),
-                                 dit->first,
-                                 partitionId));
-    }
-
-    BALL_LOG_INFO << d_clusterData_p->identity().description()
-                  << ": PartitionId [" << partitionId
-                  << "]: about to wait for [" << domainMap.size()
-                  << "] domains to be created.";
-    latch.wait();
-
-    BALL_LOG_INFO << d_clusterData_p->identity().description()
-                  << ": PartitionId [" << partitionId
-                  << "]: domain creation step complete. Checking if all "
-                  << "domains were created successfully.";
-
-    mqbs::StorageUtil::DomainQueueMessagesCountMap& unrecognizedDomains =
-        d_unrecognizedDomains[partitionId];
-    for (DomainMapIter dit = domainMap.begin(); dit != domainMap.end();
-         ++dit) {
-        if (dit->second == 0 || !dit->second->cluster()->isClusterMember()) {
-            // Two scenarios:
-            // 1. Failed to create domain for this domain name.
-            // 2. Domain is associated with a proxy cluster.
-            //
-            // Will add it to the map of unrecognized domain names for further
-            // investigation.
-            unrecognizedDomains.insert(
-                bsl::make_pair(dit->first,
-                               mqbs::StorageUtil::QueueMessagesCountMap()));
-        }
-    }
-
-    // All domains have been created.  Now make 2nd pass over 'queueKeyUriMap'
-    // and create file-backed storages for each recovered queue.
-
-    for (QueueKeyInfoMapConstIter qit = queueKeyInfoMap.begin();
-         qit != queueKeyInfoMap.end();
-         ++qit) {
-        const mqbu::StorageKey&               queueKey = qit->first;
-        const mqbs::DataStoreConfigQueueInfo& qinfo    = qit->second;
-        const AppIdKeyPairs& appIdKeyPairs             = qinfo.appIdKeyPairs();
-        const bmqt::Uri      queueUri(qinfo.canonicalQueueUri());
-        BSLS_ASSERT_SAFE(queueUri.isValid());
-
-        // Ensure queueKey uniqueness.
-
-        QueueKeyStorageMapIterator it = queueKeyStorageMap.find(queueKey);
-        if (it != queueKeyStorageMap.end()) {
-            // Encountered the queueKey again.  This is an error.
-
-            const mqbs::ReplicatedStorage* rs = it->second;
-            MWCTSK_ALARMLOG_ALARM("RECOVERY")
-                << d_clusterData_p->identity().description()
-                << ": PartitionId [" << partitionId
-                << "]: encountered queueKey [" << queueKey
-                << "] again, for uri [" << queueUri
-                << "]. Uri associated with original queueKey: "
-                << "[" << rs->queueUri() << "]." << MWCTSK_ALARMLOG_END;
-            mqbu::ExitUtil::terminate(mqbu::ExitCode::e_RECOVERY_FAILURE);
-            // EXIT
-        }
-
-        // Ensure queueURI uniqueness, for this partition only though.
-
-        StorageSpMap&         storageMap = d_storages[partitionId];
-        StorageSpMapConstIter spmapIt    = storageMap.find(queueUri);
-        if (storageMap.end() != spmapIt) {
-            // Already created ReplicatedStorage for this queueURI.
-            if (d_cluster_p->isCSLModeEnabled()) {
-                // This can happen in CSL mode so we will just log it after
-                // verifying that the queueKey and appIds are matching.
-
-                const StorageSp& rstorage = spmapIt->second;
-                BSLS_ASSERT_SAFE(queueKey == rstorage->queueKey());
-                BSLS_ASSERT_SAFE(partitionId == rstorage->partitionId());
-
-                for (AppIdKeyPairsCIter ait = appIdKeyPairs.begin();
-                     ait != appIdKeyPairs.end();
-                     ++ait) {
-                    const bsl::string&      appId  = ait->first;
-                    const mqbu::StorageKey& appKey = ait->second;
-
-                    BSLS_ASSERT_SAFE(!appKey.isNull());
-                    BSLS_ASSERT_SAFE(!appId.empty());
-
-                    mqbu::StorageKey existingAppKey;
-                    BSLS_ASSERT_SAFE(
-                        rstorage->hasVirtualStorage(appId, &existingAppKey));
-                    BSLS_ASSERT_SAFE(appKey == existingAppKey);
-                }
-
-                BSLS_ASSERT_SAFE(
-                    unrecognizedDomains.find(queueUri.qualifiedDomain()) ==
-                    unrecognizedDomains.end());
-
-                BALL_LOG_INFO << d_clusterData_p->identity().description()
-                              << ": PartitionId [" << partitionId
-                              << "]: encountered queueUri [" << queueUri
-                              << "] again. QueueKey of this uri [" << queueKey
-                              << "].";
-
-                queueKeyStorageMap.insert(
-                    bsl::make_pair(queueKey, rstorage.get()));
-
-                continue;  // CONTINUE
-            }
-            else {
-                // This is an error in non-CSL mode.
-
-                const StorageSp& rstorage = spmapIt->second;
-                MWCTSK_ALARMLOG_ALARM("RECOVERY")
-                    << d_clusterData_p->identity().description()
-                    << ": PartitionId [" << partitionId
-                    << "]: encountered queueUri [" << queueUri
-                    << "] again. QueueKey of this uri [" << queueKey
-                    << "]. Details of original queueUri:: PartitionId ["
-                    << rstorage->partitionId() << "], queueKey ["
-                    << rstorage->queueKey() << "]." << MWCTSK_ALARMLOG_END;
-                mqbu::ExitUtil::terminate(mqbu::ExitCode::e_RECOVERY_FAILURE);
-                // EXIT
-            }
-        }
-
-        // If domain name is unrecognized, do not create storage.
-        const bslstl::StringRef& domainName = queueUri.qualifiedDomain();
-        mqbs::StorageUtil::DomainQueueMessagesCountMap::iterator iter =
-            unrecognizedDomains.find(domainName);
-        if (iter != unrecognizedDomains.end()) {
-            iter->second.insert(bsl::make_pair(queueUri, 0));
-            continue;  // CONTINUE
-        }
-
-        DomainMapIter dit = domainMap.find(domainName);
-        BSLS_ASSERT_SAFE(dit != domainMap.end());
-        BSLS_ASSERT_SAFE(0 != dit->second);
-        mqbi::Domain* domain = dit->second;
-        BSLS_ASSERT_SAFE(domain->cluster());
-
-        BALL_LOG_INFO << d_clusterData_p->identity().description()
-                      << " PartitionId [" << partitionId
-                      << "] creating storage for queue [" << queueUri
-                      << "], queueKey [" << queueKey << "].";
-
-        // Update 'd_storages'.
-        const mqbconfm::Domain&            domainCfg  = domain->config();
-        const mqbconfm::StorageDefinition& storageDef = domainCfg.storage();
-
-        if (domainCfg.mode().isUndefinedValue()) {
-            MWCTSK_ALARMLOG_ALARM("RECOVERY")
-                << d_clusterData_p->identity().description()
-                << ": PartitionId [" << partitionId << "]: Domain for queue ["
-                << queueUri << "], queueKey [" << queueKey
-                << "] has invalid queue mode. Aborting broker."
-                << MWCTSK_ALARMLOG_END;
-            mqbu::ExitUtil::terminate(mqbu::ExitCode::e_RECOVERY_FAILURE);
-            // EXIT
-        }
-
-        if (storageDef.config().isUndefinedValue()) {
-            MWCTSK_ALARMLOG_ALARM("RECOVERY")
-                << d_clusterData_p->identity().description()
-                << ": PartitionId [" << partitionId << "]: Domain for queue ["
-                << queueUri << "], queueKey [" << queueKey
-                << "] has invalid storage config. Aborting broker."
-                << MWCTSK_ALARMLOG_END;
-            mqbu::ExitUtil::terminate(mqbu::ExitCode::e_RECOVERY_FAILURE);
-            // EXIT
-        }
-
-        if (domain->cluster()->isClusterMember() &&
-            !domain->cluster()->isLocal() &&
-            (storageDef.config().isInMemoryValue() !=
-             domainCfg.mode().isBroadcastValue())) {
-            // In-memory storage without broadcast mode, as well as broadcast
-            // mode without in-memory storage are incompatible config in a
-            // clustered setup.
-
-            MWCTSK_ALARMLOG_ALARM("RECOVERY")
-                << d_clusterData_p->identity().description()
-                << ": PartitionId [" << partitionId << "]: Queue [" << queueUri
-                << "], queueKey [" << queueKey
-                << "] is clustered, is setup with incompatible "
-                << "config. In-memory storage: " << bsl::boolalpha
-                << storageDef.config().isInMemoryValue()
-                << ", broadcast mode: " << bsl::boolalpha
-                << domainCfg.mode().isBroadcastValue() << ". Aboring broker."
-                << MWCTSK_ALARMLOG_END;
-            mqbu::ExitUtil::terminate(mqbu::ExitCode::e_RECOVERY_FAILURE);
-            // EXIT
-        }
-
-        StorageSp rs_sp;
-        fs->createStorage(&rs_sp, queueUri, queueKey, domain);
-        BSLS_ASSERT_SAFE(rs_sp);
-
-        BSLS_ASSERT_SAFE(storageMap.end() == storageMap.find(queueUri));
-        storageMap.insert(bsl::make_pair(queueUri, rs_sp));
-        fs->registerStorage(rs_sp.get());
-        queueKeyStorageMap.insert(bsl::make_pair(queueKey, rs_sp.get()));
-
-        // Create and add virtual storages, if any.
-        mwcu::MemOutStream errorDesc;
-        int                rc;
-        for (AppIdKeyPairsCIter ait = appIdKeyPairs.begin();
-             ait != appIdKeyPairs.end();
-             ++ait) {
-            const bsl::string&      appId  = ait->first;
-            const mqbu::StorageKey& appKey = ait->second;
-
-            BSLS_ASSERT_SAFE(!appKey.isNull());
-            BSLS_ASSERT_SAFE(!appId.empty());
-
-            if (0 !=
-                (rc = rs_sp->addVirtualStorage(errorDesc, appId, appKey))) {
-                // TBD: does this mean storage is corrupt? Should we abort?
-
-                MWCTSK_ALARMLOG_ALARM("RECOVERY")
-                    << d_clusterData_p->identity().description()
-                    << ": PartitionId [" << partitionId
-                    << "]: failed to create virtual storage with appId ["
-                    << appId << "], appKey [" << appKey << "] for queueUri ["
-                    << queueUri << "], queueKey [" << queueKey
-                    << "]. Reason: [" << errorDesc.str() << "], rc: " << rc
-                    << "." << MWCTSK_ALARMLOG_END;
-                continue;  // CONTINUE
-            }
-
-            BALL_LOG_INFO << d_clusterData_p->identity().description()
-                          << " PartitionId [" << partitionId
-                          << "]: Created virtual storage with appId [" << appId
-                          << "], appKey [" << appKey << "] for queueUri ["
-                          << queueUri << "], queueKey [" << queueKey << "].";
-        }
-
-        if (!domain->config().mode().isFanoutValue()) {
-            // Fanout and non-fanout Queue Engines are converging.  Like Fanout
-            // Queue Engine, non-fanout ones operate on appId which is
-            // '__default' in non-fanout case.  For this reason, add a
-            // VirtualStorage to the storage - just like in the Fanout case,
-            // except it is hardcoded '__default' appId.
-            //
-            // In CSL mode, the default appId would have been covered in
-            // 'appIdKeyPairs' above, so no need to explicitly add it here.
-
-            rc = rs_sp->addVirtualStorage(
-                errorDesc,
-                bmqp::ProtocolUtil::k_DEFAULT_APP_ID,
-                mqbi::QueueEngine::k_DEFAULT_APP_KEY);
-
-            if (rc) {
-                // TBD: does this mean storage is corrupt? Should we abort?
-
-                BALL_LOG_WARN << d_clusterData_p->identity().description()
-                              << ": PartitionId [" << partitionId
-                              << "]: failed to create default virtual storage"
-                              << " for queueUri [" << queueUri
-                              << "], queueKey [" << queueKey << "]. Reason: ["
-                              << errorDesc.str() << "], rc: " << rc << ".";
-            }
-
-            BALL_LOG_INFO << d_clusterData_p->identity().description()
-                          << " PartitionId [" << partitionId
-                          << "]: Created default virtual storage "
-                          << " for queueUri [" << queueUri << "], queueKey ["
-                          << queueKey << "].";
-        }
-    }
-
-    // Iterate over FS[partitionId] using FS-Iterator, and update file-backed
-    // storages.  Note that any virtual storages associated with each
-    // file-backed storage will also be populated at this time.
-
-    BALL_LOG_INFO << d_clusterData_p->identity().description()
-                  << ": PartitionId [" << partitionId << "], total number of "
-                  << "records found during recovery: " << fs->numRecords();
-
-    typedef bsl::vector<mqbs::DataStoreRecordHandle> DataStoreRecordHandles;
-    typedef DataStoreRecordHandles::iterator DataStoreRecordHandlesIter;
-
-    mqbs::FileStoreIterator fsIt(fs);
-    DataStoreRecordHandles  recordsToPurge;
-
-    bsls::Types::Uint64 lastStrongConsistencySequenceNum    = 0;
-    unsigned int        lastStrongConsistencyPrimaryLeaseId = 0;
-
-    while (fsIt.next()) {
-        mqbu::StorageKey          appKey;
-        mqbu::StorageKey          queueKey;
-        bmqt::MessageGUID         guid;
-        mqbs::QueueOpType::Enum   queueOpType = mqbs::QueueOpType::e_UNDEFINED;
-        unsigned int              refCount    = 0;
-        mqbs::ConfirmReason::Enum confirmReason =
-            mqbs::ConfirmReason::e_CONFIRMED;
-
-        if (mqbs::RecordType::e_MESSAGE == fsIt.type()) {
-            mqbs::MessageRecord msgRec;
-            fsIt.loadMessageRecord(&msgRec);
-            queueKey = msgRec.queueKey();
-            guid     = msgRec.messageGUID();
-            refCount = msgRec.refCount();
-        }
-        else if (mqbs::RecordType::e_CONFIRM == fsIt.type()) {
-            mqbs::ConfirmRecord confRec;
-            fsIt.loadConfirmRecord(&confRec);
-            queueKey      = confRec.queueKey();
-            appKey        = confRec.appKey();
-            guid          = confRec.messageGUID();
-            confirmReason = confRec.reason();
-        }
-        else if (mqbs::RecordType::e_QUEUE_OP == fsIt.type()) {
-            // TODO_CSL When we logically delete the QLIST file, will we still
-            // load QueueOp records here?
-            mqbs::QueueOpRecord qOpRec;
-            fsIt.loadQueueOpRecord(&qOpRec);
-            queueKey    = qOpRec.queueKey();
-            appKey      = qOpRec.appKey();
-            queueOpType = qOpRec.type();
-        }
-        else {
-            continue;  // CONTINUE
-        }
-
-        BSLS_ASSERT_SAFE(!queueKey.isNull());
-
-        QueueKeyStorageMapIterator storageMapIt = queueKeyStorageMap.find(
-            queueKey);
-
-        const mqbs::DataStoreRecordHandle& handle = fsIt.handle();
-
-        // If queue is either not recovered or belongs to an unrecognized
-        // domain.
-        if (storageMapIt == queueKeyStorageMap.end()) {
-            QueueKeyInfoMapConstIter infoMapCit = queueKeyInfoMap.find(
-                queueKey);
-            // If queue is recovered, implying that it belongs to an
-            // unrecognized domain.
-            if (infoMapCit != queueKeyInfoMap.cend()) {
-                const bmqt::Uri uri(infoMapCit->second.canonicalQueueUri());
-
-                mqbs::StorageUtil::DomainQueueMessagesCountMap::iterator
-                    domIt = unrecognizedDomains.find(uri.qualifiedDomain());
-                BSLS_ASSERT_SAFE(domIt != unrecognizedDomains.end());
-
-                mqbs::StorageUtil::QueueMessagesCountMap::iterator countMapIt =
-                    domIt->second.find(uri);
-                BSLS_ASSERT_SAFE(countMapIt != domIt->second.end());
-                ++countMapIt->second;
-                recordsToPurge.push_back(handle);
-                continue;  // CONTINUE
-            }
-
-            // If queue is not recovered
-            MWCTSK_ALARMLOG_ALARM("STORAGE")
-                << d_clusterData_p->identity().description()
-                << ": PartitionId [" << partitionId << "], dropping record "
-                << "because queue key '" << queueKey << "' not found in the "
-                << "list of recovered queues, record: " << fsIt
-                << MWCTSK_ALARMLOG_END;
-            continue;  // CONTINUE
-        }
-
-        mqbs::ReplicatedStorage* rs = storageMapIt->second;
-        BSLS_ASSERT_SAFE(rs);
-
-        const bool isStrongConsistency = rs->isStrongConsistency();
-
-        if (mqbs::RecordType::e_QUEUE_OP != fsIt.type()) {
-            // It's one of MESSAGE/CONFIRM/DELETION records, which means it
-            // must be a file-backed storage.
-
-            if (!rs->isPersistent()) {
-                MWCTSK_ALARMLOG_ALARM("STORAGE")
-                    << d_clusterData_p->identity().description()
-                    << ": PartitionId [" << partitionId << "]: For queue ["
-                    << rs->queueUri() << "] queueKey [" << queueKey
-                    << "] which is configured with in-memory storage, "
-                    << " encountered a record of incompatible type ["
-                    << fsIt.type() << "] during recovery at startup. "
-                    << "Skipping this record." << MWCTSK_ALARMLOG_END;
-                continue;  // CONTINUE
-            }
-        }
-
-        // TODO_CSL When we logically delete the QLIST file, will we still
-        // do this here?
-        if (mqbs::RecordType::e_QUEUE_OP == fsIt.type()) {
-            BSLS_ASSERT_SAFE(guid.isUnset());
-            BSLS_ASSERT_SAFE(mqbs::QueueOpType::e_UNDEFINED != queueOpType);
-
-            rs->addQueueOpRecordHandle(handle);
-
-            if (mqbs::QueueOpType::e_PURGE == queueOpType &&
-                !appKey.isNull()) {
-                // It's a 'PURGE' QueueOp record for a specific appKey.  Purge
-                // the virtual storage corresponding to that appKey.  Note that
-                // 'purge' needs to be invoked only if 'appKey' is non-null,
-                // because in other case (ie, 'appKey' being null), the
-                // recovery phase would have already ignored all messages
-                // belonging to the queue.  If it is desired to invoke 'purge'
-                // unconditionally here, 'purge' will need to be passed a flag
-                // (something like 'inRecovery=true'), based on which storage
-                // implementation may or may not invoke certain business logic.
-
-                rs->purge(appKey);
-            }
-
-            // TBD: check if adding 'else if' clauses for 'ADDITION',
-            // 'DELETION' and 'CREATION' queueOpTypes to handle
-            // addition/removal of virtual storages from 'rs' is better than
-            // the current logic of adding virtual storages.  Note that in the
-            // current logic, virtual storages may not be removed at recovery
-            // even if indicated by the storage record.
-        }
-        else if (mqbs::RecordType::e_MESSAGE == fsIt.type()) {
-            BSLS_ASSERT_SAFE(false == guid.isUnset());
-            rs->processMessageRecord(guid,
-                                     fs->getMessageLenRaw(handle),
-                                     refCount,
-                                     handle);
-            if (isStrongConsistency) {
-                lastStrongConsistencySequenceNum    = handle.sequenceNum();
-                lastStrongConsistencyPrimaryLeaseId = handle.primaryLeaseId();
-            }
-        }
-        else if (mqbs::RecordType::e_CONFIRM == fsIt.type()) {
-            BSLS_ASSERT_SAFE(false == guid.isUnset());
-            // If appKey is non-null, ensure that the 'rs' is already aware of
-            // the appKey.  Note that this check should not be done for the
-            // QueueOp record because a QueueOp record may contain a new AppKey
-            // (dynamic appId registration...).
-
-            if (!appKey.isNull() && !rs->hasVirtualStorage(appKey)) {
-                MWCTSK_ALARMLOG_ALARM("STORAGE")
-                    << d_clusterData_p->identity().description()
-                    << ": PartitionId [" << partitionId << "], appKey ["
-                    << appKey << "] specified in " << fsIt.type()
-                    << " record, with guid [" << guid
-                    << "] not found in the list of virtual "
-                    << "storages associated with file-backed "
-                    << "storage for queue [" << rs->queueUri()
-                    << "], queueKey [" << rs->queueKey()
-                    << "]. Dropping this record." << MWCTSK_ALARMLOG_END;
-                continue;  // CONTINUE
-            }
-            rs->processConfirmRecord(guid, appKey, confirmReason, handle);
-        }
-        else {
-            BSLS_ASSERT(false);
-        }
-    }
-
-    // Purge all records that have been invalidated
-    for (DataStoreRecordHandlesIter it = recordsToPurge.begin();
-         it != recordsToPurge.end();
-         ++it) {
-        fs->removeRecordRaw(*it);
-    }
-
-    fs->setLastStrongConsistency(lastStrongConsistencyPrimaryLeaseId,
-                                 lastStrongConsistencySequenceNum);
-}
-
 void StorageManager::recoveredQueuesCb(int                    partitionId,
                                        const QueueKeyInfoMap& queueKeyInfoMap)
 {
@@ -1157,18 +470,32 @@ void StorageManager::recoveredQueuesCb(int                    partitionId,
 
     if (d_cluster_p->isStopping()) {
         BALL_LOG_WARN << d_clusterData_p->identity().description()
+                      << " Partition [" << partitionId << "]: "
                       << ": Cluster is stopping; skipping partition recovery.";
         return;  // RETURN
     }
 
     // Main logic
-    recoveredQueuesCbImpl(partitionId, queueKeyInfoMap);
+    mqbc::StorageUtil::recoveredQueuesCb(
+        &d_storages[partitionId],
+        &d_storagesLock,
+        d_fileStores[partitionId].get(),
+        &d_appKeysVec[partitionId],
+        &d_appKeysLock,
+        d_domainFactory_p,
+        &d_unrecognizedDomains[partitionId],
+        d_clusterData_p->identity().description(),
+        partitionId,
+        queueKeyInfoMap,
+        d_cluster_p->isCSLModeEnabled());
 
     if (++d_numPartitionsRecoveredQueues < numPartitions) {
         return;  // RETURN
     }
 
-    dumpUnknownRecoveredDomains();
+    mqbc::StorageUtil::dumpUnknownRecoveredDomains(
+        d_clusterData_p->identity().description(),
+        d_unrecognizedDomains);
 }
 
 void StorageManager::forceFlushFileStores()
@@ -1634,93 +961,6 @@ void StorageManager::processShutdownEventDispatched(int partitionId)
         partitionId);
 }
 
-void StorageManager::dumpUnknownRecoveredDomains() const
-{
-    // executed by *ONE* of the *QUEUE DISPATCHER* thread
-
-    // Since 'd_unrecognizedDomains' has been resized to the number of
-    // partitions upon construction, we need to check whether each map in this
-    // vector is empty to verify emptiness.
-    if (static_cast<size_t>(bsl::count_if(
-            d_unrecognizedDomains.cbegin(),
-            d_unrecognizedDomains.cend(),
-            bdlf::MemFnUtil::memFn(
-                &mqbs::StorageUtil::DomainQueueMessagesCountMap::empty))) ==
-        d_unrecognizedDomains.size()) {
-        return;  // RETURN
-    }
-
-    // All partitions have gone through 'recoveredQueuesCb', but we have
-    // encountered some unrecognized domains.  We will print a warning in the
-    // log with statistics about them, allowing BlazingMQ developers to
-    // investigate.
-
-    // 1. Collapse 'd_unrecognizedDomains' from a list of maps to a single map.
-    mqbs::StorageUtil::DomainQueueMessagesCountMap unrecognizedDomains;
-    for (DomainQueueMessagesCountMaps::const_iterator cit =
-             d_unrecognizedDomains.cbegin();
-         cit != d_unrecognizedDomains.cend();
-         ++cit) {
-        mqbs::StorageUtil::mergeDomainQueueMessagesCountMap(
-            &unrecognizedDomains,
-            *cit);
-    }
-
-    // 2. Print statistics using the collapsed map, in sorted order of domain
-    //    name.
-    typedef bsl::vector<bsl::string> MapKeys;
-
-    MapKeys keys;
-    keys.reserve(unrecognizedDomains.size());
-    for (mqbs::StorageUtil::DomainQueueMessagesCountMap::const_iterator cit =
-             unrecognizedDomains.cbegin();
-         cit != unrecognizedDomains.cend();
-         ++cit) {
-        keys.push_back(cit->first);
-    }
-    bsl::sort(keys.begin(), keys.end());
-
-    mwcu::MemOutStream out;
-    const int          level = 0;
-
-    bdlb::Print::newlineAndIndent(out, level);
-    out << "Unrecognized domains found while recovering '"
-        << d_clusterData_p->identity().description() << "'";
-    for (MapKeys::const_iterator cit = keys.cbegin(); cit != keys.cend();
-         ++cit) {
-        bdlb::Print::newlineAndIndent(out, level + 1);
-        out << *cit << ":";
-
-        // Sort the queues by number of messages
-        typedef bsl::vector<mqbs::StorageUtil::QueueMessagesCount>
-            QueueMessagesList;
-
-        const mqbs::StorageUtil::QueueMessagesCountMap& queueMessages =
-            unrecognizedDomains[*cit];
-        QueueMessagesList queueMessagesList;
-        for (mqbs::StorageUtil::QueueMessagesCountMap::const_iterator qmcit =
-                 queueMessages.cbegin();
-             qmcit != queueMessages.cend();
-             ++qmcit) {
-            queueMessagesList.push_back(*qmcit);
-        }
-        bsl::sort(queueMessagesList.begin(),
-                  queueMessagesList.end(),
-                  mqbs::StorageUtil::queueMessagesCountComparator);
-
-        for (QueueMessagesList::const_iterator qmlcit =
-                 queueMessagesList.cbegin();
-             qmlcit != queueMessagesList.cend();
-             ++qmlcit) {
-            bdlb::Print::newlineAndIndent(out, level + 2);
-            out << qmlcit->first << ": "
-                << mwcu::PrintUtil::prettyNumber(qmlcit->second) << " msgs";
-        }
-    }
-
-    BALL_LOG_ERROR << out.str();
-}
-
 // CREATORS
 StorageManager::StorageManager(
     const mqbcfg::ClusterDefinition& clusterConfig,
@@ -2152,6 +1392,10 @@ int StorageManager::start(bsl::ostream& errorDescription)
         &d_allocators,
         errorDescription,
         d_replicationFactor,
+        bdlf::BindUtil::bind(&StorageManager::recoveredQueuesCb,
+                             this,
+                             bdlf::PlaceHolders::_1,   // partitionId
+                             bdlf::PlaceHolders::_2),  // queueKeyUriMap)
         bdlf::BindUtil::bind(&StorageManager::queueCreationCb,
                              this,
                              bdlf::PlaceHolders::_1,   // status
@@ -2162,15 +1406,11 @@ int StorageManager::start(bsl::ostream& errorDescription)
                              bdlf::PlaceHolders::_6),  // IsNewQueue)
         bdlf::BindUtil::bind(&StorageManager::queueDeletionCb,
                              this,
-                             bdlf::PlaceHolders::_1,   // status
-                             bdlf::PlaceHolders::_2,   // partitionId
-                             bdlf::PlaceHolders::_3,   // QueueUri
-                             bdlf::PlaceHolders::_4,   // QueueKey
-                             bdlf::PlaceHolders::_5),  // AppKey
-        bdlf::BindUtil::bind(&StorageManager::recoveredQueuesCb,
-                             this,
-                             bdlf::PlaceHolders::_1,    // partitionId
-                             bdlf::PlaceHolders::_2));  // queueKeyUriMap)
+                             bdlf::PlaceHolders::_1,    // status
+                             bdlf::PlaceHolders::_2,    // partitionId
+                             bdlf::PlaceHolders::_3,    // QueueUri
+                             bdlf::PlaceHolders::_4,    // QueueKey
+                             bdlf::PlaceHolders::_5));  // AppKey
 
     BALL_LOG_INFO_BLOCK
     {
@@ -2323,6 +1563,8 @@ void StorageManager::setPrimaryForPartition(int                  partitionId,
 void StorageManager::clearPrimaryForPartition(int                  partitionId,
                                               mqbnet::ClusterNode* primary)
 {
+    // executed by cluster *DISPATCHER* thread
+
     // PRECONDITION
     BSLS_ASSERT_SAFE(
         d_dispatcher_p->inDispatcherThread(d_clusterData_p->cluster()));
@@ -2341,19 +1583,16 @@ void StorageManager::clearPrimaryForPartition(int                  partitionId,
         primary));
 }
 
-void StorageManager::processPrimaryDetect(
+void StorageManager::setPrimaryStatusForPartition(
     BSLS_ANNOTATION_UNUSED int partitionId,
-    BSLS_ANNOTATION_UNUSED mqbnet::ClusterNode* primaryNode,
-    BSLS_ANNOTATION_UNUSED unsigned int         primaryLeaseId)
+    BSLS_ANNOTATION_UNUSED bmqp_ctrlmsg::PrimaryStatus::Value value)
 {
-    BSLS_ASSERT_OPT(false && "This method should only be invoked in CSL mode");
-}
+    // executed by cluster *DISPATCHER* thread
 
-void StorageManager::processReplicaDetect(
-    BSLS_ANNOTATION_UNUSED int partitionId,
-    BSLS_ANNOTATION_UNUSED mqbnet::ClusterNode* primaryNode,
-    BSLS_ANNOTATION_UNUSED unsigned int         primaryLeaseId)
-{
+    // PRECONDITION
+    BSLS_ASSERT_SAFE(
+        d_dispatcher_p->inDispatcherThread(d_clusterData_p->cluster()));
+
     BSLS_ASSERT_OPT(false && "This method should only be invoked in CSL mode");
 }
 
@@ -2371,21 +1610,7 @@ void StorageManager::processReplicaStateRequest(
     BSLS_ASSERT_OPT(false && "This method should only be invoked in CSL mode");
 }
 
-void StorageManager::processReplicaDataRequestPull(
-    BSLS_ANNOTATION_UNUSED const bmqp_ctrlmsg::ControlMessage& message,
-    BSLS_ANNOTATION_UNUSED mqbnet::ClusterNode* source)
-{
-    BSLS_ASSERT_OPT(false && "This method should only be invoked in CSL mode");
-}
-
-void StorageManager::processReplicaDataRequestPush(
-    BSLS_ANNOTATION_UNUSED const bmqp_ctrlmsg::ControlMessage& message,
-    BSLS_ANNOTATION_UNUSED mqbnet::ClusterNode* source)
-{
-    BSLS_ASSERT_OPT(false && "This method should only be invoked in CSL mode");
-}
-
-void StorageManager::processReplicaDataRequestDrop(
+void StorageManager::processReplicaDataRequest(
     BSLS_ANNOTATION_UNUSED const bmqp_ctrlmsg::ControlMessage& message,
     BSLS_ANNOTATION_UNUSED mqbnet::ClusterNode* source)
 {
@@ -2466,13 +1691,16 @@ void StorageManager::processStorageEvent(
         bmqp_ctrlmsg::NodeStatus::E_STARTING ==
             d_clusterData_p->membership().selfNodeStatus() ||
         isZero(d_clusterData_p->electorInfo().leaderMessageSequence());
+    const ClusterStatePartitionInfo& pinfo = d_clusterState.partition(pid);
     if (!mqbc::StorageUtil::validateStorageEvent(rawEvent,
                                                  pid,
                                                  source,
-                                                 d_clusterState,
+                                                 pinfo.primaryNode(),
+                                                 pinfo.primaryStatus(),
                                                  *d_clusterData_p,
-                                                 skipAlarm)) {
-        return;  // RETURN
+                                                 skipAlarm,
+                                                 false)) {  // isFSMWorkflow
+        return;                                             // RETURN
     }
 
     mqbs::FileStore* fs = d_fileStores[pid].get();
@@ -2743,10 +1971,11 @@ void StorageManager::processReceiptEvent(
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_dispatcher_p->inDispatcherThread(d_cluster_p));
 
-    mwcu::BlobPosition position;
-    const int          rc = mwcu::BlobUtil::findOffsetSafe(&position,
-                                                  *event.blob(),
-                                                  sizeof(bmqp::EventHeader));
+    mwcu::BlobPosition          position;
+    BSLA_MAYBE_UNUSED const int rc = mwcu::BlobUtil::findOffsetSafe(
+        &position,
+        *event.blob(),
+        sizeof(bmqp::EventHeader));
     BSLS_ASSERT_SAFE(rc == 0);
 
     mwcu::BlobObjectProxy<bmqp::ReplicationReceipt> receipt(
@@ -2796,7 +2025,8 @@ void StorageManager::processPrimaryStatusAdvisory(
         &d_partitionInfoVec[advisory.partitionId()],
         advisory,
         d_clusterData_p->identity().description(),
-        source));
+        source,
+        false));  // isFSMWorkflow
 }
 
 void StorageManager::processReplicaStatusAdvisory(
@@ -2876,22 +2106,9 @@ void StorageManager::gcUnrecognizedDomainQueues()
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(
         d_dispatcher_p->inDispatcherThread(d_clusterData_p->cluster()));
-    BSLS_ASSERT_SAFE(d_unrecognizedDomains.size() == d_fileStores.size());
 
-    for (size_t i = 0; i < d_unrecognizedDomains.size(); ++i) {
-        if (!d_unrecognizedDomains[i].empty()) {
-            // Unrecognized domains are found in Partition 'i'. We initiate a
-            // forced rollover to ensure that queues from those domains are
-            // GC'd.
-
-            mqbs::FileStore* fs = d_fileStores[i].get();
-            BSLS_ASSERT_SAFE(fs);
-            BSLS_ASSERT_SAFE(fs->isOpen());
-
-            fs->execute(
-                bdlf::BindUtil::bind(&mqbs::FileStore::forceRollover, fs));
-        }
-    }
+    mqbc::StorageUtil::gcUnrecognizedDomainQueues(&d_fileStores,
+                                                  d_unrecognizedDomains);
 }
 
 // ACCESSORS

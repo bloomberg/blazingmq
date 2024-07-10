@@ -224,7 +224,7 @@ class Strand {
     /// Return the number of outstanding jobs for this execution context,
     /// that is defined as the number of functors that have been added to
     /// the strand via its associated executor, but not yet invoked, plus
-    /// the the number of functors that are currently being invoked within
+    /// the number of functors that are currently being invoked within
     /// the strand, which is either 0 or 1.
     size_t outstandingJobs() const BSLS_KEYWORD_NOEXCEPT;
 

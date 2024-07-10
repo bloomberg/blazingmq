@@ -186,7 +186,7 @@ StatMonitor::StatMonitor(int historySize, bslma::Allocator* allocator)
 , d_systemStatContext(mwcst::StatContextConfiguration(k_STATCONTEXT_NAME,
                                                       allocator)
                           .defaultHistorySize(historySize + 1)
-                          .value("uptime", mwcst::StatValue::DMCST_CONTINUOUS),
+                          .value("uptime", mwcst::StatValue::e_CONTINUOUS),
                       allocator)
 , d_cpuStatContext_mp(0)
 , d_memStatContext_mp(0)
@@ -196,20 +196,20 @@ StatMonitor::StatMonitor(int historySize, bslma::Allocator* allocator)
     // Create the CPU, MEM and RESOURCE-USAGE subContexts
     d_cpuStatContext_mp = d_systemStatContext.addSubcontext(
         mwcst::StatContextConfiguration(k_SUBCONTEXT_CPU, allocator)
-            .value("system", mwcst::StatValue::DMCST_DISCRETE)
-            .value("user", mwcst::StatValue::DMCST_DISCRETE)
-            .value("all", mwcst::StatValue::DMCST_DISCRETE));
+            .value("system", mwcst::StatValue::e_DISCRETE)
+            .value("user", mwcst::StatValue::e_DISCRETE)
+            .value("all", mwcst::StatValue::e_DISCRETE));
     d_memStatContext_mp = d_systemStatContext.addSubcontext(
         mwcst::StatContextConfiguration(k_SUBCONTEXT_MEM, allocator)
-            .value("resident", mwcst::StatValue::DMCST_DISCRETE)
-            .value("virtual", mwcst::StatValue::DMCST_DISCRETE));
+            .value("resident", mwcst::StatValue::e_DISCRETE)
+            .value("virtual", mwcst::StatValue::e_DISCRETE));
     d_osStatContext_mp = d_systemStatContext.addSubcontext(
         mwcst::StatContextConfiguration(k_SUBCONTEXT_OS, allocator)
-            .value("minflt", mwcst::StatValue::DMCST_CONTINUOUS)
-            .value("majflt", mwcst::StatValue::DMCST_CONTINUOUS)
-            .value("nswap", mwcst::StatValue::DMCST_CONTINUOUS)
-            .value("nvcsw", mwcst::StatValue::DMCST_CONTINUOUS)
-            .value("nivcsw", mwcst::StatValue::DMCST_CONTINUOUS));
+            .value("minflt", mwcst::StatValue::e_CONTINUOUS)
+            .value("majflt", mwcst::StatValue::e_CONTINUOUS)
+            .value("nswap", mwcst::StatValue::e_CONTINUOUS)
+            .value("nvcsw", mwcst::StatValue::e_CONTINUOUS)
+            .value("nivcsw", mwcst::StatValue::e_CONTINUOUS));
 }
 
 StatMonitor::~StatMonitor()
@@ -263,7 +263,9 @@ void StatMonitor::snapshot()
                      "'start' was not called (or failed)");
 
     // System: report in seconds
-    d_systemStatContext.setValue(k_STAT_SYSTEM_UPTIME, it->elapsedTime());
+    d_systemStatContext.setValue(
+        k_STAT_SYSTEM_UPTIME,
+        static_cast<bsls::Types::Int64>(it->elapsedTime()));
 
     // Convenient macro to retrieve the value 'T' applying a multiplier 'M'
 #define PERFVAL(T, M)                                                         \
@@ -329,7 +331,7 @@ StatMonitorUtil::getSystemStat(const mwcst::StatContext& statContext,
                                int                       statId)
 {
     const mwcst::StatValue& statValue =
-        statContext.value(mwcst::StatContext::DMCST_TOTAL_VALUE, statId);
+        statContext.value(mwcst::StatContext::e_TOTAL_VALUE, statId);
 
     const bsls::Types::Int64 value = mwcst::StatUtil::rangeMax(
         statValue,
@@ -352,7 +354,7 @@ double StatMonitorUtil::getCpuStat(const mwcst::StatContext& statContext,
     const mwcst::StatValue::SnapshotLocation secondSnapshot(0, snapshotId);
 
     const mwcst::StatValue& statValue =
-        statContext.value(mwcst::StatContext::DMCST_TOTAL_VALUE, statId);
+        statContext.value(mwcst::StatContext::e_TOTAL_VALUE, statId);
 
     double value = mwcst::StatUtil::averagePerEventReal(statValue,
                                                         firstSnapshot,
@@ -374,7 +376,7 @@ StatMonitorUtil::getMemStat(const mwcst::StatContext& statContext,
                             int                       statId)
 {
     const mwcst::StatValue& statValue =
-        statContext.value(mwcst::StatContext::DMCST_TOTAL_VALUE, statId);
+        statContext.value(mwcst::StatContext::e_TOTAL_VALUE, statId);
 
     const bsls::Types::Int64 value = mwcst::StatUtil::rangeMax(
         statValue,
@@ -395,7 +397,7 @@ StatMonitorUtil::getOperatingSystemStat(const mwcst::StatContext& statContext,
                                         int                       statId)
 {
     const mwcst::StatValue& statValue =
-        statContext.value(mwcst::StatContext::DMCST_TOTAL_VALUE, statId);
+        statContext.value(mwcst::StatContext::e_TOTAL_VALUE, statId);
 
     return mwcst::StatUtil::valueDifference(
         statValue,

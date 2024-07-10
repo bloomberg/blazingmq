@@ -337,7 +337,8 @@ void RemoteQueue::pushMessage(
     const bsl::shared_ptr<bdlbb::Blob>&  appData,
     const bsl::shared_ptr<bdlbb::Blob>&  options,
     const bmqp::MessagePropertiesInfo&   messagePropertiesInfo,
-    bmqt::CompressionAlgorithmType::Enum compressionAlgorithmType)
+    bmqt::CompressionAlgorithmType::Enum compressionAlgorithmType,
+    bool                                 isOutOfOrder)
 {
     // executed by the *QUEUE DISPATCHER* thread
 
@@ -566,6 +567,15 @@ int RemoteQueue::configure(bsl::ostream& errorDescription, bool isReconfigure)
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_state_p->queue()->dispatcher()->inDispatcherThread(
         d_state_p->queue()));
+
+    // Update stats
+    if (isReconfigure) {
+        const mqbconfm::Domain& domainCfg = d_state_p->domain()->config();
+        if (domainCfg.mode().isFanoutValue()) {
+            d_state_p->stats().updateDomainAppIds(
+                domainCfg.mode().fanout().appIDs());
+        }
+    }
 
     if (d_state_p->domain()->cluster()->isRemote()) {
         return configureAsProxy(errorDescription, isReconfigure);  // RETURN
@@ -814,7 +824,8 @@ void RemoteQueue::onDispatcherEvent(const mqbi::DispatcherEvent& event)
                     realEvent->blob(),
                     realEvent->options(),
                     realEvent->messagePropertiesInfo(),
-                    realEvent->compressionAlgorithmType());
+                    realEvent->compressionAlgorithmType(),
+                    realEvent->isOutOfOrderPush());
     } break;
     case mqbi::DispatcherEventType::e_PUT: {
         const mqbi::DispatcherPutEvent* realEvent = event.asPutEvent();

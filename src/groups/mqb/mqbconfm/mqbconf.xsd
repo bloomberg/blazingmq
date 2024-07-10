@@ -364,7 +364,7 @@
       <element name='text' type='string'/>
     </sequence>
   </complexType>
-  
+
   <complexType name='Subscription'>
     <annotation>
       <documentation>
@@ -372,7 +372,7 @@
         node to configure subscription for an app.
 
         appId..................: app identifier
-        consumers..............: consumer parameters
+        expression.............: expression denoting a subscription for the app
       </documentation>
     </annotation>
     <sequence>
@@ -380,7 +380,7 @@
       <element name='expression' type='tns:Expression'/>
     </sequence>
   </complexType>
-    
+
   <!-- ========================================================================
                                     STORAGE
   ========================================================================= -->

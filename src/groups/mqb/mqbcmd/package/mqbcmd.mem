@@ -1,5 +1,6 @@
 mqbcmd_commandlist
 mqbcmd_humanprinter
+mqbcmd_jsonprinter
 mqbcmd_messages
 mqbcmd_parseutil
 mqbcmd_util

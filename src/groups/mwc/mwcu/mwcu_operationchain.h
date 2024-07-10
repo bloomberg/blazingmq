@@ -31,7 +31,7 @@
 // called a "link". A link can contain one or more operations executing in
 // parallel. Links are indexed and ordered, such that the first link has index
 // 0, operations in the link 'N' starts executing after the completion of all
-// operations in the the link 'N - 1', and operations in link 0 starts
+// operations in the link 'N - 1', and operations in link 0 starts
 // executing as soon as the chain is started. After all operations in link 0
 // are executed, the link is removed from the chain and the next link in line
 // becomes link 0.
@@ -161,7 +161,6 @@
 //..
 
 // MWC
-
 #include <mwcu_noop.h>
 #include <mwcu_objectplaceholder.h>
 
@@ -178,6 +177,7 @@
 #include <bslmf_nestedtraitdeclaration.h>
 #include <bslmf_util.h>
 #include <bslmt_condition.h>
+#include <bslmt_lockguard.h>
 #include <bslmt_mutex.h>
 #include <bsls_assert.h>
 #include <bsls_compilerfeatures.h>
@@ -193,7 +193,7 @@
 
 #if BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES
 // Include version that can be compiled with C++03
-// Generated on Tue Jun 28 12:18:48 2022
+// Generated on Wed Jun 19 15:52:47 2024
 // Command line: sim_cpp11_features.pl mwcu_operationchain.h
 #define COMPILING_MWCU_OPERATIONCHAIN_H
 #include <mwcu_operationchain_cpp03.h>
@@ -400,7 +400,7 @@ class OperationChain_Job {
     unsigned d_id;
 
     // Uses an on-stack buffer to allocate memory for "small" objects, and
-    // falls back to requesting memory from the the supplied allocator if
+    // falls back to requesting memory from the supplied allocator if
     // the buffer is not large enough. Note that the size of the on-stack
     // buffer is an arbitrary value.
     mwcu::ObjectPlaceHolder<sizeof(Target<Dummy, Dummy>)> d_target;
@@ -475,6 +475,8 @@ class OperationChain {
 
     typedef JobList::iterator JobHandle;
 
+    typedef bslmt::LockGuard<bslmt::Mutex> LockGuard;
+
   private:
     // PRIVATE DATA
 
@@ -508,7 +510,9 @@ class OperationChain {
     void onOperationCompleted(JobHandle handle) BSLS_KEYWORD_NOEXCEPT;
 
     /// Execute all operations in the first link of this operation chain.
-    void run() BSLS_KEYWORD_NOEXCEPT;
+    /// Unlock the mutex associated with the specified 'lock' guard and
+    /// release the guard.
+    void run(LockGuard* lock) BSLS_KEYWORD_NOEXCEPT;
 
   private:
     // NOT IMPLEMENTED

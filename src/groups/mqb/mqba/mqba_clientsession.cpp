@@ -660,8 +660,7 @@ void ClientSession::tearDownImpl(bslmt::Semaphore*            semaphore,
          it != d_queueSessionManager.queues().end();
          ++it) {
         if (!it->second.d_hasReceivedFinalCloseQueue) {
-            mqbi::Queue* queue = it->second.d_handle_p->queue();
-            BSLS_ASSERT_SAFE(queue);
+            BSLS_ASSERT_SAFE(it->second.d_handle_p->queue());
 
             if (isBrokerShutdown ||
                 d_clientIdentity_p->clientType() ==
@@ -854,6 +853,8 @@ void ClientSession::initiateShutdownDispatched(
         return;  // RETURN
     }
 
+    flush();  // Flush any pending messages
+
     // Wait for tearDown.
     d_shutdownCallback = callback;
 
@@ -905,8 +906,6 @@ void ClientSession::invalidateDispatched()
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
-
-    BALL_LOG_INFO << description() << ": invalidateDispatched";
 
     if (d_operationState == e_DEAD) {
         return;  // RETURN
@@ -1290,8 +1289,8 @@ void ClientSession::openQueueCb(
         response.choice().makeStatus(status);
 
         BALL_LOG_WARN << "#CLIENT_OPENQUEUE_FAILURE " << description()
-                      << ": Error while opening queue: [reason: '" << status
-                      << "', request: " << handleParamsCtrlMsg << "]";
+                      << ": Error while opening queue: [reason: " << status
+                      << ", request: " << handleParamsCtrlMsg << "]";
     }
     else {
         bmqp_ctrlmsg::OpenQueueResponse& res =
@@ -1948,10 +1947,18 @@ void ClientSession::onPushEvent(const mqbi::DispatcherPushEvent& event)
     }
 
     if (convertingRc == 0) {
+        int flags = 0;
+
+        if (event.isOutOfOrderPush()) {
+            bmqp::PushHeaderFlagUtil::setFlag(
+                &flags,
+                bmqp::PushHeaderFlags::e_OUT_OF_ORDER);
+        }
+
         d_state.d_pushBuilder.packMessage(*blob,
                                           event.queueId(),
                                           event.guid(),
-                                          0,
+                                          flags,
                                           cat,
                                           pushProperties);
 
@@ -2001,7 +2008,8 @@ void ClientSession::onPushEvent(const mqbi::DispatcherPushEvent& event)
         int         dumpRc = mqbblp::QueueEngineUtil::dumpMessageInTempfile(
             &filepath,
             *event.blob().get(),
-            0);
+            0,
+            d_state.d_bufferFactory_p);
 
         // REVISIT: An alternative is to send Reject upstream
 
@@ -2808,20 +2816,47 @@ void ClientSession::initiateShutdown(const ShutdownCb&         callback,
 
     BALL_LOG_INFO << description() << ": initiateShutdown";
 
-    dispatcher()->execute(
-        bdlf::BindUtil::bind(&ClientSession::initiateShutdownDispatched,
-                             this,
-                             callback,
-                             timeout),
-        this);
+    // The 'd_self.acquire()' return 'shared_ptr<ClientSession>' but that does
+    // not relate to the 'shared_ptr<mqbnet::Session>' acquired by
+    // 'mqbnet::TransportManagerIterator'.  The latter is bound to the
+    // 'initiateShutdown'.  The former can be null after 'd_self.invalidate()'
+    // call. ('invalidate()' waits for all _acquired_ 'shared_ptr' references
+    // to drop).
+    //
+    // We have a choice, either 1) bind the latter to 'initiateShutdown' to
+    // make sure 'd_self.acquire()' returns not null, or 2) invoke the
+    // 'callback' earlier if fail to 'acquire()' because of 'invalidate()', or
+    // 3) bind _acquired_ 'shared_ptr' to 'initiateShutdown'.
+    //
+    // Choosing 2), assuming that calling the (completion) callback from a
+    // thread other than the *CLIENT* dispatcher thread is ok.  The
+    // 'mwcu::OperationChainLink' expects the completion callback from multiple
+    // sessions anyway.
+
+    bsl::shared_ptr<ClientSession> ptr = d_self.acquire();
+
+    if (!ptr) {
+        callback();
+    }
+    else {
+        dispatcher()->execute(
+            bdlf::BindUtil::bind(
+                bdlf::MemFnUtil::memFn(
+                    &ClientSession::initiateShutdownDispatched,
+                    d_self.acquire()),
+                callback,
+                timeout),
+            this,
+            mqbi::DispatcherEventType::e_DISPATCHER);
+        // Use 'mqbi::DispatcherEventType::e_DISPATCHER' to avoid (re)enabling
+        // 'd_flushList'
+    }
 }
 
 void ClientSession::invalidate()
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(!dispatcher()->inDispatcherThread(this));
-
-    BALL_LOG_INFO << description() << ": invalidate";
 
     dispatcher()->execute(
         bdlf::BindUtil::bind(&ClientSession::invalidateDispatched, this),

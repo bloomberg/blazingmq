@@ -21,6 +21,7 @@
 #include <bmqt_queueflags.h>
 
 // MQB
+#include <mqbcfg_brokerconfig.h>
 #include <mqbi_cluster.h>
 #include <mqbi_domain.h>
 #include <mqbi_queue.h>
@@ -32,11 +33,13 @@
 
 // BDE
 #include <ball_log.h>
+#include <ball_logthrottle.h>
 #include <bdlb_print.h>
 #include <bdld_datummapbuilder.h>
 #include <bdld_manageddatum.h>
 #include <bdlma_localsequentialallocator.h>
 #include <bsl_limits.h>
+#include <bslmf_movableref.h>
 #include <bsls_assert.h>
 
 namespace BloombergLP {
@@ -44,13 +47,22 @@ namespace mqbstat {
 
 namespace {
 
+const char k_LOG_CATEGORY[] = "MQBSTAT.QUEUESTATS";
+
 /// Name of the stat context to create (holding all domain's queues
 /// statistics)
-static const char k_DOMAIN_STAT_NAME[] = "domain";
+const char k_DOMAIN_STAT_NAME[] = "domain";
 
 /// Name of the stat context to create (holding all client's queues
 /// statistics)
-static const char k_CLIENT_STAT_NAME[] = "client";
+const char k_CLIENT_STAT_NAME[] = "client";
+
+/// Maximum messages logged with throttling in a short period of time.
+const int k_MAX_INSTANT_MESSAGES = 10;
+
+/// Time interval between messages logged with throttling.
+const bsls::Types::Int64 k_NS_PER_MESSAGE =
+    bdlt::TimeUnitRatio::k_NANOSECONDS_PER_MINUTE / k_MAX_INSTANT_MESSAGES;
 
 // -----------------------
 // struct DomainQueueStats
@@ -178,10 +190,88 @@ struct ClientStats {
 /// out).
 bool filterDirect(const mwcst::TableRecords::Record& record)
 {
-    return record.type() == mwcst::StatContext::DMCST_TOTAL_VALUE;
+    return record.type() == mwcst::StatContext::e_TOTAL_VALUE;
 }
 
+/// Functor object returning `true`, i.e., filter out, if the specified 'name'
+/// matches context's name
+class ContextNameMatcher {
+  private:
+    // DATA
+    const bsl::string& d_name;
+
+  public:
+    // CREATORS
+    ContextNameMatcher(const bsl::string& name)
+    : d_name(name)
+    {
+        // NOTHING
+    }
+
+    // ACCESSORS
+    bool
+    operator()(const bslma::ManagedPtr<mwcst::StatContext>& context_mp) const
+    {
+        return (context_mp->name() == d_name);
+    }
+};
+
 }  // close unnamed namespace
+
+// -----------------------------
+// struct QueueStatsDomain::Stat
+// -----------------------------
+
+const char* QueueStatsDomain::Stat::toString(Stat::Enum value)
+{
+#define MQBSTAT_CASE(VAL, DESC)                                               \
+    case (VAL): {                                                             \
+        return (DESC);                                                        \
+    } break;
+
+    switch (value) {
+        MQBSTAT_CASE(e_NB_PRODUCER, "queue_producers_count")
+        MQBSTAT_CASE(e_NB_CONSUMER, "queue_consumers_count")
+        MQBSTAT_CASE(e_MESSAGES_CURRENT, "queue_msgs_current")
+        MQBSTAT_CASE(e_MESSAGES_MAX, "queue_content_msgs")
+        MQBSTAT_CASE(e_BYTES_CURRENT, "queue_bytes_current")
+        MQBSTAT_CASE(e_BYTES_MAX, "queue_content_bytes")
+        MQBSTAT_CASE(e_PUT_MESSAGES_DELTA, "queue_put_msgs")
+        MQBSTAT_CASE(e_PUT_BYTES_DELTA, "queue_put_bytes")
+        MQBSTAT_CASE(e_PUT_MESSAGES_ABS, "queue_put_msgs_abs")
+        MQBSTAT_CASE(e_PUT_BYTES_ABS, "queue_put_bytes_abs")
+        MQBSTAT_CASE(e_PUSH_MESSAGES_DELTA, "queue_push_msgs")
+        MQBSTAT_CASE(e_PUSH_BYTES_DELTA, "queue_push_bytes")
+        MQBSTAT_CASE(e_PUSH_MESSAGES_ABS, "queue_push_msgs_abs")
+        MQBSTAT_CASE(e_PUSH_BYTES_ABS, "queue_push_bytes_abs")
+        MQBSTAT_CASE(e_ACK_DELTA, "queue_ack_msgs")
+        MQBSTAT_CASE(e_ACK_ABS, "queue_ack_msgs_abs")
+        MQBSTAT_CASE(e_ACK_TIME_AVG, "queue_ack_time_avg")
+        MQBSTAT_CASE(e_ACK_TIME_MAX, "queue_ack_time_max")
+        MQBSTAT_CASE(e_NACK_DELTA, "queue_nack_msgs")
+        MQBSTAT_CASE(e_NACK_ABS, "queue_nack_msgs_abs")
+        MQBSTAT_CASE(e_CONFIRM_DELTA, "queue_confirm_msgs")
+        MQBSTAT_CASE(e_CONFIRM_ABS, "queue_confirm_msgs_abs")
+        MQBSTAT_CASE(e_CONFIRM_TIME_AVG, "queue_confirm_time_avg")
+        MQBSTAT_CASE(e_CONFIRM_TIME_MAX, "queue_confirm_time_max")
+        MQBSTAT_CASE(e_REJECT_ABS, "queue_reject_msgs_abs")
+        MQBSTAT_CASE(e_REJECT_DELTA, "queue_reject_msgs")
+        MQBSTAT_CASE(e_QUEUE_TIME_AVG, "queue_queue_time_avg")
+        MQBSTAT_CASE(e_QUEUE_TIME_MAX, "queue_queue_time_max")
+        MQBSTAT_CASE(e_GC_MSGS_DELTA, "queue_gc_msgs")
+        MQBSTAT_CASE(e_GC_MSGS_ABS, "queue_gc_msgs_abs")
+        MQBSTAT_CASE(e_ROLE, "queue_role")
+        MQBSTAT_CASE(e_CFG_MSGS, "queue_cfg_msgs")
+        MQBSTAT_CASE(e_CFG_BYTES, "queue_cfg_bytes")
+        MQBSTAT_CASE(e_NO_SC_MSGS_DELTA, "queue_nack_noquorum_msgs")
+        MQBSTAT_CASE(e_NO_SC_MSGS_ABS, "queue_nack_noquorum_msgs_abs")
+    }
+
+    BSLS_ASSERT(!"invalid enumerator");
+    return 0;
+
+#undef MQBSTAT_CASE
+}
 
 // ----------------------
 // class QueueStatsDomain
@@ -194,19 +284,30 @@ QueueStatsDomain::getValue(const mwcst::StatContext& context,
 {
     // invoked from the SNAPSHOT thread
 
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(snapshotId >= -1);  // do not support other negatives yet
+
     const mwcst::StatValue::SnapshotLocation latestSnapshot(0, 0);
-    const mwcst::StatValue::SnapshotLocation oldestSnapshot(0, snapshotId);
+
+#define OLDEST_SNAPSHOT(STAT)                                                 \
+    (mwcst::StatValue::SnapshotLocation(                                      \
+        0,                                                                    \
+        (snapshotId >= 0)                                                     \
+            ? snapshotId                                                      \
+            : (context.value(mwcst::StatContext::e_DIRECT_VALUE, (STAT))      \
+                   .historySize(0) -                                          \
+               1)))
 
 #define STAT_SINGLE(OPERATION, STAT)                                          \
     mwcst::StatUtil::OPERATION(                                               \
-        context.value(mwcst::StatContext::DMCST_DIRECT_VALUE, STAT),          \
+        context.value(mwcst::StatContext::e_DIRECT_VALUE, STAT),              \
         latestSnapshot)
 
 #define STAT_RANGE(OPERATION, STAT)                                           \
     mwcst::StatUtil::OPERATION(                                               \
-        context.value(mwcst::StatContext::DMCST_DIRECT_VALUE, STAT),          \
+        context.value(mwcst::StatContext::e_DIRECT_VALUE, STAT),              \
         latestSnapshot,                                                       \
-        oldestSnapshot)
+        OLDEST_SNAPSHOT(STAT))
 
     switch (stat) {
     case QueueStatsDomain::Stat::e_NB_PRODUCER: {
@@ -340,6 +441,7 @@ QueueStatsDomain::getValue(const mwcst::StatContext& context,
 
 QueueStatsDomain::QueueStatsDomain()
 : d_statContext_mp(0)
+, d_subContexts_mp(0)
 {
     // NOTHING
 }
@@ -382,6 +484,32 @@ void QueueStatsDomain::initialize(const bmqt::Uri&  uri,
     builder.pushBack("tier", bdld::Datum::copyString(uri.tier(), alloc));
 
     datum->adopt(builder.commit());
+
+    // Create subcontexts for each AppId to store per-AppId metrics, such as
+    // `e_CONFIRM_TIME_MAX` or `e_QUEUE_TIME_MAX`, so the metrics can be
+    // inspected separately for each application.
+    if (!domain->cluster()->isRemote() &&
+        domain->config().mode().isFanoutValue()) {
+        const bsl::vector<bsl::string>& appIdTagDomains =
+            mqbcfg::BrokerConfig::get().stats().appIdTagDomains();
+        if (bsl::find(appIdTagDomains.begin(),
+                      appIdTagDomains.end(),
+                      uri.domain()) != appIdTagDomains.end()) {
+            d_subContexts_mp.load(new (*allocator)
+                                      bsl::list<StatSubContextMp>(allocator),
+                                  allocator);
+            const bsl::vector<bsl::string>& appIDs =
+                domain->config().mode().fanout().appIDs();
+            for (bsl::vector<bsl::string>::const_iterator cit = appIDs.begin();
+                 cit != appIDs.end();
+                 ++cit) {
+                StatSubContextMp subContext = d_statContext_mp->addSubcontext(
+                    mwcst::StatContextConfiguration(*cit, &localAllocator));
+                d_subContexts_mp->emplace_back(
+                    bslmf::MovableRefUtil::move(subContext));
+            }
+        }
+    }
 }
 
 QueueStatsDomain& QueueStatsDomain::setReaderCount(int readerCount)
@@ -478,11 +606,115 @@ void QueueStatsDomain::onEvent(EventType::Enum type, bsls::Types::Int64 value)
     };
 }
 
+void QueueStatsDomain::onEvent(EventType::Enum    type,
+                               bsls::Types::Int64 value,
+                               const bsl::string& appId)
+{
+    BSLS_ASSERT_SAFE(d_statContext_mp && "initialize was not called");
+
+    BALL_LOG_SET_CATEGORY(k_LOG_CATEGORY);
+
+    if (!d_subContexts_mp) {
+        BALL_LOGTHROTTLE_WARN(k_MAX_INSTANT_MESSAGES, k_NS_PER_MESSAGE)
+            << "[THROTTLED] No built sub contexts";
+        return;  // RETURN
+    }
+
+    bsl::list<StatSubContextMp>::iterator it = bsl::find_if(
+        d_subContexts_mp->begin(),
+        d_subContexts_mp->end(),
+        ContextNameMatcher(appId));
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(it == d_subContexts_mp->end())) {
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+
+        BALL_LOGTHROTTLE_WARN(k_MAX_INSTANT_MESSAGES, k_NS_PER_MESSAGE)
+            << "[THROTTLED] No matching StatContext for appId: " << appId;
+        return;  // RETURN
+    }
+
+    mwcst::StatContext* appIdContext = it->get();
+    BSLS_ASSERT_SAFE(appIdContext);
+
+    switch (type) {
+    case EventType::e_CONFIRM_TIME: {
+        appIdContext->reportValue(DomainQueueStats::e_STAT_CONFIRM_TIME,
+                                  value);
+    } break;
+
+    case EventType::e_QUEUE_TIME: {
+        appIdContext->reportValue(DomainQueueStats::e_STAT_QUEUE_TIME, value);
+    } break;
+
+    // Some of these event types make no sense per appId and should be reported
+    // per entire queue instead
+    case EventType::e_ACK: BSLS_ANNOTATION_FALLTHROUGH;
+    case EventType::e_ACK_TIME: BSLS_ANNOTATION_FALLTHROUGH;
+    case EventType::e_NACK: BSLS_ANNOTATION_FALLTHROUGH;
+    case EventType::e_CONFIRM: BSLS_ANNOTATION_FALLTHROUGH;
+    case EventType::e_REJECT: BSLS_ANNOTATION_FALLTHROUGH;
+    case EventType::e_PUSH: BSLS_ANNOTATION_FALLTHROUGH;
+    case EventType::e_PUT: BSLS_ANNOTATION_FALLTHROUGH;
+    case EventType::e_ADD_MESSAGE: BSLS_ANNOTATION_FALLTHROUGH;
+    case EventType::e_DEL_MESSAGE: BSLS_ANNOTATION_FALLTHROUGH;
+    case EventType::e_GC_MESSAGE: BSLS_ANNOTATION_FALLTHROUGH;
+    case EventType::e_PURGE: BSLS_ANNOTATION_FALLTHROUGH;
+    case EventType::e_CHANGE_ROLE: BSLS_ANNOTATION_FALLTHROUGH;
+    case EventType::e_CFG_MSGS: BSLS_ANNOTATION_FALLTHROUGH;
+    case EventType::e_CFG_BYTES: BSLS_ANNOTATION_FALLTHROUGH;
+    case EventType::e_NO_SC_MESSAGE: {
+        BSLS_ASSERT_SAFE(false && "Unexpected event type for appId metric");
+    } break;
+
+    default: {
+        BSLS_ASSERT_SAFE(false && "Unknown event type");
+    } break;
+    };
+}
+
 void QueueStatsDomain::setQueueContentRaw(bsls::Types::Int64 messages,
                                           bsls::Types::Int64 bytes)
 {
+    BSLS_ASSERT_SAFE(d_statContext_mp && "initialize was not called");
+
     d_statContext_mp->setValue(DomainQueueStats::e_STAT_BYTES, bytes);
     d_statContext_mp->setValue(DomainQueueStats::e_STAT_MESSAGES, messages);
+}
+
+void QueueStatsDomain::updateDomainAppIds(
+    const bsl::vector<bsl::string>& appIds)
+{
+    if (!d_subContexts_mp) {
+        return;  // RETURN
+    }
+
+    bdlma::LocalSequentialAllocator<2048> localAllocator;
+
+    // Add subcontexts for appIds that are not already present
+    for (bsl::vector<bsl::string>::const_iterator cit = appIds.begin();
+         cit != appIds.end();
+         ++cit) {
+        if (bsl::find_if(d_subContexts_mp->begin(),
+                         d_subContexts_mp->end(),
+                         ContextNameMatcher(*cit)) ==
+            d_subContexts_mp->end()) {
+            StatSubContextMp subContext = d_statContext_mp->addSubcontext(
+                mwcst::StatContextConfiguration(*cit, &localAllocator));
+            d_subContexts_mp->emplace_back(
+                bslmf::MovableRefUtil::move(subContext));
+        }
+    }
+
+    // Remove subcontexts if appIds are not present in updated AppIds
+    bsl::list<StatSubContextMp>::iterator it = d_subContexts_mp->begin();
+    while (it != d_subContexts_mp->end()) {
+        if (bsl::find(appIds.begin(), appIds.end(), it->get()->name()) ==
+            appIds.end()) {
+            it = d_subContexts_mp->erase(it);
+        }
+        else {
+            ++it;
+        }
+    }
 }
 
 // -----------------------------
@@ -538,12 +770,12 @@ QueueStatsClient::getValue(const mwcst::StatContext& context,
 
 #define STAT_SINGLE(OPERATION, STAT)                                          \
     mwcst::StatUtil::OPERATION(                                               \
-        context.value(mwcst::StatContext::DMCST_DIRECT_VALUE, STAT),          \
+        context.value(mwcst::StatContext::e_DIRECT_VALUE, STAT),              \
         latestSnapshot)
 
 #define STAT_RANGE(OPERATION, STAT)                                           \
     mwcst::StatUtil::OPERATION(                                               \
-        context.value(mwcst::StatContext::DMCST_DIRECT_VALUE, STAT),          \
+        context.value(mwcst::StatContext::e_DIRECT_VALUE, STAT),              \
         latestSnapshot,                                                       \
         oldestSnapshot)
 
@@ -662,12 +894,12 @@ QueueStatsUtil::initializeStatContextDomains(int               historySize,
         .value("messages")
         .value("bytes")
         .value("ack")
-        .value("ack_time", mwcst::StatValue::DMCST_DISCRETE)
+        .value("ack_time", mwcst::StatValue::e_DISCRETE)
         .value("nack")
         .value("confirm")
-        .value("confirm_time", mwcst::StatValue::DMCST_DISCRETE)
+        .value("confirm_time", mwcst::StatValue::e_DISCRETE)
         .value("reject")
-        .value("queue_time", mwcst::StatValue::DMCST_DISCRETE)
+        .value("queue_time", mwcst::StatValue::e_DISCRETE)
         .value("gc")
         .value("push")
         .value("put")
@@ -710,10 +942,10 @@ QueueStatsUtil::initializeStatContextClients(int               historySize,
 }
 
 void QueueStatsUtil::initializeTableAndTipDomains(
-    mwcst::Table*                 table,
-    mwcu::BasicTableInfoProvider* tip,
-    int                           historySize,
-    mwcst::StatContext*           statContext)
+    mwcst::Table*                  table,
+    mwcst::BasicTableInfoProvider* tip,
+    int                            historySize,
+    mwcst::StatContext*            statContext)
 {
     // Use only one level for now ...
     mwcst::StatValue::SnapshotLocation start(0, 0);
@@ -943,10 +1175,10 @@ void QueueStatsUtil::initializeTableAndTipDomains(
 }
 
 void QueueStatsUtil::initializeTableAndTipClients(
-    mwcst::Table*                 table,
-    mwcu::BasicTableInfoProvider* tip,
-    int                           historySize,
-    mwcst::StatContext*           statContext)
+    mwcst::Table*                  table,
+    mwcst::BasicTableInfoProvider* tip,
+    int                            historySize,
+    mwcst::StatContext*            statContext)
 {
     // Use only one level for now ...
     mwcst::StatValue::SnapshotLocation start(0, 0);

@@ -46,6 +46,7 @@
 #include <ball_context.h>
 #include <ball_log.h>
 #include <ball_loggermanager.h>
+#include <ball_logthrottle.h>
 #include <bdlb_scopeexit.h>
 #include <bdlb_string.h>
 #include <bdlb_stringrefutil.h>
@@ -70,6 +71,13 @@ namespace BloombergLP {
 namespace mqbstat {
 
 namespace {
+
+const int k_MAX_INSTANT_MESSAGES = 1;
+// Maximum messages logged with throttling in a short period of time.
+
+const bsls::Types::Int64 k_NS_PER_MESSAGE = 15 *
+                                            bdlt::TimeUnitRatio::k_NS_PER_M;
+// Time interval between messages logged with throttling.
 
 const char k_PUBLISHINTERVAL_SUFFIX[] = ".PUBLISHINTERVAL";
 
@@ -233,26 +241,54 @@ void StatController::initializeStats()
             false)));
 }
 
-void StatController::captureStats(mqbcmd::StatResult* result)
+void StatController::captureStatsAndSemaphorePost(
+    mqbcmd::StatResult*                  result,
+    bslmt::Semaphore*                    semaphore,
+    const mqbcmd::EncodingFormat::Value& encoding)
 {
-    // This must execute in the *SCHEDULER* thread.
+    // executed by the *SCHEDULER* thread
 
     if (d_allocatorsStatContext_p) {
         // When using test allocator, we don't have a stat context
         d_allocatorsStatContext_p->snapshot();
     }
 
-    mwcu::MemOutStream os;
-    d_printer_mp->printStats(os);
-    result->makeStats(os.str());
-}
+    switch (encoding) {
+    case mqbcmd::EncodingFormat::TEXT: {
+        mwcu::MemOutStream os;
+        d_printer_mp->printStats(os);
+        result->makeStats() = os.str();
+    } break;  // BREAK
 
-void StatController::captureStatsAndSemaphorePost(mqbcmd::StatResult* result,
-                                                  bslmt::Semaphore* semaphore)
-{
-    // executed by the *SCHEDULER* thread
+    case mqbcmd::EncodingFormat::JSON_COMPACT: BSLS_ANNOTATION_FALLTHROUGH;
+    case mqbcmd::EncodingFormat::JSON_PRETTY: {
+        // Make an unscheduled snapshot, but do not notify stats consumers
+        // since it's not necessary.  We typically use this code path to get
+        // the latests stats during integration tests, and this case we
+        // neither want to wait until the next scheduled snapshot nor get the
+        // outdated existing one.
+        const bool savedNextSnapshot = snapshot();
+        if (savedNextSnapshot) {
+            const bool compact = (encoding ==
+                                  mqbcmd::EncodingFormat::JSON_COMPACT);
+            const int  rc = d_jsonPrinter_mp->printStats(&result->makeStats(),
+                                                        compact);
+            if (0 != rc) {
+                result->makeError().message() = "Stats print to json failed";
+            }
+        }
+        else {
+            result->makeError().message() =
+                "Cannot save the recent snapshot, trying to make snapshots "
+                "too often";
+        }
+    } break;  // BREAK
 
-    captureStats(result);
+    default: {
+        BSLS_ASSERT(!"invalid enumerator");
+    } break;  // BREAK
+    }
+
     semaphore->post();
 }
 
@@ -482,24 +518,20 @@ void StatController::listTunables(mqbcmd::StatResult* result,
     }
 }
 
-void StatController::snapshot()
+bool StatController::snapshot()
 {
     // executed by the *SCHEDULER* thread
+    const bsls::Types::Int64 now = mwcsys::Time::highResolutionTimer();
 
     // Safeguard against too frequent invocation from the scheduler.
-    const bsls::Types::Int64 now     = mwcsys::Time::highResolutionTimer();
-    const bsls::Types::Int64 nsDelta = now - d_lastSnapshotTime;
-    const bsls::Types::Int64 minDelta =
-        mqbcfg::BrokerConfig::get().stats().snapshotInterval() *
-        bdlt::TimeUnitRatio::k_NS_PER_S / 2;
-    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(nsDelta < minDelta)) {
-        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        if (d_lastSnapshotLogLimiter.requestPermission()) {
-            BALL_LOG_INFO << "snapshot invoked too frequently (delta = "
-                          << mwcu::PrintUtil::prettyTimeInterval(nsDelta)
-                          << "), skipping snapshot";
-        }
-        return;  // RETURN
+    if (!d_snapshotThrottle.requestPermission()) {
+        const bsls::Types::Int64 nsDelta = now - d_lastSnapshotTime;
+        BALL_LOGTHROTTLE_WARN(k_MAX_INSTANT_MESSAGES, k_NS_PER_MESSAGE)
+            << "[THROTTLED] Snapshot invoked too frequently (delta = "
+            << mwcu::PrintUtil::prettyTimeInterval(nsDelta)
+            << "), skipping snapshot";
+
+        return false;  // RETURN
     }
 
     d_lastSnapshotTime = now;
@@ -518,21 +550,36 @@ void StatController::snapshot()
     // through snapshot
     d_systemStatMonitor_mp->snapshot();
 
+    // Printer needs to be notified of every snapshot, but has an internal
+    // action counter to know when it's time to print.  Allocator stat context
+    // only has a history size of 2, so we need to snapshot only once, just
+    // before printing.
+    // TODO: adopt this code for `mqbstat::JsonPrinter` when we report
+    //       allocator stats in json
+    const bool willPrint = d_printer_mp->nextSnapshotWillPrint();
+    if (d_allocatorsStatContext_p && willPrint) {
+        d_allocatorsStatContext_p->snapshot();
+    }
+
+    return true;
+}
+
+void StatController::snapshotAndNotify()
+{
+    // executed by the *SCHEDULER* thread
+
+    if (!snapshot()) {
+        // Trying to make snapshots too often
+        return;  // RETURN
+    }
+
     // StatConsumers will report all stats
     bsl::vector<StatConsumerMp>::iterator it = d_statConsumers.begin();
     for (; it != d_statConsumers.end(); ++it) {
         (*it)->onSnapshot();
     }
 
-    // Printer needs to be notified of every snapshot, but has an internal
-    // action counter to know when it's time to print.  Allocator stat context
-    // only has an history size of 2, so we need to snapshot only once, just
-    // before printing.
     const bool willPrint = d_printer_mp->nextSnapshotWillPrint();
-    if (d_allocatorsStatContext_p && willPrint) {
-        d_allocatorsStatContext_p->snapshot();
-    }
-
     d_printer_mp->onSnapshot();
 
     // Finally, perform cleanup of expired stat contexts if we have printed
@@ -612,6 +659,7 @@ StatController::StatController(const CommandProcessorFn& commandProcessor,
 : d_allocators(allocator)
 , d_scheduler_mp(0)
 , d_lastSnapshotTime()
+, d_snapshotThrottle()
 , d_allocatorsStatContext_p(allocatorsStatContext)
 , d_statContextsMap(allocator)
 , d_statContextChannelsLocal_mp(0)
@@ -621,6 +669,7 @@ StatController::StatController(const CommandProcessorFn& commandProcessor,
 , d_bufferFactory_p(bufferFactory)
 , d_commandProcessorFn(bsl::allocator_arg, allocator, commandProcessor)
 , d_printer_mp(0)
+, d_jsonPrinter_mp(0)
 , d_statConsumers(allocator)
 , d_statConsumerMaxPublishInterval(0)
 , d_eventScheduler_p(eventScheduler)
@@ -630,9 +679,11 @@ StatController::StatController(const CommandProcessorFn& commandProcessor,
     BSLS_ASSERT_SAFE(eventScheduler->clockType() ==
                      bsls::SystemClockType::e_MONOTONIC);
 
-    d_lastSnapshotLogLimiter.initialize(1,
-                                        15 * bdlt::TimeUnitRatio::k_NS_PER_M);
-    // Throttling of one maximum alarm per 15 minutes
+    // Have to initialize the throttle with default "allow none" parameters to
+    // avoid possible undefined behaviour according to its usage contract.
+    // The throttle should be reinitialized during 'start()' with normal
+    // values.
+    d_snapshotThrottle.initialize(0, 1);
 }
 
 int StatController::start(bsl::ostream& errorDescription)
@@ -650,6 +701,13 @@ int StatController::start(bsl::ostream& errorDescription)
                       << "[reason: snapshotInterval is <= 0]";
         return 0;  // RETURN
     }
+
+    // Initialize the safeguard throttle against too often snapshots
+    const int k_MAX_SNAPSHOTS_PER_INTERVAL = 4;
+    d_snapshotThrottle.initialize(k_MAX_SNAPSHOTS_PER_INTERVAL,
+                                  brkrCfg.stats().snapshotInterval() *
+                                      bdlt::TimeUnitRatio::k_NS_PER_S /
+                                      k_MAX_SNAPSHOTS_PER_INTERVAL);
 
     // Start the scheduler
     d_scheduler_mp.load(new (*d_allocator_p) bdlmt::TimerEventScheduler(
@@ -784,6 +842,11 @@ int StatController::start(bsl::ostream& errorDescription)
         errorStream.reset();
     }
 
+    // Create the json printer
+    d_jsonPrinter_mp.load(new (*d_allocator_p)
+                              JsonPrinter(ctxPtrMap, d_allocator_p),
+                          d_allocator_p);
+
     // Max value for the stat publish interval must be the minimum history size
     // of all stat contexts.
     d_statConsumerMaxPublishInterval =
@@ -793,7 +856,7 @@ int StatController::start(bsl::ostream& errorDescription)
     // Start the clock
     d_scheduler_mp->startClock(
         bsls::TimeInterval(brkrCfg.stats().snapshotInterval()),
-        bdlf::BindUtil::bind(&StatController::snapshot, this));
+        bdlf::BindUtil::bind(&StatController::snapshotAndNotify, this));
     BALL_LOG_INFO << "Starting statistics  [SnapshotInterval: "
                   << brkrCfg.stats().snapshotInterval() << ", PrintInterval: "
                   << brkrCfg.stats().printer().printInterval() << "]";
@@ -834,6 +897,7 @@ void StatController::stop()
         DESTROY_OBJ((*it), it->name());
     }
     DESTROY_OBJ(d_printer_mp, "Printer");
+    DESTROY_OBJ(d_jsonPrinter_mp, "JsonPrinter");
     DESTROY_OBJ(d_systemStatMonitor_mp, "SystemStatMonitor");
     DESTROY_OBJ(d_scheduler_mp, "Scheduler");
 
@@ -852,8 +916,10 @@ void StatController::loadStatContexts(StatContexts* contexts)
     }
 }
 
-int StatController::processCommand(mqbcmd::StatResult*        result,
-                                   const mqbcmd::StatCommand& command)
+int StatController::processCommand(
+    mqbcmd::StatResult*                  result,
+    const mqbcmd::StatCommand&           command,
+    const mqbcmd::EncodingFormat::Value& encoding)
 {
     if (command.isShowValue()) {
         bslmt::Semaphore semaphore;
@@ -862,7 +928,8 @@ int StatController::processCommand(mqbcmd::StatResult*        result,
             bdlf::BindUtil::bind(&StatController::captureStatsAndSemaphorePost,
                                  this,
                                  result,
-                                 &semaphore));
+                                 &semaphore,
+                                 encoding));
         semaphore.wait();
         return 0;  // RETURN
     }
