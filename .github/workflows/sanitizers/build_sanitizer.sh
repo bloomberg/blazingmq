@@ -216,3 +216,54 @@ cmake -B "${DIR_SRCS_EXT}/zlib/cmake.bld" -S "${DIR_SRCS_EXT}/zlib" \
 # Make and install zlib.
 cmake --build "${DIR_SRCS_EXT}/zlib/cmake.bld" -j${PARALLELISM}
 cmake --install "${DIR_SRCS_EXT}/zlib/cmake.bld"
+
+# :: Build BlazingMQ ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+PKG_CONFIG_PATH="/opt/bb/lib64/pkgconfig:/opt/bb/lib/pkgconfig:/opt/bb/share/pkgconfig:$(pkg-config --variable pc_path pkg-config)" \
+cmake -B "${DIR_BUILD_BMQ}" -S "${DIR_SRC_BMQ}" -G Ninja \
+    -DBDE_BUILD_TARGET_64=ON \
+    -DBDE_BUILD_TARGET_CPP17=ON \
+    -DCMAKE_PREFIX_PATH="${DIR_SRCS_EXT}/bde-tools/BdeBuildSystem" \
+    -DBDE_BUILD_TARGET_SAFE=1 ${CMAKE_OPTIONS}
+cmake --build "${DIR_BUILD_BMQ}" -j${PARALLELISM} \
+      --target all.t -v --clean-first
+
+# :: Create testing scripts :::::::::::::::::::::::::::::::::::::::::::::::::::
+envcfgquery() {
+    # Parses the '<build-name>.environment' object from 'sanitizers.json',
+    # and outputs a string of whitespace-separated 'VAR=VAL' pairs intended to
+    # be used to set the environment for a command.
+    #   e.g. 'asan' -> 'ASAN_OPTIONS="foo=bar:baz=baf" LSAN_OPTIONS="abc=fgh"'
+    #
+    echo $(cfgquery "                        \
+            .${1}.environment |              \
+            to_entries |                     \
+            map(\"\(.key)=\\\"\(.value |     \
+                to_entries |                 \
+                map(\"\(.key)=\(.value)\") | \
+                join(\":\"))\\\"\") |        \
+            join(\" \")") |
+        sed "s|%%SRC%%|$(realpath ${DIR_SRC_BMQ})|g" |
+        sed "s|%%ROOT%%|$(realpath ${DIR_ROOT})|g"
+}
+
+mkscript() {
+    local cmd=${1}
+    local outfile=${2}
+
+    echo '#!/usr/bin/env bash' > ${outfile}
+    echo "${cmd}" >> ${outfile}
+    chmod +x ${outfile}
+}
+
+SANITIZER_ENV="BMQ_BUILD=$(realpath ${DIR_BUILD_BMQ}) "
+SANITIZER_ENV+="BMQ_REPO=${DIR_SRC_BMQ} "
+SANITIZER_ENV+="$(envcfgquery ${SANITIZER_NAME})"
+
+# 'run-env.sh' runs a command with environment required of the sanitizer.
+mkscript "${SANITIZER_ENV} \${@}" "${DIR_BUILD_BMQ}/run-env.sh"
+
+# 'run-unittests.sh' runs all instrumented unit-tests.
+CMD="cd $(realpath ${DIR_SRC_BMQ}) && "
+CMD+="${DIR_BUILD_BMQ}/run-env.sh ctest -E mwcsys_executil.t --output-on-failure"
+mkscript "${CMD}" "${DIR_BUILD_BMQ}/run-unittests.sh"
