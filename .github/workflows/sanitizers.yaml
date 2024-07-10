@@ -36,5 +36,5 @@ jobs:
         run: ./.github/workflows/sanitizers/build_sanitizer.sh ${{ inputs.sanitizer-name }}
       - name: Run unit tests under sanitizer
         run: |          
-          cd ${{ github.workspace }}/build/blazingmq
+          cd ${{ github.workspace }}/cmake.bld/Linux
           ./run-unittests.sh
