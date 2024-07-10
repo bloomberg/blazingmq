@@ -143,26 +143,7 @@ echo #################################################
 # sudo update-alternatives --all
 echo #################################################
 
-sudo apt-get purge llvm-14 clang-14
-
-# sudo update-alternatives --remove-all gcc
-update-alternatives --display clang
-update-alternatives --display clang++
-update-alternatives --display clang-format
-
-# sudo update-alternatives --remove-all llvm
-sudo update-alternatives --remove-all clang
-sudo update-alternatives --remove-all clang++
-sudo update-alternatives --remove-all clang-format
-sudo update-alternatives --remove-all clang-tidy
-
-# sudo ln -sf /usr/bin/clang-${LLVM_VERSION} /usr/bin/clang
-# sudo ln -sf /usr/bin/clang++-${LLVM_VERSION} /usr/bin/clang++ 
-# sudo update-alternatives \
-#   --install /usr/bin/clang                 clang                  /usr/bin/clang-18     100 \
-#   --slave   /usr/bin/clang++               clang++                /usr/bin/clang++-18 \
-#   --slave   /usr/bin/lld                   lld                    /usr/bin/lld-18 \
-
+sudo apt-get purge llvm-14 clang-14 gcc-11.4.0
 
 function register_clang_version {
     local version=$1
