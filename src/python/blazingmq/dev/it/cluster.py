@@ -22,12 +22,13 @@ import itertools
 import logging
 import shutil
 import signal
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Union, Tuple
 from pathlib import Path
 
+from blazingmq.dev.configurator.localsite import LocalSite
 import blazingmq.dev.it.process.proc
 import blazingmq.dev.it.testconstants as tc
-import blazingmq.dev.configurator as cfg
+import blazingmq.dev.configurator.configurator as cfg
 from blazingmq.dev.it.process.broker import Broker
 from blazingmq.dev.it.process.client import Client
 from blazingmq.dev.it.util import ListContextManager, Queue, internal_use
@@ -484,7 +485,8 @@ class Cluster(contextlib.AbstractContextManager):
 
         client = Client(
             name,
-            broker,
+            ("localhost", broker.config.port),
+            tool_path="bin/bmqtool.tsk",
             cwd=(self.work_dir / broker.name),
             dump_messages=dump_messages,
             options=(self._tool_extra_args or []) + (options or []),
@@ -622,7 +624,9 @@ class Cluster(contextlib.AbstractContextManager):
 
     def deploy_domains(self):
         for broker in self.configurator.brokers.values():
-            broker.deploy_domains(cfg.LocalSite(self.work_dir / broker.name))
+            self.configurator.deploy_domains(
+                broker, LocalSite(self.work_dir / broker.name)
+            )
 
     def reconfigure_domain(
         self,

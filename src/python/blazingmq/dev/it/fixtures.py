@@ -38,13 +38,15 @@ import tempfile
 from enum import IntEnum
 from pathlib import Path
 from typing import Callable, Generator, Iterator, List, Optional, Tuple
+import psutil
 
-import blazingmq.dev.configurator as cfg
+import pytest
+
+import blazingmq.dev.configurator.configurator as cfg
+from blazingmq.dev.configurator.localsite import LocalSite
 import blazingmq.dev.it.process.bmqproc
 import blazingmq.dev.it.testconstants as tc
 import blazingmq.util.logging as bul
-import psutil
-import pytest
 from blazingmq.dev.it.cluster import Cluster
 from blazingmq.dev.it.tweaks import tweak  # pylint: disable=unused-import
 from blazingmq.dev.it.tweaks import TWEAK_ATTRIBUTE, Tweak
@@ -342,7 +344,7 @@ def cluster_fixture(request, configure) -> Generator:
             apply_tweaks(1)
 
             for broker in configurator.brokers.values():
-                broker.deploy(cfg.LocalSite(work_dir / broker.name))
+                configurator.deploy(broker, LocalSite(work_dir / broker.name))
 
             main_cluster: Optional[cfg.Cluster] = None
 
