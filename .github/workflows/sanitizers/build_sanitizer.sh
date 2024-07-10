@@ -137,6 +137,28 @@ export LIBCXX_BUILD_PATH="$(realpath ${LIBCXX_BUILD_PATH})"
 export DIR_SRC_BMQ="${DIR_SRC_BMQ}"
 export DIR_SCRIPTS="${DIR_SCRIPTS}"
 
+
+#################################################
+echo #################################################
+sudo update-alternatives --all
+echo #################################################
+
+sudo update-alternatives --remove-all gcc
+sudo update-alternatives --remove-all llvm
+sudo update-alternatives --remove-all clang
+
+# sudo ln -sf /usr/bin/clang-${LLVM_VERSION} /usr/bin/clang
+# sudo ln -sf /usr/bin/clang++-${LLVM_VERSION} /usr/bin/clang++ 
+sudo update-alternatives \
+  --install /usr/bin/clang                 clang                  /usr/bin/clang-18     100 \
+  --slave   /usr/bin/clang++               clang++                /usr/bin/clang++-18 \
+  --slave   /usr/bin/lld                   lld                    /usr/bin/lld-18 \
+
+echo #################################################
+sudo update-alternatives --all
+echo #################################################
+#################################################
+
 # :: Build BDE + NTF ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 TOOLCHAIN_PATH="${DIR_SCRIPTS}/clang-libcxx-${SANITIZER_NAME}.cmake"
 export CC="clang"
@@ -150,6 +172,11 @@ pushd ${DIR_SRCS_EXT}
 pushd "bde"
 eval "$(bbs_build_env -u dbg_64_safe_cpp20 -b "${DIR_BUILD_EXT}/bde")"
 bbs_build configure --toolchain "${TOOLCHAIN_PATH}"
+
+#################################################
+exit 0
+#################################################
+
 bbs_build build -j${PARALLELISM}
 bbs_build --install=/opt/bb --prefix=/ install
 popd
