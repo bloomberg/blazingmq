@@ -34,6 +34,14 @@ jobs:
       #   run: pwd
       - name: Build BlazingMQ and dependencies with sanitizer instrumentation
         run: ./.github/workflows/sanitizers/build_sanitizer.sh ${{ inputs.sanitizer-name }}
+      - name: Cat run-env.sh
+        run: cat ${{ github.workspace }}/cmake.bld/Linux/run-env.sh
+      - name: Cat run-unittests.sh
+        run: cat ${{ github.workspace }}/cmake.bld/Linux/run-unittests.sh
+      - name: List build
+        run: ls -lah ${{ github.workspace }}/cmake.bld/Linux
+      - name: List test binaries
+        run: find ${{ github.workspace }}/cmake.bld/Linux -name "*.t.tsk"
       - name: Run unit tests under sanitizer
         run: |          
           cd ${{ github.workspace }}/cmake.bld/Linux
