@@ -98,9 +98,7 @@ class TweakFactory:
                 logging_verbosity = LoggingVerbosity()
 
                 class BslsLogSeverityThreshold(metaclass=TweakMetaclass):
-                    def __call__(
-                        self, value: str
-                    ) -> Callable: ...
+                    def __call__(self, value: str) -> Callable: ...
 
                 bsls_log_severity_threshold = BslsLogSeverityThreshold()
 
@@ -169,65 +167,47 @@ class TweakFactory:
 
         class AppConfig(metaclass=TweakMetaclass):
             class BrokerInstanceName(metaclass=TweakMetaclass):
-                def __call__(
-                    self, value: typing.Union[str, NoneType]
-                ) -> Callable: ...
+                def __call__(self, value: typing.Union[str, NoneType]) -> Callable: ...
 
             broker_instance_name = BrokerInstanceName()
 
             class BrokerVersion(metaclass=TweakMetaclass):
-                def __call__(
-                    self, value: typing.Union[int, NoneType]
-                ) -> Callable: ...
+                def __call__(self, value: typing.Union[int, NoneType]) -> Callable: ...
 
             broker_version = BrokerVersion()
 
             class ConfigVersion(metaclass=TweakMetaclass):
-                def __call__(
-                    self, value: typing.Union[int, NoneType]
-                ) -> Callable: ...
+                def __call__(self, value: typing.Union[int, NoneType]) -> Callable: ...
 
             config_version = ConfigVersion()
 
             class EtcDir(metaclass=TweakMetaclass):
-                def __call__(
-                    self, value: typing.Union[str, NoneType]
-                ) -> Callable: ...
+                def __call__(self, value: typing.Union[str, NoneType]) -> Callable: ...
 
             etc_dir = EtcDir()
 
             class HostName(metaclass=TweakMetaclass):
-                def __call__(
-                    self, value: typing.Union[str, NoneType]
-                ) -> Callable: ...
+                def __call__(self, value: typing.Union[str, NoneType]) -> Callable: ...
 
             host_name = HostName()
 
             class HostTags(metaclass=TweakMetaclass):
-                def __call__(
-                    self, value: typing.Union[str, NoneType]
-                ) -> Callable: ...
+                def __call__(self, value: typing.Union[str, NoneType]) -> Callable: ...
 
             host_tags = HostTags()
 
             class HostDataCenter(metaclass=TweakMetaclass):
-                def __call__(
-                    self, value: typing.Union[str, NoneType]
-                ) -> Callable: ...
+                def __call__(self, value: typing.Union[str, NoneType]) -> Callable: ...
 
             host_data_center = HostDataCenter()
 
             class IsRunningOnDev(metaclass=TweakMetaclass):
-                def __call__(
-                    self, value: typing.Union[bool, NoneType]
-                ) -> Callable: ...
+                def __call__(self, value: typing.Union[bool, NoneType]) -> Callable: ...
 
             is_running_on_dev = IsRunningOnDev()
 
             class LogsObserverMaxSize(metaclass=TweakMetaclass):
-                def __call__(
-                    self, value: typing.Union[int, NoneType]
-                ) -> Callable: ...
+                def __call__(self, value: typing.Union[int, NoneType]) -> Callable: ...
 
             logs_observer_max_size = LogsObserverMaxSize()
 
@@ -498,14 +478,12 @@ class TweakFactory:
                     max_age_days = MaxAgeDays()
 
                     class RotateBytes(metaclass=TweakMetaclass):
-                        def __call__(self, value: int) -> Callable:
-                            ...
+                        def __call__(self, value: int) -> Callable: ...
 
                     rotate_bytes = RotateBytes()
 
                     class RotateDays(metaclass=TweakMetaclass):
-                        def __call__(self, value: int) -> Callable:
-                            ...
+                        def __call__(self, value: int) -> Callable: ...
 
                     rotate_days = RotateDays()
 
@@ -514,42 +492,36 @@ class TweakFactory:
                         value: typing.Union[
                             blazingmq.schemas.mqbcfg.StatsPrinterConfig, NoneType
                         ],
-                    ) -> Callable:
-                        ...
+                    ) -> Callable: ...
 
                 printer = Printer()
 
                 def __call__(
                     self,
                     value: typing.Union[blazingmq.schemas.mqbcfg.StatsConfig, NoneType],
-                ) -> Callable:
-                    ...
+                ) -> Callable: ...
 
             stats = Stats()
 
             class NetworkInterfaces(metaclass=TweakMetaclass):
                 class Heartbeats(metaclass=TweakMetaclass):
                     class Client(metaclass=TweakMetaclass):
-                        def __call__(self, value: int) -> Callable:
-                            ...
+                        def __call__(self, value: int) -> Callable: ...
 
                     client = Client()
 
                     class DownstreamBroker(metaclass=TweakMetaclass):
-                        def __call__(self, value: int) -> Callable:
-                            ...
+                        def __call__(self, value: int) -> Callable: ...
 
                     downstream_broker = DownstreamBroker()
 
                     class UpstreamBroker(metaclass=TweakMetaclass):
-                        def __call__(self, value: int) -> Callable:
-                            ...
+                        def __call__(self, value: int) -> Callable: ...
 
                     upstream_broker = UpstreamBroker()
 
                     class ClusterPeer(metaclass=TweakMetaclass):
-                        def __call__(self, value: int) -> Callable:
-                            ...
+                        def __call__(self, value: int) -> Callable: ...
 
                     cluster_peer = ClusterPeer()
 
@@ -558,8 +530,7 @@ class TweakFactory:
                         value: typing.Union[
                             blazingmq.schemas.mqbcfg.Heartbeat, NoneType
                         ],
-                    ) -> Callable:
-                        ...
+                    ) -> Callable: ...
 
                 heartbeats = Heartbeats()
 
@@ -567,70 +538,60 @@ class TweakFactory:
                     class Name(metaclass=TweakMetaclass):
                         def __call__(
                             self, value: typing.Union[str, NoneType]
-                        ) -> Callable:
-                            ...
+                        ) -> Callable: ...
 
                     name = Name()
 
                     class Port(metaclass=TweakMetaclass):
                         def __call__(
                             self, value: typing.Union[int, NoneType]
-                        ) -> Callable:
-                            ...
+                        ) -> Callable: ...
 
                     port = Port()
 
                     class IoThreads(metaclass=TweakMetaclass):
                         def __call__(
                             self, value: typing.Union[int, NoneType]
-                        ) -> Callable:
-                            ...
+                        ) -> Callable: ...
 
                     io_threads = IoThreads()
 
                     class MaxConnections(metaclass=TweakMetaclass):
-                        def __call__(self, value: int) -> Callable:
-                            ...
+                        def __call__(self, value: int) -> Callable: ...
 
                     max_connections = MaxConnections()
 
                     class LowWatermark(metaclass=TweakMetaclass):
                         def __call__(
                             self, value: typing.Union[int, NoneType]
-                        ) -> Callable:
-                            ...
+                        ) -> Callable: ...
 
                     low_watermark = LowWatermark()
 
                     class HighWatermark(metaclass=TweakMetaclass):
                         def __call__(
                             self, value: typing.Union[int, NoneType]
-                        ) -> Callable:
-                            ...
+                        ) -> Callable: ...
 
                     high_watermark = HighWatermark()
 
                     class NodeLowWatermark(metaclass=TweakMetaclass):
-                        def __call__(self, value: int) -> Callable:
-                            ...
+                        def __call__(self, value: int) -> Callable: ...
 
                     node_low_watermark = NodeLowWatermark()
 
                     class NodeHighWatermark(metaclass=TweakMetaclass):
-                        def __call__(self, value: int) -> Callable:
-                            ...
+                        def __call__(self, value: int) -> Callable: ...
 
                     node_high_watermark = NodeHighWatermark()
 
                     class HeartbeatIntervalMs(metaclass=TweakMetaclass):
-                        def __call__(self, value: int) -> Callable:
-                            ...
+                        def __call__(self, value: int) -> Callable: ...
 
                     heartbeat_interval_ms = HeartbeatIntervalMs()
 
                     class UseNtf(metaclass=TweakMetaclass):
-                        def __call__(self, value: bool) -> Callable:
-                            ...
+                        def __call__(self, value: bool) -> Callable: ...
 
                     use_ntf = UseNtf()
 
@@ -639,8 +600,7 @@ class TweakFactory:
                         value: typing.Union[
                             blazingmq.schemas.mqbcfg.TcpInterfaceConfig, NoneType
                         ],
-                    ) -> Callable:
-                        ...
+                    ) -> Callable: ...
 
                 tcp_interface = TcpInterface()
 
@@ -649,15 +609,15 @@ class TweakFactory:
                     value: typing.Union[
                         blazingmq.schemas.mqbcfg.NetworkInterfaces, NoneType
                     ],
-                ) -> Callable:
-                    ...
+                ) -> Callable: ...
 
             network_interfaces = NetworkInterfaces()
 
             class BmqconfConfig(metaclass=TweakMetaclass):
                 class CacheTtlseconds(metaclass=TweakMetaclass):
-                    def __call__(self, value: typing.Union[int, NoneType]) -> Callable:
-                        ...
+                    def __call__(
+                        self, value: typing.Union[int, NoneType]
+                    ) -> Callable: ...
 
                 cache_ttlseconds = CacheTtlseconds()
 
@@ -666,48 +626,41 @@ class TweakFactory:
                     value: typing.Union[
                         blazingmq.schemas.mqbcfg.BmqconfConfig, NoneType
                     ],
-                ) -> Callable:
-                    ...
+                ) -> Callable: ...
 
             bmqconf_config = BmqconfConfig()
 
             class Plugins(metaclass=TweakMetaclass):
                 class Libraries(metaclass=TweakMetaclass):
-                    def __call__(self, value: None) -> Callable:
-                        ...
+                    def __call__(self, value: None) -> Callable: ...
 
                 libraries = Libraries()
 
                 class Enabled(metaclass=TweakMetaclass):
-                    def __call__(self, value: None) -> Callable:
-                        ...
+                    def __call__(self, value: None) -> Callable: ...
 
                 enabled = Enabled()
 
                 def __call__(
                     self,
                     value: typing.Union[blazingmq.schemas.mqbcfg.Plugins, NoneType],
-                ) -> Callable:
-                    ...
+                ) -> Callable: ...
 
             plugins = Plugins()
 
             class MessagePropertiesV2(metaclass=TweakMetaclass):
                 class AdvertiseV2Support(metaclass=TweakMetaclass):
-                    def __call__(self, value: bool) -> Callable:
-                        ...
+                    def __call__(self, value: bool) -> Callable: ...
 
                 advertise_v2_support = AdvertiseV2Support()
 
                 class MinCppSdkVersion(metaclass=TweakMetaclass):
-                    def __call__(self, value: int) -> Callable:
-                        ...
+                    def __call__(self, value: int) -> Callable: ...
 
                 min_cpp_sdk_version = MinCppSdkVersion()
 
                 class MinJavaSdkVersion(metaclass=TweakMetaclass):
-                    def __call__(self, value: int) -> Callable:
-                        ...
+                    def __call__(self, value: int) -> Callable: ...
 
                 min_java_sdk_version = MinJavaSdkVersion()
 
@@ -716,36 +669,31 @@ class TweakFactory:
                     value: typing.Union[
                         blazingmq.schemas.mqbcfg.MessagePropertiesV2, NoneType
                     ],
-                ) -> Callable:
-                    ...
+                ) -> Callable: ...
 
             message_properties_v2 = MessagePropertiesV2()
 
             class ConfigureStream(metaclass=TweakMetaclass):
-                def __call__(self, value: bool) -> Callable:
-                    ...
+                def __call__(self, value: bool) -> Callable: ...
 
             configure_stream = ConfigureStream()
 
             def __call__(
                 self, value: typing.Union[blazingmq.schemas.mqbcfg.AppConfig, NoneType]
-            ) -> Callable:
-                ...
+            ) -> Callable: ...
 
         app_config = AppConfig()
 
     class Domain:
         class Name(metaclass=TweakMetaclass):
-            def __call__(self, value: typing.Union[str, NoneType]) -> Callable:
-                ...
+            def __call__(self, value: typing.Union[str, NoneType]) -> Callable: ...
 
         name = Name()
 
         class Mode(metaclass=TweakMetaclass):
             class Fanout(metaclass=TweakMetaclass):
                 class AppIds(metaclass=TweakMetaclass):
-                    def __call__(self, value: None) -> Callable:
-                        ...
+                    def __call__(self, value: None) -> Callable: ...
 
                 app_ids = AppIds()
 
@@ -754,8 +702,7 @@ class TweakFactory:
                     value: typing.Union[
                         blazingmq.schemas.mqbconf.QueueModeFanout, NoneType
                     ],
-                ) -> Callable:
-                    ...
+                ) -> Callable: ...
 
             fanout = Fanout()
 
@@ -765,8 +712,7 @@ class TweakFactory:
                     value: typing.Union[
                         blazingmq.schemas.mqbconf.QueueModePriority, NoneType
                     ],
-                ) -> Callable:
-                    ...
+                ) -> Callable: ...
 
             priority = Priority()
 
@@ -776,82 +722,78 @@ class TweakFactory:
                     value: typing.Union[
                         blazingmq.schemas.mqbconf.QueueModeBroadcast, NoneType
                     ],
-                ) -> Callable:
-                    ...
+                ) -> Callable: ...
 
             broadcast = Broadcast()
 
             def __call__(
                 self, value: typing.Union[blazingmq.schemas.mqbconf.QueueMode, NoneType]
-            ) -> Callable:
-                ...
+            ) -> Callable: ...
 
         mode = Mode()
 
         class Storage(metaclass=TweakMetaclass):
             class DomainLimits(metaclass=TweakMetaclass):
                 class Messages(metaclass=TweakMetaclass):
-                    def __call__(self, value: typing.Union[int, NoneType]) -> Callable:
-                        ...
+                    def __call__(
+                        self, value: typing.Union[int, NoneType]
+                    ) -> Callable: ...
 
                 messages = Messages()
 
                 class MessagesWatermarkRatio(metaclass=TweakMetaclass):
-                    def __call__(self, value: decimal.Decimal) -> Callable:
-                        ...
+                    def __call__(self, value: decimal.Decimal) -> Callable: ...
 
                 messages_watermark_ratio = MessagesWatermarkRatio()
 
                 class Bytes(metaclass=TweakMetaclass):
-                    def __call__(self, value: typing.Union[int, NoneType]) -> Callable:
-                        ...
+                    def __call__(
+                        self, value: typing.Union[int, NoneType]
+                    ) -> Callable: ...
 
                 bytes = Bytes()
 
                 class BytesWatermarkRatio(metaclass=TweakMetaclass):
-                    def __call__(self, value: decimal.Decimal) -> Callable:
-                        ...
+                    def __call__(self, value: decimal.Decimal) -> Callable: ...
 
                 bytes_watermark_ratio = BytesWatermarkRatio()
 
                 def __call__(
                     self,
                     value: typing.Union[blazingmq.schemas.mqbconf.Limits, NoneType],
-                ) -> Callable:
-                    ...
+                ) -> Callable: ...
 
             domain_limits = DomainLimits()
 
             class QueueLimits(metaclass=TweakMetaclass):
                 class Messages(metaclass=TweakMetaclass):
-                    def __call__(self, value: typing.Union[int, NoneType]) -> Callable:
-                        ...
+                    def __call__(
+                        self, value: typing.Union[int, NoneType]
+                    ) -> Callable: ...
 
                 messages = Messages()
 
                 class MessagesWatermarkRatio(metaclass=TweakMetaclass):
-                    def __call__(self, value: decimal.Decimal) -> Callable:
-                        ...
+                    def __call__(self, value: decimal.Decimal) -> Callable: ...
 
                 messages_watermark_ratio = MessagesWatermarkRatio()
 
                 class Bytes(metaclass=TweakMetaclass):
-                    def __call__(self, value: typing.Union[int, NoneType]) -> Callable:
-                        ...
+                    def __call__(
+                        self, value: typing.Union[int, NoneType]
+                    ) -> Callable: ...
 
                 bytes = Bytes()
 
                 class BytesWatermarkRatio(metaclass=TweakMetaclass):
-                    def __call__(self, value: decimal.Decimal) -> Callable:
-                        ...
+                    def __call__(self, value: decimal.Decimal) -> Callable: ...
 
                 bytes_watermark_ratio = BytesWatermarkRatio()
 
                 def __call__(
                     self,
                     value: typing.Union[blazingmq.schemas.mqbconf.Limits, NoneType],
-                ) -> Callable:
-                    ...
+                ) -> Callable: ...
 
             queue_limits = QueueLimits()
 
@@ -862,8 +804,7 @@ class TweakFactory:
                         value: typing.Union[
                             blazingmq.schemas.mqbconf.InMemoryStorage, NoneType
                         ],
-                    ) -> Callable:
-                        ...
+                    ) -> Callable: ...
 
                 in_memory = InMemory()
 
@@ -873,16 +814,14 @@ class TweakFactory:
                         value: typing.Union[
                             blazingmq.schemas.mqbconf.FileBackedStorage, NoneType
                         ],
-                    ) -> Callable:
-                        ...
+                    ) -> Callable: ...
 
                 file_backed = FileBacked()
 
                 def __call__(
                     self,
                     value: typing.Union[blazingmq.schemas.mqbconf.Storage, NoneType],
-                ) -> Callable:
-                    ...
+                ) -> Callable: ...
 
             config = Config()
 
@@ -891,45 +830,38 @@ class TweakFactory:
                 value: typing.Union[
                     blazingmq.schemas.mqbconf.StorageDefinition, NoneType
                 ],
-            ) -> Callable:
-                ...
+            ) -> Callable: ...
 
         storage = Storage()
 
         class MaxConsumers(metaclass=TweakMetaclass):
-            def __call__(self, value: int) -> Callable:
-                ...
+            def __call__(self, value: int) -> Callable: ...
 
         max_consumers = MaxConsumers()
 
         class MaxProducers(metaclass=TweakMetaclass):
-            def __call__(self, value: int) -> Callable:
-                ...
+            def __call__(self, value: int) -> Callable: ...
 
         max_producers = MaxProducers()
 
         class MaxQueues(metaclass=TweakMetaclass):
-            def __call__(self, value: int) -> Callable:
-                ...
+            def __call__(self, value: int) -> Callable: ...
 
         max_queues = MaxQueues()
 
         class MsgGroupIdConfig(metaclass=TweakMetaclass):
             class Rebalance(metaclass=TweakMetaclass):
-                def __call__(self, value: bool) -> Callable:
-                    ...
+                def __call__(self, value: bool) -> Callable: ...
 
             rebalance = Rebalance()
 
             class MaxGroups(metaclass=TweakMetaclass):
-                def __call__(self, value: int) -> Callable:
-                    ...
+                def __call__(self, value: int) -> Callable: ...
 
             max_groups = MaxGroups()
 
             class TtlSeconds(metaclass=TweakMetaclass):
-                def __call__(self, value: int) -> Callable:
-                    ...
+                def __call__(self, value: int) -> Callable: ...
 
             ttl_seconds = TtlSeconds()
 
@@ -938,32 +870,27 @@ class TweakFactory:
                 value: typing.Union[
                     blazingmq.schemas.mqbconf.MsgGroupIdConfig, NoneType
                 ],
-            ) -> Callable:
-                ...
+            ) -> Callable: ...
 
         msg_group_id_config = MsgGroupIdConfig()
 
         class MaxIdleTime(metaclass=TweakMetaclass):
-            def __call__(self, value: int) -> Callable:
-                ...
+            def __call__(self, value: int) -> Callable: ...
 
         max_idle_time = MaxIdleTime()
 
         class MessageTtl(metaclass=TweakMetaclass):
-            def __call__(self, value: typing.Union[int, NoneType]) -> Callable:
-                ...
+            def __call__(self, value: typing.Union[int, NoneType]) -> Callable: ...
 
         message_ttl = MessageTtl()
 
         class MaxDeliveryAttempts(metaclass=TweakMetaclass):
-            def __call__(self, value: int) -> Callable:
-                ...
+            def __call__(self, value: int) -> Callable: ...
 
         max_delivery_attempts = MaxDeliveryAttempts()
 
         class DeduplicationTimeMs(metaclass=TweakMetaclass):
-            def __call__(self, value: int) -> Callable:
-                ...
+            def __call__(self, value: int) -> Callable: ...
 
         deduplication_time_ms = DeduplicationTimeMs()
 
@@ -974,8 +901,7 @@ class TweakFactory:
                     value: typing.Union[
                         blazingmq.schemas.mqbconf.QueueConsistencyEventual, NoneType
                     ],
-                ) -> Callable:
-                    ...
+                ) -> Callable: ...
 
             eventual = Eventual()
 
@@ -985,23 +911,20 @@ class TweakFactory:
                     value: typing.Union[
                         blazingmq.schemas.mqbconf.QueueConsistencyStrong, NoneType
                     ],
-                ) -> Callable:
-                    ...
+                ) -> Callable: ...
 
             strong = Strong()
 
             def __call__(
                 self,
                 value: typing.Union[blazingmq.schemas.mqbconf.Consistency, NoneType],
-            ) -> Callable:
-                ...
+            ) -> Callable: ...
 
         consistency = Consistency()
 
         class Subscriptions(metaclass=TweakMetaclass):
             class AppId(metaclass=TweakMetaclass):
-                def __call__(self, value: typing.Union[str, NoneType]) -> Callable:
-                    ...
+                def __call__(self, value: typing.Union[str, NoneType]) -> Callable: ...
 
             app_id = AppId()
 
@@ -1009,53 +932,47 @@ class TweakFactory:
                 class Version(metaclass=TweakMetaclass):
                     def __call__(
                         self, value: blazingmq.schemas.mqbconf.ExpressionVersion
-                    ) -> Callable:
-                        ...
+                    ) -> Callable: ...
 
                 version = Version()
 
                 class Text(metaclass=TweakMetaclass):
-                    def __call__(self, value: typing.Union[str, NoneType]) -> Callable:
-                        ...
+                    def __call__(
+                        self, value: typing.Union[str, NoneType]
+                    ) -> Callable: ...
 
                 text = Text()
 
                 def __call__(
                     self,
                     value: typing.Union[blazingmq.schemas.mqbconf.Expression, NoneType],
-                ) -> Callable:
-                    ...
+                ) -> Callable: ...
 
             expression = Expression()
 
-            def __call__(self, value: None) -> Callable:
-                ...
+            def __call__(self, value: None) -> Callable: ...
 
         subscriptions = Subscriptions()
 
     class Cluster:
         class Name(metaclass=TweakMetaclass):
-            def __call__(self, value: typing.Union[str, NoneType]) -> Callable:
-                ...
+            def __call__(self, value: typing.Union[str, NoneType]) -> Callable: ...
 
         name = Name()
 
         class Nodes(metaclass=TweakMetaclass):
             class Id(metaclass=TweakMetaclass):
-                def __call__(self, value: typing.Union[int, NoneType]) -> Callable:
-                    ...
+                def __call__(self, value: typing.Union[int, NoneType]) -> Callable: ...
 
             id = Id()
 
             class Name(metaclass=TweakMetaclass):
-                def __call__(self, value: typing.Union[str, NoneType]) -> Callable:
-                    ...
+                def __call__(self, value: typing.Union[str, NoneType]) -> Callable: ...
 
             name = Name()
 
             class DataCenter(metaclass=TweakMetaclass):
-                def __call__(self, value: typing.Union[str, NoneType]) -> Callable:
-                    ...
+                def __call__(self, value: typing.Union[str, NoneType]) -> Callable: ...
 
             data_center = DataCenter()
 
@@ -1064,8 +981,7 @@ class TweakFactory:
                     class Endpoint(metaclass=TweakMetaclass):
                         def __call__(
                             self, value: typing.Union[str, NoneType]
-                        ) -> Callable:
-                            ...
+                        ) -> Callable: ...
 
                     endpoint = Endpoint()
 
@@ -1074,8 +990,7 @@ class TweakFactory:
                         value: typing.Union[
                             blazingmq.schemas.mqbcfg.TcpClusterNodeConnection, NoneType
                         ],
-                    ) -> Callable:
-                        ...
+                    ) -> Callable: ...
 
                 tcp = Tcp()
 
@@ -1084,129 +999,108 @@ class TweakFactory:
                     value: typing.Union[
                         blazingmq.schemas.mqbcfg.ClusterNodeConnection, NoneType
                     ],
-                ) -> Callable:
-                    ...
+                ) -> Callable: ...
 
             transport = Transport()
 
-            def __call__(self, value: None) -> Callable:
-                ...
+            def __call__(self, value: None) -> Callable: ...
 
         nodes = Nodes()
 
         class PartitionConfig(metaclass=TweakMetaclass):
             class NumPartitions(metaclass=TweakMetaclass):
-                def __call__(self, value: typing.Union[int, NoneType]) -> Callable:
-                    ...
+                def __call__(self, value: typing.Union[int, NoneType]) -> Callable: ...
 
             num_partitions = NumPartitions()
 
             class Location(metaclass=TweakMetaclass):
-                def __call__(self, value: typing.Union[str, NoneType]) -> Callable:
-                    ...
+                def __call__(self, value: typing.Union[str, NoneType]) -> Callable: ...
 
             location = Location()
 
             class ArchiveLocation(metaclass=TweakMetaclass):
-                def __call__(self, value: typing.Union[str, NoneType]) -> Callable:
-                    ...
+                def __call__(self, value: typing.Union[str, NoneType]) -> Callable: ...
 
             archive_location = ArchiveLocation()
 
             class MaxDataFileSize(metaclass=TweakMetaclass):
-                def __call__(self, value: typing.Union[int, NoneType]) -> Callable:
-                    ...
+                def __call__(self, value: typing.Union[int, NoneType]) -> Callable: ...
 
             max_data_file_size = MaxDataFileSize()
 
             class MaxJournalFileSize(metaclass=TweakMetaclass):
-                def __call__(self, value: typing.Union[int, NoneType]) -> Callable:
-                    ...
+                def __call__(self, value: typing.Union[int, NoneType]) -> Callable: ...
 
             max_journal_file_size = MaxJournalFileSize()
 
             class MaxQlistFileSize(metaclass=TweakMetaclass):
-                def __call__(self, value: typing.Union[int, NoneType]) -> Callable:
-                    ...
+                def __call__(self, value: typing.Union[int, NoneType]) -> Callable: ...
 
             max_qlist_file_size = MaxQlistFileSize()
 
             class Preallocate(metaclass=TweakMetaclass):
-                def __call__(self, value: bool) -> Callable:
-                    ...
+                def __call__(self, value: bool) -> Callable: ...
 
             preallocate = Preallocate()
 
             class MaxArchivedFileSets(metaclass=TweakMetaclass):
-                def __call__(self, value: typing.Union[int, NoneType]) -> Callable:
-                    ...
+                def __call__(self, value: typing.Union[int, NoneType]) -> Callable: ...
 
             max_archived_file_sets = MaxArchivedFileSets()
 
             class PrefaultPages(metaclass=TweakMetaclass):
-                def __call__(self, value: bool) -> Callable:
-                    ...
+                def __call__(self, value: bool) -> Callable: ...
 
             prefault_pages = PrefaultPages()
 
             class FlushAtShutdown(metaclass=TweakMetaclass):
-                def __call__(self, value: bool) -> Callable:
-                    ...
+                def __call__(self, value: bool) -> Callable: ...
 
             flush_at_shutdown = FlushAtShutdown()
 
             class SyncConfig(metaclass=TweakMetaclass):
                 class StartupRecoveryMaxDurationMs(metaclass=TweakMetaclass):
-                    def __call__(self, value: int) -> Callable:
-                        ...
+                    def __call__(self, value: int) -> Callable: ...
 
                 startup_recovery_max_duration_ms = StartupRecoveryMaxDurationMs()
 
                 class MaxAttemptsStorageSync(metaclass=TweakMetaclass):
-                    def __call__(self, value: int) -> Callable:
-                        ...
+                    def __call__(self, value: int) -> Callable: ...
 
                 max_attempts_storage_sync = MaxAttemptsStorageSync()
 
                 class StorageSyncReqTimeoutMs(metaclass=TweakMetaclass):
-                    def __call__(self, value: int) -> Callable:
-                        ...
+                    def __call__(self, value: int) -> Callable: ...
 
                 storage_sync_req_timeout_ms = StorageSyncReqTimeoutMs()
 
                 class MasterSyncMaxDurationMs(metaclass=TweakMetaclass):
-                    def __call__(self, value: int) -> Callable:
-                        ...
+                    def __call__(self, value: int) -> Callable: ...
 
                 master_sync_max_duration_ms = MasterSyncMaxDurationMs()
 
                 class PartitionSyncStateReqTimeoutMs(metaclass=TweakMetaclass):
-                    def __call__(self, value: int) -> Callable:
-                        ...
+                    def __call__(self, value: int) -> Callable: ...
 
                 partition_sync_state_req_timeout_ms = PartitionSyncStateReqTimeoutMs()
 
                 class PartitionSyncDataReqTimeoutMs(metaclass=TweakMetaclass):
-                    def __call__(self, value: int) -> Callable:
-                        ...
+                    def __call__(self, value: int) -> Callable: ...
 
                 partition_sync_data_req_timeout_ms = PartitionSyncDataReqTimeoutMs()
 
                 class StartupWaitDurationMs(metaclass=TweakMetaclass):
-                    def __call__(self, value: int) -> Callable:
-                        ...
+                    def __call__(self, value: int) -> Callable: ...
 
                 startup_wait_duration_ms = StartupWaitDurationMs()
 
                 class FileChunkSize(metaclass=TweakMetaclass):
-                    def __call__(self, value: int) -> Callable:
-                        ...
+                    def __call__(self, value: int) -> Callable: ...
 
                 file_chunk_size = FileChunkSize()
 
                 class PartitionSyncEventSize(metaclass=TweakMetaclass):
-                    def __call__(self, value: int) -> Callable:
-                        ...
+                    def __call__(self, value: int) -> Callable: ...
 
                 partition_sync_event_size = PartitionSyncEventSize()
 
@@ -1215,16 +1109,14 @@ class TweakFactory:
                     value: typing.Union[
                         blazingmq.schemas.mqbcfg.StorageSyncConfig, NoneType
                     ],
-                ) -> Callable:
-                    ...
+                ) -> Callable: ...
 
             sync_config = SyncConfig()
 
             def __call__(
                 self,
                 value: typing.Union[blazingmq.schemas.mqbcfg.PartitionConfig, NoneType],
-            ) -> Callable:
-                ...
+            ) -> Callable: ...
 
         partition_config = PartitionConfig()
 
@@ -1234,144 +1126,121 @@ class TweakFactory:
                 value: typing.Union[
                     blazingmq.schemas.mqbcfg.MasterAssignmentAlgorithm, NoneType
                 ],
-            ) -> Callable:
-                ...
+            ) -> Callable: ...
 
         master_assignment = MasterAssignment()
 
         class Elector(metaclass=TweakMetaclass):
             class InitialWaitTimeoutMs(metaclass=TweakMetaclass):
-                def __call__(self, value: int) -> Callable:
-                    ...
+                def __call__(self, value: int) -> Callable: ...
 
             initial_wait_timeout_ms = InitialWaitTimeoutMs()
 
             class MaxRandomWaitTimeoutMs(metaclass=TweakMetaclass):
-                def __call__(self, value: int) -> Callable:
-                    ...
+                def __call__(self, value: int) -> Callable: ...
 
             max_random_wait_timeout_ms = MaxRandomWaitTimeoutMs()
 
             class ScoutingResultTimeoutMs(metaclass=TweakMetaclass):
-                def __call__(self, value: int) -> Callable:
-                    ...
+                def __call__(self, value: int) -> Callable: ...
 
             scouting_result_timeout_ms = ScoutingResultTimeoutMs()
 
             class ElectionResultTimeoutMs(metaclass=TweakMetaclass):
-                def __call__(self, value: int) -> Callable:
-                    ...
+                def __call__(self, value: int) -> Callable: ...
 
             election_result_timeout_ms = ElectionResultTimeoutMs()
 
             class HeartbeatBroadcastPeriodMs(metaclass=TweakMetaclass):
-                def __call__(self, value: int) -> Callable:
-                    ...
+                def __call__(self, value: int) -> Callable: ...
 
             heartbeat_broadcast_period_ms = HeartbeatBroadcastPeriodMs()
 
             class HeartbeatCheckPeriodMs(metaclass=TweakMetaclass):
-                def __call__(self, value: int) -> Callable:
-                    ...
+                def __call__(self, value: int) -> Callable: ...
 
             heartbeat_check_period_ms = HeartbeatCheckPeriodMs()
 
             class HeartbeatMissCount(metaclass=TweakMetaclass):
-                def __call__(self, value: int) -> Callable:
-                    ...
+                def __call__(self, value: int) -> Callable: ...
 
             heartbeat_miss_count = HeartbeatMissCount()
 
             class Quorum(metaclass=TweakMetaclass):
-                def __call__(self, value: int) -> Callable:
-                    ...
+                def __call__(self, value: int) -> Callable: ...
 
             quorum = Quorum()
 
             class LeaderSyncDelayMs(metaclass=TweakMetaclass):
-                def __call__(self, value: int) -> Callable:
-                    ...
+                def __call__(self, value: int) -> Callable: ...
 
             leader_sync_delay_ms = LeaderSyncDelayMs()
 
             def __call__(
                 self,
                 value: typing.Union[blazingmq.schemas.mqbcfg.ElectorConfig, NoneType],
-            ) -> Callable:
-                ...
+            ) -> Callable: ...
 
         elector = Elector()
 
         class QueueOperations(metaclass=TweakMetaclass):
             class OpenTimeoutMs(metaclass=TweakMetaclass):
-                def __call__(self, value: int) -> Callable:
-                    ...
+                def __call__(self, value: int) -> Callable: ...
 
             open_timeout_ms = OpenTimeoutMs()
 
             class ConfigureTimeoutMs(metaclass=TweakMetaclass):
-                def __call__(self, value: int) -> Callable:
-                    ...
+                def __call__(self, value: int) -> Callable: ...
 
             configure_timeout_ms = ConfigureTimeoutMs()
 
             class CloseTimeoutMs(metaclass=TweakMetaclass):
-                def __call__(self, value: int) -> Callable:
-                    ...
+                def __call__(self, value: int) -> Callable: ...
 
             close_timeout_ms = CloseTimeoutMs()
 
             class ReopenTimeoutMs(metaclass=TweakMetaclass):
-                def __call__(self, value: int) -> Callable:
-                    ...
+                def __call__(self, value: int) -> Callable: ...
 
             reopen_timeout_ms = ReopenTimeoutMs()
 
             class ReopenRetryIntervalMs(metaclass=TweakMetaclass):
-                def __call__(self, value: int) -> Callable:
-                    ...
+                def __call__(self, value: int) -> Callable: ...
 
             reopen_retry_interval_ms = ReopenRetryIntervalMs()
 
             class ReopenMaxAttempts(metaclass=TweakMetaclass):
-                def __call__(self, value: int) -> Callable:
-                    ...
+                def __call__(self, value: int) -> Callable: ...
 
             reopen_max_attempts = ReopenMaxAttempts()
 
             class AssignmentTimeoutMs(metaclass=TweakMetaclass):
-                def __call__(self, value: int) -> Callable:
-                    ...
+                def __call__(self, value: int) -> Callable: ...
 
             assignment_timeout_ms = AssignmentTimeoutMs()
 
             class KeepaliveDurationMs(metaclass=TweakMetaclass):
-                def __call__(self, value: int) -> Callable:
-                    ...
+                def __call__(self, value: int) -> Callable: ...
 
             keepalive_duration_ms = KeepaliveDurationMs()
 
             class ConsumptionMonitorPeriodMs(metaclass=TweakMetaclass):
-                def __call__(self, value: int) -> Callable:
-                    ...
+                def __call__(self, value: int) -> Callable: ...
 
             consumption_monitor_period_ms = ConsumptionMonitorPeriodMs()
 
             class StopTimeoutMs(metaclass=TweakMetaclass):
-                def __call__(self, value: int) -> Callable:
-                    ...
+                def __call__(self, value: int) -> Callable: ...
 
             stop_timeout_ms = StopTimeoutMs()
 
             class ShutdownTimeoutMs(metaclass=TweakMetaclass):
-                def __call__(self, value: int) -> Callable:
-                    ...
+                def __call__(self, value: int) -> Callable: ...
 
             shutdown_timeout_ms = ShutdownTimeoutMs()
 
             class AckWindowSize(metaclass=TweakMetaclass):
-                def __call__(self, value: int) -> Callable:
-                    ...
+                def __call__(self, value: int) -> Callable: ...
 
             ack_window_size = AckWindowSize()
 
@@ -1380,21 +1249,18 @@ class TweakFactory:
                 value: typing.Union[
                     blazingmq.schemas.mqbcfg.QueueOperationsConfig, NoneType
                 ],
-            ) -> Callable:
-                ...
+            ) -> Callable: ...
 
         queue_operations = QueueOperations()
 
         class ClusterAttributes(metaclass=TweakMetaclass):
             class IsCslmodeEnabled(metaclass=TweakMetaclass):
-                def __call__(self, value: bool) -> Callable:
-                    ...
+                def __call__(self, value: bool) -> Callable: ...
 
             is_cslmode_enabled = IsCslmodeEnabled()
 
             class IsFsmworkflow(metaclass=TweakMetaclass):
-                def __call__(self, value: bool) -> Callable:
-                    ...
+                def __call__(self, value: bool) -> Callable: ...
 
             is_fsmworkflow = IsFsmworkflow()
 
@@ -1403,57 +1269,48 @@ class TweakFactory:
                 value: typing.Union[
                     blazingmq.schemas.mqbcfg.ClusterAttributes, NoneType
                 ],
-            ) -> Callable:
-                ...
+            ) -> Callable: ...
 
         cluster_attributes = ClusterAttributes()
 
         class ClusterMonitorConfig(metaclass=TweakMetaclass):
             class MaxTimeLeader(metaclass=TweakMetaclass):
-                def __call__(self, value: int) -> Callable:
-                    ...
+                def __call__(self, value: int) -> Callable: ...
 
             max_time_leader = MaxTimeLeader()
 
             class MaxTimeMaster(metaclass=TweakMetaclass):
-                def __call__(self, value: int) -> Callable:
-                    ...
+                def __call__(self, value: int) -> Callable: ...
 
             max_time_master = MaxTimeMaster()
 
             class MaxTimeNode(metaclass=TweakMetaclass):
-                def __call__(self, value: int) -> Callable:
-                    ...
+                def __call__(self, value: int) -> Callable: ...
 
             max_time_node = MaxTimeNode()
 
             class MaxTimeFailover(metaclass=TweakMetaclass):
-                def __call__(self, value: int) -> Callable:
-                    ...
+                def __call__(self, value: int) -> Callable: ...
 
             max_time_failover = MaxTimeFailover()
 
             class ThresholdLeader(metaclass=TweakMetaclass):
-                def __call__(self, value: int) -> Callable:
-                    ...
+                def __call__(self, value: int) -> Callable: ...
 
             threshold_leader = ThresholdLeader()
 
             class ThresholdMaster(metaclass=TweakMetaclass):
-                def __call__(self, value: int) -> Callable:
-                    ...
+                def __call__(self, value: int) -> Callable: ...
 
             threshold_master = ThresholdMaster()
 
             class ThresholdNode(metaclass=TweakMetaclass):
-                def __call__(self, value: int) -> Callable:
-                    ...
+                def __call__(self, value: int) -> Callable: ...
 
             threshold_node = ThresholdNode()
 
             class ThresholdFailover(metaclass=TweakMetaclass):
-                def __call__(self, value: int) -> Callable:
-                    ...
+                def __call__(self, value: int) -> Callable: ...
 
             threshold_failover = ThresholdFailover()
 
@@ -1462,33 +1319,28 @@ class TweakFactory:
                 value: typing.Union[
                     blazingmq.schemas.mqbcfg.ClusterMonitorConfig, NoneType
                 ],
-            ) -> Callable:
-                ...
+            ) -> Callable: ...
 
         cluster_monitor_config = ClusterMonitorConfig()
 
         class MessageThrottleConfig(metaclass=TweakMetaclass):
             class LowThreshold(metaclass=TweakMetaclass):
-                def __call__(self, value: int) -> Callable:
-                    ...
+                def __call__(self, value: int) -> Callable: ...
 
             low_threshold = LowThreshold()
 
             class HighThreshold(metaclass=TweakMetaclass):
-                def __call__(self, value: int) -> Callable:
-                    ...
+                def __call__(self, value: int) -> Callable: ...
 
             high_threshold = HighThreshold()
 
             class LowInterval(metaclass=TweakMetaclass):
-                def __call__(self, value: int) -> Callable:
-                    ...
+                def __call__(self, value: int) -> Callable: ...
 
             low_interval = LowInterval()
 
             class HighInterval(metaclass=TweakMetaclass):
-                def __call__(self, value: int) -> Callable:
-                    ...
+                def __call__(self, value: int) -> Callable: ...
 
             high_interval = HighInterval()
 
@@ -1497,8 +1349,7 @@ class TweakFactory:
                 value: typing.Union[
                     blazingmq.schemas.mqbcfg.MessageThrottleConfig, NoneType
                 ],
-            ) -> Callable:
-                ...
+            ) -> Callable: ...
 
         message_throttle_config = MessageThrottleConfig()
 
