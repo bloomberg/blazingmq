@@ -45,100 +45,101 @@ class TweakFactory:
                     value: typing.Union[
                         blazingmq.schemas.mqbcfg.AllocatorType, NoneType
                     ],
-                ) -> Callable:
-                    ...
+                ) -> Callable: ...
 
             allocator_type = AllocatorType()
 
             class AllocationLimit(metaclass=TweakMetaclass):
-                def __call__(self, value: typing.Union[int, NoneType]) -> Callable:
-                    ...
+                def __call__(self, value: typing.Union[int, NoneType]) -> Callable: ...
 
             allocation_limit = AllocationLimit()
 
             class LogController(metaclass=TweakMetaclass):
                 class FileName(metaclass=TweakMetaclass):
-                    def __call__(self, value: typing.Union[str, NoneType]) -> Callable:
-                        ...
+                    def __call__(
+                        self, value: typing.Union[str, NoneType]
+                    ) -> Callable: ...
 
                 file_name = FileName()
 
                 class FileMaxAgeDays(metaclass=TweakMetaclass):
-                    def __call__(self, value: typing.Union[int, NoneType]) -> Callable:
-                        ...
+                    def __call__(
+                        self, value: typing.Union[int, NoneType]
+                    ) -> Callable: ...
 
                 file_max_age_days = FileMaxAgeDays()
 
                 class RotationBytes(metaclass=TweakMetaclass):
-                    def __call__(self, value: typing.Union[int, NoneType]) -> Callable:
-                        ...
+                    def __call__(
+                        self, value: typing.Union[int, NoneType]
+                    ) -> Callable: ...
 
                 rotation_bytes = RotationBytes()
 
                 class LogfileFormat(metaclass=TweakMetaclass):
-                    def __call__(self, value: typing.Union[str, NoneType]) -> Callable:
-                        ...
+                    def __call__(
+                        self, value: typing.Union[str, NoneType]
+                    ) -> Callable: ...
 
                 logfile_format = LogfileFormat()
 
                 class ConsoleFormat(metaclass=TweakMetaclass):
-                    def __call__(self, value: typing.Union[str, NoneType]) -> Callable:
-                        ...
+                    def __call__(
+                        self, value: typing.Union[str, NoneType]
+                    ) -> Callable: ...
 
                 console_format = ConsoleFormat()
 
                 class LoggingVerbosity(metaclass=TweakMetaclass):
-                    def __call__(self, value: typing.Union[str, NoneType]) -> Callable:
-                        ...
+                    def __call__(
+                        self, value: typing.Union[str, NoneType]
+                    ) -> Callable: ...
 
                 logging_verbosity = LoggingVerbosity()
 
                 class BslsLogSeverityThreshold(metaclass=TweakMetaclass):
-                    def __call__(self, value: str) -> Callable:
-                        ...
+                    def __call__(
+                        self, value: str
+                    ) -> Callable: ...
 
                 bsls_log_severity_threshold = BslsLogSeverityThreshold()
 
                 class ConsoleSeverityThreshold(metaclass=TweakMetaclass):
-                    def __call__(self, value: typing.Union[str, NoneType]) -> Callable:
-                        ...
+                    def __call__(
+                        self, value: typing.Union[str, NoneType]
+                    ) -> Callable: ...
 
                 console_severity_threshold = ConsoleSeverityThreshold()
 
                 class Categories(metaclass=TweakMetaclass):
-                    def __call__(self, value: None) -> Callable:
-                        ...
+                    def __call__(self, value: None) -> Callable: ...
 
                 categories = Categories()
 
                 class Syslog(metaclass=TweakMetaclass):
                     class Enabled(metaclass=TweakMetaclass):
-                        def __call__(self, value: bool) -> Callable:
-                            ...
+                        def __call__(self, value: bool) -> Callable: ...
 
                     enabled = Enabled()
 
                     class AppName(metaclass=TweakMetaclass):
                         def __call__(
                             self, value: typing.Union[str, NoneType]
-                        ) -> Callable:
-                            ...
+                        ) -> Callable: ...
 
                     app_name = AppName()
 
                     class LogFormat(metaclass=TweakMetaclass):
                         def __call__(
                             self, value: typing.Union[str, NoneType]
-                        ) -> Callable:
-                            ...
+                        ) -> Callable: ...
 
                     log_format = LogFormat()
 
                     class Verbosity(metaclass=TweakMetaclass):
                         def __call__(
                             self, value: typing.Union[str, NoneType]
-                        ) -> Callable:
-                            ...
+                        ) -> Callable: ...
 
                     verbosity = Verbosity()
 
@@ -147,8 +148,7 @@ class TweakFactory:
                         value: typing.Union[
                             blazingmq.schemas.mqbcfg.SyslogConfig, NoneType
                         ],
-                    ) -> Callable:
-                        ...
+                    ) -> Callable: ...
 
                 syslog = Syslog()
 
@@ -157,76 +157,82 @@ class TweakFactory:
                     value: typing.Union[
                         blazingmq.schemas.mqbcfg.LogController, NoneType
                     ],
-                ) -> Callable:
-                    ...
+                ) -> Callable: ...
 
             log_controller = LogController()
 
             def __call__(
                 self, value: typing.Union[blazingmq.schemas.mqbcfg.TaskConfig, NoneType]
-            ) -> Callable:
-                ...
+            ) -> Callable: ...
 
         task_config = TaskConfig()
 
         class AppConfig(metaclass=TweakMetaclass):
             class BrokerInstanceName(metaclass=TweakMetaclass):
-                def __call__(self, value: typing.Union[str, NoneType]) -> Callable:
-                    ...
+                def __call__(
+                    self, value: typing.Union[str, NoneType]
+                ) -> Callable: ...
 
             broker_instance_name = BrokerInstanceName()
 
             class BrokerVersion(metaclass=TweakMetaclass):
-                def __call__(self, value: typing.Union[int, NoneType]) -> Callable:
-                    ...
+                def __call__(
+                    self, value: typing.Union[int, NoneType]
+                ) -> Callable: ...
 
             broker_version = BrokerVersion()
 
             class ConfigVersion(metaclass=TweakMetaclass):
-                def __call__(self, value: typing.Union[int, NoneType]) -> Callable:
-                    ...
+                def __call__(
+                    self, value: typing.Union[int, NoneType]
+                ) -> Callable: ...
 
             config_version = ConfigVersion()
 
             class EtcDir(metaclass=TweakMetaclass):
-                def __call__(self, value: typing.Union[str, NoneType]) -> Callable:
-                    ...
+                def __call__(
+                    self, value: typing.Union[str, NoneType]
+                ) -> Callable: ...
 
             etc_dir = EtcDir()
 
             class HostName(metaclass=TweakMetaclass):
-                def __call__(self, value: typing.Union[str, NoneType]) -> Callable:
-                    ...
+                def __call__(
+                    self, value: typing.Union[str, NoneType]
+                ) -> Callable: ...
 
             host_name = HostName()
 
             class HostTags(metaclass=TweakMetaclass):
-                def __call__(self, value: typing.Union[str, NoneType]) -> Callable:
-                    ...
+                def __call__(
+                    self, value: typing.Union[str, NoneType]
+                ) -> Callable: ...
 
             host_tags = HostTags()
 
             class HostDataCenter(metaclass=TweakMetaclass):
-                def __call__(self, value: typing.Union[str, NoneType]) -> Callable:
-                    ...
+                def __call__(
+                    self, value: typing.Union[str, NoneType]
+                ) -> Callable: ...
 
             host_data_center = HostDataCenter()
 
             class IsRunningOnDev(metaclass=TweakMetaclass):
-                def __call__(self, value: typing.Union[bool, NoneType]) -> Callable:
-                    ...
+                def __call__(
+                    self, value: typing.Union[bool, NoneType]
+                ) -> Callable: ...
 
             is_running_on_dev = IsRunningOnDev()
 
             class LogsObserverMaxSize(metaclass=TweakMetaclass):
-                def __call__(self, value: typing.Union[int, NoneType]) -> Callable:
-                    ...
+                def __call__(
+                    self, value: typing.Union[int, NoneType]
+                ) -> Callable: ...
 
             logs_observer_max_size = LogsObserverMaxSize()
 
             class LatencyMonitorDomain(metaclass=TweakMetaclass):
-                def __call__(self, value: str) -> Callable:
-                    ...
+                def __call__(self, value: str) -> Callable: ...
 
             latency_monitor_domain = LatencyMonitorDomain()
 
@@ -235,8 +241,7 @@ class TweakFactory:
                     class NumProcessors(metaclass=TweakMetaclass):
                         def __call__(
                             self, value: typing.Union[int, NoneType]
-                        ) -> Callable:
-                            ...
+                        ) -> Callable: ...
 
                     num_processors = NumProcessors()
 
@@ -244,24 +249,21 @@ class TweakFactory:
                         class QueueSize(metaclass=TweakMetaclass):
                             def __call__(
                                 self, value: typing.Union[int, NoneType]
-                            ) -> Callable:
-                                ...
+                            ) -> Callable: ...
 
                         queue_size = QueueSize()
 
                         class QueueSizeLowWatermark(metaclass=TweakMetaclass):
                             def __call__(
                                 self, value: typing.Union[int, NoneType]
-                            ) -> Callable:
-                                ...
+                            ) -> Callable: ...
 
                         queue_size_low_watermark = QueueSizeLowWatermark()
 
                         class QueueSizeHighWatermark(metaclass=TweakMetaclass):
                             def __call__(
                                 self, value: typing.Union[int, NoneType]
-                            ) -> Callable:
-                                ...
+                            ) -> Callable: ...
 
                         queue_size_high_watermark = QueueSizeHighWatermark()
 
@@ -271,8 +273,7 @@ class TweakFactory:
                                 blazingmq.schemas.mqbcfg.DispatcherProcessorParameters,
                                 NoneType,
                             ],
-                        ) -> Callable:
-                            ...
+                        ) -> Callable: ...
 
                     processor_config = ProcessorConfig()
 
@@ -281,8 +282,7 @@ class TweakFactory:
                         value: typing.Union[
                             blazingmq.schemas.mqbcfg.DispatcherProcessorConfig, NoneType
                         ],
-                    ) -> Callable:
-                        ...
+                    ) -> Callable: ...
 
                 sessions = Sessions()
 
@@ -290,8 +290,7 @@ class TweakFactory:
                     class NumProcessors(metaclass=TweakMetaclass):
                         def __call__(
                             self, value: typing.Union[int, NoneType]
-                        ) -> Callable:
-                            ...
+                        ) -> Callable: ...
 
                     num_processors = NumProcessors()
 
@@ -299,24 +298,21 @@ class TweakFactory:
                         class QueueSize(metaclass=TweakMetaclass):
                             def __call__(
                                 self, value: typing.Union[int, NoneType]
-                            ) -> Callable:
-                                ...
+                            ) -> Callable: ...
 
                         queue_size = QueueSize()
 
                         class QueueSizeLowWatermark(metaclass=TweakMetaclass):
                             def __call__(
                                 self, value: typing.Union[int, NoneType]
-                            ) -> Callable:
-                                ...
+                            ) -> Callable: ...
 
                         queue_size_low_watermark = QueueSizeLowWatermark()
 
                         class QueueSizeHighWatermark(metaclass=TweakMetaclass):
                             def __call__(
                                 self, value: typing.Union[int, NoneType]
-                            ) -> Callable:
-                                ...
+                            ) -> Callable: ...
 
                         queue_size_high_watermark = QueueSizeHighWatermark()
 
@@ -326,8 +322,7 @@ class TweakFactory:
                                 blazingmq.schemas.mqbcfg.DispatcherProcessorParameters,
                                 NoneType,
                             ],
-                        ) -> Callable:
-                            ...
+                        ) -> Callable: ...
 
                     processor_config = ProcessorConfig()
 
@@ -336,8 +331,7 @@ class TweakFactory:
                         value: typing.Union[
                             blazingmq.schemas.mqbcfg.DispatcherProcessorConfig, NoneType
                         ],
-                    ) -> Callable:
-                        ...
+                    ) -> Callable: ...
 
                 queues = Queues()
 
@@ -345,8 +339,7 @@ class TweakFactory:
                     class NumProcessors(metaclass=TweakMetaclass):
                         def __call__(
                             self, value: typing.Union[int, NoneType]
-                        ) -> Callable:
-                            ...
+                        ) -> Callable: ...
 
                     num_processors = NumProcessors()
 
@@ -354,24 +347,21 @@ class TweakFactory:
                         class QueueSize(metaclass=TweakMetaclass):
                             def __call__(
                                 self, value: typing.Union[int, NoneType]
-                            ) -> Callable:
-                                ...
+                            ) -> Callable: ...
 
                         queue_size = QueueSize()
 
                         class QueueSizeLowWatermark(metaclass=TweakMetaclass):
                             def __call__(
                                 self, value: typing.Union[int, NoneType]
-                            ) -> Callable:
-                                ...
+                            ) -> Callable: ...
 
                         queue_size_low_watermark = QueueSizeLowWatermark()
 
                         class QueueSizeHighWatermark(metaclass=TweakMetaclass):
                             def __call__(
                                 self, value: typing.Union[int, NoneType]
-                            ) -> Callable:
-                                ...
+                            ) -> Callable: ...
 
                         queue_size_high_watermark = QueueSizeHighWatermark()
 
@@ -381,8 +371,7 @@ class TweakFactory:
                                 blazingmq.schemas.mqbcfg.DispatcherProcessorParameters,
                                 NoneType,
                             ],
-                        ) -> Callable:
-                            ...
+                        ) -> Callable: ...
 
                     processor_config = ProcessorConfig()
 
@@ -391,8 +380,7 @@ class TweakFactory:
                         value: typing.Union[
                             blazingmq.schemas.mqbcfg.DispatcherProcessorConfig, NoneType
                         ],
-                    ) -> Callable:
-                        ...
+                    ) -> Callable: ...
 
                 clusters = Clusters()
 
@@ -401,70 +389,59 @@ class TweakFactory:
                     value: typing.Union[
                         blazingmq.schemas.mqbcfg.DispatcherConfig, NoneType
                     ],
-                ) -> Callable:
-                    ...
+                ) -> Callable: ...
 
             dispatcher_config = DispatcherConfig()
 
             class Stats(metaclass=TweakMetaclass):
                 class AppIdTagDomains(metaclass=TweakMetaclass):
-                    def __call__(self, value: None) -> Callable:
-                        ...
+                    def __call__(self, value: None) -> Callable: ...
 
                 app_id_tag_domains = AppIdTagDomains()
 
                 class SnapshotInterval(metaclass=TweakMetaclass):
-                    def __call__(self, value: int) -> Callable:
-                        ...
+                    def __call__(self, value: int) -> Callable: ...
 
                 snapshot_interval = SnapshotInterval()
 
                 class Plugins(metaclass=TweakMetaclass):
                     class Name(metaclass=TweakMetaclass):
-                        def __call__(self, value: str) -> Callable:
-                            ...
+                        def __call__(self, value: str) -> Callable: ...
 
                     name = Name()
 
                     class QueueSize(metaclass=TweakMetaclass):
-                        def __call__(self, value: int) -> Callable:
-                            ...
+                        def __call__(self, value: int) -> Callable: ...
 
                     queue_size = QueueSize()
 
                     class QueueHighWatermark(metaclass=TweakMetaclass):
-                        def __call__(self, value: int) -> Callable:
-                            ...
+                        def __call__(self, value: int) -> Callable: ...
 
                     queue_high_watermark = QueueHighWatermark()
 
                     class QueueLowWatermark(metaclass=TweakMetaclass):
-                        def __call__(self, value: int) -> Callable:
-                            ...
+                        def __call__(self, value: int) -> Callable: ...
 
                     queue_low_watermark = QueueLowWatermark()
 
                     class PublishInterval(metaclass=TweakMetaclass):
-                        def __call__(self, value: int) -> Callable:
-                            ...
+                        def __call__(self, value: int) -> Callable: ...
 
                     publish_interval = PublishInterval()
 
                     class NamespacePrefix(metaclass=TweakMetaclass):
-                        def __call__(self, value: str) -> Callable:
-                            ...
+                        def __call__(self, value: str) -> Callable: ...
 
                     namespace_prefix = NamespacePrefix()
 
                     class Hosts(metaclass=TweakMetaclass):
-                        def __call__(self, value: None) -> Callable:
-                            ...
+                        def __call__(self, value: None) -> Callable: ...
 
                     hosts = Hosts()
 
                     class InstanceId(metaclass=TweakMetaclass):
-                        def __call__(self, value: str) -> Callable:
-                            ...
+                        def __call__(self, value: str) -> Callable: ...
 
                     instance_id = InstanceId()
 
@@ -472,20 +449,17 @@ class TweakFactory:
                         class Mode(metaclass=TweakMetaclass):
                             def __call__(
                                 self, value: blazingmq.schemas.mqbcfg.ExportMode
-                            ) -> Callable:
-                                ...
+                            ) -> Callable: ...
 
                         mode = Mode()
 
                         class Host(metaclass=TweakMetaclass):
-                            def __call__(self, value: str) -> Callable:
-                                ...
+                            def __call__(self, value: str) -> Callable: ...
 
                         host = Host()
 
                         class Port(metaclass=TweakMetaclass):
-                            def __call__(self, value: int) -> Callable:
-                                ...
+                            def __call__(self, value: int) -> Callable: ...
 
                         port = Port()
 
@@ -495,36 +469,31 @@ class TweakFactory:
                                 blazingmq.schemas.mqbcfg.StatPluginConfigPrometheus,
                                 NoneType,
                             ],
-                        ) -> Callable:
-                            ...
+                        ) -> Callable: ...
 
                     prometheus_specific = PrometheusSpecific()
 
-                    def __call__(self, value: None) -> Callable:
-                        ...
+                    def __call__(self, value: None) -> Callable: ...
 
                 plugins = Plugins()
 
                 class Printer(metaclass=TweakMetaclass):
                     class PrintInterval(metaclass=TweakMetaclass):
-                        def __call__(self, value: int) -> Callable:
-                            ...
+                        def __call__(self, value: int) -> Callable: ...
 
                     print_interval = PrintInterval()
 
                     class File(metaclass=TweakMetaclass):
                         def __call__(
                             self, value: typing.Union[str, NoneType]
-                        ) -> Callable:
-                            ...
+                        ) -> Callable: ...
 
                     file = File()
 
                     class MaxAgeDays(metaclass=TweakMetaclass):
                         def __call__(
                             self, value: typing.Union[int, NoneType]
-                        ) -> Callable:
-                            ...
+                        ) -> Callable: ...
 
                     max_age_days = MaxAgeDays()
 
