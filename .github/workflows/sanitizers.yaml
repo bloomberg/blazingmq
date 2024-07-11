@@ -43,6 +43,4 @@ jobs:
       - name: List test binaries
         run: find ${{ github.workspace }}/cmake.bld/Linux -name "*.t.tsk"
       - name: Run unit tests under sanitizer
-        run: |          
-          cd ${{ github.workspace }}/cmake.bld/Linux
-          ./run-unittests.sh
+        run: ${{ github.workspace }}/cmake.bld/Linux/run-unittests.sh

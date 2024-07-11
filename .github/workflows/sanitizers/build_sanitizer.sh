@@ -266,6 +266,6 @@ SANITIZER_ENV+="$(envcfgquery ${SANITIZER_NAME})"
 mkscript "${SANITIZER_ENV} \${@}" "${DIR_BUILD_BMQ}/run-env.sh"
 
 # 'run-unittests.sh' runs all instrumented unit-tests.
-CMD="cd $(realpath ${DIR_SRC_BMQ}) && "
-CMD+="${DIR_BUILD_BMQ}/run-env.sh ctest -E mwcsys_executil.t --output-on-failure"
+CMD="cd $(realpath ${DIR_BUILD_BMQ}) && "
+CMD+="./run-env.sh ctest -E mwcsys_executil.t --output-on-failure"
 mkscript "${CMD}" "${DIR_BUILD_BMQ}/run-unittests.sh"
