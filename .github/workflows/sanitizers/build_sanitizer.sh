@@ -45,7 +45,7 @@ DIR_SRC_BMQ="${DIR_ROOT}"
 DIR_BUILD_BMQ="${DIR_SRC_BMQ}/cmake.bld/Linux"
 
 
-mkdir -p "${DIR_ROOT}/cmake.bld/Linux/blasingmq"
+mkdir -p "${DIR_ROOT}/cmake.bld/Linux/blazingmq"
 
 
 # Parse sanitizers config
