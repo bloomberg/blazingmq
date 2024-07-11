@@ -41,5 +41,6 @@ jobs:
           pip3 install git+https://github.com/psf/black
           black --version
           black .
+          cat src/python/blazingmq/dev/it/tweaks/generated.py
           git diff -q | tee format_diff.txt
           if [ -s format_diff.txt ]; then exit 1; fi
