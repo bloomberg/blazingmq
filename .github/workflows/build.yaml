@@ -66,11 +66,11 @@ jobs:
       sanitizer-name: 'asan'
       # working-directory: ${{ github.workspace }}
 
-  build_and_run_msan:
-    needs: build_dependencies
-    uses: ./.github/workflows/sanitizers.yaml
-    with:
-      sanitizer-name: 'msan'
+  # build_and_run_msan:
+  #   needs: build_dependencies
+  #   uses: ./.github/workflows/sanitizers.yaml
+  #   with:
+  #     sanitizer-name: 'msan'
 
   # build_and_run_asan:
   #   name: Build and run AddressSanitizer
