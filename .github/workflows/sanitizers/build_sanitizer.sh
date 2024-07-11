@@ -263,9 +263,9 @@ SANITIZER_ENV+="BMQ_REPO=${DIR_SRC_BMQ} "
 SANITIZER_ENV+="$(envcfgquery ${SANITIZER_NAME})"
 
 # 'run-env.sh' runs a command with environment required of the sanitizer.
-mkscript "${SANITIZER_ENV} \${@}" "${DIR_BUILD_BMQ}/run-env.sh"
+mkscript "${SANITIZER_ENV} \${@}" "${DIR_BUILD_BMQ}/blazingmq/run-env.sh"
 
 # 'run-unittests.sh' runs all instrumented unit-tests.
 CMD="cd $(realpath ${DIR_SRC_BMQ}) && "
-CMD+="${DIR_BUILD_BMQ}/run-env.sh ctest -E mwcsys_executil.t --output-on-failure"
-mkscript "${CMD}" "${DIR_BUILD_BMQ}/run-unittests.sh"
+CMD+="${DIR_BUILD_BMQ}/blazingmq/run-env.sh ctest -E mwcsys_executil.t --output-on-failure"
+mkscript "${CMD}" "${DIR_BUILD_BMQ}/blazingmq/run-unittests.sh"
