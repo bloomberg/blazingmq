@@ -35,7 +35,6 @@ fi
 SANITIZER_NAME="${1}"
 
 
-
 DIR_ROOT="${PWD}"
 DIR_SCRIPTS="${DIR_ROOT}/.github/workflows/sanitizers"
 DIR_EXTERNAL="${DIR_ROOT}/deps"
@@ -44,6 +43,9 @@ DIR_BUILD_EXT="${DIR_EXTERNAL}/cmake.bld"
 
 DIR_SRC_BMQ="${DIR_ROOT}"
 DIR_BUILD_BMQ="${DIR_SRC_BMQ}/cmake.bld/Linux"
+
+
+mkdir -p "${DIR_ROOT}/cmake.bld/Linux/blasingmq"
 
 
 # Parse sanitizers config
