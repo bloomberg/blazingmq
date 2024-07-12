@@ -95,6 +95,10 @@ class PostingContext {
     bmqa::MessageProperties d_properties;
     // Properties that will be added to a posted message
 
+    unsigned int d_autoIncrementedValue;
+    // A value that will be auto-incremented and added to
+    // the message properties.
+
   public:
     // CREATORS
 

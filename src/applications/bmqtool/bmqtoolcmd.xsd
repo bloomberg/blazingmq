@@ -125,6 +125,7 @@
       <element name='eventsCount'              type='long'    default="0"/>
       <element name='postInterval'             type='int'     default="1000"/>
       <element name='postRate'                 type='int'     default="1"/>
+      <element name='autoIncremented'          type='string'  default=""/>
     </sequence>
   </complexType>
 

@@ -143,6 +143,7 @@ class BatchPostCommand {
     bsls::Types::Int64       d_eventsCount;
     bsl::vector<bsl::string> d_payload;
     bsl::string              d_uri;
+    bsl::string              d_autoIncremented;
     int                      d_msgSize;
     int                      d_postInterval;
     int                      d_postRate;
@@ -156,25 +157,27 @@ class BatchPostCommand {
   public:
     // TYPES
     enum {
-        ATTRIBUTE_ID_URI           = 0,
-        ATTRIBUTE_ID_PAYLOAD       = 1,
-        ATTRIBUTE_ID_MSG_SIZE      = 2,
-        ATTRIBUTE_ID_EVENT_SIZE    = 3,
-        ATTRIBUTE_ID_EVENTS_COUNT  = 4,
-        ATTRIBUTE_ID_POST_INTERVAL = 5,
-        ATTRIBUTE_ID_POST_RATE     = 6
+        ATTRIBUTE_ID_URI              = 0,
+        ATTRIBUTE_ID_PAYLOAD          = 1,
+        ATTRIBUTE_ID_MSG_SIZE         = 2,
+        ATTRIBUTE_ID_EVENT_SIZE       = 3,
+        ATTRIBUTE_ID_EVENTS_COUNT     = 4,
+        ATTRIBUTE_ID_POST_INTERVAL    = 5,
+        ATTRIBUTE_ID_POST_RATE        = 6,
+        ATTRIBUTE_ID_AUTO_INCREMENTED = 7
     };
 
-    enum { NUM_ATTRIBUTES = 7 };
+    enum { NUM_ATTRIBUTES = 8 };
 
     enum {
-        ATTRIBUTE_INDEX_URI           = 0,
-        ATTRIBUTE_INDEX_PAYLOAD       = 1,
-        ATTRIBUTE_INDEX_MSG_SIZE      = 2,
-        ATTRIBUTE_INDEX_EVENT_SIZE    = 3,
-        ATTRIBUTE_INDEX_EVENTS_COUNT  = 4,
-        ATTRIBUTE_INDEX_POST_INTERVAL = 5,
-        ATTRIBUTE_INDEX_POST_RATE     = 6
+        ATTRIBUTE_INDEX_URI              = 0,
+        ATTRIBUTE_INDEX_PAYLOAD          = 1,
+        ATTRIBUTE_INDEX_MSG_SIZE         = 2,
+        ATTRIBUTE_INDEX_EVENT_SIZE       = 3,
+        ATTRIBUTE_INDEX_EVENTS_COUNT     = 4,
+        ATTRIBUTE_INDEX_POST_INTERVAL    = 5,
+        ATTRIBUTE_INDEX_POST_RATE        = 6,
+        ATTRIBUTE_INDEX_AUTO_INCREMENTED = 7
     };
 
     // CONSTANTS
@@ -189,6 +192,8 @@ class BatchPostCommand {
     static const int DEFAULT_INITIALIZER_POST_INTERVAL;
 
     static const int DEFAULT_INITIALIZER_POST_RATE;
+
+    static const char DEFAULT_INITIALIZER_AUTO_INCREMENTED[];
 
     static const bdlat_AttributeInfo ATTRIBUTE_INFO_ARRAY[];
 
@@ -310,6 +315,10 @@ class BatchPostCommand {
     // Return a reference to the modifiable "PostRate" attribute of this
     // object.
 
+    bsl::string& autoIncremented();
+    // Return a reference to the modifiable "AutoIncremented" attribute of
+    // this object.
+
     // ACCESSORS
     bsl::ostream&
     print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
@@ -375,6 +384,10 @@ class BatchPostCommand {
 
     int postRate() const;
     // Return the value of the "PostRate" attribute of this object.
+
+    const bsl::string& autoIncremented() const;
+    // Return a reference offering non-modifiable access to the
+    // "AutoIncremented" attribute of this object.
 
     // HIDDEN FRIENDS
     friend bool operator==(const BatchPostCommand& lhs,
@@ -6875,6 +6888,7 @@ void BatchPostCommand::hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const
     hashAppend(hashAlgorithm, this->eventsCount());
     hashAppend(hashAlgorithm, this->postInterval());
     hashAppend(hashAlgorithm, this->postRate());
+    hashAppend(hashAlgorithm, this->autoIncremented());
 }
 
 inline bool BatchPostCommand::isEqualTo(const BatchPostCommand& rhs) const
@@ -6884,7 +6898,8 @@ inline bool BatchPostCommand::isEqualTo(const BatchPostCommand& rhs) const
            this->eventSize() == rhs.eventSize() &&
            this->eventsCount() == rhs.eventsCount() &&
            this->postInterval() == rhs.postInterval() &&
-           this->postRate() == rhs.postRate();
+           this->postRate() == rhs.postRate() &&
+           this->autoIncremented() == rhs.autoIncremented();
 }
 
 // CLASS METHODS
@@ -6935,6 +6950,12 @@ int BatchPostCommand::manipulateAttributes(t_MANIPULATOR& manipulator)
         return ret;
     }
 
+    ret = manipulator(&d_autoIncremented,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_AUTO_INCREMENTED]);
+    if (ret) {
+        return ret;
+    }
+
     return 0;
 }
 
@@ -6971,6 +6992,11 @@ int BatchPostCommand::manipulateAttribute(t_MANIPULATOR& manipulator, int id)
     case ATTRIBUTE_ID_POST_RATE: {
         return manipulator(&d_postRate,
                            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_POST_RATE]);
+    }
+    case ATTRIBUTE_ID_AUTO_INCREMENTED: {
+        return manipulator(
+            &d_autoIncremented,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_AUTO_INCREMENTED]);
     }
     default: return NOT_FOUND;
     }
@@ -7027,6 +7053,11 @@ inline int& BatchPostCommand::postRate()
     return d_postRate;
 }
 
+inline bsl::string& BatchPostCommand::autoIncremented()
+{
+    return d_autoIncremented;
+}
+
 // ACCESSORS
 template <typename t_ACCESSOR>
 int BatchPostCommand::accessAttributes(t_ACCESSOR& accessor) const
@@ -7072,6 +7103,12 @@ int BatchPostCommand::accessAttributes(t_ACCESSOR& accessor) const
         return ret;
     }
 
+    ret = accessor(d_autoIncremented,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_AUTO_INCREMENTED]);
+    if (ret) {
+        return ret;
+    }
+
     return 0;
 }
 
@@ -7107,6 +7144,11 @@ int BatchPostCommand::accessAttribute(t_ACCESSOR& accessor, int id) const
     case ATTRIBUTE_ID_POST_RATE: {
         return accessor(d_postRate,
                         ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_POST_RATE]);
+    }
+    case ATTRIBUTE_ID_AUTO_INCREMENTED: {
+        return accessor(
+            d_autoIncremented,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_AUTO_INCREMENTED]);
     }
     default: return NOT_FOUND;
     }
@@ -7161,6 +7203,11 @@ inline int BatchPostCommand::postInterval() const
 inline int BatchPostCommand::postRate() const
 {
     return d_postRate;
+}
+
+inline const bsl::string& BatchPostCommand::autoIncremented() const
+{
+    return d_autoIncremented;
 }
 
 // -----------------------
@@ -12319,6 +12366,6 @@ inline bool Command::isUndefinedValue() const
 }  // close enterprise namespace
 #endif
 
-// GENERATED BY BLP_BAS_CODEGEN_2024.05.16
+// GENERATED BY BLP_BAS_CODEGEN_2024.07.04.1
 // USING bas_codegen.pl -m msg --noAggregateConversion --noExternalization
 // --noIdent --package m_bmqtool --msgComponent messages bmqtoolcmd.xsd

@@ -268,6 +268,10 @@ class Parameters {
 
     bsl::vector<Subscription> d_subscriptions;
 
+    bsl::string d_autoIncrementedField;
+    // A name of a property to put auto-incremented values
+    // in batch-posting mode.
+
   public:
     // CREATORS
 
@@ -302,6 +306,7 @@ class Parameters {
     Parameters&
     setMessageProperties(const bsl::vector<MessageProperty>& value);
     Parameters& setSubscriptions(const bsl::vector<Subscription>& value);
+    Parameters& setAutoIncrementedField(const bsl::string& value);
 
     // Set the corresponding member to the specified 'value' and return a
     // reference offering modifiable access to this object.
@@ -358,9 +363,8 @@ class Parameters {
     int                                 shutdownGrace() const;
     bool                                noSessionEventHandler() const;
     const bsl::vector<MessageProperty>& messageProperties() const;
-
-    /// Return the corresponding data member value.
-    const bsl::vector<Subscription>& subscriptions() const;
+    const bsl::vector<Subscription>&    subscriptions() const;
+    bsl::string                         autoIncrementedField() const;
 };
 
 // FREE OPERATORS
@@ -563,6 +567,13 @@ Parameters::setSubscriptions(const bsl::vector<Subscription>& value)
     return *this;
 }
 
+inline Parameters&
+Parameters::setAutoIncrementedField(const bsl::string& value)
+{
+    d_autoIncrementedField = value;
+    return *this;
+}
+
 // ACCESSORS
 inline ParametersMode::Value Parameters::mode() const
 {
@@ -703,6 +714,11 @@ Parameters::messageProperties() const
 inline const bsl::vector<Subscription>& Parameters::subscriptions() const
 {
     return d_subscriptions;
+}
+
+inline bsl::string Parameters::autoIncrementedField() const
+{
+    return d_autoIncrementedField;
 }
 
 }  // close package namespace
