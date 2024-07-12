@@ -160,6 +160,7 @@ export DIR_SCRIPTS="${DIR_SCRIPTS}"
 TOOLCHAIN_PATH="${DIR_SCRIPTS}/clang-libcxx-${SANITIZER_NAME}.cmake"
 export CC="clang"
 export CXX="clang++"
+export CMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES="/usr/include;/usr/include/clang/${LLVM_VERSION}/include"
 export BBS_BUILD_SYSTEM="ON"
 PATH="$PATH:$(realpath ${DIR_SRCS_EXT}/bde-tools/bin)"
 export PATH
