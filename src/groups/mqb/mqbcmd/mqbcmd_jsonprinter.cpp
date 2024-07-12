@@ -80,7 +80,7 @@ JsonPrinter::printResponses(bsl::ostream&            os,
          rit != responseList.responses().end();
          rit++) {
         mqbcmd::RouteResponseResult result;
-        result.source() = rit->source();
+        result.sourceNodeDescription() = rit->sourceNodeDescription();
         bsl::istringstream jsonStream(rit->response());
         const int          rc = decoder.decode(jsonStream,
                                       &result.result(),

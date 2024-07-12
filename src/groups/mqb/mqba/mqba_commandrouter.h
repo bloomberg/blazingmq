@@ -72,38 +72,35 @@ class RouteCommandManager {
     };
 
     class RoutingMode {
-      private:
-        RouteCommandManager* d_router;
-
       public:
-        RoutingMode(RouteCommandManager* router);
+        RoutingMode();
         virtual ~RoutingMode() = 0;
 
-        virtual RouteMembers getRouteMembers() = 0;
-
-        const RouteCommandManager* router() const;
+        virtual RouteMembers getRouteMembers(mqbi::Cluster* cluster) = 0;
     };
     class AllPartitionPrimariesRoutingMode : public RoutingMode {
       public:
-        AllPartitionPrimariesRoutingMode(RouteCommandManager* router);
+        AllPartitionPrimariesRoutingMode();
 
-        RouteMembers getRouteMembers() BSLS_KEYWORD_OVERRIDE;
+        RouteMembers
+        getRouteMembers(mqbi::Cluster* cluster) BSLS_KEYWORD_OVERRIDE;
     };
     class SinglePartitionPrimaryRoutingMode : public RoutingMode {
       private:
         int d_partitionId;
 
       public:
-        SinglePartitionPrimaryRoutingMode(RouteCommandManager* router,
-                                          int                  partitionId);
+        SinglePartitionPrimaryRoutingMode(int partitionId);
 
-        RouteMembers getRouteMembers() BSLS_KEYWORD_OVERRIDE;
+        RouteMembers
+        getRouteMembers(mqbi::Cluster* cluster) BSLS_KEYWORD_OVERRIDE;
     };
     class ClusterRoutingMode : public RoutingMode {
       public:
-        ClusterRoutingMode(RouteCommandManager* router);
+        ClusterRoutingMode();
 
-        RouteMembers getRouteMembers() BSLS_KEYWORD_OVERRIDE;
+        RouteMembers
+        getRouteMembers(mqbi::Cluster* cluster) BSLS_KEYWORD_OVERRIDE;
     };
 
   public:
@@ -114,8 +111,6 @@ class RouteCommandManager {
     const mqbcmd::CommandChoice& d_command;
 
     mqbcmd::RouteResponseList d_responses;
-
-    mqbi::Cluster* d_cluster;
 
     RoutingModeMp d_routingMode;
 
@@ -134,7 +129,7 @@ class RouteCommandManager {
 
     /// Performs any routing on the command and returns true if the caller
     /// should also execute the command.
-    bool process(mqbi::Cluster* cluster);
+    bool route(mqbi::Cluster* relevantCluster);
 
     /// Waits on a latch that triggers when the responses have been received.
     void waitForResponses();
@@ -145,7 +140,7 @@ class RouteCommandManager {
 
     /// Returns a pointer to the relevant cluster for this
     /// command. The pointer can be guaranteed to be non-null.
-    mqbi::Cluster* cluster() const;
+    // mqbi::Cluster* cluster() const;
 
   private:
     RoutingModeMp getCommandRoutingMode();
@@ -162,12 +157,6 @@ inline bool RouteCommandManager::isRoutingNeeded() const
     return d_routingMode.get() != nullptr;
 }
 
-inline const RouteCommandManager*
-RouteCommandManager::RoutingMode::router() const
-{
-    return d_router;
-}
-
 inline mqbcmd::RouteResponseList& RouteCommandManager::responses()
 {
     return d_responses;
@@ -176,13 +165,6 @@ inline mqbcmd::RouteResponseList& RouteCommandManager::responses()
 inline void RouteCommandManager::waitForResponses()
 {
     d_latch.wait();
-}
-
-inline mqbi::Cluster* RouteCommandManager::cluster() const
-{
-    BSLS_ASSERT_SAFE(d_cluster);
-
-    return d_cluster;
 }
 
 inline void RouteCommandManager::countDownLatch()

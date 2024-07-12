@@ -49,7 +49,7 @@
       </documentation>
     </annotation>
     <sequence>
-      <element name="source"   type="xs:string"/>
+      <element name="sourceNodeDescription"   type="xs:string"/>
       <element name="response" type="xs:string"/>
     </sequence>
   </complexType>
@@ -57,7 +57,7 @@
   <complexType name="RouteResponseList">
     <annotation>
       <documentation>
-        Contains a single array of all responses from a routed command.
+        A list of the textual responses from a routed command.
       </documentation>
     </annotation>
     <sequence>
@@ -66,13 +66,23 @@
   </complexType>
 
   <complexType name="RouteResponseResult">
+    <annotation>
+      <documentation>
+        A response from a routed command containing the decoded result.
+      </documentation>
+    </annotation>
     <sequence>
-      <element name="source" type="xs:string"/>
+      <element name="sourceNodeDescription" type="xs:string"/>
       <element name="result" type="tns:Result"/>
     </sequence>
   </complexType>
 
   <complexType name="RouteResponseResultList">
+    <annotation>
+      <documentation>
+        A list of responses containing decoded results.
+      </documentation>
+    </annotation>
     <sequence>
       <element name="responses" type="tns:RouteResponseResult" maxOccurs="unbounded" minOccurs="0"/>
     </sequence>

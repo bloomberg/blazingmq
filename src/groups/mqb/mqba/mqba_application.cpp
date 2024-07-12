@@ -22,7 +22,6 @@
 #include <mqba_dispatcher.h>
 #include <mqba_domainmanager.h>
 #include <mqba_sessionnegotiator.h>
-#include <mqbblp_cluster.h>
 #include <mqbblp_clustercatalog.h>
 #include <mqbcfg_brokerconfig.h>
 #include <mqbcfg_messages.h>
@@ -703,7 +702,7 @@ void Application::printCommandResponses(
 
     RouteResponseVector responses = responseList.responses();
 
-    // When there is only 1 response (as in single reroute or self exec.)
+    // When there is only 1 response (as in single route or self exec.)
     // then just display that result. It should already be formatted properly.
     if (responses.size() == 1) {
         os << responses[0].response();
@@ -747,7 +746,7 @@ int Application::processCommand(const bslstl::StringRef& source,
 
     // easy path, just execute the command
     if (fromReroute) {
-        if (executeCommand(commandWithOptions, command, &cmdResult)) {
+        if (0 != executeCommand(commandWithOptions, command, &cmdResult)) {
             return 0;  // early exit (caused by "dangerous" command)
         }
         printCommandResult(cmdResult, commandWithOptions.encoding(), os);
@@ -767,11 +766,11 @@ int Application::processCommand(const bslstl::StringRef& source,
             return -2;
         }
         selfName          = cluster->netCluster().selfNode()->hostName();
-        shouldSelfExecute = routeCommandManager.process(cluster);
+        shouldSelfExecute = routeCommandManager.route(cluster);
     }
 
     if (shouldSelfExecute) {
-        if (executeCommand(commandWithOptions, command, &cmdResult)) {
+        if (0 != executeCommand(commandWithOptions, command, &cmdResult)) {
             return 0;  // early exit (caused by "dangerous" command)
         }
     }
@@ -785,8 +784,8 @@ int Application::processCommand(const bslstl::StringRef& source,
         mwcu::MemOutStream cmdOs;
         printCommandResult(cmdResult, commandWithOptions.encoding(), cmdOs);
         mqbcmd::RouteResponse routeResponse;
-        routeResponse.response() = cmdOs.str();
-        routeResponse.source()   = selfName;
+        routeResponse.response()              = cmdOs.str();
+        routeResponse.sourceNodeDescription() = selfName;
         responses.responses().push_back(routeResponse);
     }
 

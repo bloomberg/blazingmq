@@ -1449,7 +1449,8 @@ HumanPrinter::printResponses(bsl::ostream&            os,
     for (RouteResponseVector::const_iterator respIt = responses.begin();
          respIt != responses.end();
          ++respIt) {
-        os << "Response from node \"" << respIt->source() << "\":";
+        os << "Response from node \"" << respIt->sourceNodeDescription()
+           << "\":";
         os << bsl::endl;
         os << respIt->response();
         os << bsl::endl;

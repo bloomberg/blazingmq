@@ -5657,16 +5657,22 @@ class RouteResponse {
     // A report of a command routed to a particular node.
 
     // INSTANCE DATA
-    bsl::string d_source;
+    bsl::string d_sourceNodeDescription;
     bsl::string d_response;
 
   public:
     // TYPES
-    enum { ATTRIBUTE_ID_SOURCE = 0, ATTRIBUTE_ID_RESPONSE = 1 };
+    enum {
+        ATTRIBUTE_ID_SOURCE_NODE_DESCRIPTION = 0,
+        ATTRIBUTE_ID_RESPONSE                = 1
+    };
 
     enum { NUM_ATTRIBUTES = 2 };
 
-    enum { ATTRIBUTE_INDEX_SOURCE = 0, ATTRIBUTE_INDEX_RESPONSE = 1 };
+    enum {
+        ATTRIBUTE_INDEX_SOURCE_NODE_DESCRIPTION = 0,
+        ATTRIBUTE_INDEX_RESPONSE                = 1
+    };
 
     // CONSTANTS
     static const char CLASS_NAME[];
@@ -5763,9 +5769,9 @@ class RouteResponse {
     // returned from the invocation of 'manipulator' if 'name' identifies
     // an attribute of this class, and -1 otherwise.
 
-    bsl::string& source();
-    // Return a reference to the modifiable "Source" attribute of this
-    // object.
+    bsl::string& sourceNodeDescription();
+    // Return a reference to the modifiable "SourceNodeDescription"
+    // attribute of this object.
 
     bsl::string& response();
     // Return a reference to the modifiable "Response" attribute of this
@@ -5814,9 +5820,9 @@ class RouteResponse {
     // invocation of 'accessor' if 'name' identifies an attribute of this
     // class, and -1 otherwise.
 
-    const bsl::string& source() const;
-    // Return a reference offering non-modifiable access to the "Source"
-    // attribute of this object.
+    const bsl::string& sourceNodeDescription() const;
+    // Return a reference offering non-modifiable access to the
+    // "SourceNodeDescription" attribute of this object.
 
     const bsl::string& response() const;
     // Return a reference offering non-modifiable access to the "Response"
@@ -5828,7 +5834,7 @@ class RouteResponse {
     // have the same value, and 'false' otherwise.  Two attribute objects
     // have the same value if each respective attribute has the same value.
     {
-        return lhs.source() == rhs.source() &&
+        return lhs.sourceNodeDescription() == rhs.sourceNodeDescription() &&
                lhs.response() == rhs.response();
     }
 
@@ -5855,7 +5861,7 @@ class RouteResponse {
     // 'RouteResponse'.
     {
         using bslh::hashAppend;
-        hashAppend(hashAlg, object.source());
+        hashAppend(hashAlg, object.sourceNodeDescription());
         hashAppend(hashAlg, object.response());
     }
 };
@@ -11404,7 +11410,7 @@ namespace mqbcmd {
 // =======================
 
 class RouteResponseList {
-    // Contains a single array of all responses from a routed command.
+    // A list of the textual responses from a routed command.
 
     // INSTANCE DATA
     bsl::vector<RouteResponse> d_responses;
@@ -30229,17 +30235,22 @@ namespace mqbcmd {
 // =========================
 
 class RouteResponseResult {
+    // A response from a routed command containing the decoded result.
+
     // INSTANCE DATA
-    bsl::string d_source;
+    bsl::string d_sourceNodeDescription;
     Result      d_result;
 
   public:
     // TYPES
-    enum { ATTRIBUTE_ID_SOURCE = 0, ATTRIBUTE_ID_RESULT = 1 };
+    enum { ATTRIBUTE_ID_SOURCE_NODE_DESCRIPTION = 0, ATTRIBUTE_ID_RESULT = 1 };
 
     enum { NUM_ATTRIBUTES = 2 };
 
-    enum { ATTRIBUTE_INDEX_SOURCE = 0, ATTRIBUTE_INDEX_RESULT = 1 };
+    enum {
+        ATTRIBUTE_INDEX_SOURCE_NODE_DESCRIPTION = 0,
+        ATTRIBUTE_INDEX_RESULT                  = 1
+    };
 
     // CONSTANTS
     static const char CLASS_NAME[];
@@ -30337,9 +30348,9 @@ class RouteResponseResult {
     // returned from the invocation of 'manipulator' if 'name' identifies
     // an attribute of this class, and -1 otherwise.
 
-    bsl::string& source();
-    // Return a reference to the modifiable "Source" attribute of this
-    // object.
+    bsl::string& sourceNodeDescription();
+    // Return a reference to the modifiable "SourceNodeDescription"
+    // attribute of this object.
 
     Result& result();
     // Return a reference to the modifiable "Result" attribute of this
@@ -30388,9 +30399,9 @@ class RouteResponseResult {
     // invocation of 'accessor' if 'name' identifies an attribute of this
     // class, and -1 otherwise.
 
-    const bsl::string& source() const;
-    // Return a reference offering non-modifiable access to the "Source"
-    // attribute of this object.
+    const bsl::string& sourceNodeDescription() const;
+    // Return a reference offering non-modifiable access to the
+    // "SourceNodeDescription" attribute of this object.
 
     const Result& result() const;
     // Return a reference offering non-modifiable access to the "Result"
@@ -30403,7 +30414,8 @@ class RouteResponseResult {
     // have the same value, and 'false' otherwise.  Two attribute objects
     // have the same value if each respective attribute has the same value.
     {
-        return lhs.source() == rhs.source() && lhs.result() == rhs.result();
+        return lhs.sourceNodeDescription() == rhs.sourceNodeDescription() &&
+               lhs.result() == rhs.result();
     }
 
     friend bool operator!=(const RouteResponseResult& lhs,
@@ -30430,7 +30442,7 @@ class RouteResponseResult {
     // 'RouteResponseResult'.
     {
         using bslh::hashAppend;
-        hashAppend(hashAlg, object.source());
+        hashAppend(hashAlg, object.sourceNodeDescription());
         hashAppend(hashAlg, object.result());
     }
 };
@@ -30725,6 +30737,8 @@ namespace mqbcmd {
 // =============================
 
 class RouteResponseResultList {
+    // A list of responses containing decoded results.
+
     // INSTANCE DATA
     bsl::vector<RouteResponseResult> d_responses;
 
@@ -35115,7 +35129,9 @@ int RouteResponse::manipulateAttributes(t_MANIPULATOR& manipulator)
 {
     int ret;
 
-    ret = manipulator(&d_source, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SOURCE]);
+    ret = manipulator(
+        &d_sourceNodeDescription,
+        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SOURCE_NODE_DESCRIPTION]);
     if (ret) {
         return ret;
     }
@@ -35135,9 +35151,10 @@ int RouteResponse::manipulateAttribute(t_MANIPULATOR& manipulator, int id)
     enum { NOT_FOUND = -1 };
 
     switch (id) {
-    case ATTRIBUTE_ID_SOURCE: {
-        return manipulator(&d_source,
-                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SOURCE]);
+    case ATTRIBUTE_ID_SOURCE_NODE_DESCRIPTION: {
+        return manipulator(
+            &d_sourceNodeDescription,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SOURCE_NODE_DESCRIPTION]);
     }
     case ATTRIBUTE_ID_RESPONSE: {
         return manipulator(&d_response,
@@ -35163,9 +35180,9 @@ int RouteResponse::manipulateAttribute(t_MANIPULATOR& manipulator,
     return manipulateAttribute(manipulator, attributeInfo->d_id);
 }
 
-inline bsl::string& RouteResponse::source()
+inline bsl::string& RouteResponse::sourceNodeDescription()
 {
-    return d_source;
+    return d_sourceNodeDescription;
 }
 
 inline bsl::string& RouteResponse::response()
@@ -35179,7 +35196,9 @@ int RouteResponse::accessAttributes(t_ACCESSOR& accessor) const
 {
     int ret;
 
-    ret = accessor(d_source, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SOURCE]);
+    ret = accessor(
+        d_sourceNodeDescription,
+        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SOURCE_NODE_DESCRIPTION]);
     if (ret) {
         return ret;
     }
@@ -35198,9 +35217,10 @@ int RouteResponse::accessAttribute(t_ACCESSOR& accessor, int id) const
     enum { NOT_FOUND = -1 };
 
     switch (id) {
-    case ATTRIBUTE_ID_SOURCE: {
-        return accessor(d_source,
-                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SOURCE]);
+    case ATTRIBUTE_ID_SOURCE_NODE_DESCRIPTION: {
+        return accessor(
+            d_sourceNodeDescription,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SOURCE_NODE_DESCRIPTION]);
     }
     case ATTRIBUTE_ID_RESPONSE: {
         return accessor(d_response,
@@ -35226,9 +35246,9 @@ int RouteResponse::accessAttribute(t_ACCESSOR& accessor,
     return accessAttribute(accessor, attributeInfo->d_id);
 }
 
-inline const bsl::string& RouteResponse::source() const
+inline const bsl::string& RouteResponse::sourceNodeDescription() const
 {
-    return d_source;
+    return d_sourceNodeDescription;
 }
 
 inline const bsl::string& RouteResponse::response() const
@@ -52967,7 +52987,9 @@ int RouteResponseResult::manipulateAttributes(t_MANIPULATOR& manipulator)
 {
     int ret;
 
-    ret = manipulator(&d_source, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SOURCE]);
+    ret = manipulator(
+        &d_sourceNodeDescription,
+        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SOURCE_NODE_DESCRIPTION]);
     if (ret) {
         return ret;
     }
@@ -52987,9 +53009,10 @@ int RouteResponseResult::manipulateAttribute(t_MANIPULATOR& manipulator,
     enum { NOT_FOUND = -1 };
 
     switch (id) {
-    case ATTRIBUTE_ID_SOURCE: {
-        return manipulator(&d_source,
-                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SOURCE]);
+    case ATTRIBUTE_ID_SOURCE_NODE_DESCRIPTION: {
+        return manipulator(
+            &d_sourceNodeDescription,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SOURCE_NODE_DESCRIPTION]);
     }
     case ATTRIBUTE_ID_RESULT: {
         return manipulator(&d_result,
@@ -53015,9 +53038,9 @@ int RouteResponseResult::manipulateAttribute(t_MANIPULATOR& manipulator,
     return manipulateAttribute(manipulator, attributeInfo->d_id);
 }
 
-inline bsl::string& RouteResponseResult::source()
+inline bsl::string& RouteResponseResult::sourceNodeDescription()
 {
-    return d_source;
+    return d_sourceNodeDescription;
 }
 
 inline Result& RouteResponseResult::result()
@@ -53031,7 +53054,9 @@ int RouteResponseResult::accessAttributes(t_ACCESSOR& accessor) const
 {
     int ret;
 
-    ret = accessor(d_source, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SOURCE]);
+    ret = accessor(
+        d_sourceNodeDescription,
+        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SOURCE_NODE_DESCRIPTION]);
     if (ret) {
         return ret;
     }
@@ -53050,9 +53075,10 @@ int RouteResponseResult::accessAttribute(t_ACCESSOR& accessor, int id) const
     enum { NOT_FOUND = -1 };
 
     switch (id) {
-    case ATTRIBUTE_ID_SOURCE: {
-        return accessor(d_source,
-                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SOURCE]);
+    case ATTRIBUTE_ID_SOURCE_NODE_DESCRIPTION: {
+        return accessor(
+            d_sourceNodeDescription,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SOURCE_NODE_DESCRIPTION]);
     }
     case ATTRIBUTE_ID_RESULT: {
         return accessor(d_result,
@@ -53078,9 +53104,9 @@ int RouteResponseResult::accessAttribute(t_ACCESSOR& accessor,
     return accessAttribute(accessor, attributeInfo->d_id);
 }
 
-inline const bsl::string& RouteResponseResult::source() const
+inline const bsl::string& RouteResponseResult::sourceNodeDescription() const
 {
-    return d_source;
+    return d_sourceNodeDescription;
 }
 
 inline const Result& RouteResponseResult::result() const

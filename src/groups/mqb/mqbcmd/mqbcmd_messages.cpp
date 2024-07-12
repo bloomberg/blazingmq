@@ -3470,9 +3470,9 @@ ResourceUsageMonitorState::toString(ResourceUsageMonitorState::Value value)
 const char RouteResponse::CLASS_NAME[] = "RouteResponse";
 
 const bdlat_AttributeInfo RouteResponse::ATTRIBUTE_INFO_ARRAY[] = {
-    {ATTRIBUTE_ID_SOURCE,
-     "source",
-     sizeof("source") - 1,
+    {ATTRIBUTE_ID_SOURCE_NODE_DESCRIPTION,
+     "sourceNodeDescription",
+     sizeof("sourceNodeDescription") - 1,
      "",
      bdlat_FormattingMode::e_TEXT},
     {ATTRIBUTE_ID_RESPONSE,
@@ -3502,8 +3502,8 @@ const bdlat_AttributeInfo* RouteResponse::lookupAttributeInfo(const char* name,
 const bdlat_AttributeInfo* RouteResponse::lookupAttributeInfo(int id)
 {
     switch (id) {
-    case ATTRIBUTE_ID_SOURCE:
-        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SOURCE];
+    case ATTRIBUTE_ID_SOURCE_NODE_DESCRIPTION:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SOURCE_NODE_DESCRIPTION];
     case ATTRIBUTE_ID_RESPONSE:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_RESPONSE];
     default: return 0;
@@ -3513,27 +3513,28 @@ const bdlat_AttributeInfo* RouteResponse::lookupAttributeInfo(int id)
 // CREATORS
 
 RouteResponse::RouteResponse(bslma::Allocator* basicAllocator)
-: d_source(basicAllocator)
+: d_sourceNodeDescription(basicAllocator)
 , d_response(basicAllocator)
 {
 }
 
 RouteResponse::RouteResponse(const RouteResponse& original,
                              bslma::Allocator*    basicAllocator)
-: d_source(original.d_source, basicAllocator)
+: d_sourceNodeDescription(original.d_sourceNodeDescription, basicAllocator)
 , d_response(original.d_response, basicAllocator){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
 RouteResponse::RouteResponse(RouteResponse && original) noexcept
-: d_source(bsl::move(original.d_source)),
+: d_sourceNodeDescription(bsl::move(original.d_sourceNodeDescription)),
   d_response(bsl::move(original.d_response))
 {
 }
 
 RouteResponse::RouteResponse(RouteResponse&&   original,
                              bslma::Allocator* basicAllocator)
-: d_source(bsl::move(original.d_source), basicAllocator)
+: d_sourceNodeDescription(bsl::move(original.d_sourceNodeDescription),
+                          basicAllocator)
 , d_response(bsl::move(original.d_response), basicAllocator)
 {
 }
@@ -3548,8 +3549,8 @@ RouteResponse::~RouteResponse()
 RouteResponse& RouteResponse::operator=(const RouteResponse& rhs)
 {
     if (this != &rhs) {
-        d_source   = rhs.d_source;
-        d_response = rhs.d_response;
+        d_sourceNodeDescription = rhs.d_sourceNodeDescription;
+        d_response              = rhs.d_response;
     }
 
     return *this;
@@ -3560,8 +3561,8 @@ RouteResponse& RouteResponse::operator=(const RouteResponse& rhs)
 RouteResponse& RouteResponse::operator=(RouteResponse&& rhs)
 {
     if (this != &rhs) {
-        d_source   = bsl::move(rhs.d_source);
-        d_response = bsl::move(rhs.d_response);
+        d_sourceNodeDescription = bsl::move(rhs.d_sourceNodeDescription);
+        d_response              = bsl::move(rhs.d_response);
     }
 
     return *this;
@@ -3570,7 +3571,7 @@ RouteResponse& RouteResponse::operator=(RouteResponse&& rhs)
 
 void RouteResponse::reset()
 {
-    bdlat_ValueTypeFunctions::reset(&d_source);
+    bdlat_ValueTypeFunctions::reset(&d_sourceNodeDescription);
     bdlat_ValueTypeFunctions::reset(&d_response);
 }
 
@@ -3581,7 +3582,8 @@ RouteResponse::print(bsl::ostream& stream, int level, int spacesPerLevel) const
 {
     bslim::Printer printer(&stream, level, spacesPerLevel);
     printer.start();
-    printer.printAttribute("source", this->source());
+    printer.printAttribute("sourceNodeDescription",
+                           this->sourceNodeDescription());
     printer.printAttribute("response", this->response());
     printer.end();
     return stream;
@@ -28555,9 +28557,9 @@ const char* DomainResult::selectionName() const
 const char RouteResponseResult::CLASS_NAME[] = "RouteResponseResult";
 
 const bdlat_AttributeInfo RouteResponseResult::ATTRIBUTE_INFO_ARRAY[] = {
-    {ATTRIBUTE_ID_SOURCE,
-     "source",
-     sizeof("source") - 1,
+    {ATTRIBUTE_ID_SOURCE_NODE_DESCRIPTION,
+     "sourceNodeDescription",
+     sizeof("sourceNodeDescription") - 1,
      "",
      bdlat_FormattingMode::e_TEXT},
     {ATTRIBUTE_ID_RESULT,
@@ -28587,8 +28589,8 @@ RouteResponseResult::lookupAttributeInfo(const char* name, int nameLength)
 const bdlat_AttributeInfo* RouteResponseResult::lookupAttributeInfo(int id)
 {
     switch (id) {
-    case ATTRIBUTE_ID_SOURCE:
-        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SOURCE];
+    case ATTRIBUTE_ID_SOURCE_NODE_DESCRIPTION:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SOURCE_NODE_DESCRIPTION];
     case ATTRIBUTE_ID_RESULT:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_RESULT];
     default: return 0;
@@ -28598,29 +28600,29 @@ const bdlat_AttributeInfo* RouteResponseResult::lookupAttributeInfo(int id)
 // CREATORS
 
 RouteResponseResult::RouteResponseResult(bslma::Allocator* basicAllocator)
-: d_source(basicAllocator)
+: d_sourceNodeDescription(basicAllocator)
 , d_result(basicAllocator)
 {
 }
 
 RouteResponseResult::RouteResponseResult(const RouteResponseResult& original,
                                          bslma::Allocator* basicAllocator)
-: d_source(original.d_source, basicAllocator)
-, d_result(original.d_result, basicAllocator)
-{
-}
+: d_sourceNodeDescription(original.d_sourceNodeDescription, basicAllocator)
+, d_result(original.d_result, basicAllocator){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-RouteResponseResult::RouteResponseResult(RouteResponseResult&& original)
-    noexcept : d_source(bsl::move(original.d_source)),
-               d_result(bsl::move(original.d_result))
+RouteResponseResult::RouteResponseResult(RouteResponseResult &&
+                                         original) noexcept
+: d_sourceNodeDescription(bsl::move(original.d_sourceNodeDescription)),
+  d_result(bsl::move(original.d_result))
 {
 }
 
 RouteResponseResult::RouteResponseResult(RouteResponseResult&& original,
                                          bslma::Allocator*     basicAllocator)
-: d_source(bsl::move(original.d_source), basicAllocator)
+: d_sourceNodeDescription(bsl::move(original.d_sourceNodeDescription),
+                          basicAllocator)
 , d_result(bsl::move(original.d_result), basicAllocator)
 {
 }
@@ -28636,8 +28638,8 @@ RouteResponseResult&
 RouteResponseResult::operator=(const RouteResponseResult& rhs)
 {
     if (this != &rhs) {
-        d_source = rhs.d_source;
-        d_result = rhs.d_result;
+        d_sourceNodeDescription = rhs.d_sourceNodeDescription;
+        d_result                = rhs.d_result;
     }
 
     return *this;
@@ -28648,8 +28650,8 @@ RouteResponseResult::operator=(const RouteResponseResult& rhs)
 RouteResponseResult& RouteResponseResult::operator=(RouteResponseResult&& rhs)
 {
     if (this != &rhs) {
-        d_source = bsl::move(rhs.d_source);
-        d_result = bsl::move(rhs.d_result);
+        d_sourceNodeDescription = bsl::move(rhs.d_sourceNodeDescription);
+        d_result                = bsl::move(rhs.d_result);
     }
 
     return *this;
@@ -28658,7 +28660,7 @@ RouteResponseResult& RouteResponseResult::operator=(RouteResponseResult&& rhs)
 
 void RouteResponseResult::reset()
 {
-    bdlat_ValueTypeFunctions::reset(&d_source);
+    bdlat_ValueTypeFunctions::reset(&d_sourceNodeDescription);
     bdlat_ValueTypeFunctions::reset(&d_result);
 }
 
@@ -28670,7 +28672,8 @@ bsl::ostream& RouteResponseResult::print(bsl::ostream& stream,
 {
     bslim::Printer printer(&stream, level, spacesPerLevel);
     printer.start();
-    printer.printAttribute("source", this->source());
+    printer.printAttribute("sourceNodeDescription",
+                           this->sourceNodeDescription());
     printer.printAttribute("result", this->result());
     printer.end();
     return stream;
@@ -29125,14 +29128,12 @@ RouteResponseResultList::RouteResponseResultList(
 RouteResponseResultList::RouteResponseResultList(
     const RouteResponseResultList& original,
     bslma::Allocator*              basicAllocator)
-: d_responses(original.d_responses, basicAllocator)
-{
-}
+: d_responses(original.d_responses, basicAllocator){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-RouteResponseResultList::RouteResponseResultList(
-    RouteResponseResultList&& original) noexcept
+RouteResponseResultList::RouteResponseResultList(RouteResponseResultList &&
+                                                 original) noexcept
 : d_responses(bsl::move(original.d_responses))
 {
 }
