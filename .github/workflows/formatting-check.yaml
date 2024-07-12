@@ -37,7 +37,7 @@ jobs:
           fetch-depth: 0
       - name: black style check
         run: |
-          sudo apt-get install -y python3.10 python3-pip
+          sudo apt-get install -y python3.12 python3-pip
           pip3 install git+https://github.com/psf/black
           black .
           git diff -q | tee format_diff.txt
