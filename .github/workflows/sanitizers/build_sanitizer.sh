@@ -113,7 +113,9 @@ mkdir -p ${DIR_SRCS_EXT}
 
 # Download LLVM
 LLVM_TAG="llvmorg-18.1.8"
-checkoutGitRepo "$(github_url llvm/llvm-project)" "${LLVM_TAG}" "llvm-project"
+curl -SL "https://github.com/llvm/llvm-project/archive/refs/tags/${LLVM_TAG}.tar.gz" \
+    | tar -xzC ${DIR_SRCS_EXT}
+mv "${DIR_SRCS_EXT}/llvm-project-${LLVM_TAG}" "${DIR_SRCS_EXT}/llvm-project"
 
 # Download google-benchmark
 GOOGLE_BENCHMARK_TAG="v1.8.4"
