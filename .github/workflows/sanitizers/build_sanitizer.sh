@@ -18,7 +18,7 @@
 # 6) Build sanitizer-instrumented BlazingMQ unit tests.
 # 7) Generate scripts to run unit tests:
 #      ./cmake.bld/Linux/run-unittests.sh
-#    This script is used as-is by CI to run unit tests with sanitizer.
+#    This script is used as-is by CI to run unit tests under sanitizer.
 
 set -eux
 
@@ -34,13 +34,32 @@ SANITIZER_NAME="${1}"
 # Github's 'ubuntu-22.04' image contains a lot of preinstalled tools,
 # see https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2204-Readme.md.
 # Uninstall uneeded tools which cause of versions clash.
-sudo apt-get purge llvm-14 clang-14 gcc-9 gcc-10 gcc-11 gcc-12
+sudo apt-get purge \
+    llvm-14 \
+    clang-14 \
+    gcc-9 \
+    gcc-10 \
+    gcc-11 \
+    gcc-12
 
 # Install prerequisites
-sudo apt-get update && sudo apt-get install -qy lsb-release wget software-properties-common gnupg git curl jq ninja-build bison libfl-dev pkg-config
+sudo apt-get update && sudo apt-get install -qy \
+    lsb-release \
+    wget \
+    software-properties-common \
+    gnupg \
+    git \
+    curl \
+    jq \
+    ninja-build \
+    bison \
+    libfl-dev \
+    pkg-config
 
 # Install prerequisites for LLVM: latest cmake version, Ubuntu apt repository contains cmake version 3.22.1
-wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | sudo tee /etc/apt/trusted.gpg.d/kitware.gpg >/dev/null
+wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null \
+        | gpg --dearmor - \
+        | sudo tee /etc/apt/trusted.gpg.d/kitware.gpg >/dev/null
 sudo apt-add-repository -y "deb https://apt.kitware.com/ubuntu/ $(lsb_release -cs) main"
 sudo apt-get install -qy cmake
 
@@ -76,7 +95,6 @@ LLVM_SANITIZER_NAME="$(cfgquery .${SANITIZER_NAME}.llvm_sanitizer_name)"
 LLVM_SPECIFIC_CMAKE_OPTIONS="$(cfgquery .${SANITIZER_NAME}.llvm_specific_cmake_options)"
 if [[ "$LLVM_SPECIFIC_CMAKE_OPTIONS" == null ]]; then LLVM_SPECIFIC_CMAKE_OPTIONS=""; fi
 
-# :: checkoutGitRepo() subroutine :::::::::::::::::::::::::::::::::::::::::::::
 checkoutGitRepo() {
     local repo=$1
     local ref=$2
@@ -90,7 +108,7 @@ checkoutGitRepo() {
 }
 github_url() { echo "https://github.com/$1.git"; }
 
-# :: Download external dependencies :::::::::::::::::::::::::::::::
+# Download external dependencies
 mkdir -p ${DIR_SRCS_EXT}
 
 # Download LLVM
@@ -109,7 +127,7 @@ checkoutGitRepo "$(github_url google/googletest)" "${GOOGLETEST_TAG}" "googletes
 ZLIB_TAG="v1.3.1"
 checkoutGitRepo "$(github_url madler/zlib)" "${ZLIB_TAG}" "zlib"
 
-# :: Build libc++ with required instrumentation :::::::::::::::::::::::::::::::
+# Build libc++ with required instrumentation
 #
 # The extent to which all dependencies to be compiled with sanitizer-support
 # varies by sanitizer. MemorySanitizer is especially unforgiving: Failing to
@@ -139,7 +157,6 @@ export LIBCXX_BUILD_PATH="$(realpath ${LIBCXX_BUILD_PATH})"
 export DIR_SRC_BMQ="${DIR_SRC_BMQ}"
 export DIR_SCRIPTS="${DIR_SCRIPTS}"
 
-# :: Build BDE + NTF ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 TOOLCHAIN_PATH="${DIR_SCRIPTS}/clang-libcxx-${SANITIZER_NAME}.cmake"
 export CC="clang"
 export CXX="clang++"
@@ -147,16 +164,15 @@ export BBS_BUILD_SYSTEM="ON"
 PATH="$PATH:$(realpath ${DIR_SRCS_EXT}/bde-tools/bin)"
 export PATH
 
-pushd ${DIR_SRCS_EXT}
-
-pushd "bde"
+# Build BDE + NTF
+pushd "${DIR_SRCS_EXT}/bde"
 eval "$(bbs_build_env -u dbg_64_safe_cpp20 -b "${DIR_BUILD_EXT}/bde")"
 bbs_build configure --toolchain "${TOOLCHAIN_PATH}"
 bbs_build build -j${PARALLELISM}
 bbs_build --install=/opt/bb --prefix=/ install
 popd
 
-pushd "ntf-core"
+pushd "${DIR_SRCS_EXT}/ntf-core"
 # TODO The deprecated flag "-fcoroutines-ts" has been removed in clang
 # 17.0.1, but NTF is still using it.  We manually change this flag until
 # the fix in issue 175307231 is resolved.
@@ -178,10 +194,7 @@ popd
 ln -sf "/opt/bb/include" "/opt/include"
 ln -sf "/opt/bb/lib64" "/opt/lib64"
 
-# pushd DIR_SRCS_EXT
-popd
-
-# :: Setup CMake options for all remaining builds :::::::::::::::::::::::::::::
+# Setup CMake options for all remaining builds
 CMAKE_OPTIONS="\
     -D BUILD_BITNESS=64 \
     -D CMAKE_BUILD_TYPE=Debug \
@@ -189,7 +202,7 @@ CMAKE_OPTIONS="\
     -D CMAKE_INSTALL_LIBDIR=lib64 \
     -D CMAKE_TOOLCHAIN_FILE=${TOOLCHAIN_PATH}"
 
-# :: Build GoogleTest :::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# Build GoogleTest
 cmake -B "${DIR_SRCS_EXT}/googletest/cmake.bld" \
       -S "${DIR_SRCS_EXT}/googletest" ${CMAKE_OPTIONS} \
       -DCMAKE_INSTALL_PREFIX=/opt/bb
@@ -197,7 +210,7 @@ cmake --build "${DIR_SRCS_EXT}/googletest/cmake.bld" -j${PARALLELISM}
 cmake --install "${DIR_SRCS_EXT}/googletest/cmake.bld" --prefix "/opt/bb"
 
 
-# :: Build Google Benchmark :::::::::::::::::::::::::::::::::::::::::::::::::::
+# Build Google Benchmark
 cmake -B "${DIR_SRCS_EXT}/google-benchmark/cmake.bld" \
         -S "${DIR_SRCS_EXT}/google-benchmark" ${CMAKE_OPTIONS} \
         -DCMAKE_INSTALL_PREFIX=/opt/bb \
@@ -207,7 +220,7 @@ cmake -B "${DIR_SRCS_EXT}/google-benchmark/cmake.bld" \
 cmake --build "${DIR_SRCS_EXT}/google-benchmark/cmake.bld" -j${PARALLELISM}
 cmake --install "${DIR_SRCS_EXT}/google-benchmark/cmake.bld" --prefix "/opt/bb"
 
-## :: Build zlib ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# Build zlib
 # Note: zlib has completely broken CMake install rules, so we must
 # specify the install prefix *exactly* as it will be at configure
 # time
@@ -219,8 +232,7 @@ cmake -B "${DIR_SRCS_EXT}/zlib/cmake.bld" -S "${DIR_SRCS_EXT}/zlib" \
 cmake --build "${DIR_SRCS_EXT}/zlib/cmake.bld" -j${PARALLELISM}
 cmake --install "${DIR_SRCS_EXT}/zlib/cmake.bld"
 
-# :: Build BlazingMQ ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-
+# Build BlazingMQ
 PKG_CONFIG_PATH="/opt/bb/lib64/pkgconfig:/opt/bb/lib/pkgconfig:/opt/bb/share/pkgconfig:$(pkg-config --variable pc_path pkg-config)" \
 cmake -B "${DIR_BUILD_BMQ}" -S "${DIR_SRC_BMQ}" -G Ninja \
     -DBDE_BUILD_TARGET_64=ON \
@@ -230,7 +242,7 @@ cmake -B "${DIR_BUILD_BMQ}" -S "${DIR_SRC_BMQ}" -G Ninja \
 cmake --build "${DIR_BUILD_BMQ}" -j${PARALLELISM} \
       --target all.t -v --clean-first
 
-# :: Create testing scripts :::::::::::::::::::::::::::::::::::::::::::::::::::
+# Create testing script
 envcfgquery() {
     # Parses the '<build-name>.environment' object from 'sanitizers.json',
     # and outputs a string of whitespace-separated 'VAR=VAL' pairs intended to

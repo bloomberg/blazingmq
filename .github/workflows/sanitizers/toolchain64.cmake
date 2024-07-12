@@ -1,12 +1,11 @@
-cmake_minimum_required (VERSION 3.22)
-
-#@PURPOSE: Configure compiler, ABI flags and directory structure.
-#
-#@DESCRIPTION: This is a cmake toolchain file, designed to be specified by
+# Configure compiler and ABI flags.
+# This is a cmake toolchain file, designed to be specified by
 # setting the CMAKE_TOOLCHAIN_FILE variable either as a command line parameter
 # by using -D or by calling "set" before the top-level CMakeLists.txt call to
 # project(). **This file should NOT be included directly**.  The purpose
 # of the toolchain file is to prepare the build directory for cross-compiling.
+
+cmake_minimum_required (VERSION 3.22)
 
 set(IS_64BIT yes CACHE BOOL "Tool chain bitness.")
 
@@ -25,7 +24,6 @@ set(CMAKE_C_LINK_FLAGS "-fasynchronous-unwind-tables -Wl,--enable-new-dtags -Wl,
 set(CMAKE_CXX_LINK_FLAGS "-fasynchronous-unwind-tables -Wl,--enable-new-dtags -Wl,--gc-sections -Wl,-uplink_timestamp___")
 
 # Set the path for looking up includes, libs and files.
-# list(APPEND CMAKE_SYSTEM_PREFIX_PATH ${DISTRIBUTION_REFROOT}/opt/bb)
 set_property(GLOBAL PROPERTY FIND_LIBRARY_USE_LIB64_PATHS yes)
 
 # Set the installation directory for libraries. This is for use as the

@@ -1,19 +1,9 @@
 # Compiler-less toolchain for building with {Clang, libc++} + MemorySanitizer.
 # The actual compiler is passed via `CXX` and `CC` environment variables.
-#-=-
 
 cmake_minimum_required (VERSION 3.25)
 
-# if(NOT DEFINED DISTRIBUTION_REFROOT)
-#     if(DEFINED ENV{DISTRIBUTION_REFROOT})
-#         set(DISTRIBUTION_REFROOT "$ENV{DISTRIBUTION_REFROOT}/" CACHE STRING "BB Dpkg root set from environment variable.")
-#     else()
-#         get_filename_component(REFROOT ${CMAKE_CURRENT_LIST_DIR}/../../../../../ REALPATH)
-#         set(DISTRIBUTION_REFROOT ${REFROOT}/ CACHE STRING "BB Dpkg root set from toolchain file location.")
-#     endif()
-# endif()
-
-include("$ENV{DIR_SCRIPTS}/BBToolchain64.cmake")
+include("$ENV{DIR_SCRIPTS}/toolchain64.cmake")
 
 if(DEFINED ENV{CC})
   set(CMAKE_C_COMPILER $ENV{CC} CACHE STRING "Instrumentation C compiler" FORCE)
@@ -21,6 +11,10 @@ endif()
 
 if(DEFINED ENV{CXX})
   set(CMAKE_CXX_COMPILER $ENV{CXX} CACHE STRING "Instrumentation C++ compiler" FORCE)
+endif()
+
+if(DEFINED ENV{CMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES})
+  set(CMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES $ENV{CMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES})
 endif()
 
 set(LIBCXX_BUILD_PATH "$ENV{LIBCXX_BUILD_PATH}")
@@ -44,8 +38,6 @@ string(CONCAT TOOLCHAIN_SHARED_FLAGS
        "-fdiagnostics-show-option "
        "-fsanitize=memory "
        "-fsanitize-blacklist=${MSAN_SUPPRESSION_LIST_PATH} "
-       "-isystem/usr/include "
-       "-isystem/usr/lib/llvm-18/lib/clang/18/include "
       )
 
 # Apply shared flags to each language.
