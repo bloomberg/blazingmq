@@ -217,7 +217,7 @@ cmake -B "${DIR_SRCS_EXT}/google-benchmark/cmake.bld" \
         -DCMAKE_INSTALL_PREFIX=/opt/bb \
         -DBENCHMARK_DOWNLOAD_DEPENDENCIES="ON" \
         -DBENCHMARK_ENABLE_GTEST_TESTS="false" \
-        -DHAVE_STD_REGEX=ON \
+        -DHAVE_STD_REGEX="ON" \
         -DBENCHMARK_ENABLE_TESTING="OFF"
 cmake --build "${DIR_SRCS_EXT}/google-benchmark/cmake.bld" -j${PARALLELISM}
 cmake --install "${DIR_SRCS_EXT}/google-benchmark/cmake.bld" --prefix "/opt/bb"
