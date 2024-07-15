@@ -112,8 +112,6 @@ ntca::InterfaceConfig
 ntcCreateInterfaceConfig(const bmqt::SessionOptions& sessionOptions,
                          bslma::Allocator*           allocator)
 {
-    static const int k_ALLOCATION_OVERHEAD = 64;
-
     ntca::InterfaceConfig config(allocator);
 
     config.setThreadName("bmqimp");
@@ -126,11 +124,8 @@ ntcCreateInterfaceConfig(const bmqt::SessionOptions& sessionOptions,
     config.setMaxThreads(1);  // there is only one channel used on this
                               // ChannelPool, with the bmqbrkr
     config.setMaxConnections(128);
-    config.setMaxIncomingStreamTransferSize(sessionOptions.blobBufferSize());
-    config.setSendBufferSize(1024 - k_ALLOCATION_OVERHEAD);
     config.setWriteQueueLowWatermark(k_CHANNEL_LOW_WATERMARK);
     config.setWriteQueueHighWatermark(sessionOptions.channelHighWatermark());
-    config.setReceiveTimeout(0);
 
     config.setDriverMetrics(false);
     config.setDriverMetricsPerWaiter(false);
