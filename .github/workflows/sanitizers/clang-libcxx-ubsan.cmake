@@ -20,7 +20,6 @@ endif()
 set(LIBCXX_BUILD_PATH "$ENV{LIBCXX_BUILD_PATH}")
 
 # Force disabling the use of Readline. This is a holdover until readline builds with -fPIC.
-# https://bbgithub.dev.bloomberg.com/swt/readline/issues/8
 set(BMQ_DISABLE_READLINE TRUE)
 
 set(TOOLCHAIN_CXX_FLAGS "${CMAKE_CXX_FLAGS_DEBUG}")
