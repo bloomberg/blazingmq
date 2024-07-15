@@ -4,9 +4,11 @@ on:
   push:
     branches:
       - main
+      - add_sanitizers_to_ci
   pull_request:
     branches:
       - main
+      - add_sanitizers_to_ci
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
