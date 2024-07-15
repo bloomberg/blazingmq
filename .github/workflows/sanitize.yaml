@@ -11,8 +11,8 @@ concurrency:
 jobs:
   build_dependencies:
     name: Build deps [ubuntu]
-    if: github.event.review.state == 'APPROVED'
     runs-on: ubuntu-latest
+    if: github.event.review.state == 'APPROVED'
     steps:
       - uses: actions/checkout@v4
       - name: Get dependencies hash
@@ -58,26 +58,27 @@ jobs:
   run_asan:
     if: github.event.review.state == 'APPROVED'
     needs: build_dependencies
-    uses: ./.github/workflows/sanitizer-check.yaml
+    uses: ${{ github.workspace }}/.github/workflows/sanitizer-check.yaml
     with:
       sanitizer-name: 'asan'
 
   run_msan:
     if: github.event.review.state == 'APPROVED'
     needs: build_dependencies
-    uses: ./.github/workflows/sanitizer-check.yaml
+    uses: ${{ github.workspace }}/.github/workflows/sanitizer-check.yaml
     with:
       sanitizer-name: 'msan'
 
   run_tsan:
+    if: github.event.review.state == 'APPROVED'
     needs: build_dependencies
-    uses: ./.github/workflows/sanitizer-check.yaml
+    uses: ${{ github.workspace }}/.github/workflows/sanitizer-check.yaml
     with:
       sanitizer-name: 'tsan'
 
   run_ubsan:
     if: github.event.review.state == 'APPROVED'
     needs: build_dependencies
-    uses: ./.github/workflows/sanitizer-check.yaml
+    uses: ${{ github.workspace }}/.github/workflows/sanitizer-check.yaml
     with:
       sanitizer-name: 'ubsan'
