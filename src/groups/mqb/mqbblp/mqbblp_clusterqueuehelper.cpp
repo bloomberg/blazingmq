@@ -2633,12 +2633,20 @@ void ClusterQueueHelper::notifyQueue(QueueContext*       queueContext,
     }
 
     if (isOpen) {
-        queue->dispatcher()->execute(
-            bdlf::BindUtil::bind(&mqbi::Queue::onOpenUpstream,
-                                 queue,
-                                 generationCount,
-                                 upstreamSubQueueId),
-            queue);
+        if (generationCount == 0) {
+            BALL_LOG_INFO << d_cluster_p->description()
+                          << ": has deconfigured queue ["
+                          << queueContext->uri() << "], subStream id ["
+                          << upstreamSubQueueId << "]";
+        }
+        else {
+            queue->dispatcher()->execute(
+                bdlf::BindUtil::bind(&mqbi::Queue::onOpenUpstream,
+                                     queue,
+                                     generationCount,
+                                     upstreamSubQueueId),
+                queue);
+        }
     }
     else {
         queue->dispatcher()->execute(

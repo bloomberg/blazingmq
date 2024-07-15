@@ -110,7 +110,7 @@ class TestGracefulShutdown:
 
         assert wait_until(lambda: num_broker_messages() == 3, 3)
 
-        # DRQS 168471730.   Downstream should update its opened subIds upon
+        # Ticket 168471730.   Downstream should update its opened subIds upon
         # closing and not attempt to deconfigure it upon StopRequest
         self.producer.close(tc.URI_FANOUT, block=True)
 
@@ -339,7 +339,7 @@ class TestGracefulShutdown:
     @tweak.cluster.queue_operations.shutdown_timeout_ms(999999)
     def test_active_node_down_stop_requests(self, multi_cluster: Cluster):
         """
-        DRQS 169782591
+        Ticket 169782591
         We have: Consumer -> Proxy -> active_node -> upstream_node.
         Start shutting down active_node (one of cluster.virtual_nodes())
         Because there are unconfirmed, Proxy lingers with StopResponse.

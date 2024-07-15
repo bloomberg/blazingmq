@@ -19,8 +19,9 @@ set -e
 
 PRESET="legacy_mode or fsm_mode"
 
-if [ -n "$1" ]; then
-  PRESET="$1"
+if [[ -n "$1" ]] && ! [[ "$1" == -* ]]; then
+  PRESET=$1
+  shift
   echo "Use IT preset '$PRESET' from the script argument"
 elif [ -n "$BLAZINGMQ_IT_PRESET" ]; then
   PRESET=$BLAZINGMQ_IT_PRESET
@@ -35,4 +36,4 @@ repo_dir=${repo_dir%/src/*}
 export PYTHONPATH=$repo_dir/src/python:$PYTHONPATH
 cd "$repo_dir/src/integration-tests"
 
-python3 -m pytest -m "$PRESET" "${@: 2}"
+python3 -m pytest -m "$PRESET" "$@"

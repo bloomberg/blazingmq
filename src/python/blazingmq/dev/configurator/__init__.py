@@ -355,32 +355,28 @@ class Site(abc.ABC):
     configurator: "Configurator"
 
     @abc.abstractmethod
-    def __str__(self) -> str:
-        ...
+    def __str__(self) -> str: ...
 
     @abc.abstractmethod
-    def install(self, from_path: Union[str, Path], to_path: Union[str, Path]) -> None:
-        ...
+    def install(
+        self, from_path: Union[str, Path], to_path: Union[str, Path]
+    ) -> None: ...
 
     @abc.abstractmethod
-    def create_file(self, path: Union[str, Path], content: str, mode=None) -> None:
-        ...
+    def create_file(self, path: Union[str, Path], content: str, mode=None) -> None: ...
 
     @abc.abstractmethod
-    def mkdir(self, path: Union[str, Path]) -> None:
-        ...
+    def mkdir(self, path: Union[str, Path]) -> None: ...
 
     @abc.abstractmethod
-    def rmdir(self, path: Union[str, Path]) -> None:
-        ...
+    def rmdir(self, path: Union[str, Path]) -> None: ...
 
     @abc.abstractmethod
     def create_json_file(
         self,
         path: Union[str, Path],
         content,
-    ) -> None:
-        ...
+    ) -> None: ...
 
 
 def _cluster_definition_partial_prototype(partition_config: mqbcfg.PartitionConfig):
@@ -535,6 +531,7 @@ class Proto:
                     ),
                 ),
                 stats=mqbcfg.StatsConfig(
+                    app_id_tag_domains=[],
                     plugins=[],
                     snapshot_interval=1,
                     printer=mqbcfg.StatsPrinterConfig(

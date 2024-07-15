@@ -1454,7 +1454,7 @@ def test_no_capacity_all_optimization(cluster: Cluster):
     Test: delivery optimization works during routing when all subscriptions
     have no capacity.
 
-    DRQS  171509204
+    Ticket 171509204
 
     - Create 1 producer / 3 consumers: C1, C2, C3.
     - Consumers: max_unconfirmed_messages = 1.
@@ -1557,7 +1557,7 @@ def test_no_capacity_all_fanout(cluster: Cluster):
     Test: delivery optimization encountered with one app does not affect
     other apps.
 
-    DRQS  171509204
+    Ticket 171509204
 
     - Create 1 producer / 2 consumers: C_foo, C_bar.
     - C_foo: max_unconfirmed_messages = 128.
