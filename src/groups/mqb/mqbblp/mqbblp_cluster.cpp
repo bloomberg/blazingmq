@@ -581,7 +581,7 @@ void Cluster::processCommandDispatched(mqbcmd::ClusterResult*        result,
         return;  // RETURN
     }
     else if (command.isForceGcQueuesValue()) {
-        d_clusterOrchestrator.queueHelper().gcExpiredQueues(true, result);
+        d_clusterOrchestrator.queueHelper().gcExpiredQueues(result, true);
         // 'true' implies immediate
         if (!result->isErrorValue()) {
             result->makeSuccess();
@@ -3746,19 +3746,23 @@ void Cluster::getPrimaryNodes(bsl::vector<mqbnet::ClusterNode*>* outNodes,
          pit != partitionsInfo.end();
          pit++) {
         if (pit->primaryStatus() !=
+            // TODO: Handle this case (will want to buffer)
             bmqp_ctrlmsg::PrimaryStatus::Value::E_ACTIVE) {
-            BALL_LOG_INFO << "While collecting primary nodes: Partition id "
-                          << pit->partitionId() << " is not active";
+            BALL_LOG_WARN << "While collecting primary nodes: Partition id "
+                          << "primary for partition " << pit->partitionId()
+                          << " is not active";
             continue;
         }
 
         mqbnet::ClusterNode* primary = pit->primaryNode();
 
         if (primary) {
+            // Don't add duplicate
             if (bsl::find(outNodes->begin(), outNodes->end(), primary) !=
                 outNodes->end()) {
                 continue;
             }
+            // Check for self
             if (d_state.isSelfActivePrimary(pit->partitionId())) {
                 *outIsSelfPrimary = true;
                 continue;
@@ -3768,9 +3772,9 @@ void Cluster::getPrimaryNodes(bsl::vector<mqbnet::ClusterNode*>* outNodes,
         else {
             // TODO: handle this case
             // Approach may include putting into some buffer to callback later?
-            BALL_LOG_ERROR << "Error while collecting primary nodes: No "
-                              "primary found for partition id "
-                           << pit->partitionId();
+            BALL_LOG_WARN << "Error while collecting primary nodes: No "
+                             "primary found for partition id "
+                          << pit->partitionId();
         }
     }
 }

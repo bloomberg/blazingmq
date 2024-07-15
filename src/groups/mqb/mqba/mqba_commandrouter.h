@@ -1,4 +1,4 @@
-// Copyright 2017-2023 Bloomberg Finance L.P.
+// Copyright 2024 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,8 +22,6 @@
 //
 //@CLASSES:
 //  mqbcmd::CommandRouter: Manages routing admin commands
-//
-//@DESCRIPTION:
 //
 
 // BSL
@@ -56,7 +54,7 @@ class MultiRequestManagerRequestContext;
 
 namespace mqba {
 
-class RouteCommandManager {
+class CommandRouter {
   public:
     typedef bsl::shared_ptr<
         mqbnet::MultiRequestManagerRequestContext<bmqp_ctrlmsg::ControlMessage,
@@ -67,8 +65,8 @@ class RouteCommandManager {
 
   private:
     struct RouteMembers {
-        NodesVector nodes;
-        bool        self;
+        NodesVector d_nodes;
+        bool        d_self;
     };
 
     class RoutingMode {
@@ -120,8 +118,8 @@ class RouteCommandManager {
   public:
     /// Sets up a command router with the given command string and parsed
     /// command object. This will
-    RouteCommandManager(const bsl::string&     commandString,
-                        const mqbcmd::Command& commandWithOptions);
+    CommandRouter(const bsl::string&     commandString,
+                  const mqbcmd::Command& commandWithOptions);
 
     /// Returns true if this command router is necessary to route the command
     /// that it was set up with. If the command does not require routing, then
@@ -153,22 +151,22 @@ class RouteCommandManager {
     void routeCommand(const NodesVector& nodes);
 };
 
-inline bool RouteCommandManager::isRoutingNeeded() const
+inline bool CommandRouter::isRoutingNeeded() const
 {
     return d_routingMode.get() != nullptr;
 }
 
-inline mqbcmd::RouteResponseList& RouteCommandManager::responses()
+inline mqbcmd::RouteResponseList& CommandRouter::responses()
 {
     return d_responses;
 }
 
-inline void RouteCommandManager::waitForResponses()
+inline void CommandRouter::waitForResponses()
 {
     d_latch.wait();
 }
 
-inline void RouteCommandManager::countDownLatch()
+inline void CommandRouter::countDownLatch()
 {
     d_latch.countDown(1);
 }

@@ -5861,8 +5861,8 @@ void ClusterQueueHelper::onCloseQueueResponse(
                   << contextSp->d_peer->nodeDescription();
 }
 
-void ClusterQueueHelper::gcExpiredQueues(bool                   immediate,
-                                         mqbcmd::ClusterResult* result)
+void ClusterQueueHelper::gcExpiredQueues(mqbcmd::ClusterResult* result,
+                                         bool                   immediate)
 {
     // executed by the cluster *DISPATCHER* thread
 

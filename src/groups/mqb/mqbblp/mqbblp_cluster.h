@@ -658,8 +658,9 @@ class Cluster : public mqbi::Cluster,
     /// used by this cluster.
     RequestManagerType& requestManager() BSLS_KEYWORD_OVERRIDE;
 
-    mqbi::Cluster::MultiRequestManagerType&
-    multiRequestManager() BSLS_KEYWORD_OVERRIDE;
+    /// Return a reference offering modifiable access to the multi request
+    /// manager used by this cluster.
+    MultiRequestManagerType& multiRequestManager() BSLS_KEYWORD_OVERRIDE;
 
     /// Load the cluster state to the specified `out` object.
     void loadClusterStatus(mqbcmd::ClusterResult* out) BSLS_KEYWORD_OVERRIDE;
@@ -775,7 +776,7 @@ class Cluster : public mqbi::Cluster,
 
     /// Gets the node which is the primary for the given partitionId or sets
     /// outIsSelfPrimary to true if the caller is the primary.
-    void getPartitionPrimaryNode(mqbnet::ClusterNode** outNodes,
+    void getPartitionPrimaryNode(mqbnet::ClusterNode** outNode,
                                  bool*                 outIsSelfPrimary,
                                  int partitionId) const BSLS_KEYWORD_OVERRIDE;
 

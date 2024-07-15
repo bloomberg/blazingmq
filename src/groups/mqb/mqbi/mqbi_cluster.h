@@ -436,7 +436,7 @@ class Cluster : public DispatcherClient {
 
     /// Gets the node which is the primary for the given partitionId or sets
     /// outIsSelfPrimary to true if the caller is the primary.
-    virtual void getPartitionPrimaryNode(mqbnet::ClusterNode** outNodes,
+    virtual void getPartitionPrimaryNode(mqbnet::ClusterNode** outNode,
                                          bool* outIsSelfPrimary,
                                          int   partitionId) const = 0;
 };

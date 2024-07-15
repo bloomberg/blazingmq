@@ -358,8 +358,7 @@ class ClusterProxy : public mqbc::ClusterStateObserver,
 
     // Return a reference offering modifiable access to the multi request
     // manager used by this cluster.
-    mqbi::Cluster::MultiRequestManagerType&
-    multiRequestManager() BSLS_KEYWORD_OVERRIDE;
+    MultiRequestManagerType& multiRequestManager() BSLS_KEYWORD_OVERRIDE;
 
     /// Send the specified `request` with the specified `timeout` to the
     /// specified `target` node.  If `target` is 0, it is the Cluster's
@@ -536,10 +535,14 @@ class ClusterProxy : public mqbc::ClusterStateObserver,
     /// Load the cluster state in the specified `out` object.
     void loadClusterStatus(mqbcmd::ClusterResult* out) BSLS_KEYWORD_OVERRIDE;
 
+    /// Gets all the nodes which are a primary for some partition of this
+    /// cluster
     void getPrimaryNodes(bsl::vector<mqbnet::ClusterNode*>* outNodes,
                          bool* outIsSelfPrimary) const BSLS_KEYWORD_OVERRIDE;
 
-    void getPartitionPrimaryNode(mqbnet::ClusterNode** outNodes,
+    /// Gets the node which is the primary for the given partitionId or sets
+    /// outIsSelfPrimary to true if the caller is the primary.
+    void getPartitionPrimaryNode(mqbnet::ClusterNode** outNode,
                                  bool*                 outIsSelfPrimary,
                                  int partitionId) const BSLS_KEYWORD_OVERRIDE;
 
@@ -716,7 +719,7 @@ ClusterProxy::getPrimaryNodes(bsl::vector<mqbnet::ClusterNode*>* outNodes,
     // no implementation
 }
 
-inline void
+inline void 
 ClusterProxy::getPartitionPrimaryNode(mqbnet::ClusterNode** outNode,
                                       bool*                 outIsSelfPrimary,
                                       int                   partitionId) const
