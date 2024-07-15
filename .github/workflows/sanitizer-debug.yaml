@@ -1,17 +1,13 @@
-name: Debug
+name: Debug sanitizers
 
 on:
-  push:
-    branches:
-      - main
-      - add_sanitizers_to_ci
   pull_request:
-    branches:
-      - main
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
-  cancel-in-progress: true
+    types:
+      - "opened"
+      - "reopened"
+      - "synchronize"
+      - "labeled"
+      - "unlabeled"
 
 jobs:
   build_dependencies:
