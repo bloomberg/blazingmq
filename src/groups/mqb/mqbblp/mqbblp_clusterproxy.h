@@ -644,9 +644,6 @@ class ClusterProxy : public mqbc::ClusterStateObserver,
     /// Return a reference not offering modifiable access to the net cluster
     /// used by this cluster.
     const mqbnet::Cluster& netCluster() const BSLS_KEYWORD_OVERRIDE;
-
-    // Returns a reference to the cluster state describing this cluster
-    // const mqbc::ClusterState& clusterState() const BSLS_KEYWORD_OVERRIDE;
 };
 
 // ============================================================================
@@ -826,11 +823,6 @@ inline const mqbnet::Cluster& ClusterProxy::netCluster() const
 {
     return *(d_clusterData.membership().netCluster());
 }
-
-// inline const mqbc::ClusterState& ClusterProxy::clusterState() const
-// {
-//     return d_state;
-// }
 
 }  // close package namespace
 }  // close enterprise namespace

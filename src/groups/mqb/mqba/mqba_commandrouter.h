@@ -108,6 +108,7 @@ class RouteCommandManager {
 
   private:
     const bsl::string&           d_commandString;
+    const mqbcmd::Command&       d_commandWithOptions;
     const mqbcmd::CommandChoice& d_command;
 
     mqbcmd::RouteResponseList d_responses;
@@ -119,8 +120,8 @@ class RouteCommandManager {
   public:
     /// Sets up a command router with the given command string and parsed
     /// command object. This will
-    RouteCommandManager(const bsl::string&           commandString,
-                        const mqbcmd::CommandChoice& command);
+    RouteCommandManager(const bsl::string&     commandString,
+                        const mqbcmd::Command& commandWithOptions);
 
     /// Returns true if this command router is necessary to route the command
     /// that it was set up with. If the command does not require routing, then

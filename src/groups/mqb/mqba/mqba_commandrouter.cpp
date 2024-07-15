@@ -17,6 +17,7 @@
 #include <mqba_commandrouter.h>
 
 // MQB
+#include <mqbcmd_jsonprinter.h>
 #include <mqbcmd_parseutil.h>
 #include <mqbi_cluster.h>
 #include <mqbnet_cluster.h>
@@ -33,10 +34,12 @@ namespace {
 const char k_LOG_CATEGORY[] = "MQBA.COMMANDROUTER";
 }  // close unnamed namespace
 
-RouteCommandManager::RouteCommandManager(const bsl::string& commandString,
-                                         const mqbcmd::CommandChoice& command)
+RouteCommandManager::RouteCommandManager(
+    const bsl::string&     commandString,
+    const mqbcmd::Command& commandWithOptions)
 : d_commandString(commandString)
-, d_command(command)
+, d_commandWithOptions(commandWithOptions)
+, d_command(commandWithOptions.choice())
 , d_routingMode(getCommandRoutingMode())
 , d_latch(1)
 {
@@ -218,9 +221,27 @@ void RouteCommandManager::onRouteCommandResponse(
         }
         else {
             // Something went wrong, possibly timed out
-            routeResponse.response() =
-                "Error ocurred sending command to node " +
-                pair.first->hostName();
+            bsl::string errorMessage =
+                "Error ocurred routing command, possibly timeout";
+            // if we are using JSON encoding
+            if (d_commandWithOptions.encoding() ==
+                    mqbcmd::EncodingFormat::JSON_COMPACT ||
+                d_commandWithOptions.encoding() ==
+                    mqbcmd::EncodingFormat::JSON_PRETTY) {
+                mqbcmd::Result result;
+                result.makeError().message() = errorMessage;
+                // encode result
+                mwcu::MemOutStream os;
+                bool               pretty = d_commandWithOptions.encoding() ==
+                                      mqbcmd::EncodingFormat::JSON_PRETTY
+                                                ? true
+                                                : false;
+                mqbcmd::JsonPrinter::print(os, result, pretty);
+                routeResponse.response() = os.str();
+            }
+            else {  // otherwise human print it
+                routeResponse.response() = errorMessage;
+            }
         }
         d_responses.responses().push_back(routeResponse);
     }

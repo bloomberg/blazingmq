@@ -459,9 +459,6 @@ class Cluster : public mqbi::Cluster {
     /// used by this cluster.
     const mqbnet::Cluster& netCluster() const BSLS_KEYWORD_OVERRIDE;
 
-    // Returns a reference to the cluster state describing this cluster
-    // const mqbc::ClusterState& clusterState() const BSLS_KEYWORD_OVERRIDE;
-
     /// Return true if this cluster is a local cluster.
     bool isLocal() const BSLS_KEYWORD_OVERRIDE;
 
@@ -647,11 +644,6 @@ inline bsls::Types::Int64 Cluster::getTimeInt64() const
 {
     return d_timeSource.now().seconds();
 }
-
-// inline const mqbc::ClusterState& Cluster::clusterState() const
-// {
-//     return d_state;
-// }
 
 }  // close package namespace
 }  // close enterprise namespace

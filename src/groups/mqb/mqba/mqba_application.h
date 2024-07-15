@@ -240,26 +240,24 @@ class Application {
         bool fromReroute = false);
 
   private:
-    // HELPER FUNCTIONS FOR ADMIN API ROUTING
-
     // Returns a pointer to the cluster instance that the given command needs
     // to execute for.
     mqbi::Cluster* getRelevantCluster(const mqbcmd::CommandChoice& command,
                                       mqbcmd::InternalResult* cmdResult) const;
-
-    void printCommandResponses(const mqbcmd::RouteResponseList& responseList,
-                               const mqbcmd::EncodingFormat::Value format,
-                               bsl::ostream&                       os) const;
-
-    void printCommandResult(const mqbcmd::InternalResult& result,
-                            mqbcmd::EncodingFormat::Value encoding,
-                            bsl::ostream&                 os);
 
     // Executes the logic of the given command and outputs the result in
     // cmdResult
     int executeCommand(const mqbcmd::Command&       commandWithOptions,
                        const mqbcmd::CommandChoice& command,
                        mqbcmd::InternalResult*      cmdResult);
+
+    void printCommandResponses(const mqbcmd::RouteResponseList& responseList,
+                               const mqbcmd::EncodingFormat::Value encoding,
+                               bsl::ostream&                       os) const;
+
+    void printCommandResult(const mqbcmd::InternalResult& result,
+                            mqbcmd::EncodingFormat::Value encoding,
+                            bsl::ostream&                 os);
 };
 
 }  // close package namespace

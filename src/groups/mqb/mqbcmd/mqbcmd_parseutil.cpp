@@ -982,7 +982,7 @@ int parseElector(ElectorCommand* command,
         if (equalCaseless(subcommand, "GET")) {
             tunable.choice().makeSelf();
         }
-        else {
+        else {  // GET_ALL
             tunable.choice().makeAll();
         }
 

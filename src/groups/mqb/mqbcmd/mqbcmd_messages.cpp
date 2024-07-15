@@ -88,11 +88,13 @@ AddReverseProxy::AddReverseProxy(bslma::Allocator* basicAllocator)
 AddReverseProxy::AddReverseProxy(const AddReverseProxy& original,
                                  bslma::Allocator*      basicAllocator)
 : d_clusterName(original.d_clusterName, basicAllocator)
-, d_remotePeer(original.d_remotePeer, basicAllocator){}
+, d_remotePeer(original.d_remotePeer, basicAllocator)
+{
+}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-AddReverseProxy::AddReverseProxy(AddReverseProxy && original) noexcept
+AddReverseProxy::AddReverseProxy(AddReverseProxy&& original) noexcept
 : d_clusterName(bsl::move(original.d_clusterName)),
   d_remotePeer(bsl::move(original.d_remotePeer))
 {
@@ -206,11 +208,13 @@ BrokerConfig::BrokerConfig(bslma::Allocator* basicAllocator)
 
 BrokerConfig::BrokerConfig(const BrokerConfig& original,
                            bslma::Allocator*   basicAllocator)
-: d_asJSON(original.d_asJSON, basicAllocator){}
+: d_asJSON(original.d_asJSON, basicAllocator)
+{
+}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-BrokerConfig::BrokerConfig(BrokerConfig && original) noexcept
+BrokerConfig::BrokerConfig(BrokerConfig&& original) noexcept
 : d_asJSON(bsl::move(original.d_asJSON))
 {
 }
@@ -388,11 +392,13 @@ CapacityMeter::CapacityMeter(const CapacityMeter& original,
 , d_numBytesReserved(original.d_numBytesReserved)
 , d_name(original.d_name, basicAllocator)
 , d_parent(original.d_parent, basicAllocator)
-, d_isDisabled(original.d_isDisabled){}
+, d_isDisabled(original.d_isDisabled)
+{
+}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-CapacityMeter::CapacityMeter(CapacityMeter && original) noexcept
+CapacityMeter::CapacityMeter(CapacityMeter&& original) noexcept
 : d_numMessages(bsl::move(original.d_numMessages)),
   d_messageCapacity(bsl::move(original.d_messageCapacity)),
   d_numMessagesReserved(bsl::move(original.d_numMessagesReserved)),
@@ -557,14 +563,15 @@ ClientMsgGroupsCount::ClientMsgGroupsCount(
     const ClientMsgGroupsCount& original,
     bslma::Allocator*           basicAllocator)
 : d_clientDescription(original.d_clientDescription, basicAllocator)
-, d_numMsgGroupIds(original.d_numMsgGroupIds){}
+, d_numMsgGroupIds(original.d_numMsgGroupIds)
+{
+}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-ClientMsgGroupsCount::ClientMsgGroupsCount(ClientMsgGroupsCount &&
-                                           original) noexcept
-: d_clientDescription(bsl::move(original.d_clientDescription)),
-  d_numMsgGroupIds(bsl::move(original.d_numMsgGroupIds))
+ClientMsgGroupsCount::ClientMsgGroupsCount(ClientMsgGroupsCount&& original)
+    noexcept : d_clientDescription(bsl::move(original.d_clientDescription)),
+               d_numMsgGroupIds(bsl::move(original.d_numMsgGroupIds))
 {
 }
 
@@ -695,11 +702,13 @@ ClusterDomain::ClusterDomain(const ClusterDomain& original,
                              bslma::Allocator*    basicAllocator)
 : d_name(original.d_name, basicAllocator)
 , d_numAssignedQueues(original.d_numAssignedQueues)
-, d_loaded(original.d_loaded){}
+, d_loaded(original.d_loaded)
+{
+}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-ClusterDomain::ClusterDomain(ClusterDomain && original) noexcept
+ClusterDomain::ClusterDomain(ClusterDomain&& original) noexcept
 : d_name(bsl::move(original.d_name)),
   d_numAssignedQueues(bsl::move(original.d_numAssignedQueues)),
   d_loaded(bsl::move(original.d_loaded))
@@ -836,11 +845,13 @@ ClusterNode::ClusterNode(const ClusterNode& original,
                          bslma::Allocator*  basicAllocator)
 : d_hostName(original.d_hostName, basicAllocator)
 , d_dataCenter(original.d_dataCenter, basicAllocator)
-, d_nodeId(original.d_nodeId){}
+, d_nodeId(original.d_nodeId)
+{
+}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-ClusterNode::ClusterNode(ClusterNode && original) noexcept
+ClusterNode::ClusterNode(ClusterNode&& original) noexcept
 : d_hostName(bsl::move(original.d_hostName)),
   d_dataCenter(bsl::move(original.d_dataCenter)),
   d_nodeId(bsl::move(original.d_nodeId))
@@ -968,11 +979,13 @@ CommandSpec::CommandSpec(bslma::Allocator* basicAllocator)
 CommandSpec::CommandSpec(const CommandSpec& original,
                          bslma::Allocator*  basicAllocator)
 : d_command(original.d_command, basicAllocator)
-, d_description(original.d_description, basicAllocator){}
+, d_description(original.d_description, basicAllocator)
+{
+}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-CommandSpec::CommandSpec(CommandSpec && original) noexcept
+CommandSpec::CommandSpec(CommandSpec&& original) noexcept
 : d_command(bsl::move(original.d_command)),
   d_description(bsl::move(original.d_description))
 {
@@ -1253,11 +1266,13 @@ Context::Context(bslma::Allocator* basicAllocator)
 
 Context::Context(const Context& original, bslma::Allocator* basicAllocator)
 : d_queueHandleParametersJson(original.d_queueHandleParametersJson,
-                              basicAllocator){}
+                              basicAllocator)
+{
+}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-Context::Context(Context && original) noexcept
+Context::Context(Context&& original) noexcept
 : d_queueHandleParametersJson(bsl::move(original.d_queueHandleParametersJson))
 {
 }
@@ -1740,11 +1755,13 @@ Error::Error(bslma::Allocator* basicAllocator)
 }
 
 Error::Error(const Error& original, bslma::Allocator* basicAllocator)
-: d_message(original.d_message, basicAllocator){}
+: d_message(original.d_message, basicAllocator)
+{
+}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-Error::Error(Error && original) noexcept
+Error::Error(Error&& original) noexcept
 : d_message(bsl::move(original.d_message))
 {
 }
@@ -1947,11 +1964,13 @@ FileSet::FileSet(bslma::Allocator* basicAllocator)
 
 FileSet::FileSet(const FileSet& original, bslma::Allocator* basicAllocator)
 : d_aliasedBlobBufferCount(original.d_aliasedBlobBufferCount)
-, d_dataFileName(original.d_dataFileName, basicAllocator){}
+, d_dataFileName(original.d_dataFileName, basicAllocator)
+{
+}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-FileSet::FileSet(FileSet && original) noexcept
+FileSet::FileSet(FileSet&& original) noexcept
 : d_aliasedBlobBufferCount(bsl::move(original.d_aliasedBlobBufferCount)),
   d_dataFileName(bsl::move(original.d_dataFileName))
 {
@@ -2362,12 +2381,14 @@ LeastRecentlyUsedGroupId::LeastRecentlyUsedGroupId(
     bslma::Allocator*               basicAllocator)
 : d_lastSeenDeltaNanoseconds(original.d_lastSeenDeltaNanoseconds)
 , d_clientDescription(original.d_clientDescription, basicAllocator)
-, d_msgGroupId(original.d_msgGroupId, basicAllocator){}
+, d_msgGroupId(original.d_msgGroupId, basicAllocator)
+{
+}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-LeastRecentlyUsedGroupId::LeastRecentlyUsedGroupId(LeastRecentlyUsedGroupId &&
-                                                   original) noexcept
+LeastRecentlyUsedGroupId::LeastRecentlyUsedGroupId(
+    LeastRecentlyUsedGroupId&& original) noexcept
 : d_lastSeenDeltaNanoseconds(bsl::move(original.d_lastSeenDeltaNanoseconds)),
   d_clientDescription(bsl::move(original.d_clientDescription)),
   d_msgGroupId(bsl::move(original.d_msgGroupId))
@@ -2509,11 +2530,13 @@ ListMessages::ListMessages(const ListMessages& original,
                            bslma::Allocator*   basicAllocator)
 : d_appId(original.d_appId, basicAllocator)
 , d_offset(original.d_offset)
-, d_count(original.d_count){}
+, d_count(original.d_count)
+{
+}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-ListMessages::ListMessages(ListMessages && original) noexcept
+ListMessages::ListMessages(ListMessages&& original) noexcept
 : d_appId(bsl::move(original.d_appId)),
   d_offset(bsl::move(original.d_offset)),
   d_count(bsl::move(original.d_count))
@@ -2711,11 +2734,13 @@ Message::Message(bslma::Allocator* basicAllocator)
 Message::Message(const Message& original, bslma::Allocator* basicAllocator)
 : d_sizeBytes(original.d_sizeBytes)
 , d_guid(original.d_guid, basicAllocator)
-, d_arrivalTimestamp(original.d_arrivalTimestamp){}
+, d_arrivalTimestamp(original.d_arrivalTimestamp)
+{
+}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-Message::Message(Message && original) noexcept
+Message::Message(Message&& original) noexcept
 : d_sizeBytes(bsl::move(original.d_sizeBytes)),
   d_guid(bsl::move(original.d_guid)),
   d_arrivalTimestamp(bsl::move(original.d_arrivalTimestamp))
@@ -3009,11 +3034,13 @@ PurgedQueueDetails::PurgedQueueDetails(const PurgedQueueDetails& original,
 , d_numBytesPurged(original.d_numBytesPurged)
 , d_queueUri(original.d_queueUri, basicAllocator)
 , d_appId(original.d_appId, basicAllocator)
-, d_appKey(original.d_appKey, basicAllocator){}
+, d_appKey(original.d_appKey, basicAllocator)
+{
+}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-PurgedQueueDetails::PurgedQueueDetails(PurgedQueueDetails && original) noexcept
+PurgedQueueDetails::PurgedQueueDetails(PurgedQueueDetails&& original) noexcept
 : d_numMessagesPurged(bsl::move(original.d_numMessagesPurged)),
   d_numBytesPurged(bsl::move(original.d_numBytesPurged)),
   d_queueUri(bsl::move(original.d_queueUri)),
@@ -3169,12 +3196,14 @@ RelayQueueEngineSubStream::RelayQueueEngineSubStream(
     bslma::Allocator*                basicAllocator)
 : d_appId(original.d_appId, basicAllocator)
 , d_appKey(original.d_appKey, basicAllocator)
-, d_numMessages(original.d_numMessages){}
+, d_numMessages(original.d_numMessages)
+{
+}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
 RelayQueueEngineSubStream::RelayQueueEngineSubStream(
-    RelayQueueEngineSubStream && original) noexcept
+    RelayQueueEngineSubStream&& original) noexcept
 : d_appId(bsl::move(original.d_appId)),
   d_appKey(bsl::move(original.d_appKey)),
   d_numMessages(bsl::move(original.d_numMessages))
@@ -3310,11 +3339,13 @@ RemoteStreamInfo::RemoteStreamInfo(const RemoteStreamInfo& original,
                                    bslma::Allocator*       basicAllocator)
 : d_genCount(original.d_genCount)
 , d_state(original.d_state, basicAllocator)
-, d_id(original.d_id){}
+, d_id(original.d_id)
+{
+}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-RemoteStreamInfo::RemoteStreamInfo(RemoteStreamInfo && original) noexcept
+RemoteStreamInfo::RemoteStreamInfo(RemoteStreamInfo&& original) noexcept
 : d_genCount(bsl::move(original.d_genCount)),
   d_state(bsl::move(original.d_state)),
   d_id(bsl::move(original.d_id))
@@ -3521,11 +3552,13 @@ RouteResponse::RouteResponse(bslma::Allocator* basicAllocator)
 RouteResponse::RouteResponse(const RouteResponse& original,
                              bslma::Allocator*    basicAllocator)
 : d_sourceNodeDescription(original.d_sourceNodeDescription, basicAllocator)
-, d_response(original.d_response, basicAllocator){}
+, d_response(original.d_response, basicAllocator)
+{
+}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-RouteResponse::RouteResponse(RouteResponse && original) noexcept
+RouteResponse::RouteResponse(RouteResponse&& original) noexcept
 : d_sourceNodeDescription(bsl::move(original.d_sourceNodeDescription)),
   d_response(bsl::move(original.d_response))
 {
@@ -3935,11 +3968,13 @@ StorageQueueInfo::StorageQueueInfo(const StorageQueueInfo& original,
 , d_queueKey(original.d_queueKey, basicAllocator)
 , d_internalQueueId(original.d_internalQueueId)
 , d_partitionId(original.d_partitionId)
-, d_isPersistent(original.d_isPersistent){}
+, d_isPersistent(original.d_isPersistent)
+{
+}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-StorageQueueInfo::StorageQueueInfo(StorageQueueInfo && original) noexcept
+StorageQueueInfo::StorageQueueInfo(StorageQueueInfo&& original) noexcept
 : d_numMessages(bsl::move(original.d_numMessages)),
   d_numBytes(bsl::move(original.d_numBytes)),
   d_queueUri(bsl::move(original.d_queueUri)),
@@ -4091,13 +4126,14 @@ SubId::SubId(bslma::Allocator* basicAllocator)
 
 SubId::SubId(const SubId& original, bslma::Allocator* basicAllocator)
 : d_appId(original.d_appId, basicAllocator)
-, d_subId(original.d_subId){}
+, d_subId(original.d_subId)
+{
+}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-SubId::SubId(SubId && original) noexcept
-: d_appId(bsl::move(original.d_appId)),
-  d_subId(bsl::move(original.d_subId))
+SubId::SubId(SubId&& original) noexcept : d_appId(bsl::move(original.d_appId)),
+                                          d_subId(bsl::move(original.d_subId))
 {
 }
 
@@ -4334,11 +4370,13 @@ VirtualStorage::VirtualStorage(const VirtualStorage& original,
                                bslma::Allocator*     basicAllocator)
 : d_appId(original.d_appId, basicAllocator)
 , d_appKey(original.d_appKey, basicAllocator)
-, d_numMessages(original.d_numMessages){}
+, d_numMessages(original.d_numMessages)
+{
+}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-VirtualStorage::VirtualStorage(VirtualStorage && original) noexcept
+VirtualStorage::VirtualStorage(VirtualStorage&& original) noexcept
 : d_appId(bsl::move(original.d_appId)),
   d_appKey(bsl::move(original.d_appKey)),
   d_numMessages(bsl::move(original.d_numMessages))
@@ -5132,11 +5170,13 @@ ClusterInfo::ClusterInfo(const ClusterInfo& original,
                          bslma::Allocator*  basicAllocator)
 : d_nodes(original.d_nodes, basicAllocator)
 , d_name(original.d_name, basicAllocator)
-, d_locality(original.d_locality){}
+, d_locality(original.d_locality)
+{
+}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-ClusterInfo::ClusterInfo(ClusterInfo && original) noexcept
+ClusterInfo::ClusterInfo(ClusterInfo&& original) noexcept
 : d_nodes(bsl::move(original.d_nodes)),
   d_name(bsl::move(original.d_name)),
   d_locality(bsl::move(original.d_locality))
@@ -5283,11 +5323,13 @@ ClusterNodeInfo::ClusterNodeInfo(const ClusterNodeInfo& original,
 : d_primaryForPartitionIds(original.d_primaryForPartitionIds, basicAllocator)
 , d_description(original.d_description, basicAllocator)
 , d_status(original.d_status)
-, d_isAvailable(original.d_isAvailable){}
+, d_isAvailable(original.d_isAvailable)
+{
+}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-ClusterNodeInfo::ClusterNodeInfo(ClusterNodeInfo && original) noexcept
+ClusterNodeInfo::ClusterNodeInfo(ClusterNodeInfo&& original) noexcept
 : d_primaryForPartitionIds(bsl::move(original.d_primaryForPartitionIds)),
   d_description(bsl::move(original.d_description)),
   d_status(bsl::move(original.d_status)),
@@ -5498,11 +5540,13 @@ ClusterQueue::ClusterQueue(const ClusterQueue& original,
 , d_partitionId(original.d_partitionId)
 , d_isAssigned(original.d_isAssigned)
 , d_isPrimaryAvailable(original.d_isPrimaryAvailable)
-, d_isCreated(original.d_isCreated){}
+, d_isCreated(original.d_isCreated)
+{
+}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-ClusterQueue::ClusterQueue(ClusterQueue && original) noexcept
+ClusterQueue::ClusterQueue(ClusterQueue&& original) noexcept
 : d_subIds(bsl::move(original.d_subIds)),
   d_contexts(bsl::move(original.d_contexts)),
   d_uri(bsl::move(original.d_uri)),
@@ -5991,11 +6035,13 @@ ElectorInfo::ElectorInfo(const ElectorInfo& original,
 : d_leaderNode(original.d_leaderNode, basicAllocator)
 , d_leaderMessageSequence(original.d_leaderMessageSequence)
 , d_leaderStatus(original.d_leaderStatus)
-, d_electorState(original.d_electorState){}
+, d_electorState(original.d_electorState)
+{
+}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-ElectorInfo::ElectorInfo(ElectorInfo && original) noexcept
+ElectorInfo::ElectorInfo(ElectorInfo&& original) noexcept
 : d_leaderNode(bsl::move(original.d_leaderNode)),
   d_leaderMessageSequence(bsl::move(original.d_leaderMessageSequence)),
   d_leaderStatus(bsl::move(original.d_leaderStatus)),
@@ -6419,11 +6465,13 @@ Help::Help(bslma::Allocator* basicAllocator)
 
 Help::Help(const Help& original, bslma::Allocator* basicAllocator)
 : d_commands(original.d_commands, basicAllocator)
-, d_isPlumbing(original.d_isPlumbing){}
+, d_isPlumbing(original.d_isPlumbing)
+{
+}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-Help::Help(Help && original) noexcept
+Help::Help(Help&& original) noexcept
 : d_commands(bsl::move(original.d_commands)),
   d_isPlumbing(bsl::move(original.d_isPlumbing))
 {
@@ -6552,12 +6600,14 @@ MessageGroupIdManagerIndex::MessageGroupIdManagerIndex(
     bslma::Allocator*                 basicAllocator)
 : d_leastRecentlyUsedGroupIds(original.d_leastRecentlyUsedGroupIds,
                               basicAllocator)
-, d_numMsgGroupsPerClient(original.d_numMsgGroupsPerClient, basicAllocator){}
+, d_numMsgGroupsPerClient(original.d_numMsgGroupsPerClient, basicAllocator)
+{
+}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
 MessageGroupIdManagerIndex::MessageGroupIdManagerIndex(
-    MessageGroupIdManagerIndex && original) noexcept
+    MessageGroupIdManagerIndex&& original) noexcept
 : d_leastRecentlyUsedGroupIds(bsl::move(original.d_leastRecentlyUsedGroupIds)),
   d_numMsgGroupsPerClient(bsl::move(original.d_numMsgGroupsPerClient))
 {
@@ -6715,11 +6765,13 @@ PartitionInfo::PartitionInfo(const PartitionInfo& original,
 , d_primaryLeaseId(original.d_primaryLeaseId)
 , d_numQueuesMapped(original.d_numQueuesMapped)
 , d_numActiveQueues(original.d_numActiveQueues)
-, d_primaryStatus(original.d_primaryStatus){}
+, d_primaryStatus(original.d_primaryStatus)
+{
+}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-PartitionInfo::PartitionInfo(PartitionInfo && original) noexcept
+PartitionInfo::PartitionInfo(PartitionInfo&& original) noexcept
 : d_primaryNode(bsl::move(original.d_primaryNode)),
   d_primaryLeaseId(bsl::move(original.d_primaryLeaseId)),
   d_numQueuesMapped(bsl::move(original.d_numQueuesMapped)),
@@ -7591,11 +7643,13 @@ QueueContents::QueueContents(const QueueContents& original,
                              bslma::Allocator*    basicAllocator)
 : d_offset(original.d_offset)
 , d_totalQueueMessages(original.d_totalQueueMessages)
-, d_messages(original.d_messages, basicAllocator){}
+, d_messages(original.d_messages, basicAllocator)
+{
+}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-QueueContents::QueueContents(QueueContents && original) noexcept
+QueueContents::QueueContents(QueueContents&& original) noexcept
 : d_offset(bsl::move(original.d_offset)),
   d_totalQueueMessages(bsl::move(original.d_totalQueueMessages)),
   d_messages(bsl::move(original.d_messages))
@@ -7732,11 +7786,13 @@ QueueStorage::QueueStorage(const QueueStorage& original,
                            bslma::Allocator*   basicAllocator)
 : d_virtualStorages(original.d_virtualStorages, basicAllocator)
 , d_numMessages(original.d_numMessages)
-, d_numBytes(original.d_numBytes){}
+, d_numBytes(original.d_numBytes)
+{
+}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-QueueStorage::QueueStorage(QueueStorage && original) noexcept
+QueueStorage::QueueStorage(QueueStorage&& original) noexcept
 : d_virtualStorages(bsl::move(original.d_virtualStorages)),
   d_numMessages(bsl::move(original.d_numMessages)),
   d_numBytes(bsl::move(original.d_numBytes))
@@ -8032,11 +8088,13 @@ RouteResponseList::RouteResponseList(bslma::Allocator* basicAllocator)
 
 RouteResponseList::RouteResponseList(const RouteResponseList& original,
                                      bslma::Allocator*        basicAllocator)
-: d_responses(original.d_responses, basicAllocator){}
+: d_responses(original.d_responses, basicAllocator)
+{
+}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-RouteResponseList::RouteResponseList(RouteResponseList && original) noexcept
+RouteResponseList::RouteResponseList(RouteResponseList&& original) noexcept
 : d_responses(bsl::move(original.d_responses))
 {
 }
@@ -8434,11 +8492,13 @@ StorageContent::StorageContent(bslma::Allocator* basicAllocator)
 
 StorageContent::StorageContent(const StorageContent& original,
                                bslma::Allocator*     basicAllocator)
-: d_storages(original.d_storages, basicAllocator){}
+: d_storages(original.d_storages, basicAllocator)
+{
+}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-StorageContent::StorageContent(StorageContent && original) noexcept
+StorageContent::StorageContent(StorageContent&& original) noexcept
 : d_storages(bsl::move(original.d_storages))
 {
 }
@@ -9222,11 +9282,13 @@ StorageQueue::StorageQueue(bslma::Allocator* basicAllocator)
 StorageQueue::StorageQueue(const StorageQueue& original,
                            bslma::Allocator*   basicAllocator)
 : d_canonicalUri(original.d_canonicalUri, basicAllocator)
-, d_command(original.d_command, basicAllocator){}
+, d_command(original.d_command, basicAllocator)
+{
+}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-StorageQueue::StorageQueue(StorageQueue && original) noexcept
+StorageQueue::StorageQueue(StorageQueue&& original) noexcept
 : d_canonicalUri(bsl::move(original.d_canonicalUri)),
   d_command(bsl::move(original.d_command))
 {
@@ -10173,11 +10235,13 @@ ClusterList::ClusterList(bslma::Allocator* basicAllocator)
 
 ClusterList::ClusterList(const ClusterList& original,
                          bslma::Allocator*  basicAllocator)
-: d_clusters(original.d_clusters, basicAllocator){}
+: d_clusters(original.d_clusters, basicAllocator)
+{
+}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-ClusterList::ClusterList(ClusterList && original) noexcept
+ClusterList::ClusterList(ClusterList&& original) noexcept
 : d_clusters(bsl::move(original.d_clusters))
 {
 }
@@ -10339,11 +10403,13 @@ ClusterQueueHelper::ClusterQueueHelper(const ClusterQueueHelper& original,
 , d_numQueues(original.d_numQueues)
 , d_numQueueKeys(original.d_numQueueKeys)
 , d_numPendingReopenQueueRequests(original.d_numPendingReopenQueueRequests)
-, d_locality(original.d_locality){}
+, d_locality(original.d_locality)
+{
+}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-ClusterQueueHelper::ClusterQueueHelper(ClusterQueueHelper && original) noexcept
+ClusterQueueHelper::ClusterQueueHelper(ClusterQueueHelper&& original) noexcept
 : d_queues(bsl::move(original.d_queues)),
   d_domains(bsl::move(original.d_domains)),
   d_clusterName(bsl::move(original.d_clusterName)),
@@ -10960,11 +11026,13 @@ DomainQueue::DomainQueue(bslma::Allocator* basicAllocator)
 DomainQueue::DomainQueue(const DomainQueue& original,
                          bslma::Allocator*  basicAllocator)
 : d_name(original.d_name, basicAllocator)
-, d_command(original.d_command, basicAllocator){}
+, d_command(original.d_command, basicAllocator)
+{
+}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-DomainQueue::DomainQueue(DomainQueue && original) noexcept
+DomainQueue::DomainQueue(DomainQueue&& original) noexcept
 : d_name(bsl::move(original.d_name)),
   d_command(bsl::move(original.d_command))
 {
@@ -11409,11 +11477,13 @@ FileStoreSummary::FileStoreSummary(const FileStoreSummary& original,
 , d_numOutstandingRecords(original.d_numOutstandingRecords)
 , d_numUnreceiptedMessages(original.d_numUnreceiptedMessages)
 , d_naglePacketCount(original.d_naglePacketCount)
-, d_isAvailable(original.d_isAvailable){}
+, d_isAvailable(original.d_isAvailable)
+{
+}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-FileStoreSummary::FileStoreSummary(FileStoreSummary && original) noexcept
+FileStoreSummary::FileStoreSummary(FileStoreSummary&& original) noexcept
 : d_sequenceNum(bsl::move(original.d_sequenceNum)),
   d_totalMappedBytes(bsl::move(original.d_totalMappedBytes)),
   d_fileSets(bsl::move(original.d_fileSets)),
@@ -11601,11 +11671,13 @@ GetTunable::GetTunable(bslma::Allocator* basicAllocator)
 GetTunable::GetTunable(const GetTunable& original,
                        bslma::Allocator* basicAllocator)
 : d_name(original.d_name, basicAllocator)
-, d_choice(original.d_choice){}
+, d_choice(original.d_choice)
+{
+}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-GetTunable::GetTunable(GetTunable && original) noexcept
+GetTunable::GetTunable(GetTunable&& original) noexcept
 : d_name(bsl::move(original.d_name)),
   d_choice(bsl::move(original.d_choice))
 {
@@ -11745,16 +11817,17 @@ MessageGroupIdHelper::MessageGroupIdHelper(
 : d_timeoutNanoseconds(original.d_timeoutNanoseconds)
 , d_status(original.d_status, basicAllocator)
 , d_maxMsgGroupIds(original.d_maxMsgGroupIds)
-, d_isRebalanceOn(original.d_isRebalanceOn){}
+, d_isRebalanceOn(original.d_isRebalanceOn)
+{
+}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-MessageGroupIdHelper::MessageGroupIdHelper(MessageGroupIdHelper &&
-                                           original) noexcept
-: d_timeoutNanoseconds(bsl::move(original.d_timeoutNanoseconds)),
-  d_status(bsl::move(original.d_status)),
-  d_maxMsgGroupIds(bsl::move(original.d_maxMsgGroupIds)),
-  d_isRebalanceOn(bsl::move(original.d_isRebalanceOn))
+MessageGroupIdHelper::MessageGroupIdHelper(MessageGroupIdHelper&& original)
+    noexcept : d_timeoutNanoseconds(bsl::move(original.d_timeoutNanoseconds)),
+               d_status(bsl::move(original.d_status)),
+               d_maxMsgGroupIds(bsl::move(original.d_maxMsgGroupIds)),
+               d_isRebalanceOn(bsl::move(original.d_isRebalanceOn))
 {
 }
 
@@ -11878,11 +11951,13 @@ NodeStatuses::NodeStatuses(bslma::Allocator* basicAllocator)
 
 NodeStatuses::NodeStatuses(const NodeStatuses& original,
                            bslma::Allocator*   basicAllocator)
-: d_nodes(original.d_nodes, basicAllocator){}
+: d_nodes(original.d_nodes, basicAllocator)
+{
+}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-NodeStatuses::NodeStatuses(NodeStatuses && original) noexcept
+NodeStatuses::NodeStatuses(NodeStatuses&& original) noexcept
 : d_nodes(bsl::move(original.d_nodes))
 {
 }
@@ -11989,11 +12064,13 @@ PartitionsInfo::PartitionsInfo(bslma::Allocator* basicAllocator)
 
 PartitionsInfo::PartitionsInfo(const PartitionsInfo& original,
                                bslma::Allocator*     basicAllocator)
-: d_partitions(original.d_partitions, basicAllocator){}
+: d_partitions(original.d_partitions, basicAllocator)
+{
+}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-PartitionsInfo::PartitionsInfo(PartitionsInfo && original) noexcept
+PartitionsInfo::PartitionsInfo(PartitionsInfo&& original) noexcept
 : d_partitions(bsl::move(original.d_partitions))
 {
 }
@@ -12105,11 +12182,13 @@ PriorityGroup::PriorityGroup(bslma::Allocator* basicAllocator)
 PriorityGroup::PriorityGroup(const PriorityGroup& original,
                              bslma::Allocator*    basicAllocator)
 : d_highestSubscriptions(original.d_highestSubscriptions, basicAllocator)
-, d_id(original.d_id){}
+, d_id(original.d_id)
+{
+}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-PriorityGroup::PriorityGroup(PriorityGroup && original) noexcept
+PriorityGroup::PriorityGroup(PriorityGroup&& original) noexcept
 : d_highestSubscriptions(bsl::move(original.d_highestSubscriptions)),
   d_id(bsl::move(original.d_id))
 {
@@ -12224,11 +12303,13 @@ PurgedQueues::PurgedQueues(bslma::Allocator* basicAllocator)
 
 PurgedQueues::PurgedQueues(const PurgedQueues& original,
                            bslma::Allocator*   basicAllocator)
-: d_queues(original.d_queues, basicAllocator){}
+: d_queues(original.d_queues, basicAllocator)
+{
+}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-PurgedQueues::PurgedQueues(PurgedQueues && original) noexcept
+PurgedQueues::PurgedQueues(PurgedQueues&& original) noexcept
 : d_queues(bsl::move(original.d_queues))
 {
 }
@@ -12372,12 +12453,14 @@ QueueHandleSubStream::QueueHandleSubStream(
 , d_parametersJson(original.d_parametersJson, basicAllocator)
 , d_numUnconfirmedMessages(original.d_numUnconfirmedMessages)
 , d_appId(original.d_appId, basicAllocator)
-, d_subId(original.d_subId){}
+, d_subId(original.d_subId)
+{
+}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-QueueHandleSubStream::QueueHandleSubStream(QueueHandleSubStream &&
-                                           original) noexcept
+QueueHandleSubStream::QueueHandleSubStream(
+    QueueHandleSubStream&& original) noexcept
 : d_unconfirmedMonitors(bsl::move(original.d_unconfirmedMonitors)),
   d_parametersJson(bsl::move(original.d_parametersJson)),
   d_numUnconfirmedMessages(bsl::move(original.d_numUnconfirmedMessages)),
@@ -12513,11 +12596,13 @@ QueueStatuses::QueueStatuses(bslma::Allocator* basicAllocator)
 
 QueueStatuses::QueueStatuses(const QueueStatuses& original,
                              bslma::Allocator*    basicAllocator)
-: d_queueStatuses(original.d_queueStatuses, basicAllocator){}
+: d_queueStatuses(original.d_queueStatuses, basicAllocator)
+{
+}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-QueueStatuses::QueueStatuses(QueueStatuses && original) noexcept
+QueueStatuses::QueueStatuses(QueueStatuses&& original) noexcept
 : d_queueStatuses(bsl::move(original.d_queueStatuses))
 {
 }
@@ -12649,11 +12734,13 @@ SetTunable::SetTunable(const SetTunable& original,
                        bslma::Allocator* basicAllocator)
 : d_name(original.d_name, basicAllocator)
 , d_value(original.d_value, basicAllocator)
-, d_choice(original.d_choice){}
+, d_choice(original.d_choice)
+{
+}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-SetTunable::SetTunable(SetTunable && original) noexcept
+SetTunable::SetTunable(SetTunable&& original) noexcept
 : d_name(bsl::move(original.d_name)),
   d_value(bsl::move(original.d_value)),
   d_choice(bsl::move(original.d_choice))
@@ -12779,11 +12866,13 @@ StorageDomain::StorageDomain(bslma::Allocator* basicAllocator)
 StorageDomain::StorageDomain(const StorageDomain& original,
                              bslma::Allocator*    basicAllocator)
 : d_name(original.d_name, basicAllocator)
-, d_command(original.d_command){}
+, d_command(original.d_command)
+{
+}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-StorageDomain::StorageDomain(StorageDomain && original) noexcept
+StorageDomain::StorageDomain(StorageDomain&& original) noexcept
 : d_name(bsl::move(original.d_name)),
   d_command(bsl::move(original.d_command))
 {
@@ -12991,11 +13080,13 @@ Tunable::Tunable(bslma::Allocator* basicAllocator)
 Tunable::Tunable(const Tunable& original, bslma::Allocator* basicAllocator)
 : d_name(original.d_name, basicAllocator)
 , d_description(original.d_description, basicAllocator)
-, d_value(original.d_value, basicAllocator){}
+, d_value(original.d_value, basicAllocator)
+{
+}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-Tunable::Tunable(Tunable && original) noexcept
+Tunable::Tunable(Tunable&& original) noexcept
 : d_name(bsl::move(original.d_name)),
   d_description(bsl::move(original.d_description)),
   d_value(bsl::move(original.d_value))
@@ -13130,15 +13221,16 @@ TunableConfirmation::TunableConfirmation(const TunableConfirmation& original,
                                          bslma::Allocator* basicAllocator)
 : d_name(original.d_name, basicAllocator)
 , d_oldValue(original.d_oldValue, basicAllocator)
-, d_newValue(original.d_newValue, basicAllocator){}
+, d_newValue(original.d_newValue, basicAllocator)
+{
+}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-TunableConfirmation::TunableConfirmation(TunableConfirmation &&
-                                         original) noexcept
-: d_name(bsl::move(original.d_name)),
-  d_oldValue(bsl::move(original.d_oldValue)),
-  d_newValue(bsl::move(original.d_newValue))
+TunableConfirmation::TunableConfirmation(TunableConfirmation&& original)
+    noexcept : d_name(bsl::move(original.d_name)),
+               d_oldValue(bsl::move(original.d_oldValue)),
+               d_newValue(bsl::move(original.d_newValue))
 {
 }
 
@@ -13261,12 +13353,14 @@ ClusterDomainQueueStatuses::ClusterDomainQueueStatuses(
 ClusterDomainQueueStatuses::ClusterDomainQueueStatuses(
     const ClusterDomainQueueStatuses& original,
     bslma::Allocator*                 basicAllocator)
-: d_statuses(original.d_statuses, basicAllocator){}
+: d_statuses(original.d_statuses, basicAllocator)
+{
+}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
 ClusterDomainQueueStatuses::ClusterDomainQueueStatuses(
-    ClusterDomainQueueStatuses && original) noexcept
+    ClusterDomainQueueStatuses&& original) noexcept
 : d_statuses(bsl::move(original.d_statuses))
 {
 }
@@ -13413,11 +13507,13 @@ ClusterProxyStatus::ClusterProxyStatus(const ClusterProxyStatus& original,
 , d_activeNodeDescription(original.d_activeNodeDescription, basicAllocator)
 , d_queuesInfo(original.d_queuesInfo, basicAllocator)
 , d_nodeStatuses(original.d_nodeStatuses, basicAllocator)
-, d_isHealthy(original.d_isHealthy){}
+, d_isHealthy(original.d_isHealthy)
+{
+}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-ClusterProxyStatus::ClusterProxyStatus(ClusterProxyStatus && original) noexcept
+ClusterProxyStatus::ClusterProxyStatus(ClusterProxyStatus&& original) noexcept
 : d_description(bsl::move(original.d_description)),
   d_activeNodeDescription(bsl::move(original.d_activeNodeDescription)),
   d_queuesInfo(bsl::move(original.d_queuesInfo)),
@@ -14363,11 +14459,13 @@ FileStore::FileStore(const FileStore&  original,
                      bslma::Allocator* basicAllocator)
 : d_summary(original.d_summary, basicAllocator)
 , d_partitionId(original.d_partitionId)
-, d_state(original.d_state){}
+, d_state(original.d_state)
+{
+}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-FileStore::FileStore(FileStore && original) noexcept
+FileStore::FileStore(FileStore&& original) noexcept
 : d_summary(bsl::move(original.d_summary)),
   d_partitionId(bsl::move(original.d_partitionId)),
   d_state(bsl::move(original.d_state))
@@ -14512,11 +14610,13 @@ QueueHandle::QueueHandle(const QueueHandle& original,
 : d_subStreams(original.d_subStreams, basicAllocator)
 , d_clientDescription(original.d_clientDescription, basicAllocator)
 , d_parametersJson(original.d_parametersJson, basicAllocator)
-, d_isClientClusterMember(original.d_isClientClusterMember){}
+, d_isClientClusterMember(original.d_isClientClusterMember)
+{
+}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-QueueHandle::QueueHandle(QueueHandle && original) noexcept
+QueueHandle::QueueHandle(QueueHandle&& original) noexcept
 : d_subStreams(bsl::move(original.d_subStreams)),
   d_clientDescription(bsl::move(original.d_clientDescription)),
   d_parametersJson(bsl::move(original.d_parametersJson)),
@@ -15548,11 +15648,13 @@ SubscriptionGroup::SubscriptionGroup(const SubscriptionGroup& original,
 : d_expression(original.d_expression, basicAllocator)
 , d_priorityGroup(original.d_priorityGroup, basicAllocator)
 , d_id(original.d_id)
-, d_upstreamSubQueueId(original.d_upstreamSubQueueId){}
+, d_upstreamSubQueueId(original.d_upstreamSubQueueId)
+{
+}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-SubscriptionGroup::SubscriptionGroup(SubscriptionGroup && original) noexcept
+SubscriptionGroup::SubscriptionGroup(SubscriptionGroup&& original) noexcept
 : d_expression(bsl::move(original.d_expression)),
   d_priorityGroup(bsl::move(original.d_priorityGroup)),
   d_id(bsl::move(original.d_id)),
@@ -15677,11 +15779,13 @@ Tunables::Tunables(bslma::Allocator* basicAllocator)
 }
 
 Tunables::Tunables(const Tunables& original, bslma::Allocator* basicAllocator)
-: d_tunables(original.d_tunables, basicAllocator){}
+: d_tunables(original.d_tunables, basicAllocator)
+{
+}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-Tunables::Tunables(Tunables && original) noexcept
+Tunables::Tunables(Tunables&& original) noexcept
 : d_tunables(bsl::move(original.d_tunables))
 {
 }
@@ -16039,12 +16143,14 @@ ClusterStorageSummary::ClusterStorageSummary(
     bslma::Allocator*            basicAllocator)
 : d_fileStores(original.d_fileStores, basicAllocator)
 , d_clusterFileStoreLocation(original.d_clusterFileStoreLocation,
-                             basicAllocator){}
+                             basicAllocator)
+{
+}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-ClusterStorageSummary::ClusterStorageSummary(ClusterStorageSummary &&
-                                             original) noexcept
+ClusterStorageSummary::ClusterStorageSummary(
+    ClusterStorageSummary&& original) noexcept
 : d_fileStores(bsl::move(original.d_fileStores)),
   d_clusterFileStoreLocation(bsl::move(original.d_clusterFileStoreLocation))
 {
@@ -16169,11 +16275,13 @@ Domain::Domain(bslma::Allocator* basicAllocator)
 
 Domain::Domain(const Domain& original, bslma::Allocator* basicAllocator)
 : d_name(original.d_name, basicAllocator)
-, d_command(original.d_command, basicAllocator){}
+, d_command(original.d_command, basicAllocator)
+{
+}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-Domain::Domain(Domain && original) noexcept
+Domain::Domain(Domain&& original) noexcept
 : d_name(bsl::move(original.d_name)),
   d_command(bsl::move(original.d_command))
 {
@@ -16838,11 +16946,13 @@ QueueState::QueueState(const QueueState& original,
 , d_storage(original.d_storage, basicAllocator)
 , d_capacityMeter(original.d_capacityMeter, basicAllocator)
 , d_id(original.d_id)
-, d_partitionId(original.d_partitionId){}
+, d_partitionId(original.d_partitionId)
+{
+}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-QueueState::QueueState(QueueState && original) noexcept
+QueueState::QueueState(QueueState&& original) noexcept
 : d_handles(bsl::move(original.d_handles)),
   d_uri(bsl::move(original.d_uri)),
   d_handleParametersJson(bsl::move(original.d_handleParametersJson)),
@@ -17516,11 +17626,13 @@ RouterConsumer::RouterConsumer(const RouterConsumer& original,
 : d_expression(original.d_expression, basicAllocator)
 , d_queueHandle(original.d_queueHandle, basicAllocator)
 , d_count(original.d_count)
-, d_priority(original.d_priority){}
+, d_priority(original.d_priority)
+{
+}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-RouterConsumer::RouterConsumer(RouterConsumer && original) noexcept
+RouterConsumer::RouterConsumer(RouterConsumer&& original) noexcept
 : d_expression(bsl::move(original.d_expression)),
   d_queueHandle(bsl::move(original.d_queueHandle)),
   d_count(bsl::move(original.d_count)),
@@ -17645,11 +17757,13 @@ Routing::Routing(bslma::Allocator* basicAllocator)
 }
 
 Routing::Routing(const Routing& original, bslma::Allocator* basicAllocator)
-: d_subscriptionGroups(original.d_subscriptionGroups, basicAllocator){}
+: d_subscriptionGroups(original.d_subscriptionGroups, basicAllocator)
+{
+}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-Routing::Routing(Routing && original) noexcept
+Routing::Routing(Routing&& original) noexcept
 : d_subscriptionGroups(bsl::move(original.d_subscriptionGroups))
 {
 }
@@ -19521,11 +19635,13 @@ ClusterStatus::ClusterStatus(const ClusterStatus& original,
 , d_nodeStatuses(original.d_nodeStatuses, basicAllocator)
 , d_electorInfo(original.d_electorInfo, basicAllocator)
 , d_clusterStorageSummary(original.d_clusterStorageSummary, basicAllocator)
-, d_isHealthy(original.d_isHealthy){}
+, d_isHealthy(original.d_isHealthy)
+{
+}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-ClusterStatus::ClusterStatus(ClusterStatus && original) noexcept
+ClusterStatus::ClusterStatus(ClusterStatus&& original) noexcept
 : d_name(bsl::move(original.d_name)),
   d_description(bsl::move(original.d_description)),
   d_selfNodeDescription(bsl::move(original.d_selfNodeDescription)),
@@ -20090,11 +20206,13 @@ RoundRobinRouter::RoundRobinRouter(bslma::Allocator* basicAllocator)
 
 RoundRobinRouter::RoundRobinRouter(const RoundRobinRouter& original,
                                    bslma::Allocator*       basicAllocator)
-: d_consumers(original.d_consumers, basicAllocator){}
+: d_consumers(original.d_consumers, basicAllocator)
+{
+}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-RoundRobinRouter::RoundRobinRouter(RoundRobinRouter && original) noexcept
+RoundRobinRouter::RoundRobinRouter(RoundRobinRouter&& original) noexcept
 : d_consumers(bsl::move(original.d_consumers))
 {
 }
@@ -20889,11 +21007,13 @@ AppState::AppState(const AppState& original, bslma::Allocator* basicAllocator)
 : d_redeliveryListLength(original.d_redeliveryListLength)
 , d_appId(original.d_appId, basicAllocator)
 , d_roundRobinRouter(original.d_roundRobinRouter, basicAllocator)
-, d_numConsumers(original.d_numConsumers){}
+, d_numConsumers(original.d_numConsumers)
+{
+}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-AppState::AppState(AppState && original) noexcept
+AppState::AppState(AppState&& original) noexcept
 : d_redeliveryListLength(bsl::move(original.d_redeliveryListLength)),
   d_appId(bsl::move(original.d_appId)),
   d_roundRobinRouter(bsl::move(original.d_roundRobinRouter)),
@@ -21025,11 +21145,13 @@ Cluster::Cluster(bslma::Allocator* basicAllocator)
 
 Cluster::Cluster(const Cluster& original, bslma::Allocator* basicAllocator)
 : d_name(original.d_name, basicAllocator)
-, d_command(original.d_command, basicAllocator){}
+, d_command(original.d_command, basicAllocator)
+{
+}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-Cluster::Cluster(Cluster && original) noexcept
+Cluster::Cluster(Cluster&& original) noexcept
 : d_name(bsl::move(original.d_name)),
   d_command(bsl::move(original.d_command))
 {
@@ -22794,11 +22916,13 @@ ConsumerState::ConsumerState(const ConsumerState& original,
 : d_appId(original.d_appId, basicAllocator)
 , d_appState(original.d_appState, basicAllocator)
 , d_status(original.d_status)
-, d_isAtEndOfStorage(original.d_isAtEndOfStorage){}
+, d_isAtEndOfStorage(original.d_isAtEndOfStorage)
+{
+}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-ConsumerState::ConsumerState(ConsumerState && original) noexcept
+ConsumerState::ConsumerState(ConsumerState&& original) noexcept
 : d_appId(bsl::move(original.d_appId)),
   d_appState(bsl::move(original.d_appState)),
   d_status(bsl::move(original.d_status)),
@@ -22950,11 +23074,13 @@ RelayQueueEngine::RelayQueueEngine(const RelayQueueEngine& original,
 : d_subStreams(original.d_subStreams, basicAllocator)
 , d_appStates(original.d_appStates, basicAllocator)
 , d_routing(original.d_routing, basicAllocator)
-, d_numSubstreams(original.d_numSubstreams){}
+, d_numSubstreams(original.d_numSubstreams)
+{
+}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-RelayQueueEngine::RelayQueueEngine(RelayQueueEngine && original) noexcept
+RelayQueueEngine::RelayQueueEngine(RelayQueueEngine&& original) noexcept
 : d_subStreams(bsl::move(original.d_subStreams)),
   d_appStates(bsl::move(original.d_appStates)),
   d_routing(bsl::move(original.d_routing)),
@@ -23836,11 +23962,13 @@ FanoutQueueEngine::FanoutQueueEngine(const FanoutQueueEngine& original,
 : d_consumerStates(original.d_consumerStates, basicAllocator)
 , d_mode(original.d_mode, basicAllocator)
 , d_routing(original.d_routing, basicAllocator)
-, d_maxConsumers(original.d_maxConsumers){}
+, d_maxConsumers(original.d_maxConsumers)
+{
+}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-FanoutQueueEngine::FanoutQueueEngine(FanoutQueueEngine && original) noexcept
+FanoutQueueEngine::FanoutQueueEngine(FanoutQueueEngine&& original) noexcept
 : d_consumerStates(bsl::move(original.d_consumerStates)),
   d_mode(bsl::move(original.d_mode)),
   d_routing(bsl::move(original.d_routing)),
@@ -24005,11 +24133,13 @@ Command::Command(bslma::Allocator* basicAllocator)
 
 Command::Command(const Command& original, bslma::Allocator* basicAllocator)
 : d_choice(original.d_choice, basicAllocator)
-, d_encoding(original.d_encoding){}
+, d_encoding(original.d_encoding)
+{
+}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-Command::Command(Command && original) noexcept
+Command::Command(Command&& original) noexcept
 : d_choice(bsl::move(original.d_choice)),
   d_encoding(bsl::move(original.d_encoding))
 {
@@ -24443,11 +24573,13 @@ LocalQueue::LocalQueue(bslma::Allocator* basicAllocator)
 
 LocalQueue::LocalQueue(const LocalQueue& original,
                        bslma::Allocator* basicAllocator)
-: d_queueEngine(original.d_queueEngine, basicAllocator){}
+: d_queueEngine(original.d_queueEngine, basicAllocator)
+{
+}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-LocalQueue::LocalQueue(LocalQueue && original) noexcept
+LocalQueue::LocalQueue(LocalQueue&& original) noexcept
 : d_queueEngine(bsl::move(original.d_queueEngine))
 {
 }
@@ -24599,11 +24731,13 @@ RemoteQueue::RemoteQueue(const RemoteQueue& original,
 , d_streams(original.d_streams, basicAllocator)
 , d_queueEngine(original.d_queueEngine, basicAllocator)
 , d_numUpstreamGeneration(original.d_numUpstreamGeneration)
-, d_isPushExpirationTimerScheduled(original.d_isPushExpirationTimerScheduled){}
+, d_isPushExpirationTimerScheduled(original.d_isPushExpirationTimerScheduled)
+{
+}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-RemoteQueue::RemoteQueue(RemoteQueue && original) noexcept
+RemoteQueue::RemoteQueue(RemoteQueue&& original) noexcept
 : d_numPendingPuts(bsl::move(original.d_numPendingPuts)),
   d_numPendingConfirms(bsl::move(original.d_numPendingConfirms)),
   d_streams(bsl::move(original.d_streams)),
@@ -25161,11 +25295,13 @@ QueueInternals::QueueInternals(bslma::Allocator* basicAllocator)
 QueueInternals::QueueInternals(const QueueInternals& original,
                                bslma::Allocator*     basicAllocator)
 : d_state(original.d_state, basicAllocator)
-, d_queue(original.d_queue, basicAllocator){}
+, d_queue(original.d_queue, basicAllocator)
+{
+}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-QueueInternals::QueueInternals(QueueInternals && original) noexcept
+QueueInternals::QueueInternals(QueueInternals&& original) noexcept
 : d_state(bsl::move(original.d_state)),
   d_queue(bsl::move(original.d_queue))
 {
@@ -28608,12 +28744,14 @@ RouteResponseResult::RouteResponseResult(bslma::Allocator* basicAllocator)
 RouteResponseResult::RouteResponseResult(const RouteResponseResult& original,
                                          bslma::Allocator* basicAllocator)
 : d_sourceNodeDescription(original.d_sourceNodeDescription, basicAllocator)
-, d_result(original.d_result, basicAllocator){}
+, d_result(original.d_result, basicAllocator)
+{
+}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-RouteResponseResult::RouteResponseResult(RouteResponseResult &&
-                                         original) noexcept
+RouteResponseResult::RouteResponseResult(
+    RouteResponseResult&& original) noexcept
 : d_sourceNodeDescription(bsl::move(original.d_sourceNodeDescription)),
   d_result(bsl::move(original.d_result))
 {
@@ -29128,12 +29266,14 @@ RouteResponseResultList::RouteResponseResultList(
 RouteResponseResultList::RouteResponseResultList(
     const RouteResponseResultList& original,
     bslma::Allocator*              basicAllocator)
-: d_responses(original.d_responses, basicAllocator){}
+: d_responses(original.d_responses, basicAllocator)
+{
+}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-RouteResponseResultList::RouteResponseResultList(RouteResponseResultList &&
-                                                 original) noexcept
+RouteResponseResultList::RouteResponseResultList(
+    RouteResponseResultList&& original) noexcept
 : d_responses(bsl::move(original.d_responses))
 {
 }

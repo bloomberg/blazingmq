@@ -754,7 +754,7 @@ int Application::processCommand(const bslstl::StringRef& source,
     }
 
     // otherwise, this is an original call. utilize router if necessary
-    mqba::RouteCommandManager routeCommandManager(cmd, command);
+    mqba::RouteCommandManager routeCommandManager(cmd, commandWithOptions);
 
     bool        shouldSelfExecute = true;
     bsl::string selfName;

@@ -896,11 +896,6 @@ inline const mqbnet::Cluster& Cluster::netCluster() const
     return *(d_clusterData.membership().netCluster());
 }
 
-// inline const mqbc::ClusterState& Cluster::clusterState() const
-// {
-//     return d_state;
-// }
-
 inline const mqbcfg::ClusterDefinition* Cluster::clusterConfig() const
 {
     return &d_clusterData.clusterConfig();
