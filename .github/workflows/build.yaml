@@ -4,11 +4,9 @@ on:
   push:
     branches:
       - main
-      - add_sanitizers_to_ci
   pull_request:
     branches:
       - main
-      - add_sanitizers_to_ci
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -367,27 +365,3 @@ jobs:
         run: docker compose -f docker/single-node/docker-compose.yaml up --build -d
       - name: Docker Cluster Workflow
         run: docker compose -f docker/cluster/docker-compose.yaml up --build -d
-
-  run_asan:
-    needs: build_dependencies
-    uses: ${{ github.workspace }}/.github/workflows/sanitizer-check.yaml
-    with:
-      sanitizer-name: 'asan'
-
-  run_msan:
-    needs: build_dependencies
-    uses: ${{ github.workspace }}/.github/workflows/sanitizer-check.yaml
-    with:
-      sanitizer-name: 'msan'
-
-  run_tsan:
-    needs: build_dependencies
-    uses: ${{ github.workspace }}/.github/workflows/sanitizer-check.yaml
-    with:
-      sanitizer-name: 'tsan'
-
-  run_ubsan:
-    needs: build_dependencies
-    uses: ${{ github.workspace }}/.github/workflows/sanitizer-check.yaml
-    with:
-      sanitizer-name: 'ubsan'
