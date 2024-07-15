@@ -1,13 +1,8 @@
-name: Tests
+name: Sanitize with AddressSanitizer, MemorySanitizer, ThreadSanitizer and UndefinedBehaviorSanitizer.
 
 on:
-  push:
-    branches:
-      - main
-      - add_sanitizers_to_ci
-  pull_request:
-    branches:
-      - main
+  pull_request_review:
+    types: [submitted]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -16,6 +11,7 @@ concurrency:
 jobs:
   build_dependencies:
     name: Build deps [ubuntu]
+    if: github.event.review.state == 'APPROVED'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -59,25 +55,28 @@ jobs:
           path: deps
           key: deps-${{ steps.get-hash.outputs.deps_hash }}
 
-  build_and_run_asan:
+  run_asan:
+    if: github.event.review.state == 'APPROVED'
     needs: build_dependencies
     uses: ./.github/workflows/sanitizer-check.yaml
     with:
       sanitizer-name: 'asan'
 
-  build_and_run_msan:
+  run_msan:
+    if: github.event.review.state == 'APPROVED'
     needs: build_dependencies
     uses: ./.github/workflows/sanitizer-check.yaml
     with:
       sanitizer-name: 'msan'
 
-  build_and_run_tsan:
+  run_tsan:
     needs: build_dependencies
     uses: ./.github/workflows/sanitizer-check.yaml
     with:
       sanitizer-name: 'tsan'
 
-  build_and_run_ubsan:
+  run_ubsan:
+    if: github.event.review.state == 'APPROVED'
     needs: build_dependencies
     uses: ./.github/workflows/sanitizer-check.yaml
     with:
