@@ -551,7 +551,9 @@ int Application::processCommand(const bslstl::StringRef& source,
     }
     else if (command.isStatValue()) {
         mqbcmd::StatResult statResult;
-        d_statController_mp->processCommand(&statResult, command.stat());
+        d_statController_mp->processCommand(&statResult,
+                                            command.stat(),
+                                            commandWithOptions.encoding());
         if (statResult.isErrorValue()) {
             cmdResult.makeError(statResult.error());
         }
