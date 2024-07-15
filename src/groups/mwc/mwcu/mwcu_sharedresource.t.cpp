@@ -220,7 +220,19 @@ static void test1_resource_creators()
     }
 
     // 4. exception safety
-    {
+    // TODO: Current BDE version has a memory leak which is already fixed
+    // (https://github.com/bloomberg/bde/commit/42950dfbcaf2c76cdabc266afacecee67da21a59)
+    // but not released yet. Skip address sanitizer check for now, and remove
+    // 'skipTest' flag when BDE version is bumped.
+#if defined(__has_feature)  // Clang-supported method for checking sanitizers.
+    static const bool skipTest = __has_feature(address_sanitizer);
+#elif defined(__SANITIZE_ADDRESS__)
+    // GCC-supported macros for checking ASAN.
+    static const bool skipTest = true;
+#else
+    static const bool skipTest = false;  // Default to running the test.
+#endif
+    if (!skipTest) {
         typedef mwcu::SharedResourceFactoryDeleter<int, bslma::Allocator>
             Deleter;
 
@@ -504,12 +516,24 @@ static void test4_resource_reset()
     }
 
     // 5. exception safety
-    {
+    // TODO: Current BDE version has a memory leak which is already fixed
+    // (https://github.com/bloomberg/bde/commit/42950dfbcaf2c76cdabc266afacecee67da21a59)
+    // but not released yet. Skip address sanitizer check for now, and remove
+    // 'skipTest' flag when BDE version is bumped.
+#if defined(__has_feature)  // Clang-supported method for checking sanitizers.
+    static const bool skipTest = __has_feature(address_sanitizer);
+#elif defined(__SANITIZE_ADDRESS__)
+    // GCC-supported macros for checking ASAN.
+    static const bool skipTest = true;
+#else
+    static const bool skipTest = false;  // Default to running the test.
+#endif
+    if (!skipTest) {
         typedef mwcu::SharedResourceFactoryDeleter<int, bslma::Allocator>
             Deleter;
 
-        // this allocator is used to allocate the shared state and will throw
-        // the second time it is used
+        // this allocator is used to allocate the shared state and will
+        // throw the second time it is used
         bslma::TestAllocator onceAlloc;
         onceAlloc.setAllocationLimit(1);
 
