@@ -155,7 +155,7 @@ cmake   -B "${LIBCXX_BUILD_PATH}" \
 cmake --build "${LIBCXX_BUILD_PATH}" -j${PARALLELISM} --target cxx cxxabi unwind generate-cxx-headers
 
 # Variables read by our custom CMake toolchain used to build everything else.
-export LIBCXX_BUILD_PATH="${LIBCXX_BUILD_PATH})"
+export LIBCXX_BUILD_PATH="${LIBCXX_BUILD_PATH}"
 export DIR_SRC_BMQ="${DIR_SRC_BMQ}"
 export DIR_SCRIPTS="${DIR_SCRIPTS}"
 
