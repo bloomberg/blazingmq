@@ -365,4 +365,3 @@ jobs:
         run: docker compose -f docker/single-node/docker-compose.yaml up --build -d
       - name: Docker Cluster Workflow
         run: docker compose -f docker/cluster/docker-compose.yaml up --build -d
-  
