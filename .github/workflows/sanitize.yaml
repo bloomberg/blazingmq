@@ -58,27 +58,27 @@ jobs:
   run_asan:
     if: github.event.review.state == 'APPROVED'
     needs: build_dependencies
-    uses: ${{ github.workspace }}/.github/workflows/sanitizer-check.yaml
+    uses: ./.github/workflows/sanitizer-check.yaml
     with:
       sanitizer-name: 'asan'
 
   run_msan:
     if: github.event.review.state == 'APPROVED'
     needs: build_dependencies
-    uses: ${{ github.workspace }}/.github/workflows/sanitizer-check.yaml
+    uses: ./.github/workflows/sanitizer-check.yaml
     with:
       sanitizer-name: 'msan'
 
   run_tsan:
     if: github.event.review.state == 'APPROVED'
     needs: build_dependencies
-    uses: ${{ github.workspace }}/.github/workflows/sanitizer-check.yaml
+    uses: ./.github/workflows/sanitizer-check.yaml
     with:
       sanitizer-name: 'tsan'
 
   run_ubsan:
     if: github.event.review.state == 'APPROVED'
     needs: build_dependencies
-    uses: ${{ github.workspace }}/.github/workflows/sanitizer-check.yaml
+    uses: ./.github/workflows/sanitizer-check.yaml
     with:
       sanitizer-name: 'ubsan'
