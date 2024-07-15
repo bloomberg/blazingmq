@@ -23,7 +23,7 @@
 set -eux
 
 # :: Required arguments :::::::::::::::::::::::::::::::::::::::::::::::::::::::
-if [ -z ${1} ]; then
+if [ -z "${1}" ]; then
     echo 'Error: Missing sanitizer name.' >&2
     echo '  (Usage: build_sanitizer.sh <sanitizer-name>)' >&2
     exit 1
@@ -90,9 +90,9 @@ DIR_BUILD_BMQ="${DIR_SRC_BMQ}/cmake.bld/Linux"
 cfgquery() {
     jq "${1}" "${DIR_SCRIPTS}/sanitizers.json" --raw-output
 }
-LLVM_SANITIZER_NAME="$(cfgquery .${SANITIZER_NAME}.llvm_sanitizer_name)"
+LLVM_SANITIZER_NAME="$(cfgquery ."${SANITIZER_NAME}".llvm_sanitizer_name)"
 # Check if llvm specific cmake options are present for the given sanitizer
-LLVM_SPECIFIC_CMAKE_OPTIONS="$(cfgquery .${SANITIZER_NAME}.llvm_specific_cmake_options)"
+LLVM_SPECIFIC_CMAKE_OPTIONS="$(cfgquery ."${SANITIZER_NAME}".llvm_specific_cmake_options)"
 if [[ "$LLVM_SPECIFIC_CMAKE_OPTIONS" == null ]]; then LLVM_SPECIFIC_CMAKE_OPTIONS=""; fi
 
 checkoutGitRepo() {
@@ -103,18 +103,18 @@ checkoutGitRepo() {
 
     local repoPath="${DIR_SRCS_EXT}/${repoDir}"
 
-    git clone -b ${ref} ${repo} \
+    git clone -b "${ref}" "${repo}" \
         --depth 1 --single-branch --no-tags -c advice.detachedHead=false "${repoPath}"
 }
 github_url() { echo "https://github.com/$1.git"; }
 
 # Download external dependencies
-mkdir -p ${DIR_SRCS_EXT}
+mkdir -p "${DIR_SRCS_EXT}"
 
 # Download LLVM
 LLVM_TAG="llvmorg-18.1.8"
 curl -SL "https://github.com/llvm/llvm-project/archive/refs/tags/${LLVM_TAG}.tar.gz" \
-    | tar -xzC ${DIR_SRCS_EXT}
+    | tar -xzC "${DIR_SRCS_EXT}"
 mv "${DIR_SRCS_EXT}/llvm-project-${LLVM_TAG}" "${DIR_SRCS_EXT}/llvm-project"
 
 # Download google-benchmark
@@ -150,12 +150,12 @@ cmake   -B "${LIBCXX_BUILD_PATH}" \
         -DCMAKE_CXX_COMPILER="clang++" \
         -DLLVM_ENABLE_RUNTIMES="libcxx;libcxxabi;libunwind" \
         -DLLVM_USE_SANITIZER="${LLVM_SANITIZER_NAME}" \
-        ${LLVM_SPECIFIC_CMAKE_OPTIONS}
+        "${LLVM_SPECIFIC_CMAKE_OPTIONS}"
 
 cmake --build "${LIBCXX_BUILD_PATH}" -j${PARALLELISM} --target cxx cxxabi unwind generate-cxx-headers
 
 # Variables read by our custom CMake toolchain used to build everything else.
-export LIBCXX_BUILD_PATH="$(realpath ${LIBCXX_BUILD_PATH})"
+export LIBCXX_BUILD_PATH="${LIBCXX_BUILD_PATH})"
 export DIR_SRC_BMQ="${DIR_SRC_BMQ}"
 export DIR_SCRIPTS="${DIR_SCRIPTS}"
 
@@ -164,7 +164,7 @@ export CC="clang"
 export CXX="clang++"
 export CMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES="/usr/include;/usr/include/clang/${LLVM_VERSION}/include"
 export BBS_BUILD_SYSTEM="ON"
-PATH="$PATH:$(realpath ${DIR_SRCS_EXT}/bde-tools/bin)"
+PATH="$PATH:$(realpath "${DIR_SRCS_EXT}"/bde-tools/bin)"
 export PATH
 
 # Build BDE + NTF
@@ -207,7 +207,7 @@ CMAKE_OPTIONS="\
 
 # Build GoogleTest
 cmake -B "${DIR_SRCS_EXT}/googletest/cmake.bld" \
-      -S "${DIR_SRCS_EXT}/googletest" ${CMAKE_OPTIONS} \
+      -S "${DIR_SRCS_EXT}/googletest" "${CMAKE_OPTIONS}" \
       -DCMAKE_INSTALL_PREFIX=/opt/bb
 cmake --build "${DIR_SRCS_EXT}/googletest/cmake.bld" -j${PARALLELISM}
 cmake --install "${DIR_SRCS_EXT}/googletest/cmake.bld" --prefix "/opt/bb"
@@ -215,7 +215,7 @@ cmake --install "${DIR_SRCS_EXT}/googletest/cmake.bld" --prefix "/opt/bb"
 
 # Build Google Benchmark
 cmake -B "${DIR_SRCS_EXT}/google-benchmark/cmake.bld" \
-        -S "${DIR_SRCS_EXT}/google-benchmark" ${CMAKE_OPTIONS} \
+        -S "${DIR_SRCS_EXT}/google-benchmark" "${CMAKE_OPTIONS}" \
         -DCMAKE_INSTALL_PREFIX=/opt/bb \
         -DBENCHMARK_DOWNLOAD_DEPENDENCIES="ON" \
         -DBENCHMARK_ENABLE_GTEST_TESTS="false" \
@@ -231,7 +231,7 @@ cmake --install "${DIR_SRCS_EXT}/google-benchmark/cmake.bld" --prefix "/opt/bb"
 # https://discourse.cmake.org/t/cmake-install-prefix-not-work/5040
 cmake -B "${DIR_SRCS_EXT}/zlib/cmake.bld" -S "${DIR_SRCS_EXT}/zlib" \
         -D CMAKE_INSTALL_PREFIX="/opt/bb" \
-        ${CMAKE_OPTIONS}
+        "${CMAKE_OPTIONS}"
 # Make and install zlib.
 cmake --build "${DIR_SRCS_EXT}/zlib/cmake.bld" -j${PARALLELISM}
 cmake --install "${DIR_SRCS_EXT}/zlib/cmake.bld"
@@ -242,7 +242,7 @@ cmake -B "${DIR_BUILD_BMQ}" -S "${DIR_SRC_BMQ}" -G Ninja \
     -DBDE_BUILD_TARGET_64=ON \
     -DBDE_BUILD_TARGET_CPP17=ON \
     -DCMAKE_PREFIX_PATH="${DIR_SRCS_EXT}/bde-tools/BdeBuildSystem" \
-    -DBDE_BUILD_TARGET_SAFE=1 ${CMAKE_OPTIONS}
+    -DBDE_BUILD_TARGET_SAFE=1 "${CMAKE_OPTIONS}"
 cmake --build "${DIR_BUILD_BMQ}" -j${PARALLELISM} \
       --target all.t -v --clean-first
 
@@ -253,35 +253,35 @@ envcfgquery() {
     # be used to set the environment for a command.
     #   e.g. 'asan' -> 'ASAN_OPTIONS="foo=bar:baz=baf" LSAN_OPTIONS="abc=fgh"'
     #
-    echo $(cfgquery "                        \
-            .${1}.environment |              \
-            to_entries |                     \
-            map(\"\(.key)=\\\"\(.value |     \
-                to_entries |                 \
-                map(\"\(.key)=\(.value)\") | \
-                join(\":\"))\\\"\") |        \
-            join(\" \")") |
-        sed "s|%%SRC%%|$(realpath ${DIR_SRC_BMQ})|g" |
-        sed "s|%%ROOT%%|$(realpath ${DIR_ROOT})|g"
+    "$(cfgquery "                        \
+        .${1}.environment |              \
+        to_entries |                     \
+        map(\"\(.key)=\\\"\(.value |     \
+            to_entries |                 \
+            map(\"\(.key)=\(.value)\") | \
+            join(\":\"))\\\"\") |        \
+        join(\" \")")" |
+    sed "s|%%SRC%%|$(realpath "${DIR_SRC_BMQ}")|g" |
+    sed "s|%%ROOT%%|$(realpath "${DIR_ROOT}")|g"
 }
 
 mkscript() {
     local cmd=${1}
     local outfile=${2}
 
-    echo '#!/usr/bin/env bash' > ${outfile}
-    echo "${cmd}" >> ${outfile}
-    chmod +x ${outfile}
+    echo '#!/usr/bin/env bash' > "${outfile}"
+    echo "${cmd}" >> "${outfile}"
+    chmod +x "${outfile}"
 }
 
-SANITIZER_ENV="BMQ_BUILD=$(realpath ${DIR_BUILD_BMQ}) "
+SANITIZER_ENV="BMQ_BUILD=$(realpath "${DIR_BUILD_BMQ}") "
 SANITIZER_ENV+="BMQ_REPO=${DIR_SRC_BMQ} "
-SANITIZER_ENV+="$(envcfgquery ${SANITIZER_NAME})"
+SANITIZER_ENV+="$(envcfgquery "${SANITIZER_NAME}")"
 
 # 'run-env.sh' runs a command with environment required of the sanitizer.
 mkscript "${SANITIZER_ENV} \${@}" "${DIR_BUILD_BMQ}/run-env.sh"
 
 # 'run-unittests.sh' runs all instrumented unit-tests.
-CMD="cd $(realpath ${DIR_BUILD_BMQ}) && "
+CMD="cd $(realpath "${DIR_BUILD_BMQ}") && "
 CMD+="./run-env.sh ctest -E mwcsys_executil.t --output-on-failure"
 mkscript "${CMD}" "${DIR_BUILD_BMQ}/run-unittests.sh"
