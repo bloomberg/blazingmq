@@ -1,4 +1,4 @@
-name: Sanitizers
+name: Build and run Sanitizer
 
 on:
   workflow_call:
