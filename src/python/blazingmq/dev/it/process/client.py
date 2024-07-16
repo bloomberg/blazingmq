@@ -28,12 +28,14 @@ from collections import namedtuple
 import json
 import re
 import subprocess
+from pathlib import Path
 from typing import Any, Callable, Dict, Optional, List
 
-import blazingmq.dev.it.process.bmqproc
+from blazingmq.dev.it.process import bmqproc
+from blazingmq.dev.it.process.bmqproc import BMQProcess
+
 from blazingmq.dev.it.testconstants import *
 from blazingmq.dev.it.util import internal_use, ListContextManager, Queue
-import blazingmq.dev.configurator as cfg
 
 Message = namedtuple("Message", "guid, uri, correlationId, payload")
 CommandResult = namedtuple("CommandResult", "error_code, matches")
@@ -81,7 +83,7 @@ def _quote(value):
     return f'"{value}"'
 
 
-class Client(blazingmq.dev.it.process.bmqproc.BMQProcess):
+class Client(BMQProcess):
     e_SUCCESS = 0
     e_UNKNOWN = -1
     e_TIMEOUT = -2
@@ -93,7 +95,13 @@ class Client(blazingmq.dev.it.process.bmqproc.BMQProcess):
     e_NOT_READY = -8
 
     def __init__(
-        self, name, broker: cfg.Broker, options=None, dump_messages=True, **kwargs
+        self,
+        name,
+        broker: (str, int),
+        tool_path: Path,
+        options=None,
+        dump_messages=True,
+        **kwargs,
     ):
         if options is None:
             options = []
@@ -106,10 +114,10 @@ class Client(blazingmq.dev.it.process.bmqproc.BMQProcess):
         super().__init__(
             name,
             [
-                "bin/bmqtool.tsk",
+                str(tool_path),
                 "-b",
-                f"tcp://localhost:{broker.config.port}",
-                f'--logFormat="{blazingmq.dev.it.process.bmqproc.PROC_LOG_FORMAT}"',
+                f"tcp://{broker[0]}:{broker[1]}",
+                f'--logFormat="{bmqproc.PROC_LOG_FORMAT}"',
             ]
             + options,
             stdin=subprocess.PIPE,
@@ -289,6 +297,43 @@ class Client(blazingmq.dev.it.process.bmqproc.BMQProcess):
             ack_success = ack and "status = SUCCESS" in ack.group(0)
             error_code = Client.e_SUCCESS if ack_success else Client.e_UNKNOWN
         return error_code
+
+    def batch_post(
+        self,
+        uri: str,
+        /,
+        payload: List[str] = None,
+        msg_size: int = 1024,
+        event_size: int = 1,
+        events_count: int = 0,
+        post_interval: float = 1,
+        post_rate: int = 1,
+    ):
+        """ """
+        command = (
+            'batch-post uri="'
+            + uri
+            + '" '
+            + ('payload=["' + payload + '"]' if payload else "msgSize=" + str(msg_size))
+            + " eventSize="
+            + str(event_size)
+            + " eventsCount="
+            + str(events_count)
+            + " postInterval="
+            + str(post_interval * 1000)
+            + " postRate="
+            + str(post_rate)
+        )
+
+        res = self._command_helper(
+            command,
+            block=False,
+            pattern=None,
+            succeed=None,
+            no_except=None,
+            extra_patterns=None,
+        )
+        return res.error_code
 
     def list(self, uri=None, block=None):
         """
