@@ -127,4 +127,4 @@ def reserve_port() -> typing.Iterator[TcpAddress]:
 
         address = tcp_address(sockname[0], sockname[1])
 
-    yield address
+        yield address
