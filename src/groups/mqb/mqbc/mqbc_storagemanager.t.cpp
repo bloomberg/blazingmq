@@ -201,6 +201,12 @@ struct TestHelper {
         BSLS_ASSERT_OPT(rc == 0);
     }
 
+    void setPartitionPrimary(mqbc::StorageManager* storageManager, int partitionId, unsigned int leaseId, mqbnet::ClusterNode* node)
+    {
+        d_cluster_mp->_state().setPartitionPrimary(partitionId, leaseId, node);
+        storageManager->setPrimaryForPartition(partitionId, node, leaseId);
+    }
+
     void clearChannels()
     {
         for (TestChannelMapCIter cit = d_cluster_mp->_channels().cbegin();
@@ -1015,9 +1021,10 @@ static void test2_unknownDetectSelfPrimary()
     BSLS_ASSERT_OPT(storageManager.partitionHealthState(k_PARTITION_ID) ==
                     mqbc::PartitionFSM::State::e_UNKNOWN);
 
-    storageManager.setPrimaryForPartition(k_PARTITION_ID,
-                                          selfNode,
-                                          1);  // primaryLeaseId
+    helper.setPartitionPrimary(&storageManager,
+                               k_PARTITION_ID,
+                               1,  // primaryLeaseId
+                               selfNode);
 
     ASSERT_EQ(storageManager.nodeToSeqNumCtxMap(k_PARTITION_ID).size(), 1U);
     ASSERT_EQ(storageManager.partitionHealthState(k_PARTITION_ID),
@@ -1085,9 +1092,10 @@ static void test3_unknownDetectSelfReplica()
     BSLS_ASSERT_OPT(storageManager.partitionHealthState(k_PARTITION_ID) ==
                     mqbc::PartitionFSM::State::e_UNKNOWN);
 
-    storageManager.setPrimaryForPartition(k_PARTITION_ID,
-                                          primaryNode,
-                                          1);  // primaryLeaseId
+    helper.setPartitionPrimary(&storageManager,
+                               k_PARTITION_ID,
+                               1,  // primaryLeaseId
+                               primaryNode);
 
     ASSERT_EQ(storageManager.nodeToSeqNumCtxMap(k_PARTITION_ID).size(), 1U);
     ASSERT_EQ(storageManager.partitionHealthState(k_PARTITION_ID),
@@ -1157,9 +1165,10 @@ static void test4_primaryHealingStage1DetectSelfReplica()
                                         .netCluster()
                                         ->lookupNode(selfNodeId);
 
-    storageManager.setPrimaryForPartition(k_PARTITION_ID,
-                                          selfNode,
-                                          1);  // primaryLeaseId
+    helper.setPartitionPrimary(&storageManager,
+                               k_PARTITION_ID,
+                               1,  // primaryLeaseId
+                               selfNode);
 
     BSLS_ASSERT_OPT(storageManager.partitionHealthState(k_PARTITION_ID) ==
                     mqbc::PartitionFSM::State::e_PRIMARY_HEALING_STG1);
@@ -1180,9 +1189,10 @@ static void test4_primaryHealingStage1DetectSelfReplica()
                                            .netCluster()
                                            ->lookupNode(primaryNodeId);
 
-    storageManager.setPrimaryForPartition(k_PARTITION_ID,
-                                          primaryNode,
-                                          1);  // primaryLeaseId
+    helper.setPartitionPrimary(&storageManager,
+                               k_PARTITION_ID,
+                               1,  // primaryLeaseId
+                               primaryNode);
 
     ASSERT_EQ(storageManager.nodeToSeqNumCtxMap(k_PARTITION_ID).size(), 1U);
     ASSERT_EQ(storageManager.partitionHealthState(k_PARTITION_ID),
@@ -1255,9 +1265,10 @@ static void test5_primaryHealingStage1ReceivesReplicaStateRqst()
                                         .netCluster()
                                         ->lookupNode(selfNodeId);
 
-    storageManager.setPrimaryForPartition(k_PARTITION_ID,
-                                          selfNode,
-                                          1);  // primaryLeaseId
+    helper.setPartitionPrimary(&storageManager,
+                               k_PARTITION_ID,
+                               1,  // primaryLeaseId
+                               selfNode);
 
     BSLS_ASSERT_OPT(storageManager.partitionHealthState(k_PARTITION_ID) ==
                     mqbc::PartitionFSM::State::e_PRIMARY_HEALING_STG1);
@@ -1367,9 +1378,10 @@ static void test6_primaryHealingStage1ReceivesReplicaStateRspnQuorum()
                                         .netCluster()
                                         ->lookupNode(selfNodeId);
 
-    storageManager.setPrimaryForPartition(k_PARTITION_ID,
-                                          selfNode,
-                                          1);  // primaryLeaseId
+    helper.setPartitionPrimary(&storageManager,
+                               k_PARTITION_ID,
+                               1,  // primaryLeaseId
+                               selfNode);
 
     BSLS_ASSERT_OPT(storageManager.partitionHealthState(k_PARTITION_ID) ==
                     mqbc::PartitionFSM::State::e_PRIMARY_HEALING_STG1);
@@ -1474,9 +1486,10 @@ static void test7_primaryHealingStage1ReceivesPrimaryStateRequestQuorum()
                                         .netCluster()
                                         ->lookupNode(selfNodeId);
 
-    storageManager.setPrimaryForPartition(k_PARTITION_ID,
-                                          selfNode,
-                                          1);  // primaryLeaseId
+    helper.setPartitionPrimary(&storageManager,
+                               k_PARTITION_ID,
+                               1,  // primaryLeaseId
+                               selfNode);
 
     BSLS_ASSERT_OPT(storageManager.partitionHealthState(k_PARTITION_ID) ==
                     mqbc::PartitionFSM::State::e_PRIMARY_HEALING_STG1);
@@ -1587,9 +1600,10 @@ static void test8_primaryHealingStage1ReceivesPrimaryStateRqst()
                                         .netCluster()
                                         ->lookupNode(selfNodeId);
 
-    storageManager.setPrimaryForPartition(k_PARTITION_ID,
-                                          selfNode,
-                                          1);  // primaryLeaseId
+    helper.setPartitionPrimary(&storageManager,
+                               k_PARTITION_ID,
+                               1,  // primaryLeaseId
+                               selfNode);
 
     BSLS_ASSERT_OPT(storageManager.partitionHealthState(k_PARTITION_ID) ==
                     mqbc::PartitionFSM::State::e_PRIMARY_HEALING_STG1);
@@ -1697,9 +1711,10 @@ static void test9_primaryHealingStage1ReceivesReplicaStateRspnNoQuorum()
                                         .netCluster()
                                         ->lookupNode(selfNodeId);
 
-    storageManager.setPrimaryForPartition(k_PARTITION_ID,
-                                          selfNode,
-                                          1);  // primaryLeaseId
+    helper.setPartitionPrimary(&storageManager,
+                               k_PARTITION_ID,
+                               1,  // primaryLeaseId
+                               selfNode);
 
     BSLS_ASSERT_OPT(storageManager.partitionHealthState(k_PARTITION_ID) ==
                     mqbc::PartitionFSM::State::e_PRIMARY_HEALING_STG1);
@@ -1812,9 +1827,10 @@ static void test10_primaryHealingStage1QuorumSendsReplicaDataRequestPull()
                                         .netCluster()
                                         ->lookupNode(selfNodeId);
 
-    storageManager.setPrimaryForPartition(k_PARTITION_ID,
-                                          selfNode,
-                                          1);  // primaryLeaseId
+    helper.setPartitionPrimary(&storageManager,
+                               k_PARTITION_ID,
+                               1,  // primaryLeaseId
+                               selfNode);
 
     BSLS_ASSERT_OPT(storageManager.partitionHealthState(k_PARTITION_ID) ==
                     mqbc::PartitionFSM::State::e_PRIMARY_HEALING_STG1);
@@ -1935,9 +1951,10 @@ static void test11_primaryHealingStage2DetectSelfReplica()
                                         .netCluster()
                                         ->lookupNode(selfNodeId);
 
-    storageManager.setPrimaryForPartition(k_PARTITION_ID,
-                                          selfNode,
-                                          1);  // primaryLeaseId
+    helper.setPartitionPrimary(&storageManager,
+                               k_PARTITION_ID,
+                               1,  // primaryLeaseId
+                               selfNode);
 
     BSLS_ASSERT_OPT(storageManager.partitionHealthState(k_PARTITION_ID) ==
                     mqbc::PartitionFSM::State::e_PRIMARY_HEALING_STG1);
@@ -2009,9 +2026,10 @@ static void test11_primaryHealingStage2DetectSelfReplica()
                                            .netCluster()
                                            ->lookupNode(primaryNodeId);
 
-    storageManager.setPrimaryForPartition(k_PARTITION_ID,
-                                          primaryNode,
-                                          1);  // primaryLeaseId
+    helper.setPartitionPrimary(&storageManager,
+                               k_PARTITION_ID,
+                               1,  // primaryLeaseId
+                               primaryNode);
 
     ASSERT_EQ(storageManager.nodeToSeqNumCtxMap(k_PARTITION_ID).size(), 1U);
     ASSERT_EQ(storageManager.partitionHealthState(k_PARTITION_ID),
@@ -2087,9 +2105,10 @@ static void test12_replicaHealingDetectSelfPrimary()
                                            .netCluster()
                                            ->lookupNode(primaryNodeId);
 
-    storageManager.setPrimaryForPartition(k_PARTITION_ID,
-                                          primaryNode,
-                                          1);  // primaryLeaseId
+    helper.setPartitionPrimary(&storageManager,
+                               k_PARTITION_ID,
+                               1,  // primaryLeaseId
+                               primaryNode);
 
     BSLS_ASSERT_OPT(storageManager.partitionHealthState(k_PARTITION_ID) ==
                     mqbc::PartitionFSM::State::e_REPLICA_HEALING);
@@ -2104,9 +2123,10 @@ static void test12_replicaHealingDetectSelfPrimary()
 
     // Apply Detect Self Primary event to Self Node.
 
-    storageManager.setPrimaryForPartition(k_PARTITION_ID,
-                                          selfNode,
-                                          1);  // primaryLeaseId
+    helper.setPartitionPrimary(&storageManager,
+                               k_PARTITION_ID,
+                               1,  // primaryLeaseId
+                               selfNode);
 
     ASSERT_EQ(storageManager.nodeToSeqNumCtxMap(k_PARTITION_ID).size(), 1U);
     ASSERT_EQ(storageManager.partitionHealthState(k_PARTITION_ID),
@@ -2179,9 +2199,10 @@ static void test13_replicaHealingReceivesReplicaStateRqst()
                                            .netCluster()
                                            ->lookupNode(primaryNodeId);
 
-    storageManager.setPrimaryForPartition(k_PARTITION_ID,
-                                          primaryNode,
-                                          1);  // primaryLeaseId
+    helper.setPartitionPrimary(&storageManager,
+                               k_PARTITION_ID,
+                               1,  // primaryLeaseId
+                               primaryNode);
 
     BSLS_ASSERT_OPT(storageManager.partitionHealthState(k_PARTITION_ID) ==
                     mqbc::PartitionFSM::State::e_REPLICA_HEALING);
@@ -2286,9 +2307,10 @@ static void test14_replicaHealingReceivesPrimaryStateRspn()
                                            .netCluster()
                                            ->lookupNode(primaryNodeId);
 
-    storageManager.setPrimaryForPartition(k_PARTITION_ID,
-                                          primaryNode,
-                                          1);  // primaryLeaseId
+    helper.setPartitionPrimary(&storageManager,
+                               k_PARTITION_ID,
+                               1,  // primaryLeaseId
+                               primaryNode);
 
     BSLS_ASSERT_OPT(storageManager.partitionHealthState(k_PARTITION_ID) ==
                     mqbc::PartitionFSM::State::e_REPLICA_HEALING);
@@ -2391,9 +2413,10 @@ static void test15_replicaHealingReceivesFailedPrimaryStateRspn()
                                            .netCluster()
                                            ->lookupNode(primaryNodeId);
 
-    storageManager.setPrimaryForPartition(k_PARTITION_ID,
-                                          primaryNode,
-                                          1);  // primaryLeaseId
+    helper.setPartitionPrimary(&storageManager,
+                               k_PARTITION_ID,
+                               1,  // primaryLeaseId
+                               primaryNode);
 
     BSLS_ASSERT_OPT(storageManager.partitionHealthState(k_PARTITION_ID) ==
                     mqbc::PartitionFSM::State::e_REPLICA_HEALING);
@@ -2485,9 +2508,10 @@ static void test16_replicaHealingReceivesPrimaryStateRqst()
                                            .netCluster()
                                            ->lookupNode(primaryNodeId);
 
-    storageManager.setPrimaryForPartition(k_PARTITION_ID,
-                                          primaryNode,
-                                          1);  // primaryLeaseId
+    helper.setPartitionPrimary(&storageManager,
+                               k_PARTITION_ID,
+                               1,  // primaryLeaseId
+                               primaryNode);
 
     BSLS_ASSERT_OPT(storageManager.partitionHealthState(k_PARTITION_ID) ==
                     mqbc::PartitionFSM::State::e_REPLICA_HEALING);
@@ -2612,9 +2636,10 @@ static void test17_replicaHealingReceivesReplicaDataRqstPull()
                                            ->membership()
                                            .netCluster()
                                            ->lookupNode(primaryNodeId);
-    storageManager.setPrimaryForPartition(k_PARTITION_ID,
-                                          primaryNode,
-                                          1);  // primaryLeaseId
+    helper.setPartitionPrimary(&storageManager,
+                               k_PARTITION_ID,
+                               1,  // primaryLeaseId
+                               primaryNode);
 
     BSLS_ASSERT_OPT(storageManager.partitionHealthState(k_PARTITION_ID) ==
                     mqbc::PartitionFSM::State::e_REPLICA_HEALING);
@@ -2764,9 +2789,10 @@ static void test18_primaryHealingStage1SelfHighestSendsDataChunks()
                                         .netCluster()
                                         ->lookupNode(selfNodeId);
 
-    storageManager.setPrimaryForPartition(k_PARTITION_ID,
-                                          selfNode,
-                                          k_PRIMARY_LEASE_ID);
+    helper.setPartitionPrimary(&storageManager,
+                               k_PARTITION_ID,
+                               k_PRIMARY_LEASE_ID,  // primaryLeaseId
+                               selfNode);
 
     BSLS_ASSERT_OPT(storageManager.partitionHealthState(k_PARTITION_ID) ==
                     mqbc::PartitionFSM::State::e_PRIMARY_HEALING_STG1);
