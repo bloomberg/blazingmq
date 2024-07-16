@@ -252,14 +252,14 @@ envcfgquery() {
     # be used to set the environment for a command.
     #   e.g. 'asan' -> 'ASAN_OPTIONS="foo=bar:baz=baf" LSAN_OPTIONS="abc=fgh"'
     #
-    "$(cfgquery "                        \
+    cfgquery "                           \
         .${1}.environment |              \
         to_entries |                     \
         map(\"\(.key)=\\\"\(.value |     \
             to_entries |                 \
             map(\"\(.key)=\(.value)\") | \
             join(\":\"))\\\"\") |        \
-        join(\" \")")" |
+        join(\" \")" |
     sed "s|%%SRC%%|$(realpath "${DIR_SRC_BMQ}")|g" |
     sed "s|%%ROOT%%|$(realpath "${DIR_ROOT}")|g"
 }
