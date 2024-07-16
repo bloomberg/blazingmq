@@ -198,24 +198,23 @@ ln -sf "/opt/bb/include" "/opt/include"
 ln -sf "/opt/bb/lib64" "/opt/lib64"
 
 # Setup CMake options for all remaining builds
-CMAKE_OPTIONS="\
+CMAKE_OPTIONS=( \
     -D BUILD_BITNESS=64 \
     -D CMAKE_BUILD_TYPE=Debug \
     -D CMAKE_INSTALL_INCLUDEDIR=include \
     -D CMAKE_INSTALL_LIBDIR=lib64 \
-    -D CMAKE_TOOLCHAIN_FILE=${TOOLCHAIN_PATH}"
+    -D CMAKE_TOOLCHAIN_FILE="${TOOLCHAIN_PATH}")
 
 # Build GoogleTest
 cmake -B "${DIR_SRCS_EXT}/googletest/cmake.bld" \
-      -S "${DIR_SRCS_EXT}/googletest" "${CMAKE_OPTIONS}" \
+      -S "${DIR_SRCS_EXT}/googletest" "${CMAKE_OPTIONS[@]}" \
       -DCMAKE_INSTALL_PREFIX=/opt/bb
 cmake --build "${DIR_SRCS_EXT}/googletest/cmake.bld" -j${PARALLELISM}
 cmake --install "${DIR_SRCS_EXT}/googletest/cmake.bld" --prefix "/opt/bb"
 
-
 # Build Google Benchmark
 cmake -B "${DIR_SRCS_EXT}/google-benchmark/cmake.bld" \
-        -S "${DIR_SRCS_EXT}/google-benchmark" "${CMAKE_OPTIONS}" \
+        -S "${DIR_SRCS_EXT}/google-benchmark" "${CMAKE_OPTIONS[@]}" \
         -DCMAKE_INSTALL_PREFIX=/opt/bb \
         -DBENCHMARK_DOWNLOAD_DEPENDENCIES="ON" \
         -DBENCHMARK_ENABLE_GTEST_TESTS="false" \
@@ -231,7 +230,7 @@ cmake --install "${DIR_SRCS_EXT}/google-benchmark/cmake.bld" --prefix "/opt/bb"
 # https://discourse.cmake.org/t/cmake-install-prefix-not-work/5040
 cmake -B "${DIR_SRCS_EXT}/zlib/cmake.bld" -S "${DIR_SRCS_EXT}/zlib" \
         -D CMAKE_INSTALL_PREFIX="/opt/bb" \
-        "${CMAKE_OPTIONS}"
+        "${CMAKE_OPTIONS[@]}"
 # Make and install zlib.
 cmake --build "${DIR_SRCS_EXT}/zlib/cmake.bld" -j${PARALLELISM}
 cmake --install "${DIR_SRCS_EXT}/zlib/cmake.bld"
@@ -242,7 +241,7 @@ cmake -B "${DIR_BUILD_BMQ}" -S "${DIR_SRC_BMQ}" -G Ninja \
     -DBDE_BUILD_TARGET_64=ON \
     -DBDE_BUILD_TARGET_CPP17=ON \
     -DCMAKE_PREFIX_PATH="${DIR_SRCS_EXT}/bde-tools/BdeBuildSystem" \
-    -DBDE_BUILD_TARGET_SAFE=1 "${CMAKE_OPTIONS}"
+    -DBDE_BUILD_TARGET_SAFE=1 "${CMAKE_OPTIONS[@]}"
 cmake --build "${DIR_BUILD_BMQ}" -j${PARALLELISM} \
       --target all.t -v --clean-first
 
