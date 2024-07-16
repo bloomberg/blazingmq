@@ -35,9 +35,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
       - name: black style check
         run: |
-          sudo apt-get install black
+          pip3 install git+https://github.com/psf/black
           black .
           git diff -q | tee format_diff.txt
           if [ -s format_diff.txt ]; then exit 1; fi
