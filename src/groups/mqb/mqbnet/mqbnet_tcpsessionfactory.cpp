@@ -680,9 +680,9 @@ void TCPSessionFactory::channelStateCallback(
                            << "rejecting empty peer URI: '" << channel.get()
                            << "'";
 
-            mwcio::Status status(mwcio::StatusCategory::e_GENERIC_ERROR,
-                                 d_allocator_p);
-            channel->close(status);
+            mwcio::Status closeStatus(mwcio::StatusCategory::e_GENERIC_ERROR,
+                                      d_allocator_p);
+            channel->close(closeStatus);
         }
         else {
             // Keep track of active channels, for logging purposes
