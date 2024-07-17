@@ -188,6 +188,7 @@
 #include <bdld_datummapbuilder.h>
 #include <bdld_manageddatum.h>
 #include <bdlf_bind.h>
+#include <bdlf_noop.h>
 #include <bdlf_placeholder.h>
 #include <bdlma_localsequentialallocator.h>
 #include <bdlt_timeunitratio.h>
@@ -1079,7 +1080,7 @@ void ClientSession::finishCheckUnconfirmedDispatched(
             mwcu::WeakMemFnUtil::weakMemFn(&ClientSession::checkUnconfirmed,
                                            d_self.acquireWeak()),
             shutdownCtx,
-            mwcu::NoOp()));
+            bdlf::noOp));
 }
 
 void ClientSession::closeChannel()
