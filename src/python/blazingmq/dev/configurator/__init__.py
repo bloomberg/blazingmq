@@ -559,7 +559,6 @@ class Proto:
                         node_low_watermark=5242880,
                         node_high_watermark=1073741824,
                         heartbeat_interval_ms=3000,
-                        use_ntf=False,
                     ),
                 ),
                 bmqconf_config=mqbcfg.BmqconfConfig(cache_ttlseconds=30),

@@ -958,13 +958,6 @@ int TCPSessionFactory::start(bsl::ostream& errorDescription)
 
     int rc = 0;
 
-    const mqbcfg::AppConfig& appConfig = mqbcfg::BrokerConfig::get();
-
-    if (!appConfig.networkInterfaces().tcpInterface().value().useNtf()) {
-        BALL_LOG_WARN << "Ignoring interface property 'useNtf' (false) "
-                      << "and using ntf, because only ntf supported";
-    }
-
     ntca::InterfaceConfig interfaceConfig = ntcCreateInterfaceConfig(d_config);
 
     bslma::ManagedPtr<mwcio::NtcChannelFactory> channelFactory;
