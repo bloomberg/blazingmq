@@ -4031,8 +4031,6 @@ class TcpInterfaceConfig {
     // cluster nodes where BlazingMQ maintains its own cache.
     // heartbeatIntervalMs..: How often (in milliseconds) to check if the
     // channel received data, and emit heartbeat.  0 to globally disable.
-    // useNtf...............: Use the new NTF based TCP transport library
-    // instead of the existing one based on BTE
 
     // INSTANCE DATA
     bsls::Types::Int64 d_lowWatermark;
@@ -4044,7 +4042,6 @@ class TcpInterfaceConfig {
     int                d_ioThreads;
     int                d_maxConnections;
     int                d_heartbeatIntervalMs;
-    bool               d_useNtf;
 
     // PRIVATE ACCESSORS
     template <typename t_HASH_ALGORITHM>
@@ -4063,11 +4060,10 @@ class TcpInterfaceConfig {
         ATTRIBUTE_ID_HIGH_WATERMARK        = 5,
         ATTRIBUTE_ID_NODE_LOW_WATERMARK    = 6,
         ATTRIBUTE_ID_NODE_HIGH_WATERMARK   = 7,
-        ATTRIBUTE_ID_HEARTBEAT_INTERVAL_MS = 8,
-        ATTRIBUTE_ID_USE_NTF               = 9
+        ATTRIBUTE_ID_HEARTBEAT_INTERVAL_MS = 8
     };
 
-    enum { NUM_ATTRIBUTES = 10 };
+    enum { NUM_ATTRIBUTES = 9 };
 
     enum {
         ATTRIBUTE_INDEX_NAME                  = 0,
@@ -4078,8 +4074,7 @@ class TcpInterfaceConfig {
         ATTRIBUTE_INDEX_HIGH_WATERMARK        = 5,
         ATTRIBUTE_INDEX_NODE_LOW_WATERMARK    = 6,
         ATTRIBUTE_INDEX_NODE_HIGH_WATERMARK   = 7,
-        ATTRIBUTE_INDEX_HEARTBEAT_INTERVAL_MS = 8,
-        ATTRIBUTE_INDEX_USE_NTF               = 9
+        ATTRIBUTE_INDEX_HEARTBEAT_INTERVAL_MS = 8
     };
 
     // CONSTANTS
@@ -4092,8 +4087,6 @@ class TcpInterfaceConfig {
     static const bsls::Types::Int64 DEFAULT_INITIALIZER_NODE_HIGH_WATERMARK;
 
     static const int DEFAULT_INITIALIZER_HEARTBEAT_INTERVAL_MS;
-
-    static const bool DEFAULT_INITIALIZER_USE_NTF;
 
     static const bdlat_AttributeInfo ATTRIBUTE_INFO_ARRAY[];
 
@@ -4224,10 +4217,6 @@ class TcpInterfaceConfig {
     // Return a reference to the modifiable "HeartbeatIntervalMs" attribute
     // of this object.
 
-    bool& useNtf();
-    // Return a reference to the modifiable "UseNtf" attribute of this
-    // object.
-
     // ACCESSORS
     bsl::ostream&
     print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
@@ -4300,9 +4289,6 @@ class TcpInterfaceConfig {
     int heartbeatIntervalMs() const;
     // Return the value of the "HeartbeatIntervalMs" attribute of this
     // object.
-
-    bool useNtf() const;
-    // Return the value of the "UseNtf" attribute of this object.
 
     // HIDDEN FRIENDS
     friend bool operator==(const TcpInterfaceConfig& lhs,
@@ -12746,7 +12732,6 @@ void TcpInterfaceConfig::hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const
     hashAppend(hashAlgorithm, this->nodeLowWatermark());
     hashAppend(hashAlgorithm, this->nodeHighWatermark());
     hashAppend(hashAlgorithm, this->heartbeatIntervalMs());
-    hashAppend(hashAlgorithm, this->useNtf());
 }
 
 inline bool TcpInterfaceConfig::isEqualTo(const TcpInterfaceConfig& rhs) const
@@ -12758,8 +12743,7 @@ inline bool TcpInterfaceConfig::isEqualTo(const TcpInterfaceConfig& rhs) const
            this->highWatermark() == rhs.highWatermark() &&
            this->nodeLowWatermark() == rhs.nodeLowWatermark() &&
            this->nodeHighWatermark() == rhs.nodeHighWatermark() &&
-           this->heartbeatIntervalMs() == rhs.heartbeatIntervalMs() &&
-           this->useNtf() == rhs.useNtf();
+           this->heartbeatIntervalMs() == rhs.heartbeatIntervalMs();
 }
 
 // CLASS METHODS
@@ -12824,12 +12808,6 @@ int TcpInterfaceConfig::manipulateAttributes(t_MANIPULATOR& manipulator)
         return ret;
     }
 
-    ret = manipulator(&d_useNtf,
-                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_USE_NTF]);
-    if (ret) {
-        return ret;
-    }
-
     return 0;
 }
 
@@ -12880,10 +12858,6 @@ int TcpInterfaceConfig::manipulateAttribute(t_MANIPULATOR& manipulator, int id)
         return manipulator(
             &d_heartbeatIntervalMs,
             ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HEARTBEAT_INTERVAL_MS]);
-    }
-    case ATTRIBUTE_ID_USE_NTF: {
-        return manipulator(&d_useNtf,
-                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_USE_NTF]);
     }
     default: return NOT_FOUND;
     }
@@ -12950,11 +12924,6 @@ inline int& TcpInterfaceConfig::heartbeatIntervalMs()
     return d_heartbeatIntervalMs;
 }
 
-inline bool& TcpInterfaceConfig::useNtf()
-{
-    return d_useNtf;
-}
-
 // ACCESSORS
 template <typename t_ACCESSOR>
 int TcpInterfaceConfig::accessAttributes(t_ACCESSOR& accessor) const
@@ -13014,11 +12983,6 @@ int TcpInterfaceConfig::accessAttributes(t_ACCESSOR& accessor) const
         return ret;
     }
 
-    ret = accessor(d_useNtf, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_USE_NTF]);
-    if (ret) {
-        return ret;
-    }
-
     return 0;
 }
 
@@ -13064,10 +13028,6 @@ int TcpInterfaceConfig::accessAttribute(t_ACCESSOR& accessor, int id) const
         return accessor(
             d_heartbeatIntervalMs,
             ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HEARTBEAT_INTERVAL_MS]);
-    }
-    case ATTRIBUTE_ID_USE_NTF: {
-        return accessor(d_useNtf,
-                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_USE_NTF]);
     }
     default: return NOT_FOUND;
     }
@@ -13132,11 +13092,6 @@ inline bsls::Types::Int64 TcpInterfaceConfig::nodeHighWatermark() const
 inline int TcpInterfaceConfig::heartbeatIntervalMs() const
 {
     return d_heartbeatIntervalMs;
-}
-
-inline bool TcpInterfaceConfig::useNtf() const
-{
-    return d_useNtf;
 }
 
 // -------------------------------
@@ -17736,7 +17691,7 @@ inline const AppConfig& Configuration::appConfig() const
 }  // close enterprise namespace
 #endif
 
-// GENERATED BY @BLP_BAS_CODEGEN_VERSION@
+// GENERATED BY BLP_BAS_CODEGEN_2024.07.04.1
 // USING bas_codegen.pl -m msg --noAggregateConversion --noExternalization
 // --noIdent --package mqbcfg --msgComponent messages mqbcfg.xsd
 // ----------------------------------------------------------------------------
