@@ -282,6 +282,9 @@ class QueueState {
     /// Return reference to the structures for the queue engine routing.
     Routers::QueueRoutingContext& routingContext();
 
+    /// Update the stats to the current values in the handleParamaters
+    void updateStats();
+
     // ACCESSORS
 
     /// Return true if the queue has upstream parameters for the specified
