@@ -63,16 +63,16 @@ wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null \
 sudo apt-add-repository -y "deb https://apt.kitware.com/ubuntu/ $(lsb_release -cs) main"
 sudo apt-get install -qy cmake
 
-# Install Clang
+# Install LLVM
 wget https://apt.llvm.org/llvm.sh
 chmod +x llvm.sh 
-CLANG_VERSION=18
-sudo ./llvm.sh ${CLANG_VERSION} clang
+LLVM_VERSION=17
+sudo ./llvm.sh ${LLVM_VERSION}
 
 # Create version-agnostic pointers to required LLVM binaries.
-sudo ln -sf /usr/bin/clang-${CLANG_VERSION} /usr/bin/clang
-sudo ln -sf /usr/bin/clang++-${CLANG_VERSION} /usr/bin/clang++ 
-sudo ln -sf /usr/bin/llvm-symbolizer-${CLANG_VERSION} /usr/bin/llvm-symbolizer
+sudo ln -sf /usr/bin/clang-${LLVM_VERSION} /usr/bin/clang
+sudo ln -sf /usr/bin/clang++-${LLVM_VERSION} /usr/bin/clang++ 
+sudo ln -sf /usr/bin/llvm-symbolizer-${LLVM_VERSION} /usr/bin/llvm-symbolizer
 
 # Set some initial constants
 PARALLELISM=8
@@ -112,7 +112,7 @@ github_url() { echo "https://github.com/$1.git"; }
 mkdir -p "${DIR_SRCS_EXT}"
 
 # Download LLVM
-LLVM_TAG="llvmorg-18.1.8"
+LLVM_TAG="llvmorg-17.0.6"
 curl -SL "https://github.com/llvm/llvm-project/archive/refs/tags/${LLVM_TAG}.tar.gz" \
     | tar -xzC "${DIR_SRCS_EXT}"
 mv "${DIR_SRCS_EXT}/llvm-project-${LLVM_TAG}" "${DIR_SRCS_EXT}/llvm-project"
@@ -162,7 +162,7 @@ export DIR_SCRIPTS="${DIR_SCRIPTS}"
 TOOLCHAIN_PATH="${DIR_SCRIPTS}/clang-libcxx-${SANITIZER_NAME}.cmake"
 export CC="clang"
 export CXX="clang++"
-export CMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES="/usr/include;/usr/include/clang/${CLANG_VERSION}/include"
+export CMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES="/usr/include;/usr/include/clang/${LLVM_VERSION}/include"
 export BBS_BUILD_SYSTEM="ON"
 PATH="$PATH:$(realpath "${DIR_SRCS_EXT}"/bde-tools/bin)"
 export PATH
