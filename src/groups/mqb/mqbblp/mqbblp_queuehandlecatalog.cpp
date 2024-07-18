@@ -65,6 +65,7 @@ class DefaultHandleFactory : public mqbi::QueueHandleFactory {
                                                           clientContext,
                mqbstat::QueueStatsDomain*                 stats,
                const bmqp_ctrlmsg::QueueHandleParameters& handleParameters,
+               mqbu::SingleCounter*                       parent,
                bslma::Allocator* allocator) BSLS_KEYWORD_OVERRIDE;
     // Create a new handle, using the specified 'allocator', for the
     // specified 'queue' as requested by the specified 'clientContext' with
@@ -86,12 +87,14 @@ mqbi::QueueHandle* DefaultHandleFactory::makeHandle(
     const bsl::shared_ptr<mqbi::QueueHandleRequesterContext>& clientContext,
     mqbstat::QueueStatsDomain*                                stats,
     const bmqp_ctrlmsg::QueueHandleParameters&                handleParameters,
+    mqbu::SingleCounter*                                      parent,
     bslma::Allocator*                                         allocator)
 {
     return new (*allocator) mqbblp::QueueHandle(queue,
                                                 clientContext,
                                                 stats,
                                                 handleParameters,
+                                                parent,
                                                 allocator);
 }
 
@@ -119,11 +122,13 @@ void QueueHandleCatalog::queueHandleDeleter(mqbi::QueueHandle* handle)
     d_allocator_p->deleteObject(handle);
 }
 
-QueueHandleCatalog::QueueHandleCatalog(mqbi::Queue*      queue,
-                                       bslma::Allocator* allocator)
+QueueHandleCatalog::QueueHandleCatalog(mqbi::Queue*         queue,
+                                       mqbu::SingleCounter* counter,
+                                       bslma::Allocator*    allocator)
 : d_queue_p(queue)
 , d_handleFactory_mp(new (*allocator) DefaultHandleFactory(), allocator)
 , d_handles(allocator)
+, d_counterOfUnconfirmed_p(counter)
 , d_allocator_p(allocator)
 {
     // NOTHING
@@ -172,6 +177,7 @@ mqbi::QueueHandle* QueueHandleCatalog::createHandle(
         clientContext,
         stats,
         canonicalHandleParams,
+        d_counterOfUnconfirmed_p,
         d_allocator_p);
     handle->setIsClientClusterMember(clientContext->isClusterMember());
 

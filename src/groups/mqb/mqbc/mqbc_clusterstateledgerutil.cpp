@@ -142,7 +142,7 @@ int ClusterStateLedgerUtil::validateFileHeader(
     const ClusterStateFileHeader& header,
     const mqbu::StorageKey&       expectedLogId)
 {
-    if (static_cast<const int>(header.protocolVersion()) !=
+    if (static_cast<int>(header.protocolVersion()) !=
         ClusterStateLedgerProtocol::k_VERSION) {
         return ClusterStateLedgerUtilRc::e_INVALID_PROTOCOL_VERSION;  // RETURN
     }

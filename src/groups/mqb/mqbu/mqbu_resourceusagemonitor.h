@@ -120,6 +120,7 @@
 #include <bsl_algorithm.h>
 #include <bsl_iosfwd.h>
 #include <bsls_assert.h>
+#include <bsls_atomic.h>
 #include <bsls_types.h>
 
 namespace BloombergLP {
@@ -465,6 +466,20 @@ class ResourceUsageMonitor {
     print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
 };
 
+struct SingleCounter {
+    /// Thread-safe int value hierarchical tracker
+    /// Relies on an owner for creation/destruction
+
+    SingleCounter*  d_parent_p;
+    bsls::AtomicInt d_value;
+
+    SingleCounter(SingleCounter* parent);
+
+    void update(int delta);
+
+    int value() const;
+};
+
 // FREE OPERATORS
 bsl::ostream& operator<<(bsl::ostream&               stream,
                          const ResourceUsageMonitor& value);
@@ -656,6 +671,30 @@ inline ResourceUsageMonitorState::Enum ResourceUsageMonitor::state() const
     // NOTE: Below assumes that the ResourceUsageMonitorState Enum is in
     //       increasing order of limit reached
     return bsl::max(d_bytes.state(), d_messages.state());
+}
+
+// --------------------
+// struct SingleCounter
+// --------------------
+
+inline SingleCounter::SingleCounter(SingleCounter* parent)
+: d_parent_p(parent)
+, d_value(0)
+{
+    // NOTHING
+}
+
+inline void SingleCounter::update(int delta)
+{
+    d_value += delta;
+    if (d_parent_p) {
+        d_parent_p->update(delta);
+    }
+}
+
+inline int SingleCounter::value() const
+{
+    return d_value;
 }
 
 }  // close package namespace

@@ -528,7 +528,8 @@ mqbi::QueueHandle* HandleFactory::makeHandle(
     const bsl::shared_ptr<mqbi::QueueHandleRequesterContext>& clientContext,
     mqbstat::QueueStatsDomain*                                stats,
     const bmqp_ctrlmsg::QueueHandleParameters&                handleParameters,
-    bslma::Allocator*                                         allocator)
+    BSLS_ANNOTATION_UNUSED mqbu::SingleCounter* parent,
+    bslma::Allocator*                           allocator)
 {
     return new (*allocator) mqbmock::QueueHandle(queue,
                                                  clientContext,

@@ -289,6 +289,8 @@ TestBench::TestRemoteQueue::TestRemoteQueue(
                d_storageKey,
                1,  // partition
                &theBench.d_domain,
+               0,
+               // not counting unconfirmed
                theBench.d_allocator_p)
 , d_remoteQueue(&d_queueState,
                 timeout,

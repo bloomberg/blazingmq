@@ -30,9 +30,9 @@
 // must be executed by the dispatcher thread of the associated queue.
 
 // MQB
-
 #include <mqbi_queue.h>
 #include <mqbi_storage.h>
+#include <mqbu_resourceusagemonitor.h>
 
 // BMQ
 #include <bmqp_ctrlmsg_messages.h>
@@ -146,6 +146,9 @@ class QueueHandleCatalog {
     // 'mutable' because TwoKeyHashMap
     // doesn't expose const operators.
 
+    mqbu::SingleCounter* d_counterOfUnconfirmed_p;
+    // Count Unconfirmed for (cluster) shutdown
+
     bslma::Allocator* d_allocator_p;
     // Allocator to use.
 
@@ -171,7 +174,9 @@ class QueueHandleCatalog {
 
     /// Create a new object associated to the specified `queue`.  Use the
     /// specified `allocator` for any memory allocations.
-    QueueHandleCatalog(mqbi::Queue* queue, bslma::Allocator* allocator);
+    QueueHandleCatalog(mqbi::Queue*         queue,
+                       mqbu::SingleCounter* counter,
+                       bslma::Allocator*    allocator);
 
     /// Destructor.
     ~QueueHandleCatalog();

@@ -51,6 +51,7 @@
 #include <mqbconfm_messages.h>
 #include <mqbi_dispatcher.h>
 #include <mqbi_storage.h>
+#include <mqbu_resourceusagemonitor.h>
 
 // BMQ
 #include <bmqp_ctrlmsg_messages.h>
@@ -964,12 +965,13 @@ class QueueHandleFactory {
     /// Create a new handle, using the specified `allocator`, for the
     /// specified `queue` as requested by the specified `clientContext` with
     /// the specified `parameters`, and associated wit the specified
-    /// `stats`.
+    /// `stats`.  Use the specified 'counterOfUnconfirmed'.
     virtual QueueHandle* makeHandle(
         const bsl::shared_ptr<Queue>&                       queue,
         const bsl::shared_ptr<QueueHandleRequesterContext>& clientContext,
         mqbstat::QueueStatsDomain*                          stats,
         const bmqp_ctrlmsg::QueueHandleParameters&          handleParameters,
+        mqbu::SingleCounter*                                parent,
         bslma::Allocator*                                   allocator) = 0;
 };
 

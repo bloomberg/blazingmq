@@ -182,6 +182,8 @@ class QueueState {
     // The throttling thresholds and delay
     // values for poison messages
 
+    mqbu::SingleCounter d_counterOfUnconfirmed;
+
     QueueHandleCatalog d_handleCatalog;
 
     Routers::QueueRoutingContext d_context;
@@ -210,6 +212,7 @@ class QueueState {
                const mqbu::StorageKey& key,
                int                     partitionId,
                mqbi::Domain*           domain,
+               mqbu::SingleCounter*    parent,
                bslma::Allocator*       allocator);
 
     /// Destructor

@@ -206,6 +206,9 @@ class QueueHandle : public mqbi::QueueHandle {
 
     bmqp::SchemaLearner::Context d_schemaLearnerPushContext;
 
+    mqbu::SingleCounter d_counterOfUnconfirmed;
+    // Count Unconfirmed for (cluster) shutdown
+
     bslma::Allocator* d_allocator_p;
     // Allocator to use.
 
@@ -280,6 +283,7 @@ class QueueHandle : public mqbi::QueueHandle {
                                                            clientContext,
                 mqbstat::QueueStatsDomain*                 domainStats,
                 const bmqp_ctrlmsg::QueueHandleParameters& handleParameters,
+                mqbu::SingleCounter*                       parent,
                 bslma::Allocator*                          allocator);
 
     /// Destructor

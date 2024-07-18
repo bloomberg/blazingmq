@@ -458,10 +458,11 @@ Queue::Queue(const bmqt::Uri&                          uri,
              bdlmt::EventScheduler*                    scheduler,
              bdlmt::FixedThreadPool*                   threadPool,
              const bmqp_ctrlmsg::RoutingConfiguration& routingCfg,
+             mqbu::SingleCounter*                      parent,
              bslma::Allocator*                         allocator)
 : d_allocator_p(allocator)
 , d_schemaLearner(allocator)
-, d_state(this, uri, id, key, partitionId, domain, allocator)
+, d_state(this, uri, id, key, partitionId, domain, parent, allocator)
 , d_localQueue_mp(0)
 , d_remoteQueue_mp(0)
 {

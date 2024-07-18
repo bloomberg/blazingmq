@@ -447,6 +447,7 @@ class HandleFactory : public mqbi::QueueHandleFactory {
                                                           clientContext,
                mqbstat::QueueStatsDomain*                 stats,
                const bmqp_ctrlmsg::QueueHandleParameters& handleParameters,
+               mqbu::SingleCounter*                       parent,
                bslma::Allocator* allocator) BSLS_KEYWORD_OVERRIDE;
 };
 
