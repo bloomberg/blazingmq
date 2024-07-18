@@ -67,7 +67,7 @@ sudo apt-get install -qy cmake
 wget https://apt.llvm.org/llvm.sh
 chmod +x llvm.sh 
 LLVM_VERSION=17
-sudo ./llvm.sh ${LLVM_VERSION}
+sudo ./llvm.sh ${LLVM_VERSION} all
 
 # Create version-agnostic pointers to required LLVM binaries.
 sudo ln -sf /usr/bin/clang-${LLVM_VERSION} /usr/bin/clang
