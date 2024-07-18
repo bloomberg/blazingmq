@@ -767,7 +767,12 @@ int Application::processCommand(const bslstl::StringRef& source,
             return -2;
         }
         selfName          = cluster->netCluster().selfNode()->hostName();
-        shouldSelfExecute = routeCommandManager.route(cluster);
+        shouldSelfExecute = routeCommandManager.route(&cmdResult, cluster);
+
+        if (cmdResult.isErrorValue()) {
+            printCommandResult(cmdResult, commandWithOptions.encoding(), os);
+            return -2;
+        }
     }
 
     if (shouldSelfExecute) {
@@ -776,6 +781,7 @@ int Application::processCommand(const bslstl::StringRef& source,
         }
     }
 
+    // While we wait we are blocking the execution of any subsequent commands.
     routeCommandManager.waitForResponses();
 
     mqbcmd::RouteResponseList& responses = routeCommandManager.responses();

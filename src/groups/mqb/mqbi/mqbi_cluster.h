@@ -84,6 +84,9 @@ class ClusterResult;
 namespace mqbcmd {
 class ClusterStatus;
 }
+namespace mqbcmd {
+class InternalResult;
+}
 namespace mqbnet {
 class Cluster;
 }
@@ -431,14 +434,16 @@ class Cluster : public DispatcherClient {
 
     /// Gets all the nodes which are a primary for some partition of this
     /// cluster
-    virtual void getPrimaryNodes(bsl::vector<mqbnet::ClusterNode*>* outNodes,
-                                 bool* outIsSelfPrimary) const = 0;
+    virtual void getPrimaryNodes(bsl::vector<mqbnet::ClusterNode*>* nodes,
+                                 bool*                   isSelfPrimary,
+                                 mqbcmd::InternalResult* result) const = 0;
 
     /// Gets the node which is the primary for the given partitionId or sets
     /// outIsSelfPrimary to true if the caller is the primary.
-    virtual void getPartitionPrimaryNode(mqbnet::ClusterNode** outNode,
-                                         bool* outIsSelfPrimary,
-                                         int   partitionId) const = 0;
+    virtual void getPartitionPrimaryNode(mqbnet::ClusterNode**   node,
+                                         bool*                   isSelfPrimary,
+                                         mqbcmd::InternalResult* result,
+                                         int partitionId) const = 0;
 };
 
 // ============================================================================

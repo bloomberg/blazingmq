@@ -65,8 +65,9 @@ class CommandRouter {
 
   private:
     struct RouteMembers {
-        NodesVector d_nodes;
-        bool        d_self;
+        NodesVector d_nodes;  // Proxy nodes and the self node should never be
+                              // route members.
+        bool d_self;  // True if the command should execute on this node
     };
 
     class RoutingMode {
@@ -74,14 +75,16 @@ class CommandRouter {
         RoutingMode();
         virtual ~RoutingMode() = 0;
 
-        virtual RouteMembers getRouteMembers(mqbi::Cluster* cluster) = 0;
+        virtual RouteMembers getRouteMembers(mqbcmd::InternalResult* result,
+                                             mqbi::Cluster* cluster) = 0;
     };
     class AllPartitionPrimariesRoutingMode : public RoutingMode {
       public:
         AllPartitionPrimariesRoutingMode();
 
         RouteMembers
-        getRouteMembers(mqbi::Cluster* cluster) BSLS_KEYWORD_OVERRIDE;
+        getRouteMembers(mqbcmd::InternalResult* result,
+                        mqbi::Cluster*          cluster) BSLS_KEYWORD_OVERRIDE;
     };
     class SinglePartitionPrimaryRoutingMode : public RoutingMode {
       private:
@@ -91,14 +94,16 @@ class CommandRouter {
         SinglePartitionPrimaryRoutingMode(int partitionId);
 
         RouteMembers
-        getRouteMembers(mqbi::Cluster* cluster) BSLS_KEYWORD_OVERRIDE;
+        getRouteMembers(mqbcmd::InternalResult* result,
+                        mqbi::Cluster*          cluster) BSLS_KEYWORD_OVERRIDE;
     };
     class ClusterRoutingMode : public RoutingMode {
       public:
         ClusterRoutingMode();
 
         RouteMembers
-        getRouteMembers(mqbi::Cluster* cluster) BSLS_KEYWORD_OVERRIDE;
+        getRouteMembers(mqbcmd::InternalResult* result,
+                        mqbi::Cluster*          cluster) BSLS_KEYWORD_OVERRIDE;
     };
 
   public:
@@ -128,7 +133,7 @@ class CommandRouter {
 
     /// Performs any routing on the command and returns true if the caller
     /// should also execute the command.
-    bool route(mqbi::Cluster* relevantCluster);
+    bool route(mqbcmd::InternalResult* result, mqbi::Cluster* relevantCluster);
 
     /// Waits on a latch that triggers when the responses have been received.
     void waitForResponses();
@@ -136,10 +141,6 @@ class CommandRouter {
     /// Returns a reference to the collected responses from routing.
     // ResponseMessages& responses();
     mqbcmd::RouteResponseList& responses();
-
-    /// Returns a pointer to the relevant cluster for this
-    /// command. The pointer can be guaranteed to be non-null.
-    // mqbi::Cluster* cluster() const;
 
   private:
     RoutingModeMp getCommandRoutingMode();

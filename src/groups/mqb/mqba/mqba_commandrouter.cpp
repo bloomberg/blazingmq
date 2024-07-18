@@ -63,21 +63,24 @@ CommandRouter::AllPartitionPrimariesRoutingMode::
 
 CommandRouter::RouteMembers
 CommandRouter::AllPartitionPrimariesRoutingMode::getRouteMembers(
-    mqbi::Cluster* cluster)
+    mqbcmd::InternalResult* result,
+    mqbi::Cluster*          cluster)
 {
     NodesVector primaryNodes;
     bool        isSelfPrimary;
+    bool        success;
 
     cluster->dispatcher()->execute(
         bdlf::BindUtil::bind(&mqbi::Cluster::getPrimaryNodes,
                              cluster,
                              &primaryNodes,
-                             &isSelfPrimary),
+                             &isSelfPrimary,
+                             result),
         cluster);
 
     cluster->dispatcher()->synchronize(cluster);
 
-    return {primaryNodes, isSelfPrimary};
+    return {.d_nodes = primaryNodes, .d_self = isSelfPrimary};
 }
 
 CommandRouter::SinglePartitionPrimaryRoutingMode::
@@ -88,16 +91,19 @@ CommandRouter::SinglePartitionPrimaryRoutingMode::
 
 CommandRouter::RouteMembers
 CommandRouter::SinglePartitionPrimaryRoutingMode::getRouteMembers(
-    mqbi::Cluster* cluster)
+    mqbcmd::InternalResult* result,
+    mqbi::Cluster*          cluster)
 {
-    mqbnet::ClusterNode* node          = nullptr;
-    bool                 isSelfPrimary = false;
+    mqbnet::ClusterNode* node;
+    bool                 isSelfPrimary;
+    bool                 success;
 
     cluster->dispatcher()->execute(
         bdlf::BindUtil::bind(&mqbi::Cluster::getPartitionPrimaryNode,
                              cluster,
                              &node,
                              &isSelfPrimary,
+                             result,
                              d_partitionId),
         cluster);
 
@@ -109,15 +115,19 @@ CommandRouter::SinglePartitionPrimaryRoutingMode::getRouteMembers(
         nodes.push_back(node);
     }
 
-    return {nodes, isSelfPrimary};
+    return {
+        .d_nodes = nodes,
+        .d_self  = isSelfPrimary,
+    };
 }
 
 CommandRouter::ClusterRoutingMode::ClusterRoutingMode()
 {
 }
 
-CommandRouter::RouteMembers
-CommandRouter::ClusterRoutingMode::getRouteMembers(mqbi::Cluster* cluster)
+CommandRouter::RouteMembers CommandRouter::ClusterRoutingMode::getRouteMembers(
+    mqbcmd::InternalResult* result,
+    mqbi::Cluster*          cluster)
 {
     typedef mqbnet::Cluster::NodesList NodesList;
     // collect all nodes in cluster
@@ -134,15 +144,18 @@ CommandRouter::ClusterRoutingMode::getRouteMembers(mqbi::Cluster* cluster)
     }
 
     return {
-        nodes,
-        true  // Cluster routing always requires original node to exec.
+        .d_nodes = nodes,
+        .d_self =
+            true,  // Cluster routing always requires original node to exec.
     };
 }
 
-bool CommandRouter::route(mqbi::Cluster* relevantCluster)
+bool CommandRouter::route(mqbcmd::InternalResult* result,
+                          mqbi::Cluster*          relevantCluster)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_routingMode);
+    BSLS_ASSERT_SAFE(result);
     BSLS_ASSERT_SAFE(relevantCluster);
 
     typedef mqbnet::MultiRequestManager<bmqp_ctrlmsg::ControlMessage,
@@ -150,8 +163,15 @@ bool CommandRouter::route(mqbi::Cluster* relevantCluster)
                                         mqbnet::ClusterNode*>::RequestContextSp
         RequestContextSp;
 
-    RouteMembers routeMembers = d_routingMode->getRouteMembers(
-        relevantCluster);
+    RouteMembers routeMembers =
+        d_routingMode->getRouteMembers(result, relevantCluster);
+
+    // Failed to get route members, most likely due to not having an active
+    // primary.
+    if (result->isErrorValue()) {
+        countDownLatch();
+        return false;
+    }
 
     if (routeMembers.d_nodes.size() == 0) {
         countDownLatch();
@@ -164,8 +184,7 @@ bool CommandRouter::route(mqbi::Cluster* relevantCluster)
     bmqp_ctrlmsg::AdminCommand& adminCommand =
         contextSp->request().choice().makeAdminCommand();
 
-    adminCommand.command()  = d_commandString;
-    adminCommand.rerouted() = true;
+    adminCommand.command() = d_commandString;
 
     contextSp->setDestinationNodes(routeMembers.d_nodes);
 
@@ -249,24 +268,29 @@ void CommandRouter::onRouteCommandResponse(
 
 CommandRouter::RoutingModeMp CommandRouter::getCommandRoutingMode()
 {
-    RoutingMode* routingMode = nullptr;
+    bslma::Allocator* allocator = bslma::Default::allocator();
+
+    RoutingModeMp routingMode(nullptr);
+
     if (d_command.isDomainsValue()) {
         const mqbcmd::DomainsCommand& domains = d_command.domains();
         if (domains.isDomainValue()) {
             const mqbcmd::DomainCommand& domain = domains.domain().command();
             if (domain.isPurgeValue()) {
-                routingMode = new AllPartitionPrimariesRoutingMode();
+                routingMode.load(new (*allocator)
+                                     AllPartitionPrimariesRoutingMode());
                 // DOMAINS DOMAIN <name> PURGE
             }
             else if (domain.isQueueValue()) {
                 if (domain.queue().command().isPurgeAppIdValue()) {
-                    routingMode = new AllPartitionPrimariesRoutingMode();
+                    routingMode.load(new (*allocator)
+                                         AllPartitionPrimariesRoutingMode());
                     // DOMAINS DOMAIN <name> QUEUE <name> PURGE
                 }
             }
         }
         else if (domains.isReconfigureValue()) {
-            routingMode = new ClusterRoutingMode();
+            routingMode.load(new (*allocator) ClusterRoutingMode());
             // DOMAINS RECONFIGURE <domain>
         }
     }
@@ -276,7 +300,8 @@ CommandRouter::RoutingModeMp CommandRouter::getCommandRoutingMode()
             const mqbcmd::ClusterCommand& cluster =
                 clusters.cluster().command();
             if (cluster.isForceGcQueuesValue()) {
-                routingMode = new AllPartitionPrimariesRoutingMode();
+                routingMode.load(new (*allocator)
+                                     AllPartitionPrimariesRoutingMode());
                 // CLUSTERS CLUSTER <name> FORCE_GC_QUEUES
             }
             else if (cluster.isStorageValue()) {
@@ -285,8 +310,9 @@ CommandRouter::RoutingModeMp CommandRouter::getCommandRoutingMode()
                     if (storage.partition().command().isEnableValue() ||
                         storage.partition().command().isDisableValue()) {
                         int partitionId = storage.partition().partitionId();
-                        routingMode = new SinglePartitionPrimaryRoutingMode(
-                            partitionId);
+                        routingMode.load(new (*allocator)
+                                             SinglePartitionPrimaryRoutingMode(
+                                                 partitionId));
                         // CLUSTERS CLUSTER <name> STORAGE PARTITION
                         // <partitionId> [ENABLE|DISABLE]
                     }
@@ -299,7 +325,8 @@ CommandRouter::RoutingModeMp CommandRouter::getCommandRoutingMode()
                         const mqbcmd::SetTunable& tunable =
                             replication.setTunable();
                         if (tunable.choice().isAllValue()) {
-                            routingMode = new ClusterRoutingMode();
+                            routingMode.load(new (*allocator)
+                                                 ClusterRoutingMode());
                             // CLUSTERS CLUSTER <name> STORAGE REPLICATION
                             // SET_ALL
                         }
@@ -308,7 +335,8 @@ CommandRouter::RoutingModeMp CommandRouter::getCommandRoutingMode()
                         const mqbcmd::GetTunable& tunable =
                             replication.getTunable();
                         if (tunable.choice().isAllValue()) {
-                            routingMode = new ClusterRoutingMode();
+                            routingMode.load(new (*allocator)
+                                                 ClusterRoutingMode());
                             // CLUSTERS CLUSTER <name> STORAGE REPLICATION
                             // GET_ALL
                         }
@@ -323,7 +351,8 @@ CommandRouter::RoutingModeMp CommandRouter::getCommandRoutingMode()
                         const mqbcmd::SetTunable& tunable =
                             elector.setTunable();
                         if (tunable.choice().isAllValue()) {
-                            routingMode = new ClusterRoutingMode();
+                            routingMode.load(new (*allocator)
+                                                 ClusterRoutingMode());
                             // CLUSTERS CLUSTER <name> STATE ELECTOR SET_ALL
                         }
                     }
@@ -331,7 +360,8 @@ CommandRouter::RoutingModeMp CommandRouter::getCommandRoutingMode()
                         const mqbcmd::GetTunable& tunable =
                             elector.getTunable();
                         if (tunable.choice().isAllValue()) {
-                            routingMode = new ClusterRoutingMode();
+                            routingMode.load(new (*allocator)
+                                                 ClusterRoutingMode());
                             // CLUSTERS CLUSTER <name> STATE ELECTOR GET_ALL
                         }
                     }
@@ -340,9 +370,7 @@ CommandRouter::RoutingModeMp CommandRouter::getCommandRoutingMode()
         }
     }
 
-    RoutingModeMp ret(routingMode);
-
-    return ret;
+    return routingMode;
 }
 
 }  // close package namespace

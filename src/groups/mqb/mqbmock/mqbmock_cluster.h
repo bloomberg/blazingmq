@@ -426,15 +426,14 @@ class Cluster : public mqbi::Cluster {
     /// Block until scheduler executes all the scheduled callbacks.
     void waitForScheduler();
 
-    /// Gets all the nodes which are a primary for some partition of this
-    /// cluster
-    void getPrimaryNodes(bsl::vector<mqbnet::ClusterNode*>* outNodes,
-                         bool* outIsSelfPrimary) const BSLS_KEYWORD_OVERRIDE;
+    void getPrimaryNodes(bsl::vector<mqbnet::ClusterNode*>* nodes,
+                         bool*                              isSelfPrimary,
+                         mqbcmd::InternalResult*            result) const
+        BSLS_KEYWORD_OVERRIDE;
 
-    /// Gets all the nodes which are a primary for some partition of this
-    /// cluster
-    void getPartitionPrimaryNode(mqbnet::ClusterNode** outNode,
-                                 bool*                 outIsSelfPrimary,
+    void getPartitionPrimaryNode(mqbnet::ClusterNode**   node,
+                                 bool*                   isSelfPrimary,
+                                 mqbcmd::InternalResult* result,
                                  int partitionId) const BSLS_KEYWORD_OVERRIDE;
 
     // ACCESSORS
@@ -583,16 +582,17 @@ inline void Cluster::advanceTime(int seconds)
     d_timeSource.advanceTime(bsls::TimeInterval(seconds));
 }
 
-inline void
-Cluster::getPrimaryNodes(bsl::vector<mqbnet::ClusterNode*>* outNodes,
-                         bool* outIsSelfPrimary) const
+inline void Cluster::getPrimaryNodes(bsl::vector<mqbnet::ClusterNode*>* nodes,
+                                     bool*                   isSelfPrimary,
+                                     mqbcmd::InternalResult* result) const
 {
     // no implementation
 }
 
-inline void Cluster::getPartitionPrimaryNode(mqbnet::ClusterNode** outNode,
-                                             bool* outIsSelfPrimary,
-                                             int   partitionId) const
+inline void Cluster::getPartitionPrimaryNode(mqbnet::ClusterNode** node,
+                                             bool* isSelfPrimary,
+                                             mqbcmd::InternalResult* result,
+                                             int partitionId) const
 {
     // no implementation
 }

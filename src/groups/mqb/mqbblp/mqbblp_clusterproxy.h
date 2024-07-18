@@ -535,15 +535,14 @@ class ClusterProxy : public mqbc::ClusterStateObserver,
     /// Load the cluster state in the specified `out` object.
     void loadClusterStatus(mqbcmd::ClusterResult* out) BSLS_KEYWORD_OVERRIDE;
 
-    /// Gets all the nodes which are a primary for some partition of this
-    /// cluster
-    void getPrimaryNodes(bsl::vector<mqbnet::ClusterNode*>* outNodes,
-                         bool* outIsSelfPrimary) const BSLS_KEYWORD_OVERRIDE;
+    void getPrimaryNodes(bsl::vector<mqbnet::ClusterNode*>* nodes,
+                         bool*                              isSelfPrimary,
+                         mqbcmd::InternalResult*            result) const
+        BSLS_KEYWORD_OVERRIDE;
 
-    /// Gets the node which is the primary for the given partitionId or sets
-    /// outIsSelfPrimary to true if the caller is the primary.
-    void getPartitionPrimaryNode(mqbnet::ClusterNode** outNode,
-                                 bool*                 outIsSelfPrimary,
+    void getPartitionPrimaryNode(mqbnet::ClusterNode**   node,
+                                 bool*                   isSelfPrimary,
+                                 mqbcmd::InternalResult* result,
                                  int partitionId) const BSLS_KEYWORD_OVERRIDE;
 
     // MANIPULATORS
@@ -713,16 +712,18 @@ inline size_t ClusterProxy::ChannelBuffer::bytes() const
 // ------------------
 
 inline void
-ClusterProxy::getPrimaryNodes(bsl::vector<mqbnet::ClusterNode*>* outNodes,
-                              bool* outIsSelfPrimary) const
+ClusterProxy::getPrimaryNodes(bsl::vector<mqbnet::ClusterNode*>* nodes,
+                              bool*                              isSelfPrimary,
+                              mqbcmd::InternalResult*            result) const
 {
     // no implementation
 }
 
-inline void 
-ClusterProxy::getPartitionPrimaryNode(mqbnet::ClusterNode** outNode,
-                                      bool*                 outIsSelfPrimary,
-                                      int                   partitionId) const
+inline void
+ClusterProxy::getPartitionPrimaryNode(mqbnet::ClusterNode**   node,
+                                      bool*                   isSelfPrimary,
+                                      mqbcmd::InternalResult* result,
+                                      int partitionId) const
 {
     // no implementation
 }
