@@ -1,4 +1,4 @@
-// Copyright 2022-2023 Bloomberg Finance L.P.
+// Copyright 2021-2023 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -36,7 +36,7 @@
 // regions of C++11 code, then this header contains no code and is not
 // '#include'd in the original header.
 //
-// Generated on Wed Jun 19 15:52:47 2024
+// Generated on Wed Jul 17 13:47:07 2024
 // Command line: sim_cpp11_features.pl mwcu_operationchain.h
 
 #ifdef COMPILING_MWCU_OPERATIONCHAIN_H
@@ -95,7 +95,7 @@ struct OperationChain_IsOperationCallbackCompatible
       bsl::is_destructible_v<bsl::decay_t<TYPE> > &&
           bsl::is_move_constructible_v<bsl::decay_t<TYPE> > &&
           bsl::is_invocable_v<bsl::add_rvalue_reference_t<bsl::decay_t<TYPE> >,
-                              mwcu::NoOp> >
+                              bdlf::NoOp> >
 #else
 : bsl::integral_constant<bool, true>
 #endif
@@ -353,7 +353,7 @@ class OperationChain_Job {
 
     /// A "small" dummy functor used to help calculate the size of the
     /// on-stack buffer.
-    struct Dummy : public mwcu::NoOp {
+    struct Dummy : public bdlf::NoOp {
         void* d_padding[5];
     };
 
@@ -568,7 +568,7 @@ class OperationChain {
     /// Append a link containing a single operation represented by the
     /// specified `opCallback` operation callback and the optionally
     /// specified `coCallback` completion callback to this operation chain.
-    /// If no completion callback is specified, use `mwcu::NoOp`. If the
+    /// If no completion callback is specified, use `bdlf::NoOp`. If the
     /// chain is started and the appended link is the first one in the
     /// chain, execute the single operation in the appended link
     /// immediately.
@@ -700,7 +700,7 @@ class OperationChainLink {
     /// Insert an operation into this link. Specify a `opCallback` operation
     /// callback initiating the operation. Optionally specify a `coCallback`
     /// completion callback to be passed to the operation callback as a
-    /// parameter. If no completion callback is specified, use `mwcu::NoOp`.
+    /// parameter. If no completion callback is specified, use `bdlf::NoOp`.
     ///
     /// This function meets the strong exception guarantee. If an exception
     /// is thrown, this function has no effect.
@@ -1214,7 +1214,7 @@ OperationChain::appendInplace(BSLS_COMPILERFEATURES_FORWARD_REF(OP_CALLBACK)
         OperationChain_IsOperationCallbackCompatible<OP_CALLBACK>::value);
 
     appendInplace(BSLS_COMPILERFEATURES_FORWARD(OP_CALLBACK, opCallback),
-                  NoOp());
+                  bdlf::noOp);
 }
 
 template <class OP_CALLBACK, class CO_CALLBACK>
@@ -1251,7 +1251,7 @@ OperationChainLink::insert(BSLS_COMPILERFEATURES_FORWARD_REF(OP_CALLBACK)
     BSLMF_ASSERT(
         OperationChain_IsOperationCallbackCompatible<OP_CALLBACK>::value);
 
-    insert(BSLS_COMPILERFEATURES_FORWARD(OP_CALLBACK, opCallback), NoOp());
+    insert(BSLS_COMPILERFEATURES_FORWARD(OP_CALLBACK, opCallback), bdlf::noOp);
 }
 
 template <class OP_CALLBACK, class CO_CALLBACK>
@@ -1288,19 +1288,3 @@ inline void mwcu::swap(OperationChainLink& lhs,
 #endif  // ! defined(COMPILING_MWCU_OPERATIONCHAIN_H)
 
 #endif  // ! defined(INCLUDED_MWCU_OPERATIONCHAIN_CPP03)
-
-// ----------------------------------------------------------------------------
-// Copyright 2024 Bloomberg Finance L.P.
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-// ----------------------------- END-OF-FILE ----------------------------------

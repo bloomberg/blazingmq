@@ -732,6 +732,8 @@ void RemoteQueue::onHandleReleased(
     BSLS_ASSERT_SAFE(d_state_p->queue()->dispatcher()->inDispatcherThread(
         d_state_p->queue()));
 
+    d_state_p->updateStats();
+
     mqbi::Cluster* cluster = d_state_p->domain()->cluster();
     if (result.hasNoHandleStreamConsumers()) {
         // Lost last reader for the specified subStream for the handle

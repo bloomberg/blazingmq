@@ -395,9 +395,7 @@ void Queue::convertToLocalDispatched()
 
 void Queue::updateStats()
 {
-    d_state.stats()
-        .setReaderCount(d_state.handleParameters().readCount())
-        .setWriterCount(d_state.handleParameters().writeCount());
+    d_state.updateStats();
 }
 
 void Queue::listMessagesDispatched(mqbcmd::QueueResult* result,

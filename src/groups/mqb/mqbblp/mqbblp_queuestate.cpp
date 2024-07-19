@@ -132,6 +132,13 @@ QueueState::subtract(const bmqp_ctrlmsg::QueueHandleParameters& params)
     return mqbi::QueueCounts(it->second.readCount(), it->second.writeCount());
 }
 
+void QueueState::updateStats()
+{
+    stats()
+        .setReaderCount(handleParameters().readCount())
+        .setWriterCount(handleParameters().writeCount());
+}
+
 mqbi::QueueCounts QueueState::consumerAndProducerCounts(
     const bmqp_ctrlmsg::QueueHandleParameters& params) const
 {

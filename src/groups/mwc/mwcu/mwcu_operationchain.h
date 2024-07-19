@@ -161,10 +161,10 @@
 //..
 
 // MWC
-#include <mwcu_noop.h>
 #include <mwcu_objectplaceholder.h>
 
 // BDE
+#include <bdlf_noop.h>
 #include <bsl_list.h>
 #include <bslalg_constructorproxy.h>
 #include <bslma_allocator.h>
@@ -193,7 +193,7 @@
 
 #if BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES
 // Include version that can be compiled with C++03
-// Generated on Wed Jun 19 15:52:47 2024
+// Generated on Wed Jul 17 13:47:07 2024
 // Command line: sim_cpp11_features.pl mwcu_operationchain.h
 #define COMPILING_MWCU_OPERATIONCHAIN_H
 #include <mwcu_operationchain_cpp03.h>
@@ -254,7 +254,7 @@ struct OperationChain_IsOperationCallbackCompatible
       bsl::is_destructible_v<bsl::decay_t<TYPE> > &&
           bsl::is_move_constructible_v<bsl::decay_t<TYPE> > &&
           bsl::is_invocable_v<bsl::add_rvalue_reference_t<bsl::decay_t<TYPE> >,
-                              mwcu::NoOp> >
+                              bdlf::NoOp> >
 #else
 : bsl::integral_constant<bool, true>
 #endif
@@ -387,7 +387,7 @@ class OperationChain_Job {
 
     /// A "small" dummy functor used to help calculate the size of the
     /// on-stack buffer.
-    struct Dummy : public mwcu::NoOp {
+    struct Dummy : public bdlf::NoOp {
         void* d_padding[5];
     };
 
@@ -602,7 +602,7 @@ class OperationChain {
     /// Append a link containing a single operation represented by the
     /// specified `opCallback` operation callback and the optionally
     /// specified `coCallback` completion callback to this operation chain.
-    /// If no completion callback is specified, use `mwcu::NoOp`. If the
+    /// If no completion callback is specified, use `bdlf::NoOp`. If the
     /// chain is started and the appended link is the first one in the
     /// chain, execute the single operation in the appended link
     /// immediately.
@@ -734,7 +734,7 @@ class OperationChainLink {
     /// Insert an operation into this link. Specify a `opCallback` operation
     /// callback initiating the operation. Optionally specify a `coCallback`
     /// completion callback to be passed to the operation callback as a
-    /// parameter. If no completion callback is specified, use `mwcu::NoOp`.
+    /// parameter. If no completion callback is specified, use `bdlf::NoOp`.
     ///
     /// This function meets the strong exception guarantee. If an exception
     /// is thrown, this function has no effect.
@@ -953,7 +953,7 @@ OperationChain::appendInplace(BSLS_COMPILERFEATURES_FORWARD_REF(OP_CALLBACK)
         OperationChain_IsOperationCallbackCompatible<OP_CALLBACK>::value);
 
     appendInplace(BSLS_COMPILERFEATURES_FORWARD(OP_CALLBACK, opCallback),
-                  NoOp());
+                  bdlf::noOp);
 }
 
 template <class OP_CALLBACK, class CO_CALLBACK>
@@ -990,7 +990,7 @@ OperationChainLink::insert(BSLS_COMPILERFEATURES_FORWARD_REF(OP_CALLBACK)
     BSLMF_ASSERT(
         OperationChain_IsOperationCallbackCompatible<OP_CALLBACK>::value);
 
-    insert(BSLS_COMPILERFEATURES_FORWARD(OP_CALLBACK, opCallback), NoOp());
+    insert(BSLS_COMPILERFEATURES_FORWARD(OP_CALLBACK, opCallback), bdlf::noOp);
 }
 
 template <class OP_CALLBACK, class CO_CALLBACK>
