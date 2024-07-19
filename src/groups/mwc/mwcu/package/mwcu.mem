@@ -5,8 +5,6 @@ mwcu_blob
 mwcu_blobiterator
 mwcu_blobobjectproxy
 mwcu_memoutstream
-mwcu_noop
-mwcu_noop_cpp03
 mwcu_objectplaceholder
 mwcu_objectplaceholder_cpp03
 mwcu_operationchain

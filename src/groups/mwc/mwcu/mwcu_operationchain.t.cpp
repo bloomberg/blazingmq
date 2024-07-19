@@ -23,6 +23,7 @@
 #include <bdlb_randomdevice.h>
 #include <bdlcc_deque.h>
 #include <bdlf_bind.h>
+#include <bdlf_noop.h>
 #include <bdlf_placeholder.h>
 #include <bdlmt_threadpool.h>
 #include <bsl_functional.h>
@@ -795,7 +796,7 @@ static void test7_chain_appendInplace(bdlmt::ThreadPool* threadPool)
         chain.removeAll();
 
         // append-inplace a link (use second overload)
-        chain.appendInplace(NullOperation(), mwcu::NoOp());
+        chain.appendInplace(NullOperation(), bdlf::noOp);
 
         // one link appended with one operation in it
         ASSERT_EQ(chain.numLinks(), 1u);
@@ -1295,7 +1296,7 @@ static void test14_link_insert()
 
     // insert again (use second overload)
     for (unsigned i = 0; i < k_NUM_OPERATIONS; ++i) {
-        link.insert(NullOperation(), mwcu::NoOp());
+        link.insert(NullOperation(), bdlf::noOp);
         ASSERT_EQ(link.numOperations(), i + 1);
     }
 }
