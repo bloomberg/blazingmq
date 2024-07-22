@@ -20,9 +20,6 @@ endif()
 
 set(LIBCXX_BUILD_PATH "$ENV{LIBCXX_BUILD_PATH}")
 
-# Force disabling the use of Readline. This is a holdover until readline builds with -fPIC.
-set(BMQ_DISABLE_READLINE TRUE)
-
 set(TOOLCHAIN_CXX_FLAGS "${CMAKE_CXX_FLAGS_DEBUG}")
 set(TOOLCHAIN_C_FLAGS   "${CMAKE_C_FLAGS_DEBUG}")
 
@@ -33,6 +30,7 @@ string(CONCAT TOOLCHAIN_SHARED_FLAGS
        "-O0 "
        "-g "
        "-fno-omit-frame-pointer "
+       "-fno-optimize-sibling-calls "
        "-fdiagnostics-show-option "
       )
 
@@ -97,7 +95,7 @@ endmacro()
 # Define sanitizer specific flags
 set(SANITIZER_NAME $ENV{SANITIZER_NAME})
 if(SANITIZER_NAME STREQUAL "asan")
-  set(TOOLCHAIN_DEBUG_FLAGS "-fsanitize=address -fno-optimize-sibling-calls ")
+  set(TOOLCHAIN_DEBUG_FLAGS "-fsanitize=address ")
 elseif(SANITIZER_NAME STREQUAL "msan")
   set(MSAN_SUPPRESSION_LIST_PATH "$ENV{DIR_SRC_BMQ}/etc/msansup.txt")
   set(TOOLCHAIN_DEBUG_FLAGS "-fsanitize=memory -fsanitize-blacklist=${MSAN_SUPPRESSION_LIST_PATH} ")
@@ -106,15 +104,12 @@ elseif(SANITIZER_NAME STREQUAL "msan")
       string(CONCAT TOOLCHAIN_DEBUG_FLAGS
             "${TOOLCHAIN_DEBUG_FLAGS} "
             "-fsanitize-memory-track-origins=2 "
-            "-fno-optimize-sibling-calls "
             )
   endif()
 elseif(SANITIZER_NAME STREQUAL "tsan")
-  set(TSAN_SUPPRESSION_LIST_PATH "$ENV{DIR_SRC_BMQ}/etc/tsansup.txt")
-  set(THREAD_SANITIZER TRUE)
-  set(TOOLCHAIN_DEBUG_FLAGS "-fsanitize=thread -fno-optimize-sibling-calls ")
+  set(TOOLCHAIN_DEBUG_FLAGS "-fsanitize=thread ")
 elseif(SANITIZER_NAME STREQUAL "ubsan")
-  set(TOOLCHAIN_DEBUG_FLAGS "-fsanitize=undefined -fno-optimize-sibling-calls ")
+  set(TOOLCHAIN_DEBUG_FLAGS "-fsanitize=undefined ")
 else()
   message(FATAL_ERROR "Unexpected sanitizer name: ${SANITIZER_NAME}")
 endif()
