@@ -2300,8 +2300,8 @@ void StorageManager::do_bufferLiveData(const PartitionFSMArgsSp& args)
             pinfo.primaryStatus(),
             d_clusterData_p->identity().description(),
             skipAlarm,
-            true)) {                                 // isFSMWorkflow
-        return;                                      // RETURN
+            true)) {  // isFSMWorkflow
+        return;       // RETURN
     }
 
     d_recoveryManager_mp->bufferStorageEvent(partitionId,
@@ -2421,8 +2421,8 @@ void StorageManager::do_processLiveData(const PartitionFSMArgsSp& args)
             pinfo.primaryStatus(),
             d_clusterData_p->identity().description(),
             skipAlarm,
-            true)) {                                 // isFSMWorkflow
-        return;                                      // RETURN
+            true)) {  // isFSMWorkflow
+        return;       // RETURN
     }
 
     mqbs::FileStore* fs = d_fileStores[static_cast<size_t>(partitionId)].get();
@@ -3482,7 +3482,8 @@ void StorageManager::stop()
                              bdlf::PlaceHolders::_2));  // latch
 }
 
-void StorageManager::initializeQueueKeyInfoMap(const mqbc::ClusterState* clusterState)
+void StorageManager::initializeQueueKeyInfoMap(
+    const mqbc::ClusterState* clusterState)
 {
     // executed by the *CLUSTER DISPATCHER* thread
 
@@ -3495,9 +3496,10 @@ void StorageManager::initializeQueueKeyInfoMap(const mqbc::ClusterState* cluster
         return;  // RETURN
     }
 
-    BSLS_ASSERT_SAFE(bsl::all_of(d_queueKeyInfoMapVec.cbegin(),
-                     d_queueKeyInfoMapVec.cend(),
-                     bdlf::MemFnUtil::memFn(&QueueKeyInfoMap::empty)));
+    BSLS_ASSERT_SAFE(
+        bsl::all_of(d_queueKeyInfoMapVec.cbegin(),
+                    d_queueKeyInfoMapVec.cend(),
+                    bdlf::MemFnUtil::memFn(&QueueKeyInfoMap::empty)));
 
     // Populate 'd_queueKeyInfoMapVec' from cluster state
     for (DomainStatesCIter dscit = clusterState->domainStates().cbegin();

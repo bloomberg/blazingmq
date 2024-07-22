@@ -259,7 +259,8 @@ void ClusterStateManager::do_applyCSLSelf(const ClusterFSMArgsSp& args)
     d_clusterStateLedger_mp->apply(clusterStateSnapshot);
 }
 
-void ClusterStateManager::do_initializeQueueKeyInfoMap(const ClusterFSMArgsSp& args)
+void ClusterStateManager::do_initializeQueueKeyInfoMap(
+    const ClusterFSMArgsSp& args)
 {
     // executed by the cluster *DISPATCHER* thread
 

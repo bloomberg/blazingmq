@@ -223,7 +223,8 @@ class StorageManager : public mqbi::AppKeyGenerator {
 
     /// Initialize the queue key info map based on information in the specified
     /// `clusterState`.
-    virtual void initializeQueueKeyInfoMap(const mqbc::ClusterState* clusterState) = 0;
+    virtual void
+    initializeQueueKeyInfoMap(const mqbc::ClusterState* clusterState) = 0;
 
     /// Register a queue with the specified `uri`, `queueKey` and
     /// `partitionId`, having the specified `appIdKeyPairs`, and belonging

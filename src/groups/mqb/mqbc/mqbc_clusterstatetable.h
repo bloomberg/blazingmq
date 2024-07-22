@@ -399,7 +399,10 @@ class ClusterStateTable
                 FOL_CSL_RQST,
                 sendFollowerClusterStateResponse,
                 FOL_HEALING);
-        CST_CFG(FOL_HEALING, CSL_CMT_SUCCESS, stopWatchDog_initializeQueueKeyInfoMap, FOL_HEALED);
+        CST_CFG(FOL_HEALING,
+                CSL_CMT_SUCCESS,
+                stopWatchDog_initializeQueueKeyInfoMap,
+                FOL_HEALED);
         CST_CFG(FOL_HEALING, CSL_CMT_FAIL, triggerWatchDog, UNKNOWN);
         CST_CFG(FOL_HEALING,
                 RST_UNKNOWN,
@@ -513,7 +516,10 @@ class ClusterStateTable
                 REGISTRATION_RQST,
                 storeFollowerLSNs_sendRegistrationResponse,
                 LDR_HEALING_STG2);
-        CST_CFG(LDR_HEALING_STG2, CSL_CMT_SUCCESS, stopWatchDog_initializeQueueKeyInfoMap, LDR_HEALED);
+        CST_CFG(LDR_HEALING_STG2,
+                CSL_CMT_SUCCESS,
+                stopWatchDog_initializeQueueKeyInfoMap,
+                LDR_HEALED);
         CST_CFG(LDR_HEALING_STG2, CSL_CMT_FAIL, triggerWatchDog, UNKNOWN);
         CST_CFG(LDR_HEALING_STG2,
                 RST_UNKNOWN,
