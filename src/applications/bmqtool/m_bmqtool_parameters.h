@@ -364,7 +364,7 @@ class Parameters {
     bool                                noSessionEventHandler() const;
     const bsl::vector<MessageProperty>& messageProperties() const;
     const bsl::vector<Subscription>&    subscriptions() const;
-    bsl::string                         autoIncrementedField() const;
+    const bsl::string&                  autoIncrementedField() const;
 };
 
 // FREE OPERATORS
