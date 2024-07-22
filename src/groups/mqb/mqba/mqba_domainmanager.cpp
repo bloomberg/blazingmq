@@ -599,6 +599,33 @@ int DomainManager::locateDomain(DomainSp*          domain,
     return rc_SUCCESS;
 }
 
+int DomainManager::locateOrCreateDomain(DomainSp*          domain,
+                                        const bsl::string& domainName)
+{
+    if (0 != locateDomain(domain, domainName)) {
+        BALL_LOG_WARN
+            << "Domain '" << domainName
+            << "' is not opened, trying to initialize from configuration";
+
+        bslmt::Latch latch(1);
+        createDomain(domainName,
+                     bdlf::BindUtil::bind(&onDomain,
+                                          bdlf::PlaceHolders::_1,  // status
+                                          bdlf::PlaceHolders::_2,  // domain*
+                                          &latch));
+
+        // To return a result from command execution, we need to
+        // synchronize with the domain creation attempt
+        latch.wait();
+
+        if (0 != locateDomain(domain, domainName)) {
+            return -1;  // RETURN
+        }
+    }
+
+    return 0;  // RETURN
+}
+
 int DomainManager::processCommand(mqbcmd::DomainsResult*        result,
                                   const mqbcmd::DomainsCommand& command)
 {
@@ -620,27 +647,11 @@ int DomainManager::processCommand(mqbcmd::DomainsResult*        result,
 
         DomainSp domainSp;
 
-        if (0 != locateDomain(&domainSp, name)) {
-            BALL_LOG_WARN << "Domain '" << name << "' is not opened,"
-                          << " trying to initialize from configuration";
-
-            bslmt::Latch latch(1);
-            createDomain(
-                name,
-                bdlf::BindUtil::bind(&onDomain,
-                                     bdlf::PlaceHolders::_1,  // status
-                                     bdlf::PlaceHolders::_2,  // domain*
-                                     &latch));
-            // To return a result from command execution, we need to
-            // synchronize with the domain creation attempt
-            latch.wait();
-
-            if (0 != locateDomain(&domainSp, name)) {
-                mwcu::MemOutStream os;
-                os << "Domain '" << name << "' doesn't exist";
-                result->makeError().message() = os.str();
-                return -1;  // RETURN
-            }
+        if (0 != locateOrCreateDomain(&domainSp, name)) {
+            mwcu::MemOutStream os;
+            os << "Domain '" << name << "' doesn't exist";
+            result->makeError().message() = os.str();
+            return -1;  // RETURN
         }
 
         mqbcmd::DomainResult domainResult;
@@ -663,27 +674,11 @@ int DomainManager::processCommand(mqbcmd::DomainsResult*        result,
 
         DomainSp domainSp;
 
-        if (0 != locateDomain(&domainSp, name)) {
-            BALL_LOG_WARN << "Domain '" << name << "' is not opened,"
-                          << " trying to initialize from configuration";
-
-            bslmt::Latch latch(1);
-            createDomain(
-                name,
-                bdlf::BindUtil::bind(&onDomain,
-                                     bdlf::PlaceHolders::_1,  // status
-                                     bdlf::PlaceHolders::_2,  // domain*
-                                     &latch));
-            // To return a result from command execution, we need to
-            // synchronize with the domain creation attempt
-            latch.wait();
-
-            if (0 != locateDomain(&domainSp, name)) {
-                mwcu::MemOutStream os;
-                os << "Domain '" << name << "' doesn't exist";
-                result->makeError().message() = os.str();
-                return -1;  // RETURN
-            }
+        if (0 != locateOrCreateDomain(&domainSp, name)) {
+            mwcu::MemOutStream os;
+            os << "Domain '" << name << "' doesn't exist";
+            result->makeError().message() = os.str();
+            return -1;  // RETURN
         }
 
         DecodeAndUpsertValue configureResult;
