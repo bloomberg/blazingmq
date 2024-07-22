@@ -466,17 +466,27 @@ class ResourceUsageMonitor {
     print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
 };
 
+// ====================
+// struct SingleCounter
+// ====================
+
 struct SingleCounter {
     /// Thread-safe int value hierarchical tracker
     /// Relies on an owner for creation/destruction
 
-    SingleCounter*  d_parent_p;
-    bsls::AtomicInt d_value;
+    SingleCounter* d_parent_p;
+    /// If not null, gets updated
 
-    SingleCounter(SingleCounter* parent);
+    bsls::AtomicInt64 d_value;
+    /// The value being tracked
 
+    // CREATORS
+    explicit SingleCounter(SingleCounter* parent);
+
+    /// Add the specified `delta` to the value.
     void update(int delta);
 
+    /// Return the value being tracked.
     int value() const;
 };
 
@@ -687,6 +697,9 @@ inline SingleCounter::SingleCounter(SingleCounter* parent)
 inline void SingleCounter::update(int delta)
 {
     d_value += delta;
+
+    BSLS_ASSERT_SAFE(d_value >= 0);
+
     if (d_parent_p) {
         d_parent_p->update(delta);
     }

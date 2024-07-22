@@ -65,7 +65,7 @@ class DefaultHandleFactory : public mqbi::QueueHandleFactory {
                                                           clientContext,
                mqbstat::QueueStatsDomain*                 stats,
                const bmqp_ctrlmsg::QueueHandleParameters& handleParameters,
-               mqbu::SingleCounter*                       parent,
+               mqbu::SingleCounter*                       unconfirmedCounter,
                bslma::Allocator* allocator) BSLS_KEYWORD_OVERRIDE;
     // Create a new handle, using the specified 'allocator', for the
     // specified 'queue' as requested by the specified 'clientContext' with
@@ -87,14 +87,14 @@ mqbi::QueueHandle* DefaultHandleFactory::makeHandle(
     const bsl::shared_ptr<mqbi::QueueHandleRequesterContext>& clientContext,
     mqbstat::QueueStatsDomain*                                stats,
     const bmqp_ctrlmsg::QueueHandleParameters&                handleParameters,
-    mqbu::SingleCounter*                                      parent,
-    bslma::Allocator*                                         allocator)
+    mqbu::SingleCounter* unconfirmedCounter,
+    bslma::Allocator*    allocator)
 {
     return new (*allocator) mqbblp::QueueHandle(queue,
                                                 clientContext,
                                                 stats,
                                                 handleParameters,
-                                                parent,
+                                                unconfirmedCounter,
                                                 allocator);
 }
 
@@ -128,7 +128,7 @@ QueueHandleCatalog::QueueHandleCatalog(mqbi::Queue*         queue,
 : d_queue_p(queue)
 , d_handleFactory_mp(new (*allocator) DefaultHandleFactory(), allocator)
 , d_handles(allocator)
-, d_counterOfUnconfirmed_p(counter)
+, d_unconfirmedCounter_p(counter)
 , d_allocator_p(allocator)
 {
     // NOTHING
@@ -177,7 +177,7 @@ mqbi::QueueHandle* QueueHandleCatalog::createHandle(
         clientContext,
         stats,
         canonicalHandleParams,
-        d_counterOfUnconfirmed_p,
+        d_unconfirmedCounter_p,
         d_allocator_p);
     handle->setIsClientClusterMember(clientContext->isClusterMember());
 

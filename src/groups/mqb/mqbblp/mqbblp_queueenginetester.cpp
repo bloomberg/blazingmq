@@ -502,8 +502,8 @@ void QueueEngineTester::init(const mqbconfm::Domain& domainConfig)
                                                 k_NULL_QUEUE_KEY,
                                                 k_PARTITION_ID,
                                                 d_mockDomain_mp.get(),
-                                                0,
-                                                // not counting Unconfirmed
+                                                NULL,
+                                                // no parent counter
                                                 d_allocator_p),
                          d_allocator_p);
 

@@ -486,8 +486,8 @@ class ClusterQueueHelper : public mqbc::ClusterStateObserver,
 
     StopContexts d_stopContexts;
 
-    mqbu::SingleCounter d_counterOfUnconfirmed;
-    // Top level in the hierarchy: Cluster ->> QueueState ->> QueueHandle
+    mqbu::SingleCounter d_unconfirmedCounter;
+    /// Top level in the hierarchy: Cluster ->> QueueState ->> QueueHandle
 
   private:
     // PRIVATE MANIPULATORS

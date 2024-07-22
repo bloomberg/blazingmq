@@ -327,7 +327,7 @@ QueueHandle::updateMonitor(const bsl::shared_ptr<Downstream>& subStream,
     resourceUsageStateChange =
         updateMonitor(it, subscription.get(), eventType, subStream->d_appId);
     messages->erase(it);
-    d_counterOfUnconfirmed.update(-1);
+    d_unconfirmedCounter.update(-1);
 
     // As mentioned above, if we hit the maxUnconfirmed and are now back to
     // below the lowWatermark for BOTH messages and bytes, schedule a delivery
@@ -467,7 +467,7 @@ void QueueHandle::clearClientDispatched(bool hasLostClient)
                     bmqp::EventType::e_REJECT,
                     downstream->d_appId);
 
-                d_counterOfUnconfirmed.update(-1);
+                d_unconfirmedCounter.update(-1);
 
                 // Do not call 'onHandleUsable' because 'd_clientContext_sp' is
                 // reset
@@ -531,8 +531,8 @@ QueueHandle::QueueHandle(
     const bsl::shared_ptr<mqbi::QueueHandleRequesterContext>& clientContext,
     mqbstat::QueueStatsDomain*                                domainStats,
     const bmqp_ctrlmsg::QueueHandleParameters&                handleParameters,
-    mqbu::SingleCounter*                                      parent,
-    bslma::Allocator*                                         allocator)
+    mqbu::SingleCounter* unconfirmedCounter,
+    bslma::Allocator*    allocator)
 : d_queue_sp(queueSp)
 , d_clientContext_sp(clientContext)
 , d_domainStats_p(domainStats)
@@ -547,7 +547,7 @@ QueueHandle::QueueHandle(
       d_queue_sp ? d_queue_sp->schemaLearner().createContext() : 0)
 , d_schemaLearnerPushContext(
       d_queue_sp ? d_queue_sp->schemaLearner().createContext() : 0)
-, d_counterOfUnconfirmed(parent)
+, d_unconfirmedCounter(unconfirmedCounter)
 , d_allocator_p(allocator)
 {
     // PRECONDITIONS
@@ -878,7 +878,7 @@ void QueueHandle::deliverMessage(
         subscription->d_unconfirmedMonitor.update(msgSize, 1);
 
         // NOTE: Could be optimized to use 'delta > 1'
-        d_counterOfUnconfirmed.update(1);
+        d_unconfirmedCounter.update(1);
 
         // NOTE: To simplify the logic, we always send at least one message
         //       (from the loop in the callers of this method), even if that
@@ -1120,7 +1120,7 @@ int QueueHandle::transferUnconfirmedMessageGUID(
         }
     }
 
-    d_counterOfUnconfirmed.update(-result);
+    d_unconfirmedCounter.update(-result);
 
     return result;
 }
@@ -1262,7 +1262,7 @@ bsls::Types::Int64 QueueHandle::countUnconfirmed(unsigned int subQueueId) const
 
     bsls::Types::Int64 result = 0;
     if (subQueueId == bmqp::QueueId::k_UNASSIGNED_SUBQUEUE_ID) {
-        result = d_counterOfUnconfirmed.value();
+        result = d_unconfirmedCounter.value();
     }
     else if (validateDownstreamId(subQueueId)) {
         if (d_downstreams[subQueueId]->d_data) {

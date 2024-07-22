@@ -170,7 +170,7 @@ class Queue BSLS_CPP11_FINAL : public mqbi::Queue {
           bdlmt::EventScheduler*                    scheduler,
           bdlmt::FixedThreadPool*                   threadPool,
           const bmqp_ctrlmsg::RoutingConfiguration& routingCfg,
-          mqbu::SingleCounter*                      parent,
+          mqbu::SingleCounter*                      unconfirmedCounter,
           bslma::Allocator*                         allocator);
 
     /// Destructor

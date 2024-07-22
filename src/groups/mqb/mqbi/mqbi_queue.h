@@ -965,13 +965,14 @@ class QueueHandleFactory {
     /// Create a new handle, using the specified `allocator`, for the
     /// specified `queue` as requested by the specified `clientContext` with
     /// the specified `parameters`, and associated wit the specified
-    /// `stats`.  Use the specified 'counterOfUnconfirmed'.
+    /// `stats`.  Use the specified 'unconfirmedCounter' to aggregate the
+    /// counting of unconfirmed by each queue handle.
     virtual QueueHandle* makeHandle(
         const bsl::shared_ptr<Queue>&                       queue,
         const bsl::shared_ptr<QueueHandleRequesterContext>& clientContext,
         mqbstat::QueueStatsDomain*                          stats,
         const bmqp_ctrlmsg::QueueHandleParameters&          handleParameters,
-        mqbu::SingleCounter*                                parent,
+        mqbu::SingleCounter*                                unconfirmedCounter,
         bslma::Allocator*                                   allocator) = 0;
 };
 

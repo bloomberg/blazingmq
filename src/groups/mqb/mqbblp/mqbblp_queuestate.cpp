@@ -51,7 +51,7 @@ QueueState::QueueState(mqbi::Queue*            queue,
                        const mqbu::StorageKey& key,
                        int                     partitionId,
                        mqbi::Domain*           domain,
-                       mqbu::SingleCounter*    parent,
+                       mqbu::SingleCounter*    unconfirmedCounter,
                        bslma::Allocator*       allocator)
 : d_queue_p(queue)
 , d_uri(uri, allocator)
@@ -70,8 +70,8 @@ QueueState::QueueState(mqbi::Queue*            queue,
 , d_storage_mp(0)
 , d_stats()
 , d_messageThrottleConfig()
-, d_counterOfUnconfirmed(parent)
-, d_handleCatalog(queue, &d_counterOfUnconfirmed, allocator)
+, d_unconfirmedCounter(unconfirmedCounter)
+, d_handleCatalog(queue, &d_unconfirmedCounter, allocator)
 , d_context(queue->schemaLearner(), allocator)
 , d_subStreams(allocator)
 {

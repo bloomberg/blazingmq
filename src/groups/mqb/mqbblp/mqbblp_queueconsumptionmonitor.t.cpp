@@ -151,8 +151,8 @@ Test::Test()
                d_storageKey,
                d_partitionId,
                &d_domain,
-               0,
-               // not counting unconfirmed
+               NULL,
+               // no parent counter of unconfirmed
                s_allocator_p)
 , d_monitor(&d_queueState, s_allocator_p)
 , d_storage(d_queue.uri(),

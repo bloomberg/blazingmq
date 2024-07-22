@@ -146,8 +146,8 @@ class QueueHandleCatalog {
     // 'mutable' because TwoKeyHashMap
     // doesn't expose const operators.
 
-    mqbu::SingleCounter* d_counterOfUnconfirmed_p;
-    // Count Unconfirmed for (cluster) shutdown
+    mqbu::SingleCounter* d_unconfirmedCounter_p;
+    /// Count Unconfirmed for (cluster) shutdown, held, not owned
 
     bslma::Allocator* d_allocator_p;
     // Allocator to use.
@@ -173,7 +173,8 @@ class QueueHandleCatalog {
     // CREATOR
 
     /// Create a new object associated to the specified `queue`.  Use the
-    /// specified `allocator` for any memory allocations.
+    /// specified `allocator` for any memory allocations.  Use the specified
+    /// 'counter' to aggregate the counting of  unconfirmed by each handle.
     QueueHandleCatalog(mqbi::Queue*         queue,
                        mqbu::SingleCounter* counter,
                        bslma::Allocator*    allocator);

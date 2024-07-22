@@ -2106,7 +2106,7 @@ bsl::shared_ptr<mqbi::Queue> ClusterQueueHelper::createQueueFactory(
                                    d_clusterData_p->scheduler(),
                                    d_clusterData_p->miscWorkThreadPool(),
                                    openQueueResponse.routingConfiguration(),
-                                   &d_counterOfUnconfirmed,
+                                   &d_unconfirmedCounter,
                                    d_allocator_p),
         d_allocator_p);
 
@@ -4486,7 +4486,7 @@ ClusterQueueHelper::ClusterQueueHelper(
 , d_numPendingReopenQueueRequests(0)
 , d_primaryNotLeaderAlarmRaised(false)
 , d_stopContexts(allocator)
-, d_counterOfUnconfirmed(0)
+, d_unconfirmedCounter(NULL)
 {
     BSLS_ASSERT(
         d_clusterData_p->clusterConfig()
