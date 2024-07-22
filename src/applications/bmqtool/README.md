@@ -115,7 +115,7 @@ opened regularly (without specifying a mode).  To run the `bmqtool`, you invoke
 | `open`    | `uri=string [async=true] [maxUnconfirmedMessages=N) (maxUnconfirmedByes=M)` | Open a connection with the queue at the given `uri`. |
 | `close`   | `uri=string [async=true]` | Close connection with the queue at the given `uri`. |
 | `post`    | `uri=string payload=string [, ...] [async=true]` | Post a message (the `payload`) to the queue at the given `uri`. |
-| `batch-post` | `uri=string payload=string [, ...] (msgSize=S) (eventSize=N) (eventsCount=M) (postInterval=P) (postRate=R)` (autoIncremented=F)| Post `M` events containing `N` messages containing provided `payload` or auto-generated and containing `S` bytes each to the queue at the given `uri` at a rate of `R/P` (where `P` is expressed in ms). `M=0` means endless posting. Each message can have an integer property F which will be auto-incremented (0, 1, 2, ...).|
+| `batch-post` | `uri=string payload=string [, ...] (msgSize=S) (eventSize=N) (eventsCount=M) (postInterval=P) (postRate=R) (autoIncremented=F)` | Post `M` events containing `N` messages containing provided `payload` or auto-generated and containing `S` bytes each to the queue at the given `uri` at a rate of `R/P` (where `P` is expressed in ms). `M=0` means endless posting. Each message can have an integer property F which will be auto-incremented (0, 1, 2, ...).|
 | `list`    | N/A            | List the messages that have yet to be ACKed by the tool.     |
 | `confirm` | `guid=string`  | Confirm (ACK) the message matching the given GUID.           |
 | `help`    | N/A            | Show the help dialog.                                        |
