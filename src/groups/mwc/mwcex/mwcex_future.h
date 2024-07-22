@@ -113,11 +113,11 @@
 // result-supplier thread.
 
 // MWC
-
 #include <mwcu_objectplaceholder.h>
 
 // BDE
 #include <bdlb_nullablevalue.h>
+#include <bdlf_noop.h>
 #include <bsl_algorithm.h>  // bsl::swap
 #include <bsl_exception.h>
 #include <bsl_functional.h>  // bsl::reference_wrapper
@@ -150,7 +150,7 @@
 
 #if BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES
 // Include version that can be compiled with C++03
-// Generated on Wed Jun 29 04:17:13 2022
+// Generated on Wed Jul 17 12:44:45 2024
 // Command line: sim_cpp11_features.pl mwcex_future.h
 #define COMPILING_MWCEX_FUTURE_H
 #include <mwcex_future_cpp03.h>
@@ -232,7 +232,7 @@ class Future_Exception {
 
     /// Provides a "small" dummy object which size is used to calculate the
     /// size of the on-stack buffer used for optimization.
-    struct Dummy {
+    struct Dummy : public bdlf::NoOp {
         void* d_padding[3];
     };
 
@@ -359,7 +359,7 @@ class Future_Callback {
 
     /// Provides a "small" dummy object which size is used to calculate the
     /// size of the on-stack buffer used for optimization.
-    struct Dummy {
+    struct Dummy : public bdlf::NoOp {
         void* d_padding[3];
     };
 
