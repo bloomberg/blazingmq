@@ -284,10 +284,6 @@ class StorageManager : public mqbi::StorageManager {
     virtual bool isStorageEmpty(const bmqt::Uri& uri,
                                 int partitionId) const BSLS_KEYWORD_OVERRIDE;
 
-    /// Return the blob buffer factory to use.
-    virtual bdlbb::BlobBufferFactory*
-    blobBufferFactory() const BSLS_KEYWORD_OVERRIDE;
-
     /// Return partition corresponding to the specified `partitionId`.  The
     /// behavior is undefined if `partitionId` does not represent a valid
     /// partition id.

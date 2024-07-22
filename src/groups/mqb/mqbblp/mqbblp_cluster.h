@@ -76,6 +76,7 @@
 #include <bslma_usesbslmaallocator.h>
 #include <bslmf_nestedtraitdeclaration.h>
 #include <bsls_assert.h>
+#include <bsls_atomic.h>
 #include <bsls_cpp11.h>
 
 namespace BloombergLP {
@@ -265,7 +266,7 @@ class Cluster : public mqbi::Cluster,
     // This flag is used only inside this
     // component.
 
-    bool d_isStopping;
+    bsls::AtomicBool d_isStopping;
     // Flag to indicate if this cluster is
     // stopping.  This flag is exposed via
     // an accessor.

@@ -203,6 +203,9 @@ class StorageManager : public mqbi::StorageManager {
     // used *only* for logging purposes
     // (see 'storageMonitorCb' impl)
 
+    bslmt::Mutex d_unrecognizedDomainsLock;
+    // Mutex to protect access to 'd_unrecognizedDomains' and its elements.
+
     DomainQueueMessagesCountMaps d_unrecognizedDomains;
     // List of DomainQueueMessagesMap,
     // indexed by 'partitionId'.
@@ -468,10 +471,6 @@ class StorageManager : public mqbi::StorageManager {
     /// Explicitly call `flush` on all FileStores to enforce their GC.
     void forceFlushFileStores();
 
-  private:
-    // PRIVATE ACCESSORS
-    bool isLocalCluster() const;
-
   public:
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(StorageManager, bslma::UsesBslmaAllocator)
@@ -724,10 +723,6 @@ class StorageManager : public mqbi::StorageManager {
     virtual bool isStorageEmpty(const bmqt::Uri& uri,
                                 int partitionId) const BSLS_KEYWORD_OVERRIDE;
 
-    /// Return the blob buffer factory to use.
-    virtual bdlbb::BlobBufferFactory*
-    blobBufferFactory() const BSLS_KEYWORD_OVERRIDE;
-
     /// Return partition corresponding to the specified `partitionId`.  The
     /// behavior is undefined if `partitionId` does not represent a valid
     /// partition id.
@@ -814,17 +809,6 @@ class StorageManagerIterator : public mqbi::StorageManagerIterator {
 // --------------------
 // class StorageManager
 // --------------------
-
-// PRIVATE ACCESSORS
-inline bool StorageManager::isLocalCluster() const
-{
-    return d_clusterData_p->cluster()->isLocal();
-}
-
-inline bdlbb::BlobBufferFactory* StorageManager::blobBufferFactory() const
-{
-    return d_clusterData_p->bufferFactory();
-}
 
 // PUBLIC ACCESSORS
 inline mqbi::Dispatcher::ProcessorHandle

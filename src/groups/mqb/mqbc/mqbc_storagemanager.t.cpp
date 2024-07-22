@@ -201,7 +201,10 @@ struct TestHelper {
         BSLS_ASSERT_OPT(rc == 0);
     }
 
-    void setPartitionPrimary(mqbc::StorageManager* storageManager, int partitionId, unsigned int leaseId, mqbnet::ClusterNode* node)
+    void setPartitionPrimary(mqbc::StorageManager* storageManager,
+                             int                   partitionId,
+                             unsigned int          leaseId,
+                             mqbnet::ClusterNode*  node)
     {
         d_cluster_mp->_state().setPartitionPrimary(partitionId, leaseId, node);
         storageManager->setPrimaryForPartition(partitionId, node, leaseId);

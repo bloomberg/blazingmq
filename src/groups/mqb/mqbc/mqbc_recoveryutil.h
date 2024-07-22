@@ -25,8 +25,6 @@
 //@DESCRIPTION: 'mqbc::RecoveryUtil' provides generic utilities.
 
 // MQB
-
-#include <mqbc_clusterdata.h>
 #include <mqbi_storage.h>
 #include <mqbnet_cluster.h>
 #include <mqbs_filestore.h>

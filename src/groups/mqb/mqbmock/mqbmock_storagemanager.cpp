@@ -289,11 +289,6 @@ bool StorageManager::isStorageEmpty(
     return true;
 }
 
-bdlbb::BlobBufferFactory* StorageManager::blobBufferFactory() const
-{
-    return 0;
-}
-
 const mqbs::FileStore&
 StorageManager::fileStore(BSLS_ANNOTATION_UNUSED int partitionId) const
 {

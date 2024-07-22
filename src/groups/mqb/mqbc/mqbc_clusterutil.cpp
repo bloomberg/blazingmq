@@ -277,7 +277,7 @@ void getNextPrimarys(NumNewPartitionsMap* numNewPartitions,
 // THREAD: This method is invoked in the associated cluster's
 //         dispatcher thread.
 {
-    // executed by the *DISPATCHER* thread
+    // executed by the cluster *DISPATCHER* thread
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(clusterData.cluster()->dispatcher()->inDispatcherThread(
@@ -868,6 +868,7 @@ ClusterUtil::assignQueue(ClusterState*           clusterState,
                          bmqp_ctrlmsg::Status*   status)
 {
     // executed by the cluster *DISPATCHER* thread
+
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(cluster->dispatcher()->inDispatcherThread(cluster));
     BSLS_ASSERT_SAFE(!cluster->isRemote());
@@ -1062,7 +1063,7 @@ void ClusterUtil::registerQueueInfo(ClusterState*           clusterState,
                                     const QueueAssigningCb& queueAssigningCb,
                                     bool                    forceUpdate)
 {
-    // executed by the *DISPATCHER* thread
+    // executed by the cluster *DISPATCHER* thread
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(cluster->dispatcher()->inDispatcherThread(cluster));
@@ -2239,6 +2240,9 @@ void ClusterUtil::loadQueuesInfo(bsl::vector<bmqp_ctrlmsg::QueueInfo>* out,
 void ClusterUtil::loadPeerNodes(bsl::vector<mqbnet::ClusterNode*>* out,
                                 const ClusterData&                 clusterData)
 {
+    // executed by the cluster *DISPATCHER* thread or the *QUEUE_DISPATCHER*
+    // thread
+
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(out);
 

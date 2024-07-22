@@ -79,13 +79,13 @@ class ClusterDataIdentity {
   private:
     // DATA
 
-    bsl::string d_name;
+    const bsl::string d_name;
     // Name of the cluster
 
-    bsl::string d_description;
+    const bsl::string d_description;
     // Description of the cluster
 
-    bmqp_ctrlmsg::ClientIdentity d_identity;
+    const bmqp_ctrlmsg::ClientIdentity d_identity;
     // Information sent to the primary node of
     // a queue while sending a clusterOpenQueue
     // request to that node
@@ -177,7 +177,7 @@ class ClusterData {
     ClusterMembership d_membership;
     // The membership information of the cluster
 
-    ClusterDataIdentity d_identity;
+    const ClusterDataIdentity d_identity;
     // The identity of the cluster
 
     mqbi::Cluster* d_cluster_p;
@@ -261,9 +261,6 @@ class ClusterData {
 
     /// Get a modifiable reference to this object's cluster membership.
     ClusterMembership& membership();
-
-    /// Get a modifiable reference to this object's cluster identity.
-    ClusterDataIdentity& identity();
 
     /// Get a modifiable reference to this object's cluster.
     mqbi::Cluster* cluster();
@@ -388,11 +385,6 @@ inline ElectorInfo& ClusterData::electorInfo()
 inline ClusterMembership& ClusterData::membership()
 {
     return d_membership;
-}
-
-inline ClusterDataIdentity& ClusterData::identity()
-{
-    return d_identity;
 }
 
 inline mqbi::Cluster* ClusterData::cluster()
