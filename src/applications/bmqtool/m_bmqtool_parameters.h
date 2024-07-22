@@ -716,7 +716,8 @@ inline const bsl::vector<Subscription>& Parameters::subscriptions() const
     return d_subscriptions;
 }
 
-inline bsl::string Parameters::autoIncrementedField() const
+inline
+const bsl::string &Parameters::autoIncrementedField() const
 {
     return d_autoIncrementedField;
 }
