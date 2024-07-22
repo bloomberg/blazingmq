@@ -28,6 +28,7 @@ race:BloombergLP::ball::LoggerManager::isInitialized()
 # It is a benign race in the test driver, but should be looked into at some
 # point.
 race:TestSession::waitForChannelClose
+race:TestSession::arriveAtStepWithCfgs
 
 # Since we use mqbmock::Dispatcher in unit tests, this method does not get
 # enqueued correctly back to cluster-dispatcher thread, causing potential
