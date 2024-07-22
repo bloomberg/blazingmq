@@ -88,8 +88,7 @@
                 "highWatermark": 1073741824,
                 "nodeLowWatermark": 5242880,
                 "nodeHighWatermark": 10485760,
-                "heartbeatIntervalMs": 3000,
-                "useNtf": false
+                "heartbeatIntervalMs": 3000
             }
         },
         "bmqconfConfig": {

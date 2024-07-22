@@ -360,7 +360,7 @@ class Expression:
     """This complex type contains expression to evaluate when selecting
     Subscription for delivery.
 
-    version................: expression version (default is HSL)
+    version................: expression version (default is no expression)
     text...................: textual representation of the expression
     """
 
@@ -528,10 +528,10 @@ class StorageDefinition:
 @dataclass
 class Subscription:
     """This complex type contains various parameters required by an upstream node
-    to configure subscription for a queue handle that has already been created.
+    to configure subscription for an app.
 
-    sId....................: subscription identifier
-    consumers..............: consumer parameters
+    appId..................: app identifier
+    expression.............: expression denoting a subscription for the app
     """
 
     app_id: Optional[str] = field(
@@ -592,6 +592,7 @@ class Domain:
     message for the purpose of detecting duplicate
     PUTs.
     consistency.........: optional consistency mode.
+    subscriptions.......: optional Auto (Application) subscriptions
     """
 
     name: Optional[str] = field(

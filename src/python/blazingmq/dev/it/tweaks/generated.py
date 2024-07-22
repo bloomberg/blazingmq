@@ -374,15 +374,16 @@ class TweakFactory:
             dispatcher_config = DispatcherConfig()
 
             class Stats(metaclass=TweakMetaclass):
-                class AppIdTagDomains(metaclass=TweakMetaclass):
-                    def __call__(self, value: None) -> Callable: ...
-
-                app_id_tag_domains = AppIdTagDomains()
-
                 class SnapshotInterval(metaclass=TweakMetaclass):
                     def __call__(self, value: int) -> Callable: ...
 
                 snapshot_interval = SnapshotInterval()
+
+                class AppIdTagDomains(metaclass=TweakMetaclass):
+
+                    def __call__(self, value: None) -> Callable: ...
+
+                app_id_tag_domains = AppIdTagDomains()
 
                 class Plugins(metaclass=TweakMetaclass):
                     class Name(metaclass=TweakMetaclass):
@@ -590,11 +591,6 @@ class TweakFactory:
 
                     heartbeat_interval_ms = HeartbeatIntervalMs()
 
-                    class UseNtf(metaclass=TweakMetaclass):
-                        def __call__(self, value: bool) -> Callable: ...
-
-                    use_ntf = UseNtf()
-
                     def __call__(
                         self,
                         value: typing.Union[
@@ -677,6 +673,12 @@ class TweakFactory:
                 def __call__(self, value: bool) -> Callable: ...
 
             configure_stream = ConfigureStream()
+
+            class AdvertiseSubscriptions(metaclass=TweakMetaclass):
+
+                def __call__(self, value: bool) -> Callable: ...
+
+            advertise_subscriptions = AdvertiseSubscriptions()
 
             def __call__(
                 self, value: typing.Union[blazingmq.schemas.mqbcfg.AppConfig, NoneType]
