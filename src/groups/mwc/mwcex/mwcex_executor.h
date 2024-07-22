@@ -105,7 +105,6 @@
 //..
 
 // MWC
-
 #include <mwcex_executortraits.h>
 
 // BDE
@@ -295,6 +294,16 @@ class Executor_Box_SboImp {
     /// size of the on-stack buffer used to store the executor target.
     struct Dummy {
         void* d_padding[4];
+
+        bool operator==(const Dummy&) const BSLS_KEYWORD_NOEXCEPT
+        {
+            return false;
+        }
+
+        void post(const bsl::function<void()>&) const
+        {
+            // NOTHING
+        }
     };
 
   private:

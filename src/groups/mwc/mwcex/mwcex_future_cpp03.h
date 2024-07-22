@@ -1,4 +1,4 @@
-// Copyright 2022-2023 Bloomberg Finance L.P.
+// Copyright 2018-2023 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -36,17 +36,12 @@
 // regions of C++11 code, then this header contains no code and is not
 // '#include'd in the original header.
 //
-// Generated on Wed Jun 29 04:17:13 2022
+// Generated on Wed Jul 17 12:44:45 2024
 // Command line: sim_cpp11_features.pl mwcex_future.h
 
 #ifdef COMPILING_MWCEX_FUTURE_H
 
 namespace BloombergLP {
-
-// FORWARD DECLARATION
-namespace bslma {
-class Allocator;
-}
 
 namespace mwcex {
 
@@ -59,36 +54,36 @@ class FutureSharedState;
 // class Future_Exception
 // ======================
 
+/// Provides a polymorphic exception wrapper that can hold and emit any type
+/// of exception.
 class Future_Exception {
-    // Provides a polymorphic exception wrapper that can hold and emit any type
-    // of exception.
-
   private:
     // PRIVATE TYPES
-    class TargetBase {
-        // Provides an interface used to implement the type erasure technique.
-        // When creating a polymorphic exception with a target of type 'E', an
-        // instance of derived class template 'Target<E>' is instantiated and
-        // stored via a pointer to its base class (this one). Then, calls to
-        // 'mwcex::Future_Exception's public methods are forwarded to this
-        // class.
 
+    /// Provides an interface used to implement the type erasure technique.
+    /// When creating a polymorphic exception with a target of type `E`, an
+    /// instance of derived class template `Target<E>` is instantiated and
+    /// stored via a pointer to its base class (this one). Then, calls to
+    /// `mwcex::Future_Exception`s public methods are forwarded to this
+    /// class.
+    class TargetBase {
       public:
         // CREATORS
+
+        /// Destroy this object and the contained exception target with it.
         virtual ~TargetBase();
-        // Destroy this object and the contained exception target with it.
 
       public:
         // ACCESSORS
+
+        /// Throw a copy of the contained exception object.
         BSLS_ANNOTATION_NORETURN virtual void emit() const = 0;
-        // Throw a copy of the contained exception object.
     };
 
+    /// Provides an implementation of the `TargetBase` interface containing
+    /// the exception target.
     template <class EXCEPTION>
     class Target : public TargetBase {
-        // Provides an implementation of the 'TargetBase' interface containing
-        // the exception target.
-
       private:
         // PRIVATE DATA
         bslalg::ConstructorProxy<EXCEPTION> d_exception;
@@ -100,36 +95,39 @@ class Future_Exception {
 
       public:
         // CREATORS
+
+        /// Create a `Target` object containing an exception target of type
+        /// `EXCEPTION` direct-non-list-initialized by
+        /// `bsl::forward<EXCEPTION_PARAM>(exception)`. Specify an
+        /// `allocator` used to supply memory.
         template <class EXCEPTION_PARAM>
         Target(BSLS_COMPILERFEATURES_FORWARD_REF(EXCEPTION_PARAM) exception,
                bslma::Allocator* allocator);
-        // Create a 'Target' object containing an exception target of type
-        // 'EXCEPTION' direct-non-list-initialized by
-        // 'bsl::forward<EXCEPTION_PARAM>(exception)'. Specify an
-        // 'allocator' used to supply memory.
 
       public:
         // ACCESSORS
+
+        /// Implements `TargetBase::emit`.
         BSLS_ANNOTATION_NORETURN void emit() const BSLS_KEYWORD_OVERRIDE;
-        // Implements 'TargetBase::emit'.
     };
 
   private:
     // PRIVATE TYPES
-    struct Dummy {
-        // Provides a "small" dummy object which size is used to calculate the
-        // size of the on-stack buffer used for optimization.
 
+    /// Provides a "small" dummy object which size is used to calculate the
+    /// size of the on-stack buffer used for optimization.
+    struct Dummy : public bdlf::NoOp {
         void* d_padding[3];
     };
 
   private:
     // PRIVATE DATA
-    mwcu::ObjectPlaceHolder<sizeof(Target<Dummy>)> d_target;
+
     // Uses an on-stack buffer to allocate memory for "small" objects, and
     // falls back to requesting memory from the supplied allocator if
     // the buffer is not large enough. Note that the size of the on-stack
     // buffer is an arbitrary value.
+    mwcu::ObjectPlaceHolder<sizeof(Target<Dummy>)> d_target;
 
   private:
     // NOT IMPLEMENTED
@@ -138,19 +136,20 @@ class Future_Exception {
 
   public:
     // CREATORS
+
+    /// Create a `Future_Exception` object containing an exception target
+    /// of type `bsl::decay_t<EXCEPTION>` direct-non-list-initialized by
+    /// `bsl::forward<EXCEPTION>(exception)`. Specify an `allocator` used to
+    /// supply memory.
+    ///
+    /// `bsl::decay_t<EXCEPTION>` must meet the requirements of Destructible
+    /// and CopyConstructible as specified in the C++ standard.
     template <class EXCEPTION>
     Future_Exception(BSLS_COMPILERFEATURES_FORWARD_REF(EXCEPTION) exception,
                      bslma::Allocator* allocator);
-    // Create a 'Future_Exception' object containing an exception target
-    // of type 'bsl::decay_t<EXCEPTION>' direct-non-list-initialized by
-    // 'bsl::forward<EXCEPTION>(exception)'. Specify an 'allocator' used to
-    // supply memory.
-    //
-    // 'bsl::decay_t<EXCEPTION>' must meet the requirements of Destructible
-    // and CopyConstructible as specified in the C++ standard.
 
+    /// Destroy this object and the contained exception target with it.
     ~Future_Exception();
-    // Destroy this object and the contained exception target with it.
 
   public:
     // ACCESSORS
@@ -172,45 +171,46 @@ class Future_Exception {
 // class Future_Callback
 // =====================
 
+/// Provides a polymorphic callback wrapper with small buffer optimization.
 class Future_Callback {
-    // Provides a polymorphic callback wrapper with small buffer optimization.
-
   public:
     // TYPES
+
+    /// Provides a tag type to specify the type of the async result accepted
+    /// by the callback,
     template <class R>
     struct AsyncResultTypeTag {
-        // Provides a tag type to specify the type of the async result accepted
-        // by the callback,
     };
 
   private:
     // PRIVATE TYPES
-    class TargetBase {
-        // Provides an interface used to implement the type erasure technique.
-        // When creating a polymorphic wrapper with an async result type 'R'
-        // and a callback of type 'F', an instance of derived class template
-        // 'Target<R, F>' is instantiated and stored via a pointer to its base
-        // class (this one). Then, calls to 'mwcex::Future_Callback's public
-        // methods are forwarded to this class.
 
+    /// Provides an interface used to implement the type erasure technique.
+    /// When creating a polymorphic wrapper with an async result type `R`
+    /// and a callback of type `F`, an instance of derived class template
+    /// `Target<R, F>` is instantiated and stored via a pointer to its base
+    /// class (this one). Then, calls to `mwcex::Future_Callback`s public
+    /// methods are forwarded to this class.
+    class TargetBase {
       public:
         // CREATORS
+
+        /// Destroy this object and the contained function object with it.
         virtual ~TargetBase();
-        // Destroy this object and the contained function object with it.
 
       public:
         // MANIPULATORS
+
+        /// Perform `bsl::move(f)(FutureResult<R>((S*)sharedState))`, where
+        /// `f` is the contained function object, `R` the type of the async
+        /// result, and `S` is `Future<R>::SharedStateType`.
         virtual void invoke(void* sharedState) = 0;
-        // Perform 'bsl::move(f)(FutureResult<R>((S*)sharedState))', where
-        // 'f' is the contained function object, 'R' the type of the async
-        // result, and 'S' is 'Future<R>::SharedStateType'.
     };
 
+    /// Provides an implementation of the `TargetBase` interface containing
+    /// the function object.
     template <class R, class FUNCTION>
     class Target : public TargetBase {
-        // Provides an implementation of the 'TargetBase' interface containing
-        // the function object.
-
       private:
         // PRIVATE DATA
         bslalg::ConstructorProxy<FUNCTION> d_function;
@@ -222,36 +222,39 @@ class Future_Callback {
 
       public:
         // CREATORS
+
+        /// Create a `Target` object containing a function object of type
+        /// `FUNCTION` direct-non-list-initialized by
+        /// `bsl::forward<FUNCTION_PARAM>(function)`. Specify an `allocator`
+        /// used to supply memory.
         template <class FUNCTION_PARAM>
         Target(BSLS_COMPILERFEATURES_FORWARD_REF(FUNCTION_PARAM) function,
                bslma::Allocator* allocator);
-        // Create a 'Target' object containing a function object of type
-        // 'FUNCTION' direct-non-list-initialized by
-        // 'bsl::forward<FUNCTION_PARAM>(function)'. Specify an 'allocator'
-        // used to supply memory.
 
       public:
         // MANIPULATORS
+
+        /// Implements `TargetBase::invoke`.
         void invoke(void* sharedState) BSLS_KEYWORD_OVERRIDE;
-        // Implements 'TargetBase::invoke'.
     };
 
   private:
     // PRIVATE TYPES
-    struct Dummy {
-        // Provides a "small" dummy object which size is used to calculate the
-        // size of the on-stack buffer used for optimization.
 
+    /// Provides a "small" dummy object which size is used to calculate the
+    /// size of the on-stack buffer used for optimization.
+    struct Dummy : public bdlf::NoOp {
         void* d_padding[3];
     };
 
   private:
     // PRIVATE DATA
-    mwcu::ObjectPlaceHolder<sizeof(Target<void, Dummy>)> d_target;
+
     // Uses an on-stack buffer to allocate memory for "small" objects, and
     // falls back to requesting memory from the supplied allocator if
     // the buffer is not large enough. Note that the size of the on-stack
     // buffer is an arbitrary value.
+    mwcu::ObjectPlaceHolder<sizeof(Target<void, Dummy>)> d_target;
 
   private:
     // NOT IMPLEMENTED
@@ -260,30 +263,32 @@ class Future_Callback {
 
   public:
     // CREATORS
+
+    /// Create a `Future_Callback` object containing a function object of
+    /// type `FUNCTION` direct-non-list-initialized by
+    /// `bsl::forward<FUNCTION_PARAM>(function)`. Specify an `allocator`
+    /// used to supply memory.
+    ///
+    /// `bsl::decay_t<FUNCTION>` must meet the requirements of Destructible
+    /// and MoveConstructible as specified in the C++ standard. Given an
+    /// object `f` of type `bsl::decay_t<FUNCTION>`,
+    /// `f(bsl::declval<FutureResult<R>>())` shall be a valid
+    /// expression.
     template <class R, class FUNCTION>
     Future_Callback(AsyncResultTypeTag<R>,
                     BSLS_COMPILERFEATURES_FORWARD_REF(FUNCTION) function,
                     bslma::Allocator* allocator);
-    // Create a 'Future_Callback' object containing a function object of
-    // type 'FUNCTION' direct-non-list-initialized by
-    // 'bsl::forward<FUNCTION_PARAM>(function)'. Specify an 'allocator'
-    // used to supply memory.
-    //
-    // 'bsl::decay_t<FUNCTION>' must meet the requirements of Destructible
-    // and MoveConstructible as specified in the C++ standard. Given an
-    // object 'f' of type 'bsl::decay_t<FUNCTION>',
-    // 'f(bsl::declval<FutureResult<R>>())' shall be a valid
-    // expression.
 
+    /// Destroy this object and the contained function object with it.
     ~Future_Callback();
-    // Destroy this object and the contained function object with it.
 
   public:
     // MANIPULATORS
+
+    /// Perform `bsl::move(f)(FutureResult<R>((S*)sharedState))`, where `f`
+    /// is the contained function object, `R` is the type of the async
+    /// result, and `S` is `Future<R>::SharedStateType`.
     void invoke(void* sharedState);
-    // Perform 'bsl::move(f)(FutureResult<R>((S*)sharedState))', where 'f'
-    // is the contained function object, 'R' is the type of the async
-    // result, and 'S' is 'Future<R>::SharedStateType'.
 
   public:
     // TRAITS
@@ -294,10 +299,9 @@ class Future_Callback {
 // struct FutureStatus
 // ===================
 
+/// Specifies state of a future as returned by `waitFor` and `waitUntil`
+/// functions of `mwcex::Future` and `mwcex::FutureSharedState`.
 struct FutureStatus {
-    // Specifies state of a future as returned by 'waitFor' and 'waitUntil'
-    // functions of 'mwcex::Future' and 'mwcex::FutureSharedState'.
-
     enum Enum {
         e_READY  // the shared state is ready
         ,
@@ -309,18 +313,18 @@ struct FutureStatus {
 // class Future
 // ============
 
+/// Provides a mechanism to access the result of an asynchronous operation.
+///
+/// `R` must meet the requirements of Destructible as specified in the C++
+/// standard.
 template <class R>
 class Future {
-    // Provides a mechanism to access the result of an asynchronous operation.
-    //
-    // 'R' must meet the requirements of Destructible as specified in the C++
-    // standard.
-
   public:
     // TYPES
+
+    /// Defines the type of the shared state accepted by the future
+    /// constructor.
     typedef FutureSharedState<R> SharedStateType;
-    // Defines the type of the shared state accepted by the future
-    // constructor.
 
   protected:
     // PROTECTED DATA
@@ -335,109 +339,91 @@ class Future {
 
   public:
     // CREATORS
-    Future() BSLS_KEYWORD_NOEXCEPT;
-    // Create a 'Future' object having no shared state.
 
+    /// Create a `Future` object having no shared state.
+    Future() BSLS_KEYWORD_NOEXCEPT;
+
+    /// Create a `Future` object having the specified `sharedState`.
     explicit Future(const bsl::shared_ptr<SharedStateType>& sharedState)
         BSLS_KEYWORD_NOEXCEPT;
-    // Create a 'Future' object having the specified 'sharedState'.
-
-    //! Future(const Future& original) noexcept = default;
-    // Create a 'Future' object that refers to and assumes management of
-    // the same shared state (if any) as the specified 'original' object.
-
-    //! Future(Future&& original) noexcept      = default;
-    // Create a 'Future' object that refers to and assumes management of
-    // the same shared state (if any) as the specified 'original' object,
-    // and reset 'original' to a default-constructed state.
-
-    //! ~Future() = default;
-    // Destroy this object. Release the underlying shared state, if any.
 
   public:
     // MANIPULATORS
-    //! Future& operator=(const Future& rhs) noexcept = default;
-    // Make this future refer to and assume management of the same shared
-    // state (if any) as the specified 'rhs' future. Return '*this'.
 
-    //! Future& operator=(Future&& rhs) noexcept      = default;
-    // Make this future refer to and assume management of the same shared
-    // state (if any) as the specified 'rhs' future, and reset 'rhs' to a
-    // default-constructed state. Return '*this'.
-
+    /// If `isReady()` is `true`, call 'DECAY_COPY(bsl::forward<FUNCTION>(
+    /// callback))(FutureResult<R>(*this))'. Otherwise, store the specified
+    /// `callback` as if by direct-non-list-initializing an object `f` of
+    /// type `bsl::decay_t<FUNCTION>` with 'bsl::forward<FUNCTION>(
+    /// callback)` to be invoked as `bsl::move(f)(FutureResult<R>(*this))'
+    /// as soon as the shared state becomes ready. Effectively calls
+    /// `whenReady` on the underlying shared state. The behavior is
+    /// undefined if a callback is already attached to the shared state, or
+    /// if the future has no shared state.
+    ///
+    /// Throws any exception thrown by the selected constructor of
+    /// `bsl::decay_t<FUNCTION>`, any exception thrown by 'DECAY_COPY(
+    /// bsl::forward<FUNCTION>(callback))(FutureResult<R>(*this))', or
+    /// `bsl::bad_alloc` if memory allocation fails. If an exception is
+    /// thrown, this function has no effect.
+    ///
+    /// Note that, unless otherwise specified, it is safe to invoke any
+    /// function on `*this` from the context of the attached callback.
+    ///
+    /// `bsl::decay_t<FUNCTION>` must meet the requirements of Destructible
+    /// and MoveConstructible as specified in the C++ standard. Given an
+    /// object `f` of type `bsl::decay_t<FUNCTION>`,
+    /// `f(bsl::declval<FutureResult<R>>())` shall be a valid expression.
     template <class FUNCTION>
     void whenReady(BSLS_COMPILERFEATURES_FORWARD_REF(FUNCTION) callback);
-    // If 'isReady()' is 'true', call 'DECAY_COPY(bsl::forward<FUNCTION>(
-    // callback))(FutureResult<R>(*this))'. Otherwise, store the specified
-    // 'callback' as if by direct-non-list-initializing an object 'f' of
-    // type 'bsl::decay_t<FUNCTION>' with 'bsl::forward<FUNCTION>(
-    // callback)' to be invoked as 'bsl::move(f)(FutureResult<R>(*this))'
-    // as soon as the shared state becomes ready. Effectively calls
-    // 'whenReady' on the underlying shared state. The behavior is
-    // undefined if a callback is already attached to the shared state, or
-    // if the future has no shared state.
-    //
-    // Throws any exception thrown by the selected constructor of
-    // 'bsl::decay_t<FUNCTION>', any exception thrown by 'DECAY_COPY(
-    // bsl::forward<FUNCTION>(callback))(FutureResult<R>(*this))', or
-    // 'bsl::bad_alloc' if memory allocation fails. If an exception is
-    // thrown, this function has no effect.
-    //
-    // Note that, unless otherwise specified, it is safe to invoke any
-    // function on '*this' from the context of the attached callback.
-    //
-    // 'bsl::decay_t<FUNCTION>' must meet the requirements of Destructible
-    // and MoveConstructible as specified in the C++ standard. Given an
-    // object 'f' of type 'bsl::decay_t<FUNCTION>',
-    // 'f(bsl::declval<FutureResult<R>>())' shall be a valid expression.
 
+    /// Swap the contents of `*this` and `other`.
     void swap(Future& other) BSLS_KEYWORD_NOEXCEPT;
-    // Swap the contents of '*this' and 'other'.
 
   public:
     // ACCESSORS
+
+    /// Return `true` if the future has a shared state, and `false`
+    /// otherwise.
     bool isValid() const BSLS_KEYWORD_NOEXCEPT;
-    // Return 'true' if the future has a shared state, and 'false'
-    // otherwise.
 
+    /// Return `true` if the shared state is ready, and `false` otherwise.
+    /// Effectively calls `isReady` on the underlying shared state. The
+    /// behavior is undefined unless the future has a shared state.
     bool isReady() const BSLS_KEYWORD_NOEXCEPT;
-    // Return 'true' if the shared state is ready, and 'false' otherwise.
-    // Effectively calls 'isReady' on the underlying shared state. The
-    // behavior is undefined unless the future has a shared state.
 
+    /// Block the calling thread until the shared state is ready. Then,
+    /// return the contained value or throw the contained exception.
+    /// Effectively calls `get` on the underlying shared state. The
+    /// behavior is undefined unless the future has a shared state.
     R&       get();
     const R& get() const;
-    // Block the calling thread until the shared state is ready. Then,
-    // return the contained value or throw the contained exception.
-    // Effectively calls 'get' on the underlying shared state. The
-    // behavior is undefined unless the future has a shared state.
 
+    /// Block the calling thread until the shared state is ready.
+    /// Effectively calls `wait` on the underlying shared state. The
+    /// behavior is undefined unless the future has a shared state.
     void wait() const BSLS_KEYWORD_NOEXCEPT;
-    // Block the calling thread until the shared state is ready.
-    // Effectively calls 'wait' on the underlying shared state. The
-    // behavior is undefined unless the future has a shared state.
 
+    /// Block the calling thread until the shared state becomes ready or the
+    /// specified `duration` time has elapsed, whichever comes first. The
+    /// `duration` is an offset from the current point in time, which is
+    /// determined by the clock indicated at the construction of the
+    /// underlying shared state. Return a value identifying the state of the
+    /// result. Effectively calls `waitFor` on the underlying shared
+    /// state. The behavior is undefined unless the future has a shared
+    /// state.
     FutureStatus::Enum
     waitFor(const bsls::TimeInterval& duration) const BSLS_KEYWORD_NOEXCEPT;
-    // Block the calling thread until the shared state becomes ready or the
-    // specified 'duration' time has elapsed, whichever comes first. The
-    // 'duration' is an offset from the current point in time, which is
-    // determined by the clock indicated at the construction of the
-    // underlying shared state. Return a value identifying the state of the
-    // result. Effectively calls 'waitFor' on the underlying shared
-    // state. The behavior is undefined unless the future has a shared
-    // state.
 
+    /// Block the calling thread until the shared state becomes ready or
+    /// until the specified `timeout`, whichever comes first. The `timeout`
+    /// is an absolute time represented as an interval from some epoch,
+    /// which is determined by the clock indicated at the construction of
+    /// the underlying shared state. Return a value identifying the state
+    /// of the result. Effectively calls `waitUntil` on the underlying
+    /// shared state. The behavior is undefined unless the future has a
+    /// shared state.
     FutureStatus::Enum
     waitUntil(const bsls::TimeInterval& timeout) const BSLS_KEYWORD_NOEXCEPT;
-    // Block the calling thread until the shared state becomes ready or
-    // until the specified 'timeout', whichever comes first. The 'timeout'
-    // is an absolute time represented as an interval from some epoch,
-    // which is determined by the clock indicated at the construction of
-    // the underlying shared state. Return a value identifying the state
-    // of the result. Effectively calls 'waitUntil' on the underlying
-    // shared state. The behavior is undefined unless the future has a
-    // shared state.
 
   public:
     // TRAITS
@@ -448,15 +434,15 @@ class Future {
 // class Future<void>
 // ==================
 
+/// Provides a specialization of `Future` for `void` result type.
 template <>
 class Future<void> : private Future<bslmf::Nil> {
-    // Provides a specialization of 'Future' for 'void' result type.
-
   public:
     // TYPES
+
+    /// Defines the type of the shared state accepted by the future
+    /// constructor.
     typedef FutureSharedState<bslmf::Nil> SharedStateType;
-    // Defines the type of the shared state accepted by the future
-    // constructor.
 
   private:
     // PRIVATE TYPES
@@ -468,62 +454,50 @@ class Future<void> : private Future<bslmf::Nil> {
 
   public:
     // CREATORS
-    Future() BSLS_KEYWORD_NOEXCEPT;
-    // Same as for the non-specialized class template.
 
+    /// Same as for the non-specialized class template.
+    Future() BSLS_KEYWORD_NOEXCEPT;
+
+    /// Same as for the non-specialized class template.
     explicit Future(const bsl::shared_ptr<SharedStateType>& sharedState)
         BSLS_KEYWORD_NOEXCEPT;
-    // Same as for the non-specialized class template.
-
-    //! Future(const Future& original) noexcept = default;
-    // Same as for the non-specialized class template.
-
-    //! Future(Future&& original) noexcept      = default;
-    // Same as for the non-specialized class template.
-
-    //! ~Future() = default;
-    // Same as for the non-specialized class template.
 
   public:
     // MANIPULATORS
-    //! Future& operator=(const Future& rhs) noexcept = default;
-    // Same as for the non-specialized class template.
 
-    //! Future& operator=(Future&& rhs) noexcept      = default;
-    // Same as for the non-specialized class template.
-
+    /// Same as for the non-specialized class template.
     template <class FUNCTION>
     void whenReady(BSLS_COMPILERFEATURES_FORWARD_REF(FUNCTION) callback);
-    // Same as for the non-specialized class template.
 
+    /// Same as for the non-specialized class template.
     void swap(Future& other) BSLS_KEYWORD_NOEXCEPT;
-    // Same as for the non-specialized class template.
 
   public:
     // ACCESSORS
+
+    /// Same as for the non-specialized class template.
     bool isValid() const BSLS_KEYWORD_NOEXCEPT;
-    // Same as for the non-specialized class template.
 
+    /// Same as for the non-specialized class template.
     bool isReady() const BSLS_KEYWORD_NOEXCEPT;
-    // Same as for the non-specialized class template.
 
+    /// Block the calling thread until the shared state is ready. Then, if
+    /// the shared state contains an exception, throw the contained
+    /// exception. Effectively calls `get` on the underlying shared
+    /// state. The behavior is undefined unless the future has a shared
+    /// state.
     void get() const;
-    // Block the calling thread until the shared state is ready. Then, if
-    // the shared state contains an exception, throw the contained
-    // exception. Effectively calls 'get' on the underlying shared
-    // state. The behavior is undefined unless the future has a shared
-    // state.
 
+    /// Same as for the non-specialized class template.
     void wait() const BSLS_KEYWORD_NOEXCEPT;
-    // Same as for the non-specialized class template.
 
+    /// Same as for the non-specialized class template.
     FutureStatus::Enum
     waitFor(const bsls::TimeInterval& duration) const BSLS_KEYWORD_NOEXCEPT;
-    // Same as for the non-specialized class template.
 
+    /// Same as for the non-specialized class template.
     FutureStatus::Enum
     waitUntil(const bsls::TimeInterval& timeout) const BSLS_KEYWORD_NOEXCEPT;
-    // Same as for the non-specialized class template.
 
   public:
     // TRAITS
@@ -534,15 +508,15 @@ class Future<void> : private Future<bslmf::Nil> {
 // class Future<R&>
 // ================
 
+/// Provides a specialization of `Future` for reference result types.
 template <class R>
 class Future<R&> : private Future<bsl::reference_wrapper<R> > {
-    // Provides a specialization of 'Future' for reference result types.
-
   public:
     // TYPES
+
+    /// Defines the type of the shared state accepted by the future
+    /// constructor.
     typedef FutureSharedState<bsl::reference_wrapper<R> > SharedStateType;
-    // Defines the type of the shared state accepted by the future
-    // constructor.
 
   private:
     // PRIVATE TYPES
@@ -554,61 +528,49 @@ class Future<R&> : private Future<bsl::reference_wrapper<R> > {
 
   public:
     // CREATORS
-    Future() BSLS_KEYWORD_NOEXCEPT;
-    // Same as for the non-specialized class template.
 
+    /// Same as for the non-specialized class template.
+    Future() BSLS_KEYWORD_NOEXCEPT;
+
+    /// Same as for the non-specialized class template.
     explicit Future(const bsl::shared_ptr<SharedStateType>& sharedState)
         BSLS_KEYWORD_NOEXCEPT;
-    // Same as for the non-specialized class template.
-
-    //! Future(const Future& original) noexcept = default;
-    // Same as for the non-specialized class template.
-
-    //! Future(Future&& original) noexcept      = default;
-    // Same as for the non-specialized class template.
-
-    //! ~Future() = default;
-    // Same as for the non-specialized class template.
 
   public:
     // MANIPULATORS
-    //! Future& operator=(const Future& rhs) noexcept = default;
-    // Same as for the non-specialized class template.
 
-    //! Future& operator=(Future&& rhs) noexcept      = default;
-    // Same as for the non-specialized class template.
-
+    /// Same as for the non-specialized class template.
     template <class FUNCTION>
     void whenReady(BSLS_COMPILERFEATURES_FORWARD_REF(FUNCTION) callback);
-    // Same as for the non-specialized class template.
 
+    /// Same as for the non-specialized class template.
     void swap(Future& other) BSLS_KEYWORD_NOEXCEPT;
-    // Same as for the non-specialized class template.
 
   public:
     // ACCESSORS
+
+    /// Same as for the non-specialized class template.
     bool isValid() const BSLS_KEYWORD_NOEXCEPT;
-    // Same as for the non-specialized class template.
 
+    /// Same as for the non-specialized class template.
     bool isReady() const BSLS_KEYWORD_NOEXCEPT;
-    // Same as for the non-specialized class template.
 
+    /// Block the calling thread until the shared state is ready. Then,
+    /// return the contained reference or throw the contained exception.
+    /// Effectively calls `get` on the underlying shared state. The
+    /// behavior is undefined unless the future has a shared state.
     R& get() const;
-    // Block the calling thread until the shared state is ready. Then,
-    // return the contained reference or throw the contained exception.
-    // Effectively calls 'get' on the underlying shared state. The
-    // behavior is undefined unless the future has a shared state.
 
+    /// Same as for the non-specialized class template.
     void wait() const BSLS_KEYWORD_NOEXCEPT;
-    // Same as for the non-specialized class template.
 
+    /// Same as for the non-specialized class template.
     FutureStatus::Enum
     waitFor(const bsls::TimeInterval& duration) const BSLS_KEYWORD_NOEXCEPT;
-    // Same as for the non-specialized class template.
 
+    /// Same as for the non-specialized class template.
     FutureStatus::Enum
     waitUntil(const bsls::TimeInterval& timeout) const BSLS_KEYWORD_NOEXCEPT;
-    // Same as for the non-specialized class template.
 
   public:
     // TRAITS
@@ -619,59 +581,49 @@ class Future<R&> : private Future<bsl::reference_wrapper<R> > {
 // class FutureResult
 // ==================
 
+/// Provides a mechanism to access the result of an asynchronous operation
+/// that is already established. Objects of this type are passed as
+/// parameters to notification callbacks.
+///
+/// `R` must meet the requirements of Destructible as specified in the C++
+/// standard.
 template <class R>
 class FutureResult {
-    // Provides a mechanism to access the result of an asynchronous operation
-    // that is already established. Objects of this type are passed as
-    // parameters to notification callbacks.
-    //
-    // 'R' must meet the requirements of Destructible as specified in the C++
-    // standard.
-
   private:
     // PRIVATE DATA
     typename Future<R>::SharedStateType* d_sharedState_p;
 
   public:
+    /// Create a `FutureResult` object having the same shared state as the
+    /// specified `future`. The behavior is undefined unless
+    /// `future.isValid()` and `future.isReady()` are `true`.
+    ///
+    /// Note that no copy of the specified `future` is stored in this
+    /// object, meaning that the reference counting for the shared state
+    /// is not affected.
     explicit FutureResult(const Future<R>& future) BSLS_KEYWORD_NOEXCEPT;
-    // Create a 'FutureResult' object having the same shared state as the
-    // specified 'future'. The behavior is undefined unless
-    // 'future.isValid()' and 'future.isReady()' are 'true'.
-    //
-    // Note that no copy of the specified 'future' is stored in this
-    // object, meaning that the reference counting for the shared state
-    // is not affected.
 
+    /// Create a `FutureResult` object having the specified `sharedState`.
+    /// The behavior is undefined unless `sharedState->isReady()` is `true`.
     explicit FutureResult(typename Future<R>::SharedStateType* sharedState)
         BSLS_KEYWORD_NOEXCEPT;
-    // Create a 'FutureResult' object having the specified 'sharedState'.
-    // The behavior is undefined unless 'sharedState->isReady()' is 'true'.
 
-    //! FutureResult(const FutureResult& original) noexcept = default;
-    //! FutureResult(FutureResult&& original)      noexcept = default;
-    // Create a 'FutureResult' object that refers to the same shared state
-    // as the specified 'original' object.
-
+    /// Swap the contents of `*this` and `other`.
     void swap(FutureResult& other) BSLS_KEYWORD_NOEXCEPT;
-    // Swap the contents of '*this' and 'other'.
 
   public:
     // MANIPULATORS
-    //! FutureResult& operator=(const FutureResult& rhs) noexcept = default;
-    //! FutureResult& operator=(FutureResult&& rhs)      noexcept = default;
-    // Make this future result refer to the same shared state as the
-    // specified 'rhs' object. Return '*this'.
-
   public:
     // ACCESSORS
+
+    /// Perform `return get();`.
     operator R&();
     operator const R&() const;
-    // Perform 'return get();'.
 
+    /// Return the contained value or throw the contained exception.
+    /// Effectively calls `get` on the underlying shared state.
     R&       get();
     const R& get() const;
-    // Return the contained value or throw the contained exception.
-    // Effectively calls 'get' on the underlying shared state.
 
   public:
     // TRAITS
@@ -682,41 +634,35 @@ class FutureResult {
 // class FutureResult<void>
 // ========================
 
+/// Provides a specialization of `FutureResult` for `void` result type.
 template <>
 class FutureResult<void> {
-    // Provides a specialization of 'FutureResult' for 'void' result type.
-
   private:
     // PRIVATE DATA
     Future<void>::SharedStateType* d_sharedState_p;
 
   public:
     // CREATORS
-    explicit FutureResult(const Future<void>& future) BSLS_KEYWORD_NOEXCEPT;
-    // Same as for the non-specialized class template.
 
+    /// Same as for the non-specialized class template.
+    explicit FutureResult(const Future<void>& future) BSLS_KEYWORD_NOEXCEPT;
+
+    /// Same as for the non-specialized class template.
     explicit FutureResult(Future<void>::SharedStateType* sharedState)
         BSLS_KEYWORD_NOEXCEPT;
-    // Same as for the non-specialized class template.
-
-    //! FutureResult(const FutureResult& original) noexcept = default;
-    //! FutureResult(FutureResult&& original)      noexcept = default;
-    // Same as for the non-specialized class template.
 
   public:
     // MANIPULATORS
-    //! FutureResult& operator=(const FutureResult& rhs) noexcept = default;
-    //! FutureResult& operator=(FutureResult&& rhs)      noexcept = default;
-    // Same as for the non-specialized class template.
 
+    /// Same as for the non-specialized class template.
     void swap(FutureResult& other) BSLS_KEYWORD_NOEXCEPT;
-    // Same as for the non-specialized class template.
 
   public:
     // ACCESSORS
+
+    /// If the shared state contains an exception, throw the contained
+    /// exception. Effectively calls `get` on the underlying shared state.
     void get() const;
-    // If the shared state contains an exception, throw the contained
-    // exception. Effectively calls 'get' on the underlying shared state.
 
   public:
     // TRAITS
@@ -727,44 +673,38 @@ class FutureResult<void> {
 // class FutureResult<R&>
 // ======================
 
+/// Provides a specialization of `FutureResult` for reference result types.
 template <class R>
 class FutureResult<R&> {
-    // Provides a specialization of 'FutureResult' for reference result types.
-
   private:
     // PRIVATE DATA
     typename Future<R&>::SharedStateType* d_sharedState_p;
 
   public:
     // CREATORS
-    explicit FutureResult(const Future<R&>& future) BSLS_KEYWORD_NOEXCEPT;
-    // Same as for the non-specialized class template.
 
+    /// Same as for the non-specialized class template.
+    explicit FutureResult(const Future<R&>& future) BSLS_KEYWORD_NOEXCEPT;
+
+    /// Same as for the non-specialized class template.
     explicit FutureResult(typename Future<R&>::SharedStateType* sharedState)
         BSLS_KEYWORD_NOEXCEPT;
-    // Same as for the non-specialized class template.
-
-    //! FutureResult(const FutureResult& original) noexcept = default;
-    //! FutureResult(FutureResult&& original)      noexcept = default;
-    // Same as for the non-specialized class template.
 
   public:
     // MANIPULATORS
-    //! FutureResult& operator=(const FutureResult& rhs) noexcept = default;
-    //! FutureResult& operator=(FutureResult&& rhs)      noexcept = default;
-    // Same as for the non-specialized class template.
 
+    /// Same as for the non-specialized class template.
     void swap(FutureResult& other) BSLS_KEYWORD_NOEXCEPT;
-    // Same as for the non-specialized class template.
 
   public:
     // ACCESSORS
-    operator R&() const;
-    // Perform 'return get();'.
 
+    /// Perform `return get();`.
+    operator R&() const;
+
+    /// Return the contained reference or throw the contained exception.
+    /// Effectively calls `get` on the underlying shared state.
     R& get() const;
-    // Return the contained reference or throw the contained exception.
-    // Effectively calls 'get' on the underlying shared state.
 
   public:
     // TRAITS
@@ -775,14 +715,13 @@ class FutureResult<R&> {
 // class FutureSharedState
 // =======================
 
+/// Provides a shared state that stores the result of an asynchronous
+/// operation.
+///
+/// `R` must meet the requirements of Destructible as specified in the C++
+/// standard.
 template <class R>
 class FutureSharedState {
-    // Provides a shared state that stores the result of an asynchronous
-    // operation.
-    //
-    // 'R' must meet the requirements of Destructible as specified in the C++
-    // standard.
-
   private:
     // PRIVATE TYPES
     enum State {
@@ -804,10 +743,9 @@ class FutureSharedState {
 #endif
     typedef Future_Exception ExceptionObjType;
 
+    /// Shared state result. May contain a value, an exception pointer
+    /// (C++11 only), or an exception object.
     union Result {
-        // Shared state result. May contain a value, an exception pointer
-        // (C++11 only), or an exception object.
-
         bsls::ObjectBuffer<ValueType> d_value;
 #ifdef BSLS_LIBRARYFEATURES_HAS_CPP11_EXCEPTION_HANDLING
         bsls::ObjectBuffer<ExceptionPtrType> d_exceptionPtr;
@@ -833,9 +771,10 @@ class FutureSharedState {
 
   private:
     // PRIVATE MANIPULATORS
+
+    /// If a callback is attached to the shared state, invoke, and then
+    /// destroy it.
     void invokeAndDestroyCallback();
-    // If a callback is attached to the shared state, invoke, and then
-    // destroy it.
 
   private:
     // NOT IMPLEMENTED
@@ -847,55 +786,56 @@ class FutureSharedState {
     // CREATORS
     explicit FutureSharedState(bslma::Allocator* basicAllocator = 0);
 
+    /// Create a `FutureSharedState` object. Optionally specify a
+    /// `clockType` indicating the type of the system clock against which
+    /// the `bsls::TimeInterval` timeouts passed to `waitFor` and
+    /// `waitUntil` methods are to be interpreted. If `clockType` is not
+    /// specified, the monotonic system clock is used. Optionally specify a
+    /// `basicAllocator` used to supply memory. If `basicAllocator` is not
+    /// specified, the currently installed default allocator is used.
     explicit FutureSharedState(bsls::SystemClockType::Enum clockType,
                                bslma::Allocator*           basicAllocator = 0);
-    // Create a 'FutureSharedState' object. Optionally specify a
-    // 'clockType' indicating the type of the system clock against which
-    // the 'bsls::TimeInterval' timeouts passed to 'waitFor' and
-    // 'waitUntil' methods are to be interpreted. If 'clockType' is not
-    // specified, the monotonic system clock is used. Optionally specify a
-    // 'basicAllocator' used to supply memory. If 'basicAllocator' is not
-    // specified, the currently installed default allocator is used.
 
+    /// Destroy this object. Destroy any contained value, exception pointer,
+    /// exception object or callback. The behavior is undefined if this
+    /// function is invoked from the context of a callback attached to this
+    /// shared state.
     ~FutureSharedState();
-    // Destroy this object. Destroy any contained value, exception pointer,
-    // exception object or callback. The behavior is undefined if this
-    // function is invoked from the context of a callback attached to this
-    // shared state.
 
   public:
     // MANIPULATORS
-    void setValue(const R& value);
-    // Atomically initialize the stored value as if by direct-non-list-
-    // initializing an object of type 'R' with 'value' and make the state
-    // ready. If a callback is attached to the shared state, invoke, and
-    // then destroy it. The behavior is undefined if the shared state is
-    // ready.
-    //
-    // Throws any exception thrown by the selected constructor of 'R', or
-    // any exception thrown by the attached callback. If an exception is
-    // thrown by 'R's constructor, this function has no effect. If an
-    // exception is thrown by the attached callback, the stored value stays
-    // initialized and the callback is destroyed.
-    //
-    // 'R' must meet the requirements of CopyConstructible as specified in
-    // the C++ standard.
 
+    /// Atomically initialize the stored value as if by direct-non-list-
+    /// initializing an object of type `R` with `value` and make the state
+    /// ready. If a callback is attached to the shared state, invoke, and
+    /// then destroy it. The behavior is undefined if the shared state is
+    /// ready.
+    ///
+    /// Throws any exception thrown by the selected constructor of `R`, or
+    /// any exception thrown by the attached callback. If an exception is
+    /// thrown by `R`s constructor, this function has no effect. If an
+    /// exception is thrown by the attached callback, the stored value stays
+    /// initialized and the callback is destroyed.
+    ///
+    /// `R` must meet the requirements of CopyConstructible as specified in
+    /// the C++ standard.
+    void setValue(const R& value);
+
+    /// Atomically initialize the stored value as if by direct-non-list-
+    /// initializing an object of type `R` with bsl::move(value)' and make
+    /// the state ready. If a callback is attached to the shared state,
+    /// invoke, and then destroy it. The behavior is undefined if the shared
+    /// state is ready.
+    ///
+    /// Throws any exception thrown by the selected constructor of `R`, or
+    /// any exception thrown by the attached callback. If an exception is
+    /// thrown by `R`s constructor, this function has no effect. If an
+    /// exception is thrown by the attached callback, the stored value stays
+    /// initialized and the callback is destroyed.
+    ///
+    /// `R` must meet the requirements of MoveConstructible as specified in
+    /// the C++ standard.
     void setValue(bslmf::MovableRef<R> value);
-    // Atomically initialize the stored value as if by direct-non-list-
-    // initializing an object of type 'R' with bsl::move(value)' and make
-    // the state ready. If a callback is attached to the shared state,
-    // invoke, and then destroy it. The behavior is undefined if the shared
-    // state is ready.
-    //
-    // Throws any exception thrown by the selected constructor of 'R', or
-    // any exception thrown by the attached callback. If an exception is
-    // thrown by 'R's constructor, this function has no effect. If an
-    // exception is thrown by the attached callback, the stored value stays
-    // initialized and the callback is destroyed.
-    //
-    // 'R' must meet the requirements of MoveConstructible as specified in
-    // the C++ standard.
 
 #if BSLS_COMPILERFEATURES_SIMULATE_VARIADIC_TEMPLATES
 // {{{ BEGIN GENERATED CODE
@@ -906,6 +846,7 @@ class FutureSharedState {
 #ifndef MWCEX_FUTURE_VARIADIC_LIMIT_A
 #define MWCEX_FUTURE_VARIADIC_LIMIT_A MWCEX_FUTURE_VARIADIC_LIMIT
 #endif
+
 #if MWCEX_FUTURE_VARIADIC_LIMIT_A >= 0
     void emplaceValue();
 #endif  // MWCEX_FUTURE_VARIADIC_LIMIT_A >= 0
@@ -1024,103 +965,105 @@ class FutureSharedState {
 #else
     // The generated code below is a workaround for the absence of perfect
     // forwarding in some compilers.
+
     template <class... ARGS>
     void emplaceValue(BSLS_COMPILERFEATURES_FORWARD_REF(ARGS)... args);
 // }}} END GENERATED CODE
 #endif
 
 #ifdef BSLS_LIBRARYFEATURES_HAS_CPP11_EXCEPTION_HANDLING
+    /// Atomically store the specified `exception` pointer into the shared
+    /// state and make the state ready. If a callback is attached to the
+    /// shared state, invoke, and then destroy it. The behavior is undefined
+    /// if the shared state is ready.
+    ///
+    /// Throws any exception thrown by the attached callback. If an
+    /// exception is thrown, the stored exception stays initialized and the
+    /// callback is destroyed.
     void setException(bsl::exception_ptr exception);
-    // Atomically store the specified 'exception' pointer into the shared
-    // state and make the state ready. If a callback is attached to the
-    // shared state, invoke, and then destroy it. The behavior is undefined
-    // if the shared state is ready.
-    //
-    // Throws any exception thrown by the attached callback. If an
-    // exception is thrown, the stored exception stays initialized and the
-    // callback is destroyed.
 #endif
 
+    /// Atomically initialize the stored exception object as if by direct-
+    /// non-list-initializing an object of type `bsl::decay_t<EXCEPTION>`
+    /// with `bsl::forward<EXCEPTION>(EXCEPTION)` and make the state ready.
+    /// If a callback is attached to the shared state, invoke, and then
+    /// destroy it. The behavior is undefined if the shared state is ready.
+    ///
+    /// Throws any exception thrown by the selected constructor of
+    /// `bsl::decay_t<EXCEPTION>`, any exception thrown by the attached
+    /// callback, or `bsl::bad_alloc` if memory allocation fails. If an
+    /// exception is thrown by `bsl::decay_t<EXCEPTION>`s constructor or due
+    /// to memory allocation failure, this function has no effect. If an
+    /// exception is thrown by the attached callback, the stored exception
+    /// stays initialized and the callback is destroyed.
+    ///
+    /// `bsl::decay_t<EXCEPTION>` must meet the requirements of Destructible
+    /// and CopyConstructible as specified in the C++ standard.
     template <class EXCEPTION>
     void setException(BSLS_COMPILERFEATURES_FORWARD_REF(EXCEPTION) exception);
-    // Atomically initialize the stored exception object as if by direct-
-    // non-list-initializing an object of type 'bsl::decay_t<EXCEPTION>'
-    // with 'bsl::forward<EXCEPTION>(EXCEPTION)' and make the state ready.
-    // If a callback is attached to the shared state, invoke, and then
-    // destroy it. The behavior is undefined if the shared state is ready.
-    //
-    // Throws any exception thrown by the selected constructor of
-    // 'bsl::decay_t<EXCEPTION>', any exception thrown by the attached
-    // callback, or 'bsl::bad_alloc' if memory allocation fails. If an
-    // exception is thrown by 'bsl::decay_t<EXCEPTION>'s constructor or due
-    // to memory allocation failure, this function has no effect. If an
-    // exception is thrown by the attached callback, the stored exception
-    // stays initialized and the callback is destroyed.
-    //
-    // 'bsl::decay_t<EXCEPTION>' must meet the requirements of Destructible
-    // and CopyConstructible as specified in the C++ standard.
 
+    /// If `isReady()` is `true`, call 'DECAY_COPY(bsl::forward<FUNCTION>(
+    /// callback))(FutureResult<R_T>(this))'. Otherwise, store the specified
+    /// `callback` as if by direct-non-list-initializing an object `f` of
+    /// type `bsl::decay_t<FUNCTION>` with 'bsl::forward<FUNCTION>(
+    /// callback)` to be invoked as `bsl::move(f)(FutureResult<R_T>(this))'
+    /// as soon as the shared state becomes ready. The behavior is undefined
+    /// if a callback is already attached to this shared state.
+    ///
+    /// Throws any exception thrown by the selected constructor of
+    /// `bsl::decay_t<FUNCTION>`, any exception thrown by 'DECAY_COPY(
+    /// bsl::forward<FUNCTION>(callback))(FutureResult<R_T>(this))', or
+    /// `bsl::bad_alloc` if memory allocation fails. If an exception is
+    /// thrown, this function has no effect.
+    ///
+    /// Note that, unless otherwise specified, it is safe to invoke any
+    /// function on `*this` from the context of the attached callback.
+    ///
+    /// `bsl::decay_t<FUNCTION>` must meet the requirements of Destructible
+    /// and MoveConstructible as specified in the C++ standard. Given an
+    /// object `f` of type `bsl::decay_t<FUNCTION>`,
+    /// `f(bsl::declval<FutureResult<R_T>>())` shall be a valid expression.
     template <class R_T, class FUNCTION>
     void whenReady(BSLS_COMPILERFEATURES_FORWARD_REF(FUNCTION) callback);
-    // If 'isReady()' is 'true', call 'DECAY_COPY(bsl::forward<FUNCTION>(
-    // callback))(FutureResult<R_T>(this))'. Otherwise, store the specified
-    // 'callback' as if by direct-non-list-initializing an object 'f' of
-    // type 'bsl::decay_t<FUNCTION>' with 'bsl::forward<FUNCTION>(
-    // callback)' to be invoked as 'bsl::move(f)(FutureResult<R_T>(this))'
-    // as soon as the shared state becomes ready. The behavior is undefined
-    // if a callback is already attached to this shared state.
-    //
-    // Throws any exception thrown by the selected constructor of
-    // 'bsl::decay_t<FUNCTION>', any exception thrown by 'DECAY_COPY(
-    // bsl::forward<FUNCTION>(callback))(FutureResult<R_T>(this))', or
-    // 'bsl::bad_alloc' if memory allocation fails. If an exception is
-    // thrown, this function has no effect.
-    //
-    // Note that, unless otherwise specified, it is safe to invoke any
-    // function on '*this' from the context of the attached callback.
-    //
-    // 'bsl::decay_t<FUNCTION>' must meet the requirements of Destructible
-    // and MoveConstructible as specified in the C++ standard. Given an
-    // object 'f' of type 'bsl::decay_t<FUNCTION>',
-    // 'f(bsl::declval<FutureResult<R_T>>())' shall be a valid expression.
 
   public:
     // ACCESSORS
-    bool isReady() const BSLS_KEYWORD_NOEXCEPT;
-    // Return 'true' if the shared state is ready, and 'false' otherwise.
 
+    /// Return `true` if the shared state is ready, and `false` otherwise.
+    bool isReady() const BSLS_KEYWORD_NOEXCEPT;
+
+    /// Block the calling thread until the shared state is ready. Then, if
+    /// the state contains a value, return a reference to the contained
+    /// value. Otherwise, if the state contains an exception, throw the
+    /// contained exception.
     R&       get();
     const R& get() const;
-    // Block the calling thread until the shared state is ready. Then, if
-    // the state contains a value, return a reference to the contained
-    // value. Otherwise, if the state contains an exception, throw the
-    // contained exception.
 
+    /// Block the calling thread until the shared state is ready.
     void wait() const BSLS_KEYWORD_NOEXCEPT;
-    // Block the calling thread until the shared state is ready.
 
+    /// Block the calling thread until the shared state becomes ready or the
+    /// specified `duration` time has elapsed, whichever comes first. The
+    /// `duration` is an offset from the current point in time, which is
+    /// determined by the clock indicated at construction. Return a value
+    /// identifying the state of the result.
     FutureStatus::Enum
     waitFor(const bsls::TimeInterval& duration) const BSLS_KEYWORD_NOEXCEPT;
-    // Block the calling thread until the shared state becomes ready or the
-    // specified 'duration' time has elapsed, whichever comes first. The
-    // 'duration' is an offset from the current point in time, which is
-    // determined by the clock indicated at construction. Return a value
-    // identifying the state of the result.
 
+    /// Block the calling thread until the shared state becomes ready or
+    /// until the specified `timeout`, whichever comes first. The `timeout`
+    /// is an absolute time represented as an interval from some epoch,
+    /// which is determined by the clock indicated at construction. Return a
+    /// value identifying the state of the result.
     FutureStatus::Enum
     waitUntil(const bsls::TimeInterval& timeout) const BSLS_KEYWORD_NOEXCEPT;
-    // Block the calling thread until the shared state becomes ready or
-    // until the specified 'timeout', whichever comes first. The 'timeout'
-    // is an absolute time represented as an interval from some epoch,
-    // which is determined by the clock indicated at construction. Return a
-    // value identifying the state of the result.
 
+    /// Return the system clock type used by this object for timed
+    /// operations.
     bsls::SystemClockType::Enum clockType() const BSLS_KEYWORD_NOEXCEPT;
-    // Return the system clock type used by this object for timed
-    // operations.
 
+    /// Return the allocator used by this object to supply memory.
     bslma::Allocator* allocator() const BSLS_KEYWORD_NOEXCEPT;
-    // Return the allocator used by this object to supply memory.
 
   public:
     // TRAITS
@@ -1129,13 +1072,14 @@ class FutureSharedState {
 };
 
 // FREE OPERATORS
+
+/// Swap the contents of `lhs` and `rhs`.
 template <class R>
 void swap(Future<R>& lhs, Future<R>& rhs) BSLS_KEYWORD_NOEXCEPT;
-// Swap the contents of 'lhs' and 'rhs'.
 
+/// Swap the contents of `lhs` and `rhs`.
 template <class R>
 void swap(FutureResult<R>& lhs, FutureResult<R>& rhs) BSLS_KEYWORD_NOEXCEPT;
-// Swap the contents of 'lhs' and 'rhs'.
 
 // ============================================================================
 //                           INLINE DEFINITIONS
@@ -2328,19 +2272,3 @@ inline void mwcex::swap(FutureResult<R>& lhs,
 #endif  // ! defined(COMPILING_MWCEX_FUTURE_H)
 
 #endif  // ! defined(INCLUDED_MWCEX_FUTURE_CPP03)
-
-// ----------------------------------------------------------------------------
-// Copyright 2022-2023 Bloomberg Finance L.P.
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-// ----------------------------- END-OF-FILE ----------------------------------
