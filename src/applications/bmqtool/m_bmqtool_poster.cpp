@@ -58,6 +58,7 @@ PostingContext::PostingContext(
 , d_blob(bufferFactory, d_allocator_p)
 , d_queueId(queueId, d_allocator_p)
 , d_properties(d_allocator_p)
+, d_autoIncrementedValue(0)
 {
     BSLS_ASSERT_SAFE(session);
     BSLS_ASSERT_SAFE(parameters);
@@ -172,9 +173,16 @@ void PostingContext::postNext()
                 length = d_blob.length();
             }
 
+            if (!d_parameters_p->autoIncrementedField().empty()) {
+                d_properties.setPropertyAsInt64(
+                    d_parameters_p->autoIncrementedField(),
+                    d_autoIncrementedValue++);
+            }
+
             if (d_properties.numProperties()) {
                 msg.setPropertiesRef(&d_properties);
             }
+
             bmqt::EventBuilderResult::Enum rc = eventBuilder.packMessage(
                 d_queueId);
             if (rc != 0) {
