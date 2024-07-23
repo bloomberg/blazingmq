@@ -130,9 +130,6 @@ class QueueOptions {
     /// Assign to this object the value of the specified `rhs` object.
     QueueOptions& operator=(const QueueOptions& rhs);
 
-    /// Assign to this object the value of the specified `rhs` object.
-    QueueOptions& operator=(bslmf::MovableRef<QueueOptions> rhs);
-
     /// Set the maxUnconfirmedMessages to the specified `value`.  The
     /// behavior is undefined unless `value >= 0`. If the specified `value`
     /// is set to 0, it means that the consumer does not receive any
@@ -279,21 +276,6 @@ inline QueueOptions& QueueOptions::operator=(const QueueOptions& rhs)
             d_allocator_p   = rhs.d_allocator_p;
         }
     }
-
-    return *this;
-}
-
-inline QueueOptions&
-QueueOptions::operator=(bslmf::MovableRef<QueueOptions> rhs)
-{
-    d_info = bslmf::MovableRefUtil::move(
-        bslmf::MovableRefUtil::access(rhs).d_info);
-    d_suspendsOnBadHostHealth = bslmf::MovableRefUtil::move(
-        bslmf::MovableRefUtil::access(rhs).d_suspendsOnBadHostHealth);
-    d_subscriptions = bslmf::MovableRefUtil::move(
-        bslmf::MovableRefUtil::access(rhs).d_subscriptions);
-    d_hadSubscriptions = bslmf::MovableRefUtil::access(rhs).d_hadSubscriptions;
-    d_allocator_p      = bslmf::MovableRefUtil::access(rhs).d_allocator_p;
 
     return *this;
 }
