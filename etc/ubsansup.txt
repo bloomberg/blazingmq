@@ -3,4 +3,4 @@
 # this hardware, unlike SPARC.  So we simply suppress this warning.  Other
 # option is to update the code, which can be done by someone feeling
 # adventurous.
-alignment:crc32c1024SseInt
+# alignment:crc32c1024SseInt
