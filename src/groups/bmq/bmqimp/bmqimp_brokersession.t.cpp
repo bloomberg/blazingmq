@@ -2196,12 +2196,12 @@ bool TestSession::waitForChannelClose(const bsls::TimeInterval& timeout)
     // Wait for the close to be called on the base channel
     const bsls::TimeInterval expireAfter =
         bsls::SystemTime::nowRealtimeClock() + timeout;
-    while (d_testChannel.closeCalls().empty() &&
+    while (d_testChannel.closeCallsEmpty() &&
            bsls::SystemTime::nowRealtimeClock() < expireAfter) {
         bslmt::ThreadUtil::microSleep(k_TIME_SOURCE_STEP.totalMicroseconds());
     }
 
-    if (d_testChannel.closeCalls().empty()) {
+    if (d_testChannel.closeCallsEmpty()) {
         return false;  // RETURN
     }
 

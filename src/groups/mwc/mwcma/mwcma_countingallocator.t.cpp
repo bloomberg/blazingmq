@@ -191,23 +191,24 @@ static void test3_deallocate()
     mwctst::TestHelper::printTestName("DEALLOCATE");
 
     // This test twice-deallocates the same block of memory, to verify that
-    // such an operation fails. If we're running under MemorySanitizer or
-    // AddressSanitizer, we must skip this test to avoid detecting the issue
-    // and aborting.
+    // such an operation fails. If we're running under MemorySanitizer,
+    // AddressSanitizer or ThreadSanitizer, we must skip this test to avoid
+    // detecting the issue and aborting.
     //
     // Under MSan, we would instead try to explicitly "unpoison" the memory,
     // but CountingAllocator keeps a hidden "header" block, which we have no
     // good way of accessing to unpoison.
     //
     // Under ASan, we might be able to use the `no_sanitize` attribute, but
-    // GCC doesn't support it before versio 8.0 - so for now, better just to
+    // GCC doesn't support it before version 8.0 - so for now, better just to
     // skip the testcase.
 #if defined(__has_feature)  // Clang-supported method for checking sanitizers.
     const bool skipTestForSanitizers = __has_feature(address_sanitizer) ||
                                        __has_feature(memory_sanitizer) ||
                                        __has_feature(thread_sanitizer);
-#elif defined(__SANITIZE_ADDRESS__) || defined(__SANITIZE_THREAD__)
-    // GCC-supported macros for checking ASAN and TSAN.
+#elif defined(__SANITIZE_ADDRESS__) || defined(__SANITIZE_MEMORY__) ||        \
+    defined(__SANITIZE_THREAD__)
+    // GCC-supported macros for checking ASAN, MSAN and TSAN.
     const bool skipTestForSanitizers = true;
 #else
     const bool skipTestForSanitizers = false;  // Default to running the test.

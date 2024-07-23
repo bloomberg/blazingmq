@@ -272,6 +272,12 @@ TestChannel::CloseCall TestChannel::popCloseCall()
     return result;
 }
 
+bool TestChannel::closeCallsEmpty()
+{
+    bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
+    return d_closeCalls.empty();
+}
+
 TestChannel::CloseSignaler& TestChannel::closeSignaler()
 {
     return d_closeSignaler;

@@ -15,7 +15,7 @@ race:BloombergLP::bcema_Pool<*>::allocate
 
 # Not sure what the problem is here, but tsan can't show the other stack, so
 # there's nothing to look into
-race:__tsan_atomic32_fetch_add
+#race:__tsan_atomic32_fetch_add
 
 # Don't warn about using cout from multiple threads
 race:std::basic_ostream<char, *>& bsl::operator<< <*>(std::basic_ostream<*>&, bsl::basic_string<*> const&)
@@ -27,8 +27,8 @@ race:BloombergLP::ball::LoggerManager::isInitialized()
 # Suppress TSan report in a routine used in bmqimp::Brokersession test driver.
 # It is a benign race in the test driver, but should be looked into at some
 # point.
-race:TestSession::waitForChannelClose
-race:TestSession::arriveAtStepWithCfgs
+#race:TestSession::waitForChannelClose
+#race:TestSession::arriveAtStepWithCfgs
 
 # Since we use mqbmock::Dispatcher in unit tests, this method does not get
 # enqueued correctly back to cluster-dispatcher thread, causing potential
