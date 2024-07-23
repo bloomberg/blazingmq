@@ -39,17 +39,16 @@ namespace BloombergLP {
 
 namespace mqbstat {
 
-// FORWARD DECLARATIONS
-namespace {
-class JsonPrinterImpl;
-}  // close unnamed namespace
-
 // =================
 // class JsonPrinter
 // =================
 
 class JsonPrinter {
   private:
+    // PRIVATE TYPES
+    /// Forward declaration of the printer implementation type.
+    class JsonPrinterImpl;
+
     // DATA
     /// Managed pointer to the printer implementation.
     bslma::ManagedPtr<JsonPrinterImpl> d_impl_mp;
