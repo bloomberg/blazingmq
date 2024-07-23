@@ -133,7 +133,7 @@ class ClusterMonitorConfig:
         },
     )
     max_time_failover: int = field(
-        default=240,
+        default=600,
         metadata={
             "name": "maxTimeFailover",
             "type": "Element",
@@ -169,7 +169,7 @@ class ClusterMonitorConfig:
         },
     )
     threshold_failover: int = field(
-        default=120,
+        default=300,
         metadata={
             "name": "thresholdFailover",
             "type": "Element",
@@ -983,9 +983,6 @@ class TcpInterfaceConfig:
     heartbeatIntervalMs..:
     How often (in milliseconds) to check if the channel received data,
     and emit heartbeat.  0 to globally disable.
-    useNtf...............:
-    Use the new NTF based TCP transport library instead of
-    the existing one based on BTE
     """
 
     name: Optional[str] = field(
@@ -1062,15 +1059,6 @@ class TcpInterfaceConfig:
         default=3000,
         metadata={
             "name": "heartbeatIntervalMs",
-            "type": "Element",
-            "namespace": "http://bloomberg.com/schemas/mqbcfg",
-            "required": True,
-        },
-    )
-    use_ntf: bool = field(
-        default=False,
-        metadata={
-            "name": "useNtf",
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
@@ -1776,16 +1764,6 @@ class ClusterProxyDefinition:
 
 @dataclass
 class StatsConfig:
-    app_id_tag_domains: List[str] = field(
-        default_factory=list,
-        metadata={
-            "name": "appIdTagDomains",
-            "type": "Element",
-            "namespace": "http://bloomberg.com/schemas/mqbcfg",
-            "min_occurs": 1,
-            "required": True,
-        },
-    )
     snapshot_interval: int = field(
         default=1,
         metadata={
@@ -1793,6 +1771,15 @@ class StatsConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
+        },
+    )
+    app_id_tag_domains: List[str] = field(
+        default_factory=list,
+        metadata={
+            "name": "appIdTagDomains",
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+            "min_occurs": 1,
         },
     )
     plugins: List[StatPluginConfig] = field(
@@ -1833,7 +1820,8 @@ class AppConfig:
     bmqconfConfig........: configuration for bmqconf
     plugins..............: configuration for the plugins
     msgPropertiesSupport.: information about if/how to advertise support for v2 message properties
-    configureStream......: send new ConfigureStream instead of old ConfigureQueue/&gt;
+    configureStream......: send new ConfigureStream instead of old ConfigureQueue
+    advertiseSubscriptions.: temporarily control use of ConfigureStream in SDK/&gt;
     """
 
     broker_instance_name: Optional[str] = field(
@@ -1982,6 +1970,15 @@ class AppConfig:
         default=False,
         metadata={
             "name": "configureStream",
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+            "required": True,
+        },
+    )
+    advertise_subscriptions: bool = field(
+        default=False,
+        metadata={
+            "name": "advertiseSubscriptions",
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,

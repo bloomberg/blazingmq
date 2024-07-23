@@ -1,0 +1,80 @@
+name: Sanitize with AddressSanitizer, MemorySanitizer, ThreadSanitizer and UndefinedBehaviorSanitizer.
+
+on:
+  pull_request_review:
+    types: [submitted]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  build_dependencies:
+    name: Build deps [ubuntu]
+    runs-on: ubuntu-latest
+    if: github.event.review.state == 'APPROVED'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Get dependencies hash
+        id: get-hash
+        run: echo "deps_hash=`cat docker/build_deps.sh | shasum`" >> $GITHUB_OUTPUT
+      - name: Cache lookup
+        uses: actions/cache/restore@v4
+        id: cache-lookup
+        with:
+          path: deps
+          key: deps-${{ steps.get-hash.outputs.deps_hash }}
+          lookup-only: true
+      - name: Set up dependencies
+        if: steps.cache-lookup.outputs.cache-hit != 'true'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -qy build-essential \
+            gdb \
+            curl \
+            python3.10 \
+            python3-pip \
+            cmake \
+            ninja-build \
+            pkg-config \
+            bison \
+            libfl-dev \
+            libbenchmark-dev \
+            libgmock-dev \
+            libz-dev
+      - name: Fetch & Build non packaged dependencies
+        if: steps.cache-lookup.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p deps
+          cd deps
+          ../docker/build_deps.sh
+      - name: Cache save
+        if: steps.cache-lookup.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: deps
+          key: deps-${{ steps.get-hash.outputs.deps_hash }}
+
+  run_asan:
+    needs: build_dependencies
+    uses: ./.github/workflows/sanitizer-check.yaml
+    with:
+      sanitizer-name: 'asan'
+
+  run_msan:
+    needs: build_dependencies
+    uses: ./.github/workflows/sanitizer-check.yaml
+    with:
+      sanitizer-name: 'msan'
+
+  run_tsan:
+    needs: build_dependencies
+    uses: ./.github/workflows/sanitizer-check.yaml
+    with:
+      sanitizer-name: 'tsan'
+
+  run_ubsan:
+    needs: build_dependencies
+    uses: ./.github/workflows/sanitizer-check.yaml
+    with:
+      sanitizer-name: 'ubsan'

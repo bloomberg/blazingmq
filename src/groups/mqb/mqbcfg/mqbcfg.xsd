@@ -242,9 +242,6 @@
         heartbeatIntervalMs..:
             How often (in milliseconds) to check if the channel received data,
             and emit heartbeat.  0 to globally disable.
-       useNtf...............:
-            Use the new NTF based TCP transport library instead of
-            the existing one based on BTE
       </documentation>
     </annotation>
     <sequence>
@@ -257,7 +254,6 @@
       <element name='nodeLowWatermark'    type='long' default='1024'/>
       <element name='nodeHighWatermark'   type='long' default='2048'/>
       <element name='heartbeatIntervalMs' type='int' default='3000'/>
-      <element name='useNtf'              type='boolean' default='false'/>
     </sequence>
   </complexType>
 

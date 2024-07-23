@@ -2279,8 +2279,6 @@ const bsls::Types::Int64
 
 const int TcpInterfaceConfig::DEFAULT_INITIALIZER_HEARTBEAT_INTERVAL_MS = 3000;
 
-const bool TcpInterfaceConfig::DEFAULT_INITIALIZER_USE_NTF = false;
-
 const bdlat_AttributeInfo TcpInterfaceConfig::ATTRIBUTE_INFO_ARRAY[] = {
     {ATTRIBUTE_ID_NAME,
      "name",
@@ -2326,19 +2324,14 @@ const bdlat_AttributeInfo TcpInterfaceConfig::ATTRIBUTE_INFO_ARRAY[] = {
      "heartbeatIntervalMs",
      sizeof("heartbeatIntervalMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC},
-    {ATTRIBUTE_ID_USE_NTF,
-     "useNtf",
-     sizeof("useNtf") - 1,
-     "",
-     bdlat_FormattingMode::e_TEXT}};
+     bdlat_FormattingMode::e_DEC}};
 
 // CLASS METHODS
 
 const bdlat_AttributeInfo*
 TcpInterfaceConfig::lookupAttributeInfo(const char* name, int nameLength)
 {
-    for (int i = 0; i < 10; ++i) {
+    for (int i = 0; i < 9; ++i) {
         const bdlat_AttributeInfo& attributeInfo =
             TcpInterfaceConfig::ATTRIBUTE_INFO_ARRAY[i];
 
@@ -2370,8 +2363,6 @@ const bdlat_AttributeInfo* TcpInterfaceConfig::lookupAttributeInfo(int id)
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NODE_HIGH_WATERMARK];
     case ATTRIBUTE_ID_HEARTBEAT_INTERVAL_MS:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_HEARTBEAT_INTERVAL_MS];
-    case ATTRIBUTE_ID_USE_NTF:
-        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_USE_NTF];
     default: return 0;
     }
 }
@@ -2388,7 +2379,6 @@ TcpInterfaceConfig::TcpInterfaceConfig(bslma::Allocator* basicAllocator)
 , d_ioThreads()
 , d_maxConnections(DEFAULT_INITIALIZER_MAX_CONNECTIONS)
 , d_heartbeatIntervalMs(DEFAULT_INITIALIZER_HEARTBEAT_INTERVAL_MS)
-, d_useNtf(DEFAULT_INITIALIZER_USE_NTF)
 {
 }
 
@@ -2403,7 +2393,6 @@ TcpInterfaceConfig::TcpInterfaceConfig(const TcpInterfaceConfig& original,
 , d_ioThreads(original.d_ioThreads)
 , d_maxConnections(original.d_maxConnections)
 , d_heartbeatIntervalMs(original.d_heartbeatIntervalMs)
-, d_useNtf(original.d_useNtf)
 {
 }
 
@@ -2418,8 +2407,7 @@ TcpInterfaceConfig::TcpInterfaceConfig(TcpInterfaceConfig&& original) noexcept
   d_port(bsl::move(original.d_port)),
   d_ioThreads(bsl::move(original.d_ioThreads)),
   d_maxConnections(bsl::move(original.d_maxConnections)),
-  d_heartbeatIntervalMs(bsl::move(original.d_heartbeatIntervalMs)),
-  d_useNtf(bsl::move(original.d_useNtf))
+  d_heartbeatIntervalMs(bsl::move(original.d_heartbeatIntervalMs))
 {
 }
 
@@ -2434,7 +2422,6 @@ TcpInterfaceConfig::TcpInterfaceConfig(TcpInterfaceConfig&& original,
 , d_ioThreads(bsl::move(original.d_ioThreads))
 , d_maxConnections(bsl::move(original.d_maxConnections))
 , d_heartbeatIntervalMs(bsl::move(original.d_heartbeatIntervalMs))
-, d_useNtf(bsl::move(original.d_useNtf))
 {
 }
 #endif
@@ -2458,7 +2445,6 @@ TcpInterfaceConfig::operator=(const TcpInterfaceConfig& rhs)
         d_nodeLowWatermark    = rhs.d_nodeLowWatermark;
         d_nodeHighWatermark   = rhs.d_nodeHighWatermark;
         d_heartbeatIntervalMs = rhs.d_heartbeatIntervalMs;
-        d_useNtf              = rhs.d_useNtf;
     }
 
     return *this;
@@ -2478,7 +2464,6 @@ TcpInterfaceConfig& TcpInterfaceConfig::operator=(TcpInterfaceConfig&& rhs)
         d_nodeLowWatermark    = bsl::move(rhs.d_nodeLowWatermark);
         d_nodeHighWatermark   = bsl::move(rhs.d_nodeHighWatermark);
         d_heartbeatIntervalMs = bsl::move(rhs.d_heartbeatIntervalMs);
-        d_useNtf              = bsl::move(rhs.d_useNtf);
     }
 
     return *this;
@@ -2496,7 +2481,6 @@ void TcpInterfaceConfig::reset()
     d_nodeLowWatermark    = DEFAULT_INITIALIZER_NODE_LOW_WATERMARK;
     d_nodeHighWatermark   = DEFAULT_INITIALIZER_NODE_HIGH_WATERMARK;
     d_heartbeatIntervalMs = DEFAULT_INITIALIZER_HEARTBEAT_INTERVAL_MS;
-    d_useNtf              = DEFAULT_INITIALIZER_USE_NTF;
 }
 
 // ACCESSORS
@@ -2516,7 +2500,6 @@ bsl::ostream& TcpInterfaceConfig::print(bsl::ostream& stream,
     printer.printAttribute("nodeLowWatermark", this->nodeLowWatermark());
     printer.printAttribute("nodeHighWatermark", this->nodeHighWatermark());
     printer.printAttribute("heartbeatIntervalMs", this->heartbeatIntervalMs());
-    printer.printAttribute("useNtf", this->useNtf());
     printer.end();
     return stream;
 }
@@ -5428,7 +5411,7 @@ AppConfig& AppConfig::operator=(const AppConfig& rhs)
         d_hostDataCenter         = rhs.d_hostDataCenter;
         d_isRunningOnDev         = rhs.d_isRunningOnDev;
         d_logsObserverMaxSize    = rhs.d_logsObserverMaxSize;
-        d_latencyMonitorDomain = rhs.d_latencyMonitorDomain;
+        d_latencyMonitorDomain   = rhs.d_latencyMonitorDomain;
         d_dispatcherConfig       = rhs.d_dispatcherConfig;
         d_stats                  = rhs.d_stats;
         d_networkInterfaces      = rhs.d_networkInterfaces;
@@ -5456,7 +5439,7 @@ AppConfig& AppConfig::operator=(AppConfig&& rhs)
         d_hostDataCenter         = bsl::move(rhs.d_hostDataCenter);
         d_isRunningOnDev         = bsl::move(rhs.d_isRunningOnDev);
         d_logsObserverMaxSize    = bsl::move(rhs.d_logsObserverMaxSize);
-        d_latencyMonitorDomain = bsl::move(rhs.d_latencyMonitorDomain);
+        d_latencyMonitorDomain   = bsl::move(rhs.d_latencyMonitorDomain);
         d_dispatcherConfig       = bsl::move(rhs.d_dispatcherConfig);
         d_stats                  = bsl::move(rhs.d_stats);
         d_networkInterfaces      = bsl::move(rhs.d_networkInterfaces);
@@ -5489,7 +5472,7 @@ void AppConfig::reset()
     bdlat_ValueTypeFunctions::reset(&d_bmqconfConfig);
     bdlat_ValueTypeFunctions::reset(&d_plugins);
     bdlat_ValueTypeFunctions::reset(&d_messagePropertiesV2);
-    d_configureStream = DEFAULT_INITIALIZER_CONFIGURE_STREAM;
+    d_configureStream        = DEFAULT_INITIALIZER_CONFIGURE_STREAM;
     d_advertiseSubscriptions = DEFAULT_INITIALIZER_ADVERTISE_SUBSCRIPTIONS;
 }
 
@@ -5837,7 +5820,7 @@ Configuration::print(bsl::ostream& stream, int level, int spacesPerLevel) const
 }  // close package namespace
 }  // close enterprise namespace
 
-// GENERATED BY @BLP_BAS_CODEGEN_VERSION@
+// GENERATED BY BLP_BAS_CODEGEN_2024.07.04.1
 // USING bas_codegen.pl -m msg --noAggregateConversion --noExternalization
 // --noIdent --package mqbcfg --msgComponent messages mqbcfg.xsd
 // ----------------------------------------------------------------------------
