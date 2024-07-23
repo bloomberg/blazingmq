@@ -296,6 +296,9 @@ class OrderedHashMap_SequentialIterator {
 
     // MANIPULATORS
 
+    /// Assign to this object the value of the specified `rhs` object.
+    OrderedHashMap_SequentialIterator& operator=(const NcIter&);
+
     /// Advance this iterator to the next element in the sequential list and
     /// return its new value.  The behavior is undefined unless this
     /// iterator is in the range `[begin() .. end())` (i.e., the iterator is
@@ -885,6 +888,15 @@ inline OrderedHashMap_SequentialIterator<
 }
 
 // MANIPULATORS
+
+template <class VALUE>
+inline OrderedHashMap_SequentialIterator<VALUE>&
+OrderedHashMap_SequentialIterator<VALUE>::operator=(const NcIter& rhs)
+{
+    d_link_p = rhs.d_link_p;
+    return *this;
+}
+
 template <class VALUE>
 inline OrderedHashMap_SequentialIterator<VALUE>&
 OrderedHashMap_SequentialIterator<VALUE>::operator++()
