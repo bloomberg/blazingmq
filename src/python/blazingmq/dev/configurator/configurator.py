@@ -1,0 +1,260 @@
+# Copyright 2024 Bloomberg Finance L.P.
+# SPDX-License-Identifier: Apache-2.0
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+"""
+Support for creating a "configurator", i.e. a collection of directories and
+scripts for running a cluster.
+"""
+
+# mypy: disable-error-code="union-attr"
+# pylint: disable=missing-function-docstring, missing-class-docstring, consider-using-f-string
+# pyright: reportOptionalMemberAccess=false
+
+
+import copy
+import functools
+import itertools
+import logging
+from dataclasses import dataclass, field
+from decimal import Decimal
+from pathlib import Path
+from typing import Dict, Iterator, List, Optional, Set, Tuple, Union
+
+from xsdata.formats.dataclass.context import XmlContext
+from xsdata.formats.dataclass.serializers import JsonSerializer
+from xsdata.formats.dataclass.serializers.config import SerializerConfig
+
+from blazingmq.dev.configurator import *
+from blazingmq.dev.configurator.site import Site
+from blazingmq.dev.paths import required_paths as paths
+from blazingmq.schemas import mqbcfg, mqbconf
+
+logger = logging.getLogger(__name__)
+
+
+RUN_SCRIPT = """#! /usr/bin/env bash
+host_dir=$(realpath $(dirname $0))
+ws_dir=$(dirname $host_dir)
+cd $host_dir
+if [ -e bmqbrkr.pid ] && kill -s 0 $(cat bmqbrkr.pid); then
+    echo "bmqbrkr is already running"
+    exit 0
+fi
+rm -f bmqbrkr.ctl
+mkdir -p storage/archive
+{cmd} $host_dir/bin/bmqbrkr.tsk $host_dir/etc
+"""
+
+TOOL_SCRIPT = """#! /usr/bin/env bash
+cd $(dirname $0)
+{cmd} bin/bmqtool.tsk -b tcp://localhost:{BMQ_PORT} "$@"
+"""
+
+
+@dataclass(frozen=True)
+class Configurator:
+    """
+    Configurator builder.
+
+    This mechanism has two purposes:
+
+    * Incrementally build configurations for a set of brokers, clusters and
+      domains.
+    * Write the configuration for each broker in its own directory, and create
+      various scripts to start the clusters as a whole, or the brokers
+      individually.
+    """
+
+    proto: Proto = field(default_factory=lambda: copy.deepcopy(Proto()))
+    brokers: Dict[str, Broker] = field(default_factory=dict)
+    clusters: Dict[str, AbstractCluster] = field(default_factory=dict)
+    host_id_allocator: Iterator[int] = field(
+        default_factory=functools.partial(itertools.count, 1)
+    )
+
+    def broker_configuration(self):
+        return copy.deepcopy(self.proto.broker)
+
+    def cluster_definition(self):
+        return copy.deepcopy(self.proto.cluster)
+
+    def virtual_cluster_definition(self):
+        return copy.deepcopy(self.proto.virtual_cluster)
+
+    def domain_definition(self):
+        return copy.deepcopy(self.proto.domain)
+
+    def broker(
+        self,
+        tcp_host: str,
+        tcp_port: int,
+        name: str,
+        instance: Optional[str] = None,
+        data_center: str = "dc",
+    ) -> Broker:
+        config = self.broker_configuration()
+        assert config.app_config is not None
+        assert config.app_config.network_interfaces is not None
+        assert config.app_config.network_interfaces.tcp_interface is not None
+        config.app_config.host_data_center = data_center
+        config.app_config.host_name = name
+        config.app_config.broker_instance_name = instance
+        config.app_config.network_interfaces.tcp_interface.name = tcp_host
+        config.app_config.network_interfaces.tcp_interface.port = tcp_port
+        broker = Broker(self, next(self.host_id_allocator), config)
+        self.brokers[name] = broker
+
+        return broker
+
+    def _prepare_cluster(
+        self, name: str, nodes: List[Broker], definition: mqbcfg.ClusterDefinition
+    ):
+        if name in self.clusters:
+            raise ConfiguratorError(f"cluster '{name}' already exists")
+
+        definition.name = name
+        definition.nodes = [
+            mqbcfg.ClusterNode(
+                id=broker.id,
+                name=broker.name,
+                data_center=broker.data_center,
+                transport=mqbcfg.ClusterNodeConnection(
+                    mqbcfg.TcpClusterNodeConnection(
+                        "tcp://{host}:{port}".format(
+                            host=tcp_interface.name,  # type: ignore
+                            port=tcp_interface.port,  # type: ignore
+                        )
+                    )
+                ),
+            )
+            for broker in nodes
+            for tcp_interface in (
+                broker.config.app_config.network_interfaces.tcp_interface,
+            )
+        ]
+
+    def cluster(self, name: str, nodes: List[Broker]) -> Cluster:
+        definition = self.cluster_definition()
+        self._prepare_cluster(name, nodes, definition)
+
+        for node in nodes:
+            node.clusters.my_clusters.append(copy.deepcopy(definition))
+            # Do not share 'definition' between Broker instances. This makes it
+            # possible to create faulty configs for tests.
+
+        cluster = Cluster(self, definition, {node.name: node for node in nodes}, {})
+        self.clusters[name] = cluster
+
+        return cluster
+
+    def virtual_cluster(self, name: str, nodes: List[Broker]) -> VirtualCluster:
+        definition = self.virtual_cluster_definition()
+        self._prepare_cluster(name, nodes, definition)
+
+        for ws_node, cfg_node in zip(nodes, definition.nodes):
+            ws_node.clusters.my_virtual_clusters.append(
+                mqbcfg.VirtualClusterInformation(name, self_node_id=cfg_node.id)
+            )
+
+        cluster = VirtualCluster(
+            self, definition, {node.name: node for node in nodes}, {}
+        )
+        self.clusters[name] = cluster
+
+        return cluster
+
+    @property
+    def domains(self) -> List[Domain]:
+        return [
+            domain
+            for cluster in self.clusters.values()
+            for domain in cluster.domains.values()
+        ]
+
+    def deploy(self, broker: Broker, site: Site) -> None:
+        self.deploy_programs(broker, site)
+        self.deploy_broker_config(broker, site)
+        self.deploy_domains(broker, site)
+
+    def deploy_programs(self, broker: Broker, site: Site) -> None:
+        site.install(str(paths.broker), "bin")
+        site.install(str(paths.tool), "bin")
+        site.install(str(paths.plugins), ".")
+
+        for script, cmd in ("run", "exec"), ("debug", "gdb --args"):
+            site.create_file(
+                str(script),
+                RUN_SCRIPT.format(cmd=cmd, host=broker.name),
+                0o755,
+            )
+
+        for script, cmd in (
+            ("run-client", "exec"),
+            ("debug-client", "gdb ./bmqtool.tsk --args"),
+        ):
+            site.create_file(
+                str(script),
+                TOOL_SCRIPT.format(
+                    cmd=cmd,
+                    BMQ_PORT=broker.port,
+                ),
+                0o755,
+            )
+
+    def _create_json_file(self, obj, site: Site, path: str):
+        def json_filter(kv_pairs: Tuple) -> Dict:
+            return {
+                k: (float(v) if "Ratio" in k else v)
+                for k, v in kv_pairs
+                if v is not None
+            }
+
+        config = SerializerConfig(pretty_print=True)
+        config.ignore_default_attributes = True
+        serializer = JsonSerializer(
+            context=XmlContext(), config=config, dict_factory=json_filter
+        )
+        site.create_file(str(path), serializer.render(obj), 0o644)
+
+    def deploy_broker_config(self, broker: Broker, site: Site) -> None:
+        self._create_json_file(broker.config, site, "etc/bmqbrkrcfg.json")
+
+        log_dir = Path(broker.config.task_config.log_controller.file_name).parent  # type: ignore
+        if log_dir != Path():
+            site.mkdir(str(log_dir))
+
+        stats_dir = Path(broker.config.app_config.stats.printer.file).parent  # type: ignore
+        if stats_dir != Path():
+            site.mkdir(str(stats_dir))
+
+    def deploy_domains(self, broker: Broker, site: Site) -> None:
+        self._create_json_file(broker.clusters, site, "etc/clusters.json")
+
+        for cluster in broker.clusters.my_clusters:
+            for storage_dir in (
+                Path(cluster.partition_config.location),  # type: ignore
+                Path(cluster.partition_config.archive_location),  # type: ignore
+            ):
+                if storage_dir != Path():
+                    site.mkdir(str(storage_dir))
+
+        site.rmdir(str("etc/domains"))
+
+        for domain in broker.domains.values():
+            self._create_json_file(
+                mqbconf.DomainVariant(definition=domain.definition),
+                site,
+                f"etc/domains/{domain.name}.json",
+            )

@@ -9,7 +9,7 @@ reused through various applications.
 
 /Hierarchical Synopsis
 /---------------------
-The 'mwcu' package currently has 20 components having 2 level of physical
+The 'mwcu' package currently has 19 components having 2 level of physical
 dependency.  The list below shows the hierarchal ordering of the components.
 ..
   2. mwcu_blobiterator
@@ -22,7 +22,6 @@ dependency.  The list below shows the hierarchal ordering of the components.
      mwcu_atomicvalidator
      mwcu_blob
      mwcu_memoutstream
-     mwcu_noop
      mwcu_objectplaceholder
      mwcu_outstreamformatsaver
      mwcu_sharedresource
@@ -57,9 +56,6 @@ dependency.  The list below shows the hierarchal ordering of the components.
 :
 : 'mwcu_objectplaceholder':
 :      Provide a placeholder for any object.
-:
-: 'mwcu_noop':
-:      Provide a no-op functor taking an arbitrary number of arguments.
 :
 : 'mwcu_operationchain':
 :      Provide a mechanism to serialize execution of async operations.

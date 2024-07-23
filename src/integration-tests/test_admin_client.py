@@ -17,6 +17,7 @@
 This suite of test cases exercises admin session connection and some basic
 commands.
 """
+
 import dataclasses
 import json
 from typing import Dict, Optional, Union

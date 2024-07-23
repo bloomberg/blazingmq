@@ -23,65 +23,28 @@ scripts for running a cluster.
 # pyright: reportOptionalMemberAccess=false
 
 
-import abc
-import contextlib
 import copy
 import functools
 import itertools
 import logging
-import subprocess
-import threading
 from dataclasses import dataclass, field
 from decimal import Decimal
 from pathlib import Path
-from shutil import rmtree
-from typing import IO, Dict, Iterable, Iterator, List, Optional, Set, Tuple, Union
+from typing import Dict, Iterator, List, Optional, Set, Tuple, Union
 
-from termcolor import colored
-from xsdata.formats.dataclass.context import XmlContext
-from xsdata.formats.dataclass.serializers import JsonSerializer
-from xsdata.formats.dataclass.serializers.config import SerializerConfig
-
+from blazingmq.dev.configurator.site import Site
 from blazingmq.dev.paths import required_paths as paths
 from blazingmq.schemas import mqbcfg, mqbconf
 
-__all__ = ["Configurator"]
-
-COLORS = {
-    "green": 32,
-    "yellow": 33,
-    "magenta": 35,
-    "cyan": 36,
-    "blue": 34,
-    "light_green": 92,
-    "light_yellow": 93,
-    "light_blue": 94,
-    "light_magenta": 95,
-    "light_cyan": 96,
-}
-
-
-logger = logging.getLogger(__name__)
-broker_logger = logger.getChild("broker")
-
-
-RUN_SCRIPT = """#! /usr/bin/env bash
-host_dir=$(realpath $(dirname $0))
-ws_dir=$(dirname $host_dir)
-cd $host_dir
-if [ -e bmqbrkr.pid ] && kill -s 0 $(cat bmqbrkr.pid); then
-    echo "bmqbrkr is already running"
-    exit 0
-fi
-rm -f bmqbrkr.ctl
-mkdir -p storage/archive
-{cmd} $host_dir/bin/bmqbrkr.tsk $host_dir/etc
-"""
-
-TOOL_SCRIPT = """#! /usr/bin/env bash
-cd $(dirname $0)
-{cmd} bin/bmqtool.tsk -b tcp://localhost:{BMQ_PORT} "$@"
-"""
+__all__ = [
+    "AbstractCluster",
+    "Broker",
+    "Cluster",
+    "ConfiguratorError",
+    "Domain",
+    "Proto",
+    "VirtualCluster",
+]
 
 
 class ConfiguratorError(RuntimeError):
@@ -107,7 +70,7 @@ class Broker:
         default_factory=lambda: mqbcfg.ClustersDefinition([], [], [], [], [])
     )
     domains: Dict[str, "Domain"] = field(default_factory=dict)
-    _proxy_clusters: Set[str] = field(default_factory=set)
+    proxy_clusters: Set[str] = field(default_factory=set)
 
     def __str__(self) -> str:
         return self.name
@@ -142,8 +105,8 @@ class Broker:
     def config_dir(self) -> Path:
         return Path(self.name) / "etc"
 
-    def _add_proxy_definition(self, cluster: "AbstractCluster"):
-        self._proxy_clusters.add(cluster.name)
+    def add_proxy_definition(self, cluster: "AbstractCluster"):
+        self.proxy_clusters.add(cluster.name)
         self.clusters.proxy_clusters.append(
             mqbcfg.ClusterProxyDefinition(
                 name=cluster.name,
@@ -168,8 +131,8 @@ class Broker:
             domain_definition.location = cluster.name
             self.domains[domain.name] = Domain(cluster, domain_definition)
 
-            if cluster.name not in self._proxy_clusters:
-                self._add_proxy_definition(cluster)
+            if cluster.name not in self.proxy_clusters:
+                self.add_proxy_definition(cluster)
 
             if not reverse:
                 continue
@@ -181,8 +144,8 @@ class Broker:
             reverse_cluster = self.configurator.clusters[cluster.name]
 
             for node in reverse_cluster.nodes.values():
-                if reverse_cluster.name not in node._proxy_clusters:
-                    node._add_proxy_definition(reverse_cluster)
+                if reverse_cluster.name not in node.proxy_clusters:
+                    node.add_proxy_definition(reverse_cluster)
 
                 reversed_cluster_connections_found = False
                 if node.clusters.reversed_cluster_connections is None:
@@ -212,66 +175,6 @@ class Broker:
                 )
 
         return self
-
-    def deploy(self, site: "Site") -> None:
-        self.deploy_programs(site)
-        self.deploy_broker_config(site)
-        self.deploy_domains(site)
-
-    def deploy_programs(self, site: "Site") -> None:
-        site.install(paths.broker, "bin")
-        site.install(paths.tool, "bin")
-        site.install(paths.plugins, ".")
-
-        for script, cmd in ("run", "exec"), ("debug", "gdb --args"):
-            site.create_file(
-                script,
-                RUN_SCRIPT.format(cmd=cmd, host=self.name),
-                mode=0o755,
-            )
-
-        for script, cmd in (
-            ("run-client", "exec"),
-            ("debug-client", "gdb ./bmqtool.tsk --args"),
-        ):
-            site.create_file(
-                script,
-                TOOL_SCRIPT.format(
-                    cmd=cmd,
-                    BMQ_PORT=self.port,
-                ),
-                mode=0o755,
-            )
-
-    def deploy_broker_config(self, site: "Site") -> None:
-        site.create_json_file("etc/bmqbrkrcfg.json", self.config)
-
-        log_dir = Path(self.config.task_config.log_controller.file_name).parent  # type: ignore
-        if log_dir != Path():
-            site.mkdir(log_dir)
-
-        stats_dir = Path(self.config.app_config.stats.printer.file).parent  # type: ignore
-        if stats_dir != Path():
-            site.mkdir(stats_dir)
-
-    def deploy_domains(self, site: "Site") -> None:
-        site.create_json_file("etc/clusters.json", self.clusters)
-
-        for cluster in self.clusters.my_clusters:
-            for storage_dir in (
-                Path(cluster.partition_config.location),  # type: ignore
-                Path(cluster.partition_config.archive_location),  # type: ignore
-            ):
-                if storage_dir != Path():
-                    site.mkdir(storage_dir)
-
-        site.rmdir("etc/domains")
-
-        for domain in self.domains.values():
-            site.create_json_file(
-                f"etc/domains/{domain.name}.json",
-                mqbconf.DomainVariant(definition=domain.definition),
-            )
 
 
 @dataclass(frozen=True, repr=False)
@@ -351,34 +254,6 @@ class VirtualCluster(AbstractCluster):
             self.domains[domain.name] = Domain(self, definition)
 
 
-class Site(abc.ABC):
-    configurator: "Configurator"
-
-    @abc.abstractmethod
-    def __str__(self) -> str: ...
-
-    @abc.abstractmethod
-    def install(
-        self, from_path: Union[str, Path], to_path: Union[str, Path]
-    ) -> None: ...
-
-    @abc.abstractmethod
-    def create_file(self, path: Union[str, Path], content: str, mode=None) -> None: ...
-
-    @abc.abstractmethod
-    def mkdir(self, path: Union[str, Path]) -> None: ...
-
-    @abc.abstractmethod
-    def rmdir(self, path: Union[str, Path]) -> None: ...
-
-    @abc.abstractmethod
-    def create_json_file(
-        self,
-        path: Union[str, Path],
-        content,
-    ) -> None: ...
-
-
 def _cluster_definition_partial_prototype(partition_config: mqbcfg.PartitionConfig):
     return mqbcfg.ClusterDefinition(
         name="",  # overwritten
@@ -442,6 +317,7 @@ class Proto:
             max_delivery_attempts=0,
             deduplication_time_ms=300000,
             consistency=mqbconf.Consistency(strong=mqbconf.QueueConsistencyStrong()),
+            subscriptions=[],
             storage=mqbconf.StorageDefinition(
                 config=mqbconf.Storage(file_backed=mqbconf.FileBackedStorage()),
                 domain_limits=mqbconf.Limits(
@@ -559,7 +435,6 @@ class Proto:
                         node_low_watermark=5242880,
                         node_high_watermark=1073741824,
                         heartbeat_interval_ms=3000,
-                        use_ntf=False,
                     ),
                 ),
                 bmqconf_config=mqbcfg.BmqconfConfig(cache_ttlseconds=30),
@@ -611,6 +486,7 @@ class Proto:
             partition_config=mqbcfg.PartitionConfig(
                 num_partitions=0,
                 location="/dev/null",
+                archive_location="/dev/null",
                 max_data_file_size=0,
                 max_journal_file_size=0,
                 max_qlist_file_size=0,
@@ -632,238 +508,3 @@ class Proto:
             ),
         )
     )
-
-
-@dataclass(frozen=True)
-class Configurator:
-    """
-    Configurator builder.
-
-    This mechanism has two purposes:
-
-    * Incrementally build configurations for a set of brokers, clusters and
-      domains.
-    * Write the configuration for each broker in its own directory, and create
-      various scripts to start the clusters as a whole, or the brokers
-      individually.
-    """
-
-    proto: Proto = field(default_factory=lambda: copy.deepcopy(Proto()))
-    brokers: Dict[str, Broker] = field(default_factory=dict)
-    clusters: Dict[str, AbstractCluster] = field(default_factory=dict)
-    host_id_allocator: Iterator[int] = field(
-        default_factory=functools.partial(itertools.count, 1)
-    )
-
-    def broker_configuration(self):
-        return copy.deepcopy(self.proto.broker)
-
-    def cluster_definition(self):
-        return copy.deepcopy(self.proto.cluster)
-
-    def virtual_cluster_definition(self):
-        return copy.deepcopy(self.proto.virtual_cluster)
-
-    def domain_definition(self):
-        return copy.deepcopy(self.proto.domain)
-
-    def broker(
-        self,
-        tcp_host: str,
-        tcp_port: int,
-        name: str,
-        instance: Optional[str] = None,
-        data_center: str = "dc",
-    ) -> Broker:
-        config = self.broker_configuration()
-        assert config.app_config is not None
-        assert config.app_config.network_interfaces is not None
-        assert config.app_config.network_interfaces.tcp_interface is not None
-        config.app_config.host_data_center = data_center
-        config.app_config.host_name = name
-        config.app_config.broker_instance_name = instance
-        config.app_config.network_interfaces.tcp_interface.name = tcp_host
-        config.app_config.network_interfaces.tcp_interface.port = tcp_port
-        broker = Broker(self, next(self.host_id_allocator), config)
-        self.brokers[name] = broker
-
-        return broker
-
-    def _prepare_cluster(
-        self, name: str, nodes: List[Broker], definition: mqbcfg.ClusterDefinition
-    ):
-        if name in self.clusters:
-            raise ConfiguratorError(f"cluster '{name}' already exists")
-
-        definition.name = name
-        definition.nodes = [
-            mqbcfg.ClusterNode(
-                id=broker.id,
-                name=broker.name,
-                data_center=broker.data_center,
-                transport=mqbcfg.ClusterNodeConnection(
-                    mqbcfg.TcpClusterNodeConnection(
-                        "tcp://{host}:{port}".format(
-                            host=tcp_interface.name,  # type: ignore
-                            port=tcp_interface.port,  # type: ignore
-                        )
-                    )
-                ),
-            )
-            for broker in nodes
-            for tcp_interface in (
-                broker.config.app_config.network_interfaces.tcp_interface,
-            )
-        ]
-
-    def cluster(self, name: str, nodes: List[Broker]) -> Cluster:
-        definition = self.cluster_definition()
-        self._prepare_cluster(name, nodes, definition)
-
-        for node in nodes:
-            node.clusters.my_clusters.append(copy.deepcopy(definition))
-            # Do not share 'definition' between Broker instances. This makes it
-            # possible to create faulty configs for tests.
-
-        cluster = Cluster(self, definition, {node.name: node for node in nodes}, {})
-        self.clusters[name] = cluster
-
-        return cluster
-
-    def virtual_cluster(self, name: str, nodes: List[Broker]) -> VirtualCluster:
-        definition = self.virtual_cluster_definition()
-        self._prepare_cluster(name, nodes, definition)
-
-        for ws_node, cfg_node in zip(nodes, definition.nodes):
-            ws_node.clusters.my_virtual_clusters.append(
-                mqbcfg.VirtualClusterInformation(name, self_node_id=cfg_node.id)
-            )
-
-        cluster = VirtualCluster(
-            self, definition, {node.name: node for node in nodes}, {}
-        )
-        self.clusters[name] = cluster
-
-        return cluster
-
-    @property
-    def domains(self) -> List[Domain]:
-        return [
-            domain
-            for cluster in self.clusters.values()
-            for domain in cluster.domains.values()
-        ]
-
-
-class MonitoredProcess:
-    process: Optional[subprocess.Popen] = None
-    thread: Optional[threading.Thread] = None
-
-
-def broker_monitor(out: IO[str], prefix: str, color: str):
-    while not out.closed:
-        line = out.readline()
-        if line == "":
-            break
-        line = line.rstrip(" \n\r")
-        if line:
-            broker_logger.info(colored("%s | %s", color), prefix, line)
-
-
-def _json_filter(kv_pairs: Tuple) -> Dict:
-    return {k: (float(v) if "Ratio" in k else v) for k, v in kv_pairs if v is not None}
-
-
-class LocalSite(Site):
-    root_dir: Path
-
-    def __init__(self, root_dir: Union[Path, str]):
-        self.root_dir = Path(root_dir)
-
-    def __str__(self) -> str:
-        return str(self.root_dir)
-
-    def mkdir(self, path: Union[str, Path]) -> None:
-        target = self.root_dir / path
-        target.mkdir(0o755, exist_ok=True, parents=True)
-
-    def rmdir(self, path: Union[str, Path]) -> None:
-        rmtree(self.root_dir / path, ignore_errors=True)
-
-    def install(self, from_path: Union[str, Path], to_path: Union[str, Path]) -> None:
-        from_path = Path(from_path).resolve()
-        to_path = self.root_dir / to_path
-        to_path.mkdir(0o755, exist_ok=True, parents=True)
-        target = Path(to_path) / from_path.name
-        if target.is_symlink():
-            target.unlink(missing_ok=True)
-        target.symlink_to(from_path.resolve(), target_is_directory=from_path.is_dir())
-
-    def create_file(self, path: Union[str, Path], content: str, mode=None) -> None:
-        path = self.root_dir / path
-        path.parent.mkdir(0o755, exist_ok=True, parents=True)
-        with open(path, "w", encoding="ascii") as out:
-            out.write(content)
-        path.chmod(mode or 0o644)
-
-    def create_json_file(self, path: Union[str, Path], content) -> None:
-        config = SerializerConfig(pretty_print=True)
-        config.ignore_default_attributes = True
-        serializer = JsonSerializer(
-            context=XmlContext(), config=config, dict_factory=_json_filter
-        )
-        path = self.root_dir / path
-        path.parent.mkdir(0o755, exist_ok=True, parents=True)
-
-        with open(path, "w", encoding="ascii") as out:
-            serializer.write(out, content)
-        path.chmod(0o644)
-
-
-@dataclass
-class Session(contextlib.AbstractContextManager):
-    configurator: Configurator
-    root: Path
-    brokers: Dict[Broker, MonitoredProcess] = field(default_factory=dict)
-
-    def __exit__(self, *args):
-        for broker in reversed(self.brokers.values()):
-            if broker.process is not None:
-                broker.process.__exit__(*args)
-
-        for broker in reversed(self.brokers.values()):
-            if broker.thread is not None:
-                broker.thread.join()
-
-    def stop(self):
-        for broker in self.brokers.values():
-            if broker.process is not None:
-                broker.process.terminate()
-                broker.process.wait()
-
-    def run(self):
-        colors = itertools.cycle(COLORS)
-        prefix_len = max(len(name) for name in self.configurator.brokers)
-
-        for broker in self.configurator.brokers.values():
-            monitored = MonitoredProcess()
-            self.brokers[broker] = monitored
-
-            monitored.process = subprocess.Popen(
-                [self.root.joinpath(broker.name, "run")],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                encoding="ASCII",
-                bufsize=0,
-            )
-
-            assert monitored.process.stdout is not None
-            monitored.thread = threading.Thread(
-                target=broker_monitor,
-                args=(
-                    monitored.process.stdout,
-                    broker.name.ljust(prefix_len),
-                    next(colors),
-                ),
-            )
-            monitored.thread.start()

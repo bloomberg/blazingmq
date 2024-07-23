@@ -680,9 +680,9 @@ void TCPSessionFactory::channelStateCallback(
                            << "rejecting empty peer URI: '" << channel.get()
                            << "'";
 
-            mwcio::Status status(mwcio::StatusCategory::e_GENERIC_ERROR,
-                                 d_allocator_p);
-            channel->close(status);
+            mwcio::Status closeStatus(mwcio::StatusCategory::e_GENERIC_ERROR,
+                                      d_allocator_p);
+            channel->close(closeStatus);
         }
         else {
             // Keep track of active channels, for logging purposes
@@ -957,13 +957,6 @@ int TCPSessionFactory::start(bsl::ostream& errorDescription)
     BALL_LOG_INFO << "Starting TCPSessionFactory '" << d_config.name() << "'";
 
     int rc = 0;
-
-    const mqbcfg::AppConfig& appConfig = mqbcfg::BrokerConfig::get();
-
-    if (!appConfig.networkInterfaces().tcpInterface().value().useNtf()) {
-        BALL_LOG_WARN << "Ignoring interface property 'useNtf' (false) "
-                      << "and using ntf, because only ntf supported";
-    }
 
     ntca::InterfaceConfig interfaceConfig = ntcCreateInterfaceConfig(d_config);
 

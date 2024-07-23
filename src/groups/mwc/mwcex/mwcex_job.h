@@ -36,10 +36,10 @@
 // 'mwcex::Job' does it as as if by 'bsl::move(f)()'.
 
 // MWC
-
 #include <mwcu_objectplaceholder.h>
 
 // BDE
+#include <bdlf_noop.h>
 #include <bslalg_constructorproxy.h>
 #include <bslma_allocator.h>
 #include <bslma_default.h>
@@ -127,7 +127,7 @@ class Job {
 
     /// A "small" dummy object used to help calculate the size of the
     /// on-stack buffer.
-    struct Dummy {
+    struct Dummy : public bdlf::NoOp {
         void* d_padding[5];
     };
 
