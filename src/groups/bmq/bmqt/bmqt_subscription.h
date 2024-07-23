@@ -197,25 +197,8 @@ class Subscription {
 
   public:
     // CREATORS
+    /// Create a new Subscription
     Subscription();
-
-    // Create a new Subscription
-
-    /// Create a new Subscription by copying values from the specified
-    /// `other`.
-    Subscription(const Subscription& other);
-
-    // MANIPULATORS
-    /// Assign to this object the value of the specified `rhs` object.
-    Subscription& operator=(const Subscription& rhs);
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    /// Assign to this object the value of the specified `rhs` object.
-    /// After performing this action, the `rhs` object will be left in a
-    /// valid, but unspecified state.
-    Subscription& operator=(Subscription&& rhs);
-#endif
 
     /// Set the maxUnconfirmedMessages to the specified `value`.  The
     /// behavior is undefined unless `value >= 0`. If the specified `value`
@@ -408,15 +391,6 @@ inline Subscription::Subscription()
     // NOTHING
 }
 
-inline Subscription::Subscription(const Subscription& other)
-: d_maxUnconfirmedMessages(other.d_maxUnconfirmedMessages)
-, d_maxUnconfirmedBytes(other.d_maxUnconfirmedBytes)
-, d_consumerPriority(other.d_consumerPriority)
-, d_expression(other.d_expression)
-{
-    // NOTHING
-}
-
 inline bsl::ostream&
 Subscription::print(bsl::ostream& stream, int level, int spacesPerLevel) const
 {
@@ -438,27 +412,6 @@ Subscription::print(bsl::ostream& stream, int level, int spacesPerLevel) const
 }
 
 // MANIPULATORS
-inline Subscription& Subscription::operator=(const Subscription& rhs)
-{
-    d_maxUnconfirmedMessages = rhs.d_maxUnconfirmedMessages;
-    d_maxUnconfirmedBytes    = rhs.d_maxUnconfirmedBytes;
-    d_consumerPriority       = rhs.d_consumerPriority;
-    d_expression             = rhs.d_expression;
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-inline Subscription& Subscription::operator=(Subscription&& rhs)
-{
-    d_maxUnconfirmedMessages = bsl::move(rhs.d_maxUnconfirmedMessages);
-    d_maxUnconfirmedBytes    = bsl::move(rhs.d_maxUnconfirmedBytes);
-    d_consumerPriority       = bsl::move(rhs.d_consumerPriority);
-    d_expression             = bsl::move(rhs.d_expression);
-    return *this;
-}
-#endif
-
 inline Subscription& Subscription::setMaxUnconfirmedMessages(int value)
 {
     d_maxUnconfirmedMessages.emplace(value);
