@@ -117,7 +117,8 @@ void Interactive::printHelp()
            "\"type\": \"\"}])"
         << bsl::endl
         << "  batch-post uri=\"\" payload=[\"\",\"\"] (msgSize=u) "
-           "(eventSize=v) (eventsCount=w) (postInterval=x) (postRate=y)"
+           "(eventSize=v) (eventsCount=w) (postInterval=x) (postRate=y) "
+           "(autoIncremented=\"field\")"
         << bsl::endl
         << "  list (uri=\"\")" << bsl::endl
         << "  confirm uri=\"\" guid=\"\" "
@@ -152,7 +153,7 @@ void Interactive::printHelp()
         << bsl::endl
         << "  batch-post uri=\"bmq://bmq.test.persistent.priority/qqq\" "
            "payload=[\"sample message\"] eventsCount=300 postInterval=5000 "
-           "postRate=10"
+           "postRate=10 autoIncremented=\"x\""
         << bsl::endl
         << "    - 'batch-post' command requires 'uri' argument, "
            "all the rest are optional"
@@ -716,6 +717,7 @@ void Interactive::processCommand(const BatchPostCommand& command)
     parameters.setEventSize(command.eventSize());
     parameters.setPostInterval(command.postInterval());
     parameters.setMsgSize(command.msgSize());
+    parameters.setAutoIncrementedField(command.autoIncremented());
 
     // Lookup the Queue by URI
     bmqa::QueueId queueId;
