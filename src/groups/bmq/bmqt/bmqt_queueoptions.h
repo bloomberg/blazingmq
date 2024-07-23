@@ -127,6 +127,12 @@ class QueueOptions {
 
     // MANIPULATORS
 
+    /// Assign to this object the value of the specified `rhs` object.
+    QueueOptions& operator=(const QueueOptions& rhs);
+
+    /// Assign to this object the value of the specified `rhs` object.
+    QueueOptions& operator=(bslmf::MovableRef<QueueOptions> rhs);
+
     /// Set the maxUnconfirmedMessages to the specified `value`.  The
     /// behavior is undefined unless `value >= 0`. If the specified `value`
     /// is set to 0, it means that the consumer does not receive any
@@ -256,6 +262,42 @@ bsl::ostream& operator<<(bsl::ostream& stream, const QueueOptions& rhs);
 // ------------------
 
 // MANIPULATORS
+
+inline QueueOptions& QueueOptions::operator=(const QueueOptions& rhs)
+{
+    if (this != &rhs) {
+        d_info                    = rhs.d_info;
+        d_suspendsOnBadHostHealth = rhs.d_suspendsOnBadHostHealth;
+        d_hadSubscriptions        = rhs.d_hadSubscriptions;
+        if (d_allocator_p == rhs.d_allocator_p) {
+            d_subscriptions = rhs.d_subscriptions;
+            // No need to reassign `d_allocator_p`
+        }
+        else {
+            d_subscriptions = Subscriptions(rhs.d_subscriptions,
+                                            rhs.d_allocator_p);
+            d_allocator_p   = rhs.d_allocator_p;
+        }
+    }
+
+    return *this;
+}
+
+inline QueueOptions&
+QueueOptions::operator=(bslmf::MovableRef<QueueOptions> rhs)
+{
+    d_info = bslmf::MovableRefUtil::move(
+        bslmf::MovableRefUtil::access(rhs).d_info);
+    d_suspendsOnBadHostHealth = bslmf::MovableRefUtil::move(
+        bslmf::MovableRefUtil::access(rhs).d_suspendsOnBadHostHealth);
+    d_subscriptions = bslmf::MovableRefUtil::move(
+        bslmf::MovableRefUtil::access(rhs).d_subscriptions);
+    d_hadSubscriptions = bslmf::MovableRefUtil::access(rhs).d_hadSubscriptions;
+    d_allocator_p      = bslmf::MovableRefUtil::access(rhs).d_allocator_p;
+
+    return *this;
+}
+
 inline QueueOptions& QueueOptions::setMaxUnconfirmedMessages(int value)
 {
     d_info.setMaxUnconfirmedMessages(value);
