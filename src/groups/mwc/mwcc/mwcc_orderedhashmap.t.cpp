@@ -211,8 +211,8 @@ static void test3_insert()
 
     MyMapType map(s_allocator_p);
 
-#if defined(BSLS_PLATFORM_OS_AIX) || defined(BSLS_PLATFORM_OS_SOLARIS)
-    // Avoid timeout on AIX and Solaris
+#if defined(BSLS_PLATFORM_OS_SOLARIS)
+    // Avoid timeout on Solaris
     const int k_NUM_ELEMENTS = 100 * 1000;  // 100K
 #elif defined(__has_feature)
     // Avoid timeout under MemorySanitizer
@@ -282,8 +282,8 @@ static void test4_rinsert()
 
     MyMapType map(s_allocator_p);
 
-#if defined(BSLS_PLATFORM_OS_AIX) || defined(BSLS_PLATFORM_OS_SOLARIS)
-    // Avoid timeout on AIX and Solaris
+#if defined(BSLS_PLATFORM_OS_SOLARIS)
+    // Avoid timeout on Solaris
     const int k_NUM_ELEMENTS = 100 * 1000;  // 100K
 #elif defined(__has_feature)
     // Avoid timeout under MemorySanitizer

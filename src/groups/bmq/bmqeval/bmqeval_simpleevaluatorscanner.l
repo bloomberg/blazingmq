@@ -40,7 +40,7 @@
 -?[0-9]+ {
 	updatePosition();
 	try {
-	    // There is a problem with parsing Int64 on AIX/Solaris with string
+	    // There is a problem with parsing Int64 on Solaris with string
 	    // streams: fail flag is not set when overflow expected.  'bsl::stoll'
 	    // is used as a workaround.
 	    bsls::Types::Int64 value = bsl::stoll(yytext);
