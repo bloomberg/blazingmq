@@ -297,7 +297,7 @@ class OrderedHashMap_SequentialIterator {
     // MANIPULATORS
 
     /// Assign to this object the value of the specified `rhs` object.
-    OrderedHashMap_SequentialIterator& operator=(const NcIter&);
+    OrderedHashMap_SequentialIterator& operator=(const NcIter& rhs);
 
     /// Advance this iterator to the next element in the sequential list and
     /// return its new value.  The behavior is undefined unless this
