@@ -248,7 +248,9 @@ class TestChannel : public Channel {
     /// Pops a close-call from those written to the channel (FIFO ordering).
     CloseCall popCloseCall();
 
-    bool      closeCallsEmpty();
+    /// Lock mutex and return `true` if d_closeCalls collection is empty,
+    /// `false` otherwise.
+    bool closeCallsEmpty();
 
     CloseSignaler& closeSignaler();
 
