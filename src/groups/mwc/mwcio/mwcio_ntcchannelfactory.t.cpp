@@ -106,12 +106,12 @@ static const int k_ATTEMPT_INTERVAL_MS = 300;
 static const int k_ATTEMPT_INTERVAL_MS =
     (__has_feature(memory_sanitizer) || __has_feature(thread_sanitizer) ||
      __has_feature(undefined_behavior_sanitizer))
-        ? 300
+        ? 400
         : 1;
 #elif defined(__SANITIZE_MEMORY__) || defined(__SANITIZE_THREAD__) ||         \
     defined(__SANITIZE_UNDEFINED__)
 // GCC-supported macros for checking MSAN, TSAN and UBSAN.
-static const int k_ATTEMPT_INTERVAL_MS = 300;
+static const int k_ATTEMPT_INTERVAL_MS = 400;
 #else
 static const int k_ATTEMPT_INTERVAL_MS = 1;
 #endif
