@@ -310,12 +310,13 @@ const Test k_TESTS[] = {
      "CLUSTERS CLUSTER cloister STATE ELECTOR SET parameter 478",
      "{\"clusters\": {\"cluster\": {\"name\": \"cloister\", \"command\": {"
      "\"state\": { \"elector\": {\"setTunable\": {\"name\": \"parameter\", "
-     "\"value\": {\"theInteger\": 478}}}}}}}}"},
+     "\"value\": {\"theInteger\": 478}, \"self\": {}}}}}}}}"},
     {__LINE__,
      "get a tunable on a cluster's elector state",
      "CLUSTERS CLUSTER cloister STATE ELECTOR GET parameter",
      "{\"clusters\": {\"cluster\": {\"name\": \"cloister\", \"command\": {"
-     "\"state\": { \"elector\": {\"getTunable\": \"parameter\"}}}}}}"},
+     "\"state\": { \"elector\": {\"getTunable\": {\"name\": \"parameter\", "
+     "\"self\": {}}}}}}}}"},
     {__LINE__,
      "list supported tunables on a cluster's elector state",
      "CLUSTERS CLUSTER cloister STATE ELECTOR LIST_TUNABLES",

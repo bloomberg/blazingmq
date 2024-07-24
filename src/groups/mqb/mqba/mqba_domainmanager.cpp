@@ -603,31 +603,6 @@ int DomainManager::locateOrCreateDomain(DomainSp*          domain,
                                         const bsl::string& domainName)
 {
     if (0 != locateDomain(domain, domainName)) {
-        BALL_LOG_WARN << "Domain '" << domainName << "' is not opened,"
-                      << " trying to initialize from configuration";
-
-        bslmt::Latch latch(1);
-        createDomain(domainName,
-                     bdlf::BindUtil::bind(&onDomain,
-                                          bdlf::PlaceHolders::_1,  // status
-                                          bdlf::PlaceHolders::_2,  // domain*
-                                          &latch));
-        // To return a result from command execution, we need to
-        // synchronize with the domain creation attempt
-        latch.wait();
-
-        if (0 != locateDomain(domain, domainName)) {
-            return -1;  // RETURN
-        }
-    }
-
-    return 0;  // RETURN
-}
-
-int DomainManager::locateOrCreateDomain(DomainSp*          domain,
-                                        const bsl::string& domainName)
-{
-    if (0 != locateDomain(domain, domainName)) {
         BALL_LOG_WARN
             << "Domain '" << domainName
             << "' is not opened, trying to initialize from configuration";

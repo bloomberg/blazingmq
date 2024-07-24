@@ -335,13 +335,6 @@ class DomainManager BSLS_CPP11_FINAL : public mqbi::DomainFactory {
     /// Load into the specified `domainSp` the domain corresponding to the
     /// specified `domainName`, if found. If not found then attempt to create
     /// the domain corresponding to `domainName` and load the result into the
-    /// specified `domainSp`. Return 0 on sucess, or a non-zero return code
-    /// on failure.
-    int locateOrCreateDomain(DomainSp* domain, const bsl::string& domainName);
-
-    /// Load into the specified `domainSp` the domain corresponding to the
-    /// specified `domainName`, if found. If not found then attempt to create
-    /// the domain corresponding to `domainName` and load the result into the
     /// specified `domainSp`. Return 0 on success, or a non-zero return code on
     /// failure.
     int locateOrCreateDomain(DomainSp* domain, const bsl::string& domainName);

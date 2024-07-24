@@ -19,7 +19,7 @@
 
 //@PURPOSE: Provide a class responsible for routing admin commands to the
 // subset of cluster nodes that should execute that command.
-// 
+//
 // This currently only supports routing cluster related commands (i.e. cluster
 // commands and domain commands). There are 2 main routing modes supported:
 // routing to primary node(s) or to all nodes in the cluster. The following
