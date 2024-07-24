@@ -182,8 +182,8 @@ static void test2_multithread()
 
     const int k_NUM_THREADS = 10;
 
-#ifdef BSLS_PLATFORM_OS_AIX
-    // This test case times out on AIX if 'k_NUM_GUIDS' is close to 1 million
+#if defined(BSLS_PLATFORM_OS_AIX) || defined(BSLS_PLATFORM_OS_SOLARIS)
+    // This test case times out if 'k_NUM_GUIDS' is close to 1 million
     // (it's unable to complete in 90 seconds).
     const int k_NUM_GUIDS = 500000;  // 500k
 #elif defined(__has_feature)

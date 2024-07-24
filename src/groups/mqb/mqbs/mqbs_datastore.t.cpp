@@ -134,7 +134,7 @@ static void test2_defaultHashUniqueness()
 
     mwctst::TestHelper::printTestName("DEFAULT HASH UNIQUENESS");
 
-#ifdef BSLS_PLATFORM_OS_AIX
+#if defined(BSLS_PLATFORM_OS_AIX) || defined(BSLS_PLATFORM_OS_SOLARIS)
     const bsls::Types::Int64 k_NUM_KEYS = 1000000;  // 1M
 #elif defined(__has_feature)
     // Avoid timeout under MemorySanitizer

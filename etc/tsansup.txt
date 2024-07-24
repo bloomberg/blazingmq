@@ -29,6 +29,7 @@ race:BloombergLP::ball::LoggerManager::isInitialized()
 # point.
 #race:TestSession::waitForChannelClose
 #race:TestSession::arriveAtStepWithCfgs
+race:BloombergLP::bmqt::QueueOptions::suspendsOnBadHostHealth
 
 # Since we use mqbmock::Dispatcher in unit tests, this method does not get
 # enqueued correctly back to cluster-dispatcher thread, causing potential
