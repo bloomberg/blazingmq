@@ -208,7 +208,7 @@ bool CommandRouter::route(mqbcmd::InternalResult* result,
                              bdlf::PlaceHolders::_1));
 
     relevantCluster->multiRequestManager().sendRequest(contextSp,
-                                                       bsls::TimeInterval(3));
+                                                       bsls::TimeInterval(15));
 
     return routeMembers.d_self;
 }
@@ -239,7 +239,7 @@ void CommandRouter::onRouteCommandResponse(
         else {
             // Something went wrong, possibly timed out
             bsl::string errorMessage =
-                "Error ocurred routing command, possibly timeout";
+                "Error occurred routing command to this node.";
             // if we are using JSON encoding
             if (d_commandWithOptions.encoding() ==
                     mqbcmd::EncodingFormat::JSON_COMPACT ||

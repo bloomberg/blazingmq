@@ -736,8 +736,8 @@ int Application::processCommand(const bslstl::StringRef& source,
     if (const int rc = mqbcmd::ParseUtil::parse(&commandWithOptions,
                                                 &parseError,
                                                 cmd)) {
-        os << "Unable to decode command "
-           << "(rc: " << rc << ", error: '" << parseError << "')";
+        os << "Unable to decode command " << "(rc: " << rc << ", error: '"
+           << parseError << "')";
         return rc;  // RETURN
     }
 
@@ -745,7 +745,12 @@ int Application::processCommand(const bslstl::StringRef& source,
 
     mqbcmd::InternalResult cmdResult;
 
-    // easy path, just execute the command
+    // Note that routed commands should never route again to another node.
+    // This should always be the "end of the road" for a command.
+    // Note that this logic is important to prevent a "deadlock" scenario
+    // where two nodes are waiting on a response from each other to continue.
+    // Currently command from reroutes are executed on their own dedicated
+    // thread.
     if (fromReroute) {
         if (0 != executeCommand(commandWithOptions, command, &cmdResult)) {
             return 0;  // early exit (caused by "dangerous" command)

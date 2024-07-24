@@ -19,10 +19,42 @@
 
 //@PURPOSE: Provide a class responsible for routing admin commands to the
 // subset of cluster nodes that should execute that command.
+// 
+// This currently only supports routing cluster related commands (i.e. cluster
+// commands and domain commands). There are 2 main routing modes supported:
+// routing to primary node(s) or to all nodes in the cluster. The following
+// commands are supported:
+// * Primary commands
+//   * DOMAINS DOMAIN <domain> PURGE
+//   * DOMAINS DOMAIN <name> QUEUE <queue_name> PURGE <appId>
+//   * CLUSTERS CLUSTER <name> FORCE_GC_QUEUES
+//   * CLUSTERS CLUSTER <name> STORAGE PARTITION <partitionId> [ENABLE|DISABLE]
+// * Cluster commands
+//   * DOMAINS RECONFIGURE <domain>
+//   * CLUSTERS CLUSTER <name> STORAGE REPLICATION SET_ALL <parameter> <value>
+//   * CLUSTERS CLUSTER <name> STORAGE REPLICATION GET_ALL <parameter>
+//   * CLUSTERS CLUSTER <name> STATE ELECTOR SET_ALL <parameter> <value>
+//   * CLUSTERS CLUSTER <name> STATE ELECTOR GET_ALL <parameter>
+//
+// Routing operates on mqbnet::ClusterNode pointers, which currently limits our
+// ability to route non-cluster commands. In order to support routing non
+// cluster related commands, this class would need to be generalized or add
+// specialized cases for routing using a more fundamental abstraction (i.e. a
+// Session or Channel). This is beyond the scope of current needs at the time
+// of writing this feature.
+//
+// Additionally, be aware of the following non-fatal "deadlock" scenario.
+// Currently, if two cluster nodes receive a command simultaneously and both
+// of these nodes route to each other, they will both deadlock (because they
+// cannot start executing the routed commands until they receive a response).
+// This deadlock is short-lived, though, as both commands will just end up
+// timing out. This scenario can be mitigated by increasing the number of
+// command processing threads from 1.
 //
 //@CLASSES:
-//  mqbcmd::CommandRouter: Manages routing admin commands
-//
+//  mqbcmd::CommandRouter: Manages routing a single admin command. This class
+//    is designed to be used once per command and should be destructed after
+//    the command has been processed.
 
 // BSL
 #include <bsl_iostream.h>

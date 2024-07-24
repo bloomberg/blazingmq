@@ -31,6 +31,7 @@ from blazingmq.dev.it.process.admin import AdminClient
 from blazingmq.dev.it.process.client import Client
 import json
 
+
 def test_primary_rerouting(multi_node: Cluster) -> None:
     """
     Test: commands intended only for primary node are automatically routed to
@@ -45,11 +46,11 @@ def test_primary_rerouting(multi_node: Cluster) -> None:
     Stage 3: Try all primary-only commands:
     - DOMAINS DOMAIN <domain> PURGE
     - CLUSTERS CLUSTER <name> FORCE_GC_QUEUES
-    - CLUSTERS CLUSTER <name> STORAGE PARTITION <partitionId> ENABLE/DISABLE 
+    - CLUSTERS CLUSTER <name> STORAGE PARTITION <partitionId> ENABLE/DISABLE
     """
 
     admin = AdminClient()
-    
+
     # find the first node which is not a known leader
     for node in multi_node.nodes():
         if node != node.last_known_leader:
@@ -57,10 +58,10 @@ def test_primary_rerouting(multi_node: Cluster) -> None:
             break
 
     admin.connect(member_node.config.host, int(member_node.config.port))
-    
-    # member_node should not be the primary, so lets try sending primary 
+
+    # member_node should not be the primary, so lets try sending primary
     # only commands to them
-    
+
     # need to open a domain first
     proxies = multi_node.proxy_cycle()
     proxy = next(proxies)
@@ -69,28 +70,34 @@ def test_primary_rerouting(multi_node: Cluster) -> None:
     producer.open(tc.URI_FANOUT, flags=["write,ack"], succeed=True)
 
     # Try DOMAINS DOMAIN <domain> PURGE
-    res = admin.send_admin(f"DOMAINS DOMAIN {tc.DOMAIN_FANOUT} PURGE") 
+    res = admin.send_admin(f"DOMAINS DOMAIN {tc.DOMAIN_FANOUT} PURGE")
 
     # response should say "Purged XX messages..."
     assert "Purged" in res
 
     # Try DOMAINS DOMAIN <name> QUEUE <queue_name> PURGE <appId>
     res = admin.send_admin(
-        f"DOMAINS DOMAIN {tc.DOMAIN_FANOUT} QUEUE {tc.TEST_QUEUE} PURGE {tc.TEST_APPIDS[0]}")
+        f"DOMAINS DOMAIN {tc.DOMAIN_FANOUT} QUEUE {tc.TEST_QUEUE} PURGE {tc.TEST_APPIDS[0]}"
+    )
     assert "Purged" in res
 
     # Try CLUSTERS CLUSTER <name> FORCE_GC_QUEUES
     res = admin.send_admin(f"CLUSTERS CLUSTER {multi_node.name} FORCE_GC_QUEUES")
-    assert "SUCCESS" in res 
-
-    # Try CLUSTERS CLUSTER <name> STORAGE PARTITION <partitionId> ENABLE/DISABLE
-    res = admin.send_admin(f"CLUSTERS CLUSTER {multi_node.name} STORAGE PARTITION 0 ENABLE")
     assert "SUCCESS" in res
 
-    res = admin.send_admin(f"CLUSTERS CLUSTER {multi_node.name} STORAGE PARTITION 0 DISABLE")
+    # Try CLUSTERS CLUSTER <name> STORAGE PARTITION <partitionId> ENABLE/DISABLE
+    res = admin.send_admin(
+        f"CLUSTERS CLUSTER {multi_node.name} STORAGE PARTITION 0 ENABLE"
+    )
+    assert "SUCCESS" in res
+
+    res = admin.send_admin(
+        f"CLUSTERS CLUSTER {multi_node.name} STORAGE PARTITION 0 DISABLE"
+    )
     assert "SUCCESS" in res
 
     admin.stop()
+
 
 def test_cluster_rerouting(multi_node: Cluster) -> None:
     """
@@ -103,11 +110,11 @@ def test_cluster_rerouting(multi_node: Cluster) -> None:
     - Open PRIORITY domain
 
     Stage 2: Try all cluster commands:
-    - DOMAINS RECONFIGURE <domain> 
+    - DOMAINS RECONFIGURE <domain>
     - CLUSTERS CLUSTER <name> STORAGE REPLICATION SET_ALL <param> <value>
-    - CLUSTERS CLUSTER <name> STORAGE REPLICATION GET_ALL <param> <value> 
+    - CLUSTERS CLUSTER <name> STORAGE REPLICATION GET_ALL <param> <value>
     - CLUSTERS CLUSTER <name> STATE ELECTOR SET_ALL <param> <value>
-    - CLUSTERS CLUSTER <name> STATE ELECTOR GET_ALL <param> <value> 
+    - CLUSTERS CLUSTER <name> STATE ELECTOR GET_ALL <param> <value>
     """
 
     admin = AdminClient()
@@ -122,7 +129,7 @@ def test_cluster_rerouting(multi_node: Cluster) -> None:
 
     producer.open(tc.URI_PRIORITY, flags=["write,ack"], succeed=True)
 
-    # Try DOMAINS RECONFIGURE <domain> 
+    # Try DOMAINS RECONFIGURE <domain>
     res = admin.send_admin(f"DOMAINS RECONFIGURE {tc.DOMAIN_PRIORITY}")
 
     # Expect 4 "SUCCESS" responses
@@ -130,26 +137,35 @@ def test_cluster_rerouting(multi_node: Cluster) -> None:
     assert success_count == 4
 
     # Try CLUSTERS CLUSTER <name> STORAGE REPLICATION SET_ALL <param> <value>
-    res = admin.send_admin(f"CLUSTERS CLUSTER {multi_node.name} STORAGE REPLICATION SET_ALL quorum 2")
+    res = admin.send_admin(
+        f"CLUSTERS CLUSTER {multi_node.name} STORAGE REPLICATION SET_ALL quorum 2"
+    )
     success_count = res.split().count("Quorum")
     assert success_count == 4
 
     # GET_ALL
-    res = admin.send_admin(f"CLUSTERS CLUSTER {multi_node.name} STORAGE REPLICATION SET_ALL quorum 2")
+    res = admin.send_admin(
+        f"CLUSTERS CLUSTER {multi_node.name} STORAGE REPLICATION SET_ALL quorum 2"
+    )
     success_count = res.split().count("Quorum")
     assert success_count == 4
 
     # Try CLUSTERS CLUSTER <name> STATE ELECTOR SET_ALL <param> <value>
-    res = admin.send_admin(f"CLUSTERS CLUSTER {multi_node.name} STATE ELECTOR SET_ALL quorum 2")
+    res = admin.send_admin(
+        f"CLUSTERS CLUSTER {multi_node.name} STATE ELECTOR SET_ALL quorum 2"
+    )
     success_count = res.split().count("Quorum")
     assert success_count == 4
 
     # GET_ALL
-    res = admin.send_admin(f"CLUSTERS CLUSTER {multi_node.name} STATE ELECTOR SET_ALL quorum 2")
+    res = admin.send_admin(
+        f"CLUSTERS CLUSTER {multi_node.name} STATE ELECTOR SET_ALL quorum 2"
+    )
     success_count = res.split().count("Quorum")
     assert success_count == 4
 
     admin.stop()
+
 
 def test_multi_response_encoding(multi_node: Cluster):
     """
@@ -159,7 +175,7 @@ def test_multi_response_encoding(multi_node: Cluster):
     Stage 1: Setup client
     - Start admin client
     - Connect to arbitrary node
-    - Open PRIORITY domain 
+    - Open PRIORITY domain
 
     Stage 2: Test compact json formatting
 
@@ -183,8 +199,15 @@ def test_multi_response_encoding(multi_node: Cluster):
     producer.open(tc.URI_PRIORITY, flags=["write,ack"], succeed=True)
 
     # Stage 2: Test Compact Encoding
-    cmds = [json.dumps({"domains": {"reconfigure": {"domain": tc.DOMAIN_PRIORITY}}, "encoding": "JSON_COMPACT"}),
-           f"ENCODING JSON_COMPACT DOMAINS RECONFIGURE {tc.DOMAIN_PRIORITY}"]
+    cmds = [
+        json.dumps(
+            {
+                "domains": {"reconfigure": {"domain": tc.DOMAIN_PRIORITY}},
+                "encoding": "JSON_COMPACT",
+            }
+        ),
+        f"ENCODING JSON_COMPACT DOMAINS RECONFIGURE {tc.DOMAIN_PRIORITY}",
+    ]
     for cmd in cmds:
         res = admin.send_admin(cmd)
         res_json = json.loads(res)
@@ -195,8 +218,15 @@ def test_multi_response_encoding(multi_node: Cluster):
         assert len(responses) == 4
 
     # Stage 3: Test Pretty Encoding
-    cmds = [json.dumps({"domains": {"reconfigure": {"domain": tc.DOMAIN_PRIORITY}}, "encoding": "JSON_PRETTY"}),
-           f"ENCODING JSON_PRETTY DOMAINS RECONFIGURE {tc.DOMAIN_PRIORITY}"]
+    cmds = [
+        json.dumps(
+            {
+                "domains": {"reconfigure": {"domain": tc.DOMAIN_PRIORITY}},
+                "encoding": "JSON_PRETTY",
+            }
+        ),
+        f"ENCODING JSON_PRETTY DOMAINS RECONFIGURE {tc.DOMAIN_PRIORITY}",
+    ]
     for cmd in cmds:
         res = admin.send_admin(cmd)
         res_json = json.loads(res)
@@ -205,6 +235,5 @@ def test_multi_response_encoding(multi_node: Cluster):
         # we should have gotten 4 responses
         responses = res_json["responses"]
         assert len(responses) == 4
-    
+
     admin.stop()
-        
