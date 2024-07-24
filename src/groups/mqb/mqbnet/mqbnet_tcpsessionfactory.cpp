@@ -176,11 +176,6 @@ ntcCreateInterfaceConfig(const mqbcfg::TcpInterfaceConfig& tcpConfig)
 
     config.setThreadName("mqbnet");
 
-#ifdef BSLS_PLATFORM_OS_AIX
-    // Set stack size to 1Mb for IBM.
-    config.setThreadStackSize(1024 * 1024);
-#endif
-
     config.setMinThreads(tcpConfig.ioThreads());
     config.setMaxThreads(tcpConfig.ioThreads());
     config.setMaxConnections(tcpConfig.maxConnections());

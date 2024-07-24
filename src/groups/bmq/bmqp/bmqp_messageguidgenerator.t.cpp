@@ -297,11 +297,7 @@ static void test3_multithreadUseIP()
 
     const int k_NUM_THREADS = 10;
 
-#ifdef BSLS_PLATFORM_OS_AIX
-    // This test case times out on AIX if 'k_NUM_GUIDS' is close to 1 million
-    // (it's unable to complete in 90 seconds).
-    const int k_NUM_GUIDS = 500000;  // 500k
-#elif defined(__has_feature)
+#if defined(__has_feature)
     // Avoid timeout under MemorySanitizer
     const int k_NUM_GUIDS = __has_feature(memory_sanitizer) ? 500000    // 500k
                                                             : 1000000;  // 1M
@@ -379,11 +375,7 @@ static void test4_multithreadUseHostname()
 
     const int k_NUM_THREADS = 10;
 
-#ifdef BSLS_PLATFORM_OS_AIX
-    // This test case times out on AIX if 'k_NUM_GUIDS' is close to 1 million
-    // (it's unable to complete in 90 seconds).
-    const int k_NUM_GUIDS = 500000;  // 500k
-#elif defined(__has_feature)
+#if defined(__has_feature)
     // Avoid timeout under MemorySanitizer
     const int k_NUM_GUIDS = __has_feature(memory_sanitizer) ? 500000    // 500k
                                                             : 1000000;  // 1M
@@ -562,9 +554,7 @@ static void test6_defaultHashUniqueness()
 
     mwctst::TestHelper::printTestName("DEFAULT HASH UNIQUENESS");
 
-#ifdef BSLS_PLATFORM_OS_AIX
-    const bsls::Types::Int64 k_NUM_GUIDS = 1000000;  // 1M
-#elif defined(__has_feature)
+#if defined(__has_feature)
     // Avoid timeout under MemorySanitizer
     const bsls::Types::Int64 k_NUM_GUIDS = __has_feature(memory_sanitizer)
                                                ? 1000000    // 1M
@@ -652,9 +642,7 @@ static void test7_customHashUniqueness()
 
     mwctst::TestHelper::printTestName("CUSTOM HASH UNIQUENESS");
 
-#ifdef BSLS_PLATFORM_OS_AIX
-    const bsls::Types::Int64 k_NUM_GUIDS = 1000000;  // 1M
-#elif defined(__has_feature)
+#if defined(__has_feature)
     // Avoid timeout under MemorySanitizer
     const bsls::Types::Int64 k_NUM_GUIDS = __has_feature(memory_sanitizer)
                                                ? 1000000    // 1M

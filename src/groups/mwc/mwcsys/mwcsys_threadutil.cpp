@@ -49,13 +49,6 @@ const char k_LOG_CATEGORY[] = "MWCSYS.THREADUTIL";
 bslmt::ThreadAttributes ThreadUtil::defaultAttributes()
 {
     bslmt::ThreadAttributes attributes;
-
-#ifdef BSLS_PLATFORM_OS_AIX
-    // AIX default thread stack size is very small, set it to a decent
-    // value.
-    attributes.setStackSize(1024 * 1024);
-#endif
-
     return attributes;
 }
 

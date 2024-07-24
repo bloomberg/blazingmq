@@ -348,7 +348,7 @@ def test_verify_fanout(cluster: Cluster):
     )
 
     # testing {client1 open "foo" for read, client2 open "bar" for read,
-    #          client1 open for write} sequence (RDSIBMQ-1008).
+    #          client1 open for write} sequence.
 
     assert (
         fooConsumerAndProducerOnPrimaryProxy.open(

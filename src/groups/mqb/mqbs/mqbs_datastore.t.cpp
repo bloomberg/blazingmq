@@ -134,9 +134,7 @@ static void test2_defaultHashUniqueness()
 
     mwctst::TestHelper::printTestName("DEFAULT HASH UNIQUENESS");
 
-#ifdef BSLS_PLATFORM_OS_AIX
-    const bsls::Types::Int64 k_NUM_KEYS = 1000000;  // 1M
-#elif defined(__has_feature)
+#if defined(__has_feature)
     // Avoid timeout under MemorySanitizer
     const bsls::Types::Int64 k_NUM_KEYS = __has_feature(memory_sanitizer)
                                               ? 1000000    // 1M
@@ -219,9 +217,7 @@ static void test3_customHashUniqueness()
 
     mwctst::TestHelper::printTestName("CUSTOM HASH UNIQUENESS");
 
-#ifdef BSLS_PLATFORM_OS_AIX
-    const bsls::Types::Int64 k_NUM_KEYS = 5000000;  // 5M
-#elif defined(__has_feature)
+#if defined(__has_feature)
     // Avoid timeout under MemorySanitizer
     const bsls::Types::Int64 k_NUM_KEYS = __has_feature(memory_sanitizer)
                                               ? 5000000    // 5M

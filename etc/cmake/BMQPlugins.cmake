@@ -52,8 +52,6 @@ function(bmq_add_plugin name)
     include(TargetBMQStyleUor)
     target_bmq_default_compiler_flags(${name})
 
-    # Add -bbigtoc on AIX platforms
-    target_link_options(${name} PRIVATE "$<$<PLATFORM_ID:AIX>:$<$<CXX_COMPILER_ID:XL>:-bbigtoc>>")
     bbs_import_target_dependencies(${name} ${${name}_PCDEPS})
 
     # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
