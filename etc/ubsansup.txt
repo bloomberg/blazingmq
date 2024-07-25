@@ -1,2 +1,2 @@
-# UndefinedBehaviorSanitizer suppressions file for BMQ.
+# UndefinedBehaviorSanitizer suppressions file for BlazingMQ.
 # See details https://clang.llvm.org/docs/UndefinedBehaviorSanitizer.html#runtime-suppressions.
