@@ -1,4 +1,4 @@
-# ThreadSanitizer suppressions file for BMQ
+# ThreadSanitizer suppressions file for BlazingMQ.
 
 # There's a lengthy comment in ObjectPool::getObject that explains why this
 # isn't a race.  I'm not smart enough to figure out if it's right, but I'll
