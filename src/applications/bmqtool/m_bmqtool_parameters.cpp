@@ -261,6 +261,7 @@ Parameters::Parameters(bslma::Allocator* allocator)
 , d_logFilePath(allocator)
 , d_messageProperties(allocator)
 , d_subscriptions(allocator)
+, d_autoIncrementedField(allocator)
 {
     CommandLineParameters params(allocator);
     const bool            rc = from(bsl::cerr, params);

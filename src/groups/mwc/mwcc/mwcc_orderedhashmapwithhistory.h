@@ -108,6 +108,9 @@ class OrderedHashMapWithHistory_Iterator {
 
     // MANIPULATORS
 
+    /// Assign to this object the value of the specified `rhs` object.
+    OrderedHashMapWithHistory_Iterator& operator=(const NcIter& rhs);
+
     /// Advance this iterator to the next element in the sequential list and
     /// return its new value.  The behavior is undefined unless this
     /// iterator is in the range `[begin() .. end())` (i.e., the iterator is
@@ -386,6 +389,15 @@ inline OrderedHashMapWithHistory_Iterator<
 }
 
 // MANIPULATORS
+
+template <class VALUE>
+inline OrderedHashMapWithHistory_Iterator<VALUE>&
+OrderedHashMapWithHistory_Iterator<VALUE>::operator=(const NcIter& rhs)
+{
+    d_baseIterator = rhs.d_baseIterator;
+    return *this;
+}
+
 template <class VALUE>
 inline OrderedHashMapWithHistory_Iterator<VALUE>&
 OrderedHashMapWithHistory_Iterator<VALUE>::operator++()
