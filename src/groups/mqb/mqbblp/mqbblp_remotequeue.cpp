@@ -1379,12 +1379,14 @@ void RemoteQueue::expirePendingMessagesDispatched()
     }
 
     if (numExpired) {
-        BALL_LOG_INFO << d_state_p->uri() << ": expired "
-                      << mwcu::PrintUtil::prettyNumber(numExpired)
-                      << " pending PUSH messages ("
-                      << mwcu::PrintUtil::prettyNumber(numMessages -
-                                                       numExpired)
-                      << " remaining messages).";
+        if (d_throttledFailedPutMessages.requestPermission()) {
+            BALL_LOG_INFO << d_state_p->uri() << ": expired "
+                          << mwcu::PrintUtil::prettyNumber(numExpired)
+                          << " pending PUT messages ("
+                          << mwcu::PrintUtil::prettyNumber(numMessages -
+                                                           numExpired)
+                          << " remaining messages).";
+        }
     }
 
     // reschedule

@@ -217,6 +217,7 @@ class Cluster : public mqbi::Cluster,
         const StopRequestManagerType::RequestContextSp& contextSp)>
         StopRequestCompletionCallback;
 
+    enum ValidationResult { k_SUCCESS = 0, k_UNKNOWN_QUEUE, k_FINAL };
     typedef bsl::function<void()> CompletionCallback;
 
   private:
@@ -422,11 +423,10 @@ class Cluster : public mqbi::Cluster,
 
     void onRelayPushEvent(const mqbi::DispatcherEvent& event);
 
-    bool validateMessage(mqbi::QueueHandle**       queueHandle,
-                         bsl::ostream*             errorStream,
-                         const bmqp::QueueId&      queueId,
-                         mqbc::ClusterNodeSession* ns,
-                         bmqp::EventType::Enum     eventType);
+    ValidationResult validateMessage(mqbi::QueueHandle**       queueHandle,
+                                     const bmqp::QueueId&      queueId,
+                                     mqbc::ClusterNodeSession* ns,
+                                     bmqp::EventType::Enum     eventType);
     // Validate a message of the specified 'eventType' using the specified
     // 'queueId' and 'ns'. Return true if the message is valid and false
     // otherwise. Populate the specified 'queueHandle' if the queue is found
@@ -493,6 +493,8 @@ class Cluster : public mqbi::Cluster,
 
     /// Execute `initiateShutdown` followed by `stop` and SIGINT
     void terminate(mqbu::ExitCode::Enum reason);
+
+    static const char* validationResult(const ValidationResult& result);
 
   public:
     // TRAITS
@@ -792,6 +794,17 @@ class Cluster : public mqbi::Cluster,
 // -------------
 // class Cluster
 // -------------
+// static
+inline const char* Cluster::validationResult(const ValidationResult& result)
+{
+    switch (result) {
+    case k_SUCCESS: return "SUCCESS";
+    case k_UNKNOWN_QUEUE: return "message for unknown queue";
+    case k_FINAL:
+        return "message for which final closeQueue was already received";
+    default: return "UNKNOWN";
+    }
+}
 
 inline Cluster::RequestManagerType& Cluster::requestManager()
 {
