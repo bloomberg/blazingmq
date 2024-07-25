@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # This script downloads, builds, and installs the required build dependencies of Prometheus plugin
-# from github.com. Software packages are installed to the /opt/bb prefix.
+# from github.com. Software packages are installed to the /usr/local prefix.
 
 set -euxo pipefail
 
@@ -28,7 +28,7 @@ build_curl() {
         --disable-ipv6 --disable-sspi --disable-crypto-auth \
         --disable-ntlm-wb --disable-tls-srp --with-pic --without-nghttp2\
         --without-libidn2 --without-libssh2 --without-brotli \
-        --without-ssl --without-zlib --prefix=/opt/bb --libdir=/opt/bb/lib64
+        --without-ssl --without-zlib --prefix=/usr/local --libdir=/usr/local/lib64
     make curl_LDFLAGS=-all-static
     make curl_LDFLAGS=-all-static install
     popd
@@ -39,22 +39,22 @@ build_prometheus_cpp() {
 
     # fetch third-party dependencies
     git submodule init
-    git submodule update    
+    git submodule update
 
     mkdir -p build
 
-    PKG_CONFIG_PATH="/opt/bb/lib64/pkgconfig:$(pkg-config --variable pc_path pkg-config)" \
+    PKG_CONFIG_PATH="/usr/local/lib64/pkgconfig:$(pkg-config --variable pc_path pkg-config)" \
     cmake -DBUILD_SHARED_LIBS=OFF \
             -DENABLE_PUSH=ON \
             -DENABLE_COMPRESSION=OFF \
             -DENABLE_TESTING=OFF \
             -DGENERATE_PKGCONFIG=ON \
-            -DCMAKE_INSTALL_PREFIX=/opt/bb \
+            -DCMAKE_INSTALL_PREFIX=/usr/local \
             -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
             -DCMAKE_INSTALL_LIBDIR=lib64 \
             -B build
     cmake --build build --parallel 16
-    cmake --install build --prefix /opt/bb
+    cmake --install build --prefix /usr/local
     popd
 }
 

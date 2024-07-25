@@ -92,7 +92,7 @@ jobs:
         run: ../docker/build_deps.sh
       - name: Build BlazingMQ
         env:
-          PKG_CONFIG_PATH: /usr/lib/x86_64-linux-gnu/pkgconfig:/opt/bb/lib64/pkgconfig
+          PKG_CONFIG_PATH: /usr/lib/x86_64-linux-gnu/pkgconfig:/usr/local/lib64/pkgconfig
         run: |
           cmake -S . -B build/blazingmq -G Ninja \
             -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/deps/srcs/bde-tools/BdeBuildSystem/toolchains/linux/gcc-default.cmake \
@@ -112,7 +112,7 @@ jobs:
           path: |
             build/blazingmq
             deps
-            /opt/bb/include
+            /usr/local/include
           key: cache-${{ github.sha }}
 
   unit_tests_cxx:
@@ -149,7 +149,7 @@ jobs:
         run: ../docker/build_deps.sh
       - name: Build BlazingMQ UTs
         env:
-          PKG_CONFIG_PATH: /usr/lib/x86_64-linux-gnu/pkgconfig:/opt/bb/lib64/pkgconfig
+          PKG_CONFIG_PATH: /usr/lib/x86_64-linux-gnu/pkgconfig:/usr/local/lib64/pkgconfig
         run: |
           cmake -S . -B build/blazingmq -G Ninja \
             -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/deps/srcs/bde-tools/BdeBuildSystem/toolchains/linux/gcc-default.cmake \
@@ -176,7 +176,7 @@ jobs:
           path: |
             build/blazingmq
             deps
-            /opt/bb/include
+            /usr/local/include
           key: cache-${{ github.sha }}
       - name: Run Python Unit Tests
         env:
@@ -205,7 +205,7 @@ jobs:
           path: |
             build/blazingmq
             deps
-            /opt/bb/include
+            /usr/local/include
           key: cache-${{ github.sha }}
       - name: Run Integration Tests
         run: |
@@ -236,7 +236,7 @@ jobs:
           path: |
             build/blazingmq
             deps
-            /opt/bb/include
+            /usr/local/include
           key: cache-${{ github.sha }}
       - name: Run Fuzz Test
         run: |
@@ -277,7 +277,7 @@ jobs:
           path: |
             build/blazingmq
             deps
-            /opt/bb/include
+            /usr/local/include
           key: cache-${{ github.sha }}
       - name: Set up plugins dependencies
         run: |
@@ -303,7 +303,7 @@ jobs:
         run:  ${{ github.workspace }}/src/plugins/bmqprometheus/build_prometheus_deps.sh
       - name: Build plugins
         env:
-          PKG_CONFIG_PATH: /usr/lib/x86_64-linux-gnu/pkgconfig:/opt/bb/lib64/pkgconfig
+          PKG_CONFIG_PATH: /usr/lib/x86_64-linux-gnu/pkgconfig:/usr/local/lib64/pkgconfig
         run: |
           cmake -S . -B build/blazingmq -G Ninja \
             -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/deps/srcs/bde-tools/BdeBuildSystem/toolchains/linux/gcc-default.cmake \

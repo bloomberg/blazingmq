@@ -1,7 +1,8 @@
 #!/bin/bash
 
-# This script downloads, builds, and installs the required build dependencies of BMQ
-# from github.com/bloomberg. Software packages are installed to the /opt/bb prefix.
+# This script downloads, builds, and installs the required build dependencies
+# of BMQ from github.com/bloomberg. Software packages are installed to the
+# /usr/local prefix.
 
 set -euxo pipefail
 
@@ -41,9 +42,9 @@ configure() {
 
 build_bde() {
     pushd srcs/bde
-    bbs_build configure
-    bbs_build build -j8
-    bbs_build --install=/opt/bb --prefix=/ install
+    bbs_build configure --prefix="/usr/local"
+    bbs_build build -j8 --prefix="/usr/local"
+    bbs_build install --install_dir="/" --prefix="/usr/local"
     popd
 }
 
@@ -51,7 +52,7 @@ build_ntf() {
     pushd srcs/ntf-core
     ./configure                      \
         --keep                       \
-        --prefix /opt/bb             \
+        --prefix /usr/local          \
         --without-usage-examples     \
         --without-applications       \
         --without-warnings-as-errors \

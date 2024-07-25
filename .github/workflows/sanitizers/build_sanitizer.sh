@@ -171,9 +171,9 @@ export PATH
 # Build BDE + NTF
 pushd "${DIR_SRCS_EXT}/bde"
 eval "$(bbs_build_env -u dbg_64_safe_cpp20 -b "${DIR_BUILD_EXT}/bde")"
-bbs_build configure --toolchain "${TOOLCHAIN_PATH}"
-bbs_build build -j${PARALLELISM}
-bbs_build --install=/opt/bb --prefix=/ install
+bbs_build configure --toolchain "${TOOLCHAIN_PATH}" --prefix="/usr/local"
+bbs_build build -j${PARALLELISM} --prefix="/usr/local"
+bbs_build install --install_dir="/" --prefix="/usr/local"
 popd
 
 pushd "${DIR_SRCS_EXT}/ntf-core"
@@ -183,7 +183,7 @@ pushd "${DIR_SRCS_EXT}/ntf-core"
 sed -i 's/fcoroutines-ts/fcoroutines/g' 'repository.cmake'
 
 ./configure --keep \
-            --prefix /opt/bb             \
+            --prefix /usr/local             \
             --output "${DIR_BUILD_EXT}/ntf" \
             --without-warnings-as-errors \
             --without-usage-examples \
@@ -195,8 +195,8 @@ make install
 popd
 
 # Note: Hack to circumvent faulty behavior in "nts-targets.cmake"
-ln -sf "/opt/bb/include" "/opt/include"
-ln -sf "/opt/bb/lib64" "/opt/lib64"
+ln -sf "/usr/local/include" "/opt/include"
+ln -sf "/usr/local/lib64" "/opt/lib64"
 
 # Setup CMake options for all remaining builds
 CMAKE_OPTIONS=( \
@@ -209,20 +209,20 @@ CMAKE_OPTIONS=( \
 # Build GoogleTest
 cmake -B "${DIR_SRCS_EXT}/googletest/cmake.bld" \
       -S "${DIR_SRCS_EXT}/googletest" "${CMAKE_OPTIONS[@]}" \
-      -DCMAKE_INSTALL_PREFIX=/opt/bb
+      -DCMAKE_INSTALL_PREFIX=/usr/local
 cmake --build "${DIR_SRCS_EXT}/googletest/cmake.bld" -j${PARALLELISM}
-cmake --install "${DIR_SRCS_EXT}/googletest/cmake.bld" --prefix "/opt/bb"
+cmake --install "${DIR_SRCS_EXT}/googletest/cmake.bld" --prefix "/usr/local"
 
 # Build Google Benchmark
 cmake -B "${DIR_SRCS_EXT}/google-benchmark/cmake.bld" \
         -S "${DIR_SRCS_EXT}/google-benchmark" "${CMAKE_OPTIONS[@]}" \
-        -DCMAKE_INSTALL_PREFIX=/opt/bb \
+        -DCMAKE_INSTALL_PREFIX=/usr/local \
         -DBENCHMARK_DOWNLOAD_DEPENDENCIES="ON" \
         -DBENCHMARK_ENABLE_GTEST_TESTS="false" \
         -DHAVE_STD_REGEX="ON" \
         -DBENCHMARK_ENABLE_TESTING="OFF"
 cmake --build "${DIR_SRCS_EXT}/google-benchmark/cmake.bld" -j${PARALLELISM}
-cmake --install "${DIR_SRCS_EXT}/google-benchmark/cmake.bld" --prefix "/opt/bb"
+cmake --install "${DIR_SRCS_EXT}/google-benchmark/cmake.bld" --prefix "/usr/local"
 
 # Build zlib
 # Note: zlib has completely broken CMake install rules, so we must
@@ -230,14 +230,14 @@ cmake --install "${DIR_SRCS_EXT}/google-benchmark/cmake.bld" --prefix "/opt/bb"
 # time
 # https://discourse.cmake.org/t/cmake-install-prefix-not-work/5040
 cmake -B "${DIR_SRCS_EXT}/zlib/cmake.bld" -S "${DIR_SRCS_EXT}/zlib" \
-        -D CMAKE_INSTALL_PREFIX="/opt/bb" \
+        -D CMAKE_INSTALL_PREFIX="/usr/local" \
         "${CMAKE_OPTIONS[@]}"
 # Make and install zlib.
 cmake --build "${DIR_SRCS_EXT}/zlib/cmake.bld" -j${PARALLELISM}
 cmake --install "${DIR_SRCS_EXT}/zlib/cmake.bld"
 
 # Build BlazingMQ
-PKG_CONFIG_PATH="/opt/bb/lib64/pkgconfig:/opt/bb/lib/pkgconfig:/opt/bb/share/pkgconfig:$(pkg-config --variable pc_path pkg-config)" \
+PKG_CONFIG_PATH="/usr/local/lib64/pkgconfig:/usr/local/lib/pkgconfig:/usr/local/share/pkgconfig:$(pkg-config --variable pc_path pkg-config)" \
 cmake -B "${DIR_BUILD_BMQ}" -S "${DIR_SRC_BMQ}" -G Ninja \
     -DBDE_BUILD_TARGET_64=ON \
     -DBDE_BUILD_TARGET_CPP17=ON \
