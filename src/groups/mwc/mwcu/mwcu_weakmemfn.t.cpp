@@ -105,16 +105,6 @@ static void test1_weakMemFn_resultType()
         (bsl::is_same<mwcu::WeakMemFnResult<const R>,
                       mwcu::WeakMemFn<const R (C::*)()>::ResultType>::value));
 
-    // volatile R -> mwcu::WeakMemFnResult<volatile R>
-    ASSERT((bsl::is_same<
-            mwcu::WeakMemFnResult<volatile R>,
-            mwcu::WeakMemFn<volatile R (C::*)()>::ResultType>::value));
-
-    // const volatile R -> mwcu::WeakMemFnResult<const volatile R>
-    ASSERT((bsl::is_same<
-            mwcu::WeakMemFnResult<const volatile R>,
-            mwcu::WeakMemFn<const volatile R (C::*)()>::ResultType>::value));
-
     // R& -> mwcu::WeakMemFnResult<R&>
     ASSERT((bsl::is_same<mwcu::WeakMemFnResult<R&>,
                          mwcu::WeakMemFn<R& (C::*)()>::ResultType>::value));
@@ -243,16 +233,6 @@ static void test3_weakMemFnInstance_resultType()
     ASSERT((bsl::is_same<
             mwcu::WeakMemFnResult<const R>,
             mwcu::WeakMemFnInstance<const R (C::*)()>::ResultType>::value));
-
-    // volatile R -> mwcu::WeakMemFnResult<volatile R>
-    ASSERT((bsl::is_same<
-            mwcu::WeakMemFnResult<volatile R>,
-            mwcu::WeakMemFnInstance<volatile R (C::*)()>::ResultType>::value));
-
-    // const volatile R -> mwcu::WeakMemFnResult<const volatile R>
-    ASSERT((bsl::is_same<mwcu::WeakMemFnResult<const volatile R>,
-                         mwcu::WeakMemFnInstance<const volatile R (
-                             C::*)()>::ResultType>::value));
 
     // R& -> mwcu::WeakMemFnResult<R&>
     ASSERT((bsl::is_same<

@@ -77,13 +77,13 @@ int doWork_cpuIntensive()
     volatile unsigned int sum        = 0;
     for (int i = 0; i < (k_1K * multiplier); ++i) {
         volatile int a = 50 * 9873 / 3;
-        sum += a;
+        sum            = sum + a;
 
         volatile int b = a * (a ^ (~0U));
-        sum += b;
+        sum            = sum + b;
 
         volatile int c = (a * (b ^ (~0U))) % 999983;
-        sum += c;
+        sum            = sum + c;
     }
 
     return sum;
