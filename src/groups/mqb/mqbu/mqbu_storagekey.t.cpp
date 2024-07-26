@@ -32,6 +32,7 @@
 #include <bdlde_md5.h>
 #include <bsl_set.h>
 #include <bslh_hash.h>
+#include <bsls_keyword.h>
 #include <bsls_timeutil.h>
 #include <bsls_types.h>
 
@@ -362,9 +363,7 @@ void test4_customHashUniqueness()
     // created upon insertion of objects in the map uses the default
     // allocator.
 
-    enum {
-        k_NUM_ELEMS = 10000  // 10K
-    };
+    BSLS_KEYWORD_CONSTEXPR bsl::size_t k_NUM_ELEMS = 10000;  // 10K
 
     typedef bsl::unordered_set<mqbu::StorageKey>::const_iterator CITER;
     typedef bsl::vector<mqbu::StorageKey>                        StorageKeys;
