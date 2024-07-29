@@ -158,7 +158,6 @@ def test_breathing(single_node: Cluster) -> None:
     admin.stop()
 
 
-@tweak.broker.app_config.stats.app_id_tag_domains([tc.DOMAIN_FANOUT])
 def test_queue_stats(single_node: Cluster) -> None:
     """
     Test: queue metrics via admin command.
@@ -183,6 +182,12 @@ def test_queue_stats(single_node: Cluster) -> None:
     - The broker is able to report queue metrics for fanout queue.
     - Safeguarding mechanism prevents from getting stats too often.
     """
+
+    domains = {domain.name: domain for domain in single_node.configurator.domains}
+    domains[
+        tc.DOMAIN_FANOUT
+    ].definition.parameters.mode.fanout.publish_app_id_metrics = True
+    single_node.deploy_domains()
 
     # Preconditions
     admin = AdminClient()
