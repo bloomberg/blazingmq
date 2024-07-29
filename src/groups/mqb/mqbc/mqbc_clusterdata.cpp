@@ -118,13 +118,13 @@ ClusterData::ClusterData(
                       cluster->isRemote(),
                       allocator))
 , d_cluster_p(cluster)
-, d_messageTransmitter(resources.d_bufferFactory_p,
+, d_messageTransmitter(resources.bufferFactory(),
                        cluster,
                        transportManager,
                        allocator)
 , d_requestManager(bmqp::EventType::e_CONTROL,
-                   resources.d_bufferFactory_p,
-                   resources.d_scheduler_p,
+                   resources.bufferFactory(),
+                   resources.scheduler(),
                    false,  // lateResponseMode
                    allocator)
 , d_multiRequestManager(&d_requestManager, allocator)
@@ -149,8 +149,7 @@ ClusterData::ClusterData(
     BSLS_ASSERT_SAFE(d_bufferFactory_p);
     BSLS_ASSERT_SAFE(d_blobSpPool_p);
     BSLS_ASSERT_SAFE(d_cluster_p);
-    BSLS_ASSERT_SAFE(d_transportManager_p);
-    BSLS_ASSERT(resources.d_scheduler_p->clockType() ==
+    BSLS_ASSERT(resources.scheduler()->clockType() ==
                 bsls::SystemClockType::e_MONOTONIC);
 
     // Initialize the clusterStats object - under the hood this creates a new

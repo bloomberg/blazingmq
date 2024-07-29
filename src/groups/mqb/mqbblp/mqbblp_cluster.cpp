@@ -2584,7 +2584,7 @@ Cluster::Cluster(const bslstl::StringRef&           name,
     BSLS_ASSERT(d_allocator_p);
     mqbnet::Cluster* netCluster_p = d_clusterData.membership().netCluster();
     BSLS_ASSERT(netCluster_p && "NetCluster not set !");
-    BSLS_ASSERT(resources.d_scheduler_p->clockType() ==
+    BSLS_ASSERT(resources.scheduler()->clockType() ==
                 bsls::SystemClockType::e_MONOTONIC);
     BSLS_ASSERT_SAFE(d_clusterData.membership().selfNode() &&
                      "SelfNode not found in cluster!");

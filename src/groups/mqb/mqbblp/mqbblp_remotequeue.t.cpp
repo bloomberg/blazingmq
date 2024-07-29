@@ -96,7 +96,6 @@ void verifyBroadfcastPut(
 
     ++(*count);
 }
-
 }
 
 // ============================================================================
@@ -140,12 +139,8 @@ class TestBench {
     bmqp_ctrlmsg::QueueHandleParameters d_params;
     bmqt::AckResult::Enum               d_status;
     bsl::queue<PutEvent>                d_puts;
-    bdlmt::EventScheduler               d_scheduler;
-    bdlmt::EventSchedulerTestTimeSource d_timeSource;
     TestClock                           d_testClock;
     StateSpPool                         d_stateSpPool;
-    bdlma::ConcurrentPool               d_pushElementsPool;
-    mqbi::ClusterResources              d_resources;
     bslma::Allocator*                   d_allocator_p;
 
     TestBench(bslma::Allocator* allocator_p);
@@ -177,12 +172,8 @@ TestBench::TestBench(bslma::Allocator* allocator_p)
 , d_params(allocator_p)
 , d_status(bmqt::AckResult::e_UNKNOWN)
 , d_puts(allocator_p)
-, d_scheduler(bsls::SystemClockType::e_MONOTONIC, allocator_p)
-, d_timeSource(&d_scheduler)
-, d_testClock(d_timeSource)
+, d_testClock(d_cluster._timeSource())
 , d_stateSpPool(8192, allocator_p)
-, d_pushElementsPool(sizeof(mqbblp::PushStream::Element), allocator_p)
-, d_resources()
 , d_allocator_p(allocator_p)
 {
     d_params.flags() |= bmqt::QueueFlags::e_WRITE;
@@ -199,19 +190,16 @@ TestBench::TestBench(bslma::Allocator* allocator_p)
         bdlf::BindUtil::bind(&TestClock::monotonicClock, &d_testClock),
         bdlf::BindUtil::bind(&TestClock::highResTimer, &d_testClock));
 
-    d_resources.d_blobSpPool_p       = 0;
-    d_resources.d_bufferFactory_p    = &d_bufferFactory;
-    d_resources.d_scheduler_p        = &d_scheduler;
-    d_resources.d_pushElementsPool_p = &d_pushElementsPool;
+    mwcu::MemOutStream errorDescription(allocator_p);
 
-    d_scheduler.start();
+    int rc = d_cluster.start(errorDescription);
 }
 
 TestBench::~TestBench()
 {
     bmqt::UriParser::shutdown();
 
-    d_scheduler.stop();
+    d_cluster.stop();
 
     d_event.reset();
 
@@ -281,7 +269,7 @@ void TestBench::dropPuts()
 
 void TestBench::advanceTime(const bsls::TimeInterval& step)
 {
-    d_timeSource.advanceTime(step);
+    d_cluster.advanceTime(step.totalSeconds());
 }
 
 TestBench::TestRemoteQueue::TestRemoteQueue(
@@ -298,7 +286,7 @@ TestBench::TestRemoteQueue::TestRemoteQueue(
                d_storageKey,
                1,  // partition
                &theBench.d_domain,
-               theBench.d_resources,
+               theBench.d_cluster._resources(),
                theBench.d_allocator_p)
 , d_remoteQueue(&d_queueState,
                 timeout,
@@ -1041,16 +1029,10 @@ static void test4_buffering()
     ASSERT_EQ(0U, x.count());
     ASSERT_EQ(0U, y.count());
 
-    theBench.d_timeSource.advanceTime(bsls::TimeInterval(timeout + 1, 0));
+    theBench.advanceTime(bsls::TimeInterval(timeout + 1, 0));
     bslmt::Semaphore sem;
 
-    typedef void (bslmt::Semaphore::*PostFn)();
-
-    theBench.d_scheduler.scheduleEvent(
-        theBench.d_timeSource.now(),
-        bdlf::BindUtil::bind(static_cast<PostFn>(&bslmt::Semaphore::post),
-                             &sem));
-    sem.wait();
+    theBench.d_cluster.waitForScheduler();
 }
 
 static void test5_reopen_failure()

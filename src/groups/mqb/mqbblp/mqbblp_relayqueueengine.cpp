@@ -631,8 +631,8 @@ void RelayQueueEngine::processAppRedelivery(unsigned int upstreamSubQueueId,
         d_queueState_p->queue()));
 
     // Position to the last 'Routers::e_NO_CAPACITY_ALL' point
-    bslma::ManagedPtr<RelayQueueEngine_PushStorageIterator> storageIter_mp;
-    RelayQueueEngine_PushStorageIterator*                   start = 0;
+    bslma::ManagedPtr<PushStreamIterator> storageIter_mp;
+    PushStreamIterator*                   start = 0;
 
     if (app->resumePoint().isUnset()) {
         start = d_storageIter_mp.get();
@@ -647,13 +647,12 @@ void RelayQueueEngine::processAppRedelivery(unsigned int upstreamSubQueueId,
             it = d_pushStream.d_stream.begin();
         }
 
-        storageIter_mp.load(
-            new (*d_allocator_p)
-                RelayQueueEngine_VirtualPushStorageIterator(upstreamSubQueueId,
-                                                            storage(),
-                                                            &d_pushStream,
-                                                            it),
-            d_allocator_p);
+        storageIter_mp.load(new (*d_allocator_p)
+                                VirtualPushStreamIterator(upstreamSubQueueId,
+                                                          storage(),
+                                                          &d_pushStream,
+                                                          it),
+                            d_allocator_p);
 
         start = storageIter_mp.get();
     }
@@ -900,7 +899,7 @@ RelayQueueEngine::RelayQueueEngine(QueueState*             queueState,
                                    const mqbconfm::Domain& domainConfig,
                                    bslma::Allocator*       allocator)
 : d_queueState_p(queueState)
-, d_pushStream(queueState->pushElementsPool())
+, d_pushStream(queueState->pushElementsPool(), allocator)
 , d_domainConfig(domainConfig, allocator)
 , d_apps(allocator)
 , d_appIds(allocator)
@@ -955,12 +954,11 @@ void RelayQueueEngine::resetState(bool isShuttingDown)
     d_realStorageIter_mp = storage()->getIterator(
         mqbu::StorageKey::k_NULL_KEY);
 
-    d_storageIter_mp.load(new (*d_allocator_p)
-                              RelayQueueEngine_PushStorageIterator(
-                                  storage(),
-                                  &d_pushStream,
-                                  d_pushStream.d_stream.begin()),
-                          d_allocator_p);
+    d_storageIter_mp.load(
+        new (*d_allocator_p) PushStreamIterator(storage(),
+                                                &d_pushStream,
+                                                d_pushStream.d_stream.begin()),
+        d_allocator_p);
 }
 
 int RelayQueueEngine::rebuildInternalState(
@@ -1760,7 +1758,7 @@ RelayQueueEngine::push(mqbi::StorageMessageAttributes*           attributes,
 
     // Count only those subQueueIds which 'storage' is aware of.
 
-    PushStream::iterator itGuid = d_pushStream.add(msgGUID);
+    PushStream::iterator itGuid = d_pushStream.findOrAppendMessage(msgGUID);
     unsigned int         count  = 0;
 
     for (bmqp::Protocol::SubQueueInfosArray::const_iterator cit =
@@ -1834,7 +1832,7 @@ bool RelayQueueEngine::checkForDuplicate(const App_State*         app,
                 app->ordinal());
 
             if (!appState.isPushing()) {
-                appState.onPush();
+                appState.setPushState();
             }
             else {
                 BMQ_LOGTHROTTLE_INFO()
@@ -1886,268 +1884,6 @@ void RelayQueueEngine::storePush(mqbi::StorageMessageAttributes* attributes,
 mqbi::Storage* RelayQueueEngine::storage() const
 {
     return d_queueState_p->storage();
-}
-
-// ----------------------------
-// class VirtualStorageIterator
-// ----------------------------
-
-// PRIVATE MANIPULATORS
-void RelayQueueEngine_PushStorageIterator::clear()
-{
-    // Clear previous state, if any.  This is required so that new state can be
-    // loaded in 'appData', 'options' or 'attributes' routines.
-    d_appData_sp.reset();
-    d_options_sp.reset();
-    d_attributes.reset();
-}
-
-// PRIVATE ACCESSORS
-bool RelayQueueEngine_PushStorageIterator::loadMessageAndAttributes() const
-{
-    BSLS_ASSERT_SAFE(!atEnd());
-
-    if (!d_appData_sp) {
-        mqbi::StorageResult::Enum rc = d_storage_p->get(&d_appData_sp,
-                                                        &d_options_sp,
-                                                        &d_attributes,
-                                                        d_iterator->first);
-        BSLS_ASSERT_SAFE(mqbi::StorageResult::e_SUCCESS == rc);
-        static_cast<void>(rc);  // suppress compiler warning
-        return true;            // RETURN
-    }
-    return false;
-}
-
-// CREATORS
-RelayQueueEngine_PushStorageIterator::RelayQueueEngine_PushStorageIterator(
-    mqbi::Storage*              storage,
-    PushStream*                 owner,
-    const PushStream::iterator& initialPosition)
-: d_storage_p(storage)
-, d_iterator(initialPosition)
-, d_attributes()
-, d_appData_sp()
-, d_options_sp()
-, d_owner_p(owner)
-, d_currentElement(0)
-, d_currentOrdinal(mqbi::Storage::k_INVALID_ORDINAL)
-{
-    BSLS_ASSERT_SAFE(d_storage_p);
-    BSLS_ASSERT_SAFE(d_owner_p);
-}
-
-RelayQueueEngine_PushStorageIterator::~RelayQueueEngine_PushStorageIterator()
-{
-    // NOTHING
-}
-
-unsigned int RelayQueueEngine_PushStorageIterator::numApps() const
-{
-    BSLS_ASSERT_SAFE(!atEnd());
-    return d_iterator->second.numElements();
-}
-
-void RelayQueueEngine_PushStorageIterator::removeCurrentElement()
-{
-    BSLS_ASSERT_SAFE(!atEnd());
-    BSLS_ASSERT_SAFE(d_currentElement);
-
-    PushStream::Element* del = d_currentElement;
-
-    // still keep the same ordinal numbering
-    d_currentElement = d_currentElement->next();
-    ++d_currentOrdinal;
-
-    d_owner_p->remove(del);
-    d_owner_p->destroy(del, true);
-    // doKeepGuid because of the d_iterator
-
-    if (d_iterator->second.numElements() == 0) {
-        // d_currentElement->eraseFromStream(d_owner_p->d_stream);
-
-        BSLS_ASSERT_SAFE(d_currentElement == 0);
-    }
-}
-
-// MANIPULATORS
-bool RelayQueueEngine_PushStorageIterator::advance()
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(!atEnd());
-
-    clear();
-
-    if (d_iterator->second.numElements() == 0) {
-        d_iterator = d_owner_p->d_stream.erase(d_iterator);
-    }
-    else {
-        ++d_iterator;
-    }
-
-    d_currentOrdinal = mqbi::Storage::k_INVALID_ORDINAL;
-
-    return !atEnd();
-}
-
-void RelayQueueEngine_PushStorageIterator::reset(
-    const bmqt::MessageGUID& where)
-{
-    clear();
-
-    if (where.isUnset()) {
-        // Reset iterator to beginning
-        d_iterator = d_owner_p->d_stream.begin();
-    }
-    else {
-        d_iterator = d_owner_p->d_stream.find(where);
-    }
-
-    d_currentOrdinal = mqbi::Storage::k_INVALID_ORDINAL;
-}
-
-// ACCESSORS
-const bmqt::MessageGUID& RelayQueueEngine_PushStorageIterator::guid() const
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(!atEnd());
-
-    return d_iterator->first;
-}
-
-PushStream::Element*
-RelayQueueEngine_PushStorageIterator::element(unsigned int appOrdinal) const
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(!atEnd());
-
-    if (d_currentOrdinal > appOrdinal) {
-        d_currentOrdinal = 0;
-        d_currentElement = d_iterator->second.first();
-    }
-
-    BSLS_ASSERT_SAFE(d_currentElement);
-
-    while (appOrdinal > d_currentOrdinal) {
-        ++d_currentOrdinal;
-        d_currentElement = d_currentElement->next();
-
-        BSLS_ASSERT_SAFE(d_currentElement);
-    }
-
-    return d_currentElement;
-}
-
-const mqbi::AppMessage& RelayQueueEngine_PushStorageIterator::appMessageView(
-    unsigned int appOrdinal) const
-{
-    return *element(appOrdinal)->appView();
-}
-
-mqbi::AppMessage&
-RelayQueueEngine_PushStorageIterator::appMessageState(unsigned int appOrdinal)
-{
-    return *element(appOrdinal)->appState();
-}
-
-const bsl::shared_ptr<bdlbb::Blob>&
-RelayQueueEngine_PushStorageIterator::appData() const
-{
-    loadMessageAndAttributes();
-    return d_appData_sp;
-}
-
-const bsl::shared_ptr<bdlbb::Blob>&
-RelayQueueEngine_PushStorageIterator::options() const
-{
-    loadMessageAndAttributes();
-    return d_options_sp;
-}
-
-const mqbi::StorageMessageAttributes&
-RelayQueueEngine_PushStorageIterator::attributes() const
-{
-    loadMessageAndAttributes();
-    return d_attributes;
-}
-
-bool RelayQueueEngine_PushStorageIterator::atEnd() const
-{
-    return (d_iterator == d_owner_p->d_stream.end());
-}
-
-bool RelayQueueEngine_PushStorageIterator::hasReceipt() const
-{
-    if (atEnd()) {
-        return false;  // RETURN
-    }
-
-    return true;
-}
-
-// CREATORS
-RelayQueueEngine_VirtualPushStorageIterator::
-    RelayQueueEngine_VirtualPushStorageIterator(
-        unsigned int                upstreamSubQueueId,
-        mqbi::Storage*              storage,
-        PushStream*                 owner,
-        const PushStream::iterator& initialPosition)
-: RelayQueueEngine_PushStorageIterator(storage, owner, initialPosition)
-{
-    d_itApp = owner->d_apps.find(upstreamSubQueueId);
-
-    BSLS_ASSERT_SAFE(d_itApp != owner->d_apps.end());
-
-    d_currentElement = d_itApp->second.d_elements.first();
-
-    BSLS_ASSERT_SAFE(d_currentElement->app().d_app == d_itApp->second.d_app);
-}
-
-RelayQueueEngine_VirtualPushStorageIterator::
-    ~RelayQueueEngine_VirtualPushStorageIterator()
-{
-    // NOTHING
-}
-
-// MANIPULATORS
-bool RelayQueueEngine_VirtualPushStorageIterator::advance()
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(!atEnd());
-
-    clear();
-
-    PushStream::Element* del = d_currentElement;
-
-    d_currentElement = d_currentElement->nextInApp();
-
-    d_owner_p->remove(del);
-    d_owner_p->destroy(del, false);
-    // do not keep Guid
-
-    if (d_itApp->second.d_elements.numElements() == 0) {
-        BSLS_ASSERT_SAFE(d_currentElement == 0);
-    }
-
-    return !atEnd();
-}
-
-bool RelayQueueEngine_VirtualPushStorageIterator::atEnd() const
-{
-    return (d_currentElement == 0);
-}
-
-PushStream::Element* RelayQueueEngine_VirtualPushStorageIterator::element(
-    unsigned int appOrdinal) const
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(!atEnd());
-
-    // Ignore ordinal  when the app is fixed;
-    // 'd_currentElement' does not depend on 'appOrdinal'
-    (void)appOrdinal;
-
-    return d_currentElement;
 }
 
 }  // close package namespace

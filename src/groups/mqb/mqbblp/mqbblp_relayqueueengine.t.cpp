@@ -111,8 +111,6 @@ static void test1_breathingTest()
     //    to the highest priority consumers
     tester.post("1,2,3", guard.engine());
 
-    // guard.ptr()->push(attributes, msgGUID, appData, subscriptions, false);
-
     tester.afterNewMessage(3);
 
     // 3) Verify that each consumer received 1 message

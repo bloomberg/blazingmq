@@ -272,12 +272,11 @@ int Application::start(bsl::ostream& errorDescription)
         }
     }
 
-    mqbi::ClusterResources resources;
-
-    resources.d_blobSpPool_p       = &d_blobSpPool;
-    resources.d_bufferFactory_p    = &d_bufferFactory;
-    resources.d_scheduler_p        = d_scheduler_p;
-    resources.d_pushElementsPool_p = &d_pushElementsPool;
+    mqbi::ClusterResources resources(
+            d_scheduler_p,
+            &d_bufferFactory,
+            &d_blobSpPool,
+            &d_pushElementsPool);
 
     // Start the StatController
     d_statController_mp.load(

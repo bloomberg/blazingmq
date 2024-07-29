@@ -1084,7 +1084,7 @@ ClusterProxy::ClusterProxy(
     // PRECONDITIONS
     mqbnet::Cluster* netCluster_p = d_clusterData.membership().netCluster();
     BSLS_ASSERT_SAFE(netCluster_p && "NetCluster not set !");
-    BSLS_ASSERT_SAFE(resources.d_scheduler_p->clockType() ==
+    BSLS_ASSERT_SAFE(resources.scheduler()->clockType() ==
                      bsls::SystemClockType::e_MONOTONIC);
 
     d_clusterData.clusterConfig().queueOperations() =

@@ -291,11 +291,10 @@ class ClusterProxy : public mqbc::ClusterStateObserver,
         mqbnet::ClusterNode*         node,
         BSLS_ANNOTATION_UNUSED const bmqp_ctrlmsg::ClientIdentity& identity);
 
-    // Executed by the dispatcher thread when there is a change in the
-    // specified 'node' connectivity.  If not empty, the specified
-    // 'session' points to newly connected 'Session'.  Empty 'session'
-    // indicates loss of connectivity.
-
+    /// Executed by the dispatcher thread when there is a change in the
+    /// specified `node` connectivity.  If not empty, the specified
+    /// `session` points to newly connected `Session`.  Empty `session`
+    /// indicates loss of connectivity.
     void onNodeDownDispatched(mqbnet::ClusterNode* node);
 
     /// Callback method when the `activeNodeLookupEvent` has expired.
@@ -429,10 +428,10 @@ class ClusterProxy : public mqbc::ClusterStateObserver,
     // CREATORS
 
     /// Create a new object representing a cluster having the specified
-    /// 'name', 'clusterConfig' and 'statContexts', associated to the
-    /// specified 'netCluster' and using the specified 'domainFactory',
-    /// 'scheduler', 'dispatcher', 'transportManager', and 'resources'.  Use
-    /// the specified 'allocator' for any memory allocation.
+    /// `name`, `clusterConfig` and `statContexts`, associated to the
+    /// specified `netCluster` and using the specified `domainFactory`,
+    /// `scheduler`, `dispatcher`, `transportManager`, and `resources`.  Use
+    /// the specified `allocator` for any memory allocation.
     ClusterProxy(const bslstl::StringRef&              name,
                  const mqbcfg::ClusterProxyDefinition& clusterProxyConfig,
                  bslma::ManagedPtr<mqbnet::Cluster>    netCluster,

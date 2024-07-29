@@ -103,8 +103,8 @@ void RootQueueEngine::deliverMessages(AppState* app)
                                                    app->appKey(),
                                                    app->resumePoint()) !=
             mqbi::StorageResult::e_SUCCESS) {
-            // The message is gone because of either GC or purge
-            // In either case, start at the beginning
+            // The message is gone because of either GC or purge.
+            // In either case, start at the beginning.
             // This code relies on TTL per Queue (Domain), not per message - if
             // 'resumePoint()' has exceeded the TTL, everything before that had
             // as well.
@@ -112,16 +112,20 @@ void RootQueueEngine::deliverMessages(AppState* app)
                 app->appKey());
         }
         start = storageIter_mp.get();
+        // 'start' points at either the resume point (if found) or the first
+        // unconfirmed message of the 'app' (if not found).
     }
     else {
         start = d_storageIter_mp.get();
+        // 'start' points at the next message in the logical stream (common
+        // for all apps).
     }
 
     bsls::TimeInterval delay;
-    size_t             numMessages = app->deliverMessages(&delay,
-                                              d_realStorageIter_mp.get(),
-                                              start,
-                                              d_storageIter_mp.get());
+    const size_t       numMessages = app->deliverMessages(&delay,
+                                                    d_realStorageIter_mp.get(),
+                                                    start,
+                                                    d_storageIter_mp.get());
 
     if (delay != bsls::TimeInterval()) {
         app->scheduleThrottle(
@@ -528,7 +532,6 @@ int RootQueueEngine::rebuildInternalState(bsl::ostream& errorDescription)
         }
         Apps::iterator itApp = d_apps.findByKey1(previous->appId());
         unsigned int   upstreamSubQueueId = previous->upstreamSubQueueId();
-        const bmqt::MessageGUID& resumePoint = previous->resumePoint();
 
         if (itApp == d_apps.end()) {
             // This means that this is an unregistered appId.
@@ -564,10 +567,10 @@ int RootQueueEngine::rebuildInternalState(bsl::ostream& errorDescription)
 
         app->setUpstreamSubQueueId(upstreamSubQueueId);
         // Do not copy resumePoint.  New RootQueueEngine redelivers everything
-        // unconfirmed; its ierator is at the beginning.
+        // unconfirmed; its iterator is at the beginning.
         // This relates to how RelayQueueEngine checks for duplicates; it could
         // limit the check to OOO PUSH messages only except the case when new
-        // Priamry redelivers everything.
+        // Primary redelivers everything.
         d_queueState_p->abandon(upstreamSubQueueId);
         d_queueState_p->adopt(app);
     }
@@ -1561,8 +1564,6 @@ void RootQueueEngine::beforeMessageRemoved(const bmqt::MessageGUID& msgGUID)
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
         d_queueState_p->queue()));
-
-    // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_storageIter_mp);
 
     if (!d_storageIter_mp->atEnd() && (d_storageIter_mp->guid() == msgGUID)) {
@@ -1892,8 +1893,8 @@ void RootQueueEngine::loadInternals(mqbcmd::QueueEngine* out) const
         consumerState.appId()                = iter->key1();
 
         if (d_queueState_p->storage()->hasVirtualStorage(iter->key1())) {
-            bool isAtEndOfStorage = iter->value()->isAtEndOfStorage() &&
-                                    d_storageIter_mp->atEnd();
+            const bool isAtEndOfStorage = iter->value()->isAtEndOfStorage() &&
+                                          d_storageIter_mp->atEnd();
 
             consumerState.isAtEndOfStorage().makeValue(isAtEndOfStorage);
             consumerState.status() = (!iter->value()->hasConsumers()

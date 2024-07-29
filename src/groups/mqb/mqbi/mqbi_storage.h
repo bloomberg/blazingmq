@@ -274,21 +274,22 @@ struct AppMessage {
     AppMessage(const bmqp::RdaInfo& rdaInfo);
 
     /// Set this object state to indicate a delivery by (Replica or Proxy).
-    void onPush();
+    void setPushState();
 
     /// Set this object state to indicate a corresponding CONFIRM.
-    void onConfirm();
+    void setConfirmState();
 
     /// Set this object state to indicate a corresponding CONFIRM.
-    void onRemove();
+    void setRemovedState();
 
-    /// Return 'true' if this object is expecting CONFIRM or purge.
+    /// Return `true` if this object is expecting CONFIRM or purge.
     bool isPending() const;
 
-    /// Return 'true' if this object is expecting CONFIRM or purge but
+    /// Return `true` if this object is expecting CONFIRM or purge but
     /// had not been sent out (by Replica or Proxy).
     bool isNew() const;
 
+    /// Return `true` if this object is submitted for delivery.
     bool isPushing() const;
 };
 
@@ -317,7 +318,7 @@ class StorageIterator {
     /// items' collection.
     virtual bool advance() = 0;
 
-    /// If the specified 'atEnd' is 'true', reset the iterator to point to the
+    /// If the specified `atEnd` is `true`, reset the iterator to point to the
     /// to the end of the underlying storage.  Otherwise, reset the iterator to
     /// point first item, if any, in the underlying storage.
     virtual void
@@ -416,29 +417,29 @@ class Storage {
     virtual void close() = 0;
 
     /// Get an iterator for data stored in the virtual storage identified by
-    /// the specified 'appKey'.
-    /// If the 'appKey' is null, the returned  iterator can iterate states of
+    /// the specified `appKey`.
+    /// If the `appKey` is null, the returned  iterator can iterate states of
     /// all Apps; otherwise, the iterator can iterate states of the App
-    /// corresponding to the 'appKey'.
+    /// corresponding to the `appKey`.
     virtual bslma::ManagedPtr<StorageIterator>
     getIterator(const mqbu::StorageKey& appKey) = 0;
 
-    /// Load into the specified 'out' an iterator for data stored in the
+    /// Load into the specified `out` an iterator for data stored in the
     /// virtual storage initially pointing to the message associated with the
-    /// specified 'msgGUID'.
-    /// If the 'appKey' is null, the returned  iterator can iterate states of
+    /// specified `msgGUID`.
+    /// If the `appKey` is null, the returned  iterator can iterate states of
     /// all Apps; otherwise, the iterator can iterate states of the App
-    /// corresponding to the 'appKey'.
-    /// Return zero on success, and a non-zero code if 'msgGUID' was not
+    /// corresponding to the `appKey`.
+    /// Return zero on success, and a non-zero code if `msgGUID` was not
     /// found in the storage.
     virtual StorageResult::Enum
     getIterator(bslma::ManagedPtr<StorageIterator>* out,
                 const mqbu::StorageKey&             appKey,
                 const bmqt::MessageGUID&            msgGUID) = 0;
 
-    /// Save the message contained in the specified 'appData', 'options' and
-    /// the associated 'attributes' and 'msgGUID' into this storage and the
-    /// associated virtual storage.  The 'attributes' is an in/out parameter
+    /// Save the message contained in the specified `appData`, `options` and
+    /// the associated `attributes` and `msgGUID` into this storage and the
+    /// associated virtual storage.  The `attributes` is an in/out parameter
     /// and storage layer can populate certain fields of that struct.
     /// Return 0 on success or an non-zero error code on failure.
     virtual StorageResult::Enum
@@ -447,21 +448,21 @@ class Storage {
         const bsl::shared_ptr<bdlbb::Blob>& appData,
         const bsl::shared_ptr<bdlbb::Blob>& options) = 0;
 
-    /// Update the App state corresponding to the specified 'msgGUID' and the
-    /// specified 'appKey' in the DataStream.  Decrement the reference count of
-    /// the message identified by the 'msgGUID', and record the CONFIRM in the
+    /// Update the App state corresponding to the specified `msgGUID` and the
+    /// specified `appKey` in the DataStream.  Decrement the reference count of
+    /// the message identified by the `msgGUID`, and record the CONFIRM in the
     /// storage.
     /// Return one of the return codes from:
     /// * e_SUCCESS          : success
-    /// * e_GUID_NOT_FOUND      : 'msgGUID' was not found
+    /// * e_GUID_NOT_FOUND      : `msgGUID` was not found
     /// * e_ZERO_REFERENCES     : message refCount has become zero
     /// * e_NON_ZERO_REFERENCES : message refCount is still not zero
     /// * e_WRITE_FAILURE       : failed to record this event in storage
     ///
-    /// Behavior is undefined unless there is an App with the 'appKey'.
+    /// Behavior is undefined unless there is an App with the `appKey`.
     ///
-    /// On CONFIRM, the caller of 'confirm' is responsible to follow with
-    /// 'remove' call.  'releaseRef' is an alternative way to remove message in
+    /// On CONFIRM, the caller of `confirm` is responsible to follow with
+    /// `remove` call.  `releaseRef` is an alternative way to remove message in
     /// one call.
     virtual StorageResult::Enum confirm(const bmqt::MessageGUID& msgGUID,
                                         const mqbu::StorageKey&  appKey,
@@ -469,40 +470,40 @@ class Storage {
                                         bool onReject = false) = 0;
 
     /// Decrement the reference count of the message identified by the
-    /// 'msgGUID'.  If the resulting value is zero, delete the message data and
+    /// `msgGUID`.  If the resulting value is zero, delete the message data and
     /// record the event in the storage.
     /// Return one of the return codes from:
     /// * e_SUCCESS          : success
-    /// * e_GUID_NOT_FOUND      : 'msgGUID' was not found
+    /// * e_GUID_NOT_FOUND      : `msgGUID` was not found
     /// * e_INVALID_OPERATION   : the value is invalid (already zero)
     /// * e_ZERO_REFERENCES     : message refCount has become zero
     /// * e_NON_ZERO_REFERENCE  : message refCount is still not zero
     ///
-    /// On CONFIRM, the caller of 'confirm' is responsible to follow with
-    /// 'remove' call.  'releaseRef' is an alternative way to remove message in
+    /// On CONFIRM, the caller of `confirm` is responsible to follow with
+    /// `remove` call.  `releaseRef` is an alternative way to remove message in
     /// one call.
     virtual StorageResult::Enum
     releaseRef(const bmqt::MessageGUID& msgGUID) = 0;
 
-    /// Remove from the storage the message having the specified 'msgGUID'
-    /// and store it's size, in bytes, in the optionally specified 'msgSize'.
+    /// Remove from the storage the message having the specified `msgGUID`
+    /// and store it's size, in bytes, in the optionally specified `msgSize`.
     /// Record the event in the storage.
-    /// Return 0 on success, or a non-zero return code if the 'msgGUID' was not
+    /// Return 0 on success, or a non-zero return code if the `msgGUID` was not
     /// found or if has failed to record this event in storage.
     ///
-    /// On CONFIRM, the caller of 'confirm' is responsible to follow with
-    /// 'remove' call.  'releaseRef' is an alternative way to remove message in
+    /// On CONFIRM, the caller of `confirm` is responsible to follow with
+    /// `remove` call.  `releaseRef` is an alternative way to remove message in
     /// one call.
     virtual StorageResult::Enum remove(const bmqt::MessageGUID& msgGUID,
                                        int* msgSize = 0) = 0;
 
     /// Remove all messages from this storage for the App identified by the
-    /// specified 'appKey' if 'appKey' is not null.  Otherwise, remove messages
+    /// specified `appKey` if `appKey` is not null.  Otherwise, remove messages
     /// for all Apps.  Record the event in the storage.
     /// Return one of the return codes from:
     /// * e_SUCCESS          : success
     /// * e_WRITE_FAILURE    : failed to record this event in storage
-    /// * e_APPKEY_NOT_FOUND : Invalid 'appKey' specified
+    /// * e_APPKEY_NOT_FOUND : Invalid `appKey` specified
     virtual StorageResult::Enum removeAll(const mqbu::StorageKey& appKey) = 0;
 
     /// If the specified `storage` is `true`, flush any buffered replication
@@ -549,10 +550,10 @@ class Storage {
     virtual void selectForAutoConfirming(const bmqt::MessageGUID& msgGUID) = 0;
     virtual StorageResult::Enum autoConfirm(const mqbu::StorageKey& appKey,
                                             bsls::Types::Uint64 timestamp) = 0;
-    /// The sequence of calls is 'selectForAutoConfirming', then zero or more
-    /// 'autoConfirm', then 'put' - all for the same specified 'msgGUID'.
-    /// 'autoConfirm' replicates ephemeral auto CONFIRM for the specified
-    /// 'appKey' in persistent storage.
+    /// The sequence of calls is `selectForAutoConfirming`, then zero or more
+    /// `autoConfirm`, then `put` - all for the same specified `msgGUID`.
+    /// `autoConfirm` replicates ephemeral auto CONFIRM for the specified
+    /// `appKey` in persistent storage.
     /// Any other sequence removes auto CONFIRMs.
     /// Auto-confirmed Apps do not PUSH the message.
 
@@ -633,9 +634,9 @@ class Storage {
     virtual bool hasVirtualStorage(const mqbu::StorageKey& appKey,
                                    bsl::string* appId = 0) const = 0;
 
-    /// Return true if virtual storage identified by the specified 'appId'
+    /// Return true if virtual storage identified by the specified `appId`
     /// exists, otherwise return false.  Load into the optionally specified
-    /// 'appKey' and 'ordinal' the appKey and ordinal associated with 'appId'
+    /// `appKey` and `ordinal` the appKey and ordinal associated with `appId`
     /// if the virtual storage exists, otherwise set it to 0.
     virtual bool hasVirtualStorage(const bsl::string& appId,
                                    mqbu::StorageKey*  appKey  = 0,
@@ -669,17 +670,17 @@ inline AppMessage::AppMessage(const bmqp::RdaInfo& rdaInfo)
     // NOTHING
 }
 
-inline void AppMessage::onPush()
+inline void AppMessage::setPushState()
 {
     d_state = e_PUSH;
 }
 
-inline void AppMessage::onConfirm()
+inline void AppMessage::setConfirmState()
 {
     d_state = e_CONFIRM;
 }
 
-inline void AppMessage::onRemove()
+inline void AppMessage::setRemovedState()
 {
     d_state = e_NONE;
 }

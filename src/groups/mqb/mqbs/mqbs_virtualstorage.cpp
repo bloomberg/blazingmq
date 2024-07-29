@@ -63,7 +63,7 @@ VirtualStorage::confirm(DataStreamMessage* dataStreamMessage)
     mqbi::AppMessage& appMessage = dataStreamMessage->app(ordinal());
 
     if (appMessage.isPending()) {
-        appMessage.onConfirm();
+        appMessage.setConfirmState();
 
         d_removedBytes += dataStreamMessage->d_size;
         ++d_numRemoved;
@@ -82,7 +82,7 @@ VirtualStorage::remove(DataStreamMessage* dataStreamMessage)
     mqbi::AppMessage& appMessage = dataStreamMessage->app(ordinal());
 
     if (appMessage.isPending()) {
-        appMessage.onRemove();
+        appMessage.setRemovedState();
 
         d_removedBytes += dataStreamMessage->d_size;
         ++d_numRemoved;

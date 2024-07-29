@@ -639,18 +639,19 @@ QueueEngineUtil_AppsDeliveryContext::QueueEngineUtil_AppsDeliveryContext(
     mqbi::StorageIterator* currentMessage,
     bslma::Allocator*      allocator)
 : d_consumers(allocator)
-, d_doRepeat(currentMessage->hasReceipt())
+, d_doRepeat(currentMessage ? currentMessage->hasReceipt() : false)
 , d_currentMessage(currentMessage)
 , d_queue_p(queue)
 , d_timeDelta()
 {
-    // NOTHING
+    BSLS_ASSERT_SAFE(queue);
 }
 
 void QueueEngineUtil_AppsDeliveryContext::reset()
 {
     d_doRepeat = false;
     d_consumers.clear();
+    d_timeDelta.reset();
 }
 
 bool QueueEngineUtil_AppsDeliveryContext::processApp(
@@ -659,9 +660,7 @@ bool QueueEngineUtil_AppsDeliveryContext::processApp(
 {
     BSLS_ASSERT_SAFE(d_currentMessage->hasReceipt());
 
-    const bool isBroadcast = d_queue_p->isDeliverAll();
-
-    if (isBroadcast) {
+    if (d_queue_p->isDeliverAll()) {
         // collect all handles
         app.routing()->iterateConsumers(
             bdlf::BindUtil::bind(
@@ -688,49 +687,51 @@ bool QueueEngineUtil_AppsDeliveryContext::processApp(
 
     const mqbi::AppMessage& appView = d_currentMessage->appMessageView(
         ordinal);
-    Routers::Result result = Routers::e_SUCCESS;
 
-    if (appView.isNew()) {
-        // NOTE: We avoid calling 'StorageIterator::appData'associated with the
-        // message unless necessary.  This is being done so that we don't end
-        // up aliasing the corresponding message and options area to the mapped
-        // file, which will otherwise increment the aliased counter of the
-        // mapped file, which can delay the unmapping of files in case this
-        // message has a huge TTL and there are no consumers for this message.
+    if (!appView.isNew()) {
+        d_doRepeat = true;
+        return true;  // RETURN
+    }
 
-        result = app.selectConsumer(
-            bdlf::BindUtil::bind(&QueueEngineUtil_AppsDeliveryContext::visit,
-                                 this,
-                                 bdlf::PlaceHolders::_1,
-                                 appView),
-            d_currentMessage,
-            ordinal);
+    // NOTE: We avoid calling 'StorageIterator::appData'associated with the
+    // message unless necessary.  This is being done so that we don't end
+    // up aliasing the corresponding message and options area to the mapped
+    // file, which will otherwise increment the aliased counter of the
+    // mapped file, which can delay the unmapping of files in case this
+    // message has a huge TTL and there are no consumers for this message.
 
-        if (result == Routers::e_SUCCESS) {
-            // RootQueueEngine makes stat reports
-        }
-        else if (result == Routers::e_NO_CAPACITY_ALL) {
-            // All subscriptions of thes App are at capacity
-            // Do not grow the 'd_putAsideList'
-            // Instead, wait for 'onHandleUsable' event and then catch up
-            // from this resume point.
+    Routers::Result result = app.selectConsumer(
+        bdlf::BindUtil::bind(&QueueEngineUtil_AppsDeliveryContext::visit,
+                             this,
+                             bdlf::PlaceHolders::_1,
+                             appView),
+        d_currentMessage,
+        ordinal);
 
-            app.setResumePoint(d_currentMessage->guid());
+    if (result == Routers::e_SUCCESS) {
+        // RootQueueEngine makes stat reports
+    }
+    else if (result == Routers::e_NO_CAPACITY_ALL) {
+        // All subscriptions of thes App are at capacity
+        // Do not grow the 'd_putAsideList'
+        // Instead, wait for 'onHandleUsable' event and then catch up
+        // from this resume point.
 
-            // Early return.
-            // If all Apps return 'e_NO_CAPACITY_ALL', stop the iteration
-            // (d_doRepeat == false).
+        app.setResumePoint(d_currentMessage->guid());
 
-            return false;  // RETURN
-        }
-        else {
-            BSLS_ASSERT_SAFE(result == Routers::e_NO_SUBSCRIPTION ||
-                             result == Routers::e_NO_CAPACITY);
+        // Early return.
+        // If all Apps return 'e_NO_CAPACITY_ALL', stop the iteration
+        // (d_doRepeat == false).
 
-            // This app does not have capacity to deliver.  Still, move on and
-            // consider (evaluate) subsequent messages for the 'app'.
-            app.putAside(d_currentMessage->guid());
-        }
+        return false;  // RETURN
+    }
+    else {
+        BSLS_ASSERT_SAFE(result == Routers::e_NO_SUBSCRIPTION ||
+                         result == Routers::e_NO_CAPACITY);
+
+        // This app does not have capacity to deliver.  Still, move on and
+        // consider (evaluate) subsequent messages for the 'app'.
+        app.putAside(d_currentMessage->guid());
     }
 
     // Still making progress (result != Routers::e_NO_CAPACITY_ALL)
@@ -905,7 +906,6 @@ QueueEngineUtil_AppState::deliverMessages(bsls::TimeInterval*          delay,
         return numMessages;  // RETURN
     }
 
-    BSLS_ASSERT_SAFE(start);
     // Deliver messages until either:
     //   1. End of storage; or
     //   2. subStream's capacity is saturated
@@ -964,9 +964,11 @@ Routers::Result QueueEngineUtil_AppState::tryDeliverOneMessage(
     const mqbi::StorageIterator* message,
     bool                         isOutOfOrder)
 {
+    BSLS_ASSERT_SAFE(message);
+
     const mqbi::AppMessage& appView = message->appMessageView(ordinal());
     if (!appView.isPending()) {
-        return Routers::e_INVALID;
+        return Routers::e_INVALID;  // RETURN
     }
 
     // In order to try and deliver a message, we need to:
@@ -1084,6 +1086,8 @@ size_t
 QueueEngineUtil_AppState::processDeliveryLists(bsls::TimeInterval*    delay,
                                                mqbi::StorageIterator* reader)
 {
+    BSLS_ASSERT_SAFE(delay);
+
     size_t numMessages = processDeliveryList(delay, reader, d_redeliveryList);
     if (*delay == bsls::TimeInterval()) {
         // The only excuse for stopping the iteration is poisonous message
@@ -1118,17 +1122,16 @@ QueueEngineUtil_AppState::processDeliveryList(bsls::TimeInterval*    delay,
             // The message got gc'ed or purged
             BMQ_LOGTHROTTLE_INFO()
                 << "#STORAGE_UNKNOWN_MESSAGE "
-                << "Queue: "
-                << "'" << d_queue_p->description() << "', app: '" << appId()
-                << "' could not redeliver GUID: '" << *it
+                << "Queue: '" << d_queue_p->description() << "', app: '"
+                << appId() << "' could not redeliver GUID: '" << *it
                 << "' (not in the storage)";
         }
         else if (!reader->appMessageView(ordinal()).isPending()) {
             BMQ_LOGTHROTTLE_INFO()
                 << "#STORAGE_UNKNOWN_MESSAGE "
-                << "Queue: "
-                << "'" << d_queue_p->description() << "', app: '" << appId()
-                << "' could not redeliver GUID: '" << *it << "' (wrong state "
+                << "Queue: '" << d_queue_p->description() << "', app: '"
+                << appId() << "' could not redeliver GUID: '" << *it
+                << "' (wrong state "
                 << reader->appMessageView(ordinal()).d_state << ")";
         }
         else {
@@ -1384,7 +1387,7 @@ bool QueueEngineUtil_AppState::authorize()
         d_appOrdinal   = ordinal;
         d_isAuthorized = true;
 
-        return true;
+        return true;  // RETURN
     }
     return false;
 }

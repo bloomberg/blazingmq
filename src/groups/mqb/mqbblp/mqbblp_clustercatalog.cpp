@@ -385,7 +385,7 @@ ClusterCatalog::ClusterCatalog(mqbi::Dispatcher*             dispatcher,
 , d_resources(resources)
 {
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_resources.d_scheduler_p->clockType() ==
+    BSLS_ASSERT_SAFE(d_resources.scheduler()->clockType() ==
                      bsls::SystemClockType::e_MONOTONIC);
 }
 

@@ -147,10 +147,13 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
     // Reusable apps delivery context
 
     bslma::ManagedPtr<mqbi::StorageIterator> d_storageIter_mp;
-    // Storage iterator to the logical stream of messages
+    // Storage iterator to the logical stream of messages.
+    // Queue Engine iterates this one sequentially.
 
     bslma::ManagedPtr<mqbi::StorageIterator> d_realStorageIter_mp;
     // Storage iterator to access storage state.
+    // Queue Engine uses this one to access random message (as in the case of
+    // redelivery).
 
     bslma::Allocator* d_allocator_p;  // Allocator to use
 

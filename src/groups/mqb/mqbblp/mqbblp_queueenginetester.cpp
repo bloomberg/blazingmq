@@ -381,8 +381,6 @@ QueueEngineTester::QueueEngineTester(const mqbconfm::Domain& domainConfig,
 , d_subQueueIdCounter(bmqimp::QueueManager::k_INITIAL_SUBQUEUE_ID)
 , d_deletedHandles(allocator)
 , d_messageCount(0)
-, d_scheduler(bsls::SystemClockType::e_MONOTONIC, allocator)
-, d_pushElementsPool(sizeof(mqbblp::PushStream::Element), allocator)
 , d_allocator_p(allocator)
 {
     oneTimeInit();
@@ -392,12 +390,7 @@ QueueEngineTester::QueueEngineTester(const mqbconfm::Domain& domainConfig,
     config.deduplicationTimeMs() = 0;  // No history
     config.messageTtl()          = k_MAX_MESSAGES;
 
-    init(config);
-    // Scheduler
-    if (startScheduler) {
-        int rc = d_scheduler.start();
-        BSLS_ASSERT_OPT(rc == 0);
-    }
+    init(config, startScheduler);
 }
 
 QueueEngineTester::~QueueEngineTester()
@@ -408,7 +401,7 @@ QueueEngineTester::~QueueEngineTester()
 
     d_deletedHandles.clear();
     d_mockDomain_mp->unregisterQueue(d_mockQueue_sp.get());
-    d_scheduler.stop();
+    d_mockCluster_mp->stop();
     oneTimeShutdown();
 }
 
@@ -423,7 +416,8 @@ void QueueEngineTester::oneTimeInit()
     }
 }
 
-void QueueEngineTester::init(const mqbconfm::Domain& domainConfig)
+void QueueEngineTester::init(const mqbconfm::Domain& domainConfig,
+                             bool                    startScheduler)
 {
     mwcu::MemOutStream errorDescription(d_allocator_p);
     int                rc = 0;
@@ -446,6 +440,11 @@ void QueueEngineTester::init(const mqbconfm::Domain& domainConfig)
     d_mockCluster_mp->_setIsClusterMember(true);
 
     BSLS_ASSERT_OPT(d_mockCluster_mp->isClusterMember());
+
+    if (startScheduler) {
+        rc = d_mockCluster_mp->start(errorDescription);
+        BSLS_ASSERT_OPT(rc == 0);
+    }
 
     // Domain
     d_mockDomain_mp.load(new (*d_allocator_p)
@@ -489,14 +488,6 @@ void QueueEngineTester::init(const mqbconfm::Domain& domainConfig)
     BSLS_ASSERT_OPT(
         d_mockDispatcher_mp->inDispatcherThread(d_mockCluster_mp.get()));
 
-    mqbi::ClusterResources resources;
-
-    resources.d_blobSpPool_p = 0;
-
-    resources.d_bufferFactory_p    = 0;
-    resources.d_scheduler_p        = &d_scheduler;
-    resources.d_pushElementsPool_p = &d_pushElementsPool;
-
     // Queue State
     d_queueState_mp.load(new (*d_allocator_p)
                              mqbblp::QueueState(d_mockQueue_sp.get(),
@@ -505,7 +496,7 @@ void QueueEngineTester::init(const mqbconfm::Domain& domainConfig)
                                                 k_NULL_QUEUE_KEY,
                                                 k_PARTITION_ID,
                                                 d_mockDomain_mp.get(),
-                                                resources,
+                                                d_mockCluster_mp->_resources(),
                                                 d_allocator_p),
                          d_allocator_p);
 
@@ -935,9 +926,9 @@ void QueueEngineTester::post(const bslstl::StringRef& messages,
             bmqp::SubQueueInfo(bmqp::Protocol::k_DEFAULT_SUBSCRIPTION_ID));
     }
     else {
-        // Assume, RelayQueueEngine will use upstreramSubQueueIds as the
+        // Assume, RelayQueueEngine will use upstreamSubQueueIds as the
         // subscriptionIds.
-        // This needs to be in accord with the 'confgiureHandle' logic.
+        // This needs to be in accord with the 'configureHandle' logic.
 
         for (SubIdsMap::const_iterator cit = d_subIds.cbegin();
              cit != d_subIds.cend();

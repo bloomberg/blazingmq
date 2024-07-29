@@ -292,7 +292,7 @@ class QueueState {
     bdlbb::BlobBufferFactory*                  blobBufferFactory() const;
     bdlmt::EventScheduler*                     scheduler() const;
     mqbi::ClusterResources::BlobSpPool*        blobSpPool() const;
-    bdlma::ConcurrentPool*                     pushElementsPool() const;
+    const bsl::optional<bdlma::ConcurrentPool*>& pushElementsPool() const;
     bdlmt::FixedThreadPool*                    miscWorkThreadPool() const;
     const bsl::string&                         description() const;
     const mqbi::DispatcherClientData&          dispatcherClientData() const;
@@ -511,22 +511,23 @@ inline Routers::QueueRoutingContext& QueueState::routingContext()
 // ACCESSORS
 inline bdlbb::BlobBufferFactory* QueueState::blobBufferFactory() const
 {
-    return d_resources.d_bufferFactory_p;
+    return d_resources.bufferFactory();
 }
 
 inline bdlmt::EventScheduler* QueueState::scheduler() const
 {
-    return d_resources.d_scheduler_p;
+    return d_resources.scheduler();
 }
 
 inline mqbi::ClusterResources::BlobSpPool* QueueState::blobSpPool() const
 {
-    return d_resources.d_blobSpPool_p;
+    return d_resources.blobSpPool();
 }
 
-inline bdlma::ConcurrentPool* QueueState::pushElementsPool() const
+inline const bsl::optional<bdlma::ConcurrentPool*>&
+QueueState::pushElementsPool() const
 {
-    return d_resources.d_pushElementsPool_p;
+    return d_resources.pushElementsPool();
 }
 
 inline bdlmt::FixedThreadPool* QueueState::miscWorkThreadPool() const

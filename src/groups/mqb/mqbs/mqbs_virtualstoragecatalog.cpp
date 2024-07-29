@@ -94,7 +94,7 @@ VirtualStorageCatalog::VirtualStorageCatalog(mqbi::Storage*    storage,
                                              bslma::Allocator* allocator)
 : d_storage_p(storage)
 , d_virtualStorages(allocator)
-, d_avaialbleOrdinals(allocator)
+, d_availableOrdinals(allocator)
 , d_nextOrdinal(0)
 , d_dataStream(allocator)
 , d_totalBytes(0)
@@ -402,13 +402,13 @@ int VirtualStorageCatalog::addVirtualStorage(bsl::ostream& errorDescription,
     Ordinal appOrdinal;
 
     // Ordinals ever grow.
-    if (d_avaialbleOrdinals.empty()) {
+    if (d_availableOrdinals.empty()) {
         appOrdinal = d_nextOrdinal++;
     }
     else {
-        appOrdinal = d_avaialbleOrdinals.front();
+        appOrdinal = d_availableOrdinals.front();
         // There is no conflict because everything 'appOrdinal' was removed.
-        d_avaialbleOrdinals.pop_front();
+        d_availableOrdinals.pop_front();
     }
 
     BSLS_ASSERT_SAFE(appOrdinal <= d_virtualStorages.size());
@@ -434,7 +434,7 @@ bool VirtualStorageCatalog::removeVirtualStorage(
 
         // Remove all virtual storages
         d_virtualStorages.clear();
-        d_avaialbleOrdinals.clear();
+        d_availableOrdinals.clear();
         d_nextOrdinal = 0;
         return true;  // RETURN
     }
@@ -445,7 +445,7 @@ bool VirtualStorageCatalog::removeVirtualStorage(
         removeAll(appKey);
 
         const VirtualStorage& vs = *it->value();
-        d_avaialbleOrdinals.push_back(vs.ordinal());
+        d_availableOrdinals.push_back(vs.ordinal());
         d_virtualStorages.erase(it);
         return true;  // RETURN
     }

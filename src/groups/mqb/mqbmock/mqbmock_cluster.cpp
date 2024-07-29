@@ -136,7 +136,7 @@ void Cluster::_initializeNetcluster()
     // Create 'mqbnet::MockCluster'
     d_netCluster_mp.load(new (*d_allocator_p)
                              mqbnet::MockCluster(d_clusterDefinition,
-                                                 d_resources.d_bufferFactory_p,
+                                                 d_bufferFactory_p,
                                                  &d_itemPool,
                                                  d_allocator_p),
                          d_allocator_p);
@@ -210,15 +210,15 @@ Cluster::Cluster(bdlbb::BlobBufferFactory* bufferFactory,
                  const bslstl::StringRef&  location,
                  const bslstl::StringRef&  archive)
 : d_allocator_p(allocator)
+, d_bufferFactory_p(bufferFactory)
 , d_blobSpPool(bdlf::BindUtil::bind(&createBlob,
-                                    bufferFactory,
+                                    d_bufferFactory_p,
                                     bdlf::PlaceHolders::_1,   // arena
                                     bdlf::PlaceHolders::_2),  // allocator
                k_BLOB_POOL_GROWTH_STRATEGY,
                d_allocator_p)
 , d_dispatcher(allocator)
 , d_scheduler(bsls::SystemClockType::e_MONOTONIC, allocator)
-, d_resources()
 , d_timeSource(&d_scheduler)
 , d_isStarted(false)
 , d_clusterDefinition(allocator)
@@ -242,6 +242,7 @@ Cluster::Cluster(bdlbb::BlobBufferFactory* bufferFactory,
 , d_isLeader(isLeader)
 , d_isRestoringState(false)
 , d_processor()
+, d_resources(&d_scheduler, bufferFactory, &d_blobSpPool)
 {
     // PRECONDITIONS
     if (isClusterMember) {
@@ -250,10 +251,6 @@ Cluster::Cluster(bdlbb::BlobBufferFactory* bufferFactory,
     else {
         BSLS_ASSERT_OPT(!isLeader);
     }
-
-    d_resources.d_bufferFactory_p = bufferFactory;
-    d_resources.d_blobSpPool_p    = &d_blobSpPool;
-    d_resources.d_scheduler_p     = &d_scheduler;
 
     _initializeClusterDefinition(name,
                                  location,
@@ -319,7 +316,7 @@ int Cluster::start(BSLS_ANNOTATION_UNUSED bsl::ostream& errorDescription)
     BSLS_ASSERT_OPT(!d_isStarted &&
                     "start() can only be called once on this object");
 
-    d_resources.d_scheduler_p->start();
+    d_scheduler.start();
 
     d_isStarted = true;
 

@@ -242,9 +242,6 @@ class QueueEngineTester {
 
     size_t d_messageCount;
 
-    bdlmt::EventScheduler d_scheduler;
-    bdlma::ConcurrentPool d_pushElementsPool;
-
     bslma::Allocator* d_allocator_p;
     // Allocator to use
 
@@ -263,7 +260,7 @@ class QueueEngineTester {
 
     /// Reset and recreate all objects using the currently set options and
     /// the specific `domainConfig`.
-    void init(const mqbconfm::Domain& domainConfig);
+    void init(const mqbconfm::Domain& domainConfig, bool startScheduler);
 
     /// Pendant operation of the `oneTimeInit` one.
     void oneTimeShutdown();
@@ -587,23 +584,20 @@ struct TestClock {
 
 class TimeControlledQueueEngineTester : public mqbblp::QueueEngineTester {
   private:
-    bdlmt::EventSchedulerTestTimeSource d_timeSource;
-    TestClock                           d_testClock;
+    TestClock d_testClock;
 
   public:
     // CREATORS
     TimeControlledQueueEngineTester(const mqbconfm::Domain& domainConfig,
                                     bslma::Allocator*       allocator)
-    : mqbblp::QueueEngineTester(domainConfig, false, allocator)
-    , d_timeSource(&d_scheduler)
-    , d_testClock(d_timeSource)
+    : mqbblp::QueueEngineTester(domainConfig, true, allocator)
+    , d_testClock(d_mockCluster_mp->_timeSource())
     {
         mwcsys::Time::shutdown();
         mwcsys::Time::initialize(
             bdlf::BindUtil::bind(&TestClock::realtimeClock, &d_testClock),
             bdlf::BindUtil::bind(&TestClock::monotonicClock, &d_testClock),
             bdlf::BindUtil::bind(&TestClock::highResTimer, &d_testClock));
-        d_scheduler.start();
     }
 
     // MANIPULATORS
@@ -645,13 +639,12 @@ inline T* QueueEngineTester::createQueueEngine()
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(!d_queueEngine_mp && "'createQueueEngine()' was called");
-    T* result;
+    T* result = new (*d_allocator_p)
+        T(d_queueState_mp.get(),
+          d_queueState_mp->queue()->domain()->config(),
+          d_allocator_p);
     // Create and configure Queue Engine
-    d_queueEngine_mp.load(result = new (*d_allocator_p)
-                              T(d_queueState_mp.get(),
-                                d_queueState_mp->queue()->domain()->config(),
-                                d_allocator_p),
-                          d_allocator_p);
+    d_queueEngine_mp.load(result, d_allocator_p);
 
     createQueueEngineHelper(d_queueEngine_mp.get());
 
@@ -665,14 +658,7 @@ inline mqbmock::AppKeyGenerator& QueueEngineTester::appKeyGenerator()
 
 inline void QueueEngineTester::synchronizeScheduler()
 {
-    bslmt::Semaphore semaphore;
-
-    d_scheduler.scheduleEvent(
-        mwcsys::Time::nowMonotonicClock(),
-        bdlf::MemFnUtil::memFn(
-            static_cast<void (bslmt::Semaphore::*)()>(&bslmt::Semaphore::post),
-            &semaphore));
-    semaphore.wait();
+    d_mockCluster_mp->waitForScheduler();
 }
 // ----------------------
 // QueueEngineTesterGuard
@@ -724,7 +710,8 @@ QueueEngineTesterGuard<QUEUE_ENGINE_TYPE>::engine() const
 inline void
 TimeControlledQueueEngineTester::advanceTime(const bsls::TimeInterval& step)
 {
-    d_timeSource.advanceTime(step);
+    d_mockCluster_mp->advanceTime(step.totalSeconds());
+
     synchronizeScheduler();
 }
 

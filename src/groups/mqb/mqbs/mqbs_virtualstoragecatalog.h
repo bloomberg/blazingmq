@@ -115,7 +115,7 @@ class VirtualStorageCatalog {
     // Map of appKey to corresponding
     // virtual storage
 
-    AvailableOrdinals d_avaialbleOrdinals;
+    AvailableOrdinals d_availableOrdinals;
     // available ordinal values for Virtual Storages.
 
     Ordinal d_nextOrdinal;
