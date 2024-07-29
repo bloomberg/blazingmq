@@ -284,7 +284,9 @@ class QueueModeBroadcast:
 class QueueModeFanout:
     """Configuration for a fanout queue.
 
-    appIDs.: List of appIDs authorized to consume from the queue.
+    appIDs.............: List of appIDs authorized to consume from the
+    queue.
+    publishAppIdMetrics: Whether to publish appId metrics.
     """
 
     app_ids: List[str] = field(
@@ -294,6 +296,15 @@ class QueueModeFanout:
             "type": "Element",
             "namespace": "urn:x-bloomberg-com:mqbconfm",
             "min_occurs": 1,
+        },
+    )
+    publish_app_id_metrics: bool = field(
+        default=False,
+        metadata={
+            "name": "publishAppIdMetrics",
+            "type": "Element",
+            "namespace": "urn:x-bloomberg-com:mqbconfm",
+            "required": True,
         },
     )
 

@@ -1773,15 +1773,6 @@ class StatsConfig:
             "required": True,
         },
     )
-    app_id_tag_domains: List[str] = field(
-        default_factory=list,
-        metadata={
-            "name": "appIdTagDomains",
-            "type": "Element",
-            "namespace": "http://bloomberg.com/schemas/mqbcfg",
-            "min_occurs": 1,
-        },
-    )
     plugins: List[StatPluginConfig] = field(
         default_factory=list,
         metadata={
