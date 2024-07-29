@@ -218,7 +218,6 @@ class TestStrongConsistency:
                 multi_node.process(self.replica_proxy.get_active_node()),
             ]
         )
-
         with contextlib.ExitStack() as stack:
             with Suspender(suspended_nodes[0]):
                 # Suspend all nodes set to be suspended.
@@ -242,8 +241,9 @@ class TestStrongConsistency:
                 multi_node.reconfigure_domain(tc.DOMAIN_PRIORITY, write_only=True)
 
                 # Reconfigure domain to be strongly consistent.
-                for node in multi_node.nodes(exclude=suspended_nodes):
-                    node.reconfigure_domain(tc.DOMAIN_PRIORITY, succeed=True)
+                multi_node.nodes(exclude=suspended_nodes)[0].reconfigure_domain(
+                    tc.DOMAIN_PRIORITY, succeed=True
+                )
 
                 # Require messages to be written to three machines before push.
                 leader.set_replication_factor(3, succeed=True)
