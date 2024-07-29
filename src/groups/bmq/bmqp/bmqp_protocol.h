@@ -823,9 +823,11 @@ struct EventHeader {
     /// an outgoing storage message can exceed
     /// `PutHeader::k_MAX_PAYLOAD_SIZE_SOFT`.  So, we assign a value of 65MB
     /// to `StorageHeader::k_MAX_PAYLOAD_SIZE_SOFT`, and assign a value of
-    /// 66MB to `'EventHeader::k_MAX_SIZE_SOFT` such that a PUT message
-    /// having the maximum allowable value is processed through the entire
-    /// BlazingMQ pipeline w/o any issues.  Also see notes in
+    /// at least 66MB to `EventHeader::k_MAX_SIZE_SOFT` such that a PUT
+    /// message having the maximum allowable value is processed through the
+    /// BlazingMQ pipeline w/o any issues.  The value of
+    /// `EventHeader::k_MAX_SIZE_SOFT` is 512Mb to improve batching at high
+    /// posting rates.  Also see notes for the
     /// `StorageHeader::k_MAX_PAYLOAD_SIZE_SOFT` constant.
     static const int k_MAX_SIZE_SOFT = 512 * 1024 * 1024;
 

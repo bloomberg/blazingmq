@@ -4073,8 +4073,8 @@ int FileStore::writeMessageRecord(const bmqp::StorageHeader& header,
 
     // Check data offset in the replicated journal record sent by the primary
     // vs data offset maintained by self.  A mismatch means that replica's and
-    // primary's storages are no longer in sync, which indicates a bug in BMQ
-    // replication algorithm.
+    // primary's storages are no longer in sync, which indicates a bug in
+    // BlazingMQ replication algorithm.
     if (dataOffset !=
         static_cast<bsls::Types::Uint64>(msgRec->messageOffsetDwords()) *
             bmqp::Protocol::k_DWORD_SIZE) {
@@ -4852,7 +4852,9 @@ void FileStore::replicateRecord(bmqp::StorageMessageType::Enum type,
                                                     0,  // flags
                                                     journalOffsetWords,
                                                     journalRecordBlobBuffer);
-        if (buildRc == bmqt::EventBuilderResult::e_EVENT_TOO_BIG && !doRetry) {
+        if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
+                buildRc == bmqt::EventBuilderResult::e_EVENT_TOO_BIG) &&
+            !doRetry) {
             flushIfNeeded(true);
 
             doRetry = true;
@@ -4954,7 +4956,8 @@ void FileStore::replicateRecord(bmqp::StorageMessageType::Enum type,
                     dataBlobBuffer);
             }
         }
-        if (buildRc == bmqt::EventBuilderResult::e_EVENT_TOO_BIG &&
+        if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
+                buildRc == bmqt::EventBuilderResult::e_EVENT_TOO_BIG) &&
             !flushAndRetry) {
             flushIfNeeded(true);
 
@@ -6141,7 +6144,7 @@ void FileStore::processStorageEvent(const bsl::shared_ptr<bdlbb::Blob>& blob,
         const bmqp::StorageHeader& header = iter.header();
         if (pid != header.partitionId()) {
             // A storage event is sent by 'source' cluster node.  The node may
-            // be primary for one or more partitions, but as per the BMQ
+            // be primary for one or more partitions, but as per the BlazingMQ
             // replication design, *all* messages in this event will belong to
             // the *same* partition.  Any exception to this is a bug in the
             // implementation of replication.

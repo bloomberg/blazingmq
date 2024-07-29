@@ -90,6 +90,39 @@ const bsls::Types::Int64 k_PARTITION_FSM_WATCHDOG_TIMEOUT_DURATION = 60 * 5;
 
 }  // close unnamed namespace
 
+// -------------------------------------
+// struct Cluster::ValidationResult
+// -------------------------------------
+
+bsl::ostream&
+Cluster::ValidationResult::print(bsl::ostream&                   stream,
+                                 Cluster::ValidationResult::Enum value,
+                                 int                             level,
+                                 int spacesPerLevel)
+{
+    stream << mwcu::PrintUtil::indent(level, spacesPerLevel)
+           << Cluster::ValidationResult::toAscii(value);
+
+    if (spacesPerLevel >= 0) {
+        stream << '\n';
+    }
+
+    return stream;
+}
+
+const char*
+Cluster::ValidationResult::toAscii(Cluster::ValidationResult::Enum value)
+{
+    switch (value) {
+    case k_SUCCESS: return "SUCCESS";
+    case k_UNKNOWN_QUEUE: return "message for unknown queue";
+    case k_UNKNOWN_SUBQUEUE: return "message for unknown subqueue";
+    case k_FINAL:
+        return "message for which final closeQueue was already received";
+    default: return "UNKNOWN";
+    }
+}
+
 // -------------
 // class Cluster
 // -------------
@@ -1402,11 +1435,12 @@ void Cluster::onConfirmEvent(const mqbi::DispatcherEvent& event)
         const bmqp::QueueId queueId(id, subId);
         mqbi::QueueHandle*  queueHandle = 0;
 
-        ValidationResult result = validateMessage(&queueHandle,
-                                                  queueId,
-                                                  ns,
-                                                  bmqp::EventType::e_CONFIRM);
-        if (result == k_SUCCESS) {
+        ValidationResult::Enum result = validateMessage(
+            &queueHandle,
+            queueId,
+            ns,
+            bmqp::EventType::e_CONFIRM);
+        if (result == ValidationResult::k_SUCCESS) {
             BSLS_ASSERT_SAFE(queueHandle);
 
             BALL_LOG_TRACE << description() << ": CONFIRM "
@@ -1422,7 +1456,8 @@ void Cluster::onConfirmEvent(const mqbi::DispatcherEvent& event)
             MWCU_THROTTLEDACTION_THROTTLE(
                 d_throttledFailedRejectMessages,
                 MWCTSK_ALARMLOG_ALARM("CLUSTER")
-                    << ": CONFIRM " << validationResult(result) << " [queue: '"
+                    << ": CONFIRM " << ValidationResult::toAscii(result)
+                    << " [queue: '"
                     << (queueHandle ? queueHandle->queue()->uri()
                                     : "<UNKNOWN>")
                     << "', queueId: " << queueId << ", GUID: "
@@ -1498,11 +1533,12 @@ void Cluster::onRejectEvent(const mqbi::DispatcherEvent& event)
         const bmqp::QueueId queueId(id, subId);
         mqbi::QueueHandle*  queueHandle = 0;
 
-        ValidationResult result = validateMessage(&queueHandle,
-                                                  queueId,
-                                                  ns,
-                                                  bmqp::EventType::e_REJECT);
-        if (result == k_SUCCESS) {
+        ValidationResult::Enum result = validateMessage(
+            &queueHandle,
+            queueId,
+            ns,
+            bmqp::EventType::e_REJECT);
+        if (result == ValidationResult::k_SUCCESS) {
             BSLS_ASSERT_SAFE(queueHandle);
 
             BALL_LOG_TRACE << description() << ": REJECT "
@@ -1518,7 +1554,8 @@ void Cluster::onRejectEvent(const mqbi::DispatcherEvent& event)
             MWCU_THROTTLEDACTION_THROTTLE(
                 d_throttledFailedRejectMessages,
                 MWCTSK_ALARMLOG_ALARM("CLUSTER")
-                    << ": REJECT " << validationResult(result) << " [queue: '"
+                    << ": REJECT " << ValidationResult::toAscii(result)
+                    << " [queue: '"
                     << (queueHandle ? queueHandle->queue()->uri()
                                     : "<UNKNOWN>")
                     << "', queueId: " << queueId << ", GUID: "
@@ -1540,7 +1577,7 @@ void Cluster::onRejectEvent(const mqbi::DispatcherEvent& event)
     }
 }
 
-Cluster::ValidationResult
+Cluster::ValidationResult::Enum
 Cluster::validateMessage(mqbi::QueueHandle**       queueHandle,
                          const bmqp::QueueId&      queueId,
                          mqbc::ClusterNodeSession* ns,
@@ -1558,7 +1595,7 @@ Cluster::validateMessage(mqbi::QueueHandle**       queueHandle,
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(queueIt == queueHandles.end())) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
-        return k_UNKNOWN_QUEUE;  // RETURN
+        return ValidationResult::k_UNKNOWN_QUEUE;  // RETURN
     }
 
     const QueueState&          queueState = queueIt->second;
@@ -1571,14 +1608,14 @@ Cluster::validateMessage(mqbi::QueueHandle**       queueHandle,
             subQueueIt == queueState.d_subQueueInfosMap.end())) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
-        return k_UNKNOWN_QUEUE;  // RETURN
+        return ValidationResult::k_UNKNOWN_SUBQUEUE;  // RETURN
     }
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
             queueState.d_isFinalCloseQueueReceived)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
-        return k_FINAL;  // RETURN
+        return ValidationResult::k_FINAL;  // RETURN
     }
 
     if (eventType == bmqp::EventType::e_CONFIRM) {
@@ -1588,7 +1625,7 @@ Cluster::validateMessage(mqbi::QueueHandle**       queueHandle,
             1);
     }
 
-    return k_SUCCESS;
+    return ValidationResult::k_SUCCESS;
 }
 
 void Cluster::onRelayRejectEvent(const mqbi::DispatcherEvent& event)

@@ -480,7 +480,8 @@ static void test2_flattenExplodesEvent()
 
     // 1st flattened event
     bmqp::Event flattenedEvent1(&(eventInfos[0].d_blob), s_allocator_p);
-    ASSERT_EQ(eventInfos[0].d_ids.size(), size_t(count * numSubQueueIds - 1));
+    ASSERT_EQ(eventInfos[0].d_ids.size(),
+              static_cast<size_t>(count * numSubQueueIds - 1));
 
     flattenedEvent1.loadPushMessageIterator(&msgIterator, true);
     BSLS_ASSERT_OPT(msgIterator.isValid());

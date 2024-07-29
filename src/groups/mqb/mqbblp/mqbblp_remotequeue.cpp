@@ -1380,7 +1380,7 @@ void RemoteQueue::expirePendingMessagesDispatched()
 
     if (numExpired) {
         if (d_throttledFailedPutMessages.requestPermission()) {
-            BALL_LOG_INFO << d_state_p->uri() << ": expired "
+            BALL_LOG_INFO << "[THROTTLED] " << d_state_p->uri() << ": expired "
                           << mwcu::PrintUtil::prettyNumber(numExpired)
                           << " pending PUT messages ("
                           << mwcu::PrintUtil::prettyNumber(numMessages -

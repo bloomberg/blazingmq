@@ -608,13 +608,17 @@ class FileStore : public DataStore {
     /// still pending receipt of quorum Receipts.
     void cancelUnreceipted(const DataStoreRecordKey& recordKey);
 
-    /// Send Replication Receipt to the specified `node` confirming the
+    /// Generate Replication Receipt for the specified `node` confirming the
     /// receipt of message with the specified `primaryLeaseId` and
-    /// `sequenceNumber`.
+    /// `sequenceNumber`.  Store cumulative receipt in the specified
+    /// `nodeContext`.
     NodeContext* generateReceipt(NodeContext*         nodeContext,
                                  mqbnet::ClusterNode* node,
                                  unsigned int         primaryLeaseId,
                                  bsls::Types::Uint64  sequenceNumber);
+
+    /// Send previously generated Replication Receipt to the specified `node`
+    /// using the specified `nodeContext`.
     void sendReceipt(mqbnet::ClusterNode* node, NodeContext* nodeContext);
 
     /// Insert the specified `record` value by the specified `key` into the
