@@ -863,10 +863,10 @@ QueueEngineUtil_AppState::QueueEngineUtil_AppState(
         &d_routing_sp->d_queue.d_evaluationContext;
 
     const mqbcfg::AppConfig& brkrCfg = mqbcfg::BrokerConfig::get();
-    const int maxActionsPerInterval = (brkrCfg.brokerVersion() ==
-                                      bmqp::Protocol::k_DEV_VERSION)
-                                          ? 128
-                                          : 1;
+    const int maxActionsPerInterval  = (brkrCfg.brokerVersion() ==
+                                       bmqp::Protocol::k_DEV_VERSION)
+                                           ? 128
+                                           : 1;
 
     d_throttledEarlyExits.initialize(maxActionsPerInterval,
                                      5 * bdlt::TimeUnitRatio::k_NS_PER_S);
