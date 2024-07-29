@@ -862,7 +862,10 @@ QueueEngineUtil_AppState::QueueEngineUtil_AppState(
     d_autoSubscription.d_evaluationContext_p =
         &d_routing_sp->d_queue.d_evaluationContext;
 
-    d_throttledEarlyExits.initialize(1, 5 * bdlt::TimeUnitRatio::k_NS_PER_S);
+    const mqbcfg::AppConfig& brkrCfg = mqbcfg::BrokerConfig::get();
+    const int maxActionsPerInterval = (brkrCfg.brokerVersion() == bmqp::Protocol::k_DEV_VERSION) ? 128 : 1;
+
+    d_throttledEarlyExits.initialize(maxActionsPerInterval, 5 * bdlt::TimeUnitRatio::k_NS_PER_S);
 }
 
 QueueEngineUtil_AppState::~QueueEngineUtil_AppState()
@@ -1329,9 +1332,7 @@ Routers::Result QueueEngineUtil_AppState::selectConsumer(
     Routers::Result result = d_routing_sp->selectConsumer(visitor,
                                                           currentMessage);
     if (result == Routers::e_NO_CAPACITY_ALL) {
-        const mqbcfg::AppConfig& brkrCfg = mqbcfg::BrokerConfig::get();
-        if (brkrCfg.brokerVersion() == bmqp::Protocol::k_DEV_VERSION ||
-            d_throttledEarlyExits.requestPermission()) {
+        if (d_throttledEarlyExits.requestPermission()) {
             BALL_LOG_INFO << "Queue '" << d_queue_p->description()
                           << "', appId = '" << d_appId
                           << "' does not have any subscription "
