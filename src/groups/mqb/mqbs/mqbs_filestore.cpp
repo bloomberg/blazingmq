@@ -6150,8 +6150,8 @@ void FileStore::processStorageEvent(const bsl::shared_ptr<bdlbb::Blob>& blob,
                 << partitionDesc() << ": Received storage event from node "
                 << source->nodeDescription() << " with"
                 << " different PartitionId: [" << pid << "] vs ["
-                << header.partitionId() << "]"
-                << ". Ignoring storage event." << MWCTSK_ALARMLOG_END;
+                << header.partitionId() << "]" << ". Ignoring storage event."
+                << MWCTSK_ALARMLOG_END;
             continue;  // CONTINUE
         }
 
