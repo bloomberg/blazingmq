@@ -78,6 +78,370 @@ static void threadFunction(bsl::vector<bmqt::MessageGUID>* out,
     }
 }
 
+/// This class provides a legacy custom implementation of hashing algorithm for
+/// `bmqt::MessageGUID`.  The implementation uses the unrolled djb2 hash, that
+/// was faster than the default hashing algorithm that comes with `bslh`
+/// package, and was used from 2016 to 2024.  There are a few problems that
+/// were exposed later, leading to the change of the used hash function:
+/// - Strong data dependency across 16 lines of code prevents CPU optimization.
+/// - Computing the hash by one byte is slow compared to computing it by blocks
+/// of 8 bytes, which is possible since we have the prior information that the
+/// `data` array has fixed size 16.
+/// - The hash distribution is easy to collide, we have a test which
+/// reproducibly shows these collisions.
+/// - It's easy to introduce a `data` generator that generates different arrays
+/// with the same hash.
+class LegacyHash {
+  private:
+    // DATA
+    bsls::Types::Uint64 d_result;
+
+  public:
+    // TYPES
+    typedef bsls::Types::Uint64 result_type;
+
+    /// Constructor
+    LegacyHash()
+    : d_result(0)
+    {
+    }
+
+    // MANIPULATORS
+    /// Compute the unrolled djb2 hash on the specified `data`. The specified
+    /// `numBytes` is not used.
+    void operator()(const void* data, BSLS_ANNOTATION_UNUSED size_t numBytes)
+    {
+        d_result = 5381ULL;
+
+        const char* start = reinterpret_cast<const char*>(data);
+        d_result          = (d_result << 5) + d_result + start[0];
+        d_result          = (d_result << 5) + d_result + start[1];
+        d_result          = (d_result << 5) + d_result + start[2];
+        d_result          = (d_result << 5) + d_result + start[3];
+        d_result          = (d_result << 5) + d_result + start[4];
+        d_result          = (d_result << 5) + d_result + start[5];
+        d_result          = (d_result << 5) + d_result + start[6];
+        d_result          = (d_result << 5) + d_result + start[7];
+        d_result          = (d_result << 5) + d_result + start[8];
+        d_result          = (d_result << 5) + d_result + start[9];
+        d_result          = (d_result << 5) + d_result + start[10];
+        d_result          = (d_result << 5) + d_result + start[11];
+        d_result          = (d_result << 5) + d_result + start[12];
+        d_result          = (d_result << 5) + d_result + start[13];
+        d_result          = (d_result << 5) + d_result + start[14];
+        d_result          = (d_result << 5) + d_result + start[15];
+    }
+
+    /// Return the computed hash.
+    result_type computeHash() { return d_result; }
+};
+
+/// Hash with bad quality but with minimum number of operations.
+/// Purely to compare other hashes with ideal performance scenario.
+class BaselineHash {
+  private:
+    // DATA
+    bsls::Types::Uint64 d_result;
+
+  public:
+    // TYPES
+    typedef bsls::Types::Uint64 result_type;
+
+    /// Constructor
+    BaselineHash()
+    : d_result(0)
+    {
+    }
+
+    // MANIPULATORS
+    /// Compute the trivial hash of the specified `data`. The specified
+    /// `numBytes` is not used.
+    void operator()(const void* data, BSLS_ANNOTATION_UNUSED size_t numBytes)
+    {
+        const bsls::Types::Uint64* start =
+            reinterpret_cast<const bsls::Types::Uint64*>(data);
+
+        // Touch all the bytes in the data
+        d_result = start[0] ^ start[1];
+    }
+
+    /// Return the computed hash.
+    result_type computeHash() { return d_result; }
+};
+
+class Mx3Hash {
+  private:
+    // DATA
+    bsls::Types::Uint64 d_result;
+
+  public:
+    // TYPES
+    typedef bsls::Types::Uint64 result_type;
+
+    /// Constructor
+    Mx3Hash()
+    : d_result(0)
+    {
+    }
+
+    // MANIPULATORS
+    /// Compute the hash of the specified `data`. The specified `numBytes` is
+    /// not used.
+    void operator()(const void* data, BSLS_ANNOTATION_UNUSED size_t numBytes)
+    {
+        const bsls::Types::Uint64* start =
+            reinterpret_cast<const bsls::Types::Uint64*>(data);
+
+        struct LocalFuncs {
+            inline static bsls::Types::Uint64 mix(bsls::Types::Uint64 x)
+            {
+                x ^= x >> 32;
+                x *= 0xbea225f9eb34556d;
+                x ^= x >> 29;
+                x *= 0xbea225f9eb34556d;
+                x ^= x >> 32;
+                x *= 0xbea225f9eb34556d;
+                x ^= x >> 29;
+                return x;
+            }
+
+            inline static bsls::Types::Uint64 combine(bsls::Types::Uint64 lhs,
+                                                      bsls::Types::Uint64 rhs)
+            {
+                lhs ^= rhs + 0x517cc1b727220a95 + (lhs << 6) + (lhs >> 2);
+                return lhs;
+            }
+        };
+
+        d_result = LocalFuncs::combine(LocalFuncs::mix(start[0]),
+                                       LocalFuncs::mix(start[1]));
+    }
+
+    /// Return the computed hash.
+    result_type computeHash() { return d_result; }
+};
+
+/// Data struct holding the results of a benchmark
+struct HashBenchmarkStats {
+    /// Name of the current case
+    bsl::string d_caseName;
+
+    /// The total number of hash evaluations
+    size_t d_numIterations;
+
+    /// The time (in nanoseconds) passed for all hash evaluations
+    bsls::Types::Int64 d_timeDeltaNs;
+
+    /// The average time (in nanoseconds) to compute one hash
+    bsls::Types::Int64 d_timePerHashNs;
+
+    /// The estimated hash computation rate (per second)
+    bsls::Types::Int64 d_hashesPerSecond;
+};
+
+/// The class for aggregation and pretty printing simple stats.
+class Table {
+  public:
+    // FORWARD DECLARATIONS
+    class ColumnView;
+    friend class ColumnView;
+
+  private:
+    // DATA
+    /// 2-dimensional table with values presented as `bsl::string`,
+    /// the column index is first, the row index is the second.
+    /// The 0-th row contains column labels.
+    bsl::vector<bsl::vector<bsl::string> > d_columns;
+
+    /// The mapping between column title and ColumnView-s
+    bsl::map<bsl::string, ColumnView> d_views;
+
+    // CLASS METHODS
+    static bsl::string pad(const bsl::string& text, size_t width)
+    {
+        BSLS_ASSERT(text.length() <= width);
+        return bsl::string(width - text.length(), ' ') + text;
+    }
+
+  public:
+    // PUBLIC TYPES
+    class ColumnView {
+      private:
+        // PRIVATE TYPES
+
+        /// Reference to the parent table
+        Table& d_table;
+
+        /// The index of this column in the parent table
+        size_t d_columnIndex;
+
+      public:
+        // CREATORS
+        explicit ColumnView(Table& table, size_t columnIndex)
+        : d_table(table)
+        , d_columnIndex(columnIndex)
+        {
+            // NOTHING
+        }
+
+        // MANIPULATORS
+
+        /// Insert the specified 'value' to the end of the column.
+        void insertValue(const bsl::string& value)
+        {
+            d_table.d_columns.at(d_columnIndex).push_back(value);
+        }
+
+        /// Insert the specified 'value' to the end of the column.
+        void insertValue(const bsls::Types::Uint64& value)
+        {
+            d_table.d_columns.at(d_columnIndex)
+                .push_back(bsl::to_string(value));
+        }
+    };
+
+    /// Return a `ColumnView` manipulator to the table column data for the
+    /// specified `columnTitle`.
+    ///
+    /// Note: we return ColumnView by value, not by reference.  If we return
+    ///       a reference to an object in the stored map, the reference can
+    ///       become invalid if we continue to add new nodes to the map.
+    ///
+    /// Guarantee: each ColumnView returned before is valid as manipulator to
+    ///            its column until the parent Table object is valid.
+    ColumnView column(const bsl::string& columnTitle)
+    {
+        if (d_views.find(columnTitle) == d_views.end()) {
+            d_columns.resize(d_columns.size() + 1);
+            d_columns.back().push_back(columnTitle);
+            d_views.insert(
+                bsl::make_pair(columnTitle,
+                               ColumnView(*this, d_columns.size() - 1)));
+        }
+        return d_views.find(columnTitle)->second;
+    }
+
+    ///  Print the stored data as a pretty table to the specified `os`.
+    void print(bsl::ostream& os) const
+    {
+        // PRECONDITIONS
+        if (d_columns.empty()) {
+            return;  // RETURN
+        }
+        const size_t      rows      = d_columns.front().size();
+        const bsl::string separator = " | ";
+        for (size_t columnId = 0; columnId < d_columns.size(); columnId++) {
+            // Expect all columns to have the same number of rows
+            BSLS_ASSERT(rows == d_columns.at(columnId).size());
+        }
+
+        // For each column, calculate the longest stored value and remember it
+        // as this column's width
+        bsl::vector<size_t> paddings;
+        paddings.resize(d_columns.size(), 0);
+        for (size_t columnId = 0; columnId < d_columns.size(); columnId++) {
+            const bsl::vector<bsl::string>& column = d_columns.at(columnId);
+
+            size_t& maxLen = paddings.at(columnId);
+            for (size_t rowId = 0; rowId < rows; rowId++) {
+                maxLen = bsl::max(maxLen, column.at(rowId).length());
+            }
+        }
+
+        // Print the table using precalculated column widths
+        for (size_t rowId = 0; rowId < rows; rowId++) {
+            for (size_t columnId = 0; columnId < d_columns.size();
+                 columnId++) {
+                if (columnId > 0) {
+                    os << separator;
+                }
+                os << pad(d_columns.at(columnId).at(rowId),
+                          paddings.at(columnId));
+            }
+            os << bsl::endl;
+
+            // Print horizontal line after the initial row
+            if (rowId == 0) {
+                size_t lineWidth = 0;
+                for (bsl::vector<size_t>::const_iterator it =
+                         paddings.cbegin();
+                     it != paddings.cend();
+                     ++it) {
+                    lineWidth += *it;
+                }
+                lineWidth += separator.size() * (paddings.size() - 1);
+                os << bsl::string(lineWidth, '=') << bsl::endl;
+            }
+        }
+    }
+};
+
+template <class HashType>
+HashBenchmarkStats benchmarkHash(const bsl::string& name)
+{
+    const size_t               k_NUM_ITERATIONS = 100000000;  // 100M
+    HashType                   hasher;
+    bmqt::MessageGUID          guid;
+    bmqp::MessageGUIDGenerator generator(0);
+
+    generator.generateGUID(&guid);
+
+    const bsls::Types::Int64 begin = bsls::TimeUtil::getTimer();
+    for (size_t i = 0; i < k_NUM_ITERATIONS; ++i) {
+        if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(hasher(guid) == i)) {
+            BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+            // To prevent this loop from being optimized out in Release
+            bsl::cout << bsl::endl;
+        }
+    }
+    const bsls::Types::Int64 end = bsls::TimeUtil::getTimer();
+
+    HashBenchmarkStats stats;
+    stats.d_caseName        = name;
+    stats.d_numIterations   = k_NUM_ITERATIONS;
+    stats.d_timeDeltaNs     = end - begin;
+    stats.d_timePerHashNs   = (end - begin) / k_NUM_ITERATIONS;
+    stats.d_hashesPerSecond = static_cast<bsls::Types::Int64>(
+                                  k_NUM_ITERATIONS) *
+                              bdlt::TimeUnitRatio::k_NS_PER_S / (end - begin);
+
+    cout << "Calculated " << stats.d_numIterations << " <" << stats.d_caseName
+         << "> hashes of the GUID in "
+         << mwcu::PrintUtil::prettyTimeInterval(stats.d_timeDeltaNs) << ".\n"
+         << "Above implies that 1 hash of the GUID was calculated in "
+         << stats.d_timePerHashNs << " nano seconds.\n"
+         << "In other words: "
+         << mwcu::PrintUtil::prettyNumber(stats.d_hashesPerSecond)
+         << " hashes per second." << endl;
+
+    return stats;
+}
+
+template <class HashType>
+static int calcCollisions(const bsl::vector<bmqt::MessageGUID>& guids)
+{
+    HashType hasher;
+
+    bsl::vector<bsls::Types::Uint64> hashes;
+    hashes.resize(guids.size());
+
+    for (size_t i = 0; i < guids.size(); i++) {
+        hashes[i] = hasher(guids[i]);
+        bsl::string hex;
+        hex.resize(32);
+        guids[i].toHex(&hex[0]);
+    }
+
+    bsl::sort(hashes.begin(), hashes.end());
+    int res = 0;
+    for (size_t i = 0; i + 1 < hashes.size(); i++) {
+        if (hashes[i] == hashes[i + 1]) {
+            res++;
+        }
+    }
+    return res;
+}
+
 }  // close unnamed namespace
 
 // ============================================================================
@@ -583,8 +947,8 @@ static void test6_defaultHashUniqueness()
     hashes.reserve(k_NUM_GUIDS);
 
     bsl::hash<bmqt::MessageGUID> hasher;
-    size_t                       maxCollisionsHash = 0;
-    size_t                       maxCollisions     = 0;
+    size_t                       maxDuplicatesHash = 0;
+    size_t                       maxDuplicates     = 0;
 
     bmqp::MessageGUIDGenerator generator(0);
 
@@ -597,31 +961,32 @@ static void test6_defaultHashUniqueness()
 
         Guids& guids = hashes[hash];
         guids.push_back(guid);
-        if (maxCollisions < guids.size()) {
-            maxCollisions     = guids.size();
-            maxCollisionsHash = hash;
+        if (maxDuplicates < guids.size()) {
+            maxDuplicates     = guids.size();
+            maxDuplicatesHash = hash;
         }
     }
 
-    // Above value is just chosen after looking at the number of collisions
-    // by running this test case manually.  In most runs, number of
-    // collisions was in the range of [0, 3].
-    const size_t k_MAX_EXPECTED_COLLISIONS = 4;
+    // With the custom bit mixer hash function no collisions were observed on
+    // different randomized runs, so we expect it to be a very rare event.
+    // In the unlikely event of this rare hash collision, we don't want to fail
+    // this test, so we allow 1+1=2 max expected duplicates per a hash.
+    const size_t k_MAX_EXPECTED_DUPLICATES = 2;
 
-    ASSERT_LT(maxCollisions, k_MAX_EXPECTED_COLLISIONS);
+    ASSERT_LT(maxDuplicates, k_MAX_EXPECTED_DUPLICATES);
 
-    if (maxCollisions >= k_MAX_EXPECTED_COLLISIONS) {
-        cout << "Hash collision percentage..........: "
+    if (maxDuplicates >= k_MAX_EXPECTED_DUPLICATES) {
+        cout << "Hash duplicates percentage..........: "
              << 100 - 100.0f * hashes.size() / k_NUM_GUIDS << "%" << endl
-             << "Max collisions.....................: " << maxCollisions
+             << "Max duplicates per hash............: " << maxDuplicates
              << endl
-             << "Hash...............................: " << maxCollisionsHash
+             << "Hash...............................: " << maxDuplicatesHash
              << endl
              << "Num GUIDs with that hash...........: "
-             << hashes[maxCollisionsHash].size() << endl
+             << hashes[maxDuplicatesHash].size() << endl
              << "GUIDs with the highest collisions..: " << endl;
 
-        Guids& guids = hashes[maxCollisionsHash];
+        Guids& guids = hashes[maxDuplicatesHash];
         for (size_t i = 0; i < guids.size(); ++i) {
             cout << "  ";
             bmqp::MessageGUIDGenerator::print(cout, guids[i]);
@@ -954,27 +1319,7 @@ BSLA_MAYBE_UNUSED static void testN3_defaultHashBenchmark()
 
     mwctst::TestHelper::printTestName("DEFAULT HASH BENCHMARK");
 
-    const size_t                 k_NUM_ITERATIONS = 10000000;  // 10M
-    bsl::hash<bmqt::MessageGUID> hasher;  // same as: bslh::Hash<> hasher;
-    bmqt::MessageGUID            guid;
-    bmqp::MessageGUIDGenerator   generator(0);
-
-    generator.generateGUID(&guid);
-
-    bsls::Types::Int64 begin = bsls::TimeUtil::getTimer();
-    for (size_t i = 0; i < k_NUM_ITERATIONS; ++i) {
-        hasher(guid);
-    }
-    bsls::Types::Int64 end = bsls::TimeUtil::getTimer();
-
-    cout << "Calculated " << k_NUM_ITERATIONS << " default hashes of the GUID"
-         << " in " << mwcu::PrintUtil::prettyTimeInterval(end - begin) << ".\n"
-         << "Above implies that 1 hash of the GUID was calculated in "
-         << (end - begin) / k_NUM_ITERATIONS << " nano seconds.\n"
-         << "In other words: "
-         << mwcu::PrintUtil::prettyNumber(static_cast<bsls::Types::Int64>(
-                (k_NUM_ITERATIONS * 1000000000) / (end - begin)))
-         << " hashes per second." << endl;
+    benchmarkHash<bsl::hash<bmqt::MessageGUID> >("default");
 }
 
 BSLA_MAYBE_UNUSED static void testN4_customHashBenchmark()
@@ -996,28 +1341,7 @@ BSLA_MAYBE_UNUSED static void testN4_customHashBenchmark()
     // allocates using the default allocator.
 
     mwctst::TestHelper::printTestName("CUSTOM HASH BENCHMARK");
-
-    const size_t                          k_NUM_ITERATIONS = 10000000;  // 10M
-    bslh::Hash<bmqt::MessageGUIDHashAlgo> hasher;
-    bmqt::MessageGUID                     guid;
-    bmqp::MessageGUIDGenerator            generator(0);
-
-    generator.generateGUID(&guid);
-
-    bsls::Types::Int64 begin = bsls::TimeUtil::getTimer();
-    for (size_t i = 0; i < k_NUM_ITERATIONS; ++i) {
-        hasher(guid);
-    }
-    bsls::Types::Int64 end = bsls::TimeUtil::getTimer();
-
-    cout << "Calculated " << k_NUM_ITERATIONS << " custom hashes of the GUID"
-         << "in " << mwcu::PrintUtil::prettyTimeInterval(end - begin) << ".\n"
-         << "Above implies that 1 hash of the GUID was calculated in "
-         << (end - begin) / k_NUM_ITERATIONS << " nano seconds.\n"
-         << "In other words: "
-         << mwcu::PrintUtil::prettyNumber(static_cast<bsls::Types::Int64>(
-                (k_NUM_ITERATIONS * 1000000000) / (end - begin)))
-         << " hashes per second." << endl;
+    benchmarkHash<bslh::Hash<bmqt::MessageGUIDHashAlgo> >("custom");
 }
 
 BSLA_MAYBE_UNUSED static void testN5_hashTableWithDefaultHashBenchmark()
@@ -1222,6 +1546,310 @@ BSLA_MAYBE_UNUSED static void testN8_orderedMapWithCustomHashBenchmark()
          << mwcu::PrintUtil::prettyNumber(static_cast<bsls::Types::Int64>(
                 (k_NUM_ELEMS * 1000000000) / (end - begin)))
          << " insertions per second." << endl;
+}
+
+BSLA_MAYBE_UNUSED
+static void testN9_hashBenchmarkComparison()
+// ------------------------------------------------------------------------
+// HASH BENCHMARK COMPARISON
+//
+// Concerns:
+//   Benchmark MessageGUID hashing functions and print the results table
+//
+// ------------------------------------------------------------------------
+{
+    s_ignoreCheckDefAlloc = true;
+    // 'bmqp::MessageGUIDGenerator::ctor' prints a BALL_LOG_INFO which
+    // allocates using the default allocator.
+
+    mwctst::TestHelper::printTestName("HASH BENCHMARK COMPARISON");
+
+    bsl::vector<HashBenchmarkStats> stats;
+    stats.push_back(benchmarkHash<bslh::Hash<BaselineHash> >("baseline"));
+    stats.push_back(benchmarkHash<bsl::hash<bmqt::MessageGUID> >("default"));
+    stats.push_back(benchmarkHash<bslh::Hash<LegacyHash> >("legacy(djb2)"));
+    stats.push_back(benchmarkHash<bslh::Hash<Mx3Hash> >("mx3"));
+    stats.push_back(
+        benchmarkHash<bslh::Hash<bmqt::MessageGUIDHashAlgo> >("mxm"));
+
+    Table table;
+    for (size_t i = 0; i < stats.size(); i++) {
+        const HashBenchmarkStats& st = stats[i];
+        table.column("Name").insertValue(st.d_caseName);
+        table.column("Iters").insertValue(st.d_numIterations);
+        table.column("Total time (ns)").insertValue(st.d_timeDeltaNs);
+        table.column("Per hash (ns)").insertValue(st.d_timePerHashNs);
+        table.column("Hash rate (1/sec)").insertValue(st.d_hashesPerSecond);
+    }
+    table.print(bsl::cout);
+}
+
+BSLA_MAYBE_UNUSED
+static void testN10_hashCollisionsComparison()
+// ------------------------------------------------------------------------
+// HASH COLLISIONS COMPARISON
+//
+// Concerns:
+//   Compare hash collisions between different hash algos.
+//
+// ------------------------------------------------------------------------
+{
+    s_ignoreCheckDefAlloc = true;
+    // Because there is no emplace on unordered_map, the temporary list
+    // created upon insertion of objects in the map uses the default
+    // allocator.
+
+    mwctst::TestHelper::printTestName("HASH COLLISIONS COMPARISON");
+
+#ifdef BSLS_PLATFORM_OS_SOLARIS
+    const bsls::Types::Int64 k_NUM_GUIDS = 1000000;  // 1M
+#elif defined(__has_feature)
+    // Avoid timeout under MemorySanitizer
+    const bsls::Types::Int64 k_NUM_GUIDS = __has_feature(memory_sanitizer)
+                                               ? 1000000    // 1M
+                                               : 10000000;  // 10M
+#elif defined(__SANITIZE_MEMORY__)
+    // GCC-supported macros for checking MSAN
+    const bsls::Types::Int64 k_NUM_GUIDS = 1000000;  // 1M
+#else
+    const bsls::Types::Int64 k_NUM_GUIDS = 10000000;  // 10M
+#endif
+
+    /// This structure holds local static MessageGUID generators
+    /// with different distributions
+    struct LocalFuncs {
+        static void generateGUIDs_bmqpMessageGUIDGenerator1(
+            bsl::vector<bmqt::MessageGUID>* guids,
+            size_t                          num)
+        {
+            // PRECONDITIONS
+            BSLS_ASSERT(guids);
+            guids->resize(num);
+
+            bmqp::MessageGUIDGenerator generator(0);
+            for (size_t i = 0; i < num; i++) {
+                generator.generateGUID(&guids->at(i));
+            }
+        }
+
+        static void generateGUIDs_bmqpMessageGUIDGeneratorN(
+            bsl::vector<bmqt::MessageGUID>* guids,
+            size_t                          num)
+        {
+            // PRECONDITIONS
+            BSLS_ASSERT(guids);
+            guids->resize(num);
+
+            static const int k_NUM_GENERATORS = 10;
+            bsl::vector<bslma::ManagedPtr<bmqp::MessageGUIDGenerator> >
+                generators;
+            generators.resize(10);
+            for (int i = 0; i < k_NUM_GENERATORS; i++) {
+                generators[i].load(new (*s_allocator_p)
+                                       bmqp::MessageGUIDGenerator(i),
+                                   s_allocator_p);
+            }
+
+            bmqp::MessageGUIDGenerator generator(0);
+            for (size_t i = 0; i < num; i++) {
+                generators.at(i % k_NUM_GENERATORS)
+                    ->generateGUID(&guids->at(i));
+            }
+        }
+
+        static void generateGUIDs_rand(bsl::vector<bmqt::MessageGUID>* guids,
+                                       size_t                          num)
+        {
+            // PRECONDITIONS
+            BSLS_ASSERT(guids);
+            guids->resize(num);
+
+            unsigned char buff[bmqt::MessageGUID::e_SIZE_BINARY];
+
+            for (size_t i = 0; i < num; i++) {
+                for (size_t j = 0; j < bmqt::MessageGUID::e_SIZE_BINARY; j++) {
+                    buff[j] = rand() % 256;
+                }
+                guids->at(i).fromBinary(buff);
+            }
+        }
+
+        static void
+        generateGUIDs_symmetry_4counters(bsl::vector<bmqt::MessageGUID>* guids,
+                                         size_t                          num)
+        {
+            // PRECONDITIONS
+            BSLS_ASSERT(guids);
+            guids->resize(num);
+
+            unsigned char  buff[bmqt::MessageGUID::e_SIZE_BINARY];
+            bsl::uint32_t* ptr = reinterpret_cast<bsl::uint32_t*>(buff);
+            BSLS_ASSERT(0 == bmqt::MessageGUID::e_SIZE_BINARY % 4);
+
+            for (size_t i = 0; i < num; i++) {
+                for (size_t j = 0; j * 4 < bmqt::MessageGUID::e_SIZE_BINARY;
+                     j++) {
+                    ptr[j] = i;
+                }
+                guids->at(i).fromBinary(buff);
+            }
+        }
+
+        static void
+        generateGUIDs_symmetry_4quarters(bsl::vector<bmqt::MessageGUID>* guids,
+                                         size_t                          num)
+        {
+            // PRECONDITIONS
+            BSLS_ASSERT(guids);
+            guids->resize(num);
+
+            unsigned char buff[bmqt::MessageGUID::e_SIZE_BINARY];
+            int*          ptr = reinterpret_cast<int*>(buff);
+            BSLS_ASSERT(0 == bmqt::MessageGUID::e_SIZE_BINARY % 4);
+
+            for (size_t i = 0; i < num; i++) {
+                int val = rand();
+                for (size_t j = 0; j * 4 < bmqt::MessageGUID::e_SIZE_BINARY;
+                     j++) {
+                    ptr[j] = val;
+                }
+                guids->at(i).fromBinary(buff);
+            }
+        }
+
+        static void
+        generateGUIDs_symmetry_2halves(bsl::vector<bmqt::MessageGUID>* guids,
+                                       size_t                          num)
+        {
+            // PRECONDITIONS
+            BSLS_ASSERT(guids);
+            guids->resize(num);
+
+            unsigned char buff[bmqt::MessageGUID::e_SIZE_BINARY];
+            BSLS_ASSERT(0 == bmqt::MessageGUID::e_SIZE_BINARY % 2);
+
+            for (size_t i = 0; i < num; i++) {
+                for (size_t j = 0; j * 2 < bmqt::MessageGUID::e_SIZE_BINARY;
+                     j++) {
+                    buff[j] = rand() % 256;
+                }
+                bsl::memcpy(&buff[bmqt::MessageGUID::e_SIZE_BINARY / 2],
+                            buff,
+                            bmqt::MessageGUID::e_SIZE_BINARY / 2);
+                guids->at(i).fromBinary(buff);
+            }
+        }
+
+        static void
+        generateGUIDs_counter(bsl::vector<bmqt::MessageGUID>* guids,
+                              size_t                          num)
+        {
+            // PRECONDITIONS
+            BSLS_ASSERT(guids);
+            guids->resize(num);
+
+            unsigned char  buff[bmqt::MessageGUID::e_SIZE_BINARY];
+            bsl::uint32_t* ptr = reinterpret_cast<bsl::uint32_t*>(buff);
+            BSLS_ASSERT(0 == bmqt::MessageGUID::e_SIZE_BINARY % 4);
+
+            for (size_t i = 0; i < num; i++) {
+                for (size_t j = 1; j < bmqt::MessageGUID::e_SIZE_BINARY / 4;
+                     j++) {
+                    ptr[j] = 0;
+                }
+                ptr[0] = i;
+                guids->at(i).fromBinary(buff);
+            }
+        }
+    };
+
+    typedef bsl::vector<bmqt::MessageGUID>      GUIDs;
+    typedef bsl::function<void(GUIDs*, size_t)> GUIDsGeneratorFunc;
+    typedef bsl::function<int(const GUIDs&)>    HashCheckerFunc;
+
+    struct GeneratorContext {
+        // PUBLIC DATA
+        GUIDsGeneratorFunc d_func;
+
+        bsl::string d_name;
+
+        bsl::string d_description;
+    } k_GENERATORS[] = {
+        {LocalFuncs::generateGUIDs_bmqpMessageGUIDGenerator1,
+         "bmqp_1",
+         "One bmqp::MessageGUIDGenerator to generate all GUIDs"},
+        {LocalFuncs::generateGUIDs_bmqpMessageGUIDGeneratorN,
+         "bmqp_N",
+         "Multiple different bmqp::MessageGUIDGenerator-s to generate all "
+         "GUIDs"},
+        {LocalFuncs::generateGUIDs_rand,
+         "rand",
+         "Init every uint8_t of GUID as 'rand() % 256': "
+         "uint8_t[0 .. 15] <- rand() % 256"},
+        {LocalFuncs::generateGUIDs_symmetry_4counters,
+         "4counters",
+         "Init every uint32_t block of GUID as 'counter': "
+         "uint32_t[0..3] <- counter, after: counter++"},
+        {LocalFuncs::generateGUIDs_symmetry_4quarters,
+         "4quarters",
+         "Init every int32_t block of GUID as the same 'rand()' value: "
+         "val <- rand(), int32_t[0..3] <- val"},
+        {LocalFuncs::generateGUIDs_symmetry_2halves,
+         "2halves",
+         "Init the first half of GUID as 'rand() % 256' for every uint8_t, "
+         "then "
+         "copy this memory chunk to the second half"},
+        {LocalFuncs::generateGUIDs_counter,
+         "counter",
+         "Init the uint32_t block of GUID as 'counter', set all other to 0: "
+         "uint32_t[0] <- counter++, uint32_t[1..3] <- 0"},
+    };
+    const size_t k_NUM_GENERATORS = sizeof(k_GENERATORS) /
+                                    sizeof(*k_GENERATORS);
+
+    struct HashCheckerContext {
+        // PUBLIC DATA
+        HashCheckerFunc d_func;
+
+        bsl::string d_name;
+    } k_HASH_CHECKERS[] = {
+        {calcCollisions<bslh::Hash<BaselineHash> >, "baseline"},
+        {calcCollisions<bsl::hash<bmqt::MessageGUID> >, "default"},
+        {calcCollisions<bslh::Hash<LegacyHash> >, "legacy(djb2)"},
+        {calcCollisions<bslh::Hash<Mx3Hash> >, "mx3"},
+        {calcCollisions<bslh::Hash<bmqt::MessageGUIDHashAlgo> >, "mxm"}};
+    const size_t k_NUM_HASH_CHECKERS = sizeof(k_HASH_CHECKERS) /
+                                       sizeof(*k_HASH_CHECKERS);
+
+    Table table;
+    for (size_t checkerId = 0; checkerId < k_NUM_HASH_CHECKERS; checkerId++) {
+        const HashCheckerContext& checker = k_HASH_CHECKERS[checkerId];
+        table.column("Name").insertValue(checker.d_name);
+    }
+
+    bsl::vector<bmqt::MessageGUID> guids(s_allocator_p);
+    guids.reserve(k_NUM_GUIDS);
+    for (size_t genId = 0; genId < k_NUM_GENERATORS; genId++) {
+        const GeneratorContext& gen = k_GENERATORS[genId];
+        gen.d_func(&guids, k_NUM_GUIDS);
+
+        bsl::string sample(s_allocator_p);
+        sample.resize(bmqt::MessageGUID::e_SIZE_HEX);
+        guids.at(k_NUM_GUIDS / 2).toHex(sample.data());
+
+        bsl::cout << "Distribution <" << gen.d_name << ">:" << bsl::endl;
+        bsl::cout << gen.d_description << bsl::endl;
+        bsl::cout << "Sample: " << sample << bsl::endl << bsl::endl;
+
+        for (size_t checkerId = 0; checkerId < k_NUM_HASH_CHECKERS;
+             checkerId++) {
+            const HashCheckerContext& checker    = k_HASH_CHECKERS[checkerId];
+            const int                 collisions = checker.d_func(guids);
+            table.column(gen.d_name).insertValue(collisions);
+        }
+    }
+
+    table.print(bsl::cout);
 }
 
 // Begin Benchmarking Tests
@@ -1700,6 +2328,8 @@ int main(int argc, char* argv[])
                                     ->Range(10, 10000000)
                                     ->Unit(benchmark::kMillisecond));
         break;
+    case -9: testN9_hashBenchmarkComparison(); break;
+    case -10: testN10_hashCollisionsComparison(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
         s_testStatus = -1;
