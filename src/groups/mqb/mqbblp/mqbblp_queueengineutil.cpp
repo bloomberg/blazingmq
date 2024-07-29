@@ -863,9 +863,13 @@ QueueEngineUtil_AppState::QueueEngineUtil_AppState(
         &d_routing_sp->d_queue.d_evaluationContext;
 
     const mqbcfg::AppConfig& brkrCfg = mqbcfg::BrokerConfig::get();
-    const int maxActionsPerInterval = (brkrCfg.brokerVersion() == bmqp::Protocol::k_DEV_VERSION) ? 128 : 1;
+    const int maxActionsPerInterval = (brkrCfg.brokerVersion() ==
+                                      bmqp::Protocol::k_DEV_VERSION)
+                                          ? 128
+                                          : 1;
 
-    d_throttledEarlyExits.initialize(maxActionsPerInterval, 5 * bdlt::TimeUnitRatio::k_NS_PER_S);
+    d_throttledEarlyExits.initialize(maxActionsPerInterval,
+                                     5 * bdlt::TimeUnitRatio::k_NS_PER_S);
 }
 
 QueueEngineUtil_AppState::~QueueEngineUtil_AppState()
@@ -1333,7 +1337,7 @@ Routers::Result QueueEngineUtil_AppState::selectConsumer(
                                                           currentMessage);
     if (result == Routers::e_NO_CAPACITY_ALL) {
         if (d_throttledEarlyExits.requestPermission()) {
-            BALL_LOG_INFO << "Queue '" << d_queue_p->description()
+            BALL_LOG_INFO << "[THROTTLED] Queue '" << d_queue_p->description()
                           << "', appId = '" << d_appId
                           << "' does not have any subscription "
                              "capacity; early exits delivery at "
