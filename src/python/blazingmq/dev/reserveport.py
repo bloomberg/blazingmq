@@ -127,4 +127,6 @@ def reserve_port() -> typing.Iterator[TcpAddress]:
 
         address = tcp_address(sockname[0], sockname[1])
 
-        yield address
+    # Make sure the socket is auto-closed before returning the address,
+    # or the started broker will not be able to use this port.
+    yield address
