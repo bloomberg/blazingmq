@@ -35,7 +35,6 @@ By default, plugin is disabled. To enable and configure it, edit `bmqbrkcfg.json
    "appConfig": {
        "stats": {
            "snapshotInterval": 1,
-           "appIdTagDomains": ["<fanout-domain-1-name>", "<fanout-domain-2-name>"],
            "plugins": [
                ...
                {
@@ -44,7 +43,7 @@ By default, plugin is disabled. To enable and configure it, edit `bmqbrkcfg.json
                    "prometheusSpecific": {
                        "host": "localhost",
                        "port": 9091,
-                       "mode": "E_PUSH"    
+                       "mode": "E_PUSH"
                    }
                }
            ],
@@ -59,14 +58,6 @@ where
 
    - `snapshotInterval`: represents how often stats are computed by broker
      internally, in seconds (typically every 1s);
-   - [OPTIONAL] `appIdTagDomains`: used for troubleshooting, represents
-     the list of *fanout* mode domains for which *applicationId* tag will be
-     applied on `queue.confirm_time_max` and `queue.queue_time_max` metrics.
-     It can be *extremely* useful to detect slow responding consumer by
-     *applicationId*. If this setting is omitted/empty, or domain name not
-     in the list - *applicationId* tag will not be applied;<br/>
-     **NOTE**: This feature is available for all BlazingMQ broker roles except
-     *PROXY*;
 
 2. Prometheus plugin configuration
 
