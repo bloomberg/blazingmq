@@ -43,14 +43,6 @@
 // Session or Channel). This is beyond the scope of current needs at the time
 // of writing this feature.
 //
-// Additionally, be aware of the following non-fatal "deadlock" scenario.
-// Currently, if two cluster nodes receive a command simultaneously and both
-// of these nodes route to each other, they will both deadlock (because they
-// cannot start executing the routed commands until they receive a response).
-// This deadlock is short-lived, though, as both commands will just end up
-// timing out. This scenario can be mitigated by increasing the number of
-// command processing threads from 1.
-//
 //@CLASSES:
 //  mqbcmd::CommandRouter: Manages routing a single admin command. This class
 //    is designed to be used once per command and should be destructed after

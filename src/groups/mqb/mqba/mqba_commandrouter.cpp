@@ -208,7 +208,7 @@ bool CommandRouter::route(mqbcmd::InternalResult* result,
                              bdlf::PlaceHolders::_1));
 
     relevantCluster->multiRequestManager().sendRequest(contextSp,
-                                                       bsls::TimeInterval(15));
+                                                       bsls::TimeInterval(3));
 
     return routeMembers.d_self;
 }

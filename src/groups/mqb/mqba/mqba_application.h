@@ -141,6 +141,9 @@ class Application {
     // Thread pool for admin commands
     // execution.
 
+    bdlmt::ThreadPool d_adminRerouteExecutionPool;
+    // Thread pool for routed admin commands execution.
+
     bdlbb::PooledBlobBufferFactory d_bufferFactory;
 
     BlobSpPool d_blobSpPool;
