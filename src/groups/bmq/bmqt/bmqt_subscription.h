@@ -197,15 +197,8 @@ class Subscription {
 
   public:
     // CREATORS
+    /// Create a new Subscription
     Subscription();
-
-    // Create a new Subscription
-
-    /// Create a new Subscription by copying values from the specified
-    /// `other`.
-    Subscription(const Subscription& other);
-
-    // MANIPULATORS
 
     /// Set the maxUnconfirmedMessages to the specified `value`.  The
     /// behavior is undefined unless `value >= 0`. If the specified `value`
@@ -276,9 +269,9 @@ bsl::ostream& operator<<(bsl::ostream& stream, const Subscription& rhs);
 //                             INLINE DEFINITIONS
 // ============================================================================
 
-// ----------------------
+// -------------------------
 // class Subscription_Handle
-// ----------------------
+// -------------------------
 
 inline SubscriptionHandle::SubscriptionHandle()
 : d_id(k_INVALID_HANDLE_ID)
@@ -385,24 +378,15 @@ inline bsl::ostream& SubscriptionExpression::print(bsl::ostream& stream,
     return stream;
 }
 
-// ----------------------
+// ------------------
 // class Subscription
-// ----------------------
+// ------------------
 
 inline Subscription::Subscription()
 : d_maxUnconfirmedMessages()
 , d_maxUnconfirmedBytes()
 , d_consumerPriority()
 , d_expression()
-{
-    // NOTHING
-}
-
-inline Subscription::Subscription(const Subscription& other)
-: d_maxUnconfirmedMessages(other.d_maxUnconfirmedMessages)
-, d_maxUnconfirmedBytes(other.d_maxUnconfirmedBytes)
-, d_consumerPriority(other.d_consumerPriority)
-, d_expression(other.d_expression)
 {
     // NOTHING
 }

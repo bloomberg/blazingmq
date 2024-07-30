@@ -12,7 +12,6 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
 // m_bmqtool_messages.cpp          *DO NOT EDIT*           @generated -*-C++-*-
 
 #include <m_bmqtool_messages.h>
@@ -58,6 +57,8 @@ const int BatchPostCommand::DEFAULT_INITIALIZER_POST_INTERVAL = 1000;
 
 const int BatchPostCommand::DEFAULT_INITIALIZER_POST_RATE = 1;
 
+const char BatchPostCommand::DEFAULT_INITIALIZER_AUTO_INCREMENTED[] = "";
+
 const bdlat_AttributeInfo BatchPostCommand::ATTRIBUTE_INFO_ARRAY[] = {
     {ATTRIBUTE_ID_URI,
      "uri",
@@ -93,14 +94,19 @@ const bdlat_AttributeInfo BatchPostCommand::ATTRIBUTE_INFO_ARRAY[] = {
      "postRate",
      sizeof("postRate") - 1,
      "",
-     bdlat_FormattingMode::e_DEC}};
+     bdlat_FormattingMode::e_DEC},
+    {ATTRIBUTE_ID_AUTO_INCREMENTED,
+     "autoIncremented",
+     sizeof("autoIncremented") - 1,
+     "",
+     bdlat_FormattingMode::e_TEXT}};
 
 // CLASS METHODS
 
 const bdlat_AttributeInfo*
 BatchPostCommand::lookupAttributeInfo(const char* name, int nameLength)
 {
-    for (int i = 0; i < 7; ++i) {
+    for (int i = 0; i < 8; ++i) {
         const bdlat_AttributeInfo& attributeInfo =
             BatchPostCommand::ATTRIBUTE_INFO_ARRAY[i];
 
@@ -129,6 +135,8 @@ const bdlat_AttributeInfo* BatchPostCommand::lookupAttributeInfo(int id)
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_POST_INTERVAL];
     case ATTRIBUTE_ID_POST_RATE:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_POST_RATE];
+    case ATTRIBUTE_ID_AUTO_INCREMENTED:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_AUTO_INCREMENTED];
     default: return 0;
     }
 }
@@ -140,6 +148,7 @@ BatchPostCommand::BatchPostCommand(bslma::Allocator* basicAllocator)
 , d_eventsCount(DEFAULT_INITIALIZER_EVENTS_COUNT)
 , d_payload(basicAllocator)
 , d_uri(basicAllocator)
+, d_autoIncremented(DEFAULT_INITIALIZER_AUTO_INCREMENTED, basicAllocator)
 , d_msgSize(DEFAULT_INITIALIZER_MSG_SIZE)
 , d_postInterval(DEFAULT_INITIALIZER_POST_INTERVAL)
 , d_postRate(DEFAULT_INITIALIZER_POST_RATE)
@@ -152,6 +161,7 @@ BatchPostCommand::BatchPostCommand(const BatchPostCommand& original,
 , d_eventsCount(original.d_eventsCount)
 , d_payload(original.d_payload, basicAllocator)
 , d_uri(original.d_uri, basicAllocator)
+, d_autoIncremented(original.d_autoIncremented, basicAllocator)
 , d_msgSize(original.d_msgSize)
 , d_postInterval(original.d_postInterval)
 , d_postRate(original.d_postRate)
@@ -165,6 +175,7 @@ BatchPostCommand::BatchPostCommand(BatchPostCommand&& original) noexcept
   d_eventsCount(bsl::move(original.d_eventsCount)),
   d_payload(bsl::move(original.d_payload)),
   d_uri(bsl::move(original.d_uri)),
+  d_autoIncremented(bsl::move(original.d_autoIncremented)),
   d_msgSize(bsl::move(original.d_msgSize)),
   d_postInterval(bsl::move(original.d_postInterval)),
   d_postRate(bsl::move(original.d_postRate))
@@ -177,6 +188,7 @@ BatchPostCommand::BatchPostCommand(BatchPostCommand&& original,
 , d_eventsCount(bsl::move(original.d_eventsCount))
 , d_payload(bsl::move(original.d_payload), basicAllocator)
 , d_uri(bsl::move(original.d_uri), basicAllocator)
+, d_autoIncremented(bsl::move(original.d_autoIncremented), basicAllocator)
 , d_msgSize(bsl::move(original.d_msgSize))
 , d_postInterval(bsl::move(original.d_postInterval))
 , d_postRate(bsl::move(original.d_postRate))
@@ -193,13 +205,14 @@ BatchPostCommand::~BatchPostCommand()
 BatchPostCommand& BatchPostCommand::operator=(const BatchPostCommand& rhs)
 {
     if (this != &rhs) {
-        d_uri          = rhs.d_uri;
-        d_payload      = rhs.d_payload;
-        d_msgSize      = rhs.d_msgSize;
-        d_eventSize    = rhs.d_eventSize;
-        d_eventsCount  = rhs.d_eventsCount;
-        d_postInterval = rhs.d_postInterval;
-        d_postRate     = rhs.d_postRate;
+        d_uri             = rhs.d_uri;
+        d_payload         = rhs.d_payload;
+        d_msgSize         = rhs.d_msgSize;
+        d_eventSize       = rhs.d_eventSize;
+        d_eventsCount     = rhs.d_eventsCount;
+        d_postInterval    = rhs.d_postInterval;
+        d_postRate        = rhs.d_postRate;
+        d_autoIncremented = rhs.d_autoIncremented;
     }
 
     return *this;
@@ -210,13 +223,14 @@ BatchPostCommand& BatchPostCommand::operator=(const BatchPostCommand& rhs)
 BatchPostCommand& BatchPostCommand::operator=(BatchPostCommand&& rhs)
 {
     if (this != &rhs) {
-        d_uri          = bsl::move(rhs.d_uri);
-        d_payload      = bsl::move(rhs.d_payload);
-        d_msgSize      = bsl::move(rhs.d_msgSize);
-        d_eventSize    = bsl::move(rhs.d_eventSize);
-        d_eventsCount  = bsl::move(rhs.d_eventsCount);
-        d_postInterval = bsl::move(rhs.d_postInterval);
-        d_postRate     = bsl::move(rhs.d_postRate);
+        d_uri             = bsl::move(rhs.d_uri);
+        d_payload         = bsl::move(rhs.d_payload);
+        d_msgSize         = bsl::move(rhs.d_msgSize);
+        d_eventSize       = bsl::move(rhs.d_eventSize);
+        d_eventsCount     = bsl::move(rhs.d_eventsCount);
+        d_postInterval    = bsl::move(rhs.d_postInterval);
+        d_postRate        = bsl::move(rhs.d_postRate);
+        d_autoIncremented = bsl::move(rhs.d_autoIncremented);
     }
 
     return *this;
@@ -227,11 +241,12 @@ void BatchPostCommand::reset()
 {
     bdlat_ValueTypeFunctions::reset(&d_uri);
     bdlat_ValueTypeFunctions::reset(&d_payload);
-    d_msgSize      = DEFAULT_INITIALIZER_MSG_SIZE;
-    d_eventSize    = DEFAULT_INITIALIZER_EVENT_SIZE;
-    d_eventsCount  = DEFAULT_INITIALIZER_EVENTS_COUNT;
-    d_postInterval = DEFAULT_INITIALIZER_POST_INTERVAL;
-    d_postRate     = DEFAULT_INITIALIZER_POST_RATE;
+    d_msgSize         = DEFAULT_INITIALIZER_MSG_SIZE;
+    d_eventSize       = DEFAULT_INITIALIZER_EVENT_SIZE;
+    d_eventsCount     = DEFAULT_INITIALIZER_EVENTS_COUNT;
+    d_postInterval    = DEFAULT_INITIALIZER_POST_INTERVAL;
+    d_postRate        = DEFAULT_INITIALIZER_POST_RATE;
+    d_autoIncremented = DEFAULT_INITIALIZER_AUTO_INCREMENTED;
 }
 
 // ACCESSORS
@@ -249,6 +264,7 @@ bsl::ostream& BatchPostCommand::print(bsl::ostream& stream,
     printer.printAttribute("eventsCount", this->eventsCount());
     printer.printAttribute("postInterval", this->postInterval());
     printer.printAttribute("postRate", this->postRate());
+    printer.printAttribute("autoIncremented", this->autoIncremented());
     printer.end();
     return stream;
 }
@@ -6799,6 +6815,6 @@ const char* Command::selectionName() const
 }  // close package namespace
 }  // close enterprise namespace
 
-// GENERATED BY BLP_BAS_CODEGEN_2024.05.16
+// GENERATED BY BLP_BAS_CODEGEN_2024.07.04.1
 // USING bas_codegen.pl -m msg --noAggregateConversion --noExternalization
 // --noIdent --package m_bmqtool --msgComponent messages bmqtoolcmd.xsd
