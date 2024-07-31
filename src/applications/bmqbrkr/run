@@ -34,6 +34,10 @@ while [ "$1" != "" ]; do
         debugCmd="lldb --"
     elif [ "$1" == "echo" ]; then
         debugCmd="echo"
+    elif [ "$1" == "perf" ]; then
+        debugCmd="perf record -a -g"
+    elif [ "$1" == "valgrind" ]; then
+        debugCmd="valgrind --tool=callgrind"
     fi
     shift
 done
