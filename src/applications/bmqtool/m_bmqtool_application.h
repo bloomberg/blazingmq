@@ -160,6 +160,9 @@ class Application : public bmqa::SessionEventHandler {
     // to d_numExpectedAcks, the shutdown semaphore will be
     // posted.
 
+    bsl::shared_ptr<PostingContext> d_postingContext_sp;
+    // The current posting context.
+
     // PRIVATE MANIPULATORS
     //   (virtual: bmqa::SessionEventHandler)
 

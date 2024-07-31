@@ -655,6 +655,10 @@ void Application::onMessageEvent(const bmqa::MessageEvent& event)
          ++msgId) {
         const bmqa::Message& message = iter.message();
         if (event.type() == bmqt::MessageEventType::e_ACK) {
+            if (message.ackStatus() != bmqt::AckResult::e_SUCCESS) {
+                d_postingContext_sp->notifyNACK();
+            }
+
             if (d_parameters_p->dumpMsg()) {
                 BALL_LOG_INFO << "ACK #" << msgId << ": " << message;
             }
@@ -794,14 +798,14 @@ void Application::producerThread()
         turnstile.reset(1000.0 / d_parameters_p->postInterval());
     }
 
-    bsl::shared_ptr<PostingContext> postingContext =
+    d_postingContext_sp =
         d_poster.createPostingContext(d_session_mp.get(),
                                       d_parameters_p,
                                       d_queueId);
 
-    while (d_isRunning && postingContext->pendingPost()) {
+    while (d_isRunning && d_postingContext_sp->pendingPost()) {
         if (d_isConnected) {
-            postingContext->postNext();
+            d_postingContext_sp->postNext();
         }
         if (d_parameters_p->postInterval() != 0) {
             turnstile.waitTurn();

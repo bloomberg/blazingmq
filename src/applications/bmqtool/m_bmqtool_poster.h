@@ -41,6 +41,7 @@
 
 // BDE
 #include <bdlbb_pooledblobbufferfactory.h>
+#include <bdlmt_throttle.h>
 #include <bsl_string.h>
 
 namespace BloombergLP {
@@ -99,6 +100,12 @@ class PostingContext {
     // A value that will be auto-incremented and added to
     // the message properties.
 
+    bdlmt::Throttle d_adjustPostRateThrottle;
+    // A throttle used to control the speed of post rate
+    // auto adjustments.
+
+    bsls::AtomicUint64 d_recentNACKsCount;
+
   public:
     // CREATORS
 
@@ -116,6 +123,9 @@ class PostingContext {
     /// Post next message. The behavior is undefined unless pendingPost()
     /// is true.
     void postNext();
+
+    /// Notify poster about the NACK event, so the poster is able to adjust.
+    void notifyNACK();
 
     // ACCESSORS
 

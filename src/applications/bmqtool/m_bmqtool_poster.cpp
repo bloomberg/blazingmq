@@ -37,6 +37,10 @@ BALL_LOG_SET_NAMESPACE_CATEGORY("BMQTOOL.POSTER");
 
 }
 
+// --------------------
+// class PostingContext
+// --------------------
+
 PostingContext::PostingContext(
     bmqa::Session*                  session,
     Parameters*                     parameters,
@@ -59,6 +63,8 @@ PostingContext::PostingContext(
 , d_queueId(queueId, d_allocator_p)
 , d_properties(d_allocator_p)
 , d_autoIncrementedValue(0)
+, d_adjustPostRateThrottle()
+, d_recentNACKsCount(0)
 {
     BSLS_ASSERT_SAFE(session);
     BSLS_ASSERT_SAFE(parameters);
@@ -91,6 +97,11 @@ PostingContext::PostingContext(
             bdlbb::BlobUtil::append(&d_blob, &c, 1);
         }
     }
+
+    // At most 1 post rate adjustment in 5 seconds
+    d_adjustPostRateThrottle.initialize(
+        1,
+        5 * bdlt::TimeUnitRatio::k_NANOSECONDS_PER_SECOND);
 }
 
 bool PostingContext::pendingPost() const
@@ -106,6 +117,8 @@ void PostingContext::postNext()
 
     bmqa::MessageEventBuilder eventBuilder;
     d_session_p->loadMessageEventBuilder(&eventBuilder);
+
+    const bool k_AUTO_ADJUST_PRODUCE_RATE = true;
 
     for (int evtId = 0; evtId < d_parameters_p->postRate() && pendingPost();
          ++evtId) {
@@ -206,6 +219,40 @@ void PostingContext::postNext()
 
         int rc = d_session_p->post(messageEvent);
 
+        if (k_AUTO_ADJUST_PRODUCE_RATE && (rc == bmqt::PostResult::e_BW_LIMIT || d_recentNACKsCount > 0)
+                   && d_adjustPostRateThrottle.requestPermission()) {
+            {
+                const double msgsPostRate = static_cast<double>(
+                                                d_parameters_p->postRate()) *
+                                            d_parameters_p->eventSize() *
+                                            1000 /
+                                            d_parameters_p->postInterval();
+                BALL_LOG_WARN << "Failed to post, queue capacity reached. "
+                                "Post rate (messages/s): "
+                            << msgsPostRate;
+            }
+
+            if (d_parameters_p->eventSize() > 1) {
+                d_parameters_p->setEventSize(d_parameters_p->eventSize() - 1);
+
+                const double msgsPostRate = static_cast<double>(
+                                                d_parameters_p->postRate()) *
+                                            d_parameters_p->eventSize() *
+                                            1000 /
+                                            d_parameters_p->postInterval();
+                BALL_LOG_WARN
+                    << "Decreased 'eventSize' (" << d_parameters_p->eventSize()
+                    << "). New post rate (messages/s): " << msgsPostRate;
+            }
+            else {
+                BALL_LOG_WARN << "No room to decrease 'eventSize' ("
+                            << d_parameters_p->eventSize() << ") more, "
+                            << "not able to decrease post rate.  Review the "
+                                "initial run parameters.";
+            }
+        }
+        d_recentNACKsCount = 0;
+
         if (rc != 0) {
             BALL_LOG_ERROR << "Failed to post: " << bmqt::PostResult::Enum(rc)
                            << " (" << rc << ")";
@@ -223,6 +270,14 @@ void PostingContext::postNext()
         }
     }
 }
+
+void PostingContext::notifyNACK() {
+    d_recentNACKsCount.addRelaxed(1);
+}
+
+// ------------
+// class Poster
+// ------------
 
 Poster::Poster(FileLogger*         fileLogger,
                mwcst::StatContext* statContext,
