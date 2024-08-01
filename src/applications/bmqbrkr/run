@@ -35,7 +35,7 @@ while [ "$1" != "" ]; do
     elif [ "$1" == "echo" ]; then
         debugCmd="echo"
     elif [ "$1" == "perf" ]; then
-        debugCmd="perf record -a -g"
+        debugCmd="perf record -g"
     elif [ "$1" == "valgrind" ]; then
         debugCmd="valgrind --tool=callgrind"
     fi
