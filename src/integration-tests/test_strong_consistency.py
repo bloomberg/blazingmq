@@ -256,7 +256,7 @@ class TestStrongConsistency:
                     wait_ack=False,
                 )
                 # Cannot wait for too long because resumed nodes may disconnect
-                # because of mised hearbeats and fail to send the receipt.
+                # because of missed hearbeats and fail to send the receipt.
                 assert not self.consumer.wait_push_event(timeout=3)
 
             # Verify that message is now delivered.

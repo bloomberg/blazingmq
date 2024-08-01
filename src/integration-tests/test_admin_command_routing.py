@@ -30,6 +30,7 @@ from blazingmq.dev.it.fixtures import (
 from blazingmq.dev.it.process.admin import AdminClient
 from blazingmq.dev.it.process.client import Client
 import json
+import multiprocessing.pool
 
 
 def test_primary_rerouting(multi_node: Cluster) -> None:
@@ -121,6 +122,8 @@ def test_cluster_rerouting(multi_node: Cluster) -> None:
 
     node = multi_node.nodes()[0]
 
+    num_nodes = len(multi_node.nodes())
+
     admin.connect(node.config.host, int(node.config.port))
 
     proxies = multi_node.proxy_cycle()
@@ -132,37 +135,37 @@ def test_cluster_rerouting(multi_node: Cluster) -> None:
     # Try DOMAINS RECONFIGURE <domain>
     res = admin.send_admin(f"DOMAINS RECONFIGURE {tc.DOMAIN_PRIORITY}")
 
-    # Expect 4 "SUCCESS" responses
+    # Expect num_nodes "SUCCESS" responses
     success_count = res.split().count("SUCCESS")
-    assert success_count == 4
+    assert success_count == num_nodes
 
     # Try CLUSTERS CLUSTER <name> STORAGE REPLICATION SET_ALL <param> <value>
     res = admin.send_admin(
         f"CLUSTERS CLUSTER {multi_node.name} STORAGE REPLICATION SET_ALL quorum 2"
     )
     success_count = res.split().count("Quorum")
-    assert success_count == 4
+    assert success_count == num_nodes
 
     # GET_ALL
     res = admin.send_admin(
         f"CLUSTERS CLUSTER {multi_node.name} STORAGE REPLICATION SET_ALL quorum 2"
     )
     success_count = res.split().count("Quorum")
-    assert success_count == 4
+    assert success_count == num_nodes
 
     # Try CLUSTERS CLUSTER <name> STATE ELECTOR SET_ALL <param> <value>
     res = admin.send_admin(
         f"CLUSTERS CLUSTER {multi_node.name} STATE ELECTOR SET_ALL quorum 2"
     )
     success_count = res.split().count("Quorum")
-    assert success_count == 4
+    assert success_count == num_nodes
 
     # GET_ALL
     res = admin.send_admin(
         f"CLUSTERS CLUSTER {multi_node.name} STATE ELECTOR SET_ALL quorum 2"
     )
     success_count = res.split().count("Quorum")
-    assert success_count == 4
+    assert success_count == num_nodes
 
     admin.stop()
 
@@ -189,6 +192,7 @@ def test_multi_response_encoding(multi_node: Cluster):
     admin = AdminClient()
 
     node = multi_node.nodes()[0]
+    num_nodes = len(multi_node.nodes())
 
     admin.connect(node.config.host, int(node.config.port))
 
@@ -213,9 +217,9 @@ def test_multi_response_encoding(multi_node: Cluster):
         res_json = json.loads(res)
         assert "responses" in res_json
         assert is_compact(res)
-        # we should have gotten 4 responses
+        # we should have gotten num_nodes responses
         responses = res_json["responses"]
-        assert len(responses) == 4
+        assert len(responses) == num_nodes
 
     # Stage 3: Test Pretty Encoding
     cmds = [
@@ -232,8 +236,42 @@ def test_multi_response_encoding(multi_node: Cluster):
         res_json = json.loads(res)
         assert "responses" in res_json
         assert not is_compact(res)
-        # we should have gotten 4 responses
+        # we should have gotten num_nodes responses
         responses = res_json["responses"]
-        assert len(responses) == 4
+        assert len(responses) == num_nodes
 
     admin.stop()
+
+
+def test_concurrently_routed_commands(multi_node: Cluster):
+    """
+    Test: Ensure issuing all-cluster commands to each node in parallel does
+          not cause the system to fail.
+
+    Stage 1: Connect clients
+    Stage 2: Issue command in parallel
+    Stage 3: Expect
+    """
+    # Connect a client to each node in the cluster
+    clients = []
+    for node in multi_node.nodes():
+        client = AdminClient()
+        client.connect(node.config.host, int(node.config.port))
+        clients.append(client)
+    num_nodes = len(multi_node.nodes())
+
+    def exec_command(client, cmd):
+        response = client.send_admin(cmd)
+        return response
+
+    pool = multiprocessing.pool.ThreadPool(len(multi_node.nodes()))
+    cmd = f"DOMAINS RECONFIGURE {tc.DOMAIN_PRIORITY}"
+    result_list = pool.starmap(exec_command, ((client, cmd) for client in clients))
+
+    # Ensure we got 4 responses back each with 4 successes
+    for result in result_list:
+        assert result.split().count("SUCCESS") == num_nodes
+
+    # Cleanly shut down
+    for client in clients:
+        client.stop()
