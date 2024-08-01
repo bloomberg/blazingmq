@@ -782,8 +782,8 @@ int StatController::start(bsl::ostream& errorDescription)
         PluginFactories::const_iterator factoryIt = pluginFactories.cbegin();
         for (; factoryIt != pluginFactories.cend(); ++factoryIt) {
             // The current implementation of plugins doesn't allow to retrieve
-            // a plugin name directly from the PluginFactory, without building a new
-            // instance of StatConsumer
+            // a plugin name directly from the PluginFactory, without building
+            // a new instance of StatConsumer
             bslma::Allocator* pluginAllocator = d_allocators.get("Plugin");
 
             mqbplug::StatConsumerPluginFactory* factory =
