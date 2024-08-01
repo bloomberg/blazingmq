@@ -250,7 +250,7 @@ int Application::start(bsl::ostream& errorDescription)
     // Start the PluginManager
     {
         d_pluginManager_mp.load(new (*d_allocator_p)
-                                    mqbplug::PluginManager(d_allocator_p),
+                                    mqbplug::PluginManager(d_allocators.get("PluginManager")),
                                 d_allocator_p);
         rc = d_pluginManager_mp->start(mqbcfg::BrokerConfig::get().plugins(),
                                        errorDescription);

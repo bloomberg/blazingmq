@@ -772,18 +772,25 @@ int StatController::start(bsl::ostream& errorDescription)
 
     // Initialize StatConsumers from plugins.
     {
-        PluginFactories pluginFactories(d_allocator_p);
+        bslma::Allocator *pluginFactoriesAllocator = d_allocators.get("PluginFactories");
+
+        PluginFactories pluginFactories(pluginFactoriesAllocator);
         d_pluginManager_p->get(mqbplug::PluginType::e_STATS_CONSUMER,
                                &pluginFactories);
 
         PluginFactories::const_iterator factoryIt = pluginFactories.cbegin();
         for (; factoryIt != pluginFactories.cend(); ++factoryIt) {
+            // The current implementation of plugins doesn't allow to retrieve a
+            // plugin name directly from the PluginFactory, without building a new
+            // instance of StatConsumer
+            bslma::Allocator *pluginAllocator = d_allocators.get("Plugin");
+
             mqbplug::StatConsumerPluginFactory* factory =
                 dynamic_cast<mqbplug::StatConsumerPluginFactory*>(*factoryIt);
             StatConsumerMp consumer = factory->create(ctxPtrMap,
                                                       d_commandProcessorFn,
                                                       d_bufferFactory_p,
-                                                      d_allocator_p);
+                                                      pluginAllocator);
 
             if (int status = consumer->start(errorStream)) {
                 MWCTSK_ALARMLOG_ALARM("#STATS")
