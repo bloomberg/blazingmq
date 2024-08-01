@@ -772,7 +772,8 @@ int StatController::start(bsl::ostream& errorDescription)
 
     // Initialize StatConsumers from plugins.
     {
-        bslma::Allocator *pluginFactoriesAllocator = d_allocators.get("PluginFactories");
+        bslma::Allocator *pluginFactoriesAllocator = d_allocators.get(
+            "PluginFactories");
 
         PluginFactories pluginFactories(pluginFactoriesAllocator);
         d_pluginManager_p->get(mqbplug::PluginType::e_STATS_CONSUMER,
@@ -780,10 +781,10 @@ int StatController::start(bsl::ostream& errorDescription)
 
         PluginFactories::const_iterator factoryIt = pluginFactories.cbegin();
         for (; factoryIt != pluginFactories.cend(); ++factoryIt) {
-            // The current implementation of plugins doesn't allow to retrieve a
-            // plugin name directly from the PluginFactory, without building a new
+            // The current implementation of plugins doesn't allow to retrieve
+            // a plugin name directly from the PluginFactory, without building a new
             // instance of StatConsumer
-            bslma::Allocator *pluginAllocator = d_allocators.get("Plugin");
+            bslma::Allocator* pluginAllocator = d_allocators.get("Plugin");
 
             mqbplug::StatConsumerPluginFactory* factory =
                 dynamic_cast<mqbplug::StatConsumerPluginFactory*>(*factoryIt);
