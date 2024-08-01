@@ -772,7 +772,7 @@ int StatController::start(bsl::ostream& errorDescription)
 
     // Initialize StatConsumers from plugins.
     {
-        bslma::Allocator *pluginFactoriesAllocator = d_allocators.get(
+        bslma::Allocator* pluginFactoriesAllocator = d_allocators.get(
             "PluginFactories");
 
         PluginFactories pluginFactories(pluginFactoriesAllocator);
