@@ -231,7 +231,7 @@ template <class HASH_ALGORITHM>
 void hashAppend(HASH_ALGORITHM& hashAlgo, const DataStoreRecordKey& key);
 
 // ================================
-// class DataStoreRecordKeyHashAlgo
+// class DataStoreRecordKey
 // ================================
 
 /// This class provides a hashing algorithm for `mqbs::DataStoreRecordKey`.
@@ -240,7 +240,7 @@ void hashAppend(HASH_ALGORITHM& hashAlgo, const DataStoreRecordKey& key);
 /// `bslh::Hash<>`) in `bslh` framework lingo (see BDE "Modular Hashing"
 /// document).  Note that this class is not templatized on a
 /// `HASHING_ALGORITHM` (unlike recommended in the document).
-class DataStoreRecordKeyHashAlgo {
+class DataStoreRecordKey {
   public:
     // TYPES
     typedef bsls::Types::Uint64 result_type;
@@ -833,7 +833,8 @@ inline DataStoreRecordKeyHashAlgo::result_type
 DataStoreRecordKeyHashAlgo::operator()(const TYPE& type) const
 {
     return type.d_sequenceNum +
-           static_cast<bsls::Types::Uint64>(type.d_primaryLeaseId) << 32;
+           static_cast<bsls::Types::Uint64>(type.d_primaryLeaseId)
+           << 32;
 }
 
 // -----------------------------
