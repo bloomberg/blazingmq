@@ -220,6 +220,7 @@ StatChannelFactoryUtil::statContextConfiguration(const bsl::string& name,
     config.isTable(true);
     config.value("in_bytes")
         .value("out_bytes")
+        .value("connections")
         .storeExpiredSubcontextValues(true);
 
     if (historySize != -1) {
@@ -268,6 +269,10 @@ void StatChannelFactoryUtil::initializeStatsTable(
                      StatChannel::Stat::e_BYTES_OUT,
                      mwcst::StatUtil::value,
                      start);
+    schema.addColumn("connections",
+                     StatChannel::Stat::e_CONNECTIONS,
+                     mwcst::StatUtil::value,
+                     start);
 
     if (!(end == mwcst::StatValue::SnapshotLocation())) {
         schema.addColumn("in_bytes_delta",
@@ -277,6 +282,11 @@ void StatChannelFactoryUtil::initializeStatsTable(
                          end);
         schema.addColumn("out_bytes_delta",
                          StatChannel::Stat::e_BYTES_OUT,
+                         mwcst::StatUtil::valueDifference,
+                         start,
+                         end);
+        schema.addColumn("connections_delta",
+                         StatChannel::Stat::e_CONNECTIONS,
                          mwcst::StatUtil::valueDifference,
                          start,
                          end);
@@ -316,6 +326,14 @@ void StatChannelFactoryUtil::initializeStatsTable(
             .printAsMemory();
     }
     tip->addColumn("out_bytes", "total").zeroString("").printAsMemory();
+
+    tip->setColumnGroup("Connections");
+    if (!(end == mwcst::StatValue::SnapshotLocation())) {
+        tip->addColumn("connections_delta", "delta")
+            .zeroString("")
+            .setPrecision(0);
+    }
+    tip->addColumn("connections", "total").setPrecision(0);
 }
 
 bsls::Types::Int64
@@ -351,6 +369,12 @@ StatChannelFactoryUtil::getValue(const mwcst::StatContext& context,
     }
     case Stat::e_BYTES_OUT_ABS: {
         return STAT_SINGLE(value, StatChannel::Stat::e_BYTES_OUT);
+    }
+    case Stat::e_CONNECTIONS_DELTA: {
+        return STAT_RANGE(valueDifference, StatChannel::Stat::e_CONNECTIONS);
+    }
+    case Stat::e_CONNECTIONS_ABS: {
+        return STAT_SINGLE(value, StatChannel::Stat::e_CONNECTIONS);
     }
     default: {
         BSLS_ASSERT_SAFE(false && "Attempting to access an unknown stat");

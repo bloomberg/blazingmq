@@ -53,6 +53,7 @@
 #include <bdlbb_blob.h>
 #include <bdlf_bind.h>
 #include <bdlf_placeholder.h>
+#include <bdlma_localsequentialallocator.h>
 #include <bdlmt_eventscheduler.h>
 #include <bdlt_timeunitratio.h>
 #include <bsl_algorithm.h>
@@ -80,6 +81,20 @@ const bsls::Types::Int64 k_NS_PER_MESSAGE = 15 *
 // Time interval between messages logged with throttling.
 
 const char k_PUBLISHINTERVAL_SUFFIX[] = ".PUBLISHINTERVAL";
+
+void portsDeleter(
+    bsl::unordered_map<bsl::string, bslma::ManagedPtr<mwcst::StatContext> >*
+                              map,
+    bslmt::Mutex*             mutex,
+    const mwcst::StatContext& context)
+{
+    // Lookup the port's StatContext and remove it from the 'map'
+    bslmt::LockGuard<bslmt::Mutex> guard(mutex);  // LOCK
+    if (context.numSnapshots() != 0 && !context.isDeleted() &&
+        context.numSubcontexts() == 0) {
+        map->erase(context.name());
+    }
+};
 
 typedef bsl::unordered_set<mqbplug::PluginFactory*> PluginFactories;
 
@@ -981,6 +996,44 @@ int StatController::processCommand(
     result->makeError();
     result->error().message() = os.str();
     return -1;
+}
+
+StatController::StatContextMp
+StatController::addChannelStatContext(ChannelSelector::Enum selector,
+                                      const bsl::string&    port,
+                                      const bsl::string&    endpoint)
+{
+    mwcst::StatContext* parent = channelsStatContext(selector);
+    BSLS_ASSERT_SAFE(parent);
+
+    bdlma::LocalSequentialAllocator<2048> localAllocator(d_allocator_p);
+    mwcst::StatContextConfiguration       portConfig(port, &localAllocator);
+    mwcst::StatContextConfiguration statConfig(endpoint, &localAllocator);
+
+    bslma::ManagedPtr<mwcst::StatContext> channelStatContext;
+
+    {
+        bslmt::LockGuard<bslmt::Mutex> guard(&d_portsMutex);  // LOCK
+        StatContextMap::iterator       portIt = d_portsMap.find(port);
+
+        if (portIt == d_portsMap.end()) {
+            bslma::ManagedPtr<mwcst::StatContext> portStatContext =
+                parent->addSubcontext(
+                    portConfig.storeExpiredSubcontextValues(true)
+                        .preSnapshotCallback(
+                            bdlf::BindUtil::bind(portsDeleter,
+                                                 &d_portsMap,
+                                                 &d_portsMutex,
+                                                 bdlf::PlaceHolders::_1)));
+            channelStatContext = portStatContext->addSubcontext(statConfig);
+            d_portsMap.emplace(portStatContext->name(), portStatContext);
+        }
+        else {
+            channelStatContext = portIt->second->addSubcontext(statConfig);
+        }
+    }
+
+    return channelStatContext;
 }
 
 }  // close package namespace

@@ -59,6 +59,7 @@
 #include <bdlf_bind.h>
 #include <bdlf_placeholder.h>
 #include <bdlma_localsequentialallocator.h>
+#include <bdlpcre_regex.h>
 #include <bdlt_timeunitratio.h>
 #include <bsl_algorithm.h>
 #include <bsl_cstdlib.h>
@@ -100,6 +101,21 @@ const int k_SESSION_DESTROY_WAIT = 20;
 const int k_CLIENT_CLOSE_WAIT = 20;
 // Time to wait incrementally (in seconds) for all clients and
 // proxies to be destroyed during stop sequence.
+const char k_PORT_PATTERN[] = ":(\\d{1,5})";
+
+bsl::string portFromUri(const bsl::string& endpoint)
+{
+    bdlpcre::RegEx                regEx;
+    bsl::string                   errorMessage;
+    size_t                        errorOffset;
+    std::vector<bsl::string_view> matchVector;
+
+    BSLS_ASSERT_SAFE(
+        0 == regEx.prepare(&errorMessage, &errorOffset, k_PORT_PATTERN));
+    BSLS_ASSERT_SAFE(0 == regEx.match(&matchVector, endpoint));
+
+    return bsl::string(matchVector[1]);
+}
 
 char calculateInitialMissedHbCounter(const mqbcfg::TcpInterfaceConfig& config)
 {
@@ -280,36 +296,30 @@ TCPSessionFactory::channelStatContextCreator(
     const bsl::shared_ptr<mwcio::Channel>&                  channel,
     const bsl::shared_ptr<mwcio::StatChannelFactoryHandle>& handle)
 {
-    mwcst::StatContext* parent = 0;
-
     int peerAddress;
     channel->properties().load(&peerAddress, k_CHANNEL_PROPERTY_PEER_IP);
 
     ntsa::Ipv4Address ipv4Address(static_cast<bsl::uint32_t>(peerAddress));
     ntsa::IpAddress   ipAddress(ipv4Address);
-    if (!mwcio::ChannelUtil::isLocalHost(ipAddress)) {
-        parent = d_statController_p->channelsStatContext(
-            mqbstat::StatController::ChannelSelector::e_LOCAL);
-    }
-    else {
-        parent = d_statController_p->channelsStatContext(
-            mqbstat::StatController::ChannelSelector::e_REMOTE);
-    }
+    mqbstat::StatController::ChannelSelector::Enum selector =
+        mwcio::ChannelUtil::isLocalHost(ipAddress)
+            ? mqbstat::StatController::ChannelSelector::e_REMOTE
+            : mqbstat::StatController::ChannelSelector::e_LOCAL;
 
-    BSLS_ASSERT_SAFE(parent);
-
-    bsl::string name;
+    bsl::string name, localPort;
     if (handle->options().is<mwcio::ConnectOptions>()) {
-        name = handle->options().the<mwcio::ConnectOptions>().endpoint();
+        name      = handle->options().the<mwcio::ConnectOptions>().endpoint();
+        localPort = portFromUri(channel->peerUri());
     }
     else {
-        name = channel->peerUri();
+        name      = channel->peerUri();
+        localPort = portFromUri(
+            handle->options().the<mwcio::ListenOptions>().endpoint());
     }
 
-    bdlma::LocalSequentialAllocator<2048> localAllocator(d_allocator_p);
-    mwcst::StatContextConfiguration       statConfig(name, &localAllocator);
-
-    return parent->addSubcontext(statConfig);
+    return d_statController_p->addChannelStatContext(selector,
+                                                     localPort,
+                                                     name);
 }
 
 void TCPSessionFactory::negotiate(

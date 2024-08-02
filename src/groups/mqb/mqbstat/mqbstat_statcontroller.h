@@ -125,14 +125,15 @@ class StatController {
 
   private:
     // PRIVATE TYPES
-    typedef bslma::ManagedPtr<bdlmt::TimerEventScheduler> SchedulerMp;
-    typedef bslma::ManagedPtr<mwcst::StatContext>         StatContextMp;
-    typedef bsl::shared_ptr<mwcst::StatContext>           StatContextSp;
-    typedef bslma::ManagedPtr<mwcsys::StatMonitor>        SystemStatMonitorMp;
-    typedef bslma::ManagedPtr<Printer>                    PrinterMp;
-    typedef bslma::ManagedPtr<JsonPrinter>                JsonPrinterMp;
-    typedef bslma::ManagedPtr<mqbplug::StatPublisher>     StatPublisherMp;
-    typedef bslma::ManagedPtr<mqbplug::StatConsumer>      StatConsumerMp;
+    typedef bslma::ManagedPtr<bdlmt::TimerEventScheduler>  SchedulerMp;
+    typedef bslma::ManagedPtr<mwcst::StatContext>          StatContextMp;
+    typedef bsl::shared_ptr<mwcst::StatContext>            StatContextSp;
+    typedef bslma::ManagedPtr<mwcsys::StatMonitor>         SystemStatMonitorMp;
+    typedef bslma::ManagedPtr<Printer>                     PrinterMp;
+    typedef bslma::ManagedPtr<JsonPrinter>                 JsonPrinterMp;
+    typedef bslma::ManagedPtr<mqbplug::StatPublisher>      StatPublisherMp;
+    typedef bslma::ManagedPtr<mqbplug::StatConsumer>       StatConsumerMp;
+    typedef bsl::unordered_map<bsl::string, StatContextMp> StatContextMap;
 
     /// Struct containing a statcontext and bool specifying if the
     /// statcontext is managed.
@@ -188,6 +189,12 @@ class StatController {
     /// 'remote' child stat context of the
     /// 'channels' stat context
     StatContextMp d_statContextChannelsRemote_mp;
+
+    /// Mutex for thread safety of the 'd_portsMap'
+    bslmt::Mutex d_portsMutex;
+
+    /// Map of all open ports to their StatContext's
+    StatContextMap d_portsMap;
 
     /// System stat monitor (for cpu and
     /// memory).
@@ -339,6 +346,13 @@ class StatController {
     /// Retrieve the channels stat context corresponding to the specified
     /// `selector`.
     mwcst::StatContext* channelsStatContext(ChannelSelector::Enum selector);
+
+    /// Add a StatContext for the specified 'port' as a subcontext to the root
+    /// StatContext of local or remote channels, corresponding to the specified
+    /// 'selector'.
+    StatContextMp addChannelStatContext(ChannelSelector::Enum selector,
+                                        const bsl::string&    port,
+                                        const bsl::string&    endpoint);
 };
 
 // ============================================================================

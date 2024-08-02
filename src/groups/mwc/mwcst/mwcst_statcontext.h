@@ -799,6 +799,10 @@ class StatContext {
     /// all sibling subcontexts.
     int uniqueId() const;
 
+    /// Return te number of times this 'StatContext' had 'snapshot' called on
+    /// it.
+    bsls::Types::Int64 numSnapshots() const;
+
     /// Return the number of subcontexts held by this `StatContext`
     int numSubcontexts() const;
 
@@ -1131,6 +1135,11 @@ inline bool StatContext::hasDefaultHistorySize() const
 inline int StatContext::uniqueId() const
 {
     return d_uniqueId;
+}
+
+inline bsls::Types::Int64 StatContext::numSnapshots() const
+{
+    return d_numSnapshots;
 }
 
 inline int StatContext::numSubcontexts() const
