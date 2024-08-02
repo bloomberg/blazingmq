@@ -833,7 +833,7 @@ inline DataStoreRecordKeyHashAlgo::result_type
 DataStoreRecordKeyHashAlgo::operator()(const TYPE& type) const
 {
     return type.d_sequenceNum +
-           static_cast<bsls::Types::Uint64>(type.d_primaryLeaseId)
+               static_cast<bsls::Types::Uint64>(type.d_primaryLeaseId)
            << 32;
 }
 
