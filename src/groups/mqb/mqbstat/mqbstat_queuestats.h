@@ -45,8 +45,11 @@
 #include <bsl_list.h>
 #include <bsl_memory.h>
 #include <bsl_string.h>
+#include <bsl_unordered_map.h>
 #include <bslma_allocator.h>
 #include <bslma_managedptr.h>
+#include <bslma_usesbslmaallocator.h>
+#include <bslmf_nestedtraitdeclaration.h>
 #include <bsls_cpp11.h>
 #include <bsls_types.h>
 
@@ -70,6 +73,9 @@ namespace mqbstat {
 /// domain.
 class QueueStatsDomain {
   public:
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(QueueStatsDomain, bslma::UsesBslmaAllocator)
+
     // TYPES
 
     /// Enum representing the various type of events for which statistics
@@ -182,11 +188,26 @@ class QueueStatsDomain {
     typedef bslma::ManagedPtr<mwcst::StatContext> StatSubContextMp;
 
     // PRIVATE DATA
+    /// Allocator to use
+    bslma::Allocator* d_allocator_p;
+
+    /// StatContext
     bslma::ManagedPtr<mwcst::StatContext> d_statContext_mp;
-    // StatContext
-    bslma::ManagedPtr<bsl::list<StatSubContextMp> > d_subContexts_mp;
-    // List of appId subcontexts. It is initialized if domain name is in the
-    // list of enabled domains in broker's `stats` configuration.
+
+    /// List of per-appId subcontexts stored as managed pointers.
+    /// Note: `mwcst::StatContext` interface allocates subcontexts as
+    ///       managed pointers.  We are not able to store managed pointers
+    ///       in a collection that might reallocate and copy its elements.
+    ///       This is why list is used to store managed pointers.  But we
+    ///       also want to perform fast lookups to subcontexts, and for this
+    ///       we have `d_subContextsLookup` table that points to raw pointers
+    ///       to subcontexts.  These both fields must be kept in sync during
+    ///       reconfiguration.
+    bsl::list<StatSubContextMp> d_subContextsHolder;
+
+    /// Lookup table for per-appId subcontexts.  Managed pointers to these
+    /// subcontexts must be held in `d_subContextsHolder`.
+    bsl::unordered_map<bsl::string, mwcst::StatContext*> d_subContextsLookup;
 
   private:
     // NOT IMPLEMENTED
@@ -212,18 +233,17 @@ class QueueStatsDomain {
 
     // CREATORS
 
-    /// Create a new object in an uninitialized state.
-    QueueStatsDomain();
+    /// Create a new object in an uninitialized state, using the specified
+    /// `allocator` for any memory allocations.
+    explicit QueueStatsDomain(bslma::Allocator* allocator);
 
     // MANIPULATORS
 
     /// Initialize this object for the queue with the specified `uri`, and
     /// register it as a subcontext of the specified `domainStatContext`
     /// (which correspond to the domain-level stat context this queue is
-    /// part of), using the specified `allocator`.
-    void initialize(const bmqt::Uri&  uri,
-                    mqbi::Domain*     domain,
-                    bslma::Allocator* allocator);
+    /// part of).
+    void initialize(const bmqt::Uri& uri, mqbi::Domain* domain);
 
     /// Set the reader count to the specified `readerCount`.  Return the
     /// `QueueStatsDomain` object.
