@@ -82,8 +82,8 @@ static void test1_breathingTest()
     QueueStatsClient queueStatsClient;
     queueStatsClient.initialize(bmqt::Uri(), client.get(), s_allocator_p);
 
-    QueueStatsDomain queueStatsDomain;
-    queueStatsDomain.initialize(bmqt::Uri(), &mockDomain, s_allocator_p);
+    QueueStatsDomain queueStatsDomain(s_allocator_p);
+    queueStatsDomain.initialize(bmqt::Uri(), &mockDomain);
 
     client->snapshot();
     domain->snapshot();
@@ -270,8 +270,8 @@ static void test3_queueStatsDomain()
     using namespace mqbstat;
     typedef QueueStatsDomain::Stat DomainStat;
 
-    QueueStatsDomain queueStatsDomain;
-    queueStatsDomain.initialize(bmqt::Uri(), &mockDomain, s_allocator_p);
+    QueueStatsDomain queueStatsDomain(s_allocator_p);
+    queueStatsDomain.initialize(bmqt::Uri(), &mockDomain);
 
     const int k_DUMMY = 0;
 
@@ -421,8 +421,8 @@ static void test4_queueStatsDomainContent()
     mqbmock::Domain                mockDomain(&mockCluster, s_allocator_p);
     mwcst::StatContext*            sc = mockDomain.queueStatContext();
 
-    mqbstat::QueueStatsDomain obj;
-    obj.initialize(bmqt::Uri(), &mockDomain, s_allocator_p);
+    mqbstat::QueueStatsDomain obj(s_allocator_p);
+    obj.initialize(bmqt::Uri(), &mockDomain);
 
     // Initial Snapshot
     {
