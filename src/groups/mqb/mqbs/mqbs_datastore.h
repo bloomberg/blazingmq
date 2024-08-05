@@ -463,7 +463,7 @@ class DataStoreConfig {
 
 /// Format the specified `value` to the specified output `stream` and return
 /// a reference to the modifiable `stream`.
-bsl::ostream& operator<<(bsl::ostream& stream, const DataStoreConfig& value);
+bsl::ostream& operator(bsl::ostream& stream, const DataStoreConfig& value);
 
 // ===========================
 // class DataStoreRecordHandle
@@ -833,8 +833,8 @@ inline DataStoreRecordKeyHashAlgo::result_type
 DataStoreRecordKeyHashAlgo::operator()(const TYPE& type) const
 {
     return type.d_sequenceNum +
-               static_cast<bsls::Types::Uint64>(type.d_primaryLeaseId)
-           << 32;
+               (static_cast<bsls::Types::Uint64>(type.d_primaryLeaseId)
+           << 32);
 }
 
 // -----------------------------
