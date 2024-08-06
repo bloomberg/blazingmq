@@ -44,7 +44,7 @@
 //
 /// Thread-safety
 ///-------------
-// This object is *thread* *enabled*, meaning that two threads can safely call
+// This object is *fully thread-safe*, meaning that two threads can safely call
 // any methods on the *same* *instance* without external synchronization.
 //
 /// TBD
