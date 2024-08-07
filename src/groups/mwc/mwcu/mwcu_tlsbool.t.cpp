@@ -183,8 +183,7 @@ static void test2_isValid()
     // There is a maximum number of keys that can be created by a process,
     // defined as PTHREAD_KEYS_MAX.  However, it seems that on some platforms,
     // some keys are already used and the full range is therefore not available
-    // to the application (e.g. on AIX PTHREAD_KEYS_MAX is 450, but application
-    // can only create 445 keys, on Darwin limit is 512 but only 509 or 510 are
+    // to the application (e.g. on Darwin limit is 512 but only 509 or 510 are
     // available, ...).  Figure out what that limit is, by creating keys until
     // creation returns failure.
     bsl::vector<bslmt::ThreadUtil::Key> keys(s_allocator_p);
@@ -212,8 +211,8 @@ static void test2_isValid()
     // At this point, we created the max limit number of keys the system can
     // handle, creating any one more should assert, unless providing a default
     // value in the constructor.
-#if !defined(BSLS_PLATFORM_OS_AIX) && !defined(BSLS_PLATFORM_OS_DARWIN)
-    // It doesn't look like AIX or Darwin handle constructor throwing an
+#if !defined(BSLS_PLATFORM_OS_DARWIN)
+    // It doesn't look like Darwin handle constructor throwing an
     // ASSERT, so skip that check on those platforms.
     {
         // Constructor without a value, should assert

@@ -875,10 +875,10 @@ static void test12_printMessagesDetailsTest()
 {
     mwctst::TestHelper::printTestName("PRINT MESSAGE DETAILS TEST");
 
-#if defined(BSLS_PLATFORM_OS_SOLARIS) || defined(BSLS_PLATFORM_OS_AIX)
+#if defined(BSLS_PLATFORM_OS_SOLARIS)
     s_ignoreCheckDefAlloc = true;
     // Disable default allocator check for this test until we can debug
-    // it on AIX/Solaris
+    // it on Solaris
 #endif
 
     // Simulate journal file

@@ -1,4 +1,4 @@
-// Copyright 2014-2023 Bloomberg Finance L.P.
+// Copyright 2014-2024 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -659,35 +659,7 @@ const bdlat_AttributeInfo* FileBackedStorage::lookupAttributeInfo(int id)
 
 // CREATORS
 
-FileBackedStorage::FileBackedStorage()
-{
-}
-
-FileBackedStorage::FileBackedStorage(const FileBackedStorage& original)
-{
-    (void)original;
-}
-
-FileBackedStorage::~FileBackedStorage()
-{
-}
-
 // MANIPULATORS
-
-FileBackedStorage& FileBackedStorage::operator=(const FileBackedStorage& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-FileBackedStorage& FileBackedStorage::operator=(FileBackedStorage&& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-#endif
 
 void FileBackedStorage::reset()
 {
@@ -727,35 +699,7 @@ const bdlat_AttributeInfo* InMemoryStorage::lookupAttributeInfo(int id)
 
 // CREATORS
 
-InMemoryStorage::InMemoryStorage()
-{
-}
-
-InMemoryStorage::InMemoryStorage(const InMemoryStorage& original)
-{
-    (void)original;
-}
-
-InMemoryStorage::~InMemoryStorage()
-{
-}
-
 // MANIPULATORS
-
-InMemoryStorage& InMemoryStorage::operator=(const InMemoryStorage& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-InMemoryStorage& InMemoryStorage::operator=(InMemoryStorage&& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-#endif
 
 void InMemoryStorage::reset()
 {
@@ -845,46 +789,7 @@ Limits::Limits()
 {
 }
 
-Limits::Limits(const Limits& original)
-: d_messagesWatermarkRatio(original.d_messagesWatermarkRatio)
-, d_bytesWatermarkRatio(original.d_bytesWatermarkRatio)
-, d_messages(original.d_messages)
-, d_bytes(original.d_bytes)
-{
-}
-
-Limits::~Limits()
-{
-}
-
 // MANIPULATORS
-
-Limits& Limits::operator=(const Limits& rhs)
-{
-    if (this != &rhs) {
-        d_messages               = rhs.d_messages;
-        d_messagesWatermarkRatio = rhs.d_messagesWatermarkRatio;
-        d_bytes                  = rhs.d_bytes;
-        d_bytesWatermarkRatio    = rhs.d_bytesWatermarkRatio;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-Limits& Limits::operator=(Limits&& rhs)
-{
-    if (this != &rhs) {
-        d_messages               = bsl::move(rhs.d_messages);
-        d_messagesWatermarkRatio = bsl::move(rhs.d_messagesWatermarkRatio);
-        d_bytes                  = bsl::move(rhs.d_bytes);
-        d_bytesWatermarkRatio    = bsl::move(rhs.d_bytesWatermarkRatio);
-    }
-
-    return *this;
-}
-#endif
 
 void Limits::reset()
 {
@@ -981,43 +886,7 @@ MsgGroupIdConfig::MsgGroupIdConfig()
 {
 }
 
-MsgGroupIdConfig::MsgGroupIdConfig(const MsgGroupIdConfig& original)
-: d_ttlSeconds(original.d_ttlSeconds)
-, d_maxGroups(original.d_maxGroups)
-, d_rebalance(original.d_rebalance)
-{
-}
-
-MsgGroupIdConfig::~MsgGroupIdConfig()
-{
-}
-
 // MANIPULATORS
-
-MsgGroupIdConfig& MsgGroupIdConfig::operator=(const MsgGroupIdConfig& rhs)
-{
-    if (this != &rhs) {
-        d_rebalance  = rhs.d_rebalance;
-        d_maxGroups  = rhs.d_maxGroups;
-        d_ttlSeconds = rhs.d_ttlSeconds;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-MsgGroupIdConfig& MsgGroupIdConfig::operator=(MsgGroupIdConfig&& rhs)
-{
-    if (this != &rhs) {
-        d_rebalance  = bsl::move(rhs.d_rebalance);
-        d_maxGroups  = bsl::move(rhs.d_maxGroups);
-        d_ttlSeconds = bsl::move(rhs.d_ttlSeconds);
-    }
-
-    return *this;
-}
-#endif
 
 void MsgGroupIdConfig::reset()
 {
@@ -1069,38 +938,7 @@ QueueConsistencyEventual::lookupAttributeInfo(int id)
 
 // CREATORS
 
-QueueConsistencyEventual::QueueConsistencyEventual()
-{
-}
-
-QueueConsistencyEventual::QueueConsistencyEventual(
-    const QueueConsistencyEventual& original)
-{
-    (void)original;
-}
-
-QueueConsistencyEventual::~QueueConsistencyEventual()
-{
-}
-
 // MANIPULATORS
-
-QueueConsistencyEventual&
-QueueConsistencyEventual::operator=(const QueueConsistencyEventual& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-QueueConsistencyEventual&
-QueueConsistencyEventual::operator=(QueueConsistencyEventual&& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-#endif
 
 void QueueConsistencyEventual::reset()
 {
@@ -1141,38 +979,7 @@ const bdlat_AttributeInfo* QueueConsistencyStrong::lookupAttributeInfo(int id)
 
 // CREATORS
 
-QueueConsistencyStrong::QueueConsistencyStrong()
-{
-}
-
-QueueConsistencyStrong::QueueConsistencyStrong(
-    const QueueConsistencyStrong& original)
-{
-    (void)original;
-}
-
-QueueConsistencyStrong::~QueueConsistencyStrong()
-{
-}
-
 // MANIPULATORS
-
-QueueConsistencyStrong&
-QueueConsistencyStrong::operator=(const QueueConsistencyStrong& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-QueueConsistencyStrong&
-QueueConsistencyStrong::operator=(QueueConsistencyStrong&& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-#endif
 
 void QueueConsistencyStrong::reset()
 {
@@ -1213,36 +1020,7 @@ const bdlat_AttributeInfo* QueueModeBroadcast::lookupAttributeInfo(int id)
 
 // CREATORS
 
-QueueModeBroadcast::QueueModeBroadcast()
-{
-}
-
-QueueModeBroadcast::QueueModeBroadcast(const QueueModeBroadcast& original)
-{
-    (void)original;
-}
-
-QueueModeBroadcast::~QueueModeBroadcast()
-{
-}
-
 // MANIPULATORS
-
-QueueModeBroadcast&
-QueueModeBroadcast::operator=(const QueueModeBroadcast& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-QueueModeBroadcast& QueueModeBroadcast::operator=(QueueModeBroadcast&& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-#endif
 
 void QueueModeBroadcast::reset()
 {
@@ -1263,10 +1041,17 @@ bsl::ostream& QueueModeBroadcast::print(bsl::ostream& stream, int, int) const
 
 const char QueueModeFanout::CLASS_NAME[] = "QueueModeFanout";
 
+const bool QueueModeFanout::DEFAULT_INITIALIZER_PUBLISH_APP_ID_METRICS = false;
+
 const bdlat_AttributeInfo QueueModeFanout::ATTRIBUTE_INFO_ARRAY[] = {
     {ATTRIBUTE_ID_APP_I_DS,
      "appIDs",
      sizeof("appIDs") - 1,
+     "",
+     bdlat_FormattingMode::e_TEXT},
+    {ATTRIBUTE_ID_PUBLISH_APP_ID_METRICS,
+     "publishAppIdMetrics",
+     sizeof("publishAppIdMetrics") - 1,
      "",
      bdlat_FormattingMode::e_TEXT}};
 
@@ -1275,7 +1060,7 @@ const bdlat_AttributeInfo QueueModeFanout::ATTRIBUTE_INFO_ARRAY[] = {
 const bdlat_AttributeInfo*
 QueueModeFanout::lookupAttributeInfo(const char* name, int nameLength)
 {
-    for (int i = 0; i < 1; ++i) {
+    for (int i = 0; i < 2; ++i) {
         const bdlat_AttributeInfo& attributeInfo =
             QueueModeFanout::ATTRIBUTE_INFO_ARRAY[i];
 
@@ -1293,6 +1078,8 @@ const bdlat_AttributeInfo* QueueModeFanout::lookupAttributeInfo(int id)
     switch (id) {
     case ATTRIBUTE_ID_APP_I_DS:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_APP_I_DS];
+    case ATTRIBUTE_ID_PUBLISH_APP_ID_METRICS:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PUBLISH_APP_ID_METRICS];
     default: return 0;
     }
 }
@@ -1301,25 +1088,29 @@ const bdlat_AttributeInfo* QueueModeFanout::lookupAttributeInfo(int id)
 
 QueueModeFanout::QueueModeFanout(bslma::Allocator* basicAllocator)
 : d_appIDs(basicAllocator)
+, d_publishAppIdMetrics(DEFAULT_INITIALIZER_PUBLISH_APP_ID_METRICS)
 {
 }
 
 QueueModeFanout::QueueModeFanout(const QueueModeFanout& original,
                                  bslma::Allocator*      basicAllocator)
 : d_appIDs(original.d_appIDs, basicAllocator)
+, d_publishAppIdMetrics(original.d_publishAppIdMetrics)
 {
 }
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
 QueueModeFanout::QueueModeFanout(QueueModeFanout&& original) noexcept
-: d_appIDs(bsl::move(original.d_appIDs))
+: d_appIDs(bsl::move(original.d_appIDs)),
+  d_publishAppIdMetrics(bsl::move(original.d_publishAppIdMetrics))
 {
 }
 
 QueueModeFanout::QueueModeFanout(QueueModeFanout&& original,
                                  bslma::Allocator* basicAllocator)
 : d_appIDs(bsl::move(original.d_appIDs), basicAllocator)
+, d_publishAppIdMetrics(bsl::move(original.d_publishAppIdMetrics))
 {
 }
 #endif
@@ -1334,6 +1125,7 @@ QueueModeFanout& QueueModeFanout::operator=(const QueueModeFanout& rhs)
 {
     if (this != &rhs) {
         d_appIDs = rhs.d_appIDs;
+        d_publishAppIdMetrics = rhs.d_publishAppIdMetrics;
     }
 
     return *this;
@@ -1345,6 +1137,7 @@ QueueModeFanout& QueueModeFanout::operator=(QueueModeFanout&& rhs)
 {
     if (this != &rhs) {
         d_appIDs = bsl::move(rhs.d_appIDs);
+        d_publishAppIdMetrics = bsl::move(rhs.d_publishAppIdMetrics);
     }
 
     return *this;
@@ -1354,6 +1147,7 @@ QueueModeFanout& QueueModeFanout::operator=(QueueModeFanout&& rhs)
 void QueueModeFanout::reset()
 {
     bdlat_ValueTypeFunctions::reset(&d_appIDs);
+    d_publishAppIdMetrics = DEFAULT_INITIALIZER_PUBLISH_APP_ID_METRICS;
 }
 
 // ACCESSORS
@@ -1365,6 +1159,7 @@ bsl::ostream& QueueModeFanout::print(bsl::ostream& stream,
     bslim::Printer printer(&stream, level, spacesPerLevel);
     printer.start();
     printer.printAttribute("appIDs", this->appIDs());
+    printer.printAttribute("publishAppIdMetrics", this->publishAppIdMetrics());
     printer.end();
     return stream;
 }
@@ -1396,35 +1191,7 @@ const bdlat_AttributeInfo* QueueModePriority::lookupAttributeInfo(int id)
 
 // CREATORS
 
-QueueModePriority::QueueModePriority()
-{
-}
-
-QueueModePriority::QueueModePriority(const QueueModePriority& original)
-{
-    (void)original;
-}
-
-QueueModePriority::~QueueModePriority()
-{
-}
-
 // MANIPULATORS
-
-QueueModePriority& QueueModePriority::operator=(const QueueModePriority& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-QueueModePriority& QueueModePriority::operator=(QueueModePriority&& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-#endif
 
 void QueueModePriority::reset()
 {
@@ -3309,43 +3076,7 @@ StorageDefinition::StorageDefinition()
 {
 }
 
-StorageDefinition::StorageDefinition(const StorageDefinition& original)
-: d_config(original.d_config)
-, d_domainLimits(original.d_domainLimits)
-, d_queueLimits(original.d_queueLimits)
-{
-}
-
-StorageDefinition::~StorageDefinition()
-{
-}
-
 // MANIPULATORS
-
-StorageDefinition& StorageDefinition::operator=(const StorageDefinition& rhs)
-{
-    if (this != &rhs) {
-        d_domainLimits = rhs.d_domainLimits;
-        d_queueLimits  = rhs.d_queueLimits;
-        d_config       = rhs.d_config;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-StorageDefinition& StorageDefinition::operator=(StorageDefinition&& rhs)
-{
-    if (this != &rhs) {
-        d_domainLimits = bsl::move(rhs.d_domainLimits);
-        d_queueLimits  = bsl::move(rhs.d_queueLimits);
-        d_config       = bsl::move(rhs.d_config);
-    }
-
-    return *this;
-}
-#endif
 
 void StorageDefinition::reset()
 {
@@ -4251,10 +3982,10 @@ const char* DomainVariant::selectionName() const
 }  // close package namespace
 }  // close enterprise namespace
 
-// GENERATED BY BLP_BAS_CODEGEN_2023.11.25
+// GENERATED BY @BLP_BAS_CODEGEN_VERSION@
 // USING bas_codegen.pl -m msg --noAggregateConversion --noExternalization
 // --noIdent --package mqbconfm --msgComponent messages mqbconf.xsd SERVICE
-// SERVICE VERSION bmqconf:183474-1.0
+// VERSION bmqconf:183474-1.0
 // ----------------------------------------------------------------------------
 // NOTICE:
 //      Copyright 2024 Bloomberg Finance L.P. All rights reserved.
