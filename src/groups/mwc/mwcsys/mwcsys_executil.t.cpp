@@ -130,8 +130,8 @@ static void test2_executeSystemFailure()
 
     PVV("Testing abnormal exit of the command");
 
-#if defined(BSLS_PLATFORM_OS_SOLARIS) || defined(BSLS_PLATFORM_OS_AIX)
-    // For AIX/Solaris, python2 support is stopped, and alias `python3`
+#if defined(BSLS_PLATFORM_OS_SOLARIS)
+    // For Solaris, python2 support is stopped, and alias `python3`
     // doesn't exist.  The final supported release is 3.8.
     rc = mwcsys::ExecUtil::execute(&output,
                                    "python3.8 -c 'import os,signal; "

@@ -149,7 +149,7 @@ class SimpleEvaluator {
     // Bison generates different code for different available standards:
     // - For C++ >= 11 it generates the 'emplace' with a move constructor, so
     // it's possible to use 'bslma::ManagedPtr'.
-    // - For C++ < 11 (AIX/Solaris) it generates the 'emplace' with a const&
+    // - For C++ < 11 (Solaris) it generates the 'emplace' with a const&
     // copy constructor, but this constructor is deleted for
     // 'bslma::ManagedPtr', so it's impossible to use here. Use
     // 'bsl::shared_ptr' instead.

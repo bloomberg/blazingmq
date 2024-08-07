@@ -1,4 +1,4 @@
-// Copyright 2014-2023 Bloomberg Finance L.P.
+// Copyright 2014-2024 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -146,6 +146,10 @@ class BrokerIdentity {
     bsl::string d_hostName;
     bsl::string d_hostTags;
     bsl::string d_brokerVersion;
+
+    // PRIVATE ACCESSORS
+    template <typename t_HASH_ALGORITHM>
+    void hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const;
 
   public:
     // TYPES
@@ -325,30 +329,45 @@ class BrokerIdentity {
     const bsl::string& brokerVersion() const;
     // Return a reference offering non-modifiable access to the
     // "BrokerVersion" attribute of this object.
+
+    // HIDDEN FRIENDS
+    friend bool operator==(const BrokerIdentity& lhs,
+                           const BrokerIdentity& rhs)
+    // Return 'true' if the specified 'lhs' and 'rhs' attribute objects
+    // have the same value, and 'false' otherwise.  Two attribute objects
+    // have the same value if each respective attribute has the same value.
+    {
+        return lhs.hostName() == rhs.hostName() &&
+               lhs.hostTags() == rhs.hostTags() &&
+               lhs.brokerVersion() == rhs.brokerVersion();
+    }
+
+    friend bool operator!=(const BrokerIdentity& lhs,
+                           const BrokerIdentity& rhs)
+    // Returns '!(lhs == rhs)'
+    {
+        return !(lhs == rhs);
+    }
+
+    friend bsl::ostream& operator<<(bsl::ostream&         stream,
+                                    const BrokerIdentity& rhs)
+    // Format the specified 'rhs' to the specified output 'stream' and
+    // return a reference to the modifiable 'stream'.
+    {
+        return rhs.print(stream, 0, -1);
+    }
+
+    template <typename t_HASH_ALGORITHM>
+    friend void hashAppend(t_HASH_ALGORITHM&     hashAlg,
+                           const BrokerIdentity& object)
+    // Pass the specified 'object' to the specified 'hashAlg'.  This
+    // function integrates with the 'bslh' modular hashing system and
+    // effectively provides a 'bsl::hash' specialization for
+    // 'BrokerIdentity'.
+    {
+        object.hashAppendImpl(hashAlg);
+    }
 };
-
-// FREE OPERATORS
-inline bool operator==(const BrokerIdentity& lhs, const BrokerIdentity& rhs);
-// Return 'true' if the specified 'lhs' and 'rhs' attribute objects have
-// the same value, and 'false' otherwise.  Two attribute objects have the
-// same value if each respective attribute has the same value.
-
-inline bool operator!=(const BrokerIdentity& lhs, const BrokerIdentity& rhs);
-// Return 'true' if the specified 'lhs' and 'rhs' attribute objects do not
-// have the same value, and 'false' otherwise.  Two attribute objects do
-// not have the same value if one or more respective attributes differ in
-// values.
-
-inline bsl::ostream& operator<<(bsl::ostream&         stream,
-                                const BrokerIdentity& rhs);
-// Format the specified 'rhs' to the specified output 'stream' and
-// return a reference to the modifiable 'stream'.
-
-template <typename t_HASH_ALGORITHM>
-void hashAppend(t_HASH_ALGORITHM& hashAlg, const BrokerIdentity& object);
-// Pass the specified 'object' to the specified 'hashAlg'.  This function
-// integrates with the 'bslh' modular hashing system and effectively
-// provides a 'bsl::hash' specialization for 'BrokerIdentity'.
 
 }  // close package namespace
 
@@ -532,30 +551,46 @@ class DomainConfigRaw {
     const bsl::string& config() const;
     // Return a reference offering non-modifiable access to the "Config"
     // attribute of this object.
+
+    // HIDDEN FRIENDS
+    friend bool operator==(const DomainConfigRaw& lhs,
+                           const DomainConfigRaw& rhs)
+    // Return 'true' if the specified 'lhs' and 'rhs' attribute objects
+    // have the same value, and 'false' otherwise.  Two attribute objects
+    // have the same value if each respective attribute has the same value.
+    {
+        return lhs.domainName() == rhs.domainName() &&
+               lhs.config() == rhs.config();
+    }
+
+    friend bool operator!=(const DomainConfigRaw& lhs,
+                           const DomainConfigRaw& rhs)
+    // Returns '!(lhs == rhs)'
+    {
+        return !(lhs == rhs);
+    }
+
+    friend bsl::ostream& operator<<(bsl::ostream&          stream,
+                                    const DomainConfigRaw& rhs)
+    // Format the specified 'rhs' to the specified output 'stream' and
+    // return a reference to the modifiable 'stream'.
+    {
+        return rhs.print(stream, 0, -1);
+    }
+
+    template <typename t_HASH_ALGORITHM>
+    friend void hashAppend(t_HASH_ALGORITHM&      hashAlg,
+                           const DomainConfigRaw& object)
+    // Pass the specified 'object' to the specified 'hashAlg'.  This
+    // function integrates with the 'bslh' modular hashing system and
+    // effectively provides a 'bsl::hash' specialization for
+    // 'DomainConfigRaw'.
+    {
+        using bslh::hashAppend;
+        hashAppend(hashAlg, object.domainName());
+        hashAppend(hashAlg, object.config());
+    }
 };
-
-// FREE OPERATORS
-inline bool operator==(const DomainConfigRaw& lhs, const DomainConfigRaw& rhs);
-// Return 'true' if the specified 'lhs' and 'rhs' attribute objects have
-// the same value, and 'false' otherwise.  Two attribute objects have the
-// same value if each respective attribute has the same value.
-
-inline bool operator!=(const DomainConfigRaw& lhs, const DomainConfigRaw& rhs);
-// Return 'true' if the specified 'lhs' and 'rhs' attribute objects do not
-// have the same value, and 'false' otherwise.  Two attribute objects do
-// not have the same value if one or more respective attributes differ in
-// values.
-
-inline bsl::ostream& operator<<(bsl::ostream&          stream,
-                                const DomainConfigRaw& rhs);
-// Format the specified 'rhs' to the specified output 'stream' and
-// return a reference to the modifiable 'stream'.
-
-template <typename t_HASH_ALGORITHM>
-void hashAppend(t_HASH_ALGORITHM& hashAlg, const DomainConfigRaw& object);
-// Pass the specified 'object' to the specified 'hashAlg'.  This function
-// integrates with the 'bslh' modular hashing system and effectively
-// provides a 'bsl::hash' specialization for 'DomainConfigRaw'.
 
 }  // close package namespace
 
@@ -741,30 +776,45 @@ class DomainResolver {
     const bsl::string& cluster() const;
     // Return a reference offering non-modifiable access to the "Cluster"
     // attribute of this object.
+
+    // HIDDEN FRIENDS
+    friend bool operator==(const DomainResolver& lhs,
+                           const DomainResolver& rhs)
+    // Return 'true' if the specified 'lhs' and 'rhs' attribute objects
+    // have the same value, and 'false' otherwise.  Two attribute objects
+    // have the same value if each respective attribute has the same value.
+    {
+        return lhs.name() == rhs.name() && lhs.cluster() == rhs.cluster();
+    }
+
+    friend bool operator!=(const DomainResolver& lhs,
+                           const DomainResolver& rhs)
+    // Returns '!(lhs == rhs)'
+    {
+        return !(lhs == rhs);
+    }
+
+    friend bsl::ostream& operator<<(bsl::ostream&         stream,
+                                    const DomainResolver& rhs)
+    // Format the specified 'rhs' to the specified output 'stream' and
+    // return a reference to the modifiable 'stream'.
+    {
+        return rhs.print(stream, 0, -1);
+    }
+
+    template <typename t_HASH_ALGORITHM>
+    friend void hashAppend(t_HASH_ALGORITHM&     hashAlg,
+                           const DomainResolver& object)
+    // Pass the specified 'object' to the specified 'hashAlg'.  This
+    // function integrates with the 'bslh' modular hashing system and
+    // effectively provides a 'bsl::hash' specialization for
+    // 'DomainResolver'.
+    {
+        using bslh::hashAppend;
+        hashAppend(hashAlg, object.name());
+        hashAppend(hashAlg, object.cluster());
+    }
 };
-
-// FREE OPERATORS
-inline bool operator==(const DomainResolver& lhs, const DomainResolver& rhs);
-// Return 'true' if the specified 'lhs' and 'rhs' attribute objects have
-// the same value, and 'false' otherwise.  Two attribute objects have the
-// same value if each respective attribute has the same value.
-
-inline bool operator!=(const DomainResolver& lhs, const DomainResolver& rhs);
-// Return 'true' if the specified 'lhs' and 'rhs' attribute objects do not
-// have the same value, and 'false' otherwise.  Two attribute objects do
-// not have the same value if one or more respective attributes differ in
-// values.
-
-inline bsl::ostream& operator<<(bsl::ostream&         stream,
-                                const DomainResolver& rhs);
-// Format the specified 'rhs' to the specified output 'stream' and
-// return a reference to the modifiable 'stream'.
-
-template <typename t_HASH_ALGORITHM>
-void hashAppend(t_HASH_ALGORITHM& hashAlg, const DomainResolver& object);
-// Pass the specified 'object' to the specified 'hashAlg'.  This function
-// integrates with the 'bslh' modular hashing system and effectively
-// provides a 'bsl::hash' specialization for 'DomainResolver'.
 
 }  // close package namespace
 
@@ -820,13 +870,15 @@ struct ExpressionVersion {
     // Write to the specified 'stream' the string representation of
     // the specified enumeration 'value'.  Return a reference to
     // the modifiable 'stream'.
-};
 
-// FREE OPERATORS
-inline bsl::ostream& operator<<(bsl::ostream&            stream,
-                                ExpressionVersion::Value rhs);
-// Format the specified 'rhs' to the specified output 'stream' and
-// return a reference to the modifiable 'stream'.
+    // HIDDEN FRIENDS
+    friend bsl::ostream& operator<<(bsl::ostream& stream, Value rhs)
+    // Format the specified 'rhs' to the specified output 'stream' and
+    // return a reference to the modifiable 'stream'.
+    {
+        return ExpressionVersion::print(stream, rhs);
+    }
+};
 
 }  // close package namespace
 
@@ -1010,29 +1062,40 @@ class Failure {
     const bsl::string& message() const;
     // Return a reference offering non-modifiable access to the "Message"
     // attribute of this object.
+
+    // HIDDEN FRIENDS
+    friend bool operator==(const Failure& lhs, const Failure& rhs)
+    // Return 'true' if the specified 'lhs' and 'rhs' attribute objects
+    // have the same value, and 'false' otherwise.  Two attribute objects
+    // have the same value if each respective attribute has the same value.
+    {
+        return lhs.code() == rhs.code() && lhs.message() == rhs.message();
+    }
+
+    friend bool operator!=(const Failure& lhs, const Failure& rhs)
+    // Returns '!(lhs == rhs)'
+    {
+        return !(lhs == rhs);
+    }
+
+    friend bsl::ostream& operator<<(bsl::ostream& stream, const Failure& rhs)
+    // Format the specified 'rhs' to the specified output 'stream' and
+    // return a reference to the modifiable 'stream'.
+    {
+        return rhs.print(stream, 0, -1);
+    }
+
+    template <typename t_HASH_ALGORITHM>
+    friend void hashAppend(t_HASH_ALGORITHM& hashAlg, const Failure& object)
+    // Pass the specified 'object' to the specified 'hashAlg'.  This
+    // function integrates with the 'bslh' modular hashing system and
+    // effectively provides a 'bsl::hash' specialization for 'Failure'.
+    {
+        using bslh::hashAppend;
+        hashAppend(hashAlg, object.code());
+        hashAppend(hashAlg, object.message());
+    }
 };
-
-// FREE OPERATORS
-inline bool operator==(const Failure& lhs, const Failure& rhs);
-// Return 'true' if the specified 'lhs' and 'rhs' attribute objects have
-// the same value, and 'false' otherwise.  Two attribute objects have the
-// same value if each respective attribute has the same value.
-
-inline bool operator!=(const Failure& lhs, const Failure& rhs);
-// Return 'true' if the specified 'lhs' and 'rhs' attribute objects do not
-// have the same value, and 'false' otherwise.  Two attribute objects do
-// not have the same value if one or more respective attributes differ in
-// values.
-
-inline bsl::ostream& operator<<(bsl::ostream& stream, const Failure& rhs);
-// Format the specified 'rhs' to the specified output 'stream' and
-// return a reference to the modifiable 'stream'.
-
-template <typename t_HASH_ALGORITHM>
-void hashAppend(t_HASH_ALGORITHM& hashAlg, const Failure& object);
-// Pass the specified 'object' to the specified 'hashAlg'.  This function
-// integrates with the 'bslh' modular hashing system and effectively
-// provides a 'bsl::hash' specialization for 'Failure'.
 
 }  // close package namespace
 
@@ -1071,37 +1134,8 @@ class FileBackedStorage {
     // exists, and 0 otherwise.
 
     // CREATORS
-    FileBackedStorage();
-    // Create an object of type 'FileBackedStorage' having the default
-    // value.
-
-    FileBackedStorage(const FileBackedStorage& original);
-    // Create an object of type 'FileBackedStorage' having the value of the
-    // specified 'original' object.
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    FileBackedStorage(FileBackedStorage&& original) = default;
-    // Create an object of type 'FileBackedStorage' having the value of the
-    // specified 'original' object.  After performing this action, the
-    // 'original' object will be left in a valid, but unspecified state.
-#endif
-
-    ~FileBackedStorage();
-    // Destroy this object.
 
     // MANIPULATORS
-    FileBackedStorage& operator=(const FileBackedStorage& rhs);
-    // Assign to this object the value of the specified 'rhs' object.
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    FileBackedStorage& operator=(FileBackedStorage&& rhs);
-    // Assign to this object the value of the specified 'rhs' object.
-    // After performing this action, the 'rhs' object will be left in a
-    // valid, but unspecified state.
-#endif
-
     void reset();
     // Reset this object to the default value (i.e., its value upon
     // default construction).
@@ -1177,32 +1211,39 @@ class FileBackedStorage {
     // information structure.  Return the value returned from the
     // invocation of 'accessor' if 'name' identifies an attribute of this
     // class, and -1 otherwise.
+
+    // HIDDEN FRIENDS
+    friend bool operator==(const FileBackedStorage&, const FileBackedStorage&)
+    // Returns 'true' as this type has no attributes and so all objects of
+    // this type are considered equal.
+    {
+        return true;
+    }
+
+    friend bool operator!=(const FileBackedStorage& lhs,
+                           const FileBackedStorage& rhs)
+    // Returns '!(lhs == rhs)'
+    {
+        return !(lhs == rhs);
+    }
+
+    friend bsl::ostream& operator<<(bsl::ostream&            stream,
+                                    const FileBackedStorage& rhs)
+    // Format the specified 'rhs' to the specified output 'stream' and
+    // return a reference to the modifiable 'stream'.
+    {
+        return rhs.print(stream, 0, -1);
+    }
+
+    template <typename t_HASH_ALGORITHM>
+    friend void hashAppend(t_HASH_ALGORITHM&, const FileBackedStorage&)
+    // Pass the specified 'object' to the specified 'hashAlg'.  This
+    // function integrates with the 'bslh' modular hashing system and
+    // effectively provides a 'bsl::hash' specialization for
+    // 'FileBackedStorage'.
+    {
+    }
 };
-
-// FREE OPERATORS
-inline bool operator==(const FileBackedStorage& lhs,
-                       const FileBackedStorage& rhs);
-// Return 'true' if the specified 'lhs' and 'rhs' attribute objects have
-// the same value, and 'false' otherwise.  Two attribute objects have the
-// same value if each respective attribute has the same value.
-
-inline bool operator!=(const FileBackedStorage& lhs,
-                       const FileBackedStorage& rhs);
-// Return 'true' if the specified 'lhs' and 'rhs' attribute objects do not
-// have the same value, and 'false' otherwise.  Two attribute objects do
-// not have the same value if one or more respective attributes differ in
-// values.
-
-inline bsl::ostream& operator<<(bsl::ostream&            stream,
-                                const FileBackedStorage& rhs);
-// Format the specified 'rhs' to the specified output 'stream' and
-// return a reference to the modifiable 'stream'.
-
-template <typename t_HASH_ALGORITHM>
-void hashAppend(t_HASH_ALGORITHM& hashAlg, const FileBackedStorage& object);
-// Pass the specified 'object' to the specified 'hashAlg'.  This function
-// integrates with the 'bslh' modular hashing system and effectively
-// provides a 'bsl::hash' specialization for 'FileBackedStorage'.
 
 }  // close package namespace
 
@@ -1241,36 +1282,8 @@ class InMemoryStorage {
     // exists, and 0 otherwise.
 
     // CREATORS
-    InMemoryStorage();
-    // Create an object of type 'InMemoryStorage' having the default value.
-
-    InMemoryStorage(const InMemoryStorage& original);
-    // Create an object of type 'InMemoryStorage' having the value of the
-    // specified 'original' object.
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    InMemoryStorage(InMemoryStorage&& original) = default;
-    // Create an object of type 'InMemoryStorage' having the value of the
-    // specified 'original' object.  After performing this action, the
-    // 'original' object will be left in a valid, but unspecified state.
-#endif
-
-    ~InMemoryStorage();
-    // Destroy this object.
 
     // MANIPULATORS
-    InMemoryStorage& operator=(const InMemoryStorage& rhs);
-    // Assign to this object the value of the specified 'rhs' object.
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    InMemoryStorage& operator=(InMemoryStorage&& rhs);
-    // Assign to this object the value of the specified 'rhs' object.
-    // After performing this action, the 'rhs' object will be left in a
-    // valid, but unspecified state.
-#endif
-
     void reset();
     // Reset this object to the default value (i.e., its value upon
     // default construction).
@@ -1346,30 +1359,39 @@ class InMemoryStorage {
     // information structure.  Return the value returned from the
     // invocation of 'accessor' if 'name' identifies an attribute of this
     // class, and -1 otherwise.
+
+    // HIDDEN FRIENDS
+    friend bool operator==(const InMemoryStorage&, const InMemoryStorage&)
+    // Returns 'true' as this type has no attributes and so all objects of
+    // this type are considered equal.
+    {
+        return true;
+    }
+
+    friend bool operator!=(const InMemoryStorage& lhs,
+                           const InMemoryStorage& rhs)
+    // Returns '!(lhs == rhs)'
+    {
+        return !(lhs == rhs);
+    }
+
+    friend bsl::ostream& operator<<(bsl::ostream&          stream,
+                                    const InMemoryStorage& rhs)
+    // Format the specified 'rhs' to the specified output 'stream' and
+    // return a reference to the modifiable 'stream'.
+    {
+        return rhs.print(stream, 0, -1);
+    }
+
+    template <typename t_HASH_ALGORITHM>
+    friend void hashAppend(t_HASH_ALGORITHM&, const InMemoryStorage&)
+    // Pass the specified 'object' to the specified 'hashAlg'.  This
+    // function integrates with the 'bslh' modular hashing system and
+    // effectively provides a 'bsl::hash' specialization for
+    // 'InMemoryStorage'.
+    {
+    }
 };
-
-// FREE OPERATORS
-inline bool operator==(const InMemoryStorage& lhs, const InMemoryStorage& rhs);
-// Return 'true' if the specified 'lhs' and 'rhs' attribute objects have
-// the same value, and 'false' otherwise.  Two attribute objects have the
-// same value if each respective attribute has the same value.
-
-inline bool operator!=(const InMemoryStorage& lhs, const InMemoryStorage& rhs);
-// Return 'true' if the specified 'lhs' and 'rhs' attribute objects do not
-// have the same value, and 'false' otherwise.  Two attribute objects do
-// not have the same value if one or more respective attributes differ in
-// values.
-
-inline bsl::ostream& operator<<(bsl::ostream&          stream,
-                                const InMemoryStorage& rhs);
-// Format the specified 'rhs' to the specified output 'stream' and
-// return a reference to the modifiable 'stream'.
-
-template <typename t_HASH_ALGORITHM>
-void hashAppend(t_HASH_ALGORITHM& hashAlg, const InMemoryStorage& object);
-// Pass the specified 'object' to the specified 'hashAlg'.  This function
-// integrates with the 'bslh' modular hashing system and effectively
-// provides a 'bsl::hash' specialization for 'InMemoryStorage'.
 
 }  // close package namespace
 
@@ -1398,6 +1420,12 @@ class Limits {
     double             d_bytesWatermarkRatio;
     bsls::Types::Int64 d_messages;
     bsls::Types::Int64 d_bytes;
+
+    // PRIVATE ACCESSORS
+    template <typename t_HASH_ALGORITHM>
+    void hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const;
+
+    bool isEqualTo(const Limits& rhs) const;
 
   public:
     // TYPES
@@ -1442,33 +1470,7 @@ class Limits {
     Limits();
     // Create an object of type 'Limits' having the default value.
 
-    Limits(const Limits& original);
-    // Create an object of type 'Limits' having the value of the specified
-    // 'original' object.
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    Limits(Limits&& original) = default;
-    // Create an object of type 'Limits' having the value of the specified
-    // 'original' object.  After performing this action, the 'original'
-    // object will be left in a valid, but unspecified state.
-#endif
-
-    ~Limits();
-    // Destroy this object.
-
     // MANIPULATORS
-    Limits& operator=(const Limits& rhs);
-    // Assign to this object the value of the specified 'rhs' object.
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    Limits& operator=(Limits&& rhs);
-    // Assign to this object the value of the specified 'rhs' object.
-    // After performing this action, the 'rhs' object will be left in a
-    // valid, but unspecified state.
-#endif
-
     void reset();
     // Reset this object to the default value (i.e., its value upon
     // default construction).
@@ -1574,29 +1576,38 @@ class Limits {
     double bytesWatermarkRatio() const;
     // Return the value of the "BytesWatermarkRatio" attribute of this
     // object.
+
+    // HIDDEN FRIENDS
+    friend bool operator==(const Limits& lhs, const Limits& rhs)
+    // Return 'true' if the specified 'lhs' and 'rhs' attribute objects
+    // have the same value, and 'false' otherwise.  Two attribute objects
+    // have the same value if each respective attribute has the same value.
+    {
+        return lhs.isEqualTo(rhs);
+    }
+
+    friend bool operator!=(const Limits& lhs, const Limits& rhs)
+    // Returns '!(lhs == rhs)'
+    {
+        return !(lhs == rhs);
+    }
+
+    friend bsl::ostream& operator<<(bsl::ostream& stream, const Limits& rhs)
+    // Format the specified 'rhs' to the specified output 'stream' and
+    // return a reference to the modifiable 'stream'.
+    {
+        return rhs.print(stream, 0, -1);
+    }
+
+    template <typename t_HASH_ALGORITHM>
+    friend void hashAppend(t_HASH_ALGORITHM& hashAlg, const Limits& object)
+    // Pass the specified 'object' to the specified 'hashAlg'.  This
+    // function integrates with the 'bslh' modular hashing system and
+    // effectively provides a 'bsl::hash' specialization for 'Limits'.
+    {
+        object.hashAppendImpl(hashAlg);
+    }
 };
-
-// FREE OPERATORS
-inline bool operator==(const Limits& lhs, const Limits& rhs);
-// Return 'true' if the specified 'lhs' and 'rhs' attribute objects have
-// the same value, and 'false' otherwise.  Two attribute objects have the
-// same value if each respective attribute has the same value.
-
-inline bool operator!=(const Limits& lhs, const Limits& rhs);
-// Return 'true' if the specified 'lhs' and 'rhs' attribute objects do not
-// have the same value, and 'false' otherwise.  Two attribute objects do
-// not have the same value if one or more respective attributes differ in
-// values.
-
-inline bsl::ostream& operator<<(bsl::ostream& stream, const Limits& rhs);
-// Format the specified 'rhs' to the specified output 'stream' and
-// return a reference to the modifiable 'stream'.
-
-template <typename t_HASH_ALGORITHM>
-void hashAppend(t_HASH_ALGORITHM& hashAlg, const Limits& object);
-// Pass the specified 'object' to the specified 'hashAlg'.  This function
-// integrates with the 'bslh' modular hashing system and effectively
-// provides a 'bsl::hash' specialization for 'Limits'.
 
 }  // close package namespace
 
@@ -1630,6 +1641,10 @@ class MsgGroupIdConfig {
     bsls::Types::Int64 d_ttlSeconds;
     int                d_maxGroups;
     bool               d_rebalance;
+
+    // PRIVATE ACCESSORS
+    template <typename t_HASH_ALGORITHM>
+    void hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const;
 
   public:
     // TYPES
@@ -1675,33 +1690,7 @@ class MsgGroupIdConfig {
     // Create an object of type 'MsgGroupIdConfig' having the default
     // value.
 
-    MsgGroupIdConfig(const MsgGroupIdConfig& original);
-    // Create an object of type 'MsgGroupIdConfig' having the value of the
-    // specified 'original' object.
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    MsgGroupIdConfig(MsgGroupIdConfig&& original) = default;
-    // Create an object of type 'MsgGroupIdConfig' having the value of the
-    // specified 'original' object.  After performing this action, the
-    // 'original' object will be left in a valid, but unspecified state.
-#endif
-
-    ~MsgGroupIdConfig();
-    // Destroy this object.
-
     // MANIPULATORS
-    MsgGroupIdConfig& operator=(const MsgGroupIdConfig& rhs);
-    // Assign to this object the value of the specified 'rhs' object.
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    MsgGroupIdConfig& operator=(MsgGroupIdConfig&& rhs);
-    // Assign to this object the value of the specified 'rhs' object.
-    // After performing this action, the 'rhs' object will be left in a
-    // valid, but unspecified state.
-#endif
-
     void reset();
     // Reset this object to the default value (i.e., its value upon
     // default construction).
@@ -1798,32 +1787,45 @@ class MsgGroupIdConfig {
 
     bsls::Types::Int64 ttlSeconds() const;
     // Return the value of the "TtlSeconds" attribute of this object.
+
+    // HIDDEN FRIENDS
+    friend bool operator==(const MsgGroupIdConfig& lhs,
+                           const MsgGroupIdConfig& rhs)
+    // Return 'true' if the specified 'lhs' and 'rhs' attribute objects
+    // have the same value, and 'false' otherwise.  Two attribute objects
+    // have the same value if each respective attribute has the same value.
+    {
+        return lhs.rebalance() == rhs.rebalance() &&
+               lhs.maxGroups() == rhs.maxGroups() &&
+               lhs.ttlSeconds() == rhs.ttlSeconds();
+    }
+
+    friend bool operator!=(const MsgGroupIdConfig& lhs,
+                           const MsgGroupIdConfig& rhs)
+    // Returns '!(lhs == rhs)'
+    {
+        return !(lhs == rhs);
+    }
+
+    friend bsl::ostream& operator<<(bsl::ostream&           stream,
+                                    const MsgGroupIdConfig& rhs)
+    // Format the specified 'rhs' to the specified output 'stream' and
+    // return a reference to the modifiable 'stream'.
+    {
+        return rhs.print(stream, 0, -1);
+    }
+
+    template <typename t_HASH_ALGORITHM>
+    friend void hashAppend(t_HASH_ALGORITHM&       hashAlg,
+                           const MsgGroupIdConfig& object)
+    // Pass the specified 'object' to the specified 'hashAlg'.  This
+    // function integrates with the 'bslh' modular hashing system and
+    // effectively provides a 'bsl::hash' specialization for
+    // 'MsgGroupIdConfig'.
+    {
+        object.hashAppendImpl(hashAlg);
+    }
 };
-
-// FREE OPERATORS
-inline bool operator==(const MsgGroupIdConfig& lhs,
-                       const MsgGroupIdConfig& rhs);
-// Return 'true' if the specified 'lhs' and 'rhs' attribute objects have
-// the same value, and 'false' otherwise.  Two attribute objects have the
-// same value if each respective attribute has the same value.
-
-inline bool operator!=(const MsgGroupIdConfig& lhs,
-                       const MsgGroupIdConfig& rhs);
-// Return 'true' if the specified 'lhs' and 'rhs' attribute objects do not
-// have the same value, and 'false' otherwise.  Two attribute objects do
-// not have the same value if one or more respective attributes differ in
-// values.
-
-inline bsl::ostream& operator<<(bsl::ostream&           stream,
-                                const MsgGroupIdConfig& rhs);
-// Format the specified 'rhs' to the specified output 'stream' and
-// return a reference to the modifiable 'stream'.
-
-template <typename t_HASH_ALGORITHM>
-void hashAppend(t_HASH_ALGORITHM& hashAlg, const MsgGroupIdConfig& object);
-// Pass the specified 'object' to the specified 'hashAlg'.  This function
-// integrates with the 'bslh' modular hashing system and effectively
-// provides a 'bsl::hash' specialization for 'MsgGroupIdConfig'.
 
 }  // close package namespace
 
@@ -1862,38 +1864,8 @@ class QueueConsistencyEventual {
     // exists, and 0 otherwise.
 
     // CREATORS
-    QueueConsistencyEventual();
-    // Create an object of type 'QueueConsistencyEventual' having the
-    // default value.
-
-    QueueConsistencyEventual(const QueueConsistencyEventual& original);
-    // Create an object of type 'QueueConsistencyEventual' having the value
-    // of the specified 'original' object.
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    QueueConsistencyEventual(QueueConsistencyEventual&& original) = default;
-    // Create an object of type 'QueueConsistencyEventual' having the value
-    // of the specified 'original' object.  After performing this action,
-    // the 'original' object will be left in a valid, but unspecified
-    // state.
-#endif
-
-    ~QueueConsistencyEventual();
-    // Destroy this object.
 
     // MANIPULATORS
-    QueueConsistencyEventual& operator=(const QueueConsistencyEventual& rhs);
-    // Assign to this object the value of the specified 'rhs' object.
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    QueueConsistencyEventual& operator=(QueueConsistencyEventual&& rhs);
-    // Assign to this object the value of the specified 'rhs' object.
-    // After performing this action, the 'rhs' object will be left in a
-    // valid, but unspecified state.
-#endif
-
     void reset();
     // Reset this object to the default value (i.e., its value upon
     // default construction).
@@ -1969,33 +1941,40 @@ class QueueConsistencyEventual {
     // information structure.  Return the value returned from the
     // invocation of 'accessor' if 'name' identifies an attribute of this
     // class, and -1 otherwise.
+
+    // HIDDEN FRIENDS
+    friend bool operator==(const QueueConsistencyEventual&,
+                           const QueueConsistencyEventual&)
+    // Returns 'true' as this type has no attributes and so all objects of
+    // this type are considered equal.
+    {
+        return true;
+    }
+
+    friend bool operator!=(const QueueConsistencyEventual& lhs,
+                           const QueueConsistencyEventual& rhs)
+    // Returns '!(lhs == rhs)'
+    {
+        return !(lhs == rhs);
+    }
+
+    friend bsl::ostream& operator<<(bsl::ostream&                   stream,
+                                    const QueueConsistencyEventual& rhs)
+    // Format the specified 'rhs' to the specified output 'stream' and
+    // return a reference to the modifiable 'stream'.
+    {
+        return rhs.print(stream, 0, -1);
+    }
+
+    template <typename t_HASH_ALGORITHM>
+    friend void hashAppend(t_HASH_ALGORITHM&, const QueueConsistencyEventual&)
+    // Pass the specified 'object' to the specified 'hashAlg'.  This
+    // function integrates with the 'bslh' modular hashing system and
+    // effectively provides a 'bsl::hash' specialization for
+    // 'QueueConsistencyEventual'.
+    {
+    }
 };
-
-// FREE OPERATORS
-inline bool operator==(const QueueConsistencyEventual& lhs,
-                       const QueueConsistencyEventual& rhs);
-// Return 'true' if the specified 'lhs' and 'rhs' attribute objects have
-// the same value, and 'false' otherwise.  Two attribute objects have the
-// same value if each respective attribute has the same value.
-
-inline bool operator!=(const QueueConsistencyEventual& lhs,
-                       const QueueConsistencyEventual& rhs);
-// Return 'true' if the specified 'lhs' and 'rhs' attribute objects do not
-// have the same value, and 'false' otherwise.  Two attribute objects do
-// not have the same value if one or more respective attributes differ in
-// values.
-
-inline bsl::ostream& operator<<(bsl::ostream&                   stream,
-                                const QueueConsistencyEventual& rhs);
-// Format the specified 'rhs' to the specified output 'stream' and
-// return a reference to the modifiable 'stream'.
-
-template <typename t_HASH_ALGORITHM>
-void hashAppend(t_HASH_ALGORITHM&               hashAlg,
-                const QueueConsistencyEventual& object);
-// Pass the specified 'object' to the specified 'hashAlg'.  This function
-// integrates with the 'bslh' modular hashing system and effectively
-// provides a 'bsl::hash' specialization for 'QueueConsistencyEventual'.
 
 }  // close package namespace
 
@@ -2035,38 +2014,8 @@ class QueueConsistencyStrong {
     // exists, and 0 otherwise.
 
     // CREATORS
-    QueueConsistencyStrong();
-    // Create an object of type 'QueueConsistencyStrong' having the default
-    // value.
-
-    QueueConsistencyStrong(const QueueConsistencyStrong& original);
-    // Create an object of type 'QueueConsistencyStrong' having the value
-    // of the specified 'original' object.
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    QueueConsistencyStrong(QueueConsistencyStrong&& original) = default;
-    // Create an object of type 'QueueConsistencyStrong' having the value
-    // of the specified 'original' object.  After performing this action,
-    // the 'original' object will be left in a valid, but unspecified
-    // state.
-#endif
-
-    ~QueueConsistencyStrong();
-    // Destroy this object.
 
     // MANIPULATORS
-    QueueConsistencyStrong& operator=(const QueueConsistencyStrong& rhs);
-    // Assign to this object the value of the specified 'rhs' object.
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    QueueConsistencyStrong& operator=(QueueConsistencyStrong&& rhs);
-    // Assign to this object the value of the specified 'rhs' object.
-    // After performing this action, the 'rhs' object will be left in a
-    // valid, but unspecified state.
-#endif
-
     void reset();
     // Reset this object to the default value (i.e., its value upon
     // default construction).
@@ -2142,33 +2091,40 @@ class QueueConsistencyStrong {
     // information structure.  Return the value returned from the
     // invocation of 'accessor' if 'name' identifies an attribute of this
     // class, and -1 otherwise.
+
+    // HIDDEN FRIENDS
+    friend bool operator==(const QueueConsistencyStrong&,
+                           const QueueConsistencyStrong&)
+    // Returns 'true' as this type has no attributes and so all objects of
+    // this type are considered equal.
+    {
+        return true;
+    }
+
+    friend bool operator!=(const QueueConsistencyStrong& lhs,
+                           const QueueConsistencyStrong& rhs)
+    // Returns '!(lhs == rhs)'
+    {
+        return !(lhs == rhs);
+    }
+
+    friend bsl::ostream& operator<<(bsl::ostream&                 stream,
+                                    const QueueConsistencyStrong& rhs)
+    // Format the specified 'rhs' to the specified output 'stream' and
+    // return a reference to the modifiable 'stream'.
+    {
+        return rhs.print(stream, 0, -1);
+    }
+
+    template <typename t_HASH_ALGORITHM>
+    friend void hashAppend(t_HASH_ALGORITHM&, const QueueConsistencyStrong&)
+    // Pass the specified 'object' to the specified 'hashAlg'.  This
+    // function integrates with the 'bslh' modular hashing system and
+    // effectively provides a 'bsl::hash' specialization for
+    // 'QueueConsistencyStrong'.
+    {
+    }
 };
-
-// FREE OPERATORS
-inline bool operator==(const QueueConsistencyStrong& lhs,
-                       const QueueConsistencyStrong& rhs);
-// Return 'true' if the specified 'lhs' and 'rhs' attribute objects have
-// the same value, and 'false' otherwise.  Two attribute objects have the
-// same value if each respective attribute has the same value.
-
-inline bool operator!=(const QueueConsistencyStrong& lhs,
-                       const QueueConsistencyStrong& rhs);
-// Return 'true' if the specified 'lhs' and 'rhs' attribute objects do not
-// have the same value, and 'false' otherwise.  Two attribute objects do
-// not have the same value if one or more respective attributes differ in
-// values.
-
-inline bsl::ostream& operator<<(bsl::ostream&                 stream,
-                                const QueueConsistencyStrong& rhs);
-// Format the specified 'rhs' to the specified output 'stream' and
-// return a reference to the modifiable 'stream'.
-
-template <typename t_HASH_ALGORITHM>
-void hashAppend(t_HASH_ALGORITHM&             hashAlg,
-                const QueueConsistencyStrong& object);
-// Pass the specified 'object' to the specified 'hashAlg'.  This function
-// integrates with the 'bslh' modular hashing system and effectively
-// provides a 'bsl::hash' specialization for 'QueueConsistencyStrong'.
 
 }  // close package namespace
 
@@ -2208,37 +2164,8 @@ class QueueModeBroadcast {
     // exists, and 0 otherwise.
 
     // CREATORS
-    QueueModeBroadcast();
-    // Create an object of type 'QueueModeBroadcast' having the default
-    // value.
-
-    QueueModeBroadcast(const QueueModeBroadcast& original);
-    // Create an object of type 'QueueModeBroadcast' having the value of
-    // the specified 'original' object.
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    QueueModeBroadcast(QueueModeBroadcast&& original) = default;
-    // Create an object of type 'QueueModeBroadcast' having the value of
-    // the specified 'original' object.  After performing this action, the
-    // 'original' object will be left in a valid, but unspecified state.
-#endif
-
-    ~QueueModeBroadcast();
-    // Destroy this object.
 
     // MANIPULATORS
-    QueueModeBroadcast& operator=(const QueueModeBroadcast& rhs);
-    // Assign to this object the value of the specified 'rhs' object.
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    QueueModeBroadcast& operator=(QueueModeBroadcast&& rhs);
-    // Assign to this object the value of the specified 'rhs' object.
-    // After performing this action, the 'rhs' object will be left in a
-    // valid, but unspecified state.
-#endif
-
     void reset();
     // Reset this object to the default value (i.e., its value upon
     // default construction).
@@ -2314,32 +2241,40 @@ class QueueModeBroadcast {
     // information structure.  Return the value returned from the
     // invocation of 'accessor' if 'name' identifies an attribute of this
     // class, and -1 otherwise.
+
+    // HIDDEN FRIENDS
+    friend bool operator==(const QueueModeBroadcast&,
+                           const QueueModeBroadcast&)
+    // Returns 'true' as this type has no attributes and so all objects of
+    // this type are considered equal.
+    {
+        return true;
+    }
+
+    friend bool operator!=(const QueueModeBroadcast& lhs,
+                           const QueueModeBroadcast& rhs)
+    // Returns '!(lhs == rhs)'
+    {
+        return !(lhs == rhs);
+    }
+
+    friend bsl::ostream& operator<<(bsl::ostream&             stream,
+                                    const QueueModeBroadcast& rhs)
+    // Format the specified 'rhs' to the specified output 'stream' and
+    // return a reference to the modifiable 'stream'.
+    {
+        return rhs.print(stream, 0, -1);
+    }
+
+    template <typename t_HASH_ALGORITHM>
+    friend void hashAppend(t_HASH_ALGORITHM&, const QueueModeBroadcast&)
+    // Pass the specified 'object' to the specified 'hashAlg'.  This
+    // function integrates with the 'bslh' modular hashing system and
+    // effectively provides a 'bsl::hash' specialization for
+    // 'QueueModeBroadcast'.
+    {
+    }
 };
-
-// FREE OPERATORS
-inline bool operator==(const QueueModeBroadcast& lhs,
-                       const QueueModeBroadcast& rhs);
-// Return 'true' if the specified 'lhs' and 'rhs' attribute objects have
-// the same value, and 'false' otherwise.  Two attribute objects have the
-// same value if each respective attribute has the same value.
-
-inline bool operator!=(const QueueModeBroadcast& lhs,
-                       const QueueModeBroadcast& rhs);
-// Return 'true' if the specified 'lhs' and 'rhs' attribute objects do not
-// have the same value, and 'false' otherwise.  Two attribute objects do
-// not have the same value if one or more respective attributes differ in
-// values.
-
-inline bsl::ostream& operator<<(bsl::ostream&             stream,
-                                const QueueModeBroadcast& rhs);
-// Format the specified 'rhs' to the specified output 'stream' and
-// return a reference to the modifiable 'stream'.
-
-template <typename t_HASH_ALGORITHM>
-void hashAppend(t_HASH_ALGORITHM& hashAlg, const QueueModeBroadcast& object);
-// Pass the specified 'object' to the specified 'hashAlg'.  This function
-// integrates with the 'bslh' modular hashing system and effectively
-// provides a 'bsl::hash' specialization for 'QueueModeBroadcast'.
 
 }  // close package namespace
 
@@ -2355,21 +2290,31 @@ namespace mqbconfm {
 
 class QueueModeFanout {
     // Configuration for a fanout queue.
-    // appIDs.: List of appIDs authorized to consume from the queue.
+    // appIDs.............: List of appIDs authorized to consume from the
+    // queue.  publishAppIdMetrics: Whether to publish appId metrics.
 
     // INSTANCE DATA
     bsl::vector<bsl::string> d_appIDs;
+    bool                     d_publishAppIdMetrics;
 
   public:
     // TYPES
-    enum { ATTRIBUTE_ID_APP_I_DS = 0 };
+    enum {
+        ATTRIBUTE_ID_APP_I_DS               = 0,
+        ATTRIBUTE_ID_PUBLISH_APP_ID_METRICS = 1
+    };
 
-    enum { NUM_ATTRIBUTES = 1 };
+    enum { NUM_ATTRIBUTES = 2 };
 
-    enum { ATTRIBUTE_INDEX_APP_I_DS = 0 };
+    enum {
+        ATTRIBUTE_INDEX_APP_I_DS               = 0,
+        ATTRIBUTE_INDEX_PUBLISH_APP_ID_METRICS = 1
+    };
 
     // CONSTANTS
     static const char CLASS_NAME[];
+
+    static const bool DEFAULT_INITIALIZER_PUBLISH_APP_ID_METRICS;
 
     static const bdlat_AttributeInfo ATTRIBUTE_INFO_ARRAY[];
 
@@ -2468,6 +2413,10 @@ class QueueModeFanout {
     // Return a reference to the modifiable "AppIDs" attribute of this
     // object.
 
+    bool& publishAppIdMetrics();
+    // Return a reference to the modifiable "PublishAppIdMetrics" attribute
+    // of this object.
+
     // ACCESSORS
     bsl::ostream&
     print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
@@ -2514,30 +2463,50 @@ class QueueModeFanout {
     const bsl::vector<bsl::string>& appIDs() const;
     // Return a reference offering non-modifiable access to the "AppIDs"
     // attribute of this object.
+
+    bool publishAppIdMetrics() const;
+    // Return the value of the "PublishAppIdMetrics" attribute of this
+    // object.
+
+    // HIDDEN FRIENDS
+    friend bool operator==(const QueueModeFanout& lhs,
+                           const QueueModeFanout& rhs)
+    // Return 'true' if the specified 'lhs' and 'rhs' attribute objects
+    // have the same value, and 'false' otherwise.  Two attribute objects
+    // have the same value if each respective attribute has the same value.
+    {
+        return lhs.appIDs() == rhs.appIDs() &&
+               lhs.publishAppIdMetrics() == rhs.publishAppIdMetrics();
+    }
+
+    friend bool operator!=(const QueueModeFanout& lhs,
+                           const QueueModeFanout& rhs)
+    // Returns '!(lhs == rhs)'
+    {
+        return !(lhs == rhs);
+    }
+
+    friend bsl::ostream& operator<<(bsl::ostream&          stream,
+                                    const QueueModeFanout& rhs)
+    // Format the specified 'rhs' to the specified output 'stream' and
+    // return a reference to the modifiable 'stream'.
+    {
+        return rhs.print(stream, 0, -1);
+    }
+
+    template <typename t_HASH_ALGORITHM>
+    friend void hashAppend(t_HASH_ALGORITHM&      hashAlg,
+                           const QueueModeFanout& object)
+    // Pass the specified 'object' to the specified 'hashAlg'.  This
+    // function integrates with the 'bslh' modular hashing system and
+    // effectively provides a 'bsl::hash' specialization for
+    // 'QueueModeFanout'.
+    {
+        using bslh::hashAppend;
+        hashAppend(hashAlg, object.appIDs());
+        hashAppend(hashAlg, object.publishAppIdMetrics());
+    }
 };
-
-// FREE OPERATORS
-inline bool operator==(const QueueModeFanout& lhs, const QueueModeFanout& rhs);
-// Return 'true' if the specified 'lhs' and 'rhs' attribute objects have
-// the same value, and 'false' otherwise.  Two attribute objects have the
-// same value if each respective attribute has the same value.
-
-inline bool operator!=(const QueueModeFanout& lhs, const QueueModeFanout& rhs);
-// Return 'true' if the specified 'lhs' and 'rhs' attribute objects do not
-// have the same value, and 'false' otherwise.  Two attribute objects do
-// not have the same value if one or more respective attributes differ in
-// values.
-
-inline bsl::ostream& operator<<(bsl::ostream&          stream,
-                                const QueueModeFanout& rhs);
-// Format the specified 'rhs' to the specified output 'stream' and
-// return a reference to the modifiable 'stream'.
-
-template <typename t_HASH_ALGORITHM>
-void hashAppend(t_HASH_ALGORITHM& hashAlg, const QueueModeFanout& object);
-// Pass the specified 'object' to the specified 'hashAlg'.  This function
-// integrates with the 'bslh' modular hashing system and effectively
-// provides a 'bsl::hash' specialization for 'QueueModeFanout'.
 
 }  // close package namespace
 
@@ -2577,37 +2546,8 @@ class QueueModePriority {
     // exists, and 0 otherwise.
 
     // CREATORS
-    QueueModePriority();
-    // Create an object of type 'QueueModePriority' having the default
-    // value.
-
-    QueueModePriority(const QueueModePriority& original);
-    // Create an object of type 'QueueModePriority' having the value of the
-    // specified 'original' object.
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    QueueModePriority(QueueModePriority&& original) = default;
-    // Create an object of type 'QueueModePriority' having the value of the
-    // specified 'original' object.  After performing this action, the
-    // 'original' object will be left in a valid, but unspecified state.
-#endif
-
-    ~QueueModePriority();
-    // Destroy this object.
 
     // MANIPULATORS
-    QueueModePriority& operator=(const QueueModePriority& rhs);
-    // Assign to this object the value of the specified 'rhs' object.
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    QueueModePriority& operator=(QueueModePriority&& rhs);
-    // Assign to this object the value of the specified 'rhs' object.
-    // After performing this action, the 'rhs' object will be left in a
-    // valid, but unspecified state.
-#endif
-
     void reset();
     // Reset this object to the default value (i.e., its value upon
     // default construction).
@@ -2683,32 +2623,39 @@ class QueueModePriority {
     // information structure.  Return the value returned from the
     // invocation of 'accessor' if 'name' identifies an attribute of this
     // class, and -1 otherwise.
+
+    // HIDDEN FRIENDS
+    friend bool operator==(const QueueModePriority&, const QueueModePriority&)
+    // Returns 'true' as this type has no attributes and so all objects of
+    // this type are considered equal.
+    {
+        return true;
+    }
+
+    friend bool operator!=(const QueueModePriority& lhs,
+                           const QueueModePriority& rhs)
+    // Returns '!(lhs == rhs)'
+    {
+        return !(lhs == rhs);
+    }
+
+    friend bsl::ostream& operator<<(bsl::ostream&            stream,
+                                    const QueueModePriority& rhs)
+    // Format the specified 'rhs' to the specified output 'stream' and
+    // return a reference to the modifiable 'stream'.
+    {
+        return rhs.print(stream, 0, -1);
+    }
+
+    template <typename t_HASH_ALGORITHM>
+    friend void hashAppend(t_HASH_ALGORITHM&, const QueueModePriority&)
+    // Pass the specified 'object' to the specified 'hashAlg'.  This
+    // function integrates with the 'bslh' modular hashing system and
+    // effectively provides a 'bsl::hash' specialization for
+    // 'QueueModePriority'.
+    {
+    }
 };
-
-// FREE OPERATORS
-inline bool operator==(const QueueModePriority& lhs,
-                       const QueueModePriority& rhs);
-// Return 'true' if the specified 'lhs' and 'rhs' attribute objects have
-// the same value, and 'false' otherwise.  Two attribute objects have the
-// same value if each respective attribute has the same value.
-
-inline bool operator!=(const QueueModePriority& lhs,
-                       const QueueModePriority& rhs);
-// Return 'true' if the specified 'lhs' and 'rhs' attribute objects do not
-// have the same value, and 'false' otherwise.  Two attribute objects do
-// not have the same value if one or more respective attributes differ in
-// values.
-
-inline bsl::ostream& operator<<(bsl::ostream&            stream,
-                                const QueueModePriority& rhs);
-// Format the specified 'rhs' to the specified output 'stream' and
-// return a reference to the modifiable 'stream'.
-
-template <typename t_HASH_ALGORITHM>
-void hashAppend(t_HASH_ALGORITHM& hashAlg, const QueueModePriority& object);
-// Pass the specified 'object' to the specified 'hashAlg'.  This function
-// integrates with the 'bslh' modular hashing system and effectively
-// provides a 'bsl::hash' specialization for 'QueueModePriority'.
 
 }  // close package namespace
 
@@ -2734,6 +2681,12 @@ class Consistency {
     };
 
     int d_selectionId;
+
+    // PRIVATE ACCESSORS
+    template <typename t_HASH_ALGORITHM>
+    void hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const;
+
+    bool isEqualTo(const Consistency& rhs) const;
 
   public:
     // TYPES
@@ -2899,28 +2852,43 @@ class Consistency {
 
     const char* selectionName() const;
     // Return the symbolic name of the current selection of this object.
+
+    // HIDDEN FRIENDS
+    friend bool operator==(const Consistency& lhs, const Consistency& rhs)
+    // Return 'true' if the specified 'lhs' and 'rhs' objects have the same
+    // value, and 'false' otherwise.  Two 'Consistency' objects have the
+    // same value if either the selections in both objects have the same
+    // ids and the same values, or both selections are undefined.
+    {
+        return lhs.isEqualTo(rhs);
+    }
+
+    friend bool operator!=(const Consistency& lhs, const Consistency& rhs)
+    // Return 'true' if the specified 'lhs' and 'rhs' objects do not have
+    // the same values, as determined by 'operator==', and 'false'
+    // otherwise.
+    {
+        return !(lhs == rhs);
+    }
+
+    friend bsl::ostream& operator<<(bsl::ostream&      stream,
+                                    const Consistency& rhs)
+    // Format the specified 'rhs' to the specified output 'stream' and
+    // return a reference to the modifiable 'stream'.
+    {
+        return rhs.print(stream, 0, -1);
+    }
+
+    template <typename t_HASH_ALGORITHM>
+    friend void hashAppend(t_HASH_ALGORITHM&  hashAlg,
+                           const Consistency& object)
+    // Pass the specified 'object' to the specified 'hashAlg'.  This
+    // function integrates with the 'bslh' modular hashing system and
+    // effectively provides a 'bsl::hash' specialization for 'Consistency'.
+    {
+        return object.hashAppendImpl(hashAlg);
+    }
 };
-
-// FREE OPERATORS
-inline bool operator==(const Consistency& lhs, const Consistency& rhs);
-// Return 'true' if the specified 'lhs' and 'rhs' objects have the same
-// value, and 'false' otherwise.  Two 'Consistency' objects have the same
-// value if either the selections in both objects have the same ids and
-// the same values, or both selections are undefined.
-
-inline bool operator!=(const Consistency& lhs, const Consistency& rhs);
-// Return 'true' if the specified 'lhs' and 'rhs' objects do not have the
-// same values, as determined by 'operator==', and 'false' otherwise.
-
-inline bsl::ostream& operator<<(bsl::ostream& stream, const Consistency& rhs);
-// Format the specified 'rhs' to the specified output 'stream' and
-// return a reference to the modifiable 'stream'.
-
-template <typename t_HASH_ALGORITHM>
-void hashAppend(t_HASH_ALGORITHM& hashAlg, const Consistency& object);
-// Pass the specified 'object' to the specified 'hashAlg'.  This function
-// integrates with the 'bslh' modular hashing system and effectively
-// provides a 'bsl::hash' specialization for 'Consistency'.
 
 }  // close package namespace
 
@@ -3106,32 +3074,46 @@ class DomainConfigRequest {
     const bsl::string& domainName() const;
     // Return a reference offering non-modifiable access to the
     // "DomainName" attribute of this object.
+
+    // HIDDEN FRIENDS
+    friend bool operator==(const DomainConfigRequest& lhs,
+                           const DomainConfigRequest& rhs)
+    // Return 'true' if the specified 'lhs' and 'rhs' attribute objects
+    // have the same value, and 'false' otherwise.  Two attribute objects
+    // have the same value if each respective attribute has the same value.
+    {
+        return lhs.brokerIdentity() == rhs.brokerIdentity() &&
+               lhs.domainName() == rhs.domainName();
+    }
+
+    friend bool operator!=(const DomainConfigRequest& lhs,
+                           const DomainConfigRequest& rhs)
+    // Returns '!(lhs == rhs)'
+    {
+        return !(lhs == rhs);
+    }
+
+    friend bsl::ostream& operator<<(bsl::ostream&              stream,
+                                    const DomainConfigRequest& rhs)
+    // Format the specified 'rhs' to the specified output 'stream' and
+    // return a reference to the modifiable 'stream'.
+    {
+        return rhs.print(stream, 0, -1);
+    }
+
+    template <typename t_HASH_ALGORITHM>
+    friend void hashAppend(t_HASH_ALGORITHM&          hashAlg,
+                           const DomainConfigRequest& object)
+    // Pass the specified 'object' to the specified 'hashAlg'.  This
+    // function integrates with the 'bslh' modular hashing system and
+    // effectively provides a 'bsl::hash' specialization for
+    // 'DomainConfigRequest'.
+    {
+        using bslh::hashAppend;
+        hashAppend(hashAlg, object.brokerIdentity());
+        hashAppend(hashAlg, object.domainName());
+    }
 };
-
-// FREE OPERATORS
-inline bool operator==(const DomainConfigRequest& lhs,
-                       const DomainConfigRequest& rhs);
-// Return 'true' if the specified 'lhs' and 'rhs' attribute objects have
-// the same value, and 'false' otherwise.  Two attribute objects have the
-// same value if each respective attribute has the same value.
-
-inline bool operator!=(const DomainConfigRequest& lhs,
-                       const DomainConfigRequest& rhs);
-// Return 'true' if the specified 'lhs' and 'rhs' attribute objects do not
-// have the same value, and 'false' otherwise.  Two attribute objects do
-// not have the same value if one or more respective attributes differ in
-// values.
-
-inline bsl::ostream& operator<<(bsl::ostream&              stream,
-                                const DomainConfigRequest& rhs);
-// Format the specified 'rhs' to the specified output 'stream' and
-// return a reference to the modifiable 'stream'.
-
-template <typename t_HASH_ALGORITHM>
-void hashAppend(t_HASH_ALGORITHM& hashAlg, const DomainConfigRequest& object);
-// Pass the specified 'object' to the specified 'hashAlg'.  This function
-// integrates with the 'bslh' modular hashing system and effectively
-// provides a 'bsl::hash' specialization for 'DomainConfigRequest'.
 
 }  // close package namespace
 
@@ -3318,29 +3300,41 @@ class Expression {
     const bsl::string& text() const;
     // Return a reference offering non-modifiable access to the "Text"
     // attribute of this object.
+
+    // HIDDEN FRIENDS
+    friend bool operator==(const Expression& lhs, const Expression& rhs)
+    // Return 'true' if the specified 'lhs' and 'rhs' attribute objects
+    // have the same value, and 'false' otherwise.  Two attribute objects
+    // have the same value if each respective attribute has the same value.
+    {
+        return lhs.version() == rhs.version() && lhs.text() == rhs.text();
+    }
+
+    friend bool operator!=(const Expression& lhs, const Expression& rhs)
+    // Returns '!(lhs == rhs)'
+    {
+        return !(lhs == rhs);
+    }
+
+    friend bsl::ostream& operator<<(bsl::ostream&     stream,
+                                    const Expression& rhs)
+    // Format the specified 'rhs' to the specified output 'stream' and
+    // return a reference to the modifiable 'stream'.
+    {
+        return rhs.print(stream, 0, -1);
+    }
+
+    template <typename t_HASH_ALGORITHM>
+    friend void hashAppend(t_HASH_ALGORITHM& hashAlg, const Expression& object)
+    // Pass the specified 'object' to the specified 'hashAlg'.  This
+    // function integrates with the 'bslh' modular hashing system and
+    // effectively provides a 'bsl::hash' specialization for 'Expression'.
+    {
+        using bslh::hashAppend;
+        hashAppend(hashAlg, object.version());
+        hashAppend(hashAlg, object.text());
+    }
 };
-
-// FREE OPERATORS
-inline bool operator==(const Expression& lhs, const Expression& rhs);
-// Return 'true' if the specified 'lhs' and 'rhs' attribute objects have
-// the same value, and 'false' otherwise.  Two attribute objects have the
-// same value if each respective attribute has the same value.
-
-inline bool operator!=(const Expression& lhs, const Expression& rhs);
-// Return 'true' if the specified 'lhs' and 'rhs' attribute objects do not
-// have the same value, and 'false' otherwise.  Two attribute objects do
-// not have the same value if one or more respective attributes differ in
-// values.
-
-inline bsl::ostream& operator<<(bsl::ostream& stream, const Expression& rhs);
-// Format the specified 'rhs' to the specified output 'stream' and
-// return a reference to the modifiable 'stream'.
-
-template <typename t_HASH_ALGORITHM>
-void hashAppend(t_HASH_ALGORITHM& hashAlg, const Expression& object);
-// Pass the specified 'object' to the specified 'hashAlg'.  This function
-// integrates with the 'bslh' modular hashing system and effectively
-// provides a 'bsl::hash' specialization for 'Expression'.
 
 }  // close package namespace
 
@@ -3370,6 +3364,12 @@ class QueueMode {
 
     int               d_selectionId;
     bslma::Allocator* d_allocator_p;
+
+    // PRIVATE ACCESSORS
+    template <typename t_HASH_ALGORITHM>
+    void hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const;
+
+    bool isEqualTo(const QueueMode& rhs) const;
 
   public:
     // TYPES
@@ -3576,28 +3576,41 @@ class QueueMode {
 
     const char* selectionName() const;
     // Return the symbolic name of the current selection of this object.
+
+    // HIDDEN FRIENDS
+    friend bool operator==(const QueueMode& lhs, const QueueMode& rhs)
+    // Return 'true' if the specified 'lhs' and 'rhs' objects have the same
+    // value, and 'false' otherwise.  Two 'QueueMode' objects have the same
+    // value if either the selections in both objects have the same ids and
+    // the same values, or both selections are undefined.
+    {
+        return lhs.isEqualTo(rhs);
+    }
+
+    friend bool operator!=(const QueueMode& lhs, const QueueMode& rhs)
+    // Return 'true' if the specified 'lhs' and 'rhs' objects do not have
+    // the same values, as determined by 'operator==', and 'false'
+    // otherwise.
+    {
+        return !(lhs == rhs);
+    }
+
+    friend bsl::ostream& operator<<(bsl::ostream& stream, const QueueMode& rhs)
+    // Format the specified 'rhs' to the specified output 'stream' and
+    // return a reference to the modifiable 'stream'.
+    {
+        return rhs.print(stream, 0, -1);
+    }
+
+    template <typename t_HASH_ALGORITHM>
+    friend void hashAppend(t_HASH_ALGORITHM& hashAlg, const QueueMode& object)
+    // Pass the specified 'object' to the specified 'hashAlg'.  This
+    // function integrates with the 'bslh' modular hashing system and
+    // effectively provides a 'bsl::hash' specialization for 'QueueMode'.
+    {
+        return object.hashAppendImpl(hashAlg);
+    }
 };
-
-// FREE OPERATORS
-inline bool operator==(const QueueMode& lhs, const QueueMode& rhs);
-// Return 'true' if the specified 'lhs' and 'rhs' objects have the same
-// value, and 'false' otherwise.  Two 'QueueMode' objects have the same
-// value if either the selections in both objects have the same ids and
-// the same values, or both selections are undefined.
-
-inline bool operator!=(const QueueMode& lhs, const QueueMode& rhs);
-// Return 'true' if the specified 'lhs' and 'rhs' objects do not have the
-// same values, as determined by 'operator==', and 'false' otherwise.
-
-inline bsl::ostream& operator<<(bsl::ostream& stream, const QueueMode& rhs);
-// Format the specified 'rhs' to the specified output 'stream' and
-// return a reference to the modifiable 'stream'.
-
-template <typename t_HASH_ALGORITHM>
-void hashAppend(t_HASH_ALGORITHM& hashAlg, const QueueMode& object);
-// Pass the specified 'object' to the specified 'hashAlg'.  This function
-// integrates with the 'bslh' modular hashing system and effectively
-// provides a 'bsl::hash' specialization for 'QueueMode'.
 
 }  // close package namespace
 
@@ -3622,6 +3635,12 @@ class Response {
 
     int               d_selectionId;
     bslma::Allocator* d_allocator_p;
+
+    // PRIVATE ACCESSORS
+    template <typename t_HASH_ALGORITHM>
+    void hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const;
+
+    bool isEqualTo(const Response& rhs) const;
 
   public:
     // TYPES
@@ -3801,28 +3820,41 @@ class Response {
 
     const char* selectionName() const;
     // Return the symbolic name of the current selection of this object.
+
+    // HIDDEN FRIENDS
+    friend bool operator==(const Response& lhs, const Response& rhs)
+    // Return 'true' if the specified 'lhs' and 'rhs' objects have the same
+    // value, and 'false' otherwise.  Two 'Response' objects have the same
+    // value if either the selections in both objects have the same ids and
+    // the same values, or both selections are undefined.
+    {
+        return lhs.isEqualTo(rhs);
+    }
+
+    friend bool operator!=(const Response& lhs, const Response& rhs)
+    // Return 'true' if the specified 'lhs' and 'rhs' objects do not have
+    // the same values, as determined by 'operator==', and 'false'
+    // otherwise.
+    {
+        return !(lhs == rhs);
+    }
+
+    friend bsl::ostream& operator<<(bsl::ostream& stream, const Response& rhs)
+    // Format the specified 'rhs' to the specified output 'stream' and
+    // return a reference to the modifiable 'stream'.
+    {
+        return rhs.print(stream, 0, -1);
+    }
+
+    template <typename t_HASH_ALGORITHM>
+    friend void hashAppend(t_HASH_ALGORITHM& hashAlg, const Response& object)
+    // Pass the specified 'object' to the specified 'hashAlg'.  This
+    // function integrates with the 'bslh' modular hashing system and
+    // effectively provides a 'bsl::hash' specialization for 'Response'.
+    {
+        return object.hashAppendImpl(hashAlg);
+    }
 };
-
-// FREE OPERATORS
-inline bool operator==(const Response& lhs, const Response& rhs);
-// Return 'true' if the specified 'lhs' and 'rhs' objects have the same
-// value, and 'false' otherwise.  Two 'Response' objects have the same
-// value if either the selections in both objects have the same ids and
-// the same values, or both selections are undefined.
-
-inline bool operator!=(const Response& lhs, const Response& rhs);
-// Return 'true' if the specified 'lhs' and 'rhs' objects do not have the
-// same values, as determined by 'operator==', and 'false' otherwise.
-
-inline bsl::ostream& operator<<(bsl::ostream& stream, const Response& rhs);
-// Format the specified 'rhs' to the specified output 'stream' and
-// return a reference to the modifiable 'stream'.
-
-template <typename t_HASH_ALGORITHM>
-void hashAppend(t_HASH_ALGORITHM& hashAlg, const Response& object);
-// Pass the specified 'object' to the specified 'hashAlg'.  This function
-// integrates with the 'bslh' modular hashing system and effectively
-// provides a 'bsl::hash' specialization for 'Response'.
 
 }  // close package namespace
 
@@ -3848,6 +3880,12 @@ class Storage {
     };
 
     int d_selectionId;
+
+    // PRIVATE ACCESSORS
+    template <typename t_HASH_ALGORITHM>
+    void hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const;
+
+    bool isEqualTo(const Storage& rhs) const;
 
   public:
     // TYPES
@@ -4012,28 +4050,41 @@ class Storage {
 
     const char* selectionName() const;
     // Return the symbolic name of the current selection of this object.
+
+    // HIDDEN FRIENDS
+    friend bool operator==(const Storage& lhs, const Storage& rhs)
+    // Return 'true' if the specified 'lhs' and 'rhs' objects have the same
+    // value, and 'false' otherwise.  Two 'Storage' objects have the same
+    // value if either the selections in both objects have the same ids and
+    // the same values, or both selections are undefined.
+    {
+        return lhs.isEqualTo(rhs);
+    }
+
+    friend bool operator!=(const Storage& lhs, const Storage& rhs)
+    // Return 'true' if the specified 'lhs' and 'rhs' objects do not have
+    // the same values, as determined by 'operator==', and 'false'
+    // otherwise.
+    {
+        return !(lhs == rhs);
+    }
+
+    friend bsl::ostream& operator<<(bsl::ostream& stream, const Storage& rhs)
+    // Format the specified 'rhs' to the specified output 'stream' and
+    // return a reference to the modifiable 'stream'.
+    {
+        return rhs.print(stream, 0, -1);
+    }
+
+    template <typename t_HASH_ALGORITHM>
+    friend void hashAppend(t_HASH_ALGORITHM& hashAlg, const Storage& object)
+    // Pass the specified 'object' to the specified 'hashAlg'.  This
+    // function integrates with the 'bslh' modular hashing system and
+    // effectively provides a 'bsl::hash' specialization for 'Storage'.
+    {
+        return object.hashAppendImpl(hashAlg);
+    }
 };
-
-// FREE OPERATORS
-inline bool operator==(const Storage& lhs, const Storage& rhs);
-// Return 'true' if the specified 'lhs' and 'rhs' objects have the same
-// value, and 'false' otherwise.  Two 'Storage' objects have the same
-// value if either the selections in both objects have the same ids and
-// the same values, or both selections are undefined.
-
-inline bool operator!=(const Storage& lhs, const Storage& rhs);
-// Return 'true' if the specified 'lhs' and 'rhs' objects do not have the
-// same values, as determined by 'operator==', and 'false' otherwise.
-
-inline bsl::ostream& operator<<(bsl::ostream& stream, const Storage& rhs);
-// Format the specified 'rhs' to the specified output 'stream' and
-// return a reference to the modifiable 'stream'.
-
-template <typename t_HASH_ALGORITHM>
-void hashAppend(t_HASH_ALGORITHM& hashAlg, const Storage& object);
-// Pass the specified 'object' to the specified 'hashAlg'.  This function
-// integrates with the 'bslh' modular hashing system and effectively
-// provides a 'bsl::hash' specialization for 'Storage'.
 
 }  // close package namespace
 
@@ -4057,6 +4108,12 @@ class Request {
 
     int               d_selectionId;
     bslma::Allocator* d_allocator_p;
+
+    // PRIVATE ACCESSORS
+    template <typename t_HASH_ALGORITHM>
+    void hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const;
+
+    bool isEqualTo(const Request& rhs) const;
 
   public:
     // TYPES
@@ -4208,28 +4265,41 @@ class Request {
 
     const char* selectionName() const;
     // Return the symbolic name of the current selection of this object.
+
+    // HIDDEN FRIENDS
+    friend bool operator==(const Request& lhs, const Request& rhs)
+    // Return 'true' if the specified 'lhs' and 'rhs' objects have the same
+    // value, and 'false' otherwise.  Two 'Request' objects have the same
+    // value if either the selections in both objects have the same ids and
+    // the same values, or both selections are undefined.
+    {
+        return lhs.isEqualTo(rhs);
+    }
+
+    friend bool operator!=(const Request& lhs, const Request& rhs)
+    // Return 'true' if the specified 'lhs' and 'rhs' objects do not have
+    // the same values, as determined by 'operator==', and 'false'
+    // otherwise.
+    {
+        return !(lhs == rhs);
+    }
+
+    friend bsl::ostream& operator<<(bsl::ostream& stream, const Request& rhs)
+    // Format the specified 'rhs' to the specified output 'stream' and
+    // return a reference to the modifiable 'stream'.
+    {
+        return rhs.print(stream, 0, -1);
+    }
+
+    template <typename t_HASH_ALGORITHM>
+    friend void hashAppend(t_HASH_ALGORITHM& hashAlg, const Request& object)
+    // Pass the specified 'object' to the specified 'hashAlg'.  This
+    // function integrates with the 'bslh' modular hashing system and
+    // effectively provides a 'bsl::hash' specialization for 'Request'.
+    {
+        return object.hashAppendImpl(hashAlg);
+    }
 };
-
-// FREE OPERATORS
-inline bool operator==(const Request& lhs, const Request& rhs);
-// Return 'true' if the specified 'lhs' and 'rhs' objects have the same
-// value, and 'false' otherwise.  Two 'Request' objects have the same
-// value if either the selections in both objects have the same ids and
-// the same values, or both selections are undefined.
-
-inline bool operator!=(const Request& lhs, const Request& rhs);
-// Return 'true' if the specified 'lhs' and 'rhs' objects do not have the
-// same values, as determined by 'operator==', and 'false' otherwise.
-
-inline bsl::ostream& operator<<(bsl::ostream& stream, const Request& rhs);
-// Format the specified 'rhs' to the specified output 'stream' and
-// return a reference to the modifiable 'stream'.
-
-template <typename t_HASH_ALGORITHM>
-void hashAppend(t_HASH_ALGORITHM& hashAlg, const Request& object);
-// Pass the specified 'object' to the specified 'hashAlg'.  This function
-// integrates with the 'bslh' modular hashing system and effectively
-// provides a 'bsl::hash' specialization for 'Request'.
 
 }  // close package namespace
 
@@ -4254,6 +4324,10 @@ class StorageDefinition {
     Storage d_config;
     Limits  d_domainLimits;
     Limits  d_queueLimits;
+
+    // PRIVATE ACCESSORS
+    template <typename t_HASH_ALGORITHM>
+    void hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const;
 
   public:
     // TYPES
@@ -4293,33 +4367,7 @@ class StorageDefinition {
     // Create an object of type 'StorageDefinition' having the default
     // value.
 
-    StorageDefinition(const StorageDefinition& original);
-    // Create an object of type 'StorageDefinition' having the value of the
-    // specified 'original' object.
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    StorageDefinition(StorageDefinition&& original) = default;
-    // Create an object of type 'StorageDefinition' having the value of the
-    // specified 'original' object.  After performing this action, the
-    // 'original' object will be left in a valid, but unspecified state.
-#endif
-
-    ~StorageDefinition();
-    // Destroy this object.
-
     // MANIPULATORS
-    StorageDefinition& operator=(const StorageDefinition& rhs);
-    // Assign to this object the value of the specified 'rhs' object.
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    StorageDefinition& operator=(StorageDefinition&& rhs);
-    // Assign to this object the value of the specified 'rhs' object.
-    // After performing this action, the 'rhs' object will be left in a
-    // valid, but unspecified state.
-#endif
-
     void reset();
     // Reset this object to the default value (i.e., its value upon
     // default construction).
@@ -4419,32 +4467,45 @@ class StorageDefinition {
     const Storage& config() const;
     // Return a reference offering non-modifiable access to the "Config"
     // attribute of this object.
+
+    // HIDDEN FRIENDS
+    friend bool operator==(const StorageDefinition& lhs,
+                           const StorageDefinition& rhs)
+    // Return 'true' if the specified 'lhs' and 'rhs' attribute objects
+    // have the same value, and 'false' otherwise.  Two attribute objects
+    // have the same value if each respective attribute has the same value.
+    {
+        return lhs.domainLimits() == rhs.domainLimits() &&
+               lhs.queueLimits() == rhs.queueLimits() &&
+               lhs.config() == rhs.config();
+    }
+
+    friend bool operator!=(const StorageDefinition& lhs,
+                           const StorageDefinition& rhs)
+    // Returns '!(lhs == rhs)'
+    {
+        return !(lhs == rhs);
+    }
+
+    friend bsl::ostream& operator<<(bsl::ostream&            stream,
+                                    const StorageDefinition& rhs)
+    // Format the specified 'rhs' to the specified output 'stream' and
+    // return a reference to the modifiable 'stream'.
+    {
+        return rhs.print(stream, 0, -1);
+    }
+
+    template <typename t_HASH_ALGORITHM>
+    friend void hashAppend(t_HASH_ALGORITHM&        hashAlg,
+                           const StorageDefinition& object)
+    // Pass the specified 'object' to the specified 'hashAlg'.  This
+    // function integrates with the 'bslh' modular hashing system and
+    // effectively provides a 'bsl::hash' specialization for
+    // 'StorageDefinition'.
+    {
+        object.hashAppendImpl(hashAlg);
+    }
 };
-
-// FREE OPERATORS
-inline bool operator==(const StorageDefinition& lhs,
-                       const StorageDefinition& rhs);
-// Return 'true' if the specified 'lhs' and 'rhs' attribute objects have
-// the same value, and 'false' otherwise.  Two attribute objects have the
-// same value if each respective attribute has the same value.
-
-inline bool operator!=(const StorageDefinition& lhs,
-                       const StorageDefinition& rhs);
-// Return 'true' if the specified 'lhs' and 'rhs' attribute objects do not
-// have the same value, and 'false' otherwise.  Two attribute objects do
-// not have the same value if one or more respective attributes differ in
-// values.
-
-inline bsl::ostream& operator<<(bsl::ostream&            stream,
-                                const StorageDefinition& rhs);
-// Format the specified 'rhs' to the specified output 'stream' and
-// return a reference to the modifiable 'stream'.
-
-template <typename t_HASH_ALGORITHM>
-void hashAppend(t_HASH_ALGORITHM& hashAlg, const StorageDefinition& object);
-// Pass the specified 'object' to the specified 'hashAlg'.  This function
-// integrates with the 'bslh' modular hashing system and effectively
-// provides a 'bsl::hash' specialization for 'StorageDefinition'.
 
 }  // close package namespace
 
@@ -4461,8 +4522,8 @@ namespace mqbconfm {
 class Subscription {
     // This complex type contains various parameters required by an upstream
     // node to configure subscription for an app.
-    // appId..................: app identifier
-    // consumers..............: consumer parameters
+    // appId..................: app identifier expression.............:
+    // expression denoting a subscription for the app
 
     // INSTANCE DATA
     bsl::string d_appId;
@@ -4629,29 +4690,44 @@ class Subscription {
     const Expression& expression() const;
     // Return a reference offering non-modifiable access to the
     // "Expression" attribute of this object.
+
+    // HIDDEN FRIENDS
+    friend bool operator==(const Subscription& lhs, const Subscription& rhs)
+    // Return 'true' if the specified 'lhs' and 'rhs' attribute objects
+    // have the same value, and 'false' otherwise.  Two attribute objects
+    // have the same value if each respective attribute has the same value.
+    {
+        return lhs.appId() == rhs.appId() &&
+               lhs.expression() == rhs.expression();
+    }
+
+    friend bool operator!=(const Subscription& lhs, const Subscription& rhs)
+    // Returns '!(lhs == rhs)'
+    {
+        return !(lhs == rhs);
+    }
+
+    friend bsl::ostream& operator<<(bsl::ostream&       stream,
+                                    const Subscription& rhs)
+    // Format the specified 'rhs' to the specified output 'stream' and
+    // return a reference to the modifiable 'stream'.
+    {
+        return rhs.print(stream, 0, -1);
+    }
+
+    template <typename t_HASH_ALGORITHM>
+    friend void hashAppend(t_HASH_ALGORITHM&   hashAlg,
+                           const Subscription& object)
+    // Pass the specified 'object' to the specified 'hashAlg'.  This
+    // function integrates with the 'bslh' modular hashing system and
+    // effectively provides a 'bsl::hash' specialization for
+    // 'Subscription'.
+    {
+        using bslh::hashAppend;
+        hashAppend(hashAlg, object.appId());
+        hashAppend(hashAlg, object.expression());
+    }
 };
-
-// FREE OPERATORS
-inline bool operator==(const Subscription& lhs, const Subscription& rhs);
-// Return 'true' if the specified 'lhs' and 'rhs' attribute objects have
-// the same value, and 'false' otherwise.  Two attribute objects have the
-// same value if each respective attribute has the same value.
-
-inline bool operator!=(const Subscription& lhs, const Subscription& rhs);
-// Return 'true' if the specified 'lhs' and 'rhs' attribute objects do not
-// have the same value, and 'false' otherwise.  Two attribute objects do
-// not have the same value if one or more respective attributes differ in
-// values.
-
-inline bsl::ostream& operator<<(bsl::ostream& stream, const Subscription& rhs);
-// Format the specified 'rhs' to the specified output 'stream' and
-// return a reference to the modifiable 'stream'.
-
-template <typename t_HASH_ALGORITHM>
-void hashAppend(t_HASH_ALGORITHM& hashAlg, const Subscription& object);
-// Pass the specified 'object' to the specified 'hashAlg'.  This function
-// integrates with the 'bslh' modular hashing system and effectively
-// provides a 'bsl::hash' specialization for 'Subscription'.
 
 }  // close package namespace
 
@@ -4703,6 +4779,12 @@ class Domain {
     int                                   d_maxIdleTime;
     int                                   d_maxDeliveryAttempts;
     int                                   d_deduplicationTimeMs;
+
+    // PRIVATE ACCESSORS
+    template <typename t_HASH_ALGORITHM>
+    void hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const;
+
+    bool isEqualTo(const Domain& rhs) const;
 
   public:
     // TYPES
@@ -4987,29 +5069,38 @@ class Domain {
     const bsl::vector<Subscription>& subscriptions() const;
     // Return a reference offering non-modifiable access to the
     // "Subscriptions" attribute of this object.
+
+    // HIDDEN FRIENDS
+    friend bool operator==(const Domain& lhs, const Domain& rhs)
+    // Return 'true' if the specified 'lhs' and 'rhs' attribute objects
+    // have the same value, and 'false' otherwise.  Two attribute objects
+    // have the same value if each respective attribute has the same value.
+    {
+        return lhs.isEqualTo(rhs);
+    }
+
+    friend bool operator!=(const Domain& lhs, const Domain& rhs)
+    // Returns '!(lhs == rhs)'
+    {
+        return !(lhs == rhs);
+    }
+
+    friend bsl::ostream& operator<<(bsl::ostream& stream, const Domain& rhs)
+    // Format the specified 'rhs' to the specified output 'stream' and
+    // return a reference to the modifiable 'stream'.
+    {
+        return rhs.print(stream, 0, -1);
+    }
+
+    template <typename t_HASH_ALGORITHM>
+    friend void hashAppend(t_HASH_ALGORITHM& hashAlg, const Domain& object)
+    // Pass the specified 'object' to the specified 'hashAlg'.  This
+    // function integrates with the 'bslh' modular hashing system and
+    // effectively provides a 'bsl::hash' specialization for 'Domain'.
+    {
+        object.hashAppendImpl(hashAlg);
+    }
 };
-
-// FREE OPERATORS
-inline bool operator==(const Domain& lhs, const Domain& rhs);
-// Return 'true' if the specified 'lhs' and 'rhs' attribute objects have
-// the same value, and 'false' otherwise.  Two attribute objects have the
-// same value if each respective attribute has the same value.
-
-inline bool operator!=(const Domain& lhs, const Domain& rhs);
-// Return 'true' if the specified 'lhs' and 'rhs' attribute objects do not
-// have the same value, and 'false' otherwise.  Two attribute objects do
-// not have the same value if one or more respective attributes differ in
-// values.
-
-inline bsl::ostream& operator<<(bsl::ostream& stream, const Domain& rhs);
-// Format the specified 'rhs' to the specified output 'stream' and
-// return a reference to the modifiable 'stream'.
-
-template <typename t_HASH_ALGORITHM>
-void hashAppend(t_HASH_ALGORITHM& hashAlg, const Domain& object);
-// Pass the specified 'object' to the specified 'hashAlg'.  This function
-// integrates with the 'bslh' modular hashing system and effectively
-// provides a 'bsl::hash' specialization for 'Domain'.
 
 }  // close package namespace
 
@@ -5196,32 +5287,46 @@ class DomainDefinition {
     const Domain& parameters() const;
     // Return a reference offering non-modifiable access to the
     // "Parameters" attribute of this object.
+
+    // HIDDEN FRIENDS
+    friend bool operator==(const DomainDefinition& lhs,
+                           const DomainDefinition& rhs)
+    // Return 'true' if the specified 'lhs' and 'rhs' attribute objects
+    // have the same value, and 'false' otherwise.  Two attribute objects
+    // have the same value if each respective attribute has the same value.
+    {
+        return lhs.location() == rhs.location() &&
+               lhs.parameters() == rhs.parameters();
+    }
+
+    friend bool operator!=(const DomainDefinition& lhs,
+                           const DomainDefinition& rhs)
+    // Returns '!(lhs == rhs)'
+    {
+        return !(lhs == rhs);
+    }
+
+    friend bsl::ostream& operator<<(bsl::ostream&           stream,
+                                    const DomainDefinition& rhs)
+    // Format the specified 'rhs' to the specified output 'stream' and
+    // return a reference to the modifiable 'stream'.
+    {
+        return rhs.print(stream, 0, -1);
+    }
+
+    template <typename t_HASH_ALGORITHM>
+    friend void hashAppend(t_HASH_ALGORITHM&       hashAlg,
+                           const DomainDefinition& object)
+    // Pass the specified 'object' to the specified 'hashAlg'.  This
+    // function integrates with the 'bslh' modular hashing system and
+    // effectively provides a 'bsl::hash' specialization for
+    // 'DomainDefinition'.
+    {
+        using bslh::hashAppend;
+        hashAppend(hashAlg, object.location());
+        hashAppend(hashAlg, object.parameters());
+    }
 };
-
-// FREE OPERATORS
-inline bool operator==(const DomainDefinition& lhs,
-                       const DomainDefinition& rhs);
-// Return 'true' if the specified 'lhs' and 'rhs' attribute objects have
-// the same value, and 'false' otherwise.  Two attribute objects have the
-// same value if each respective attribute has the same value.
-
-inline bool operator!=(const DomainDefinition& lhs,
-                       const DomainDefinition& rhs);
-// Return 'true' if the specified 'lhs' and 'rhs' attribute objects do not
-// have the same value, and 'false' otherwise.  Two attribute objects do
-// not have the same value if one or more respective attributes differ in
-// values.
-
-inline bsl::ostream& operator<<(bsl::ostream&           stream,
-                                const DomainDefinition& rhs);
-// Format the specified 'rhs' to the specified output 'stream' and
-// return a reference to the modifiable 'stream'.
-
-template <typename t_HASH_ALGORITHM>
-void hashAppend(t_HASH_ALGORITHM& hashAlg, const DomainDefinition& object);
-// Pass the specified 'object' to the specified 'hashAlg'.  This function
-// integrates with the 'bslh' modular hashing system and effectively
-// provides a 'bsl::hash' specialization for 'DomainDefinition'.
 
 }  // close package namespace
 
@@ -5249,6 +5354,12 @@ class DomainVariant {
 
     int               d_selectionId;
     bslma::Allocator* d_allocator_p;
+
+    // PRIVATE ACCESSORS
+    template <typename t_HASH_ALGORITHM>
+    void hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const;
+
+    bool isEqualTo(const DomainVariant& rhs) const;
 
   public:
     // TYPES
@@ -5427,29 +5538,44 @@ class DomainVariant {
 
     const char* selectionName() const;
     // Return the symbolic name of the current selection of this object.
+
+    // HIDDEN FRIENDS
+    friend bool operator==(const DomainVariant& lhs, const DomainVariant& rhs)
+    // Return 'true' if the specified 'lhs' and 'rhs' objects have the same
+    // value, and 'false' otherwise.  Two 'DomainVariant' objects have the
+    // same value if either the selections in both objects have the same
+    // ids and the same values, or both selections are undefined.
+    {
+        return lhs.isEqualTo(rhs);
+    }
+
+    friend bool operator!=(const DomainVariant& lhs, const DomainVariant& rhs)
+    // Return 'true' if the specified 'lhs' and 'rhs' objects do not have
+    // the same values, as determined by 'operator==', and 'false'
+    // otherwise.
+    {
+        return !(lhs == rhs);
+    }
+
+    friend bsl::ostream& operator<<(bsl::ostream&        stream,
+                                    const DomainVariant& rhs)
+    // Format the specified 'rhs' to the specified output 'stream' and
+    // return a reference to the modifiable 'stream'.
+    {
+        return rhs.print(stream, 0, -1);
+    }
+
+    template <typename t_HASH_ALGORITHM>
+    friend void hashAppend(t_HASH_ALGORITHM&    hashAlg,
+                           const DomainVariant& object)
+    // Pass the specified 'object' to the specified 'hashAlg'.  This
+    // function integrates with the 'bslh' modular hashing system and
+    // effectively provides a 'bsl::hash' specialization for
+    // 'DomainVariant'.
+    {
+        return object.hashAppendImpl(hashAlg);
+    }
 };
-
-// FREE OPERATORS
-inline bool operator==(const DomainVariant& lhs, const DomainVariant& rhs);
-// Return 'true' if the specified 'lhs' and 'rhs' objects have the same
-// value, and 'false' otherwise.  Two 'DomainVariant' objects have the same
-// value if either the selections in both objects have the same ids and
-// the same values, or both selections are undefined.
-
-inline bool operator!=(const DomainVariant& lhs, const DomainVariant& rhs);
-// Return 'true' if the specified 'lhs' and 'rhs' objects do not have the
-// same values, as determined by 'operator==', and 'false' otherwise.
-
-inline bsl::ostream& operator<<(bsl::ostream&        stream,
-                                const DomainVariant& rhs);
-// Format the specified 'rhs' to the specified output 'stream' and
-// return a reference to the modifiable 'stream'.
-
-template <typename t_HASH_ALGORITHM>
-void hashAppend(t_HASH_ALGORITHM& hashAlg, const DomainVariant& object);
-// Pass the specified 'object' to the specified 'hashAlg'.  This function
-// integrates with the 'bslh' modular hashing system and effectively
-// provides a 'bsl::hash' specialization for 'DomainVariant'.
 
 }  // close package namespace
 
@@ -5467,6 +5593,16 @@ namespace mqbconfm {
 // --------------------
 // class BrokerIdentity
 // --------------------
+
+// PRIVATE ACCESSORS
+template <typename t_HASH_ALGORITHM>
+void BrokerIdentity::hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const
+{
+    using bslh::hashAppend;
+    hashAppend(hashAlgorithm, this->hostName());
+    hashAppend(hashAlgorithm, this->hostTags());
+    hashAppend(hashAlgorithm, this->brokerVersion());
+}
 
 // CLASS METHODS
 // MANIPULATORS
@@ -6198,6 +6334,25 @@ int InMemoryStorage::accessAttribute(t_ACCESSOR& accessor,
 // class Limits
 // ------------
 
+// PRIVATE ACCESSORS
+template <typename t_HASH_ALGORITHM>
+void Limits::hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const
+{
+    using bslh::hashAppend;
+    hashAppend(hashAlgorithm, this->messages());
+    hashAppend(hashAlgorithm, this->messagesWatermarkRatio());
+    hashAppend(hashAlgorithm, this->bytes());
+    hashAppend(hashAlgorithm, this->bytesWatermarkRatio());
+}
+
+inline bool Limits::isEqualTo(const Limits& rhs) const
+{
+    return this->messages() == rhs.messages() &&
+           this->messagesWatermarkRatio() == rhs.messagesWatermarkRatio() &&
+           this->bytes() == rhs.bytes() &&
+           this->bytesWatermarkRatio() == rhs.bytesWatermarkRatio();
+}
+
 // CLASS METHODS
 // MANIPULATORS
 template <typename t_MANIPULATOR>
@@ -6396,6 +6551,16 @@ inline double Limits::bytesWatermarkRatio() const
 // ----------------------
 // class MsgGroupIdConfig
 // ----------------------
+
+// PRIVATE ACCESSORS
+template <typename t_HASH_ALGORITHM>
+void MsgGroupIdConfig::hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const
+{
+    using bslh::hashAppend;
+    hashAppend(hashAlgorithm, this->rebalance());
+    hashAppend(hashAlgorithm, this->maxGroups());
+    hashAppend(hashAlgorithm, this->ttlSeconds());
+}
 
 // CLASS METHODS
 // MANIPULATORS
@@ -6803,6 +6968,13 @@ int QueueModeFanout::manipulateAttributes(t_MANIPULATOR& manipulator)
         return ret;
     }
 
+    ret = manipulator(
+        &d_publishAppIdMetrics,
+        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PUBLISH_APP_ID_METRICS]);
+    if (ret) {
+        return ret;
+    }
+
     return 0;
 }
 
@@ -6815,6 +6987,11 @@ int QueueModeFanout::manipulateAttribute(t_MANIPULATOR& manipulator, int id)
     case ATTRIBUTE_ID_APP_I_DS: {
         return manipulator(&d_appIDs,
                            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_APP_I_DS]);
+    }
+    case ATTRIBUTE_ID_PUBLISH_APP_ID_METRICS: {
+        return manipulator(
+            &d_publishAppIdMetrics,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PUBLISH_APP_ID_METRICS]);
     }
     default: return NOT_FOUND;
     }
@@ -6841,6 +7018,11 @@ inline bsl::vector<bsl::string>& QueueModeFanout::appIDs()
     return d_appIDs;
 }
 
+inline bool& QueueModeFanout::publishAppIdMetrics()
+{
+    return d_publishAppIdMetrics;
+}
+
 // ACCESSORS
 template <typename t_ACCESSOR>
 int QueueModeFanout::accessAttributes(t_ACCESSOR& accessor) const
@@ -6848,6 +7030,13 @@ int QueueModeFanout::accessAttributes(t_ACCESSOR& accessor) const
     int ret;
 
     ret = accessor(d_appIDs, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_APP_I_DS]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(
+        d_publishAppIdMetrics,
+        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PUBLISH_APP_ID_METRICS]);
     if (ret) {
         return ret;
     }
@@ -6864,6 +7053,11 @@ int QueueModeFanout::accessAttribute(t_ACCESSOR& accessor, int id) const
     case ATTRIBUTE_ID_APP_I_DS: {
         return accessor(d_appIDs,
                         ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_APP_I_DS]);
+    }
+    case ATTRIBUTE_ID_PUBLISH_APP_ID_METRICS: {
+        return accessor(
+            d_publishAppIdMetrics,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PUBLISH_APP_ID_METRICS]);
     }
     default: return NOT_FOUND;
     }
@@ -6888,6 +7082,11 @@ int QueueModeFanout::accessAttribute(t_ACCESSOR& accessor,
 inline const bsl::vector<bsl::string>& QueueModeFanout::appIDs() const
 {
     return d_appIDs;
+}
+
+inline bool QueueModeFanout::publishAppIdMetrics() const
+{
+    return d_publishAppIdMetrics;
 }
 
 // -----------------------
@@ -6970,6 +7169,42 @@ int QueueModePriority::accessAttribute(t_ACCESSOR& accessor,
 // -----------------
 
 // CLASS METHODS
+// PRIVATE ACCESSORS
+template <typename t_HASH_ALGORITHM>
+void Consistency::hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const
+{
+    typedef Consistency Class;
+    using bslh::hashAppend;
+    hashAppend(hashAlgorithm, this->selectionId());
+    switch (this->selectionId()) {
+    case Class::SELECTION_ID_EVENTUAL:
+        hashAppend(hashAlgorithm, this->eventual());
+        break;
+    case Class::SELECTION_ID_STRONG:
+        hashAppend(hashAlgorithm, this->strong());
+        break;
+    default: BSLS_ASSERT(this->selectionId() == Class::SELECTION_ID_UNDEFINED);
+    }
+}
+
+inline bool Consistency::isEqualTo(const Consistency& rhs) const
+{
+    typedef Consistency Class;
+    if (this->selectionId() == rhs.selectionId()) {
+        switch (rhs.selectionId()) {
+        case Class::SELECTION_ID_EVENTUAL:
+            return this->eventual() == rhs.eventual();
+        case Class::SELECTION_ID_STRONG: return this->strong() == rhs.strong();
+        default:
+            BSLS_ASSERT(Class::SELECTION_ID_UNDEFINED == rhs.selectionId());
+            return true;
+        }
+    }
+    else {
+        return false;
+    }
+}
+
 // CREATORS
 inline Consistency::Consistency()
 : d_selectionId(SELECTION_ID_UNDEFINED)
@@ -7330,6 +7565,47 @@ inline const bsl::string& Expression::text() const
 // ---------------
 
 // CLASS METHODS
+// PRIVATE ACCESSORS
+template <typename t_HASH_ALGORITHM>
+void QueueMode::hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const
+{
+    typedef QueueMode Class;
+    using bslh::hashAppend;
+    hashAppend(hashAlgorithm, this->selectionId());
+    switch (this->selectionId()) {
+    case Class::SELECTION_ID_FANOUT:
+        hashAppend(hashAlgorithm, this->fanout());
+        break;
+    case Class::SELECTION_ID_PRIORITY:
+        hashAppend(hashAlgorithm, this->priority());
+        break;
+    case Class::SELECTION_ID_BROADCAST:
+        hashAppend(hashAlgorithm, this->broadcast());
+        break;
+    default: BSLS_ASSERT(this->selectionId() == Class::SELECTION_ID_UNDEFINED);
+    }
+}
+
+inline bool QueueMode::isEqualTo(const QueueMode& rhs) const
+{
+    typedef QueueMode Class;
+    if (this->selectionId() == rhs.selectionId()) {
+        switch (rhs.selectionId()) {
+        case Class::SELECTION_ID_FANOUT: return this->fanout() == rhs.fanout();
+        case Class::SELECTION_ID_PRIORITY:
+            return this->priority() == rhs.priority();
+        case Class::SELECTION_ID_BROADCAST:
+            return this->broadcast() == rhs.broadcast();
+        default:
+            BSLS_ASSERT(Class::SELECTION_ID_UNDEFINED == rhs.selectionId());
+            return true;
+        }
+    }
+    else {
+        return false;
+    }
+}
+
 // CREATORS
 inline QueueMode::QueueMode(bslma::Allocator* basicAllocator)
 : d_selectionId(SELECTION_ID_UNDEFINED)
@@ -7446,6 +7722,43 @@ inline bool QueueMode::isUndefinedValue() const
 // --------------
 
 // CLASS METHODS
+// PRIVATE ACCESSORS
+template <typename t_HASH_ALGORITHM>
+void Response::hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const
+{
+    typedef Response Class;
+    using bslh::hashAppend;
+    hashAppend(hashAlgorithm, this->selectionId());
+    switch (this->selectionId()) {
+    case Class::SELECTION_ID_FAILURE:
+        hashAppend(hashAlgorithm, this->failure());
+        break;
+    case Class::SELECTION_ID_DOMAIN_CONFIG:
+        hashAppend(hashAlgorithm, this->domainConfig());
+        break;
+    default: BSLS_ASSERT(this->selectionId() == Class::SELECTION_ID_UNDEFINED);
+    }
+}
+
+inline bool Response::isEqualTo(const Response& rhs) const
+{
+    typedef Response Class;
+    if (this->selectionId() == rhs.selectionId()) {
+        switch (rhs.selectionId()) {
+        case Class::SELECTION_ID_FAILURE:
+            return this->failure() == rhs.failure();
+        case Class::SELECTION_ID_DOMAIN_CONFIG:
+            return this->domainConfig() == rhs.domainConfig();
+        default:
+            BSLS_ASSERT(Class::SELECTION_ID_UNDEFINED == rhs.selectionId());
+            return true;
+        }
+    }
+    else {
+        return false;
+    }
+}
+
 // CREATORS
 inline Response::Response(bslma::Allocator* basicAllocator)
 : d_selectionId(SELECTION_ID_UNDEFINED)
@@ -7540,6 +7853,43 @@ inline bool Response::isUndefinedValue() const
 // -------------
 
 // CLASS METHODS
+// PRIVATE ACCESSORS
+template <typename t_HASH_ALGORITHM>
+void Storage::hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const
+{
+    typedef Storage Class;
+    using bslh::hashAppend;
+    hashAppend(hashAlgorithm, this->selectionId());
+    switch (this->selectionId()) {
+    case Class::SELECTION_ID_IN_MEMORY:
+        hashAppend(hashAlgorithm, this->inMemory());
+        break;
+    case Class::SELECTION_ID_FILE_BACKED:
+        hashAppend(hashAlgorithm, this->fileBacked());
+        break;
+    default: BSLS_ASSERT(this->selectionId() == Class::SELECTION_ID_UNDEFINED);
+    }
+}
+
+inline bool Storage::isEqualTo(const Storage& rhs) const
+{
+    typedef Storage Class;
+    if (this->selectionId() == rhs.selectionId()) {
+        switch (rhs.selectionId()) {
+        case Class::SELECTION_ID_IN_MEMORY:
+            return this->inMemory() == rhs.inMemory();
+        case Class::SELECTION_ID_FILE_BACKED:
+            return this->fileBacked() == rhs.fileBacked();
+        default:
+            BSLS_ASSERT(Class::SELECTION_ID_UNDEFINED == rhs.selectionId());
+            return true;
+        }
+    }
+    else {
+        return false;
+    }
+}
+
 // CREATORS
 inline Storage::Storage()
 : d_selectionId(SELECTION_ID_UNDEFINED)
@@ -7632,6 +7982,38 @@ inline bool Storage::isUndefinedValue() const
 // -------------
 
 // CLASS METHODS
+// PRIVATE ACCESSORS
+template <typename t_HASH_ALGORITHM>
+void Request::hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const
+{
+    typedef Request Class;
+    using bslh::hashAppend;
+    hashAppend(hashAlgorithm, this->selectionId());
+    switch (this->selectionId()) {
+    case Class::SELECTION_ID_DOMAIN_CONFIG:
+        hashAppend(hashAlgorithm, this->domainConfig());
+        break;
+    default: BSLS_ASSERT(this->selectionId() == Class::SELECTION_ID_UNDEFINED);
+    }
+}
+
+inline bool Request::isEqualTo(const Request& rhs) const
+{
+    typedef Request Class;
+    if (this->selectionId() == rhs.selectionId()) {
+        switch (rhs.selectionId()) {
+        case Class::SELECTION_ID_DOMAIN_CONFIG:
+            return this->domainConfig() == rhs.domainConfig();
+        default:
+            BSLS_ASSERT(Class::SELECTION_ID_UNDEFINED == rhs.selectionId());
+            return true;
+        }
+    }
+    else {
+        return false;
+    }
+}
+
 // CREATORS
 inline Request::Request(bslma::Allocator* basicAllocator)
 : d_selectionId(SELECTION_ID_UNDEFINED)
@@ -7701,6 +8083,16 @@ inline bool Request::isUndefinedValue() const
 // -----------------------
 // class StorageDefinition
 // -----------------------
+
+// PRIVATE ACCESSORS
+template <typename t_HASH_ALGORITHM>
+void StorageDefinition::hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const
+{
+    using bslh::hashAppend;
+    hashAppend(hashAlgorithm, this->domainLimits());
+    hashAppend(hashAlgorithm, this->queueLimits());
+    hashAppend(hashAlgorithm, this->config());
+}
 
 // CLASS METHODS
 // MANIPULATORS
@@ -7997,6 +8389,42 @@ inline const Expression& Subscription::expression() const
 // ------------
 // class Domain
 // ------------
+
+// PRIVATE ACCESSORS
+template <typename t_HASH_ALGORITHM>
+void Domain::hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const
+{
+    using bslh::hashAppend;
+    hashAppend(hashAlgorithm, this->name());
+    hashAppend(hashAlgorithm, this->mode());
+    hashAppend(hashAlgorithm, this->storage());
+    hashAppend(hashAlgorithm, this->maxConsumers());
+    hashAppend(hashAlgorithm, this->maxProducers());
+    hashAppend(hashAlgorithm, this->maxQueues());
+    hashAppend(hashAlgorithm, this->msgGroupIdConfig());
+    hashAppend(hashAlgorithm, this->maxIdleTime());
+    hashAppend(hashAlgorithm, this->messageTtl());
+    hashAppend(hashAlgorithm, this->maxDeliveryAttempts());
+    hashAppend(hashAlgorithm, this->deduplicationTimeMs());
+    hashAppend(hashAlgorithm, this->consistency());
+    hashAppend(hashAlgorithm, this->subscriptions());
+}
+
+inline bool Domain::isEqualTo(const Domain& rhs) const
+{
+    return this->name() == rhs.name() && this->mode() == rhs.mode() &&
+           this->storage() == rhs.storage() &&
+           this->maxConsumers() == rhs.maxConsumers() &&
+           this->maxProducers() == rhs.maxProducers() &&
+           this->maxQueues() == rhs.maxQueues() &&
+           this->msgGroupIdConfig() == rhs.msgGroupIdConfig() &&
+           this->maxIdleTime() == rhs.maxIdleTime() &&
+           this->messageTtl() == rhs.messageTtl() &&
+           this->maxDeliveryAttempts() == rhs.maxDeliveryAttempts() &&
+           this->deduplicationTimeMs() == rhs.deduplicationTimeMs() &&
+           this->consistency() == rhs.consistency() &&
+           this->subscriptions() == rhs.subscriptions();
+}
 
 // CLASS METHODS
 // MANIPULATORS
@@ -8607,6 +9035,43 @@ inline const Domain& DomainDefinition::parameters() const
 // -------------------
 
 // CLASS METHODS
+// PRIVATE ACCESSORS
+template <typename t_HASH_ALGORITHM>
+void DomainVariant::hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const
+{
+    typedef DomainVariant Class;
+    using bslh::hashAppend;
+    hashAppend(hashAlgorithm, this->selectionId());
+    switch (this->selectionId()) {
+    case Class::SELECTION_ID_DEFINITION:
+        hashAppend(hashAlgorithm, this->definition());
+        break;
+    case Class::SELECTION_ID_REDIRECT:
+        hashAppend(hashAlgorithm, this->redirect());
+        break;
+    default: BSLS_ASSERT(this->selectionId() == Class::SELECTION_ID_UNDEFINED);
+    }
+}
+
+inline bool DomainVariant::isEqualTo(const DomainVariant& rhs) const
+{
+    typedef DomainVariant Class;
+    if (this->selectionId() == rhs.selectionId()) {
+        switch (rhs.selectionId()) {
+        case Class::SELECTION_ID_DEFINITION:
+            return this->definition() == rhs.definition();
+        case Class::SELECTION_ID_REDIRECT:
+            return this->redirect() == rhs.redirect();
+        default:
+            BSLS_ASSERT(Class::SELECTION_ID_UNDEFINED == rhs.selectionId());
+            return true;
+        }
+    }
+    else {
+        return false;
+    }
+}
+
 // CREATORS
 inline DomainVariant::DomainVariant(bslma::Allocator* basicAllocator)
 : d_selectionId(SELECTION_ID_UNDEFINED)
@@ -8698,878 +9163,13 @@ inline bool DomainVariant::isUndefinedValue() const
 
 // FREE FUNCTIONS
 
-inline bool mqbconfm::operator==(const mqbconfm::BrokerIdentity& lhs,
-                                 const mqbconfm::BrokerIdentity& rhs)
-{
-    return lhs.hostName() == rhs.hostName() &&
-           lhs.hostTags() == rhs.hostTags() &&
-           lhs.brokerVersion() == rhs.brokerVersion();
-}
-
-inline bool mqbconfm::operator!=(const mqbconfm::BrokerIdentity& lhs,
-                                 const mqbconfm::BrokerIdentity& rhs)
-{
-    return !(lhs == rhs);
-}
-
-inline bsl::ostream& mqbconfm::operator<<(bsl::ostream& stream,
-                                          const mqbconfm::BrokerIdentity& rhs)
-{
-    return rhs.print(stream, 0, -1);
-}
-
-template <typename t_HASH_ALGORITHM>
-void mqbconfm::hashAppend(t_HASH_ALGORITHM&               hashAlg,
-                          const mqbconfm::BrokerIdentity& object)
-{
-    using bslh::hashAppend;
-    hashAppend(hashAlg, object.hostName());
-    hashAppend(hashAlg, object.hostTags());
-    hashAppend(hashAlg, object.brokerVersion());
-}
-
-inline bool mqbconfm::operator==(const mqbconfm::DomainConfigRaw& lhs,
-                                 const mqbconfm::DomainConfigRaw& rhs)
-{
-    return lhs.domainName() == rhs.domainName() &&
-           lhs.config() == rhs.config();
-}
-
-inline bool mqbconfm::operator!=(const mqbconfm::DomainConfigRaw& lhs,
-                                 const mqbconfm::DomainConfigRaw& rhs)
-{
-    return !(lhs == rhs);
-}
-
-inline bsl::ostream& mqbconfm::operator<<(bsl::ostream& stream,
-                                          const mqbconfm::DomainConfigRaw& rhs)
-{
-    return rhs.print(stream, 0, -1);
-}
-
-template <typename t_HASH_ALGORITHM>
-void mqbconfm::hashAppend(t_HASH_ALGORITHM&                hashAlg,
-                          const mqbconfm::DomainConfigRaw& object)
-{
-    using bslh::hashAppend;
-    hashAppend(hashAlg, object.domainName());
-    hashAppend(hashAlg, object.config());
-}
-
-inline bool mqbconfm::operator==(const mqbconfm::DomainResolver& lhs,
-                                 const mqbconfm::DomainResolver& rhs)
-{
-    return lhs.name() == rhs.name() && lhs.cluster() == rhs.cluster();
-}
-
-inline bool mqbconfm::operator!=(const mqbconfm::DomainResolver& lhs,
-                                 const mqbconfm::DomainResolver& rhs)
-{
-    return !(lhs == rhs);
-}
-
-inline bsl::ostream& mqbconfm::operator<<(bsl::ostream& stream,
-                                          const mqbconfm::DomainResolver& rhs)
-{
-    return rhs.print(stream, 0, -1);
-}
-
-template <typename t_HASH_ALGORITHM>
-void mqbconfm::hashAppend(t_HASH_ALGORITHM&               hashAlg,
-                          const mqbconfm::DomainResolver& object)
-{
-    using bslh::hashAppend;
-    hashAppend(hashAlg, object.name());
-    hashAppend(hashAlg, object.cluster());
-}
-
-inline bsl::ostream&
-mqbconfm::operator<<(bsl::ostream&                      stream,
-                     mqbconfm::ExpressionVersion::Value rhs)
-{
-    return mqbconfm::ExpressionVersion::print(stream, rhs);
-}
-
-inline bool mqbconfm::operator==(const mqbconfm::Failure& lhs,
-                                 const mqbconfm::Failure& rhs)
-{
-    return lhs.code() == rhs.code() && lhs.message() == rhs.message();
-}
-
-inline bool mqbconfm::operator!=(const mqbconfm::Failure& lhs,
-                                 const mqbconfm::Failure& rhs)
-{
-    return !(lhs == rhs);
-}
-
-inline bsl::ostream& mqbconfm::operator<<(bsl::ostream&            stream,
-                                          const mqbconfm::Failure& rhs)
-{
-    return rhs.print(stream, 0, -1);
-}
-
-template <typename t_HASH_ALGORITHM>
-void mqbconfm::hashAppend(t_HASH_ALGORITHM&        hashAlg,
-                          const mqbconfm::Failure& object)
-{
-    using bslh::hashAppend;
-    hashAppend(hashAlg, object.code());
-    hashAppend(hashAlg, object.message());
-}
-
-inline bool mqbconfm::operator==(const mqbconfm::FileBackedStorage&,
-                                 const mqbconfm::FileBackedStorage&)
-{
-    return true;
-}
-
-inline bool mqbconfm::operator!=(const mqbconfm::FileBackedStorage&,
-                                 const mqbconfm::FileBackedStorage&)
-{
-    return false;
-}
-
-inline bsl::ostream&
-mqbconfm::operator<<(bsl::ostream&                      stream,
-                     const mqbconfm::FileBackedStorage& rhs)
-{
-    return rhs.print(stream, 0, -1);
-}
-
-template <typename t_HASH_ALGORITHM>
-void mqbconfm::hashAppend(t_HASH_ALGORITHM&                  hashAlg,
-                          const mqbconfm::FileBackedStorage& object)
-{
-    (void)hashAlg;
-    (void)object;
-}
-
-inline bool mqbconfm::operator==(const mqbconfm::InMemoryStorage&,
-                                 const mqbconfm::InMemoryStorage&)
-{
-    return true;
-}
-
-inline bool mqbconfm::operator!=(const mqbconfm::InMemoryStorage&,
-                                 const mqbconfm::InMemoryStorage&)
-{
-    return false;
-}
-
-inline bsl::ostream& mqbconfm::operator<<(bsl::ostream& stream,
-                                          const mqbconfm::InMemoryStorage& rhs)
-{
-    return rhs.print(stream, 0, -1);
-}
-
-template <typename t_HASH_ALGORITHM>
-void mqbconfm::hashAppend(t_HASH_ALGORITHM&                hashAlg,
-                          const mqbconfm::InMemoryStorage& object)
-{
-    (void)hashAlg;
-    (void)object;
-}
-
-inline bool mqbconfm::operator==(const mqbconfm::Limits& lhs,
-                                 const mqbconfm::Limits& rhs)
-{
-    return lhs.messages() == rhs.messages() &&
-           lhs.messagesWatermarkRatio() == rhs.messagesWatermarkRatio() &&
-           lhs.bytes() == rhs.bytes() &&
-           lhs.bytesWatermarkRatio() == rhs.bytesWatermarkRatio();
-}
-
-inline bool mqbconfm::operator!=(const mqbconfm::Limits& lhs,
-                                 const mqbconfm::Limits& rhs)
-{
-    return !(lhs == rhs);
-}
-
-inline bsl::ostream& mqbconfm::operator<<(bsl::ostream&           stream,
-                                          const mqbconfm::Limits& rhs)
-{
-    return rhs.print(stream, 0, -1);
-}
-
-template <typename t_HASH_ALGORITHM>
-void mqbconfm::hashAppend(t_HASH_ALGORITHM&       hashAlg,
-                          const mqbconfm::Limits& object)
-{
-    using bslh::hashAppend;
-    hashAppend(hashAlg, object.messages());
-    hashAppend(hashAlg, object.messagesWatermarkRatio());
-    hashAppend(hashAlg, object.bytes());
-    hashAppend(hashAlg, object.bytesWatermarkRatio());
-}
-
-inline bool mqbconfm::operator==(const mqbconfm::MsgGroupIdConfig& lhs,
-                                 const mqbconfm::MsgGroupIdConfig& rhs)
-{
-    return lhs.rebalance() == rhs.rebalance() &&
-           lhs.maxGroups() == rhs.maxGroups() &&
-           lhs.ttlSeconds() == rhs.ttlSeconds();
-}
-
-inline bool mqbconfm::operator!=(const mqbconfm::MsgGroupIdConfig& lhs,
-                                 const mqbconfm::MsgGroupIdConfig& rhs)
-{
-    return !(lhs == rhs);
-}
-
-inline bsl::ostream&
-mqbconfm::operator<<(bsl::ostream&                     stream,
-                     const mqbconfm::MsgGroupIdConfig& rhs)
-{
-    return rhs.print(stream, 0, -1);
-}
-
-template <typename t_HASH_ALGORITHM>
-void mqbconfm::hashAppend(t_HASH_ALGORITHM&                 hashAlg,
-                          const mqbconfm::MsgGroupIdConfig& object)
-{
-    using bslh::hashAppend;
-    hashAppend(hashAlg, object.rebalance());
-    hashAppend(hashAlg, object.maxGroups());
-    hashAppend(hashAlg, object.ttlSeconds());
-}
-
-inline bool mqbconfm::operator==(const mqbconfm::QueueConsistencyEventual&,
-                                 const mqbconfm::QueueConsistencyEventual&)
-{
-    return true;
-}
-
-inline bool mqbconfm::operator!=(const mqbconfm::QueueConsistencyEventual&,
-                                 const mqbconfm::QueueConsistencyEventual&)
-{
-    return false;
-}
-
-inline bsl::ostream&
-mqbconfm::operator<<(bsl::ostream&                             stream,
-                     const mqbconfm::QueueConsistencyEventual& rhs)
-{
-    return rhs.print(stream, 0, -1);
-}
-
-template <typename t_HASH_ALGORITHM>
-void mqbconfm::hashAppend(t_HASH_ALGORITHM&                         hashAlg,
-                          const mqbconfm::QueueConsistencyEventual& object)
-{
-    (void)hashAlg;
-    (void)object;
-}
-
-inline bool mqbconfm::operator==(const mqbconfm::QueueConsistencyStrong&,
-                                 const mqbconfm::QueueConsistencyStrong&)
-{
-    return true;
-}
-
-inline bool mqbconfm::operator!=(const mqbconfm::QueueConsistencyStrong&,
-                                 const mqbconfm::QueueConsistencyStrong&)
-{
-    return false;
-}
-
-inline bsl::ostream&
-mqbconfm::operator<<(bsl::ostream&                           stream,
-                     const mqbconfm::QueueConsistencyStrong& rhs)
-{
-    return rhs.print(stream, 0, -1);
-}
-
-template <typename t_HASH_ALGORITHM>
-void mqbconfm::hashAppend(t_HASH_ALGORITHM&                       hashAlg,
-                          const mqbconfm::QueueConsistencyStrong& object)
-{
-    (void)hashAlg;
-    (void)object;
-}
-
-inline bool mqbconfm::operator==(const mqbconfm::QueueModeBroadcast&,
-                                 const mqbconfm::QueueModeBroadcast&)
-{
-    return true;
-}
-
-inline bool mqbconfm::operator!=(const mqbconfm::QueueModeBroadcast&,
-                                 const mqbconfm::QueueModeBroadcast&)
-{
-    return false;
-}
-
-inline bsl::ostream&
-mqbconfm::operator<<(bsl::ostream&                       stream,
-                     const mqbconfm::QueueModeBroadcast& rhs)
-{
-    return rhs.print(stream, 0, -1);
-}
-
-template <typename t_HASH_ALGORITHM>
-void mqbconfm::hashAppend(t_HASH_ALGORITHM&                   hashAlg,
-                          const mqbconfm::QueueModeBroadcast& object)
-{
-    (void)hashAlg;
-    (void)object;
-}
-
-inline bool mqbconfm::operator==(const mqbconfm::QueueModeFanout& lhs,
-                                 const mqbconfm::QueueModeFanout& rhs)
-{
-    return lhs.appIDs() == rhs.appIDs();
-}
-
-inline bool mqbconfm::operator!=(const mqbconfm::QueueModeFanout& lhs,
-                                 const mqbconfm::QueueModeFanout& rhs)
-{
-    return !(lhs == rhs);
-}
-
-inline bsl::ostream& mqbconfm::operator<<(bsl::ostream& stream,
-                                          const mqbconfm::QueueModeFanout& rhs)
-{
-    return rhs.print(stream, 0, -1);
-}
-
-template <typename t_HASH_ALGORITHM>
-void mqbconfm::hashAppend(t_HASH_ALGORITHM&                hashAlg,
-                          const mqbconfm::QueueModeFanout& object)
-{
-    using bslh::hashAppend;
-    hashAppend(hashAlg, object.appIDs());
-}
-
-inline bool mqbconfm::operator==(const mqbconfm::QueueModePriority&,
-                                 const mqbconfm::QueueModePriority&)
-{
-    return true;
-}
-
-inline bool mqbconfm::operator!=(const mqbconfm::QueueModePriority&,
-                                 const mqbconfm::QueueModePriority&)
-{
-    return false;
-}
-
-inline bsl::ostream&
-mqbconfm::operator<<(bsl::ostream&                      stream,
-                     const mqbconfm::QueueModePriority& rhs)
-{
-    return rhs.print(stream, 0, -1);
-}
-
-template <typename t_HASH_ALGORITHM>
-void mqbconfm::hashAppend(t_HASH_ALGORITHM&                  hashAlg,
-                          const mqbconfm::QueueModePriority& object)
-{
-    (void)hashAlg;
-    (void)object;
-}
-
-inline bool mqbconfm::operator==(const mqbconfm::Consistency& lhs,
-                                 const mqbconfm::Consistency& rhs)
-{
-    typedef mqbconfm::Consistency Class;
-    if (lhs.selectionId() == rhs.selectionId()) {
-        switch (rhs.selectionId()) {
-        case Class::SELECTION_ID_EVENTUAL:
-            return lhs.eventual() == rhs.eventual();
-        case Class::SELECTION_ID_STRONG: return lhs.strong() == rhs.strong();
-        default:
-            BSLS_ASSERT(Class::SELECTION_ID_UNDEFINED == rhs.selectionId());
-            return true;
-        }
-    }
-    else {
-        return false;
-    }
-}
-
-inline bool mqbconfm::operator!=(const mqbconfm::Consistency& lhs,
-                                 const mqbconfm::Consistency& rhs)
-{
-    return !(lhs == rhs);
-}
-
-inline bsl::ostream& mqbconfm::operator<<(bsl::ostream&                stream,
-                                          const mqbconfm::Consistency& rhs)
-{
-    return rhs.print(stream, 0, -1);
-}
-
-template <typename t_HASH_ALGORITHM>
-void mqbconfm::hashAppend(t_HASH_ALGORITHM&            hashAlg,
-                          const mqbconfm::Consistency& object)
-{
-    typedef mqbconfm::Consistency Class;
-    using bslh::hashAppend;
-    hashAppend(hashAlg, object.selectionId());
-    switch (object.selectionId()) {
-    case Class::SELECTION_ID_EVENTUAL:
-        hashAppend(hashAlg, object.eventual());
-        break;
-    case Class::SELECTION_ID_STRONG:
-        hashAppend(hashAlg, object.strong());
-        break;
-    default:
-        BSLS_ASSERT(Class::SELECTION_ID_UNDEFINED == object.selectionId());
-    }
-}
-
-inline bool mqbconfm::operator==(const mqbconfm::DomainConfigRequest& lhs,
-                                 const mqbconfm::DomainConfigRequest& rhs)
-{
-    return lhs.brokerIdentity() == rhs.brokerIdentity() &&
-           lhs.domainName() == rhs.domainName();
-}
-
-inline bool mqbconfm::operator!=(const mqbconfm::DomainConfigRequest& lhs,
-                                 const mqbconfm::DomainConfigRequest& rhs)
-{
-    return !(lhs == rhs);
-}
-
-inline bsl::ostream&
-mqbconfm::operator<<(bsl::ostream&                        stream,
-                     const mqbconfm::DomainConfigRequest& rhs)
-{
-    return rhs.print(stream, 0, -1);
-}
-
-template <typename t_HASH_ALGORITHM>
-void mqbconfm::hashAppend(t_HASH_ALGORITHM&                    hashAlg,
-                          const mqbconfm::DomainConfigRequest& object)
-{
-    using bslh::hashAppend;
-    hashAppend(hashAlg, object.brokerIdentity());
-    hashAppend(hashAlg, object.domainName());
-}
-
-inline bool mqbconfm::operator==(const mqbconfm::Expression& lhs,
-                                 const mqbconfm::Expression& rhs)
-{
-    return lhs.version() == rhs.version() && lhs.text() == rhs.text();
-}
-
-inline bool mqbconfm::operator!=(const mqbconfm::Expression& lhs,
-                                 const mqbconfm::Expression& rhs)
-{
-    return !(lhs == rhs);
-}
-
-inline bsl::ostream& mqbconfm::operator<<(bsl::ostream&               stream,
-                                          const mqbconfm::Expression& rhs)
-{
-    return rhs.print(stream, 0, -1);
-}
-
-template <typename t_HASH_ALGORITHM>
-void mqbconfm::hashAppend(t_HASH_ALGORITHM&           hashAlg,
-                          const mqbconfm::Expression& object)
-{
-    using bslh::hashAppend;
-    hashAppend(hashAlg, object.version());
-    hashAppend(hashAlg, object.text());
-}
-
-inline bool mqbconfm::operator==(const mqbconfm::QueueMode& lhs,
-                                 const mqbconfm::QueueMode& rhs)
-{
-    typedef mqbconfm::QueueMode Class;
-    if (lhs.selectionId() == rhs.selectionId()) {
-        switch (rhs.selectionId()) {
-        case Class::SELECTION_ID_FANOUT: return lhs.fanout() == rhs.fanout();
-        case Class::SELECTION_ID_PRIORITY:
-            return lhs.priority() == rhs.priority();
-        case Class::SELECTION_ID_BROADCAST:
-            return lhs.broadcast() == rhs.broadcast();
-        default:
-            BSLS_ASSERT(Class::SELECTION_ID_UNDEFINED == rhs.selectionId());
-            return true;
-        }
-    }
-    else {
-        return false;
-    }
-}
-
-inline bool mqbconfm::operator!=(const mqbconfm::QueueMode& lhs,
-                                 const mqbconfm::QueueMode& rhs)
-{
-    return !(lhs == rhs);
-}
-
-inline bsl::ostream& mqbconfm::operator<<(bsl::ostream&              stream,
-                                          const mqbconfm::QueueMode& rhs)
-{
-    return rhs.print(stream, 0, -1);
-}
-
-template <typename t_HASH_ALGORITHM>
-void mqbconfm::hashAppend(t_HASH_ALGORITHM&          hashAlg,
-                          const mqbconfm::QueueMode& object)
-{
-    typedef mqbconfm::QueueMode Class;
-    using bslh::hashAppend;
-    hashAppend(hashAlg, object.selectionId());
-    switch (object.selectionId()) {
-    case Class::SELECTION_ID_FANOUT:
-        hashAppend(hashAlg, object.fanout());
-        break;
-    case Class::SELECTION_ID_PRIORITY:
-        hashAppend(hashAlg, object.priority());
-        break;
-    case Class::SELECTION_ID_BROADCAST:
-        hashAppend(hashAlg, object.broadcast());
-        break;
-    default:
-        BSLS_ASSERT(Class::SELECTION_ID_UNDEFINED == object.selectionId());
-    }
-}
-
-inline bool mqbconfm::operator==(const mqbconfm::Response& lhs,
-                                 const mqbconfm::Response& rhs)
-{
-    typedef mqbconfm::Response Class;
-    if (lhs.selectionId() == rhs.selectionId()) {
-        switch (rhs.selectionId()) {
-        case Class::SELECTION_ID_FAILURE:
-            return lhs.failure() == rhs.failure();
-        case Class::SELECTION_ID_DOMAIN_CONFIG:
-            return lhs.domainConfig() == rhs.domainConfig();
-        default:
-            BSLS_ASSERT(Class::SELECTION_ID_UNDEFINED == rhs.selectionId());
-            return true;
-        }
-    }
-    else {
-        return false;
-    }
-}
-
-inline bool mqbconfm::operator!=(const mqbconfm::Response& lhs,
-                                 const mqbconfm::Response& rhs)
-{
-    return !(lhs == rhs);
-}
-
-inline bsl::ostream& mqbconfm::operator<<(bsl::ostream&             stream,
-                                          const mqbconfm::Response& rhs)
-{
-    return rhs.print(stream, 0, -1);
-}
-
-template <typename t_HASH_ALGORITHM>
-void mqbconfm::hashAppend(t_HASH_ALGORITHM&         hashAlg,
-                          const mqbconfm::Response& object)
-{
-    typedef mqbconfm::Response Class;
-    using bslh::hashAppend;
-    hashAppend(hashAlg, object.selectionId());
-    switch (object.selectionId()) {
-    case Class::SELECTION_ID_FAILURE:
-        hashAppend(hashAlg, object.failure());
-        break;
-    case Class::SELECTION_ID_DOMAIN_CONFIG:
-        hashAppend(hashAlg, object.domainConfig());
-        break;
-    default:
-        BSLS_ASSERT(Class::SELECTION_ID_UNDEFINED == object.selectionId());
-    }
-}
-
-inline bool mqbconfm::operator==(const mqbconfm::Storage& lhs,
-                                 const mqbconfm::Storage& rhs)
-{
-    typedef mqbconfm::Storage Class;
-    if (lhs.selectionId() == rhs.selectionId()) {
-        switch (rhs.selectionId()) {
-        case Class::SELECTION_ID_IN_MEMORY:
-            return lhs.inMemory() == rhs.inMemory();
-        case Class::SELECTION_ID_FILE_BACKED:
-            return lhs.fileBacked() == rhs.fileBacked();
-        default:
-            BSLS_ASSERT(Class::SELECTION_ID_UNDEFINED == rhs.selectionId());
-            return true;
-        }
-    }
-    else {
-        return false;
-    }
-}
-
-inline bool mqbconfm::operator!=(const mqbconfm::Storage& lhs,
-                                 const mqbconfm::Storage& rhs)
-{
-    return !(lhs == rhs);
-}
-
-inline bsl::ostream& mqbconfm::operator<<(bsl::ostream&            stream,
-                                          const mqbconfm::Storage& rhs)
-{
-    return rhs.print(stream, 0, -1);
-}
-
-template <typename t_HASH_ALGORITHM>
-void mqbconfm::hashAppend(t_HASH_ALGORITHM&        hashAlg,
-                          const mqbconfm::Storage& object)
-{
-    typedef mqbconfm::Storage Class;
-    using bslh::hashAppend;
-    hashAppend(hashAlg, object.selectionId());
-    switch (object.selectionId()) {
-    case Class::SELECTION_ID_IN_MEMORY:
-        hashAppend(hashAlg, object.inMemory());
-        break;
-    case Class::SELECTION_ID_FILE_BACKED:
-        hashAppend(hashAlg, object.fileBacked());
-        break;
-    default:
-        BSLS_ASSERT(Class::SELECTION_ID_UNDEFINED == object.selectionId());
-    }
-}
-
-inline bool mqbconfm::operator==(const mqbconfm::Request& lhs,
-                                 const mqbconfm::Request& rhs)
-{
-    typedef mqbconfm::Request Class;
-    if (lhs.selectionId() == rhs.selectionId()) {
-        switch (rhs.selectionId()) {
-        case Class::SELECTION_ID_DOMAIN_CONFIG:
-            return lhs.domainConfig() == rhs.domainConfig();
-        default:
-            BSLS_ASSERT(Class::SELECTION_ID_UNDEFINED == rhs.selectionId());
-            return true;
-        }
-    }
-    else {
-        return false;
-    }
-}
-
-inline bool mqbconfm::operator!=(const mqbconfm::Request& lhs,
-                                 const mqbconfm::Request& rhs)
-{
-    return !(lhs == rhs);
-}
-
-inline bsl::ostream& mqbconfm::operator<<(bsl::ostream&            stream,
-                                          const mqbconfm::Request& rhs)
-{
-    return rhs.print(stream, 0, -1);
-}
-
-template <typename t_HASH_ALGORITHM>
-void mqbconfm::hashAppend(t_HASH_ALGORITHM&        hashAlg,
-                          const mqbconfm::Request& object)
-{
-    typedef mqbconfm::Request Class;
-    using bslh::hashAppend;
-    hashAppend(hashAlg, object.selectionId());
-    switch (object.selectionId()) {
-    case Class::SELECTION_ID_DOMAIN_CONFIG:
-        hashAppend(hashAlg, object.domainConfig());
-        break;
-    default:
-        BSLS_ASSERT(Class::SELECTION_ID_UNDEFINED == object.selectionId());
-    }
-}
-
-inline bool mqbconfm::operator==(const mqbconfm::StorageDefinition& lhs,
-                                 const mqbconfm::StorageDefinition& rhs)
-{
-    return lhs.domainLimits() == rhs.domainLimits() &&
-           lhs.queueLimits() == rhs.queueLimits() &&
-           lhs.config() == rhs.config();
-}
-
-inline bool mqbconfm::operator!=(const mqbconfm::StorageDefinition& lhs,
-                                 const mqbconfm::StorageDefinition& rhs)
-{
-    return !(lhs == rhs);
-}
-
-inline bsl::ostream&
-mqbconfm::operator<<(bsl::ostream&                      stream,
-                     const mqbconfm::StorageDefinition& rhs)
-{
-    return rhs.print(stream, 0, -1);
-}
-
-template <typename t_HASH_ALGORITHM>
-void mqbconfm::hashAppend(t_HASH_ALGORITHM&                  hashAlg,
-                          const mqbconfm::StorageDefinition& object)
-{
-    using bslh::hashAppend;
-    hashAppend(hashAlg, object.domainLimits());
-    hashAppend(hashAlg, object.queueLimits());
-    hashAppend(hashAlg, object.config());
-}
-
-inline bool mqbconfm::operator==(const mqbconfm::Subscription& lhs,
-                                 const mqbconfm::Subscription& rhs)
-{
-    return lhs.appId() == rhs.appId() && lhs.expression() == rhs.expression();
-}
-
-inline bool mqbconfm::operator!=(const mqbconfm::Subscription& lhs,
-                                 const mqbconfm::Subscription& rhs)
-{
-    return !(lhs == rhs);
-}
-
-inline bsl::ostream& mqbconfm::operator<<(bsl::ostream&                 stream,
-                                          const mqbconfm::Subscription& rhs)
-{
-    return rhs.print(stream, 0, -1);
-}
-
-template <typename t_HASH_ALGORITHM>
-void mqbconfm::hashAppend(t_HASH_ALGORITHM&             hashAlg,
-                          const mqbconfm::Subscription& object)
-{
-    using bslh::hashAppend;
-    hashAppend(hashAlg, object.appId());
-    hashAppend(hashAlg, object.expression());
-}
-
-inline bool mqbconfm::operator==(const mqbconfm::Domain& lhs,
-                                 const mqbconfm::Domain& rhs)
-{
-    return lhs.name() == rhs.name() && lhs.mode() == rhs.mode() &&
-           lhs.storage() == rhs.storage() &&
-           lhs.maxConsumers() == rhs.maxConsumers() &&
-           lhs.maxProducers() == rhs.maxProducers() &&
-           lhs.maxQueues() == rhs.maxQueues() &&
-           lhs.msgGroupIdConfig() == rhs.msgGroupIdConfig() &&
-           lhs.maxIdleTime() == rhs.maxIdleTime() &&
-           lhs.messageTtl() == rhs.messageTtl() &&
-           lhs.maxDeliveryAttempts() == rhs.maxDeliveryAttempts() &&
-           lhs.deduplicationTimeMs() == rhs.deduplicationTimeMs() &&
-           lhs.consistency() == rhs.consistency() &&
-           lhs.subscriptions() == rhs.subscriptions();
-}
-
-inline bool mqbconfm::operator!=(const mqbconfm::Domain& lhs,
-                                 const mqbconfm::Domain& rhs)
-{
-    return !(lhs == rhs);
-}
-
-inline bsl::ostream& mqbconfm::operator<<(bsl::ostream&           stream,
-                                          const mqbconfm::Domain& rhs)
-{
-    return rhs.print(stream, 0, -1);
-}
-
-template <typename t_HASH_ALGORITHM>
-void mqbconfm::hashAppend(t_HASH_ALGORITHM&       hashAlg,
-                          const mqbconfm::Domain& object)
-{
-    using bslh::hashAppend;
-    hashAppend(hashAlg, object.name());
-    hashAppend(hashAlg, object.mode());
-    hashAppend(hashAlg, object.storage());
-    hashAppend(hashAlg, object.maxConsumers());
-    hashAppend(hashAlg, object.maxProducers());
-    hashAppend(hashAlg, object.maxQueues());
-    hashAppend(hashAlg, object.msgGroupIdConfig());
-    hashAppend(hashAlg, object.maxIdleTime());
-    hashAppend(hashAlg, object.messageTtl());
-    hashAppend(hashAlg, object.maxDeliveryAttempts());
-    hashAppend(hashAlg, object.deduplicationTimeMs());
-    hashAppend(hashAlg, object.consistency());
-    hashAppend(hashAlg, object.subscriptions());
-}
-
-inline bool mqbconfm::operator==(const mqbconfm::DomainDefinition& lhs,
-                                 const mqbconfm::DomainDefinition& rhs)
-{
-    return lhs.location() == rhs.location() &&
-           lhs.parameters() == rhs.parameters();
-}
-
-inline bool mqbconfm::operator!=(const mqbconfm::DomainDefinition& lhs,
-                                 const mqbconfm::DomainDefinition& rhs)
-{
-    return !(lhs == rhs);
-}
-
-inline bsl::ostream&
-mqbconfm::operator<<(bsl::ostream&                     stream,
-                     const mqbconfm::DomainDefinition& rhs)
-{
-    return rhs.print(stream, 0, -1);
-}
-
-template <typename t_HASH_ALGORITHM>
-void mqbconfm::hashAppend(t_HASH_ALGORITHM&                 hashAlg,
-                          const mqbconfm::DomainDefinition& object)
-{
-    using bslh::hashAppend;
-    hashAppend(hashAlg, object.location());
-    hashAppend(hashAlg, object.parameters());
-}
-
-inline bool mqbconfm::operator==(const mqbconfm::DomainVariant& lhs,
-                                 const mqbconfm::DomainVariant& rhs)
-{
-    typedef mqbconfm::DomainVariant Class;
-    if (lhs.selectionId() == rhs.selectionId()) {
-        switch (rhs.selectionId()) {
-        case Class::SELECTION_ID_DEFINITION:
-            return lhs.definition() == rhs.definition();
-        case Class::SELECTION_ID_REDIRECT:
-            return lhs.redirect() == rhs.redirect();
-        default:
-            BSLS_ASSERT(Class::SELECTION_ID_UNDEFINED == rhs.selectionId());
-            return true;
-        }
-    }
-    else {
-        return false;
-    }
-}
-
-inline bool mqbconfm::operator!=(const mqbconfm::DomainVariant& lhs,
-                                 const mqbconfm::DomainVariant& rhs)
-{
-    return !(lhs == rhs);
-}
-
-inline bsl::ostream& mqbconfm::operator<<(bsl::ostream& stream,
-                                          const mqbconfm::DomainVariant& rhs)
-{
-    return rhs.print(stream, 0, -1);
-}
-
-template <typename t_HASH_ALGORITHM>
-void mqbconfm::hashAppend(t_HASH_ALGORITHM&              hashAlg,
-                          const mqbconfm::DomainVariant& object)
-{
-    typedef mqbconfm::DomainVariant Class;
-    using bslh::hashAppend;
-    hashAppend(hashAlg, object.selectionId());
-    switch (object.selectionId()) {
-    case Class::SELECTION_ID_DEFINITION:
-        hashAppend(hashAlg, object.definition());
-        break;
-    case Class::SELECTION_ID_REDIRECT:
-        hashAppend(hashAlg, object.redirect());
-        break;
-    default:
-        BSLS_ASSERT(Class::SELECTION_ID_UNDEFINED == object.selectionId());
-    }
-}
-
 }  // close enterprise namespace
 #endif
 
-// GENERATED BY BLP_BAS_CODEGEN_2023.11.25
+// GENERATED BY @BLP_BAS_CODEGEN_VERSION@
 // USING bas_codegen.pl -m msg --noAggregateConversion --noExternalization
 // --noIdent --package mqbconfm --msgComponent messages mqbconf.xsd SERVICE
-// SERVICE VERSION bmqconf:183474-1.0
+// VERSION bmqconf:183474-1.0
 // ----------------------------------------------------------------------------
 // NOTICE:
 //      Copyright 2024 Bloomberg Finance L.P. All rights reserved.

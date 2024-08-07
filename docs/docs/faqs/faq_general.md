@@ -9,12 +9,11 @@ nav_order: 2
 
 ## What platforms are supported by BlazingMQ?
 
-BlazingMQ can run on Linux, AIX and Solaris operating systems.  The minimum
+BlazingMQ can run on Linux and Solaris operating systems.  The minimum
 required versions of these operating systems are as follows:
 
 | Operating System | Version |
 | ---------------- | ------- |
-| AIX              | 7.1     |
 | Linux            | 3.10.0  |
 | Solaris          | 5.11    |
 
@@ -33,7 +32,6 @@ version less than the minimum specified version is not supported.
 | GCC            | 7.3     |
 | clang          | 10.0.1  |
 | Solaris Studio | 5.13    |
-| xlc            | 16.1.0  |
 
 BlazingMQ message broker and C++ client library require the C++03 version of
 the C++ language standard, or any version above it.

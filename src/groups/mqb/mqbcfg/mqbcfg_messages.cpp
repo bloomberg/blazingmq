@@ -1,4 +1,4 @@
-// Copyright 2018-2024 Bloomberg Finance L.P.
+// Copyright 2014-2024 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -4984,11 +4984,6 @@ const bdlat_AttributeInfo StatsConfig::ATTRIBUTE_INFO_ARRAY[] = {
      sizeof("snapshotInterval") - 1,
      "",
      bdlat_FormattingMode::e_DEC},
-    {ATTRIBUTE_ID_APP_ID_TAG_DOMAINS,
-     "appIdTagDomains",
-     sizeof("appIdTagDomains") - 1,
-     "",
-     bdlat_FormattingMode::e_TEXT},
     {ATTRIBUTE_ID_PLUGINS,
      "plugins",
      sizeof("plugins") - 1,
@@ -5005,7 +5000,7 @@ const bdlat_AttributeInfo StatsConfig::ATTRIBUTE_INFO_ARRAY[] = {
 const bdlat_AttributeInfo* StatsConfig::lookupAttributeInfo(const char* name,
                                                             int nameLength)
 {
-    for (int i = 0; i < 4; ++i) {
+    for (int i = 0; i < 3; ++i) {
         const bdlat_AttributeInfo& attributeInfo =
             StatsConfig::ATTRIBUTE_INFO_ARRAY[i];
 
@@ -5023,8 +5018,6 @@ const bdlat_AttributeInfo* StatsConfig::lookupAttributeInfo(int id)
     switch (id) {
     case ATTRIBUTE_ID_SNAPSHOT_INTERVAL:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SNAPSHOT_INTERVAL];
-    case ATTRIBUTE_ID_APP_ID_TAG_DOMAINS:
-        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_APP_ID_TAG_DOMAINS];
     case ATTRIBUTE_ID_PLUGINS:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PLUGINS];
     case ATTRIBUTE_ID_PRINTER:
@@ -5036,8 +5029,7 @@ const bdlat_AttributeInfo* StatsConfig::lookupAttributeInfo(int id)
 // CREATORS
 
 StatsConfig::StatsConfig(bslma::Allocator* basicAllocator)
-: d_appIdTagDomains(basicAllocator)
-, d_plugins(basicAllocator)
+: d_plugins(basicAllocator)
 , d_printer(basicAllocator)
 , d_snapshotInterval(DEFAULT_INITIALIZER_SNAPSHOT_INTERVAL)
 {
@@ -5045,8 +5037,7 @@ StatsConfig::StatsConfig(bslma::Allocator* basicAllocator)
 
 StatsConfig::StatsConfig(const StatsConfig& original,
                          bslma::Allocator*  basicAllocator)
-: d_appIdTagDomains(original.d_appIdTagDomains, basicAllocator)
-, d_plugins(original.d_plugins, basicAllocator)
+: d_plugins(original.d_plugins, basicAllocator)
 , d_printer(original.d_printer, basicAllocator)
 , d_snapshotInterval(original.d_snapshotInterval)
 {
@@ -5055,8 +5046,7 @@ StatsConfig::StatsConfig(const StatsConfig& original,
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
 StatsConfig::StatsConfig(StatsConfig&& original) noexcept
-: d_appIdTagDomains(bsl::move(original.d_appIdTagDomains)),
-  d_plugins(bsl::move(original.d_plugins)),
+: d_plugins(bsl::move(original.d_plugins)),
   d_printer(bsl::move(original.d_printer)),
   d_snapshotInterval(bsl::move(original.d_snapshotInterval))
 {
@@ -5064,8 +5054,7 @@ StatsConfig::StatsConfig(StatsConfig&& original) noexcept
 
 StatsConfig::StatsConfig(StatsConfig&&     original,
                          bslma::Allocator* basicAllocator)
-: d_appIdTagDomains(bsl::move(original.d_appIdTagDomains), basicAllocator)
-, d_plugins(bsl::move(original.d_plugins), basicAllocator)
+: d_plugins(bsl::move(original.d_plugins), basicAllocator)
 , d_printer(bsl::move(original.d_printer), basicAllocator)
 , d_snapshotInterval(bsl::move(original.d_snapshotInterval))
 {
@@ -5082,7 +5071,6 @@ StatsConfig& StatsConfig::operator=(const StatsConfig& rhs)
 {
     if (this != &rhs) {
         d_snapshotInterval = rhs.d_snapshotInterval;
-        d_appIdTagDomains  = rhs.d_appIdTagDomains;
         d_plugins          = rhs.d_plugins;
         d_printer          = rhs.d_printer;
     }
@@ -5096,7 +5084,6 @@ StatsConfig& StatsConfig::operator=(StatsConfig&& rhs)
 {
     if (this != &rhs) {
         d_snapshotInterval = bsl::move(rhs.d_snapshotInterval);
-        d_appIdTagDomains  = bsl::move(rhs.d_appIdTagDomains);
         d_plugins          = bsl::move(rhs.d_plugins);
         d_printer          = bsl::move(rhs.d_printer);
     }
@@ -5108,7 +5095,6 @@ StatsConfig& StatsConfig::operator=(StatsConfig&& rhs)
 void StatsConfig::reset()
 {
     d_snapshotInterval = DEFAULT_INITIALIZER_SNAPSHOT_INTERVAL;
-    bdlat_ValueTypeFunctions::reset(&d_appIdTagDomains);
     bdlat_ValueTypeFunctions::reset(&d_plugins);
     bdlat_ValueTypeFunctions::reset(&d_printer);
 }
@@ -5121,7 +5107,6 @@ StatsConfig::print(bsl::ostream& stream, int level, int spacesPerLevel) const
     bslim::Printer printer(&stream, level, spacesPerLevel);
     printer.start();
     printer.printAttribute("snapshotInterval", this->snapshotInterval());
-    printer.printAttribute("appIdTagDomains", this->appIdTagDomains());
     printer.printAttribute("plugins", this->plugins());
     printer.printAttribute("printer", this->printer());
     printer.end();

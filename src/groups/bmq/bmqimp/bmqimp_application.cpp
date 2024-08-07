@@ -116,11 +116,6 @@ ntcCreateInterfaceConfig(const bmqt::SessionOptions& sessionOptions,
 
     config.setThreadName("bmqimp");
 
-#ifdef BSLS_PLATFORM_OS_AIX
-    // Set stack size to 1Mb for IBM.
-    config.setThreadStackSize(1024 * 1024);
-#endif
-
     config.setMaxThreads(1);  // there is only one channel used on this
                               // ChannelPool, with the bmqbrkr
     config.setMaxConnections(128);

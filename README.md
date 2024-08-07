@@ -9,7 +9,6 @@
 
 ---
 [![OS Linux](https://img.shields.io/badge/OS-Linux-blue)](#)
-[![OS AIX](https://img.shields.io/badge/OS-AIX-blue)](#)
 [![OS Solaris](https://img.shields.io/badge/OS-Solaris-blue)](#)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue)](LICENSE)
 [![C++](https://img.shields.io/badge/C++-blue)](#)

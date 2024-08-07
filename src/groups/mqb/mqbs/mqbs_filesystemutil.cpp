@@ -252,7 +252,7 @@ void FileSystemUtil::loadFileSystemName(bsl::string* buffer, const char* path)
     loadNameFromFsType(buffer, buf.f_type);
     return;  // RETURN
 
-#elif defined(BSLS_PLATFORM_OS_SOLARIS) || defined(BSLS_PLATFORM_OS_AIX)
+#elif defined(BSLS_PLATFORM_OS_SOLARIS)
 
     struct ::statvfs buf;
     int              rc = ::statvfs(path, &buf);
@@ -627,8 +627,6 @@ int FileSystemUtil::fallocate(int                 fd,
     return rc_SUCCESS;
 
 #else
-    // As of this writing, AIX has no support for fallocate-equivalent
-    // functionality.
     return rc_UNSUPPORTED;
 
 #endif

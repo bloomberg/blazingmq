@@ -489,25 +489,20 @@ void QueueStatsDomain::initialize(const bmqt::Uri&  uri,
     // `e_CONFIRM_TIME_MAX` or `e_QUEUE_TIME_MAX`, so the metrics can be
     // inspected separately for each application.
     if (!domain->cluster()->isRemote() &&
-        domain->config().mode().isFanoutValue()) {
-        const bsl::vector<bsl::string>& appIdTagDomains =
-            mqbcfg::BrokerConfig::get().stats().appIdTagDomains();
-        if (bsl::find(appIdTagDomains.begin(),
-                      appIdTagDomains.end(),
-                      uri.domain()) != appIdTagDomains.end()) {
-            d_subContexts_mp.load(new (*allocator)
-                                      bsl::list<StatSubContextMp>(allocator),
-                                  allocator);
-            const bsl::vector<bsl::string>& appIDs =
-                domain->config().mode().fanout().appIDs();
-            for (bsl::vector<bsl::string>::const_iterator cit = appIDs.begin();
-                 cit != appIDs.end();
-                 ++cit) {
-                StatSubContextMp subContext = d_statContext_mp->addSubcontext(
-                    mwcst::StatContextConfiguration(*cit, &localAllocator));
-                d_subContexts_mp->emplace_back(
-                    bslmf::MovableRefUtil::move(subContext));
-            }
+        domain->config().mode().isFanoutValue() &&
+        domain->config().mode().fanout().publishAppIdMetrics()) {
+        d_subContexts_mp.load(new (*allocator)
+                                  bsl::list<StatSubContextMp>(allocator),
+                              allocator);
+        const bsl::vector<bsl::string>& appIDs =
+            domain->config().mode().fanout().appIDs();
+        for (bsl::vector<bsl::string>::const_iterator cit = appIDs.begin();
+             cit != appIDs.end();
+             ++cit) {
+            StatSubContextMp subContext = d_statContext_mp->addSubcontext(
+                mwcst::StatContextConfiguration(*cit, &localAllocator));
+            d_subContexts_mp->emplace_back(
+                bslmf::MovableRefUtil::move(subContext));
         }
     }
 }

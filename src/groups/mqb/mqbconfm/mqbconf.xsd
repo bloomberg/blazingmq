@@ -270,11 +270,14 @@
       <documentation>
         Configuration for a fanout queue.
 
-        appIDs.: List of appIDs authorized to consume from the queue.
+        appIDs.............: List of appIDs authorized to consume from the
+                             queue.
+        publishAppIdMetrics: Whether to publish appId metrics.
       </documentation>
     </annotation>
     <sequence>
-      <element name='appIDs' type='string' maxOccurs='unbounded'/>
+      <element name='appIDs'              type='string' maxOccurs='unbounded'/>
+      <element name='publishAppIdMetrics' type='boolean' default='false'/>
     </sequence>
   </complexType>
 

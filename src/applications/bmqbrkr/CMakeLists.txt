@@ -28,65 +28,12 @@
 # On Linux and SunOS, this is achieved by using some linker flags
 # (-whole-archive, -z allextract, ...), which indicates to the linker that it
 # should keep all symbols from the libraries mentioned after, even if those are
-# not used in the task. On AIX, we must first prelink the libraries .a into an
-# object .o (asking it to keep all symbols with -bexpfull), and then link that
-# .o with the task.
+# not used in the task.
 #
 # By keeping all symbols, the task will be quite bigger than it should be, but
 # that way we guarantee that any symbols used by the plugins will be found.
 # Because of that, depencies of bmqbrkr.tsk must be kept under close watch and
 # to the bare minimum.
-
-macro(_bmq_prelink_aix_modules)
-  # Declare the task with compiler and linker flags
-  # On AIX, we are going to generate a prelink .o file with all static
-  # libraries, that needs to be added to the sources used to build the task
-  # NOTE: When doing a fully fresh build, the .o doesn't yet exist and CMake
-  #       will complain when adding the .o as a source to the broker. This
-  #       file is generated as a PRE_LINK rule, so at this point, just make
-  #       sure it exist.
-  file( WRITE "${CMAKE_CURRENT_BINARY_DIR}/aix_prelink_libs.o" "" )
-  target_sources( bmqbrkr PUBLIC "${CMAKE_CURRENT_BINARY_DIR}/aix_prelink_libs.o" )
-
-  # The AIX equivalent flags are "-bexpfull -bnogc" ${deps} "-bgc" where each
-  # 'deps' is -bkeepfile:<full_path_to_lib.a>, but this doesn't quite seem to
-  # work as expected, so instead we do what is call prelinking, asking the
-  # loader to generate a .o with all the .a
-  if (IS_64BIT)
-    set(_bit_flag "-b64")
-  else()
-    set(_bit_flag "-b32")
-  endif()
-
-  # Generate the link parameters
-  # NOTE: o bmqbrkr_DEPENDS contains all the declared .dep:
-  #         ex 'mqb;bmq;bce;bde;bsl'
-  #       o _ext_libs contains all the external (from the refRoot) libs
-  #       o _prj_libs contains explicit path to all the libs from this project
-  foreach( dep ${bmqbrkr_DEPENDS} )
-    if( TARGET ${dep} )
-      # It's a lib defined in one project, get the path to the output lib
-      # And add the proper includes dirs
-      list( APPEND _prj_libs "$<TARGET_FILE:${dep}>" )
-      get_property( _include_dir TARGET ${dep} PROPERTY INCLUDE_DIRECTORIES )
-      target_include_directories( bmqbrkr BEFORE INTERFACE ${_include_dir} )
-    else()
-      list( APPEND _ext_libs "$<TARGET_FILE:${dep}>" )
-    endif()
-  endforeach()
-
-  set( cmd
-    /bin/ld ${_bit_flag} -r -bbinder:/usr/ccs/bin/bind64
-    "-L${libPath}" -bexpfull -bnogc ${_prj_libs} )
-  foreach( lib ${_ext_libs} )
-    list( APPEND cmd "${lib}" )
-  endforeach()
-  list( APPEND cmd "-o" "${CMAKE_CURRENT_BINARY_DIR}/aix_prelink_libs.o" )
-  add_custom_command( TARGET bmqbrkr
-    PRE_LINK
-    COMMAND ${cmd}
-    COMMENT "Prelinking ..." )
-endmacro()
 
 if(BMQ_TARGET_BMQBRKR_NEEDED)
   # Read dependencies from .dep and resolve them with pkgconfig
@@ -104,12 +51,6 @@ if(BMQ_TARGET_BMQBRKR_NEEDED)
     PROPERTIES OUTPUT_NAME "bmqbrkr.tsk")
   endif()
 
-  # "-btextpsize:64K -bdatapsize:64K" Memory tweaks.  See internal ticket
-  # D46833503
-  target_link_options(bmqbrkr PRIVATE
-    $<$<PLATFORM_ID:AIX>:$<$<CXX_COMPILER_ID:XL>:-btextpsize:64K>>
-    $<$<PLATFORM_ID:AIX>:$<$<CXX_COMPILER_ID:XL>:-bdatapsize:64K>>)
-
   set_target_properties(bmqbrkr
     PROPERTIES ENABLE_EXPORTS ON)
 
@@ -124,9 +65,7 @@ if(BMQ_TARGET_BMQBRKR_NEEDED)
       # (resulting in a runtime linkage failure).
       #
       # Note that Solaris publishes all symbols to the
-      # dynamic symbol table by default, and AIX seems to
-      # do something similar:
-      # https://developer.ibm.com/articles/au-aix-symbol-visibility/
+      # dynamic symbol table by default.
       "-Wl,--whole-archive"
       ${bmqbrkr_DEPENDS}
       "-Wl,--no-whole-archive")
@@ -135,12 +74,6 @@ if(BMQ_TARGET_BMQBRKR_NEEDED)
       "-Wl,--whole-archive"
       ${bmqbrkr_DEPENDS}
       "-Wl,--no-whole-archive")
-  elseif(CMAKE_SYSTEM_NAME MATCHES "AIX")
-    _bmq_prelink_aix_modules()
-    # Keeps old symbol exporting behavior
-    target_link_options(bmqbrkr PRIVATE -bsvr4)
-    target_link_libraries(bmqbrkr PUBLIC
-      ${bmqbrkr_DEPENDS})
   elseif(CMAKE_SYSTEM_NAME MATCHES "Darwin")
     target_link_libraries(bmqbrkr PRIVATE "-all_load" ${bmqbrkr_DEPENDS})
   endif()
