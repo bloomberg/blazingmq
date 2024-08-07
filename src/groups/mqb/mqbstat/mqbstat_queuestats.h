@@ -197,12 +197,15 @@ class QueueStatsDomain {
     /// List of per-appId subcontexts stored as managed pointers.
     /// Note: `mwcst::StatContext` interface allocates subcontexts as
     ///       managed pointers.  We are not able to store managed pointers
-    ///       in a collection that might reallocate and copy its elements.
+    ///       in a collection that might reallocate and copy its elements,
+    ///       since ManagedPtr implementation on Solaris is constraining.
     ///       This is why list is used to store managed pointers.  But we
     ///       also want to perform fast lookups to subcontexts, and for this
     ///       we have `d_subContextsLookup` table that points to raw pointers
     ///       to subcontexts.  These both fields must be kept in sync during
     ///       reconfiguration.
+    /// TODO: use one bsl::unordered_map to store and lookup if Solaris support
+    ///       is stopped.
     bsl::list<StatSubContextMp> d_subContextsHolder;
 
     /// Lookup table for per-appId subcontexts.  Managed pointers to these
