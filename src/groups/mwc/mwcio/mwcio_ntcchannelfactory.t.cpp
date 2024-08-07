@@ -99,7 +99,7 @@ static const ChannelWatermarkType::Enum WAT_LOW =
     ChannelWatermarkType::e_LOW_WATERMARK;
 
 // Adjust attempt interval depending on the platform
-#if defined(BSLS_PLATFORM_OS_SOLARIS) || defined(BSLS_PLATFORM_OS_AIX)
+#ifdef BSLS_PLATFORM_OS_SOLARIS
 static const int k_ATTEMPT_INTERVAL_MS = 300;
 #elif defined(                                                                \
     __has_feature)  // Clang-supported method for checking sanitizers.
