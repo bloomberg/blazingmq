@@ -140,7 +140,7 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
     // Throttler for when reject messages
     // are dumped into temp files.
 
-    QueueEngineUtil_AppsDeliveryContext d_context;
+    QueueEngineUtil_AppsDeliveryContext d_appsDeliveryContext;
     // Reusable apps delivery context
 
     bslma::Allocator* d_allocator_p;  // Allocator to use
