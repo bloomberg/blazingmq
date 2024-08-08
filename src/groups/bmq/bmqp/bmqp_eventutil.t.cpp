@@ -118,9 +118,8 @@ generateSubQueueInfos(bmqp::Protocol::SubQueueInfosArray* subQueueInfos,
 
     subQueueInfos->clear();
 
-    static unsigned int nextSubId = 1;
     for (int i = 0; i < numSubQueueInfos; ++i) {
-        subQueueInfos->push_back(bmqp::SubQueueInfo(nextSubId++));
+        subQueueInfos->push_back(bmqp::SubQueueInfo(i + 1));
     }
 }
 
@@ -159,7 +158,7 @@ static void appendDatum(bsl::vector<Data>*        data,
     BSLS_ASSERT_OPT(payloadLength >= 0);
 
     Data datum(bufferFactory, allocator);
-    datum.d_qid   = generateRandomInteger(1, 200);
+    datum.d_qid   = data->size();
     datum.d_flags = 0;
     // Use the new SubQueueInfo option
     datum.d_isSubQueueInfo = true;
@@ -420,10 +419,11 @@ static void test2_flattenExplodesEvent()
 //
 // Plan:
 //   1) Create an event composed of one message having a payload of size
-//      one third the maximum enforced size and four SubQueueIds.
+//      a little over the quarter of the maximum enforced size and four
+//      SubQueueIds.
 //   2) Flatten the event.
-//   3) Verify that the flattening results in two event blobs, each having
-//      two messages with one SubQueueId each.
+//   3) Verify that the flattening results in two event blobs, first having
+//      15 messages and the second 1 with one SubQueueId each.
 //
 // Testing:
 //   Flattening an event having a message with more than one SubQueueId
@@ -444,13 +444,21 @@ static void test2_flattenExplodesEvent()
     // 1) Event composed of one message having a payload of size one third the
     //    maximum enforced size and four SubQueueIds.
     // Msg1
-    payloadLength  = bmqp::EventHeader::k_MAX_SIZE_SOFT / 3;
+    payloadLength  = bmqp::PushHeader::k_MAX_PAYLOAD_SIZE_SOFT / 2;
     numSubQueueIds = 4;
-    appendDatum(&data,
-                numSubQueueIds,
-                payloadLength,
-                &bufferFactory,
-                s_allocator_p);
+
+    int count = 0;
+    int total = 0;
+
+    while (total < bmqp::EventHeader::k_MAX_SIZE_SOFT / 4) {
+        appendDatum(&data,
+                    numSubQueueIds,
+                    payloadLength,
+                    &bufferFactory,
+                    s_allocator_p);
+        total += data[count].d_payload.length();
+        ++count;
+    }
 
     // Create event
     appendMessages(&pushEventBuilder, data);
@@ -468,12 +476,12 @@ static void test2_flattenExplodesEvent()
     // 3) Verify that the flattening results in two event blobs, each having
     //    two messages with one SubQueueId each.
     bmqp::PushMessageIterator msgIterator(&bufferFactory, s_allocator_p);
-    const Data&               D   = data[0];
     int                       idx = 0;
 
     // 1st flattened event
     bmqp::Event flattenedEvent1(&(eventInfos[0].d_blob), s_allocator_p);
-    ASSERT_EQ(eventInfos[0].d_ids.size(), 2u);
+    ASSERT_EQ(eventInfos[0].d_ids.size(),
+              static_cast<size_t>(count * numSubQueueIds - 1));
 
     flattenedEvent1.loadPushMessageIterator(&msgIterator, true);
     BSLS_ASSERT_OPT(msgIterator.isValid());
@@ -489,7 +497,7 @@ static void test2_flattenExplodesEvent()
         rc = msgIterator.loadMessagePayload(&payload);
         BSLS_ASSERT_OPT(rc == 0);
 
-        ASSERT_EQ(bdlbb::BlobUtil::compare(D.d_payload, payload), 0);
+        ASSERT_EQ(bdlbb::BlobUtil::compare(data[0].d_payload, payload), 0);
     }
 
     // Verify SubQueueInfos
@@ -506,14 +514,16 @@ static void test2_flattenExplodesEvent()
         BSLS_ASSERT_OPT(rc == 0);
         BSLS_ASSERT_OPT(subQueueInfos.size() == 1);
 
-        ASSERT_EQ(D.d_subQueueInfos[idx], subQueueInfos[0]);
+        ASSERT_EQ(data[0].d_subQueueInfos[0], subQueueInfos[0]);
+    }
 
-        // Verify that 'eventInfo' contains the queueId pair (id, subId)
-        // corresponding to this message
-        const int          id            = D.d_qid;
-        const unsigned int subcriptionId = D.d_subQueueInfos[idx].id();
+    // Verify that 'eventInfo' contains the queueId pair (id, subId)
+    // corresponding to this message
 
-        ASSERT(find(eventInfos[0], id, subcriptionId));
+    for (size_t i = 0; i < eventInfos[0].d_ids.size(); ++i) {
+        ASSERT_EQ(eventInfos[0].d_ids[i].d_subscriptionId, i % count + 1);
+        ASSERT_EQ(size_t(eventInfos[0].d_ids[i].d_header.queueId()),
+                  i / count);
     }
 
     ++idx;
@@ -529,7 +539,7 @@ static void test2_flattenExplodesEvent()
         rc = msgIterator.loadMessagePayload(&payload);
         BSLS_ASSERT_OPT(rc == 0);
 
-        ASSERT_EQ(bdlbb::BlobUtil::compare(D.d_payload, payload), 0);
+        ASSERT_EQ(bdlbb::BlobUtil::compare(data[0].d_payload, payload), 0);
     }
 
     // Verify SubQueueInfos
@@ -546,25 +556,19 @@ static void test2_flattenExplodesEvent()
         BSLS_ASSERT_OPT(rc == 0);
         BSLS_ASSERT_OPT(subQueueInfos.size() == 1);
 
-        ASSERT_EQ(D.d_subQueueInfos[idx], subQueueInfos[0]);
-
-        // Verify that 'eventInfo' contains the queueId pair (id, subId)
-        // corresponding to this message
-        const int          qId           = D.d_qid;
-        const unsigned int subcriptionId = D.d_subQueueInfos[idx].id();
-        ASSERT(find(eventInfos[0], qId, subcriptionId));
+        ASSERT_EQ(data[0].d_subQueueInfos[idx], subQueueInfos[0]);
     }
 
-    ++idx;
+    idx = count - 1;  // the last one did not fit the first event
 
     // 2nd flattened event
     bmqp::Event flattenedEvent2(&(eventInfos[1].d_blob), s_allocator_p);
-    ASSERT_EQ(eventInfos[1].d_ids.size(), 2u);
+    ASSERT_EQ(eventInfos[1].d_ids.size(), 1u);
 
     flattenedEvent2.loadPushMessageIterator(&msgIterator, true);
     BSLS_ASSERT_OPT(msgIterator.isValid());
 
-    // Third message
+    // 1st message in tne second event
     rc = msgIterator.next();
     BSLS_ASSERT_OPT(rc == 1);
     BSLS_ASSERT_OPT(msgIterator.hasOptions());
@@ -575,7 +579,7 @@ static void test2_flattenExplodesEvent()
         rc = msgIterator.loadMessagePayload(&payload);
         BSLS_ASSERT_OPT(rc == 0);
 
-        ASSERT_EQ(bdlbb::BlobUtil::compare(D.d_payload, payload), 0);
+        ASSERT_EQ(bdlbb::BlobUtil::compare(data[idx].d_payload, payload), 0);
     }
 
     // Verify SubQueueInfos
@@ -592,54 +596,22 @@ static void test2_flattenExplodesEvent()
         BSLS_ASSERT_OPT(rc == 0);
         BSLS_ASSERT_OPT(subQueueInfos.size() == 1);
 
-        ASSERT_EQ(D.d_subQueueInfos[idx].id(), subQueueInfos[0].id());
+        ASSERT_EQ(data[idx].d_subQueueInfos[idx].id(), subQueueInfos[0].id());
 
-        // Verify that 'eventInfo' contains the queueId (queueId, subQueueId)
-        // pair corresponding to this message
-        const int          qId           = D.d_qid;
-        const unsigned int subcriptionId = D.d_subQueueInfos[idx].id();
+        const int          qId           = data[idx].d_qid;
+        const unsigned int subcriptionId = data[idx].d_subQueueInfos[idx].id();
         ASSERT(find(eventInfos[1], qId, subcriptionId));
     }
 
-    ++idx;
+    // Verify that 'eventInfo' contains the queueId (queueId, subQueueId)
+    // pair corresponding to this message
 
-    // Fourth message
+    ASSERT_EQ(eventInfos[1].d_ids[0].d_subscriptionId,
+              data[count - 1].d_subQueueInfos.back().id());
+    ASSERT_EQ(eventInfos[1].d_ids[0].d_header.queueId(), count - 1);
+
+    // No more messages
     rc = msgIterator.next();
-    BSLS_ASSERT_OPT(rc == 1);
-    BSLS_ASSERT_OPT(msgIterator.hasOptions());
-
-    // Verify payload
-    {
-        bdlbb::Blob payload(&bufferFactory, s_allocator_p);
-        rc = msgIterator.loadMessagePayload(&payload);
-        BSLS_ASSERT_OPT(rc == 0);
-
-        ASSERT_EQ(bdlbb::BlobUtil::compare(D.d_payload, payload), 0);
-    }
-
-    // Verify SubQueueInfos
-    {
-        bmqp::OptionsView optionsView(s_allocator_p);
-        rc = msgIterator.loadOptionsView(&optionsView);
-        BSLS_ASSERT_OPT(rc == 0);
-        BSLS_ASSERT_OPT(optionsView.isValid());
-        BSLS_ASSERT_OPT(
-            optionsView.find(bmqp::OptionType::e_SUB_QUEUE_INFOS) !=
-            optionsView.end());
-        bmqp::Protocol::SubQueueInfosArray subQueueInfos(s_allocator_p);
-        rc = optionsView.loadSubQueueInfosOption(&subQueueInfos);
-        BSLS_ASSERT_OPT(rc == 0);
-        BSLS_ASSERT_OPT(subQueueInfos.size() == 1);
-
-        ASSERT_EQ(D.d_subQueueInfos[idx], subQueueInfos[0]);
-
-        // Verify that 'eventInfo' contains the queueId (queueId, subQueueId)
-        // pair corresponding to this message
-        const int          qId           = D.d_qid;
-        const unsigned int subcriptionId = D.d_subQueueInfos[idx].id();
-
-        ASSERT(find(eventInfos[1], qId, subcriptionId));
-    }
 }
 
 static void test3_flattenWithMessageProperties()

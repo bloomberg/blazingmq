@@ -353,7 +353,7 @@ TransportManager::TransportManager(bdlmt::EventScheduler*    scheduler,
 , d_state(e_STOPPED)
 , d_scheduler_p(scheduler)
 , d_blobBufferFactory_p(blobBufferFactory)
-, d_itemPool(Channel::k_ITEM_SIZE, allocator)
+, d_itemPool(Channel::k_ITEM_SIZE, bsls::BlockGrowth::BSLS_CONSTANT, allocator)
 , d_negotiator_mp(negotiator)
 , d_statController_p(statController)
 , d_tcpSessionFactory_mp(0)
