@@ -523,8 +523,6 @@ class Cluster : public mqbi::Cluster,
     /// Execute `initiateShutdown` followed by `stop` and SIGINT
     void terminate(mqbu::ExitCode::Enum reason);
 
-    static const char* validationResult(const ValidationResult& result);
-
   public:
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(Cluster, bslma::UsesBslmaAllocator)
