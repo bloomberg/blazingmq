@@ -237,6 +237,9 @@ class RelayQueueEngine : public mqbi::QueueEngine {
     bdlmt::Throttle d_throttledRejectedMessages;
     // Throttler for REJECTs.
 
+    QueueEngineUtil_AppsDeliveryContext d_appsDeliveryContext;
+    // Reusable apps delivery context
+
     bslma::Allocator* d_allocator_p;
     // Allocator to use.
   private:
