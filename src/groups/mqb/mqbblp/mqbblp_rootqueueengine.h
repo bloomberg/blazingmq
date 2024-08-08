@@ -120,6 +120,9 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
     // them to use them as keys in
     // mwcc::TwoKeyHashMap.
 
+    bool d_hasAutoSubscriptions;
+    // Does this queue engine have any auto subscriptions configured
+
     const bool d_isFanout;
 
     bdlmt::EventScheduler* d_scheduler_p;

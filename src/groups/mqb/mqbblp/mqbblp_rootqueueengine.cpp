@@ -246,6 +246,7 @@ RootQueueEngine::RootQueueEngine(QueueState*             queueState,
 , d_consumptionMonitor(queueState, allocator)
 , d_apps(allocator)
 , d_nullKeyCount(0)
+, d_hasAutoSubscriptions(false)
 , d_isFanout(domainConfig.mode().isFanoutValue())
 , d_scheduler_p(queueState->scheduler())
 , d_miscWorkThreadPool_p(queueState->miscWorkThreadPool())
@@ -292,6 +293,7 @@ int RootQueueEngine::configure(bsl::ostream& errorDescription)
 
     const bsl::vector<mqbconfm::Subscription>& subscriptions =
         d_queueState_p->domain()->config().subscriptions();
+    d_hasAutoSubscriptions = !subscriptions.empty();
 
     if (d_isFanout) {
         const bsl::vector<bsl::string>& cfgAppIds =
@@ -1738,6 +1740,11 @@ mqbi::StorageResult::Enum RootQueueEngine::evaluateAutoSubscriptions(
     const bmqp::MessagePropertiesInfo&  mpi,
     bsls::Types::Uint64                 timestamp)
 {
+    if (!d_hasAutoSubscriptions) {
+        // No-op if no auto subscriptions configured
+        return mqbi::StorageResult::e_SUCCESS;
+    }
+
     mqbi::StorageResult::Enum result = mqbi::StorageResult::e_SUCCESS;
 
     Routers::QueueRoutingContext& queue = d_queueState_p->routingContext();
