@@ -585,10 +585,10 @@ void RelayQueueEngine::deliverMessages()
     //   1. End of storage; or
     //   2. subStream's capacity is saturated
 
-    QueueEngineUtil_AppsDeliveryContext context(d_queueState_p->queue(),
-                                                d_allocator_p);
-    while (context.d_doRepeat) {
-        context.reset();
+    d_appsDeliveryContext.d_doRepeat = true;
+
+    while (d_appsDeliveryContext.d_doRepeat) {
+        d_appsDeliveryContext.reset();
 
         for (AppsMap::iterator it = d_apps.begin(); it != d_apps.end(); ++it) {
             // First try to send any message in the redelivery list ...
@@ -612,10 +612,10 @@ void RelayQueueEngine::deliverMessages()
                         appSp->d_appId));
             }
             else if (appSp->redeliveryListSize() == 0) {
-                context.processApp(*appSp);
+                d_appsDeliveryContext.processApp(*appSp);
             }
         }
-        context.deliverMessage();
+        d_appsDeliveryContext.deliverMessage();
     }
 }
 
@@ -877,6 +877,7 @@ RelayQueueEngine::RelayQueueEngine(
 , d_apps(allocator)
 , d_self(this)  // use default allocator
 , d_scheduler_p(queueState->scheduler())
+, d_appsDeliveryContext(d_queueState_p->queue(), allocator)
 , d_allocator_p(allocator)
 {
     // PRECONDITIONS
