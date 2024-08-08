@@ -249,7 +249,7 @@ RootQueueEngine::RootQueueEngine(QueueState*             queueState,
 , d_isFanout(domainConfig.mode().isFanoutValue())
 , d_scheduler_p(queueState->scheduler())
 , d_miscWorkThreadPool_p(queueState->miscWorkThreadPool())
-, d_context(d_queueState_p->queue(), allocator)
+, d_appsDeliveryContext(d_queueState_p->queue(), allocator)
 , d_allocator_p(allocator)
 {
     // PRECONDITIONS
@@ -1239,22 +1239,21 @@ void RootQueueEngine::afterNewMessage(
         d_queueState_p->queue()));
 
     // Deliver new messages to active (alive and capable to deliver) consumers
-    d_context.reset();
-    d_context.d_doRepeat = true;
+    d_appsDeliveryContext.d_doRepeat = true;
 
-    while (d_context.d_doRepeat) {
-        d_context.reset();
+    while (d_appsDeliveryContext.d_doRepeat) {
+        d_appsDeliveryContext.reset();
 
         for (Apps::iterator iter = d_apps.begin(); iter != d_apps.end();
              ++iter) {
             AppStateSp& app = iter->value();
             if (app->redeliveryListSize() == 0) {
-                if (d_context.processApp(*app)) {
+                if (d_appsDeliveryContext.processApp(*app)) {
                     d_consumptionMonitor.onMessageSent(iter->key2().first);
                 }
             }
         }
-        d_context.deliverMessage();
+        d_appsDeliveryContext.deliverMessage();
     }
 
     if (QueueEngineUtil::isBroadcastMode(d_queueState_p->queue())) {
