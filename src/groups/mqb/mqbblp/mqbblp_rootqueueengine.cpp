@@ -250,6 +250,7 @@ RootQueueEngine::RootQueueEngine(QueueState*             queueState,
 , d_isFanout(domainConfig.mode().isFanoutValue())
 , d_scheduler_p(queueState->scheduler())
 , d_miscWorkThreadPool_p(queueState->miscWorkThreadPool())
+, d_appsDeliveryContext(d_queueState_p->queue(), allocator)
 , d_allocator_p(allocator)
 {
     // PRECONDITIONS
@@ -1240,24 +1241,20 @@ void RootQueueEngine::afterNewMessage(
         d_queueState_p->queue()));
 
     // Deliver new messages to active (alive and capable to deliver) consumers
-
-    QueueEngineUtil_AppsDeliveryContext context(d_queueState_p->queue(),
-                                                d_allocator_p);
-
-    while (context.d_doRepeat) {
-        context.reset();
+    do {
+        d_appsDeliveryContext.reset();
 
         for (Apps::iterator iter = d_apps.begin(); iter != d_apps.end();
              ++iter) {
             AppStateSp& app = iter->value();
             if (app->redeliveryListSize() == 0) {
-                if (context.processApp(*app)) {
+                if (d_appsDeliveryContext.processApp(*app)) {
                     d_consumptionMonitor.onMessageSent(iter->key2().first);
                 }
             }
         }
-        context.deliverMessage();
-    }
+        d_appsDeliveryContext.deliverMessage();
+    } while (d_appsDeliveryContext.d_doRepeat);
 
     if (QueueEngineUtil::isBroadcastMode(d_queueState_p->queue())) {
         // Clear storage status
