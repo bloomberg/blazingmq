@@ -959,6 +959,7 @@ inline bsl::string CompilationContext::lastErrorMessage() const
     return d_os.str();
 }
 
+// put fixes here
 inline int CompilationContext::getPropertyIndex(const bsl::string& property,
                                                 Type               type)
 {
