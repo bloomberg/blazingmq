@@ -1252,7 +1252,7 @@ void RootQueueEngine::afterNewMessage(
             }
         }
         d_appsDeliveryContext.deliverMessage();
-    } while (d_appsDeliveryContext.d_doRepeat)
+    } while (d_appsDeliveryContext.d_doRepeat);
 
     if (QueueEngineUtil::isBroadcastMode(d_queueState_p->queue())) {
         // Clear storage status
