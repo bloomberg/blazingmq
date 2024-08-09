@@ -799,7 +799,7 @@ class StatContext {
     /// all sibling subcontexts.
     int uniqueId() const;
 
-    /// Return te number of times this 'StatContext' had 'snapshot' called on
+    /// Return the number of times this 'StatContext' had 'snapshot' called on
     /// it.
     bsls::Types::Int64 numSnapshots() const;
 

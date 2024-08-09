@@ -133,7 +133,9 @@ class StatController {
     typedef bslma::ManagedPtr<JsonPrinter>                 JsonPrinterMp;
     typedef bslma::ManagedPtr<mqbplug::StatPublisher>      StatPublisherMp;
     typedef bslma::ManagedPtr<mqbplug::StatConsumer>       StatConsumerMp;
-    typedef bsl::unordered_map<bsl::string, StatContextMp> StatContextMap;
+    typedef bsl::list<StatContextMp>                       StatContextList;
+    typedef StatContextList::iterator                      StatContextIt;
+    typedef bsl::unordered_map<bsl::string, StatContextIt> StatContextMap;
 
     /// Struct containing a statcontext and bool specifying if the
     /// statcontext is managed.
@@ -193,7 +195,10 @@ class StatController {
     /// Mutex for thread safety of the 'd_portsMap'
     bslmt::Mutex d_portsMutex;
 
-    /// Map of all open ports to their StatContext's
+    /// List of 'StatContext's of all open ports
+    StatContextList d_portsList;
+
+    /// Map of all open ports to their 'StatContext's
     StatContextMap d_portsMap;
 
     /// System stat monitor (for cpu and
@@ -275,6 +280,10 @@ class StatController {
     /// Try to snapshot the stats and notify all the registered stat consumers
     /// upon success.
     void snapshotAndNotify();
+
+    /// Remove the 'ManagedPtr' of the specified 'context' from the internal
+    /// ports map.
+    void portsDeleter(const mwcst::StatContext& context);
 
     // PRIVATE ACCESSORS
 

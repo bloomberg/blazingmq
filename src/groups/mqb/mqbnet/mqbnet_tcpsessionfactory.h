@@ -97,6 +97,7 @@
 // BDE
 #include <bdlbb_blob.h>
 #include <bdlmt_eventscheduler.h>
+#include <bdlpcre_regex.h>
 #include <bsl_functional.h>
 #include <bsl_memory.h>
 #include <bsl_ostream.h>
@@ -212,6 +213,28 @@ class TCPSessionFactory {
         // channel.  This variable is entirely and
         // solely managed from within the event
         // scheduler thread.
+    };
+
+    /// This class provides mechanism to extract a port from an endpoint.
+    class PortExtractor {
+      private:
+        // DATA
+
+        // Regex used to find partitionId.
+        bdlpcre::RegEx d_regex;
+
+      public:
+        // CREATORS
+
+        /// Create a new PortExtractor using the specified
+        /// `allocator` for memory allocations.
+        explicit PortExtractor(bslma::Allocator* allocator);
+
+        // ACCESSORS
+
+        /// Parse the specified `endpoint` string and try to find the
+        /// port inside.  Return the port on success, assert on fail.
+        bsl::string_view extract(const bsl::string& endpoint) const;
     };
 
     typedef bsl::shared_ptr<ChannelInfo> ChannelInfoSp;
@@ -365,6 +388,9 @@ class TCPSessionFactory {
     // context (on stopListening)
     // while operation (readCallback/
     // negotiation) is in progress.
+
+    PortExtractor d_portExtractor;
+    // A helper class to extract ports from endpoints
 
     bslma::Allocator* d_allocator_p;
     // Allocator to use

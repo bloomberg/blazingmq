@@ -59,7 +59,6 @@
 #include <bdlf_bind.h>
 #include <bdlf_placeholder.h>
 #include <bdlma_localsequentialallocator.h>
-#include <bdlpcre_regex.h>
 #include <bdlt_timeunitratio.h>
 #include <bsl_algorithm.h>
 #include <bsl_cstdlib.h>
@@ -101,21 +100,6 @@ const int k_SESSION_DESTROY_WAIT = 20;
 const int k_CLIENT_CLOSE_WAIT = 20;
 // Time to wait incrementally (in seconds) for all clients and
 // proxies to be destroyed during stop sequence.
-const char k_PORT_PATTERN[] = ":(\\d{1,5})";
-
-bsl::string portFromUri(const bsl::string& endpoint)
-{
-    bdlpcre::RegEx                regEx;
-    bsl::string                   errorMessage;
-    size_t                        errorOffset;
-    std::vector<bsl::string_view> matchVector;
-
-    BSLS_ASSERT_SAFE(
-        0 == regEx.prepare(&errorMessage, &errorOffset, k_PORT_PATTERN));
-    BSLS_ASSERT_SAFE(0 == regEx.match(&matchVector, endpoint));
-
-    return bsl::string(matchVector[1]);
-}
 
 char calculateInitialMissedHbCounter(const mqbcfg::TcpInterfaceConfig& config)
 {
@@ -306,14 +290,14 @@ TCPSessionFactory::channelStatContextCreator(
             ? mqbstat::StatController::ChannelSelector::e_REMOTE
             : mqbstat::StatController::ChannelSelector::e_LOCAL;
 
-    bsl::string name, localPort;
+    bsl::string name(d_allocator_p), localPort(d_allocator_p);
     if (handle->options().is<mwcio::ConnectOptions>()) {
         name      = handle->options().the<mwcio::ConnectOptions>().endpoint();
-        localPort = portFromUri(channel->peerUri());
+        localPort = d_portExtractor.extract(channel->peerUri());
     }
     else {
         name      = channel->peerUri();
-        localPort = portFromUri(
+        localPort = d_portExtractor.extract(
             handle->options().the<mwcio::ListenOptions>().endpoint());
     }
 
@@ -905,6 +889,7 @@ TCPSessionFactory::TCPSessionFactory(
 , d_heartbeatChannels(allocator)
 , d_initialMissedHeartbeatCounter(calculateInitialMissedHbCounter(config))
 , d_isListening(false)
+, d_portExtractor(allocator)
 , d_allocator_p(allocator)
 {
     // PRECONDITIONS
@@ -1422,6 +1407,35 @@ bool TCPSessionFactory::isEndpointLoopback(const bslstl::StringRef& uri) const
 
     return (endpoint.port() == d_config.port()) &&
            mwcio::ChannelUtil::isLocalHost(endpoint.host());
+}
+
+// --------------------------------------
+// class TCPSessionFactory::PortExtractor
+// --------------------------------------
+
+TCPSessionFactory::PortExtractor::PortExtractor(bslma::Allocator* allocator)
+: d_regex(allocator)
+{
+    const char                  pattern[] = ":(\\d{1,5})$";
+    bsl::string                 error(allocator);
+    size_t                      errorOffset;
+    BSLA_MAYBE_UNUSED const int rc = d_regex.prepare(
+        &error,
+        &errorOffset,
+        pattern,
+        bdlpcre::RegEx::k_FLAG_JIT);
+    BSLS_ASSERT_SAFE(rc == 0);
+    BSLS_ASSERT_SAFE(d_regex.isPrepared() == true);
+}
+
+bsl::string_view
+TCPSessionFactory::PortExtractor::extract(const bsl::string& endpoint) const
+{
+    bsl::string_view result;
+
+    BSLS_ASSERT_SAFE(0 == d_regex.match(&result, endpoint));
+
+    return result.substr(1);
 }
 
 }  // close package namespace
