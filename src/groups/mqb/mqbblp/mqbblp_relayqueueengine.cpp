@@ -614,7 +614,7 @@ void RelayQueueEngine::deliverMessages()
             }
         }
         d_appsDeliveryContext.deliverMessage();
-    } while (d_appsDeliveryContext.d_doRepeat)
+    } while (d_appsDeliveryContext.d_doRepeat);
 }
 
 void RelayQueueEngine::processAppRedelivery(App_State&         state,
