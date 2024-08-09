@@ -585,9 +585,7 @@ void RelayQueueEngine::deliverMessages()
     //   1. End of storage; or
     //   2. subStream's capacity is saturated
 
-    d_appsDeliveryContext.d_doRepeat = true;
-
-    while (d_appsDeliveryContext.d_doRepeat) {
+    do {
         d_appsDeliveryContext.reset();
 
         for (AppsMap::iterator it = d_apps.begin(); it != d_apps.end(); ++it) {
@@ -616,7 +614,7 @@ void RelayQueueEngine::deliverMessages()
             }
         }
         d_appsDeliveryContext.deliverMessage();
-    }
+    } while (d_appsDeliveryContext.d_doRepeat)
 }
 
 void RelayQueueEngine::processAppRedelivery(App_State&         state,
