@@ -334,8 +334,8 @@ VirtualStorageCatalog::removeAll(const mqbu::StorageKey& appKey)
             else {
                 if (result == mqbi::StorageResult::e_GUID_NOT_FOUND) {
                     BALL_LOG_WARN
-                        << "#STORAGE_PURGE_ERROR "
-                        << "PartitionId [" << d_storage_p->partitionId() << "]"
+                        << "#STORAGE_PURGE_ERROR " << "PartitionId ["
+                        << d_storage_p->partitionId() << "]"
                         << ": Attempting to purge GUID '" << itData->first
                         << "' from virtual storage with appId '"
                         << itVs->value()->appId() << "' & appKey '" << appKey

@@ -1283,20 +1283,15 @@ void RootQueueEngine::afterNewMessage(
         d_queueState_p->queue()));
 
     // Deliver new messages to active (alive and capable to deliver) consumers
+    d_appsDeliveryContext.start();
 
-    QueueEngineUtil_AppsDeliveryContext context(d_queueState_p->queue(),
-                                                d_storageIter_mp.get(),
-                                                d_allocator_p);
-
-    while (context.doRepeat()) {
-        context.reset();
-
+    while (d_appsDeliveryContext.reset(d_storageIter_mp.get())) {
         // Assume, all Apps need to deliver (some may be at capacity)
         for (Apps::iterator iter = d_apps.begin(); iter != d_apps.end();
              ++iter) {
             AppStateSp& app = iter->value();
 
-            if (context.processApp(*app, app->ordinal())) {
+            if (d_appsDeliveryContext.processApp(*app, app->ordinal())) {
                 // Consider this message as sent out
 
                 d_consumptionMonitor.onMessageSent(iter->key2().first);
@@ -1305,17 +1300,17 @@ void RootQueueEngine::afterNewMessage(
                 // Report 'queue time' metric for all active appIds
                 d_queueState_p->queue()->stats()->onEvent(
                     mqbstat::QueueStatsDomain::EventType::e_QUEUE_TIME,
-                    context.timeDelta(),
+                    d_appsDeliveryContext.timeDelta(),
                     app->appId());
             }
         }
-        if (!context.isEmpty()) {
+        if (!d_appsDeliveryContext.isEmpty()) {
             // Report 'queue time' metric for the entire queue
             d_queueState_p->queue()->stats()->onEvent(
                 mqbstat::QueueStatsDomain::EventType::e_QUEUE_TIME,
-                context.timeDelta());
+                d_appsDeliveryContext.timeDelta());
         }
-        context.deliverMessage();
+        d_appsDeliveryContext.deliverMessage();
     }
 
     if (QueueEngineUtil::isBroadcastMode(d_queueState_p->queue())) {
@@ -1474,9 +1469,8 @@ int RootQueueEngine::onRejectMessage(mqbi::QueueHandle*       handle,
 
             BALL_LOGTHROTTLE_WARN(k_MAX_INSTANT_MESSAGES, k_NS_PER_MESSAGE)
                 << "[THROTTLED] Mismatch between the message's RdaInfo " << rda
-                << " and the domain's "
-                << "'maxDeliveryAttempts' setting [" << maxDeliveryAttempts
-                << "], updating message's RdaInfo";
+                << " and the domain's 'maxDeliveryAttempts' setting ["
+                << maxDeliveryAttempts << "], updating message's RdaInfo";
             if (maxDeliveryAttempts > 0) {
                 rda.setCounter(maxDeliveryAttempts);
             }

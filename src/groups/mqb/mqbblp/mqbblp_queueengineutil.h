@@ -592,7 +592,7 @@ struct QueueEngineUtil_AppsDeliveryContext {
 
   private:
     Consumers                         d_consumers;
-    bool                              d_doRepeat;
+    bool                              d_isReady;
     mqbi::StorageIterator*            d_currentMessage;
     mqbi::Queue*                      d_queue_p;
     bsl::optional<bsls::Types::Int64> d_timeDelta;
@@ -600,12 +600,17 @@ struct QueueEngineUtil_AppsDeliveryContext {
     // See comment in `QueueEngineUtil_AppsDeliveryContext::processApp`.
 
   public:
-    QueueEngineUtil_AppsDeliveryContext(mqbi::Queue*           queue,
-                                        mqbi::StorageIterator* currentMessage,
-                                        bslma::Allocator*      allocator);
+    QueueEngineUtil_AppsDeliveryContext(mqbi::Queue*      queue,
+                                        bslma::Allocator* allocator);
+
+    /// Start delivery cycle(s).
+    void start();
 
     /// Prepare the context to process next message.
-    void reset();
+    /// Return `true` if the delivery can continue iterating dataStream
+    /// The `false` return value indicates either the end of the dataStream or
+    /// the the `e_NO_CAPACITY_ALL` case.
+    bool reset(mqbi::StorageIterator* currentMessage);
 
     /// Return `true` if the specified `app` is not a broadcast app and has an
     /// available handle to deliver the current message with the specified
@@ -631,11 +636,6 @@ struct QueueEngineUtil_AppsDeliveryContext {
 
     /// Deliver message to the previously processed handles.
     void deliverMessage();
-
-    /// Return `true` if the delivery can continue iterating dataStream
-    /// The `false` return value indicates either the end of the dataStream or
-    /// the the `e_NO_CAPACITY_ALL` case.
-    bool doRepeat() const;
 
     /// Return `true` if there is at least one delivery target selected.
     bool isEmpty() const;
@@ -775,7 +775,8 @@ inline void RedeliveryList::trim(iterator* cit) const
 // struct QueueEngineUtil_AppState
 // -------------------------------
 
-inline void QueueEngineUtil_AppState::putForRedelivery(const bmqt::MessageGUID& guid)
+inline void
+QueueEngineUtil_AppState::putForRedelivery(const bmqt::MessageGUID& guid)
 {
     d_redeliveryList.add(guid);
 }

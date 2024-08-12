@@ -250,9 +250,8 @@ const mqbi::StorageMessageAttributes& StorageIterator::attributes() const
     if (d_attributes.refCount() == 0) {
         // No loaded Attributes for the current message yet.
 
-        mqbi::StorageResult::Enum rc = d_virtualStorage_p->d_storage_p->get(
-            &d_attributes,
-            d_iterator->first);
+        mqbi::StorageResult::Enum rc = d_storage_p->get(&d_attributes,
+                                                        d_iterator->first);
         BSLS_ASSERT_SAFE(mqbi::StorageResult::e_SUCCESS == rc);
         (void)rc;
     }

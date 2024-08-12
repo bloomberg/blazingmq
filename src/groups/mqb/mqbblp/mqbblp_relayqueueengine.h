@@ -230,9 +230,10 @@ class RelayQueueEngine : public mqbi::QueueEngine {
     bdlmt::Throttle d_throttledRejectedMessages;
     // Throttler for REJECTs.
 
-    bslma::ManagedPtr<PushStreamIterator> d_storageIter_mp;
     QueueEngineUtil_AppsDeliveryContext d_appsDeliveryContext;
     // Reusable apps delivery context
+
+    bslma::ManagedPtr<PushStreamIterator> d_storageIter_mp;
     // Storage iterator to the PushStream
 
     bslma::ManagedPtr<mqbi::StorageIterator> d_realStorageIter_mp;

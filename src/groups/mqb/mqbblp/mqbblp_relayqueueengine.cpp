@@ -580,13 +580,9 @@ void RelayQueueEngine::deliverMessages()
     //   1. End of storage; or
     //   2. All subStreams return 'e_NO_CAPACITY_ALL'
 
-    QueueEngineUtil_AppsDeliveryContext context(d_queueState_p->queue(),
-                                                d_storageIter_mp.get(),
-                                                d_allocator_p);
+    d_appsDeliveryContext.start();
 
-    while (context.doRepeat()) {
-        context.reset();
-
+    while (d_appsDeliveryContext.reset(d_storageIter_mp.get())) {
         // Assume, all Apps need to deliver (some may be at capacity)
         unsigned int numApps = d_storageIter_mp->numApps();
 
@@ -609,7 +605,7 @@ void RelayQueueEngine::deliverMessages()
                 d_storageIter_mp->removeCurrentElement();
             }
 
-            if (context.processApp(*app, i)) {
+            if (d_appsDeliveryContext.processApp(*app, i)) {
                 // The current element has made it either to delivery or
                 // putAside or resumerPoint and it can be removed
                 d_storageIter_mp->removeCurrentElement();
@@ -617,7 +613,7 @@ void RelayQueueEngine::deliverMessages()
             // Else, the current element has made it to resumerPoint and
             // it cannot be removed
         }
-        context.deliverMessage();
+        d_appsDeliveryContext.deliverMessage();
     }
 }
 
@@ -904,8 +900,8 @@ RelayQueueEngine::RelayQueueEngine(QueueState*             queueState,
 , d_apps(allocator)
 , d_appIds(allocator)
 , d_self(this)  // use default allocator
-, d_storageIter_mp()
 , d_appsDeliveryContext(d_queueState_p->queue(), allocator)
+, d_storageIter_mp()
 , d_realStorageIter_mp()
 , d_allocator_p(allocator)
 {

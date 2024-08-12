@@ -571,22 +571,19 @@ inline ClusterResources::ClusterResources(const ClusterResources& copy)
     // NOTHING
 }
 
-inline
-bdlmt::EventScheduler* ClusterResources::scheduler() const
+inline bdlmt::EventScheduler* ClusterResources::scheduler() const
 {
     return d_scheduler_p;
 }
 // EventScheduler to use
 
-inline
-bdlbb::BlobBufferFactory* ClusterResources::bufferFactory() const
+inline bdlbb::BlobBufferFactory* ClusterResources::bufferFactory() const
 {
     return d_bufferFactory_p;
 }
 // Blob buffer factory to use
 
-inline
-ClusterResources::BlobSpPool* ClusterResources::blobSpPool() const
+inline ClusterResources::BlobSpPool* ClusterResources::blobSpPool() const
 {
     return d_blobSpPool_p;
 }

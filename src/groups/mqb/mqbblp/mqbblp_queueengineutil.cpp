@@ -635,23 +635,36 @@ QueueEngineUtil_ReleaseHandleProctor::~QueueEngineUtil_ReleaseHandleProctor()
 // ------------------------------------------
 
 QueueEngineUtil_AppsDeliveryContext::QueueEngineUtil_AppsDeliveryContext(
-    mqbi::Queue*           queue,
-    mqbi::StorageIterator* currentMessage,
-    bslma::Allocator*      allocator)
+    mqbi::Queue*      queue,
+    bslma::Allocator* allocator)
 : d_consumers(allocator)
-, d_doRepeat(currentMessage ? currentMessage->hasReceipt() : false)
-, d_currentMessage(currentMessage)
+, d_isReady(false)
+, d_currentMessage(0)
 , d_queue_p(queue)
 , d_timeDelta()
 {
     BSLS_ASSERT_SAFE(queue);
 }
 
-void QueueEngineUtil_AppsDeliveryContext::reset()
+void QueueEngineUtil_AppsDeliveryContext::start()
 {
-    d_doRepeat = false;
+    d_isReady = true;
+}
+
+bool QueueEngineUtil_AppsDeliveryContext::reset(
+    mqbi::StorageIterator* currentMessage)
+{
     d_consumers.clear();
     d_timeDelta.reset();
+
+    if (!d_isReady) {
+        return false;  // RETURN
+    }
+
+    d_currentMessage = currentMessage;
+    d_isReady        = false;
+
+    return d_currentMessage ? d_currentMessage->hasReceipt() : false;
 }
 
 bool QueueEngineUtil_AppsDeliveryContext::processApp(
@@ -669,7 +682,7 @@ bool QueueEngineUtil_AppsDeliveryContext::processApp(
                 bdlf::PlaceHolders::_1),
             d_currentMessage);
 
-        d_doRepeat = true;
+        d_isReady = true;
 
         // Broadcast does not need stats nor any special per-message treatment.
         return false;  // RETURN
@@ -689,7 +702,7 @@ bool QueueEngineUtil_AppsDeliveryContext::processApp(
         ordinal);
 
     if (!appView.isNew()) {
-        d_doRepeat = true;
+        d_isReady = true;
         return true;  // RETURN
     }
 
@@ -721,7 +734,7 @@ bool QueueEngineUtil_AppsDeliveryContext::processApp(
 
         // Early return.
         // If all Apps return 'e_NO_CAPACITY_ALL', stop the iteration
-        // (d_doRepeat == false).
+        // (d_isReady == false).
 
         return false;  // RETURN
     }
@@ -735,7 +748,7 @@ bool QueueEngineUtil_AppsDeliveryContext::processApp(
     }
 
     // Still making progress (result != Routers::e_NO_CAPACITY_ALL)
-    d_doRepeat = true;
+    d_isReady = true;
 
     return (result == Routers::e_SUCCESS);
 }
@@ -794,20 +807,11 @@ void QueueEngineUtil_AppsDeliveryContext::deliverMessage()
         }
     }
 
-    if (d_doRepeat) {
-        if (d_currentMessage->advance()) {
-            // There is at least one more message to deliver
-            d_doRepeat = d_currentMessage->hasReceipt();
-        }
-        else {
-            d_doRepeat = false;
-        }
+    if (d_isReady) {
+        d_currentMessage->advance();
     }
-}
 
-bool QueueEngineUtil_AppsDeliveryContext::doRepeat() const
-{
-    return d_doRepeat;
+    d_currentMessage = 0;
 }
 
 bool QueueEngineUtil_AppsDeliveryContext::isEmpty() const
@@ -836,7 +840,7 @@ QueueEngineUtil_AppState::QueueEngineUtil_AppState(
     const bsl::string&            appId,
     const mqbu::StorageKey&       appKey,
     bslma::Allocator*             allocator)
-: d_routing_sp(new (*allocator) Routers::AppContext(queueContext, allocator),
+: d_routing_sp(new(*allocator) Routers::AppContext(queueContext, allocator),
                allocator)
 , d_redeliveryList(allocator)
 , d_putAsideList(allocator)
@@ -1121,17 +1125,16 @@ QueueEngineUtil_AppState::processDeliveryList(bsls::TimeInterval*    delay,
 
             // The message got gc'ed or purged
             BMQ_LOGTHROTTLE_INFO()
-                << "#STORAGE_UNKNOWN_MESSAGE "
-                << "Queue: '" << d_queue_p->description() << "', app: '"
-                << appId() << "' could not redeliver GUID: '" << *it
+                << "#STORAGE_UNKNOWN_MESSAGE " << "Queue: '"
+                << d_queue_p->description() << "', app: '" << appId()
+                << "' could not redeliver GUID: '" << *it
                 << "' (not in the storage)";
         }
         else if (!reader->appMessageView(ordinal()).isPending()) {
             BMQ_LOGTHROTTLE_INFO()
-                << "#STORAGE_UNKNOWN_MESSAGE "
-                << "Queue: '" << d_queue_p->description() << "', app: '"
-                << appId() << "' could not redeliver GUID: '" << *it
-                << "' (wrong state "
+                << "#STORAGE_UNKNOWN_MESSAGE " << "Queue: '"
+                << d_queue_p->description() << "', app: '" << appId()
+                << "' could not redeliver GUID: '" << *it << "' (wrong state "
                 << reader->appMessageView(ordinal()).d_state << ")";
         }
         else {

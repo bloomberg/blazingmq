@@ -72,7 +72,6 @@ namespace mqbblp {
 class RelayQueueEngine_AppState;
 
 struct PushStream {
-
     // forward declaration
     struct Element;
 
