@@ -29,7 +29,7 @@
 //   * DOMAINS DOMAIN <name> QUEUE <queue_name> PURGE <appId>
 //   * CLUSTERS CLUSTER <name> FORCE_GC_QUEUES
 //   * CLUSTERS CLUSTER <name> STORAGE PARTITION <partitionId> [ENABLE|DISABLE]
-// * Cluster commands
+// * Cluster-wide commands
 //   * DOMAINS RECONFIGURE <domain>
 //   * CLUSTERS CLUSTER <name> STORAGE REPLICATION SET_ALL <parameter> <value>
 //   * CLUSTERS CLUSTER <name> STORAGE REPLICATION GET_ALL <parameter>
@@ -48,7 +48,8 @@
 //    is designed to be used once per command and should be destructed after
 //    the command has been processed.
 
-// BSL
+// BDE
+#include <ball_log.h>
 #include <bsl_iostream.h>
 #include <bsl_string.h>
 #include <bsl_vector.h>
@@ -79,106 +80,171 @@ class MultiRequestManagerRequestContext;
 namespace mqba {
 
 class CommandRouter {
-  public:
+  private:
+    // PRIVATE TYPES
+
+    /// Shared pointer to the correct multirequest context for routing control
+    /// messages to `mqbnet::ClusterNode`s
     typedef bsl::shared_ptr<
         mqbnet::MultiRequestManagerRequestContext<bmqp_ctrlmsg::ControlMessage,
                                                   bmqp_ctrlmsg::ControlMessage,
                                                   mqbnet::ClusterNode*> >
-                                              MultiRequestContextSp;
+        MultiRequestContextSp;
+
+    /// Vector of `mqbnet::ClusterNode` pointers used for routing
     typedef bsl::vector<mqbnet::ClusterNode*> NodesVector;
 
   private:
-    struct RouteMembers {
+    /// Struct representing which nodes a command should be routed to. Contains
+    /// both a list of external nodes to route to and a flag indicating whether
+    /// the self node should execute the command.
+    struct RouteTargets {
         NodesVector d_nodes;  // Proxy nodes and the self node should never be
                               // route members.
-        bool d_self;  // True if the command should execute on this node
+        bool d_self;  // True if the command should execute on the self node.
     };
 
+    // ==================
+    // class Routing Mode
+    // ==================
+
+    /// Private interface to implement various methods of choosing routing
+    /// targets.
     class RoutingMode {
       public:
         RoutingMode();
         virtual ~RoutingMode() = 0;
 
-        virtual RouteMembers getRouteMembers(mqbcmd::InternalResult* result,
-                                             mqbi::Cluster* cluster) = 0;
+        /// Populates the given `routeMembers` struct with the proper nodes to
+        /// route to from the given `cluster`. Returns 0 on success or a
+        /// non-zero error code on failure. Populates the given
+        /// `errorDescription` output stream.
+        virtual int getRouteTargets(bsl::ostream&  errorDescription,
+                                    RouteTargets*  routeMembers,
+                                    mqbi::Cluster* cluster) = 0;
     };
     class AllPartitionPrimariesRoutingMode : public RoutingMode {
       public:
+        /// Used to route the command to all nodes which are a primary of any
+        /// partition
         AllPartitionPrimariesRoutingMode();
 
-        RouteMembers
-        getRouteMembers(mqbcmd::InternalResult* result,
-                        mqbi::Cluster*          cluster) BSLS_KEYWORD_OVERRIDE;
+        /// Collects all nodes which are a primary for some partition of the
+        /// given `cluster`.
+        int getRouteTargets(bsl::ostream&  errorDescription,
+                            RouteTargets*  routeMembers,
+                            mqbi::Cluster* cluster) BSLS_KEYWORD_OVERRIDE;
     };
     class SinglePartitionPrimaryRoutingMode : public RoutingMode {
       private:
+        /// The id of the partition's primary to route to.
         int d_partitionId;
 
       public:
+        /// Used to route the command to the primary of the given
+        /// `partitionId`.
         SinglePartitionPrimaryRoutingMode(int partitionId);
 
-        RouteMembers
-        getRouteMembers(mqbcmd::InternalResult* result,
-                        mqbi::Cluster*          cluster) BSLS_KEYWORD_OVERRIDE;
+        /// Collects the node which is the primary of the partition this
+        /// routing mode was constructed with on the given `cluster`.
+        int getRouteTargets(bsl::ostream&  errorDescription,
+                            RouteTargets*  routeMembers,
+                            mqbi::Cluster* cluster) BSLS_KEYWORD_OVERRIDE;
     };
-    class ClusterRoutingMode : public RoutingMode {
+    class ClusterWideRoutingMode : public RoutingMode {
       public:
-        ClusterRoutingMode();
+        /// Used to route the command to all nodes in a cluster.
+        ClusterWideRoutingMode();
 
-        RouteMembers
-        getRouteMembers(mqbcmd::InternalResult* result,
-                        mqbi::Cluster*          cluster) BSLS_KEYWORD_OVERRIDE;
+        /// Collects all nodes in the given `cluster`.
+        int getRouteTargets(bsl::ostream&  errorDescription,
+                            RouteTargets*  routeMembers,
+                            mqbi::Cluster* cluster) BSLS_KEYWORD_OVERRIDE;
     };
-
-  public:
-    typedef bslma::ManagedPtr<RoutingMode> RoutingModeMp;
 
   private:
-    const bsl::string&           d_commandString;
-    const mqbcmd::Command&       d_commandWithOptions;
-    const mqbcmd::CommandChoice& d_command;
+    // PRIVATE TYPES
+    typedef bslma::ManagedPtr<RoutingMode> RoutingModeMp;
 
+    // CLASS-SCOPE CATEGORY
+    BALL_LOG_SET_CLASS_CATEGORY("MQBA.COMMANDROUTER");
+
+    // DATA
+
+    /// The raw string representation of the command, which is what would be
+    /// routed to other nodes.
+    const bsl::string& d_commandString;
+
+    /// The command object we are routing
+    const mqbcmd::Command& d_command;
+
+    /// All collected responses from routing.
     mqbcmd::RouteResponseList d_responses;
 
-    RoutingModeMp d_routingMode;
+    /// A managed pointer to the routing mode instance to use on this command.
+    RoutingModeMp d_routingModeMp;
 
+    /// Synchronization mechanism used to wait for all responses to come back.
     bslmt::Latch d_latch;
 
+    // MANIPULATORS
+
+    /// Sets `d_routingModeMp` to the proper routing mode instance for the
+    /// command associated with this command router. If this command should
+    /// not be routed, then `d_routingModeMp` is kept as a nullptr and this
+    /// function returns false. Otherwise, on success, it returns true.
+    void setCommandRoutingMode();
+
+    /// Counts down the latch associated with this command route by one,
+    /// effectively releasing the latch since it is always initialized with
+    /// a value of 1. This should be called either when routing isn't needed
+    /// or when all responses from routed nodes have been received.
+    void releaseLatch();
+
+    /// Callback function that runs when all responses to routed nodes have
+    /// been received.
+    void onRouteCommandResponse(const MultiRequestContextSp& requestContext);
+
+    /// Routes the command associated with this command router to the given
+    /// nodes. Each of these nodes should be external (i.e. not the self node).
+    void routeCommand(const NodesVector& nodes);
+
   public:
-    /// Sets up a command router with the given command string and parsed
-    /// command object. This will
+    // CREATORS
+
+    /// Sets up a command router with the given `commandString` and parsed
+    /// `command` object.
     CommandRouter(const bsl::string&     commandString,
-                  const mqbcmd::Command& commandWithOptions);
+                  const mqbcmd::Command& command);
 
-    /// Returns true if this command router is necessary to route the command
-    /// that it was set up with. If the command does not require routing, then
-    /// this function returns false.
-    bool isRoutingNeeded() const;
+    // MANIPULATORS
 
-    /// Performs any routing on the command and returns true if the caller
-    /// should also execute the command.
-    bool route(mqbcmd::InternalResult* result, mqbi::Cluster* relevantCluster);
+    /// Performs any routing on the command using the given `relevantCluster`
+    /// and returns true if the caller should also execute the command.
+    int route(bsl::ostream&  errorDescription,
+              bool*          selfShouldExecute,
+              mqbi::Cluster* relevantCluster);
 
     /// Waits on a latch that triggers when the responses have been received.
     void waitForResponses();
 
     /// Returns a reference to the collected responses from routing.
-    // ResponseMessages& responses();
     mqbcmd::RouteResponseList& responses();
 
-  private:
-    RoutingModeMp getCommandRoutingMode();
+    // ACCESSORS
 
-    void countDownLatch();
-
-    void onRouteCommandResponse(const MultiRequestContextSp& requestContext);
-
-    void routeCommand(const NodesVector& nodes);
+    /// Returns true if this command needs to be routed, i.e. if
+    /// `d_routingModeMp` has been populated with a routing mode instance.
+    bool isRoutingNeeded() const;
 };
 
-inline bool CommandRouter::isRoutingNeeded() const
+// ============================================================================
+//                             INLINE DEFINITIONS
+// ============================================================================
+
+inline void CommandRouter::waitForResponses()
 {
-    return d_routingMode.get() != nullptr;
+    d_latch.wait();
 }
 
 inline mqbcmd::RouteResponseList& CommandRouter::responses()
@@ -186,14 +252,14 @@ inline mqbcmd::RouteResponseList& CommandRouter::responses()
     return d_responses;
 }
 
-inline void CommandRouter::waitForResponses()
-{
-    d_latch.wait();
-}
-
-inline void CommandRouter::countDownLatch()
+inline void CommandRouter::releaseLatch()
 {
     d_latch.countDown(1);
+}
+
+inline bool CommandRouter::isRoutingNeeded() const
+{
+    return d_routingModeMp != nullptr;
 }
 
 }  // close package namespace

@@ -343,6 +343,8 @@ class Cluster : public mqbi::Cluster,
     // responses from proxies and nodes,
     // and the cluster's shutdown callback.
 
+    /// Callback to enqueue an admin command when this node receives a
+    /// routed command from another node.
     mqbnet::Session::AdminCommandEnqueueCb d_adminCb;
 
   private:
@@ -675,11 +677,13 @@ class Cluster : public mqbi::Cluster,
     void processEvent(const bmqp::Event&   event,
                       mqbnet::ClusterNode* source = 0) BSLS_KEYWORD_OVERRIDE;
 
+    /// Callback to run when a routed command finishes execution. This will
+    /// send the `result` back to the `source` node.
     void onProcessedAdminCommand(
         mqbnet::ClusterNode*                source,
         const bmqp_ctrlmsg::ControlMessage& adminCommandCtrlMsg,
         int                                 rc,
-        const bsl::string&                  res);
+        const bsl::string&                  result);
 
     // MANIPULATORS
     //   (virtual: mqbi::DispatcherClient)
@@ -769,18 +773,32 @@ class Cluster : public mqbi::Cluster,
     const mqbnet::Cluster& netCluster() const BSLS_KEYWORD_OVERRIDE;
 
     /// Gets all the nodes which are a primary for some partition of this
-    /// cluster and whether or not this node is a primary. The nodes
-    /// vector will never include the self node.
-    void getPrimaryNodes(bsl::vector<mqbnet::ClusterNode*>* nodes,
-                         bool*                              isSelfPrimary,
-                         mqbcmd::InternalResult*            result) const
-        BSLS_KEYWORD_OVERRIDE;
+    /// cluster, storing each external node into the given `nodes` vector
+    /// and/or marking `isSelfPrimary` as true if the self node is a primary.
+    /// The self node will never be added to the `nodes` vector. Populates `rc`
+    /// with 0 on success or a non-zero error code on failure. In the case of
+    /// an error, the `errorDescription` output stream will be populated. Note
+    /// this function uses an out parameter for the return code, `rc`. This is
+    /// because this function is designed to be called by the dispatcher
+    /// thread, so the return type of this function should be `void`.
+    void getPrimaryNodes(int*                               rc,
+                         bsl::ostream&                      errorDescription,
+                         bsl::vector<mqbnet::ClusterNode*>* nodes,
+                         bool* isSelfPrimary) const BSLS_KEYWORD_OVERRIDE;
 
     /// Gets the node which is the primary for the given partitionId or sets
-    /// outIsSelfPrimary to true if the caller is the primary.
-    void getPartitionPrimaryNode(mqbnet::ClusterNode**   node,
-                                 bool*                   isSelfPrimary,
-                                 mqbcmd::InternalResult* result,
+    /// `isSelfPrimary` to true if the caller is the primary. Note that the
+    /// self node will never be populated into the given `node` pointer.
+    /// Populates `rc` with 0 on success or a non-zero error code on failure.
+    /// In the case of an error, the `errorDescription` output stream will be
+    /// populated. Note this function uses an out parameter for the return
+    /// code, `rc`. This is because this function is designed to be called by
+    /// the dispatcher thread, so the return type of this function should be
+    /// `void`.
+    void getPartitionPrimaryNode(int*                  rc,
+                                 bsl::ostream&         errorDescription,
+                                 mqbnet::ClusterNode** node,
+                                 bool*                 isSelfPrimary,
                                  int partitionId) const BSLS_KEYWORD_OVERRIDE;
 
     /// Print the state of the cluster to the specified `out`.

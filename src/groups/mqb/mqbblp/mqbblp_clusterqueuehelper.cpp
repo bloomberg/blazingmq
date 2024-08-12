@@ -5861,8 +5861,7 @@ void ClusterQueueHelper::onCloseQueueResponse(
                   << contextSp->d_peer->nodeDescription();
 }
 
-void ClusterQueueHelper::gcExpiredQueues(mqbcmd::ClusterResult* result,
-                                         bool                   immediate)
+int ClusterQueueHelper::gcExpiredQueues(bool immediate)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -5870,20 +5869,19 @@ void ClusterQueueHelper::gcExpiredQueues(mqbcmd::ClusterResult* result,
     BSLS_ASSERT_SAFE(
         d_cluster_p->dispatcher()->inDispatcherThread(d_cluster_p));
 
+    enum RcEnum {
+        rc_SUCCESS             = 0,
+        rc_CLUSTER_IS_STOPPING = -1,
+        rc_SELF_IS_NOT_PRIMARY = -2,
+    };
+
     if (d_cluster_p->isStopping()) {
-        if (result) {
-            result->makeError().message() = "Cluster is stopping";
-        }
-        return;  // RETURN
+        return rc_CLUSTER_IS_STOPPING;  // RETURN
     }
 
     if (!d_clusterState_p->isSelfActivePrimary()) {
         // Fast path -- self is not active primary for *any* partition.
-        if (result) {
-            result->makeError().message() =
-                "Must be primary node for some partition";
-        }
-        return;  // RETURN
+        return rc_SELF_IS_NOT_PRIMARY;  // RETURN
     }
 
     bsls::Types::Int64 currentTimestampMs =
@@ -6017,7 +6015,7 @@ void ClusterQueueHelper::gcExpiredQueues(mqbcmd::ClusterResult* result,
     }
 
     if (queuesToGc.empty()) {
-        return;  // RETURN
+        return rc_SUCCESS;  // RETURN
     }
 
     if (!d_clusterData_p->electorInfo().isSelfActiveLeader()) {
@@ -6043,7 +6041,7 @@ void ClusterQueueHelper::gcExpiredQueues(mqbcmd::ClusterResult* result,
             d_primaryNotLeaderAlarmRaised = true;
         }
 
-        return;  // RETURN
+        return rc_SUCCESS;  // RETURN
     }
 
     for (size_t i = 0; i < queuesToGc.size(); ++i) {
@@ -6107,6 +6105,8 @@ void ClusterQueueHelper::gcExpiredQueues(mqbcmd::ClusterResult* result,
             d_storageManager_p->unregisterQueue(uriCopy, pid);
         }
     }
+
+    return rc_SUCCESS;  // RETURN
 }
 
 void ClusterQueueHelper::loadQueuesInfo(mqbcmd::StorageContent* out) const

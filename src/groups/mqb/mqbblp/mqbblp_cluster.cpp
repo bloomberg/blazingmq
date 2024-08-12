@@ -581,11 +581,19 @@ void Cluster::processCommandDispatched(mqbcmd::ClusterResult*        result,
         return;  // RETURN
     }
     else if (command.isForceGcQueuesValue()) {
-        d_clusterOrchestrator.queueHelper().gcExpiredQueues(result, true);
         // 'true' implies immediate
-        if (!result->isErrorValue()) {
+        if (const int rc = d_clusterOrchestrator.queueHelper().gcExpiredQueues(
+                true)) {
+            BALL_LOG_ERROR << "Failed to execute force GC queues command (rc: "
+                           << rc << ")";
+            result->makeError().message() = "Failed to execute command (rc: " +
+                                            bsl::to_string(rc) + ")";
+        }
+        else {
+            // Otherwise the command succeeded.
             result->makeSuccess();
         }
+
         return;  // RETURN
     }
     else if (command.isStorageValue()) {
@@ -2949,7 +2957,7 @@ void Cluster::processControlMessage(
             << MWCTSK_ALARMLOG_END;
     } break;  // BREAK
     case MsgChoice::SELECTION_ID_ADMIN_COMMAND: {
-        // Assume this is a rerouted command, so just exec. it on the
+        // Assume this is a rerouted command, so just execute it on the
         // application
         const bmqp_ctrlmsg::AdminCommand& adminCommand =
             message.choice().adminCommand();
@@ -2960,8 +2968,8 @@ void Cluster::processControlMessage(
                                        this,
                                        source,
                                        message,
-                                       bdlf::PlaceHolders::_1,
-                                       bdlf::PlaceHolders::_2),
+                                       bdlf::PlaceHolders::_1,   // rc
+                                       bdlf::PlaceHolders::_2),  // response
                   true);  // from reroute
     } break;
     case MsgChoice::SELECTION_ID_ADMIN_COMMAND_RESPONSE: {
@@ -3593,17 +3601,22 @@ void Cluster::onProcessedAdminCommand(
     mqbnet::ClusterNode*                source,
     const bmqp_ctrlmsg::ControlMessage& adminCommandCtrlMsg,
     int                                 rc,
-    const bsl::string&                  res)
+    const bsl::string&                  result)
 {
-    // Send the admin command response back to the source for the client to
-    // read.
+    if (rc != 0) {
+        BALL_LOG_ERROR << "Error processing routed command [rc: " << rc << "] "
+                       << result;
+    }
+
+    // Regardless of rc, send the admin command response back to the source for
+    // the client to read.
     bdlma::LocalSequentialAllocator<2048> localAllocator(d_allocator_p);
     bmqp_ctrlmsg::ControlMessage          response(&localAllocator);
 
     response.rId() = adminCommandCtrlMsg.rId().value();
     response.choice().makeAdminCommandResponse();
 
-    response.choice().adminCommandResponse().text() = res;
+    response.choice().adminCommandResponse().text() = result;
 
     d_clusterData.messageTransmitter().sendMessageSafe(response, source);
 }
@@ -3727,15 +3740,21 @@ void Cluster::processResponse(const bmqp_ctrlmsg::ControlMessage& response)
         this);
 }
 
-void Cluster::getPrimaryNodes(bsl::vector<mqbnet::ClusterNode*>* nodes,
-                              bool*                              isSelfPrimary,
-                              mqbcmd::InternalResult*            result) const
+void Cluster::getPrimaryNodes(int*          rc,
+                              bsl::ostream& errorDescription,
+                              bsl::vector<mqbnet::ClusterNode*>* nodes,
+                              bool* isSelfPrimary) const
 {
     // PRECONDITIONS
+    BSLS_ASSERT_SAFE(rc);
     BSLS_ASSERT_SAFE(nodes);
     BSLS_ASSERT_SAFE(isSelfPrimary);
-    BSLS_ASSERT_SAFE(result);
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+
+    enum RcEnum {
+        rc_SUCCESS = 0,
+        rc_ERROR   = -1,
+    };
 
     const mqbc::ClusterState::PartitionsInfo& partitionsInfo =
         d_state.partitions();
@@ -3753,10 +3772,10 @@ void Cluster::getPrimaryNodes(bsl::vector<mqbnet::ClusterNode*>* nodes,
             BALL_LOG_WARN << "While collecting primary nodes: "
                           << "primary for partition " << pit->partitionId()
                           << " is not active";
-            result->makeError().message() =
-                "Primary is not active for partition id " +
-                bsl::to_string(pit->partitionId());
-            return;
+            errorDescription << "Primary is not active for partition id "
+                             << pit->partitionId();
+            *rc = rc_ERROR;
+            return;  // RETURN
         }
 
         mqbnet::ClusterNode* primary = pit->primaryNode();
@@ -3765,12 +3784,12 @@ void Cluster::getPrimaryNodes(bsl::vector<mqbnet::ClusterNode*>* nodes,
             // Don't add duplicate
             if (bsl::find(nodes->begin(), nodes->end(), primary) !=
                 nodes->end()) {
-                continue;
+                continue;  // CONTINUE
             }
             // Check for self
             if (d_state.isSelfActivePrimary(pit->partitionId())) {
                 *isSelfPrimary = true;
-                continue;
+                continue;  // CONTINUE
             }
             nodes->push_back(primary);
         }
@@ -3778,66 +3797,69 @@ void Cluster::getPrimaryNodes(bsl::vector<mqbnet::ClusterNode*>* nodes,
             BALL_LOG_WARN << "Error while collecting primary nodes: No "
                              "primary found for partition id "
                           << pit->partitionId();
-            result->makeError().message() =
-                "No primary found for partition id " +
-                bsl::to_string(pit->partitionId());
-            return;
-        }
-    }
-}
-
-void Cluster::getPartitionPrimaryNode(mqbnet::ClusterNode**   node,
-                                      bool*                   isSelfPrimary,
-                                      mqbcmd::InternalResult* result,
-                                      int partitionId) const
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(node);
-    BSLS_ASSERT_SAFE(isSelfPrimary);
-    BSLS_ASSERT_SAFE(result);
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
-
-    const mqbc::ClusterState::PartitionsInfo& partitionsInfo =
-        d_state.partitions();
-
-    for (mqbc::ClusterState::PartitionsInfo::const_iterator pit =
-             partitionsInfo.begin();
-         pit != partitionsInfo.end();
-         pit++) {
-        if (pit->partitionId() == partitionId) {
-            // Self is active primary
-            if (d_state.isSelfActivePrimary(partitionId)) {
-                *isSelfPrimary = true;
-                return;  // RETURN
-            }
-
-            // No active primary
-            if (!d_state.hasActivePrimary(partitionId)) {
-                result->makeError().message() =
-                    "No active primary for partition id " +
-                    bsl::to_string(partitionId);
-                return;  // RETURN
-            }
-
-            // Partition has active primary, get it and return that
-            mqbnet::ClusterNode* primary = pit->primaryNode();
-            if (primary) {
-                *node = primary;
-                return;  // RETURN
-            }
-
-            // No primary node
-            result->makeError().message() =
-                "No primary node for partition id " +
-                bsl::to_string(partitionId);
+            errorDescription << "No primary found for partition id "
+                             << pit->partitionId();
+            *rc = rc_ERROR;
             return;  // RETURN
         }
     }
 
-    // Didn't find a corresponding partition for the given partitionId
-    // Just execute on this node and an appropriate error response will be
-    // generated.
-    *isSelfPrimary = true;
+    *rc = rc_SUCCESS;
+}
+
+void Cluster::getPartitionPrimaryNode(int*                  rc,
+                                      bsl::ostream&         errorDescription,
+                                      mqbnet::ClusterNode** node,
+                                      bool*                 isSelfPrimary,
+                                      int                   partitionId) const
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(rc);
+    BSLS_ASSERT_SAFE(node);
+    BSLS_ASSERT_SAFE(isSelfPrimary);
+    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+
+    enum RcEnum {
+        rc_SUCCESS = 0,
+        rc_ERROR   = -1,
+    };
+
+    const mqbc::ClusterState::PartitionsInfo& partitions =
+        d_state.partitions();
+
+    // Check boundary conditions for partitionId
+    if (partitionId < 0 || partitionId >= partitions.size()) {
+        errorDescription << "Invalid partition id: " << partitionId;
+        *rc = rc_ERROR;
+        return;  // RETURN
+    }
+
+    // Self is active primary
+    if (d_state.isSelfActivePrimary(partitionId)) {
+        *isSelfPrimary = true;
+        *rc            = rc_SUCCESS;
+    }
+    else if (d_state.hasActivePrimary(partitionId)) {
+        // Partition has active primary, get it and return that
+        mqbnet::ClusterNode* primary =
+            partitions.at(partitionId).primaryNode();
+        if (primary) {
+            *node = primary;
+            *rc   = rc_SUCCESS;
+        }
+        else {
+            // No primary node
+            errorDescription << "No primary node for partition id "
+                             << partitionId;
+            *rc = rc_ERROR;
+        }
+    }
+    // No active primary
+    else {
+        errorDescription << "No active primary for partition id "
+                         << partitionId;
+        *rc = rc_ERROR;
+    }
 }
 
 }  // close package namespace

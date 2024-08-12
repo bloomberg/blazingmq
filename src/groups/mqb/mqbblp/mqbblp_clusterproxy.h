@@ -535,14 +535,15 @@ class ClusterProxy : public mqbc::ClusterStateObserver,
     /// Load the cluster state in the specified `out` object.
     void loadClusterStatus(mqbcmd::ClusterResult* out) BSLS_KEYWORD_OVERRIDE;
 
-    void getPrimaryNodes(bsl::vector<mqbnet::ClusterNode*>* nodes,
-                         bool*                              isSelfPrimary,
-                         mqbcmd::InternalResult*            result) const
-        BSLS_KEYWORD_OVERRIDE;
+    void getPrimaryNodes(int*                               rc,
+                         bsl::ostream&                      errorDescription,
+                         bsl::vector<mqbnet::ClusterNode*>* nodes,
+                         bool* isSelfPrimary) const BSLS_KEYWORD_OVERRIDE;
 
-    void getPartitionPrimaryNode(mqbnet::ClusterNode**   node,
-                                 bool*                   isSelfPrimary,
-                                 mqbcmd::InternalResult* result,
+    void getPartitionPrimaryNode(int*                  rc,
+                                 bsl::ostream&         errorDescription,
+                                 mqbnet::ClusterNode** node,
+                                 bool*                 isSelfPrimary,
                                  int partitionId) const BSLS_KEYWORD_OVERRIDE;
 
     // MANIPULATORS
@@ -712,20 +713,24 @@ inline size_t ClusterProxy::ChannelBuffer::bytes() const
 // ------------------
 
 inline void
-ClusterProxy::getPrimaryNodes(bsl::vector<mqbnet::ClusterNode*>* nodes,
-                              bool*                              isSelfPrimary,
-                              mqbcmd::InternalResult*            result) const
+ClusterProxy::getPrimaryNodes(int*          rc,
+                              bsl::ostream& errorDescription,
+                              bsl::vector<mqbnet::ClusterNode*>* nodes,
+                              bool* isSelfPrimary) const
 {
-    // no implementation
+    // no implementation -- this should not run.
+    BSLS_ASSERT_SAFE(false);
 }
 
 inline void
-ClusterProxy::getPartitionPrimaryNode(mqbnet::ClusterNode**   node,
-                                      bool*                   isSelfPrimary,
-                                      mqbcmd::InternalResult* result,
-                                      int partitionId) const
+ClusterProxy::getPartitionPrimaryNode(int*                  rc,
+                                      bsl::ostream&         errorDescription,
+                                      mqbnet::ClusterNode** node,
+                                      bool*                 isSelfPrimary,
+                                      int                   partitionId) const
 {
-    // no implementation
+    // no implementation -- this should not run.
+    BSLS_ASSERT_SAFE(false);
 }
 
 // PRIVATE MANIPULATORS

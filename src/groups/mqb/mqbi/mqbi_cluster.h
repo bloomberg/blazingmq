@@ -70,9 +70,6 @@ namespace bmqt {
 class Uri;
 }
 namespace mqbc {
-class ClusterState;
-}
-namespace mqbc {
 class ClusterStateObserver;
 }
 namespace mqbcmd {
@@ -83,9 +80,6 @@ class ClusterResult;
 }
 namespace mqbcmd {
 class ClusterStatus;
-}
-namespace mqbcmd {
-class InternalResult;
 }
 namespace mqbnet {
 class Cluster;
@@ -433,16 +427,32 @@ class Cluster : public DispatcherClient {
     clusterProxyConfig() const = 0;
 
     /// Gets all the nodes which are a primary for some partition of this
-    /// cluster
-    virtual void getPrimaryNodes(bsl::vector<mqbnet::ClusterNode*>* nodes,
-                                 bool*                   isSelfPrimary,
-                                 mqbcmd::InternalResult* result) const = 0;
+    /// cluster, storing each external node into the given `nodes` vector
+    /// and/or marking `isSelfPrimary` as true if the self node is a primary.
+    /// The self node will never be added to the `nodes` vector. Populates `rc`
+    /// with 0 on success or a non-zero error code on failure. In the case of
+    /// an error, the `errorDescription` output stream will be populated. Note
+    /// this function uses an out parameter for the return code, `rc`. This is
+    /// because this function is designed to be called by the dispatcher
+    /// thread, so the return type of this function should be `void`.
+    virtual void getPrimaryNodes(int*          rc,
+                                 bsl::ostream& errorDescription,
+                                 bsl::vector<mqbnet::ClusterNode*>* nodes,
+                                 bool* isSelfPrimary) const = 0;
 
     /// Gets the node which is the primary for the given partitionId or sets
-    /// outIsSelfPrimary to true if the caller is the primary.
-    virtual void getPartitionPrimaryNode(mqbnet::ClusterNode**   node,
-                                         bool*                   isSelfPrimary,
-                                         mqbcmd::InternalResult* result,
+    /// `isSelfPrimary` to true if the caller is the primary. Note that the
+    /// self node will never be populated into the given `node` pointer.
+    /// Populates `rc` with 0 on success or a non-zero error code on failure.
+    /// In the case of an error, the `errorDescription` output stream will be
+    /// populated. Note this function uses an out parameter for the return
+    /// code, `rc`. This is because this function is designed to be called by
+    /// the dispatcher thread, so the return type of this function should be
+    /// `void`.
+    virtual void getPartitionPrimaryNode(int*          rc,
+                                         bsl::ostream& errorDescription,
+                                         mqbnet::ClusterNode** node,
+                                         bool*                 isSelfPrimary,
                                          int partitionId) const = 0;
 };
 

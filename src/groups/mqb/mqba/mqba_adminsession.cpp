@@ -263,7 +263,7 @@ void AdminSession::enqueueAdminCommand(
                              adminCommandCtrlMsg,
                              bdlf::PlaceHolders::_1,   // rc
                              bdlf::PlaceHolders::_2),  // commandExecResults
-        false);
+        false);                                        // fromReroute
 }
 
 // CREATORS

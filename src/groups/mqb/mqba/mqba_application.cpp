@@ -1,4 +1,4 @@
-// Copyright 2014-2023 Bloomberg Finance L.P.
+// Copyright 2014-2024 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -275,7 +275,7 @@ int Application::start(bsl::ostream& errorDescription)
                                  bdlf::PlaceHolders::_1,  // source
                                  bdlf::PlaceHolders::_2,  // cmd
                                  bdlf::PlaceHolders::_3,  // os
-                                 false),
+                                 false),                  // fromReroute
             d_pluginManager_mp.get(),
             &d_bufferFactory,
             d_allocatorsStatContext_p,
@@ -525,16 +525,14 @@ void Application::stop()
 }
 
 mqbi::Cluster*
-Application::getRelevantCluster(const mqbcmd::CommandChoice& command,
-                                mqbcmd::InternalResult*      cmdResult) const
+Application::getRelevantCluster(bsl::ostream&          errorDescription,
+                                const mqbcmd::Command& command) const
 {
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(cmdResult);
+    const mqbcmd::CommandChoice& commandChoice = command.choice();
 
-    if (command.isDomainsValue()) {
-        const mqbcmd::DomainsCommand& domains = command.domains();
+    if (commandChoice.isDomainsValue()) {
+        const mqbcmd::DomainsCommand& domains = commandChoice.domains();
 
-        // get domain name
         bsl::string domainName;
         if (domains.isDomainValue()) {
             domainName = domains.domain().name();
@@ -543,56 +541,61 @@ Application::getRelevantCluster(const mqbcmd::CommandChoice& command,
             domainName = domains.reconfigure().domain();
         }
         else {
-            mwcu::MemOutStream os;
-            os << "Cannot extract cluster for that command";
-            cmdResult->makeError().message() = os.str();
-            return nullptr;
-        }
-
-        // attempt to locate the domain
-        bsl::shared_ptr<mqbi::Domain> domainSp;
-        if (0 !=
-            d_domainManager_mp->locateOrCreateDomain(&domainSp, domainName)) {
-            mwcu::MemOutStream os;
-            os << "Domain '" << domainName << "' doesn't exist";
-            cmdResult->makeError().message() = os.str();
+            errorDescription << "Cannot extract cluster for that command";
             return nullptr;  // RETURN
         }
 
-        return domainSp->cluster();
+        // Attempt to locate the domain
+        bsl::shared_ptr<mqbi::Domain> domainSp;
+        if (0 !=
+            d_domainManager_mp->locateOrCreateDomain(&domainSp, domainName)) {
+            errorDescription << "Domain '" << domainName << "' doesn't exist";
+            return nullptr;  // RETURN
+        }
+
+        return domainSp->cluster();  // RETURN
     }
-    else if (command.isClustersValue()) {
-        const bsl::string& clusterName = command.clusters().cluster().name();
+    else if (commandChoice.isClustersValue()) {
+        const bsl::string& clusterName =
+            commandChoice.clusters().cluster().name();
         bsl::shared_ptr<mqbi::Cluster> clusterOut;
         if (!d_clusterCatalog_mp->findCluster(&clusterOut, clusterName)) {
-            mwcu::MemOutStream os;
-            os << "Cluster '" << clusterName << "' doesn't exist";
-            cmdResult->makeError().message() = os.str();
-            return nullptr;
+            errorDescription << "Cluster '" << clusterName
+                             << "' doesn't exist";
+            return nullptr;  // RETURN
         }
-        return clusterOut.get();
+        return clusterOut.get();  // RETURN
     }
 
-    return nullptr;
+    errorDescription << "Cannot extract cluster for that command";
+    return nullptr;  // RETURN
 }
 
-int Application::executeCommand(const mqbcmd::Command& commandWithOptions,
-                                const mqbcmd::CommandChoice& command,
-                                mqbcmd::InternalResult*      cmdResult)
+int Application::executeCommand(const mqbcmd::Command&  command,
+                                mqbcmd::InternalResult* cmdResult)
 {
+    // PRECONDITIONS
     BSLS_ASSERT_SAFE(cmdResult);
 
+    enum RcEnum {
+        rc_SUCCESS    = 0,
+        rc_EARLY_EXIT = -1,
+    };
+
+    const mqbcmd::CommandChoice& commandChoice = command.choice();
+
     int rc;
-    if (command.isHelpValue()) {
-        const bool isPlumbing = command.help().plumbing();
+    if (commandChoice.isHelpValue()) {
+        const bool isPlumbing = commandChoice.help().plumbing();
 
         mqbcmd::Help help;
         mqbcmd::CommandList::loadCommands(&help, isPlumbing);
         cmdResult->makeHelp(help);
     }
-    else if (command.isDomainsValue()) {
+    else if (commandChoice.isDomainsValue()) {
         mqbcmd::DomainsResult domainsResult;
-        d_domainManager_mp->processCommand(&domainsResult, command.domains());
+        d_domainManager_mp->processCommand(&domainsResult,
+                                           commandChoice.domains());
         if (domainsResult.isErrorValue()) {
             cmdResult->makeError(domainsResult.error());
         }
@@ -603,10 +606,11 @@ int Application::executeCommand(const mqbcmd::Command& commandWithOptions,
             cmdResult->makeDomainsResult(domainsResult);
         }
     }
-    else if (command.isConfigProviderValue()) {
+    else if (commandChoice.isConfigProviderValue()) {
         mqbcmd::Error error;
-        rc = d_configProvider_mp->processCommand(command.configProvider(),
-                                                 &error);
+        rc = d_configProvider_mp->processCommand(
+            commandChoice.configProvider(),
+            &error);
         if (rc == 0) {
             cmdResult->makeSuccess();
         }
@@ -614,11 +618,11 @@ int Application::executeCommand(const mqbcmd::Command& commandWithOptions,
             cmdResult->makeError(error);
         }
     }
-    else if (command.isStatValue()) {
+    else if (commandChoice.isStatValue()) {
         mqbcmd::StatResult statResult;
         d_statController_mp->processCommand(&statResult,
-                                            command.stat(),
-                                            commandWithOptions.encoding());
+                                            commandChoice.stat(),
+                                            command.encoding());
         if (statResult.isErrorValue()) {
             cmdResult->makeError(statResult.error());
         }
@@ -626,10 +630,10 @@ int Application::executeCommand(const mqbcmd::Command& commandWithOptions,
             cmdResult->makeStatResult(statResult);
         }
     }
-    else if (command.isClustersValue()) {
+    else if (commandChoice.isClustersValue()) {
         mqbcmd::ClustersResult clustersResult;
         d_clusterCatalog_mp->processCommand(&clustersResult,
-                                            command.clusters());
+                                            commandChoice.clusters());
         if (clustersResult.isErrorValue()) {
             cmdResult->makeError(clustersResult.error());
         }
@@ -640,21 +644,21 @@ int Application::executeCommand(const mqbcmd::Command& commandWithOptions,
             cmdResult->makeClustersResult(clustersResult);
         }
     }
-    else if (command.isDangerValue()) {
+    else if (commandChoice.isDangerValue()) {
         // Intentially _undocumented_ *DANGEROUS* commands!!
-        if (command.danger().isShutdownValue()) {
+        if (commandChoice.danger().isShutdownValue()) {
             mqbu::ExitUtil::shutdown(mqbu::ExitCode::e_REQUESTED);
-            return 1;  // RETURN
+            return rc_EARLY_EXIT;  // RETURN
         }
-        else if (command.danger().isTerminateValue()) {
+        else if (commandChoice.danger().isTerminateValue()) {
             mqbu::ExitUtil::terminate(mqbu::ExitCode::e_REQUESTED);
             // See the implementation of 'mqbu::ExitUtil::terminate'.  It might
             // return.
-            return 1;  // RETURN
+            return rc_EARLY_EXIT;  // RETURN
         }
     }
-    else if (command.isBrokerConfigValue()) {
-        if (command.brokerConfig().isDumpValue()) {
+    else if (commandChoice.isBrokerConfigValue()) {
+        if (commandChoice.brokerConfig().isDumpValue()) {
             baljsn::Encoder        encoder;
             baljsn::EncoderOptions options;
             options.setEncodingStyle(baljsn::EncoderOptions::e_PRETTY);
@@ -676,64 +680,11 @@ int Application::executeCommand(const mqbcmd::Command& commandWithOptions,
     }
     else {
         mwcu::MemOutStream errorOs;
-        errorOs << "Unknown command '" << command << "'";
+        errorOs << "Unknown command '" << commandChoice << "'";
         cmdResult->makeError().message() = errorOs.str();
     }
 
-    return 0;
-}
-
-void Application::printCommandResult(const mqbcmd::InternalResult& cmdResult,
-                                     mqbcmd::EncodingFormat::Value encoding,
-                                     bsl::ostream&                 os)
-{
-    // Flatten into the final result
-    mqbcmd::Result result;
-    mqbcmd::Util::flatten(&result, cmdResult);
-
-    switch (encoding) {
-    case mqbcmd::EncodingFormat::TEXT: {
-        // Pretty print
-        mqbcmd::HumanPrinter::print(os, result);
-    } break;  // BREAK
-    case mqbcmd::EncodingFormat::JSON_COMPACT: {
-        mqbcmd::JsonPrinter::print(os, result, false);
-    } break;  // BREAK
-    case mqbcmd::EncodingFormat::JSON_PRETTY: {
-        mqbcmd::JsonPrinter::print(os, result, true);
-    } break;  // BREAK
-    default: BSLS_ASSERT_SAFE(false && "Unsupported encoding");
-    }
-}
-
-void Application::printCommandResponses(
-    const mqbcmd::RouteResponseList&    responseList,
-    const mqbcmd::EncodingFormat::Value format,
-    bsl::ostream&                       os) const
-{
-    typedef bsl::vector<BloombergLP::mqbcmd::RouteResponse>
-        RouteResponseVector;
-
-    RouteResponseVector responses = responseList.responses();
-
-    // When there is only 1 response (as in single route or self exec.)
-    // then just display that result. It should already be formatted properly.
-    if (responses.size() == 1) {
-        os << responses[0].response();
-        return;  // RETURN
-    }
-
-    switch (format) {
-    case mqbcmd::EncodingFormat::TEXT: {
-        mqbcmd::HumanPrinter::printResponses(os, responseList);
-    } break;  // BREAK
-    case mqbcmd::EncodingFormat::JSON_COMPACT: {
-        mqbcmd::JsonPrinter::printResponses(os, responseList, false);
-    } break;  // BREAK
-    case mqbcmd::EncodingFormat::JSON_PRETTY: {
-        mqbcmd::JsonPrinter::printResponses(os, responseList, true);
-    } break;  // BREAK
-    }
+    return rc_SUCCESS;
 }
 
 int Application::processCommand(const bslstl::StringRef& source,
@@ -741,20 +692,23 @@ int Application::processCommand(const bslstl::StringRef& source,
                                 bsl::ostream&            os,
                                 bool                     fromReroute)
 {
+    enum RcEnum {
+        rc_SUCCESS     = 0,
+        rc_EARLY_EXIT  = -1,
+        rc_ERROR       = -2,
+        rc_PARSE_ERROR = -3,
+    };
+
     BALL_LOG_INFO << "Received command '" << cmd << "' "
                   << "[source: " << source << "]";
 
-    mqbcmd::Command commandWithOptions;
+    mqbcmd::Command command;
     bsl::string     parseError;
-    if (const int rc = mqbcmd::ParseUtil::parse(&commandWithOptions,
-                                                &parseError,
-                                                cmd)) {
+    if (const int rc = mqbcmd::ParseUtil::parse(&command, &parseError, cmd)) {
         os << "Unable to decode command " << "(rc: " << rc << ", error: '"
            << parseError << "')";
-        return rc;  // RETURN
+        return rc + 10 * rc_PARSE_ERROR;  // RETURN
     }
-
-    mqbcmd::CommandChoice& command = commandWithOptions.choice();
 
     mqbcmd::InternalResult cmdResult;
 
@@ -762,40 +716,54 @@ int Application::processCommand(const bslstl::StringRef& source,
     // This should always be the "end of the road" for a command.
     // Note that this logic is important to prevent a "deadlock" scenario
     // where two nodes are waiting on a response from each other to continue.
-    // Currently command from reroutes are executed on their own dedicated
+    // Currently commands from reroutes are executed on their own dedicated
     // thread.
     if (fromReroute) {
-        if (0 != executeCommand(commandWithOptions, command, &cmdResult)) {
-            return 0;  // early exit (caused by "dangerous" command)
+        if (0 != executeCommand(command, &cmdResult)) {
+            // early exit (caused by "dangerous" command)
+            return rc_EARLY_EXIT;  // RETURN
         }
-        printCommandResult(cmdResult, commandWithOptions.encoding(), os);
-        return cmdResult.isErrorValue() ? -2 : 0;
+        mqbcmd::Util::printCommandResult(cmdResult, command.encoding(), os);
+        return cmdResult.isErrorValue() ? rc_ERROR : rc_SUCCESS;  // RETURN
     }
 
-    // otherwise, this is an original call. utilize router if necessary
-    mqba::CommandRouter routeCommandManager(cmd, commandWithOptions);
+    // Otherwise, this is an original call. Utilize router if necessary
+    mqba::CommandRouter routeCommandManager(cmd, command);
 
     bool        shouldSelfExecute = true;
     bsl::string selfName;
 
     if (routeCommandManager.isRoutingNeeded()) {
-        mqbi::Cluster* cluster = getRelevantCluster(command, &cmdResult);
-        if (cluster == nullptr) {  // error
-            printCommandResult(cmdResult, commandWithOptions.encoding(), os);
-            return -2;
-        }
-        selfName          = cluster->netCluster().selfNode()->hostName();
-        shouldSelfExecute = routeCommandManager.route(&cmdResult, cluster);
+        mwcu::MemOutStream errorDescription;
 
-        if (cmdResult.isErrorValue()) {
-            printCommandResult(cmdResult, commandWithOptions.encoding(), os);
-            return -2;
+        mqbi::Cluster* cluster = getRelevantCluster(errorDescription, command);
+        if (cluster == nullptr) {  // Error occurred getting cluster
+            cmdResult.makeError().message() = errorDescription.str();
+            mqbcmd::Util::printCommandResult(cmdResult,
+                                             command.encoding(),
+                                             os);
+            return rc_ERROR;  // RETURN
         }
+
+        if (const int rc = routeCommandManager.route(errorDescription,
+                                                     &shouldSelfExecute,
+                                                     cluster)) {
+            BALL_LOG_ERROR << "Failed to route command (rc: " << rc
+                           << ", error: '" << errorDescription.str() << "')";
+            cmdResult.makeError().message() = errorDescription.str();
+            mqbcmd::Util::printCommandResult(cmdResult,
+                                             command.encoding(),
+                                             os);
+            return rc_ERROR;  // RETURN
+        }
+
+        selfName = cluster->netCluster().selfNode()->hostName();
     }
 
     if (shouldSelfExecute) {
-        if (0 != executeCommand(commandWithOptions, command, &cmdResult)) {
-            return 0;  // early exit (caused by "dangerous" command)
+        if (0 != executeCommand(command, &cmdResult)) {
+            // early exit (caused by "dangerous" command)
+            return rc_EARLY_EXIT;  // RETURN
         }
     }
 
@@ -807,16 +775,16 @@ int Application::processCommand(const bslstl::StringRef& source,
     if (shouldSelfExecute) {
         // Add self response (executed earlier)
         mwcu::MemOutStream cmdOs;
-        printCommandResult(cmdResult, commandWithOptions.encoding(), cmdOs);
+        mqbcmd::Util::printCommandResult(cmdResult, command.encoding(), cmdOs);
         mqbcmd::RouteResponse routeResponse;
         routeResponse.response()              = cmdOs.str();
         routeResponse.sourceNodeDescription() = selfName;
         responses.responses().push_back(routeResponse);
     }
 
-    printCommandResponses(responses, commandWithOptions.encoding(), os);
+    mqbcmd::Util::printCommandResponses(responses, command.encoding(), os);
 
-    return cmdResult.isErrorValue() ? -2 : 0;
+    return cmdResult.isErrorValue() ? rc_ERROR : rc_SUCCESS;  // RETURN
 }
 
 int Application::processCommandCb(
@@ -830,7 +798,7 @@ int Application::processCommandCb(
 
     onProcessedCb(rc, os.str());
 
-    return rc;
+    return rc;  // RETURN
 }
 
 int Application::enqueueCommand(

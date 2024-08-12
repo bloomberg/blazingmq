@@ -24,27 +24,25 @@
 #include <mqbnet_multirequestmanager.h>
 
 // BDE
-#include <ball_log.h>
 #include <bsl_iostream.h>
 
 namespace BloombergLP {
 namespace mqba {
 
-namespace {
-const char k_LOG_CATEGORY[] = "MQBA.COMMANDROUTER";
-}  // close unnamed namespace
+// CREATORS
 
 CommandRouter::CommandRouter(const bsl::string&     commandString,
-                             const mqbcmd::Command& commandWithOptions)
+                             const mqbcmd::Command& command)
 : d_commandString(commandString)
-, d_commandWithOptions(commandWithOptions)
-, d_command(commandWithOptions.choice())
-, d_routingMode(getCommandRoutingMode())
+, d_command(command)
 , d_latch(1)
 {
-    // Effectively negate the latch if we won't need to wait for responses.
+    // Sets the proper routing mode into d_routingModeMp for this command.
+    setCommandRoutingMode();
+
+    // Immediately release the latch if we aren't routing anything.
     if (!isRoutingNeeded()) {
-        countDownLatch();
+        releaseLatch();
     }
 }
 
@@ -61,26 +59,29 @@ CommandRouter::AllPartitionPrimariesRoutingMode::
 {
 }
 
-CommandRouter::RouteMembers
-CommandRouter::AllPartitionPrimariesRoutingMode::getRouteMembers(
-    mqbcmd::InternalResult* result,
-    mqbi::Cluster*          cluster)
+int CommandRouter::AllPartitionPrimariesRoutingMode::getRouteTargets(
+    bsl::ostream&  errorDescription,
+    RouteTargets*  routeTargets,
+    mqbi::Cluster* cluster)
 {
-    NodesVector primaryNodes;
-    bool        isSelfPrimary;
-    bool        success;
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(routeTargets);
+    BSLS_ASSERT_SAFE(cluster);
+
+    int rc;
 
     cluster->dispatcher()->execute(
         bdlf::BindUtil::bind(&mqbi::Cluster::getPrimaryNodes,
                              cluster,
-                             &primaryNodes,
-                             &isSelfPrimary,
-                             result),
+                             &rc,
+                             bsl::ref(errorDescription),
+                             &routeTargets->d_nodes,
+                             &routeTargets->d_self),
         cluster);
 
     cluster->dispatcher()->synchronize(cluster);
 
-    return {.d_nodes = primaryNodes, .d_self = isSelfPrimary};
+    return rc;  // RETURN
 }
 
 CommandRouter::SinglePartitionPrimaryRoutingMode::
@@ -89,73 +90,78 @@ CommandRouter::SinglePartitionPrimaryRoutingMode::
 {
 }
 
-CommandRouter::RouteMembers
-CommandRouter::SinglePartitionPrimaryRoutingMode::getRouteMembers(
-    mqbcmd::InternalResult* result,
-    mqbi::Cluster*          cluster)
+int CommandRouter::SinglePartitionPrimaryRoutingMode::getRouteTargets(
+    bsl::ostream&  errorDescription,
+    RouteTargets*  routeTargets,
+    mqbi::Cluster* cluster)
 {
-    mqbnet::ClusterNode* node;
-    bool                 isSelfPrimary;
-    bool                 success;
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(routeTargets);
+    BSLS_ASSERT_SAFE(cluster);
+
+    mqbnet::ClusterNode* node = nullptr;
+
+    int rc;
 
     cluster->dispatcher()->execute(
         bdlf::BindUtil::bind(&mqbi::Cluster::getPartitionPrimaryNode,
                              cluster,
+                             &rc,
+                             bsl::ref(errorDescription),
                              &node,
-                             &isSelfPrimary,
-                             result,
+                             &routeTargets->d_self,
                              d_partitionId),
         cluster);
 
     cluster->dispatcher()->synchronize(cluster);
 
-    NodesVector nodes;
     if (node) {
         // Put node into vector to be acceptable for "routeCommand"
-        nodes.push_back(node);
+        routeTargets->d_nodes.push_back(node);
     }
 
-    return {
-        .d_nodes = nodes,
-        .d_self  = isSelfPrimary,
-    };
+    return rc;  // RETURN
 }
 
-CommandRouter::ClusterRoutingMode::ClusterRoutingMode()
+CommandRouter::ClusterWideRoutingMode::ClusterWideRoutingMode()
 {
 }
 
-CommandRouter::RouteMembers CommandRouter::ClusterRoutingMode::getRouteMembers(
-    mqbcmd::InternalResult* result,
-    mqbi::Cluster*          cluster)
+int CommandRouter::ClusterWideRoutingMode::getRouteTargets(
+    bsl::ostream&  errorDescription,
+    RouteTargets*  routeTargets,
+    mqbi::Cluster* cluster)
 {
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(routeTargets);
+    BSLS_ASSERT_SAFE(cluster);
+
     typedef mqbnet::Cluster::NodesList NodesList;
-    // collect all nodes in cluster
-    const NodesList& allNodes = cluster->netCluster().nodes();
 
-    NodesVector nodes;
+    // Collect all nodes in cluster
+    const NodesList& allNodes = cluster->netCluster().nodes();
 
     for (NodesList::const_iterator nit = allNodes.begin();
          nit != allNodes.end();
          nit++) {
         if (cluster->netCluster().selfNode() != *nit) {
-            nodes.push_back(*nit);
+            routeTargets->d_nodes.push_back(*nit);
         }
     }
 
-    return {
-        .d_nodes = nodes,
-        .d_self =
-            true,  // Cluster routing always requires original node to exec.
-    };
+    // Cluster routing always requires original node to execute.
+    routeTargets->d_self = true;
+
+    return 0;  // RETURN
 }
 
-bool CommandRouter::route(mqbcmd::InternalResult* result,
-                          mqbi::Cluster*          relevantCluster)
+int CommandRouter::route(bsl::ostream&  errorDescription,
+                         bool*          selfShouldExecute,
+                         mqbi::Cluster* relevantCluster)
 {
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_routingMode);
-    BSLS_ASSERT_SAFE(result);
+    BSLS_ASSERT_SAFE(d_routingModeMp);
+    BSLS_ASSERT_SAFE(selfShouldExecute);
     BSLS_ASSERT_SAFE(relevantCluster);
 
     typedef mqbnet::MultiRequestManager<bmqp_ctrlmsg::ControlMessage,
@@ -163,19 +169,29 @@ bool CommandRouter::route(mqbcmd::InternalResult* result,
                                         mqbnet::ClusterNode*>::RequestContextSp
         RequestContextSp;
 
-    RouteMembers routeMembers =
-        d_routingMode->getRouteMembers(result, relevantCluster);
+    enum RcEnum {
+        rc_SUCCESS = 0,
+        rc_ERROR   = -1,
+    };
 
-    // Failed to get route members, most likely due to not having an active
-    // primary.
-    if (result->isErrorValue()) {
-        countDownLatch();
-        return false;
+    RouteTargets routeTargets;
+
+    const int rc = d_routingModeMp->getRouteTargets(errorDescription,
+                                                    &routeTargets,
+                                                    relevantCluster);
+
+    if (0 != rc) {
+        // Release latch now to not block command execution.
+        releaseLatch();
+        *selfShouldExecute = false;  // Never execute when there was an error.
+        return rc_ERROR;             // RETURN
     }
 
-    if (routeMembers.d_nodes.size() == 0) {
-        countDownLatch();
-        return routeMembers.d_self;
+    // If not routing to any external nodes, then we can exit early.
+    if (routeTargets.d_nodes.size() == 0) {
+        releaseLatch();
+        *selfShouldExecute = routeTargets.d_self;
+        return rc_SUCCESS;  // RETURN
     }
 
     RequestContextSp contextSp =
@@ -186,20 +202,19 @@ bool CommandRouter::route(mqbcmd::InternalResult* result,
 
     adminCommand.command() = d_commandString;
 
-    contextSp->setDestinationNodes(routeMembers.d_nodes);
+    contextSp->setDestinationNodes(routeTargets.d_nodes);
 
     mwcu::MemOutStream os;
     os << "Routing command to the following nodes [";
-    for (NodesVector::const_iterator nit = routeMembers.d_nodes.begin();
-         nit != routeMembers.d_nodes.end();
+    for (NodesVector::const_iterator nit = routeTargets.d_nodes.begin();
+         nit != routeTargets.d_nodes.end();
          nit++) {
         os << (*nit)->hostName();
-        if (nit + 1 != routeMembers.d_nodes.end()) {
+        if (nit + 1 != routeTargets.d_nodes.end()) {
             os << ", ";
         }
     }
     os << "]";
-    BALL_LOG_SET_CATEGORY(k_LOG_CATEGORY);
     BALL_LOG_INFO << os.str();
 
     contextSp->setResponseCb(
@@ -210,7 +225,9 @@ bool CommandRouter::route(mqbcmd::InternalResult* result,
     relevantCluster->multiRequestManager().sendRequest(contextSp,
                                                        bsls::TimeInterval(3));
 
-    return routeMembers.d_self;
+    *selfShouldExecute = routeTargets.d_self;
+
+    return rc_SUCCESS;  // RETURN
 }
 
 void CommandRouter::onRouteCommandResponse(
@@ -241,15 +258,13 @@ void CommandRouter::onRouteCommandResponse(
             bsl::string errorMessage =
                 "Error occurred routing command to this node.";
             // if we are using JSON encoding
-            if (d_commandWithOptions.encoding() ==
-                    mqbcmd::EncodingFormat::JSON_COMPACT ||
-                d_commandWithOptions.encoding() ==
-                    mqbcmd::EncodingFormat::JSON_PRETTY) {
+            if (d_command.encoding() == mqbcmd::EncodingFormat::JSON_COMPACT ||
+                d_command.encoding() == mqbcmd::EncodingFormat::JSON_PRETTY) {
                 mqbcmd::Result result;
                 result.makeError().message() = errorMessage;
                 // encode result
                 mwcu::MemOutStream os;
-                bool               pretty = d_commandWithOptions.encoding() ==
+                bool               pretty = d_command.encoding() ==
                                       mqbcmd::EncodingFormat::JSON_PRETTY
                                                 ? true
                                                 : false;
@@ -263,45 +278,47 @@ void CommandRouter::onRouteCommandResponse(
         d_responses.responses().push_back(routeResponse);
     }
 
-    countDownLatch();
+    releaseLatch();
 }
 
-CommandRouter::RoutingModeMp CommandRouter::getCommandRoutingMode()
+void CommandRouter::setCommandRoutingMode()
 {
     bslma::Allocator* allocator = bslma::Default::allocator();
 
-    RoutingModeMp routingMode(nullptr);
+    d_routingModeMp = nullptr;
 
-    if (d_command.isDomainsValue()) {
-        const mqbcmd::DomainsCommand& domains = d_command.domains();
+    const mqbcmd::CommandChoice& commandChoice = d_command.choice();
+
+    if (commandChoice.isDomainsValue()) {
+        const mqbcmd::DomainsCommand& domains = commandChoice.domains();
         if (domains.isDomainValue()) {
             const mqbcmd::DomainCommand& domain = domains.domain().command();
             if (domain.isPurgeValue()) {
-                routingMode.load(new (*allocator)
-                                     AllPartitionPrimariesRoutingMode());
+                d_routingModeMp.load(new (*allocator)
+                                         AllPartitionPrimariesRoutingMode());
                 // DOMAINS DOMAIN <name> PURGE
             }
             else if (domain.isQueueValue()) {
                 if (domain.queue().command().isPurgeAppIdValue()) {
-                    routingMode.load(new (*allocator)
-                                         AllPartitionPrimariesRoutingMode());
+                    d_routingModeMp.load(
+                        new (*allocator) AllPartitionPrimariesRoutingMode());
                     // DOMAINS DOMAIN <name> QUEUE <name> PURGE
                 }
             }
         }
         else if (domains.isReconfigureValue()) {
-            routingMode.load(new (*allocator) ClusterRoutingMode());
+            d_routingModeMp.load(new (*allocator) ClusterWideRoutingMode());
             // DOMAINS RECONFIGURE <domain>
         }
     }
-    else if (d_command.isClustersValue()) {
-        const mqbcmd::ClustersCommand& clusters = d_command.clusters();
+    else if (commandChoice.isClustersValue()) {
+        const mqbcmd::ClustersCommand& clusters = commandChoice.clusters();
         if (clusters.isClusterValue()) {
             const mqbcmd::ClusterCommand& cluster =
                 clusters.cluster().command();
             if (cluster.isForceGcQueuesValue()) {
-                routingMode.load(new (*allocator)
-                                     AllPartitionPrimariesRoutingMode());
+                d_routingModeMp.load(new (*allocator)
+                                         AllPartitionPrimariesRoutingMode());
                 // CLUSTERS CLUSTER <name> FORCE_GC_QUEUES
             }
             else if (cluster.isStorageValue()) {
@@ -310,9 +327,9 @@ CommandRouter::RoutingModeMp CommandRouter::getCommandRoutingMode()
                     if (storage.partition().command().isEnableValue() ||
                         storage.partition().command().isDisableValue()) {
                         int partitionId = storage.partition().partitionId();
-                        routingMode.load(new (*allocator)
-                                             SinglePartitionPrimaryRoutingMode(
-                                                 partitionId));
+                        d_routingModeMp.load(
+                            new (*allocator) SinglePartitionPrimaryRoutingMode(
+                                partitionId));
                         // CLUSTERS CLUSTER <name> STORAGE PARTITION
                         // <partitionId> [ENABLE|DISABLE]
                     }
@@ -325,8 +342,8 @@ CommandRouter::RoutingModeMp CommandRouter::getCommandRoutingMode()
                         const mqbcmd::SetTunable& tunable =
                             replication.setTunable();
                         if (tunable.choice().isAllValue()) {
-                            routingMode.load(new (*allocator)
-                                                 ClusterRoutingMode());
+                            d_routingModeMp.load(new (*allocator)
+                                                     ClusterWideRoutingMode());
                             // CLUSTERS CLUSTER <name> STORAGE REPLICATION
                             // SET_ALL
                         }
@@ -335,8 +352,8 @@ CommandRouter::RoutingModeMp CommandRouter::getCommandRoutingMode()
                         const mqbcmd::GetTunable& tunable =
                             replication.getTunable();
                         if (tunable.choice().isAllValue()) {
-                            routingMode.load(new (*allocator)
-                                                 ClusterRoutingMode());
+                            d_routingModeMp.load(new (*allocator)
+                                                     ClusterWideRoutingMode());
                             // CLUSTERS CLUSTER <name> STORAGE REPLICATION
                             // GET_ALL
                         }
@@ -351,8 +368,8 @@ CommandRouter::RoutingModeMp CommandRouter::getCommandRoutingMode()
                         const mqbcmd::SetTunable& tunable =
                             elector.setTunable();
                         if (tunable.choice().isAllValue()) {
-                            routingMode.load(new (*allocator)
-                                                 ClusterRoutingMode());
+                            d_routingModeMp.load(new (*allocator)
+                                                     ClusterWideRoutingMode());
                             // CLUSTERS CLUSTER <name> STATE ELECTOR SET_ALL
                         }
                     }
@@ -360,8 +377,8 @@ CommandRouter::RoutingModeMp CommandRouter::getCommandRoutingMode()
                         const mqbcmd::GetTunable& tunable =
                             elector.getTunable();
                         if (tunable.choice().isAllValue()) {
-                            routingMode.load(new (*allocator)
-                                                 ClusterRoutingMode());
+                            d_routingModeMp.load(new (*allocator)
+                                                     ClusterWideRoutingMode());
                             // CLUSTERS CLUSTER <name> STATE ELECTOR GET_ALL
                         }
                     }
@@ -369,8 +386,6 @@ CommandRouter::RoutingModeMp CommandRouter::getCommandRoutingMode()
             }
         }
     }
-
-    return routingMode;
 }
 
 }  // close package namespace

@@ -42,7 +42,6 @@
 #include <bdlcc_objectpool.h>
 #include <bdlcc_sharedobjectpool.h>
 #include <bdlmt_threadpool.h>
-#include <bmqp_requestmanager.h>
 #include <bsl_ostream.h>
 #include <bsl_string.h>
 #include <bsl_unordered_map.h>
@@ -51,32 +50,19 @@
 #include <bslma_managedptr.h>
 #include <bslma_usesbslmaallocator.h>
 #include <bslmf_nestedtraitdeclaration.h>
-#include <bslmt_latch.h>
 #include <bsls_cpp11.h>
 
 namespace BloombergLP {
 
 // FORWARD DECLARATION
-namespace bmqp_ctrlmsg {
-class ControlMessage;
-}
 namespace bdlmt {
 class EventScheduler;
 }
 namespace mqbblp {
 class ClusterCatalog;
 }
-namespace mqbcmd {
-class CommandChoice;
-}
-namespace mqbcmd {
-class InternalResult;
-}
 namespace mqbnet {
 class TransportManager;
-}
-namespace mqbnet {
-class ClusterNode;
 }
 namespace mqbplug {
 class PluginManager;
@@ -86,10 +72,6 @@ class StatController;
 }
 namespace mwcst {
 class StatContext;
-}
-namespace mqbnet {
-template <class REQUEST, class RESPONSE, class TARGET>
-class MultiRequestManagerRequestContext;
 }
 
 namespace mqba {
@@ -143,6 +125,12 @@ class Application {
 
     bdlmt::ThreadPool d_adminRerouteExecutionPool;
     // Thread pool for routed admin commands execution.
+    // Ensuring rerouted commands always execute on their
+    // own dedicated thread prevents a case where two nodes
+    // are simultaneously waiting for each other to process
+    // a routed command, but cannot make process because
+    // the calling thread is blocked ("deadlock").
+    // Note that rerouted commands never route again.
 
     bdlbb::PooledBlobBufferFactory d_bufferFactory;
 
@@ -217,16 +205,21 @@ class Application {
     /// Stop the application.
     void stop();
 
-    /// Process the command in the specified `cmd` coming from the specified
-    /// `source`, and write the result of the command in the specified `os`.
+    /// Process the command `cmd` coming from the specified `source`, and write
+    /// the result of the command in the given output stream, `os`.
+    /// Mark `fromReroute` as true if executing the command from a reroute to
+    /// ensure proper routing logic. Returns 0 on success, -1 on early exit,
+    /// -2 on error, and some non-zero error code on parse failure.
     int processCommand(const bslstl::StringRef& source,
                        const bsl::string&       cmd,
                        bsl::ostream&            os,
                        bool                     fromReroute = false);
 
-    /// Process the command in the specified `cmd` coming from the specified
-    /// `source`, and send the result of the command in the specified
-    /// `onProcessedCb`.
+    /// Process the command `cmd` coming from the specified `source` node, and
+    /// send the result of the command in the given `onProcessedCb`. Mark
+    /// `fromReroute` as true if executing command from a reroute to ensure
+    /// proper routing logic. Returns the error code of calling
+    /// `processCommand` with the given `cmd`, `source`, and `fromReroute`.
     int processCommandCb(
         const bslstl::StringRef&                            source,
         const bsl::string&                                  cmd,
@@ -235,7 +228,9 @@ class Application {
 
     /// Enqueue for execution the command in the specified `cmd` coming from
     /// the specified `source`.  The specified `onProcessedCb` callback is
-    /// used to send result of the command after execution.
+    /// used to send result of the command after execution. Mark `fromReroute`
+    /// as true if executing command from a reroute to ensure proper routing
+    /// logic.
     int enqueueCommand(
         const bslstl::StringRef&                            source,
         const bsl::string&                                  cmd,
@@ -243,24 +238,18 @@ class Application {
         bool fromReroute = false);
 
   private:
-    // Returns a pointer to the cluster instance that the given command needs
-    // to execute for.
-    mqbi::Cluster* getRelevantCluster(const mqbcmd::CommandChoice& command,
-                                      mqbcmd::InternalResult* cmdResult) const;
+    /// Returns a pointer to the cluster instance that the given `command`
+    /// needs to execute for. Fails when the given command does not have a
+    /// cluster associated with it or the cluster cannot be found. On failure,
+    /// this function returns a nullptr and populates `errorDescription` with
+    /// a reason.
+    mqbi::Cluster* getRelevantCluster(bsl::ostream&          errorDescription,
+                                      const mqbcmd::Command& command) const;
 
-    // Executes the logic of the given command and outputs the result in
-    // cmdResult
-    int executeCommand(const mqbcmd::Command&       commandWithOptions,
-                       const mqbcmd::CommandChoice& command,
-                       mqbcmd::InternalResult*      cmdResult);
-
-    void printCommandResponses(const mqbcmd::RouteResponseList& responseList,
-                               const mqbcmd::EncodingFormat::Value encoding,
-                               bsl::ostream&                       os) const;
-
-    void printCommandResult(const mqbcmd::InternalResult& result,
-                            mqbcmd::EncodingFormat::Value encoding,
-                            bsl::ostream&                 os);
+    /// Executes the logic of the given `command` and outputs the result in
+    /// `cmdResult`. Returns 0 on success and -1 on early exit
+    int executeCommand(const mqbcmd::Command&  command,
+                       mqbcmd::InternalResult* cmdResult);
 };
 
 }  // close package namespace

@@ -44,7 +44,7 @@ def test_primary_rerouting(multi_node: Cluster) -> None:
     - Connect to that node
     - Open FANOUT domain
 
-    Stage 3: Try all primary-only commands:
+    Stage 2: Try all primary-only commands:
     - DOMAINS DOMAIN <domain> PURGE
     - CLUSTERS CLUSTER <name> FORCE_GC_QUEUES
     - CLUSTERS CLUSTER <name> STORAGE PARTITION <partitionId> ENABLE/DISABLE
@@ -97,6 +97,17 @@ def test_primary_rerouting(multi_node: Cluster) -> None:
     )
     assert "SUCCESS" in res
 
+    # Ensure sending invalid partition ids gives an error
+    res = admin.send_admin(
+        f"CLUSTERS CLUSTER {multi_node.name} STORAGE PARTITION -1 ENABLE"
+    )
+    assert "SUCCESS" not in res
+
+    res = admin.send_admin(
+        f"CLUSTERS CLUSTER {multi_node.name} STORAGE PARTITION {len(multi_node.nodes())} ENABLE"
+    )
+    assert "SUCCESS" not in res
+
     admin.stop()
 
 
@@ -148,7 +159,7 @@ def test_cluster_rerouting(multi_node: Cluster) -> None:
 
     # GET_ALL
     res = admin.send_admin(
-        f"CLUSTERS CLUSTER {multi_node.name} STORAGE REPLICATION SET_ALL quorum 2"
+        f"CLUSTERS CLUSTER {multi_node.name} STORAGE REPLICATION GET_ALL quorum"
     )
     success_count = res.split().count("Quorum")
     assert success_count == num_nodes
@@ -162,7 +173,7 @@ def test_cluster_rerouting(multi_node: Cluster) -> None:
 
     # GET_ALL
     res = admin.send_admin(
-        f"CLUSTERS CLUSTER {multi_node.name} STATE ELECTOR SET_ALL quorum 2"
+        f"CLUSTERS CLUSTER {multi_node.name} STATE ELECTOR GET_ALL quorum"
     )
     success_count = res.split().count("Quorum")
     assert success_count == num_nodes

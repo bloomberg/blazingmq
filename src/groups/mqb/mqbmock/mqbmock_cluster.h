@@ -426,14 +426,15 @@ class Cluster : public mqbi::Cluster {
     /// Block until scheduler executes all the scheduled callbacks.
     void waitForScheduler();
 
-    void getPrimaryNodes(bsl::vector<mqbnet::ClusterNode*>* nodes,
-                         bool*                              isSelfPrimary,
-                         mqbcmd::InternalResult*            result) const
-        BSLS_KEYWORD_OVERRIDE;
+    void getPrimaryNodes(int*                               rc,
+                         bsl::ostream&                      errorDescription,
+                         bsl::vector<mqbnet::ClusterNode*>* nodes,
+                         bool* isSelfPrimary) const BSLS_KEYWORD_OVERRIDE;
 
-    void getPartitionPrimaryNode(mqbnet::ClusterNode**   node,
-                                 bool*                   isSelfPrimary,
-                                 mqbcmd::InternalResult* result,
+    void getPartitionPrimaryNode(int*                  rc,
+                                 bsl::ostream&         errorDescription,
+                                 mqbnet::ClusterNode** node,
+                                 bool*                 isSelfPrimary,
                                  int partitionId) const BSLS_KEYWORD_OVERRIDE;
 
     // ACCESSORS
@@ -582,19 +583,23 @@ inline void Cluster::advanceTime(int seconds)
     d_timeSource.advanceTime(bsls::TimeInterval(seconds));
 }
 
-inline void Cluster::getPrimaryNodes(bsl::vector<mqbnet::ClusterNode*>* nodes,
-                                     bool*                   isSelfPrimary,
-                                     mqbcmd::InternalResult* result) const
+inline void Cluster::getPrimaryNodes(int*          rc,
+                                     bsl::ostream& errorDescription,
+                                     bsl::vector<mqbnet::ClusterNode*>* nodes,
+                                     bool* isSelfPrimary) const
 {
-    // no implementation
+    // no implementation -- this should never run.
+    BSLS_ASSERT_SAFE(false);
 }
 
-inline void Cluster::getPartitionPrimaryNode(mqbnet::ClusterNode** node,
+inline void Cluster::getPartitionPrimaryNode(int*          rc,
+                                             bsl::ostream& errorDescription,
+                                             mqbnet::ClusterNode** node,
                                              bool* isSelfPrimary,
-                                             mqbcmd::InternalResult* result,
-                                             int partitionId) const
+                                             int   partitionId) const
 {
-    // no implementation
+    // no implementation -- this should never run.
+    BSLS_ASSERT_SAFE(false);
 }
 
 // ACCESSORS
