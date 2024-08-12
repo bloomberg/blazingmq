@@ -679,6 +679,8 @@ StatController::StatController(const CommandProcessorFn& commandProcessor,
 , d_statContextsMap(allocator)
 , d_statContextChannelsLocal_mp(0)
 , d_statContextChannelsRemote_mp(0)
+, d_portsList(allocator)
+, d_portsMap(allocator)
 , d_systemStatMonitor_mp(0)
 , d_pluginManager_p(pluginManager)
 , d_bufferFactory_p(bufferFactory)
@@ -1026,7 +1028,8 @@ StatController::addChannelStatContext(ChannelSelector::Enum selector,
                                                  this,
                                                  bdlf::PlaceHolders::_1)));
             channelStatContext = portStatContext->addSubcontext(statConfig);
-            d_portsList.emplace_front(portStatContext);
+            d_portsList.emplace_front(
+                bslmf::MovableRefUtil::move(portStatContext));
             d_portsMap.emplace((*d_portsList.begin())->name(),
                                d_portsList.begin());
         }
