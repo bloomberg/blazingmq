@@ -662,11 +662,9 @@ void QueueStatsDomain::updateDomainAppIds(
         return;  // RETURN
     }
 
-    bsl::unordered_set<bsl::string> remainingAppIds(
-        appIds.begin(),
-        appIds.end(),
-        appIds.size() * 3,  // initial bucket num
-        d_allocator_p);
+    bsl::unordered_set<bsl::string> remainingAppIds(appIds.begin(),
+                                                    appIds.end(),
+                                                    d_allocator_p);
 
     // 1. Remove subcontexts for unneeded appIds
     bsl::list<StatSubContextMp>::iterator it = d_subContextsHolder.begin();
