@@ -17,6 +17,7 @@
 #include <mqba_commandrouter.h>
 
 // MQB
+#include <mqbcfg_brokerconfig.h>
 #include <mqbcmd_jsonprinter.h>
 #include <mqbcmd_parseutil.h>
 #include <mqbi_cluster.h>
@@ -222,8 +223,11 @@ int CommandRouter::route(bsl::ostream&  errorDescription,
                              this,
                              bdlf::PlaceHolders::_1));
 
-    relevantCluster->multiRequestManager().sendRequest(contextSp,
-                                                       bsls::TimeInterval(3));
+    const mqbcfg::AppConfig& config  = mqbcfg::BrokerConfig::get();
+    double                   timeout = config.routeCommandTimeoutMs() / 1000.0;
+    relevantCluster->multiRequestManager().sendRequest(
+        contextSp,
+        bsls::TimeInterval(timeout));
 
     *selfShouldExecute = routeTargets.d_self;
 
