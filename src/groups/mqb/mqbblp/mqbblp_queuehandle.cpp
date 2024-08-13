@@ -267,8 +267,6 @@ QueueHandle::updateMonitor(const bsl::shared_ptr<Downstream>& subStream,
 
     mqbi::QueueHandle::UnconfirmedMessageInfoMap::iterator it = messages->find(
         msgGUID);
-    RUMStateTransition::Enum resourceUsageStateChange =
-        RUMStateTransition::e_NO_CHANGE;
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(it == messages->end())) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
@@ -320,12 +318,15 @@ QueueHandle::updateMonitor(const bsl::shared_ptr<Downstream>& subStream,
                     << " Message was also not found in storage.";
             }
         }
-        return resourceUsageStateChange;  // RETURN
+        return RUMStateTransition::e_NO_CHANGE;  // RETURN
     }
 
-    SubscriptionSp subscription = d_subscriptions[it->second.d_subscriptionId];
-    resourceUsageStateChange =
-        updateMonitor(it, subscription.get(), eventType, subStream->d_appId);
+    Subscriptions::iterator sit = d_subscriptions.find(
+        it->second.d_subscriptionId);
+    BSLS_ASSERT_SAFE(sit != d_subscriptions.end());
+
+    const RUMStateTransition::Enum resourceUsageStateChange =
+        updateMonitor(it, sit->second.get(), eventType, subStream->d_appId);
     messages->erase(it);
 
     // As mentioned above, if we hit the maxUnconfirmed and are now back to
@@ -357,8 +358,9 @@ QueueHandle::updateMonitor(const bsl::shared_ptr<Downstream>& subStream,
     if (resourceUsageStateChange == RUMStateTransition::e_LOW_WATERMARK) {
         BSLS_ASSERT_SAFE(d_queue_sp->queueEngine() &&
                          "Queue has no engine associated !");
-        d_queue_sp->queueEngine()->onHandleUsable(this,
-                                                  subscription->d_upstreamId);
+        d_queue_sp->queueEngine()->onHandleUsable(
+            this,
+            sit->second.get()->d_upstreamId);
     }
 
     return resourceUsageStateChange;
