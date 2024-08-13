@@ -266,15 +266,8 @@ inline QueueOptions& QueueOptions::operator=(const QueueOptions& rhs)
         d_info                    = rhs.d_info;
         d_suspendsOnBadHostHealth = rhs.d_suspendsOnBadHostHealth;
         d_hadSubscriptions        = rhs.d_hadSubscriptions;
-        if (d_allocator_p == rhs.d_allocator_p) {
-            d_subscriptions = rhs.d_subscriptions;
-            // No need to reassign `d_allocator_p`
-        }
-        else {
-            d_subscriptions = Subscriptions(rhs.d_subscriptions,
-                                            rhs.d_allocator_p);
-            d_allocator_p   = rhs.d_allocator_p;
-        }
+        d_subscriptions           = Subscriptions(rhs.d_subscriptions,
+                                        this->d_allocator_p);
     }
 
     return *this;
