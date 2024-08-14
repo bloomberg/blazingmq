@@ -53,6 +53,8 @@ mqbc::ClusterDataIdentity clusterIdentity(const bslstl::StringRef& name,
     // Create client identity
     bmqp_ctrlmsg::ClientIdentity identity(allocator);
     if (!isRemote) {
+        BSLS_ASSERT_SAFE(netCluster->selfNode());
+
         identity.protocolVersion() = bmqp::Protocol::k_VERSION;
         identity.sdkVersion()      = bmqscm::Version::versionAsInt();
         identity.clientType()      = bmqp_ctrlmsg::ClientType::E_TCPBROKER;

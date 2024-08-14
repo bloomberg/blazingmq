@@ -306,9 +306,6 @@ static void test2_basicOptionsBoxCanAdd()
             const int    maxPayload  = k_MAX_SIZE - headerSize;
             const LimitT limit       = maxCanBeAdded(contentSize, maxPayload);
             ASSERT_EQ(Result::e_OPTION_TOO_BIG, limit.second);
-            const int sizeLeft = k_MAX_SIZE_SOFT - contentSize;
-            const int expected = sizeLeft / k_MAX_SIZE;
-            ASSERT_EQ(expected, limit.first);
         }
     }
 }

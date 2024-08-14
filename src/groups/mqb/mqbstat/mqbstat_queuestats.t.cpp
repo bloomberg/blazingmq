@@ -17,6 +17,7 @@
 #include <mqbstat_queuestats.h>
 
 // MQB
+#include <mqbc_clusterutil.h>
 #include <mqbcfg_brokerconfig.h>
 #include <mqbcfg_messages.h>
 #include <mqbmock_cluster.h>
@@ -80,10 +81,12 @@ static void test1_breathingTest()
 
     // Create queuestat objects and assert that subcontexts are created
     QueueStatsClient queueStatsClient;
-    queueStatsClient.initialize(bmqt::Uri(), client.get(), s_allocator_p);
+    queueStatsClient.initialize(bmqt::Uri(s_allocator_p),
+                                client.get(),
+                                s_allocator_p);
 
-    QueueStatsDomain queueStatsDomain;
-    queueStatsDomain.initialize(bmqt::Uri(), &mockDomain, s_allocator_p);
+    QueueStatsDomain queueStatsDomain(s_allocator_p);
+    queueStatsDomain.initialize(bmqt::Uri(s_allocator_p), &mockDomain);
 
     client->snapshot();
     domain->snapshot();
@@ -144,7 +147,7 @@ static void test1_breathingTest()
 
 static void test2_queueStatsClient()
 // ------------------------------------------------------------------------
-// QUEUESTATSCLIENT
+// QUEUE STATS CLIENT
 //
 // Concerns:
 //   - Ensure that onEvent triggers value changes and the changed values
@@ -173,7 +176,9 @@ static void test2_queueStatsClient()
     typedef QueueStatsClient::Stat ClientStat;
 
     QueueStatsClient queueStatsClient;
-    queueStatsClient.initialize(bmqt::Uri(), client.get(), s_allocator_p);
+    queueStatsClient.initialize(bmqt::Uri(s_allocator_p),
+                                client.get(),
+                                s_allocator_p);
 
     const int k_DUMMY = 0;
 
@@ -241,7 +246,7 @@ static void test2_queueStatsClient()
 
 static void test3_queueStatsDomain()
 // ------------------------------------------------------------------------
-// QUEUESTATSDOMAIN
+// QUEUE STATS DOMAIN
 //
 // Concerns:
 //   - Ensure that onEvent triggers value changes and the changed values
@@ -270,8 +275,8 @@ static void test3_queueStatsDomain()
     using namespace mqbstat;
     typedef QueueStatsDomain::Stat DomainStat;
 
-    QueueStatsDomain queueStatsDomain;
-    queueStatsDomain.initialize(bmqt::Uri(), &mockDomain, s_allocator_p);
+    QueueStatsDomain queueStatsDomain(s_allocator_p);
+    queueStatsDomain.initialize(bmqt::Uri(s_allocator_p), &mockDomain);
 
     const int k_DUMMY = 0;
 
@@ -391,7 +396,7 @@ static void test3_queueStatsDomain()
 
 static void test4_queueStatsDomainContent()
 // ------------------------------------------------------------------------
-// QUEUESTATSDOMAINCONTENT
+// QUEUE STATS DOMAIN CONTENT
 //
 // Concerns:
 //   - Ensure that onEvent triggers value changes and the changed values
@@ -421,8 +426,8 @@ static void test4_queueStatsDomainContent()
     mqbmock::Domain                mockDomain(&mockCluster, s_allocator_p);
     mwcst::StatContext*            sc = mockDomain.queueStatContext();
 
-    mqbstat::QueueStatsDomain obj;
-    obj.initialize(bmqt::Uri(), &mockDomain, s_allocator_p);
+    mqbstat::QueueStatsDomain obj(s_allocator_p);
+    obj.initialize(bmqt::Uri(s_allocator_p), &mockDomain);
 
     // Initial Snapshot
     {
@@ -490,6 +495,171 @@ static void test4_queueStatsDomainContent()
 #undef ASSERT_EQ_DOMAINSTAT
 }
 
+static void test5_appIdMetrics()
+// ------------------------------------------------------------------------
+// APP ID METRICS
+//
+// Concerns:
+//   - Ensure that per-appId configuration and reconfiguration for
+//     QueueStatsDomain works
+//   - Ensure that onEvent triggers value changes in subcontexts per appId,
+//     and the changed values are as expected for the queue content
+//
+// Plan:
+//   - Instantiate the component under test
+//   - Check valid appId subcontext initialization
+//   - Reconfigure the component with other appIds and check
+//   - Trigger onEvent with data for appIds
+//   - Ensure correct change in values
+//
+// Testing:
+//   QueueStatsDomain manipulation with per-appId metrics
+// ------------------------------------------------------------------------
+{
+    mwctst::TestHelper::printTestName("AppIdMetrics");
+
+    // Create a mock cluster/domain
+    const bool isClusterMember = true;
+    const bool isLeader        = true;
+    const bool isCSL           = false;
+    const bool isFSM           = false;
+
+    mqbmock::Cluster::ClusterNodeDefs clusterNodeDefs(s_allocator_p);
+    mqbc::ClusterUtil::appendClusterNode(&clusterNodeDefs,
+                                         "E1",
+                                         "US-EAST",
+                                         41234,
+                                         mqbmock::Cluster::k_LEADER_NODE_ID,
+                                         s_allocator_p);
+    mqbc::ClusterUtil::appendClusterNode(&clusterNodeDefs,
+                                         "E2",
+                                         "US-EAST",
+                                         41235,
+                                         mqbmock::Cluster::k_LEADER_NODE_ID +
+                                             1,
+                                         s_allocator_p);
+    mqbc::ClusterUtil::appendClusterNode(&clusterNodeDefs,
+                                         "W1",
+                                         "US-WEST",
+                                         41236,
+                                         mqbmock::Cluster::k_LEADER_NODE_ID +
+                                             2,
+                                         s_allocator_p);
+    mqbc::ClusterUtil::appendClusterNode(&clusterNodeDefs,
+                                         "W2",
+                                         "US-WEST",
+                                         41237,
+                                         mqbmock::Cluster::k_LEADER_NODE_ID +
+                                             3,
+                                         s_allocator_p);
+
+    bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
+    mqbmock::Cluster               mockCluster(&bufferFactory,
+                                 s_allocator_p,
+                                 isClusterMember,
+                                 isLeader,
+                                 isCSL,
+                                 isFSM,
+                                 clusterNodeDefs);
+    mqbmock::Domain                mockDomain(&mockCluster, s_allocator_p);
+
+    // Reconfigure the domain with appIds and enabled appId metrics
+    const char* k_APPID_FOO = "foo";
+    const char* k_APPID_BAR = "bar";
+    const char* k_APPID_BAZ = "baz";
+
+    mqbconfm::Domain           domainConfig(s_allocator_p);
+    mqbconfm::QueueModeFanout& mode = domainConfig.mode().makeFanout();
+    mode.publishAppIdMetrics()      = true;
+    mode.appIDs().push_back(k_APPID_FOO);
+
+    mwcu::MemOutStream errorDesc(s_allocator_p);
+    mockDomain.configure(errorDesc, domainConfig);
+
+    // Do not use stat context (`mockDomain.queueStatContext()`) declared
+    // within mock domain, since it was not initialized using the proper
+    // config.  Init a new stats object from the scratch instead.
+    mqbstat::QueueStatsDomain stats(s_allocator_p);
+    stats.initialize(bmqt::Uri("bmq://mock-domain/abc", s_allocator_p),
+                     &mockDomain);
+
+    mwcst::StatContext* sc = stats.statContext();
+
+    // Make a snapshot to get a recent update with a newly initialized
+    // subcontext for "foo"
+    {
+        sc->snapshot();
+        ASSERT_EQ(1, sc->numSubcontexts());
+
+        const mwcst::StatContext* fooSc = sc->getSubcontext(k_APPID_FOO);
+        ASSERT_NE(bsl::nullptr_t(), fooSc);
+    }
+
+    // Add event for non-configured appId "bar", this value should not reach to
+    // the final stats
+    stats.onEvent(mqbstat::QueueStatsDomain::EventType::e_CONFIRM_TIME,
+                  1000,
+                  k_APPID_BAR);
+
+    // Reconfigure queue domain stats, by excluding "foo" and including "bar"
+    // and "baz"
+    {
+        bsl::vector<bsl::string> appIds(s_allocator_p);
+        appIds.push_back(k_APPID_BAR);
+        appIds.push_back(k_APPID_BAZ);
+
+        stats.updateDomainAppIds(appIds);
+
+        sc->snapshot();
+        sc->cleanup();
+
+        ASSERT_EQ(2, sc->numSubcontexts());
+
+        const mwcst::StatContext* fooSc = sc->getSubcontext(k_APPID_FOO);
+        ASSERT_EQ(bsl::nullptr_t(), fooSc);
+
+        const mwcst::StatContext* barSc = sc->getSubcontext(k_APPID_BAR);
+        const mwcst::StatContext* bazSc = sc->getSubcontext(k_APPID_BAZ);
+        ASSERT_NE(bsl::nullptr_t(), barSc);
+        ASSERT_NE(bsl::nullptr_t(), bazSc);
+    }
+
+    // Report some metrics and check that they reached subcontexts
+    {
+        stats.onEvent(mqbstat::QueueStatsDomain::EventType::e_CONFIRM_TIME,
+                      700,
+                      k_APPID_BAR);
+        stats.onEvent(mqbstat::QueueStatsDomain::EventType::e_CONFIRM_TIME,
+                      900,
+                      k_APPID_BAR);
+        stats.onEvent(mqbstat::QueueStatsDomain::EventType::e_CONFIRM_TIME,
+                      800,
+                      k_APPID_BAR);
+
+        stats.onEvent(mqbstat::QueueStatsDomain::EventType::e_CONFIRM_TIME,
+                      500,
+                      k_APPID_BAZ);
+
+        sc->snapshot();
+
+        const mwcst::StatContext* barSc = sc->getSubcontext(k_APPID_BAR);
+        const mwcst::StatContext* bazSc = sc->getSubcontext(k_APPID_BAZ);
+        ASSERT_NE(bsl::nullptr_t(), barSc);
+        ASSERT_NE(bsl::nullptr_t(), bazSc);
+
+        ASSERT_EQ(900,
+                  mqbstat::QueueStatsDomain::getValue(
+                      *barSc,
+                      -1,
+                      mqbstat::QueueStatsDomain::Stat::e_CONFIRM_TIME_MAX));
+        ASSERT_EQ(500,
+                  mqbstat::QueueStatsDomain::getValue(
+                      *bazSc,
+                      -1,
+                      mqbstat::QueueStatsDomain::Stat::e_CONFIRM_TIME_MAX));
+    }
+}
+
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
@@ -508,6 +678,7 @@ int main(int argc, char* argv[])
             mqbstat::BrokerStatsUtil::initializeStatContext(30, s_allocator_p);
         switch (_testCase) {
         case 0:
+        case 5: test5_appIdMetrics(); break;
         case 4: test4_queueStatsDomainContent(); break;
         case 3: test3_queueStatsDomain(); break;
         case 2: test2_queueStatsClient(); break;

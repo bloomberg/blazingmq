@@ -84,7 +84,7 @@ PutEventBuilder::packMessageInternal(const bdlbb::Blob& appData, int queueId)
                               numPaddingBytes;
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(sizeNoOptions >
-                                              EventHeader::k_MAX_SIZE_SOFT)) {
+                                              PutHeader::k_MAX_SIZE_SOFT)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
         return Result::e_EVENT_TOO_BIG;  // RETURN
     }

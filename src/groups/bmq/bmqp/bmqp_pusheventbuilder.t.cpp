@@ -1077,7 +1077,20 @@ static void test8_buildEventTooBig()
     bdlbb::Blob validPayload2(&bufferFactory, s_allocator_p);
     bdlbb::BlobUtil::append(&validPayload2, s.c_str(), validLen);
 
-    rc = peb.packMessage(validPayload2,
+    int count = 1;
+    while ((evtSize + sizeof(bmqp::PushHeader) + validLen) <
+           bmqp::EventHeader::k_MAX_SIZE_SOFT) {
+        rc = peb.packMessage(validPayload2,
+                             queueId,
+                             guid,
+                             flags,
+                             bmqt::CompressionAlgorithmType::e_NONE);
+        ASSERT_EQ(rc, bmqt::EventBuilderResult::e_SUCCESS);
+        evtSize += sizeof(bmqp::PushHeader) + validLen;
+        ++count;
+    }
+    evtSize = peb.eventSize();  // not calculating padding
+    rc      = peb.packMessage(validPayload2,
                          queueId,
                          guid,
                          flags,
@@ -1085,7 +1098,7 @@ static void test8_buildEventTooBig()
 
     ASSERT_EQ(rc, bmqt::EventBuilderResult::e_EVENT_TOO_BIG);
     ASSERT_EQ(evtSize, peb.eventSize());
-    ASSERT_EQ(1, peb.messageCount());
+    ASSERT_EQ(count, peb.messageCount());
 }
 
 static void testN1_decodeFromFile()
