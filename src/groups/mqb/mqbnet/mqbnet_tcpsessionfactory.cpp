@@ -1425,7 +1425,7 @@ TCPSessionFactory::PortExtractor::PortExtractor(bslma::Allocator* allocator)
         pattern,
         bdlpcre::RegEx::k_FLAG_JIT);
     BSLS_ASSERT_SAFE(rc == 0);
-    BSLS_ASSERT_SAFE(d_regex.isPrepared() == true);
+    BSLS_ASSERT_SAFE(d_regex.isPrepared());
 }
 
 bsl::string_view
@@ -1433,9 +1433,7 @@ TCPSessionFactory::PortExtractor::extract(const bsl::string& endpoint) const
 {
     bsl::string_view result;
 
-    BSLS_ASSERT_SAFE(0 == d_regex.match(&result, endpoint));
-
-    return result.substr(1);
+    return d_regex.match(&result, endpoint) == 0 ? result.substr(1) : result;
 }
 
 }  // close package namespace
