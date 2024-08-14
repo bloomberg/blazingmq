@@ -18,12 +18,12 @@ race:std::basic_ostream<char, *>& bsl::operator<< <*>(std::basic_ostream<*>&, bs
 # it makes tsan warn in some cases
 race:BloombergLP::ball::LoggerManager::isInitialized()
 
-# Suppress sporadically appearing data race in bmqimp::Brokersession test driver.
+# Suppress sporadically appearing data race in bmqimp::BrokerSession test driver.
 # In TestSession::arriveAtStepWithCfgs() there is a call of queue->setOptions() method,
 # at nearly same time in other thread bmqimp::BrokerSession::onConfigureQueueResponse() calls
 # queue->options().suspendsOnBadHostHealth() method which is detected as data race.
 # bmqt::QueueOptions and bmqimp::Queue classes are not thread safe by design,
-# and bmqimp::BrokerSession::onConfigureQueueResponse() cllback access them in
+# and bmqimp::BrokerSession::onConfigureQueueResponse() callback access them in
 # not thread-safe manner, probably also by design, assuming that it will be called again
 # if something is changed. Further investigation is required, suppress it for now.
 race:BloombergLP::bmqt::QueueOptions::suspendsOnBadHostHealth

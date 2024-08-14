@@ -272,12 +272,6 @@ TestChannel::CloseCall TestChannel::popCloseCall()
     return result;
 }
 
-bool TestChannel::closeCallsEmpty()
-{
-    bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
-    return d_closeCalls.empty();
-}
-
 TestChannel::CloseSignaler& TestChannel::closeSignaler()
 {
     return d_closeSignaler;
@@ -297,6 +291,12 @@ const Status& TestChannel::writeStatus() const
 bool TestChannel::hasNoMoreWriteCalls() const
 {
     return d_hasNoMoreWriteCalls;
+}
+
+bool TestChannel::closeCallsEmpty() const
+{
+    bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
+    return d_closeCalls.empty();
 }
 
 }  // close package namespace

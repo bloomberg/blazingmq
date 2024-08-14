@@ -184,7 +184,7 @@ class TestChannel : public Channel {
     bsl::deque<OnWatermarkCall> d_onWatermarkCalls;
     mwct::PropertyBag           d_properties;
     bsl::string                 d_peerUri;
-    bslmt::Mutex                d_mutex;
+    mutable bslmt::Mutex        d_mutex;
     bslmt::Condition            d_condition;
     bool                        d_isFinal;
     bool                        d_hasNoMoreWriteCalls;
@@ -248,10 +248,6 @@ class TestChannel : public Channel {
     /// Pops a close-call from those written to the channel (FIFO ordering).
     CloseCall popCloseCall();
 
-    /// Lock mutex and return `true` if d_closeCalls collection is empty,
-    /// `false` otherwise.
-    bool closeCallsEmpty();
-
     CloseSignaler& closeSignaler();
 
     /// Return a reference providing modifiable access to the corresponding
@@ -261,6 +257,10 @@ class TestChannel : public Channel {
     // ACCESSORS
     const Status& writeStatus() const;
     bool          hasNoMoreWriteCalls() const;
+
+    /// Lock mutex and return `true` if d_closeCalls collection is empty,
+    /// `false` otherwise.
+    bool closeCallsEmpty() const;
 
     // Channel
     void read(Status*                   status,
