@@ -1005,7 +1005,6 @@ StatController::addChannelStatContext(ChannelSelector::Enum selector,
                                       const bsl::string&    port,
                                       const bsl::string&    endpoint)
 {
-    bsl::cout << "endpoint : " << endpoint << "\nport : " << port << bsl::endl;
     mwcst::StatContext* parent = channelsStatContext(selector);
     BSLS_ASSERT_SAFE(parent);
 
