@@ -54,6 +54,19 @@ struct JsonPrinter {
                                bool          pretty         = true,
                                int           level          = 0,
                                int           spacesPerLevel = 4);
+
+    /// Print the specified `responses` to the specified `os` at the
+    /// (absolute value of) the optionally specified indentation `level` and
+    /// return a reference to `stream`.  If `level` is specified, optionally
+    /// specify `spacesPerLevel`, the number of spaces per indentation level
+    /// for this and all of its nested objects.  If the optionally specified
+    /// 'pretty' flag is true, print json in a human-friendly format, if it is
+    /// false, print the json in a compact format.
+    static bsl::ostream& printResponses(bsl::ostream&            os,
+                                        const RouteResponseList& responseList,
+                                        bool                     pretty = true,
+                                        int                      level  = 0,
+                                        int spacesPerLevel              = 4);
 };
 
 }  // close package namespace

@@ -47,6 +47,19 @@ struct Util {
     /// specified `cmdResult` (hierarchial).  That is, convert a command
     /// result from it's internal type representation, to the public one.
     static void flatten(Result* result, const InternalResult& cmdResult);
+
+    /// Print the given `responseList` to the given output stream, `os`, using
+    /// the specified `encoding`.
+    static void
+    printCommandResponses(const mqbcmd::RouteResponseList&    responseList,
+                          const mqbcmd::EncodingFormat::Value encoding,
+                          bsl::ostream&                       os);
+
+    /// Print the given `result` to the given output stream, `os`, using the
+    /// specified `encoding`.
+    static void printCommandResult(const mqbcmd::InternalResult& result,
+                                   mqbcmd::EncodingFormat::Value encoding,
+                                   bsl::ostream&                 os);
 };
 
 }  // close package namespace

@@ -1,4 +1,4 @@
-// Copyright 2015-2023 Bloomberg Finance L.P.
+// Copyright 2015-2024 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -581,9 +581,19 @@ void Cluster::processCommandDispatched(mqbcmd::ClusterResult*        result,
         return;  // RETURN
     }
     else if (command.isForceGcQueuesValue()) {
-        d_clusterOrchestrator.queueHelper().gcExpiredQueues(true);
         // 'true' implies immediate
-        result->makeSuccess();
+        if (const int rc = d_clusterOrchestrator.queueHelper().gcExpiredQueues(
+                true)) {
+            BALL_LOG_ERROR << "Failed to execute force GC queues command (rc: "
+                           << rc << ")";
+            result->makeError().message() = "Failed to execute command (rc: " +
+                                            bsl::to_string(rc) + ")";
+        }
+        else {
+            // Otherwise the command succeeded.
+            result->makeSuccess();
+        }
+
         return;  // RETURN
     }
     else if (command.isStorageValue()) {
@@ -2511,7 +2521,8 @@ Cluster::Cluster(const bslstl::StringRef&           name,
                  BlobSpPool*                        blobSpPool,
                  bdlbb::BlobBufferFactory*          bufferFactory,
                  mqbnet::TransportManager*          transportManager,
-                 bslma::Allocator*                  allocator)
+                 bslma::Allocator*                  allocator,
+                 const mqbnet::Session::AdminCommandEnqueueCb& adminCb)
 : d_allocator_p(allocator)
 , d_allocators(d_allocator_p)
 , d_isStarted(false)
@@ -2549,6 +2560,7 @@ Cluster::Cluster(const bslstl::StringRef&           name,
 , d_queueGcSchedulerHandle()
 , d_stopRequestsManager(&d_clusterData.requestManager(), allocator)
 , d_shutdownChain(allocator)
+, d_adminCb(adminCb)
 {
     // PRECONDITIONS
     BSLS_ASSERT(d_allocator_p);
@@ -2944,6 +2956,25 @@ void Cluster::processControlMessage(
             << description() << ": unexpected clusterMessage:" << message
             << MWCTSK_ALARMLOG_END;
     } break;  // BREAK
+    case MsgChoice::SELECTION_ID_ADMIN_COMMAND: {
+        // Assume this is a rerouted command, so just execute it on the
+        // application
+        const bmqp_ctrlmsg::AdminCommand& adminCommand =
+            message.choice().adminCommand();
+        const bsl::string& cmd = adminCommand.command();
+        d_adminCb(source->hostName(),
+                  cmd,
+                  bdlf::BindUtil::bind(&Cluster::onProcessedAdminCommand,
+                                       this,
+                                       source,
+                                       message,
+                                       bdlf::PlaceHolders::_1,   // rc
+                                       bdlf::PlaceHolders::_2),  // response
+                  true);  // from reroute
+    } break;
+    case MsgChoice::SELECTION_ID_ADMIN_COMMAND_RESPONSE: {
+        requestManager().processResponse(message);
+    } break;
     case MsgChoice::SELECTION_ID_UNDEFINED:
     default: {
         MWCTSK_ALARMLOG_ALARM("CLUSTER")
@@ -3566,6 +3597,30 @@ void Cluster::onFailoverThreshold()
     MWCTSK_ALARMLOG_PANIC("CLUSTER") << os.str() << MWCTSK_ALARMLOG_END;
 }
 
+void Cluster::onProcessedAdminCommand(
+    mqbnet::ClusterNode*                source,
+    const bmqp_ctrlmsg::ControlMessage& adminCommandCtrlMsg,
+    int                                 rc,
+    const bsl::string&                  result)
+{
+    if (rc != 0) {
+        BALL_LOG_ERROR << "Error processing routed command [rc: " << rc << "] "
+                       << result;
+    }
+
+    // Regardless of rc, send the admin command response back to the source for
+    // the client to read.
+    bdlma::LocalSequentialAllocator<2048> localAllocator(d_allocator_p);
+    bmqp_ctrlmsg::ControlMessage          response(&localAllocator);
+
+    response.rId() = adminCommandCtrlMsg.rId().value();
+    response.choice().makeAdminCommandResponse();
+
+    response.choice().adminCommandResponse().text() = result;
+
+    d_clusterData.messageTransmitter().sendMessageSafe(response, source);
+}
+
 void Cluster::loadClusterStatus(mqbcmd::ClusterResult* result)
 {
     // executed by the *DISPATCHER* thread
@@ -3683,6 +3738,128 @@ void Cluster::processResponse(const bmqp_ctrlmsg::ControlMessage& response)
                              response,
                              static_cast<mqbnet::ClusterNode*>(0)),  // source
         this);
+}
+
+void Cluster::getPrimaryNodes(int*          rc,
+                              bsl::ostream& errorDescription,
+                              bsl::vector<mqbnet::ClusterNode*>* nodes,
+                              bool* isSelfPrimary) const
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(rc);
+    BSLS_ASSERT_SAFE(nodes);
+    BSLS_ASSERT_SAFE(isSelfPrimary);
+    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+
+    enum RcEnum {
+        rc_SUCCESS = 0,
+        rc_ERROR   = -1,
+    };
+
+    const mqbc::ClusterState::PartitionsInfo& partitionsInfo =
+        d_state.partitions();
+
+    nodes->clear();
+    *isSelfPrimary = false;
+
+    for (mqbc::ClusterState::PartitionsInfo::const_iterator pit =
+             partitionsInfo.begin();
+         pit != partitionsInfo.end();
+         pit++) {
+        if (pit->primaryStatus() !=
+            // TODO: Handle this case (will want to buffer)
+            bmqp_ctrlmsg::PrimaryStatus::Value::E_ACTIVE) {
+            BALL_LOG_WARN << "While collecting primary nodes: "
+                          << "primary for partition " << pit->partitionId()
+                          << " is not active";
+            errorDescription << "Primary is not active for partition id "
+                             << pit->partitionId();
+            *rc = rc_ERROR;
+            return;  // RETURN
+        }
+
+        mqbnet::ClusterNode* primary = pit->primaryNode();
+
+        if (primary) {
+            // Don't add duplicate
+            if (bsl::find(nodes->begin(), nodes->end(), primary) !=
+                nodes->end()) {
+                continue;  // CONTINUE
+            }
+            // Check for self
+            if (d_state.isSelfActivePrimary(pit->partitionId())) {
+                *isSelfPrimary = true;
+                continue;  // CONTINUE
+            }
+            nodes->push_back(primary);
+        }
+        else {
+            BALL_LOG_WARN << "Error while collecting primary nodes: No "
+                             "primary found for partition id "
+                          << pit->partitionId();
+            errorDescription << "No primary found for partition id "
+                             << pit->partitionId();
+            *rc = rc_ERROR;
+            return;  // RETURN
+        }
+    }
+
+    *rc = rc_SUCCESS;
+}
+
+void Cluster::getPartitionPrimaryNode(int*                  rc,
+                                      bsl::ostream&         errorDescription,
+                                      mqbnet::ClusterNode** node,
+                                      bool*                 isSelfPrimary,
+                                      int                   partitionId) const
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(rc);
+    BSLS_ASSERT_SAFE(node);
+    BSLS_ASSERT_SAFE(isSelfPrimary);
+    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+
+    enum RcEnum {
+        rc_SUCCESS = 0,
+        rc_ERROR   = -1,
+    };
+
+    const mqbc::ClusterState::PartitionsInfo& partitions =
+        d_state.partitions();
+
+    // Check boundary conditions for partitionId
+    if (partitionId < 0 || partitionId >= partitions.size()) {
+        errorDescription << "Invalid partition id: " << partitionId;
+        *rc = rc_ERROR;
+        return;  // RETURN
+    }
+
+    // Self is active primary
+    if (d_state.isSelfActivePrimary(partitionId)) {
+        *isSelfPrimary = true;
+        *rc            = rc_SUCCESS;
+    }
+    else if (d_state.hasActivePrimary(partitionId)) {
+        // Partition has active primary, get it and return that
+        mqbnet::ClusterNode* primary =
+            partitions.at(partitionId).primaryNode();
+        if (primary) {
+            *node = primary;
+            *rc   = rc_SUCCESS;
+        }
+        else {
+            // No primary node
+            errorDescription << "No primary node for partition id "
+                             << partitionId;
+            *rc = rc_ERROR;
+        }
+    }
+    // No active primary
+    else {
+        errorDescription << "No active primary for partition id "
+                         << partitionId;
+        *rc = rc_ERROR;
+    }
 }
 
 }  // close package namespace
