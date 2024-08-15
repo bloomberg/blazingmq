@@ -252,6 +252,8 @@ class MultiRequestManager {
 
     void sendRequest(const RequestContextSp& context,
                      bsls::TimeInterval      timeout);
+
+    void processResponse(const bmqp_ctrlmsg::ControlMessage& message);
 };
 
 // ============================================================================
@@ -485,6 +487,13 @@ void MultiRequestManager<REQUEST, RESPONSE, TARGET>::sendRequest(
         context->d_responseCb(context);
     }
 }
+
+template <class REQUEST, class RESPONSE, class TARGET>
+inline void MultiRequestManager<REQUEST, RESPONSE, TARGET>::processResponse(
+    const bmqp_ctrlmsg::ControlMessage& response)
+{
+    d_requestManager_p->processResponse(response);
+};
 
 template <class REQUEST, class RESPONSE, class TARGET>
 inline const bsl::string&

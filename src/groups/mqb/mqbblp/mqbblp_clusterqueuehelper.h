@@ -166,6 +166,7 @@ class ClusterQueueHelper : public mqbc::ClusterStateObserver,
         // State of the upstream
 
         bdlmt::EventScheduler::EventHandle d_timer;
+        // TEMPORARY, remove 'after switching to StopRequest V2
         // (timer handle 1s) when waiting for
         // unconfirmed.  This is to cancel the timer in
         // the case when this broker stops while
@@ -483,6 +484,8 @@ class ClusterQueueHelper : public mqbc::ClusterStateObserver,
 
     StopContexts d_stopContexts;
 
+    bool d_suppportShutdownV2;
+
   private:
     // PRIVATE MANIPULATORS
 
@@ -755,7 +758,8 @@ class ClusterQueueHelper : public mqbc::ClusterStateObserver,
     void notifyQueue(QueueContext*       queueContext,
                      unsigned int        upstreamSubQueueId,
                      bsls::Types::Uint64 generationCount,
-                     bool                isOpen);
+                     bool                isOpen,
+                     bool                isWriterOnly = false);
 
     void configureQueueDispatched(
         const bmqt::Uri&                                   uri,
@@ -851,6 +855,7 @@ class ClusterQueueHelper : public mqbc::ClusterStateObserver,
     void deconfigureQueue(const bsl::shared_ptr<StopContext>& contextSp,
                           const QueueContextSp&               queueContextSp);
 
+    // TEMPORARY, remove 'after switching to StopRequest V2
     /// Second step of StopRequest / CLOSING node advisory processing
     /// (after de-configure response).  Start timer to wait the configured
     /// `stopTimeoutMs` is there are any pending PUSH messages to collect
@@ -868,6 +873,7 @@ class ClusterQueueHelper : public mqbc::ClusterStateObserver,
                             unsigned int                        subId,
                             bsls::TimeInterval&                 t);
 
+    // TEMPORARY, remove 'after switching to StopRequest V2
     void checkUnconfirmed(const bsl::shared_ptr<StopContext>& contextSp,
                           const QueueContextSp&               queueContextSp,
                           unsigned int                        subId);
@@ -877,6 +883,10 @@ class ClusterQueueHelper : public mqbc::ClusterStateObserver,
         const bsl::shared_ptr<StopContext>& contextSp,
         const QueueContextSp&               queueContextSp,
         unsigned int                        subId);
+
+    void checkUnconfirmedV2Dispatched(
+        const bsls::TimeInterval&    whenToStop,
+        const bsl::function<void()>& completionCallback);
 
     void
     waitForUnconfirmedDispatched(const bsl::shared_ptr<StopContext>& contextSp,
@@ -901,6 +911,8 @@ class ClusterQueueHelper : public mqbc::ClusterStateObserver,
 
     /// Send StopResponse to the request in the specified 'context.
     void finishStopSequenceDispatched(StopContext* context);
+
+    void onDeconfiguredHandle(const bsl::shared_ptr<StopContext>& contextSp);
 
     // PRIVATE ACCESSORS
 
@@ -1079,6 +1091,13 @@ class ClusterQueueHelper : public mqbc::ClusterStateObserver,
     /// Delete and unregister all queues which have no clients.
     void processShutdownEvent();
 
+    /// Stop sending PUSHes but continue receiving CONFIRMs, receiving and
+    /// sending PUTs and ACKs.
+    void requestToStopPushing();
+
+    void checkUnconfirmedV2(const bsls::TimeInterval&    whenToStop,
+                            const bsl::function<void()>& completionCallback);
+
     /// Garbage-collect all queues which meet the criteria, and have
     /// expired.  If the optionally specified `immediate` flag is true,
     /// delete the qualified queues immediately instead of marking them for
@@ -1109,8 +1128,8 @@ class ClusterQueueHelper : public mqbc::ClusterStateObserver,
     void processNodeStoppingNotification(
         mqbnet::ClusterNode*                clusterNode,
         const bmqp_ctrlmsg::ControlMessage* request,
-        const bsl::vector<int>*             partitions = 0,
-        const VoidFunctor&                  callback   = VoidFunctor());
+        mqbc::ClusterNodeSession*           ns,
+        const VoidFunctor&                  callback = VoidFunctor());
 
     void onLeaderAvailable();
     // Called upon leader becoming available.

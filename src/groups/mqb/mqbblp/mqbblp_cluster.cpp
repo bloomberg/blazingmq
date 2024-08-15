@@ -621,7 +621,8 @@ void Cluster::processCommandDispatched(mqbcmd::ClusterResult*        result,
     result->makeError().message() = os.str();
 }
 
-void Cluster::initiateShutdownDispatched(const VoidFunctor& callback)
+void Cluster::initiateShutdownDispatched(const VoidFunctor& callback,
+                                         bool               suppportShutdownV2)
 {
     // executed by the *DISPATCHER* thread
 
@@ -632,84 +633,107 @@ void Cluster::initiateShutdownDispatched(const VoidFunctor& callback)
 
     d_isStopping = true;
 
-    // Send StopRequest to all nodes and proxies.  The peers are expected not
-    // to send any PUT msgs to this node after receiving StopRequest.  For each
-    // queue for which this node is the primary, peers (replicas and proxies)
-    // will de-configure the queue, wait for configured timeout, close the
-    // queue, and respond with StopResponse.  The peers are expected not to
-    // send any PUT/PUSH/ACK/CONFIRM msgs to this node after sending
-    // StopResponse.
-    //
-    // Call 'initiateShutdown' for all client sessions.
-    //
-    // Also update self's status.  Note that this node does not explicitly
-    // issue a close-queue request for each of the queues.
-
     d_clusterData.membership().setSelfNodeStatus(
         bmqp_ctrlmsg::NodeStatus::E_STOPPING);
 
-    mwcu::OperationChainLink link(d_shutdownChain.allocator());
-    bsls::TimeInterval       shutdownTimeout;
-    shutdownTimeout.addMilliseconds(
-        d_clusterData.clusterConfig().queueOperations().shutdownTimeoutMs());
+    if (suppportShutdownV2) {
+        d_clusterOrchestrator.queueHelper().requestToStopPushing();
 
-    SessionSpVec sessions;
-    for (mqbnet::TransportManagerIterator sessIt(
+        bsls::TimeInterval whenToStop(
+            bsls::SystemTime::now(bsls::SystemClockType::e_MONOTONIC));
+        whenToStop.addMilliseconds(d_clusterData.clusterConfig()
+                                       .queueOperations()
+                                       .shutdownTimeoutMs());
+
+        d_shutdownChain.appendInplace(
+            bdlf::BindUtil::bind(&ClusterQueueHelper::checkUnconfirmedV2,
+                                 &d_clusterOrchestrator.queueHelper(),
+                                 whenToStop,
+                                 bdlf::PlaceHolders::_1));  // completionCb
+    }
+    else {
+        // Temporary, remove after switching all to version 2
+        // Send StopRequest to all nodes and proxies.  The peers are expected
+        // not to send any PUT msgs to this node after receiving StopRequest.
+        // For each queue for which this node is the primary, peers (replicas
+        // and proxies) will de-configure the queue, wait for configured
+        // timeout, close the queue, and respond with StopResponse.  The peers
+        // are expected not to send any PUT/PUSH/ACK/CONFIRM msgs to this node
+        // after sending StopResponse.
+        //
+        // Call 'initiateShutdown' for all client sessions.
+
+        mwcu::OperationChainLink link(d_shutdownChain.allocator());
+        bsls::TimeInterval       shutdownTimeout;
+        shutdownTimeout.addMilliseconds(d_clusterData.clusterConfig()
+                                            .queueOperations()
+                                            .shutdownTimeoutMs());
+
+        SessionSpVec sessions;
+        for (mqbnet::TransportManagerIterator sessIt(
              &d_clusterData.transportManager());
-         sessIt;
-         ++sessIt) {
-        bsl::shared_ptr<mqbnet::Session> sessionSp = sessIt.session().lock();
-        if (!sessionSp) {
-            continue;  // CONTINUE
-        }
-
-        const bmqp_ctrlmsg::NegotiationMessage& negoMsg =
-            sessionSp->negotiationMessage();
-
-        const bmqp_ctrlmsg::ClientIdentity& peerIdentity =
-            negoMsg.isClientIdentityValue()
-                ? negoMsg.clientIdentity()
-                : negoMsg.brokerResponse().brokerIdentity();
-
-        if (peerIdentity.clusterNodeId() ==
-            d_clusterData.membership().netCluster()->selfNodeId()) {
-            continue;  // CONTINUE
-        }
-
-        if (mqbnet::ClusterUtil::isClient(negoMsg)) {
-            link.insert(bdlf::BindUtil::bind(
-                &mqbnet::Session::initiateShutdown,
-                sessionSp,
-                bdlf::PlaceHolders::_1,  // completion callback
-                shutdownTimeout));
-            continue;  // CONTINUE
-        }
-
-        if (peerIdentity.clusterName() == name()) {
-            // Expect all proxies and nodes support this feature.
-            if (!bmqp::ProtocolUtil::hasFeature(
-                    bmqp::HighAvailabilityFeatures::k_FIELD_NAME,
-                    bmqp::HighAvailabilityFeatures::k_GRACEFUL_SHUTDOWN,
-                    peerIdentity.features())) {
-                BALL_LOG_ERROR << description() << ": Peer doesn't support "
-                               << "GRACEFUL_SHUTDOWN. Skip sending stopRequest"
-                               << " to [" << peerIdentity << "]";
+             sessIt;
+             ++sessIt) {
+            bsl::shared_ptr<mqbnet::Session> sessionSp =
+                sessIt.session().lock();
+            if (!sessionSp) {
                 continue;  // CONTINUE
             }
-            sessions.push_back(sessionSp);
+
+            const bmqp_ctrlmsg::NegotiationMessage& negoMsg =
+                sessionSp->negotiationMessage();
+
+            const bmqp_ctrlmsg::ClientIdentity& peerIdentity =
+                negoMsg.isClientIdentityValue()
+                    ? negoMsg.clientIdentity()
+                    : negoMsg.brokerResponse().brokerIdentity();
+
+            if (peerIdentity.clusterNodeId() ==
+                d_clusterData.membership().netCluster()->selfNodeId()) {
+                continue;  // CONTINUE
+            }
+
+            if (mqbnet::ClusterUtil::isClient(negoMsg)) {
+                //            if (!d_suppportShutdownV2) {
+                link.insert(bdlf::BindUtil::bind(
+                    &mqbnet::Session::initiateShutdown,
+                    sessionSp,
+                    bdlf::PlaceHolders::_1,  // completion callback
+                    shutdownTimeout,
+                    false));
+                //            }
+                // else there is no need to de-confgiure queues and wait for
+                // unconfirmed since V2 upstreams do that on StopRequest V2
+                continue;  // CONTINUE
+            }
+
+            if (peerIdentity.clusterName() == name()) {
+                // Expect all proxies and nodes support this feature.
+                if (!bmqp::ProtocolUtil::hasFeature(
+                        bmqp::HighAvailabilityFeatures::k_FIELD_NAME,
+                        bmqp::HighAvailabilityFeatures::k_GRACEFUL_SHUTDOWN,
+                        peerIdentity.features())) {
+                    BALL_LOG_ERROR
+                        << description() << ": Peer doesn't support "
+                        << "GRACEFUL_SHUTDOWN. Skip sending stopRequest"
+                        << " to [" << peerIdentity << "]";
+                    continue;  // CONTINUE
+                }
+                sessions.push_back(sessionSp);
+            }
         }
+
+        link.insert(bdlf::BindUtil::bind(
+            &Cluster::sendStopRequest,
+            this,
+            sessions,
+            bdlf::PlaceHolders::_1));  // completion callback
+
+        d_shutdownChain.append(&link);
     }
 
-    link.insert(
-        bdlf::BindUtil::bind(&Cluster::sendStopRequest,
-                             this,
-                             sessions,
-                             bdlf::PlaceHolders::_1));  // completion callback
-
-    d_shutdownChain.append(&link);
-
-    // Add callback to be invoked once all the client sessions are shut down
-    // and stop responses are received
+    // Also update self's status.  Note that this node does not explicitly
+    // issue a close-queue request for each of the queues.
 
     d_shutdownChain.appendInplace(
         bdlf::BindUtil::bind(&Cluster::continueShutdown,
@@ -727,7 +751,7 @@ void Cluster::sendStopRequest(const SessionSpVec&                  sessions,
     // Send a StopRequest to available cluster nodes and proxies connected to
     // the cluster
     StopRequestManagerType::RequestContextSp contextSp =
-        d_stopRequestsManager.createRequestContext();
+        d_stopRequestsManager_p->createRequestContext();
     bmqp_ctrlmsg::StopRequest& request = contextSp->request()
                                              .choice()
                                              .makeClusterMessage()
@@ -746,7 +770,7 @@ void Cluster::sendStopRequest(const SessionSpVec&                  sessions,
     BALL_LOG_INFO << "Sending StopRequest to " << sessions.size()
                   << " brokers; timeout is " << timeoutMs;
 
-    d_stopRequestsManager.sendRequest(contextSp, timeoutMs);
+    d_stopRequestsManager_p->sendRequest(contextSp, timeoutMs);
 
     // continue after receipt of all StopResponses or the timeout
 }
@@ -2520,6 +2544,7 @@ Cluster::Cluster(const bslstl::StringRef&           name,
                  BlobSpPool*                        blobSpPool,
                  bdlbb::BlobBufferFactory*          bufferFactory,
                  mqbnet::TransportManager*          transportManager,
+                 StopRequestManagerType*            stopRequestsManager,
                  bslma::Allocator*                  allocator,
                  const mqbnet::Session::AdminCommandEnqueueCb& adminCb)
 : d_allocator_p(allocator)
@@ -2557,7 +2582,7 @@ Cluster::Cluster(const bslstl::StringRef&           name,
 , d_throttledDroppedPushMessages(5000, 5)     // 5 logs per 5s interval
 , d_logSummarySchedulerHandle()
 , d_queueGcSchedulerHandle()
-, d_stopRequestsManager(&d_clusterData.requestManager(), allocator)
+, d_stopRequestsManager_p(stopRequestsManager)
 , d_shutdownChain(allocator)
 , d_adminCb(adminCb)
 {
@@ -2670,7 +2695,8 @@ int Cluster::start(bsl::ostream& errorDescription)
     return rc;
 }
 
-void Cluster::initiateShutdown(const VoidFunctor& callback)
+void Cluster::initiateShutdown(const VoidFunctor& callback,
+                               bool               suppportShutdownV2)
 {
     // executed by *ANY* thread
 
@@ -2682,7 +2708,8 @@ void Cluster::initiateShutdown(const VoidFunctor& callback)
     dispatcher()->execute(
         bdlf::BindUtil::bind(&Cluster::initiateShutdownDispatched,
                              this,
-                             callback),
+                             callback,
+                             suppportShutdownV2),
         this);
 
     // Wait for above event to complete.  This is needed because
@@ -3030,8 +3057,7 @@ void Cluster::processClusterControlMessage(
     case MsgChoice::SELECTION_ID_STORAGE_SYNC_RESPONSE:
     case MsgChoice::SELECTION_ID_PARTITION_SYNC_STATE_QUERY_RESPONSE:
     case MsgChoice::SELECTION_ID_PARTITION_SYNC_DATA_QUERY_RESPONSE:
-    case MsgChoice::SELECTION_ID_CLUSTER_SYNC_RESPONSE:
-    case MsgChoice::SELECTION_ID_STOP_RESPONSE: {
+    case MsgChoice::SELECTION_ID_CLUSTER_SYNC_RESPONSE: {
         // NOTE: that we cant simply just check if the msg has an id, because
         //       in cluster, it can receive requests which will have an id; so
         //       only messages that are response type should be sent to the
@@ -3047,6 +3073,11 @@ void Cluster::processClusterControlMessage(
                                  source),
             this);
     } break;  // BREAK
+
+    case MsgChoice::SELECTION_ID_STOP_RESPONSE: {
+        BALL_LOG_INFO << description() << ": processStopResponse: " << message;
+        d_stopRequestsManager_p->processResponse(message);
+    } break;
     case MsgChoice::SELECTION_ID_PARTITION_PRIMARY_ADVISORY: {
         dispatcher()->execute(
             bdlf::BindUtil::bind(

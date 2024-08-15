@@ -264,7 +264,8 @@ class AdminSession : public mqbnet::Session, public mqbi::DispatcherClient {
     /// if the specified `timeout` is expired.
     void
     initiateShutdown(const ShutdownCb&         callback,
-                     const bsls::TimeInterval& timeout) BSLS_KEYWORD_OVERRIDE;
+                     const bsls::TimeInterval& timeout,
+                     bool suppportShutdownV2 = false) BSLS_KEYWORD_OVERRIDE;
 
     /// Make the session abandon any work it has.
     void invalidate() BSLS_KEYWORD_OVERRIDE;

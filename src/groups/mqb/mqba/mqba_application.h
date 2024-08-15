@@ -169,6 +169,10 @@ class Application {
     /// Pendant operation of the `oneTimeInit` one.
     void oneTimeShutdown();
 
+    /// Attempt to execute shutdown logic v2.  Return 'true' if all nodes and
+    /// proxies support it.
+    bool initiateShutdown();
+
   private:
     // NOT IMPLEMENTED
     Application(const Application& other) BSLS_CPP11_DELETED;

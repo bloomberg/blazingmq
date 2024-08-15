@@ -803,6 +803,10 @@ class Queue : public DispatcherClient {
     /// `specified `subId'.
     virtual bsls::Types::Int64 countUnconfirmed(unsigned int subId) = 0;
 
+    /// Stop sending PUSHes but continue receiving CONFIRMs, receiving and
+    /// sending PUTs and ACKs.
+    virtual void stopPushing() = 0;
+
     /// Called when a message with the specified `msgGUID`, `appData`,
     /// `options`, `compressionAlgorithmType` payload is pushed to this
     /// queue.  Note that depending upon the location of the queue instance,
@@ -855,7 +859,8 @@ class Queue : public DispatcherClient {
     ///
     /// THREAD: This method is called from the Queue's dispatcher thread.
     virtual void onOpenUpstream(bsls::Types::Uint64 genCount,
-                                unsigned int        upstreamSubQueueId) = 0;
+                                unsigned int        upstreamSubQueueId,
+                                bool                isWriterOnly = false) = 0;
 
     /// Notify the (remote) queue about (re)open failure.  The queue NACKs
     /// all pending and incoming PUTs and drops CONFIRMs related to to the

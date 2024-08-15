@@ -255,6 +255,10 @@ class RemoteQueue {
 
     StateSpPool* d_statePool_p;
 
+    SubStreamContext d_producerState;
+    // To discern consumer and producer which share the same
+    // `k_DEFAULT_SUBQUEUE_ID` in the priority mode.
+
     bslma::Allocator* d_allocator_p;
     // Allocator to use
   private:
@@ -457,7 +461,8 @@ class RemoteQueue {
     ///
     /// THREAD: This method is called from the Queue's dispatcher thread.
     void onOpenUpstream(bsls::Types::Uint64 genCount,
-                        unsigned int        upstreamSubQueueId);
+                        unsigned int        upstreamSubQueueId,
+                        bool                isWriterOnly = false);
 
     /// Notify the (remote) queue about reopen failure.  The queue NACKs all
     /// pending and incoming PUTs and drops CONFIRMs related to to the

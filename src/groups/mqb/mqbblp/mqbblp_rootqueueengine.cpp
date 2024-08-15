@@ -425,10 +425,18 @@ int RootQueueEngine::initializeAppId(const bsl::string& appId,
     return 0;
 }
 
-void RootQueueEngine::resetState()
+void RootQueueEngine::resetState(bool keepConfirming)
 {
+    for (Apps::iterator it = d_apps.begin(); it != d_apps.end(); ++it) {
+        it->value()->reset();
+        it->value()->d_routing_sp->reset();
+    }
+
     d_consumptionMonitor.reset();
-    d_apps.clear();
+
+    if (!keepConfirming) {
+        d_apps.clear();
+    }
 }
 
 void RootQueueEngine::rebuildSelectedApp(

@@ -133,7 +133,9 @@ void loadBrokerIdentity(bmqp_ctrlmsg::ClientIdentity* identity,
         .append(";")
         .append(bmqp::HighAvailabilityFeatures::k_FIELD_NAME)
         .append(":")
-        .append(bmqp::HighAvailabilityFeatures::k_GRACEFUL_SHUTDOWN);
+        .append(bmqp::HighAvailabilityFeatures::k_GRACEFUL_SHUTDOWN)
+        .append(",")
+        .append(bmqp::HighAvailabilityFeatures::k_GRACEFUL_SHUTDOWN_V2);
 
     if (shouldBroadcastToProxies) {
         features.append(",").append(

@@ -849,15 +849,6 @@ void ClusterOrchestrator::processStopRequest(
         request.choice().clusterMessage().choice().stopRequest();
     const bsl::string& name = d_cluster_p->name();
 
-    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(stopRequest.clusterName() !=
-                                              name)) {
-        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        BALL_LOG_ERROR << d_clusterData_p->identity().description()
-                       << ": invalid cluster name in the StopRequest from "
-                       << source->nodeDescription() << ", " << request;
-        return;  // RETURN
-    }
-
     mqbc::ClusterNodeSession* ns =
         d_clusterData_p->membership().getClusterNodeSession(source);
     BSLS_ASSERT_SAFE(ns);
@@ -888,6 +879,15 @@ void ClusterOrchestrator::processStopRequest(
                   << source->nodeDescription()
                   << ", current status: " << ns->nodeStatus()
                   << ", new status: " << bmqp_ctrlmsg::NodeStatus::E_STOPPING;
+
+    // Temporary, remove after switching all to version 2
+    if (stopRequest.version() == 1 && stopRequest.clusterName() != name) {
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+        BALL_LOG_ERROR << d_clusterData_p->identity().description()
+                       << ": invalid cluster name in the StopRequest from "
+                       << source->nodeDescription() << ", " << request;
+        return;  // RETURN
+    }
 
     ns->setNodeStatus(bmqp_ctrlmsg::NodeStatus::E_STOPPING);
 
@@ -1025,7 +1025,7 @@ void ClusterOrchestrator::processNodeStoppingNotification(
 
     d_queueHelper.processNodeStoppingNotification(ns->clusterNode(),
                                                   request,
-                                                  &ns->primaryPartitions());
+                                                  ns);
 
     // For each partition for which self is primary, notify the StorageMgr
     // about the status of a peer node.  Self may end up issuing a

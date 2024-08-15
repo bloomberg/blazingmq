@@ -47,6 +47,7 @@
 #include <mwcst_statcontext.h>
 #include <mwcsys_time.h>
 #include <mwcu_memoutstream.h>
+#include <mwcu_operationchain.h>
 
 // BDE
 #include <baljsn_encoder.h>
@@ -76,6 +77,7 @@ namespace mqba {
 namespace {
 const int k_BLOBBUFFER_SIZE           = 4 * 1024;
 const int k_BLOB_POOL_GROWTH_STRATEGY = 1024;
+const bsls::Types::Int64 k_STOP_REQUEST_TIMEOUT_MS   = 5000;
 
 /// Create a new blob at the specified `arena` address, using the specified
 /// `bufferFactory` and `allocator`.
@@ -461,6 +463,16 @@ void Application::stop()
     d_transportManager_mp->initiateShutdown();
     BALL_LOG_INFO << "Stopped listening for new connections.";
 
+    bool suppportShutdownV2 = initiateShutdown();
+
+    if (suppportShutdownV2) {
+        BALL_LOG_INFO << ": Executing GRACEFUL_SHUTDOWN_V2";
+    }
+    else {
+        BALL_LOG_INFO << ": Peers do not support "
+                      << "GRACEFUL_SHUTDOWN_V2. Retreat to V1";
+    }
+
     // For each cluster in cluster catalog, inform peers about this shutdown.
     int          count = d_clusterCatalog_mp->count();
     bslmt::Latch latch(count);
@@ -471,7 +483,8 @@ void Application::stop()
          count > 0;
          ++clusterIt, --count) {
         clusterIt.cluster()->initiateShutdown(
-            bdlf::BindUtil::bind(&bslmt::Latch::arrive, &latch));
+            bdlf::BindUtil::bind(&bslmt::Latch::arrive, &latch),
+            suppportShutdownV2);
     }
     latch.wait();
 
@@ -491,19 +504,15 @@ void Application::stop()
 
     // STOP everything.
 
-    // Note that we must do an out of order stop/destroy with respect to the
-    // 'DomainManager' and 'ClusterCatalog' because it appears that the domain
-    // manager contains objects that are held and owned by 'ClusterCatalog', so
-    // it is believed that the relationship is not properly done.
-    //
     // Note that clusterCatalog must be stopped before transport manager
     // because transportManager.stop() blocks until all sessions have been
     // destroyed, and above code proactively closes only the clientOrProxy
     // sessions; clusterNode ones are being destroyed by the clusterCatalog
     // calling stop on each cluster.
-    STOP_OBJ(d_domainManager_mp, "DomainManager");
+
     STOP_OBJ(d_clusterCatalog_mp, "ClusterCatalog");
     STOP_OBJ(d_transportManager_mp, "TransportManager");
+    STOP_OBJ(d_domainManager_mp, "DomainManager");
     STOP_OBJ(d_dispatcher_mp, "Dispatcher");
     STOP_OBJ(d_configProvider_mp, "ConfigProvider");
     STOP_OBJ(d_statController_mp, "StatController");
@@ -522,6 +531,111 @@ void Application::stop()
 
 #undef DESTROY_OBJ
 #undef STOP_OBJ
+}
+
+bool Application::initiateShutdown()
+{
+    typedef bsl::vector<bsl::shared_ptr<mqbnet::Session> > Sessions;
+
+    // Send a StopRequest to all connected cluster nodes and brokers
+    Sessions brokers(d_allocator_p);
+    Sessions clients(d_allocator_p);
+
+    for (mqbnet::TransportManagerIterator sessIt(d_transportManager_mp.get());
+         sessIt;
+         ++sessIt) {
+        bsl::shared_ptr<mqbnet::Session> sessionSp = sessIt.session().lock();
+        if (!sessionSp) {
+            continue;  // CONTINUE
+        }
+
+        const bmqp_ctrlmsg::NegotiationMessage& negoMsg =
+            sessionSp->negotiationMessage();
+
+        const bmqp_ctrlmsg::ClientIdentity& peerIdentity =
+            negoMsg.isClientIdentityValue()
+                ? negoMsg.clientIdentity()
+                : negoMsg.brokerResponse().brokerIdentity();
+
+        bool isBroker = false;
+        if (mqbnet::ClusterUtil::isClientOrProxy(negoMsg)) {
+            clients.push_back(sessionSp);
+            if (!negoMsg.clientIdentity().clusterName().empty()) {
+                isBroker = true;
+            }
+        }
+        else {
+            isBroker = true;
+        }
+        if (isBroker) {
+            // Node or Proxy
+            // Expect all proxies and nodes support this feature.
+            if (!bmqp::ProtocolUtil::hasFeature(
+                    bmqp::HighAvailabilityFeatures::k_FIELD_NAME,
+                    bmqp::HighAvailabilityFeatures::k_GRACEFUL_SHUTDOWN,
+                    peerIdentity.features())) {
+                BALL_LOG_ERROR << ": Peer doesn't support "
+                               << "GRACEFUL_SHUTDOWN. Skip sending stopRequest"
+                               << " to [" << peerIdentity << "]";
+                continue;  // CONTINUE
+            }
+            if (!bmqp::ProtocolUtil::hasFeature(
+                    bmqp::HighAvailabilityFeatures::k_FIELD_NAME,
+                    bmqp::HighAvailabilityFeatures::k_GRACEFUL_SHUTDOWN_V2,
+                    peerIdentity.features())) {
+                // Abandon the attempt to shutdown V2
+                return false;  // RETURN
+            }
+            brokers.push_back(sessionSp);
+        }
+    }
+
+    bslmt::Latch latch(clients.size() + 1);
+    // The 'StopRequestManagerType::sendRequest' always calls 'd_responseCb'.
+
+    mqbblp::ClusterCatalog::StopRequestManagerType::RequestContextSp
+        contextSp =
+            d_clusterCatalog_mp->stopRequestManger().createRequestContext();
+
+    bmqp_ctrlmsg::StopRequest& request = contextSp->request()
+                                             .choice()
+                                             .makeClusterMessage()
+                                             .choice()
+                                             .makeStopRequest();
+
+    request.version() = 2;
+
+    bsls::TimeInterval shutdownTimeout;
+
+    shutdownTimeout.setTotalMilliseconds(k_STOP_REQUEST_TIMEOUT_MS);
+
+    contextSp->setDestinationNodes(brokers);
+
+    contextSp->setResponseCb(
+        bdlf::BindUtil::bind(&bslmt::Latch::arrive, &latch));
+
+    BALL_LOG_INFO << "Sending StopRequest V2 to " << brokers.size()
+                  << " brokers; timeout is " << shutdownTimeout << " ms";
+
+    d_clusterCatalog_mp->stopRequestManger().sendRequest(contextSp,
+                                                         shutdownTimeout);
+
+    BALL_LOG_INFO << "Shutting down " << clients.size()
+                  << " clients; timeout is " << shutdownTimeout << " ms";
+
+    for (Sessions::const_iterator cit = clients.begin(); cit != clients.end();
+         ++cit) {
+        (*cit)->initiateShutdown(bdlf::BindUtil::bind(&bslmt::Latch::arrive,
+                                                      &latch),
+                                 shutdownTimeout,
+                                 true);
+    }
+
+    // Need to wait for peers to update this node status to guarantee no new
+    // clusters.
+    latch.wait();
+
+    return true;
 }
 
 mqbi::Cluster*

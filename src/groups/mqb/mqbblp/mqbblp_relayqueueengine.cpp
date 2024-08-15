@@ -909,15 +909,17 @@ int RelayQueueEngine::configure(
     return 0;
 }
 
-void RelayQueueEngine::resetState()
+void RelayQueueEngine::resetState(bool keepConfirming)
 {
-    d_self.reset(this);
+    // d_self.reset(this);
 
     for (AppsMap::iterator it = d_apps.begin(); it != d_apps.end(); ++it) {
         it->second->reset();
-        it->second->d_routing_sp.reset();
+        // Keep the routing which new engine can reuse
     }
-    d_apps.clear();
+    if (!keepConfirming) {
+        d_apps.clear();
+    }
 }
 
 int RelayQueueEngine::rebuildInternalState(

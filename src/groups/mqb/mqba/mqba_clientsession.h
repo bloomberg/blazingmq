@@ -273,7 +273,10 @@ class ClientSession : public mqbnet::Session,
     enum OperationState {
         e_RUNNING  // Running normally
         ,
+        // TEMPORARY, remove 'after switching to StopRequest V2
         e_SHUTTING_DOWN  // Shutting down due to 'initiateShutdown' request
+        ,
+        e_SHUTTING_DOWN_V2  // Shutting down due to 'initiateShutdown' request
         ,
         e_DISCONNECTING  // Disconnecting due to the client disconnect request
         ,
@@ -294,6 +297,8 @@ class ClientSession : public mqbnet::Session,
         // CREATORS
         ShutdownContext(const ShutdownCb&         callback,
                         const bsls::TimeInterval& timeout);
+
+        ShutdownContext(const ShutdownCb& callback);
 
         ~ShutdownContext();
     };
@@ -423,6 +428,7 @@ class ClientSession : public mqbnet::Session,
     /// guarantee strict serialization of events when sending a control
     /// message.
     void sendPacket(const bdlbb::Blob& blob, bool flushBuilders);
+    void sendPacketDispatched(const bdlbb::Blob& blob, bool flushBuilders);
 
     /// Flush as much as possible of the content of the internal
     /// `channelBufferQueue`.
@@ -476,9 +482,12 @@ class ClientSession : public mqbnet::Session,
     /// `callback` upon completion of (asynchronous) shutdown sequence or
     /// if the specified `timeout` is expired.
     void initiateShutdownDispatched(const ShutdownCb&         callback,
-                                    const bsls::TimeInterval& timeout);
+                                    const bsls::TimeInterval& timeout,
+                                    bool suppportShutdownV2);
 
     void invalidateDispatched();
+
+    void deconfigureAndWait(ShutdownContextSp& context);
 
     void checkUnconfirmed(const ShutdownContextSp& shutdownCtx,
                           const VoidFunctor&       completionCb);
@@ -516,6 +525,12 @@ class ClientSession : public mqbnet::Session,
     void countUnconfirmedDispatched(mqbi::QueueHandle*       handle,
                                     const ShutdownContextSp& shutdownCtx,
                                     const VoidFunctor&       completionCb);
+
+    void processClusterMessage(const bmqp_ctrlmsg::ControlMessage& message);
+    void processStopRequest(ShutdownContextSp& context);
+    void onDeconfiguredHandle(const ShutdownContextSp& contextSp);
+
+    int dropAllQueueHandles(bool doDeconfigure, bool hasLostClient);
 
     void processDisconnect(const bmqp_ctrlmsg::ControlMessage& controlMessage);
 
@@ -616,6 +631,8 @@ class ClientSession : public mqbnet::Session,
     /// Return true if the session is `e_DISCONNECTED` or worse (`e_DEAD`).
     bool isDisconnected() const;
 
+    bool isProxy() const;
+
   public:
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(ClientSession, bslma::UsesBslmaAllocator)
@@ -669,11 +686,15 @@ class ClientSession : public mqbnet::Session,
 
     /// Initiate the shutdown of the session and invoke the specified
     /// `callback` upon completion of (asynchronous) shutdown sequence or
-    /// if the specified `timeout` is expired.
+    /// if the specified `timeout` is expired.  If the optional (temporary)
+    /// specified 'suppportShutdownV2' is 'true' execute shutdown logic V2
+    /// where upstream (not downstream) nodes deconfigure  queues and the
+    /// shutting down node (not downstream) waits for CONFIRMS.
     /// The shutdown is complete when 'tearDownAllQueuesDone'.
     void
     initiateShutdown(const ShutdownCb&         callback,
-                     const bsls::TimeInterval& timeout) BSLS_KEYWORD_OVERRIDE;
+                     const bsls::TimeInterval& timeout,
+                     bool suppportShutdownV2 = false) BSLS_KEYWORD_OVERRIDE;
 
     /// Make the session abandon any work it has.
     void invalidate() BSLS_KEYWORD_OVERRIDE;
@@ -782,6 +803,15 @@ inline ClientSession::ShutdownContext::ShutdownContext(
     d_stopTime += timeout;
 }
 
+inline ClientSession::ShutdownContext::ShutdownContext(
+    const ShutdownCb& callback)
+: d_callback(callback)
+, d_stopTime()              // unused in V2
+, d_numUnconfirmedTotal(0)  // unused in V2
+{
+    BSLS_ASSERT_SAFE(d_callback);
+}
+
 inline ClientSession::ShutdownContext::~ShutdownContext()
 {
     // Assume 'd_callback' does not require specific thread
@@ -798,6 +828,12 @@ inline ClientSession::ShutdownContext::~ShutdownContext()
 inline bool ClientSession::isDisconnected() const
 {
     return d_operationState == e_DISCONNECTED || d_operationState == e_DEAD;
+}
+
+inline bool ClientSession::isProxy() const
+{
+    return d_clientIdentity_p->clientType() ==
+           bmqp_ctrlmsg::ClientType::E_TCPBROKER;
 }
 
 inline bsl::shared_ptr<mwcio::Channel> ClientSession::channel() const

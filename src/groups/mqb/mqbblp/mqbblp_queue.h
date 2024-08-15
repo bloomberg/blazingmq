@@ -265,6 +265,10 @@ class Queue BSLS_CPP11_FINAL : public mqbi::Queue {
     bsls::Types::Int64
     countUnconfirmed(unsigned int subId) BSLS_KEYWORD_OVERRIDE;
 
+    /// Stop sending PUSHes but continue receiving CONFIRMs, receiving and
+    /// sending PUTs and ACKs.
+    void stopPushing() BSLS_KEYWORD_OVERRIDE;
+
     void onPushMessage(
         const bmqt::MessageGUID&             msgGUID,
         const bsl::shared_ptr<bdlbb::Blob>&  appData,
@@ -314,7 +318,8 @@ class Queue BSLS_CPP11_FINAL : public mqbi::Queue {
     ///
     /// THREAD: This method is called from the Queue's dispatcher thread.
     void onOpenUpstream(bsls::Types::Uint64 genCount,
-                        unsigned int upstreamSubQueueId) BSLS_KEYWORD_OVERRIDE;
+                        unsigned int        upstreamSubQueueId,
+                        bool isWriterOnly = false) BSLS_KEYWORD_OVERRIDE;
 
     /// Notify the (remote) queue about reopen failure.  The queue NACKs all
     /// pending and incoming PUTs and drops CONFIRMs related to to the

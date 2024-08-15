@@ -74,8 +74,10 @@ class QueueEngine {
     /// otherwise and populate the specified `errorDescription`.
     virtual int configure(bsl::ostream& errorDescription) = 0;
 
-    /// Reset the internal state of this engine.
-    virtual void resetState() = 0;
+    /// Reset the internal state of this engine.  If the optionally specified
+    /// 'keepConfirming' is 'true', keep the data structures for CONFIRMs
+    /// processing.
+    virtual void resetState(bool keepConfirming = false) = 0;
 
     /// Rebuild the internal state of this engine.  This method is invoked
     /// when the queue this engine is associated with is created from an

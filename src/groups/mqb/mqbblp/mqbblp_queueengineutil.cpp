@@ -875,8 +875,10 @@ QueueEngineUtil_AppState::QueueEngineUtil_AppState(
 QueueEngineUtil_AppState::~QueueEngineUtil_AppState()
 {
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(!hasConsumers());
     BSLS_ASSERT_SAFE(!d_throttleEventHandle);
+
+    // In the case of `convertToLocal`, the new `RootQueueEngine` can reuse the
+    // existing `RelayQueueEngine` routing contexts.
 }
 
 size_t

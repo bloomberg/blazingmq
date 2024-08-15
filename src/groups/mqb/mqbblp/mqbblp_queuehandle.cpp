@@ -659,7 +659,7 @@ void QueueHandle::registerSubscription(unsigned int downstreamSubId,
     // Ceil the limits values, so that if max redeliveries is 1, it will
     // compute ok
     const bsls::Types::Int64 lowWatermarkBytes =
-        static_cast<const bsls::Types::Int64>(
+        static_cast<bsls::Types::Int64>(
             bsl::ceil(ci.maxUnconfirmedBytes() * k_WATERMARK_RATIO));
 
     // We only care about whether we are at or above the `capacity`

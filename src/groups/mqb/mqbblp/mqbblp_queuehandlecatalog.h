@@ -30,9 +30,9 @@
 // must be executed by the dispatcher thread of the associated queue.
 
 // MQB
-
 #include <mqbi_queue.h>
 #include <mqbi_storage.h>
+#include <mqbu_resourceusagemonitor.h>
 
 // BMQ
 #include <bmqp_ctrlmsg_messages.h>
@@ -170,7 +170,8 @@ class QueueHandleCatalog {
     // CREATOR
 
     /// Create a new object associated to the specified `queue`.  Use the
-    /// specified `allocator` for any memory allocations.
+    /// specified `allocator` for any memory allocations.  Use the specified
+    /// 'counter' to aggregate the counting of  unconfirmed by each handle.
     QueueHandleCatalog(mqbi::Queue* queue, bslma::Allocator* allocator);
 
     /// Destructor.
@@ -240,6 +241,8 @@ class QueueHandleCatalog {
     /// Load into the specified `out` list the internal details about the
     /// handles managed by this catalog.
     void loadInternals(bsl::vector<mqbcmd::QueueHandle>* out) const;
+
+    bsls::Types::Int64 countUnconfirmed() const;
 };
 
 // ============================================================================

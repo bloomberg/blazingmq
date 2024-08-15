@@ -370,10 +370,21 @@ void ClientSession::sendErrorResponse(
                   << " failure response: " << response;
 
     // Send the response
-    sendPacket(d_state.d_schemaEventBuilder.blob(), true);
+    sendPacketDispatched(d_state.d_schemaEventBuilder.blob(), true);
 }
 
 void ClientSession::sendPacket(const bdlbb::Blob& blob, bool flushBuilders)
+{
+    dispatcher()->execute(
+        bdlf::BindUtil::bind(&ClientSession::sendPacketDispatched,
+                             this,
+                             blob,
+                             flushBuilders),
+        this);
+}
+
+void ClientSession::sendPacketDispatched(const bdlbb::Blob& blob,
+                                         bool               flushBuilders)
 {
     // executed by the *CLIENT* dispatcher thread
 
@@ -620,12 +631,6 @@ void ClientSession::tearDownImpl(bslmt::Semaphore*            semaphore,
         return;  // RETURN
     }
 
-    // Set up the 'd_operationState' to indicate that the channel is dying and
-    // we should not use it anymore trying to send any messages and should also
-    // stop enqueuing 'callbacks' to the client dispatcher thread ...
-    const bool doDeconfigure = d_operationState == e_RUNNING;
-    d_operationState         = e_DEAD;
-
     // If stop request handling is in progress cancel checking for the
     // unconfirmed messages.
     if (d_periodicUnconfirmedCheckHandler) {
@@ -656,36 +661,31 @@ void ClientSession::tearDownImpl(bslmt::Semaphore*            semaphore,
     // closeQueue request is in process in the queue thread, so the handle is
     // still active at the time tearDown is processed).
 
-    int numHandlesDropped = 0;
-    for (QueueStateMapIter it = d_queueSessionManager.queues().begin();
-         it != d_queueSessionManager.queues().end();
-         ++it) {
-        if (!it->second.d_hasReceivedFinalCloseQueue) {
-            BSLS_ASSERT_SAFE(it->second.d_handle_p->queue());
+    const bool hasLostTheClient = (!isBrokerShutdown && !isProxy());
 
-            if (isBrokerShutdown ||
-                d_clientIdentity_p->clientType() ==
-                    bmqp_ctrlmsg::ClientType::E_TCPBROKER) {
-                it->second.d_handle_p->clearClient(false);
-            }
-            else {
-                it->second.d_handle_p->clearClient(true);
-            }
+    //    if (d_operationState == e_SHUTTING_DOWN_V2) {
+    //        // Leave over queues and handles
+    //    }
+    //    else {
+    // Set up the 'd_operationState' to indicate that the channel is dying and
+    // we should not use it anymore trying to send any messages and should also
+    // stop enqueuing 'callbacks' to the client dispatcher thread ...
+    const bool doDeconfigure = d_operationState == e_RUNNING;
 
-            it->second.d_handle_p->drop(doDeconfigure);
-            it->second.d_handle_p                   = 0;
-            it->second.d_hasReceivedFinalCloseQueue = true;
-            ++numHandlesDropped;
-        }
-    }
+    int numHandlesDropped = dropAllQueueHandles(doDeconfigure,
+                                                hasLostTheClient);
+    BALL_LOG_INFO << description() << ": Dropped " << numHandlesDropped
+                  << " queue handles.";
+    //    }
+    // Set up the 'd_operationState' to indicate that the channel is dying and
+    // we should not use it anymore trying to send any messages and should also
+    // stop enqueuing 'callbacks' to the client dispatcher thread ...
+    d_operationState = e_DEAD;
 
     // Invalidating 'd_queueSessionManager' _after_ calling 'clearClient',
     // otherwise handle can get destructed because of
     // 'QueueSessionManager::onHandleReleased' early exit.
     d_queueSessionManager.tearDown();
-
-    BALL_LOG_INFO << description() << ": Dropped " << numHandlesDropped
-                  << " queue handles.";
 
     // Now that we enqueued a 'drop' for all applicable queue handles, we need
     // to synchronize on all queues, to make sure this drop event has been
@@ -839,14 +839,15 @@ void ClientSession::onHandleConfiguredDispatched(
                   << " for request: " << streamParamsCtrlMsg;
 
     // Send the response
-    sendPacket(d_state.d_schemaEventBuilder.blob(), true);
+    sendPacketDispatched(d_state.d_schemaEventBuilder.blob(), true);
 
     logOperationTime(d_currentOpDescription);
 }
 
 void ClientSession::initiateShutdownDispatched(
     const ShutdownCb&         callback,
-    const bsls::TimeInterval& timeout)
+    const bsls::TimeInterval& timeout,
+    bool                      suppportShutdownV2)
 {
     // executed by the *CLIENT* dispatcher thread
 
@@ -862,7 +863,14 @@ void ClientSession::initiateShutdownDispatched(
         callback();
         return;  // RETURN
     }
+
     if (d_operationState == e_SHUTTING_DOWN) {
+        // More than one cluster calls 'initiateShutdown'?
+        callback();
+        return;  // RETURN
+    }
+
+    if (d_operationState == e_SHUTTING_DOWN_V2) {
         // More than one cluster calls 'initiateShutdown'?
         callback();
         return;  // RETURN
@@ -870,7 +878,7 @@ void ClientSession::initiateShutdownDispatched(
 
     flush();  // Flush any pending messages
 
-    // Wait for tearDown.
+    // 'tearDown' should invoke the 'callback'
     d_shutdownCallback = callback;
 
     if (d_operationState == e_DISCONNECTING) {
@@ -881,8 +889,36 @@ void ClientSession::initiateShutdownDispatched(
         return;  // RETURN
     }
 
-    // Wait for unconfirmed messages.
-    // Wait for tearDown.
+    if (suppportShutdownV2) {
+        d_operationState = e_SHUTTING_DOWN_V2;
+        d_queueSessionManager.shutDown();
+
+        callback();
+    }
+    else {
+        // After de-configuring (below), wait for unconfirmed messages.
+        // Once the wait for unconfirmed is over, close the channel
+
+        ShutdownContextSp context;
+        context.createInplace(
+            d_state.d_allocator_p,
+            bdlf::BindUtil::bind(&ClientSession::closeChannel, this),
+            timeout);
+
+        deconfigureAndWait(context);
+    }
+}
+
+void ClientSession::deconfigureAndWait(ShutdownContextSp& context)
+{
+    // executed by the *CLIENT* dispatcher thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(context);
+
+    // Use the same 'e_SHUTTING_DOWN' state for both shutting down and
+    // StopRequest processing.
 
     d_operationState = e_SHUTTING_DOWN;
 
@@ -901,13 +937,6 @@ void ClientSession::initiateShutdownDispatched(
     }
     // No-op if the link is empty
     d_shutdownChain.append(&link);
-
-    // Check unconfirmed messages once all the handles are deconfigured
-    ShutdownContextSp context;
-    context.createInplace(d_state.d_allocator_p,
-                          bdlf::BindUtil::bind(&ClientSession::closeChannel,
-                                               this),
-                          timeout);
 
     d_shutdownChain.appendInplace(
         bdlf::BindUtil::bind(&ClientSession::checkUnconfirmed,
@@ -1174,18 +1203,8 @@ void ClientSession::processDisconnectAllQueues(
     // us back to notify the handle can be deleted and we also don't need to
     // send a close queue response since this release is not initiated by the
     // client, but by the broker upon client's disconnect request.
-    int numHandlesDropped = 0;
-    for (QueueStateMapIter it = d_queueSessionManager.queues().begin();
-         it != d_queueSessionManager.queues().end();
-         ++it) {
-        if (!it->second.d_hasReceivedFinalCloseQueue) {
-            it->second.d_handle_p->clearClient(false);
-            it->second.d_handle_p->drop(doDeconfigure);
-            it->second.d_handle_p                   = 0;
-            it->second.d_hasReceivedFinalCloseQueue = true;
-            ++numHandlesDropped;
-        }
-    }
+
+    int numHandlesDropped = dropAllQueueHandles(doDeconfigure, false);
 
     BALL_LOG_INFO << description() << ": processing disconnect, dropped "
                   << numHandlesDropped << " queue handles.";
@@ -1267,7 +1286,7 @@ void ClientSession::processDisconnect(
                   << ": Sending disconnect response: " << response;
 
     // Send the response
-    sendPacket(d_state.d_schemaEventBuilder.blob(), true);
+    sendPacketDispatched(d_state.d_schemaEventBuilder.blob(), true);
 
     // Setting the 'd_operationState' to 'e_DISCONNECTED' implies that no
     // messages will be pushed to the client after this one: we set it now
@@ -1354,7 +1373,7 @@ void ClientSession::openQueueCb(
                   << " for request: " << handleParamsCtrlMsg;
 
     // Send the response
-    sendPacket(d_state.d_schemaEventBuilder.blob(), true);
+    sendPacketDispatched(d_state.d_schemaEventBuilder.blob(), true);
 
     const bsl::string& queueUri =
         handleParamsCtrlMsg.choice().openQueue().handleParameters().uri();
@@ -1416,7 +1435,7 @@ void ClientSession::closeQueueCb(
                   << ": Sending closeQueue response: " << response;
 
     // Send the response.
-    sendPacket(d_state.d_schemaEventBuilder.blob(), true);
+    sendPacketDispatched(d_state.d_schemaEventBuilder.blob(), true);
 
     // Release the handle's ptr in the queue's context to guarantee that the
     // handle will be destroyed after all ongoing queue events are handled.
@@ -2749,34 +2768,11 @@ void ClientSession::processEvent(
             return;  // RETURN
         }
         case MsgChoice::SELECTION_ID_CLUSTER_MESSAGE: {
-            if (d_clientIdentity_p->clientType() ==
-                    bmqp_ctrlmsg::ClientType::E_TCPBROKER &&
-                choice.clusterMessage().choice().isStopResponseValue()) {
-                bsl::shared_ptr<mqbi::Cluster> cluster;
-
-                if (d_clusterCatalog_p->findCluster(&cluster,
-                                                    choice.clusterMessage()
-                                                        .choice()
-                                                        .stopResponse()
-                                                        .clusterName())) {
-                    BSLS_ASSERT_SAFE(cluster);
-                    cluster->processResponse(controlMessage);
-                    return;  // RETURN
-                }
-                else {
-                    BALL_LOG_ERROR << "#CLIENT_IMPROPER_BEHAVIOR "
-                                   << description()
-                                   << ": unknown Cluster in ClusterMessage: "
-                                   << controlMessage;
-                }
-            }
-            else {
-                BALL_LOG_ERROR
-                    << "#CLIENT_IMPROPER_BEHAVIOR " << description()
-                    << ": unexpected ClusterMessage: " << controlMessage;
-            }
-            return;  // RETURN
-        }
+            eventCallback = bdlf::BindUtil::bind(
+                &ClientSession::processClusterMessage,
+                this,
+                controlMessage);
+        } break;
         case MsgChoice::SELECTION_ID_UNDEFINED:
         case MsgChoice::SELECTION_ID_STATUS:
         default: {
@@ -2871,7 +2867,8 @@ void ClientSession::tearDown(const bsl::shared_ptr<void>& session,
 }
 
 void ClientSession::initiateShutdown(const ShutdownCb&         callback,
-                                     const bsls::TimeInterval& timeout)
+                                     const bsls::TimeInterval& timeout,
+                                     bool suppportShutdownV2)
 {
     // executed by the *ANY* thread
 
@@ -2908,7 +2905,8 @@ void ClientSession::initiateShutdown(const ShutdownCb&         callback,
                     &ClientSession::initiateShutdownDispatched,
                     d_self.acquire()),
                 callback,
-                timeout),
+                timeout,
+                suppportShutdownV2),
             this,
             mqbi::DispatcherEventType::e_DISPATCHER);
         // Use 'mqbi::DispatcherEventType::e_DISPATCHER' to avoid (re)enabling
@@ -3074,7 +3072,7 @@ void ClientSession::flush()
         BALL_LOG_TRACE << description() << ": Flushing "
                        << d_state.d_pushBuilder.messageCount()
                        << " PUSH messages";
-        sendPacket(d_state.d_pushBuilder.blob(), false);
+        sendPacketDispatched(d_state.d_pushBuilder.blob(), false);
         d_state.d_pushBuilder.reset();
     }
 
@@ -3083,9 +3081,133 @@ void ClientSession::flush()
         BALL_LOG_TRACE << description() << ": Flushing "
                        << d_state.d_ackBuilder.messageCount()
                        << " ACK messages";
-        sendPacket(d_state.d_ackBuilder.blob(), false);
+        sendPacketDispatched(d_state.d_ackBuilder.blob(), false);
         d_state.d_ackBuilder.reset();
     }
+}
+
+void ClientSession::processClusterMessage(
+    const bmqp_ctrlmsg::ControlMessage& message)
+{
+    if (message.choice().clusterMessage().choice().isStopResponseValue()) {
+        BALL_LOG_INFO << description() << ": processStopResponse: " << message;
+        d_clusterCatalog_p->stopRequestManger().processResponse(message);
+    }
+    else if (message.choice().clusterMessage().choice().isStopRequestValue()) {
+        // This is StopRequest from Proxy
+        // Assume StopRequest V2
+
+        const bmqp_ctrlmsg::StopRequest& request =
+            message.choice().clusterMessage().choice().stopRequest();
+
+        BSLS_ASSERT_SAFE(request.version() == 2);
+
+        // Deconfigure all queues.  Do NOT wait for unconfirmed
+
+        BALL_LOG_INFO << description() << ": processing StopRequest.";
+
+        bmqp_ctrlmsg::ControlMessage response;
+
+        response.choice().makeClusterMessage().choice().makeStopResponse();
+        response.rId() = message.rId();
+
+        d_state.d_schemaEventBuilder.reset();
+        int rc = d_state.d_schemaEventBuilder.setMessage(
+            response,
+            bmqp::EventType::e_CONTROL);
+
+        if (rc != 0) {
+            BALL_LOG_ERROR
+                << "#CLIENT_SEND_FAILURE " << description()
+                << ": Encoding StopRequest response has failed, [rc: " << rc
+                << "]: " << response;
+
+            return;  // RETURN
+        }
+
+        ShutdownContextSp context;
+        context.createInplace(
+            d_state.d_allocator_p,
+            bdlf::BindUtil::bind(&ClientSession::sendPacket,
+                                 this,
+                                 d_state.d_schemaEventBuilder.blob(),
+                                 false));
+
+        processStopRequest(context);
+    }
+    else {
+        BALL_LOG_ERROR << "#CLIENT_IMPROPER_BEHAVIOR " << description()
+                       << ": unknown Cluster in StopResponse: " << message;
+    }
+}
+
+void ClientSession::onDeconfiguredHandle(const ShutdownContextSp& contextSp)
+{
+    (void)contextSp;
+}
+
+void ClientSession::processStopRequest(ShutdownContextSp& contextSp)
+{
+    // This StopRequest arrives from a downstream (otherwise, ClusterProxy
+    // would receive it).  As an upstream, this node needs to deconfigure all
+    // queues and then respond with StopResponse.
+
+    // Use the same logic as in the 'initiateShutdown' except that the final
+    // step is sending StopResponse instead of 'closeChannel'
+    // executed by the *CLIENT* dispatcher thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+
+    if (d_operationState == e_DEAD) {
+        // The client is disconnected.  No-op
+        return;  // RETURN
+    }
+    if (d_operationState == e_SHUTTING_DOWN) {
+        // The broker is already shutting down or processing a StopRequest
+        // The de-configuring is done.
+        // Even if the waiting is in progress, still reply with StopResponse
+        return;  // RETURN
+    }
+    if (d_operationState == e_SHUTTING_DOWN_V2) {
+        // The broker is already shutting down or processing a StopRequest
+        // The de-configuring is done.
+        // Even if the waiting is in progress, still reply with StopResponse
+        return;  // RETURN
+    }
+
+    if (d_operationState == e_DISCONNECTING) {
+        // The client is disconnecting.  No-op
+        return;  // RETURN
+    }
+    for (QueueStateMapCIter cit = d_queueSessionManager.queues().begin();
+         cit != d_queueSessionManager.queues().end();
+         ++cit) {
+        if (!cit->second.d_hasReceivedFinalCloseQueue) {
+            cit->second.d_handle_p->deconfigureAll(
+                bdlf::BindUtil::bind(&ClientSession::onDeconfiguredHandle,
+                                     this,
+                                     contextSp));
+        }
+    }
+}
+
+int ClientSession::dropAllQueueHandles(bool doDeconfigure, bool hasLostClient)
+{
+    int numHandlesDropped = 0;
+    for (QueueStateMapIter it = d_queueSessionManager.queues().begin();
+         it != d_queueSessionManager.queues().end();
+         ++it) {
+        if (!it->second.d_hasReceivedFinalCloseQueue) {
+            it->second.d_handle_p->clearClient(hasLostClient);
+            it->second.d_handle_p->drop(doDeconfigure);
+            it->second.d_handle_p                   = 0;
+            it->second.d_hasReceivedFinalCloseQueue = true;
+            ++numHandlesDropped;
+        }
+    }
+
+    return numHandlesDropped;
 }
 
 }  // close package namespace

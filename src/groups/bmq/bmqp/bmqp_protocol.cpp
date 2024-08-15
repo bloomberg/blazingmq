@@ -264,6 +264,8 @@ const char HighAvailabilityFeatures::k_BROADCAST_TO_PROXIES[] =
     "BROADCAST_TO_PROXIES";
 const char HighAvailabilityFeatures::k_GRACEFUL_SHUTDOWN[] =
     "GRACEFUL_SHUTDOWN";
+const char HighAvailabilityFeatures::k_GRACEFUL_SHUTDOWN_V2[] =
+    "GRACEFUL_SHUTDOWN_V2";
 
 // --------------------------------
 // struct MessagePropertiesFeatures

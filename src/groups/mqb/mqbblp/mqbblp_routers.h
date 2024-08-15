@@ -595,6 +595,8 @@ class Routers {
 
         bmqeval::EvaluationContext d_evaluationContext;
 
+        bool d_isShuttingDown;
+
         bslma::Allocator* d_allocator_p;
 
         QueueRoutingContext(bmqp::SchemaLearner& schemaLearner,
@@ -606,6 +608,8 @@ class Routers {
 
         bool onUsable(unsigned int* upstreamSubQueueId,
                       unsigned int  upstreamSubscriptionId);
+
+        void shutdown();
 
         void loadInternals(mqbcmd::Routing* out) const;
     };
@@ -842,9 +846,10 @@ inline Routers::QueueRoutingContext::QueueRoutingContext(
 : d_expressions(allocator)
 , d_nextSubscriptionId(0)
 , d_groupIds(allocator)
-, d_preader(new (*allocator) MessagePropertiesReader(schemaLearner, allocator),
+, d_preader(new(*allocator) MessagePropertiesReader(schemaLearner, allocator),
             allocator)
 , d_evaluationContext(0, allocator)
+, d_isShuttingDown(false)
 , d_allocator_p(allocator)
 {
     d_evaluationContext.setPropertiesReader(d_preader.get());
@@ -878,6 +883,11 @@ Routers::QueueRoutingContext::onUsable(unsigned int* upstreamSubQueueId,
         }
     }
     return false;
+}
+
+inline void Routers::QueueRoutingContext::shutdown()
+{
+    d_isShuttingDown = true;
 }
 
 // -----------------------------
