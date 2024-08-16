@@ -141,7 +141,7 @@ bool LedgerOpResult::fromAscii(LedgerOpResult::Enum*    out,
 #define CHECKVALUE(M)                                                         \
     if (bdlb::String::areEqualCaseless(toAscii(LedgerOpResult::e_##M),        \
                                        str.data(),                            \
-                                       str.length())) {                       \
+                                       static_cast<int>(str.length()))) {     \
         *out = LedgerOpResult::e_##M;                                         \
         return true;                                                          \
     }
