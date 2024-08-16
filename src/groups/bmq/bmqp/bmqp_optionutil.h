@@ -268,7 +268,7 @@ inline int OptionUtil::OptionMeta::size() const
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(!isNull());
 
-    return sizeof(OptionHeader) + d_payloadSize + d_padding;
+    return static_cast<int>(sizeof(OptionHeader)) + d_payloadSize + d_padding;
 }
 
 inline int OptionUtil::OptionMeta::padding() const
