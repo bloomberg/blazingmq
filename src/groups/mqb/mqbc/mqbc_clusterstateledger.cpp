@@ -138,7 +138,7 @@ bool ClusterStateLedgerCommitStatus::fromAscii(
     if (bdlb::String::areEqualCaseless(                                       \
             toAscii(ClusterStateLedgerCommitStatus::e_##M),                   \
             str.data(),                                                       \
-            static_cast<int>(str.length()))) {                                                  \
+            static_cast<int>(str.length()))) {                                \
         *out = ClusterStateLedgerCommitStatus::e_##M;                         \
         return true;                                                          \
     }
