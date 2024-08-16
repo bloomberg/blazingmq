@@ -75,7 +75,7 @@ bool ClusterStateTableState::fromAscii(ClusterStateTableState::Enum* out,
     if (bdlb::String::areEqualCaseless(                                       \
             toAscii(ClusterStateTableState::e_##M),                           \
             str.data(),                                                       \
-            str.length())) {                                                  \
+            static_cast<int>(str.length()))) {                                \
         *out = ClusterStateTableState::e_##M;                                 \
         return true;                                                          \
     }
