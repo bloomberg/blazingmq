@@ -76,7 +76,7 @@ bool ClusterStateLedgerConsistency::fromAscii(
     if (bdlb::String::areEqualCaseless(                                       \
             toAscii(ClusterStateLedgerConsistency::e_##M),                    \
             str.data(),                                                       \
-            str.length())) {                                                  \
+            static_cast<int>(str.length()))) {                                \
         *out = ClusterStateLedgerConsistency::e_##M;                          \
         return true;                                                          \
     }
@@ -138,7 +138,7 @@ bool ClusterStateLedgerCommitStatus::fromAscii(
     if (bdlb::String::areEqualCaseless(                                       \
             toAscii(ClusterStateLedgerCommitStatus::e_##M),                   \
             str.data(),                                                       \
-            str.length())) {                                                  \
+            static_cast<int>(str.length()))) {                                                  \
         *out = ClusterStateLedgerCommitStatus::e_##M;                         \
         return true;                                                          \
     }
