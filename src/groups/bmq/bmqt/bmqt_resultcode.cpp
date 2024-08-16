@@ -71,7 +71,7 @@ bool GenericResult::fromAscii(GenericResult::Enum*     out,
 #define BMQT_CHECKVALUE(M)                                                    \
     if (bdlb::String::areEqualCaseless(toAscii(GenericResult::e_##M),         \
                                        str.data(),                            \
-                                       str.length())) {                       \
+                                       static_cast<int>(str.length()))) {     \
         *out = GenericResult::e_##M;                                          \
         return true;                                                          \
     }
