@@ -206,7 +206,7 @@ bool ElectorTimerEventType::fromAscii(ElectorTimerEventType::Enum* out,
 #define CHECKVALUE(M)                                                         \
     if (bdlb::String::areEqualCaseless(toAscii(ElectorTimerEventType::e_##M), \
                                        str.data(),                            \
-                                       str.length())) {                       \
+                                       static_cast<int>(str.length()))) {     \
         *out = ElectorTimerEventType::e_##M;                                  \
         return true;                                                          \
     }
@@ -266,7 +266,7 @@ bool ElectorState::fromAscii(ElectorState::Enum*      out,
 #define CHECKVALUE(M)                                                         \
     if (bdlb::String::areEqualCaseless(toAscii(ElectorState::e_##M),          \
                                        str.data(),                            \
-                                       str.length())) {                       \
+                                       static_cast<int>(str.length()))) {     \
         *out = ElectorState::e_##M;                                           \
         return true;                                                          \
     }
