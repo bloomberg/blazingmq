@@ -5128,6 +5128,8 @@ const bool AppConfig::DEFAULT_INITIALIZER_CONFIGURE_STREAM = false;
 
 const bool AppConfig::DEFAULT_INITIALIZER_ADVERTISE_SUBSCRIPTIONS = false;
 
+const int AppConfig::DEFAULT_INITIALIZER_ROUTE_COMMAND_TIMEOUT_MS = 3000;
+
 const bdlat_AttributeInfo AppConfig::ATTRIBUTE_INFO_ARRAY[] = {
     {ATTRIBUTE_ID_BROKER_INSTANCE_NAME,
      "brokerInstanceName",
@@ -5218,14 +5220,19 @@ const bdlat_AttributeInfo AppConfig::ATTRIBUTE_INFO_ARRAY[] = {
      "advertiseSubscriptions",
      sizeof("advertiseSubscriptions") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT}};
+     bdlat_FormattingMode::e_TEXT},
+    {ATTRIBUTE_ID_ROUTE_COMMAND_TIMEOUT_MS,
+     "routeCommandTimeoutMs",
+     sizeof("routeCommandTimeoutMs") - 1,
+     "",
+     bdlat_FormattingMode::e_DEC}};
 
 // CLASS METHODS
 
 const bdlat_AttributeInfo* AppConfig::lookupAttributeInfo(const char* name,
                                                           int nameLength)
 {
-    for (int i = 0; i < 18; ++i) {
+    for (int i = 0; i < 19; ++i) {
         const bdlat_AttributeInfo& attributeInfo =
             AppConfig::ATTRIBUTE_INFO_ARRAY[i];
 
@@ -5277,6 +5284,8 @@ const bdlat_AttributeInfo* AppConfig::lookupAttributeInfo(int id)
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CONFIGURE_STREAM];
     case ATTRIBUTE_ID_ADVERTISE_SUBSCRIPTIONS:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ADVERTISE_SUBSCRIPTIONS];
+    case ATTRIBUTE_ID_ROUTE_COMMAND_TIMEOUT_MS:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ROUTE_COMMAND_TIMEOUT_MS];
     default: return 0;
     }
 }
@@ -5300,6 +5309,7 @@ AppConfig::AppConfig(bslma::Allocator* basicAllocator)
 , d_brokerVersion()
 , d_configVersion()
 , d_logsObserverMaxSize()
+, d_routeCommandTimeoutMs(DEFAULT_INITIALIZER_ROUTE_COMMAND_TIMEOUT_MS)
 , d_isRunningOnDev()
 , d_configureStream(DEFAULT_INITIALIZER_CONFIGURE_STREAM)
 , d_advertiseSubscriptions(DEFAULT_INITIALIZER_ADVERTISE_SUBSCRIPTIONS)
@@ -5323,6 +5333,7 @@ AppConfig::AppConfig(const AppConfig&  original,
 , d_brokerVersion(original.d_brokerVersion)
 , d_configVersion(original.d_configVersion)
 , d_logsObserverMaxSize(original.d_logsObserverMaxSize)
+, d_routeCommandTimeoutMs(original.d_routeCommandTimeoutMs)
 , d_isRunningOnDev(original.d_isRunningOnDev)
 , d_configureStream(original.d_configureStream)
 , d_advertiseSubscriptions(original.d_advertiseSubscriptions)
@@ -5347,6 +5358,7 @@ AppConfig::AppConfig(AppConfig&& original) noexcept
   d_brokerVersion(bsl::move(original.d_brokerVersion)),
   d_configVersion(bsl::move(original.d_configVersion)),
   d_logsObserverMaxSize(bsl::move(original.d_logsObserverMaxSize)),
+  d_routeCommandTimeoutMs(bsl::move(original.d_routeCommandTimeoutMs)),
   d_isRunningOnDev(bsl::move(original.d_isRunningOnDev)),
   d_configureStream(bsl::move(original.d_configureStream)),
   d_advertiseSubscriptions(bsl::move(original.d_advertiseSubscriptions))
@@ -5371,6 +5383,7 @@ AppConfig::AppConfig(AppConfig&& original, bslma::Allocator* basicAllocator)
 , d_brokerVersion(bsl::move(original.d_brokerVersion))
 , d_configVersion(bsl::move(original.d_configVersion))
 , d_logsObserverMaxSize(bsl::move(original.d_logsObserverMaxSize))
+, d_routeCommandTimeoutMs(bsl::move(original.d_routeCommandTimeoutMs))
 , d_isRunningOnDev(bsl::move(original.d_isRunningOnDev))
 , d_configureStream(bsl::move(original.d_configureStream))
 , d_advertiseSubscriptions(bsl::move(original.d_advertiseSubscriptions))
@@ -5405,6 +5418,7 @@ AppConfig& AppConfig::operator=(const AppConfig& rhs)
         d_messagePropertiesV2    = rhs.d_messagePropertiesV2;
         d_configureStream        = rhs.d_configureStream;
         d_advertiseSubscriptions = rhs.d_advertiseSubscriptions;
+        d_routeCommandTimeoutMs  = rhs.d_routeCommandTimeoutMs;
     }
 
     return *this;
@@ -5433,6 +5447,7 @@ AppConfig& AppConfig::operator=(AppConfig&& rhs)
         d_messagePropertiesV2    = bsl::move(rhs.d_messagePropertiesV2);
         d_configureStream        = bsl::move(rhs.d_configureStream);
         d_advertiseSubscriptions = bsl::move(rhs.d_advertiseSubscriptions);
+        d_routeCommandTimeoutMs  = bsl::move(rhs.d_routeCommandTimeoutMs);
     }
 
     return *this;
@@ -5459,6 +5474,7 @@ void AppConfig::reset()
     bdlat_ValueTypeFunctions::reset(&d_messagePropertiesV2);
     d_configureStream        = DEFAULT_INITIALIZER_CONFIGURE_STREAM;
     d_advertiseSubscriptions = DEFAULT_INITIALIZER_ADVERTISE_SUBSCRIPTIONS;
+    d_routeCommandTimeoutMs  = DEFAULT_INITIALIZER_ROUTE_COMMAND_TIMEOUT_MS;
 }
 
 // ACCESSORS
@@ -5488,6 +5504,8 @@ AppConfig::print(bsl::ostream& stream, int level, int spacesPerLevel) const
     printer.printAttribute("configureStream", this->configureStream());
     printer.printAttribute("advertiseSubscriptions",
                            this->advertiseSubscriptions());
+    printer.printAttribute("routeCommandTimeoutMs",
+                           this->routeCommandTimeoutMs());
     printer.end();
     return stream;
 }
@@ -5805,7 +5823,7 @@ Configuration::print(bsl::ostream& stream, int level, int spacesPerLevel) const
 }  // close package namespace
 }  // close enterprise namespace
 
-// GENERATED BY BLP_BAS_CODEGEN_2024.07.04.1
+// GENERATED BY @BLP_BAS_CODEGEN_VERSION@
 // USING bas_codegen.pl -m msg --noAggregateConversion --noExternalization
 // --noIdent --package mqbcfg --msgComponent messages mqbcfg.xsd
 // ----------------------------------------------------------------------------

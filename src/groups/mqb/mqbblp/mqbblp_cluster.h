@@ -343,6 +343,10 @@ class Cluster : public mqbi::Cluster,
     // responses from proxies and nodes,
     // and the cluster's shutdown callback.
 
+    /// Callback to enqueue an admin command when this node receives a
+    /// routed command from another node.
+    mqbnet::Session::AdminCommandEnqueueCb d_adminCb;
+
   private:
     // NOT IMPLEMENTED
     Cluster(const Cluster&) BSLS_CPP11_DELETED;
@@ -534,17 +538,18 @@ class Cluster : public mqbi::Cluster,
     /// specified `netCluster` and using the specified `domainFactory`,
     /// `scheduler`, `dispatcher`, `blobSpPool` and `bufferFactory`.  Use
     /// the specified `allocator` for any memory allocation.
-    Cluster(const bslstl::StringRef&           name,
-            const mqbcfg::ClusterDefinition&   clusterConfig,
-            bslma::ManagedPtr<mqbnet::Cluster> netCluster,
-            const StatContextsMap&             statContexts,
-            mqbi::DomainFactory*               domainFactory,
-            bdlmt::EventScheduler*             scheduler,
-            mqbi::Dispatcher*                  dispatcher,
-            BlobSpPool*                        blobSpPool,
-            bdlbb::BlobBufferFactory*          bufferFactory,
-            mqbnet::TransportManager*          transportManager,
-            bslma::Allocator*                  allocator);
+    Cluster(const bslstl::StringRef&                      name,
+            const mqbcfg::ClusterDefinition&              clusterConfig,
+            bslma::ManagedPtr<mqbnet::Cluster>            netCluster,
+            const StatContextsMap&                        statContexts,
+            mqbi::DomainFactory*                          domainFactory,
+            bdlmt::EventScheduler*                        scheduler,
+            mqbi::Dispatcher*                             dispatcher,
+            BlobSpPool*                                   blobSpPool,
+            bdlbb::BlobBufferFactory*                     bufferFactory,
+            mqbnet::TransportManager*                     transportManager,
+            bslma::Allocator*                             allocator,
+            const mqbnet::Session::AdminCommandEnqueueCb& adminCb);
 
     /// Destructor
     ~Cluster() BSLS_KEYWORD_OVERRIDE;
@@ -655,6 +660,10 @@ class Cluster : public mqbi::Cluster,
     /// used by this cluster.
     RequestManagerType& requestManager() BSLS_KEYWORD_OVERRIDE;
 
+    /// Return a reference offering modifiable access to the multi request
+    /// manager used by this cluster.
+    MultiRequestManagerType& multiRequestManager() BSLS_KEYWORD_OVERRIDE;
+
     /// Load the cluster state to the specified `out` object.
     void loadClusterStatus(mqbcmd::ClusterResult* out) BSLS_KEYWORD_OVERRIDE;
 
@@ -667,6 +676,14 @@ class Cluster : public mqbi::Cluster,
     /// remote peer.
     void processEvent(const bmqp::Event&   event,
                       mqbnet::ClusterNode* source = 0) BSLS_KEYWORD_OVERRIDE;
+
+    /// Callback to run when a routed command finishes execution. This will
+    /// send the `result` back to the `source` node.
+    void onProcessedAdminCommand(
+        mqbnet::ClusterNode*                source,
+        const bmqp_ctrlmsg::ControlMessage& adminCommandCtrlMsg,
+        int                                 rc,
+        const bsl::string&                  result);
 
     // MANIPULATORS
     //   (virtual: mqbi::DispatcherClient)
@@ -755,6 +772,35 @@ class Cluster : public mqbi::Cluster,
     /// used by this cluster.
     const mqbnet::Cluster& netCluster() const BSLS_KEYWORD_OVERRIDE;
 
+    /// Gets all the nodes which are a primary for some partition of this
+    /// cluster, storing each external node into the given `nodes` vector
+    /// and/or marking `isSelfPrimary` as true if the self node is a primary.
+    /// The self node will never be added to the `nodes` vector. Populates `rc`
+    /// with 0 on success or a non-zero error code on failure. In the case of
+    /// an error, the `errorDescription` output stream will be populated. Note
+    /// this function uses an out parameter for the return code, `rc`. This is
+    /// because this function is designed to be called by the dispatcher
+    /// thread, so the return type of this function should be `void`.
+    void getPrimaryNodes(int*                               rc,
+                         bsl::ostream&                      errorDescription,
+                         bsl::vector<mqbnet::ClusterNode*>* nodes,
+                         bool* isSelfPrimary) const BSLS_KEYWORD_OVERRIDE;
+
+    /// Gets the node which is the primary for the given partitionId or sets
+    /// `isSelfPrimary` to true if the caller is the primary. Note that the
+    /// self node will never be populated into the given `node` pointer.
+    /// Populates `rc` with 0 on success or a non-zero error code on failure.
+    /// In the case of an error, the `errorDescription` output stream will be
+    /// populated. Note this function uses an out parameter for the return
+    /// code, `rc`. This is because this function is designed to be called by
+    /// the dispatcher thread, so the return type of this function should be
+    /// `void`.
+    void getPartitionPrimaryNode(int*                  rc,
+                                 bsl::ostream&         errorDescription,
+                                 mqbnet::ClusterNode** node,
+                                 bool*                 isSelfPrimary,
+                                 int partitionId) const BSLS_KEYWORD_OVERRIDE;
+
     /// Print the state of the cluster to the specified `out`.
     ///
     /// THREAD: These methods must be invoked from the DISPATCHER thread.
@@ -825,6 +871,11 @@ class Cluster : public mqbi::Cluster,
 inline Cluster::RequestManagerType& Cluster::requestManager()
 {
     return d_clusterData.requestManager();
+}
+
+inline Cluster::MultiRequestManagerType& Cluster::multiRequestManager()
+{
+    return d_clusterData.multiRequestManager();
 }
 
 inline const bsl::string& Cluster::name() const
