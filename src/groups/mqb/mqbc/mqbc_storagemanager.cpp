@@ -3483,16 +3483,21 @@ void StorageManager::stop()
 }
 
 void StorageManager::initializeQueueKeyInfoMap(
-    const mqbc::ClusterState* clusterState)
+    const mqbc::ClusterState& clusterState)
 {
     // executed by the *CLUSTER DISPATCHER* thread
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_dispatcher_p->inDispatcherThread(d_cluster_p));
-    BSLS_ASSERT_SAFE(clusterState);
 
     if (d_isQueueKeyInfoMapVecInitialized) {
-        // The queue key info map vec should only be initialized once.
+        BALL_LOG_WARN << d_clusterData_p->identity().description()
+                      << ": Queue key info map should only be initialized "
+                      << "once, but the initalization method is called more "
+                      << "than once.  This can happen if the node goes "
+                      << "back-and-forth between healing and healed FSM "
+                      << "states.  Please check.";
+
         return;  // RETURN
     }
 
@@ -3502,8 +3507,8 @@ void StorageManager::initializeQueueKeyInfoMap(
                     bdlf::MemFnUtil::memFn(&QueueKeyInfoMap::empty)));
 
     // Populate 'd_queueKeyInfoMapVec' from cluster state
-    for (DomainStatesCIter dscit = clusterState->domainStates().cbegin();
-         dscit != clusterState->domainStates().cend();
+    for (DomainStatesCIter dscit = clusterState.domainStates().cbegin();
+         dscit != clusterState.domainStates().cend();
          ++dscit) {
         for (UriToQueueInfoMapCIter cit = dscit->second->queuesInfo().cbegin();
              cit != dscit->second->queuesInfo().cend();

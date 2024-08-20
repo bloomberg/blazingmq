@@ -79,13 +79,13 @@ class ClusterDataIdentity {
   private:
     // DATA
 
-    const bsl::string d_name;
+    bsl::string d_name;
     // Name of the cluster
 
-    const bsl::string d_description;
+    bsl::string d_description;
     // Description of the cluster
 
-    const bmqp_ctrlmsg::ClientIdentity d_identity;
+    bmqp_ctrlmsg::ClientIdentity d_identity;
     // Information sent to the primary node of
     // a queue while sending a clusterOpenQueue
     // request to that node

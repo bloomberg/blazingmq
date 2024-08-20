@@ -260,7 +260,7 @@ void ClusterStateManager::do_applyCSLSelf(const ClusterFSMArgsSp& args)
 }
 
 void ClusterStateManager::do_initializeQueueKeyInfoMap(
-    const ClusterFSMArgsSp& args)
+    BSLS_ANNOTATION_UNUSED const ClusterFSMArgsSp& args)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -268,7 +268,7 @@ void ClusterStateManager::do_initializeQueueKeyInfoMap(
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(d_cluster_p));
     BSLS_ASSERT_SAFE(d_clusterFSM.isSelfHealed());
 
-    d_storageManager_p->initializeQueueKeyInfoMap(d_state_p);
+    d_storageManager_p->initializeQueueKeyInfoMap(*d_state_p);
 }
 
 void ClusterStateManager::do_sendFollowerLSNRequests(

@@ -52,7 +52,7 @@ void StorageManager::stop()
 }
 
 void StorageManager::initializeQueueKeyInfoMap(
-    BSLS_ANNOTATION_UNUSED const mqbc::ClusterState* clusterState)
+    BSLS_ANNOTATION_UNUSED const mqbc::ClusterState& clusterState)
 {
 }
 
