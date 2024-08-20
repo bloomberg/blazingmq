@@ -4087,13 +4087,10 @@ void StorageManager::processRecoveryEvent(
                      "This method can only be invoked in non-CSL mode");
 }
 
-void StorageManager::processReceiptEvent(
-    const mqbi::DispatcherReceiptEvent& event)
+void StorageManager::processReceiptEvent(const bmqp::Event&   event,
+                                         mqbnet::ClusterNode* source)
 {
-    // executed by *CLUSTER DISPATCHER* thread
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_dispatcher_p->inDispatcherThread(d_cluster_p));
+    // executed by *IO* thread
 
     mwcu::BlobPosition          position;
     BSLA_MAYBE_UNUSED const int rc = mwcu::BlobUtil::findOffsetSafe(
@@ -4103,7 +4100,7 @@ void StorageManager::processReceiptEvent(
     BSLS_ASSERT_SAFE(rc == 0);
 
     mwcu::BlobObjectProxy<bmqp::ReplicationReceipt> receipt(
-        event.blob().get(),
+        event.blob(),
         position,
         true,    // read mode
         false);  // no write
@@ -4122,7 +4119,7 @@ void StorageManager::processReceiptEvent(
                                      fs,
                                      receipt->primaryLeaseId(),
                                      receipt->sequenceNum(),
-                                     event.clusterNode()));
+                                     source));
 }
 
 void StorageManager::processPrimaryStatusAdvisory(

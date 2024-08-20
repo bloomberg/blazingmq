@@ -156,6 +156,10 @@ void Cluster::_initializeNetcluster()
                                       : k_LEADER_NODE_ID + 1;
     dynamic_cast<mqbnet::MockCluster*>(d_netCluster_mp.get())
         ->_setSelfNodeId(selfNodeId);
+
+    if (d_isClusterMember) {
+        BSLS_ASSERT_OPT(0 != d_netCluster_mp->selfNode());
+    }
 }
 
 void Cluster::_initializeNodeSessions()
@@ -231,7 +235,12 @@ Cluster::Cluster(bdlbb::BlobBufferFactory* bufferFactory,
 , d_processor()
 {
     // PRECONDITIONS
-    BSLS_ASSERT_OPT(isClusterMember || !isLeader);
+    if (isClusterMember) {
+        BSLS_ASSERT_OPT(!clusterNodeDefs.empty());
+    }
+    else {
+        BSLS_ASSERT_OPT(!isLeader);
+    }
 
     _initializeClusterDefinition(name,
                                  location,
@@ -373,6 +382,11 @@ mqbnet::Cluster& Cluster::netCluster()
 Cluster::RequestManagerType& Cluster::requestManager()
 {
     return d_clusterData_mp->requestManager();
+}
+
+mqbc::ClusterData::MultiRequestManagerType& Cluster::multiRequestManager()
+{
+    return d_clusterData_mp->multiRequestManager();
 }
 
 bmqt::GenericResult::Enum

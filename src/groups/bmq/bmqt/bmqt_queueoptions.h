@@ -127,6 +127,9 @@ class QueueOptions {
 
     // MANIPULATORS
 
+    /// Assign to this object the value of the specified `rhs` object.
+    QueueOptions& operator=(const QueueOptions& rhs);
+
     /// Set the maxUnconfirmedMessages to the specified `value`.  The
     /// behavior is undefined unless `value >= 0`. If the specified `value`
     /// is set to 0, it means that the consumer does not receive any
@@ -256,6 +259,20 @@ bsl::ostream& operator<<(bsl::ostream& stream, const QueueOptions& rhs);
 // ------------------
 
 // MANIPULATORS
+
+inline QueueOptions& QueueOptions::operator=(const QueueOptions& rhs)
+{
+    if (this != &rhs) {
+        d_info                    = rhs.d_info;
+        d_suspendsOnBadHostHealth = rhs.d_suspendsOnBadHostHealth;
+        d_hadSubscriptions        = rhs.d_hadSubscriptions;
+        d_subscriptions           = Subscriptions(rhs.d_subscriptions,
+                                        this->d_allocator_p);
+    }
+
+    return *this;
+}
+
 inline QueueOptions& QueueOptions::setMaxUnconfirmedMessages(int value)
 {
     d_info.setMaxUnconfirmedMessages(value);

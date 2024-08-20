@@ -87,6 +87,10 @@ class Cluster;
 namespace mqbnet {
 class ClusterNode;
 }
+namespace mqbnet {
+template <class REQUEST, class RESPONSE, class TARGET>
+class MultiRequestManager;
+}
 
 namespace mqbi {
 
@@ -237,6 +241,11 @@ class Cluster : public DispatcherClient {
                                  bmqp_ctrlmsg::ControlMessage>
         RequestManagerType;
 
+    typedef mqbnet::MultiRequestManager<bmqp_ctrlmsg::ControlMessage,
+                                        bmqp_ctrlmsg::ControlMessage,
+                                        mqbnet::ClusterNode*>
+        MultiRequestManagerType;
+
     /// Signature of a `void` functor method.
     typedef bsl::function<void(void)> VoidFunctor;
 
@@ -271,6 +280,10 @@ class Cluster : public DispatcherClient {
     /// Return a reference offering modifiable access to the request manager
     /// used by this cluster.
     virtual RequestManagerType& requestManager() = 0;
+
+    // Return a reference offering a modifiable access to the multi request
+    // manager used by this cluster.
+    virtual MultiRequestManagerType& multiRequestManager() = 0;
 
     /// Register the specified `observer` to be notified of cluster state
     /// changes.
@@ -412,6 +425,35 @@ class Cluster : public DispatcherClient {
     /// represents a proxy, otherwise null.
     virtual const mqbcfg::ClusterProxyDefinition*
     clusterProxyConfig() const = 0;
+
+    /// Gets all the nodes which are a primary for some partition of this
+    /// cluster, storing each external node into the given `nodes` vector
+    /// and/or marking `isSelfPrimary` as true if the self node is a primary.
+    /// The self node will never be added to the `nodes` vector. Populates `rc`
+    /// with 0 on success or a non-zero error code on failure. In the case of
+    /// an error, the `errorDescription` output stream will be populated. Note
+    /// this function uses an out parameter for the return code, `rc`. This is
+    /// because this function is designed to be called by the dispatcher
+    /// thread, so the return type of this function should be `void`.
+    virtual void getPrimaryNodes(int*          rc,
+                                 bsl::ostream& errorDescription,
+                                 bsl::vector<mqbnet::ClusterNode*>* nodes,
+                                 bool* isSelfPrimary) const = 0;
+
+    /// Gets the node which is the primary for the given partitionId or sets
+    /// `isSelfPrimary` to true if the caller is the primary. Note that the
+    /// self node will never be populated into the given `node` pointer.
+    /// Populates `rc` with 0 on success or a non-zero error code on failure.
+    /// In the case of an error, the `errorDescription` output stream will be
+    /// populated. Note this function uses an out parameter for the return
+    /// code, `rc`. This is because this function is designed to be called by
+    /// the dispatcher thread, so the return type of this function should be
+    /// `void`.
+    virtual void getPartitionPrimaryNode(int*          rc,
+                                         bsl::ostream& errorDescription,
+                                         mqbnet::ClusterNode** node,
+                                         bool*                 isSelfPrimary,
+                                         int partitionId) const = 0;
 };
 
 // ============================================================================

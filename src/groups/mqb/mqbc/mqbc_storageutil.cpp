@@ -780,7 +780,7 @@ int StorageUtil::processReplicationCommand(
         return -1;  // RETURN
     }
     else if (command.isGetTunableValue()) {
-        const bsl::string& tunable = command.getTunable();
+        const bsl::string& tunable = command.getTunable().name();
         if (bdlb::StringRefUtil::areEqualCaseless(tunable, "QUORUM")) {
             mqbcmd::Tunable& tunableObj = replicationResult->makeTunable();
             tunableObj.name()           = "Quorum";
@@ -1115,31 +1115,6 @@ bool StorageUtil::validateStorageEvent(
             << "non-active primary. Primary status: " << status
             << ". Ignoring entire storage event." << MWCTSK_ALARMLOG_END;
         return false;  // RETURN
-    }
-
-    bmqp::StorageMessageIterator iter;
-    event.loadStorageMessageIterator(&iter);
-    BSLS_ASSERT_SAFE(iter.isValid());
-    while (iter.next() == 1) {
-        const bmqp::StorageHeader& header = iter.header();
-        if (static_cast<unsigned int>(partitionId) != header.partitionId()) {
-            // A storage event is sent by 'source' cluster node.  The node may
-            // be primary for one or more partitions, but as per the BMQ
-            // replication design, *all* messages in this event will belong to
-            // the *same* partition.  Any exception to this is a bug in the
-            // implementation of replication, and thus, if it occurs, we reject
-            // the *entire* storage event.
-
-            MWCTSK_ALARMLOG_ALARM("STORAGE")
-                << clusterData.identity().description() << ": Received storage"
-                << " event from node " << source->nodeDescription() << " with"
-                << " different PartitionId: [" << partitionId << "] vs ["
-                << header.partitionId() << "]"
-                << ". Ignoring entire storage event." << MWCTSK_ALARMLOG_END;
-            return false;  // RETURN
-        }
-
-        // NOTE: (leaseId, seqNum) will be checked later.
     }
 
     return true;

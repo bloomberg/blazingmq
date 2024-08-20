@@ -608,12 +608,18 @@ class FileStore : public DataStore {
     /// still pending receipt of quorum Receipts.
     void cancelUnreceipted(const DataStoreRecordKey& recordKey);
 
-    /// Send Replication Receipt to the specified `node` confirming the
+    /// Generate Replication Receipt for the specified `node` confirming the
     /// receipt of message with the specified `primaryLeaseId` and
-    /// `sequenceNumber`.
-    void issueReceipt(mqbnet::ClusterNode* node,
-                      unsigned int         primaryLeaseId,
-                      bsls::Types::Uint64  sequenceNumber);
+    /// `sequenceNumber`.  Store cumulative receipt in the specified
+    /// `nodeContext`.
+    NodeContext* generateReceipt(NodeContext*         nodeContext,
+                                 mqbnet::ClusterNode* node,
+                                 unsigned int         primaryLeaseId,
+                                 bsls::Types::Uint64  sequenceNumber);
+
+    /// Send previously generated Replication Receipt to the specified `node`
+    /// using the specified `nodeContext`.
+    void sendReceipt(mqbnet::ClusterNode* node, NodeContext* nodeContext);
 
     /// Insert the specified `record` value by the specified `key` into the
     /// list of outstanding records, and assign to the specified `handle` an
@@ -865,6 +871,10 @@ class FileStore : public DataStore {
     /// all associated queues.  Behavior is undefined unless this node is
     /// the primary for this partition.
     void dispatcherFlush(bool storage, bool queues) BSLS_KEYWORD_OVERRIDE;
+
+    /// Call `onReplicatedBatch` on all associated queues if the storage
+    /// builder is empty (just flushed).
+    void notifyQueuesOnReplicatedBatch();
 
     /// Invoke the specified `functor` with each queue associated to the
     /// partition represented by this FileStore if the partition was

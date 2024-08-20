@@ -318,13 +318,14 @@ manipulation, as a tiny subset of the C programming language.
 - Negation requires one argument
 - Junctions require two boolean arguments
 - Junctions are short-circuiting: if the left side of `&&` is `false`, or if
-  the left side of `||` is `true`, the right side is not evaluated. As a
-  consequence, identifiers in an expression do not all need to have a
-  corresponding property of the right type. For example, `type == "i" && shares
-  > 1000 || shares == "all"` is valid, as long as the value of `type` and the
-  type of `shares` are properly correlated. `order == "limit" and limit == 0`
-  can be used to detect the messages that represent a Limit Order with a silly
-  limit value, and e.g. log an error message.
+  the left side of `||` is `true`, the right side is not evaluated.
+  - As a consequence, identifiers in an expression do not all need to have a
+  corresponding property of the right type.
+  - For example, `type == "i" && shares 1000 || shares == "all"` is valid as
+  long as the value of `type` and the type of `shares` are properly correlated.
+  `order == "limit" and limit == 0` can be used to detect the messages that
+  represent a Limit Order with a silly limit value, and e.g. log an error
+  message.
 
 ### Operator Precedence
 {:.no_toc}
