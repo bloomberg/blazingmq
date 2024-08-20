@@ -5310,11 +5310,13 @@ void ClusterQueueHelper::requestToStopPushing()
     }
 }
 
-void ClusterQueueHelper::onDeconfiguredHandle(
-    const bsl::shared_ptr<StopContext>& contextSp)
+void ClusterQueueHelper::contextHolder(
+    const bsl::shared_ptr<StopContext>& contextSp,
+    const VoidFunctor&                  action)
 {
-    BALL_LOG_INFO << d_clusterData_p->identity().description()
-                  << ": deconfiguring " << " " << contextSp.numReferences();
+    if (action) {
+        action();
+    }
     (void)contextSp;
 }
 
@@ -5408,9 +5410,10 @@ void ClusterQueueHelper::processNodeStoppingNotification(
                      ++cit) {
                     cit->second.d_handle_p->deconfigureAll(
                         bdlf::BindUtil::bind(
-                            &ClusterQueueHelper::onDeconfiguredHandle,
+                            &ClusterQueueHelper::contextHolder,
                             this,
-                            contextSp));
+                            contextSp,
+                            VoidFunctor()));
                 }
                 BALL_LOG_INFO << d_clusterData_p->identity().description()
                               << ": deconfigured " << handles.size()
@@ -5476,21 +5479,27 @@ void ClusterQueueHelper::processNodeStoppingNotification(
                     continue;  // CONTINUE
                 }
 
-                queue->dispatcher()->execute(
-                    bdlf::BindUtil::bind(&mqbi::Queue::onOpenUpstream,
-                                         queue,
-                                         0,
-                                         bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID,
-                                         true),  // isWriterOnly
-                    queue);
-            }
+                VoidFunctor inner = bdlf::BindUtil::bind(
+                    &mqbi::Queue::onOpenUpstream,
+                    queue,
+                    0,
+                    bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID,
+                    true);
 
-            // As a way to bind 'contextSp' to all 'onOpenUpstream'
-            d_cluster_p->dispatcher()->execute(
-                bdlf::BindUtil::bind(&ClusterQueueHelper::onDeconfiguredHandle,
-                                     this,
-                                     contextSp),
-                mqbi::DispatcherClientType::e_QUEUE);
+                VoidFunctor outer = bdlf::BindUtil::bind(
+                    &ClusterQueueHelper::contextHolder,
+                    this,
+                    contextSp,
+                    inner);
+
+                queue->dispatcher()->execute(
+                    outer,
+                    queue,
+                    mqbi::DispatcherEventType::e_DISPATCHER);
+
+                // Use 'mqbi::DispatcherEventType::e_DISPATCHER' to avoid
+                // (re)enabling 'd_flushList'
+            }
         }
         else {
             // TEMPORARY, remove 'after switching to StopRequest V2

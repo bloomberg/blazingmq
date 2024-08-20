@@ -912,7 +912,8 @@ class ClusterQueueHelper : public mqbc::ClusterStateObserver,
     /// Send StopResponse to the request in the specified 'context.
     void finishStopSequenceDispatched(StopContext* context);
 
-    void onDeconfiguredHandle(const bsl::shared_ptr<StopContext>& contextSp);
+    void contextHolder(const bsl::shared_ptr<StopContext>& contextSp,
+                       const VoidFunctor&                  action);
 
     // PRIVATE ACCESSORS
 

@@ -609,8 +609,6 @@ class Routers {
         bool onUsable(unsigned int* upstreamSubQueueId,
                       unsigned int  upstreamSubscriptionId);
 
-        void shutdown();
-
         void loadInternals(mqbcmd::Routing* out) const;
     };
 
@@ -883,11 +881,6 @@ Routers::QueueRoutingContext::onUsable(unsigned int* upstreamSubQueueId,
         }
     }
     return false;
-}
-
-inline void Routers::QueueRoutingContext::shutdown()
-{
-    d_isShuttingDown = true;
 }
 
 // -----------------------------

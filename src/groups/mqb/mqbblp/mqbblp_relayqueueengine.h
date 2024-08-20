@@ -379,7 +379,7 @@ class RelayQueueEngine : public mqbi::QueueEngine {
     /// Reset the internal state of this engine.  If the optionally specified
     /// 'keepConfirming' is 'true', keep the data structures for CONFIRMs
     /// processing.
-    virtual void resetState(bool keepConfirming = false) BSLS_KEYWORD_OVERRIDE;
+    virtual void resetState(bool isShuttingDown = false) BSLS_KEYWORD_OVERRIDE;
 
     /// Rebuild the internal state of this engine.  This method is invoked
     /// when the queue this engine is associated with is created from an

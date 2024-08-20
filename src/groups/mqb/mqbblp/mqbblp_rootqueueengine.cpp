@@ -425,7 +425,7 @@ int RootQueueEngine::initializeAppId(const bsl::string& appId,
     return 0;
 }
 
-void RootQueueEngine::resetState(bool keepConfirming)
+void RootQueueEngine::resetState(bool isShuttingDown)
 {
     for (Apps::iterator it = d_apps.begin(); it != d_apps.end(); ++it) {
         it->value()->reset();
@@ -434,7 +434,7 @@ void RootQueueEngine::resetState(bool keepConfirming)
 
     d_consumptionMonitor.reset();
 
-    if (!keepConfirming) {
+    if (!isShuttingDown) {
         d_apps.clear();
     }
 }

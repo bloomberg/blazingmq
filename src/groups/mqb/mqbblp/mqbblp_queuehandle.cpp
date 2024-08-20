@@ -1000,7 +1000,11 @@ void QueueHandle::deconfigureAll(
         bdlf::BindUtil::bind(&QueueHandle::deconfigureDispatched,
                              this,
                              deconfiguredCb),
-        d_queue_sp.get());
+        d_queue_sp.get(),
+        mqbi::DispatcherEventType::e_DISPATCHER);
+
+    // Use 'mqbi::DispatcherEventType::e_DISPATCHER' to avoid (re)enabling
+    // 'd_flushList'
 }
 
 void QueueHandle::deconfigureDispatched(

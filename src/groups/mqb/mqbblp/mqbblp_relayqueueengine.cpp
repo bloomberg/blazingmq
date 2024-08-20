@@ -909,15 +909,18 @@ int RelayQueueEngine::configure(
     return 0;
 }
 
-void RelayQueueEngine::resetState(bool keepConfirming)
+void RelayQueueEngine::resetState(bool isShuttingDown)
 {
     // d_self.reset(this);
 
     for (AppsMap::iterator it = d_apps.begin(); it != d_apps.end(); ++it) {
         it->second->reset();
-        // Keep the routing which new engine can reuse
+        if (isShuttingDown) {
+            it->second->d_routing_sp->reset();
+        }
+        // else, keep the routing which new engine can reuse
     }
-    if (!keepConfirming) {
+    if (!isShuttingDown) {
         d_apps.clear();
     }
 }

@@ -957,9 +957,7 @@ bsls::Types::Int64 Queue::countUnconfirmed(unsigned int subId)
 
 void Queue::stopPushing()
 {
-    d_state.routingContext().shutdown();
-
-    queueEngine()->resetState(true);  // keepConfirming
+    queueEngine()->resetState(true);  // isShuttingDown
 }
 
 }  // close package namespace
