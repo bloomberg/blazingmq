@@ -37,6 +37,7 @@
 
 // NTC
 #include <ntcf_system.h>
+#include <ntci_streamsocket.h>
 
 // BDE
 #include <bdlbb_blob.h>
@@ -426,6 +427,10 @@ class NtcChannel : public mwcio::Channel,
 
     /// Return the allocator this object was created with.
     bslma::Allocator* allocator() const;
+
+    /// Return the socket interface for this channel. This function is
+    /// undefined unless the channel has succesfully established a connection.
+    const ntci::StreamSocket& streamSocket() const;
 };
 
 // =====================
