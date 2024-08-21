@@ -263,6 +263,18 @@ VirtualPushStreamIterator::~VirtualPushStreamIterator()
     // NOTHING
 }
 
+unsigned int VirtualPushStreamIterator::numApps() const
+{
+    BSLS_ASSERT_SAFE(!atEnd());
+
+    return 1;
+}
+
+void VirtualPushStreamIterator::removeCurrentElement()
+{
+    advance();
+}
+
 // MANIPULATORS
 bool VirtualPushStreamIterator::advance()
 {

@@ -1131,8 +1131,7 @@ QueueEngineUtil_AppState::processDeliveryList(bsls::TimeInterval*    delay,
                 << "' (not in the storage)";
         }
         else if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
-                    !reader->appMessageView(ordinal()).isPending())) {
-
+                     !reader->appMessageView(ordinal()).isPending())) {
             BMQ_LOGTHROTTLE_INFO()
                 << "#STORAGE_UNKNOWN_MESSAGE " << "Queue: '"
                 << d_queue_p->description() << "', app: '" << appId()

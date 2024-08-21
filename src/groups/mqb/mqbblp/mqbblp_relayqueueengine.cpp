@@ -1522,7 +1522,7 @@ void RelayQueueEngine::afterQueuePurged(const bsl::string&      appId,
 
         // Purge all virtual storages, and reset all iterators.
 
-        unsigned int numMessages = d_pushStream.removeAll();
+        d_pushStream.removeAll();
 
         for (AppsMap::iterator it = d_apps.begin(); it != d_apps.end(); ++it) {
             it->second->clear();

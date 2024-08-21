@@ -235,12 +235,14 @@ void QueueHandle::rejectMessageDispatched(const bmqt::MessageGUID& msgGUID,
     // Update unconfirmed messages list and stats
 
     // Inform the queue about that reject.
-    d_queue_sp->rejectMessage(msgGUID,
+    int counter = d_queue_sp->rejectMessage(msgGUID,
                                             subStream->d_upstreamSubQueueId,
                                             this);
 
-    updateMonitor(subStream, msgGUID, bmqp::EventType::e_REJECT);
-    // That erases 'msgGUID' from 'd_unconfirmedMessages'
+    if (counter == 0) {
+        updateMonitor(subStream, msgGUID, bmqp::EventType::e_REJECT);
+        // That erases 'msgGUID' from 'd_unconfirmedMessages'
+    }
 }
 
 mqbu::ResourceUsageMonitorStateTransition::Enum
@@ -1220,10 +1222,6 @@ bool QueueHandle::canDeliver(unsigned int downstreamSubscriptionId) const
         downstreamSubscriptionId);
 
     BSLS_ASSERT_SAFE(cit != d_subscriptions.end());
-
-    BALL_LOG_INFO
-                << "QueueHandle [" << (d_clientContext_sp ? d_clientContext_sp->description() : "none")
-                << "] canDeliver " << cit->second->d_unconfirmedMonitor.messages();
 
     return d_clientContext_sp &&
            (cit->second->d_unconfirmedMonitor.state() !=

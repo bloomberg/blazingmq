@@ -245,7 +245,7 @@ class PushStreamIterator : public mqbi::StorageIterator {
     mutable bsl::shared_ptr<bdlbb::Blob> d_options_sp;
 
   protected:
-    PushStream*                  d_owner_p;
+    PushStream* d_owner_p;
 
     /// Current (`mqbi::AppMessage`, `upstreamSubQueueId`) pair.
     mutable PushStream::Element* d_currentElement;
@@ -388,11 +388,21 @@ class VirtualPushStreamIterator : public PushStreamIterator {
     /// Destructor
     virtual ~VirtualPushStreamIterator() BSLS_KEYWORD_OVERRIDE;
 
+    /// Remove the current element (`mqbi::AppMessage`, `upstreamSubQueueId`
+    /// pair) from the current PUSH GUID.
+    /// The behavior is undefined unless `atEnd` returns `false`.
+    void removeCurrentElement();
+
+    /// Return the number of elements (`mqbi::AppMessage`, `upstreamSubQueueId`
+    /// pairs) for the current PUSH GUID.
+    /// The behavior is undefined unless `atEnd` returns `false`.
+    unsigned int numApps() const;
+
     /// Return the current element (`mqbi::AppMessage`, `upstreamSubQueueId`
     /// pair).
     /// The behavior is undefined unless `atEnd` returns `false`.
-    PushStream::Element* element(unsigned int appOrdinal) const
-        BSLS_KEYWORD_OVERRIDE;
+    PushStream::Element*
+    element(unsigned int appOrdinal) const BSLS_KEYWORD_OVERRIDE;
 
     // MANIPULATORS
     bool advance() BSLS_KEYWORD_OVERRIDE;
