@@ -1130,7 +1130,9 @@ QueueEngineUtil_AppState::processDeliveryList(bsls::TimeInterval*    delay,
                 << "' could not redeliver GUID: '" << *it
                 << "' (not in the storage)";
         }
-        else if (!reader->appMessageView(ordinal()).isPending()) {
+        else if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
+                    !reader->appMessageView(ordinal()).isPending())) {
+
             BMQ_LOGTHROTTLE_INFO()
                 << "#STORAGE_UNKNOWN_MESSAGE " << "Queue: '"
                 << d_queue_p->description() << "', app: '" << appId()
@@ -1174,7 +1176,7 @@ QueueEngineUtil_AppState::processDeliveryList(bsls::TimeInterval*    delay,
 
     if (numMessages) {
         BALL_LOG_INFO << "Queue '" << d_queue_p->description()
-                      << "', appId = '" << appId() << " (re)delivered "
+                      << "', appId = '" << appId() << "' (re)delivered "
                       << numMessages << " messages starting from " << firstGuid
                       << ".";
     }

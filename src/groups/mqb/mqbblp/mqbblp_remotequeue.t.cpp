@@ -192,7 +192,7 @@ TestBench::TestBench(bslma::Allocator* allocator_p)
 
     mwcu::MemOutStream errorDescription(allocator_p);
 
-    int rc = d_cluster.start(errorDescription);
+    d_cluster.start(errorDescription);
 }
 
 TestBench::~TestBench()

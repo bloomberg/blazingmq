@@ -27,7 +27,7 @@
 // When PUSH message is a result of round-robin, the number of App ids in the
 // message may not be equal to the number of Apps known to the
 // RelayQueueEngine.  Moreover, the order of data replication in Replica may
-// not be equal to the order of PUSH messages.  The main storage DataStrem
+// not be equal to the order of PUSH messages.  The main storage DataStream
 // cannot feed the deliver logic, we need an additional layer.
 // This layer supports the 'mqbi::StorageIterator' interface because this is
 // how the delivery logic accesses data in all cases including Primary where
@@ -75,7 +75,7 @@ struct PushStream {
     // forward declaration
     struct Element;
 
-    enum eElementList { e_GUID = 0, e_APP = 1, e_TOTAL = 2 };
+    enum ElementList { e_GUID = 0, e_APP = 1, e_TOTAL = 2 };
 
     struct ElementBase {
         Element* d_next_p;
@@ -103,13 +103,13 @@ struct PushStream {
         Elements();
 
         /// Add the specified `element` to doubly-linked list for GUID
-        void add(Element* element, eElementList where);
+        void add(Element* element, ElementList where);
 
         /// Remove the specified `element` from doubly-linked list for GUID
-        void remove(Element* element, eElementList where);
+        void remove(Element* element, ElementList where);
 
         /// Return the first Element in the list
-        Element*     first() const;
+        Element*     front() const;
         unsigned int numElements() const;
     };
 
@@ -162,11 +162,11 @@ struct PushStream {
         /// `iterator` position in the PushStream.
         bool isInStream(const PushStream::Stream::iterator& iterator) const;
 
-        /// Return reference to the next Element associated with the same GUID
+        /// Return pointer to the next Element associated with the same GUID
         /// or `0` if this is the last Element.
         Element* next() const;
 
-        /// Return reference to the next Element associated with the same App
+        /// Return pointer to the next Element associated with the same App
         /// or `0` if this is the last Element.
         Element* nextInApp() const;
     };
@@ -180,8 +180,8 @@ struct PushStream {
     PushStream(const bsl::optional<bdlma::ConcurrentPool*>& pushElementsPool,
                bslma::Allocator*                            allocator);
 
-    /// Introduce the specified `guid` to the Push Stream if it is not present
-    /// or return an iterator pointing to the `guid`.
+    /// Introduce the specified `guid` to the Push Stream if it is not present.
+    /// Return an iterator pointing to the `guid`.
     iterator findOrAppendMessage(const bmqt::MessageGUID& guid);
 
     /// Add the specified `element` to both GUID and App corresponding to the
@@ -190,8 +190,6 @@ struct PushStream {
 
     /// Remove the specified `element` from both GUID and App corresponding to
     /// the `element` (and specified when constructing the `element`).
-    /// Erase the corresponding App from the PushStream if there is no
-    /// remaining Elements in the App.
     /// Return the number of remaining Elements in the corresponding GUID.
     unsigned int remove(Element* element);
 
@@ -248,10 +246,12 @@ class PushStreamIterator : public mqbi::StorageIterator {
 
   protected:
     PushStream*                  d_owner_p;
+
+    /// Current (`mqbi::AppMessage`, `upstreamSubQueueId`) pair.
     mutable PushStream::Element* d_currentElement;
-    // Current (`mqbi::AppMessage`, `upstreamSubQueueId`) pair.
+
+    /// Current ordinal corresponding to the `d_currentElement`.
     mutable unsigned int d_currentOrdinal;
-    // Current ordinal corresponding to the `d_currentElement`.
 
   private:
     // NOT IMPLEMENTED
@@ -285,7 +285,7 @@ class PushStreamIterator : public mqbi::StorageIterator {
                        const PushStream::iterator& initialPosition);
 
     /// Destructor
-    ~PushStreamIterator() BSLS_KEYWORD_OVERRIDE;
+    virtual ~PushStreamIterator() BSLS_KEYWORD_OVERRIDE;
 
     /// Remove the current element (`mqbi::AppMessage`, `upstreamSubQueueId`
     /// pair) from the current PUSH GUID.
@@ -293,7 +293,7 @@ class PushStreamIterator : public mqbi::StorageIterator {
     void removeCurrentElement();
 
     /// Return the number of elements (`mqbi::AppMessage`, `upstreamSubQueueId`
-    /// pairs) fir the current PUSH GUID.
+    /// pairs) for the current PUSH GUID.
     /// The behavior is undefined unless `atEnd` returns `false`.
     unsigned int numApps() const;
 
@@ -386,12 +386,13 @@ class VirtualPushStreamIterator : public PushStreamIterator {
                               const PushStream::iterator& initialPosition);
 
     /// Destructor
-    ~VirtualPushStreamIterator() BSLS_KEYWORD_OVERRIDE;
+    virtual ~VirtualPushStreamIterator() BSLS_KEYWORD_OVERRIDE;
 
     /// Return the current element (`mqbi::AppMessage`, `upstreamSubQueueId`
     /// pair).
     /// The behavior is undefined unless `atEnd` returns `false`.
-    virtual PushStream::Element* element(unsigned int appOrdinal) const;
+    PushStream::Element* element(unsigned int appOrdinal) const
+        BSLS_KEYWORD_OVERRIDE;
 
     // MANIPULATORS
     bool advance() BSLS_KEYWORD_OVERRIDE;
@@ -514,7 +515,7 @@ inline void PushStream::Elements::onRemove()
     }
 }
 
-inline void PushStream::Elements::remove(Element* element, eElementList where)
+inline void PushStream::Elements::remove(Element* element, ElementList where)
 {
     BSLS_ASSERT_SAFE(element);
 
@@ -547,7 +548,7 @@ inline void PushStream::Elements::remove(Element* element, eElementList where)
     element->d_base[where].d_previous_p = element->d_base[where].d_next_p = 0;
 }
 
-inline void PushStream::Elements::add(Element* element, eElementList where)
+inline void PushStream::Elements::add(Element* element, ElementList where)
 {
     BSLS_ASSERT_SAFE(element->d_base[where].d_previous_p == 0);
     BSLS_ASSERT_SAFE(element->d_base[where].d_next_p == 0);
@@ -563,7 +564,7 @@ inline void PushStream::Elements::add(Element* element, eElementList where)
     onAdd(element);
 }
 
-inline PushStream::Element* PushStream::Elements::first() const
+inline PushStream::Element* PushStream::Elements::front() const
 {
     return d_first_p;
 }
@@ -667,7 +668,7 @@ inline unsigned int PushStream::removeApp(Apps::iterator itApp)
 {
     unsigned int numElements = itApp->second.d_elements.numElements();
     for (unsigned int count = 0; count < numElements; ++count) {
-        Element* element = itApp->second.d_elements.first();
+        Element* element = itApp->second.d_elements.front();
 
         remove(element);
 

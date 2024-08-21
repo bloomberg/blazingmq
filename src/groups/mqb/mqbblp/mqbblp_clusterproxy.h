@@ -291,10 +291,8 @@ class ClusterProxy : public mqbc::ClusterStateObserver,
         mqbnet::ClusterNode*         node,
         BSLS_ANNOTATION_UNUSED const bmqp_ctrlmsg::ClientIdentity& identity);
 
-    /// Executed by the dispatcher thread when there is a change in the
-    /// specified `node` connectivity.  If not empty, the specified
-    /// `session` points to newly connected `Session`.  Empty `session`
-    /// indicates loss of connectivity.
+    /// Executed by the dispatcher thread when the specified `node` becomes
+    /// unavailable.
     void onNodeDownDispatched(mqbnet::ClusterNode* node);
 
     /// Callback method when the `activeNodeLookupEvent` has expired.

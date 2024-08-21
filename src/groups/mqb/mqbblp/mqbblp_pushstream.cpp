@@ -18,7 +18,6 @@
 #include <mqbblp_pushstream.h>
 
 #include <mqbscm_version.h>
-// MQB
 
 namespace BloombergLP {
 namespace mqbblp {
@@ -39,8 +38,11 @@ void noOpDeleter(bdlma::ConcurrentPool*)
 PushStream::PushStream(
     const bsl::optional<bdlma::ConcurrentPool*>& pushElementsPool,
     bslma::Allocator*                            allocator)
-: d_pushElementsPool_sp(pushElementsPool.value_or(bsl::nullptr_t()),
-                        noOpDeleter)
+: d_stream(allocator)
+, d_apps(allocator)
+, d_pushElementsPool_sp(pushElementsPool.value_or(bsl::nullptr_t()),
+                        noOpDeleter,
+                        allocator)
 {
     if (!d_pushElementsPool_sp) {
         d_pushElementsPool_sp.load(
@@ -185,7 +187,7 @@ PushStream::Element* PushStreamIterator::element(unsigned int appOrdinal) const
 
     if (d_currentOrdinal > appOrdinal) {
         d_currentOrdinal = 0;
-        d_currentElement = d_iterator->second.first();
+        d_currentElement = d_iterator->second.front();
     }
 
     BSLS_ASSERT_SAFE(d_currentElement);
@@ -251,7 +253,7 @@ VirtualPushStreamIterator::VirtualPushStreamIterator(
 
     BSLS_ASSERT_SAFE(d_itApp != owner->d_apps.end());
 
-    d_currentElement = d_itApp->second.d_elements.first();
+    d_currentElement = d_itApp->second.d_elements.front();
 
     BSLS_ASSERT_SAFE(d_currentElement->app().d_app == d_itApp->second.d_app);
 }

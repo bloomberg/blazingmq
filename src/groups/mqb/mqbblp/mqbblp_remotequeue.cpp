@@ -609,10 +609,10 @@ void RemoteQueue::getHandle(
         }
     }
 
-    mqbi::QueueHandle* handle = d_queueEngine_mp->getHandle(clientContext,
-                                                            handleParameters,
-                                                            upstreamSubQueueId,
-                                                            callback);
+    d_queueEngine_mp->getHandle(clientContext,
+                                handleParameters,
+                                upstreamSubQueueId,
+                                callback);
 }
 
 void RemoteQueue::configureHandle(
