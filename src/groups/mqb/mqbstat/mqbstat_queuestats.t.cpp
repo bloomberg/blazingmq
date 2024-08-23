@@ -592,7 +592,7 @@ static void test5_appIdMetrics()
         ASSERT_EQ(1, sc->numSubcontexts());
 
         const mwcst::StatContext* fooSc = sc->getSubcontext(k_APPID_FOO);
-        ASSERT_NE(bsl::nullptr_t(), fooSc);
+        ASSERT_NE(NULL, fooSc);
     }
 
     // Add event for non-configured appId "bar", this value should not reach to
