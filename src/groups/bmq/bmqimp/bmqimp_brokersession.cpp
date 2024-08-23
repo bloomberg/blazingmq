@@ -1354,15 +1354,14 @@ void BrokerSession::QueueFsm::actionInitiateQueueResume(
         context);
 }
 
-void BrokerSession::QueueFsm::logOperationTime(
-    const bsl::shared_ptr<Queue>& queue,
-    const char*                   operation) const
+void BrokerSession::QueueFsm::logOperationTime(const int   queueId,
+                                               const char* operation) const
 {
-    TimestampMap::iterator it = d_timestampMap.find(queue->id());
+    TimestampMap::iterator it = d_timestampMap.find(queueId);
     if (it != d_timestampMap.end()) {
         const bsls::Types::Int64 elapsed =
             mwcsys::Time::highResolutionTimer() - it->second;
-        BALL_LOG_INFO << operation << " [qId=" << queue->id() << "] took: "
+        BALL_LOG_INFO << operation << " [qId=" << queueId << "] took: "
                       << mwcu::PrintUtil::prettyTimeInterval(elapsed) << " ("
                       << elapsed << " nanoseconds)";
         // Handling of error cases causes of several operations.
@@ -1557,7 +1556,7 @@ void BrokerSession::QueueFsm::handleRequestNotSent(
         // Keep the OPENED state
         setQueueState(queue, QueueState::e_OPENED, event);
 
-        logOperationTime(queue, "Configure queue");
+        logOperationTime(queue->id(), "Configure queue");
 
         // Notify about configure queue result
         context->signal();
@@ -1576,7 +1575,7 @@ void BrokerSession::QueueFsm::handleRequestNotSent(
                             status,
                             "Failed to send open queue request to the broker");
 
-        logOperationTime(queue, "Open queue");
+        logOperationTime(queue->id(), "Open queue");
 
         // Notify about open queue result
         context->signal();
@@ -1596,7 +1595,7 @@ void BrokerSession::QueueFsm::handleRequestNotSent(
             status,
             "Failed to send reopen-queue request to the broker");
 
-        logOperationTime(queue, "Reopen queue");
+        logOperationTime(queue->id(), "Reopen queue");
 
         // Notify about reopen queue result
         context->signal();
@@ -1626,7 +1625,7 @@ void BrokerSession::QueueFsm::handleRequestNotSent(
         //          non-deterministic: the queue may be CLOSING or CLOSED by
         //          the time user gets callback/semaphore post.
 
-        logOperationTime(queue, "Open queue");
+        logOperationTime(queue->id(), "Open queue");
 
         // Notify about open queue result
         context->signal();
@@ -1647,7 +1646,7 @@ void BrokerSession::QueueFsm::handleRequestNotSent(
             status,
             "Failed to send reopen-configure-queue request to the broker");
 
-        logOperationTime(queue, "Reopen queue");
+        logOperationTime(queue->id(), "Reopen queue");
 
         // Notify about reopen queue result
         context->signal();
@@ -1673,7 +1672,7 @@ void BrokerSession::QueueFsm::handleRequestNotSent(
             status,
             "The request was canceled [reason: connection was lost]");
 
-        logOperationTime(queue, "Close queue");
+        logOperationTime(queue->id(), "Close queue");
 
         // Notify about close result
         context->signal();
@@ -1691,7 +1690,7 @@ void BrokerSession::QueueFsm::handleRequestNotSent(
             status,
             "Failed to send close queue request to the broker");
 
-        logOperationTime(queue, "Close queue");
+        logOperationTime(queue->id(), "Close queue");
 
         // Notify about close result
         context->signal();
@@ -1910,7 +1909,7 @@ bmqt::CloseQueueResult::Enum BrokerSession::QueueFsm::handleCloseRequest(
         // Set CLOSED state
         setQueueState(queue, QueueState::e_CLOSED, event);
 
-        logOperationTime(queue, "Close queue");
+        logOperationTime(queue->id(), "Close queue");
 
         // Remove queue from the queue container
         actionRemoveQueue(queue);
@@ -1974,7 +1973,7 @@ void BrokerSession::QueueFsm::handleResponseError(
         // Keep the state
         setQueueState(queue, state, event);
 
-        logOperationTime(queue, "Configure queue");
+        logOperationTime(queue->id(), "Configure queue");
 
         // Notify configure result
         context->signal();
@@ -1992,7 +1991,7 @@ void BrokerSession::QueueFsm::handleResponseError(
         d_session.d_queueManager.decrementSubStreamCount(
             queue->uri().canonical());
 
-        logOperationTime(queue, "Open queue");
+        logOperationTime(queue->id(), "Open queue");
 
         // Remove queue from the queue list
         actionRemoveQueue(queue);
@@ -2013,7 +2012,7 @@ void BrokerSession::QueueFsm::handleResponseError(
         d_session.d_queueManager.decrementSubStreamCount(
             queue->uri().canonical());
 
-        logOperationTime(queue, "Reopen queue");
+        logOperationTime(queue->id(), "Reopen queue");
 
         // Remove queue and notify about open queue result
         actionRemoveQueue(queue);
@@ -2038,7 +2037,7 @@ void BrokerSession::QueueFsm::handleResponseError(
         d_session.d_queueManager.decrementSubStreamCount(
             queue->uri().canonical());
 
-        logOperationTime(queue, "Open queue");
+        logOperationTime(queue->id(), "Open queue");
 
         // Send close queue request
         actionCloseQueue(queue);
@@ -2063,7 +2062,7 @@ void BrokerSession::QueueFsm::handleResponseError(
         // Send close queue request
         actionCloseQueue(queue);
 
-        logOperationTime(queue, "Reopen queue");
+        logOperationTime(queue->id(), "Reopen queue");
 
         // Notify about reopen queue result
         context->signal();
@@ -2080,7 +2079,7 @@ void BrokerSession::QueueFsm::handleResponseError(
         // is closed.
         setQueueState(queue, QueueState::e_CLOSED, event);
 
-        logOperationTime(queue, "Close queue");
+        logOperationTime(queue->id(), "Close queue");
 
         // Remove queue
         actionRemoveQueue(queue);
@@ -2150,7 +2149,7 @@ void BrokerSession::QueueFsm::handleSessionDown(
         d_session.d_queueManager.decrementSubStreamCount(
             queue->uri().canonical());
 
-        logOperationTime(queue, "Open queue");
+        logOperationTime(queue->id(), "Open queue");
 
         // Remove queue from the queue list
         actionRemoveQueue(queue);
@@ -2168,7 +2167,7 @@ void BrokerSession::QueueFsm::handleSessionDown(
         d_session.d_queueManager.decrementSubStreamCount(
             queue->uri().canonical());
 
-        logOperationTime(queue, "Reopen queue");
+        logOperationTime(queue->id(), "Reopen queue");
 
         // Remove queue and notify about open queue result
         actionRemoveQueue(queue);
@@ -2188,7 +2187,7 @@ void BrokerSession::QueueFsm::handleSessionDown(
         // about unsuccessful closeQueue response and close the queue.
         setQueueState(queue, QueueState::e_CLOSED, event);
 
-        logOperationTime(queue, "Close queue");
+        logOperationTime(queue->id(), "Close queue");
 
         // Remove queue from the queue container
         actionRemoveQueue(queue);
@@ -2209,7 +2208,7 @@ void BrokerSession::QueueFsm::handleSessionDown(
         d_session.d_queueManager.decrementSubStreamCount(
             queue->uri().canonical());
 
-        logOperationTime(queue, "Configure queue");
+        logOperationTime(queue->id(), "Configure queue");
 
         // Remove queue from the queue list
         actionRemoveQueue(queue);
@@ -2255,7 +2254,7 @@ void BrokerSession::QueueFsm::handleRequestCanceled(
         // Keep the state
         setQueueState(queue, state, event);
 
-        logOperationTime(queue, "Configure queue");
+        logOperationTime(queue->id(), "Configure queue");
 
         // Notify configure result
         context->signal();
@@ -2291,7 +2290,7 @@ void BrokerSession::QueueFsm::handleRequestCanceled(
         // response and close the queue.
         setQueueState(queue, QueueState::e_CLOSED, event);
 
-        logOperationTime(queue, "Close queue");
+        logOperationTime(queue->id(), "Close queue");
 
         // Remove queue from the queue container
         actionRemoveQueue(queue);
@@ -2314,7 +2313,7 @@ void BrokerSession::QueueFsm::handleRequestCanceled(
         // is closed.
         setQueueState(queue, QueueState::e_CLOSED, event);
 
-        logOperationTime(queue, "Close queue");
+        logOperationTime(queue->id(), "Close queue");
 
         // Remove queue
         actionRemoveQueue(queue);
@@ -2363,7 +2362,7 @@ void BrokerSession::QueueFsm::handleResponseTimeout(
         // Keep OPENED state
         setQueueState(queue, QueueState::e_OPENED, event);
 
-        logOperationTime(queue, "Configure queue");
+        logOperationTime(queue->id(), "Configure queue");
 
         // Notify configure result
         context->signal();
@@ -2375,7 +2374,7 @@ void BrokerSession::QueueFsm::handleResponseTimeout(
         // Set EXPIRED state
         setQueueState(queue, QueueState::e_OPENING_OPN_EXPIRED, event);
 
-        logOperationTime(queue, "Open queue");
+        logOperationTime(queue->id(), "Open queue");
 
         // Notify open queue result
         context->signal();
@@ -2387,7 +2386,7 @@ void BrokerSession::QueueFsm::handleResponseTimeout(
         // Set EXPIRED state
         setQueueState(queue, QueueState::e_OPENING_OPN_EXPIRED, event);
 
-        logOperationTime(queue, "Reopen queue");
+        logOperationTime(queue->id(), "Reopen queue");
 
         // Notify reopen queue result
         context->signal();
@@ -2403,7 +2402,7 @@ void BrokerSession::QueueFsm::handleResponseTimeout(
         // Set EXPIRED state
         setQueueState(queue, QueueState::e_OPENING_CFG_EXPIRED, event);
 
-        logOperationTime(queue, "Open queue");
+        logOperationTime(queue->id(), "Open queue");
 
         // Notify open queue result
         context->signal();
@@ -2416,7 +2415,7 @@ void BrokerSession::QueueFsm::handleResponseTimeout(
         // Set EXPIRED state
         setQueueState(queue, QueueState::e_OPENING_CFG_EXPIRED, event);
 
-        logOperationTime(queue, "Reopen queue");
+        logOperationTime(queue->id(), "Reopen queue");
 
         // Notify reopen queue result
         context->signal();
@@ -2432,7 +2431,7 @@ void BrokerSession::QueueFsm::handleResponseTimeout(
         // Set EXPIRED state
         setQueueState(queue, QueueState::e_CLOSING_CFG_EXPIRED, event);
 
-        logOperationTime(queue, "Close queue");
+        logOperationTime(queue->id(), "Close queue");
 
         // Notify about close result
         context->signal();
@@ -2444,7 +2443,7 @@ void BrokerSession::QueueFsm::handleResponseTimeout(
         // Set EXPIRED state
         setQueueState(queue, QueueState::e_CLOSING_CLS_EXPIRED, event);
 
-        logOperationTime(queue, "Close queue");
+        logOperationTime(queue->id(), "Close queue");
 
         // Notify about close result
         context->signal();
@@ -2455,7 +2454,7 @@ void BrokerSession::QueueFsm::handleResponseTimeout(
         // Buffered request timed out.  Keep the state and notify the caller.
         setQueueState(queue, state, event);
 
-        logOperationTime(queue, "Configure queue");
+        logOperationTime(queue->id(), "Configure queue");
 
         // Notify configure queue result
         context->signal();
@@ -2498,7 +2497,7 @@ void BrokerSession::QueueFsm::handleResponseExpired(
         // Keep PENDING state
         setQueueState(queue, QueueState::e_PENDING, event);
 
-        logOperationTime(queue, "Configure queue");
+        logOperationTime(queue->id(), "Configure queue");
 
         // Notify configure result
         context->signal();
@@ -2518,7 +2517,7 @@ void BrokerSession::QueueFsm::handleResponseExpired(
         d_session.d_queueManager.decrementSubStreamCount(
             queue->uri().canonical());
 
-        logOperationTime(queue, "Open queue");
+        logOperationTime(queue->id(), "Open queue");
 
         // Remove queue from the queue list
         actionRemoveQueue(queue);
@@ -2569,7 +2568,7 @@ void BrokerSession::QueueFsm::handleResponseOk(
         // Keep the state OPENED
         setQueueState(queue, QueueState::e_OPENED, event);
 
-        logOperationTime(queue, "Configure queue");
+        logOperationTime(queue->id(), "Configure queue");
 
         // Notify configure result
         context->signal();
@@ -2676,7 +2675,7 @@ void BrokerSession::QueueFsm::handleResponseOk(
         // Create the stat context if needed
         actionInitQueue(queue, context, false);  // false - isReopenRequest
 
-        logOperationTime(queue, "Open queue");
+        logOperationTime(queue->id(), "Open queue");
 
         // Notify open queue result
         context->signal();
@@ -2693,7 +2692,7 @@ void BrokerSession::QueueFsm::handleResponseOk(
         // Create the stat context if needed
         actionInitQueue(queue, context, true);  // true - isReopenRequest
 
-        logOperationTime(queue, "Reopen queue");
+        logOperationTime(queue->id(), "Reopen queue");
 
         // Notify reopen queue result
         context->signal();
@@ -2728,7 +2727,7 @@ void BrokerSession::QueueFsm::handleResponseOk(
         // Set CLOSED state
         setQueueState(queue, QueueState::e_CLOSED, event);
 
-        logOperationTime(queue, "Close queue");
+        logOperationTime(queue->id(), "Close queue");
 
         // Remove active queue from the list
         actionRemoveQueue(queue);
