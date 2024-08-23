@@ -231,7 +231,8 @@ void StorageManager::processRecoveryEvent(
 }
 
 void StorageManager::processReceiptEvent(
-    BSLS_ANNOTATION_UNUSED const mqbi::DispatcherReceiptEvent& event)
+    BSLS_ANNOTATION_UNUSED const bmqp::Event& event,
+    BSLS_ANNOTATION_UNUSED mqbnet::ClusterNode* source)
 {
     // NOTHING
 }
