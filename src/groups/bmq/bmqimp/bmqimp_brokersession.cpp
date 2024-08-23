@@ -1359,16 +1359,14 @@ void BrokerSession::QueueFsm::logOperationTime(
     const char*                   operation) const
 {
     TimestampMap::iterator it = d_timestampMap.find(queue->id());
-
-    BSLS_ASSERT_SAFE(it != d_timestampMap.end() &&
-                     "Operation begin time not found");
-
     if (it != d_timestampMap.end()) {
         const bsls::Types::Int64 elapsed =
             mwcsys::Time::highResolutionTimer() - it->second;
         BALL_LOG_INFO << operation << " [qId=" << queue->id() << "] took: "
                       << mwcu::PrintUtil::prettyTimeInterval(elapsed) << " ("
                       << elapsed << " nanoseconds)";
+        // Handling of error cases causes of several operations.
+        // Log only first one (original) and skip others.
         d_timestampMap.erase(it);
     }
 }
