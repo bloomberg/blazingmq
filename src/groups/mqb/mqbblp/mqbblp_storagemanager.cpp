@@ -1532,7 +1532,8 @@ void StorageManager::initializeQueueKeyInfoMap(
     // PRECONDITION
     BSLS_ASSERT_SAFE(d_dispatcher_p->inDispatcherThread(d_cluster_p));
 
-    BSLS_ASSERT_OPT(false && "This method should only be invoked in FSM mode");
+    BSLS_ASSERT_OPT(false && "Only the FSM version of this method from "
+                             "mqbc::StorageManager should be invoked.");
 }
 
 void StorageManager::setPrimaryForPartition(int                  partitionId,
