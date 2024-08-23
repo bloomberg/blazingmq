@@ -259,7 +259,7 @@ inline void CommandRouter::releaseLatch()
 
 inline bool CommandRouter::isRoutingNeeded() const
 {
-    return d_routingModeMp != NULL;
+    return d_routingModeMp != bsl::nullptr_t();
 }
 
 }  // close package namespace
