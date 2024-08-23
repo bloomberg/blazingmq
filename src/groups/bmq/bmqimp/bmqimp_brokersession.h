@@ -461,6 +461,10 @@ class BrokerSession BSLS_CPP11_FINAL {
         bsl::vector<QueueStateTransition> d_transitionTable;
         // State transition table
 
+        typedef bsl::unordered_map<int, bsls::Types::Int64> TimestampMap;
+        mutable TimestampMap                                d_timestampMap;
+        // Map of HiRes timestamp of the operation beginning per each queue
+
       private:
         // PRIVATE MANIPULATORS
 
@@ -580,6 +584,10 @@ class BrokerSession BSLS_CPP11_FINAL {
 
         /// Initiate the resumption of a queue.
         void actionInitiateQueueResume(const bsl::shared_ptr<Queue>& queue);
+
+        // PRIVATE ACCESSORS
+        void printOperationTime(const bsl::shared_ptr<Queue>& queue,
+                                const char*                   operation) const;
 
       public:
         // CREATORS
