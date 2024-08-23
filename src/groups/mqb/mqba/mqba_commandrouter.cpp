@@ -100,7 +100,7 @@ int CommandRouter::SinglePartitionPrimaryRoutingMode::getRouteTargets(
     BSLS_ASSERT_SAFE(routeTargets);
     BSLS_ASSERT_SAFE(cluster);
 
-    mqbnet::ClusterNode* node = nullptr;
+    mqbnet::ClusterNode* node = NULL;
 
     int rc;
 
@@ -289,7 +289,7 @@ void CommandRouter::setCommandRoutingMode()
 {
     bslma::Allocator* allocator = bslma::Default::allocator();
 
-    d_routingModeMp = nullptr;
+    d_routingModeMp = NULL;
 
     const mqbcmd::CommandChoice& commandChoice = d_command.choice();
 

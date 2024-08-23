@@ -542,7 +542,7 @@ Application::getRelevantCluster(bsl::ostream&          errorDescription,
         }
         else {
             errorDescription << "Cannot extract cluster for that command";
-            return nullptr;  // RETURN
+            return NULL;  // RETURN
         }
 
         // Attempt to locate the domain
@@ -550,7 +550,7 @@ Application::getRelevantCluster(bsl::ostream&          errorDescription,
         if (0 !=
             d_domainManager_mp->locateOrCreateDomain(&domainSp, domainName)) {
             errorDescription << "Domain '" << domainName << "' doesn't exist";
-            return nullptr;  // RETURN
+            return NULL;  // RETURN
         }
 
         return domainSp->cluster();  // RETURN
@@ -562,13 +562,13 @@ Application::getRelevantCluster(bsl::ostream&          errorDescription,
         if (!d_clusterCatalog_mp->findCluster(&clusterOut, clusterName)) {
             errorDescription << "Cluster '" << clusterName
                              << "' doesn't exist";
-            return nullptr;  // RETURN
+            return NULL;  // RETURN
         }
         return clusterOut.get();  // RETURN
     }
 
     errorDescription << "Cannot extract cluster for that command";
-    return nullptr;  // RETURN
+    return NULL;  // RETURN
 }
 
 int Application::executeCommand(const mqbcmd::Command&  command,
@@ -737,7 +737,7 @@ int Application::processCommand(const bslstl::StringRef& source,
         mwcu::MemOutStream errorDescription;
 
         mqbi::Cluster* cluster = getRelevantCluster(errorDescription, command);
-        if (cluster == nullptr) {  // Error occurred getting cluster
+        if (cluster == NULL) {  // Error occurred getting cluster
             cmdResult.makeError().message() = errorDescription.str();
             mqbcmd::Util::printCommandResult(cmdResult,
                                              command.encoding(),

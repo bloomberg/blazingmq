@@ -3768,7 +3768,7 @@ void Cluster::getPrimaryNodes(int*          rc,
          pit++) {
         if (pit->primaryStatus() !=
             // TODO: Handle this case (will want to buffer)
-            bmqp_ctrlmsg::PrimaryStatus::Value::E_ACTIVE) {
+            bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE) {
             BALL_LOG_WARN << "While collecting primary nodes: "
                           << "primary for partition " << pit->partitionId()
                           << " is not active";
