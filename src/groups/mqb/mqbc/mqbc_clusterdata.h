@@ -65,6 +65,7 @@
 #include <bslma_managedptr.h>
 #include <bslma_usesbslmaallocator.h>
 #include <bslmf_nestedtraitdeclaration.h>
+#include <bsls_keyword.h>
 #include <bsls_types.h>
 
 namespace BloombergLP {
@@ -211,6 +212,11 @@ class ClusterData {
     // Thread pool used for any standalone
     // work that can be offloaded to any
     // non-dispatcher threads.
+
+  private:
+    // NOT IMPLEMENTED
+    ClusterData(const ClusterData&) BSLS_KEYWORD_DELETED;
+    ClusterData& operator=(const ClusterData&) BSLS_KEYWORD_DELETED;
 
   public:
     // TRAITS

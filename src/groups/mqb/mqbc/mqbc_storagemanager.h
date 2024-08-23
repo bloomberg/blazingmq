@@ -433,8 +433,8 @@ class StorageManager
 
   private:
     // NOT IMPLEMENTED
-    StorageManager(const StorageManager&);             // = delete;
-    StorageManager& operator=(const StorageManager&);  // = delete;
+    StorageManager(const StorageManager&) BSLS_KEYWORD_DELETED;
+    StorageManager& operator=(const StorageManager&) BSLS_KEYWORD_DELETED;
 
   private:
     // PRIVATE MANIPULATORS
