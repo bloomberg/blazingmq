@@ -586,8 +586,10 @@ class BrokerSession BSLS_CPP11_FINAL {
         void actionInitiateQueueResume(const bsl::shared_ptr<Queue>& queue);
 
         // PRIVATE ACCESSORS
-        void printOperationTime(const bsl::shared_ptr<Queue>& queue,
-                                const char*                   operation) const;
+
+        /// Log queue operation time
+        void logOperationTime(const bsl::shared_ptr<Queue>& queue,
+                              const char*                   operation) const;
 
       public:
         // CREATORS
