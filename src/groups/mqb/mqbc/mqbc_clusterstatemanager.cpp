@@ -117,9 +117,9 @@ void ClusterStateManager::do_startWatchDog(
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(d_cluster_p));
 
-    d_clusterData_p->scheduler()->scheduleEvent(
+    d_clusterData_p->scheduler().scheduleEvent(
         &d_watchDogEventHandle,
-        d_clusterData_p->scheduler()->now() + d_watchDogTimeoutInterval,
+        d_clusterData_p->scheduler().now() + d_watchDogTimeoutInterval,
         bdlf::BindUtil::bind(&ClusterStateManager::onWatchDog, this));
 }
 
@@ -131,8 +131,7 @@ void ClusterStateManager::do_stopWatchDog(
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(d_cluster_p));
 
-    if (d_clusterData_p->scheduler()->cancelEvent(d_watchDogEventHandle) !=
-        0) {
+    if (d_clusterData_p->scheduler().cancelEvent(d_watchDogEventHandle) != 0) {
         BALL_LOG_ERROR << d_clusterData_p->identity().description()
                        << ": Failed to cancel WatchDog.";
     }
@@ -146,9 +145,9 @@ void ClusterStateManager::do_triggerWatchDog(
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(d_cluster_p));
 
-    if (d_clusterData_p->scheduler()->rescheduleEvent(
+    if (d_clusterData_p->scheduler().rescheduleEvent(
             d_watchDogEventHandle,
-            d_clusterData_p->scheduler()->now()) != 0) {
+            d_clusterData_p->scheduler().now()) != 0) {
         BALL_LOG_ERROR << d_clusterData_p->identity().description()
                        << ": Failed to trigger WatchDog.";
     }
@@ -281,7 +280,7 @@ void ClusterStateManager::do_sendFollowerLSNRequests(
     BSLS_ASSERT_SAFE(d_clusterData_p->electorInfo().isSelfLeader() &&
                      d_clusterFSM.isSelfLeader());
 
-    if (d_clusterData_p->cluster()->isLocal()) {
+    if (d_clusterData_p->cluster().isLocal()) {
         return;  // RETURN
     }
 
@@ -317,7 +316,7 @@ void ClusterStateManager::do_sendFollowerLSNResponse(
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(d_cluster_p));
-    BSLS_ASSERT_SAFE(!d_clusterData_p->cluster()->isLocal());
+    BSLS_ASSERT_SAFE(!d_clusterData_p->cluster().isLocal());
     BSLS_ASSERT_SAFE(!d_clusterData_p->electorInfo().isSelfLeader() &&
                      d_clusterFSM.isSelfFollower());
 
@@ -352,7 +351,7 @@ void ClusterStateManager::do_sendFailureFollowerLSNResponse(
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(d_cluster_p));
-    BSLS_ASSERT_SAFE(!d_clusterData_p->cluster()->isLocal());
+    BSLS_ASSERT_SAFE(!d_clusterData_p->cluster().isLocal());
 
     const ClusterFSMEventMetadata& metadata = args->front().second;
     BSLS_ASSERT_SAFE(metadata.inputMessages().size() == 1);
@@ -415,7 +414,7 @@ void ClusterStateManager::do_sendFollowerClusterStateRequest(
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(d_cluster_p));
-    BSLS_ASSERT_SAFE(!d_clusterData_p->cluster()->isLocal());
+    BSLS_ASSERT_SAFE(!d_clusterData_p->cluster().isLocal());
     BSLS_ASSERT_SAFE(d_clusterData_p->electorInfo().isSelfLeader() &&
                      d_clusterFSM.isSelfLeader());
 
@@ -463,7 +462,7 @@ void ClusterStateManager::do_sendFollowerClusterStateResponse(
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(d_cluster_p));
-    BSLS_ASSERT_SAFE(!d_clusterData_p->cluster()->isLocal());
+    BSLS_ASSERT_SAFE(!d_clusterData_p->cluster().isLocal());
     BSLS_ASSERT_SAFE(!d_clusterData_p->electorInfo().isSelfLeader() &&
                      d_clusterFSM.isSelfFollower());
 
@@ -509,7 +508,7 @@ void ClusterStateManager::do_sendFailureFollowerClusterStateResponse(
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(d_cluster_p));
-    BSLS_ASSERT_SAFE(!d_clusterData_p->cluster()->isLocal());
+    BSLS_ASSERT_SAFE(!d_clusterData_p->cluster().isLocal());
 
     const ClusterFSMEventMetadata& metadata = args->front().second;
     BSLS_ASSERT_SAFE(metadata.inputMessages().size() == 1);
@@ -561,7 +560,7 @@ void ClusterStateManager::do_storeFollowerLSNs(const ClusterFSMArgsSp& args)
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(d_cluster_p));
-    BSLS_ASSERT_SAFE(!d_clusterData_p->cluster()->isLocal());
+    BSLS_ASSERT_SAFE(!d_clusterData_p->cluster().isLocal());
     BSLS_ASSERT_SAFE(d_clusterData_p->electorInfo().isSelfLeader() &&
                      d_clusterFSM.isSelfLeader());
 
@@ -585,7 +584,7 @@ void ClusterStateManager::do_removeFollowerLSN(const ClusterFSMArgsSp& args)
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(d_cluster_p));
-    BSLS_ASSERT_SAFE(!d_clusterData_p->cluster()->isLocal());
+    BSLS_ASSERT_SAFE(!d_clusterData_p->cluster().isLocal());
     BSLS_ASSERT_SAFE(d_clusterData_p->electorInfo().isSelfLeader() &&
                      d_clusterFSM.isSelfLeader());
 
@@ -646,7 +645,7 @@ void ClusterStateManager::do_sendRegistrationRequest(
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(d_cluster_p));
-    BSLS_ASSERT_SAFE(!d_clusterData_p->cluster()->isLocal());
+    BSLS_ASSERT_SAFE(!d_clusterData_p->cluster().isLocal());
     BSLS_ASSERT_SAFE(!d_clusterData_p->electorInfo().isSelfLeader() &&
                      d_clusterFSM.isSelfFollower());
 
@@ -694,7 +693,7 @@ void ClusterStateManager::do_sendRegistrationResponse(
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(d_cluster_p));
-    BSLS_ASSERT_SAFE(!d_clusterData_p->cluster()->isLocal());
+    BSLS_ASSERT_SAFE(!d_clusterData_p->cluster().isLocal());
     BSLS_ASSERT_SAFE(d_clusterData_p->electorInfo().isSelfLeader() &&
                      d_clusterFSM.isSelfLeader());
 
@@ -727,7 +726,7 @@ void ClusterStateManager::do_sendFailureRegistrationResponse(
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(d_cluster_p));
-    BSLS_ASSERT_SAFE(!d_clusterData_p->cluster()->isLocal());
+    BSLS_ASSERT_SAFE(!d_clusterData_p->cluster().isLocal());
 
     const ClusterFSMEventMetadata& metadata = args->front().second;
     BSLS_ASSERT_SAFE(metadata.inputMessages().size() == 1);
@@ -757,7 +756,7 @@ void ClusterStateManager::do_logStaleFollowerLSNResponse(
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(d_cluster_p));
-    BSLS_ASSERT_SAFE(!d_clusterData_p->cluster()->isLocal());
+    BSLS_ASSERT_SAFE(!d_clusterData_p->cluster().isLocal());
     BSLS_ASSERT_SAFE(!d_clusterData_p->electorInfo().isSelfLeader() &&
                      !d_clusterFSM.isSelfLeader());
     // Response is not stale if self is leader
@@ -783,7 +782,7 @@ void ClusterStateManager::do_logStaleFollowerClusterStateResponse(
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(d_cluster_p));
-    BSLS_ASSERT_SAFE(!d_clusterData_p->cluster()->isLocal());
+    BSLS_ASSERT_SAFE(!d_clusterData_p->cluster().isLocal());
     BSLS_ASSERT_SAFE(d_clusterFSM.state() !=
                      ClusterFSM::State::e_LDR_HEALING_STG2);
 
@@ -806,7 +805,7 @@ void ClusterStateManager::do_logErrorLeaderNotHealed(
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(d_cluster_p));
-    BSLS_ASSERT_SAFE(!d_clusterData_p->cluster()->isLocal());
+    BSLS_ASSERT_SAFE(!d_clusterData_p->cluster().isLocal());
     BSLS_ASSERT_SAFE(!d_clusterData_p->electorInfo().isSelfLeader());
     BSLS_ASSERT_SAFE(d_clusterFSM.state() == ClusterFSM::State::e_FOL_HEALING);
 
@@ -830,7 +829,7 @@ void ClusterStateManager::do_logFailFollowerLSNResponses(
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(d_cluster_p));
-    BSLS_ASSERT_SAFE(!d_clusterData_p->cluster()->isLocal());
+    BSLS_ASSERT_SAFE(!d_clusterData_p->cluster().isLocal());
     BSLS_ASSERT_SAFE(d_clusterData_p->electorInfo().isSelfLeader() &&
                      d_clusterFSM.isSelfLeader());
 
@@ -853,7 +852,7 @@ void ClusterStateManager::do_logFailFollowerClusterStateResponse(
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(d_cluster_p));
-    BSLS_ASSERT_SAFE(!d_clusterData_p->cluster()->isLocal());
+    BSLS_ASSERT_SAFE(!d_clusterData_p->cluster().isLocal());
     BSLS_ASSERT_SAFE(d_clusterData_p->electorInfo().isSelfLeader() &&
                      d_clusterFSM.isSelfLeader());
 
@@ -887,7 +886,7 @@ void ClusterStateManager::do_logFailRegistrationResponse(
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(d_cluster_p));
-    BSLS_ASSERT_SAFE(!d_clusterData_p->cluster()->isLocal());
+    BSLS_ASSERT_SAFE(!d_clusterData_p->cluster().isLocal());
     BSLS_ASSERT_SAFE(!d_clusterData_p->electorInfo().isSelfLeader() &&
                      d_clusterFSM.isSelfFollower());
 
@@ -1163,7 +1162,7 @@ void ClusterStateManager::onFollowerLSNResponse(
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(d_cluster_p));
-    BSLS_ASSERT_SAFE(!d_clusterData_p->cluster()->isLocal());
+    BSLS_ASSERT_SAFE(!d_clusterData_p->cluster().isLocal());
     BSLS_ASSERT_SAFE(d_clusterFSM.isSelfLeader() ||
                      (d_clusterFSM.state() == ClusterFSM::State::e_STOPPING) ||
                      (d_clusterFSM.state() == ClusterFSM::State::e_UNKNOWN));
@@ -1247,7 +1246,7 @@ void ClusterStateManager::onRegistrationResponse(
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(d_cluster_p));
-    BSLS_ASSERT_SAFE(!d_clusterData_p->cluster()->isLocal());
+    BSLS_ASSERT_SAFE(!d_clusterData_p->cluster().isLocal());
     BSLS_ASSERT_SAFE(!d_clusterData_p->electorInfo().isSelfLeader());
     BSLS_ASSERT_SAFE(d_clusterFSM.isSelfFollower() ||
                      (d_clusterFSM.state() == ClusterFSM::State::e_STOPPING) ||
@@ -1314,7 +1313,7 @@ void ClusterStateManager::onFollowerClusterStateResponse(
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(d_cluster_p));
-    BSLS_ASSERT_SAFE(!d_clusterData_p->cluster()->isLocal());
+    BSLS_ASSERT_SAFE(!d_clusterData_p->cluster().isLocal());
     BSLS_ASSERT_SAFE(d_clusterFSM.isSelfLeader() ||
                      (d_clusterFSM.state() == ClusterFSM::State::e_STOPPING) ||
                      (d_clusterFSM.state() == ClusterFSM::State::e_UNKNOWN));

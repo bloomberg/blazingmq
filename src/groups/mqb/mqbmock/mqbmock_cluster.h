@@ -49,6 +49,7 @@
 #include <mqbmock_dispatcher.h>
 #include <mqbnet_channel.h>
 #include <mqbnet_cluster.h>
+#include <mqbnet_transportmanager.h>
 
 // MWC
 #include <mwcio_status.h>
@@ -97,6 +98,9 @@ class ClusterResult;
 namespace mqbi {
 class Domain;
 }
+namespace mqbnet {
+class Negotiator;
+}
 
 namespace mqbmock {
 
@@ -112,6 +116,8 @@ class Cluster : public mqbi::Cluster {
 
     typedef bsl::function<void(const mqbi::DispatcherEvent& event)>
         EventProcessor;
+
+    typedef bslma::ManagedPtr<mqbnet::Negotiator> NegotiatorMp;
 
     typedef bslma::ManagedPtr<mqbnet::Cluster> NetClusterMp;
 
@@ -177,6 +183,12 @@ class Cluster : public mqbi::Cluster {
 
     TestChannelMap d_channels;
     // Test channels
+
+    NegotiatorMp d_negotiator_mp;
+    // Session negotiator
+
+    mqbnet::TransportManager d_transportManager;
+    // Transport manager
 
     NetClusterMp d_netCluster_mp;
     // Net cluster used by this cluster

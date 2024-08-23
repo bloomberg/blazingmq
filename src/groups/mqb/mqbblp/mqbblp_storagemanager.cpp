@@ -323,7 +323,7 @@ void StorageManager::onPartitionRecovery(
         // partition's dispatcher thread for GC'ing expired messages as well as
         // cleaning history.
 
-        d_clusterData_p->scheduler()->scheduleRecurringEvent(
+        d_clusterData_p->scheduler().scheduleRecurringEvent(
             &d_gcMessagesEventHandle,
             bsls::TimeInterval(k_GC_MESSAGES_INTERVAL_SECONDS),
             bdlf::BindUtil::bind(&StorageManager::forceFlushFileStores, this));
@@ -987,7 +987,7 @@ StorageManager::StorageManager(
 , d_lowDiskspaceWarning(false)
 , d_unrecognizedDomainsLock()
 , d_unrecognizedDomains(allocator)
-, d_blobSpPool_p(clusterData->blobSpPool())
+, d_blobSpPool_p(&clusterData->blobSpPool())
 , d_domainFactory_p(domainFactory)
 , d_dispatcher_p(dispatcher)
 , d_clusterConfig(clusterConfig)
@@ -1380,7 +1380,7 @@ int StorageManager::start(bsl::ostream& errorDescription)
 
     // Schedule a periodic event (every minute) which monitors storage (disk
     // space, archive clean up, etc).
-    d_clusterData_p->scheduler()->scheduleRecurringEvent(
+    d_clusterData_p->scheduler().scheduleRecurringEvent(
         &d_storageMonitorEventHandle,
         bsls::TimeInterval(bdlt::TimeUnitRatio::k_SECONDS_PER_MINUTE),
         bdlf::BindUtil::bind(&mqbc::StorageUtil::storageMonitorCb,
@@ -1509,9 +1509,9 @@ void StorageManager::stop()
 
     d_isStarted = false;
 
-    d_clusterData_p->scheduler()->cancelEventAndWait(&d_gcMessagesEventHandle);
+    d_clusterData_p->scheduler().cancelEventAndWait(&d_gcMessagesEventHandle);
 
-    d_clusterData_p->scheduler()->cancelEventAndWait(
+    d_clusterData_p->scheduler().cancelEventAndWait(
         &d_storageMonitorEventHandle);
     d_recoveryManager_mp->stop();
 
@@ -1542,7 +1542,7 @@ void StorageManager::setPrimaryForPartition(int                  partitionId,
     // executed by cluster *DISPATCHER* thread
 
     BSLS_ASSERT_SAFE(
-        d_dispatcher_p->inDispatcherThread(d_clusterData_p->cluster()));
+        d_dispatcher_p->inDispatcherThread(&d_clusterData_p->cluster()));
     BSLS_ASSERT_SAFE(0 <= partitionId);
     BSLS_ASSERT_SAFE(primaryNode);
 
@@ -1592,7 +1592,7 @@ void StorageManager::clearPrimaryForPartition(int                  partitionId,
 
     // PRECONDITION
     BSLS_ASSERT_SAFE(
-        d_dispatcher_p->inDispatcherThread(d_clusterData_p->cluster()));
+        d_dispatcher_p->inDispatcherThread(&d_clusterData_p->cluster()));
     BSLS_ASSERT_SAFE(0 <= partitionId);
 
     unsigned int pid = static_cast<unsigned int>(partitionId);
@@ -1616,7 +1616,7 @@ void StorageManager::setPrimaryStatusForPartition(
 
     // PRECONDITION
     BSLS_ASSERT_SAFE(
-        d_dispatcher_p->inDispatcherThread(d_clusterData_p->cluster()));
+        d_dispatcher_p->inDispatcherThread(&d_clusterData_p->cluster()));
 
     BSLS_ASSERT_OPT(false && "This method should only be invoked in CSL mode");
 }
@@ -1790,7 +1790,7 @@ void StorageManager::processPartitionSyncStateRequest(
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(
-        d_dispatcher_p->inDispatcherThread(d_clusterData_p->cluster()));
+        d_dispatcher_p->inDispatcherThread(&d_clusterData_p->cluster()));
     BSLS_ASSERT_SAFE(source);
     BSLS_ASSERT_SAFE(bmqp_ctrlmsg::NodeStatus::E_AVAILABLE ==
                      d_clusterData_p->membership().selfNodeStatus());
@@ -1834,7 +1834,7 @@ void StorageManager::processPartitionSyncDataRequest(
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(
-        d_dispatcher_p->inDispatcherThread(d_clusterData_p->cluster()));
+        d_dispatcher_p->inDispatcherThread(&d_clusterData_p->cluster()));
     BSLS_ASSERT_SAFE(source);
     BSLS_ASSERT_SAFE(bmqp_ctrlmsg::NodeStatus::E_AVAILABLE ==
                      d_clusterData_p->membership().selfNodeStatus());
@@ -2101,7 +2101,7 @@ int StorageManager::processCommand(mqbcmd::StorageResult*        result,
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(
-        d_dispatcher_p->inDispatcherThread(d_clusterData_p->cluster()));
+        d_dispatcher_p->inDispatcherThread(&d_clusterData_p->cluster()));
 
     if (!d_isStarted) {
         result->makeError();
@@ -2128,7 +2128,7 @@ void StorageManager::gcUnrecognizedDomainQueues()
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(
-        d_dispatcher_p->inDispatcherThread(d_clusterData_p->cluster()));
+        d_dispatcher_p->inDispatcherThread(&d_clusterData_p->cluster()));
 
     mqbc::StorageUtil::gcUnrecognizedDomainQueues(&d_fileStores,
                                                   &d_unrecognizedDomainsLock,

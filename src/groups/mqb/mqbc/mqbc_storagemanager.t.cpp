@@ -850,8 +850,8 @@ struct TestHelper {
             d_cluster_mp->_clusterDefinition().partitionConfig();
 
         mqbs::DataStoreConfig dsCfg;
-        dsCfg.setScheduler(d_cluster_mp->_clusterData()->scheduler())
-            .setBufferFactory(d_cluster_mp->_clusterData()->bufferFactory())
+        dsCfg.setScheduler(&d_cluster_mp->_scheduler())
+            .setBufferFactory(&d_cluster_mp->_clusterData()->bufferFactory())
             .setPreallocate(partitionCfg.preallocate())
             .setPrefaultPages(partitionCfg.prefaultPages())
             .setLocation(partitionCfg.location())
@@ -874,8 +874,8 @@ struct TestHelper {
                            d_cluster_mp->dispatcher(),
                            &d_cluster_mp->netCluster(),
                            &d_cluster_mp->_clusterData()->stats(),
-                           d_cluster_mp->_clusterData()->blobSpPool(),
-                           d_cluster_mp->_clusterData()->stateSpPool(),
+                           &d_cluster_mp->_clusterData()->blobSpPool(),
+                           &d_cluster_mp->_clusterData()->stateSpPool(),
                            &threadPool,
                            d_cluster_mp->isCSLModeEnabled(),
                            d_cluster_mp->isFSMWorkflow(),

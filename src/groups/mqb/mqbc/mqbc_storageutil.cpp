@@ -1248,8 +1248,8 @@ int StorageUtil::assignPartitionDispatcherThreads(
     for (int i = 0; i < config.numPartitions(); ++i) {
         int                   processorId = i % numProcessors;
         mqbs::DataStoreConfig dsCfg;
-        dsCfg.setScheduler(clusterData->scheduler())
-            .setBufferFactory(clusterData->bufferFactory())
+        dsCfg.setScheduler(&clusterData->scheduler())
+            .setBufferFactory(&clusterData->bufferFactory())
             .setPreallocate(config.preallocate())
             .setPrefaultPages(config.prefaultPages())
             .setLocation(config.location())
@@ -1282,7 +1282,7 @@ int StorageUtil::assignPartitionDispatcherThreads(
                                 clusterData->membership().netCluster(),
                                 &clusterData->stats(),
                                 blobSpPool,
-                                clusterData->stateSpPool(),
+                                &clusterData->stateSpPool(),
                                 threadPool,
                                 cluster.isCSLModeEnabled(),
                                 cluster.isFSMWorkflow(),
@@ -1393,7 +1393,7 @@ void StorageUtil::onPartitionPrimarySync(
     BSLS_ASSERT_SAFE(clusterData);
     BSLS_ASSERT_SAFE(0 <= partitionId);
 
-    if (clusterData->cluster()->isStopping()) {
+    if (clusterData->cluster().isStopping()) {
         BALL_LOG_WARN << clusterData->identity().description()
                       << ": Cluster is stopping; skipping partition primary "
                       << "sync notification.";

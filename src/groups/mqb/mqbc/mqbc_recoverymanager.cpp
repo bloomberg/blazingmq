@@ -892,8 +892,7 @@ int RecoveryManager::createRecoveryFileSet(bsl::ostream&    errorDescription,
 
     mwcu::MemOutStream partitionDesc;
     partitionDesc << "Partition [" << partitionId
-                  << "] (cluster: " << d_clusterData.cluster()->name()
-                  << "): ";
+                  << "] (cluster: " << d_clusterData.cluster().name() << "): ";
 
     int rc = mqbs::FileStoreUtil::create(errorDescription,
                                          &fileSetSp,

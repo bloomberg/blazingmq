@@ -280,7 +280,7 @@ void StorageManager::onPartitionRecovery(int partitionId)
             // partition's dispatcher thread for GC'ing expired messages as
             // well as cleaning history.
 
-            d_clusterData_p->scheduler()->scheduleRecurringEvent(
+            d_clusterData_p->scheduler().scheduleRecurringEvent(
                 &d_gcMessagesEventHandle,
                 bsls::TimeInterval(k_GC_MESSAGES_INTERVAL_SECONDS),
                 bdlf::BindUtil::bind(&StorageManager::forceFlushFileStores,
@@ -647,7 +647,7 @@ void StorageManager::processPrimaryStateResponseDispatched(
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(d_cluster_p));
-    BSLS_ASSERT_SAFE(!d_clusterData_p->cluster()->isLocal());
+    BSLS_ASSERT_SAFE(!d_clusterData_p->cluster().isLocal());
 
     BSLS_ASSERT_SAFE(context->response().rId() != NULL);
     if (context->request().rId().isNull()) {
@@ -764,7 +764,7 @@ void StorageManager::processReplicaStateResponseDispatched(
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(d_cluster_p));
 
     const NodeResponsePairs& pairs = requestContext->response();
-    if (d_clusterData_p->cluster()->isLocal()) {
+    if (d_clusterData_p->cluster().isLocal()) {
         BSLS_ASSERT_SAFE(pairs.empty());
         return;  // RETURN
     }
@@ -894,7 +894,7 @@ void StorageManager::processReplicaDataResponseDispatched(
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(d_cluster_p));
-    BSLS_ASSERT_SAFE(!d_clusterData_p->cluster()->isLocal());
+    BSLS_ASSERT_SAFE(!d_clusterData_p->cluster().isLocal());
 
     BSLS_ASSERT_SAFE(context->response().rId() != NULL);
     if (context->request().rId().isNull()) {
@@ -1134,9 +1134,9 @@ void StorageManager::do_startWatchDog(const PartitionFSMArgsSp& args)
         return;  // RETURN
     }
 
-    d_clusterData_p->scheduler()->scheduleEvent(
+    d_clusterData_p->scheduler().scheduleEvent(
         &d_watchDogEventHandles[partitionId],
-        d_clusterData_p->scheduler()->now() + d_watchDogTimeoutInterval,
+        d_clusterData_p->scheduler().now() + d_watchDogTimeoutInterval,
         bdlf::BindUtil::bind(&StorageManager::onWatchDog, this, partitionId));
 }
 
@@ -1155,7 +1155,7 @@ void StorageManager::do_stopWatchDog(const PartitionFSMArgsSp& args)
 
     const int partitionId = eventDataVec[0].partitionId();
 
-    const int rc = d_clusterData_p->scheduler()->cancelEvent(
+    const int rc = d_clusterData_p->scheduler().cancelEvent(
         d_watchDogEventHandles[partitionId]);
     if (rc != 0) {
         BALL_LOG_ERROR << d_clusterData_p->identity().description()
@@ -1727,7 +1727,7 @@ void StorageManager::do_primaryStateRequest(const PartitionFSMArgsSp& args)
                              bdlf::PlaceHolders::_1,
                              destNode));
 
-    bmqt::GenericResult::Enum status = d_clusterData_p->cluster()->sendRequest(
+    bmqt::GenericResult::Enum status = d_clusterData_p->cluster().sendRequest(
         request,
         destNode,
         bsls::TimeInterval(10));
@@ -1929,9 +1929,9 @@ void StorageManager::do_replicaDataRequestPush(const PartitionFSMArgsSp& args)
                                  destNode));
 
         const bmqt::GenericResult::Enum status =
-            d_clusterData_p->cluster()->sendRequest(request,
-                                                    destNode,
-                                                    bsls::TimeInterval(10));
+            d_clusterData_p->cluster().sendRequest(request,
+                                                   destNode,
+                                                   bsls::TimeInterval(10));
 
         BALL_LOG_INFO << d_clusterData_p->identity().description()
                       << " Partition [" << partitionId << "]: "
@@ -2100,9 +2100,9 @@ void StorageManager::do_replicaDataRequestDrop(const PartitionFSMArgsSp& args)
                                  destNode));
 
         const bmqt::GenericResult::Enum status =
-            d_clusterData_p->cluster()->sendRequest(request,
-                                                    destNode,
-                                                    bsls::TimeInterval(10));
+            d_clusterData_p->cluster().sendRequest(request,
+                                                   destNode,
+                                                   bsls::TimeInterval(10));
 
         BALL_LOG_INFO << d_clusterData_p->identity().description()
                       << " Partition [" << partitionId << "]: "
@@ -2181,7 +2181,7 @@ void StorageManager::do_replicaDataRequestPull(const PartitionFSMArgsSp& args)
                              bdlf::PlaceHolders::_1,
                              destNode));
 
-    bmqt::GenericResult::Enum status = d_clusterData_p->cluster()->sendRequest(
+    bmqt::GenericResult::Enum status = d_clusterData_p->cluster().sendRequest(
         request,
         destNode,
         bsls::TimeInterval(10));
@@ -3224,7 +3224,7 @@ StorageManager::StorageManager(
 , d_lowDiskspaceWarning(false)
 , d_unrecognizedDomainsLock()
 , d_unrecognizedDomains(allocator)
-, d_blobSpPool_p(clusterData->blobSpPool())
+, d_blobSpPool_p(&clusterData->blobSpPool())
 , d_domainFactory_p(domainFactory)
 , d_dispatcher_p(dispatcher)
 , d_cluster_p(cluster)
@@ -3364,7 +3364,7 @@ int StorageManager::start(bsl::ostream& errorDescription)
 
     // Schedule a periodic event (every minute) which monitors storage (disk
     // space, archive clean up, etc).
-    d_clusterData_p->scheduler()->scheduleRecurringEvent(
+    d_clusterData_p->scheduler().scheduleRecurringEvent(
         &d_storageMonitorEventHandle,
         bsls::TimeInterval(bdlt::TimeUnitRatio::k_SECONDS_PER_MINUTE),
         bdlf::BindUtil::bind(&StorageUtil::storageMonitorCb,
@@ -3409,7 +3409,7 @@ int StorageManager::start(bsl::ostream& errorDescription)
         "RecoveryManager");
 
     d_recoveryManager_mp.load(new (*recoveryManagerAllocator) RecoveryManager(
-                                  d_clusterData_p->bufferFactory(),
+                                  &d_clusterData_p->bufferFactory(),
                                   d_clusterConfig,
                                   *d_clusterData_p,
                                   dsCfg,
@@ -3468,8 +3468,8 @@ void StorageManager::stop()
                                  this));
     }
 
-    d_clusterData_p->scheduler()->cancelEventAndWait(&d_gcMessagesEventHandle);
-    d_clusterData_p->scheduler()->cancelEventAndWait(
+    d_clusterData_p->scheduler().cancelEventAndWait(&d_gcMessagesEventHandle);
+    d_clusterData_p->scheduler().cancelEventAndWait(
         &d_storageMonitorEventHandle);
     d_recoveryManager_mp->stop();
 
@@ -3859,7 +3859,7 @@ void StorageManager::setPrimaryStatusForPartition(
 
     // PRECONDITION
     BSLS_ASSERT_SAFE(
-        d_dispatcher_p->inDispatcherThread(d_clusterData_p->cluster()));
+        d_dispatcher_p->inDispatcherThread(&d_clusterData_p->cluster()));
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));
 
@@ -4069,7 +4069,7 @@ void StorageManager::processStorageEvent(
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(d_cluster_p));
-    BSLS_ASSERT_SAFE(!d_clusterData_p->cluster()->isLocal());
+    BSLS_ASSERT_SAFE(!d_clusterData_p->cluster().isLocal());
     BSLS_ASSERT_SAFE(event.isRelay() == false);
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!d_isStarted)) {
@@ -4308,7 +4308,7 @@ int StorageManager::processCommand(mqbcmd::StorageResult*        result,
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(
-        d_dispatcher_p->inDispatcherThread(d_clusterData_p->cluster()));
+        d_dispatcher_p->inDispatcherThread(&d_clusterData_p->cluster()));
 
     if (!d_isStarted) {
         result->makeError();
@@ -4335,7 +4335,7 @@ void StorageManager::gcUnrecognizedDomainQueues()
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(
-        d_dispatcher_p->inDispatcherThread(d_clusterData_p->cluster()));
+        d_dispatcher_p->inDispatcherThread(&d_clusterData_p->cluster()));
 
     StorageUtil::gcUnrecognizedDomainQueues(&d_fileStores,
                                             &d_unrecognizedDomainsLock,
