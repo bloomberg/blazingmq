@@ -411,8 +411,8 @@ class BrokerSession BSLS_CPP11_FINAL {
         /// if not void indicates state entry logic execution result.
         void setClosingChannel(FsmEvent::Enum event);
 
-        void logOperationTime(const char* operation);
         /// Log start/stop operation time.
+        void logOperationTime(const char* operation);
 
       public:
         // CREATORS
