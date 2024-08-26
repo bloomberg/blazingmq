@@ -942,6 +942,11 @@ void BrokerSession::SessionFsm::logOperationTime(const char* operation)
                       << elapsed << " nanoseconds)";
         d_beginTimestamp = 0;
     }
+    else {
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+        BALL_LOG_WARN
+            << "d_beginTimestamp was not initialized with timestamp";
+    }
 }
 // --------------
 // class QueueFsm
