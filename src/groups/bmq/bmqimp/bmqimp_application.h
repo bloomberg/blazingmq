@@ -154,9 +154,6 @@ class Application {
     // the snapshot was performed on the
     // Counting Allocators context
 
-    bsls::Types::Int64 d_beginOperationTimestamp;
-    // HiRes timer value of the begin start/stop operation
-
   private:
     // PRIVATE MANIPULATORS
     void onChannelDown(const bsl::string&   peerUri,

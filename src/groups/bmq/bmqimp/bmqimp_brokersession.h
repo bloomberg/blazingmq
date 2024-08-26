@@ -377,6 +377,9 @@ class BrokerSession BSLS_CPP11_FINAL {
         bsl::vector<StateTransition> d_transitionTable;
         // State transition table
 
+        bsls::Types::Int64 d_beginTimestamp;
+        // HiRes timer value of the begin start/stop operation
+
       private:
         // PRIVATE MANIPULATORS
 
@@ -407,6 +410,9 @@ class BrokerSession BSLS_CPP11_FINAL {
         /// specified `event` and execute state entry logic.  Return value
         /// if not void indicates state entry logic execution result.
         void setClosingChannel(FsmEvent::Enum event);
+
+        void logOperationTime(const char* operation);
+        /// Log start/stop operation time.
 
       public:
         // CREATORS
@@ -462,7 +468,7 @@ class BrokerSession BSLS_CPP11_FINAL {
         // State transition table
 
         typedef bsl::unordered_map<int, bsls::Types::Int64> TimestampMap;
-        mutable TimestampMap                                d_timestampMap;
+        TimestampMap                                        d_timestampMap;
         // Map of HiRes timestamp of the operation beginning per each queue
 
       private:
@@ -585,10 +591,8 @@ class BrokerSession BSLS_CPP11_FINAL {
         /// Initiate the resumption of a queue.
         void actionInitiateQueueResume(const bsl::shared_ptr<Queue>& queue);
 
-        // PRIVATE ACCESSORS
-
         /// Log queue operation time
-        void logOperationTime(const int queueId, const char* operation) const;
+        void logOperationTime(const int queueId, const char* operation);
 
       public:
         // CREATORS

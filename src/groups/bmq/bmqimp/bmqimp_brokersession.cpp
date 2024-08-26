@@ -548,6 +548,7 @@ BrokerSession::SessionFsm::SessionFsm(BrokerSession& session)
 : d_session(session)
 , d_state(State::e_STOPPED)
 , d_onceConnected(false)
+, d_beginTimestamp(0)
 {
     StateTransition table[] = {
 #define S State
@@ -623,7 +624,8 @@ bmqt::GenericResult::Enum BrokerSession::SessionFsm::handleStartRequest()
         res = bmqt::GenericResult::e_NOT_SUPPORTED;
     } break;
     case State::e_STOPPED: {
-        res = setStarting(event);
+        d_beginTimestamp = mwcsys::Time::highResolutionTimer();
+        res              = setStarting(event);
     } break;
     default: {
         BSLS_ASSERT_SAFE(false && "Unexpected Session state");
@@ -644,6 +646,7 @@ void BrokerSession::SessionFsm::handleStartTimeout()
     case State::e_STARTING: {
         BALL_LOG_ERROR << "Start (ASYNC) has timed out";
         setStopped(event, true);
+        logOperationTime("Start");
     } break;
     case State::e_STARTED: {
         // We got connected just on time :) .. do nothing
@@ -679,6 +682,8 @@ void BrokerSession::SessionFsm::handleStartSynchronousFailure()
         setStopped(event, false);
         // Should not enqueue user events since this failure is returned by
         // 'start'.
+
+        logOperationTime("Start");
     } break;
     case State::e_STARTED:
     case State::e_RECONNECTING:
@@ -704,6 +709,8 @@ void BrokerSession::SessionFsm::handleStopRequest()
 
     switch (state()) {
     case State::e_STARTED: {
+        d_beginTimestamp = mwcsys::Time::highResolutionTimer();
+
         bmqt::GenericResult::Enum res = setClosingSession(event);
         if (res != bmqt::GenericResult::e_SUCCESS) {
             BALL_LOG_ERROR << "::: FAILED TO DISCONNECT BROKER GRACEFULLY :::";
@@ -714,6 +721,8 @@ void BrokerSession::SessionFsm::handleStopRequest()
         // `d_channel_sp` is _not_ set in the STARTING state (only in STARTED).
         // Therefore, simply transition to STOPPED.
         setStopped(event);
+
+        logOperationTime("Start");
     } break;
     case State::e_RECONNECTING: {
         setStopped(event);
@@ -746,6 +755,7 @@ void BrokerSession::SessionFsm::handleChannelUp(
     case State::e_STARTING: {
         setStarted(event, channel);
         d_session.enqueueSessionEvent(bmqt::SessionEventType::e_CONNECTED);
+        logOperationTime("Start");
     } break;
     case State::e_RECONNECTING: {
         setStarted(event, channel);
@@ -798,9 +808,11 @@ void BrokerSession::SessionFsm::handleChannelDown()
     case State::e_CLOSING_SESSION: {
         BALL_LOG_WARN << "CHANNEL_DOWN while closing session";
         setStopped(event);
+        logOperationTime("Stop");
     } break;
     case State::e_CLOSING_CHANNEL: {
         setStopped(event);
+        logOperationTime("Stop");
     } break;
     case State::e_RECONNECTING:
     case State::e_STOPPED: {
@@ -920,6 +932,17 @@ void BrokerSession::SessionFsm::handleAllQueuesResumed()
     }
 }
 
+void BrokerSession::SessionFsm::logOperationTime(const char* operation)
+{
+    if (d_beginTimestamp) {
+        const bsls::Types::Int64 elapsed =
+            mwcsys::Time::highResolutionTimer() - d_beginTimestamp;
+        BALL_LOG_INFO << operation << " took: "
+                      << mwcu::PrintUtil::prettyTimeInterval(elapsed) << " ("
+                      << elapsed << " nanoseconds)";
+        d_beginTimestamp = 0;
+    }
+}
 // --------------
 // class QueueFsm
 // --------------
@@ -1355,7 +1378,7 @@ void BrokerSession::QueueFsm::actionInitiateQueueResume(
 }
 
 void BrokerSession::QueueFsm::logOperationTime(const int   queueId,
-                                               const char* operation) const
+                                               const char* operation)
 {
     TimestampMap::iterator it = d_timestampMap.find(queueId);
     if (it != d_timestampMap.end()) {

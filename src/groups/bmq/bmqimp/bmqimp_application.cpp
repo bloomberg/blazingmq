@@ -417,15 +417,6 @@ void Application::onStartTimeout()
     // executed by the *SCHEDULER* thread
 
     d_brokerSession.onStartTimeout();
-
-    if (d_beginOperationTimestamp) {
-        const bsls::Types::Int64 elapsed =
-            mwcsys::Time::highResolutionTimer() - d_beginOperationTimestamp;
-        BALL_LOG_INFO << "START (ASYNC) took: "
-                      << mwcu::PrintUtil::prettyTimeInterval(elapsed) << " ("
-                      << elapsed << " nanoseconds)";
-        d_beginOperationTimestamp = 0;
-    }
 }
 
 void Application::snapshotStats()
@@ -537,35 +528,10 @@ Application::stateCb(bmqimp::BrokerSession::State::Enum    oldState,
             }
 
             brokerSessionStopped(event);
-
-            if (d_beginOperationTimestamp) {
-                const bsls::Types::Int64 elapsed =
-                    mwcsys::Time::highResolutionTimer() -
-                    d_beginOperationTimestamp;
-                const char* operation =
-                    oldState == bmqimp::BrokerSession::State::e_STARTING
-                        ? "START"
-                        : "STOP";
-                BALL_LOG_INFO << operation << " (ASYNC) took: "
-                              << mwcu::PrintUtil::prettyTimeInterval(elapsed)
-                              << " (" << elapsed << " nanoseconds)";
-                d_beginOperationTimestamp = 0;
-            }
         }
     }
     else if (newState == bmqimp::BrokerSession::State::e_STARTING) {
         res = startChannel();
-    }
-    else if (newState == bmqimp::BrokerSession::State::e_STARTED) {
-        if (d_beginOperationTimestamp) {
-            const bsls::Types::Int64 elapsed =
-                mwcsys::Time::highResolutionTimer() -
-                d_beginOperationTimestamp;
-            BALL_LOG_INFO << "START (ASYNC) took: "
-                          << mwcu::PrintUtil::prettyTimeInterval(elapsed)
-                          << " (" << elapsed << " nanoseconds)";
-            d_beginOperationTimestamp = 0;
-        }
     }
 
     return res;
@@ -634,7 +600,6 @@ Application::Application(
 , d_statSnaphotTimerHandle()
 , d_nextStatDump(-1)
 , d_lastAllocatorSnapshot(0)
-, d_beginOperationTimestamp(0)
 {
     // NOTE:
     //   o The persistent session pool must live longer than the brokerSession
@@ -730,18 +695,7 @@ int Application::start(const bsls::TimeInterval& timeout)
     BALL_LOG_INFO << "::: START (SYNC) << [state: " << d_brokerSession.state()
                   << "] :::";
 
-    const bsls::Types::Int64 start = mwcsys::Time::highResolutionTimer();
-
-    const int res = d_brokerSession.start(timeout);
-
-    const bsls::Types::Int64 elapsed = mwcsys::Time::highResolutionTimer() -
-                                       start;
-
-    BALL_LOG_INFO << "START (SYNC) took: "
-                  << mwcu::PrintUtil::prettyTimeInterval(elapsed) << " ("
-                  << elapsed << " nanoseconds)";
-
-    return res;
+    return d_brokerSession.start(timeout);
 }
 
 int Application::startAsync(const bsls::TimeInterval& timeout)
@@ -749,12 +703,9 @@ int Application::startAsync(const bsls::TimeInterval& timeout)
     BALL_LOG_INFO << "::: START (ASYNC) [state: " << d_brokerSession.state()
                   << "] :::";
 
-    d_beginOperationTimestamp = mwcsys::Time::highResolutionTimer();
-
     int rc = d_brokerSession.startAsync();
     if (rc != 0) {
         BALL_LOG_ERROR << "Failed to start brokerSession [rc: " << rc << "]";
-        d_beginOperationTimestamp = 0;
         return rc;  // RETURN
     }
 
@@ -772,25 +723,14 @@ void Application::stop()
     BALL_LOG_INFO << "::: STOP (SYNC) [state: " << d_brokerSession.state()
                   << "] :::";
 
-    const bsls::Types::Int64 start = mwcsys::Time::highResolutionTimer();
-
     // Stop the brokerSession
     d_brokerSession.stop();
-
-    const bsls::Types::Int64 elapsed = mwcsys::Time::highResolutionTimer() -
-                                       start;
-
-    BALL_LOG_INFO << "STOP (SYNC) took: "
-                  << mwcu::PrintUtil::prettyTimeInterval(elapsed) << " ("
-                  << elapsed << " nanoseconds)";
 }
 
 void Application::stopAsync()
 {
     BALL_LOG_INFO << "::: STOP (ASYNC) [state: " << d_brokerSession.state()
                   << "] :::";
-
-    d_beginOperationTimestamp = mwcsys::Time::highResolutionTimer();
 
     // Stop the brokerSession
     d_brokerSession.stopAsync();
