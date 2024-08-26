@@ -26,7 +26,7 @@ COPY docker/build_deps.sh bin/build_deps.sh
 RUN bin/build_deps.sh
 
 ENV PATH=${PATH}:/workspace/srcs/bde-tools/bin
-ENV PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig:/opt/bb/lib64/pkgconfig
+ENV PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/local/lib64/pkgconfig
 
 COPY CMakeLists.txt srcs/bmq/CMakeLists.txt
 COPY src srcs/bmq/src
