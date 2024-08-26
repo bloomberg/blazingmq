@@ -57,7 +57,7 @@
   <complexType name='AppConfig'>
     <annotation>
       <documentation>
-        Top level type for the broker's configuration.
+        Top level typ for the broker's configuration.
 
         brokerInstanceName...: name of the broker instance
         brokerVersion........: version of the broker
@@ -76,8 +76,7 @@
         plugins..............: configuration for the plugins
         msgPropertiesSupport.: information about if/how to advertise support for v2 message properties
         configureStream......: send new ConfigureStream instead of old ConfigureQueue
-        advertiseSubscriptions.: temporarily control use of ConfigureStream in SDK
-        routeCommandTimeoutMs: maximum amount of time to wait for a routed command's response
+        advertiseSubscriptions.: temporarily control use of ConfigureStream in SDK/>
       </documentation>
     </annotation>
     <sequence>
@@ -100,7 +99,6 @@
       <element name='messagePropertiesV2'  type='tns:MessagePropertiesV2'/>
       <element name='configureStream'      type='boolean' default='false'/>
       <element name='advertiseSubscriptions' type='boolean' default='false'/>
-      <element name='routeCommandTimeoutMs' type='int' default='3000'/>
     </sequence>
   </complexType>
 
