@@ -944,8 +944,7 @@ void BrokerSession::SessionFsm::logOperationTime(const char* operation)
     }
     else {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        BALL_LOG_WARN
-            << "d_beginTimestamp was not initialized with timestamp";
+        BALL_LOG_WARN << "d_beginTimestamp was not initialized with timestamp";
     }
 }
 // --------------
