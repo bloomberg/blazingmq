@@ -356,10 +356,6 @@ class ClusterProxy : public mqbc::ClusterStateObserver,
     /// used by this cluster.
     RequestManagerType& requestManager() BSLS_KEYWORD_OVERRIDE;
 
-    // Return a reference offering modifiable access to the multi request
-    // manager used by this cluster.
-    MultiRequestManagerType& multiRequestManager() BSLS_KEYWORD_OVERRIDE;
-
     /// Send the specified `request` with the specified `timeout` to the
     /// specified `target` node.  If `target` is 0, it is the Cluster's
     /// implementation responsibility to decide which node to use (in
@@ -535,17 +531,6 @@ class ClusterProxy : public mqbc::ClusterStateObserver,
     /// Load the cluster state in the specified `out` object.
     void loadClusterStatus(mqbcmd::ClusterResult* out) BSLS_KEYWORD_OVERRIDE;
 
-    void getPrimaryNodes(int*                               rc,
-                         bsl::ostream&                      errorDescription,
-                         bsl::vector<mqbnet::ClusterNode*>* nodes,
-                         bool* isSelfPrimary) const BSLS_KEYWORD_OVERRIDE;
-
-    void getPartitionPrimaryNode(int*                  rc,
-                                 bsl::ostream&         errorDescription,
-                                 mqbnet::ClusterNode** node,
-                                 bool*                 isSelfPrimary,
-                                 int partitionId) const BSLS_KEYWORD_OVERRIDE;
-
     // MANIPULATORS
     //   (virtual: mqbi::DispatcherClient)
 
@@ -712,38 +697,11 @@ inline size_t ClusterProxy::ChannelBuffer::bytes() const
 // class ClusterProxy
 // ------------------
 
-inline void
-ClusterProxy::getPrimaryNodes(int*          rc,
-                              bsl::ostream& errorDescription,
-                              bsl::vector<mqbnet::ClusterNode*>* nodes,
-                              bool* isSelfPrimary) const
-{
-    // no implementation -- this should not run.
-    BSLS_ASSERT_SAFE(false);
-}
-
-inline void
-ClusterProxy::getPartitionPrimaryNode(int*                  rc,
-                                      bsl::ostream&         errorDescription,
-                                      mqbnet::ClusterNode** node,
-                                      bool*                 isSelfPrimary,
-                                      int                   partitionId) const
-{
-    // no implementation -- this should not run.
-    BSLS_ASSERT_SAFE(false);
-}
-
 // PRIVATE MANIPULATORS
 //   (virtual: mqbi::Cluster)
 inline ClusterProxy::RequestManagerType& ClusterProxy::requestManager()
 {
     return d_clusterData.requestManager();
-}
-
-inline mqbi::Cluster::MultiRequestManagerType&
-ClusterProxy::multiRequestManager()
-{
-    return d_clusterData.multiRequestManager();
 }
 
 // MANIPULATORS

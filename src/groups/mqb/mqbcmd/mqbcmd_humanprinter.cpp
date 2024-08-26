@@ -1437,26 +1437,5 @@ bsl::ostream& HumanPrinter::print(bsl::ostream& os,
     return os;
 }
 
-bsl::ostream&
-HumanPrinter::printResponses(bsl::ostream&            os,
-                             const RouteResponseList& responseList)
-{
-    typedef bsl::vector<BloombergLP::mqbcmd::RouteResponse>
-        RouteResponseVector;
-
-    RouteResponseVector responses = responseList.responses();
-
-    for (RouteResponseVector::const_iterator respIt = responses.begin();
-         respIt != responses.end();
-         ++respIt) {
-        os << "Response from node \"" << respIt->sourceNodeDescription()
-           << "\":";
-        os << bsl::endl;
-        os << respIt->response();
-        os << bsl::endl;
-    }
-    return os;
-}
-
 }  // close package namespace
 }  // close enterprise namespace

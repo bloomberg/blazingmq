@@ -780,7 +780,7 @@ int StorageUtil::processReplicationCommand(
         return -1;  // RETURN
     }
     else if (command.isGetTunableValue()) {
-        const bsl::string& tunable = command.getTunable().name();
+        const bsl::string& tunable = command.getTunable();
         if (bdlb::StringRefUtil::areEqualCaseless(tunable, "QUORUM")) {
             mqbcmd::Tunable& tunableObj = replicationResult->makeTunable();
             tunableObj.name()           = "Quorum";
