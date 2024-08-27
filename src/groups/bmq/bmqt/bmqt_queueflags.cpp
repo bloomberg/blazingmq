@@ -158,7 +158,7 @@ bool QueueFlags::fromAscii(QueueFlags::Enum* out, const bslstl::StringRef& str)
 #define BMQT_CHECKVALUE(M)                                                    \
     if (bdlb::String::areEqualCaseless(toAscii(QueueFlags::e_##M),            \
                                        str.data(),                            \
-                                       str.length())) {                       \
+                                       static_cast<int>(str.length()))) {     \
         *out = QueueFlags::e_##M;                                             \
         return true;                                                          \
     }

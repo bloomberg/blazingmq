@@ -91,7 +91,7 @@ bool LogOpResult::fromAscii(LogOpResult::Enum*       out,
 #define CHECKVALUE(M)                                                         \
     if (bdlb::String::areEqualCaseless(toAscii(LogOpResult::e_##M),           \
                                        str.data(),                            \
-                                       str.length())) {                       \
+                                       static_cast<int>(str.length()))) {     \
         *out = LogOpResult::e_##M;                                            \
         return true;                                                          \
     }
