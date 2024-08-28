@@ -178,7 +178,7 @@ void Cluster::startDispatched(bsl::ostream* errorDescription, int* rc)
     // Start the StorageManager
     d_storageManager_mp.load(
         isFSMWorkflow()
-            ? static_cast<mqbc::StorageManager*>(
+            ? static_cast<mqbi::StorageManager*>(
                   new (*storageManagerAllocator) mqbc::StorageManager(
                       d_clusterData.clusterConfig(),
                       this,
@@ -219,12 +219,12 @@ void Cluster::startDispatched(bsl::ostream* errorDescription, int* rc)
                           bdlf::PlaceHolders::_3),  // primary leaseId
                       d_clusterData.domainFactory(),
                       dispatcher(),
-                      d_clusterData.miscWorkThreadPool(),
+                      &d_clusterData.miscWorkThreadPool(),
                       storageManagerAllocator)),
         storageManagerAllocator);
 
     // Start the misc work thread pool
-    *rc = d_clusterData.miscWorkThreadPool()->start();
+    *rc = d_clusterData.miscWorkThreadPool().start();
     if (*rc != 0) {
         d_clusterOrchestrator.stop();
         *rc = *rc * 10 + rc_MISC_FAILURE;
@@ -278,14 +278,14 @@ void Cluster::startDispatched(bsl::ostream* errorDescription, int* rc)
     d_clusterMonitor.registerObserver(this);
 
     // Start a recurring clock for summary print
-    d_clusterData.scheduler()->scheduleRecurringEvent(
+    d_clusterData.scheduler().scheduleRecurringEvent(
         &d_logSummarySchedulerHandle,
         bsls::TimeInterval(k_LOG_SUMMARY_INTERVAL),
         bdlf::BindUtil::bind(&Cluster::logSummaryState, this));
 
     // Start a recurring clock for gc'ing expired queues.
 
-    d_clusterData.scheduler()->scheduleRecurringEvent(
+    d_clusterData.scheduler().scheduleRecurringEvent(
         &d_queueGcSchedulerHandle,
         bsls::TimeInterval(k_QUEUE_GC_INTERVAL),
         bdlf::BindUtil::bind(&Cluster::gcExpiredQueues, this));
@@ -314,9 +314,8 @@ void Cluster::stopDispatched()
 
     // Cancel recurring events.
 
-    d_clusterData.scheduler()->cancelEventAndWait(&d_queueGcSchedulerHandle);
-    d_clusterData.scheduler()->cancelEventAndWait(
-        &d_logSummarySchedulerHandle);
+    d_clusterData.scheduler().cancelEventAndWait(&d_queueGcSchedulerHandle);
+    d_clusterData.scheduler().cancelEventAndWait(&d_logSummarySchedulerHandle);
     // NOTE: The scheduler event does a dispatching to execute 'logSummary'
     //       from the scheduler thread to the dispatcher thread, but there is
     //       no race issue here because stop does a double synchronize, so it's
@@ -335,7 +334,7 @@ void Cluster::stopDispatched()
     d_state.unregisterObserver(this);
     d_clusterData.electorInfo().unregisterObserver(this);
 
-    d_clusterData.scheduler()->cancelEventAndWait(
+    d_clusterData.scheduler().cancelEventAndWait(
         d_clusterData.electorInfo().leaderSyncEventHandle());
     // Ignore rc
 
@@ -347,7 +346,7 @@ void Cluster::stopDispatched()
 
     d_clusterOrchestrator.stop();
 
-    d_clusterData.miscWorkThreadPool()->stop();
+    d_clusterData.miscWorkThreadPool().stop();
 
     // Notify peers before going down.  This should be the last message sent
     // out.
@@ -646,7 +645,7 @@ void Cluster::initiateShutdownDispatched(const VoidFunctor& callback)
 
     SessionSpVec sessions;
     for (mqbnet::TransportManagerIterator sessIt(
-             d_clusterData.transportManager());
+             &d_clusterData.transportManager());
          sessIt;
          ++sessIt) {
         bsl::shared_ptr<mqbnet::Session> sessionSp = sessIt.session().lock();
@@ -1025,7 +1024,7 @@ void Cluster::onPutEvent(const mqbi::DispatcherEvent& event)
     BSLS_ASSERT_SAFE(ns);
 
     bmqp::Event              rawEvent(realEvent->blob().get(), d_allocator_p);
-    bmqp::PutMessageIterator putIt(d_clusterData.bufferFactory(),
+    bmqp::PutMessageIterator putIt(&d_clusterData.bufferFactory(),
                                    d_allocator_p);
 
     BSLS_ASSERT_SAFE(rawEvent.isPutEvent());
@@ -1149,7 +1148,7 @@ void Cluster::onPutEvent(const mqbi::DispatcherEvent& event)
 
         // Retrieve the payload of that message
         bsl::shared_ptr<bdlbb::Blob> appDataSp =
-            d_clusterData.blobSpPool()->getObject();
+            d_clusterData.blobSpPool().getObject();
         rc = putIt.loadApplicationData(appDataSp.get());
         if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc != 0)) {
             BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
@@ -1984,7 +1983,7 @@ void Cluster::onRelayPushEvent(const mqbi::DispatcherEvent& event)
     bmqp::Event rawEvent(realEvent->blob().get(), d_allocator_p);
     BSLS_ASSERT_SAFE(rawEvent.isPushEvent());
     bdlma::LocalSequentialAllocator<1024> lsa(d_allocator_p);
-    bmqp::PushMessageIterator pushIt(d_clusterData.bufferFactory(), &lsa);
+    bmqp::PushMessageIterator pushIt(&d_clusterData.bufferFactory(), &lsa);
     rawEvent.loadPushMessageIterator(&pushIt, false);
     BSLS_ASSERT_SAFE(pushIt.isValid());
 
@@ -2041,12 +2040,12 @@ void Cluster::onRelayPushEvent(const mqbi::DispatcherEvent& event)
         bsl::shared_ptr<bdlbb::Blob> optionsSp;
         if (atMostOnce) {
             // If it's at-most-once delivery, forward the blob too.
-            appDataSp = d_clusterData.blobSpPool()->getObject();
+            appDataSp = d_clusterData.blobSpPool().getObject();
             rc        = pushIt.loadApplicationData(appDataSp.get());
             BSLS_ASSERT_SAFE(rc == 0);
         }
         else if (pushIt.hasOptions()) {
-            optionsSp = d_clusterData.blobSpPool()->getObject();
+            optionsSp = d_clusterData.blobSpPool().getObject();
             rc        = pushIt.loadOptions(optionsSp.get());
             BSLS_ASSERT_SAFE(0 == rc);
         }
@@ -3207,7 +3206,7 @@ void Cluster::processEvent(const bmqp::Event&   event,
     {                                                                         \
         mqbi::DispatcherEvent*       _evt = dispatcher()->getEvent(this);     \
         bsl::shared_ptr<bdlbb::Blob> _blobSp =                                \
-            d_clusterData.blobSpPool()->getObject();                          \
+            d_clusterData.blobSpPool().getObject();                           \
         *_blobSp = *(event.blob());                                           \
         (*_evt)                                                               \
             .setType(T)                                                       \

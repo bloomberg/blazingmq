@@ -247,7 +247,7 @@ int RecoveryUtil::incrementCurrentSeqNum(
     const bmqp_ctrlmsg::PartitionSequenceNumber& endSeqNum,
     int                                          partitionId,
     const mqbnet::ClusterNode&                   destination,
-    const mqbc::ClusterData&                     clusterData,
+    const bsl::string&                           clusterDescription,
     mqbs::JournalFileIterator&                   journalIt)
 {
     // PRECONDITIONS
@@ -283,8 +283,7 @@ int RecoveryUtil::incrementCurrentSeqNum(
         // smaller or equal.
 
         BALL_LOG_ERROR
-            << clusterData.identity().description() << " PartitionId ["
-            << partitionId
+            << clusterDescription << " PartitionId [" << partitionId
             << "]: incorrect sequence number encountered while attempting "
             << "to replay partition to peer: " << *currentSeqNum
             << ". Sequence number cannot be greater than: " << endSeqNum

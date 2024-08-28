@@ -77,6 +77,7 @@
 #include <bslma_usesbslmaallocator.h>
 #include <bslmf_nestedtraitdeclaration.h>
 #include <bsls_assert.h>
+#include <bsls_atomic.h>
 #include <bsls_cpp11.h>
 #include <bsls_types.h>
 
@@ -304,7 +305,7 @@ class FileStore : public DataStore {
 
     mutable AliasedBufferDeleterSpPool d_aliasedBufferDeleterSpPool;
 
-    volatile bool d_isOpen;
+    bsls::AtomicBool d_isOpen;
     // Flag to indicate open/close status
     // of this instance.
 
@@ -924,6 +925,9 @@ class FileStore : public DataStore {
 
     /// Load the summary of this partition to the specified `fileStore`
     /// object.
+    ///
+    /// THREAD: Executed by the queue dispatcher thread associated with the
+    ///         specified `fileStore`'s partitionId.
     void loadSummary(mqbcmd::FileStore* fileStore) const;
 
     // ACCESSORS

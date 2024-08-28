@@ -246,8 +246,8 @@ inline bool ClusterStateLedger::isSelfLeader() const
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(
-        d_clusterData_p->cluster()->dispatcher()->inDispatcherThread(
-            d_clusterData_p->cluster()));
+        d_clusterData_p->cluster().dispatcher()->inDispatcherThread(
+            &d_clusterData_p->cluster()));
 
     return d_clusterData_p->electorInfo().isSelfLeader();
 }
@@ -261,8 +261,8 @@ ClusterStateLedger::setIsFirstLeaderAdvisory(bool isFirstLeaderAdvisory)
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(
-        d_clusterData_p->cluster()->dispatcher()->inDispatcherThread(
-            d_clusterData_p->cluster()));
+        d_clusterData_p->cluster().dispatcher()->inDispatcherThread(
+            &d_clusterData_p->cluster()));
 
     d_isFirstLeaderAdvisory = isFirstLeaderAdvisory;
 }
@@ -279,8 +279,8 @@ inline void ClusterStateLedger::_setPauseCommitCb(bool value)
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(
-        d_clusterData_p->cluster()->dispatcher()->inDispatcherThread(
-            d_clusterData_p->cluster()));
+        d_clusterData_p->cluster().dispatcher()->inDispatcherThread(
+            &d_clusterData_p->cluster()));
 
     d_pauseCommitCb = value;
 }
@@ -293,8 +293,8 @@ inline bool ClusterStateLedger::isOpen() const
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(
-        d_clusterData_p->cluster()->dispatcher()->inDispatcherThread(
-            d_clusterData_p->cluster()));
+        d_clusterData_p->cluster().dispatcher()->inDispatcherThread(
+            &d_clusterData_p->cluster()));
 
     return d_isOpen;
 }
@@ -307,8 +307,8 @@ ClusterStateLedger::_uncommittedAdvisories() const
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(
-        d_clusterData_p->cluster()->dispatcher()->inDispatcherThread(
-            d_clusterData_p->cluster()));
+        d_clusterData_p->cluster().dispatcher()->inDispatcherThread(
+            &d_clusterData_p->cluster()));
 
     return d_uncommittedAdvisories;
 }

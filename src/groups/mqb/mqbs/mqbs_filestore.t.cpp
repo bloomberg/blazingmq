@@ -18,6 +18,7 @@
 
 // MQB
 #include <mqbcfg_messages.h>
+#include <mqbi_dispatcher.h>
 #include <mqbi_storage.h>
 #include <mqbmock_dispatcher.h>
 #include <mqbnet_mockcluster.h>
@@ -159,6 +160,7 @@ struct Tester {
     mqbnet::ClusterNode*                   d_node_p;
     mqbs::DataStoreConfig                  d_dsCfg;
     bdlmt::FixedThreadPool                 d_miscWorkThreadPool;
+    mqbi::DispatcherClientData             d_dispatcherClientData;
     mqbmock::Dispatcher                    d_dispatcher;
     // must outlive FileStore
     bslma::ManagedPtr<mqbs::FileStore> d_fs_mp;
@@ -188,6 +190,7 @@ struct Tester {
               s_allocator_p))
     , d_clusterStats(s_allocator_p)
     , d_miscWorkThreadPool(1, 1, s_allocator_p)
+    , d_dispatcherClientData()
     , d_dispatcher(s_allocator_p)
     , d_statePool(1024, s_allocator_p)
     {
@@ -253,17 +256,13 @@ struct Tester {
                                      bdlf::PlaceHolders::_2,   // partitionId
                                      bdlf::PlaceHolders::_3,   // QueueUri
                                      bdlf::PlaceHolders::_4))  // QueueKey
-            .setRecoveredQueuesCb(
-                bdlf::BindUtil::bind(&recoveredQueuesCb,
-                                     bdlf::PlaceHolders::_1,  // partitionId
-                                     bdlf::PlaceHolders::_2));
-        // queueKeyInfoMap
+            .setRecoveredQueuesCb(bdlf::BindUtil::bind(
+                &recoveredQueuesCb,
+                bdlf::PlaceHolders::_1,    // partitionId
+                bdlf::PlaceHolders::_2));  // queueKeyInfoMap
 
-        // ******* IMPORTANT *******
-        // We have not written a mock dispatcher yet.  We pass a null
-        // dispatcher ptr, and rely on the internal implementation of FileStore
-        // to know that we will be ok.
-        // *************************
+        d_dispatcherClientData.setDispatcher(&d_dispatcher);
+        d_dispatcher._setInDispatcherThread(true);
 
         d_clusterStats.initialize("testCluster",
                                   1,  // numPartitions

@@ -1353,7 +1353,7 @@ void ClusterStateManager::initiateLeaderSync(bool wait)
 
             bsls::TimeInterval after(mwcsys::Time::nowMonotonicClock());
             after.addMilliseconds(leaderSyncDelayMs);
-            d_clusterData_p->scheduler()->scheduleEvent(
+            d_clusterData_p->scheduler().scheduleEvent(
                 d_clusterData_p->electorInfo().leaderSyncEventHandle(),
                 after,
                 bdlf::BindUtil::bind(&ClusterStateManager::leaderSyncCb,

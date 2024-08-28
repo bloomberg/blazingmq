@@ -318,7 +318,7 @@ void ClusterStateMonitor::verifyAllStatesDispatched()
 
     // failover state
     {
-        status = !d_clusterData_p->cluster()->isFailoverInProgress();
+        status = !d_clusterData_p->cluster().isFailoverInProgress();
         isCurrentlyHealthy = isCurrentlyHealthy && status;
         stateTransition  = checkAndUpdateState(&d_failoverState, status, now);
         shouldAlarm      = shouldAlarm || (stateTransition == e_BAD);
@@ -354,7 +354,7 @@ mqbi::Dispatcher* ClusterStateMonitor::dispatcher()
 
 mqbi::DispatcherClient* ClusterStateMonitor::dispatcherClient()
 {
-    return d_clusterData_p->cluster();
+    return &d_clusterData_p->cluster();
 }
 
 void ClusterStateMonitor::onMonitorStateChange(const StateType& state)
@@ -370,7 +370,7 @@ void ClusterStateMonitor::onMonitorStateChange(const StateType& state)
         os << "'" << d_clusterData_p->identity().name() << "' has been in "
            << "invalid state above the threshold amount of time.\n";
         // Log only a summary in the alarm
-        d_clusterData_p->cluster()->printClusterStateSummary(os, 0, 4);
+        d_clusterData_p->cluster().printClusterStateSummary(os, 0, 4);
         BALL_LOG_INFO << os.str();
     } break;  // BREAK
     case ClusterStateMonitor::e_ALARMING: {
@@ -380,7 +380,7 @@ void ClusterStateMonitor::onMonitorStateChange(const StateType& state)
         // Log the entire cluster state in the alarm
         mqbcmd::Result        result;
         mqbcmd::ClusterResult clusterResult;
-        d_clusterData_p->cluster()->loadClusterStatus(&clusterResult);
+        d_clusterData_p->cluster().loadClusterStatus(&clusterResult);
         if (clusterResult.isClusterStatusValue()) {
             result.makeClusterStatus(clusterResult.clusterStatus());
         }
@@ -419,7 +419,7 @@ ClusterStateMonitor::ClusterStateMonitor(
 , d_nodeStates(allocator)
 , d_partitionStates(allocator)
 , d_failoverState()
-, d_scheduler_p(clusterData->scheduler())
+, d_scheduler_p(&clusterData->scheduler())
 , d_eventHandle()
 , d_clusterData_p(clusterData)
 , d_clusterState_p(clusterState)

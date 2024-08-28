@@ -65,6 +65,7 @@
 #include <bslma_managedptr.h>
 #include <bslma_usesbslmaallocator.h>
 #include <bslmf_nestedtraitdeclaration.h>
+#include <bsls_keyword.h>
 #include <bsls_types.h>
 
 namespace BloombergLP {
@@ -177,7 +178,7 @@ class ClusterData {
     ClusterMembership d_membership;
     // The membership information of the cluster
 
-    ClusterDataIdentity d_identity;
+    const ClusterDataIdentity d_identity;
     // The identity of the cluster
 
     mqbi::Cluster* d_cluster_p;
@@ -212,6 +213,11 @@ class ClusterData {
     // work that can be offloaded to any
     // non-dispatcher threads.
 
+  private:
+    // NOT IMPLEMENTED
+    ClusterData(const ClusterData&) BSLS_KEYWORD_DELETED;
+    ClusterData& operator=(const ClusterData&) BSLS_KEYWORD_DELETED;
+
   public:
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(ClusterData, bslma::UsesBslmaAllocator)
@@ -238,8 +244,14 @@ class ClusterData {
 
     // MANIPULATORS
 
+    /// Get a modifiable reference to this object's event scheduler.
+    bdlmt::EventScheduler& scheduler();
+
+    /// Get a modifiable reference to this object's buffer factory.
+    bdlbb::BlobBufferFactory& bufferFactory();
+
     /// Get a modifiable reference to this object's blobSpPool.
-    BlobSpPool* blobSpPool();
+    BlobSpPool& blobSpPool();
 
     /// Get a modifiable reference to this object's dispatcherClientData.
     mqbi::DispatcherClientData& dispatcherClientData();
@@ -256,11 +268,8 @@ class ClusterData {
     /// Get a modifiable reference to this object's cluster membership.
     ClusterMembership& membership();
 
-    /// Get a modifiable reference to this object's cluster identity.
-    ClusterDataIdentity& identity();
-
     /// Get a modifiable reference to this object's cluster.
-    mqbi::Cluster* cluster();
+    mqbi::Cluster& cluster();
 
     /// Get a modifiable reference to this object's messageTransmitter.
     ControlMessageTransmitter& messageTransmitter();
@@ -274,7 +283,8 @@ class ClusterData {
     /// Get a modifiable reference to this object's domainFactory.
     mqbi::DomainFactory* domainFactory();
 
-    mqbnet::TransportManager* transportManager() const;
+    /// Get a modifiable reference to this object's transportManager.
+    mqbnet::TransportManager& transportManager();
 
     /// Get a modifiable reference to this object's cluster stats.
     mqbstat::ClusterStats& stats();
@@ -282,22 +292,23 @@ class ClusterData {
     /// Get a modifiable reference to this object's clusterNodesStatContext.
     StatContextMp& clusterNodesStatContext();
 
-    StateSpPool* stateSpPool();
+    /// Get a modifiable reference to this object's stateSpPool.
+    StateSpPool& stateSpPool();
+
+    /// Get a modifiable reference to this object's miscWorkThreadPool.
+    bdlmt::FixedThreadPool& miscWorkThreadPool();
 
     // ACCESSORS
 
     /// Return the value of the corresponding member of this object.
-    bdlmt::EventScheduler*                scheduler() const;
-    bdlbb::BlobBufferFactory*             bufferFactory() const;
     const mqbi::DispatcherClientData&     dispatcherClientData() const;
     const mqbcfg::ClusterDefinition&      clusterConfig() const;
     const mqbcfg::ClusterProxyDefinition& clusterProxyConfig() const;
     const ElectorInfo&                    electorInfo() const;
     const ClusterMembership&              membership() const;
     const ClusterDataIdentity&            identity() const;
-    const mqbi::Cluster*                  cluster() const;
+    const mqbi::Cluster&                  cluster() const;
     const StatContextMp&                  clusterNodesStatContext() const;
-    bdlmt::FixedThreadPool*               miscWorkThreadPool();
 };
 
 // ============================================================================
@@ -342,9 +353,19 @@ ClusterDataIdentity::identity() const
 // -----------------
 
 // MANIPULATORS
-inline ClusterData::BlobSpPool* ClusterData::blobSpPool()
+inline bdlmt::EventScheduler& ClusterData::scheduler()
 {
-    return d_blobSpPool_p;
+    return *d_scheduler_p;
+}
+
+inline bdlbb::BlobBufferFactory& ClusterData::bufferFactory()
+{
+    return *d_bufferFactory_p;
+}
+
+inline ClusterData::BlobSpPool& ClusterData::blobSpPool()
+{
+    return *d_blobSpPool_p;
 }
 
 inline mqbi::DispatcherClientData& ClusterData::dispatcherClientData()
@@ -372,14 +393,9 @@ inline ClusterMembership& ClusterData::membership()
     return d_membership;
 }
 
-inline ClusterDataIdentity& ClusterData::identity()
+inline mqbi::Cluster& ClusterData::cluster()
 {
-    return d_identity;
-}
-
-inline mqbi::Cluster* ClusterData::cluster()
-{
-    return d_cluster_p;
+    return *d_cluster_p;
 }
 
 inline ControlMessageTransmitter& ClusterData::messageTransmitter()
@@ -402,9 +418,9 @@ inline mqbi::DomainFactory* ClusterData::domainFactory()
     return d_domainFactory_p;
 }
 
-inline mqbnet::TransportManager* ClusterData::transportManager() const
+inline mqbnet::TransportManager& ClusterData::transportManager()
 {
-    return d_transportManager_p;
+    return *d_transportManager_p;
 }
 
 inline mqbstat::ClusterStats& ClusterData::stats()
@@ -417,17 +433,17 @@ inline ClusterData::StatContextMp& ClusterData::clusterNodesStatContext()
     return d_clusterNodesStatContext_mp;
 }
 
+inline ClusterData::StateSpPool& ClusterData::stateSpPool()
+{
+    return d_stateSpPool;
+}
+
+inline bdlmt::FixedThreadPool& ClusterData::miscWorkThreadPool()
+{
+    return d_miscWorkThreadPool;
+}
+
 // ACCESSORS
-inline bdlmt::EventScheduler* ClusterData::scheduler() const
-{
-    return d_scheduler_p;
-}
-
-inline bdlbb::BlobBufferFactory* ClusterData::bufferFactory() const
-{
-    return d_bufferFactory_p;
-}
-
 inline const mqbi::DispatcherClientData&
 ClusterData::dispatcherClientData() const
 {
@@ -460,25 +476,15 @@ inline const ClusterDataIdentity& ClusterData::identity() const
     return d_identity;
 }
 
-inline const mqbi::Cluster* ClusterData::cluster() const
+inline const mqbi::Cluster& ClusterData::cluster() const
 {
-    return d_cluster_p;
+    return *d_cluster_p;
 }
 
 inline const ClusterData::StatContextMp&
 ClusterData::clusterNodesStatContext() const
 {
     return d_clusterNodesStatContext_mp;
-}
-
-inline ClusterData::StateSpPool* ClusterData::stateSpPool()
-{
-    return &d_stateSpPool;
-}
-
-inline bdlmt::FixedThreadPool* ClusterData::miscWorkThreadPool()
-{
-    return &d_miscWorkThreadPool;
 }
 
 }  // close package namespace

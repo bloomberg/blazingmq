@@ -559,7 +559,7 @@ inline mqbi::Dispatcher* ClusterOrchestrator::dispatcher()
 // PRIVATE ACCESSORS
 inline bool ClusterOrchestrator::isLocal() const
 {
-    return d_clusterData_p->cluster()->isLocal();
+    return d_clusterData_p->cluster().isLocal();
 }
 
 // MANIPULATORS
