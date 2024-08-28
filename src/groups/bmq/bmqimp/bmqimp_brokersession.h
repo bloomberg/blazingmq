@@ -465,7 +465,8 @@ class BrokerSession BSLS_CPP11_FINAL {
       private:
         // PRIVATE TYPES
 
-        typedef bsl::unordered_map<int, bsls::Types::Int64> TimestampMap;
+        typedef bsl::unordered_map<bsl::string, bsls::Types::Int64>
+            TimestampMap;
 
         // PRIVATE DATA
 
@@ -598,10 +599,12 @@ class BrokerSession BSLS_CPP11_FINAL {
         /// Initiate the resumption of a queue.
         void actionInitiateQueueResume(const bsl::shared_ptr<Queue>& queue);
 
-        /// Log start/stop/configure operation time for the specified `queue`
-        /// and `operation`, using the stored operation begin timestamp.
-        /// After logging, begin timestamp is removed from timestamps map.
-        void logOperationTime(const int queueId, const char* operation);
+        /// Log start/stop/configure operation time for the specified
+        /// `queueUri` and `operation`, using the stored operation begin
+        /// timestamp. After logging, begin timestamp is removed from
+        /// timestamps map.
+        void logOperationTime(const bsl::string& queueUri,
+                              const char*        operation);
 
       public:
         // CREATORS
