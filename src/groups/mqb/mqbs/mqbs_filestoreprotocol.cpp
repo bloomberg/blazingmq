@@ -214,7 +214,7 @@ bool DataHeaderFlags::fromAscii(DataHeaderFlags::Enum*   out,
 #define CHECKVALUE(M)                                                         \
     if (bdlb::String::areEqualCaseless(toAscii(DataHeaderFlags::e_##M),       \
                                        str.data(),                            \
-                                       str.length())) {                       \
+                                       static_cast<int>(str.length()))) {     \
         *out = DataHeaderFlags::e_##M;                                        \
         return true;                                                          \
     }

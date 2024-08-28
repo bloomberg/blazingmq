@@ -70,7 +70,7 @@ bool PropertyType::fromAscii(PropertyType::Enum*      out,
 #define BMQT_CHECKVALUE(M)                                                    \
     if (bdlb::String::areEqualCaseless(toAscii(PropertyType::e_##M),          \
                                        str.data(),                            \
-                                       str.length())) {                       \
+                                       static_cast<int>(str.length()))) {     \
         *out = PropertyType::e_##M;                                           \
         return true;                                                          \
     }

@@ -71,7 +71,7 @@ bool GenericResult::fromAscii(GenericResult::Enum*     out,
 #define BMQT_CHECKVALUE(M)                                                    \
     if (bdlb::String::areEqualCaseless(toAscii(GenericResult::e_##M),         \
                                        str.data(),                            \
-                                       str.length())) {                       \
+                                       static_cast<int>(str.length()))) {     \
         *out = GenericResult::e_##M;                                          \
         return true;                                                          \
     }
@@ -143,7 +143,7 @@ bool OpenQueueResult::fromAscii(OpenQueueResult::Enum*   out,
 #define BMQT_CHECKVALUE(M)                                                    \
     if (bdlb::String::areEqualCaseless(toAscii(OpenQueueResult::e_##M),       \
                                        str.data(),                            \
-                                       str.length())) {                       \
+                                       static_cast<int>(str.length()))) {     \
         *out = OpenQueueResult::e_##M;                                        \
         return true;                                                          \
     }
@@ -217,7 +217,7 @@ bool ConfigureQueueResult::fromAscii(ConfigureQueueResult::Enum* out,
 #define BMQT_CHECKVALUE(M)                                                    \
     if (bdlb::String::areEqualCaseless(toAscii(ConfigureQueueResult::e_##M),  \
                                        str.data(),                            \
-                                       str.length())) {                       \
+                                       static_cast<int>(str.length()))) {     \
         *out = ConfigureQueueResult::e_##M;                                   \
         return true;                                                          \
     }
@@ -290,7 +290,7 @@ bool CloseQueueResult::fromAscii(CloseQueueResult::Enum*  out,
 #define BMQT_CHECKVALUE(M)                                                    \
     if (bdlb::String::areEqualCaseless(toAscii(CloseQueueResult::e_##M),      \
                                        str.data(),                            \
-                                       str.length())) {                       \
+                                       static_cast<int>(str.length()))) {     \
         *out = CloseQueueResult::e_##M;                                       \
         return true;                                                          \
     }
@@ -365,7 +365,7 @@ bool EventBuilderResult::fromAscii(EventBuilderResult::Enum* out,
 #define BMQT_CHECKVALUE(M)                                                    \
     if (bdlb::String::areEqualCaseless(toAscii(EventBuilderResult::e_##M),    \
                                        str.data(),                            \
-                                       str.length())) {                       \
+                                       static_cast<int>(str.length()))) {     \
         *out = EventBuilderResult::e_##M;                                     \
         return true;                                                          \
     }
@@ -440,7 +440,7 @@ bool AckResult::fromAscii(AckResult::Enum* out, const bslstl::StringRef& str)
 #define BMQT_CHECKVALUE(M)                                                    \
     if (bdlb::String::areEqualCaseless(toAscii(AckResult::e_##M),             \
                                        str.data(),                            \
-                                       str.length())) {                       \
+                                       static_cast<int>(str.length()))) {     \
         *out = AckResult::e_##M;                                              \
         return true;                                                          \
     }
@@ -514,7 +514,7 @@ bool PostResult::fromAscii(PostResult::Enum* out, const bslstl::StringRef& str)
 #define BMQT_CHECKVALUE(M)                                                    \
     if (bdlb::String::areEqualCaseless(toAscii(PostResult::e_##M),            \
                                        str.data(),                            \
-                                       str.length())) {                       \
+                                       static_cast<int>(str.length()))) {     \
         *out = PostResult::e_##M;                                             \
         return true;                                                          \
     }

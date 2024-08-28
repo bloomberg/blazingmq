@@ -14,8 +14,6 @@
 // limitations under the License.
 
 // mqbcmd_util.cpp                                                    -*-C++-*-
-#include <mqbcmd_humanprinter.h>
-#include <mqbcmd_jsonprinter.h>
 #include <mqbcmd_util.h>
 
 #include <mqbscm_version.h>
@@ -178,58 +176,6 @@ void Util::flatten(Result* result, const InternalResult& cmdResult)
 
     BALL_LOG_ERROR << "Unsupported command result: " << cmdResult;
     BSLS_ASSERT_SAFE(false && "Unsupported result");
-}
-
-void Util::printCommandResult(const mqbcmd::InternalResult& cmdResult,
-                              mqbcmd::EncodingFormat::Value encoding,
-                              bsl::ostream&                 os)
-{
-    // Flatten into the final result
-    mqbcmd::Result result;
-    mqbcmd::Util::flatten(&result, cmdResult);
-
-    switch (encoding) {
-    case mqbcmd::EncodingFormat::TEXT: {
-        // Pretty print
-        mqbcmd::HumanPrinter::print(os, result);
-    } break;  // BREAK
-    case mqbcmd::EncodingFormat::JSON_COMPACT: {
-        mqbcmd::JsonPrinter::print(os, result, false);
-    } break;  // BREAK
-    case mqbcmd::EncodingFormat::JSON_PRETTY: {
-        mqbcmd::JsonPrinter::print(os, result, true);
-    } break;  // BREAK
-    default: BSLS_ASSERT_SAFE(false && "Unsupported encoding");
-    }
-}
-
-void Util::printCommandResponses(const mqbcmd::RouteResponseList& responseList,
-                                 const mqbcmd::EncodingFormat::Value format,
-                                 bsl::ostream&                       os)
-{
-    typedef bsl::vector<BloombergLP::mqbcmd::RouteResponse>
-        RouteResponseVector;
-
-    RouteResponseVector responses = responseList.responses();
-
-    // When there is only 1 response (as in single route or self exec.)
-    // then just display that result. It should already be formatted properly.
-    if (responses.size() == 1) {
-        os << responses[0].response();
-        return;  // RETURN
-    }
-
-    switch (format) {
-    case mqbcmd::EncodingFormat::TEXT: {
-        mqbcmd::HumanPrinter::printResponses(os, responseList);
-    } break;  // BREAK
-    case mqbcmd::EncodingFormat::JSON_COMPACT: {
-        mqbcmd::JsonPrinter::printResponses(os, responseList, false);
-    } break;  // BREAK
-    case mqbcmd::EncodingFormat::JSON_PRETTY: {
-        mqbcmd::JsonPrinter::printResponses(os, responseList, true);
-    } break;  // BREAK
-    }
 }
 
 }  // close package namespace
