@@ -106,7 +106,7 @@ bool ClusterStateLedgerUtilRc::fromAscii(ClusterStateLedgerUtilRc::Enum* out,
     if (bdlb::String::areEqualCaseless(                                       \
             toAscii(ClusterStateLedgerUtilRc::e_##M),                         \
             str.data(),                                                       \
-            str.length())) {                                                  \
+            static_cast<int>(str.length()))) {                                \
         *out = ClusterStateLedgerUtilRc::e_##M;                               \
         return true;                                                          \
     }
