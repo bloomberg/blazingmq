@@ -20,6 +20,7 @@ Tweak generator.
 
 import dataclasses
 from pathlib import Path
+import subprocess
 from typing import IO, Type
 import typing
 
@@ -42,8 +43,7 @@ def type_str(type_):
 
 
 TWEAK_FORMAT = """
-    def __call__(self, value: {type}) -> Callable:
-        ...
+    def __call__(self, value: {type}) -> Callable: ...
 {attr} = {class_name}()
 """
 
@@ -126,14 +126,16 @@ FOOTER = """
     cluster = Cluster()
 """
 
-with open(
-    Path(it.__file__).parent.joinpath("tweaks", "generated.py"), "w", encoding="ascii"
-) as generated:
-    print(HEADER, file=generated)
-    print("    class Broker:", file=generated)
-    generate(mqbcfg.Configuration, 2, generated)
-    print("    class Domain:", file=generated)
-    generate(mqbconf.Domain, 2, generated)
-    print("    class Cluster:", file=generated)
-    generate(mqbcfg.ClusterDefinition, 2, generated)
-    print(FOOTER, file=generated)
+generated = Path(it.__file__).parent.joinpath("tweaks", "generated.py")
+
+with open(generated, "w", encoding="ascii") as fp:
+    print(HEADER, file=fp)
+    print("    class Broker:", file=fp)
+    generate(mqbcfg.Configuration, 2, fp)
+    print("    class Domain:", file=fp)
+    generate(mqbconf.Domain, 2, fp)
+    print("    class Cluster:", file=fp)
+    generate(mqbcfg.ClusterDefinition, 2, fp)
+    print(FOOTER, file=fp)
+
+subprocess.check_call(["black", "-q", str(generated)])
