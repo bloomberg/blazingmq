@@ -377,6 +377,9 @@ class BrokerSession BSLS_CPP11_FINAL {
         bsl::vector<StateTransition> d_transitionTable;
         // State transition table
 
+        /// HiRes timer value of the begin start/stop operation
+        bsls::Types::Int64 d_beginTimestamp;
+
       private:
         // PRIVATE MANIPULATORS
 
@@ -407,6 +410,11 @@ class BrokerSession BSLS_CPP11_FINAL {
         /// specified `event` and execute state entry logic.  Return value
         /// if not void indicates state entry logic execution result.
         void setClosingChannel(FsmEvent::Enum event);
+
+        /// Log start/stop operation time for the specified `operation`,
+        /// using the stored operation begin timestamp.
+        /// Reset the begin timestamp to 0.
+        void logOperationTime(const char* operation);
 
       public:
         // CREATORS
@@ -455,11 +463,21 @@ class BrokerSession BSLS_CPP11_FINAL {
 
     class QueueFsm {
       private:
+        // PRIVATE TYPES
+
+        typedef bsl::unordered_map<bsl::string, bsls::Types::Int64>
+            TimestampMap;
+
+        // PRIVATE DATA
+
         BrokerSession& d_session;
         // Reference to the parent object
 
         bsl::vector<QueueStateTransition> d_transitionTable;
         // State transition table
+
+        TimestampMap d_timestampMap;
+        // Map of HiRes timestamp of the operation beginning per each queue
 
       private:
         // PRIVATE MANIPULATORS
@@ -580,6 +598,13 @@ class BrokerSession BSLS_CPP11_FINAL {
 
         /// Initiate the resumption of a queue.
         void actionInitiateQueueResume(const bsl::shared_ptr<Queue>& queue);
+
+        /// Log start/stop/configure operation time for the specified
+        /// `queueUri` and `operation`, using the stored operation begin
+        /// timestamp. After logging, begin timestamp is removed from
+        /// timestamps map.
+        void logOperationTime(const bsl::string& queueUri,
+                              const char*        operation);
 
       public:
         // CREATORS

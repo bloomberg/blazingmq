@@ -70,7 +70,7 @@ bool EncodingType::fromAscii(EncodingType::Enum*      out,
 #define BMQT_CHECKVALUE(M)                                                    \
     if (bdlb::String::areEqualCaseless(toAscii(EncodingType::e_##M),          \
                                        str.data(),                            \
-                                       str.length())) {                       \
+                                       static_cast<int>(str.length()))) {     \
         *out = EncodingType::e_##M;                                           \
         return true;                                                          \
     }
