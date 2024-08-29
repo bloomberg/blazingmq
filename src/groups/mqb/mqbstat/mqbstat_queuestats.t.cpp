@@ -592,7 +592,7 @@ static void test5_appIdMetrics()
         ASSERT_EQ(1, sc->numSubcontexts());
 
         const mwcst::StatContext* fooSc = sc->getSubcontext(k_APPID_FOO);
-        ASSERT_NE(bsl::nullptr_t(), fooSc);
+        ASSERT(fooSc);
     }
 
     // Add event for non-configured appId "bar", this value should not reach to
@@ -616,12 +616,12 @@ static void test5_appIdMetrics()
         ASSERT_EQ(2, sc->numSubcontexts());
 
         const mwcst::StatContext* fooSc = sc->getSubcontext(k_APPID_FOO);
-        ASSERT_EQ(bsl::nullptr_t(), fooSc);
+        ASSERT(!fooSc);
 
         const mwcst::StatContext* barSc = sc->getSubcontext(k_APPID_BAR);
         const mwcst::StatContext* bazSc = sc->getSubcontext(k_APPID_BAZ);
-        ASSERT_NE(bsl::nullptr_t(), barSc);
-        ASSERT_NE(bsl::nullptr_t(), bazSc);
+        ASSERT(barSc);
+        ASSERT(bazSc);
     }
 
     // Report some metrics and check that they reached subcontexts
@@ -644,8 +644,8 @@ static void test5_appIdMetrics()
 
         const mwcst::StatContext* barSc = sc->getSubcontext(k_APPID_BAR);
         const mwcst::StatContext* bazSc = sc->getSubcontext(k_APPID_BAZ);
-        ASSERT_NE(bsl::nullptr_t(), barSc);
-        ASSERT_NE(bsl::nullptr_t(), bazSc);
+        ASSERT(barSc);
+        ASSERT(bazSc);
 
         ASSERT_EQ(900,
                   mqbstat::QueueStatsDomain::getValue(
