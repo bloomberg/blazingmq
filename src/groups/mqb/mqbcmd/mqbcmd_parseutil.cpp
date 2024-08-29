@@ -932,13 +932,11 @@ int parseElector(ElectorCommand* command,
         return -1;  // RETURN
     }
 
-    if (equalCaseless(subcommand, "SET") ||
-        equalCaseless(subcommand, "SET_ALL")) {
+    if (equalCaseless(subcommand, "SET")) {
         const bslstl::StringRef parameter = next();
 
         if (parameter.empty()) {
-            *error = "The command CLUSTERS CLUSTER <name> STATE ELECTOR "
-                     "[SET|SET_ALL] "
+            *error = "The command CLUSTERS CLUSTER <name> STATE ELECTOR SET "
                      "must be followed by a parameter name.";
             return -1;  // RETURN
         }
@@ -946,8 +944,7 @@ int parseElector(ElectorCommand* command,
         const bslstl::StringRef valueString = next();
 
         if (valueString.empty()) {
-            *error = "The command CLUSTERS CLUSTER <name> STATE ELECTOR "
-                     "[SET|SET_ALL] "
+            *error = "The command CLUSTERS CLUSTER <name> STATE ELECTOR SET "
                      "<parameter> must be followed by a new value for the "
                      "parameter.";
             return -1;  // RETURN
@@ -957,35 +954,18 @@ int parseElector(ElectorCommand* command,
         tunable.name()      = parameter;
         tunable.value()     = parseValue(valueString);
 
-        if (equalCaseless(subcommand, "SET")) {
-            tunable.choice().makeSelf();
-        }
-        else {  // SET_ALL
-            tunable.choice().makeAll();
-        }
         return expectEnd(error, next);  // RETURN
     }
-    else if (equalCaseless(subcommand, "GET") ||
-             equalCaseless(subcommand, "GET_ALL")) {
+    else if (equalCaseless(subcommand, "GET")) {
         const bslstl::StringRef parameter = next();
 
         if (parameter.empty()) {
-            *error = "The command CLUSTERS CLUSTER <name> STATE ELECTOR "
-                     "[GET|GET_ALL] "
+            *error = "The command CLUSTERS CLUSTER <name> STATE ELECTOR GET "
                      "must be followed by a parameter name.";
             return -1;  // RETURN
         }
 
-        GetTunable& tunable = command->makeGetTunable();
-        tunable.name()      = parameter;
-
-        if (equalCaseless(subcommand, "GET")) {
-            tunable.choice().makeSelf();
-        }
-        else {  // GET_ALL
-            tunable.choice().makeAll();
-        }
-
+        command->makeGetTunable(parameter);
         return expectEnd(error, next);  // RETURN
     }
     else if (equalCaseless(subcommand, "LIST_TUNABLES")) {
@@ -1035,8 +1015,7 @@ int parseReplication(ReplicationCommand* command,
         return -1;  // RETURN
     }
 
-    if (equalCaseless(subcommand, "SET") ||
-        equalCaseless(subcommand, "SET_ALL")) {
+    if (equalCaseless(subcommand, "SET")) {
         const bslstl::StringRef parameter = next();
 
         if (parameter.empty()) {
@@ -1058,17 +1037,9 @@ int parseReplication(ReplicationCommand* command,
         tunable.name()      = parameter;
         tunable.value()     = parseValue(valueString);
 
-        if (equalCaseless(subcommand, "SET")) {
-            tunable.choice().makeSelf();
-        }
-        else {  // SET_ALL
-            tunable.choice().makeAll();
-        }
-
         return expectEnd(error, next);  // RETURN
     }
-    else if (equalCaseless(subcommand, "GET") ||
-             equalCaseless(subcommand, "GET_ALL")) {
+    else if (equalCaseless(subcommand, "GET")) {
         const bslstl::StringRef parameter = next();
 
         if (parameter.empty()) {
@@ -1077,16 +1048,7 @@ int parseReplication(ReplicationCommand* command,
             return -1;  // RETURN
         }
 
-        GetTunable& tunable = command->makeGetTunable();
-        tunable.name()      = parameter;
-
-        if (equalCaseless(subcommand, "GET")) {
-            tunable.choice().makeSelf();
-        }
-        else {  // GET_ALL
-            tunable.choice().makeAll();
-        }
-
+        command->makeGetTunable(parameter);
         return expectEnd(error, next);  // RETURN
     }
     else if (equalCaseless(subcommand, "LIST_TUNABLES")) {

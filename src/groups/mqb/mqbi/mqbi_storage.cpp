@@ -74,7 +74,7 @@ bool StorageResult::fromAscii(StorageResult::Enum*     out,
 #define CHECKVALUE(M)                                                         \
     if (bdlb::String::areEqualCaseless(toAscii(StorageResult::e_##M),         \
                                        str.data(),                            \
-                                       str.length())) {                       \
+                                       static_cast<int>(str.length()))) {     \
         *out = StorageResult::e_##M;                                          \
         return true;                                                          \
     }

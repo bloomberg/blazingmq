@@ -180,8 +180,7 @@ int ClusterCatalog::createCluster(bsl::ostream& errorDescription,
                     d_blobSpPool_p,
                     d_bufferFactory_p,
                     d_transportManager_p,
-                    clusterAllocator,
-                    d_adminCb);
+                    clusterAllocator);
 
         info.d_cluster_sp.reset(cluster, clusterAllocator);
         info.d_eventProcessor_p = cluster;

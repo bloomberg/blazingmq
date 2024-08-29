@@ -1510,7 +1510,7 @@ void ClusterQueueHelper::onReopenQueueResponse(
         after.addMilliseconds(d_clusterData_p->clusterConfig()
                                   .queueOperations()
                                   .reopenRetryIntervalMs());
-        d_clusterData_p->scheduler()->scheduleEvent(
+        d_clusterData_p->scheduler().scheduleEvent(
             after,
             bdlf::BindUtil::bind(&ClusterQueueHelper::onReopenQueueRetry,
                                  this,
@@ -2102,9 +2102,9 @@ bsl::shared_ptr<mqbi::Queue> ClusterQueueHelper::createQueueFactory(
                                    context.d_queueContext_p->partitionId(),
                                    context.d_domain_p,
                                    d_storageManager_p,
-                                   d_clusterData_p->bufferFactory(),
-                                   d_clusterData_p->scheduler(),
-                                   d_clusterData_p->miscWorkThreadPool(),
+                                   &d_clusterData_p->bufferFactory(),
+                                   &d_clusterData_p->scheduler(),
+                                   &d_clusterData_p->miscWorkThreadPool(),
                                    openQueueResponse.routingConfiguration(),
                                    d_allocator_p),
         d_allocator_p);
@@ -2113,7 +2113,7 @@ bsl::shared_ptr<mqbi::Queue> ClusterQueueHelper::createQueueFactory(
         queueSp->createRemote(
             openQueueResponse.deduplicationTimeMs(),
             d_clusterData_p->clusterConfig().queueOperations().ackWindowSize(),
-            d_clusterData_p->stateSpPool());
+            &d_clusterData_p->stateSpPool());
 
         if (context.d_domain_p->registerQueue(errorDescription, queueSp) !=
             0) {
@@ -3360,7 +3360,7 @@ bool ClusterQueueHelper::subtractCounters(
                       << "] on close-queue request for queue ["
                       << handleParameters.uri() << "].";
         if (itSubStream->value().d_timer) {
-            d_clusterData_p->scheduler()->cancelEventAndWait(
+            d_clusterData_p->scheduler().cancelEventAndWait(
                 &itSubStream->value().d_timer);
         }
         qinfo->d_subQueueIds.erase(itSubStream);
@@ -3878,7 +3878,7 @@ void ClusterQueueHelper::cancelAllTimers(QueueContext* queueContext)
                           << ", subStream: " << iter->appId() << "("
                           << iter->subId() << ")";
 
-            d_clusterData_p->scheduler()->cancelEventAndWait(
+            d_clusterData_p->scheduler().cancelEventAndWait(
                 &iter->value().d_timer);
         }
     }
@@ -4477,7 +4477,7 @@ ClusterQueueHelper::ClusterQueueHelper(
 , d_nextQueueId(0)
 , d_clusterData_p(clusterData)
 , d_clusterState_p(clusterState)
-, d_cluster_p(clusterData->cluster())
+, d_cluster_p(&clusterData->cluster())
 , d_clusterStateManager_p(clusterStateManager)
 , d_storageManager_p(0)
 , d_queues(allocator)
@@ -4929,6 +4929,7 @@ void ClusterQueueHelper::processPeerOpenQueueRequest(
         return;  // RETURN
     }
 
+    BSLS_ASSERT_SAFE(d_clusterData_p->domainFactory());
     d_clusterData_p->domainFactory()->createDomain(
         bmqt::Uri(handleParams.uri()).qualifiedDomain(),
         bdlf::BindUtil::bind(&ClusterQueueHelper::onGetDomain,
@@ -5760,7 +5761,7 @@ void ClusterQueueHelper::waitForUnconfirmedDispatched(
 
     if (subStreamIt != subQueueIds.end()) {
         subStreamIt->value().d_timer.release();
-        d_clusterData_p->scheduler()->scheduleEvent(
+        d_clusterData_p->scheduler().scheduleEvent(
             &subStreamIt->value().d_timer,
             t,
             bdlf::BindUtil::bind(&ClusterQueueHelper::checkUnconfirmed,
@@ -5861,7 +5862,7 @@ void ClusterQueueHelper::onCloseQueueResponse(
                   << contextSp->d_peer->nodeDescription();
 }
 
-int ClusterQueueHelper::gcExpiredQueues(bool immediate)
+void ClusterQueueHelper::gcExpiredQueues(bool immediate)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -5869,19 +5870,14 @@ int ClusterQueueHelper::gcExpiredQueues(bool immediate)
     BSLS_ASSERT_SAFE(
         d_cluster_p->dispatcher()->inDispatcherThread(d_cluster_p));
 
-    enum RcEnum {
-        rc_SUCCESS             = 0,
-        rc_CLUSTER_IS_STOPPING = -1,
-        rc_SELF_IS_NOT_PRIMARY = -2,
-    };
-
     if (d_cluster_p->isStopping()) {
-        return rc_CLUSTER_IS_STOPPING;  // RETURN
+        return;  // RETURN
     }
 
     if (!d_clusterState_p->isSelfActivePrimary()) {
         // Fast path -- self is not active primary for *any* partition.
-        return rc_SELF_IS_NOT_PRIMARY;  // RETURN
+
+        return;  // RETURN
     }
 
     bsls::Types::Int64 currentTimestampMs =
@@ -6015,7 +6011,7 @@ int ClusterQueueHelper::gcExpiredQueues(bool immediate)
     }
 
     if (queuesToGc.empty()) {
-        return rc_SUCCESS;  // RETURN
+        return;  // RETURN
     }
 
     if (!d_clusterData_p->electorInfo().isSelfActiveLeader()) {
@@ -6041,7 +6037,7 @@ int ClusterQueueHelper::gcExpiredQueues(bool immediate)
             d_primaryNotLeaderAlarmRaised = true;
         }
 
-        return rc_SUCCESS;  // RETURN
+        return;  // RETURN
     }
 
     for (size_t i = 0; i < queuesToGc.size(); ++i) {
@@ -6105,8 +6101,6 @@ int ClusterQueueHelper::gcExpiredQueues(bool immediate)
             d_storageManager_p->unregisterQueue(uriCopy, pid);
         }
     }
-
-    return rc_SUCCESS;  // RETURN
 }
 
 void ClusterQueueHelper::loadQueuesInfo(mqbcmd::StorageContent* out) const

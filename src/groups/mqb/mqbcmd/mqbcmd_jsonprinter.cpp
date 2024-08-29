@@ -19,7 +19,6 @@
 #include <mqbscm_version.h>
 
 // BDE
-#include <baljsn_decoder.h>
 #include <baljsn_encoder.h>
 #include <ball_log.h>
 
@@ -55,60 +54,7 @@ bsl::ostream& JsonPrinter::print(bsl::ostream& os,
         BALL_LOG_ERROR << "failed to encode Result [" << result.selectionName()
                        << "], rc = " << rc;
     }
-    return os;  // RETURN
-}
-
-bsl::ostream&
-JsonPrinter::printResponses(bsl::ostream&            os,
-                            const RouteResponseList& responseList,
-                            bool                     pretty,
-                            int                      level,
-                            int                      spacesPerLevel)
-{
-    // First need to decode the string responses back to a result format.
-    baljsn::Decoder        decoder;
-    baljsn::DecoderOptions decoderOptions;
-    decoderOptions.setSkipUnknownElements(true);
-
-    mqbcmd::RouteResponseResultList responseResultList;
-
-    bsl::vector<mqbcmd::RouteResponseResult>& responseResults =
-        responseResultList.responses();
-
-    for (bsl::vector<mqbcmd::RouteResponse>::const_iterator rit =
-             responseList.responses().begin();
-         rit != responseList.responses().end();
-         rit++) {
-        mqbcmd::RouteResponseResult result;
-        result.sourceNodeDescription() = rit->sourceNodeDescription();
-        bsl::istringstream jsonStream(rit->response());
-        const int          rc = decoder.decode(jsonStream,
-                                      &result.result(),
-                                      decoderOptions);
-        if (0 != rc) {
-            BALL_LOG_SET_CATEGORY(k_LOG_CATEGORY);
-            BALL_LOG_ERROR << "failed to decode result [" << rit->response()
-                           << "] , rc = " << rc;
-            return os;  // RETURN
-        }
-        responseResults.push_back(result);
-    }
-
-    bslma::Allocator* alloc = bslma::Default::allocator(0);
-
-    baljsn::Encoder        encoder(alloc);
-    baljsn::EncoderOptions options;
-    options.setEncodingStyle(pretty ? baljsn::EncoderOptions::e_PRETTY
-                                    : baljsn::EncoderOptions::e_COMPACT);
-    options.setInitialIndentLevel(level);
-    options.setSpacesPerLevel(spacesPerLevel);
-
-    const int rc = encoder.encode(os, responseResultList, options);
-    if (0 != rc) {
-        BALL_LOG_SET_CATEGORY(k_LOG_CATEGORY);
-        BALL_LOG_ERROR << "failed to encode response list, rc = " << rc;
-    }
-    return os;  // RETURN
+    return os;
 }
 
 }  // close package namespace

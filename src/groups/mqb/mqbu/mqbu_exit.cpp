@@ -81,7 +81,7 @@ bool ExitCode::fromAscii(ExitCode::Enum* out, const bslstl::StringRef& str)
 #define CHECKVALUE(M)                                                         \
     if (bdlb::String::areEqualCaseless(toAscii(ExitCode::e_##M),              \
                                        str.data(),                            \
-                                       str.length())) {                       \
+                                       static_cast<int>(str.length()))) {     \
         *out = ExitCode::e_##M;                                               \
         return true;                                                          \
     }

@@ -221,6 +221,12 @@ Cluster::Cluster(bdlbb::BlobBufferFactory* bufferFactory,
 , d_clusterDefinition(allocator)
 , d_itemPool(mqbnet::Channel::k_ITEM_SIZE, allocator)
 , d_channels(allocator)
+, d_negotiator_mp()
+, d_transportManager(&d_scheduler,
+                     bufferFactory,
+                     d_negotiator_mp,
+                     0,  // mqbstat::StatController*
+                     allocator)
 , d_netCluster_mp(0)
 , d_clusterData_mp(0)
 , d_isClusterMember(isClusterMember)
@@ -267,7 +273,7 @@ Cluster::Cluster(bdlbb::BlobBufferFactory* bufferFactory,
                               d_netCluster_mp,
                               this,
                               0,  // domainFactory
-                              0,  // transportManager
+                              &d_transportManager,
                               d_statContext_sp.get(),
                               d_statContexts,
                               d_allocator_p),
@@ -382,11 +388,6 @@ mqbnet::Cluster& Cluster::netCluster()
 Cluster::RequestManagerType& Cluster::requestManager()
 {
     return d_clusterData_mp->requestManager();
-}
-
-mqbc::ClusterData::MultiRequestManagerType& Cluster::multiRequestManager()
-{
-    return d_clusterData_mp->multiRequestManager();
 }
 
 bmqt::GenericResult::Enum

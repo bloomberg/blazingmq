@@ -761,7 +761,7 @@ void RecoveryManager::sendStorageSyncRequesterHelper(RecoveryContext* context,
     timeoutMs.setTotalMilliseconds(d_clusterConfig.partitionConfig()
                                        .syncConfig()
                                        .storageSyncReqTimeoutMs());
-    bmqt::GenericResult::Enum status = d_clusterData_p->cluster()->sendRequest(
+    bmqt::GenericResult::Enum status = d_clusterData_p->cluster().sendRequest(
         request,
         context->recoveryPeer(),
         timeoutMs);
@@ -796,7 +796,7 @@ void RecoveryManager::sendStorageSyncRequesterHelper(RecoveryContext* context,
                                   .startupRecoveryMaxDurationMs());
 
         BSLS_ASSERT_SAFE(!context->recoveryStatusCheckHandle());
-        d_clusterData_p->scheduler()->scheduleEvent(
+        d_clusterData_p->scheduler().scheduleEvent(
             &(context->recoveryStatusCheckHandle()),
             after,
             bdlf::BindUtil::bind(&RecoveryManager::recoveryStatusCb,
@@ -1338,9 +1338,9 @@ void RecoveryManager::onPartitionRecoveryStatus(int partitionId, int status)
     RecoveryContext& recoveryCtx = d_recoveryContexts[partitionId];
     BSLS_ASSERT_SAFE(recoveryCtx.inRecovery());
 
-    d_clusterData_p->scheduler()->cancelEventAndWait(
+    d_clusterData_p->scheduler().cancelEventAndWait(
         &recoveryCtx.recoveryStartupWaitHandle());
-    d_clusterData_p->scheduler()->cancelEventAndWait(
+    d_clusterData_p->scheduler().cancelEventAndWait(
         &recoveryCtx.recoveryStatusCheckHandle());
 
     // Close all files if they are open and inform storage manager.
@@ -1419,7 +1419,7 @@ void RecoveryManager::onPartitionPrimarySyncStatus(int partitionId, int status)
     PrimarySyncContext& primarySyncCtx = d_primarySyncContexts[partitionId];
     BSLS_ASSERT_SAFE(primarySyncCtx.primarySyncInProgress());
 
-    d_clusterData_p->scheduler()->cancelEventAndWait(
+    d_clusterData_p->scheduler().cancelEventAndWait(
         &primarySyncCtx.primarySyncStatusEventHandle());
 
     primarySyncCtx.partitionPrimarySyncCb()(partitionId, status);
@@ -1524,7 +1524,7 @@ int RecoveryManager::sendFile(RequestContext*                   context,
 
     unsigned int               sequenceNumber = 0;
     bsls::Types::Uint64        currOffset     = beginOffset;
-    bmqp::RecoveryEventBuilder builder(d_clusterData_p->bufferFactory(),
+    bmqp::RecoveryEventBuilder builder(&d_clusterData_p->bufferFactory(),
                                        d_allocator_p);
 
     while ((currOffset + chunkSize) < endOffset) {
@@ -1709,7 +1709,7 @@ int RecoveryManager::replayPartition(
 
     bmqp::StorageEventBuilder builder(mqbs::FileStoreProtocol::k_VERSION,
                                       bmqp::EventType::e_PARTITION_SYNC,
-                                      d_clusterData_p->bufferFactory(),
+                                      &d_clusterData_p->bufferFactory(),
                                       d_allocator_p);
 
     // Note that partition has to be replayed from the record *after*
@@ -1722,14 +1722,15 @@ int RecoveryManager::replayPartition(
         bmqp::StorageMessageType::Enum storageMsgType =
             bmqp::StorageMessageType::e_UNDEFINED;
 
-        rc = mqbc::RecoveryUtil::incrementCurrentSeqNum(&currentSeqNum,
-                                                        &journalRecordBase,
-                                                        fti->journalFd(),
-                                                        toSequenceNum,
-                                                        pid,
-                                                        *destination,
-                                                        *d_clusterData_p,
-                                                        journalIt);
+        rc = mqbc::RecoveryUtil::incrementCurrentSeqNum(
+            &currentSeqNum,
+            &journalRecordBase,
+            fti->journalFd(),
+            toSequenceNum,
+            pid,
+            *destination,
+            d_clusterData_p->identity().description(),
+            journalIt);
         if (rc != 0) {
             break;  // BREAK
         }
@@ -2614,10 +2615,8 @@ void RecoveryManager::onPartitionSyncStateQueryResponseDispatched(
     timeoutMs.setTotalMilliseconds(d_clusterConfig.partitionConfig()
                                        .syncConfig()
                                        .partitionSyncDataReqTimeoutMs());
-    bmqt::GenericResult::Enum status = d_clusterData_p->cluster()->sendRequest(
-        request,
-        maxSeqNode,
-        timeoutMs);
+    bmqt::GenericResult::Enum status =
+        d_clusterData_p->cluster().sendRequest(request, maxSeqNode, timeoutMs);
 
     if (bmqt::GenericResult::e_SUCCESS != status) {
         // Request failed to encode/be sent; process error handling (note that
@@ -2924,7 +2923,7 @@ void RecoveryManager::startRecovery(
 
     recoveryCtx.setRecoveryStatus(true);
 
-    if (d_clusterData_p->cluster()->isLocal()) {
+    if (d_clusterData_p->cluster().isLocal()) {
         onPartitionRecoveryStatus(partitionId, 0 /* status */);
         return;  // RETURN
     }
@@ -2957,7 +2956,7 @@ void RecoveryManager::startRecovery(
 
     bsls::TimeInterval after(mwcsys::Time::nowMonotonicClock());
     after.addMilliseconds(startupWaitMs);
-    d_clusterData_p->scheduler()->scheduleEvent(
+    d_clusterData_p->scheduler().scheduleEvent(
         &recoveryCtx.recoveryStartupWaitHandle(),
         after,
         bdlf::BindUtil::bind(&RecoveryManager::recoveryStartupWaitCb,
@@ -3274,7 +3273,7 @@ void RecoveryManager::processStorageEvent(
 
     bmqp::StorageEventBuilder seb(mqbs::FileStoreProtocol::k_VERSION,
                                   bmqp::EventType::e_STORAGE,
-                                  d_clusterData_p->bufferFactory(),
+                                  &d_clusterData_p->bufferFactory(),
                                   d_allocator_p);
 
     while (1 == iter.next()) {
@@ -3302,7 +3301,7 @@ void RecoveryManager::processStorageEvent(
     if (0 < seb.messageCount()) {
         bsl::shared_ptr<bdlbb::Blob> blobSp;
         blobSp.createInplace(d_allocator_p,
-                             d_clusterData_p->bufferFactory(),
+                             &d_clusterData_p->bufferFactory(),
                              d_allocator_p);
         *blobSp = seb.blob();
         recoveryCtx.addStorageEvent(blobSp);
@@ -3614,7 +3613,7 @@ void RecoveryManager::processShutdownEvent(int partitionId)
                   << "]: received shutdown event.";
 
     RecoveryContext& recoveryCtx = d_recoveryContexts[partitionId];
-    d_clusterData_p->scheduler()->cancelEventAndWait(
+    d_clusterData_p->scheduler().cancelEventAndWait(
         &recoveryCtx.recoveryStartupWaitHandle());
     if (isRecoveryInProgress(partitionId)) {
         // Recovery is in progress.  Cancel it.
@@ -3622,7 +3621,7 @@ void RecoveryManager::processShutdownEvent(int partitionId)
     }
 
     PrimarySyncContext& primarySyncCtx = d_primarySyncContexts[partitionId];
-    d_clusterData_p->scheduler()->cancelEventAndWait(
+    d_clusterData_p->scheduler().cancelEventAndWait(
         &primarySyncCtx.primarySyncStatusEventHandle());
 }
 
@@ -4296,7 +4295,7 @@ void RecoveryManager::startPartitionPrimarySync(
         primarySyncCtx.setSelfLastSyncPtOffsetPair(fs->syncPoints().back());
     }
 
-    if (d_clusterData_p->cluster()->isLocal()) {
+    if (d_clusterData_p->cluster().isLocal()) {
         BSLS_ASSERT_SAFE(peers.empty());
         onPartitionPrimarySyncStatus(pid, 0 /* status */);
         return;  // RETURN
@@ -4320,7 +4319,7 @@ void RecoveryManager::startPartitionPrimarySync(
     after.addMilliseconds(d_clusterConfig.partitionConfig()
                               .syncConfig()
                               .masterSyncMaxDurationMs());
-    d_clusterData_p->scheduler()->scheduleEvent(
+    d_clusterData_p->scheduler().scheduleEvent(
         &primarySyncCtx.primarySyncStatusEventHandle(),
         after,
         bdlf::BindUtil::bind(&RecoveryManager::primarySyncStatusCb,

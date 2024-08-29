@@ -39,7 +39,6 @@
 // with a leading underscore ('_').
 
 // MQB
-
 #include <mqbconfm_messages.h>
 #include <mqbi_domain.h>
 #include <mqbstat_domainstats.h>

@@ -79,6 +79,9 @@ namespace BloombergLP {
 
 // FORWARD DECLARATION
 namespace mqbcmd {
+class ClusterQueueHelper;
+}
+namespace mqbcmd {
 class StorageContent;
 }
 namespace mqbi {
@@ -1082,9 +1085,8 @@ class ClusterQueueHelper : public mqbc::ClusterStateObserver,
     /// Garbage-collect all queues which meet the criteria, and have
     /// expired.  If the optionally specified `immediate` flag is true,
     /// delete the qualified queues immediately instead of marking them for
-    /// deletion in future. Returns 0 on success or a non-zero error code on
-    /// failure.
-    int gcExpiredQueues(bool immediate = false);
+    /// deletion in future.
+    void gcExpiredQueues(bool immediate = false);
 
     ClusterQueueHelper& setOnQueueAssignedCb(const OnQueueAssignedCb& value);
 
