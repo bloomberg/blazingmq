@@ -633,7 +633,7 @@ inline mqbi::Dispatcher* ClusterStateManager::dispatcher()
 // PRIVATE ACCESSORS
 inline bool ClusterStateManager::isLocal() const
 {
-    return d_clusterData_p->cluster()->isLocal();
+    return d_clusterData_p->cluster().isLocal();
 }
 
 inline const mqbi::Dispatcher* ClusterStateManager::dispatcher() const

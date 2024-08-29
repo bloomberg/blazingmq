@@ -502,7 +502,7 @@ void ClusterOrchestrator::timerCb()
 
     d_clusterData_p->dispatcherClientData().dispatcher()->execute(
         bdlf::BindUtil::bind(&ClusterOrchestrator::timerCbDispatched, this),
-        d_clusterData_p->cluster());
+        &d_clusterData_p->cluster());
 }
 
 void ClusterOrchestrator::timerCbDispatched()
@@ -511,7 +511,7 @@ void ClusterOrchestrator::timerCbDispatched()
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(
-        dispatcher()->inDispatcherThread(d_clusterData_p->cluster()));
+        dispatcher()->inDispatcherThread(&d_clusterData_p->cluster()));
 
     const bsls::Types::Int64 timer = mwcsys::Time::highResolutionTimer();
 
@@ -578,7 +578,7 @@ ClusterOrchestrator::ClusterOrchestrator(
 , d_stateManager_mp(
       clusterConfig.clusterAttributes().isFSMWorkflow()
           ? static_cast<mqbi::ClusterStateManager*>(
-                new (*d_allocator_p) mqbc::ClusterStateManager(
+                new(*d_allocator_p) mqbc::ClusterStateManager(
                     clusterConfig,
                     d_cluster_p,
                     d_clusterData_p,
@@ -593,11 +593,11 @@ ClusterOrchestrator::ClusterOrchestrator(
                             //      Strong
                             d_clusterData_p,
                             clusterState,
-                            d_clusterData_p->bufferFactory())),
+                            &d_clusterData_p->bufferFactory())),
                     k_WATCHDOG_TIMEOUT_DURATION,
                     d_allocators.get("ClusterStateManager")))
           : static_cast<mqbi::ClusterStateManager*>(
-                new (*d_allocator_p) ClusterStateManager(
+                new(*d_allocator_p) ClusterStateManager(
                     clusterConfig,
                     d_cluster_p,
                     d_clusterData_p,
@@ -612,7 +612,7 @@ ClusterOrchestrator::ClusterOrchestrator(
                             //      Strong
                             d_clusterData_p,
                             clusterState,
-                            d_clusterData_p->bufferFactory())),
+                            &d_clusterData_p->bufferFactory())),
                     d_allocators.get("ClusterStateManager"))),
       d_allocator_p)
 , d_queueHelper(d_clusterData_p,
@@ -699,7 +699,7 @@ int ClusterOrchestrator::start(bsl::ostream& errorDescription)
     d_elector_mp.load(
         new (*d_allocator_p) mqbnet::Elector(
             d_clusterConfig.elector(),
-            d_clusterData_p->cluster(),
+            &d_clusterData_p->cluster(),
             bdlf::BindUtil::bind(&ClusterOrchestrator::onElectorStateChange,
                                  this,
                                  _1,   // ElectorState
@@ -707,7 +707,7 @@ int ClusterOrchestrator::start(bsl::ostream& errorDescription)
                                  _3,   // LeaderNodeId
                                  _4),  // Term
             electorTerm,
-            d_clusterData_p->bufferFactory(),
+            &d_clusterData_p->bufferFactory(),
             d_allocator_p),
         d_allocator_p);
 
@@ -720,7 +720,7 @@ int ClusterOrchestrator::start(bsl::ostream& errorDescription)
     bsls::TimeInterval interval;
     interval.setTotalMilliseconds(
         d_clusterConfig.queueOperations().consumptionMonitorPeriodMs());
-    d_clusterData_p->scheduler()->scheduleRecurringEvent(
+    d_clusterData_p->scheduler().scheduleRecurringEvent(
         &d_consumptionMonitorEventHandle,
         interval,
         bdlf::BindUtil::bind(&ClusterOrchestrator::timerCb, this));
@@ -740,7 +740,7 @@ void ClusterOrchestrator::stop()
     d_isStarted = false;
 
     BSLS_ASSERT_SAFE(d_clusterData_p);
-    d_clusterData_p->scheduler()->cancelEventAndWait(
+    d_clusterData_p->scheduler().cancelEventAndWait(
         &d_consumptionMonitorEventHandle);
 
     d_stateManager_mp->stop();

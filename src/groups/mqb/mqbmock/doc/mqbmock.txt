@@ -9,7 +9,7 @@
 
 /Hierarchical Synopsis
 /---------------------
-The 'mqbmock' package currently has 10 components having 2 levels of physical
+The 'mqbmock' package currently has 11 components having 2 levels of physical
 dependency.  The list below shows the hierarchical ordering of the components.
 ..
   2. mqbmock_queue
@@ -23,6 +23,7 @@ dependency.  The list below shows the hierarchical ordering of the components.
      mqbmock_logidgenerator
      mqbmock_queueengine
      mqbmock_queuehandle
+     mqbmock_storagemanager
 ..
 
 /Component Synopsis
@@ -57,3 +58,5 @@ dependency.  The list below shows the hierarchical ordering of the components.
 : mqbmock_queuehandle:
 :      Provide a mock Queue Handle implementation.
 :
+: mqbmock_storagemanager:
+:      Provide a mock implementation of the 'mqbi::StorageManager' interface.

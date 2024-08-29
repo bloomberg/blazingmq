@@ -135,7 +135,7 @@ void ClusterProxy::startDispatched()
     // and all session to build initial state and then schedule a refresh to
     // find active node if there is none after processing all pending events.
 
-    d_activeNodeManager.initialize(d_clusterData.transportManager());
+    d_activeNodeManager.initialize(&d_clusterData.transportManager());
 
     // Ready to read.
     d_clusterData.membership().netCluster()->enableRead();
@@ -150,7 +150,7 @@ void ClusterProxy::startDispatched()
     bsls::TimeInterval interval = mwcsys::Time::nowMonotonicClock() +
                                   bsls::TimeInterval(
                                       k_ACTIVE_NODE_INITIAL_WAIT);
-    d_clusterData.scheduler()->scheduleEvent(
+    d_clusterData.scheduler().scheduleEvent(
         &d_activeNodeLookupEventHandle,
         interval,
         bdlf::BindUtil::bind(&ClusterProxy::onActiveNodeLookupTimerExpired,
@@ -178,7 +178,7 @@ void ClusterProxy::initiateShutdownDispatched(const VoidFunctor& callback)
         clusterProxyConfig()->queueOperations().shutdownTimeoutMs());
 
     for (mqbnet::TransportManagerIterator sessIt(
-             d_clusterData.transportManager());
+             &d_clusterData.transportManager());
          sessIt;
          ++sessIt) {
         bsl::shared_ptr<mqbnet::Session> sessionSp = sessIt.session().lock();
@@ -242,7 +242,7 @@ void ClusterProxy::stopDispatched()
 
     // Cancel scheduler event
     if (d_activeNodeLookupEventHandle) {
-        d_clusterData.scheduler()->cancelEventAndWait(
+        d_clusterData.scheduler().cancelEventAndWait(
             &d_activeNodeLookupEventHandle);
     }
 
@@ -336,7 +336,7 @@ void ClusterProxy::processActiveNodeManagerResult(
     if (result & mqbnet::ClusterActiveNodeManager::e_NEW_ACTIVE) {
         // Cancel the scheduler event, if any.
         if (d_activeNodeLookupEventHandle) {
-            d_clusterData.scheduler()->cancelEvent(
+            d_clusterData.scheduler().cancelEvent(
                 &d_activeNodeLookupEventHandle);
             d_activeNodeManager.enableExtendedSelection();
         }
@@ -435,7 +435,7 @@ void ClusterProxy::onPushEvent(const mqbi::DispatcherPushEvent& event)
 
     bmqp::Event rawEvent(event.blob().get(), d_allocator_p);
     bdlma::LocalSequentialAllocator<1024> lsa(d_allocator_p);
-    bmqp::PushMessageIterator iter(d_clusterData.bufferFactory(), &lsa);
+    bmqp::PushMessageIterator iter(&d_clusterData.bufferFactory(), &lsa);
     rawEvent.loadPushMessageIterator(&iter, false);
 
     BSLS_ASSERT_SAFE(iter.isValid());
@@ -450,13 +450,13 @@ void ClusterProxy::onPushEvent(const mqbi::DispatcherPushEvent& event)
         }
 
         bsl::shared_ptr<bdlbb::Blob> appDataSp =
-            d_clusterData.blobSpPool()->getObject();
+            d_clusterData.blobSpPool().getObject();
         rc = iter.loadApplicationData(appDataSp.get());
         BSLS_ASSERT_SAFE(rc == 0);
 
         bsl::shared_ptr<bdlbb::Blob> optionsSp;
         if (iter.hasOptions()) {
-            optionsSp = d_clusterData.blobSpPool()->getObject();
+            optionsSp = d_clusterData.blobSpPool().getObject();
             rc        = iter.loadOptions(optionsSp.get());
             BSLS_ASSERT_SAFE(0 == rc);
         }
@@ -717,7 +717,7 @@ void ClusterProxy::processEvent(const bmqp::Event&   event,
     case bmqp::EventType::e_PUSH: {
         mqbi::DispatcherEvent*       dispEvent = dispatcher()->getEvent(this);
         bsl::shared_ptr<bdlbb::Blob> blobSp =
-            d_clusterData.blobSpPool()->getObject();
+            d_clusterData.blobSpPool().getObject();
         *blobSp = *(event.blob());
         (*dispEvent)
             .setType(mqbi::DispatcherEventType::e_PUSH)
@@ -728,7 +728,7 @@ void ClusterProxy::processEvent(const bmqp::Event&   event,
     case bmqp::EventType::e_ACK: {
         mqbi::DispatcherEvent*       dispEvent = dispatcher()->getEvent(this);
         bsl::shared_ptr<bdlbb::Blob> blobSp =
-            d_clusterData.blobSpPool()->getObject();
+            d_clusterData.blobSpPool().getObject();
         *blobSp = *(event.blob());
         (*dispEvent)
             .setType(mqbi::DispatcherEventType::e_ACK)

@@ -8,3 +8,4 @@ mqbmock_logidgenerator
 mqbmock_queue
 mqbmock_queueengine
 mqbmock_queuehandle
+mqbmock_storagemanager

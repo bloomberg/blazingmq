@@ -194,6 +194,9 @@ class ClusterStateManager
     virtual void
     do_applyCSLSelf(const ClusterFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;
 
+    virtual void do_initializeQueueKeyInfoMap(const ClusterFSMArgsSp& args)
+        BSLS_KEYWORD_OVERRIDE;
+
     virtual void do_sendFollowerLSNRequests(const ClusterFSMArgsSp& args)
         BSLS_KEYWORD_OVERRIDE;
 
