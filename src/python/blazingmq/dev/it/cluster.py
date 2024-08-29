@@ -377,7 +377,7 @@ class Cluster(contextlib.AbstractContextManager):
 
         return self._processes[name]
 
-    def nodes(self, **kw):
+    def nodes(self, **kw) -> List[Broker]:
         """Return the nodes matching the conditions specified by 'kw'.
 
         Conditions
@@ -408,7 +408,7 @@ class Cluster(contextlib.AbstractContextManager):
 
         return [broker for broker in self._virtual_nodes if _match_broker(broker, **kw)]
 
-    def proxies(self, **kw):
+    def proxies(self, **kw) -> List[Broker]:
         """Return the proxies matching the conditions specified by 'kw'.
 
         Conditions can be any combination of: - datacenter:<name> return the
@@ -441,7 +441,9 @@ class Cluster(contextlib.AbstractContextManager):
         following sub-sequence: o1, r1, o2, r2, o1, r3, o2, r1, o1, r2, o2, r3
         """
 
-        proxy_map = collections.defaultdict(list)
+        proxy_map: collections.defaultdict[str, List[Broker]] = collections.defaultdict(
+            list
+        )
 
         for proxy in self._proxies:
             proxy_map[proxy.datacenter].append(proxy)
@@ -465,17 +467,19 @@ class Cluster(contextlib.AbstractContextManager):
     def create_client(
         self,
         prefix,
-        broker: cfg.Broker,
+        broker: Broker,
         start=True,
         dump_messages=True,
         options=None,
+        port=None,
     ) -> Client:
         """
         Create a client with the specified name.
 
         Either 'proxyhostname' or 'proxy' must be specified; the client
         connects to the specified proxy.  If 'options' is specified, its string
-        value is tacked at the end of the 'bmqtool.tsk' argument list.
+        value is tacked at the end of the 'bmqtool.tsk' argument list. If 'port' is not
+        specified, use either the first listener if it exists or 'broker.port'.
         """
 
         if isinstance(options, str):
@@ -483,9 +487,15 @@ class Cluster(contextlib.AbstractContextManager):
 
         name = f"{prefix}@{broker.name}"
 
+        if port is None:
+            if broker.config.listeners:
+                port = broker.config.listeners[0]
+            else:
+                port = broker.config.port
+
         client = Client(
             name,
-            ("localhost", broker.config.port),
+            ("localhost", port),
             tool_path="bin/bmqtool.tsk",
             cwd=(self.work_dir / broker.name),
             dump_messages=dump_messages,
@@ -540,7 +550,9 @@ class Cluster(contextlib.AbstractContextManager):
 
         return self.last_known_leader
 
-    def open_priority_queues(self, count, start=0, **kw):
+    def open_priority_queues(
+        self, count, start=0, port=None, **kw
+    ) -> ListContextManager[Queue]:
         """Open *distinct* priority queues with the options specified in 'kw'.
 
         While each queue uses a different URI, calling this method multiple
@@ -556,7 +568,11 @@ class Cluster(contextlib.AbstractContextManager):
         proxies = self.proxy_cycle()
         return ListContextManager(
             [
-                Queue(next(proxies).create_client(), f"{tc.URI_PRIORITY}{i}", **kw)
+                Queue(
+                    next(proxies).create_client(port=port),
+                    f"{tc.URI_PRIORITY}{i}",
+                    **kw,
+                )
                 for i in range(start, start + count)
             ]
         )

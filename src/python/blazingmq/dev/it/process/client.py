@@ -29,7 +29,7 @@ import json
 import re
 import subprocess
 from pathlib import Path
-from typing import Any, Callable, Dict, Optional, List
+from typing import Any, Callable, Dict, Optional, List, NamedTuple
 
 from blazingmq.dev.it.process import bmqproc
 from blazingmq.dev.it.process.bmqproc import BMQProcess
@@ -38,7 +38,12 @@ from blazingmq.dev.it.testconstants import *
 from blazingmq.dev.it.util import internal_use, ListContextManager, Queue
 
 Message = namedtuple("Message", "guid, uri, correlationId, payload")
-CommandResult = namedtuple("CommandResult", "error_code, matches")
+
+
+class CommandResult(NamedTuple):
+    error_code: int | None
+    matches: List[re.Match | None] | None
+
 
 blocktimeout = 15
 
@@ -335,7 +340,7 @@ class Client(BMQProcess):
         )
         return res.error_code
 
-    def list(self, uri=None, block=None):
+    def list(self, uri=None, block=None) -> List[Message]:
         """
         Send the 'list' command with the 'uri' argument, if specified.
         If 'block' is specified and is True, wait for the command
@@ -371,7 +376,9 @@ class Client(BMQProcess):
 
             return msgs
 
-    def confirm(self, uri, guid, block=None, succeed=None, no_except=None):
+    def confirm(
+        self, uri, guid, block=None, succeed=None, no_except=None
+    ) -> int | None:
         command = _build_command(f'confirm uri="{uri}" guid="{guid}"', {}, {})
         with internal_use(self):
             res = self._command_helper(
@@ -424,7 +431,7 @@ class Client(BMQProcess):
         )
         return res.error_code
 
-    def wait_push_event(self, timeout=blocktimeout, quiet=False):
+    def wait_push_event(self, timeout=blocktimeout, quiet=False) -> bool:
         """
         Wait until the client receives a 'PUSH' events.  Return 'True' if the
         event was seen within the specified 'timeout'.

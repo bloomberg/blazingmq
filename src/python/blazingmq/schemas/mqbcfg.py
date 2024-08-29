@@ -971,18 +971,14 @@ class TcpClusterNodeConnection:
 
 
 @dataclass
-class TcpInterfaceConfig:
-    """lowWatermark.........:
+class TcpInterfaceListener:
+    """This type describes the information needed for the broker to open a TCP
+    listener.
 
-    highWatermark........:
-    Watermarks used for channels with a client or proxy.
-    nodeLowWatermark.....:
-    nodeHighWatermark....:
-    Reduced watermarks for communication between cluster nodes where
-    BlazingMQ maintains its own cache.
-    heartbeatIntervalMs..:
-    How often (in milliseconds) to check if the channel received data,
-    and emit heartbeat.  0 to globally disable.
+    name.................:
+    A name to associate this listener to.
+    port.................:
+    The port this listener will accept connections on.
     """
 
     name: Optional[str] = field(
@@ -996,69 +992,6 @@ class TcpInterfaceConfig:
     port: Optional[int] = field(
         default=None,
         metadata={
-            "type": "Element",
-            "namespace": "http://bloomberg.com/schemas/mqbcfg",
-            "required": True,
-        },
-    )
-    io_threads: Optional[int] = field(
-        default=None,
-        metadata={
-            "name": "ioThreads",
-            "type": "Element",
-            "namespace": "http://bloomberg.com/schemas/mqbcfg",
-            "required": True,
-        },
-    )
-    max_connections: int = field(
-        default=10000,
-        metadata={
-            "name": "maxConnections",
-            "type": "Element",
-            "namespace": "http://bloomberg.com/schemas/mqbcfg",
-            "required": True,
-        },
-    )
-    low_watermark: Optional[int] = field(
-        default=None,
-        metadata={
-            "name": "lowWatermark",
-            "type": "Element",
-            "namespace": "http://bloomberg.com/schemas/mqbcfg",
-            "required": True,
-        },
-    )
-    high_watermark: Optional[int] = field(
-        default=None,
-        metadata={
-            "name": "highWatermark",
-            "type": "Element",
-            "namespace": "http://bloomberg.com/schemas/mqbcfg",
-            "required": True,
-        },
-    )
-    node_low_watermark: int = field(
-        default=1024,
-        metadata={
-            "name": "nodeLowWatermark",
-            "type": "Element",
-            "namespace": "http://bloomberg.com/schemas/mqbcfg",
-            "required": True,
-        },
-    )
-    node_high_watermark: int = field(
-        default=2048,
-        metadata={
-            "name": "nodeHighWatermark",
-            "type": "Element",
-            "namespace": "http://bloomberg.com/schemas/mqbcfg",
-            "required": True,
-        },
-    )
-    heartbeat_interval_ms: int = field(
-        default=3000,
-        metadata={
-            "name": "heartbeatIntervalMs",
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
@@ -1227,26 +1160,6 @@ class LogController:
 
 
 @dataclass
-class NetworkInterfaces:
-    heartbeats: Optional[Heartbeat] = field(
-        default=None,
-        metadata={
-            "type": "Element",
-            "namespace": "http://bloomberg.com/schemas/mqbcfg",
-            "required": True,
-        },
-    )
-    tcp_interface: Optional[TcpInterfaceConfig] = field(
-        default=None,
-        metadata={
-            "name": "tcpInterface",
-            "type": "Element",
-            "namespace": "http://bloomberg.com/schemas/mqbcfg",
-        },
-    )
-
-
-@dataclass
 class PartitionConfig:
     """Type representing the configuration for the storage layer of a cluster.
 
@@ -1396,6 +1309,116 @@ class StatPluginConfigPrometheus:
 
 
 @dataclass
+class TcpInterfaceConfig:
+    """name.................:
+
+    The name of the TCP session manager.
+    port.................:
+    (Deprecated) The port to receive connections.
+    lowWatermark.........:
+    highWatermark........:
+    Watermarks used for channels with a client or proxy.
+    nodeLowWatermark.....:
+    nodeHighWatermark....:
+    Reduced watermarks for communication between cluster nodes where
+    BlazingMQ maintains its own cache.
+    heartbeatIntervalMs..:
+    How often (in milliseconds) to check if the channel received data,
+    and emit heartbeat.  0 to globally disable.
+    listeners:
+    A list of listener interfaces to receive TCP connections from. When non-empty
+    this option overrides the listener specified by port.
+    """
+
+    name: Optional[str] = field(
+        default=None,
+        metadata={
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+            "required": True,
+        },
+    )
+    port: Optional[int] = field(
+        default=None,
+        metadata={
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+            "required": True,
+        },
+    )
+    io_threads: Optional[int] = field(
+        default=None,
+        metadata={
+            "name": "ioThreads",
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+            "required": True,
+        },
+    )
+    max_connections: int = field(
+        default=10000,
+        metadata={
+            "name": "maxConnections",
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+            "required": True,
+        },
+    )
+    low_watermark: Optional[int] = field(
+        default=None,
+        metadata={
+            "name": "lowWatermark",
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+            "required": True,
+        },
+    )
+    high_watermark: Optional[int] = field(
+        default=None,
+        metadata={
+            "name": "highWatermark",
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+            "required": True,
+        },
+    )
+    node_low_watermark: int = field(
+        default=1024,
+        metadata={
+            "name": "nodeLowWatermark",
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+            "required": True,
+        },
+    )
+    node_high_watermark: int = field(
+        default=2048,
+        metadata={
+            "name": "nodeHighWatermark",
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+            "required": True,
+        },
+    )
+    heartbeat_interval_ms: int = field(
+        default=3000,
+        metadata={
+            "name": "heartbeatIntervalMs",
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+            "required": True,
+        },
+    )
+    listeners: List[TcpInterfaceListener] = field(
+        default_factory=list,
+        metadata={
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+        },
+    )
+
+
+@dataclass
 class ClusterNode:
     """Type representing the configuration of a node in a cluster.
 
@@ -1466,6 +1489,26 @@ class DispatcherConfig:
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
+        },
+    )
+
+
+@dataclass
+class NetworkInterfaces:
+    heartbeats: Optional[Heartbeat] = field(
+        default=None,
+        metadata={
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+            "required": True,
+        },
+    )
+    tcp_interface: Optional[TcpInterfaceConfig] = field(
+        default=None,
+        metadata={
+            "name": "tcpInterface",
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
         },
     )
 
@@ -1793,7 +1836,7 @@ class StatsConfig:
 
 @dataclass
 class AppConfig:
-    """Top level typ for the broker's configuration.
+    """Top level type for the broker's configuration.
 
     brokerInstanceName...: name of the broker instance
     brokerVersion........: version of the broker

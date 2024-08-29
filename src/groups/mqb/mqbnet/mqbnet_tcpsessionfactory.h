@@ -87,6 +87,7 @@
 #include <mwcex_sequentialcontext.h>
 #include <mwcio_channel.h>
 #include <mwcio_channelfactory.h>
+#include <mwcio_listenoptions.h>
 #include <mwcio_reconnectingchannelfactory.h>
 #include <mwcio_resolvingchannelfactory.h>
 #include <mwcio_statchannelfactory.h>
@@ -235,6 +236,8 @@ class TCPSessionFactory {
 
     typedef bslma::ManagedPtr<mwcio::ChannelFactory::OpHandle> OpHandleMp;
 
+    typedef bsl::unordered_map<int, OpHandleMp> ListeningHandleMap;
+
   private:
     // DATA
     mwcu::SharedResource<TCPSessionFactory> d_self;
@@ -246,9 +249,8 @@ class TCPSessionFactory {
     // Has this component been
     // started ?
 
+    /// Config to use for setting up this SessionFactory
     mqbcfg::TcpInterfaceConfig d_config;
-    // Config to use for setting up
-    // this SessionFactory
 
     bdlmt::EventScheduler* d_scheduler_p;
     // Event scheduler held not owned
@@ -342,10 +344,8 @@ class TCPSessionFactory {
     // See comments in
     // 'calculateInitialMissedHbCounter'.
 
-    OpHandleMp d_listeningHandle_mp;
-    // Handle which can be used to
-    // stop listening.  Empty unless
-    // listening.
+    /// Handles that can be used to stop listening. Empty unless listening.
+    ListeningHandleMap d_listeningHandles;
 
     bsls::AtomicBool d_isListening;
     // Set to 'true' before calling
@@ -356,15 +356,12 @@ class TCPSessionFactory {
     // Mutex for thread safety of
     // this component.
 
-    bslma::ManagedPtr<void> d_listenContext_mp;
-    // Maintain ownership of
-    // 'OperationContext' instead of
-    //  passing it to
-    // 'ChannelFactory::listen'
-    // because it may delete the
-    // context (on stopListening)
-    // while operation (readCallback/
-    // negotiation) is in progress.
+    // Maintain ownership of 'OperationContext' instead of passing it to
+    // 'ChannelFactory::listen' because it may delete the context (on
+    // stopListening) while operation (readCallback/ negotiation) is in
+    // progress.
+    bsl::unordered_map<int, bsl::shared_ptr<OperationContext> >
+        d_listenContexts;
 
     bslma::Allocator* d_allocator_p;
     // Allocator to use
@@ -468,6 +465,18 @@ class TCPSessionFactory {
     /// event scheduler processes it.
     void disableHeartbeat(const bsl::shared_ptr<ChannelInfo>& channelInfo);
 
+    /// @brief Check that the TCP interfaces are valid.
+    ///
+    /// We require the following:
+    /// - The name of each listener interface is unique
+    /// - The port of each listener interface is unqiue
+    ///
+    /// @returns 0 on success, nonzero on failure.
+    int validateTcpInterfaces() const;
+
+    /// Cancel any open listener operations and clear them out.
+    void cancelListeners();
+
   private:
     // NOT IMPLEMENTED
 
@@ -525,10 +534,11 @@ class TCPSessionFactory {
     /// deleted.
     void closeClients();
 
-    /// Listen to the specified `port` for incoming connection and invoke
-    /// the specified `resultCallback` when a connection has been
-    /// negotiated.  Return 0 on success, or non-zero on error.
-    int listen(int port, const ResultCallback& resultCallback);
+    /// Create a new listener interface specified by  `listener` for incoming
+    /// connections and invoke the specified `resultCallback` when a connection
+    /// has been negotiated. Return 0 on success, or non-zero on error.
+    int listen(const mqbcfg::TcpInterfaceListener& listener,
+               const ResultCallback&               resultCallback);
 
     /// Initiate a connection to the specified `endpoint` and return 0 if
     /// the connection has successfully been started; with the result being

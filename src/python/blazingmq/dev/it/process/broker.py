@@ -28,6 +28,12 @@ import os
 from pathlib import Path
 import signal
 
+from typing import Optional, TypeVar
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from blazingmq.dev.it.cluster import Cluster
+
 from blazingmq.dev.it.process import proc
 import blazingmq.dev.it.process.bmqproc
 import blazingmq.dev.it.testconstants as tc
@@ -46,7 +52,17 @@ def open_non_blocking(path, flags):
 
 
 class Broker(blazingmq.dev.it.process.bmqproc.BMQProcess):
-    def __init__(self, config: cfg.Broker, cluster, **kwargs):
+    Self = TypeVar("Self", bound="Broker")
+
+    config: cfg.Broker
+    cluster: "Cluster"
+    cluster_name: str
+    _pid: Optional[int]
+    _auto_id: itertools.count
+    last_known_leader: Optional[Self]
+    last_known_active: Optional[str]
+
+    def __init__(self, config: cfg.Broker, cluster: "Cluster", **kwargs):
         cwd: Path = kwargs["cwd"]
         (cwd / "bmqbrkr.ctl").unlink(missing_ok=True)
         super().__init__(
