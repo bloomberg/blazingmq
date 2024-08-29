@@ -1,21 +1,15 @@
-# ThreadSanitizer suppressions file for BMQ
+# ThreadSanitizer suppressions file for BlazingMQ.
 
 # There's a lengthy comment in ObjectPool::getObject that explains why this
 # isn't a race.  I'm not smart enough to figure out if it's right, but I'll
 # assume it's right
 race:BloombergLP::bdlcc::ObjectPool<*>::getObject
 race:BloombergLP::bdlcc::ObjectPool<*>::releaseObject
+
+# Issue 176120121 is created for tracking.
 race:BloombergLP::bdlma::ConcurrentPool::deallocate
 race:BloombergLP::bdlma::ConcurrentPool::allocate
 race:BloombergLP::bdlma::ConcurrentPool::deleteObject
-
-# Similar to above, there is a lengthy comment in bcema_Pool::allocate which
-# attempts to explain why there is no race.
-race:BloombergLP::bcema_Pool<*>::allocate
-
-# Not sure what the problem is here, but tsan can't show the other stack, so
-# there's nothing to look into
-race:__tsan_atomic32_fetch_add
 
 # Don't warn about using cout from multiple threads
 race:std::basic_ostream<char, *>& bsl::operator<< <*>(std::basic_ostream<*>&, bsl::basic_string<*> const&)
@@ -24,11 +18,15 @@ race:std::basic_ostream<char, *>& bsl::operator<< <*>(std::basic_ostream<*>&, bs
 # it makes tsan warn in some cases
 race:BloombergLP::ball::LoggerManager::isInitialized()
 
-# Suppress TSan report in a routine used in bmqimp::Brokersession test driver.
-# It is a benign race in the test driver, but should be looked into at some
-# point.
-race:TestSession::waitForChannelClose
-race:TestSession::arriveAtStepWithCfgs
+# Suppress sporadically appearing data race in bmqimp::BrokerSession test driver.
+# In TestSession::arriveAtStepWithCfgs() there is a call of queue->setOptions() method,
+# at nearly same time in other thread bmqimp::BrokerSession::onConfigureQueueResponse() calls
+# queue->options().suspendsOnBadHostHealth() method which is detected as data race.
+# bmqt::QueueOptions and bmqimp::Queue classes are not thread safe by design,
+# and bmqimp::BrokerSession::onConfigureQueueResponse() callback access them in
+# not thread-safe manner, probably also by design, assuming that it will be called again
+# if something is changed. Further investigation is required, suppress it for now.
+race:BloombergLP::bmqt::QueueOptions::suspendsOnBadHostHealth
 
 # Since we use mqbmock::Dispatcher in unit tests, this method does not get
 # enqueued correctly back to cluster-dispatcher thread, causing potential
