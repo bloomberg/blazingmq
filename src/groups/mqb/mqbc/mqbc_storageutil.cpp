@@ -3405,11 +3405,6 @@ void StorageUtil::processPrimaryStatusAdvisoryDispatched(
                       << "node as primary.";
     }
 
-    BALL_LOG_INFO << clusterDescription << " Partition ["
-                  << advisory.partitionId()
-                  << "]: received primary status advisory: " << advisory
-                  << ", from: " << source->nodeDescription();
-
     pinfo->setPrimary(source);
     pinfo->setPrimaryLeaseId(advisory.primaryLeaseId());
     pinfo->setPrimaryStatus(advisory.status());

@@ -1759,11 +1759,18 @@ void ClusterOrchestrator::processPrimaryStatusAdvisory(
 
     // TBD: may need to review the order of invoking these routines.
 
+    BALL_LOG_INFO << d_clusterData_p->identity().description()
+                  << " PartitionId [" << primaryAdv.partitionId()
+                  << "]: received primary status advisory: " << primaryAdv
+                  << ", from: " << source->nodeDescription();
+
     BSLS_ASSERT_SAFE(ns->isPrimaryForPartition(primaryAdv.partitionId()));
     d_stateManager_mp->setPrimaryStatus(primaryAdv.partitionId(),
                                         primaryAdv.status());
 
-    d_storageManager_p->processPrimaryStatusAdvisory(primaryAdv, source);
+    if (!d_clusterConfig.clusterAttributes().isFSMWorkflow()) {
+        d_storageManager_p->processPrimaryStatusAdvisory(primaryAdv, source);
+    }
 }
 
 void ClusterOrchestrator::processStateNotification(

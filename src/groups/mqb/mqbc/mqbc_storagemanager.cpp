@@ -358,6 +358,10 @@ void StorageManager::setPrimaryStatusForPartitionDispatched(
                   << ".";
 
     pinfo.setPrimaryStatus(value);
+    if (bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE == value) {
+        d_fileStores[partitionId]->setPrimary(pinfo.primary(),
+                                              pinfo.primaryLeaseId());
+    }
 }
 
 void StorageManager::processPrimaryDetect(int                  partitionId,
@@ -4202,36 +4206,16 @@ void StorageManager::processReceiptEvent(const bmqp::Event&   event,
 }
 
 void StorageManager::processPrimaryStatusAdvisory(
-    const bmqp_ctrlmsg::PrimaryStatusAdvisory& advisory,
-    mqbnet::ClusterNode*                       source)
+    BSLS_ANNOTATION_UNUSED const bmqp_ctrlmsg::PrimaryStatusAdvisory& advisory,
+    BSLS_ANNOTATION_UNUSED mqbnet::ClusterNode* source)
 {
     // executed by *CLUSTER DISPATCHER* thread
 
-    // PRECONDITIONS
+    // PRECONDITION
     BSLS_ASSERT_SAFE(d_dispatcher_p->inDispatcherThread(d_cluster_p));
-    BSLS_ASSERT_SAFE(source);
-    BSLS_ASSERT_SAFE(d_fileStores.size() >
-                     static_cast<size_t>(advisory.partitionId()));
 
-    if (d_cluster_p->isStopping()) {
-        BALL_LOG_WARN << d_clusterData_p->identity().description()
-                      << " Partition [" << advisory.partitionId() << "]: "
-                      << "Cluster is stopping; skipping processing of "
-                      << "PrimaryStatusAdvisory.";
-        return;  // RETURN
-    }
-
-    mqbs::FileStore* fs = d_fileStores[advisory.partitionId()].get();
-    BSLS_ASSERT_SAFE(fs);
-
-    fs->execute(bdlf::BindUtil::bind(
-        &StorageUtil::processPrimaryStatusAdvisoryDispatched,
-        fs,
-        &d_partitionInfoVec[advisory.partitionId()],
-        advisory,
-        d_clusterData_p->identity().description(),
-        source,
-        true));  // isFSMWorkflow
+    BSLS_ASSERT_OPT(false &&
+                    "This method should only be invoked in non-FSM mode");
 }
 
 void StorageManager::processReplicaStatusAdvisory(
