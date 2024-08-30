@@ -502,6 +502,8 @@ void TCPSessionFactory::negotiationComplete(
                              statusCode,
                              d_allocator_p);
         channel->close(status);
+
+        logOpenSessionTime(session->description(), channel);
         return;  // RETURN
     }
 
@@ -599,6 +601,8 @@ void TCPSessionFactory::negotiationComplete(
         // This will eventually call 'btemt_ChannelPool::shutdown' which will
         // schedule channelStateCb/poolSessionStateCb/onClose/tearDown
         channel->close();
+
+        logOpenSessionTime(session->description(), channel);
         return;  // RETURN
     }
 
@@ -610,6 +614,8 @@ void TCPSessionFactory::negotiationComplete(
                                  this,
                                  info.get()));
     }
+
+    logOpenSessionTime(session->description(), channel);
 }
 
 void TCPSessionFactory::onSessionDestroyed(
@@ -680,6 +686,12 @@ void TCPSessionFactory::channelStateCallback(
             channel->close(closeStatus);
         }
         else {
+            {  // Save begin session timestamp
+                bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
+                d_timestampMap[channel.get()] =
+                    mwcsys::Time::highResolutionTimer();
+            }  // close mutex lock guard // UNLOCK
+
             // Keep track of active channels, for logging purposes
             ++d_nbActiveChannels;
 
@@ -865,6 +877,31 @@ void TCPSessionFactory::disableHeartbeat(
     d_heartbeatChannels.erase(channelInfo->d_channel_p);
 }
 
+void TCPSessionFactory::logOpenSessionTime(
+    const bsl::string&                     sessionDescription,
+    const bsl::shared_ptr<mwcio::Channel>& channel)
+{
+    bsls::Types::Int64 begin = 0;
+    {
+        bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
+
+        TimestampMap::const_iterator it = d_timestampMap.find(channel.get());
+        if (it != d_timestampMap.end()) {
+            begin = it->second;
+            d_timestampMap.erase(it);
+        }
+
+    }  // close mutex lock guard // UNLOCK
+
+    if (begin) {
+        const bsls::Types::Int64 elapsed =
+            mwcsys::Time::highResolutionTimer() - begin;
+        BALL_LOG_INFO << "Open session '" << sessionDescription << "' took: "
+                      << mwcu::PrintUtil::prettyTimeInterval(elapsed) << " ("
+                      << elapsed << " nanoseconds)";
+    }
+}
+
 TCPSessionFactory::TCPSessionFactory(
     const mqbcfg::TcpInterfaceConfig& config,
     bdlmt::EventScheduler*            scheduler,
@@ -895,6 +932,7 @@ TCPSessionFactory::TCPSessionFactory(
 , d_heartbeatChannels(allocator)
 , d_initialMissedHeartbeatCounter(calculateInitialMissedHbCounter(config))
 , d_isListening(false)
+, d_timestampMap(allocator)
 , d_allocator_p(allocator)
 {
     // PRECONDITIONS

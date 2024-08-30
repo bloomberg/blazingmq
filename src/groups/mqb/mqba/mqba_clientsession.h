@@ -391,6 +391,9 @@ class ClientSession : public mqbnet::Session,
     // If present, call when 'tearDownAllQueuesDone'.
     // This is the callback given in 'initiateShutdown'
 
+    bsls::Types::Int64 d_beginTimestamp;
+    // HiRes timer value of the begin session/queue operation
+
   private:
     // NOT IMPLEMENTED
 
@@ -599,6 +602,11 @@ class ClientSession : public mqbnet::Session,
                             const bmqp::PutMessageIterator& putIt);
 
     void closeChannel();
+
+    /// Log session/queue operation time for the specified `operation`
+    /// using the stored operation begin timestamp. Reset the begin
+    /// timestamp to 0.
+    void logOperationTime(const char* operation);
 
     // PRIVATE ACCESSORS
 
