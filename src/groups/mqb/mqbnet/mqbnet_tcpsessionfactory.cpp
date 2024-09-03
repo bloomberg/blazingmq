@@ -503,7 +503,7 @@ void TCPSessionFactory::negotiationComplete(
                              d_allocator_p);
         channel->close(status);
 
-        logOpenSessionTime(session->description(), channel);
+        logOpenSessionTime("", channel);
         return;  // RETURN
     }
 
