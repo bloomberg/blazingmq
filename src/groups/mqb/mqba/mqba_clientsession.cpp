@@ -790,7 +790,6 @@ void ClientSession::onHandleConfiguredDispatched(
             bmqp_ctrlmsg::ConfigureQueueStream& configureQueueStream =
                 response.choice().makeConfigureQueueStreamResponse().request();
 
-            // qId = streamParamsCtrlMsg.choice().configureQueueStream().qId();
             configureQueueStream.qId() = qId;
             bmqp::ProtocolUtil::convert(
                 &configureQueueStream.streamParameters(),
