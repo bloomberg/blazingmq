@@ -84,6 +84,8 @@ namespace BloombergLP {
 namespace mqbnet {
 
 const char* TCPSessionFactory::k_CHANNEL_PROPERTY_PEER_IP = "tcp.peer.ip";
+const char* TCPSessionFactory::k_CHANNEL_PROPERTY_LOCAL_PORT =
+    "tcp.local.port";
 const char* TCPSessionFactory::k_CHANNEL_PROPERTY_CHANNEL_ID =
     "channelpool.channel.id";
 const char* TCPSessionFactory::k_CHANNEL_STATUS_CLOSE_REASON =
@@ -290,20 +292,25 @@ TCPSessionFactory::channelStatContextCreator(
             ? mqbstat::StatController::ChannelSelector::e_REMOTE
             : mqbstat::StatController::ChannelSelector::e_LOCAL;
 
-    bsl::string name(d_allocator_p), localPort(d_allocator_p);
+    mwcst::StatContext* parent = d_statController_p->channelsStatContext(
+        selector);
+    BSLS_ASSERT_SAFE(parent);
+
+    bsl::string endpoint(d_allocator_p), port(d_allocator_p);
     if (handle->options().is<mwcio::ConnectOptions>()) {
-        name      = handle->options().the<mwcio::ConnectOptions>().endpoint();
-        localPort = d_portExtractor.extract(channel->peerUri());
+        endpoint = handle->options().the<mwcio::ConnectOptions>().endpoint();
+        port     = d_ports.extract(channel->peerUri());
     }
     else {
-        name      = channel->peerUri();
-        localPort = d_portExtractor.extract(
+        endpoint = channel->peerUri();
+        port     = d_ports.extract(
             handle->options().the<mwcio::ListenOptions>().endpoint());
     }
+    channel->properties().set(TCPSessionFactory::k_CHANNEL_PROPERTY_LOCAL_PORT,
+                              port);
 
-    return d_statController_p->addChannelStatContext(selector,
-                                                     localPort,
-                                                     name);
+    bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
+    return d_ports.addChannelContext(parent, endpoint, port);
 }
 
 void TCPSessionFactory::negotiate(
@@ -676,6 +683,9 @@ void TCPSessionFactory::channelStateCallback(
         else {
             // Keep track of active channels, for logging purposes
             ++d_nbActiveChannels;
+            {
+                bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
+            }
 
             // Register as observer of the channel to get the 'onClose'
             channel->onClose(bdlf::BindUtil::bind(
@@ -708,6 +718,11 @@ void TCPSessionFactory::onClose(const bsl::shared_ptr<mwcio::Channel>& channel,
 {
     --d_nbActiveChannels;
 
+    bslstl::StringRef port;
+    channel->properties().load(
+        &port,
+        TCPSessionFactory::k_CHANNEL_PROPERTY_LOCAL_PORT);
+
     ChannelInfoSp channelInfo;
     {
         // Lookup the session and remove it from internal map
@@ -718,6 +733,7 @@ void TCPSessionFactory::onClose(const bsl::shared_ptr<mwcio::Channel>& channel,
             channelInfo = it->second;
             d_channels.erase(it);
         }
+        d_ports.deleteChannelContext(port);
     }  // close mutex lock guard                                      // UNLOCK
 
     if (!channelInfo) {
@@ -885,11 +901,11 @@ TCPSessionFactory::TCPSessionFactory(
 , d_noSessionCondition(bsls::SystemClockType::e_MONOTONIC)
 , d_noClientCondition(bsls::SystemClockType::e_MONOTONIC)
 , d_channels(allocator)
+, d_ports(allocator)
 , d_heartbeatSchedulerActive(false)
 , d_heartbeatChannels(allocator)
 , d_initialMissedHeartbeatCounter(calculateInitialMissedHbCounter(config))
 , d_isListening(false)
-, d_portExtractor(allocator)
 , d_allocator_p(allocator)
 {
     // PRECONDITIONS
@@ -1409,12 +1425,14 @@ bool TCPSessionFactory::isEndpointLoopback(const bslstl::StringRef& uri) const
            mwcio::ChannelUtil::isLocalHost(endpoint.host());
 }
 
-// --------------------------------------
-// class TCPSessionFactory::PortExtractor
-// --------------------------------------
+// ------------------------------------
+// class TCPSessionFactory::PortManager
+// ------------------------------------
 
-TCPSessionFactory::PortExtractor::PortExtractor(bslma::Allocator* allocator)
-: d_regex(allocator)
+TCPSessionFactory::PortManager::PortManager(bslma::Allocator* allocator)
+: d_portMap(allocator)
+, d_regex(allocator)
+, d_allocator_p(allocator)
 {
     const char                  pattern[] = ":(\\d{1,5})$";
     bsl::string                 error(allocator);
@@ -1428,8 +1446,47 @@ TCPSessionFactory::PortExtractor::PortExtractor(bslma::Allocator* allocator)
     BSLS_ASSERT_SAFE(d_regex.isPrepared());
 }
 
+bslma::ManagedPtr<mwcst::StatContext>
+TCPSessionFactory::PortManager::addChannelContext(mwcst::StatContext* parent,
+                                                  const bsl::string&  endpoint,
+                                                  const bsl::string&  port)
+{
+    bdlma::LocalSequentialAllocator<2048> localAllocator(d_allocator_p);
+    mwcst::StatContextConfiguration statConfig(endpoint, &localAllocator);
+
+    bslma::ManagedPtr<mwcst::StatContext> channelStatContext;
+
+    PortMap::iterator portIt = d_portMap.find(port);
+
+    if (portIt != d_portMap.end()) {
+        channelStatContext = portIt->second.d_portContext->addSubcontext(
+            statConfig);
+        ++portIt->second.d_numChannels;
+    }
+    else {
+        mwcst::StatContextConfiguration     portConfig(port, &localAllocator);
+        bsl::shared_ptr<mwcst::StatContext> portStatContext =
+            parent->addSubcontext(
+                portConfig.storeExpiredSubcontextValues(true));
+        channelStatContext = portStatContext->addSubcontext(statConfig);
+        d_portMap.emplace(port, PortContext({portStatContext, 1}));
+    }
+
+    return channelStatContext;
+}
+
+void TCPSessionFactory::PortManager::deleteChannelContext(
+    const bsl::string& port)
+{
+    // Lookup the port's StatContext and remove it from the internal containers
+    PortMap::iterator it = d_portMap.find(port);
+    if (it != d_portMap.end() && --it->second.d_numChannels == 0) {
+        d_portMap.erase(it);
+    }
+}
+
 bsl::string_view
-TCPSessionFactory::PortExtractor::extract(const bsl::string& endpoint) const
+TCPSessionFactory::PortManager::extract(const bsl::string& endpoint) const
 {
     bsl::string_view result;
 

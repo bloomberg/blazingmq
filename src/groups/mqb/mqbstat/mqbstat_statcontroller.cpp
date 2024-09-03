@@ -600,20 +600,6 @@ void StatController::snapshotAndNotify()
     }
 }
 
-void StatController::portsDeleter(const mwcst::StatContext& context)
-{
-    // Lookup the port's StatContext and remove it from the internal containers
-    bslmt::LockGuard<bslmt::Mutex> guard(&d_portsMutex);  // LOCK
-    if (context.numSnapshots() != 0 && !context.isDeleted() &&
-        context.numSubcontexts() == 0) {
-        StatContextMap::const_iterator it = d_portsMap.find(context.name());
-        if (it != d_portsMap.end()) {
-            d_portsList.erase(it->second);
-            d_portsMap.erase(it);
-        }
-    }
-}
-
 int StatController::validateConfig(bsl::ostream& errorDescription) const
 {
     const mqbcfg::AppConfig& brkrCfg = mqbcfg::BrokerConfig::get();
@@ -679,8 +665,6 @@ StatController::StatController(const CommandProcessorFn& commandProcessor,
 , d_statContextsMap(allocator)
 , d_statContextChannelsLocal_mp(0)
 , d_statContextChannelsRemote_mp(0)
-, d_portsList(allocator)
-, d_portsMap(allocator)
 , d_systemStatMonitor_mp(0)
 , d_pluginManager_p(pluginManager)
 , d_bufferFactory_p(bufferFactory)
@@ -998,46 +982,6 @@ int StatController::processCommand(
     result->makeError();
     result->error().message() = os.str();
     return -1;
-}
-
-StatController::StatContextMp
-StatController::addChannelStatContext(ChannelSelector::Enum selector,
-                                      const bsl::string&    port,
-                                      const bsl::string&    endpoint)
-{
-    mwcst::StatContext* parent = channelsStatContext(selector);
-    BSLS_ASSERT_SAFE(parent);
-
-    bdlma::LocalSequentialAllocator<2048> localAllocator(d_allocator_p);
-    mwcst::StatContextConfiguration       portConfig(port, &localAllocator);
-    mwcst::StatContextConfiguration statConfig(endpoint, &localAllocator);
-
-    bslma::ManagedPtr<mwcst::StatContext> channelStatContext;
-
-    {
-        bslmt::LockGuard<bslmt::Mutex> guard(&d_portsMutex);  // LOCK
-        StatContextMap::iterator       portIt = d_portsMap.find(port);
-
-        if (portIt == d_portsMap.end()) {
-            bslma::ManagedPtr<mwcst::StatContext> portStatContext =
-                parent->addSubcontext(
-                    portConfig.storeExpiredSubcontextValues(true)
-                        .preSnapshotCallback(
-                            bdlf::BindUtil::bind(&StatController::portsDeleter,
-                                                 this,
-                                                 bdlf::PlaceHolders::_1)));
-            channelStatContext = portStatContext->addSubcontext(statConfig);
-            d_portsList.emplace_front(
-                bslmf::MovableRefUtil::move(portStatContext));
-            d_portsMap.emplace((*d_portsList.begin())->name(),
-                               d_portsList.begin());
-        }
-        else {
-            channelStatContext = (*portIt->second)->addSubcontext(statConfig);
-        }
-    }
-
-    return channelStatContext;
 }
 
 }  // close package namespace

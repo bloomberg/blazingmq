@@ -192,15 +192,6 @@ class StatController {
     /// 'channels' stat context
     StatContextMp d_statContextChannelsRemote_mp;
 
-    /// Mutex for thread safety of the 'd_portsMap'
-    bslmt::Mutex d_portsMutex;
-
-    /// List of 'StatContext's of all open ports
-    StatContextList d_portsList;
-
-    /// Map of all open ports to their 'StatContext's
-    StatContextMap d_portsMap;
-
     /// System stat monitor (for cpu and
     /// memory).
     SystemStatMonitorMp d_systemStatMonitor_mp;
@@ -281,10 +272,6 @@ class StatController {
     /// upon success.
     void snapshotAndNotify();
 
-    /// Remove the 'ManagedPtr' of the specified 'context' from the internal
-    /// ports map.
-    void portsDeleter(const mwcst::StatContext& context);
-
     // PRIVATE ACCESSORS
 
     /// Validate that the statistics parameter from the config are valid,
@@ -355,13 +342,6 @@ class StatController {
     /// Retrieve the channels stat context corresponding to the specified
     /// `selector`.
     mwcst::StatContext* channelsStatContext(ChannelSelector::Enum selector);
-
-    /// Add a StatContext for the specified 'port' as a subcontext to the root
-    /// StatContext of local or remote channels, corresponding to the specified
-    /// 'selector'.
-    StatContextMp addChannelStatContext(ChannelSelector::Enum selector,
-                                        const bsl::string&    port,
-                                        const bsl::string&    endpoint);
 };
 
 // ============================================================================

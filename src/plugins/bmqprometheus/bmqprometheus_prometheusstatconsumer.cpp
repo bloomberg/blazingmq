@@ -511,8 +511,19 @@ void PrometheusStatConsumer::captureNetworkStats()
 
     auto reportConnections = [&](const bsl::string&        metricName,
                                  const mwcst::StatContext* context) {
+        // In order to eliminate possible duplication of port contexts
+        // aggregate them before posting
+        bsl::unordered_map<bsl::string,
+                           bsl::pair<bsls::Types::Int64, bsls::Types::Int64> >
+            portMap;
+
         mwcst::StatContextIterator it = context->subcontextIterator();
         for (; it; ++it) {
+            if (it->isDeleted()) {
+                // As we iterate over 'living' sub contexts in the begining and
+                // over deleted sub contexts in the end, we can just stop here.
+                break;
+            }
             tagger.setPort(it->name());
             ::prometheus::BuildCounter()
                 .Name("brkr_system_net_" + metricName + "_delta")

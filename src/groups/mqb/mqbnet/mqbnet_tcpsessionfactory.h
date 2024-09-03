@@ -138,6 +138,9 @@ class TCPSessionFactory {
     /// Name of a property set on the channel representing the peer's IP.
     static const char* k_CHANNEL_PROPERTY_PEER_IP;
 
+    /// Name of a property set on the channel representing the local port.
+    static const char* k_CHANNEL_PROPERTY_LOCAL_PORT;
+
     /// Name of a property set on the channel representing the BTE channel
     /// id.
     static const char* k_CHANNEL_PROPERTY_CHANNEL_ID;
@@ -215,22 +218,39 @@ class TCPSessionFactory {
         // scheduler thread.
     };
 
-    /// This class provides mechanism to extract a port from an endpoint.
-    class PortExtractor {
+    /// This class provides mechanism to store a map of port stat contexts.
+    class PortManager {
+      public:
+        // PUBLIC TYPES
+        struct PortContext {
+            bsl::shared_ptr<mwcst::StatContext> d_portContext;
+            bsl::size_t                         d_numChannels;
+        };
+        typedef bsl::unordered_map<bsl::string, PortContext> PortMap;
+
       private:
-        // DATA
+        // PRIVATE DATA
+
+        PortMap d_portMap;
+        // A map of all ports
 
         // Regex used to find partitionId.
         bdlpcre::RegEx d_regex;
 
+        bslma::Allocator* d_allocator_p;
+        // Allocator to use
+
       public:
         // CREATORS
+        explicit PortManager(bslma::Allocator* allocator = 0);
 
-        /// Create a new PortExtractor using the specified
-        /// `allocator` for memory allocations.
-        explicit PortExtractor(bslma::Allocator* allocator);
+        // PUBLIC METHODS
+        bslma::ManagedPtr<mwcst::StatContext>
+        addChannelContext(mwcst::StatContext* parent,
+                          const bsl::string&  endpoint,
+                          const bsl::string&  port);
 
-        // ACCESSORS
+        void deleteChannelContext(const bsl::string& port);
 
         /// Parse the specified `endpoint` string and try to find the
         /// port inside.  Return the port on success, assert on fail.
@@ -342,6 +362,9 @@ class TCPSessionFactory {
     ChannelMap d_channels;
     // Map of all active channels
 
+    PortManager d_ports;
+    // Manager of all open ports
+
     bool d_heartbeatSchedulerActive;
     // True if the recurring
     // heartbeat check event is
@@ -388,9 +411,6 @@ class TCPSessionFactory {
     // context (on stopListening)
     // while operation (readCallback/
     // negotiation) is in progress.
-
-    PortExtractor d_portExtractor;
-    // A helper class to extract ports from endpoints
 
     bslma::Allocator* d_allocator_p;
     // Allocator to use
