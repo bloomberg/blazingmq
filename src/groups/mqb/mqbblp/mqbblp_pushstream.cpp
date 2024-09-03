@@ -44,6 +44,8 @@ PushStream::PushStream(
                         noOpDeleter,
                         allocator)
 {
+    allocator = bslma::Default::allocator(allocator);
+
     if (!d_pushElementsPool_sp) {
         d_pushElementsPool_sp.load(
             new (*allocator) bdlma::ConcurrentPool(sizeof(Element), allocator),
@@ -129,8 +131,6 @@ void PushStreamIterator::removeCurrentElement()
     // doKeepGuid because of the d_iterator
 
     if (d_iterator->second.numElements() == 0) {
-        // d_currentElement->eraseFromStream(d_owner_p->d_stream);
-
         BSLS_ASSERT_SAFE(d_currentElement == 0);
     }
 }
