@@ -97,7 +97,7 @@ static void test1_execute()
         PVV(test.d_line << ": executing command '" << test.d_command << "'");
 
         bsl::string output(s_allocator_p);
-        int         rc = mwcsys::ExecUtil::execute(&output, test.d_command);
+        const int   rc = mwcsys::ExecUtil::execute(&output, test.d_command);
         ASSERT_EQ_D("line " << test.d_line, rc, test.d_expectedRc);
         ASSERT_EQ_D("line " << test.d_line, output, test.d_expectedOutput);
     }
@@ -204,9 +204,9 @@ static void test3_outputFromFileNoGen()
         createFile(k_TESTFILE, test.d_content, S_IRWXU);
 
         bsl::string output(s_allocator_p);
-        int         rc = mwcsys::ExecUtil::outputFromFile(&output,
-                                                  k_TESTFILE,
-                                                  test.d_arguments);
+        const int   rc = mwcsys::ExecUtil::outputFromFile(&output,
+                                                        k_TESTFILE,
+                                                        test.d_arguments);
         ASSERT_EQ_D("line " << test.d_line, rc, 0);
         ASSERT_EQ_D("line " << test.d_line, output, test.d_expectedOutput);
 
@@ -263,9 +263,9 @@ static void test4_outputFromFileGen()
         createFile(k_TESTFILE, test.d_content, S_IRWXU);
 
         bsl::string output(s_allocator_p);
-        int         rc = mwcsys::ExecUtil::outputFromFile(&output,
-                                                  k_TESTFILE,
-                                                  test.d_arguments);
+        const int   rc = mwcsys::ExecUtil::outputFromFile(&output,
+                                                        k_TESTFILE,
+                                                        test.d_arguments);
         ASSERT_EQ_D("line " << test.d_line, (rc == 0), test.d_expectSuccess);
         ASSERT_EQ_D("line " << test.d_line, output, test.d_expectedOutput);
 
@@ -300,9 +300,9 @@ static void test5_outputFromFileError()
         }
 
         bsl::string output(s_allocator_p);
-        int         rc = mwcsys::ExecUtil::outputFromFile(&output,
-                                                  k_TESTFILE,
-                                                  "dummyArgs");
+        const int   rc = mwcsys::ExecUtil::outputFromFile(&output,
+                                                        k_TESTFILE,
+                                                        "dummyArgs");
         ASSERT_NE(rc, 0);
     }
 
@@ -310,9 +310,9 @@ static void test5_outputFromFileError()
         PV("Not a regular input file");
 
         bsl::string output(s_allocator_p);
-        int         rc = mwcsys::ExecUtil::outputFromFile(&output,
-                                                  "./",  // a directory
-                                                  "dummyArgs");
+        const int   rc = mwcsys::ExecUtil::outputFromFile(&output,
+                                                        "./",  // a directory
+                                                        "dummyArgs");
         ASSERT_NE(rc, 0);
     }
 
@@ -322,9 +322,9 @@ static void test5_outputFromFileError()
         createFile(k_TESTFILE, "#! /bin/bash\necho -n 'yes'", S_IRUSR);
 
         bsl::string output(s_allocator_p);
-        int         rc = mwcsys::ExecUtil::outputFromFile(&output,
-                                                  k_TESTFILE,
-                                                  "dummyArgs");
+        const int   rc = mwcsys::ExecUtil::outputFromFile(&output,
+                                                        k_TESTFILE,
+                                                        "dummyArgs");
         ASSERT_NE(rc, 0);
 
         bdls::FilesystemUtil::remove(k_TESTFILE);
@@ -338,9 +338,9 @@ static void test5_outputFromFileError()
                    S_IRWXU);
 
         bsl::string output(s_allocator_p);
-        int         rc = mwcsys::ExecUtil::outputFromFile(&output,
-                                                  k_TESTFILE,
-                                                  "dummyArgs");
+        const int   rc = mwcsys::ExecUtil::outputFromFile(&output,
+                                                        k_TESTFILE,
+                                                        "dummyArgs");
         ASSERT_NE(rc, 0);
 
         bdls::FilesystemUtil::remove(k_TESTFILE);
@@ -368,5 +368,9 @@ int main(int argc, char* argv[])
     } break;
     }
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    // 'bdls::FilesystemUtil::remove' builds a 'bsl::string' using a default
+    // allocator.  The string allocates memory in heap if we provide a long
+    // enough filename to the call.  It causes the default allocator check to
+    // fail.  More details in the ticket 176461860.
+    TEST_EPILOG(mwctst::TestHelper::e_CHECK_GBL_ALLOC);
 }
