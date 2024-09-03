@@ -345,9 +345,19 @@ ClusterDataIdentity::identity() const
 // -----------------
 
 // MANIPULATORS
-inline ClusterData::BlobSpPool* ClusterData::blobSpPool()
+inline bdlmt::EventScheduler& ClusterData::scheduler()
 {
-    return d_resources.blobSpPool();
+    return *d_resources.scheduler();
+}
+
+inline bdlbb::BlobBufferFactory& ClusterData::bufferFactory()
+{
+    return *d_resources.bufferFactory();
+}
+
+inline ClusterData::BlobSpPool& ClusterData::blobSpPool()
+{
+    return *d_resources.blobSpPool();
 }
 
 inline mqbi::DispatcherClientData& ClusterData::dispatcherClientData()
@@ -415,17 +425,17 @@ inline ClusterData::StatContextMp& ClusterData::clusterNodesStatContext()
     return d_clusterNodesStatContext_mp;
 }
 
+inline ClusterData::StateSpPool& ClusterData::stateSpPool()
+{
+    return d_stateSpPool;
+}
+
+inline bdlmt::FixedThreadPool& ClusterData::miscWorkThreadPool()
+{
+    return d_miscWorkThreadPool;
+}
+
 // ACCESSORS
-inline bdlmt::EventScheduler* ClusterData::scheduler() const
-{
-    return d_resources.scheduler();
-}
-
-inline bdlbb::BlobBufferFactory* ClusterData::bufferFactory() const
-{
-    return d_resources.bufferFactory();
-}
-
 inline const mqbi::ClusterResources& ClusterData::resources() const
 {
     return d_resources;

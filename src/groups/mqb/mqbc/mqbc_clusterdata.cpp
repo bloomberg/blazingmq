@@ -145,10 +145,8 @@ ClusterData::ClusterData(
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_allocator_p);
-    BSLS_ASSERT_SAFE(d_scheduler_p);
-    BSLS_ASSERT_SAFE(d_bufferFactory_p);
-    BSLS_ASSERT_SAFE(d_blobSpPool_p);
     BSLS_ASSERT_SAFE(d_cluster_p);
+    BSLS_ASSERT_SAFE(d_transportManager_p);
     BSLS_ASSERT(resources.scheduler()->clockType() ==
                 bsls::SystemClockType::e_MONOTONIC);
 
