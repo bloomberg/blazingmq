@@ -266,12 +266,12 @@ class Cluster : public DispatcherClient {
     /// Initiate the shutdown of the cluster and invoke the specified
     /// `callback` upon completion of (asynchronous) shutdown sequence. It
     /// is expected that `stop()` will be called soon after this routine is
-    /// invoked.  If the optional (temporary) specified 'suppportShutdownV2' is
+    /// invoked.  If the optional (temporary) specified 'supportShutdownV2' is
     /// 'true' execute shutdown logic V2 where upstream (not downstream) nodes
-    /// deconfigure  queues and he shutting down node (not downstream) wait for
-    /// CONFIRMS.
+    /// deconfigure  queues and the shutting down node (not downstream) wait
+    /// for CONFIRMS.
     virtual void initiateShutdown(const VoidFunctor& callback,
-                                  bool suppportShutdownV2 = false) = 0;
+                                  bool supportShutdownV2 = false) = 0;
 
     /// Stop the `Cluster`; this is the counterpart of the `start()`
     /// operation.

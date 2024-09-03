@@ -415,9 +415,11 @@ class Cluster : public mqbi::Cluster,
 
     /// Executed by dispatcher thread.
     void initiateShutdownDispatched(const VoidFunctor& callback,
-                                    bool               suppportShutdownV2);
+                                    bool               supportShutdownV2);
 
-    // // Temporary, remove after switching all to version 2
+    // TODO(shutdown-v2): TEMPORARY, remove when all switch to StopRequest
+    // V2.
+
     /// Send stop request to proxies and nodes specified in `sessions` using
     /// the specified `stopCb` as a callback to be called once all the
     /// requests get responses.
@@ -569,13 +571,13 @@ class Cluster : public mqbi::Cluster,
     /// Initiate the shutdown of the cluster.  It is expected that `stop()`
     /// will be called soon after this routine is invoked.  Invoke the
     /// specified `callback` upon completion of (asynchronous) shutdown
-    /// sequence.    If the optional (temporary) specified 'suppportShutdownV2'
+    /// sequence.    If the optional (temporary) specified 'supportShutdownV2'
     /// is 'true' execute shutdown logic V2 where upstream (not downstream)
-    /// nodes deconfigure  queues and he shutting down node (not downstream)
+    /// nodes deconfigure  queues and the shutting down node (not downstream)
     /// wait for CONFIRMS.
     void
     initiateShutdown(const VoidFunctor& callback,
-                     bool suppportShutdownV2 = false) BSLS_KEYWORD_OVERRIDE;
+                     bool supportShutdownV2 = false) BSLS_KEYWORD_OVERRIDE;
 
     /// Stop the `Cluster`.
     void stop() BSLS_KEYWORD_OVERRIDE;

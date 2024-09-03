@@ -847,7 +847,7 @@ void ClientSession::onHandleConfiguredDispatched(
 void ClientSession::initiateShutdownDispatched(
     const ShutdownCb&         callback,
     const bsls::TimeInterval& timeout,
-    bool                      suppportShutdownV2)
+    bool                      supportShutdownV2)
 {
     // executed by the *CLIENT* dispatcher thread
 
@@ -889,7 +889,7 @@ void ClientSession::initiateShutdownDispatched(
         return;  // RETURN
     }
 
-    if (suppportShutdownV2) {
+    if (supportShutdownV2) {
         d_operationState = e_SHUTTING_DOWN_V2;
         d_queueSessionManager.shutDown();
 
@@ -2868,7 +2868,7 @@ void ClientSession::tearDown(const bsl::shared_ptr<void>& session,
 
 void ClientSession::initiateShutdown(const ShutdownCb&         callback,
                                      const bsls::TimeInterval& timeout,
-                                     bool suppportShutdownV2)
+                                     bool supportShutdownV2)
 {
     // executed by the *ANY* thread
 
@@ -2906,7 +2906,7 @@ void ClientSession::initiateShutdown(const ShutdownCb&         callback,
                     d_self.acquire()),
                 callback,
                 timeout,
-                suppportShutdownV2),
+                supportShutdownV2),
             this,
             mqbi::DispatcherEventType::e_DISPATCHER);
         // Use 'mqbi::DispatcherEventType::e_DISPATCHER' to avoid (re)enabling

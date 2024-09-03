@@ -273,7 +273,8 @@ class ClientSession : public mqbnet::Session,
     enum OperationState {
         e_RUNNING  // Running normally
         ,
-        // TEMPORARY, remove 'after switching to StopRequest V2
+        // TODO(shutdown-v2): TEMPORARY, remove when all switch to StopRequest
+        // V2.
         e_SHUTTING_DOWN  // Shutting down due to 'initiateShutdown' request
         ,
         e_SHUTTING_DOWN_V2  // Shutting down due to 'initiateShutdown' request
@@ -483,7 +484,7 @@ class ClientSession : public mqbnet::Session,
     /// if the specified `timeout` is expired.
     void initiateShutdownDispatched(const ShutdownCb&         callback,
                                     const bsls::TimeInterval& timeout,
-                                    bool suppportShutdownV2);
+                                    bool supportShutdownV2);
 
     void invalidateDispatched();
 
@@ -687,14 +688,14 @@ class ClientSession : public mqbnet::Session,
     /// Initiate the shutdown of the session and invoke the specified
     /// `callback` upon completion of (asynchronous) shutdown sequence or
     /// if the specified `timeout` is expired.  If the optional (temporary)
-    /// specified 'suppportShutdownV2' is 'true' execute shutdown logic V2
+    /// specified 'supportShutdownV2' is 'true' execute shutdown logic V2
     /// where upstream (not downstream) nodes deconfigure  queues and the
     /// shutting down node (not downstream) waits for CONFIRMS.
     /// The shutdown is complete when 'tearDownAllQueuesDone'.
     void
     initiateShutdown(const ShutdownCb&         callback,
                      const bsls::TimeInterval& timeout,
-                     bool suppportShutdownV2 = false) BSLS_KEYWORD_OVERRIDE;
+                     bool supportShutdownV2 = false) BSLS_KEYWORD_OVERRIDE;
 
     /// Make the session abandon any work it has.
     void invalidate() BSLS_KEYWORD_OVERRIDE;

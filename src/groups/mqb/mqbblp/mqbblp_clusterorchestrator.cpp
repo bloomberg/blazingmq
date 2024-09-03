@@ -880,7 +880,7 @@ void ClusterOrchestrator::processStopRequest(
                   << ", current status: " << ns->nodeStatus()
                   << ", new status: " << bmqp_ctrlmsg::NodeStatus::E_STOPPING;
 
-    // Temporary, remove after switching all to version 2
+    // TODO(shutdown-v2): TEMPORARY, remove when all switch to StopRequest V2.
     if (stopRequest.version() == 1 && stopRequest.clusterName() != name) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
         BALL_LOG_ERROR << d_clusterData_p->identity().description()

@@ -1271,7 +1271,7 @@ void QueueEngineUtil_AppState::cancelThrottle()
     }
 }
 
-void QueueEngineUtil_AppState::reset()
+void QueueEngineUtil_AppState::undoRouting()
 {
     d_priorityCount = 0;
     cancelThrottle();
@@ -1288,7 +1288,7 @@ void QueueEngineUtil_AppState::rebuildConsumers(
 {
     // Rebuild ConsumersState for this app
     // Prepare the app for rebuilding consumers
-    reset();
+    undoRouting();
 
     bsl::shared_ptr<Routers::AppContext> previous = d_routing_sp;
     d_routing_sp                                  = replacement;

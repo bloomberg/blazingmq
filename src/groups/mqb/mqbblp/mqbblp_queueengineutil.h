@@ -410,7 +410,7 @@ struct QueueEngineUtil_AppState {
                               bool                     isExpired);
 
     /// Reset the internal state to have no consumers.
-    void reset();
+    void undoRouting();
 
     /// Deliver all messages in the storage to the consumer represented by
     /// this instance.  Load the message delay into the specified `delay`.

@@ -463,9 +463,9 @@ void Application::stop()
     d_transportManager_mp->initiateShutdown();
     BALL_LOG_INFO << "Stopped listening for new connections.";
 
-    bool suppportShutdownV2 = initiateShutdown();
+    bool supportShutdownV2 = initiateShutdown();
 
-    if (suppportShutdownV2) {
+    if (supportShutdownV2) {
         BALL_LOG_INFO << ": Executing GRACEFUL_SHUTDOWN_V2";
     }
     else {
@@ -484,7 +484,7 @@ void Application::stop()
          ++clusterIt, --count) {
         clusterIt.cluster()->initiateShutdown(
             bdlf::BindUtil::bind(&bslmt::Latch::arrive, &latch),
-            suppportShutdownV2);
+            supportShutdownV2);
     }
     latch.wait();
 

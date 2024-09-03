@@ -622,7 +622,7 @@ void Cluster::processCommandDispatched(mqbcmd::ClusterResult*        result,
 }
 
 void Cluster::initiateShutdownDispatched(const VoidFunctor& callback,
-                                         bool               suppportShutdownV2)
+                                         bool               supportShutdownV2)
 {
     // executed by the *DISPATCHER* thread
 
@@ -636,7 +636,7 @@ void Cluster::initiateShutdownDispatched(const VoidFunctor& callback,
     d_clusterData.membership().setSelfNodeStatus(
         bmqp_ctrlmsg::NodeStatus::E_STOPPING);
 
-    if (suppportShutdownV2) {
+    if (supportShutdownV2) {
         d_clusterOrchestrator.queueHelper().requestToStopPushing();
 
         bsls::TimeInterval whenToStop(
@@ -652,7 +652,8 @@ void Cluster::initiateShutdownDispatched(const VoidFunctor& callback,
                                  bdlf::PlaceHolders::_1));  // completionCb
     }
     else {
-        // Temporary, remove after switching all to version 2
+        // TODO(shutdown-v2): TEMPORARY, remove when all switch to StopRequest
+        // V2.
         // Send StopRequest to all nodes and proxies.  The peers are expected
         // not to send any PUT msgs to this node after receiving StopRequest.
         // For each queue for which this node is the primary, peers (replicas
@@ -671,7 +672,7 @@ void Cluster::initiateShutdownDispatched(const VoidFunctor& callback,
 
         SessionSpVec sessions;
         for (mqbnet::TransportManagerIterator sessIt(
-             &d_clusterData.transportManager());
+                 &d_clusterData.transportManager());
              sessIt;
              ++sessIt) {
             bsl::shared_ptr<mqbnet::Session> sessionSp =
@@ -694,16 +695,13 @@ void Cluster::initiateShutdownDispatched(const VoidFunctor& callback,
             }
 
             if (mqbnet::ClusterUtil::isClient(negoMsg)) {
-                //            if (!d_suppportShutdownV2) {
                 link.insert(bdlf::BindUtil::bind(
                     &mqbnet::Session::initiateShutdown,
                     sessionSp,
                     bdlf::PlaceHolders::_1,  // completion callback
                     shutdownTimeout,
                     false));
-                //            }
-                // else there is no need to de-confgiure queues and wait for
-                // unconfirmed since V2 upstreams do that on StopRequest V2
+
                 continue;  // CONTINUE
             }
 
@@ -2696,7 +2694,7 @@ int Cluster::start(bsl::ostream& errorDescription)
 }
 
 void Cluster::initiateShutdown(const VoidFunctor& callback,
-                               bool               suppportShutdownV2)
+                               bool               supportShutdownV2)
 {
     // executed by *ANY* thread
 
@@ -2709,7 +2707,7 @@ void Cluster::initiateShutdown(const VoidFunctor& callback,
         bdlf::BindUtil::bind(&Cluster::initiateShutdownDispatched,
                              this,
                              callback,
-                             suppportShutdownV2),
+                             supportShutdownV2),
         this);
 
     // Wait for above event to complete.  This is needed because

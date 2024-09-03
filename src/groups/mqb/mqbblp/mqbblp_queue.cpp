@@ -931,7 +931,7 @@ bsls::Types::Int64 Queue::countUnconfirmed(unsigned int subId)
         return d_state.handleCatalog().countUnconfirmed();  // RETURN
     }
 
-    // Temporary, remove after switching all to shutdown version 2
+    // TODO(shutdown-v2): TEMPORARY, remove when all switch to StopRequest V2.
     struct local {
         static void sum(bsls::Types::Int64*                  sum,
                         mqbi::QueueHandle*                   handle,

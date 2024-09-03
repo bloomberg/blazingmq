@@ -428,7 +428,7 @@ int RootQueueEngine::initializeAppId(const bsl::string& appId,
 void RootQueueEngine::resetState(bool isShuttingDown)
 {
     for (Apps::iterator it = d_apps.begin(); it != d_apps.end(); ++it) {
-        it->value()->reset();
+        it->value()->undoRouting();
         it->value()->d_routing_sp->reset();
     }
 
@@ -893,7 +893,7 @@ void RootQueueEngine::configureHandle(
 
     const AppStateSp& affectedApp = iter->value();
     // prepare the App for rebuilding consumers
-    affectedApp->reset();
+    affectedApp->undoRouting();
 
     // Rebuild the highest priority state for all affected apps.
 

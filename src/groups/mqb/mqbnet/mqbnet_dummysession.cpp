@@ -59,7 +59,7 @@ void DummySession::tearDown(
 void DummySession::initiateShutdown(
     BSLS_ANNOTATION_UNUSED const ShutdownCb& callback,
     BSLS_ANNOTATION_UNUSED const bsls::TimeInterval& timeout,
-    BSLS_ANNOTATION_UNUSED bool                      suppportShutdownV2)
+    BSLS_ANNOTATION_UNUSED bool                      supportShutdownV2)
 {
     // NOTHING
 }

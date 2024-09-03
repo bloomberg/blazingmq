@@ -166,7 +166,8 @@ class ClusterQueueHelper : public mqbc::ClusterStateObserver,
         // State of the upstream
 
         bdlmt::EventScheduler::EventHandle d_timer;
-        // TEMPORARY, remove 'after switching to StopRequest V2
+        // TODO(shutdown-v2): TEMPORARY, remove when all switch to StopRequest
+        // V2.
         // (timer handle 1s) when waiting for
         // unconfirmed.  This is to cancel the timer in
         // the case when this broker stops while
@@ -484,7 +485,9 @@ class ClusterQueueHelper : public mqbc::ClusterStateObserver,
 
     StopContexts d_stopContexts;
 
-    bool d_suppportShutdownV2;
+    /// When `true`, all cluster nodes support StopRequest V2 and this node
+    /// executes shutdown V2 logic.
+    bool d_supportShutdownV2;
 
   private:
     // PRIVATE MANIPULATORS
@@ -855,7 +858,7 @@ class ClusterQueueHelper : public mqbc::ClusterStateObserver,
     void deconfigureQueue(const bsl::shared_ptr<StopContext>& contextSp,
                           const QueueContextSp&               queueContextSp);
 
-    // TEMPORARY, remove 'after switching to StopRequest V2
+    // TODO(shutdown-v2): TEMPORARY, remove when all switch to StopRequest V2.
     /// Second step of StopRequest / CLOSING node advisory processing
     /// (after de-configure response).  Start timer to wait the configured
     /// `stopTimeoutMs` is there are any pending PUSH messages to collect
@@ -873,7 +876,7 @@ class ClusterQueueHelper : public mqbc::ClusterStateObserver,
                             unsigned int                        subId,
                             bsls::TimeInterval&                 t);
 
-    // TEMPORARY, remove 'after switching to StopRequest V2
+    // TODO(shutdown-v2): TEMPORARY, remove when all switch to StopRequest V2.
     void checkUnconfirmed(const bsl::shared_ptr<StopContext>& contextSp,
                           const QueueContextSp&               queueContextSp,
                           unsigned int                        subId);

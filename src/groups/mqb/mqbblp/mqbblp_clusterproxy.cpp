@@ -158,7 +158,7 @@ void ClusterProxy::startDispatched()
 }
 
 void ClusterProxy::initiateShutdownDispatched(const VoidFunctor& callback,
-                                              bool suppportShutdownV2)
+                                              bool supportShutdownV2)
 {
     // executed by the *DISPATCHER* thread
 
@@ -171,7 +171,7 @@ void ClusterProxy::initiateShutdownDispatched(const VoidFunctor& callback,
     // Mark self as stopping.
     d_isStopping = true;
 
-    if (suppportShutdownV2) {
+    if (supportShutdownV2) {
         d_queueHelper.requestToStopPushing();
 
         bsls::TimeInterval whenToStop(
@@ -187,7 +187,8 @@ void ClusterProxy::initiateShutdownDispatched(const VoidFunctor& callback,
                                  bdlf::PlaceHolders::_1));  // completionCb
     }
     else {
-        // Temporary, remove after switching all to version 2
+        // TODO(shutdown-v2): TEMPORARY, remove when all switch to StopRequest
+        // V2.
 
         // Fill the first link with client session shutdown operations
         mwcu::OperationChainLink link(d_shutdownChain.allocator());
@@ -197,7 +198,7 @@ void ClusterProxy::initiateShutdownDispatched(const VoidFunctor& callback,
             clusterProxyConfig()->queueOperations().shutdownTimeoutMs());
 
         for (mqbnet::TransportManagerIterator sessIt(
-             &d_clusterData.transportManager());
+                 &d_clusterData.transportManager());
              sessIt;
              ++sessIt) {
             bsl::shared_ptr<mqbnet::Session> sessionSp =
@@ -1150,7 +1151,7 @@ int ClusterProxy::start(BSLS_ANNOTATION_UNUSED bsl::ostream& errorDescription)
 }
 
 void ClusterProxy::initiateShutdown(const VoidFunctor& callback,
-                                    bool               suppportShutdownV2)
+                                    bool               supportShutdownV2)
 {
     // executed by *ANY* thread
 
@@ -1163,7 +1164,7 @@ void ClusterProxy::initiateShutdown(const VoidFunctor& callback,
         bdlf::BindUtil::bind(&ClusterProxy::initiateShutdownDispatched,
                              this,
                              callback,
-                             suppportShutdownV2),
+                             supportShutdownV2),
         this);
 
     dispatcher()->synchronize(this);

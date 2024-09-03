@@ -2701,7 +2701,7 @@ void ClusterQueueHelper::configureQueueDispatched(
     BSLS_ASSERT_SAFE(
         d_cluster_p->dispatcher()->inDispatcherThread(d_cluster_p));
 
-    if (d_suppportShutdownV2) {
+    if (d_supportShutdownV2) {
         BMQ_LOGTHROTTLE_INFO()
             << d_cluster_p->description()
             << ": Shutting down and skipping configure queue [: " << uri
@@ -2865,7 +2865,7 @@ void ClusterQueueHelper::releaseQueueDispatched(
     BSLS_ASSERT_SAFE(
         d_cluster_p->dispatcher()->inDispatcherThread(d_cluster_p));
 
-    if (d_suppportShutdownV2) {
+    if (d_supportShutdownV2) {
         BMQ_LOGTHROTTLE_INFO()
             << d_cluster_p->description()
             << ": Shutting down and skipping close queue [: "
@@ -4532,7 +4532,7 @@ ClusterQueueHelper::ClusterQueueHelper(
 , d_numPendingReopenQueueRequests(0)
 , d_primaryNotLeaderAlarmRaised(false)
 , d_stopContexts(allocator)
-, d_suppportShutdownV2(false)
+, d_supportShutdownV2(false)
 {
     BSLS_ASSERT(
         d_clusterData_p->clusterConfig()
@@ -5292,8 +5292,9 @@ void ClusterQueueHelper::requestToStopPushing()
         d_cluster_p->dispatcher()->inDispatcherThread(d_cluster_p));
 
     // Assume Shutdown V2
-    d_suppportShutdownV2 = true;
+    d_supportShutdownV2 = true;
 
+    // Prevent future queue operations from sending PUSHes.
     for (QueueContextMapIter it = d_queues.begin(); it != d_queues.end();
          ++it) {
         QueueContextSp& queueContextSp = it->second;
@@ -5337,7 +5338,9 @@ void ClusterQueueHelper::processNodeStoppingNotification(
     // operations.  Once all functors complete, the 'finishStopSequence'
     // deleter sends back StopResponse.
 
-    // TEMPORARY, remove 'timeout; 'after switching to StopRequest V2
+    // TODO(shutdown-v2): TEMPORARY, remove 'timeout' when all switch to
+    // StopRequest V2.
+
     // No need to wait for CONFIRMs, the waiting is done by the shutting down
     // node.
 
@@ -5378,15 +5381,16 @@ void ClusterQueueHelper::processNodeStoppingNotification(
                       << clusterNode->nodeDescription()
                       << " with timeout (ms) " << timeout;
 
-        // TEMPORARY, remove 'after switching to StopRequest V2
-        bool suppportShutdownV2 = true;
+        // TODO(shutdown-v2): TEMPORARY, remove when all switch to StopRequest
+        // V2.
+        bool supportShutdownV2 = true;
 
         if (request) {
             const bmqp_ctrlmsg::StopRequest& stopRequest =
                 request->choice().clusterMessage().choice().stopRequest();
 
             if (stopRequest.version() == 1) {
-                suppportShutdownV2 = false;
+                supportShutdownV2 = false;
             }
             else {
                 BSLS_ASSERT_SAFE(stopRequest.version() == 2);
@@ -5395,7 +5399,7 @@ void ClusterQueueHelper::processNodeStoppingNotification(
         // StopRequests have replaced E_STOPPING advisory.
         // In any case, do minimal (V2) work unless explicitly requested
 
-        if (suppportShutdownV2) {
+        if (supportShutdownV2) {
             if (ns) {
                 // As an Upstream, deconfigure queues of the (shutting down)
                 // ClusterNodeSession 'ns'.
@@ -5502,7 +5506,8 @@ void ClusterQueueHelper::processNodeStoppingNotification(
             }
         }
         else {
-            // TEMPORARY, remove 'after switching to StopRequest V2
+            // TODO(shutdown-v2): TEMPORARY, remove when all switch to
+            // StopRequest V2.
             // Downstreams do not need to deconfigure queues for which the
             // shutting down node is the upstream.  The deconfiguring is done
             // by the upstream of the shutting down node instead.
@@ -5601,7 +5606,7 @@ void ClusterQueueHelper::deconfigureQueues(
     const bsl::shared_ptr<StopContext>& contextSp,
     const bsl::vector<int>*             partitions)
 {
-    // TEMPORARY, remove after switching all to StopRequest V2
+    // TODO(shutdown-v2): TEMPORARY, remove when all switch to StopRequest V2.
 
     // executed by the cluster *DISPATCHER* thread
 
@@ -5954,7 +5959,7 @@ void ClusterQueueHelper::checkUnconfirmedV2Dispatched(
         }
         bdlmt::EventScheduler::EventHandle eventHandle;
         // Never cancel the timer
-        d_clusterData_p->scheduler()->scheduleEvent(
+        d_clusterData_p->scheduler().scheduleEvent(
             &eventHandle,
             t,
             bdlf::BindUtil::bind(&ClusterQueueHelper::checkUnconfirmedV2,

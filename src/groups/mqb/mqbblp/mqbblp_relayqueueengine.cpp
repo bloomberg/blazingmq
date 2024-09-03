@@ -810,7 +810,7 @@ void RelayQueueEngine::applyConfiguration(App_State&        app,
     BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
         d_queueState_p->queue()));
 
-    app.reset();
+    app.undoRouting();
 
     app.d_routing_sp = context.d_routing_sp;
 
@@ -911,10 +911,8 @@ int RelayQueueEngine::configure(
 
 void RelayQueueEngine::resetState(bool isShuttingDown)
 {
-    // d_self.reset(this);
-
     for (AppsMap::iterator it = d_apps.begin(); it != d_apps.end(); ++it) {
-        it->second->reset();
+        it->second->undoRouting();
         if (isShuttingDown) {
             it->second->d_routing_sp->reset();
         }

@@ -292,7 +292,7 @@ class ClusterCatalog {
 
     mqbnet::Session::AdminCommandEnqueueCb d_adminCb;
     // Callback function to enqueue admin commands
-    
+
     RequestManagerType d_requestManager;
     // Request manager to use
 
