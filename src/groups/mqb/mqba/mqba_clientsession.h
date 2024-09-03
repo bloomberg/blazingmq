@@ -606,7 +606,7 @@ class ClientSession : public mqbnet::Session,
     /// Log session/queue operation time for the specified `operation`
     /// using the stored operation begin timestamp. Reset the begin
     /// timestamp to 0.
-    void logOperationTime(const char* operation);
+    void logOperationTime(const bsl::string& operation);
 
     // PRIVATE ACCESSORS
 

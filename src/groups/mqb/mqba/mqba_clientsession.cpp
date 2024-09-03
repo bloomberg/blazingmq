@@ -749,20 +749,30 @@ void ClientSession::onHandleConfiguredDispatched(
 
     bdlma::LocalSequentialAllocator<2048> localAlloc(d_state.d_allocator_p);
 
-    const unsigned int qId = streamParamsCtrlMsg.choice().isConfigureQueueStreamValue() ? streamParamsCtrlMsg.choice().configureQueueStream().qId() : streamParamsCtrlMsg.choice().configureStream().qId();
+    const unsigned int qId =
+        streamParamsCtrlMsg.choice().isConfigureQueueStreamValue()
+            ? streamParamsCtrlMsg.choice().configureQueueStream().qId()
+            : streamParamsCtrlMsg.choice().configureStream().qId();
 
-    mwcu::MemOutStream                   logStream(&localAlloc);
-    logStream << "Configure queue [qId=" << qId << "]";
-    const char* operation = logStream.str();
+    mwcu::MemOutStream                          logStream(&localAlloc);
+    ClientSessionState::QueueStateMap::iterator queueStateIter =
+        d_queueSessionManager.queues().find(qId);
+    if (queueStateIter != d_queueSessionManager.queues().end()) {
+        logStream << "Configure queue '"
+                  << queueStateIter->second.d_handle_p->queue()->uri() << "'";
+    }
+    else {
+        logStream << "Configure queue [qId=" << qId << "]";
+    }
 
     if (isDisconnected()) {
         // The client is disconnected or the channel is down
-        logOperationTime(operation);
+        logOperationTime(logStream.str());
         return;  // RETURN
     }
 
     // Send success/error response to client
-    bmqp_ctrlmsg::ControlMessage          response(&localAlloc);
+    bmqp_ctrlmsg::ControlMessage response(&localAlloc);
 
     response.rId() = streamParamsCtrlMsg.rId().value();
 
@@ -776,8 +786,6 @@ void ClientSession::onHandleConfiguredDispatched(
                        << "]";
     }
     else {
-        // unsigned int qId;
-
         if (streamParamsCtrlMsg.choice().isConfigureQueueStreamValue()) {
             bmqp_ctrlmsg::ConfigureQueueStream& configureQueueStream =
                 response.choice().makeConfigureQueueStreamResponse().request();
@@ -796,14 +804,10 @@ void ClientSession::onHandleConfiguredDispatched(
             bmqp_ctrlmsg::ConfigureStream& configureStream =
                 response.choice().makeConfigureStreamResponse().request();
 
-            // qId = streamParamsCtrlMsg.choice().configureStream().qId();
-
             configureStream.qId()              = qId;
             configureStream.streamParameters() = streamParameters;
         }
 
-        ClientSessionState::QueueStateMap::iterator queueStateIter =
-            d_queueSessionManager.queues().find(qId);
         if (queueStateIter == d_queueSessionManager.queues().end()) {
             // Failure to find queue
             BALL_LOG_WARN
@@ -828,7 +832,7 @@ void ClientSession::onHandleConfiguredDispatched(
                       << ", request: " << streamParamsCtrlMsg
                       << "]: " << response;
 
-        logOperationTime(operation);
+        logOperationTime(logStream.str());
         return;  // RETURN
     }
 
@@ -838,8 +842,8 @@ void ClientSession::onHandleConfiguredDispatched(
 
     // Send the response
     sendPacket(d_state.d_schemaEventBuilder.blob(), true);
-    // logOperationTime("Configure queue", queueUri.c_str());
-    logOperationTime(operation);
+
+    logOperationTime(logStream.str());
 }
 
 void ClientSession::initiateShutdownDispatched(
@@ -1115,21 +1119,20 @@ void ClientSession::closeChannel()
     channel()->close(status);
 }
 
-void ClientSession::logOperationTime(const char* operation
-                                     )
+void ClientSession::logOperationTime(const bsl::string& operation)
 {
     if (d_beginTimestamp) {
         const bsls::Types::Int64 elapsed =
             mwcsys::Time::highResolutionTimer() - d_beginTimestamp;
-        BALL_LOG_INFO << description() << ": " << operation
-                      << " took: "
+        BALL_LOG_INFO << description() << ": " << operation << " took: "
                       << mwcu::PrintUtil::prettyTimeInterval(elapsed) << " ("
                       << elapsed << " nanoseconds)";
         d_beginTimestamp = 0;
     }
     else {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        BALL_LOG_WARN << "d_beginTimestamp was not initialized with timestamp";
+        BALL_LOG_WARN << "d_beginTimestamp was not initialized for operation: "
+                      << operation;
     }
 }
 
@@ -1343,7 +1346,7 @@ void ClientSession::openQueueCb(
     }
 
     BALL_LOG_INFO << description()
-                  << ": Sending openQueue response!!!1: " << response
+                  << ": Sending openQueue response: " << response
                   << " for request: " << handleParamsCtrlMsg;
 
     // Send the response
@@ -1351,9 +1354,9 @@ void ClientSession::openQueueCb(
 
     const bsl::string& queueUri =
         handleParamsCtrlMsg.choice().openQueue().handleParameters().uri();
-    mwcu::MemOutStream                   logStream(&localAlloc);
+    mwcu::MemOutStream logStream(&localAllocator);
     logStream << "Open queue '" << queueUri << "'";
-    logOperationTime(logStream.str().c_str());
+    logOperationTime(logStream.str());
 }
 
 void ClientSession::processCloseQueue(
@@ -1435,9 +1438,9 @@ void ClientSession::closeQueueCb(
 
     const bsl::string& queueUri =
         handleParamsCtrlMsg.choice().closeQueue().handleParameters().uri();
-    mwcu::MemOutStream                   logStream(&localAlloc);
+    mwcu::MemOutStream logStream(&localAllocator);
     logStream << "Close queue '" << queueUri << "'";
-    logOperationTime(logStream.str().c_str());
+    logOperationTime(logStream.str());
 }
 
 void ClientSession::processConfigureStream(
@@ -2867,6 +2870,8 @@ void ClientSession::initiateShutdown(const ShutdownCb&         callback,
                                      const bsls::TimeInterval& timeout)
 {
     // executed by the *ANY* thread
+
+    d_beginTimestamp = mwcsys::Time::highResolutionTimer();
 
     BALL_LOG_INFO << description() << ": initiateShutdown";
 
