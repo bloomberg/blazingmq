@@ -362,8 +362,8 @@ void StorageManager::setPrimaryStatusForPartitionDispatched(
 
     const bmqp_ctrlmsg::PrimaryStatus::Value oldValue = pinfo.primaryStatus();
     BALL_LOG_INFO << d_clusterData_p->identity().description()
-                  << " Partition [" << partitionId << "]: "
-                  << "Setting the status of primary: "
+                  << " Partition [" << partitionId
+                  << "]: " << "Setting the status of primary: "
                   << pinfo.primary()->nodeDescription()
                   << ", primaryLeaseId: " << pinfo.primaryLeaseId()
                   << ", from " << oldValue << " to " << value << ".";
