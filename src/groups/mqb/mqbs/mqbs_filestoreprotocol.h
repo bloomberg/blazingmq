@@ -74,7 +74,7 @@
 //       Max app ID length..............................: ~256 KB
 //       Max payload length.............................: ~4 GB
 //                                           (courtesy DataHeader.d_dataLength)
-//       Max message reference count....................: 1048575
+//       Max message reference count....................: 1048575 (20 bits)
 //     ========================================================================
 //..
 //
@@ -999,7 +999,7 @@ struct RecordHeader {
     //   +---------------+---------------+---------------+---------------+
     //   |0|1|2|3|4|5|6|7|0|1|2|3|4|5|6|7|0|1|2|3|4|5|6|7|0|1|2|3|4|5|6|7|
     //   +---------------+---------------+---------------+---------------+
-    //   |   Flags               |  Type |  Sequence Number Upper Bits   |
+    //   | Type  |      Flags            |  Sequence Number Upper Bits   |
     //   +---------------+---------------+---------------+---------------+
     //   |                   Sequence Number Lower Bits                  |
     //   +---------------+---------------+---------------+---------------+
@@ -1122,7 +1122,7 @@ struct MessageRecord {
     //   +---------------+---------------+---------------+---------------+
     //   |                             Header                            |
     //   +---------------+---------------+---------------+---------------+
-    //   |           Reserved      | CAT |          QueueKey             |
+    //   |     RefCountHighBits    | CAT |          QueueKey             |
     //   +---------------+---------------+---------------+---------------+
     //   |                  QueueKey                     |    FileKey    |
     //   +---------------+---------------+---------------+---------------+
@@ -1144,8 +1144,11 @@ struct MessageRecord {
     //   +---------------+---------------+---------------+---------------+
     //
     //  Header................: Record header
+    //  RefCountHighBits......: RecordHeader keeps lower 12 bits of the App
+    //                          count and MessageRecord keeps high 8 bits
     //  CAT...................: Compression Algorithm Type
     //  QueueKey..............: Queue key to which this message record belongs
+    //
     //  FileKey...............: File key of the corresponding data file
     //  MessageOffsetDwords...: Offset (in DWORDS) in the corresponding data
     //                          file of the message
@@ -1166,9 +1169,7 @@ struct MessageRecord {
     static const int k_REFCOUNT_NUM_LOW_BITS  = RecordHeader::k_FLAGS_NUM_BITS;
     static const int k_REFCOUNT_NUM_HIGH_BITS = 8;
 
-    static const int k_REFCOUNT_LOW_BITS_MASK = (1u
-                                                 << k_REFCOUNT_NUM_LOW_BITS) -
-                                                1;
+    static const int k_REFCOUNT_LOW_BITS_MASK;
     static const int k_REFCOUNT_HIGH_BITS_MASK =
         (1u << k_REFCOUNT_NUM_HIGH_BITS) - 1;
 
@@ -1251,9 +1252,6 @@ struct MessageRecord {
     bsl::ostream&
     print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
 };
-
-BSLMF_ASSERT(FileStoreProtocol::k_MAX_MSG_REF_COUNT_HARD <=
-             MessageRecord::k_REFCOUNT_MAX_VALUE);
 
 // FREE OPERATORS
 
@@ -2778,10 +2776,8 @@ inline ConfirmRecord::ConfirmRecord()
     setQueueKey(mqbu::StorageKey::k_NULL_KEY);
     setAppKey(mqbu::StorageKey::k_NULL_KEY);
 
-    (void)d_reserved1[0];  // warning: private field 'd_refCountHighBits' is
-                           // not used
-    (void)d_reserved2[0];  // warning: private field 'd_refCountHighBits' is
-                           // not used
+    (void)d_reserved1[0];  // warning: private field 'd_reserved' is not used
+    (void)d_reserved2[0];  // warning: private field 'd_reserved' is not used
 }
 
 // MANIPULATORS
@@ -2937,10 +2933,8 @@ inline QueueOpRecord::QueueOpRecord()
     setQueueKey(mqbu::StorageKey::k_NULL_KEY);
     setAppKey(mqbu::StorageKey::k_NULL_KEY);
 
-    (void)d_reserved1[0];  // warning: private field 'd_refCountHighBits' is
-                           // not used
-    (void)d_reserved2[0];  // warning: private field 'd_refCountHighBits' is
-                           // not used
+    (void)d_reserved1[0];  // warning: private field 'd_reserved' is not used
+    (void)d_reserved2[0];  // warning: private field 'd_reserved' is not used
 }
 
 // MANIPULATORS
