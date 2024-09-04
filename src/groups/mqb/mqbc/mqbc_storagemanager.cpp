@@ -51,6 +51,12 @@ namespace mqbc {
 
 namespace {
 const int k_GC_MESSAGES_INTERVAL_SECONDS = 30;
+
+bool isPrimaryActive(const mqbi::StorageManager_PartitionInfo pinfo)
+{
+    return pinfo.primaryStatus() == bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE;
+}
+
 }  // close unnamed namespace
 
 // ----------------------------
@@ -248,9 +254,9 @@ void StorageManager::onPartitionRecovery(int partitionId)
     // executed by *QUEUE_DISPATCHER* thread associated with 'partitionId'
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_fileStores[partitionId]->inDispatcherThread());
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));
+    BSLS_ASSERT_SAFE(d_fileStores[partitionId]->inDispatcherThread());
 
     mwcu::MemOutStream out;
     mqbs::StoragePrintUtil::printRecoveredStorages(
@@ -286,7 +292,12 @@ void StorageManager::onPartitionRecovery(int partitionId)
                 bdlf::BindUtil::bind(&StorageManager::forceFlushFileStores,
                                      this));
 
-            d_recoveryStatusCb(0);
+            // Even though Cluster FSM and all Partition FSMs are now healed,
+            // we must check that all partitions have an active primary before
+            // transitioning ourself to E_AVAILABLE.
+            if (allParitionsAvailable()) {
+                d_recoveryStatusCb(0);
+            }
         }
         else {
             d_recoveryStatusCb(-1);
@@ -334,9 +345,9 @@ void StorageManager::setPrimaryStatusForPartitionDispatched(
     // executed by *QUEUE_DISPATCHER* thread associated with 'partitionId'
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_fileStores[partitionId]->inDispatcherThread());
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));
+    BSLS_ASSERT_SAFE(d_fileStores[partitionId]->inDispatcherThread());
 
     PartitionInfo& pinfo = d_partitionInfoVec[partitionId];
     if (!pinfo.primary()) {
@@ -349,18 +360,23 @@ void StorageManager::setPrimaryStatusForPartitionDispatched(
     }
     BSLS_ASSERT_SAFE(pinfo.primaryLeaseId() > 0);
 
+    const bmqp_ctrlmsg::PrimaryStatus::Value oldValue = pinfo.primaryStatus();
     BALL_LOG_INFO << d_clusterData_p->identity().description()
                   << " Partition [" << partitionId << "]: "
                   << "Setting the status of primary: "
                   << pinfo.primary()->nodeDescription()
                   << ", primaryLeaseId: " << pinfo.primaryLeaseId()
-                  << ", from " << pinfo.primaryStatus() << " to " << value
-                  << ".";
+                  << ", from " << oldValue << " to " << value << ".";
 
     pinfo.setPrimaryStatus(value);
     if (bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE == value) {
         d_fileStores[partitionId]->setPrimary(pinfo.primary(),
                                               pinfo.primaryLeaseId());
+
+        if (oldValue != bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE &&
+            allParitionsAvailable()) {
+            d_recoveryStatusCb(0);
+        }
     }
 }
 
@@ -3206,6 +3222,21 @@ void StorageManager::do_reapplyDetectSelfReplica(
         d_partitionInfoVec[partitionId].primaryLeaseId());
     args->eventsQueue()->emplace(PartitionFSM::Event::e_DETECT_SELF_REPLICA,
                                  eventDataVecOut);
+}
+
+// PRIVATE ACCESSORS
+bool StorageManager::allParitionsAvailable() const
+{
+    // executed by *QUEUE_DISPATCHER* thread associated with *ANY* partition
+
+    if (d_numPartitionsRecoveredFully !=
+        static_cast<int>(d_fileStores.size())) {
+        return false;  // RETURN
+    }
+
+    return bsl::all_of(d_partitionInfoVec.cbegin(),
+                       d_partitionInfoVec.cend(),
+                       &isPrimaryActive);
 }
 
 // CREATORS

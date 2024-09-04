@@ -43,6 +43,7 @@
 
 // BDE
 #include <ball_log.h>
+#include <bmqp_ctrlmsg_messages.h>
 #include <bsl_functional.h>
 #include <bsl_memory.h>
 #include <bsl_ostream.h>

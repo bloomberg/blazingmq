@@ -749,6 +749,14 @@ class StorageManager
     virtual void do_reapplyDetectSelfReplica(const PartitionFSMArgsSp& args)
         BSLS_KEYWORD_OVERRIDE;
 
+    // PRIVATE ACCESSORS
+
+    /// Return true if all partitions are fully healed and have an active
+    /// active primary, false otherwise.
+    ///
+    /// THREAD: Executed by the Queue's dispatcher thread.
+    bool allParitionsAvailable() const;
+
   public:
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(StorageManager, bslma::UsesBslmaAllocator)
