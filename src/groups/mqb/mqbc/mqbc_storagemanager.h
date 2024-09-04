@@ -91,9 +91,6 @@ class ClusterNode;
 namespace mqbs {
 class ReplicatedStorage;
 }
-namespace bdlbb {
-class BlobBufferFactory;
-}
 
 namespace mqbc {
 
@@ -195,8 +192,12 @@ class StorageManager
     EventHandles d_watchDogEventHandles;
     // List of event handles for the watch
     // dog, indexed by partitionId.
+    //
+    // THREAD: Except during the ctor, the i-th index of this data member
+    //         **must** be accessed in the associated Queue dispatcher thread
+    //         for the i-th partitionId.
 
-    bsls::TimeInterval d_watchDogTimeoutInterval;
+    const bsls::TimeInterval d_watchDogTimeoutInterval;
     // Timeout interval for the watch dog
 
     bool d_lowDiskspaceWarning;
@@ -204,6 +205,12 @@ class StorageManager
     // warning was issued.  This flag is
     // used *only* for logging purposes
     // (see 'storageMonitorCb' impl)
+    //
+    // THREAD: Except during the ctor, this data member **must** be accessed in
+    //         the event scheduler's dispatcher thread.
+
+    bslmt::Mutex d_unrecognizedDomainsLock;
+    // Mutex to protect access to 'd_unrecognizedDomains' and its elements.
 
     DomainQueueMessagesCountMaps d_unrecognizedDomains;
     // List of DomainQueueMessagesMap,
@@ -215,6 +222,8 @@ class StorageManager
     // storage recovery either due to
     // genuine domain migration or
     // misconfiguration.
+    //
+    // THREAD: Protected by 'd_unrecognizedDomainsLock'.
 
     BlobSpPool* d_blobSpPool_p;
     // SharedObjectPool of blobs to use
@@ -229,12 +238,16 @@ class StorageManager
     // Associated cluster object
 
     ClusterData* d_clusterData_p;
-    // Associated non-persistent cluster
-    // data for this node
+    // Associated non-persistent cluster data for this node
+    //
+    // THREAD: This data member is safe to be accessed in the cluster
+    //         dispatcher thread.  However, we do access from other threads,
+    //         and please be vigilant when doing so.
 
     const mqbc::ClusterState& d_clusterState;
-    // Associated persistent cluster data
-    // for this node
+    // Associated persistent cluster data for this node
+    //
+    // THREAD: **Must** be accessed in the cluster dispatcher thread.
 
     const mqbcfg::ClusterDefinition& d_clusterConfig;
     // Cluster config to use
@@ -242,6 +255,11 @@ class StorageManager
     FileStores d_fileStores;
     // List of all partitions, indexed by
     // 'partitionId'
+    //
+    // THREAD: The i-th index of this data member is safe to be accessed in the
+    //         associated Queue dispatcher thread for the i-th partitionId.
+    //         However, we do access from other threads, and please be vigilant
+    //         when doing so.
 
     bdlmt::FixedThreadPool d_miscWorkThreadPool;
     // Thread pool used for any standalone
@@ -250,9 +268,9 @@ class StorageManager
     // It is used by the partitions owned
     // by this object.
 
-    RecoveryStatusCb d_recoveryStatusCb;
+    const RecoveryStatusCb d_recoveryStatusCb;
 
-    PartitionPrimaryStatusCb d_partitionPrimaryStatusCb;
+    const PartitionPrimaryStatusCb d_partitionPrimaryStatusCb;
 
     mutable bslmt::Mutex d_storagesLock;
     // Mutex to protect access to
@@ -272,6 +290,8 @@ class StorageManager
     // because they are accessed from
     // partitions' dispatcher threads, as
     // well as cluster dispatcher thread.
+    //
+    // THREAD: Protected by 'd_storagesLock'.
 
     bslmt::Mutex d_appKeysLock;
     // Mutex to protect access to
@@ -305,14 +325,24 @@ class StorageManager
     // accessed from partitions' dispatcher
     // threads as well as cluster
     // dispatcher threads.
+    //
+    // THREAD: Protected by 'd_appKeysLock'
 
     PartitionInfoVec d_partitionInfoVec;
     // Vector of 'PartitionInfo' indexed by
     // partitionId
+    //
+    // THREAD: Except during the ctor, the i-th index of this data member
+    //         **must** be accessed in the associated Queue dispatcher thread
+    //         for the i-th partitionId.
 
     PartitionFSMVec d_partitionFSMVec;
     // Vector of 'PartitionFSM' indexed by
     // partitionId
+    //
+    // THREAD: Except during the ctor, the i-th index of this data member
+    //         **must** be accessed in the associated Queue dispatcher thread
+    //         for the i-th partitionId.
 
     bsls::AtomicInt d_numPartitionsRecoveredFully;
     // Number of partitions whose recovery
@@ -333,19 +363,20 @@ class StorageManager
     bsl::vector<bsls::Types::Int64> d_recoveryStartTimes;
     // Vector of partition recovery start
     // times indexed by partitionId.
+    //
+    // THREAD: Except during the ctor, the i-th index of this data member
+    //         **must** be accessed in the associated Queue dispatcher thread
+    //         for the i-th partitionId.
 
     NodeToSeqNumCtxMapPartitionVec d_nodeToSeqNumCtxMapVec;
     // Vector of 'NodeToSeqNumCtxMap'
-    // indexed by partitionId. Note, that
-    // each element of the vector should
-    // only be accessed in corresponding
-    // thread attached to the partitionId.
-    // Currently, false sharing is not much
-    // of a performance bottleneck since
-    // update to elements of this vector is
-    // not a highly frequent operation.
+    // indexed by partitionId.
+    //
+    // THREAD: Except during the ctor, the i-th index of this data member
+    //         **must** be accessed in the associated Queue dispatcher thread
+    //         for the i-th partitionId.
 
-    unsigned int d_seqNumQuorum;
+    const unsigned int d_seqNumQuorum;
     // Quorum config to use for Sequence
     // numbers being collected by self if
     // primary while getting the latest
@@ -355,6 +386,13 @@ class StorageManager
     // Vector of number of replica data
     // responses received, indexed by
     // partitionId.
+    //
+    // THREAD: Except during the ctor, the i-th index of this data member
+    //         **must** be accessed in the associated Queue dispatcher thread
+    //         for the i-th partitionId.
+
+    bsls::AtomicBool d_isQueueKeyInfoMapVecInitialized;
+    // Whether 'd_queueKeyInfoMapVec' has been initialized.
 
     QueueKeyInfoMapVec d_queueKeyInfoMapVec;
     // Mapping from queue key to queue
@@ -365,8 +403,13 @@ class StorageManager
     // when recovering messages, and to
     // create domains and file-backed
     // storages during 'recoveredQueuesCb'.
+    //
+    // THREAD: This data member **must** be initialized in the cluster
+    //         dispatcher thread, where 'd_isQueueKeyInfoMapVecInitialized'
+    //         will be set to 'true'.  Afterwards, it **must not** be modified
+    //         again, and hence is safe to read from any thread.
 
-    bsls::Types::Uint64 d_minimumRequiredDiskSpace;
+    const bsls::Types::Uint64 d_minimumRequiredDiskSpace;
     // The bare minimum space required for
     // storage manager to be able to
     // successfully load all partitions.
@@ -385,11 +428,13 @@ class StorageManager
     int d_replicationFactor;
     // Replication factor used to configure
     // FileStores.
+    //
+    // THREAD: **Must** be accessed in the cluster dispatcher thread
 
   private:
     // NOT IMPLEMENTED
-    StorageManager(const StorageManager&);             // = delete;
-    StorageManager& operator=(const StorageManager&);  // = delete;
+    StorageManager(const StorageManager&) BSLS_KEYWORD_DELETED;
+    StorageManager& operator=(const StorageManager&) BSLS_KEYWORD_DELETED;
 
   private:
     // PRIVATE MANIPULATORS
@@ -397,18 +442,18 @@ class StorageManager
     /// Return the dispatcher of the associated cluster.
     mqbi::Dispatcher* dispatcher();
 
-    // Encode and send the specified schema 'message' to the specified peer
-    // 'destination'.
-    //
-    // THREAD: This method is invoked in the associated cluster's dispatcher
-    // thread.
+    /// Encode and send the specified schema 'message' to the specified peer
+    /// 'destination'.
+    ///
+    /// THREAD: This method is invoked in the associated cluster's dispatcher
+    ///         thread.
     void sendMessage(const bmqp_ctrlmsg::ControlMessage& message,
                      mqbnet::ClusterNode*                destination);
 
     /// Callback to start the recovery for the specified `partitionId`.
     ///
     /// THREAD: This method is invoked in the associated Queue dispatcher
-    ///         thread for the specified 'partitionId.
+    ///         thread for the specified 'partitionId'.
     void startRecoveryCb(int partitionId);
 
     /// Gracefully shut down the partition associated with the specified
@@ -572,9 +617,6 @@ class StorageManager
     virtual void
     do_stopWatchDog(const PartitionFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;
 
-    virtual void do_populateQueueKeyInfoMap(const PartitionFSMArgsSp& args)
-        BSLS_KEYWORD_OVERRIDE;
-
     virtual void do_openRecoveryFileSet(const PartitionFSMArgsSp& args)
         BSLS_KEYWORD_OVERRIDE;
 
@@ -707,10 +749,6 @@ class StorageManager
     virtual void do_reapplyDetectSelfReplica(const PartitionFSMArgsSp& args)
         BSLS_KEYWORD_OVERRIDE;
 
-  private:
-    // PRIVATE ACCESSORS
-    bool isLocalCluster() const;
-
   public:
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(StorageManager, bslma::UsesBslmaAllocator)
@@ -768,6 +806,12 @@ class StorageManager
     /// THREAD: Executed by the cluster's dispatcher thread.
     virtual void stop() BSLS_KEYWORD_OVERRIDE;
 
+    /// Initialize the queue key info map based on information in the specified
+    /// `clusterState`.  Note that this method should only be called once;
+    /// subsequent calls will be ignored.
+    virtual void initializeQueueKeyInfoMap(
+        const mqbc::ClusterState& clusterState) BSLS_KEYWORD_OVERRIDE;
+
     /// Register a queue with the specified `uri`, `queueKey` and
     /// `partitionId`, having the spcified `appIdKeyPairs`, and belonging to
     /// the specified `domain`.  Load into the specified `storage` the
@@ -781,8 +825,7 @@ class StorageManager
                                mqbi::Domain* domain) BSLS_KEYWORD_OVERRIDE;
 
     /// Synchronously unregister the queue with the specified `uri` from the
-    /// specified `partitionId`.  Behavior is undefined unless this routine
-    /// is invoked from the cluster dispatcher thread.
+    /// specified `partitionId`.
     ///
     /// THREAD: Executed by the Client's dispatcher thread.
     virtual void unregisterQueue(const bmqt::Uri& uri,
@@ -930,16 +973,17 @@ class StorageManager
     virtual void processRecoveryEvent(
         const mqbi::DispatcherRecoveryEvent& event) BSLS_KEYWORD_OVERRIDE;
 
-    /// Executed in cluster dispatcher thread.
-    virtual void processReceiptEvent(const mqbi::DispatcherReceiptEvent& event)
-        BSLS_KEYWORD_OVERRIDE;
+    /// Executed in IO thread.
+    virtual void
+    processReceiptEvent(const bmqp::Event&   event,
+                        mqbnet::ClusterNode* source) BSLS_KEYWORD_OVERRIDE;
 
-    /// Executed by any thread.
+    /// Executed in cluster dispatcher thread.
     virtual void processPrimaryStatusAdvisory(
         const bmqp_ctrlmsg::PrimaryStatusAdvisory& advisory,
         mqbnet::ClusterNode* source) BSLS_KEYWORD_OVERRIDE;
 
-    /// Executed by any thread.
+    /// Executed in cluster dispatcher thread.
     virtual void processReplicaStatusAdvisory(
         int                             partitionId,
         mqbnet::ClusterNode*            source,
@@ -979,6 +1023,9 @@ class StorageManager
     /// Return the processor handle in charge of the specified
     /// `partitionId`.  The behavior is undefined if `partitionId` does not
     /// represent a valid partition id.
+    //
+    // THREAD: executed by any thread. It is safe because process handle is set
+    //         at ctor and never modified afterwards.
     virtual mqbi::Dispatcher::ProcessorHandle
     processorForPartition(int partitionId) const BSLS_KEYWORD_OVERRIDE;
 
@@ -988,10 +1035,6 @@ class StorageManager
     /// dispatcher thread.
     virtual bool isStorageEmpty(const bmqt::Uri& uri,
                                 int partitionId) const BSLS_KEYWORD_OVERRIDE;
-
-    /// Return the blob buffer factory to use.
-    virtual bdlbb::BlobBufferFactory*
-    blobBufferFactory() const BSLS_KEYWORD_OVERRIDE;
 
     /// Return partition corresponding to the specified `partitionId`.  The
     /// behavior is undefined if `partitionId` does not represent a valid
@@ -1146,12 +1189,6 @@ inline const mqbs::ReplicatedStorage* StorageManagerIterator::storage() const
 inline mqbi::Dispatcher* StorageManager::dispatcher()
 {
     return d_clusterData_p->dispatcherClientData().dispatcher();
-}
-
-// PRIVATE ACCESSORS
-inline bool StorageManager::isLocalCluster() const
-{
-    return d_clusterData_p->cluster()->isLocal();
 }
 
 // ACCESSORS

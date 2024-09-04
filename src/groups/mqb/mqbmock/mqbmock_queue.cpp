@@ -53,7 +53,7 @@ Queue::Queue(mqbi::Domain* domain, bslma::Allocator* allocator)
 , d_hasMultipleSubStreams(false)
 , d_handleParameters(allocator)
 , d_streamParameters(allocator)
-, d_stats()
+, d_stats(allocator)
 , d_domain_p(domain)
 , d_dispatcher_p(0)
 , d_queueEngine_p(0)
@@ -68,7 +68,7 @@ Queue::Queue(mqbi::Domain* domain, bslma::Allocator* allocator)
 
     // Initialize stats
     if (domain) {
-        d_stats.initialize(d_uri, domain, allocator);
+        d_stats.initialize(d_uri, domain);
     }
 }
 

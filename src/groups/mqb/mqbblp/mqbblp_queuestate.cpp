@@ -67,7 +67,7 @@ QueueState::QueueState(mqbi::Queue*            queue,
 , d_scheduler_p(0)
 , d_miscWorkThreadPool_p(0)
 , d_storage_mp(0)
-, d_stats()
+, d_stats(allocator)
 , d_messageThrottleConfig()
 , d_handleCatalog(queue, allocator)
 , d_context(queue->schemaLearner(), allocator)
@@ -80,7 +80,7 @@ QueueState::QueueState(mqbi::Queue*            queue,
     d_handleParameters.qId() = d_id;
 
     // Initialize stats
-    d_stats.initialize(d_uri, d_domain_p, allocator);
+    d_stats.initialize(d_uri, d_domain_p);
 
     // NOTE: The 'description' will be set by the owner of this object.
 

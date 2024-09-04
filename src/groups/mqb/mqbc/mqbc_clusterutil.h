@@ -23,6 +23,11 @@
 //  mqbc::ClusterUtil: Generic utilities for a cluster.
 //
 //@DESCRIPTION: 'mqbc::ClusterUtil' provides generic utilities for a cluster.
+//
+/// Thread Safety
+///-------------
+/// This component is designed to be executed only by the cluster *DISPATCHER*
+/// thread.
 
 // MQB
 
@@ -204,14 +209,16 @@ struct ClusterUtil {
     /// Populate the specified `advisory` with information describing a
     /// queue assignment of the specified `uri` living in the specified
     /// `domain`, using the specified `clusterState`, `clusterData`.  Load into
-    /// the specified `key` the unique queue key generated.
+    /// the specified `key` the unique queue key generated.  AppIds info will
+    /// not be populated if the specified `isCSLMode` is true.
     static void populateQueueAssignmentAdvisory(
         bmqp_ctrlmsg::QueueAssignmentAdvisory* advisory,
         mqbu::StorageKey*                      key,
         ClusterState*                          clusterState,
         ClusterData*                           clusterData,
         const bmqt::Uri&                       uri,
-        const mqbi::Domain*                    domain);
+        const mqbi::Domain*                    domain,
+        bool                                   isCSLMode);
 
     /// Populate the specified `advisory` with information describing a
     /// queue unassignment of the specified `uri` having the specified `key`
@@ -313,7 +320,7 @@ struct ClusterUtil {
     /// cluster state to that `node` only.  Otherwise, broadcast to all
     /// followers.  Behavior is undefined unless this node is the leader,
     /// and at least one of `sendPartitionPrimaryInfo` or `sendQueuesInfo`
-    /// is true. TODO
+    /// is true.
     ///
     /// THREAD: This method is invoked in the associated cluster's
     ///         dispatcher thread.
@@ -392,6 +399,9 @@ struct ClusterUtil {
 
     /// Load into the specified `out` the list of peer nodes using the
     /// specified `clusterData`.
+    ///
+    /// THREAD: Executed by the cluster *DISPATCHER* thread or the
+    //          *QUEUE_DISPATCHER* thread.
     static void loadPeerNodes(bsl::vector<mqbnet::ClusterNode*>* out,
                               const ClusterData&                 clusterData);
 

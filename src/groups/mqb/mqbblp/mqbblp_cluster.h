@@ -76,7 +76,8 @@
 #include <bslma_usesbslmaallocator.h>
 #include <bslmf_nestedtraitdeclaration.h>
 #include <bsls_assert.h>
-#include <bsls_cpp11.h>
+#include <bsls_atomic.h>
+#include <bsls_keyword.h>
 
 namespace BloombergLP {
 
@@ -217,6 +218,38 @@ class Cluster : public mqbi::Cluster,
         const StopRequestManagerType::RequestContextSp& contextSp)>
         StopRequestCompletionCallback;
 
+    struct ValidationResult {
+        enum Enum {
+            k_SUCCESS = 0,
+            k_UNKNOWN_QUEUE,
+            k_UNKNOWN_SUBQUEUE,
+            k_FINAL
+        };
+
+        // CLASS METHODS
+
+        /// Write the string representation of the specified enumeration
+        /// `value` to the specified output `stream`, and return a reference
+        /// to `stream`.  Optionally specify an initial indentation `level`,
+        /// whose absolute value is incremented recursively for nested
+        /// objects.  If `level` is specified, optionally specify
+        /// `spacesPerLevel`, whose absolute value indicates the number of
+        /// spaces per indentation level for this and all of its nested
+        /// objects.  If `level` is negative, suppress indentation of the
+        /// first line.  If `spacesPerLevel` is negative, format the entire
+        /// output on one line, suppressing all but the initial indentation
+        /// (as governed by `level`).  See `toAscii` for what constitutes
+        /// the string representation of a `State::Enum` value.
+        static bsl::ostream& print(bsl::ostream&          stream,
+                                   ValidationResult::Enum value,
+                                   int                    level          = 0,
+                                   int                    spacesPerLevel = 4);
+
+        /// Return the non-modifiable string representation corresponding to
+        /// the specified enumeration `value`.
+        static const char* toAscii(ValidationResult::Enum value);
+    };
+
     typedef bsl::function<void()> CompletionCallback;
 
   private:
@@ -233,7 +266,7 @@ class Cluster : public mqbi::Cluster,
     // This flag is used only inside this
     // component.
 
-    bool d_isStopping;
+    bsls::AtomicBool d_isStopping;
     // Flag to indicate if this cluster is
     // stopping.  This flag is exposed via
     // an accessor.
@@ -313,10 +346,10 @@ class Cluster : public mqbi::Cluster,
 
   private:
     // NOT IMPLEMENTED
-    Cluster(const Cluster&) BSLS_CPP11_DELETED;
+    Cluster(const Cluster&) BSLS_KEYWORD_DELETED;
 
     /// Copy constructor and assignment operator are not implemented.
-    Cluster& operator=(const Cluster&) BSLS_CPP11_DELETED;
+    Cluster& operator=(const Cluster&) BSLS_KEYWORD_DELETED;
 
   private:
     // PRIVATE MANIPULATORS
@@ -422,16 +455,13 @@ class Cluster : public mqbi::Cluster,
 
     void onRelayPushEvent(const mqbi::DispatcherEvent& event);
 
-    bool validateMessage(mqbi::QueueHandle**       queueHandle,
-                         bsl::ostream*             errorStream,
-                         const bmqp::QueueId&      queueId,
-                         mqbc::ClusterNodeSession* ns,
-                         bmqp::EventType::Enum     eventType);
+    ValidationResult::Enum validateMessage(mqbi::QueueHandle**  queueHandle,
+                                           const bmqp::QueueId& queueId,
+                                           mqbc::ClusterNodeSession* ns,
+                                           bmqp::EventType::Enum eventType);
     // Validate a message of the specified 'eventType' using the specified
-    // 'queueId' and 'ns'. Return true if the message is valid and false
-    // otherwise. Populate the specified 'queueHandle' if the queue is found
-    // and load a descriptive error message into the 'errorStream' if the
-    // message is invalid.
+    // 'queueId' and 'ns'. Return one of `ValidationResult` values. Populate
+    // the specified 'queueHandle' if the queue is found.
 
     bool validateRelayMessage(mqbc::ClusterNodeSession** ns,
                               bsl::ostream*              errorStream,

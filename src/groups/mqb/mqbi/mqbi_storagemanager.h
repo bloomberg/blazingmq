@@ -38,11 +38,11 @@
 #include <mqbu_storagekey.h>
 
 // BMQ
+#include <bmqp_event.h>
 #include <bmqt_uri.h>
 
 // BDE
 #include <ball_log.h>
-#include <bdlbb_blob.h>
 #include <bsl_functional.h>
 #include <bsl_memory.h>
 #include <bsl_ostream.h>
@@ -57,6 +57,10 @@
 namespace BloombergLP {
 
 // FORWARD DECLARATION
+namespace mqbc {
+class ClusterState;
+}
+
 namespace mqbcmd {
 class StorageCommand;
 }
@@ -217,6 +221,12 @@ class StorageManager : public mqbi::AppKeyGenerator {
     /// Stop this storage manager.
     virtual void stop() = 0;
 
+    /// Initialize the queue key info map based on information in the specified
+    /// `clusterState`.  Note that this method should only be called once;
+    /// subsequent calls will be ignored.
+    virtual void
+    initializeQueueKeyInfoMap(const mqbc::ClusterState& clusterState) = 0;
+
     /// Register a queue with the specified `uri`, `queueKey` and
     /// `partitionId`, having the specified `appIdKeyPairs`, and belonging
     /// to the specified `domain`.  Load into the specified `storage` the
@@ -368,9 +378,9 @@ class StorageManager : public mqbi::AppKeyGenerator {
     virtual void
     processRecoveryEvent(const mqbi::DispatcherRecoveryEvent& event) = 0;
 
-    /// Executed in cluster dispatcher thread.
-    virtual void
-    processReceiptEvent(const mqbi::DispatcherReceiptEvent& event) = 0;
+    /// Executed in IO thread.
+    virtual void processReceiptEvent(const bmqp::Event&   event,
+                                     mqbnet::ClusterNode* source) = 0;
 
     /// Executed by any thread.
     virtual void processPrimaryStatusAdvisory(
@@ -418,9 +428,6 @@ class StorageManager : public mqbi::AppKeyGenerator {
     /// dispatcher thread.
     virtual bool isStorageEmpty(const bmqt::Uri& uri,
                                 int              partitionId) const = 0;
-
-    /// Return the blob buffer factory to use.
-    virtual bdlbb::BlobBufferFactory* blobBufferFactory() const = 0;
 
     /// Return partition corresponding to the specified `partitionId`.  The
     /// behavior is undefined if `partitionId` does not represent a valid

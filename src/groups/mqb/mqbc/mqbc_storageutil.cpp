@@ -973,6 +973,8 @@ int StorageUtil::validateDiskSpace(const mqbcfg::PartitionConfig& config,
                                    const mqbc::ClusterData&       clusterData,
                                    const bsls::Types::Uint64&     minDiskSpace)
 {
+    // executed by the *CLUSTER DISPATCHER* thread
+
     enum RcEnum {
         // Value for the various RC error categories
         rc_SUCCESS               = 0,
@@ -1062,10 +1064,13 @@ bool StorageUtil::validateStorageEvent(
     const mqbnet::ClusterNode*         source,
     const mqbnet::ClusterNode*         primary,
     bmqp_ctrlmsg::PrimaryStatus::Value status,
-    const mqbc::ClusterData&           clusterData,
+    const bsl::string&                 clusterDescription,
     bool                               skipAlarm,
     bool                               isFSMWorkflow)
 {
+    // executed by *QUEUE_DISPATCHER* thread associated with 'partitionId' or
+    // by the *CLUSTER DISPATCHER* thread
+
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(event.isStorageEvent());
     BSLS_ASSERT_SAFE(source);
@@ -1078,7 +1083,7 @@ bool StorageUtil::validateStorageEvent(
         }
 
         MWCTSK_ALARMLOG_ALARM("STORAGE")
-            << clusterData.identity().description() << ": Received storage "
+            << clusterDescription << ": Received storage "
             << "event from node " << source->nodeDescription() << " for "
             << "PartitionId [" << partitionId << "] which has no primary as "
             << "perceived by this node. Ignoring entire storage event."
@@ -1092,7 +1097,7 @@ bool StorageUtil::validateStorageEvent(
         }
 
         MWCTSK_ALARMLOG_ALARM("STORAGE")
-            << clusterData.identity().description() << ": Received storage "
+            << clusterDescription << ": Received storage "
             << "event from node " << source->nodeDescription() << " for "
             << "PartitionId [" << partitionId << "] which has different "
             << "primary as perceived by this node: "
@@ -1108,38 +1113,13 @@ bool StorageUtil::validateStorageEvent(
         }
 
         MWCTSK_ALARMLOG_ALARM("STORAGE")
-            << clusterData.identity().description() << ": Received storage "
+            << clusterDescription << ": Received storage "
             << "event for PartitionId [" << partitionId
             << "] from: " << source->nodeDescription()
             << ", which is perceived as "
             << "non-active primary. Primary status: " << status
             << ". Ignoring entire storage event." << MWCTSK_ALARMLOG_END;
         return false;  // RETURN
-    }
-
-    bmqp::StorageMessageIterator iter;
-    event.loadStorageMessageIterator(&iter);
-    BSLS_ASSERT_SAFE(iter.isValid());
-    while (iter.next() == 1) {
-        const bmqp::StorageHeader& header = iter.header();
-        if (static_cast<unsigned int>(partitionId) != header.partitionId()) {
-            // A storage event is sent by 'source' cluster node.  The node may
-            // be primary for one or more partitions, but as per the BMQ
-            // replication design, *all* messages in this event will belong to
-            // the *same* partition.  Any exception to this is a bug in the
-            // implementation of replication, and thus, if it occurs, we reject
-            // the *entire* storage event.
-
-            MWCTSK_ALARMLOG_ALARM("STORAGE")
-                << clusterData.identity().description() << ": Received storage"
-                << " event from node " << source->nodeDescription() << " with"
-                << " different PartitionId: [" << partitionId << "] vs ["
-                << header.partitionId() << "]"
-                << ". Ignoring entire storage event." << MWCTSK_ALARMLOG_END;
-            return false;  // RETURN
-        }
-
-        // NOTE: (leaseId, seqNum) will be checked later.
     }
 
     return true;
@@ -1149,35 +1129,35 @@ bool StorageUtil::validatePartitionSyncEvent(
     const bmqp::Event&         event,
     int                        partitionId,
     const mqbnet::ClusterNode* source,
-    const mqbc::ClusterState&  clusterState,
+    const PartitionInfo&       partitionInfo,
     const mqbc::ClusterData&   clusterData,
     bool                       isFSMWorkflow)
 {
+    // executed by *QUEUE_DISPATCHER* thread associated with 'partitionId' or
+    // by the *CLUSTER DISPATCHER* thread
+
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(event.isPartitionSyncEvent());
     BSLS_ASSERT_SAFE(source);
 
     // Check that either self is primary or 'source' is perceived as primary
     // for the partition.
-    const ClusterStatePartitionInfo& pinfo = clusterState.partition(
-        partitionId);
-
-    if (pinfo.primaryNode() != clusterData.membership().selfNode() &&
-        pinfo.primaryNode() != source) {
+    if (partitionInfo.primary() != clusterData.membership().selfNode() &&
+        partitionInfo.primary() != source) {
         BALL_LOG_ERROR << clusterData.identity().description()
                        << " PartitionId [" << partitionId
                        << "]: Received partition-sync event from peer: "
                        << source->nodeDescription()
                        << " but neither self nor peer is primary. Perceived"
                        << " primary: "
-                       << (pinfo.primaryNode()
-                               ? pinfo.primaryNode()->nodeDescription()
+                       << (partitionInfo.primary()
+                               ? partitionInfo.primary()->nodeDescription()
                                : "** none **");
         return false;  // RETURN
     }
 
-    if (!isFSMWorkflow &&
-        bmqp_ctrlmsg::PrimaryStatus::E_PASSIVE != pinfo.primaryStatus()) {
+    if (!isFSMWorkflow && bmqp_ctrlmsg::PrimaryStatus::E_PASSIVE !=
+                              partitionInfo.primaryStatus()) {
         // Either self or source is primary.  Whichever is the primary, it must
         // be perceived as a passive one.
 
@@ -1185,10 +1165,11 @@ bool StorageUtil::validatePartitionSyncEvent(
                        << " PartitionId [" << partitionId
                        << "]: Received partition-sync event from: "
                        << source->nodeDescription()
-                       << " but primary status is: " << pinfo.primaryStatus()
+                       << " but primary status is: "
+                       << partitionInfo.primaryStatus()
                        << ", perceived primary: "
-                       << (pinfo.primaryNode()
-                               ? pinfo.primaryNode()->nodeDescription()
+                       << (partitionInfo.primary()
+                               ? partitionInfo.primary()->nodeDescription()
                                : "** none **");
         return false;  // RETURN
     }
@@ -1238,6 +1219,11 @@ int StorageUtil::assignPartitionDispatcherThreads(
     const bdlb::NullableValue<QueueCreationCb>& queueCreationCb,
     const bdlb::NullableValue<QueueDeletionCb>& queueDeletionCb)
 {
+    // executed by the cluster *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(dispatcher->inDispatcherThread(&cluster));
+
     enum RcEnum {
         // Value for the various RC error categories
         rc_SUCCESS                   = 0,
@@ -1262,8 +1248,8 @@ int StorageUtil::assignPartitionDispatcherThreads(
     for (int i = 0; i < config.numPartitions(); ++i) {
         int                   processorId = i % numProcessors;
         mqbs::DataStoreConfig dsCfg;
-        dsCfg.setScheduler(clusterData->scheduler())
-            .setBufferFactory(clusterData->bufferFactory())
+        dsCfg.setScheduler(&clusterData->scheduler())
+            .setBufferFactory(&clusterData->bufferFactory())
             .setPreallocate(config.preallocate())
             .setPrefaultPages(config.prefaultPages())
             .setLocation(config.location())
@@ -1296,7 +1282,7 @@ int StorageUtil::assignPartitionDispatcherThreads(
                                 clusterData->membership().netCluster(),
                                 &clusterData->stats(),
                                 blobSpPool,
-                                clusterData->stateSpPool(),
+                                &clusterData->stateSpPool(),
                                 threadPool,
                                 cluster.isCSLModeEnabled(),
                                 cluster.isFSMWorkflow(),
@@ -1310,16 +1296,18 @@ int StorageUtil::assignPartitionDispatcherThreads(
     return rc_SUCCESS;
 }
 
-void StorageUtil::clearPrimaryForPartition(mqbs::FileStore*     fs,
-                                           PartitionInfo*       partitionInfo,
-                                           const ClusterData&   clusterData,
-                                           int                  partitionId,
-                                           mqbnet::ClusterNode* primary)
+void StorageUtil::clearPrimaryForPartition(
+    mqbs::FileStore*   fs,
+    PartitionInfo*     partitionInfo,
+    const bsl::string& clusterDescription,
+
+    int                  partitionId,
+    mqbnet::ClusterNode* primary)
 {
-    // executed by *DISPATCHER* thread
+    // executed by *QUEUE_DISPATCHER* thread associated with 'partitionId'
 
     // PRECONDITION
-    BSLS_ASSERT_SAFE(fs);
+    BSLS_ASSERT_SAFE(fs && fs->inDispatcherThread());
     BSLS_ASSERT_SAFE(partitionInfo);
     BSLS_ASSERT_SAFE(0 <= partitionId);
 
@@ -1333,8 +1321,7 @@ void StorageUtil::clearPrimaryForPartition(mqbs::FileStore*     fs,
         return;  // RETURN
     }
 
-    BALL_LOG_INFO << clusterData.identity().description() << " PartitionId ["
-                  << partitionId
+    BALL_LOG_INFO << clusterDescription << " PartitionId [" << partitionId
                   << "]: processing 'clear-primary' event. Current primary: "
                   << partitionInfo->primary()->nodeDescription()
                   << ", current leaseId: " << partitionInfo->primaryLeaseId()
@@ -1368,8 +1355,11 @@ void StorageUtil::transitionToActivePrimary(PartitionInfo*     partitionInfo,
                                             mqbc::ClusterData* clusterData,
                                             int                partitionId)
 {
+    // executed by *QUEUE_DISPATCHER* thread associated with 'partitionId'
+
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(partitionInfo);
+    BSLS_ASSERT_SAFE(clusterData);
 
     partitionInfo->setPrimaryStatus(bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE);
 
@@ -1397,13 +1387,13 @@ void StorageUtil::onPartitionPrimarySync(
     // executed by *QUEUE_DISPATCHER* thread associated with 'partitionId'
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(fs);
+    BSLS_ASSERT_SAFE(fs && fs->inDispatcherThread());
     BSLS_ASSERT_SAFE(fs->isOpen());
     BSLS_ASSERT_SAFE(pinfo);
     BSLS_ASSERT_SAFE(clusterData);
     BSLS_ASSERT_SAFE(0 <= partitionId);
 
-    if (clusterData->cluster()->isStopping()) {
+    if (clusterData->cluster().isStopping()) {
         BALL_LOG_WARN << clusterData->identity().description()
                       << ": Cluster is stopping; skipping partition primary "
                       << "sync notification.";
@@ -1471,6 +1461,7 @@ void StorageUtil::recoveredQueuesCb(
     AppKeys*                     appKeys,
     bslmt::Mutex*                appKeysLock,
     mqbi::DomainFactory*         domainFactory,
+    bslmt::Mutex*                unrecognizedDomainsLock,
     DomainQueueMessagesCountMap* unrecognizedDomains,
     const bsl::string&           clusterDescription,
     int                          partitionId,
@@ -1483,6 +1474,7 @@ void StorageUtil::recoveredQueuesCb(
     BSLS_ASSERT_SAFE(storageMap);
     BSLS_ASSERT_SAFE(fs);
     BSLS_ASSERT_SAFE(appKeys);
+    BSLS_ASSERT_SAFE(unrecognizedDomainsLock);
     BSLS_ASSERT_SAFE(unrecognizedDomains && unrecognizedDomains->empty());
     BSLS_ASSERT_SAFE(0 <= partitionId);
     BSLS_ASSERT_SAFE(fs->inDispatcherThread());
@@ -1644,18 +1636,24 @@ void StorageUtil::recoveredQueuesCb(
                   << "]: domain creation step complete. Checking if all "
                   << "domains were created successfully.";
 
-    for (DomainMapIter dit = domainMap.begin(); dit != domainMap.end();
-         ++dit) {
-        if (dit->second == 0 || !dit->second->cluster()->isClusterMember()) {
-            // Two scenarios:
-            // 1. Failed to create domain for this domain name.
-            // 2. Domain is associated with a proxy cluster.
-            //
-            // Will add it to the map of unrecognized domain names for further
-            // investigation.
-            unrecognizedDomains->insert(
-                bsl::make_pair(dit->first,
-                               mqbs::StorageUtil::QueueMessagesCountMap()));
+    {
+        bslmt::LockGuard<bslmt::Mutex> unrecognizedDomainsLockGuard(
+            unrecognizedDomainsLock);  // LOCK
+
+        for (DomainMapIter dit = domainMap.begin(); dit != domainMap.end();
+             ++dit) {
+            if (dit->second == 0 ||
+                !dit->second->cluster()->isClusterMember()) {
+                // Two scenarios:
+                // 1. Failed to create domain for this domain name.
+                // 2. Domain is associated with a proxy cluster.
+                //
+                // Will add it to the map of unrecognized domain names for
+                // further investigation.
+                unrecognizedDomains->insert(bsl::make_pair(
+                    dit->first,
+                    mqbs::StorageUtil::QueueMessagesCountMap()));
+            }
         }
     }
 
@@ -1717,9 +1715,15 @@ void StorageUtil::recoveredQueuesCb(
                     BSLS_ASSERT_SAFE(appKey == existingAppKey);
                 }
 
-                BSLS_ASSERT_SAFE(
-                    unrecognizedDomains->find(queueUri.qualifiedDomain()) ==
-                    unrecognizedDomains->end());
+                {
+                    bslmt::LockGuard<bslmt::Mutex>
+                        unrecognizedDomainsLockGuard(
+                            unrecognizedDomainsLock);  // LOCK
+
+                    BSLS_ASSERT_SAFE(unrecognizedDomains->find(
+                                         queueUri.qualifiedDomain()) ==
+                                     unrecognizedDomains->end());
+                }
 
                 BALL_LOG_INFO << clusterDescription << ": PartitionId ["
                               << partitionId << "]: encountered queueUri ["
@@ -1749,11 +1753,16 @@ void StorageUtil::recoveredQueuesCb(
 
         // If domain name is unrecognized, do not create storage.
         const bslstl::StringRef& domainName = queueUri.qualifiedDomain();
-        DomainQueueMessagesCountMap::iterator iter = unrecognizedDomains->find(
-            domainName);
-        if (iter != unrecognizedDomains->end()) {
-            iter->second.insert(bsl::make_pair(queueUri, 0));
-            continue;  // CONTINUE
+        {
+            bslmt::LockGuard<bslmt::Mutex> unrecognizedDomainsLockGuard(
+                unrecognizedDomainsLock);  // LOCK
+
+            DomainQueueMessagesCountMap::iterator iter =
+                unrecognizedDomains->find(domainName);
+            if (iter != unrecognizedDomains->end()) {
+                iter->second.insert(bsl::make_pair(queueUri, 0));
+                continue;  // CONTINUE
+            }
         }
 
         DomainMapIter dit = domainMap.find(domainName);
@@ -2085,33 +2094,46 @@ void StorageUtil::recoveredQueuesCb(
 
 void StorageUtil::dumpUnknownRecoveredDomains(
     const bsl::string&                  clusterDescription,
+    bslmt::Mutex*                       unrecognizedDomainsLock,
     const DomainQueueMessagesCountMaps& unrecognizedDomains)
 {
-    // Since 'unrecognizedDomains' has been resized to the number of partitions
-    // upon construction, we need to check whether each map in this vector is
-    // empty to verify emptiness.
-    if (static_cast<size_t>(bsl::count_if(
-            unrecognizedDomains.cbegin(),
-            unrecognizedDomains.cend(),
-            bdlf::MemFnUtil::memFn(&DomainQueueMessagesCountMap::empty))) ==
-        unrecognizedDomains.size()) {
-        return;  // RETURN
-    }
+    // executed by *QUEUE_DISPATCHER* thread
 
-    // All partitions have gone through 'recoveredQueuesCb', but we have
-    // encountered some unrecognized domains.  We will print a warning in the
-    // log with statistics about them, allowing BlazingMQ developers to
-    // investigate.
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(unrecognizedDomainsLock);
+
+    DomainQueueMessagesCountMap unrecognizedDomainsFlat;
 
     // 1. Collapse 'unrecognizedDomains' from a list of maps to a single map.
-    DomainQueueMessagesCountMap unrecognizedDomainsFlat;
-    for (DomainQueueMessagesCountMaps::const_iterator cit =
-             unrecognizedDomains.cbegin();
-         cit != unrecognizedDomains.cend();
-         ++cit) {
-        mqbs::StorageUtil::mergeDomainQueueMessagesCountMap(
-            &unrecognizedDomainsFlat,
-            *cit);
+    {
+        bslmt::LockGuard<bslmt::Mutex> unrecognizedDomainsLockGuard(
+            unrecognizedDomainsLock);  // LOCK
+
+        // Since 'unrecognizedDomains' has been resized to the number of
+        // partitions upon construction, we need to check whether each map in
+        // this vector is empty to verify emptiness.
+        if (static_cast<size_t>(
+                bsl::count_if(unrecognizedDomains.cbegin(),
+                              unrecognizedDomains.cend(),
+                              bdlf::MemFnUtil::memFn(
+                                  &DomainQueueMessagesCountMap::empty))) ==
+            unrecognizedDomains.size()) {
+            return;  // RETURN
+        }
+
+        // All partitions have gone through 'recoveredQueuesCb', but we have
+        // encountered some unrecognized domains.  We will print a warning in
+        // the log with statistics about them, allowing BlazingMQ developers to
+        // investigate.
+
+        for (DomainQueueMessagesCountMaps::const_iterator cit =
+                 unrecognizedDomains.cbegin();
+             cit != unrecognizedDomains.cend();
+             ++cit) {
+            mqbs::StorageUtil::mergeDomainQueueMessagesCountMap(
+                &unrecognizedDomainsFlat,
+                *cit);
+        }
     }
 
     // 2. Print statistics using the collapsed map, in sorted order of domain
@@ -2171,16 +2193,33 @@ void StorageUtil::dumpUnknownRecoveredDomains(
 
 void StorageUtil::gcUnrecognizedDomainQueues(
     FileStores*                         fileStores,
+    bslmt::Mutex*                       unrecognizedDomainsLock,
     const DomainQueueMessagesCountMaps& unrecognizedDomains)
 {
     // executed by cluster *DISPATCHER* thread
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(fileStores);
+    BSLS_ASSERT_SAFE(unrecognizedDomainsLock);
     BSLS_ASSERT_SAFE(unrecognizedDomains.size() == fileStores->size());
 
-    for (size_t i = 0; i < unrecognizedDomains.size(); ++i) {
-        if (!unrecognizedDomains[i].empty()) {
+    bsl::vector<bool> bitset(unrecognizedDomains.size(), false);
+    // Did not use bsl::bitset because we do not know the required size at
+    // compile time.
+
+    {
+        bslmt::LockGuard<bslmt::Mutex> unrecognizedDomainsLockGuard(
+            unrecognizedDomainsLock);  // LOCK
+
+        for (size_t i = 0; i < unrecognizedDomains.size(); ++i) {
+            if (!unrecognizedDomains[i].empty()) {
+                bitset[i] = true;
+            }
+        }
+    }
+
+    for (size_t i = 0; i < bitset.size(); ++i) {
+        if (bitset[i]) {
             // Unrecognized domains are found in Partition 'i'. We initiate a
             // forced rollover to ensure that queues from those domains are
             // GC'd.
@@ -2195,16 +2234,18 @@ void StorageUtil::gcUnrecognizedDomainQueues(
     }
 }
 
-void StorageUtil::stop(ClusterData*      clusterData,
-                       FileStores*       fileStores,
-                       const ShutdownCb& shutdownCb)
+void StorageUtil::stop(FileStores*        fileStores,
+                       const bsl::string& clusterDescription,
+                       const ShutdownCb&  shutdownCb)
 {
+    // executed by cluster *DISPATCHER* thread
+
     // Note that we won't delete any objects until dispatcher has stopped.  The
     // storages have already been closed in BBQueue.close.
 
     // Enqueue event to close all FileStores.
 
-    BALL_LOG_INFO << clusterData->identity().description()
+    BALL_LOG_INFO << clusterDescription
                   << ": Enqueuing event to close FileStores.";
 
     bslmt::Latch       latch(fileStores->size());
@@ -2224,13 +2265,13 @@ void StorageUtil::stop(ClusterData*      clusterData,
         }
     }
 
-    BALL_LOG_INFO << clusterData->identity().description()
+    BALL_LOG_INFO << clusterDescription
                   << ": About to wait for partition shutdown to complete.";
     latch.wait();
     bsls::Types::Int64 shutdownEndTime = mwcsys::Time::highResolutionTimer();
 
     BALL_LOG_INFO
-        << clusterData->identity().description()
+        << clusterDescription
         << ": Shutdown complete for all partitions. Total time spent in "
         << "shutdown: "
         << mwcu::PrintUtil::prettyTimeInterval(shutdownEndTime -
@@ -2241,9 +2282,11 @@ void StorageUtil::stop(ClusterData*      clusterData,
 void StorageUtil::shutdown(int                              partitionId,
                            bslmt::Latch*                    latch,
                            FileStores*                      fileStores,
-                           ClusterData*                     clusterData,
+                           const bsl::string&               clusterDescription,
                            const mqbcfg::ClusterDefinition& clusterConfig)
 {
+    // executed by *QUEUE_DISPATCHER* thread with the specified 'partitionId'
+
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(fileStores->size()));
@@ -2257,13 +2300,13 @@ void StorageUtil::shutdown(int                              partitionId,
     if (fs) {
         BSLS_ASSERT_SAFE(fs->inDispatcherThread());
 
-        BALL_LOG_INFO << clusterData->identity().description()
-                      << ": Closing PartitionId [" << partitionId << "].";
+        BALL_LOG_INFO << clusterDescription << ": Closing PartitionId ["
+                      << partitionId << "].";
 
         fs->close(clusterConfig.partitionConfig().flushAtShutdown());
 
-        BALL_LOG_INFO << clusterData->identity().description()
-                      << ": PartitionId [" << partitionId << "] closed.";
+        BALL_LOG_INFO << clusterDescription << ": PartitionId [" << partitionId
+                      << "] closed.";
     }
 
     latch->arrive();
@@ -3295,8 +3338,10 @@ void StorageUtil::processPrimaryStatusAdvisoryDispatched(
     mqbnet::ClusterNode*                       source,
     bool                                       isFSMWorkflow)
 {
+    // executed by *QUEUE_DISPATCHER* thread with the specified 'partitionId'
+
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(fs);
+    BSLS_ASSERT_SAFE(fs && fs->inDispatcherThread());
     BSLS_ASSERT_SAFE(pinfo);
     BSLS_ASSERT_SAFE(source);
     BSLS_ASSERT_SAFE(bmqp_ctrlmsg::PrimaryStatus::E_UNDEFINED !=
@@ -3385,8 +3430,10 @@ void StorageUtil::processReplicaStatusAdvisoryDispatched(
     mqbnet::ClusterNode*            source,
     bmqp_ctrlmsg::NodeStatus::Value status)
 {
+    // executed by *QUEUE_DISPATCHER* thread with the specified 'partitionId'
+
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(fs);
+    BSLS_ASSERT_SAFE(fs && fs->inDispatcherThread());
     BSLS_ASSERT_SAFE(0 <= partitionId);
 
     // If self is *active* primary, force-issue a syncPt.
@@ -3547,9 +3594,9 @@ void StorageUtil::purgeDomainDispatched(
 
     bsl::vector<mqbi::Storage*> domainStorages;
     {
-        const StorageSpMap& partitionStorages = (*storageMapVec)[partitionId];
-
         bslmt::LockGuard<bslmt::Mutex> guard(storagesLock);  // LOCK
+
+        const StorageSpMap& partitionStorages = (*storageMapVec)[partitionId];
         for (StorageSpMap::const_iterator it = partitionStorages.cbegin();
              it != partitionStorages.cend();
              it++) {
@@ -3586,9 +3633,8 @@ void StorageUtil::purgeQueueDispatched(
     // executed by *QUEUE_DISPATCHER* thread with the specified 'fileStore'
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(fileStore->inDispatcherThread());
+    BSLS_ASSERT_SAFE(fileStore && fileStore->inDispatcherThread());
     BSLS_ASSERT_SAFE(purgedQueueResult);
-    BSLS_ASSERT_SAFE(fileStore);
     BSLS_ASSERT_SAFE(storage);
     BSLS_ASSERT_SAFE(fileStore->config().partitionId() ==
                      storage->partitionId());
@@ -3678,6 +3724,8 @@ int StorageUtil::processCommand(mqbcmd::StorageResult*     result,
                                 const bslstl::StringRef& partitionLocation,
                                 bslma::Allocator*        allocator)
 {
+    // executed by cluster *DISPATCHER* thread
+
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(result);
     BSLS_ASSERT_SAFE(fileStores);
@@ -3884,11 +3932,11 @@ void StorageUtil::forceIssueAdvisoryAndSyncPt(mqbc::ClusterData*   clusterData,
                                               mqbnet::ClusterNode* destination,
                                               const PartitionInfo& pinfo)
 {
-    // executed by *DISPATCHER* thread
+    // executed by *QUEUE_DISPATCHER* thread with the specified 'partitionId'
 
     // PRECONDITIONS
+    BSLS_ASSERT_SAFE(fs && fs->inDispatcherThread());
     BSLS_ASSERT_SAFE(clusterData);
-    BSLS_ASSERT_SAFE(fs);
     BSLS_ASSERT_SAFE(pinfo.primary() == clusterData->membership().selfNode());
     BSLS_ASSERT_SAFE(pinfo.primary() == fs->primaryNode());
     BSLS_ASSERT_SAFE(fs->primaryLeaseId() == pinfo.primaryLeaseId());

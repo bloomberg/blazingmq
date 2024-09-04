@@ -142,7 +142,10 @@ Application::Application(bdlmt::EventScheduler* scheduler,
                        1,
                        bsls::TimeInterval(120).totalMilliseconds(),
                        allocator)
-, d_bufferFactory(k_BLOBBUFFER_SIZE, d_allocators.get("BufferFactory"))
+, d_bufferFactory(k_BLOBBUFFER_SIZE,
+                  bsls::BlockGrowth::BSLS_CONSTANT,
+                  d_allocators.get("BufferFactory"))
+
 , d_blobSpPool(bdlf::BindUtil::bind(&createBlob,
                                     &d_bufferFactory,
                                     bdlf::PlaceHolders::_1,   // arena

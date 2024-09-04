@@ -464,8 +464,8 @@ inline bool IncoreClusterStateLedger::isSelfLeader() const
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(
-        d_clusterData_p->cluster()->dispatcher()->inDispatcherThread(
-            d_clusterData_p->cluster()));
+        d_clusterData_p->cluster().dispatcher()->inDispatcherThread(
+            &d_clusterData_p->cluster()));
 
     return d_clusterData_p->electorInfo().isSelfLeader();
 }
@@ -485,8 +485,8 @@ inline bool IncoreClusterStateLedger::isOpen() const
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(
-        d_clusterData_p->cluster()->dispatcher()->inDispatcherThread(
-            d_clusterData_p->cluster()));
+        d_clusterData_p->cluster().dispatcher()->inDispatcherThread(
+            &d_clusterData_p->cluster()));
 
     return d_isOpen;
 }
@@ -503,8 +503,8 @@ inline const mqbsi::Ledger* IncoreClusterStateLedger::ledger() const
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(
-        d_clusterData_p->cluster()->dispatcher()->inDispatcherThread(
-            d_clusterData_p->cluster()));
+        d_clusterData_p->cluster().dispatcher()->inDispatcherThread(
+            &d_clusterData_p->cluster()));
 
     return d_ledger_mp.get();
 }

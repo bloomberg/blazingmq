@@ -293,5 +293,11 @@ bool TestChannel::hasNoMoreWriteCalls() const
     return d_hasNoMoreWriteCalls;
 }
 
+bool TestChannel::closeCallsEmpty() const
+{
+    bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
+    return d_closeCalls.empty();
+}
+
 }  // close package namespace
 }  // close enterprise namespace

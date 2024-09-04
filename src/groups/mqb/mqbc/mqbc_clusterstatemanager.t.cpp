@@ -26,6 +26,7 @@
 #include <mqbi_cluster.h>
 #include <mqbmock_cluster.h>
 #include <mqbmock_clusterstateledger.h>
+#include <mqbmock_storagemanager.h>
 #include <mqbnet_cluster.h>
 #include <mqbnet_elector.h>
 
@@ -91,6 +92,7 @@ struct Tester {
     bslma::ManagedPtr<mqbmock::Cluster>          d_cluster_mp;
     mqbmock::ClusterStateLedger*                 d_clusterStateLedger_p;
     bslma::ManagedPtr<mqbc::ClusterStateManager> d_clusterStateManager_mp;
+    mqbmock::StorageManager                      d_storageManager;
 
   public:
     // CREATORS
@@ -100,6 +102,7 @@ struct Tester {
     , d_cluster_mp(0)
     , d_clusterStateLedger_p(0)
     , d_clusterStateManager_mp(0)
+    , d_storageManager()
     {
         // Create the cluster
         mqbmock::Cluster::ClusterNodeDefs clusterNodeDefs(s_allocator_p);
@@ -173,6 +176,7 @@ struct Tester {
                                           k_WATCHDOG_TIMEOUT_DURATION,
                                           s_allocator_p),
             s_allocator_p);
+        d_clusterStateManager_mp->setStorageManager(&d_storageManager);
 
         // Start the cluster and the cluster state manager
         mwcu::MemOutStream errorDescription;

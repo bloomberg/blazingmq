@@ -967,10 +967,10 @@ inline int CompilationContext::getPropertyIndex(const bsl::string& property,
     if (iter == d_properties.end()) {
         PropertyInfo info = {type, d_properties.size()};
         d_properties.insert(iter, bsl::make_pair(property, info));
-        return info.d_index;  // RETURN
+        return static_cast<int>(info.d_index);  // RETURN
     }
     if (iter->second.d_type == type) {
-        return iter->second.d_index;  // RETURN
+        return static_cast<int>(iter->second.d_index);  // RETURN
     }
     return -1;
 }

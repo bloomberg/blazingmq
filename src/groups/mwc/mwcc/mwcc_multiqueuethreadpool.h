@@ -440,6 +440,8 @@ class MultiQueueThreadPoolConfig {
 
     bsls::TimeInterval d_monitorAlarmTimeout;
 
+    int d_growBy;
+
   public:
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(MultiQueueThreadPoolConfig,
@@ -516,6 +518,9 @@ class MultiQueueThreadPoolConfig {
     MultiQueueThreadPoolConfig<TYPE>&
     setMonitorAlarm(bslstl::StringRef         alarmString,
                     const bsls::TimeInterval& timeout);
+
+    /// Set the `growBy` parameter for the ObjectPool to the specified `value`.
+    MultiQueueThreadPoolConfig<TYPE>& setGrowBy(int value);
 };
 
 // ==========================
@@ -914,6 +919,7 @@ inline MultiQueueThreadPoolConfig<TYPE>::MultiQueueThreadPoolConfig(
 , d_finalizeType(MWCC_FINALIZE_NONE)
 , d_monitorAlarmString(basicAllocator)
 , d_monitorAlarmTimeout()
+, d_growBy(-1)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(!threadPool || threadPool->enabled());
@@ -939,6 +945,7 @@ inline MultiQueueThreadPoolConfig<TYPE>::MultiQueueThreadPoolConfig(
 , d_finalizeType(MWCC_FINALIZE_NONE)
 , d_monitorAlarmString(basicAllocator)
 , d_monitorAlarmTimeout()
+, d_growBy(-1)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(!threadPool || threadPool->enabled());
@@ -965,6 +972,7 @@ inline MultiQueueThreadPoolConfig<TYPE>::MultiQueueThreadPoolConfig(
 , d_finalizeType(other.d_finalizeType)
 , d_monitorAlarmString(other.d_monitorAlarmString, basicAllocator)
 , d_monitorAlarmTimeout(other.d_monitorAlarmTimeout)
+, d_growBy(-1)
 {
     // NOTHING
 }
@@ -1024,6 +1032,15 @@ MultiQueueThreadPoolConfig<TYPE>::setMonitorAlarm(
 
     d_monitorAlarmString  = alarmString;
     d_monitorAlarmTimeout = timeout;
+
+    return *this;
+}
+
+template <typename TYPE>
+inline MultiQueueThreadPoolConfig<TYPE>&
+MultiQueueThreadPoolConfig<TYPE>::setGrowBy(int value)
+{
+    d_growBy = value;
 
     return *this;
 }
@@ -1262,7 +1279,7 @@ inline MultiQueueThreadPool<TYPE>::MultiQueueThreadPool(
                               bdlf::PlaceHolders::_1,
                               // arena
                               bdlf::PlaceHolders::_2),  // allocator
-         -1,
+         config.d_growBy,
          basicAllocator)
 , d_queueEmptyEvent(config.d_objectCreatorFn,
                     config.d_objectResetterFn,

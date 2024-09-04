@@ -302,6 +302,8 @@ int Dispatcher::startContext(bsl::ostream&                    errorDescription,
     //      We should have subcontext per each type of event (PUSH, PUT,
     //      CALLBACK, ACK, ...)
 
+    processorPoolConfig.setGrowBy(64 * 1024);
+
     context->d_processorPool_mp.load(
         new (*d_allocator_p) ProcessorPool(processorPoolConfig, d_allocator_p),
         d_allocator_p);

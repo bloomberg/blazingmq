@@ -193,29 +193,6 @@ bool filterDirect(const mwcst::TableRecords::Record& record)
     return record.type() == mwcst::StatContext::e_TOTAL_VALUE;
 }
 
-/// Functor object returning `true`, i.e., filter out, if the specified 'name'
-/// matches context's name
-class ContextNameMatcher {
-  private:
-    // DATA
-    const bsl::string& d_name;
-
-  public:
-    // CREATORS
-    ContextNameMatcher(const bsl::string& name)
-    : d_name(name)
-    {
-        // NOTHING
-    }
-
-    // ACCESSORS
-    bool
-    operator()(const bslma::ManagedPtr<mwcst::StatContext>& context_mp) const
-    {
-        return (context_mp->name() == d_name);
-    }
-};
-
 }  // close unnamed namespace
 
 // -----------------------------
@@ -439,21 +416,21 @@ QueueStatsDomain::getValue(const mwcst::StatContext& context,
 #undef STAT_SINGLE
 }
 
-QueueStatsDomain::QueueStatsDomain()
-: d_statContext_mp(0)
-, d_subContexts_mp(0)
+QueueStatsDomain::QueueStatsDomain(bslma::Allocator* allocator)
+: d_allocator_p(bslma::Default::allocator(allocator))
+, d_statContext_mp(0)
+, d_subContextsHolder(d_allocator_p)
+, d_subContextsLookup(d_allocator_p)
 {
     // NOTHING
 }
 
-void QueueStatsDomain::initialize(const bmqt::Uri&  uri,
-                                  mqbi::Domain*     domain,
-                                  bslma::Allocator* allocator)
+void QueueStatsDomain::initialize(const bmqt::Uri& uri, mqbi::Domain* domain)
 {
     BSLS_ASSERT_SAFE(!d_statContext_mp && "initialize was already called");
 
     // Create subContext
-    bdlma::LocalSequentialAllocator<2048> localAllocator(allocator);
+    bdlma::LocalSequentialAllocator<2048> localAllocator(d_allocator_p);
 
     d_statContext_mp = domain->queueStatContext()->addSubcontext(
         mwcst::StatContextConfiguration(uri.canonical(), &localAllocator));
@@ -491,9 +468,6 @@ void QueueStatsDomain::initialize(const bmqt::Uri&  uri,
     if (!domain->cluster()->isRemote() &&
         domain->config().mode().isFanoutValue() &&
         domain->config().mode().fanout().publishAppIdMetrics()) {
-        d_subContexts_mp.load(new (*allocator)
-                                  bsl::list<StatSubContextMp>(allocator),
-                              allocator);
         const bsl::vector<bsl::string>& appIDs =
             domain->config().mode().fanout().appIDs();
         for (bsl::vector<bsl::string>::const_iterator cit = appIDs.begin();
@@ -501,7 +475,9 @@ void QueueStatsDomain::initialize(const bmqt::Uri&  uri,
              ++cit) {
             StatSubContextMp subContext = d_statContext_mp->addSubcontext(
                 mwcst::StatContextConfiguration(*cit, &localAllocator));
-            d_subContexts_mp->emplace_back(
+
+            d_subContextsLookup.insert(bsl::make_pair(*cit, subContext.get()));
+            d_subContextsHolder.emplace_back(
                 bslmf::MovableRefUtil::move(subContext));
         }
     }
@@ -609,25 +585,27 @@ void QueueStatsDomain::onEvent(EventType::Enum    type,
 
     BALL_LOG_SET_CATEGORY(k_LOG_CATEGORY);
 
-    if (!d_subContexts_mp) {
+    if (d_subContextsLookup.empty()) {
         BALL_LOGTHROTTLE_WARN(k_MAX_INSTANT_MESSAGES, k_NS_PER_MESSAGE)
-            << "[THROTTLED] No built sub contexts";
+            << "[THROTTLED] No built sub contexts for domain: "
+            << d_statContext_mp->name() << ", appId: " << appId;
         return;  // RETURN
     }
 
-    bsl::list<StatSubContextMp>::iterator it = bsl::find_if(
-        d_subContexts_mp->begin(),
-        d_subContexts_mp->end(),
-        ContextNameMatcher(appId));
-    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(it == d_subContexts_mp->end())) {
+    bsl::unordered_map<bsl::string, mwcst::StatContext*>::iterator it =
+        d_subContextsLookup.find(appId);
+
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(it ==
+                                              d_subContextsLookup.end())) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
         BALL_LOGTHROTTLE_WARN(k_MAX_INSTANT_MESSAGES, k_NS_PER_MESSAGE)
-            << "[THROTTLED] No matching StatContext for appId: " << appId;
+            << "[THROTTLED] No matching StatContext for domain: "
+            << d_statContext_mp->name() << ", appId: " << appId;
         return;  // RETURN
     }
 
-    mwcst::StatContext* appIdContext = it->get();
+    mwcst::StatContext* appIdContext = it->second;
     BSLS_ASSERT_SAFE(appIdContext);
 
     switch (type) {
@@ -678,37 +656,53 @@ void QueueStatsDomain::setQueueContentRaw(bsls::Types::Int64 messages,
 void QueueStatsDomain::updateDomainAppIds(
     const bsl::vector<bsl::string>& appIds)
 {
-    if (!d_subContexts_mp) {
+    if (appIds.empty()) {
+        d_subContextsLookup.clear();
+        d_subContextsHolder.clear();
         return;  // RETURN
     }
 
-    bdlma::LocalSequentialAllocator<2048> localAllocator;
+    bsl::unordered_set<bsl::string> remainingAppIds(appIds.begin(),
+                                                    appIds.end(),
+                                                    d_allocator_p);
 
-    // Add subcontexts for appIds that are not already present
-    for (bsl::vector<bsl::string>::const_iterator cit = appIds.begin();
-         cit != appIds.end();
-         ++cit) {
-        if (bsl::find_if(d_subContexts_mp->begin(),
-                         d_subContexts_mp->end(),
-                         ContextNameMatcher(*cit)) ==
-            d_subContexts_mp->end()) {
-            StatSubContextMp subContext = d_statContext_mp->addSubcontext(
-                mwcst::StatContextConfiguration(*cit, &localAllocator));
-            d_subContexts_mp->emplace_back(
-                bslmf::MovableRefUtil::move(subContext));
+    // 1. Remove subcontexts for unneeded appIds
+    bsl::list<StatSubContextMp>::iterator it = d_subContextsHolder.begin();
+    while (it != d_subContextsHolder.end()) {
+        const bsl::string& ctxAppId = it->get()->name();
+        bsl::unordered_set<bsl::string>::const_iterator sIt =
+            remainingAppIds.find(ctxAppId);
+        if (sIt == remainingAppIds.end()) {
+            // Subcontext for this appId is no longer needed, remove it from
+            // the holder and lookup table
+            d_subContextsLookup.erase(ctxAppId);
+            it = d_subContextsHolder.erase(it);
+        }
+        else {
+            // This appId is needed, but the stat context is already built for
+            // it
+            remainingAppIds.erase(sIt);
+            ++it;
         }
     }
 
-    // Remove subcontexts if appIds are not present in updated AppIds
-    bsl::list<StatSubContextMp>::iterator it = d_subContexts_mp->begin();
-    while (it != d_subContexts_mp->end()) {
-        if (bsl::find(appIds.begin(), appIds.end(), it->get()->name()) ==
-            appIds.end()) {
-            it = d_subContexts_mp->erase(it);
-        }
-        else {
-            ++it;
-        }
+    if (remainingAppIds.empty()) {
+        return;  // RETURN
+    }
+
+    // 2. Add the remaining appIds
+    bdlma::LocalSequentialAllocator<2048> localAllocator(d_allocator_p);
+
+    for (bsl::unordered_set<bsl::string>::const_iterator sIt =
+             remainingAppIds.begin();
+         sIt != remainingAppIds.end();
+         sIt++) {
+        StatSubContextMp subContext = d_statContext_mp->addSubcontext(
+            mwcst::StatContextConfiguration(*sIt, &localAllocator));
+
+        d_subContextsLookup.insert(bsl::make_pair(*sIt, subContext.get()));
+        d_subContextsHolder.emplace_back(
+            bslmf::MovableRefUtil::move(subContext));
     }
 }
 

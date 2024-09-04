@@ -139,12 +139,12 @@ int StoragePrintUtil::listMessages(mqbcmd::QueueContents* queueContents,
 }
 
 void StoragePrintUtil::printRecoveredStorages(
-    bsl::ostream&       out,
-    bslmt::Mutex*       storagesLock,
-    const StorageSpMap& storageMap,
-    int                 partitionId,
-    const bsl::string&  clusterDescription,
-    bsls::Types::Int64  recoveryStartTime)
+    bsl::ostream&            out,
+    bslmt::Mutex*            storagesLock,
+    const StorageSpMap&      storageMap,
+    int                      partitionId,
+    const bsl::string&       clusterDescription,
+    const bsls::Types::Int64 recoveryStartTime)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(storagesLock);

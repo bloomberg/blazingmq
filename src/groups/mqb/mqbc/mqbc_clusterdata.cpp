@@ -53,6 +53,8 @@ mqbc::ClusterDataIdentity clusterIdentity(const bslstl::StringRef& name,
     // Create client identity
     bmqp_ctrlmsg::ClientIdentity identity(allocator);
     if (!isRemote) {
+        BSLS_ASSERT_SAFE(netCluster->selfNode());
+
         identity.protocolVersion() = bmqp::Protocol::k_VERSION;
         identity.sdkVersion()      = bmqscm::Version::versionAsInt();
         identity.clientType()      = bmqp_ctrlmsg::ClientType::E_TCPBROKER;
@@ -144,7 +146,11 @@ ClusterData::ClusterData(
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_allocator_p);
+    BSLS_ASSERT_SAFE(d_scheduler_p);
+    BSLS_ASSERT_SAFE(d_bufferFactory_p);
+    BSLS_ASSERT_SAFE(d_blobSpPool_p);
     BSLS_ASSERT_SAFE(d_cluster_p);
+    BSLS_ASSERT_SAFE(d_transportManager_p);
     BSLS_ASSERT(scheduler->clockType() == bsls::SystemClockType::e_MONOTONIC);
 
     // Initialize the clusterStats object - under the hood this creates a new

@@ -156,6 +156,10 @@ void Cluster::_initializeNetcluster()
                                       : k_LEADER_NODE_ID + 1;
     dynamic_cast<mqbnet::MockCluster*>(d_netCluster_mp.get())
         ->_setSelfNodeId(selfNodeId);
+
+    if (d_isClusterMember) {
+        BSLS_ASSERT_OPT(0 != d_netCluster_mp->selfNode());
+    }
 }
 
 void Cluster::_initializeNodeSessions()
@@ -217,6 +221,12 @@ Cluster::Cluster(bdlbb::BlobBufferFactory* bufferFactory,
 , d_clusterDefinition(allocator)
 , d_itemPool(mqbnet::Channel::k_ITEM_SIZE, allocator)
 , d_channels(allocator)
+, d_negotiator_mp()
+, d_transportManager(&d_scheduler,
+                     bufferFactory,
+                     d_negotiator_mp,
+                     0,  // mqbstat::StatController*
+                     allocator)
 , d_netCluster_mp(0)
 , d_clusterData_mp(0)
 , d_isClusterMember(isClusterMember)
@@ -231,7 +241,12 @@ Cluster::Cluster(bdlbb::BlobBufferFactory* bufferFactory,
 , d_processor()
 {
     // PRECONDITIONS
-    BSLS_ASSERT_OPT(isClusterMember || !isLeader);
+    if (isClusterMember) {
+        BSLS_ASSERT_OPT(!clusterNodeDefs.empty());
+    }
+    else {
+        BSLS_ASSERT_OPT(!isLeader);
+    }
 
     _initializeClusterDefinition(name,
                                  location,
@@ -258,7 +273,7 @@ Cluster::Cluster(bdlbb::BlobBufferFactory* bufferFactory,
                               d_netCluster_mp,
                               this,
                               0,  // domainFactory
-                              0,  // transportManager
+                              &d_transportManager,
                               d_statContext_sp.get(),
                               d_statContexts,
                               d_allocator_p),

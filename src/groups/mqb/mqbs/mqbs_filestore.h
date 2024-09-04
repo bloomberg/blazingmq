@@ -77,6 +77,7 @@
 #include <bslma_usesbslmaallocator.h>
 #include <bslmf_nestedtraitdeclaration.h>
 #include <bsls_assert.h>
+#include <bsls_atomic.h>
 #include <bsls_cpp11.h>
 #include <bsls_types.h>
 
@@ -304,7 +305,7 @@ class FileStore : public DataStore {
 
     mutable AliasedBufferDeleterSpPool d_aliasedBufferDeleterSpPool;
 
-    volatile bool d_isOpen;
+    bsls::AtomicBool d_isOpen;
     // Flag to indicate open/close status
     // of this instance.
 
@@ -608,12 +609,18 @@ class FileStore : public DataStore {
     /// still pending receipt of quorum Receipts.
     void cancelUnreceipted(const DataStoreRecordKey& recordKey);
 
-    /// Send Replication Receipt to the specified `node` confirming the
+    /// Generate Replication Receipt for the specified `node` confirming the
     /// receipt of message with the specified `primaryLeaseId` and
-    /// `sequenceNumber`.
-    void issueReceipt(mqbnet::ClusterNode* node,
-                      unsigned int         primaryLeaseId,
-                      bsls::Types::Uint64  sequenceNumber);
+    /// `sequenceNumber`.  Store cumulative receipt in the specified
+    /// `nodeContext`.
+    NodeContext* generateReceipt(NodeContext*         nodeContext,
+                                 mqbnet::ClusterNode* node,
+                                 unsigned int         primaryLeaseId,
+                                 bsls::Types::Uint64  sequenceNumber);
+
+    /// Send previously generated Replication Receipt to the specified `node`
+    /// using the specified `nodeContext`.
+    void sendReceipt(mqbnet::ClusterNode* node, NodeContext* nodeContext);
 
     /// Insert the specified `record` value by the specified `key` into the
     /// list of outstanding records, and assign to the specified `handle` an
@@ -866,6 +873,10 @@ class FileStore : public DataStore {
     /// the primary for this partition.
     void dispatcherFlush(bool storage, bool queues) BSLS_KEYWORD_OVERRIDE;
 
+    /// Call `onReplicatedBatch` on all associated queues if the storage
+    /// builder is empty (just flushed).
+    void notifyQueuesOnReplicatedBatch();
+
     /// Invoke the specified `functor` with each queue associated to the
     /// partition represented by this FileStore if the partition was
     /// successfully opened.  The behavior is undefined unless invoked from
@@ -914,6 +925,9 @@ class FileStore : public DataStore {
 
     /// Load the summary of this partition to the specified `fileStore`
     /// object.
+    ///
+    /// THREAD: Executed by the queue dispatcher thread associated with the
+    ///         specified `fileStore`'s partitionId.
     void loadSummary(mqbcmd::FileStore* fileStore) const;
 
     // ACCESSORS
