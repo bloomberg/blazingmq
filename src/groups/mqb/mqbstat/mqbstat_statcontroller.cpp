@@ -53,7 +53,6 @@
 #include <bdlbb_blob.h>
 #include <bdlf_bind.h>
 #include <bdlf_placeholder.h>
-#include <bdlma_localsequentialallocator.h>
 #include <bdlmt_eventscheduler.h>
 #include <bdlt_timeunitratio.h>
 #include <bsl_algorithm.h>

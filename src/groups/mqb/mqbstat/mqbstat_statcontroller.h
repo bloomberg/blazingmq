@@ -125,17 +125,14 @@ class StatController {
 
   private:
     // PRIVATE TYPES
-    typedef bslma::ManagedPtr<bdlmt::TimerEventScheduler>  SchedulerMp;
-    typedef bslma::ManagedPtr<mwcst::StatContext>          StatContextMp;
-    typedef bsl::shared_ptr<mwcst::StatContext>            StatContextSp;
-    typedef bslma::ManagedPtr<mwcsys::StatMonitor>         SystemStatMonitorMp;
-    typedef bslma::ManagedPtr<Printer>                     PrinterMp;
-    typedef bslma::ManagedPtr<JsonPrinter>                 JsonPrinterMp;
-    typedef bslma::ManagedPtr<mqbplug::StatPublisher>      StatPublisherMp;
-    typedef bslma::ManagedPtr<mqbplug::StatConsumer>       StatConsumerMp;
-    typedef bsl::list<StatContextMp>                       StatContextList;
-    typedef StatContextList::iterator                      StatContextIt;
-    typedef bsl::unordered_map<bsl::string, StatContextIt> StatContextMap;
+    typedef bslma::ManagedPtr<bdlmt::TimerEventScheduler> SchedulerMp;
+    typedef bslma::ManagedPtr<mwcst::StatContext>         StatContextMp;
+    typedef bsl::shared_ptr<mwcst::StatContext>           StatContextSp;
+    typedef bslma::ManagedPtr<mwcsys::StatMonitor>        SystemStatMonitorMp;
+    typedef bslma::ManagedPtr<Printer>                    PrinterMp;
+    typedef bslma::ManagedPtr<JsonPrinter>                JsonPrinterMp;
+    typedef bslma::ManagedPtr<mqbplug::StatPublisher>     StatPublisherMp;
+    typedef bslma::ManagedPtr<mqbplug::StatConsumer>      StatConsumerMp;
 
     /// Struct containing a statcontext and bool specifying if the
     /// statcontext is managed.

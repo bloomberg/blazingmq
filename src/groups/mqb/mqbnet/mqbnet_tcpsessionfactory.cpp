@@ -683,9 +683,6 @@ void TCPSessionFactory::channelStateCallback(
         else {
             // Keep track of active channels, for logging purposes
             ++d_nbActiveChannels;
-            {
-                bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
-            }
 
             // Register as observer of the channel to get the 'onClose'
             channel->onClose(bdlf::BindUtil::bind(
