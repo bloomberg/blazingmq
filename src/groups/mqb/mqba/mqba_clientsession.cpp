@@ -754,20 +754,20 @@ void ClientSession::onHandleConfiguredDispatched(
             ? streamParamsCtrlMsg.choice().configureQueueStream().qId()
             : streamParamsCtrlMsg.choice().configureStream().qId();
 
-    mwcu::MemOutStream                          logStream(&localAlloc);
     ClientSessionState::QueueStateMap::iterator queueStateIter =
         d_queueSessionManager.queues().find(qId);
     if (queueStateIter != d_queueSessionManager.queues().end()) {
-        logStream << "Configure queue '"
-                  << queueStateIter->second.d_handle_p->queue()->uri() << "'";
+        d_logOpStream << "Configure queue '"
+                      << queueStateIter->second.d_handle_p->queue()->uri()
+                      << "'";
     }
     else {
-        logStream << "Configure queue [qId=" << qId << "]";
+        d_logOpStream << "Configure queue [qId=" << qId << "]";
     }
 
     if (isDisconnected()) {
         // The client is disconnected or the channel is down
-        logOperationTime(logStream.str());
+        logOperationTime();
         return;  // RETURN
     }
 
@@ -831,7 +831,7 @@ void ClientSession::onHandleConfiguredDispatched(
                       << ", request: " << streamParamsCtrlMsg
                       << "]: " << response;
 
-        logOperationTime(logStream.str());
+        logOperationTime();
         return;  // RETURN
     }
 
@@ -842,7 +842,7 @@ void ClientSession::onHandleConfiguredDispatched(
     // Send the response
     sendPacket(d_state.d_schemaEventBuilder.blob(), true);
 
-    logOperationTime(logStream.str());
+    logOperationTime();
 }
 
 void ClientSession::initiateShutdownDispatched(
@@ -1118,21 +1118,27 @@ void ClientSession::closeChannel()
     channel()->close(status);
 }
 
-void ClientSession::logOperationTime(const bsl::string& operation)
+void ClientSession::logOperationTime()
 {
     if (d_beginTimestamp) {
-        const bsls::Types::Int64 elapsed =
-            mwcsys::Time::highResolutionTimer() - d_beginTimestamp;
-        BALL_LOG_INFO << description() << ": " << operation << " took: "
-                      << mwcu::PrintUtil::prettyTimeInterval(elapsed) << " ("
-                      << elapsed << " nanoseconds)";
+        BALL_LOG_INFO_BLOCK
+        {
+            const bsls::Types::Int64 elapsed =
+                mwcsys::Time::highResolutionTimer() - d_beginTimestamp;
+            BALL_LOG_OUTPUT_STREAM
+                << description() << ": " << d_logOpStream.str()
+                << " took: " << mwcu::PrintUtil::prettyTimeInterval(elapsed)
+                << " (" << elapsed << " nanoseconds)";
+        }
         d_beginTimestamp = 0;
     }
     else {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
         BALL_LOG_WARN << "d_beginTimestamp was not initialized for operation: "
-                      << operation;
+                      << d_logOpStream.str();
     }
+
+    d_logOpStream.reset();
 }
 
 void ClientSession::processDisconnectAllQueues(
@@ -1353,9 +1359,8 @@ void ClientSession::openQueueCb(
 
     const bsl::string& queueUri =
         handleParamsCtrlMsg.choice().openQueue().handleParameters().uri();
-    mwcu::MemOutStream logStream(&localAllocator);
-    logStream << "Open queue '" << queueUri << "'";
-    logOperationTime(logStream.str());
+    d_logOpStream << "Open queue '" << queueUri << "'";
+    logOperationTime();
 }
 
 void ClientSession::processCloseQueue(
@@ -1437,9 +1442,8 @@ void ClientSession::closeQueueCb(
 
     const bsl::string& queueUri =
         handleParamsCtrlMsg.choice().closeQueue().handleParameters().uri();
-    mwcu::MemOutStream logStream(&localAllocator);
-    logStream << "Close queue '" << queueUri << "'";
-    logOperationTime(logStream.str());
+    d_logOpStream << "Close queue '" << queueUri << "'";
+    logOperationTime();
 }
 
 void ClientSession::processConfigureStream(
@@ -2601,6 +2605,7 @@ ClientSession::ClientSession(
 , d_shutdownChain(allocator)
 , d_shutdownCallback()
 , d_beginTimestamp(0)
+, d_logOpStream(256, allocator)
 {
     // Register this client to the dispatcher
     mqbi::Dispatcher::ProcessorHandle processor = dispatcher->registerClient(
@@ -2642,7 +2647,8 @@ ClientSession::~ClientSession()
     // Unregister from the dispatcher
     dispatcher()->unregisterClient(this);
 
-    logOperationTime("Close session");
+    d_logOpStream << "Close session";
+    logOperationTime();
 }
 
 // MANIPULATORS

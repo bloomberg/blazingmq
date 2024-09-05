@@ -503,7 +503,10 @@ void TCPSessionFactory::negotiationComplete(
                              d_allocator_p);
         channel->close(status);
 
-        logOpenSessionTime("", channel);
+        bdlma::LocalSequentialAllocator<64> localAlloc(d_allocator_p);
+        mwcu::MemOutStream                  logStream(&localAlloc);
+        logStream << "[channel: '" << channel.get() << "]";
+        logOpenSessionTime(logStream.str(), channel);
         return;  // RETURN
     }
 
@@ -894,11 +897,15 @@ void TCPSessionFactory::logOpenSessionTime(
     }  // close mutex lock guard // UNLOCK
 
     if (begin) {
-        const bsls::Types::Int64 elapsed =
-            mwcsys::Time::highResolutionTimer() - begin;
-        BALL_LOG_INFO << "Open session '" << sessionDescription << "' took: "
-                      << mwcu::PrintUtil::prettyTimeInterval(elapsed) << " ("
-                      << elapsed << " nanoseconds)";
+        BALL_LOG_INFO_BLOCK
+        {
+            const bsls::Types::Int64 elapsed =
+                mwcsys::Time::highResolutionTimer() - begin;
+            BALL_LOG_OUTPUT_STREAM
+                << "Open session '" << sessionDescription
+                << "' took: " << mwcu::PrintUtil::prettyTimeInterval(elapsed)
+                << " (" << elapsed << " nanoseconds)";
+        }
     }
 }
 

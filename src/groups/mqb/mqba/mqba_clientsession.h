@@ -394,6 +394,10 @@ class ClientSession : public mqbnet::Session,
     bsls::Types::Int64 d_beginTimestamp;
     // HiRes timer value of the begin session/queue operation
 
+    mwcu::MemOutStream d_logOpStream;
+    // Stream for constructing session/queue operation log,
+    // used by logOperationTime().
+
   private:
     // NOT IMPLEMENTED
 
@@ -603,10 +607,10 @@ class ClientSession : public mqbnet::Session,
 
     void closeChannel();
 
-    /// Log session/queue operation time for the specified `operation`
-    /// using the stored operation begin timestamp. Reset the begin
-    /// timestamp to 0.
-    void logOperationTime(const bsl::string& operation);
+    /// Log session/queue operation time for the operation stored in
+    /// `d_logOpStream` using the stored operation begin timestamp. Reset the
+    /// begin timestamp to 0 and `d_logOpStream`.
+    void logOperationTime();
 
     // PRIVATE ACCESSORS
 
