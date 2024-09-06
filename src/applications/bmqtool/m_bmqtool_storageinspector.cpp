@@ -128,16 +128,16 @@ bool resetIterator(mqbs::MappedFileDescriptor* mfd,
 /// opened by the iterator.  Verify that the file and iterator are in a
 /// valid state; reset them if this is not the case.  Pass parameters to
 /// indicate how many records to skip and whether that is forward
-/// or backwards.  Return true on success and false on error.
+/// or backwards.
 template <typename CHOICE, typename ITER>
 void iterateNextPosition(CHOICE&                     choice,
                          mqbs::MappedFileDescriptor* mfd,
                          ITER*                       iter,
                          const char*                 filename)
 {
-    int  skip    = -1;
-    bool reverse = false;
-    bool verbose = false;
+    bsls::Types::Uint64 skip    = 0;
+    bool                reverse = false;
+    bool                verbose = false;
 
     switch (choice.selectionId()) {
     case CHOICE::SELECTION_ID_N: {
@@ -158,12 +158,22 @@ void iterateNextPosition(CHOICE&                     choice,
     } break;
     case CHOICE::SELECTION_ID_RECORD: {
         skip = choice.record();
+
+        if (skip >= iter->recordIndex()) {
+            // If the skip is greater than our current index, than we are
+            // iterating forward to reach the specified index.
+            skip -= iter->recordIndex();
+            reverse = false;
+        }
+        else {
+            skip    = iter->recordIndex() - skip;
+            reverse = true;
+        }
     } break;
     case CHOICE::SELECTION_ID_R: {
-        if (skip == -1) {
-            skip = choice.r();
-        }
-        if (skip >= static_cast<int>(iter->recordIndex())) {
+        skip = choice.r();
+
+        if (skip >= iter->recordIndex()) {
             // If the skip is greater than our current index, than we are
             // iterating forward to reach the specified index.
             skip -= iter->recordIndex();
@@ -175,26 +185,28 @@ void iterateNextPosition(CHOICE&                     choice,
         }
     } break;
     case CHOICE::SELECTION_ID_LIST: {
-        skip    = choice.list();
-        verbose = true;
-        if (skip >= 0) {
+        int list = choice.list();
+        verbose  = true;
+        if (list >= 0) {
             reverse = false;
         }
         else {
             reverse = true;
-            skip *= -1;
+            list *= -1;
         }
+        skip = list;
     } break;
     case CHOICE::SELECTION_ID_L: {
-        skip    = choice.l();
-        verbose = true;
-        if (skip >= 0) {
+        int list = choice.l();
+        verbose  = true;
+        if (list >= 0) {
             reverse = false;
         }
         else {
             reverse = true;
-            skip *= -1;
+            list *= -1;
         }
+        skip = list;
     } break;
     default:
         BALL_LOG_ERROR << "Unsupported choice: " << choice.selectionId();
