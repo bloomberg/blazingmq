@@ -384,6 +384,11 @@ class StorageManager : public mqbi::AppKeyGenerator {
                                      mqbnet::ClusterNode* source) = 0;
 
     /// Executed by any thread.
+    virtual void bufferPrimaryStatusAdvisory(
+        const bmqp_ctrlmsg::PrimaryStatusAdvisory& advisory,
+        mqbnet::ClusterNode*                       source) = 0;
+
+    /// Executed by any thread.
     virtual void processPrimaryStatusAdvisory(
         const bmqp_ctrlmsg::PrimaryStatusAdvisory& advisory,
         mqbnet::ClusterNode*                       source) = 0;

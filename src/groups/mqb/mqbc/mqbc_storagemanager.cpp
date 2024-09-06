@@ -1085,6 +1085,25 @@ void StorageManager::processReplicaDataResponse(
         d_cluster_p);
 }
 
+void StorageManager::bufferPrimaryStatusAdvisoryDispatched(
+    const bmqp_ctrlmsg::PrimaryStatusAdvisory& advisory,
+    mqbnet::ClusterNode*                       source)
+{
+    // executed by *QUEUE_DISPATCHER* thread with the specified 'partitionId'
+
+    // PRECONDITIONS
+    const int pid = advisory.partitionId();
+    BSLS_ASSERT_SAFE(0 <= pid && pid < static_cast<int>(d_fileStores.size()));
+    BSLS_ASSERT_SAFE(d_fileStores[pid]->inDispatcherThread());
+
+    BALL_LOG_INFO << d_clusterData_p->identity().description()
+                  << " Partition [" << pid
+                  << "]: Buffering primary status advisory: " << advisory;
+
+    d_bufferedPrimaryStatusAdvisoryInfosVec.at(pid).push_back(
+        bsl::make_pair(advisory, source));
+}
+
 void StorageManager::processShutdownEventDispatched(int partitionId)
 {
     // executed by *QUEUE_DISPATCHER* thread with the specified 'partitionId'
@@ -2399,6 +2418,67 @@ void StorageManager::do_processBufferedLiveData(const PartitionFSMArgsSp& args)
     }
 }
 
+void StorageManager::do_processBufferedPrimaryStatusAdvisories(
+    const PartitionFSMArgsSp& args)
+{
+    // executed by the *QUEUE DISPATCHER* thread associated with the paritionId
+    // contained in 'args'
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(!args->eventsQueue()->empty());
+
+    const PartitionFSM::EventWithData& eventWithData =
+        args->eventsQueue()->front();
+    const EventData& eventDataVec = eventWithData.second;
+
+    BSLS_ASSERT_SAFE(eventDataVec.size() == 1);
+
+    const PartitionFSMEventData& eventData   = eventDataVec[0];
+    const int                    partitionId = eventData.partitionId();
+
+    if (d_cluster_p->isStopping()) {
+        BALL_LOG_WARN << d_clusterData_p->identity().description()
+                      << " Partition [" << partitionId << "]: "
+                      << "Cluster is stopping; skipping processing of "
+                      << "primary status advisory.";
+        return;  // RETURN
+    }
+
+    BALL_LOG_INFO
+        << d_clusterData_p->identity().description() << " Partition ["
+        << partitionId << "]: " << "Processing "
+        << d_bufferedPrimaryStatusAdvisoryInfosVec[partitionId].size()
+        << " buffered primary status advisory.";
+
+    for (PrimaryStatusAdvisoryInfosCIter cit =
+             d_bufferedPrimaryStatusAdvisoryInfosVec[partitionId].cbegin();
+         cit != d_bufferedPrimaryStatusAdvisoryInfosVec[partitionId].cend();
+         ++cit) {
+        BSLS_ASSERT_SAFE(cit->first.partitionId() == partitionId);
+
+        PartitionInfo& pinfo = d_partitionInfoVec[partitionId];
+        if (cit->second->nodeId() != pinfo.primary()->nodeId() ||
+            cit->first.primaryLeaseId() != pinfo.primaryLeaseId()) {
+            BALL_LOG_INFO << d_clusterData_p->identity().description()
+                          << " Partition [" << partitionId
+                          << "]: " << "Ignoring primary status advisory "
+                          << cit->first
+                          << " because primary node or leaseId is invalid. "
+                          << "Self-perceived [prmary, leaseId] is: ["
+                          << pinfo.primary()->nodeDescription() << ","
+                          << pinfo.primaryLeaseId() << "]";
+            continue;  // CONTINUE
+        }
+        pinfo.setPrimaryStatus(cit->first.status());
+        if (bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE == cit->first.status()) {
+            d_fileStores[partitionId]->setPrimary(pinfo.primary(),
+                                                  pinfo.primaryLeaseId());
+        }
+    }
+
+    d_bufferedPrimaryStatusAdvisoryInfosVec[partitionId].clear();
+}
+
 void StorageManager::do_processLiveData(const PartitionFSMArgsSp& args)
 {
     // executed by the *QUEUE DISPATCHER* thread associated with the paritionId
@@ -3276,6 +3356,7 @@ StorageManager::StorageManager(
 , d_appKeysVec(allocator)
 , d_partitionInfoVec(allocator)
 , d_partitionFSMVec(allocator)
+, d_bufferedPrimaryStatusAdvisoryInfosVec(allocator)
 , d_numPartitionsRecoveredFully(0)
 , d_numPartitionsRecoveredQueues(0)
 , d_recoveryStartTimes(allocator)
@@ -3307,6 +3388,9 @@ StorageManager::StorageManager(
     d_storages.resize(partitionCfg.numPartitions());
     d_appKeysVec.resize(partitionCfg.numPartitions());
     d_partitionInfoVec.resize(partitionCfg.numPartitions());
+    d_bufferedPrimaryStatusAdvisoryInfosVec.resize(
+        partitionCfg.numPartitions(),
+        PrimaryStatusAdvisoryInfos(allocator));
     d_recoveryStartTimes.resize(partitionCfg.numPartitions());
     d_nodeToSeqNumCtxMapVec.resize(partitionCfg.numPartitions());
     d_numReplicaDataResponsesReceivedVec.resize(partitionCfg.numPartitions());
@@ -4234,6 +4318,43 @@ void StorageManager::processReceiptEvent(const bmqp::Event&   event,
                                      receipt->primaryLeaseId(),
                                      receipt->sequenceNum(),
                                      source));
+}
+
+void StorageManager::bufferPrimaryStatusAdvisory(
+    const bmqp_ctrlmsg::PrimaryStatusAdvisory& advisory,
+    mqbnet::ClusterNode*                       source)
+{
+    // executed by *ANY* thread
+
+    // PRECONDITION
+    BSLS_ASSERT_SAFE(d_fileStores.size() >
+                     static_cast<size_t>(advisory.partitionId()));
+
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!d_isStarted)) {
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+        BALL_LOG_WARN << d_clusterData_p->identity().description()
+                      << " Partition [" << advisory.partitionId() << "]: "
+                      << " Not buffering primary status advisory as StorageMgr"
+                      << " is not started.";
+        return;  // RETURN
+    }
+
+    if (d_cluster_p->isStopping()) {
+        BALL_LOG_WARN << d_clusterData_p->identity().description()
+                      << " Partition [" << advisory.partitionId() << "]: "
+                      << " Not buffering primary status advisory as cluster"
+                      << " is stopping.";
+        return;  // RETURN
+    }
+
+    mqbs::FileStore* fs = d_fileStores[advisory.partitionId()].get();
+    BSLS_ASSERT_SAFE(fs);
+
+    fs->execute(bdlf::BindUtil::bind(
+        &StorageManager::bufferPrimaryStatusAdvisoryDispatched,
+        this,
+        advisory,
+        source));
 }
 
 void StorageManager::processPrimaryStatusAdvisory(

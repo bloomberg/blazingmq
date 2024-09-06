@@ -257,6 +257,9 @@ class PartitionStateTableActions {
 
     virtual void do_processBufferedLiveData(const ARGS& args) = 0;
 
+    virtual void
+    do_processBufferedPrimaryStatusAdvisories(const ARGS& args) = 0;
+
     virtual void do_processLiveData(const ARGS& args) = 0;
 
     virtual void do_processPut(const ARGS& args) = 0;
@@ -367,7 +370,8 @@ class PartitionStateTableActions {
     void do_cleanupSeqnums_resetReceiveDataCtx_reapplyDetectSelfReplica(
         const ARGS& args);
 
-    void do_replicaDataResponsePull_processBufferedLiveData_stopWatchDog(
+    void
+    do_replicaDataResponsePull_processBufferedLiveData_processBufferedPrimaryStatusAdvisories_stopWatchDog(
         const ARGS& args);
 
     void
@@ -382,7 +386,7 @@ class PartitionStateTableActions {
         const ARGS& args);
 
     void
-    do_replicaDataResponsePush_resetReceiveDataCtx_closeRecoveryFileSet_openStorage_processBufferedLiveData_stopWatchDog(
+    do_replicaDataResponsePush_resetReceiveDataCtx_closeRecoveryFileSet_openStorage_processBufferedLiveData_processBufferedPrimaryStatusAdvisories_stopWatchDog(
         const ARGS& args);
 
     void
@@ -579,10 +583,11 @@ class PartitionStateTable
                 REPLICA_DATA_RQST_PULL,
                 closeRecoveryFileSet_openStorage_startSendDataChunks,
                 REPLICA_HEALING);
-        PST_CFG(REPLICA_HEALING,
-                DONE_SENDING_DATA_CHUNKS,
-                replicaDataResponsePull_processBufferedLiveData_stopWatchDog,
-                REPLICA_HEALED);
+        PST_CFG(
+            REPLICA_HEALING,
+            DONE_SENDING_DATA_CHUNKS,
+            replicaDataResponsePull_processBufferedLiveData_processBufferedPrimaryStatusAdvisories_stopWatchDog,
+            REPLICA_HEALED);
         PST_CFG(
             REPLICA_HEALING,
             ERROR_SENDING_DATA_CHUNKS,
@@ -603,7 +608,7 @@ class PartitionStateTable
         PST_CFG(
             REPLICA_HEALING,
             DONE_RECEIVING_DATA_CHUNKS,
-            replicaDataResponsePush_resetReceiveDataCtx_closeRecoveryFileSet_openStorage_processBufferedLiveData_stopWatchDog,
+            replicaDataResponsePush_resetReceiveDataCtx_closeRecoveryFileSet_openStorage_processBufferedLiveData_processBufferedPrimaryStatusAdvisories_stopWatchDog,
             REPLICA_HEALED);
         PST_CFG(
             REPLICA_HEALING,
@@ -939,11 +944,12 @@ void PartitionStateTableActions<ARGS>::
 
 template <typename ARGS>
 void PartitionStateTableActions<ARGS>::
-    do_replicaDataResponsePull_processBufferedLiveData_stopWatchDog(
+    do_replicaDataResponsePull_processBufferedLiveData_processBufferedPrimaryStatusAdvisories_stopWatchDog(
         const ARGS& args)
 {
     do_replicaDataResponsePull(args);
     do_processBufferedLiveData(args);
+    do_processBufferedPrimaryStatusAdvisories(args);
     do_stopWatchDog(args);
 }
 
@@ -980,7 +986,7 @@ void PartitionStateTableActions<ARGS>::
 
 template <typename ARGS>
 void PartitionStateTableActions<ARGS>::
-    do_replicaDataResponsePush_resetReceiveDataCtx_closeRecoveryFileSet_openStorage_processBufferedLiveData_stopWatchDog(
+    do_replicaDataResponsePush_resetReceiveDataCtx_closeRecoveryFileSet_openStorage_processBufferedLiveData_processBufferedPrimaryStatusAdvisories_stopWatchDog(
         const ARGS& args)
 {
     do_replicaDataResponsePush(args);
@@ -988,6 +994,7 @@ void PartitionStateTableActions<ARGS>::
     do_closeRecoveryFileSet(args);
     do_openStorage(args);
     do_processBufferedLiveData(args);
+    do_processBufferedPrimaryStatusAdvisories(args);
     do_stopWatchDog(args);
 }
 

@@ -1655,17 +1655,32 @@ void ClusterOrchestrator::processPrimaryStatusAdvisory(
     if (d_clusterConfig.clusterAttributes().isFSMWorkflow()) {
         if (pinfo.primaryNode() != source ||
             pinfo.primaryLeaseId() != primaryAdv.primaryLeaseId()) {
-            BALL_LOG_WARN << d_clusterData_p->identity().description()
-                          << ": Partition [" << primaryAdv.partitionId()
-                          << "]: received primary status advisory: "
-                          << primaryAdv
-                          << " from: " << source->nodeDescription()
-                          << ", but self perceived primary and its leaseId are"
-                          << ": ["
-                          << (pinfo.primaryNode()
-                                  ? pinfo.primaryNode()->nodeDescription()
-                                  : "** null **")
-                          << ", " << pinfo.primaryLeaseId() << "].";
+            BALL_LOG_WARN_BLOCK
+            {
+                BALL_LOG_OUTPUT_STREAM
+                    << d_clusterData_p->identity().description()
+                    << ": Partition [" << primaryAdv.partitionId()
+                    << "]: received primary status advisory: " << primaryAdv
+                    << " from: " << source->nodeDescription()
+                    << ", but self perceived primary and its leaseId are"
+                    << ": ["
+                    << (pinfo.primaryNode()
+                            ? pinfo.primaryNode()->nodeDescription()
+                            : "** null **")
+                    << ", " << pinfo.primaryLeaseId() << "].";
+                if (pinfo.primaryNode()) {
+                    BALL_LOG_OUTPUT_STREAM << " Ignoring advisory.";
+                }
+                else {
+                    BALL_LOG_OUTPUT_STREAM << " Since we have not received any"
+                                           << " information regarding the true"
+                                           << " primary, this advisory could "
+                                           << "be from the true one. Will"
+                                           << " buffer the advisory for now.";
+                    d_storageManager_p->bufferPrimaryStatusAdvisory(primaryAdv,
+                                                                    source);
+                }
+            }
             return;  // RETURN
         }
     }

@@ -157,6 +157,16 @@ class StorageManager
 
     typedef ClusterStateQueueInfo::AppIdInfosCIter AppIdInfosCIter;
 
+    /// Vector of pairs of buffered primary status advisories and their source
+    typedef bsl::vector<
+        bsl::pair<bmqp_ctrlmsg::PrimaryStatusAdvisory, mqbnet::ClusterNode*> >
+        PrimaryStatusAdvisoryInfos;
+    typedef PrimaryStatusAdvisoryInfos::const_iterator
+        PrimaryStatusAdvisoryInfosCIter;
+
+    typedef bsl::vector<PrimaryStatusAdvisoryInfos>
+        PrimaryStatusAdvisoryInfosVec;
+
   public:
     // TYPES
     typedef PartitionFSM::PartitionFSMArgsSp PartitionFSMArgsSp;
@@ -343,6 +353,14 @@ class StorageManager
     // THREAD: Except during the ctor, the i-th index of this data member
     //         **must** be accessed in the associated Queue dispatcher thread
     //         for the i-th partitionId.
+
+    /// Vector, indexed by partitionId, of vectors of pairs of buffered primary
+    /// status advisories and their source.
+    ///
+    // THREAD: Except during the ctor, the i-th index of this data member
+    //         **must** be accessed in the associated Queue dispatcher thread
+    //         for the i-th partitionId.
+    PrimaryStatusAdvisoryInfosVec d_bufferedPrimaryStatusAdvisoryInfosVec;
 
     bsls::AtomicInt d_numPartitionsRecoveredFully;
     // Number of partitions whose recovery
@@ -605,6 +623,12 @@ class StorageManager
 
     /// THREAD: Executed by the dispatcher thread for the specified
     ///         `partitionId`.
+    void bufferPrimaryStatusAdvisoryDispatched(
+        const bmqp_ctrlmsg::PrimaryStatusAdvisory& advisory,
+        mqbnet::ClusterNode*                       source);
+
+    /// THREAD: Executed by the dispatcher thread for the specified
+    ///         `partitionId`.
     void processShutdownEventDispatched(int partitionId);
 
     /// Explicitly call `flush` on all FileStores to enforce their GC.
@@ -688,6 +712,9 @@ class StorageManager
 
     virtual void do_processBufferedLiveData(const PartitionFSMArgsSp& args)
         BSLS_KEYWORD_OVERRIDE;
+
+    virtual void do_processBufferedPrimaryStatusAdvisories(
+        const PartitionFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;
 
     virtual void
     do_processLiveData(const PartitionFSMArgsSp& args) BSLS_KEYWORD_OVERRIDE;
@@ -985,6 +1012,11 @@ class StorageManager
     virtual void
     processReceiptEvent(const bmqp::Event&   event,
                         mqbnet::ClusterNode* source) BSLS_KEYWORD_OVERRIDE;
+
+    /// Executed by any thread.
+    virtual void bufferPrimaryStatusAdvisory(
+        const bmqp_ctrlmsg::PrimaryStatusAdvisory& advisory,
+        mqbnet::ClusterNode* source) BSLS_KEYWORD_OVERRIDE;
 
     /// Executed in cluster dispatcher thread.
     virtual void processPrimaryStatusAdvisory(
