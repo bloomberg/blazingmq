@@ -182,7 +182,11 @@ static void test2_multithread()
 
     const int k_NUM_THREADS = 10;
 
-#if defined(__has_feature)
+#ifdef BSLS_PLATFORM_OS_SOLARIS
+    // This test case times out if 'k_NUM_GUIDS' is close to 1 million
+    // (it's unable to complete in 90 seconds).
+    const int k_NUM_GUIDS = 500000;  // 500k
+#elif defined(__has_feature)
     // Avoid timeout under MemorySanitizer
     const int k_NUM_GUIDS = __has_feature(memory_sanitizer) ? 500000    // 500k
                                                             : 1000000;  // 1M
