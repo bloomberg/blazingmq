@@ -690,6 +690,9 @@ void TCPSessionFactory::channelStateCallback(
         }
         else {
             {  // Save begin session timestamp
+               // TODO: it's possible to store this timestamp directly in one
+               // of the mwcio::Channel implementations, so we don't need a
+               // mutex synchronization for them at all.
                 bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
                 d_timestampMap[channel.get()] =
                     mwcsys::Time::highResolutionTimer();
