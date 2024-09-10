@@ -209,16 +209,14 @@ struct ClusterUtil {
     /// Populate the specified `advisory` with information describing a
     /// queue assignment of the specified `uri` living in the specified
     /// `domain`, using the specified `clusterState`, `clusterData`.  Load into
-    /// the specified `key` the unique queue key generated.  AppIds info will
-    /// not be populated if the specified `isCSLMode` is true.
+    /// the specified `key` the unique queue key generated.
     static void populateQueueAssignmentAdvisory(
         bmqp_ctrlmsg::QueueAssignmentAdvisory* advisory,
         mqbu::StorageKey*                      key,
         ClusterState*                          clusterState,
         ClusterData*                           clusterData,
         const bmqt::Uri&                       uri,
-        const mqbi::Domain*                    domain,
-        bool                                   isCSLMode);
+        const mqbi::Domain*                    domain);
 
     /// Populate the specified `advisory` with information describing a
     /// queue unassignment of the specified `uri` having the specified `key`

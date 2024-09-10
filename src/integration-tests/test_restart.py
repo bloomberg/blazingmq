@@ -143,37 +143,33 @@ def test_restart_from_non_FSM_to_FSM(cluster: Cluster):
 
     cluster.stop_nodes()
 
-    # TODO: Disable reconfiguring the cluster for now, as we are resolving a
-    #       compatibility issue as described at
-    #       https://github.com/bloomberg/blazingmq/pull/408
+    # Reconfigure the cluster from non-FSM to FSM mode
+    for broker in cluster.configurator.brokers.values():
+        my_clusters = broker.clusters.my_clusters
+        if len(my_clusters) > 0:
+            my_clusters[0].cluster_attributes.is_cslmode_enabled = True
+            my_clusters[0].cluster_attributes.is_fsmworkflow = True
+    cluster.deploy_domains()
 
-    # # Reconfigure the cluster from non-FSM to FSM mode
-    # for broker in cluster.configurator.brokers.values():
-    #     my_clusters = broker.clusters.my_clusters
-    #     if len(my_clusters) > 0:
-    #         my_clusters[0].cluster_attributes.is_cslmode_enabled = True
-    #         my_clusters[0].cluster_attributes.is_fsmworkflow = True
-    # cluster.deploy_domains()
+    cluster.start_nodes(wait_leader=True, wait_ready=True)
+    # For a standard cluster, states have already been restored as part of
+    # leader re-election.
+    if cluster.is_single_node:
+        producer.wait_state_restored()
 
-    # cluster.start_nodes(wait_leader=True, wait_ready=True)
-    # # For a standard cluster, states have already been restored as part of
-    # # leader re-election.
-    # if cluster.is_single_node:
-    #     producer.wait_state_restored()
+    producer.post(tc.URI_PRIORITY, payload=["msg2"], wait_ack=True, succeed=True)
+    producer.post(tc.URI_FANOUT, payload=["fanout_msg2"], wait_ack=True, succeed=True)
 
-    # producer.post(tc.URI_PRIORITY, payload=["msg2"], wait_ack=True, succeed=True)
-    # producer.post(tc.URI_FANOUT, payload=["fanout_msg2"], wait_ack=True, succeed=True)
+    # Consumer for priority queue
+    consumer = next(proxies).create_client("consumer")
+    consumer.open(tc.URI_PRIORITY, flags=["read"], succeed=True)
+    consumer.wait_push_event()
+    assert wait_until(lambda: len(consumer.list(tc.URI_PRIORITY, block=True)) == 2, 2)
 
-    # # Consumer for priority queue
-    # consumer = next(proxies).create_client("consumer")
-    # consumer.open(tc.URI_PRIORITY, flags=["read"], succeed=True)
-    # consumer.wait_push_event()
-    # assert wait_until(lambda: len(consumer.list(tc.URI_PRIORITY, block=True)) == 2, 2)
-
-    # # Consumer for fanout queue
-    # consumer_fanout = next(proxies).create_client("consumer_fanout")
-    # consumer_fanout.open(tc.URI_FANOUT_FOO, flags=["read"], succeed=True)
-    # consumer_fanout.wait_push_event()
-    # assert wait_until(
-    #     lambda: len(consumer_fanout.list(tc.URI_FANOUT_FOO, block=True)) == 2, 2
-    # )
+    # Consumer for fanout queue
+    consumer_fanout = next(proxies).create_client("consumer_fanout")
+    consumer_fanout.open(tc.URI_FANOUT_FOO, flags=["read"], succeed=True)
+    consumer_fanout.wait_push_event()
+    assert wait_until(
+        lambda: len(consumer_fanout.list(tc.URI_FANOUT_FOO, block=True)) == 2, 2
+    )
