@@ -111,7 +111,7 @@ const unsigned int k_REQUESTED_JOURNAL_SPACE =
 // Above, 3 == 1 journal record being written +
 //             1 journal sync point if rolling over +
 //             1 journal sync point if self needs to issue another sync point
-//             in 'setPrimary' with old values
+//             in 'setActivePrimary' with old values
 
 /// Return a rounded (down) percentage value (range [0-100]) representing
 /// the space in use on a file with the specified `capacity`, currently
@@ -3758,8 +3758,8 @@ int FileStore::issueSyncPointInternal(SyncPointType::Enum type,
                     // New primary and no force issue requested.  Currently,
                     // this check is redundant because we always force issue a
                     // sync point when a primary is chosen (see
-                    // 'setPrimary()'), which always bumps up 'd_sequenceNum'
-                    // to 1.
+                    // 'setActivePrimary()'), which always bumps up
+                    // 'd_sequenceNum' to 1.
 
                     return rc_SUCCESS;  // RETURN
                 }
@@ -6249,7 +6249,7 @@ void FileStore::processStorageEvent(const bsl::shared_ptr<bdlbb::Blob>& blob,
                 // If we are processing a partition-sync event, we have to
                 // bump up the leaseId to that of the message, because we don't
                 // get a separate notification about leaseId (unlike in steady
-                // state when StorageMgr invokes fs.setPrimary()).
+                // state when StorageMgr invokes fs.setActivePrimary()).
 
                 d_primaryLeaseId = recHeader->primaryLeaseId();
 
@@ -6593,8 +6593,8 @@ int FileStore::issueSyncPoint()
     return rc_SUCCESS;
 }
 
-void FileStore::setPrimary(mqbnet::ClusterNode* primaryNode,
-                           unsigned int         primaryLeaseId)
+void FileStore::setActivePrimary(mqbnet::ClusterNode* primaryNode,
+                                 unsigned int         primaryLeaseId)
 {
     // executed by the *DISPATCHER* thread
 

@@ -886,12 +886,12 @@ struct TestHelper {
             ._setDisableBroadcast(true);
         fs.open();
         // TODO: clean this up since its a hack to set replica node as primary!
-        // had to explicitly setPrimary for fileStore because of the assert in
-        // writeRecords which allows writes only if current node is primary for
-        // the fileStore.
+        // had to explicitly setActivePrimary for fileStore because of the
+        // assert in writeRecords which allows writes only if current node is
+        // primary for the fileStore.
         // TODO: set primary to self but also correct it to the right node
         // after writing 'numRecords' records.
-        fs.setPrimary(selfNode, 1U);
+        fs.setActivePrimary(selfNode, 1U);
 
         const mqbu::StorageKey& queueKey =
             writeQueueCreationRecord(handle, &fs, k_PARTITION_ID);

@@ -370,8 +370,8 @@ void StorageManager::setPrimaryStatusForPartitionDispatched(
 
     pinfo.setPrimaryStatus(value);
     if (bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE == value) {
-        d_fileStores[partitionId]->setPrimary(pinfo.primary(),
-                                              pinfo.primaryLeaseId());
+        d_fileStores[partitionId]->setActivePrimary(pinfo.primary(),
+                                                    pinfo.primaryLeaseId());
 
         if (oldValue != bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE &&
             allParitionsAvailable()) {
@@ -2471,8 +2471,9 @@ void StorageManager::do_processBufferedPrimaryStatusAdvisories(
         }
         pinfo.setPrimaryStatus(cit->first.status());
         if (bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE == cit->first.status()) {
-            d_fileStores[partitionId]->setPrimary(pinfo.primary(),
-                                                  pinfo.primaryLeaseId());
+            d_fileStores[partitionId]->setActivePrimary(
+                pinfo.primary(),
+                pinfo.primaryLeaseId());
         }
     }
 

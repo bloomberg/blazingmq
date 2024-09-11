@@ -1442,7 +1442,7 @@ void StorageUtil::onPartitionPrimarySync(
     }
 
     // Broadcast self as active primary of this partition.  This must be done
-    // before invoking 'FileStore::setPrimary'.
+    // before invoking 'FileStore::setActivePrimary'.
     transitionToActivePrimary(pinfo, clusterData, partitionId);
 
     partitionPrimaryStatusCb(partitionId, status, pinfo->primaryLeaseId());
@@ -1450,7 +1450,7 @@ void StorageUtil::onPartitionPrimarySync(
     // Safe to inform partition now.  Note that partition will issue a sync
     // point with old leaseId (if applicable) and another with new leaseId
     // immediately.
-    fs->setPrimary(pinfo->primary(), pinfo->primaryLeaseId());
+    fs->setActivePrimary(pinfo->primary(), pinfo->primaryLeaseId());
 }
 
 void StorageUtil::recoveredQueuesCb(
@@ -3410,7 +3410,7 @@ void StorageUtil::processPrimaryStatusAdvisoryDispatched(
     pinfo->setPrimaryStatus(advisory.status());
 
     if (bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE == advisory.status()) {
-        fs->setPrimary(source, advisory.primaryLeaseId());
+        fs->setActivePrimary(source, advisory.primaryLeaseId());
     }
 }
 
