@@ -213,6 +213,9 @@ class QueueConsumptionMonitor {
     typedef bsl::function<bslma::ManagedPtr<mqbi::StorageIterator>(void)>
         HeadCb;
 
+    typedef bsl::function<void(const mqbu::StorageKey& appKey, const bslma::ManagedPtr<mqbi::StorageIterator>& head)>
+        LoggingCb;
+
   private:
     // PRIVATE TYPES
 
@@ -265,6 +268,8 @@ class QueueConsumptionMonitor {
 
     SubStreamInfoMap d_subStreamInfos;
 
+    LoggingCb d_loggingCb;
+
     // NOT IMPLEMENTED
     QueueConsumptionMonitor(const QueueConsumptionMonitor&) BSLS_CPP11_DELETED;
     QueueConsumptionMonitor&
@@ -306,6 +311,7 @@ class QueueConsumptionMonitor {
     /// `basicAllocator` to supply memory.  If `basicAllocator` is 0, the
     /// currently installed default allocator is used.
     QueueConsumptionMonitor(QueueState*       queueState,
+                            const LoggingCb& loggingCb,
                             bslma::Allocator* allocator);
 
     // MANIPULATORS

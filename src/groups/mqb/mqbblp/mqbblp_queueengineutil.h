@@ -514,6 +514,8 @@ struct QueueEngineUtil_AppState {
     // ACCESSORS
     size_t redeliveryListSize() const;
 
+    size_t putAsideListSize() const;
+
     Routers::Consumer* findQueueHandleContext(mqbi::QueueHandle* handle);
 
     unsigned int upstreamSubQueueId() const;
@@ -693,6 +695,11 @@ inline void RedeliveryList::trim(iterator* cit) const
 inline size_t QueueEngineUtil_AppState::redeliveryListSize() const
 {
     return d_redeliveryList.size();
+}
+
+inline size_t QueueEngineUtil_AppState::putAsideListSize() const
+{
+    return d_putAsideList.size();
 }
 
 inline Routers::Consumer*

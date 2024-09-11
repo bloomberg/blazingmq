@@ -23,6 +23,7 @@
 #include <mqbblp_queuehandlecatalog.h>
 #include <mqbblp_queuestate.h>
 #include <mqbblp_storagemanager.h>
+#include <mqbcmd_humanprinter.h>
 #include <mqbcmd_messages.h>
 #include <mqbi_appkeygenerator.h>
 #include <mqbi_dispatcher.h>
@@ -30,6 +31,7 @@
 #include <mqbs_filestoreprotocol.h>
 #include <mqbs_replicatedstorage.h>
 #include <mqbs_voidstorageiterator.h>
+#include <mqbu_capacitymeter.h>
 
 // BMQ
 #include <bmqp_protocol.h>
@@ -243,7 +245,12 @@ RootQueueEngine::RootQueueEngine(QueueState*             queueState,
                                  const mqbconfm::Domain& domainConfig,
                                  bslma::Allocator*       allocator)
 : d_queueState_p(queueState)
-, d_consumptionMonitor(queueState, allocator)
+, d_consumptionMonitor(queueState,
+                       bdlf::BindUtil::bind(&RootQueueEngine::logAlarmCb,
+                                            this,
+                                            bdlf::PlaceHolders::_1,   // appKey
+                                            bdlf::PlaceHolders::_2),  // host
+                       allocator)
 , d_apps(allocator)
 , d_nullKeyCount(0)
 , d_hasAutoSubscriptions(false)
@@ -288,6 +295,8 @@ int RootQueueEngine::configure(bsl::ostream& errorDescription)
         ,
         rc_AUTO_SUBSCRIPTIONS_ERROR = -3  // Wrong number of auto subscriptions
     };
+
+    BALL_LOG_WARN << "RootQueueEngine::configure";
 
     // Populate map of appId to appKey for statically registered consumers
     size_t numApps = 0;
@@ -379,6 +388,9 @@ int RootQueueEngine::configure(bsl::ostream& errorDescription)
     }
 
     if (!QueueEngineUtil::isBroadcastMode(d_queueState_p->queue())) {
+        BALL_LOG_WARN
+            << "setMaxIdleTime: "
+            << d_queueState_p->queue()->domain()->config().maxIdleTime();
         d_consumptionMonitor.setMaxIdleTime(
             d_queueState_p->queue()->domain()->config().maxIdleTime() *
             bdlt::TimeUnitRatio::k_NANOSECONDS_PER_SECOND);
@@ -1552,6 +1564,177 @@ void RootQueueEngine::onTimer(bsls::Types::Int64 currentTimer)
         d_queueState_p->queue()));
 
     d_consumptionMonitor.onTimer(currentTimer);
+}
+
+void RootQueueEngine::logAlarmCb(
+    const mqbu::StorageKey&                         appKey,
+    const bslma::ManagedPtr<mqbi::StorageIterator>& head) const
+{
+    // executed by the *QUEUE DISPATCHER* thread
+
+    bdlma::LocalSequentialAllocator<2048> localAllocator(0);
+    bsl::vector<mqbi::QueueHandle*>       handles(&localAllocator);
+    d_queueState_p->handleCatalog().loadHandles(&handles);
+
+    bmqt::UriBuilder uriBuilder(d_queueState_p->uri(), &localAllocator);
+    bsl::string      appId;
+
+    if (appKey.isNull()) {
+        appId = bmqp::ProtocolUtil::k_DEFAULT_APP_ID;
+    }
+    else if (d_queueState_p->storage()->hasVirtualStorage(appKey, &appId)) {
+        uriBuilder.setId(appId);
+    }
+
+    bmqt::Uri uri(&localAllocator);
+    uriBuilder.uri(&uri);
+
+    mwcu::MemOutStream ss(&localAllocator);
+
+    int idx          = 1;
+    int numConsumers = 0;
+
+    for (bsl::vector<mqbi::QueueHandle*>::const_iterator it = handles.begin(),
+                                                         last = handles.end();
+         it != last;
+         ++it) {
+        const mqbi::QueueHandle::SubStreams& subStreamInfos =
+            (*it)->subStreamInfos();
+
+        for (mqbi::QueueHandle::SubStreams::const_iterator infoCiter =
+                 subStreamInfos.begin();
+             infoCiter != subStreamInfos.end();
+             ++infoCiter) {
+            const bsl::string& itemAppId = infoCiter->first;
+
+            bool isReader = !d_isFanout &&
+                            bmqt::QueueFlagsUtil::isReader(
+                                (*it)->handleParameters().flags());
+            // Non-fanout mode consumer in the default subStream ?
+            isReader |= d_isFanout && !itemAppId.empty();
+
+            if (!isReader) {
+                continue;  // CONTINUE
+            }
+
+            if (itemAppId != appId) {
+                continue;  // CONTINUE
+            }
+
+            numConsumers += infoCiter->second.d_counts.d_readCount;
+
+            const int level = 2, spacesPerLevel = 2;
+
+            ss << "\n  " << idx++ << ". " << (*it)->client()->description()
+               << mwcu::PrintUtil::newlineAndIndent(level, spacesPerLevel)
+               << "Handle Parameters .....: " << (*it)->handleParameters()
+               << mwcu::PrintUtil::newlineAndIndent(level, spacesPerLevel)
+               << "Unconfirmed messages count: " << (*it)->countUnconfirmed()
+               << mwcu::PrintUtil::newlineAndIndent(level, spacesPerLevel)
+               << "UnconfirmedMonitors ....:";
+
+            const bsl::vector<const mqbu::ResourceUsageMonitor*> monitors =
+                (*it)->unconfirmedMonitors(appId);
+            for (size_t i = 0; i < monitors.size(); ++i) {
+                ss << "\n  " << monitors[i];
+            }
+        }
+    }
+
+    mwcu::MemOutStream out;
+    out << "Queue '" << uri << "' ";
+    d_queueState_p->storage()->capacityMeter()->printShortSummary(out);
+    out << ", max idle time "
+        << mwcu::PrintUtil::prettyTimeInterval(
+               d_queueState_p->queue()->domain()->config().maxIdleTime() *
+               bdlt::TimeUnitRatio::k_NANOSECONDS_PER_SECOND)
+        << " appears to be stuck. It currently has " << numConsumers
+        << " consumers." << ss.str() << "\n";
+
+    // TODO: move to some helper class
+    Apps::const_iterator cItApp = d_apps.findByKey1(appId);
+    if (cItApp != d_apps.end()) {
+        const AppStateSp& app = cItApp->value();
+        out << "\nPut aside list size: " << app->putAsideListSize() << '\n';
+        out << "Redelivery list size: " << app->redeliveryListSize() << '\n';
+        out << "Not delivered number of messages: "
+            << d_queueState_p->storage()->numMessages(app->d_appKey) << '\n';
+
+        // Log consumer subscriptions
+        mqbblp::Routers::QueueRoutingContext& routingContext =
+            app->d_routing_sp->d_queue;
+        mqbcmd::Routing routing;
+        routingContext.loadInternals(&routing);
+        const bsl::vector<mqbcmd::SubscriptionGroup>& subscriptionGroups =
+            routing.subscriptionGroups();
+        // Limit to log only 100 expressions
+        static const size_t k_EXPR_NUM_LIMIT = 100;
+        const size_t exprCountLimit = bsl::min(subscriptionGroups.size(),
+                                               k_EXPR_NUM_LIMIT);
+        if (subscriptionGroups.size() > exprCountLimit) {
+            out << exprCountLimit << " of " << subscriptionGroups.size()
+                << " consumer subscriptions: " << '\n';
+        }
+        else {
+            out << "Consumer subscriptions: " << '\n';
+        }
+        // TODO: use LimitedPrinter
+        for (bsl::vector<mqbcmd::SubscriptionGroup>::const_iterator cIt =
+                 subscriptionGroups.begin();
+             bsl::distance(subscriptionGroups.begin(), cIt) <
+             static_cast<long int>(exprCountLimit);
+             ++cIt) {
+            out << cIt->expression() << '\n';
+        }
+
+        out << "Put aside list GUIDS: " << '\n';
+        for (RedeliveryList::iterator it = app->d_putAsideList.begin(); !app->d_putAsideList.isEnd(it); app->d_putAsideList.next(&it))
+        {
+            out << *it << '\n';
+        }
+        out << "First GUID in Put aside list: " << app->d_putAsideList.first() << '\n';
+        out << "Has message: " <<  d_queueState_p->storage()->hasMessage(app->d_putAsideList.first()) << '\n';
+        mqbi::StorageMessageAttributes attributes;     
+        mqbi::StorageResult::Enum rc = d_queueState_p->storage()->get(&attributes, app->d_putAsideList.first());
+        if (rc == mqbi::StorageResult::Enum::e_SUCCESS)
+        {
+            out << "Attributes: " <<  attributes << '\n';
+        } else {
+            out << "Get Attributes failed: rc= " <<  rc << '\n';
+        }
+    }
+
+    // Print the 10 oldest messages in the queue
+    static const int k_NUM_MSGS = 10;
+    const int        level = 0, spacesPerLevel = 2;
+
+    out << mwcu::PrintUtil::newlineAndIndent(level, spacesPerLevel)
+        << k_NUM_MSGS << " oldest messages in the queue:\n";
+
+    mqbcmd::Result result;
+    mqbs::StoragePrintUtil::listMessages(&result.makeQueueContents(),
+                                         appId,
+                                         0,
+                                         k_NUM_MSGS,
+                                         d_queueState_p->storage());
+    mqbcmd::HumanPrinter::print(out, result);
+
+    if (!head) {
+        return;  // RETURN
+    }
+
+    // Print the current head of the queue
+    mqbi::Storage* const storage = d_queueState_p->storage();
+    out << mwcu::PrintUtil::newlineAndIndent(level, spacesPerLevel)
+        << "Current head of the queue:\n";
+
+    mqbs::StoragePrintUtil::listMessage(&result.makeMessage(), storage, *head);
+
+    mqbcmd::HumanPrinter::print(out, result);
+    out << "\n";
+
+    MWCTSK_ALARMLOG_ALARM("ROOT_QUEUE_ENGINE")
+        << out.str() << MWCTSK_ALARMLOG_END;
 }
 
 void RootQueueEngine::afterAppIdRegistered(
