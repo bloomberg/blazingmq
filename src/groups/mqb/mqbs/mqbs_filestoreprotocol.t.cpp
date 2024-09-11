@@ -286,7 +286,8 @@ static void test1_breathingTest()
 
         // Create MessageRecord, set fields, assert fields
         MessageRecord fh2;
-        fh2.setRefCount(1000)
+        unsigned int  refCount = FileStoreProtocol::k_MAX_MSG_REF_COUNT_HARD;
+        fh2.setRefCount(refCount)
             .setQueueKey(
                 mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
                                  "abcde"))
@@ -299,7 +300,7 @@ static void test1_breathingTest()
             .setCompressionAlgorithmType(
                 bmqt::CompressionAlgorithmType::e_ZLIB)
             .setMagic(0xdeadbeef);
-        ASSERT_EQ(fh2.refCount(), 1000U);
+        ASSERT_EQ(fh2.refCount(), refCount);
         ASSERT(fh2.queueKey() ==
                mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
                                 "abcde"));
