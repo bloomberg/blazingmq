@@ -1702,6 +1702,65 @@ void RootQueueEngine::logAlarmCb(
         } else {
             out << "Get Attributes failed: rc= " <<  rc << '\n';
         }
+        
+        const bmqp::MessagePropertiesInfo& logic = attributes.messagePropertiesInfo();
+        bslma::ManagedPtr<mqbi::StorageIterator> storageIterator;
+        rc = d_queueState_p->storage()->getIterator(&storageIterator, appKey, app->d_putAsideList.first());
+        if (rc != mqbi::StorageResult::Enum::e_SUCCESS)
+        {
+            out << "getIterator failed: rc= " <<  rc << '\n';
+        } 
+
+        {
+            const bsl::shared_ptr<bdlbb::Blob>& appData = storageIterator->appData();
+
+            bmqp::MessageProperties properties;
+            const bdlbb::Blob& blob = *appData.get();
+            int rc = properties.streamIn(blob, logic.isExtended());
+            if (rc) {
+                out << "streamIn failed: rc= " <<  rc << '\n';
+            }
+            out << "Message Properties: " << properties << '\n';
+
+
+            // bmqp::MessagePropertiesIterator iter(&properties);
+            // while (iter.hasNext()) {
+            //     out << "    Name [" << iter.name() << "], Type [" << iter.type()
+            //         << "], Value [" << iter << "]\n";
+            // }
+
+            // const char*  appData    = 0;
+            // unsigned int appDataLen = 0;
+            // unsigned int            propertiesAreaLen = 0;
+            // it->loadApplicationData(&appData, &appDataLen);
+            // int rc = mqbs::FileStoreProtocolPrinter::printMessageProperties(
+            //     &propertiesAreaLen,
+            //     propsOsstr,
+            //     appData,
+            //     bmqp::MessagePropertiesInfo(dh));
+
+        }
+
+
+
+    //StorageIterator
+    // /// Return a reference offering non-modifiable access to the application
+    // /// data associated with the item currently pointed at by this iterator.
+    // /// The behavior is undefined unless `atEnd` returns `false`.
+    // virtual const bsl::shared_ptr<bdlbb::Blob>& appData() const = 0;
+
+    // /// Return a reference offering non-modifiable access to the options
+    // /// associated with the item currently pointed at by this iterator.  The
+    // /// behavior is undefined unless `atEnd` returns `false`.
+    // virtual const bsl::shared_ptr<bdlbb::Blob>& options() const = 0;
+
+    // /// Return a reference offering non-modifiable access to the attributes
+    // /// associated with the message currently pointed at by this iterator.
+    // /// The behavior is undefined unless `atEnd` returns `false`.
+    // virtual const StorageMessageAttributes& attributes() const = 0;
+
+
+
     }
 
     // Print the 10 oldest messages in the queue
