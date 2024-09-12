@@ -34,7 +34,6 @@
 #include <mqbi_queue.h>
 #include <mqbi_queueengine.h>
 #include <mqbi_storage.h>
-#include <mqbs_storageprintutil.h>
 #include <mqbs_virtualstorage.h>
 #include <mqbu_storagekey.h>
 
@@ -208,7 +207,7 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
     /// It logs queue data for the specified `appKey` and `head`.
     void
     logAlarmCb(const mqbu::StorageKey&                         appKey,
-                   const bslma::ManagedPtr<mqbi::StorageIterator>& head) const;
+               const bslma::ManagedPtr<mqbi::StorageIterator>& head) const;
 
   public:
     // TRAITS

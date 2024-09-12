@@ -30,6 +30,7 @@
 #include <mqbi_storage.h>
 #include <mqbs_filestoreprotocol.h>
 #include <mqbs_replicatedstorage.h>
+#include <mqbs_storageprintutil.h>
 #include <mqbs_voidstorageiterator.h>
 #include <mqbu_capacitymeter.h>
 
@@ -249,7 +250,7 @@ RootQueueEngine::RootQueueEngine(QueueState*             queueState,
                        bdlf::BindUtil::bind(&RootQueueEngine::logAlarmCb,
                                             this,
                                             bdlf::PlaceHolders::_1,   // appKey
-                                            bdlf::PlaceHolders::_2),  // host
+                                            bdlf::PlaceHolders::_2),  // head
                        allocator)
 , d_apps(allocator)
 , d_nullKeyCount(0)
@@ -295,8 +296,6 @@ int RootQueueEngine::configure(bsl::ostream& errorDescription)
         ,
         rc_AUTO_SUBSCRIPTIONS_ERROR = -3  // Wrong number of auto subscriptions
     };
-
-    BALL_LOG_WARN << "RootQueueEngine::configure";
 
     // Populate map of appId to appKey for statically registered consumers
     size_t numApps = 0;
@@ -388,9 +387,6 @@ int RootQueueEngine::configure(bsl::ostream& errorDescription)
     }
 
     if (!QueueEngineUtil::isBroadcastMode(d_queueState_p->queue())) {
-        BALL_LOG_WARN
-            << "setMaxIdleTime: "
-            << d_queueState_p->queue()->domain()->config().maxIdleTime();
         d_consumptionMonitor.setMaxIdleTime(
             d_queueState_p->queue()->domain()->config().maxIdleTime() *
             bdlt::TimeUnitRatio::k_NANOSECONDS_PER_SECOND);
@@ -1572,6 +1568,10 @@ void RootQueueEngine::logAlarmCb(
 {
     // executed by the *QUEUE DISPATCHER* thread
 
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
+        d_queueState_p->queue()));
+
     bdlma::LocalSequentialAllocator<2048> localAllocator(0);
     bsl::vector<mqbi::QueueHandle*>       handles(&localAllocator);
     d_queueState_p->handleCatalog().loadHandles(&handles);
@@ -1649,118 +1649,79 @@ void RootQueueEngine::logAlarmCb(
                d_queueState_p->queue()->domain()->config().maxIdleTime() *
                bdlt::TimeUnitRatio::k_NANOSECONDS_PER_SECOND)
         << " appears to be stuck. It currently has " << numConsumers
-        << " consumers." << ss.str() << "\n";
+        << " consumers." << ss.str() << '\n';
 
-    // TODO: move to some helper class
+    mqbi::Storage* const storage = d_queueState_p->storage();
+
     Apps::const_iterator cItApp = d_apps.findByKey1(appId);
     if (cItApp != d_apps.end()) {
         const AppStateSp& app = cItApp->value();
         out << "\nPut aside list size: " << app->putAsideListSize() << '\n';
-        out << "Redelivery list size: " << app->redeliveryListSize() << '\n';
-        out << "Not delivered number of messages: "
-            << d_queueState_p->storage()->numMessages(app->d_appKey) << '\n';
+        out << "Redelivery list size: " << app->redeliveryListSize() << "\n\n";
 
         // Log consumer subscriptions
         mqbblp::Routers::QueueRoutingContext& routingContext =
             app->d_routing_sp->d_queue;
         mqbcmd::Routing routing;
         routingContext.loadInternals(&routing);
-        const bsl::vector<mqbcmd::SubscriptionGroup>& subscriptionGroups =
+        const bsl::vector<mqbcmd::SubscriptionGroup>& subscrGroups =
             routing.subscriptionGroups();
-        // Limit to log only 100 expressions
-        static const size_t k_EXPR_NUM_LIMIT = 100;
-        const size_t exprCountLimit = bsl::min(subscriptionGroups.size(),
-                                               k_EXPR_NUM_LIMIT);
-        if (subscriptionGroups.size() > exprCountLimit) {
-            out << exprCountLimit << " of " << subscriptionGroups.size()
-                << " consumer subscriptions: " << '\n';
+
+        static const size_t k_EXPR_NUM_LIMIT = 50;
+        if (subscrGroups.size() > k_EXPR_NUM_LIMIT) {
+            out << k_EXPR_NUM_LIMIT << " of " << subscrGroups.size()
+                << " consumer subscription expressions: " << '\n';
         }
         else {
-            out << "Consumer subscriptions: " << '\n';
+            out << "Consumer subscription expressions: " << '\n';
         }
-        // TODO: use LimitedPrinter
+        // Limit to log only k_EXPR_NUM_LIMIT expressions
+        size_t currNum = 0;
         for (bsl::vector<mqbcmd::SubscriptionGroup>::const_iterator cIt =
-                 subscriptionGroups.begin();
-             bsl::distance(subscriptionGroups.begin(), cIt) <
-             static_cast<long int>(exprCountLimit);
-             ++cIt) {
+                 subscrGroups.begin();
+             cIt != subscrGroups.end() && currNum < k_EXPR_NUM_LIMIT;
+             ++cIt, ++currNum) {
             out << cIt->expression() << '\n';
         }
+        out << '\n';
 
-        out << "Put aside list GUIDS: " << '\n';
-        for (RedeliveryList::iterator it = app->d_putAsideList.begin(); !app->d_putAsideList.isEnd(it); app->d_putAsideList.next(&it))
-        {
-            out << *it << '\n';
-        }
-        out << "First GUID in Put aside list: " << app->d_putAsideList.first() << '\n';
-        out << "Has message: " <<  d_queueState_p->storage()->hasMessage(app->d_putAsideList.first()) << '\n';
-        mqbi::StorageMessageAttributes attributes;     
-        mqbi::StorageResult::Enum rc = d_queueState_p->storage()->get(&attributes, app->d_putAsideList.first());
-        if (rc == mqbi::StorageResult::Enum::e_SUCCESS)
-        {
-            out << "Attributes: " <<  attributes << '\n';
-        } else {
-            out << "Get Attributes failed: rc= " <<  rc << '\n';
-        }
-        
-        const bmqp::MessagePropertiesInfo& logic = attributes.messagePropertiesInfo();
-        bslma::ManagedPtr<mqbi::StorageIterator> storageIterator;
-        rc = d_queueState_p->storage()->getIterator(&storageIterator, appKey, app->d_putAsideList.first());
-        if (rc != mqbi::StorageResult::Enum::e_SUCCESS)
-        {
-            out << "getIterator failed: rc= " <<  rc << '\n';
-        } 
-
-        {
-            const bsl::shared_ptr<bdlbb::Blob>& appData = storageIterator->appData();
-
+        // Log the first (oldest) message in Put aside list and its properties
+        bslma::ManagedPtr<mqbi::StorageIterator> storageIt_mp;
+        mqbi::StorageResult::Enum                rc = storage->getIterator(
+            &storageIt_mp,
+            appKey,
+            app->d_putAsideList.first());
+        if (rc == mqbi::StorageResult::Enum::e_SUCCESS) {
+            // Log timestamp
+            out << "Oldest message in a 'Put aside' list:\n";
+            mqbcmd::Result result;
+            mqbs::StoragePrintUtil::listMessage(&result.makeMessage(),
+                                                storage,
+                                                *storageIt_mp);
+            mqbcmd::HumanPrinter::print(out, result);
+            out << '\n';
+            // Log message properties
+            const bsl::shared_ptr<bdlbb::Blob>& appData =
+                storageIt_mp->appData();
+            const bmqp::MessagePropertiesInfo& logic =
+                storageIt_mp->attributes().messagePropertiesInfo();
             bmqp::MessageProperties properties;
-            const bdlbb::Blob& blob = *appData.get();
-            int rc = properties.streamIn(blob, logic.isExtended());
-            if (rc) {
-                out << "streamIn failed: rc= " <<  rc << '\n';
+            int ret = properties.streamIn(*appData, logic.isExtended());
+            if (!ret) {
+                out << "Message Properties: " << properties << '\n';
             }
-            out << "Message Properties: " << properties << '\n';
-
-
-            // bmqp::MessagePropertiesIterator iter(&properties);
-            // while (iter.hasNext()) {
-            //     out << "    Name [" << iter.name() << "], Type [" << iter.type()
-            //         << "], Value [" << iter << "]\n";
-            // }
-
-            // const char*  appData    = 0;
-            // unsigned int appDataLen = 0;
-            // unsigned int            propertiesAreaLen = 0;
-            // it->loadApplicationData(&appData, &appDataLen);
-            // int rc = mqbs::FileStoreProtocolPrinter::printMessageProperties(
-            //     &propertiesAreaLen,
-            //     propsOsstr,
-            //     appData,
-            //     bmqp::MessagePropertiesInfo(dh));
-
+            else {
+                BALL_LOG_WARN << "Failed to streamIn MessageProperties, rc = "
+                              << rc;
+            }
         }
-
-
-
-    //StorageIterator
-    // /// Return a reference offering non-modifiable access to the application
-    // /// data associated with the item currently pointed at by this iterator.
-    // /// The behavior is undefined unless `atEnd` returns `false`.
-    // virtual const bsl::shared_ptr<bdlbb::Blob>& appData() const = 0;
-
-    // /// Return a reference offering non-modifiable access to the options
-    // /// associated with the item currently pointed at by this iterator.  The
-    // /// behavior is undefined unless `atEnd` returns `false`.
-    // virtual const bsl::shared_ptr<bdlbb::Blob>& options() const = 0;
-
-    // /// Return a reference offering non-modifiable access to the attributes
-    // /// associated with the message currently pointed at by this iterator.
-    // /// The behavior is undefined unless `atEnd` returns `false`.
-    // virtual const StorageMessageAttributes& attributes() const = 0;
-
-
-
+        else {
+            BALL_LOG_WARN << "Failed to get storage iterator for GUID: "
+                          << app->d_putAsideList.first() << ", rc = " << rc;
+        }
+    }
+    else {
+        BALL_LOG_WARN << "No App found for appId: " << appId;
     }
 
     // Print the 10 oldest messages in the queue
@@ -1775,7 +1736,7 @@ void RootQueueEngine::logAlarmCb(
                                          appId,
                                          0,
                                          k_NUM_MSGS,
-                                         d_queueState_p->storage());
+                                         storage);
     mqbcmd::HumanPrinter::print(out, result);
 
     if (!head) {
@@ -1783,7 +1744,6 @@ void RootQueueEngine::logAlarmCb(
     }
 
     // Print the current head of the queue
-    mqbi::Storage* const storage = d_queueState_p->storage();
     out << mwcu::PrintUtil::newlineAndIndent(level, spacesPerLevel)
         << "Current head of the queue:\n";
 
