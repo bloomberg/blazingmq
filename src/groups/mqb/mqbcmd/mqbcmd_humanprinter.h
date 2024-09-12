@@ -57,6 +57,18 @@ struct HumanPrinter {
                                const Result& result,
                                int           level          = 0,
                                int           spacesPerLevel = 4);
+
+    /// Pretty-print the specified `responses` to the specified `os` at the
+    /// (absolute value of) the optionally specified indentation `level` and
+    /// return a reference to `stream`.  If `level` is specified, optionally
+    /// specify `spacesPerLevel`, the number of spaces per indentation level
+    /// for this and all of its nested objects.  If `level` is negative,
+    /// suppress indentation of the first line.  If `spacesPerLevel` is
+    /// negative format the entire output on one line, suppressing all but
+    /// the initial indentation (as governed by `level`).  If `stream` is
+    /// not valid on entry, this operation has no effect.
+    static bsl::ostream& printResponses(bsl::ostream&            os,
+                                        const RouteResponseList& responseList);
 };
 
 }  // close package namespace

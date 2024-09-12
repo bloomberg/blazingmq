@@ -112,7 +112,8 @@ namespace mqbmock {
 class Cluster : public mqbi::Cluster {
   private:
     // PRIVATE TYPES
-    typedef Cluster::RequestManagerType RequestManagerType;
+    typedef Cluster::RequestManagerType      RequestManagerType;
+    typedef Cluster::MultiRequestManagerType MultiRequestManagerType;
 
     typedef bsl::function<void(const mqbi::DispatcherEvent& event)>
         EventProcessor;
@@ -325,6 +326,10 @@ class Cluster : public mqbi::Cluster {
     /// used by this cluster.
     RequestManagerType& requestManager() BSLS_KEYWORD_OVERRIDE;
 
+    /// Return a reference offering modifiable access to the multi request
+    /// manager used by this cluster.
+    MultiRequestManagerType& multiRequestManager() BSLS_KEYWORD_OVERRIDE;
+
     /// Send the specified `request` with the specified `timeout` to the
     /// specified `target` node.  If `target` is 0, it is the Cluster's
     /// implementation responsibility to decide which node to use (in
@@ -432,6 +437,17 @@ class Cluster : public mqbi::Cluster {
 
     /// Block until scheduler executes all the scheduled callbacks.
     void waitForScheduler();
+
+    void getPrimaryNodes(int*                               rc,
+                         bsl::ostream&                      errorDescription,
+                         bsl::vector<mqbnet::ClusterNode*>* nodes,
+                         bool* isSelfPrimary) const BSLS_KEYWORD_OVERRIDE;
+
+    void getPartitionPrimaryNode(int*                  rc,
+                                 bsl::ostream&         errorDescription,
+                                 mqbnet::ClusterNode** node,
+                                 bool*                 isSelfPrimary,
+                                 int partitionId) const BSLS_KEYWORD_OVERRIDE;
 
     // ACCESSORS
     //   (virtual: mqbi::DispatcherClient)
@@ -577,6 +593,25 @@ inline mqbc::ClusterState& Cluster::_state()
 inline void Cluster::advanceTime(int seconds)
 {
     d_timeSource.advanceTime(bsls::TimeInterval(seconds));
+}
+
+inline void Cluster::getPrimaryNodes(int*          rc,
+                                     bsl::ostream& errorDescription,
+                                     bsl::vector<mqbnet::ClusterNode*>* nodes,
+                                     bool* isSelfPrimary) const
+{
+    // no implementation -- this should never run.
+    BSLS_ASSERT_SAFE(false);
+}
+
+inline void Cluster::getPartitionPrimaryNode(int*          rc,
+                                             bsl::ostream& errorDescription,
+                                             mqbnet::ClusterNode** node,
+                                             bool* isSelfPrimary,
+                                             int   partitionId) const
+{
+    // no implementation -- this should never run.
+    BSLS_ASSERT_SAFE(false);
 }
 
 // ACCESSORS
