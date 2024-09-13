@@ -97,7 +97,6 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
 
     /// (appId, appKeyCount) -> AppStateSp
     typedef mwcc::TwoKeyHashMap<bsl::string, AppKeyCount, AppStateSp> Apps;
-    // typedef bslma::ManagedPtr<mqbi::StorageIterator> StorageIteratorMp;
 
   private:
     // DATA

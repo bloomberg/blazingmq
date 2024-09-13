@@ -102,8 +102,7 @@ static void loggingCb(BSLS_ANNOTATION_UNUSED const mqbu::StorageKey& appKey,
 
     mwcu::MemOutStream out(s_allocator_p);
     out << "Test Alarm";
-    MWCTSK_ALARMLOG_ALARM("QUEUE_CONSUMER_MONITOR")
-        << out.str() << MWCTSK_ALARMLOG_END;
+    MWCTSK_ALARMLOG_ALARM("QUEUE_STUCK") << out.str() << MWCTSK_ALARMLOG_END;
 }
 
 struct Test : mwctst::Test {
@@ -399,7 +398,7 @@ TEST_F(Test, logFormat)
     ASSERT_EQ(logObserver.records().size(), 1u);
     ASSERT(mwctst::ScopedLogObserverUtil::recordMessageMatch(
         logObserver.records().back(),
-        "ALARM \\[QUEUE_CONSUMER_MONITOR\\]",
+        "ALARM \\[QUEUE_STUCK\\]",
         s_allocator_p));
 }
 
@@ -449,7 +448,7 @@ TEST_F(Test, putAliveIdleSendAlive)
     ASSERT_EQ(logObserver.records().size(), ++expectedLogRecords);
     ASSERT(mwctst::ScopedLogObserverUtil::recordMessageMatch(
         logObserver.records().back(),
-        "ALARM \\[QUEUE_CONSUMER_MONITOR\\]",
+        "ALARM \\[QUEUE_STUCK\\]",
         s_allocator_p));
 
     d_monitor.onTimer(2 * k_MAX_IDLE_TIME + 2);
@@ -508,7 +507,7 @@ TEST_F(Test, putAliveIdleWithConsumer)
     ASSERT_EQ(logObserver.records().size(), ++expectedLogRecords);
     ASSERT(mwctst::ScopedLogObserverUtil::recordMessageMatch(
         logObserver.records().back(),
-        "ALARM \\[QUEUE_CONSUMER_MONITOR\\]",
+        "ALARM \\[QUEUE_STUCK\\]",
         s_allocator_p));
 }
 
@@ -682,7 +681,7 @@ TEST_F(Test, putAliveIdleSendAliveTwoSubstreams)
     for (int i = 0; i < 2; ++i) {
         ASSERT(mwctst::ScopedLogObserverUtil::recordMessageMatch(
             logObserver.records().rbegin()[i],
-            "ALARM \\[QUEUE_CONSUMER_MONITOR\\]",
+            "ALARM \\[QUEUE_STUCK\\]",
             s_allocator_p));
     }
 
@@ -786,7 +785,7 @@ TEST_F(Test, putAliveIdleSendAliveTwoSubstreamsTwoConsumers)
          ++iter) {
         ASSERT(mwctst::ScopedLogObserverUtil::recordMessageMatch(
             *iter,
-            "ALARM \\[QUEUE_CONSUMER_MONITOR\\]",
+            "ALARM \\[QUEUE_STUCK\\]",
             s_allocator_p));
     }
 

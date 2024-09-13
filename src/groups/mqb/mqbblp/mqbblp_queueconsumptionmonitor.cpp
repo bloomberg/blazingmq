@@ -19,7 +19,6 @@
 #include <mqbscm_version.h>
 // MBQ
 #include <mqbblp_queuehandlecatalog.h>
-#include <mqbblp_queuestate.h>
 #include <mqbcmd_messages.h>
 #include <mqbi_queueengine.h>
 #include <mqbi_storage.h>
@@ -255,7 +254,6 @@ void QueueConsumptionMonitor::onTimer(bsls::Types::Int64 currentTimer)
         SubStreamInfo& info = iter->second;
         BSLS_ASSERT_SAFE(info.d_headCb);
         bslma::ManagedPtr<mqbi::StorageIterator> head = info.d_headCb();
-
         if (head) {
             if (head->atEnd()) {
                 head.reset();
