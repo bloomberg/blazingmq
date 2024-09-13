@@ -56,7 +56,7 @@ def test_no_alarms_for_a_slow_queue(cluster: Cluster):
     time.sleep(4)
 
     # First, test the alarm
-    assert leader.alarms("QUEUE_CONSUMER_MONITOR", 1)
+    assert leader.alarms("QUEUE_STUCK", 1)
     leader.drain()
 
     # Then test no alarm while consumer1 slowly confirms
@@ -74,4 +74,4 @@ def test_no_alarms_for_a_slow_queue(cluster: Cluster):
     )
 
     time.sleep(1)
-    assert not leader.alarms("QUEUE_CONSUMER_MONITOR", 1)
+    assert not leader.alarms("QUEUE_STUCK", 1)

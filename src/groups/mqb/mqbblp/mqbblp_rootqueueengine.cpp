@@ -1744,21 +1744,20 @@ void RootQueueEngine::logAlarmCb(
                                          storage);
     mqbcmd::HumanPrinter::print(out, result);
 
-    if (!head) {
-        return;  // RETURN
+    if (head) {
+        // Print the current head of the queue
+        out << mwcu::PrintUtil::newlineAndIndent(level, spacesPerLevel)
+            << "Current head of the queue:\n";
+
+        mqbs::StoragePrintUtil::listMessage(&result.makeMessage(),
+                                            storage,
+                                            *head);
+
+        mqbcmd::HumanPrinter::print(out, result);
+        out << "\n";
     }
 
-    // Print the current head of the queue
-    out << mwcu::PrintUtil::newlineAndIndent(level, spacesPerLevel)
-        << "Current head of the queue:\n";
-
-    mqbs::StoragePrintUtil::listMessage(&result.makeMessage(), storage, *head);
-
-    mqbcmd::HumanPrinter::print(out, result);
-    out << "\n";
-
-    MWCTSK_ALARMLOG_ALARM("ROOT_QUEUE_ENGINE")
-        << out.str() << MWCTSK_ALARMLOG_END;
+    MWCTSK_ALARMLOG_ALARM("QUEUE_STUCK") << out.str() << MWCTSK_ALARMLOG_END;
 }
 
 void RootQueueEngine::afterAppIdRegistered(
