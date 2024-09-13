@@ -1572,7 +1572,7 @@ void RootQueueEngine::logAlarmCb(
     BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
         d_queueState_p->queue()));
 
-    bdlma::LocalSequentialAllocator<2048> localAllocator(0);
+    bdlma::LocalSequentialAllocator<4096> localAllocator(d_allocator_p);
     bsl::vector<mqbi::QueueHandle*>       handles(&localAllocator);
     d_queueState_p->handleCatalog().loadHandles(&handles);
 
@@ -1641,7 +1641,7 @@ void RootQueueEngine::logAlarmCb(
         }
     }
 
-    mwcu::MemOutStream out;
+    mwcu::MemOutStream out(&localAllocator);
     out << "Queue '" << uri << "' ";
     d_queueState_p->storage()->capacityMeter()->printShortSummary(out);
     out << ", max idle time "
@@ -1667,57 +1667,62 @@ void RootQueueEngine::logAlarmCb(
         const bsl::vector<mqbcmd::SubscriptionGroup>& subscrGroups =
             routing.subscriptionGroups();
 
-        static const size_t k_EXPR_NUM_LIMIT = 50;
-        if (subscrGroups.size() > k_EXPR_NUM_LIMIT) {
-            out << k_EXPR_NUM_LIMIT << " of " << subscrGroups.size()
-                << " consumer subscription expressions: " << '\n';
-        }
-        else {
-            out << "Consumer subscription expressions: " << '\n';
-        }
-        // Limit to log only k_EXPR_NUM_LIMIT expressions
-        size_t currNum = 0;
-        for (bsl::vector<mqbcmd::SubscriptionGroup>::const_iterator cIt =
-                 subscrGroups.begin();
-             cIt != subscrGroups.end() && currNum < k_EXPR_NUM_LIMIT;
-             ++cIt, ++currNum) {
-            out << cIt->expression() << '\n';
-        }
-        out << '\n';
-
-        // Log the first (oldest) message in Put aside list and its properties
-        bslma::ManagedPtr<mqbi::StorageIterator> storageIt_mp;
-        mqbi::StorageResult::Enum                rc = storage->getIterator(
-            &storageIt_mp,
-            appKey,
-            app->d_putAsideList.first());
-        if (rc == mqbi::StorageResult::Enum::e_SUCCESS) {
-            // Log timestamp
-            out << "Oldest message in a 'Put aside' list:\n";
-            mqbcmd::Result result;
-            mqbs::StoragePrintUtil::listMessage(&result.makeMessage(),
-                                                storage,
-                                                *storageIt_mp);
-            mqbcmd::HumanPrinter::print(out, result);
-            out << '\n';
-            // Log message properties
-            const bsl::shared_ptr<bdlbb::Blob>& appData =
-                storageIt_mp->appData();
-            const bmqp::MessagePropertiesInfo& logic =
-                storageIt_mp->attributes().messagePropertiesInfo();
-            bmqp::MessageProperties properties;
-            int ret = properties.streamIn(*appData, logic.isExtended());
-            if (!ret) {
-                out << "Message Properties: " << properties << '\n';
+        if (!subscrGroups.empty()) {
+            static const size_t k_EXPR_NUM_LIMIT = 50;
+            if (subscrGroups.size() > k_EXPR_NUM_LIMIT) {
+                out << k_EXPR_NUM_LIMIT << " of " << subscrGroups.size()
+                    << " consumer subscription expressions: " << '\n';
             }
             else {
-                BALL_LOG_WARN << "Failed to streamIn MessageProperties, rc = "
-                              << rc;
+                out << "Consumer subscription expressions: " << '\n';
             }
+            // Limit to log only k_EXPR_NUM_LIMIT expressions
+            size_t currNum = 0;
+            for (bsl::vector<mqbcmd::SubscriptionGroup>::const_iterator cIt =
+                     subscrGroups.begin();
+                 cIt != subscrGroups.end() && currNum < k_EXPR_NUM_LIMIT;
+                 ++cIt, ++currNum) {
+                out << cIt->expression() << '\n';
+            }
+            out << '\n';
         }
-        else {
-            BALL_LOG_WARN << "Failed to get storage iterator for GUID: "
-                          << app->d_putAsideList.first() << ", rc = " << rc;
+
+        // Log the first (oldest) message in Put aside list and its properties
+        if (!app->d_putAsideList.empty()) {
+            bslma::ManagedPtr<mqbi::StorageIterator> storageIt_mp;
+            mqbi::StorageResult::Enum                rc = storage->getIterator(
+                &storageIt_mp,
+                appKey,
+                app->d_putAsideList.first());
+            if (rc == mqbi::StorageResult::Enum::e_SUCCESS) {
+                // Log timestamp
+                out << "Oldest message in a 'Put aside' list:\n";
+                mqbcmd::Result result;
+                mqbs::StoragePrintUtil::listMessage(&result.makeMessage(),
+                                                    storage,
+                                                    *storageIt_mp);
+                mqbcmd::HumanPrinter::print(out, result);
+                out << '\n';
+                // Log message properties
+                const bsl::shared_ptr<bdlbb::Blob>& appData =
+                    storageIt_mp->appData();
+                const bmqp::MessagePropertiesInfo& logic =
+                    storageIt_mp->attributes().messagePropertiesInfo();
+                bmqp::MessageProperties properties;
+                int ret = properties.streamIn(*appData, logic.isExtended());
+                if (!ret) {
+                    out << "Message Properties: " << properties << '\n';
+                }
+                else {
+                    BALL_LOG_WARN
+                        << "Failed to streamIn MessageProperties, rc = " << rc;
+                }
+            }
+            else {
+                BALL_LOG_WARN << "Failed to get storage iterator for GUID: "
+                              << app->d_putAsideList.first()
+                              << ", rc = " << rc;
+            }
         }
     }
     else {

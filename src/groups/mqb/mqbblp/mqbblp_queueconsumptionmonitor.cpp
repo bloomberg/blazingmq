@@ -30,7 +30,6 @@
 #include <bmqt_uri.h>
 
 // MWC
-#include <mwctsk_alarmlog.h>
 #include <mwcu_memoutstream.h>
 #include <mwcu_printutil.h>
 
@@ -276,8 +275,6 @@ void QueueConsumptionMonitor::onTimer(bsls::Types::Int64 currentTimer)
                 continue;  // CONTINUE
             }
 
-            BALL_LOG_WARN << "info.d_messageSent || !head, d_messageSent: "
-                          << info.d_messageSent;
             BSLS_ASSERT_SAFE(info.d_state == State::e_ALIVE);
             continue;  // CONTINUE
         }

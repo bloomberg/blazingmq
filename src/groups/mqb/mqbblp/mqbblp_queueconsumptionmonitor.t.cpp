@@ -39,6 +39,7 @@
 #include <bmqt_queueflags.h>
 
 // MWC
+#include <mwctsk_alarmlog.h>
 #include <mwctst_scopedlogobserver.h>
 #include <mwctst_testhelper.h>
 #include <mwcu_memoutstream.h>
@@ -91,6 +92,18 @@ ClientContext::ClientContext()
 ClientContext::~ClientContext()
 {
     // NOTHING
+}
+
+static void loggingCb(BSLS_ANNOTATION_UNUSED const mqbu::StorageKey& appKey,
+                      BSLS_ANNOTATION_UNUSED const
+                          bslma::ManagedPtr<mqbi::StorageIterator>& head)
+{
+    BALL_LOG_SET_CATEGORY("MQBBLP.QUEUECONSUMPTIONMONITORTEST");
+
+    mwcu::MemOutStream out(s_allocator_p);
+    out << "Test Alarm";
+    MWCTSK_ALARMLOG_ALARM("QUEUE_CONSUMER_MONITOR")
+        << out.str() << MWCTSK_ALARMLOG_END;
 }
 
 struct Test : mwctst::Test {
@@ -152,7 +165,7 @@ Test::Test()
                d_partitionId,
                &d_domain,
                s_allocator_p)
-, d_monitor(&d_queueState, s_allocator_p)
+, d_monitor(&d_queueState, &loggingCb, s_allocator_p)
 , d_storage(d_queue.uri(),
             mqbu::StorageKey::k_NULL_KEY,
             mqbs::DataStore::k_INVALID_PARTITION_ID,
@@ -388,10 +401,6 @@ TEST_F(Test, logFormat)
         logObserver.records().back(),
         "ALARM \\[QUEUE_CONSUMER_MONITOR\\]",
         s_allocator_p));
-    ASSERT(mwctst::ScopedLogObserverUtil::recordMessageMatch(
-        logObserver.records().back(),
-        "Queue '.*'",
-        s_allocator_p));
 }
 
 TEST_F(Test, putAliveIdleSendAlive)
@@ -441,10 +450,6 @@ TEST_F(Test, putAliveIdleSendAlive)
     ASSERT(mwctst::ScopedLogObserverUtil::recordMessageMatch(
         logObserver.records().back(),
         "ALARM \\[QUEUE_CONSUMER_MONITOR\\]",
-        s_allocator_p));
-    ASSERT(mwctst::ScopedLogObserverUtil::recordMessageMatch(
-        logObserver.records().back(),
-        "0 consumers",
         s_allocator_p));
 
     d_monitor.onTimer(2 * k_MAX_IDLE_TIME + 2);
@@ -503,19 +508,7 @@ TEST_F(Test, putAliveIdleWithConsumer)
     ASSERT_EQ(logObserver.records().size(), ++expectedLogRecords);
     ASSERT(mwctst::ScopedLogObserverUtil::recordMessageMatch(
         logObserver.records().back(),
-        "ALARM \\[QUEUE_CONSUMER_MONITOR\\].*It currently has 2 consumers",
-        s_allocator_p));
-    ASSERT(mwctst::ScopedLogObserverUtil::recordMessageMatch(
-        logObserver.records().back(),
-        "test consumer 1",
-        s_allocator_p));
-    ASSERT(mwctst::ScopedLogObserverUtil::recordMessageMatch(
-        logObserver.records().back(),
-        "test consumer 2",
-        s_allocator_p));
-    ASSERT(!mwctst::ScopedLogObserverUtil::recordMessageMatch(
-        logObserver.records().back(),
-        "test producer",
+        "ALARM \\[QUEUE_CONSUMER_MONITOR\\]",
         s_allocator_p));
 }
 
@@ -691,10 +684,6 @@ TEST_F(Test, putAliveIdleSendAliveTwoSubstreams)
             logObserver.records().rbegin()[i],
             "ALARM \\[QUEUE_CONSUMER_MONITOR\\]",
             s_allocator_p));
-        ASSERT(mwctst::ScopedLogObserverUtil::recordMessageMatch(
-            logObserver.records().rbegin()[i],
-            "0 consumers",
-            s_allocator_p));
     }
 
     d_monitor.onTimer(2 * k_MAX_IDLE_TIME + 2);
@@ -797,21 +786,8 @@ TEST_F(Test, putAliveIdleSendAliveTwoSubstreamsTwoConsumers)
          ++iter) {
         ASSERT(mwctst::ScopedLogObserverUtil::recordMessageMatch(
             *iter,
-            "ALARM \\[QUEUE_CONSUMER_MONITOR\\] Queue "
-            "'bmq://bmq.test.local/test_queue\\?id=app\\d'",
+            "ALARM \\[QUEUE_CONSUMER_MONITOR\\]",
             s_allocator_p));
-        ASSERT(
-            mwctst::ScopedLogObserverUtil::recordMessageMatch(*iter,
-                                                              "1 consumers",
-                                                              s_allocator_p));
-        ASSERT(mwctst::ScopedLogObserverUtil::recordMessageMatch(
-            *iter,
-            "test consumer \\d",
-            s_allocator_p));
-        ASSERT(
-            !mwctst::ScopedLogObserverUtil::recordMessageMatch(*iter,
-                                                               "test producer",
-                                                               s_allocator_p));
     }
 
     d_monitor.onTimer(2 * k_MAX_IDLE_TIME + 2);
