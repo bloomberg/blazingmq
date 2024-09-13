@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - enhance-alarm-log
   pull_request:
     branches:
       - main
