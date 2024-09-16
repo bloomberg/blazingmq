@@ -285,15 +285,12 @@ TCPSessionFactory::channelStatContextCreator(
     int peerAddress;
     channel->properties().load(&peerAddress, k_CHANNEL_PROPERTY_PEER_IP);
 
-    ntsa::Ipv4Address ipv4Address(static_cast<bsl::uint32_t>(peerAddress));
-    ntsa::IpAddress   ipAddress(ipv4Address);
-    mqbstat::StatController::ChannelSelector::Enum selector =
-        mwcio::ChannelUtil::isLocalHost(ipAddress)
-            ? mqbstat::StatController::ChannelSelector::e_REMOTE
-            : mqbstat::StatController::ChannelSelector::e_LOCAL;
-
+    ntsa::Ipv4Address   ipv4Address(static_cast<bsl::uint32_t>(peerAddress));
+    ntsa::IpAddress     ipAddress(ipv4Address);
     mwcst::StatContext* parent = d_statController_p->channelsStatContext(
-        selector);
+        mwcio::ChannelUtil::isLocalHost(ipAddress)
+            ? mqbstat::StatController::ChannelSelector::e_LOCAL
+            : mqbstat::StatController::ChannelSelector::e_REMOTE);
     BSLS_ASSERT_SAFE(parent);
 
     bsl::string endpoint(d_allocator_p), port(d_allocator_p);
@@ -730,7 +727,7 @@ void TCPSessionFactory::onClose(const bsl::shared_ptr<mwcio::Channel>& channel,
             channelInfo = it->second;
             d_channels.erase(it);
         }
-        d_ports.deleteChannelContext(port);
+        d_ports.onDeleteChannelContext(port);
     }  // close mutex lock guard                                      // UNLOCK
 
     if (!channelInfo) {
@@ -1472,7 +1469,7 @@ TCPSessionFactory::PortManager::addChannelContext(mwcst::StatContext* parent,
     return channelStatContext;
 }
 
-void TCPSessionFactory::PortManager::deleteChannelContext(
+void TCPSessionFactory::PortManager::onDeleteChannelContext(
     const bsl::string& port)
 {
     // Lookup the port's StatContext and remove it from the internal containers

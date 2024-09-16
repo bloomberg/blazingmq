@@ -231,29 +231,35 @@ class TCPSessionFactory {
       private:
         // PRIVATE DATA
 
+        /// A map of all ports
         PortMap d_portMap;
-        // A map of all ports
 
-        // Regex used to find partitionId.
+        /// Regex used to find partitionId.
         bdlpcre::RegEx d_regex;
 
+        /// Allocator to use
         bslma::Allocator* d_allocator_p;
-        // Allocator to use
 
       public:
         // CREATORS
         explicit PortManager(bslma::Allocator* allocator = 0);
 
         // PUBLIC METHODS
+        /// Create a sub context of the specified 'parent' with the specified
+        /// 'endpoint' as the StatContext's name. Increases the number of
+        /// channels on the specified 'port'.
         bslma::ManagedPtr<mwcst::StatContext>
         addChannelContext(mwcst::StatContext* parent,
                           const bsl::string&  endpoint,
                           const bsl::string&  port);
 
-        void deleteChannelContext(const bsl::string& port);
+        /// Handle the deletion of a StatContext associated with a channel
+        /// connected to the specified 'port'.
+        void onDeleteChannelContext(const bsl::string& port);
 
         /// Parse the specified `endpoint` string and try to find the
-        /// port inside.  Return the port on success, assert on fail.
+        /// port inside.  Return the port on success or empty string_view
+        /// otherwise.
         bsl::string_view extract(const bsl::string& endpoint) const;
     };
 
