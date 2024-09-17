@@ -89,6 +89,9 @@ void Cluster::_initializeClusterDefinition(
     BSLS_ASSERT_OPT(!d_isStarted &&
                     "_initializeClusterDefinition() must be called before"
                     " start()");
+    if (isFSMWorkflow) {
+        BSLS_ASSERT_SAFE(isCSLMode);
+    }
 
     d_clusterDefinition.name() = name;
 
