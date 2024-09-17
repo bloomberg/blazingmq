@@ -1667,24 +1667,28 @@ void RootQueueEngine::logAlarmCb(
         const bsl::vector<mqbcmd::SubscriptionGroup>& subscrGroups =
             routing.subscriptionGroups();
 
-        if (!subscrGroups.empty()) {
-            static const size_t k_EXPR_NUM_LIMIT = 50;
-            if (subscrGroups.size() > k_EXPR_NUM_LIMIT) {
-                out << k_EXPR_NUM_LIMIT << " of " << subscrGroups.size()
-                    << " consumer subscription expressions: " << '\n';
+        // Limit to log only k_EXPR_NUM_LIMIT expressions
+        static const size_t k_EXPR_NUM_LIMIT = 50;
+        ss.reset();
+        size_t exprNum = 0;
+        for (bsl::vector<mqbcmd::SubscriptionGroup>::const_iterator cIt =
+                 subscrGroups.begin();
+             cIt != subscrGroups.end() && exprNum < k_EXPR_NUM_LIMIT;
+             ++cIt) {
+            if (!cIt->expression().empty()) {
+                ss << cIt->expression() << '\n';
+                ++exprNum;
+            }
+        }
+        if (exprNum) {
+            if (exprNum == k_EXPR_NUM_LIMIT) {
+                out << k_EXPR_NUM_LIMIT << " of "
+                    << " consumer subscription expressions: ";
             }
             else {
-                out << "Consumer subscription expressions: " << '\n';
+                out << "Consumer subscription expressions: ";
             }
-            // Limit to log only k_EXPR_NUM_LIMIT expressions
-            size_t currNum = 0;
-            for (bsl::vector<mqbcmd::SubscriptionGroup>::const_iterator cIt =
-                     subscrGroups.begin();
-                 cIt != subscrGroups.end() && currNum < k_EXPR_NUM_LIMIT;
-                 ++cIt, ++currNum) {
-                out << cIt->expression() << '\n';
-            }
-            out << '\n';
+            out << '\n' << ss.str() << '\n';
         }
 
         // Log the first (oldest) message in Put aside list and its properties
