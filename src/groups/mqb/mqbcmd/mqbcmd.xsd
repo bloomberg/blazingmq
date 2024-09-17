@@ -42,6 +42,52 @@
     </restriction>
   </simpleType>
 
+  <complexType name="RouteResponse">
+    <annotation>
+      <documentation>
+        A report of a command routed to a particular node.
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name="sourceNodeDescription"   type="xs:string"/>
+      <element name="response" type="xs:string"/>
+    </sequence>
+  </complexType>
+
+  <complexType name="RouteResponseList">
+    <annotation>
+      <documentation>
+        A list of the textual responses from a routed command.
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name="responses" type="tns:RouteResponse" maxOccurs="unbounded" minOccurs="0"/>
+    </sequence>
+  </complexType>
+
+  <complexType name="RouteResponseResult">
+    <annotation>
+      <documentation>
+        A response from a routed command containing the decoded result.
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name="sourceNodeDescription" type="xs:string"/>
+      <element name="result" type="tns:Result"/>
+    </sequence>
+  </complexType>
+
+  <complexType name="RouteResponseResultList">
+    <annotation>
+      <documentation>
+        A list of responses containing decoded results.
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name="responses" type="tns:RouteResponseResult" maxOccurs="unbounded" minOccurs="0"/>
+    </sequence>
+  </complexType>
+
   <complexType name="InternalResult">
     <annotation>
       <documentation>
@@ -802,7 +848,7 @@
   <complexType name="ElectorCommand">
     <choice>
       <element name="setTunable"   type="tns:SetTunable"/>
-      <element name="getTunable"   type="xs:string"/>
+      <element name="getTunable"   type="tns:GetTunable"/>
       <element name="listTunables" type="tns:Void"/>
     </choice>
 </complexType>
@@ -810,7 +856,7 @@
   <complexType name="ReplicationCommand">
     <choice>
       <element name="setTunable"   type="tns:SetTunable"/>
-      <element name="getTunable"   type="xs:string"/>
+      <element name="getTunable"   type="tns:GetTunable"/>
       <element name="listTunables" type="tns:Void"/>
     </choice>
   </complexType>
@@ -1037,6 +1083,20 @@
     <sequence>
       <element name="name"  type="xs:string"/>
       <element name="value" type="tns:Value"/>
+      <choice>
+        <element name="all" type="tns:Void"/>
+        <element name="self" type="tns:Void"/>
+      </choice>
+    </sequence>
+  </complexType>
+
+  <complexType name="GetTunable">
+    <sequence>
+      <element name="name"  type="xs:string"/>
+      <choice>
+        <element name="all" type="tns:Void"/>
+        <element name="self" type="tns:Void"/>
+      </choice>
     </sequence>
   </complexType>
 
