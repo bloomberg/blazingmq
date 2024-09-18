@@ -1392,6 +1392,16 @@ ntsa::Endpoint NtcChannel::peerEndpoint() const
     }
 }
 
+ntsa::Endpoint NtcChannel::sourceEndpoint() const
+{
+    if (d_streamSocket_sp) {
+        return d_streamSocket_sp->sourceEndpoint();
+    }
+    else {
+        return ntsa::Endpoint();
+    }
+}
+
 const bsl::string& NtcChannel::peerUri() const
 {
     return d_peerUri;

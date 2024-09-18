@@ -97,7 +97,6 @@
 // BDE
 #include <bdlbb_blob.h>
 #include <bdlmt_eventscheduler.h>
-#include <bdlpcre_regex.h>
 #include <bsl_functional.h>
 #include <bsl_memory.h>
 #include <bsl_ostream.h>
@@ -226,16 +225,13 @@ class TCPSessionFactory {
             bsl::shared_ptr<mwcst::StatContext> d_portContext;
             bsl::size_t                         d_numChannels;
         };
-        typedef bsl::unordered_map<bsl::string, PortContext> PortMap;
+        typedef bsl::unordered_map<bsl::uint16_t, PortContext> PortMap;
 
       private:
         // PRIVATE DATA
 
         /// A map of all ports
         PortMap d_portMap;
-
-        /// Regex used to find partitionId.
-        bdlpcre::RegEx d_regex;
 
         /// Allocator to use
         bslma::Allocator* d_allocator_p;
@@ -251,16 +247,11 @@ class TCPSessionFactory {
         bslma::ManagedPtr<mwcst::StatContext>
         addChannelContext(mwcst::StatContext* parent,
                           const bsl::string&  endpoint,
-                          const bsl::string&  port);
+                          const bsl::uint16_t port);
 
         /// Handle the deletion of a StatContext associated with a channel
         /// connected to the specified 'port'.
-        void onDeleteChannelContext(const bsl::string& port);
-
-        /// Parse the specified `endpoint` string and try to find the
-        /// port inside.  Return the port on success or empty string_view
-        /// otherwise.
-        bsl::string_view extract(const bsl::string& endpoint) const;
+        void onDeleteChannelContext(const bsl::uint16_t port);
     };
 
     typedef bsl::shared_ptr<ChannelInfo> ChannelInfoSp;

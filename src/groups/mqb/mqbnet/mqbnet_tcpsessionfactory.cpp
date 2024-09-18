@@ -157,12 +157,19 @@ void ntcChannelPreCreation(
     BSLS_ANNOTATION_UNUSED const
         bsl::shared_ptr<mwcio::ChannelFactory::OpHandle>& operationHandle)
 {
-    ntsa::Endpoint peerEndpoint = channel->peerEndpoint();
+    ntsa::Endpoint peerEndpoint   = channel->peerEndpoint();
+    ntsa::Endpoint sourceEndpoint = channel->sourceEndpoint();
 
     if (peerEndpoint.isIp() && peerEndpoint.ip().host().isV4()) {
         channel->properties().set(
             TCPSessionFactory::k_CHANNEL_PROPERTY_PEER_IP,
             static_cast<int>(peerEndpoint.ip().host().v4().value()));
+    }
+
+    if (sourceEndpoint.isIp()) {
+        channel->properties().set(
+            TCPSessionFactory::k_CHANNEL_PROPERTY_LOCAL_PORT,
+            static_cast<int>(sourceEndpoint.ip().port()));
     }
 
     channel->properties().set(TCPSessionFactory::k_CHANNEL_PROPERTY_CHANNEL_ID,
@@ -293,21 +300,20 @@ TCPSessionFactory::channelStatContextCreator(
             : mqbstat::StatController::ChannelSelector::e_REMOTE);
     BSLS_ASSERT_SAFE(parent);
 
-    bsl::string endpoint(d_allocator_p), port(d_allocator_p);
-    if (handle->options().is<mwcio::ConnectOptions>()) {
-        endpoint = handle->options().the<mwcio::ConnectOptions>().endpoint();
-        port     = d_ports.extract(channel->peerUri());
-    }
-    else {
-        endpoint = channel->peerUri();
-        port     = d_ports.extract(
-            handle->options().the<mwcio::ListenOptions>().endpoint());
-    }
-    channel->properties().set(TCPSessionFactory::k_CHANNEL_PROPERTY_LOCAL_PORT,
-                              port);
+    bsl::string endpoint =
+        handle->options().is<mwcio::ConnectOptions>()
+            ? handle->options().the<mwcio::ConnectOptions>().endpoint()
+            : channel->peerUri();
+
+    int localPort;
+    channel->properties().load(
+        &localPort,
+        TCPSessionFactory::k_CHANNEL_PROPERTY_LOCAL_PORT);
 
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
-    return d_ports.addChannelContext(parent, endpoint, port);
+    return d_ports.addChannelContext(parent,
+                                     endpoint,
+                                     static_cast<bsl::uint16_t>(localPort));
 }
 
 void TCPSessionFactory::negotiate(
@@ -712,7 +718,7 @@ void TCPSessionFactory::onClose(const bsl::shared_ptr<mwcio::Channel>& channel,
 {
     --d_nbActiveChannels;
 
-    bslstl::StringRef port;
+    int port;
     channel->properties().load(
         &port,
         TCPSessionFactory::k_CHANNEL_PROPERTY_LOCAL_PORT);
@@ -1425,25 +1431,14 @@ bool TCPSessionFactory::isEndpointLoopback(const bslstl::StringRef& uri) const
 
 TCPSessionFactory::PortManager::PortManager(bslma::Allocator* allocator)
 : d_portMap(allocator)
-, d_regex(allocator)
 , d_allocator_p(allocator)
 {
-    const char                  pattern[] = ":(\\d{1,5})$";
-    bsl::string                 error(allocator);
-    size_t                      errorOffset;
-    BSLA_MAYBE_UNUSED const int rc = d_regex.prepare(
-        &error,
-        &errorOffset,
-        pattern,
-        bdlpcre::RegEx::k_FLAG_JIT);
-    BSLS_ASSERT_SAFE(rc == 0);
-    BSLS_ASSERT_SAFE(d_regex.isPrepared());
 }
 
 bslma::ManagedPtr<mwcst::StatContext>
 TCPSessionFactory::PortManager::addChannelContext(mwcst::StatContext* parent,
                                                   const bsl::string&  endpoint,
-                                                  const bsl::string&  port)
+                                                  const bsl::uint16_t port)
 {
     bdlma::LocalSequentialAllocator<2048> localAllocator(d_allocator_p);
     mwcst::StatContextConfiguration statConfig(endpoint, &localAllocator);
@@ -1458,7 +1453,9 @@ TCPSessionFactory::PortManager::addChannelContext(mwcst::StatContext* parent,
         ++portIt->second.d_numChannels;
     }
     else {
-        mwcst::StatContextConfiguration     portConfig(port, &localAllocator);
+        mwcst::StatContextConfiguration portConfig(
+            static_cast<bsls::Types::Int64>(port),
+            &localAllocator);
         bsl::shared_ptr<mwcst::StatContext> portStatContext =
             parent->addSubcontext(
                 portConfig.storeExpiredSubcontextValues(true));
@@ -1470,21 +1467,13 @@ TCPSessionFactory::PortManager::addChannelContext(mwcst::StatContext* parent,
 }
 
 void TCPSessionFactory::PortManager::onDeleteChannelContext(
-    const bsl::string& port)
+    const bsl::uint16_t port)
 {
     // Lookup the port's StatContext and remove it from the internal containers
     PortMap::iterator it = d_portMap.find(port);
     if (it != d_portMap.end() && --it->second.d_numChannels == 0) {
         d_portMap.erase(it);
     }
-}
-
-bsl::string_view
-TCPSessionFactory::PortManager::extract(const bsl::string& endpoint) const
-{
-    bsl::string_view result;
-
-    return d_regex.match(&result, endpoint) == 0 ? result.substr(1) : result;
 }
 
 }  // close package namespace

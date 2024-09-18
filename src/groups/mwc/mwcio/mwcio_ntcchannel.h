@@ -413,8 +413,11 @@ class NtcChannel : public mwcio::Channel,
     /// Return the channel ID.
     int channelId() const;
 
-    /// Load into the specified `result` the endpoint of the peer.
+    /// Return the endpoint of the "remote" peer.
     ntsa::Endpoint peerEndpoint() const;
+
+    /// Return the endpoint of the "source" peer.
+    ntsa::Endpoint sourceEndpoint() const;
 
     /// Return the URI of the "remote" end of this channel.  It is up to the
     /// underlying implementation to define the format of the returned URI.
