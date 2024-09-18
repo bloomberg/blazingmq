@@ -247,11 +247,11 @@ class TCPSessionFactory {
         bslma::ManagedPtr<mwcst::StatContext>
         addChannelContext(mwcst::StatContext* parent,
                           const bsl::string&  endpoint,
-                          const bsl::uint16_t port);
+                          bsl::uint16_t       port);
 
         /// Handle the deletion of a StatContext associated with a channel
         /// connected to the specified 'port'.
-        void onDeleteChannelContext(const bsl::uint16_t port);
+        void onDeleteChannelContext(bsl::uint16_t port);
     };
 
     typedef bsl::shared_ptr<ChannelInfo> ChannelInfoSp;

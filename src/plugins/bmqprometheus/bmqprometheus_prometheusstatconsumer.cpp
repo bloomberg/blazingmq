@@ -524,7 +524,7 @@ void PrometheusStatConsumer::captureNetworkStats()
                 // over deleted sub contexts in the end, we can just stop here.
                 break;
             }
-            tagger.setPort(it->name());
+            tagger.setPort(bsl::to_string(it->id()));
             ::prometheus::BuildCounter()
                 .Name("brkr_system_net_" + metricName + "_delta")
                 .Register(*d_prometheusRegistry_p)

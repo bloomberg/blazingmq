@@ -1486,7 +1486,7 @@ TCPSessionFactory::PortManager::PortManager(bslma::Allocator* allocator)
 bslma::ManagedPtr<mwcst::StatContext>
 TCPSessionFactory::PortManager::addChannelContext(mwcst::StatContext* parent,
                                                   const bsl::string&  endpoint,
-                                                  const bsl::uint16_t port)
+                                                  bsl::uint16_t       port)
 {
     bdlma::LocalSequentialAllocator<2048> localAllocator(d_allocator_p);
     mwcst::StatContextConfiguration statConfig(endpoint, &localAllocator);
@@ -1514,8 +1514,7 @@ TCPSessionFactory::PortManager::addChannelContext(mwcst::StatContext* parent,
     return channelStatContext;
 }
 
-void TCPSessionFactory::PortManager::onDeleteChannelContext(
-    const bsl::uint16_t port)
+void TCPSessionFactory::PortManager::onDeleteChannelContext(bsl::uint16_t port)
 {
     // Lookup the port's StatContext and remove it from the internal containers
     PortMap::iterator it = d_portMap.find(port);
