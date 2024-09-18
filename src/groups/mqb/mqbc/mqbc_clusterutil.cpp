@@ -785,8 +785,7 @@ void ClusterUtil::populateQueueAssignmentAdvisory(
     ClusterState*                          clusterState,
     ClusterData*                           clusterData,
     const bmqt::Uri&                       uri,
-    const mqbi::Domain*                    domain,
-    bool                                   isCSLMode)
+    const mqbi::Domain*                    domain)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(advisory);
@@ -809,10 +808,8 @@ void ClusterUtil::populateQueueAssignmentAdvisory(
                                           uri.asString());
     key->loadBinary(&queueInfo.key());
 
-    if (isCSLMode) {
-        // Generate appIds and appKeys
-        populateAppIdInfos(&queueInfo.appIds(), domain->config().mode());
-    }
+    // Generate appIds and appKeys
+    populateAppIdInfos(&queueInfo.appIds(), domain->config().mode());
 
     BALL_LOG_INFO << clusterData->identity().description()
                   << ": Populated QueueAssignmentAdvisory: " << *advisory;
@@ -1008,8 +1005,7 @@ ClusterUtil::assignQueue(ClusterState*           clusterState,
                                     clusterState,
                                     clusterData,
                                     uri,
-                                    domIt->second->domain(),
-                                    cluster->isCSLModeEnabled());
+                                    domIt->second->domain());
     if (cluster->isCSLModeEnabled()) {
         // In CSL mode, we delay the insertion to queueKeys until
         // 'onQueueAssigned' observer callback.

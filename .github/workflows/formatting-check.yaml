@@ -37,7 +37,10 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          # TODO black no longer runs on 3.12.5. 
+          # Remove once the python version is >= 3.12.6
+          # See: https://github.com/psf/black/pull/4447
+          python-version: '3.12.4'
       - name: black style check
         run: |
           pip3 install git+https://github.com/psf/black

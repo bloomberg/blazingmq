@@ -18,7 +18,7 @@ BlazingMQ.
 
 BlazingMQ exclusively uses TCP for all communication within the cluster as well
 as with clients.  TCP provides nice properties of ordering and retransmissions
-of packets, which makes the implemetation of networking logic simpler in
+of packets, which makes the implementation of networking logic simpler in
 BlazingMQ.
 
 ## Transport Library
@@ -81,9 +81,9 @@ designed:
 - *Batching*: The protocol should support batching of messages wherever
   possible.
 
-- *Efficiency*: The protcol should avoid encoding/decoding overhead for
+- *Efficiency*: The protocol should avoid encoding/decoding overhead for
   frequent messages, while still taking into consideration concerns like
-  endiannes, etc.
+  endianness, etc.
 
 Additionally, several components in the
 [`bmqp`](https://github.com/bloomberg/blazingmq/tree/main/src/groups/bmq/bmqp)

@@ -67,10 +67,10 @@ where
      - in `pull` mode: it is time (in seconds) to update statistic;
    - `host`
      - in `push` mode: Prometheus Push Gateway URL;
-     - in `pull` mode: Prometheus exposer (local http server) URL that should be accessable by Prometheus to pull the statistic, usually Host IP address;
+     - in `pull` mode: Prometheus exposer (local http server) URL that should be accessible by Prometheus to pull the statistic, usually Host IP address;
    - `port`
      - in `push` mode: Prometheus Push Gateway port, usually 9091;
-     - in `pull` mode: Prometheus exposer port that should be accessable by Prometheus to pull the statistic;
+     - in `pull` mode: Prometheus exposer port that should be accessible by Prometheus to pull the statistic;
    - `mode`: interaction with Prometheus mode: `E_PUSH` or `E_PULL`;
 
 ### Build and Run plugin in demo environment

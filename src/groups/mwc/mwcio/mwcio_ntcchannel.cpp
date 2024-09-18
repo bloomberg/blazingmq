@@ -1417,6 +1417,12 @@ bslma::Allocator* NtcChannel::allocator() const
     return d_allocator_p;
 }
 
+const ntci::StreamSocket& NtcChannel::streamSocket() const
+{
+    BSLS_ASSERT(d_streamSocket_sp);
+    return *d_streamSocket_sp;
+}
+
 // ---------------------
 // struct NtcChannelUtil
 // ---------------------

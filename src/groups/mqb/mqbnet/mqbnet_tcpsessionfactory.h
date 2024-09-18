@@ -275,6 +275,9 @@ class TCPSessionFactory {
 
     typedef bslma::ManagedPtr<mwcio::ChannelFactory::OpHandle> OpHandleMp;
 
+    typedef bsl::unordered_map<mwcio::Channel*, bsls::Types::Int64>
+        TimestampMap;
+
   private:
     // DATA
     mwcu::SharedResource<TCPSessionFactory> d_self;
@@ -409,6 +412,9 @@ class TCPSessionFactory {
     // while operation (readCallback/
     // negotiation) is in progress.
 
+    TimestampMap d_timestampMap;
+    // Map of HiRes timestamp of the session beginning per channel.
+
     bslma::Allocator* d_allocator_p;
     // Allocator to use
 
@@ -510,6 +516,13 @@ class TCPSessionFactory {
     /// guarantee thread safety and that the object is still alive until the
     /// event scheduler processes it.
     void disableHeartbeat(const bsl::shared_ptr<ChannelInfo>& channelInfo);
+
+    /// Log open session time for the specified `sessionDescription` and
+    /// `channel`, using the stored begin
+    /// timestamp. After logging, begin timestamp is removed from
+    /// timestamps map.
+    void logOpenSessionTime(const bsl::string& sessionDescription,
+                            const bsl::shared_ptr<mwcio::Channel>& channel);
 
   private:
     // NOT IMPLEMENTED

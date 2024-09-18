@@ -2489,7 +2489,7 @@ int Elector::processCommand(mqbcmd::ElectorResult*        electorResult,
         return -1;  // RETURN
     }
     else if (command.isGetTunableValue()) {
-        const bsl::string& tunable = command.getTunable();
+        const bsl::string& tunable = command.getTunable().name();
         if (bdlb::StringRefUtil::areEqualCaseless(tunable, "QUORUM")) {
             mqbcmd::Tunable& tunableObj = electorResult->makeTunable();
             tunableObj.name()           = "Quorum";

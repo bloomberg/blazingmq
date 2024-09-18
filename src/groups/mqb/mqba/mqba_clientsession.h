@@ -391,6 +391,12 @@ class ClientSession : public mqbnet::Session,
     // If present, call when 'tearDownAllQueuesDone'.
     // This is the callback given in 'initiateShutdown'
 
+    bsls::Types::Int64 d_beginTimestamp;
+    // HiRes timer value of the begin session/queue operation
+
+    mwcu::MemOutStream d_currentOpDescription;
+    // Stream for constructing current session/queue operation description.
+
   private:
     // NOT IMPLEMENTED
 
@@ -599,6 +605,11 @@ class ClientSession : public mqbnet::Session,
                             const bmqp::PutMessageIterator& putIt);
 
     void closeChannel();
+
+    /// Log session/queue operation time for the specified `opDescription`
+    /// using the stored operation begin timestamp. After logging reset
+    /// `opDescription` and set begin timestamp to 0.
+    void logOperationTime(mwcu::MemOutStream& opDescription);
 
     // PRIVATE ACCESSORS
 

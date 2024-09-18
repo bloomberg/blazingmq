@@ -34,6 +34,7 @@ Existing tests:
 - test_non_overlapping
 - test_priorities
 - test_fanout
+- test_broadcast
 - test_round_robin
 - test_redelivery
 - test_max_unconfirmed
@@ -735,6 +736,41 @@ def test_fanout(cluster: Cluster):
     expected = producer.post_diff(num=5)
     for consumer in consumers:
         consumer.expect_messages(expected, confirm=True)
+
+
+def test_broadcast(cluster: Cluster):
+    """
+    Test: subscriptions work in broadcast mode.
+    - Create 1 producer
+    - Create 4 consumers with 2 different priorities.
+    - Open 1 broadcast queue, the subscription expressions are different for
+    each high priority consumer.
+    - Produce messages with different properties to the queue.
+    - Expect messages to be received by the high priority consumers
+    in respect with their subscriptions.
+    - No need to confirm messages in broadcast mode.
+    """
+    uri = tc.URI_BROADCAST
+
+    producer = Producer(cluster, uri)
+    # Consumer matching all messages, but having not the highest priority
+    consumer_low_priority = Consumer(cluster, uri, ["x >= 0"], consumer_priority=0)
+
+    consumer_gteq_0 = Consumer(cluster, uri, ["x >= 0"], consumer_priority=1)
+
+    consumer_less_100 = Consumer(cluster, uri, ["x < 100"], consumer_priority=1)
+
+    consumer_gteq_100 = Consumer(cluster, uri, ["x >= 100"], consumer_priority=1)
+
+    expected_less_100 = [producer.post(x=x) for x in range(50, 55)]
+    expected_gteq_100 = [producer.post(x=x) for x in range(100, 105)]
+
+    consumer_low_priority.expect_empty()
+    consumer_gteq_0.expect_messages(
+        expected_less_100 + expected_gteq_100, confirm=False
+    )
+    consumer_less_100.expect_messages(expected_less_100, confirm=False)
+    consumer_gteq_100.expect_messages(expected_gteq_100, confirm=False)
 
 
 def test_round_robin(cluster: Cluster):
