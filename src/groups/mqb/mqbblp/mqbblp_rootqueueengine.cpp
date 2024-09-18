@@ -1656,8 +1656,14 @@ void RootQueueEngine::logAlarmCb(
     Apps::const_iterator cItApp = d_apps.findByKey1(appId);
     if (cItApp != d_apps.end()) {
         const AppStateSp& app = cItApp->value();
-        out << "\nPut aside list size: " << app->putAsideListSize() << '\n';
-        out << "Redelivery list size: " << app->redeliveryListSize() << "\n\n";
+
+        out << "\nFor appId: " << appId << '\n';
+        out << "Put aside list size: " << app->putAsideListSize() << '\n';
+        out << "Redelivery list size: " << app->redeliveryListSize() << '\n';
+        out << "Number of messages: "
+            << d_queueState_p->storage()->numMessages(app->d_appKey) << '\n';
+        out << "Number of bytes: "
+            << d_queueState_p->storage()->numBytes(app->d_appKey) << "\n\n";
 
         // Log consumer subscriptions
         mqbblp::Routers::QueueRoutingContext& routingContext =
