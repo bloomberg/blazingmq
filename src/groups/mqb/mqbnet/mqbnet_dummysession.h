@@ -135,10 +135,14 @@ class DummySession : public Session {
 
     /// Initiate the shutdown of the session and invoke the specified
     /// `callback` upon completion of (asynchronous) shutdown sequence or
-    /// if the specified `timeout` is expired.
+    /// if the specified `timeout` is expired.  If the optional (temporary)
+    /// specified 'supportShutdownV2' is 'true' execute shutdown logic V2
+    /// where upstream (not downstream) nodes deconfigure  queues and the
+    /// shutting down node (not downstream) waits for CONFIRMS.
     void
     initiateShutdown(const ShutdownCb&         callback,
-                     const bsls::TimeInterval& timeout) BSLS_KEYWORD_OVERRIDE;
+                     const bsls::TimeInterval& timeout,
+                     bool supportShutdownV2 = false) BSLS_KEYWORD_OVERRIDE;
 
     /// Make the session abandon any work it has.
     void invalidate() BSLS_KEYWORD_OVERRIDE;

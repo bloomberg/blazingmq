@@ -7429,17 +7429,20 @@ namespace bmqp_ctrlmsg {
 class StopRequest {
     // INSTANCE DATA
     bsl::string d_clusterName;
+    int         d_version;
 
   public:
     // TYPES
-    enum { ATTRIBUTE_ID_CLUSTER_NAME = 0 };
+    enum { ATTRIBUTE_ID_CLUSTER_NAME = 0, ATTRIBUTE_ID_VERSION = 1 };
 
-    enum { NUM_ATTRIBUTES = 1 };
+    enum { NUM_ATTRIBUTES = 2 };
 
-    enum { ATTRIBUTE_INDEX_CLUSTER_NAME = 0 };
+    enum { ATTRIBUTE_INDEX_CLUSTER_NAME = 0, ATTRIBUTE_INDEX_VERSION = 1 };
 
     // CONSTANTS
     static const char CLASS_NAME[];
+
+    static const int DEFAULT_INITIALIZER_VERSION;
 
     static const bdlat_AttributeInfo ATTRIBUTE_INFO_ARRAY[];
 
@@ -7540,6 +7543,10 @@ class StopRequest {
     /// object.
     bsl::string& clusterName();
 
+    /// Return a reference to the non-modifiable "Version" attribute of this
+    /// object.
+    int& version();
+
     // ACCESSORS
 
     /// Format this object to the specified output `stream` at the
@@ -7587,6 +7594,10 @@ class StopRequest {
     /// Return a reference to the non-modifiable "ClusterName" attribute of
     /// this object.
     const bsl::string& clusterName() const;
+
+    /// Return a reference to the non-modifiable "Version" attribute of this
+    /// object.
+    int version() const;
 };
 
 // FREE OPERATORS
@@ -27150,6 +27161,12 @@ int StopRequest::manipulateAttributes(MANIPULATOR& manipulator)
         return ret;
     }
 
+    ret = manipulator(&d_version,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_VERSION]);
+    if (ret) {
+        return ret;
+    }
+
     return ret;
 }
 
@@ -27162,6 +27179,10 @@ int StopRequest::manipulateAttribute(MANIPULATOR& manipulator, int id)
     case ATTRIBUTE_ID_CLUSTER_NAME: {
         return manipulator(&d_clusterName,
                            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CLUSTER_NAME]);
+    }
+    case ATTRIBUTE_ID_VERSION: {
+        return manipulator(&d_version,
+                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_VERSION]);
     }
     default: return NOT_FOUND;
     }
@@ -27188,6 +27209,11 @@ inline bsl::string& StopRequest::clusterName()
     return d_clusterName;
 }
 
+inline int& StopRequest::version()
+{
+    return d_version;
+}
+
 // ACCESSORS
 template <class ACCESSOR>
 int StopRequest::accessAttributes(ACCESSOR& accessor) const
@@ -27200,6 +27226,10 @@ int StopRequest::accessAttributes(ACCESSOR& accessor) const
         return ret;
     }
 
+    ret = accessor(d_version, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_VERSION]);
+    if (ret) {
+        return ret;
+    }
     return ret;
 }
 
@@ -27212,6 +27242,10 @@ int StopRequest::accessAttribute(ACCESSOR& accessor, int id) const
     case ATTRIBUTE_ID_CLUSTER_NAME: {
         return accessor(d_clusterName,
                         ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CLUSTER_NAME]);
+    }
+    case ATTRIBUTE_ID_VERSION: {
+        return accessor(d_version,
+                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_VERSION]);
     }
     default: return NOT_FOUND;
     }
@@ -27236,6 +27270,11 @@ int StopRequest::accessAttribute(ACCESSOR&   accessor,
 inline const bsl::string& StopRequest::clusterName() const
 {
     return d_clusterName;
+}
+
+inline int StopRequest::version() const
+{
+    return d_version;
 }
 
 template <typename HASH_ALGORITHM>

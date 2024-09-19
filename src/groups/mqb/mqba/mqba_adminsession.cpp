@@ -419,10 +419,12 @@ void AdminSession::tearDown(const bsl::shared_ptr<void>& session,
 }
 
 void AdminSession::initiateShutdown(const ShutdownCb&         callback,
-                                    const bsls::TimeInterval& timeout)
+                                    const bsls::TimeInterval& timeout,
+                                    bool supportShutdownV2)
 {
     // executed by the *ANY* thread
     (void)timeout;
+    (void)supportShutdownV2;
 
     dispatcher()->execute(
         bdlf::BindUtil::bind(&AdminSession::initiateShutdownDispatched,

@@ -173,6 +173,12 @@ void handleHolderDummy(const bsl::shared_ptr<mqbi::QueueHandle>& handle)
         handle->queue()->dispatcher()->inDispatcherThread(handle->queue()));
 }
 
+void countUnconfirmed(bsls::Types::Int64* result, mqbi::Queue* queue)
+{
+    *result += queue->countUnconfirmed(
+        bmqp::QueueId::k_UNASSIGNED_SUBQUEUE_ID);
+}
+
 }  // close unnamed namespace
 
 // -----------------------------------------
@@ -1438,6 +1444,9 @@ void ClusterQueueHelper::onReopenQueueResponse(
 
             --d_numPendingReopenQueueRequests;
 
+            // Process Close request instead of parking it
+            sqit->value().d_state = SubQueueContext::k_CLOSED;
+
             return;  // RETURN
         }
 
@@ -1468,7 +1477,8 @@ void ClusterQueueHelper::onReopenQueueResponse(
             notifyQueue(queueContext.get(),
                         upstreamSubQueueId,
                         generationCount,
-                        false);
+                        false,
+                        false);  // isWriterOnly
 
             // No need to send a configure-queue request for this queue.
             // Decrement the num pending reopen queue request counter though,
@@ -1746,7 +1756,8 @@ void ClusterQueueHelper::onConfigureQueueResponse(
         notifyQueue(queueContext.get(),
                     itStream->subId(),
                     generationCount,
-                    true);
+                    true,
+                    false);  // isWriterOnly
     }
 }
 
@@ -2013,7 +2024,8 @@ bool ClusterQueueHelper::createQueue(
             notifyQueue(queueContext,
                         bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID,
                         genCount,
-                        true);
+                        true,   // isOpen
+                        true);  // isWriterOnly
         }
 
         context.d_callback(status,
@@ -2625,7 +2637,8 @@ void ClusterQueueHelper::onGetQueueHandleDispatched(
 void ClusterQueueHelper::notifyQueue(QueueContext*       queueContext,
                                      unsigned int        upstreamSubQueueId,
                                      bsls::Types::Uint64 generationCount,
-                                     bool                isOpen)
+                                     bool                isOpen,
+                                     bool                isWriterOnly)
 {
     mqbi::Queue* queue = queueContext->d_liveQInfo.d_queue_sp.get();
     if (queue == 0) {
@@ -2644,7 +2657,8 @@ void ClusterQueueHelper::notifyQueue(QueueContext*       queueContext,
                 bdlf::BindUtil::bind(&mqbi::Queue::onOpenUpstream,
                                      queue,
                                      generationCount,
-                                     upstreamSubQueueId),
+                                     upstreamSubQueueId,
+                                     isWriterOnly),
                 queue);
         }
     }
@@ -2686,6 +2700,22 @@ void ClusterQueueHelper::configureQueueDispatched(
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(
         d_cluster_p->dispatcher()->inDispatcherThread(d_cluster_p));
+
+    if (d_supportShutdownV2) {
+        BMQ_LOGTHROTTLE_INFO()
+            << d_cluster_p->description()
+            << ": Shutting down and skipping configure queue [: " << uri
+            << "], queueId: " << queueId
+            << ", stream parameters: " << streamParameters;
+        if (callback) {
+            bmqp_ctrlmsg::Status status;
+            status.category() = bmqp_ctrlmsg::StatusCategory::E_SUCCESS;
+            status.message()  = "Shutting down.";
+            callback(status, streamParameters);
+        }
+
+        return;  // RETURN
+    }
 
     QueueContextMapIter queueContextIt = d_queues.find(uri);
 
@@ -2834,6 +2864,23 @@ void ClusterQueueHelper::releaseQueueDispatched(
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(
         d_cluster_p->dispatcher()->inDispatcherThread(d_cluster_p));
+
+    if (d_supportShutdownV2) {
+        BMQ_LOGTHROTTLE_INFO()
+            << d_cluster_p->description()
+            << ": Shutting down and skipping close queue [: "
+            << handleParameters.uri()
+            << "], queueId: " << handleParameters.qId()
+            << ", handle parameters: " << handleParameters;
+        if (callback) {
+            bmqp_ctrlmsg::Status status;
+            status.category() = bmqp_ctrlmsg::StatusCategory::E_SUCCESS;
+            status.message()  = "Shutting down.";
+            callback(status);
+        }
+
+        return;  // RETURN
+    }
 
     bmqt::Uri           uri(handleParameters.uri());
     QueueContextMapIter queueContextIt = d_queues.find(uri.canonical());
@@ -4485,6 +4532,7 @@ ClusterQueueHelper::ClusterQueueHelper(
 , d_numPendingReopenQueueRequests(0)
 , d_primaryNotLeaderAlarmRaised(false)
 , d_stopContexts(allocator)
+, d_supportShutdownV2(false)
 {
     BSLS_ASSERT(
         d_clusterData_p->clusterConfig()
@@ -5227,17 +5275,56 @@ void ClusterQueueHelper::processShutdownEvent()
                       << "], queueKey [" << queueContextSp->key()
                       << "] which was assigned to PartitionId ["
                       << queueContextSp->partitionId()
-                      << "], because self is going down and this queue has no "
-                      << "handles.";
+                      << "], because self is going down.";
 
         deleteQueue(queueContextSp.get());
     }
 }
 
+/// Stop sending PUSHes but continue receiving CONFIRMs, receiving and
+/// sending PUTs and ACKs.
+void ClusterQueueHelper::requestToStopPushing()
+{
+    // executed by the cluster *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(
+        d_cluster_p->dispatcher()->inDispatcherThread(d_cluster_p));
+
+    // Assume Shutdown V2
+    d_supportShutdownV2 = true;
+
+    // Prevent future queue operations from sending PUSHes.
+    for (QueueContextMapIter it = d_queues.begin(); it != d_queues.end();
+         ++it) {
+        QueueContextSp& queueContextSp = it->second;
+        QueueLiveState& qinfo          = queueContextSp->d_liveQInfo;
+        mqbi::Queue*    queue          = qinfo.d_queue_sp.get();
+
+        if (!queue) {
+            continue;  // CONTINUE
+        }
+
+        queue->dispatcher()->execute(
+            bdlf::BindUtil::bind(&mqbi::Queue::stopPushing, queue),
+            queue);
+    }
+}
+
+void ClusterQueueHelper::contextHolder(
+    const bsl::shared_ptr<StopContext>& contextSp,
+    const VoidFunctor&                  action)
+{
+    if (action) {
+        action();
+    }
+    (void)contextSp;
+}
+
 void ClusterQueueHelper::processNodeStoppingNotification(
     mqbnet::ClusterNode*                clusterNode,
     const bmqp_ctrlmsg::ControlMessage* request,
-    const bsl::vector<int>*             partitions,
+    mqbc::ClusterNodeSession*           ns,
     const VoidFunctor&                  callback)
 {
     // executed by the cluster *DISPATCHER* thread
@@ -5250,6 +5337,13 @@ void ClusterQueueHelper::processNodeStoppingNotification(
     // The 'shared_ptr' serves as a reference count of all pending queue
     // operations.  Once all functors complete, the 'finishStopSequence'
     // deleter sends back StopResponse.
+
+    // TODO(shutdown-v2): TEMPORARY, remove 'timeout' when all switch to
+    // StopRequest V2.
+
+    // No need to wait for CONFIRMs, the waiting is done by the shutting down
+    // node.
+
     int timeout =
         d_clusterData_p->clusterConfig().queueOperations().stopTimeoutMs();
 
@@ -5287,12 +5381,146 @@ void ClusterQueueHelper::processNodeStoppingNotification(
                       << clusterNode->nodeDescription()
                       << " with timeout (ms) " << timeout;
 
-        // Self node needs to issue close-queue requests for all the queues for
-        // which specified 'source' node is the primary.
+        // TODO(shutdown-v2): TEMPORARY, remove when all switch to StopRequest
+        // V2.
+        bool supportShutdownV2 = true;
 
-        if (!d_cluster_p->isRemote() ||
-            d_clusterData_p->electorInfo().leaderNode() == contextSp->d_peer) {
-            deconfigureQueues(contextSp, partitions);
+        if (request) {
+            const bmqp_ctrlmsg::StopRequest& stopRequest =
+                request->choice().clusterMessage().choice().stopRequest();
+
+            if (stopRequest.version() == 1) {
+                supportShutdownV2 = false;
+            }
+            else {
+                BSLS_ASSERT_SAFE(stopRequest.version() == 2);
+            }
+        }
+        // StopRequests have replaced E_STOPPING advisory.
+        // In any case, do minimal (V2) work unless explicitly requested
+
+        if (supportShutdownV2) {
+            if (ns) {
+                // As an Upstream, deconfigure queues of the (shutting down)
+                // ClusterNodeSession 'ns'.
+                // Call 'mqbi::QueueHandle::deconfigureAll' for each handle
+
+                const mqbc::ClusterNodeSession::QueueHandleMap& handles =
+                    ns->queueHandles();
+
+                for (mqbc::ClusterNodeSession::QueueHandleMap::const_iterator
+                         cit = handles.begin();
+                     cit != handles.end();
+                     ++cit) {
+                    cit->second.d_handle_p->deconfigureAll(
+                        bdlf::BindUtil::bind(
+                            &ClusterQueueHelper::contextHolder,
+                            this,
+                            contextSp,
+                            VoidFunctor()));
+                }
+                BALL_LOG_INFO << d_clusterData_p->identity().description()
+                              << ": deconfigured " << handles.size()
+                              << " handles while processing StopRequest from "
+                              << clusterNode->nodeDescription() << " "
+                              << contextSp.numReferences();
+            }
+            // else, this is a ClusterProxy (downstream) receiving request from
+            // an upstream Cluster Node (a request from a Proxy would arrive to
+            // ClientSession).
+            // Downstreams do not deconfigure queues in V2.
+            // See comment in 'ClusterProxy::processPeerStopRequest'
+
+            // As a Downstream, notify relevant queues about their shutting
+            // down upstream
+            for (QueueContextMapConstIter cit = d_queues.begin();
+                 cit != d_queues.end();
+                 ++cit) {
+                const QueueContextSp& queueContextSp = cit->second;
+                const QueueLiveState& queueLiveState =
+                    queueContextSp->d_liveQInfo;
+                mqbi::Queue* queue = queueLiveState.d_queue_sp.get();
+
+                if (0 == queue || bmqp::QueueId::k_UNASSIGNED_QUEUE_ID ==
+                                      queueContextSp->d_liveQInfo.d_id) {
+                    continue;  // CONTINUE
+                }
+
+                if (!d_cluster_p->isRemote()) {
+                    const int pid = queueContextSp->partitionId();
+
+                    BSLS_ASSERT_SAFE(ns);
+
+                    const bsl::vector<int>& partitions =
+                        ns->primaryPartitions();
+                    if (partitions.end() ==
+                        bsl::find(partitions.begin(), partitions.end(), pid)) {
+                        continue;  // CONTINUE
+                    }
+                    const ClusterStatePartitionInfo& pinfo =
+                        d_clusterState_p->partition(pid);
+
+                    if (bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE !=
+                        pinfo.primaryStatus()) {
+                        // It's possible for a primary node to be non-active
+                        // when it is shutting down -- if it was stopped before
+                        // the node had a chance to transition to active
+                        // primary for this partition.
+
+                        continue;  // CONTINUE
+                    }
+                    BSLS_ASSERT(pinfo.primaryNode() == clusterNode);
+                }
+                else if (d_clusterData_p->electorInfo().leaderNode() !=
+                         clusterNode) {
+                    continue;  // CONTINUE
+                }
+
+                if (queueLiveState.d_subQueueIds.findBySubIdSafe(
+                        bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID) ==
+                    queueLiveState.d_subQueueIds.end()) {
+                    // Only buffering PUTs.  Still sending CONFIRMs
+                    continue;  // CONTINUE
+                }
+
+                VoidFunctor inner = bdlf::BindUtil::bind(
+                    &mqbi::Queue::onOpenUpstream,
+                    queue,
+                    0,
+                    bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID,
+                    true);
+
+                VoidFunctor outer = bdlf::BindUtil::bind(
+                    &ClusterQueueHelper::contextHolder,
+                    this,
+                    contextSp,
+                    inner);
+
+                queue->dispatcher()->execute(
+                    outer,
+                    queue,
+                    mqbi::DispatcherEventType::e_DISPATCHER);
+
+                // Use 'mqbi::DispatcherEventType::e_DISPATCHER' to avoid
+                // (re)enabling 'd_flushList'
+            }
+        }
+        else {
+            // TODO(shutdown-v2): TEMPORARY, remove when all switch to
+            // StopRequest V2.
+            // Downstreams do not need to deconfigure queues for which the
+            // shutting down node is the upstream.  The deconfiguring is done
+            // by the upstream of the shutting down node instead.
+            // Nor do they need to wait for CONFIRMs, the waiting is done by
+            // the shutting down node.
+
+            if (ns) {
+                deconfigureQueues(contextSp, &ns->primaryPartitions());
+            }
+            else if (d_clusterData_p->electorInfo().leaderNode() ==
+                     contextSp->d_peer) {
+                deconfigureQueues(contextSp, 0);
+            }
         }
     }
     else {
@@ -5378,6 +5606,8 @@ void ClusterQueueHelper::deconfigureQueues(
     const bsl::shared_ptr<StopContext>& contextSp,
     const bsl::vector<int>*             partitions)
 {
+    // TODO(shutdown-v2): TEMPORARY, remove when all switch to StopRequest V2.
+
     // executed by the cluster *DISPATCHER* thread
 
     // PRECONDITIONS
@@ -5440,7 +5670,8 @@ void ClusterQueueHelper::deconfigureQueues(
                 bdlf::BindUtil::bind(&mqbi::Queue::onOpenUpstream,
                                      queue,
                                      0,
-                                     bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID),
+                                     bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID,
+                                     true),  // isWriterOnly
                 queue);
             queue->dispatcher()->synchronize(queue);
 
@@ -5657,6 +5888,92 @@ void ClusterQueueHelper::checkUnconfirmed(
             queueContextSp,
             subId),
         queueSp.get());
+}
+
+void ClusterQueueHelper::checkUnconfirmedV2(
+    const bsls::TimeInterval&    whenToStop,
+    const bsl::function<void()>& completionCallback)
+{
+    d_cluster_p->dispatcher()->execute(
+        bdlf::BindUtil::bind(&ClusterQueueHelper::checkUnconfirmedV2Dispatched,
+                             this,
+                             whenToStop,
+                             completionCallback),
+        d_cluster_p);
+}
+
+void ClusterQueueHelper::checkUnconfirmedV2Dispatched(
+    const bsls::TimeInterval&    whenToStop,
+    const bsl::function<void()>& completionCallback)
+{
+    // executed by the cluster *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(
+        d_cluster_p->dispatcher()->inDispatcherThread(d_cluster_p));
+
+    bsls::Types::Int64 result = 0;
+    for (QueueContextMapIter it = d_queues.begin(); it != d_queues.end();
+         ++it) {
+        QueueContextSp& queueContextSp = it->second;
+        QueueLiveState& qinfo          = queueContextSp->d_liveQInfo;
+        mqbi::Queue*    queue          = qinfo.d_queue_sp.get();
+
+        if (!queue) {
+            continue;  // CONTINUE
+        }
+
+        queue->dispatcher()->execute(
+            bdlf::BindUtil::bind(&countUnconfirmed, &result, queue),
+            queue);
+        queue->dispatcher()->synchronize(queue);
+    }
+
+    // Synchronize with all Queue Dispatcher threads
+    bslmt::Latch latch(1);
+    d_cluster_p->dispatcher()->execute(
+        mqbi::Dispatcher::ProcessorFunctor(),  // empty
+        mqbi::DispatcherClientType::e_QUEUE,
+        bdlf::BindUtil::bind(&bslmt::Latch::arrive, &latch));
+
+    latch.wait();
+
+    if (result == 0) {
+        BALL_LOG_INFO << d_cluster_p->description()
+                      << ": no unconfirmed message(s)";
+
+        completionCallback();
+        return;
+    }
+
+    bsls::TimeInterval t = bsls::SystemTime::now(
+        bsls::SystemClockType::e_MONOTONIC);
+
+    if (t < whenToStop) {
+        BALL_LOG_INFO << d_cluster_p->description() << ": waiting for "
+                      << result << " unconfirmed message(s)";
+
+        t.addSeconds(1);
+        if (t > whenToStop) {
+            t = whenToStop;
+        }
+        bdlmt::EventScheduler::EventHandle eventHandle;
+        // Never cancel the timer
+        d_clusterData_p->scheduler().scheduleEvent(
+            &eventHandle,
+            t,
+            bdlf::BindUtil::bind(&ClusterQueueHelper::checkUnconfirmedV2,
+                                 this,
+                                 whenToStop,
+                                 completionCallback));
+
+        return;  // RETURN
+    }
+    else {
+        BALL_LOG_WARN << d_cluster_p->description() << ": giving up on "
+                      << result << " unconfirmed message(s)";
+        completionCallback();
+    }
 }
 
 void ClusterQueueHelper::checkUnconfirmedQueueDispatched(

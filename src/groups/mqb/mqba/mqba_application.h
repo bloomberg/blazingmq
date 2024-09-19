@@ -169,6 +169,14 @@ class Application {
     /// Pendant operation of the `oneTimeInit` one.
     void oneTimeShutdown();
 
+    /// Attempt to execute graceful shutdown logic v2.
+    ///
+    /// If any node or proxy does not support the v2 graceful shutdown logic,
+    /// do not perform any shutdown actions and return `false`.  Otherwise,
+    /// send v2 shutdown requests to all nodes, shutdown clients and proxies,
+    /// and return `true`.
+    bool initiateShutdown();
+
   private:
     // NOT IMPLEMENTED
     Application(const Application& other) BSLS_CPP11_DELETED;

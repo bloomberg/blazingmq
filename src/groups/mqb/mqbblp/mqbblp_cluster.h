@@ -334,7 +334,7 @@ class Cluster : public mqbi::Cluster,
     // Scheduler handle for the recurring
     // queue gc check.
 
-    StopRequestManagerType d_stopRequestsManager;
+    StopRequestManagerType* d_stopRequestsManager_p;
 
     mwcu::OperationChain d_shutdownChain;
     // Mechanism used for the Cluster
@@ -414,7 +414,11 @@ class Cluster : public mqbi::Cluster,
                                   const mqbcmd::ClusterCommand& command);
 
     /// Executed by dispatcher thread.
-    void initiateShutdownDispatched(const VoidFunctor& callback);
+    void initiateShutdownDispatched(const VoidFunctor& callback,
+                                    bool               supportShutdownV2);
+
+    // TODO(shutdown-v2): TEMPORARY, remove when all switch to StopRequest
+    // V2.
 
     /// Send stop request to proxies and nodes specified in `sessions` using
     /// the specified `stopCb` as a callback to be called once all the
@@ -549,6 +553,7 @@ class Cluster : public mqbi::Cluster,
             BlobSpPool*                                   blobSpPool,
             bdlbb::BlobBufferFactory*                     bufferFactory,
             mqbnet::TransportManager*                     transportManager,
+            StopRequestManagerType*                       stopRequestsManager,
             bslma::Allocator*                             allocator,
             const mqbnet::Session::AdminCommandEnqueueCb& adminCb);
 
@@ -566,8 +571,13 @@ class Cluster : public mqbi::Cluster,
     /// Initiate the shutdown of the cluster.  It is expected that `stop()`
     /// will be called soon after this routine is invoked.  Invoke the
     /// specified `callback` upon completion of (asynchronous) shutdown
-    /// sequence.
-    void initiateShutdown(const VoidFunctor& callback) BSLS_KEYWORD_OVERRIDE;
+    /// sequence.    If the optional (temporary) specified 'supportShutdownV2'
+    /// is 'true' execute shutdown logic V2 where upstream (not downstream)
+    /// nodes deconfigure  queues and the shutting down node (not downstream)
+    /// wait for CONFIRMS.
+    void
+    initiateShutdown(const VoidFunctor& callback,
+                     bool supportShutdownV2 = false) BSLS_KEYWORD_OVERRIDE;
 
     /// Stop the `Cluster`.
     void stop() BSLS_KEYWORD_OVERRIDE;

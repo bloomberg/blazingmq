@@ -88,8 +88,10 @@ class QueueEngine : public mqbi::QueueEngine {
     virtual int
     configure(bsl::ostream& errorDescription) BSLS_KEYWORD_OVERRIDE;
 
-    /// Reset the internal state of this engine.
-    virtual void resetState() BSLS_KEYWORD_OVERRIDE;
+    /// Reset the internal state of this engine.  If the optionally specified
+    /// 'keepConfirming' is 'true', keep the data structures for CONFIRMs
+    /// processing.
+    virtual void resetState(bool keepConfirming = false) BSLS_KEYWORD_OVERRIDE;
 
     /// Rebuild the internal state of this engine.  This method is invoked
     /// when the queue this engine is associated with is created from an
