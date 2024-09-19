@@ -939,7 +939,7 @@ void RelayQueueEngine::resetState(bool isShuttingDown)
     for (AppsMap::iterator it = d_apps.begin(); it != d_apps.end(); ++it) {
         it->second->undoRouting();
         if (isShuttingDown) {
-            it->second->d_routing_sp->reset();
+            it->second->routing()->reset();
         }
         // else, keep the routing which new engine can reuse
     }

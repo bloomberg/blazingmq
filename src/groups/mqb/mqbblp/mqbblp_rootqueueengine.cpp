@@ -450,7 +450,7 @@ void RootQueueEngine::resetState(bool isShuttingDown)
 {
     for (Apps::iterator it = d_apps.begin(); it != d_apps.end(); ++it) {
         it->value()->undoRouting();
-        it->value()->d_routing_sp->reset();
+        it->value()->routing()->reset();
     }
 
     d_consumptionMonitor.reset();
