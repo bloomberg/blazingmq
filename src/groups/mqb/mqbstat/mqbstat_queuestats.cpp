@@ -154,6 +154,11 @@ struct DomainQueueStats {
         ///             consistency queue expired before receiving quorum
         ///             Receipts
         e_STAT_NO_SC_MSGS
+
+        ,
+        // Value:      Current number of GUIDs stored in queue's history
+        //             (does not include messages in the queue)
+        e_STAT_HISTORY
     };
 };
 
@@ -243,6 +248,7 @@ const char* QueueStatsDomain::Stat::toString(Stat::Enum value)
         MQBSTAT_CASE(e_CFG_BYTES, "queue_cfg_bytes")
         MQBSTAT_CASE(e_NO_SC_MSGS_DELTA, "queue_nack_noquorum_msgs")
         MQBSTAT_CASE(e_NO_SC_MSGS_ABS, "queue_nack_noquorum_msgs_abs")
+        MQBSTAT_CASE(e_HISTORY_ABS, "queue_history_abs")
     }
 
     BSLS_ASSERT(!"invalid enumerator");
@@ -405,6 +411,9 @@ QueueStatsDomain::getValue(const mwcst::StatContext& context,
     case QueueStatsDomain::Stat::e_NO_SC_MSGS_DELTA: {
         return STAT_RANGE(valueDifference,
                           DomainQueueStats::e_STAT_NO_SC_MSGS);
+    }
+    case QueueStatsDomain::Stat::e_HISTORY_ABS: {
+        return STAT_SINGLE(value, DomainQueueStats::e_STAT_HISTORY);
     }
     default: {
         BSLS_ASSERT_SAFE(false && "Attempting to access an unknown stat");
@@ -590,6 +599,9 @@ void QueueStatsDomain::onEvent(EventType::Enum type, bsls::Types::Int64 value)
         d_statContext_mp->adjustValue(DomainQueueStats::e_STAT_NO_SC_MSGS,
                                       value);
     } break;
+    case EventType::e_UPDATE_HISTORY: {
+        d_statContext_mp->setValue(DomainQueueStats::e_STAT_HISTORY, value);
+    } break;
     default: {
         BSLS_ASSERT_SAFE(false && "Unknown event type");
     } break;
@@ -663,7 +675,8 @@ void QueueStatsDomain::onEvent(EventType::Enum    type,
     case EventType::e_CHANGE_ROLE: BSLS_ANNOTATION_FALLTHROUGH;
     case EventType::e_CFG_MSGS: BSLS_ANNOTATION_FALLTHROUGH;
     case EventType::e_CFG_BYTES: BSLS_ANNOTATION_FALLTHROUGH;
-    case EventType::e_NO_SC_MESSAGE: {
+    case EventType::e_NO_SC_MESSAGE: BSLS_ANNOTATION_FALLTHROUGH;
+    case EventType::e_UPDATE_HISTORY: {
         BSLS_ASSERT_SAFE(false && "Unexpected event type for appId metric");
     } break;
 
@@ -925,7 +938,8 @@ QueueStatsUtil::initializeStatContextDomains(int               historySize,
         .value("cfg_msgs")
         .value("cfg_bytes")
         .value("content_msgs")
-        .value("content_bytes");
+        .value("content_bytes")
+        .value("history_size");
     // NOTE: If the stats are using too much memory, we could reconsider
     //       nb_producer, nb_consumer, messages and bytes to be using atomic
     //       int and not stat value.
@@ -988,6 +1002,10 @@ void QueueStatsUtil::initializeTableAndTipDomains(
                      start);
     schema.addColumn("bytes",
                      DomainQueueStats::e_STAT_BYTES,
+                     mwcst::StatUtil::value,
+                     start);
+    schema.addColumn("history_size",
+                     DomainQueueStats::e_STAT_HISTORY,
                      mwcst::StatUtil::value,
                      start);
 
@@ -1190,6 +1208,9 @@ void QueueStatsUtil::initializeTableAndTipDomains(
     tip->setColumnGroup("GC");
     tip->addColumn("gc_msgs_delta", "delta").zeroString("");
     tip->addColumn("gc_msgs_abs", "abs").zeroString("");
+
+    tip->setColumnGroup("History");
+    tip->addColumn("history_size", "# GUIDs").zeroString("");
 }
 
 void QueueStatsUtil::initializeTableAndTipClients(
