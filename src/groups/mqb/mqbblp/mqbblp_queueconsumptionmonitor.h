@@ -210,13 +210,10 @@ class QueueConsumptionMonitor {
         static const char* toAscii(Transition::Enum value);
     };
 
-    typedef bsl::function<bslma::ManagedPtr<mqbi::StorageIterator>(void)>
-        HeadCb;
+    // typedef bsl::function<bslma::ManagedPtr<mqbi::StorageIterator>(void)>
+    //     HeadCb;
 
-    typedef bsl::function<void(
-        const mqbu::StorageKey&                         appKey,
-        const bslma::ManagedPtr<mqbi::StorageIterator>& head)>
-        LoggingCb;
+    typedef bsl::function<bool(const mqbu::StorageKey&, bool)> LoggingCb;
 
   private:
     // PRIVATE TYPES
@@ -225,8 +222,8 @@ class QueueConsumptionMonitor {
     struct SubStreamInfo {
         // CREATORS
 
-        SubStreamInfo(const HeadCb& headCb);
-        SubStreamInfo(const SubStreamInfo& other);
+        SubStreamInfo();
+        // SubStreamInfo(const SubStreamInfo& other);
 
         // PUBLIC DATA
         bsls::Types::Int64 d_lastKnownGoodTimer;
@@ -240,7 +237,7 @@ class QueueConsumptionMonitor {
 
         State::Enum d_state;  // The current state.
 
-        HeadCb d_headCb;
+        // HeadCb d_headCb;
         // Returns storage iterator to the 1st
         // un-delivered message including
         // 'put-aside' messages (those without
@@ -297,10 +294,11 @@ class QueueConsumptionMonitor {
 
     /// Update the specified `subStreamInfo`, associated to the specified
     /// `appKey`, and write log, upon transition to idle state.
-    void
-    onTransitionToIdle(SubStreamInfo*          subStreamInfo,
-                       const mqbu::StorageKey& appKey,
-                       const bslma::ManagedPtr<mqbi::StorageIterator>& head);
+    // void
+    // onTransitionToIdle(SubStreamInfo*          subStreamInfo,
+    //                    const mqbu::StorageKey& appKey,
+    //                    const bslma::ManagedPtr<mqbi::StorageIterator>&
+    //                    head);
 
   public:
     // TRAITS
@@ -330,12 +328,12 @@ class QueueConsumptionMonitor {
     /// this object.
     QueueConsumptionMonitor& setMaxIdleTime(bsls::Types::Int64 value);
 
-    /// Register the substream identified by the specified `key` and
-    /// consuming from the specified `storageIter` for monitoring.  `key`
-    /// may be `StorageKey::k_NULL_KEY`, in which case no other key may be
+    /// Register the substream identified by the specified `key`.
+    ///  `key` may be `StorageKey::k_NULL_KEY`, in which case no other key may
+    ///  be
     /// registered via this function. It is illegal to register the same
     /// substream more than once.
-    void registerSubStream(const mqbu::StorageKey& key, const HeadCb& headCb);
+    void registerSubStream(const mqbu::StorageKey& key);
 
     /// Stop monitoring the substream identified by the specified `key`.
     /// `key` must have been previously registered via `registerSubStream`.

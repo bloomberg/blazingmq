@@ -121,24 +121,21 @@ const char* QueueConsumptionMonitor::Transition::toAscii(
 // struct QueueConsumptionMonitor::SubStreamInfo
 // ---------------------------------------------
 
-QueueConsumptionMonitor::SubStreamInfo::SubStreamInfo(const HeadCb& headCb)
+QueueConsumptionMonitor::SubStreamInfo::SubStreamInfo()
 : d_lastKnownGoodTimer(0)
 , d_messageSent(true)
 , d_state(State::e_ALIVE)
-, d_headCb(headCb)
 {
-    BSLS_ASSERT_SAFE(d_headCb);
+    // NOTHING
 }
 
-QueueConsumptionMonitor::SubStreamInfo::SubStreamInfo(
-    const SubStreamInfo& other)
-: d_lastKnownGoodTimer(other.d_lastKnownGoodTimer)
-, d_messageSent(other.d_messageSent)
-, d_state(other.d_state)
-, d_headCb(other.d_headCb)
-{
-    BSLS_ASSERT_SAFE(d_headCb);
-}
+// QueueConsumptionMonitor::SubStreamInfo::SubStreamInfo(
+//     const SubStreamInfo& other)
+// : d_lastKnownGoodTimer(other.d_lastKnownGoodTimer)
+// , d_messageSent(other.d_messageSent)
+// , d_state(other.d_state)
+// {
+// }
 
 // -----------------------------
 // class QueueConsumptionMonitor
@@ -175,14 +172,13 @@ QueueConsumptionMonitor::setMaxIdleTime(bsls::Types::Int64 value)
                               last = d_subStreamInfos.end();
          iter != last;
          ++iter) {
-        iter->second = SubStreamInfo(iter->second.d_headCb);
+        iter->second = SubStreamInfo();
     }
 
     return *this;
 }
 
-void QueueConsumptionMonitor::registerSubStream(const mqbu::StorageKey& key,
-                                                const HeadCb&           headCb)
+void QueueConsumptionMonitor::registerSubStream(const mqbu::StorageKey& key)
 {
     // Should always be called from the queue thread, but will be invoked from
     // the cluster thread once upon queue creation.
@@ -190,12 +186,11 @@ void QueueConsumptionMonitor::registerSubStream(const mqbu::StorageKey& key,
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(key != mqbu::StorageKey::k_NULL_KEY ||
                      d_subStreamInfos.empty());
-    BSLS_ASSERT_SAFE(headCb);
     BSLS_ASSERT_SAFE(d_subStreamInfos.find(mqbu::StorageKey::k_NULL_KEY) ==
                      d_subStreamInfos.end());
     BSLS_ASSERT_SAFE(d_subStreamInfos.find(key) == d_subStreamInfos.end());
 
-    d_subStreamInfos.insert(bsl::make_pair(key, SubStreamInfo(headCb)));
+    d_subStreamInfos.insert(bsl::make_pair(key, SubStreamInfo()));
 }
 
 void QueueConsumptionMonitor::unregisterSubStream(const mqbu::StorageKey& key)
@@ -228,6 +223,7 @@ void QueueConsumptionMonitor::onTimer(bsls::Types::Int64 currentTimer)
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
         d_queueState_p->queue()));
+    BSLS_ASSERT_SAFE(d_loggingCb);
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(d_maxIdleTime == 0)) {
         // monitoring is disabled
@@ -238,38 +234,24 @@ void QueueConsumptionMonitor::onTimer(bsls::Types::Int64 currentTimer)
     BSLS_ASSERT_SAFE(currentTimer >= d_currentTimer);
 
     d_currentTimer = currentTimer;
-
-    // TBD: 'queue empty' is not the best condition to test.  The queue may
-    // contain messages that have been sent but not yet confirmed.  A better
-    // test would be to check whether the message iterator in the engine points
-    // to the end of storage, but we don't have access to these.  A solution
-    // would be to have QueueEngine::beforeMessageRemoved notify this monitor,
-    // via a new method on this component. Not implemented yet because Engines
-    // are about to undergo overhaul.
+    // BALL_LOG_WARN << "currentTimer: " << currentTimer;
 
     for (SubStreamInfoMapIter iter = d_subStreamInfos.begin(),
                               last = d_subStreamInfos.end();
          iter != last;
          ++iter) {
-        SubStreamInfo& info = iter->second;
-        BSLS_ASSERT_SAFE(info.d_headCb);
-        bslma::ManagedPtr<mqbi::StorageIterator> head = info.d_headCb();
-        if (head) {
-            if (head->atEnd()) {
-                head.reset();
-            }
-        }
-        if (info.d_messageSent || !head) {
-            // Queue is 'alive' either because at least one message was sent
-            // since the last 'timer', or the queue is at its head (no more
-            // messages to deliver to this substream).
+        SubStreamInfo&          info   = iter->second;
+        const mqbu::StorageKey& appKey = iter->first;
+        if (info.d_messageSent) {
+            // Queue is 'alive' because at least one message was sent
+            // since the last 'timer'.
 
             info.d_messageSent        = false;
             info.d_lastKnownGoodTimer = d_currentTimer;
 
             if (info.d_state == State::e_IDLE) {
                 // object was in idle state
-                onTransitionToAlive(&(iter->second), iter->first);
+                onTransitionToAlive(&info, appKey);
                 continue;  // CONTINUE
             }
 
@@ -277,17 +259,39 @@ void QueueConsumptionMonitor::onTimer(bsls::Types::Int64 currentTimer)
             continue;  // CONTINUE
         }
 
-        if (info.d_state == State::e_IDLE) {
-            // state was already idle, nothing more to do
-            continue;  // CONTINUE
-        }
+        // if (info.d_state == State::e_IDLE) {
+        //     // state was already idle, nothing more to do
+        //     continue;  // CONTINUE
+        // }
 
-        BSLS_ASSERT_SAFE(info.d_state == State::e_ALIVE);
+        // BSLS_ASSERT_SAFE(info.d_state == State::e_ALIVE);
 
         if (d_currentTimer - info.d_lastKnownGoodTimer > d_maxIdleTime) {
+            // BALL_LOG_WARN << "Inside info.d_lastKnownGoodTimer: " <<
+            // info.d_lastKnownGoodTimer << " State: " << info.d_state;
+
             // No delivered messages in the last 'maxIdleTime'.
-            onTransitionToIdle(&(iter->second), iter->first, head);
-            continue;  // CONTINUE
+            // If alive, log alarm and transition to idle
+            const bool queueAtHead = d_loggingCb(appKey,
+                                                 info.d_state ==
+                                                     State::e_ALIVE);
+
+            if (queueAtHead) {
+                // The queue is at its head (no more
+                // messages to deliver to this substream),
+                // so transition to alive.
+                if (info.d_state == State::e_IDLE) {
+                    info.d_lastKnownGoodTimer = d_currentTimer;
+                    onTransitionToAlive(&info, appKey);
+                }
+            }
+            else {
+                // onTransitionToIdle(&(iter->second), iter->first, head);
+                // There are undelivede messages, transition to idle.
+                if (info.d_state == State::e_ALIVE) {
+                    info.d_state = State::e_IDLE;
+                }
+            }
         }
     }
 }
@@ -320,23 +324,20 @@ void QueueConsumptionMonitor::onTransitionToAlive(
     BALL_LOG_INFO << "Queue '" << uri << "' no longer appears to be stuck.";
 }
 
-void QueueConsumptionMonitor::onTransitionToIdle(
-    SubStreamInfo*                                  subStreamInfo,
-    const mqbu::StorageKey&                         appKey,
-    const bslma::ManagedPtr<mqbi::StorageIterator>& head)
-{
-    // executed by the *QUEUE DISPATCHER* thread
+// void QueueConsumptionMonitor::onTransitionToIdle(
+//     SubStreamInfo*                                  subStreamInfo,
+//     const mqbu::StorageKey&                         appKey,
+//     const bslma::ManagedPtr<mqbi::StorageIterator>& head)
+// {
+//     // executed by the *QUEUE DISPATCHER* thread
 
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
-        d_queueState_p->queue()));
-    BSLS_ASSERT_SAFE(d_loggingCb);
+//     // PRECONDITIONS
+//     BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
+//         d_queueState_p->queue()));
+//     BSLS_ASSERT_SAFE(d_loggingCb);
 
-    subStreamInfo->d_state = State::e_IDLE;
-
-    // Call logging callback to log alarm info.
-    d_loggingCb(appKey, head);
-}
+//     subStreamInfo->d_state = State::e_IDLE;
+// }
 
 }  // close package namespace
 }  // close enterprise namespace

@@ -202,11 +202,10 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
 
     const AppStateSp& subQueue(unsigned int upstreamSubQueueId) const;
 
-    /// Callback called by `d_consumptionMonitor` when alarm is detected.
-    /// It logs queue data for the specified `appKey` and `head`.
-    void
-    logAlarmCb(const mqbu::StorageKey&                         appKey,
-               const bslma::ManagedPtr<mqbi::StorageIterator>& head) const;
+    /// Callback called by `d_consumptionMonitor` when alarm condition is met.
+    /// If the queue is at its head for the specified `appKey` it logs queue
+    /// alarm data. Returns `true` if alarm was logged and `false` otherwise.
+    bool logAlarmCb(const mqbu::StorageKey& appKey, const bool isAlarm) const;
 
   public:
     // TRAITS
