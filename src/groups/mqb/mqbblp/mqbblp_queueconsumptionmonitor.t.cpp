@@ -94,17 +94,6 @@ ClientContext::~ClientContext()
     // NOTHING
 }
 
-static void loggingCb(BSLS_ANNOTATION_UNUSED const mqbu::StorageKey& appKey,
-                      BSLS_ANNOTATION_UNUSED const
-                          bslma::ManagedPtr<mqbi::StorageIterator>& head)
-{
-    BALL_LOG_SET_CATEGORY("MQBBLP.QUEUECONSUMPTIONMONITORTEST");
-
-    mwcu::MemOutStream out(s_allocator_p);
-    out << "Test Alarm";
-    MWCTSK_ALARMLOG_ALARM("QUEUE_STUCK") << out.str() << MWCTSK_ALARMLOG_END;
-}
-
 struct Test : mwctst::Test {
     typedef bsl::vector<
         bsl::pair<mqbi::QueueHandle*, bmqp_ctrlmsg::QueueHandleParameters> >
@@ -143,8 +132,10 @@ struct Test : mwctst::Test {
         const bsl::string&     appId = bmqp::ProtocolUtil::k_DEFAULT_APP_ID,
         unsigned int subQueueId      = bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID);
 
-    bslma::ManagedPtr<mqbi::StorageIterator> head(const mqbu::StorageKey& key);
+    // bslma::ManagedPtr<mqbi::StorageIterator> head(const mqbu::StorageKey& key);
     void advance(const mqbu::StorageKey& key);
+    bool loggingCb(const mqbu::StorageKey& appKey, const bool isAlarm);
+
 };
 
 Test::Test()
@@ -164,7 +155,13 @@ Test::Test()
                d_partitionId,
                &d_domain,
                s_allocator_p)
-, d_monitor(&d_queueState, &loggingCb, s_allocator_p)
+, d_monitor(&d_queueState,
+                       bdlf::BindUtil::bind(&Test::loggingCb,
+                                            this,
+                                            bdlf::PlaceHolders::_1,   // appKey
+                                            bdlf::PlaceHolders::_2),  // isAlarm
+
+  s_allocator_p)
 , d_storage(d_queue.uri(),
             mqbu::StorageKey::k_NULL_KEY,
             mqbs::DataStore::k_INVALID_PARTITION_ID,
@@ -287,23 +284,29 @@ mqbi::QueueHandle* Test::createClient(const ClientContext&   clientContext,
     return queueHandle;
 }
 
-bslma::ManagedPtr<mqbi::StorageIterator>
-Test::head(const mqbu::StorageKey& key)
-{
-    bslma::ManagedPtr<mqbi::StorageIterator> out;
-    out = d_storage.getIterator(key);
-    for (int i = 0; i < d_advance[key]; ++i) {
-        if (!out->atEnd()) {
-            out->advance();
-        }
-    }
-    return out;
-}
-
 void Test::advance(const mqbu::StorageKey& key)
 {
     ++d_advance[key];
 }
+
+bool Test::loggingCb(BSLS_ANNOTATION_UNUSED const mqbu::StorageKey& appKey, BSLS_ANNOTATION_UNUSED const bool isAlarm)
+{
+    BALL_LOG_SET_CATEGORY("MQBBLP.QUEUECONSUMPTIONMONITORTEST");
+
+    bslma::ManagedPtr<mqbi::StorageIterator> out;
+    out = d_storage.getIterator(appKey);
+
+    bool queueAtHead = out->atEnd();
+
+    if (isAlarm && !queueAtHead) {
+        mwcu::MemOutStream out(s_allocator_p);
+        out << "Test Alarm";
+        MWCTSK_ALARMLOG_ALARM("QUEUE_STUCK") << out.str() << MWCTSK_ALARMLOG_END;
+    }
+
+    return queueAtHead;
+}
+
 
 // ============================================================================
 //                                    TESTS
@@ -323,8 +326,7 @@ TEST_F(Test, doNotMonitor)
     mwctst::ScopedLogObserver observer(ball::Severity::INFO, s_allocator_p);
 
     d_monitor.registerSubStream(
-        mqbu::StorageKey::k_NULL_KEY,
-        bdlf::BindUtil::bind(&Test::head, this, mqbu::StorageKey::k_NULL_KEY));
+        mqbu::StorageKey::k_NULL_KEY);
 
     ASSERT_EQ(d_monitor.state(mqbu::StorageKey::k_NULL_KEY),
               QueueConsumptionMonitor::State::e_ALIVE);
@@ -355,8 +357,7 @@ TEST_F(Test, emptyQueue)
     d_monitor.setMaxIdleTime(k_MAX_IDLE_TIME);
 
     d_monitor.registerSubStream(
-        mqbu::StorageKey::k_NULL_KEY,
-        bdlf::BindUtil::bind(&Test::head, this, mqbu::StorageKey::k_NULL_KEY));
+        mqbu::StorageKey::k_NULL_KEY);
 
     d_monitor.onTimer(k_MAX_IDLE_TIME);
     ASSERT_EQ(d_monitor.state(mqbu::StorageKey::k_NULL_KEY),
@@ -388,8 +389,7 @@ TEST_F(Test, logFormat)
     d_monitor.setMaxIdleTime(k_MAX_IDLE_TIME);
 
     d_monitor.registerSubStream(
-        mqbu::StorageKey::k_NULL_KEY,
-        bdlf::BindUtil::bind(&Test::head, this, mqbu::StorageKey::k_NULL_KEY));
+        mqbu::StorageKey::k_NULL_KEY);
 
     putMessage();
 
@@ -422,8 +422,7 @@ TEST_F(Test, putAliveIdleSendAlive)
     d_monitor.setMaxIdleTime(k_MAX_IDLE_TIME);
 
     d_monitor.registerSubStream(
-        mqbu::StorageKey::k_NULL_KEY,
-        bdlf::BindUtil::bind(&Test::head, this, mqbu::StorageKey::k_NULL_KEY));
+        mqbu::StorageKey::k_NULL_KEY);
 
     putMessage();
 
@@ -487,8 +486,7 @@ TEST_F(Test, putAliveIdleWithConsumer)
     d_monitor.setMaxIdleTime(k_MAX_IDLE_TIME);
 
     d_monitor.registerSubStream(
-        mqbu::StorageKey::k_NULL_KEY,
-        bdlf::BindUtil::bind(&Test::head, this, mqbu::StorageKey::k_NULL_KEY));
+        mqbu::StorageKey::k_NULL_KEY);
 
     createClient(d_consumer1, bmqt::QueueFlags::e_READ);
     createClient(d_consumer2, bmqt::QueueFlags::e_READ);
@@ -525,8 +523,7 @@ TEST_F(Test, putAliveIdleEmptyAlive)
     d_monitor.setMaxIdleTime(k_MAX_IDLE_TIME);
 
     d_monitor.registerSubStream(
-        mqbu::StorageKey::k_NULL_KEY,
-        bdlf::BindUtil::bind(&Test::head, this, mqbu::StorageKey::k_NULL_KEY));
+        mqbu::StorageKey::k_NULL_KEY);
     putMessage();
 
     d_monitor.onTimer(k_MAX_IDLE_TIME);
@@ -559,8 +556,7 @@ TEST_F(Test, changeMaxIdleTime)
     d_monitor.setMaxIdleTime(k_MAX_IDLE_TIME);
 
     d_monitor.registerSubStream(
-        mqbu::StorageKey::k_NULL_KEY,
-        bdlf::BindUtil::bind(&Test::head, this, mqbu::StorageKey::k_NULL_KEY));
+        mqbu::StorageKey::k_NULL_KEY);
 
     putMessage();
 
@@ -606,8 +602,7 @@ TEST_F(Test, reset)
     d_monitor.setMaxIdleTime(k_MAX_IDLE_TIME);
 
     d_monitor.registerSubStream(
-        mqbu::StorageKey::k_NULL_KEY,
-        bdlf::BindUtil::bind(&Test::head, this, mqbu::StorageKey::k_NULL_KEY));
+        mqbu::StorageKey::k_NULL_KEY);
 
     putMessage();
 
@@ -649,11 +644,9 @@ TEST_F(Test, putAliveIdleSendAliveTwoSubstreams)
     d_storage.addVirtualStorage(errorDescription, "app1", key1);
     d_storage.addVirtualStorage(errorDescription, "app2", key2);
 
-    d_monitor.registerSubStream(key1,
-                                bdlf::BindUtil::bind(&Test::head, this, key1));
+    d_monitor.registerSubStream(key1);
 
-    d_monitor.registerSubStream(key2,
-                                bdlf::BindUtil::bind(&Test::head, this, key2));
+    d_monitor.registerSubStream(key2);
 
     putMessage();
 
@@ -746,11 +739,9 @@ TEST_F(Test, putAliveIdleSendAliveTwoSubstreamsTwoConsumers)
     d_storage.addVirtualStorage(errorDescription, "app1", key1);
     d_storage.addVirtualStorage(errorDescription, "app2", key2);
 
-    d_monitor.registerSubStream(key1,
-                                bdlf::BindUtil::bind(&Test::head, this, key1));
+    d_monitor.registerSubStream(key1);
 
-    d_monitor.registerSubStream(key2,
-                                bdlf::BindUtil::bind(&Test::head, this, key2));
+    d_monitor.registerSubStream(key2);
 
     createClient(d_consumer1, bmqt::QueueFlags::e_READ, "app1");
     createClient(d_consumer2, bmqt::QueueFlags::e_READ, "app2");
@@ -837,8 +828,7 @@ TEST_F(Test, usage)
     monitor.setMaxIdleTime(20);
 
     d_monitor.registerSubStream(
-        mqbu::StorageKey::k_NULL_KEY,
-        bdlf::BindUtil::bind(&Test::head, this, mqbu::StorageKey::k_NULL_KEY));
+        mqbu::StorageKey::k_NULL_KEY);
 
     putMessage();
     putMessage();
