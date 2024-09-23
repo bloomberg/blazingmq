@@ -100,6 +100,7 @@ VirtualStorageCatalog::VirtualStorageCatalog(mqbi::Storage*    storage,
 , d_totalBytes(0)
 , d_numMessages(0)
 , d_defaultAppMessage(defaultAppMessage().d_rdaInfo)
+, d_queue_p(0)
 , d_allocator_p(allocator)
 {
     // PRECONDITIONS
@@ -422,6 +423,13 @@ int VirtualStorageCatalog::addVirtualStorage(bsl::ostream& errorDescription,
                       d_allocator_p);
     d_virtualStorages.insert(appId, appKey, vsp);
 
+    if (d_queue_p) {
+        BSLS_ASSERT_SAFE(d_queue_p->queueEngine());
+        // QueueEngines use the key to look up the id
+
+        d_queue_p->queueEngine()->registerStorage(appId, appKey, appOrdinal);
+    }
+
     return 0;
 }
 
@@ -446,6 +454,16 @@ bool VirtualStorageCatalog::removeVirtualStorage(
 
         const VirtualStorage& vs = *it->value();
         d_availableOrdinals.push_back(vs.ordinal());
+
+        if (d_queue_p) {
+            BSLS_ASSERT_SAFE(d_queue_p->queueEngine());
+            // QueueEngines use the key to look up the id
+
+            d_queue_p->queueEngine()->unregisterStorage(vs.appId(),
+                                                        appKey,
+                                                        vs.ordinal());
+        }
+
         d_virtualStorages.erase(it);
         return true;  // RETURN
     }

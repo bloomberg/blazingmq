@@ -133,6 +133,10 @@ class VirtualStorageCatalog {
     mqbi::AppMessage d_defaultAppMessage;
     // The default App state
 
+    mqbi::Queue* d_queue_p;
+    // This could be null if a local or remote
+    // queue instance has not been created.
+
     bslma::Allocator* d_allocator_p;  // Allocator to use
 
   private:
@@ -253,6 +257,8 @@ class VirtualStorageCatalog {
     /// Set the default RDA according to the specified 'maxDeliveryAttempts'.
     void setDefaultRda(int maxDeliveryAttempts);
 
+    void setQueue(mqbi::Queue* queue);
+
     // ACCESSORS
 
     /// Return the number of virtual storages registered with this instance.
@@ -289,6 +295,8 @@ class VirtualStorageCatalog {
 
     /// Return the default App state.
     const mqbi::AppMessage& defaultAppMessage() const;
+
+    mqbi::Queue* queue() const;
 };
 
 // ============================================================================
@@ -307,6 +315,11 @@ inline void VirtualStorageCatalog::setDefaultRda(int maxDeliveryAttempts)
     else {
         d_defaultAppMessage.d_rdaInfo.setUnlimited();
     }
+}
+
+inline void VirtualStorageCatalog::setQueue(mqbi::Queue* queue)
+{
+    d_queue_p = queue;
 }
 
 // ACCESSORS
@@ -338,6 +351,11 @@ VirtualStorageCatalog::numBytes(const mqbu::StorageKey& appKey) const
 inline const mqbi::AppMessage& VirtualStorageCatalog::defaultAppMessage() const
 {
     return d_defaultAppMessage;
+}
+
+inline mqbi::Queue* VirtualStorageCatalog::queue() const
+{
+    return d_queue_p;
 }
 
 }  // close package namespace

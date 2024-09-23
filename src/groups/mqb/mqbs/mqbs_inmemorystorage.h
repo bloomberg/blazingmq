@@ -178,8 +178,6 @@ class InMemoryStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     // DATA
     bslma::Allocator* d_allocator_p;
 
-    mqbi::Queue* d_queue_p;
-
     mqbu::StorageKey d_key;
 
     bmqt::Uri d_uri;
@@ -268,8 +266,6 @@ class InMemoryStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
                           const int maxDeliveryAttempts) BSLS_KEYWORD_OVERRIDE;
 
     virtual void setQueue(mqbi::Queue* queue) BSLS_KEYWORD_OVERRIDE;
-
-    virtual mqbi::Queue* queue() BSLS_KEYWORD_OVERRIDE;
 
     /// Close this storage.
     virtual void close() BSLS_KEYWORD_OVERRIDE;
@@ -424,6 +420,9 @@ class InMemoryStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
 
     // ACCESSORS
     //   (virtual mqbi::Storage)
+
+    /// Return the queue this storage is associated with.
+    virtual mqbi::Queue* queue() const BSLS_KEYWORD_OVERRIDE;
 
     /// Return the URI of the queue this storage is associated with.
     virtual const bmqt::Uri& queueUri() const BSLS_KEYWORD_OVERRIDE;
@@ -652,9 +651,9 @@ inline const mqbu::StorageKey& InMemoryStorage::AutoConfirm::appKey()
 
 // MANIPULATORS
 //   (virtual mqbi::Storage)
-inline mqbi::Queue* InMemoryStorage::queue()
+inline mqbi::Queue* InMemoryStorage::queue() const
 {
-    return d_queue_p;
+    return d_virtualStorageCatalog.queue();
 }
 
 inline int InMemoryStorage::addVirtualStorage(bsl::ostream& errorDescription,

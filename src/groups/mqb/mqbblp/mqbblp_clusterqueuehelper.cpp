@@ -2175,6 +2175,10 @@ bsl::shared_ptr<mqbi::Queue> ClusterQueueHelper::createQueueFactory(
                 context.d_domain_p);
         }
 
+        BALL_LOG_ERROR << d_cluster_p->description()
+                       << ": Done registering the queue "
+                       << context.d_queueContext_p->uri();
+
         // Queue must have been registered with storage manager before
         // registering it with the domain, otherwise Queue.configure() will
         // fail.

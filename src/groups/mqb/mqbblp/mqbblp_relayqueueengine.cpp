@@ -1631,8 +1631,9 @@ void RelayQueueEngine::loadInternals(mqbcmd::QueueEngine* out) const
         &relayQueueEngine.routing());
 }
 
-void RelayQueueEngine::afterAppIdRegistered(
-    const mqbi::Storage::AppIdKeyPair& appIdKeyPair)
+void RelayQueueEngine::registerStorage(const bsl::string&      appId,
+                                       const mqbu::StorageKey& appKey,
+                                       unsigned int            appOrdinal)
 {
     // executed by the *QUEUE DISPATCHER* thread
 
@@ -1640,7 +1641,33 @@ void RelayQueueEngine::afterAppIdRegistered(
     BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
         d_queueState_p->queue()));
 
-    const bsl::string& appId = appIdKeyPair.first;
+    AppIds::iterator iter = d_appIds.find(appId);
+
+    if (iter == d_appIds.end()) {
+        // No consumer has opened the queue with 'appId'.
+    }
+    else {
+        // A consumer has already opened the queue with 'appId'.
+
+        BALL_LOG_INFO << "Remote queue: " << d_queueState_p->uri()
+                      << " (id: " << d_queueState_p->id()
+                      << ") now has storage: [App Id: " << appId
+                      << ", key: " << appKey << ", ordinal: " << appOrdinal
+                      << "]";
+
+        iter->second->authorize(appKey, appOrdinal);
+    }
+}
+
+void RelayQueueEngine::unregisterStorage(const bsl::string&      appId,
+                                         const mqbu::StorageKey& appKey,
+                                         unsigned int            appOrdinal)
+{
+    // executed by the *QUEUE DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
+        d_queueState_p->queue()));
 
     AppIds::iterator iter = d_appIds.find(appId);
     mqbu::StorageKey key;
@@ -1650,17 +1677,12 @@ void RelayQueueEngine::afterAppIdRegistered(
     }
     else {
         // A consumer has already opened the queue with 'appId'.
+        BSLS_ASSERT_SAFE(iter->second->appKey() == appKey);
 
-        iter->second->authorize();
-
-        BSLS_ASSERT_SAFE(iter->second->isAuthorized());
+        iter->second->unauthorize();
     }
-}
 
-void RelayQueueEngine::afterAppIdUnregistered(
-    BSLS_ANNOTATION_UNUSED const mqbi::Storage::AppIdKeyPair& appIdKeyPair)
-{
-    // NOTHING
+    (void)appOrdinal;
 }
 
 bool RelayQueueEngine::subscriptionId2upstreamSubQueueId(

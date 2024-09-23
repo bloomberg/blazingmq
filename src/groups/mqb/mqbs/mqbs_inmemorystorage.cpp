@@ -57,7 +57,6 @@ InMemoryStorage::InMemoryStorage(const bmqt::Uri&        uri,
                                  bslma::Allocator*       allocator,
                                  mwcma::CountingAllocatorStore* allocatorStore)
 : d_allocator_p(allocator)
-, d_queue_p(0)
 , d_key(queueKey)
 , d_uri(uri, allocator)
 , d_partitionId(partitionId)
@@ -109,17 +108,17 @@ int InMemoryStorage::configure(
 
 void InMemoryStorage::setQueue(mqbi::Queue* queue)
 {
-    d_queue_p = queue;
+    d_virtualStorageCatalog.setQueue(queue);
 
     // Update queue stats if a queue has been associated with the storage.
 
-    if (d_queue_p) {
+    if (queue) {
         const bsls::Types::Int64 numMessage = numMessages(
             mqbu::StorageKey::k_NULL_KEY);
         const bsls::Types::Int64 numByte = numBytes(
             mqbu::StorageKey::k_NULL_KEY);
 
-        d_queue_p->stats()->setQueueContentRaw(numMessage, numByte);
+        queue->stats()->setQueueContentRaw(numMessage, numByte);
 
         BALL_LOG_INFO << "Associated queue [" << queue->uri() << "] with key ["
                       << queueKey() << "] and Partition ["
@@ -207,8 +206,8 @@ InMemoryStorage::put(mqbi::StorageMessageAttributes*     attributes,
 
         d_currentlyAutoConfirming = bmqt::MessageGUID();
 
-        if (d_queue_p) {
-            d_queue_p->stats()->onEvent(
+        if (queue()) {
+            queue()->stats()->onEvent(
                 mqbstat::QueueStatsDomain::EventType::e_ADD_MESSAGE,
                 msgSize);
         }
@@ -295,9 +294,9 @@ InMemoryStorage::releaseRef(const bmqt::MessageGUID& guid)
 
         int msgLen = it->second.appData()->length();
         d_capacityMeter.remove(1, msgLen);
-        if (d_queue_p) {
-            d_queue_p->queueEngine()->beforeMessageRemoved(guid);
-            d_queue_p->stats()->onEvent(
+        if (queue()) {
+            queue()->queueEngine()->beforeMessageRemoved(guid);
+            queue()->stats()->onEvent(
                 mqbstat::QueueStatsDomain::EventType::e_DEL_MESSAGE,
                 msgLen);
         }
@@ -334,8 +333,8 @@ InMemoryStorage::remove(const bmqt::MessageGUID& msgGUID, int* msgSize)
     // Update resource usage
     d_capacityMeter.remove(1, msgLen);
 
-    if (d_queue_p) {
-        d_queue_p->stats()->onEvent(
+    if (queue()) {
+        queue()->stats()->onEvent(
             mqbstat::QueueStatsDomain::EventType::e_DEL_MESSAGE,
             msgLen);
     }
@@ -361,8 +360,8 @@ InMemoryStorage::removeAll(const mqbu::StorageKey& appKey)
         d_items.clear();
         d_capacityMeter.clear();
 
-        if (d_queue_p) {
-            d_queue_p->stats()->onEvent(
+        if (queue()) {
+            queue()->stats()->onEvent(
                 mqbstat::QueueStatsDomain::EventType::e_PURGE,
                 0);
         }
@@ -425,9 +424,9 @@ int InMemoryStorage::gcExpiredMessages(
 
         int msgLen = cit->second.appData()->length();
         d_capacityMeter.remove(1, msgLen);
-        if (d_queue_p) {
-            d_queue_p->queueEngine()->beforeMessageRemoved(cit->first);
-            d_queue_p->stats()->onEvent(
+        if (queue()) {
+            queue()->queueEngine()->beforeMessageRemoved(cit->first);
+            queue()->stats()->onEvent(
                 mqbstat::QueueStatsDomain::EventType::e_DEL_MESSAGE,
                 msgLen);
         }
@@ -439,8 +438,8 @@ int InMemoryStorage::gcExpiredMessages(
         ++numMsgsDeleted;
     }
 
-    if (d_queue_p && (numMsgsDeleted > 0)) {
-        d_queue_p->stats()->onEvent(
+    if (queue() && (numMsgsDeleted > 0)) {
+        queue()->stats()->onEvent(
             mqbstat::QueueStatsDomain::EventType::e_GC_MESSAGE,
             numMsgsDeleted);
     }

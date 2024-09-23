@@ -411,8 +411,6 @@ class Storage {
 
     virtual void setQueue(mqbi::Queue* queue) = 0;
 
-    virtual mqbi::Queue* queue() = 0;
-
     /// Close this storage.
     virtual void close() = 0;
 
@@ -558,6 +556,9 @@ class Storage {
     /// Auto-confirmed Apps do not PUSH the message.
 
     // ACCESSORS
+
+    /// Return the queue this storage is associated with.
+    virtual mqbi::Queue* queue() const = 0;
 
     /// Return the URI of the queue this storage is associated with.
     virtual const bmqt::Uri& queueUri() const = 0;

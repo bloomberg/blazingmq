@@ -570,6 +570,13 @@ void QueueEngineTester::init(const mqbconfm::Domain& domainConfig,
             BSLS_ASSERT_SAFE(rc == 0);
         }
     }
+    else {
+        rc = storage_p->addVirtualStorage(
+            errorDescription,
+            bmqp::ProtocolUtil::k_DEFAULT_APP_ID,
+            mqbi::QueueEngine::k_DEFAULT_APP_KEY);
+        BSLS_ASSERT_SAFE(rc == 0);
+    }
 
     d_mockQueue_sp->_setStorage(storage_p);
     storage_p->setQueue(d_mockQueue_sp.get());
@@ -589,14 +596,6 @@ void QueueEngineTester::init(const mqbconfm::Domain& domainConfig,
 
     const_cast<QueueHandleCatalog&>(d_queueState_mp->handleCatalog())
         .setHandleFactory(handleFactory_mp);
-
-    if (!isFanoutMode) {
-        rc = storage_p->addVirtualStorage(
-            errorDescription,
-            bmqp::ProtocolUtil::k_DEFAULT_APP_ID,
-            mqbi::QueueEngine::k_DEFAULT_APP_KEY);
-        BSLS_ASSERT_SAFE(rc == 0);
-    }
 }
 
 void QueueEngineTester::oneTimeShutdown()

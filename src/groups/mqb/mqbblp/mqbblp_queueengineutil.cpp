@@ -1377,6 +1377,16 @@ bool QueueEngineUtil_AppState::evaluateAutoSubcription()
     return d_autoSubscription.evaluate();
 }
 
+void QueueEngineUtil_AppState::authorize(const mqbu::StorageKey& appKey,
+                                         unsigned int            appOrdinal)
+{
+    BSLS_ASSERT_SAFE(d_queue_p->storage());
+
+    d_appKey       = appKey;
+    d_appOrdinal   = appOrdinal;
+    d_isAuthorized = true;
+}
+
 bool QueueEngineUtil_AppState::authorize()
 {
     BSLS_ASSERT_SAFE(d_queue_p->storage());
@@ -1399,16 +1409,6 @@ bool QueueEngineUtil_AppState::authorize()
 void QueueEngineUtil_AppState::unauthorize()
 {
     BSLS_ASSERT_SAFE(d_queue_p->storage());
-
-    unsigned int     ordinal = 0;
-    mqbu::StorageKey key;
-
-    const bool hasVirtualStorage =
-        d_queue_p->storage()->hasVirtualStorage(appId(), &key, &ordinal);
-    BSLS_ASSERT_SAFE(hasVirtualStorage);
-    BSLS_ASSERT_SAFE(appKey() == key);
-
-    (void)hasVirtualStorage;
 
     // Keep the d_appKey
     d_appOrdinal   = mqbi::Storage::k_INVALID_ORDINAL;

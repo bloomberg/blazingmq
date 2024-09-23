@@ -142,20 +142,6 @@ void QueueEngine::onTimer(
     // NOTHING
 }
 
-void QueueEngine::afterAppIdRegistered(const mqbi::Storage::AppIdKeyPair&)
-{
-    // executed by the *QUEUE DISPATCHER* thread
-
-    // NOTHING
-}
-
-void QueueEngine::afterAppIdUnregistered(const mqbi::Storage::AppIdKeyPair&)
-{
-    // executed by the *QUEUE DISPATCHER* thread
-
-    // NOTHING
-}
-
 mqbi::StorageResult::Enum QueueEngine::evaluateAutoSubscriptions(
     BSLS_ANNOTATION_UNUSED const bmqp::PutHeader& putHeader,
     BSLS_ANNOTATION_UNUSED const bsl::shared_ptr<bdlbb::Blob>& appData,

@@ -202,20 +202,6 @@ class QueueEngine : public mqbi::QueueEngine {
     virtual void
     onTimer(bsls::Types::Int64 currentTimer) BSLS_KEYWORD_OVERRIDE;
 
-    /// Called after the specified `appIdKeyPair` has been dynamically
-    /// registered.
-    ///
-    /// THREAD: This method is called from the Queue's dispatcher thread.
-    virtual void afterAppIdRegistered(
-        const mqbi::Storage::AppIdKeyPair& appIdKeyPair) BSLS_KEYWORD_OVERRIDE;
-
-    /// Called after the specified `appIdKeyPair` has been dynamically
-    /// unregistered.
-    ///
-    /// THREAD: This method is called from the Queue's dispatcher thread.
-    virtual void afterAppIdUnregistered(
-        const mqbi::Storage::AppIdKeyPair& appIdKeyPair) BSLS_KEYWORD_OVERRIDE;
-
     /// Given the specified 'putHeader', 'appData', 'mpi', and 'timestamp',
     /// evaluate all Auto (Application) subscriptions and exclude applications
     /// with negative results from message delivery.

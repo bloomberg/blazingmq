@@ -201,7 +201,6 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
 
     Apps::iterator makeSubStream(const bsl::string& appId,
                                  const AppKeyCount& appKey,
-                                 bool               isAuthorized,
                                  unsigned int       upstreamSubQueueId);
 
     bool validate(unsigned int upstreamSubQueueId) const;
@@ -405,6 +404,24 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
     /// THREAD: This method is called from the Queue's dispatcher thread.
     virtual void afterAppIdUnregistered(
         const mqbi::Storage::AppIdKeyPair& appIdKeyPair) BSLS_KEYWORD_OVERRIDE;
+
+    /// Called after creation of a new storage for the  specified
+    /// `appIdKeyPair`.
+    ///
+    /// THREAD: This method is called from the Queue's dispatcher thread.
+    virtual void
+    registerStorage(const bsl::string&      appId,
+                    const mqbu::StorageKey& appKey,
+                    unsigned int            appOrdinal) BSLS_KEYWORD_OVERRIDE;
+
+    /// Called after removal of the storage for the specified
+    /// `appIdKeyPair`.
+    ///
+    /// THREAD: This method is called from the Queue's dispatcher thread.
+    virtual void
+    unregisterStorage(const bsl::string&      appId,
+                      const mqbu::StorageKey& appKey,
+                      unsigned int appOrdinal) BSLS_KEYWORD_OVERRIDE;
 
     /// Given the specified 'putHeader', 'appData', 'mpi', and 'timestamp',
     /// evaluate all Auto (Application) subscriptions and exclude applications

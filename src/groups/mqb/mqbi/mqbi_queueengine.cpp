@@ -35,5 +35,33 @@ QueueEngine::~QueueEngine()
     // NOTHING
 }
 
+void QueueEngine::afterAppIdRegistered(
+    BSLS_ANNOTATION_UNUSED const mqbi::Storage::AppIdKeyPair& appIdKeyPair)
+{
+    // NOTHING
+}
+
+void QueueEngine::afterAppIdUnregistered(
+    BSLS_ANNOTATION_UNUSED const mqbi::Storage::AppIdKeyPair& appIdKeyPair)
+{
+    // NOTHING
+}
+
+void QueueEngine::registerStorage(
+    BSLS_ANNOTATION_UNUSED const bsl::string& appId,
+    BSLS_ANNOTATION_UNUSED const mqbu::StorageKey& appKey,
+    BSLS_ANNOTATION_UNUSED unsigned int            appOrdinal)
+{
+    // NOTHING
+}
+
+void QueueEngine::unregisterStorage(
+    BSLS_ANNOTATION_UNUSED const bsl::string& appId,
+    BSLS_ANNOTATION_UNUSED const mqbu::StorageKey& appKey,
+    BSLS_ANNOTATION_UNUSED unsigned int            appOrdinal)
+{
+    // NOTHING
+}
+
 }  // close package namespace
 }  // close enterprise namespace

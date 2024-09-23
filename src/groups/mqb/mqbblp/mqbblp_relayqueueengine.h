@@ -510,19 +510,23 @@ class RelayQueueEngine : public mqbi::QueueEngine {
     virtual void
     onTimer(bsls::Types::Int64 currentTimer) BSLS_KEYWORD_OVERRIDE;
 
-    /// Called after the specified `appIdKeyPair` has been dynamically
-    /// registered.
+    /// Called after creation of a new storage for the  specified
+    /// `appIdKeyPair`.
     ///
     /// THREAD: This method is called from the Queue's dispatcher thread.
-    virtual void afterAppIdRegistered(
-        const mqbi::Storage::AppIdKeyPair& appIdKeyPair) BSLS_KEYWORD_OVERRIDE;
+    virtual void
+    registerStorage(const bsl::string&      appId,
+                    const mqbu::StorageKey& appKey,
+                    unsigned int            appOrdinal) BSLS_KEYWORD_OVERRIDE;
 
-    /// Called after the specified `appIdKeyPair` has been dynamically
-    /// unregistered.
+    /// Called after removal of the storage for the specified
+    /// `appIdKeyPair`.
     ///
     /// THREAD: This method is called from the Queue's dispatcher thread.
-    virtual void afterAppIdUnregistered(
-        const mqbi::Storage::AppIdKeyPair& appIdKeyPair) BSLS_KEYWORD_OVERRIDE;
+    virtual void
+    unregisterStorage(const bsl::string&      appId,
+                      const mqbu::StorageKey& appKey,
+                      unsigned int appOrdinal) BSLS_KEYWORD_OVERRIDE;
 
     /// Not valid for 'RelayQueueEngine'
     mqbi::StorageResult::Enum evaluateAutoSubscriptions(

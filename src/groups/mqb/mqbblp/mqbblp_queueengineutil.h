@@ -510,6 +510,9 @@ struct QueueEngineUtil_AppState {
     bool evaluateAutoSubcription();
 
     /// Change the state to authorized, thus enabling delivery
+    void authorize(const mqbu::StorageKey& appKey, unsigned int appOrdinal);
+
+    /// Change the state to authorized, thus enabling delivery
     bool authorize();
 
     /// Change the state to authorized, thus disabling delivery.  Clear all

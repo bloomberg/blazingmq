@@ -161,10 +161,6 @@ class FileBackedStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
 
     DataStore* d_store_p;
 
-    mqbi::Queue* d_queue_p;
-    // This could be null if a local or remote
-    // queue instance has not been created.
-
     mqbu::StorageKey d_queueKey;
 
     mqbconfm::Storage d_config;
@@ -255,6 +251,9 @@ class FileBackedStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     /// Return true if storage is backed by a persistent data store,
     /// otherwise return false.
     virtual bool isPersistent() const BSLS_KEYWORD_OVERRIDE;
+
+    /// Return the queue this storage is associated with.
+    virtual mqbi::Queue* queue() const BSLS_KEYWORD_OVERRIDE;
 
     /// Return the URI of the queue this storage is associated with.
     virtual const bmqt::Uri& queueUri() const BSLS_KEYWORD_OVERRIDE;
@@ -360,8 +359,6 @@ class FileBackedStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     virtual mqbu::CapacityMeter* capacityMeter() BSLS_KEYWORD_OVERRIDE;
 
     virtual void setQueue(mqbi::Queue* queue) BSLS_KEYWORD_OVERRIDE;
-
-    virtual mqbi::Queue* queue() BSLS_KEYWORD_OVERRIDE;
 
     /// Close this storage.
     virtual void close() BSLS_KEYWORD_OVERRIDE;
@@ -585,9 +582,9 @@ FileBackedStorage::AutoConfirm::confirmRecordHandle()
 // -----------------
 
 // MANIPULATORS
-inline mqbi::Queue* FileBackedStorage::queue()
+inline mqbi::Queue* FileBackedStorage::queue() const
 {
-    return d_queue_p;
+    return d_virtualStorageCatalog.queue();
 }
 
 inline int FileBackedStorage::addVirtualStorage(bsl::ostream& errorDescription,
