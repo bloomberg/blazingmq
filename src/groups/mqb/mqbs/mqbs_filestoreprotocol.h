@@ -2646,11 +2646,11 @@ inline RecordHeader& MessageRecord::header()
 
 inline MessageRecord& MessageRecord::setRefCount(unsigned int value)
 {
-    const bsl::uint16_t lowBits = value & k_REFCOUNT_LOW_BITS_MASK;
+    const bsl::uint16_t lowBits = static_cast<bsl::uint16_t>(value & k_REFCOUNT_LOW_BITS_MASK);
     d_header.setFlags(lowBits);
 
     value >>= k_REFCOUNT_NUM_LOW_BITS;
-    d_refCountHighBits = value;
+    d_refCountHighBits = static_cast<unsigned char>(value);
 
     BSLS_ASSERT_SAFE((value & ~k_REFCOUNT_HIGH_BITS_MASK) == 0);
 
