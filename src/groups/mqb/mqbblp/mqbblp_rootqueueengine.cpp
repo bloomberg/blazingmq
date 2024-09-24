@@ -1708,7 +1708,7 @@ bool RootQueueEngine::logAlarmCb(const mqbu::StorageKey& appKey,
             &storageIt_mp,
             appKey,
             app->d_putAsideList.first());
-        if (rc == mqbi::StorageResult::Enum::e_SUCCESS) {
+        if (rc == mqbi::StorageResult::e_SUCCESS) {
             // Log timestamp
             out << "Oldest message in a 'Put aside' list:\n";
             mqbcmd::Result result;
