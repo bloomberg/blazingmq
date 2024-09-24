@@ -2646,7 +2646,8 @@ inline RecordHeader& MessageRecord::header()
 
 inline MessageRecord& MessageRecord::setRefCount(unsigned int value)
 {
-    const bsl::uint16_t lowBits = static_cast<bsl::uint16_t>(value & k_REFCOUNT_LOW_BITS_MASK);
+    const bsl::uint16_t lowBits = static_cast<bsl::uint16_t>(
+        value & k_REFCOUNT_LOW_BITS_MASK);
     d_header.setFlags(lowBits);
 
     value >>= k_REFCOUNT_NUM_LOW_BITS;
