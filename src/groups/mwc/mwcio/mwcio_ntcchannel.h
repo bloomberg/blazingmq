@@ -37,6 +37,7 @@
 
 // NTC
 #include <ntcf_system.h>
+#include <ntci_streamsocket.h>
 
 // BDE
 #include <bdlbb_blob.h>
@@ -413,8 +414,11 @@ class NtcChannel : public mwcio::Channel,
     /// Return the channel ID.
     int channelId() const;
 
-    /// Load into the specified `result` the endpoint of the peer.
+    /// Return the endpoint of the "remote" peer.
     ntsa::Endpoint peerEndpoint() const;
+
+    /// Return the endpoint of the "source" peer.
+    ntsa::Endpoint sourceEndpoint() const;
 
     /// Return the URI of the "remote" end of this channel.  It is up to the
     /// underlying implementation to define the format of the returned URI.
@@ -426,6 +430,10 @@ class NtcChannel : public mwcio::Channel,
 
     /// Return the allocator this object was created with.
     bslma::Allocator* allocator() const;
+
+    /// Return the socket interface for this channel. This function is
+    /// undefined unless the channel has succesfully established a connection.
+    const ntci::StreamSocket& streamSocket() const;
 };
 
 // =====================

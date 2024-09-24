@@ -46,7 +46,7 @@ int QueueEngine::configure(
     return 0;
 }
 
-void QueueEngine::resetState()
+void QueueEngine::resetState(BSLS_ANNOTATION_UNUSED bool keepConfirming)
 {
     // NOTHING
 }

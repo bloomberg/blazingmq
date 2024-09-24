@@ -1,4 +1,4 @@
-// Copyright 2015-2023 Bloomberg Finance L.P.
+// Copyright 2015-2024 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -580,9 +580,19 @@ void Cluster::processCommandDispatched(mqbcmd::ClusterResult*        result,
         return;  // RETURN
     }
     else if (command.isForceGcQueuesValue()) {
-        d_clusterOrchestrator.queueHelper().gcExpiredQueues(true);
         // 'true' implies immediate
-        result->makeSuccess();
+        if (const int rc = d_clusterOrchestrator.queueHelper().gcExpiredQueues(
+                true)) {
+            BALL_LOG_ERROR << "Failed to execute force GC queues command (rc: "
+                           << rc << ")";
+            result->makeError().message() = "Failed to execute command (rc: " +
+                                            bsl::to_string(rc) + ")";
+        }
+        else {
+            // Otherwise the command succeeded.
+            result->makeSuccess();
+        }
+
         return;  // RETURN
     }
     else if (command.isStorageValue()) {
@@ -611,7 +621,8 @@ void Cluster::processCommandDispatched(mqbcmd::ClusterResult*        result,
     result->makeError().message() = os.str();
 }
 
-void Cluster::initiateShutdownDispatched(const VoidFunctor& callback)
+void Cluster::initiateShutdownDispatched(const VoidFunctor& callback,
+                                         bool               supportShutdownV2)
 {
     // executed by the *DISPATCHER* thread
 
@@ -622,84 +633,105 @@ void Cluster::initiateShutdownDispatched(const VoidFunctor& callback)
 
     d_isStopping = true;
 
-    // Send StopRequest to all nodes and proxies.  The peers are expected not
-    // to send any PUT msgs to this node after receiving StopRequest.  For each
-    // queue for which this node is the primary, peers (replicas and proxies)
-    // will de-configure the queue, wait for configured timeout, close the
-    // queue, and respond with StopResponse.  The peers are expected not to
-    // send any PUT/PUSH/ACK/CONFIRM msgs to this node after sending
-    // StopResponse.
-    //
-    // Call 'initiateShutdown' for all client sessions.
-    //
-    // Also update self's status.  Note that this node does not explicitly
-    // issue a close-queue request for each of the queues.
-
     d_clusterData.membership().setSelfNodeStatus(
         bmqp_ctrlmsg::NodeStatus::E_STOPPING);
 
-    mwcu::OperationChainLink link(d_shutdownChain.allocator());
-    bsls::TimeInterval       shutdownTimeout;
-    shutdownTimeout.addMilliseconds(
-        d_clusterData.clusterConfig().queueOperations().shutdownTimeoutMs());
+    if (supportShutdownV2) {
+        d_clusterOrchestrator.queueHelper().requestToStopPushing();
 
-    SessionSpVec sessions;
-    for (mqbnet::TransportManagerIterator sessIt(
-             &d_clusterData.transportManager());
-         sessIt;
-         ++sessIt) {
-        bsl::shared_ptr<mqbnet::Session> sessionSp = sessIt.session().lock();
-        if (!sessionSp) {
-            continue;  // CONTINUE
-        }
+        bsls::TimeInterval whenToStop(
+            bsls::SystemTime::now(bsls::SystemClockType::e_MONOTONIC));
+        whenToStop.addMilliseconds(d_clusterData.clusterConfig()
+                                       .queueOperations()
+                                       .shutdownTimeoutMs());
 
-        const bmqp_ctrlmsg::NegotiationMessage& negoMsg =
-            sessionSp->negotiationMessage();
+        d_shutdownChain.appendInplace(
+            bdlf::BindUtil::bind(&ClusterQueueHelper::checkUnconfirmedV2,
+                                 &d_clusterOrchestrator.queueHelper(),
+                                 whenToStop,
+                                 bdlf::PlaceHolders::_1));  // completionCb
+    }
+    else {
+        // TODO(shutdown-v2): TEMPORARY, remove when all switch to StopRequest
+        // V2.
+        // Send StopRequest to all nodes and proxies.  The peers are expected
+        // not to send any PUT msgs to this node after receiving StopRequest.
+        // For each queue for which this node is the primary, peers (replicas
+        // and proxies) will de-configure the queue, wait for configured
+        // timeout, close the queue, and respond with StopResponse.  The peers
+        // are expected not to send any PUT/PUSH/ACK/CONFIRM msgs to this node
+        // after sending StopResponse.
+        //
+        // Call 'initiateShutdown' for all client sessions.
 
-        const bmqp_ctrlmsg::ClientIdentity& peerIdentity =
-            negoMsg.isClientIdentityValue()
-                ? negoMsg.clientIdentity()
-                : negoMsg.brokerResponse().brokerIdentity();
+        mwcu::OperationChainLink link(d_shutdownChain.allocator());
+        bsls::TimeInterval       shutdownTimeout;
+        shutdownTimeout.addMilliseconds(d_clusterData.clusterConfig()
+                                            .queueOperations()
+                                            .shutdownTimeoutMs());
 
-        if (peerIdentity.clusterNodeId() ==
-            d_clusterData.membership().netCluster()->selfNodeId()) {
-            continue;  // CONTINUE
-        }
-
-        if (mqbnet::ClusterUtil::isClient(negoMsg)) {
-            link.insert(bdlf::BindUtil::bind(
-                &mqbnet::Session::initiateShutdown,
-                sessionSp,
-                bdlf::PlaceHolders::_1,  // completion callback
-                shutdownTimeout));
-            continue;  // CONTINUE
-        }
-
-        if (peerIdentity.clusterName() == name()) {
-            // Expect all proxies and nodes support this feature.
-            if (!bmqp::ProtocolUtil::hasFeature(
-                    bmqp::HighAvailabilityFeatures::k_FIELD_NAME,
-                    bmqp::HighAvailabilityFeatures::k_GRACEFUL_SHUTDOWN,
-                    peerIdentity.features())) {
-                BALL_LOG_ERROR << description() << ": Peer doesn't support "
-                               << "GRACEFUL_SHUTDOWN. Skip sending stopRequest"
-                               << " to [" << peerIdentity << "]";
+        SessionSpVec sessions;
+        for (mqbnet::TransportManagerIterator sessIt(
+                 &d_clusterData.transportManager());
+             sessIt;
+             ++sessIt) {
+            bsl::shared_ptr<mqbnet::Session> sessionSp =
+                sessIt.session().lock();
+            if (!sessionSp) {
                 continue;  // CONTINUE
             }
-            sessions.push_back(sessionSp);
+
+            const bmqp_ctrlmsg::NegotiationMessage& negoMsg =
+                sessionSp->negotiationMessage();
+
+            const bmqp_ctrlmsg::ClientIdentity& peerIdentity =
+                negoMsg.isClientIdentityValue()
+                    ? negoMsg.clientIdentity()
+                    : negoMsg.brokerResponse().brokerIdentity();
+
+            if (peerIdentity.clusterNodeId() ==
+                d_clusterData.membership().netCluster()->selfNodeId()) {
+                continue;  // CONTINUE
+            }
+
+            if (mqbnet::ClusterUtil::isClient(negoMsg)) {
+                link.insert(bdlf::BindUtil::bind(
+                    &mqbnet::Session::initiateShutdown,
+                    sessionSp,
+                    bdlf::PlaceHolders::_1,  // completion callback
+                    shutdownTimeout,
+                    false));
+
+                continue;  // CONTINUE
+            }
+
+            if (peerIdentity.clusterName() == name()) {
+                // Expect all proxies and nodes support this feature.
+                if (!bmqp::ProtocolUtil::hasFeature(
+                        bmqp::HighAvailabilityFeatures::k_FIELD_NAME,
+                        bmqp::HighAvailabilityFeatures::k_GRACEFUL_SHUTDOWN,
+                        peerIdentity.features())) {
+                    BALL_LOG_ERROR
+                        << description() << ": Peer doesn't support "
+                        << "GRACEFUL_SHUTDOWN. Skip sending stopRequest"
+                        << " to [" << peerIdentity << "]";
+                    continue;  // CONTINUE
+                }
+                sessions.push_back(sessionSp);
+            }
         }
+
+        link.insert(bdlf::BindUtil::bind(
+            &Cluster::sendStopRequest,
+            this,
+            sessions,
+            bdlf::PlaceHolders::_1));  // completion callback
+
+        d_shutdownChain.append(&link);
     }
 
-    link.insert(
-        bdlf::BindUtil::bind(&Cluster::sendStopRequest,
-                             this,
-                             sessions,
-                             bdlf::PlaceHolders::_1));  // completion callback
-
-    d_shutdownChain.append(&link);
-
-    // Add callback to be invoked once all the client sessions are shut down
-    // and stop responses are received
+    // Also update self's status.  Note that this node does not explicitly
+    // issue a close-queue request for each of the queues.
 
     d_shutdownChain.appendInplace(
         bdlf::BindUtil::bind(&Cluster::continueShutdown,
@@ -717,7 +749,7 @@ void Cluster::sendStopRequest(const SessionSpVec&                  sessions,
     // Send a StopRequest to available cluster nodes and proxies connected to
     // the cluster
     StopRequestManagerType::RequestContextSp contextSp =
-        d_stopRequestsManager.createRequestContext();
+        d_stopRequestsManager_p->createRequestContext();
     bmqp_ctrlmsg::StopRequest& request = contextSp->request()
                                              .choice()
                                              .makeClusterMessage()
@@ -736,7 +768,7 @@ void Cluster::sendStopRequest(const SessionSpVec&                  sessions,
     BALL_LOG_INFO << "Sending StopRequest to " << sessions.size()
                   << " brokers; timeout is " << timeoutMs;
 
-    d_stopRequestsManager.sendRequest(contextSp, timeoutMs);
+    d_stopRequestsManager_p->sendRequest(contextSp, timeoutMs);
 
     // continue after receipt of all StopResponses or the timeout
 }
@@ -2510,7 +2542,9 @@ Cluster::Cluster(const bslstl::StringRef&           name,
                  BlobSpPool*                        blobSpPool,
                  bdlbb::BlobBufferFactory*          bufferFactory,
                  mqbnet::TransportManager*          transportManager,
-                 bslma::Allocator*                  allocator)
+                 StopRequestManagerType*            stopRequestsManager,
+                 bslma::Allocator*                  allocator,
+                 const mqbnet::Session::AdminCommandEnqueueCb& adminCb)
 : d_allocator_p(allocator)
 , d_allocators(d_allocator_p)
 , d_isStarted(false)
@@ -2546,8 +2580,9 @@ Cluster::Cluster(const bslstl::StringRef&           name,
 , d_throttledDroppedPushMessages(5000, 5)     // 5 logs per 5s interval
 , d_logSummarySchedulerHandle()
 , d_queueGcSchedulerHandle()
-, d_stopRequestsManager(&d_clusterData.requestManager(), allocator)
+, d_stopRequestsManager_p(stopRequestsManager)
 , d_shutdownChain(allocator)
+, d_adminCb(adminCb)
 {
     // PRECONDITIONS
     BSLS_ASSERT(d_allocator_p);
@@ -2658,7 +2693,8 @@ int Cluster::start(bsl::ostream& errorDescription)
     return rc;
 }
 
-void Cluster::initiateShutdown(const VoidFunctor& callback)
+void Cluster::initiateShutdown(const VoidFunctor& callback,
+                               bool               supportShutdownV2)
 {
     // executed by *ANY* thread
 
@@ -2670,7 +2706,8 @@ void Cluster::initiateShutdown(const VoidFunctor& callback)
     dispatcher()->execute(
         bdlf::BindUtil::bind(&Cluster::initiateShutdownDispatched,
                              this,
-                             callback),
+                             callback,
+                             supportShutdownV2),
         this);
 
     // Wait for above event to complete.  This is needed because
@@ -2943,6 +2980,25 @@ void Cluster::processControlMessage(
             << description() << ": unexpected clusterMessage:" << message
             << MWCTSK_ALARMLOG_END;
     } break;  // BREAK
+    case MsgChoice::SELECTION_ID_ADMIN_COMMAND: {
+        // Assume this is a rerouted command, so just execute it on the
+        // application
+        const bmqp_ctrlmsg::AdminCommand& adminCommand =
+            message.choice().adminCommand();
+        const bsl::string& cmd = adminCommand.command();
+        d_adminCb(source->hostName(),
+                  cmd,
+                  bdlf::BindUtil::bind(&Cluster::onProcessedAdminCommand,
+                                       this,
+                                       source,
+                                       message,
+                                       bdlf::PlaceHolders::_1,   // rc
+                                       bdlf::PlaceHolders::_2),  // response
+                  true);  // from reroute
+    } break;
+    case MsgChoice::SELECTION_ID_ADMIN_COMMAND_RESPONSE: {
+        requestManager().processResponse(message);
+    } break;
     case MsgChoice::SELECTION_ID_UNDEFINED:
     default: {
         MWCTSK_ALARMLOG_ALARM("CLUSTER")
@@ -2999,8 +3055,7 @@ void Cluster::processClusterControlMessage(
     case MsgChoice::SELECTION_ID_STORAGE_SYNC_RESPONSE:
     case MsgChoice::SELECTION_ID_PARTITION_SYNC_STATE_QUERY_RESPONSE:
     case MsgChoice::SELECTION_ID_PARTITION_SYNC_DATA_QUERY_RESPONSE:
-    case MsgChoice::SELECTION_ID_CLUSTER_SYNC_RESPONSE:
-    case MsgChoice::SELECTION_ID_STOP_RESPONSE: {
+    case MsgChoice::SELECTION_ID_CLUSTER_SYNC_RESPONSE: {
         // NOTE: that we cant simply just check if the msg has an id, because
         //       in cluster, it can receive requests which will have an id; so
         //       only messages that are response type should be sent to the
@@ -3016,6 +3071,11 @@ void Cluster::processClusterControlMessage(
                                  source),
             this);
     } break;  // BREAK
+
+    case MsgChoice::SELECTION_ID_STOP_RESPONSE: {
+        BALL_LOG_INFO << description() << ": processStopResponse: " << message;
+        d_stopRequestsManager_p->processResponse(message);
+    } break;
     case MsgChoice::SELECTION_ID_PARTITION_PRIMARY_ADVISORY: {
         dispatcher()->execute(
             bdlf::BindUtil::bind(
@@ -3565,6 +3625,30 @@ void Cluster::onFailoverThreshold()
     MWCTSK_ALARMLOG_PANIC("CLUSTER") << os.str() << MWCTSK_ALARMLOG_END;
 }
 
+void Cluster::onProcessedAdminCommand(
+    mqbnet::ClusterNode*                source,
+    const bmqp_ctrlmsg::ControlMessage& adminCommandCtrlMsg,
+    int                                 rc,
+    const bsl::string&                  result)
+{
+    if (rc != 0) {
+        BALL_LOG_ERROR << "Error processing routed command [rc: " << rc << "] "
+                       << result;
+    }
+
+    // Regardless of rc, send the admin command response back to the source for
+    // the client to read.
+    bdlma::LocalSequentialAllocator<2048> localAllocator(d_allocator_p);
+    bmqp_ctrlmsg::ControlMessage          response(&localAllocator);
+
+    response.rId() = adminCommandCtrlMsg.rId().value();
+    response.choice().makeAdminCommandResponse();
+
+    response.choice().adminCommandResponse().text() = result;
+
+    d_clusterData.messageTransmitter().sendMessageSafe(response, source);
+}
+
 void Cluster::loadClusterStatus(mqbcmd::ClusterResult* result)
 {
     // executed by the *DISPATCHER* thread
@@ -3682,6 +3766,128 @@ void Cluster::processResponse(const bmqp_ctrlmsg::ControlMessage& response)
                              response,
                              static_cast<mqbnet::ClusterNode*>(0)),  // source
         this);
+}
+
+void Cluster::getPrimaryNodes(int*          rc,
+                              bsl::ostream& errorDescription,
+                              bsl::vector<mqbnet::ClusterNode*>* nodes,
+                              bool* isSelfPrimary) const
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(rc);
+    BSLS_ASSERT_SAFE(nodes);
+    BSLS_ASSERT_SAFE(isSelfPrimary);
+    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+
+    enum RcEnum {
+        rc_SUCCESS = 0,
+        rc_ERROR   = -1,
+    };
+
+    const mqbc::ClusterState::PartitionsInfo& partitionsInfo =
+        d_state.partitions();
+
+    nodes->clear();
+    *isSelfPrimary = false;
+
+    for (mqbc::ClusterState::PartitionsInfo::const_iterator pit =
+             partitionsInfo.begin();
+         pit != partitionsInfo.end();
+         pit++) {
+        if (pit->primaryStatus() !=
+            // TODO: Handle this case (will want to buffer)
+            bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE) {
+            BALL_LOG_WARN << "While collecting primary nodes: "
+                          << "primary for partition " << pit->partitionId()
+                          << " is not active";
+            errorDescription << "Primary is not active for partition id "
+                             << pit->partitionId();
+            *rc = rc_ERROR;
+            return;  // RETURN
+        }
+
+        mqbnet::ClusterNode* primary = pit->primaryNode();
+
+        if (primary) {
+            // Don't add duplicate
+            if (bsl::find(nodes->begin(), nodes->end(), primary) !=
+                nodes->end()) {
+                continue;  // CONTINUE
+            }
+            // Check for self
+            if (d_state.isSelfActivePrimary(pit->partitionId())) {
+                *isSelfPrimary = true;
+                continue;  // CONTINUE
+            }
+            nodes->push_back(primary);
+        }
+        else {
+            BALL_LOG_WARN << "Error while collecting primary nodes: No "
+                             "primary found for partition id "
+                          << pit->partitionId();
+            errorDescription << "No primary found for partition id "
+                             << pit->partitionId();
+            *rc = rc_ERROR;
+            return;  // RETURN
+        }
+    }
+
+    *rc = rc_SUCCESS;
+}
+
+void Cluster::getPartitionPrimaryNode(int*                  rc,
+                                      bsl::ostream&         errorDescription,
+                                      mqbnet::ClusterNode** node,
+                                      bool*                 isSelfPrimary,
+                                      int                   partitionId) const
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(rc);
+    BSLS_ASSERT_SAFE(node);
+    BSLS_ASSERT_SAFE(isSelfPrimary);
+    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+
+    enum RcEnum {
+        rc_SUCCESS = 0,
+        rc_ERROR   = -1,
+    };
+
+    const mqbc::ClusterState::PartitionsInfo& partitions =
+        d_state.partitions();
+
+    // Check boundary conditions for partitionId
+    if (partitionId < 0 || partitionId >= partitions.size()) {
+        errorDescription << "Invalid partition id: " << partitionId;
+        *rc = rc_ERROR;
+        return;  // RETURN
+    }
+
+    // Self is active primary
+    if (d_state.isSelfActivePrimary(partitionId)) {
+        *isSelfPrimary = true;
+        *rc            = rc_SUCCESS;
+    }
+    else if (d_state.hasActivePrimary(partitionId)) {
+        // Partition has active primary, get it and return that
+        mqbnet::ClusterNode* primary =
+            partitions.at(partitionId).primaryNode();
+        if (primary) {
+            *node = primary;
+            *rc   = rc_SUCCESS;
+        }
+        else {
+            // No primary node
+            errorDescription << "No primary node for partition id "
+                             << partitionId;
+            *rc = rc_ERROR;
+        }
+    }
+    // No active primary
+    else {
+        errorDescription << "No active primary for partition id "
+                         << partitionId;
+        *rc = rc_ERROR;
+    }
 }
 
 }  // close package namespace

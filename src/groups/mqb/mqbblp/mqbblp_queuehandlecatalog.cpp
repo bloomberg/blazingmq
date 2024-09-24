@@ -122,7 +122,7 @@ void QueueHandleCatalog::queueHandleDeleter(mqbi::QueueHandle* handle)
 QueueHandleCatalog::QueueHandleCatalog(mqbi::Queue*      queue,
                                        bslma::Allocator* allocator)
 : d_queue_p(queue)
-, d_handleFactory_mp(new (*allocator) DefaultHandleFactory(), allocator)
+, d_handleFactory_mp(new(*allocator) DefaultHandleFactory(), allocator)
 , d_handles(allocator)
 , d_allocator_p(allocator)
 {
@@ -362,6 +362,26 @@ void QueueHandleCatalog::loadInternals(
         out->back().clientDescription() = description.str();
         handle->loadInternals(&out->back());
     }
+}
+
+bsls::Types::Int64 QueueHandleCatalog::countUnconfirmed() const
+{
+    // executed by the *QUEUE* dispatcher thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_queue_p->dispatcher()->inDispatcherThread(d_queue_p));
+
+    bsls::Types::Int64 result = 0;
+
+    for (HandleMap::const_iterator cit = d_handles.begin();
+         cit != d_handles.end();
+         ++cit) {
+        const mqbi::QueueHandle* handle(cit->value().get());
+
+        result += handle->countUnconfirmed(
+            bmqp::QueueId::k_UNASSIGNED_SUBQUEUE_ID);
+    }
+    return result;
 }
 
 }  // close package namespace

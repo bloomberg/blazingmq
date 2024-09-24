@@ -203,7 +203,9 @@ class QueueState {
 
     /// Create a new `QueueState` associated to the specified `queue` and
     /// having the specified `uri`, `id`, `key`, `partitionId` and `domain`.
-    /// Use the specified `allocator` for any memory allocations.
+    /// Use the specified `allocator` for any memory allocations.  Use the
+    /// specified 'unconfirmedCounter' to aggregate the  counting of
+    /// unconfirmed by each queue handle.
     QueueState(mqbi::Queue*            queue,
                const bmqt::Uri&        uri,
                unsigned int            id,

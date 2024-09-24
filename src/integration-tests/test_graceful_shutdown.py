@@ -186,7 +186,7 @@ class TestGracefulShutdown:
         # start graceful shutdown
         peer.exit_gracefully()
 
-        capture = peer.capture(r"Waiting for (-?\d+) unconfirmed messages", timeout=2)
+        capture = peer.capture(r"waiting for (-?\d+) unconfirmed message", timeout=2)
         assert capture
 
         num_messages = int(capture[1])
@@ -198,7 +198,7 @@ class TestGracefulShutdown:
 
         consumer.drain()
 
-        capture = peer.capture(r"Waiting for (-?\d+) unconfirmed messages", timeout=2)
+        capture = peer.capture(r"waiting for (-?\d+) unconfirmed message", timeout=2)
         assert capture
 
         num_messages = int(capture[1])
@@ -209,13 +209,8 @@ class TestGracefulShutdown:
 
         consumer.drain()
 
-        capture = peer.capture(
-            r"finish shutdown sequence having (-?\d+) unconfirmed messages", timeout=2
-        )
+        capture = peer.capture(r"no unconfirmed message", timeout=2)
         assert capture
-
-        num_messages = int(capture[1])
-        assert num_messages == 0
 
         peer.wait()
 
@@ -259,11 +254,8 @@ class TestGracefulShutdown:
         replica = cluster.process(self.replica_proxy.get_active_node())
         self.kill_wait_unconfirmed(replica)
 
-    @tweak.cluster.queue_operations.stop_timeout_ms(3000)
-    @tweak.cluster.queue_operations.shutdown_timeout_ms(2000)
-    def test_cancel_unconfirmed_timer(
-        self, multi_node  # pylint: disable=unused-argument
-    ):
+    @tweak.cluster.queue_operations.shutdown_timeout_ms(1000)
+    def test_give_up_unconfirmed(self, multi_node):  # pylint: disable=unused-argument
         uriWrite = tc.URI_FANOUT
         uriRead = tc.URI_FANOUT_FOO
 
@@ -287,23 +279,19 @@ class TestGracefulShutdown:
         # start graceful shutdown
         leader.exit_gracefully()
 
-        capture = replica.capture(r"waiting for 2 unconfirmed message", timeout=2)
+        capture = leader.capture(r"waiting for 2 unconfirmed message", timeout=2)
         assert capture
 
-        leader.force_stop()
+        capture = replica.capture(r"giving up on 2 unconfirmed message", timeout=2)
+        assert not capture
 
-        replica.drain()
+        leader.force_stop()
 
         # wait for the queue to recover
         self.producer.post(uriWrite, payload=["msg3"], succeed=True)
         consumer.wait_push_event()
 
-        # the timer should be cancelled
-        capture = replica.capture(r"giving up on 2 unconfirmed message", timeout=2)
-        assert not capture
-
-    @tweak.cluster.queue_operations.stop_timeout_ms(3000)
-    @tweak.cluster.queue_operations.shutdown_timeout_ms(2000)
+    @tweak.cluster.queue_operations.shutdown_timeout_ms(1000)
     def test_multiple_stop_requests(self, multi_cluster: Cluster):
         cluster = multi_cluster
 
@@ -326,63 +314,13 @@ class TestGracefulShutdown:
         consumer.wait_push_event()
         assert wait_until(lambda: len(consumer.list(uriRead, block=True)) == 2, 2)
 
+        active_node = cluster.process(self.replica_proxy.get_active_node())
+
         # start graceful shutdown
         for node in cluster.virtual_nodes():
             node.exit_gracefully()
 
-        capture = self.replica_proxy.capture(
-            r"waiting for 2 unconfirmed message", timeout=2
-        )
-        assert capture
-
-    @tweak.cluster.queue_operations.stop_timeout_ms(999999)
-    @tweak.cluster.queue_operations.shutdown_timeout_ms(999999)
-    def test_active_node_down_stop_requests(self, multi_cluster: Cluster):
-        """
-        Ticket 169782591
-        We have: Consumer -> Proxy -> active_node -> upstream_node.
-        Start shutting down active_node (one of cluster.virtual_nodes())
-        Because there are unconfirmed, Proxy lingers with StopResponse.
-        Kill upstream_node.  That event should not cancel StopRequest!
-        """
-        cluster = multi_cluster
-
-        uriWrite = tc.URI_FANOUT
-        uriRead = tc.URI_FANOUT_FOO
-
-        active_node = cluster.process(self.replica_proxy.get_active_node())
-        assert active_node in cluster.virtual_nodes()
-
-        upstream_node = cluster.process(active_node.get_active_node())
-
-        # post 2 PUTs
-        self.producer.post(uriWrite, payload=["msg1"], succeed=True)
-        self.producer.post(uriWrite, payload=["msg2"], succeed=True)
-
-        # start consumer
-        consumer = self.replica_proxy.create_client("consumer")
-
-        consumer.open(uriRead, flags=["read"], succeed=True)
-
-        # receive messages
-        consumer.wait_push_event()
-        assert wait_until(lambda: len(consumer.list(uriRead, block=True)) == 2, 2)
-
-        # start graceful shutdown
-        active_node.exit_gracefully()
-
-        capture = self.replica_proxy.capture(
-            r"waiting for 2 unconfirmed message", timeout=2
-        )
-        assert capture
-
-        upstream_node.force_stop()
-
-        consumer.confirm(uriRead, "*", succeed=True)
-
-        capture = active_node.capture(
-            r"Received control message: \[ rId = (-?\d+) choice = \[ clusterMessage = \[ choice = \[ stopResponse"
-        )
+        capture = active_node.capture(r"waiting for 2 unconfirmed message", timeout=2)
         assert capture
 
     @tweak.cluster.queue_operations.stop_timeout_ms(999999)

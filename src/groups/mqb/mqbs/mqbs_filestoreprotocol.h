@@ -74,7 +74,7 @@
 //       Max app ID length..............................: ~256 KB
 //       Max payload length.............................: ~4 GB
 //                                           (courtesy DataHeader.d_dataLength)
-//       Max message reference count....................: 4096
+//       Max message reference count....................: 1048575 (20 bits)
 //     ========================================================================
 //..
 //
@@ -129,6 +129,7 @@
 #include <bsl_ostream.h>
 #include <bsls_types.h>
 
+#include <bslmf_assert.h>
 #include <bsls_assert.h>
 
 namespace BloombergLP {
@@ -152,7 +153,7 @@ struct FileStoreProtocol {
     static const int k_JOURNAL_RECORD_SIZE = 60;
     // Record size
 
-    static const int k_MAX_MSG_REF_COUNT_HARD = 4096;
+    static const int k_MAX_MSG_REF_COUNT_HARD = 1048575;
     // Maximum value of reference count for a given message
     // per BlazingMQ file store protocol
 
@@ -1024,17 +1025,18 @@ struct RecordHeader {
 
   private:
     // PRIVATE CONSTANTS
-    static const int k_TYPE_NUM_BITS  = 4;
-    static const int k_FLAGS_NUM_BITS = 12;
+    static const int k_TYPE_NUM_BITS = 4;
 
     static const int k_TYPE_START_IDX  = 12;
     static const int k_FLAGS_START_IDX = 0;
 
     static const int k_TYPE_MASK;
-    static const int k_FLAGS_MASK;
 
   public:
     // CONSTANTS
+    static const int k_FLAGS_NUM_BITS = 12;
+    static const int k_FLAGS_MASK;
+
     static const unsigned int k_MAGIC = 0x2A724563;  // *rEc
 
   private:
@@ -1120,7 +1122,7 @@ struct MessageRecord {
     //   +---------------+---------------+---------------+---------------+
     //   |                             Header                            |
     //   +---------------+---------------+---------------+---------------+
-    //   |           Reserved      | CAT |          QueueKey             |
+    //   |     RefCountHighBits    | CAT |          QueueKey             |
     //   +---------------+---------------+---------------+---------------+
     //   |                  QueueKey                     |    FileKey    |
     //   +---------------+---------------+---------------+---------------+
@@ -1142,8 +1144,11 @@ struct MessageRecord {
     //   +---------------+---------------+---------------+---------------+
     //
     //  Header................: Record header
+    //  RefCountHighBits......: RecordHeader keeps lower 12 bits of the App
+    //                          count and MessageRecord keeps high 8 bits
     //  CAT...................: Compression Algorithm Type
     //  QueueKey..............: Queue key to which this message record belongs
+    //
     //  FileKey...............: File key of the corresponding data file
     //  MessageOffsetDwords...: Offset (in DWORDS) in the corresponding data
     //                          file of the message
@@ -1160,10 +1165,18 @@ struct MessageRecord {
     static const int  k_CAT_START_IDX = 0;
     static const char k_CAT_MASK;
 
+    // PRIVATE CONSTANTS
+    static const int k_REFCOUNT_NUM_LOW_BITS  = RecordHeader::k_FLAGS_NUM_BITS;
+    static const int k_REFCOUNT_NUM_HIGH_BITS = 8;
+
+    static const int k_REFCOUNT_LOW_BITS_MASK;
+    static const int k_REFCOUNT_HIGH_BITS_MASK =
+        (1u << k_REFCOUNT_NUM_HIGH_BITS) - 1;
+
     // DATA
     RecordHeader d_header;
 
-    char d_reserved;
+    unsigned char d_refCountHighBits;
 
     char d_reservedAndCAT;
 
@@ -1180,6 +1193,9 @@ struct MessageRecord {
     bdlb::BigEndianUint32 d_magic;
 
   public:
+    static const int k_REFCOUNT_MAX_VALUE =
+        (1u << (k_REFCOUNT_NUM_LOW_BITS + k_REFCOUNT_NUM_HIGH_BITS)) - 1;
+
     // CREATORS
 
     /// Create an instance with all fields unset.
@@ -2619,7 +2635,7 @@ inline MessageRecord::MessageRecord()
     d_header.setType(RecordType::e_MESSAGE);
     setQueueKey(mqbu::StorageKey::k_NULL_KEY);
     setFileKey(mqbu::StorageKey::k_NULL_KEY);
-    static_cast<void>(d_reserved);
+    static_cast<void>(d_refCountHighBits);
 }
 
 // MANIPULATORS
@@ -2630,7 +2646,14 @@ inline RecordHeader& MessageRecord::header()
 
 inline MessageRecord& MessageRecord::setRefCount(unsigned int value)
 {
-    d_header.setFlags(value);
+    const bsl::uint16_t lowBits = value & k_REFCOUNT_LOW_BITS_MASK;
+    d_header.setFlags(lowBits);
+
+    value >>= k_REFCOUNT_NUM_LOW_BITS;
+    d_refCountHighBits = value;
+
+    BSLS_ASSERT_SAFE((value & ~k_REFCOUNT_HIGH_BITS_MASK) == 0);
+
     return *this;
 }
 
@@ -2696,7 +2719,12 @@ inline const RecordHeader& MessageRecord::header() const
 
 inline unsigned int MessageRecord::refCount() const
 {
-    return d_header.flags();
+    unsigned int result = d_refCountHighBits;
+
+    result <<= k_REFCOUNT_NUM_LOW_BITS;
+    result += d_header.flags();
+
+    return result;
 }
 
 inline bmqt::CompressionAlgorithmType::Enum

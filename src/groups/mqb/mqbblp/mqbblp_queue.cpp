@@ -576,7 +576,8 @@ void Queue::onOpenFailure(unsigned int subQueueId)
 }
 
 void Queue::onOpenUpstream(bsls::Types::Uint64 genCount,
-                           unsigned int        subQueueId)
+                           unsigned int        subQueueId,
+                           bool                isWriterOnly)
 {
     // executed by the *QUEUE* dispatcher thread
 
@@ -584,7 +585,7 @@ void Queue::onOpenUpstream(bsls::Types::Uint64 genCount,
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
 
     if (d_remoteQueue_mp) {
-        d_remoteQueue_mp->onOpenUpstream(genCount, subQueueId);
+        d_remoteQueue_mp->onOpenUpstream(genCount, subQueueId, isWriterOnly);
     }
 }
 
@@ -926,6 +927,11 @@ bsls::Types::Int64 Queue::countUnconfirmed(unsigned int subId)
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
 
+    if (subId == bmqp::QueueId::k_UNASSIGNED_SUBQUEUE_ID) {
+        return d_state.handleCatalog().countUnconfirmed();  // RETURN
+    }
+
+    // TODO(shutdown-v2): TEMPORARY, remove when all switch to StopRequest V2.
     struct local {
         static void sum(bsls::Types::Int64*                  sum,
                         mqbi::QueueHandle*                   handle,
@@ -947,6 +953,11 @@ bsls::Types::Int64 Queue::countUnconfirmed(unsigned int subId)
                              subId));
 
     return result;
+}
+
+void Queue::stopPushing()
+{
+    queueEngine()->resetState(true);  // isShuttingDown
 }
 
 }  // close package namespace

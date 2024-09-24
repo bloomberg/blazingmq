@@ -1,4 +1,4 @@
-// Copyright 2014-2023 Bloomberg Finance L.P.
+// Copyright 2014-2024 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -47,6 +47,7 @@
 #include <mwcst_statcontext.h>
 #include <mwcsys_time.h>
 #include <mwcu_memoutstream.h>
+#include <mwcu_operationchain.h>
 
 // BDE
 #include <baljsn_encoder.h>
@@ -76,6 +77,7 @@ namespace mqba {
 namespace {
 const int k_BLOBBUFFER_SIZE           = 4 * 1024;
 const int k_BLOB_POOL_GROWTH_STRATEGY = 1024;
+const bsls::Types::Int64 k_STOP_REQUEST_TIMEOUT_MS   = 5000;
 
 /// Create a new blob at the specified `arena` address, using the specified
 /// `bufferFactory` and `allocator`.
@@ -142,6 +144,11 @@ Application::Application(bdlmt::EventScheduler* scheduler,
                        1,
                        bsls::TimeInterval(120).totalMilliseconds(),
                        allocator)
+, d_adminRerouteExecutionPool(mwcsys::ThreadUtil::defaultAttributes(),
+                              0,
+                              1,
+                              bsls::TimeInterval(120).totalMilliseconds(),
+                              allocator)
 , d_bufferFactory(k_BLOBBUFFER_SIZE,
                   bsls::BlockGrowth::BSLS_CONSTANT,
                   d_allocators.get("BufferFactory"))
@@ -267,9 +274,10 @@ int Application::start(bsl::ostream& errorDescription)
         new (*d_allocator_p) mqbstat::StatController(
             bdlf::BindUtil::bind(&Application::processCommand,
                                  this,
-                                 bdlf::PlaceHolders::_1,   // source
-                                 bdlf::PlaceHolders::_2,   // cmd
-                                 bdlf::PlaceHolders::_3),  // os
+                                 bdlf::PlaceHolders::_1,  // source
+                                 bdlf::PlaceHolders::_2,  // cmd
+                                 bdlf::PlaceHolders::_3,  // os
+                                 false),                  // fromReroute
             d_pluginManager_mp.get(),
             &d_bufferFactory,
             d_allocatorsStatContext_p,
@@ -316,7 +324,8 @@ int Application::start(bsl::ostream& errorDescription)
                                  this,
                                  bdlf::PlaceHolders::_1,    // source
                                  bdlf::PlaceHolders::_2,    // cmd
-                                 bdlf::PlaceHolders::_3));  // onProcessedCb
+                                 bdlf::PlaceHolders::_3,    // onProcessedCb
+                                 bdlf::PlaceHolders::_4));  // fromReroute
 
     bslma::ManagedPtr<mqbnet::Negotiator> negotiatorMp(sessionNegotiator,
                                                        d_allocator_p);
@@ -354,6 +363,15 @@ int Application::start(bsl::ostream& errorDescription)
                                  &d_blobSpPool,
                                  d_allocators.get("ClusterCatalog")),
                              d_allocator_p);
+
+    d_clusterCatalog_mp->setAdminCommandEnqueueCallback(
+        bdlf::BindUtil::bind(&Application::enqueueCommand,
+                             this,
+                             bdlf::PlaceHolders::_1,  // source
+                             bdlf::PlaceHolders::_2,  // cmd
+                             bdlf::PlaceHolders::_3,  // onProcessedCb
+                             bdlf::PlaceHolders::_4   // fromReroute
+                             ));
 
     // Register the ClusterCatalog and TransportManager to the
     // SessionNegotiator.  Must be done before starting the ClusterCatalog
@@ -408,6 +426,11 @@ int Application::start(bsl::ostream& errorDescription)
         return (rc * 100) + rc_ADMIN_POOL_START_FAILURE;  // RETURN
     }
 
+    rc = d_adminRerouteExecutionPool.start();
+    if (rc != 0) {
+        return (rc * 100) + rc_ADMIN_POOL_START_FAILURE;  // RETURN
+    }
+
     BALL_LOG_INFO << "BMQbrkr started successfully";
 
     return rc_SUCCESS;
@@ -440,6 +463,16 @@ void Application::stop()
     d_transportManager_mp->initiateShutdown();
     BALL_LOG_INFO << "Stopped listening for new connections.";
 
+    bool supportShutdownV2 = initiateShutdown();
+
+    if (supportShutdownV2) {
+        BALL_LOG_INFO << ": Executing GRACEFUL_SHUTDOWN_V2";
+    }
+    else {
+        BALL_LOG_INFO << ": Peers do not support "
+                      << "GRACEFUL_SHUTDOWN_V2. Retreat to V1";
+    }
+
     // For each cluster in cluster catalog, inform peers about this shutdown.
     int          count = d_clusterCatalog_mp->count();
     bslmt::Latch latch(count);
@@ -450,7 +483,8 @@ void Application::stop()
          count > 0;
          ++clusterIt, --count) {
         clusterIt.cluster()->initiateShutdown(
-            bdlf::BindUtil::bind(&bslmt::Latch::arrive, &latch));
+            bdlf::BindUtil::bind(&bslmt::Latch::arrive, &latch),
+            supportShutdownV2);
     }
     latch.wait();
 
@@ -461,25 +495,24 @@ void Application::stop()
     BALL_LOG_INFO << "Stopping admin thread pool...";
     d_adminExecutionPool.stop();
 
+    BALL_LOG_INFO << "Stopping admin reroute thread pool...";
+    d_adminRerouteExecutionPool.stop();
+
     // NOTE: Once we no longer call 'channel->close()' here,
     //       'mqbnet::TCPSessionFactory::stopListening' should be revisited
     //       with regards to its cancel of the heartbeat scheduler event.
 
     // STOP everything.
 
-    // Note that we must do an out of order stop/destroy with respect to the
-    // 'DomainManager' and 'ClusterCatalog' because it appears that the domain
-    // manager contains objects that are held and owned by 'ClusterCatalog', so
-    // it is believed that the relationship is not properly done.
-    //
     // Note that clusterCatalog must be stopped before transport manager
     // because transportManager.stop() blocks until all sessions have been
     // destroyed, and above code proactively closes only the clientOrProxy
     // sessions; clusterNode ones are being destroyed by the clusterCatalog
     // calling stop on each cluster.
-    STOP_OBJ(d_domainManager_mp, "DomainManager");
+
     STOP_OBJ(d_clusterCatalog_mp, "ClusterCatalog");
     STOP_OBJ(d_transportManager_mp, "TransportManager");
+    STOP_OBJ(d_domainManager_mp, "DomainManager");
     STOP_OBJ(d_dispatcher_mp, "Dispatcher");
     STOP_OBJ(d_configProvider_mp, "ConfigProvider");
     STOP_OBJ(d_statController_mp, "StatController");
@@ -500,99 +533,246 @@ void Application::stop()
 #undef STOP_OBJ
 }
 
-int Application::processCommand(const bslstl::StringRef& source,
-                                const bsl::string&       cmd,
-                                bsl::ostream&            os)
+bool Application::initiateShutdown()
 {
-    BALL_LOG_INFO << "Received command '" << cmd << "' "
-                  << "[source: " << source << "]";
+    typedef bsl::vector<bsl::shared_ptr<mqbnet::Session> > Sessions;
 
-    mqbcmd::Command commandWithOptions;
-    bsl::string     parseError;
-    if (const int rc = mqbcmd::ParseUtil::parse(&commandWithOptions,
-                                                &parseError,
-                                                cmd)) {
-        os << "Unable to decode command "
-           << "(rc: " << rc << ", error: '" << parseError << "')";
-        return rc;  // RETURN
+    // Send a StopRequest to all connected cluster nodes and brokers
+    Sessions brokers(d_allocator_p);
+    Sessions clients(d_allocator_p);
+
+    for (mqbnet::TransportManagerIterator sessIt(d_transportManager_mp.get());
+         sessIt;
+         ++sessIt) {
+        bsl::shared_ptr<mqbnet::Session> sessionSp = sessIt.session().lock();
+        if (!sessionSp) {
+            continue;  // CONTINUE
+        }
+
+        const bmqp_ctrlmsg::NegotiationMessage& negoMsg =
+            sessionSp->negotiationMessage();
+
+        const bmqp_ctrlmsg::ClientIdentity& peerIdentity =
+            negoMsg.isClientIdentityValue()
+                ? negoMsg.clientIdentity()
+                : negoMsg.brokerResponse().brokerIdentity();
+
+        bool isBroker = false;
+        if (mqbnet::ClusterUtil::isClientOrProxy(negoMsg)) {
+            clients.push_back(sessionSp);
+            if (!negoMsg.clientIdentity().clusterName().empty()) {
+                isBroker = true;
+            }
+        }
+        else {
+            isBroker = true;
+        }
+        if (isBroker) {
+            // Node or Proxy
+            // Expect all proxies and nodes support this feature.
+            if (!bmqp::ProtocolUtil::hasFeature(
+                    bmqp::HighAvailabilityFeatures::k_FIELD_NAME,
+                    bmqp::HighAvailabilityFeatures::k_GRACEFUL_SHUTDOWN,
+                    peerIdentity.features())) {
+                BALL_LOG_ERROR << ": Peer doesn't support "
+                               << "GRACEFUL_SHUTDOWN. Skip sending stopRequest"
+                               << " to [" << peerIdentity << "]";
+                continue;  // CONTINUE
+            }
+            if (!bmqp::ProtocolUtil::hasFeature(
+                    bmqp::HighAvailabilityFeatures::k_FIELD_NAME,
+                    bmqp::HighAvailabilityFeatures::k_GRACEFUL_SHUTDOWN_V2,
+                    peerIdentity.features())) {
+                // Abandon the attempt to shutdown V2
+                return false;  // RETURN
+            }
+            brokers.push_back(sessionSp);
+        }
     }
 
-    mqbcmd::CommandChoice& command = commandWithOptions.choice();
+    bslmt::Latch latch(clients.size() + 1);
+    // The 'StopRequestManagerType::sendRequest' always calls 'd_responseCb'.
 
-    mqbcmd::InternalResult cmdResult;
-    int                    rc = 0;
-    if (command.isHelpValue()) {
-        const bool isPlumbing = command.help().plumbing();
+    mqbblp::ClusterCatalog::StopRequestManagerType::RequestContextSp
+        contextSp =
+            d_clusterCatalog_mp->stopRequestManger().createRequestContext();
+
+    bmqp_ctrlmsg::StopRequest& request = contextSp->request()
+                                             .choice()
+                                             .makeClusterMessage()
+                                             .choice()
+                                             .makeStopRequest();
+
+    request.version() = 2;
+
+    bsls::TimeInterval shutdownTimeout;
+
+    shutdownTimeout.setTotalMilliseconds(k_STOP_REQUEST_TIMEOUT_MS);
+
+    contextSp->setDestinationNodes(brokers);
+
+    contextSp->setResponseCb(
+        bdlf::BindUtil::bind(&bslmt::Latch::arrive, &latch));
+
+    BALL_LOG_INFO << "Sending StopRequest V2 to " << brokers.size()
+                  << " brokers; timeout is " << shutdownTimeout << " ms";
+
+    d_clusterCatalog_mp->stopRequestManger().sendRequest(contextSp,
+                                                         shutdownTimeout);
+
+    BALL_LOG_INFO << "Shutting down " << clients.size()
+                  << " clients; timeout is " << shutdownTimeout << " ms";
+
+    for (Sessions::const_iterator cit = clients.begin(); cit != clients.end();
+         ++cit) {
+        (*cit)->initiateShutdown(bdlf::BindUtil::bind(&bslmt::Latch::arrive,
+                                                      &latch),
+                                 shutdownTimeout,
+                                 true);
+    }
+
+    // Need to wait for peers to update this node status to guarantee no new
+    // clusters.
+    latch.wait();
+
+    return true;
+}
+
+mqbi::Cluster*
+Application::getRelevantCluster(bsl::ostream&          errorDescription,
+                                const mqbcmd::Command& command) const
+{
+    const mqbcmd::CommandChoice& commandChoice = command.choice();
+
+    if (commandChoice.isDomainsValue()) {
+        const mqbcmd::DomainsCommand& domains = commandChoice.domains();
+
+        bsl::string domainName;
+        if (domains.isDomainValue()) {
+            domainName = domains.domain().name();
+        }
+        else if (domains.isReconfigureValue()) {
+            domainName = domains.reconfigure().domain();
+        }
+        else {
+            errorDescription << "Cannot extract cluster for that command";
+            return NULL;  // RETURN
+        }
+
+        // Attempt to locate the domain
+        bsl::shared_ptr<mqbi::Domain> domainSp;
+        if (0 !=
+            d_domainManager_mp->locateOrCreateDomain(&domainSp, domainName)) {
+            errorDescription << "Domain '" << domainName << "' doesn't exist";
+            return NULL;  // RETURN
+        }
+
+        return domainSp->cluster();  // RETURN
+    }
+    else if (commandChoice.isClustersValue()) {
+        const bsl::string& clusterName =
+            commandChoice.clusters().cluster().name();
+        bsl::shared_ptr<mqbi::Cluster> clusterOut;
+        if (!d_clusterCatalog_mp->findCluster(&clusterOut, clusterName)) {
+            errorDescription << "Cluster '" << clusterName
+                             << "' doesn't exist";
+            return NULL;  // RETURN
+        }
+        return clusterOut.get();  // RETURN
+    }
+
+    errorDescription << "Cannot extract cluster for that command";
+    return NULL;  // RETURN
+}
+
+int Application::executeCommand(const mqbcmd::Command&  command,
+                                mqbcmd::InternalResult* cmdResult)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(cmdResult);
+
+    enum RcEnum {
+        rc_SUCCESS    = 0,
+        rc_EARLY_EXIT = -1,
+    };
+
+    const mqbcmd::CommandChoice& commandChoice = command.choice();
+
+    int rc;
+    if (commandChoice.isHelpValue()) {
+        const bool isPlumbing = commandChoice.help().plumbing();
 
         mqbcmd::Help help;
         mqbcmd::CommandList::loadCommands(&help, isPlumbing);
-        cmdResult.makeHelp(help);
+        cmdResult->makeHelp(help);
     }
-    else if (command.isDomainsValue()) {
+    else if (commandChoice.isDomainsValue()) {
         mqbcmd::DomainsResult domainsResult;
-        d_domainManager_mp->processCommand(&domainsResult, command.domains());
+        d_domainManager_mp->processCommand(&domainsResult,
+                                           commandChoice.domains());
         if (domainsResult.isErrorValue()) {
-            cmdResult.makeError(domainsResult.error());
+            cmdResult->makeError(domainsResult.error());
         }
         else if (domainsResult.isSuccessValue()) {
-            cmdResult.makeSuccess();
+            cmdResult->makeSuccess();
         }
         else {
-            cmdResult.makeDomainsResult(domainsResult);
+            cmdResult->makeDomainsResult(domainsResult);
         }
     }
-    else if (command.isConfigProviderValue()) {
+    else if (commandChoice.isConfigProviderValue()) {
         mqbcmd::Error error;
-        rc = d_configProvider_mp->processCommand(command.configProvider(),
-                                                 &error);
+        rc = d_configProvider_mp->processCommand(
+            commandChoice.configProvider(),
+            &error);
         if (rc == 0) {
-            cmdResult.makeSuccess();
+            cmdResult->makeSuccess();
         }
         else {
-            cmdResult.makeError(error);
+            cmdResult->makeError(error);
         }
     }
-    else if (command.isStatValue()) {
+    else if (commandChoice.isStatValue()) {
         mqbcmd::StatResult statResult;
         d_statController_mp->processCommand(&statResult,
-                                            command.stat(),
-                                            commandWithOptions.encoding());
+                                            commandChoice.stat(),
+                                            command.encoding());
         if (statResult.isErrorValue()) {
-            cmdResult.makeError(statResult.error());
+            cmdResult->makeError(statResult.error());
         }
         else {
-            cmdResult.makeStatResult(statResult);
+            cmdResult->makeStatResult(statResult);
         }
     }
-    else if (command.isClustersValue()) {
+    else if (commandChoice.isClustersValue()) {
         mqbcmd::ClustersResult clustersResult;
         d_clusterCatalog_mp->processCommand(&clustersResult,
-                                            command.clusters());
+                                            commandChoice.clusters());
         if (clustersResult.isErrorValue()) {
-            cmdResult.makeError(clustersResult.error());
+            cmdResult->makeError(clustersResult.error());
         }
         else if (clustersResult.isSuccessValue()) {
-            cmdResult.makeSuccess(clustersResult.success());
+            cmdResult->makeSuccess(clustersResult.success());
         }
         else {
-            cmdResult.makeClustersResult(clustersResult);
+            cmdResult->makeClustersResult(clustersResult);
         }
     }
-    else if (command.isDangerValue()) {
+    else if (commandChoice.isDangerValue()) {
         // Intentially _undocumented_ *DANGEROUS* commands!!
-        if (command.danger().isShutdownValue()) {
+        if (commandChoice.danger().isShutdownValue()) {
             mqbu::ExitUtil::shutdown(mqbu::ExitCode::e_REQUESTED);
-            return 0;  // RETURN
+            return rc_EARLY_EXIT;  // RETURN
         }
-        else if (command.danger().isTerminateValue()) {
+        else if (commandChoice.danger().isTerminateValue()) {
             mqbu::ExitUtil::terminate(mqbu::ExitCode::e_REQUESTED);
             // See the implementation of 'mqbu::ExitUtil::terminate'.  It might
             // return.
-            return 0;  // RETURN
+            return rc_EARLY_EXIT;  // RETURN
         }
     }
-    else if (command.isBrokerConfigValue()) {
-        if (command.brokerConfig().isDumpValue()) {
+    else if (commandChoice.isBrokerConfigValue()) {
+        if (commandChoice.brokerConfig().isDumpValue()) {
             baljsn::Encoder        encoder;
             baljsn::EncoderOptions options;
             options.setEncodingStyle(baljsn::EncoderOptions::e_PRETTY);
@@ -604,70 +784,158 @@ int Application::processCommand(const bslstl::StringRef& source,
                                 mqbcfg::BrokerConfig::get(),
                                 options);
             if (rc != 0) {
-                cmdResult.makeError().message() = brokerConfigOs.str();
+                cmdResult->makeError().message() = brokerConfigOs.str();
             }
             else {
-                cmdResult.makeBrokerConfig();
-                cmdResult.brokerConfig().asJSON() = brokerConfigOs.str();
+                cmdResult->makeBrokerConfig();
+                cmdResult->brokerConfig().asJSON() = brokerConfigOs.str();
             }
         }
     }
     else {
         mwcu::MemOutStream errorOs;
-        errorOs << "Unknown command '" << command << "'";
-        cmdResult.makeError().message() = errorOs.str();
+        errorOs << "Unknown command '" << commandChoice << "'";
+        cmdResult->makeError().message() = errorOs.str();
     }
 
-    // Flatten into the final result
-    mqbcmd::Result result;
-    mqbcmd::Util::flatten(&result, cmdResult);
+    return rc_SUCCESS;
+}
 
-    switch (commandWithOptions.encoding()) {
-    case mqbcmd::EncodingFormat::TEXT: {
-        // Pretty print
-        mqbcmd::HumanPrinter::print(os, result);
-    } break;  // BREAK
-    case mqbcmd::EncodingFormat::JSON_COMPACT: {
-        mqbcmd::JsonPrinter::print(os, result, false);
-    } break;  // BREAK
-    case mqbcmd::EncodingFormat::JSON_PRETTY: {
-        mqbcmd::JsonPrinter::print(os, result, true);
-    } break;  // BREAK
-    default: BSLS_ASSERT_SAFE(false && "Unsupported encoding");
+int Application::processCommand(const bslstl::StringRef& source,
+                                const bsl::string&       cmd,
+                                bsl::ostream&            os,
+                                bool                     fromReroute)
+{
+    enum RcEnum {
+        rc_SUCCESS     = 0,
+        rc_EARLY_EXIT  = -1,
+        rc_ERROR       = -2,
+        rc_PARSE_ERROR = -3,
+    };
+
+    BALL_LOG_INFO << "Received command '" << cmd << "' "
+                  << "[source: " << source << "]";
+
+    mqbcmd::Command command;
+    bsl::string     parseError;
+    if (const int rc = mqbcmd::ParseUtil::parse(&command, &parseError, cmd)) {
+        os << "Unable to decode command " << "(rc: " << rc << ", error: '"
+           << parseError << "')";
+        return rc + 10 * rc_PARSE_ERROR;  // RETURN
     }
 
-    return result.isErrorValue() ? -2 : 0;
+    mqbcmd::InternalResult cmdResult;
+
+    // Note that routed commands should never route again to another node.
+    // This should always be the "end of the road" for a command.
+    // Note that this logic is important to prevent a "deadlock" scenario
+    // where two nodes are waiting on a response from each other to continue.
+    // Currently commands from reroutes are executed on their own dedicated
+    // thread.
+    if (fromReroute) {
+        if (0 != executeCommand(command, &cmdResult)) {
+            // early exit (caused by "dangerous" command)
+            return rc_EARLY_EXIT;  // RETURN
+        }
+        mqbcmd::Util::printCommandResult(cmdResult, command.encoding(), os);
+        return cmdResult.isErrorValue() ? rc_ERROR : rc_SUCCESS;  // RETURN
+    }
+
+    // Otherwise, this is an original call. Utilize router if necessary
+    mqba::CommandRouter routeCommandManager(cmd, command);
+
+    bool        shouldSelfExecute = true;
+    bsl::string selfName;
+
+    if (routeCommandManager.isRoutingNeeded()) {
+        mwcu::MemOutStream errorDescription;
+
+        mqbi::Cluster* cluster = getRelevantCluster(errorDescription, command);
+        if (cluster == NULL) {  // Error occurred getting cluster
+            cmdResult.makeError().message() = errorDescription.str();
+            mqbcmd::Util::printCommandResult(cmdResult,
+                                             command.encoding(),
+                                             os);
+            return rc_ERROR;  // RETURN
+        }
+
+        if (const int rc = routeCommandManager.route(errorDescription,
+                                                     &shouldSelfExecute,
+                                                     cluster)) {
+            BALL_LOG_ERROR << "Failed to route command (rc: " << rc
+                           << ", error: '" << errorDescription.str() << "')";
+            cmdResult.makeError().message() = errorDescription.str();
+            mqbcmd::Util::printCommandResult(cmdResult,
+                                             command.encoding(),
+                                             os);
+            return rc_ERROR;  // RETURN
+        }
+
+        selfName = cluster->netCluster().selfNode()->hostName();
+    }
+
+    if (shouldSelfExecute) {
+        if (0 != executeCommand(command, &cmdResult)) {
+            // early exit (caused by "dangerous" command)
+            return rc_EARLY_EXIT;  // RETURN
+        }
+    }
+
+    // While we wait we are blocking the execution of any subsequent commands.
+    routeCommandManager.waitForResponses();
+
+    mqbcmd::RouteResponseList& responses = routeCommandManager.responses();
+
+    if (shouldSelfExecute) {
+        // Add self response (executed earlier)
+        mwcu::MemOutStream cmdOs;
+        mqbcmd::Util::printCommandResult(cmdResult, command.encoding(), cmdOs);
+        mqbcmd::RouteResponse routeResponse;
+        routeResponse.response()              = cmdOs.str();
+        routeResponse.sourceNodeDescription() = selfName;
+        responses.responses().push_back(routeResponse);
+    }
+
+    mqbcmd::Util::printCommandResponses(responses, command.encoding(), os);
+
+    return cmdResult.isErrorValue() ? rc_ERROR : rc_SUCCESS;  // RETURN
 }
 
 int Application::processCommandCb(
     const bslstl::StringRef&                            source,
     const bsl::string&                                  cmd,
-    const bsl::function<void(int, const bsl::string&)>& onProcessedCb)
+    const bsl::function<void(int, const bsl::string&)>& onProcessedCb,
+    bool                                                fromReroute)
 {
     mwcu::MemOutStream os;
-    int                rc = processCommand(source, cmd, os);
+    int                rc = processCommand(source, cmd, os, fromReroute);
 
     onProcessedCb(rc, os.str());
 
-    return rc;
+    return rc;  // RETURN
 }
 
 int Application::enqueueCommand(
     const bslstl::StringRef&                            source,
     const bsl::string&                                  cmd,
-    const bsl::function<void(int, const bsl::string&)>& onProcessedCb)
+    const bsl::function<void(int, const bsl::string&)>& onProcessedCb,
+    bool                                                fromReroute)
 {
+    bdlmt::ThreadPool* threadPool = fromReroute ? &d_adminRerouteExecutionPool
+                                                : &d_adminExecutionPool;
+
     BALL_LOG_TRACE << "Enqueuing admin command '" << cmd
                    << "' [source: " << source
                    << "] to the execution pool [numPendingJobs: "
-                   << d_adminExecutionPool.numPendingJobs() << "]";
+                   << threadPool->numPendingJobs() << "]";
 
-    return d_adminExecutionPool.enqueueJob(
+    return threadPool->enqueueJob(
         bdlf::BindUtil::bind(&Application::processCommandCb,
                              this,
                              source,
                              cmd,
-                             onProcessedCb));
+                             onProcessedCb,
+                             fromReroute));
 }
 
 }  // close package namespace

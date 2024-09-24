@@ -247,7 +247,9 @@ struct StatChannelFactoryUtil {
             e_BYTES_IN_DELTA,
             e_BYTES_IN_ABS,
             e_BYTES_OUT_DELTA,
-            e_BYTES_OUT_ABS
+            e_BYTES_OUT_ABS,
+            e_CONNECTIONS_DELTA,
+            e_CONNECTIONS_ABS
         };
     };
 

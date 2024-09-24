@@ -137,6 +137,9 @@ class TCPSessionFactory {
     /// Name of a property set on the channel representing the peer's IP.
     static const char* k_CHANNEL_PROPERTY_PEER_IP;
 
+    /// Name of a property set on the channel representing the local port.
+    static const char* k_CHANNEL_PROPERTY_LOCAL_PORT;
+
     /// Name of a property set on the channel representing the BTE channel
     /// id.
     static const char* k_CHANNEL_PROPERTY_CHANNEL_ID;
@@ -212,6 +215,43 @@ class TCPSessionFactory {
         // channel.  This variable is entirely and
         // solely managed from within the event
         // scheduler thread.
+    };
+
+    /// This class provides mechanism to store a map of port stat contexts.
+    class PortManager {
+      public:
+        // PUBLIC TYPES
+        struct PortContext {
+            bsl::shared_ptr<mwcst::StatContext> d_portContext;
+            bsl::size_t                         d_numChannels;
+        };
+        typedef bsl::unordered_map<bsl::uint16_t, PortContext> PortMap;
+
+      private:
+        // PRIVATE DATA
+
+        /// A map of all ports
+        PortMap d_portMap;
+
+        /// Allocator to use
+        bslma::Allocator* d_allocator_p;
+
+      public:
+        // CREATORS
+        explicit PortManager(bslma::Allocator* allocator = 0);
+
+        // PUBLIC METHODS
+        /// Create a sub context of the specified 'parent' with the specified
+        /// 'endpoint' as the StatContext's name. Increases the number of
+        /// channels on the specified 'port'.
+        bslma::ManagedPtr<mwcst::StatContext>
+        addChannelContext(mwcst::StatContext* parent,
+                          const bsl::string&  endpoint,
+                          bsl::uint16_t       port);
+
+        /// Handle the deletion of a StatContext associated with a channel
+        /// connected to the specified 'port'.
+        void onDeleteChannelContext(bsl::uint16_t port);
     };
 
     typedef bsl::shared_ptr<ChannelInfo> ChannelInfoSp;
@@ -321,6 +361,9 @@ class TCPSessionFactory {
 
     ChannelMap d_channels;
     // Map of all active channels
+
+    PortManager d_ports;
+    // Manager of all open ports
 
     bool d_heartbeatSchedulerActive;
     // True if the recurring

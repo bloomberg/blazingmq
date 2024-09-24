@@ -84,6 +84,8 @@ namespace BloombergLP {
 namespace mqbnet {
 
 const char* TCPSessionFactory::k_CHANNEL_PROPERTY_PEER_IP = "tcp.peer.ip";
+const char* TCPSessionFactory::k_CHANNEL_PROPERTY_LOCAL_PORT =
+    "tcp.local.port";
 const char* TCPSessionFactory::k_CHANNEL_PROPERTY_CHANNEL_ID =
     "channelpool.channel.id";
 const char* TCPSessionFactory::k_CHANNEL_STATUS_CLOSE_REASON =
@@ -155,12 +157,19 @@ void ntcChannelPreCreation(
     BSLS_ANNOTATION_UNUSED const
         bsl::shared_ptr<mwcio::ChannelFactory::OpHandle>& operationHandle)
 {
-    ntsa::Endpoint peerEndpoint = channel->peerEndpoint();
+    ntsa::Endpoint peerEndpoint   = channel->peerEndpoint();
+    ntsa::Endpoint sourceEndpoint = channel->sourceEndpoint();
 
     if (peerEndpoint.isIp() && peerEndpoint.ip().host().isV4()) {
         channel->properties().set(
             TCPSessionFactory::k_CHANNEL_PROPERTY_PEER_IP,
             static_cast<int>(peerEndpoint.ip().host().v4().value()));
+    }
+
+    if (sourceEndpoint.isIp()) {
+        channel->properties().set(
+            TCPSessionFactory::k_CHANNEL_PROPERTY_LOCAL_PORT,
+            static_cast<int>(sourceEndpoint.ip().port()));
     }
 
     channel->properties().set(TCPSessionFactory::k_CHANNEL_PROPERTY_CHANNEL_ID,
@@ -280,36 +289,31 @@ TCPSessionFactory::channelStatContextCreator(
     const bsl::shared_ptr<mwcio::Channel>&                  channel,
     const bsl::shared_ptr<mwcio::StatChannelFactoryHandle>& handle)
 {
-    mwcst::StatContext* parent = 0;
-
     int peerAddress;
     channel->properties().load(&peerAddress, k_CHANNEL_PROPERTY_PEER_IP);
 
-    ntsa::Ipv4Address ipv4Address(static_cast<bsl::uint32_t>(peerAddress));
-    ntsa::IpAddress   ipAddress(ipv4Address);
-    if (!mwcio::ChannelUtil::isLocalHost(ipAddress)) {
-        parent = d_statController_p->channelsStatContext(
-            mqbstat::StatController::ChannelSelector::e_LOCAL);
-    }
-    else {
-        parent = d_statController_p->channelsStatContext(
-            mqbstat::StatController::ChannelSelector::e_REMOTE);
-    }
-
+    ntsa::Ipv4Address   ipv4Address(static_cast<bsl::uint32_t>(peerAddress));
+    ntsa::IpAddress     ipAddress(ipv4Address);
+    mwcst::StatContext* parent = d_statController_p->channelsStatContext(
+        mwcio::ChannelUtil::isLocalHost(ipAddress)
+            ? mqbstat::StatController::ChannelSelector::e_LOCAL
+            : mqbstat::StatController::ChannelSelector::e_REMOTE);
     BSLS_ASSERT_SAFE(parent);
 
-    bsl::string name;
-    if (handle->options().is<mwcio::ConnectOptions>()) {
-        name = handle->options().the<mwcio::ConnectOptions>().endpoint();
-    }
-    else {
-        name = channel->peerUri();
-    }
+    bsl::string endpoint =
+        handle->options().is<mwcio::ConnectOptions>()
+            ? handle->options().the<mwcio::ConnectOptions>().endpoint()
+            : channel->peerUri();
 
-    bdlma::LocalSequentialAllocator<2048> localAllocator(d_allocator_p);
-    mwcst::StatContextConfiguration       statConfig(name, &localAllocator);
+    int localPort;
+    channel->properties().load(
+        &localPort,
+        TCPSessionFactory::k_CHANNEL_PROPERTY_LOCAL_PORT);
 
-    return parent->addSubcontext(statConfig);
+    bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
+    return d_ports.addChannelContext(parent,
+                                     endpoint,
+                                     static_cast<bsl::uint16_t>(localPort));
 }
 
 void TCPSessionFactory::negotiate(
@@ -732,6 +736,11 @@ void TCPSessionFactory::onClose(const bsl::shared_ptr<mwcio::Channel>& channel,
 {
     --d_nbActiveChannels;
 
+    int port;
+    channel->properties().load(
+        &port,
+        TCPSessionFactory::k_CHANNEL_PROPERTY_LOCAL_PORT);
+
     ChannelInfoSp channelInfo;
     {
         // Lookup the session and remove it from internal map
@@ -742,6 +751,7 @@ void TCPSessionFactory::onClose(const bsl::shared_ptr<mwcio::Channel>& channel,
             channelInfo = it->second;
             d_channels.erase(it);
         }
+        d_ports.onDeleteChannelContext(port);
     }  // close mutex lock guard                                      // UNLOCK
 
     if (!channelInfo) {
@@ -938,6 +948,7 @@ TCPSessionFactory::TCPSessionFactory(
 , d_noSessionCondition(bsls::SystemClockType::e_MONOTONIC)
 , d_noClientCondition(bsls::SystemClockType::e_MONOTONIC)
 , d_channels(allocator)
+, d_ports(allocator)
 , d_heartbeatSchedulerActive(false)
 , d_heartbeatChannels(allocator)
 , d_initialMissedHeartbeatCounter(calculateInitialMissedHbCounter(config))
@@ -1460,6 +1471,56 @@ bool TCPSessionFactory::isEndpointLoopback(const bslstl::StringRef& uri) const
 
     return (endpoint.port() == d_config.port()) &&
            mwcio::ChannelUtil::isLocalHost(endpoint.host());
+}
+
+// ------------------------------------
+// class TCPSessionFactory::PortManager
+// ------------------------------------
+
+TCPSessionFactory::PortManager::PortManager(bslma::Allocator* allocator)
+: d_portMap(allocator)
+, d_allocator_p(allocator)
+{
+}
+
+bslma::ManagedPtr<mwcst::StatContext>
+TCPSessionFactory::PortManager::addChannelContext(mwcst::StatContext* parent,
+                                                  const bsl::string&  endpoint,
+                                                  bsl::uint16_t       port)
+{
+    bdlma::LocalSequentialAllocator<2048> localAllocator(d_allocator_p);
+    mwcst::StatContextConfiguration statConfig(endpoint, &localAllocator);
+
+    bslma::ManagedPtr<mwcst::StatContext> channelStatContext;
+
+    PortMap::iterator portIt = d_portMap.find(port);
+
+    if (portIt != d_portMap.end()) {
+        channelStatContext = portIt->second.d_portContext->addSubcontext(
+            statConfig);
+        ++portIt->second.d_numChannels;
+    }
+    else {
+        mwcst::StatContextConfiguration portConfig(
+            static_cast<bsls::Types::Int64>(port),
+            &localAllocator);
+        bsl::shared_ptr<mwcst::StatContext> portStatContext =
+            parent->addSubcontext(
+                portConfig.storeExpiredSubcontextValues(true));
+        channelStatContext = portStatContext->addSubcontext(statConfig);
+        d_portMap.emplace(port, PortContext({portStatContext, 1}));
+    }
+
+    return channelStatContext;
+}
+
+void TCPSessionFactory::PortManager::onDeleteChannelContext(bsl::uint16_t port)
+{
+    // Lookup the port's StatContext and remove it from the internal containers
+    PortMap::iterator it = d_portMap.find(port);
+    if (it != d_portMap.end() && --it->second.d_numChannels == 0) {
+        d_portMap.erase(it);
+    }
 }
 
 }  // close package namespace

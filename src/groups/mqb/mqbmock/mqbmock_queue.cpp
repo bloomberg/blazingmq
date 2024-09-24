@@ -251,6 +251,11 @@ Queue::countUnconfirmed(BSLS_ANNOTATION_UNUSED unsigned int subId)
     return 0;
 }
 
+void Queue::stopPushing()
+{
+    // NOT IMPLENTED
+}
+
 void Queue::onPushMessage(
     BSLS_ANNOTATION_UNUSED const bmqt::MessageGUID& msgGUID,
     BSLS_ANNOTATION_UNUSED const bsl::shared_ptr<bdlbb::Blob>& appData,
@@ -348,7 +353,8 @@ void Queue::onLostUpstream()
 }
 
 void Queue::onOpenUpstream(BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 genCount,
-                           BSLS_ANNOTATION_UNUSED unsigned int subQueueId)
+                           BSLS_ANNOTATION_UNUSED unsigned int subQueueId,
+                           BSLS_ANNOTATION_UNUSED bool         isWriterOnly)
 {
     // NOTHING
 }

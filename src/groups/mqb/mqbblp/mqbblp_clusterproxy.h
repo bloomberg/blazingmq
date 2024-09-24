@@ -251,7 +251,8 @@ class ClusterProxy : public mqbc::ClusterStateObserver,
     // execution of the shutdown callbacks
     // from the client sessions.
 
-    StopRequestManagerType d_stopRequestsManager;
+    // Should be part of 'ClusterResources'
+    StopRequestManagerType* d_stopRequestsManager_p;
     // Request manager to send stop
     // requests to connected proxies.
 
@@ -264,7 +265,8 @@ class ClusterProxy : public mqbc::ClusterStateObserver,
     /// Initiate the shutdown of the cluster.  The specified `callback` will
     /// be called when the shutdown is completed.  This routine is invoked
     /// in the cluster-dispatcher thread.
-    void initiateShutdownDispatched(const VoidFunctor& callback);
+    void initiateShutdownDispatched(const VoidFunctor& callback,
+                                    bool supportShutdownV2 = false);
 
     /// Stop the `Cluster`.
     void stopDispatched();
@@ -356,6 +358,10 @@ class ClusterProxy : public mqbc::ClusterStateObserver,
     /// used by this cluster.
     RequestManagerType& requestManager() BSLS_KEYWORD_OVERRIDE;
 
+    // Return a reference offering modifiable access to the multi request
+    // manager used by this cluster.
+    MultiRequestManagerType& multiRequestManager() BSLS_KEYWORD_OVERRIDE;
+
     /// Send the specified `request` with the specified `timeout` to the
     /// specified `target` node.  If `target` is 0, it is the Cluster's
     /// implementation responsibility to decide which node to use (in
@@ -373,6 +379,7 @@ class ClusterProxy : public mqbc::ClusterStateObserver,
     /// transmitted request.
     void processResponse(const bmqp_ctrlmsg::ControlMessage& response)
         BSLS_KEYWORD_OVERRIDE;
+    void processPeerStopResponse(const bmqp_ctrlmsg::ControlMessage& response);
 
     void processPeerStopRequest(mqbnet::ClusterNode* clusterNode,
                                 const bmqp_ctrlmsg::ControlMessage& request);
@@ -394,6 +401,7 @@ class ClusterProxy : public mqbc::ClusterStateObserver,
     void
     processResponseDispatched(const bmqp_ctrlmsg::ControlMessage& response);
 
+    // TODO(shutdown-v2): TEMPORARY, remove when all switch to StopRequest V2.
     /// Send stop request to proxies specified in `sessions` using the
     /// specified `stopCb` as a callback to be called once all the requests
     /// get responses.
@@ -434,6 +442,7 @@ class ClusterProxy : public mqbc::ClusterStateObserver,
                  BlobSpPool*                           blobSpPool,
                  mqbi::Dispatcher*                     dispatcher,
                  mqbnet::TransportManager*             transportManager,
+                 StopRequestManagerType*               stopRequestsManager,
                  bslma::Allocator*                     allocator);
 
     /// Destructor
@@ -447,11 +456,16 @@ class ClusterProxy : public mqbc::ClusterStateObserver,
     /// error.
     int start(bsl::ostream& errorDescription) BSLS_KEYWORD_OVERRIDE;
 
-    /// Initiate the shutdown of the cluster.  It is expected that `stop()`
-    /// will be called soon after this routine is invoked.  Invoke the
-    /// specified `callback` upon completion of (asynchronous) shutdown
-    /// sequence.
-    void initiateShutdown(const VoidFunctor& callback) BSLS_KEYWORD_OVERRIDE;
+    /// Initiate the shutdown of the cluster and invoke the specified
+    /// `callback` upon completion of (asynchronous) shutdown sequence. It
+    /// is expected that `stop()` will be called soon after this routine is
+    /// invoked.  If the optional (temporary) specified 'supportShutdownV2' is
+    /// 'true' execute shutdown logic V2 where upstream (not downstream) nodes
+    /// deconfigure  queues and the shutting down node (not downstream) wait
+    /// for CONFIRMS.
+    void
+    initiateShutdown(const VoidFunctor& callback,
+                     bool supportShutdownV2 = false) BSLS_KEYWORD_OVERRIDE;
 
     /// Stop the `Cluster`.
     void stop() BSLS_KEYWORD_OVERRIDE;
@@ -530,6 +544,17 @@ class ClusterProxy : public mqbc::ClusterStateObserver,
 
     /// Load the cluster state in the specified `out` object.
     void loadClusterStatus(mqbcmd::ClusterResult* out) BSLS_KEYWORD_OVERRIDE;
+
+    void getPrimaryNodes(int*                               rc,
+                         bsl::ostream&                      errorDescription,
+                         bsl::vector<mqbnet::ClusterNode*>* nodes,
+                         bool* isSelfPrimary) const BSLS_KEYWORD_OVERRIDE;
+
+    void getPartitionPrimaryNode(int*                  rc,
+                                 bsl::ostream&         errorDescription,
+                                 mqbnet::ClusterNode** node,
+                                 bool*                 isSelfPrimary,
+                                 int partitionId) const BSLS_KEYWORD_OVERRIDE;
 
     // MANIPULATORS
     //   (virtual: mqbi::DispatcherClient)
@@ -697,11 +722,38 @@ inline size_t ClusterProxy::ChannelBuffer::bytes() const
 // class ClusterProxy
 // ------------------
 
+inline void
+ClusterProxy::getPrimaryNodes(int*          rc,
+                              bsl::ostream& errorDescription,
+                              bsl::vector<mqbnet::ClusterNode*>* nodes,
+                              bool* isSelfPrimary) const
+{
+    // no implementation -- this should not run.
+    BSLS_ASSERT_SAFE(false);
+}
+
+inline void
+ClusterProxy::getPartitionPrimaryNode(int*                  rc,
+                                      bsl::ostream&         errorDescription,
+                                      mqbnet::ClusterNode** node,
+                                      bool*                 isSelfPrimary,
+                                      int                   partitionId) const
+{
+    // no implementation -- this should not run.
+    BSLS_ASSERT_SAFE(false);
+}
+
 // PRIVATE MANIPULATORS
 //   (virtual: mqbi::Cluster)
 inline ClusterProxy::RequestManagerType& ClusterProxy::requestManager()
 {
     return d_clusterData.requestManager();
+}
+
+inline mqbi::Cluster::MultiRequestManagerType&
+ClusterProxy::multiRequestManager()
+{
+    return d_clusterData.multiRequestManager();
 }
 
 // MANIPULATORS

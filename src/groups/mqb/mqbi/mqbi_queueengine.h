@@ -74,8 +74,10 @@ class QueueEngine {
     /// otherwise and populate the specified `errorDescription`.
     virtual int configure(bsl::ostream& errorDescription) = 0;
 
-    /// Reset the internal state of this engine.
-    virtual void resetState() = 0;
+    /// Reset the internal state of this engine.  If the optionally specified
+    /// 'isShuttingDown' is 'true', clear the routing state but keep the Apps
+    /// state for CONFIRMs processing.
+    virtual void resetState(bool isShuttingDown = false) = 0;
 
     /// Rebuild the internal state of this engine.  This method is invoked
     /// when the queue this engine is associated with is created from an

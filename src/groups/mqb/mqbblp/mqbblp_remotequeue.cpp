@@ -523,6 +523,7 @@ RemoteQueue::RemoteQueue(QueueState*       state,
 , d_unackedPutCounter(0)
 , d_subStreams(allocator)
 , d_statePool_p(statePool)
+, d_producerState()
 , d_allocator_p(allocator)
 {
     // PRECONDITIONS
@@ -948,8 +949,7 @@ void RemoteQueue::postMessage(const bmqp::PutHeader&              putHeaderIn,
         return;  // RETURN
     }
 
-    SubStreamContext& ctx = subStreamContext(
-        bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID);
+    SubStreamContext& ctx = d_producerState;
 
     if (ctx.d_state == SubStreamContext::e_NONE) {
         BALL_LOG_WARN << "#CLIENT_IMPROPER_BEHAVIOR " << d_state_p->uri()
@@ -1590,6 +1590,9 @@ void RemoteQueue::onOpenFailure(unsigned int upstreamSubQueueId)
     ctx.d_state           = SubStreamContext::e_CLOSED;
     ctx.d_genCount        = 0;
 
+    d_producerState.d_state    = SubStreamContext::e_CLOSED;
+    d_producerState.d_genCount = 0;
+
     if (upstreamSubQueueId == bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID) {
         size_t numMessages = d_pendingMessages.size();
         if (numMessages) {
@@ -1669,11 +1672,15 @@ void RemoteQueue::onLostUpstream()
         i->d_genCount = 0;
     }
 
+    d_producerState.d_state    = SubStreamContext::e_STOPPED;
+    d_producerState.d_genCount = 0;
+
     BALL_LOG_INFO << d_state_p->uri() << ": has lost the upstream";
 }
 
 void RemoteQueue::onOpenUpstream(bsls::Types::Uint64 genCount,
-                                 unsigned int        upstreamSubQueueId)
+                                 unsigned int        upstreamSubQueueId,
+                                 bool                isWriterOnly)
 {
     // executed by the *DISPATCHER* thread
 
@@ -1681,7 +1688,9 @@ void RemoteQueue::onOpenUpstream(bsls::Types::Uint64 genCount,
     BSLS_ASSERT_SAFE(d_state_p->queue()->dispatcher()->inDispatcherThread(
         d_state_p->queue()));
 
-    SubStreamContext& ctx = subStreamContext(upstreamSubQueueId);
+    SubStreamContext& ctx = isWriterOnly
+                                ? d_producerState
+                                : subStreamContext(upstreamSubQueueId);
 
     if (genCount == 0) {
         // This is a result of StopRequest processing.
@@ -1689,7 +1698,7 @@ void RemoteQueue::onOpenUpstream(bsls::Types::Uint64 genCount,
         // Until then, we buffer.
         if (ctx.d_state == SubStreamContext::e_OPENED) {
             if (upstreamSubQueueId == bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID) {
-                if (d_state_p->hasMultipleSubStreams()) {
+                if (isWriterOnly) {
                     BALL_LOG_INFO << d_state_p->uri()
                                   << ": buffering PUTs with generation count "
                                   << ctx.d_genCount
@@ -1700,6 +1709,8 @@ void RemoteQueue::onOpenUpstream(bsls::Types::Uint64 genCount,
                                   << ": buffering PUTs and CONFIRMs with"
                                   << " generation count " << ctx.d_genCount
                                   << " because upstream is stopping.";
+                    d_producerState.d_state    = SubStreamContext::e_STOPPED;
+                    d_producerState.d_genCount = 0;
                 }
             }
             else {
@@ -1734,6 +1745,9 @@ void RemoteQueue::onOpenUpstream(bsls::Types::Uint64 genCount,
         ctx.d_state = SubStreamContext::e_OPENED;
 
         if (upstreamSubQueueId == bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID) {
+            d_producerState.d_genCount = genCount;
+            d_producerState.d_state    = SubStreamContext::e_OPENED;
+
             retransmitPendingMessagesDispatched(genCount);
         }
         retransmitPendingConfirmsDispatched(upstreamSubQueueId);

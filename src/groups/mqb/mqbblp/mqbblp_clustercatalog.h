@@ -68,6 +68,7 @@
 #include <mqbcfg_messages.h>
 #include <mqbi_cluster.h>
 #include <mqbi_domain.h>
+#include <mqbnet_multirequestmanager.h>
 #include <mqbnet_session.h>
 
 // MWC
@@ -178,6 +179,15 @@ class ClusterCatalog {
         // cluster.
     };
 
+    typedef bmqp::RequestManager<bmqp_ctrlmsg::ControlMessage,
+                                 bmqp_ctrlmsg::ControlMessage>
+        RequestManagerType;
+
+    typedef mqbnet::MultiRequestManager<bmqp_ctrlmsg::ControlMessage,
+                                        bmqp_ctrlmsg::ControlMessage,
+                                        bsl::shared_ptr<mqbnet::Session> >
+        StopRequestManagerType;
+
   private:
     // PRIVATE TYPES
 
@@ -279,6 +289,17 @@ class ClusterCatalog {
 
     StatContextsMap d_statContexts;
     // Map of stat contexts
+
+    mqbnet::Session::AdminCommandEnqueueCb d_adminCb;
+    // Callback function to enqueue admin commands
+
+    RequestManagerType d_requestManager;
+    // Request manager to use
+
+    // Should be part of 'ClusterResources'
+    StopRequestManagerType d_stopRequestsManager;
+    // Request manager to send stop
+    // requests to connected brokers.
 
   private:
     // NOT IMPLEMENTED
@@ -408,6 +429,14 @@ class ClusterCatalog {
     int processCommand(mqbcmd::ClustersResult*        result,
                        const mqbcmd::ClustersCommand& command);
 
+    StopRequestManagerType& stopRequestManger();
+    void processStopResponse(const bmqp_ctrlmsg::ControlMessage& message);
+
+    /// Sets the callback, `value`, to pass to created clusters in this catalog
+    /// that runs when an admin command is received by the cluster.
+    void setAdminCommandEnqueueCallback(
+        const mqbnet::Session::AdminCommandEnqueueCb& value);
+
     // ACCESSORS
 
     /// Return the node Id of this host in the cluster identified by the
@@ -504,6 +533,18 @@ inline bool ClusterCatalog::isMemberOf(const bsl::string& clusterName) const
     return (d_myClusters.find(clusterName) != d_myClusters.end());
 }
 
+inline ClusterCatalog::StopRequestManagerType&
+ClusterCatalog::stopRequestManger()
+{
+    return d_stopRequestsManager;
+}
+
+inline void ClusterCatalog::processStopResponse(
+    const bmqp_ctrlmsg::ControlMessage& message)
+{
+    d_requestManager.processResponse(message);
+}
+
 // ----------------------------
 // class ClusterCatalogIterator
 // ----------------------------
@@ -546,6 +587,12 @@ inline mqbi::Cluster* ClusterCatalogIterator::cluster() const
     BSLS_ASSERT_SAFE(*this);
 
     return d_iterator->second.d_cluster_sp.get();
+}
+
+inline void ClusterCatalog::setAdminCommandEnqueueCallback(
+    const mqbnet::Session::AdminCommandEnqueueCb& value)
+{
+    d_adminCb = value;
 }
 
 }  // close package namespace

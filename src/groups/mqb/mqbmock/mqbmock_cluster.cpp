@@ -89,6 +89,9 @@ void Cluster::_initializeClusterDefinition(
     BSLS_ASSERT_OPT(!d_isStarted &&
                     "_initializeClusterDefinition() must be called before"
                     " start()");
+    if (isFSMWorkflow) {
+        BSLS_ASSERT_SAFE(isCSLMode);
+    }
 
     d_clusterDefinition.name() = name;
 
@@ -322,7 +325,8 @@ int Cluster::start(BSLS_ANNOTATION_UNUSED bsl::ostream& errorDescription)
 }
 
 void Cluster::initiateShutdown(
-    BSLS_ANNOTATION_UNUSED const VoidFunctor& callback)
+    BSLS_ANNOTATION_UNUSED const VoidFunctor& callback,
+    BSLS_ANNOTATION_UNUSED bool               supportShutdownV2)
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(!d_isStarted &&
@@ -388,6 +392,11 @@ mqbnet::Cluster& Cluster::netCluster()
 Cluster::RequestManagerType& Cluster::requestManager()
 {
     return d_clusterData_mp->requestManager();
+}
+
+mqbc::ClusterData::MultiRequestManagerType& Cluster::multiRequestManager()
+{
+    return d_clusterData_mp->multiRequestManager();
 }
 
 bmqt::GenericResult::Enum

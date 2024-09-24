@@ -36,7 +36,7 @@ Future work may also support creating spans for `PUT` and `CONFIRM` messages.
 Clients may enable Distributed Trace by installing two objects through the
 session options:
 
-- A **context** responsible for defining the "currrent" span for a thread
+- A **context** responsible for defining the "current" span for a thread
 
 - A **tracer** responsible for creating new spans
 
