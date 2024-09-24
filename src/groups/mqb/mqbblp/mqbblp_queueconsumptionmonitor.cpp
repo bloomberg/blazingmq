@@ -129,14 +129,6 @@ QueueConsumptionMonitor::SubStreamInfo::SubStreamInfo()
     // NOTHING
 }
 
-// QueueConsumptionMonitor::SubStreamInfo::SubStreamInfo(
-//     const SubStreamInfo& other)
-// : d_lastKnownGoodTimer(other.d_lastKnownGoodTimer)
-// , d_messageSent(other.d_messageSent)
-// , d_state(other.d_state)
-// {
-// }
-
 // -----------------------------
 // class QueueConsumptionMonitor
 // -----------------------------
@@ -234,7 +226,6 @@ void QueueConsumptionMonitor::onTimer(bsls::Types::Int64 currentTimer)
     BSLS_ASSERT_SAFE(currentTimer >= d_currentTimer);
 
     d_currentTimer = currentTimer;
-    // BALL_LOG_WARN << "currentTimer: " << currentTimer;
 
     for (SubStreamInfoMapIter iter = d_subStreamInfos.begin(),
                               last = d_subStreamInfos.end();
@@ -259,37 +250,27 @@ void QueueConsumptionMonitor::onTimer(bsls::Types::Int64 currentTimer)
             continue;  // CONTINUE
         }
 
-        // if (info.d_state == State::e_IDLE) {
-        //     // state was already idle, nothing more to do
-        //     continue;  // CONTINUE
-        // }
-
-        // BSLS_ASSERT_SAFE(info.d_state == State::e_ALIVE);
-
         if (d_currentTimer - info.d_lastKnownGoodTimer > d_maxIdleTime) {
-            // BALL_LOG_WARN << "Inside info.d_lastKnownGoodTimer: " <<
-            // info.d_lastKnownGoodTimer << " State: " << info.d_state;
-
             // No delivered messages in the last 'maxIdleTime'.
-            // If alive, log alarm and transition to idle
-            const bool queueAtHead = d_loggingCb(appKey,
-                                                 info.d_state ==
-                                                     State::e_ALIVE);
 
-            if (queueAtHead) {
+            // Call callback to log alarm if there are undelivered messages.
+            const bool haveUndelivered = d_loggingCb(appKey,
+                                                     info.d_state ==
+                                                         State::e_ALIVE);
+
+            if (haveUndelivered) {
+                // There are undelivered messages, transition to idle.
+                if (info.d_state == State::e_ALIVE) {
+                    info.d_state = State::e_IDLE;
+                }
+            }
+            else {
                 // The queue is at its head (no more
                 // messages to deliver to this substream),
                 // so transition to alive.
                 if (info.d_state == State::e_IDLE) {
                     info.d_lastKnownGoodTimer = d_currentTimer;
                     onTransitionToAlive(&info, appKey);
-                }
-            }
-            else {
-                // onTransitionToIdle(&(iter->second), iter->first, head);
-                // There are undelivede messages, transition to idle.
-                if (info.d_state == State::e_ALIVE) {
-                    info.d_state = State::e_IDLE;
                 }
             }
         }
@@ -323,21 +304,6 @@ void QueueConsumptionMonitor::onTransitionToAlive(
 
     BALL_LOG_INFO << "Queue '" << uri << "' no longer appears to be stuck.";
 }
-
-// void QueueConsumptionMonitor::onTransitionToIdle(
-//     SubStreamInfo*                                  subStreamInfo,
-//     const mqbu::StorageKey&                         appKey,
-//     const bslma::ManagedPtr<mqbi::StorageIterator>& head)
-// {
-//     // executed by the *QUEUE DISPATCHER* thread
-
-//     // PRECONDITIONS
-//     BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
-//         d_queueState_p->queue()));
-//     BSLS_ASSERT_SAFE(d_loggingCb);
-
-//     subStreamInfo->d_state = State::e_IDLE;
-// }
 
 }  // close package namespace
 }  // close enterprise namespace

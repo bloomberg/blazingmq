@@ -249,7 +249,7 @@ RootQueueEngine::RootQueueEngine(QueueState*             queueState,
       bdlf::BindUtil::bind(&RootQueueEngine::logAlarmCb,
                            this,
                            bdlf::PlaceHolders::_1,   // appKey
-                           bdlf::PlaceHolders::_2),  // isAlarm
+                           bdlf::PlaceHolders::_2),  // enableLog
       allocator)
 , d_apps(allocator)
 , d_nullKeyCount(0)
@@ -1184,7 +1184,7 @@ void RootQueueEngine::releaseHandle(
                 // the set of consumers for the given appId
                 BSLS_ASSERT_SAFE(!hasHandle(subStreamInfo.appId(), handle));
             }  // else there are app consumers on this handle
-        }  // else producer
+        }      // else producer
 
         // Register/unregister both consumers and producers
         handle->unregisterSubStream(
@@ -1562,16 +1562,13 @@ void RootQueueEngine::onTimer(bsls::Types::Int64 currentTimer)
 }
 
 bool RootQueueEngine::logAlarmCb(const mqbu::StorageKey& appKey,
-                                 const bool              isAlarm) const
+                                 const bool              enableLog) const
 {
     // executed by the *QUEUE DISPATCHER* thread
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
         d_queueState_p->queue()));
-
-    // By default assume queue is at head.
-    bool queueAtHead = true;
 
     // Construct AppId from appKey
     bmqt::UriBuilder uriBuilder(d_queueState_p->uri(), d_allocator_p);
@@ -1588,23 +1585,22 @@ bool RootQueueEngine::logAlarmCb(const mqbu::StorageKey& appKey,
     Apps::const_iterator cItApp = d_apps.findByKey1(appId);
     if (cItApp == d_apps.end()) {
         BALL_LOG_WARN << "No app found for appId: " << appId;
-        return queueAtHead;  // RETURN
+        return false;  // RETURN
     }
     const AppStateSp& app = cItApp->value();
 
+    // Check if there are un-delivered messages
     bslma::ManagedPtr<mqbi::StorageIterator> head = app->head();
-    // Return if there are no un-delivered messages
     if (!head) {
-        return queueAtHead;  // RETURN
+        // No un-delivered messages, do nothing.
+        return false;  // RETURN
+    }
+    else if (!enableLog) {
+        // There are un-delivered messages, but log is disabled.
+        return true;  // RETURN
     }
 
-    queueAtHead = false;
-
-    // If queue state is not alive, don't log alarm
-    if (!isAlarm) {
-        return queueAtHead;  // RETURN
-    }
-
+    // Logging alarm info
     bdlma::LocalSequentialAllocator<4096> localAllocator(d_allocator_p);
 
     bmqt::Uri uri(&localAllocator);
@@ -1612,25 +1608,25 @@ bool RootQueueEngine::logAlarmCb(const mqbu::StorageKey& appKey,
 
     mwcu::MemOutStream ss(&localAllocator);
 
-    // Print app consumers queue handles info
+    // Log app consumers queue handles info
     int idx          = 1;
     int numConsumers = 0;
 
     QueueEngineUtil_AppState::Consumers& consumers = app->consumers();
-    for (QueueEngineUtil_AppState::Consumers::const_iterator itConsumer =
+    for (QueueEngineUtil_AppState::Consumers::const_iterator citConsumer =
              consumers.begin();
-         itConsumer != consumers.end();
-         ++itConsumer) {
-        mqbi::QueueHandle* queueHandle_p = itConsumer->first;
+         citConsumer != consumers.end();
+         ++citConsumer) {
+        mqbi::QueueHandle* const queueHandle_p = citConsumer->first;
 
         const mqbi::QueueHandle::SubStreams& subStreamInfos =
             queueHandle_p->subStreamInfos();
 
-        for (mqbi::QueueHandle::SubStreams::const_iterator infoCiter =
+        for (mqbi::QueueHandle::SubStreams::const_iterator citSubStreams =
                  subStreamInfos.begin();
-             infoCiter != subStreamInfos.end();
-             ++infoCiter) {
-            numConsumers += infoCiter->second.d_counts.d_readCount;
+             citSubStreams != subStreamInfos.end();
+             ++citSubStreams) {
+            numConsumers += citSubStreams->second.d_counts.d_readCount;
 
             const int level = 2, spacesPerLevel = 2;
 
@@ -1640,7 +1636,7 @@ bool RootQueueEngine::logAlarmCb(const mqbu::StorageKey& appKey,
                << "Handle Parameters .....: "
                << queueHandle_p->handleParameters()
                << mwcu::PrintUtil::newlineAndIndent(level, spacesPerLevel)
-               << "Unconfirmed messages count: "
+               << "Number of unconfirmed messages .....: "
                << queueHandle_p->countUnconfirmed()
                << mwcu::PrintUtil::newlineAndIndent(level, spacesPerLevel)
                << "UnconfirmedMonitors ....:";
@@ -1663,11 +1659,8 @@ bool RootQueueEngine::logAlarmCb(const mqbu::StorageKey& appKey,
         << " appears to be stuck. It currently has " << numConsumers
         << " consumers." << ss.str() << '\n';
 
+    // Log un-delivered messages info
     mqbi::Storage* const storage = d_queueState_p->storage();
-
-    // Apps::const_iterator cItApp = d_apps.findByKey1(appId);
-    // const AppStateSp& app = cItApp->value();
-
     out << "\nFor appId: " << appId << '\n';
     out << "Put aside list size: " << app->putAsideListSize() << '\n';
     out << "Redelivery list size: " << app->redeliveryListSize() << '\n';
@@ -1708,7 +1701,7 @@ bool RootQueueEngine::logAlarmCb(const mqbu::StorageKey& appKey,
         out << '\n' << ss.str() << '\n';
     }
 
-    // Log the first (oldest) message in Put aside list and its properties
+    // Log the first (oldest) message in a put aside list and its properties
     if (!app->d_putAsideList.empty()) {
         bslma::ManagedPtr<mqbi::StorageIterator> storageIt_mp;
         mqbi::StorageResult::Enum                rc = storage->getIterator(
@@ -1771,7 +1764,7 @@ bool RootQueueEngine::logAlarmCb(const mqbu::StorageKey& appKey,
 
     MWCTSK_ALARMLOG_ALARM("QUEUE_STUCK") << out.str() << MWCTSK_ALARMLOG_END;
 
-    return queueAtHead;
+    return true;
 }
 
 void RootQueueEngine::afterAppIdRegistered(
