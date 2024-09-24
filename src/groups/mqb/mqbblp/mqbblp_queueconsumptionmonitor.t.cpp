@@ -133,7 +133,7 @@ struct Test : mwctst::Test {
         unsigned int subQueueId      = bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID);
 
     void advance(const mqbu::StorageKey& key);
-    bool loggingCb(const mqbu::StorageKey& appKey, const bool isAlarm);
+    bool loggingCb(const mqbu::StorageKey& appKey, const bool enableLog);
 };
 
 Test::Test()
@@ -157,7 +157,7 @@ Test::Test()
             bdlf::BindUtil::bind(&Test::loggingCb,
                                  this,
                                  bdlf::PlaceHolders::_1,   // appKey
-                                 bdlf::PlaceHolders::_2),  // isAlarm
+                                 bdlf::PlaceHolders::_2),  // enableLog
 
             s_allocator_p)
 , d_storage(d_queue.uri(),

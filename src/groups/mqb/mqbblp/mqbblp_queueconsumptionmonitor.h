@@ -312,9 +312,8 @@ class QueueConsumptionMonitor {
     QueueConsumptionMonitor& setMaxIdleTime(bsls::Types::Int64 value);
 
     /// Register the substream identified by the specified `key`.
-    ///  `key` may be `StorageKey::k_NULL_KEY`, in which case no other key may
-    ///  be
-    /// registered via this function. It is illegal to register the same
+    /// `key` may be `StorageKey::k_NULL_KEY`, in which case no other key may
+    /// be registered via this function. It is illegal to register the same
     /// substream more than once.
     void registerSubStream(const mqbu::StorageKey& key);
 
