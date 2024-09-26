@@ -44,10 +44,14 @@ class TestReconfigureDomains:
         self.writer = proxy.create_client("writers")
         self.writer.open(URI_PRIORITY_1, flags=["write,ack"], succeed=True)
         self.writer.open(URI_PRIORITY_2, flags=["write,ack"], succeed=True)
+        self.writer.open(tc.URI_FANOUT, flags=["write,ack"], succeed=True)
 
         self.reader = proxy.create_client("readers")
         self.reader.open(URI_PRIORITY_1, flags=["read"], succeed=True)
         self.reader.open(URI_PRIORITY_2, flags=["read"], succeed=True)
+        self.reader.open(tc.URI_FANOUT_FOO, flags=["read"], succeed=True)
+        self.reader.open(tc.URI_FANOUT_BAR, flags=["read"], succeed=True)
+        self.reader.open(tc.URI_FANOUT_BAZ, flags=["read"], succeed=True)
 
     # Instruct 'writer to 'POST 'n' messages to the domain.
     # Returns 'True' if all of them succeed, and a false-y value otherwise.
@@ -55,6 +59,16 @@ class TestReconfigureDomains:
         results = (
             self.writer.post(uri, payload=[f"msg{i}"], wait_ack=True)
             for i in range(0, n)
+        )
+        return all(res == Client.e_SUCCESS for res in results)
+
+    def cause_rollover(self, uri, data_file_size):
+        num_msgs = int(data_file_size / 1024) + 1
+        payload = "Q" * 1024
+
+        results = (
+            self.writer.post(uri, payload=[payload], wait_ack=True)
+            for i in range(0, num_msgs)
         )
         return all(res == Client.e_SUCCESS for res in results)
 
@@ -460,3 +474,34 @@ class TestReconfigureDomains:
         # After: queue is []
         num_confirmed = run_consumers(max_attempts=6)
         assert 4 == num_confirmed
+
+    @tweak.cluster.partition_config.max_data_file_size(32 * 1024)
+    def test_reconfigure_fanout_appids(self, multi_node: Cluster):
+        leader = multi_node.last_known_leader
+
+        assert self.post_n_msgs(tc.URI_FANOUT, 16)
+
+        self.reader.confirm(tc.URI_FANOUT_FOO, "+16", succeed=True)
+        self.reader.confirm(tc.URI_FANOUT_BAR, "+16", succeed=True)
+        self.reader.confirm(tc.URI_FANOUT_BAZ, "+16", succeed=True)
+
+        assert self.post_n_msgs(tc.URI_FANOUT, 16)
+
+        multi_node.config.domains[
+            tc.DOMAIN_FANOUT
+        ].definition.parameters.mode.fanout.app_ids = [tc.TEST_APPIDS[0]]
+        multi_node.reconfigure_domain(
+            tc.DOMAIN_FANOUT, leader_only=False, succeed=True
+        )
+
+        admin = AdminClient()
+        admin.connect(*multi_node.admin_endpoint)
+        res = admin.send_admin(f"DOMAINS DOMAIN {tc.DOMAIN_FANOUT} INFOS")
+        # assert res == ""
+
+        self.cause_rollover(tc.URI_FANOUT, multi_node.config.definition.partition_config.max_data_file_size)
+
+        self.reader.confirm(tc.URI_FANOUT_FOO, "*", succeed=True)
+        self.reader.confirm(tc.URI_FANOUT_BAR, "*", succeed=True)
+        self.reader.confirm(tc.URI_FANOUT_BAZ, "*", succeed=True)
+
