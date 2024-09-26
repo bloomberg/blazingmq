@@ -491,13 +491,14 @@ class TestReconfigureDomains:
             tc.DOMAIN_FANOUT_SC
         ].definition.parameters.mode.fanout.app_ids = [tc.TEST_APPIDS[0]]
         multi_node.reconfigure_domain(
-            tc.DOMAIN_FANOUT_SC, leader_only=True, succeed=True
+            tc.DOMAIN_FANOUT_SC, leader_only=False, succeed=True
         )
 
         admin = AdminClient()
         admin.connect(*multi_node.admin_endpoint)
         res = admin.send_admin(f"DOMAINS DOMAIN {tc.DOMAIN_FANOUT_SC} INFOS")
-        # assert res == ""
+        assert tc.TEST_APPIDS[1] not in res
+        assert tc.TEST_APPIDS[2] not in res
 
         self.cause_rollover(tc.URI_FANOUT_SC, multi_node.config.definition.partition_config.max_data_file_size)
 
