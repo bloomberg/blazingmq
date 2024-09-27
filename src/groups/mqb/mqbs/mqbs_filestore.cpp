@@ -2553,7 +2553,7 @@ int FileStore::rollover(bsls::Types::Uint64 timestamp)
     // Iterate over outstanding records in the active set, and copy them to the
     // rollover set.
 
-    QueueKeyCounterMap queueKeyCounterMap;
+    QueueKeyCounterMap queueKeyCounterMap(d_allocator_p);
     for (RecordIterator recordIt = d_records.begin();
          recordIt != d_records.end();
          ++recordIt) {
@@ -2564,37 +2564,42 @@ int FileStore::rollover(bsls::Types::Uint64 timestamp)
     }
 
     // Print summary of rolled over queues.
-    mwcu::MemOutStream outStream;
-    outStream << partitionDesc() << "Queue rollover summary:"
-              << "\n      QueueKey    NumMsgs   NumBytes      QueueUri";
+    BALL_LOG_INFO_BLOCK
+    {
+        QueueKeyCounterList queueKeyCounters(d_allocator_p);
+        queueKeyCounters.reserve(queueKeyCounterMap.size());
+        for (QueueKeyCounterMapCIter queueKeyCounterCIter =
+                 queueKeyCounterMap.cbegin();
+             queueKeyCounterCIter != queueKeyCounterMap.cend();
+             ++queueKeyCounterCIter) {
+            queueKeyCounters.push_back(*queueKeyCounterCIter);
+        }
+        bsl::sort(queueKeyCounters.begin(),
+                  queueKeyCounters.end(),
+                  compareByByte);
 
-    QueueKeyCounterList queueKeyCounters;
-    queueKeyCounters.reserve(queueKeyCounterMap.size());
-    for (QueueKeyCounterMapCIter queueKeyCounterCIter =
-             queueKeyCounterMap.cbegin();
-         queueKeyCounterCIter != queueKeyCounterMap.cend();
-         ++queueKeyCounterCIter) {
-        queueKeyCounters.push_back(*queueKeyCounterCIter);
+        BALL_LOG_OUTPUT_STREAM
+            << partitionDesc() << "Queue rollover summary:"
+            << "\n      QueueKey    NumMsgs   NumBytes      QueueUri";
+        for (QueueKeyCounterListCIter queueCountersCIter =
+                 queueKeyCounters.cbegin();
+             queueCountersCIter != queueKeyCounters.cend();
+             ++queueCountersCIter) {
+            StorageMapConstIter sit = d_storages.find(
+                queueCountersCIter->first);
+            BSLS_ASSERT_SAFE(sit != d_storages.cend());
+
+            BALL_LOG_OUTPUT_STREAM
+                << "\n    [" << queueCountersCIter->first << "] "
+                << bsl::setw(8)
+                << mwcu::PrintUtil::prettyNumber(
+                       static_cast<int>(queueCountersCIter->second.first))
+                << " " << bsl::setw(10)
+                << mwcu::PrintUtil::prettyBytes(
+                       queueCountersCIter->second.second)
+                << " " << sit->second->queueUri();
+        }
     }
-    bsl::sort(queueKeyCounters.begin(), queueKeyCounters.end(), compareByByte);
-
-    for (QueueKeyCounterListCIter queueCountersCIter =
-             queueKeyCounters.cbegin();
-         queueCountersCIter != queueKeyCounters.cend();
-         ++queueCountersCIter) {
-        StorageMapConstIter sit = d_storages.find(queueCountersCIter->first);
-        BSLS_ASSERT_SAFE(sit != d_storages.cend());
-
-        outStream << "\n    [" << queueCountersCIter->first << "] "
-                  << bsl::setw(8)
-                  << mwcu::PrintUtil::prettyNumber(
-                         static_cast<int>(queueCountersCIter->second.first))
-                  << " " << bsl::setw(10)
-                  << mwcu::PrintUtil::prettyBytes(
-                         queueCountersCIter->second.second)
-                  << " " << sit->second->queueUri();
-    }
-    BALL_LOG_INFO << outStream.str();
 
     // Local refs for convenience.
 
