@@ -122,7 +122,7 @@ void InMemoryStorage::setQueue(mqbi::Queue* queue)
         d_queue_p->stats()->setQueueContentRaw(numMessage, numByte);
 
         BALL_LOG_INFO << "Associated queue [" << queue->uri() << "] with key ["
-                      << queueKey() << "] and PartitionId ["
+                      << queueKey() << "] and Partition ["
                       << queue->partitionId() << "] with its storage having ["
                       << mwcu::PrintUtil::prettyNumber(numMessage)
                       << " messages and "

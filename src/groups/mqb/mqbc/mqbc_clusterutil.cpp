@@ -512,7 +512,7 @@ void ClusterUtil::assignPartitions(
             }
 
             BALL_LOG_INFO << clusterData.identity().description()
-                          << ": PartitionId [" << pinfo.partitionId()
+                          << ": Partition [" << pinfo.partitionId()
                           << "]: Leader (self) has assigned "
                           << primary->nodeDescription() << " as primary.";
 
@@ -1145,7 +1145,7 @@ void ClusterUtil::registerQueueInfo(ClusterState*           clusterState,
                         << ": re-registering a known queue with a stale view, "
                         << "but queueKey is not unique. "
                         << "QueueKey [" << queueKey << "], URI [" << uri
-                        << "], PartitionId [" << partitionId
+                        << "], Partition [" << partitionId
                         << "], AppIdInfos [" << storageAppIdInfos << "]."
                         << MWCTSK_ALARMLOG_END;
                     return;  // RETURN
@@ -1180,7 +1180,7 @@ void ClusterUtil::registerQueueInfo(ClusterState*           clusterState,
                 << cluster->description()
                 << ": registering a queue for an unknown queue, but "
                 << "queueKey is not unique. QueueKey [" << queueKey
-                << "], URI [" << uri << "], PartitionId [" << partitionId
+                << "], URI [" << uri << "], Partition [" << partitionId
                 << "]." << MWCTSK_ALARMLOG_END;
             return;  // RETURN
         }

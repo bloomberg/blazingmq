@@ -283,7 +283,7 @@ int RecoveryUtil::incrementCurrentSeqNum(
         // smaller or equal.
 
         BALL_LOG_ERROR
-            << clusterDescription << " PartitionId [" << partitionId
+            << clusterDescription << " Partition [" << partitionId
             << "]: incorrect sequence number encountered while attempting "
             << "to replay partition to peer: " << *currentSeqNum
             << ". Sequence number cannot be greater than: " << endSeqNum

@@ -696,7 +696,7 @@ void PartitionStateTableActions<ARGS>::do_none(const ARGS& args)
     const int partitionId =
         args->eventsQueue()->front().second[0].partitionId();
 
-    BALL_LOG_INFO << "PartitionId [" << partitionId
+    BALL_LOG_INFO << "Partition [" << partitionId
                   << "]: NO ACTION PERFORMED.";
 }
 
