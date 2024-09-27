@@ -2034,7 +2034,9 @@ void StorageUtil::recoveredQueuesCb(
                 // (something like 'inRecovery=true'), based on which storage
                 // implementation may or may not invoke certain business logic.
 
-                rs->purge(appKey);
+                if (rs->hasVirtualStorage(appKey)) {
+                    rs->purge(appKey);
+                }
             }
 
             // TBD: check if adding 'else if' clauses for 'ADDITION',
