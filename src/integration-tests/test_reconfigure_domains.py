@@ -479,6 +479,9 @@ class TestReconfigureDomains:
     def test_reconfigure_fanout_appids(self, multi_node: Cluster):
         leader = multi_node.last_known_leader
 
+        admin = AdminClient()
+        admin.connect(*multi_node.admin_endpoint)
+
         assert self.post_n_msgs(tc.URI_FANOUT_SC, 16)
 
         self.reader.confirm(tc.URI_FANOUT_SC_FOO, "+16", succeed=True)
@@ -487,6 +490,11 @@ class TestReconfigureDomains:
 
         assert self.post_n_msgs(tc.URI_FANOUT_SC, 16)
 
+        res = admin.send_admin(
+            f"DOMAINS DOMAIN {tc.DOMAIN_FANOUT_SC} QUEUE {tc.TEST_QUEUE} PURGE {tc.TEST_APPIDS[1]}"
+        )
+        assert "Purged 16 message(s)" in res
+
         multi_node.config.domains[
             tc.DOMAIN_FANOUT_SC
         ].definition.parameters.mode.fanout.app_ids = [tc.TEST_APPIDS[0]]
@@ -494,8 +502,6 @@ class TestReconfigureDomains:
             tc.DOMAIN_FANOUT_SC, leader_only=False, succeed=True
         )
 
-        admin = AdminClient()
-        admin.connect(*multi_node.admin_endpoint)
         res = admin.send_admin(f"DOMAINS DOMAIN {tc.DOMAIN_FANOUT_SC} INFOS")
         assert tc.TEST_APPIDS[1] not in res
         assert tc.TEST_APPIDS[2] not in res
