@@ -531,8 +531,8 @@ void ClusterStateManager::onLeaderSyncDataQueryResponse(
             // See 'processPartitionPrimaryAdvisoryRaw' for similar check.
 
             MWCTSK_ALARMLOG_ALARM("CLUSTER")
-                << d_clusterData_p->identity().description()
-                << " Partition [" << peerPinfo.partitionId()
+                << d_clusterData_p->identity().description() << " Partition ["
+                << peerPinfo.partitionId()
                 << "]: self node views self as active/available primary, but a"
                 << " different node is proposed as primary in the leader-sync "
                 << "step: " << peerPinfo
@@ -785,8 +785,8 @@ void ClusterStateManager::processPartitionPrimaryAdvisoryRaw(
             // 'onLeaderSyncDataQueryResponse' for similar check.
 
             MWCTSK_ALARMLOG_ALARM("CLUSTER")
-                << d_clusterData_p->identity().description()
-                << " Partition [" << info.partitionId()
+                << d_clusterData_p->identity().description() << " Partition ["
+                << info.partitionId()
                 << "]: self node views self as active/available primary, but a"
                 << " different node is proposed as primary in the "
                 << "partition/primary mapping: " << info << ". This downgrade "
@@ -1661,9 +1661,8 @@ void ClusterStateManager::processQueueAssignmentAdvisory(
                             << "]. Current assigned Partition ["
                             << qcit->second->partitionId()
                             << "], current queueKey [" << qcit->second->key()
-                            << "], new Partition ["
-                            << queueInfo.partitionId() << "], new queueKey ["
-                            << queueKey << "].";
+                            << "], new Partition [" << queueInfo.partitionId()
+                            << "], new queueKey [" << queueKey << "].";
                     }
 
                     // Remove existing state, mapping, etc.

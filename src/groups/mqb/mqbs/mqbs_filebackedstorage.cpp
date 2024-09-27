@@ -565,9 +565,8 @@ FileBackedStorage::removeAll(const mqbu::StorageKey& appKey)
         RecordHandleMapIter      it   = d_handles.find(guid);
         if (it == d_handles.end()) {
             BALL_LOG_WARN
-                << "#STORAGE_PURGE_ERROR "
-                << "Partition [" << partitionId() << "]"
-                << ": Attempting to purge GUID '" << guid
+                << "#STORAGE_PURGE_ERROR " << "Partition [" << partitionId()
+                << "]" << ": Attempting to purge GUID '" << guid
                 << "' from virtual storage with appId '" << appId
                 << "' & appKey '" << appKey << "' for queue '" << queueUri()
                 << "' & queueKey '" << queueKey()
@@ -901,8 +900,8 @@ void FileBackedStorage::processConfirmRecord(
         mqbi::StorageResult::Enum rc = d_virtualStorageCatalog.remove(guid,
                                                                       appKey);
         if (mqbi::StorageResult::e_SUCCESS != rc) {
-            BALL_LOG_ERROR << "#STORAGE_INVALID_CONFIRM "
-                           << "Partition [" << partitionId() << "]"
+            BALL_LOG_ERROR << "#STORAGE_INVALID_CONFIRM " << "Partition ["
+                           << partitionId() << "]"
                            << "' attempting to confirm GUID '" << guid
                            << "' for appKey '" << appKey
                            << "' which does not exist in its virtual storage, "

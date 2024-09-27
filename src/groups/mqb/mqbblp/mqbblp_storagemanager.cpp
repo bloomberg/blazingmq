@@ -593,9 +593,9 @@ void StorageManager::setPrimaryForPartitionDispatched(
             // Same leaseId, different node.  This is an error.
 
             MWCTSK_ALARMLOG_ALARM("REPLICATION")
-                << d_clusterData_p->identity().description()
-                << " Partition [" << partitionId
-                << "]: Same primaryLeaseId specified [" << primaryLeaseId
+                << d_clusterData_p->identity().description() << " Partition ["
+                << partitionId << "]: Same primaryLeaseId specified ["
+                << primaryLeaseId
                 << "] with a different primary node. Current primary: "
                 << pinfo.primary()->nodeDescription()
                 << ", specified primary: " << primaryNode->nodeDescription()

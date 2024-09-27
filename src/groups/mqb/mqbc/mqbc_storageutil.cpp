@@ -399,8 +399,8 @@ int StorageUtil::updateQueueRaw(mqbs::ReplicatedStorage* storage,
             if (0 != rc) {
                 BALL_LOG_ERROR
                     << clusterDescription << " Partition [" << partitionId
-                    << "]: Failed to remove virtual storage for "
-                    << "appKey [" << cit->second << "], appId [" << cit->first
+                    << "]: Failed to remove virtual storage for " << "appKey ["
+                    << cit->second << "], appId [" << cit->first
                     << "], for queue [" << storage->queueUri()
                     << "], queueKey [" << storage->queueKey()
                     << "], rc: " << rc << ".";
@@ -485,14 +485,13 @@ int StorageUtil::addVirtualStoragesInternal(
             if (0 != (rc = storage->addVirtualStorage(errorDesc,
                                                       cit->first,
                                                       cit->second))) {
-                BALL_LOG_WARN << clusterDescription << " Partition ["
-                              << partitionId << "]: "
-                              << "Failed to add virtual storage for AppKey ["
-                              << cit->second << "], appId [" << cit->first
-                              << "], for queue [" << storage->queueUri()
-                              << "], queueKey [" << storage->queueKey()
-                              << "]. Reason: [" << errorDesc.str()
-                              << "], rc: " << rc << ".";
+                BALL_LOG_WARN
+                    << clusterDescription << " Partition [" << partitionId
+                    << "]: " << "Failed to add virtual storage for AppKey ["
+                    << cit->second << "], appId [" << cit->first
+                    << "], for queue [" << storage->queueUri()
+                    << "], queueKey [" << storage->queueKey() << "]. Reason: ["
+                    << errorDesc.str() << "], rc: " << rc << ".";
 
                 return rc_VIRTUAL_STORAGE_CREATION_FAILURE;  // RETURN
             }
@@ -1540,13 +1539,13 @@ void StorageUtil::recoveredQueuesCb(
                     // Duplicate AppId.
 
                     MWCTSK_ALARMLOG_ALARM("RECOVERY")
-                        << clusterDescription << ": Partition ["
-                        << partitionId << "]: "
+                        << clusterDescription << ": Partition [" << partitionId
+                        << "]: "
                         << "encountered a duplicate AppId while processing "
-                        << "recovered queue [" << uri << "], "
-                        << "queueKey [" << qit->first << "]. AppId ["
-                        << *(appIdsIrc.first) << "]. AppKey [" << p.second
-                        << "]." << MWCTSK_ALARMLOG_END;
+                        << "recovered queue [" << uri << "], " << "queueKey ["
+                        << qit->first << "]. AppId [" << *(appIdsIrc.first)
+                        << "]. AppKey [" << p.second << "]."
+                        << MWCTSK_ALARMLOG_END;
                     mqbu::ExitUtil::terminate(
                         mqbu::ExitCode::e_RECOVERY_FAILURE);
                     // EXIT
@@ -1563,8 +1562,8 @@ void StorageUtil::recoveredQueuesCb(
                     // CQH::onQueueAssigned ->
                     // StorageMgr::register/UpdateQueueReplica.
                     MWCTSK_ALARMLOG_ALARM("RECOVERY")
-                        << clusterDescription << ": Partition ["
-                        << partitionId << "]: "
+                        << clusterDescription << ": Partition [" << partitionId
+                        << "]: "
                         << "encountered a duplicate AppKey while processing "
                         << "recovered queue [" << uri << "], queueKey ["
                         << qit->first << "]. AppKey [" << *(appKeysIrc.first)
@@ -1585,8 +1584,8 @@ void StorageUtil::recoveredQueuesCb(
     // Print the unique list of retrieved domain names (useful for debugging
     // purposes).
     mwcu::MemOutStream os;
-    os << clusterDescription << ": Partition [" << partitionId << "]: "
-       << "retrieved "
+    os << clusterDescription << ": Partition [" << partitionId
+       << "]: " << "retrieved "
        << mwcu::PrintUtil::prettyNumber(
               static_cast<bsls::Types::Int64>(queueKeyInfoMap.size()))
        << " queues belonging to "
@@ -1680,8 +1679,8 @@ void StorageUtil::recoveredQueuesCb(
                 << clusterDescription << ": Partition [" << partitionId
                 << "]: encountered queueKey [" << queueKey
                 << "] again, for uri [" << queueUri
-                << "]. Uri associated with original queueKey: "
-                << "[" << rs->queueUri() << "]." << MWCTSK_ALARMLOG_END;
+                << "]. Uri associated with original queueKey: " << "["
+                << rs->queueUri() << "]." << MWCTSK_ALARMLOG_END;
             mqbu::ExitUtil::terminate(mqbu::ExitCode::e_RECOVERY_FAILURE);
             // EXIT
         }
@@ -1848,8 +1847,7 @@ void StorageUtil::recoveredQueuesCb(
                     // TBD: does this mean storage is corrupt? Should we abort?
 
                     MWCTSK_ALARMLOG_ALARM("RECOVERY")
-                        << clusterDescription << ": Partition ["
-                        << partitionId
+                        << clusterDescription << ": Partition [" << partitionId
                         << "]: failed to create virtual storage with appId ["
                         << appId << "], appKey [" << appKey
                         << "] for queueUri [" << queueUri << "], queueKey ["
@@ -1985,8 +1983,8 @@ void StorageUtil::recoveredQueuesCb(
             // If queue is not recovered
             MWCTSK_ALARMLOG_ALARM("STORAGE")
                 << clusterDescription << ": Partition [" << partitionId
-                << "], dropping record "
-                << "because queue key '" << queueKey << "' not found in the "
+                << "], dropping record " << "because queue key '" << queueKey
+                << "' not found in the "
                 << "list of recovered queues, record: " << fsIt
                 << MWCTSK_ALARMLOG_END;
             continue;  // CONTINUE
@@ -3024,9 +3022,9 @@ void StorageUtil::unregisterQueueReplicaDispatched(
 
         MWCTSK_ALARMLOG_ALARM("REPLICATION")
             << clusterDescription << " Partition [" << partitionId
-            << "]: unaware of uri while deleting "
-            << "storage for queue [ " << uri << "], queueKey [" << queueKey
-            << "]. Ignoring this event." << MWCTSK_ALARMLOG_END;
+            << "]: unaware of uri while deleting " << "storage for queue [ "
+            << uri << "], queueKey [" << queueKey << "]. Ignoring this event."
+            << MWCTSK_ALARMLOG_END;
         if (status) {
             *status = rc_UNKNOWN_QUEUE_URI;
         }
@@ -3042,11 +3040,10 @@ void StorageUtil::unregisterQueueReplicaDispatched(
 
         MWCTSK_ALARMLOG_ALARM("REPLICATION")
             << clusterDescription << " Partition [" << partitionId
-            << "]: queueKey mismatch while deleting "
-            << "storage for queue [ " << uri << "]. Specified queueKey ["
-            << queueKey << "], queueKey associated with storage ["
-            << rs->queueKey() << "]. Ignoring this event."
-            << MWCTSK_ALARMLOG_END;
+            << "]: queueKey mismatch while deleting " << "storage for queue [ "
+            << uri << "]. Specified queueKey [" << queueKey
+            << "], queueKey associated with storage [" << rs->queueKey()
+            << "]. Ignoring this event." << MWCTSK_ALARMLOG_END;
         if (status) {
             *status = rc_QUEUE_KEY_MISMATCH;
         }
@@ -3107,10 +3104,10 @@ void StorageUtil::unregisterQueueReplicaDispatched(
     if (0 != rc) {
         MWCTSK_ALARMLOG_ALARM("REPLICATION")
             << clusterDescription << " Partition [" << partitionId
-            << "]: Failed to remove virtual storage "
-            << "for appKey [" << appKey << "] for queue [" << uri
-            << "] and queueKey [" << queueKey << ", rc: " << rc
-            << ". Ignoring this event." << MWCTSK_ALARMLOG_END;
+            << "]: Failed to remove virtual storage " << "for appKey ["
+            << appKey << "] for queue [" << uri << "] and queueKey ["
+            << queueKey << ", rc: " << rc << ". Ignoring this event."
+            << MWCTSK_ALARMLOG_END;
         if (status) {
             *status = rc_MISC;
         }
@@ -3221,8 +3218,8 @@ void StorageUtil::updateQueueReplicaDispatched(
     mwcu::Printer<AppIdKeyPairs> printer(&appIdKeyPairs);
     BALL_LOG_INFO << clusterDescription << ": Partition [" << partitionId
                   << "] updated [" << uri << "], queueKey [" << queueKey
-                  << "] with the storage as replica: "
-                  << "addedIdKeyPairs:" << printer;
+                  << "] with the storage as replica: " << "addedIdKeyPairs:"
+                  << printer;
 
     if (status) {
         *status = rc_SUCCESS;
@@ -3963,8 +3960,8 @@ void StorageUtil::forceIssueAdvisoryAndSyncPt(mqbc::ClusterData*   clusterData,
     }
     int rc = fs->issueSyncPoint();
     if (0 == rc) {
-        BALL_LOG_INFO << clusterData->identity().description()
-                      << "Partition [" << fs->config().partitionId()
+        BALL_LOG_INFO << clusterData->identity().description() << "Partition ["
+                      << fs->config().partitionId()
                       << "]: successfully issued a forced SyncPt.";
     }
     else {

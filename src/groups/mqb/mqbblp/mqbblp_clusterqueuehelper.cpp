@@ -4185,9 +4185,9 @@ void ClusterQueueHelper::onQueueAssigned(
                 << ": attempting to apply queue assignment for an unknown "
                 << "queue [" << info.uri() << "] assigned to Partition ["
                 << info.partitionId() << "], but queueKey [" << info.key()
-                << "] is not unique. "
-                << " Current leader is: '" << leaderDescription << "'"
-                << "Ignoring this assignment." << MWCTSK_ALARMLOG_END;
+                << "] is not unique. " << " Current leader is: '"
+                << leaderDescription << "'" << "Ignoring this assignment."
+                << MWCTSK_ALARMLOG_END;
             return;  // RETURN
         }
 

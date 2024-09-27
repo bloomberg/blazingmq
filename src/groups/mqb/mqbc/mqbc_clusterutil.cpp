@@ -1143,11 +1143,10 @@ void ClusterUtil::registerQueueInfo(ClusterState*           clusterState,
                     MWCTSK_ALARMLOG_ALARM("CLUSTER_STATE")
                         << cluster->description()
                         << ": re-registering a known queue with a stale view, "
-                        << "but queueKey is not unique. "
-                        << "QueueKey [" << queueKey << "], URI [" << uri
-                        << "], Partition [" << partitionId
-                        << "], AppIdInfos [" << storageAppIdInfos << "]."
-                        << MWCTSK_ALARMLOG_END;
+                        << "but queueKey is not unique. " << "QueueKey ["
+                        << queueKey << "], URI [" << uri << "], Partition ["
+                        << partitionId << "], AppIdInfos ["
+                        << storageAppIdInfos << "]." << MWCTSK_ALARMLOG_END;
                     return;  // RETURN
                 }
 
@@ -1180,8 +1179,8 @@ void ClusterUtil::registerQueueInfo(ClusterState*           clusterState,
                 << cluster->description()
                 << ": registering a queue for an unknown queue, but "
                 << "queueKey is not unique. QueueKey [" << queueKey
-                << "], URI [" << uri << "], Partition [" << partitionId
-                << "]." << MWCTSK_ALARMLOG_END;
+                << "], URI [" << uri << "], Partition [" << partitionId << "]."
+                << MWCTSK_ALARMLOG_END;
             return;  // RETURN
         }
 

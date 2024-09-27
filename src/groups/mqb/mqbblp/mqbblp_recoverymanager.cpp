@@ -771,8 +771,8 @@ void RecoveryManager::sendStorageSyncRequesterHelper(RecoveryContext* context,
         // 'onStorageSyncResponse' won't be invoked in this case).
 
         MWCTSK_ALARMLOG_ALARM("RECOVERY")
-            << d_clusterData_p->identity().description()
-            << ": For Partition [" << partitionId << "], failed to send "
+            << d_clusterData_p->identity().description() << ": For Partition ["
+            << partitionId << "], failed to send "
             << "storage sync request to node "
             << context->recoveryPeer()->nodeDescription() << ", rc: " << status
             << ". No retry attempt will be made." << MWCTSK_ALARMLOG_END;
@@ -868,8 +868,8 @@ void RecoveryManager::onStorageSyncResponseDispatched(
 
     if (!recoveryCtx.inRecovery()) {
         BALL_LOG_WARN << d_clusterData_p->identity().description()
-                      << " Partition [" << partitionId << "]: "
-                      << "received storage sync response from: "
+                      << " Partition [" << partitionId
+                      << "]: " << "received storage sync response from: "
                       << responder->nodeDescription()
                       << " for request: " << req << ", but partition is no "
                       << "longer in recovery (probably due to recovery "
@@ -887,9 +887,9 @@ void RecoveryManager::onStorageSyncResponseDispatched(
             // stopping.  No need to retry.
 
             BALL_LOG_INFO
-                << d_clusterData_p->identity().description()
-                << " Partition [" << partitionId << "]: "
-                << "storage sync request: " << req << " cancelled because self"
+                << d_clusterData_p->identity().description() << " Partition ["
+                << partitionId << "]: " << "storage sync request: " << req
+                << " cancelled because self"
                 << " node is stopping. No retry attempt will be made.";
 
             onPartitionRecoveryStatus(partitionId, -1 /* status */);
@@ -968,8 +968,8 @@ void RecoveryManager::onStorageSyncResponseDispatched(
 
     if (response.partitionId() != partitionId) {
         MWCTSK_ALARMLOG_ALARM("RECOVERY")
-            << d_clusterData_p->identity().description()
-            << ": For Partition [" << partitionId << "], invalid partitionId"
+            << d_clusterData_p->identity().description() << ": For Partition ["
+            << partitionId << "], invalid partitionId"
             << " specified in storage sync response: " << response
             << " from node: " << responder->nodeDescription()
             << " for storage sync request: " << req
@@ -986,8 +986,8 @@ void RecoveryManager::onStorageSyncResponseDispatched(
     if (response.storageSyncResponseType() ==
         bmqp_ctrlmsg::StorageSyncResponseType::E_UNDEFINED) {
         MWCTSK_ALARMLOG_ALARM("RECOVERY")
-            << d_clusterData_p->identity().description()
-            << ": For Partition [" << partitionId << "],  invalid "
+            << d_clusterData_p->identity().description() << ": For Partition ["
+            << partitionId << "],  invalid "
             << "storage-sync response type specified: " << response
             << " from node: " << responder->nodeDescription()
             << " for storage sync request: " << req
@@ -1351,8 +1351,8 @@ void RecoveryManager::onPartitionRecoveryStatus(int partitionId, int status)
 
         BALL_LOG_INFO
             << d_clusterData_p->identity().description() << " Partition ["
-            << partitionId << "]: truncating & closing partition with sizes: "
-            << "journal: "
+            << partitionId
+            << "]: truncating & closing partition with sizes: " << "journal: "
             << mwcu::PrintUtil::prettyNumber(static_cast<bsls::Types::Int64>(
                    recoveryCtx.journalFileOffset()))
             << ", data: "
@@ -1387,8 +1387,7 @@ void RecoveryManager::onPartitionRecoveryStatus(int partitionId, int status)
                            << recoveryCtx.fileSet().journalFile()
                            << ", data: " << recoveryCtx.fileSet().dataFile()
                            << ", qlist: " << recoveryCtx.fileSet().qlistFile()
-                           << "]"
-                           << "rc: " << rc;
+                           << "]" << "rc: " << rc;
         }
     }
 
@@ -1451,8 +1450,8 @@ void RecoveryManager::stopDispatched(int partitionId, bslmt::Latch* latch)
 
     if (recoveryContext.inRecovery()) {
         BALL_LOG_WARN
-            << d_clusterData_p->identity().description()
-            << ": For Partition [" << partitionId
+            << d_clusterData_p->identity().description() << ": For Partition ["
+            << partitionId
             << "], stopping recovery while it is in progress with "
             << (recoveryContext.recoveryPeer()
                     ? recoveryContext.recoveryPeer()->nodeDescription()
@@ -1909,8 +1908,8 @@ void RecoveryManager::syncPeerPartitions(PrimarySyncContext* primarySyncCtx)
         }
         else {
             MWCTSK_ALARMLOG_ALARM("CLUSTER")
-                << d_clusterData_p->identity().description()
-                << " Partition [" << pid
+                << d_clusterData_p->identity().description() << " Partition ["
+                << pid
                 << "]: new primary (self) failed to sync partition with peer: "
                 << pps.peer()->nodeDescription() << ", rc: " << rc << "."
                 << MWCTSK_ALARMLOG_END;
@@ -2480,11 +2479,11 @@ void RecoveryManager::onPartitionSyncStateQueryResponseDispatched(
             // has other issues.  TBD: self should attempt to bring this node
             // upto speed.
             BALL_LOG_WARN
-                << d_clusterData_p->identity().description()
-                << " Partition [" << partitionId
+                << d_clusterData_p->identity().description() << " Partition ["
+                << partitionId
                 << "]: Invalid primaryLeaseId specified in partition "
-                << "primary sync query response"
-                << ", from " << it->first->nodeDescription();
+                << "primary sync query response" << ", from "
+                << it->first->nodeDescription();
 
             ppState->setNeedsPartitionSync(false);
             continue;  // CONTINUE
@@ -2623,8 +2622,8 @@ void RecoveryManager::onPartitionSyncStateQueryResponseDispatched(
         // 'onPartitionSyncDataQueryResponse' won't be invoked in this case).
 
         MWCTSK_ALARMLOG_ALARM("RECOVERY")
-            << d_clusterData_p->identity().description()
-            << ": For Partition [" << partitionId << "], failed to send "
+            << d_clusterData_p->identity().description() << ": For Partition ["
+            << partitionId << "], failed to send "
             << "partition sync data query to node "
             << maxSeqNode->nodeDescription() << ", rc: " << status
             << ". No retry attempt will be made." << MWCTSK_ALARMLOG_END;
@@ -2691,8 +2690,8 @@ void RecoveryManager::onPartitionSyncDataQueryResponseDispatched(
     if (context->response().choice().isStatusValue()) {
         MWCTSK_ALARMLOG_ALARM("RECOVERY")
             << d_clusterData_p->identity().description() << " Partition ["
-            << partitionId << "]: "
-            << "received partition sync data query failure response: "
+            << partitionId
+            << "]: " << "received partition sync data query failure response: "
             << context->response().choice().status()
             << " from node: " << responder->nodeDescription()
             << " for request: " << req << ". No retry attempt will be made."
@@ -2748,8 +2747,8 @@ void RecoveryManager::onPartitionSyncDataQueryResponseDispatched(
 
     if (primarySyncCtx.syncPeer() != responder) {
         BALL_LOG_WARN << d_clusterData_p->identity().description()
-                      << " Partition [" << partitionId << "]: "
-                      << "received partition sync data response from "
+                      << " Partition [" << partitionId
+                      << "]: " << "received partition sync data response from "
                       << "unexpected node: " << responder->nodeDescription()
                       << " for request: " << req << ", expected node: "
                       << primarySyncCtx.syncPeer()->nodeDescription()
@@ -2769,8 +2768,8 @@ void RecoveryManager::onPartitionSyncDataQueryResponseDispatched(
     if (peerPartitionSeqNum <= primarySyncCtx.selfPartitionSequenceNum()) {
         MWCTSK_ALARMLOG_ALARM("RECOVERY")
             << d_clusterData_p->identity().description() << " Partition ["
-            << partitionId << "]: "
-            << "invalid partition sequenceNum specified in response: "
+            << partitionId
+            << "]: " << "invalid partition sequenceNum specified in response: "
             << response << " from node: " << responder->nodeDescription()
             << " for partition sync data request: " << req
             << ". Self partition seqNum: "
@@ -2987,8 +2986,8 @@ void RecoveryManager::startRecovery(
 
     if ((rc != 0) && (rc != 1)) {
         MWCTSK_ALARMLOG_ALARM("RECOVERY")
-            << d_clusterData_p->identity().description()
-            << ": For Partition [" << partitionId << "], failed to find or "
+            << d_clusterData_p->identity().description() << ": For Partition ["
+            << partitionId << "], failed to find or "
             << "open a recoverable file set, rc: " << rc
             << ", reason: " << errorDesc.str()
             << ". Recovery will proceed as if this node had no local "
@@ -3038,8 +3037,8 @@ void RecoveryManager::startRecovery(
         }
 
         MWCTSK_ALARMLOG_ALARM("RECOVERY")
-            << d_clusterData_p->identity().description()
-            << ": For Partition [" << partitionId << "], "
+            << d_clusterData_p->identity().description() << ": For Partition ["
+            << partitionId << "], "
             << "failed to load iterator(s) for recoverable file set, "
             << "rc: " << rc << ", reason: " << errorDesc.str()
             << ". Recovery will proceed as if this node had no local "
@@ -3075,8 +3074,8 @@ void RecoveryManager::startRecovery(
 
     if (mqbs::SyncPointType::e_UNDEFINED == journalOpRec.syncPointType()) {
         MWCTSK_ALARMLOG_ALARM("RECOVERY")
-            << d_clusterData_p->identity().description()
-            << ": For Partition [" << partitionId << "], last sync point has"
+            << d_clusterData_p->identity().description() << ": For Partition ["
+            << partitionId << "], last sync point has"
             << " invalid SyncPt sub-type: " << journalOpRec.syncPointType()
             << ". Ignoring this sync point. Recovery will proceed as if this "
             << "node had no local recoverable files for this partition."
@@ -3103,8 +3102,8 @@ void RecoveryManager::startRecovery(
     if (0 == journalOpRec.primaryLeaseId() ||
         0 == journalOpRec.sequenceNum()) {
         MWCTSK_ALARMLOG_ALARM("RECOVERY")
-            << d_clusterData_p->identity().description()
-            << ": For Partition [" << partitionId << "], "
+            << d_clusterData_p->identity().description() << ": For Partition ["
+            << partitionId << "], "
             << "last sync point has invalid primaryLeaseId: "
             << journalOpRec.primaryLeaseId()
             << " or sequenceNum: " << journalOpRec.sequenceNum()
@@ -3121,8 +3120,8 @@ void RecoveryManager::startRecovery(
     if (bdls::FilesystemUtil::getFileSize(recoveryCtx.fileSet().dataFile()) <
         static_cast<bsls::Types::Int64>(dataFileOffset)) {
         MWCTSK_ALARMLOG_ALARM("RECOVERY")
-            << d_clusterData_p->identity().description()
-            << ": For Partition [" << partitionId << "], data file size is "
+            << d_clusterData_p->identity().description() << ": For Partition ["
+            << partitionId << "], data file size is "
             << "smaller than data file offset present in last sync point ["
             << bdls::FilesystemUtil::getFileSize(
                    recoveryCtx.fileSet().dataFile())
@@ -3139,8 +3138,8 @@ void RecoveryManager::startRecovery(
     if (bdls::FilesystemUtil::getFileSize(recoveryCtx.fileSet().qlistFile()) <
         static_cast<bsls::Types::Int64>(qlistFileOffset)) {
         MWCTSK_ALARMLOG_ALARM("RECOVERY")
-            << d_clusterData_p->identity().description()
-            << ": For Partition [" << partitionId << "], QLIST file size is "
+            << d_clusterData_p->identity().description() << ": For Partition ["
+            << partitionId << "], QLIST file size is "
             << "smaller than QLIST file offset present in last sync point ["
             << bdls::FilesystemUtil::getFileSize(
                    recoveryCtx.fileSet().qlistFile())
@@ -3337,9 +3336,8 @@ void RecoveryManager::processRecoveryEvent(
 
     if (source != recoveryCtx.recoveryPeer()) {
         MWCTSK_ALARMLOG_ALARM("RECOVERY")
-            << d_clusterData_p->identity().description()
-            << ": For Partition [" << partitionId
-            << "], received recovery event from node "
+            << d_clusterData_p->identity().description() << ": For Partition ["
+            << partitionId << "], received recovery event from node "
             << source->nodeDescription()
             << ", which is not identified as recovery peer node "
             << (recoveryCtx.recoveryPeer()
@@ -3468,8 +3466,7 @@ void RecoveryManager::processRecoveryEvent(
                 MWCTSK_ALARMLOG_ALARM("RECOVERY")
                     << d_clusterData_p->identity().description()
                     << ": For Partition [" << partitionId << "], "
-                    << "failed to calculate MD5 digest, "
-                    << "rc: " << rc
+                    << "failed to calculate MD5 digest, " << "rc: " << rc
                     << ". Chunk type: " << header.fileChunkType()
                     << ", chunk sequence number: "
                     << header.chunkSequenceNumber()
@@ -4267,8 +4264,7 @@ void RecoveryManager::startPartitionPrimarySync(
 
         MWCTSK_ALARMLOG_ALARM("RECOVERY")
             << d_clusterData_p->identity().description() << " Partition ["
-            << pid << "]: "
-            << "primary sync is already under progress with "
+            << pid << "]: " << "primary sync is already under progress with "
             << (primarySyncCtx.syncPeer()
                     ? primarySyncCtx.syncPeer()->nodeDescription()
                     : "** null **")
@@ -4657,8 +4653,7 @@ void RecoveryManager::processPartitionSyncDataRequest(
             << journalSpOffset
             << ", JOURNAL size: " << fileSet.journalFileSize()
             << ", sync point: " << lastSpoPair.syncPoint()
-            << ", while processing partition-sync"
-            << " data request: " << req
+            << ", while processing partition-sync" << " data request: " << req
             << ", from: " << source->nodeDescription() << MWCTSK_ALARMLOG_END;
 
         bmqp_ctrlmsg::Status& status = controlMsg.choice().makeStatus();
