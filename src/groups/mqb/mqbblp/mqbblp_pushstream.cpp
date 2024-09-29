@@ -291,11 +291,14 @@ bool VirtualPushStreamIterator::advance()
     d_owner_p->destroy(del, false);
     // do not keep Guid
 
-    if (d_itApp->second.d_elements.numElements() == 0) {
-        BSLS_ASSERT_SAFE(d_currentElement == 0);
+    if (atEnd()) {
+        return false;
     }
 
-    return !atEnd();
+    BSLS_ASSERT_SAFE(d_itApp->second.d_elements.numElements());
+    BSLS_ASSERT_SAFE(d_currentElement);
+
+    return true;
 }
 
 bool VirtualPushStreamIterator::atEnd() const

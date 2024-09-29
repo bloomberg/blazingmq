@@ -357,6 +357,8 @@ class RelayQueueEngine : public mqbi::QueueEngine {
                    const bsl::shared_ptr<bdlbb::Blob>& appData,
                    bool                                isOutOfOrder);
 
+    void beforeOneAppRemoved(unsigned int upstreamSubQueueId);
+
   private:
     // NOT IMPLEMENTED
 

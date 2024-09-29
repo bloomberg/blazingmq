@@ -69,7 +69,7 @@ namespace BloombergLP {
 namespace mqbblp {
 
 // FORWARD DECLARATION
-class RelayQueueEngine_AppState;
+struct RelayQueueEngine_AppState;
 
 struct PushStream {
     // forward declaration

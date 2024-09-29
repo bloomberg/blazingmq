@@ -525,6 +525,7 @@ void RelayQueueEngine::onHandleReleasedDispatched(
             // readers), because those messages may be re-routed by the primary
             // to another client.  Also get rid of any pending and
             // to-be-redelivered messages.
+            beforeOneAppRemoved(upstreamSubQueueId);
             d_pushStream.removeApp(upstreamSubQueueId);
             app->clear();
         }
@@ -1530,9 +1531,7 @@ void RelayQueueEngine::afterQueuePurged(const bsl::string&      appId,
         d_storageIter_mp->reset();
     }
     else {
-        // Purge virtual storage and reset iterator corresponding to
-        // the specified 'appKey', which can be constructed by using
-        // either upstream subId or storage-level appKey.
+        // Purge virtual storage corresponding to the specified 'appKey'.
 
         AppIds::const_iterator itApp = d_appIds.find(appId);
         if (itApp == d_appIds.end()) {
@@ -1545,8 +1544,8 @@ void RelayQueueEngine::afterQueuePurged(const bsl::string&      appId,
                            << "storage.";
         }
         else {
-            // Clear out virtual storage corresponding to the retrieved
-            // 'subStreamAppKey'.
+            // Clear out virtual storage corresponding to the App.
+            beforeOneAppRemoved(itApp->second->upstreamSubQueueId());
             d_pushStream.removeApp(itApp->second->upstreamSubQueueId());
 
             itApp->second->clear();
@@ -1896,6 +1895,23 @@ void RelayQueueEngine::storePush(mqbi::StorageMessageAttributes* attributes,
             // A redelivery PUSH for one App in the presence of another App
             // can result in 'e_GUID_NOT_UNIQUE'.
         }
+    }
+}
+
+void RelayQueueEngine::beforeOneAppRemoved(unsigned int upstreamSubQueueId)
+{
+    while (!d_storageIter_mp->atEnd()) {
+        if (d_storageIter_mp->numApps() > 1) {
+            // Removal of App's elements will not invalidate 'd_storageIter_mp'
+            break;
+        }
+
+        const PushStream::Element* element = d_storageIter_mp->element(0);
+        if (element->app().d_app->upstreamSubQueueId() != upstreamSubQueueId) {
+            break;
+        }
+
+        d_storageIter_mp->advance();
     }
 }
 

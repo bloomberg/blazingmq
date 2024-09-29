@@ -219,41 +219,6 @@ static void test2_priority()
                                                               s_allocator_p));
 }
 
-class MyAllocator : public bslma::Allocator {
-    // This class defines a concrete mechanism that adapts the system-supplied
-    // (native) global 'operator new' and 'operator delete' to the 'Allocator'
-    // protocol.  The class method 'singleton' returns a process-wide unique
-    // object of this class whose lifetime is guaranteed to extend from the
-    // first call to 'singleton' until the program terminates.  A second class
-    // method, 'allocator', allows for conveniently replacing a "null"
-    // allocator with this singleton object.  Note that this entire class
-    // should generally not be used directly by typical clients (see
-    // 'bslma_default' for more information).
-
-  private:
-    // NOT IMPLEMENTED
-    MyAllocator(const MyAllocator&);
-    MyAllocator& operator=(const MyAllocator&);
-
-  public:
-    // CLASS METHODS
-    static MyAllocator& singleton();
-
-    static Allocator* allocator(Allocator* basicAllocator);
-
-    // CREATORS
-    MyAllocator() {}
-
-    virtual ~MyAllocator() {}
-
-    // MANIPULATORS
-    virtual void* allocate(size_type size) { return new char[size]; }
-
-    virtual void deallocate(void* address) { delete[] address; }
-};
-
-MyAllocator ma;
-
 static void test3_parse()
 // ------------------------------------------------------------------------
 // Testing mqbblp::Routers::AppContext::load and iterateGroups methods.
