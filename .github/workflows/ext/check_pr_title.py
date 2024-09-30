@@ -39,7 +39,7 @@ def check_pr_title():
         "revert",
         "ut",
         "it",
-        "docs",
+        "doc",
         "refactor",
         "misc",
         "test",
