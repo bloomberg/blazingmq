@@ -1578,21 +1578,10 @@ bool RootQueueEngine::logAlarmCb(const mqbu::StorageKey& appKey,
     BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
         d_queueState_p->queue()));
 
-    // Construct AppId from appKey
-    bmqt::UriBuilder uriBuilder(d_queueState_p->uri(), d_allocator_p);
-    bsl::string      appId(d_allocator_p);
-
-    if (appKey.isNull()) {
-        appId = bmqp::ProtocolUtil::k_DEFAULT_APP_ID;
-    }
-    else if (d_queueState_p->storage()->hasVirtualStorage(appKey, &appId)) {
-        uriBuilder.setId(appId);
-    }
-
-    // Get AppState by appId.
-    Apps::const_iterator cItApp = d_apps.findByKey1(appId);
+    // Get AppState by appKey.
+    Apps::const_iterator cItApp = d_apps.findByKey2(AppKeyCount(appKey, 0));
     if (cItApp == d_apps.end()) {
-        BALL_LOG_WARN << "No app found for appId: " << appId;
+        BALL_LOG_WARN << "No app found for appKey: " << appKey;
         return false;  // RETURN
     }
     const AppStateSp& app = cItApp->value();
@@ -1610,9 +1599,6 @@ bool RootQueueEngine::logAlarmCb(const mqbu::StorageKey& appKey,
 
     // Logging alarm info
     bdlma::LocalSequentialAllocator<4096> localAllocator(d_allocator_p);
-
-    bmqt::Uri uri(&localAllocator);
-    uriBuilder.uri(&uri);
 
     mwcu::MemOutStream ss(&localAllocator);
 
@@ -1650,16 +1636,18 @@ bool RootQueueEngine::logAlarmCb(const mqbu::StorageKey& appKey,
                << "UnconfirmedMonitors ....:";
 
             const bsl::vector<const mqbu::ResourceUsageMonitor*> monitors =
-                queueHandle_p->unconfirmedMonitors(appId);
+                queueHandle_p->unconfirmedMonitors(app->d_appId);
             for (size_t i = 0; i < monitors.size(); ++i) {
                 ss << "\n  " << *monitors[i];
             }
         }
     }
 
-    mwcu::MemOutStream out(&localAllocator);
-    out << "Queue '" << uri << "' ";
-    d_queueState_p->storage()->capacityMeter()->printShortSummary(out);
+    mwcu::MemOutStream   out(&localAllocator);
+    mqbi::Storage* const storage = d_queueState_p->storage();
+
+    out << "Queue '" << d_queueState_p->uri() << "' ";
+    storage->capacityMeter()->printShortSummary(out);
     out << ", max idle time "
         << mwcu::PrintUtil::prettyTimeInterval(
                d_queueState_p->queue()->domain()->config().maxIdleTime() *
@@ -1668,14 +1656,12 @@ bool RootQueueEngine::logAlarmCb(const mqbu::StorageKey& appKey,
         << " consumers." << ss.str() << '\n';
 
     // Log un-delivered messages info
-    mqbi::Storage* const storage = d_queueState_p->storage();
-    out << "\nFor appId: " << appId << '\n';
+    out << "\nFor appId: " << app->d_appId << '\n';
     out << "Put aside list size: " << app->putAsideListSize() << '\n';
     out << "Redelivery list size: " << app->redeliveryListSize() << '\n';
-    out << "Number of messages: "
-        << d_queueState_p->storage()->numMessages(app->d_appKey) << '\n';
-    out << "Number of bytes: "
-        << d_queueState_p->storage()->numBytes(app->d_appKey) << "\n\n";
+    out << "Number of messages: " << storage->numMessages(app->d_appKey)
+        << '\n';
+    out << "Number of bytes: " << storage->numBytes(app->d_appKey) << "\n\n";
 
     // Log consumer subscriptions
     mqbblp::Routers::QueueRoutingContext& routingContext =
@@ -1755,7 +1741,7 @@ bool RootQueueEngine::logAlarmCb(const mqbu::StorageKey& appKey,
 
     mqbcmd::Result result;
     mqbs::StoragePrintUtil::listMessages(&result.makeQueueContents(),
-                                         appId,
+                                         app->d_appId,
                                          0,
                                          k_NUM_MSGS,
                                          storage);
