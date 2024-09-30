@@ -254,7 +254,7 @@ class TestReconfigureDomains:
 
         # Sleep for long enough to trigger an alarm.
         time.sleep(1.5)
-        assert leader.alarms("QUEUE_CONSUMER_MONITOR", 1)
+        assert leader.alarms("QUEUE_STUCK", 1)
 
         # Confirm all messages in the queue.
         self.reader.confirm(URI_PRIORITY_1, "+2", succeed=True)
@@ -277,7 +277,7 @@ class TestReconfigureDomains:
         self.reader.confirm(URI_PRIORITY_1, "+2", succeed=True)
 
         # Ensure that no alarm was issued.
-        assert not leader.alarms("QUEUE_CONSUMER_MONITOR", 1)
+        assert not leader.alarms("QUEUE_STUCK", 1)
 
     @tweak.domain.message_ttl(1)
     def test_reconfigure_message_ttl(self, multi_node: Cluster):
