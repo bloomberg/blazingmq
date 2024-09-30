@@ -153,7 +153,7 @@ void StoragePrintUtil::printRecoveredStorages(
     // Needed to protect access to `storageMap` and its elements.
     bslmt::LockGuard<bslmt::Mutex> guard(storagesLock);  // LOCK
 
-    out << clusterDescription << ": PartitionId [" << partitionId
+    out << clusterDescription << ": Partition [" << partitionId
         << "]: Number of recovered storages: " << storageMap.size()
         << ". Time taken for recovery: "
         << mwcu::PrintUtil::prettyTimeInterval(
@@ -207,7 +207,7 @@ bool StoragePrintUtil::printStorageRecoveryCompletion(
     for (unsigned int i = 0; i < fileStores.size(); ++i) {
         const bool  isOpen    = fileStores[i]->isOpen();
         const char* isOpenStr = isOpen ? "opened" : "closed";
-        out << "\nPartitionId [" << i << "] status: " << isOpenStr;
+        out << "\nPartition [" << i << "] status: " << isOpenStr;
         success = success && isOpen;
     }
 

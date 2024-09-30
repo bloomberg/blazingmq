@@ -2184,7 +2184,7 @@ void Cluster::onRecoveryStatusDispatched(
             else if (d_state.partition(pid).primaryLeaseId() <
                      primaryLeaseIds[pid]) {
                 MWCTSK_ALARMLOG_ALARM("CLUSTER")
-                    << description() << " PartitionId [" << pid
+                    << description() << " Partition [" << pid
                     << "]: self has higher retrieved leaseId ("
                     << primaryLeaseIds[pid]
                     << ") than the one notified by leader ("

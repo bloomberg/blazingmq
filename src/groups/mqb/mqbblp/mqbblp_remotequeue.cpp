@@ -210,7 +210,7 @@ int RemoteQueue::configureAsClusterMember(bsl::ostream& errorDescription,
             // replica is out of sync.
 
             MWCTSK_ALARMLOG_ALARM("CLUSTER_STATE")
-                << d_state_p->domain()->cluster()->name() << ": PartitionId ["
+                << d_state_p->domain()->cluster()->name() << ": Partition ["
                 << d_state_p->partitionId()
                 << "]: failed to retrieve storage for remote queue ["
                 << d_state_p->uri() << "], queueKey [" << d_state_p->key()
@@ -232,7 +232,7 @@ int RemoteQueue::configureAsClusterMember(bsl::ostream& errorDescription,
 
         if (!d_state_p->isStorageCompatible(storageMp)) {
             MWCTSK_ALARMLOG_ALARM("CLUSTER_STATE")
-                << d_state_p->domain()->cluster()->name() << ": PartitionId ["
+                << d_state_p->domain()->cluster()->name() << ": Partition ["
                 << d_state_p->partitionId()
                 << "]: incompatible storage type for remote queue ["
                 << d_state_p->uri() << "], queueKey [" << d_state_p->key()
@@ -267,7 +267,7 @@ int RemoteQueue::configureAsClusterMember(bsl::ostream& errorDescription,
     rc = d_queueEngine_mp->configure(errorDesc);
     if (rc != 0) {
         MWCTSK_ALARMLOG_ALARM("CLUSTER_STATE")
-            << d_state_p->domain()->cluster()->name() << ": PartitionId ["
+            << d_state_p->domain()->cluster()->name() << ": Partition ["
             << d_state_p->partitionId()
             << "]: failed to configure queue engine for remote queue ["
             << d_state_p->uri() << "], queueKey [" << d_state_p->key()

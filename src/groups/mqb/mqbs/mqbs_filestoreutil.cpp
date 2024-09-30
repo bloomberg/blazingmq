@@ -848,7 +848,7 @@ void FileStoreUtil::deleteArchiveFiles(int                partitionId,
     const unsigned int numFilesToDelete = archivedFiles.size() -
                                           numFilesToKeep;
 
-    BALL_LOG_INFO << cluster << ": PartitionId [" << partitionId
+    BALL_LOG_INFO << cluster << ": Partition [" << partitionId
                   << "], deleting " << numFilesToDelete << " files.";
 
     for (unsigned int i = 0; i < numFilesToDelete; ++i) {
@@ -857,14 +857,14 @@ void FileStoreUtil::deleteArchiveFiles(int                partitionId,
             MWCTSK_ALARMLOG_ALARM("FILE_IO")
                 << cluster << ": Failed to remove [" << archivedFiles[i]
                 << "] file during archived storage cleanup for "
-                << "PartitionId [" << partitionId << "], rc: " << rc
+                << "Partition [" << partitionId << "], rc: " << rc
                 << MWCTSK_ALARMLOG_END;
             continue;  // CONTINUE
         }
 
         BALL_LOG_INFO << cluster << ": Removed file [" << archivedFiles[i]
                       << "] during archived storage cleanup for "
-                      << "PartitionId [" << partitionId << "].";
+                      << "Partition [" << partitionId << "].";
     }
 }
 
@@ -1083,7 +1083,7 @@ int FileStoreUtil::openRecoveryFileSet(bsl::ostream&         errorDescription,
         return 10 * rc + rc_FILE_SET_RETRIEVAL_FAILURE;  // RETURN
     }
 
-    BALL_LOG_INFO << "PartitionId [" << partitionId << "]: Number of file "
+    BALL_LOG_INFO << "Partition [" << partitionId << "]: Number of file "
                   << "sets found for potential recovery: " << fileSets.size();
 
     if (fileSets.empty()) {
@@ -1103,7 +1103,7 @@ int FileStoreUtil::openRecoveryFileSet(bsl::ostream&         errorDescription,
         const bsls::Types::Int64 journalFileSize = fs.journalFileSize();
         const bsls::Types::Int64 dataFileSize    = fs.dataFileSize();
 
-        BALL_LOG_INFO << "PartitionId [" << partitionId << "]"
+        BALL_LOG_INFO << "Partition [" << partitionId << "]"
                       << ": Checking file set: " << fs;
 
         mwcu::MemOutStream errorDesc;
@@ -1131,7 +1131,7 @@ int FileStoreUtil::openRecoveryFileSet(bsl::ostream&         errorDescription,
         }
 
         if (rc != 0) {
-            BALL_LOG_WARN << "PartitionId [" << partitionId
+            BALL_LOG_WARN << "Partition [" << partitionId
                           << "]: file set: " << fs
                           << " failed to open. Reason: " << errorDesc.str()
                           << ", rc: " << rc;
@@ -1146,7 +1146,7 @@ int FileStoreUtil::openRecoveryFileSet(bsl::ostream&         errorDescription,
         if (rc != 0) {
             // Close this set before checking others, if any.
 
-            BALL_LOG_ERROR << "PartitionId [" << partitionId
+            BALL_LOG_ERROR << "Partition [" << partitionId
                            << "]: file set: " << fs
                            << " validation failed, rc: " << rc;
             FileSystemUtil::close(journalFd);
@@ -1168,7 +1168,7 @@ int FileStoreUtil::openRecoveryFileSet(bsl::ostream&         errorDescription,
         }
         else {
             // No valid first sync point record in this file.
-            BALL_LOG_INFO << "PartitionId [" << partitionId << "]"
+            BALL_LOG_INFO << "Partition [" << partitionId << "]"
                           << ": No valid first sync point found in journal"
                           << "file [" << fs.journalFile() << "], rc: " << rc;
 
@@ -1204,7 +1204,7 @@ int FileStoreUtil::openRecoveryFileSet(bsl::ostream&         errorDescription,
     }
 
     // Found a recoverable set.  Archive the remaining file sets.
-    BALL_LOG_INFO << "PartitionId [" << partitionId << "]: archiving "
+    BALL_LOG_INFO << "Partition [" << partitionId << "]: archiving "
                   << archivingIndices.size() << " file sets.";
 
     for (unsigned int i = 0; i < archivingIndices.size(); ++i) {
@@ -1217,7 +1217,7 @@ int FileStoreUtil::openRecoveryFileSet(bsl::ostream&         errorDescription,
         rc = FileSystemUtil::move(archivingFileSet.dataFile(),
                                   config.archiveLocation());
         if (rc != 0) {
-            BALL_LOG_WARN << "PartitionId [" << partitionId << "]: Failed to "
+            BALL_LOG_WARN << "Partition [" << partitionId << "]: Failed to "
                           << "archive data file ["
                           << archivingFileSet.dataFile() << "], rc: " << rc;
         }
@@ -1225,7 +1225,7 @@ int FileStoreUtil::openRecoveryFileSet(bsl::ostream&         errorDescription,
         rc = FileSystemUtil::move(archivingFileSet.qlistFile(),
                                   config.archiveLocation());
         if (0 != rc) {
-            BALL_LOG_WARN << "PartitionId [" << partitionId << "]: Failed to "
+            BALL_LOG_WARN << "Partition [" << partitionId << "]: Failed to "
                           << "archive qlist file ["
                           << archivingFileSet.qlistFile() << "], rc: " << rc;
         }
@@ -1233,7 +1233,7 @@ int FileStoreUtil::openRecoveryFileSet(bsl::ostream&         errorDescription,
         rc = FileSystemUtil::move(archivingFileSet.journalFile(),
                                   config.archiveLocation());
         if (0 != rc) {
-            BALL_LOG_WARN << "PartitionId [" << partitionId << "]: Failed to "
+            BALL_LOG_WARN << "Partition [" << partitionId << "]: Failed to "
                           << "archive journal file ["
                           << archivingFileSet.journalFile() << "], rc: " << rc;
         }

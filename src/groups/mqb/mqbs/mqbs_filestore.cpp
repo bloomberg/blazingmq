@@ -5195,7 +5195,7 @@ FileStore::FileStore(const DataStoreConfig&  config,
     BSLS_ASSERT(1 <= clusterSize());
 
     mwcu::MemOutStream os;
-    os << "PartitionId [" << d_config.partitionId()
+    os << "Partition [" << d_config.partitionId()
        << "] (cluster: " << d_cluster_p->name() << "): ";
     d_partitionDescription.assign(os.str().data(), os.str().length());
 
