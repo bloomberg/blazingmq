@@ -7020,6 +7020,7 @@ bool FileStore::gcExpiredMessages(const bdlt::Datetime& currentTimeUtc)
                       << "Timestamp (UTC) of the latest encountered message: "
                       << bdlt::EpochUtil::convertFromTimeT64(
                              latestMsgTimestamp)
+                      << " (Epoch: " << latestMsgTimestamp
                       << "). Current time (UTC): " << currentTimeUtc
                       << " (Epoch: " << currentSecondsFromEpoch << ")."
                       << " Num messages remaining in the storage: "
