@@ -531,8 +531,8 @@ void ClusterStateManager::onLeaderSyncDataQueryResponse(
             // See 'processPartitionPrimaryAdvisoryRaw' for similar check.
 
             MWCTSK_ALARMLOG_ALARM("CLUSTER")
-                << d_clusterData_p->identity().description()
-                << " PartitionId [" << peerPinfo.partitionId()
+                << d_clusterData_p->identity().description() << " Partition ["
+                << peerPinfo.partitionId()
                 << "]: self node views self as active/available primary, but a"
                 << " different node is proposed as primary in the leader-sync "
                 << "step: " << peerPinfo
@@ -785,8 +785,8 @@ void ClusterStateManager::processPartitionPrimaryAdvisoryRaw(
             // 'onLeaderSyncDataQueryResponse' for similar check.
 
             MWCTSK_ALARMLOG_ALARM("CLUSTER")
-                << d_clusterData_p->identity().description()
-                << " PartitionId [" << info.partitionId()
+                << d_clusterData_p->identity().description() << " Partition ["
+                << info.partitionId()
                 << "]: self node views self as active/available primary, but a"
                 << " different node is proposed as primary in the "
                 << "partition/primary mapping: " << info << ". This downgrade "
@@ -1658,12 +1658,11 @@ void ClusterStateManager::processQueueAssignmentAdvisory(
                             << ": overwriting current known queue state "
                             << "with the buffered advisory for queue ["
                             << qcit->second->uri()
-                            << "]. Current assigned PartitionId ["
+                            << "]. Current assigned Partition ["
                             << qcit->second->partitionId()
                             << "], current queueKey [" << qcit->second->key()
-                            << "], new PartitionId ["
-                            << queueInfo.partitionId() << "], new queueKey ["
-                            << queueKey << "].";
+                            << "], new Partition [" << queueInfo.partitionId()
+                            << "], new queueKey [" << queueKey << "].";
                     }
 
                     // Remove existing state, mapping, etc.
@@ -1723,7 +1722,7 @@ void ClusterStateManager::processQueueAssignmentAdvisory(
                     << (delayed ? " buffered " : " ")
                     << " queueAssignmentAdvisory from leader ["
                     << source->nodeDescription() << "] for an unknown queue ["
-                    << uri << "] assigned to PartitionId ["
+                    << uri << "] assigned to Partition ["
                     << queueInfo.partitionId() << "], but queueKey ["
                     << queueKey << "] is not unique. Ignoring this entry in "
                     << "the advisory." << MWCTSK_ALARMLOG_END;

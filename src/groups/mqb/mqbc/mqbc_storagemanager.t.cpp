@@ -331,7 +331,7 @@ struct TestHelper {
                     partitionDesc << d_cluster_mp->_clusterData()
                                          ->identity()
                                          .description()
-                                  << " PartitionId [" << partitionId << "]: ";
+                                  << " Partition [" << partitionId << "]: ";
 
                     mwcu::BlobPosition                        recordPosition;
                     mwcu::BlobObjectProxy<mqbs::RecordHeader> recHeader;
