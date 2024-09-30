@@ -46,7 +46,7 @@ def check_pr_title():
     ]
     if not any(title.startswith(prefix.lower()) for prefix in valid_prefixes):
         raise RuntimeError(
-            'PR title "{}" doesn't start with a valid prefix, allowed prefixes: {}'.format(
+            'PR title "{}" doesn\'t start with a valid prefix, allowed prefixes: {}'.format(
                 title, " ".join(valid_prefixes)
             )
         )
