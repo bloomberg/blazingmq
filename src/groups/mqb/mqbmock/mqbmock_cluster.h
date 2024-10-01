@@ -220,6 +220,8 @@ class Cluster : public mqbi::Cluster {
 
     EventProcessor d_processor;
 
+    mqbi::ClusterResources d_resources;
+
   private:
     // NOT IMPLEMENTED
     Cluster(const Cluster&) BSLS_CPP11_DELETED;
@@ -440,6 +442,9 @@ class Cluster : public mqbi::Cluster {
     /// Move the test timer forward the specified `seconds`.
     void advanceTime(int seconds);
 
+    /// Move the test timer forward the specified `milliseconds`.
+    void advanceTime(const bsls::TimeInterval& interval);
+
     /// Block until scheduler executes all the scheduled callbacks.
     void waitForScheduler();
 
@@ -526,6 +531,7 @@ class Cluster : public mqbi::Cluster {
     const bdlmt::EventSchedulerTestTimeSource& _timeSource() const;
     const TestChannelMap&                      _channels() const;
     const mqbc::ClusterData*                   _clusterData() const;
+    const mqbi::ClusterResources&              _resources() const;
 
     /// Return the value of the corresponding member of this object.
     const mqbc::ClusterState& _state() const;
@@ -600,6 +606,11 @@ inline void Cluster::advanceTime(int seconds)
     d_timeSource.advanceTime(bsls::TimeInterval(seconds));
 }
 
+inline void Cluster::advanceTime(const bsls::TimeInterval& interval)
+{
+    d_timeSource.advanceTime(interval);
+}
+
 inline void Cluster::getPrimaryNodes(int*          rc,
                                      bsl::ostream& errorDescription,
                                      bsl::vector<mqbnet::ClusterNode*>* nodes,
@@ -655,6 +666,11 @@ inline const mqbc::ClusterData* Cluster::_clusterData() const
 inline const mqbc::ClusterState& Cluster::_state() const
 {
     return d_state;
+}
+
+inline const mqbi::ClusterResources& Cluster::_resources() const
+{
+    return d_resources;
 }
 
 inline bsls::TimeInterval Cluster::getTime() const

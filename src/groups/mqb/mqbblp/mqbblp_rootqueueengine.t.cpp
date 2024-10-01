@@ -5131,7 +5131,7 @@ static void test46_throttleRedeliveryNoMoreHandles()
 //   4) Advance the time by the throttling delay and verify the second C3
 //      received the second message.
 // Testing:
-//   mqbblp::QueueEngine the last handle disappering for a particular app
+//   mqbblp::QueueEngine the last handle disappearing for a particular app
 //   should end the delay for the current message.
 // ------------------------------------------------------------------------
 {

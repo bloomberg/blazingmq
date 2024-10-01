@@ -136,6 +136,8 @@ class Application {
 
     BlobSpPool d_blobSpPool;
 
+    bdlma::ConcurrentPool d_pushElementsPool;
+
     mwcst::StatContext* d_allocatorsStatContext_p;
     // Stat context of the counting allocators,
     // if used

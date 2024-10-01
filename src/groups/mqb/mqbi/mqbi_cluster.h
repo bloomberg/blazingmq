@@ -56,6 +56,7 @@
 // BDE
 #include <bsl_functional.h>
 #include <bsl_memory.h>
+#include <bsl_optional.h>
 #include <bsl_ostream.h>
 #include <bsl_string.h>
 #include <bsls_timeinterval.h>
@@ -460,6 +461,63 @@ class Cluster : public DispatcherClient {
                                          int partitionId) const = 0;
 };
 
+struct ClusterResources {
+    // Resources to use for all queues in all clusters
+  public:
+    // TYPES
+
+    /// Pool of shared pointers to Blobs
+    typedef bdlcc::SharedObjectPool<
+        bdlbb::Blob,
+        bdlcc::ObjectPoolFunctors::DefaultCreator,
+        bdlcc::ObjectPoolFunctors::RemoveAll<bdlbb::Blob> >
+        BlobSpPool;
+
+  private:
+    // PRIVATE DATA
+
+    /// EventScheduler to use
+    bdlmt::EventScheduler* d_scheduler_p;
+
+    /// Blob buffer factory to use
+    bdlbb::BlobBufferFactory* d_bufferFactory_p;
+
+    /// Pool of shared pointers to blob to
+    /// use.
+    BlobSpPool* d_blobSpPool_p;
+
+    /// Pool of PushStream elements for Proxy/Replica QueueEngine.
+    bsl::optional<bdlma::ConcurrentPool*> d_pushElementsPool;
+
+  public:
+    // CREATORS
+
+    explicit ClusterResources(bdlmt::EventScheduler*    scheduler,
+                              bdlbb::BlobBufferFactory* bufferFactory,
+                              BlobSpPool*               blobSpPool);
+
+    explicit ClusterResources(bdlmt::EventScheduler*    scheduler,
+                              bdlbb::BlobBufferFactory* bufferFactory,
+                              BlobSpPool*               blobSpPool,
+                              bdlma::ConcurrentPool*    pushElementsPool);
+
+    ClusterResources(const ClusterResources& copy);
+
+    // ACCESSORS
+
+    /// Returns a pointer to the event scheduler
+    bdlmt::EventScheduler* scheduler() const;
+
+    /// Returns a pointer to the blob buffer factory
+    bdlbb::BlobBufferFactory* bufferFactory() const;
+
+    /// Returns a pointer to the shared blob objects pool
+    BlobSpPool* blobSpPool() const;
+
+    /// Returns a pointer to the concurrent pool for Push elements
+    const bsl::optional<bdlma::ConcurrentPool*>& pushElementsPool() const;
+};
+
 // ============================================================================
 //                             INLINE DEFINITIONS
 // ============================================================================
@@ -472,6 +530,70 @@ inline bool Cluster::isCSLModeEnabled() const
 inline bool Cluster::isFSMWorkflow() const
 {
     return false;
+}
+
+inline ClusterResources::ClusterResources(
+    bdlmt::EventScheduler*    scheduler,
+    bdlbb::BlobBufferFactory* bufferFactory,
+    BlobSpPool*               blobSpPool)
+: d_scheduler_p(scheduler)
+, d_bufferFactory_p(bufferFactory)
+, d_blobSpPool_p(blobSpPool)
+, d_pushElementsPool()
+{
+    BSLS_ASSERT_SAFE(d_scheduler_p);
+    BSLS_ASSERT_SAFE(d_bufferFactory_p);
+    BSLS_ASSERT_SAFE(d_blobSpPool_p);
+}
+
+inline ClusterResources::ClusterResources(
+    bdlmt::EventScheduler*    scheduler,
+    bdlbb::BlobBufferFactory* bufferFactory,
+    BlobSpPool*               blobSpPool,
+    bdlma::ConcurrentPool*    pushElementsPool)
+: d_scheduler_p(scheduler)
+, d_bufferFactory_p(bufferFactory)
+, d_blobSpPool_p(blobSpPool)
+, d_pushElementsPool(pushElementsPool)
+{
+    BSLS_ASSERT_SAFE(d_scheduler_p);
+    BSLS_ASSERT_SAFE(d_bufferFactory_p);
+    BSLS_ASSERT_SAFE(d_blobSpPool_p);
+    BSLS_ASSERT_SAFE(d_pushElementsPool);
+}
+
+inline ClusterResources::ClusterResources(const ClusterResources& copy)
+: d_scheduler_p(copy.d_scheduler_p)
+, d_bufferFactory_p(copy.d_bufferFactory_p)
+, d_blobSpPool_p(copy.d_blobSpPool_p)
+, d_pushElementsPool(copy.d_pushElementsPool)
+{
+    // NOTHING
+}
+
+inline bdlmt::EventScheduler* ClusterResources::scheduler() const
+{
+    return d_scheduler_p;
+}
+// EventScheduler to use
+
+inline bdlbb::BlobBufferFactory* ClusterResources::bufferFactory() const
+{
+    return d_bufferFactory_p;
+}
+// Blob buffer factory to use
+
+inline ClusterResources::BlobSpPool* ClusterResources::blobSpPool() const
+{
+    return d_blobSpPool_p;
+}
+// Pool of shared pointers to blob to
+// use.
+
+inline const bsl::optional<bdlma::ConcurrentPool*>&
+ClusterResources::pushElementsPool() const
+{
+    return d_pushElementsPool;
 }
 
 }  // close package namespace

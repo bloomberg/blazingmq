@@ -72,18 +72,16 @@ struct TestStorage {
                 1,
                 d_domainCfg,
                 &d_capacityMeter,
-                bmqp::RdaInfo(),
                 allocator)
     , d_iterator(d_storage.getIterator(mqbu::StorageKey()))
     , d_bufferFactory(32, allocator)
-    , d_queue_sp(new (*allocator) mqbmock::Queue(0, allocator), allocator)
+    , d_queue_sp(new(*allocator) mqbmock::Queue(0, allocator), allocator)
     , d_allocator_p(allocator)
 
     {
         bmqt::MessageGUID guid;
         guid.fromHex("00000000000000000000000000000001");
         mqbi::StorageMessageAttributes     attributes;
-        const mqbi::Storage::StorageKeys   storageKeys(allocator);
         const bsl::shared_ptr<bdlbb::Blob> appData(
             new (*allocator) bdlbb::Blob(&d_bufferFactory, allocator),
             allocator);
@@ -93,15 +91,12 @@ struct TestStorage {
         // TODO: put data for Expression evaluation
 
         mqbi::StorageResult::Enum rc =
-            d_storage.put(&attributes, guid, appData, options, storageKeys);
+            d_storage.put(&attributes, guid, appData, options);
 
         ASSERT_EQ(rc, mqbi::StorageResult::e_SUCCESS);
     }
 
-    ~TestStorage()
-    {
-        // d_storage.removeAll(mqbu::StorageKey());
-    }
+    ~TestStorage() { d_storage.removeAll(mqbu::StorageKey()); }
 
     mqbmock::QueueHandle getHandle()
     {

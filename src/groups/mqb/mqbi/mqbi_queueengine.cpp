@@ -47,5 +47,21 @@ void QueueEngine::afterAppIdUnregistered(
     // NOTHING
 }
 
+void QueueEngine::registerStorage(
+    BSLS_ANNOTATION_UNUSED const bsl::string& appId,
+    BSLS_ANNOTATION_UNUSED const mqbu::StorageKey& appKey,
+    BSLS_ANNOTATION_UNUSED unsigned int            appOrdinal)
+{
+    // NOTHING
+}
+
+void QueueEngine::unregisterStorage(
+    BSLS_ANNOTATION_UNUSED const bsl::string& appId,
+    BSLS_ANNOTATION_UNUSED const mqbu::StorageKey& appKey,
+    BSLS_ANNOTATION_UNUSED unsigned int            appOrdinal)
+{
+    // NOTHING
+}
+
 }  // close package namespace
 }  // close enterprise namespace

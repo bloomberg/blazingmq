@@ -226,12 +226,6 @@ class RemoteQueue {
     // stop. Must be Less or equal to
     // the deduplication timeout.
 
-    bdlmt::EventScheduler* d_scheduler_p;
-    // Pointer, held not owned, to the
-    // scheduler to use for pending
-    // expiration and message
-    // throttling.
-
     bdlmt::EventScheduler::EventHandle d_pendingMessagesTimerEventHandle;
 
     // Broadcast PUT can be retransmitted if it is guaranteed that the PUT did
@@ -474,17 +468,15 @@ class RemoteQueue {
     /// THREAD: This method is called from the Queue's dispatcher thread.
     void onOpenFailure(unsigned int upstreamSubQueueId);
 
+    /// Return the event scheduler associated with this remote queue.
+    bdlmt::EventScheduler* scheduler();
+
     // ACCESSORS
 
     /// Load into the specified `out` object the internal details about this
     /// queue.
     void loadInternals(mqbcmd::RemoteQueue* out) const;
-
-    /// Return the event scheduler associated with this remote queue.
-    bdlmt::EventScheduler* scheduler();
-
-    /// Set this remote queue's event scheduler.
-    void setEventScheduler(bdlmt::EventScheduler* scheduler);
+    const bmqt::MessageGUID& resumePoint() const;
 };
 
 // ============================================================================
@@ -576,12 +568,7 @@ RemoteQueue::subStreamContext(unsigned int upstreamSubQueueId)
 
 inline bdlmt::EventScheduler* RemoteQueue::scheduler()
 {
-    return d_scheduler_p;
-}
-
-inline void RemoteQueue::setEventScheduler(bdlmt::EventScheduler* scheduler)
-{
-    d_scheduler_p = scheduler;
+    return d_state_p->scheduler();
 }
 
 }  // close package namespace

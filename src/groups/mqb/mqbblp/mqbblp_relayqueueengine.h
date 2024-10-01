@@ -38,6 +38,7 @@
 
 // MQB
 
+#include <mqbblp_pushstream.h>
 #include <mqbblp_queueengineutil.h>
 #include <mqbblp_queuehandlecatalog.h>
 #include <mqbblp_routers.h>
@@ -127,14 +128,12 @@ struct RelayQueueEngine_AppState : QueueEngineUtil_AppState {
 
     // CREATORS
     explicit RelayQueueEngine_AppState(
-        unsigned int                             upstreamSubQueueId,
-        const bsl::string&                       appId,
-        bslma::ManagedPtr<mqbi::StorageIterator> iterator,
-        mqbi::Queue*                             queue,
-        bdlmt::EventScheduler*                   scheduler,
-        const mqbu::StorageKey&                  appKey,
-        Routers::QueueRoutingContext&            queueContext,
-        bslma::Allocator*                        allocator = 0);
+        unsigned int                  upstreamSubQueueId,
+        const bsl::string&            appId,
+        mqbi::Queue*                  queue,
+        bdlmt::EventScheduler*        scheduler,
+        Routers::QueueRoutingContext& queueContext,
+        bslma::Allocator*             allocator = 0);
 };
 
 // ======================
@@ -160,6 +159,9 @@ class RelayQueueEngine : public mqbi::QueueEngine {
 
     /// (subId) -> App_State map
     typedef bsl::unordered_map<unsigned int, AppStateSp> AppsMap;
+
+    /// (appId) -> App_State map
+    typedef bsl::unordered_map<bsl::string, AppStateSp> AppIds;
 
     class AutoPurger;
     // A guard helper class.
@@ -210,35 +212,32 @@ class RelayQueueEngine : public mqbi::QueueEngine {
     // DATA
     QueueState* d_queueState_p;
 
-    mqbs::VirtualStorageCatalog* d_subStreamMessages_p;
-    // List of messages that need to be
-    // delivered to sub-streams, as indicated
-    // by the upstream node.  Note that this
-    // variable is non null only if self node
-    // is a replica *and* queue is not in
-    // broadcast mode.  If non null, the object
-    // itself is owned by the associated
-    // RemoteQueue instance.
+    PushStream d_pushStream;
 
     const mqbconfm::Domain d_domainConfig;
 
     AppsMap d_apps;
     // Map of (appId) to App_State.
 
+    AppIds d_appIds;
+    // (appId) -> App_State map
+
     mwcu::SharedResource<RelayQueueEngine> d_self;
     // Used to avoid executing a callback if
     // the engine has been destroyed.  For
     // example, upon queue converting to local.
-
-    bdlmt::EventScheduler* d_scheduler_p;
-    // Event scheduler currently used for
-    // message throttling. Held, not owned.
 
     bdlmt::Throttle d_throttledRejectedMessages;
     // Throttler for REJECTs.
 
     QueueEngineUtil_AppsDeliveryContext d_appsDeliveryContext;
     // Reusable apps delivery context
+
+    bslma::ManagedPtr<PushStreamIterator> d_storageIter_mp;
+    // Storage iterator to the PushStream
+
+    bslma::ManagedPtr<mqbi::StorageIterator> d_realStorageIter_mp;
+    // Storage iterator to access storage state.
 
     bslma::Allocator* d_allocator_p;
     // Allocator to use.
@@ -312,8 +311,7 @@ class RelayQueueEngine : public mqbi::QueueEngine {
     /// consumers.  Behavior is undefined unless there is at least one
     /// active consumer.
     void deliverMessages();
-
-    void processAppRedelivery(App_State& state, const bsl::string& appId);
+    void processAppRedelivery(unsigned int upstreamSubQueueId, App_State* app);
 
     /// Configure the specified `handle` with the specified
     /// `streamParameters` for the specified `appState`.  When the specified
@@ -347,6 +345,20 @@ class RelayQueueEngine : public mqbi::QueueEngine {
     /// THREAD: This method is called from the Queue's dispatcher thread.
     void applyConfiguration(App_State& appState, ConfigureContext& context);
 
+    mqbi::Storage* storage() const;
+
+    App_State* findApp(unsigned int upstreamSubQueueId) const;
+
+    bool checkForDuplicate(const App_State*         app,
+                           const bmqt::MessageGUID& msgGUID);
+
+    void storePush(mqbi::StorageMessageAttributes*     attributes,
+                   const bmqt::MessageGUID&            msgGUID,
+                   const bsl::shared_ptr<bdlbb::Blob>& appData,
+                   bool                                isOutOfOrder);
+
+    void beforeOneAppRemoved(unsigned int upstreamSubQueueId);
+
   private:
     // NOT IMPLEMENTED
 
@@ -360,10 +372,9 @@ class RelayQueueEngine : public mqbi::QueueEngine {
 
   public:
     // CREATORS
-    RelayQueueEngine(QueueState*                  queueState,
-                     mqbs::VirtualStorageCatalog* subStreamMessages,
-                     const mqbconfm::Domain&      domainConfig,
-                     bslma::Allocator*            allocator);
+    RelayQueueEngine(QueueState*             queueState,
+                     const mqbconfm::Domain& domainConfig,
+                     bslma::Allocator*       allocator);
 
     /// Destructor
     virtual ~RelayQueueEngine() BSLS_KEYWORD_OVERRIDE;
@@ -501,6 +512,24 @@ class RelayQueueEngine : public mqbi::QueueEngine {
     virtual void
     onTimer(bsls::Types::Int64 currentTimer) BSLS_KEYWORD_OVERRIDE;
 
+    /// Called after creation of a new storage for the specified
+    /// `appIdKeyPair`.
+    ///
+    /// THREAD: This method is called from the Queue's dispatcher thread.
+    virtual void
+    registerStorage(const bsl::string&      appId,
+                    const mqbu::StorageKey& appKey,
+                    unsigned int            appOrdinal) BSLS_KEYWORD_OVERRIDE;
+
+    /// Called after removal of the storage for the specified
+    /// `appIdKeyPair`.
+    ///
+    /// THREAD: This method is called from the Queue's dispatcher thread.
+    virtual void
+    unregisterStorage(const bsl::string&      appId,
+                      const mqbu::StorageKey& appKey,
+                      unsigned int appOrdinal) BSLS_KEYWORD_OVERRIDE;
+
     /// Not valid for 'RelayQueueEngine'
     mqbi::StorageResult::Enum evaluateAutoSubscriptions(
         const bmqp::PutHeader&              putHeader,
@@ -508,6 +537,19 @@ class RelayQueueEngine : public mqbi::QueueEngine {
         const bmqp::MessagePropertiesInfo&  mpi,
         bsls::Types::Uint64                 timestamp) BSLS_KEYWORD_OVERRIDE;
 
+    // MANIPULATORS
+
+    /// If the specified `isOutOfOrder` is `true`, insert the specified
+    // `msgGUID` into the corresponding App redelivery list.  Otherwise, insert
+    // the `msgGUID` into the PushStream; insert PushStream Elements
+    // (`mqbi::AppMessage`, `upstreamSubQueueId`) pairs for each recognized App
+    /// in the specified `subscriptions`.
+    /// Return number of inserted PushStream Elements.
+    unsigned int push(mqbi::StorageMessageAttributes*           attributes,
+                      const bmqt::MessageGUID&                  msgGUID,
+                      const bsl::shared_ptr<bdlbb::Blob>&       appData,
+                      const bmqp::Protocol::SubQueueInfosArray& subscriptions,
+                      bool                                      isOutOfOrder);
     // ACCESSORS
 
     /// Return the reference count that should be applied to a message
@@ -521,13 +563,12 @@ class RelayQueueEngine : public mqbi::QueueEngine {
     virtual void
     loadInternals(mqbcmd::QueueEngine* out) const BSLS_KEYWORD_OVERRIDE;
 
-    // ACCESSORS
-
     /// Load upstream subQueue id into the specified `subQueueId` given the
     /// specified upstream `subscriptionId`.
     /// Each subStream has unique Subscription ids.
-    bool subscriptionId2upstreamSubQueueId(unsigned int* subQueueId,
-                                           unsigned int  subscriptionId) const;
+    bool subscriptionId2upstreamSubQueueId(const bmqt::MessageGUID& msgGUID,
+                                           unsigned int*            subQueueId,
+                                           unsigned int subscriptionId) const;
 };
 
 // ============================================================================
@@ -539,22 +580,18 @@ class RelayQueueEngine : public mqbi::QueueEngine {
 // --------------------------------
 
 inline RelayQueueEngine_AppState::RelayQueueEngine_AppState(
-    unsigned int                             upstreamSubQueueId,
-    const bsl::string&                       appId,
-    bslma::ManagedPtr<mqbi::StorageIterator> iterator,
-    mqbi::Queue*                             queue,
-    bdlmt::EventScheduler*                   scheduler,
-    const mqbu::StorageKey&                  appKey,
-    Routers::QueueRoutingContext&            queueContext,
-    bslma::Allocator*                        allocator)
-: QueueEngineUtil_AppState(iterator,
-                           queue,
+    unsigned int                  upstreamSubQueueId,
+    const bsl::string&            appId,
+    mqbi::Queue*                  queue,
+    bdlmt::EventScheduler*        scheduler,
+    Routers::QueueRoutingContext& queueContext,
+    bslma::Allocator*             allocator)
+: QueueEngineUtil_AppState(queue,
                            scheduler,
-                           true,
                            queueContext,
                            upstreamSubQueueId,
                            appId,
-                           appKey,
+                           mqbu::StorageKey::k_NULL_KEY,
                            allocator)
 , d_cache(allocator)
 {
@@ -633,6 +670,19 @@ inline void RelayQueueEngine::ConfigureContext::initializeRouting(
 // ----------------------
 // class RelayQueueEngine
 // ----------------------
+
+inline RelayQueueEngine::App_State*
+RelayQueueEngine::findApp(unsigned int upstreamSubQueueId) const
+{
+    AppsMap::const_iterator cit = d_apps.find(upstreamSubQueueId);
+
+    if (cit == d_apps.end()) {
+        return 0;
+    }
+    else {
+        return cit->second.get();
+    }
+}
 
 inline unsigned int RelayQueueEngine::messageReferenceCount() const
 {

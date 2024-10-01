@@ -242,6 +242,7 @@ Cluster::Cluster(bdlbb::BlobBufferFactory* bufferFactory,
 , d_isLeader(isLeader)
 , d_isRestoringState(false)
 , d_processor()
+, d_resources(&d_scheduler, bufferFactory, &d_blobSpPool)
 {
     // PRECONDITIONS
     if (isClusterMember) {
@@ -268,9 +269,7 @@ Cluster::Cluster(bdlbb::BlobBufferFactory* bufferFactory,
 
     d_clusterData_mp.load(new (*d_allocator_p) mqbc::ClusterData(
                               d_clusterDefinition.name(),
-                              &d_scheduler,
-                              d_bufferFactory_p,
-                              &d_blobSpPool,
+                              d_resources,
                               d_clusterDefinition,
                               mqbcfg::ClusterProxyDefinition(d_allocator_p),
                               d_netCluster_mp,

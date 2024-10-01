@@ -54,11 +54,9 @@ InMemoryStorage::InMemoryStorage(const bmqt::Uri&        uri,
                                  int                     partitionId,
                                  const mqbconfm::Domain& config,
                                  mqbu::CapacityMeter*    parentCapacityMeter,
-                                 const bmqp::RdaInfo&    defaultRdaInfo,
                                  bslma::Allocator*       allocator,
                                  mwcma::CountingAllocatorStore* allocatorStore)
 : d_allocator_p(allocator)
-, d_queue_p(0)
 , d_key(queueKey)
 , d_uri(uri, allocator)
 , d_partitionId(partitionId)
@@ -74,14 +72,13 @@ InMemoryStorage::InMemoryStorage(const bmqt::Uri&        uri,
       this,
       allocatorStore ? allocatorStore->get("VirtualHandles") : d_allocator_p)
 , d_ttlSeconds(config.messageTtl())
-, d_emptyAppId(allocator)
-, d_nullAppKey()
 , d_isEmpty(1)
-, d_defaultRdaInfo(defaultRdaInfo)
 , d_currentlyAutoConfirming()
-, d_numAutoConfirms(0)
+, d_autoConfirms(allocator)
 {
     BSLS_ASSERT_SAFE(0 <= d_ttlSeconds);  // Broadcast queues can use 0 for TTL
+
+    d_virtualStorageCatalog.setDefaultRda(config.maxDeliveryAttempts());
 }
 
 InMemoryStorage::~InMemoryStorage()
@@ -96,7 +93,7 @@ int InMemoryStorage::configure(
     const mqbconfm::Storage&             config,
     const mqbconfm::Limits&              limits,
     const bsls::Types::Int64             messageTtl,
-    BSLS_ANNOTATION_UNUSED const int     maxDeliveryAttempts)
+    const int                            maxDeliveryAttempts)
 {
     d_config = config;
     d_capacityMeter.setLimits(limits.messages(), limits.bytes())
@@ -104,22 +101,24 @@ int InMemoryStorage::configure(
                                 limits.bytesWatermarkRatio());
     d_ttlSeconds = messageTtl;
 
+    d_virtualStorageCatalog.setDefaultRda(maxDeliveryAttempts);
+
     return 0;
 }
 
 void InMemoryStorage::setQueue(mqbi::Queue* queue)
 {
-    d_queue_p = queue;
+    d_virtualStorageCatalog.setQueue(queue);
 
     // Update queue stats if a queue has been associated with the storage.
 
-    if (d_queue_p) {
+    if (queue) {
         const bsls::Types::Int64 numMessage = numMessages(
             mqbu::StorageKey::k_NULL_KEY);
         const bsls::Types::Int64 numByte = numBytes(
             mqbu::StorageKey::k_NULL_KEY);
 
-        d_queue_p->stats()->setQueueContentRaw(numMessage, numByte);
+        queue->stats()->setQueueContentRaw(numMessage, numByte);
 
         BALL_LOG_INFO << "Associated queue [" << queue->uri() << "] with key ["
                       << queueKey() << "] and Partition ["
@@ -139,15 +138,6 @@ void InMemoryStorage::close()
 bslma::ManagedPtr<mqbi::StorageIterator>
 InMemoryStorage::getIterator(const mqbu::StorageKey& appKey)
 {
-    if (appKey.isNull()) {
-        bslma::ManagedPtr<mqbi::StorageIterator> mp(
-            new (*d_allocator_p)
-                InMemoryStorageIterator(this, d_items.begin()),
-            d_allocator_p);
-
-        return mp;  // RETURN
-    }
-
     return d_virtualStorageCatalog.getIterator(appKey);
 }
 
@@ -156,18 +146,6 @@ InMemoryStorage::getIterator(bslma::ManagedPtr<mqbi::StorageIterator>* out,
                              const mqbu::StorageKey&                   appKey,
                              const bmqt::MessageGUID&                  msgGUID)
 {
-    if (appKey.isNull()) {
-        ItemsMapConstIter it = d_items.find(msgGUID);
-        if (it == d_items.end()) {
-            return mqbi::StorageResult::e_GUID_NOT_FOUND;  // RETURN
-        }
-
-        out->load(new (*d_allocator_p) InMemoryStorageIterator(this, it),
-                  d_allocator_p);
-
-        return mqbi::StorageResult::e_SUCCESS;  // RETURN
-    }
-
     return d_virtualStorageCatalog.getIterator(out, appKey, msgGUID);
 }
 
@@ -175,15 +153,19 @@ mqbi::StorageResult::Enum
 InMemoryStorage::put(mqbi::StorageMessageAttributes*     attributes,
                      const bmqt::MessageGUID&            msgGUID,
                      const bsl::shared_ptr<bdlbb::Blob>& appData,
-                     const bsl::shared_ptr<bdlbb::Blob>& options,
-                     const StorageKeys&                  storageKeys)
+                     const bsl::shared_ptr<bdlbb::Blob>& options)
 {
     const int msgSize = appData->length();
 
-    if (storageKeys.empty()) {
-        // Store the specified message in the 'physical' as well as *all*
-        // virtual storages.
+    // Proxies are unaware of the number of apps unlike Replicas.
+    // The latter can check for duplicates.
+    // The former can receive more than one PUSH message for the same GUID for
+    // different apps.
+    // For example, PUT, one app connects, receives PUSH, another app connects,
+    // receives PUSH.
+    // For this reason, Proxies sum up all incoming apps in the refCount.
 
+    if (!isProxy()) {
         if (d_items.isInHistory(msgGUID)) {
             return mqbi::StorageResult::e_DUPLICATE;
         }
@@ -205,17 +187,27 @@ InMemoryStorage::put(mqbi::StorageMessageAttributes*     attributes,
                                       Item(appData, options, *attributes)),
                        attributes->arrivalTimepoint());
 
-        d_virtualStorageCatalog.put(msgGUID,
-                                    msgSize,
-                                    d_defaultRdaInfo,
-                                    bmqp::Protocol::k_DEFAULT_SUBSCRIPTION_ID,
-                                    mqbu::StorageKey::k_NULL_KEY);
+        if (d_autoConfirms.empty()) {
+            d_virtualStorageCatalog.put(msgGUID, msgSize);
+        }
+        else {
+            VirtualStorage::DataStreamMessage* dataStreamMessage = 0;
+            d_virtualStorageCatalog.put(msgGUID, msgSize, &dataStreamMessage);
+
+            // Move auto confirms to the data record
+            for (AutoConfirms::const_iterator it = d_autoConfirms.begin();
+                 it != d_autoConfirms.end();
+                 ++it) {
+                d_virtualStorageCatalog.autoConfirm(dataStreamMessage,
+                                                    it->d_appKey);
+            }
+            d_autoConfirms.clear();
+        }
 
         d_currentlyAutoConfirming = bmqt::MessageGUID();
-        d_numAutoConfirms         = 0;
 
-        if (d_queue_p) {
-            d_queue_p->stats()->onEvent(
+        if (queue()) {
+            queue()->stats()->onEvent(
                 mqbstat::QueueStatsDomain::EventType::e_ADD_MESSAGE,
                 msgSize);
         }
@@ -227,19 +219,6 @@ InMemoryStorage::put(mqbi::StorageMessageAttributes*     attributes,
         // crashes, the primary may deliver again the same messages to us.
         return mqbi::StorageResult::e_SUCCESS;  // RETURN
     }
-    // 'storageKeys' is not empty only when proxy receives PUSH.
-    // Auto confirming does no apply then.
-
-    // Specific appKeys have been specified.  Insert the guid in the
-    // corresponding virtual storages.
-
-    for (size_t i = 0; i < storageKeys.size(); ++i) {
-        d_virtualStorageCatalog.put(msgGUID,
-                                    msgSize,
-                                    d_defaultRdaInfo,
-                                    bmqp::Protocol::k_DEFAULT_SUBSCRIPTION_ID,
-                                    storageKeys[i]);
-    }
 
     // If the guid also exists in the 'physical' storage, bump up its reference
     // count by appropriate value.  Note that in-memory storage is used at the
@@ -248,24 +227,28 @@ InMemoryStorage::put(mqbi::StorageMessageAttributes*     attributes,
 
     ItemsMapIter it = d_items.find(msgGUID);
     if (it != d_items.end()) {
-        mqbi::StorageMessageAttributes& attribs = it->second.attributes();
-        attribs.setRefCount(attribs.refCount() +
-                            storageKeys.size());  // Bump up
+        mqbi::StorageMessageAttributes& existing = it->second.attributes();
+        existing.setRefCount(existing.refCount() +
+                             attributes->refCount());  // Bump up
     }
     else {
         d_items.insert(bsl::make_pair(msgGUID,
                                       Item(appData, options, *attributes)),
                        attributes->arrivalTimepoint());
+        d_virtualStorageCatalog.put(msgGUID, msgSize);
     }
 
+    // We don't verify uniqueness of the insertion because in the case of a
+    // proxy, it uses this inMemoryStorage, and when some upstream node
+    // crashes, the primary may deliver again the same messages to us.
     return mqbi::StorageResult::e_SUCCESS;  // RETURN
 }
 
-mqbi::StorageResult::Enum InMemoryStorage::releaseRef(
-    const bmqt::MessageGUID& msgGUID,
-    const mqbu::StorageKey&  appKey,
-    BSLS_ANNOTATION_UNUSED bsls::Types::Int64 timestamp,
-    BSLS_ANNOTATION_UNUSED bool               onReject)
+mqbi::StorageResult::Enum
+InMemoryStorage::confirm(const bmqt::MessageGUID& msgGUID,
+                         const mqbu::StorageKey&  appKey,
+                         BSLS_ANNOTATION_UNUSED bsls::Types::Int64 timestamp,
+                         BSLS_ANNOTATION_UNUSED bool               onReject)
 {
     ItemsMapIter it = d_items.find(msgGUID);
     if (it == d_items.end()) {
@@ -273,8 +256,8 @@ mqbi::StorageResult::Enum InMemoryStorage::releaseRef(
     }
 
     if (!appKey.isNull()) {
-        mqbi::StorageResult::Enum rc = d_virtualStorageCatalog.remove(msgGUID,
-                                                                      appKey);
+        mqbi::StorageResult::Enum rc = d_virtualStorageCatalog.confirm(msgGUID,
+                                                                       appKey);
         if (mqbi::StorageResult::e_SUCCESS != rc) {
             return rc;  // RETURN
         }
@@ -291,20 +274,57 @@ mqbi::StorageResult::Enum InMemoryStorage::releaseRef(
 }
 
 mqbi::StorageResult::Enum
-InMemoryStorage::remove(const bmqt::MessageGUID& msgGUID,
-                        int*                     msgSize,
-                        bool                     clearAll)
+InMemoryStorage::releaseRef(const bmqt::MessageGUID& guid)
+{
+    ItemsMapIter it = d_items.find(guid);
+    if (it == d_items.end()) {
+        return mqbi::StorageResult::e_GUID_NOT_FOUND;  // RETURN
+    }
+
+    unsigned int refCount = it->second.attributes().refCount();
+    if (0 == refCount) {
+        // Outstanding refCount for this message is already zero.
+        return mqbi::StorageResult::e_INVALID_OPERATION;  // RETURN
+    }
+    it->second.attributes().setRefCount(--refCount);
+
+    if (0 == refCount) {
+        // This appKey was the last outstanding client for this message.
+        // Message can now be deleted.
+
+        int msgLen = it->second.appData()->length();
+        d_capacityMeter.remove(1, msgLen);
+        if (queue()) {
+            queue()->queueEngine()->beforeMessageRemoved(guid);
+            queue()->stats()->onEvent(
+                mqbstat::QueueStatsDomain::EventType::e_DEL_MESSAGE,
+                msgLen);
+        }
+
+        // There is not really a need to remove the guid from all virtual
+        // storages, because we can be here only if guid doesn't exist in
+        // any virtual storage apart from the one associated with the
+        // specified 'appKey' (because updated outstanding refCount is
+        // zero).  So we just delete the guid from the underlying (this)
+        // storage.
+
+        d_items.erase(it);
+
+        return mqbi::StorageResult::e_ZERO_REFERENCES;  // RETURN
+    }
+
+    return mqbi::StorageResult::e_NON_ZERO_REFERENCES;
+}
+
+mqbi::StorageResult::Enum
+InMemoryStorage::remove(const bmqt::MessageGUID& msgGUID, int* msgSize)
 {
     ItemsMapIter it = d_items.find(msgGUID);
     if (it == d_items.end()) {
         return mqbi::StorageResult::e_GUID_NOT_FOUND;  // RETURN
     }
 
-    if (clearAll) {
-        d_virtualStorageCatalog.remove(msgGUID, mqbu::StorageKey::k_NULL_KEY);
-    }
-
-    BSLS_ASSERT_SAFE(!d_virtualStorageCatalog.hasMessage(msgGUID));
+    d_virtualStorageCatalog.remove(msgGUID);
 
     int msgLen = it->second.appData()->length();
 
@@ -313,8 +333,8 @@ InMemoryStorage::remove(const bmqt::MessageGUID& msgGUID,
     // Update resource usage
     d_capacityMeter.remove(1, msgLen);
 
-    if (d_queue_p) {
-        d_queue_p->stats()->onEvent(
+    if (queue()) {
+        queue()->stats()->onEvent(
             mqbstat::QueueStatsDomain::EventType::e_DEL_MESSAGE,
             msgLen);
     }
@@ -340,8 +360,8 @@ InMemoryStorage::removeAll(const mqbu::StorageKey& appKey)
         d_items.clear();
         d_capacityMeter.clear();
 
-        if (d_queue_p) {
-            d_queue_p->stats()->onEvent(
+        if (queue()) {
+            queue()->stats()->onEvent(
                 mqbstat::QueueStatsDomain::EventType::e_PURGE,
                 0);
         }
@@ -351,8 +371,8 @@ InMemoryStorage::removeAll(const mqbu::StorageKey& appKey)
         return mqbi::StorageResult::e_SUCCESS;  // RETURN
     }
 
-    bsl::string appId;
-    if (!d_virtualStorageCatalog.hasVirtualStorage(appKey, &appId)) {
+    VirtualStorage* vs = d_virtualStorageCatalog.virtualStorage(appKey);
+    if (!vs) {
         return mqbi::StorageResult::e_APPKEY_NOT_FOUND;  // RETURN
     }
 
@@ -360,63 +380,6 @@ InMemoryStorage::removeAll(const mqbu::StorageKey& appKey)
     // virtual storage associated with the 'appKey', decrement its outstanding
     // refCount, and if updated refCount is zero, delete that msg from the
     // underlying (this) storage.
-
-    bslma::ManagedPtr<mqbi::StorageIterator> iter =
-        d_virtualStorageCatalog.getIterator(appKey);
-    while (!iter->atEnd()) {
-        const bmqt::MessageGUID& guid = iter->guid();
-        ItemsMapIter             it   = d_items.find(guid);
-        if (it == d_items.end()) {
-            BALL_LOG_WARN
-                << "#STORAGE_PURGE_ERROR "
-                << "Attempting to purge GUID '" << guid
-                << "' from virtual storage with appId '" << appId
-                << "' & appKey '" << appKey << "' for queue '" << queueUri()
-                << "' & queueKey '" << queueKey()
-                << "', but GUID does not exist in the underlying storage.";
-            iter->advance();
-            continue;  // CONTINUE
-        }
-
-        unsigned int refCount = it->second.attributes().refCount();
-        if (0 == refCount) {
-            // Outstanding refCount for this message is already zero.
-            BALL_LOG_WARN << "#STORAGE_PURGE_ERROR "
-                          << "Attempting to purge GUID '" << guid
-                          << "' from virtual storage with appId '" << appId
-                          << "' & appKey '" << appKey << "' for queue '"
-                          << queueUri() << "' & queueKey '" << queueKey()
-                          << "], for which refCount is already zero.";
-            iter->advance();
-            continue;  // CONTINUE
-        }
-        it->second.attributes().setRefCount(--refCount);
-
-        if (0 == refCount) {
-            // This appKey was the last outstanding client for this message.
-            // Message can now be deleted.
-
-            int msgLen = it->second.appData()->length();
-            d_capacityMeter.remove(1, msgLen);
-            if (d_queue_p) {
-                d_queue_p->queueEngine()->beforeMessageRemoved(guid);
-                d_queue_p->stats()->onEvent(
-                    mqbstat::QueueStatsDomain::EventType::e_DEL_MESSAGE,
-                    msgLen);
-            }
-
-            // There is not really a need to remove the guid from all virtual
-            // storages, because we can be here only if guid doesn't exist in
-            // any virtual storage apart from the one associated with the
-            // specified 'appKey' (because updated outstanding refCount is
-            // zero).  So we just delete the guid from the underlying (this)
-            // storage.
-
-            d_items.erase(it);
-        }
-
-        iter->advance();
-    }
 
     // Clear out the virtual storage associated with the specified 'appKey'.
     // Note that this cannot be done while iterating over the it in the above
@@ -461,23 +424,22 @@ int InMemoryStorage::gcExpiredMessages(
 
         int msgLen = cit->second.appData()->length();
         d_capacityMeter.remove(1, msgLen);
-        if (d_queue_p) {
-            d_queue_p->queueEngine()->beforeMessageRemoved(cit->first);
-            d_queue_p->stats()->onEvent(
+        if (queue()) {
+            queue()->queueEngine()->beforeMessageRemoved(cit->first);
+            queue()->stats()->onEvent(
                 mqbstat::QueueStatsDomain::EventType::e_DEL_MESSAGE,
                 msgLen);
         }
 
         // Remove message from all virtual storages and the physical (this)
         // storage.
-        d_virtualStorageCatalog.remove(cit->first,
-                                       mqbu::StorageKey::k_NULL_KEY);
+        d_virtualStorageCatalog.remove(cit->first);
         d_items.erase(cit, now);
         ++numMsgsDeleted;
     }
 
-    if (d_queue_p && (numMsgsDeleted > 0)) {
-        d_queue_p->stats()->onEvent(
+    if (queue() && (numMsgsDeleted > 0)) {
+        queue()->stats()->onEvent(
             mqbstat::QueueStatsDomain::EventType::e_GC_MESSAGE,
             numMsgsDeleted);
     }
@@ -497,7 +459,7 @@ bool InMemoryStorage::gcHistory()
 
 void InMemoryStorage::selectForAutoConfirming(const bmqt::MessageGUID& msgGUID)
 {
-    d_numAutoConfirms         = 0;
+    d_autoConfirms.clear();
     d_currentlyAutoConfirming = msgGUID;
 }
 
@@ -506,9 +468,8 @@ InMemoryStorage::autoConfirm(const mqbu::StorageKey& appKey,
                              bsls::Types::Uint64     timestamp)
 {
     (void)timestamp;
-    d_virtualStorageCatalog.autoConfirm(d_currentlyAutoConfirming, appKey);
 
-    ++d_numAutoConfirms;
+    d_autoConfirms.emplace_back(appKey);
 
     return mqbi::StorageResult::e_SUCCESS;
 }
@@ -613,24 +574,6 @@ InMemoryStorage::queueOpRecordHandles() const
 bool InMemoryStorage::isStrongConsistency() const
 {
     return false;
-}
-
-// -----------------------------
-// class InMemoryStorageIterator
-// -----------------------------
-
-InMemoryStorageIterator::InMemoryStorageIterator(
-    InMemoryStorage*         storage,
-    const ItemsMapConstIter& initialPosition)
-: d_storage_p(storage)
-, d_iterator(initialPosition)
-{
-    // NOTHING
-}
-
-InMemoryStorageIterator::~InMemoryStorageIterator()
-{
-    // NOTHING
 }
 
 }  // close package namespace
