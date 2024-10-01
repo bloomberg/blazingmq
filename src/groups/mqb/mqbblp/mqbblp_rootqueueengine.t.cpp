@@ -5175,14 +5175,14 @@ static void test46_throttleRedeliveryNoMoreHandles()
 
     // Only one message should be redelivered here since the other message is
     // being throttled.
-    PRINT(L_ << ": C2 Messages: " << C2->_messages());
+    PVV(L_ << ": C2 Messages: " << C2->_messages());
     ASSERT_EQ(C2->_numMessages(), 1);
 
     // 3)
     tester.advanceTime(expectedDelay -
                        bsls::TimeInterval().addMilliseconds(1));
     // We still should not have received the throttled message.
-    PRINT(L_ << ": C2 Messages: " << C2->_messages());
+    PVV(L_ << ": C2 Messages: " << C2->_messages());
     ASSERT_EQ(C2->_numMessages(), 1);
     tester.dropHandle("C2");
 
@@ -5193,12 +5193,12 @@ static void test46_throttleRedeliveryNoMoreHandles()
     // receive the message since we advanced the time expectedDelay-1 before
     // C2 dropped and we're advancing the time by 1 here.
     tester.advanceTime(bsls::TimeInterval().addMilliseconds(1));
-    PRINT(L_ << ": C3 Messages: " << C3->_messages());
+    PVV(L_ << ": C3 Messages: " << C3->_messages());
     ASSERT_EQ(C3->_numMessages(), 1);
 
     // 4)
     tester.advanceTime(expectedDelay);
-    PRINT(L_ << ": C3 Messages: " << C3->_messages());
+    PVV(L_ << ": C3 Messages: " << C3->_messages());
     ASSERT_EQ(C3->_numMessages(), 2);
 }
 

@@ -82,10 +82,6 @@ const bsls::Types::Int64 k_NS_PER_MESSAGE =
     BALL_LOGTHROTTLE_INFO(k_MAX_INSTANT_MESSAGES, k_NS_PER_MESSAGE)           \
         << "[THROTTLED] "
 
-#define BMQ_LOGTHROTTLE_ERROR()                                               \
-    BALL_LOGTHROTTLE_ERROR(k_MAX_INSTANT_MESSAGES, k_NS_PER_MESSAGE)          \
-        << "[THROTTLED] "
-
 /// Dummy method enqueued to the associated client's dispatcher thread when
 /// the specified `handle` was dropped and deleted without providing a
 /// `releasedCb`, in order to delay its destruction until after the client's

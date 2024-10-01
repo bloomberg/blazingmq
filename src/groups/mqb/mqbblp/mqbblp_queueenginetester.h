@@ -710,7 +710,7 @@ QueueEngineTesterGuard<QUEUE_ENGINE_TYPE>::engine() const
 inline void
 TimeControlledQueueEngineTester::advanceTime(const bsls::TimeInterval& step)
 {
-    d_mockCluster_mp->advanceTime(step.totalSeconds());
+    d_mockCluster_mp->advanceTime(step);
 
     synchronizeScheduler();
 }

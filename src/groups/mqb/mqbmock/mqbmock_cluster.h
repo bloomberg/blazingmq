@@ -442,6 +442,9 @@ class Cluster : public mqbi::Cluster {
     /// Move the test timer forward the specified `seconds`.
     void advanceTime(int seconds);
 
+    /// Move the test timer forward the specified `milliseconds`.
+    void advanceTime(const bsls::TimeInterval& interval);
+
     /// Block until scheduler executes all the scheduled callbacks.
     void waitForScheduler();
 
@@ -601,6 +604,11 @@ inline mqbc::ClusterState& Cluster::_state()
 inline void Cluster::advanceTime(int seconds)
 {
     d_timeSource.advanceTime(bsls::TimeInterval(seconds));
+}
+
+inline void Cluster::advanceTime(const bsls::TimeInterval& interval)
+{
+    d_timeSource.advanceTime(interval);
 }
 
 inline void Cluster::getPrimaryNodes(int*          rc,
