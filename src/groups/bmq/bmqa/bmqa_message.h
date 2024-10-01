@@ -121,11 +121,11 @@ struct MessageImpl {
     // SubscriptionHandle this message is
     // associated with
 
-#ifdef BMQ_ENABLE_MSG_GROUPID
+    // #ifdef BMQ_ENABLE_MSG_GROUPID
     bsl::string d_groupId;
     // Optional Group Id this message is
     // associated with
-#endif
+    // #endif
 };
 
 // ===============================
