@@ -495,12 +495,6 @@ int StorageUtil::addVirtualStoragesInternal(
 
                 return rc_VIRTUAL_STORAGE_CREATION_FAILURE;  // RETURN
             }
-
-            BALL_LOG_INFO << clusterDescription << " PartitionId ["
-                          << partitionId << "] has added virtual storage: ["
-                          << cit->first << ", " << cit->second
-                          << "], for queue [" << storage->queueUri()
-                          << "], queueKey [" << storage->queueKey() << "].";
         }
     }
     else {
@@ -552,10 +546,6 @@ int StorageUtil::removeVirtualStorageInternal(mqbs::ReplicatedStorage* storage,
 
         return rc_APP_KEY_NOT_PRESENT;  // RETURN
     }
-    BALL_LOG_INFO << " PartitionId [" << partitionId
-                  << "] has removed virtual storage: [" << appKey
-                  << "], for queue [" << storage->queueUri() << "], queueKey ["
-                  << storage->queueKey() << "].";
 
     return rc_SUCCESS;
 }
@@ -2527,10 +2517,6 @@ void StorageUtil::registerQueue(
 
         return;  // RETURN
     }
-
-    BALL_LOG_INFO << clusterDescription << " PartitionId [" << partitionId
-                  << "]: Registering _new_ queue '" << uri << "', queueKey: '"
-                  << queueKey << "' to storage.";
 
     // We are here means that StorageMgr is not aware of the queue.  Create an
     // appropriate storage and insert it in 'storageMap'.  It is important to

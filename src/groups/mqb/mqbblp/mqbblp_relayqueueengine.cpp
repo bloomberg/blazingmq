@@ -1644,18 +1644,18 @@ void RelayQueueEngine::registerStorage(const bsl::string&      appId,
 
     if (iter == d_appIds.end()) {
         // No consumer has opened the queue with 'appId'.
-    }
-    else {
-        // A consumer has already opened the queue with 'appId'.
 
-        BALL_LOG_INFO << "Remote queue: " << d_queueState_p->uri()
-                      << " (id: " << d_queueState_p->id()
-                      << ") now has storage: [App Id: " << appId
-                      << ", key: " << appKey << ", ordinal: " << appOrdinal
-                      << "]";
-
-        iter->second->authorize(appKey, appOrdinal);
+        return;  // RETURN
     }
+
+    // A consumer has already opened the queue with 'appId'.
+
+    BALL_LOG_INFO << "Remote queue: " << d_queueState_p->uri()
+                  << " (id: " << d_queueState_p->id()
+                  << ") now has storage: [App Id: " << appId
+                  << ", key: " << appKey << ", ordinal: " << appOrdinal << "]";
+
+    iter->second->authorize(appKey, appOrdinal);
 }
 
 void RelayQueueEngine::unregisterStorage(const bsl::string&      appId,

@@ -512,7 +512,7 @@ class RelayQueueEngine : public mqbi::QueueEngine {
     virtual void
     onTimer(bsls::Types::Int64 currentTimer) BSLS_KEYWORD_OVERRIDE;
 
-    /// Called after creation of a new storage for the  specified
+    /// Called after creation of a new storage for the specified
     /// `appIdKeyPair`.
     ///
     /// THREAD: This method is called from the Queue's dispatcher thread.

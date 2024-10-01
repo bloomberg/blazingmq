@@ -253,6 +253,7 @@ class FileBackedStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     virtual bool isPersistent() const BSLS_KEYWORD_OVERRIDE;
 
     /// Return the queue this storage is associated with.
+    /// Storage exists without a queue before `setQueue`.
     virtual mqbi::Queue* queue() const BSLS_KEYWORD_OVERRIDE;
 
     /// Return the URI of the queue this storage is associated with.
