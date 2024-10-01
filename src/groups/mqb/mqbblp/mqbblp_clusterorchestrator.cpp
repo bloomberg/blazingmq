@@ -332,7 +332,7 @@ void ClusterOrchestrator::onPartitionPrimaryStatusDispatched(
         // partition.  Log and move on.
 
         BALL_LOG_WARN << d_clusterData_p->identity().description()
-                      << " PartitionId [" << partitionId
+                      << " Partition [" << partitionId
                       << "]: ignoring partition-primary sync notification "
                       << "because there is new primary now. LeaseId in "
                       << "notification: " << primaryLeaseId
@@ -356,7 +356,7 @@ void ClusterOrchestrator::onPartitionPrimaryStatusDispatched(
         BSLS_ASSERT_SAFE(pinfo.primaryLeaseId() > primaryLeaseId);
 
         BALL_LOG_WARN << d_clusterData_p->identity().description()
-                      << " PartitionId [" << partitionId
+                      << " Partition [" << partitionId
                       << "]: ignoring partition-primary sync notification "
                       << "because primary (self) has different leaseId. "
                       << "LeaseId in notification: " << primaryLeaseId
@@ -374,7 +374,7 @@ void ClusterOrchestrator::onPartitionPrimaryStatusDispatched(
         // fails to transition to ACTIVE status in the stipulated time.
 
         MWCTSK_ALARMLOG_ALARM("CLUSTER")
-            << d_clusterData_p->identity().description() << " PartitionId ["
+            << d_clusterData_p->identity().description() << " Partition ["
             << partitionId
             << "]: primary node (self) failed to sync partition, rc: "
             << status << ", leaseId: " << primaryLeaseId
@@ -387,7 +387,7 @@ void ClusterOrchestrator::onPartitionPrimaryStatusDispatched(
     }
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
-                  << " PartitionId [" << partitionId
+                  << " Partition [" << partitionId
                   << "]: primary node (self) successfully synced the "
                   << " partition. Current leaseId: " << pinfo.primaryLeaseId();
 

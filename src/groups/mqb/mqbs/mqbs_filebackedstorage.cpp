@@ -269,7 +269,7 @@ void FileBackedStorage::setQueue(mqbi::Queue* queue)
         d_queue_p->stats()->setQueueContentRaw(numMessage, numByte);
 
         BALL_LOG_INFO << "Associated queue [" << queue->uri() << "] with key ["
-                      << queueKey() << "] and PartitionId ["
+                      << queueKey() << "] and Partition ["
                       << queue->partitionId() << "] with its storage having "
                       << mwcu::PrintUtil::prettyNumber(numMessage)
                       << " messages and "
@@ -565,9 +565,8 @@ FileBackedStorage::removeAll(const mqbu::StorageKey& appKey)
         RecordHandleMapIter      it   = d_handles.find(guid);
         if (it == d_handles.end()) {
             BALL_LOG_WARN
-                << "#STORAGE_PURGE_ERROR "
-                << "PartitionId [" << partitionId() << "]"
-                << ": Attempting to purge GUID '" << guid
+                << "#STORAGE_PURGE_ERROR " << "Partition [" << partitionId()
+                << "]" << ": Attempting to purge GUID '" << guid
                 << "' from virtual storage with appId '" << appId
                 << "' & appKey '" << appKey << "' for queue '" << queueUri()
                 << "' & queueKey '" << queueKey()
@@ -580,7 +579,7 @@ FileBackedStorage::removeAll(const mqbu::StorageKey& appKey)
             // Outstanding refCount for this message is already zero.
 
             MWCTSK_ALARMLOG_ALARM("REPLICATION")
-                << "PartitionId [" << partitionId() << "]"
+                << "Partition [" << partitionId() << "]"
                 << ": Attempting to purge GUID '" << guid
                 << "' from virtual storage with appId '" << appId
                 << "' & appKey '" << appKey << "] for queue '" << queueUri()
@@ -609,7 +608,7 @@ FileBackedStorage::removeAll(const mqbu::StorageKey& appKey)
 
             if (0 != rc) {
                 MWCTSK_ALARMLOG_ALARM("FILE_IO")
-                    << "PartitionId [" << partitionId() << "] failed to write "
+                    << "Partition [" << partitionId() << "] failed to write "
                     << "DELETION record for GUID: " << guid << ", for queue '"
                     << d_queueUri << "', queueKey '" << d_queueKey
                     << "' while attempting to purge the message, rc: " << rc
@@ -722,7 +721,7 @@ int FileBackedStorage::gcExpiredMessages(
                                                 secondsFromEpoch);
         if (0 != rc) {
             MWCTSK_ALARMLOG_ALARM("FILE_IO")
-                << "PartitionId [" << partitionId() << "]"
+                << "Partition [" << partitionId() << "]"
                 << " failed to write DELETION record for "
                 << "GUID: " << cit->first << ", for queue '" << d_queueUri
                 << "', queueKey '" << d_queueKey << "' while attempting to GC "
@@ -839,7 +838,7 @@ void FileBackedStorage::processMessageRecord(
         // exists.  This is an error.
 
         MWCTSK_ALARMLOG_ALARM("REPLICATION")
-            << "PartitionId [" << partitionId() << "]"
+            << "Partition [" << partitionId() << "]"
             << " received MESSAGE record for GUID '" << guid << "' for queue '"
             << queueUri() << "', queueKey '" << queueKey()
             << "' for which an entry already exists. Ignoring this message."
@@ -871,7 +870,7 @@ void FileBackedStorage::processConfirmRecord(
     RecordHandleMapIter it = d_handles.find(guid);
     if (it == d_handles.end()) {
         MWCTSK_ALARMLOG_ALARM("REPLICATION")
-            << "PartitionId [" << partitionId() << "]"
+            << "Partition [" << partitionId() << "]"
             << " received CONFIRM record for GUID '" << guid << "' for queue '"
             << queueUri() << "', queueKey '" << queueKey()
             << "' for which no entry exists. Ignoring this message."
@@ -882,7 +881,7 @@ void FileBackedStorage::processConfirmRecord(
     if (0 == it->second.d_refCount) {
         // Outstanding refCount for this message is already zero at this node.
         MWCTSK_ALARMLOG_ALARM("REPLICATION")
-            << "PartitionId [" << partitionId() << "]"
+            << "Partition [" << partitionId() << "]"
             << "' received CONFIRM record for GUID '" << guid
             << "' for queue '" << queueUri() << "', queueKey '" << queueKey()
             << "' for which refCount is already zero. Ignoring this message."
@@ -901,8 +900,8 @@ void FileBackedStorage::processConfirmRecord(
         mqbi::StorageResult::Enum rc = d_virtualStorageCatalog.remove(guid,
                                                                       appKey);
         if (mqbi::StorageResult::e_SUCCESS != rc) {
-            BALL_LOG_ERROR << "#STORAGE_INVALID_CONFIRM "
-                           << "PartitionId [" << partitionId() << "]"
+            BALL_LOG_ERROR << "#STORAGE_INVALID_CONFIRM " << "Partition ["
+                           << partitionId() << "]"
                            << "' attempting to confirm GUID '" << guid
                            << "' for appKey '" << appKey
                            << "' which does not exist in its virtual storage, "
@@ -919,7 +918,7 @@ void FileBackedStorage::processDeletionRecord(const bmqt::MessageGUID& guid)
     RecordHandleMapIter it = d_handles.find(guid);
     if (it == d_handles.end()) {
         MWCTSK_ALARMLOG_ALARM("REPLICATION")
-            << "PartitionId [" << partitionId() << "]"
+            << "Partition [" << partitionId() << "]"
             << " received DELETION record for GUID '" << guid
             << "' for queue '" << queueUri() << "', queueKey '" << queueKey()
             << "' for which no entry exists. Ignoring this message."

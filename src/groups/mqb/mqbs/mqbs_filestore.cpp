@@ -5195,7 +5195,7 @@ FileStore::FileStore(const DataStoreConfig&  config,
     BSLS_ASSERT(1 <= clusterSize());
 
     mwcu::MemOutStream os;
-    os << "PartitionId [" << d_config.partitionId()
+    os << "Partition [" << d_config.partitionId()
        << "] (cluster: " << d_cluster_p->name() << "): ";
     d_partitionDescription.assign(os.str().data(), os.str().length());
 
@@ -7020,6 +7020,7 @@ bool FileStore::gcExpiredMessages(const bdlt::Datetime& currentTimeUtc)
                       << "Timestamp (UTC) of the latest encountered message: "
                       << bdlt::EpochUtil::convertFromTimeT64(
                              latestMsgTimestamp)
+                      << " (Epoch: " << latestMsgTimestamp
                       << "). Current time (UTC): " << currentTimeUtc
                       << " (Epoch: " << currentSecondsFromEpoch << ")."
                       << " Num messages remaining in the storage: "
