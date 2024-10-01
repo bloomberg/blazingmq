@@ -389,6 +389,10 @@ FileBackedStorage::confirm(const bmqt::MessageGUID& msgGUID,
     RecordHandlesArray& handles = it->second.d_array;
     BSLS_ASSERT_SAFE(!handles.empty());
 
+    if (0 == --it->second.d_refCount) {
+        return mqbi::StorageResult::e_ZERO_REFERENCES;  // RETURN
+    }
+
     DataStoreRecordHandle handle;
     const int             writeResult = d_store_p->writeConfirmRecord(
         &handle,
@@ -406,10 +410,6 @@ FileBackedStorage::confirm(const bmqt::MessageGUID& msgGUID,
     }
 
     handles.push_back(handle);
-
-    if (0 == --it->second.d_refCount) {
-        return mqbi::StorageResult::e_ZERO_REFERENCES;  // RETURN
-    }
 
     return mqbi::StorageResult::e_NON_ZERO_REFERENCES;
 }
