@@ -17,7 +17,7 @@
 #ifndef INCLUDED_MWCIO_NTCCHANNEL
 #define INCLUDED_MWCIO_NTCCHANNEL
 
-//@PURPOSE: Provide a a bi-directional async channel implemented using NTC.
+//@PURPOSE: Provide a bi-directional async channel implemented using NTC.
 //
 //@CLASSES:
 //  mwcio::Channel: Interface for a NTC-based bi-directional async channel.

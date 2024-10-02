@@ -24,7 +24,7 @@
 //
 //@DESCRIPTION: This component provides a mock implementation,
 // 'mqbmock::Domain', of the 'mqbi::Domain' interface that is used to emulate
-// a a real domain for testing purposes.
+// a real domain for testing purposes.
 //
 /// Notes
 ///------
@@ -91,7 +91,7 @@ namespace mqbmock {
 // class Domain
 // ============
 
-/// Mock domain implementation of the `mqbi::Domain` inteface.
+/// Mock domain implementation of the `mqbi::Domain` interface.
 class Domain : public mqbi::Domain {
   private:
     // PRIVATE TYPES
@@ -249,7 +249,7 @@ class Domain : public mqbi::Domain {
 // class DomainFactory
 // ===================
 
-/// Mock implementation of the `mqbi::DomainFactory` inteface.
+/// Mock implementation of the `mqbi::DomainFactory` interface.
 class DomainFactory : public mqbi::DomainFactory {
   private:
     // DATA
