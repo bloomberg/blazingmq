@@ -40,11 +40,15 @@ PushStream::PushStream(
     bslma::Allocator*                            allocator)
 : d_stream(allocator)
 , d_apps(allocator)
-, d_pushElementsPool_sp(pushElementsPool.value_or(bsl::nullptr_t()),
-                        noOpDeleter,
-                        allocator)
+, d_pushElementsPool_sp()
 {
     allocator = bslma::Default::allocator(allocator);
+
+    if (pushElementsPool.has_value()) {
+        d_pushElementsPool_sp.reset(pushElementsPool.value(),
+                                    noOpDeleter,
+                                    allocator);
+    }
 
     if (!d_pushElementsPool_sp) {
         d_pushElementsPool_sp.load(
