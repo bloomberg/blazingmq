@@ -108,7 +108,7 @@ namespace mqbmock {
 // class Cluster
 // =============
 
-/// Mock cluster implementation of the `mqbi::Cluster` inteface.
+/// Mock cluster implementation of the `mqbi::Cluster` interface.
 class Cluster : public mqbi::Cluster {
   private:
     // PRIVATE TYPES

@@ -45,7 +45,7 @@ namespace mqbmock {
 // class LogIdGenerator
 // ====================
 
-/// Mock implementation of the `mqbsi::LogIdGenerator` inteface.
+/// Mock implementation of the `mqbsi::LogIdGenerator` interface.
 class LogIdGenerator : public mqbsi::LogIdGenerator {
   private:
     // DATA

@@ -867,7 +867,7 @@ int FileStore::openInRecoveryMode(bsl::ostream&          errorDescription,
         return rc_PARTITION_FULL;  // RETURN
     }
 
-    // Check if DATA and QLIST files are full.  This is not a a show stopper,
+    // Check if DATA and QLIST files are full.  This is not a show stopper,
     // as we may still get some deletions which may make space in those files.
 
     if (dataFileOffset == d_config.maxDataFileSize() ||
