@@ -713,15 +713,15 @@
     void Test##NAME ::body()
 
 /*Define benchmarking macros*/
-#ifdef BSLS_PLATFORM_OS_LINUX
+#if defined(BSLS_PLATFORM_OS_LINUX) || defined(BSLS_PLATFORM_OS_DARWIN)
 #define MWC_BENCHMARK_WITH_ARGS(BM_NAME, ARGS)                                \
     BENCHMARK(BM_NAME##_GoogleBenchmark)->ARGS;
 #define MWC_BENCHMARK(BM_NAME) BENCHMARK(BM_NAME##_GoogleBenchmark);
-#else  // !BSLS_PLATFORM_OS_LINUX
+#else  // !(BSLS_PLATFORM_OS_LINUX || BSLS_PLATFORM_OS_DARWIN)
 #define MWC_BENCHMARK(BM_NAME) BM_NAME();
 #define MWC_BENCHMARK_WITH_ARGS(BM_NAME, ARGS) BM_NAME();
 
-#endif  // BSLS_PLATFORM_OS_LINUX
+#endif  // BSLS_PLATFORM_OS_LINUX || BSLS_PLATFORM_OS_DARWIN
 
 namespace BloombergLP {
 namespace mwctst {

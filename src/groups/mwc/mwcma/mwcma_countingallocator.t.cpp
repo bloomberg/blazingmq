@@ -38,7 +38,7 @@
 #include <mwctst_testhelper.h>
 
 // BENCHMARKING LIBRARY
-#ifdef BSLS_PLATFORM_OS_LINUX
+#if defined(BSLS_PLATFORM_OS_LINUX) || defined(BSLS_PLATFORM_OS_DARWIN)
 #include <benchmark/benchmark.h>
 #endif
 
@@ -635,7 +635,7 @@ static void testN1_performance_allocation()
               << '\n';
 }
 
-#ifdef BSLS_PLATFORM_OS_LINUX
+#if defined(BSLS_PLATFORM_OS_LINUX) || defined(BSLS_PLATFORM_OS_DARWIN)
 static void
 testN1_bslmaperformance_allocation_GoogleBenchmark(benchmark::State& state)
 // ------------------------------------------------------------------------
@@ -766,7 +766,7 @@ int main(int argc, char** argv)
     case 2: test2_allocate(); break;
     case 1: test1_breathingTest(); break;
     case -1:
-#ifdef BSLS_PLATFORM_OS_LINUX
+#if defined(BSLS_PLATFORM_OS_LINUX) || defined(BSLS_PLATFORM_OS_DARWIN)
         BENCHMARK(testN1_defaultperformance_allocation_GoogleBenchmark)
             ->Unit(benchmark::kMillisecond);
         BENCHMARK(testN1_bslmaperformance_allocation_GoogleBenchmark)

@@ -40,7 +40,7 @@
 #include <mwctst_testhelper.h>
 
 // BENCHMARKING LIBRARY
-#ifdef BSLS_PLATFORM_OS_LINUX
+#if defined(BSLS_PLATFORM_OS_LINUX) || defined(BSLS_PLATFORM_OS_DARWIN)
 #include <benchmark/benchmark.h>
 #endif
 
@@ -549,7 +549,7 @@ static void testN1_MonitoredQueue_performance()
     PRINT("s_antiOptimization = " << s_antiOptimization);
 }
 
-#ifdef BSLS_PLATFORM_OS_LINUX
+#if defined(BSLS_PLATFORM_OS_LINUX) || defined(BSLS_PLATFORM_OS_DARWIN)
 static void
 testN1_MonitoredQueue_performance_GoogleBenchmark(benchmark::State& state)
 // ------------------------------------------------------------------------
@@ -801,7 +801,7 @@ static void testN1_bdlccFixedQueueThreaded_performance_GoogleBenchmark(
         }
     }
 }
-#endif  // BSLS_PLATFORM_OS_LINUX
+#endif  // BSLS_PLATFORM_OS_LINUX || BSLS_PLATFORM_OS_DARWIN
 
 //=============================================================================
 //                                MAIN PROGRAM
@@ -816,7 +816,7 @@ int main(int argc, char* argv[])
     case 2: test2_MonitoredQueue_reset(); break;
     case 1: test1_MonitoredQueue_breathingTest(); break;
     case -1:
-#ifdef BSLS_PLATFORM_OS_LINUX
+#if defined(BSLS_PLATFORM_OS_LINUX) || defined(BSLS_PLATFORM_OS_DARWIN)
         BENCHMARK(testN1_MonitoredQueue_performance_GoogleBenchmark)
             ->Unit(benchmark::kMillisecond);
         BENCHMARK(testN1_MonitoredQueueThreaded_performance_GoogleBenchmark)

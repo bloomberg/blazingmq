@@ -32,7 +32,7 @@
 #include <mwctst_testhelper.h>
 
 // BENCHMARKING LIBRARY
-#ifdef BSLS_PLATFORM_OS_LINUX
+#if defined(BSLS_PLATFORM_OS_LINUX) || defined(BSLS_PLATFORM_OS_DARWIN)
 #include <benchmark/benchmark.h>
 #endif
 
@@ -1101,7 +1101,7 @@ BSLA_MAYBE_UNUSED static void testN3_profile()
 }
 
 // Begin benchmarking library tests (Linux only)
-#ifdef BSLS_PLATFORM_OS_LINUX
+#if defined(BSLS_PLATFORM_OS_LINUX) || defined(BSLS_PLATFORM_OS_DARWIN)
 
 static void
 testN1_insertPerformanceUnordered_GoogleBenchmark(benchmark::State& state)
@@ -1215,7 +1215,7 @@ static void testN3_profile_GoogleBenchmark(benchmark::State& state)
         }
     }
 }
-#endif  // BSLS_PLATFORM_OS_LINUX
+#endif  // BSLS_PLATFORM_OS_LINUX || BSLS_PLATFORM_OS_DARWIN
 //=============================================================================
 //                              MAIN PROGRAM
 //-----------------------------------------------------------------------------
@@ -1275,7 +1275,7 @@ int main(int argc, char* argv[])
         s_testStatus = -1;
     } break;
     }
-#ifdef BSLS_PLATFORM_OS_LINUX
+#if defined(BSLS_PLATFORM_OS_LINUX) || defined(BSLS_PLATFORM_OS_DARWIN)
     if (_testCase < 0) {
         benchmark::Initialize(&argc, argv);
         benchmark::RunSpecifiedBenchmarks();

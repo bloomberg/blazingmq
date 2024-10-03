@@ -45,7 +45,7 @@
 #include <mwctst_testhelper.h>
 
 // BENCHMARKING LIBRARY
-#ifdef BSLS_PLATFORM_OS_LINUX
+#if defined(BSLS_PLATFORM_OS_LINUX) || defined(BSLS_PLATFORM_OS_DARWIN)
 #include <benchmark/benchmark.h>
 #endif
 
@@ -373,7 +373,7 @@ static void testN1_performance()
     printProcessedItems(k_NUM_ITERATIONS, endTime - startTime);
 }
 
-#ifdef BSLS_PLATFORM_OS_LINUX
+#if defined(BSLS_PLATFORM_OS_LINUX) || defined(BSLS_PLATFORM_OS_DARWIN)
 static void testN1_performance_GoogleBenchmark(benchmark::State& state)
 // ------------------------------------------------------------------------
 // PERFORMANCE TEST
@@ -503,7 +503,7 @@ static void testN1_fixedPerformance_GoogleBenchmark(benchmark::State& state)
         }
     }
 }
-#endif  // BSLS_PLATFORM_OS_LINUX
+#endif  // BSLS_PLATFORM_OS_LINUX || BSLS_PLATFORM_OS_DARWIN
 //=============================================================================
 //                                MAIN PROGRAM
 //-----------------------------------------------------------------------------
@@ -516,7 +516,7 @@ int main(int argc, char* argv[])
     case 0:
     case 1: test1_breathingTest(); break;
     case -1:
-#ifdef BSLS_PLATFORM_OS_LINUX
+#if defined(BSLS_PLATFORM_OS_LINUX) || defined(BSLS_PLATFORM_OS_DARWIN)
         BENCHMARK(testN1_fixedPerformance_GoogleBenchmark)
             ->Unit(benchmark::kMillisecond);
         BENCHMARK(testN1_performance_GoogleBenchmark)

@@ -37,7 +37,7 @@
 #include <bsls_timeutil.h>
 
 // BENCHMARKING LIBRARY
-#ifdef BSLS_PLATFORM_OS_LINUX
+#if defined(BSLS_PLATFORM_OS_LINUX) || defined(BSLS_PLATFORM_OS_DARWIN)
 #include <benchmark/benchmark.h>
 #endif
 
@@ -964,7 +964,7 @@ static void testN3_performanceCompressionRatio()
 }
 
 // Begin Benchmarking Tests
-#ifdef BSLS_PLATFORM_OS_LINUX
+#if defined(BSLS_PLATFORM_OS_LINUX) || defined(BSLS_PLATFORM_OS_DARWIN)
 static void testN1_performanceCompressionDecompressionDefault_GoogleBenchmark(
     benchmark::State& state)
 // ------------------------------------------------------------------------
@@ -1043,7 +1043,7 @@ static void testN2_calculateThroughput_GoogleBenchmark(benchmark::State& state)
     }
     // </time>
 }
-#endif  // BSLS_PLATFORM_OS_LINUX
+#endif  // BSLS_PLATFORM_OS_LINUX || BSLS_PLATFORM_OS_DARWIN
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
@@ -1076,7 +1076,7 @@ int main(int argc, char* argv[])
         s_testStatus = -1;
     } break;
     }
-#ifdef BSLS_PLATFORM_OS_LINUX
+#if defined(BSLS_PLATFORM_OS_LINUX) || defined(BSLS_PLATFORM_OS_DARWIN)
     if (_testCase < 0) {
         benchmark::Initialize(&argc, argv);
         benchmark::RunSpecifiedBenchmarks();
