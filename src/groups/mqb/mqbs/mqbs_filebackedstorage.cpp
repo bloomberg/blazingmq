@@ -246,7 +246,6 @@ void FileBackedStorage::setQueue(mqbi::Queue* queue)
     d_virtualStorageCatalog.setQueue(queue);
 
     // Update queue stats if a queue has been associated with the storage.
-
     if (queue) {
         const bsls::Types::Int64 numMessage = numMessages(
             mqbu::StorageKey::k_NULL_KEY);
@@ -381,8 +380,8 @@ FileBackedStorage::confirm(const bmqt::MessageGUID& msgGUID,
         return mqbi::StorageResult::e_GUID_NOT_FOUND;  // RETURN
     }
 
-    mqbi::StorageResult::Enum rc = d_virtualStorageCatalog.confirm(msgGUID,
-                                                                   appKey);
+    const mqbi::StorageResult::Enum rc =
+        d_virtualStorageCatalog.confirm(msgGUID, appKey);
     if (mqbi::StorageResult::e_SUCCESS != rc) {
         return rc;  // RETURN
     }
@@ -391,7 +390,7 @@ FileBackedStorage::confirm(const bmqt::MessageGUID& msgGUID,
     BSLS_ASSERT_SAFE(!handles.empty());
 
     DataStoreRecordHandle handle;
-    int                   writeResult = d_store_p->writeConfirmRecord(
+    const int             writeResult = d_store_p->writeConfirmRecord(
         &handle,
         msgGUID,
         d_queueKey,
@@ -830,8 +829,8 @@ void FileBackedStorage::processConfirmRecord(
     --it->second.d_refCount;  // Update outstanding refCount
 
     if (!appKey.isNull()) {
-        mqbi::StorageResult::Enum rc = d_virtualStorageCatalog.confirm(guid,
-                                                                       appKey);
+        const mqbi::StorageResult::Enum rc =
+            d_virtualStorageCatalog.confirm(guid, appKey);
         if (mqbi::StorageResult::e_SUCCESS != rc) {
             BALL_LOG_ERROR << "#STORAGE_INVALID_CONFIRM " << "Partition ["
                            << partitionId() << "]"

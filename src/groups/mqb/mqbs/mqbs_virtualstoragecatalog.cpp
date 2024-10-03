@@ -17,8 +17,10 @@
 #include <mqbs_virtualstoragecatalog.h>
 
 #include <mqbscm_version.h>
+
 // MQB
 #include <mqbi_queueengine.h>
+#include <mqbstat_queuestats.h>
 
 #include <mwctsk_alarmlog.h>
 
@@ -115,7 +117,6 @@ VirtualStorageCatalog::~VirtualStorageCatalog()
 }
 
 // MANIPULATORS
-
 VirtualStorageCatalog::DataStreamIterator
 VirtualStorageCatalog::begin(const bmqt::MessageGUID& where)
 {
@@ -270,8 +271,15 @@ VirtualStorageCatalog::confirm(const bmqt::MessageGUID& msgGUID,
     BSLS_ASSERT_SAFE(it != d_virtualStorages.end());
 
     setup(&data->second);
+    const mqbi::StorageResult::Enum rc = it->value()->confirm(&data->second);
+    if (queue() && mqbi::StorageResult::Enum::e_SUCCESS == rc) {
+        queue()->stats()->onEvent(
+            mqbstat::QueueStatsDomain::EventType::e_DEL_MESSAGE,
+            data->second.d_size,
+            it->key1());
+    }
 
-    return it->value()->confirm(&data->second);
+    return rc;
 }
 
 mqbi::StorageResult::Enum
@@ -364,6 +372,13 @@ VirtualStorageCatalog::removeAll(const mqbu::StorageKey& appKey)
                 }
                 ++itData;
             }
+        }
+
+        if (queue()) {
+            queue()->stats()->onEvent(
+                mqbstat::QueueStatsDomain::EventType::e_PURGE,
+                0,
+                itVs->key1());
         }
     }
     else {

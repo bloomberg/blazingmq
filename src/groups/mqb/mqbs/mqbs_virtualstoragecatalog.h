@@ -26,7 +26,6 @@
 // storages associated with a queue.
 
 // MQB
-
 #include <mqbi_storage.h>
 #include <mqbs_virtualstorage.h>
 #include <mqbu_storagekey.h>
@@ -107,37 +106,36 @@ class VirtualStorageCatalog {
 
   private:
     // DATA
-    mqbi::Storage* d_storage_p;  // Physical storage underlying all
-                                 // virtual storages known to this
-                                 // object
+    /// Physical storage underlying all virtual storages known to this object
+    mqbi::Storage* d_storage_p;
 
+    /// Map of appKey to corresponding virtual storage
     VirtualStorages d_virtualStorages;
-    // Map of appKey to corresponding
-    // virtual storage
 
+    /// Available ordinal values for virtual storages.
     AvailableOrdinals d_availableOrdinals;
-    // available ordinal values for Virtual Storages.
 
+    /// Monotonically increasing value to generate new ordinal.
     Ordinal d_nextOrdinal;
-    // Monotonically increasing value to generate new ordinal.
 
+    /// The DataStream tracking all Apps states.
     VirtualStorage::DataStream d_dataStream;
-    // The DataStream tracking all Apps states.
 
+    /// Cumulative count of all bytes.
     bsls::Types::Int64 d_totalBytes;
-    // Cumulative count of all bytes.
 
+    /// Cumulative count of all messages.
     bsls::Types::Int64 d_numMessages;
-    // Cumulative count of all messages.
 
+    /// The default App state
     mqbi::AppMessage d_defaultAppMessage;
-    // The default App state
 
+    /// This could be null if a local or remote
+    /// queue instance has not been created.
     mqbi::Queue* d_queue_p;
-    // This could be null if a local or remote
-    // queue instance has not been created.
 
-    bslma::Allocator* d_allocator_p;  // Allocator to use
+    /// Allocator to use
+    bslma::Allocator* d_allocator_p;
 
   private:
     // NOT IMPLEMENTED
@@ -161,7 +159,6 @@ class VirtualStorageCatalog {
     ~VirtualStorageCatalog();
 
     // MANIPULATORS
-
     /// If the specified 'where' is unset, return reference to the beginning of
     /// the DataStream.  Otherwise, return reference to the corresponding item
     /// in the DataStream.

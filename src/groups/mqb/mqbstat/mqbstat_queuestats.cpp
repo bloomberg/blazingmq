@@ -544,6 +544,15 @@ void QueueStatsDomain::onEvent(EventType::Enum type, bsls::Types::Int64 value)
     case EventType::e_ADD_MESSAGE: {
         d_statContext_mp->adjustValue(DomainQueueStats::e_STAT_BYTES, value);
         d_statContext_mp->adjustValue(DomainQueueStats::e_STAT_MESSAGES, 1);
+        if (!d_subContextsHolder.empty()) {
+            bsl::list<StatSubContextMp>::iterator it =
+                d_subContextsHolder.begin();
+            while (it != d_subContextsHolder.end()) {
+                it->get()->adjustValue(DomainQueueStats::e_STAT_BYTES, value);
+                it->get()->adjustValue(DomainQueueStats::e_STAT_MESSAGES, 1);
+                ++it;
+            }
+        }
     } break;
     case EventType::e_DEL_MESSAGE: {
         d_statContext_mp->adjustValue(DomainQueueStats::e_STAT_BYTES, -value);
@@ -557,6 +566,15 @@ void QueueStatsDomain::onEvent(EventType::Enum type, bsls::Types::Int64 value)
         //       the stat to get rates
         d_statContext_mp->setValue(DomainQueueStats::e_STAT_BYTES, 0);
         d_statContext_mp->setValue(DomainQueueStats::e_STAT_MESSAGES, 0);
+        if (!d_subContextsHolder.empty()) {
+            bsl::list<StatSubContextMp>::iterator it =
+                d_subContextsHolder.begin();
+            while (it != d_subContextsHolder.end()) {
+                it->get()->setValue(DomainQueueStats::e_STAT_BYTES, 0);
+                it->get()->setValue(DomainQueueStats::e_STAT_MESSAGES, 0);
+                ++it;
+            }
+        }
     } break;
     case EventType::e_CHANGE_ROLE: {
         d_statContext_mp->setValue(DomainQueueStats::e_STAT_ROLE, value);
@@ -613,9 +631,22 @@ void QueueStatsDomain::onEvent(EventType::Enum    type,
         appIdContext->reportValue(DomainQueueStats::e_STAT_CONFIRM_TIME,
                                   value);
     } break;
-
     case EventType::e_QUEUE_TIME: {
         appIdContext->reportValue(DomainQueueStats::e_STAT_QUEUE_TIME, value);
+    } break;
+    case EventType::e_ADD_MESSAGE: {
+        appIdContext->adjustValue(DomainQueueStats::e_STAT_BYTES, value);
+        appIdContext->adjustValue(DomainQueueStats::e_STAT_MESSAGES, 1);
+    } break;
+    case EventType::e_DEL_MESSAGE: {
+        appIdContext->adjustValue(DomainQueueStats::e_STAT_BYTES, -value);
+        appIdContext->adjustValue(DomainQueueStats::e_STAT_MESSAGES, -1);
+    } break;
+    case EventType::e_PURGE: {
+        // NOTE: Setting the value like that will cause weird results if using
+        //       the stat to get rates
+        appIdContext->setValue(DomainQueueStats::e_STAT_BYTES, 0);
+        appIdContext->setValue(DomainQueueStats::e_STAT_MESSAGES, 0);
     } break;
 
     // Some of these event types make no sense per appId and should be reported
@@ -627,10 +658,7 @@ void QueueStatsDomain::onEvent(EventType::Enum    type,
     case EventType::e_REJECT: BSLS_ANNOTATION_FALLTHROUGH;
     case EventType::e_PUSH: BSLS_ANNOTATION_FALLTHROUGH;
     case EventType::e_PUT: BSLS_ANNOTATION_FALLTHROUGH;
-    case EventType::e_ADD_MESSAGE: BSLS_ANNOTATION_FALLTHROUGH;
-    case EventType::e_DEL_MESSAGE: BSLS_ANNOTATION_FALLTHROUGH;
     case EventType::e_GC_MESSAGE: BSLS_ANNOTATION_FALLTHROUGH;
-    case EventType::e_PURGE: BSLS_ANNOTATION_FALLTHROUGH;
     case EventType::e_CHANGE_ROLE: BSLS_ANNOTATION_FALLTHROUGH;
     case EventType::e_CFG_MSGS: BSLS_ANNOTATION_FALLTHROUGH;
     case EventType::e_CFG_BYTES: BSLS_ANNOTATION_FALLTHROUGH;

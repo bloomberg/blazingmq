@@ -256,8 +256,8 @@ InMemoryStorage::confirm(const bmqt::MessageGUID& msgGUID,
     }
 
     if (!appKey.isNull()) {
-        mqbi::StorageResult::Enum rc = d_virtualStorageCatalog.confirm(msgGUID,
-                                                                       appKey);
+        const mqbi::StorageResult::Enum rc =
+            d_virtualStorageCatalog.confirm(msgGUID, appKey);
         if (mqbi::StorageResult::e_SUCCESS != rc) {
             return rc;  // RETURN
         }

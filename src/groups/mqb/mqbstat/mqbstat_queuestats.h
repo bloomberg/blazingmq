@@ -31,8 +31,6 @@
 // 'mqbstat::QueueStatsUtil' is a utility namespace exposing methods to
 // initialize the stat contexts and associated objects.
 
-// MQB
-
 // BMQ
 #include <bmqt_uri.h>
 
