@@ -77,82 +77,83 @@ struct DomainQueueStats {
         e_STAT_NB_PRODUCER
 
         ,
+        /// Value:      Current number of clients who opened the queue with
+        ///             the 'READ' flag
         e_STAT_NB_CONSUMER
-        // Value:      Current number of clients who opened the queue with
-        //             the 'READ' flag
 
         ,
+        /// Value:      Current number of messages in the queue
         e_STAT_MESSAGES
-        // Value:      Current number of messages in the queue
 
         ,
+        /// Value:      Accumulated bytes of all messages currently in the
+        ///             queue
         e_STAT_BYTES
-        // Value:      Accumulated bytes of all messages currently in the
-        //             queue
 
         ,
+        /// Value:      Number of ack messages delivered by this queue
         e_STAT_ACK
-        // Value:      Number of ack messages delivered by this queue
 
         ,
+        /// Value:      The time between PUT and ACK (in nanoseconds).
         e_STAT_ACK_TIME
-        // Value:      The time between PUT and ACK (in nanoseconds).
 
         ,
+        /// Value:      Number of NACK messages generated for this queue
         e_STAT_NACK
-        // Value:      Number of NACK messages generated for this queue
 
         ,
+        /// Value:      Number of CONFIRM messages received by this queue
         e_STAT_CONFIRM
-        // Value:      Number of CONFIRM messages received by this queue
 
         ,
+        /// Value:      The time between PUSH and CONFIRM (in nanoseconds).
         e_STAT_CONFIRM_TIME
-        // Value:      The time between PUSH and CONFIRM (in nanoseconds).
 
         ,
+        /// Value:      Number of messages rejected by this queue (RDA
+        ///             reaching zero)
         e_STAT_REJECT
-        // Value:      Number of messages rejected by this queue (RDA
-        //             reaching zero)
 
         ,
+        /// Value:      The time spent by the message in the queue (in
+        ///             nanoseconds).
         e_STAT_QUEUE_TIME
-        // Value:      The time spent by the message in the queue (in
-        //             nanoseconds).
 
         ,
+        /// Value:      Accumulated bytes of all messages ever pushed from
+        ///             the queue
+        /// Increment:  Number of messages ever pushed from the queue
         e_STAT_PUSH
-        // Value:      Accumulated bytes of all messages ever pushed from
-        //             the queue
-        // Increment:  Number of messages ever pushed from the queue
 
         ,
+        /// Value:      Accumulated bytes of all messages ever put in the
+        ///             queue
+        /// Increment:  Number of messages ever put in the queue
         e_STAT_PUT
-        // Value:      Accumulated bytes of all messages ever put in the
-        //             queue
-        // Increment:  Number of messages ever put in the queue
 
         ,
+        /// Value:      Accumulated number of messages ever GC'ed in the
+        ///             queue
         e_STAT_GC_MSGS
-        // Value:      Accumulated number of messages ever GC'ed in the
-        //             queue
 
         ,
+        /// Value:      Role (Unknown, Primary, Replica, Proxy)
         e_STAT_ROLE
-        // Value:      Role (Unknown, Primary, Replica, Proxy)
 
         ,
+        /// Value:      The configured queue messages capacity
         e_CFG_MSGS
-        // Value:      The configured queue messages capacity
 
         ,
+        /// Value:      The configured queue bytes capacity
         e_CFG_BYTES
-        // Value:      The configured queue bytes capacity
+
         ,
+        /// Value:      Accumulated number of messages in the strong
+        ///             consistency queue expired before receiving quorum
+        ///             Receipts
         e_STAT_NO_SC_MSGS
-        // Value:      Accumulated number of messages in the strong
-        //             consistency queue expired before receiving quorum
-        //             Receipts
     };
 };
 
@@ -168,20 +169,20 @@ struct ClientStats {
         e_STAT_ACK
 
         ,
+        /// Value:      Number of confirm messages delivered to the client
         e_STAT_CONFIRM
-        // Value:      Number of confirm messages delivered to the client
 
         ,
+        /// Value:      Accumulated bytes of all messages ever pushed to
+        ///             the client
+        /// Increments: Number of messages ever pushed to the client
         e_STAT_PUSH
-        // Value:      Accumulated bytes of all messages ever pushed to
-        //             the client
-        // Increments: Number of messages ever pushed to the client
 
         ,
+        /// Value:      Accumulated bytes of all messages ever received from
+        ///             the client
+        /// Increments: Number of messages ever received from the client
         e_STAT_PUT
-        // Value:      Accumulated bytes of all messages ever received from
-        //             the client
-        // Increments: Number of messages ever received from the client
     };
 };
 
