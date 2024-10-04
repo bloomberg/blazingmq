@@ -61,9 +61,9 @@ class MockPropertiesReader : public PropertiesReader {
     // MANIPULATORS
 
     /// Return a `bdld::Datum` object with value for the specified `name`.
-    /// Use the specified `allocator` for any memory allocation.
-    virtual bdld::Datum get(const bsl::string& name,
-                            bslma::Allocator*  allocator)
+    /// The `bslma::Allocator*` argument is unused.
+    bdld::Datum get(const bsl::string& name,
+                    bslma::Allocator*) BSLS_KEYWORD_OVERRIDE
     {
         bsl::unordered_map<bsl::string, bdld::Datum>::const_iterator iter =
             d_map.find(name);
@@ -124,6 +124,30 @@ static bsl::string makeTooManyOperators()
     return os.str();
 }
 
+static bsl::string makeTooLongExpression()
+{
+    mwcu::MemOutStream os(s_allocator_p);
+
+    // Note that we want to create `k_STACK_SIZE` nested NOT objects in AST,
+    // and when we call destructor chain for all these objects, we'll need
+    // much more memory on a stack, since each destructor address is not a
+    // single byte, and also we need to call shared_ptr and Not destructors in
+    // pairs. But the initial guess of `k_STACK_SIZE` is more than sufficient
+    // to cause segfault if this case is not handled properly.
+    const size_t k_STACK_SIZE = 1024 * 1024;
+    ASSERT(SimpleEvaluator::k_MAX_EXPRESSION_LENGTH < k_STACK_SIZE);
+
+    for (size_t i = 0; i < k_STACK_SIZE; i += 16) {
+        // Combining `!` and `~` differently in case we want to introduce
+        // "NOT" optimization one day (remove double sequential "NOTs")
+        os << "!!!!~~~~!~!~!!~~";
+    }
+
+    os << "x";
+
+    return os.str();
+}
+
 static void test1_compilationErrors()
 {
     struct TestParameters {
@@ -139,10 +163,13 @@ static void test1_compilationErrors()
          "syntax error, unexpected invalid character at offset 3"},
         {makeTooManyOperators(),
          ErrorType::e_TOO_COMPLEX,
-         "too many operators"},
+         "too many operators (12), max allowed operators: 10"},
         {"true && true",
          ErrorType::e_NO_PROPERTIES,
          "expression does not use any properties"},
+        {makeTooLongExpression(),
+         ErrorType::e_TOO_LONG,
+         "expression is too long (1048577), max allowed length: 128"},
 
         // only C-style operator variants supported
         {"val = 42",
@@ -157,6 +184,27 @@ static void test1_compilationErrors()
         {"val <> 42",
          ErrorType::e_SYNTAX,
          "syntax error, unexpected > at offset 5"},
+
+        // unsupported_ints
+        {"i_0 != 9223372036854775808",
+         ErrorType::e_SYNTAX,
+         "integer overflow at offset 7"},  // 2 ** 63
+        {"i_0 != -170141183460469231731687303715884105728",
+         ErrorType::e_SYNTAX,
+         "integer overflow at offset 7"},  // -(2 ** 127)
+        {"i_0 != 170141183460469231731687303715884105727",
+         ErrorType::e_SYNTAX,
+         "integer overflow at offset 7"},  // 2 ** 127 - 1
+        {"i_0 != "
+         "-5789604461865809771178549250434395392663499233282028201972879200395"
+         "6564819968",
+         ErrorType::e_SYNTAX,
+         "integer overflow at offset 7"},  // -(2 ** 255)
+        {"i_0 != "
+         "57896044618658097711785492504343953926634992332820282019728792003956"
+         "564819967",
+         ErrorType::e_SYNTAX,
+         "integer overflow at offset 7"},  // 2 ** 255 - 1
     };
     const TestParameters* testParametersEnd = testParameters +
                                               sizeof(testParameters) /
@@ -287,7 +335,6 @@ static void test3_evaluation()
     struct TestParameters {
         const char* expression;
         bool        expected;
-        bool        expectCompilationFailure;
     } testParameters[] = {
         {"b_true", true},
 
@@ -427,25 +474,6 @@ static void test3_evaluation()
         {"i_0 != -9223372036854775807", true},  // -(2 ** 63) + 1
         {"i_0 != 9223372036854775807", true},   // 2 ** 63 - 1
         {"i_0 != -9223372036854775808", true},  // -(2 ** 63)
-
-        // unsupported_ints
-        {"i_0 != 9223372036854775808", false, true},  // 2 ** 63
-        {"i_0 != -170141183460469231731687303715884105728",
-         false,
-         true},  // -(2 ** 127)
-        {"i_0 != 170141183460469231731687303715884105727",
-         false,
-         true},  // 2 ** 127 - 1
-        {"i_0 != "
-         "-5789604461865809771178549250434395392663499233282028201972879200395"
-         "6564819968",
-         false,
-         true},  // -(2 ** 255)
-        {"i_0 != "
-         "57896044618658097711785492504343953926634992332820282019728792003956"
-         "564819967",
-         false,
-         true},  // 2 ** 255 - 1
     };
     const TestParameters* testParametersEnd = testParameters +
                                               sizeof(testParameters) /
@@ -461,20 +489,12 @@ static void test3_evaluation()
 
         ASSERT(!evaluator.isValid());
 
-        if (int rc = evaluator.compile(parameters->expression,
-                                       compilationContext)) {
-            if (!parameters->expectCompilationFailure) {
-                PV(bsl::string("UNEXPECTED: ") +
-                   compilationContext.lastErrorMessage());
-                ASSERT(false);
-            }
+        if (evaluator.compile(parameters->expression, compilationContext)) {
+            PV(bsl::string("UNEXPECTED: ") +
+               compilationContext.lastErrorMessage());
+            ASSERT(false);
         }
         else {
-            if (parameters->expectCompilationFailure) {
-                PV("Expected compilation failure");
-                ASSERT(false);
-            }
-
             ASSERT(evaluator.isValid());
             ASSERT_EQ(evaluator.evaluate(evaluationContext),
                       parameters->expected);
