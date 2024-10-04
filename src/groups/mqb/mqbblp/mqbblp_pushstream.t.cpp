@@ -68,7 +68,8 @@ static void test2_iterations()
 
     // Imitate {m1, a1}, {m2, a2}, {m1, a2}, {m2, a1}
 
-    mqbblp::PushStream ps(bsl::nullptr_t(), s_allocator_p);
+    mqbblp::PushStream ps(bsl::optional<bdlma::ConcurrentPool*>(),
+                          s_allocator_p);
     unsigned int       subQueueId1 = 1;
     unsigned int       subQueueId2 = 2;
 
