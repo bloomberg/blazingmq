@@ -197,16 +197,6 @@ else()
   endif()
 endif()
 
-# TBD: TEMPORARY >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-if (NOT installBMQ)
-  # Enable MSG GroupId public APIs ONLY if not doing a DPKG build (i.e., a
-  # release) of libbmq; until the feature is fully implemented.
-  add_definitions("-DBMQ_ENABLE_MSG_GROUPID")
-else()
-  message(STATUS "Message GroupId APIs *NOT* exposed!")
-endif()
-# TBD: TEMPORARY <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-
 # -----------------------------------------------------------------------------
 #                                   PROJECTS
 # -----------------------------------------------------------------------------

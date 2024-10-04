@@ -228,9 +228,14 @@ struct Tester BSLS_CPP11_FINAL {
     /// is undefined unless a queue with the `uri` was created and inserted
     /// using a call to `insertQueue`, or if packing the message is
     /// unsuccessful.
+#ifdef BMQ_ENABLE_MSG_GROUPID
     void packPutMessage(const bslstl::StringRef& uri,
                         const bslstl::StringRef& payload,
                         const bslstl::StringRef& msgGroupId = "");
+#else
+    void packPutMessage(const bslstl::StringRef& uri,
+                        const bslstl::StringRef& payload);
+#endif
 
     /// Append to the CONFIRM event being built a CONFIRM message associated
     /// with the queue corresponding to the specified `uri`.  The behavior
@@ -460,9 +465,14 @@ void Tester::appendAckMessage(const bslstl::StringRef& uri,
     BSLS_ASSERT_OPT(rc == 0);
 }
 
+#ifdef BMQ_ENABLE_MSG_GROUPID
 void Tester::packPutMessage(const bslstl::StringRef& uri,
                             const bslstl::StringRef& payload,
                             const bslstl::StringRef& msgGroupId)
+#else
+void Tester::packPutMessage(const bslstl::StringRef& uri,
+                            const bslstl::StringRef& payload)
+#endif
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(d_queueIdsByUri.find(uri) != d_queueIdsByUri.end() &&
@@ -481,10 +491,12 @@ void Tester::packPutMessage(const bslstl::StringRef& uri,
 
     d_putEventBuilder.startMessage();
     d_putEventBuilder.setMessageGUID(guid).setMessagePayload(&msgPayload);
+#ifdef BMQ_ENABLE_MSG_GROUPID
     if (!msgGroupId.empty()) {
         bmqp::Protocol::MsgGroupId groupId(msgGroupId, d_allocator_p);
         d_putEventBuilder.setMsgGroupId(msgGroupId);
     }
+#endif
 
     int rc = d_putEventBuilder.packMessage(queueId.id());
     BSLS_ASSERT_OPT(rc == 0);
@@ -1659,8 +1671,13 @@ static void test8_dumpPutEvent()
     //    messages.
     tester.processDumpCommand("PUT ON");
 
+#ifdef BMQ_ENABLE_MSG_GROUPID
     tester.packPutMessage("bmq://bmq.test.mmap.fanout/q1", "abcd", "Group 1");
     tester.packPutMessage("bmq://bmq.test.mmap.fanout/q1", "abcd", "Group 2");
+#else
+    tester.packPutMessage("bmq://bmq.test.mmap.fanout/q1", "abcd");
+    tester.packPutMessage("bmq://bmq.test.mmap.fanout/q1", "abcd");
+#endif
     tester.packPutMessage("bmq://bmq.test.mmap.priority/q1", "efgh");
     tester.packPutMessage("bmq://bmq.test.mmap.priority/q2", "ijkl");
 
@@ -1674,6 +1691,7 @@ static void test8_dumpPutEvent()
 
     PVV(L_ << ": PUT event dump: " << out.str());
 
+#ifdef BMQ_ENABLE_MSG_GROUPID
     ASSERT_EQ(regexMatch(out.str(),
                          "PUT Message #1:.*"
                          "queue: bmq://bmq.test.mmap.fanout/q1.*"
@@ -1688,6 +1706,20 @@ static void test8_dumpPutEvent()
                          "abcd.*",
                          s_allocator_p),
               true);
+#else
+    ASSERT_EQ(regexMatch(out.str(),
+                         "PUT Message #1:.*"
+                         "queue: bmq://bmq.test.mmap.fanout/q1.*"
+                         "abcd.*",
+                         s_allocator_p),
+              true);
+    ASSERT_EQ(regexMatch(out.str(),
+                         "PUT Message #2:.*"
+                         "queue: bmq://bmq.test.mmap.fanout/q1.*"
+                         "abcd.*",
+                         s_allocator_p),
+              true);
+#endif
     ASSERT_EQ(regexMatch(out.str(),
                          "PUT Message #3:.*"
                          "queue: bmq://bmq.test.mmap.priority/q1.*"

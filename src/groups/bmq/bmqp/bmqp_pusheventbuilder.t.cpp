@@ -58,13 +58,17 @@ using namespace bsl;
 // ----------------------------------------------------------------------------
 namespace {
 
+#ifdef BMQ_ENABLE_MSG_GROUPID
 typedef bdlb::NullableValue<bmqp::Protocol::MsgGroupId> NullableMsgGroupId;
+#endif
 
 struct Data {
     bmqt::MessageGUID                    d_guid;
     int                                  d_qid;
     bmqp::Protocol::SubQueueInfosArray   d_subQueueInfos;
+#ifdef BMQ_ENABLE_MSG_GROUPID
     NullableMsgGroupId                   d_msgGroupId;
+#endif
     bdlbb::Blob                          d_payload;
     int                                  d_flags;
     bmqt::CompressionAlgorithmType::Enum d_compressionAlgorithmType;
@@ -82,7 +86,9 @@ Data::Data(bdlbb::BlobBufferFactory* bufferFactory,
            bslma::Allocator*         allocator)
 : d_qid(-1)
 , d_subQueueInfos(allocator)
+#ifdef BMQ_ENABLE_MSG_GROUPID
 , d_msgGroupId(allocator)
+#endif
 , d_payload(bufferFactory, allocator)
 , d_flags(0)
 , d_compressionAlgorithmType(bmqt::CompressionAlgorithmType::e_NONE)
@@ -94,7 +100,9 @@ Data::Data(const Data& other, bslma::Allocator* allocator)
 : d_guid(other.d_guid)
 , d_qid(other.d_qid)
 , d_subQueueInfos(other.d_subQueueInfos, allocator)
+#ifdef BMQ_ENABLE_MSG_GROUPID
 , d_msgGroupId(other.d_msgGroupId, allocator)
+#endif
 , d_payload(other.d_payload, allocator)
 , d_flags(other.d_flags)
 , d_compressionAlgorithmType(other.d_compressionAlgorithmType)
@@ -142,6 +150,7 @@ void generateSubQueueInfos(bmqp::Protocol::SubQueueInfosArray* subQueueInfos,
                      static_cast<unsigned int>(numSubQueueInfos));
 }
 
+#ifdef BMQ_ENABLE_MSG_GROUPID
 /// Populate the specified `msgGroupId` with a random Group Id.
 static void generateMsgGroupId(bmqp::Protocol::MsgGroupId* msgGroupId)
 {
@@ -152,6 +161,7 @@ static void generateMsgGroupId(bmqp::Protocol::MsgGroupId* msgGroupId)
     oss << "gid:" << generateRandomInteger(0, 120);
     *msgGroupId = oss.str();
 }
+#endif
 
 /// Append at least `atLeastLen` bytes to the specified `blob` and populate
 /// the specified `payloadLen` with the number of bytes appended.
@@ -200,6 +210,7 @@ appendMessage(size_t                    iteration,
         return rc;  // RETURN
     }
 
+#ifdef BMQ_ENABLE_MSG_GROUPID
     // Every 3rd iteration we don't add a Group Id.
     if (iteration % 3) {
         generateMsgGroupId(&data.d_msgGroupId.makeValue());
@@ -208,11 +219,14 @@ appendMessage(size_t                    iteration,
             return rc;  // RETURN
         }
     }
+#endif
 
     bdlbb::Blob                      payload(bufferFactory, allocator);
     const int                        blobSize = generateRandomInteger(0, 1024);
+#ifdef BMQ_ENABLE_MSG_GROUPID
     const bmqp::Protocol::MsgGroupId str(blobSize, 'x', allocator);
     bdlbb::BlobUtil::append(&payload, str.c_str(), blobSize);
+#endif
 
     data.d_payload = payload;
 
@@ -651,6 +665,7 @@ static void test4_buildEventWithMultipleMessages()
                 ASSERT_EQ_D(i, D.d_subQueueInfos[i], retrievedSQInfos[i]);
             }
         }
+#ifdef BMQ_ENABLE_MSG_GROUPID
         const bool hasMsgGroupId = !D.d_msgGroupId.isNull();
         ASSERT_EQ(hasMsgGroupId,
                   optionsView.find(bmqp::OptionType::e_MSG_GROUP_ID) !=
@@ -661,6 +676,7 @@ static void test4_buildEventWithMultipleMessages()
                       optionsView.loadMsgGroupIdOption(&retrievedMsgGroupId));
             ASSERT_EQ(D.d_msgGroupId.value(), retrievedMsgGroupId);
         }
+#endif
         ++dataIndex;
     }
 
@@ -900,6 +916,7 @@ static void test7_buildEventOptionTooBig()
 
     ASSERT_EQ(rc, bmqt::EventBuilderResult::e_OPTION_TOO_BIG);
 
+#ifdef BMQ_ENABLE_MSG_GROUPID
     // Add another option larger than maximum allowed
     bmqp::Protocol::MsgGroupId msgGrIdBig1(bmqp::OptionHeader::k_MAX_SIZE + 1,
                                            'x',
@@ -916,7 +933,6 @@ static void test7_buildEventOptionTooBig()
 
     rc = peb.addMsgGroupIdOption(msgGrIdBig2);
 
-#ifdef BMQ_ENABLE_MSG_GROUPID
     ASSERT_EQ(rc, bmqt::EventBuilderResult::e_INVALID_MSG_GROUP_ID);
 #endif
 
