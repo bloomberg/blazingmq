@@ -31,7 +31,7 @@
 #include <mwctst_testhelper.h>
 
 // BENCHMARKING LIBRARY
-#ifdef BSLS_PLATFORM_OS_LINUX
+#if defined(BSLS_PLATFORM_OS_LINUX) || defined(BSLS_PLATFORM_OS_DARWIN)
 #include <benchmark/benchmark.h>
 #endif
 
@@ -314,7 +314,7 @@ static void testN1_performance()
 }
 
 // Begin benchmarking tests
-#ifdef BSLS_PLATFORM_OS_LINUX
+#if defined(BSLS_PLATFORM_OS_LINUX) || defined(BSLS_PLATFORM_OS_DARWIN)
 static void testN1_defaultPerformance_GoogleBenchmark(benchmark::State& state)
 {
     // Default function call
@@ -390,7 +390,7 @@ int main(int argc, char* argv[])
     case 2: test2_defaultInitializeShutdown(); break;
     case 1: test1_breathingTest(); break;
     case -1:
-#ifdef BSLS_PLATFORM_OS_LINUX
+#if defined(BSLS_PLATFORM_OS_LINUX) || defined(BSLS_PLATFORM_OS_DARWIN)
         BENCHMARK(testN1_defaultPerformance_GoogleBenchmark)
             ->RangeMultiplier(10)
             ->Range(1000, 100000000)

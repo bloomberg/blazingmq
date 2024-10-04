@@ -47,7 +47,7 @@
 #include <mwctst_testhelper.h>
 
 // BENCHMARKING LIBRARY
-#ifdef BSLS_PLATFORM_OS_LINUX
+#if defined(BSLS_PLATFORM_OS_LINUX) || defined(BSLS_PLATFORM_OS_DARWIN)
 #include <benchmark/benchmark.h>
 #endif
 
@@ -1846,7 +1846,7 @@ static void testN10_hashCollisionsComparison()
 
 // Begin Benchmarking Tests
 
-#ifdef BSLS_PLATFORM_OS_LINUX
+#if defined(BSLS_PLATFORM_OS_LINUX) || defined(BSLS_PLATFORM_OS_DARWIN)
 static void testN1_decode_GoogleBenchmark(benchmark::State& state)
 // ------------------------------------------------------------------------
 // DECODE
@@ -2327,7 +2327,7 @@ int main(int argc, char* argv[])
         s_testStatus = -1;
     } break;
     }
-#ifdef BSLS_PLATFORM_OS_LINUX
+#if defined(BSLS_PLATFORM_OS_LINUX) || defined(BSLS_PLATFORM_OS_DARWIN)
     if (_testCase < 0) {
         benchmark::Initialize(&argc, argv);
         benchmark::RunSpecifiedBenchmarks();

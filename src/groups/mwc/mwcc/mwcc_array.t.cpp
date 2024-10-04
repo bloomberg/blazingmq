@@ -32,14 +32,14 @@
 // TEST DRIVER
 #include <mwctst_testhelper.h>
 
-#ifdef BSLS_PLATFORM_OS_LINUX
+#if defined(BSLS_PLATFORM_OS_LINUX) || defined(BSLS_PLATFORM_OS_DARWIN)
 // BENCHMARK
 #include <benchmark/benchmark.h>
 #include <chrono>
 #include <cmath>
 #include <iostream>
 #include <vector>
-#endif  // BSLS_PLATFORM_OS_LINUX
+#endif  // BSLS_PLATFORM_OS_LINUX || BSLS_PLATFORM_OS_DARWIN
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -851,7 +851,7 @@ static void test10_pushBackSelfRef()
     }
 }
 
-#ifdef BSLS_PLATFORM_OS_LINUX
+#if defined(BSLS_PLATFORM_OS_LINUX) || defined(BSLS_PLATFORM_OS_DARWIN)
 
 using namespace BloombergLP;
 
@@ -903,7 +903,7 @@ static void VectorAssign_GoogleBenchmark(benchmark::State& state)
     }
 }
 
-#endif  // BSLS_PLATFORM_OS_LINUX
+#endif  // BSLS_PLATFORM_OS_LINUX || BSLS_PLATFORM_OS_DARWIN
 
 // ============================================================================
 //                                 MAIN PROGRAM
@@ -924,7 +924,7 @@ int main(int argc, char* argv[])
     case 3: test3_noMemoryAllocation(); break;
     case 2: test2_outOfBoundValidation(); break;
     case 1: test1_breathingTest(); break;
-#ifdef BSLS_PLATFORM_OS_LINUX
+#if defined(BSLS_PLATFORM_OS_LINUX) || defined(BSLS_PLATFORM_OS_DARWIN)
     case -1:
         benchmark::Initialize(&argc, argv);
         BENCHMARK(VectorAssign_GoogleBenchmark)->Range(8, 4096);
@@ -936,7 +936,7 @@ int main(int argc, char* argv[])
         BENCHMARK(VectorFindLarge_GoogleBenchmark)->Range(256, 8192);
         benchmark::RunSpecifiedBenchmarks();
         break;
-#endif  // BSLS_PLATFORM_OS_LINUX
+#endif  // BSLS_PLATFORM_OS_LINUX || BSLS_PLATFORM_OS_DARWIN
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
         s_testStatus = -1;

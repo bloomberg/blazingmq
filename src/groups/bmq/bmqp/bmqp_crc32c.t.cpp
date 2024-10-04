@@ -46,7 +46,7 @@
 #include <bsls_timeutil.h>
 
 // BENCHMARKING LIBRARY
-#ifdef BSLS_PLATFORM_OS_LINUX
+#if defined(BSLS_PLATFORM_OS_LINUX) || defined(BSLS_PLATFORM_OS_DARWIN)
 #include <benchmark/benchmark.h>
 #endif
 
@@ -128,7 +128,7 @@ static int populateBufferLengthsSorted(bsl::vector<int>* bufferLengths)
     return bufferLengths->back();
 }
 
-#ifdef BSLS_PLATFORM_OS_LINUX
+#if defined(BSLS_PLATFORM_OS_LINUX) || defined(BSLS_PLATFORM_OS_DARWIN)
 /// Populate the specified `bufferLengths` with various lengths in
 /// increasing sorted order. Apply these arguments to Google Benchmark
 /// internals Note that upper bound is 64 Ki
@@ -2174,7 +2174,7 @@ static void testN6_bdldPerformanceDefault()
     s_allocator_p->deallocate(buffer);
 }
 
-#ifdef BSLS_PLATFORM_OS_LINUX
+#if defined(BSLS_PLATFORM_OS_LINUX) || defined(BSLS_PLATFORM_OS_DARWIN)
 
 static void
 testN1_performanceDefaultUserInput_GoogleBenchmark(benchmark::State& state)
@@ -2533,7 +2533,7 @@ testN6_bdldPerformanceDefault_GoogleBenchmark(benchmark::State& state)
     s_allocator_p->deallocate(buffer);
 }
 
-#endif  // BSLS_PLATFORM_OS_LINUX
+#endif  // BSLS_PLATFORM_OS_LINUX || BSLS_PLATFORM_OS_DARWIN
 
 // ============================================================================
 //                                 MAIN PROGRAM
@@ -2607,7 +2607,7 @@ int main(int argc, char* argv[])
         s_testStatus = -1;
     } break;
     }
-#ifdef BSLS_PLATFORM_OS_LINUX
+#if defined(BSLS_PLATFORM_OS_LINUX) || defined(BSLS_PLATFORM_OS_DARWIN)
     if (_testCase < 0) {
         benchmark::Initialize(&argc, argv);
         benchmark::RunSpecifiedBenchmarks();

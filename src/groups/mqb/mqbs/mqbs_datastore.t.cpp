@@ -28,7 +28,7 @@
 #include <bsls_types.h>
 
 // BENCHMARKING LIBRARY
-#ifdef BSLS_PLATFORM_OS_LINUX
+#if defined(BSLS_PLATFORM_OS_LINUX) || defined(BSLS_PLATFORM_OS_DARWIN)
 #include <benchmark/benchmark.h>
 #endif
 
@@ -435,7 +435,7 @@ static void testN4_orderedMapWithCustomHashBenchmark()
          << " insertions per second.\n";
 }
 
-#ifdef BSLS_PLATFORM_OS_LINUX
+#if defined(BSLS_PLATFORM_OS_LINUX) || defined(BSLS_PLATFORM_OS_DARWIN)
 static void
 testN1_defaultHashBenchmark_GoogleBenchmark(benchmark::State& state)
 // ------------------------------------------------------------------------
@@ -594,7 +594,7 @@ int main(int argc, char* argv[])
         s_testStatus = -1;
     } break;
     }
-#ifdef BSLS_PLATFORM_OS_LINUX
+#if defined(BSLS_PLATFORM_OS_LINUX) || defined(BSLS_PLATFORM_OS_DARWIN)
     if (_testCase < 0) {
         benchmark::Initialize(&argc, argv);
         benchmark::RunSpecifiedBenchmarks();
