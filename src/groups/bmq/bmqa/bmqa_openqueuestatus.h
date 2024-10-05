@@ -62,18 +62,19 @@ namespace bmqa {
 class OpenQueueStatus {
   private:
     // DATA
+
+    /// queueId associated with the open
+    /// queue operation
     QueueId d_queueId;
-    // queueId associated with the open
-    // queue operation
 
+    /// Result code of the operation
+    /// (success, failure)
     bmqt::OpenQueueResult::Enum d_result;
-    // Result code of the operation
-    // (success, failure)
 
+    /// Optional string with a human
+    /// readable description of the error,
+    /// if any
     bsl::string d_errorDescription;
-    // Optional string with a human
-    // readable description of the error,
-    // if any
 
   public:
     // TRAITS
@@ -81,9 +82,9 @@ class OpenQueueStatus {
 
     // TYPES
 
-    // Use of an `UnspecifiedBool` to prevent implicit conversions to
-    // integral values, and comparisons between different classes which
-    // have boolean operators.
+    /// Use of an `UnspecifiedBool` to prevent implicit conversions to
+    /// integral values, and comparisons between different classes which
+    /// have boolean operators.
     typedef bsls::UnspecifiedBool<OpenQueueStatus>::BoolType BoolType;
 
     // CREATORS

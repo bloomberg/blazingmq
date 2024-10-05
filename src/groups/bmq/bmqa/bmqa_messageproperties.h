@@ -96,9 +96,9 @@ class MessageProperties {
   private:
     // PRIVATE CONSTANTS
 
-    // Constant representing the maximum size of a
-    // `bmqp::MessageProperties` object, so that the below AlignedBuffer
-    // is big enough.
+    /// Constant representing the maximum size of a
+    /// `bmqp::MessageProperties` object, so that the below AlignedBuffer
+    /// is big enough.
     static const int k_MAX_SIZEOF_BMQP_MESSAGEPROPERTIES = 184;
 
     // PRIVATE TYPES
@@ -107,18 +107,19 @@ class MessageProperties {
 
   private:
     // DATA
-    mutable bmqp::MessageProperties* d_impl_p;
-    // Pointer to the implementation object
-    // in 'd_buffer', providing a shortcut
-    // type safe cast to that object.  This
-    // variable *must* *be* the first
-    // member of this class, as other
-    // components in bmqa package may
-    // reinterpret_cast to that variable.
 
+    /// Pointer to the implementation object
+    /// in 'd_buffer', providing a shortcut
+    /// type safe cast to that object.  This
+    /// variable *must* *be* the first
+    /// member of this class, as other
+    /// components in bmqa package may
+    /// reinterpret_cast to that variable.
+    mutable bmqp::MessageProperties* d_impl_p;
+
+    /// Buffer containing the implementation
+    /// object, maximally aligned.
     ImplBuffer d_buffer;
-    // Buffer containing the implementation
-    // object, maximally aligned.
 
     bslma::Allocator* d_allocator_p;
 

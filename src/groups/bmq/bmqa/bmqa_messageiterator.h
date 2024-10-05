@@ -73,9 +73,9 @@ struct MessageIteratorImpl {
                               // the Message, and so that we only create one
                               // such object per MessageIterator.
 
+    /// Position of 'd_message' in the underlying
+    /// message event.
     int d_messageIndex;
-    // Position of 'd_message' in the underlying
-    // message event.
 };
 
 // =====================

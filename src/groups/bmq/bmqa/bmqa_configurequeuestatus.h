@@ -61,18 +61,19 @@ namespace bmqa {
 class ConfigureQueueStatus {
   private:
     // DATA
+
+    /// queueId associated with the open
+    /// queue operation
     QueueId d_queueId;
-    // queueId associated with the open
-    // queue operation
 
+    /// Status code of the operation
+    /// (success, failure)
     bmqt::ConfigureQueueResult::Enum d_result;
-    // Status code of the operation
-    // (success, failure)
 
+    /// Optional string with a human
+    /// readable description of the error,
+    /// if any
     bsl::string d_errorDescription;
-    // Optional string with a human
-    // readable description of the error,
-    // if any
 
   public:
     // TRAITS

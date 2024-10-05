@@ -607,13 +607,14 @@ class ConfirmEventBuilder;
 struct MockSessionUtil {
   private:
     // PRIVATE TYPES
-    typedef bsl::shared_ptr<bmqimp::Event> EventImplSp;
-    // Event impl shared pointer to access
-    // the pimpl of 'bmqa::Event'.
 
+    /// Event impl shared pointer to access
+    /// the pimpl of 'bmqa::Event'.
+    typedef bsl::shared_ptr<bmqimp::Event> EventImplSp;
+
+    /// Queue impl shared pointer to access
+    /// the pimpl of 'bmqa::QueueId'.
     typedef bsl::shared_ptr<bmqimp::Queue> QueueImplSp;
-    // Queue impl shared pointer to access
-    // the pimpl of 'bmqa::QueueId'.
 
   public:
     // PUBLIC TYPES
@@ -621,16 +622,18 @@ struct MockSessionUtil {
     /// Struct representing parameters for an ack message.
     struct AckParams {
         // PUBLIC DATA
-        bmqt::AckResult::Enum d_status;  // Status code
 
+        /// Status code
+        bmqt::AckResult::Enum d_status;
+
+        /// Correlation id
         bmqt::CorrelationId d_correlationId;
-        // Correlation id
 
-        bmqt::MessageGUID d_guid;  // Message GUID of confirmed message
+        /// Message GUID of confirmed message
+        bmqt::MessageGUID d_guid;
 
+        /// Queue id for message being referred to
         QueueId d_queueId;
-        // Queue id for message being referred
-        // to
 
         // CREATORS
 
@@ -815,25 +818,26 @@ class MockSession : public AbstractSession {
     /// operation executed with a user-specified callback
     struct Job {
         // PUBLIC DATA
+
+        /// Signature of a 'void' callback method
         CallbackFn d_callback;
-        // Signature of a 'void' callback method
 
+        /// Queue associated with this job
         QueueImplSp d_queue;
-        // Queue associated with this job
 
+        /// Type of queue event associated with
+        /// this job (OPEN,CONFIGURE, or CLOSE)
         bmqt::SessionEventType::Enum d_type;
-        // Type of queue event associated with
-        // this job (OPEN,CONFIGURE, or CLOSE)
 
+        /// Status of the queue operation
         int d_status;
-        // Status of the queue operation
     };
 
     typedef bdlb::Variant<Event, Job> EventOrJob;
 
+    /// Enumeration for the methods in the 'MockSession' protocol.  Each
+    /// enum value corresponds to a method.
     enum Method {
-        // Enumeration for the methods in the 'MockSession' protocol.  Each
-        // enum value corresponds to a method.
         e_START,
         e_START_ASYNC,
         e_STOP,
@@ -859,78 +863,81 @@ class MockSession : public AbstractSession {
 
     struct Call {
         // PUBLIC TYPES
-        typedef bsl::vector<EventOrJob> EventsAndJobs;  // Vector of events
+
+        /// Vector of events
+        typedef bsl::vector<EventOrJob> EventsAndJobs;
 
         // PUBLIC DATA
+
+        /// Value to be returned on call
         int d_rc;
-        // Value to be returned on call
 
+        /// The type of method
         Method d_method;
-        // The type of method
 
+        /// Line number
         int d_line;
-        // Line number
 
+        /// File
         bsl::string d_file;
-        // File
 
+        /// Uri associated with this call
         bmqt::Uri d_uri;
-        // Uri associated with this call
 
+        /// Flags associated with this call
         bsls::Types::Uint64 d_flags;
-        // Flags associated with this call
 
+        /// QueueOptions associated with this
+        /// call
         bmqt::QueueOptions d_queueOptions;
-        // QueueOptions associated with this
-        // call
 
+        /// Timeout interval associated with
+        /// this call
         bsls::TimeInterval d_timeout;
-        // Timeout interval associated with
-        // this call
 
-        OpenQueueCallback d_openQueueCallback;
         // Callback to be invoked upon emission
         // of an async openQueue (if callback
         // was provided)
+        OpenQueueCallback d_openQueueCallback;
 
+        /// Callback to be invoked upon emission
+        /// of an async configureQueue (if
+        /// callback was provided)
         ConfigureQueueCallback d_configureQueueCallback;
-        // Callback to be invoked upon emission
-        // of an async configureQueue (if
-        // callback was provided)
 
+        /// Callback to be invoked upon emission
+        /// of an async closeQueue (if callback
+        /// was provided)
         CloseQueueCallback d_closeQueueCallback;
-        // Callback to be invoked upon emission
-        // of an async closeQueue (if callback
-        // was provided)
 
+        /// The result of an open queue
+        /// operation
         bmqa::OpenQueueStatus d_openQueueResult;
-        // The result of an open queue
-        // operation
 
+        /// The result of a configure queue
+        /// operation
         bmqa::ConfigureQueueStatus d_configureQueueResult;
-        // The result of a configure queue
-        // operation
 
+        /// The result of a close queue
+        /// operation
         bmqa::CloseQueueStatus d_closeQueueResult;
-        // The result of a close queue
-        // operation
 
+        /// Events to be emitted on this call
         EventsAndJobs d_emittedEvents;
-        // Events to be emitted on this call
 
+        /// Event to be returned on this call
         Event d_returnEvent;
-        // Event to be returned on this call
 
+        /// MessageEvent associated with this
+        /// call
         MessageEvent d_messageEvent;
-        // MessageEvent associated with this
-        // call
 
+        /// MessageConfirmationCookie associated
+        /// with this call
         MessageConfirmationCookie d_cookie;
-        // MessageConfirmationCookie associated
-        // with this call
 
+        /// Allocator
         bslma::Allocator* d_allocator_p;
-        // Allocator
 
         // TRAITS
         BSLMF_NESTED_TRAIT_DECLARATION(Call, bslma::UsesBslmaAllocator)
@@ -1006,56 +1013,57 @@ class MockSession : public AbstractSession {
     typedef bsl::deque<bmqa::MessageEvent> PostedEvents;
 
     // DATA
+
+    /// Buffer factory
     bdlbb::PooledBlobBufferFactory d_blobBufferFactory;
-    // Buffer factory
 
+    /// Event handler (set only in
+    /// asynchronous mode)
     bslma::ManagedPtr<SessionEventHandler> d_eventHandler_mp;
-    // Event handler (set only in
-    // asynchronous mode)
 
+    /// sequence of method calls that are
+    /// expected
     mutable CallQueue d_calls;
-    // sequence of method calls that are
-    // expected
 
+    /// events waiting to be emitted
     mutable bsl::deque<EventOrJob> d_eventsAndJobs;
-    // events waiting to be emitted
 
+    /// GUIDS of unconfirmed messages
     bsl::unordered_set<bmqt::MessageGUID> d_unconfirmedGUIDs;
-    // GUIDS of unconfirmed messages
 
+    /// Aligned buffer of two key hash map
+    /// uri, corrid to queues
     TwoKeyHashMapBuffer d_twoKeyHashMapBuffer;
-    // Aligned buffer of two key hash map
-    // uri, corrid to queues
 
+    /// Currently installed failure callback
+    /// that is invoked if methods are
+    /// called incorrectly or out of order.
     FailureCb d_failureCb;
-    // Currently installed failure callback
-    // that is invoked if methods are
-    // called incorrectly or out of order.
 
+    /// QueueId
     int d_lastQueueId;
-    // QueueId
 
+    /// Mock correlationId container
     CorrelationIdContainerSp d_corrIdContainer_sp;
-    // Mock correlationId container
 
+    /// Queue of posted events
     PostedEvents d_postedEvents;
-    // Queue of posted events
 
+    /// protects all public methods
     mutable bslmt::Mutex d_mutex;
-    // protects all public methods
 
+    /// Top level stat context for this
+    /// mocked Session.
     mwcst::StatContext d_rootStatContext;
-    // Top level stat context for this
-    // mocked Session.
 
+    /// Stats for all queues
     StatImplSp d_queuesStats_sp;
-    // Stats for all queues
 
+    /// Session Options for current session
     bmqt::SessionOptions d_sessionOptions;
-    // Session Options for current session
 
+    /// Allocator
     bslma::Allocator* d_allocator_p;
-    // Allocator
 
   private:
     // PRIVATE CLASS METHODS
