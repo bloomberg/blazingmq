@@ -69,9 +69,10 @@ class SubscriptionHandle {
     unsigned int d_id;
     // Internal, unique key
 
+    /// User-specified, not required to be
+    /// unique
     bmqt::CorrelationId d_correlationId;
-    // User-specified, not required to be
-    // unique
+
   private:
     // PRIVATE CLASS METHODS
     static unsigned int nextId();
@@ -122,11 +123,13 @@ class SubscriptionHandle {
 class SubscriptionExpression {
   public:
     // TYPES
+
+    /// Enum representing criteria format
     enum Enum {
-        // Enum representing criteria format
-        e_NONE = 0  // EMPTY
-        ,
-        e_VERSION_1 = 1  // Simple Evaluator
+        /// EMPTY
+        e_NONE = 0,
+        /// Simple Evaluator
+        e_VERSION_1 = 1
     };
 
   private:
@@ -164,13 +167,14 @@ class SubscriptionExpression {
 class Subscription {
   public:
     // PUBLIC CONSTANTS
-    static const int k_CONSUMER_PRIORITY_MIN;
-    // Constant representing the minimum
-    // valid consumer priority
 
+    /// Constant representing the minimum
+    /// valid consumer priority
+    static const int k_CONSUMER_PRIORITY_MIN;
+
+    /// Constant representing the maximum
+    /// valid consumer priority
     static const int k_CONSUMER_PRIORITY_MAX;
-    // Constant representing the maximum
-    // valid consumer priority
 
     static const int k_DEFAULT_MAX_UNCONFIRMED_MESSAGES;
     static const int k_DEFAULT_MAX_UNCONFIRMED_BYTES;
@@ -178,25 +182,27 @@ class Subscription {
 
   private:
     // PRIVATE DATA
+
+    /// Maximum number of outstanding
+    /// messages that can be sent by the
+    /// broker without being confirmed.
     bsl::optional<int> d_maxUnconfirmedMessages;
-    // Maximum number of outstanding
-    // messages that can be sent by the
-    // broker without being confirmed.
 
+    /// Maximum accumulated bytes of all
+    /// outstanding messages that can be
+    /// sent by the broker without being
+    /// confirmed.
     bsl::optional<int> d_maxUnconfirmedBytes;
-    // Maximum accumulated bytes of all
-    // outstanding messages that can be
-    // sent by the broker without being
-    // confirmed.
 
+    /// Priority of a consumer with respect
+    /// to delivery of messages
     bsl::optional<int> d_consumerPriority;
-    // Priority of a consumer with respect
-    // to delivery of messages
 
     SubscriptionExpression d_expression;
 
   public:
     // CREATORS
+
     /// Create a new Subscription
     Subscription();
 

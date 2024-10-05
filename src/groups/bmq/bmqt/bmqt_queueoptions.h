@@ -66,13 +66,14 @@ namespace bmqt {
 class QueueOptions {
   public:
     // PUBLIC CONSTANTS
-    static const int k_CONSUMER_PRIORITY_MIN;
-    // Constant representing the minimum
-    // valid consumer priority
 
+    /// Constant representing the minimum
+    /// valid consumer priority
+    static const int k_CONSUMER_PRIORITY_MIN;
+
+    /// Constant representing the maximum
+    /// valid consumer priority
     static const int k_CONSUMER_PRIORITY_MAX;
-    // Constant representing the maximum
-    // valid consumer priority
 
     static const int  k_DEFAULT_MAX_UNCONFIRMED_MESSAGES;
     static const int  k_DEFAULT_MAX_UNCONFIRMED_BYTES;
@@ -87,19 +88,19 @@ class QueueOptions {
     // DATA
     Subscription d_info;
 
+    /// Whether the queue suspends operation
+    /// while the host is unhealthy.
     bsl::optional<bool> d_suspendsOnBadHostHealth;
-    // Whether the queue suspends operation
-    // while the host is unhealthy.
 
     Subscriptions d_subscriptions;
 
+    /// 'true' if 'd_subscriptions' had a value, 'false'
+    /// otherwise.  Emulates 'bsl::optional' for
+    /// 'd_subscriptions'.
     bool d_hadSubscriptions;
-    // 'true' if 'd_subscriptions' had a value, 'false'
-    // otherwise.  Emulates 'bsl::optional' for
-    // 'd_subscriptions'.
 
+    /// Allocator
     bslma::Allocator* d_allocator_p;
-    // Allocator
 
   public:
     // PUBLIC TYPES
