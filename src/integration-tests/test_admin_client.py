@@ -174,7 +174,12 @@ def test_queue_stats(single_node: Cluster) -> None:
     - Confirm a portion of messages for each consumer
     - Verify stats acquired via admin command with the expected stats
 
-    Stage 3: check too-often stats safeguard
+    Stage 3: check stats after purging an appId
+    - Purge one appId
+    - Check that message/byte stats for this appId set to 0, and
+    the queue stats in general correctly changed
+
+    Stage 4: check too-often stats safeguard
     - Send several 'stat show' requests
     - Verify that the admin session complains about too often stat request
 
@@ -225,11 +230,22 @@ def test_queue_stats(single_node: Cluster) -> None:
 
     expect_same_structure(queue_stats, dt.TEST_QUEUE_STATS_AFTER_CONFIRM)
 
+    # Stage 3: check stats after purging an appId
+    res = admin.send_admin(
+        f"DOMAINS DOMAIN {task.domain} QUEUE {task.queue_name} PURGE baz"
+    )
+    assert f"Purged 21 message(s)" in res
+
+    stats = extract_stats(admin.send_admin("encoding json_pretty stat show"))
+    queue_stats = stats["domainQueues"]["domains"][tc.DOMAIN_FANOUT][task.uri]
+
+    expect_same_structure(queue_stats, dt.TEST_QUEUE_STATS_AFTER_PURGE)
+
     consumer_foo.close(f"{task.uri}?id=foo")
     consumer_bar.close(f"{task.uri}?id=bar")
     consumer_baz.close(f"{task.uri}?id=baz")
 
-    # Stage 3: check too-often stats safeguard
+    # Stage 4: check too-often stats safeguard
     for i in range(5):
         admin.send_admin("encoding json_pretty stat show")
     res = admin.send_admin("encoding json_pretty stat show")
