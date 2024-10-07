@@ -640,13 +640,10 @@ struct SessionImpl {
     /// The allocator to use
     bslma::Allocator* d_allocator_p;
 
-    /// Session options as provided by
-    /// the application.
+    /// Session options as provided by the application.
     bmqt::SessionOptions d_sessionOptions;
 
-    /// Event handler, if any, to use
-    /// for notifying application of
-    /// events.
+    /// Event handler, if any, to use for notifying application of events.
     bslma::ManagedPtr<SessionEventHandler> d_eventHandler_mp;
 
     /// GUID generator object.

@@ -650,14 +650,18 @@ struct MockSessionUtil {
     /// Struct representing parameters for a push message.
     struct PushMessageParams {
         // PUBLIC DATA
-        bdlbb::Blob d_payload;  // Payload of message
 
-        QueueId d_queueId;  // Queue Id for this message
+        /// Payload of message
+        bdlbb::Blob d_payload;
 
-        bmqt::MessageGUID d_guid;  // GUID for message
+        /// Queue Id for this message
+        QueueId d_queueId;
 
-        MessageProperties d_properties;  // Optionally specified properties for
-                                         // message
+        /// GUID for message
+        bmqt::MessageGUID d_guid;
+
+        /// Optionally specified properties for message
+        MessageProperties d_properties;
 
         // CREATORS
 
@@ -787,10 +791,10 @@ class MockSession : public AbstractSession {
   private:
     // CONSTANTS
 
-    // Constant representing the maximum size of a `mwcc::TwoKeyHashMap`
-    // object, so that the below AlignedBuffer is big enough.  No `mwc`
-    // headers can be included in `bmq` public headers, to prevent build
-    // time dependency.
+    /// Constant representing the maximum size of a `mwcc::TwoKeyHashMap`
+    /// object, so that the below AlignedBuffer is big enough.  No `mwc`
+    /// headers can be included in `bmq` public headers, to prevent build
+    /// time dependency.
     static const int k_MAX_SIZEOF_MWCC_TWOKEYHASHMAP = 256;
 
     // PRIVATE TYPES
@@ -825,8 +829,8 @@ class MockSession : public AbstractSession {
         /// Queue associated with this job
         QueueImplSp d_queue;
 
-        /// Type of queue event associated with
-        /// this job (OPEN,CONFIGURE, or CLOSE)
+        /// Type of queue event associated with this job (OPEN, CONFIGURE, or
+        /// CLOSE)
         bmqt::SessionEventType::Enum d_type;
 
         /// Status of the queue operation
@@ -887,39 +891,31 @@ class MockSession : public AbstractSession {
         /// Flags associated with this call
         bsls::Types::Uint64 d_flags;
 
-        /// QueueOptions associated with this
-        /// call
+        /// QueueOptions associated with this call
         bmqt::QueueOptions d_queueOptions;
 
-        /// Timeout interval associated with
-        /// this call
+        /// Timeout interval associated with this call
         bsls::TimeInterval d_timeout;
 
-        // Callback to be invoked upon emission
-        // of an async openQueue (if callback
-        // was provided)
+        /// Callback to be invoked upon emission of an async openQueue (if
+        /// callback was provided)
         OpenQueueCallback d_openQueueCallback;
 
-        /// Callback to be invoked upon emission
-        /// of an async configureQueue (if
+        /// Callback to be invoked upon emission of an async configureQueue (if
         /// callback was provided)
         ConfigureQueueCallback d_configureQueueCallback;
 
-        /// Callback to be invoked upon emission
-        /// of an async closeQueue (if callback
-        /// was provided)
+        /// Callback to be invoked upon emission of an async closeQueue (if
+        /// callback was provided)
         CloseQueueCallback d_closeQueueCallback;
 
-        /// The result of an open queue
-        /// operation
+        /// The result of an open queue operation
         bmqa::OpenQueueStatus d_openQueueResult;
 
-        /// The result of a configure queue
-        /// operation
+        /// The result of a configure queue operation
         bmqa::ConfigureQueueStatus d_configureQueueResult;
 
-        /// The result of a close queue
-        /// operation
+        /// The result of a close queue operation
         bmqa::CloseQueueStatus d_closeQueueResult;
 
         /// Events to be emitted on this call
@@ -928,12 +924,10 @@ class MockSession : public AbstractSession {
         /// Event to be returned on this call
         Event d_returnEvent;
 
-        /// MessageEvent associated with this
-        /// call
+        /// MessageEvent associated with this call
         MessageEvent d_messageEvent;
 
-        /// MessageConfirmationCookie associated
-        /// with this call
+        /// MessageConfirmationCookie associated with this call
         MessageConfirmationCookie d_cookie;
 
         /// Allocator
@@ -1017,12 +1011,10 @@ class MockSession : public AbstractSession {
     /// Buffer factory
     bdlbb::PooledBlobBufferFactory d_blobBufferFactory;
 
-    /// Event handler (set only in
-    /// asynchronous mode)
+    /// Event handler (set only in asynchronous mode)
     bslma::ManagedPtr<SessionEventHandler> d_eventHandler_mp;
 
-    /// sequence of method calls that are
-    /// expected
+    /// sequence of method calls that are expected
     mutable CallQueue d_calls;
 
     /// events waiting to be emitted
@@ -1031,12 +1023,10 @@ class MockSession : public AbstractSession {
     /// GUIDS of unconfirmed messages
     bsl::unordered_set<bmqt::MessageGUID> d_unconfirmedGUIDs;
 
-    /// Aligned buffer of two key hash map
-    /// uri, corrid to queues
+    /// Aligned buffer of two key hash map uri, corrid to queues
     TwoKeyHashMapBuffer d_twoKeyHashMapBuffer;
 
-    /// Currently installed failure callback
-    /// that is invoked if methods are
+    /// Currently installed failure callback that is invoked if methods are
     /// called incorrectly or out of order.
     FailureCb d_failureCb;
 
@@ -1052,8 +1042,7 @@ class MockSession : public AbstractSession {
     /// protects all public methods
     mutable bslmt::Mutex d_mutex;
 
-    /// Top level stat context for this
-    /// mocked Session.
+    /// Top level stat context for this mocked Session.
     mwcst::StatContext d_rootStatContext;
 
     /// Stats for all queues

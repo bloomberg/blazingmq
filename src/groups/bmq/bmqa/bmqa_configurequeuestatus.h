@@ -62,17 +62,13 @@ class ConfigureQueueStatus {
   private:
     // DATA
 
-    /// queueId associated with the open
-    /// queue operation
+    /// queueId associated with the open queue operation
     QueueId d_queueId;
 
-    /// Status code of the operation
-    /// (success, failure)
+    /// Status code of the operation (success, failure)
     bmqt::ConfigureQueueResult::Enum d_result;
 
-    /// Optional string with a human
-    /// readable description of the error,
-    /// if any
+    /// Optional string with a human readable description of the error, if any
     bsl::string d_errorDescription;
 
   public:

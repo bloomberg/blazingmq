@@ -284,30 +284,31 @@ namespace bmqa {
 /// to expose them publicly).
 struct MessageEventBuilderImpl {
     // PUBLIC DATA
-    MessageEvent d_msgEvent;  // This is needed so that 'getMessageEvent()' can
-                              // return a const ref.
 
-    Message d_msg;  // This is needed so that 'startMessage()' can
-                    // return a ref.
+    // This is needed so that 'getMessageEvent()' can return a const ref.
+    MessageEvent d_msgEvent;
 
-    bsl::shared_ptr<bmqp::MessageGUIDGenerator> d_guidGenerator_sp;
+    // This is needed so that 'startMessage()' can return a ref.
+    Message d_msg;
+
     // GUID generator object.
+    bsl::shared_ptr<bmqp::MessageGUIDGenerator> d_guidGenerator_sp;
 
-    int d_messageCountFinal;
     // The final number of messages in the current 'd_msgEvent' cached on
     // switching this MessageEvent from WRITE to READ mode.
     // This cached value exists because we are not able to access the
     // underlying PutEventBuilder once downgraded to READ.
     // CONTRACT: the stored value is correct every moment when in READ mode,
     // and the value is not guaranteed to be correct when in WRITE mode.
+    int d_messageCountFinal;
 
-    int d_messageEventSizeFinal;
     // The final message event size of the current 'd_msgEvent' cached on
     // switching this MessageEvent from WRITE to READ mode.
     // This cached value exists because we are not able to access the
     // underlying PutEventBuilder once downgraded to READ.
     // CONTRACT: the stored value is correct every moment when in READ mode,
     // and the value is not guaranteed to be correct when in WRITE mode.
+    int d_messageEventSizeFinal;
 };
 
 // =========================

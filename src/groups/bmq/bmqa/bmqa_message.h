@@ -102,30 +102,24 @@ class MessageProperties;
 struct MessageImpl {
     // PUBLIC DATA
 
-    /// Pointer to the Event this message is
-    /// associated with
+    /// Pointer to the Event this message is associated with
     bmqimp::Event* d_event_p;
 
-    /// May point to a bmqimp::Event (in case
-    /// this Message is a clone)
+    /// May point to a bmqimp::Event (in case this Message is a clone)
     bsl::shared_ptr<bmqimp::Event> d_clonedEvent_sp;
 
-    /// QueueId this message is associated
-    /// with
+    /// QueueId this message is associated with
     bmqa::QueueId d_queueId;
 
-    /// CorrelationId this message is
-    /// associated with
+    /// CorrelationId this message is associated with
     bmqt::CorrelationId d_correlationId;
 
-    /// SubscriptionHandle this message is
-    /// associated with
+    /// SubscriptionHandle this message is associated with
     bmqt::SubscriptionHandle d_subscriptionHandle;
 
 #ifdef BMQ_ENABLE_MSG_GROUPID
+    /// Optional Group Id this message is associated with
     bsl::string d_groupId;
-    // Optional Group Id this message is
-    // associated with
 #endif
 };
 

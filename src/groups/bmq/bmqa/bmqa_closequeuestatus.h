@@ -63,17 +63,13 @@ class CloseQueueStatus {
   private:
     // DATA
 
-    /// queueId associated with the open
-    /// queue operation
+    /// queueId associated with the open queue operation
     QueueId d_queueId;
 
-    /// Result code of the operation
-    /// (success, failure)
+    /// Result code of the operation (success, failure)
     bmqt::CloseQueueResult::Enum d_result;
 
-    /// Optional string with a human
-    /// readable description of the error,
-    /// if any
+    /// Optional string with a human readable description of the error, if any
     bsl::string d_errorDescription;
 
   public:
@@ -82,9 +78,9 @@ class CloseQueueStatus {
 
     // TYPES
 
-    /// Use of an `UnspecifiedBool` to prevent implicit conversions to
-    /// integral values, and comparisons between different classes which
-    /// have boolean operators.
+    // Use of an `UnspecifiedBool` to prevent implicit conversions to
+    // integral values, and comparisons between different classes which
+    // have boolean operators.
     typedef bsls::UnspecifiedBool<CloseQueueStatus>::BoolType BoolType;
 
     // CREATORS
