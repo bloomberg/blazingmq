@@ -165,42 +165,35 @@ class SessionOptions {
     /// Default URI of the 'bmqbrkr' to connect to.
     static const char k_BROKER_DEFAULT_URI[];
 
-    /// Default port the 'bmqbrkr' is listening to for client
-    /// to connect.
+    /// Default port the 'bmqbrkr' is listening to for client to connect.
     static const int k_BROKER_DEFAULT_PORT = 30114;
 
-    /// The default, and minimum recommended, value for queue
-    /// operations (open, configure, close).
+    /// The default, and minimum recommended, value for queue operations (open,
+    /// configure, close).
     static const int k_QUEUE_OPERATION_DEFAULT_TIMEOUT =
         5 * bdlt::TimeUnitRatio::k_SECONDS_PER_MINUTE;
 
   private:
     // DATA
 
-    /// URI of the broker to connect to (ex:
-    /// 'tcp://localhost:30114').  Default
+    /// URI of the broker to connect to (ex: 'tcp://localhost:30114'). Default
     /// is to connect to the local broker.
     bsl::string d_brokerUri;
 
-    /// If not empty, use this value for the
-    /// processName in the identity message
-    /// (useful for scripted language
-    /// bindings).
+    /// If not empty, use this value for the processName in the identity
+    /// message (useful for scripted language bindings).
     bsl::string d_processNameOverride;
 
-    /// Number of processing threads.
-    /// Default is 1 thread.
+    /// Number of processing threads. Default is 1 thread.
     int d_numProcessingThreads;
 
     /// Size of the blobs buffer.
     int d_blobBufferSize;
 
-    /// Write cache high watermark to use on
-    /// the channel
+    /// Write cache high watermark to use on the channel
     bsls::Types::Int64 d_channelHighWatermark;
 
-    /// Interval at which to dump stats to
-    /// log file (0 to disable dump)
+    /// Interval at which to dump stats to log file (0 to disable dump)
     bsls::TimeInterval d_statsDumpInterval;
 
     bsls::TimeInterval d_connectTimeout;
@@ -211,19 +204,16 @@ class SessionOptions {
 
     bsls::TimeInterval d_configureQueueTimeout;
 
-    /// Timeout for operations of the
-    /// corresponding type.
+    /// Timeout for operations of the corresponding type.
     bsls::TimeInterval d_closeQueueTimeout;
 
     int d_eventQueueLowWatermark;
 
-    /// Parameters to configure the
-    /// EventQueue.
+    /// Parameters to configure the EventQueue.
     int d_eventQueueHighWatermark;
 
-    /// DEPRECATED: This parameter is no
-    /// longer relevant and will be removed
-    /// in future release of libbmq.
+    /// DEPRECATED: This parameter is no longer relevant and will be removed in
+    /// future release of libbmq.
     int d_eventQueueSize;
 
     bsl::shared_ptr<bmqpi::HostHealthMonitor> d_hostHealthMonitor_sp;

@@ -67,12 +67,10 @@ class QueueOptions {
   public:
     // PUBLIC CONSTANTS
 
-    /// Constant representing the minimum
-    /// valid consumer priority
+    /// Constant representing the minimum valid consumer priority
     static const int k_CONSUMER_PRIORITY_MIN;
 
-    /// Constant representing the maximum
-    /// valid consumer priority
+    /// Constant representing the maximum valid consumer priority
     static const int k_CONSUMER_PRIORITY_MAX;
 
     static const int  k_DEFAULT_MAX_UNCONFIRMED_MESSAGES;
@@ -88,15 +86,13 @@ class QueueOptions {
     // DATA
     Subscription d_info;
 
-    /// Whether the queue suspends operation
-    /// while the host is unhealthy.
+    /// Whether the queue suspends operation while the host is unhealthy.
     bsl::optional<bool> d_suspendsOnBadHostHealth;
 
     Subscriptions d_subscriptions;
 
-    /// 'true' if 'd_subscriptions' had a value, 'false'
-    /// otherwise.  Emulates 'bsl::optional' for
-    /// 'd_subscriptions'.
+    /// 'true' if 'd_subscriptions' had a value, 'false' otherwise.  Emulates
+    /// 'bsl::optional' for 'd_subscriptions'.
     bool d_hadSubscriptions;
 
     /// Allocator
