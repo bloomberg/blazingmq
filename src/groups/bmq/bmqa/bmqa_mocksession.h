@@ -609,11 +609,11 @@ struct MockSessionUtil {
     // PRIVATE TYPES
 
     /// Event impl shared pointer to access
-    /// the pimpl of 'bmqa::Event'.
+    /// the pimpl of `bmqa::Event`.
     typedef bsl::shared_ptr<bmqimp::Event> EventImplSp;
 
     /// Queue impl shared pointer to access
-    /// the pimpl of 'bmqa::QueueId'.
+    /// the pimpl of `bmqa::QueueId`.
     typedef bsl::shared_ptr<bmqimp::Queue> QueueImplSp;
 
   public:
@@ -626,13 +626,13 @@ struct MockSessionUtil {
         /// Status code
         bmqt::AckResult::Enum d_status;
 
-        /// Correlation id
+        /// CorrelationId
         bmqt::CorrelationId d_correlationId;
 
         /// Message GUID of confirmed message
         bmqt::MessageGUID d_guid;
 
-        /// Queue id for message being referred to
+        /// QueueId for message being referred to
         QueueId d_queueId;
 
         // CREATORS
@@ -654,7 +654,7 @@ struct MockSessionUtil {
         /// Payload of message
         bdlbb::Blob d_payload;
 
-        /// Queue Id for this message
+        /// QueueId for this message
         QueueId d_queueId;
 
         /// GUID for message
@@ -823,7 +823,7 @@ class MockSession : public AbstractSession {
     struct Job {
         // PUBLIC DATA
 
-        /// Signature of a 'void' callback method
+        /// Signature of a `void` callback method
         CallbackFn d_callback;
 
         /// Queue associated with this job
@@ -839,7 +839,7 @@ class MockSession : public AbstractSession {
 
     typedef bdlb::Variant<Event, Job> EventOrJob;
 
-    /// Enumeration for the methods in the 'MockSession' protocol.  Each
+    /// Enumeration for the methods in the `MockSession` protocol.  Each
     /// enum value corresponds to a method.
     enum Method {
         e_START,

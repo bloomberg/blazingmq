@@ -118,7 +118,7 @@ struct MessageImpl {
     bmqt::SubscriptionHandle d_subscriptionHandle;
 
 #ifdef BMQ_ENABLE_MSG_GROUPID
-    /// Optional Group Id this message is associated with
+    /// Optional GroupId this message is associated with
     bsl::string d_groupId;
 #endif
 };

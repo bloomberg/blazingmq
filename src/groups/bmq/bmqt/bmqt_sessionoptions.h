@@ -162,10 +162,10 @@ class SessionOptions {
   public:
     // CONSTANTS
 
-    /// Default URI of the 'bmqbrkr' to connect to.
+    /// Default URI of the `bmqbrkr` to connect to.
     static const char k_BROKER_DEFAULT_URI[];
 
-    /// Default port the 'bmqbrkr' is listening to for client to connect.
+    /// Default port the `bmqbrkr` is listening to for client to connect.
     static const int k_BROKER_DEFAULT_PORT = 30114;
 
     /// The default, and minimum recommended, value for queue operations (open,
@@ -176,7 +176,7 @@ class SessionOptions {
   private:
     // DATA
 
-    /// URI of the broker to connect to (ex: 'tcp://localhost:30114'). Default
+    /// URI of the broker to connect to (ex: `tcp://localhost:30114`). Default
     /// is to connect to the local broker.
     bsl::string d_brokerUri;
 

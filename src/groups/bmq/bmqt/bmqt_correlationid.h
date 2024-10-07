@@ -214,9 +214,9 @@ class CorrelationId {
 
     // DATA
 
-    /// The variant used to hold the value of a 'CorrelationId', that may
+    /// The variant used to hold the value of a `CorrelationId`, that may
     /// either be unset, hold a 64-bit integer, a raw pointer, a shared
-    /// pointer, or an 'AutoValue'.
+    /// pointer, or an `AutoValue`.
     bdlb::Variant4<bsls::Types::Int64, void*, bsl::shared_ptr<void>, AutoValue>
         d_variant;
 

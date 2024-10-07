@@ -61,7 +61,7 @@ class SubscriptionHandle {
     friend class bmqa::MessageIterator;
 
   public:
-    /// Initial (invalid) value for 'bmqt::SubscriptionHandle::d_id'
+    /// Initial (invalid) value for `bmqt::SubscriptionHandle::d_id`
     static const unsigned int k_INVALID_HANDLE_ID = 0;
 
   private:

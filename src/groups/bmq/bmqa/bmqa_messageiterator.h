@@ -68,13 +68,13 @@ struct MessageIteratorImpl {
     /// Raw pointer to the event
     bmqimp::Event* d_event_p;
 
-    /// A 'Message', representing a view to the current message pointing at by
-    /// this iterator.  This is so that 'message' can return a 'const Message&'
+    /// A `Message`, representing a view to the current message pointing at by
+    /// this iterator.  This is so that `message` can return a 'const Message&'
     /// to clearly indicate the lifetime of the Message, and so that we only
     /// create one such object per MessageIterator.
     bmqa::Message d_message;
 
-    /// Position of 'd_message' in the underlying message event.
+    /// Position of `d_message` in the underlying message event.
     int d_messageIndex;
 };
 

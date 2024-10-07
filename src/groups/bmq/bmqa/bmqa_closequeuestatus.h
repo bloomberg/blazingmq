@@ -63,7 +63,7 @@ class CloseQueueStatus {
   private:
     // DATA
 
-    /// queueId associated with the open queue operation
+    /// QueueId associated with the open queue operation
     QueueId d_queueId;
 
     /// Result code of the operation (success, failure)

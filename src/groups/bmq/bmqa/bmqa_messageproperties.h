@@ -108,7 +108,7 @@ class MessageProperties {
   private:
     // DATA
 
-    /// Pointer to the implementation object in 'd_buffer', providing a
+    /// Pointer to the implementation object in `d_buffer`, providing a
     /// shortcut type safe cast to that object. This variable *must* *be* the
     /// first member of this class, as other components in bmqa package may
     /// reinterpret_cast to that variable.

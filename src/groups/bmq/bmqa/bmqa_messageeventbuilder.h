@@ -285,10 +285,10 @@ namespace bmqa {
 struct MessageEventBuilderImpl {
     // PUBLIC DATA
 
-    // This is needed so that 'getMessageEvent()' can return a const ref.
+    /// This is needed so that `getMessageEvent()` can return a const ref.
     MessageEvent d_msgEvent;
 
-    // This is needed so that 'startMessage()' can return a ref.
+    /// This is needed so that `startMessage()` can return a ref.
     Message d_msg;
 
     // GUID generator object.

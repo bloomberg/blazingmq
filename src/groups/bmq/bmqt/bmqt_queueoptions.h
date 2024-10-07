@@ -91,8 +91,8 @@ class QueueOptions {
 
     Subscriptions d_subscriptions;
 
-    /// 'true' if 'd_subscriptions' had a value, 'false' otherwise.  Emulates
-    /// 'bsl::optional' for 'd_subscriptions'.
+    /// `true` if `d_subscriptions` had a value, `false` otherwise.  Emulates
+    /// `bsl::optional` for `d_subscriptions`.
     bool d_hadSubscriptions;
 
     /// Allocator

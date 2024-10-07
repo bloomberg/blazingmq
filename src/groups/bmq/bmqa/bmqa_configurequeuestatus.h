@@ -62,7 +62,7 @@ class ConfigureQueueStatus {
   private:
     // DATA
 
-    /// queueId associated with the open queue operation
+    /// QueueId associated with the open queue operation
     QueueId d_queueId;
 
     /// Status code of the operation (success, failure)
