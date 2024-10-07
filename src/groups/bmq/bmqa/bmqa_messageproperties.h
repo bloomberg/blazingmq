@@ -96,9 +96,9 @@ class MessageProperties {
   private:
     // PRIVATE CONSTANTS
 
-    // Constant representing the maximum size of a
-    // `bmqp::MessageProperties` object, so that the below AlignedBuffer
-    // is big enough.
+    /// Constant representing the maximum size of a
+    /// `bmqp::MessageProperties` object, so that the below AlignedBuffer
+    /// is big enough.
     static const int k_MAX_SIZEOF_BMQP_MESSAGEPROPERTIES = 184;
 
     // PRIVATE TYPES
@@ -107,18 +107,15 @@ class MessageProperties {
 
   private:
     // DATA
-    mutable bmqp::MessageProperties* d_impl_p;
-    // Pointer to the implementation object
-    // in 'd_buffer', providing a shortcut
-    // type safe cast to that object.  This
-    // variable *must* *be* the first
-    // member of this class, as other
-    // components in bmqa package may
-    // reinterpret_cast to that variable.
 
+    /// Pointer to the implementation object in `d_buffer`, providing a
+    /// shortcut type safe cast to that object. This variable *must* *be* the
+    /// first member of this class, as other components in bmqa package may
+    /// reinterpret_cast to that variable.
+    mutable bmqp::MessageProperties* d_impl_p;
+
+    /// Buffer containing the implementation object, maximally aligned.
     ImplBuffer d_buffer;
-    // Buffer containing the implementation
-    // object, maximally aligned.
 
     bslma::Allocator* d_allocator_p;
 
@@ -128,21 +125,20 @@ class MessageProperties {
     /// Maximum number of properties that can appear in a `bmqa::Message`.
     static const int k_MAX_NUM_PROPERTIES = 255;
 
+    /// Maximum length of all the properties (including their names, values
+    /// and the wire protocol overhead).  Note that this value is just under
+    /// 64 MB.
     static const int k_MAX_PROPERTIES_AREA_LENGTH = (64 * 1024 * 1024) - 8;
-    // Maximum length of all the properties (including their names, values
-    // and the wire protocol overhead).  Note that this value is just under
-    // 64 MB.
 
     /// Maximum length of a property name.
     static const int k_MAX_PROPERTY_NAME_LENGTH = 4095;
 
-    static const int k_MAX_PROPERTY_VALUE_LENGTH =
-        67104745;  // ~64 MB
-                   // Maximum length of a property value.  Note that this value
-                   // is just under 64 MB.  Also note that this value is
-                   // calculated assuming that there is only one property and
-                   // property's name has maximum allowable length, and also
-                   // takes into consideration the protocol overhead.
+    /// ~64 MB
+    /// Maximum length of a property value.  Note that this value is just under
+    /// 64 MB.  Also note that this value is calculated assuming that there is
+    /// only one property and property's name has maximum allowable length, and
+    /// also takes into consideration the protocol overhead.
+    static const int k_MAX_PROPERTY_VALUE_LENGTH = 67104745;
 
   public:
     // TRAITS

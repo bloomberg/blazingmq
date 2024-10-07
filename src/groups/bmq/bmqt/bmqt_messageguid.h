@@ -102,13 +102,15 @@ class MessageGUID {
 
   public:
     // TYPES
+
+    /// Enum representing the size of a buffer needed to represent a GUID
     enum Enum {
-        // Enum representing the size of a buffer needed to represent a GUID
-        e_SIZE_BINARY = 16  // Binary format of the GUID
+        /// Binary format of the GUID
+        e_SIZE_BINARY = 16
 
         ,
+        /// Hexadecimal string representation of the GUID
         e_SIZE_HEX = 2 * e_SIZE_BINARY
-        // Hexadecimal string representation of the GUID
     };
 
     // TRAITS
@@ -118,8 +120,9 @@ class MessageGUID {
 
   private:
     // PRIVATE CONSTANTS
+
+    /// Constant representing an unset GUID
     static const char k_UNSET_GUID[e_SIZE_BINARY];
-    //  Constant representing an unset GUID
 
   private:
     // IMPLEMENTATION NOTE: Some structs in bmqp::Protocol.h blindly
