@@ -1,3 +1,4 @@
+/**
 @dir bmqpi
 
 @brief The `BMQPI` (BlazingMQ Public Interfaces) package provides class
@@ -8,3 +9,4 @@ clients to extend in their own applications and libraries. These extension
 points facilitate integration with other aspects of a runtime environment (e.g.
 authentication, host health-checking), which may vary significantly from
 organization to organization.
+*/
