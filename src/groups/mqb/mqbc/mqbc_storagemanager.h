@@ -782,7 +782,7 @@ class StorageManager
     /// active primary, false otherwise.
     ///
     /// THREAD: Executed by the Queue's dispatcher thread.
-    bool allParitionsAvailable() const;
+    bool allPartitionsAvailable() const;
 
   public:
     // TRAITS

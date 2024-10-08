@@ -295,7 +295,7 @@ void StorageManager::onPartitionRecovery(int partitionId)
             // Even though Cluster FSM and all Partition FSMs are now healed,
             // we must check that all partitions have an active primary before
             // transitioning ourself to E_AVAILABLE.
-            if (allParitionsAvailable()) {
+            if (allPartitionsAvailable()) {
                 d_recoveryStatusCb(0);
             }
         }
@@ -374,7 +374,7 @@ void StorageManager::setPrimaryStatusForPartitionDispatched(
                                                     pinfo.primaryLeaseId());
 
         if (oldValue != bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE &&
-            allParitionsAvailable()) {
+            allPartitionsAvailable()) {
             d_recoveryStatusCb(0);
         }
     }
@@ -2474,6 +2474,11 @@ void StorageManager::do_processBufferedPrimaryStatusAdvisories(
             d_fileStores[partitionId]->setActivePrimary(
                 pinfo.primary(),
                 pinfo.primaryLeaseId());
+
+            // Note: We don't check if all partitions are fully healed and have
+            // an active active primary here, because we will do the check soon
+            // after when we transition the replica to healed (see
+            // `onPartitionRecovery()` method).
         }
     }
 
@@ -3306,7 +3311,7 @@ void StorageManager::do_reapplyDetectSelfReplica(
 }
 
 // PRIVATE ACCESSORS
-bool StorageManager::allParitionsAvailable() const
+bool StorageManager::allPartitionsAvailable() const
 {
     // executed by *QUEUE_DISPATCHER* thread associated with *ANY* partition
 
