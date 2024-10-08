@@ -94,33 +94,7 @@ class Configurator:
         return copy.deepcopy(self.proto.virtual_cluster)
 
     def domain_definition(self):
-        domain = copy.deepcopy(self.proto.domain)
-        domain.mode.broadcast = None
-        domain.mode.fanout = None
-        domain.mode.priority = None
-
-        return domain
-
-    def broadcast_domain(self):
-        domain = copy.deepcopy(self.proto.domain)
-        domain.mode.fanout = None
-        domain.mode.priority = None
-
-        return domain
-
-    def fanout_domain(self):
-        domain = copy.deepcopy(self.proto.domain)
-        domain.mode.broadcast = None
-        domain.mode.priority = None
-
-        return domain
-
-    def priority_domain(self):
-        domain = copy.deepcopy(self.proto.domain)
-        domain.mode.broadcast = None
-        domain.mode.fanout = None
-
-        return domain
+        return copy.deepcopy(self.proto.domain)
 
     def broker(
         self,

@@ -216,8 +216,9 @@ class Cluster(AbstractCluster):
         return self._add_domain(Domain(self, domain))
 
     def broadcast_domain(self, name: str) -> "Domain":
-        parameters = self.configurator.broadcast_domain()
+        parameters = self.configurator.domain_definition()
         parameters.name = name
+        parameters.mode = mqbconf.QueueMode(broadcast=mqbconf.QueueModeBroadcast())
         parameters.storage.config.in_memory = mqbconf.InMemoryStorage()
         parameters.storage.config.file_backed = None
         domain = mqbconf.DomainDefinition(self.name, parameters)
@@ -225,15 +226,17 @@ class Cluster(AbstractCluster):
         return self._add_domain(Domain(self, domain))
 
     def fanout_domain(self, name: str, app_ids: List[str]) -> "Domain":
-        parameters = self.configurator.fanout_domain()
+        parameters = self.configurator.domain_definition()
         parameters.name = name
+        parameters.mode = mqbconf.QueueMode(fanout=mqbconf.QueueModeFanout([*app_ids]))
         domain = mqbconf.DomainDefinition(self.name, parameters)
 
         return self._add_domain(Domain(self, domain))
 
     def priority_domain(self, name: str) -> "Domain":
-        parameters = self.configurator.priority_domain()
+        parameters = self.configurator.domain_definition()
         parameters.name = name
+        parameters.mode = mqbconf.QueueMode(priority=mqbconf.QueueModePriority())
         domain = mqbconf.DomainDefinition(self.name, parameters)
 
         return self._add_domain(Domain(self, domain))
@@ -311,11 +314,6 @@ class Proto:
     domain: mqbconf.Domain = field(
         default_factory=functools.partial(
             mqbconf.Domain,
-            mode=mqbconf.QueueMode(
-                broadcast=mqbconf.QueueModeBroadcast(),
-                fanout=mqbconf.QueueModeFanout(),
-                priority=mqbconf.QueueModePriority(),
-            ),
             max_delivery_attempts=0,
             deduplication_time_ms=300000,
             consistency=mqbconf.Consistency(strong=mqbconf.QueueConsistencyStrong()),
@@ -340,6 +338,7 @@ class Proto:
             max_consumers=0,
             max_queues=0,
             max_idle_time=0,
+            mode=None,  # overwritten
         )
     )
 
