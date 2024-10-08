@@ -651,7 +651,7 @@ int LogController::initialize(bsl::ostream&              errorDescription,
         bdlf::PlaceHolders::_4,
         bdlf::PlaceHolders::_5,
         '.'));
-    rc = lmc.setDefaultRecordBufferSizeIfValid(32768);
+    rc = lmc.setDefaultRecordBufferSizeIfValid(config.recordBufferSize());
     if (rc != 0) {
         errorDescription << "Unable to set default record buffer size on lmc "
                          << "[rc: " << rc << "]";
@@ -741,7 +741,9 @@ int LogController::initialize(bsl::ostream&              errorDescription,
 
     // -------------
     // Configuration
-    setVerbosityLevel(config.loggingVerbosity());
+    setVerbosityLevel(config.loggingVerbosity(),
+                      config.recordingVerbosity(),
+                      config.triggerVerbosity());
 
     const LogControllerConfig::CategoryPropertiesMap& categories =
         config.categoriesProperties();
@@ -829,18 +831,20 @@ void LogController::shutdown()
     d_isInitialized = false;
 }
 
-void LogController::setVerbosityLevel(ball::Severity::Level verbosity)
+void LogController::setVerbosityLevel(ball::Severity::Level passVerbosity,
+                                      ball::Severity::Level recordVerbosity,
+                                      ball::Severity::Level triggerVerbosity)
 {
     ball::Administration::setDefaultThresholdLevels(
-        ball::Severity::OFF,   // recording level
-        verbosity,             // passthrough level
-        ball::Severity::OFF,   // trigger level
+        recordVerbosity,       // recording level
+        passVerbosity,         // passthrough level
+        triggerVerbosity,      // trigger level
         ball::Severity::OFF);  // triggerAll level
     ball::Administration::setThresholdLevels(
         "*",
-        ball::Severity::OFF,   // recording level
-        verbosity,             // passthrough level
-        ball::Severity::OFF,   // trigger level
+        recordVerbosity,       // recording level
+        passVerbosity,         // passthrough level
+        triggerVerbosity,      // trigger level
         ball::Severity::OFF);  // triggerAll level
 }
 

@@ -853,6 +853,155 @@ Heartbeat::print(bsl::ostream& stream, int level, int spacesPerLevel) const
     return stream;
 }
 
+// -------------------
+// class LogDumpConfig
+// -------------------
+
+// CONSTANTS
+
+const char LogDumpConfig::CLASS_NAME[] = "LogDumpConfig";
+
+const int LogDumpConfig::DEFAULT_INITIALIZER_RECORD_BUFFER_SIZE = 32768;
+
+const char LogDumpConfig::DEFAULT_INITIALIZER_RECORDING_LEVEL[] = "OFF";
+
+const char LogDumpConfig::DEFAULT_INITIALIZER_TRIGGER_LEVEL[] = "OFF";
+
+const bdlat_AttributeInfo LogDumpConfig::ATTRIBUTE_INFO_ARRAY[] = {
+    {ATTRIBUTE_ID_RECORD_BUFFER_SIZE,
+     "recordBufferSize",
+     sizeof("recordBufferSize") - 1,
+     "",
+     bdlat_FormattingMode::e_DEC},
+    {ATTRIBUTE_ID_RECORDING_LEVEL,
+     "recordingLevel",
+     sizeof("recordingLevel") - 1,
+     "",
+     bdlat_FormattingMode::e_TEXT},
+    {ATTRIBUTE_ID_TRIGGER_LEVEL,
+     "triggerLevel",
+     sizeof("triggerLevel") - 1,
+     "",
+     bdlat_FormattingMode::e_TEXT}};
+
+// CLASS METHODS
+
+const bdlat_AttributeInfo* LogDumpConfig::lookupAttributeInfo(const char* name,
+                                                              int nameLength)
+{
+    for (int i = 0; i < 3; ++i) {
+        const bdlat_AttributeInfo& attributeInfo =
+            LogDumpConfig::ATTRIBUTE_INFO_ARRAY[i];
+
+        if (nameLength == attributeInfo.d_nameLength &&
+            0 == bsl::memcmp(attributeInfo.d_name_p, name, nameLength)) {
+            return &attributeInfo;
+        }
+    }
+
+    return 0;
+}
+
+const bdlat_AttributeInfo* LogDumpConfig::lookupAttributeInfo(int id)
+{
+    switch (id) {
+    case ATTRIBUTE_ID_RECORD_BUFFER_SIZE:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_RECORD_BUFFER_SIZE];
+    case ATTRIBUTE_ID_RECORDING_LEVEL:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_RECORDING_LEVEL];
+    case ATTRIBUTE_ID_TRIGGER_LEVEL:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_TRIGGER_LEVEL];
+    default: return 0;
+    }
+}
+
+// CREATORS
+
+LogDumpConfig::LogDumpConfig(bslma::Allocator* basicAllocator)
+: d_recordingLevel(DEFAULT_INITIALIZER_RECORDING_LEVEL, basicAllocator)
+, d_triggerLevel(DEFAULT_INITIALIZER_TRIGGER_LEVEL, basicAllocator)
+, d_recordBufferSize(DEFAULT_INITIALIZER_RECORD_BUFFER_SIZE)
+{
+}
+
+LogDumpConfig::LogDumpConfig(const LogDumpConfig& original,
+                             bslma::Allocator*    basicAllocator)
+: d_recordingLevel(original.d_recordingLevel, basicAllocator)
+, d_triggerLevel(original.d_triggerLevel, basicAllocator)
+, d_recordBufferSize(original.d_recordBufferSize)
+{
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+LogDumpConfig::LogDumpConfig(LogDumpConfig&& original) noexcept
+: d_recordingLevel(bsl::move(original.d_recordingLevel)),
+  d_triggerLevel(bsl::move(original.d_triggerLevel)),
+  d_recordBufferSize(bsl::move(original.d_recordBufferSize))
+{
+}
+
+LogDumpConfig::LogDumpConfig(LogDumpConfig&&   original,
+                             bslma::Allocator* basicAllocator)
+: d_recordingLevel(bsl::move(original.d_recordingLevel), basicAllocator)
+, d_triggerLevel(bsl::move(original.d_triggerLevel), basicAllocator)
+, d_recordBufferSize(bsl::move(original.d_recordBufferSize))
+{
+}
+#endif
+
+LogDumpConfig::~LogDumpConfig()
+{
+}
+
+// MANIPULATORS
+
+LogDumpConfig& LogDumpConfig::operator=(const LogDumpConfig& rhs)
+{
+    if (this != &rhs) {
+        d_recordBufferSize = rhs.d_recordBufferSize;
+        d_recordingLevel   = rhs.d_recordingLevel;
+        d_triggerLevel     = rhs.d_triggerLevel;
+    }
+
+    return *this;
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+LogDumpConfig& LogDumpConfig::operator=(LogDumpConfig&& rhs)
+{
+    if (this != &rhs) {
+        d_recordBufferSize = bsl::move(rhs.d_recordBufferSize);
+        d_recordingLevel   = bsl::move(rhs.d_recordingLevel);
+        d_triggerLevel     = bsl::move(rhs.d_triggerLevel);
+    }
+
+    return *this;
+}
+#endif
+
+void LogDumpConfig::reset()
+{
+    d_recordBufferSize = DEFAULT_INITIALIZER_RECORD_BUFFER_SIZE;
+    d_recordingLevel   = DEFAULT_INITIALIZER_RECORDING_LEVEL;
+    d_triggerLevel     = DEFAULT_INITIALIZER_TRIGGER_LEVEL;
+}
+
+// ACCESSORS
+
+bsl::ostream&
+LogDumpConfig::print(bsl::ostream& stream, int level, int spacesPerLevel) const
+{
+    bslim::Printer printer(&stream, level, spacesPerLevel);
+    printer.start();
+    printer.printAttribute("recordBufferSize", this->recordBufferSize());
+    printer.printAttribute("recordingLevel", this->recordingLevel());
+    printer.printAttribute("triggerLevel", this->triggerLevel());
+    printer.end();
+    return stream;
+}
+
 // -------------------------------
 // class MasterAssignmentAlgorithm
 // -------------------------------
@@ -3027,6 +3176,11 @@ const bdlat_AttributeInfo LogController::ATTRIBUTE_INFO_ARRAY[] = {
      "syslog",
      sizeof("syslog") - 1,
      "",
+     bdlat_FormattingMode::e_DEFAULT},
+    {ATTRIBUTE_ID_LOG_DUMP,
+     "logDump",
+     sizeof("logDump") - 1,
+     "",
      bdlat_FormattingMode::e_DEFAULT}};
 
 // CLASS METHODS
@@ -3034,7 +3188,7 @@ const bdlat_AttributeInfo LogController::ATTRIBUTE_INFO_ARRAY[] = {
 const bdlat_AttributeInfo* LogController::lookupAttributeInfo(const char* name,
                                                               int nameLength)
 {
-    for (int i = 0; i < 10; ++i) {
+    for (int i = 0; i < 11; ++i) {
         const bdlat_AttributeInfo& attributeInfo =
             LogController::ATTRIBUTE_INFO_ARRAY[i];
 
@@ -3072,6 +3226,8 @@ const bdlat_AttributeInfo* LogController::lookupAttributeInfo(int id)
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CATEGORIES];
     case ATTRIBUTE_ID_SYSLOG:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SYSLOG];
+    case ATTRIBUTE_ID_LOG_DUMP:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LOG_DUMP];
     default: return 0;
     }
 }
@@ -3088,6 +3244,7 @@ LogController::LogController(bslma::Allocator* basicAllocator)
                              basicAllocator)
 , d_consoleSeverityThreshold(basicAllocator)
 , d_syslog(basicAllocator)
+, d_logDump(basicAllocator)
 , d_fileMaxAgeDays()
 , d_rotationBytes()
 {
@@ -3105,6 +3262,7 @@ LogController::LogController(const LogController& original,
 , d_consoleSeverityThreshold(original.d_consoleSeverityThreshold,
                              basicAllocator)
 , d_syslog(original.d_syslog, basicAllocator)
+, d_logDump(original.d_logDump, basicAllocator)
 , d_fileMaxAgeDays(original.d_fileMaxAgeDays)
 , d_rotationBytes(original.d_rotationBytes)
 {
@@ -3121,6 +3279,7 @@ LogController::LogController(LogController&& original) noexcept
   d_bslsLogSeverityThreshold(bsl::move(original.d_bslsLogSeverityThreshold)),
   d_consoleSeverityThreshold(bsl::move(original.d_consoleSeverityThreshold)),
   d_syslog(bsl::move(original.d_syslog)),
+  d_logDump(bsl::move(original.d_logDump)),
   d_fileMaxAgeDays(bsl::move(original.d_fileMaxAgeDays)),
   d_rotationBytes(bsl::move(original.d_rotationBytes))
 {
@@ -3138,6 +3297,7 @@ LogController::LogController(LogController&&   original,
 , d_consoleSeverityThreshold(bsl::move(original.d_consoleSeverityThreshold),
                              basicAllocator)
 , d_syslog(bsl::move(original.d_syslog), basicAllocator)
+, d_logDump(bsl::move(original.d_logDump), basicAllocator)
 , d_fileMaxAgeDays(bsl::move(original.d_fileMaxAgeDays))
 , d_rotationBytes(bsl::move(original.d_rotationBytes))
 {
@@ -3163,6 +3323,7 @@ LogController& LogController::operator=(const LogController& rhs)
         d_consoleSeverityThreshold = rhs.d_consoleSeverityThreshold;
         d_categories               = rhs.d_categories;
         d_syslog                   = rhs.d_syslog;
+        d_logDump                  = rhs.d_logDump;
     }
 
     return *this;
@@ -3183,6 +3344,7 @@ LogController& LogController::operator=(LogController&& rhs)
         d_consoleSeverityThreshold = bsl::move(rhs.d_consoleSeverityThreshold);
         d_categories               = bsl::move(rhs.d_categories);
         d_syslog                   = bsl::move(rhs.d_syslog);
+        d_logDump                  = bsl::move(rhs.d_logDump);
     }
 
     return *this;
@@ -3202,6 +3364,7 @@ void LogController::reset()
     bdlat_ValueTypeFunctions::reset(&d_consoleSeverityThreshold);
     bdlat_ValueTypeFunctions::reset(&d_categories);
     bdlat_ValueTypeFunctions::reset(&d_syslog);
+    bdlat_ValueTypeFunctions::reset(&d_logDump);
 }
 
 // ACCESSORS
@@ -3223,6 +3386,7 @@ LogController::print(bsl::ostream& stream, int level, int spacesPerLevel) const
                            this->consoleSeverityThreshold());
     printer.printAttribute("categories", this->categories());
     printer.printAttribute("syslog", this->syslog());
+    printer.printAttribute("logDump", this->logDump());
     printer.end();
     return stream;
 }
@@ -5823,7 +5987,7 @@ Configuration::print(bsl::ostream& stream, int level, int spacesPerLevel) const
 }  // close package namespace
 }  // close enterprise namespace
 
-// GENERATED BY @BLP_BAS_CODEGEN_VERSION@
+// GENERATED BY BLP_BAS_CODEGEN_2024.09.20
 // USING bas_codegen.pl -m msg --noAggregateConversion --noExternalization
 // --noIdent --package mqbcfg --msgComponent messages mqbcfg.xsd
 // ----------------------------------------------------------------------------
