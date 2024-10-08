@@ -569,9 +569,14 @@ inline void Dispatcher::execute(const mqbi::Dispatcher::VoidFunctor& functor,
     BSLS_ASSERT_SAFE(functor);
 
     mqbi::DispatcherEvent* event = getEvent(client);
-
-    (*event).setType(type).setCallback(
-        mqbi::Dispatcher::voidToProcessorFunctor(functor));
+    if (type == mqbi::DispatcherEventType::e_DISPATCHER) {
+        (*event).makeDispatcherEvent().setCallback(
+            mqbi::Dispatcher::voidToProcessorFunctor(functor));
+    }
+    else {
+        (*event).makeCallbackEvent().setCallback(
+            mqbi::Dispatcher::voidToProcessorFunctor(functor));
+    }
 
     dispatchEvent(event, client);
 }
@@ -584,9 +589,8 @@ inline void Dispatcher::execute(const mqbi::Dispatcher::VoidFunctor& functor,
 
     mqbi::DispatcherEvent* event = getEvent(client.clientType());
 
-    (*event)
-        .setType(mqbi::DispatcherEventType::e_DISPATCHER)
-        .setCallback(mqbi::Dispatcher::voidToProcessorFunctor(functor));
+    (*event).makeDispatcherEvent().setCallback(
+        mqbi::Dispatcher::voidToProcessorFunctor(functor));
 
     dispatchEvent(event, client.clientType(), client.processorHandle());
 }

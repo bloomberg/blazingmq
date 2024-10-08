@@ -436,14 +436,17 @@ ClusterUtil::generateNack(bmqt::AckResult::Enum               status,
                                 putHeader.queueId());
 
     mqbi::DispatcherEvent* ev = dispatcher->getEvent(source);
-    (*ev).setType(mqbi::DispatcherEventType::e_ACK).setAckMessage(ackMessage);
 
     if (appData) {
-        (*ev).setBlob(appData);
-        (*ev).setOptions(options);
+        (*ev)
+            .makeAckEvent()
+            .setAckMessage(ackMessage)
+            .setBlob(appData)
+            .setOptions(options);
     }
     else {
         BSLS_ASSERT_SAFE(!options);
+        (*ev).makeAckEvent().setAckMessage(ackMessage);
     }
 
     dispatcher->dispatchEvent(ev, source);
