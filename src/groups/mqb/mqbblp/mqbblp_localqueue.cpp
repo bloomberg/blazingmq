@@ -327,7 +327,8 @@ void LocalQueue::onDispatcherEvent(const mqbi::DispatcherEvent& event)
 
     switch (event.type()) {
     case mqbi::DispatcherEventType::e_PUT: {
-        const mqbi::DispatcherPutEvent* realEvent = event.asPutEvent();
+        const mqbi::DispatcherPutEvent* realEvent =
+            &event.getAs<mqbi::DispatcherPutEvent>();
 
         postMessage(realEvent->putHeader(),
                     realEvent->blob(),
@@ -336,9 +337,10 @@ void LocalQueue::onDispatcherEvent(const mqbi::DispatcherEvent& event)
     } break;  // BREAK
     case mqbi::DispatcherEventType::e_CALLBACK: {
         const mqbi::DispatcherCallbackEvent* realEvent =
-            event.asCallbackEvent();
-        BSLS_ASSERT_SAFE(!realEvent->callback().empty());
-        realEvent->callback()();
+            &event.getAs<mqbi::DispatcherCallbackEvent>();
+        BSLS_ASSERT_SAFE(realEvent->callback());
+        realEvent->callback()(
+            d_state_p->queue()->dispatcherClientData().processorHandle());
     } break;  // BREAK
     case mqbi::DispatcherEventType::e_ACK: {
         BALL_LOG_INFO << "Skipping dispatcher event [" << event << "] "

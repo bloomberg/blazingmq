@@ -827,8 +827,7 @@ class TestBench {
             queueId);
 
         mqbi::DispatcherEvent event(d_allocator_p);
-        event.setType(mqbi::DispatcherEventType::e_ACK)
-            .setAckMessage(ackMessage);
+        event.makeAckEvent().setAckMessage(ackMessage);
 
         dispatch(event);
     }
@@ -871,13 +870,13 @@ class TestBench {
                                       cat);
 
         mqbi::DispatcherEvent event(d_allocator_p);
-        event.setType(mqbi::DispatcherEventType::e_PUT)
-            .setIsRelay(true)  // Relay message
+        event
             .setSource(&d_cs)  // DispatcherClient *value
+            .makePutEvent()
+            .setIsRelay(true)  // Relay message
             .setPutHeader(putHeader)
-            .setPartitionId(1)   // d_state_p->partitionId()) // int value
-            .setBlob(eventBlob)  // const bsl::shared_ptr<bdlbb::Blob>& value
-            .setCompressionAlgorithmType(cat);
+            .setPartitionId(1)    // d_state_p->partitionId()) // int value
+            .setBlob(eventBlob);  // const bsl::shared_ptr<bdlbb::Blob>& value
 
         // Internal-ticket D167598037.
         // Verify that PutMessageIterator does not change the input.
@@ -913,12 +912,13 @@ class TestBench {
 
         mqbi::DispatcherEvent event(d_allocator_p);
 
-        event.setType(mqbi::DispatcherEventType::e_PUSH)
+        event
             .setSource(&d_cs)  // DispatcherClient *value
-            .setQueueId(queueId)
+            .makePushEvent()
             .setBlob(blob)
             .setGuid(msgGUID)
             .setMessagePropertiesInfo(logic)
+            .setQueueId(queueId)
             .setCompressionAlgorithmType(cat);
 
         dispatch(event);
@@ -1949,6 +1949,8 @@ static void test9_newStylePush()
     putEvent.setType(mqbi::DispatcherEventType::e_PUT)
         .setIsRelay(true)     // Relay message
         .setSource(&tb.d_cs)  // DispatcherClient *value
+        .makePutEvent()
+        .setIsRelay(true)  // Relay message
         .setPutHeader(putIt.header())
         .setBlob(peb.blob());  // const bsl::shared_ptr<bdlbb::Blob>& value
 
@@ -2061,6 +2063,8 @@ static void test10_newStyleCompressedPush()
     putEvent.setType(mqbi::DispatcherEventType::e_PUT)
         .setIsRelay(true)     // Relay message
         .setSource(&tb.d_cs)  // DispatcherClient *value
+        .makePutEvent()
+        .setIsRelay(true)  // Relay message
         .setPutHeader(putIt.header())
         .setBlob(peb.blob())  // const bsl::shared_ptr<bdlbb::Blob>& value
         .setCompressionAlgorithmType(bmqt::CompressionAlgorithmType::e_ZLIB);

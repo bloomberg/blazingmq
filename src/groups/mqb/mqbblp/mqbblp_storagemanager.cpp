@@ -991,9 +991,8 @@ void StorageManager::unregisterQueue(const bmqt::Uri& uri, int partitionId)
         mqbi::DispatcherClientType::e_QUEUE);
 
     (*queueEvent)
-        .setType(mqbi::DispatcherEventType::e_DISPATCHER)
-        .callback()
-        .set(
+        .makeDispatcherEvent()
+        .setCallback(
             bdlf::BindUtil::bind(&mqbc::StorageUtil::unregisterQueueDispatched,
                                  d_fileStores[partitionId].get(),
                                  &d_storages[partitionId],
@@ -1049,9 +1048,8 @@ void StorageManager::registerQueueReplica(int                     partitionId,
         mqbi::DispatcherClientType::e_QUEUE);
 
     (*queueEvent)
-        .setType(mqbi::DispatcherEventType::e_DISPATCHER)
-        .callback()
-        .set(bdlf::BindUtil::bind(
+        .makeDispatcherEvent()
+        .setCallback(bdlf::BindUtil::bind(
             &mqbc::StorageUtil::registerQueueReplicaDispatched,
             static_cast<int*>(0),
             &d_storages[partitionId],
@@ -1086,9 +1084,8 @@ void StorageManager::unregisterQueueReplica(int              partitionId,
         mqbi::DispatcherClientType::e_QUEUE);
 
     (*queueEvent)
-        .setType(mqbi::DispatcherEventType::e_DISPATCHER)
-        .callback()
-        .set(bdlf::BindUtil::bind(
+        .makeDispatcherEvent()
+        .setCallback(bdlf::BindUtil::bind(
             &mqbc::StorageUtil::unregisterQueueReplicaDispatched,
             static_cast<int*>(0),
             &d_storages[partitionId],
@@ -1122,9 +1119,8 @@ void StorageManager::updateQueueReplica(int                     partitionId,
         mqbi::DispatcherClientType::e_QUEUE);
 
     (*queueEvent)
-        .setType(mqbi::DispatcherEventType::e_DISPATCHER)
-        .callback()
-        .set(bdlf::BindUtil::bind(
+        .makeDispatcherEvent()
+        .setCallback(bdlf::BindUtil::bind(
             &mqbc::StorageUtil::updateQueueReplicaDispatched,
             static_cast<int*>(0),
             &d_storages[partitionId],
@@ -1161,15 +1157,15 @@ void StorageManager::setQueue(mqbi::Queue*     queue,
         mqbi::DispatcherClientType::e_QUEUE);
 
     (*queueEvent)
-        .setType(mqbi::DispatcherEventType::e_DISPATCHER)
-        .callback()
-        .set(bdlf::BindUtil::bind(&mqbc::StorageUtil::setQueueDispatched,
-                                  &d_storages[partitionId],
-                                  &d_storagesLock,
-                                  d_clusterData_p->identity().description(),
-                                  partitionId,
-                                  uri,
-                                  queue));
+        .makeDispatcherEvent()
+        .setCallback(
+            bdlf::BindUtil::bind(&mqbc::StorageUtil::setQueueDispatched,
+                                 &d_storages[partitionId],
+                                 &d_storagesLock,
+                                 d_clusterData_p->identity().description(),
+                                 partitionId,
+                                 uri,
+                                 queue));
 
     d_fileStores[partitionId]->dispatchEvent(queueEvent);
 }
