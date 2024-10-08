@@ -390,16 +390,20 @@ void PrometheusStatConsumer::captureQueueStats()
                 }
             }
 
-            // Add `appId` tag to `queue_confirm_time_max` and
-            // `queue_queue_time_max` metrics.
+            // Add `appId` tag to metrics.
+
+            // `confirmTimeDataPoint` metric exists for primary/replica
             static const DatapointDef confirmTimeDataPoint = {
                 "queue_confirm_time_max",
                 Stat::e_CONFIRM_TIME_MAX,
                 false};
-            static const DatapointDef queueTimeDataPoint = {
-                "queue_queue_time_max",
-                Stat::e_QUEUE_TIME_MAX,
-                false};
+
+            // These per-appId metrics exist only for primary
+            static const DatapointDef defs[] = {
+                {"queue_queue_time_max", Stat::e_QUEUE_TIME_MAX, false},
+                {"queue_content_msgs", Stat::e_MESSAGES_MAX, false},
+                {"queue_content_bytes", Stat::e_BYTES_MAX, false},
+            };
             for (mwcst::StatContextIterator appIdIt =
                      queueIt->subcontextIterator();
                  appIdIt;
@@ -414,11 +418,18 @@ void PrometheusStatConsumer::captureQueueStats()
                 updateMetric(&confirmTimeDataPoint, labels, value);
 
                 if (role == mqbstat::QueueStatsDomain::Role::e_PRIMARY) {
-                    value = mqbstat::QueueStatsDomain::getValue(
-                        *appIdIt,
-                        d_snapshotId,
-                        mqbstat::QueueStatsDomain::Stat::e_QUEUE_TIME_MAX);
-                    updateMetric(&queueTimeDataPoint, labels, value);
+                    for (DatapointDefCIter dpIt = bdlb::ArrayUtil::begin(defs);
+                         dpIt != bdlb::ArrayUtil::end(defs);
+                         ++dpIt) {
+                        const bsls::Types::Int64 value =
+                            mqbstat::QueueStatsDomain::getValue(
+                                *appIdIt,
+                                d_snapshotId,
+                                static_cast<
+                                    mqbstat::QueueStatsDomain::Stat::Enum>(
+                                    dpIt->d_stat));
+                        updateMetric(dpIt, labels, value);
+                    }
                 }
             }
         }
