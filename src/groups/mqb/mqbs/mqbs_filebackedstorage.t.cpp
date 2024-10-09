@@ -157,7 +157,7 @@ generateUniqueGUID(const bsl::vector<bmqt::MessageGUID>& guids)
 // class MockDataStore
 // ===================
 
-/// Mimimal mock implementation of the `mqbs::DataStore` interface
+/// Minimal mock implementation of the `mqbs::DataStore` interface
 /// required by `mqbs::FileBackedStorage`.
 
 class MockDataStore : public BloombergLP::mqbs::DataStore {
