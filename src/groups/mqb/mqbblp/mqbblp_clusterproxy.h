@@ -717,22 +717,20 @@ inline size_t ClusterProxy::ChannelBuffer::bytes() const
 // class ClusterProxy
 // ------------------
 
-inline void
-ClusterProxy::getPrimaryNodes(int*          rc,
-                              bsl::ostream& errorDescription,
-                              bsl::vector<mqbnet::ClusterNode*>* nodes,
-                              bool* isSelfPrimary) const
+inline void ClusterProxy::getPrimaryNodes(int*,
+                                          bsl::ostream&,
+                                          bsl::vector<mqbnet::ClusterNode*>*,
+                                          bool*) const
 {
     // no implementation -- this should not run.
     BSLS_ASSERT_SAFE(false);
 }
 
-inline void
-ClusterProxy::getPartitionPrimaryNode(int*                  rc,
-                                      bsl::ostream&         errorDescription,
-                                      mqbnet::ClusterNode** node,
-                                      bool*                 isSelfPrimary,
-                                      int                   partitionId) const
+inline void ClusterProxy::getPartitionPrimaryNode(int*,
+                                                  bsl::ostream&,
+                                                  mqbnet::ClusterNode**,
+                                                  bool*,
+                                                  int) const
 {
     // no implementation -- this should not run.
     BSLS_ASSERT_SAFE(false);

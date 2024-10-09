@@ -736,14 +736,14 @@ void FileBackedStorage::processMessageRecord(
                                                 &dataStreamMessage);
 
                     // Move auto confirms to the data record
-                    for (AutoConfirms::const_iterator it =
+                    for (AutoConfirms::const_iterator cit =
                              d_autoConfirms.begin();
-                         it != d_autoConfirms.end();
-                         ++it) {
+                         cit != d_autoConfirms.end();
+                         ++cit) {
                         irc.first->second.d_array.push_back(
-                            it->d_confirmRecordHandle);
+                            cit->d_confirmRecordHandle);
                         d_virtualStorageCatalog.autoConfirm(dataStreamMessage,
-                                                            it->d_appKey);
+                                                            cit->d_appKey);
                     }
                 }
                 else {
