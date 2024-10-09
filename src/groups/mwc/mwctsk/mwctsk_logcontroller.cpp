@@ -642,7 +642,7 @@ int LogController::initialize(bsl::ostream&              errorDescription,
     // -------------
     // LoggerManager
     ball::LoggerManagerConfiguration lmc;
-    lmc.setLogOrder(ball::LoggerManagerConfiguration::LIFO);
+    lmc.setLogOrder(ball::LoggerManagerConfiguration::FIFO);
     lmc.setDefaultThresholdLevelsCallback(bdlf::BindUtil::bind(
         &ball::LoggerFunctorPayloads::loadParentCategoryThresholdValues,
         bdlf::PlaceHolders::_1,
