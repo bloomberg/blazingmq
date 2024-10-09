@@ -228,7 +228,7 @@ class Cluster(AbstractCluster):
     def fanout_domain(self, name: str, app_ids: List[str]) -> "Domain":
         parameters = self.configurator.domain_definition()
         parameters.name = name
-        parameters.mode = mqbconf.QueueMode(fanout=mqbconf.QueueModeFanout([*app_ids]))
+        parameters.mode.fanout.app_ids = app_ids.copy()
         domain = mqbconf.DomainDefinition(self.name, parameters)
 
         return self._add_domain(Domain(self, domain))
