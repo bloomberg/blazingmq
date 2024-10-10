@@ -247,22 +247,17 @@ void PrometheusStatConsumer::onSnapshot()
 
     setActionCounter();
 
-    try {
-        captureSystemStats();
-        captureNetworkStats();
-        captureBrokerStats();
-        LeaderSet leaders;
-        collectLeaders(&leaders);
-        captureClusterStats(leaders);
-        captureClusterPartitionsStats();
-        captureDomainStats(leaders);
-        captureQueueStats();
+    captureSystemStats();
+    captureNetworkStats();
+    captureBrokerStats();
+    LeaderSet leaders;
+    collectLeaders(&leaders);
+    captureClusterStats(leaders);
+    captureClusterPartitionsStats();
+    captureDomainStats(leaders);
+    captureQueueStats();
 
-        d_prometheusStatExporter_p->onData();
-    }
-    catch (const bsl::exception& e) {
-        BALL_LOG_ERROR << "#PLUGIN_ERROR " << e.what();
-    }
+    d_prometheusStatExporter_p->onData();
 }
 
 void PrometheusStatConsumer::captureQueueStats()
