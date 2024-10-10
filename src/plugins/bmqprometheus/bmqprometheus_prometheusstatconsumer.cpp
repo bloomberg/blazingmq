@@ -259,7 +259,8 @@ void PrometheusStatConsumer::onSnapshot()
         captureQueueStats();
 
         d_prometheusStatExporter_p->onData();
-    } catch (const bsl::exception& e) {
+    }
+    catch (const bsl::exception& e) {
         BALL_LOG_ERROR << "#PLUGIN_ERROR " << e.what();
     }
 }
