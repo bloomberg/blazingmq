@@ -90,7 +90,7 @@ def extract_stats(admin_response: str) -> dict:
 def expect_same_structure(
     entry: Union[dict, list, str, int],
     expected: Union[dict, list, str, int, dt.ValueConstraint],
-    path="",
+    path: str = "",
 ) -> None:
     """
     Check if the specified 'entry' has the same structure as the specified 'expected'.
