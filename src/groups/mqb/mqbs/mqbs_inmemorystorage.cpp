@@ -310,6 +310,12 @@ InMemoryStorage::releaseRef(const bmqt::MessageGUID& guid)
 
         d_items.erase(it);
 
+        if (queue()) {
+            queue()->stats()->onEvent(
+                mqbstat::QueueStatsDomain::EventType::e_UPDATE_HISTORY,
+                d_items.historySize());
+        }
+
         return mqbi::StorageResult::e_ZERO_REFERENCES;  // RETURN
     }
 
@@ -337,6 +343,9 @@ InMemoryStorage::remove(const bmqt::MessageGUID& msgGUID, int* msgSize)
         queue()->stats()->onEvent(
             mqbstat::QueueStatsDomain::EventType::e_DEL_MESSAGE,
             msgLen);
+        queue()->stats()->onEvent(
+            mqbstat::QueueStatsDomain::EventType::e_UPDATE_HISTORY,
+            d_items.historySize());
     }
 
     if (msgSize) {
@@ -388,6 +397,12 @@ InMemoryStorage::removeAll(const mqbu::StorageKey& appKey)
 
     if (d_items.empty()) {
         d_isEmpty.storeRelaxed(1);
+    }
+
+    if (queue()) {
+        queue()->stats()->onEvent(
+            mqbstat::QueueStatsDomain::EventType::e_UPDATE_HISTORY,
+            d_items.historySize());
     }
 
     return mqbi::StorageResult::e_SUCCESS;
@@ -442,6 +457,9 @@ int InMemoryStorage::gcExpiredMessages(
         queue()->stats()->onEvent(
             mqbstat::QueueStatsDomain::EventType::e_GC_MESSAGE,
             numMsgsDeleted);
+        queue()->stats()->onEvent(
+            mqbstat::QueueStatsDomain::EventType::e_UPDATE_HISTORY,
+            d_items.historySize());
     }
 
     if (d_items.empty()) {
@@ -453,8 +471,16 @@ int InMemoryStorage::gcExpiredMessages(
 
 bool InMemoryStorage::gcHistory()
 {
-    return d_items.gc(mwcsys::Time::highResolutionTimer(),
-                      k_GC_MESSAGES_BATCH_SIZE);
+    bool hasMoreToGc = d_items.gc(mwcsys::Time::highResolutionTimer(),
+                                  k_GC_MESSAGES_BATCH_SIZE);
+
+    if (queue()) {
+        queue()->stats()->onEvent(
+            mqbstat::QueueStatsDomain::EventType::e_UPDATE_HISTORY,
+            d_items.historySize());
+    }
+
+    return hasMoreToGc;
 }
 
 void InMemoryStorage::selectForAutoConfirming(const bmqt::MessageGUID& msgGUID)

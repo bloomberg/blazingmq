@@ -356,6 +356,9 @@ class OrderedHashMapWithHistory {
 
     /// Return the number of elements in this container.
     size_t size() const;
+
+    /// Return the number of elements in this container's history.
+    size_t historySize() const;
 };
 
 // ============================================================================
@@ -761,6 +764,13 @@ inline size_t
 OrderedHashMapWithHistory<KEY, VALUE, HASH, VALUE_TYPE>::size() const
 {
     return d_impl.size() - d_historySize;
+}
+
+template <class KEY, class VALUE, class HASH, class VALUE_TYPE>
+inline size_t
+OrderedHashMapWithHistory<KEY, VALUE, HASH, VALUE_TYPE>::historySize() const
+{
+    return d_historySize;
 }
 
 }  // close package namespace
