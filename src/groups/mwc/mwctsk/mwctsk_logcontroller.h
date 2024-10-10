@@ -229,6 +229,20 @@ class LogControllerConfig {
     CategoryPropertiesMap d_categories;
     // Map of category properties
 
+    int d_recordBufferSize;
+    // Size in bytes of the logger's record buffer
+
+    ball::Severity::Level d_recordingVerbosity;
+    // If the severity level of the record is at least as severe as the
+    // d_recordingVerbosity, then the record will be stored by the logger in
+    // its log record buffer (i.e., it will be recorded).
+
+    ball::Severity::Level d_triggerVerbosity;
+    // If the severity of the record is at least as severe as the
+    // d_triggerVerbosity, then the record will cause immediate publication
+    // of that record and any records in the logger's log record buffer (i.e.,
+    // this record will trigger a log record dump).
+
   private:
     /// Convert specified BALL severity `level` to the corresponding
     /// BSLS_LOG severity level.
@@ -271,6 +285,7 @@ class LogControllerConfig {
     LogControllerConfig& setSyslogEnabled(bool value);
     LogControllerConfig& setSyslogFormat(const bslstl::StringRef& value);
     LogControllerConfig& setSyslogAppName(const bslstl::StringRef& value);
+    LogControllerConfig& setRecordBufferSize(int value);
 
     /// Set the corresponding attribute to the specified `value` and return
     /// a reference offering modifiable access to this object.
@@ -318,6 +333,9 @@ class LogControllerConfig {
     const bsl::string&      syslogFormat() const;
     const bsl::string&      syslogAppName() const;
     ball::Severity::Level   syslogVerbosity() const;
+    int                     recordBufferSize() const;
+    ball::Severity::Level   recordingVerbosity() const;
+    ball::Severity::Level   triggerVerbosity() const;
 
     /// Return the value of the corresponding attribute.
     const CategoryPropertiesMap& categoriesProperties() const;
@@ -458,11 +476,18 @@ class LogController {
     /// will no longer be available.
     void shutdown();
 
-    /// Change the logging severity threshold to the specified `verbosity`:
-    /// any record with a severity of at least `verbosity` will be printed
-    /// to the log file, and eventually to the console if the configured
-    /// console severity threshold allows it.
-    void setVerbosityLevel(ball::Severity::Level verbosity);
+    /// Change the logging severity threshold to the specified verbosity
+    /// levels: any record with a severity of at least `passVerbosity` will
+    /// be printed immediately to the log file, and eventually to the
+    /// console if the configured console severity threshold allows it.
+    /// any record with a severity of at least `recordingVerbosity` will be
+    /// stored by the logger in its log record buffer. Any record with a
+    /// severity of at least `triggerVerbosity` will cause immediate
+    /// publication of that record and any records in the logger's buffer.
+    void setVerbosityLevel(
+        ball::Severity::Level passVerbosity,
+        ball::Severity::Level recordVerbosity  = ball::Severity::OFF,
+        ball::Severity::Level triggerVerbosity = ball::Severity::OFF);
 
     /// Change the verbosity of the specified `category` to the specified
     /// `verbosity`.  `category` can be an expression, with a terminating
@@ -514,13 +539,30 @@ int LogControllerConfig::fromObj(bsl::ostream& errorDescription,
         .setConsoleFormat(obj.consoleFormat())
         .setSyslogEnabled(obj.syslog().enabled())
         .setSyslogAppName(obj.syslog().appName())
-        .setSyslogFormat(obj.syslog().logFormat());
+        .setSyslogFormat(obj.syslog().logFormat())
+        .setRecordBufferSize(obj.logDump().recordBufferSize());
 
     if (ball::SeverityUtil::fromAsciiCaseless(
             &d_loggingVerbosity,
             obj.loggingVerbosity().c_str()) != 0) {
         errorDescription << "Invalid value for 'loggingVerbosity' ('"
                          << obj.loggingVerbosity() << "')";
+        return -1;  // RETURN
+    }
+
+    if (ball::SeverityUtil::fromAsciiCaseless(
+            &d_recordingVerbosity,
+            obj.logDump().recordingLevel().c_str()) != 0) {
+        errorDescription << "Invalid value for 'recordingLevel' ('"
+                         << obj.logDump().recordingLevel() << "')";
+        return -1;  // RETURN
+    }
+
+    if (ball::SeverityUtil::fromAsciiCaseless(
+            &d_triggerVerbosity,
+            obj.logDump().triggerLevel().c_str()) != 0) {
+        errorDescription << "Invalid value for 'triggerLevel' ('"
+                         << obj.logDump().triggerLevel() << "')";
         return -1;  // RETURN
     }
 
@@ -653,6 +695,12 @@ LogControllerConfig::setSyslogAppName(const bslstl::StringRef& value)
     return *this;
 }
 
+inline LogControllerConfig& LogControllerConfig::setRecordBufferSize(int value)
+{
+    d_recordBufferSize = value;
+    return *this;
+}
+
 inline LogControllerConfig&
 LogControllerConfig::setSyslogVerbosity(ball::Severity::Level value)
 {
@@ -725,6 +773,21 @@ inline const bsl::string& LogControllerConfig::syslogAppName() const
 inline ball::Severity::Level LogControllerConfig::syslogVerbosity() const
 {
     return d_syslogVerbosity;
+}
+
+inline int LogControllerConfig::recordBufferSize() const
+{
+    return d_recordBufferSize;
+}
+
+inline ball::Severity::Level LogControllerConfig::recordingVerbosity() const
+{
+    return d_recordingVerbosity;
+}
+
+inline ball::Severity::Level LogControllerConfig::triggerVerbosity() const
+{
+    return d_triggerVerbosity;
 }
 
 inline const LogControllerConfig::CategoryPropertiesMap&
