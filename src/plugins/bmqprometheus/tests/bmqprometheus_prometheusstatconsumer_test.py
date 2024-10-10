@@ -66,7 +66,7 @@ QUEUE_METRICS = [
     "queue_push_bytes",
     "queue_ack_msgs",
 ]
-QUEUE_PRIMARY_NODE_METRICS = ["queue_gc_msgs", "queue_cfg_msgs", "queue_content_msgs"]
+QUEUE_PRIMARY_NODE_METRICS = ["queue_gc_msgs", "queue_cfg_msgs", "queue_content_msgs_max"]
 CLUSTER_METRICS = ["cluster_healthiness"]
 BROKER_METRICS = ["brkr_summary_queues_count", "brkr_summary_clients_count"]
 
@@ -330,7 +330,7 @@ def _check_statistic(prometheus_host):
             value = response["result"][1]["value"][-1]
             assert value == "1", _assert_message(metric, "1", value)
         # Queue primary node statistic
-        elif metric == "queue_content_msgs":
+        elif metric == "queue_content_msgs_max":
             # For first queue
             assert value == "2", _assert_message(metric, "2", value)
             # For second queue

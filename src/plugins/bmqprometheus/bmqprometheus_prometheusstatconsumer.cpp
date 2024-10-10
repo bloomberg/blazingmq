@@ -359,8 +359,8 @@ void PrometheusStatConsumer::captureQueueStats()
                     {"queue_gc_msgs", Stat::e_GC_MSGS_DELTA, true},
                     {"queue_cfg_msgs", Stat::e_CFG_MSGS, false},
                     {"queue_cfg_bytes", Stat::e_CFG_BYTES, false},
-                    {"queue_content_msgs", Stat::e_MESSAGES_MAX, false},
-                    {"queue_content_bytes", Stat::e_BYTES_MAX, false},
+                    {"queue_content_msgs_max", Stat::e_MESSAGES_MAX, false},
+                    {"queue_content_bytes_max", Stat::e_BYTES_MAX, false},
                     {"queue_queue_time_avg", Stat::e_QUEUE_TIME_AVG, false},
                     {"queue_queue_time_max", Stat::e_QUEUE_TIME_MAX, false},
                     {"queue_reject_msgs", Stat::e_REJECT_DELTA, true},
@@ -390,16 +390,19 @@ void PrometheusStatConsumer::captureQueueStats()
                 }
             }
 
-            // Add `appId` tag to `queue_confirm_time_max` and
-            // `queue_queue_time_max` metrics.
-            static const DatapointDef confirmTimeDataPoint = {
-                "queue_confirm_time_max",
-                Stat::e_CONFIRM_TIME_MAX,
-                false};
-            static const DatapointDef queueTimeDataPoint = {
-                "queue_queue_time_max",
-                Stat::e_QUEUE_TIME_MAX,
-                false};
+            // Add `appId` tag to metrics.
+
+            // These per-appId metrics exist for both primary and replica
+            static const DatapointDef defsCommon[] = {
+                {"queue_confirm_time_max", Stat::e_CONFIRM_TIME_MAX, false},
+            };
+
+            // These per-appId metrics exist only for primary
+            static const DatapointDef defsPrimary[] = {
+                {"queue_queue_time_max", Stat::e_QUEUE_TIME_MAX, false},
+                {"queue_content_msgs_max", Stat::e_MESSAGES_MAX, false},
+                {"queue_content_bytes_max", Stat::e_BYTES_MAX, false},
+            };
             for (mwcst::StatContextIterator appIdIt =
                      queueIt->subcontextIterator();
                  appIdIt;
@@ -407,18 +410,33 @@ void PrometheusStatConsumer::captureQueueStats()
                 tagger.setAppId(appIdIt->name());
                 const auto labels = tagger.getLabels();
 
-                auto value = mqbstat::QueueStatsDomain::getValue(
-                    *appIdIt,
-                    d_snapshotId,
-                    mqbstat::QueueStatsDomain::Stat::e_CONFIRM_TIME_MAX);
-                updateMetric(&confirmTimeDataPoint, labels, value);
+                for (DatapointDefCIter dpIt =
+                         bdlb::ArrayUtil::begin(defsCommon);
+                     dpIt != bdlb::ArrayUtil::end(defsCommon);
+                     ++dpIt) {
+                    const bsls::Types::Int64 value =
+                        mqbstat::QueueStatsDomain::getValue(
+                            *appIdIt,
+                            d_snapshotId,
+                            static_cast<mqbstat::QueueStatsDomain::Stat::Enum>(
+                                dpIt->d_stat));
+                    updateMetric(dpIt, labels, value);
+                }
 
                 if (role == mqbstat::QueueStatsDomain::Role::e_PRIMARY) {
-                    value = mqbstat::QueueStatsDomain::getValue(
-                        *appIdIt,
-                        d_snapshotId,
-                        mqbstat::QueueStatsDomain::Stat::e_QUEUE_TIME_MAX);
-                    updateMetric(&queueTimeDataPoint, labels, value);
+                    for (DatapointDefCIter dpIt =
+                             bdlb::ArrayUtil::begin(defsPrimary);
+                         dpIt != bdlb::ArrayUtil::end(defsPrimary);
+                         ++dpIt) {
+                        const bsls::Types::Int64 value =
+                            mqbstat::QueueStatsDomain::getValue(
+                                *appIdIt,
+                                d_snapshotId,
+                                static_cast<
+                                    mqbstat::QueueStatsDomain::Stat::Enum>(
+                                    dpIt->d_stat));
+                        updateMetric(dpIt, labels, value);
+                    }
                 }
             }
         }
