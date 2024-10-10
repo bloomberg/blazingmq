@@ -764,8 +764,8 @@ void Queue::onPushMessage(
     mqbi::DispatcherEvent* dispEvent = dispatcher()->getEvent(this);
 
     (*dispEvent)
-        .setType(mqbi::DispatcherEventType::e_PUSH)
         .setSource(this)
+        .makePushEvent()
         .setBlob(appData)
         .setOptions(options)
         .setGuid(msgGUID)
@@ -837,9 +837,7 @@ void Queue::onAckMessage(const bmqp::AckMessage& ackMessage)
 
     mqbi::DispatcherEvent* dispEvent = dispatcher()->getEvent(this);
 
-    (*dispEvent)
-        .setType(mqbi::DispatcherEventType::e_ACK)
-        .setAckMessage(ackMessage);
+    (*dispEvent).makeAckEvent().setAckMessage(ackMessage);
 
     dispatcher()->dispatchEvent(dispEvent, this);
 }
