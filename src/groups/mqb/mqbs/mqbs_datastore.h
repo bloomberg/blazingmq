@@ -675,10 +675,10 @@ class DataStore : public mqbi::DispatcherClient {
     virtual int issueSyncPoint() = 0;
 
     /// Set the specified `primaryNode` with the specified `primaryLeaseId`
-    /// as the primary for this data store partition.  Note that
+    /// as the active primary for this data store partition.  Note that
     /// `primaryNode` could refer to the node which owns this data store.
-    virtual void setPrimary(mqbnet::ClusterNode* primaryNode,
-                            unsigned int         primaryLeaseId) = 0;
+    virtual void setActivePrimary(mqbnet::ClusterNode* primaryNode,
+                                  unsigned int         primaryLeaseId) = 0;
 
     /// Clear the current primary associated with this partition.
     virtual void clearPrimary() = 0;
