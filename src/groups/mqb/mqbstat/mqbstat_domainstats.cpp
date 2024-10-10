@@ -136,7 +136,10 @@ void DomainStats::initialize(mqbi::Domain*       domain,
                      bdld::Datum::copyString(domain->cluster()->name(),
                                              alloc));
     builder.pushBack("domain", bdld::Datum::copyString(uri.domain(), alloc));
-    builder.pushBack("tier", bdld::Datum::copyString(uri.tier(), alloc));
+    builder.pushBack("tier",
+                     bdld::Datum::copyString(uri.tier().isEmpty() ? ""
+                                                                  : uri.tier(),
+                                             alloc));
 
     datum->adopt(builder.commit());
 }
