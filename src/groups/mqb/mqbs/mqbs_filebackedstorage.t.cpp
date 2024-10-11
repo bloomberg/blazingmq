@@ -252,7 +252,7 @@ class MockDataStore : public mqbs::DataStore {
                            const mqbu::StorageKey&,
                            const mqbu::StorageKey&,
                            bsls::Types::Uint64,
-                           mqbs::ConfirmReason::Enum)
+                           mqbs::ConfirmReason::Enum) BSLS_KEYWORD_OVERRIDE
     {
         d_confirm_counter++;
         return 0;
@@ -261,15 +261,15 @@ class MockDataStore : public mqbs::DataStore {
     int writeDeletionRecord(const bmqt::MessageGUID&,
                             const mqbu::StorageKey&,
                             mqbs::DeletionRecordFlag::Enum,
-                            bsls::Types::Uint64)
+                            bsls::Types::Uint64) BSLS_KEYWORD_OVERRIDE
     {
         d_deletion_counter++;
         return 0;
     }
 
-    void
-    loadMessageAttributesRaw(mqbi::StorageMessageAttributes*    buffer,
-                             const mqbs::DataStoreRecordHandle& handle) const
+    void loadMessageAttributesRaw(
+        mqbi::StorageMessageAttributes*    buffer,
+        const mqbs::DataStoreRecordHandle& handle) const BSLS_KEYWORD_OVERRIDE
     {
         const mqbs::DataStoreConfig::RecordIterator& iter =
             *reinterpret_cast<const mqbs::DataStoreConfig::RecordIterator*>(
@@ -283,6 +283,7 @@ class MockDataStore : public mqbs::DataStore {
                         bsl::shared_ptr<bdlbb::Blob>*      options,
                         mqbi::StorageMessageAttributes*    attributes,
                         const mqbs::DataStoreRecordHandle& handle) const
+        BSLS_KEYWORD_OVERRIDE
     {
         loadMessageAttributesRaw(attributes, handle);
 
@@ -295,34 +296,43 @@ class MockDataStore : public mqbs::DataStore {
         *options = d_options.at(id);
     }
 
-    mqbi::Dispatcher* dispatcher() { return nullptr; }
+    mqbi::Dispatcher* dispatcher() BSLS_KEYWORD_OVERRIDE { return nullptr; }
 
-    mqbi::DispatcherClientData& dispatcherClientData()
+    mqbi::DispatcherClientData& dispatcherClientData() BSLS_KEYWORD_OVERRIDE
     {
         return d_dispatcherClientData;
     }
 
-    void onDispatcherEvent(const mqbi::DispatcherEvent&) {}
+    void onDispatcherEvent(const mqbi::DispatcherEvent&) BSLS_KEYWORD_OVERRIDE
+    {
+    }
 
-    void flush() {}
+    void flush() BSLS_KEYWORD_OVERRIDE {}
 
-    const mqbi::Dispatcher* dispatcher() const { return nullptr; }
+    const mqbi::Dispatcher* dispatcher() const BSLS_KEYWORD_OVERRIDE
+    {
+        return nullptr;
+    }
 
-    const mqbi::DispatcherClientData& dispatcherClientData() const
+    const mqbi::DispatcherClientData&
+    dispatcherClientData() const BSLS_KEYWORD_OVERRIDE
     {
         return d_dispatcherClientData;
     }
 
-    const bsl::string& description() const { return d_description; }
+    const bsl::string& description() const BSLS_KEYWORD_OVERRIDE
+    {
+        return d_description;
+    }
 
-    int open(const QueueKeyInfoMap&) { return 0; }
+    int open(const QueueKeyInfoMap&) BSLS_KEYWORD_OVERRIDE { return 0; }
 
-    void close(bool) {}
+    void close(bool) BSLS_KEYWORD_OVERRIDE {}
 
     void createStorage(bsl::shared_ptr<mqbs::ReplicatedStorage>*,
                        const bmqt::Uri&,
                        const mqbu::StorageKey&,
-                       mqbi::Domain*)
+                       mqbi::Domain*) BSLS_KEYWORD_OVERRIDE
     {
     }
 
@@ -331,7 +341,7 @@ class MockDataStore : public mqbs::DataStore {
                                  const mqbu::StorageKey&,
                                  const AppIdKeyPairs&,
                                  bsls::Types::Uint64,
-                                 bool)
+                                 bool) BSLS_KEYWORD_OVERRIDE
     {
         return 0;
     }
@@ -339,7 +349,7 @@ class MockDataStore : public mqbs::DataStore {
     int writeQueuePurgeRecord(mqbs::DataStoreRecordHandle*,
                               const mqbu::StorageKey&,
                               const mqbu::StorageKey&,
-                              bsls::Types::Uint64)
+                              bsls::Types::Uint64) BSLS_KEYWORD_OVERRIDE
     {
         return 0;
     }
@@ -347,79 +357,107 @@ class MockDataStore : public mqbs::DataStore {
     int writeQueueDeletionRecord(mqbs::DataStoreRecordHandle*,
                                  const mqbu::StorageKey&,
                                  const mqbu::StorageKey&,
-                                 bsls::Types::Uint64)
+                                 bsls::Types::Uint64) BSLS_KEYWORD_OVERRIDE
     {
         return 0;
     }
 
     int writeSyncPointRecord(const bmqp_ctrlmsg::SyncPoint&,
-                             mqbs::SyncPointType::Enum)
+                             mqbs::SyncPointType::Enum) BSLS_KEYWORD_OVERRIDE
     {
         return 0;
     }
 
-    int removeRecord(const mqbs::DataStoreRecordHandle&) { return 0; }
+    int removeRecord(const mqbs::DataStoreRecordHandle&) BSLS_KEYWORD_OVERRIDE
+    {
+        return 0;
+    }
 
-    void removeRecordRaw(const mqbs::DataStoreRecordHandle&) {}
+    void
+    removeRecordRaw(const mqbs::DataStoreRecordHandle&) BSLS_KEYWORD_OVERRIDE
+    {
+    }
 
     void processStorageEvent(const bsl::shared_ptr<bdlbb::Blob>&,
                              bool,
-                             mqbnet::ClusterNode*)
+                             mqbnet::ClusterNode*) BSLS_KEYWORD_OVERRIDE
     {
     }
 
-    int processRecoveryEvent(const bsl::shared_ptr<bdlbb::Blob>&) { return 0; }
+    int processRecoveryEvent(const bsl::shared_ptr<bdlbb::Blob>&)
+        BSLS_KEYWORD_OVERRIDE
+    {
+        return 0;
+    }
 
     void processReceiptEvent(unsigned int,
                              bsls::Types::Uint64,
-                             mqbnet::ClusterNode*)
+                             mqbnet::ClusterNode*) BSLS_KEYWORD_OVERRIDE
     {
     }
 
-    int issueSyncPoint() { return 0; }
+    int issueSyncPoint() BSLS_KEYWORD_OVERRIDE { return 0; }
 
-    void setPrimary(mqbnet::ClusterNode*, unsigned int) {}
+    void setActivePrimary(mqbnet::ClusterNode*,
+                          unsigned int) BSLS_KEYWORD_OVERRIDE
+    {
+    }
 
-    void clearPrimary() {}
+    void clearPrimary() BSLS_KEYWORD_OVERRIDE {}
 
-    void dispatcherFlush(bool, bool) {}
+    void dispatcherFlush(bool, bool) BSLS_KEYWORD_OVERRIDE {}
 
-    bool isOpen() const { return true; }
+    bool isOpen() const BSLS_KEYWORD_OVERRIDE { return true; }
 
-    const mqbs::DataStoreConfig& config() const { return d_config; }
+    const mqbs::DataStoreConfig& config() const BSLS_KEYWORD_OVERRIDE
+    {
+        return d_config;
+    }
 
-    unsigned int clusterSize() const { return 1U; }
+    unsigned int clusterSize() const BSLS_KEYWORD_OVERRIDE { return 1U; }
 
-    bsls::Types::Uint64 numRecords() const { return d_attributes.size(); }
+    bsls::Types::Uint64 numRecords() const BSLS_KEYWORD_OVERRIDE
+    {
+        return d_attributes.size();
+    }
 
     void loadMessageRecordRaw(mqbs::MessageRecord*,
                               const mqbs::DataStoreRecordHandle&) const
+        BSLS_KEYWORD_OVERRIDE
     {
     }
 
     void loadConfirmRecordRaw(mqbs::ConfirmRecord*,
                               const mqbs::DataStoreRecordHandle&) const
+        BSLS_KEYWORD_OVERRIDE
     {
     }
 
     void loadDeletionRecordRaw(mqbs::DeletionRecord*,
                                const mqbs::DataStoreRecordHandle&) const
+        BSLS_KEYWORD_OVERRIDE
     {
     }
 
     void loadQueueOpRecordRaw(mqbs::QueueOpRecord*,
                               const mqbs::DataStoreRecordHandle&) const
+        BSLS_KEYWORD_OVERRIDE
     {
     }
 
     unsigned int getMessageLenRaw(const mqbs::DataStoreRecordHandle&) const
+        BSLS_KEYWORD_OVERRIDE
     {
         return sizeof(int);
     }
 
-    unsigned int primaryLeaseId() const { return 0; }
+    unsigned int primaryLeaseId() const BSLS_KEYWORD_OVERRIDE { return 0; }
 
-    bool hasReceipt(const mqbs::DataStoreRecordHandle&) const { return true; }
+    bool
+    hasReceipt(const mqbs::DataStoreRecordHandle&) const BSLS_KEYWORD_OVERRIDE
+    {
+        return true;
+    }
 };
 
 // =================
