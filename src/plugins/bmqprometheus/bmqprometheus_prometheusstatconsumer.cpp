@@ -367,7 +367,7 @@ void PrometheusStatConsumer::captureQueueStats()
                     {"queue_nack_noquorum_msgs",
                      Stat::e_NO_SC_MSGS_DELTA,
                      true},
-                };
+                    {"queue_history_guids", Stat::e_HISTORY_ABS, false}};
 
                 for (DatapointDefCIter dpIt = bdlb::ArrayUtil::begin(defs);
                      dpIt != bdlb::ArrayUtil::end(defs);
