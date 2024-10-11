@@ -5,7 +5,7 @@ parent: Features
 nav_order: 3
 ---
 
-# Subscriptions (aka Topic-based Routing)
+# Subscriptions (aka Topic-based Filtering & Routing)
 {: .no_toc }
 
 * toc
@@ -13,9 +13,10 @@ nav_order: 3
 
 ## Introduction
 
-Subscriptions provide consumer applications a powerful mechanism to express
-interest in receiving only those messages which satisfy criteria specified by
-them.  In the absence of subscriptions, a consumer attached to a queue can
+Subscriptions provide consumer applications a powerful mechanism to only
+receive the messages from a queue that match a specified expression.
+
+In the absence of subscriptions, a consumer attached to a queue can
 receive any and all messages posted on the queue, and should be in a position
 to process all of them.  In other words, the queue is viewed as a logical
 stream of homogeneous data.  While this may work in some or most cases, there
@@ -30,21 +31,23 @@ stream of heterogeneous data.
 Concretely speaking, producer applications can put any interesting message
 attributes in the *message properties* section of the message (*message
 properties* are a list of key/value pairs that a producer can associate with a
-message), and consumers can specify filters using one or more *message
-properties*.  For example, if a message contains these three properties:
+message), and consumers can filter messages using one or more of those *message
+properties*.
+
+For example, if a message contains these three properties:
 
 - `CustomerId = 1234`
 - `DestinationId = "ABC"`
 - `OrderType = EXPRESS`
 
-A consumer can provide a filter ("subscription expression") like so when
-attaching to a queue:
+A consumer can provide a filter ("subscription expression") like so to "match"
+the above message:
 
 - `CustomerId == 1234 && OrderType == EXPRESS`
 
-In this case, a message having three properties as shown above will be routed
-to the consumer with above filter (note that if a property is not specified by
-the consumer, it is considered to be a wildcard).
+In this case, a message having the properties as shown above will be routed
+to the consumer with the above filter (note that if a property is not specified
+by the consumer, it is considered to be a wildcard).
 
 Similarly, users can spin up any number of consumers, each with different
 filters.  Users have to ensure that every message can be processed by at least
@@ -57,6 +60,28 @@ level design, selective implementation details, etc.  This section assumes that
 reader is familiar with various routing strategies (aka 'queue modes') as well
 as general BlazingMQ terminology like *PUT*, *PUSH*, *ACK*, *CONFIRM* messages,
 etc.
+
+### Subscription Types
+
+BlazingMQ provides two types of subscriptions:
+
+1. __Application Subscriptions__ which provide _message filtering_
+
+    - The user can express which messages they want to be routed to consumers in
+    the domain's configuration. In other words, these subscriptions are
+    statically configured.
+    - Messages produced to a queue matching the subscription will be routed to consumers.
+    - Messages which do not match will be auto-confirmed by the broker.
+    - Note: For fanout mode domains, application subscriptions are configured
+    per-*AppId*. For priority and broadcast mode domains, application subscriptions
+    apply to _all_ queues and therefore all consumers.
+
+2. __Consumer Subscriptions__ which provide _message routing_
+
+    - Consumer subscriptions allow each consumer instance to express the messages
+    which it is interested in processing when it attaches to the queue.
+    - The BlazingMQ broker will only route messages matching the supplied expression to that instance.
+    - Messages produced to a (priority or fanout mode) queue that do not match any consumer's subscription will remain unconfirmed in the queue until they can be routed to a consumer or expire due to TTL.
 
 ### Background
 {:.no_toc}
