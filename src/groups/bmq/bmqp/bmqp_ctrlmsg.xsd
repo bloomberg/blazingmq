@@ -1404,6 +1404,7 @@
     </annotation>
     <sequence>
       <element name='clusterName' type='string'/>
+      <element name='version' type='int' default='1'/>
     </sequence>
   </complexType>
 

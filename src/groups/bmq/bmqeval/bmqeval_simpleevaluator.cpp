@@ -82,6 +82,13 @@ void SimpleEvaluator::parse(const bsl::string&  expression,
     context.d_numProperties = 0;
     context.d_os.reset();
 
+    if (expression.length() > k_MAX_EXPRESSION_LENGTH) {
+        context.d_os << "expression is too long (" << expression.length()
+                     << "), max allowed length: " << k_MAX_EXPRESSION_LENGTH;
+        context.d_lastError = ErrorType::e_TOO_LONG;
+        return;  // RETURN
+    }
+
     bsl::istringstream     is(expression, context.d_allocator);
     SimpleEvaluatorScanner scanner;
     scanner.switch_streams(&is, &context.d_os);
@@ -90,28 +97,27 @@ void SimpleEvaluator::parse(const bsl::string&  expression,
 
     if (parser.parse() != 0) {
         context.d_lastError = ErrorType::e_SYNTAX;
-
         return;  // RETURN
     }
 
     if (context.d_numOperators > k_MAX_OPERATORS) {
-        context.d_os << "too many operators";
+        context.d_os << "too many operators (" << context.d_numOperators
+                     << "), max allowed operators: " << k_MAX_OPERATORS;
         context.d_lastError = ErrorType::e_TOO_COMPLEX;
-
         return;  // RETURN
     }
 
     if (context.d_numProperties == 0) {
         context.d_os << "expression does not use any properties";
         context.d_lastError = ErrorType::e_NO_PROPERTIES;
-
         return;  // RETURN
     }
 
     if (context.d_numProperties > k_MAX_PROPERTIES) {
-        context.d_os << "expression uses too many properties";
+        context.d_os << "expression uses too many properties ("
+                     << context.d_numProperties
+                     << "), max allowed properties: " << k_MAX_PROPERTIES;
         context.d_lastError = ErrorType::e_TOO_COMPLEX;
-
         return;  // RETURN
     }
 }
@@ -204,8 +210,8 @@ SimpleEvaluator::IntegerLiteral::evaluate(EvaluationContext& context) const
 // class SimpleEvaluator::BooleanLiteral
 // -------------------------------------
 
-bdld::Datum
-SimpleEvaluator::BooleanLiteral::evaluate(EvaluationContext& context) const
+bdld::Datum SimpleEvaluator::BooleanLiteral::evaluate(
+    BSLS_ANNOTATION_UNUSED EvaluationContext& context) const
 {
     return bdld::Datum::createBoolean(d_value);
 }

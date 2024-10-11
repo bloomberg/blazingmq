@@ -585,7 +585,7 @@ messages output before BALL has been configured) are logged directly under
 
 This package performs the following transformations on the log records:
 
-- It adds a a new attribute, `bmqContext`, which contains a description of the
+- It adds a new attribute, `bmqContext`, which contains a description of the
   origin of the log record: `TEST` for records issued by test code, and the
   process name of the broker or tool for log records translated from BALL
   records.  The attribute is available in format specifications.

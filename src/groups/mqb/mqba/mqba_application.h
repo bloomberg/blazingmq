@@ -1,4 +1,4 @@
-// Copyright 2014-2023 Bloomberg Finance L.P.
+// Copyright 2014-2024 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,8 +27,10 @@
 // used by the BlazingMQ broker.
 
 // MQB
-
+#include <mqba_commandrouter.h>
+#include <mqbcmd_messages.h>
 #include <mqbconfm_messages.h>
+#include <mqbi_cluster.h>
 
 // MWC
 #include <mwcma_countingallocatorstore.h>
@@ -121,9 +123,20 @@ class Application {
     // Thread pool for admin commands
     // execution.
 
+    bdlmt::ThreadPool d_adminRerouteExecutionPool;
+    // Thread pool for routed admin commands execution.
+    // Ensuring rerouted commands always execute on their
+    // own dedicated thread prevents a case where two nodes
+    // are simultaneously waiting for each other to process
+    // a routed command, but cannot make process because
+    // the calling thread is blocked ("deadlock").
+    // Note that rerouted commands never route again.
+
     bdlbb::PooledBlobBufferFactory d_bufferFactory;
 
     BlobSpPool d_blobSpPool;
+
+    bdlma::ConcurrentPool d_pushElementsPool;
 
     mwcst::StatContext* d_allocatorsStatContext_p;
     // Stat context of the counting allocators,
@@ -157,6 +170,14 @@ class Application {
 
     /// Pendant operation of the `oneTimeInit` one.
     void oneTimeShutdown();
+
+    /// Attempt to execute graceful shutdown logic v2.
+    ///
+    /// If any node or proxy does not support the v2 graceful shutdown logic,
+    /// do not perform any shutdown actions and return `false`.  Otherwise,
+    /// send v2 shutdown requests to all nodes, shutdown clients and proxies,
+    /// and return `true`.
+    bool initiateShutdown();
 
   private:
     // NOT IMPLEMENTED
@@ -194,27 +215,51 @@ class Application {
     /// Stop the application.
     void stop();
 
-    /// Process the command in the specified `cmd` coming from the specified
-    /// `source`, and write the result of the command in the specified `os`.
+    /// Process the command `cmd` coming from the specified `source`, and write
+    /// the result of the command in the given output stream, `os`.
+    /// Mark `fromReroute` as true if executing the command from a reroute to
+    /// ensure proper routing logic. Returns 0 on success, -1 on early exit,
+    /// -2 on error, and some non-zero error code on parse failure.
     int processCommand(const bslstl::StringRef& source,
                        const bsl::string&       cmd,
-                       bsl::ostream&            os);
+                       bsl::ostream&            os,
+                       bool                     fromReroute = false);
 
-    /// Process the command in the specified `cmd` coming from the specified
-    /// `source`, and send the result of the command in the specified
-    /// `onProcessedCb`.
+    /// Process the command `cmd` coming from the specified `source` node, and
+    /// send the result of the command in the given `onProcessedCb`. Mark
+    /// `fromReroute` as true if executing command from a reroute to ensure
+    /// proper routing logic. Returns the error code of calling
+    /// `processCommand` with the given `cmd`, `source`, and `fromReroute`.
     int processCommandCb(
         const bslstl::StringRef&                            source,
         const bsl::string&                                  cmd,
-        const bsl::function<void(int, const bsl::string&)>& onProcessedCb);
+        const bsl::function<void(int, const bsl::string&)>& onProcessedCb,
+        bool fromReroute = false);
 
     /// Enqueue for execution the command in the specified `cmd` coming from
     /// the specified `source`.  The specified `onProcessedCb` callback is
-    /// used to send result of the command after execution.
+    /// used to send result of the command after execution. Mark `fromReroute`
+    /// as true if executing command from a reroute to ensure proper routing
+    /// logic.
     int enqueueCommand(
         const bslstl::StringRef&                            source,
         const bsl::string&                                  cmd,
-        const bsl::function<void(int, const bsl::string&)>& onProcessedCb);
+        const bsl::function<void(int, const bsl::string&)>& onProcessedCb,
+        bool fromReroute = false);
+
+  private:
+    /// Returns a pointer to the cluster instance that the given `command`
+    /// needs to execute for. Fails when the given command does not have a
+    /// cluster associated with it or the cluster cannot be found. On failure,
+    /// this function returns a nullptr and populates `errorDescription` with
+    /// a reason.
+    mqbi::Cluster* getRelevantCluster(bsl::ostream&          errorDescription,
+                                      const mqbcmd::Command& command) const;
+
+    /// Executes the logic of the given `command` and outputs the result in
+    /// `cmdResult`. Returns 0 on success and -1 on early exit
+    int executeCommand(const mqbcmd::Command&  command,
+                       mqbcmd::InternalResult* cmdResult);
 };
 
 }  // close package namespace

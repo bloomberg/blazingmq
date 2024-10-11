@@ -311,6 +311,9 @@ static void test3_queueStatsDomain()
 
     // 1 add message : 15 bytes
     queueStatsDomain.onEvent(QueueStatsDomain::EventType::e_ADD_MESSAGE, 15);
+
+    // 1 GUID in history
+    queueStatsDomain.onEvent(QueueStatsDomain::EventType::e_UPDATE_HISTORY, 1);
     domain->snapshot();
 
     // The following stats are not range based, and therefore always return the
@@ -325,6 +328,7 @@ static void test3_queueStatsDomain()
     ASSERT_EQ_DOMAINSTAT(e_PUSH_BYTES_ABS, 0, 9);
     ASSERT_EQ_DOMAINSTAT(e_PUT_MESSAGES_ABS, 0, 3);
     ASSERT_EQ_DOMAINSTAT(e_PUT_BYTES_ABS, 0, 33);
+    ASSERT_EQ_DOMAINSTAT(e_HISTORY_ABS, 0, 1);
 
     ASSERT_EQ_DOMAINSTAT(e_ACK_DELTA, 1, 2);
     ASSERT_EQ_DOMAINSTAT(e_CONFIRM_DELTA, 1, 1);
@@ -359,6 +363,10 @@ static void test3_queueStatsDomain()
 
     // del 1 message
     queueStatsDomain.onEvent(QueueStatsDomain::EventType::e_DEL_MESSAGE, 15);
+
+    // 3 GUIDs in history (first 5, then gc results in 3)
+    queueStatsDomain.onEvent(QueueStatsDomain::EventType::e_UPDATE_HISTORY, 5);
+    queueStatsDomain.onEvent(QueueStatsDomain::EventType::e_UPDATE_HISTORY, 3);
     domain->snapshot();
 
     // The following stats are not range based, and therefore always return the
@@ -373,6 +381,7 @@ static void test3_queueStatsDomain()
     ASSERT_EQ_DOMAINSTAT(e_PUSH_BYTES_ABS, 0, 20);
     ASSERT_EQ_DOMAINSTAT(e_PUT_MESSAGES_ABS, 0, 5);
     ASSERT_EQ_DOMAINSTAT(e_PUT_BYTES_ABS, 0, 55);
+    ASSERT_EQ_DOMAINSTAT(e_HISTORY_ABS, 0, 3);
 
     // Compare now and previous snapshot
     ASSERT_EQ_DOMAINSTAT(e_ACK_DELTA, 1, 4);

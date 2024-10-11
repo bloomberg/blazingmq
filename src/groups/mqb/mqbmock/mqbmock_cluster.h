@@ -108,11 +108,12 @@ namespace mqbmock {
 // class Cluster
 // =============
 
-/// Mock cluster implementation of the `mqbi::Cluster` inteface.
+/// Mock cluster implementation of the `mqbi::Cluster` interface.
 class Cluster : public mqbi::Cluster {
   private:
     // PRIVATE TYPES
-    typedef Cluster::RequestManagerType RequestManagerType;
+    typedef Cluster::RequestManagerType      RequestManagerType;
+    typedef Cluster::MultiRequestManagerType MultiRequestManagerType;
 
     typedef bsl::function<void(const mqbi::DispatcherEvent& event)>
         EventProcessor;
@@ -219,6 +220,8 @@ class Cluster : public mqbi::Cluster {
 
     EventProcessor d_processor;
 
+    mqbi::ClusterResources d_resources;
+
   private:
     // NOT IMPLEMENTED
     Cluster(const Cluster&) BSLS_CPP11_DELETED;
@@ -298,11 +301,16 @@ class Cluster : public mqbi::Cluster {
     /// error.
     int start(bsl::ostream& errorDescription) BSLS_KEYWORD_OVERRIDE;
 
-    /// Initiate the shutdown of the cluster.  It is expected that `stop()`
-    /// will be called soon after this routine is invoked.  Invoke the
-    /// specified `callback` upon completion of (asynchronous) shutdown
-    /// sequence.
-    void initiateShutdown(const VoidFunctor& callback) BSLS_KEYWORD_OVERRIDE;
+    /// Initiate the shutdown of the cluster and invoke the specified
+    /// `callback` upon completion of (asynchronous) shutdown sequence. It
+    /// is expected that `stop()` will be called soon after this routine is
+    /// invoked.  If the optional (temporary) specified 'supportShutdownV2' is
+    /// 'true' execute shutdown logic V2 where upstream (not downstream) nodes
+    /// deconfigure  queues and the shutting down node (not downstream) wait
+    /// for CONFIRMS.
+    void
+    initiateShutdown(const VoidFunctor& callback,
+                     bool supportShutdownV2 = false) BSLS_KEYWORD_OVERRIDE;
 
     /// Stop the `Cluster`.
     void stop() BSLS_KEYWORD_OVERRIDE;
@@ -324,6 +332,10 @@ class Cluster : public mqbi::Cluster {
     /// Return a reference offering modifiable access to the request manager
     /// used by this cluster.
     RequestManagerType& requestManager() BSLS_KEYWORD_OVERRIDE;
+
+    /// Return a reference offering modifiable access to the multi request
+    /// manager used by this cluster.
+    MultiRequestManagerType& multiRequestManager() BSLS_KEYWORD_OVERRIDE;
 
     /// Send the specified `request` with the specified `timeout` to the
     /// specified `target` node.  If `target` is 0, it is the Cluster's
@@ -430,8 +442,22 @@ class Cluster : public mqbi::Cluster {
     /// Move the test timer forward the specified `seconds`.
     void advanceTime(int seconds);
 
+    /// Move the test timer forward the specified `milliseconds`.
+    void advanceTime(const bsls::TimeInterval& interval);
+
     /// Block until scheduler executes all the scheduled callbacks.
     void waitForScheduler();
+
+    void getPrimaryNodes(int*                               rc,
+                         bsl::ostream&                      errorDescription,
+                         bsl::vector<mqbnet::ClusterNode*>* nodes,
+                         bool* isSelfPrimary) const BSLS_KEYWORD_OVERRIDE;
+
+    void getPartitionPrimaryNode(int*                  rc,
+                                 bsl::ostream&         errorDescription,
+                                 mqbnet::ClusterNode** node,
+                                 bool*                 isSelfPrimary,
+                                 int partitionId) const BSLS_KEYWORD_OVERRIDE;
 
     // ACCESSORS
     //   (virtual: mqbi::DispatcherClient)
@@ -505,6 +531,7 @@ class Cluster : public mqbi::Cluster {
     const bdlmt::EventSchedulerTestTimeSource& _timeSource() const;
     const TestChannelMap&                      _channels() const;
     const mqbc::ClusterData*                   _clusterData() const;
+    const mqbi::ClusterResources&              _resources() const;
 
     /// Return the value of the corresponding member of this object.
     const mqbc::ClusterState& _state() const;
@@ -579,6 +606,30 @@ inline void Cluster::advanceTime(int seconds)
     d_timeSource.advanceTime(bsls::TimeInterval(seconds));
 }
 
+inline void Cluster::advanceTime(const bsls::TimeInterval& interval)
+{
+    d_timeSource.advanceTime(interval);
+}
+
+inline void Cluster::getPrimaryNodes(int*,
+                                     bsl::ostream&,
+                                     bsl::vector<mqbnet::ClusterNode*>*,
+                                     bool*) const
+{
+    // no implementation -- this should never run.
+    BSLS_ASSERT_SAFE(false);
+}
+
+inline void Cluster::getPartitionPrimaryNode(int*,
+                                             bsl::ostream&,
+                                             mqbnet::ClusterNode**,
+                                             bool*,
+                                             int) const
+{
+    // no implementation -- this should never run.
+    BSLS_ASSERT_SAFE(false);
+}
+
 // ACCESSORS
 //   (virtual: mqbi::Cluster)
 inline bool Cluster::isCSLModeEnabled() const
@@ -615,6 +666,11 @@ inline const mqbc::ClusterData* Cluster::_clusterData() const
 inline const mqbc::ClusterState& Cluster::_state() const
 {
     return d_state;
+}
+
+inline const mqbi::ClusterResources& Cluster::_resources() const
+{
+    return d_resources;
 }
 
 inline bsls::TimeInterval Cluster::getTime() const

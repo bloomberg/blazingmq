@@ -90,6 +90,7 @@ def extract_stats(admin_response: str) -> dict:
 def expect_same_structure(
     entry: Union[dict, list, str, int],
     expected: Union[dict, list, str, int, dt.ValueConstraint],
+    path: str = "",
 ) -> None:
     """
     Check if the specified 'entry' has the same structure as the specified 'expected'.
@@ -100,14 +101,20 @@ def expect_same_structure(
 
     if isinstance(expected, dict):
         assert isinstance(entry, dict)
-        assert expected.keys() == entry.keys()
+        assert expected.keys() == entry.keys(), (
+            path,
+            "Extra expected keys:",
+            expected.keys() - entry.keys(),
+            "Missing expected keys:",
+            entry.keys() - expected.keys(),
+        )
         for key in expected:
-            expect_same_structure(entry[key], expected[key])
+            expect_same_structure(entry[key], expected[key], path + "." + key)
     elif isinstance(expected, list):
         assert isinstance(entry, list)
         assert len(expected) == len(entry)
         for obj2, expected2 in zip(entry, expected):
-            expect_same_structure(obj2, expected2)
+            expect_same_structure(obj2, expected2, path + "." + key)
     elif isinstance(expected, str):
         assert isinstance(entry, str)
         assert expected == entry
@@ -117,7 +124,7 @@ def expect_same_structure(
             assert expected.check(entry)
         else:
             assert isinstance(expected, int)
-            assert entry == expected
+            assert entry == expected, (path, "expected:", expected, "actual:", entry)
 
 
 def test_breathing(single_node: Cluster) -> None:
@@ -174,7 +181,12 @@ def test_queue_stats(single_node: Cluster) -> None:
     - Confirm a portion of messages for each consumer
     - Verify stats acquired via admin command with the expected stats
 
-    Stage 3: check too-often stats safeguard
+    Stage 3: check stats after purging an appId
+    - Purge one appId
+    - Check that message/byte stats for this appId set to 0, and
+    the queue stats in general correctly changed
+
+    Stage 4: check too-often stats safeguard
     - Send several 'stat show' requests
     - Verify that the admin session complains about too often stat request
 
@@ -205,7 +217,7 @@ def test_queue_stats(single_node: Cluster) -> None:
     stats = extract_stats(admin.send_admin("encoding json_pretty stat show"))
     queue_stats = stats["domainQueues"]["domains"][tc.DOMAIN_FANOUT][task.uri]
 
-    expect_same_structure(queue_stats, dt.TEST_QUEUE_STATS_AFTER_POST)
+    expect_same_structure(queue_stats, dt.TEST_QUEUE_STATS_AFTER_POST, "after-post")
 
     # Stage 2: check stats after confirming messages
     consumer_foo: Client = proxy.create_client("consumer_foo")
@@ -223,19 +235,32 @@ def test_queue_stats(single_node: Cluster) -> None:
     stats = extract_stats(admin.send_admin("encoding json_pretty stat show"))
     queue_stats = stats["domainQueues"]["domains"][tc.DOMAIN_FANOUT][task.uri]
 
-    expect_same_structure(queue_stats, dt.TEST_QUEUE_STATS_AFTER_CONFIRM)
+    expect_same_structure(
+        queue_stats, dt.TEST_QUEUE_STATS_AFTER_CONFIRM, "after-confirm"
+    )
+
+    # Stage 3: check stats after purging an appId
+    res = admin.send_admin(
+        f"DOMAINS DOMAIN {task.domain} QUEUE {task.queue_name} PURGE baz"
+    )
+    assert f"Purged 21 message(s)" in res
+
+    stats = extract_stats(admin.send_admin("encoding json_pretty stat show"))
+    queue_stats = stats["domainQueues"]["domains"][tc.DOMAIN_FANOUT][task.uri]
+
+    expect_same_structure(queue_stats, dt.TEST_QUEUE_STATS_AFTER_PURGE, "after-purge")
 
     consumer_foo.close(f"{task.uri}?id=foo")
     consumer_bar.close(f"{task.uri}?id=bar")
     consumer_baz.close(f"{task.uri}?id=baz")
 
-    # Stage 3: check too-often stats safeguard
+    # Stage 4: check too-often stats safeguard
     for i in range(5):
         admin.send_admin("encoding json_pretty stat show")
     res = admin.send_admin("encoding json_pretty stat show")
     obj = json.loads(res)
 
-    expect_same_structure(obj, dt.TEST_QUEUE_STATS_TOO_OFTEN_SNAPSHOTS)
+    expect_same_structure(obj, dt.TEST_QUEUE_STATS_TOO_OFTEN_SNAPSHOTS, "too-often")
 
     admin.stop()
 

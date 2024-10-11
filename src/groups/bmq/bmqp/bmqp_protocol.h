@@ -633,6 +633,8 @@ struct HighAvailabilityFeatures {
     static const char k_BROADCAST_TO_PROXIES[];
 
     static const char k_GRACEFUL_SHUTDOWN[];
+
+    static const char k_GRACEFUL_SHUTDOWN_V2[];
 };
 
 /// This struct defines feature names related to MessageProperties

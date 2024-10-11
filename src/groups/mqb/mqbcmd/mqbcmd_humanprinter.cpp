@@ -395,7 +395,7 @@ void printFileStoreSummary(bsl::ostream&           os,
 {
     using namespace mwcu::PrintUtil;
 
-    os << indent(level, spacesPerLevel) << "PartitionId [" << partitionId
+    os << indent(level, spacesPerLevel) << "Partition [" << partitionId
        << "]:" << newlineAndIndent(level, spacesPerLevel) << "----------------"
        << newlineAndIndent(level + 1, spacesPerLevel)
        << "Primary Node: " << summary.primaryNodeDescription()
@@ -503,12 +503,12 @@ void printClusterStorageSummary(bsl::ostream&                os,
          ++cit) {
         if (cit->state() == FileStoreState::CLOSED) {
             os << mwcu::PrintUtil::newlineAndIndent(level, spacesPerLevel)
-               << "PartitionId [" << cit->partitionId() << "]: NOT OPEN.";
+               << "Partition [" << cit->partitionId() << "]: NOT OPEN.";
             continue;  // CONTINUE
         }
         else if (cit->state() == FileStoreState::STOPPING) {
             os << mwcu::PrintUtil::newlineAndIndent(level, spacesPerLevel)
-               << "PartitionId [" << cit->partitionId() << "]: STOPPING.";
+               << "Partition [" << cit->partitionId() << "]: STOPPING.";
             continue;  // CONTINUE
         }
 
@@ -1433,6 +1433,27 @@ bsl::ostream& HumanPrinter::print(bsl::ostream& os,
     }
     else {
         BSLS_ASSERT_SAFE(false && "Unsupported result");
+    }
+    return os;
+}
+
+bsl::ostream&
+HumanPrinter::printResponses(bsl::ostream&            os,
+                             const RouteResponseList& responseList)
+{
+    typedef bsl::vector<BloombergLP::mqbcmd::RouteResponse>
+        RouteResponseVector;
+
+    RouteResponseVector responses = responseList.responses();
+
+    for (RouteResponseVector::const_iterator respIt = responses.begin();
+         respIt != responses.end();
+         ++respIt) {
+        os << "Response from node \"" << respIt->sourceNodeDescription()
+           << "\":";
+        os << bsl::endl;
+        os << respIt->response();
+        os << bsl::endl;
     }
     return os;
 }

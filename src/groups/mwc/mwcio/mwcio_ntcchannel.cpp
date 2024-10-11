@@ -1384,12 +1384,14 @@ int NtcChannel::channelId() const
 
 ntsa::Endpoint NtcChannel::peerEndpoint() const
 {
-    if (d_streamSocket_sp) {
-        return d_streamSocket_sp->remoteEndpoint();
-    }
-    else {
-        return ntsa::Endpoint();
-    }
+    return d_streamSocket_sp ? d_streamSocket_sp->remoteEndpoint()
+                             : ntsa::Endpoint();
+}
+
+ntsa::Endpoint NtcChannel::sourceEndpoint() const
+{
+    return d_streamSocket_sp ? d_streamSocket_sp->sourceEndpoint()
+                             : ntsa::Endpoint();
 }
 
 const bsl::string& NtcChannel::peerUri() const
@@ -1405,6 +1407,12 @@ const mwct::PropertyBag& NtcChannel::properties() const
 bslma::Allocator* NtcChannel::allocator() const
 {
     return d_allocator_p;
+}
+
+const ntci::StreamSocket& NtcChannel::streamSocket() const
+{
+    BSLS_ASSERT(d_streamSocket_sp);
+    return *d_streamSocket_sp;
 }
 
 // ---------------------

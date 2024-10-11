@@ -74,8 +74,10 @@ class QueueEngine {
     /// otherwise and populate the specified `errorDescription`.
     virtual int configure(bsl::ostream& errorDescription) = 0;
 
-    /// Reset the internal state of this engine.
-    virtual void resetState() = 0;
+    /// Reset the internal state of this engine.  If the optionally specified
+    /// 'isShuttingDown' is 'true', clear the routing state but keep the Apps
+    /// state for CONFIRMs processing.
+    virtual void resetState(bool isShuttingDown = false) = 0;
 
     /// Rebuild the internal state of this engine.  This method is invoked
     /// when the queue this engine is associated with is created from an
@@ -204,6 +206,22 @@ class QueueEngine {
     /// THREAD: This method is called from the Queue's dispatcher thread.
     virtual void
     afterAppIdUnregistered(const mqbi::Storage::AppIdKeyPair& appIdKeyPair);
+
+    /// Called after creation of a new storage for the  specified
+    /// `appIdKeyPair`.
+    ///
+    /// THREAD: This method is called from the Queue's dispatcher thread.
+    virtual void registerStorage(const bsl::string&      appId,
+                                 const mqbu::StorageKey& appKey,
+                                 unsigned int            appOrdinal);
+
+    /// Called after removal of the storage for the specified
+    /// `appIdKeyPair`.
+    ///
+    /// THREAD: This method is called from the Queue's dispatcher thread.
+    virtual void unregisterStorage(const bsl::string&      appId,
+                                   const mqbu::StorageKey& appKey,
+                                   unsigned int            appOrdinal);
 
     /// Given the specified 'putHeader', 'appData', 'mpi', and 'timestamp',
     /// evaluate all Auto (Application) subscriptions and exclude applications

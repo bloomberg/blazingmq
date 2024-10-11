@@ -512,7 +512,7 @@ void ClusterUtil::assignPartitions(
             }
 
             BALL_LOG_INFO << clusterData.identity().description()
-                          << ": PartitionId [" << pinfo.partitionId()
+                          << ": Partition [" << pinfo.partitionId()
                           << "]: Leader (self) has assigned "
                           << primary->nodeDescription() << " as primary.";
 
@@ -785,8 +785,7 @@ void ClusterUtil::populateQueueAssignmentAdvisory(
     ClusterState*                          clusterState,
     ClusterData*                           clusterData,
     const bmqt::Uri&                       uri,
-    const mqbi::Domain*                    domain,
-    bool                                   isCSLMode)
+    const mqbi::Domain*                    domain)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(advisory);
@@ -809,10 +808,8 @@ void ClusterUtil::populateQueueAssignmentAdvisory(
                                           uri.asString());
     key->loadBinary(&queueInfo.key());
 
-    if (isCSLMode) {
-        // Generate appIds and appKeys
-        populateAppIdInfos(&queueInfo.appIds(), domain->config().mode());
-    }
+    // Generate appIds and appKeys
+    populateAppIdInfos(&queueInfo.appIds(), domain->config().mode());
 
     BALL_LOG_INFO << clusterData->identity().description()
                   << ": Populated QueueAssignmentAdvisory: " << *advisory;
@@ -1008,8 +1005,7 @@ ClusterUtil::assignQueue(ClusterState*           clusterState,
                                     clusterState,
                                     clusterData,
                                     uri,
-                                    domIt->second->domain(),
-                                    cluster->isCSLModeEnabled());
+                                    domIt->second->domain());
     if (cluster->isCSLModeEnabled()) {
         // In CSL mode, we delay the insertion to queueKeys until
         // 'onQueueAssigned' observer callback.
@@ -1147,11 +1143,10 @@ void ClusterUtil::registerQueueInfo(ClusterState*           clusterState,
                     MWCTSK_ALARMLOG_ALARM("CLUSTER_STATE")
                         << cluster->description()
                         << ": re-registering a known queue with a stale view, "
-                        << "but queueKey is not unique. "
-                        << "QueueKey [" << queueKey << "], URI [" << uri
-                        << "], PartitionId [" << partitionId
-                        << "], AppIdInfos [" << storageAppIdInfos << "]."
-                        << MWCTSK_ALARMLOG_END;
+                        << "but queueKey is not unique. " << "QueueKey ["
+                        << queueKey << "], URI [" << uri << "], Partition ["
+                        << partitionId << "], AppIdInfos ["
+                        << storageAppIdInfos << "]." << MWCTSK_ALARMLOG_END;
                     return;  // RETURN
                 }
 
@@ -1184,8 +1179,8 @@ void ClusterUtil::registerQueueInfo(ClusterState*           clusterState,
                 << cluster->description()
                 << ": registering a queue for an unknown queue, but "
                 << "queueKey is not unique. QueueKey [" << queueKey
-                << "], URI [" << uri << "], PartitionId [" << partitionId
-                << "]." << MWCTSK_ALARMLOG_END;
+                << "], URI [" << uri << "], Partition [" << partitionId << "]."
+                << MWCTSK_ALARMLOG_END;
             return;  // RETURN
         }
 

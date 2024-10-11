@@ -74,17 +74,53 @@ struct ConversionUtils {
 
         populateMetric(&values, ctx, Stat::e_NB_PRODUCER);
         populateMetric(&values, ctx, Stat::e_NB_CONSUMER);
+
+        populateMetric(&values, ctx, Stat::e_MESSAGES_CURRENT);
+        populateMetric(&values, ctx, Stat::e_MESSAGES_MAX);
+        populateMetric(&values, ctx, Stat::e_BYTES_CURRENT);
+        populateMetric(&values, ctx, Stat::e_BYTES_MAX);
+
         populateMetric(&values, ctx, Stat::e_PUT_MESSAGES_DELTA);
         populateMetric(&values, ctx, Stat::e_PUT_BYTES_DELTA);
+        populateMetric(&values, ctx, Stat::e_PUT_MESSAGES_ABS);
+        populateMetric(&values, ctx, Stat::e_PUT_BYTES_ABS);
+
         populateMetric(&values, ctx, Stat::e_PUSH_MESSAGES_DELTA);
         populateMetric(&values, ctx, Stat::e_PUSH_BYTES_DELTA);
+        populateMetric(&values, ctx, Stat::e_PUSH_MESSAGES_ABS);
+        populateMetric(&values, ctx, Stat::e_PUSH_BYTES_ABS);
+
         populateMetric(&values, ctx, Stat::e_ACK_DELTA);
+        populateMetric(&values, ctx, Stat::e_ACK_ABS);
         populateMetric(&values, ctx, Stat::e_ACK_TIME_AVG);
         populateMetric(&values, ctx, Stat::e_ACK_TIME_MAX);
+
         populateMetric(&values, ctx, Stat::e_NACK_DELTA);
+        populateMetric(&values, ctx, Stat::e_NACK_ABS);
+
         populateMetric(&values, ctx, Stat::e_CONFIRM_DELTA);
+        populateMetric(&values, ctx, Stat::e_CONFIRM_ABS);
         populateMetric(&values, ctx, Stat::e_CONFIRM_TIME_AVG);
         populateMetric(&values, ctx, Stat::e_CONFIRM_TIME_MAX);
+
+        populateMetric(&values, ctx, Stat::e_REJECT_ABS);
+        populateMetric(&values, ctx, Stat::e_REJECT_DELTA);
+
+        populateMetric(&values, ctx, Stat::e_QUEUE_TIME_AVG);
+        populateMetric(&values, ctx, Stat::e_QUEUE_TIME_MAX);
+
+        populateMetric(&values, ctx, Stat::e_GC_MSGS_DELTA);
+        populateMetric(&values, ctx, Stat::e_GC_MSGS_ABS);
+
+        populateMetric(&values, ctx, Stat::e_ROLE);
+
+        populateMetric(&values, ctx, Stat::e_CFG_MSGS);
+        populateMetric(&values, ctx, Stat::e_CFG_BYTES);
+
+        populateMetric(&values, ctx, Stat::e_NO_SC_MSGS_DELTA);
+        populateMetric(&values, ctx, Stat::e_NO_SC_MSGS_ABS);
+
+        populateMetric(&values, ctx, Stat::e_HISTORY_ABS);
     }
 
     inline static void populateOneDomainStats(bdljsn::JsonObject* domainObject,
@@ -196,10 +232,14 @@ class JsonPrinter::JsonPrinterImpl {
 inline JsonPrinter::JsonPrinterImpl::JsonPrinterImpl(
     const StatContextsMap& statContextsMap,
     bslma::Allocator*      allocator)
-: d_opsCompact(bdljsn::WriteOptions().setSpacesPerLevel(0).setStyle(
-      bdljsn::WriteStyle::e_COMPACT))
-, d_opsPretty(bdljsn::WriteOptions().setSpacesPerLevel(4).setStyle(
-      bdljsn::WriteStyle::e_PRETTY))
+: d_opsCompact(bdljsn::WriteOptions()
+                   .setSpacesPerLevel(0)
+                   .setStyle(bdljsn::WriteStyle::e_COMPACT)
+                   .setSortMembers(true))
+, d_opsPretty(bdljsn::WriteOptions()
+                  .setSpacesPerLevel(4)
+                  .setStyle(bdljsn::WriteStyle::e_PRETTY)
+                  .setSortMembers(true))
 , d_contexts(statContextsMap, allocator)
 {
     // NOTHING

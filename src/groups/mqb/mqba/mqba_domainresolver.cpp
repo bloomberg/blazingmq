@@ -152,8 +152,6 @@ int DomainResolver::getOrRead(bsl::ostream&             errorDescription,
         bsl::string filePath = mqbcfg::BrokerConfig::get().etcDir() +
                                "/domains/" + resolvedDomainName + ".json";
 
-        bdlma::LocalSequentialAllocator<1024> localAllocator(d_allocator_p);
-
         // This is copy-pasted from mqba_configprovider.cpp. Maybe we are
         // going to merge the two? If not, consider factoring this bit.
         if (!bdls::FilesystemUtil::exists(filePath)) {

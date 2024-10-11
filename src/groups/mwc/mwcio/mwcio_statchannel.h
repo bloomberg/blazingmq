@@ -98,7 +98,7 @@ class StatChannel : public DecoratingChannelPartialImp {
     ///       `mwcio::StatChannelFactory`).
     struct Stat {
         // TYPES
-        enum Enum { e_BYTES_IN = 0, e_BYTES_OUT = 1 };
+        enum Enum { e_BYTES_IN = 0, e_BYTES_OUT = 1, e_CONNECTIONS = 2 };
     };
 
   private:

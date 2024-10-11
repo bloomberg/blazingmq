@@ -636,23 +636,21 @@ class SessionEventHandler {
 /// Care should be taken though since `Session` is a polymorphic class.
 struct SessionImpl {
     // PUBLIC DATA
+
+    /// The allocator to use
     bslma::Allocator* d_allocator_p;
-    // The allocator to use
 
+    /// Session options as provided by the application.
     bmqt::SessionOptions d_sessionOptions;
-    // Session options as provided by
-    // the application.
 
+    /// Event handler, if any, to use for notifying application of events.
     bslma::ManagedPtr<SessionEventHandler> d_eventHandler_mp;
-    // Event handler, if any, to use
-    // for notifying application of
-    // events.
 
+    /// GUID generator object.
     bsl::shared_ptr<bmqp::MessageGUIDGenerator> d_guidGenerator_sp;
-    // GUID generator object.
 
+    /// The application object.
     bslma::ManagedPtr<bmqimp::Application> d_application_mp;
-    // The application object.
 
   private:
     // NOT IMPLEMENTED

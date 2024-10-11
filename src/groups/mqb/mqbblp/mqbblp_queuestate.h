@@ -151,11 +151,7 @@ class QueueState {
     mqbi::AppKeyGenerator* d_appKeyGenerator_p;
     // App key generator to use.
 
-    bdlbb::BlobBufferFactory* d_blobBufferFactory_p;
-    // BlobBufferFactory to use.
-
-    bdlmt::EventScheduler* d_scheduler_p;
-    // EventScheduler to use.
+    const mqbi::ClusterResources d_resources;
 
     bdlmt::FixedThreadPool* d_miscWorkThreadPool_p;
     // Thread pool used for any standalone
@@ -201,23 +197,22 @@ class QueueState {
 
     // CREATORS
 
-    /// Create a new `QueueState` associated to the specified `queue` and
-    /// having the specified `uri`, `id`, `key`, `partitionId` and `domain`.
-    /// Use the specified `allocator` for any memory allocations.
-    QueueState(mqbi::Queue*            queue,
-               const bmqt::Uri&        uri,
-               unsigned int            id,
-               const mqbu::StorageKey& key,
-               int                     partitionId,
-               mqbi::Domain*           domain,
-               bslma::Allocator*       allocator);
+    /// Create a new 'QueueState' associated to the specified 'queue' and
+    /// having the specified 'uri', 'id', 'key', 'partitionId', 'domain', and
+    /// 'resources'.  Use the specified 'allocator' for any memory allocations.
+    QueueState(mqbi::Queue*                 queue,
+               const bmqt::Uri&             uri,
+               unsigned int                 id,
+               const mqbu::StorageKey&      key,
+               int                          partitionId,
+               mqbi::Domain*                domain,
+               const mqbi::ClusterResources resources,
+               bslma::Allocator*            allocator);
 
     /// Destructor
     ~QueueState();
 
     // MANIPULATORS
-    QueueState& setBlobBufferFactory(bdlbb::BlobBufferFactory* value);
-    QueueState& setEventScheduler(bdlmt::EventScheduler* scheduler);
     QueueState& setMiscWorkThreadPool(bdlmt::FixedThreadPool* threadPool);
     QueueState& setDescription(const bslstl::StringRef& value);
     QueueState& setDomain(mqbi::Domain* value);
@@ -294,16 +289,18 @@ class QueueState {
         bmqp_ctrlmsg::StreamParameters* value,
         unsigned int subQueueId = bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID) const;
 
-    bdlbb::BlobBufferFactory*                  blobBufferFactory() const;
-    bdlmt::EventScheduler*                     scheduler() const;
-    bdlmt::FixedThreadPool*                    miscWorkThreadPool() const;
-    const bsl::string&                         description() const;
-    const mqbi::DispatcherClientData&          dispatcherClientData() const;
-    mqbi::Domain*                              domain() const;
-    unsigned int                               id() const;
-    const mqbu::StorageKey&                    key() const;
-    const QueueHandleCatalog&                  handleCatalog() const;
-    const bmqp_ctrlmsg::QueueHandleParameters& handleParameters() const;
+    bdlbb::BlobBufferFactory*                    blobBufferFactory() const;
+    bdlmt::EventScheduler*                       scheduler() const;
+    mqbi::ClusterResources::BlobSpPool*          blobSpPool() const;
+    const bsl::optional<bdlma::ConcurrentPool*>& pushElementsPool() const;
+    bdlmt::FixedThreadPool*                      miscWorkThreadPool() const;
+    const bsl::string&                           description() const;
+    const mqbi::DispatcherClientData&            dispatcherClientData() const;
+    mqbi::Domain*                                domain() const;
+    unsigned int                                 id() const;
+    const mqbu::StorageKey&                      key() const;
+    const QueueHandleCatalog&                    handleCatalog() const;
+    const bmqp_ctrlmsg::QueueHandleParameters&   handleParameters() const;
 
     int                                       partitionId() const;
     mqbi::Queue*                              queue() const;
@@ -357,19 +354,6 @@ class QueueState {
 // ----------------
 
 // MANIPULATORS
-inline QueueState&
-QueueState::setBlobBufferFactory(bdlbb::BlobBufferFactory* value)
-{
-    d_blobBufferFactory_p = value;
-    return *this;
-}
-
-inline QueueState&
-QueueState::setEventScheduler(bdlmt::EventScheduler* scheduler)
-{
-    d_scheduler_p = scheduler;
-    return *this;
-}
 
 inline QueueState&
 QueueState::setMiscWorkThreadPool(bdlmt::FixedThreadPool* threadPool)
@@ -527,12 +511,23 @@ inline Routers::QueueRoutingContext& QueueState::routingContext()
 // ACCESSORS
 inline bdlbb::BlobBufferFactory* QueueState::blobBufferFactory() const
 {
-    return d_blobBufferFactory_p;
+    return d_resources.bufferFactory();
 }
 
 inline bdlmt::EventScheduler* QueueState::scheduler() const
 {
-    return d_scheduler_p;
+    return d_resources.scheduler();
+}
+
+inline mqbi::ClusterResources::BlobSpPool* QueueState::blobSpPool() const
+{
+    return d_resources.blobSpPool();
+}
+
+inline const bsl::optional<bdlma::ConcurrentPool*>&
+QueueState::pushElementsPool() const
+{
+    return d_resources.pushElementsPool();
 }
 
 inline bdlmt::FixedThreadPool* QueueState::miscWorkThreadPool() const

@@ -101,30 +101,25 @@ class MessageProperties;
 ///                      `bmqa::MessageIterator.nextMessage()`.
 struct MessageImpl {
     // PUBLIC DATA
+
+    /// Pointer to the Event this message is associated with
     bmqimp::Event* d_event_p;
-    // Pointer to the Event this message is
-    // associated with
 
+    /// May point to a bmqimp::Event (in case this Message is a clone)
     bsl::shared_ptr<bmqimp::Event> d_clonedEvent_sp;
-    // May point to a bmqimp::Event (in case
-    // this Message is a clone)
 
+    /// QueueId this message is associated with
     bmqa::QueueId d_queueId;
-    // QueueId this message is associated
-    // with
 
+    /// CorrelationId this message is associated with
     bmqt::CorrelationId d_correlationId;
-    // CorrelationId this message is
-    // associated with
 
+    /// SubscriptionHandle this message is associated with
     bmqt::SubscriptionHandle d_subscriptionHandle;
-    // SubscriptionHandle this message is
-    // associated with
 
 #ifdef BMQ_ENABLE_MSG_GROUPID
+    /// Optional GroupId this message is associated with
     bsl::string d_groupId;
-    // Optional Group Id this message is
-    // associated with
 #endif
 };
 
@@ -136,11 +131,12 @@ struct MessageImpl {
 class MessageConfirmationCookie {
   private:
     // DATA
-    bmqa::QueueId d_queueId;
-    // QueueID associated to this cookie
 
+    /// QueueID associated to this cookie
+    bmqa::QueueId d_queueId;
+
+    /// GUID associated to this cookie
     bmqt::MessageGUID d_guid;
-    // GUID associated to this cookie
 
   public:
     // CREATORS

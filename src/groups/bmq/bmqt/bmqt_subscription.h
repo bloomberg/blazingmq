@@ -61,17 +61,18 @@ class SubscriptionHandle {
     friend class bmqa::MessageIterator;
 
   public:
+    /// Initial (invalid) value for `bmqt::SubscriptionHandle::d_id`
     static const unsigned int k_INVALID_HANDLE_ID = 0;
-    // Initial (invalid) value for 'bmqt::SubscriptionHandle::d_id'
 
   private:
     // PRIVATE DATA
-    unsigned int d_id;
-    // Internal, unique key
 
+    /// Internal, unique key
+    unsigned int d_id;
+
+    /// User-specified, not required to be unique
     bmqt::CorrelationId d_correlationId;
-    // User-specified, not required to be
-    // unique
+
   private:
     // PRIVATE CLASS METHODS
     static unsigned int nextId();
@@ -122,18 +123,22 @@ class SubscriptionHandle {
 class SubscriptionExpression {
   public:
     // TYPES
+
+    /// Enum representing criteria format
     enum Enum {
-        // Enum representing criteria format
-        e_NONE = 0  // EMPTY
+        /// EMPTY
+        e_NONE = 0
+
         ,
-        e_VERSION_1 = 1  // Simple Evaluator
+        /// Simple Evaluator
+        e_VERSION_1 = 1
     };
 
   private:
     bsl::string d_expression;  // e.g., "firmId == foo"
 
-    Enum d_version;  // Required to support newer style
-                     // of expressions in future
+    // Required to support newer style of expressions in future
+    Enum d_version;
 
   public:
     // CREATORS
@@ -164,13 +169,12 @@ class SubscriptionExpression {
 class Subscription {
   public:
     // PUBLIC CONSTANTS
-    static const int k_CONSUMER_PRIORITY_MIN;
-    // Constant representing the minimum
-    // valid consumer priority
 
+    /// Constant representing the minimum valid consumer priority
+    static const int k_CONSUMER_PRIORITY_MIN;
+
+    /// Constant representing the maximum valid consumer priority
     static const int k_CONSUMER_PRIORITY_MAX;
-    // Constant representing the maximum
-    // valid consumer priority
 
     static const int k_DEFAULT_MAX_UNCONFIRMED_MESSAGES;
     static const int k_DEFAULT_MAX_UNCONFIRMED_BYTES;
@@ -178,25 +182,23 @@ class Subscription {
 
   private:
     // PRIVATE DATA
+
+    /// Maximum number of outstanding messages that can be sent by the broker
+    /// without being confirmed.
     bsl::optional<int> d_maxUnconfirmedMessages;
-    // Maximum number of outstanding
-    // messages that can be sent by the
-    // broker without being confirmed.
 
+    /// Maximum accumulated bytes of all outstanding messages that can be sent
+    /// by the broker without being confirmed.
     bsl::optional<int> d_maxUnconfirmedBytes;
-    // Maximum accumulated bytes of all
-    // outstanding messages that can be
-    // sent by the broker without being
-    // confirmed.
 
+    /// Priority of a consumer with respect to delivery of messages
     bsl::optional<int> d_consumerPriority;
-    // Priority of a consumer with respect
-    // to delivery of messages
 
     SubscriptionExpression d_expression;
 
   public:
     // CREATORS
+
     /// Create a new Subscription
     Subscription();
 

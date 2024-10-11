@@ -96,7 +96,7 @@ above.  Some important things to know about:
 
 - The `Type` field captures
   [type](https://github.com/bloomberg/blazingmq/blob/ca6491f69eea8d91733fa36ef3e82c4facc734fc/src/groups/bmq/bmqp/bmqp_protocol.h#L457)
-  of the packet.  Note that a BlazingMQ packet is homogenous.  In other words,
+  of the packet.  Note that a BlazingMQ packet is homogeneous.  In other words,
   a packet can contain more than one BlazingMQ message, but all of those
   messages will be of the same type.  For example, if the type of the packet is
   `PUT`, all messages which appear in the packet will be `PUT` messages.

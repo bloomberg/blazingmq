@@ -142,7 +142,7 @@ void StorageManager::startRecoveryCb(int partitionId)
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
                   << " ProcessorID [" << dispatcherClientData.processorHandle()
-                  << "] | PartitionId [" << partitionId
+                  << "] | Partition [" << partitionId
                   << "]: Starting first phase of recovery.";
 
     // Start recovery for the partition through recovery manager.  Note that if
@@ -178,7 +178,7 @@ void StorageManager::onPartitionRecovery(
 
     if (d_cluster_p->isStopping()) {
         BALL_LOG_WARN << d_clusterData_p->identity().description()
-                      << ": PartitionId [" << partitionId
+                      << ": Partition [" << partitionId
                       << "] cluster is stopping; skipping partition recovery.";
         return;  // RETURN
     }
@@ -200,7 +200,7 @@ void StorageManager::onPartitionRecovery(
         pinfo.primary() != recoveryPeer &&
         pinfo.primary() != d_clusterData_p->membership().selfNode()) {
         BALL_LOG_INFO << d_clusterData_p->identity().description()
-                      << " PartitionId [" << partitionId
+                      << " Partition [" << partitionId
                       << "]: scheduling another recovery due to new "
                       << "primary being chosen while previous recovery was "
                       << "in progress with recovery peer: "
@@ -216,7 +216,7 @@ void StorageManager::onPartitionRecovery(
 
     if (0 != status) {
         MWCTSK_ALARMLOG_ALARM("RECOVERY")
-            << d_clusterData_p->identity().description() << ": PartitionId ["
+            << d_clusterData_p->identity().description() << ": Partition ["
             << partitionId << "] failed to recover with peer "
             << (recoveryPeer ? recoveryPeer->nodeDescription() : "**NA**")
             << " with status: " << status
@@ -227,7 +227,7 @@ void StorageManager::onPartitionRecovery(
         // Recovery was successful & there is no need to schedule another one.
 
         BALL_LOG_INFO << d_clusterData_p->identity().description()
-                      << ": PartitionId [" << partitionId
+                      << ": Partition [" << partitionId
                       << "] has successfully recovered with peer "
                       << (recoveryPeer ? recoveryPeer->nodeDescription()
                                        : "**NA**")
@@ -237,7 +237,7 @@ void StorageManager::onPartitionRecovery(
         if (0 != rc) {
             MWCTSK_ALARMLOG_ALARM("FILE_IO")
                 << d_clusterData_p->identity().description()
-                << ": Failed to open PartitionId [" << partitionId
+                << ": Failed to open Partition [" << partitionId
                 << "] after recovery was finished, rc: " << rc
                 << MWCTSK_ALARMLOG_END;
         }
@@ -245,7 +245,7 @@ void StorageManager::onPartitionRecovery(
             // Apply 'recoveryEvents' to the file store.
 
             BALL_LOG_INFO << d_clusterData_p->identity().description()
-                          << ": PartitionId [" << partitionId
+                          << ": Partition [" << partitionId
                           << "] opened successfully, applying "
                           << recoveryEvents.size()
                           << " buffered storage events to the partition.";
@@ -255,7 +255,7 @@ void StorageManager::onPartitionRecovery(
                 if (0 != rc) {
                     MWCTSK_ALARMLOG_ALARM("RECOVERY")
                         << d_clusterData_p->identity().description()
-                        << ": PartitionId [" << partitionId
+                        << ": Partition [" << partitionId
                         << "] failed to apply buffered storage event, rc: "
                         << rc << ". Closing the partition."
                         << MWCTSK_ALARMLOG_END;
@@ -270,7 +270,7 @@ void StorageManager::onPartitionRecovery(
 
                 BALL_LOG_INFO
                     << d_clusterData_p->identity().description()
-                    << ": PartitionId [" << partitionId
+                    << ": Partition [" << partitionId
                     << "] after applying buffered storage events, "
                     << "(recoveryPeerNode, primaryLeaseId, "
                     << "sequenceNumber): ("
@@ -539,7 +539,7 @@ void StorageManager::setPrimaryForPartitionDispatched(
     PartitionInfo&   pinfo = d_partitionInfoVec[partitionId];
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
-                  << " PartitionId [" << partitionId
+                  << " Partition [" << partitionId
                   << "]: received partition/primary info. Primary: "
                   << (primaryNode ? primaryNode->nodeDescription()
                                   : "**null**")
@@ -550,7 +550,7 @@ void StorageManager::setPrimaryForPartitionDispatched(
 
     if (primaryLeaseId < pinfo.primaryLeaseId()) {
         MWCTSK_ALARMLOG_ALARM("REPLICATION")
-            << d_clusterData_p->identity().description() << " PartitionId ["
+            << d_clusterData_p->identity().description() << " Partition ["
             << partitionId
             << "]: Smaller new primaryLeaseId specified: " << primaryLeaseId
             << ", current primaryLeaseId: "
@@ -593,9 +593,9 @@ void StorageManager::setPrimaryForPartitionDispatched(
             // Same leaseId, different node.  This is an error.
 
             MWCTSK_ALARMLOG_ALARM("REPLICATION")
-                << d_clusterData_p->identity().description()
-                << " PartitionId [" << partitionId
-                << "]: Same primaryLeaseId specified [" << primaryLeaseId
+                << d_clusterData_p->identity().description() << " Partition ["
+                << partitionId << "]: Same primaryLeaseId specified ["
+                << primaryLeaseId
                 << "] with a different primary node. Current primary: "
                 << pinfo.primary()->nodeDescription()
                 << ", specified primary: " << primaryNode->nodeDescription()
@@ -797,7 +797,7 @@ void StorageManager::processPartitionSyncEventDispatched(
 
         if (!d_recoveryManager_mp->isPrimarySyncInProgress(partitionId)) {
             BALL_LOG_ERROR << d_clusterData_p->identity().description()
-                           << " PartitionId [" << partitionId
+                           << " Partition [" << partitionId
                            << "]: received a partition sync event from: "
                            << source->nodeDescription()
                            << ", while self is not under partition-sync.";
@@ -806,7 +806,7 @@ void StorageManager::processPartitionSyncEventDispatched(
 
         if (source != d_recoveryManager_mp->primarySyncPeer(partitionId)) {
             BALL_LOG_ERROR << d_clusterData_p->identity().description()
-                           << " PartitionId [" << partitionId
+                           << " Partition [" << partitionId
                            << "]: received a partition sync event from: "
                            << source->nodeDescription()
                            << ", while partition-sync peer is: "
@@ -816,7 +816,7 @@ void StorageManager::processPartitionSyncEventDispatched(
 
         if (bmqp_ctrlmsg::PrimaryStatus::E_PASSIVE != pinfo.primaryStatus()) {
             BALL_LOG_ERROR << d_clusterData_p->identity().description()
-                           << " PartitionId [" << partitionId
+                           << " Partition [" << partitionId
                            << "]: received a partition sync event from: "
                            << source->nodeDescription()
                            << ", while self is ACTIVE primary.";
@@ -830,7 +830,7 @@ void StorageManager::processPartitionSyncEventDispatched(
 
         if (bmqp_ctrlmsg::PrimaryStatus::E_PASSIVE != pinfo.primaryStatus()) {
             BALL_LOG_ERROR << d_clusterData_p->identity().description()
-                           << " PartitionId [" << partitionId
+                           << " Partition [" << partitionId
                            << "]: received a partition sync event from: "
                            << source->nodeDescription()
                            << ", but self perceives sender (primary) as "
@@ -840,7 +840,7 @@ void StorageManager::processPartitionSyncEventDispatched(
     }
     else {
         BALL_LOG_ERROR << d_clusterData_p->identity().description()
-                       << " PartitionId [" << partitionId
+                       << " Partition [" << partitionId
                        << "]: received a partition sync event from: "
                        << source->nodeDescription()
                        << ", but neither self is primary nor the sender is "
@@ -893,7 +893,7 @@ void StorageManager::processPartitionSyncStateRequestDispatched(
         // but will reply anyways.
 
         BALL_LOG_WARN << d_clusterData_p->identity().description()
-                      << " PartitionId [" << partitionId
+                      << " Partition [" << partitionId
                       << "]: received partition-sync state request: "
                       << message.choice()
                              .clusterMessage()
@@ -955,7 +955,7 @@ void StorageManager::processShutdownEventDispatched(int partitionId)
     BSLS_ASSERT_SAFE(d_fileStores[partitionId]->inDispatcherThread());
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
-                  << " PartitionId [" << partitionId
+                  << " Partition [" << partitionId
                   << "]: received shutdown event.";
 
     // Inform RecoveryMgr, which may cancel ongoing recovery or prevent a
@@ -1551,7 +1551,7 @@ void StorageManager::setPrimaryForPartition(int                  partitionId,
         d_clusterData_p->membership().selfNodeStatus() !=
             bmqp_ctrlmsg::NodeStatus::E_AVAILABLE) {
         BALL_LOG_INFO << d_clusterData_p->identity().description()
-                      << " PartitionId [" << partitionId
+                      << " Partition [" << partitionId
                       << "]: proposed primary is self but self is not "
                       << "AVAILABLE. Self status: "
                       << d_clusterData_p->membership().selfNodeStatus()
@@ -1705,7 +1705,7 @@ void StorageManager::processStorageEvent(
         MWCTSK_ALARMLOG_ALARM("STORAGE")
             << d_cluster_p->description() << ": Received storage event "
             << "from node " << source->nodeDescription() << " with "
-            << "invalid PartitionId [" << pid << "]. Ignoring entire "
+            << "invalid Partition [" << pid << "]. Ignoring entire "
             << "storage event." << MWCTSK_ALARMLOG_END;
         return;  // RETURN
     }
@@ -2023,6 +2023,15 @@ void StorageManager::processReceiptEvent(const bmqp::Event&   event,
                                      receipt->primaryLeaseId(),
                                      receipt->sequenceNum(),
                                      source));
+}
+
+void StorageManager::bufferPrimaryStatusAdvisory(
+    BSLS_ANNOTATION_UNUSED const bmqp_ctrlmsg::PrimaryStatusAdvisory& advisory,
+    BSLS_ANNOTATION_UNUSED mqbnet::ClusterNode* source)
+{
+    // executed by *ANY* thread
+
+    BSLS_ASSERT_OPT(false && "This method should only be invoked in FSM mode");
 }
 
 void StorageManager::processPrimaryStatusAdvisory(

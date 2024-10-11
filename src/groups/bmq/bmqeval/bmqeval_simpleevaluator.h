@@ -79,17 +79,25 @@ class EvaluationContext;
 
 struct ErrorType {
     enum Enum {
-        e_OK = 0  // no error
-        ,
+        /// no error
+        e_OK = 0,
+
         e_COMPILATION_FIRST = -100,
-        e_SYNTAX            = -100  // syntax error
-        ,
-        e_NO_PROPERTIES = -101  // expression does not use any property
-        ,
-        e_TOO_COMPLEX = -102  // too many properties
-                              // or operators in expression
-        ,
-        e_COMPILATION_LAST = -102,
+
+        /// syntax error
+        e_SYNTAX = -100,
+
+        /// expression does not use any property
+        e_NO_PROPERTIES = -101,
+
+        /// too many properties or operators in expression
+        e_TOO_COMPLEX = -102,
+
+        /// expression string is too long
+        e_TOO_LONG = -103,
+
+        e_COMPILATION_LAST = -103,
+
         e_EVALUATION_FIRST = -1,
         e_NAME             = -1,
         e_TYPE             = -2,
@@ -492,10 +500,14 @@ class SimpleEvaluator {
   public:
     // PUBLIC CONSTANTS
     enum {
+        /// The maximum length of an expression string.
+        k_MAX_EXPRESSION_LENGTH = 128,
+
         /// The maximum number of operators allowed in a single expression.
-        k_MAX_OPERATORS  = 10,
+        k_MAX_OPERATORS = 10,
+
+        /// The maximum number of properties allowed in a single expression.
         k_MAX_PROPERTIES = 10
-        // The maximum number of properties allowed in a single expression.
     };
 
     // CREATORS
@@ -706,19 +718,36 @@ class EvaluationContext {
 inline const char* ErrorType::toString(ErrorType::Enum value)
 {
     switch (value) {
-    case 0: return "";                                         // RETURN
-    case bmqeval::ErrorType::e_SYNTAX: return "syntax error";  // RETURN
-    case bmqeval::ErrorType::e_TOO_COMPLEX:
-        return "subscription expression is too complex";  // RETURN
-    case bmqeval::ErrorType::e_NO_PROPERTIES:
+    case bmqeval::ErrorType::e_OK: {
+        return "";  // RETURN
+    }
+    case bmqeval::ErrorType::e_SYNTAX: {
+        return "syntax error";  // RETURN
+    }
+    case bmqeval::ErrorType::e_NO_PROPERTIES: {
         return "expression does not use any property";  // RETURN
-    case bmqeval::ErrorType::e_NAME:
+    }
+    case bmqeval::ErrorType::e_TOO_COMPLEX: {
+        return "subscription expression is too complex";  // RETURN
+    }
+    case bmqeval::ErrorType::e_TOO_LONG: {
+        return "subscription expression is too long";  // RETURN
+    }
+    case bmqeval::ErrorType::e_NAME: {
         return "undefined name in subscription expression";  // RETURN
-    case bmqeval::ErrorType::e_TYPE:
+    }
+    case bmqeval::ErrorType::e_TYPE: {
         return "type error in expression";  // RETURN
-    case bmqeval::ErrorType::e_BINARY:
+    }
+    case bmqeval::ErrorType::e_BINARY: {
         return "binary properties are not supported";  // RETURN
-    default: return "unknown error";                   // RETURN
+    }
+    case bmqeval::ErrorType::e_UNDEFINED: {
+        return "undefined error";  // RETURN
+    }
+    default: {
+        return "unknown error";  // RETURN
+    }
     }
 }
 

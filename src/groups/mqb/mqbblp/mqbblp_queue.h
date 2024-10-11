@@ -166,8 +166,7 @@ class Queue BSLS_CPP11_FINAL : public mqbi::Queue {
           int                                       partitionId,
           mqbi::Domain*                             domain,
           mqbi::StorageManager*                     storageManager,
-          bdlbb::BlobBufferFactory*                 blobBufferFactory,
-          bdlmt::EventScheduler*                    scheduler,
+          const mqbi::ClusterResources&             resources,
           bdlmt::FixedThreadPool*                   threadPool,
           const bmqp_ctrlmsg::RoutingConfiguration& routingCfg,
           bslma::Allocator*                         allocator);
@@ -265,6 +264,10 @@ class Queue BSLS_CPP11_FINAL : public mqbi::Queue {
     bsls::Types::Int64
     countUnconfirmed(unsigned int subId) BSLS_KEYWORD_OVERRIDE;
 
+    /// Stop sending PUSHes but continue receiving CONFIRMs, receiving and
+    /// sending PUTs and ACKs.
+    void stopPushing() BSLS_KEYWORD_OVERRIDE;
+
     void onPushMessage(
         const bmqt::MessageGUID&             msgGUID,
         const bsl::shared_ptr<bdlbb::Blob>&  appData,
@@ -311,10 +314,13 @@ class Queue BSLS_CPP11_FINAL : public mqbi::Queue {
     /// and current upstream `genCount`, then the PUT message gets dropped
     /// to avoid out of order PUTs.  If the `upstreamSubQueueId` is
     /// `k_ANY_SUBQUEUE_ID`, all SubQueues are reopen.
+    /// If the optionally specified isWriterOnly is true, ignore CONFIRMs. This
+    /// should be specified if the upstream is stopping.
     ///
     /// THREAD: This method is called from the Queue's dispatcher thread.
     void onOpenUpstream(bsls::Types::Uint64 genCount,
-                        unsigned int upstreamSubQueueId) BSLS_KEYWORD_OVERRIDE;
+                        unsigned int        upstreamSubQueueId,
+                        bool isWriterOnly = false) BSLS_KEYWORD_OVERRIDE;
 
     /// Notify the (remote) queue about reopen failure.  The queue NACKs all
     /// pending and incoming PUTs and drops CONFIRMs related to to the

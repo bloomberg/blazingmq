@@ -1,0 +1,25 @@
+name: PR title check
+
+on:
+  pull_request:
+    types:
+      - "opened"
+      - "reopened"
+      - "synchronize"
+      - "labeled"
+      - "unlabeled"
+      - "edited"
+
+jobs:
+  pr_title_check:
+    runs-on: ubuntu-latest
+    name: PR Title Check
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: pr title check
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          python3 ${{ github.workspace }}/.github/workflows/ext/check_pr_title.py

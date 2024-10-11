@@ -20,7 +20,7 @@
 //@PURPOSE: Provide definition for plugin description.
 //
 //@CLASSES:
-//  mqbplug::PluginInfo: VST representing metadata of a a plugin.
+//  mqbplug::PluginInfo: VST representing metadata of a plugin.
 //
 //@DESCRIPTION: This component provide definitions for structure
 // ('mqbplug::PluginInfo') used to define plugin for BlazingMQ broker.

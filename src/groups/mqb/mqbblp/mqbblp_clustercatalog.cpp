@@ -153,6 +153,13 @@ int ClusterCatalog::createCluster(bsl::ostream& errorDescription,
         // 1. Fetch the cluster definition
         const mqbcfg::ClusterDefinition& clusterDefinition =
             *clusterDefinitionIter;
+        if (clusterDefinition.clusterAttributes().isFSMWorkflow() &&
+            !clusterDefinition.clusterAttributes().isCSLModeEnabled()) {
+            errorDescription << "Cluster ('" << name
+                             << "') has incompatible CSL and FSM modes, not "
+                                "creating cluster.";
+            return (rc * 10) + rc_FETCH_DEFINITION_FAILED;  // RETURN
+        }
 
         // 2. Create the mqbnet::Cluster
         rc = createNetCluster(errorDescription,
@@ -175,12 +182,12 @@ int ClusterCatalog::createCluster(bsl::ostream& errorDescription,
                     netCluster,
                     d_statContexts,
                     d_domainFactory_p,
-                    d_scheduler_p,
                     d_dispatcher_p,
-                    d_blobSpPool_p,
-                    d_bufferFactory_p,
                     d_transportManager_p,
-                    clusterAllocator);
+                    &d_stopRequestsManager,
+                    d_resources,
+                    clusterAllocator,
+                    d_adminCb);
 
         info.d_cluster_sp.reset(cluster, clusterAllocator);
         info.d_eventProcessor_p = cluster;
@@ -217,11 +224,10 @@ int ClusterCatalog::createCluster(bsl::ostream& errorDescription,
                          clusterProxyDefinition,
                          netCluster,
                          d_statContexts,
-                         d_scheduler_p,
-                         d_bufferFactory_p,
-                         d_blobSpPool_p,
                          d_dispatcher_p,
                          d_transportManager_p,
+                         &d_stopRequestsManager,
+                         d_resources,
                          clusterAllocator);
 
         info.d_cluster_sp.reset(cluster, clusterAllocator);
@@ -352,20 +358,15 @@ int ClusterCatalog::initiateReversedClusterConnectionsImp(
     return rc;
 }
 
-ClusterCatalog::ClusterCatalog(bdlmt::EventScheduler*    scheduler,
-                               mqbi::Dispatcher*         dispatcher,
-                               mqbnet::TransportManager* transportManager,
-                               const StatContextsMap&    statContexts,
-                               bdlbb::BlobBufferFactory* bufferFactory,
-                               BlobSpPool*               blobSpPool,
-                               bslma::Allocator*         allocator)
+ClusterCatalog::ClusterCatalog(mqbi::Dispatcher*             dispatcher,
+                               mqbnet::TransportManager*     transportManager,
+                               const StatContextsMap&        statContexts,
+                               const mqbi::ClusterResources& resources,
+                               bslma::Allocator*             allocator)
 : d_allocator_p(allocator)
 , d_allocators(d_allocator_p)
 , d_isStarted(false)
-, d_scheduler_p(scheduler)
 , d_dispatcher_p(dispatcher)
-, d_bufferFactory_p(bufferFactory)
-, d_blobSpPool_p(blobSpPool)
 , d_transportManager_p(transportManager)
 , d_domainFactory_p(0)
 , d_clustersDefinition(d_allocator_p)
@@ -375,9 +376,16 @@ ClusterCatalog::ClusterCatalog(bdlmt::EventScheduler*    scheduler,
 , d_reversedClusterConnections(d_allocator_p)
 , d_clusters(d_allocator_p)
 , d_statContexts(statContexts)
+, d_requestManager(bmqp::EventType::e_CONTROL,
+                   resources.bufferFactory(),
+                   resources.scheduler(),
+                   false,  // lateResponseMode
+                   d_allocator_p)
+, d_stopRequestsManager(&d_requestManager, d_allocator_p)
+, d_resources(resources)
 {
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(scheduler->clockType() ==
+    BSLS_ASSERT_SAFE(d_resources.scheduler()->clockType() ==
                      bsls::SystemClockType::e_MONOTONIC);
 }
 
@@ -388,7 +396,7 @@ ClusterCatalog::~ClusterCatalog()
                     "stop() must be called before destroying this object");
 }
 
-int ClusterCatalog::loadBrokerClusterConfig(bsl::ostream& errorDescription)
+int ClusterCatalog::loadBrokerClusterConfig(bsl::ostream&)
 {
     // executed by the *MAIN* thread
 

@@ -1091,6 +1091,10 @@ void RequestManager<REQUEST, RESPONSE>::onRequestTimeout(int requestId)
 
         // Explicitly invalidate the timeout since we processed it
         request->d_timeoutSchedulerHandle.release();
+
+        if (!d_lateResponseMode) {
+            d_requests.erase(it);
+        }
     }  // close guard scope
 
     BALL_LOG_ERROR << "Request with '" << request->nodeDescription()

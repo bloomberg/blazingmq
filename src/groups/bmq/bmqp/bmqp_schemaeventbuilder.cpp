@@ -47,7 +47,7 @@ EncodingType::Enum SchemaEventBuilderUtil::bestEncodingSupported(
         return EncodingType::e_BER;  // RETURN
     }
 
-    // If remote suppports BER, return BER
+    // If remote supports BER, return BER
     if (bsl::find(encodingsSupported.cbegin(),
                   encodingsSupported.cend(),
                   bsl::string(EncodingFeature::k_ENCODING_BER)) !=

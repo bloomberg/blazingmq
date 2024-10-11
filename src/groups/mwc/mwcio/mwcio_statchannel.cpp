@@ -81,11 +81,12 @@ StatChannel::StatChannel(const StatChannelConfig& config,
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(config.d_statContext_sp);
+    d_config.d_statContext_sp->adjustValue(Stat::e_CONNECTIONS, 1);
 }
 
 StatChannel::~StatChannel()
 {
-    // NOTHING
+    d_config.d_statContext_sp->adjustValue(Stat::e_CONNECTIONS, -1);
 }
 
 // MANIPULATORS

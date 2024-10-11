@@ -388,6 +388,7 @@ static void test3_checkOptionsBlobSegment()
     }
 }
 
+#ifdef BMQ_ENABLE_MSG_GROUPID
 static void test4_isValidMsgGroupId()
 // ------------------------------------------------------------------------
 //                        VALIDATE GROUPID LENGTH
@@ -426,6 +427,7 @@ static void test4_isValidMsgGroupId()
     ASSERT_EQ(Result::e_SUCCESS,
               bmqp::OptionUtil::isValidMsgGroupId(maxLength));
 }
+#endif
 
 // ============================================================================
 //                                MAIN PROGRAM
@@ -439,7 +441,9 @@ int main(int argc, char* argv[])
 
     switch (_testCase) {
     case 0:
+#ifdef BMQ_ENABLE_MSG_GROUPID
     case 4: test4_isValidMsgGroupId(); break;
+#endif
     case 3: test3_checkOptionsBlobSegment(); break;
     case 2: test2_basicOptionsBoxCanAdd(); break;
     case 1: test1_basicOptionMetaProperties(); break;

@@ -454,14 +454,13 @@ Queue::Queue(const bmqt::Uri&                          uri,
              int                                       partitionId,
              mqbi::Domain*                             domain,
              mqbi::StorageManager*                     storageManager,
-             bdlbb::BlobBufferFactory*                 blobBufferFactory,
-             bdlmt::EventScheduler*                    scheduler,
+             const mqbi::ClusterResources&             resources,
              bdlmt::FixedThreadPool*                   threadPool,
              const bmqp_ctrlmsg::RoutingConfiguration& routingCfg,
              bslma::Allocator*                         allocator)
 : d_allocator_p(allocator)
 , d_schemaLearner(allocator)
-, d_state(this, uri, id, key, partitionId, domain, allocator)
+, d_state(this, uri, id, key, partitionId, domain, resources, allocator)
 , d_localQueue_mp(0)
 , d_remoteQueue_mp(0)
 {
@@ -486,8 +485,6 @@ Queue::Queue(const bmqt::Uri&                          uri,
 
     d_state.setStorageManager(storageManager)
         .setAppKeyGenerator(storageManager)
-        .setBlobBufferFactory(blobBufferFactory)
-        .setEventScheduler(scheduler)
         .setMiscWorkThreadPool(threadPool)
         .setRoutingConfig(routingCfg)
         .setMessageThrottleConfig(messageThrottleConfig);
@@ -576,7 +573,8 @@ void Queue::onOpenFailure(unsigned int subQueueId)
 }
 
 void Queue::onOpenUpstream(bsls::Types::Uint64 genCount,
-                           unsigned int        subQueueId)
+                           unsigned int        subQueueId,
+                           bool                isWriterOnly)
 {
     // executed by the *QUEUE* dispatcher thread
 
@@ -584,7 +582,7 @@ void Queue::onOpenUpstream(bsls::Types::Uint64 genCount,
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
 
     if (d_remoteQueue_mp) {
-        d_remoteQueue_mp->onOpenUpstream(genCount, subQueueId);
+        d_remoteQueue_mp->onOpenUpstream(genCount, subQueueId, isWriterOnly);
     }
 }
 
@@ -926,6 +924,11 @@ bsls::Types::Int64 Queue::countUnconfirmed(unsigned int subId)
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
 
+    if (subId == bmqp::QueueId::k_UNASSIGNED_SUBQUEUE_ID) {
+        return d_state.handleCatalog().countUnconfirmed();  // RETURN
+    }
+
+    // TODO(shutdown-v2): TEMPORARY, remove when all switch to StopRequest V2.
     struct local {
         static void sum(bsls::Types::Int64*                  sum,
                         mqbi::QueueHandle*                   handle,
@@ -947,6 +950,11 @@ bsls::Types::Int64 Queue::countUnconfirmed(unsigned int subId)
                              subId));
 
     return result;
+}
+
+void Queue::stopPushing()
+{
+    queueEngine()->resetState(true);  // isShuttingDown
 }
 
 }  // close package namespace

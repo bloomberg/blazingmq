@@ -48,7 +48,7 @@ class TestMaxunconfirmed:
         )
         return all(res == Client.e_SUCCESS for res in results)
 
-    @tweak.cluster.queue_operations.stop_timeout_ms(1000)
+    @tweak.cluster.queue_operations.shutdown_timeout_ms(1000)
     def test_maxunconfirmed(self, multi_node: Cluster):
         # Post 100 messages
         assert self.post_n_msgs(tc.URI_PRIORITY, 100)

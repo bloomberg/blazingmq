@@ -261,6 +261,38 @@ bool operator==(const StorageMessageAttributes& lhs,
 bool operator!=(const StorageMessageAttributes& lhs,
                 const StorageMessageAttributes& rhs);
 
+struct AppMessage {
+    // VST to track the state associated with (GUID, App) pair.
+
+    // PULIC TYOES
+    enum State { e_NONE = 0, e_PUT = 1, e_PUSH = 2, e_CONFIRM = 3 };
+
+    bmqp::RdaInfo d_rdaInfo;
+    unsigned int  d_subscriptionId;
+    State         d_state;
+
+    AppMessage(const bmqp::RdaInfo& rdaInfo);
+
+    /// Set this object state to indicate a delivery by (Replica or Proxy).
+    void setPushState();
+
+    /// Set this object state to indicate a corresponding CONFIRM.
+    void setConfirmState();
+
+    /// Set this object state to indicate a corresponding CONFIRM.
+    void setRemovedState();
+
+    /// Return `true` if this object is expecting CONFIRM or purge.
+    bool isPending() const;
+
+    /// Return `true` if this object is expecting CONFIRM or purge but
+    /// had not been sent out (by Replica or Proxy).
+    bool isNew() const;
+
+    /// Return `true` if this object is submitted for delivery.
+    bool isPushing() const;
+};
+
 // =====================
 // class StorageIterator
 // =====================
@@ -286,9 +318,11 @@ class StorageIterator {
     /// items' collection.
     virtual bool advance() = 0;
 
-    /// Reset the iterator to point to first item, if any, in the underlying
-    /// storage.
-    virtual void reset() = 0;
+    /// If the specified `atEnd` is `true`, reset the iterator to point to the
+    /// to the end of the underlying storage.  Otherwise, reset the iterator to
+    /// point first item, if any, in the underlying storage.
+    virtual void
+    reset(const bmqt::MessageGUID& where = bmqt::MessageGUID()) = 0;
 
     // ACCESSORS
 
@@ -297,15 +331,16 @@ class StorageIterator {
     /// behavior is undefined unless `atEnd` returns `false`.
     virtual const bmqt::MessageGUID& guid() const = 0;
 
-    /// Return a reference offering modifiable access to the mutable RdaInfo
+    /// Return a reference offering non-modifiable access to to the App state
     /// associated to the item currently pointed at by this iterator.  The
     /// behavior is undefined unless `atEnd` returns `false`.
-    virtual bmqp::RdaInfo& rdaInfo() const = 0;
+    virtual const AppMessage&
+    appMessageView(unsigned int appOrdinal) const = 0;
 
-    /// Return subscription id associated to the item currently pointed at
-    /// by this iterator.
-    /// The behavior is undefined unless `atEnd` returns `false`.
-    virtual unsigned int subscriptionId() const = 0;
+    /// Return a reference offering modifiable access to the App state
+    /// associated to the item currently pointed at by this iterator.  The
+    /// behavior is undefined unless `atEnd` returns `false`.
+    virtual AppMessage& appMessageState(unsigned int appOrdinal) = 0;
 
     /// Return a reference offering non-modifiable access to the application
     /// data associated with the item currently pointed at by this iterator.
@@ -352,6 +387,8 @@ class Storage {
                         bmqp::Protocol::k_SUBID_ARRAY_STATIC_LEN>
         StorageKeys;
 
+    static const size_t k_INVALID_ORDINAL = 999999;
+
   public:
     // CREATORS
 
@@ -374,30 +411,25 @@ class Storage {
 
     virtual void setQueue(mqbi::Queue* queue) = 0;
 
-    virtual mqbi::Queue* queue() = 0;
-
     /// Close this storage.
     virtual void close() = 0;
 
-    /// Get an iterator for items stored in the virtual storage identified
-    /// by the specified `appKey`.  Iterator will point to point to the
-    /// oldest item, if any, or to the end of the collection if empty.  Note
-    /// that if `appKey` is null, an iterator over the underlying physical
-    /// storage will be returned.  Also note that because `Storage` and
-    /// `StorageIterator` are interfaces, the implementation of this method
-    /// will allocate, so it's recommended to keep the iterator.
+    /// Get an iterator for data stored in the virtual storage identified by
+    /// the specified `appKey`.
+    /// If the `appKey` is null, the returned  iterator can iterate states of
+    /// all Apps; otherwise, the iterator can iterate states of the App
+    /// corresponding to the `appKey`.
     virtual bslma::ManagedPtr<StorageIterator>
     getIterator(const mqbu::StorageKey& appKey) = 0;
 
-    /// Load into the specified `out` an iterator for items stored in
-    /// the virtual storage identified by the specified `appKey`, initially
-    /// pointing to the item associated with the specified `msgGUID`.
+    /// Load into the specified `out` an iterator for data stored in the
+    /// virtual storage initially pointing to the message associated with the
+    /// specified `msgGUID`.
+    /// If the `appKey` is null, the returned  iterator can iterate states of
+    /// all Apps; otherwise, the iterator can iterate states of the App
+    /// corresponding to the `appKey`.
     /// Return zero on success, and a non-zero code if `msgGUID` was not
-    /// found in the storage.  Note that if `appKey` is null, an iterator
-    /// over the underlying physical storage will be returned.  Also note
-    /// that because `Storage` and `StorageIterator` are interfaces, the
-    /// implementation of this method will allocate, so it's recommended to
-    /// keep the iterator.
+    /// found in the storage.
     virtual StorageResult::Enum
     getIterator(bslma::ManagedPtr<StorageIterator>* out,
                 const mqbu::StorageKey&             appKey,
@@ -405,48 +437,71 @@ class Storage {
 
     /// Save the message contained in the specified `appData`, `options` and
     /// the associated `attributes` and `msgGUID` into this storage and the
-    /// associated virtual storages, if any.  The `attributes` is an in/out
-    /// parameter and storage layer can populate certain fields of that
-    /// struct.  Return 0 on success or an non-zero error code on failure.
+    /// associated virtual storage.  The `attributes` is an in/out parameter
+    /// and storage layer can populate certain fields of that struct.
+    /// Return 0 on success or an non-zero error code on failure.
     virtual StorageResult::Enum
     put(StorageMessageAttributes*           attributes,
         const bmqt::MessageGUID&            msgGUID,
         const bsl::shared_ptr<bdlbb::Blob>& appData,
-        const bsl::shared_ptr<bdlbb::Blob>& options,
-        const StorageKeys&                  storageKeys = StorageKeys()) = 0;
+        const bsl::shared_ptr<bdlbb::Blob>& options) = 0;
 
-    // TBD: Have this method invoke 'beforeMessageRemoved' on the assoicated
-    //      QueueEngine to notify it that a message is "released" for the
-    //      subStream associated with the specified 'appKey'.
+    /// Update the App state corresponding to the specified `msgGUID` and the
+    /// specified `appKey` in the DataStream.  Decrement the reference count of
+    /// the message identified by the `msgGUID`, and record the CONFIRM in the
+    /// storage.
+    /// Return one of the return codes from:
+    /// * e_SUCCESS          : success
+    /// * e_GUID_NOT_FOUND      : `msgGUID` was not found
+    /// * e_ZERO_REFERENCES     : message refCount has become zero
+    /// * e_NON_ZERO_REFERENCES : message refCount is still not zero
+    /// * e_WRITE_FAILURE       : failed to record this event in storage
+    ///
+    /// Behavior is undefined unless there is an App with the `appKey`.
+    ///
+    /// On CONFIRM, the caller of `confirm` is responsible to follow with
+    /// `remove` call.  `releaseRef` is an alternative way to remove message in
+    /// one call.
+    virtual StorageResult::Enum confirm(const bmqt::MessageGUID& msgGUID,
+                                        const mqbu::StorageKey&  appKey,
+                                        bsls::Types::Int64       timestamp,
+                                        bool onReject = false) = 0;
 
-    /// Release the reference of the specified `appKey` on the message
-    /// identified by the specified `msgGUID`, and record this event in the
-    /// storage.  Return one of the return codes from:
-    /// * **e_GUID_NOT_FOUND**      : `msgGUID` was not found
-    /// * **e_ZERO_REFERENCES**     : message refCount has become zero
-    /// * **e_NON_ZERO_REFERENCES** : message refCount is still not zero
-    /// * **e_WRITE_FAILURE**       : failed to record this event in storage
-    virtual StorageResult::Enum releaseRef(const bmqt::MessageGUID& msgGUID,
-                                           const mqbu::StorageKey&  appKey,
-                                           bsls::Types::Int64       timestamp,
-                                           bool onReject = false) = 0;
+    /// Decrement the reference count of the message identified by the
+    /// `msgGUID`.  If the resulting value is zero, delete the message data and
+    /// record the event in the storage.
+    /// Return one of the return codes from:
+    /// * e_SUCCESS          : success
+    /// * e_GUID_NOT_FOUND      : `msgGUID` was not found
+    /// * e_INVALID_OPERATION   : the value is invalid (already zero)
+    /// * e_ZERO_REFERENCES     : message refCount has become zero
+    /// * e_NON_ZERO_REFERENCE  : message refCount is still not zero
+    ///
+    /// On CONFIRM, the caller of `confirm` is responsible to follow with
+    /// `remove` call.  `releaseRef` is an alternative way to remove message in
+    /// one call.
+    virtual StorageResult::Enum
+    releaseRef(const bmqt::MessageGUID& msgGUID) = 0;
 
     /// Remove from the storage the message having the specified `msgGUID`
-    /// and store it's size, in bytes, in the optionally specified `msgSize`
-    /// if the `msgGUID` was found.  Return 0 on success, or a non-zero
-    /// return code if the `msgGUID` was not found.  If the optionally
-    /// specified `clearAll` is true, remove the message from all virtual
-    /// storages as well.
+    /// and store it's size, in bytes, in the optionally specified `msgSize`.
+    /// Record the event in the storage.
+    /// Return 0 on success, or a non-zero return code if the `msgGUID` was not
+    /// found or if has failed to record this event in storage.
+    ///
+    /// On CONFIRM, the caller of `confirm` is responsible to follow with
+    /// `remove` call.  `releaseRef` is an alternative way to remove message in
+    /// one call.
     virtual StorageResult::Enum remove(const bmqt::MessageGUID& msgGUID,
-                                       int*                     msgSize = 0,
-                                       bool clearAll = false) = 0;
+                                       int* msgSize = 0) = 0;
 
-    /// Remove all messages from this storage for the client identified by
-    /// the specified `appKey`.  If `appKey` is null, then remove messages
-    /// for all clients.  Return one of the return codes from:
-    /// * **e_SUCCESS**          : `msgGUID` was not found
-    /// * **e_WRITE_FAILURE**    : failed to record this event in storage
-    /// * **e_APPKEY_NOT_FOUND** : Invalid appKey specified
+    /// Remove all messages from this storage for the App identified by the
+    /// specified `appKey` if `appKey` is not null.  Otherwise, remove messages
+    /// for all Apps.  Record the event in the storage.
+    /// Return one of the return codes from:
+    /// * e_SUCCESS          : success
+    /// * e_WRITE_FAILURE    : failed to record this event in storage
+    /// * e_APPKEY_NOT_FOUND : Invalid `appKey` specified
     virtual StorageResult::Enum removeAll(const mqbu::StorageKey& appKey) = 0;
 
     /// If the specified `storage` is `true`, flush any buffered replication
@@ -493,28 +548,23 @@ class Storage {
     virtual void selectForAutoConfirming(const bmqt::MessageGUID& msgGUID) = 0;
     virtual StorageResult::Enum autoConfirm(const mqbu::StorageKey& appKey,
                                             bsls::Types::Uint64 timestamp) = 0;
-    /// The sequence of calls is 'selectForAutoConfirming', then zero or more
-    /// 'autoConfirm', then 'put' - all for the same specified 'msgGUID'.
-    /// 'autoConfirm' replicates ephemeral auto CONFIRM for the specified
-    /// 'appKey' in persistent storage.
+    /// The sequence of calls is `selectForAutoConfirming`, then zero or more
+    /// `autoConfirm`, then `put` - all for the same specified `msgGUID`.
+    /// `autoConfirm` replicates ephemeral auto CONFIRM for the specified
+    /// `appKey` in persistent storage.
     /// Any other sequence removes auto CONFIRMs.
     /// Auto-confirmed Apps do not PUSH the message.
 
     // ACCESSORS
+
+    /// Return the queue this storage is associated with.
+    virtual mqbi::Queue* queue() const = 0;
 
     /// Return the URI of the queue this storage is associated with.
     virtual const bmqt::Uri& queueUri() const = 0;
 
     /// Return the storage key associated with this instance.
     virtual const mqbu::StorageKey& queueKey() const = 0;
-
-    /// Return the appId associated with this storage instance.  If there is
-    /// not appId associated, return an empty string.
-    virtual const bsl::string& appId() const = 0;
-
-    /// Return the app key, if any, associated with this storage instance.
-    /// If there is no appKey associated, return a null key.
-    virtual const mqbu::StorageKey& appKey() const = 0;
 
     /// Return the current configuration used by this storage. The behavior
     /// is undefined unless `configure` was successfully called.
@@ -587,10 +637,11 @@ class Storage {
 
     /// Return true if virtual storage identified by the specified `appId`
     /// exists, otherwise return false.  Load into the optionally specified
-    /// `appKey` the appKey associated with `appId` if the virtual storage
-    /// exists, otherwise set it to 0.
+    /// `appKey` and `ordinal` the appKey and ordinal associated with `appId`
+    /// if the virtual storage exists, otherwise set it to 0.
     virtual bool hasVirtualStorage(const bsl::string& appId,
-                                   mqbu::StorageKey*  appKey = 0) const = 0;
+                                   mqbu::StorageKey*  appKey  = 0,
+                                   unsigned int*      ordinal = 0) const = 0;
 
     /// Return `true` if there was Replication Receipt for the specified
     /// `msgGUID`.
@@ -607,6 +658,48 @@ class Storage {
 // ============================================================================
 //                             INLINE DEFINITIONS
 // ============================================================================
+
+// ----------------
+// class AppMessage
+// ----------------
+
+inline AppMessage::AppMessage(const bmqp::RdaInfo& rdaInfo)
+: d_rdaInfo(rdaInfo)
+, d_subscriptionId(bmqp::Protocol::k_DEFAULT_SUBSCRIPTION_ID)
+, d_state(e_PUT)
+{
+    // NOTHING
+}
+
+inline void AppMessage::setPushState()
+{
+    d_state = e_PUSH;
+}
+
+inline void AppMessage::setConfirmState()
+{
+    d_state = e_CONFIRM;
+}
+
+inline void AppMessage::setRemovedState()
+{
+    d_state = e_NONE;
+}
+
+inline bool AppMessage::isPending() const
+{
+    return d_state == e_PUT || d_state == e_PUSH;
+}
+
+inline bool AppMessage::isNew() const
+{
+    return d_state == e_PUT;
+}
+
+inline bool AppMessage::isPushing() const
+{
+    return d_state == e_PUSH;
+}
 
 // ------------------------------
 // class StorageMessageAttributes

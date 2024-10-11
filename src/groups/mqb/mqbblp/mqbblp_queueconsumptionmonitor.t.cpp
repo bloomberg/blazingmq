@@ -151,6 +151,7 @@ Test::Test()
                d_storageKey,
                d_partitionId,
                &d_domain,
+               d_cluster._resources(),
                s_allocator_p)
 , d_monitor(&d_queueState, s_allocator_p)
 , d_storage(d_queue.uri(),
@@ -158,7 +159,6 @@ Test::Test()
             mqbs::DataStore::k_INVALID_PARTITION_ID,
             getDomainConfig(),
             d_domain.capacityMeter(),
-            bmqp::RdaInfo(),
             s_allocator_p)
 , d_advance(s_allocator_p)
 , d_clientId(0)
@@ -236,11 +236,7 @@ void Test::putMessage()
                                            0,
                                            bslma::ManagedPtrUtil::noOpDeleter);
 
-    ASSERT_EQ(d_storage.put(&messageAttributes,
-                            messageGUID,
-                            appData,
-                            options,
-                            mqbi::Storage::StorageKeys()),
+    ASSERT_EQ(d_storage.put(&messageAttributes, messageGUID, appData, options),
               mqbi::StorageResult::e_SUCCESS);
 }
 

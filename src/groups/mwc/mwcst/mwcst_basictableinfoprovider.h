@@ -51,7 +51,7 @@ class BasicTableInfoProvider_ValuePrintVisitor;
 // class BasicTableInfoProvider_ColumnFormat
 // =========================================
 
-/// Format of a a column to be printed by a `BasicTableInfoProvider`
+/// Format of a column to be printed by a `BasicTableInfoProvider`
 class BasicTableInfoProvider_ColumnFormat {
   private:
     // PRIVATE TYPES

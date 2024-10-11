@@ -238,6 +238,11 @@ class StorageManager : public mqbi::StorageManager {
                         mqbnet::ClusterNode* source) BSLS_KEYWORD_OVERRIDE;
 
     /// Executed by any thread.
+    virtual void bufferPrimaryStatusAdvisory(
+        const bmqp_ctrlmsg::PrimaryStatusAdvisory& advisory,
+        mqbnet::ClusterNode* source) BSLS_KEYWORD_OVERRIDE;
+
+    /// Executed by any thread.
     virtual void processPrimaryStatusAdvisory(
         const bmqp_ctrlmsg::PrimaryStatusAdvisory& advisory,
         mqbnet::ClusterNode* source) BSLS_KEYWORD_OVERRIDE;

@@ -63,6 +63,9 @@ BSLMF_ASSERT(60 == sizeof(JournalOpRecord));
 BSLMF_ASSERT(0 == sizeof(JournalOpRecord) % 4);
 BSLMF_ASSERT(0 == sizeof(DataHeader) % 4);
 BSLMF_ASSERT(2 == sizeof(short));
+
+BSLMF_ASSERT(FileStoreProtocol::k_MAX_MSG_REF_COUNT_HARD <=
+             MessageRecord::k_REFCOUNT_MAX_VALUE);
 }  // close unnamed namespace
 
 const unsigned int FileHeader::k_MAGIC1;
@@ -409,6 +412,7 @@ RecordHeader::print(bsl::ostream& stream, int level, int spacesPerLevel) const
 // --------------------
 
 const char MessageRecord::k_CAT_MASK = 7;  // 00000111
+const int MessageRecord::k_REFCOUNT_LOW_BITS_MASK = RecordHeader::k_FLAGS_MASK;
 
 bsl::ostream&
 MessageRecord::print(bsl::ostream& stream, int level, int spacesPerLevel) const
@@ -460,6 +464,7 @@ const char* ConfirmReason::toAscii(ConfirmReason::Enum value)
     switch (value) {
         CASE(CONFIRMED)
         CASE(REJECTED)
+        CASE(AUTO_CONFIRMED)
     default: return "(* UNKNOWN *)";
     }
 

@@ -122,6 +122,12 @@ class Tagger {
         return *this;
     }
 
+    Tagger& setPort(const bslstl::StringRef& value)
+    {
+        labels["Port"] = value;
+        return *this;
+    }
+
     // ACCESSORS
     ::prometheus::Labels& getLabels() { return labels; }
 };
@@ -445,12 +451,9 @@ void PrometheusStatConsumer::captureSystemStats()
 
 #undef COPY_METRIC
 
-    ::prometheus::Labels labels{{"DataType", "host-data"}};
-    bslstl::StringRef    instanceName =
-        mqbcfg::BrokerConfig::get().brokerInstanceName();
-    if (!instanceName.empty()) {
-        labels.emplace("instanceName", instanceName);
-    }
+    Tagger tagger;
+    tagger.setInstance(mqbcfg::BrokerConfig::get().brokerInstanceName())
+        .setDataType("host-data");
 
     for (bsl::vector<bsl::pair<bsl::string, double> >::iterator it =
              datapoints.begin();
@@ -458,7 +461,7 @@ void PrometheusStatConsumer::captureSystemStats()
          ++it) {
         auto& gauge = ::prometheus::BuildGauge().Name(it->first).Register(
             *d_prometheusRegistry_p);
-        gauge.Add(labels).Set(it->second);
+        gauge.Add(tagger.getLabels()).Set(it->second);
     }
 
     // POSTCONDITIONS
@@ -479,6 +482,10 @@ void PrometheusStatConsumer::captureNetworkStats()
     // NOTE: Should be StatController::k_CHANNEL_STAT_*, but can't due to
     //       dependency limitations.
 
+    Tagger tagger;
+    tagger.setInstance(mqbcfg::BrokerConfig::get().brokerInstanceName())
+        .setDataType("host-data");
+
 #define RETRIEVE_METRIC(TAIL, STAT, CONTEXT)                                  \
     datapoints.emplace_back("brkr_system_net_" TAIL,                          \
                             mwcio::StatChannelFactoryUtil::getValue(          \
@@ -493,21 +500,55 @@ void PrometheusStatConsumer::captureNetworkStats()
 
 #undef RETRIEVE_METRIC
 
-    ::prometheus::Labels labels{{"DataType", "host-data"}};
-    bslstl::StringRef    instanceName =
-        mqbcfg::BrokerConfig::get().brokerInstanceName();
-    if (!instanceName.empty()) {
-        labels.emplace("instanceName", instanceName);
-    }
-
     for (bsl::vector<bsl::pair<bsl::string, double> >::iterator it =
              datapoints.begin();
          it != datapoints.end();
          ++it) {
         auto& counter = ::prometheus::BuildCounter().Name(it->first).Register(
             *d_prometheusRegistry_p);
-        counter.Add(labels).Increment(it->second);
+        counter.Add(tagger.getLabels()).Increment(it->second);
     }
+
+    auto reportConnections = [&](const bsl::string&        metricName,
+                                 const mwcst::StatContext* context) {
+        // In order to eliminate possible duplication of port contexts
+        // aggregate them before posting
+        bsl::unordered_map<bsl::string,
+                           bsl::pair<bsls::Types::Int64, bsls::Types::Int64> >
+            portMap;
+
+        mwcst::StatContextIterator it = context->subcontextIterator();
+        for (; it; ++it) {
+            if (it->isDeleted()) {
+                // As we iterate over 'living' sub contexts in the begining and
+                // over deleted sub contexts in the end, we can just stop here.
+                break;
+            }
+            tagger.setPort(bsl::to_string(it->id()));
+            ::prometheus::BuildCounter()
+                .Name("brkr_system_net_" + metricName + "_delta")
+                .Register(*d_prometheusRegistry_p)
+                .Add(tagger.getLabels())
+                .Increment(static_cast<double>(
+                    mwcio::StatChannelFactoryUtil::getValue(
+                        *it,
+                        d_snapshotId,
+                        mwcio::StatChannelFactoryUtil::Stat::
+                            e_CONNECTIONS_DELTA)));
+            ::prometheus::BuildGauge()
+                .Name("brkr_system_net_" + metricName)
+                .Register(*d_prometheusRegistry_p)
+                .Add(tagger.getLabels())
+                .Set(static_cast<
+                     double>(mwcio::StatChannelFactoryUtil::getValue(
+                    *it,
+                    d_snapshotId,
+                    mwcio::StatChannelFactoryUtil::Stat::e_CONNECTIONS_ABS)));
+        }
+    };
+
+    reportConnections("local_tcp_connections", localContext);
+    reportConnections("remote_tcp_connections", remoteContext);
 
     // POSTCONDITIONS
     BSLS_ASSERT_SAFE(datapoints.size() == k_NUM_NETWORK_STATS);
