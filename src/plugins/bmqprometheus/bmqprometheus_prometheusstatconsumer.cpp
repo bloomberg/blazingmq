@@ -353,7 +353,7 @@ void PrometheusStatConsumer::captureQueueStats()
             }
 
             // The following metrics only make sense to be reported from the
-            // primary node only.
+            // primary node.
             if (role == mqbstat::QueueStatsDomain::Role::e_PRIMARY) {
                 static const DatapointDef defs[] = {
                     {"queue_gc_msgs", Stat::e_GC_MSGS_DELTA, true},
@@ -372,7 +372,7 @@ void PrometheusStatConsumer::captureQueueStats()
                 for (DatapointDefCIter dpIt = bdlb::ArrayUtil::begin(defs);
                      dpIt != bdlb::ArrayUtil::end(defs);
                      ++dpIt) {
-                    // If there are subcontexts, skip 'cqueue_time_max' metric,
+                    // If there are subcontexts, skip 'queue_time_max' metric,
                     // it will be processed later.
                     if (static_cast<mqbstat::QueueStatsDomain::Stat::Enum>(
                             dpIt->d_stat) == Stat::e_QUEUE_TIME_MAX &&
@@ -405,20 +405,20 @@ void PrometheusStatConsumer::captureQueueStats()
                  appIdIt;
                  ++appIdIt) {
                 tagger.setAppId(appIdIt->name());
-                const auto labels = tagger.getLabels();
+                const auto labelsWithAppId = tagger.getLabels();
 
                 auto value = mqbstat::QueueStatsDomain::getValue(
                     *appIdIt,
                     d_snapshotId,
                     mqbstat::QueueStatsDomain::Stat::e_CONFIRM_TIME_MAX);
-                updateMetric(&confirmTimeDataPoint, labels, value);
+                updateMetric(&confirmTimeDataPoint, labelsWithAppId, value);
 
                 if (role == mqbstat::QueueStatsDomain::Role::e_PRIMARY) {
                     value = mqbstat::QueueStatsDomain::getValue(
                         *appIdIt,
                         d_snapshotId,
                         mqbstat::QueueStatsDomain::Stat::e_QUEUE_TIME_MAX);
-                    updateMetric(&queueTimeDataPoint, labels, value);
+                    updateMetric(&queueTimeDataPoint, labelsWithAppId, value);
                 }
             }
         }
