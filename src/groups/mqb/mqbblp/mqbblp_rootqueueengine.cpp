@@ -1646,7 +1646,11 @@ bool RootQueueEngine::logAlarmCb(const mqbu::StorageKey& appKey,
     mwcu::MemOutStream   out(&localAllocator);
     mqbi::Storage* const storage = d_queueState_p->storage();
 
-    out << "Queue '" << d_queueState_p->uri() << "' ";
+    out << "Queue '" << d_queueState_p->uri();
+    if (app->d_appId != bmqp::ProtocolUtil::k_DEFAULT_APP_ID) {
+        out << "?id=" << app->d_appId;
+    }
+    out << "' ";
     storage->capacityMeter()->printShortSummary(out);
     out << ", max idle time "
         << mwcu::PrintUtil::prettyTimeInterval(
