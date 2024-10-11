@@ -5,7 +5,7 @@ parent: Features
 nav_order: 3
 ---
 
-# Subscriptions (aka Topic-based Filtering & Routing)
+# Subscriptions
 {: .no_toc }
 
 * toc
@@ -15,6 +15,8 @@ nav_order: 3
 
 Subscriptions provide consumer applications a powerful mechanism to only
 receive the messages from a queue that match a specified expression.
+In essence, subscriptions allow the user to achieve topic-based message
+filtering and/or message routing.
 
 In the absence of subscriptions, a consumer attached to a queue can
 receive any and all messages posted on the queue, and should be in a position
@@ -65,23 +67,64 @@ etc.
 
 BlazingMQ provides two types of subscriptions:
 
-1. __Application Subscriptions__ which provide _message filtering_
+- Application Subscriptions (message filtering)
+- Consumer Subscriptions (message routing)
 
-    - The user can express which messages they want to be routed to consumers in
-    the domain's configuration. In other words, these subscriptions are
-    statically configured.
-    - Messages produced to a queue matching the subscription will be routed to consumers.
-    - Messages which do not match will be auto-confirmed by the broker.
-    - Note: For fanout mode domains, application subscriptions are configured
-    per-*AppId*. For priority and broadcast mode domains, application subscriptions
-    apply to _all_ queues and therefore all consumers.
+Users can leverage either or both types of subscriptions to achieve the desired
+behavior.
 
-2. __Consumer Subscriptions__ which provide _message routing_
+The two types of subscriptions and their differences are described below.
 
-    - Consumer subscriptions allow each consumer instance to express the messages
-    which it is interested in processing when it attaches to the queue.
-    - The BlazingMQ broker will only route messages matching the supplied expression to that instance.
-    - Messages produced to a (priority or fanout mode) queue that do not match any consumer's subscription will remain unconfirmed in the queue until they can be routed to a consumer or expire due to TTL.
+#### Application Subscriptions
+
+Application Subscriptions provide the ability to filter out messages from an
+application's queue in the BlazingMQ broker.
+
+When a message is produced to a queue, BlazingMQ will evaluate the Application
+Subscription and _auto-confirm_ the message if the message does not match
+the subscription. Since BlazingMQ only routes unconfirmed messages to
+consumers, consumers will only receive messages that match the configured
+Application Subscription.
+
+Note that the BlazingMQ broker will still store the message until the messages
+is confirmed by all consumers, as always.
+
+Application Subscriptions are specified in the domain's configuration:
+
+* Fanout mode: Application Subscriptions are configured per-*AppId*
+* Priority & Broadcast mode: Application Subscriptions are configured with an
+empty *AppId* (i.e. `appId=""`) and apply to all consumers
+
+#### Consumer Subscriptions
+
+Consumer subscriptions allow each consumer instance to express the messages
+it is capable of processing when it attaches to the queue. This allows users
+to define the subset of consumers that BlazingMQ can route any given message
+to.
+
+Note that Consumer Subscriptions are evaluated *after* Application
+Subscriptions.
+
+Notes:
+
+- BlazingMQ will only route a message to a consumer if the message matches that
+consumer's subscription. If a consumer has no subscription, BlazingMQ can route
+any message to it.
+
+- All standard routing logic (i.e. consumer priorities, round-robin, respecting
+`maxUnconfirmed*` configurations) applies to messages that match one or more
+consumer subscriptions.
+
+- If there is no matching consumer subscription for a message, the message will
+remain in the queue, unconfirmed, until a consumer configures a subscription
+matching the message. The message will count against the configured
+queue/domain quota limits until it is confirmed or expires due to TTL.
+
+- Each consumer instance can specify a different subscription. Subscriptions
+can overlap with other consumers or be non-overlapping.
+
+- Users have to ensure that every message can be processed by at least
+one consumer.
 
 ### Background
 {:.no_toc}
