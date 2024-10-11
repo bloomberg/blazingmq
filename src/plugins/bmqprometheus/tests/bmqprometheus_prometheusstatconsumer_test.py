@@ -66,7 +66,11 @@ QUEUE_METRICS = [
     "queue_push_bytes",
     "queue_ack_msgs",
 ]
-QUEUE_PRIMARY_NODE_METRICS = ["queue_gc_msgs", "queue_cfg_msgs", "queue_content_msgs_max"]
+QUEUE_PRIMARY_NODE_METRICS = [
+    "queue_gc_msgs",
+    "queue_cfg_msgs",
+    "queue_content_msgs_max",
+]
 CLUSTER_METRICS = ["cluster_healthiness"]
 BROKER_METRICS = ["brkr_summary_queues_count", "brkr_summary_clients_count"]
 
