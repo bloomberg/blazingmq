@@ -19,6 +19,7 @@
 // MQB
 #include <mqbcfg_messages.h>
 #include <mqbmock_dispatcher.h>
+#include <mqbstat_dispatcherstats.h>
 
 // MWC
 #include <mwcex_bindutil.h>
@@ -118,8 +119,15 @@ static void test1_breathingTest()
                                          s_allocator_p);
     eventScheduler.start();
 
+    bsl::shared_ptr<mwcst::StatContext> statContext_sp(
+        mqbstat::DispatcherStatsUtil::initializeStatContext(10,
+                                                            s_allocator_p));
+
     {
-        mqba::Dispatcher obj(dispatcherConfig, &eventScheduler, s_allocator_p);
+        mqba::Dispatcher obj(dispatcherConfig,
+                             statContext_sp.get(),
+                             &eventScheduler,
+                             s_allocator_p);
     }
 
     eventScheduler.stop();
@@ -211,7 +219,12 @@ static void test3_executorsSupport()
     dispatcherConfig.clusters().processorConfig().queueSizeHighWatermark() =
         100;
 
+    bsl::shared_ptr<mwcst::StatContext> statContext_sp(
+        mqbstat::DispatcherStatsUtil::initializeStatContext(10,
+                                                            s_allocator_p));
+
     mqba::Dispatcher dispatcher(dispatcherConfig,
+                                statContext_sp.get(),
                                 &eventScheduler,
                                 s_allocator_p);
 

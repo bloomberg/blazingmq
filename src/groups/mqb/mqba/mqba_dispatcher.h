@@ -52,11 +52,13 @@
 
 #include <mqbcfg_messages.h>
 #include <mqbi_dispatcher.h>
+#include <mqbstat_dispatcherstats.h>
 #include <mqbu_loadbalancer.h>
 
 // MWC
 #include <mwcc_multiqueuethreadpool.h>
 #include <mwcex_executor.h>
+#include <mwcst_statcontext.h>
 
 // BDE
 #include <ball_log.h>
@@ -245,6 +247,9 @@ class Dispatcher BSLS_CPP11_FINAL : public mqbi::Dispatcher {
         // for distributing clients
         // across processors
 
+        /// Stat context for this client type
+        bslma::ManagedPtr<mwcst::StatContext> d_statContext_mp;
+
         bsl::vector<DispatcherClientPtrVector> d_flushList;
         // Vector of vector of
         // pointers to
@@ -277,21 +282,23 @@ class Dispatcher BSLS_CPP11_FINAL : public mqbi::Dispatcher {
 
   private:
     // DATA
+    /// Allocator to use
     bslma::Allocator* d_allocator_p;
-    // Allocator to use
 
+    /// True if this component is started
     bool d_isStarted;
-    // True if this component is started
 
+    /// Configuration for the dispatcher
     mqbcfg::DispatcherConfig d_config;
-    // Configuration for the dispatcher
 
+    /// Top-level stat context for all dispatcher client types
+    mwcst::StatContext* d_statContext_p;
+
+    /// Event scheduler to use
     bdlmt::EventScheduler* d_scheduler_p;
-    // Event scheduler to use
 
+    /// The various contexts, one for each ClientType
     bsl::vector<DispatcherContextSp> d_contexts;
-    // The various context, one for each
-    // ClientType
 
     // FRIENDS
     friend class Dispatcher_ClientExecutor;
@@ -348,6 +355,7 @@ class Dispatcher BSLS_CPP11_FINAL : public mqbi::Dispatcher {
     /// All memory allocation will be performed using the specified
     /// `allocator`.
     Dispatcher(const mqbcfg::DispatcherConfig& config,
+               mwcst::StatContext*             statContext,
                bdlmt::EventScheduler*          scheduler,
                bslma::Allocator*               allocator);
 
@@ -549,6 +557,9 @@ inline void Dispatcher::dispatchEvent(mqbi::DispatcherEvent*            event,
     case mqbi::DispatcherClientType::e_QUEUE:
     case mqbi::DispatcherClientType::e_CLUSTER: {
         d_contexts[type]->d_processorPool_mp->enqueueEvent(event, handle);
+        d_contexts[type]->d_statContext_mp->adjustValue(
+            mqbstat::DispatcherStats::Stat::e_ENQ_START + event->type(),
+            1);
     } break;
     case mqbi::DispatcherClientType::e_UNDEFINED:
     case mqbi::DispatcherClientType::e_ALL:

@@ -28,6 +28,7 @@
 #include <mqbscm_versiontag.h>
 #include <mqbstat_brokerstats.h>
 #include <mqbstat_clusterstats.h>
+#include <mqbstat_dispatcherstats.h>
 #include <mqbstat_domainstats.h>
 #include <mqbstat_queuestats.h>
 
@@ -187,6 +188,16 @@ void StatController::initializeStats()
             BrokerStatsUtil::initializeStatContext(historySize,
                                                    brokerAllocator),
             false)));
+
+    // ----------
+    // Dispatcher
+    StatContextSp dispatcher(
+        mqbstat::DispatcherStatsUtil::initializeStatContext(
+            historySize,
+            d_allocators.get("DispatcherStats")));
+    d_statContextsMap.insert(
+        bsl::make_pair(bsl::string("dispatcher"),
+                       StatContextDetails(dispatcher, false)));
 
     // -------
     // Domains
