@@ -3,7 +3,7 @@ name: Tests
 on:
   push:
     branches:
-      - main
+      - "**"
   pull_request:
     branches:
       - main
@@ -220,6 +220,7 @@ jobs:
             --tb long                           \
             --reruns=3                          \
             -n 4 -v
+          ls
 
   fuzz_tests_ubuntu:
     name: Fuzz test [${{ matrix.request }}]
