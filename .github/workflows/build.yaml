@@ -220,6 +220,8 @@ jobs:
             --tb long                           \
             --reruns=3                          \
             -n 4 -v
+      - name: List folder contents
+        run: |
           ls
 
   fuzz_tests_ubuntu:
