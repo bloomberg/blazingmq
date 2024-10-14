@@ -1795,9 +1795,9 @@ RelayQueueEngine::push(mqbi::StorageMessageAttributes*           attributes,
         PushStream::Apps::iterator itApp = d_pushStream.d_apps.find(
             subQueueId);
         if (itApp == d_pushStream.d_apps.end()) {
-            AppsMap::const_iterator cit = d_apps.find(subQueueId);
+            AppsMap::const_iterator app_cit = d_apps.find(subQueueId);
 
-            if (cit == d_apps.end()) {
+            if (app_cit == d_apps.end()) {
                 BMQ_LOGTHROTTLE_ERROR()
                     << "#QUEUE_UNKNOWN_SUBSCRIPTION_ID "
                     << "Remote queue: " << d_queueState_p->uri()
@@ -1807,7 +1807,8 @@ RelayQueueEngine::push(mqbi::StorageMessageAttributes*           attributes,
                 continue;  // CONTINUE
             }
 
-            itApp = d_pushStream.d_apps.emplace(subQueueId, cit->second).first;
+            itApp =
+                d_pushStream.d_apps.emplace(subQueueId, app_cit->second).first;
         }
         else if (!checkForDuplicate(itApp->second.d_app.get(), msgGUID)) {
             continue;  // CONTINUE

@@ -464,6 +464,7 @@ const char* ConfirmReason::toAscii(ConfirmReason::Enum value)
     switch (value) {
         CASE(CONFIRMED)
         CASE(REJECTED)
+        CASE(AUTO_CONFIRMED)
     default: return "(* UNKNOWN *)";
     }
 

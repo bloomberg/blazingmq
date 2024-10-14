@@ -119,6 +119,8 @@ struct ConversionUtils {
 
         populateMetric(&values, ctx, Stat::e_NO_SC_MSGS_DELTA);
         populateMetric(&values, ctx, Stat::e_NO_SC_MSGS_ABS);
+
+        populateMetric(&values, ctx, Stat::e_HISTORY_ABS);
     }
 
     inline static void populateOneDomainStats(bdljsn::JsonObject* domainObject,

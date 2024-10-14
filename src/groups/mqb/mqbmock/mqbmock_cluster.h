@@ -611,20 +611,20 @@ inline void Cluster::advanceTime(const bsls::TimeInterval& interval)
     d_timeSource.advanceTime(interval);
 }
 
-inline void Cluster::getPrimaryNodes(int*          rc,
-                                     bsl::ostream& errorDescription,
-                                     bsl::vector<mqbnet::ClusterNode*>* nodes,
-                                     bool* isSelfPrimary) const
+inline void Cluster::getPrimaryNodes(int*,
+                                     bsl::ostream&,
+                                     bsl::vector<mqbnet::ClusterNode*>*,
+                                     bool*) const
 {
     // no implementation -- this should never run.
     BSLS_ASSERT_SAFE(false);
 }
 
-inline void Cluster::getPartitionPrimaryNode(int*          rc,
-                                             bsl::ostream& errorDescription,
-                                             mqbnet::ClusterNode** node,
-                                             bool* isSelfPrimary,
-                                             int   partitionId) const
+inline void Cluster::getPartitionPrimaryNode(int*,
+                                             bsl::ostream&,
+                                             mqbnet::ClusterNode**,
+                                             bool*,
+                                             int) const
 {
     // no implementation -- this should never run.
     BSLS_ASSERT_SAFE(false);

@@ -272,7 +272,7 @@ VirtualStorageCatalog::confirm(const bmqt::MessageGUID& msgGUID,
 
     setup(&data->second);
     const mqbi::StorageResult::Enum rc = it->value()->confirm(&data->second);
-    if (queue() && mqbi::StorageResult::Enum::e_SUCCESS == rc) {
+    if (queue() && mqbi::StorageResult::e_SUCCESS == rc) {
         queue()->stats()->onEvent(
             mqbstat::QueueStatsDomain::EventType::e_DEL_MESSAGE,
             data->second.d_size,

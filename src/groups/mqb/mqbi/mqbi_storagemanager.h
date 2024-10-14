@@ -43,6 +43,7 @@
 
 // BDE
 #include <ball_log.h>
+#include <bmqp_ctrlmsg_messages.h>
 #include <bsl_functional.h>
 #include <bsl_memory.h>
 #include <bsl_ostream.h>
@@ -381,6 +382,11 @@ class StorageManager : public mqbi::AppKeyGenerator {
     /// Executed in IO thread.
     virtual void processReceiptEvent(const bmqp::Event&   event,
                                      mqbnet::ClusterNode* source) = 0;
+
+    /// Executed by any thread.
+    virtual void bufferPrimaryStatusAdvisory(
+        const bmqp_ctrlmsg::PrimaryStatusAdvisory& advisory,
+        mqbnet::ClusterNode*                       source) = 0;
 
     /// Executed by any thread.
     virtual void processPrimaryStatusAdvisory(

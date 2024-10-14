@@ -94,6 +94,9 @@ void FileBackedStorage::purgeCommon(const mqbu::StorageKey& appKey)
             queue()->stats()->onEvent(
                 mqbstat::QueueStatsDomain::EventType::e_PURGE,
                 0);
+            queue()->stats()->onEvent(
+                mqbstat::QueueStatsDomain::EventType::e_UPDATE_HISTORY,
+                d_handles.historySize());
         }
     }
 }
@@ -480,6 +483,12 @@ FileBackedStorage::releaseRef(const bmqt::MessageGUID& guid)
         d_capacityMeter.remove(1, msgLen);
         d_handles.erase(it);
 
+        if (queue()) {
+            queue()->stats()->onEvent(
+                mqbstat::QueueStatsDomain::EventType::e_UPDATE_HISTORY,
+                d_handles.historySize());
+        }
+
         return mqbi::StorageResult::e_ZERO_REFERENCES;
     }
     else {
@@ -527,6 +536,9 @@ FileBackedStorage::remove(const bmqt::MessageGUID& msgGUID, int* msgSize)
     queue()->stats()->onEvent(
         mqbstat::QueueStatsDomain::EventType::e_DEL_MESSAGE,
         msgLen);
+    queue()->stats()->onEvent(
+        mqbstat::QueueStatsDomain::EventType::e_UPDATE_HISTORY,
+        d_handles.historySize());
 
     if (msgSize) {
         *msgSize = msgLen;
@@ -579,6 +591,12 @@ FileBackedStorage::removeAll(const mqbu::StorageKey& appKey)
 
     if (d_handles.empty()) {
         d_isEmpty.storeRelaxed(1);
+    }
+
+    if (queue()) {
+        queue()->stats()->onEvent(
+            mqbstat::QueueStatsDomain::EventType::e_UPDATE_HISTORY,
+            d_handles.historySize());
     }
 
     return mqbi::StorageResult::e_SUCCESS;
@@ -697,6 +715,9 @@ int FileBackedStorage::gcExpiredMessages(
                 mqbstat::QueueStatsDomain::EventType::e_NO_SC_MESSAGE,
                 numMsgsUnreceipted);
         }
+        queue()->stats()->onEvent(
+            mqbstat::QueueStatsDomain::EventType::e_UPDATE_HISTORY,
+            d_handles.historySize());
     }
 
     if (d_handles.empty()) {
@@ -708,8 +729,16 @@ int FileBackedStorage::gcExpiredMessages(
 
 bool FileBackedStorage::gcHistory()
 {
-    return d_handles.gc(mwcsys::Time::highResolutionTimer(),
-                        k_GC_MESSAGES_BATCH_SIZE);
+    bool hasMoreToGc = d_handles.gc(mwcsys::Time::highResolutionTimer(),
+                                    k_GC_MESSAGES_BATCH_SIZE);
+
+    if (queue()) {
+        queue()->stats()->onEvent(
+            mqbstat::QueueStatsDomain::EventType::e_UPDATE_HISTORY,
+            d_handles.historySize());
+    }
+
+    return hasMoreToGc;
 }
 
 void FileBackedStorage::processMessageRecord(
@@ -740,14 +769,14 @@ void FileBackedStorage::processMessageRecord(
                                                 &dataStreamMessage);
 
                     // Move auto confirms to the data record
-                    for (AutoConfirms::const_iterator it =
+                    for (AutoConfirms::const_iterator cit =
                              d_autoConfirms.begin();
-                         it != d_autoConfirms.end();
-                         ++it) {
+                         cit != d_autoConfirms.end();
+                         ++cit) {
                         irc.first->second.d_array.push_back(
-                            it->d_confirmRecordHandle);
+                            cit->d_confirmRecordHandle);
                         d_virtualStorageCatalog.autoConfirm(dataStreamMessage,
-                                                            it->d_appKey);
+                                                            cit->d_appKey);
                     }
                 }
                 else {
@@ -906,6 +935,12 @@ void FileBackedStorage::processDeletionRecord(const bmqt::MessageGUID& guid)
 
     if (d_handles.empty()) {
         d_isEmpty.storeRelaxed(1);
+    }
+
+    if (queue()) {
+        queue()->stats()->onEvent(
+            mqbstat::QueueStatsDomain::EventType::e_UPDATE_HISTORY,
+            d_handles.historySize());
     }
 }
 
