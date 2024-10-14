@@ -41,7 +41,7 @@ void ClusterObserver::onNodeStateChange(
 }
 
 void ClusterObserver::onProxyConnectionUp(
-    BSLS_ANNOTATION_UNUSED const bsl::shared_ptr<mwcio::Channel>& channel,
+    BSLS_ANNOTATION_UNUSED const bsl::shared_ptr<bmqio::Channel>& channel,
     BSLS_ANNOTATION_UNUSED const bmqp_ctrlmsg::ClientIdentity& identity,
     BSLS_ANNOTATION_UNUSED const bsl::string& description)
 {

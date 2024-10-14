@@ -40,7 +40,7 @@
 #include <bsls_protocoltest.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -280,7 +280,7 @@ static void test3_parse()
         {
             mqbblp::Routers::AppContext appContext(queueContext,
                                                    s_allocator_p);
-            mwcu::MemOutStream          errorStream(s_allocator_p);
+            bmqu::MemOutStream          errorStream(s_allocator_p);
             appContext.load(&handle1,
                             &errorStream,
                             subStreamInfo1.subId(),
@@ -315,7 +315,7 @@ static void test3_parse()
         {
             mqbblp::Routers::AppContext appContext(queueContext,
                                                    s_allocator_p);
-            mwcu::MemOutStream          errorStream(s_allocator_p);
+            bmqu::MemOutStream          errorStream(s_allocator_p);
 
             appContext.load(&handle1,
                             &errorStream,
@@ -355,7 +355,7 @@ static void test3_parse()
         {
             mqbblp::Routers::AppContext appContext(queueContext,
                                                    s_allocator_p);
-            mwcu::MemOutStream          errorStream(s_allocator_p);
+            bmqu::MemOutStream          errorStream(s_allocator_p);
 
             mqbblp::Routers::RoundRobin router(appContext.d_priorities);
 
@@ -443,7 +443,7 @@ static void test4_generate()
                                                       s_allocator_p);
     unsigned int                         upstreamSubQueueId = 1;
     mqbblp::Routers::AppContext appContext(queueContext, s_allocator_p);
-    mwcu::MemOutStream          errorStream(s_allocator_p);
+    bmqu::MemOutStream          errorStream(s_allocator_p);
 
     bsl::string           appId("foo", s_allocator_p);
     int                   priorityCount = 2;
@@ -514,7 +514,7 @@ int main(int argc, char* argv[])
     // Initialize Crc32c
     bmqp::Crc32c::initialize();
 
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     bmqp::ProtocolUtil::initialize(s_allocator_p);
     bmqt::UriParser::initialize(s_allocator_p);
@@ -537,5 +537,5 @@ int main(int argc, char* argv[])
     bmqt::UriParser::shutdown();
     bmqp::ProtocolUtil::shutdown();
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }

@@ -17,8 +17,8 @@
 #include <bmqa_configurequeuestatus.h>
 
 #include <bmqscm_version.h>
-// MWC
-#include <mwcu_memoutstream.h>
+
+#include <bmqu_memoutstream.h>
 
 // BDE
 #include <bslim_printer.h>
@@ -38,7 +38,7 @@ bsl::ostream& ConfigureQueueStatus::print(bsl::ostream& stream,
     bslim::Printer printer(&stream, level, spacesPerLevel);
     printer.start();
     printer.printAttribute("queueId", queueId());
-    mwcu::MemOutStream out;
+    bmqu::MemOutStream out;
     out << result() << " (" << static_cast<int>(result()) << ")";
     printer.printAttribute("result", out.str());
     if (!errorDescription().empty()) {

@@ -19,9 +19,9 @@
 // BMQ
 #include <bmqa_messageproperties.h>
 
-// MWC
-#include <mwcu_memoutstream.h>
-#include <mwcu_tempfile.h>
+// BMQ
+#include <bmqu_memoutstream.h>
+#include <bmqu_tempfile.h>
 
 // BDE
 #include <bdlbb_blob.h>
@@ -29,7 +29,7 @@
 #include <bdlbb_pooledblobbufferfactory.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -55,7 +55,7 @@ static void test1_decodeHexDumpTest()
 //   decodeHexDump
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("DECODEHEXDUMP TEST");
+    bmqtst::TestHelper::printTestName("DECODEHEXDUMP TEST");
 
     struct Test {
         int         d_line;
@@ -103,8 +103,8 @@ static void test1_decodeHexDumpTest()
 
         bsl::istringstream input(bsl::string(test.d_hexdumpStr, s_allocator_p),
                                  s_allocator_p);
-        mwcu::MemOutStream output(s_allocator_p);
-        mwcu::MemOutStream error(s_allocator_p);
+        bmqu::MemOutStream output(s_allocator_p);
+        bmqu::MemOutStream error(s_allocator_p);
         const bool         rc =
             InputUtil::decodeHexDump(&output, &error, input, s_allocator_p);
         // Check rc
@@ -131,7 +131,7 @@ static void test2_loadMessageFromFileTest()
 //   loadMessageFromFile
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("LOADMESSAGEFROMFILE TEST");
+    bmqtst::TestHelper::printTestName("LOADMESSAGEFROMFILE TEST");
 
     struct Test {
         int         d_line;
@@ -251,8 +251,8 @@ static void test2_loadMessageFromFileTest()
 
     // Check wrong file path
     {
-        mwcu::MemOutStream stream(s_allocator_p);
-        mwcu::MemOutStream error(s_allocator_p);
+        bmqu::MemOutStream stream(s_allocator_p);
+        bmqu::MemOutStream error(s_allocator_p);
         const bool         rc = InputUtil::loadMessageFromFile(&stream,
                                                        &stream,
                                                        &error,
@@ -267,7 +267,7 @@ static void test2_loadMessageFromFileTest()
         const Test& test = k_DATA[idx];
 
         // Create temp file and write content
-        mwcu::TempFile    tempFile(s_allocator_p);
+        bmqu::TempFile    tempFile(s_allocator_p);
         const bsl::string filePath = tempFile.path();
         {
             bsl::ofstream ofs(filePath.c_str());
@@ -275,9 +275,9 @@ static void test2_loadMessageFromFileTest()
             ofs << test.d_fileContent;
         }
 
-        mwcu::MemOutStream payload(s_allocator_p);
+        bmqu::MemOutStream payload(s_allocator_p);
         bsl::ostringstream properties(s_allocator_p);
-        mwcu::MemOutStream error(s_allocator_p);
+        bmqu::MemOutStream error(s_allocator_p);
         const bool         rc = InputUtil::loadMessageFromFile(&payload,
                                                        &properties,
                                                        &error,
@@ -306,7 +306,7 @@ static void test2_loadMessageFromFileTest()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     switch (_testCase) {
     case 0:
@@ -318,9 +318,9 @@ int main(int argc, char* argv[])
     } break;
     }
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 
     // Check for default allocator is explicitly disabled as
     // 'bmqa::MessageProperties' or one of its data members may allocate
-    // temporaries with default allocator. The same for 'mwcu::TempFile'.
+    // temporaries with default allocator. The same for 'bmqu::TempFile'.
 }

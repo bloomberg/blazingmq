@@ -16,11 +16,10 @@
 // bmqt_queueoptions.t.cpp                                            -*-C++-*-
 #include <bmqt_queueoptions.h>
 
-// MWC
-#include <mwcu_memoutstream.h>
+#include <bmqu_memoutstream.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -32,7 +31,7 @@ using namespace bsl;
 
 static void test1_breathingTest()
 {
-    mwctst::TestHelper::printTestName("BREATHING TEST");
+    bmqtst::TestHelper::printTestName("BREATHING TEST");
 
     bmqt::QueueOptions obj(s_allocator_p);
 
@@ -88,21 +87,21 @@ static void test1_breathingTest()
                            " suspendsOnBadHostHealth = false ]";
     {
         PVV("Print (print function)");
-        mwcu::MemOutStream out(s_allocator_p);
+        bmqu::MemOutStream out(s_allocator_p);
         obj.print(out, 0, -1);
         ASSERT_EQ(out.str(), expected);
     }
 
     {
         PVV("Print (stream operator)");
-        mwcu::MemOutStream out(s_allocator_p);
+        bmqu::MemOutStream out(s_allocator_p);
         out << obj;
         ASSERT_EQ(out.str(), expected);
     }
 
     {
         PVV("Print (bad stream)");
-        mwcu::MemOutStream out(s_allocator_p);
+        bmqu::MemOutStream out(s_allocator_p);
         out.setstate(bsl::ios_base::badbit);
         obj.print(out, 0, -1);
         ASSERT_EQ(out.str(), "");
@@ -127,7 +126,7 @@ static void test2_defaultsTest()
 //   Basic functionality
 // --------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("DEFAULTS TEST");
+    bmqtst::TestHelper::printTestName("DEFAULTS TEST");
 
     PVV("Step 1. Construct default instance and test its values");
     bmqt::QueueOptions options(s_allocator_p);
@@ -172,7 +171,7 @@ static void test3_mergeTest()
 //   - bmqt::QueueOptions::merge
 // --------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("MERGE TEST");
+    bmqtst::TestHelper::printTestName("MERGE TEST");
 
     PVV("Step 1. Construct two objects");
     bmqt::QueueOptions options(s_allocator_p);
@@ -202,7 +201,7 @@ static void test3_mergeTest()
 
 static void test4_subscriptionsTest()
 {
-    mwctst::TestHelper::printTestName("SUBSCRIPTIONS TEST");
+    bmqtst::TestHelper::printTestName("SUBSCRIPTIONS TEST");
 
     bmqt::QueueOptions obj(s_allocator_p);
 
@@ -277,7 +276,7 @@ static void test4_subscriptionsTest()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     switch (_testCase) {
     case 0:
@@ -291,5 +290,5 @@ int main(int argc, char* argv[])
     } break;
     }
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 }

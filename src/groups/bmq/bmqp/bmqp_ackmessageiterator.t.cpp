@@ -29,11 +29,10 @@
 #include <bsl_iostream.h>
 #include <bslma_default.h>
 
-// MWC
-#include <mwcu_memoutstream.h>
+#include <bmqu_memoutstream.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -182,7 +181,7 @@ static void test1_breathingTest()
 //   Basic functionality
 // --------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("BREATHING TEST");
+    bmqtst::TestHelper::printTestName("BREATHING TEST");
 
     bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
 
@@ -314,7 +313,7 @@ static void test1_breathingTest()
 
         // Verify dumping the blob
         const char*        k_NO_BLOB_STR = "/no blob/";
-        mwcu::MemOutStream out(s_allocator_p);
+        bmqu::MemOutStream out(s_allocator_p);
 
         iter2.dumpBlob(out);
         ASSERT_NE(out.str(), k_NO_BLOB_STR);
@@ -341,7 +340,7 @@ static void test1_breathingTest()
 /// Test iterating over ACK event having multiple ACK messages
 static void test2_ackEventWithMultipleMessages()
 {
-    mwctst::TestHelper::printTestName("ACK EVENT WITH MULTIPLE MESSAGES");
+    bmqtst::TestHelper::printTestName("ACK EVENT WITH MULTIPLE MESSAGES");
 
     bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
     bdlbb::Blob                    eventBlob(&bufferFactory, s_allocator_p);
@@ -396,7 +395,7 @@ static void test3_nextMethod()
     // Testing:
     //   int next();
     // --------------------------------------------------------------------
-    mwctst::TestHelper::printTestName("NEXT METHOD");
+    bmqtst::TestHelper::printTestName("NEXT METHOD");
 
     // Test iterating over ACK event having multiple ACK messages
 
@@ -487,7 +486,7 @@ static void test4_resetMethod()
     // Testing:
     //   int reset();
     // --------------------------------------------------------------------
-    mwctst::TestHelper::printTestName("RESET METHOD");
+    bmqtst::TestHelper::printTestName("RESET METHOD");
 
     // Default values for event header
     // Populate blob
@@ -583,7 +582,7 @@ static void test5_dumpBlob()
     // Testing:
     //   void dumpBlob(bsl::ostream& stream);
     // --------------------------------------------------------------------
-    mwctst::TestHelper::printTestName("DUMB BLOB");
+    bmqtst::TestHelper::printTestName("DUMB BLOB");
 
     // Test iterator dump contains expected value
 
@@ -596,7 +595,7 @@ static void test5_dumpBlob()
     bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
     bdlbb::Blob                    blob(&bufferFactory, s_allocator_p);
     bmqp::EventHeader              eventHeader;
-    mwcu::MemOutStream             stream(s_allocator_p);
+    bmqu::MemOutStream             stream(s_allocator_p);
 
     // Populate blob
     populateBlob(&blob,
@@ -648,7 +647,7 @@ static void test5_dumpBlob()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     switch (_testCase) {
     case 0:
@@ -663,5 +662,5 @@ int main(int argc, char* argv[])
     } break;
     }
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }

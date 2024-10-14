@@ -17,10 +17,10 @@
 #include <bmqt_version.h>
 
 // BMQ
-#include <mwcu_memoutstream.h>
+#include <bmqu_memoutstream.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // Some GNU header defines these functions as macros for POSIX
 // compatibility
@@ -59,7 +59,7 @@ static void test1_breathingTest()
 //   Printing
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("BREATHING TEST");
+    bmqtst::TestHelper::printTestName("BREATHING TEST");
 
     // Creators
     bmqt::Version a;
@@ -114,28 +114,28 @@ static void test1_breathingTest()
 
     // Printing
     {
-        mwcu::MemOutStream os(s_allocator_p);
+        bmqu::MemOutStream os(s_allocator_p);
         os << a;
         bsl::string str(s_allocator_p);
         str.assign(os.str().data(), os.str().length());
         ASSERT_EQ(str, "[ major = 0 minor = 0 ]");
     }
     {
-        mwcu::MemOutStream os(s_allocator_p);
+        bmqu::MemOutStream os(s_allocator_p);
         os << b;
         bsl::string str(s_allocator_p);
         str.assign(os.str().data(), os.str().length());
         ASSERT_EQ(str, "[ major = 1 minor = 2 ]");
     }
     {
-        mwcu::MemOutStream os(s_allocator_p);
+        bmqu::MemOutStream os(s_allocator_p);
         os << c;
         bsl::string str(s_allocator_p);
         str.assign(os.str().data(), os.str().length());
         ASSERT_EQ(str, "[ major = 4 minor = 3 ]");
     }
     {
-        mwcu::MemOutStream out(s_allocator_p);
+        bmqu::MemOutStream out(s_allocator_p);
         out.setstate(bsl::ios_base::badbit);
         a.print(out, 0, -1);
         ASSERT_EQ(out.str(), "");
@@ -148,7 +148,7 @@ static void test1_breathingTest()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     switch (_testCase) {
     case 0:
@@ -159,5 +159,5 @@ int main(int argc, char* argv[])
     } break;
     }
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }

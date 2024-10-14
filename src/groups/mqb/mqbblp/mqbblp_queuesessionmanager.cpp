@@ -50,7 +50,7 @@ namespace {
 
 /// Create the queue stats datum associated with the specified `statContext`
 /// and having the specified `domain`, `cluster`, and `queueFlags`.
-void createQueueStatsDatum(mwcst::StatContext* statContext,
+void createQueueStatsDatum(bmqst::StatContext* statContext,
                            const bsl::string&  domain,
                            const bsl::string&  cluster,
                            bsls::Types::Uint64 queueFlags)
@@ -92,11 +92,11 @@ void QueueSessionManager::onDomainQualifiedCb(
     const ErrorCallback&                errorCallback,
     const bmqt::Uri&                    uri,
     const bmqp_ctrlmsg::ControlMessage& request,
-    const mwcu::AtomicValidatorSp&      validator)
+    const bmqu::AtomicValidatorSp&      validator)
 {
     // executed by the *CLIENT* dispatcher thread (TBD: for now)
 
-    mwcu::AtomicValidatorGuard guard(validator.get());
+    bmqu::AtomicValidatorGuard guard(validator.get());
     if (!guard.isValid()) {
         // The session was destroyed before we received the response (see
         // implementation notes at top of this file for explanation).
@@ -171,14 +171,14 @@ void QueueSessionManager::onDomainOpenCb(
     const ErrorCallback&                errorCallback,
     const bmqt::Uri&                    uri,
     const bmqp_ctrlmsg::ControlMessage& request,
-    const mwcu::AtomicValidatorSp&      validator)
+    const bmqu::AtomicValidatorSp&      validator)
 {
     // executed by the *ANY* thread (TBD: for now)
 
     // Preconditions
     BSLS_ASSERT_SAFE(request.choice().isOpenQueueValue());
 
-    mwcu::AtomicValidatorGuard guard(validator.get());
+    bmqu::AtomicValidatorGuard guard(validator.get());
     if (!guard.isValid()) {
         // The session was destroyed before we received the response (see
         // implementation notes at top of this file for explanation).
@@ -228,7 +228,7 @@ void QueueSessionManager::onQueueOpenCb(
     const mqbi::Domain::OpenQueueConfirmationCookie& confirmationCookie,
     const GetHandleCallback&                         responseCallback,
     const bmqp_ctrlmsg::ControlMessage&              request,
-    const mwcu::AtomicValidatorSp&                   validator)
+    const bmqu::AtomicValidatorSp&                   validator)
 {
     // executed by *ANY* thread
 
@@ -241,7 +241,7 @@ void QueueSessionManager::onQueueOpenCb(
         *confirmationCookie = queueHandle;
     }
 
-    mwcu::AtomicValidatorGuard guard(validator.get());
+    bmqu::AtomicValidatorGuard guard(validator.get());
     if (!guard.isValid()) {
         // The session was destroyed before we received the response (see
         // implementation notes at top of this file for explanation).
@@ -322,7 +322,7 @@ void QueueSessionManager::onQueueOpenCbDispatched(
         QueueState::StreamsMap::iterator subQueueInfo =
             qs.d_subQueueInfosMap.insert(apppId, queueId.subId(), queueId);
 
-        mwcst::StatContext* statContext =
+        bmqst::StatContext* statContext =
             subQueueInfo->value().d_stats->statContext();
 
         if (!statContext) {
@@ -356,11 +356,11 @@ void QueueSessionManager::onHandleReleased(
     const CloseHandleCallback&                successCallback,
     const ErrorCallback&                      errorCallback,
     const bmqp_ctrlmsg::ControlMessage&       request,
-    const mwcu::AtomicValidatorSp&            validator)
+    const bmqu::AtomicValidatorSp&            validator)
 {
     // executed by the *QUEUE* dispatcher thread
 
-    mwcu::AtomicValidatorGuard guard(validator.get());
+    bmqu::AtomicValidatorGuard guard(validator.get());
     if (!guard.isValid()) {
         // The session was destroyed before we received the response (see
         // implementation notes at top of this file for explanation).
@@ -518,7 +518,7 @@ void QueueSessionManager::dispatchErrorCallback(
 QueueSessionManager::QueueSessionManager(
     mqbi::DispatcherClient*             dispatcherClient,
     const bmqp_ctrlmsg::ClientIdentity& clientIdentity,
-    mwcst::StatContext*                 statContext,
+    bmqst::StatContext*                 statContext,
     mqbi::DomainFactory*                domainFactory,
     bslma::Allocator*                   allocator)
 : d_dispatcherClient_p(dispatcherClient)
@@ -526,8 +526,8 @@ QueueSessionManager::QueueSessionManager(
 , d_domainFactory_p(domainFactory)
 , d_allocator_p(allocator)
 , d_shutdownInProgress(false)
-, d_validator_sp(new (*allocator) mwcu::AtomicValidator(), allocator)
-, d_requesterContext_sp(new (*allocator)
+, d_validator_sp(new(*allocator) bmqu::AtomicValidator(), allocator)
+, d_requesterContext_sp(new(*allocator)
                             mqbi::QueueHandleRequesterContext(allocator),
                         allocator)
 {

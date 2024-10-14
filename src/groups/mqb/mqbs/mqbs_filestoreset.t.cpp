@@ -16,15 +16,14 @@
 // mqbs_filestoreset.t.cpp                                            -*-C++-*-
 #include <mqbs_filestoreset.h>
 
-// MWC
-#include <mwcu_memoutstream.h>
+#include <bmqu_memoutstream.h>
 
 // BDE
 #include <bsl_string.h>
 #include <bsls_types.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -45,7 +44,7 @@ static void test1_breathingTest()
 //   Basic functionality
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("BREATHING TEST");
+    bmqtst::TestHelper::printTestName("BREATHING TEST");
 
     const bsl::string        k_DATA_FILE         = "data";
     const bsls::Types::Int64 k_DATA_FILE_SIZE    = 1 * 1024 * 1024;
@@ -117,21 +116,21 @@ static void test1_breathingTest()
                            " journalFileSize = 2,048 ]";
     {
         PVV("Print (print function)");
-        mwcu::MemOutStream out(s_allocator_p);
+        bmqu::MemOutStream out(s_allocator_p);
         obj2.print(out, 0, -1);
         ASSERT_EQ(out.str(), expected);
     }
 
     {
         PVV("Print (stream operator)");
-        mwcu::MemOutStream out(s_allocator_p);
+        bmqu::MemOutStream out(s_allocator_p);
         out << obj2;
         ASSERT_EQ(out.str(), expected);
     }
 
     {
         PVV("Print (bad stream)");
-        mwcu::MemOutStream out(s_allocator_p);
+        bmqu::MemOutStream out(s_allocator_p);
         out.setstate(bsl::ios_base::badbit);
         obj2.print(out, 0, -1);
         ASSERT_EQ(out.str(), "");
@@ -144,7 +143,7 @@ static void test1_breathingTest()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     switch (_testCase) {
     case 0:
@@ -155,5 +154,5 @@ int main(int argc, char* argv[])
     } break;
     }
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }

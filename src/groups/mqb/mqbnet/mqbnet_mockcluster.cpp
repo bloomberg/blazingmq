@@ -19,7 +19,7 @@
 #include <mqbscm_version.h>
 // BMQ
 #include <bmqp_protocol.h>
-#include <mwcu_memoutstream.h>
+#include <bmqu_memoutstream.h>
 
 // BDE
 #include <bsl_iostream.h>
@@ -53,7 +53,7 @@ MockClusterNode::MockClusterNode(MockCluster*               cluster,
     BSLS_ASSERT_SAFE(d_cluster_p &&
                      "A ClusterNode should always be part of a Cluster");
 
-    mwcu::MemOutStream osstr;
+    bmqu::MemOutStream osstr;
     osstr << "[" << hostName() << ", " << nodeId() << "]";
     d_description.assign(osstr.str().data(), osstr.str().length());
 }
@@ -64,9 +64,9 @@ MockClusterNode::~MockClusterNode()
 }
 
 ClusterNode*
-MockClusterNode::setChannel(const bsl::weak_ptr<mwcio::Channel>& value,
+MockClusterNode::setChannel(const bsl::weak_ptr<bmqio::Channel>& value,
                             const bmqp_ctrlmsg::ClientIdentity&  identity,
-                            const mwcio::Channel::ReadCallback&  readCb)
+                            const bmqio::Channel::ReadCallback&  readCb)
 {
     // Save the value
     d_channel.setChannel(value);
@@ -81,7 +81,7 @@ MockClusterNode::setChannel(const bsl::weak_ptr<mwcio::Channel>& value,
 
 bool MockClusterNode::enableRead()
 {
-    const bsl::shared_ptr<mwcio::Channel> channelSp = d_channel.channel();
+    const bsl::shared_ptr<bmqio::Channel> channelSp = d_channel.channel();
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!channelSp)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
         return false;  // RETURN
@@ -91,7 +91,7 @@ bool MockClusterNode::enableRead()
         return true;  // RETURN
     }
 
-    mwcio::Status readStatus;
+    bmqio::Status readStatus;
     channelSp->read(&readStatus, bmqp::Protocol::k_PACKET_MIN_SIZE, d_readCb);
 
     if (!readStatus) {
@@ -260,7 +260,7 @@ void MockCluster::enableRead()
 }
 
 void MockCluster::onProxyConnectionUp(
-    BSLS_ANNOTATION_UNUSED const bsl::shared_ptr<mwcio::Channel>& channel,
+    BSLS_ANNOTATION_UNUSED const bsl::shared_ptr<bmqio::Channel>& channel,
     BSLS_ANNOTATION_UNUSED const bmqp_ctrlmsg::ClientIdentity& identity,
     BSLS_ANNOTATION_UNUSED const bsl::string& description)
 {

@@ -52,8 +52,7 @@
 #include <bmqp_ctrlmsg_messages.h>
 #include <bmqt_uri.h>
 
-// MWC
-#include <mwcio_status.h>
+#include <bmqio_status.h>
 
 // BDE
 #include <ball_log.h>

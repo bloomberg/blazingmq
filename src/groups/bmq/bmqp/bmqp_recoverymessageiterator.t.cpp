@@ -16,8 +16,7 @@
 // bmqp_recoverymessageiterator.t.cpp                                 -*-C++-*-
 #include <bmqp_recoverymessageiterator.h>
 
-// MWC
-#include <mwcu_memoutstream.h>
+#include <bmqu_memoutstream.h>
 
 // BDE
 #include <bdlbb_blob.h>
@@ -25,7 +24,7 @@
 #include <bdlbb_pooledblobbufferfactory.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -178,7 +177,7 @@ static void test1_breathingTest()
 //   Basic functionality
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("BREATHING TEST");
+    bmqtst::TestHelper::printTestName("BREATHING TEST");
 
     bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
 
@@ -326,13 +325,13 @@ static void test2_multipleMessages()
         ASSERT_EQ_D(index, D.d_seqNum, iter.header().chunkSequenceNumber());
 
         // Compare chunk record
-        mwcu::BlobPosition position;
+        bmqu::BlobPosition position;
         ASSERT_EQ_D(index, 0, iter.loadChunkPosition(&position));
 
         int compareRc = 0;
         ASSERT_EQ_D(index,
                     0,
-                    mwcu::BlobUtil::compareSection(&compareRc,
+                    bmqu::BlobUtil::compareSection(&compareRc,
                                                    eventBlob,
                                                    position,
                                                    D.d_chunk.c_str(),
@@ -561,7 +560,7 @@ static void test5_emptyPayload()
               iter.header().fileChunkType());
     ASSERT_EQ(0, iter.header().messageWords() - iter.header().headerWords());
 
-    mwcu::BlobPosition chunkPosition;
+    bmqu::BlobPosition chunkPosition;
     ASSERT_EQ(iter.loadChunkPosition(&chunkPosition), 0);
     ASSERT_EQ(iter.next(), 0);
     ASSERT_EQ(iter.isValid(), false);
@@ -600,7 +599,7 @@ static void test6_nextMethod()
     // Testing:
     //   int next();
     // --------------------------------------------------------------------
-    mwctst::TestHelper::printTestName("NEXT METHOD");
+    bmqtst::TestHelper::printTestName("NEXT METHOD");
 
     // Populate blob
     bsl::vector<Data> data(s_allocator_p);
@@ -718,7 +717,7 @@ static void test7_resetMethod()
     // Testing:
     //   int reset();
     // --------------------------------------------------------------------
-    mwctst::TestHelper::printTestName("RESET METHOD");
+    bmqtst::TestHelper::printTestName("RESET METHOD");
 
     // Populate blob
     bsl::vector<Data> data(s_allocator_p);
@@ -771,12 +770,12 @@ static void test8_dumpBlob()
     // Testing:
     //   void dumpBlob(bsl::ostream& stream);
     // --------------------------------------------------------------------
-    mwctst::TestHelper::printTestName("DUMP BLOB");
+    bmqtst::TestHelper::printTestName("DUMP BLOB");
 
     // Test iterator dump contains expected value
     bmqp::EventHeader              eventHeader;
     bsl::vector<Data>              data(s_allocator_p);
-    mwcu::MemOutStream             stream(s_allocator_p);
+    bmqu::MemOutStream             stream(s_allocator_p);
     bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
     bdlbb::Blob                    blob(&bufferFactory, s_allocator_p);
 
@@ -823,7 +822,7 @@ static void test8_dumpBlob()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     switch (_testCase) {
     case 0:
@@ -841,5 +840,5 @@ int main(int argc, char* argv[])
     } break;
     }
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 }

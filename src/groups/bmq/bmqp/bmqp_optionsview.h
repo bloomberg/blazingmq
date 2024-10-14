@@ -50,9 +50,7 @@
 // BMQ
 
 #include <bmqp_protocol.h>
-
-// MWC
-#include <mwcu_blob.h>
+#include <bmqu_blob.h>
 
 // BDE
 #include <bdlb_bigendian.h>
@@ -83,11 +81,11 @@ class OptionsView {
     /// Sequential stack allocator for the first template-specified bytes
     /// (falls back to other allocator afterwards)
     typedef bdlma::LocalSequentialAllocator<(OptionHeader::k_MAX_TYPE + 1) *
-                                            sizeof(mwcu::BlobPosition)>
+                                            sizeof(bmqu::BlobPosition)>
         LocalSequentialAllocator;
 
     /// Mapping of OptionType (index) to BlobPosition
-    typedef bsl::vector<mwcu::BlobPosition> OptionPositions;
+    typedef bsl::vector<bmqu::BlobPosition> OptionPositions;
 
     /// Enables iteration on `bmqp::OptionsView`
     class Iterator {
@@ -167,7 +165,7 @@ class OptionsView {
     // Flag indicating if this view is
     // initialized and valid.
 
-    const mwcu::BlobPosition d_NullBlobPosition;
+    const bmqu::BlobPosition d_NullBlobPosition;
     // Value indicating no blob position
     // (member just to avoid repeated
     // instantiations elsewhere)
@@ -184,7 +182,7 @@ class OptionsView {
     /// `optionsAreaSize` bytes from `optionsAreaPos` offset.  Return 0 on
     /// success, and non-zero on error.
     int resetImpl(const bdlbb::Blob*        blob,
-                  const mwcu::BlobPosition& optionsAreaPos,
+                  const bmqu::BlobPosition& optionsAreaPos,
                   int                       optionsAreaSize);
 
     // PRIVATE ACCESSORS
@@ -203,7 +201,7 @@ class OptionsView {
     /// undefined unless `isValid()` returns `true` and `find(optionType)`
     /// returns a valid iterator.  Note that if the option blob is *packed*,
     /// `payloadSizeBytes` will be loaded as zero.
-    int loadOptionPositionAndSize(mwcu::BlobPosition* payloadPosition,
+    int loadOptionPositionAndSize(bmqu::BlobPosition* payloadPosition,
                                   int*                payloadSizeBytes,
                                   const bmqp::OptionType::Enum optionType,
                                   const bool hasPadding) const;
@@ -244,7 +242,7 @@ class OptionsView {
     /// `optionsAreaSize` bytes from `optionsAreaPos` offset.  Return 0 on
     /// success, and non-zero on error.
     OptionsView(const bdlbb::Blob*        blob,
-                const mwcu::BlobPosition& optionsAreaPos,
+                const bmqu::BlobPosition& optionsAreaPos,
                 int                       optionsAreaSize,
                 bslma::Allocator*         allocator);
 
@@ -259,7 +257,7 @@ class OptionsView {
     /// `optionsAreaPos` offset.  Return 0 on success, and non-zero on
     /// error.
     int reset(const bdlbb::Blob*        blob,
-              const mwcu::BlobPosition& optionsAreaPos,
+              const bmqu::BlobPosition& optionsAreaPos,
               int                       optionsAreaSize);
 
     /// Set the internal state of this instance to be same as default
@@ -429,7 +427,7 @@ int OptionsView::loadSubQueueInfosOptionHelper(
         rc_INVALID_BLOB = -1
     };
 
-    mwcu::BlobPosition firstSubQueueInfoPos;
+    bmqu::BlobPosition firstSubQueueInfoPos;
     int                subQueueInfosSize;
 
     int rc = loadOptionPositionAndSize(&firstSubQueueInfoPos,
@@ -448,7 +446,7 @@ int OptionsView::loadSubQueueInfosOptionHelper(
     out->resize(numSubQueueInfos);
 
     // Read option payload
-    rc = mwcu::BlobUtil::readNBytes(reinterpret_cast<char*>(out->data()),
+    rc = bmqu::BlobUtil::readNBytes(reinterpret_cast<char*>(out->data()),
                                     *d_blob_p,
                                     firstSubQueueInfoPos,
                                     subQueueInfosSize);
@@ -471,7 +469,7 @@ inline OptionsView::OptionsView(bslma::Allocator* allocator)
 , d_optionPositions(OptionHeader::k_MAX_TYPE + 1, &d_bufferAllocator)
 , d_blob_p(0)
 , d_isValid(false)
-, d_NullBlobPosition(mwcu::BlobPosition(-1, 0))
+, d_NullBlobPosition(bmqu::BlobPosition(-1, 0))
 {
     // NOTHING
 }
@@ -483,30 +481,30 @@ inline OptionsView::OptionsView(const OptionsView& src,
 , d_optionPositions(src.d_optionPositions, &d_bufferAllocator)
 , d_blob_p(src.d_blob_p)
 , d_isValid(src.d_isValid)
-, d_NullBlobPosition(mwcu::BlobPosition(-1, 0))
+, d_NullBlobPosition(bmqu::BlobPosition(-1, 0))
 {
     // NOTHING
 }
 
 inline OptionsView::OptionsView(const bdlbb::Blob*        blob,
-                                const mwcu::BlobPosition& optionsAreaPos,
+                                const bmqu::BlobPosition& optionsAreaPos,
                                 int                       optionsAreaSize,
                                 bslma::Allocator*         allocator)
 : d_allocator_p(allocator)
 , d_bufferAllocator(allocator)
 , d_optionPositions(OptionHeader::k_MAX_TYPE + 1,
-                    mwcu::BlobPosition(-1, 0),
+                    bmqu::BlobPosition(-1, 0),
                     &d_bufferAllocator)
 , d_blob_p(blob)
 , d_isValid(false)
-, d_NullBlobPosition(mwcu::BlobPosition(-1, 0))
+, d_NullBlobPosition(bmqu::BlobPosition(-1, 0))
 {
     resetImpl(blob, optionsAreaPos, optionsAreaSize);
 }
 
 // MANIPULATORS
 inline int OptionsView::reset(const bdlbb::Blob*        blob,
-                              const mwcu::BlobPosition& optionsAreaPos,
+                              const bmqu::BlobPosition& optionsAreaPos,
                               int                       optionsAreaSize)
 {
     clear();

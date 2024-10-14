@@ -25,8 +25,7 @@
 #include <mqbmock_queuehandle.h>
 #include <mqbstat_brokerstats.h>
 
-// MWC
-#include <mwcu_memoutstream.h>
+#include <bmqu_memoutstream.h>
 
 // BMQ
 #include <bmqp_protocol.h>
@@ -38,7 +37,7 @@
 #include <bsls_timeinterval.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -87,7 +86,7 @@ static void test1_breathingTest()
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks from
     // 'mqbi' methods print with ball, which allocates.
 
-    mwctst::TestHelper::printTestName("BREATHING TEST");
+    bmqtst::TestHelper::printTestName("BREATHING TEST");
 
     mqbconfm::Domain domainConfig;
     domainConfig.mode().makePriority();
@@ -168,7 +167,7 @@ static void test2_aggregateDownstream()
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks from
     // 'mqbi' methods print with ball, which allocates.
 
-    mwctst::TestHelper::printTestName("AGGREGATE DOWNSTREAM");
+    bmqtst::TestHelper::printTestName("AGGREGATE DOWNSTREAM");
 
     mqbconfm::Domain domainConfig;
     domainConfig.mode().makePriority();
@@ -339,7 +338,7 @@ static void test3_reconfigure()
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks
     // from 'mqbi' methods print with ball, which allocates.
 
-    mwctst::TestHelper::printTestName("RECONFIGURE");
+    bmqtst::TestHelper::printTestName("RECONFIGURE");
 
     mqbconfm::Domain domainConfig;
     domainConfig.mode().makePriority();
@@ -478,7 +477,7 @@ static void test4_cannotDeliver()
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks from
     // 'mqbi' methods print with ball, which allocates.
 
-    mwctst::TestHelper::printTestName("CANNOT CONSUMERS");
+    bmqtst::TestHelper::printTestName("CANNOT CONSUMERS");
 
     mqbconfm::Domain domainConfig;
     domainConfig.mode().makePriority();
@@ -593,7 +592,7 @@ static void test5_localRedelivery()
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks from
     // 'mqbi' methods print with ball, which allocates.
 
-    mwctst::TestHelper::printTestName("REDELIVERY TO OTHER CONSUMERS");
+    bmqtst::TestHelper::printTestName("REDELIVERY TO OTHER CONSUMERS");
 
     mqbconfm::Domain domainConfig;
     domainConfig.mode().makePriority();
@@ -673,7 +672,7 @@ static void test6_clearDeliveryStateWhenLostReaders()
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks from
     // 'mqbi' methods print with ball, which allocates.
 
-    mwctst::TestHelper::printTestName("REDELIVERY TO FIRST CONSUMER UP");
+    bmqtst::TestHelper::printTestName("REDELIVERY TO FIRST CONSUMER UP");
 
     mqbconfm::Domain domainConfig;
     domainConfig.mode().makePriority();
@@ -743,7 +742,7 @@ static void test7_broadcastMode()
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks from
     // 'mqbi' methods print with ball, which allocates.
 
-    mwctst::TestHelper::printTestName("BROADCAST MODE");
+    bmqtst::TestHelper::printTestName("BROADCAST MODE");
 
     mqbconfm::Domain domainConfig(s_allocator_p);
     domainConfig.mode().makeBroadcast();
@@ -835,7 +834,7 @@ static void test8_priority_beforeMessageRemoved_garbageCollection()
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks from
     // 'mqbi' methods print with ball, which allocates.
 
-    mwctst::TestHelper::printTestName("BEFORE MESSAGE REMOVED - GARBAGE "
+    bmqtst::TestHelper::printTestName("BEFORE MESSAGE REMOVED - GARBAGE "
                                       "COLLECTION");
 
     mqbconfm::Domain domainConfig(s_allocator_p);
@@ -911,7 +910,7 @@ static void test9_releaseHandle_isDeletedFlag()
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks from
     // 'mqbi' methods print with ball, which allocates.
 
-    mwctst::TestHelper::printTestName("RELEASE HANDLE - IS-DELETED FLAG");
+    bmqtst::TestHelper::printTestName("RELEASE HANDLE - IS-DELETED FLAG");
 
     mqbconfm::Domain domainConfig(s_allocator_p);
     domainConfig.mode().makePriority();
@@ -974,7 +973,7 @@ static void test10_configureFanoutAppIds()
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks from
     // 'mqbi' methods print with ball, which allocates.
 
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "CONFIGURING DIFFERENT APPIDs FOR UPSTREAM");
 
     mqbblp::QueueEngineTester tester(fanoutConfig(), false, s_allocator_p);
@@ -1060,7 +1059,7 @@ static void test11_roundRobinAndRedelivery()
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks from
     // 'mqbi' methods print with ball, which allocates.
 
-    mwctst::TestHelper::printTestName("ROUND-ROBIN AND REDELIVERY");
+    bmqtst::TestHelper::printTestName("ROUND-ROBIN AND REDELIVERY");
 
     mqbconfm::Domain          config = fanoutConfig();
     bsl::vector<bsl::string>& appIDs = config.mode().fanout().appIDs();
@@ -1164,7 +1163,7 @@ static void test12_redeliverAfterGc()
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks from
     // 'mqbi' methods print with ball, which allocates.
 
-    mwctst::TestHelper::printTestName("REDELIVERY AFTER GC");
+    bmqtst::TestHelper::printTestName("REDELIVERY AFTER GC");
 
     mqbconfm::Domain domainConfig(s_allocator_p);
     domainConfig.mode().makePriority();
@@ -1234,7 +1233,7 @@ static void test13_deconfigureWhenOpen()
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks from
     // 'mqbi' methods print with ball, which allocates.
 
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "DECONFIGURE IN BETWEEN OPEN AND CONFIGURE");
 
     mqbblp::QueueEngineTester tester(fanoutConfig(), false, s_allocator_p);
@@ -1252,7 +1251,7 @@ static void test13_deconfigureWhenOpen()
     ASSERT_NE(C2, k_nullHandle_p);
 
     //   4. Deconfigure 1st consumer.
-    mwcu::MemOutStream os;
+    bmqu::MemOutStream os;
     os << "C1@a consumerPriority="
        << bmqp::Protocol::k_CONSUMER_PRIORITY_INVALID;
 
@@ -1289,7 +1288,7 @@ static void test14_throttleRedeliveryPriority()
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks from
     // 'mqbi' methods print with ball, which allocates.
 
-    mwctst::TestHelper::printTestName("THROTTLED REDELIVERY PRIORITY");
+    bmqtst::TestHelper::printTestName("THROTTLED REDELIVERY PRIORITY");
 
     mqbconfm::Domain config;
     config.mode().makePriority();
@@ -1384,7 +1383,7 @@ static void test15_throttleRedeliveryFanout()
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks from
     // 'mqbi' methods print with ball, which allocates.
 
-    mwctst::TestHelper::printTestName("THROTTLED REDELIVERY FANOUT");
+    bmqtst::TestHelper::printTestName("THROTTLED REDELIVERY FANOUT");
 
     mqbconfm::Domain          config = fanoutConfig();
     bsl::vector<bsl::string>& appIDs = config.mode().fanout().appIDs();
@@ -1527,7 +1526,7 @@ static void test16_throttleRedeliveryCancelledDelay()
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks from
     // 'mqbi' methods print with ball, which allocates.
 
-    mwctst::TestHelper::printTestName("THROTTLED REDELIVERY CANCELLED DELAY");
+    bmqtst::TestHelper::printTestName("THROTTLED REDELIVERY CANCELLED DELAY");
 
     mqbconfm::Domain config;
     config.mode().makePriority();
@@ -1620,7 +1619,7 @@ static void test17_throttleRedeliveryNewHandle()
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks from
     // 'mqbi' methods print with ball, which allocates.
 
-    mwctst::TestHelper::printTestName("THROTTLED REDELIVERY NEW HANDLE");
+    bmqtst::TestHelper::printTestName("THROTTLED REDELIVERY NEW HANDLE");
 
     mqbconfm::Domain config;
     config.mode().makePriority();
@@ -1682,7 +1681,7 @@ static void test18_throttleRedeliveryNoMoreHandles()
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks from
     // 'mqbi' methods print with ball, which allocates.
 
-    mwctst::TestHelper::printTestName("THROTTLED REDELIVERY NO MORE HANDLES");
+    bmqtst::TestHelper::printTestName("THROTTLED REDELIVERY NO MORE HANDLES");
 
     mqbconfm::Domain config;
     config.mode().makePriority();
@@ -1745,7 +1744,7 @@ static void test18_throttleRedeliveryNoMoreHandles()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     {
         bmqt::UriParser::initialize(s_allocator_p);
@@ -1754,7 +1753,7 @@ int main(int argc, char* argv[])
         mqbcfg::AppConfig brokerConfig(s_allocator_p);
         mqbcfg::BrokerConfig::set(brokerConfig);
 
-        bsl::shared_ptr<mwcst::StatContext> statContext =
+        bsl::shared_ptr<bmqst::StatContext> statContext =
             mqbstat::BrokerStatsUtil::initializeStatContext(30, s_allocator_p);
 
         switch (_testCase) {
@@ -1787,5 +1786,5 @@ int main(int argc, char* argv[])
         bmqt::UriParser::shutdown();
     }
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }

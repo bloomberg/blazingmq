@@ -25,11 +25,10 @@
 // BMQ
 #include <bmqscm_versiontag.h>
 
-// MWC
-#include <mwcsys_time.h>
-#include <mwcu_memoutstream.h>
-#include <mwcu_printutil.h>
-#include <mwcu_stringutil.h>
+#include <bmqsys_time.h>
+#include <bmqu_memoutstream.h>
+#include <bmqu_printutil.h>
+#include <bmqu_stringutil.h>
 
 // BDE
 #include <bdlma_localsequentialallocator.h>
@@ -65,7 +64,7 @@ bool ConfigProvider::cacheLookup(mqbconfm::Response*      response,
     }
 
     // Check expiration time
-    if (it->second.d_expireTime < mwcsys::Time::nowMonotonicClock()) {
+    if (it->second.d_expireTime < bmqsys::Time::nowMonotonicClock()) {
         // Value has expired, remove from the map
         d_cache.erase(it);
         return false;  // RETURN
@@ -97,7 +96,7 @@ void ConfigProvider::onDomainConfigResponseCb(
         CacheEntry cacheEntry;
         cacheEntry.d_data = response;
         cacheEntry.d_expireTime =
-            mwcsys::Time::nowMonotonicClock() +
+            bmqsys::Time::nowMonotonicClock() +
             bsls::TimeInterval(
                 mqbcfg::BrokerConfig::get().bmqconfConfig().cacheTTLSeconds());
         d_cache[response.domainConfig().domainName()] = cacheEntry;
@@ -157,7 +156,7 @@ void ConfigProvider::getDomainConfig(const bslstl::StringRef& domainName,
 
     if (!bdls::FilesystemUtil::exists(filePath)) {
         bdlma::LocalSequentialAllocator<1024> localAllocator(d_allocator_p);
-        mwcu::MemOutStream                    os(&localAllocator);
+        bmqu::MemOutStream                    os(&localAllocator);
         os << "Domain file '" << filePath << "' doesn't exist";
         config.assign(os.str().data(), os.str().length());
         rc = -1;
@@ -167,7 +166,7 @@ void ConfigProvider::getDomainConfig(const bslstl::StringRef& domainName,
         if (!fileStream) {
             bdlma::LocalSequentialAllocator<1024> localAllocator(
                 d_allocator_p);
-            mwcu::MemOutStream os(&localAllocator);
+            bmqu::MemOutStream os(&localAllocator);
             os << "Unable to open domain file '" << filePath << "'";
             config.assign(os.str().data(), os.str().length());
             rc = -2;
@@ -227,7 +226,7 @@ int ConfigProvider::processCommand(
             {
                 bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
                 if (d_cache.find(domainName) == d_cache.end()) {
-                    mwcu::MemOutStream os;
+                    bmqu::MemOutStream os;
                     os << "Domain '" << domainName << "' doesn't exist";
                     error->message() = os.str();
                     return -1;  // RETURN
@@ -238,7 +237,7 @@ int ConfigProvider::processCommand(
             return 0;  // RETURN
         }
     }
-    mwcu::MemOutStream os;
+    bmqu::MemOutStream os;
     os << "Unknown command '" << command << "'";
     error->message() = os.str();
     return -1;

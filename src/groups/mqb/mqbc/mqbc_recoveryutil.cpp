@@ -26,8 +26,7 @@
 #include <mqbs_filesystemutil.h>
 #include <mqbs_offsetptr.h>
 
-// MWC
-#include <mwcu_memoutstream.h>
+#include <bmqu_memoutstream.h>
 
 // BDE
 #include <bsl_string.h>
@@ -53,7 +52,7 @@ int RecoveryUtil::loadFileDescriptors(mqbs::MappedFileDescriptor* journalFd,
         rc_INVALID_FILE_SET   = -2
     };
 
-    mwcu::MemOutStream errorDesc;
+    bmqu::MemOutStream errorDesc;
     int                rc = mqbs::FileStoreUtil::openFileSetReadMode(errorDesc,
                                                       fileSet,
                                                       journalFd,

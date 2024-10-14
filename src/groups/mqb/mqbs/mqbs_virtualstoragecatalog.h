@@ -30,8 +30,7 @@
 #include <mqbs_virtualstorage.h>
 #include <mqbu_storagekey.h>
 
-// MWC
-#include <mwcc_twokeyhashmap.h>
+#include <bmqc_twokeyhashmap.h>
 
 // BMQ
 #include <bmqt_messageguid.h>
@@ -90,7 +89,7 @@ class VirtualStorageCatalog {
     typedef bsl::list<Ordinal> AvailableOrdinals;
 
     /// appKey -> virtualStorage
-    typedef mwcc::
+    typedef bmqc::
         TwoKeyHashMap<bsl::string, mqbu::StorageKey, VirtualStorageSp>
             VirtualStorages;
 

@@ -29,13 +29,12 @@
 #include <bmqp_protocol.h>
 #include <bmqp_storagemessageiterator.h>
 
-// MWC
-#include <mwcsys_time.h>
-#include <mwctsk_alarmlog.h>
-#include <mwcu_blob.h>
-#include <mwcu_blobobjectproxy.h>
-#include <mwcu_memoutstream.h>
-#include <mwcu_printutil.h>
+#include <bmqsys_time.h>
+#include <bmqtsk_alarmlog.h>
+#include <bmqu_blob.h>
+#include <bmqu_blobobjectproxy.h>
+#include <bmqu_memoutstream.h>
+#include <bmqu_printutil.h>
 
 // BDE
 #include <bdlbb_blob.h>
@@ -97,7 +96,7 @@ void StorageManager::startRecoveryCb(int partitionId)
         return;  // RETURN
     }
 
-    d_recoveryStartTimes[partitionId] = mwcsys::Time::highResolutionTimer();
+    d_recoveryStartTimes[partitionId] = bmqsys::Time::highResolutionTimer();
 }
 
 void StorageManager::sendMessage(const bmqp_ctrlmsg::ControlMessage& message,
@@ -185,13 +184,13 @@ void StorageManager::onWatchDogDispatched(int partitionId)
                      partitionId <
                          d_clusterConfig.partitionConfig().numPartitions());
 
-    MWCTSK_ALARMLOG_ALARM("RECOVERY")
+    BMQTSK_ALARMLOG_ALARM("RECOVERY")
         << d_clusterData_p->identity().description() << " Partition ["
-        << partitionId << "]: "
-        << "Watch dog triggered because partition startup healing "
+        << partitionId
+        << "]: " << "Watch dog triggered because partition startup healing "
         << "sequence was not completed in the configured time of "
         << d_watchDogTimeoutInterval.totalSeconds() << " seconds."
-        << MWCTSK_ALARMLOG_END;
+        << BMQTSK_ALARMLOG_END;
 
     mqbs::FileStore* fs = d_fileStores[partitionId].get();
     BSLS_ASSERT_SAFE(fs);
@@ -258,7 +257,7 @@ void StorageManager::onPartitionRecovery(int partitionId)
                      partitionId < static_cast<int>(d_fileStores.size()));
     BSLS_ASSERT_SAFE(d_fileStores[partitionId]->inDispatcherThread());
 
-    mwcu::MemOutStream out;
+    bmqu::MemOutStream out;
     mqbs::StoragePrintUtil::printRecoveredStorages(
         out,
         &d_storagesLock,
@@ -1232,7 +1231,7 @@ void StorageManager::do_openRecoveryFileSet(const PartitionFSMArgsSp& args)
         return;  // RETURN
     }
 
-    mwcu::MemOutStream errorDesc;
+    bmqu::MemOutStream errorDesc;
     int rc = d_recoveryManager_mp->openRecoveryFileSet(errorDesc, partitionId);
     if (rc == 1) {
         BALL_LOG_INFO << d_clusterData_p->identity().description()
@@ -2397,11 +2396,11 @@ void StorageManager::do_processBufferedLiveData(const PartitionFSMArgsSp& args)
          ++cit) {
         rc = fs->processRecoveryEvent(*cit);
         if (rc != 0) {
-            MWCTSK_ALARMLOG_ALARM("RECOVERY")
+            BMQTSK_ALARMLOG_ALARM("RECOVERY")
                 << d_clusterData_p->identity().description() << " Partition ["
                 << partitionId << "]: "
                 << "Failed to apply buffered storage event, rc: " << rc
-                << ". Closing the partition." << MWCTSK_ALARMLOG_END;
+                << ". Closing the partition." << BMQTSK_ALARMLOG_END;
             fs->close(d_clusterConfig.partitionConfig().flushAtShutdown());
 
             EventData eventDataVecLocal;
@@ -2765,7 +2764,7 @@ void StorageManager::do_setExpectedDataChunkRange(
             eventData.requestId());
     }
     else {
-        mwcu::MemOutStream out;
+        bmqu::MemOutStream out;
         out << "Partition [" << partitionId << "]'s FSM "
             << "(state = '" << d_partitionFSMVec[partitionId]->state() << "')"
             << ": Unexpected event '" << eventWithData.first
@@ -2823,11 +2822,11 @@ void StorageManager::do_openStorage(const PartitionFSMArgsSp& args)
 
     const int rc = fs->open(d_queueKeyInfoMapVec.at(partitionId));
     if (0 != rc) {
-        MWCTSK_ALARMLOG_ALARM("FILE_IO")
+        BMQTSK_ALARMLOG_ALARM("FILE_IO")
             << d_clusterData_p->identity().description() << " Partition ["
             << partitionId << "]: "
             << "Failed to open FileStore after recovery was finished, "
-            << "rc: " << rc << MWCTSK_ALARMLOG_END;
+            << "rc: " << rc << BMQTSK_ALARMLOG_END;
     }
 }
 
@@ -2959,12 +2958,12 @@ void StorageManager::do_removeStorage(const PartitionFSMArgsSp& args)
         d_recoveryManager_mp->deprecateFileSet(partitionId);
     }
 
-    MWCTSK_ALARMLOG_ALARM("REPLICATION")
+    BMQTSK_ALARMLOG_ALARM("REPLICATION")
         << d_clusterData_p->identity().description() << " Partition ["
         << partitionId << "]: "
         << "self's storage is out of sync with primary and cannot be healed "
         << "trivially. Removing entire storage and aborting broker."
-        << MWCTSK_ALARMLOG_END;
+        << BMQTSK_ALARMLOG_END;
 
     mqbu::ExitUtil::terminate(mqbu::ExitCode::e_STORAGE_OUT_OF_SYNC);  // EXIT
 }
@@ -3529,7 +3528,7 @@ int StorageManager::start(bsl::ostream& errorDescription)
         .setMaxQlistFileSize(partitionCfg.maxQlistFileSize());
     // Only relevant fields of data store config are set.
 
-    // Get named allocator from associated mwcma::CountingAllocatorStore
+    // Get named allocator from associated bmqma::CountingAllocatorStore
     bslma::Allocator* recoveryManagerAllocator = d_allocators.get(
         "RecoveryManager");
 
@@ -4155,10 +4154,10 @@ void StorageManager::processReplicaDataRequest(
     } break;  // BREAK
     case bmqp_ctrlmsg::ReplicaDataType::E_UNKNOWN: BSLS_ANNOTATION_FALLTHROUGH;
     default: {
-        MWCTSK_ALARMLOG_ALARM("CLUSTER")
+        BMQTSK_ALARMLOG_ALARM("CLUSTER")
             << d_clusterData_p->identity().description()
             << ": unexpected clusterMessage:" << message
-            << MWCTSK_ALARMLOG_END;
+            << BMQTSK_ALARMLOG_END;
     } break;  // BREAK
     }
 }
@@ -4224,13 +4223,13 @@ void StorageManager::processStorageEvent(
 
     // Ensure that 'pid' is valid.
     if (pid >= d_clusterState.partitions().size()) {
-        MWCTSK_ALARMLOG_ALARM("STORAGE")
-            << d_cluster_p->description() << " Partition [" << pid << "]: "
-            << "Received "
+        BMQTSK_ALARMLOG_ALARM("STORAGE")
+            << d_cluster_p->description() << " Partition [" << pid
+            << "]: " << "Received "
             << (rawEvent.isStorageEvent() ? "storage " : "partition-sync ")
             << "event from node " << source->nodeDescription() << " with "
             << "invalid Partition Id [" << pid << "]. Ignoring "
-            << "entire storage event." << MWCTSK_ALARMLOG_END;
+            << "entire storage event." << BMQTSK_ALARMLOG_END;
         return;  // RETURN
     }
     BSLS_ASSERT_SAFE(d_fileStores.size() > pid);
@@ -4297,14 +4296,14 @@ void StorageManager::processReceiptEvent(const bmqp::Event&   event,
 {
     // executed by *IO* thread
 
-    mwcu::BlobPosition          position;
-    BSLA_MAYBE_UNUSED const int rc = mwcu::BlobUtil::findOffsetSafe(
+    bmqu::BlobPosition          position;
+    BSLA_MAYBE_UNUSED const int rc = bmqu::BlobUtil::findOffsetSafe(
         &position,
         *event.blob(),
         sizeof(bmqp::EventHeader));
     BSLS_ASSERT_SAFE(rc == 0);
 
-    mwcu::BlobObjectProxy<bmqp::ReplicationReceipt> receipt(
+    bmqu::BlobObjectProxy<bmqp::ReplicationReceipt> receipt(
         event.blob(),
         position,
         true,    // read mode

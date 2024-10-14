@@ -93,7 +93,7 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug")
 endif()
 
 # This repo contains the canonical source of multiple, independently released,
-# UORs (mwc, bmq, bmqbrkr, bmqbrkrcfg, bmqtool).  When releasing a UOR, that
+# UORs (bmq, bmqbrkr, bmqbrkrcfg, bmqtool).  When releasing a UOR, that
 # specific target is selected through injection of the 'INSTALL_TARGETS'
 # variable.  Many static analysis tool leverage the generated
 # 'compile_commands.json' in order to know which sources to work with.
@@ -104,8 +104,8 @@ endif()
 # that we will only add targets to the intended ones, based on what is
 # currently being built.  We will set a "BMQ_TARGET_<xyz>_NEEDED" value to
 # YES/NO.
-# - if INSTALL_TARGETS is empty, this means we are not doing a DPKG build, but
-#   just a normal developer build, therefore include all targets
+# - if INSTALL_TARGETS is empty, this means we are not doing an integration
+#   build, but just a normal developer build, therefore include all targets
 # - otherwise, selectively enable targets based on what is being built
 
 if (NOT DEFINED INSTALL_TARGETS)
@@ -114,7 +114,6 @@ if (NOT DEFINED INSTALL_TARGETS)
   set(BMQ_TARGET_BMQBRKRCFG_NEEDED     YES)
   set(BMQ_TARGET_BMQTOOL_NEEDED        YES)
   set(BMQ_TARGET_BMQSTORAGETOOL_NEEDED YES)
-  set(BMQ_TARGET_MWC_NEEDED            YES)
   set(BMQ_TARGET_BMQ_NEEDED            YES)
   set(BMQ_TARGET_MQB_NEEDED            YES)
   set(BMQ_TARGET_E_BMQBRKR_NEEDED      YES)
@@ -137,25 +136,17 @@ else()
   set(BMQ_TARGET_BMQBRKRCFG_NEEDED     NO)
   set(BMQ_TARGET_BMQTOOL_NEEDED        NO)
   set(BMQ_TARGET_BMQSTORAGETOOL_NEEDED NO)
-  set(BMQ_TARGET_MWC_NEEDED            NO)
   set(BMQ_TARGET_BMQ_NEEDED            NO)
   set(BMQ_TARGET_MQB_NEEDED            NO)
   set(BMQ_TARGET_TUTORIAL_NEEDED       NO)
   set(BMQ_TARGET_PROMETHEUS_NEEDED     NO)
 
-  bbproject_check_install_target("mwc"            installMWC)
   bbproject_check_install_target("bmq"            installBMQ)
   bbproject_check_install_target("mqb"            installMQB)
   bbproject_check_install_target("bmqbrkrcfg"     installBMQBRKRCFG)
   bbproject_check_install_target("bmqtool"        installBMQTOOL)
   bbproject_check_install_target("bmqstoragetool" installBMQSTORAGETOOL)
   bbproject_check_install_target("prometheus"     installPROMETHEUS)
-
-  # NOTE: All targets should get 'mwc' from DPKG, except for the 'mwc' release
-  #       itself (and the development work).
-  if (installMWC)
-    set(BMQ_TARGET_MWC_NEEDED YES)
-  endif()
 
   if (installBMQ)
     set(BMQ_TARGET_BMQ_NEEDED YES)
@@ -190,7 +181,6 @@ else()
   endif()
 
   if (installPROMETHEUS)
-    set(BMQ_TARGET_MWC_NEEDED        YES)
     set(BMQ_TARGET_BMQ_NEEDED        YES)
     set(BMQ_TARGET_MQB_NEEDED        YES)
     set(BMQ_TARGET_PROMETHEUS_NEEDED YES)

@@ -25,8 +25,7 @@
 #include <bmqp_pushmessageiterator.h>
 #include <bmqt_resultcode.h>
 
-// MWC
-#include <mwcc_array.h>
+#include <bmqc_array.h>
 
 // BDE
 #include <bdlma_localsequentialallocator.h>

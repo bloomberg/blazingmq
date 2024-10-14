@@ -43,8 +43,8 @@
 //   The brokerId is the first 5 bytes of the MD5 of {IP + timestamp + PID}.
 
 // BMQ
-#include <mwcio_resolveutil.h>
-#include <mwcu_memoutstream.h>
+#include <bmqio_resolveutil.h>
+#include <bmqu_memoutstream.h>
 
 // BDE
 #include <bdlb_bigendian.h>
@@ -117,7 +117,7 @@ void MessageGUIDUtil::initialize()
     // Get hostname
 
     bsl::string hostname;
-    ntsa::Error error = mwcio::ResolveUtil::getHostname(&hostname);
+    ntsa::Error error = bmqio::ResolveUtil::getHostname(&hostname);
 
     if (error.code() != ntsa::Error::e_OK) {
         BALL_LOG_ERROR << "Failed to get local hostname, error: " << error;
@@ -127,7 +127,7 @@ void MessageGUIDUtil::initialize()
 
     // Get IP
     ntsa::Ipv4Address defaultIP;
-    error = mwcio::ResolveUtil::getIpAddress(&defaultIP, hostname);
+    error = bmqio::ResolveUtil::getIpAddress(&defaultIP, hostname);
     if (error.code() != ntsa::Error::e_OK) {
         BALL_LOG_ERROR << "Failed to get IP address of the host '" << hostname
                        << "' error: " << error;
@@ -165,7 +165,7 @@ void MessageGUIDUtil::initialize()
     // NOTE: since we know the size, the `defaultAllocator` will never be
     //       used here
     bdlma::LocalSequentialAllocator<k_BROKER_ID_LEN_HEX> localAllocator(0);
-    mwcu::MemOutStream                                   os(&localAllocator);
+    bmqu::MemOutStream                                   os(&localAllocator);
     bdlb::Print::singleLineHexDump(os, g_brokerId, k_BROKER_ID_LEN_BINARY);
     bsl::memcpy(g_brokerIdHex, os.str().data(), os.str().length());
 
@@ -266,7 +266,7 @@ void MessageGUIDUtil::extractFields(int*                     version,
 
     // BrokerId
     bdlma::LocalSequentialAllocator<k_BROKER_ID_LEN_HEX> localAlloc(0);
-    mwcu::MemOutStream                                   os(&localAlloc);
+    bmqu::MemOutStream                                   os(&localAlloc);
     bdlb::Print::singleLineHexDump(os,
                                    buffer + k_GUID_VERSION_AND_COUNTER_LEN +
                                        sizeof(bdlb::BigEndianInt64),

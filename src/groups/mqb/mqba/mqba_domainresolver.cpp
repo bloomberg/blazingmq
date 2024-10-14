@@ -22,11 +22,10 @@
 #include <mqbcfg_messages.h>
 #include <mqbcmd_messages.h>
 
-// MWC
-#include <mwcsys_time.h>
-#include <mwcu_memoutstream.h>
-#include <mwcu_printutil.h>
-#include <mwcu_stringutil.h>
+#include <bmqsys_time.h>
+#include <bmqu_memoutstream.h>
+#include <bmqu_printutil.h>
+#include <bmqu_stringutil.h>
 
 // BDE
 #include <baljsn_decoder.h>
@@ -63,7 +62,7 @@ void DomainResolver::updateTimestamps()
 
     BSLMT_MUTEXASSERT_IS_LOCKED_SAFE(&d_mutex);  // mutex LOCKED
 
-    const bsls::TimeInterval now = mwcsys::Time::nowRealtimeClock();
+    const bsls::TimeInterval now = bmqsys::Time::nowRealtimeClock();
 
     if (now <= d_timestampsValidUntil) {
         // We last checked recently, don't do anything
@@ -157,7 +156,7 @@ int DomainResolver::getOrRead(bsl::ostream&             errorDescription,
         if (!bdls::FilesystemUtil::exists(filePath)) {
             bdlma::LocalSequentialAllocator<1024> localAllocator(
                 d_allocator_p);
-            mwcu::MemOutStream os(&localAllocator);
+            bmqu::MemOutStream os(&localAllocator);
             os << "Domain file '" << filePath << "' doesn't exist";
             content.assign(os.str().data(), os.str().length());
             rc = rc_READ_ERROR;
@@ -167,7 +166,7 @@ int DomainResolver::getOrRead(bsl::ostream&             errorDescription,
             if (!fileStream) {
                 bdlma::LocalSequentialAllocator<1024> localAllocator(
                     d_allocator_p);
-                mwcu::MemOutStream os(&localAllocator);
+                bmqu::MemOutStream os(&localAllocator);
                 os << "Unable to open domain file '" << filePath << "'";
                 content.assign(os.str().data(), os.str().length());
                 rc = rc_READ_ERROR;
@@ -190,7 +189,7 @@ int DomainResolver::getOrRead(bsl::ostream&             errorDescription,
 
             // Remove the trailing '\n' (if any) for cleaner log printing
             // (avoid extra blank lines added by BALL_LOG).
-            mwcu::StringUtil::rtrim(&content);
+            bmqu::StringUtil::rtrim(&content);
 
             BALL_LOG_INFO << "Error reading the domain config file "
                           << "[domain: '" << domainName << "'"
@@ -300,7 +299,7 @@ DomainResolver::getOrReadDomain(mqbconfm::DomainResolver* out,
 {
     // executed by *ANY* thread
 
-    mwcu::MemOutStream errorDescription;
+    bmqu::MemOutStream errorDescription;
 
     int rc = getOrRead(errorDescription, out, domainName);
 
@@ -375,7 +374,7 @@ int DomainResolver::processCommand(
             {
                 bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
                 if (d_cache.find(domainName) == d_cache.end()) {
-                    mwcu::MemOutStream os;
+                    bmqu::MemOutStream os;
                     os << "Domain '" << domainName << "' doesn't exist";
                     error->message() = os.str();
                     return -1;  // RETURN
@@ -387,7 +386,7 @@ int DomainResolver::processCommand(
         }
     }
 
-    mwcu::MemOutStream os;
+    bmqu::MemOutStream os;
     os << "Unknown command '" << command << "'";
     error->message() = os.str();
     return -1;

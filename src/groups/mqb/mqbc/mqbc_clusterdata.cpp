@@ -26,8 +26,7 @@
 #include <bmqp_protocol.h>
 #include <bmqscm_version.h>
 
-// MWC
-#include <mwcsys_threadutil.h>
+#include <bmqsys_threadutil.h>
 
 // BDE
 #include <bdls_processutil.h>
@@ -72,7 +71,7 @@ mqbc::ClusterDataIdentity clusterIdentity(const bslstl::StringRef& name,
 
     // Create and set description
     bdlma::LocalSequentialAllocator<256> localAllocator;
-    mwcu::MemOutStream                   os(&localAllocator);
+    bmqu::MemOutStream                   os(&localAllocator);
     if (isRemote) {
         os << "ClusterProxy (" << name << ")";
     }
@@ -102,7 +101,7 @@ ClusterData::ClusterData(
     mqbi::Cluster*                        cluster,
     mqbi::DomainFactory*                  domainFactory,
     mqbnet::TransportManager*             transportManager,
-    mwcst::StatContext*                   clustersStatContext,
+    bmqst::StatContext*                   clustersStatContext,
     const StatContextsMap&                statContexts,
     bslma::Allocator*                     allocator)
 : d_allocator_p(allocator)
@@ -134,11 +133,11 @@ ClusterData::ClusterData(
 , d_clusterNodesStatContext_mp(
       statContexts.find("clusterNodes")
           ->second->addSubcontext(
-              mwcst::StatContextConfiguration(d_identity.name(),
+              bmqst::StatContextConfiguration(d_identity.name(),
                                               d_allocator_p)))
 , d_stateSpPool(8192, allocator)
 , d_miscWorkThreadPool(
-      mwcsys::ThreadUtil::defaultAttributes().setThreadName("bmqMiscWorkTP"),
+      bmqsys::ThreadUtil::defaultAttributes().setThreadName("bmqMiscWorkTP"),
       3,      // numThreads
       10000,  // maxNumPendingJobs
       allocator)

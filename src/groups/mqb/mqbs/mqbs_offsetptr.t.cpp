@@ -25,7 +25,7 @@
 #include <bsls_types.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -54,7 +54,7 @@ static void test1_breathingTest()
 //   Verifies the parameterized constructor of 'mqbs::OffsetPtr'.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("Breathing Test");
+    bmqtst::TestHelper::printTestName("Breathing Test");
 
     char                    base[5] = {0};
     bsl::size_t             offset  = 3;
@@ -73,7 +73,7 @@ static void test2_operations()
 //   Verifies the accessors of 'mqbs::OffsetPtr'
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("Operations Test");
+    bmqtst::TestHelper::printTestName("Operations Test");
 
     bsl::size_t offset       = 0;
     const int   value        = 3;
@@ -100,7 +100,7 @@ static void test3_reset()
 //   Verifies the manipulator 'reset()' of a 'mqbs::OffsetPtr'.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("Reset Test");
+    bmqtst::TestHelper::printTestName("Reset Test");
 
     char                    base[64]  = {0};
     bsl::size_t             offset    = 3;
@@ -121,7 +121,7 @@ static void test3_reset()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     switch (_testCase) {
     case 0:
@@ -134,5 +134,5 @@ int main(int argc, char* argv[])
     } break;
     }
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }

@@ -1,0 +1,7 @@
+ bmqstm.txt
+
+@PURPOSE: Value semantic types for a generic statistics framework.
+
+@MNEMONIC: bmqstm
+
+@DESCRIPTION:

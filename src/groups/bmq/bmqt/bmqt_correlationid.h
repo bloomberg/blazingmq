@@ -171,8 +171,6 @@
 /// }
 /// ```
 
-// BMQ
-
 // BDE
 #include <bdlb_variant.h>
 

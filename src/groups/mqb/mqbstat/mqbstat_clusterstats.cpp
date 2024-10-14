@@ -21,10 +21,9 @@
 #include <mqbcfg_messages.h>
 #include <mqbi_cluster.h>
 
-// MWC
-#include <mwcst_statcontext.h>
-#include <mwcst_statutil.h>
-#include <mwcst_statvalue.h>
+#include <bmqst_statcontext.h>
+#include <bmqst_statutil.h>
+#include <bmqst_statvalue.h>
 
 // BDE
 #include <bdld_datummapbuilder.h>
@@ -131,25 +130,25 @@ struct ClusterStatus {
 // class ClusterStats
 // ------------------
 
-bsls::Types::Int64 ClusterStats::getValue(const mwcst::StatContext& context,
+bsls::Types::Int64 ClusterStats::getValue(const bmqst::StatContext& context,
                                           int                       snapshotId,
                                           const Stat::Enum&         stat)
 
 {
     // invoked from the SNAPSHOT thread
 
-    const mwcst::StatValue::SnapshotLocation latestSnapshot(0, 0);
-    const mwcst::StatValue::SnapshotLocation oldestSnapshot(0, snapshotId);
+    const bmqst::StatValue::SnapshotLocation latestSnapshot(0, 0);
+    const bmqst::StatValue::SnapshotLocation oldestSnapshot(0, snapshotId);
 
 #define STAT_SINGLE(OPERATION, STAT)                                          \
-    mwcst::StatUtil::OPERATION(                                               \
-        context.value(mwcst::StatContext::e_DIRECT_VALUE,                     \
+    bmqst::StatUtil::OPERATION(                                               \
+        context.value(bmqst::StatContext::e_DIRECT_VALUE,                     \
                       ClusterStatsIndex::STAT),                               \
         latestSnapshot)
 
 #define STAT_RANGE(OPERATION, STAT)                                           \
-    mwcst::StatUtil::OPERATION(                                               \
-        context.value(mwcst::StatContext::e_DIRECT_VALUE,                     \
+    bmqst::StatUtil::OPERATION(                                               \
+        context.value(bmqst::StatContext::e_DIRECT_VALUE,                     \
                       ClusterStatsIndex::STAT),                               \
         latestSnapshot,                                                       \
         oldestSnapshot)
@@ -225,7 +224,7 @@ ClusterStats::ClusterStats(bslma::Allocator* allocator)
 
 void ClusterStats::initialize(const bsl::string&  name,
                               int                 partitionsCount,
-                              mwcst::StatContext* clusterStatContext,
+                              bmqst::StatContext* clusterStatContext,
                               bslma::Allocator*   allocator)
 {
     // PRECONDITIONS
@@ -237,7 +236,7 @@ void ClusterStats::initialize(const bsl::string&  name,
     // level components.
     bdlma::LocalSequentialAllocator<2048> localAllocator(allocator);
     d_statContext_mp = clusterStatContext->addSubcontext(
-        mwcst::StatContextConfiguration(name, &localAllocator));
+        bmqst::StatContextConfiguration(name, &localAllocator));
 
     bslma::ManagedPtr<bdld::ManagedDatum> datum = d_statContext_mp->datum();
     bslma::Allocator*     alloc = d_statContext_mp->datumAllocator();
@@ -252,9 +251,9 @@ void ClusterStats::initialize(const bsl::string&  name,
     for (int pId = 0; pId < partitionsCount; ++pId) {
         const bsl::string partitionName = "partition" + bsl::to_string(pId);
         d_partitionsStatContexts.emplace_back(
-            bsl::shared_ptr<mwcst::StatContext>(
+            bsl::shared_ptr<bmqst::StatContext>(
                 d_statContext_mp->addSubcontext(
-                    mwcst::StatContextConfiguration(partitionName,
+                    bmqst::StatContextConfiguration(partitionName,
                                                     &localAllocator))));
         setNodeRoleForPartition(pId, PrimaryStatus::e_UNKNOWN);
     }
@@ -271,7 +270,7 @@ void ClusterStats::onPartitionEvent(PartitionEventType::Enum type,
     BSLS_ASSERT_SAFE(d_partitionsStatContexts[partitionId] &&
                      "initialize was not called");
 
-    mwcst::StatContext* sc = d_partitionsStatContexts[partitionId].get();
+    bmqst::StatContext* sc = d_partitionsStatContexts[partitionId].get();
 
     switch (type) {
     case PartitionEventType::e_PARTITION_ROLLOVER: {
@@ -425,24 +424,24 @@ const char* ClusterStats::Role::toAscii(Enum value)
 // ----------------------
 
 bsls::Types::Int64
-ClusterNodeStats::getValue(const mwcst::StatContext& context,
+ClusterNodeStats::getValue(const bmqst::StatContext& context,
                            int                       snapshotId,
                            const Stat::Enum&         stat)
 
 {
     // invoked from the SNAPSHOT thread
 
-    const mwcst::StatValue::SnapshotLocation latestSnapshot(0, 0);
-    const mwcst::StatValue::SnapshotLocation oldestSnapshot(0, snapshotId);
+    const bmqst::StatValue::SnapshotLocation latestSnapshot(0, 0);
+    const bmqst::StatValue::SnapshotLocation oldestSnapshot(0, snapshotId);
 
 #define STAT_SINGLE(OPERATION, STAT)                                          \
-    mwcst::StatUtil::OPERATION(                                               \
-        context.value(mwcst::StatContext::e_DIRECT_VALUE, STAT),              \
+    bmqst::StatUtil::OPERATION(                                               \
+        context.value(bmqst::StatContext::e_DIRECT_VALUE, STAT),              \
         latestSnapshot)
 
 #define STAT_RANGE(OPERATION, STAT)                                           \
-    mwcst::StatUtil::OPERATION(                                               \
-        context.value(mwcst::StatContext::e_DIRECT_VALUE, STAT),              \
+    bmqst::StatUtil::OPERATION(                                               \
+        context.value(bmqst::StatContext::e_DIRECT_VALUE, STAT),              \
         latestSnapshot,                                                       \
         oldestSnapshot)
 
@@ -505,7 +504,7 @@ ClusterNodeStats::ClusterNodeStats()
 }
 
 void ClusterNodeStats::initialize(const bmqt::Uri&    uri,
-                                  mwcst::StatContext* clientStatContext,
+                                  bmqst::StatContext* clientStatContext,
                                   bslma::Allocator*   allocator)
 {
     // PRECONDITIONS
@@ -515,7 +514,7 @@ void ClusterNodeStats::initialize(const bmqt::Uri&    uri,
     bdlma::LocalSequentialAllocator<2048> localAllocator(allocator);
 
     d_statContext_mp = clientStatContext->addSubcontext(
-        mwcst::StatContextConfiguration(uri.asString(), &localAllocator));
+        bmqst::StatContextConfiguration(uri.asString(), &localAllocator));
 }
 
 void ClusterNodeStats::onEvent(EventType::Enum type, bsls::Types::Int64 value)
@@ -550,13 +549,13 @@ void ClusterNodeStats::onEvent(EventType::Enum type, bsls::Types::Int64 value)
 // class ClusterStatsUtil
 // ----------------------
 
-bsl::shared_ptr<mwcst::StatContext>
+bsl::shared_ptr<bmqst::StatContext>
 ClusterStatsUtil::initializeStatContextCluster(int               historySize,
                                                bslma::Allocator* allocator)
 {
     bdlma::LocalSequentialAllocator<2048> localAllocator(allocator);
 
-    mwcst::StatContextConfiguration config(k_CLUSTER_STAT_NAME,
+    bmqst::StatContextConfiguration config(k_CLUSTER_STAT_NAME,
                                            &localAllocator);
     config.isTable(true)
         .defaultHistorySize(historySize)
@@ -567,9 +566,9 @@ ClusterStatsUtil::initializeStatContextCluster(int               historySize,
         .value("cluster.partition.cfg_journal_bytes")
         .value("cluster.partition.cfg_data_bytes")
         .value("partition_status")
-        .value("partition.rollover_time", mwcst::StatValue::e_DISCRETE)
-        .value("partition.data_bytes", mwcst::StatValue::e_DISCRETE)
-        .value("partition.journal_bytes", mwcst::StatValue::e_DISCRETE);
+        .value("partition.rollover_time", bmqst::StatValue::e_DISCRETE)
+        .value("partition.data_bytes", bmqst::StatValue::e_DISCRETE)
+        .value("partition.journal_bytes", bmqst::StatValue::e_DISCRETE);
 
     // NOTE: For the clusters, the stat context will have two levels of
     //       children, first level is per cluster, and second level is per
@@ -579,19 +578,19 @@ ClusterStatsUtil::initializeStatContextCluster(int               historySize,
     //       memory - which is acceptable here since a broker will not have
     //       thousands of clusters and partitions.
 
-    return bsl::shared_ptr<mwcst::StatContext>(
-        new (*allocator) mwcst::StatContext(config, allocator),
+    return bsl::shared_ptr<bmqst::StatContext>(
+        new (*allocator) bmqst::StatContext(config, allocator),
         allocator);
 }
 
-bsl::shared_ptr<mwcst::StatContext>
+bsl::shared_ptr<bmqst::StatContext>
 ClusterStatsUtil::initializeStatContextClusterNodes(
     int               historySize,
     bslma::Allocator* allocator)
 {
     bdlma::LocalSequentialAllocator<2048> localAllocator(allocator);
 
-    mwcst::StatContextConfiguration config(k_CLUSTER_NODES_STAT_NAME,
+    bmqst::StatContextConfiguration config(k_CLUSTER_NODES_STAT_NAME,
                                            &localAllocator);
     config.isTable(true)
         .defaultHistorySize(historySize)
@@ -604,8 +603,8 @@ ClusterStatsUtil::initializeStatContextClusterNodes(
     // NOTE: If the stats are using too much memory, we could reconsider
     //       in_event and out_event to be using atomic int and not stat value.
 
-    return bsl::shared_ptr<mwcst::StatContext>(
-        new (*allocator) mwcst::StatContext(config, allocator),
+    return bsl::shared_ptr<bmqst::StatContext>(
+        new (*allocator) bmqst::StatContext(config, allocator),
         allocator);
 }
 

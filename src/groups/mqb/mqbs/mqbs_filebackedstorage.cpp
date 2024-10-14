@@ -34,11 +34,10 @@
 // BMQ
 #include <bmqp_protocolutil.h>
 
-// MWC
-#include <mwcma_countingallocatorstore.h>
-#include <mwcsys_time.h>
-#include <mwctsk_alarmlog.h>
-#include <mwcu_printutil.h>
+#include <bmqma_countingallocatorstore.h>
+#include <bmqsys_time.h>
+#include <bmqtsk_alarmlog.h>
+#include <bmqu_printutil.h>
 
 // BDE
 #include <bdlt_currenttime.h>
@@ -109,7 +108,7 @@ FileBackedStorage::FileBackedStorage(
     const mqbconfm::Domain&        config,
     mqbu::CapacityMeter*           parentCapacityMeter,
     bslma::Allocator*              allocator,
-    mwcma::CountingAllocatorStore* allocatorStore)
+    bmqma::CountingAllocatorStore* allocatorStore)
 : d_allocator_p(allocator)
 , d_store_p(dataStore)
 , d_queueKey(queueKey)
@@ -260,9 +259,9 @@ void FileBackedStorage::setQueue(mqbi::Queue* queue)
         BALL_LOG_INFO << "Associated queue [" << queue->uri() << "] with key ["
                       << queueKey() << "] and Partition ["
                       << queue->partitionId() << "] with its storage having "
-                      << mwcu::PrintUtil::prettyNumber(numMessage)
+                      << bmqu::PrintUtil::prettyNumber(numMessage)
                       << " messages and "
-                      << mwcu::PrintUtil::prettyNumber(numByte)
+                      << bmqu::PrintUtil::prettyNumber(numByte)
                       << " bytes of outstanding data.";
     }
 }
@@ -447,12 +446,12 @@ FileBackedStorage::releaseRef(const bmqt::MessageGUID& guid)
             bdlt::EpochUtil::convertToTimeT64(bdlt::CurrentTime::utc()));
 
         if (0 != rc) {
-            MWCTSK_ALARMLOG_ALARM("FILE_IO")
+            BMQTSK_ALARMLOG_ALARM("FILE_IO")
                 << "PartitionId [" << partitionId() << "] failed to write "
                 << "DELETION record for GUID: " << guid << ", for queue '"
                 << d_queueUri << "', queueKey '" << d_queueKey
                 << "' while attempting to purge the message, rc: " << rc
-                << MWCTSK_ALARMLOG_END;
+                << BMQTSK_ALARMLOG_END;
         }
 
         // If a queue is associated, inform it about the message being
@@ -617,7 +616,7 @@ int FileBackedStorage::gcExpiredMessages(
 
     int                numMsgsDeleted     = 0;
     int                numMsgsUnreceipted = 0;
-    bsls::Types::Int64 now   = mwcsys::Time::highResolutionTimer();
+    bsls::Types::Int64 now   = bmqsys::Time::highResolutionTimer();
     int                limit = k_GC_MESSAGES_BATCH_SIZE;
     bsls::Types::Int64 deduplicationTimeNs =
         queue() ? queue()->domain()->config().deduplicationTimeMs() *
@@ -663,13 +662,13 @@ int FileBackedStorage::gcExpiredMessages(
                                                 deletionFlag,
                                                 secondsFromEpoch);
         if (0 != rc) {
-            MWCTSK_ALARMLOG_ALARM("FILE_IO")
+            BMQTSK_ALARMLOG_ALARM("FILE_IO")
                 << "Partition [" << partitionId() << "]"
                 << " failed to write DELETION record for "
                 << "GUID: " << cit->first << ", for queue '" << d_queueUri
                 << "', queueKey '" << d_queueKey << "' while attempting to GC "
                 << "the message due to TTL/ACK expiration, rc: " << rc
-                << MWCTSK_ALARMLOG_END;
+                << BMQTSK_ALARMLOG_END;
             // Do NOT remove the expired record without replicating Deletion.
             return numMsgsDeleted;  // RETURN
         }
@@ -725,7 +724,7 @@ int FileBackedStorage::gcExpiredMessages(
 
 bool FileBackedStorage::gcHistory()
 {
-    bool hasMoreToGc = d_handles.gc(mwcsys::Time::highResolutionTimer(),
+    bool hasMoreToGc = d_handles.gc(bmqsys::Time::highResolutionTimer(),
                                     k_GC_MESSAGES_BATCH_SIZE);
 
     if (queue()) {
@@ -749,7 +748,7 @@ void FileBackedStorage::processMessageRecord(
     RecordHandleMapIter it = d_handles.find(guid);
     if (d_handles.end() == it) {
         InsertRc irc = d_handles.insert(bsl::make_pair(guid, Item()),
-                                        mwcsys::Time::highResolutionTimer());
+                                        bmqsys::Time::highResolutionTimer());
         irc.first->second.d_array.push_back(handle);
         irc.first->second.d_refCount = refCount;
 
@@ -799,12 +798,12 @@ void FileBackedStorage::processMessageRecord(
         // Received a message record for a guid for which an entry already
         // exists.  This is an error.
 
-        MWCTSK_ALARMLOG_ALARM("REPLICATION")
+        BMQTSK_ALARMLOG_ALARM("REPLICATION")
             << "Partition [" << partitionId() << "]"
             << " received MESSAGE record for GUID '" << guid << "' for queue '"
             << queueUri() << "', queueKey '" << queueKey()
             << "' for which an entry already exists. Ignoring this message."
-            << MWCTSK_ALARMLOG_END;
+            << BMQTSK_ALARMLOG_END;
     }
 }
 
@@ -830,23 +829,23 @@ void FileBackedStorage::processConfirmRecord(
 
     RecordHandleMapIter it = d_handles.find(guid);
     if (it == d_handles.end()) {
-        MWCTSK_ALARMLOG_ALARM("REPLICATION")
+        BMQTSK_ALARMLOG_ALARM("REPLICATION")
             << "Partition [" << partitionId() << "]"
             << " received CONFIRM record for GUID '" << guid << "' for queue '"
             << queueUri() << "', queueKey '" << queueKey()
             << "' for which no entry exists. Ignoring this message."
-            << MWCTSK_ALARMLOG_END;
+            << BMQTSK_ALARMLOG_END;
         return;  // RETURN
     }
 
     if (0 == it->second.d_refCount) {
         // Outstanding refCount for this message is already zero at this node.
-        MWCTSK_ALARMLOG_ALARM("REPLICATION")
+        BMQTSK_ALARMLOG_ALARM("REPLICATION")
             << "Partition [" << partitionId() << "]"
             << "' received CONFIRM record for GUID '" << guid
             << "' for queue '" << queueUri() << "', queueKey '" << queueKey()
             << "' for which refCount is already zero. Ignoring this message."
-            << MWCTSK_ALARMLOG_END;
+            << BMQTSK_ALARMLOG_END;
         return;  // RETURN
     }
 
@@ -878,12 +877,12 @@ void FileBackedStorage::processDeletionRecord(const bmqt::MessageGUID& guid)
 {
     RecordHandleMapIter it = d_handles.find(guid);
     if (it == d_handles.end()) {
-        MWCTSK_ALARMLOG_ALARM("REPLICATION")
+        BMQTSK_ALARMLOG_ALARM("REPLICATION")
             << "Partition [" << partitionId() << "]"
             << " received DELETION record for GUID '" << guid
             << "' for queue '" << queueUri() << "', queueKey '" << queueKey()
             << "' for which no entry exists. Ignoring this message."
-            << MWCTSK_ALARMLOG_END;
+            << BMQTSK_ALARMLOG_END;
         return;  // RETURN
     }
 

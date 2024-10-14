@@ -1,0 +1,84 @@
+    bmqio.txt
+
+@PURPOSE: Provide network related components..
+
+@MNEMONIC: BlazingMQ IO (bmqio)
+
+@DESCRIPTION: This package provides interfaces and concrete implementations related to TCP communication.
+
+/Hierarchical Synopsis
+/---------------------
+The 'bmqio' package currently has 13 components having 5 levels of physical
+dependency.  The list below shows the hierarchal ordering of the components.
+..
+  5. bmqio_tcpchannelfactory
+
+  4. bmqio_resolvingchannelfactory
+     bmqio_tcpchannel
+
+  3. bmqio_basechannelpartialimp
+     bmqio_decoratingchannelpartialimp
+     bmqio_reconnectingchannelfactory
+     bmqio_testchannel
+     bmqio_testchannelfactory
+
+  2. bmqio_channel
+     bmqio_channelfactory
+
+  1. bmqio_connectoptions
+     bmqio_listenoptions
+     bmqio_status
+..
+
+/Component Synopsis
+/------------------
+: 'bmqio_basechannelpartialimp':
+:     Provide a partial 'Channel' imp for a 'base' channel
+:
+: 'bmqio_channel':
+:      Provide a pure protocol for a bi-directional async channel.
+:
+: 'bmqio_channelfactory':
+:      Provide a protocol for a 'bmqio::Channel' factory.
+:
+: 'bmqio_channelutil':
+:      Provide utility functions related to channel manipulation.
+:
+: 'bmqio_connectoptions':
+:      Provide a type encapsulating options for 'ChannelFactory::connect'.
+:
+: 'bmqio_decoratingchannelpartialimp':
+:      Provide a partial imp of 'bmqio::Channel' for decorating channels.
+:
+: 'bmqio_listenoptions':
+:      Provide a type encapsulating options for 'ChannelFactory::listen'.
+:
+: 'bmqio_reconnectingchannelfactory':
+:      Provide an auto-reconnecting ChannelFactory decorator.
+:
+: 'bmqio_resolvingchannelfactory':
+:      Provide a 'ChannelFactory' that resolves the URIs of its channels.
+:
+: 'bmqio_statchannel':
+:      Provide a 'bmqio::Channel' that collects stats.
+:
+: 'bmqio_statchannelfactory':
+:      Provide a ChannelFactory decorator for channels collecting stats.
+:
+: 'bmqio_status':
+:      Provide an object representing the result of an I/O operation.
+:
+: 'bmqio_tcpchannel':
+:      Provide a 'bmqio::Channel' using a 'btemt_ChannelPoolChannel'.
+:
+: 'bmqio_tcpchannelfactory':
+:      Provide a 'bmqio::ChannelFactory' using a 'btemt::ChannelPool'.
+:
+: 'bmqio_tcpendpoint':
+:      Provide Value-semantic type representing endpoints for 'bmqio' channels.
+:
+: 'bmqio_testchannel':
+:      Provide an implementation of the Channel protocol for test drivers.
+:
+: 'bmqio_testchannelfactory':
+:      Provide a test imp of the 'ChannelFactory' protocol.

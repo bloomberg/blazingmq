@@ -28,11 +28,14 @@
 #include <mqbstat_brokerstats.h>
 #include <mqbu_storagekey.h>
 
-// MWC
-#include <mwctsk_alarmlog.h>
-#include <mwctst_scopedlogobserver.h>
-#include <mwctst_testhelper.h>
-#include <mwcu_memoutstream.h>
+// BMQ
+#include <bmqp_queueutil.h>
+#include <bmqt_messageguid.h>
+#include <bmqt_queueflags.h>
+#include <bmqtsk_alarmlog.h>
+#include <bmqtst_scopedlogobserver.h>
+#include <bmqtst_testhelper.h>
+#include <bmqu_memoutstream.h>
 
 // BDE
 #include <ball_loggermanager.h>
@@ -60,7 +63,7 @@ static mqbconfm::Domain getDomainConfig()
     return domainCfg;
 }
 
-struct Test : mwctst::Test {
+struct Test : bmqtst::Test {
     // PUBLIC DATA
     mqbu::StorageKey               d_storageKey;
     mqbmock::Dispatcher            d_dispatcher;
@@ -115,7 +118,7 @@ Test::Test()
     d_dispatcher._setInDispatcherThread(true);
     d_queue._setDispatcher(&d_dispatcher);
 
-    mwcu::MemOutStream errorDescription(s_allocator_p);
+    bmqu::MemOutStream errorDescription(s_allocator_p);
 
     bslma::ManagedPtr<mqbi::Queue> queueMp(&d_queue,
                                            0,
@@ -163,8 +166,8 @@ bool Test::loggingCb(const mqbu::StorageKey& appKey, const bool enableLog)
     bool haveUndelivered = d_haveUndelivered.contains(appKey);
 
     if (enableLog && haveUndelivered) {
-        MWCTSK_ALARMLOG_ALARM("QUEUE_STUCK")
-            << "Test Alarm" << MWCTSK_ALARMLOG_END;
+        BMQTSK_ALARMLOG_ALARM("QUEUE_STUCK")
+            << "Test Alarm" << BMQTSK_ALARMLOG_END;
     }
 
     return haveUndelivered;
@@ -185,7 +188,7 @@ TEST_F(Test, doNotMonitor)
 {
     putMessage();
 
-    mwctst::ScopedLogObserver observer(ball::Severity::INFO, s_allocator_p);
+    bmqtst::ScopedLogObserver observer(ball::Severity::INFO, s_allocator_p);
 
     d_monitor.registerSubStream(d_storageKey);
 
@@ -210,7 +213,7 @@ TEST_F(Test, emptyQueue)
 // Plan: Start monitoring, make time pass, state should remain ALIVE.
 // ------------------------------------------------------------------------
 {
-    mwctst::ScopedLogObserver logObserver(ball::Severity::INFO, s_allocator_p);
+    bmqtst::ScopedLogObserver logObserver(ball::Severity::INFO, s_allocator_p);
     size_t                    expectedLogRecords = 0U;
 
     const bsls::Types::Int64 k_MAX_IDLE_TIME = 10;
@@ -242,7 +245,7 @@ TEST_F(Test, putAliveIdleSendAlive)
 // pass, check that state remains 'alive'.
 // ------------------------------------------------------------------------
 {
-    mwctst::ScopedLogObserver logObserver(ball::Severity::INFO, s_allocator_p);
+    bmqtst::ScopedLogObserver logObserver(ball::Severity::INFO, s_allocator_p);
     size_t                    expectedLogRecords = 0U;
 
     const bsls::Types::Int64 k_MAX_IDLE_TIME = 10;
@@ -272,7 +275,7 @@ TEST_F(Test, putAliveIdleSendAlive)
     ASSERT_EQ(d_monitor.state(d_storageKey),
               QueueConsumptionMonitor::State::e_IDLE);
     ASSERT_EQ(logObserver.records().size(), ++expectedLogRecords);
-    ASSERT(mwctst::ScopedLogObserverUtil::recordMessageMatch(
+    ASSERT(bmqtst::ScopedLogObserverUtil::recordMessageMatch(
         logObserver.records().back(),
         "ALARM \\[QUEUE_STUCK\\]",
         s_allocator_p));
@@ -288,7 +291,7 @@ TEST_F(Test, putAliveIdleSendAlive)
 
     d_monitor.onTimer(3 * k_MAX_IDLE_TIME + 2);
     ASSERT_EQ(logObserver.records().size(), ++expectedLogRecords);
-    ASSERT(mwctst::ScopedLogObserverUtil::recordMessageMatch(
+    ASSERT(bmqtst::ScopedLogObserverUtil::recordMessageMatch(
         logObserver.records().back(),
         "no longer appears to be stuck",
         s_allocator_p));
@@ -354,7 +357,7 @@ TEST_F(Test, changeMaxIdleTime)
     ASSERT_EQ(d_monitor.state(d_storageKey),
               QueueConsumptionMonitor::State::e_IDLE);
 
-    mwctst::ScopedLogObserver logObserver(ball::Severity::INFO, s_allocator_p);
+    bmqtst::ScopedLogObserver logObserver(ball::Severity::INFO, s_allocator_p);
 
     d_monitor.setMaxIdleTime(k_MAX_IDLE_TIME * 2);
     ASSERT_EQ(d_monitor.state(d_storageKey),
@@ -395,7 +398,7 @@ TEST_F(Test, reset)
     ASSERT_EQ(d_monitor.state(d_storageKey),
               QueueConsumptionMonitor::State::e_ALIVE);
 
-    mwctst::ScopedLogObserver logObserver(ball::Severity::INFO, s_allocator_p);
+    bmqtst::ScopedLogObserver logObserver(ball::Severity::INFO, s_allocator_p);
 
     d_monitor.reset();
     d_monitor.onTimer(k_MAX_IDLE_TIME + 1);
@@ -414,7 +417,7 @@ TEST_F(Test, putAliveIdleSendAliveTwoSubstreams)
 // pass, check that state remains 'alive'.
 // ------------------------------------------------------------------------
 {
-    mwctst::ScopedLogObserver logObserver(ball::Severity::INFO, s_allocator_p);
+    bmqtst::ScopedLogObserver logObserver(ball::Severity::INFO, s_allocator_p);
     size_t                    expectedLogRecords = 0U;
 
     const bsls::Types::Int64 k_MAX_IDLE_TIME = 10;
@@ -425,7 +428,7 @@ TEST_F(Test, putAliveIdleSendAliveTwoSubstreams)
 
     d_monitor.setMaxIdleTime(k_MAX_IDLE_TIME);
 
-    mwcu::MemOutStream errorDescription(s_allocator_p);
+    bmqu::MemOutStream errorDescription(s_allocator_p);
     d_storage.addVirtualStorage(errorDescription, "app1", key1);
     d_storage.addVirtualStorage(errorDescription, "app2", key2);
 
@@ -457,7 +460,7 @@ TEST_F(Test, putAliveIdleSendAliveTwoSubstreams)
     ASSERT_EQ(logObserver.records().size(), expectedLogRecords += 2);
 
     for (int i = 0; i < 2; ++i) {
-        ASSERT(mwctst::ScopedLogObserverUtil::recordMessageMatch(
+        ASSERT(bmqtst::ScopedLogObserverUtil::recordMessageMatch(
             logObserver.records().rbegin()[i],
             "ALARM \\[QUEUE_STUCK\\]",
             s_allocator_p));
@@ -474,7 +477,7 @@ TEST_F(Test, putAliveIdleSendAliveTwoSubstreams)
 
     d_monitor.onTimer(3 * k_MAX_IDLE_TIME + 2);
     ASSERT_EQ(logObserver.records().size(), expectedLogRecords += 1);
-    ASSERT(mwctst::ScopedLogObserverUtil::recordMessageMatch(
+    ASSERT(bmqtst::ScopedLogObserverUtil::recordMessageMatch(
         logObserver.records().back(),
         "Queue 'bmq://bmq.test.local/test_queue\\?id=app1' no longer appears "
         "to be stuck.",
@@ -486,7 +489,7 @@ TEST_F(Test, putAliveIdleSendAliveTwoSubstreams)
     d_monitor.onMessageSent(key2);
     d_monitor.onTimer(3 * k_MAX_IDLE_TIME + 3);
     ASSERT_EQ(logObserver.records().size(), expectedLogRecords += 1);
-    ASSERT(mwctst::ScopedLogObserverUtil::recordMessageMatch(
+    ASSERT(bmqtst::ScopedLogObserverUtil::recordMessageMatch(
         logObserver.records().back(),
         "Queue 'bmq://bmq.test.local/test_queue\\?id=app2' no longer appears "
         "to be stuck.",
@@ -505,7 +508,7 @@ TEST_F(Test, usage)
 {
 #define monitor d_monitor
 
-    mwctst::ScopedLogObserver logObserver(ball::Severity::INFO, s_allocator_p);
+    bmqtst::ScopedLogObserver logObserver(ball::Severity::INFO, s_allocator_p);
 
     monitor.setMaxIdleTime(20);
 
@@ -556,7 +559,7 @@ int main(int argc, char* argv[])
 {
     BALL_LOG_SET_CATEGORY("MAIN");
 
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     bmqt::UriParser::initialize(s_allocator_p);
 
@@ -569,13 +572,13 @@ int main(int argc, char* argv[])
         mqbcfg::AppConfig brokerConfig(s_allocator_p);
         mqbcfg::BrokerConfig::set(brokerConfig);
 
-        bsl::shared_ptr<mwcst::StatContext> statContext =
+        bsl::shared_ptr<bmqst::StatContext> statContext =
             mqbstat::BrokerStatsUtil::initializeStatContext(30, s_allocator_p);
 
-        mwctst::runTest(_testCase);
+        bmqtst::runTest(_testCase);
     }
 
     bmqt::UriParser::shutdown();
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 }

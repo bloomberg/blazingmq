@@ -16,8 +16,7 @@
 // bmqt_correlationid.t.cpp                                           -*-C++-*-
 #include <bmqt_correlationid.h>
 
-// MWC
-#include <mwcu_memoutstream.h>
+#include <bmqu_memoutstream.h>
 
 // BDE
 #include <bsl_ios.h>
@@ -28,7 +27,7 @@
 #include <bsls_types.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -51,7 +50,7 @@ static void test1_breathingTest()
 //   Basic functionality
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("BREATHING TEST");
+    bmqtst::TestHelper::printTestName("BREATHING TEST");
 
     // An object for testing pointers
     bsl::string  foo("foo", s_allocator_p);
@@ -138,7 +137,7 @@ static void test2_copyAndAssign()
 // Testing:
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("COPY AND ASSIGN");
+    bmqtst::TestHelper::printTestName("COPY AND ASSIGN");
 
     // An object for testing pointers
     bsl::string  foo("foo", s_allocator_p);
@@ -197,7 +196,7 @@ static void test3_compare()
 // Testing:
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("COMPARE");
+    bmqtst::TestHelper::printTestName("COMPARE");
 
     // Test compare operator
     bmqt::CorrelationIdLess less;
@@ -261,7 +260,7 @@ static void test4_smartPointers()
 // Testing:
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("SMART POINTERS");
+    bmqtst::TestHelper::printTestName("SMART POINTERS");
 
     int                 value = 153;
     bmqt::CorrelationId smartIntCorrelation;
@@ -291,7 +290,7 @@ static void test5_autoValue()
 // Testing:
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("AUTO VALUE");
+    bmqtst::TestHelper::printTestName("AUTO VALUE");
 
     bmqt::CorrelationId auto1 = bmqt::CorrelationId::autoValue();
     bmqt::CorrelationId auto2 = bmqt::CorrelationId::autoValue();
@@ -321,7 +320,7 @@ static void test6_hashAppend()
 //              const bmqt::CorrelationId& corrId)
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("HASH APPEND");
+    bmqtst::TestHelper::printTestName("HASH APPEND");
 
     PV("HASH FUNCTION DETERMINISTIC");
 
@@ -374,7 +373,7 @@ static void test6_hashAppend()
 
 static void test7_printTest()
 {
-    mwctst::TestHelper::printTestName("PRINT");
+    bmqtst::TestHelper::printTestName("PRINT");
 
     PV("Testing print");
 
@@ -388,8 +387,8 @@ static void test7_printTest()
 
     for (; t < bmqt::CorrelationId::e_UNSET + 1; ++t) {
         bmqt::CorrelationId obj;
-        mwcu::MemOutStream  patStream(s_allocator_p);
-        mwcu::MemOutStream  objStream(s_allocator_p);
+        bmqu::MemOutStream  patStream(s_allocator_p);
+        bmqu::MemOutStream  objStream(s_allocator_p);
         switch (t) {
         case bmqt::CorrelationId::e_NUMERIC: {
             obj = bmqt::CorrelationId(numeric);
@@ -433,7 +432,7 @@ static void test7_printTest()
     PV("Bad stream test");
 
     bmqt::CorrelationId obj;
-    mwcu::MemOutStream  stream(s_allocator_p);
+    bmqu::MemOutStream  stream(s_allocator_p);
 
     stream << "BAD STREAM";
     stream.clear(bsl::ios_base::badbit);
@@ -448,7 +447,7 @@ static void test7_printTest()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     switch (_testCase) {
     case 0:
@@ -465,5 +464,5 @@ int main(int argc, char* argv[])
     } break;
     }
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }

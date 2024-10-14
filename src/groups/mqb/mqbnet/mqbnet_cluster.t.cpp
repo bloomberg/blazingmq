@@ -22,7 +22,7 @@
 #include <bsls_protocoltest.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -59,9 +59,9 @@ struct ClusterObserverTestImp
 /// A test implementation of the `mqbnet::ClusterNode` protocol
 struct ClusterNodeTestImp : bsls::ProtocolTestImp<mqbnet::ClusterNode> {
     mqbnet::ClusterNode* setChannel(
-        const bsl::weak_ptr<mwcio::Channel>& value,
+        const bsl::weak_ptr<bmqio::Channel>& value,
         const bmqp_ctrlmsg::ClientIdentity&  identity,
-        const mwcio::Channel::ReadCallback&  readCb) BSLS_KEYWORD_OVERRIDE
+        const bmqio::Channel::ReadCallback&  readCb) BSLS_KEYWORD_OVERRIDE
     {
         return markDone();
     }
@@ -156,7 +156,7 @@ struct ClusterTestImp : bsls::ProtocolTestImp<mqbnet::Cluster> {
     void enableRead() BSLS_KEYWORD_OVERRIDE { markDone(); }
 
     void
-    onProxyConnectionUp(const bsl::shared_ptr<mwcio::Channel>& channel,
+    onProxyConnectionUp(const bsl::shared_ptr<bmqio::Channel>& channel,
                         const bmqp_ctrlmsg::ClientIdentity&    identity,
                         const bsl::string& description) BSLS_KEYWORD_OVERRIDE
     {
@@ -217,7 +217,7 @@ static void test1_ClusterObserver()
 //   PROTOCOL TEST
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("ClusterObserver");
+    bmqtst::TestHelper::printTestName("ClusterObserver");
 
     PV("Creating a test object");
     bsls::ProtocolTest<ClusterObserverTestImp> testObj(s_verbosityLevel > 2);
@@ -284,7 +284,7 @@ static void test2_ClusterNode()
 //   PROTOCOL TEST
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("ClusterNode");
+    bmqtst::TestHelper::printTestName("ClusterNode");
 
     PV("Creating a test object");
     bsls::ProtocolTest<ClusterNodeTestImp> testObj(s_verbosityLevel > 2);
@@ -301,14 +301,14 @@ static void test2_ClusterNode()
     {
         PV("Verify that methods are public and virtual");
 
-        bsl::weak_ptr<mwcio::Channel> dummyWeakChannel;
+        bsl::weak_ptr<bmqio::Channel> dummyWeakChannel;
         bdlbb::Blob                   dummyBlob;
         bmqp_ctrlmsg::ClientIdentity  identity;
 
         BSLS_PROTOCOLTEST_ASSERT(testObj,
                                  setChannel(dummyWeakChannel,
                                             identity,
-                                            mwcio::Channel::ReadCallback()));
+                                            bmqio::Channel::ReadCallback()));
         BSLS_PROTOCOLTEST_ASSERT(testObj, enableRead());
         BSLS_PROTOCOLTEST_ASSERT(testObj, closeChannel());
         BSLS_PROTOCOLTEST_ASSERT(testObj, resetChannel());
@@ -365,7 +365,7 @@ static void test3_Cluster()
 //   PROTOCOL TEST
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("Cluster");
+    bmqtst::TestHelper::printTestName("Cluster");
 
     PV("Creating a test object");
     bsls::ProtocolTest<ClusterTestImp> testObj(s_verbosityLevel > 2);
@@ -399,7 +399,7 @@ static void test3_Cluster()
         BSLS_PROTOCOLTEST_ASSERT(testObj, enableRead());
         BSLS_PROTOCOLTEST_ASSERT(
             testObj,
-            onProxyConnectionUp(bsl::shared_ptr<mwcio::Channel>(),
+            onProxyConnectionUp(bsl::shared_ptr<bmqio::Channel>(),
                                 bmqp_ctrlmsg::ClientIdentity(),
                                 bsl::string()));
         BSLS_PROTOCOLTEST_ASSERT(testObj, nodes());
@@ -426,7 +426,7 @@ static void test3_Cluster()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     switch (_testCase) {
     case 0:
@@ -439,5 +439,5 @@ int main(int argc, char* argv[])
     } break;
     }
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }

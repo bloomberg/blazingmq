@@ -1,0 +1,88 @@
+    bmqex.txt
+
+@PURPOSE: Provide executors and other async programming utilites and mechanisms
+
+@MNEMONIC: BlazingMQ Executors (bmqex)
+
+@DESCRIPTION: This package provides executors and other async programming
+utilites and mechanisms to be reused through various applications.
+
+/Hierarchical Synopsis
+/---------------------
+The 'bmqex' package currently has 17 components having 4 level of physical
+dependency.  The list below shows the hierarchical ordering of the components.
+..
+  4. bmqex_bindutil
+
+  3. bmqex_executionutil
+
+  2. bmqex_executionpolicy
+     bmqex_executor
+     bmqex_promise
+     bmqex_sequentialcontext
+     bmqex_strand
+
+  1. bmqex_bdlmteventschedulerexecutor
+     bmqex_bdlmtfixedthreadpoolexecutor
+     bmqex_bdlmtmultiprioritythreadpoolexecutor
+     bmqex_bdlmtmultiqueuethreadpoolexecutor
+     bmqex_bdlmtthreadpoolexecutor
+     bmqex_executionproperty
+     bmqex_executortraits
+     bmqex_future
+     bmqex_job
+     bmqex_systemexecutor
+..
+
+/Component Synopsis
+/------------------
+: 'bmqex_bdlmteventschedulerexecutor':
+:      Provides an executor adapter for 'bdlmt::EventScheduler'.
+:
+: 'bmqex_bdlmtfixedthreadpoolexecutor':
+:      Provides an executor adapter for 'bdlmt::FixedThreadPool'.
+:
+: 'bmqex_bdlmtmultiprioritythreadpoolexecutor':
+:      Provides an executor adapter for 'bdlmt::MultipriorityThreadPool'.
+:
+: 'bmqex_bdlmtmultiqueuethreadpoolexecutor':
+:      Provides an executor adapter for 'bdlmt::MultiQueueThreadPool'.
+:
+: 'bmqex_bdlmtthreadpoolexecutor':
+:      Provides an executor adapter for 'bdlmt::ThreadPool'.
+:
+: 'bmqex_bindutil':
+:      Provides utility functions to bind functors to execution functions.
+:
+: 'bmqex_executionpolicy':
+:      Provides an execution policy to customize execution functions.
+:
+: 'bmqex_executionproperty':
+:      Provides utility tag types to be used with 'bmqex::ExecutionPolicy'.
+:
+: 'bmqex_executionutil':
+:      Provides utility functions to execute function objects.
+:
+: 'bmqex_executor':
+:      Provides a polymorphic wrapper for executor types.
+:
+: 'bmqex_executortraits':
+:      Provides a traits class to access various properties of executors.
+:
+: 'bmqex_future':
+:      Provides a mechanism to access the result of an async operation.
+:
+: 'bmqex_job':
+:      Provides a polymorphic function object wrapper.
+:
+: 'bmqex_promise':
+:      Provides a mechanism to store the result of an async operation.
+:
+: 'bmqex_sequentialcontext':
+:      Provides a single-threaded execution context.
+:
+: 'bmqex_strand':
+:      Provides a strand execution context.
+:
+: 'bmqex_systemexecutor':
+:      Provides an executor allowing functions to execute on any thread.

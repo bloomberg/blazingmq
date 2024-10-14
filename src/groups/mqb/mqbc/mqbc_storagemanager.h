@@ -192,7 +192,7 @@ class StorageManager
     bslma::Allocator* d_allocator_p;
     // Allocator to use
 
-    mwcma::CountingAllocatorStore d_allocators;
+    bmqma::CountingAllocatorStore d_allocators;
     // Allocator store to spawn new
     // allocators for sub-components
 

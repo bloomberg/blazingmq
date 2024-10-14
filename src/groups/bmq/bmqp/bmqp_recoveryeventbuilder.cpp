@@ -20,9 +20,8 @@
 // BMQ
 #include <bmqp_protocolutil.h>
 
-// MWC
-#include <mwcu_blob.h>
-#include <mwcu_blobobjectproxy.h>
+#include <bmqu_blob.h>
+#include <bmqu_blobobjectproxy.h>
 
 // BDE
 #include <bdlbb_blobutil.h>
@@ -103,10 +102,10 @@ RecoveryEventBuilder::packMessage(unsigned int                partitionId,
     }
 
     // Add RecoveryHeader
-    mwcu::BlobPosition offset;
-    mwcu::BlobUtil::reserve(&offset, &d_blob, sizeof(RecoveryHeader));
+    bmqu::BlobPosition offset;
+    bmqu::BlobUtil::reserve(&offset, &d_blob, sizeof(RecoveryHeader));
 
-    mwcu::BlobObjectProxy<RecoveryHeader> recoveryHeader(&d_blob,
+    bmqu::BlobObjectProxy<RecoveryHeader> recoveryHeader(&d_blob,
                                                          offset,
                                                          false,  // no read
                                                          true);  // write mode

@@ -17,7 +17,7 @@
 #include <bmqa_message.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // BDE
 #include <bdlbb_blob.h>
@@ -103,7 +103,7 @@ static void test1_messageOnStackIsInvalid()
     // QueueId is instantiated and that uses the default allocator to
     // allocate memory for an automatically generated CorrelationId.
 
-    mwctst::TestHelper::printTestName("BREATHING TEST");
+    bmqtst::TestHelper::printTestName("BREATHING TEST");
 
     PV("Default constructor - uninitialized");
 
@@ -336,7 +336,7 @@ static void test3_messageProperties()
         ASSERT_EQ(y, out3.getPropertyAsString("y"));
         ASSERT_EQ(0, out3.setPropertyAsString("y", mod));
 
-        mwcu::MemOutStream os(s_allocator_p);
+        bmqu::MemOutStream os(s_allocator_p);
         out3.print(os, 0, -1);
 
         PV(os.str());
@@ -387,7 +387,7 @@ static void test4_subscriptionHandle()
     // QueueId is instantiated and that uses the default allocator to
     // allocate memory for an automatically generated CorrelationId.
 
-    mwctst::TestHelper::printTestName("SUBSCRIPTION HANDLE ACCESSOR TEST");
+    bmqtst::TestHelper::printTestName("SUBSCRIPTION HANDLE ACCESSOR TEST");
 
     // Initialize Crc32c
     bmqp::Crc32c::initialize();
@@ -599,7 +599,7 @@ static void test4_subscriptionHandle()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
     bmqp::ProtocolUtil::initialize(s_allocator_p);
     switch (_testCase) {
     case 0:
@@ -614,5 +614,5 @@ int main(int argc, char* argv[])
     }
     bmqp::ProtocolUtil::shutdown();
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }

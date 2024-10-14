@@ -25,8 +25,7 @@
 #include <mqbmock_queue.h>
 #include <mqbmock_queuehandle.h>
 
-// MWC
-#include <mwcu_memoutstream.h>
+#include <bmqu_memoutstream.h>
 
 // BDE
 #include <bdlma_localsequentialallocator.h>
@@ -37,7 +36,7 @@
 #include <bslma_managedptr.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -72,7 +71,7 @@ Handle _(const int handle)
 
 MsgGroupId msgGroupIdFromInt(const int id)
 {
-    mwcu::MemOutStream ss(s_allocator_p);
+    bmqu::MemOutStream ss(s_allocator_p);
     ss << id;
     return MsgGroupId(ss.str(), s_allocator_p);
 }
@@ -205,7 +204,7 @@ static void test1_sameGroupIdSameHandleTest()
 //   getHandle
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("SAME GROUP ID SAME HANDLE TEST");
+    bmqtst::TestHelper::printTestName("SAME GROUP ID SAME HANDLE TEST");
 
     MessageGroupIdManager obj(k_TIMEOUT,
                               k_MAX_NUMBER_OF_MAPPINGS,
@@ -240,7 +239,7 @@ static void test2_differentGroupIdsHaveDifferentHandlesTest()
 //   getHandle
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "DIFFERENT GROUP IDS HAVE DIFFERENT HANDLES TEST");
 
     MessageGroupIdManager obj(k_TIMEOUT,
@@ -272,7 +271,7 @@ static void test3_timeoutOldMappingsTest()
 //   getHandle
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("TIMEOUT OLD MAPPINGS TEST");
+    bmqtst::TestHelper::printTestName("TIMEOUT OLD MAPPINGS TEST");
 
     MessageGroupIdManager obj(k_TIMEOUT,
                               k_MAX_NUMBER_OF_MAPPINGS,
@@ -307,7 +306,7 @@ static void test4_groupIdExpiresAfterTtlTest()
 //   getHandle
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("GROUP ID EXPIRES AFTER TTL TEST");
+    bmqtst::TestHelper::printTestName("GROUP ID EXPIRES AFTER TTL TEST");
 
     MessageGroupIdManager obj(k_TIMEOUT,
                               k_MAX_NUMBER_OF_MAPPINGS,
@@ -346,7 +345,7 @@ static void test5_longLivedMoreThanMaxGroupsGcTest()
 //   getHandle
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "LONG LIVED MORE THAN MAX GROUPS GC TEST");
 
     const int             k_MY_MAX_NUMBER_OF_MAPPINGS = 2;
@@ -386,7 +385,7 @@ static void test6_shortLivedMoreThanMaxGroupsGcTest()
 //   getHandle, exceedsMaxMsgGroupIdsLimit
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "SHORT LIVED MORE THAN MAX GROUPS GC TEST");
 
     const int             k_MY_MAX_NUMBER_OF_MAPPINGS = 1;
@@ -439,7 +438,7 @@ static void test7_retrievesGroupIdsFromHandlesTest()
 //   idsForHandle
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("RETRIEVES GROUP IDS FROM HANDLES TEST");
+    bmqtst::TestHelper::printTestName("RETRIEVES GROUP IDS FROM HANDLES TEST");
 
     MessageGroupIdManager obj(k_TIMEOUT,
                               k_MAX_NUMBER_OF_MAPPINGS,
@@ -502,7 +501,7 @@ static void test8_rebalanceWhenAddingHandleTest()
 //   addHandle
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("REBALANCE WHEN ADDING HANDLE TEST");
+    bmqtst::TestHelper::printTestName("REBALANCE WHEN ADDING HANDLE TEST");
 
     typedef MessageGroupIdManager::IdsForHandle IdsForHandle;
 
@@ -581,7 +580,7 @@ static void test9_noRebalanceWhenRemovingHandleTest()
 //   removeHandle
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "NO REBALANCE WHEN REMOVING HANDLE TEST");
 
     typedef MessageGroupIdManager::IdsForHandle IdsForHandle;
@@ -642,7 +641,7 @@ static void test10_chooseLeastUsedHandleAfterRemoveTest()
 //   getHandle, addHandle, removeHandle
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "CHOOSE LEAST USED HANDLE AFTER REMOVE TEST");
 
     for (int rebalanceMode = 0; rebalanceMode < 2; ++rebalanceMode) {
@@ -696,7 +695,7 @@ static void test11_stronglyUnbalancedChainOnRebalanceTest()
 //   getHandle, addHandle
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "STRONGLY UNBALANCED CHAIN ON REBALANCE TEST");
 
     typedef MessageGroupIdManager::IdsForHandle IdsForHandle;
@@ -766,7 +765,7 @@ static void test11_stronglyUnbalancedChainOnRebalanceTest()
 
 static void test12_printerTest()
 {
-    mwctst::TestHelper::printTestName("PRINTER TEST");
+    bmqtst::TestHelper::printTestName("PRINTER TEST");
 
     MessageGroupIdManager obj(k_TIMEOUT,
                               k_MAX_NUMBER_OF_MAPPINGS,
@@ -814,7 +813,7 @@ static void test12_printerTest()
 
     // Dump internals
     const Time         k_at = k_T0 + 5;
-    mwcu::MemOutStream ss(s_allocator_p);
+    bmqu::MemOutStream ss(s_allocator_p);
     mqbcmd::Result     result(s_allocator_p);
     obj.loadInternals(&result.makeMessageGroupIdHelper(), k_at);
     mqbcmd::HumanPrinter::print(ss, result, 1);
@@ -863,7 +862,7 @@ static void test13_largeMessageGroupIdsUseAllocator()
 //   getHandle, addHandle
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("LARGE MESSAGE GROUP IDS USE ALLOCATOR");
+    bmqtst::TestHelper::printTestName("LARGE MESSAGE GROUP IDS USE ALLOCATOR");
 
     for (int rebalanceMode = 0; rebalanceMode < 2; ++rebalanceMode) {
         MessageGroupIdManager obj(
@@ -876,7 +875,7 @@ static void test13_largeMessageGroupIdsUseAllocator()
         addHandles(&obj, 3);
 
         for (int i = 0; i < 10; ++i) {
-            mwcu::MemOutStream ss(s_allocator_p);
+            bmqu::MemOutStream ss(s_allocator_p);
             ss << "01234567890123456789012345678901234567890123456789" << i;
             (void)obj.getHandle(bsl::string(ss.str(), s_allocator_p), k_T0);
         }
@@ -893,7 +892,7 @@ static void test13_largeMessageGroupIdsUseAllocator()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     bmqt::UriParser::initialize(s_allocator_p);
 
@@ -930,5 +929,5 @@ int main(int argc, char* argv[])
 
     bmqt::UriParser::shutdown();
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }

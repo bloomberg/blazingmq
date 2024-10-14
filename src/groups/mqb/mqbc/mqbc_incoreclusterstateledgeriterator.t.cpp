@@ -32,8 +32,7 @@
 #include <bmqp_protocol.h>
 #include <bmqp_protocolutil.h>
 
-// MWC
-#include <mwcu_memoutstream.h>
+#include <bmqu_memoutstream.h>
 
 // BDE
 #include <bdlbb_pooledblobbufferfactory.h>
@@ -49,9 +48,9 @@
 #include <bsls_types.h>
 
 // TEST DRIVER
-#include <mwcsys_time.h>
-#include <mwctst_testhelper.h>
-#include <mwcu_tempdirectory.h>
+#include <bmqsys_time.h>
+#include <bmqtst_testhelper.h>
+#include <bmqu_tempdirectory.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -225,7 +224,7 @@ void writeRecord(bsl::vector<RecordInfo>*                   recordInfos,
     mqbsi::LedgerRecordId recordId;
     rc = ledger->writeRecord(&recordId,
                              record,
-                             mwcu::BlobPosition(),
+                             bmqu::BlobPosition(),
                              record.length());
     BSLS_ASSERT_OPT(rc == 0);
 
@@ -242,7 +241,7 @@ struct Tester {
     // DATA
     bsl::shared_ptr<mqbsi::LogIdGenerator> d_logIdGenerator_sp;
     bsl::shared_ptr<mqbsi::LogFactory>     d_logFactory_sp;
-    mwcu::TempDirectory                    d_tempDir;
+    bmqu::TempDirectory                    d_tempDir;
     mqbsi::LedgerConfig                    d_config;
     bslma::ManagedPtr<mqbsi::Ledger>       d_ledger_mp;
     bdlbb::PooledBlobBufferFactory         d_bufferFactory;
@@ -427,7 +426,7 @@ static void test1_breathingTest()
             (recordInfos[idx].second -
              sizeof(mqbc::ClusterStateRecordHeader)) /
             bmqp::Protocol::k_WORD_SIZE;
-        mwcu::MemOutStream expected, actual;
+        bmqu::MemOutStream expected, actual;
         expected << incoreCslIt;
         actual << "[ headerWords = "
                << mqbc::ClusterStateRecordHeader::k_HEADER_NUM_WORDS
@@ -453,9 +452,9 @@ static void test1_breathingTest()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
-    mwcsys::Time::initialize(s_allocator_p);
+    bmqsys::Time::initialize(s_allocator_p);
     bmqp::ProtocolUtil::initialize(s_allocator_p);
     bmqp::Crc32c::initialize();
 
@@ -469,7 +468,7 @@ int main(int argc, char* argv[])
     }
 
     bmqp::ProtocolUtil::shutdown();
-    mwcsys::Time::shutdown();
+    bmqsys::Time::shutdown();
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 }

@@ -37,11 +37,10 @@
 #include <bmqt_queueflags.h>
 #include <bmqt_uri.h>
 
-// MWC
-#include <mwcsys_time.h>
-#include <mwctsk_alarmlog.h>
-#include <mwcu_memoutstream.h>
-#include <mwcu_weakmemfn.h>
+#include <bmqsys_time.h>
+#include <bmqtsk_alarmlog.h>
+#include <bmqu_memoutstream.h>
+#include <bmqu_weakmemfn.h>
 
 // BDE
 #include <ball_logthrottle.h>
@@ -91,7 +90,7 @@ class LimitedPrinter {
   private:
     // DATA
     const bsl::size_t  d_maxPrintBytes;
-    mwcu::MemOutStream d_out;
+    bmqu::MemOutStream d_out;
 
     // FRIENDS
     friend bsl::ostream& operator<<(bsl::ostream&         stream,
@@ -362,7 +361,7 @@ void RelayQueueEngine::onHandleReleased(
     const bsl::shared_ptr<QueueEngineUtil_ReleaseHandleProctor>& proctor)
 {
     d_queueState_p->queue()->dispatcher()->execute(
-        bdlf::BindUtil::bind(mwcu::WeakMemFnUtil::weakMemFn(
+        bdlf::BindUtil::bind(bmqu::WeakMemFnUtil::weakMemFn(
                                  &RelayQueueEngine::onHandleReleasedDispatched,
                                  d_self.acquireWeak()),
                              status,
@@ -662,7 +661,7 @@ void RelayQueueEngine::processAppRedelivery(unsigned int upstreamSubQueueId,
 
     if (delay != bsls::TimeInterval()) {
         app->scheduleThrottle(
-            mwcsys::Time::nowMonotonicClock() + delay,
+            bmqsys::Time::nowMonotonicClock() + delay,
             bdlf::BindUtil::bind(&RelayQueueEngine::processAppRedelivery,
                                  this,
                                  upstreamSubQueueId,
@@ -797,7 +796,7 @@ void RelayQueueEngine::rebuildUpstreamState(Routers::AppContext* context,
          ++iter) {
         const bmqp_ctrlmsg::StreamParameters& streamParameters =
             iter->second.d_streamParameters;
-        mwcu::MemOutStream errorStream(d_allocator_p);
+        bmqu::MemOutStream errorStream(d_allocator_p);
         context->load(iter->first,
                       &errorStream,
                       iter->second.d_downstreamSubQueueId,
@@ -1179,8 +1178,8 @@ void RelayQueueEngine::configureHandle(
         return;  // RETURN
     }
 
-    unsigned int      upstreamSubQueueId = it->second.d_upstreamSubQueueId;
-    App_State*        app                = findApp(upstreamSubQueueId);
+    unsigned int upstreamSubQueueId = it->second.d_upstreamSubQueueId;
+    App_State*   app                = findApp(upstreamSubQueueId);
     BSLS_ASSERT_SAFE(app);
 
     context->initializeRouting(d_queueState_p->routingContext());
@@ -1234,8 +1233,8 @@ void RelayQueueEngine::releaseHandleImpl(
         handle->subStreamInfos().find(appId);
     BSLS_ASSERT_SAFE(it != handle->subStreamInfos().end());
 
-    unsigned int      upstreamSubQueueId = it->second.d_upstreamSubQueueId;
-    App_State*        app                = findApp(upstreamSubQueueId);
+    unsigned int upstreamSubQueueId = it->second.d_upstreamSubQueueId;
+    App_State*   app                = findApp(upstreamSubQueueId);
 
     BSLS_ASSERT_SAFE(app);
     App_State::CachedParametersMap::iterator itHandle = app->d_cache.find(
@@ -1305,7 +1304,7 @@ void RelayQueueEngine::releaseHandleImpl(
         effectiveHandleParam,
         upstreamSubQueueId,
         bdlf::BindUtil::bind(
-            mwcu::WeakMemFnUtil::weakMemFn(&RelayQueueEngine::onHandleReleased,
+            bmqu::WeakMemFnUtil::weakMemFn(&RelayQueueEngine::onHandleReleased,
                                            d_self.acquireWeak()),
             bdlf::PlaceHolders::_1,  // Status
             handle,
@@ -1608,9 +1607,9 @@ void RelayQueueEngine::loadInternals(mqbcmd::QueueEngine* out) const
             subStreams.resize(subStreams.size() + 1);
             mqbcmd::RelayQueueEngineSubStream& subStream = subStreams.back();
             subStream.appId()                            = p.first;
-            mwcu::MemOutStream appKey;
+            bmqu::MemOutStream appKey;
             appKey << p.second;
-            subStream.appKey() = appKey.str();
+            subStream.appKey()      = appKey.str();
             subStream.numMessages() = d_queueState_p->storage()->numMessages(
                 p.second);
         }

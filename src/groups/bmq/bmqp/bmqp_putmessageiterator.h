@@ -57,9 +57,8 @@
 #include <bmqp_optionsview.h>
 #include <bmqp_protocol.h>
 
-// MWC
-#include <mwcu_blob.h>
-#include <mwcu_blobiterator.h>
+#include <bmqu_blob.h>
+#include <bmqu_blobiterator.h>
 
 // BDE
 #include <bdlb_nullablevalue.h>
@@ -91,7 +90,7 @@ class PutMessageIterator {
 
   private:
     // DATA
-    mwcu::BlobIterator d_blobIter;
+    bmqu::BlobIterator d_blobIter;
     // Blob iterator pointing to the current
     // message in the blob.
 
@@ -122,7 +121,7 @@ class PutMessageIterator {
     // (without padding).  -1 if not
     // initialized.
 
-    mutable mwcu::BlobPosition d_lazyMessagePayloadPosition;
+    mutable bmqu::BlobPosition d_lazyMessagePayloadPosition;
     // Lazily computed payload position.
     // Unset if not initialized.
 
@@ -132,14 +131,14 @@ class PutMessageIterator {
     // includes padding and message
     // properties header.
 
-    mutable mwcu::BlobPosition d_applicationDataPosition;
+    mutable bmqu::BlobPosition d_applicationDataPosition;
     // Application Data position. For each
     // blob, initialized in next().
 
     mutable int d_optionsSize;
     // Message options size.
 
-    mutable mwcu::BlobPosition d_optionsPosition;
+    mutable bmqu::BlobPosition d_optionsPosition;
     // Message options position.  Unset if
     // not initialized.
 
@@ -206,7 +205,7 @@ class PutMessageIterator {
     /// success, and a non-zero value otherwise.  Behavior is undefined
     /// unless `d_decompressFlag` is true and the latest call to `next()`
     /// returned 1.
-    int loadMessagePayloadPosition(mwcu::BlobPosition* position) const;
+    int loadMessagePayloadPosition(bmqu::BlobPosition* position) const;
 
     /// Return the size (in bytes) of compressed application data for the
     /// message currently pointed to by this iterator.  Behavior is
@@ -323,7 +322,7 @@ class PutMessageIterator {
     /// Behavior is undefined unless latest call to `next()` returned 1.
     /// Note that application data includes message properties and message
     /// payload, but excludes the options.
-    int loadApplicationDataPosition(mwcu::BlobPosition* position) const;
+    int loadApplicationDataPosition(bmqu::BlobPosition* position) const;
 
     /// Load into the specified `blob` the application data for the message
     /// currently pointed to by this iterator.  Behavior is undefined unless
@@ -367,7 +366,7 @@ class PutMessageIterator {
     /// success, non-zero value if no properties are associated with the
     /// current message.  Behavior is undefined unless latest call to
     /// `next()` returned 1.
-    int loadMessagePropertiesPosition(mwcu::BlobPosition* position) const;
+    int loadMessagePropertiesPosition(bmqu::BlobPosition* position) const;
 
     /// Load into the specified `blob` the properties for the message
     /// currently pointed to by this iterator.  Behavior is undefined unless
@@ -418,7 +417,7 @@ inline PutMessageIterator::PutMessageIterator(
     bdlbb::BlobBufferFactory* bufferFactory,
     bslma::Allocator*         allocator,
     bool                      isDecompressingOldMPs)
-: d_blobIter(0, mwcu::BlobPosition(), 0, true)
+: d_blobIter(0, bmqu::BlobPosition(), 0, true)
 , d_applicationDataSize(-1)
 , d_lazyMessagePayloadSize(-1)
 , d_lazyMessagePayloadPosition()
@@ -443,7 +442,7 @@ inline PutMessageIterator::PutMessageIterator(
     bool                      decompressFlag,
     bdlbb::BlobBufferFactory* bufferFactory,
     bslma::Allocator*         allocator)
-: d_blobIter(0, mwcu::BlobPosition(), 0, true)  // no def ctor - set in reset
+: d_blobIter(0, bmqu::BlobPosition(), 0, true)  // no def ctor - set in reset
 , d_optionsView(allocator)
 , d_decompressFlag(decompressFlag)
 , d_applicationData(bufferFactory, allocator)
@@ -457,7 +456,7 @@ inline PutMessageIterator::PutMessageIterator(
 inline PutMessageIterator::PutMessageIterator(const PutMessageIterator& src,
                                               bslma::Allocator* allocator)
 : d_blobIter(0,
-             mwcu::BlobPosition(),
+             bmqu::BlobPosition(),
              0,
              true)  // no def ctor - set in copyFrom
 , d_applicationData(src.d_bufferFactory_p, allocator)
@@ -480,15 +479,15 @@ PutMessageIterator::operator=(const PutMessageIterator& rhs)
 
 inline void PutMessageIterator::clear()
 {
-    d_blobIter.reset(0, mwcu::BlobPosition(), 0, true);
+    d_blobIter.reset(0, bmqu::BlobPosition(), 0, true);
     d_header                     = PutHeader();
     d_applicationDataSize        = -1;
     d_lazyMessagePayloadSize     = -1;
-    d_lazyMessagePayloadPosition = mwcu::BlobPosition();
+    d_lazyMessagePayloadPosition = bmqu::BlobPosition();
     d_messagePropertiesSize      = 0;
-    d_applicationDataPosition    = mwcu::BlobPosition();
+    d_applicationDataPosition    = bmqu::BlobPosition();
     d_optionsSize                = 0;
-    d_optionsPosition            = mwcu::BlobPosition();
+    d_optionsPosition            = bmqu::BlobPosition();
     d_advanceLength              = -1;
     d_applicationData.removeAll();
     d_optionsView.reset();
@@ -541,8 +540,8 @@ inline bool PutMessageIterator::hasOptions() const
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(isValid());
     BSLS_ASSERT_SAFE(
-        (d_optionsSize == 0 && d_optionsPosition == mwcu::BlobPosition()) ||
-        (d_optionsSize != 0 && d_optionsPosition != mwcu::BlobPosition()));
+        (d_optionsSize == 0 && d_optionsPosition == bmqu::BlobPosition()) ||
+        (d_optionsSize != 0 && d_optionsPosition != bmqu::BlobPosition()));
 
     return d_optionsSize > 0;
 }

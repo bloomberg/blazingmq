@@ -29,10 +29,9 @@
 #include <mqbi_storagemanager.h>
 #include <mqbnet_cluster.h>
 
-// MWC
-#include <mwcsys_time.h>
-#include <mwctsk_alarmlog.h>
-#include <mwcu_memoutstream.h>
+#include <bmqsys_time.h>
+#include <bmqtsk_alarmlog.h>
+#include <bmqu_memoutstream.h>
 
 // BDE
 #include <bdld_datummapbuilder.h>
@@ -373,12 +372,12 @@ void ClusterOrchestrator::onPartitionPrimaryStatusDispatched(
         // not handled.  The leader should assign a new primary if old primary
         // fails to transition to ACTIVE status in the stipulated time.
 
-        MWCTSK_ALARMLOG_ALARM("CLUSTER")
+        BMQTSK_ALARMLOG_ALARM("CLUSTER")
             << d_clusterData_p->identity().description() << " Partition ["
             << partitionId
             << "]: primary node (self) failed to sync partition, rc: "
             << status << ", leaseId: " << primaryLeaseId
-            << MWCTSK_ALARMLOG_END;
+            << BMQTSK_ALARMLOG_END;
 
         d_stateManager_mp->setPrimaryStatus(
             partitionId,
@@ -513,7 +512,7 @@ void ClusterOrchestrator::timerCbDispatched()
     BSLS_ASSERT_SAFE(
         dispatcher()->inDispatcherThread(&d_clusterData_p->cluster()));
 
-    const bsls::Types::Int64 timer = mwcsys::Time::highResolutionTimer();
+    const bsls::Types::Int64 timer = bmqsys::Time::highResolutionTimer();
 
     for (size_t partitionId = 0;
          partitionId < clusterState()->partitions().size();
@@ -937,10 +936,10 @@ void ClusterOrchestrator::processClusterStateFSMMessage(
     } break;  // BREAK
     case MsgChoice::SELECTION_ID_UNDEFINED: BSLS_ANNOTATION_FALLTHROUGH;
     default: {
-        MWCTSK_ALARMLOG_ALARM("CLUSTER")
+        BMQTSK_ALARMLOG_ALARM("CLUSTER")
             << d_clusterData_p->identity().description()
             << ": unexpected clusterMessage:" << message
-            << MWCTSK_ALARMLOG_END;
+            << BMQTSK_ALARMLOG_END;
     } break;  // BREAK
     }
 }
@@ -996,10 +995,10 @@ void ClusterOrchestrator::processPartitionMessage(
     } break;  // BREAK
     case MsgChoice::SELECTION_ID_UNDEFINED: BSLS_ANNOTATION_FALLTHROUGH;
     default: {
-        MWCTSK_ALARMLOG_ALARM("CLUSTER")
+        BMQTSK_ALARMLOG_ALARM("CLUSTER")
             << d_clusterData_p->identity().description()
             << ": unexpected clusterMessage:" << message
-            << MWCTSK_ALARMLOG_END;
+            << BMQTSK_ALARMLOG_END;
     } break;  // BREAK
     }
 }
@@ -1283,11 +1282,11 @@ void ClusterOrchestrator::processElectorEvent(const bmqp::Event&   event,
     if (isLocal()) {
         // We shouldn't be getting any elector related messages if its a local
         // cluster.
-        MWCTSK_ALARMLOG_ALARM("CLUSTER")
+        BMQTSK_ALARMLOG_ALARM("CLUSTER")
             << d_clusterData_p->identity().description()
             << " received an elector event from node "
             << source->nodeDescription() << " in local cluster setup."
-            << MWCTSK_ALARMLOG_END;
+            << BMQTSK_ALARMLOG_END;
         return;  // RETURN
     }
 
@@ -2003,7 +2002,7 @@ int ClusterOrchestrator::processCommand(
         return rc;  // RETURN
     }
 
-    mwcu::MemOutStream os;
+    bmqu::MemOutStream os;
     os << "Unknown command '" << command << "'";
     mqbcmd::Error& error = result->makeError();
     error.message()      = os.str();

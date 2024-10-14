@@ -19,15 +19,14 @@
 // MQB
 #include <mqbnet_session.h>
 
-// MWC
-#include <mwcio_channel.h>
+#include <bmqio_channel.h>
 
 // BDE
 #include <bsls_platform.h>
 #include <bsls_protocoltest.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -54,7 +53,7 @@ using namespace bsl;
 /// A test implementation of the `mqbnet::Negotiator` protocol
 struct NegotiatorTestImp : bsls::ProtocolTestImp<mqbnet::Negotiator> {
     void negotiate(mqbnet::NegotiatorContext*               context,
-                   const bsl::shared_ptr<mwcio::Channel>&   channel,
+                   const bsl::shared_ptr<bmqio::Channel>&   channel,
                    const mqbnet::Negotiator::NegotiationCb& negotiationCb)
         BSLS_KEYWORD_OVERRIDE
     {
@@ -118,7 +117,7 @@ static void test1_Negotiator()
 //   PROTOCOL TEST
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("Negotiator");
+    bmqtst::TestHelper::printTestName("Negotiator");
 
     PV("Creating a test object");
     bsls::ProtocolTest<NegotiatorTestImp> testObj(s_verbosityLevel > 2);
@@ -136,7 +135,7 @@ static void test1_Negotiator()
         PV("Verify that methods are public and virtual");
 
         mqbnet::NegotiatorContext*        dummyNegotiatorContext_p = 0;
-        bsl::shared_ptr<mwcio::Channel>   dummyChannelSp;
+        bsl::shared_ptr<bmqio::Channel>   dummyChannelSp;
         mqbnet::Negotiator::NegotiationCb dummyNegotiationCb;
 
         BSLS_PROTOCOLTEST_ASSERT(testObj,
@@ -148,7 +147,7 @@ static void test1_Negotiator()
 
 static void test2_NegotiatorContext()
 {
-    mwctst::TestHelper::printTestName("NegotiatorContext");
+    bmqtst::TestHelper::printTestName("NegotiatorContext");
 
     {
         PV("Constructor");
@@ -200,7 +199,7 @@ static void test2_NegotiatorContext()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     switch (_testCase) {
     case 0:
@@ -212,5 +211,5 @@ int main(int argc, char* argv[])
     } break;
     }
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
