@@ -301,16 +301,6 @@ class LogControllerConfig {
     void clearCategoriesProperties();
 
     /// Populate members of this object from the corresponding fields in the
-    /// specified `datum`.  Return 0 on success, or a non-zero return code
-    /// on error, populating the specified `errorDescription` with a
-    /// description of the error.  Note that in case of error, some of the
-    /// values from `datum` may have already been applied and so this object
-    /// might be partially altered.  Refer to the component level
-    /// documentation (section: "LogControllerConfig: Datum format") for the
-    /// expected format of the `datum`.
-    int fromDatum(bsl::ostream& errorDescription, const bdld::Datum& datum);
-
-    /// Populate members of this object from the corresponding fields in the
     /// specified `obj` (which should be of a type compatible with one
     /// generated from a schema as described at the top in the component
     /// level documentation).  Return 0 on success, or a non-zero return
@@ -540,7 +530,9 @@ int LogControllerConfig::fromObj(bsl::ostream& errorDescription,
         .setSyslogEnabled(obj.syslog().enabled())
         .setSyslogAppName(obj.syslog().appName())
         .setSyslogFormat(obj.syslog().logFormat())
-        .setRecordBufferSize(obj.logDump().recordBufferSize());
+        .setRecordBufferSize(32768);
+    // TODO: use obj.logDump() when the config is updated
+    // .setRecordBufferSize(obj.logDump().recordBufferSize());
 
     if (ball::SeverityUtil::fromAsciiCaseless(
             &d_loggingVerbosity,
@@ -550,21 +542,23 @@ int LogControllerConfig::fromObj(bsl::ostream& errorDescription,
         return -1;  // RETURN
     }
 
-    if (ball::SeverityUtil::fromAsciiCaseless(
-            &d_recordingVerbosity,
-            obj.logDump().recordingLevel().c_str()) != 0) {
-        errorDescription << "Invalid value for 'recordingLevel' ('"
-                         << obj.logDump().recordingLevel() << "')";
-        return -1;  // RETURN
-    }
+    d_recordingVerbosity = ball::Severity::e_TRACE;
+    d_triggerVerbosity   = ball::Severity::e_FATAL;
+    // if (ball::SeverityUtil::fromAsciiCaseless(
+    //         &d_recordingVerbosity,
+    //         obj.logDump().recordingLevel().c_str()) != 0) {
+    //     errorDescription << "Invalid value for 'recordingLevel' ('"
+    //                      << obj.logDump().recordingLevel() << "')";
+    //     return -1;  // RETURN
+    // }
 
-    if (ball::SeverityUtil::fromAsciiCaseless(
-            &d_triggerVerbosity,
-            obj.logDump().triggerLevel().c_str()) != 0) {
-        errorDescription << "Invalid value for 'triggerLevel' ('"
-                         << obj.logDump().triggerLevel() << "')";
-        return -1;  // RETURN
-    }
+    // if (ball::SeverityUtil::fromAsciiCaseless(
+    //         &d_triggerVerbosity,
+    //         obj.logDump().triggerLevel().c_str()) != 0) {
+    //     errorDescription << "Invalid value for 'triggerLevel' ('"
+    //                      << obj.logDump().triggerLevel() << "')";
+    //     return -1;  // RETURN
+    // }
 
     ball::Severity::Level bslsSeverityAsBal = ball::Severity::e_ERROR;
     // TODO: enforcing 'obj' to have 'bslsLogSeverityThreshold' accessor is a
