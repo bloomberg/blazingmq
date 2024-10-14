@@ -175,7 +175,7 @@
 //
 //  }
 //
-//  mwcio::StatusCategory::Enum
+//  bmqio::StatusCategory::Enum
 //  ClusterProxy::sendData(const bdlbb::Blob& blob)
 //  {
 //    return d_activeNodeManager.write(0, blob, 64 * 1024 * 1024);
@@ -192,9 +192,8 @@
 // BMQ
 #include <bmqp_ctrlmsg_messages.h>
 
-// MWC
-#include <mwcio_channel.h>
-#include <mwcio_status.h>
+#include <bmqio_channel.h>
+#include <bmqio_status.h>
 
 // BDE
 #include <ball_log.h>

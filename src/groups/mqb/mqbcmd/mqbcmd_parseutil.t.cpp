@@ -30,7 +30,7 @@
 #include <bsls_assert.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -68,7 +68,7 @@ mqbcmd::Command fromJson(const bslstl::StringRef& json)
 
 void verifyExpected(const Test& test)
 {
-    mwctst::TestHelper::printTestName(test.d_description);
+    bmqtst::TestHelper::printTestName(test.d_description);
 
     BSLS_ASSERT_OPT(test.d_expectedJson);
 
@@ -85,7 +85,7 @@ void verifyExpected(const Test& test)
 
 void verifyFailure(const Test& test)
 {
-    mwctst::TestHelper::printTestName(test.d_description);
+    bmqtst::TestHelper::printTestName(test.d_description);
 
     BSLS_ASSERT_OPT(test.d_expectedJson == 0);
 
@@ -386,7 +386,7 @@ void test3_parseFailsWithExtra()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     switch (_testCase) {
     case 0:
@@ -398,5 +398,5 @@ int main(int argc, char* argv[])
         s_testStatus = -1;
     }
 
-    TEST_EPILOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_EPILOG(bmqtst::TestHelper::e_DEFAULT);
 }

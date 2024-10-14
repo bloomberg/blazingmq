@@ -21,13 +21,12 @@
 #include <bmqp_protocol.h>
 #include <bmqp_protocolutil.h>
 #include <bmqp_queueid.h>
-#include <mwcu_memoutstream.h>
+#include <bmqu_memoutstream.h>
 
-// MWC
-#include <mwcu_blobobjectproxy.h>
+#include <bmqu_blobobjectproxy.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // BDE
 #include <bdlb_bigendian.h>
@@ -162,7 +161,7 @@ static void generateMsgGroupId(bmqp::Protocol::MsgGroupId* msgGroupId)
 
     int seed = bsl::numeric_limits<int>::max();
 
-    mwcu::MemOutStream oss(s_allocator_p);
+    bmqu::MemOutStream oss(s_allocator_p);
     oss << "gid:" << bdlb::Random::generate15(&seed);
     *msgGroupId = oss.str();
 }
@@ -181,7 +180,7 @@ static void generateMsgGroupId(bmqp::Protocol::MsgGroupId* msgGroupId)
 /// default value if there is no option payload), and loads into the
 /// specified `optionsAreaSize` the size of the options area in bytes.
 void populateBlob(bdlbb::Blob*                        blob,
-                  mwcu::BlobPosition*                 optionsAreaPosition,
+                  bmqu::BlobPosition*                 optionsAreaPosition,
                   int*                                optionsAreaSize,
                   bsl::vector<bmqp::SubQueueInfo>*    subQueueInfos,
                   bsl::vector<bdlb::BigEndianUint32>* subQueueIdsOld,
@@ -262,13 +261,13 @@ void populateBlob(bdlbb::Blob*                        blob,
 
     if (hasSubQueues || hasMsgGroupId) {
         // Capture options area position (Position of 1st OptionHeader)
-        mwcu::BlobUtil::reserve(optionsAreaPosition,
+        bmqu::BlobUtil::reserve(optionsAreaPosition,
                                 blob,
                                 sizeof(bmqp::OptionHeader));
     }
     else {
         // We don't write an option header when there is no option to write
-        *optionsAreaPosition = mwcu::BlobPosition();
+        *optionsAreaPosition = bmqu::BlobPosition();
     }
 
     if (hasSubQueues) {
@@ -282,7 +281,7 @@ void populateBlob(bdlbb::Blob*                        blob,
         }
 
         // Append OptionHeader
-        mwcu::BlobUtil::writeBytes(blob,
+        bmqu::BlobUtil::writeBytes(blob,
                                    *optionsAreaPosition,
                                    reinterpret_cast<const char*>(&oh),
                                    sizeof(bmqp::OptionHeader));
@@ -316,7 +315,7 @@ void populateBlob(bdlbb::Blob*                        blob,
 /// `optionsAreaPosition` the position of the options area, and load into
 /// the specified `optionsAreaSize` the size of the options area in bytes.
 void populatePackedBlob(bdlbb::Blob*                     blob,
-                        mwcu::BlobPosition*              optionsAreaPosition,
+                        bmqu::BlobPosition*              optionsAreaPosition,
                         int*                             optionsAreaSize,
                         bsl::vector<bmqp::SubQueueInfo>* subQueueInfos)
 {
@@ -361,7 +360,7 @@ void populatePackedBlob(bdlbb::Blob*                     blob,
                             ph.headerWords() * bmqp::Protocol::k_WORD_SIZE);
 
     // Append *packed* OptionHeader
-    mwcu::BlobUtil::reserve(optionsAreaPosition,
+    bmqu::BlobUtil::reserve(optionsAreaPosition,
                             blob,
                             sizeof(bmqp::OptionHeader));
 
@@ -372,7 +371,7 @@ void populatePackedBlob(bdlbb::Blob*                     blob,
     // Reinterpret 'words' field as RDA counter
     oh.setWords(subQueueInfos->front().rdaInfo().internalRepresentation());
 
-    mwcu::BlobUtil::writeBytes(blob,
+    bmqu::BlobUtil::writeBytes(blob,
                                *optionsAreaPosition,
                                reinterpret_cast<const char*>(&oh),
                                sizeof(bmqp::OptionHeader));
@@ -430,7 +429,7 @@ void test1_breathingTest()
 
         // Create valid view, PUSH event with 1 message, zero options
         bdlbb::Blob        blob(&bufferFactory, s_allocator_p);
-        mwcu::BlobPosition optionsAreaPosition;
+        bmqu::BlobPosition optionsAreaPosition;
         int                optionsAreaSize = 0;
 
         // Populate blob, 0 options
@@ -497,7 +496,7 @@ void test1_breathingTest()
         // Create valid view, PUSH event with 1 message, 1 option header and
         // 1 sub-queue id
         bdlbb::Blob        blob(&bufferFactory, s_allocator_p);
-        mwcu::BlobPosition optionsAreaPosition;
+        bmqu::BlobPosition optionsAreaPosition;
         int                optionsAreaSize = 0;
 
         // Populate blob, 1 option header and 1 sub-queue id
@@ -518,7 +517,7 @@ void test1_breathingTest()
 
         // Sanity test: First verify that populateBlob gave us back valid
         //              parameters to pass to OptionsView
-        mwcu::BlobObjectProxy<bmqp::OptionHeader> oh(&blob,
+        bmqu::BlobObjectProxy<bmqp::OptionHeader> oh(&blob,
                                                      optionsAreaPosition,
                                                      optionsAreaSize);
 
@@ -561,7 +560,7 @@ void test1_breathingTest()
 
         // Create valid view, PUSH event with 3 sub-queue ids
         bdlbb::Blob        blob(&bufferFactory, s_allocator_p);
-        mwcu::BlobPosition optionsAreaPosition;
+        bmqu::BlobPosition optionsAreaPosition;
         int                optionsAreaSize = 0;
 
         // Populate blob, 1 option header, multiple sub-queue ids)
@@ -615,7 +614,7 @@ void test1_breathingTest()
 
         // Create valid view, PUSH event with 3 sub-queue ids
         bdlbb::Blob        blob(&bufferFactory, s_allocator_p);
-        mwcu::BlobPosition optionsAreaPosition;
+        bmqu::BlobPosition optionsAreaPosition;
         int                optionsAreaSize = 0;
 
         // Populate blob, 1 option header, multiple sub-queue ids)
@@ -709,7 +708,7 @@ void test2_subQueueIdsOld()
 
     // Create valid view, PUSH event with 3 old sub-queue ids
     bdlbb::Blob        blob(&bufferFactory, s_allocator_p);
-    mwcu::BlobPosition optionsAreaPosition;
+    bmqu::BlobPosition optionsAreaPosition;
     int                optionsAreaSize = 0;
 
     // Populate blob, 1 option header, multiple old sub-queue ids)
@@ -778,7 +777,7 @@ void test3_packedOptions()
 
     // Create valid view, PUSH event with a *packed* sub-queue id option
     bdlbb::Blob        blob(&bufferFactory, s_allocator_p);
-    mwcu::BlobPosition optionsAreaPosition;
+    bmqu::BlobPosition optionsAreaPosition;
     int                optionsAreaSize = 0;
 
     bsl::vector<bmqp::SubQueueInfo> subQueueInfos(s_allocator_p);
@@ -853,7 +852,7 @@ void test4_invalidOptionsArea()
         // could lie to us that it has bigger payload than it actually has in
         // the blob and the view will still be valid.
         bdlbb::Blob        optionsBlob(&bufferFactory, s_allocator_p);
-        mwcu::BlobPosition optionsAreaPosition;  // start of blob
+        bmqu::BlobPosition optionsAreaPosition;  // start of blob
         int                numSubQueueInfos = 6;
 
         const int optionPayloadSize = numSubQueueInfos *
@@ -896,7 +895,7 @@ void test4_invalidOptionsArea()
 
         // An OptionsHeader but no option payload (sub-queue info)
         bdlbb::Blob              optionsBlob(&bufferFactory, s_allocator_p);
-        const mwcu::BlobPosition optionsAreaPosition;  // start of blob
+        const bmqu::BlobPosition optionsAreaPosition;  // start of blob
         const int                optionsAreaSize = sizeof(bmqp::OptionHeader);
 
         bmqp::OptionHeader oh;
@@ -923,7 +922,7 @@ void test4_invalidOptionsArea()
 
         // An OptionHeader with type 'OptionType::e_UNDEFINED'
         bdlbb::Blob              optionsBlob(&bufferFactory, s_allocator_p);
-        const mwcu::BlobPosition optionsAreaPosition;  // start of blob
+        const bmqu::BlobPosition optionsAreaPosition;  // start of blob
         const int                numSubQueueInfos = 1;
 
         const int optionPayloadSize = numSubQueueInfos *
@@ -965,7 +964,7 @@ void test4_invalidOptionsArea()
 
         // #1: An OptionHeader with an unsupported type
         bdlbb::Blob              optionsBlob(&bufferFactory, s_allocator_p);
-        const mwcu::BlobPosition optionsAreaPosition;  // start of blob
+        const bmqu::BlobPosition optionsAreaPosition;  // start of blob
         const int                numSubQueueInfos = 2;
 
         const int optionPayloadSize = numSubQueueInfos *
@@ -1008,7 +1007,7 @@ void test4_invalidOptionsArea()
         oh.setType(optionType);
 
         // Overwrite OptionHeader
-        mwcu::BlobUtil::writeBytes(&optionsBlob,
+        bmqu::BlobUtil::writeBytes(&optionsBlob,
                                    optionsAreaPosition,
                                    reinterpret_cast<const char*>(&oh),
                                    sizeof(bmqp::OptionHeader));
@@ -1028,7 +1027,7 @@ void test4_invalidOptionsArea()
 
         // Multiple OptionHeader of the same type (duplicate)
         bdlbb::Blob              optionsBlob(&bufferFactory, s_allocator_p);
-        const mwcu::BlobPosition optionsAreaPosition;  // start of blob
+        const bmqu::BlobPosition optionsAreaPosition;  // start of blob
         const int                numSubQueueInfos = 2;
 
         const int optionPayloadSize = numSubQueueInfos *
@@ -1092,7 +1091,7 @@ void test4_invalidOptionsArea()
         PV("EMPTY BLOB");
 
         bdlbb::Blob              optionsBlob(&bufferFactory, s_allocator_p);
-        const mwcu::BlobPosition optionsAreaPosition;  // start of blob
+        const bmqu::BlobPosition optionsAreaPosition;  // start of blob
         const int                optionsAreaSize = sizeof(bmqp::OptionHeader);
 
         bmqp::OptionHeader oh;
@@ -1111,7 +1110,7 @@ void test4_invalidOptionsArea()
         PV("WRONG AREA SIZE FOR OPTION VIEW");
 
         bdlbb::Blob              optionsBlob(&bufferFactory, s_allocator_p);
-        const mwcu::BlobPosition optionsAreaPosition;  // start of blob
+        const bmqu::BlobPosition optionsAreaPosition;  // start of blob
         const int                numSubQueueInfos = 6;
 
         const int optionPayloadSize = numSubQueueInfos *
@@ -1173,7 +1172,7 @@ void test5_iteratorTest()
 
     // Create valid view, PUSH event with 3 sub-queue ids
     bdlbb::Blob        blob(&bufferFactory, s_allocator_p);
-    mwcu::BlobPosition optionsAreaPosition;
+    bmqu::BlobPosition optionsAreaPosition;
     int                optionsAreaSize = 0;
 
     // Populate blob, 1 option header, multiple sub-queue ids
@@ -1250,7 +1249,7 @@ void test6_iteratorTestSubQueueIdsOld()
 
     // Create valid view, PUSH event with 3 old version sub-queue ids
     bdlbb::Blob        blob(&bufferFactory, s_allocator_p);
-    mwcu::BlobPosition optionsAreaPosition;
+    bmqu::BlobPosition optionsAreaPosition;
     int                optionsAreaSize = 0;
 
     // Populate blob, 1 option header, multiple sub-queue ids
@@ -1326,9 +1325,9 @@ void test7_dumpBlob()
 
     // Create valid view, PUSH event with 3 sub-queue ids
     bdlbb::Blob        blob(&bufferFactory, s_allocator_p);
-    mwcu::BlobPosition optionsAreaPosition;
+    bmqu::BlobPosition optionsAreaPosition;
     int                optionsAreaSize = 0;
-    mwcu::MemOutStream stream(s_allocator_p);
+    bmqu::MemOutStream stream(s_allocator_p);
 
     // Populate blob, 1 option header, multiple sub-queue ids)
     bsl::vector<bmqp::SubQueueInfo> subQueueIds(s_allocator_p);
@@ -1413,9 +1412,9 @@ void test8_dumpBlobSubQueueIdsOld()
 
     // Create valid view, PUSH event with 3 old version sub-queue ids
     bdlbb::Blob        blob(&bufferFactory, s_allocator_p);
-    mwcu::BlobPosition optionsAreaPosition;
+    bmqu::BlobPosition optionsAreaPosition;
     int                optionsAreaSize = 0;
-    mwcu::MemOutStream stream(s_allocator_p);
+    bmqu::MemOutStream stream(s_allocator_p);
 
     // Populate blob, 1 option header, multiple sub-queue ids)
     bsl::vector<bdlb::BigEndianUint32> subQueueIdsOld(s_allocator_p);
@@ -1469,7 +1468,7 @@ void test8_dumpBlobSubQueueIdsOld()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     bmqp::ProtocolUtil::initialize(s_allocator_p);
 
@@ -1491,5 +1490,5 @@ int main(int argc, char* argv[])
 
     bmqp::ProtocolUtil::shutdown();
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }

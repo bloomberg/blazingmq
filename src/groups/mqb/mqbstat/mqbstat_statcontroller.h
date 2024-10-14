@@ -33,10 +33,9 @@
 #include <mqbstat_jsonprinter.h>
 #include <mqbstat_printer.h>
 
-// MWC
-#include <mwcma_countingallocatorstore.h>
-#include <mwcst_statcontext.h>
-#include <mwcsys_statmonitor.h>
+#include <bmqma_countingallocatorstore.h>
+#include <bmqst_statcontext.h>
+#include <bmqsys_statmonitor.h>
 
 // BDE
 #include <ball_log.h>
@@ -81,13 +80,13 @@ class StatPublisher;
 namespace mqbplug {
 class StatConsumer;
 }
-namespace mwcst {
+namespace bmqst {
 class StatContext;
 }
-namespace mwcst {
+namespace bmqst {
 class Table;
 }
-namespace mwcu {
+namespace bmqu {
 class BasicTableInfoProvider;
 }
 
@@ -117,7 +116,7 @@ class StatController {
         CommandProcessorFn;
 
     /// Map of StatContext names to StatContext pointers
-    typedef bsl::unordered_map<bsl::string, mwcst::StatContext*> StatContexts;
+    typedef bsl::unordered_map<bsl::string, bmqst::StatContext*> StatContexts;
 
   private:
     // CLASS-SCOPE CATEGORY
@@ -126,9 +125,9 @@ class StatController {
   private:
     // PRIVATE TYPES
     typedef bslma::ManagedPtr<bdlmt::TimerEventScheduler> SchedulerMp;
-    typedef bslma::ManagedPtr<mwcst::StatContext>         StatContextMp;
-    typedef bsl::shared_ptr<mwcst::StatContext>           StatContextSp;
-    typedef bslma::ManagedPtr<mwcsys::StatMonitor>        SystemStatMonitorMp;
+    typedef bslma::ManagedPtr<bmqst::StatContext>         StatContextMp;
+    typedef bsl::shared_ptr<bmqst::StatContext>           StatContextSp;
+    typedef bslma::ManagedPtr<bmqsys::StatMonitor>        SystemStatMonitorMp;
     typedef bslma::ManagedPtr<Printer>                    PrinterMp;
     typedef bslma::ManagedPtr<JsonPrinter>                JsonPrinterMp;
     typedef bslma::ManagedPtr<mqbplug::StatPublisher>     StatPublisherMp;
@@ -158,7 +157,7 @@ class StatController {
     // DATA
     /// Allocator store to spawn new allocators
     /// for sub-components.
-    mwcma::CountingAllocatorStore d_allocators;
+    bmqma::CountingAllocatorStore d_allocators;
 
     /// This component should use it's own
     /// scheduler to not have stats interfere
@@ -176,7 +175,7 @@ class StatController {
 
     /// Stat context of the counting allocators,
     /// if used.
-    mwcst::StatContext* d_allocatorsStatContext_p;
+    bmqst::StatContext* d_allocatorsStatContext_p;
 
     /// Map holding all the stat contexts
     StatContextDetailsMap d_statContextsMap;
@@ -295,7 +294,7 @@ class StatController {
     StatController(const CommandProcessorFn& commandProcessor,
                    mqbplug::PluginManager*   pluginManager,
                    bdlbb::BlobBufferFactory* bufferFactory,
-                   mwcst::StatContext*       allocatorsStatContext,
+                   bmqst::StatContext*       allocatorsStatContext,
                    bdlmt::EventScheduler*    eventScheduler,
                    bslma::Allocator*         allocator);
 
@@ -322,23 +321,23 @@ class StatController {
                        const mqbcmd::EncodingFormat::Value& encoding);
 
     /// Retrieve the domains top-level stat context.
-    mwcst::StatContext* domainsStatContext();
+    bmqst::StatContext* domainsStatContext();
 
     /// Retrieve the domainQueues top-level stat context.
-    mwcst::StatContext* domainQueuesStatContext();
+    bmqst::StatContext* domainQueuesStatContext();
 
     /// Retrieve the clients top-level stat context.
-    mwcst::StatContext* clientsStatContext();
+    bmqst::StatContext* clientsStatContext();
 
     /// Retrieve the clusterNodes top-level stat context.
-    mwcst::StatContext* clusterNodesStatContext();
+    bmqst::StatContext* clusterNodesStatContext();
 
     /// Retrieve the clusters top-level stat context.
-    mwcst::StatContext* clustersStatContext();
+    bmqst::StatContext* clustersStatContext();
 
     /// Retrieve the channels stat context corresponding to the specified
     /// `selector`.
-    mwcst::StatContext* channelsStatContext(ChannelSelector::Enum selector);
+    bmqst::StatContext* channelsStatContext(ChannelSelector::Enum selector);
 };
 
 // ============================================================================
@@ -349,32 +348,32 @@ class StatController {
 // class StatController
 // --------------------
 
-inline mwcst::StatContext* StatController::domainsStatContext()
+inline bmqst::StatContext* StatController::domainsStatContext()
 {
     return d_statContextsMap["domains"].d_statContext_sp.get();
 }
 
-inline mwcst::StatContext* StatController::domainQueuesStatContext()
+inline bmqst::StatContext* StatController::domainQueuesStatContext()
 {
     return d_statContextsMap["domainQueues"].d_statContext_sp.get();
 }
 
-inline mwcst::StatContext* StatController::clientsStatContext()
+inline bmqst::StatContext* StatController::clientsStatContext()
 {
     return d_statContextsMap["clients"].d_statContext_sp.get();
 }
 
-inline mwcst::StatContext* StatController::clusterNodesStatContext()
+inline bmqst::StatContext* StatController::clusterNodesStatContext()
 {
     return d_statContextsMap["clusterNodes"].d_statContext_sp.get();
 }
 
-inline mwcst::StatContext* StatController::clustersStatContext()
+inline bmqst::StatContext* StatController::clustersStatContext()
 {
     return d_statContextsMap["clusters"].d_statContext_sp.get();
 }
 
-inline mwcst::StatContext*
+inline bmqst::StatContext*
 StatController::channelsStatContext(ChannelSelector::Enum selector)
 {
     switch (selector) {

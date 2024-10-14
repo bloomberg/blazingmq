@@ -58,10 +58,9 @@
 
 #include <bmqp_protocol.h>
 
-// MWC
-#include <mwcu_blob.h>
-#include <mwcu_blobiterator.h>
-#include <mwcu_blobobjectproxy.h>
+#include <bmqu_blob.h>
+#include <bmqu_blobiterator.h>
+#include <bmqu_blobobjectproxy.h>
 
 // BDE
 #include <bdlbb_blob.h>
@@ -80,11 +79,11 @@ namespace bmqp {
 class RecoveryMessageIterator {
   private:
     // DATA
-    mwcu::BlobIterator d_blobIter;
+    bmqu::BlobIterator d_blobIter;
     // Blob iterator pointing to the
     // current message in the blob.
 
-    mwcu::BlobObjectProxy<RecoveryHeader> d_header;
+    bmqu::BlobObjectProxy<RecoveryHeader> d_header;
     // Current PutHeader
 
     int d_advanceLength;
@@ -166,7 +165,7 @@ class RecoveryMessageIterator {
     /// chunk of the recovery message currently pointed to by this iterator.
     /// The behavior is undefined unless `position` is not null.  Return
     /// zero on success, non zero value otherwise.
-    int loadChunkPosition(mwcu::BlobPosition* position) const;
+    int loadChunkPosition(bmqu::BlobPosition* position) const;
 
     /// Dump the beginning of the blob associated to this
     /// RecoveryMessageIterator to the specified `stream`.
@@ -183,7 +182,7 @@ class RecoveryMessageIterator {
 
 // CREATORS
 inline RecoveryMessageIterator::RecoveryMessageIterator()
-: d_blobIter(0, mwcu::BlobPosition(), 0, true)
+: d_blobIter(0, bmqu::BlobPosition(), 0, true)
 , d_advanceLength(-1)
 {
     // NOTHING
@@ -192,7 +191,7 @@ inline RecoveryMessageIterator::RecoveryMessageIterator()
 inline RecoveryMessageIterator::RecoveryMessageIterator(
     const bdlbb::Blob* blob,
     const EventHeader& eventHeader)
-: d_blobIter(0, mwcu::BlobPosition(), 0, true)  // no def ctor - set in reset
+: d_blobIter(0, bmqu::BlobPosition(), 0, true)  // no def ctor - set in reset
 {
     reset(blob, eventHeader);
 }
@@ -200,7 +199,7 @@ inline RecoveryMessageIterator::RecoveryMessageIterator(
 inline RecoveryMessageIterator::RecoveryMessageIterator(
     const RecoveryMessageIterator& src)
 : d_blobIter(0,
-             mwcu::BlobPosition(),
+             bmqu::BlobPosition(),
              0,
              true)  // no def ctor - set in copyFrom
 {
@@ -220,7 +219,7 @@ RecoveryMessageIterator::operator=(const RecoveryMessageIterator& rhs)
 
 inline void RecoveryMessageIterator::clear()
 {
-    d_blobIter.reset(0, mwcu::BlobPosition(), 0, true);
+    d_blobIter.reset(0, bmqu::BlobPosition(), 0, true);
     d_header.reset();
     d_advanceLength = -1;
 }
@@ -240,13 +239,13 @@ inline const RecoveryHeader& RecoveryMessageIterator::header() const
 }
 
 inline int
-RecoveryMessageIterator::loadChunkPosition(mwcu::BlobPosition* position) const
+RecoveryMessageIterator::loadChunkPosition(bmqu::BlobPosition* position) const
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(position);
     BSLS_ASSERT_SAFE(isValid());
 
-    return mwcu::BlobUtil::findOffsetSafe(
+    return bmqu::BlobUtil::findOffsetSafe(
         position,
         *d_blobIter.blob(),
         d_blobIter.position(),

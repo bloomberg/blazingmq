@@ -32,9 +32,8 @@
 #include <bmqp_routingconfigurationutils.h>
 #include <bmqt_queueflags.h>
 
-// MWC
-#include <mwcsys_time.h>
-#include <mwcu_atomicstate.h>
+#include <bmqsys_time.h>
+#include <bmqu_atomicstate.h>
 
 // BDE
 #include <bdlbb_pooledblobbufferfactory.h>
@@ -44,7 +43,7 @@
 #include <bslmt_semaphore.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -185,12 +184,12 @@ TestBench::TestBench(bslma::Allocator* allocator_p)
                              this,
                              bdlf::PlaceHolders::_1));
 
-    mwcsys::Time::initialize(
+    bmqsys::Time::initialize(
         bdlf::BindUtil::bind(&TestClock::realtimeClock, &d_testClock),
         bdlf::BindUtil::bind(&TestClock::monotonicClock, &d_testClock),
         bdlf::BindUtil::bind(&TestClock::highResTimer, &d_testClock));
 
-    mwcu::MemOutStream errorDescription(allocator_p);
+    bmqu::MemOutStream errorDescription(allocator_p);
 
     d_cluster.start(errorDescription);
 }
@@ -203,7 +202,7 @@ TestBench::~TestBench()
 
     d_event.reset();
 
-    mwcsys::Time::shutdown();
+    bmqsys::Time::shutdown();
 }
 
 bsl::shared_ptr<mqbmock::Queue> TestBench::getQueue()
@@ -467,11 +466,11 @@ static void test1_fanoutBasic()
 //   6. Run timer which shoudl not rechedule because there are no pending.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("basic tests using fanout");
+    bmqtst::TestHelper::printTestName("basic tests using fanout");
 
     bmqt::UriParser::initialize(s_allocator_p);
 
-    bsl::shared_ptr<mwcst::StatContext> statContext =
+    bsl::shared_ptr<bmqst::StatContext> statContext =
         mqbstat::BrokerStatsUtil::initializeStatContext(30, s_allocator_p);
 
     TestBench theBench(s_allocator_p);
@@ -609,11 +608,11 @@ static void test2_broadcastBasic()
 //   6. Force close the queue.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("basic tests using broadcast");
+    bmqtst::TestHelper::printTestName("basic tests using broadcast");
 
     bmqt::UriParser::initialize(s_allocator_p);
 
-    bsl::shared_ptr<mwcst::StatContext> statContext =
+    bsl::shared_ptr<bmqst::StatContext> statContext =
         mqbstat::BrokerStatsUtil::initializeStatContext(30, s_allocator_p);
 
     TestBench theBench(s_allocator_p);
@@ -897,11 +896,11 @@ static void test3_close()
 //      Producers should not receive any NACKs.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("close queue with pending messages");
+    bmqtst::TestHelper::printTestName("close queue with pending messages");
 
     bmqt::UriParser::initialize(s_allocator_p);
 
-    bsl::shared_ptr<mwcst::StatContext> statContext =
+    bsl::shared_ptr<bmqst::StatContext> statContext =
         mqbstat::BrokerStatsUtil::initializeStatContext(30, s_allocator_p);
 
     TestBench theBench(s_allocator_p);
@@ -952,11 +951,11 @@ static void test4_buffering()
 //   onUnavailableUpstreamDispatched
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("buffering");
+    bmqtst::TestHelper::printTestName("buffering");
 
     bmqt::UriParser::initialize(s_allocator_p);
 
-    bsl::shared_ptr<mwcst::StatContext> statContext =
+    bsl::shared_ptr<bmqst::StatContext> statContext =
         mqbstat::BrokerStatsUtil::initializeStatContext(30, s_allocator_p);
 
     TestBench theBench(s_allocator_p);
@@ -1049,11 +1048,11 @@ static void test5_reopen_failure()
 //   onReopenFailure
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("buffering");
+    bmqtst::TestHelper::printTestName("buffering");
 
     bmqt::UriParser::initialize(s_allocator_p);
 
-    bsl::shared_ptr<mwcst::StatContext> statContext =
+    bsl::shared_ptr<bmqst::StatContext> statContext =
         mqbstat::BrokerStatsUtil::initializeStatContext(30, s_allocator_p);
 
     TestBench theBench(s_allocator_p);
@@ -1126,7 +1125,7 @@ static void test5_reopen_failure()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     switch (_testCase) {
     case 0:
@@ -1141,5 +1140,5 @@ int main(int argc, char* argv[])
     } break;
     }
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 }

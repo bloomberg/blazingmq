@@ -42,8 +42,7 @@
 #include <bmqt_messageguid.h>
 #include <bmqt_uri.h>
 
-// MWC
-#include <mwcc_orderedhashmapwithhistory.h>
+#include <bmqc_orderedhashmapwithhistory.h>
 
 // BDE
 #include <ball_log.h>
@@ -67,7 +66,7 @@ namespace BloombergLP {
 namespace mqbi {
 class Queue;
 }
-namespace mwcma {
+namespace bmqma {
 class CountingAllocatorStore;
 }
 
@@ -136,7 +135,7 @@ class InMemoryStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
 
     /// Must be a container in which iteration order is same as insertion
     /// order.
-    typedef mwcc::OrderedHashMapWithHistory<
+    typedef bmqc::OrderedHashMapWithHistory<
         bmqt::MessageGUID,
         Item,
         bslh::Hash<bmqt::MessageGUIDHashAlgo> >
@@ -246,7 +245,7 @@ class InMemoryStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
                     const mqbconfm::Domain&        config,
                     mqbu::CapacityMeter*           parentCapacityMeter,
                     bslma::Allocator*              allocator,
-                    mwcma::CountingAllocatorStore* allocatorStore = 0);
+                    bmqma::CountingAllocatorStore* allocatorStore = 0);
 
     /// Destructor
     virtual ~InMemoryStorage() BSLS_KEYWORD_OVERRIDE;
@@ -799,7 +798,7 @@ inline bool InMemoryStorage::isProxy() const
 
 }  // close package namespace
 
-namespace mwcc {
+namespace bmqc {
 
 template <>
 inline void

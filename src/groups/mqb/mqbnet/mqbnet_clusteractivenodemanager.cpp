@@ -21,9 +21,8 @@
 #include <mqbcmd_messages.h>
 #include <mqbnet_session.h>
 
-// MWC
-#include <mwcsys_time.h>
-#include <mwctsk_alarmlog.h>
+#include <bmqsys_time.h>
+#include <bmqtsk_alarmlog.h>
 
 // BDE
 #include <bdlf_bind.h>
@@ -215,9 +214,9 @@ void ClusterActiveNodeManager::onNewActiveNode(ClusterNode* node)
         // alarm in the case of single-node cluster, as this is bound to happen
         // when that node bounces.
         if (d_nodes.size() > 1) {
-            MWCTSK_ALARMLOG_PANIC("CLUSTER_ACTIVE_NODE")
+            BMQTSK_ALARMLOG_PANIC("CLUSTER_ACTIVE_NODE")
                 << d_description << ": no node available !!!"
-                << MWCTSK_ALARMLOG_END;
+                << BMQTSK_ALARMLOG_END;
         }
         else {
             BALL_LOG_INFO << "No node available for '" << d_description << "'";

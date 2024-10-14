@@ -34,11 +34,10 @@
 #include <bsls_assert.h>
 #include <bsls_types.h>
 
-// MWC
-#include <mwcst_statcontext.h>
+#include <bmqst_statcontext.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -56,13 +55,13 @@ void enableQueueStat(bmqimp::QueueManager::QueueSp& queueSp)
     bmqimp::QueueState::Enum k_STATE = bmqimp::QueueState::e_OPENED;
 
     bmqimp::Stat                       queuesStats(s_allocator_p);
-    mwcst::StatValue::SnapshotLocation start;
-    mwcst::StatValue::SnapshotLocation end;
+    bmqst::StatValue::SnapshotLocation start;
+    bmqst::StatValue::SnapshotLocation end;
 
-    mwcst::StatContextConfiguration config("stats", s_allocator_p);
+    bmqst::StatContextConfiguration config("stats", s_allocator_p);
     config.defaultHistorySize(2);
 
-    mwcst::StatContext rootStatContext(config, s_allocator_p);
+    bmqst::StatContext rootStatContext(config, s_allocator_p);
 
     start.setLevel(0).setIndex(0);
     end.setLevel(0).setIndex(1);
@@ -73,7 +72,7 @@ void enableQueueStat(bmqimp::QueueManager::QueueSp& queueSp)
                                             end,
                                             s_allocator_p);
 
-    mwcst::StatContext* pStatContext = queuesStats.d_statContext_mp.get();
+    bmqst::StatContext* pStatContext = queuesStats.d_statContext_mp.get();
 
     queueSp->setState(k_STATE);
     queueSp->registerStatContext(pStatContext);
@@ -100,7 +99,7 @@ static void test1_breathingTest()
 //   Basic functionality
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("BREATHING TEST");
+    bmqtst::TestHelper::printTestName("BREATHING TEST");
 
     bmqimp::QueueManager obj(s_allocator_p);
 
@@ -154,7 +153,7 @@ static void test2_generateQueueIdTest()
 //
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("GENERATE QUEUE ID TEST");
+    bmqtst::TestHelper::printTestName("GENERATE QUEUE ID TEST");
 
     const char k_URI[] = "bmq://ts.trades.myapp/my.queue?id=my.app";
 
@@ -294,7 +293,7 @@ static void test3_insertQueueTest()
 //                              const bmqimp::QueueManager::QueueSp& queue)
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("INSERT QUEUE TEST");
+    bmqtst::TestHelper::printTestName("INSERT QUEUE TEST");
 
     bmqimp::QueueManager obj(s_allocator_p);
 
@@ -378,7 +377,7 @@ static void test4_lookupQueueByUri()
 //   bmqimp::QueueManager::lookupQueue(const bmqt::Uri uri);
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("LOOKUP QUEUE");
+    bmqtst::TestHelper::printTestName("LOOKUP QUEUE");
 
     bmqimp::QueueManager obj(s_allocator_p);
 
@@ -430,7 +429,7 @@ static void test6_removeQueueTest()
 //                                              const bmqimp::Queue *queue)
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("REMOVE QUEUE TEST");
+    bmqtst::TestHelper::printTestName("REMOVE QUEUE TEST");
 
     bmqimp::QueueManager obj(s_allocator_p);
 
@@ -487,7 +486,7 @@ static void test8_substreamCountTest()
 //   QueueManager::resetSubStreamCount(const bsl::string& canonicalUri)
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("RESET STATE TEST");
+    bmqtst::TestHelper::printTestName("RESET STATE TEST");
 
     bmqimp::QueueManager obj(s_allocator_p);
 
@@ -566,7 +565,7 @@ static void test9_pushStatsTest()
 //   bmqimp::QueueManager::updateStatsOnPushEvent
 // --------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("BASIC PUSH EVENT STATISTICS");
+    bmqtst::TestHelper::printTestName("BASIC PUSH EVENT STATISTICS");
 
     const char  k_URI[] = "bmq://ts.trades.myapp/my.queue?id=my.app";
     const char* buffer  = "abcdefghijklmnopqrstuvwxyz";
@@ -672,7 +671,7 @@ static void test10_putStatsTest()
 //   bmqimp::QueueManager::updateStatsOnPutEvent
 // --------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("BASIC PUT EVENT STATISTICS");
+    bmqtst::TestHelper::printTestName("BASIC PUT EVENT STATISTICS");
 
     const char  k_URI[]   = "bmq://ts.trades.myapp/my.queue?id=my.app";
     const char* k_PAYLOAD = "abcdefghijklmnopqrstuvwxyz";
@@ -748,7 +747,7 @@ static void test10_putStatsTest()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     bmqp::ProtocolUtil::initialize(s_allocator_p);
     bmqt::UriParser::initialize(s_allocator_p);
@@ -775,7 +774,7 @@ int main(int argc, char* argv[])
     bmqt::UriParser::shutdown();
     bmqp::ProtocolUtil::shutdown();
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 
     // Check for default allocator is explicitly disabled as
     // 'bmqimp::QueueManager::insertQueue' may allocate

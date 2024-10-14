@@ -27,7 +27,7 @@
 // the 'bmqp::RequestManagerRequest' type) and their associated responses.
 // This component takes care of encoding requests (using the
 // 'bmqp::SchemaEventBuilder' component) and sending them over a provided
-// 'mwcio::Channel' (or using a raw 'sendFn' method, suitable for test drivers
+// 'bmqio::Channel' (or using a raw 'sendFn' method, suitable for test drivers
 // implementation).  When a response is received, it can be injected to the
 // 'RequestManager' (via the 'processResponse()' method), which will invoke the
 // appropriate callback and wake up any eventual waiter on that request.  This
@@ -128,7 +128,7 @@
 //..
 //
 // Then we can use it to create and send a request.  (here we assume that we
-// have an already established and valid 'mwcio::Channel' object to use)
+// have an already established and valid 'bmqio::Channel' object to use)
 //..
 //  // We first ask a Request object to the RequestManager
 //  RequestManagerType::RequestSp request = requestManager.createRequest();
@@ -150,13 +150,13 @@
 //                                                   bdlf::PlaceHolders::_1));
 //
 //  // Finally, we can send the request
-//  mwcio::StatusCategory::Enum rc = requestManager.sendRequest(
+//  bmqio::StatusCategory::Enum rc = requestManager.sendRequest(
 //                                                      request,
 //                                                      channel,
 //                                                      "bmqMachine123",
 //                                                      bsls::TimeInterval(30),
 //                                                      64 * 1024 * 1024);
-//  if (rc != mwcio::StatusCategory::e_SUCCESS) {
+//  if (rc != bmqio::StatusCategory::e_SUCCESS) {
 //      // Request failed to encode/be sent; process error handling (note that
 //      // neither the 'responseCb' nor the 'asyncNotifierCb' will ever get
 //      // invoked in this case).
@@ -218,13 +218,13 @@
 //  // For synchronous request, we don't need to specify an 'asyncNotifierCb'
 //
 //  // Finally, we can send the request
-//  mwcio::StatusCategory::Enum rc = requestManager.sendRequest(
+//  bmqio::StatusCategory::Enum rc = requestManager.sendRequest(
 //                                                      request,
 //                                                      channel,
 //                                                      "bmqMachine123",
 //                                                      bsls::TimeInterval(30),
 //                                                      64 * 1024 * 1024);
-//  if (rc != mwcio::StatusCategory::e_SUCCESS) {
+//  if (rc != bmqio::StatusCategory::e_SUCCESS) {
 //      // Request failed to encode/be sent; process error handling (note that
 //      // neither the 'responseCb' nor the 'asyncNotifierCb' will ever get
 //      // invoked in this case).
@@ -259,13 +259,13 @@
 //  // We also don't need to specify any 'asyncNotifierCb'
 //
 //  // Send the request
-//  mwcio::StatusCategory::Enum rc = requestManager.sendRequest(
+//  bmqio::StatusCategory::Enum rc = requestManager.sendRequest(
 //                                                      request,
 //                                                      channel,
 //                                                      "bmqMachine123",
 //                                                      bsls::TimeInterval(30),
 //                                                      64 * 1024 * 1024);
-//  if (rc != mwcio::StatusCategory::e_SUCCESS) {
+//  if (rc != bmqio::StatusCategory::e_SUCCESS) {
 //      // Request failed to encode/be sent; process error handling (note that
 //      // neither the 'responseCb' nor the 'asyncNotifierCb' will ever get
 //      // invoked in this case).
@@ -301,13 +301,13 @@
 //                                              bdlf::PlaceHolders::_1));
 //
 //  // Finally, we can send the request
-//  mwcio::StatusCategory::Enum rc = requestManager.sendRequest(
+//  bmqio::StatusCategory::Enum rc = requestManager.sendRequest(
 //                                                      request,
 //                                                      channel,
 //                                                      "bmqMachine123",
 //                                                      bsls::TimeInterval(30),
 //                                                      64 * 1024 * 1024);
-//  if (rc != mwcio::StatusCategory::e_SUCCESS) {
+//  if (rc != bmqio::StatusCategory::e_SUCCESS) {
 //      // Request failed to encode/be sent; process error handling (note that
 //      // neither the 'responseCb' nor the 'asyncNotifierCb' will ever get
 //      // invoked in this case).
@@ -329,17 +329,16 @@
 #include <bmqpi_dtspan.h>
 #include <bmqt_resultcode.h>
 
-// MWC
-#include <mwcc_orderedhashmap.h>
-#include <mwcex_bindutil.h>
-#include <mwcex_executionpolicy.h>
-#include <mwcex_executor.h>
-#include <mwcex_systemexecutor.h>
-#include <mwcio_channel.h>
-#include <mwcio_status.h>
-#include <mwcsys_time.h>
-#include <mwcu_memoutstream.h>
-#include <mwcu_printutil.h>
+#include <bmqc_orderedhashmap.h>
+#include <bmqex_bindutil.h>
+#include <bmqex_executionpolicy.h>
+#include <bmqex_executor.h>
+#include <bmqex_systemexecutor.h>
+#include <bmqio_channel.h>
+#include <bmqio_status.h>
+#include <bmqsys_time.h>
+#include <bmqu_memoutstream.h>
+#include <bmqu_printutil.h>
 
 // BDE
 #include <ball_log.h>
@@ -641,7 +640,7 @@ class RequestManager {
     /// the order of insertion of requests is simply the order of traversal
     /// in the map.  Alternatively, we could also use an ordered hash map,
     /// but using an un-ordered map is not an option.
-    typedef mwcc::OrderedHashMap<int, RequestSp> RequestMap;
+    typedef bmqc::OrderedHashMap<int, RequestSp> RequestMap;
 
     typedef typename RequestMap::iterator RequestMapIter;
 
@@ -681,7 +680,7 @@ class RequestManager {
     // received after the request has been locally
     // timed out) should still be processed or not.
 
-    mwcex::Executor d_executor;
+    bmqex::Executor d_executor;
     // The executor supplying the threading context
     // to use for processing the timeout of a
     // request.
@@ -700,7 +699,7 @@ class RequestManager {
     /// Send the specified `blob` over the specified `channel` using the
     /// specified `watermark`.  Return a Generic Result code representing
     /// the status of delivery of this request.
-    static bmqt::GenericResult::Enum sendHelper(mwcio::Channel*    channel,
+    static bmqt::GenericResult::Enum sendHelper(bmqio::Channel*    channel,
                                                 const bdlbb::Blob& blob,
                                                 bsls::Types::Int64 watermark);
 
@@ -747,13 +746,13 @@ class RequestManager {
                    bdlbb::BlobBufferFactory* bufferFactory,
                    bdlmt::EventScheduler*    scheduler,
                    bool                      lateResponseMode,
-                   const mwcex::Executor&    executor,
+                   const bmqex::Executor&    executor,
                    bslma::Allocator*         allocator = 0);
     RequestManager(bmqp::EventType::Enum     eventType,
                    bdlbb::BlobBufferFactory* bufferFactory,
                    bdlmt::EventScheduler*    scheduler,
                    bool                      lateResponseMode,
-                   const mwcex::Executor&    executor,
+                   const bmqex::Executor&    executor,
                    const DTContextSp&        dtContextSp,
                    bslma::Allocator*         allocator = 0);
 
@@ -764,7 +763,7 @@ class RequestManager {
 
     /// Set this object executor to the specified `executor` (may not be
     /// available at construction time).
-    RequestManager& setExecutor(const mwcex::Executor& executor);
+    RequestManager& setExecutor(const bmqex::Executor& executor);
 
     /// Get a new Request object.
     RequestSp createRequest();
@@ -778,7 +777,7 @@ class RequestManager {
     /// of delivery of this request.
     bmqt::GenericResult::Enum
     sendRequest(const RequestSp&          request,
-                mwcio::Channel*           channel,
+                bmqio::Channel*           channel,
                 const bsl::string&        description,
                 const bsls::TimeInterval& timeout,
                 bsls::Types::Int64        watermark =
@@ -1044,23 +1043,23 @@ const bdld::Datum& RequestManagerRequest<REQUEST, RESPONSE>::userData() const
 
 template <class REQUEST, class RESPONSE>
 inline bmqt::GenericResult::Enum
-RequestManager<REQUEST, RESPONSE>::sendHelper(mwcio::Channel*    channel,
+RequestManager<REQUEST, RESPONSE>::sendHelper(bmqio::Channel*    channel,
                                               const bdlbb::Blob& blob,
                                               bsls::Types::Int64 watermark)
 {
-    mwcio::Status status;
+    bmqio::Status status;
     channel->write(&status, blob, watermark);
 
     switch (status.category()) {
-    case mwcio::StatusCategory::e_SUCCESS:
+    case bmqio::StatusCategory::e_SUCCESS:
         return bmqt::GenericResult::e_SUCCESS;
-    case mwcio::StatusCategory::e_CONNECTION:
+    case bmqio::StatusCategory::e_CONNECTION:
         return bmqt::GenericResult::e_NOT_CONNECTED;
-    case mwcio::StatusCategory::e_LIMIT:
+    case bmqio::StatusCategory::e_LIMIT:
         return bmqt::GenericResult::e_NOT_READY;
-    case mwcio::StatusCategory::e_GENERIC_ERROR:
-    case mwcio::StatusCategory::e_TIMEOUT:
-    case mwcio::StatusCategory::e_CANCELED:
+    case bmqio::StatusCategory::e_GENERIC_ERROR:
+    case bmqio::StatusCategory::e_TIMEOUT:
+    case bmqio::StatusCategory::e_CANCELED:
     default: return bmqt::GenericResult::e_UNKNOWN;
     }
 }
@@ -1106,10 +1105,10 @@ void RequestManager<REQUEST, RESPONSE>::onRequestTimeout(int requestId)
     // 1. 'fake' a response, with a Timeout status type
     response.rId().makeValue(requestId);
 
-    mwcu::MemOutStream os;
+    bmqu::MemOutStream os;
     os << "The request timedout after "
-       << mwcu::PrintUtil::prettyTimeInterval(
-              mwcsys::Time::highResolutionTimer() - request->d_sendTime);
+       << bmqu::PrintUtil::prettyTimeInterval(
+              bmqsys::Time::highResolutionTimer() - request->d_sendTime);
 
     response.choice().makeStatus();
     response.choice().status().code() = k_CODE_TIMEOUT_LOCAL;
@@ -1205,7 +1204,7 @@ RequestManager<REQUEST, RESPONSE>::RequestManager(
 , d_requests(allocator)
 , d_schemaEventBuilder(bufferFactory, allocator)
 , d_lateResponseMode(lateResponseMode)
-, d_executor(mwcex::SystemExecutor())  // Use SystemExecutor so that when using
+, d_executor(bmqex::SystemExecutor())  // Use SystemExecutor so that when using
                                        // 'possiblyBlocking' it will inline
                                        // invoke the function in the callers
                                        // thread instead of spawning a new
@@ -1223,7 +1222,7 @@ RequestManager<REQUEST, RESPONSE>::RequestManager(
     bdlbb::BlobBufferFactory* bufferFactory,
     bdlmt::EventScheduler*    scheduler,
     bool                      lateResponseMode,
-    const mwcex::Executor&    executor,
+    const bmqex::Executor&    executor,
     bslma::Allocator*         allocator)
 : d_allocator_p(allocator)
 , d_eventType(eventType)
@@ -1247,7 +1246,7 @@ RequestManager<REQUEST, RESPONSE>::RequestManager(
     bdlbb::BlobBufferFactory* bufferFactory,
     bdlmt::EventScheduler*    scheduler,
     bool                      lateResponseMode,
-    const mwcex::Executor&    executor,
+    const bmqex::Executor&    executor,
     const DTContextSp&        dtContext,
     bslma::Allocator*         allocator)
 : d_allocator_p(allocator)
@@ -1278,7 +1277,7 @@ RequestManager<REQUEST, RESPONSE>::~RequestManager()
 
 template <class REQUEST, class RESPONSE>
 inline RequestManager<REQUEST, RESPONSE>&
-RequestManager<REQUEST, RESPONSE>::setExecutor(const mwcex::Executor& executor)
+RequestManager<REQUEST, RESPONSE>::setExecutor(const bmqex::Executor& executor)
 {
     d_executor = executor;
     return *this;
@@ -1303,7 +1302,7 @@ RequestManager<REQUEST, RESPONSE>::createRequest()
 template <class REQUEST, class RESPONSE>
 bmqt::GenericResult::Enum RequestManager<REQUEST, RESPONSE>::sendRequest(
     const typename RequestManager::RequestSp& request,
-    mwcio::Channel*                           channel,
+    bmqio::Channel*                           channel,
     const bsl::string&                        nodeDescription,
     const bsls::TimeInterval&                 timeout,
     bsls::Types::Int64                        watermark,
@@ -1339,7 +1338,7 @@ bmqt::GenericResult::Enum RequestManager<REQUEST, RESPONSE>::sendRequest(
     d_schemaEventBuilder.reset();
     int rc = d_schemaEventBuilder.setMessage(request->request(), d_eventType);
     if (rc != 0) {
-        mwcu::MemOutStream errorDesc;
+        bmqu::MemOutStream errorDesc;
         errorDesc << "ENCODING_FAILED, rc: " << rc;
         if (errorDescription) {
             *errorDescription = errorDesc.str();
@@ -1362,10 +1361,10 @@ bmqt::GenericResult::Enum RequestManager<REQUEST, RESPONSE>::sendRequest(
     // the map.
 
     // Send the request
-    request->d_sendTime              = mwcsys::Time::highResolutionTimer();
+    request->d_sendTime              = bmqsys::Time::highResolutionTimer();
     bmqt::GenericResult::Enum sendRc = sendFn(d_schemaEventBuilder.blob());
     if (sendRc != bmqt::GenericResult::e_SUCCESS) {
-        mwcu::MemOutStream errorDesc;
+        bmqu::MemOutStream errorDesc;
         errorDesc << "WRITE_FAILED, status: " << sendRc;
         if (errorDescription) {
             *errorDescription = errorDesc.str();
@@ -1381,9 +1380,9 @@ bmqt::GenericResult::Enum RequestManager<REQUEST, RESPONSE>::sendRequest(
     // Schedule a timeout
     d_scheduler_p->scheduleEvent(
         &(request->d_timeoutSchedulerHandle),
-        mwcsys::Time::nowMonotonicClock() + timeout,
-        mwcex::BindUtil::bindExecute(
-            mwcex::ExecutionPolicyUtil::oneWay()
+        bmqsys::Time::nowMonotonicClock() + timeout,
+        bmqex::BindUtil::bindExecute(
+            bmqex::ExecutionPolicyUtil::oneWay()
                 .possiblyBlocking()
                 .useExecutor(d_executor)
                 .useAllocator(d_allocator_p),

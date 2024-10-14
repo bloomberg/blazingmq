@@ -22,11 +22,10 @@
 #include <bmqp_protocol.h>
 #include <bmqp_protocolutil.h>
 
-// MWC
-#include <mwctsk_alarmlog.h>
-#include <mwcu_blob.h>
-#include <mwcu_blobobjectproxy.h>
-#include <mwcu_memoutstream.h>
+#include <bmqtsk_alarmlog.h>
+#include <bmqu_blob.h>
+#include <bmqu_blobobjectproxy.h>
+#include <bmqu_memoutstream.h>
 
 // BDE
 #include <bdlb_bigendian.h>
@@ -300,7 +299,7 @@ int ClusterStateLedgerUtil::validateLog(mqbsi::Log::Offset* offset,
         bdlb::BigEndianUint32 crc32cComputed;
         crc32cComputed = bmqp::Crc32c::calculate(blob);
         if (crc32cComputed != crc32cExpected) {
-            MWCTSK_ALARMLOG_ALARM("CLUSTER")
+            BMQTSK_ALARMLOG_ALARM("CLUSTER")
                 << "CSL Recovery: CRC mismatch for record with sequenceNumber "
                 << "[" << recHeader->sequenceNumber() << "] in file '"
                 << log->logConfig().location() << "' with fileKey ["
@@ -315,7 +314,7 @@ int ClusterStateLedgerUtil::validateLog(mqbsi::Log::Offset* offset,
                 << ", electorTerm: " << recHeader->electorTerm()
                 << ", sequenceNumber: " << recHeader->sequenceNumber()
                 << ", timestamp: " << recHeader->timestamp() << "]"
-                << MWCTSK_ALARMLOG_END;
+                << BMQTSK_ALARMLOG_END;
             return ClusterStateLedgerUtilRc::e_INVALID_CHECKSUM;  // RETURN
         }
 
@@ -378,7 +377,7 @@ int ClusterStateLedgerUtil::appendRecord(
         .setTimestamp(timestamp);
 
     // Encode and append 'advisory' to the blob
-    mwcu::MemOutStream os;
+    bmqu::MemOutStream os;
     int                rc = bmqp::ProtocolUtil::encodeMessage(os,
                                                blob,
                                                clusterMessage,
@@ -434,7 +433,7 @@ int ClusterStateLedgerUtil::loadClusterMessage(
         // RETURN
     }
 
-    mwcu::MemOutStream os;
+    bmqu::MemOutStream os;
     rc = bmqp::ProtocolUtil::decodeMessage(os,
                                            message,
                                            entry,
@@ -486,7 +485,7 @@ int ClusterStateLedgerUtil::loadClusterMessage(
     const int recordHeaderSize = recordHeader.headerWords() *
                                  bmqp::Protocol::k_WORD_SIZE;
 
-    mwcu::MemOutStream os;
+    bmqu::MemOutStream os;
     int                rc = bmqp::ProtocolUtil::decodeMessage(os,
                                                message,
                                                record,
@@ -505,14 +504,14 @@ int ClusterStateLedgerUtil::loadClusterMessage(
     const bdlbb::Blob&            record,
     int                           offset)
 {
-    mwcu::BlobPosition headerPosition;
-    int rc = mwcu::BlobUtil::findOffsetSafe(&headerPosition, record, offset);
+    bmqu::BlobPosition headerPosition;
+    int rc = bmqu::BlobUtil::findOffsetSafe(&headerPosition, record, offset);
     if (rc != 0) {
         return rc * 100 +
                ClusterStateLedgerUtilRc::e_MISSING_HEADER;  // RETURN
     }
 
-    mwcu::BlobObjectProxy<ClusterStateRecordHeader> header(
+    bmqu::BlobObjectProxy<ClusterStateRecordHeader> header(
         &record,
         headerPosition,
         -ClusterStateRecordHeader::k_MIN_HEADER_SIZE,

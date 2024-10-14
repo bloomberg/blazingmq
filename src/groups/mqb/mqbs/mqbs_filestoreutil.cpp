@@ -28,10 +28,9 @@
 #include <mqbs_qlistfileiterator.h>
 #include <mqbu_storagekey.h>
 
-// MWC
-#include <mwctsk_alarmlog.h>
-#include <mwcu_memoutstream.h>
-#include <mwcu_stringutil.h>
+#include <bmqtsk_alarmlog.h>
+#include <bmqu_memoutstream.h>
+#include <bmqu_stringutil.h>
 
 // BDE
 #include <bdlb_scopeexit.h>
@@ -95,7 +94,7 @@ void createFileName(bsl::string*             filename,
     }
 
     filename->append(FileStoreProtocol::k_COMMON_FILE_PREFIX);
-    mwcu::MemOutStream osstr;
+    bmqu::MemOutStream osstr;
     osstr << partitionId;
     filename->append(osstr.str().data(), osstr.str().length());
     filename->append(".");
@@ -408,21 +407,21 @@ void FileStoreUtil::createQlistFileName(bsl::string*             filename,
 
 bool FileStoreUtil::hasDataFileExtension(const bsl::string& filename)
 {
-    return mwcu::StringUtil::endsWith(
+    return bmqu::StringUtil::endsWith(
         filename,
         FileStoreProtocol::k_DATA_FILE_EXTENSION);
 }
 
 bool FileStoreUtil::hasJournalFileExtension(const bsl::string& filename)
 {
-    return mwcu::StringUtil::endsWith(
+    return bmqu::StringUtil::endsWith(
         filename,
         FileStoreProtocol::k_JOURNAL_FILE_EXTENSION);
 }
 
 bool FileStoreUtil::hasQlistFileExtension(const bsl::string& filename)
 {
-    return mwcu::StringUtil::endsWith(
+    return bmqu::StringUtil::endsWith(
         filename,
         FileStoreProtocol::k_QLIST_FILE_EXTENSION);
 }
@@ -454,7 +453,7 @@ int FileStoreUtil::createFilePattern(bsl::string*             pattern,
         p.append(1, '/');
     }
 
-    mwcu::MemOutStream osstr;
+    bmqu::MemOutStream osstr;
     osstr << partitionId;
 
     p.append(FileStoreProtocol::k_COMMON_FILE_PREFIX);
@@ -556,7 +555,7 @@ int FileStoreUtil::create(bsl::ostream&            errorDescription,
             .setQlistFileSize(dataStoreConfig.maxQlistFileSize());
     }
 
-    mwcu::MemOutStream errorDesc;
+    bmqu::MemOutStream errorDesc;
     int                rc = openFileSetWriteMode(errorDesc,
                                   fs,
                                   dataStoreConfig.hasPreallocate(),
@@ -854,11 +853,11 @@ void FileStoreUtil::deleteArchiveFiles(int                partitionId,
     for (unsigned int i = 0; i < numFilesToDelete; ++i) {
         rc = bdls::FilesystemUtil::remove(archivedFiles[i]);
         if (0 != rc) {
-            MWCTSK_ALARMLOG_ALARM("FILE_IO")
+            BMQTSK_ALARMLOG_ALARM("FILE_IO")
                 << cluster << ": Failed to remove [" << archivedFiles[i]
                 << "] file during archived storage cleanup for "
                 << "Partition [" << partitionId << "], rc: " << rc
-                << MWCTSK_ALARMLOG_END;
+                << BMQTSK_ALARMLOG_END;
             continue;  // CONTINUE
         }
 
@@ -876,16 +875,16 @@ void FileStoreUtil::deleteArchiveFiles(
     BSLS_ASSERT_SAFE(!archiveLocation.empty());
 
     if (!bdls::FilesystemUtil::exists(archiveLocation)) {
-        MWCTSK_ALARMLOG_ALARM("MISSING_FILE_OR_DIRECTORY")
+        BMQTSK_ALARMLOG_ALARM("MISSING_FILE_OR_DIRECTORY")
             << cluster << ": Archive storage location [" << archiveLocation
-            << "] no longer exists." << MWCTSK_ALARMLOG_END;
+            << "] no longer exists." << BMQTSK_ALARMLOG_END;
         return;  // RETURN
     }
 
     if (!bdls::FilesystemUtil::isDirectory(archiveLocation)) {
-        MWCTSK_ALARMLOG_ALARM("MISSING_FILE_OR_DIRECTORY")
+        BMQTSK_ALARMLOG_ALARM("MISSING_FILE_OR_DIRECTORY")
             << cluster << ": Archive storage location [" << archiveLocation
-            << "] is not a directory." << MWCTSK_ALARMLOG_END;
+            << "] is not a directory." << BMQTSK_ALARMLOG_END;
 
         return;  // RETURN
     }
@@ -959,7 +958,7 @@ int FileStoreUtil::openFileSetWriteMode(bsl::ostream&         errorDescription,
     }
 
     // Grow the files, pre-allocating if requested.
-    mwcu::MemOutStream errorDesc;
+    bmqu::MemOutStream errorDesc;
     if (journalFd) {
         rc = FileSystemUtil::grow(journalFd, preallocate, errorDesc);
         if (0 != rc) {
@@ -1106,7 +1105,7 @@ int FileStoreUtil::openRecoveryFileSet(bsl::ostream&         errorDescription,
         BALL_LOG_INFO << "Partition [" << partitionId << "]"
                       << ": Checking file set: " << fs;
 
-        mwcu::MemOutStream errorDesc;
+        bmqu::MemOutStream errorDesc;
         if (readOnly) {
             rc =
                 openFileSetReadMode(errorDesc, fs, journalFd, dataFd, qlistFd);

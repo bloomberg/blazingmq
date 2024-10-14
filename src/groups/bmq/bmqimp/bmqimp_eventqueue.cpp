@@ -20,14 +20,13 @@
 // BMQ
 #include <bmqt_correlationid.h>
 
-// MWC
-#include <mwcst_statcontext.h>
-#include <mwcst_statutil.h>
-#include <mwcst_tableutil.h>
-#include <mwcsys_threadutil.h>
-#include <mwcsys_time.h>
-#include <mwcu_memoutstream.h>
-#include <mwcu_printutil.h>
+#include <bmqst_statcontext.h>
+#include <bmqst_statutil.h>
+#include <bmqst_tableutil.h>
+#include <bmqsys_threadutil.h>
+#include <bmqsys_time.h>
+#include <bmqu_memoutstream.h>
+#include <bmqu_printutil.h>
 
 // BDE
 #include <ball_log.h>
@@ -89,7 +88,7 @@ bsl::shared_ptr<Event> EventQueue::getEvent()
     return d_eventPool_p->getObject();
 }
 
-void EventQueue::stateCallback(mwcc::MonitoredQueueState::Enum state)
+void EventQueue::stateCallback(bmqc::MonitoredQueueState::Enum state)
 {
     // Because of MessageEvent that should be dropped while SessionEvent should
     // still be queueable, we use two highWatermark levels, with the following
@@ -99,7 +98,7 @@ void EventQueue::stateCallback(mwcc::MonitoredQueueState::Enum state)
     //: o queueFilled:   should never happen with a resizable queue
 
     switch (state) {
-    case mwcc::MonitoredQueueState::e_NORMAL: {
+    case bmqc::MonitoredQueueState::e_NORMAL: {
         BALL_LOG_INFO_BLOCK
         {
             BALL_LOG_OUTPUT_STREAM << "EventQueue has reached its "
@@ -114,13 +113,13 @@ void EventQueue::stateCallback(mwcc::MonitoredQueueState::Enum state)
             bmqt::SessionEventType::e_SLOWCONSUMER_NORMAL);
         pushBack(event);
     } break;
-    case mwcc::MonitoredQueueState::e_HIGH_WATERMARK_REACHED: {
+    case bmqc::MonitoredQueueState::e_HIGH_WATERMARK_REACHED: {
         d_shouldEmitHighWatermark = 1;  // i.e., enqueue a HIGH watermark event
 
         // Print an alarm catchable string to stderr.  We can't use a
         // LogAlarmObserver to write to cerr because the task may not have BALL
         // observer.
-        mwcu::MemOutStream os;
+        bmqu::MemOutStream os;
         os << "BMQALARM [EVENTQUEUE::HIGH_WATERMARK]: BlazingMQ EventQueue "
            << "(buffer between the events delivered by the broker and the "
            << "application processing them in the event handler) has reached "
@@ -130,13 +129,13 @@ void EventQueue::stateCallback(mwcc::MonitoredQueueState::Enum state)
         // Also print warning in users log
         BALL_LOG_WARN << os.str();
     } break;
-    case mwcc::MonitoredQueueState::e_HIGH_WATERMARK_2_REACHED: {
+    case bmqc::MonitoredQueueState::e_HIGH_WATERMARK_2_REACHED: {
         BALL_LOG_ERROR
             << "EventQueue has reached an un-expected highWatermark2 state";
         BSLS_ASSERT_SAFE(false &&
                          "Impossible - highWatermark2 is not reachable");
     } break;
-    case mwcc::MonitoredQueueState::e_QUEUE_FILLED: {
+    case bmqc::MonitoredQueueState::e_QUEUE_FILLED: {
         BALL_LOG_ERROR
             << "EventQueue has reached an un-expected queue filled state";
         // This should NEVER happen while using 'bdlcc::SingleProducerQueue'.
@@ -188,7 +187,7 @@ bool EventQueue::hasPriorityEvents(bsl::shared_ptr<Event>* event)
 
 void EventQueue::afterEventPopped(const QueueItem& item)
 {
-    const bsls::Types::Int64 popOutTime = mwcsys::Time::highResolutionTimer();
+    const bsls::Types::Int64 popOutTime = bmqsys::Time::highResolutionTimer();
     const bsls::Types::Int64 queuedTime = popOutTime - item.d_enqueueTime;
 
     {  // d_lasPoppedOutSpinLock   LOCKED
@@ -208,7 +207,7 @@ void EventQueue::afterEventPopped(const QueueItem& item)
         }
         BALL_LOG_OUTPUT_STREAM
             << " (queuedTime: "
-            << mwcu::PrintUtil::prettyTimeInterval(queuedTime) << ")";
+            << bmqu::PrintUtil::prettyTimeInterval(queuedTime) << ")";
     }
 
     // Update stats
@@ -234,10 +233,10 @@ void EventQueue::printLastEventTime(bsl::ostream& stream)
     }
     else {
         stream << "last item was popped out "
-               << mwcu::PrintUtil::prettyTimeInterval(
-                      mwcsys::Time::highResolutionTimer() - poppedOutTime)
+               << bmqu::PrintUtil::prettyTimeInterval(
+                      bmqsys::Time::highResolutionTimer() - poppedOutTime)
                << " ago after spending "
-               << mwcu::PrintUtil::prettyTimeInterval(queuedTime)
+               << bmqu::PrintUtil::prettyTimeInterval(queuedTime)
                << " in the queue.";
     }
 }
@@ -294,14 +293,13 @@ EventQueue::EventQueue(EventPool*                  eventPool,
     BSLS_ASSERT_OPT((eventHandler && numProcessingThreads > 0) ||
                     (!eventHandler && numProcessingThreads == 0));
 
-    mwcu::MemOutStream outStream(d_allocator_p);
-    outStream << "Creating event queue with"
-              << " [lowWatermark: "
-              << mwcu::PrintUtil::prettyNumber(lowWatermark)
+    bmqu::MemOutStream outStream(d_allocator_p);
+    outStream << "Creating event queue with" << " [lowWatermark: "
+              << bmqu::PrintUtil::prettyNumber(lowWatermark)
               << ", highWatermark: "
-              << mwcu::PrintUtil::prettyNumber(highWatermark)
+              << bmqu::PrintUtil::prettyNumber(highWatermark)
               << ", initialCapacity: "
-              << mwcu::PrintUtil::prettyNumber(initialCapacity);
+              << bmqu::PrintUtil::prettyNumber(initialCapacity);
     if (eventHandler) {
         outStream << ", using " << d_numProcessingThreads << " threads]";
     }
@@ -324,9 +322,9 @@ EventQueue::~EventQueue()
 }
 
 void EventQueue::initializeStats(
-    mwcst::StatContext*                       rootStatContext,
-    const mwcst::StatValue::SnapshotLocation& start,
-    const mwcst::StatValue::SnapshotLocation& end)
+    bmqst::StatContext*                       rootStatContext,
+    const bmqst::StatValue::SnapshotLocation& start,
+    const bmqst::StatValue::SnapshotLocation& end)
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(!d_stats_mp && "Stats already initialized");
@@ -334,8 +332,8 @@ void EventQueue::initializeStats(
     // Create stat sub-context
     bdlma::LocalSequentialAllocator<2048> localAllocator(d_allocator_p);
 
-    mwcst::StatContextConfiguration config(k_STAT_NAME, &localAllocator);
-    config.value("Queue").value("Time", mwcst::StatValue::e_DISCRETE);
+    bmqst::StatContextConfiguration config(k_STAT_NAME, &localAllocator);
+    config.value("Queue").value("Time", bmqst::StatValue::e_DISCRETE);
     d_stats_mp = rootStatContext->addSubcontext(config);
 
     // Create table
@@ -344,46 +342,46 @@ void EventQueue::initializeStats(
     //       of each stats
 
     // Configure schema
-    mwcst::TableSchema& schema = d_statTable.schema();
+    bmqst::TableSchema& schema = d_statTable.schema();
     schema.addColumn("enqueue_delta",
                      k_STAT_QUEUE,
-                     mwcst::StatUtil::incrementsDifference,
+                     bmqst::StatUtil::incrementsDifference,
                      start,
                      end);
     schema.addColumn("dequeue_delta",
                      k_STAT_QUEUE,
-                     mwcst::StatUtil::decrementsDifference,
+                     bmqst::StatUtil::decrementsDifference,
                      start,
                      end);
-    schema.addColumn("size", k_STAT_QUEUE, mwcst::StatUtil::value, start);
+    schema.addColumn("size", k_STAT_QUEUE, bmqst::StatUtil::value, start);
     schema.addColumn("size_max",
                      k_STAT_QUEUE,
-                     mwcst::StatUtil::rangeMax,
+                     bmqst::StatUtil::rangeMax,
                      start,
                      end);
     schema.addColumn("size_absmax",
                      k_STAT_QUEUE,
-                     mwcst::StatUtil::absoluteMax);
+                     bmqst::StatUtil::absoluteMax);
 
     schema.addColumn("time_min",
                      k_STAT_TIME,
-                     mwcst::StatUtil::rangeMin,
+                     bmqst::StatUtil::rangeMin,
                      start,
                      end);
     schema.addColumn("time_avg",
                      k_STAT_TIME,
-                     mwcst::StatUtil::averagePerEvent,
+                     bmqst::StatUtil::averagePerEvent,
                      start,
                      end);
     schema.addColumn("time_max",
                      k_STAT_TIME,
-                     mwcst::StatUtil::rangeMax,
+                     bmqst::StatUtil::rangeMax,
                      start,
                      end);
-    schema.addColumn("time_absmax", k_STAT_TIME, mwcst::StatUtil::absoluteMax);
+    schema.addColumn("time_absmax", k_STAT_TIME, bmqst::StatUtil::absoluteMax);
 
     // Configure records
-    mwcst::TableRecords& records = d_statTable.records();
+    bmqst::TableRecords& records = d_statTable.records();
     records.setContext(d_stats_mp.get());
     records.update();
 
@@ -448,7 +446,7 @@ int EventQueue::start()
         &d_threadPool_mp));
 
     bslmt::ThreadAttributes threadAttributes =
-        mwcsys::ThreadUtil::defaultAttributes();
+        bmqsys::ThreadUtil::defaultAttributes();
     threadAttributes.setThreadName("bmqEventQueue");
     d_threadPool_mp.load(new (*d_allocator_p)
                              bdlmt::FixedThreadPool(threadAttributes,
@@ -509,7 +507,7 @@ int EventQueue::pushBack(bsl::shared_ptr<Event>& event)
 
     BALL_LOG_TRACE << "Enqueuing " << *event;
 
-    QueueItem item(event, mwcsys::Time::highResolutionTimer());
+    QueueItem item(event, bmqsys::Time::highResolutionTimer());
     int       rc = 0;
 
     {  // d_pushBackSpinlock   LOCKED
@@ -540,7 +538,7 @@ bsl::shared_ptr<Event> EventQueue::popFront()
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(hasPriorityEvents(&event))) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
         afterEventPopped(
-            QueueItem(event, mwcsys::Time::highResolutionTimer()));
+            QueueItem(event, bmqsys::Time::highResolutionTimer()));
         return event;  // RETURN
     }
 
@@ -564,7 +562,7 @@ EventQueue::timedPopFront(const bsls::TimeInterval& timeout,
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(hasPriorityEvents(&event))) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
         afterEventPopped(
-            QueueItem(event, mwcsys::Time::highResolutionTimer()));
+            QueueItem(event, bmqsys::Time::highResolutionTimer()));
         return event;  // RETURN
     }
 
@@ -596,7 +594,7 @@ EventQueue::timedPopFront(const bsls::TimeInterval& timeout,
                                        rc,
                                        bmqt::CorrelationId(),
                                        errorDescription);
-        item.d_enqueueTime = mwcsys::Time::highResolutionTimer();
+        item.d_enqueueTime = bmqsys::Time::highResolutionTimer();
         item.d_event_sp    = event;
         // Update stats ('afterEventPopped()' will decrement the counter, so we
         // need to manually increment it here since we artificially created an
@@ -616,7 +614,7 @@ EventQueue::timedPopFront(const bsls::TimeInterval& timeout,
 void EventQueue::enqueuePoisonPill()
 {
     // PoisonPill has a null event
-    QueueItem item(0, mwcsys::Time::highResolutionTimer());
+    QueueItem item(0, bmqsys::Time::highResolutionTimer());
 
     {  // d_pushBackSpinlock   LOCKED
         bsls::SpinLockGuard guard(&d_pushBackSpinlock);
@@ -635,10 +633,10 @@ void EventQueue::printStats(bsl::ostream& stream, bool includeDelta) const
     BSLS_ASSERT_OPT(d_stats_mp && "Stats NOT initialized");
 
     if (includeDelta) {
-        mwcst::TableUtil::printTable(stream, d_statTip);
+        bmqst::TableUtil::printTable(stream, d_statTip);
     }
     else {
-        mwcst::TableUtil::printTable(stream, d_statTipNoDelta);
+        bmqst::TableUtil::printTable(stream, d_statTipNoDelta);
     }
     stream << "\n";
 }

@@ -48,7 +48,7 @@
 namespace BloombergLP {
 
 // FORWARD DECLARATION
-namespace mwcst {
+namespace bmqst {
 class StatContext;
 }
 
@@ -163,10 +163,10 @@ class ClusterStats {
 
   private:
     // DATA
-    bslma::ManagedPtr<mwcst::StatContext> d_statContext_mp;
+    bslma::ManagedPtr<bmqst::StatContext> d_statContext_mp;
     // StatContext for the cluster
 
-    bsl::vector<bsl::shared_ptr<mwcst::StatContext> > d_partitionsStatContexts;
+    bsl::vector<bsl::shared_ptr<bmqst::StatContext> > d_partitionsStatContexts;
     // StatContext for each partition in
     // the cluster, indexed by the
     // partition id.  Those statContext
@@ -193,7 +193,7 @@ class ClusterStats {
     /// ago.
     ///
     /// THREAD: This method can only be invoked from the `snapshot` thread.
-    static bsls::Types::Int64 getValue(const mwcst::StatContext& context,
+    static bsls::Types::Int64 getValue(const bmqst::StatContext& context,
                                        int                       snapshotId,
                                        const Stat::Enum&         stat);
 
@@ -210,7 +210,7 @@ class ClusterStats {
     /// specified `allocator`.
     void initialize(const bsl::string&  name,
                     int                 partitionsCount,
-                    mwcst::StatContext* clusterStatContext,
+                    bmqst::StatContext* clusterStatContext,
                     bslma::Allocator*   allocator);
 
     /// Update statistics for the event of the specified `type` for the
@@ -258,7 +258,7 @@ class ClusterStats {
                                  bsls::Types::Int64 journalBytes);
 
     /// Return a pointer to the statcontext.
-    mwcst::StatContext* statContext();
+    bmqst::StatContext* statContext();
 };
 
 // ======================
@@ -300,7 +300,7 @@ class ClusterNodeStats {
 
   private:
     // DATA
-    bslma::ManagedPtr<mwcst::StatContext> d_statContext_mp;
+    bslma::ManagedPtr<bmqst::StatContext> d_statContext_mp;
     // StatContext
 
   private:
@@ -320,7 +320,7 @@ class ClusterNodeStats {
     /// ago.
     ///
     /// THREAD: This method can only be invoked from the `snapshot` thread.
-    static bsls::Types::Int64 getValue(const mwcst::StatContext& context,
+    static bsls::Types::Int64 getValue(const bmqst::StatContext& context,
                                        int                       snapshotId,
                                        const Stat::Enum&         stat);
 
@@ -335,7 +335,7 @@ class ClusterNodeStats {
     /// register it as a subcontext of the specified
     /// `clusterNodesStatContext`, using the specified `allocator`.
     void initialize(const bmqt::Uri&    uri,
-                    mwcst::StatContext* clusterNodesStatContext,
+                    bmqst::StatContext* clusterNodesStatContext,
                     bslma::Allocator*   allocator);
 
     /// Update statistics for the event of the specified `type` and with the
@@ -344,7 +344,7 @@ class ClusterNodeStats {
     void onEvent(EventType::Enum type, bsls::Types::Int64 value);
 
     /// Return a pointer to the statcontext.
-    mwcst::StatContext* statContext();
+    bmqst::StatContext* statContext();
 };
 
 // =======================
@@ -359,14 +359,14 @@ struct ClusterStatsUtil {
     /// specified `historySize` of history.  Return the created top level
     /// stat context to use for all cluster level statistics.  Use the
     /// specified `allocator` for all stat context and stat values.
-    static bsl::shared_ptr<mwcst::StatContext>
+    static bsl::shared_ptr<bmqst::StatContext>
     initializeStatContextCluster(int historySize, bslma::Allocator* allocator);
 
     /// Initialize the statistics for the cluster nodes keeping the
     /// specified `historySize` of history: return the created top level
     /// stat context to use as parent of all domains statistics.  Use the
     /// specified `allocator` for all stat context and stat values.
-    static bsl::shared_ptr<mwcst::StatContext>
+    static bsl::shared_ptr<bmqst::StatContext>
     initializeStatContextClusterNodes(int               historySize,
                                       bslma::Allocator* allocator);
 };
@@ -379,7 +379,7 @@ struct ClusterStatsUtil {
 // class ClusterStats
 // ------------------
 
-inline mwcst::StatContext* ClusterStats::statContext()
+inline bmqst::StatContext* ClusterStats::statContext()
 {
     return d_statContext_mp.get();
 }
@@ -388,7 +388,7 @@ inline mwcst::StatContext* ClusterStats::statContext()
 // class ClusterNodeStats
 // ----------------------
 
-inline mwcst::StatContext* ClusterNodeStats::statContext()
+inline bmqst::StatContext* ClusterNodeStats::statContext()
 {
     return d_statContext_mp.get();
 }

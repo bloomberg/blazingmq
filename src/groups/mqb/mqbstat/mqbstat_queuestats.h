@@ -34,10 +34,9 @@
 // BMQ
 #include <bmqt_uri.h>
 
-// MWC
-#include <mwcst_basictableinfoprovider.h>
-#include <mwcst_table.h>
-#include <mwcst_tablerecords.h>
+#include <bmqst_basictableinfoprovider.h>
+#include <bmqst_table.h>
+#include <bmqst_tablerecords.h>
 
 // BDE
 #include <bsl_list.h>
@@ -54,7 +53,7 @@
 namespace BloombergLP {
 
 // FORWARD DECLARATION
-namespace mwcst {
+namespace bmqst {
 class StatContext;
 }
 namespace mqbi {
@@ -185,17 +184,17 @@ class QueueStatsDomain {
 
   private:
     // PRIVATE TYPE
-    typedef bslma::ManagedPtr<mwcst::StatContext> StatSubContextMp;
+    typedef bslma::ManagedPtr<bmqst::StatContext> StatSubContextMp;
 
     // PRIVATE DATA
     /// Allocator to use
     bslma::Allocator* d_allocator_p;
 
     /// StatContext
-    bslma::ManagedPtr<mwcst::StatContext> d_statContext_mp;
+    bslma::ManagedPtr<bmqst::StatContext> d_statContext_mp;
 
     /// List of per-appId subcontexts stored as managed pointers.
-    /// Note: `mwcst::StatContext` interface allocates subcontexts as
+    /// Note: `bmqst::StatContext` interface allocates subcontexts as
     ///       managed pointers.  We are not able to store managed pointers
     ///       in a collection that might reallocate and copy its elements,
     ///       since ManagedPtr implementation on Solaris is constraining.
@@ -210,7 +209,7 @@ class QueueStatsDomain {
 
     /// Lookup table for per-appId subcontexts.  Managed pointers to these
     /// subcontexts must be held in `d_subContextsHolder`.
-    bsl::unordered_map<bsl::string, mwcst::StatContext*> d_subContextsLookup;
+    bsl::unordered_map<bsl::string, bmqst::StatContext*> d_subContextsLookup;
 
   private:
     // NOT IMPLEMENTED
@@ -230,7 +229,7 @@ class QueueStatsDomain {
     /// snapshot should be used, while other negative values are not supported.
     ///
     /// THREAD: This method can only be invoked from the `snapshot` thread.
-    static bsls::Types::Int64 getValue(const mwcst::StatContext& context,
+    static bsls::Types::Int64 getValue(const bmqst::StatContext& context,
                                        int                       snapshotId,
                                        const Stat::Enum&         stat);
 
@@ -278,7 +277,7 @@ class QueueStatsDomain {
     void updateDomainAppIds(const bsl::vector<bsl::string>& appIds);
 
     /// Return a pointer to the statcontext.
-    mwcst::StatContext* statContext();
+    bmqst::StatContext* statContext();
 };
 
 // FREE OPERATORS
@@ -333,7 +332,7 @@ class QueueStatsClient {
 
   private:
     // DATA
-    bslma::ManagedPtr<mwcst::StatContext> d_statContext_mp;
+    bslma::ManagedPtr<bmqst::StatContext> d_statContext_mp;
     // StatContext
 
   private:
@@ -353,7 +352,7 @@ class QueueStatsClient {
     /// ago.
     ///
     /// THREAD: This method can only be invoked from the `snapshot` thread.
-    static bsls::Types::Int64 getValue(const mwcst::StatContext& context,
+    static bsls::Types::Int64 getValue(const bmqst::StatContext& context,
                                        int                       snapshotId,
                                        const Stat::Enum&         stat);
 
@@ -369,7 +368,7 @@ class QueueStatsClient {
     /// (which correspond to the client-level stat context this queue is
     /// part of), using the specified `allocator`.
     void initialize(const bmqt::Uri&    uri,
-                    mwcst::StatContext* clientStatContext,
+                    bmqst::StatContext* clientStatContext,
                     bslma::Allocator*   allocator);
 
     /// Update statistics for the event of the specified `type` and with the
@@ -378,7 +377,7 @@ class QueueStatsClient {
     void onEvent(EventType::Enum type, bsls::Types::Int64 value);
 
     /// Return a pointer to the statcontext.
-    mwcst::StatContext* statContext();
+    bmqst::StatContext* statContext();
 };
 
 // =====================
@@ -393,31 +392,31 @@ struct QueueStatsUtil {
     /// specified `historySize` of history: return the created top level
     /// stat context to use as parent of all domains statistics.  Use the
     /// specified `allocator` for all stat context and stat values.
-    static bsl::shared_ptr<mwcst::StatContext>
+    static bsl::shared_ptr<bmqst::StatContext>
     initializeStatContextDomains(int historySize, bslma::Allocator* allocator);
 
     /// Initialize the statistics for the queues (client level) keeping the
     /// specified `historySize` of history: return the created top level
     /// stat context to use as parent of all domains statistics.  Use the
     /// specified `allocator` for all stat context and stat values.
-    static bsl::shared_ptr<mwcst::StatContext>
+    static bsl::shared_ptr<bmqst::StatContext>
     initializeStatContextClients(int historySize, bslma::Allocator* allocator);
 
     /// Load in the specified `table` and `tip` the objects to print the
     /// specified `statContext` for the specified `historySize`.
     static void
-    initializeTableAndTipDomains(mwcst::Table*                  table,
-                                 mwcst::BasicTableInfoProvider* tip,
+    initializeTableAndTipDomains(bmqst::Table*                  table,
+                                 bmqst::BasicTableInfoProvider* tip,
                                  int                            historySize,
-                                 mwcst::StatContext*            statContext);
+                                 bmqst::StatContext*            statContext);
 
     /// Load in the specified `table` and `tip` the objects to print the
     /// specified `statContext` for the specified `historySize`.
     static void
-    initializeTableAndTipClients(mwcst::Table*                  table,
-                                 mwcst::BasicTableInfoProvider* tip,
+    initializeTableAndTipClients(bmqst::Table*                  table,
+                                 bmqst::BasicTableInfoProvider* tip,
                                  int                            historySize,
-                                 mwcst::StatContext*            statContext);
+                                 bmqst::StatContext*            statContext);
 };
 
 // ============================================================================
@@ -428,7 +427,7 @@ struct QueueStatsUtil {
 // class QueueStatsDomain
 // ----------------------
 
-inline mwcst::StatContext* QueueStatsDomain::statContext()
+inline bmqst::StatContext* QueueStatsDomain::statContext()
 {
     return d_statContext_mp.get();
 }
@@ -447,7 +446,7 @@ inline bsl::ostream& operator<<(bsl::ostream&                stream,
 // class QueueStatsClient
 // ----------------------
 
-inline mwcst::StatContext* QueueStatsClient::statContext()
+inline bmqst::StatContext* QueueStatsClient::statContext()
 {
     return d_statContext_mp.get();
 }

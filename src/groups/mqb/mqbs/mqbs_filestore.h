@@ -51,10 +51,9 @@
 #include <bmqt_messageguid.h>
 #include <bmqt_uri.h>
 
-// MWC
-#include <mwcc_orderedhashmap.h>
-#include <mwcma_countingallocatorstore.h>
-#include <mwcu_blob.h>
+#include <bmqc_orderedhashmap.h>
+#include <bmqma_countingallocatorstore.h>
+#include <bmqu_blob.h>
 
 // BDE
 #include <ball_log.h>
@@ -151,9 +150,9 @@ class FileStore : public DataStore {
         BlobSpPool;
 
     typedef bdlcc::SharedObjectPool<
-        mwcu::AtomicState,
+        bmqu::AtomicState,
         bdlcc::ObjectPoolFunctors::DefaultCreator,
-        bdlcc::ObjectPoolFunctors::Reset<mwcu::AtomicState> >
+        bdlcc::ObjectPoolFunctors::Reset<bmqu::AtomicState> >
         StateSpPool;
 
     /// It is important for this to be a deque instead of a vector, because
@@ -247,13 +246,13 @@ class FileStore : public DataStore {
         // node (Replica/Primary).
         bdlbb::Blob d_blob;
         // Receipt to this node.
-        bsl::shared_ptr<mwcu::AtomicState> d_state;
+        bsl::shared_ptr<bmqu::AtomicState> d_state;
 
         NodeContext(bdlbb::BlobBufferFactory* factory,
                     const DataStoreRecordKey& key,
                     bslma::Allocator*         basicAllocator = 0);
     };
-    typedef mwcc::OrderedHashMap<DataStoreRecordKey,
+    typedef bmqc::OrderedHashMap<DataStoreRecordKey,
                                  ReceiptContext,
                                  DataStoreRecordKeyHashAlgo>
         Unreceipted;
@@ -265,11 +264,11 @@ class FileStore : public DataStore {
     // DATA
     bslma::Allocator* d_allocator_p;
 
-    mwcma::CountingAllocatorStore d_allocators;
+    bmqma::CountingAllocatorStore d_allocators;
     // Allocator store to spawn new
     // allocators for sub-components
 
-    mwcma::CountingAllocatorStore d_storageAllocatorStore;
+    bmqma::CountingAllocatorStore d_storageAllocatorStore;
     // Allocator store to pass to all the
     // queue storages (file-backed or
     // in-memory) assigned to this
@@ -558,17 +557,17 @@ class FileStore : public DataStore {
     int writeMessageRecord(const bmqp::StorageHeader&          header,
                            const mqbs::RecordHeader&           recHeader,
                            const bsl::shared_ptr<bdlbb::Blob>& event,
-                           const mwcu::BlobPosition&           recordPosition);
+                           const bmqu::BlobPosition&           recordPosition);
 
     int writeQueueCreationRecord(const bmqp::StorageHeader&          header,
                                  const mqbs::RecordHeader&           recHeader,
                                  const bsl::shared_ptr<bdlbb::Blob>& event,
-                                 const mwcu::BlobPosition& recordPosition);
+                                 const bmqu::BlobPosition& recordPosition);
 
     int writeJournalRecord(const bmqp::StorageHeader&          header,
                            const mqbs::RecordHeader&           recHeader,
                            const bsl::shared_ptr<bdlbb::Blob>& event,
-                           const mwcu::BlobPosition&           recordPosition,
+                           const bmqu::BlobPosition&           recordPosition,
                            bmqp::StorageMessageType::Enum      messageType);
 
     /// Replicate the record of specified `type` starting at specified

@@ -20,9 +20,9 @@
 #include <mqbs_filestoreprotocolprinter.h>
 #include <mqbs_filestoreprotocolutil.h>
 
-// MWC
-#include <mwcu_alignedprinter.h>
-#include <mwcu_memoutstream.h>
+// BMQ
+#include <bmqu_alignedprinter.h>
+#include <bmqu_memoutstream.h>
 
 // BDE
 #include <bsl_cmath.h>
@@ -78,7 +78,7 @@ void printJournalFileMeta(bsl::ostream&              ostream,
     fields.push_back("SyncPoint DataFileOffset (DWORDS)");
     fields.push_back("SyncPoint QlistFileOffset (WORDS)");
 
-    mwcu::AlignedPrinter printer(ostream, &fields);
+    bmqu::AlignedPrinter printer(ostream, &fields);
     bsls::Types::Uint64  lastRecPos = journalFile_p->lastRecordPosition();
     printer << lastRecPos;
     if (0 == lastRecPos) {

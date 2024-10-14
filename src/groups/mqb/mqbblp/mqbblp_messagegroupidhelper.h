@@ -34,8 +34,7 @@
 // BMQ
 #include <bmqp_protocol.h>
 
-// MWC
-#include <mwcsys_time.h>
+#include <bmqsys_time.h>
 
 // BDE
 #include <bslma_allocator.h>
@@ -129,12 +128,12 @@ inline mqbi::QueueHandle*
 MessageGroupIdHelper::getHandle(const bmqp::Protocol::MsgGroupId& msgGroupId)
 {
     return d_manager.getHandle(msgGroupId,
-                               mwcsys::Time::highResolutionTimer());
+                               bmqsys::Time::highResolutionTimer());
 }
 
 inline void MessageGroupIdHelper::addHandle(mqbi::QueueHandle* handle)
 {
-    d_manager.addHandle(handle, mwcsys::Time::highResolutionTimer());
+    d_manager.addHandle(handle, bmqsys::Time::highResolutionTimer());
 }
 
 inline void MessageGroupIdHelper::removeHandle(mqbi::QueueHandle* handle)
@@ -146,7 +145,7 @@ inline void MessageGroupIdHelper::removeHandle(mqbi::QueueHandle* handle)
 inline void
 MessageGroupIdHelper::loadInternals(mqbcmd::MessageGroupIdHelper* out) const
 {
-    d_manager.loadInternals(out, mwcsys::Time::highResolutionTimer());
+    d_manager.loadInternals(out, bmqsys::Time::highResolutionTimer());
 }
 
 }  // close package namespace

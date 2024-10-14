@@ -34,8 +34,8 @@
 #include <mqbs_journalfileiterator.h>
 #include <mqbs_mappedfiledescriptor.h>
 
-// MWC
-#include <mwcu_stringutil.h>
+// BMQ
+#include <bmqu_stringutil.h>
 
 // BDE
 #include <bsl_iosfwd.h>

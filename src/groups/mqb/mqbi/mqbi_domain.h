@@ -70,7 +70,7 @@ class CapacityMeter;
 namespace mqbstat {
 class DomainStats;
 }
-namespace mwcst {
+namespace bmqst {
 class StatContext;
 }
 
@@ -203,7 +203,7 @@ class Domain {
     virtual mqbstat::DomainStats* domainStats() = 0;
 
     /// Return the stat context associated to this Domain.
-    virtual mwcst::StatContext* queueStatContext() = 0;
+    virtual bmqst::StatContext* queueStatContext() = 0;
 
     /// Return the cluster associated to this Domain.
     virtual Cluster* cluster() const = 0;

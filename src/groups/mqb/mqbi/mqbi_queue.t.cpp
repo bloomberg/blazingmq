@@ -29,7 +29,7 @@
 #include <bslh_defaulthashalgorithm.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -79,7 +79,7 @@ static void test1_hashAppendSubQueueIdInfo()
 //              const bmqp_ctrlmsg::SubQueueIdInfo& subQueueIdInfo)
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("HASH APPEND SUBQUEUEIDINFO");
+    bmqtst::TestHelper::printTestName("HASH APPEND SUBQUEUEIDINFO");
 
     {
         PV("HASH FUNCTION DETERMINISTIC");
@@ -149,7 +149,7 @@ static void test1_hashAppendSubQueueIdInfo()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     unsigned int seed = bsl::time(NULL);
     bsl::srand(seed);
@@ -164,5 +164,5 @@ int main(int argc, char* argv[])
     } break;
     }
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }

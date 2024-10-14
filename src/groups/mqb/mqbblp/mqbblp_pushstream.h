@@ -54,8 +54,7 @@
 // BMQ
 #include <bmqt_messageguid.h>
 
-// MWC
-#include <mwcc_orderedhashmap.h>
+#include <bmqc_orderedhashmap.h>
 
 // BDE
 #include <ball_log.h>
@@ -122,7 +121,7 @@ struct PushStream {
         void remove(Element* element);
     };
 
-    typedef mwcc::OrderedHashMap<bmqt::MessageGUID,
+    typedef bmqc::OrderedHashMap<bmqt::MessageGUID,
                                  Elements,
                                  bslh::Hash<bmqt::MessageGUIDHashAlgo> >
                                                   Stream;

@@ -35,9 +35,8 @@
 #include <bmqt_resultcode.h>
 #include <bmqt_uri.h>
 
-// MWC
-#include <mwcsys_time.h>
-#include <mwcu_memoutstream.h>
+#include <bmqsys_time.h>
+#include <bmqu_memoutstream.h>
 
 // BDE
 #include <bdlb_nullablevalue.h>
@@ -413,7 +412,7 @@ void LocalQueue::postMessage(const bmqp::PutHeader&              putHeader,
         // Either queue was not opened in the WRITE mode (which should have
         // been caught in the SDK) or client is posting a message after closing
         // or reconfiguring the queue (which may not be caught in the SDK).
-        MWCU_THROTTLEDACTION_THROTTLE(
+        BMQU_THROTTLEDACTION_THROTTLE(
             d_throttledFailedPutMessages,
             BALL_LOG_WARN
                 << "#CLIENT_IMPROPER_BEHAVIOR "
@@ -432,7 +431,7 @@ void LocalQueue::postMessage(const bmqp::PutHeader&              putHeader,
         return;  // RETURN
     }
 
-    const bsls::Types::Int64 timePoint = mwcsys::Time::highResolutionTimer();
+    const bsls::Types::Int64 timePoint = bmqsys::Time::highResolutionTimer();
     const bool               doAck     = bmqp::PutHeaderFlagUtil::isSet(
         putHeader.flags(),
         bmqp::PutHeaderFlags::e_ACK_REQUESTED);
@@ -483,7 +482,7 @@ void LocalQueue::postMessage(const bmqp::PutHeader&              putHeader,
     if (res != mqbi::StorageResult::e_SUCCESS || haveReceipt) {
         // Calculate time delta between PUT and ACK
         const bsls::Types::Int64 timeDelta =
-            mwcsys::Time::highResolutionTimer() - timePoint;
+            bmqsys::Time::highResolutionTimer() - timePoint;
         d_state_p->stats().onEvent(
             mqbstat::QueueStatsDomain::EventType::e_ACK_TIME,
             timeDelta);
@@ -555,7 +554,7 @@ void LocalQueue::onReceipt(const bmqt::MessageGUID&  msgGUID,
                            const bsls::Types::Int64& arrivalTimepoint)
 {
     // Calculate time delta between PUT and ACK
-    const bsls::Types::Int64 timeDelta = mwcsys::Time::highResolutionTimer() -
+    const bsls::Types::Int64 timeDelta = bmqsys::Time::highResolutionTimer() -
                                          arrivalTimepoint;
 
     d_state_p->stats().onEvent(

@@ -21,6 +21,7 @@
 #include <bmqa_confirmeventbuilder.h>
 #include <bmqa_message.h>
 #include <bmqa_messageiterator.h>
+#include <bmqc_twokeyhashmap.h>
 #include <bmqimp_event.h>
 #include <bmqimp_eventqueue.h>
 #include <bmqimp_messagecorrelationidcontainer.h>
@@ -35,13 +36,10 @@
 #include <bmqp_protocol.h>
 #include <bmqp_protocolutil.h>
 #include <bmqp_pusheventbuilder.h>
+#include <bmqsys_time.h>
 #include <bmqt_messageguid.h>
 #include <bmqt_uri.h>
-
-// MWC
-#include <mwcc_twokeyhashmap.h>
-#include <mwcsys_time.h>
-#include <mwcu_memoutstream.h>
+#include <bmqu_memoutstream.h>
 
 // BDE
 #include <bdlbb_blobutil.h>
@@ -64,7 +62,7 @@ namespace {
 const char k_LOG_CATEGORY[] = "BMQA.MOCKSESSION";
 
 /// Two key hash map of uri and correlationIds to QueueId.
-typedef mwcc::TwoKeyHashMap<bmqt::Uri,
+typedef bmqc::TwoKeyHashMap<bmqt::Uri,
                             bmqt::CorrelationId,
                             QueueId,
                             bsl::hash<bmqt::Uri>,
@@ -92,8 +90,7 @@ bdlbb::BlobBufferFactory* g_bufferFactory_p = 0;
 // static variable 'g_guidGenerator_sp' with Clang-specific attribute.
 [[clang::no_destroy]]
 #endif
-bsl::shared_ptr<bmqp::MessageGUIDGenerator>
-    g_guidGenerator_sp;
+bsl::shared_ptr<bmqp::MessageGUIDGenerator> g_guidGenerator_sp;
 // First call to 'initialize' allocates a MessageGUIDGenerator created on
 // heap and managed by this 'g_BufferFactory_sp' till destroyed.
 
@@ -632,7 +629,7 @@ void MockSession::initialize(bslma::Allocator* allocator)
 
     g_alloc_p = bslma::Default::globalAllocator(allocator);
 
-    mwcsys::Time::initialize(g_alloc_p);
+    bmqsys::Time::initialize(g_alloc_p);
     bmqp::Crc32c::initialize();
     bmqp::ProtocolUtil::initialize(g_alloc_p);
     bmqt::UriParser::initialize(g_alloc_p);
@@ -655,7 +652,7 @@ void MockSession::shutdown()
 
     bmqt::UriParser::shutdown();
     bmqp::ProtocolUtil::shutdown();
-    mwcsys::Time::shutdown();
+    bmqsys::Time::shutdown();
     g_alloc_p->deleteObject(g_bufferFactory_p);
     g_guidGenerator_sp.reset();
 }
@@ -740,8 +737,8 @@ const char* MockSession::toAscii(const Method method)
 
 void MockSession::initializeStats()
 {
-    mwcst::StatValue::SnapshotLocation start;
-    mwcst::StatValue::SnapshotLocation end;
+    bmqst::StatValue::SnapshotLocation start;
+    bmqst::StatValue::SnapshotLocation end;
     start.setLevel(0).setIndex(0);
     end.setLevel(0).setIndex(1);
     bmqimp::QueueStatsUtil::initializeStats(d_queuesStats_sp.get(),
@@ -893,7 +890,7 @@ void MockSession::processIfPushEvent(const Event& event)
 
 void MockSession::assertWrongCall(const Method method) const
 {
-    mwcu::MemOutStream mos(d_allocator_p);
+    bmqu::MemOutStream mos(d_allocator_p);
     mos << "No expected calls but received call to '"
         << MockSession::toAscii(method) << "'" << bsl::ends;
     d_failureCb(mos.str().data(), "", 0);
@@ -902,7 +899,7 @@ void MockSession::assertWrongCall(const Method method) const
 void MockSession::assertWrongCall(const Method method,
                                   const Call&  expectedCall) const
 {
-    mwcu::MemOutStream mos(d_allocator_p);
+    bmqu::MemOutStream mos(d_allocator_p);
     mos << "Expected call to '" << expectedCall.methodName() << "' but got '"
         << MockSession::toAscii(method) << "' (" << expectedCall.d_file << ':'
         << expectedCall.d_line << ')' << bsl::ends;
@@ -916,7 +913,7 @@ void MockSession::assertWrongArg(const T&     expected,
                                  const char*  arg,
                                  const Call&  call) const
 {
-    mwcu::MemOutStream mos(d_allocator_p);
+    bmqu::MemOutStream mos(d_allocator_p);
     mos << "Bad value for argument '" << arg << "' in call to '"
         << toAscii(method) << "': expected '" << expected << "', got '"
         << actual << "'";
@@ -959,24 +956,24 @@ MockSession::MockSession(const bmqt::SessionOptions& options,
                                     bdlf::PlaceHolders::_2,
                                     bdlf::PlaceHolders::_3))
 , d_lastQueueId(0)
-, d_corrIdContainer_sp(new (*bslma::Default::allocator(allocator))
+, d_corrIdContainer_sp(new(*bslma::Default::allocator(allocator))
                            bmqimp::MessageCorrelationIdContainer(
                                bslma::Default::allocator(allocator)),
                        bslma::Default::allocator(allocator))
 , d_postedEvents(bslma::Default::allocator(allocator))
-, d_rootStatContext(mwcst::StatContextConfiguration("MockSession", allocator),
+, d_rootStatContext(bmqst::StatContextConfiguration("MockSession", allocator),
                     allocator)
-, d_queuesStats_sp(new (*bslma::Default::allocator(allocator))
+, d_queuesStats_sp(new(*bslma::Default::allocator(allocator))
                        bmqimp::Stat(bslma::Default::allocator(allocator)),
                    bslma::Default::allocator(allocator))
 , d_sessionOptions(options, allocator)
 , d_allocator_p(bslma::Default::allocator(allocator))
 {
-    BSLMF_ASSERT(k_MAX_SIZEOF_MWCC_TWOKEYHASHMAP >=
+    BSLMF_ASSERT(k_MAX_SIZEOF_BMQC_TWOKEYHASHMAP >=
                  sizeof(UriCorrIdToQueueMap));
     // Compile-time assert to keep the hardcoded value of size of an object of
-    // type 'mwcc::TwoKeyHashMap' in sync with its actual size.  We need to
-    // hard code the size in 'bmqa_mocksession.h' because none of the 'mwc'
+    // type 'bmqc::TwoKeyHashMap' in sync with its actual size.  We need to
+    // hard code the size in 'bmqa_mocksession.h' because none of the 'bmqc'
     // headers can be included in 'bmqa' headers.  Note that we don't check
     // exact size, but 'enough' size, see comment of the constant in header.
 
@@ -1002,14 +999,14 @@ MockSession::MockSession(bslma::ManagedPtr<SessionEventHandler> eventHandler,
                                     bdlf::PlaceHolders::_2,
                                     bdlf::PlaceHolders::_3))
 , d_lastQueueId(0)
-, d_corrIdContainer_sp(new (*bslma::Default::allocator(allocator))
+, d_corrIdContainer_sp(new(*bslma::Default::allocator(allocator))
                            bmqimp::MessageCorrelationIdContainer(
                                bslma::Default::allocator(allocator)),
                        bslma::Default::allocator(allocator))
 , d_postedEvents(bslma::Default::allocator(allocator))
-, d_rootStatContext(mwcst::StatContextConfiguration("MockSession", allocator),
+, d_rootStatContext(bmqst::StatContextConfiguration("MockSession", allocator),
                     allocator)
-, d_queuesStats_sp(new (*bslma::Default::allocator(allocator))
+, d_queuesStats_sp(new(*bslma::Default::allocator(allocator))
                        bmqimp::Stat(bslma::Default::allocator(allocator)),
                    bslma::Default::allocator(allocator))
 , d_sessionOptions(options, allocator)
@@ -1025,7 +1022,7 @@ MockSession::MockSession(bslma::ManagedPtr<SessionEventHandler> eventHandler,
 MockSession::~MockSession()
 {
     if (!d_calls.empty()) {
-        mwcu::MemOutStream stream(d_allocator_p);
+        bmqu::MemOutStream stream(d_allocator_p);
         stream << "Expected calls [";
 
         CallQueue::iterator cit = d_calls.begin();
@@ -1042,7 +1039,7 @@ MockSession::~MockSession()
 
     uriCorrIdToQueues(d_twoKeyHashMapBuffer).clear();
     uriCorrIdToQueues(d_twoKeyHashMapBuffer)
-        .mwcc::TwoKeyHashMap<
+        .bmqc::TwoKeyHashMap<
             bmqt::Uri,
             bmqt::CorrelationId,
             QueueId,

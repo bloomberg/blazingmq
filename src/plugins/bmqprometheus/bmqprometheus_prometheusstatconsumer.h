@@ -30,10 +30,10 @@
 #include <mqbcfg_messages.h>
 #include <mqbplug_statconsumer.h>
 
-// MWC
-#include <mwcc_monitoredqueue_bdlccfixedqueue.h>
-#include <mwcst_statcontext.h>
-#include <mwcu_throttledaction.h>
+// BMQ
+#include <bmqc_monitoredqueue_bdlccfixedqueue.h>
+#include <bmqst_statcontext.h>
+#include <bmqu_throttledaction.h>
 
 // BDE
 #include <bdlcc_sharedobjectpool.h>
@@ -56,7 +56,7 @@
 namespace BloombergLP {
 
 // FORWARD DECLARATION
-namespace mwcst {
+namespace bmqst {
 class StatContext;
 }
 
@@ -104,28 +104,28 @@ class PrometheusStatConsumer : public mqbplug::StatConsumer {
 
     using DatapointDefCIter = const DatapointDef*;
 
-    const mwcst::StatContext* d_systemStatContext_p;
+    const bmqst::StatContext* d_systemStatContext_p;
     // The system stat context
 
-    const mwcst::StatContext* d_brokerStatContext_p;
+    const bmqst::StatContext* d_brokerStatContext_p;
     // The broker stat context
 
-    const mwcst::StatContext* d_clustersStatContext_p;
+    const bmqst::StatContext* d_clustersStatContext_p;
     // The cluster stat context
 
-    const mwcst::StatContext* d_clusterNodesStatContext_p;
+    const bmqst::StatContext* d_clusterNodesStatContext_p;
     // The cluster nodes stat context
 
-    const mwcst::StatContext* d_domainsStatContext_p;
+    const bmqst::StatContext* d_domainsStatContext_p;
     // The domain stat context
 
-    const mwcst::StatContext* d_domainQueuesStatContext_p;
+    const bmqst::StatContext* d_domainQueuesStatContext_p;
     // The domain queues stat context
 
-    const mwcst::StatContext* d_clientStatContext_p;
+    const bmqst::StatContext* d_clientStatContext_p;
     // The client stat context
 
-    const mwcst::StatContext* d_channelsStatContext_p;
+    const bmqst::StatContext* d_channelsStatContext_p;
     // The channels stat context
 
     StatContextsMap d_contextsMap;
@@ -163,7 +163,7 @@ class PrometheusStatConsumer : public mqbplug::StatConsumer {
 
     /// Return a pointer to the statContext with the specified 'name' from
     /// 'd_contextsMap', asserting that it exists.
-    const mwcst::StatContext* getStatContext(const char* name) const;
+    const bmqst::StatContext* getStatContext(const char* name) const;
 
     // PRIVATE MANIPULATORS
 

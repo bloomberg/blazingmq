@@ -89,7 +89,7 @@ class Storage;
 namespace mqbstat {
 class QueueStatsDomain;
 }
-namespace mwcst {
+namespace bmqst {
 class StatContext;
 }
 

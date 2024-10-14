@@ -44,8 +44,7 @@
 #include <mqbstat_domainstats.h>
 #include <mqbu_capacitymeter.h>
 
-// MWC
-#include <mwcst_statcontext.h>
+#include <bmqst_statcontext.h>
 
 // BDE
 #include <bsl_iosfwd.h>
@@ -114,13 +113,13 @@ class Domain : public mqbi::Domain {
     // domain
     mqbi::Cluster* d_cluster_p;
 
-    bsl::shared_ptr<mwcst::StatContext> d_domainsStatContext;
+    bsl::shared_ptr<bmqst::StatContext> d_domainsStatContext;
 
     mqbstat::DomainStats d_domainsStats;
 
     // Stat context dedicated to this domain, to use as the parent stat
     // context for any queue in this domain
-    bsl::shared_ptr<mwcst::StatContext> d_statContext;
+    bsl::shared_ptr<bmqst::StatContext> d_statContext;
 
     // Configuration for the domain
     mqbconfm::Domain d_config;
@@ -234,7 +233,7 @@ class Domain : public mqbi::Domain {
     mqbstat::DomainStats* domainStats() BSLS_KEYWORD_OVERRIDE;
 
     /// Return the stat context associated to this Domain.
-    mwcst::StatContext* queueStatContext() BSLS_KEYWORD_OVERRIDE;
+    bmqst::StatContext* queueStatContext() BSLS_KEYWORD_OVERRIDE;
 
     /// Return the cluster associated to this Domain.
     mqbi::Cluster* cluster() const BSLS_KEYWORD_OVERRIDE;

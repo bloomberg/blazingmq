@@ -31,7 +31,7 @@
 #include <bslmf_nestedtraitdeclaration.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -182,7 +182,7 @@ static void test1_breathingTest()
 //   Basic functionality
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("BREATHING TEST");
+    bmqtst::TestHelper::printTestName("BREATHING TEST");
 
     bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
     const char*                    PAYLOAD     = "abcdefghijklmnopqrstuvwx";
@@ -246,10 +246,10 @@ static void test1_breathingTest()
     ASSERT_EQ(storageIter.header().messageType(),
               bmqp::StorageMessageType::e_DATA);
 
-    mwcu::BlobPosition position;
+    bmqu::BlobPosition position;
     ASSERT_EQ(0, storageIter.loadDataPosition(&position));
     int res, compareResult;
-    res = mwcu::BlobUtil::compareSection(&compareResult,
+    res = bmqu::BlobUtil::compareSection(&compareResult,
                                          eventBlob,
                                          position,
                                          JOURNAL_REC,
@@ -257,14 +257,14 @@ static void test1_breathingTest()
     ASSERT_EQ(res, 0);
     ASSERT_EQ(compareResult, 0);
 
-    mwcu::BlobPosition dataPos;
+    bmqu::BlobPosition dataPos;
     ASSERT_EQ(0,
-              mwcu::BlobUtil::findOffsetSafe(&dataPos,
+              bmqu::BlobUtil::findOffsetSafe(&dataPos,
                                              eventBlob,
                                              position,
                                              JOURNAL_REC_LEN));
 
-    res = mwcu::BlobUtil::compareSection(&compareResult,
+    res = bmqu::BlobUtil::compareSection(&compareResult,
                                          eventBlob,
                                          dataPos,
                                          PAYLOAD,
@@ -280,7 +280,7 @@ static void test2_storageEventHavingMultipleMessages()
 // Build an event with multiple STORAGE msgs. Iterate and verify
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("STORAGE EVENT HAVING MULTIPLE"
+    bmqtst::TestHelper::printTestName("STORAGE EVENT HAVING MULTIPLE"
                                       " MESSAGES");
 
     const int                      k_SPV = 2;  // Storage protocol version
@@ -323,11 +323,11 @@ static void test2_storageEventHavingMultipleMessages()
         ASSERT_EQ_D(dataIndex, D.d_pid, iter.header().partitionId());
         ASSERT_EQ_D(dataIndex, D.d_messageType, iter.header().messageType());
 
-        mwcu::BlobPosition recordPosition;
+        bmqu::BlobPosition recordPosition;
         ASSERT_EQ_D(dataIndex, 0, iter.loadDataPosition(&recordPosition));
 
         int res, compareResult;
-        res = mwcu::BlobUtil::compareSection(&compareResult,
+        res = bmqu::BlobUtil::compareSection(&compareResult,
                                              eventBlob,
                                              recordPosition,
                                              D.d_recordBuffer,
@@ -337,13 +337,13 @@ static void test2_storageEventHavingMultipleMessages()
 
         if (bmqp::StorageMessageType::e_DATA == D.d_messageType ||
             bmqp::StorageMessageType::e_QLIST == D.d_messageType) {
-            mwcu::BlobPosition payloadPos;
+            bmqu::BlobPosition payloadPos;
             ASSERT_EQ(0,
-                      mwcu::BlobUtil::findOffsetSafe(&payloadPos,
+                      bmqu::BlobUtil::findOffsetSafe(&payloadPos,
                                                      eventBlob,
                                                      recordPosition,
                                                      k_RECORD_SIZE));
-            res = mwcu::BlobUtil::compareSection(&compareResult,
+            res = bmqu::BlobUtil::compareSection(&compareResult,
                                                  eventBlob,
                                                  payloadPos,
                                                  D.d_payload.c_str(),
@@ -367,7 +367,7 @@ static void test3_packMessage_payloadTooBig()
 //   Test behavior when trying to build *one* big message.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("PACK MESSAGE - PAYLOAD TOO BIG");
+    bmqtst::TestHelper::printTestName("PACK MESSAGE - PAYLOAD TOO BIG");
 
     bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
 
@@ -455,10 +455,10 @@ static void test3_packMessage_payloadTooBig()
     ASSERT_EQ(storageIter.header().messageType(),
               bmqp::StorageMessageType::e_DATA);
 
-    mwcu::BlobPosition position;
+    bmqu::BlobPosition position;
     ASSERT_EQ(storageIter.loadDataPosition(&position), 0);
     int res, compareResult;
-    res = mwcu::BlobUtil::compareSection(&compareResult,
+    res = bmqu::BlobUtil::compareSection(&compareResult,
                                          eventBlob,
                                          position,
                                          JOURNAL_REC,
@@ -466,14 +466,14 @@ static void test3_packMessage_payloadTooBig()
     ASSERT_EQ(0, res);
     ASSERT_EQ(0, compareResult);
 
-    mwcu::BlobPosition dataPos;
+    bmqu::BlobPosition dataPos;
     ASSERT_EQ(0,
-              mwcu::BlobUtil::findOffsetSafe(&dataPos,
+              bmqu::BlobUtil::findOffsetSafe(&dataPos,
                                              eventBlob,
                                              position,
                                              JOURNAL_REC_LEN));
 
-    res = mwcu::BlobUtil::compareSection(&compareResult,
+    res = bmqu::BlobUtil::compareSection(&compareResult,
                                          eventBlob,
                                          dataPos,
                                          PAYLOAD,
@@ -492,7 +492,7 @@ static void test4_packMessageRaw()
 //   messages, all added via 'packMessageRaw'.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("PACK MESSAGE RAW");
+    bmqtst::TestHelper::printTestName("PACK MESSAGE RAW");
 
     // We will build an event (event 'A') contain multiple messages using
     // 'packMessage' which has been tested in case 2.  We will then iterate
@@ -576,11 +576,11 @@ static void test4_packMessageRaw()
 
         ASSERT_EQ_D(dataIndex, D.d_messageType, iterB.header().messageType());
 
-        mwcu::BlobPosition recordPosition;
+        bmqu::BlobPosition recordPosition;
         ASSERT_EQ_D(dataIndex, 0, iterB.loadDataPosition(&recordPosition));
 
         int res, compareResult;
-        res = mwcu::BlobUtil::compareSection(&compareResult,
+        res = bmqu::BlobUtil::compareSection(&compareResult,
                                              eventB,
                                              recordPosition,
                                              D.d_recordBuffer,
@@ -590,13 +590,13 @@ static void test4_packMessageRaw()
 
         if (bmqp::StorageMessageType::e_DATA == D.d_messageType ||
             bmqp::StorageMessageType::e_QLIST == D.d_messageType) {
-            mwcu::BlobPosition payloadPos;
+            bmqu::BlobPosition payloadPos;
             ASSERT_EQ(0,
-                      mwcu::BlobUtil::findOffsetSafe(&payloadPos,
+                      bmqu::BlobUtil::findOffsetSafe(&payloadPos,
                                                      eventB,
                                                      recordPosition,
                                                      k_RECORD_SIZE));
-            res = mwcu::BlobUtil::compareSection(&compareResult,
+            res = bmqu::BlobUtil::compareSection(&compareResult,
                                                  eventB,
                                                  payloadPos,
                                                  D.d_payload.c_str(),
@@ -627,7 +627,7 @@ static void test5_packMessageRaw_emptyMessage()
 //   packMessageRaw
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("PACK MESSAGE RAW - EMPTY MESSAGE");
+    bmqtst::TestHelper::printTestName("PACK MESSAGE RAW - EMPTY MESSAGE");
 
     const int                      k_SPV = 2;  // Storage protocol version
     bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
@@ -639,8 +639,8 @@ static void test5_packMessageRaw_emptyMessage()
     bdlbb::Blob emptyBlob(&bufferFactory, s_allocator_p);
     BSLS_ASSERT_OPT(emptyBlob.length() == 0);
     ASSERT_SAFE_FAIL(
-        seb.packMessageRaw(emptyBlob, mwcu::BlobPosition(0, 0), 0));
-    ASSERT_EQ(seb.packMessageRaw(emptyBlob, mwcu::BlobPosition(0, 0), 10),
+        seb.packMessageRaw(emptyBlob, bmqu::BlobPosition(0, 0), 0));
+    ASSERT_EQ(seb.packMessageRaw(emptyBlob, bmqu::BlobPosition(0, 0), 10),
               bmqt::EventBuilderResult::e_SUCCESS);
     // Above we packMessageRaw with 'length' of 10 because we need an
     // arbitrary 'length > 0' to not trigger an assert and at the same time
@@ -666,7 +666,7 @@ static void test6_packMessageRaw_invalidPosition()
 //   packMessageRaw
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("PACK MESSAGE RAW - INVALID POSITION");
+    bmqtst::TestHelper::printTestName("PACK MESSAGE RAW - INVALID POSITION");
 
     const int                      k_SPV = 2;  // Storage protocol version
     bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
@@ -686,7 +686,7 @@ static void test6_packMessageRaw_invalidPosition()
     bdlbb::Blob message(&bufferFactory, s_allocator_p);
     message.appendDataBuffer(dataBlobBuffer);
 
-    mwcu::BlobPosition invalidPosition(-1, -1);
+    bmqu::BlobPosition invalidPosition(-1, -1);
     ASSERT_NE(seb.packMessageRaw(message, invalidPosition, message.length()),
               bmqt::EventBuilderResult::e_SUCCESS);
     ASSERT_EQ(bdlbb::BlobUtil::compare(seb.blob(), k_EMPTY_BLOB), 0);
@@ -700,7 +700,7 @@ static void test6_packMessageRaw_invalidPosition()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     // Temporary workaround to suppress the 'unused operator
     // NestedTraitDeclaration' warning/error generated by clang.  TBD: figure
@@ -725,5 +725,5 @@ int main(int argc, char* argv[])
     } break;
     }
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }

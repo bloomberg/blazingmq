@@ -18,11 +18,10 @@
 
 // BMQ
 #include <bmqt_messageguid.h>
-#include <mwcu_memoutstream.h>
+#include <bmqu_memoutstream.h>
 
-// MWC
-#include <mwcc_orderedhashmap.h>
-#include <mwcu_printutil.h>
+#include <bmqc_orderedhashmap.h>
+#include <bmqu_printutil.h>
 
 // BDE
 #include <bdlb_guid.h>
@@ -43,7 +42,7 @@
 #include <bsls_types.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // BENCHMARKING LIBRARY
 #ifdef BSLS_PLATFORM_OS_LINUX
@@ -98,7 +97,7 @@ static void test1_breathingTest()
 //   Basic functionality
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("BREATHING TEST");
+    bmqtst::TestHelper::printTestName("BREATHING TEST");
 
     {
         // Create a GUID
@@ -178,7 +177,7 @@ static void test2_multithread()
     // 'bslmt::ThreadUtil::create()' uses the global allocator to allocate
     // memory.
 
-    mwctst::TestHelper::printTestName("MULTITHREAD");
+    bmqtst::TestHelper::printTestName("MULTITHREAD");
 
     const int k_NUM_THREADS = 10;
 
@@ -194,7 +193,7 @@ static void test2_multithread()
     // GCC-supported macros for checking MSAN
     const int k_NUM_GUIDS = 500000;  // 500k
 #else
-    const int                k_NUM_GUIDS = 1000000;   // 1M
+    const int k_NUM_GUIDS = 1000000;  // 1M
 #endif
 
     bslmt::ThreadGroup threadGroup(s_allocator_p);
@@ -246,14 +245,14 @@ static void test3_print()
 {
     s_ignoreCheckDefAlloc = true;
 
-    mwctst::TestHelper::printTestName("PRINT");
+    bmqtst::TestHelper::printTestName("PRINT");
 
     PV("Testing printing an unset GUID");
     {
         bmqt::MessageGUID guid;
         ASSERT_EQ(guid.isUnset(), true);
 
-        mwcu::MemOutStream out(s_allocator_p);
+        bmqu::MemOutStream out(s_allocator_p);
         mqbu::MessageGUIDUtil::print(out, guid);
         ASSERT_EQ(out.str(), "** UNSET **");
     }
@@ -274,7 +273,7 @@ static void test3_print()
         // Print and compare
         const char k_EXPECTED[] = "[version: 1, counter: 5, timerTick: "
                                   "297593876864458, brokerId: CE04742D2E]";
-        mwcu::MemOutStream out(s_allocator_p);
+        bmqu::MemOutStream out(s_allocator_p);
         mqbu::MessageGUIDUtil::print(out, guid);
         ASSERT_EQ(out.str(), k_EXPECTED);
     }
@@ -284,7 +283,7 @@ static void test3_print()
         bmqt::MessageGUID guid;
         mqbu::MessageGUIDUtil::generateGUID(&guid);
 
-        mwcu::MemOutStream out(s_allocator_p);
+        bmqu::MemOutStream out(s_allocator_p);
         mqbu::MessageGUIDUtil::print(out, guid);
 
         // Extract the BrokerId from the printed string, that is the 10
@@ -316,7 +315,7 @@ static void test4_defaultHashUniqueness()
     // created upon insertion of objects in the map uses the default
     // allocator.
 
-    mwctst::TestHelper::printTestName("DEFAULT HASH UNIQUENESS");
+    bmqtst::TestHelper::printTestName("DEFAULT HASH UNIQUENESS");
 
 #if defined(__has_feature)
     // Avoid timeout under MemorySanitizer
@@ -402,7 +401,7 @@ static void test5_customHashUniqueness()
     // created upon insertion of objects in the map uses the default
     // allocator.
 
-    mwctst::TestHelper::printTestName("CUSTOM HASH UNIQUENESS");
+    bmqtst::TestHelper::printTestName("CUSTOM HASH UNIQUENESS");
 
 #if defined(__has_feature)
     // Avoid timeout under MemorySanitizer
@@ -494,7 +493,7 @@ static void testN1_decode()
 {
     s_ignoreCheckDefAlloc = true;  // istringstream allocates
 
-    mwctst::TestHelper::printTestName("DECODE");
+    bmqtst::TestHelper::printTestName("DECODE");
 
     cout << "Please enter the hex representation of a GUID, followed by\n"
          << "<enter> when done (optionally, specify the currentTimerTick as\n"
@@ -588,7 +587,7 @@ static void testN2_bdlbPerformance()
 //   Performance of bdlb::Guid generation.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("PERFORMANCE");
+    bmqtst::TestHelper::printTestName("PERFORMANCE");
 
     const bsls::Types::Int64 k_NUM_GUIDS = 1000000;  // 1 million
 
@@ -614,11 +613,11 @@ static void testN2_bdlbPerformance()
     bsls::Types::Int64 end = bsls::TimeUtil::getTimer();
 
     cout << "Calculated " << k_NUM_GUIDS << " bdlb::Guids in "
-         << mwcu::PrintUtil::prettyTimeInterval(end - start) << ".\n"
+         << bmqu::PrintUtil::prettyTimeInterval(end - start) << ".\n"
          << "Above implies that 1 bdlb::Guid was calculated in "
          << (end - start) / k_NUM_GUIDS << " nano seconds.\n"
          << "In other words: "
-         << mwcu::PrintUtil::prettyNumber((k_NUM_GUIDS * 1000000000) /
+         << bmqu::PrintUtil::prettyNumber((k_NUM_GUIDS * 1000000000) /
                                           (end - start))
          << " bdlb::Guids per second." << endl;
 }
@@ -639,7 +638,7 @@ static void testN2_mqbuPerformance()
 //   Performance of the bmqt::MessageGUID generation
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("PERFORMANCE");
+    bmqtst::TestHelper::printTestName("PERFORMANCE");
 
     const bsls::Types::Int64 k_NUM_GUIDS = 1000000;  // 1 million
 
@@ -664,11 +663,11 @@ static void testN2_mqbuPerformance()
     bsls::Types::Int64 end = bsls::TimeUtil::getTimer();
 
     cout << "Calculated " << k_NUM_GUIDS << " bdlb::Guids in "
-         << mwcu::PrintUtil::prettyTimeInterval(end - start) << ".\n"
+         << bmqu::PrintUtil::prettyTimeInterval(end - start) << ".\n"
          << "Above implies that 1 bdlb::Guid was calculated in "
          << (end - start) / k_NUM_GUIDS << " nano seconds.\n"
          << "In other words: "
-         << mwcu::PrintUtil::prettyNumber((k_NUM_GUIDS * 1000000000) /
+         << bmqu::PrintUtil::prettyNumber((k_NUM_GUIDS * 1000000000) /
                                           (end - start))
          << " bdlb::Guids per second." << endl;
 }
@@ -687,7 +686,7 @@ BSLA_MAYBE_UNUSED static void testN3_defaultHashBenchmark()
 //   NA
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("DEFAULT HASH BENCHMARK");
+    bmqtst::TestHelper::printTestName("DEFAULT HASH BENCHMARK");
 
     const size_t                 k_NUM_ITERATIONS = 10000000;  // 10M
     bsl::hash<bmqt::MessageGUID> hasher;  // same as: bslh::Hash<> hasher;
@@ -701,11 +700,11 @@ BSLA_MAYBE_UNUSED static void testN3_defaultHashBenchmark()
     bsls::Types::Int64 end = bsls::TimeUtil::getTimer();
 
     cout << "Calculated " << k_NUM_ITERATIONS << " default hashes of the GUID"
-         << " in " << mwcu::PrintUtil::prettyTimeInterval(end - begin) << ".\n"
+         << " in " << bmqu::PrintUtil::prettyTimeInterval(end - begin) << ".\n"
          << "Above implies that 1 hash of the GUID was calculated in "
          << (end - begin) / k_NUM_ITERATIONS << " nano seconds.\n"
          << "In other words: "
-         << mwcu::PrintUtil::prettyNumber(static_cast<bsls::Types::Int64>(
+         << bmqu::PrintUtil::prettyNumber(static_cast<bsls::Types::Int64>(
                 (k_NUM_ITERATIONS * 1000000000) / (end - begin)))
          << " hashes per second." << endl;
 }
@@ -725,7 +724,7 @@ static void testN4_customHashBenchmark()
 //   NA
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("CUSTOM HASH BENCHMARK");
+    bmqtst::TestHelper::printTestName("CUSTOM HASH BENCHMARK");
 
     const size_t                          k_NUM_ITERATIONS = 10000000;  // 10M
     bslh::Hash<bmqt::MessageGUIDHashAlgo> hasher;
@@ -739,11 +738,11 @@ static void testN4_customHashBenchmark()
     bsls::Types::Int64 end = bsls::TimeUtil::getTimer();
 
     cout << "Calculated " << k_NUM_ITERATIONS << " custom hashes of the GUID"
-         << "in " << mwcu::PrintUtil::prettyTimeInterval(end - begin) << ".\n"
+         << "in " << bmqu::PrintUtil::prettyTimeInterval(end - begin) << ".\n"
          << "Above implies that 1 hash of the GUID was calculated in "
          << (end - begin) / k_NUM_ITERATIONS << " nano seconds.\n"
          << "In other words: "
-         << mwcu::PrintUtil::prettyNumber(static_cast<bsls::Types::Int64>(
+         << bmqu::PrintUtil::prettyNumber(static_cast<bsls::Types::Int64>(
                 (k_NUM_ITERATIONS * 1000000000) / (end - begin)))
          << " hashes per second." << endl;
 }
@@ -758,7 +757,7 @@ BSLA_MAYBE_UNUSED static void testN5_hashTableWithDefaultHashBenchmark()
 //
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("HASH TABLE w/ DEFAULT HASH BENCHMARK");
+    bmqtst::TestHelper::printTestName("HASH TABLE w/ DEFAULT HASH BENCHMARK");
 
     const size_t      k_NUM_ELEMS = 10000000;  // 10M
     bmqt::MessageGUID guid;
@@ -782,11 +781,11 @@ BSLA_MAYBE_UNUSED static void testN5_hashTableWithDefaultHashBenchmark()
 
     cout << "Inserted " << k_NUM_ELEMS << " elements in hashtable using "
          << "default hash algorithm in "
-         << mwcu::PrintUtil::prettyTimeInterval(end - begin) << ".\n"
+         << bmqu::PrintUtil::prettyTimeInterval(end - begin) << ".\n"
          << "Above implies that 1 element was inserted in "
          << (end - begin) / k_NUM_ELEMS << " nano seconds.\n"
          << "In other words: "
-         << mwcu::PrintUtil::prettyNumber(static_cast<bsls::Types::Int64>(
+         << bmqu::PrintUtil::prettyNumber(static_cast<bsls::Types::Int64>(
                 (k_NUM_ELEMS * 1000000000) / (end - begin)))
          << " insertions per second." << endl;
 }
@@ -801,7 +800,7 @@ BSLA_MAYBE_UNUSED static void testN6_hashTableWithCustomHashBenchmark()
 //
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("HASH TABLE w/ CUSTOM HASH BENCHMARK");
+    bmqtst::TestHelper::printTestName("HASH TABLE w/ CUSTOM HASH BENCHMARK");
 
     const size_t      k_NUM_ELEMS = 10000000;  // 10M
     bmqt::MessageGUID guid;
@@ -829,11 +828,11 @@ BSLA_MAYBE_UNUSED static void testN6_hashTableWithCustomHashBenchmark()
 
     cout << "Inserted " << k_NUM_ELEMS << " elements in hashtable using "
          << "custom hash algorithm in "
-         << mwcu::PrintUtil::prettyTimeInterval(end - begin) << ".\n"
+         << bmqu::PrintUtil::prettyTimeInterval(end - begin) << ".\n"
          << "Above implies that 1 element was inserted in "
          << (end - begin) / k_NUM_ELEMS << " nano seconds.\n"
          << "In other words: "
-         << mwcu::PrintUtil::prettyNumber(static_cast<bsls::Types::Int64>(
+         << bmqu::PrintUtil::prettyNumber(static_cast<bsls::Types::Int64>(
                 (k_NUM_ELEMS * 1000000000) / (end - begin)))
          << " insertions per second." << endl;
 }
@@ -848,12 +847,12 @@ BSLA_MAYBE_UNUSED static void testN7_orderedMapWithDefaultHashBenchmark()
 //
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("ORDERED MAP DEFAULT HASH BENCHMARK");
+    bmqtst::TestHelper::printTestName("ORDERED MAP DEFAULT HASH BENCHMARK");
 
     const size_t      k_NUM_ELEMS = 10000000;  // 10M
     bmqt::MessageGUID guid;
 
-    mwcc::OrderedHashMap<bmqt::MessageGUID, size_t> ht(k_NUM_ELEMS,
+    bmqc::OrderedHashMap<bmqt::MessageGUID, size_t> ht(k_NUM_ELEMS,
                                                        s_allocator_p);
     // Warmup
     for (size_t i = 1; i <= 1000; ++i) {
@@ -872,11 +871,11 @@ BSLA_MAYBE_UNUSED static void testN7_orderedMapWithDefaultHashBenchmark()
 
     cout << "Inserted " << k_NUM_ELEMS << " elements in ordered map using "
          << "default hash algorithm in "
-         << mwcu::PrintUtil::prettyTimeInterval(end - begin) << ".\n"
+         << bmqu::PrintUtil::prettyTimeInterval(end - begin) << ".\n"
          << "Above implies that 1 element was inserted in "
          << (end - begin) / k_NUM_ELEMS << " nano seconds.\n"
          << "In other words: "
-         << mwcu::PrintUtil::prettyNumber(static_cast<bsls::Types::Int64>(
+         << bmqu::PrintUtil::prettyNumber(static_cast<bsls::Types::Int64>(
                 (k_NUM_ELEMS * 1000000000) / (end - begin)))
          << " insertions per second." << endl;
 }
@@ -891,12 +890,12 @@ BSLA_MAYBE_UNUSED static void testN8_orderedMapWithCustomHashBenchmark()
 //
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("ORDERED MAP CUSTOM HASH BENCHMARK");
+    bmqtst::TestHelper::printTestName("ORDERED MAP CUSTOM HASH BENCHMARK");
 
     const size_t      k_NUM_ELEMS = 10000000;  // 10M
     bmqt::MessageGUID guid;
 
-    mwcc::OrderedHashMap<bmqt::MessageGUID,
+    bmqc::OrderedHashMap<bmqt::MessageGUID,
                          size_t,
                          bslh::Hash<bmqt::MessageGUIDHashAlgo> >
         ht(k_NUM_ELEMS, s_allocator_p);
@@ -918,11 +917,11 @@ BSLA_MAYBE_UNUSED static void testN8_orderedMapWithCustomHashBenchmark()
 
     cout << "Inserted " << k_NUM_ELEMS << " elements in ordered map using "
          << "custom hash algorithm in "
-         << mwcu::PrintUtil::prettyTimeInterval(end - begin) << ".\n"
+         << bmqu::PrintUtil::prettyTimeInterval(end - begin) << ".\n"
          << "Above implies that 1 element was inserted in "
          << (end - begin) / k_NUM_ELEMS << " nano seconds.\n"
          << "In other words: "
-         << mwcu::PrintUtil::prettyNumber(static_cast<bsls::Types::Int64>(
+         << bmqu::PrintUtil::prettyNumber(static_cast<bsls::Types::Int64>(
                 (k_NUM_ELEMS * 1000000000) / (end - begin)))
          << " insertions per second." << endl;
 }
@@ -952,7 +951,7 @@ static void testN1_decode_GoogleBenchmark(benchmark::State& state)
         state.PauseTiming();
         s_ignoreCheckDefAlloc = true;  // istringstream allocates
 
-        mwctst::TestHelper::printTestName("GOOGLE BENCHMARK DECODE");
+        bmqtst::TestHelper::printTestName("GOOGLE BENCHMARK DECODE");
 
         cout << "Please enter the hex representation of a GUID, followed by\n"
              << "<enter> when done (optionally, specify the currentTimerTick "
@@ -1051,7 +1050,7 @@ static void testN2_mqbuPerformance_GoogleBenchmark(benchmark::State& state)
 //   Performance of the bmqt::MessageGUID generation
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("GOOGLE BENCHMARK PERFORMANCE");
+    bmqtst::TestHelper::printTestName("GOOGLE BENCHMARK PERFORMANCE");
 
     // ----------------------------
     // bmqt::MessageGUID generation
@@ -1088,7 +1087,7 @@ static void testN2_bdlbPerformance_GoogleBenchmark(benchmark::State& state)
 //   Performance of the bdlb::GUID generation
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("GOOGLE BENCHMARK PERFORMANCE");
+    bmqtst::TestHelper::printTestName("GOOGLE BENCHMARK PERFORMANCE");
     // Warm the cache
     for (int i = 0; i < 1000; ++i) {
         bdlb::Guid guid;
@@ -1120,7 +1119,7 @@ testN3_defaultHashBenchmark_GoogleBenchmark(benchmark::State& state)
 //   NA
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "GOOGLE BENCHMARK DEFAULT HASH BENCHMARK");
 
     bsl::hash<bmqt::MessageGUID> hasher;  // same as: bslh::Hash<> hasher;
@@ -1147,7 +1146,7 @@ static void testN4_customHashBenchmark_GoogleBenchmark(benchmark::State& state)
 //   NA
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "GOOGLE BENCHMARK CUSTOM HASH BENCHMARK");
 
     bslh::Hash<bmqt::MessageGUIDHashAlgo> hasher;
@@ -1171,7 +1170,7 @@ static void testN5_hashTableWithDefaultHashBenchmark_GoogleBenchmark(
 //
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("GOOGLE BENCHMARK HASH TABLE "
+    bmqtst::TestHelper::printTestName("GOOGLE BENCHMARK HASH TABLE "
                                       "w/ DEFAULT HASH BENCHMARK");
 
     bmqt::MessageGUID                             guid;
@@ -1204,7 +1203,7 @@ static void testN6_hashTableWithCustomHashBenchmark_GoogleBenchmark(
 //
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("GOOGLE BENCHMARK HASH TABLE "
+    bmqtst::TestHelper::printTestName("GOOGLE BENCHMARK HASH TABLE "
                                       "w/ CUSTOM HASH BENCHMARK");
 
     bmqt::MessageGUID guid;
@@ -1242,12 +1241,12 @@ static void testN7_orderedMapWithDefaultHashBenchmark_GoogleBenchmark(
 //
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("GOOGLE BENCHMARK ORDERED MAP "
+    bmqtst::TestHelper::printTestName("GOOGLE BENCHMARK ORDERED MAP "
                                       "DEFAULT HASH BENCHMARK");
 
     bmqt::MessageGUID guid;
 
-    mwcc::OrderedHashMap<bmqt::MessageGUID, size_t> ht(state.range(0),
+    bmqc::OrderedHashMap<bmqt::MessageGUID, size_t> ht(state.range(0),
                                                        s_allocator_p);
     // Warmup
     for (size_t i = 1; i <= 1000; ++i) {
@@ -1276,12 +1275,12 @@ static void testN8_orderedMapWithCustomHashBenchmark_GoogleBenchmark(
 //
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("GOOGLE BENCHMARK ORDERED MAP "
+    bmqtst::TestHelper::printTestName("GOOGLE BENCHMARK ORDERED MAP "
                                       "CUSTOM HASH BENCHMARK");
 
     bmqt::MessageGUID guid;
 
-    mwcc::OrderedHashMap<bmqt::MessageGUID,
+    bmqc::OrderedHashMap<bmqt::MessageGUID,
                          size_t,
                          bslh::Hash<bmqt::MessageGUIDHashAlgo> >
         ht(state.range(0), s_allocator_p);
@@ -1315,7 +1314,7 @@ int main(int argc, char* argv[])
     bsls::TimeUtil::initialize();
     mqbu::MessageGUIDUtil::initialize();
 
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     switch (_testCase) {
     case 0:
@@ -1326,50 +1325,50 @@ int main(int argc, char* argv[])
     case 1: test1_breathingTest(); break;
     case -1: testN1_decode(); break;
     case -2:
-        MWC_BENCHMARK_WITH_ARGS(testN2_bdlbPerformance,
-                                RangeMultiplier(10)
-                                    ->Range(10, 10000000)
-                                    ->Unit(benchmark::kMillisecond));
-        MWC_BENCHMARK_WITH_ARGS(testN2_mqbuPerformance,
-                                RangeMultiplier(10)
-                                    ->Range(10, 10000000)
-                                    ->Unit(benchmark::kMillisecond));
+        BMQTST_BENCHMARK_WITH_ARGS(testN2_bdlbPerformance,
+                                   RangeMultiplier(10)
+                                       ->Range(10, 10000000)
+                                       ->Unit(benchmark::kMillisecond));
+        BMQTST_BENCHMARK_WITH_ARGS(testN2_mqbuPerformance,
+                                   RangeMultiplier(10)
+                                       ->Range(10, 10000000)
+                                       ->Unit(benchmark::kMillisecond));
         break;
     case -3:
-        MWC_BENCHMARK_WITH_ARGS(testN3_defaultHashBenchmark,
-                                RangeMultiplier(10)
-                                    ->Range(10, 10000000)
-                                    ->Unit(benchmark::kMillisecond));
+        BMQTST_BENCHMARK_WITH_ARGS(testN3_defaultHashBenchmark,
+                                   RangeMultiplier(10)
+                                       ->Range(10, 10000000)
+                                       ->Unit(benchmark::kMillisecond));
         break;
     case -4:
-        MWC_BENCHMARK_WITH_ARGS(testN4_customHashBenchmark,
-                                RangeMultiplier(10)
-                                    ->Range(10, 10000000)
-                                    ->Unit(benchmark::kMillisecond));
+        BMQTST_BENCHMARK_WITH_ARGS(testN4_customHashBenchmark,
+                                   RangeMultiplier(10)
+                                       ->Range(10, 10000000)
+                                       ->Unit(benchmark::kMillisecond));
         break;
     case -5:
-        MWC_BENCHMARK_WITH_ARGS(testN5_hashTableWithDefaultHashBenchmark,
-                                RangeMultiplier(10)
-                                    ->Range(10, 10000000)
-                                    ->Unit(benchmark::kMillisecond));
+        BMQTST_BENCHMARK_WITH_ARGS(testN5_hashTableWithDefaultHashBenchmark,
+                                   RangeMultiplier(10)
+                                       ->Range(10, 10000000)
+                                       ->Unit(benchmark::kMillisecond));
         break;
     case -6:
-        MWC_BENCHMARK_WITH_ARGS(testN6_hashTableWithCustomHashBenchmark,
-                                RangeMultiplier(10)
-                                    ->Range(10, 10000000)
-                                    ->Unit(benchmark::kMillisecond));
+        BMQTST_BENCHMARK_WITH_ARGS(testN6_hashTableWithCustomHashBenchmark,
+                                   RangeMultiplier(10)
+                                       ->Range(10, 10000000)
+                                       ->Unit(benchmark::kMillisecond));
         break;
     case -7:
-        MWC_BENCHMARK_WITH_ARGS(testN7_orderedMapWithDefaultHashBenchmark,
-                                RangeMultiplier(10)
-                                    ->Range(10, 10000000)
-                                    ->Unit(benchmark::kMillisecond));
+        BMQTST_BENCHMARK_WITH_ARGS(testN7_orderedMapWithDefaultHashBenchmark,
+                                   RangeMultiplier(10)
+                                       ->Range(10, 10000000)
+                                       ->Unit(benchmark::kMillisecond));
         break;
     case -8:
-        MWC_BENCHMARK_WITH_ARGS(testN8_orderedMapWithCustomHashBenchmark,
-                                RangeMultiplier(10)
-                                    ->Range(10, 10000000)
-                                    ->Unit(benchmark::kMillisecond));
+        BMQTST_BENCHMARK_WITH_ARGS(testN8_orderedMapWithCustomHashBenchmark,
+                                   RangeMultiplier(10)
+                                       ->Range(10, 10000000)
+                                       ->Unit(benchmark::kMillisecond));
         break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
@@ -1383,7 +1382,7 @@ int main(int argc, char* argv[])
     }
 #endif
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
 
 // ----------------------------------------------------------------------------

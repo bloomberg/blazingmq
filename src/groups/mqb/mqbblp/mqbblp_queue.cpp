@@ -41,9 +41,8 @@
 // BMQ
 #include <bmqt_queueflags.h>
 
-// MWC
-#include <mwcu_memoutstream.h>
-#include <mwcu_printutil.h>
+#include <bmqu_memoutstream.h>
+#include <bmqu_printutil.h>
 
 // BDE
 #include <bdlb_print.h>
@@ -159,7 +158,7 @@ void Queue::configureDispatched(int*          result,
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
 
-    mwcu::MemOutStream throwaway(d_allocator_p);
+    bmqu::MemOutStream throwaway(d_allocator_p);
     bsl::ostream&      errStream = (errorDescription ? *errorDescription
                                                      : throwaway);
 
@@ -335,7 +334,7 @@ void Queue::convertToLocalDispatched()
 
     int                                   rc;
     bdlma::LocalSequentialAllocator<1024> localAllocator(d_allocator_p);
-    mwcu::MemOutStream                    errorDescription(&localAllocator);
+    bmqu::MemOutStream                    errorDescription(&localAllocator);
 
     // Move remoteQueue to a temporary stack based managed pointer, so that
     // we can bypass all precondition checks (since we are temporarily
@@ -875,7 +874,7 @@ int Queue::processCommand(mqbcmd::QueueResult*        result,
     }
 
     mqbcmd::Error&     error = result->makeError();
-    mwcu::MemOutStream os;
+    bmqu::MemOutStream os;
     os << "Unknown command '" << command << "'";
     error.message() = os.str();
     return -1;

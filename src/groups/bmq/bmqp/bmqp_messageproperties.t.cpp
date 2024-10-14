@@ -20,11 +20,10 @@
 #include <bmqp_protocol.h>
 #include <bmqp_protocolutil.h>
 #include <bmqt_resultcode.h>
-#include <mwcu_memoutstream.h>
+#include <bmqu_memoutstream.h>
 
-// MWC
-#include <mwcu_blob.h>
-#include <mwcu_memoutstream.h>
+#include <bmqu_blob.h>
+#include <bmqu_memoutstream.h>
 
 // BDE
 #include <bdlb_bigendian.h>
@@ -40,7 +39,7 @@
 #include <bsls_types.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -165,7 +164,7 @@ void populateProperties(bmqp::MessageProperties* properties,
 
     for (size_t i = 1; i < (numProps + 1); ++i) {
         size_t             remainder = i % numPropTypes;
-        mwcu::MemOutStream osstr(s_allocator_p);
+        bmqu::MemOutStream osstr(s_allocator_p);
 
         switch (remainder) {
         case 0: {
@@ -397,7 +396,7 @@ void encode(bdlbb::Blob* blob, const PropertyMap& pmap)
     int totalSize = 0;
 
     // Add 'bmqp::MessagePropertiesHeader'.
-    mwcu::BlobUtil::reserve(blob, sizeof(bmqp::MessagePropertiesHeader));
+    bmqu::BlobUtil::reserve(blob, sizeof(bmqp::MessagePropertiesHeader));
 
     new (b.buffer(0).data()) bmqp::MessagePropertiesHeader;
     // Above is ok because in this test driver, we control the buffer size
@@ -461,7 +460,7 @@ void encode(bdlbb::Blob* blob, const PropertyMap& pmap)
 
 static void test1_breathingTest()
 {
-    mwctst::TestHelper::printTestName("BREATHING TEST");
+    bmqtst::TestHelper::printTestName("BREATHING TEST");
     PV("Testing MessageProperties");
 
     bdlbb::PooledBlobBufferFactory bufferFactory(128, s_allocator_p);
@@ -571,7 +570,7 @@ static void test1_breathingTest()
 
 static void test2_setPropertyTest()
 {
-    mwctst::TestHelper::printTestName("'setPropertyAs*' TEST");
+    bmqtst::TestHelper::printTestName("'setPropertyAs*' TEST");
 
     {
         // Test all flavors of 'setPropertyAs*'.
@@ -733,7 +732,7 @@ static void test2_setPropertyTest()
             bmqp::MessageProperties::k_MAX_PROPERTY_VALUE_LENGTH;
 
         for (int i = 0; i < numProp; ++i) {
-            mwcu::MemOutStream osstr(s_allocator_p);
+            bmqu::MemOutStream osstr(s_allocator_p);
             osstr << "propName" << i << bsl::ends;
             ASSERT_EQ(0, p.setPropertyAsString(osstr.str(), bigValue));
         }
@@ -747,7 +746,7 @@ static void test2_setPropertyTest()
 
         for (int i = 0; i < bmqp::MessageProperties::k_MAX_NUM_PROPERTIES;
              ++i) {
-            mwcu::MemOutStream osstr(s_allocator_p);
+            bmqu::MemOutStream osstr(s_allocator_p);
             osstr << "propName" << i << bsl::ends;
             ASSERT_EQ(0, p.setPropertyAsInt32(osstr.str(), i));
         }
@@ -760,7 +759,7 @@ static void test2_setPropertyTest()
 static void test3_binaryPropertyTest()
 {
     // Ensure that a binary property is set and retrieved correctly.
-    mwctst::TestHelper::printTestName("'setPropertyAsBinary' TEST");
+    bmqtst::TestHelper::printTestName("'setPropertyAsBinary' TEST");
 
     bdlbb::PooledBlobBufferFactory bufferFactory(128, s_allocator_p);
 
@@ -782,7 +781,7 @@ static void test3_binaryPropertyTest()
 static void test4_iteratorTest()
 {
     // Ensure iterator's functionality is correct.
-    mwctst::TestHelper::printTestName("'setPropertyAsBinary' TEST");
+    bmqtst::TestHelper::printTestName("'setPropertyAsBinary' TEST");
 
     bdlbb::PooledBlobBufferFactory bufferFactory(128, s_allocator_p);
     bmqp::MessageProperties        p(s_allocator_p);
@@ -805,7 +804,7 @@ static void test4_iteratorTest()
 static void test5_streamInTest()
 {
     // Ensure 'streamIn' functionality is correct.
-    mwctst::TestHelper::printTestName("'streamIn' TEST");
+    bmqtst::TestHelper::printTestName("'streamIn' TEST");
 
     bdlbb::PooledBlobBufferFactory bufferFactory(128, s_allocator_p);
     bmqp::MessageProperties        p(s_allocator_p);
@@ -854,7 +853,7 @@ static void test5_streamInTest()
 static void test6_streamOutTest()
 {
     // Ensure 'streamOut' functionality is correct.
-    mwctst::TestHelper::printTestName("'streamOut' TEST");
+    bmqtst::TestHelper::printTestName("'streamOut' TEST");
 
     bdlbb::PooledBlobBufferFactory bufferFactory(128, s_allocator_p);
     bdlbb::Blob                    wireRep(&bufferFactory, s_allocator_p);
@@ -909,7 +908,7 @@ static void test7_streamInOutMixTest()
     // Ensure that 'streamOut' works correctly if 'streamIn' was invoked before
     // on the instance.
 
-    mwctst::TestHelper::printTestName("'streamIn/Out Mix' TEST");
+    bmqtst::TestHelper::printTestName("'streamIn/Out Mix' TEST");
 
     bdlbb::PooledBlobBufferFactory bufferFactory(128, s_allocator_p);
     bdlbb::Blob                    wireRep(&bufferFactory, s_allocator_p);
@@ -990,7 +989,7 @@ static void test8_printTest()
 //                    const bmqp::MessageProperties& rhs)
 // --------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("PRINT");
+    bmqtst::TestHelper::printTestName("PRINT");
 
     BSLMF_ASSERT(bmqt::PropertyType::e_BOOL ==
                  bmqt::PropertyType::k_LOWEST_SUPPORTED_PROPERTY_TYPE);
@@ -1035,8 +1034,8 @@ static void test8_printTest()
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
         const Test&             test = k_DATA[idx];
         bmqp::MessageProperties obj(s_allocator_p);
-        mwcu::MemOutStream      out(s_allocator_p);
-        mwcu::MemOutStream      expected(s_allocator_p);
+        bmqu::MemOutStream      out(s_allocator_p);
+        bmqu::MemOutStream      expected(s_allocator_p);
 
         switch (test.d_type) {
         case bmqt::PropertyType::e_BOOL: {
@@ -1103,7 +1102,7 @@ static void test9_copyAssignTest()
 //   bmqp::MessageProperties& operator=(const MessageProperties& rhs);
 // --------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("COPY AND ASSIGN");
+    bmqtst::TestHelper::printTestName("COPY AND ASSIGN");
 
     bdlbb::PooledBlobBufferFactory bufferFactory(128, s_allocator_p);
     bmqp::MessageProperties        obj(s_allocator_p);
@@ -1158,7 +1157,7 @@ static void test10_empty()
 {
     // Even if SDK does not send out empty MPS, streaming out/in should work.
 
-    mwctst::TestHelper::printTestName("'empty MPs' TEST");
+    bmqtst::TestHelper::printTestName("'empty MPs' TEST");
 
     bdlbb::PooledBlobBufferFactory bufferFactory(128, s_allocator_p);
     bmqp::MessageProperties        p(s_allocator_p);
@@ -1182,7 +1181,7 @@ static void test10_empty()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     bmqp::ProtocolUtil::initialize(s_allocator_p);
 
@@ -1206,7 +1205,7 @@ int main(int argc, char* argv[])
 
     bmqp::ProtocolUtil::shutdown();
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 
     // Check for default allocator is explicitly disabled as
     // 'bmqp::MessageProperties' or one of its data members may allocate

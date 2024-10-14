@@ -47,8 +47,7 @@
 // BMQ
 #include <bmqt_uri.h>
 
-// MWC
-#include <mwcma_countingallocatorstore.h>
+#include <bmqma_countingallocatorstore.h>
 
 // BDE
 #include <ball_log.h>
@@ -191,7 +190,7 @@ class StorageManager : public mqbi::StorageManager {
     bslma::Allocator* d_allocator_p;
     // Allocator to use
 
-    mwcma::CountingAllocatorStore d_allocators;
+    bmqma::CountingAllocatorStore d_allocators;
     // Allocator store to spawn new
     // allocators for sub-components
 

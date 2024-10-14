@@ -1124,7 +1124,7 @@ QueueModeFanout::~QueueModeFanout()
 QueueModeFanout& QueueModeFanout::operator=(const QueueModeFanout& rhs)
 {
     if (this != &rhs) {
-        d_appIDs = rhs.d_appIDs;
+        d_appIDs              = rhs.d_appIDs;
         d_publishAppIdMetrics = rhs.d_publishAppIdMetrics;
     }
 
@@ -1136,7 +1136,7 @@ QueueModeFanout& QueueModeFanout::operator=(const QueueModeFanout& rhs)
 QueueModeFanout& QueueModeFanout::operator=(QueueModeFanout&& rhs)
 {
     if (this != &rhs) {
-        d_appIDs = bsl::move(rhs.d_appIDs);
+        d_appIDs              = bsl::move(rhs.d_appIDs);
         d_publishAppIdMetrics = bsl::move(rhs.d_publishAppIdMetrics);
     }
 

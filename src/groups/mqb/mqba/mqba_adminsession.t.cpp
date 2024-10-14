@@ -27,12 +27,11 @@
 #include <bmqp_ctrlmsg_messages.h>
 #include <bmqp_protocol.h>
 
-// MWC
-#include <mwcio_channel.h>
-#include <mwcio_testchannel.h>
-#include <mwcsys_time.h>
-#include <mwcu_blob.h>
-#include <mwcu_blobobjectproxy.h>
+#include <bmqio_channel.h>
+#include <bmqio_testchannel.h>
+#include <bmqsys_time.h>
+#include <bmqu_blob.h>
+#include <bmqu_blobobjectproxy.h>
 
 // BDE
 #include <bdlbb_blobutil.h>
@@ -46,7 +45,7 @@
 #include <bsls_annotation.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -142,7 +141,7 @@ class TestBench {
     // DATA
     bdlbb::PooledBlobBufferFactory      d_bufferFactory;
     BlobSpPool                          d_blobSpPool;
-    bsl::shared_ptr<mwcio::TestChannel> d_channel;
+    bsl::shared_ptr<bmqio::TestChannel> d_channel;
     mqbmock::Dispatcher                 d_mockDispatcher;
     bdlmt::EventScheduler               d_scheduler;
     TestClock                           d_testClock;
@@ -163,7 +162,7 @@ class TestBench {
                                         bdlf::PlaceHolders::_2),  // alloc
                    1024,  // blob pool growth strategy
                    allocator)
-    , d_channel(new mwcio::TestChannel(allocator))
+    , d_channel(new bmqio::TestChannel(allocator))
     , d_mockDispatcher(allocator)
     , d_scheduler(bsls::SystemClockType::e_MONOTONIC, allocator)
     , d_testClock(d_scheduler)
@@ -183,8 +182,8 @@ class TestBench {
         d_mockDispatcher._setInDispatcherThread(true);
 
         // Setup test time source
-        mwcsys::Time::shutdown();
-        mwcsys::Time::initialize(
+        bmqsys::Time::shutdown();
+        bmqsys::Time::initialize(
             bdlf::BindUtil::bind(&TestClock::realtimeClock, &d_testClock),
             bdlf::BindUtil::bind(&TestClock::monotonicClock, &d_testClock),
             bdlf::BindUtil::bind(&TestClock::highResTimer, &d_testClock),
@@ -225,7 +224,7 @@ static void test1_watermark()
 //
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("ADMIN SESSION HIGH WATERMARK");
+    bmqtst::TestHelper::printTestName("ADMIN SESSION HIGH WATERMARK");
 
     const bsl::string command("sample command", s_allocator_p);
     const size_t      numMessages = 64;
@@ -262,8 +261,8 @@ static void test1_watermark()
     BSLS_ASSERT(adminEvent.isControlEvent());
 
     // Set high watermark status for the test channel
-    mwcio::Status status;
-    status.setCategory(mwcio::StatusCategory::e_LIMIT);
+    bmqio::Status status;
+    status.setCategory(bmqio::StatusCategory::e_LIMIT);
     tb.d_channel->setWriteStatus(status);
 
     // Send the sample admin event multiple times to the admin session
@@ -297,14 +296,14 @@ static void test1_watermark()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     bmqt::UriParser::initialize(s_allocator_p);
     bmqp::Crc32c::initialize();
 
     {
         bmqp::ProtocolUtil::initialize(s_allocator_p);
-        mwcsys::Time::initialize(s_allocator_p);
+        bmqsys::Time::initialize(s_allocator_p);
 
         mqbcfg::AppConfig brokerConfig(s_allocator_p);
         mqbcfg::BrokerConfig::set(brokerConfig);
@@ -320,12 +319,12 @@ int main(int argc, char* argv[])
         } break;
         }
 
-        mwcsys::Time::shutdown();
+        bmqsys::Time::shutdown();
         bmqp::ProtocolUtil::shutdown();
     }
 
     bmqt::UriParser::shutdown();
 
-    TEST_EPILOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_EPILOG(bmqtst::TestHelper::e_DEFAULT);
     // Do not check for default/global allocator usage.
 }

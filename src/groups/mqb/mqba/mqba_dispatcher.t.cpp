@@ -20,12 +20,11 @@
 #include <mqbcfg_messages.h>
 #include <mqbmock_dispatcher.h>
 
-// MWC
-#include <mwcex_bindutil.h>
-#include <mwcex_executionpolicy.h>
-#include <mwcex_executionutil.h>
-#include <mwcex_executor.h>
-#include <mwcsys_time.h>
+#include <bmqex_bindutil.h>
+#include <bmqex_executionpolicy.h>
+#include <bmqex_executionutil.h>
+#include <bmqex_executor.h>
+#include <bmqsys_time.h>
 
 // BDE
 #include <bdlf_bind.h>
@@ -37,7 +36,7 @@
 #include <bsls_systemclocktype.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -106,7 +105,7 @@ static void test1_breathingTest()
 //   Basic functionality
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("BREATHING TEST");
+    bmqtst::TestHelper::printTestName("BREATHING TEST");
 
     // Create Dispatcher
     mqbcfg::DispatcherConfig dispatcherConfig;
@@ -140,7 +139,7 @@ static void test2_clientTypeEnumValues()
 //   mqbi::DispatcherClientType::Enum
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("CLIENT TYPE ENUM VALUES");
+    bmqtst::TestHelper::printTestName("CLIENT TYPE ENUM VALUES");
 
     ASSERT_EQ(mqbi::DispatcherClientType::e_SESSION, 0);
     ASSERT_EQ(mqbi::DispatcherClientType::e_QUEUE, 1);
@@ -181,7 +180,7 @@ static void test3_executorsSupport()
 //   Executors support
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("EXECUTORS SUPPORT");
+    bmqtst::TestHelper::printTestName("EXECUTORS SUPPORT");
 
     // create / start a scheduler
     bdlmt::EventScheduler eventScheduler(bsls::SystemClockType::e_MONOTONIC,
@@ -235,11 +234,11 @@ static void test3_executorsSupport()
     // test regular executor
     {
         // obtain an executor for first client's processor
-        mwcex::Executor executor1 = dispatcher.executor(&client1);
+        bmqex::Executor executor1 = dispatcher.executor(&client1);
         ASSERT(static_cast<bool>(executor1));
 
         // obtain executor for second client's processor
-        mwcex::Executor executor2 = dispatcher.executor(&client2);
+        bmqex::Executor executor2 = dispatcher.executor(&client2);
         ASSERT(static_cast<bool>(executor2));
 
         // executors for the first and the second client do compare equal as
@@ -248,7 +247,7 @@ static void test3_executorsSupport()
         ASSERT(executor1 == executor2);
 
         // obtain executor for third client's processor
-        mwcex::Executor executor3 = dispatcher.executor(&client3);
+        bmqex::Executor executor3 = dispatcher.executor(&client3);
         ASSERT(static_cast<bool>(executor3));
 
         // executors for the second and the third clients do not compare equal
@@ -276,7 +275,7 @@ static void test3_executorsSupport()
         // submit two functors to be executed on the same processor using the
         // executor's 'post' function, and wait for the completion of submitted
         // functors
-        mwcex::ExecutionUtil::execute(mwcex::ExecutionPolicyUtil::twoWay()
+        bmqex::ExecutionUtil::execute(bmqex::ExecutionPolicyUtil::twoWay()
                                           .neverBlocking()
                                           .useExecutor(executor1)
                                           .useAllocator(s_allocator_p),
@@ -284,7 +283,7 @@ static void test3_executorsSupport()
                                                            &threadId1))
             .wait();
 
-        mwcex::ExecutionUtil::execute(mwcex::ExecutionPolicyUtil::twoWay()
+        bmqex::ExecutionUtil::execute(bmqex::ExecutionPolicyUtil::twoWay()
                                           .neverBlocking()
                                           .useExecutor(executor1)
                                           .useAllocator(s_allocator_p),
@@ -313,7 +312,7 @@ static void test3_executorsSupport()
         // submit two functors to be executed on the same processor using the
         // executor's 'dispatch' function, and wait for the completion of
         // submitted functors
-        mwcex::ExecutionUtil::execute(mwcex::ExecutionPolicyUtil::twoWay()
+        bmqex::ExecutionUtil::execute(bmqex::ExecutionPolicyUtil::twoWay()
                                           .possiblyBlocking()
                                           .useExecutor(executor2)
                                           .useAllocator(s_allocator_p),
@@ -321,7 +320,7 @@ static void test3_executorsSupport()
                                                            &threadId1))
             .wait();
 
-        mwcex::ExecutionUtil::execute(mwcex::ExecutionPolicyUtil::twoWay()
+        bmqex::ExecutionUtil::execute(bmqex::ExecutionPolicyUtil::twoWay()
                                           .possiblyBlocking()
                                           .useExecutor(executor2)
                                           .useAllocator(s_allocator_p),
@@ -341,13 +340,13 @@ static void test3_executorsSupport()
         // submit a functor that, when invoked, will submit another functor
         // via the executor's 'dispatch' function and block the calling thread
         // until the nested functor completes
-        mwcex::ExecutionUtil::execute(
-            mwcex::ExecutionPolicyUtil::oneWay()
+        bmqex::ExecutionUtil::execute(
+            bmqex::ExecutionPolicyUtil::oneWay()
                 .alwaysBlocking()
                 .useExecutor(executor1)
                 .useAllocator(s_allocator_p),
-            mwcex::BindUtil::bindExecute(
-                mwcex::ExecutionPolicyUtil::oneWay()
+            bmqex::BindUtil::bindExecute(
+                bmqex::ExecutionPolicyUtil::oneWay()
                     .alwaysBlocking()
                     .useExecutor(executor3)
                     .useAllocator(s_allocator_p),
@@ -361,11 +360,11 @@ static void test3_executorsSupport()
     // test client executor
     {
         // obtain executor for first client
-        mwcex::Executor executor1 = dispatcher.clientExecutor(&client1);
+        bmqex::Executor executor1 = dispatcher.clientExecutor(&client1);
         ASSERT(static_cast<bool>(executor1));
 
         // obtain executor for second client
-        mwcex::Executor executor2 = dispatcher.clientExecutor(&client2);
+        bmqex::Executor executor2 = dispatcher.clientExecutor(&client2);
         ASSERT(static_cast<bool>(executor2));
 
         // executors for the first and the second client do not compare equal
@@ -373,7 +372,7 @@ static void test3_executorsSupport()
         ASSERT(executor1 != executor2);
 
         // obtain executor for second client again
-        mwcex::Executor executor3 = dispatcher.clientExecutor(&client2);
+        bmqex::Executor executor3 = dispatcher.clientExecutor(&client2);
         ASSERT(static_cast<bool>(executor3));
 
         // executors for the same (second) client do compare equal
@@ -399,7 +398,7 @@ static void test3_executorsSupport()
         // submit two functors to be executed on the same processor and by the
         // same client using the executor's 'post' function, and wait for the
         // completion of submitted functors
-        mwcex::ExecutionUtil::execute(mwcex::ExecutionPolicyUtil::twoWay()
+        bmqex::ExecutionUtil::execute(bmqex::ExecutionPolicyUtil::twoWay()
                                           .neverBlocking()
                                           .useExecutor(executor1)
                                           .useAllocator(s_allocator_p),
@@ -407,7 +406,7 @@ static void test3_executorsSupport()
                                                            &threadId1))
             .wait();
 
-        mwcex::ExecutionUtil::execute(mwcex::ExecutionPolicyUtil::twoWay()
+        bmqex::ExecutionUtil::execute(bmqex::ExecutionPolicyUtil::twoWay()
                                           .neverBlocking()
                                           .useExecutor(executor1)
                                           .useAllocator(s_allocator_p),
@@ -436,7 +435,7 @@ static void test3_executorsSupport()
         // submit two functors to be executed on the same processor and by the
         // same client using the executor's 'dispatch' function, and wait for
         // the completion of submitted functors
-        mwcex::ExecutionUtil::execute(mwcex::ExecutionPolicyUtil::twoWay()
+        bmqex::ExecutionUtil::execute(bmqex::ExecutionPolicyUtil::twoWay()
                                           .possiblyBlocking()
                                           .useExecutor(executor2)
                                           .useAllocator(s_allocator_p),
@@ -444,7 +443,7 @@ static void test3_executorsSupport()
                                                            &threadId1))
             .wait();
 
-        mwcex::ExecutionUtil::execute(mwcex::ExecutionPolicyUtil::twoWay()
+        bmqex::ExecutionUtil::execute(bmqex::ExecutionPolicyUtil::twoWay()
                                           .possiblyBlocking()
                                           .useExecutor(executor2)
                                           .useAllocator(s_allocator_p),
@@ -460,13 +459,13 @@ static void test3_executorsSupport()
         // submit a functor that, when invoked, will submit another functor
         // via the executor's 'dispatch' function and block the calling thread
         // until the nested functor completes
-        mwcex::ExecutionUtil::execute(
-            mwcex::ExecutionPolicyUtil::oneWay()
+        bmqex::ExecutionUtil::execute(
+            bmqex::ExecutionPolicyUtil::oneWay()
                 .alwaysBlocking()
                 .useExecutor(executor1)
                 .useAllocator(s_allocator_p),
-            mwcex::BindUtil::bindExecute(
-                mwcex::ExecutionPolicyUtil::oneWay()
+            bmqex::BindUtil::bindExecute(
+                bmqex::ExecutionPolicyUtil::oneWay()
                     .alwaysBlocking()
                     .useExecutor(executor2)
                     .useAllocator(s_allocator_p),
@@ -490,9 +489,9 @@ static void test3_executorsSupport()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
-    mwcsys::Time::initialize();
+    bmqsys::Time::initialize();
 
     switch (_testCase) {
     case 0:
@@ -505,7 +504,7 @@ int main(int argc, char* argv[])
     } break;
     }
 
-    mwcsys::Time::shutdown();
+    bmqsys::Time::shutdown();
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 }
