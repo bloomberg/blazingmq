@@ -95,6 +95,7 @@ Test::Test()
                d_storageKey,
                1,
                &d_domain,
+               d_cluster._resources(),
                s_allocator_p)
 , d_monitor(&d_queueState,
             bdlf::BindUtil::bind(&Test::loggingCb,
@@ -108,7 +109,6 @@ Test::Test()
             mqbs::DataStore::k_INVALID_PARTITION_ID,
             getDomainConfig(),
             d_domain.capacityMeter(),
-            bmqp::RdaInfo(),
             s_allocator_p)
 , d_haveUndelivered(s_allocator_p)
 {

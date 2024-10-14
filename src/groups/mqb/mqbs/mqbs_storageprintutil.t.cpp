@@ -145,7 +145,6 @@ struct Tester {
                               0,
                               domainCfg,
                               &d_capacityMeter,
-                              bmqp::RdaInfo(),
                               s_allocator_p),
                           s_allocator_p);
 
@@ -188,16 +187,12 @@ struct Tester {
             appDataPtr->setLength(i * 10);
 
             mqbi::StorageMessageAttributes attributes;
-            d_storage_mp->put(&attributes,
-                              guid,
-                              appDataPtr,
-                              appDataPtr,
-                              mqbi::Storage::StorageKeys());
+            d_storage_mp->put(&attributes, guid, appDataPtr, appDataPtr);
         }
 
         for (int i = 0; i < 5; ++i) {
-            d_storage_mp->releaseRef(d_guids[i * 2], k_APP_KEY1, 0);
-            d_storage_mp->releaseRef(d_guids[i * 2 + 1], k_APP_KEY2, 0);
+            d_storage_mp->confirm(d_guids[i * 2], k_APP_KEY1, 0);
+            d_storage_mp->confirm(d_guids[i * 2 + 1], k_APP_KEY2, 0);
         }
     }
 

@@ -523,8 +523,8 @@ def test_verify_broadcast(cluster: Cluster):
 def test_verify_redelivery(cluster: Cluster):
     """Drop one consumer having unconfirmed message while there is another
     consumer unable to take the message (due to max_unconfirmed_messages
-    limit).  Then start new consumer and make sure it does not crash (Ticket
-    156808957) and receives that unconfirmed message.
+    limit).  Then start new consumer and make sure it does not crash and
+    receives that unconfirmed message.
     """
     proxies = cluster.proxy_cycle()
 
@@ -558,6 +558,8 @@ def test_verify_redelivery(cluster: Cluster):
     consumer1.wait_push_event()
     before = consumer1.list(tc.URI_FANOUT_FOO, block=True)
 
+    assert len(before) == 1
+
     consumer2.wait_push_event()
 
     consumer1.stop_session(block=True)
@@ -573,6 +575,8 @@ def test_verify_redelivery(cluster: Cluster):
 
     consumer1.wait_push_event()
     after = consumer1.list(tc.URI_FANOUT_FOO, block=True)
+
+    assert len(after) == 1
 
     assert before[0].payload == after[0].payload
 

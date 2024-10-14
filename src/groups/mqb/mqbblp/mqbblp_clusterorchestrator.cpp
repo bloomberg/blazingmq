@@ -332,7 +332,7 @@ void ClusterOrchestrator::onPartitionPrimaryStatusDispatched(
         // partition.  Log and move on.
 
         BALL_LOG_WARN << d_clusterData_p->identity().description()
-                      << " PartitionId [" << partitionId
+                      << " Partition [" << partitionId
                       << "]: ignoring partition-primary sync notification "
                       << "because there is new primary now. LeaseId in "
                       << "notification: " << primaryLeaseId
@@ -356,7 +356,7 @@ void ClusterOrchestrator::onPartitionPrimaryStatusDispatched(
         BSLS_ASSERT_SAFE(pinfo.primaryLeaseId() > primaryLeaseId);
 
         BALL_LOG_WARN << d_clusterData_p->identity().description()
-                      << " PartitionId [" << partitionId
+                      << " Partition [" << partitionId
                       << "]: ignoring partition-primary sync notification "
                       << "because primary (self) has different leaseId. "
                       << "LeaseId in notification: " << primaryLeaseId
@@ -374,7 +374,7 @@ void ClusterOrchestrator::onPartitionPrimaryStatusDispatched(
         // fails to transition to ACTIVE status in the stipulated time.
 
         MWCTSK_ALARMLOG_ALARM("CLUSTER")
-            << d_clusterData_p->identity().description() << " PartitionId ["
+            << d_clusterData_p->identity().description() << " Partition ["
             << partitionId
             << "]: primary node (self) failed to sync partition, rc: "
             << status << ", leaseId: " << primaryLeaseId
@@ -387,7 +387,7 @@ void ClusterOrchestrator::onPartitionPrimaryStatusDispatched(
     }
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
-                  << " PartitionId [" << partitionId
+                  << " Partition [" << partitionId
                   << "]: primary node (self) successfully synced the "
                   << " partition. Current leaseId: " << pinfo.primaryLeaseId();
 
@@ -1655,17 +1655,32 @@ void ClusterOrchestrator::processPrimaryStatusAdvisory(
     if (d_clusterConfig.clusterAttributes().isFSMWorkflow()) {
         if (pinfo.primaryNode() != source ||
             pinfo.primaryLeaseId() != primaryAdv.primaryLeaseId()) {
-            BALL_LOG_WARN << d_clusterData_p->identity().description()
-                          << ": Partition [" << primaryAdv.partitionId()
-                          << "]: received primary status advisory: "
-                          << primaryAdv
-                          << " from: " << source->nodeDescription()
-                          << ", but self perceived primary and its leaseId are"
-                          << ": ["
-                          << (pinfo.primaryNode()
-                                  ? pinfo.primaryNode()->nodeDescription()
-                                  : "** null **")
-                          << ", " << pinfo.primaryLeaseId() << "].";
+            BALL_LOG_WARN_BLOCK
+            {
+                BALL_LOG_OUTPUT_STREAM
+                    << d_clusterData_p->identity().description()
+                    << ": Partition [" << primaryAdv.partitionId()
+                    << "]: received primary status advisory: " << primaryAdv
+                    << " from: " << source->nodeDescription()
+                    << ", but self perceived primary and its leaseId are"
+                    << ": ["
+                    << (pinfo.primaryNode()
+                            ? pinfo.primaryNode()->nodeDescription()
+                            : "** null **")
+                    << ", " << pinfo.primaryLeaseId() << "].";
+                if (pinfo.primaryNode()) {
+                    BALL_LOG_OUTPUT_STREAM << " Ignoring advisory.";
+                }
+                else {
+                    BALL_LOG_OUTPUT_STREAM << " Since we have not received any"
+                                           << " information regarding the true"
+                                           << " primary, this advisory could "
+                                           << "be from the true one. Will"
+                                           << " buffer the advisory for now.";
+                    d_storageManager_p->bufferPrimaryStatusAdvisory(primaryAdv,
+                                                                    source);
+                }
+            }
             return;  // RETURN
         }
     }
@@ -1759,11 +1774,18 @@ void ClusterOrchestrator::processPrimaryStatusAdvisory(
 
     // TBD: may need to review the order of invoking these routines.
 
+    BALL_LOG_INFO << d_clusterData_p->identity().description()
+                  << " PartitionId [" << primaryAdv.partitionId()
+                  << "]: received primary status advisory: " << primaryAdv
+                  << ", from: " << source->nodeDescription();
+
     BSLS_ASSERT_SAFE(ns->isPrimaryForPartition(primaryAdv.partitionId()));
     d_stateManager_mp->setPrimaryStatus(primaryAdv.partitionId(),
                                         primaryAdv.status());
 
-    d_storageManager_p->processPrimaryStatusAdvisory(primaryAdv, source);
+    if (!d_clusterConfig.clusterAttributes().isFSMWorkflow()) {
+        d_storageManager_p->processPrimaryStatusAdvisory(primaryAdv, source);
+    }
 }
 
 void ClusterOrchestrator::processStateNotification(

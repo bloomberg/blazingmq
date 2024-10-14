@@ -108,7 +108,7 @@ namespace mqbmock {
 // class Cluster
 // =============
 
-/// Mock cluster implementation of the `mqbi::Cluster` inteface.
+/// Mock cluster implementation of the `mqbi::Cluster` interface.
 class Cluster : public mqbi::Cluster {
   private:
     // PRIVATE TYPES
@@ -219,6 +219,8 @@ class Cluster : public mqbi::Cluster {
     // Dispatcher client data
 
     EventProcessor d_processor;
+
+    mqbi::ClusterResources d_resources;
 
   private:
     // NOT IMPLEMENTED
@@ -440,6 +442,9 @@ class Cluster : public mqbi::Cluster {
     /// Move the test timer forward the specified `seconds`.
     void advanceTime(int seconds);
 
+    /// Move the test timer forward the specified `milliseconds`.
+    void advanceTime(const bsls::TimeInterval& interval);
+
     /// Block until scheduler executes all the scheduled callbacks.
     void waitForScheduler();
 
@@ -526,6 +531,7 @@ class Cluster : public mqbi::Cluster {
     const bdlmt::EventSchedulerTestTimeSource& _timeSource() const;
     const TestChannelMap&                      _channels() const;
     const mqbc::ClusterData*                   _clusterData() const;
+    const mqbi::ClusterResources&              _resources() const;
 
     /// Return the value of the corresponding member of this object.
     const mqbc::ClusterState& _state() const;
@@ -600,20 +606,25 @@ inline void Cluster::advanceTime(int seconds)
     d_timeSource.advanceTime(bsls::TimeInterval(seconds));
 }
 
-inline void Cluster::getPrimaryNodes(int*          rc,
-                                     bsl::ostream& errorDescription,
-                                     bsl::vector<mqbnet::ClusterNode*>* nodes,
-                                     bool* isSelfPrimary) const
+inline void Cluster::advanceTime(const bsls::TimeInterval& interval)
+{
+    d_timeSource.advanceTime(interval);
+}
+
+inline void Cluster::getPrimaryNodes(int*,
+                                     bsl::ostream&,
+                                     bsl::vector<mqbnet::ClusterNode*>*,
+                                     bool*) const
 {
     // no implementation -- this should never run.
     BSLS_ASSERT_SAFE(false);
 }
 
-inline void Cluster::getPartitionPrimaryNode(int*          rc,
-                                             bsl::ostream& errorDescription,
-                                             mqbnet::ClusterNode** node,
-                                             bool* isSelfPrimary,
-                                             int   partitionId) const
+inline void Cluster::getPartitionPrimaryNode(int*,
+                                             bsl::ostream&,
+                                             mqbnet::ClusterNode**,
+                                             bool*,
+                                             int) const
 {
     // no implementation -- this should never run.
     BSLS_ASSERT_SAFE(false);
@@ -655,6 +666,11 @@ inline const mqbc::ClusterData* Cluster::_clusterData() const
 inline const mqbc::ClusterState& Cluster::_state() const
 {
     return d_state;
+}
+
+inline const mqbi::ClusterResources& Cluster::_resources() const
+{
+    return d_resources;
 }
 
 inline bsls::TimeInterval Cluster::getTime() const

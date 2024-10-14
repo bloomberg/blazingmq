@@ -99,7 +99,7 @@ namespace mqbmock {
 // Class Queue
 // ===========
 
-/// Mock queue implementation of the `mqbi::Queue` inteface
+/// Mock queue implementation of the `mqbi::Queue` interface
 class Queue : public mqbi::Queue {
   private:
     // CLASS-SCOPE CATEGORY

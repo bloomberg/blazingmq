@@ -467,17 +467,17 @@ class Cluster : public mqbi::Cluster,
                                            const bmqp::QueueId& queueId,
                                            mqbc::ClusterNodeSession* ns,
                                            bmqp::EventType::Enum eventType);
-    // Validate a message of the specified 'eventType' using the specified
-    // 'queueId' and 'ns'. Return one of `ValidationResult` values. Populate
-    // the specified 'queueHandle' if the queue is found.
+    // Validate a message of the specified `eventType` using the specified
+    // `queueId` and `ns`. Return one of `ValidationResult` values. Populate
+    // the specified `queueHandle` if the queue is found.
 
     bool validateRelayMessage(mqbc::ClusterNodeSession** ns,
                               bsl::ostream*              errorStream,
                               const int                  pid);
-    // Validate a relay message using the specified 'pid'. Return true if the
-    // message is valid and false otherwise. Populate the specified 'ns' if the
+    // Validate a relay message using the specified `pid`. Return true if the
+    // message is valid and false otherwise. Populate the specified `ns` if the
     // message is valid or load a descriptive error message into the
-    // 'errorStream' if the message is invalid.
+    // `errorStream` if the message is invalid.
 
     /// Executes in any thread.
     void
@@ -541,19 +541,17 @@ class Cluster : public mqbi::Cluster,
     /// Create a new object representing a cluster having the specified
     /// `name`, `clusterConfig` and `statContexts`, associated to the
     /// specified `netCluster` and using the specified `domainFactory`,
-    /// `scheduler`, `dispatcher`, `blobSpPool` and `bufferFactory`.  Use
+    /// `scheduler`, `dispatcher`, `transportManager`, and `resources`.  Use
     /// the specified `allocator` for any memory allocation.
     Cluster(const bslstl::StringRef&                      name,
             const mqbcfg::ClusterDefinition&              clusterConfig,
             bslma::ManagedPtr<mqbnet::Cluster>            netCluster,
             const StatContextsMap&                        statContexts,
             mqbi::DomainFactory*                          domainFactory,
-            bdlmt::EventScheduler*                        scheduler,
             mqbi::Dispatcher*                             dispatcher,
-            BlobSpPool*                                   blobSpPool,
-            bdlbb::BlobBufferFactory*                     bufferFactory,
             mqbnet::TransportManager*                     transportManager,
             StopRequestManagerType*                       stopRequestsManager,
+            const mqbi::ClusterResources&                 resources,
             bslma::Allocator*                             allocator,
             const mqbnet::Session::AdminCommandEnqueueCb& adminCb);
 

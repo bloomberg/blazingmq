@@ -109,7 +109,7 @@ static void test1_breathingTest()
 
     // 2) Post 3 messages to the queue, and invoke the engine to deliver them
     //    to the highest priority consumers
-    tester.post("1,2,3");
+    tester.post("1,2,3", guard.engine());
 
     tester.afterNewMessage(3);
 
@@ -194,7 +194,7 @@ static void test2_aggregateDownstream()
     // C1: 1
     // C2: 2
     // C3: 1
-    tester.post("1,2,3,4");
+    tester.post("1,2,3,4", guard.engine());
     tester.afterNewMessage(4);
 
     ASSERT_EQ(C1->_numMessages(), 1);
@@ -220,7 +220,7 @@ static void test2_aggregateDownstream()
     // C1: 1
     // C2: 2
     // C3: 3
-    tester.post("5,6,7,8,9,10");
+    tester.post("5,6,7,8,9,10", guard.engine());
     tester.afterNewMessage(6);
 
     ASSERT_EQ(C1->_numMessages(), 1);
@@ -244,7 +244,7 @@ static void test2_aggregateDownstream()
     // C1: 1
     // C2: 2
     // C3: 2
-    tester.post("11,12,13,14,15");
+    tester.post("11,12,13,14,15", guard.engine());
     tester.afterNewMessage(5);
 
     ASSERT_EQ(C1->_numMessages(), 1);
@@ -268,7 +268,7 @@ static void test2_aggregateDownstream()
     // C1: 1
     // C2: 1
     // C3: 2
-    tester.post("16,17,18,19");
+    tester.post("16,17,18,19", guard.engine());
     tester.afterNewMessage(4);
 
     ASSERT_EQ(C1->_numMessages(), 1);
@@ -291,7 +291,7 @@ static void test2_aggregateDownstream()
     // C1: 1
     // C2: 0
     // C3: 2
-    tester.post("20,21,22,23,24,25");
+    tester.post("20,21,22,23,24,25", guard.engine());
     tester.afterNewMessage(6);
 
     ASSERT_EQ(C1->_numMessages(), 2);
@@ -359,7 +359,7 @@ static void test3_reconfigure()
 
     // C1: 1
     // C2: 1
-    tester.post("1,2");
+    tester.post("1,2", guard.engine());
     tester.afterNewMessage(2);
 
     ASSERT_EQ(C1->_numMessages(), 1);
@@ -377,7 +377,7 @@ static void test3_reconfigure()
 
     // C1: 0
     // C2: 1
-    tester.post("3,4");
+    tester.post("3,4", guard.engine());
     tester.afterNewMessage(2);
 
     ASSERT_EQ(C1->_numMessages(), 0);
@@ -392,7 +392,7 @@ static void test3_reconfigure()
 
     // C1: 1
     // C2: 1
-    tester.post("5,6,7,8");
+    tester.post("5,6,7,8", guard.engine());
     tester.afterNewMessage(4);
 
     ASSERT_EQ(C1->_numMessages(), 2);
@@ -412,7 +412,7 @@ static void test3_reconfigure()
     // C1: 0
     // C2: 0
     // C3: 1
-    tester.post("9,10");
+    tester.post("9,10", guard.engine());
     tester.afterNewMessage(2);
 
     ASSERT_EQ(C1->_numMessages(), 0);
@@ -430,7 +430,7 @@ static void test3_reconfigure()
     // C1: 2
     // C2: 1
     // C3: 1
-    tester.post("11,12,13,14,15,16,17,18");
+    tester.post("11,12,13,14,15,16,17,18", guard.engine());
     tester.afterNewMessage(8);
 
     ASSERT_EQ(C1->_numMessages(), 4);
@@ -498,7 +498,7 @@ static void test4_cannotDeliver()
 
     // C1: 1
     // C2: 1
-    tester.post("1,2");
+    tester.post("1,2", guard.engine());
     tester.afterNewMessage(2);
 
     ASSERT_EQ(C1->_numMessages(), 1);
@@ -516,7 +516,7 @@ static void test4_cannotDeliver()
 
     // C1: N.A.
     // C2: 1
-    tester.post("3,4");
+    tester.post("3,4", guard.engine());
     tester.afterNewMessage(2);
 
     ASSERT_EQ(C1->_numMessages(), 0);
@@ -531,7 +531,7 @@ static void test4_cannotDeliver()
 
     // C1: N.A.
     // C2: N.A.
-    tester.post("5");
+    tester.post("5", guard.engine());
     tester.afterNewMessage(1);
 
     ASSERT_EQ(C1->_numMessages(), 0);
@@ -555,7 +555,7 @@ static void test4_cannotDeliver()
 
     // C1: 1
     // C2: 1
-    tester.post("6,7,8,9");
+    tester.post("6,7,8,9", guard.engine());
     tester.afterNewMessage(4);
 
     ASSERT_EQ(C1->_numMessages(), 2);
@@ -613,7 +613,7 @@ static void test5_localRedelivery()
 
     // C1: 1
     // C2: 1
-    tester.post("1,2,3,4");
+    tester.post("1,2,3,4", guard.engine());
     tester.afterNewMessage(4);
 
     ASSERT_EQ(C1->_numMessages(), 2);
@@ -689,7 +689,7 @@ static void test6_clearDeliveryStateWhenLostReaders()
     tester.configureHandle("C1 consumerPriority=1 consumerPriorityCount=1");
 
     // C1: 2
-    tester.post("1,2");
+    tester.post("1,2", guard.engine());
     tester.afterNewMessage(2);
 
     ASSERT_EQ(C1->_numMessages(), 2);
@@ -701,7 +701,7 @@ static void test6_clearDeliveryStateWhenLostReaders()
     C1->_setCanDeliver(false);
 
     // C1: N.A.
-    tester.post("3");
+    tester.post("3", guard.engine());
     tester.afterNewMessage(1);
 
     ASSERT_EQ(C1->_numMessages(), 1);
@@ -763,9 +763,9 @@ static void test7_broadcastMode()
 
     // Note: For the RelayQueueEngine, one has to call 'afterNewMessage()'
     //       after each single message.  We couldn't do 'tester.post("1,2");'.
-    tester.post("1");
+    tester.post("1", guard.engine());
     tester.afterNewMessage(1);
-    tester.post("2");
+    tester.post("2", guard.engine());
     tester.afterNewMessage(1);
 
     ASSERT_EQ(C1->_messages(), "1,2");
@@ -776,7 +776,7 @@ static void test7_broadcastMode()
     // 2) C1: Can't deliver
     C1->_setCanDeliver(false);
 
-    tester.post("3");
+    tester.post("3", guard.engine());
     tester.afterNewMessage(1);
 
     ASSERT_EQ(C1->_messages(), "");
@@ -787,7 +787,7 @@ static void test7_broadcastMode()
     // 3)  C1: Can deliver again
     C1->_setCanDeliver(true);
 
-    tester.post("4");
+    tester.post("4", guard.engine());
     tester.afterNewMessage(1);
 
     ASSERT_EQ(C1->_messages(), "4");
@@ -798,7 +798,7 @@ static void test7_broadcastMode()
     // 4)  C1: Dropped
     tester.dropHandle("C1");
 
-    tester.post("5");
+    tester.post("5", guard.engine());
     tester.afterNewMessage(1);
 
     ASSERT_EQ(C2->_messages(), "5");
@@ -852,7 +852,7 @@ static void test8_priority_beforeMessageRemoved_garbageCollection()
     tester.configureHandle("C1 consumerPriority=1 consumerPriorityCount=1");
 
     PV(L_ << ": post ['1','2','3','4']");
-    tester.post("1,2,3,4");
+    tester.post("1,2,3,4", guard.engine());
 
     PVV(L_ << ": C1 Messages: " << C1->_messages());
     ASSERT_EQ(C1->_numMessages(), 0);
@@ -1063,7 +1063,12 @@ static void test11_roundRobinAndRedelivery()
     mwctst::TestHelper::printTestName("ROUND-ROBIN AND REDELIVERY");
 
     mqbconfm::Domain          config = fanoutConfig();
-    mqbblp::QueueEngineTester tester(fanoutConfig(),
+    bsl::vector<bsl::string>& appIDs = config.mode().fanout().appIDs();
+    appIDs.push_back("a");
+    appIDs.push_back("b");
+    appIDs.push_back("c");
+
+    mqbblp::QueueEngineTester                                tester(config,
                                      false,  // start scheduler
                                      s_allocator_p);
     mqbblp::QueueEngineTesterGuard<mqbblp::RelayQueueEngine> guard(&tester);
@@ -1100,7 +1105,7 @@ static void test11_roundRobinAndRedelivery()
               0);
 
     // 2. Post 3 messages (2 + 1)
-    tester.post("1,2,3");
+    tester.post("1,2,3", guard.engine());
     tester.afterNewMessage(3);
 
     // 3. Verify that each consumer received messages according to
@@ -1175,7 +1180,7 @@ static void test12_redeliverAfterGc()
     tester.configureHandle("C2 consumerPriority=1 consumerPriorityCount=1"
                            " maxUnconfirmedMessages=0");
 
-    tester.post("1,2,3,4");
+    tester.post("1,2,3,4", guard.engine());
     tester.afterNewMessage(4);
 
     PVV(L_ << ": C1 Messages: " << C1->_messages());
@@ -1313,7 +1318,7 @@ static void test14_throttleRedeliveryPriority()
     mqbmock::QueueHandle* C2 = tester.getHandle("C2 readCount=1");
     tester.configureHandle("C2 consumerPriority=1 consumerPriorityCount=1");
 
-    tester.post("1,2,3,4");
+    tester.post("1,2,3,4", guard.engine());
     tester.afterNewMessage(4);
 
     PVV(L_ << ": C1 Messages: " << C1->_messages());
@@ -1420,7 +1425,7 @@ static void test15_throttleRedeliveryFanout()
     tester.configureHandle("C4@c maxUnconfirmedMessages=4"
                            " consumerPriority=1 consumerPriorityCount=1");
 
-    tester.post("1,2,3,4");
+    tester.post("1,2,3,4", guard.engine());
     tester.afterNewMessage(4);
 
     PVV(L_ << ": C1 Messages: " << C1->_messages("a"));
@@ -1551,7 +1556,7 @@ static void test16_throttleRedeliveryCancelledDelay()
     mqbmock::QueueHandle* C2 = tester.getHandle("C2 readCount=1");
     tester.configureHandle("C2 consumerPriority=1 consumerPriorityCount=1");
 
-    tester.post("1,2,3,4");
+    tester.post("1,2,3,4", guard.engine());
     tester.afterNewMessage(4);
 
     // 2)
@@ -1631,7 +1636,7 @@ static void test17_throttleRedeliveryNewHandle()
     mqbmock::QueueHandle* C2 = tester.getHandle("C2 readCount=1");
     tester.configureHandle("C2 consumerPriority=1 consumerPriorityCount=1");
 
-    tester.post("1,2");
+    tester.post("1,2", guard.engine());
     tester.afterNewMessage(2);
 
     // 2)
@@ -1706,7 +1711,7 @@ static void test18_throttleRedeliveryNoMoreHandles()
     mqbmock::QueueHandle* C2 = tester.getHandle("C2 readCount=1");
     tester.configureHandle("C2 consumerPriority=1 consumerPriorityCount=1");
 
-    tester.post("1,2");
+    tester.post("1,2", guard.engine());
     tester.afterNewMessage(2);
 
     // 2)

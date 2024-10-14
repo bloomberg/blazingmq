@@ -174,27 +174,31 @@ class Uri {
 
   private:
     // DATA
-    bsl::string d_uri;  // The full URI
 
-    bslstl::StringRef d_scheme;  // URI scheme (must be "bmq").
+    /// The full URI
+    bsl::string d_uri;
 
-    bslstl::StringRef d_authority;  // URI authority (domain + optional
-                                    // tier)
+    /// URI scheme (must be "bmq").
+    bslstl::StringRef d_scheme;
 
-    bslstl::StringRef d_domain;  // URI domain
+    /// URI authority (domain + optional tier)
+    bslstl::StringRef d_authority;
 
-    bslstl::StringRef d_tier;  // URI tier
+    /// URI domain
+    bslstl::StringRef d_domain;
 
-    bslstl::StringRef d_path;  // URI path (i.e queue name).
+    /// URI tier
+    bslstl::StringRef d_tier;
 
-    bslstl::StringRef d_query_id;  // Optional application id, part of the
-                                   // URI query if present.
+    /// URI path (i.e queue name).
+    bslstl::StringRef d_path;
 
+    /// Optional application id, part of the URI query if present.
+    bslstl::StringRef d_query_id;
+
+    /// Flag indicating whether the URI parser was initialized (and whether
+    /// shutdown should be called on it at destruction)
     bool d_wasParserInitialized;
-    // Flag indicating whether the URI
-    // parser was initialized (and whether
-    // shutdown should be called on it at
-    // destruction)
 
   private:
     // PRIVATE MANIPULATORS

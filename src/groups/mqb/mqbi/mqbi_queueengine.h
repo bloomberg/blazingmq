@@ -207,6 +207,22 @@ class QueueEngine {
     virtual void
     afterAppIdUnregistered(const mqbi::Storage::AppIdKeyPair& appIdKeyPair);
 
+    /// Called after creation of a new storage for the  specified
+    /// `appIdKeyPair`.
+    ///
+    /// THREAD: This method is called from the Queue's dispatcher thread.
+    virtual void registerStorage(const bsl::string&      appId,
+                                 const mqbu::StorageKey& appKey,
+                                 unsigned int            appOrdinal);
+
+    /// Called after removal of the storage for the specified
+    /// `appIdKeyPair`.
+    ///
+    /// THREAD: This method is called from the Queue's dispatcher thread.
+    virtual void unregisterStorage(const bsl::string&      appId,
+                                   const mqbu::StorageKey& appKey,
+                                   unsigned int            appOrdinal);
+
     /// Given the specified 'putHeader', 'appData', 'mpi', and 'timestamp',
     /// evaluate all Auto (Application) subscriptions and exclude applications
     /// with negative results from message delivery.

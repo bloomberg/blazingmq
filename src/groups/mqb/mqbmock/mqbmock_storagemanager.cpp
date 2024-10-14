@@ -237,6 +237,13 @@ void StorageManager::processReceiptEvent(
     // NOTHING
 }
 
+void StorageManager::bufferPrimaryStatusAdvisory(
+    BSLS_ANNOTATION_UNUSED const bmqp_ctrlmsg::PrimaryStatusAdvisory& advisory,
+    BSLS_ANNOTATION_UNUSED mqbnet::ClusterNode* source)
+{
+    // NOTHING
+}
+
 void StorageManager::processPrimaryStatusAdvisory(
     BSLS_ANNOTATION_UNUSED const bmqp_ctrlmsg::PrimaryStatusAdvisory& advisory,
     BSLS_ANNOTATION_UNUSED mqbnet::ClusterNode* source)

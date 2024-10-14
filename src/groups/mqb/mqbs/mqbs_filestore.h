@@ -859,10 +859,10 @@ class FileStore : public DataStore {
     int issueSyncPoint() BSLS_KEYWORD_OVERRIDE;
 
     /// Set the specified `primaryNode` with the specified `primaryLeaseId`
-    /// as the primary for this data store partition.  Note that
+    /// as the active primary for this data store partition.  Note that
     /// `primaryNode` could refer to the node which owns this data store.
-    void setPrimary(mqbnet::ClusterNode* primaryNode,
-                    unsigned int         primaryLeaseId) BSLS_KEYWORD_OVERRIDE;
+    void setActivePrimary(mqbnet::ClusterNode* primaryNode,
+                          unsigned int primaryLeaseId) BSLS_KEYWORD_OVERRIDE;
 
     /// Clear the current primary associated with this partition.
     void clearPrimary() BSLS_KEYWORD_OVERRIDE;

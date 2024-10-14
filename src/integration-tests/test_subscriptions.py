@@ -1539,7 +1539,7 @@ def test_no_capacity_all_optimization(cluster: Cluster):
 
     # Extra message 'm3' is good for 'consumer1' but cannot be delivered:
     # no capacity all condition observed.
-    assert optimization_monitor.has_new_message()
+    assert not optimization_monitor.has_new_message()
 
     consumer1.confirm_all()
     consumer1.expect_messages([m2], confirm=False)
@@ -1557,8 +1557,9 @@ def test_no_capacity_all_optimization(cluster: Cluster):
     # pending messages: [m3, m4]
 
     # Posting the message 'm4' triggers routing, but the only consumer is full:
-    # no capacity all condition observed.
-    assert optimization_monitor.has_new_message()
+    # but the no capacity all condition is NOT observed because the app has
+    # memory ('resumePoint')
+    assert not optimization_monitor.has_new_message()
 
     consumer2 = Consumer(cluster, uri, ["y < 0"], max_unconfirmed_messages=1)
 
@@ -1648,8 +1649,9 @@ def test_no_capacity_all_fanout(cluster: Cluster):
     # pending messages (bar): [m2, m3]
 
     # Extra message 'm3' is good for 'consumer_bar' but cannot be delivered:
-    # no capacity all condition observed.
-    assert optimization_monitor.has_new_message("bar")
+    # but the no capacity all condition is NOT observed because the app has
+    # memory ('resumePoint')
+    assert not optimization_monitor.has_new_message("bar")
 
     consumer_bar.confirm_all()
     consumer_bar.expect_messages([m2], confirm=False)

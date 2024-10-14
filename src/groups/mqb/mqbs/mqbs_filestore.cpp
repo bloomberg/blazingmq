@@ -111,7 +111,7 @@ const unsigned int k_REQUESTED_JOURNAL_SPACE =
 // Above, 3 == 1 journal record being written +
 //             1 journal sync point if rolling over +
 //             1 journal sync point if self needs to issue another sync point
-//             in 'setPrimary' with old values
+//             in 'setActivePrimary' with old values
 
 /// Return a rounded (down) percentage value (range [0-100]) representing
 /// the space in use on a file with the specified `capacity`, currently
@@ -867,7 +867,7 @@ int FileStore::openInRecoveryMode(bsl::ostream&          errorDescription,
         return rc_PARTITION_FULL;  // RETURN
     }
 
-    // Check if DATA and QLIST files are full.  This is not a a show stopper,
+    // Check if DATA and QLIST files are full.  This is not a show stopper,
     // as we may still get some deletions which may make space in those files.
 
     if (dataFileOffset == d_config.maxDataFileSize() ||
@@ -3758,8 +3758,8 @@ int FileStore::issueSyncPointInternal(SyncPointType::Enum type,
                     // New primary and no force issue requested.  Currently,
                     // this check is redundant because we always force issue a
                     // sync point when a primary is chosen (see
-                    // 'setPrimary()'), which always bumps up 'd_sequenceNum'
-                    // to 1.
+                    // 'setActivePrimary()'), which always bumps up
+                    // 'd_sequenceNum' to 1.
 
                     return rc_SUCCESS;  // RETURN
                 }
@@ -5195,7 +5195,7 @@ FileStore::FileStore(const DataStoreConfig&  config,
     BSLS_ASSERT(1 <= clusterSize());
 
     mwcu::MemOutStream os;
-    os << "PartitionId [" << d_config.partitionId()
+    os << "Partition [" << d_config.partitionId()
        << "] (cluster: " << d_cluster_p->name() << "): ";
     d_partitionDescription.assign(os.str().data(), os.str().length());
 
@@ -5356,16 +5356,6 @@ void FileStore::createStorage(bsl::shared_ptr<ReplicatedStorage>* storageSp,
 
     BSLS_ASSERT_SAFE(!storageCfg.isUndefinedValue());
 
-    bmqp::RdaInfo rdaInfo;
-    if (domain->config().maxDeliveryAttempts()) {
-        rdaInfo.setCounter(domain->config().maxDeliveryAttempts());
-    }
-    else {
-        // For Initialization of RdaInfo, value of 0 for config
-        // maxDeliveryAttempts symbolizes Infinity so we dont set the counter
-        // as constructor for rdaInfo initializes counter with Unlimited.
-    }
-
     bslma::Allocator* storageAlloc = d_storageAllocatorStore.baseAllocator();
     if (storageCfg.isInMemoryValue()) {
         storageSp->reset(new (*storageAlloc)
@@ -5374,7 +5364,6 @@ void FileStore::createStorage(bsl::shared_ptr<ReplicatedStorage>* storageSp,
                                              config().partitionId(),
                                              domain->config(),
                                              domain->capacityMeter(),
-                                             rdaInfo,
                                              storageAlloc,
                                              &d_storageAllocatorStore),
                          storageAlloc);
@@ -5386,7 +5375,6 @@ void FileStore::createStorage(bsl::shared_ptr<ReplicatedStorage>* storageSp,
                                                queueKey,
                                                domain->config(),
                                                domain->capacityMeter(),
-                                               rdaInfo,
                                                storageAlloc,
                                                &d_storageAllocatorStore),
                          storageAlloc);
@@ -6261,7 +6249,7 @@ void FileStore::processStorageEvent(const bsl::shared_ptr<bdlbb::Blob>& blob,
                 // If we are processing a partition-sync event, we have to
                 // bump up the leaseId to that of the message, because we don't
                 // get a separate notification about leaseId (unlike in steady
-                // state when StorageMgr invokes fs.setPrimary()).
+                // state when StorageMgr invokes fs.setActivePrimary()).
 
                 d_primaryLeaseId = recHeader->primaryLeaseId();
 
@@ -6605,8 +6593,8 @@ int FileStore::issueSyncPoint()
     return rc_SUCCESS;
 }
 
-void FileStore::setPrimary(mqbnet::ClusterNode* primaryNode,
-                           unsigned int         primaryLeaseId)
+void FileStore::setActivePrimary(mqbnet::ClusterNode* primaryNode,
+                                 unsigned int         primaryLeaseId)
 {
     // executed by the *DISPATCHER* thread
 
@@ -7020,6 +7008,7 @@ bool FileStore::gcExpiredMessages(const bdlt::Datetime& currentTimeUtc)
                       << "Timestamp (UTC) of the latest encountered message: "
                       << bdlt::EpochUtil::convertFromTimeT64(
                              latestMsgTimestamp)
+                      << " (Epoch: " << latestMsgTimestamp
                       << "). Current time (UTC): " << currentTimeUtc
                       << " (Epoch: " << currentSecondsFromEpoch << ")."
                       << " Num messages remaining in the storage: "

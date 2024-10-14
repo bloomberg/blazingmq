@@ -799,7 +799,7 @@ static void test1_breathingTest()
     unsigned int        primaryLeaseId = 1;
     bsls::Types::Uint64 seqNum         = 1;
 
-    fs.setPrimary(tester.node(), primaryLeaseId);
+    fs.setActivePrimary(tester.node(), primaryLeaseId);
 
     ASSERT_EQ(primaryLeaseId, fs.primaryLeaseId());
     ASSERT_EQ(seqNum, fs.sequenceNumber());
@@ -902,7 +902,7 @@ static void test2_printTest()
     // Set primary.
     unsigned int        primaryLeaseId = 1;
     bsls::Types::Uint64 seqNum         = 1;
-    fs.setPrimary(tester.node(), primaryLeaseId);
+    fs.setActivePrimary(tester.node(), primaryLeaseId);
 
     // Write various records to the partition.
     SyncPointOffsetPairs          spOffsetPairs(s_allocator_p);

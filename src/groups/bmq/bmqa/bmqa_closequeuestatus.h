@@ -62,18 +62,15 @@ namespace bmqa {
 class CloseQueueStatus {
   private:
     // DATA
+
+    /// QueueId associated with the open queue operation
     QueueId d_queueId;
-    // queueId associated with the open
-    // queue operation
 
+    /// Result code of the operation (success, failure)
     bmqt::CloseQueueResult::Enum d_result;
-    // Result code of the operation
-    // (success, failure)
 
+    /// Optional string with a human readable description of the error, if any
     bsl::string d_errorDescription;
-    // Optional string with a human
-    // readable description of the error,
-    // if any
 
   public:
     // TRAITS

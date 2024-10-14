@@ -143,16 +143,6 @@ class ClusterCatalog {
   public:
     // TYPES
 
-    /// Pool of shared pointers to Blobs
-    typedef bdlcc::SharedObjectPool<
-        bdlbb::Blob,
-        bdlcc::ObjectPoolFunctors::DefaultCreator,
-        bdlcc::ObjectPoolFunctors::RemoveAll<bdlbb::Blob> >
-        BlobSpPool;
-
-  public:
-    // TYPES
-
     /// Struct holding some context state used during negotiation: refer to
     /// the `mqba::SessionNegotiator` for usage of that struct.  This
     /// `userData` is created here, passed to `mqbnet` to hold on to it and
@@ -225,18 +215,8 @@ class ClusterCatalog {
     bool d_isStarted;
     // True if this component is started
 
-    bdlmt::EventScheduler* d_scheduler_p;
-    // EventScheduler to use
-
     mqbi::Dispatcher* d_dispatcher_p;
     // Dispatcher to use
-
-    bdlbb::BlobBufferFactory* d_bufferFactory_p;
-    // Blob buffer factory to use
-
-    BlobSpPool* d_blobSpPool_p;
-    // Pool of shared pointers to blob to
-    // use.
 
     mqbnet::TransportManager* d_transportManager_p;
     // TransportManager for creating
@@ -289,6 +269,8 @@ class ClusterCatalog {
 
     StatContextsMap d_statContexts;
     // Map of stat contexts
+
+    const mqbi::ClusterResources d_resources;
 
     mqbnet::Session::AdminCommandEnqueueCb d_adminCb;
     // Callback function to enqueue admin commands
@@ -352,16 +334,14 @@ class ClusterCatalog {
 
     // CREATORS
 
-    /// Create a new object using the specified `scheduler`, `dispatcher`,
-    /// `transportManager`, `bufferFactory`, `blobSpPool`, and the specified
-    /// `allocator`.
-    ClusterCatalog(bdlmt::EventScheduler*    scheduler,
-                   mqbi::Dispatcher*         dispatcher,
-                   mqbnet::TransportManager* transportManager,
-                   const StatContextsMap&    statContexts,
-                   bdlbb::BlobBufferFactory* bufferFactory,
-                   BlobSpPool*               blobSpPool,
-                   bslma::Allocator*         allocator);
+    /// Create a new object using the specified 'dispatcher',
+    /// 'transportManager', 'statContexts', 'resources', and the specified
+    /// 'allocator'.
+    ClusterCatalog(mqbi::Dispatcher*             dispatcher,
+                   mqbnet::TransportManager*     transportManager,
+                   const StatContextsMap&        statContexts,
+                   const mqbi::ClusterResources& resources,
+                   bslma::Allocator*             allocator);
 
     /// Destructor.
     ~ClusterCatalog();

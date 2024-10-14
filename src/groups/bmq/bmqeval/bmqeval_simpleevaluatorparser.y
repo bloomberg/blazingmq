@@ -112,7 +112,7 @@ expression
         { $$ = ctx.makeLiteral<SimpleEvaluator::IntegerLiteral>($1); }
     | OVERFLOW
         {
-            ctx.d_os << " integer overflow at offset " << scanner.lastTokenLocation();
+            ctx.d_os << "integer overflow at offset " << scanner.lastTokenLocation();
             YYABORT;
         }
     | STRING

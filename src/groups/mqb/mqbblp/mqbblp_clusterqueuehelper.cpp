@@ -348,7 +348,7 @@ void ClusterQueueHelper::afterPartitionPrimaryAssignment(
     // This routine is invoked only in the cluster nodes.
 
     BALL_LOG_INFO << d_cluster_p->description()
-                  << " afterPartitionPrimaryAssignment: PartitionId ["
+                  << " afterPartitionPrimaryAssignment: Partition ["
                   << partitionId << "]: new primary: "
                   << (primary ? primary->nodeDescription() : "** none **")
                   << ", primary status: " << status;
@@ -552,7 +552,7 @@ bool ClusterQueueHelper::onQueueUnassigning(
         BALL_LOG_INFO << d_cluster_p->description()
                       << " All references to queue " << uri << " with key '"
                       << queueContext->key()
-                      << "' removed. Queue was mapped to PartitionId ["
+                      << "' removed. Queue was mapped to Partition ["
                       << queueInfo.partitionId() << "].";
 
         removeQueueRaw(queueContextIt);
@@ -788,7 +788,7 @@ void ClusterQueueHelper::onQueueContextAssigned(
             pid);
 
         logMsg << "Queue '" << queueContext->uri()
-               << "' now assigned to PartitionId [" << pid << "]";
+               << "' now assigned to Partition [" << pid << "]";
         if (pinfo.primaryNode()) {
             logMsg << " (" << pinfo.primaryNode()->nodeDescription() << ").";
         }
@@ -2114,8 +2114,7 @@ bsl::shared_ptr<mqbi::Queue> ClusterQueueHelper::createQueueFactory(
                                    context.d_queueContext_p->partitionId(),
                                    context.d_domain_p,
                                    d_storageManager_p,
-                                   &d_clusterData_p->bufferFactory(),
-                                   &d_clusterData_p->scheduler(),
+                                   d_clusterData_p->resources(),
                                    &d_clusterData_p->miscWorkThreadPool(),
                                    openQueueResponse.routingConfiguration(),
                                    d_allocator_p),
@@ -3566,7 +3565,7 @@ void ClusterQueueHelper::restoreStateCluster(int partitionId)
     {
         BALL_LOG_OUTPUT_STREAM
             << d_cluster_p->description()
-            << ": Received state-restore event for PartitionId [";
+            << ": Received state-restore event for Partition [";
         if (allPartitions) {
             BALL_LOG_OUTPUT_STREAM << "ALL";
         }
@@ -3613,7 +3612,7 @@ void ClusterQueueHelper::restoreStateCluster(int partitionId)
         pinfo = &(d_clusterState_p->partition(partitionId));
         BSLS_ASSERT_SAFE(pinfo);
         if (!hasActiveAvailablePrimary(partitionId)) {
-            BALL_LOG_INFO << d_cluster_p->description() << " PartitionId ["
+            BALL_LOG_INFO << d_cluster_p->description() << " Partition ["
                           << partitionId
                           << "]: Not restoring partition state because there "
                           << "is no primary or primary isn't ACTIVE. Current "
@@ -4154,7 +4153,7 @@ void ClusterQueueHelper::onQueueAssigned(
                     << ": attempting to apply queue assignment for a known but"
                     << " unassigned queue, but queueKey is not unique. "
                     << "QueueKey [" << info.key() << "], URI [" << info.uri()
-                    << "], PartitionId [" << info.partitionId()
+                    << "], Partition [" << info.partitionId()
                     << "]. Current leader is: '" << leaderDescription
                     << "'. Ignoring this entry in the advisory."
                     << MWCTSK_ALARMLOG_END;
@@ -4183,11 +4182,10 @@ void ClusterQueueHelper::onQueueAssigned(
             MWCTSK_ALARMLOG_ALARM("CLUSTER_STATE")
                 << d_cluster_p->description()
                 << ": attempting to apply queue assignment for an unknown "
-                << "queue [" << info.uri() << "] assigned to PartitionId ["
+                << "queue [" << info.uri() << "] assigned to Partition ["
                 << info.partitionId() << "], but queueKey [" << info.key()
-                << "] is not unique. "
-                << " Current leader is: '" << leaderDescription << "'"
-                << "Ignoring this assignment." << MWCTSK_ALARMLOG_END;
+                << "] is not unique. Current leader is: '" << leaderDescription
+                << "'. Ignoring this assignment." << MWCTSK_ALARMLOG_END;
             return;  // RETURN
         }
 
@@ -4429,15 +4427,8 @@ void ClusterQueueHelper::onQueueUpdated(const bmqt::Uri&   uri,
 
     for (AppIdInfosCIter cit = addedAppIds.cbegin(); cit != addedAppIds.cend();
          ++cit) {
-        if (d_clusterState_p->isSelfPrimary(partitionId) && queue) {
-            d_cluster_p->dispatcher()->execute(
-                bdlf::BindUtil::bind(afterAppIdRegisteredDispatched,
-                                     queue,
-                                     *cit),
-                queue);
-        }
-        else {
-            // Note: In non-CSL mode, the queue creation callback is instead
+        if (!d_clusterState_p->isSelfPrimary(partitionId) || queue == 0) {
+            // Note: In non-CSL mode, the queue creation callback is
             // invoked at replica nodes when they receive a queue creation
             // record from the primary in the partition stream.
             mqbi::Storage::AppIdKeyPair  appIdKeyPair(cit->first, cit->second);
@@ -4451,26 +4442,33 @@ void ClusterQueueHelper::onQueueUpdated(const bmqt::Uri&   uri,
                     .at(uri.qualifiedDomain())
                     ->domain());
         }
+        if (queue) {
+            d_cluster_p->dispatcher()->execute(
+                bdlf::BindUtil::bind(afterAppIdRegisteredDispatched,
+                                     queue,
+                                     *cit),
+                queue);
+        }
     }
 
     for (AppIdInfosCIter cit = removedAppIds.cbegin();
          cit != removedAppIds.cend();
          ++cit) {
-        if (d_clusterState_p->isSelfPrimary(partitionId) && queue) {
-            d_cluster_p->dispatcher()->execute(
-                bdlf::BindUtil::bind(afterAppIdUnregisteredDispatched,
-                                     queue,
-                                     *cit),
-                queue);
-        }
-        else {
-            // Note: In non-CSL mode, the queue deletion callback is instead
+        if (!d_clusterState_p->isSelfPrimary(partitionId) || queue == 0) {
+            // Note: In non-CSL mode, the queue deletion callback is
             // invoked at replica nodes when they receive a queue deletion
             // record from the primary in the partition stream.
             d_storageManager_p->unregisterQueueReplica(partitionId,
                                                        uri,
                                                        qiter->second->key(),
                                                        cit->second);
+        }
+        if (queue) {
+            d_cluster_p->dispatcher()->execute(
+                bdlf::BindUtil::bind(afterAppIdUnregisteredDispatched,
+                                     queue,
+                                     *cit),
+                queue);
         }
     }
 
@@ -5273,7 +5271,7 @@ void ClusterQueueHelper::processShutdownEvent()
         BALL_LOG_INFO << d_cluster_p->description()
                       << ": Deleting queue instance [" << queue->uri()
                       << "], queueKey [" << queueContextSp->key()
-                      << "] which was assigned to PartitionId ["
+                      << "] which was assigned to Partition ["
                       << queueContextSp->partitionId()
                       << "], because self is going down.";
 
@@ -6374,7 +6372,7 @@ int ClusterQueueHelper::gcExpiredQueues(bool immediate)
         BALL_LOG_INFO << d_cluster_p->description()
                       << ": Garbage-collecting queue [" << uriCopy
                       << "], queueKey [" << keyCopy << "] assigned to "
-                      << "PartitionId [" << pid << "] as it has expired.";
+                      << "Partition [" << pid << "] as it has expired.";
 
         mqbc::ClusterUtil::setPendingUnassignment(d_clusterState_p,
                                                   uriCopy,

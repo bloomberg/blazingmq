@@ -395,7 +395,7 @@ void printFileStoreSummary(bsl::ostream&           os,
 {
     using namespace mwcu::PrintUtil;
 
-    os << indent(level, spacesPerLevel) << "PartitionId [" << partitionId
+    os << indent(level, spacesPerLevel) << "Partition [" << partitionId
        << "]:" << newlineAndIndent(level, spacesPerLevel) << "----------------"
        << newlineAndIndent(level + 1, spacesPerLevel)
        << "Primary Node: " << summary.primaryNodeDescription()
@@ -503,12 +503,12 @@ void printClusterStorageSummary(bsl::ostream&                os,
          ++cit) {
         if (cit->state() == FileStoreState::CLOSED) {
             os << mwcu::PrintUtil::newlineAndIndent(level, spacesPerLevel)
-               << "PartitionId [" << cit->partitionId() << "]: NOT OPEN.";
+               << "Partition [" << cit->partitionId() << "]: NOT OPEN.";
             continue;  // CONTINUE
         }
         else if (cit->state() == FileStoreState::STOPPING) {
             os << mwcu::PrintUtil::newlineAndIndent(level, spacesPerLevel)
-               << "PartitionId [" << cit->partitionId() << "]: STOPPING.";
+               << "Partition [" << cit->partitionId() << "]: STOPPING.";
             continue;  // CONTINUE
         }
 

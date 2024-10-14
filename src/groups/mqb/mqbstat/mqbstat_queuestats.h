@@ -31,8 +31,6 @@
 // 'mqbstat::QueueStatsUtil' is a utility namespace exposing methods to
 // initialize the stat contexts and associated objects.
 
-// MQB
-
 // BMQ
 #include <bmqt_uri.h>
 
@@ -99,7 +97,8 @@ class QueueStatsDomain {
             e_CHANGE_ROLE,
             e_CFG_MSGS,
             e_CFG_BYTES,
-            e_NO_SC_MESSAGE
+            e_NO_SC_MESSAGE,
+            e_UPDATE_HISTORY
         };
     };
 
@@ -142,7 +141,8 @@ class QueueStatsDomain {
             e_CFG_MSGS,
             e_CFG_BYTES,
             e_NO_SC_MSGS_DELTA,
-            e_NO_SC_MSGS_ABS
+            e_NO_SC_MSGS_ABS,
+            e_HISTORY_ABS
         };
 
         /// Return the non-modifiable string description corresponding to

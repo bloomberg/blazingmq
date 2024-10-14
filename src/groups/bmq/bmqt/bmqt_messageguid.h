@@ -102,13 +102,15 @@ class MessageGUID {
 
   public:
     // TYPES
+
+    /// Enum representing the size of a buffer needed to represent a GUID
     enum Enum {
-        // Enum representing the size of a buffer needed to represent a GUID
-        e_SIZE_BINARY = 16  // Binary format of the GUID
+        /// Binary format of the GUID
+        e_SIZE_BINARY = 16
 
         ,
+        /// Hexadecimal string representation of the GUID
         e_SIZE_HEX = 2 * e_SIZE_BINARY
-        // Hexadecimal string representation of the GUID
     };
 
     // TRAITS
@@ -118,8 +120,9 @@ class MessageGUID {
 
   private:
     // PRIVATE CONSTANTS
+
+    /// Constant representing an unset GUID
     static const char k_UNSET_GUID[e_SIZE_BINARY];
-    //  Constant representing an unset GUID
 
   private:
     // IMPLEMENTATION NOTE: Some structs in bmqp::Protocol.h blindly
@@ -363,11 +366,14 @@ MessageGUIDHashAlgo::operator()(const void*                   data,
         }
     };
 
-    const bsls::Types::Uint64* start =
-        reinterpret_cast<const bsls::Types::Uint64*>(data);
-    const bsls::Types::Uint64 h1 = LocalFuncs::mix(start[0]);
-    const bsls::Types::Uint64 h2 = LocalFuncs::mix(start[1]);
-    d_result                     = LocalFuncs::combine(h1, h2);
+    // `data` buffer might not be aligned to 8 bytes, so recasting the pointer
+    // might lead to UB
+    bsls::Types::Uint64 parts[2];
+    bsl::memcpy(parts, data, bmqt::MessageGUID::e_SIZE_BINARY);
+
+    parts[0] = LocalFuncs::mix(parts[0]);
+    parts[1] = LocalFuncs::mix(parts[1]);
+    d_result = LocalFuncs::combine(parts[0], parts[1]);
 }
 
 inline MessageGUIDHashAlgo::result_type MessageGUIDHashAlgo::computeHash()

@@ -45,13 +45,14 @@ namespace mqbblp {
 // class QueueState
 // ----------------
 
-QueueState::QueueState(mqbi::Queue*            queue,
-                       const bmqt::Uri&        uri,
-                       unsigned int            id,
-                       const mqbu::StorageKey& key,
-                       int                     partitionId,
-                       mqbi::Domain*           domain,
-                       bslma::Allocator*       allocator)
+QueueState::QueueState(mqbi::Queue*                 queue,
+                       const bmqt::Uri&             uri,
+                       unsigned int                 id,
+                       const mqbu::StorageKey&      key,
+                       int                          partitionId,
+                       mqbi::Domain*                domain,
+                       const mqbi::ClusterResources resources,
+                       bslma::Allocator*            allocator)
 : d_queue_p(queue)
 , d_uri(uri, allocator)
 , d_description(allocator)
@@ -63,8 +64,7 @@ QueueState::QueueState(mqbi::Queue*            queue,
 , d_partitionId(partitionId)
 , d_domain_p(domain)
 , d_storageManager_p(0)
-, d_blobBufferFactory_p(0)
-, d_scheduler_p(0)
+, d_resources(resources)
 , d_miscWorkThreadPool_p(0)
 , d_storage_mp(0)
 , d_stats(allocator)

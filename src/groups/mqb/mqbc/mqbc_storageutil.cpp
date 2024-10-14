@@ -229,7 +229,7 @@ void StorageUtil::registerQueueDispatched(
                                           true);  // Is new storage?
     if (0 != rc) {
         MWCTSK_ALARMLOG_ALARM("FILE_IO")
-            << clusterDescription << ": PartitionId [" << partitionId
+            << clusterDescription << ": Partition [" << partitionId
             << "] failed to write QueueCreationRecord for queue ["
             << storage->queueUri() << "] queueKey [" << storage->queueKey()
             << "], rc: " << rc << MWCTSK_ALARMLOG_END;
@@ -248,7 +248,7 @@ void StorageUtil::registerQueueDispatched(
 
     fs->dispatcherFlush(true, false);
 
-    BALL_LOG_INFO << clusterDescription << ": PartitionId [" << partitionId
+    BALL_LOG_INFO << clusterDescription << ": Partition [" << partitionId
                   << "] registered [" << storage->queueUri() << "], queueKey ["
                   << storage->queueKey() << "] with the storage as primary.";
 }
@@ -329,7 +329,7 @@ int StorageUtil::updateQueueRaw(mqbs::ReplicatedStorage* storage,
                                           false);  // is new queue?
         if (0 != rc) {
             MWCTSK_ALARMLOG_ALARM("FILE_IO")
-                << clusterDescription << ": PartitionId [" << partitionId
+                << clusterDescription << ": Partition [" << partitionId
                 << "] failed to write QueueCreationRecord for new appIds "
                 << "for queue [" << storage->queueUri() << "] queueKey ["
                 << storage->queueKey() << "], rc: " << rc
@@ -356,7 +356,7 @@ int StorageUtil::updateQueueRaw(mqbs::ReplicatedStorage* storage,
             mwcu::Printer<AppIdKeyPairs> printer(&addedIdKeyPairs);
 
             BALL_LOG_OUTPUT_STREAM
-                << clusterDescription << ": PartitionId [" << partitionId
+                << clusterDescription << ": Partition [" << partitionId
                 << "] For an already registered queue [" << storage->queueUri()
                 << "], queueKey [" << storage->queueKey() << "], added ["
                 << addedIdKeyPairs.size() << "] new appId/appKey "
@@ -380,7 +380,7 @@ int StorageUtil::updateQueueRaw(mqbs::ReplicatedStorage* storage,
                                               timestamp);
             if (0 != rc) {
                 MWCTSK_ALARMLOG_ALARM("FILE_IO")
-                    << clusterDescription << ": PartitionId [" << partitionId
+                    << clusterDescription << ": Partition [" << partitionId
                     << "] failed to write QueueDeletionRecord for queue ["
                     << storage->queueUri() << "], queueKey ["
                     << storage->queueKey() << "], appId [" << cit->first
@@ -398,9 +398,9 @@ int StorageUtil::updateQueueRaw(mqbs::ReplicatedStorage* storage,
                                               partitionId);
             if (0 != rc) {
                 BALL_LOG_ERROR
-                    << clusterDescription << " PartitionId [" << partitionId
-                    << "]: Failed to remove virtual storage for "
-                    << "appKey [" << cit->second << "], appId [" << cit->first
+                    << clusterDescription << " Partition [" << partitionId
+                    << "]: Failed to remove virtual storage for " << "appKey ["
+                    << cit->second << "], appId [" << cit->first
                     << "], for queue [" << storage->queueUri()
                     << "], queueKey [" << storage->queueKey()
                     << "], rc: " << rc << ".";
@@ -413,7 +413,7 @@ int StorageUtil::updateQueueRaw(mqbs::ReplicatedStorage* storage,
             mwcu::Printer<AppIdKeyPairs> printer(&removedIdKeyPairs);
 
             BALL_LOG_OUTPUT_STREAM
-                << clusterDescription << ": PartitionId [" << partitionId
+                << clusterDescription << ": Partition [" << partitionId
                 << "] For an already registered queue [" << storage->queueUri()
                 << "], queueKey [" << storage->queueKey() << "], removed ["
                 << removedIdKeyPairs.size() << "] existing appId/appKey "
@@ -427,7 +427,7 @@ int StorageUtil::updateQueueRaw(mqbs::ReplicatedStorage* storage,
 
     mwcu::Printer<AppIdKeyPairs> printer1(&addedIdKeyPairs);
     mwcu::Printer<AppIdKeyPairs> printer2(&removedIdKeyPairs);
-    BALL_LOG_INFO << clusterDescription << ": PartitionId [" << partitionId
+    BALL_LOG_INFO << clusterDescription << ": Partition [" << partitionId
                   << "] updated [" << storage->queueUri() << "], queueKey ["
                   << storage->queueKey() << "] with the storage as primary: "
                   << "addedIdKeyPairs:" << printer1
@@ -472,7 +472,7 @@ int StorageUtil::addVirtualStoragesInternal(
              ++cit) {
             AppKeysInsertRc irc = appKeys->insert(cit->second);
             if (!irc.second && isCSLMode) {
-                BALL_LOG_WARN << clusterDescription << " PartitionId ["
+                BALL_LOG_WARN << clusterDescription << " Partition ["
                               << partitionId << "]: AppKey [" << cit->second
                               << "] already exists, while attempting to add "
                               << "appId [" << cit->first << "], for queue ["
@@ -485,14 +485,13 @@ int StorageUtil::addVirtualStoragesInternal(
             if (0 != (rc = storage->addVirtualStorage(errorDesc,
                                                       cit->first,
                                                       cit->second))) {
-                BALL_LOG_WARN << clusterDescription << " PartitionId ["
-                              << partitionId << "]: "
-                              << "Failed to add virtual storage for AppKey ["
-                              << cit->second << "], appId [" << cit->first
-                              << "], for queue [" << storage->queueUri()
-                              << "], queueKey [" << storage->queueKey()
-                              << "]. Reason: [" << errorDesc.str()
-                              << "], rc: " << rc << ".";
+                BALL_LOG_WARN
+                    << clusterDescription << " Partition [" << partitionId
+                    << "]: " << "Failed to add virtual storage for AppKey ["
+                    << cit->second << "], appId [" << cit->first
+                    << "], for queue [" << storage->queueUri()
+                    << "], queueKey [" << storage->queueKey() << "]. Reason: ["
+                    << errorDesc.str() << "], rc: " << rc << ".";
 
                 return rc_VIRTUAL_STORAGE_CREATION_FAILURE;  // RETURN
             }
@@ -923,7 +922,7 @@ StorageUtil::printRecoveryPhaseOneBanner(bsl::ostream&      out,
     const int spacesPerLevel = 4;
 
     mwcu::MemOutStream header;
-    header << "RECOVERY PHASE 1: " << clusterDescription << " PartitionId ["
+    header << "RECOVERY PHASE 1: " << clusterDescription << " Partition ["
            << partitionId << "]";
 
     bdlb::Print::newlineAndIndent(out, level + 1, spacesPerLevel);
@@ -1085,7 +1084,7 @@ bool StorageUtil::validateStorageEvent(
         MWCTSK_ALARMLOG_ALARM("STORAGE")
             << clusterDescription << ": Received storage "
             << "event from node " << source->nodeDescription() << " for "
-            << "PartitionId [" << partitionId << "] which has no primary as "
+            << "Partition [" << partitionId << "] which has no primary as "
             << "perceived by this node. Ignoring entire storage event."
             << MWCTSK_ALARMLOG_END;
         return false;  // RETURN
@@ -1099,7 +1098,7 @@ bool StorageUtil::validateStorageEvent(
         MWCTSK_ALARMLOG_ALARM("STORAGE")
             << clusterDescription << ": Received storage "
             << "event from node " << source->nodeDescription() << " for "
-            << "PartitionId [" << partitionId << "] which has different "
+            << "Partition [" << partitionId << "] which has different "
             << "primary as perceived by this node: "
             << primary->nodeDescription() << " Ignoring entire "
             << "storage event." << MWCTSK_ALARMLOG_END;
@@ -1114,7 +1113,7 @@ bool StorageUtil::validateStorageEvent(
 
         MWCTSK_ALARMLOG_ALARM("STORAGE")
             << clusterDescription << ": Received storage "
-            << "event for PartitionId [" << partitionId
+            << "event for Partition [" << partitionId
             << "] from: " << source->nodeDescription()
             << ", which is perceived as "
             << "non-active primary. Primary status: " << status
@@ -1145,7 +1144,7 @@ bool StorageUtil::validatePartitionSyncEvent(
     if (partitionInfo.primary() != clusterData.membership().selfNode() &&
         partitionInfo.primary() != source) {
         BALL_LOG_ERROR << clusterData.identity().description()
-                       << " PartitionId [" << partitionId
+                       << " Partition [" << partitionId
                        << "]: Received partition-sync event from peer: "
                        << source->nodeDescription()
                        << " but neither self nor peer is primary. Perceived"
@@ -1162,7 +1161,7 @@ bool StorageUtil::validatePartitionSyncEvent(
         // be perceived as a passive one.
 
         BALL_LOG_ERROR << clusterData.identity().description()
-                       << " PartitionId [" << partitionId
+                       << " Partition [" << partitionId
                        << "]: Received partition-sync event from: "
                        << source->nodeDescription()
                        << " but primary status is: "
@@ -1321,7 +1320,7 @@ void StorageUtil::clearPrimaryForPartition(
         return;  // RETURN
     }
 
-    BALL_LOG_INFO << clusterDescription << " PartitionId [" << partitionId
+    BALL_LOG_INFO << clusterDescription << " Partition [" << partitionId
                   << "]: processing 'clear-primary' event. Current primary: "
                   << partitionInfo->primary()->nodeDescription()
                   << ", current leaseId: " << partitionInfo->primaryLeaseId()
@@ -1413,7 +1412,7 @@ void StorageUtil::onPartitionPrimarySync(
         // handled.
 
         MWCTSK_ALARMLOG_ALARM("STORAGE")
-            << clusterData->identity().description() << " PartitionId ["
+            << clusterData->identity().description() << " Partition ["
             << partitionId << "]: new primary ("
             << pinfo->primary()->nodeDescription() << ") with leaseId "
             << pinfo->primaryLeaseId()
@@ -1428,7 +1427,7 @@ void StorageUtil::onPartitionPrimarySync(
 
     if (0 != status) {
         MWCTSK_ALARMLOG_ALARM("STORAGE")
-            << clusterData->identity().description() << " PartitionId ["
+            << clusterData->identity().description() << " Partition ["
             << partitionId << "]: node failed to sync "
             << "after being chosen as primary, with status: " << status
             << MWCTSK_ALARMLOG_END;
@@ -1443,7 +1442,7 @@ void StorageUtil::onPartitionPrimarySync(
     }
 
     // Broadcast self as active primary of this partition.  This must be done
-    // before invoking 'FileStore::setPrimary'.
+    // before invoking 'FileStore::setActivePrimary'.
     transitionToActivePrimary(pinfo, clusterData, partitionId);
 
     partitionPrimaryStatusCb(partitionId, status, pinfo->primaryLeaseId());
@@ -1451,7 +1450,7 @@ void StorageUtil::onPartitionPrimarySync(
     // Safe to inform partition now.  Note that partition will issue a sync
     // point with old leaseId (if applicable) and another with new leaseId
     // immediately.
-    fs->setPrimary(pinfo->primary(), pinfo->primaryLeaseId());
+    fs->setActivePrimary(pinfo->primary(), pinfo->primaryLeaseId());
 }
 
 void StorageUtil::recoveredQueuesCb(
@@ -1519,7 +1518,7 @@ void StorageUtil::recoveredQueuesCb(
         bmqt::Uri                             uri(qinfo.canonicalQueueUri());
         if (!uri.isValid()) {
             MWCTSK_ALARMLOG_ALARM("RECOVERY")
-                << clusterDescription << ": PartitionId [" << partitionId
+                << clusterDescription << ": Partition [" << partitionId
                 << "]: encountered invalid CanonicalQueueUri [" << uri << "]."
                 << MWCTSK_ALARMLOG_END;
             mqbu::ExitUtil::terminate(mqbu::ExitCode::e_RECOVERY_FAILURE);
@@ -1540,13 +1539,13 @@ void StorageUtil::recoveredQueuesCb(
                     // Duplicate AppId.
 
                     MWCTSK_ALARMLOG_ALARM("RECOVERY")
-                        << clusterDescription << ": PartitionId ["
-                        << partitionId << "]: "
+                        << clusterDescription << ": Partition [" << partitionId
+                        << "]: "
                         << "encountered a duplicate AppId while processing "
-                        << "recovered queue [" << uri << "], "
-                        << "queueKey [" << qit->first << "]. AppId ["
-                        << *(appIdsIrc.first) << "]. AppKey [" << p.second
-                        << "]." << MWCTSK_ALARMLOG_END;
+                        << "recovered queue [" << uri << "], " << "queueKey ["
+                        << qit->first << "]. AppId [" << *(appIdsIrc.first)
+                        << "]. AppKey [" << p.second << "]."
+                        << MWCTSK_ALARMLOG_END;
                     mqbu::ExitUtil::terminate(
                         mqbu::ExitCode::e_RECOVERY_FAILURE);
                     // EXIT
@@ -1563,8 +1562,8 @@ void StorageUtil::recoveredQueuesCb(
                     // CQH::onQueueAssigned ->
                     // StorageMgr::register/UpdateQueueReplica.
                     MWCTSK_ALARMLOG_ALARM("RECOVERY")
-                        << clusterDescription << ": PartitionId ["
-                        << partitionId << "]: "
+                        << clusterDescription << ": Partition [" << partitionId
+                        << "]: "
                         << "encountered a duplicate AppKey while processing "
                         << "recovered queue [" << uri << "], queueKey ["
                         << qit->first << "]. AppKey [" << *(appKeysIrc.first)
@@ -1585,8 +1584,8 @@ void StorageUtil::recoveredQueuesCb(
     // Print the unique list of retrieved domain names (useful for debugging
     // purposes).
     mwcu::MemOutStream os;
-    os << clusterDescription << ": PartitionId [" << partitionId << "]: "
-       << "retrieved "
+    os << clusterDescription << ": Partition [" << partitionId
+       << "]: " << "retrieved "
        << mwcu::PrintUtil::prettyNumber(
               static_cast<bsls::Types::Int64>(queueKeyInfoMap.size()))
        << " queues belonging to "
@@ -1612,7 +1611,7 @@ void StorageUtil::recoveredQueuesCb(
 
     for (DomainMapIter dit = domainMap.begin(); dit != domainMap.end();
          ++dit) {
-        BALL_LOG_INFO << clusterDescription << ": PartitionId [" << partitionId
+        BALL_LOG_INFO << clusterDescription << ": Partition [" << partitionId
                       << "]: requesting domain for [" << dit->first << "].";
 
         domainFactory->createDomain(
@@ -1627,12 +1626,12 @@ void StorageUtil::recoveredQueuesCb(
                                  partitionId));
     }
 
-    BALL_LOG_INFO << clusterDescription << ": PartitionId [" << partitionId
+    BALL_LOG_INFO << clusterDescription << ": Partition [" << partitionId
                   << "]: about to wait for [" << domainMap.size()
                   << "] domains to be created.";
     latch.wait();
 
-    BALL_LOG_INFO << clusterDescription << ": PartitionId [" << partitionId
+    BALL_LOG_INFO << clusterDescription << ": Partition [" << partitionId
                   << "]: domain creation step complete. Checking if all "
                   << "domains were created successfully.";
 
@@ -1677,11 +1676,11 @@ void StorageUtil::recoveredQueuesCb(
 
             const mqbs::ReplicatedStorage* rs = it->second;
             MWCTSK_ALARMLOG_ALARM("RECOVERY")
-                << clusterDescription << ": PartitionId [" << partitionId
+                << clusterDescription << ": Partition [" << partitionId
                 << "]: encountered queueKey [" << queueKey
                 << "] again, for uri [" << queueUri
-                << "]. Uri associated with original queueKey: "
-                << "[" << rs->queueUri() << "]." << MWCTSK_ALARMLOG_END;
+                << "]. Uri associated with original queueKey: " << "["
+                << rs->queueUri() << "]." << MWCTSK_ALARMLOG_END;
             mqbu::ExitUtil::terminate(mqbu::ExitCode::e_RECOVERY_FAILURE);
             // EXIT
         }
@@ -1725,7 +1724,7 @@ void StorageUtil::recoveredQueuesCb(
                                      unrecognizedDomains->end());
                 }
 
-                BALL_LOG_INFO << clusterDescription << ": PartitionId ["
+                BALL_LOG_INFO << clusterDescription << ": Partition ["
                               << partitionId << "]: encountered queueUri ["
                               << queueUri << "] again. QueueKey of this uri ["
                               << queueKey << "].";
@@ -1740,10 +1739,10 @@ void StorageUtil::recoveredQueuesCb(
 
                 const StorageSp& rstorage = spmapIt->second;
                 MWCTSK_ALARMLOG_ALARM("RECOVERY")
-                    << clusterDescription << ": PartitionId [" << partitionId
+                    << clusterDescription << ": Partition [" << partitionId
                     << "]: encountered queueUri [" << queueUri
                     << "] again. QueueKey of this uri [" << queueKey
-                    << "]. Details of original queueUri:: PartitionId ["
+                    << "]. Details of original queueUri:: Partition ["
                     << rstorage->partitionId() << "], queueKey ["
                     << rstorage->queueKey() << "]." << MWCTSK_ALARMLOG_END;
                 mqbu::ExitUtil::terminate(mqbu::ExitCode::e_RECOVERY_FAILURE);
@@ -1771,7 +1770,7 @@ void StorageUtil::recoveredQueuesCb(
         mqbi::Domain* domain = dit->second;
         BSLS_ASSERT_SAFE(domain->cluster());
 
-        BALL_LOG_INFO << clusterDescription << " PartitionId [" << partitionId
+        BALL_LOG_INFO << clusterDescription << " Partition [" << partitionId
                       << "] creating storage for queue [" << queueUri
                       << "], queueKey [" << queueKey << "].";
 
@@ -1781,7 +1780,7 @@ void StorageUtil::recoveredQueuesCb(
 
         if (domainCfg.mode().isUndefinedValue()) {
             MWCTSK_ALARMLOG_ALARM("RECOVERY")
-                << clusterDescription << ": PartitionId [" << partitionId
+                << clusterDescription << ": Partition [" << partitionId
                 << "]: Domain for queue [" << queueUri << "], queueKey ["
                 << queueKey << "] has invalid queue mode. Aborting broker."
                 << MWCTSK_ALARMLOG_END;
@@ -1791,7 +1790,7 @@ void StorageUtil::recoveredQueuesCb(
 
         if (storageDef.config().isUndefinedValue()) {
             MWCTSK_ALARMLOG_ALARM("RECOVERY")
-                << clusterDescription << ": PartitionId [" << partitionId
+                << clusterDescription << ": Partition [" << partitionId
                 << "]: Domain for queue [" << queueUri << "], queueKey ["
                 << queueKey << "] has invalid storage config. Aborting broker."
                 << MWCTSK_ALARMLOG_END;
@@ -1808,7 +1807,7 @@ void StorageUtil::recoveredQueuesCb(
             // clustered setup.
 
             MWCTSK_ALARMLOG_ALARM("RECOVERY")
-                << clusterDescription << ": PartitionId [" << partitionId
+                << clusterDescription << ": Partition [" << partitionId
                 << "]: Queue [" << queueUri << "], queueKey [" << queueKey
                 << "] is clustered, is setup with incompatible "
                 << "config. In-memory storage: " << bsl::boolalpha
@@ -1848,8 +1847,7 @@ void StorageUtil::recoveredQueuesCb(
                     // TBD: does this mean storage is corrupt? Should we abort?
 
                     MWCTSK_ALARMLOG_ALARM("RECOVERY")
-                        << clusterDescription << ": PartitionId ["
-                        << partitionId
+                        << clusterDescription << ": Partition [" << partitionId
                         << "]: failed to create virtual storage with appId ["
                         << appId << "], appKey [" << appKey
                         << "] for queueUri [" << queueUri << "], queueKey ["
@@ -1859,7 +1857,7 @@ void StorageUtil::recoveredQueuesCb(
                 }
 
                 BALL_LOG_INFO
-                    << clusterDescription << " PartitionId [" << partitionId
+                    << clusterDescription << " Partition [" << partitionId
                     << "]: Created virtual storage with appId [" << appId
                     << "], appKey [" << appKey << "] for queueUri ["
                     << queueUri << "], queueKey [" << queueKey << "].";
@@ -1884,14 +1882,14 @@ void StorageUtil::recoveredQueuesCb(
                 // TBD: does this mean storage is corrupt? Should we abort?
 
                 BALL_LOG_WARN
-                    << clusterDescription << ": PartitionId [" << partitionId
+                    << clusterDescription << ": Partition [" << partitionId
                     << "]: failed to create default virtual storage"
                     << " for queueUri [" << queueUri << "], queueKey ["
                     << queueKey << "]. Reason: [" << errorDesc.str()
                     << "], rc: " << rc << ".";
             }
 
-            BALL_LOG_INFO << clusterDescription << " PartitionId ["
+            BALL_LOG_INFO << clusterDescription << " Partition ["
                           << partitionId
                           << "]: Created default virtual storage "
                           << " for queueUri [" << queueUri << "], queueKey ["
@@ -1903,7 +1901,7 @@ void StorageUtil::recoveredQueuesCb(
     // storages.  Note that any virtual storages associated with each
     // file-backed storage will also be populated at this time.
 
-    BALL_LOG_INFO << clusterDescription << ": PartitionId [" << partitionId
+    BALL_LOG_INFO << clusterDescription << ": Partition [" << partitionId
                   << "], total number of "
                   << "records found during recovery: " << fs->numRecords();
 
@@ -1984,9 +1982,9 @@ void StorageUtil::recoveredQueuesCb(
 
             // If queue is not recovered
             MWCTSK_ALARMLOG_ALARM("STORAGE")
-                << clusterDescription << ": PartitionId [" << partitionId
-                << "], dropping record "
-                << "because queue key '" << queueKey << "' not found in the "
+                << clusterDescription << ": Partition [" << partitionId
+                << "], dropping record " << "because queue key '" << queueKey
+                << "' not found in the "
                 << "list of recovered queues, record: " << fsIt
                 << MWCTSK_ALARMLOG_END;
             continue;  // CONTINUE
@@ -2003,7 +2001,7 @@ void StorageUtil::recoveredQueuesCb(
 
             if (!rs->isPersistent()) {
                 MWCTSK_ALARMLOG_ALARM("STORAGE")
-                    << clusterDescription << ": PartitionId [" << partitionId
+                    << clusterDescription << ": Partition [" << partitionId
                     << "]: For queue [" << rs->queueUri() << "] queueKey ["
                     << queueKey
                     << "] which is configured with in-memory storage, "
@@ -2064,7 +2062,7 @@ void StorageUtil::recoveredQueuesCb(
 
             if (!appKey.isNull() && !rs->hasVirtualStorage(appKey)) {
                 MWCTSK_ALARMLOG_ALARM("STORAGE")
-                    << clusterDescription << ": PartitionId [" << partitionId
+                    << clusterDescription << ": Partition [" << partitionId
                     << "], appKey [" << appKey << "] specified in "
                     << fsIt.type() << " record, with guid [" << guid
                     << "] not found in the list of virtual "
@@ -2300,12 +2298,12 @@ void StorageUtil::shutdown(int                              partitionId,
     if (fs) {
         BSLS_ASSERT_SAFE(fs->inDispatcherThread());
 
-        BALL_LOG_INFO << clusterDescription << ": Closing PartitionId ["
+        BALL_LOG_INFO << clusterDescription << ": Closing Partition ["
                       << partitionId << "].";
 
         fs->close(clusterConfig.partitionConfig().flushAtShutdown());
 
-        BALL_LOG_INFO << clusterDescription << ": PartitionId [" << partitionId
+        BALL_LOG_INFO << clusterDescription << ": Partition [" << partitionId
                       << "] closed.";
     }
 
@@ -2389,7 +2387,7 @@ void StorageUtil::registerQueue(
 
     if (queueMode.isUndefinedValue()) {
         MWCTSK_ALARMLOG_ALARM("STORAGE")
-            << "PartitionId [" << partitionId
+            << "Partition [" << partitionId
             << "] Invalid queue-mode in the domain configuration while "
             << "attempting to register queue '" << uri << "', queueKey '"
             << queueKey << "'." << MWCTSK_ALARMLOG_END;
@@ -2404,7 +2402,7 @@ void StorageUtil::registerQueue(
         if (storageDef.config().isInMemoryValue() !=
             queueMode.isBroadcastValue()) {
             MWCTSK_ALARMLOG_ALARM("STORAGE")
-                << "PartitionId [" << partitionId << "] Incompatible "
+                << "Partition [" << partitionId << "] Incompatible "
                 << "queue mode (" << queueMode.selectionName() << ") "
                 << "and storage type (" << storageDef.config().selectionName()
                 << ") while attempting to register clustered queue '" << uri
@@ -2416,7 +2414,7 @@ void StorageUtil::registerQueue(
     BSLS_ASSERT_SAFE(storageDef.config().isInMemoryValue() ||
                      storageDef.config().isFileBackedValue());
 
-    BALL_LOG_INFO << clusterDescription << " PartitionId [" << partitionId
+    BALL_LOG_INFO << clusterDescription << " Partition [" << partitionId
                   << "]: Registering queue '" << uri << "', queueKey: '"
                   << queueKey << "' to storage.";
 
@@ -2634,7 +2632,7 @@ void StorageUtil::unregisterQueueDispatched(
 
     if (clusterData->membership().selfNode() != pinfo.primary()) {
         MWCTSK_ALARMLOG_ALARM("STORAGE")
-            << clusterData->identity().description() << " PartitionId ["
+            << clusterData->identity().description() << " Partition ["
             << partitionId << "]: queue [" << uri
             << "] unregistration requested but self is not primary. Current "
             << "primary: "
@@ -2648,7 +2646,7 @@ void StorageUtil::unregisterQueueDispatched(
 
     if (bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE != pinfo.primaryStatus()) {
         MWCTSK_ALARMLOG_ALARM("STORAGE")
-            << clusterData->identity().description() << " PartitionId ["
+            << clusterData->identity().description() << " Partition ["
             << partitionId << "]: queue [" << uri
             << "] unregistration requested but self is not ACTIVE primary."
             << ". Current leaseId: " << pinfo.primaryLeaseId()
@@ -2669,7 +2667,7 @@ void StorageUtil::unregisterQueueDispatched(
         // registered with StorageManager at the primary node, and thus, this
         // 'if' snippet will be executed.
         BALL_LOG_WARN
-            << clusterData->identity().description() << " PartitionId ["
+            << clusterData->identity().description() << " Partition ["
             << partitionId << "]: queue [" << uri
             << "] requested for unregistration not found in storage manager.";
         return;  // RETURN
@@ -2689,7 +2687,7 @@ void StorageUtil::unregisterQueueDispatched(
         // the case here, its an error.
 
         MWCTSK_ALARMLOG_ALARM("STORAGE")
-            << clusterData->identity().description() << ": PartitionId ["
+            << clusterData->identity().description() << ": Partition ["
             << partitionId << "]: cannot unregister queue"
             << " because it has [" << numMsgs
             << "] outstanding messages. Queue [" << uri << "], queueKey ["
@@ -2699,7 +2697,7 @@ void StorageUtil::unregisterQueueDispatched(
 
     // Storage has no outstanding messages.
 
-    BALL_LOG_INFO << clusterData->identity().description() << ": PartitionId ["
+    BALL_LOG_INFO << clusterData->identity().description() << ": Partition ["
                   << partitionId << "], Deleting storage for queue [" << uri
                   << "], queueKey [" << storage->queueKey()
                   << "] as primary, as it has no outstanding messages.";
@@ -2716,7 +2714,7 @@ void StorageUtil::unregisterQueueDispatched(
 
     if (0 != rc) {
         MWCTSK_ALARMLOG_ALARM("FILE_IO")
-            << clusterData->identity().description() << ": PartitionId ["
+            << clusterData->identity().description() << ": Partition ["
             << partitionId
             << "] failed to write QueueDeletionRecord for queue [" << uri
             << "], queueKey [" << storage->queueKey() << "], rc: " << rc
@@ -2789,7 +2787,7 @@ int StorageUtil::updateQueue(StorageSpMap*           storageMap,
     if (storageMap->end() == it) {
         mwcu::Printer<AppIdKeyPairs> printer1(&addedIdKeyPairs);
         mwcu::Printer<AppIdKeyPairs> printer2(&removedIdKeyPairs);
-        BALL_LOG_ERROR << clusterDescription << " PartitionId [" << partitionId
+        BALL_LOG_ERROR << clusterDescription << " Partition [" << partitionId
                        << "]: Error when updating queue '" << uri
                        << "' with addedAppIds: [" << printer1
                        << "], removedAppIds: [" << printer2
@@ -2967,7 +2965,7 @@ void StorageUtil::registerQueueReplicaDispatched(
     storageMap->insert(bsl::make_pair(uri, rs_sp));
     fs->registerStorage(rs_sp.get());
 
-    BALL_LOG_INFO << clusterDescription << ": PartitionId [" << partitionId
+    BALL_LOG_INFO << clusterDescription << ": Partition [" << partitionId
                   << "] registered [" << uri << "], queueKey [" << queueKey
                   << "] with the storage as replica.";
 
@@ -3023,10 +3021,10 @@ void StorageUtil::unregisterQueueReplicaDispatched(
         // replication.
 
         MWCTSK_ALARMLOG_ALARM("REPLICATION")
-            << clusterDescription << " PartitionId [" << partitionId
-            << "]: unaware of uri while deleting "
-            << "storage for queue [ " << uri << "], queueKey [" << queueKey
-            << "]. Ignoring this event." << MWCTSK_ALARMLOG_END;
+            << clusterDescription << " Partition [" << partitionId
+            << "]: unaware of uri while deleting " << "storage for queue [ "
+            << uri << "], queueKey [" << queueKey << "]. Ignoring this event."
+            << MWCTSK_ALARMLOG_END;
         if (status) {
             *status = rc_UNKNOWN_QUEUE_URI;
         }
@@ -3041,12 +3039,11 @@ void StorageUtil::unregisterQueueReplicaDispatched(
         // This really means that cluster state is out of sync across nodes.
 
         MWCTSK_ALARMLOG_ALARM("REPLICATION")
-            << clusterDescription << " PartitionId [" << partitionId
-            << "]: queueKey mismatch while deleting "
-            << "storage for queue [ " << uri << "]. Specified queueKey ["
-            << queueKey << "], queueKey associated with storage ["
-            << rs->queueKey() << "]. Ignoring this event."
-            << MWCTSK_ALARMLOG_END;
+            << clusterDescription << " Partition [" << partitionId
+            << "]: queueKey mismatch while deleting " << "storage for queue [ "
+            << uri << "]. Specified queueKey [" << queueKey
+            << "], queueKey associated with storage [" << rs->queueKey()
+            << "]. Ignoring this event." << MWCTSK_ALARMLOG_END;
         if (status) {
             *status = rc_QUEUE_KEY_MISMATCH;
         }
@@ -3062,7 +3059,7 @@ void StorageUtil::unregisterQueueReplicaDispatched(
                 mqbu::StorageKey::k_NULL_KEY);
             if (0 != numMsgs) {
                 MWCTSK_ALARMLOG_ALARM("REPLICATION")
-                    << clusterDescription << " PartitionId [" << partitionId
+                    << clusterDescription << " Partition [" << partitionId
                     << "]: Attempt to delete storage for queue [ " << uri
                     << "], queueKey [" << queueKey << "] which has ["
                     << numMsgs << "] outstanding messages."
@@ -3081,7 +3078,7 @@ void StorageUtil::unregisterQueueReplicaDispatched(
             }
         }
 
-        BALL_LOG_INFO << clusterDescription << ": PartitionId [" << partitionId
+        BALL_LOG_INFO << clusterDescription << ": Partition [" << partitionId
                       << "], Deleting storage for queue [" << uri
                       << "], queueKey [" << queueKey << "] as replica.";
 
@@ -3106,11 +3103,11 @@ void StorageUtil::unregisterQueueReplicaDispatched(
                                           partitionId);
     if (0 != rc) {
         MWCTSK_ALARMLOG_ALARM("REPLICATION")
-            << clusterDescription << " PartitionId [" << partitionId
-            << "]: Failed to remove virtual storage "
-            << "for appKey [" << appKey << "] for queue [" << uri
-            << "] and queueKey [" << queueKey << ", rc: " << rc
-            << ". Ignoring this event." << MWCTSK_ALARMLOG_END;
+            << clusterDescription << " Partition [" << partitionId
+            << "]: Failed to remove virtual storage " << "for appKey ["
+            << appKey << "] for queue [" << uri << "] and queueKey ["
+            << queueKey << ", rc: " << rc << ". Ignoring this event."
+            << MWCTSK_ALARMLOG_END;
         if (status) {
             *status = rc_MISC;
         }
@@ -3118,7 +3115,7 @@ void StorageUtil::unregisterQueueReplicaDispatched(
         return;  // RETURN
     }
 
-    BALL_LOG_INFO << clusterDescription << ": PartitionId [" << partitionId
+    BALL_LOG_INFO << clusterDescription << ": Partition [" << partitionId
                   << "], Removed virtual storage for appKey [" << appKey
                   << "] for queue [" << uri << "], queueKey [" << queueKey
                   << "] as replica.";
@@ -3219,10 +3216,10 @@ void StorageUtil::updateQueueReplicaDispatched(
     }
 
     mwcu::Printer<AppIdKeyPairs> printer(&appIdKeyPairs);
-    BALL_LOG_INFO << clusterDescription << ": PartitionId [" << partitionId
+    BALL_LOG_INFO << clusterDescription << ": Partition [" << partitionId
                   << "] updated [" << uri << "], queueKey [" << queueKey
-                  << "] with the storage as replica: "
-                  << "addedIdKeyPairs:" << printer;
+                  << "] with the storage as replica: " << "addedIdKeyPairs:"
+                  << printer;
 
     if (status) {
         *status = rc_SUCCESS;
@@ -3248,7 +3245,7 @@ void StorageUtil::setQueueDispatched(
 
     StorageSpMapIter it = storageMap->find(uri);
     if (it == storageMap->end()) {
-        BALL_LOG_ERROR << clusterDescription << " PartitionId [" << partitionId
+        BALL_LOG_ERROR << clusterDescription << " Partition [" << partitionId
                        << "]: queue [" << uri
                        << "] not found in storage manager.";
         return;  // RETURN
@@ -3350,7 +3347,7 @@ void StorageUtil::processPrimaryStatusAdvisoryDispatched(
     if (source == pinfo->primary()) {
         if (advisory.primaryLeaseId() != pinfo->primaryLeaseId()) {
             MWCTSK_ALARMLOG_ALARM("CLUSTER_STATE")
-                << clusterDescription << " PartitionId ["
+                << clusterDescription << " Partition ["
                 << advisory.partitionId()
                 << "]: received primary advisory: " << advisory
                 << ", from perceived primary: " << source->nodeDescription()
@@ -3376,7 +3373,7 @@ void StorageUtil::processPrimaryStatusAdvisoryDispatched(
             // Primary status advisory from a different node.
 
             MWCTSK_ALARMLOG_ALARM("CLUSTER_STATE")
-                << clusterDescription << " PartitionId ["
+                << clusterDescription << " Partition ["
                 << advisory.partitionId()
                 << "]: received primary advisory: " << advisory
                 << ", from: " << source->nodeDescription()
@@ -3399,7 +3396,7 @@ void StorageUtil::processPrimaryStatusAdvisoryDispatched(
         // partition/primary mapping, so this needs to be reviewed carefully.
         // See 'ClusterStateMgr::processPrimaryStatusAdvisory' as well.
 
-        BALL_LOG_WARN << clusterDescription << " PartitionId ["
+        BALL_LOG_WARN << clusterDescription << " Partition ["
                       << advisory.partitionId()
                       << "]: received primary advisory: " << advisory
                       << ", from: " << source->nodeDescription()
@@ -3408,17 +3405,12 @@ void StorageUtil::processPrimaryStatusAdvisoryDispatched(
                       << "node as primary.";
     }
 
-    BALL_LOG_INFO << clusterDescription << " PartitionId ["
-                  << advisory.partitionId()
-                  << "]: received primary status advisory: " << advisory
-                  << ", from: " << source->nodeDescription();
-
     pinfo->setPrimary(source);
     pinfo->setPrimaryLeaseId(advisory.primaryLeaseId());
     pinfo->setPrimaryStatus(advisory.status());
 
     if (bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE == advisory.status()) {
-        fs->setPrimary(source, advisory.primaryLeaseId());
+        fs->setActivePrimary(source, advisory.primaryLeaseId());
     }
 }
 
@@ -3440,7 +3432,7 @@ void StorageUtil::processReplicaStatusAdvisoryDispatched(
     BSLS_ASSERT_SAFE(pinfo.primary() == clusterData->membership().selfNode());
     if (bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE == pinfo.primaryStatus()) {
         BALL_LOG_INFO << clusterData->identity().description()
-                      << " PartitionId [" << partitionId
+                      << " Partition [" << partitionId
                       << "]: Received node status: " << status
                       << ", from replica node: " << source->nodeDescription()
                       << ". Self is ACTIVE primary, force-issuing a primary "
@@ -3450,7 +3442,7 @@ void StorageUtil::processReplicaStatusAdvisoryDispatched(
     }
     else {
         BALL_LOG_INFO << clusterData->identity().description()
-                      << " PartitionId [" << partitionId
+                      << " Partition [" << partitionId
                       << "]: not issuing a primary status advisory or SyncPt "
                       << "upon receiving status advisory: " << status
                       << ", from replica: " << source->nodeDescription()
@@ -3493,13 +3485,13 @@ void StorageUtil::processShutdownEventDispatched(ClusterData*     clusterData,
             int rc = fs->issueSyncPoint();
             if (0 != rc) {
                 BALL_LOG_ERROR
-                    << clusterData->identity().description() << "PartitionId ["
+                    << clusterData->identity().description() << "Partition ["
                     << partitionId
                     << "]: failed to force-issue SyncPt, rc: " << rc;
             }
             else {
                 BALL_LOG_INFO
-                    << clusterData->identity().description() << "PartitionId ["
+                    << clusterData->identity().description() << "Partition ["
                     << partitionId
                     << "]: force-issued SyncPt: " << fs->syncPoints().back()
                     << ".";
@@ -3507,7 +3499,7 @@ void StorageUtil::processShutdownEventDispatched(ClusterData*     clusterData,
         }
         else {
             BALL_LOG_INFO << clusterData->identity().description()
-                          << " PartitionId [" << partitionId
+                          << " Partition [" << partitionId
                           << "]: not issuing a sync point while shutting "
                           << "down because self is not an active primary.";
         }
@@ -3915,7 +3907,7 @@ void StorageUtil::onDomain(const bmqp_ctrlmsg::Status& status,
         BSLS_ASSERT_SAFE(0 == domain);
         *out = 0;
 
-        BALL_LOG_ERROR << clusterDescription << " PartitionId [" << partitionId
+        BALL_LOG_ERROR << clusterDescription << " Partition [" << partitionId
                        << "]: Failed to create domain for [" << domainName
                        << "], reason: " << status;
     }
@@ -3963,13 +3955,13 @@ void StorageUtil::forceIssueAdvisoryAndSyncPt(mqbc::ClusterData*   clusterData,
     }
     int rc = fs->issueSyncPoint();
     if (0 == rc) {
-        BALL_LOG_INFO << clusterData->identity().description()
-                      << "PartitionId [" << fs->config().partitionId()
+        BALL_LOG_INFO << clusterData->identity().description() << "Partition ["
+                      << fs->config().partitionId()
                       << "]: successfully issued a forced SyncPt.";
     }
     else {
         BALL_LOG_ERROR << clusterData->identity().description()
-                       << "PartitionId [" << fs->config().partitionId()
+                       << "Partition [" << fs->config().partitionId()
                        << "]: failed to force-issue SyncPt, rc: " << rc;
     }
 }

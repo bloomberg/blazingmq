@@ -1077,7 +1077,9 @@ static void test8_putEventBuilder()
     bmqp::Crc32c::initialize();
 
     bdlbb::PooledBlobBufferFactory   bufferFactory(1024, s_allocator_p);
+#ifdef BMQ_ENABLE_MSG_GROUPID
     const bmqp::Protocol::MsgGroupId k_MSG_GROUP_ID("gid:0", s_allocator_p);
+#endif
     const int                        k_PROPERTY_VAL_ENCODING = 3;
     const bsl::string                k_PROPERTY_VAL_ID       = "myCoolId";
     const unsigned int               k_CRC32                 = 123;
@@ -1106,8 +1108,10 @@ static void test8_putEventBuilder()
 
     builder.startMessage();
     builder.setMessagePayload(k_PAYLOAD, k_PAYLOAD_LEN)
-        .setMessageProperties(&msgProps)
-        .setMsgGroupId(k_MSG_GROUP_ID);
+        .setMessageProperties(&msgProps);
+#ifdef BMQ_ENABLE_MSG_GROUPID
+    builder.setMsgGroupId(k_MSG_GROUP_ID);
+#endif
 
     struct Test {
         int                d_line;
@@ -1149,8 +1153,10 @@ static void test8_putEventBuilder()
             s_allocator_p,
             bmqt::CompressionAlgorithmType::e_NONE);
 
+#ifdef BMQ_ENABLE_MSG_GROUPID
         ASSERT_EQ(builder.msgGroupId().isNull(), false);
         ASSERT_EQ(builder.msgGroupId().value(), k_MSG_GROUP_ID);
+#endif
 
         ASSERT_EQ(builder.unpackedMessageSize(), k_PAYLOAD_LEN);
 
@@ -1232,11 +1238,13 @@ static void test8_putEventBuilder()
             ASSERT_EQ(prop.getPropertyAsInt64("timestamp"), test.d_timeStamp);
         }
 
+#ifdef BMQ_ENABLE_MSG_GROUPID
         bmqp::Protocol::MsgGroupId msgGroupId(s_allocator_p);
         ASSERT_EQ(putIter.hasMsgGroupId(), true);
         ASSERT_EQ(putIter.extractMsgGroupId(&msgGroupId), true);
         ASSERT_EQ(msgGroupId, k_MSG_GROUP_ID);
         ASSERT_EQ(putIter.isValid(), true);
+#endif
     }
 
     ASSERT_EQ(true, putIter.isValid());

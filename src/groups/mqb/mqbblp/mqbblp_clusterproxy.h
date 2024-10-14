@@ -291,11 +291,8 @@ class ClusterProxy : public mqbc::ClusterStateObserver,
         mqbnet::ClusterNode*         node,
         BSLS_ANNOTATION_UNUSED const bmqp_ctrlmsg::ClientIdentity& identity);
 
-    // Executed by the dispatcher thread when there is a change in the
-    // specified 'node' connectivity.  If not empty, the specified
-    // 'session' points to newly connected 'Session'.  Empty 'session'
-    // indicates loss of connectivity.
-
+    /// Executed by the dispatcher thread when the specified `node` becomes
+    /// unavailable.
     void onNodeDownDispatched(mqbnet::ClusterNode* node);
 
     /// Callback method when the `activeNodeLookupEvent` has expired.
@@ -429,20 +426,18 @@ class ClusterProxy : public mqbc::ClusterStateObserver,
     // CREATORS
 
     /// Create a new object representing a cluster having the specified
-    /// `name`, `clusterProxyConfig` and `statContexts`, associated to the
-    /// specified `netCluster` and using the specified `scheduler`,
-    /// `bufferFactory`, `blobSpPool` and `dispatcher`.  Use the specified
-    /// `allocator` for any memory allocation.
+    /// `name`, `clusterConfig` and `statContexts`, associated to the
+    /// specified `netCluster` and using the specified `domainFactory`,
+    /// `scheduler`, `dispatcher`, `transportManager`, and `resources`.  Use
+    /// the specified `allocator` for any memory allocation.
     ClusterProxy(const bslstl::StringRef&              name,
                  const mqbcfg::ClusterProxyDefinition& clusterProxyConfig,
                  bslma::ManagedPtr<mqbnet::Cluster>    netCluster,
                  const StatContextsMap&                statContexts,
-                 bdlmt::EventScheduler*                scheduler,
-                 bdlbb::BlobBufferFactory*             bufferFactory,
-                 BlobSpPool*                           blobSpPool,
                  mqbi::Dispatcher*                     dispatcher,
                  mqbnet::TransportManager*             transportManager,
                  StopRequestManagerType*               stopRequestsManager,
+                 const mqbi::ClusterResources&         resources,
                  bslma::Allocator*                     allocator);
 
     /// Destructor
@@ -722,22 +717,20 @@ inline size_t ClusterProxy::ChannelBuffer::bytes() const
 // class ClusterProxy
 // ------------------
 
-inline void
-ClusterProxy::getPrimaryNodes(int*          rc,
-                              bsl::ostream& errorDescription,
-                              bsl::vector<mqbnet::ClusterNode*>* nodes,
-                              bool* isSelfPrimary) const
+inline void ClusterProxy::getPrimaryNodes(int*,
+                                          bsl::ostream&,
+                                          bsl::vector<mqbnet::ClusterNode*>*,
+                                          bool*) const
 {
     // no implementation -- this should not run.
     BSLS_ASSERT_SAFE(false);
 }
 
-inline void
-ClusterProxy::getPartitionPrimaryNode(int*                  rc,
-                                      bsl::ostream&         errorDescription,
-                                      mqbnet::ClusterNode** node,
-                                      bool*                 isSelfPrimary,
-                                      int                   partitionId) const
+inline void ClusterProxy::getPartitionPrimaryNode(int*,
+                                                  bsl::ostream&,
+                                                  mqbnet::ClusterNode**,
+                                                  bool*,
+                                                  int) const
 {
     // no implementation -- this should not run.
     BSLS_ASSERT_SAFE(false);

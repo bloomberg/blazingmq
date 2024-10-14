@@ -2184,7 +2184,7 @@ void Cluster::onRecoveryStatusDispatched(
             else if (d_state.partition(pid).primaryLeaseId() <
                      primaryLeaseIds[pid]) {
                 MWCTSK_ALARMLOG_ALARM("CLUSTER")
-                    << description() << " PartitionId [" << pid
+                    << description() << " Partition [" << pid
                     << "]: self has higher retrieved leaseId ("
                     << primaryLeaseIds[pid]
                     << ") than the one notified by leader ("
@@ -2537,12 +2537,10 @@ Cluster::Cluster(const bslstl::StringRef&           name,
                  bslma::ManagedPtr<mqbnet::Cluster> netCluster,
                  const StatContextsMap&             statContexts,
                  mqbi::DomainFactory*               domainFactory,
-                 bdlmt::EventScheduler*             scheduler,
                  mqbi::Dispatcher*                  dispatcher,
-                 BlobSpPool*                        blobSpPool,
-                 bdlbb::BlobBufferFactory*          bufferFactory,
                  mqbnet::TransportManager*          transportManager,
                  StopRequestManagerType*            stopRequestsManager,
+                 const mqbi::ClusterResources&      resources,
                  bslma::Allocator*                  allocator,
                  const mqbnet::Session::AdminCommandEnqueueCb& adminCb)
 : d_allocator_p(allocator)
@@ -2550,9 +2548,7 @@ Cluster::Cluster(const bslstl::StringRef&           name,
 , d_isStarted(false)
 , d_isStopping(false)
 , d_clusterData(name,
-                scheduler,
-                bufferFactory,
-                blobSpPool,
+                resources,
                 clusterConfig,
                 mqbcfg::ClusterProxyDefinition(allocator),
                 netCluster,
@@ -2588,7 +2584,8 @@ Cluster::Cluster(const bslstl::StringRef&           name,
     BSLS_ASSERT(d_allocator_p);
     mqbnet::Cluster* netCluster_p = d_clusterData.membership().netCluster();
     BSLS_ASSERT(netCluster_p && "NetCluster not set !");
-    BSLS_ASSERT(scheduler->clockType() == bsls::SystemClockType::e_MONOTONIC);
+    BSLS_ASSERT(resources.scheduler()->clockType() ==
+                bsls::SystemClockType::e_MONOTONIC);
     BSLS_ASSERT_SAFE(d_clusterData.membership().selfNode() &&
                      "SelfNode not found in cluster!");
 

@@ -77,82 +77,88 @@ struct DomainQueueStats {
         e_STAT_NB_PRODUCER
 
         ,
+        /// Value:      Current number of clients who opened the queue with
+        ///             the 'READ' flag
         e_STAT_NB_CONSUMER
-        // Value:      Current number of clients who opened the queue with
-        //             the 'READ' flag
 
         ,
+        /// Value:      Current number of messages in the queue
         e_STAT_MESSAGES
-        // Value:      Current number of messages in the queue
 
         ,
+        /// Value:      Accumulated bytes of all messages currently in the
+        ///             queue
         e_STAT_BYTES
-        // Value:      Accumulated bytes of all messages currently in the
-        //             queue
 
         ,
+        /// Value:      Number of ack messages delivered by this queue
         e_STAT_ACK
-        // Value:      Number of ack messages delivered by this queue
 
         ,
+        /// Value:      The time between PUT and ACK (in nanoseconds).
         e_STAT_ACK_TIME
-        // Value:      The time between PUT and ACK (in nanoseconds).
 
         ,
+        /// Value:      Number of NACK messages generated for this queue
         e_STAT_NACK
-        // Value:      Number of NACK messages generated for this queue
 
         ,
+        /// Value:      Number of CONFIRM messages received by this queue
         e_STAT_CONFIRM
-        // Value:      Number of CONFIRM messages received by this queue
 
         ,
+        /// Value:      The time between PUSH and CONFIRM (in nanoseconds).
         e_STAT_CONFIRM_TIME
-        // Value:      The time between PUSH and CONFIRM (in nanoseconds).
 
         ,
+        /// Value:      Number of messages rejected by this queue (RDA
+        ///             reaching zero)
         e_STAT_REJECT
-        // Value:      Number of messages rejected by this queue (RDA
-        //             reaching zero)
 
         ,
+        /// Value:      The time spent by the message in the queue (in
+        ///             nanoseconds).
         e_STAT_QUEUE_TIME
-        // Value:      The time spent by the message in the queue (in
-        //             nanoseconds).
 
         ,
+        /// Value:      Accumulated bytes of all messages ever pushed from
+        ///             the queue
+        /// Increment:  Number of messages ever pushed from the queue
         e_STAT_PUSH
-        // Value:      Accumulated bytes of all messages ever pushed from
-        //             the queue
-        // Increment:  Number of messages ever pushed from the queue
 
         ,
+        /// Value:      Accumulated bytes of all messages ever put in the
+        ///             queue
+        /// Increment:  Number of messages ever put in the queue
         e_STAT_PUT
-        // Value:      Accumulated bytes of all messages ever put in the
-        //             queue
-        // Increment:  Number of messages ever put in the queue
 
         ,
+        /// Value:      Accumulated number of messages ever GC'ed in the
+        ///             queue
         e_STAT_GC_MSGS
-        // Value:      Accumulated number of messages ever GC'ed in the
-        //             queue
 
         ,
+        /// Value:      Role (Unknown, Primary, Replica, Proxy)
         e_STAT_ROLE
-        // Value:      Role (Unknown, Primary, Replica, Proxy)
 
         ,
+        /// Value:      The configured queue messages capacity
         e_CFG_MSGS
-        // Value:      The configured queue messages capacity
 
         ,
+        /// Value:      The configured queue bytes capacity
         e_CFG_BYTES
-        // Value:      The configured queue bytes capacity
+
         ,
+        /// Value:      Accumulated number of messages in the strong
+        ///             consistency queue expired before receiving quorum
+        ///             Receipts
         e_STAT_NO_SC_MSGS
-        // Value:      Accumulated number of messages in the strong
-        //             consistency queue expired before receiving quorum
-        //             Receipts
+
+        ,
+        // Value:      Current number of GUIDs stored in queue's history
+        //             (does not include messages in the queue)
+        e_STAT_HISTORY
     };
 };
 
@@ -168,20 +174,20 @@ struct ClientStats {
         e_STAT_ACK
 
         ,
+        /// Value:      Number of confirm messages delivered to the client
         e_STAT_CONFIRM
-        // Value:      Number of confirm messages delivered to the client
 
         ,
+        /// Value:      Accumulated bytes of all messages ever pushed to
+        ///             the client
+        /// Increments: Number of messages ever pushed to the client
         e_STAT_PUSH
-        // Value:      Accumulated bytes of all messages ever pushed to
-        //             the client
-        // Increments: Number of messages ever pushed to the client
 
         ,
+        /// Value:      Accumulated bytes of all messages ever received from
+        ///             the client
+        /// Increments: Number of messages ever received from the client
         e_STAT_PUT
-        // Value:      Accumulated bytes of all messages ever received from
-        //             the client
-        // Increments: Number of messages ever received from the client
     };
 };
 
@@ -242,6 +248,7 @@ const char* QueueStatsDomain::Stat::toString(Stat::Enum value)
         MQBSTAT_CASE(e_CFG_BYTES, "queue_cfg_bytes")
         MQBSTAT_CASE(e_NO_SC_MSGS_DELTA, "queue_nack_noquorum_msgs")
         MQBSTAT_CASE(e_NO_SC_MSGS_ABS, "queue_nack_noquorum_msgs_abs")
+        MQBSTAT_CASE(e_HISTORY_ABS, "queue_history_abs")
     }
 
     BSLS_ASSERT(!"invalid enumerator");
@@ -405,6 +412,9 @@ QueueStatsDomain::getValue(const mwcst::StatContext& context,
         return STAT_RANGE(valueDifference,
                           DomainQueueStats::e_STAT_NO_SC_MSGS);
     }
+    case QueueStatsDomain::Stat::e_HISTORY_ABS: {
+        return STAT_SINGLE(value, DomainQueueStats::e_STAT_HISTORY);
+    }
     default: {
         BSLS_ASSERT_SAFE(false && "Attempting to access an unknown stat");
     }
@@ -544,6 +554,15 @@ void QueueStatsDomain::onEvent(EventType::Enum type, bsls::Types::Int64 value)
     case EventType::e_ADD_MESSAGE: {
         d_statContext_mp->adjustValue(DomainQueueStats::e_STAT_BYTES, value);
         d_statContext_mp->adjustValue(DomainQueueStats::e_STAT_MESSAGES, 1);
+        if (!d_subContextsHolder.empty()) {
+            bsl::list<StatSubContextMp>::iterator it =
+                d_subContextsHolder.begin();
+            while (it != d_subContextsHolder.end()) {
+                it->get()->adjustValue(DomainQueueStats::e_STAT_BYTES, value);
+                it->get()->adjustValue(DomainQueueStats::e_STAT_MESSAGES, 1);
+                ++it;
+            }
+        }
     } break;
     case EventType::e_DEL_MESSAGE: {
         d_statContext_mp->adjustValue(DomainQueueStats::e_STAT_BYTES, -value);
@@ -557,6 +576,15 @@ void QueueStatsDomain::onEvent(EventType::Enum type, bsls::Types::Int64 value)
         //       the stat to get rates
         d_statContext_mp->setValue(DomainQueueStats::e_STAT_BYTES, 0);
         d_statContext_mp->setValue(DomainQueueStats::e_STAT_MESSAGES, 0);
+        if (!d_subContextsHolder.empty()) {
+            bsl::list<StatSubContextMp>::iterator it =
+                d_subContextsHolder.begin();
+            while (it != d_subContextsHolder.end()) {
+                it->get()->setValue(DomainQueueStats::e_STAT_BYTES, 0);
+                it->get()->setValue(DomainQueueStats::e_STAT_MESSAGES, 0);
+                ++it;
+            }
+        }
     } break;
     case EventType::e_CHANGE_ROLE: {
         d_statContext_mp->setValue(DomainQueueStats::e_STAT_ROLE, value);
@@ -570,6 +598,9 @@ void QueueStatsDomain::onEvent(EventType::Enum type, bsls::Types::Int64 value)
     case EventType::e_NO_SC_MESSAGE: {
         d_statContext_mp->adjustValue(DomainQueueStats::e_STAT_NO_SC_MSGS,
                                       value);
+    } break;
+    case EventType::e_UPDATE_HISTORY: {
+        d_statContext_mp->setValue(DomainQueueStats::e_STAT_HISTORY, value);
     } break;
     default: {
         BSLS_ASSERT_SAFE(false && "Unknown event type");
@@ -613,9 +644,22 @@ void QueueStatsDomain::onEvent(EventType::Enum    type,
         appIdContext->reportValue(DomainQueueStats::e_STAT_CONFIRM_TIME,
                                   value);
     } break;
-
     case EventType::e_QUEUE_TIME: {
         appIdContext->reportValue(DomainQueueStats::e_STAT_QUEUE_TIME, value);
+    } break;
+    case EventType::e_ADD_MESSAGE: {
+        appIdContext->adjustValue(DomainQueueStats::e_STAT_BYTES, value);
+        appIdContext->adjustValue(DomainQueueStats::e_STAT_MESSAGES, 1);
+    } break;
+    case EventType::e_DEL_MESSAGE: {
+        appIdContext->adjustValue(DomainQueueStats::e_STAT_BYTES, -value);
+        appIdContext->adjustValue(DomainQueueStats::e_STAT_MESSAGES, -1);
+    } break;
+    case EventType::e_PURGE: {
+        // NOTE: Setting the value like that will cause weird results if using
+        //       the stat to get rates
+        appIdContext->setValue(DomainQueueStats::e_STAT_BYTES, 0);
+        appIdContext->setValue(DomainQueueStats::e_STAT_MESSAGES, 0);
     } break;
 
     // Some of these event types make no sense per appId and should be reported
@@ -627,14 +671,12 @@ void QueueStatsDomain::onEvent(EventType::Enum    type,
     case EventType::e_REJECT: BSLS_ANNOTATION_FALLTHROUGH;
     case EventType::e_PUSH: BSLS_ANNOTATION_FALLTHROUGH;
     case EventType::e_PUT: BSLS_ANNOTATION_FALLTHROUGH;
-    case EventType::e_ADD_MESSAGE: BSLS_ANNOTATION_FALLTHROUGH;
-    case EventType::e_DEL_MESSAGE: BSLS_ANNOTATION_FALLTHROUGH;
     case EventType::e_GC_MESSAGE: BSLS_ANNOTATION_FALLTHROUGH;
-    case EventType::e_PURGE: BSLS_ANNOTATION_FALLTHROUGH;
     case EventType::e_CHANGE_ROLE: BSLS_ANNOTATION_FALLTHROUGH;
     case EventType::e_CFG_MSGS: BSLS_ANNOTATION_FALLTHROUGH;
     case EventType::e_CFG_BYTES: BSLS_ANNOTATION_FALLTHROUGH;
-    case EventType::e_NO_SC_MESSAGE: {
+    case EventType::e_NO_SC_MESSAGE: BSLS_ANNOTATION_FALLTHROUGH;
+    case EventType::e_UPDATE_HISTORY: {
         BSLS_ASSERT_SAFE(false && "Unexpected event type for appId metric");
     } break;
 
@@ -896,7 +938,8 @@ QueueStatsUtil::initializeStatContextDomains(int               historySize,
         .value("cfg_msgs")
         .value("cfg_bytes")
         .value("content_msgs")
-        .value("content_bytes");
+        .value("content_bytes")
+        .value("history_size");
     // NOTE: If the stats are using too much memory, we could reconsider
     //       nb_producer, nb_consumer, messages and bytes to be using atomic
     //       int and not stat value.
@@ -959,6 +1002,10 @@ void QueueStatsUtil::initializeTableAndTipDomains(
                      start);
     schema.addColumn("bytes",
                      DomainQueueStats::e_STAT_BYTES,
+                     mwcst::StatUtil::value,
+                     start);
+    schema.addColumn("history_size",
+                     DomainQueueStats::e_STAT_HISTORY,
                      mwcst::StatUtil::value,
                      start);
 
@@ -1161,6 +1208,9 @@ void QueueStatsUtil::initializeTableAndTipDomains(
     tip->setColumnGroup("GC");
     tip->addColumn("gc_msgs_delta", "delta").zeroString("");
     tip->addColumn("gc_msgs_abs", "abs").zeroString("");
+
+    tip->setColumnGroup("History");
+    tip->addColumn("history_size", "# GUIDs").zeroString("");
 }
 
 void QueueStatsUtil::initializeTableAndTipClients(
