@@ -551,7 +551,7 @@ struct QueueEngineUtil_AppState {
     bool isAtEndOfStorage() const;
 
     size_t putAsideListSize() const;
-    
+
     size_t redeliveryListSize() const;
 
     Routers::Consumer* findQueueHandleContext(mqbi::QueueHandle* handle);

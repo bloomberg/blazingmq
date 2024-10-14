@@ -1712,8 +1712,7 @@ bool RootQueueEngine::logAlarmCb(const mqbu::StorageKey& appKey,
     out << "\nFor appId: " << app->appId() << '\n';
     out << "Put aside list size: " << app->putAsideListSize() << '\n';
     out << "Redelivery list size: " << app->redeliveryListSize() << '\n';
-    out << "Number of messages: " << storage->numMessages(appKey)
-        << '\n';
+    out << "Number of messages: " << storage->numMessages(appKey) << '\n';
     out << "Number of bytes: " << storage->numBytes(appKey) << "\n\n";
 
     // Log consumer subscriptions
@@ -1804,7 +1803,9 @@ bool RootQueueEngine::logAlarmCb(const mqbu::StorageKey& appKey,
     out << mwcu::PrintUtil::newlineAndIndent(level, spacesPerLevel)
         << "Current head of the queue:\n";
 
-    mqbs::StoragePrintUtil::listMessage(&result.makeMessage(), storage, *headIt);
+    mqbs::StoragePrintUtil::listMessage(&result.makeMessage(),
+                                        storage,
+                                        *headIt);
 
     mqbcmd::HumanPrinter::print(out, result);
     out << "\n";
