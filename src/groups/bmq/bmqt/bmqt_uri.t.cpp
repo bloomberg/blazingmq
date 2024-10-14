@@ -16,9 +16,8 @@
 // bmqt_uri.t.cpp                                                     -*-C++-*-
 #include <bmqt_uri.h>
 
-// MWC
-#include <mwctst_scopedlogobserver.h>
-#include <mwcu_memoutstream.h>
+#include <bmqtst_scopedlogobserver.h>
+#include <bmqu_memoutstream.h>
 
 // BDE
 #include <ball_log.h>
@@ -32,7 +31,7 @@
 #include <bslmt_threadgroup.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -55,8 +54,8 @@ static void threadFunction(int                                      threadId,
     barrier->wait();
 
     for (int i = 0; i < numIterations; ++i) {
-        mwcu::MemOutStream osstrDomain(s_allocator_p);
-        mwcu::MemOutStream osstrQueue(s_allocator_p);
+        bmqu::MemOutStream osstrDomain(s_allocator_p);
+        bmqu::MemOutStream osstrQueue(s_allocator_p);
         osstrDomain << "my.domain." << threadId << "." << i;
         osstrQueue << "queue-foo-bar-" << threadId << "-" << i;
 
@@ -95,7 +94,7 @@ static void test1_breathingTest()
 //   int Uri::parseUri
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("BREATHING TEST");
+    bmqtst::TestHelper::printTestName("BREATHING TEST");
 
     bmqt::UriParser::initialize(s_allocator_p);
 
@@ -315,7 +314,7 @@ static void test1_breathingTest()
 
 static void test2_URIBuilder()
 {
-    mwctst::TestHelper::printTestName("BREATHING TEST");
+    bmqtst::TestHelper::printTestName("BREATHING TEST");
 
     bmqt::UriParser::initialize(s_allocator_p);
 
@@ -451,7 +450,7 @@ static void test3_URIBuilderMultiThreaded()
     // 'bslmt::ThreadUtil::create()' uses the global allocator to allocate
     // memory.
 
-    mwctst::TestHelper::printTestName("MULTI-THREADED URI BUILDER TEST");
+    bmqtst::TestHelper::printTestName("MULTI-THREADED URI BUILDER TEST");
 
     bmqt::UriParser::initialize(s_allocator_p);
 
@@ -493,7 +492,7 @@ static void test3_URIBuilderMultiThreaded()
                         threadResults[j].second,
                         0);  // builder rc
 
-            mwcu::MemOutStream expectedUriStr(s_allocator_p);
+            bmqu::MemOutStream expectedUriStr(s_allocator_p);
             expectedUriStr << "bmq://my.domain." << i << "." << j
                            << "/queue-foo-bar-" << i << "-" << j;
             bmqt::Uri expectedUri(expectedUriStr.str(), s_allocator_p);
@@ -520,7 +519,7 @@ static void test4_initializeShutdown()
 //   again.
 //   ----------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("INITIALIZE / SHUTDOWN");
+    bmqtst::TestHelper::printTestName("INITIALIZE / SHUTDOWN");
 
     // Initialize the 'UriParser'.
     bmqt::UriParser::initialize(s_allocator_p);
@@ -541,13 +540,13 @@ static void test4_initializeShutdown()
 /// Test Uri print method.
 static void test5_testPrint()
 {
-    mwctst::TestHelper::printTestName("PRINT");
+    bmqtst::TestHelper::printTestName("PRINT");
 
     bmqt::UriParser::initialize(s_allocator_p);
 
     PV("Testing print");
 
-    mwcu::MemOutStream stream(s_allocator_p);
+    bmqu::MemOutStream stream(s_allocator_p);
     bmqt::Uri          obj("bmq://my.domain/myQueue", s_allocator_p);
 
     // Test stream output without line feed
@@ -587,7 +586,7 @@ static void test6_hashAppend()
 //   hashAppend(HASH_ALGORITHM&  hashAlgo, const bmqt::Uri& uri)
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("HASH APPEND");
+    bmqtst::TestHelper::printTestName("HASH APPEND");
 
     bmqt::UriParser::initialize(s_allocator_p);
 
@@ -626,18 +625,18 @@ static void test7_testLongUri()
     // logged via 'BALL_LOG_ERROR' which allocates using
     // the default allocator.
 
-    mwctst::TestHelper::printTestName("LONG URI TEST");
+    bmqtst::TestHelper::printTestName("LONG URI TEST");
 
     bmqt::UriParser::initialize(s_allocator_p);
 
-    mwctst::ScopedLogObserver observer(ball::Severity::WARN, s_allocator_p);
+    bmqtst::ScopedLogObserver observer(ball::Severity::WARN, s_allocator_p);
 
     bsl::string domainStr("bmq://my.domain/", s_allocator_p);
     bsl::string pathStr(bmqt::Uri::k_QUEUENAME_MAX_LENGTH + 1,
                         'q',
                         s_allocator_p);
 
-    mwcu::MemOutStream stream(s_allocator_p);
+    bmqu::MemOutStream stream(s_allocator_p);
     stream << domainStr << pathStr;
 
     bmqt::Uri obj(stream.str(), s_allocator_p);
@@ -647,7 +646,7 @@ static void test7_testLongUri()
     ASSERT_EQ(observer.records()[0].fixedFields().severity(),
               ball::Severity::ERROR);
 
-    ASSERT(mwctst::ScopedLogObserverUtil::recordMessageMatch(
+    ASSERT(bmqtst::ScopedLogObserverUtil::recordMessageMatch(
         observer.records()[0],
         pathStr.data(),
         s_allocator_p));
@@ -663,7 +662,7 @@ static void test7_testLongUri()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     switch (_testCase) {
     case 0:
@@ -680,5 +679,5 @@ int main(int argc, char* argv[])
     } break;
     }
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }

@@ -57,9 +57,8 @@
 // BMQ
 #include <bmqp_ctrlmsg_messages.h>
 
-// MWC
-#include <mwcc_orderedhashmap.h>
-#include <mwcu_blob.h>
+#include <bmqc_orderedhashmap.h>
+#include <bmqu_blob.h>
 
 // BDE
 #include <ball_log.h>
@@ -141,7 +140,7 @@ class IncoreClusterStateLedger BSLS_KEYWORD_FINAL : public ClusterStateLedger {
     /// associated information.
     ///
     /// sequenceNumber -> {clusterMessage, recordId, ackCount}
-    typedef mwcc::OrderedHashMap<bmqp_ctrlmsg::LeaderMessageSequence,
+    typedef bmqc::OrderedHashMap<bmqp_ctrlmsg::LeaderMessageSequence,
                                  ClusterMessageInfo>
                                     AdvisoriesMap;
     typedef AdvisoriesMap::iterator AdvisoriesMapIter;
@@ -244,7 +243,7 @@ class IncoreClusterStateLedger BSLS_KEYWORD_FINAL : public ClusterStateLedger {
     int applyRecordInternal(
         const bdlbb::Blob&                         record,
         int                                        recordOffset,
-        const mwcu::BlobPosition&                  recordPosition,
+        const bmqu::BlobPosition&                  recordPosition,
         const bmqp_ctrlmsg::ClusterMessage&        clusterMessage,
         const bmqp_ctrlmsg::LeaderMessageSequence& sequenceNumber,
         ClusterStateRecordType::Enum               recordType);
@@ -256,7 +255,7 @@ class IncoreClusterStateLedger BSLS_KEYWORD_FINAL : public ClusterStateLedger {
         ClusterStateRecordType::Enum               recordType);
     int applyRecordInternal(
         const bdlbb::Blob&                         record,
-        const mwcu::BlobPosition&                  recordPosition,
+        const bmqu::BlobPosition&                  recordPosition,
         const bmqp_ctrlmsg::ClusterMessage&        clusterMessage,
         const bmqp_ctrlmsg::LeaderMessageSequence& sequenceNumber,
         ClusterStateRecordType::Enum               recordType);

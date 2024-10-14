@@ -22,8 +22,7 @@
 #include <mqbi_queue.h>
 #include <mqbstat_queuestats.h>
 
-// MWC
-#include <mwcu_memoutstream.h>
+#include <bmqu_memoutstream.h>
 
 // BDE
 #include <bsl_iostream.h>
@@ -144,7 +143,7 @@ mqbu::CapacityMeter* Domain::capacityMeter()
 int Domain::processCommand(mqbcmd::DomainResult*        result,
                            const mqbcmd::DomainCommand& command)
 {
-    mwcu::MemOutStream os;
+    bmqu::MemOutStream os;
     os << "MockDomain::processCommand '" << command << "' not implemented!";
     result->makeError().message() = os.str();
     return -1;
@@ -205,7 +204,7 @@ mqbstat::DomainStats* Domain::domainStats()
     return &d_domainsStats;
 }
 
-mwcst::StatContext* Domain::queueStatContext()
+bmqst::StatContext* Domain::queueStatContext()
 {
     return d_statContext.get();
 }

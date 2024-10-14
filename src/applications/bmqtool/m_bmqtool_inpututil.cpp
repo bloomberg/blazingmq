@@ -17,7 +17,7 @@
 #include <m_bmqtool_inpututil.h>
 
 // BMQ
-#include <mwcu_memoutstream.h>
+#include <bmqu_memoutstream.h>
 
 // BDE
 #include <bdlb_string.h>
@@ -59,7 +59,7 @@ void InputUtil::preprocessInput(bsl::string*                     verb,
     BSLS_ASSERT_SAFE(verb);
     BSLS_ASSERT_SAFE(output);
 
-    mwcu::MemOutStream oss;
+    bmqu::MemOutStream oss;
 
     bool isKey = true, isFirstKey = true, isVerb = true;
 

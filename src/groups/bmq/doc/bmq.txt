@@ -15,18 +15,34 @@
 
 /Hierarchical Synopsis
 /---------------------
-The 'bmq' group library currently has 5 packages forming 5 levels of physical
+The 'bmq' group library currently has 17 packages forming 8 levels of physical
 dependency.
 ..
-  5. bmqa
+  8. bmqa
 
-  4. bmqimp
+  7. bmqimp
 
-  3. bmqp
+  6. bmqp
 
-  2. bmqt
+  5. bmqio
+     bmqtsk
+     bmqpi
+
+  4. bmqex
+     bmqt
+
+  3. bmqeval
+     bmqc
+     bmqsys
+     bmqst
+     bmqtst
+
+  2. bmqma
+     bmqu
+     bmqvt
 
   1. bmqscm
+     bmqstm
 ..
 
 /Package Synopsis
@@ -34,17 +50,41 @@ dependency.
 : 'bmqa':
 :      Provide applications public API for the BlazingmQ SDK.
 :
+: 'bmqc':
+:      [INTERNAL] Provide container vocabulary types.
+:
+: 'bmqex':
+:      [INTERNAL] Provide executors and other async programming utilities and mechanisms.
+:
 : 'bmqimp':
 :      [INTERNAL] Provide implementation for the API of the BlazingMQ SDK.
+:
+: 'bmqio':
+:      [INTERNAL] Provide network related components for input/output.
+:
+: 'bmqma':
+:      [INTERNAL] Provide allocators and other memory-management utilities.
 :
 : 'bmqp':
 :      [INTERNAL] Provide BlazingMQ protocol definition, builders and parsers.
 :
 : 'bmqscm':
-:      Provide versioning information for library components in 'bmq'.
+:      [INTERNAL] Provide versioning information for library components in 'bmq'.
+:
+: 'bmqsys':
+:      [INTERNAL] Provide systems utilities and mechanisms.
 :
 : 'bmqt':
 :      Provide value-semantic vocabulary types.
+:
+: 'bmqtst':
+:      [INTERNAL] Provide macros and utilities to assist writing test drivers.
+:
+: 'bmqtsk':
+:      [INTERNAL] Provide application level mechanisms.
+:
+: 'bmqu':
+:      [INTERNAL] Provide utility components and mechanisms.
 
 /Package Overview
 /----------------

@@ -21,9 +21,8 @@
 #include <bmqp_protocolutil.h>
 #include <bmqp_queueid.h>
 
-// MWC
-#include <mwcu_blobiterator.h>
-#include <mwcu_blobobjectproxy.h>
+#include <bmqu_blobiterator.h>
+#include <bmqu_blobobjectproxy.h>
 
 // BDE
 #include <bsl_iostream.h>
@@ -38,7 +37,7 @@ namespace bmqp {
 
 // PRIVATE MANIPULATORS
 int OptionsView::resetImpl(const bdlbb::Blob*        blob,
-                           const mwcu::BlobPosition& optionsAreaPos,
+                           const bmqu::BlobPosition& optionsAreaPos,
                            int                       optionsAreaSize)
 {
     // PRECONDITIONS
@@ -64,9 +63,9 @@ int OptionsView::resetImpl(const bdlbb::Blob*        blob,
 
     };
 
-    mwcu::BlobIterator blobIter(blob, optionsAreaPos, optionsAreaSize, true);
+    bmqu::BlobIterator blobIter(blob, optionsAreaPos, optionsAreaSize, true);
     while (!blobIter.atEnd()) {
-        mwcu::BlobObjectProxy<OptionHeader> oh(blobIter.blob(),
+        bmqu::BlobObjectProxy<OptionHeader> oh(blobIter.blob(),
                                                blobIter.position());
 
         if (!oh.isSet()) {
@@ -148,7 +147,7 @@ int OptionsView::resetImpl(const bdlbb::Blob*        blob,
 
 // PRIVATE ACCESSORS
 int OptionsView::loadOptionPositionAndSize(
-    mwcu::BlobPosition*          payloadPosition,
+    bmqu::BlobPosition*          payloadPosition,
     int*                         payloadSizeBytes,
     const bmqp::OptionType::Enum optionType,
     const bool                   hasPadding) const
@@ -159,13 +158,13 @@ int OptionsView::loadOptionPositionAndSize(
     BSLS_ASSERT_SAFE(isValid());
     BSLS_ASSERT_SAFE(find(optionType) != end());
 
-    const mwcu::BlobPosition& headerPos = d_optionPositions[optionType];
-    mwcu::BlobObjectProxy<OptionHeader> oh(d_blob_p, headerPos);
+    const bmqu::BlobPosition& headerPos = d_optionPositions[optionType];
+    bmqu::BlobObjectProxy<OptionHeader> oh(d_blob_p, headerPos);
 
     BSLS_ASSERT_SAFE(oh.isSet() && "Option header not set");
     // should be ok, as in the constructor
 
-    int rc = mwcu::BlobUtil::findOffsetSafe(payloadPosition,
+    int rc = bmqu::BlobUtil::findOffsetSafe(payloadPosition,
                                             *d_blob_p,
                                             headerPos,
                                             sizeof(OptionHeader));
@@ -192,8 +191,8 @@ int OptionsView::loadOptionPositionAndSize(
         return rc;  // RETURN
     }
 
-    mwcu::BlobPosition lastBytePos;
-    rc = mwcu::BlobUtil::findOffsetSafe(&lastBytePos,
+    bmqu::BlobPosition lastBytePos;
+    rc = bmqu::BlobUtil::findOffsetSafe(&lastBytePos,
                                         *d_blob_p,
                                         headerPos,
                                         optionTotalSizeBytes - 1);
@@ -219,7 +218,7 @@ void OptionsView::dumpBlob(bsl::ostream& stream)
     // For now, print only the beginning of the blob.. we may later on print
     // also the bytes around the current position.
     if (d_blob_p) {
-        stream << mwcu::BlobStartHexDumper(d_blob_p, k_MAX_BYTES_DUMP);
+        stream << bmqu::BlobStartHexDumper(d_blob_p, k_MAX_BYTES_DUMP);
     }
     else {
         stream << "/no blob/";
@@ -279,9 +278,9 @@ int OptionsView::loadSubQueueInfosOption(
     };
 
     if (find(OptionType::e_SUB_QUEUE_INFOS) != end()) {
-        const mwcu::BlobPosition& headerPos =
+        const bmqu::BlobPosition& headerPos =
             d_optionPositions[OptionType::e_SUB_QUEUE_INFOS];
-        mwcu::BlobObjectProxy<OptionHeader> oh(d_blob_p, headerPos);
+        bmqu::BlobObjectProxy<OptionHeader> oh(d_blob_p, headerPos);
         BSLS_ASSERT_SAFE(oh.isSet() && "Option header not set");
         BSLS_ASSERT_SAFE(oh->type() == OptionType::e_SUB_QUEUE_INFOS);
 
@@ -367,7 +366,7 @@ int OptionsView::loadMsgGroupIdOption(Protocol::MsgGroupId* msgGroupId) const
         rc_INVALID_LENGTH    = -3
     };
 
-    mwcu::BlobPosition msgGroupIdStartPos;
+    bmqu::BlobPosition msgGroupIdStartPos;
     int                msgGroupIdSizeBytes;
     int                rc = loadOptionPositionAndSize(&msgGroupIdStartPos,
                                        &msgGroupIdSizeBytes,
@@ -397,7 +396,7 @@ int OptionsView::loadMsgGroupIdOption(Protocol::MsgGroupId* msgGroupId) const
 
     // Read msgGroupId
     msgGroupId->resize(msgGroupIdSizeBytes);
-    rc = mwcu::BlobUtil::readNBytes(&(*msgGroupId)[0],
+    rc = bmqu::BlobUtil::readNBytes(&(*msgGroupId)[0],
                                     *d_blob_p,
                                     msgGroupIdStartPos,
                                     msgGroupIdSizeBytes);

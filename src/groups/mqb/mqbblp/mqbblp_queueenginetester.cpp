@@ -36,9 +36,8 @@
 #include <bmqt_queueflags.h>
 #include <bmqt_uri.h>
 
-// MWC
-#include <mwcsys_time.h>
-#include <mwcu_memoutstream.h>
+#include <bmqsys_time.h>
+#include <bmqu_memoutstream.h>
 
 // BDE
 #include <bdlb_string.h>
@@ -410,7 +409,7 @@ void QueueEngineTester::oneTimeInit()
 {
     BSLMT_ONCE_DO
     {
-        mwcsys::Time::initialize();
+        bmqsys::Time::initialize();
         // Make MessageGUID generation thread-safe by calling initialize
         mqbu::MessageGUIDUtil::initialize();
     }
@@ -419,7 +418,7 @@ void QueueEngineTester::oneTimeInit()
 void QueueEngineTester::init(const mqbconfm::Domain& domainConfig,
                              bool                    startScheduler)
 {
-    mwcu::MemOutStream errorDescription(d_allocator_p);
+    bmqu::MemOutStream errorDescription(d_allocator_p);
     int                rc = 0;
 
     // Dispatcher
@@ -602,7 +601,7 @@ void QueueEngineTester::oneTimeShutdown()
 {
     BSLMT_ONCE_DO
     {
-        mwcsys::Time::shutdown();
+        bmqsys::Time::shutdown();
     }
 }
 
@@ -740,7 +739,7 @@ QueueEngineTester::getHandle(const bsl::string& clientText)
     handleParams.uri() = uri.asString();
 
     // 2. Get the handle
-    mwcu::MemOutStream  errorDescription(d_allocator_p);
+    bmqu::MemOutStream  errorDescription(d_allocator_p);
     mqbi::QueueHandle*  handle     = 0;
     HandleMap::iterator handleIter = d_handles.find(clientKey);
     if (handleIter != d_handles.end()) {

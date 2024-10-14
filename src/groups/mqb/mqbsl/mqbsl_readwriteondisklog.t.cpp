@@ -32,8 +32,8 @@
 #include <bsls_types.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
-#include <mwcu_tempdirectory.h>
+#include <bmqtst_testhelper.h>
+#include <bmqu_tempdirectory.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -124,7 +124,7 @@ void generateRandomString(char* s, const int len)
 struct Tester {
   private:
     // DATA
-    mwcu::TempDirectory    d_tempDirectory;
+    bmqu::TempDirectory    d_tempDirectory;
     const mqbsi::LogConfig d_config;
     ReadWriteOnDiskLog     d_log;
 
@@ -165,7 +165,7 @@ static void test1_breathingTest()
 //   Basic functionality
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("BREATHING TEST");
+    bmqtst::TestHelper::printTestName("BREATHING TEST");
 
     Tester              tester;
     ReadWriteOnDiskLog& log = tester.log();
@@ -197,7 +197,7 @@ static void test2_fileNotExist()
 //   open(...)
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("FILE NOT EXIST");
+    bmqtst::TestHelper::printTestName("FILE NOT EXIST");
 
     Tester              tester;
     ReadWriteOnDiskLog& log = tester.log();
@@ -217,7 +217,7 @@ static void test3_updateOutstandingNumBytes()
 //   updateOutstandingNumBytes(...)
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("UPDATE OUTSTANDING NUM BYTES");
+    bmqtst::TestHelper::printTestName("UPDATE OUTSTANDING NUM BYTES");
 
     Tester              tester;
     ReadWriteOnDiskLog& log = tester.log();
@@ -252,7 +252,7 @@ static void test4_setOutstandingNumBytes()
 //   setOutstandingNumBytes(...)
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("SET OUTSTANDING NUM BYTES");
+    bmqtst::TestHelper::printTestName("SET OUTSTANDING NUM BYTES");
 
     Tester              tester;
     ReadWriteOnDiskLog& log = tester.log();
@@ -288,7 +288,7 @@ static void test5_writeRaw()
 //   write(const void *entry, int offset, int length)
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("WRITE RAW");
+    bmqtst::TestHelper::printTestName("WRITE RAW");
 
     const bsls::Types::Int64 logMaxSize = k_NUM_ENTRIES * k_ENTRY_LENGTH +
                                           k_LONG_ENTRY_LENGTH + 10;
@@ -351,11 +351,11 @@ static void test6_writeBlob()
 //
 // Testing:
 //   write(const bdlbb::Blob&        entry,
-//         const mwcu::BlobPosition& offset,
+//         const bmqu::BlobPosition& offset,
 //         int                       length)
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("WRITE BLOB");
+    bmqtst::TestHelper::printTestName("WRITE BLOB");
 
     const bsls::Types::Int64 logMaxSize = k_NUM_ENTRIES * k_ENTRY_LENGTH +
                                           k_LONG_ENTRY_LENGTH + 10;
@@ -369,7 +369,7 @@ static void test6_writeBlob()
     for (int i = 0; i < k_NUM_ENTRIES; ++i) {
         bdlbb::BlobUtil::append(&blob, k_ENTRIES[i], k_ENTRY_LENGTH);
 
-        mwcu::BlobPosition pos(i, 0);
+        bmqu::BlobPosition pos(i, 0);
         ASSERT_EQ(log.write(blob, pos, k_ENTRY_LENGTH),
                   static_cast<Offset>(i * k_ENTRY_LENGTH));
         ASSERT_EQ(log.totalNumBytes(), (i + 1) * k_ENTRY_LENGTH);
@@ -390,7 +390,7 @@ static void test6_writeBlob()
     bdlbb::Blob blob2(g_bufferFactory_p, s_allocator_p);
     bdlbb::BlobUtil::append(&blob2, k_LONG_ENTRY, k_LONG_ENTRY_FULL_LENGTH);
     ASSERT_EQ(log.write(blob2,
-                        mwcu::BlobPosition(0, k_LONG_ENTRY_OFFSET),
+                        bmqu::BlobPosition(0, k_LONG_ENTRY_OFFSET),
                         k_LONG_ENTRY_LENGTH),
               static_cast<Offset>(currNumBytes));
     currNumBytes += k_LONG_ENTRY_LENGTH;
@@ -400,7 +400,7 @@ static void test6_writeBlob()
 
     // 4. Write another long entry. This should fail due to exceeding max size.
     ASSERT_EQ(log.write(blob2,
-                        mwcu::BlobPosition(0, k_LONG_ENTRY_OFFSET),
+                        bmqu::BlobPosition(0, k_LONG_ENTRY_OFFSET),
                         k_LONG_ENTRY_LENGTH),
               LogOpResult::e_REACHED_END_OF_LOG);
 
@@ -428,10 +428,10 @@ static void test7_writeBlobSection()
 //   'write'.
 //
 // Testing:
-//   write(const bdlbb::Blob& entry, const mwcu::BlobSection& section)
+//   write(const bdlbb::Blob& entry, const bmqu::BlobSection& section)
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("WRITE BLOB SECTION");
+    bmqtst::TestHelper::printTestName("WRITE BLOB SECTION");
 
     const bsls::Types::Int64 logMaxSize = k_NUM_ENTRIES * k_ENTRY_LENGTH +
                                           k_LONG_ENTRY_LENGTH + 10;
@@ -445,9 +445,9 @@ static void test7_writeBlobSection()
     for (int i = 0; i < k_NUM_ENTRIES; ++i) {
         bdlbb::BlobUtil::append(&blob, k_ENTRIES[i], k_ENTRY_LENGTH);
 
-        mwcu::BlobPosition start(i, 0);
-        mwcu::BlobPosition end(i + 1, 0);
-        mwcu::BlobSection  section(start, end);
+        bmqu::BlobPosition start(i, 0);
+        bmqu::BlobPosition end(i + 1, 0);
+        bmqu::BlobSection  section(start, end);
         ASSERT_EQ(log.write(blob, section),
                   static_cast<Offset>(i * k_ENTRY_LENGTH));
         ASSERT_EQ(log.totalNumBytes(), (i + 1) * k_ENTRY_LENGTH);
@@ -468,9 +468,9 @@ static void test7_writeBlobSection()
     bdlbb::Blob blob2(g_bufferFactory_p, s_allocator_p);
     bdlbb::BlobUtil::append(&blob2, k_LONG_ENTRY, k_LONG_ENTRY_FULL_LENGTH);
 
-    mwcu::BlobPosition start(0, k_LONG_ENTRY_OFFSET);
-    mwcu::BlobPosition end(0, k_LONG_ENTRY_OFFSET + k_LONG_ENTRY_LENGTH);
-    mwcu::BlobSection  section(start, end);
+    bmqu::BlobPosition start(0, k_LONG_ENTRY_OFFSET);
+    bmqu::BlobPosition end(0, k_LONG_ENTRY_OFFSET + k_LONG_ENTRY_LENGTH);
+    bmqu::BlobSection  section(start, end);
     ASSERT_EQ(log.write(blob2, section), static_cast<Offset>(currNumBytes));
     currNumBytes += k_LONG_ENTRY_LENGTH;
     ASSERT_EQ(log.totalNumBytes(), currNumBytes);
@@ -505,7 +505,7 @@ static void test8_readRaw()
 //   read(void **entry, int length, Offset offset)
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("READ RAW");
+    bmqtst::TestHelper::printTestName("READ RAW");
 
     Tester              tester;
     ReadWriteOnDiskLog& log = tester.log();
@@ -537,7 +537,7 @@ static void test8_readRaw()
     bdlbb::Blob blob(g_bufferFactory_p, s_allocator_p);
     bdlbb::BlobUtil::append(&blob, k_LONG_ENTRY, k_LONG_ENTRY_FULL_LENGTH);
     BSLS_ASSERT_OPT(log.write(blob,
-                              mwcu::BlobPosition(0, k_LONG_ENTRY_OFFSET),
+                              bmqu::BlobPosition(0, k_LONG_ENTRY_OFFSET),
                               k_LONG_ENTRY_LENGTH) ==
                     static_cast<Offset>(k_NUM_ENTRIES * k_ENTRY_LENGTH));
 
@@ -563,9 +563,9 @@ static void test8_readRaw()
     bdlbb::Blob blob2(g_bufferFactory_p, s_allocator_p);
     bdlbb::BlobUtil::append(&blob2, k_LONG_ENTRY2, k_LONG_ENTRY2_FULL_LENGTH);
 
-    mwcu::BlobPosition start(0, k_LONG_ENTRY2_OFFSET);
-    mwcu::BlobPosition end(0, k_LONG_ENTRY2_OFFSET + k_LONG_ENTRY2_LENGTH);
-    mwcu::BlobSection  section(start, end);
+    bmqu::BlobPosition start(0, k_LONG_ENTRY2_OFFSET);
+    bmqu::BlobPosition end(0, k_LONG_ENTRY2_OFFSET + k_LONG_ENTRY2_LENGTH);
+    bmqu::BlobSection  section(start, end);
     BSLS_ASSERT_OPT(log.write(blob2, section) == currOffset);
 
     // 7. Read the other long entry
@@ -597,7 +597,7 @@ static void test9_readBlob()
 //   read(bdlbb::Blob *entry, int length, Offset offset)
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("READ BLOB");
+    bmqtst::TestHelper::printTestName("READ BLOB");
 
     Tester              tester;
     ReadWriteOnDiskLog& log = tester.log();
@@ -617,9 +617,9 @@ static void test9_readBlob()
     for (int i = 0; i < k_NUM_ENTRIES; ++i) {
         ASSERT_EQ(log.read(&blob, k_ENTRY_LENGTH, i * k_ENTRY_LENGTH),
                   LogOpResult::e_SUCCESS);
-        mwcu::BlobUtil::readNBytes(entry,
+        bmqu::BlobUtil::readNBytes(entry,
                                    blob,
-                                   mwcu::BlobPosition(),
+                                   bmqu::BlobPosition(),
                                    k_ENTRY_LENGTH);
         ASSERT_EQ(bsl::memcmp(entry, k_ENTRIES[i], k_ENTRY_LENGTH), 0);
         blob.removeBuffer(0);
@@ -634,7 +634,7 @@ static void test9_readBlob()
     bdlbb::Blob blob2(g_bufferFactory_p, s_allocator_p);
     bdlbb::BlobUtil::append(&blob2, k_LONG_ENTRY, k_LONG_ENTRY_FULL_LENGTH);
     BSLS_ASSERT_OPT(log.write(blob2,
-                              mwcu::BlobPosition(0, k_LONG_ENTRY_OFFSET),
+                              bmqu::BlobPosition(0, k_LONG_ENTRY_OFFSET),
                               k_LONG_ENTRY_LENGTH) ==
                     static_cast<Offset>(k_NUM_ENTRIES * k_ENTRY_LENGTH));
 
@@ -642,9 +642,9 @@ static void test9_readBlob()
     for (int i = 0; i < k_NUM_ENTRIES; ++i) {
         ASSERT_EQ(log.read(&blob, k_ENTRY_LENGTH, i * k_ENTRY_LENGTH),
                   LogOpResult::e_SUCCESS);
-        mwcu::BlobUtil::readNBytes(entry,
+        bmqu::BlobUtil::readNBytes(entry,
                                    blob,
-                                   mwcu::BlobPosition(),
+                                   bmqu::BlobPosition(),
                                    k_ENTRY_LENGTH);
         ASSERT_EQ(bsl::memcmp(entry, k_ENTRIES[i], k_ENTRY_LENGTH), 0);
         blob.removeBuffer(0);
@@ -653,9 +653,9 @@ static void test9_readBlob()
     ASSERT_EQ(
         log.read(&blob, k_LONG_ENTRY_LENGTH, k_NUM_ENTRIES * k_ENTRY_LENGTH),
         LogOpResult::e_SUCCESS);
-    mwcu::BlobUtil::readNBytes(entry,
+    bmqu::BlobUtil::readNBytes(entry,
                                blob,
-                               mwcu::BlobPosition(),
+                               bmqu::BlobPosition(),
                                k_LONG_ENTRY_LENGTH);
     ASSERT_EQ(bsl::memcmp(entry, k_LONG_ENTRY_MEAT, k_LONG_ENTRY_LENGTH), 0);
     blob.removeAll();
@@ -667,17 +667,17 @@ static void test9_readBlob()
     bdlbb::Blob blob3(g_bufferFactory_p, s_allocator_p);
     bdlbb::BlobUtil::append(&blob3, k_LONG_ENTRY2, k_LONG_ENTRY2_FULL_LENGTH);
 
-    mwcu::BlobPosition start(0, k_LONG_ENTRY2_OFFSET);
-    mwcu::BlobPosition end(0, k_LONG_ENTRY2_OFFSET + k_LONG_ENTRY2_LENGTH);
-    mwcu::BlobSection  section(start, end);
+    bmqu::BlobPosition start(0, k_LONG_ENTRY2_OFFSET);
+    bmqu::BlobPosition end(0, k_LONG_ENTRY2_OFFSET + k_LONG_ENTRY2_LENGTH);
+    bmqu::BlobSection  section(start, end);
     BSLS_ASSERT_OPT(log.write(blob3, section) == currOffset);
 
     // 7. Read the other long entry
     ASSERT_EQ(log.read(&blob, k_LONG_ENTRY2_LENGTH, currOffset),
               LogOpResult::e_SUCCESS);
-    mwcu::BlobUtil::readNBytes(entry,
+    bmqu::BlobUtil::readNBytes(entry,
                                blob,
-                               mwcu::BlobPosition(),
+                               bmqu::BlobPosition(),
                                k_LONG_ENTRY2_LENGTH);
     ASSERT_EQ(bsl::memcmp(entry, k_LONG_ENTRY2_MEAT, k_LONG_ENTRY2_LENGTH), 0);
     blob.removeAll();
@@ -704,7 +704,7 @@ static void test10_aliasRaw()
 //   alias(void **entry, int length, Offset offset)
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("ALIAS RAW");
+    bmqtst::TestHelper::printTestName("ALIAS RAW");
 
     Tester              tester;
     ReadWriteOnDiskLog& log = tester.log();
@@ -730,7 +730,7 @@ static void test11_aliasBlob()
 //   alias(bdlbb::Blob *entry, int length, Offset offset)
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("ALIAS BLOB");
+    bmqtst::TestHelper::printTestName("ALIAS BLOB");
 
     Tester              tester;
     ReadWriteOnDiskLog& log = tester.log();
@@ -756,7 +756,7 @@ static void test12_seek()
 //   seek(...)
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("SEEK");
+    bmqtst::TestHelper::printTestName("SEEK");
 
     Tester              tester;
     ReadWriteOnDiskLog& log = tester.log();
@@ -870,12 +870,12 @@ static void test13_readWriteHugeBlob()
 //
 // Testing:
 //   write(const bdlbb::Blob&        entry,
-//         const mwcu::BlobPosition& offset,
+//         const bmqu::BlobPosition& offset,
 //         int                       length)
 //   read(bdlbb::Blob *entry, int length, Offset offset)
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("WRITE HUGE BLOB");
+    bmqtst::TestHelper::printTestName("WRITE HUGE BLOB");
 
     static const int k_BLOB_MAX_SIZE = 500 * 1024 * 1024;  // 500 MiB
 
@@ -901,7 +901,7 @@ static void test13_readWriteHugeBlob()
     BSLS_ASSERT_OPT(hugeBlob.numDataBuffers() > IOV_MAX);
 
     // 2. Write the huge blob entry
-    mwcu::BlobPosition recordPos(1, 42);
+    bmqu::BlobPosition recordPos(1, 42);
     const int recordSize = k_HUGE_BLOB_SIZE - hugeBlob.buffer(0).size() -
                            recordPos.byte();
 
@@ -917,7 +917,7 @@ static void test13_readWriteHugeBlob()
     BSLS_ASSERT_OPT(outBlob.numDataBuffers() > IOV_MAX);
 
     bdlbb::Blob expectedRecord(&hugeBufferFactory, s_allocator_p);
-    mwcu::BlobUtil::appendToBlob(&expectedRecord,
+    bmqu::BlobUtil::appendToBlob(&expectedRecord,
                                  hugeBlob,
                                  recordPos,
                                  recordSize);
@@ -935,7 +935,7 @@ static void test13_readWriteHugeBlob()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     {
         bdlbb::PooledBlobBufferFactory bufferFactory(k_LONG_ENTRY_LENGTH * 2,
@@ -967,5 +967,5 @@ int main(int argc, char* argv[])
         }
     }
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 }

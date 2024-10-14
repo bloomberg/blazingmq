@@ -44,8 +44,7 @@
 #include <bmqt_messageguid.h>
 #include <bmqt_uri.h>
 
-// MWC
-#include <mwcc_orderedhashmap.h>
+#include <bmqc_orderedhashmap.h>
 
 // BDE
 #include <bdlbb_blob.h>
@@ -327,7 +326,7 @@ class DataStoreConfig {
     typedef QueueKeyInfoMap::const_iterator      QueueKeyInfoMapConstIter;
     typedef bsl::pair<QueueKeyInfoMapIter, bool> QueueKeyInfoMapInsertRc;
 
-    typedef mwcc::OrderedHashMap<DataStoreRecordKey,
+    typedef bmqc::OrderedHashMap<DataStoreRecordKey,
                                  DataStoreRecord,
                                  DataStoreRecordKeyHashAlgo>
         Records;

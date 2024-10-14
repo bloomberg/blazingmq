@@ -47,8 +47,7 @@
 #include <bmqt_resultcode.h>
 #include <bmqt_uri.h>
 
-// MWC
-#include <mwcc_array.h>
+#include <bmqc_array.h>
 
 // BDE
 #include <bdlbb_blob.h>
@@ -383,7 +382,7 @@ class Storage {
     /// `AppIdKeyPairs` is an alias for a list of pairs of appId and appKey
     typedef bsl::vector<AppIdKeyPair> AppIdKeyPairs;
 
-    typedef mwcc::Array<mqbu::StorageKey,
+    typedef bmqc::Array<mqbu::StorageKey,
                         bmqp::Protocol::k_SUBID_ARRAY_STATIC_LEN>
         StorageKeys;
 

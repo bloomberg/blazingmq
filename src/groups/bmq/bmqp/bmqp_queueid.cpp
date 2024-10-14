@@ -30,8 +30,7 @@ namespace bsl {
 // need to have 'is_fundamental' trait.
 
 template <>
-struct is_fundamental<BloombergLP::bmqp::QueueId::QueueIdInt> : true_type {
-};
+struct is_fundamental<BloombergLP::bmqp::QueueId::QueueIdInt> : true_type {};
 
 template <>
 struct is_fundamental<BloombergLP::bmqp::QueueId::SubQueueIdInt> : true_type {

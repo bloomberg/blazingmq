@@ -19,8 +19,7 @@
 // BMQ
 #include <bmqp_protocol.h>
 
-// MWC
-#include <mwcu_memoutstream.h>
+#include <bmqu_memoutstream.h>
 
 // BDE
 #include <bdlbb_blob.h>
@@ -32,7 +31,7 @@
 #include <bslmf_nestedtraitdeclaration.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -249,7 +248,7 @@ static void test1_breathingTest()
 //   Basic functionality
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("BREATHING TEST");
+    bmqtst::TestHelper::printTestName("BREATHING TEST");
 
     bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
 
@@ -363,7 +362,7 @@ static void test2_storageEventHavingMultipleMessages()
 //   Iterating over STORAGE event having multiple STORAGE messages.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("STORAGE EVENT HAVING MULTIPLE"
+    bmqtst::TestHelper::printTestName("STORAGE EVENT HAVING MULTIPLE"
                                       " MESSAGES");
 
     bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
@@ -391,13 +390,13 @@ static void test2_storageEventHavingMultipleMessages()
         ASSERT_EQ_D(index, D.d_pid, iter.header().partitionId());
 
         // Compare journal record
-        mwcu::BlobPosition position;
+        bmqu::BlobPosition position;
         ASSERT_EQ_D(index, 0, iter.loadDataPosition(&position));
 
         int compareRc = 0;
         ASSERT_EQ_D(index,
                     0,
-                    mwcu::BlobUtil::compareSection(&compareRc,
+                    bmqu::BlobUtil::compareSection(&compareRc,
                                                    eventBlob,
                                                    position,
                                                    D.d_recordBuffer,
@@ -408,17 +407,17 @@ static void test2_storageEventHavingMultipleMessages()
             bmqp::StorageMessageType::e_QLIST == iter.header().messageType()) {
             // Compare data payload as well.  Need to find data payload
             // position first.
-            mwcu::BlobPosition dataPos;
+            bmqu::BlobPosition dataPos;
             ASSERT_EQ_D(index,
                         0,
-                        mwcu::BlobUtil::findOffsetSafe(&dataPos,
+                        bmqu::BlobUtil::findOffsetSafe(&dataPos,
                                                        eventBlob,
                                                        position,
                                                        k_RECORD_SIZE));
             int compRc = 0;
             ASSERT_EQ_D(index,
                         0,
-                        mwcu::BlobUtil::compareSection(&compRc,
+                        bmqu::BlobUtil::compareSection(&compRc,
                                                        eventBlob,
                                                        position,
                                                        D.d_payload.c_str(),
@@ -448,7 +447,7 @@ static void test3_corruptedStorageEvent_part1()
 //   storageHeader).
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("CORRUPTED STORAGE EVENT - PART 1");
+    bmqtst::TestHelper::printTestName("CORRUPTED STORAGE EVENT - PART 1");
 
     bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
     bdlbb::Blob                    eventBlob(&bufferFactory, s_allocator_p);
@@ -525,7 +524,7 @@ static void test4_corruptedStorageEvent_part2()
 //   bytes in the blob).
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("CORRUPTED STORAGE EVENT - PART 2");
+    bmqtst::TestHelper::printTestName("CORRUPTED STORAGE EVENT - PART 2");
 
     bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
     bdlbb::Blob                    eventBlob(&bufferFactory, s_allocator_p);
@@ -607,7 +606,7 @@ static void test5_corruptedStorageEvent_part3()
     //   Iterating over corrupted STORAGE event (not having enough payload
     //   bytes in the blob).
     // ------------------------------------------------------------------------
-    mwctst::TestHelper::printTestName("CORRUPTED STORAGE EVENT - PART 3");
+    bmqtst::TestHelper::printTestName("CORRUPTED STORAGE EVENT - PART 3");
 
     // Populate blob
     bsl::vector<Data> data(s_allocator_p);
@@ -649,7 +648,7 @@ static void test6_resetMethod()
     // Testing:
     //   int reset();
     // --------------------------------------------------------------------
-    mwctst::TestHelper::printTestName("RESET METHOD");
+    bmqtst::TestHelper::printTestName("RESET METHOD");
 
     // Populate blob
     bsl::vector<Data> data(s_allocator_p);
@@ -701,12 +700,12 @@ static void test7_dumpBlob()
     // Testing:
     //   void dumpBlob(bsl::ostream& stream);
     // --------------------------------------------------------------------
-    mwctst::TestHelper::printTestName("DUMP BLOB");
+    bmqtst::TestHelper::printTestName("DUMP BLOB");
 
     // Test iterator dump contains expected value
     bmqp::EventHeader              eventHeader;
     bsl::vector<Data>              data(s_allocator_p);
-    mwcu::MemOutStream             stream(s_allocator_p);
+    bmqu::MemOutStream             stream(s_allocator_p);
     bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
     bdlbb::Blob                    blob(&bufferFactory, s_allocator_p);
 
@@ -757,7 +756,7 @@ static void test7_dumpBlob()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     // Temporary workaround to suppress the 'unused operator
     // NestedTraitDeclaration' warning/error generated by clang.  TBD: figure
@@ -783,5 +782,5 @@ int main(int argc, char* argv[])
     } break;
     }
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }

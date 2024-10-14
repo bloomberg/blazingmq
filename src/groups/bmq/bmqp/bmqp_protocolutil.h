@@ -42,15 +42,11 @@
 
 // BMQ
 
+#include <bmqc_twokeyhashmap.h>
 #include <bmqp_ctrlmsg_messages.h>
 #include <bmqp_protocol.h>
 #include <bmqt_resultcode.h>
-
-// MWC
-#include <mwcu_blob.h>
-
-// MWC
-#include <mwcc_twokeyhashmap.h>
+#include <bmqu_blob.h>
 
 // BDE
 #include <balber_berdecoder.h>
@@ -96,7 +92,7 @@ struct ProtocolUtil {
             StreamInfo(const VALUE& value);
         };
 
-        typedef mwcc::TwoKeyHashMap<bsl::string, unsigned int, StreamInfo>
+        typedef bmqc::TwoKeyHashMap<bsl::string, unsigned int, StreamInfo>
             StreamsMap;
         // Map {appId, subId} to StreamInfo
 
@@ -438,7 +434,7 @@ struct ProtocolUtil {
     /// Return `true` on success, `false` otherwise.
     static int readPropertiesSize(int*                      size,
                                   const bdlbb::Blob&        blob,
-                                  const mwcu::BlobPosition& position);
+                                  const bmqu::BlobPosition& position);
 
     /// Parse the specified `input` of the specified `length` starting at
     /// the specified `position` and supporting all styles of
@@ -458,7 +454,7 @@ struct ProtocolUtil {
                      const bdlbb::Blob&        input,
                      int                       length,
                      bool                      decompressFlag,
-                     const mwcu::BlobPosition& position,
+                     const bmqu::BlobPosition& position,
                      bool                      haveMessageProperties,
                      bool                      haveNewMessageProperties,
                      bmqt::CompressionAlgorithmType::Enum cat,

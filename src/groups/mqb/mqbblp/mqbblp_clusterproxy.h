@@ -67,11 +67,10 @@
 #include <bmqp_ctrlmsg_messages.h>
 #include <bmqt_uri.h>
 
-// MWC
-#include <mwcio_status.h>
-#include <mwcst_statcontext.h>
-#include <mwcu_operationchain.h>
-#include <mwcu_throttledaction.h>
+#include <bmqio_status.h>
+#include <bmqst_statcontext.h>
+#include <bmqu_operationchain.h>
+#include <bmqu_throttledaction.h>
 
 // BDE
 #include <ball_log.h>
@@ -166,9 +165,9 @@ class ClusterProxy : public mqbc::ClusterStateObserver,
         size_t bytes() const;
     };
 
-    typedef bslma::ManagedPtr<mwcst::StatContext> StatContextMp;
+    typedef bslma::ManagedPtr<bmqst::StatContext> StatContextMp;
 
-    typedef bsl::shared_ptr<mwcst::StatContext> StatContextSp;
+    typedef bsl::shared_ptr<bmqst::StatContext> StatContextSp;
 
     typedef bslma::ManagedPtr<bdld::ManagedDatum> ManagedDatumMp;
 
@@ -179,7 +178,7 @@ class ClusterProxy : public mqbc::ClusterStateObserver,
     typedef NodeList::iterator NodeListIter;
 
     /// Map of strings to StatContext pointers
-    typedef bsl::unordered_map<bsl::string, mwcst::StatContext*>
+    typedef bsl::unordered_map<bsl::string, bmqst::StatContext*>
         StatContextsMap;
 
     /// Type of the MultiRequestManager used by the cluster proxy to send
@@ -228,11 +227,11 @@ class ClusterProxy : public mqbc::ClusterStateObserver,
     // Map of node to associated stat
     // context.
 
-    mwcu::ThrottledActionParams d_throttledFailedAckMessages;
+    bmqu::ThrottledActionParams d_throttledFailedAckMessages;
     // Throttling parameters for failed ACK
     // messages.
 
-    mwcu::ThrottledActionParams d_throttledSkippedPutMessages;
+    bmqu::ThrottledActionParams d_throttledSkippedPutMessages;
     // Throttling parameters for skipped
     // PUT messages.
 
@@ -245,7 +244,7 @@ class ClusterProxy : public mqbc::ClusterStateObserver,
     // 'ClusterActiveNodeManager'
     // documentation).
 
-    mwcu::OperationChain d_shutdownChain;
+    bmqu::OperationChain d_shutdownChain;
     // Mechanism used for the ClusterProxy
     // graceful shutdown to serialize
     // execution of the shutdown callbacks

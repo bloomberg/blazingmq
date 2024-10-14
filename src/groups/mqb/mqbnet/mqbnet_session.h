@@ -44,7 +44,7 @@ namespace BloombergLP {
 namespace bmqp_ctrlmsg {
 class NegotiationMessage;
 }
-namespace mwcio {
+namespace bmqio {
 class Channel;
 }
 
@@ -141,7 +141,7 @@ class Session : public SessionEventProcessor {
     virtual void invalidate() = 0;
 
     /// Return the channel associated to this session.
-    virtual bsl::shared_ptr<mwcio::Channel> channel() const = 0;
+    virtual bsl::shared_ptr<bmqio::Channel> channel() const = 0;
 
     /// Return the clusterNode associated to this session, or 0 if there are
     /// none.

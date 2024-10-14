@@ -32,7 +32,7 @@
 #include <bsls_timeutil.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // BDE
 #include <bsl_limits.h>
@@ -51,7 +51,7 @@ static void test1_hasBmqHeader()
 //   static int hasBmqHeader(const MemoryBlock& block);
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("HAS BlazingMQ HEADER");
+    bmqtst::TestHelper::printTestName("HAS BlazingMQ HEADER");
 
     using namespace mqbs;
 
@@ -702,7 +702,7 @@ static void jobForThreadPool(const Results* testData, bslmt::Barrier* barrier)
 // ------------------------------------------------------------------------
 {
     bdlbb::PooledBlobBufferFactory factory(1024, s_allocator_p);
-    mwcu::BlobPosition             startPos;
+    bmqu::BlobPosition             startPos;
 
     barrier->wait();
     for (int i = 0; i < 1000; ++i) {
@@ -742,14 +742,14 @@ static void test5_calculateMd5Digest()
 //   calculateMd5Digest()
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("CALCULATE MD5 DIGEST");
+    bmqtst::TestHelper::printTestName("CALCULATE MD5 DIGEST");
 
     bsl::string data("12345678901234567890", s_allocator_p);
     bsl::string md5("fd85e62d9beb45428771ec688418b271", s_allocator_p);
     bsl::string md5b(s_allocator_p);
     bytesFromHex(&md5b, md5);
 
-    mwcu::BlobPosition             startPos;
+    bmqu::BlobPosition             startPos;
     bdlbb::PooledBlobBufferFactory myFactory(1024, s_allocator_p);
     bdlbb::Blob                    blob(&myFactory, s_allocator_p);
     blob.setLength(data.size());
@@ -782,12 +782,12 @@ static void test5_calculateMd5Digest()
         ASSERT_FAIL(mqbs::FileStoreProtocolUtil::calculateMd5Digest(
             &buffer,
             blob,
-            mwcu::BlobPosition(0, data.size() + 1),
+            bmqu::BlobPosition(0, data.size() + 1),
             data.size()));
         ASSERT_FAIL(mqbs::FileStoreProtocolUtil::calculateMd5Digest(
             &buffer,
             blob,
-            mwcu::BlobPosition(1, 1),
+            bmqu::BlobPosition(1, 1),
             data.size()));
     }
 
@@ -903,7 +903,7 @@ static void test5_calculateMd5Digest()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     // One time app initialization.
     bsls::TimeUtil::initialize();
@@ -921,5 +921,5 @@ int main(int argc, char* argv[])
     } break;
     }
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_DEF_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_ALLOC);
 }

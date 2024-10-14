@@ -42,11 +42,10 @@
 #include <mqbu_messageguidutil.h>
 #include <mqbu_storagekey.h>
 
-// MWC
-#include <mwcsys_time.h>
-#include <mwcu_blob.h>
-#include <mwcu_blobobjectproxy.h>
-#include <mwcu_memoutstream.h>
+#include <bmqsys_time.h>
+#include <bmqu_blob.h>
+#include <bmqu_blobobjectproxy.h>
+#include <bmqu_memoutstream.h>
 
 // BDE
 #include <bdlbb_blob.h>
@@ -66,8 +65,8 @@
 #include <bsls_types.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
-#include <mwcu_tempdirectory.h>
+#include <bmqtst_testhelper.h>
+#include <bmqu_tempdirectory.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -130,9 +129,9 @@ struct TestHelper {
 
     bslma::ManagedPtr<mqbmock::Cluster> d_cluster_mp;
 
-    mwcu::TempDirectory d_tempDir;
+    bmqu::TempDirectory d_tempDir;
 
-    mwcu::TempDirectory d_tempArchiveDir;
+    bmqu::TempDirectory d_tempArchiveDir;
 
     // CREATORS
     TestHelper()
@@ -189,14 +188,14 @@ struct TestHelper {
 
         BSLS_ASSERT_OPT(d_cluster_mp->_channels().size() > 0);
 
-        mwcsys::Time::initialize(
+        bmqsys::Time::initialize(
             &bsls::SystemTime::nowRealtimeClock,
             bdlf::BindUtil::bind(&TestHelper::nowMonotonicClock, this),
             bdlf::BindUtil::bind(&TestHelper::highResolutionTimer, this),
             s_allocator_p);
 
         // Start the cluster
-        mwcu::MemOutStream errorDescription;
+        bmqu::MemOutStream errorDescription;
         int                rc = d_cluster_mp->start(errorDescription);
         BSLS_ASSERT_OPT(rc == 0);
     }
@@ -327,14 +326,14 @@ struct TestHelper {
                     const bmqp::StorageHeader& header = iter.header();
                     ASSERT_EQ(static_cast<unsigned int>(partitionId),
                               header.partitionId());
-                    mwcu::MemOutStream partitionDesc;
+                    bmqu::MemOutStream partitionDesc;
                     partitionDesc << d_cluster_mp->_clusterData()
                                          ->identity()
                                          .description()
                                   << " Partition [" << partitionId << "]: ";
 
-                    mwcu::BlobPosition                        recordPosition;
-                    mwcu::BlobObjectProxy<mqbs::RecordHeader> recHeader;
+                    bmqu::BlobPosition                        recordPosition;
+                    bmqu::BlobObjectProxy<mqbs::RecordHeader> recHeader;
                     int rc = mqbs::StorageUtil::loadRecordHeaderAndPos(
                         &recHeader,
                         &recordPosition,
@@ -364,14 +363,14 @@ struct TestHelper {
                                           - currSeqNum.sequenceNumber())
                                        * mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE);*/
 
-                // mwcu::BlobPosition                         pos;
-                // mwcu::BlobUtil::findOffsetSafe(&pos, blob, recordOffset);
+                // bmqu::BlobPosition                         pos;
+                // bmqu::BlobUtil::findOffsetSafe(&pos, blob, recordOffset);
                 // TODO
-                // mwcu::BlobObjectProxy<mqbs::QueueOpRecord> record(&blob,
+                // bmqu::BlobObjectProxy<mqbs::QueueOpRecord> record(&blob,
                 //                                                   pos);
                 // ASSERT(record.isSet());
 
-                // mwcu::BlobObjectProxy<mqbs::RecordHeader> recordHdr(&blob,
+                // bmqu::BlobObjectProxy<mqbs::RecordHeader> recordHdr(&blob,
                 //                                                     pos);
                 // ASSERT(recordHdr.isSet());
                 // PV("XXM: " << currSeqNum << ", " << recordHdr->type());
@@ -448,9 +447,9 @@ struct TestHelper {
                 // TODO While the record is only 60 bytes, we are sending 96
                 //      redundant bytes before that.  We need to improve the
                 //      send chunk logic to *only* send the required data.
-                mwcu::BlobPosition                         pos;
-                mwcu::BlobUtil::findOffsetSafe(&pos, blob, 96);
-                mwcu::BlobObjectProxy<mqbs::QueueOpRecord> record(&blob, pos);
+                bmqu::BlobPosition                         pos;
+                bmqu::BlobUtil::findOffsetSafe(&pos, blob, 96);
+                bmqu::BlobObjectProxy<mqbs::QueueOpRecord> record(&blob, pos);
                 assert(record.isSet());
 
                 ASSERT_EQ(record->header(),   expectedRecord.header());
@@ -742,7 +741,7 @@ struct TestHelper {
         // record into the specified 'handle'.  Return the queue key.
 
         bsl::string        uri("bmq://si.amw.bmq.stats/queue0", s_allocator_p);
-        mwcu::MemOutStream osstr;
+        bmqu::MemOutStream osstr;
 
         // Generate queue-key.
         for (size_t j = 0; j < mqbu::StorageKey::e_KEY_LENGTH_BINARY; ++j) {
@@ -912,7 +911,7 @@ struct TestHelper {
         }
     }
 
-    ~TestHelper() { mwcsys::Time::shutdown(); }
+    ~TestHelper() { bmqsys::Time::shutdown(); }
 };
 }  // close unnamed namespace
 
@@ -936,7 +935,7 @@ static void test1_breathingTest()
 //   Basic functionality.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("BREATHING TEST - START STOP "
+    bmqtst::TestHelper::printTestName("BREATHING TEST - START STOP "
                                       "STORAGEMANAGER SUCCESSFULLY");
 
     TestHelper helper;
@@ -956,7 +955,7 @@ static void test1_breathingTest()
         mockOnPartitionPrimaryStatus,
         s_allocator_p);
 
-    mwcu::MemOutStream errorDescription;
+    bmqu::MemOutStream errorDescription;
 
     static const int k_PARTITION_ID = 1;
 
@@ -989,7 +988,7 @@ static void test2_unknownDetectSelfPrimary()
 //   Basic functionality.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("BREATHING TEST - DETECT PRIMARY");
+    bmqtst::TestHelper::printTestName("BREATHING TEST - DETECT PRIMARY");
 
     TestHelper helper;
 
@@ -1005,7 +1004,7 @@ static void test2_unknownDetectSelfPrimary()
         mockOnPartitionPrimaryStatus,
         s_allocator_p);
 
-    mwcu::MemOutStream errorDescription;
+    bmqu::MemOutStream errorDescription;
 
     static const int k_PARTITION_ID = 1;
     const int        rc             = storageManager.start(errorDescription);
@@ -1059,7 +1058,7 @@ static void test3_unknownDetectSelfReplica()
 //   Basic functionality.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("BREATHING TEST - DETECT REPLICA");
+    bmqtst::TestHelper::printTestName("BREATHING TEST - DETECT REPLICA");
 
     TestHelper helper;
 
@@ -1075,7 +1074,7 @@ static void test3_unknownDetectSelfReplica()
         mockOnPartitionPrimaryStatus,
         s_allocator_p);
 
-    mwcu::MemOutStream errorDescription;
+    bmqu::MemOutStream errorDescription;
 
     static const int k_PARTITION_ID = 1;
 
@@ -1130,7 +1129,7 @@ static void test4_primaryHealingStage1DetectSelfReplica()
 //   Basic functionality.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("BREATHING TEST - "
+    bmqtst::TestHelper::printTestName("BREATHING TEST - "
                                       "PRIMARY HEALING STAGE 1 DETECTS SELF AS"
                                       " REPLICA");
 
@@ -1148,7 +1147,7 @@ static void test4_primaryHealingStage1DetectSelfReplica()
         mockOnPartitionPrimaryStatus,
         s_allocator_p);
 
-    mwcu::MemOutStream errorDescription;
+    bmqu::MemOutStream errorDescription;
 
     static const int k_PARTITION_ID = 1;
 
@@ -1230,7 +1229,7 @@ static void test5_primaryHealingStage1ReceivesReplicaStateRqst()
 //   Basic functionality.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("BREATHING TEST - "
+    bmqtst::TestHelper::printTestName("BREATHING TEST - "
                                       "PRIMARY HEALING STAGE 1 SENDS FAILURE"
                                       " REPLICA STATE RESPONSE");
 
@@ -1248,7 +1247,7 @@ static void test5_primaryHealingStage1ReceivesReplicaStateRqst()
         mockOnPartitionPrimaryStatus,
         s_allocator_p);
 
-    mwcu::MemOutStream errorDescription;
+    bmqu::MemOutStream errorDescription;
 
     static const int k_PARTITION_ID = 1;
 
@@ -1343,7 +1342,7 @@ static void test6_primaryHealingStage1ReceivesReplicaStateRspnQuorum()
 //   Basic functionality.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("BREATHING TEST - "
+    bmqtst::TestHelper::printTestName("BREATHING TEST - "
                                       "PRIMARY HEALING STAGE 1 RECEIVES"
                                       " REPLICA STATE RESPONSE QUORUM");
 
@@ -1361,7 +1360,7 @@ static void test6_primaryHealingStage1ReceivesReplicaStateRspnQuorum()
         mockOnPartitionPrimaryStatus,
         s_allocator_p);
 
-    mwcu::MemOutStream errorDescription;
+    bmqu::MemOutStream errorDescription;
 
     static const int k_PARTITION_ID = 1;
 
@@ -1451,7 +1450,7 @@ static void test7_primaryHealingStage1ReceivesPrimaryStateRequestQuorum()
 //   Basic functionality.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("BREATHING TEST - "
+    bmqtst::TestHelper::printTestName("BREATHING TEST - "
                                       "PRIMARY HEALING STAGE 1 RECEIVES"
                                       " PRIMARY STATE REQUEST QUORUM");
 
@@ -1469,7 +1468,7 @@ static void test7_primaryHealingStage1ReceivesPrimaryStateRequestQuorum()
         mockOnPartitionPrimaryStatus,
         s_allocator_p);
 
-    mwcu::MemOutStream errorDescription;
+    bmqu::MemOutStream errorDescription;
 
     static const int k_PARTITION_ID = 1;
 
@@ -1565,7 +1564,7 @@ static void test8_primaryHealingStage1ReceivesPrimaryStateRqst()
 //   Basic functionality.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("BREATHING TEST - "
+    bmqtst::TestHelper::printTestName("BREATHING TEST - "
                                       "PRIMARY HEALING STAGE 1 RECEIVES"
                                       " PRIMARY STATE REQUEST");
 
@@ -1583,7 +1582,7 @@ static void test8_primaryHealingStage1ReceivesPrimaryStateRqst()
         mockOnPartitionPrimaryStatus,
         s_allocator_p);
 
-    mwcu::MemOutStream errorDescription;
+    bmqu::MemOutStream errorDescription;
 
     static const int k_PARTITION_ID = 1;
 
@@ -1676,7 +1675,7 @@ static void test9_primaryHealingStage1ReceivesReplicaStateRspnNoQuorum()
 //   Basic functionality.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("BREATHING TEST - "
+    bmqtst::TestHelper::printTestName("BREATHING TEST - "
                                       "PRIMARY HEALING STAGE 1 RECEIVES"
                                       " REPLICA STATE RESPONSE NO QUORUM");
 
@@ -1694,7 +1693,7 @@ static void test9_primaryHealingStage1ReceivesReplicaStateRspnNoQuorum()
         mockOnPartitionPrimaryStatus,
         s_allocator_p);
 
-    mwcu::MemOutStream errorDescription;
+    bmqu::MemOutStream errorDescription;
 
     static const int k_PARTITION_ID = 1;
 
@@ -1792,7 +1791,7 @@ static void test10_primaryHealingStage1QuorumSendsReplicaDataRequestPull()
 //   Basic functionality.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("BREATHING TEST - "
+    bmqtst::TestHelper::printTestName("BREATHING TEST - "
                                       "PRIMARY HEALING STAGE 1 QUORUM"
                                       " SENDS REPLICA DATA REQUEST PULL");
 
@@ -1810,7 +1809,7 @@ static void test10_primaryHealingStage1QuorumSendsReplicaDataRequestPull()
         mockOnPartitionPrimaryStatus,
         s_allocator_p);
 
-    mwcu::MemOutStream errorDescription;
+    bmqu::MemOutStream errorDescription;
 
     static const int k_PARTITION_ID = 1;
 
@@ -1916,7 +1915,7 @@ static void test11_primaryHealingStage2DetectSelfReplica()
 //   Basic functionality.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("BREATHING TEST - "
+    bmqtst::TestHelper::printTestName("BREATHING TEST - "
                                       "PRIMARY HEALING STAGE 2 DETECTS SELF AS"
                                       " REPLICA");
 
@@ -1934,7 +1933,7 @@ static void test11_primaryHealingStage2DetectSelfReplica()
         mockOnPartitionPrimaryStatus,
         s_allocator_p);
 
-    mwcu::MemOutStream errorDescription;
+    bmqu::MemOutStream errorDescription;
 
     static const int k_PARTITION_ID = 1;
 
@@ -2064,7 +2063,7 @@ static void test12_replicaHealingDetectSelfPrimary()
 //   Basic functionality.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "BREATHING TEST - "
         "HEALING REPLICA DETECTS SELF AS PRIMARY");
 
@@ -2082,7 +2081,7 @@ static void test12_replicaHealingDetectSelfPrimary()
         mockOnPartitionPrimaryStatus,
         s_allocator_p);
 
-    mwcu::MemOutStream errorDescription;
+    bmqu::MemOutStream errorDescription;
 
     static const int k_PARTITION_ID = 1;
 
@@ -2163,7 +2162,7 @@ static void test13_replicaHealingReceivesReplicaStateRqst()
 //   Basic functionality.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "BREATHING TEST - "
         "HEALING REPLICA RECEIVES REPLICA STATE REQUEST");
 
@@ -2181,7 +2180,7 @@ static void test13_replicaHealingReceivesReplicaStateRqst()
         mockOnPartitionPrimaryStatus,
         s_allocator_p);
 
-    mwcu::MemOutStream errorDescription;
+    bmqu::MemOutStream errorDescription;
 
     static const int k_PARTITION_ID = 1;
 
@@ -2271,7 +2270,7 @@ static void test14_replicaHealingReceivesPrimaryStateRspn()
 //   Basic functionality.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "BREATHING TEST - "
         "HEALING REPLICA RECEIVES PRIMARY STATE RESPONSE");
 
@@ -2289,7 +2288,7 @@ static void test14_replicaHealingReceivesPrimaryStateRspn()
         mockOnPartitionPrimaryStatus,
         s_allocator_p);
 
-    mwcu::MemOutStream errorDescription;
+    bmqu::MemOutStream errorDescription;
 
     static const int k_PARTITION_ID = 1;
 
@@ -2377,7 +2376,7 @@ static void test15_replicaHealingReceivesFailedPrimaryStateRspn()
 //   Basic functionality.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "BREATHING TEST - "
         "HEALING REPLICA RECEIVES FAILED PRIMARY STATE RESPONSE");
 
@@ -2395,7 +2394,7 @@ static void test15_replicaHealingReceivesFailedPrimaryStateRspn()
         mockOnPartitionPrimaryStatus,
         s_allocator_p);
 
-    mwcu::MemOutStream errorDescription;
+    bmqu::MemOutStream errorDescription;
 
     static const int k_PARTITION_ID = 1;
 
@@ -2472,7 +2471,7 @@ static void test16_replicaHealingReceivesPrimaryStateRqst()
 //   Basic functionality.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "BREATHING TEST - "
         "HEALING REPLICA RECEIVES PRIMARY STATE REQUEST");
 
@@ -2490,7 +2489,7 @@ static void test16_replicaHealingReceivesPrimaryStateRqst()
         mockOnPartitionPrimaryStatus,
         s_allocator_p);
 
-    mwcu::MemOutStream errorDescription;
+    bmqu::MemOutStream errorDescription;
 
     static const int k_PARTITION_ID = 1;
 
@@ -2589,7 +2588,7 @@ static void test17_replicaHealingReceivesReplicaDataRqstPull()
 //   Basic functionality.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "BREATHING TEST - "
         "HEALING REPLICA RECEIVES REPLICA DATA REQUEST PULL");
 
@@ -2616,7 +2615,7 @@ static void test17_replicaHealingReceivesReplicaDataRqstPull()
 
     static const int k_PARTITION_ID = 1;
 
-    mwcu::MemOutStream errorDescription;
+    bmqu::MemOutStream errorDescription;
 
     BSLS_ASSERT_OPT(storageManager.partitionHealthState(k_PARTITION_ID) ==
                     mqbc::PartitionFSM::State::e_UNKNOWN);
@@ -2743,7 +2742,7 @@ static void test18_primaryHealingStage1SelfHighestSendsDataChunks()
 //   Basic functionality.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("BREATHING TEST - "
+    bmqtst::TestHelper::printTestName("BREATHING TEST - "
                                       "PRIMARY HEALING STAGE 1 SELF HIGHEST"
                                       " SENDS DATA CHUNKS");
 
@@ -2767,7 +2766,7 @@ static void test18_primaryHealingStage1SelfHighestSendsDataChunks()
         mockOnPartitionPrimaryStatus,
         s_allocator_p);
 
-    mwcu::MemOutStream errorDescription;
+    bmqu::MemOutStream errorDescription;
 
     static const int          k_PARTITION_ID     = 1;
     static const unsigned int k_PRIMARY_LEASE_ID = 1U;
@@ -2888,7 +2887,7 @@ static void test18_primaryHealingStage1SelfHighestSendsDataChunks()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     bmqp::ProtocolUtil::initialize(s_allocator_p);
     bmqt::UriParser::initialize(s_allocator_p);
@@ -2936,7 +2935,7 @@ int main(int argc, char* argv[])
     bmqp::ProtocolUtil::shutdown();
     bmqt::UriParser::shutdown();
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
     // Can't ensure no default memory is allocated because
     // 'bdlmt::EventSchedulerTestTimeSource' inside 'mqbmock::Cluster' uses
     // the default allocator in its constructor.

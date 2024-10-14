@@ -58,10 +58,9 @@
 
 #include <bmqp_protocol.h>
 
-// MWC
-#include <mwcu_blob.h>
-#include <mwcu_blobiterator.h>
-#include <mwcu_blobobjectproxy.h>
+#include <bmqu_blob.h>
+#include <bmqu_blobiterator.h>
+#include <bmqu_blobobjectproxy.h>
 
 // BDE
 #include <bdlbb_blob.h>
@@ -80,11 +79,11 @@ namespace bmqp {
 class StorageMessageIterator {
   private:
     // DATA
-    mwcu::BlobIterator d_blobIter;
+    bmqu::BlobIterator d_blobIter;
     // Blob iterator pointing to the
     // current message in the blob.
 
-    mwcu::BlobObjectProxy<StorageHeader> d_header;
+    bmqu::BlobObjectProxy<StorageHeader> d_header;
     // Current PutHeader
 
     int d_advanceLength;
@@ -165,13 +164,13 @@ class StorageMessageIterator {
     /// Return a const reference to the position of header of the currently
     /// pointed to by this iterator.  The behavior is undefined unless
     /// `isValid` returns true.
-    const mwcu::BlobPosition& headerPosition() const;
+    const bmqu::BlobPosition& headerPosition() const;
 
     /// Load into the specified `position` the starting location of the data
     /// of the storage message currently pointed to by this iterator.  The
     /// behavior is undefined unless `position` is not null.  Return zero on
     /// success, non zero value otherwise.
-    int loadDataPosition(mwcu::BlobPosition* position) const;
+    int loadDataPosition(bmqu::BlobPosition* position) const;
 
     /// Dump the beginning of the blob associated to this
     /// StorageMessageIterator to the specified `stream`.
@@ -188,7 +187,7 @@ class StorageMessageIterator {
 
 // CREATORS
 inline StorageMessageIterator::StorageMessageIterator()
-: d_blobIter(0, mwcu::BlobPosition(), 0, true)
+: d_blobIter(0, bmqu::BlobPosition(), 0, true)
 , d_advanceLength(-1)
 {
     // NOTHING
@@ -197,7 +196,7 @@ inline StorageMessageIterator::StorageMessageIterator()
 inline StorageMessageIterator::StorageMessageIterator(
     const bdlbb::Blob* blob,
     const EventHeader& eventHeader)
-: d_blobIter(0, mwcu::BlobPosition(), 0, true)  // no def ctor - set in reset
+: d_blobIter(0, bmqu::BlobPosition(), 0, true)  // no def ctor - set in reset
 {
     reset(blob, eventHeader);
 }
@@ -205,7 +204,7 @@ inline StorageMessageIterator::StorageMessageIterator(
 inline StorageMessageIterator::StorageMessageIterator(
     const StorageMessageIterator& src)
 : d_blobIter(0,
-             mwcu::BlobPosition(),
+             bmqu::BlobPosition(),
              0,
              true)  // no def ctor - set in copyFrom
 {
@@ -225,7 +224,7 @@ StorageMessageIterator::operator=(const StorageMessageIterator& rhs)
 
 inline void StorageMessageIterator::clear()
 {
-    d_blobIter.reset(0, mwcu::BlobPosition(), 0, true);
+    d_blobIter.reset(0, bmqu::BlobPosition(), 0, true);
     d_header.reset();
     d_advanceLength = -1;
 }
@@ -244,7 +243,7 @@ inline const StorageHeader& StorageMessageIterator::header() const
     return *d_header;
 }
 
-inline const mwcu::BlobPosition& StorageMessageIterator::headerPosition() const
+inline const bmqu::BlobPosition& StorageMessageIterator::headerPosition() const
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(isValid());
@@ -253,7 +252,7 @@ inline const mwcu::BlobPosition& StorageMessageIterator::headerPosition() const
 }
 
 inline int
-StorageMessageIterator::loadDataPosition(mwcu::BlobPosition* position) const
+StorageMessageIterator::loadDataPosition(bmqu::BlobPosition* position) const
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(position);
@@ -261,7 +260,7 @@ StorageMessageIterator::loadDataPosition(mwcu::BlobPosition* position) const
     BSLS_ASSERT_SAFE(StorageMessageType::e_UNDEFINED !=
                      d_header->messageType());
 
-    return mwcu::BlobUtil::findOffsetSafe(
+    return bmqu::BlobUtil::findOffsetSafe(
         position,
         *d_blobIter.blob(),
         d_blobIter.position(),

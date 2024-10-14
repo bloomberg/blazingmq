@@ -163,18 +163,18 @@ bool Dispatcher::inDispatcherThread(
     return d_inDispatcherThread;
 }
 
-mwcex::Executor Dispatcher::executor(
+bmqex::Executor Dispatcher::executor(
     BSLS_ANNOTATION_UNUSED const mqbi::DispatcherClient* client) const
 {
     BSLS_ASSERT(false && "Not yet implemented");
-    return mwcex::Executor();
+    return bmqex::Executor();
 }
 
-mwcex::Executor Dispatcher::clientExecutor(
+bmqex::Executor Dispatcher::clientExecutor(
     BSLS_ANNOTATION_UNUSED const mqbi::DispatcherClient* client) const
 {
     BSLS_ASSERT(false && "Not yet implemented");
-    return mwcex::Executor();
+    return bmqex::Executor();
 }
 
 // ---------------------------------

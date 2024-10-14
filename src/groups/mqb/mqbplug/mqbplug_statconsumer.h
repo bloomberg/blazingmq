@@ -48,7 +48,7 @@
 namespace BloombergLP {
 
 // FORWARD DECLARATION
-namespace mwcst {
+namespace bmqst {
 class StatContext;
 }
 
@@ -62,7 +62,7 @@ namespace mqbplug {
 class StatConsumer {
   public:
     // TYPES
-    typedef bsl::unordered_map<bsl::string, mwcst::StatContext*>
+    typedef bsl::unordered_map<bsl::string, bmqst::StatContext*>
         StatContextsMap;
     // Map of StatContext names to StatContext
 

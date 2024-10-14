@@ -28,7 +28,7 @@
 #include <bmqp_protocol.h>
 #include <bmqp_protocolutil.h>
 #include <bmqt_uri.h>
-#include <mwcu_memoutstream.h>
+#include <bmqu_memoutstream.h>
 
 // BDE
 #include <bsl_cstdlib.h>
@@ -38,7 +38,7 @@
 #include <bsls_assert.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // CONVINIENCE
 using namespace BloombergLP;
@@ -264,7 +264,7 @@ static void test1_breathingTest()
 //    Basic functionality.
 // --------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("BREATHING TEST");
+    bmqtst::TestHelper::printTestName("BREATHING TEST");
 
     {
         // Default object
@@ -299,7 +299,7 @@ static void test2_backwardIteration()
 //   Backward iteration with non-zero qlist records.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("BACKWARD ITERATION");
+    bmqtst::TestHelper::printTestName("BACKWARD ITERATION");
 
     MappedFileDescriptor mfd;
     FileHeader           fh;
@@ -330,7 +330,7 @@ static void test2_backwardIteration()
             // The 1st queue uri (ie, 'i == 0') will have no appIds associated
             // with it.
 
-            mwcu::MemOutStream osstr(s_allocator_p);
+            bmqu::MemOutStream osstr(s_allocator_p);
             osstr << "AppId" << i << "_" << j << bsl::ends;
             appIds.push_back(osstr.str());
         }
@@ -343,7 +343,7 @@ static void test2_backwardIteration()
         bsl::vector<mqbu::StorageKey>& appKeys = appKeysVec[i];
 
         for (size_t j = 0; j < i; ++j) {
-            mwcu::MemOutStream osstr(s_allocator_p);
+            bmqu::MemOutStream osstr(s_allocator_p);
             osstr << j << j << j << j << j;
             osstr << j << j << j << j << j;
             osstr << bsl::ends;
@@ -488,7 +488,7 @@ static void test3_iteratorWithNoRecords()
 //   Iterator with no records.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("ITERATOR WITH NO RECORDS");
+    bmqtst::TestHelper::printTestName("ITERATOR WITH NO RECORDS");
 
     MappedFileDescriptor mfd;
     FileHeader           fh;
@@ -537,7 +537,7 @@ static void test4_iteratorAppKeys()
 //   Iterator with records both having and not having appKeys.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("ITERATOR APPKEYS");
+    bmqtst::TestHelper::printTestName("ITERATOR APPKEYS");
 
     MappedFileDescriptor mfd;
     FileHeader           fh;
@@ -568,7 +568,7 @@ static void test4_iteratorAppKeys()
             // The 1st queue uri (ie, 'i == 0') will have no appIds
             // associated with it.
 
-            mwcu::MemOutStream osstr(s_allocator_p);
+            bmqu::MemOutStream osstr(s_allocator_p);
             osstr << "AppId" << i << "_" << j << bsl::ends;
             appIds.push_back(osstr.str());
         }
@@ -581,7 +581,7 @@ static void test4_iteratorAppKeys()
         bsl::vector<mqbu::StorageKey>& appKeys = appKeysVec[i];
 
         for (size_t j = 0; j < i; ++j) {
-            mwcu::MemOutStream osstr(s_allocator_p);
+            bmqu::MemOutStream osstr(s_allocator_p);
             osstr << j << j << j << j << j;
             osstr << j << j << j << j << j;
             osstr << bsl::ends;
@@ -688,7 +688,7 @@ static void test4_iteratorAppKeys()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     bmqt::UriParser::initialize(s_allocator_p);
 
@@ -706,7 +706,7 @@ int main(int argc, char* argv[])
 
     bmqt::UriParser::shutdown();
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
     // NOTE: for some reason the default allcoator verification never
     // succeeds.
 }

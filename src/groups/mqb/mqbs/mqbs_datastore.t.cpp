@@ -17,10 +17,9 @@
 #include <mqbs_datastore.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
-// MWC
-#include <mwcu_printutil.h>
+#include <bmqu_printutil.h>
 
 // BDE
 #include <bsl_utility.h>
@@ -51,7 +50,7 @@ static void test1_breathingTest()
 //   Basic functionality
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("BREATHING TEST");
+    bmqtst::TestHelper::printTestName("BREATHING TEST");
 
     {
         PV("DataStoreRecordKey");
@@ -132,7 +131,7 @@ static void test2_defaultHashUniqueness()
     // created upon insertion of objects in the map uses the default
     // allocator.
 
-    mwctst::TestHelper::printTestName("DEFAULT HASH UNIQUENESS");
+    bmqtst::TestHelper::printTestName("DEFAULT HASH UNIQUENESS");
 
 #ifdef BSLS_PLATFORM_OS_SOLARIS
     // This test case times out if 'k_NUM_GUIDS' is close to 1 million
@@ -218,7 +217,7 @@ static void test3_customHashUniqueness()
     // created upon insertion of objects in the map uses the default
     // allocator.
 
-    mwctst::TestHelper::printTestName("CUSTOM HASH UNIQUENESS");
+    bmqtst::TestHelper::printTestName("CUSTOM HASH UNIQUENESS");
 
 #if defined(__has_feature)
     // Avoid timeout under MemorySanitizer
@@ -295,7 +294,7 @@ static void testN1_defaultHashBenchmark()
 //
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("DEFAULT HASH BENCHMARK");
+    bmqtst::TestHelper::printTestName("DEFAULT HASH BENCHMARK");
 
     const size_t                        k_NUM_ITERATIONS = 10000000;  // 10M
     bsl::hash<mqbs::DataStoreRecordKey> hasher;
@@ -308,11 +307,11 @@ static void testN1_defaultHashBenchmark()
     bsls::Types::Int64 end = bsls::TimeUtil::getTimer();
 
     cout << "Calculated " << k_NUM_ITERATIONS << " default hashes of the Key"
-         << " in " << mwcu::PrintUtil::prettyTimeInterval(end - begin) << ".\n"
+         << " in " << bmqu::PrintUtil::prettyTimeInterval(end - begin) << ".\n"
          << "Above implies that 1 hash of the Key was calculated in "
          << (end - begin) / k_NUM_ITERATIONS << " nano seconds.\n"
          << "In other words: "
-         << mwcu::PrintUtil::prettyNumber(static_cast<bsls::Types::Int64>(
+         << bmqu::PrintUtil::prettyNumber(static_cast<bsls::Types::Int64>(
                 (k_NUM_ITERATIONS * 1000000000) / (end - begin)))
          << " hashes per second.\n";
 }
@@ -329,7 +328,7 @@ static void testN2_customHashBenchmark()
 //
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("CUSTOM HASH BENCHMARK");
+    bmqtst::TestHelper::printTestName("CUSTOM HASH BENCHMARK");
 
     const size_t                     k_NUM_ITERATIONS = 10000000;  // 10M
     mqbs::DataStoreRecordKeyHashAlgo hasher;
@@ -341,11 +340,11 @@ static void testN2_customHashBenchmark()
     bsls::Types::Int64 end = bsls::TimeUtil::getTimer();
 
     cout << "Calculated " << k_NUM_ITERATIONS << " custom hashes of the Key"
-         << "in " << mwcu::PrintUtil::prettyTimeInterval(end - begin) << ".\n"
+         << "in " << bmqu::PrintUtil::prettyTimeInterval(end - begin) << ".\n"
          << "Above implies that 1 hash of the Key was calculated in "
          << (end - begin) / k_NUM_ITERATIONS << " nano seconds.\n"
          << "In other words: "
-         << mwcu::PrintUtil::prettyNumber(static_cast<bsls::Types::Int64>(
+         << bmqu::PrintUtil::prettyNumber(static_cast<bsls::Types::Int64>(
                 (k_NUM_ITERATIONS * 1000000000) / (end - begin)))
          << " hashes per second.\n";
 }
@@ -360,12 +359,12 @@ static void testN3_orderedMapWithDefaultHashBenchmark()
 //
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("ORDERED MAP DEFAULT HASH BENCHMARK");
+    bmqtst::TestHelper::printTestName("ORDERED MAP DEFAULT HASH BENCHMARK");
 
     const size_t             k_NUM_ELEMS = 10000000;  // 10M
     mqbs::DataStoreRecordKey key;
 
-    mwcc::OrderedHashMap<mqbs::DataStoreRecordKey, size_t> ht(k_NUM_ELEMS,
+    bmqc::OrderedHashMap<mqbs::DataStoreRecordKey, size_t> ht(k_NUM_ELEMS,
                                                               s_allocator_p);
     // Warmup
     for (size_t i = 1; i <= 1000; ++i) {
@@ -382,11 +381,11 @@ static void testN3_orderedMapWithDefaultHashBenchmark()
 
     cout << "Inserted " << k_NUM_ELEMS << " elements in ordered map using "
          << "default hash algorithm in "
-         << mwcu::PrintUtil::prettyTimeInterval(end - begin) << ".\n"
+         << bmqu::PrintUtil::prettyTimeInterval(end - begin) << ".\n"
          << "Above implies that 1 element was inserted in "
          << (end - begin) / k_NUM_ELEMS << " nano seconds.\n"
          << "In other words: "
-         << mwcu::PrintUtil::prettyNumber(static_cast<bsls::Types::Int64>(
+         << bmqu::PrintUtil::prettyNumber(static_cast<bsls::Types::Int64>(
                 (k_NUM_ELEMS * 1000000000) / (end - begin)))
          << " insertions per second." << endl;
 }
@@ -401,12 +400,12 @@ static void testN4_orderedMapWithCustomHashBenchmark()
 //
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("ORDERED MAP CUSTOM HASH BENCHMARK");
+    bmqtst::TestHelper::printTestName("ORDERED MAP CUSTOM HASH BENCHMARK");
 
     const size_t             k_NUM_ELEMS = 10000000;  // 10M
     mqbs::DataStoreRecordKey key;
 
-    mwcc::OrderedHashMap<mqbs::DataStoreRecordKey,
+    bmqc::OrderedHashMap<mqbs::DataStoreRecordKey,
                          size_t,
                          mqbs::DataStoreRecordKeyHashAlgo>
         ht(k_NUM_ELEMS, s_allocator_p);
@@ -426,11 +425,11 @@ static void testN4_orderedMapWithCustomHashBenchmark()
 
     cout << "Inserted " << k_NUM_ELEMS << " elements in ordered map using "
          << "custom hash algorithm in "
-         << mwcu::PrintUtil::prettyTimeInterval(end - begin) << ".\n"
+         << bmqu::PrintUtil::prettyTimeInterval(end - begin) << ".\n"
          << "Above implies that 1 element was inserted in "
          << (end - begin) / k_NUM_ELEMS << " nano seconds.\n"
          << "In other words: "
-         << mwcu::PrintUtil::prettyNumber(static_cast<bsls::Types::Int64>(
+         << bmqu::PrintUtil::prettyNumber(static_cast<bsls::Types::Int64>(
                 (k_NUM_ELEMS * 1000000000) / (end - begin)))
          << " insertions per second.\n";
 }
@@ -450,7 +449,7 @@ testN1_defaultHashBenchmark_GoogleBenchmark(benchmark::State& state)
 //
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "GOOGLE BENCHMARK DEFAULT HASH BENCHMARK");
 
     bsl::hash<mqbs::DataStoreRecordKey> hasher;
@@ -474,7 +473,7 @@ static void testN2_customHashBenchmark_GoogleBenchmark(benchmark::State& state)
 //
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "GOOGLE BENCHMARK CUSTOM HASH BENCHMARK");
 
     mqbs::DataStoreRecordKeyHashAlgo hasher;
@@ -497,12 +496,12 @@ static void testN3_orderedMapWithDefaultHashBenchmark_GoogleBenchmark(
 //
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("GOOGLE BENCHMARK ORDERED"
+    bmqtst::TestHelper::printTestName("GOOGLE BENCHMARK ORDERED"
                                       "MAP DEFAULT HASH BENCHMARK");
 
     mqbs::DataStoreRecordKey key;
 
-    mwcc::OrderedHashMap<mqbs::DataStoreRecordKey, size_t> ht(state.range(0),
+    bmqc::OrderedHashMap<mqbs::DataStoreRecordKey, size_t> ht(state.range(0),
                                                               s_allocator_p);
     // Warmup
     for (size_t i = 1; i <= 1000; ++i) {
@@ -529,12 +528,12 @@ static void testN4_orderedMapWithCustomHashBenchmark_GoogleBenchmark(
 //
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("GOOGLE BENCHMARK ORDERED MAP"
+    bmqtst::TestHelper::printTestName("GOOGLE BENCHMARK ORDERED MAP"
                                       "CUSTOM HASH BENCHMARK");
 
     mqbs::DataStoreRecordKey key;
 
-    mwcc::OrderedHashMap<mqbs::DataStoreRecordKey,
+    bmqc::OrderedHashMap<mqbs::DataStoreRecordKey,
                          size_t,
                          mqbs::DataStoreRecordKeyHashAlgo>
         ht(state.range(0), s_allocator_p);
@@ -558,7 +557,7 @@ static void testN4_orderedMapWithCustomHashBenchmark_GoogleBenchmark(
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     switch (_testCase) {
     case 0:
@@ -566,28 +565,28 @@ int main(int argc, char* argv[])
     case 2: test2_defaultHashUniqueness(); break;
     case 1: test1_breathingTest(); break;
     case -1:
-        MWC_BENCHMARK_WITH_ARGS(testN1_defaultHashBenchmark,
-                                RangeMultiplier(10)
-                                    ->Range(10, 10000000)
-                                    ->Unit(benchmark::kMillisecond));
+        BMQTST_BENCHMARK_WITH_ARGS(testN1_defaultHashBenchmark,
+                                   RangeMultiplier(10)
+                                       ->Range(10, 10000000)
+                                       ->Unit(benchmark::kMillisecond));
         break;
     case -2:
-        MWC_BENCHMARK_WITH_ARGS(testN2_customHashBenchmark,
-                                RangeMultiplier(10)
-                                    ->Range(10, 10000000)
-                                    ->Unit(benchmark::kMillisecond));
+        BMQTST_BENCHMARK_WITH_ARGS(testN2_customHashBenchmark,
+                                   RangeMultiplier(10)
+                                       ->Range(10, 10000000)
+                                       ->Unit(benchmark::kMillisecond));
         break;
     case -3:
-        MWC_BENCHMARK_WITH_ARGS(testN3_orderedMapWithDefaultHashBenchmark,
-                                RangeMultiplier(10)
-                                    ->Range(10, 10000000)
-                                    ->Unit(benchmark::kMillisecond));
+        BMQTST_BENCHMARK_WITH_ARGS(testN3_orderedMapWithDefaultHashBenchmark,
+                                   RangeMultiplier(10)
+                                       ->Range(10, 10000000)
+                                       ->Unit(benchmark::kMillisecond));
         break;
     case -4:
-        MWC_BENCHMARK_WITH_ARGS(testN4_orderedMapWithCustomHashBenchmark,
-                                RangeMultiplier(10)
-                                    ->Range(10, 10000000)
-                                    ->Unit(benchmark::kMillisecond));
+        BMQTST_BENCHMARK_WITH_ARGS(testN4_orderedMapWithCustomHashBenchmark,
+                                   RangeMultiplier(10)
+                                       ->Range(10, 10000000)
+                                       ->Unit(benchmark::kMillisecond));
         break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
@@ -601,7 +600,7 @@ int main(int argc, char* argv[])
     }
 #endif
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
 
 // ----------------------------------------------------------------------------

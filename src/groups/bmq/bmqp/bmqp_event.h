@@ -40,10 +40,9 @@
 #include <bmqp_rejectmessageiterator.h>
 #include <bmqp_storagemessageiterator.h>
 
-// MWC
-#include <mwcu_blob.h>
-#include <mwcu_blobobjectproxy.h>
-#include <mwcu_memoutstream.h>
+#include <bmqu_blob.h>
+#include <bmqu_blobobjectproxy.h>
+#include <bmqu_memoutstream.h>
 
 // BDE
 #include <ball_log.h>
@@ -86,7 +85,7 @@ class Event {
     // the blob represented by this event
     // (as specified upon construction).
 
-    mwcu::BlobObjectProxy<EventHeader> d_header;
+    bmqu::BlobObjectProxy<EventHeader> d_header;
     // Event Header from this blob (or
     // unset if the blob/event is
     // invalid).
@@ -258,7 +257,7 @@ inline void Event::initialize(const bdlbb::Blob* blob, bool clone)
     // the struct bytes (-1 parameter), and then resizing the proxy to match
     // the size declared in the header
     d_header.reset(d_blob_p,
-                   mwcu::BlobPosition(),
+                   bmqu::BlobPosition(),
                    -EventHeader::k_MIN_HEADER_SIZE,
                    true,
                    false);
@@ -330,7 +329,7 @@ int Event::loadSchemaEvent(TYPE* message) const
         encodingType = EventHeaderUtil::controlEventEncodingType(*d_header);
     }
 
-    mwcu::MemOutStream os;
+    bmqu::MemOutStream os;
     int                rc = ProtocolUtil::decodeMessage(os,
                                          message,
                                          *d_blob_p,

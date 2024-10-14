@@ -30,9 +30,8 @@
 #include <bmqp_ctrlmsg_messages.h>
 #include <bmqp_protocol.h>
 
-// MWC
-#include <mwcsys_time.h>
-#include <mwcu_tempdirectory.h>
+#include <bmqsys_time.h>
+#include <bmqu_tempdirectory.h>
 
 // BDE
 #include <bdlbb_blob.h>
@@ -48,7 +47,7 @@
 #include <bsls_types.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -94,7 +93,7 @@ struct Tester {
     // DATA
     mqbsi::LedgerConfig              d_config;
     bslma::ManagedPtr<mqbsi::Ledger> d_ledger_mp;
-    mwcu::TempDirectory              d_tempDir;
+    bmqu::TempDirectory              d_tempDir;
     bdlbb::PooledBlobBufferFactory   d_bufferFactory;
 
   public:
@@ -211,7 +210,7 @@ static void test1_validateFileHeader()
 //   validateFileHeader(...)
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("VALIDATE FILE HEADER");
+    bmqtst::TestHelper::printTestName("VALIDATE FILE HEADER");
 
     mqbc::ClusterStateFileHeader header;
     mqbu::StorageKey key(mqbu::StorageKey::BinaryRepresentation(), "12345");
@@ -261,7 +260,7 @@ static void test2_validateRecordHeader()
 //   validateRecordHeader(...)
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("VALIDATE RECORD HEADER");
+    bmqtst::TestHelper::printTestName("VALIDATE RECORD HEADER");
 
     mqbc::ClusterStateRecordHeader header;
     header.setHeaderWords(mqbc::ClusterStateRecordHeader::k_HEADER_NUM_WORDS)
@@ -303,7 +302,7 @@ static void test3_extractLogId()
 //   extractLogId(...)
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("EXTRACT LOG ID");
+    bmqtst::TestHelper::printTestName("EXTRACT LOG ID");
 
     Tester                  tester;
     mqbsi::Ledger*          ledger = tester.ledger();
@@ -332,7 +331,7 @@ static void test4_validateLog()
 //   validateLog(...)
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("VALIDATE LOG");
+    bmqtst::TestHelper::printTestName("VALIDATE LOG");
 
     Tester         tester;
     mqbsi::Ledger* ledger = tester.ledger();
@@ -367,7 +366,7 @@ static void test4_validateLog()
     mqbsi::LedgerRecordId recordId1;
     rc = ledger->writeRecord(&recordId1,
                              record1,
-                             mwcu::BlobPosition(),
+                             bmqu::BlobPosition(),
                              record1.length());
     BSLS_ASSERT_OPT(rc == 0);
 
@@ -393,7 +392,7 @@ static void test4_validateLog()
     mqbsi::LedgerRecordId recordId2;
     rc = ledger->writeRecord(&recordId2,
                              record2,
-                             mwcu::BlobPosition(),
+                             bmqu::BlobPosition(),
                              record2.length());
     BSLS_ASSERT_OPT(rc == 0);
 
@@ -417,7 +416,7 @@ static void test4_validateLog()
     mqbsi::LedgerRecordId recordId3;
     rc = ledger->writeRecord(&recordId3,
                              record3,
-                             mwcu::BlobPosition(),
+                             bmqu::BlobPosition(),
                              record3.length());
     BSLS_ASSERT_OPT(rc == 0);
 
@@ -442,7 +441,7 @@ static void test4_validateLog()
     mqbsi::LedgerRecordId recordId4;
     rc = ledger->writeRecord(&recordId4,
                              record4,
-                             mwcu::BlobPosition(),
+                             bmqu::BlobPosition(),
                              record4.length());
     BSLS_ASSERT_OPT(rc == 0);
 
@@ -465,7 +464,7 @@ static void test5_validateLog_invalidCrc32c()
 //   validateLog(...)
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("VALIDATE LOG - INVALID CRC32-C");
+    bmqtst::TestHelper::printTestName("VALIDATE LOG - INVALID CRC32-C");
 
     Tester         tester;
     mqbsi::Ledger* ledger = tester.ledger();
@@ -499,7 +498,7 @@ static void test5_validateLog_invalidCrc32c()
     mqbsi::LedgerRecordId recordId1;
     rc = ledger->writeRecord(&recordId1,
                              record1,
-                             mwcu::BlobPosition(),
+                             bmqu::BlobPosition(),
                              record1.length());
     BSLS_ASSERT_OPT(rc == 0);
 
@@ -539,7 +538,7 @@ static void test5_validateLog_invalidCrc32c()
     mqbsi::LedgerRecordId recordId2;
     rc = ledger->writeRecord(&recordId2,
                              record2,
-                             mwcu::BlobPosition(),
+                             bmqu::BlobPosition(),
                              record2.length());
     BSLS_ASSERT_OPT(rc == 0);
 
@@ -561,7 +560,7 @@ static void test6_writeFileHeader()
 //   writeFileHeader(...)
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("WRTIE FILE HEADER");
+    bmqtst::TestHelper::printTestName("WRTIE FILE HEADER");
 
     Tester                  tester;
     mqbsi::Ledger*          ledger = tester.ledger();
@@ -599,7 +598,7 @@ static void test7_appendRecord()
 //   appendRecord(...)
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("APPEND RECORD");
+    bmqtst::TestHelper::printTestName("APPEND RECORD");
 
     Tester tester;
 
@@ -664,7 +663,7 @@ static void test8_loadClusterMessageLedger()
 //                      const mqbsi::LedgerRecordId&  recordId)
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("LOAD CLUSTER MESSAGE LEDGER");
+    bmqtst::TestHelper::printTestName("LOAD CLUSTER MESSAGE LEDGER");
 
     Tester         tester;
     mqbsi::Ledger* ledger = tester.ledger();
@@ -690,7 +689,7 @@ static void test8_loadClusterMessageLedger()
     mqbsi::LedgerRecordId recordId;
     rc = ledger->writeRecord(&recordId,
                              record,
-                             mwcu::BlobPosition(),
+                             bmqu::BlobPosition(),
                              record.length());
     BSLS_ASSERT_OPT(rc == 0);
 
@@ -740,7 +739,7 @@ static void test9_loadClusterMessageBlob()
 //                      int                           offset)
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("LOAD CLUSTER MESSAGE BLOB");
+    bmqtst::TestHelper::printTestName("LOAD CLUSTER MESSAGE BLOB");
 
     Tester tester;
 
@@ -808,7 +807,7 @@ static void test10_recordSize()
 //   recordSize(...)
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("RECORD SIZE");
+    bmqtst::TestHelper::printTestName("RECORD SIZE");
 
     mqbc::ClusterStateRecordHeader header;
     header.setHeaderWords(mqbc::ClusterStateRecordHeader::k_HEADER_NUM_WORDS)
@@ -831,9 +830,9 @@ static void test10_recordSize()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
-    mwcsys::Time::initialize(s_allocator_p);
+    bmqsys::Time::initialize(s_allocator_p);
     bmqp::ProtocolUtil::initialize(s_allocator_p);
     bmqp::Crc32c::initialize();
 
@@ -856,7 +855,7 @@ int main(int argc, char* argv[])
     }
 
     bmqp::ProtocolUtil::shutdown();
-    mwcsys::Time::shutdown();
+    bmqsys::Time::shutdown();
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 }

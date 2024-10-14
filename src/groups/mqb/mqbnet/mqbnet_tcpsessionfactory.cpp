@@ -37,20 +37,19 @@
 #include <bmqp_protocol.h>
 #include <bmqp_protocolutil.h>
 
-// MWC
-#include <mwcex_executionutil.h>
-#include <mwcex_systemexecutor.h>
-#include <mwcio_channelutil.h>
-#include <mwcio_connectoptions.h>
-#include <mwcio_ntcchannel.h>
-#include <mwcio_ntcchannelfactory.h>
-#include <mwcio_resolveutil.h>
-#include <mwcio_tcpendpoint.h>
-#include <mwcsys_threadutil.h>
-#include <mwcsys_time.h>
-#include <mwcu_blob.h>
-#include <mwcu_memoutstream.h>
-#include <mwcu_printutil.h>
+#include <bmqex_executionutil.h>
+#include <bmqex_systemexecutor.h>
+#include <bmqio_channelutil.h>
+#include <bmqio_connectoptions.h>
+#include <bmqio_ntcchannel.h>
+#include <bmqio_ntcchannelfactory.h>
+#include <bmqio_resolveutil.h>
+#include <bmqio_tcpendpoint.h>
+#include <bmqsys_threadutil.h>
+#include <bmqsys_time.h>
+#include <bmqu_blob.h>
+#include <bmqu_memoutstream.h>
+#include <bmqu_printutil.h>
 
 // BDE
 #include <ball_log.h>
@@ -132,7 +131,7 @@ char calculateInitialMissedHbCounter(const mqbcfg::TcpInterfaceConfig& config)
     return -retVal;
 }
 
-bsl::ostream& operator<<(bsl::ostream& os, const mwcio::Channel* channel)
+bsl::ostream& operator<<(bsl::ostream& os, const bmqio::Channel* channel)
 {
     // 'pretty-print' the specified 'channel' to the specified 'os'.  The
     // printed channel from that function includes the address of the channel
@@ -153,9 +152,9 @@ bsl::ostream& operator<<(bsl::ostream& os, const mwcio::Channel* channel)
 /// a property on the channel, that higher levels (such as the
 /// `SessionNegotiator` can extract and leverage).
 void ntcChannelPreCreation(
-    const bsl::shared_ptr<mwcio::NtcChannel>& channel,
+    const bsl::shared_ptr<bmqio::NtcChannel>& channel,
     BSLS_ANNOTATION_UNUSED const
-        bsl::shared_ptr<mwcio::ChannelFactory::OpHandle>& operationHandle)
+        bsl::shared_ptr<bmqio::ChannelFactory::OpHandle>& operationHandle)
 {
     ntsa::Endpoint peerEndpoint   = channel->peerEndpoint();
     ntsa::Endpoint sourceEndpoint = channel->sourceEndpoint();
@@ -206,30 +205,30 @@ ntcCreateInterfaceConfig(const mqbcfg::TcpInterfaceConfig& tcpConfig)
 /// Load into the specified `resolvedUri` the reverse-DNS resolved URI of
 /// the remote peer represented by the specified `baseChannel`.  This is a
 /// thin wrapper around the default DNS resolution from
-/// `mwcio::ResolvingChannelFactoryUtil` that just adds final resolution
+/// `bmqio::ResolvingChannelFactoryUtil` that just adds final resolution
 /// logging with time instrumentation.
 void monitoredDNSResolution(bsl::string*          resolvedUri,
-                            const mwcio::Channel& baseChannel)
+                            const bmqio::Channel& baseChannel)
 {
-    const bsls::Types::Int64 start = mwcsys::Time::highResolutionTimer();
+    const bsls::Types::Int64 start = bmqsys::Time::highResolutionTimer();
 
-    mwcio::ResolvingChannelFactoryUtil::defaultResolutionFn(
+    bmqio::ResolvingChannelFactoryUtil::defaultResolutionFn(
         resolvedUri,
         baseChannel,
-        &mwcio::ResolveUtil::getDomainName,
+        &bmqio::ResolveUtil::getDomainName,
         true);
 
-    const bsls::Types::Int64 end = mwcsys::Time::highResolutionTimer();
+    const bsls::Types::Int64 end = bmqsys::Time::highResolutionTimer();
 
     BALL_LOG_INFO << "Channel " << static_cast<const void*>(&baseChannel)
                   << " with remote peer " << baseChannel.peerUri()
                   << " resolved to '" << *resolvedUri << "' (took: "
-                  << mwcu::PrintUtil::prettyTimeInterval(end - start) << ", "
+                  << bmqu::PrintUtil::prettyTimeInterval(end - start) << ", "
                   << (end - start) << " nanoseconds)";
     // NOTE: cast the channel to actually just print the address and not the
     //       overload << operator.  The channel's address printed here is that
-    //       one of the 'mwcio::TcpChannel', while application will actually
-    //       only see the 'mwcio::ResolvingChannelFactory_Channel'.
+    //       one of the 'bmqio::TcpChannel', while application will actually
+    //       only see the 'bmqio::ResolvingChannelFactory_Channel'.
 }
 
 bool isClientOrProxy(const mqbnet::Session* session)
@@ -237,10 +236,10 @@ bool isClientOrProxy(const mqbnet::Session* session)
     return mqbnet::ClusterUtil::isClientOrProxy(session->negotiationMessage());
 }
 
-void stopChannelFactory(mwcio::ChannelFactory* channelFactory)
+void stopChannelFactory(bmqio::ChannelFactory* channelFactory)
 {
-    mwcio::NtcChannelFactory* factory =
-        dynamic_cast<mwcio::NtcChannelFactory*>(channelFactory);
+    bmqio::NtcChannelFactory* factory =
+        dynamic_cast<bmqio::NtcChannelFactory*>(channelFactory);
     BSLS_ASSERT_SAFE(factory);
     factory->stop();
 }
@@ -284,25 +283,25 @@ struct TCPSessionFactory_OperationContext {
 // class TCPSessionFactory
 // -----------------------
 
-bslma::ManagedPtr<mwcst::StatContext>
+bslma::ManagedPtr<bmqst::StatContext>
 TCPSessionFactory::channelStatContextCreator(
-    const bsl::shared_ptr<mwcio::Channel>&                  channel,
-    const bsl::shared_ptr<mwcio::StatChannelFactoryHandle>& handle)
+    const bsl::shared_ptr<bmqio::Channel>&                  channel,
+    const bsl::shared_ptr<bmqio::StatChannelFactoryHandle>& handle)
 {
     int peerAddress;
     channel->properties().load(&peerAddress, k_CHANNEL_PROPERTY_PEER_IP);
 
     ntsa::Ipv4Address   ipv4Address(static_cast<bsl::uint32_t>(peerAddress));
     ntsa::IpAddress     ipAddress(ipv4Address);
-    mwcst::StatContext* parent = d_statController_p->channelsStatContext(
-        mwcio::ChannelUtil::isLocalHost(ipAddress)
+    bmqst::StatContext* parent = d_statController_p->channelsStatContext(
+        bmqio::ChannelUtil::isLocalHost(ipAddress)
             ? mqbstat::StatController::ChannelSelector::e_LOCAL
             : mqbstat::StatController::ChannelSelector::e_REMOTE);
     BSLS_ASSERT_SAFE(parent);
 
     bsl::string endpoint =
-        handle->options().is<mwcio::ConnectOptions>()
-            ? handle->options().the<mwcio::ConnectOptions>().endpoint()
+        handle->options().is<bmqio::ConnectOptions>()
+            ? handle->options().the<bmqio::ConnectOptions>().endpoint()
             : channel->peerUri();
 
     int localPort;
@@ -317,7 +316,7 @@ TCPSessionFactory::channelStatContextCreator(
 }
 
 void TCPSessionFactory::negotiate(
-    const bsl::shared_ptr<mwcio::Channel>&   channel,
+    const bsl::shared_ptr<bmqio::Channel>&   channel,
     const bsl::shared_ptr<OperationContext>& context)
 {
     // executed by one of the *IO* threads
@@ -352,7 +351,7 @@ void TCPSessionFactory::negotiate(
                              negotiatorContextSp));
 }
 
-void TCPSessionFactory::readCallback(const mwcio::Status& status,
+void TCPSessionFactory::readCallback(const bmqio::Status& status,
                                      int*                 numNeeded,
                                      bdlbb::Blob*         blob,
                                      ChannelInfo*         channelInfo)
@@ -360,7 +359,7 @@ void TCPSessionFactory::readCallback(const mwcio::Status& status,
     // executed by one of the *IO* threads
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
-            status.category() == mwcio::StatusCategory::e_CANCELED)) {
+            status.category() == bmqio::StatusCategory::e_CANCELED)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
         // There is nothing to do in the event of a 'e_CANCELED' event, so
         // simply return.
@@ -369,13 +368,13 @@ void TCPSessionFactory::readCallback(const mwcio::Status& status,
     }
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
-            status.category() == mwcio::StatusCategory::e_CONNECTION)) {
+            status.category() == bmqio::StatusCategory::e_CONNECTION)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
         // There is a slight difference in behavior between BTE and NTZ when
         // the peer shuts down the connection. BTE implicitly calls channel
         // close(), and vast majority of the time does not trigger a read
-        // callback with CLOSED event (translated to a mwcio e_CONNECTION event
-        // by mwcio::Channel); OTH, NTZ always trigger a CLOSED event, but
+        // callback with CLOSED event (translated to a bmqio e_CONNECTION event
+        // by bmqio::Channel); OTH, NTZ always trigger a CLOSED event, but
         // doesn't call close().  We explicitly call close() on the channel
         // here to preserve the same behavior in NTZ as BTE and prevent a
         // warning from being logged.
@@ -407,7 +406,7 @@ void TCPSessionFactory::readCallback(const mwcio::Status& status,
     bsl::vector<bdlbb::Blob> readBlobs(&lsa);
     readBlobs.reserve(32);
 
-    const int rc = mwcio::ChannelUtil::handleRead(&readBlobs, numNeeded, blob);
+    const int rc = bmqio::ChannelUtil::handleRead(&readBlobs, numNeeded, blob);
     // NOTE: The blobs in readBlobs will be created using the vector's
     //       allocator, which is LSA, but that is ok because the blobs at the
     //       end are passed as pointer (through bmqp::Event) to the
@@ -420,7 +419,7 @@ void TCPSessionFactory::readCallback(const mwcio::Status& status,
                        << ": ReadCallback unrecoverable error "
                        << "[status: " << status << ", channel: '"
                        << channelInfo->d_channel_p << "']:\n"
-                       << mwcu::BlobStartHexDumper(blob);
+                       << bmqu::BlobStartHexDumper(blob);
 
         // Nothing much we can do, close the channel
         channelInfo->d_channel_p->close();
@@ -443,7 +442,7 @@ void TCPSessionFactory::readCallback(const mwcio::Status& status,
 
         BALL_LOG_TRACE << channelInfo->d_session_sp->description()
                        << ": ReadCallback got a blob\n"
-                       << mwcu::BlobStartHexDumper(&readBlob);
+                       << bmqu::BlobStartHexDumper(&readBlob);
 
         bmqp::Event event(&readBlob, d_allocator_p);
         if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!event.isValid())) {
@@ -452,7 +451,7 @@ void TCPSessionFactory::readCallback(const mwcio::Status& status,
             BALL_LOG_ERROR << "#TCP_INVALID_PACKET "
                            << channelInfo->d_session_sp->description()
                            << ": Received an invalid packet:\n"
-                           << mwcu::BlobStartHexDumper(&readBlob);
+                           << bmqu::BlobStartHexDumper(&readBlob);
             continue;  // CONTINUE
         }
 
@@ -488,7 +487,7 @@ void TCPSessionFactory::negotiationComplete(
     int                                       statusCode,
     const bsl::string&                        errorDescription,
     const bsl::shared_ptr<Session>&           session,
-    const bsl::shared_ptr<mwcio::Channel>&    channel,
+    const bsl::shared_ptr<bmqio::Channel>&    channel,
     const bsl::shared_ptr<OperationContext>&  context,
     const bsl::shared_ptr<NegotiatorContext>& negotiatorContext)
 {
@@ -501,14 +500,14 @@ void TCPSessionFactory::negotiationComplete(
                       << "', status: " << statusCode << ", error: '"
                       << errorDescription << "']";
 
-        mwcio::Status status(mwcio::StatusCategory::e_GENERIC_ERROR,
+        bmqio::Status status(bmqio::StatusCategory::e_GENERIC_ERROR,
                              "negotiationError",
                              statusCode,
                              d_allocator_p);
         channel->close(status);
 
         bdlma::LocalSequentialAllocator<64> localAlloc(d_allocator_p);
-        mwcu::MemOutStream                  logStream(&localAlloc);
+        bmqu::MemOutStream                  logStream(&localAlloc);
         logStream << "[channel: '" << channel.get() << "]";
         logOpenSessionTime(logStream.str(), channel);
         return;  // RETURN
@@ -564,7 +563,7 @@ void TCPSessionFactory::negotiationComplete(
         info->d_missedHeartbeatCounter = d_initialMissedHeartbeatCounter;
         // See comments in 'calculateInitialMissedHbCounter'.
 
-        bsl::pair<mwcio::Channel*, ChannelInfoSp> toInsert(channel.get(),
+        bsl::pair<bmqio::Channel*, ChannelInfoSp> toInsert(channel.get(),
                                                            info);
         inserted = d_channels.insert(toInsert);
         info     = inserted.first->second;
@@ -577,8 +576,8 @@ void TCPSessionFactory::negotiationComplete(
     // Do not initiate reading from the channel.  Transport observer(s) will
     // enable the read when they are ready.
     bool result = context->d_resultCb(
-        mwcio::ChannelFactoryEvent::e_CHANNEL_UP,
-        mwcio::Status(),
+        bmqio::ChannelFactoryEvent::e_CHANNEL_UP,
+        bmqio::Status(),
         monitoredSession,
         negotiatorContext->cluster(),
         negotiatorContext->resultState(),
@@ -590,7 +589,7 @@ void TCPSessionFactory::negotiationComplete(
                              info.get()));
 
     if (!result || !d_isListening) {
-        // TODO: Revisit if still needed, following move to mwcio.
+        // TODO: Revisit if still needed, following move to bmqio.
         //
         //       If 'stopListening' have been called, 'tearDown' may or may not
         //       have been called, depending whether the 'callback' has been
@@ -659,17 +658,17 @@ void TCPSessionFactory::onSessionDestroyed(
 }
 
 void TCPSessionFactory::channelStateCallback(
-    mwcio::ChannelFactoryEvent::Enum         event,
-    const mwcio::Status&                     status,
-    const bsl::shared_ptr<mwcio::Channel>&   channel,
+    bmqio::ChannelFactoryEvent::Enum         event,
+    const bmqio::Status&                     status,
+    const bsl::shared_ptr<bmqio::Channel>&   channel,
     const bsl::shared_ptr<OperationContext>& context)
 {
     // This function (over time) will be executed by each of the IO threads.
     // This is an infrequent enough operation (compared to a 'readCb') that it
     // is fine to do this here (since we have no other ways to
     // proactively-execute code in the IO threads created by the channelPool).
-    if (mwcsys::ThreadUtil::k_SUPPORT_THREAD_NAME) {
-        mwcsys::ThreadUtil::setCurrentThreadNameOnce(d_threadName);
+    if (bmqsys::ThreadUtil::k_SUPPORT_THREAD_NAME) {
+        bmqsys::ThreadUtil::setCurrentThreadNameOnce(d_threadName);
     }
 
     BALL_LOG_TRACE << "TCPSessionFactory '" << d_config.name()
@@ -678,7 +677,7 @@ void TCPSessionFactory::channelStateCallback(
                    << "', " << d_nbActiveChannels << " active channels]";
 
     switch (event) {
-    case mwcio::ChannelFactoryEvent::e_CHANNEL_UP: {
+    case bmqio::ChannelFactoryEvent::e_CHANNEL_UP: {
         BSLS_ASSERT_SAFE(status);  // got a channel up, it must be success
         BSLS_ASSERT_SAFE(channel);
 
@@ -688,18 +687,18 @@ void TCPSessionFactory::channelStateCallback(
                            << "rejecting empty peer URI: '" << channel.get()
                            << "'";
 
-            mwcio::Status closeStatus(mwcio::StatusCategory::e_GENERIC_ERROR,
+            bmqio::Status closeStatus(bmqio::StatusCategory::e_GENERIC_ERROR,
                                       d_allocator_p);
             channel->close(closeStatus);
         }
         else {
             {  // Save begin session timestamp
                // TODO: it's possible to store this timestamp directly in one
-               // of the mwcio::Channel implementations, so we don't need a
+               // of the bmqio::Channel implementations, so we don't need a
                // mutex synchronization for them at all.
                 bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
                 d_timestampMap[channel.get()] =
-                    mwcsys::Time::highResolutionTimer();
+                    bmqsys::Time::highResolutionTimer();
             }  // close mutex lock guard // UNLOCK
 
             // Keep track of active channels, for logging purposes
@@ -710,15 +709,15 @@ void TCPSessionFactory::channelStateCallback(
                 &TCPSessionFactory::onClose,
                 this,
                 channel,
-                bdlf::PlaceHolders::_1 /* mwcio::Status */));
+                bdlf::PlaceHolders::_1 /* bmqio::Status */));
 
             negotiate(channel, context);
         }
     } break;
-    case mwcio::ChannelFactoryEvent::e_CONNECT_ATTEMPT_FAILED: {
+    case bmqio::ChannelFactoryEvent::e_CONNECT_ATTEMPT_FAILED: {
         // Nothing
     } break;
-    case mwcio::ChannelFactoryEvent::e_CONNECT_FAILED: {
+    case bmqio::ChannelFactoryEvent::e_CONNECT_FAILED: {
         // This means the session in 'listen' or 'connect' failed to
         // negotiate (maybe rejected by the remote peer..)
         context->d_resultCb(event,
@@ -726,13 +725,13 @@ void TCPSessionFactory::channelStateCallback(
                             bsl::shared_ptr<Session>(),
                             0,  // Cluster*
                             context->d_resultState_p,
-                            mwcio::Channel::ReadCallback());
+                            bmqio::Channel::ReadCallback());
     } break;
     }
 }
 
-void TCPSessionFactory::onClose(const bsl::shared_ptr<mwcio::Channel>& channel,
-                                const mwcio::Status&                   status)
+void TCPSessionFactory::onClose(const bsl::shared_ptr<bmqio::Channel>& channel,
+                                const bmqio::Status&                   status)
 {
     --d_nbActiveChannels;
 
@@ -792,7 +791,7 @@ void TCPSessionFactory::onClose(const bsl::shared_ptr<mwcio::Channel>& channel,
 
         // TearDown the session
         int isBrokerShutdown = false;
-        if (status.category() == mwcio::StatusCategory::e_SUCCESS) {
+        if (status.category() == bmqio::StatusCategory::e_SUCCESS) {
             status.properties().load(&isBrokerShutdown,
                                      k_CHANNEL_STATUS_CLOSE_REASON);
         }
@@ -805,7 +804,7 @@ void TCPSessionFactory::onHeartbeatSchedulerEvent()
 {
     // executed by the *SCHEDULER* thread
 
-    bsl::unordered_map<mwcio::Channel*, ChannelInfo*>::const_iterator it;
+    bsl::unordered_map<bmqio::Channel*, ChannelInfo*>::const_iterator it;
     for (it = d_heartbeatChannels.begin(); it != d_heartbeatChannels.end();
          ++it) {
         ChannelInfo* info = it->second;
@@ -836,7 +835,7 @@ void TCPSessionFactory::onHeartbeatSchedulerEvent()
         //    'incoming' traffic).  But this can't be done with current design
         //    as we don't have access to the lower level channel 'write'
         //    wrapper, allowing us to capture all sent out traffic; once
-        //    dmcsbte is forked into mwc, smart-heartbeat technology can be
+        //    dmcsbte is forked into bmq, smart-heartbeat technology can be
         //    embedded into it: the new channel will keep track of its own
         //    metric (in/out bytes and packets) which can be leveraged to
         //    detect if the channel is idle.
@@ -895,7 +894,7 @@ void TCPSessionFactory::disableHeartbeat(
 
 void TCPSessionFactory::logOpenSessionTime(
     const bsl::string&                     sessionDescription,
-    const bsl::shared_ptr<mwcio::Channel>& channel)
+    const bsl::shared_ptr<bmqio::Channel>& channel)
 {
     bsls::Types::Int64 begin = 0;
     {
@@ -913,10 +912,10 @@ void TCPSessionFactory::logOpenSessionTime(
         BALL_LOG_INFO_BLOCK
         {
             const bsls::Types::Int64 elapsed =
-                mwcsys::Time::highResolutionTimer() - begin;
+                bmqsys::Time::highResolutionTimer() - begin;
             BALL_LOG_OUTPUT_STREAM
                 << "Open session '" << sessionDescription
-                << "' took: " << mwcu::PrintUtil::prettyTimeInterval(elapsed)
+                << "' took: " << bmqu::PrintUtil::prettyTimeInterval(elapsed)
                 << " (" << elapsed << " nanoseconds)";
         }
     }
@@ -964,7 +963,7 @@ TCPSessionFactory::TCPSessionFactory(
 
     // Resolve the default address of this host
     bsl::string hostname;
-    ntsa::Error error = mwcio::ResolveUtil::getHostname(&hostname);
+    ntsa::Error error = bmqio::ResolveUtil::getHostname(&hostname);
     if (error.code() != ntsa::Error::e_OK) {
         BALL_LOG_ERROR << "Failed to get local hostname, error: " << error;
         BSLS_ASSERT_OPT(false && "Failed to get local host name");
@@ -972,7 +971,7 @@ TCPSessionFactory::TCPSessionFactory(
     }
 
     ntsa::Ipv4Address defaultIP;
-    error = mwcio::ResolveUtil::getIpAddress(&defaultIP, hostname);
+    error = bmqio::ResolveUtil::getIpAddress(&defaultIP, hostname);
     if (error.code() != ntsa::Error::e_OK) {
         BALL_LOG_ERROR << "Failed to get IP address of the host '" << hostname
                        << "' error: " << error;
@@ -1014,9 +1013,9 @@ int TCPSessionFactory::start(bsl::ostream& errorDescription)
 
     ntca::InterfaceConfig interfaceConfig = ntcCreateInterfaceConfig(d_config);
 
-    bslma::ManagedPtr<mwcio::NtcChannelFactory> channelFactory;
+    bslma::ManagedPtr<bmqio::NtcChannelFactory> channelFactory;
     channelFactory.load(new (*d_allocator_p)
-                            mwcio::NtcChannelFactory(interfaceConfig,
+                            bmqio::NtcChannelFactory(interfaceConfig,
                                                      d_blobBufferFactory_p,
                                                      d_allocator_p),
                         d_allocator_p);
@@ -1040,16 +1039,16 @@ int TCPSessionFactory::start(bsl::ostream& errorDescription)
                              d_tcpChannelFactory_mp.get()));
 
     bslmt::ThreadAttributes attributes =
-        mwcsys::ThreadUtil::defaultAttributes();
+        bmqsys::ThreadUtil::defaultAttributes();
     attributes.setThreadName("bmqDNSResolver");
     rc = d_resolutionContext.start(attributes);
     BSLS_ASSERT_SAFE(rc == 0);
 
     d_resolvingChannelFactory_mp.load(
-        new (*d_allocator_p) mwcio::ResolvingChannelFactory(
-            mwcio::ResolvingChannelFactoryConfig(
+        new (*d_allocator_p) bmqio::ResolvingChannelFactory(
+            bmqio::ResolvingChannelFactoryConfig(
                 d_tcpChannelFactory_mp.get(),
-                mwcex::ExecutionPolicyUtil::oneWay()
+                bmqex::ExecutionPolicyUtil::oneWay()
                     .neverBlocking()
                     .useExecutor(d_resolutionContext.executor()),
                 d_allocator_p)
@@ -1061,13 +1060,13 @@ int TCPSessionFactory::start(bsl::ostream& errorDescription)
         d_allocator_p);
 
     d_reconnectingChannelFactory_mp.load(
-        new (*d_allocator_p) mwcio::ReconnectingChannelFactory(
-            mwcio::ReconnectingChannelFactoryConfig(
+        new (*d_allocator_p) bmqio::ReconnectingChannelFactory(
+            bmqio::ReconnectingChannelFactoryConfig(
                 d_resolvingChannelFactory_mp.get(),
                 d_scheduler_p,
                 d_allocator_p)
                 .setReconnectIntervalFn(bdlf::BindUtil::bind(
-                    &mwcio::ReconnectingChannelFactoryUtil ::
+                    &bmqio::ReconnectingChannelFactoryUtil ::
                         defaultConnectIntervalFn,
                     bdlf::PlaceHolders::_1,        // interval
                     bdlf::PlaceHolders::_2,        // options
@@ -1086,12 +1085,12 @@ int TCPSessionFactory::start(bsl::ostream& errorDescription)
     }
 
     bdlb::ScopeExitAny reconnectingScopeGuard(
-        bdlf::BindUtil::bind(&mwcio::ReconnectingChannelFactory::stop,
+        bdlf::BindUtil::bind(&bmqio::ReconnectingChannelFactory::stop,
                              d_reconnectingChannelFactory_mp.get()));
 
     d_statChannelFactory_mp.load(
-        new (*d_allocator_p) mwcio::StatChannelFactory(
-            mwcio::StatChannelFactoryConfig(
+        new (*d_allocator_p) bmqio::StatChannelFactory(
+            bmqio::StatChannelFactoryConfig(
                 d_reconnectingChannelFactory_mp.get(),
                 bdlf::BindUtil::bind(
                     &TCPSessionFactory::channelStatContextCreator,
@@ -1106,7 +1105,7 @@ int TCPSessionFactory::start(bsl::ostream& errorDescription)
         BALL_LOG_INFO
             << "TCPSessionFactory '" << d_config.name()
             << "' heartbeat enabled (interval: "
-            << mwcu::PrintUtil::prettyTimeInterval(
+            << bmqu::PrintUtil::prettyTimeInterval(
                    d_config.heartbeatIntervalMs() *
                    bdlt::TimeUnitRatio::k_NANOSECONDS_PER_MILLISECOND)
             << ")";
@@ -1188,7 +1187,7 @@ void TCPSessionFactory::closeClients()
     BALL_LOG_INFO << "TCPSessionFactory '" << d_config.name() << "' closing "
                   << d_nbOpenClients << " open client(s)";
 
-    mwcio::Status status(mwcio::StatusCategory::e_SUCCESS,
+    bmqio::Status status(bmqio::StatusCategory::e_SUCCESS,
                          k_CHANNEL_STATUS_CLOSE_REASON,
                          true,
                          d_allocator_p);
@@ -1336,14 +1335,14 @@ int TCPSessionFactory::listen(int port, const ResultCallback& resultCallback)
     context->d_resultState_p = 0;
 
     bdlma::LocalSequentialAllocator<64> localAlloc(d_allocator_p);
-    mwcu::MemOutStream                  endpoint(&localAlloc);
+    bmqu::MemOutStream                  endpoint(&localAlloc);
     endpoint << ":" << port;  // Empty hostname, listen from all interfaces
-    mwcio::ListenOptions listenOptions;
+    bmqio::ListenOptions listenOptions;
     listenOptions.setEndpoint(endpoint.str());
 
     d_isListening = true;
 
-    mwcio::Status status;
+    bmqio::Status status;
     d_statChannelFactory_mp->listen(
         &status,
         &d_listeningHandle_mp,
@@ -1386,18 +1385,18 @@ int TCPSessionFactory::connect(const bslstl::StringRef& endpoint,
         context->d_negotiationUserData_sp = *negotiationUserData;
     }
 
-    mwcio::TCPEndpoint                  tcpEndpoint(endpoint);
+    bmqio::TCPEndpoint                  tcpEndpoint(endpoint);
     bdlma::LocalSequentialAllocator<64> localAlloc(d_allocator_p);
-    mwcu::MemOutStream                  endpointStream(&localAlloc);
+    bmqu::MemOutStream                  endpointStream(&localAlloc);
     endpointStream << tcpEndpoint.host() << ":" << tcpEndpoint.port();
 
-    mwcio::ConnectOptions options;
+    bmqio::ConnectOptions options;
     options.setNumAttempts(bsl::numeric_limits<int>::max())
         .setAttemptInterval(bsls::TimeInterval(k_CONNECT_INTERVAL))
         .setEndpoint(endpointStream.str())
         .setAutoReconnect(shouldAutoReconnect);
 
-    mwcio::Status status;
+    bmqio::Status status;
     d_statChannelFactory_mp->connect(
         &status,
         0,  // no handle ..
@@ -1445,11 +1444,11 @@ bool TCPSessionFactory::setNodeWriteQueueWatermarks(const Session& session)
         return false;  // RETURN
     }
 
-    mwcio::NtcChannelFactory* factory =
-        dynamic_cast<mwcio::NtcChannelFactory*>(d_tcpChannelFactory_mp.get());
+    bmqio::NtcChannelFactory* factory =
+        dynamic_cast<bmqio::NtcChannelFactory*>(d_tcpChannelFactory_mp.get());
     BSLS_ASSERT_SAFE(factory);
 
-    bsl::shared_ptr<mwcio::NtcChannel> ntcChannel;
+    bsl::shared_ptr<bmqio::NtcChannel> ntcChannel;
     int rc = factory->lookupChannel(&ntcChannel, channelId);
     if (rc != 0) {
         BALL_LOG_ERROR << "TCPSessionFactory '" << d_config.name() << "' "
@@ -1467,10 +1466,10 @@ bool TCPSessionFactory::setNodeWriteQueueWatermarks(const Session& session)
 // ACCESSORS
 bool TCPSessionFactory::isEndpointLoopback(const bslstl::StringRef& uri) const
 {
-    mwcio::TCPEndpoint endpoint(uri);
+    bmqio::TCPEndpoint endpoint(uri);
 
     return (endpoint.port() == d_config.port()) &&
-           mwcio::ChannelUtil::isLocalHost(endpoint.host());
+           bmqio::ChannelUtil::isLocalHost(endpoint.host());
 }
 
 // ------------------------------------
@@ -1483,15 +1482,15 @@ TCPSessionFactory::PortManager::PortManager(bslma::Allocator* allocator)
 {
 }
 
-bslma::ManagedPtr<mwcst::StatContext>
-TCPSessionFactory::PortManager::addChannelContext(mwcst::StatContext* parent,
+bslma::ManagedPtr<bmqst::StatContext>
+TCPSessionFactory::PortManager::addChannelContext(bmqst::StatContext* parent,
                                                   const bsl::string&  endpoint,
                                                   bsl::uint16_t       port)
 {
     bdlma::LocalSequentialAllocator<2048> localAllocator(d_allocator_p);
-    mwcst::StatContextConfiguration statConfig(endpoint, &localAllocator);
+    bmqst::StatContextConfiguration statConfig(endpoint, &localAllocator);
 
-    bslma::ManagedPtr<mwcst::StatContext> channelStatContext;
+    bslma::ManagedPtr<bmqst::StatContext> channelStatContext;
 
     PortMap::iterator portIt = d_portMap.find(port);
 
@@ -1501,10 +1500,10 @@ TCPSessionFactory::PortManager::addChannelContext(mwcst::StatContext* parent,
         ++portIt->second.d_numChannels;
     }
     else {
-        mwcst::StatContextConfiguration portConfig(
+        bmqst::StatContextConfiguration portConfig(
             static_cast<bsls::Types::Int64>(port),
             &localAllocator);
-        bsl::shared_ptr<mwcst::StatContext> portStatContext =
+        bsl::shared_ptr<bmqst::StatContext> portStatContext =
             parent->addSubcontext(
                 portConfig.storeExpiredSubcontextValues(true));
         channelStatContext = portStatContext->addSubcontext(statConfig);

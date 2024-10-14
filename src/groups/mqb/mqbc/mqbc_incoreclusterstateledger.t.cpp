@@ -39,10 +39,9 @@
 #include <mqbsi_ledger.h>
 #include <mqbu_storagekey.h>
 
-// MWC
-#include <mwcio_testchannel.h>
-#include <mwcsys_time.h>
-#include <mwcu_memoutstream.h>
+#include <bmqio_testchannel.h>
+#include <bmqsys_time.h>
+#include <bmqu_memoutstream.h>
 
 // BDE
 #include <balber_berencoder.h>
@@ -66,8 +65,8 @@
 #include <unistd.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
-#include <mwcu_tempdirectory.h>
+#include <bmqtst_testhelper.h>
+#include <bmqu_tempdirectory.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -195,7 +194,7 @@ struct Tester {
     // PUBLIC DATA
     bdlbb::PooledBlobBufferFactory                    d_bufferFactory;
     mqbc::ClusterStateLedgerConsistency::Enum         d_consistencyLevel;
-    mwcu::TempDirectory                               d_tempDir;
+    bmqu::TempDirectory                               d_tempDir;
     bsl::string                                       d_location;
     bslma::ManagedPtr<mqbmock::Cluster>               d_cluster_mp;
     bslma::ManagedPtr<mqbc::IncoreClusterStateLedger> d_clusterStateLedger_mp;
@@ -487,7 +486,7 @@ static void test1_breathingTest()
 //   Basic functionality.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("INCORE CLUSTER STATE LEDGER"
+    bmqtst::TestHelper::printTestName("INCORE CLUSTER STATE LEDGER"
                                       " - BREATHING TEST");
 
     Tester                          tester;
@@ -514,7 +513,7 @@ static void test2_apply_PartitionPrimaryAdvisory()
 //   int apply(const bmqp_ctrlmsg::PartitionPrimaryAdvisory& advisory);
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("APPLY - PARTITION PRIMARY ADVISORY");
+    bmqtst::TestHelper::printTestName("APPLY - PARTITION PRIMARY ADVISORY");
 
     Tester                          tester;
     mqbc::IncoreClusterStateLedger* obj = tester.d_clusterStateLedger_mp.get();
@@ -560,7 +559,7 @@ static void test3_apply_QueueAssignmentAdvisory()
 //   int apply(const bmqp_ctrlmsg::QueueAssignmentAdvisory& advisory);
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("APPLY - QUEUE ASSIGNMENT ADVISORY");
+    bmqtst::TestHelper::printTestName("APPLY - QUEUE ASSIGNMENT ADVISORY");
 
     Tester                          tester;
     mqbc::IncoreClusterStateLedger* obj = tester.d_clusterStateLedger_mp.get();
@@ -609,7 +608,7 @@ static void test4_apply_QueueUnassignedAdvisory()
 //   int apply(const bmqp_ctrlmsg::QueueUnassignedAdvisory& advisory);
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("APPLY - QUEUE UNASSIGNED ADVISORY");
+    bmqtst::TestHelper::printTestName("APPLY - QUEUE UNASSIGNED ADVISORY");
 
     Tester                          tester;
     mqbc::IncoreClusterStateLedger* obj = tester.d_clusterStateLedger_mp.get();
@@ -654,7 +653,7 @@ static void test5_apply_QueueUpdateAdvisory()
 //   int apply(const bmqp_ctrlmsg::QueueUpdateAdvisory& advisory);
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("APPLY - QUEUE UPDATE ADVISORY");
+    bmqtst::TestHelper::printTestName("APPLY - QUEUE UPDATE ADVISORY");
 
     Tester                          tester;
     mqbc::IncoreClusterStateLedger* obj = tester.d_clusterStateLedger_mp.get();
@@ -716,7 +715,7 @@ static void test6_apply_LeaderAdvisory()
 //   int apply(const bmqp_ctrlmsg::LeaderAdvisory& advisory);
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("APPLY - LEADER ADVISORY");
+    bmqtst::TestHelper::printTestName("APPLY - LEADER ADVISORY");
 
     Tester                          tester;
     mqbc::IncoreClusterStateLedger* obj = tester.d_clusterStateLedger_mp.get();
@@ -770,7 +769,7 @@ static void test7_apply_ClusterStateRecord()
 //                                         // 'e_SNAPSHOT' or 'e_UPDATE'
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("APPLY - CLUSTER STATE RECORD");
+    bmqtst::TestHelper::printTestName("APPLY - CLUSTER STATE RECORD");
 
     Tester                          tester(false);  // isLeader
     mqbc::IncoreClusterStateLedger* obj = tester.d_clusterStateLedger_mp.get();
@@ -886,7 +885,7 @@ static void test8_apply_ClusterStateRecordAck()
 //   int apply(const bdlbb::Blob& record)  // for 'record' of type 'e_ACK'
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("APPLY - CLUSTER STATE RECORD ACK");
+    bmqtst::TestHelper::printTestName("APPLY - CLUSTER STATE RECORD ACK");
 
     Tester                          tester;
     mqbc::IncoreClusterStateLedger* obj = tester.d_clusterStateLedger_mp.get();
@@ -952,7 +951,7 @@ static void test9_apply_ClusterStateRecordCommit()
 //                                         // 'e_COMMIT'
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("APPLY - CLUSTER STATE RECORD COMMIT");
+    bmqtst::TestHelper::printTestName("APPLY - CLUSTER STATE RECORD COMMIT");
 
     Tester                          tester(false);  // isLeader
     mqbc::IncoreClusterStateLedger* obj = tester.d_clusterStateLedger_mp.get();
@@ -1049,7 +1048,7 @@ static void test10_persistanceLeader()
 //    Persistence of the logs at the leader node.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("PERSISTENCE LEADER");
+    bmqtst::TestHelper::printTestName("PERSISTENCE LEADER");
 
     Tester                          tester;
     mqbc::IncoreClusterStateLedger* obj = tester.d_clusterStateLedger_mp.get();
@@ -1276,7 +1275,7 @@ static void test11_persistanceFollower()
 //    Persistence of the logs at the follower node.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("PERSISTENCE FOLLOWER");
+    bmqtst::TestHelper::printTestName("PERSISTENCE FOLLOWER");
 
     Tester                          tester(false);  // isLeader
     mqbc::IncoreClusterStateLedger* obj = tester.d_clusterStateLedger_mp.get();
@@ -1570,7 +1569,7 @@ static void test12_persistanceAcrossRollover()
 //    Rollover and persistence.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("PERSISTENCE ACROSS ROLLOVER");
+    bmqtst::TestHelper::printTestName("PERSISTENCE ACROSS ROLLOVER");
 
     Tester                          tester;
     mqbc::IncoreClusterStateLedger* obj = tester.d_clusterStateLedger_mp.get();
@@ -1582,7 +1581,7 @@ static void test12_persistanceAcrossRollover()
     // Build 'QueueAssignmentAdvisory'
     bmqp_ctrlmsg::QueueAssignmentAdvisory qadvisory;
     for (size_t i = 0; i < 50; ++i) {
-        mwcu::MemOutStream uriStream(s_allocator_p);
+        bmqu::MemOutStream uriStream(s_allocator_p);
         uriStream << "bmq://bmq.test.mmap.priority/q" << i;
 
         bmqp_ctrlmsg::QueueInfo qinfo;
@@ -1821,7 +1820,7 @@ static void test13_rolloverUncommittedAdvisories()
 //    Rollover uncommitted advisories.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("ROLLOVER UNCOMMITTED ADVISORIES");
+    bmqtst::TestHelper::printTestName("ROLLOVER UNCOMMITTED ADVISORIES");
 
     Tester                          tester(false);  // Leader
     mqbc::IncoreClusterStateLedger* obj = tester.d_clusterStateLedger_mp.get();
@@ -1968,7 +1967,7 @@ static void test13_rolloverUncommittedAdvisories()
     bmqp_ctrlmsg::QueueAssignmentAdvisory& qAssignAdvisory =
         qAssignAdvisoryMsg.choice().makeQueueAssignmentAdvisory();
     for (size_t i = 0; i < 50; ++i) {
-        mwcu::MemOutStream uriStream(s_allocator_p);
+        bmqu::MemOutStream uriStream(s_allocator_p);
         uriStream << "bmq://bmq.test.mmap.priority/q" << i;
 
         bmqp_ctrlmsg::QueueInfo queueInfo;
@@ -2126,9 +2125,9 @@ static void test13_rolloverUncommittedAdvisories()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
-    mwcsys::Time::initialize(s_allocator_p);
+    bmqsys::Time::initialize(s_allocator_p);
     bmqp::ProtocolUtil::initialize(s_allocator_p);
     bmqp::Crc32c::initialize();
     bmqt::UriParser::initialize(s_allocator_p);
@@ -2156,9 +2155,9 @@ int main(int argc, char* argv[])
 
     bmqt::UriParser::shutdown();
     bmqp::ProtocolUtil::shutdown();
-    mwcsys::Time::shutdown();
+    bmqsys::Time::shutdown();
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_GBL_ALLOC);
-    // The tester object makes use of 'mwcu::TempDirectory', which
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
+    // The tester object makes use of 'bmqu::TempDirectory', which
     // allocates a temporary string using the default allocator.
 }

@@ -23,10 +23,9 @@
 #include <bmqp_optionutil.h>
 #include <bmqp_protocolutil.h>
 
-// MWC
-#include <mwcu_blob.h>
-#include <mwcu_blobobjectproxy.h>
-#include <mwcu_memoutstream.h>
+#include <bmqu_blob.h>
+#include <bmqu_blobobjectproxy.h>
+#include <bmqu_memoutstream.h>
 
 // BDE
 #include <bdlb_scopeexit.h>
@@ -90,9 +89,9 @@ PutEventBuilder::packMessageInternal(const bdlbb::Blob& appData, int queueId)
     }
 
     // Add the PutHeader
-    mwcu::BlobPosition offset;
-    mwcu::BlobUtil::reserve(&offset, &d_blob, sizeof(PutHeader));
-    mwcu::BlobObjectProxy<PutHeader> putHeader(&d_blob,
+    bmqu::BlobPosition offset;
+    bmqu::BlobUtil::reserve(&offset, &d_blob, sizeof(PutHeader));
+    bmqu::BlobObjectProxy<PutHeader> putHeader(&d_blob,
                                                offset,
                                                false,  // no read
                                                true);  // write mode
@@ -262,7 +261,7 @@ PutEventBuilder::packMessageInOldStyle(int queueId)
         d_compressionAlgorithmType != bmqt::CompressionAlgorithmType::e_NONE) {
         bdlbb::Blob        compressedApplicationData(d_bufferFactory_p,
                                               d_allocator_p);
-        mwcu::MemOutStream error(d_allocator_p);
+        bmqu::MemOutStream error(d_allocator_p);
 
         int rc = Compression::compress(&compressedApplicationData,
                                        d_bufferFactory_p,
@@ -355,7 +354,7 @@ bmqt::EventBuilderResult::Enum PutEventBuilder::packMessage(int queueId)
     if (payloadBlob->length() >= Protocol::k_COMPRESSION_MIN_APPDATA_SIZE &&
         d_compressionAlgorithmType != bmqt::CompressionAlgorithmType::e_NONE) {
         bdlbb::Blob compressedPayloadBlob(d_bufferFactory_p, d_allocator_p);
-        mwcu::MemOutStream error(d_allocator_p);
+        bmqu::MemOutStream error(d_allocator_p);
 
         int rc = Compression::compress(&compressedPayloadBlob,
                                        d_bufferFactory_p,

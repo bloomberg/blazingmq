@@ -30,11 +30,10 @@
 #include <bmqp_queueutil.h>
 #include <bmqp_routingconfigurationutils.h>
 
-// MWC
-#include <mwctsk_alarmlog.h>
-#include <mwcu_memoutstream.h>
-#include <mwcu_outstreamformatsaver.h>
-#include <mwcu_printutil.h>
+#include <bmqtsk_alarmlog.h>
+#include <bmqu_memoutstream.h>
+#include <bmqu_outstreamformatsaver.h>
+#include <bmqu_printutil.h>
 
 // BDE
 #include <baljsn_encoder.h>
@@ -399,8 +398,8 @@ Domain::Domain(const bsl::string&                     name,
                mqbi::Dispatcher*                      dispatcher,
                bdlbb::BlobBufferFactory*              blobBufferFactory,
                const bsl::shared_ptr<mqbi::Cluster>&  cluster,
-               mwcst::StatContext*                    domainsStatContext,
-               bslma::ManagedPtr<mwcst::StatContext>& queuesStatContext,
+               bmqst::StatContext*                    domainsStatContext,
+               bslma::ManagedPtr<bmqst::StatContext>& queuesStatContext,
                bslma::Allocator*                      allocator)
 : d_allocator_p(allocator)
 , d_state(e_STOPPED)
@@ -454,10 +453,10 @@ int Domain::configure(bsl::ostream&           errorDescription,
     // Certain invalid values might need to be updated in the configuration.
     mqbconfm::Domain finalConfig(config);
     {
-        mwcu::MemOutStream err;
+        bmqu::MemOutStream err;
         if (normalizeConfig(&finalConfig, err, *this)) {
-            MWCTSK_ALARMLOG_ALARM("DOMAIN")
-                << err.str() << MWCTSK_ALARMLOG_END;
+            BMQTSK_ALARMLOG_ALARM("DOMAIN")
+                << err.str() << BMQTSK_ALARMLOG_END;
         }
     }
 
@@ -703,7 +702,7 @@ int Domain::registerQueue(bsl::ostream&                       errorDescription,
         d_queues[queueSp->uri().queue()] = queueSp;
     }
     bdlma::LocalSequentialAllocator<1024> localAllocator(d_allocator_p);
-    mwcu::MemOutStream                    error(&localAllocator);
+    bmqu::MemOutStream                    error(&localAllocator);
 
     int rc = queueSp->configure(error,
                                 false,  // isReconfigure
@@ -838,7 +837,7 @@ int Domain::processCommand(mqbcmd::DomainResult*        result,
             baljsn::Encoder                       encoder;
             bdlma::LocalSequentialAllocator<1024> localAllocator(
                 d_allocator_p);
-            mwcu::MemOutStream out(&localAllocator);
+            bmqu::MemOutStream out(&localAllocator);
 
             baljsn::EncoderOptions options;
             options.setEncodingStyle(baljsn::EncoderOptions::e_PRETTY);
@@ -895,7 +894,7 @@ int Domain::processCommand(mqbcmd::DomainResult*        result,
         int         rc = uriBuilder.uri(&uri, &uriError);
 
         if (rc != 0) {
-            mwcu::MemOutStream os;
+            bmqu::MemOutStream os;
             os << "Unable to build queue uri with error '" << uriError << "'";
             result->makeError().message() = os.str();
             return -1;  // RETURN
@@ -942,7 +941,7 @@ int Domain::processCommand(mqbcmd::DomainResult*        result,
         rc = lookupQueue(&queue, uri);
 
         if (rc != 0) {
-            mwcu::MemOutStream os;
+            bmqu::MemOutStream os;
             os << "Queue '" << command.queue().name() << "'"
                << " was not found on domain '" << name() << "'";
             result->makeError().message() = os.str();
@@ -961,7 +960,7 @@ int Domain::processCommand(mqbcmd::DomainResult*        result,
     }
 
     bdlma::LocalSequentialAllocator<256> localAllocator(d_allocator_p);
-    mwcu::MemOutStream                   os(&localAllocator);
+    bmqu::MemOutStream                   os(&localAllocator);
     os << "Unknown command '" << command << "'";
     result->makeError().message() = os.str();
     return -1;

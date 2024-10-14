@@ -70,9 +70,8 @@
 #include <mqbnet_tcpsessionfactory.h>
 #include <mqbstat_statcontroller.h>
 
-// MWC
-#include <mwcio_channel.h>
-#include <mwcio_channelfactory.h>
+#include <bmqio_channel.h>
+#include <bmqio_channelfactory.h>
 
 // BDE
 #include <ball_log.h>
@@ -242,7 +241,7 @@ class TransportManager {
     bool processSession(Cluster*                            cluster,
                         ConnectionState*                    state,
                         const bsl::shared_ptr<Session>&     session,
-                        const mwcio::Channel::ReadCallback& readCb);
+                        const bmqio::Channel::ReadCallback& readCb);
 
     /// Signature of the callback method for a `connect` or `listen` call
     /// (as indicated by the specified `isListen` flags) where the specified
@@ -258,12 +257,12 @@ class TransportManager {
     /// the negotiation has not specified cluster name (as in the case of
     /// Client connection), the `cluster` is 0.  Return `true` upon
     /// successful registration / read enabling; `false` otherwise.
-    bool sessionResult(mwcio::ChannelFactoryEvent::Enum    event,
-                       const mwcio::Status&                status,
+    bool sessionResult(bmqio::ChannelFactoryEvent::Enum    event,
+                       const bmqio::Status&                status,
                        const bsl::shared_ptr<Session>&     session,
                        Cluster*                            cluster,
                        void*                               resultState,
-                       const mwcio::Channel::ReadCallback& readCb,
+                       const bmqio::Channel::ReadCallback& readCb,
                        bool                                isListen);
 
     int connect(ConnectionState* state);
@@ -282,7 +281,7 @@ class TransportManager {
     /// to this channel.  Note that we do not bind the channel but rather
     /// the `channelDescription` because we have a hierarchy of channel
     /// (`TCP < Resolving < Stat`); and when the close is invoked, it comes
-    /// from the lower channel (`mwcio::TCPChannel`) while the higher
+    /// from the lower channel (`bmqio::TCPChannel`) while the higher
     /// channel (which is the one that would have been bindable at the time
     /// of the `onClose` slot registration) has already been destroyed.
     virtual void onClose(const bsl::string& channelDescription,

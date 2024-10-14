@@ -27,11 +27,10 @@
 #include <mqbnet_session.h>
 #include <mqbnet_tcpsessionfactory.h>
 
-// MWC
-#include <mwcio_status.h>
-#include <mwcsys_time.h>
-#include <mwcu_printutil.h>
-#include <mwcu_stringutil.h>
+#include <bmqio_status.h>
+#include <bmqsys_time.h>
+#include <bmqu_printutil.h>
+#include <bmqu_stringutil.h>
 
 // BDE
 #include <bdlf_bind.h>
@@ -53,7 +52,7 @@ namespace mqbnet {
 
 namespace {
 
-bsl::ostream& operator<<(bsl::ostream& os, const mwcio::Channel* channel)
+bsl::ostream& operator<<(bsl::ostream& os, const bmqio::Channel* channel)
 {
     // 'pretty-print' the specified 'channel' to the specified 'os'.  The
     // printed channel from that function includes the address of the channel
@@ -129,7 +128,7 @@ bool TransportManager::processSession(
     Cluster*                            cluster,
     ConnectionState*                    state,
     const bsl::shared_ptr<Session>&     session,
-    const mwcio::Channel::ReadCallback& readCb)
+    const bmqio::Channel::ReadCallback& readCb)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(session);
@@ -164,14 +163,14 @@ bool TransportManager::processSession(
                 d_tcpSessionFactory_mp->setNodeWriteQueueWatermarks(*session);
 
                 // Notify the node it now has a channel
-                bsl::weak_ptr<mwcio::Channel> channel(session->channel());
+                bsl::weak_ptr<bmqio::Channel> channel(session->channel());
                 state->d_node_p->setChannel(channel, peerIdentity, readCb);
             }
         }
 
         // Add self as observer of the channel (so that we can monitor when it
         // goes down, and eventually initiate a reconnection).
-        mwcu::MemOutStream channelDescription;
+        bmqu::MemOutStream channelDescription;
         channelDescription << session->channel().get();
 
         session->channel()->onClose(
@@ -201,7 +200,7 @@ bool TransportManager::processSession(
                       << session->channel().get() << "']";
     }
 
-    mwcio::Status readStatus;
+    bmqio::Status readStatus;
     session->channel()->read(&readStatus,
                              bmqp::Protocol::k_PACKET_MIN_SIZE,
                              readCb);
@@ -218,12 +217,12 @@ bool TransportManager::processSession(
 }
 
 bool TransportManager::sessionResult(
-    mwcio::ChannelFactoryEvent::Enum    event,
-    const mwcio::Status&                status,
+    bmqio::ChannelFactoryEvent::Enum    event,
+    const bmqio::Status&                status,
     const bsl::shared_ptr<Session>&     session,
     Cluster*                            cluster,
     void*                               resultState,
-    const mwcio::Channel::ReadCallback& readCb,
+    const bmqio::Channel::ReadCallback& readCb,
     bool                                isListen)
 {
     // executed by one of the *IO* threads
@@ -236,13 +235,13 @@ bool TransportManager::sessionResult(
     bool result = false;
 
     switch (event) {
-    case mwcio::ChannelFactoryEvent::e_CHANNEL_UP: {
+    case bmqio::ChannelFactoryEvent::e_CHANNEL_UP: {
         result = processSession(cluster, state, session, readCb);
     } break;
-    case mwcio::ChannelFactoryEvent::e_CONNECT_ATTEMPT_FAILED: {
+    case bmqio::ChannelFactoryEvent::e_CONNECT_ATTEMPT_FAILED: {
         // Nothing to do, it will keep retrying automatically
     } break;
-    case mwcio::ChannelFactoryEvent::e_CONNECT_FAILED: {
+    case bmqio::ChannelFactoryEvent::e_CONNECT_FAILED: {
         if (isListen) {
             BALL_LOG_INFO << "Accept failed: " << status;
             return result;  // RETURN
@@ -511,7 +510,7 @@ int TransportManager::createCluster(
                                << "' (selfNodeId: " << myNodeId
                                << "), using mode " << connectionMode
                                << " and config: ";
-        mwcu::Printer<bsl::vector<mqbcfg::ClusterNode> > printer(&nodes);
+        bmqu::Printer<bsl::vector<mqbcfg::ClusterNode> > printer(&nodes);
         BALL_LOG_OUTPUT_STREAM << printer;
     }
 
@@ -631,7 +630,7 @@ int TransportManager::connectOut(bsl::ostream&            errorDescription,
 
     // Validation: At the moment, the only supported protocol is TCP.
     // If/once/when we'll support more, we should use a factory method.
-    if (!mwcu::StringUtil::startsWith(uri, "tcp://")) {
+    if (!bmqu::StringUtil::startsWith(uri, "tcp://")) {
         errorDescription << "Unsupported transport protocol '" << uri << "'";
         return rc_INVALID_PROTOCOL;  // RETURN
     }
@@ -707,7 +706,7 @@ void* TransportManager::getClusterNodeAndState(
 
 bool TransportManager::isEndpointLoopback(const bslstl::StringRef& uri) const
 {
-    if (mwcu::StringUtil::startsWith(uri, "tcp://")) {
+    if (bmqu::StringUtil::startsWith(uri, "tcp://")) {
         // NOTE: If we ever will listen to multiple TCP interfaces, we should
         //       update here and return true if *any* one returns true.
         return d_tcpSessionFactory_mp &&

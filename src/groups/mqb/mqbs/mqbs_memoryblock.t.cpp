@@ -20,7 +20,7 @@
 #include <bsls_types.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -39,7 +39,7 @@ static void test1_breathingTest()
 //   'mqbs::MemoryBlock'.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("Breathing Test");
+    bmqtst::TestHelper::printTestName("Breathing Test");
 
     {
         PV("DefaultContructor");
@@ -72,7 +72,7 @@ static void test2_operations()
 //   attributes.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("size operations");
+    bmqtst::TestHelper::printTestName("size operations");
 
     char                      base    = 1;
     char                      newBase = 2;
@@ -103,7 +103,7 @@ static void test3_reset()
 //   'mqbs::MemoryBlock'.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("reset operation");
+    bmqtst::TestHelper::printTestName("reset operation");
 
     mqbs::MemoryBlock obj;
     ASSERT_EQ(obj.base(), static_cast<const char*>(0U));
@@ -125,7 +125,7 @@ static void test3_reset()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     switch (_testCase) {
     case 0:
@@ -138,5 +138,5 @@ int main(int argc, char* argv[])
     } break;
     }
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }

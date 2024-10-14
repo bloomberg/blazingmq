@@ -35,10 +35,9 @@
 #include <bmqp_ctrlmsg_messages.h>
 #include <bmqp_protocolutil.h>
 
-// MWC
-#include <mwcsys_time.h>
-#include <mwcu_memoutstream.h>
-#include <mwcu_tempdirectory.h>
+#include <bmqsys_time.h>
+#include <bmqu_memoutstream.h>
+#include <bmqu_tempdirectory.h>
 
 // BDE
 #include <bdlbb_pooledblobbufferfactory.h>
@@ -50,7 +49,7 @@
 #include <bsls_types.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -88,7 +87,7 @@ struct Tester {
   public:
     // PUBLIC DATA
     bdlbb::PooledBlobBufferFactory               d_bufferFactory;
-    mwcu::TempDirectory                          d_tempDir;
+    bmqu::TempDirectory                          d_tempDir;
     bslma::ManagedPtr<mqbmock::Cluster>          d_cluster_mp;
     mqbmock::ClusterStateLedger*                 d_clusterStateLedger_p;
     bslma::ManagedPtr<mqbc::ClusterStateManager> d_clusterStateManager_mp;
@@ -150,7 +149,7 @@ struct Tester {
         d_cluster_mp->_clusterData()->stats().setIsMember(true);
         BSLS_ASSERT_OPT(d_cluster_mp->_channels().size() > 0);
 
-        mwcsys::Time::initialize(
+        bmqsys::Time::initialize(
             &bsls::SystemTime::nowRealtimeClock,
             bdlf::BindUtil::bind(&Tester::nowMonotonicClock, this),
             bdlf::BindUtil::bind(&Tester::highResolutionTimer, this),
@@ -179,7 +178,7 @@ struct Tester {
         d_clusterStateManager_mp->setStorageManager(&d_storageManager);
 
         // Start the cluster and the cluster state manager
-        mwcu::MemOutStream errorDescription;
+        bmqu::MemOutStream errorDescription;
         int                rc = d_cluster_mp->start(errorDescription);
         BSLS_ASSERT_OPT(rc == 0);
         rc = d_clusterStateManager_mp->start(errorDescription);
@@ -198,7 +197,7 @@ struct Tester {
         d_clusterStateManager_mp->stop();
         d_cluster_mp->stop();
 
-        mwcsys::Time::shutdown();
+        bmqsys::Time::shutdown();
     }
 
     // MANIPULATORS
@@ -562,7 +561,7 @@ static void test1_breathingTestLeader()
 //   Basic functionality as new leader
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("CLUSTER STATE MANAGER - "
+    bmqtst::TestHelper::printTestName("CLUSTER STATE MANAGER - "
                                       "BREATHING TEST LEADER");
 
     Tester tester(true);  // isLeader
@@ -605,7 +604,7 @@ static void test2_breathingTestFollower()
 //   Basic functionality as new follower
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("CLUSTER STATE MANAGER - "
+    bmqtst::TestHelper::printTestName("CLUSTER STATE MANAGER - "
                                       "BREATHING TEST FOLLOWER");
 
     Tester tester(false);  // isLeader
@@ -639,7 +638,7 @@ static void test3_invalidMessagesUnknownState()
 //   Invalid message handling when in Unknown state
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("CLUSTER STATE MANAGER - "
+    bmqtst::TestHelper::printTestName("CLUSTER STATE MANAGER - "
                                       "INVALID MESSAGES UNKNOWN STATE");
 
     Tester tester(false);  // isLeader
@@ -679,7 +678,7 @@ static void test4_invalidMessagesLeader()
 //   Invalid message handling when in any leader state
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("CLUSTER STATE MANAGER - "
+    bmqtst::TestHelper::printTestName("CLUSTER STATE MANAGER - "
                                       "INVALID MESSAGES LEADER");
 
     Tester tester(true);  // isLeader
@@ -761,7 +760,7 @@ static void test5_followerLSNRequestHandlingFollower()
 //   Follower response to follower LSN request
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "CLUSTER STATE MANAGER - "
         "FOLLOWER LSN REQUEST HANDLING FOLLOWER");
 
@@ -813,7 +812,7 @@ static void test6_registrationRequestHandlingLeader()
 //   Leader response to registration request
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("CLUSTER STATE MANAGER - "
+    bmqtst::TestHelper::printTestName("CLUSTER STATE MANAGER - "
                                       "REGISTRATION REQUEST HANDLING LEADER");
 
     Tester tester(true);  // isLeader
@@ -872,7 +871,7 @@ static void test7_followerLSNResponseQuorum()
 //   Leader transition upon follower LSN response quorum
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("CLUSTER STATE MANAGER - "
+    bmqtst::TestHelper::printTestName("CLUSTER STATE MANAGER - "
                                       "FOLLOWER LSN RESPONSE QUORUM");
 
     Tester tester(true);  // isLeader
@@ -945,7 +944,7 @@ static void test8_registrationRequestQuorum()
 //   Leader transition upon registration request quorum
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("CLUSTER STATE MANAGER - "
+    bmqtst::TestHelper::printTestName("CLUSTER STATE MANAGER - "
                                       "REGISTRATION REQUEST QUORUM");
 
     Tester tester(true);  // isLeader
@@ -1022,7 +1021,7 @@ static void test9_followerLSNNoQuorum()
 //   Leader transition upon follower LSN no quorum
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("CLUSTER STATE MANAGER - "
+    bmqtst::TestHelper::printTestName("CLUSTER STATE MANAGER - "
                                       "FOLLOWER LSN NO QUORUM");
 
     Tester tester(true);  // isLeader
@@ -1093,7 +1092,7 @@ static void test10_followerClusterStateRequestHandlingFollower()
 //   Follower response to follower cluster state request
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "CLUSTER STATE MANAGER - "
         "FOLLOWER CLUSTER STATE REQUEST HANDLING FOLLOWER");
 
@@ -1150,7 +1149,7 @@ static void test11_leaderHighestLeaderHealed()
 //   Leader transition to healed upon successful CSL commit callback
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("CLUSTER STATE MANAGER - "
+    bmqtst::TestHelper::printTestName("CLUSTER STATE MANAGER - "
                                       "LEADER HIGHEST LEADER HEALED");
 
     Tester tester(true);  // isLeader
@@ -1243,7 +1242,7 @@ static void test12_followerHighestLeaderHealed()
 //   successful CSL commit callback
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("CLUSTER STATE MANAGER - "
+    bmqtst::TestHelper::printTestName("CLUSTER STATE MANAGER - "
                                       "FOLLOWER HIGHEST LEADER HEALED");
 
     Tester tester(true);  // isLeader
@@ -1365,7 +1364,7 @@ static void test13_followerHealed()
 //   Follower transition to healed upon successful CSL commit callback
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("CLUSTER STATE MANAGER - "
+    bmqtst::TestHelper::printTestName("CLUSTER STATE MANAGER - "
                                       "FOLLOWER HEALED");
 
     Tester tester(false);  // isLeader
@@ -1406,7 +1405,7 @@ static void test14_leaderCSLCommitFailure()
 //   Leader upon CSL commit callback failure
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("CLUSTER STATE MANAGER - "
+    bmqtst::TestHelper::printTestName("CLUSTER STATE MANAGER - "
                                       "LEADER CSL COMMIT FAILURE");
 
     Tester tester(true);  // isLeader
@@ -1474,7 +1473,7 @@ static void test15_followerCSLCommitFailure()
 //   Follower upon CSL commit callback failure
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("CLUSTER STATE MANAGER - "
+    bmqtst::TestHelper::printTestName("CLUSTER STATE MANAGER - "
                                       "FOLLOWER CSL COMMIT FAILURE");
 
     Tester tester(false);  // isLeader
@@ -1517,7 +1516,7 @@ static void test16_followerClusterStateRespFailureLeaderNext()
 //   healed upon successful CSL commit callback
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "CLUSTER STATE MANAGER - "
         "FOLLOWER CLUSTER STATE RESP FAILURE LEADER NEXT");
 
@@ -1636,7 +1635,7 @@ static void test17_followerClusterStateRespFailureFollowerNext()
 //   callback
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "CLUSTER STATE MANAGER - "
         "FOLLOWER CLUSTER STATE RESP FAILURE FOLLOWER NEXT");
 
@@ -1783,7 +1782,7 @@ static void test18_followerClusterStateRespFailureLostQuorum()
 //   After losing quorum, leader transition back to healing stage 1
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "CLUSTER STATE MANAGER - "
         "FOLLOWER CLUSTER STATE RESP FAILURE LOST QUORUM");
 
@@ -1883,7 +1882,7 @@ static void test19_stopNode()
 //   Self transition to STOPPING state
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("CLUSTER STATE MANAGER - STOP NODE");
+    bmqtst::TestHelper::printTestName("CLUSTER STATE MANAGER - STOP NODE");
 
     // 1.) Stopping from Unknown state
     Tester tester1(true);  // isLeader
@@ -2030,7 +2029,7 @@ static void test20_resetUnknownLeader()
 //   Upon RST_UNKNOWN event, the leader goes back to UNKNOWN state
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("CLUSTER STATE MANAGER - "
+    bmqtst::TestHelper::printTestName("CLUSTER STATE MANAGER - "
                                       "RESET UNKNOWN LEADER");
 
     Tester tester(true);  // isLeader
@@ -2159,7 +2158,7 @@ static void test21_resetUnknownFollower()
 // ------------------------------------------------------------------------
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("CLUSTER STATE MANAGER - "
+    bmqtst::TestHelper::printTestName("CLUSTER STATE MANAGER - "
                                       "RESET UNKNOWN FOLLOWER");
 
     Tester tester(false);  // isLeader
@@ -2219,7 +2218,7 @@ static void test22_selectFollowerFromLeader()
 // ------------------------------------------------------------------------
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("CLUSTER STATE MANAGER - "
+    bmqtst::TestHelper::printTestName("CLUSTER STATE MANAGER - "
                                       "SELECT FOLLOWER FROM LEADER");
 
     bmqp_ctrlmsg::LeaderMessageSequence selfLSN;
@@ -2355,7 +2354,7 @@ static void test23_selectLeaderFromFollower()
 // ------------------------------------------------------------------------
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("CLUSTER STATE MANAGER - "
+    bmqtst::TestHelper::printTestName("CLUSTER STATE MANAGER - "
                                       "SELECT LEADER FROM FOLLOWER");
 
     bmqp_ctrlmsg::LeaderMessageSequence selfLSN;
@@ -2429,7 +2428,7 @@ static void test24_watchDogLeader()
 // ------------------------------------------------------------------------
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("CLUSTER STATE MANAGER - "
+    bmqtst::TestHelper::printTestName("CLUSTER STATE MANAGER - "
                                       "WATCH DOG LEADER");
 
     Tester tester(true);  // isLeader
@@ -2535,7 +2534,7 @@ static void test25_watchDogFollower()
 // ------------------------------------------------------------------------
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("CLUSTER STATE MANAGER - "
+    bmqtst::TestHelper::printTestName("CLUSTER STATE MANAGER - "
                                       "WATCH DOG FOLLOWER");
 
     Tester tester(false);  // isLeader
@@ -2590,7 +2589,7 @@ static void test25_watchDogFollower()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     bmqp::ProtocolUtil::initialize(s_allocator_p);
     bmqp::Crc32c::initialize();
@@ -2630,7 +2629,7 @@ int main(int argc, char* argv[])
 
     bmqp::ProtocolUtil::shutdown();
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
     // Can't ensure no default memory is allocated because
     // 'bdlmt::EventSchedulerTestTimeSource' inside 'mqbmock::Cluster' uses
     // the default allocator in its constructor.

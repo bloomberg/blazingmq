@@ -17,10 +17,9 @@
 #include <bmqt_queueflags.h>
 
 // BMQ
-#include <mwcu_memoutstream.h>
+#include <bmqu_memoutstream.h>
 
-// MWC
-#include <mwcu_memoutstream.h>
+#include <bmqu_memoutstream.h>
 
 // BDE
 #include <bsl_ios.h>
@@ -29,7 +28,7 @@
 #include <bsls_types.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -59,9 +58,9 @@ BSLMF_ASSERT(k_ALL_FLAGS_SETTED < 1 << 10);
 
 static void test1_breathingTest()
 {
-    mwctst::TestHelper::printTestName("BREATHING TEST");
+    bmqtst::TestHelper::printTestName("BREATHING TEST");
 
-    mwcu::MemOutStream  errorOs(s_allocator_p);
+    bmqu::MemOutStream  errorOs(s_allocator_p);
     int                 rc;
     bsls::Types::Uint64 flags1 = 0;
     bsls::Types::Uint64 flags2 = 0;
@@ -85,7 +84,7 @@ static void test1_breathingTest()
     errorOs.reset();
 
     PV("Testing prettyPrint");
-    mwcu::MemOutStream osPrint(s_allocator_p);
+    bmqu::MemOutStream osPrint(s_allocator_p);
     bmqt::QueueFlagsUtil::prettyPrint(osPrint, flags2);
     ASSERT_EQ(osPrint.str(), "");
 
@@ -112,7 +111,7 @@ static void test1_breathingTest()
 
 static void test2_additionsRemovals()
 {
-    mwctst::TestHelper::printTestName("ADDITIONS / REMOVALS");
+    bmqtst::TestHelper::printTestName("ADDITIONS / REMOVALS");
 
     // Short alias
     const int k_ADMIN = bmqt::QueueFlags::e_ADMIN;
@@ -166,7 +165,7 @@ static void test2_additionsRemovals()
 
 static void test3_printTest()
 {
-    mwctst::TestHelper::printTestName("PRINT");
+    bmqtst::TestHelper::printTestName("PRINT");
 
     PV("Testing print");
 
@@ -189,8 +188,8 @@ static void test3_printTest()
 
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
         const Test&        test = k_DATA[idx];
-        mwcu::MemOutStream out(s_allocator_p);
-        mwcu::MemOutStream expected(s_allocator_p);
+        bmqu::MemOutStream out(s_allocator_p);
+        bmqu::MemOutStream expected(s_allocator_p);
 
         expected << test.d_expected;
 
@@ -213,7 +212,7 @@ static void test3_printTest()
 
 static void test4_empty()
 {
-    mwctst::TestHelper::printTestName("EMPTY");
+    bmqtst::TestHelper::printTestName("EMPTY");
 
     bsls::Types::Uint64 flags = 0;
 
@@ -230,7 +229,7 @@ static void test4_empty()
 
 static void test5_setFlag()
 {
-    mwctst::TestHelper::printTestName("SET FLAG");
+    bmqtst::TestHelper::printTestName("SET FLAG");
 
     PV("Test flag setter")
     for (bsls::Types::Uint64 flags = 0; flags <= k_ALL_FLAGS_SETTED; flags++) {
@@ -262,7 +261,7 @@ static void test5_setFlag()
 
 static void test6_unsetFlag()
 {
-    mwctst::TestHelper::printTestName("UNSET FLAG");
+    bmqtst::TestHelper::printTestName("UNSET FLAG");
 
     PV("Test flag unsetter")
     for (bsls::Types::Uint64 flags = 0; flags <= k_ALL_FLAGS_SETTED; flags++) {
@@ -296,7 +295,7 @@ static void test6_unsetFlag()
 
 static void test7_getFlag()
 {
-    mwctst::TestHelper::printTestName("GET FLAG");
+    bmqtst::TestHelper::printTestName("GET FLAG");
 
     PV("Test flag getter")
     for (bsls::Types::Uint64 flags = 0; flags <= k_ALL_FLAGS_SETTED; flags++) {
@@ -332,7 +331,7 @@ static void test7_getFlag()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     switch (_testCase) {
     case 0:
@@ -349,5 +348,5 @@ int main(int argc, char* argv[])
     } break;
     }
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }

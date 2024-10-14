@@ -30,10 +30,9 @@
 
 // BMQ
 
-// MWC
-#include <mwcst_basictableinfoprovider.h>
-#include <mwcst_table.h>
-#include <mwcst_tablerecords.h>
+#include <bmqst_basictableinfoprovider.h>
+#include <bmqst_table.h>
+#include <bmqst_tablerecords.h>
 
 // BDE
 #include <bsl_ostream.h>
@@ -45,7 +44,7 @@
 namespace BloombergLP {
 
 // FORWARD DECLARATION
-namespace mwcst {
+namespace bmqst {
 class StatContext;
 }
 
@@ -67,19 +66,19 @@ struct Stat {
 
   public:
     // PUBLIC DATA
-    bslma::ManagedPtr<mwcst::StatContext> d_statContext_mp;
+    bslma::ManagedPtr<bmqst::StatContext> d_statContext_mp;
     // StatContext
 
-    mutable mwcst::Table d_table;
+    mutable bmqst::Table d_table;
     // Table with all data
 
-    mwcst::BasicTableInfoProvider d_tip;
+    bmqst::BasicTableInfoProvider d_tip;
     // Tip for all the data
 
-    mutable mwcst::Table d_tableNoDelta;
+    mutable bmqst::Table d_tableNoDelta;
     // Table without the delta data
 
-    mwcst::BasicTableInfoProvider d_tipNoDelta;
+    bmqst::BasicTableInfoProvider d_tipNoDelta;
     // Tip for the no delta data
 
     // TRAITS
@@ -106,13 +105,13 @@ struct StatUtil {
 
     /// Return true if the specified `record` should be filtered-out because
     /// it represents a TotalValue data; or false otherwise.
-    static bool filterDirect(const mwcst::TableRecords::Record& record);
+    static bool filterDirect(const bmqst::TableRecords::Record& record);
 
     /// Return true if the specified `record` should be filtered-out because
     /// it represents a TotalValue data or a top level record; or false
     /// otherwise.
     static bool
-    filterDirectAndTopLevel(const mwcst::TableRecords::Record& record);
+    filterDirectAndTopLevel(const bmqst::TableRecords::Record& record);
 };
 
 }  // close package namespace

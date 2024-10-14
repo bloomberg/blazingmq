@@ -205,7 +205,7 @@ int CommandRouter::route(bsl::ostream&  errorDescription,
 
     contextSp->setDestinationNodes(routeTargets.d_nodes);
 
-    mwcu::MemOutStream os;
+    bmqu::MemOutStream os;
     os << "Routing command to the following nodes [";
     for (NodesVector::const_iterator nit = routeTargets.d_nodes.begin();
          nit != routeTargets.d_nodes.end();
@@ -267,7 +267,7 @@ void CommandRouter::onRouteCommandResponse(
                 mqbcmd::Result result;
                 result.makeError().message() = errorMessage;
                 // encode result
-                mwcu::MemOutStream os;
+                bmqu::MemOutStream os;
                 bool               pretty = d_command.encoding() ==
                                       mqbcmd::EncodingFormat::JSON_PRETTY
                                                 ? true

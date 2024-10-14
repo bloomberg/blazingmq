@@ -28,7 +28,7 @@
 #include <m_bmqstoragetool_journalfile.h>
 
 // GMOCK
-// If mwcst_testhelper.h was defined before gtest.h, preserve macroses values.
+// If bmqst_testhelper.h was defined before gtest.h, preserve macroses values.
 // If not, undefine values from gtest.h.
 #pragma push_macro("ASSERT_EQ")
 #pragma push_macro("ASSERT_NE")

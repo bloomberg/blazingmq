@@ -20,9 +20,8 @@
 // BMQ
 #include <bmqp_protocol.h>
 
-// MWC
-#include <mwcsys_time.h>
-#include <mwctsk_alarmlog.h>
+#include <bmqsys_time.h>
+#include <bmqtsk_alarmlog.h>
 
 // BDE
 #include <bdlde_md5.h>
@@ -57,7 +56,7 @@ void StorageUtil::generateStorageKey(
     bdlde::Md5::Md5Digest digest;
     bdlde::Md5            md5(value.data(), value.length());
 
-    bsls::Types::Int64 time = mwcsys::Time::highResolutionTimer();
+    bsls::Types::Int64 time = bmqsys::Time::highResolutionTimer();
     md5.update(&time, sizeof(time));
 
     md5.loadDigestAndReset(&digest);
@@ -70,7 +69,7 @@ void StorageUtil::generateStorageKey(
         // has a deterministic value).
 
         md5.update(digest.buffer(), mqbs::FileStoreProtocol::k_HASH_LENGTH);
-        time = mwcsys::Time::highResolutionTimer();
+        time = bmqsys::Time::highResolutionTimer();
         md5.update(&time, sizeof(time));
         md5.loadDigestAndReset(&digest);
         key->fromBinary(digest.buffer());
@@ -145,7 +144,7 @@ void StorageUtil::loadArrivalTime(
     if (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(0 !=
                                             attributes.arrivalTimepoint())) {
         const bsls::Types::Int64 timeDeltaNs =
-            mwcsys::Time::highResolutionTimer() -
+            bmqsys::Time::highResolutionTimer() -
             attributes.arrivalTimepoint();
 
         const bsls::Types::Int64 currentTimeNs =
@@ -191,7 +190,7 @@ void StorageUtil::loadArrivalTimeDelta(
 
     if (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(0 !=
                                             attributes.arrivalTimepoint())) {
-        *out = mwcsys::Time::highResolutionTimer() -
+        *out = bmqsys::Time::highResolutionTimer() -
                attributes.arrivalTimepoint();
     }
     else {
@@ -205,8 +204,8 @@ void StorageUtil::loadArrivalTimeDelta(
 }
 
 int StorageUtil::loadRecordHeaderAndPos(
-    mwcu::BlobObjectProxy<mqbs::RecordHeader>* recordHeader,
-    mwcu::BlobPosition*                        recordPosition,
+    bmqu::BlobObjectProxy<mqbs::RecordHeader>* recordHeader,
+    bmqu::BlobPosition*                        recordPosition,
     const bmqp::StorageMessageIterator&        storageIter,
     const bsl::shared_ptr<bdlbb::Blob>&        stroageEvent,
     const bslstl::StringRef&                   partitionDesc)
@@ -230,14 +229,14 @@ int StorageUtil::loadRecordHeaderAndPos(
             header.storageProtocolVersion() != FileStoreProtocol::k_VERSION)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
-        MWCTSK_ALARMLOG_ALARM("REPLICATION")
+        BMQTSK_ALARMLOG_ALARM("REPLICATION")
             << partitionDesc << "Storage protocol version mismatch. Self: "
             << FileStoreProtocol::k_VERSION
             << ", received: " << header.storageProtocolVersion()
             << ", for type: " << header.messageType()
             << ", with journal offset (in words): "
             << header.journalOffsetWords() << ". Ignoring entire event."
-            << MWCTSK_ALARMLOG_END;
+            << BMQTSK_ALARMLOG_END;
         return rc_PROTO_VER_MISMATCH;  // RETURN
     }
 
@@ -245,11 +244,11 @@ int StorageUtil::loadRecordHeaderAndPos(
             bmqp::StorageMessageType::e_UNDEFINED == header.messageType())) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
-        MWCTSK_ALARMLOG_ALARM("REPLICATION")
+        BMQTSK_ALARMLOG_ALARM("REPLICATION")
             << partitionDesc << "Received an unexpected storage message type: "
             << header.messageType() << " with journal offset (in words): "
             << header.journalOffsetWords() << ". Ignoring entire event."
-            << MWCTSK_ALARMLOG_END;
+            << BMQTSK_ALARMLOG_END;
         return rc_INVALID_MSG_TYPE;  // RETURN
     }
 
@@ -257,12 +256,12 @@ int StorageUtil::loadRecordHeaderAndPos(
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(0 != rc)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
-        MWCTSK_ALARMLOG_ALARM("REPLICATION")
+        BMQTSK_ALARMLOG_ALARM("REPLICATION")
             << partitionDesc
             << "Failed to load record position for storage msg "
             << header.messageType() << ", with journal offset (in words): "
             << header.journalOffsetWords() << ", rc: " << rc
-            << ". Ignoring entire event." << MWCTSK_ALARMLOG_END;
+            << ". Ignoring entire event." << BMQTSK_ALARMLOG_END;
         return rc_INVALID_RECORD_POS;  // RETURN
     }
 
@@ -273,11 +272,11 @@ int StorageUtil::loadRecordHeaderAndPos(
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!recordHeader->isSet())) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
-        MWCTSK_ALARMLOG_ALARM("REPLICATION")
+        BMQTSK_ALARMLOG_ALARM("REPLICATION")
             << partitionDesc << "Failed to read RecordHeader for storage msg "
             << header.messageType() << ", with journal offset (in words): "
             << header.journalOffsetWords() << ". Ignoring entire event."
-            << MWCTSK_ALARMLOG_END;
+            << BMQTSK_ALARMLOG_END;
         return rc_INVALID_RECORD_HDR;  // RETURN
     }
 

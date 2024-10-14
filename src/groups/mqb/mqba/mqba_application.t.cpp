@@ -28,7 +28,7 @@
 #include <bsls_systemclocktype.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -51,7 +51,7 @@ static void test1_breathingTest()
 //   Breathing test of the component
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("breathing test");
+    bmqtst::TestHelper::printTestName("breathing test");
 
     // Create a default application, make sure it can start/stop
     mqbcfg::AppConfig cfg(s_allocator_p);
@@ -65,7 +65,7 @@ static void test1_breathingTest()
                           0,  // no allocatorsStatContext
                           s_allocator_p);
 
-    // mwcs::MemOutStream error(s_allocator_p);
+    // bmqs::MemOutStream error(s_allocator_p);
     // int rc = obj.start(error);
     // ASSERT_EQ(rc, 0);
     // obj.stop();
@@ -78,7 +78,7 @@ static void test1_breathingTest()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     bmqp::ProtocolUtil::initialize(s_allocator_p);
     // Force initialize protocolUtil before any 'mqba::Application' object
@@ -99,5 +99,5 @@ int main(int argc, char* argv[])
 
     // Disable default/global allocator check:
     //  - Logger uses the default allocator
-    TEST_EPILOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_EPILOG(bmqtst::TestHelper::e_DEFAULT);
 }
