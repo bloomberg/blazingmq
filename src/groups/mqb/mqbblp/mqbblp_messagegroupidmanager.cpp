@@ -81,9 +81,8 @@
 // MQB
 #include <mqbcmd_messages.h>
 
-// MWC
-#include <mwcu_outstreamformatsaver.h>
-#include <mwcu_printutil.h>
+#include <bmqu_outstreamformatsaver.h>
+#include <bmqu_printutil.h>
 
 // BDE
 #include <bsl_iostream.h>
@@ -624,7 +623,7 @@ MessageGroupIdManager::MessageGroupIdManager(const Time&       timeout,
 , d_timeout(timeout)
 , d_maxMsgGroupIds(maxMsgGroupIds)
 , d_rebalance(rebalance)
-, d_index(new (*allocator) Index(allocator), allocator)
+, d_index(new(*allocator) Index(allocator), allocator)
 {
 }
 

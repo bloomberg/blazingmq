@@ -27,11 +27,10 @@
 #include <bdlbb_pooledblobbufferfactory.h>
 #include <bsl_vector.h>
 
-// MWC
-#include <mwcu_memoutstream.h>
+#include <bmqu_memoutstream.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -189,7 +188,7 @@ static void populateBlob(bdlbb::Blob*             blob,
 
 static void test1_breathingTest()
 {
-    mwctst::TestHelper::printTestName("BREATHING TEST");
+    bmqtst::TestHelper::printTestName("BREATHING TEST");
 
     bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
 
@@ -295,7 +294,7 @@ static void test1_breathingTest()
 
 static void test2_multiConfirm()
 {
-    mwctst::TestHelper::printTestName("MULTI CONFIRM");
+    bmqtst::TestHelper::printTestName("MULTI CONFIRM");
 
     // Test iterating over CONFIRM event having multiple CONFIRM messages
 
@@ -350,7 +349,7 @@ static void test3_nextMethod()
     // Testing:
     //   int next();
     // --------------------------------------------------------------------
-    mwctst::TestHelper::printTestName("NEXT METHOD");
+    bmqtst::TestHelper::printTestName("NEXT METHOD");
 
     // Test iterating over CONFIRM event having multiple CONFIRM messages
 
@@ -425,7 +424,7 @@ static void test4_resetMethod()
     // Testing:
     //   int reset();
     // --------------------------------------------------------------------
-    mwctst::TestHelper::printTestName("RESET METHOD");
+    bmqtst::TestHelper::printTestName("RESET METHOD");
 
     // Default values for event header
     bmqp::EventHeader       eventHeader;
@@ -506,12 +505,12 @@ static void test5_dumpBlob()
     // Testing:
     //   void dumpBlob(bsl::ostream& stream);
     // --------------------------------------------------------------------
-    mwctst::TestHelper::printTestName("DUMB BLOB");
+    bmqtst::TestHelper::printTestName("DUMB BLOB");
 
     // Test iterator dump contains expected value
 
     bmqp::EventHeader              eventHeader;
-    mwcu::MemOutStream             stream(s_allocator_p);
+    bmqu::MemOutStream             stream(s_allocator_p);
     const int                      qId = 54321;
     const bmqt::MessageGUID        guid;
     const int                      sQId = 123;
@@ -561,7 +560,7 @@ static void test5_dumpBlob()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     switch (_testCase) {
     case 0:
@@ -576,5 +575,5 @@ int main(int argc, char* argv[])
     } break;
     }
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }

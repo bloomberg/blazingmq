@@ -57,7 +57,7 @@ single socket to many thousands of simultaneous sockets."*
 ### Transport Abstraction
 
  In its implementation, BlazingMQ abstracts the transport by using
-[`mwcio`](https://github.com/bloomberg/blazingmq/blob/main/src/groups/mwc/mwcio/mwcio_channel.h)
+[`bmqio`](https://github.com/bloomberg/blazingmq/blob/main/src/groups/bmq/bmqio/bmqio_channel.h)
 interface, which enables BlazingMQ to plug in any implementation which conforms
 to it.  In fact, BlazingMQ was using a legacy network transport library instead
 of NTF some time back.  We have also experimented with plugging in

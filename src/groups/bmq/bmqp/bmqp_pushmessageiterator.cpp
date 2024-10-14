@@ -23,9 +23,8 @@
 #include <bmqp_optionutil.h>
 #include <bmqp_protocolutil.h>
 
-// MWC
-#include <mwcu_blobobjectproxy.h>
-#include <mwcu_memoutstream.h>
+#include <bmqu_blobobjectproxy.h>
+#include <bmqu_memoutstream.h>
 
 // BSL
 #include <bdlma_localsequentialallocator.h>
@@ -87,7 +86,7 @@ int PushMessageIterator::loadOptions(bdlbb::Blob* blob) const
         return 0;  // RETURN
     }
 
-    return mwcu::BlobUtil::appendToBlob(blob,
+    return bmqu::BlobUtil::appendToBlob(blob,
                                         *d_blobIter.blob(),
                                         d_optionsPosition,
                                         d_optionsSize);
@@ -100,8 +99,8 @@ int PushMessageIterator::compressedApplicationDataSize() const
     // properties and message payload.
     const int msgLenPadded = d_header.messageWords() * Protocol::k_WORD_SIZE;
 
-    mwcu::BlobPosition lastBytePos;
-    int                rc = mwcu::BlobUtil::findOffsetSafe(&lastBytePos,
+    bmqu::BlobPosition lastBytePos;
+    int                rc = bmqu::BlobUtil::findOffsetSafe(&lastBytePos,
                                             *d_blobIter.blob(),
                                             d_blobIter.position(),
                                             msgLenPadded - 1);
@@ -145,12 +144,12 @@ int PushMessageIterator::applicationDataSize() const
 }
 
 int PushMessageIterator::loadApplicationDataPosition(
-    mwcu::BlobPosition* position) const
+    bmqu::BlobPosition* position) const
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(position);
     BSLS_ASSERT_SAFE(isValid());
-    BSLS_ASSERT_SAFE(d_applicationDataPosition != mwcu::BlobPosition());
+    BSLS_ASSERT_SAFE(d_applicationDataPosition != bmqu::BlobPosition());
 
     enum RcEnum {
         // Value for the various RC error categories
@@ -189,16 +188,16 @@ int PushMessageIterator::loadApplicationData(bdlbb::Blob* blob) const
         return rc_IMPLICIT_APP_DATA;  // RETURN
     }
 
-    BSLS_ASSERT_SAFE(d_applicationDataPosition != mwcu::BlobPosition());
+    BSLS_ASSERT_SAFE(d_applicationDataPosition != bmqu::BlobPosition());
 
     if (d_decompressFlag) {
-        mwcu::BlobUtil::appendToBlob(blob,
+        bmqu::BlobUtil::appendToBlob(blob,
                                      d_applicationData,
-                                     mwcu::BlobPosition());
+                                     bmqu::BlobPosition());
         return rc_SUCCESS;  // RETURN
     }
 
-    int rc = mwcu::BlobUtil::appendToBlob(blob,
+    int rc = bmqu::BlobUtil::appendToBlob(blob,
                                           *d_blobIter.blob(),
                                           d_applicationDataPosition,
                                           applicationDataSize());
@@ -247,9 +246,9 @@ int PushMessageIterator::loadMessageProperties(bdlbb::Blob* blob) const
 
     BSLS_ASSERT_SAFE(0 < d_messagePropertiesSize);
 
-    int rc = mwcu::BlobUtil::appendToBlob(blob,
+    int rc = bmqu::BlobUtil::appendToBlob(blob,
                                           d_applicationData,
-                                          mwcu::BlobPosition(),
+                                          bmqu::BlobPosition(),
                                           d_messagePropertiesSize);
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc != 0)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
@@ -341,14 +340,14 @@ int PushMessageIterator::loadMessagePayloadPosition() const
 
     BSLS_ASSERT_SAFE(0 < d_messagePropertiesSize);
 
-    int rc = mwcu::BlobUtil::findOffsetSafe(&d_lazyMessagePayloadPosition,
+    int rc = bmqu::BlobUtil::findOffsetSafe(&d_lazyMessagePayloadPosition,
                                             d_applicationData,
-                                            mwcu::BlobPosition(),
+                                            bmqu::BlobPosition(),
                                             d_messagePropertiesSize);
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc != 0)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        d_lazyMessagePayloadPosition = mwcu::BlobPosition();
+        d_lazyMessagePayloadPosition = bmqu::BlobPosition();
         return (rc * 10 + rc_INVALID_PAYLOAD_OFFSET);  // RETURN
     }
 
@@ -373,7 +372,7 @@ int PushMessageIterator::loadMessagePayload(bdlbb::Blob* blob) const
     }
 
     if (hasMessageProperties() &&
-        (d_lazyMessagePayloadPosition == mwcu::BlobPosition())) {
+        (d_lazyMessagePayloadPosition == bmqu::BlobPosition())) {
         // This could be because 'loadMessagePayloadPosition' wasn't called or
         // because it failed.  If its later, calling it will fail again, and an
         // appropriate error will be returned.
@@ -383,10 +382,10 @@ int PushMessageIterator::loadMessagePayload(bdlbb::Blob* blob) const
             return rc * 10 + rc_INVALID_PAYLOAD_OFFSET;  // RETURN
         }
 
-        BSLS_ASSERT_SAFE(d_lazyMessagePayloadPosition != mwcu::BlobPosition());
+        BSLS_ASSERT_SAFE(d_lazyMessagePayloadPosition != bmqu::BlobPosition());
     }
 
-    int rc = mwcu::BlobUtil::appendToBlob(blob,
+    int rc = bmqu::BlobUtil::appendToBlob(blob,
                                           d_applicationData,
                                           d_lazyMessagePayloadPosition,
                                           messagePayloadSize());
@@ -516,11 +515,11 @@ int PushMessageIterator::next()
     // message
     d_applicationDataSize        = -1;
     d_lazyMessagePayloadSize     = -1;
-    d_lazyMessagePayloadPosition = mwcu::BlobPosition();
+    d_lazyMessagePayloadPosition = bmqu::BlobPosition();
     d_messagePropertiesSize      = 0;
-    d_applicationDataPosition    = mwcu::BlobPosition();
+    d_applicationDataPosition    = bmqu::BlobPosition();
     d_optionsSize                = 0;
-    d_optionsPosition            = mwcu::BlobPosition();
+    d_optionsPosition            = bmqu::BlobPosition();
     d_optionsView.reset();
     d_applicationData.removeAll();
 
@@ -532,7 +531,7 @@ int PushMessageIterator::next()
 
     // Read PushHeader, supporting protocol evolution by reading as many bytes
     // as the header declares (and not as many as the size of the struct)
-    mwcu::BlobObjectProxy<PushHeader> header(d_blobIter.blob(),
+    bmqu::BlobObjectProxy<PushHeader> header(d_blobIter.blob(),
                                              d_blobIter.position(),
                                              -PushHeader::k_MIN_HEADER_SIZE,
                                              true,
@@ -595,7 +594,7 @@ int PushMessageIterator::next()
     // load the 'd_applicationDataPosition' instance variable with the start of
     // the application data offset.
 
-    int rc = mwcu::BlobUtil::findOffsetSafe(
+    int rc = bmqu::BlobUtil::findOffsetSafe(
         &d_applicationDataPosition,
         *d_blobIter.blob(),
         header.position(),
@@ -603,7 +602,7 @@ int PushMessageIterator::next()
             bmqp::Protocol::k_WORD_SIZE);
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc != 0)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        d_applicationDataPosition = mwcu::BlobPosition();
+        d_applicationDataPosition = bmqu::BlobPosition();
         return (rc * 10 + rc_INVALID_APPLICATION_DATA_OFFSET);  // RETURN
     }
 
@@ -671,7 +670,7 @@ int PushMessageIterator::reset(const bdlbb::Blob* blob,
 
     clear();
     d_decompressFlag = decompressFlag;
-    d_blobIter.reset(blob, mwcu::BlobPosition(), blob->length(), true);
+    d_blobIter.reset(blob, bmqu::BlobPosition(), blob->length(), true);
 
     bool rc = d_blobIter.advance(eventHeader.headerWords() *
                                  Protocol::k_WORD_SIZE);
@@ -711,7 +710,7 @@ void PushMessageIterator::dumpBlob(bsl::ostream& stream)
     // For now, print only the beginning of the blob.. we may later on print
     // also the bytes around the current position
     if (d_blobIter.blob()) {
-        stream << mwcu::BlobStartHexDumper(d_blobIter.blob(),
+        stream << bmqu::BlobStartHexDumper(d_blobIter.blob(),
                                            k_MAX_BYTES_DUMP);
     }
     else {

@@ -298,26 +298,26 @@ bsls::Types::Uint64 FileStoreProtocolUtil::lastJournalRecord(
 int FileStoreProtocolUtil::calculateMd5Digest(
     bdlde::Md5::Md5Digest*    buffer,
     const bdlbb::Blob&        blob,
-    const mwcu::BlobPosition& startPos,
+    const bmqu::BlobPosition& startPos,
     unsigned int              length)
 {
     BSLS_ASSERT_SAFE(buffer);
     BSLS_ASSERT_SAFE(0 < length);
-    BSLS_ASSERT_SAFE(mwcu::BlobUtil::isValidPos(blob, startPos));
+    BSLS_ASSERT_SAFE(bmqu::BlobUtil::isValidPos(blob, startPos));
 
-    mwcu::BlobPosition endPos;
+    bmqu::BlobPosition endPos;
     int                rc =
-        mwcu::BlobUtil::findOffsetSafe(&endPos, blob, startPos, length - 1);
+        bmqu::BlobUtil::findOffsetSafe(&endPos, blob, startPos, length - 1);
     if (0 != rc) {
         return rc;  // RETURN
     }
 
     bdlde::Md5         hasher;
-    mwcu::BlobPosition pos(startPos);
+    bmqu::BlobPosition pos(startPos);
     while (length) {
         unsigned int len = bsl::min(
             static_cast<int>(length),
-            mwcu::BlobUtil::bufferSize(blob, pos.buffer()) - pos.byte());
+            bmqu::BlobUtil::bufferSize(blob, pos.buffer()) - pos.byte());
 
         hasher.update(blob.buffer(pos.buffer()).data() + pos.byte(), len);
 

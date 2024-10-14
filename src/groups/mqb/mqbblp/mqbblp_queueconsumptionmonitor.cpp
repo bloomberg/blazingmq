@@ -28,9 +28,9 @@
 #include <bmqt_queueflags.h>
 #include <bmqt_uri.h>
 
-// MWC
-#include <mwcu_memoutstream.h>
-#include <mwcu_printutil.h>
+#include <bmqtsk_alarmlog.h>
+#include <bmqu_memoutstream.h>
+#include <bmqu_printutil.h>
 
 // BDE
 #include <ball_record.h>
@@ -56,7 +56,7 @@ bsl::ostream& QueueConsumptionMonitor::State::print(
     int                                  level,
     int                                  spacesPerLevel)
 {
-    stream << mwcu::PrintUtil::indent(level, spacesPerLevel)
+    stream << bmqu::PrintUtil::indent(level, spacesPerLevel)
            << QueueConsumptionMonitor::State::toAscii(value);
 
     if (spacesPerLevel >= 0) {
@@ -91,7 +91,7 @@ bsl::ostream& QueueConsumptionMonitor::Transition::print(
     int                                       level,
     int                                       spacesPerLevel)
 {
-    stream << mwcu::PrintUtil::indent(level, spacesPerLevel)
+    stream << bmqu::PrintUtil::indent(level, spacesPerLevel)
            << QueueConsumptionMonitor::Transition::toAscii(value);
 
     if (spacesPerLevel >= 0) {

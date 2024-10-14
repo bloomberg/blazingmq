@@ -31,8 +31,7 @@
 #include <bmqp_event.h>
 #include <bmqp_protocol.h>
 
-// MWC
-#include <mwcsys_time.h>
+#include <bmqsys_time.h>
 
 // BDE
 #include <ball_log.h>
@@ -278,7 +277,7 @@ inline bool MessageDumper::DumpContext::isEnabled() const
         d_isEnabled = (d_actionValue > 0);  // Still more messages to dump
     } break;                                // BREAK
     case bmqp_ctrlmsg::DumpActionType::E_TIME_IN_SECONDS: {
-        d_isEnabled = (d_actionValue >= mwcsys::Time::highResolutionTimer());
+        d_isEnabled = (d_actionValue >= bmqsys::Time::highResolutionTimer());
         // Expiration time is in the future
     } break;  // BREAK
     }

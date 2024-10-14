@@ -29,9 +29,8 @@
 #include <bmqp_queueid.h>
 #include <bmqt_resultcode.h>
 
-// MWC
-#include <mwcu_blob.h>
-#include <mwcu_memoutstream.h>
+#include <bmqu_blob.h>
+#include <bmqu_memoutstream.h>
 
 // BDE
 #include <bdlma_localsequentialallocator.h>
@@ -584,9 +583,9 @@ Message::print(bsl::ostream& stream, int level, int spacesPerLevel) const
 
             // NOTE: since we know the size, the `defaultAllocator` will
             //       never be used here.
-            mwcu::MemOutStream os(k_MAX_BYTES_DUMP, &lsa);
+            bmqu::MemOutStream os(k_MAX_BYTES_DUMP, &lsa);
 
-            os << mwcu::BlobStartHexDumper(&blob, k_MAX_BYTES_DUMP);
+            os << bmqu::BlobStartHexDumper(&blob, k_MAX_BYTES_DUMP);
             stream << "\n" << os.str();
         }
         else if (rawEvent.isAckEvent()) {

@@ -19,14 +19,14 @@
 // MQB
 #include <mqbu_exit.h>
 
-// MWC
-#include <mwcma_countingallocator.h>
-#include <mwcma_countingallocatorutil.h>
-#include <mwcst_statcontext.h>
-#include <mwcsys_threadutil.h>
-#include <mwctsk_alarmlog.h>
-#include <mwcu_memoutstream.h>
-#include <mwcu_printutil.h>
+// BMQ
+#include <bmqma_countingallocator.h>
+#include <bmqma_countingallocatorutil.h>
+#include <bmqst_statcontext.h>
+#include <bmqsys_threadutil.h>
+#include <bmqtsk_alarmlog.h>
+#include <bmqu_memoutstream.h>
+#include <bmqu_printutil.h>
 
 // BDE
 #include <bdlb_string.h>
@@ -63,27 +63,27 @@ void onAllocationLimit(bsls::Types::Uint64 limit)
     // here.
 
     bdlma::LocalSequentialAllocator<2048> localAllocator;
-    mwcu::MemOutStream                    os(&localAllocator);
+    bmqu::MemOutStream                    os(&localAllocator);
 
-    os << "Memory allocation limit of " << mwcu::PrintUtil::prettyBytes(limit)
+    os << "Memory allocation limit of " << bmqu::PrintUtil::prettyBytes(limit)
        << " has been reached.";
 
-    mwcst::StatContext* sc = mwcma::CountingAllocatorUtil::globalStatContext();
+    bmqst::StatContext* sc = bmqma::CountingAllocatorUtil::globalStatContext();
     sc->snapshot();  // Snapshot to ensure we'll print the latest values
 
     // The 'sc' is the top stat context, we need access to its only child,
     // corresponding to the top level CountingAllocator in order to print it.
     BSLS_ASSERT_SAFE(sc->numSubcontexts() == 1);
-    const mwcst::StatContext& context = *(sc->subcontextIterator());
+    const bmqst::StatContext& context = *(sc->subcontextIterator());
 
     // Print all allocations from this top allocator and its children
-    mwcma::CountingAllocatorUtil::printAllocations(os, context);
+    bmqma::CountingAllocatorUtil::printAllocations(os, context);
 
     os << "\nThe broker will now gracefully shutdown!";
 
     // Log a PANIC alarm
     BALL_LOG_SET_CATEGORY("BMQBRKR.TASK");
-    MWCTSK_ALARMLOG_PANIC("MEMORY_LIMIT") << os.str() << MWCTSK_ALARMLOG_END;
+    BMQTSK_ALARMLOG_PANIC("MEMORY_LIMIT") << os.str() << BMQTSK_ALARMLOG_END;
 
     // Initiate a graceful shutdown of the broker
     mqbu::ExitUtil::shutdown(mqbu::ExitCode::e_MEMORY_LIMIT);
@@ -106,9 +106,9 @@ Task_AllocatorManager::Task_AllocatorManager(mqbcfg::AllocatorType::Value type)
     case mqbcfg::AllocatorType::NEWDELETE: {
         d_statContext_p = 0;
 
-        new (d_store.buffer()) mwcma::CountingAllocatorStore(
+        new (d_store.buffer()) bmqma::CountingAllocatorStore(
             &(bslma::NewDeleteAllocator::singleton()));
-        d_store_p = reinterpret_cast<mwcma::CountingAllocatorStore*>(
+        d_store_p = reinterpret_cast<bmqma::CountingAllocatorStore*>(
             d_store.buffer());
 
         bsl::cout << "\n"
@@ -122,8 +122,8 @@ Task_AllocatorManager::Task_AllocatorManager(mqbcfg::AllocatorType::Value type)
         d_statContext_p = 0;
 
         new (d_store.buffer())
-            mwcma::CountingAllocatorStore(&d_stackTraceTestAllocator);
-        d_store_p = reinterpret_cast<mwcma::CountingAllocatorStore*>(
+            bmqma::CountingAllocatorStore(&d_stackTraceTestAllocator);
+        d_store_p = reinterpret_cast<bmqma::CountingAllocatorStore*>(
             d_store.buffer());
         d_stackTraceTestAllocator.setName("BMQBRKR");
         d_stackTraceTestAllocator.setFailureHandler(
@@ -137,12 +137,12 @@ Task_AllocatorManager::Task_AllocatorManager(mqbcfg::AllocatorType::Value type)
                   << bsl::flush;
     } break;
     case mqbcfg::AllocatorType::COUNTING: {
-        mwcma::CountingAllocatorUtil::initGlobalAllocators(
-            mwcst::StatContextConfiguration("task"),
+        bmqma::CountingAllocatorUtil::initGlobalAllocators(
+            bmqst::StatContextConfiguration("task"),
             "allocators");
 
-        d_statContext_p = mwcma::CountingAllocatorUtil::globalStatContext();
-        d_store_p       = &mwcma::CountingAllocatorUtil::topAllocatorStore();
+        d_statContext_p = bmqma::CountingAllocatorUtil::globalStatContext();
+        d_store_p       = &bmqma::CountingAllocatorUtil::topAllocatorStore();
     } break;
     default: {
         bsl::cerr << "PANIC [STARTUP] Invalid allocator type '" << type << "'"
@@ -158,7 +158,7 @@ Task_AllocatorManager::~Task_AllocatorManager()
     if (d_type == mqbcfg::AllocatorType::NEWDELETE) {
         // Properly destroy the object buffer object.
         d_store.object()
-            .mwcma::CountingAllocatorStore ::~CountingAllocatorStore();
+            .bmqma::CountingAllocatorStore ::~CountingAllocatorStore();
     }
     else if (d_type == mqbcfg::AllocatorType::STACKTRACETEST) {
         // Ensure no memory leak
@@ -179,7 +179,7 @@ Task_AllocatorManager::~Task_AllocatorManager()
 
         // Properly destroy the object buffer object.
         d_store.object()
-            .mwcma::CountingAllocatorStore ::~CountingAllocatorStore();
+            .bmqma::CountingAllocatorStore ::~CountingAllocatorStore();
     }
 }
 
@@ -193,7 +193,7 @@ int Task::onControlMessage(const bsl::string& message)
 
     // Intercept the M-Trap to set the name of this PIPE CONTROL CHANNEL thread
     if (bdlb::String::areEqualCaseless(message, k_MTRAP_SET_THREADNAME)) {
-        mwcsys::ThreadUtil::setCurrentThreadName("bmqPipeCtrl");
+        bmqsys::ThreadUtil::setCurrentThreadName("bmqPipeCtrl");
         return 0;  // RETURN
     }
 
@@ -211,7 +211,7 @@ void Task::onLogCommand(const bsl::string& prefix, bsl::istream& input)
     // executes on the PIPE CONTROL CHANNEL thread
 
     bsl::string        cmd;
-    mwcu::MemOutStream ss;
+    bmqu::MemOutStream ss;
 
     bsl::getline(input, cmd);
     cmd.erase(0, 1);  // cmd starts by a space, remove it
@@ -269,7 +269,7 @@ int Task::initialize(bsl::ostream& errorDescription)
     };
 
     int                rc = rc_SUCCESS;
-    mwcu::MemOutStream localError;
+    bmqu::MemOutStream localError;
 
     // ---------
     // Scheduler
@@ -279,16 +279,16 @@ int Task::initialize(bsl::ostream& errorDescription)
         return rc_SCHEDULER_START_FAILED;  // RETURN
     }
 
-    if (mwcsys::ThreadUtil::k_SUPPORT_THREAD_NAME) {
+    if (bmqsys::ThreadUtil::k_SUPPORT_THREAD_NAME) {
         d_scheduler.scheduleEvent(
             bsls::TimeInterval(0, 0),  // now
-            bdlf::BindUtil::bind(&mwcsys::ThreadUtil::setCurrentThreadName,
+            bdlf::BindUtil::bind(&bmqsys::ThreadUtil::setCurrentThreadName,
                                  "bmqSchedTask"));
     }
 
     // -------------
     // LogController
-    mwctsk::LogControllerConfig logConfig;
+    bmqtsk::LogControllerConfig logConfig;
     rc = logConfig.fromObj(localError, d_config.logController());
     if (rc != 0) {
         d_scheduler.stop();
@@ -314,12 +314,12 @@ int Task::initialize(bsl::ostream& errorDescription)
         }
         else {
             BALL_LOG_INFO << "Memory allocation limit set to "
-                          << mwcu::PrintUtil::prettyBytes(
+                          << bmqu::PrintUtil::prettyBytes(
                                  d_config.allocationLimit());
 
-            mwcma::CountingAllocator* topAllocator =
-                dynamic_cast<mwcma::CountingAllocator*>(
-                    mwcma::CountingAllocatorUtil::topAllocatorStore()
+            bmqma::CountingAllocator* topAllocator =
+                dynamic_cast<bmqma::CountingAllocator*>(
+                    bmqma::CountingAllocatorUtil::topAllocatorStore()
                         .baseAllocator());
 
             BSLS_ASSERT_OPT(topAllocator);
@@ -344,7 +344,7 @@ int Task::initialize(bsl::ostream& errorDescription)
         return rc_CONTROLCHANNEL_START_FAILED;  // RETURN
     }
 
-    if (mwcsys::ThreadUtil::k_SUPPORT_THREAD_NAME) {
+    if (bmqsys::ThreadUtil::k_SUPPORT_THREAD_NAME) {
         bdls::PipeUtil::send(pipePath,
                              bsl::string(k_MTRAP_SET_THREADNAME) + "\n");
     }

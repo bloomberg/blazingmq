@@ -43,7 +43,7 @@ namespace BloombergLP {
 namespace mqbi {
 class Domain;
 }
-namespace mwcst {
+namespace bmqst {
 class StatContext;
 }
 
@@ -74,7 +74,7 @@ class DomainStats {
 
   private:
     // DATA
-    bslma::ManagedPtr<mwcst::StatContext> d_statContext_mp;
+    bslma::ManagedPtr<bmqst::StatContext> d_statContext_mp;
     // StatContext
 
   private:
@@ -94,7 +94,7 @@ class DomainStats {
     /// ago.
     ///
     /// THREAD: This method can only be invoked from the `snapshot` thread.
-    static bsls::Types::Int64 getValue(const mwcst::StatContext& context,
+    static bsls::Types::Int64 getValue(const bmqst::StatContext& context,
                                        int                       snapshotId,
                                        const Stat::Enum&         stat);
 
@@ -109,7 +109,7 @@ class DomainStats {
     /// register it as a subcontext of the specified `domainStatContext` and
     /// using the specified `allocator`.
     void initialize(mqbi::Domain*       domain,
-                    mwcst::StatContext* domainStatContext,
+                    bmqst::StatContext* domainStatContext,
                     bslma::Allocator*   allocator);
 
     /// Update statistics for the event of the specified `type` and with the
@@ -118,7 +118,7 @@ class DomainStats {
     void onEvent(EventType::Enum type, bsls::Types::Int64 value);
 
     /// Return a pointer to the statcontext.
-    mwcst::StatContext* statContext();
+    bmqst::StatContext* statContext();
 };
 
 // ======================
@@ -133,7 +133,7 @@ struct DomainStatsUtil {
     /// specified `historySize` of history.  Return the created top level
     /// stat context to use for all domain level statistics.  Use the
     /// specified `allocator` for all stat context and stat values.
-    static bsl::shared_ptr<mwcst::StatContext>
+    static bsl::shared_ptr<bmqst::StatContext>
     initializeStatContext(int historySize, bslma::Allocator* allocator);
 };
 
@@ -145,7 +145,7 @@ struct DomainStatsUtil {
 // class DomainStats
 // ------------------
 
-inline mwcst::StatContext* DomainStats::statContext()
+inline bmqst::StatContext* DomainStats::statContext()
 {
     return d_statContext_mp.get();
 }

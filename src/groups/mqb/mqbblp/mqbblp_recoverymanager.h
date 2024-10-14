@@ -43,8 +43,7 @@
 // BMQ
 #include <bmqp_ctrlmsg_messages.h>
 
-// MWC
-#include <mwcu_blob.h>
+#include <bmqu_blob.h>
 
 // BDE
 #include <ball_log.h>
@@ -999,7 +998,7 @@ class RecoveryManager : public mqbnet::ClusterObserver {
 
     bool hasSyncPoint(bmqp_ctrlmsg::SyncPoint* syncPoint,
                       mqbs::RecordHeader*      syncPointRecHeader,
-                      mwcu::BlobPosition*      syncPointHeaderPosition,
+                      bmqu::BlobPosition*      syncPointHeaderPosition,
                       int*                     messageNumber,
                       bsls::Types::Uint64*     journalOffset,
                       int                      partitionId,

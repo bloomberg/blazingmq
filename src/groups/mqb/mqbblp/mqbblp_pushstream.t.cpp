@@ -22,10 +22,10 @@
 #include <mqbcfg_messages.h>
 #include <mqbs_inmemorystorage.h>
 
-#include <mwcu_memoutstream.h>
+#include <bmqu_memoutstream.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -37,7 +37,7 @@ using namespace bsl;
 
 static void test1_basic()
 {
-    mwctst::TestHelper::printTestName("PushStream basic test");
+    bmqtst::TestHelper::printTestName("PushStream basic test");
 
     bdlma::ConcurrentPool pushElementsPool(sizeof(mqbblp::PushStream::Element),
                                            s_allocator_p);
@@ -64,7 +64,7 @@ static void test1_basic()
 
 static void test2_iterations()
 {
-    mwctst::TestHelper::printTestName("PushStream basic test");
+    bmqtst::TestHelper::printTestName("PushStream basic test");
 
     // Imitate {m1, a1}, {m2, a2}, {m1, a2}, {m2, a1}
 
@@ -133,7 +133,7 @@ static void test2_iterations()
     limits.messages() = bsl::numeric_limits<bsls::Types::Int64>::max();
     limits.bytes()    = bsl::numeric_limits<bsls::Types::Int64>::max();
 
-    mwcu::MemOutStream errorDescription(s_allocator_p);
+    bmqu::MemOutStream errorDescription(s_allocator_p);
     dummyStorage.configure(errorDescription,
                            config,
                            limits,
@@ -195,7 +195,7 @@ static void test2_iterations()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     bmqt::UriParser::initialize(s_allocator_p);
 
@@ -211,5 +211,5 @@ int main(int argc, char* argv[])
 
     bmqt::UriParser::shutdown();
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }

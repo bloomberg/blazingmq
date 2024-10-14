@@ -23,8 +23,7 @@
 #include <bmqscm_version.h>
 #include <bmqt_queueflags.h>
 
-// MWC
-#include <mwcu_memoutstream.h>
+#include <bmqu_memoutstream.h>
 
 // BDE
 #include <bdlb_guid.h>
@@ -41,7 +40,7 @@
 #include <bsls_types.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -53,7 +52,7 @@ using namespace bsl;
 
 static void test1_breathingTest()
 {
-    mwctst::TestHelper::printTestName("BREATHING TEST");
+    bmqtst::TestHelper::printTestName("BREATHING TEST");
 
     int                            rc;
     bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
@@ -132,7 +131,7 @@ void testDecodeFromFileHelper(bmqp::SchemaEventBuilder*       obj,
     ASSERT_EQ(rc, 0);
     ASSERT_NE(obj->blob().length(), 0);
 
-    mwcu::MemOutStream os(s_allocator_p);
+    bmqu::MemOutStream os(s_allocator_p);
     bdlb::Guid         guid = bdlb::GuidUtil::generate();
 
     os << "msg_control_" << typeString << "_" << guid << ".bin" << bsl::ends;
@@ -204,7 +203,7 @@ static void test2_bestEncodingSupported()
 //   bestEncodingSupported
 // --------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("BEST ENCODING SUPPORTED");
+    bmqtst::TestHelper::printTestName("BEST ENCODING SUPPORTED");
 
     PV("Empty remote feature set");
     {
@@ -272,7 +271,7 @@ static void testN1_decodeFromFile()
 //                                EventType::Enum type)
 // --------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("DECODE FROM FILE");
+    bmqtst::TestHelper::printTestName("DECODE FROM FILE");
 
     const int                      k_SIZE = 512;
     bdlbb::PooledBlobBufferFactory bufferFactory(k_SIZE, s_allocator_p);
@@ -548,7 +547,7 @@ static void testN1_decodeFromFile()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     bmqp::ProtocolUtil::initialize(s_allocator_p);
 
@@ -565,5 +564,5 @@ int main(int argc, char* argv[])
 
     bmqp::ProtocolUtil::shutdown();
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 }

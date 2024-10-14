@@ -29,9 +29,8 @@
 #include <bmqp_queueutil.h>
 #include <bmqp_routingconfigurationutils.h>
 
-// MWC
-#include <mwcu_memoutstream.h>
-#include <mwcu_printutil.h>
+#include <bmqu_memoutstream.h>
+#include <bmqu_printutil.h>
 
 // BDE
 #include <bsl_iostream.h>
@@ -204,7 +203,7 @@ void QueueState::loadInternals(mqbcmd::QueueState* out) const
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_queue_p->dispatcher()->inDispatcherThread(d_queue_p));
 
-    mwcu::MemOutStream os;
+    bmqu::MemOutStream os;
 
     out->uri() = d_uri.asString();
     os << d_handleParameters;

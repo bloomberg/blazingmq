@@ -29,12 +29,11 @@
 #include <mqbscm_version.h>
 #include <mqbstat_brokerstats.h>
 
-// MWC
-#include <mwcio_testchannel.h>
-#include <mwcst_statcontext.h>
-#include <mwcsys_time.h>
-#include <mwctst_scopedlogobserver.h>
-#include <mwcu_memoutstream.h>
+#include <bmqio_testchannel.h>
+#include <bmqst_statcontext.h>
+#include <bmqsys_time.h>
+#include <bmqtst_scopedlogobserver.h>
+#include <bmqu_memoutstream.h>
 
 // BDE
 #include <ball_log.h>
@@ -49,8 +48,8 @@
 #include <bsl_vector.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
-#include <mwcu_tempdirectory.h>
+#include <bmqtst_testhelper.h>
+#include <bmqu_tempdirectory.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -131,7 +130,7 @@ struct TestHelper {
 
     bsl::vector<mqbnet::MockClusterNode*> d_nodes;
 
-    mwcu::TempDirectory d_tempDir;
+    bmqu::TempDirectory d_tempDir;
 
     // CREATORS
     TestHelper()
@@ -190,7 +189,7 @@ struct TestHelper {
                                                d_tempDir.path()),
                           s_allocator_p);
 
-        mwcsys::Time::initialize(
+        bmqsys::Time::initialize(
             bdlf::BindUtil::bind(&mqbmock::Cluster::getTime,
                                  d_cluster_mp.get()),
             bdlf::BindUtil::bind(&mqbmock::Cluster::getTime,
@@ -206,7 +205,7 @@ struct TestHelper {
         }
     }
 
-    ~TestHelper() { mwcsys::Time::shutdown(); }
+    ~TestHelper() { bmqsys::Time::shutdown(); }
 
     // MANIPULATORS
 
@@ -271,9 +270,9 @@ static void test1_breathingTest()
 //   Basic functionality.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("BREATHING TEST");
+    bmqtst::TestHelper::printTestName("BREATHING TEST");
 
-    mwctst::ScopedLogObserver logObserver(ball::Severity::ERROR,
+    bmqtst::ScopedLogObserver logObserver(ball::Severity::ERROR,
                                           s_allocator_p);
     NotificationEvaluator     notifications(s_allocator_p);
 
@@ -292,7 +291,7 @@ static void test1_breathingTest()
                                         s_allocator_p);
     monitor.registerObserver(&notifications);
 
-    mwcu::MemOutStream dummy;
+    bmqu::MemOutStream dummy;
 
     helper.d_cluster_mp->start(dummy);
     monitor.start();
@@ -334,9 +333,9 @@ static void test2_checkAlarmsWithResetTest()
 //   Basic functionality.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("CHECK ALARMS WITH RESET");
+    bmqtst::TestHelper::printTestName("CHECK ALARMS WITH RESET");
 
-    mwctst::ScopedLogObserver logObserver(ball::Severity::ERROR,
+    bmqtst::ScopedLogObserver logObserver(ball::Severity::ERROR,
                                           s_allocator_p);
     NotificationEvaluator     notifications(s_allocator_p);
 
@@ -358,7 +357,7 @@ static void test2_checkAlarmsWithResetTest()
                                         s_allocator_p);
     monitor.registerObserver(&notifications);
 
-    mwcu::MemOutStream dummy;
+    bmqu::MemOutStream dummy;
 
     helper.d_cluster_mp->start(dummy);
     monitor.start();
@@ -553,9 +552,9 @@ static void test3_alwaysInvalidStateTest()
 //   Edge case.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("ALWAYS INVALID STATE");
+    bmqtst::TestHelper::printTestName("ALWAYS INVALID STATE");
 
-    mwctst::ScopedLogObserver logObserver(ball::Severity::ERROR,
+    bmqtst::ScopedLogObserver logObserver(ball::Severity::ERROR,
                                           s_allocator_p);
     NotificationEvaluator     notifications(s_allocator_p);
 
@@ -583,7 +582,7 @@ static void test3_alwaysInvalidStateTest()
                                         &helper.d_cluster_mp->_state(),
                                         s_allocator_p);
     monitor.registerObserver(&notifications);
-    mwcu::MemOutStream dummy;
+    bmqu::MemOutStream dummy;
 
     // No state is ever valid so always not healthy
     ASSERT_EQ(monitor.isHealthy(), false);
@@ -710,7 +709,7 @@ static void test3_alwaysInvalidStateTest()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     {
         bmqp::ProtocolUtil::initialize(s_allocator_p);
@@ -718,7 +717,7 @@ int main(int argc, char* argv[])
         mqbcfg::AppConfig brokerConfig(s_allocator_p);
         mqbcfg::BrokerConfig::set(brokerConfig);
 
-        bsl::shared_ptr<mwcst::StatContext> statContext =
+        bsl::shared_ptr<bmqst::StatContext> statContext =
             mqbstat::BrokerStatsUtil::initializeStatContext(30, s_allocator_p);
 
         switch (_testCase) {
@@ -735,7 +734,7 @@ int main(int argc, char* argv[])
         bmqp::ProtocolUtil::shutdown();
     }
 
-    TEST_EPILOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_EPILOG(bmqtst::TestHelper::e_DEFAULT);
     // Can't ensure no global memory is allocated because
     // 'bslmt::ThreadUtil::create()' uses the global allocator to allocate
     // memory.

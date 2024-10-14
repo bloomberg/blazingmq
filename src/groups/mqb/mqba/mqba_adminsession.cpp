@@ -52,11 +52,10 @@
 #include <bmqp_ctrlmsg_messages.h>
 #include <bmqp_event.h>
 
-// MWC
-#include <mwcio_status.h>
-#include <mwcu_blob.h>
-#include <mwcu_printutil.h>
-#include <mwcu_weakmemfn.h>
+#include <bmqio_status.h>
+#include <bmqu_blob.h>
+#include <bmqu_printutil.h>
+#include <bmqu_weakmemfn.h>
 
 // BDE
 #include <ball_log.h>
@@ -147,28 +146,28 @@ void AdminSession::sendPacket()
     }
 
     // Try to send the data, or drop it if we fail due to high watermark limit.
-    mwcio::Status status;
+    bmqio::Status status;
     d_channel_sp->write(&status, blob);
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
-            status.category() != mwcio::StatusCategory::e_SUCCESS)) {
+            status.category() != bmqio::StatusCategory::e_SUCCESS)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        if (status.category() == mwcio::StatusCategory::e_CONNECTION) {
+        if (status.category() == bmqio::StatusCategory::e_CONNECTION) {
             // This code relies on the fact that `e_CONNECTION` error cannot be
             // returned without calling `tearDown`.
             return;  // RETURN
         }
-        if (status.category() == mwcio::StatusCategory::e_LIMIT) {
+        if (status.category() == bmqio::StatusCategory::e_LIMIT) {
             BALL_LOG_ERROR
                 << "#ADMCLIENT_SEND_FAILURE " << description()
                 << ": Failed to send data [size: "
-                << mwcu::PrintUtil::prettyNumber(blob.length())
+                << bmqu::PrintUtil::prettyNumber(blob.length())
                 << " bytes] to admin client due to channel watermark limit"
                 << "; dropping.";
         }
         else {
             BALL_LOG_INFO << "#ADMCLIENT_SEND_FAILURE " << description()
                           << ": Failed to send data [size: "
-                          << mwcu::PrintUtil::prettyNumber(blob.length())
+                          << bmqu::PrintUtil::prettyNumber(blob.length())
                           << " bytes] to admin client with status: " << status;
         }
     }
@@ -257,7 +256,7 @@ void AdminSession::enqueueAdminCommand(
     d_adminCb(
         d_channel_sp->peerUri(),
         req.command(),
-        bdlf::BindUtil::bind(mwcu::WeakMemFnUtil::weakMemFn(
+        bdlf::BindUtil::bind(bmqu::WeakMemFnUtil::weakMemFn(
                                  &AdminSession::onProcessedAdminCommand,
                                  d_self.acquireWeak()),
                              adminCommandCtrlMsg,
@@ -268,7 +267,7 @@ void AdminSession::enqueueAdminCommand(
 
 // CREATORS
 AdminSession::AdminSession(
-    const bsl::shared_ptr<mwcio::Channel>&        channel,
+    const bsl::shared_ptr<bmqio::Channel>&        channel,
     const bmqp_ctrlmsg::NegotiationMessage&       negotiationMessage,
     const bsl::string&                            sessionDescription,
     mqbi::Dispatcher*                             dispatcher,
@@ -338,7 +337,7 @@ void AdminSession::processEvent(
         BALL_LOG_ERROR << "#CORRUPTED_EVENT " << description()
                        << ": Received invalid control message from client "
                        << "[reason: 'failed to decode', rc: " << rc << "]:\n"
-                       << mwcu::BlobStartHexDumper(event.blob());
+                       << bmqu::BlobStartHexDumper(event.blob());
         return;  // RETURN
     }
 

@@ -28,11 +28,10 @@
 // MQB
 #include <mqbcfg_messages.h>
 
-// MWC
-#include <mwcst_basictableinfoprovider.h>
-#include <mwcst_statcontext.h>
-#include <mwcst_table.h>
-#include <mwctsk_logcleaner.h>
+#include <bmqst_basictableinfoprovider.h>
+#include <bmqst_statcontext.h>
+#include <bmqst_table.h>
+#include <bmqtsk_logcleaner.h>
 
 // BDE
 #include <ball_fileobserver2.h>
@@ -68,19 +67,19 @@ class Printer {
     /// Context including table and tip for printing and statcontext for
     /// stats.
     struct Context {
-        mwcst::StatContext* d_statContext_p;
+        bmqst::StatContext* d_statContext_p;
         // Stat Context pointer
 
-        mwcst::Table d_table;
+        bmqst::Table d_table;
         // Table
 
-        mwcst::BasicTableInfoProvider d_tip;
+        bmqst::BasicTableInfoProvider d_tip;
         // tip
     };
 
     typedef bsl::shared_ptr<Context>                   ContextSp;
     typedef bsl::unordered_map<bsl::string, ContextSp> ContextsMap;
-    typedef bsl::unordered_map<bsl::string, mwcst::StatContext*>
+    typedef bsl::unordered_map<bsl::string, bmqst::StatContext*>
         StatContextsMap;
 
   private:
@@ -107,7 +106,7 @@ class Printer {
     ContextsMap d_contexts;
     // Contexts map
 
-    mwctsk::LogCleaner d_statLogCleaner;
+    bmqtsk::LogCleaner d_statLogCleaner;
     // Mechanism to clean up old stat logs.
 
   private:

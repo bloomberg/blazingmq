@@ -31,7 +31,7 @@
 #include <bsls_types.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -53,7 +53,7 @@ static void test1_breathingTest()
 //   Basic functionality.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("BREATHING TEST");
+    bmqtst::TestHelper::printTestName("BREATHING TEST");
 
     const bmqt::QueueOptions k_NULL_OPTIONS(
         bmqt::QueueOptions()
@@ -192,7 +192,7 @@ static void test2_comparison()
 //   bool operator!=(const bmqa::QueueId& lhs, const bmqa::QueueId& rhs);
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("COMPARISON");
+    bmqtst::TestHelper::printTestName("COMPARISON");
 
     PV("Inequality");
     {
@@ -227,7 +227,7 @@ static void test2_comparison()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     switch (_testCase) {
     case 0:
@@ -239,5 +239,5 @@ int main(int argc, char* argv[])
     } break;
     }
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_DEF_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_ALLOC);
 }

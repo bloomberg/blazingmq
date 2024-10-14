@@ -54,7 +54,7 @@
 namespace BloombergLP {
 
 // FORWARD DECLARATION
-namespace mwcio {
+namespace bmqio {
 class Channel;
 }
 
@@ -209,7 +209,7 @@ class Negotiator {
     /// `negotiationCb` may be invoked directly from inside the call to
     /// `negotiate`.
     virtual void negotiate(NegotiatorContext*                     context,
-                           const bsl::shared_ptr<mwcio::Channel>& channel,
+                           const bsl::shared_ptr<bmqio::Channel>& channel,
                            const NegotiationCb& negotiationCb) = 0;
 };
 

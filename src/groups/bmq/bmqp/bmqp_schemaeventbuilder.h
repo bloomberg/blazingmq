@@ -69,8 +69,7 @@
 #include <bmqp_protocol.h>
 #include <bmqp_protocolutil.h>
 
-// MWC
-#include <mwcu_memoutstream.h>
+#include <bmqu_memoutstream.h>
 
 // BDE
 #include <ball_log.h>
@@ -229,7 +228,7 @@ int SchemaEventBuilder::setMessage(const TYPE& message, EventType::Enum type)
     }
 
     // Append appropriate encoding of 'message' to the blob
-    mwcu::MemOutStream os;
+    bmqu::MemOutStream os;
     int                rc = ProtocolUtil::encodeMessage(os,
                                          &d_blob,
                                          message,

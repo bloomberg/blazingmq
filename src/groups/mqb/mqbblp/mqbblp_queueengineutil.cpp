@@ -39,12 +39,11 @@
 #include <mqbs_storageutil.h>
 #include <mqbstat_queuestats.h>
 
-// MWC
-#include <mwcsys_time.h>
-#include <mwctsk_alarmlog.h>
-#include <mwcu_blob.h>
-#include <mwcu_printutil.h>
-#include <mwcu_temputil.h>
+#include <bmqsys_time.h>
+#include <bmqtsk_alarmlog.h>
+#include <bmqu_blob.h>
+#include <bmqu_printutil.h>
+#include <bmqu_temputil.h>
 
 // BDE
 #include <ball_log.h>
@@ -278,7 +277,7 @@ int QueueEngineUtil::dumpMessageInTempfile(
         rc_FILE_OPEN_FAILURE     = -2
     };
 
-    const bsl::string                    prefix = mwcu::TempUtil::tempDir();
+    const bsl::string                    prefix = bmqu::TempUtil::tempDir();
     bdls::FilesystemUtil::FileDescriptor fileDescriptor =
         bdls::FilesystemUtil::createTemporaryFile(filepath, prefix);
     if (fileDescriptor == bdls::FilesystemUtil::k_INVALID_FD) {
@@ -337,7 +336,7 @@ void QueueEngineUtil::logRejectMessage(
         *appData,
         appData->length(),
         true,
-        mwcu::BlobPosition(),
+        bmqu::BlobPosition(),
         attributes.messagePropertiesInfo().isPresent(),
         attributes.messagePropertiesInfo().isExtended(),
         attributes.compressionAlgorithmType(),
@@ -353,15 +352,15 @@ void QueueEngineUtil::logRejectMessage(
     bsl::string filepath;
 
     if (rc != 0) {
-        MWCTSK_ALARMLOG_ALARM("POISON_PILL")
+        BMQTSK_ALARMLOG_ALARM("POISON_PILL")
             << "A poison pill message was detected and purged from the queue "
             << queueState->uri() << " [GUID: " << msgGUID
             << ", appId: " << appId << ", subQueueId: " << subQueueId
-            << "]. Message was "
-            << "transmitted a total of " << attemptedDeliveries
+            << "]. Message was " << "transmitted a total of "
+            << attemptedDeliveries
             << " times to consumer(s). BlazingMQ failed to load message "
             << "properties with internal error code " << rc
-            << "Dumping raw message." << MWCTSK_ALARMLOG_END;
+            << "Dumping raw message." << BMQTSK_ALARMLOG_END;
         rc = dumpMessageInTempfile(&filepath,
                                    *appData,
                                    0,
@@ -376,37 +375,37 @@ void QueueEngineUtil::logRejectMessage(
     }
 
     if (rc == -1) {
-        MWCTSK_ALARMLOG_ALARM("POISON_PILL")
+        BMQTSK_ALARMLOG_ALARM("POISON_PILL")
             << "A poison pill message was detected and purged from the queue "
             << queueState->uri() << " [GUID: " << msgGUID
             << ", appId: " << appId << ", subQueueId: " << subQueueId
             << "]. Message was transmitted a total of " << attemptedDeliveries
             << " times to consumer(s). Attempt to dump message in a file "
             << "failed because file could not be created."
-            << MWCTSK_ALARMLOG_END;
+            << BMQTSK_ALARMLOG_END;
         return;  // RETURN
     }
 
     if (rc == -2) {
-        MWCTSK_ALARMLOG_ALARM("POISON_PILL")
+        BMQTSK_ALARMLOG_ALARM("POISON_PILL")
             << "A poison pill message was detected and purged from the queue "
             << queueState->uri() << " [GUID: " << msgGUID
             << ", appId: " << appId << ", subQueueId: " << subQueueId
             << "]. Message was transmitted a total of " << attemptedDeliveries
             << " times to consumer(s). Attempt to dump message in a file "
             << "failed because file could not be opened."
-            << MWCTSK_ALARMLOG_END;
+            << BMQTSK_ALARMLOG_END;
         return;  // RETURN
     }
 
-    MWCTSK_ALARMLOG_ALARM("POISON_PILL")
+    BMQTSK_ALARMLOG_ALARM("POISON_PILL")
         << "A poison pill message was detected and purged from the queue "
         << queueState->uri() << " [GUID: " << msgGUID << ", appId: " << appId
         << ", subQueueId: " << subQueueId
         << "]. Message was transmitted a total of " << attemptedDeliveries
         << " times to consumer(s). Message was dumped in file at location ["
         << filepath << "] on this machine. Please copy file before it gets "
-        << "deleted." << MWCTSK_ALARMLOG_END;
+        << "deleted." << BMQTSK_ALARMLOG_END;
 }
 
 // -------------------------------------------
@@ -994,7 +993,7 @@ Routers::Result QueueEngineUtil_AppState::tryDeliverOneMessage(
     //         'delay' and return false.
 
     bsls::TimeInterval messageDelay;
-    bsls::TimeInterval now = mwcsys::Time::nowMonotonicClock();
+    bsls::TimeInterval now = bmqsys::Time::nowMonotonicClock();
     Visitor            visitor;
 
     Routers::Result result = Routers::e_SUCCESS;

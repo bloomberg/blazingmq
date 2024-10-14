@@ -35,8 +35,7 @@
 #include <bmqp_protocol.h>
 #include <bmqt_messageguid.h>
 
-// MWC
-#include <mwcu_throttledaction.h>
+#include <bmqu_throttledaction.h>
 
 // BDE
 #include <ball_log.h>
@@ -85,7 +84,7 @@ class LocalQueue BSLS_CPP11_FINAL {
     bslma::Allocator*                    d_allocator_p;
     QueueState*                          d_state_p;
     bslma::ManagedPtr<mqbi::QueueEngine> d_queueEngine_mp;
-    mwcu::ThrottledActionParams          d_throttledFailedPutMessages;
+    bmqu::ThrottledActionParams          d_throttledFailedPutMessages;
     bool                                 d_hasNewMessages;
     bdlmt::Throttle                      d_throttledDuplicateMessages;
     // Throttler for duplicates.

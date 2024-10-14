@@ -34,8 +34,7 @@
 #include <mqbs_mappedfiledescriptor.h>
 #include <mqbu_storagekey.h>
 
-// MWC
-#include <mwcu_blob.h>
+#include <bmqu_blob.h>
 
 // BDE
 #include <bdlbb_blob.h>
@@ -105,7 +104,7 @@ struct FileStoreProtocolUtil {
     /// position in the `blob` and `length` is non-zero.
     static int calculateMd5Digest(bdlde::Md5::Md5Digest*    buffer,
                                   const bdlbb::Blob&        blob,
-                                  const mwcu::BlobPosition& startPos,
+                                  const bmqu::BlobPosition& startPos,
                                   unsigned int              length);
 
     static void loadAppIdKeyPairs(

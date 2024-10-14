@@ -21,8 +21,7 @@
 #include <mqbi_domain.h>
 #include <mqbstat_domainstats.h>
 
-// MWC
-#include <mwcu_printutil.h>
+#include <bmqu_printutil.h>
 
 // BDE
 #include <bslim_printer.h>
@@ -361,7 +360,7 @@ bool ClusterState::assignQueue(const bmqt::Uri&        uri,
 
     updatePartitionQueueMapped(partitionId, 1);
 
-    mwcu::Printer<AppIdInfos> printer(&appIdInfos);
+    bmqu::Printer<AppIdInfos> printer(&appIdInfos);
     BALL_LOG_INFO << "Cluster [" << d_cluster_p->name() << "]: "
                   << "Assigning queue [" << uri << "], queueKey: [" << key
                   << "] to Partition [" << partitionId
@@ -504,8 +503,8 @@ int ClusterState::updateQueue(const bmqt::Uri&   uri,
             appIdInfos.erase(appIdInfoCIter);
         }
 
-        mwcu::Printer<AppIdInfos> printer1(&addedAppIds);
-        mwcu::Printer<AppIdInfos> printer2(&removedAppIds);
+        bmqu::Printer<AppIdInfos> printer1(&addedAppIds);
+        bmqu::Printer<AppIdInfos> printer2(&removedAppIds);
         BALL_LOG_INFO << "Cluster [" << d_cluster_p->name() << "]: "
                       << "Updating queue [" << uri << "], queueKey: ["
                       << iter->second->key() << "], partitionId: ["
@@ -516,8 +515,8 @@ int ClusterState::updateQueue(const bmqt::Uri&   uri,
     else {
         // This update is for an entire domain, instead of any individual
         // queue.
-        mwcu::Printer<AppIdInfos> printer1(&addedAppIds);
-        mwcu::Printer<AppIdInfos> printer2(&removedAppIds);
+        bmqu::Printer<AppIdInfos> printer1(&addedAppIds);
+        bmqu::Printer<AppIdInfos> printer2(&removedAppIds);
         BALL_LOG_INFO << "Cluster [" << d_cluster_p->name() << "]: "
                       << "Updating domain: [" << domain
                       << "], addedAppIds: " << printer1

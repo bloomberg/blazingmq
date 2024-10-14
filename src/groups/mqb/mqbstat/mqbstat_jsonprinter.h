@@ -27,8 +27,7 @@
 // statistics updates (e.g. making a new snapshot of the used StatContexts)
 // must be done before calling to this component.
 
-// MWC
-#include <mwcst_statcontext.h>
+#include <bmqst_statcontext.h>
 
 // BDE
 #include <bsl_string.h>
@@ -60,7 +59,7 @@ class JsonPrinter {
 
   public:
     // PUBLIC TYPES
-    typedef bsl::unordered_map<bsl::string, mwcst::StatContext*>
+    typedef bsl::unordered_map<bsl::string, bmqst::StatContext*>
         StatContextsMap;
 
     // CREATORS

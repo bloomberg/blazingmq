@@ -40,9 +40,9 @@
 #include <bmqa_queueid.h>
 #include <bmqa_session.h>
 
-// MWC
-#include <mwcst_statcontext.h>
-#include <mwctsk_consoleobserver.h>
+// BMQ
+#include <bmqst_statcontext.h>
+#include <bmqtsk_consoleobserver.h>
 
 // BDE
 #include <ball_multiplexobserver.h>
@@ -76,7 +76,7 @@ namespace m_bmqtool {
 class Application : public bmqa::SessionEventHandler {
   private:
     // CLASS METHODS
-    static bsl::shared_ptr<mwcst::StatContext>
+    static bsl::shared_ptr<bmqst::StatContext>
     createStatContext(int historySize, bslma::Allocator* allocator);
 
     // DATA
@@ -98,7 +98,7 @@ class Application : public bmqa::SessionEventHandler {
     bmqa::QueueId d_queueId;
     // Queue to send/receive messages
 
-    bsl::shared_ptr<mwcst::StatContext> d_statContext_sp;
+    bsl::shared_ptr<bmqst::StatContext> d_statContext_sp;
     // StatContext for msg/event stats
 
     bdlmt::EventScheduler d_scheduler;
@@ -115,7 +115,7 @@ class Application : public bmqa::SessionEventHandler {
 
     ball::MultiplexObserver d_multiplexObserver;
 
-    mwctsk::ConsoleObserver d_consoleObserver;
+    bmqtsk::ConsoleObserver d_consoleObserver;
 
     bslma::ManagedPtr<bmqa::Session> d_session_mp;
     // Session with the BlazingMQ broker.

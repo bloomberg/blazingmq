@@ -30,11 +30,11 @@
 #include <bmqp_optionsview.h>
 #include <bmqp_protocol.h>
 
-// MWC
-#include <mwcu_alignedprinter.h>
-#include <mwcu_memoutstream.h>
-#include <mwcu_outstreamformatsaver.h>
-#include <mwcu_stringutil.h>
+// BMQ
+#include <bmqu_alignedprinter.h>
+#include <bmqu_memoutstream.h>
+#include <bmqu_outstreamformatsaver.h>
+#include <bmqu_stringutil.h>
 
 // BDE
 #include <ball_log.h>
@@ -89,7 +89,7 @@ bool resetIterator(mqbs::MappedFileDescriptor* mfd,
     }
 
     // 1) Open
-    mwcu::MemOutStream errorDesc;
+    bmqu::MemOutStream errorDesc;
     int                rc = mqbs::FileSystemUtil::open(
         mfd,
         filename,
@@ -226,7 +226,7 @@ void iterateNextPosition(CHOICE&                     choice,
         iter->flipDirection();
     }
 
-    mwcu::MemOutStream oss;
+    bmqu::MemOutStream oss;
     while (skip > 0) {
         if (iter->hasRecordSizeRemaining() == false) {
             if (verbose) {
@@ -360,7 +360,7 @@ void StorageInspector::processCommand(const OpenStorageCommand& command)
                       << d_journalFile << "] Qlist file: [" << d_qlistFile
                       << "]";
     }
-    else if (mwcu::StringUtil::endsWith(
+    else if (bmqu::StringUtil::endsWith(
                  path,
                  mqbs::FileStoreProtocol::k_DATA_FILE_EXTENSION)) {
         if (!resetIterator(&d_dataFd, &d_dataFileIter, path.c_str())) {
@@ -369,7 +369,7 @@ void StorageInspector::processCommand(const OpenStorageCommand& command)
 
         d_dataFile = path;
     }
-    else if (mwcu::StringUtil::endsWith(
+    else if (bmqu::StringUtil::endsWith(
                  path,
                  mqbs::FileStoreProtocol::k_JOURNAL_FILE_EXTENSION)) {
         if (!resetIterator(&d_journalFd, &d_journalFileIter, path.c_str())) {
@@ -378,7 +378,7 @@ void StorageInspector::processCommand(const OpenStorageCommand& command)
 
         d_journalFile = path;
     }
-    else if (mwcu::StringUtil::endsWith(
+    else if (bmqu::StringUtil::endsWith(
                  path,
                  mqbs::FileStoreProtocol::k_QLIST_FILE_EXTENSION)) {
         if (!resetIterator(&d_qlistFd, &d_qlistFileIter, path.c_str())) {
@@ -474,7 +474,7 @@ void StorageInspector::processCommand(
             fields.push_back("SyncPoint DataFileOffset (DWORDS)");
             fields.push_back("SyncPoint QlistFileOffset (WORDS)");
 
-            mwcu::AlignedPrinter printer(BALL_LOG_OUTPUT_STREAM, &fields);
+            bmqu::AlignedPrinter printer(BALL_LOG_OUTPUT_STREAM, &fields);
             bsls::Types::Uint64  lastRecPos =
                 d_journalFileIter.lastRecordPosition();
             printer << lastRecPos;
@@ -578,7 +578,7 @@ void StorageInspector::processCommand(
             fields.push_back("QueueKey");
             fields.push_back("Number of AppIds");
 
-            mwcu::AlignedPrinter printer(BALL_LOG_OUTPUT_STREAM, &fields);
+            bmqu::AlignedPrinter printer(BALL_LOG_OUTPUT_STREAM, &fields);
             printer << cit->first << qr.d_queueKey << qr.d_appIds.size();
 
             // 'printer' not to be used beyond this point
@@ -592,7 +592,7 @@ void StorageInspector::processCommand(
                 f.push_back("AppKey");
 
                 const int            indent = 8;
-                mwcu::AlignedPrinter p(BALL_LOG_OUTPUT_STREAM, &f, indent);
+                bmqu::AlignedPrinter p(BALL_LOG_OUTPUT_STREAM, &f, indent);
                 p << ar.d_appId << ar.d_appKey;
             }
 

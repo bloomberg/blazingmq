@@ -52,9 +52,8 @@
 #include <bmqp_queueutil.h>
 #include <bmqt_messageguid.h>
 
-// MWC
-#include <mwcc_orderedhashmap.h>
-#include <mwcu_sharedresource.h>
+#include <bmqc_orderedhashmap.h>
+#include <bmqu_sharedresource.h>
 
 // BDE
 #include <ball_log.h>
@@ -222,7 +221,7 @@ class RelayQueueEngine : public mqbi::QueueEngine {
     AppIds d_appIds;
     // (appId) -> App_State map
 
-    mwcu::SharedResource<RelayQueueEngine> d_self;
+    bmqu::SharedResource<RelayQueueEngine> d_self;
     // Used to avoid executing a callback if
     // the engine has been destroyed.  For
     // example, upon queue converting to local.

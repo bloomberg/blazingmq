@@ -49,8 +49,7 @@
 #include <bmqp_storagemessageiterator.h>
 #include <bmqt_uri.h>
 
-// MWC
-#include <mwcma_countingallocatorstore.h>
+#include <bmqma_countingallocatorstore.h>
 
 // BDE
 #include <ball_log.h>
@@ -503,7 +502,7 @@ struct StorageUtil {
         const mqbcfg::PartitionConfig&              config,
         FileStores*                                 fileStores,
         BlobSpPool*                                 blobSpPool,
-        mwcma::CountingAllocatorStore*              allocators,
+        bmqma::CountingAllocatorStore*              allocators,
         bsl::ostream&                               errorDescription,
         int                                         replicationFactor,
         const RecoveredQueuesCb&                    recoveredQueuesCb,
@@ -634,7 +633,7 @@ struct StorageUtil {
                   mqbs::FileStore*                         fs,
                   AppKeys*                                 appKeys,
                   bslmt::Mutex*                            appKeysLock,
-                  mwcma::CountingAllocatorStore*           allocators,
+                  bmqma::CountingAllocatorStore*           allocators,
                   const mqbi::Dispatcher::ProcessorHandle& processor,
                   const bmqt::Uri&                         uri,
                   const mqbu::StorageKey&                  queueKey,
@@ -682,7 +681,7 @@ struct StorageUtil {
                                    bslmt::Mutex*        storagesLock,
                                    mqbs::FileStore*     fs,
                                    mqbi::DomainFactory* domainFactory,
-                                   mwcma::CountingAllocatorStore* allocators,
+                                   bmqma::CountingAllocatorStore* allocators,
                                    const bsl::string&      clusterDescription,
                                    int                     partitionId,
                                    const bmqt::Uri&        uri,

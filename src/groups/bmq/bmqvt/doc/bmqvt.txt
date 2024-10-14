@@ -1,0 +1,26 @@
+@PURPOSE: Provide internal value-semantic vocabulary types.
+
+@MNEMONIC: BlazingMQ priVate Types (bmqt)
+
+@DESCRIPTION: This package provides value-semantic vocabulary types.
+
+/Hierarchical Synopsis
+/---------------------
+The 'bmqt' package currently has 18 components having 2 levels of physical
+dependency.  The list below shows the hierarchal ordering of the components.
+..
+  1.  bmqt_propertybag
+      bmqt_rcdescriptionerror
+      bmqt_valueorerror
+..
+
+/Component Synopsis
+/------------------
+: 'bmqt_propertybag':
+:      Provide a bag of named properties.
+:
+: 'bmqt_rcdescriptionerror':
+:      Provide a value-semantic class for a typical error.
+:
+: 'bmqt_valueorerror':
+:      Provide a value-semantic class that may hold a value or an error.

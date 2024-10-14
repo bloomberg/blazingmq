@@ -17,13 +17,13 @@
 #include <bmqt_messageguid.h>
 
 // BMQ
-#include <mwcu_memoutstream.h>
+#include <bmqu_memoutstream.h>
 
 // BDE
 #include <bsls_alignmentfromtype.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -44,7 +44,7 @@ static void test1_breathingTest()
 //   Basic functionality
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("BREATHING TEST");
+    bmqtst::TestHelper::printTestName("BREATHING TEST");
 
     PV("Test some invalid guids");
     bmqt::MessageGUID obj1;
@@ -119,7 +119,7 @@ static void test1_breathingTest()
 
 static void test2_streamout()
 {
-    mwctst::TestHelper::printTestName("STREAM OUT");
+    bmqtst::TestHelper::printTestName("STREAM OUT");
 
     // Create guid from valid hex rep
 
@@ -127,7 +127,7 @@ static void test2_streamout()
         PV("Unset GUID");
         bmqt::MessageGUID obj;
 
-        mwcu::MemOutStream osstr(s_allocator_p);
+        bmqu::MemOutStream osstr(s_allocator_p);
         osstr << obj;
 
         ASSERT_EQ("** UNSET **", osstr.str());
@@ -142,7 +142,7 @@ static void test2_streamout()
         bmqt::MessageGUID obj;
         obj.fromHex(k_HEX_G);
 
-        mwcu::MemOutStream osstr(s_allocator_p);
+        bmqu::MemOutStream osstr(s_allocator_p);
         osstr << obj;
 
         bsl::string guidStr(k_HEX_G,
@@ -164,7 +164,7 @@ static void test2_streamout()
         bmqt::MessageGUID obj;
         obj.fromHex(k_HEX_G);
 
-        mwcu::MemOutStream osstr(s_allocator_p);
+        bmqu::MemOutStream osstr(s_allocator_p);
         obj.print(osstr, 2, 4);
 
         ASSERT_EQ(k_EXPECTED, osstr.str());
@@ -177,7 +177,7 @@ static void test2_streamout()
 
         bmqt::MessageGUID obj;
 
-        mwcu::MemOutStream out(s_allocator_p);
+        bmqu::MemOutStream out(s_allocator_p);
         out.setstate(bsl::ios_base::badbit);
         obj.print(out, 0, -1);
 
@@ -193,7 +193,7 @@ static void test3_alignment()
 //   Ensure 4 byte alignment of bmqt_messageguid
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("ALIGNMENT");
+    bmqtst::TestHelper::printTestName("ALIGNMENT");
 
     const size_t k_EXPECTED_ALIGNMENT = 1;
     const size_t k_REAL_ALIGNMENT =
@@ -223,7 +223,7 @@ static void test4_hashAppend()
 //   bmqt::MessageGUIDHashAlgo
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("HASH APPEND");
+    bmqtst::TestHelper::printTestName("HASH APPEND");
 
     PV("HASH FUNCTION DETERMINISTIC");
 
@@ -277,7 +277,7 @@ static void test5_comparisonOperators()
 //                                   const bmqt::MessageGUID& rhs)
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("COMPARISON OPERATORS");
+    bmqtst::TestHelper::printTestName("COMPARISON OPERATORS");
 
     // Lesser value
     const char k_HEX_G1[] = "0000000000003039CD8101000000270F";
@@ -311,7 +311,7 @@ static void test5_comparisonOperators()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     switch (_testCase) {
     case 0:
@@ -326,5 +326,5 @@ int main(int argc, char* argv[])
     } break;
     }
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }

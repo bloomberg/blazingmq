@@ -35,9 +35,8 @@
 
 #include <bmqimp_stat.h>
 
-// MWC
-#include <mwcst_statcontext.h>
-#include <mwcst_statvalue.h>
+#include <bmqst_statcontext.h>
+#include <bmqst_statvalue.h>
 
 // BDE
 #include <bsl_ostream.h>
@@ -92,7 +91,7 @@ struct EventsStatsEventType {
 class EventsStats {
   private:
     // PRIVATE TYPES
-    typedef bslma::ManagedPtr<mwcst::StatContext> StatContextMp;
+    typedef bslma::ManagedPtr<bmqst::StatContext> StatContextMp;
 
   private:
     // DATA
@@ -130,9 +129,9 @@ class EventsStats {
     /// correspond to stats between the specified `start` and `end` snapshot
     /// location.  The behavior is undefined is this method is called more
     /// than once on the same `EventsStats` object.
-    void initializeStats(mwcst::StatContext* rootStatContext,
-                         const mwcst::StatValue::SnapshotLocation& start,
-                         const mwcst::StatValue::SnapshotLocation& end);
+    void initializeStats(bmqst::StatContext* rootStatContext,
+                         const bmqst::StatValue::SnapshotLocation& start,
+                         const bmqst::StatValue::SnapshotLocation& end);
 
     /// Reset all statistics (used when restarting the session).
     void resetStats();

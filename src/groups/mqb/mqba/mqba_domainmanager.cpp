@@ -31,14 +31,13 @@
 // BMQ
 #include <bmqp_ctrlmsg_messages.h>
 
-// MWC
-#include <mwcst_statcontext.h>
-#include <mwcsys_time.h>
-#include <mwctsk_alarmlog.h>
-#include <mwcu_memoutstream.h>
-#include <mwcu_sharedresource.h>
-#include <mwcu_stringutil.h>
-#include <mwcu_weakmemfn.h>
+#include <bmqst_statcontext.h>
+#include <bmqsys_time.h>
+#include <bmqtsk_alarmlog.h>
+#include <bmqu_memoutstream.h>
+#include <bmqu_sharedresource.h>
+#include <bmqu_stringutil.h>
+#include <bmqu_weakmemfn.h>
 
 // BDE
 #include <baljsn_decoder.h>
@@ -249,7 +248,7 @@ void DomainManager::onConfigProviderDomainConfigCb(
 
     // This compiles the message that will be sent to the client. This contains
     // only `d_message` for brevity.
-    mwcu::MemOutStream err;
+    bmqu::MemOutStream err;
     err << "ConfigProvider failed to load domain config "
         << "[ domain = '" << domain << "'"
         << " configProviderError = '" << configProviderError.d_status.message()
@@ -273,7 +272,7 @@ DomainManager::decodeAndUpsert(DecodeAndUpsertValue* out,
                                const bsl::string&    clusterName)
 {
     if (status != 0) {
-        mwcu::MemOutStream err;
+        bmqu::MemOutStream err;
         err << "rc = " << status << " message = '" << result << "'";
         out->makeError(Error(bmqp_ctrlmsg::StatusCategory::E_REFUSED,
                              mqbi::ClusterErrorCode::e_UNKNOWN,
@@ -293,7 +292,7 @@ DomainManager::decodeAndUpsert(DecodeAndUpsertValue* out,
 
     int rc = decoder.decode(jsonStream, &domainVariant, options);
     if (rc != 0) {
-        mwcu::MemOutStream err;
+        bmqu::MemOutStream err;
         err << "rc = " << rc << " error = '" << decoder.loggedMessages() << "'"
             << " from content = '" << jsonStream.str() << "'";
         out->makeError(Error(bmqp_ctrlmsg::StatusCategory::E_REFUSED,
@@ -304,7 +303,7 @@ DomainManager::decodeAndUpsert(DecodeAndUpsertValue* out,
     }
 
     if (!domainVariant.isDefinitionValue()) {
-        mwcu::MemOutStream err;
+        bmqu::MemOutStream err;
         err << "invalid domain configuration for domain '" << domain
             << "' (not a domain definition)";
         out->makeError(Error(bmqp_ctrlmsg::StatusCategory::E_REFUSED,
@@ -377,7 +376,7 @@ DomainManager::upsertDomain(UpsertDomainValue*             out,
                 // cluster description is not backed up and not coming from the
                 // domain configuration, there is no need to try to fall back
                 // if this fails..
-                mwcu::MemOutStream err;
+                bmqu::MemOutStream err;
                 err << "cluster = " << clusterName << " status = " << status;
                 out->makeError(Error(status, err.str(), true));
                 return *out;  // RETURN
@@ -390,9 +389,9 @@ DomainManager::upsertDomain(UpsertDomainValue*             out,
         }
 
         // Create a dedicated stats subcontext for this domain
-        mwcst::StatContextConfiguration statContextCfg(domain);
+        bmqst::StatContextConfiguration statContextCfg(domain);
         statContextCfg.storeExpiredSubcontextValues(true);
-        bslma::ManagedPtr<mwcst::StatContext> queuesStatContext =
+        bslma::ManagedPtr<bmqst::StatContext> queuesStatContext =
             d_queuesStatContext_p->addSubcontext(statContextCfg);
 
         bslma::ManagedPtr<mqbi::Domain> domainMp(
@@ -409,10 +408,10 @@ DomainManager::upsertDomain(UpsertDomainValue*             out,
 
     // Configure the domain
     // - - - - - - - - - -
-    mwcu::MemOutStream configureErrorStream;
+    bmqu::MemOutStream configureErrorStream;
     int rc = domainSp->configure(configureErrorStream, definition);
     if (rc != 0) {
-        mwcu::MemOutStream err;
+        bmqu::MemOutStream err;
         err << "error = '" << configureErrorStream.str() << "'"
             << " config = '" << definition << "'";
         out->makeError(
@@ -457,7 +456,7 @@ void DomainManager::invokeCallback(
         status = response.error().d_status;
 
         // Rework the 'message' field of 'status' for improved format.
-        mwcu::MemOutStream err;
+        bmqu::MemOutStream err;
         err << status.message() << ". Details: " << response.error().d_details;
         status.message().assign(err.str().data(), err.str().length());
         callback(status, 0);
@@ -480,8 +479,8 @@ DomainManager::DomainManager(ConfigProvider*           configProvider,
                              bdlbb::BlobBufferFactory* blobBufferFactory,
                              mqbblp::ClusterCatalog*   clusterCatalog,
                              mqbi::Dispatcher*         dispatcher,
-                             mwcst::StatContext*       domainsStatContext,
-                             mwcst::StatContext*       queuesStatContext,
+                             bmqst::StatContext*       domainsStatContext,
+                             bmqst::StatContext*       queuesStatContext,
                              bslma::Allocator*         allocator)
 : d_configProvider_p(configProvider)
 , d_blobBufferFactory_p(blobBufferFactory)
@@ -545,19 +544,19 @@ void DomainManager::stop()
     }
 
     // Stop all domains (and queues).
-    mwcu::SharedResource<DomainManager> self(this);
+    bmqu::SharedResource<DomainManager> self(this);
     bslmt::Latch latch(d_domains.size(), bsls::SystemClockType::e_MONOTONIC);
 
     for (DomainSpMap::iterator it = d_domains.begin(); it != d_domains.end();
          ++it) {
         it->second->teardown(bdlf::BindUtil::bind(
-            mwcu::WeakMemFnUtil::weakMemFn(&DomainManager::onDomainClosed,
+            bmqu::WeakMemFnUtil::weakMemFn(&DomainManager::onDomainClosed,
                                            self.acquireWeak()),
             bdlf::PlaceHolders::_1,  // Domain Name
             &latch));
     }
 
-    bsls::TimeInterval timeout = mwcsys::Time::nowMonotonicClock().addSeconds(
+    bsls::TimeInterval timeout = bmqsys::Time::nowMonotonicClock().addSeconds(
         k_MAX_WAIT_SECONDS_AT_SHUTDOWN);
     int rc = latch.timedWait(timeout);
     if (0 != rc) {
@@ -648,7 +647,7 @@ int DomainManager::processCommand(mqbcmd::DomainsResult*        result,
         DomainSp domainSp;
 
         if (0 != locateOrCreateDomain(&domainSp, name)) {
-            mwcu::MemOutStream os;
+            bmqu::MemOutStream os;
             os << "Domain '" << name << "' doesn't exist";
             result->makeError().message() = os.str();
             return -1;  // RETURN
@@ -675,7 +674,7 @@ int DomainManager::processCommand(mqbcmd::DomainsResult*        result,
         DomainSp domainSp;
 
         if (0 != locateOrCreateDomain(&domainSp, name)) {
-            mwcu::MemOutStream os;
+            bmqu::MemOutStream os;
             os << "Domain '" << name << "' doesn't exist";
             result->makeError().message() = os.str();
             return -1;  // RETURN
@@ -704,7 +703,7 @@ int DomainManager::processCommand(mqbcmd::DomainsResult*        result,
         }
     }
 
-    mwcu::MemOutStream os;
+    bmqu::MemOutStream os;
     os << "Unknown command '" << command << "'";
     result->makeError().message() = os.str();
     return -1;
