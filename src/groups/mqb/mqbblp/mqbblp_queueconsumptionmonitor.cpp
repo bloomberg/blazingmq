@@ -215,7 +215,6 @@ void QueueConsumptionMonitor::onTimer(bsls::Types::Int64 currentTimer)
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
         d_queueState_p->queue()));
-    BSLS_ASSERT_SAFE(d_loggingCb);
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(d_maxIdleTime == 0)) {
         // monitoring is disabled

@@ -210,8 +210,7 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
     /// If there are un-delivered messages for the specified `appKey` and
     /// `enableLog` is `true` it logs alarm data. Return `true` if there are
     /// un-delivered messages and `false` otherwise.
-    bool logAlarmCb(const mqbu::StorageKey& appKey,
-                    const bool              enableLog) const;
+    bool logAlarmCb(const mqbu::StorageKey& appKey, bool enableLog) const;
 
   public:
     // TRAITS

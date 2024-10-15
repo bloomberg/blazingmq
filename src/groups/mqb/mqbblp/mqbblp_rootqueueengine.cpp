@@ -1618,7 +1618,7 @@ void RootQueueEngine::onTimer(bsls::Types::Int64 currentTimer)
 }
 
 bool RootQueueEngine::logAlarmCb(const mqbu::StorageKey& appKey,
-                                 const bool              enableLog) const
+                                 bool                    enableLog) const
 {
     // executed by the *QUEUE DISPATCHER* thread
 
@@ -1641,7 +1641,7 @@ bool RootQueueEngine::logAlarmCb(const mqbu::StorageKey& appKey,
         // No un-delivered messages, do nothing.
         return false;  // RETURN
     }
-    else if (!enableLog) {
+    if (!enableLog) {
         // There are un-delivered messages, but log is disabled.
         return true;  // RETURN
     }
@@ -1655,7 +1655,7 @@ bool RootQueueEngine::logAlarmCb(const mqbu::StorageKey& appKey,
     int idx          = 1;
     int numConsumers = 0;
 
-    QueueEngineUtil_AppState::Consumers& consumers = app->consumers();
+    const QueueEngineUtil_AppState::Consumers& consumers = app->consumers();
     for (QueueEngineUtil_AppState::Consumers::const_iterator citConsumer =
              consumers.begin();
          citConsumer != consumers.end();
@@ -1738,8 +1738,8 @@ bool RootQueueEngine::logAlarmCb(const mqbu::StorageKey& appKey,
     }
     if (exprNum) {
         if (exprNum == k_EXPR_NUM_LIMIT) {
-            out << k_EXPR_NUM_LIMIT << " of "
-                << " consumer subscription expressions: ";
+            out << "First " << k_EXPR_NUM_LIMIT
+                << " of consumer subscription expressions: ";
         }
         else {
             out << "Consumer subscription expressions: ";
@@ -1756,7 +1756,7 @@ bool RootQueueEngine::logAlarmCb(const mqbu::StorageKey& appKey,
             app->putAsideList().first());
         if (rc == mqbi::StorageResult::e_SUCCESS) {
             // Log timestamp
-            out << "Oldest message in a 'Put aside' list:\n";
+            out << "Oldest message in the 'Put aside' list:\n";
             mqbcmd::Result result;
             mqbs::StoragePrintUtil::listMessage(&result.makeMessage(),
                                                 storage,
@@ -1776,11 +1776,14 @@ bool RootQueueEngine::logAlarmCb(const mqbu::StorageKey& appKey,
             else {
                 BALL_LOG_WARN << "Failed to streamIn MessageProperties, rc = "
                               << rc;
+                out << "Message Properties: Failed to acquire [rc: " << rc
+                    << "]\n";
             }
         }
         else {
             BALL_LOG_WARN << "Failed to get storage iterator for GUID: "
                           << app->putAsideList().first() << ", rc = " << rc;
+            out << "'Put aside' list: Failed to acquire [rc: " << rc << "]\n";
         }
     }
 

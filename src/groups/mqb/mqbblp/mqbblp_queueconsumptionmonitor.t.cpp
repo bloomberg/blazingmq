@@ -79,7 +79,7 @@ struct Test : mwctst::Test {
 
     // MANIPULATORS
     void putMessage(mqbu::StorageKey key = mqbu::StorageKey::k_NULL_KEY);
-    bool loggingCb(const mqbu::StorageKey& appKey, const bool enableLog);
+    bool loggingCb(const mqbu::StorageKey& appKey, bool enableLog);
 };
 
 Test::Test()
@@ -163,10 +163,8 @@ bool Test::loggingCb(const mqbu::StorageKey& appKey, const bool enableLog)
     bool haveUndelivered = d_haveUndelivered.contains(appKey);
 
     if (enableLog && haveUndelivered) {
-        mwcu::MemOutStream out(s_allocator_p);
-        out << "Test Alarm";
         MWCTSK_ALARMLOG_ALARM("QUEUE_STUCK")
-            << out.str() << MWCTSK_ALARMLOG_END;
+            << "Test Alarm" << MWCTSK_ALARMLOG_END;
     }
 
     return haveUndelivered;

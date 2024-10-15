@@ -210,7 +210,12 @@ class QueueConsumptionMonitor {
         static const char* toAscii(Transition::Enum value);
     };
 
-    typedef bsl::function<bool(const mqbu::StorageKey&, bool)> LoggingCb;
+    /// Callback function to log alarm info when queue state transitions to
+    /// idle. First argument is the app key, second argument is a boolean flag
+    /// to enable logging. If `enableLog` is `false`, logging is skipped.
+    /// Return `true` if there are un-delivered messages and `false` otherwise.
+    typedef bsl::function<bool(const mqbu::StorageKey& appKey, bool enableLog)>
+        LoggingCb;
 
   private:
     // PRIVATE TYPES
@@ -257,9 +262,9 @@ class QueueConsumptionMonitor {
 
     SubStreamInfoMap d_subStreamInfos;
 
+    /// Callback to log alarm info if there are undelivered messages.
+    /// Return `true` if there are undelivered messages, `false` otherwise.
     LoggingCb d_loggingCb;
-    // Callback to log alarm info if there are undelivered messages.
-    // Return `true` if there are undelivered messages, `false` otherwise.
 
     // NOT IMPLEMENTED
     QueueConsumptionMonitor(const QueueConsumptionMonitor&) BSLS_CPP11_DELETED;
@@ -278,8 +283,8 @@ class QueueConsumptionMonitor {
 
     // MANIPULATORS
 
-    /// Update the specified 'subStreamInfo', associated to the specified
-    /// 'appKey', and write log, upon transition to alive state.
+    /// Update the specified `subStreamInfo`, associated to the specified
+    /// `appKey`, and write log, upon transition to alive state.
     void onTransitionToAlive(SubStreamInfo*          subStreamInfo,
                              const mqbu::StorageKey& appKey);
 
@@ -291,9 +296,10 @@ class QueueConsumptionMonitor {
     // CREATORS
 
     /// Create a `QueueConsumptionMonitor` object that monitors the queue
-    /// specified by `queueState`.  Use the optionally specified
-    /// `basicAllocator` to supply memory.  If `basicAllocator` is 0, the
-    /// currently installed default allocator is used.
+    /// specified by `queueState`. Use the specified `loggingCb` callback for
+    /// logging alarm data. Use the optionally specified `allocator` to supply
+    /// memory.  If `allocator` is 0, the currently installed default allocator
+    /// is used.
     QueueConsumptionMonitor(QueueState*       queueState,
                             const LoggingCb&  loggingCb,
                             bslma::Allocator* allocator);
