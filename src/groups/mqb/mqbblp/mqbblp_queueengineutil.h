@@ -550,6 +550,10 @@ struct QueueEngineUtil_AppState {
     /// the queue iterator: empty PutAside List and no resume point.
     bool isAtEndOfStorage() const;
 
+    size_t putAsideListSize() const;
+
+    size_t redeliveryListSize() const;
+
     Routers::Consumer* findQueueHandleContext(mqbi::QueueHandle* handle);
 
     unsigned int upstreamSubQueueId() const;
@@ -782,6 +786,16 @@ inline void
 QueueEngineUtil_AppState::putForRedelivery(const bmqt::MessageGUID& guid)
 {
     d_redeliveryList.add(guid);
+}
+
+inline size_t QueueEngineUtil_AppState::putAsideListSize() const
+{
+    return d_putAsideList.size();
+}
+
+inline size_t QueueEngineUtil_AppState::redeliveryListSize() const
+{
+    return d_redeliveryList.size();
 }
 
 inline Routers::Consumer*

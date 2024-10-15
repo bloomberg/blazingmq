@@ -210,8 +210,12 @@ class QueueConsumptionMonitor {
         static const char* toAscii(Transition::Enum value);
     };
 
-    typedef bsl::function<bslma::ManagedPtr<mqbi::StorageIterator>(void)>
-        HeadCb;
+    /// Callback function to log alarm info when queue state transitions to
+    /// idle. First argument is the app key, second argument is a boolean flag
+    /// to enable logging. If `enableLog` is `false`, logging is skipped.
+    /// Return `true` if there are un-delivered messages and `false` otherwise.
+    typedef bsl::function<bool(const mqbu::StorageKey& appKey, bool enableLog)>
+        LoggingCb;
 
   private:
     // PRIVATE TYPES
@@ -220,8 +224,7 @@ class QueueConsumptionMonitor {
     struct SubStreamInfo {
         // CREATORS
 
-        SubStreamInfo(const HeadCb& headCb);
-        SubStreamInfo(const SubStreamInfo& other);
+        SubStreamInfo();
 
         // PUBLIC DATA
         bsls::Types::Int64 d_lastKnownGoodTimer;
@@ -234,12 +237,6 @@ class QueueConsumptionMonitor {
         // the last time slice
 
         State::Enum d_state;  // The current state.
-
-        HeadCb d_headCb;
-        // Returns storage iterator to the 1st
-        // un-delivered message including
-        // 'put-aside' messages (those without
-        // matching Subscriptions).
     };
 
     typedef bsl::unordered_map<mqbu::StorageKey,
@@ -265,6 +262,10 @@ class QueueConsumptionMonitor {
 
     SubStreamInfoMap d_subStreamInfos;
 
+    /// Callback to log alarm info if there are undelivered messages.
+    /// Return `true` if there are undelivered messages, `false` otherwise.
+    LoggingCb d_loggingCb;
+
     // NOT IMPLEMENTED
     QueueConsumptionMonitor(const QueueConsumptionMonitor&) BSLS_CPP11_DELETED;
     QueueConsumptionMonitor&
@@ -281,18 +282,11 @@ class QueueConsumptionMonitor {
     SubStreamInfo& subStreamInfo(const mqbu::StorageKey& key);
 
     // MANIPULATORS
-    void onTransitionToAlive(SubStreamInfo*          subStreamInfo,
-                             const mqbu::StorageKey& appKey);
-
-    // Update the specified 'subStreamInfo', associated to the specified
-    // 'appKey', and write log, upon transition to alive state.
 
     /// Update the specified `subStreamInfo`, associated to the specified
-    /// `appKey`, and write log, upon transition to idle state.
-    void
-    onTransitionToIdle(SubStreamInfo*          subStreamInfo,
-                       const mqbu::StorageKey& appKey,
-                       const bslma::ManagedPtr<mqbi::StorageIterator>& head);
+    /// `appKey`, and write log, upon transition to alive state.
+    void onTransitionToAlive(SubStreamInfo*          subStreamInfo,
+                             const mqbu::StorageKey& appKey);
 
   public:
     // TRAITS
@@ -302,10 +296,12 @@ class QueueConsumptionMonitor {
     // CREATORS
 
     /// Create a `QueueConsumptionMonitor` object that monitors the queue
-    /// specified by `queueState`.  Use the optionally specified
-    /// `basicAllocator` to supply memory.  If `basicAllocator` is 0, the
-    /// currently installed default allocator is used.
+    /// specified by `queueState`. Use the specified `loggingCb` callback for
+    /// logging alarm data. Use the optionally specified `allocator` to supply
+    /// memory.  If `allocator` is 0, the currently installed default allocator
+    /// is used.
     QueueConsumptionMonitor(QueueState*       queueState,
+                            const LoggingCb&  loggingCb,
                             bslma::Allocator* allocator);
 
     // MANIPULATORS
@@ -321,12 +317,11 @@ class QueueConsumptionMonitor {
     /// this object.
     QueueConsumptionMonitor& setMaxIdleTime(bsls::Types::Int64 value);
 
-    /// Register the substream identified by the specified `key` and
-    /// consuming from the specified `storageIter` for monitoring.  `key`
-    /// may be `StorageKey::k_NULL_KEY`, in which case no other key may be
-    /// registered via this function. It is illegal to register the same
+    /// Register the substream identified by the specified `key`.
+    /// `key` may be `StorageKey::k_NULL_KEY`, in which case no other key may
+    /// be registered via this function. It is illegal to register the same
     /// substream more than once.
-    void registerSubStream(const mqbu::StorageKey& key, const HeadCb& headCb);
+    void registerSubStream(const mqbu::StorageKey& key);
 
     /// Stop monitoring the substream identified by the specified `key`.
     /// `key` must have been previously registered via `registerSubStream`.
