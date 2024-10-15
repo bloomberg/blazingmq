@@ -113,5 +113,5 @@ def test_alarms_subscription_mismatch(cluster: Cluster):
     assert leader.capture(r"Redelivery list size: 0")
     assert leader.capture(r"Consumer subscription expressions:")
     assert leader.capture(r"x == 1")
-    assert leader.capture(r"Oldest message in a 'Put aside' list:")
+    assert leader.capture(r"Oldest message in the 'Put aside' list:")
     assert leader.capture(r"Message Properties: \[ x \(INT32\) = 0 \]")
