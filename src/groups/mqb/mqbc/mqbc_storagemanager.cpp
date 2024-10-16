@@ -3718,11 +3718,11 @@ void StorageManager::unregisterQueue(const bmqt::Uri& uri, int partitionId)
     d_fileStores[partitionId]->dispatchEvent(queueEvent);
 }
 
-int StorageManager::updateQueue(const bmqt::Uri&        uri,
-                                const mqbu::StorageKey& queueKey,
-                                int                     partitionId,
-                                const AppIdKeyPairs&    addedIdKeyPairs,
-                                const AppIdKeyPairs&    removedIdKeyPairs)
+int StorageManager::updateQueuePrimary(const bmqt::Uri&        uri,
+                                       const mqbu::StorageKey& queueKey,
+                                       int                     partitionId,
+                                       const AppIdKeyPairs&    addedIdKeyPairs,
+                                       const AppIdKeyPairs& removedIdKeyPairs)
 {
     // executed by *QUEUE_DISPATCHER* thread with the specified 'partitionId'
 
@@ -3731,18 +3731,19 @@ int StorageManager::updateQueue(const bmqt::Uri&        uri,
                      partitionId < static_cast<int>(d_fileStores.size()));
     BSLS_ASSERT_SAFE(d_fileStores[partitionId]->inDispatcherThread());
 
-    return StorageUtil::updateQueue(&d_storages[partitionId],
-                                    &d_storagesLock,
-                                    d_fileStores[partitionId].get(),
-                                    &d_appKeysVec[partitionId],
-                                    &d_appKeysLock,
-                                    d_clusterData_p->identity().description(),
-                                    uri,
-                                    queueKey,
-                                    partitionId,
-                                    addedIdKeyPairs,
-                                    removedIdKeyPairs,
-                                    true);  // isCSLMode
+    return StorageUtil::updateQueuePrimary(
+        &d_storages[partitionId],
+        &d_storagesLock,
+        d_fileStores[partitionId].get(),
+        &d_appKeysVec[partitionId],
+        &d_appKeysLock,
+        d_clusterData_p->identity().description(),
+        uri,
+        queueKey,
+        partitionId,
+        addedIdKeyPairs,
+        removedIdKeyPairs,
+        true);  // isCSLMode
 }
 
 void StorageManager::registerQueueReplica(int                     partitionId,

@@ -253,7 +253,7 @@ void StorageUtil::registerQueueDispatched(
                   << storage->queueKey() << "] with the storage as primary.";
 }
 
-void StorageUtil::updateQueueDispatched(
+void StorageUtil::updateQueuePrimaryDispatched(
     BSLS_ANNOTATION_UNUSED const mqbi::Dispatcher::ProcessorHandle& processor,
     mqbs::ReplicatedStorage*                                        storage,
     bslmt::Mutex*        storagesLock,
@@ -277,29 +277,29 @@ void StorageUtil::updateQueueDispatched(
 
     bslmt::LockGuard<bslmt::Mutex> guard(storagesLock);  // LOCK
 
-    // Simply forward to 'updateQueueRaw'.
-    updateQueueRaw(storage,
-                   fs,
-                   appKeys,
-                   appKeysLock,
-                   clusterDescription,
-                   partitionId,
-                   addedIdKeyPairs,
-                   removedIdKeyPairs,
-                   isFanout,
-                   isCSLMode);
+    // Simply forward to 'updateQueuePrimaryRaw'.
+    updateQueuePrimaryRaw(storage,
+                          fs,
+                          appKeys,
+                          appKeysLock,
+                          clusterDescription,
+                          partitionId,
+                          addedIdKeyPairs,
+                          removedIdKeyPairs,
+                          isFanout,
+                          isCSLMode);
 }
 
-int StorageUtil::updateQueueRaw(mqbs::ReplicatedStorage* storage,
-                                mqbs::FileStore*         fs,
-                                AppKeys*                 appKeys,
-                                bslmt::Mutex*            appKeysLock,
-                                const bsl::string&       clusterDescription,
-                                int                      partitionId,
-                                const AppIdKeyPairs&     addedIdKeyPairs,
-                                const AppIdKeyPairs&     removedIdKeyPairs,
-                                bool                     isFanout,
-                                bool                     isCSLMode)
+int StorageUtil::updateQueuePrimaryRaw(mqbs::ReplicatedStorage* storage,
+                                       mqbs::FileStore*         fs,
+                                       AppKeys*                 appKeys,
+                                       bslmt::Mutex*            appKeysLock,
+                                       const bsl::string&   clusterDescription,
+                                       int                  partitionId,
+                                       const AppIdKeyPairs& addedIdKeyPairs,
+                                       const AppIdKeyPairs& removedIdKeyPairs,
+                                       bool                 isFanout,
+                                       bool                 isCSLMode)
 {
     // executed by *QUEUE_DISPATCHER* thread with the specified 'partitionId'
 
@@ -2474,8 +2474,8 @@ void StorageUtil::registerQueue(
             }
 
             // Some AppId/Key pairs need to be updated.  Invoke
-            // 'updateQueueDispatched' in the right thread to carry out the
-            // addition/removal of those pairs.
+            // 'updateQueuePrimaryDispatched' in the right thread to carry out
+            // the addition/removal of those pairs.
 
             mqbi::DispatcherEvent* queueEvent = dispatcher->getEvent(
                 mqbi::DispatcherClientType::e_QUEUE);
@@ -2483,7 +2483,7 @@ void StorageUtil::registerQueue(
             (*queueEvent)
                 .setType(mqbi::DispatcherEventType::e_DISPATCHER)
                 .setCallback(bdlf::BindUtil::bind(
-                    updateQueueDispatched,
+                    updateQueuePrimaryDispatched,
                     bdlf::PlaceHolders::_1,  // processor
                     storageSp.get(),
                     storagesLock,
@@ -2501,13 +2501,13 @@ void StorageUtil::registerQueue(
                                       mqbi::DispatcherClientType::e_QUEUE,
                                       processor);
 
-            // Wait for 'updateQueueDispatched' operation to complete.  We need
-            // to wait because 'updateQueueDispatched' creates virtual storages
-            // corresponding to 'addedAppIdKeyPairs' (if any), and the caller
-            // of 'registerQueue' expects these virtual storages to be created
-            // this routine or its caller returns.  Before waiting, release the
-            // 'storagesLock' guard and unlock it to avoid any deadlock b/w
-            // cluster and partition dispatcher threads.
+            // Wait for 'updateQueuePrimaryDispatched' operation to complete.
+            // We need to wait because 'updateQueuePrimaryDispatched' creates
+            // virtual storages corresponding to 'addedAppIdKeyPairs' (if any),
+            // and the caller of 'registerQueue' expects these virtual storages
+            // to be created this routine or its caller returns.  Before
+            // waiting, release the 'storagesLock' guard and unlock it to avoid
+            // any deadlock b/w cluster and partition dispatcher threads.
 
             guard.release()->unlock();
 
@@ -2755,18 +2755,18 @@ void StorageUtil::unregisterQueueDispatched(
     fs->dispatcherFlush(true, false);
 }
 
-int StorageUtil::updateQueue(StorageSpMap*           storageMap,
-                             bslmt::Mutex*           storagesLock,
-                             mqbs::FileStore*        fs,
-                             AppKeys*                appKeys,
-                             bslmt::Mutex*           appKeysLock,
-                             const bsl::string&      clusterDescription,
-                             const bmqt::Uri&        uri,
-                             const mqbu::StorageKey& queueKey,
-                             int                     partitionId,
-                             const AppIdKeyPairs&    addedIdKeyPairs,
-                             const AppIdKeyPairs&    removedIdKeyPairs,
-                             bool                    isCSLMode)
+int StorageUtil::updateQueuePrimary(StorageSpMap*           storageMap,
+                                    bslmt::Mutex*           storagesLock,
+                                    mqbs::FileStore*        fs,
+                                    AppKeys*                appKeys,
+                                    bslmt::Mutex*           appKeysLock,
+                                    const bsl::string&      clusterDescription,
+                                    const bmqt::Uri&        uri,
+                                    const mqbu::StorageKey& queueKey,
+                                    int                     partitionId,
+                                    const AppIdKeyPairs&    addedIdKeyPairs,
+                                    const AppIdKeyPairs&    removedIdKeyPairs,
+                                    bool                    isCSLMode)
 {
     // executed by *QUEUE_DISPATCHER* thread with the specified 'partitionId'
 
@@ -2801,16 +2801,16 @@ int StorageUtil::updateQueue(StorageSpMap*           storageMap,
     BSLS_ASSERT_SAFE(storageSp->partitionId() == partitionId);
     BSLS_ASSERT_SAFE(storageSp->queueKey() == queueKey);
 
-    return updateQueueRaw(storageSp.get(),
-                          fs,
-                          appKeys,
-                          appKeysLock,
-                          clusterDescription,
-                          partitionId,
-                          addedIdKeyPairs,
-                          removedIdKeyPairs,
-                          true,  // isFanout
-                          isCSLMode);
+    return updateQueuePrimaryRaw(storageSp.get(),
+                                 fs,
+                                 appKeys,
+                                 appKeysLock,
+                                 clusterDescription,
+                                 partitionId,
+                                 addedIdKeyPairs,
+                                 removedIdKeyPairs,
+                                 true,  // isFanout
+                                 isCSLMode);
 }
 
 void StorageUtil::registerQueueReplicaDispatched(

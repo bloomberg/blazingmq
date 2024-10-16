@@ -1913,7 +1913,7 @@ void RootQueueEngine::afterAppIdRegistered(
 
     BSLS_ASSERT_SAFE(!key.isNull());
 
-    d_queueState_p->storageManager()->updateQueue(
+    d_queueState_p->storageManager()->updateQueuePrimary(
         d_queueState_p->uri(),
         d_queueState_p->key(),
         d_queueState_p->partitionId(),
@@ -1966,7 +1966,7 @@ void RootQueueEngine::afterAppIdUnregistered(
         }
     }
 
-    d_queueState_p->storageManager()->updateQueue(
+    d_queueState_p->storageManager()->updateQueuePrimary(
         d_queueState_p->uri(),
         d_queueState_p->key(),
         d_queueState_p->partitionId(),
@@ -1974,8 +1974,8 @@ void RootQueueEngine::afterAppIdUnregistered(
         mqbi::Storage::AppIdKeyPairs(1,
                                      mqbi::Storage::AppIdKeyPair(appId,
                                                                  appKey)));
-    // No need to log in case of failure because 'updateQueue' does it (even in
-    // case of success FTM).
+    // No need to log in case of failure because 'updateQueuePrimary' does it
+    // (even in case of success FTM).
 
     d_consumptionMonitor.unregisterSubStream(appKey);
 }
