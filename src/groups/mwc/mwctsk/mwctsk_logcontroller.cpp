@@ -147,6 +147,9 @@ LogControllerConfig::LogControllerConfig(bslma::Allocator* allocator)
 , d_syslogAppName("")
 , d_syslogVerbosity(ball::Severity::ERROR)
 , d_categories(allocator)
+, d_recordBufferSize(32768)
+, d_recordingVerbosity(ball::Severity::OFF)
+, d_triggerVerbosity(ball::Severity::OFF)
 {
     // NOTHING
 }
@@ -167,6 +170,9 @@ LogControllerConfig::LogControllerConfig(const LogControllerConfig& other,
 , d_syslogAppName(other.d_syslogAppName, allocator)
 , d_syslogVerbosity(other.d_syslogVerbosity)
 , d_categories(other.d_categories, allocator)
+, d_recordBufferSize(other.d_recordBufferSize)
+, d_recordingVerbosity(other.d_recordingVerbosity)
+, d_triggerVerbosity(other.d_triggerVerbosity)
 {
     // NOTHING
 }
@@ -189,6 +195,9 @@ LogControllerConfig::operator=(const LogControllerConfig& rhs)
         d_syslogAppName            = rhs.d_syslogAppName;
         d_syslogVerbosity          = rhs.d_syslogVerbosity;
         d_categories               = rhs.d_categories;
+        d_recordBufferSize         = rhs.d_recordBufferSize;
+        d_recordingVerbosity       = rhs.d_recordingVerbosity;
+        d_triggerVerbosity         = rhs.d_triggerVerbosity;
     }
 
     return *this;

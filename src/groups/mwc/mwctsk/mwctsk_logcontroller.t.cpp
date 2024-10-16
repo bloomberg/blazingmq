@@ -102,8 +102,8 @@ static void test1_logControllerConfigFromObj()
     ASSERT_EQ(config.syslogVerbosity(), ball::Severity::INFO);
 
     ASSERT_EQ(config.recordBufferSize(), 32768);
-    ASSERT_EQ(config.recordingVerbosity(), ball::Severity::TRACE);
-    ASSERT_EQ(config.triggerVerbosity(), ball::Severity::FATAL);
+    ASSERT_EQ(config.recordingVerbosity(), ball::Severity::OFF);
+    ASSERT_EQ(config.triggerVerbosity(), ball::Severity::OFF);
 }
 
 // ============================================================================

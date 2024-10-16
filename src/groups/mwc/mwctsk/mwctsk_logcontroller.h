@@ -542,8 +542,8 @@ int LogControllerConfig::fromObj(bsl::ostream& errorDescription,
         return -1;  // RETURN
     }
 
-    d_recordingVerbosity = ball::Severity::e_TRACE;
-    d_triggerVerbosity   = ball::Severity::e_FATAL;
+    d_recordingVerbosity = ball::Severity::OFF;
+    d_triggerVerbosity   = ball::Severity::OFF;
     // if (ball::SeverityUtil::fromAsciiCaseless(
     //         &d_recordingVerbosity,
     //         obj.logDump().recordingLevel().c_str()) != 0) {
