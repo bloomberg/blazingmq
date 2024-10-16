@@ -19,9 +19,11 @@
 #include <mqbscm_version.h>
 
 // MQB
+#include <mqbstat_dispatcherstats.h>
 #include <mqbstat_queuestats.h>
 
 // MWC
+#include <mwcst_statutil.h>
 #include <mwcu_memoutstream.h>
 
 // BDE
@@ -42,21 +44,6 @@ struct ConversionUtils {
     /// Populate the specified `bdljsn::JsonObject*` with the values
     /// from the specified `ctx`.
 
-    inline static void
-    populateMetric(bdljsn::JsonObject*                   metricsObject,
-                   const mwcst::StatContext&             ctx,
-                   mqbstat::QueueStatsDomain::Stat::Enum metric)
-    {
-        // PRECONDITIONS
-        BSLS_ASSERT_SAFE(metricsObject);
-
-        const bsls::Types::Int64 value =
-            mqbstat::QueueStatsDomain::getValue(ctx, -1, metric);
-
-        (*metricsObject)[mqbstat::QueueStatsDomain::Stat::toString(metric)]
-            .makeNumber() = value;
-    }
-
     inline static void populateQueueStats(bdljsn::JsonObject* queueObject,
                                           const mwcst::StatContext& ctx)
     {
@@ -70,57 +57,63 @@ struct ConversionUtils {
 
         bdljsn::JsonObject& values = (*queueObject)["values"].makeObject();
 
+#define POPULATE_METRIC(STAT)                                                 \
+    values[mqbstat::QueueStatsDomain::Stat::toString(STAT)].makeNumber() =    \
+        mqbstat::QueueStatsDomain::getValue(ctx, -1, (STAT));
+
         typedef mqbstat::QueueStatsDomain::Stat Stat;
 
-        populateMetric(&values, ctx, Stat::e_NB_PRODUCER);
-        populateMetric(&values, ctx, Stat::e_NB_CONSUMER);
+        POPULATE_METRIC(Stat::e_NB_PRODUCER);
+        POPULATE_METRIC(Stat::e_NB_CONSUMER);
 
-        populateMetric(&values, ctx, Stat::e_MESSAGES_CURRENT);
-        populateMetric(&values, ctx, Stat::e_MESSAGES_MAX);
-        populateMetric(&values, ctx, Stat::e_BYTES_CURRENT);
-        populateMetric(&values, ctx, Stat::e_BYTES_MAX);
+        POPULATE_METRIC(Stat::e_MESSAGES_CURRENT);
+        POPULATE_METRIC(Stat::e_MESSAGES_MAX);
+        POPULATE_METRIC(Stat::e_BYTES_CURRENT);
+        POPULATE_METRIC(Stat::e_BYTES_MAX);
 
-        populateMetric(&values, ctx, Stat::e_PUT_MESSAGES_DELTA);
-        populateMetric(&values, ctx, Stat::e_PUT_BYTES_DELTA);
-        populateMetric(&values, ctx, Stat::e_PUT_MESSAGES_ABS);
-        populateMetric(&values, ctx, Stat::e_PUT_BYTES_ABS);
+        POPULATE_METRIC(Stat::e_PUT_MESSAGES_DELTA);
+        POPULATE_METRIC(Stat::e_PUT_BYTES_DELTA);
+        POPULATE_METRIC(Stat::e_PUT_MESSAGES_ABS);
+        POPULATE_METRIC(Stat::e_PUT_BYTES_ABS);
 
-        populateMetric(&values, ctx, Stat::e_PUSH_MESSAGES_DELTA);
-        populateMetric(&values, ctx, Stat::e_PUSH_BYTES_DELTA);
-        populateMetric(&values, ctx, Stat::e_PUSH_MESSAGES_ABS);
-        populateMetric(&values, ctx, Stat::e_PUSH_BYTES_ABS);
+        POPULATE_METRIC(Stat::e_PUSH_MESSAGES_DELTA);
+        POPULATE_METRIC(Stat::e_PUSH_BYTES_DELTA);
+        POPULATE_METRIC(Stat::e_PUSH_MESSAGES_ABS);
+        POPULATE_METRIC(Stat::e_PUSH_BYTES_ABS);
 
-        populateMetric(&values, ctx, Stat::e_ACK_DELTA);
-        populateMetric(&values, ctx, Stat::e_ACK_ABS);
-        populateMetric(&values, ctx, Stat::e_ACK_TIME_AVG);
-        populateMetric(&values, ctx, Stat::e_ACK_TIME_MAX);
+        POPULATE_METRIC(Stat::e_ACK_DELTA);
+        POPULATE_METRIC(Stat::e_ACK_ABS);
+        POPULATE_METRIC(Stat::e_ACK_TIME_AVG);
+        POPULATE_METRIC(Stat::e_ACK_TIME_MAX);
 
-        populateMetric(&values, ctx, Stat::e_NACK_DELTA);
-        populateMetric(&values, ctx, Stat::e_NACK_ABS);
+        POPULATE_METRIC(Stat::e_NACK_DELTA);
+        POPULATE_METRIC(Stat::e_NACK_ABS);
 
-        populateMetric(&values, ctx, Stat::e_CONFIRM_DELTA);
-        populateMetric(&values, ctx, Stat::e_CONFIRM_ABS);
-        populateMetric(&values, ctx, Stat::e_CONFIRM_TIME_AVG);
-        populateMetric(&values, ctx, Stat::e_CONFIRM_TIME_MAX);
+        POPULATE_METRIC(Stat::e_CONFIRM_DELTA);
+        POPULATE_METRIC(Stat::e_CONFIRM_ABS);
+        POPULATE_METRIC(Stat::e_CONFIRM_TIME_AVG);
+        POPULATE_METRIC(Stat::e_CONFIRM_TIME_MAX);
 
-        populateMetric(&values, ctx, Stat::e_REJECT_ABS);
-        populateMetric(&values, ctx, Stat::e_REJECT_DELTA);
+        POPULATE_METRIC(Stat::e_REJECT_ABS);
+        POPULATE_METRIC(Stat::e_REJECT_DELTA);
 
-        populateMetric(&values, ctx, Stat::e_QUEUE_TIME_AVG);
-        populateMetric(&values, ctx, Stat::e_QUEUE_TIME_MAX);
+        POPULATE_METRIC(Stat::e_QUEUE_TIME_AVG);
+        POPULATE_METRIC(Stat::e_QUEUE_TIME_MAX);
 
-        populateMetric(&values, ctx, Stat::e_GC_MSGS_DELTA);
-        populateMetric(&values, ctx, Stat::e_GC_MSGS_ABS);
+        POPULATE_METRIC(Stat::e_GC_MSGS_DELTA);
+        POPULATE_METRIC(Stat::e_GC_MSGS_ABS);
 
-        populateMetric(&values, ctx, Stat::e_ROLE);
+        POPULATE_METRIC(Stat::e_ROLE);
 
-        populateMetric(&values, ctx, Stat::e_CFG_MSGS);
-        populateMetric(&values, ctx, Stat::e_CFG_BYTES);
+        POPULATE_METRIC(Stat::e_CFG_MSGS);
+        POPULATE_METRIC(Stat::e_CFG_BYTES);
 
-        populateMetric(&values, ctx, Stat::e_NO_SC_MSGS_DELTA);
-        populateMetric(&values, ctx, Stat::e_NO_SC_MSGS_ABS);
+        POPULATE_METRIC(Stat::e_NO_SC_MSGS_DELTA);
+        POPULATE_METRIC(Stat::e_NO_SC_MSGS_ABS);
 
-        populateMetric(&values, ctx, Stat::e_HISTORY_ABS);
+        POPULATE_METRIC(Stat::e_HISTORY_ABS);
+
+#undef POPULATE_METRIC
     }
 
     inline static void populateOneDomainStats(bdljsn::JsonObject* domainObject,
@@ -168,6 +161,78 @@ struct ConversionUtils {
              ++domainIt) {
             populateOneDomainStats(&nodes[domainIt->name()].makeObject(),
                                    *domainIt);
+        }
+    }
+
+    inline static void
+    populateDispatcherClientStats(bdljsn::JsonObject*       clientObject,
+                                  const mwcst::StatContext& ctx)
+    {
+        // PRECONDITIONS
+        BSLS_ASSERT_SAFE(clientObject);
+
+        if (ctx.numValues() == 0) {
+            // Prefer to omit an empty "values" object
+            return;  // RETURN
+        }
+
+        const mwcst::StatValue::SnapshotLocation latestSnapshot(0, 0);
+
+#define POPULATE_METRIC(STAT)                                                 \
+    (*clientObject)[ctx.valueName(STAT)].makeNumber() =                       \
+        mwcst::StatUtil::value(ctx.value(mwcst::StatContext::e_DIRECT_VALUE,  \
+                                         (STAT)),                             \
+                               latestSnapshot);
+
+        typedef mqbstat::DispatcherStats::Stat Stat;
+
+        POPULATE_METRIC(Stat::e_ENQ_UNDEFINED);
+        POPULATE_METRIC(Stat::e_ENQ_DISPATCHER);
+        POPULATE_METRIC(Stat::e_ENQ_CALLBACK);
+        POPULATE_METRIC(Stat::e_ENQ_CONTROL_MSG);
+        POPULATE_METRIC(Stat::e_ENQ_CONFIRM);
+        POPULATE_METRIC(Stat::e_ENQ_REJECT);
+        POPULATE_METRIC(Stat::e_ENQ_PUSH);
+        POPULATE_METRIC(Stat::e_ENQ_PUT);
+        POPULATE_METRIC(Stat::e_ENQ_ACK);
+        POPULATE_METRIC(Stat::e_ENQ_CLUSTER_STATE);
+        POPULATE_METRIC(Stat::e_ENQ_STORAGE);
+        POPULATE_METRIC(Stat::e_ENQ_RECOVERY);
+        POPULATE_METRIC(Stat::e_ENQ_REPLICATION_RECEIPT);
+
+        POPULATE_METRIC(Stat::e_DONE_UNDEFINED);
+        POPULATE_METRIC(Stat::e_DONE_DISPATCHER);
+        POPULATE_METRIC(Stat::e_DONE_CALLBACK);
+        POPULATE_METRIC(Stat::e_DONE_CONTROL_MSG);
+        POPULATE_METRIC(Stat::e_DONE_CONFIRM);
+        POPULATE_METRIC(Stat::e_DONE_REJECT);
+        POPULATE_METRIC(Stat::e_DONE_PUSH);
+        POPULATE_METRIC(Stat::e_DONE_PUT);
+        POPULATE_METRIC(Stat::e_DONE_ACK);
+        POPULATE_METRIC(Stat::e_DONE_CLUSTER_STATE);
+        POPULATE_METRIC(Stat::e_DONE_STORAGE);
+        POPULATE_METRIC(Stat::e_DONE_RECOVERY);
+        POPULATE_METRIC(Stat::e_DONE_REPLICATION_RECEIPT);
+
+        POPULATE_METRIC(Stat::e_CLIENT_COUNT);
+
+#undef POPULATE_METRIC
+    }
+
+    inline static void
+    populateAllDispatcherStats(bdljsn::JsonObject*       parent,
+                               const mwcst::StatContext& ctx)
+    {
+        // PRECONDITIONS
+        BSLS_ASSERT_SAFE(parent);
+
+        bdljsn::JsonObject& nodes = (*parent)["clients"].makeObject();
+        for (mwcst::StatContextIterator domainIt = ctx.subcontextIterator();
+             domainIt;
+             ++domainIt) {
+            populateDispatcherClientStats(
+                &nodes[domainIt->name()].makeObject(),
+                *domainIt);
         }
     }
 };
@@ -262,6 +327,13 @@ inline int JsonPrinter::JsonPrinterImpl::printStats(bsl::string* out,
         bdljsn::JsonObject& domainQueuesObj = obj["domainQueues"].makeObject();
 
         ConversionUtils::populateAllDomainsStats(&domainQueuesObj, ctx);
+    }
+
+    {
+        const mwcst::StatContext& ctx = *d_contexts.find("dispatcher")->second;
+        bdljsn::JsonObject& dispatcherObj = obj["dispatcher"].makeObject();
+
+        ConversionUtils::populateAllDispatcherStats(&dispatcherObj, ctx);
     }
 
     const bdljsn::WriteOptions& ops = compact ? d_opsCompact : d_opsPretty;

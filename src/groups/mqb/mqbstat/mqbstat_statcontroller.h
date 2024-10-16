@@ -321,6 +321,9 @@ class StatController {
                        const mqbcmd::StatCommand&           command,
                        const mqbcmd::EncodingFormat::Value& encoding);
 
+    /// Retrieve the dispatcher top-level stat context.
+    mwcst::StatContext* dispatcherStatContext();
+
     /// Retrieve the domains top-level stat context.
     mwcst::StatContext* domainsStatContext();
 
@@ -348,6 +351,11 @@ class StatController {
 // --------------------
 // class StatController
 // --------------------
+
+inline mwcst::StatContext* StatController::dispatcherStatContext()
+{
+    return d_statContextsMap["dispatcher"].d_statContext_sp.get();
+}
 
 inline mwcst::StatContext* StatController::domainsStatContext()
 {

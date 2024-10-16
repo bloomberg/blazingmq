@@ -256,6 +256,12 @@ int Dispatcher::startContext(bsl::ostream&                    errorDescription,
                       DispatcherContext(config, d_allocator_p),
                   d_allocator_p);
 
+    context->d_statContext_mp =
+        mqbstat::DispatcherStatsUtil::initializeClientStatContext(
+            d_statContext_p,
+            mqbi::DispatcherClientType::toAscii(type),
+            d_allocator_p);
+
     // Create and start the threadPool
     context->d_threadPool_mp.load(
         new (*d_allocator_p)
@@ -360,6 +366,8 @@ void Dispatcher::queueEventCb(mqbi::DispatcherClientType::Enum type,
     case ProcessorPool::Event::MWCC_USER: {
         BALL_LOG_TRACE << "Dispatching Event to queue " << processorId
                        << " of " << type << " dispatcher: " << event->object();
+        DispatcherContext& dispatcherContext = *(d_contexts[type]);
+
         if (event->object().type() ==
             mqbi::DispatcherEventType::e_DISPATCHER) {
             const mqbi::DispatcherDispatcherEvent* realEvent =
@@ -380,7 +388,6 @@ void Dispatcher::queueEventCb(mqbi::DispatcherClientType::Enum type,
             }
         }
         else {
-            DispatcherContext& dispatcherContext = *(d_contexts[type]);
             event->object().destination()->onDispatcherEvent(event->object());
             if (!event->object()
                      .destination()
@@ -394,6 +401,11 @@ void Dispatcher::queueEventCb(mqbi::DispatcherClientType::Enum type,
                     .setAddedToFlushList(true);
             }
         }
+
+        dispatcherContext.d_statContext_mp->adjustValue(
+            mqbstat::DispatcherStats::Stat::e_DONE_START +
+                event->object().type(),
+            1);
     } break;
     case ProcessorPool::Event::MWCC_QUEUE_EMPTY: {
         flushClients(type, processorId);
@@ -449,11 +461,13 @@ void Dispatcher::onNewClient(mqbi::DispatcherClientType::Enum type,
 }
 
 Dispatcher::Dispatcher(const mqbcfg::DispatcherConfig& config,
+                       mwcst::StatContext*             statContext,
                        bdlmt::EventScheduler*          scheduler,
                        bslma::Allocator*               allocator)
 : d_allocator_p(allocator)
 , d_isStarted(false)
 , d_config(config)
+, d_statContext_p(statContext)
 , d_scheduler_p(scheduler)
 , d_contexts(allocator)
 {
@@ -582,6 +596,9 @@ Dispatcher::registerClient(mqbi::DispatcherClient*           client,
             .setClientType(type)
             .setProcessorHandle(processor);
 
+        context.d_statContext_mp->adjustValue(
+            mqbstat::DispatcherStats::Stat::e_CLIENT_COUNT,
+            1);
         BALL_LOG_DEBUG << "Registered a new client to the dispatcher "
                        << "[Client: " << client->description()
                        << ", type: " << type << ", processor: " << processor
@@ -628,6 +645,9 @@ void Dispatcher::unregisterClient(mqbi::DispatcherClient* client)
     case mqbi::DispatcherClientType::e_QUEUE:
     case mqbi::DispatcherClientType::e_CLUSTER: {
         d_contexts[type]->d_loadBalancer.removeClient(client);
+        d_contexts[type]->d_statContext_mp->adjustValue(
+            mqbstat::DispatcherStats::Stat::e_CLIENT_COUNT,
+            -1);
     } break;
     case mqbi::DispatcherClientType::e_UNDEFINED:
     case mqbi::DispatcherClientType::e_ALL:

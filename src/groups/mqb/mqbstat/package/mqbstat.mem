@@ -1,5 +1,6 @@
 mqbstat_brokerstats
 mqbstat_clusterstats
+mqbstat_dispatcherstats
 mqbstat_domainstats
 mqbstat_jsonprinter
 mqbstat_printer
