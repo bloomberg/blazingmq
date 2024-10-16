@@ -97,7 +97,6 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
 
     /// (appId, appKeyCount) -> AppStateSp
     typedef mwcc::TwoKeyHashMap<bsl::string, AppKeyCount, AppStateSp> Apps;
-    typedef bslma::ManagedPtr<mqbi::StorageIterator> StorageIteratorMp;
 
   private:
     // DATA
@@ -206,6 +205,12 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
     bool validate(unsigned int upstreamSubQueueId) const;
 
     const AppStateSp& subQueue(unsigned int upstreamSubQueueId) const;
+
+    /// Callback called by `d_consumptionMonitor` when alarm condition is met.
+    /// If there are un-delivered messages for the specified `appKey` and
+    /// `enableLog` is `true` it logs alarm data. Return `true` if there are
+    /// un-delivered messages and `false` otherwise.
+    bool logAlarmCb(const mqbu::StorageKey& appKey, bool enableLog) const;
 
   public:
     // TRAITS
