@@ -100,12 +100,14 @@ namespace {
 const int  k_PARTITION_ID       = 1;
 const int  k_PROXY_PARTITION_ID = mqbs::DataStore::k_INVALID_PARTITION_ID;
 const char k_HEX_QUEUE[]        = "ABCDEF1234";
-const bsls::Types::Int64 k_DEFAULT_MSG   = 20;
-const bsls::Types::Int64 k_DEFAULT_BYTES = 2048;
-const char               k_URI_STR[]     = "bmq://mydomain/testqueue";
-const char               k_APP_ID1[]     = "app1";
-const char               k_APP_ID2[]     = "app2";
-const char               k_APP_ID3[]     = "app3";
+const bsls::Types::Int64 k_DEFAULT_MSG          = 20;
+const bsls::Types::Int64 k_DEFAULT_BYTES        = 2048;
+const double             k_MSG_WATERMARK_RATIO  = 0.8;
+const double             k_BYTE_WATERMARK_RATIO = 0.8;
+const char               k_URI_STR[]            = "bmq://mydomain/testqueue";
+const char               k_APP_ID1[]            = "app1";
+const char               k_APP_ID2[]            = "app2";
+const char               k_APP_ID3[]            = "app3";
 const mqbu::StorageKey   k_QUEUE_KEY(mqbu::StorageKey::HexRepresentation(),
                                    k_HEX_QUEUE);
 const mqbu::StorageKey   k_APP_KEY1(mqbu::StorageKey::HexRepresentation(),
@@ -153,18 +155,18 @@ generateUniqueGUID(const bsl::vector<bmqt::MessageGUID>& guids)
 
 // CLASSES
 
-// =================
-// struct BaseTester
-// =================
+// =============
+// struct Tester
+// =============
 
-/// BaseTester class provides testing capabilities to verify both
+/// Tester class provides testing capabilities to verify both
 /// FileBackedStorage and InMemoryStorage
-struct BaseTester {
+struct Tester {
   private:
     // PRIVATE TYPES
     typedef mqbs::DataStoreConfig::Records Records;
 
-  protected:
+  private:
     // DATA
     bdlbb::PooledBlobBufferFactory             d_bufferFactory;
     mqbmock::Cluster                           d_mockCluster;
@@ -177,7 +179,11 @@ struct BaseTester {
 
   public:
     // CREATORS
-    explicit BaseTester(bslma::Allocator* allocator)
+    Tester(bslma::Allocator*        allocator,
+           int                      partitionId = k_PARTITION_ID,
+           const bslstl::StringRef& uri         = k_URI_STR,
+           const mqbu::StorageKey&  queueKey    = k_QUEUE_KEY,
+           bsls::Types::Int64       ttlSeconds  = k_INT64_MAX)
     : d_bufferFactory(1024, allocator)
     , d_mockCluster(&d_bufferFactory, allocator)
     , d_mockDomain(&d_mockCluster, allocator)
@@ -189,31 +195,36 @@ struct BaseTester {
     {
         d_mockDomain.capacityMeter()->setLimits(k_INT64_MAX, k_INT64_MAX);
         d_mockQueue._setQueueEngine(&d_mockQueueEngine);
+
+        mqbconfm::Domain domainCfg;
+        domainCfg.deduplicationTimeMs() = 0;  // No history
+        domainCfg.messageTtl()          = ttlSeconds;
+
+        d_replicatedStorage_mp.load(new (*d_allocator_p) mqbs::InMemoryStorage(
+                                        bmqt::Uri(uri, s_allocator_p),
+                                        queueKey,
+                                        partitionId,
+                                        domainCfg,
+                                        d_mockDomain.capacityMeter(),
+                                        d_allocator_p),
+                                    d_allocator_p);
+
+        d_replicatedStorage_mp->setQueue(&d_mockQueue);
+        BSLS_ASSERT_OPT(d_replicatedStorage_mp->queue() == &d_mockQueue);
     }
 
-    ~BaseTester()
+    ~Tester()
     {
         d_replicatedStorage_mp->removeAll(k_NULL_KEY);
         d_replicatedStorage_mp->close();
     }
 
     // MANIPULATORS
-    void setupReplicatedStorage(bsls::Types::Int64 ttlSeconds,
-                                bool               toConfigure)
-    {
-        d_replicatedStorage_mp->setQueue(&d_mockQueue);
-        BSLS_ASSERT_OPT(d_replicatedStorage_mp->queue() == &d_mockQueue);
-
-        if (toConfigure) {
-            configure(k_DEFAULT_MSG, k_DEFAULT_BYTES, 0.8, 0.8, ttlSeconds);
-        }
-    }
-
-    int configure(bsls::Types::Int64 msgCapacity,
-                  bsls::Types::Int64 byteCapacity,
-                  double             msgWatermarkRatio  = 0.8,
-                  double             byteWatermarkRatio = 0.8,
-                  bsls::Types::Int64 messageTtl         = k_INT64_MAX)
+    int configure(bsls::Types::Int64 msgCapacity       = k_DEFAULT_MSG,
+                  bsls::Types::Int64 byteCapacity      = k_DEFAULT_BYTES,
+                  double             msgWatermarkRatio = k_MSG_WATERMARK_RATIO,
+                  double byteWatermarkRatio     = k_BYTE_WATERMARK_RATIO,
+                  bsls::Types::Int64 messageTtl = k_INT64_MAX)
     {
         // PRECONDITIONS
         BSLS_ASSERT_OPT(d_replicatedStorage_mp && "Storage was not created");
@@ -325,75 +336,9 @@ struct BaseTester {
 
   private:
     // NOT IMPLEMENTED
-    BaseTester(const BaseTester&) BSLS_KEYWORD_DELETED;
-    BaseTester& operator=(const BaseTester&) BSLS_KEYWORD_DELETED;
+    Tester(const Tester&) BSLS_KEYWORD_DELETED;
+    Tester& operator=(const Tester&) BSLS_KEYWORD_DELETED;
 };
-
-// =============
-// struct Tester
-// =============
-struct Tester : public BaseTester {
-  public:
-    Tester(const bslstl::StringRef& uri,
-           const mqbu::StorageKey&  queueKey,
-           int                      partitionId,
-           bsls::Types::Int64       ttlSeconds,
-           bslma::Allocator*        allocator,
-           bool                     toConfigure = false)
-    : BaseTester(allocator)
-    {
-        mqbconfm::Domain domainCfg;
-        domainCfg.deduplicationTimeMs() = 0;  // No history
-        domainCfg.messageTtl()          = ttlSeconds;
-
-        d_replicatedStorage_mp.load(new (*d_allocator_p) mqbs::InMemoryStorage(
-                                        bmqt::Uri(uri, s_allocator_p),
-                                        queueKey,
-                                        partitionId,
-                                        domainCfg,
-                                        d_mockDomain.capacityMeter(),
-                                        d_allocator_p),
-                                    d_allocator_p);
-
-        setupReplicatedStorage(ttlSeconds, toConfigure);
-    }
-};
-
-// ================
-// struct BasicTest
-// ================
-
-/// Fixture instantiating a tester of `mqbs::InMemoryStorage` having not yet
-/// configured the storage with a storage configuration.
-struct BasicTest : mwctst::Test {
-    // PUBLIC DATA
-    Tester d_tester;
-
-    // CREATORS
-    BasicTest();
-    ~BasicTest() BSLS_KEYWORD_OVERRIDE;
-};
-
-// ----------------
-// struct BasicTest
-// ----------------
-
-// CREATORS
-BasicTest::BasicTest()
-: d_tester(k_URI_STR,
-           k_QUEUE_KEY,
-           k_PROXY_PARTITION_ID,
-           k_INT64_MAX,  // ttlSeconds
-           s_allocator_p,
-           false)  // toConfigure
-{
-    // NOTHING
-}
-
-BasicTest::~BasicTest()
-{
-    // NOTHING
-}
 
 // ===========
 // struct Test
@@ -415,71 +360,19 @@ struct Test : mwctst::Test {
 // -----------
 // CREATORS
 Test::Test()
-: d_tester(k_URI_STR,
-           k_QUEUE_KEY,
+: d_tester(s_allocator_p,
            k_PARTITION_ID,
-           k_INT64_MAX,  // ttlSeconds
-           s_allocator_p,
-           true)  // toConfigure
+           k_URI_STR,
+           k_QUEUE_KEY,
+           k_INT64_MAX  // ttlSeconds
+  )
 {
-    // NOTHING
+    d_tester.configure();
 }
 
 Test::~Test()
 {
     // NOTHING
-}
-
-// =============
-// struct GCTest
-// =============
-
-/// Fixture instantiating a tester of `mqbs::InMemoryStorage` instantiated
-/// with parameterized `TTL` and having already configured the storage with
-/// an InMemoryStorage configuration.
-struct GCTest : mwctst::Test {
-    // PUBLIC DATA
-    bsls::ObjectBuffer<Tester> d_testerBuffer;
-
-    // CREATORS
-    GCTest();
-    ~GCTest() BSLS_KEYWORD_OVERRIDE;
-
-    // MANIPULATORS
-    void configure(bsls::Types::Int64 ttlSeconds);
-
-    Tester& tester();
-};
-
-// -------------
-// struct GCTest
-// -------------
-// CREATORS
-GCTest::GCTest()
-: d_testerBuffer()
-{
-    // NOTHING
-}
-
-GCTest::~GCTest()
-{
-    d_testerBuffer.object().~Tester();
-}
-
-// MANIPULATORS
-void GCTest::configure(bsls::Types::Int64 ttlSeconds)
-{
-    new (d_testerBuffer.buffer()) Tester(k_URI_STR,
-                                         k_QUEUE_KEY,
-                                         k_PARTITION_ID,
-                                         ttlSeconds,
-                                         s_allocator_p,
-                                         true);  // toConfigure
-}
-
-Tester& GCTest::tester()
-{
-    return d_testerBuffer.object();
 }
 
 }  // close unnamed namespace
@@ -488,7 +381,7 @@ Tester& GCTest::tester()
 //                                    TESTS
 // ----------------------------------------------------------------------------
 
-TEST_F(BasicTest, breathingTest)
+TEST(breathingTest)
 // ------------------------------------------------------------------------
 // BREATHING TEST
 //
@@ -503,7 +396,9 @@ TEST_F(BasicTest, breathingTest)
 {
     mwctst::TestHelper::printTestName("BREATHING TEST");
 
-    mqbs::ReplicatedStorage& storage = d_tester.storage();
+    Tester tester(s_allocator_p, k_PROXY_PARTITION_ID);
+
+    mqbs::ReplicatedStorage& storage = tester.storage();
 
     ASSERT_EQ(storage.queueUri().asString(), k_URI_STR);
     ASSERT_EQ(storage.queueKey(), k_QUEUE_KEY);
@@ -522,7 +417,7 @@ TEST_F(BasicTest, breathingTest)
     ASSERT_EQ(storage.queueOpRecordHandles().empty(), true);
 }
 
-TEST_F(BasicTest, configure)
+TEST(configure)
 // ------------------------------------------------------------------------
 // CONFIGURE
 //
@@ -538,14 +433,16 @@ TEST_F(BasicTest, configure)
 {
     mwctst::TestHelper::printTestName("CONFIGURE");
 
-    ASSERT_EQ(d_tester.configure(k_DEFAULT_MSG, k_DEFAULT_BYTES), 0);
+    Tester tester(s_allocator_p, k_PROXY_PARTITION_ID);
 
-    mqbs::ReplicatedStorage& storage = d_tester.storage();
+    BSLS_ASSERT_OPT(tester.configure(k_DEFAULT_MSG, k_DEFAULT_BYTES) == 0);
+
+    mqbs::ReplicatedStorage& storage = tester.storage();
 
     ASSERT_EQ(storage.capacityMeter()->byteCapacity(), k_DEFAULT_BYTES);
     ASSERT_EQ(storage.config(), inMemoryStorageConfig());
 
-    ASSERT_EQ(d_tester.configure(k_DEFAULT_MSG, k_DEFAULT_BYTES + 5), 0);
+    ASSERT_EQ(tester.configure(k_DEFAULT_MSG, k_DEFAULT_BYTES + 5), 0);
     ASSERT_EQ(storage.capacityMeter()->byteCapacity(), k_DEFAULT_BYTES + 5);
     ASSERT_EQ(storage.config(), inMemoryStorageConfig());
 }
@@ -578,7 +475,8 @@ TEST_F(Test, unsupportedOperations)
     unsigned int      msgLen   = 0;
     unsigned int      refCount = 0;
 
-    mqbs::ReplicatedStorage&    storage = d_tester.storage();
+    mqbs::ReplicatedStorage& storage = d_tester.storage();
+
     mqbs::DataStoreRecordHandle handle;
 
     ASSERT_OPT_FAIL(
@@ -888,9 +786,9 @@ TEST_F(Test, removeVirtualStorage)
     ASSERT_EQ(storage.numVirtualStorages(), 0);
 }
 
-TEST_F(Test, put_withVirtualStorages)
+TEST(put_withVirtualStorages)
 // ------------------------------------------------------------------------
-// Put Test  with virtual storages
+// Put Test with virtual storages
 //
 // Testing:
 //   Verifies the 'put' operation in presense of virtual storages
@@ -905,15 +803,16 @@ TEST_F(Test, put_withVirtualStorages)
 
     mwcu::MemOutStream errDescription(s_allocator_p);
 
-    int rc = d_tester.configure(k_MSG_LIMIT, k_BYTES_LIMIT);
-    BSLS_ASSERT_OPT(rc == 0);
+    Tester tester(s_allocator_p, k_PARTITION_ID);
 
-    mqbs::ReplicatedStorage& storage = d_tester.storage();
+    BSLS_ASSERT_OPT(tester.configure(k_MSG_LIMIT, k_BYTES_LIMIT) == 0);
 
-    rc = storage.addVirtualStorage(errDescription, k_APP_ID1, k_APP_KEY1);
-    BSLS_ASSERT_OPT(rc == 0);
-    rc = storage.addVirtualStorage(errDescription, k_APP_ID2, k_APP_KEY2);
-    BSLS_ASSERT_OPT(rc == 0);
+    mqbs::ReplicatedStorage& storage = tester.storage();
+
+    BSLS_ASSERT_OPT(
+        storage.addVirtualStorage(errDescription, k_APP_ID1, k_APP_KEY1) == 0);
+    BSLS_ASSERT_OPT(
+        storage.addVirtualStorage(errDescription, k_APP_ID2, k_APP_KEY2) == 0);
 
     // Scenario:
     //  Two Virtual Storages.
@@ -927,7 +826,7 @@ TEST_F(Test, put_withVirtualStorages)
     bsl::vector<bmqt::MessageGUID> guids(s_allocator_p);
 
     // Check 'put'- To physical storage (StorageKeys = NULL)
-    ASSERT_EQ(d_tester.addMessages(&guids, k_MSG_COUNT),
+    ASSERT_EQ(tester.addMessages(&guids, k_MSG_COUNT),
               mqbi::StorageResult::e_SUCCESS);
 
     // Verify number of messages for each Virtual storage
@@ -955,7 +854,7 @@ TEST_F(Test, put_withVirtualStorages)
               mqbi::StorageResult::e_SUCCESS);
 }
 
-TEST_F(Test, removeAllMessages_appKeyNotFound)
+TEST(removeAllMessages_appKeyNotFound)
 // ------------------------------------------------------------------------
 // REMOVE ALL MESSAGES - APPKEY NOT FOUND
 //
@@ -973,9 +872,11 @@ TEST_F(Test, removeAllMessages_appKeyNotFound)
     const bsls::Types::Int64 k_MSG_LIMIT   = 80;
     const bsls::Types::Int64 k_BYTES_LIMIT = 2048;
 
-    BSLS_ASSERT_OPT(d_tester.configure(k_MSG_LIMIT, k_BYTES_LIMIT) == 0);
+    Tester tester(s_allocator_p, k_PARTITION_ID);
 
-    mqbs::ReplicatedStorage& storage = d_tester.storage();
+    BSLS_ASSERT_OPT(tester.configure(k_MSG_LIMIT, k_BYTES_LIMIT) == 0);
+
+    mqbs::ReplicatedStorage& storage = tester.storage();
 
     BSLS_ASSERT_OPT(
         storage.addVirtualStorage(errDescription, k_APP_ID1, k_APP_KEY1) == 0);
@@ -991,7 +892,7 @@ TEST_F(Test, removeAllMessages_appKeyNotFound)
         sizeof(int));
 
     bsl::vector<bmqt::MessageGUID> guids(s_allocator_p);
-    d_tester.addMessages(&guids, k_MSG_COUNT);
+    tester.addMessages(&guids, k_MSG_COUNT);
 
     // Verify 'removeAll' operation
     BSLS_ASSERT_OPT(storage.numMessages(k_NULL_KEY) == k_MSG_COUNT_INT64);
@@ -1004,7 +905,7 @@ TEST_F(Test, removeAllMessages_appKeyNotFound)
               mqbi::StorageResult::e_APPKEY_NOT_FOUND);
 }
 
-TEST_F(BasicTest, removeAllMessages)
+TEST(removeAllMessages)
 // ------------------------------------------------------------------------
 // RemoveAll Messages Test
 //
@@ -1021,9 +922,11 @@ TEST_F(BasicTest, removeAllMessages)
     const bsls::Types::Int64 k_MSG_LIMIT   = 80;
     const bsls::Types::Int64 k_BYTES_LIMIT = 2048;
 
-    BSLS_ASSERT_OPT(d_tester.configure(k_MSG_LIMIT, k_BYTES_LIMIT) == 0);
+    Tester tester(s_allocator_p, k_PROXY_PARTITION_ID);
 
-    mqbs::ReplicatedStorage& storage = d_tester.storage();
+    BSLS_ASSERT_OPT(tester.configure(k_MSG_LIMIT, k_BYTES_LIMIT) == 0);
+
+    mqbs::ReplicatedStorage& storage = tester.storage();
 
     BSLS_ASSERT_OPT(
         storage.addVirtualStorage(errDescription, k_APP_ID1, k_APP_KEY1) == 0);
@@ -1041,7 +944,7 @@ TEST_F(BasicTest, removeAllMessages)
 
     bsl::vector<bmqt::MessageGUID> guids(s_allocator_p);
 
-    ASSERT_EQ(d_tester.addMessages(&guids, k_MSG_COUNT),
+    ASSERT_EQ(tester.addMessages(&guids, k_MSG_COUNT),
               mqbi::StorageResult::e_SUCCESS);
 
     // Verify 'removeAll' operation
@@ -1067,7 +970,7 @@ TEST_F(BasicTest, removeAllMessages)
     ASSERT_EQ(storage.numBytes(mqbu::StorageKey::k_NULL_KEY), 0);
 }
 
-TEST_F(BasicTest, get_withVirtualStorages)
+TEST(get_withVirtualStorages)
 // ------------------------------------------------------------------------
 // Get Test With virtual storages
 //
@@ -1083,9 +986,11 @@ TEST_F(BasicTest, get_withVirtualStorages)
     const bsls::Types::Int64 k_MSG_LIMIT   = 80;
     const bsls::Types::Int64 k_BYTES_LIMIT = 2048;
 
-    BSLS_ASSERT_OPT(d_tester.configure(k_MSG_LIMIT, k_BYTES_LIMIT) == 0);
+    Tester tester(s_allocator_p, k_PROXY_PARTITION_ID);
 
-    mqbs::ReplicatedStorage& storage = d_tester.storage();
+    BSLS_ASSERT_OPT(tester.configure(k_MSG_LIMIT, k_BYTES_LIMIT) == 0);
+
+    mqbs::ReplicatedStorage& storage = tester.storage();
 
     storage.addVirtualStorage(errDescription, k_APP_ID1, k_APP_KEY1);
 
@@ -1095,10 +1000,9 @@ TEST_F(BasicTest, get_withVirtualStorages)
     bsl::vector<bmqt::MessageGUID> guids(s_allocator_p);
 
     // Check 'put'- To physical storage (StorageKeys = NULL)
-    ASSERT_EQ(d_tester.addMessages(&guids, 20),
-              mqbi::StorageResult::e_SUCCESS);
+    ASSERT_EQ(tester.addMessages(&guids, 20), mqbi::StorageResult::e_SUCCESS);
 
-    ASSERT_EQ(d_tester.addMessages(&guids, 20, 0, true),
+    ASSERT_EQ(tester.addMessages(&guids, 20, 0, true),
               mqbi::StorageResult::e_SUCCESS);
 
     // Verify 'get' operation
@@ -1127,7 +1031,7 @@ TEST_F(BasicTest, get_withVirtualStorages)
               mqbi::StorageResult::e_SUCCESS);
 }
 
-TEST_F(BasicTest, confirm)
+TEST(confirm)
 // ------------------------------------------------------------------------
 // RELEASE REF
 //
@@ -1143,9 +1047,11 @@ TEST_F(BasicTest, confirm)
 
     mwcu::MemOutStream errDescription(s_allocator_p);
 
-    BSLS_ASSERT_OPT(d_tester.configure(k_MSG_LIMIT, k_BYTES_LIMIT) == 0);
+    Tester tester(s_allocator_p, k_PROXY_PARTITION_ID);
 
-    mqbs::ReplicatedStorage& storage = d_tester.storage();
+    BSLS_ASSERT_OPT(tester.configure(k_MSG_LIMIT, k_BYTES_LIMIT) == 0);
+
+    mqbs::ReplicatedStorage& storage = tester.storage();
 
     storage.addVirtualStorage(errDescription, k_APP_ID1, k_APP_KEY1);
 
@@ -1161,16 +1067,16 @@ TEST_F(BasicTest, confirm)
     bsl::vector<bmqt::MessageGUID> guids(s_allocator_p);
 
     // Check 'put': To physical storage (StorageKeys = NULL)
-    ASSERT_EQ(d_tester.addMessages(&guids, k_MSG_COUNT),
+    ASSERT_EQ(tester.addMessages(&guids, k_MSG_COUNT),
               mqbi::StorageResult::e_SUCCESS);
 
-    ASSERT_EQ(d_tester.addMessages(&guids, k_MSG_COUNT, 0, true),
+    ASSERT_EQ(tester.addMessages(&guids, k_MSG_COUNT, 0, true),
               mqbi::StorageResult::e_SUCCESS);
 
     mqbi::StorageMessageAttributes attributes;
     BSLS_ASSERT_OPT(storage.get(&attributes, guids[5]) ==
                     mqbi::StorageResult::e_SUCCESS);
-    BSLS_ASSERT_OPT(attributes.refCount() == 2U);
+    ASSERT_EQ(attributes.refCount(), 2U);
     // Attempt 'releaseRef' with non-existent GUID
     ASSERT_EQ(storage.confirm(generateUniqueGUID(guids), k_APP_KEY1, 0),
               mqbi::StorageResult::e_GUID_NOT_FOUND);
@@ -1274,7 +1180,7 @@ TEST_F(Test, getIterator_noVirtualStorages)
               mqbi::StorageResult::e_SUCCESS);
 }
 
-TEST_F(BasicTest, getIterator_withVirtualStorages)
+TEST(getIterator_withVirtualStorages)
 // ------------------------------------------------------------------------
 // Iterator Test
 //
@@ -1290,9 +1196,11 @@ TEST_F(BasicTest, getIterator_withVirtualStorages)
     const bsls::Types::Int64 k_MSG_LIMIT   = 80;
     const bsls::Types::Int64 k_BYTES_LIMIT = 2048;
 
-    BSLS_ASSERT_OPT(d_tester.configure(k_MSG_LIMIT, k_BYTES_LIMIT) == 0);
+    Tester tester(s_allocator_p, k_PROXY_PARTITION_ID);
 
-    mqbs::ReplicatedStorage& storage = d_tester.storage();
+    BSLS_ASSERT_OPT(tester.configure(k_MSG_LIMIT, k_BYTES_LIMIT) == 0);
+
+    mqbs::ReplicatedStorage& storage = tester.storage();
 
     storage.addVirtualStorage(errDescription, k_APP_ID1, k_APP_KEY1);
     storage.addVirtualStorage(errDescription, k_APP_ID2, k_APP_KEY2);
@@ -1304,13 +1212,12 @@ TEST_F(BasicTest, getIterator_withVirtualStorages)
     bsl::vector<bmqt::MessageGUID> guids(s_allocator_p);
 
     // Check 'put': To physical storage (StorageKeys = NULL)
-    ASSERT_EQ(d_tester.addMessages(&guids, 20),
+    ASSERT_EQ(tester.addMessages(&guids, 20), mqbi::StorageResult::e_SUCCESS);
+
+    ASSERT_EQ(tester.addMessages(&guids, 20, 20),
               mqbi::StorageResult::e_SUCCESS);
 
-    ASSERT_EQ(d_tester.addMessages(&guids, 20, 20),
-              mqbi::StorageResult::e_SUCCESS);
-
-    ASSERT_EQ(d_tester.addMessages(&guids, 20, 40),
+    ASSERT_EQ(tester.addMessages(&guids, 20, 40),
               mqbi::StorageResult::e_SUCCESS);
 
     // Check Iterator
@@ -1417,7 +1324,7 @@ TEST_F(Test, capacityMeter_limitMessages)
     ASSERT_EQ(storage.capacityMeter()->messages(), 0);
 }
 
-TEST_F(Test, capacityMeter_limitBytes)
+TEST(capacityMeter_limitBytes)
 // ------------------------------------------------------------------------
 // Capacity Meter Test
 //
@@ -1431,24 +1338,26 @@ TEST_F(Test, capacityMeter_limitBytes)
     const bsls::Types::Int64 k_MSG_LIMIT   = 30;
     const bsls::Types::Int64 k_BYTES_LIMIT = 80;
 
-    BSLS_ASSERT_OPT(d_tester.configure(k_MSG_LIMIT, k_BYTES_LIMIT) == 0);
+    Tester tester(s_allocator_p, k_PARTITION_ID);
+
+    BSLS_ASSERT_OPT(tester.configure(k_MSG_LIMIT, k_BYTES_LIMIT) == 0);
 
     bsl::vector<bmqt::MessageGUID> guids(s_allocator_p);
 
     // Insert Max messages possible in 80bytes
     const int k_MSG_COUNT = 20;
-    ASSERT_EQ(d_tester.addMessages(&guids, k_MSG_COUNT),
+    ASSERT_EQ(tester.addMessages(&guids, k_MSG_COUNT),
               mqbi::StorageResult::e_SUCCESS);
 
     // Try to insert more than Capacity Meter - Check success first time
-    ASSERT_EQ(d_tester.addMessages(&guids, 1), mqbi::StorageResult::e_SUCCESS);
+    ASSERT_EQ(tester.addMessages(&guids, 1), mqbi::StorageResult::e_SUCCESS);
 
-    mqbs::ReplicatedStorage& storage = d_tester.storage();
+    mqbs::ReplicatedStorage& storage = tester.storage();
 
     ASSERT_EQ(storage.capacityMeter()->bytes(), 84);
 
     // Try to insert more than Capacity Meter, check failure after it's full
-    ASSERT_EQ(d_tester.addMessages(&guids, 1),
+    ASSERT_EQ(tester.addMessages(&guids, 1),
               mqbi::StorageResult::e_LIMIT_BYTES);
 
     ASSERT_EQ(storage.removeAll(mqbu::StorageKey::k_NULL_KEY),
@@ -1456,7 +1365,7 @@ TEST_F(Test, capacityMeter_limitBytes)
     ASSERT_EQ(storage.capacityMeter()->bytes(), 0);
 }
 
-TEST_F(GCTest, garbageCollect)
+TEST(garbageCollect)
 // ------------------------------------------------------------------------
 // GARBAGE COLLECT
 //
@@ -1472,7 +1381,13 @@ TEST_F(GCTest, garbageCollect)
     // input
     const int k_TTL = 20;
 
-    configure(k_TTL);
+    Tester tester(s_allocator_p, k_PARTITION_ID);
+
+    BSLS_ASSERT_OPT(tester.configure(k_DEFAULT_MSG,
+                                     k_DEFAULT_BYTES,
+                                     k_MSG_WATERMARK_RATIO,
+                                     k_BYTE_WATERMARK_RATIO,
+                                     k_TTL) == 0);
 
     bsl::vector<bmqt::MessageGUID> guids(s_allocator_p);
 
@@ -1480,14 +1395,14 @@ TEST_F(GCTest, garbageCollect)
 
     // Use offset of '1' so the first message at timestamp 1 and increments
     // from there
-    ASSERT_EQ(tester().addMessages(&guids, k_MSG_COUNT, 1),
+    ASSERT_EQ(tester.addMessages(&guids, k_MSG_COUNT, 1),
               mqbi::StorageResult::e_SUCCESS);
 
     bsls::Types::Uint64 latestMsgTimestamp;
     bsls::Types::Int64  configuredTtlValue;
     bsls::Types::Uint64 secondsFromEpoch = 5;
 
-    mqbs::ReplicatedStorage& storage = tester().storage();
+    mqbs::ReplicatedStorage& storage = tester.storage();
 
     // Case 1: Remove Zero messages (secondsFromEpoch = Low Value)
     // Such that '0 < seccondsFromEpoch - msgTimeStamp <= TTL'
@@ -1533,6 +1448,7 @@ TEST_F(Test, addQueueOpRecordHandle)
     d_tester.insertDataStoreRecord(&handle, key, record);
 
     mqbs::ReplicatedStorage& storage = d_tester.storage();
+
     ASSERT(storage.queueOpRecordHandles().empty());
     storage.addQueueOpRecordHandle(handle);
 
