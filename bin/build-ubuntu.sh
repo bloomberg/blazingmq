@@ -87,7 +87,7 @@ if [ ! -d "${DIR_THIRDPARTY}/bde" ]; then
     git clone --depth 1 --branch 4.8.0.0 https://github.com/bloomberg/bde.git "${DIR_THIRDPARTY}/bde"
 fi
 if [ ! -d "${DIR_THIRDPARTY}/ntf-core" ]; then
-    git clone --depth 1 --branch latest https://github.com/bloomberg/ntf-core.git "${DIR_THIRDPARTY}/ntf-core"
+    git clone --depth 1 --branch 2.4.2 https://github.com/bloomberg/ntf-core.git "${DIR_THIRDPARTY}/ntf-core"
 fi
 # prometheus-cpp and its dependency for the plugin
 if [ "${BUILD_PROMETHEUS}" == true ]; then
