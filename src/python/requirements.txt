@@ -10,4 +10,3 @@ pytest-xdist
 pyyaml
 termcolor
 xsdata
-xsdata[cli]
