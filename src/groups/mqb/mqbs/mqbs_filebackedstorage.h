@@ -97,7 +97,7 @@ class FileBackedStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     // Most likely number of records for each guid (one each of message,
     // confirm & deletion record).  This number is correct for every queue
     // except for the fanout one, which has more than 1 confirm records.
-    static const size_t k_MOST_LIKELY_NUM_RECORDS = 3;
+    static const size_t k_MOST_LIKELY_NUM_RECORDS = 2;
 
     // PRIVATE TYPES
     typedef mwcc::Array<DataStoreRecordHandle, k_MOST_LIKELY_NUM_RECORDS>
