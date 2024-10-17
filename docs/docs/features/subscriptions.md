@@ -18,17 +18,21 @@ receive the messages from a queue that match a specified expression.
 In essence, subscriptions allow the user to achieve topic-based message
 filtering and/or message routing.
 
-In the absence of subscriptions, a consumer attached to a queue can
-receive any and all messages posted on the queue, and should be in a position
-to process all of them.  In other words, the queue is viewed as a logical
-stream of homogeneous data.  While this may work in some or most cases, there
-are scenarios where this restriction prevents a more flexible or natural
-arrangement of consumer applications.  For example, some users may prefer one
-set of consumers to handle messages of a certain type, and another set of
-consumers to handle messages of a certain other type.  This is where
-subscriptions come in -- they enable consumer applications to "subscribe" to
-messages of a certain type, thereby *logically* converting a queue into a
-stream of heterogeneous data.
+In the absence of subscriptions, a consumer attached to a queue can receive
+and should be able to process any and all messages posted on the queue. In
+other words, the queue is viewed as a logical stream of homogeneous data.
+While this may work in some or most cases, there are scenarios where this
+is limiting.
+
+For example, a user may prefer one set of consumers to handle messages of a
+certain type, and another set of consumers to handle messages of a certain
+other type. Or, a user may have a queue of messages that should all be
+processed by some consumer applications, but certain applications may only be
+interested in a certain subset of messages and want to ignore messages of a
+certain type. This is where subscriptions come in -- they enable consumer
+applications to "subscribe" to messages of a certain type and enable users
+to filter out messages for certain applications but not others, thereby
+*logically* converting a queue into a stream of heterogeneous data.
 
 Concretely speaking, producer applications can put any interesting message
 attributes in the *message properties* section of the message (*message
@@ -49,7 +53,7 @@ the above message:
 
 In this case, a message having the properties as shown above will be routed
 to the consumer with the above filter (note that if a property is not specified
-by the consumer, it is considered to be a wildcard).
+in the subscription expression, it is considered to be a wildcard).
 
 Similarly, users can spin up any number of consumers, each with different
 filters.  Users have to ensure that every message can be processed by at least
@@ -71,29 +75,28 @@ BlazingMQ provides two types of subscriptions:
 - Consumer Subscriptions (message routing)
 
 Users can leverage either or both types of subscriptions to achieve the desired
-behavior.
-
-The two types of subscriptions and their differences are described below.
+behavior. The two types of subscriptions are described below.
 
 #### Application Subscriptions
 
 Application Subscriptions provide the ability to filter out messages from an
 application's queue in the BlazingMQ broker.
 
-When a message is produced to a queue, BlazingMQ will evaluate the Application
-Subscription and _auto-confirm_ the message if the message does not match
-the subscription. Since BlazingMQ only routes unconfirmed messages to
-consumers, consumers will only receive messages that match the configured
-Application Subscription.
-
-Note that the BlazingMQ broker will still store the message until the messages
-is confirmed by all consumers, as always.
+When a message is produced to a queue, BlazingMQ will evaluate all Application
+Subscriptions and _auto-confirm_ the message on behalf of an application if
+the message does not match the application's subscription expression. Since
+BlazingMQ only routes unconfirmed messages to consumers, consumers will only
+receive messages that match the configured Application Subscription.
 
 Application Subscriptions are specified in the domain's configuration:
 
-* Fanout mode: Application Subscriptions are configured per-*AppId*
-* Priority & Broadcast mode: Application Subscriptions are configured with an
-empty *AppId* (i.e. `appId=""`) and apply to all consumers
+* Application Subscriptions are configured and evaluated per-*AppId* for fanout
+queues.
+    - Note the BlazingMQ broker will still store each message until it is
+    confirmed by all *AppIds*, either via auto-confirm or a consumer.
+* Application Subscriptions are configured with an empty *AppId* (i.e.
+`appId=""`) for priority and broadcast queues. Auto-confirms apply to all
+consumers of these queues.
 
 #### Consumer Subscriptions
 
@@ -102,18 +105,17 @@ it is capable of processing when it attaches to the queue. This allows users
 to define the subset of consumers that BlazingMQ can route any given message
 to.
 
-Note that Consumer Subscriptions are evaluated *after* Application
-Subscriptions.
+When a message is produced to a queue, BlazingMQ will evaluate all Application
+Subscriptions (as described above), and then evaluate Consumer Subscriptions
+to determine which consumers are capable of processing the message. Then, all
+standard routing logic (i.e. consumer priorities, round-robin, respecting
+`maxUnconfirmed*` configurations) is used to deliver the message to a consumer.
 
 Notes:
 
 - BlazingMQ will only route a message to a consumer if the message matches that
 consumer's subscription. If a consumer has no subscription, BlazingMQ can route
 any message to it.
-
-- All standard routing logic (i.e. consumer priorities, round-robin, respecting
-`maxUnconfirmed*` configurations) applies to messages that match one or more
-consumer subscriptions.
 
 - If there is no matching consumer subscription for a message, the message will
 remain in the queue, unconfirmed, until a consumer configures a subscription
