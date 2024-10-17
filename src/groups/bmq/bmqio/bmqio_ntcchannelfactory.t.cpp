@@ -44,19 +44,15 @@ using namespace BloombergLP;
 using namespace bsl;
 using namespace bmqio;
 
-// IMPLEMENTATION NOTES: This test driver is nearly identical to the test
-// driver for bmqio_tcpchannelfactory with the following differences:
+// IMPLEMENTATION NOTES:
 //
 // 1) There is no resolution map or reliance on a process-wide mechanism to
 // override the results of name resolution. NTC supports object-specific
 // name resolution and it is assumed those facilities work correctly and the
 // machine is capable of resolving "localhost" to 127.0.0.1.
 //
-// 2) Connecting to an unresolvable or invalid name fails asynchronously
-// in NTC, rather than synchronously as in BTE. The test to check that
-// connecting to something like "localfoohost" or "localhost:a" fails
-// synchronously has been changed to check that the operation fails
-// asynchronously.
+// 2) Connecting to an unresolvable or invalid name (like "localfoohost" or
+// "localhost:a") fails asynchronously in NTC.
 //
 // 3) When immediately cancelling a connection to a valid listening socket,
 // NTC can detect that the peer has closed the connection while the accepted
