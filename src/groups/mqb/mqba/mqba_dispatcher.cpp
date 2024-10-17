@@ -90,9 +90,8 @@ void Dispatcher_Executor::post(const bsl::function<void()>& f) const
     mwcc::MultiQueueThreadPool<mqbi::DispatcherEvent>::Event* event =
         d_processorPool_p->getUnmanagedEvent();
 
-    event->object()
-        .setType(mqbi::DispatcherEventType::e_DISPATCHER)
-        .setCallback(mqbi::Dispatcher::voidToProcessorFunctor(f));
+    event->object().makeDispatcherEvent().setCallback(
+        mqbi::Dispatcher::voidToProcessorFunctor(f));
 
     // submit the event
     int rc = d_processorPool_p->enqueueEvent(event, d_processorHandle);
@@ -183,9 +182,9 @@ void Dispatcher_ClientExecutor::post(const bsl::function<void()>& f) const
         processorPool()->getUnmanagedEvent();
 
     event->object()
-        .setType(mqbi::DispatcherEventType::e_CALLBACK)
-        .setCallback(mqbi::Dispatcher::voidToProcessorFunctor(f))
-        .setDestination(const_cast<mqbi::DispatcherClient*>(d_client_p));
+        .setDestination(const_cast<mqbi::DispatcherClient*>(d_client_p))
+        .makeDispatcherEvent()
+        .setCallback(mqbi::Dispatcher::voidToProcessorFunctor(f));
 
     // submit the event
     int rc = processorPool()->enqueueEvent(event, processorHandle());
@@ -363,7 +362,7 @@ void Dispatcher::queueEventCb(mqbi::DispatcherClientType::Enum type,
         if (event->object().type() ==
             mqbi::DispatcherEventType::e_DISPATCHER) {
             const mqbi::DispatcherDispatcherEvent* realEvent =
-                event->object().asDispatcherEvent();
+                &event->object().getAs<mqbi::DispatcherDispatcherEvent>();
 
             // We must flush now (and irrespective of a callback actually being
             // set on the event) to ensure the flushList is empty before
@@ -403,7 +402,7 @@ void Dispatcher::queueEventCb(mqbi::DispatcherClientType::Enum type,
         if (event->object().type() ==
             mqbi::DispatcherEventType::e_DISPATCHER) {
             const mqbi::DispatcherDispatcherEvent* realEvent =
-                event->object().asDispatcherEvent();
+                &event->object().getAs<mqbi::DispatcherDispatcherEvent>();
 
             if (realEvent->finalizeCallback()) {
                 BALL_LOG_TRACE << "Calling finalizeCallback on queue "
@@ -595,13 +594,13 @@ Dispatcher::registerClient(mqbi::DispatcherClient*           client,
         mqbi::DispatcherEvent* event =
             &context.d_processorPool_mp->getUnmanagedEvent()->object();
         (*event)
-            .setType(mqbi::DispatcherEventType::e_DISPATCHER)
+            .setDestination(client)  // not needed
+            .makeDispatcherEvent()
             .setCallback(
                 bdlf::BindUtil::bind(&Dispatcher::onNewClient,
                                      this,
                                      type,
-                                     bdlf::PlaceHolders::_1))  // processor
-            .setDestination(client);                           // not needed
+                                     bdlf::PlaceHolders::_1));  // processor
         context.d_processorPool_mp->enqueueEvent(event, processor);
         return processor;  // RETURN
     }                      // break;
@@ -692,7 +691,7 @@ void Dispatcher::execute(const mqbi::Dispatcher::ProcessorFunctor& functor,
         if (processorPool[i] != 0) {
             mqbi::DispatcherEvent* qEvent =
                 &processorPool[i]->getUnmanagedEvent()->object();
-            qEvent->setType(mqbi::DispatcherEventType::e_DISPATCHER)
+            qEvent->makeDispatcherEvent()
                 .setCallback(functor)
                 .setFinalizeCallback(doneCallback);
             processorPool[i]->enqueueEventOnAllQueues(qEvent);
@@ -718,11 +717,9 @@ void Dispatcher::synchronize(mqbi::DispatcherClientType::Enum  type,
 
     bslmt::Semaphore       semaphore;
     mqbi::DispatcherEvent* event = getEvent(type);
-    (*event)
-        .setType(mqbi::DispatcherEventType::e_DISPATCHER)
-        .setCallback(
-            bdlf::BindUtil::bind(static_cast<PostFn>(&bslmt::Semaphore::post),
-                                 &semaphore));
+    (*event).makeDispatcherEvent().setCallback(
+        bdlf::BindUtil::bind(static_cast<PostFn>(&bslmt::Semaphore::post),
+                             &semaphore));
     dispatchEvent(event, type, handle);
     semaphore.wait();
 }

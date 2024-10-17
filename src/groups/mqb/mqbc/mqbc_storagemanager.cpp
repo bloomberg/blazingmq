@@ -3703,7 +3703,7 @@ void StorageManager::unregisterQueue(const bmqt::Uri& uri, int partitionId)
         mqbi::DispatcherClientType::e_QUEUE);
 
     (*queueEvent)
-        .setType(mqbi::DispatcherEventType::e_DISPATCHER)
+        .makeDispatcherEvent()
         .setCallback(
             bdlf::BindUtil::bind(&StorageUtil::unregisterQueueDispatched,
                                  bdlf::PlaceHolders::_1,  // processor
@@ -3764,7 +3764,7 @@ void StorageManager::registerQueueReplica(int                     partitionId,
         mqbi::DispatcherClientType::e_QUEUE);
 
     (*queueEvent)
-        .setType(mqbi::DispatcherEventType::e_DISPATCHER)
+        .makeDispatcherEvent()
         .setCallback(
             bdlf::BindUtil::bind(&StorageUtil::registerQueueReplicaDispatched,
                                  static_cast<int*>(0),
@@ -3798,7 +3798,7 @@ void StorageManager::unregisterQueueReplica(int              partitionId,
         mqbi::DispatcherClientType::e_QUEUE);
 
     (*queueEvent)
-        .setType(mqbi::DispatcherEventType::e_DISPATCHER)
+        .makeDispatcherEvent()
         .setCallback(bdlf::BindUtil::bind(
             &StorageUtil::unregisterQueueReplicaDispatched,
             static_cast<int*>(0),
@@ -3836,7 +3836,7 @@ void StorageManager::updateQueueReplica(int                     partitionId,
         mqbi::DispatcherClientType::e_QUEUE);
 
     (*queueEvent)
-        .setType(mqbi::DispatcherEventType::e_DISPATCHER)
+        .makeDispatcherEvent()
         .setCallback(
             bdlf::BindUtil::bind(&StorageUtil::updateQueueReplicaDispatched,
                                  static_cast<int*>(0),
@@ -3888,7 +3888,7 @@ void StorageManager::setQueue(mqbi::Queue*     queue,
         mqbi::DispatcherClientType::e_QUEUE);
 
     (*queueEvent)
-        .setType(mqbi::DispatcherEventType::e_DISPATCHER)
+        .makeDispatcherEvent()
         .setCallback(
             bdlf::BindUtil::bind(&StorageUtil::setQueueDispatched,
                                  &d_storages[partitionId],
