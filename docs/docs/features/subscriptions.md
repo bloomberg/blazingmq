@@ -37,8 +37,8 @@ to filter out messages for certain applications but not others, thereby
 Concretely speaking, producer applications can put any interesting message
 attributes in the *message properties* section of the message (*message
 properties* are a list of key/value pairs that a producer can associate with a
-message), and consumers can filter messages using one or more of those *message
-properties*.
+message), and consumers can request BlazingMQ to filter messages using one or
+more of those *message properties*.
 
 For example, if a message contains these three properties:
 
