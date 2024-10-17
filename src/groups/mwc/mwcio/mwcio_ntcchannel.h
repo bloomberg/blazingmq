@@ -356,7 +356,8 @@ class NtcChannel : public mwcio::Channel,
     /// this channel for the write to succeed.
     void write(Status*            status,
                const bdlbb::Blob& blob,
-               bsls::Types::Int64 watermark) BSLS_KEYWORD_OVERRIDE;
+               bsls::Types::Int64 watermark = bsl::numeric_limits<int>::max())
+        BSLS_KEYWORD_OVERRIDE;
 
     /// Cancel the operation.
     void cancel() BSLS_KEYWORD_OVERRIDE;
@@ -371,7 +372,7 @@ class NtcChannel : public mwcio::Channel,
     /// Shutdown this channel, and cancel all pending read requests (but do
     /// not invoke them).  Pass the specified `status` to any registered
     /// `CloseFn`s.
-    void close(const Status& status) BSLS_KEYWORD_OVERRIDE;
+    void close(const Status& status = Status()) BSLS_KEYWORD_OVERRIDE;
 
     /// Execute the specified `cb` serialized with calls to any registered
     /// read callbacks, or any `close` or `watermark` event handlers for
