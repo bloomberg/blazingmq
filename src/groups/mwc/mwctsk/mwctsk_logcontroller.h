@@ -525,20 +525,13 @@ int LogControllerConfig::fromObj(bsl::ostream& errorDescription,
     }
 
     ball::Severity::Level bslsSeverityAsBal = ball::Severity::e_ERROR;
-    // TODO: enforcing 'obj' to have 'bslsLogSeverityThreshold' accessor is a
-    // backward incompatible change from build perspective, and will require a
-    // bulk promotion of dependents, which can be tackled later.  For now, we
-    // just assume a log severity level of 'ERROR'.
-    // if (ball::SeverityUtil::fromAsciiCaseless(
-    //                             &bslsSeverityAsBal,
-    //                             obj.bslsLogSeverityThreshold().c_str()) !=
-    //                             0) {
-    //     errorDescription << "Invalid value for 'bslsLogSeverityThreshold'
-    //     ('"
-    //                      << obj.bslsLogSeverityThreshold() << "')";
-    //     return -1;                                                    //
-    //     RETURN
-    // }
+    if (ball::SeverityUtil::fromAsciiCaseless(
+            &bslsSeverityAsBal,
+            obj.bslsLogSeverityThreshold().c_str()) != 0) {
+        errorDescription << "Invalid value for 'bslsLogSeverityThreshold'('"
+                         << obj.bslsLogSeverityThreshold() << "')";
+        return -1;  // RETURN
+    }
     d_bslsLogSeverityThreshold = LogControllerConfig::balToBslsLogLevel(
         bslsSeverityAsBal);
 
