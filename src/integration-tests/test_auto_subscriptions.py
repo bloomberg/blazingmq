@@ -427,6 +427,61 @@ class TestAutoSubscriptions:
     @tweak.domain.subscriptions(
         [
             {
+                "appId": "nonexistent-appid",
+                "expression": {"version": "E_VERSION_1", "text": "x==1"},
+            }
+        ]
+    )
+    def test_nonexistent_appid(self, cluster: Cluster):
+        """
+        Configure an auto subscription for a fanout App that does not exist.
+        Make sure all apps continue to receive messages.
+        """
+        proxies = cluster.proxy_cycle()
+
+        # 1: Setup producers and consumers
+
+        next(proxies)
+        proxy = next(proxies)
+
+        producer = proxy.create_client("producer")
+        assert (
+            producer.open(tc.URI_FANOUT_SC, flags=["write", "ack"], block=True)
+            == Client.e_SUCCESS
+        )
+
+        self.consumer = self._start_client(proxy, tc.URI_FANOUT_SC_FOO, "consumerFoo")
+
+        self.consumer_bar = self._start_client(
+            proxy, tc.URI_FANOUT_SC_BAR, "consumerBar"
+        )
+        self.consumer_baz = self._start_client(
+            proxy, tc.URI_FANOUT_SC_BAZ, "consumerBaz"
+        )
+
+        assert (
+            producer.post(
+                tc.URI_FANOUT_SC,
+                payload=["123"],
+                block=True,
+                wait_ack=True,
+                messageProperties=[{"name": "x", "value": "0", "type": "E_INT"}],
+            )
+            == Client.e_SUCCESS
+        )
+
+        self.leader = cluster.last_known_leader
+
+        self._verify(tc.DOMAIN_FANOUT_SC, 0)
+        self._verify_fanout(tc.DOMAIN_FANOUT_SC, [], ["foo", "bar", "baz"], 0)
+
+        assert len(self.consumer.list(block=True)) == 0
+        assert len(self.consumer_bar.list(block=True)) == 0
+        assert len(self.consumer_baz.list(block=True)) == 0
+
+    @tweak.domain.subscriptions(
+        [
+            {
                 "appId": "",
                 "expression": {"version": "E_VERSION_1", "text": "invalid expression"},
             }
