@@ -25,7 +25,7 @@
 #include <bsls_types.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -101,14 +101,14 @@ struct LogTestImp : bsls::ProtocolTestImp<mqbsi::Log> {
     }
 
     Offset write(const bdlbb::Blob&        entry,
-                 const mwcu::BlobPosition& offset,
+                 const bmqu::BlobPosition& offset,
                  int                       length) BSLS_KEYWORD_OVERRIDE
     {
         return markDone();
     }
 
     Offset write(const bdlbb::Blob&       entry,
-                 const mwcu::BlobSection& section) BSLS_KEYWORD_OVERRIDE
+                 const bmqu::BlobSection& section) BSLS_KEYWORD_OVERRIDE
     {
         return markDone();
     }
@@ -202,7 +202,7 @@ static void test1_log_protocol()
 //   PROTOCOL TEST
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("LOG");
+    bmqtst::TestHelper::printTestName("LOG");
 
     PV("Creating a test object");
     bsls::ProtocolTest<LogTestImp> testObj(s_verbosityLevel > 2);
@@ -223,7 +223,7 @@ static void test1_log_protocol()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     switch (_testCase) {
     case 0:
@@ -234,7 +234,7 @@ int main(int argc, char* argv[])
     } break;
     }
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
 
 #if defined(BSLS_PLATFORM_CMP_CLANG)

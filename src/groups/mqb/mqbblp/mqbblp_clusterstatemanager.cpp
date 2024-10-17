@@ -32,11 +32,10 @@
 // BMQ
 #include <bmqt_uri.h>
 
-// MWC
-#include <mwcio_status.h>
-#include <mwcsys_time.h>
-#include <mwctsk_alarmlog.h>
-#include <mwcu_printutil.h>
+#include <bmqio_status.h>
+#include <bmqsys_time.h>
+#include <bmqtsk_alarmlog.h>
+#include <bmqu_printutil.h>
 
 // BDE
 #include <bdlf_bind.h>
@@ -294,12 +293,12 @@ void ClusterStateManager::onLeaderSyncStateQueryResponse(
         // Request failed to encode/be sent; process error handling (note that
         // 'onLeaderSyncDataQueryResponse' won't be invoked in this case)
 
-        MWCTSK_ALARMLOG_ALARM("CLUSTER")
+        BMQTSK_ALARMLOG_ALARM("CLUSTER")
             << d_clusterData_p->identity().description()
             << ": failed to send leader sync data query request to follower "
             << "node " << maxSeqNode->nodeDescription() << ", rc: " << status
             << ". Attempting to send leader sync state "
-            << "query to AVAILABLE followers again." << MWCTSK_ALARMLOG_END;
+            << "query to AVAILABLE followers again." << BMQTSK_ALARMLOG_END;
 
         // Attempt to send leader sync state query to AVAILABLE followers
         // again (with wait=true flag).
@@ -397,7 +396,7 @@ void ClusterStateManager::onLeaderSyncDataQueryResponse(
           leaderSyncData.sequenceNumber())) {
         // This should not occur.
 
-        MWCTSK_ALARMLOG_ALARM("CLUSTER")
+        BMQTSK_ALARMLOG_ALARM("CLUSTER")
             << d_clusterData_p->identity().description()
             << ": Received a smaller or equal leader-msg-sequence number in "
             << "leader-sync data query response from  follower node "
@@ -406,7 +405,7 @@ void ClusterStateManager::onLeaderSyncDataQueryResponse(
             << ", self sequence:"
             << d_clusterData_p->electorInfo().leaderMessageSequence()
             << ". Attempting to send leader-sync state query to AVAILABLE "
-            << "followers again." << MWCTSK_ALARMLOG_END;
+            << "followers again." << BMQTSK_ALARMLOG_END;
 
         initiateLeaderSync(true);
         return;  // RETURN
@@ -433,13 +432,13 @@ void ClusterStateManager::onLeaderSyncDataQueryResponse(
         if (peerPinfo.partitionId() < 0 ||
             peerPinfo.partitionId() >=
                 static_cast<int>(d_state_p->partitions().size())) {
-            MWCTSK_ALARMLOG_ALARM("CLUSTER")
+            BMQTSK_ALARMLOG_ALARM("CLUSTER")
                 << d_clusterData_p->identity().description()
                 << ": Invalid partitionId: " << peerPinfo
                 << " received from follower node "
                 << responder->nodeDescription()
                 << " in leader-sync data query response. "
-                << "Skipping this partition info." << MWCTSK_ALARMLOG_END;
+                << "Skipping this partition info." << BMQTSK_ALARMLOG_END;
             continue;  // CONTINUE
         }
 
@@ -447,24 +446,24 @@ void ClusterStateManager::onLeaderSyncDataQueryResponse(
             d_clusterData_p->membership().netCluster()->lookupNode(
                 peerPinfo.primaryNodeId());
         if (0 == proposedPrimaryNode) {
-            MWCTSK_ALARMLOG_ALARM("CLUSTER")
+            BMQTSK_ALARMLOG_ALARM("CLUSTER")
                 << d_clusterData_p->identity().description()
                 << ": Invalid primaryNodeId: " << peerPinfo
                 << " received from follower node "
                 << responder->nodeDescription()
                 << " in leader-sync data query response. "
-                << "Skipping this partition info." << MWCTSK_ALARMLOG_END;
+                << "Skipping this partition info." << BMQTSK_ALARMLOG_END;
             continue;  // CONTINUE
         }
 
         if (0 == peerPinfo.primaryLeaseId()) {
-            MWCTSK_ALARMLOG_ALARM("CLUSTER")
+            BMQTSK_ALARMLOG_ALARM("CLUSTER")
                 << d_clusterData_p->identity().description()
                 << ": Invalid primaryLeaseId: " << peerPinfo
                 << " received from follower node "
                 << responder->nodeDescription()
                 << " in leader-sync data query response. "
-                << "Skipping this partition info." << MWCTSK_ALARMLOG_END;
+                << "Skipping this partition info." << BMQTSK_ALARMLOG_END;
             continue;  // CONTINUE
         }
 
@@ -475,14 +474,14 @@ void ClusterStateManager::onLeaderSyncDataQueryResponse(
             // message sequence, it should never have a lower primaryLeaseId
             // for a given partition.
 
-            MWCTSK_ALARMLOG_ALARM("CLUSTER")
+            BMQTSK_ALARMLOG_ALARM("CLUSTER")
                 << d_clusterData_p->identity().description()
                 << ": stale primaryLeaseId: " << peerPinfo
                 << " received from follower node "
                 << responder->nodeDescription()
                 << " in leader-sync data query response. Primary leaseId as "
                 << "perceived by self: " << selfPinfo.primaryLeaseId()
-                << MWCTSK_ALARMLOG_END;
+                << BMQTSK_ALARMLOG_END;
             continue;  // CONTINUE
         }
 
@@ -530,7 +529,7 @@ void ClusterStateManager::onLeaderSyncDataQueryResponse(
             // network where some nodes cannot see other nodes intermittently.
             // See 'processPartitionPrimaryAdvisoryRaw' for similar check.
 
-            MWCTSK_ALARMLOG_ALARM("CLUSTER")
+            BMQTSK_ALARMLOG_ALARM("CLUSTER")
                 << d_clusterData_p->identity().description() << " Partition ["
                 << peerPinfo.partitionId()
                 << "]: self node views self as active/available primary, but a"
@@ -538,7 +537,7 @@ void ClusterStateManager::onLeaderSyncDataQueryResponse(
                 << "step: " << peerPinfo
                 << ". This downgrade from primary to replica is currently not "
                 << "supported, and self node will exit."
-                << MWCTSK_ALARMLOG_END;
+                << BMQTSK_ALARMLOG_END;
 
             mqbu::ExitUtil::terminate(mqbu::ExitCode::e_UNSUPPORTED_SCENARIO);
             // EXIT
@@ -573,24 +572,24 @@ void ClusterStateManager::onLeaderSyncDataQueryResponse(
         if (queueInfo.partitionId() < 0 ||
             queueInfo.partitionId() >=
                 static_cast<int>(d_state_p->partitions().size())) {
-            MWCTSK_ALARMLOG_ALARM("CLUSTER")
+            BMQTSK_ALARMLOG_ALARM("CLUSTER")
                 << d_clusterData_p->identity().description()
                 << ": Invalid partitionId specified for queueUri ["
                 << queueInfo.uri() << "]: " << queueInfo.partitionId()
                 << " by follower node " << responder->nodeDescription()
                 << " in leader-sync data query response."
-                << MWCTSK_ALARMLOG_END;
+                << BMQTSK_ALARMLOG_END;
             continue;  // CONTINUE
         }
 
         if (queueInfo.key().size() != static_cast<unsigned int>(k_KEY_LEN)) {
-            MWCTSK_ALARMLOG_ALARM("CLUSTER")
+            BMQTSK_ALARMLOG_ALARM("CLUSTER")
                 << d_clusterData_p->identity().description()
                 << ": Invalid queue key length for queueUri ["
                 << queueInfo.uri() << "]: " << queueInfo.key().size()
                 << " by follower node " << responder->nodeDescription()
                 << " in leader-sync data query response."
-                << MWCTSK_ALARMLOG_END;
+                << BMQTSK_ALARMLOG_END;
 
             continue;  // CONTINUE
         }
@@ -713,7 +712,7 @@ void ClusterStateManager::processPartitionPrimaryAdvisoryRaw(
     BALL_LOG_INFO
         << d_clusterData_p->identity().description()
         << ": processing partition-primary mapping: "
-        << mwcu::Printer<bsl::vector<bmqp_ctrlmsg::PartitionPrimaryInfo> >(
+        << bmqu::Printer<bsl::vector<bmqp_ctrlmsg::PartitionPrimaryInfo> >(
                &partitions)
         << " from leader node " << source->nodeDescription();
 
@@ -725,12 +724,12 @@ void ClusterStateManager::processPartitionPrimaryAdvisoryRaw(
 
         if (info.partitionId() >=
             static_cast<int>(d_state_p->partitions().size())) {
-            MWCTSK_ALARMLOG_ALARM("CLUSTER")
+            BMQTSK_ALARMLOG_ALARM("CLUSTER")
                 << d_clusterData_p->identity().description()
                 << ": Invalid partitionId: " << info
                 << " specified in partition-primary advisory. "
                 << "Ignoring this *ENTIRE* advisory message."
-                << MWCTSK_ALARMLOG_END;
+                << BMQTSK_ALARMLOG_END;
             return;  // RETURN
         }
 
@@ -739,11 +738,11 @@ void ClusterStateManager::processPartitionPrimaryAdvisoryRaw(
                 info.primaryNodeId());
 
         if (0 == proposedPrimaryNode) {
-            MWCTSK_ALARMLOG_ALARM("CLUSTER")
+            BMQTSK_ALARMLOG_ALARM("CLUSTER")
                 << d_clusterData_p->identity().description()
                 << ": Invalid primaryNodeId: " << info
                 << " specified in partition-primary advisory."
-                << " Ignoring this *ENTIRE* advisory." << MWCTSK_ALARMLOG_END;
+                << " Ignoring this *ENTIRE* advisory." << BMQTSK_ALARMLOG_END;
             return;  // RETURN
         }
 
@@ -758,12 +757,12 @@ void ClusterStateManager::processPartitionPrimaryAdvisoryRaw(
             // immediately after leader broadcast the advisory.  Lower layers
             // will take care of that scenario.
 
-            MWCTSK_ALARMLOG_ALARM("CLUSTER")
+            BMQTSK_ALARMLOG_ALARM("CLUSTER")
                 << d_clusterData_p->identity().description()
                 << ": proposed primary specified in partition/primary "
                    "mapping: "
                 << info << " is self but self is STARTING. "
-                << "Ignoring this *ENTIRE* advisory." << MWCTSK_ALARMLOG_END;
+                << "Ignoring this *ENTIRE* advisory." << BMQTSK_ALARMLOG_END;
             return;  // RETURN
         }
 
@@ -784,14 +783,14 @@ void ClusterStateManager::processPartitionPrimaryAdvisoryRaw(
             // cannot see other nodes intermittently.  See
             // 'onLeaderSyncDataQueryResponse' for similar check.
 
-            MWCTSK_ALARMLOG_ALARM("CLUSTER")
+            BMQTSK_ALARMLOG_ALARM("CLUSTER")
                 << d_clusterData_p->identity().description() << " Partition ["
                 << info.partitionId()
                 << "]: self node views self as active/available primary, but a"
                 << " different node is proposed as primary in the "
                 << "partition/primary mapping: " << info << ". This downgrade "
                 << "from primary to replica is currently not supported, and "
-                << "self node will exit." << MWCTSK_ALARMLOG_END;
+                << "self node will exit." << BMQTSK_ALARMLOG_END;
 
             mqbu::ExitUtil::terminate(mqbu::ExitCode::e_UNSUPPORTED_SCENARIO);
             // EXIT
@@ -813,12 +812,12 @@ void ClusterStateManager::processPartitionPrimaryAdvisoryRaw(
             // received a primary-status advisory from the primary node.
 
             if (info.primaryLeaseId() < pi.primaryLeaseId()) {
-                MWCTSK_ALARMLOG_ALARM("CLUSTER")
+                BMQTSK_ALARMLOG_ALARM("CLUSTER")
                     << d_clusterData_p->identity().description()
                     << ": Stale primaryLeaseId specified in: " << info
                     << ", current primaryLeaseId: " << pi.primaryLeaseId()
                     << ". Ignoring this *ENTIRE* advisory."
-                    << MWCTSK_ALARMLOG_END;
+                    << BMQTSK_ALARMLOG_END;
                 return;  // RETURN
             }
         }
@@ -847,7 +846,7 @@ void ClusterStateManager::processPartitionPrimaryAdvisoryRaw(
                 BSLS_ASSERT_SAFE(0 != proposedPrimaryNode);
 
                 if (info.primaryLeaseId() < pi.primaryLeaseId()) {
-                    MWCTSK_ALARMLOG_ALARM("CLUSTER")
+                    BMQTSK_ALARMLOG_ALARM("CLUSTER")
                         << d_clusterData_p->identity().description()
                         << ": Stale primaryLeaseId specified in: " << info
                         << ", current primaryLeaseId: " << pi.primaryLeaseId()
@@ -858,7 +857,7 @@ void ClusterStateManager::processPartitionPrimaryAdvisoryRaw(
                         << ", proposed primary node: "
                         << proposedPrimaryNode->nodeDescription()
                         << ". Ignoring this *ENTIRE* advisory."
-                        << MWCTSK_ALARMLOG_END;
+                        << BMQTSK_ALARMLOG_END;
                     return;  // RETURN
                 }
             }
@@ -867,12 +866,12 @@ void ClusterStateManager::processPartitionPrimaryAdvisoryRaw(
                 // be greater.
 
                 if (info.primaryLeaseId() <= pi.primaryLeaseId()) {
-                    MWCTSK_ALARMLOG_ALARM("CLUSTER")
+                    BMQTSK_ALARMLOG_ALARM("CLUSTER")
                         << d_clusterData_p->identity().description()
                         << ": Stale primaryLeaseId specified in: " << info
                         << ", current primaryLeaseId: " << pi.primaryLeaseId()
                         << ". Ignoring this *ENTIRE* advisory."
-                        << MWCTSK_ALARMLOG_END;
+                        << BMQTSK_ALARMLOG_END;
                     return;  // RETURN
                 }
             }
@@ -1347,11 +1346,11 @@ void ClusterStateManager::initiateLeaderSync(bool wait)
                 leaderSyncDelayMs * bdlt::TimeUnitRatio::k_NS_PER_MS;
             BALL_LOG_INFO << d_clusterData_p->identity().description()
                           << ": none of the followers AVAILABLE. Waiting for "
-                          << mwcu::PrintUtil::prettyTimeInterval(
+                          << bmqu::PrintUtil::prettyTimeInterval(
                                  leaderSyncDelayNs)
                           << " before initiating leader sync.";
 
-            bsls::TimeInterval after(mwcsys::Time::nowMonotonicClock());
+            bsls::TimeInterval after(bmqsys::Time::nowMonotonicClock());
             after.addMilliseconds(leaderSyncDelayMs);
             d_clusterData_p->scheduler().scheduleEvent(
                 d_clusterData_p->electorInfo().leaderSyncEventHandle(),
@@ -1544,14 +1543,14 @@ void ClusterStateManager::processQueueAssignmentAdvisory(
 
         if (!(d_clusterData_p->electorInfo().leaderMessageSequence() <
               leaderMsgSeq)) {
-            MWCTSK_ALARMLOG_ALARM("CLUSTER_STATE")
+            BMQTSK_ALARMLOG_ALARM("CLUSTER_STATE")
                 << d_cluster_p->description()
                 << ": got queueAssignmentAdvisory: " << queueAdvisory
                 << " from current leader: " << source->nodeDescription()
                 << ", with smaller/equal leader message sequence: "
                 << leaderMsgSeq << ". Current value: "
                 << d_clusterData_p->electorInfo().leaderMessageSequence()
-                << ". Ignoring this advisory." << MWCTSK_ALARMLOG_END;
+                << ". Ignoring this advisory." << BMQTSK_ALARMLOG_END;
             return;  // RETURN
         }
 
@@ -1677,14 +1676,14 @@ void ClusterStateManager::processQueueAssignmentAdvisory(
                         // have queue key.  Unfortunately we can't retrieve the
                         // URI of the 'other' queue.
 
-                        MWCTSK_ALARMLOG_ALARM("CLUSTER_STATE")
+                        BMQTSK_ALARMLOG_ALARM("CLUSTER_STATE")
                             << d_cluster_p->description()
                             << ": queueKey clash while applying"
                             << (delayed ? " buffered " : " ")
                             << "queue assignment advisory: " << queueInfo
                             << ". QueueKey [" << queueKey
                             << "]. Ignoring this entry in the advisory msg."
-                            << MWCTSK_ALARMLOG_END;
+                            << BMQTSK_ALARMLOG_END;
                         continue;  // CONTINUE
                     }
 
@@ -1717,7 +1716,7 @@ void ClusterStateManager::processQueueAssignmentAdvisory(
             if (false == insertRc.second) {
                 // QueueKey is not unique.
 
-                MWCTSK_ALARMLOG_ALARM("CLUSTER_STATE")
+                BMQTSK_ALARMLOG_ALARM("CLUSTER_STATE")
                     << d_cluster_p->description() << ": attemping to apply"
                     << (delayed ? " buffered " : " ")
                     << " queueAssignmentAdvisory from leader ["
@@ -1725,7 +1724,7 @@ void ClusterStateManager::processQueueAssignmentAdvisory(
                     << uri << "] assigned to Partition ["
                     << queueInfo.partitionId() << "], but queueKey ["
                     << queueKey << "] is not unique. Ignoring this entry in "
-                    << "the advisory." << MWCTSK_ALARMLOG_END;
+                    << "the advisory." << BMQTSK_ALARMLOG_END;
                 continue;  // CONTINUE
             }
 
@@ -1847,13 +1846,13 @@ void ClusterStateManager::processQueueUnAssignmentAdvisory(
 
         // Verify 'stale' primary leaseId
         if (advisory.primaryLeaseId() < pi.primaryLeaseId()) {
-            MWCTSK_ALARMLOG_ALARM("CLUSTER_STATE")
+            BMQTSK_ALARMLOG_ALARM("CLUSTER_STATE")
                 << d_cluster_p->description()
                 << ": got queueUnAssignmentAdvisory: " << advisory
                 << " from current primary: " << source->nodeDescription()
                 << ", with smaller leaseId: " << advisory.primaryLeaseId()
                 << ", current: " << pi.primaryLeaseId()
-                << ". Ignoring this advisory." << MWCTSK_ALARMLOG_END;
+                << ". Ignoring this advisory." << BMQTSK_ALARMLOG_END;
             return;  // RETURN
         }
     }
@@ -2159,14 +2158,14 @@ void ClusterStateManager::processPartitionPrimaryAdvisory(
 
     if (!(d_clusterData_p->electorInfo().leaderMessageSequence() <
           leaderMsgSeq)) {
-        MWCTSK_ALARMLOG_ALARM("CLUSTER")
+        BMQTSK_ALARMLOG_ALARM("CLUSTER")
             << d_clusterData_p->identity().description()
             << ": Got partition-primary advisory: " << advisory
             << " from leader node " << source->nodeDescription()
             << " with smaller/equal leader message sequence: " << leaderMsgSeq
             << ". Current value: "
             << d_clusterData_p->electorInfo().leaderMessageSequence()
-            << ". Ignoring this advisory." << MWCTSK_ALARMLOG_END;
+            << ". Ignoring this advisory." << BMQTSK_ALARMLOG_END;
         return;  // RETURN
     }
 
@@ -2221,14 +2220,14 @@ void ClusterStateManager::processLeaderAdvisory(
         advisory.sequenceNumber();
     if (!(d_clusterData_p->electorInfo().leaderMessageSequence() <
           leaderMsgSeq)) {
-        MWCTSK_ALARMLOG_ALARM("CLUSTER_STATE")
+        BMQTSK_ALARMLOG_ALARM("CLUSTER_STATE")
             << d_clusterData_p->identity().description()
             << ": got leader advisory: " << advisory << " from leader node ["
             << source->nodeDescription()
             << " with smaller/equal leader message sequence: " << leaderMsgSeq
             << ". Current value: "
             << d_clusterData_p->electorInfo().leaderMessageSequence()
-            << ". Ignoring this advisory." << MWCTSK_ALARMLOG_END;
+            << ". Ignoring this advisory." << BMQTSK_ALARMLOG_END;
         return;  // RETURN
     }
 

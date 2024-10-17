@@ -36,14 +36,13 @@
 #include <bmqp_protocol.h>
 #include <bmqp_recoverymessageiterator.h>
 #include <bmqp_storagemessageiterator.h>
-#include <mwcu_memoutstream.h>
+#include <bmqu_memoutstream.h>
 
-// MWC
-#include <mwcsys_time.h>
-#include <mwctsk_alarmlog.h>
-#include <mwcu_blob.h>
-#include <mwcu_blobobjectproxy.h>
-#include <mwcu_printutil.h>
+#include <bmqsys_time.h>
+#include <bmqtsk_alarmlog.h>
+#include <bmqu_blob.h>
+#include <bmqu_blobobjectproxy.h>
+#include <bmqu_printutil.h>
 
 // BDE
 #include <bdlf_bind.h>
@@ -160,7 +159,7 @@ void StorageManager::startRecoveryCb(int partitionId)
                              bdlf::PlaceHolders::_2,  // status
                              bdlf::PlaceHolders::_3,  // events
                              bdlf::PlaceHolders::_4,  // peer
-                             mwcsys::Time::highResolutionTimer()));
+                             bmqsys::Time::highResolutionTimer()));
 }
 
 void StorageManager::onPartitionRecovery(
@@ -215,13 +214,13 @@ void StorageManager::onPartitionRecovery(
     }
 
     if (0 != status) {
-        MWCTSK_ALARMLOG_ALARM("RECOVERY")
+        BMQTSK_ALARMLOG_ALARM("RECOVERY")
             << d_clusterData_p->identity().description() << ": Partition ["
             << partitionId << "] failed to recover with peer "
             << (recoveryPeer ? recoveryPeer->nodeDescription() : "**NA**")
             << " with status: " << status
             << ". This node will not be started now (even if other partitions "
-            << "recover successfully)." << MWCTSK_ALARMLOG_END;
+            << "recover successfully)." << BMQTSK_ALARMLOG_END;
     }
     else {
         // Recovery was successful & there is no need to schedule another one.
@@ -235,11 +234,11 @@ void StorageManager::onPartitionRecovery(
 
         int rc = fs->open();
         if (0 != rc) {
-            MWCTSK_ALARMLOG_ALARM("FILE_IO")
+            BMQTSK_ALARMLOG_ALARM("FILE_IO")
                 << d_clusterData_p->identity().description()
                 << ": Failed to open Partition [" << partitionId
                 << "] after recovery was finished, rc: " << rc
-                << MWCTSK_ALARMLOG_END;
+                << BMQTSK_ALARMLOG_END;
         }
         else {
             // Apply 'recoveryEvents' to the file store.
@@ -253,12 +252,12 @@ void StorageManager::onPartitionRecovery(
             for (size_t i = 0; i < recoveryEvents.size(); ++i) {
                 rc = fs->processRecoveryEvent(recoveryEvents[i]);
                 if (0 != rc) {
-                    MWCTSK_ALARMLOG_ALARM("RECOVERY")
+                    BMQTSK_ALARMLOG_ALARM("RECOVERY")
                         << d_clusterData_p->identity().description()
                         << ": Partition [" << partitionId
                         << "] failed to apply buffered storage event, rc: "
                         << rc << ". Closing the partition."
-                        << MWCTSK_ALARMLOG_END;
+                        << BMQTSK_ALARMLOG_END;
                     fs->close();
                     break;  // BREAK
                 }
@@ -284,7 +283,7 @@ void StorageManager::onPartitionRecovery(
 
     // Print a summary of the recovered storages if the partition opened
     // successfully.
-    mwcu::MemOutStream out;
+    bmqu::MemOutStream out;
     if (fs->isOpen()) {
         mqbs::StoragePrintUtil::printRecoveredStorages(
             out,
@@ -549,7 +548,7 @@ void StorageManager::setPrimaryForPartitionDispatched(
                   << ", leaseId: " << pinfo.primaryLeaseId();
 
     if (primaryLeaseId < pinfo.primaryLeaseId()) {
-        MWCTSK_ALARMLOG_ALARM("REPLICATION")
+        BMQTSK_ALARMLOG_ALARM("REPLICATION")
             << d_clusterData_p->identity().description() << " Partition ["
             << partitionId
             << "]: Smaller new primaryLeaseId specified: " << primaryLeaseId
@@ -558,7 +557,7 @@ void StorageManager::setPrimaryForPartitionDispatched(
             << primaryNode->nodeDescription() << ", current primary node: "
             << (pinfo.primary() ? pinfo.primary()->nodeDescription()
                                 : "** null **")
-            << MWCTSK_ALARMLOG_END;
+            << BMQTSK_ALARMLOG_END;
         return;  // RETURN
     }
 
@@ -592,14 +591,14 @@ void StorageManager::setPrimaryForPartitionDispatched(
         if (0 != pinfo.primary()) {
             // Same leaseId, different node.  This is an error.
 
-            MWCTSK_ALARMLOG_ALARM("REPLICATION")
+            BMQTSK_ALARMLOG_ALARM("REPLICATION")
                 << d_clusterData_p->identity().description() << " Partition ["
                 << partitionId << "]: Same primaryLeaseId specified ["
                 << primaryLeaseId
                 << "] with a different primary node. Current primary: "
                 << pinfo.primary()->nodeDescription()
                 << ", specified primary: " << primaryNode->nodeDescription()
-                << ". Ignoring this request." << MWCTSK_ALARMLOG_END;
+                << ". Ignoring this request." << BMQTSK_ALARMLOG_END;
             return;  // RETURN
         }
 
@@ -736,12 +735,12 @@ void StorageManager::processPartitionSyncEvent(
 
     // Ensure that 'pid' is valid.
     if (pid >= d_clusterState.partitions().size()) {
-        MWCTSK_ALARMLOG_ALARM("STORAGE")
+        BMQTSK_ALARMLOG_ALARM("STORAGE")
             << d_cluster_p->description()
             << ": Received partition-sync event from node "
             << source->nodeDescription() << " with invalid"
             << " partitionId: " << pid << ". Ignoring entire event."
-            << MWCTSK_ALARMLOG_END;
+            << BMQTSK_ALARMLOG_END;
         return;  // RETURN
     }
 
@@ -1443,7 +1442,7 @@ int StorageManager::start(bsl::ostream& errorDescription)
         .setMaxQlistFileSize(partitionCfg.maxQlistFileSize());
     // Only relevant fields of data store config are set.
 
-    // Get named allocator from associated mwcma::CountingAllocatorStore
+    // Get named allocator from associated bmqma::CountingAllocatorStore
     bslma::Allocator* recoveryManagerAllocator = d_allocators.get(
         "RecoveryManager");
 
@@ -1702,11 +1701,11 @@ void StorageManager::processStorageEvent(
 
     // Ensure that 'pid' is valid.
     if (pid >= d_clusterState.partitions().size()) {
-        MWCTSK_ALARMLOG_ALARM("STORAGE")
+        BMQTSK_ALARMLOG_ALARM("STORAGE")
             << d_cluster_p->description() << ": Received storage event "
             << "from node " << source->nodeDescription() << " with "
             << "invalid Partition [" << pid << "]. Ignoring entire "
-            << "storage event." << MWCTSK_ALARMLOG_END;
+            << "storage event." << BMQTSK_ALARMLOG_END;
         return;  // RETURN
     }
 
@@ -1726,8 +1725,8 @@ void StorageManager::processStorageEvent(
             pinfo.primaryStatus(),
             d_clusterData_p->identity().description(),
             skipAlarm,
-            false)) {                                       // isFSMWorkflow
-        return;                                             // RETURN
+            false)) {  // isFSMWorkflow
+        return;        // RETURN
     }
 
     mqbs::FileStore* fs = d_fileStores[pid].get();
@@ -1949,12 +1948,12 @@ void StorageManager::processRecoveryEvent(
 
     // Ensure that 'pid' is valid.
     if (pid >= d_clusterState.partitions().size()) {
-        MWCTSK_ALARMLOG_ALARM("CLUSTER")
+        BMQTSK_ALARMLOG_ALARM("CLUSTER")
             << d_cluster_p->description()
             << ": Received recovery event from node "
             << source->nodeDescription()
             << " with invalid partitionId: " << pid
-            << ". Ignoring entire recovery event." << MWCTSK_ALARMLOG_END;
+            << ". Ignoring entire recovery event." << BMQTSK_ALARMLOG_END;
         return;  // RETURN
     }
 
@@ -1968,13 +1967,13 @@ void StorageManager::processRecoveryEvent(
             // implementation of recovery, and thus, if it occurs, we reject
             // the *entire* recovery event.
 
-            MWCTSK_ALARMLOG_ALARM("CLUSTER")
+            BMQTSK_ALARMLOG_ALARM("CLUSTER")
                 << d_cluster_p->description()
                 << ": Received recovery event from node "
                 << source->nodeDescription()
                 << " with different partitionIds: " << pid << " vs "
                 << header.partitionId() << ". Ignoring entire recovery event."
-                << MWCTSK_ALARMLOG_END;
+                << BMQTSK_ALARMLOG_END;
             return;  // RETURN
         }
     }
@@ -1995,14 +1994,14 @@ void StorageManager::processReceiptEvent(const bmqp::Event&   event,
 {
     // executed by *IO* thread
 
-    mwcu::BlobPosition          position;
-    BSLA_MAYBE_UNUSED const int rc = mwcu::BlobUtil::findOffsetSafe(
+    bmqu::BlobPosition          position;
+    BSLA_MAYBE_UNUSED const int rc = bmqu::BlobUtil::findOffsetSafe(
         &position,
         *event.blob(),
         sizeof(bmqp::EventHeader));
     BSLS_ASSERT_SAFE(rc == 0);
 
-    mwcu::BlobObjectProxy<bmqp::ReplicationReceipt> receipt(
+    bmqu::BlobObjectProxy<bmqp::ReplicationReceipt> receipt(
         event.blob(),
         position,
         true,    // read mode

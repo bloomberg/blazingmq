@@ -37,7 +37,7 @@
 // BMQ
 #include <bmqa_messageproperties.h>
 #include <bmqa_session.h>
-#include <mwcst_statcontext.h>
+#include <bmqst_statcontext.h>
 
 // BDE
 #include <bdlbb_pooledblobbufferfactory.h>
@@ -73,7 +73,7 @@ class PostingContext {
     // Where to log posted messages.
     // Held, not owned.
 
-    mwcst::StatContext* d_statContext_p;
+    bmqst::StatContext* d_statContext_p;
     // StatContext for msg/event stats.
     // Held, not owned
 
@@ -106,7 +106,7 @@ class PostingContext {
                    Parameters*                     parameters,
                    const bmqa::QueueId&            queueId,
                    FileLogger*                     fileLogger,
-                   mwcst::StatContext*             statContext,
+                   bmqst::StatContext*             statContext,
                    bdlbb::PooledBlobBufferFactory* bufferFactory,
                    bdlbb::PooledBlobBufferFactory* timeBufferFactory,
                    bslma::Allocator*               allocator);
@@ -148,7 +148,7 @@ class Poster {
     // blob of the published message, to
     // hold the timestamp information
 
-    mwcst::StatContext* d_statContext;
+    bmqst::StatContext* d_statContext;
     // StatContext for msg/event stats.
     // Held, not owned
 
@@ -160,7 +160,7 @@ class Poster {
   public:
     // CREATORS
     Poster(FileLogger*         fileLogger,
-           mwcst::StatContext* statContext,
+           bmqst::StatContext* statContext,
            bslma::Allocator*   allocator);
 
     // MANIPULATORS

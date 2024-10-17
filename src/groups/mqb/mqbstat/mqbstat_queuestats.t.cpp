@@ -28,16 +28,15 @@
 #include <bmqt_queueflags.h>
 #include <bmqt_uri.h>
 
-// MWC
-#include <mwcst_statcontext.h>
-#include <mwcu_memoutstream.h>
+#include <bmqst_statcontext.h>
+#include <bmqu_memoutstream.h>
 
 // BDE
 #include <bdlbb_pooledblobbufferfactory.h>
 #include <bsl_memory.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -61,7 +60,7 @@ static void test1_breathingTest()
 //   Stat Context initialization
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("Breathing Test");
+    bmqtst::TestHelper::printTestName("Breathing Test");
 
     bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
     mqbmock::Cluster               mockCluster(&bufferFactory, s_allocator_p);
@@ -70,10 +69,10 @@ static void test1_breathingTest()
     // Create statcontexts
     const int k_HISTORY_SIZE = 2;
 
-    bsl::shared_ptr<mwcst::StatContext> client =
+    bsl::shared_ptr<bmqst::StatContext> client =
         mqbstat::QueueStatsUtil::initializeStatContextClients(k_HISTORY_SIZE,
                                                               s_allocator_p);
-    mwcst::StatContext* domain = mockDomain.queueStatContext();
+    bmqst::StatContext* domain = mockDomain.queueStatContext();
 
     using namespace mqbstat;
     typedef QueueStatsClient::Stat ClientStat;
@@ -162,11 +161,11 @@ static void test2_queueStatsClient()
 //   QueueStatsClient manipulation
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("QueueStatsClient");
+    bmqtst::TestHelper::printTestName("QueueStatsClient");
 
     // Create statcontexts
     const int                           k_HISTORY_SIZE = 3;
-    bsl::shared_ptr<mwcst::StatContext> client =
+    bsl::shared_ptr<bmqst::StatContext> client =
         mqbstat::QueueStatsUtil::initializeStatContextClients(k_HISTORY_SIZE,
                                                               s_allocator_p);
 
@@ -261,14 +260,14 @@ static void test3_queueStatsDomain()
 //   QueueStatsDomain manipulation
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("QueueStatsDomain");
+    bmqtst::TestHelper::printTestName("QueueStatsDomain");
 
     // Create statcontext
     bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
     mqbmock::Cluster               mockCluster(&bufferFactory, s_allocator_p);
     mqbmock::Domain                mockDomain(&mockCluster, s_allocator_p);
 
-    mwcst::StatContext* domain = mockDomain.queueStatContext();
+    bmqst::StatContext* domain = mockDomain.queueStatContext();
 
     domain->snapshot();
 
@@ -420,7 +419,7 @@ static void test4_queueStatsDomainContent()
 //   QueueStatsDomain manipulation
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("QueueStatsDomainContent");
+    bmqtst::TestHelper::printTestName("QueueStatsDomainContent");
 
 #define ASSERT_EQ_DOMAINSTAT(PARAM, SNAPSHOT, VALUE)                          \
     ASSERT_EQ(VALUE,                                                          \
@@ -433,7 +432,7 @@ static void test4_queueStatsDomainContent()
     bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
     mqbmock::Cluster               mockCluster(&bufferFactory, s_allocator_p);
     mqbmock::Domain                mockDomain(&mockCluster, s_allocator_p);
-    mwcst::StatContext*            sc = mockDomain.queueStatContext();
+    bmqst::StatContext*            sc = mockDomain.queueStatContext();
 
     mqbstat::QueueStatsDomain obj(s_allocator_p);
     obj.initialize(bmqt::Uri(s_allocator_p), &mockDomain);
@@ -525,7 +524,7 @@ static void test5_appIdMetrics()
 //   QueueStatsDomain manipulation with per-appId metrics
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("AppIdMetrics");
+    bmqtst::TestHelper::printTestName("AppIdMetrics");
 
     // Create a mock cluster/domain
     const bool isClusterMember = true;
@@ -582,7 +581,7 @@ static void test5_appIdMetrics()
     mode.publishAppIdMetrics()      = true;
     mode.appIDs().push_back(k_APPID_FOO);
 
-    mwcu::MemOutStream errorDesc(s_allocator_p);
+    bmqu::MemOutStream errorDesc(s_allocator_p);
     mockDomain.configure(errorDesc, domainConfig);
 
     // Do not use stat context (`mockDomain.queueStatContext()`) declared
@@ -592,7 +591,7 @@ static void test5_appIdMetrics()
     stats.initialize(bmqt::Uri("bmq://mock-domain/abc", s_allocator_p),
                      &mockDomain);
 
-    mwcst::StatContext* sc = stats.statContext();
+    bmqst::StatContext* sc = stats.statContext();
 
     // Make a snapshot to get a recent update with a newly initialized
     // subcontext for "foo"
@@ -600,7 +599,7 @@ static void test5_appIdMetrics()
         sc->snapshot();
         ASSERT_EQ(1, sc->numSubcontexts());
 
-        const mwcst::StatContext* fooSc = sc->getSubcontext(k_APPID_FOO);
+        const bmqst::StatContext* fooSc = sc->getSubcontext(k_APPID_FOO);
         ASSERT(fooSc);
     }
 
@@ -624,11 +623,11 @@ static void test5_appIdMetrics()
 
         ASSERT_EQ(2, sc->numSubcontexts());
 
-        const mwcst::StatContext* fooSc = sc->getSubcontext(k_APPID_FOO);
+        const bmqst::StatContext* fooSc = sc->getSubcontext(k_APPID_FOO);
         ASSERT(!fooSc);
 
-        const mwcst::StatContext* barSc = sc->getSubcontext(k_APPID_BAR);
-        const mwcst::StatContext* bazSc = sc->getSubcontext(k_APPID_BAZ);
+        const bmqst::StatContext* barSc = sc->getSubcontext(k_APPID_BAR);
+        const bmqst::StatContext* bazSc = sc->getSubcontext(k_APPID_BAZ);
         ASSERT(barSc);
         ASSERT(bazSc);
     }
@@ -651,8 +650,8 @@ static void test5_appIdMetrics()
 
         sc->snapshot();
 
-        const mwcst::StatContext* barSc = sc->getSubcontext(k_APPID_BAR);
-        const mwcst::StatContext* bazSc = sc->getSubcontext(k_APPID_BAZ);
+        const bmqst::StatContext* barSc = sc->getSubcontext(k_APPID_BAR);
+        const bmqst::StatContext* bazSc = sc->getSubcontext(k_APPID_BAZ);
         ASSERT(barSc);
         ASSERT(bazSc);
 
@@ -675,7 +674,7 @@ static void test5_appIdMetrics()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     bmqt::UriParser::initialize(s_allocator_p);
 
@@ -683,7 +682,7 @@ int main(int argc, char* argv[])
         mqbcfg::AppConfig brokerConfig(s_allocator_p);
         mqbcfg::BrokerConfig::set(brokerConfig);
 
-        bsl::shared_ptr<mwcst::StatContext> statContext =
+        bsl::shared_ptr<bmqst::StatContext> statContext =
             mqbstat::BrokerStatsUtil::initializeStatContext(30, s_allocator_p);
         switch (_testCase) {
         case 0:
@@ -701,6 +700,6 @@ int main(int argc, char* argv[])
 
     bmqt::UriParser::shutdown();
 
-    TEST_EPILOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_EPILOG(bmqtst::TestHelper::e_DEFAULT);
     // Do not check fro default/global allocator usage.
 }

@@ -18,30 +18,25 @@
 
 #include <bmqscm_version.h>
 // BMQ
+#include <bmqex_executionpolicy.h>
+#include <bmqex_systemexecutor.h>
+#include <bmqio_channelutil.h>
+#include <bmqio_connectoptions.h>
+#include <bmqio_status.h>
+#include <bmqio_tcpendpoint.h>
+#include <bmqma_countingallocatorutil.h>
 #include <bmqp_crc32c.h>
 #include <bmqp_protocolutil.h>
+#include <bmqscm_version.h>
+#include <bmqst_statvalue.h>
+#include <bmqst_tableutil.h>
+#include <bmqsys_threadutil.h>
+#include <bmqsys_time.h>
 #include <bmqt_resultcode.h>
 #include <bmqt_uri.h>
-
-// MWC
-#include <mwcex_executionpolicy.h>
-#include <mwcex_systemexecutor.h>
-#include <mwcio_channelutil.h>
-#include <mwcio_connectoptions.h>
-#include <mwcio_status.h>
-#include <mwcio_tcpendpoint.h>
-#include <mwcma_countingallocatorutil.h>
-#include <mwcscm_version.h>
-#include <mwcsys_threadutil.h>
-#include <mwcsys_time.h>
-#include <mwcu_blob.h>
-#include <mwcu_memoutstream.h>
-#include <mwcu_printutil.h>
-
-// MWC
-#include <mwcscm_version.h>
-#include <mwcst_statvalue.h>
-#include <mwcst_tableutil.h>
+#include <bmqu_blob.h>
+#include <bmqu_memoutstream.h>
+#include <bmqu_printutil.h>
 
 // BDE
 #include <bdlb_scopeexit.h>
@@ -82,11 +77,11 @@ const bsls::Types::Int64 k_CHANNEL_LOW_WATERMARK = 512 * 1024;
 
 /// Create the StatContextConfiguration to use, from the specified
 /// `options`, and using the specified `allocator` for memory allocations.
-mwcst::StatContextConfiguration
+bmqst::StatContextConfiguration
 statContextConfiguration(const bmqt::SessionOptions& options,
                          bslma::Allocator*           allocator)
 {
-    mwcst::StatContextConfiguration config("stats", allocator);
+    bmqst::StatContextConfiguration config("stats", allocator);
     if (options.statsDumpInterval() != bsls::TimeInterval()) {
         // Stats configuration:
         //   we snapshot every second
@@ -145,7 +140,7 @@ ntcCreateInterfaceConfig(const bmqt::SessionOptions& sessionOptions,
 // -------------------------
 
 void Application::onChannelDown(const bsl::string&   peerUri,
-                                const mwcio::Status& status)
+                                const bmqio::Status& status)
 {
     // executed by the *IO* thread
 
@@ -156,7 +151,7 @@ void Application::onChannelDown(const bsl::string&   peerUri,
 }
 
 void Application::onChannelWatermark(const bsl::string&                peerUri,
-                                     mwcio::ChannelWatermarkType::Enum type)
+                                     bmqio::ChannelWatermarkType::Enum type)
 {
     // executed by the *IO* thread
 
@@ -164,16 +159,16 @@ void Application::onChannelWatermark(const bsl::string&                peerUri,
     d_brokerSession.handleChannelWatermark(type);
 }
 
-void Application::readCb(const mwcio::Status&                   status,
+void Application::readCb(const bmqio::Status&                   status,
                          int*                                   numNeeded,
                          bdlbb::Blob*                           blob,
-                         const bsl::shared_ptr<mwcio::Channel>& channel)
+                         const bsl::shared_ptr<bmqio::Channel>& channel)
 {
     // executed by the *IO* thread
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!status)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        if (status.category() != mwcio::StatusCategory::e_CANCELED) {
+        if (status.category() != bmqio::StatusCategory::e_CANCELED) {
             BALL_LOG_ERROR << "#TCP_READ_ERROR " << channel->peerUri()
                            << ": ReadCallback error [status: " << status
                            << "]";
@@ -188,13 +183,13 @@ void Application::readCb(const mwcio::Status&                   status,
 
     bdlbb::Blob readBlob;
 
-    const int rc = mwcio::ChannelUtil::handleRead(&readBlob, numNeeded, blob);
+    const int rc = bmqio::ChannelUtil::handleRead(&readBlob, numNeeded, blob);
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc != 0)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
         BALL_LOG_ERROR << "#TCP_READ_ERROR " << channel->peerUri()
                        << ": ReadCallback unrecoverable error "
                        << "[status: " << status << "]:\n"
-                       << mwcu::BlobStartHexDumper(blob);
+                       << bmqu::BlobStartHexDumper(blob);
         // Nothing much we can do, close the channel
         channel->close();
         return;  // RETURN
@@ -207,16 +202,16 @@ void Application::readCb(const mwcio::Status&                   status,
     }
 
     BALL_LOG_TRACE << channel->peerUri() << ": ReadCallback got a blob\n"
-                   << mwcu::BlobStartHexDumper(&readBlob);
+                   << bmqu::BlobStartHexDumper(&readBlob);
 
     d_brokerSession.processPacket(readBlob);
 }
 
 void Application::channelStateCallback(
     const bsl::string&                     endpoint,
-    mwcio::ChannelFactoryEvent::Enum       event,
-    const mwcio::Status&                   status,
-    const bsl::shared_ptr<mwcio::Channel>& channel)
+    bmqio::ChannelFactoryEvent::Enum       event,
+    const bmqio::Status&                   status,
+    const bsl::shared_ptr<bmqio::Channel>& channel)
 {
     // executed by the *IO* thread
 
@@ -226,7 +221,7 @@ void Application::channelStateCallback(
                    << "']";
 
     switch (event) {
-    case mwcio::ChannelFactoryEvent::e_CHANNEL_UP: {
+    case bmqio::ChannelFactoryEvent::e_CHANNEL_UP: {
         BALL_LOG_INFO << "Session with '" << channel->peerUri()
                       << "' is now UP";
 
@@ -244,7 +239,7 @@ void Application::channelStateCallback(
         d_brokerSession.setChannel(channel);
 
         // Initiate read flow
-        mwcio::Status st;
+        bmqio::Status st;
         channel->read(
             &st,
             bmqp::Protocol::k_PACKET_MIN_SIZE,
@@ -266,12 +261,12 @@ void Application::channelStateCallback(
         // do nothing)
         d_scheduler.cancelEvent(&d_startTimeoutHandle);
     } break;  // BREAK
-    case mwcio::ChannelFactoryEvent::e_CONNECT_ATTEMPT_FAILED: {
+    case bmqio::ChannelFactoryEvent::e_CONNECT_ATTEMPT_FAILED: {
         BALL_LOG_DEBUG << "Failed an attempt to establish a session with '"
                        << endpoint << "' [event: " << event
                        << ", status: " << status << "]";
     } break;  // BREAK
-    case mwcio::ChannelFactoryEvent::e_CONNECT_FAILED: {
+    case bmqio::ChannelFactoryEvent::e_CONNECT_FAILED: {
         BALL_LOG_ERROR << "Could not establish session with '" << endpoint
                        << "' [event: " << event << ", status: " << status
                        << "]";
@@ -284,15 +279,15 @@ void Application::channelStateCallback(
     }
 }
 
-bslma::ManagedPtr<mwcst::StatContext> Application::channelStatContextCreator(
-    BSLS_ANNOTATION_UNUSED const bsl::shared_ptr<mwcio::Channel>& channel,
-    const bsl::shared_ptr<mwcio::StatChannelFactoryHandle>&       handle)
+bslma::ManagedPtr<bmqst::StatContext> Application::channelStatContextCreator(
+    BSLS_ANNOTATION_UNUSED const bsl::shared_ptr<bmqio::Channel>& channel,
+    const bsl::shared_ptr<bmqio::StatChannelFactoryHandle>&       handle)
 {
     // The SDK only connects
-    BSLS_ASSERT_SAFE(handle->options().is<mwcio::ConnectOptions>());
+    BSLS_ASSERT_SAFE(handle->options().is<bmqio::ConnectOptions>());
 
-    mwcst::StatContextConfiguration config(
-        handle->options().the<mwcio::ConnectOptions>().endpoint());
+    bmqst::StatContextConfiguration config(
+        handle->options().the<bmqio::ConnectOptions>().endpoint());
     return d_channelsStatContext_mp->addSubcontext(config);
 }
 
@@ -338,7 +333,7 @@ bmqt::GenericResult::Enum Application::startChannel()
         return bmqt::GenericResult::e_UNKNOWN;  // RETURN
     }
     bdlb::ScopeExitAny tcpScopeGuard(
-        bdlf::BindUtil::bind(&mwcio::NtcChannelFactory::stop,
+        bdlf::BindUtil::bind(&bmqio::NtcChannelFactory::stop,
                              &d_channelFactory));
 
     rc = d_reconnectingChannelFactory.start();
@@ -348,11 +343,11 @@ bmqt::GenericResult::Enum Application::startChannel()
         return bmqt::GenericResult::e_UNKNOWN;  // RETURN
     }
     bdlb::ScopeExitAny reconnectingScopeGuard(
-        bdlf::BindUtil::bind(&mwcio::ReconnectingChannelFactory::stop,
+        bdlf::BindUtil::bind(&bmqio::ReconnectingChannelFactory::stop,
                              &d_reconnectingChannelFactory));
 
     // Connect to the broker.
-    mwcio::TCPEndpoint endpoint(d_sessionOptions.brokerUri());
+    bmqio::TCPEndpoint endpoint(d_sessionOptions.brokerUri());
     if (!endpoint) {
         BALL_LOG_ERROR << "Invalid brokerURI '" << d_sessionOptions.brokerUri()
                        << "'";
@@ -360,14 +355,14 @@ bmqt::GenericResult::Enum Application::startChannel()
     }
 
     bdlma::LocalSequentialAllocator<32> localAllocator(&d_allocator);
-    mwcu::MemOutStream                  out(&localAllocator);
+    bmqu::MemOutStream                  out(&localAllocator);
     out << endpoint.host() << ":" << endpoint.port();
 
     bsls::TimeInterval attemptInterval;
     attemptInterval.setTotalMilliseconds(k_RECONNECT_INTERVAL_MS);
 
-    mwcio::Status         status;
-    mwcio::ConnectOptions options;
+    bmqio::Status         status;
+    bmqio::ConnectOptions options;
     options.setEndpoint(out.str())
         .setNumAttempts(k_RECONNECT_COUNT)
         .setAttemptInterval(attemptInterval)
@@ -438,7 +433,7 @@ void Application::printStats(bool isFinal)
     //         executed by the *SCHEDULER* thread
     // (and by the *MAIN* thread (in destructor))
 
-    mwcu::MemOutStream os;
+    bmqu::MemOutStream os;
 
     os << "#### stats [delta = last "
        << d_sessionOptions.statsDumpInterval().seconds() << " seconds] ####\n";
@@ -452,14 +447,14 @@ void Application::printStats(bool isFinal)
         os << ":: Allocators";
         if (d_lastAllocatorSnapshot != 0) {
             os << " [Last snapshot was "
-               << mwcu::PrintUtil::prettyTimeInterval(
-                      mwcsys::Time::highResolutionTimer() -
+               << bmqu::PrintUtil::prettyTimeInterval(
+                      bmqsys::Time::highResolutionTimer() -
                       d_lastAllocatorSnapshot)
                << " ago.]";
         }
-        d_lastAllocatorSnapshot = mwcsys::Time::highResolutionTimer();
+        d_lastAllocatorSnapshot = bmqsys::Time::highResolutionTimer();
 
-        mwcma::CountingAllocatorUtil::printAllocations(os,
+        bmqma::CountingAllocatorUtil::printAllocations(os,
                                                        *d_allocator.context());
         os << "\n";
     }
@@ -467,18 +462,18 @@ void Application::printStats(bool isFinal)
     os << "::::: TCP Channels >>";
     if (isFinal) {
         // For the final stats, no need to print the 'delta' columns
-        mwcst::Table                  table;
-        mwcst::BasicTableInfoProvider tip;
-        mwcio::StatChannelFactoryUtil::initializeStatsTable(
+        bmqst::Table                  table;
+        bmqst::BasicTableInfoProvider tip;
+        bmqio::StatChannelFactoryUtil::initializeStatsTable(
             &table,
             &tip,
             d_channelsStatContext_mp.get());
         table.records().update();
-        mwcst::TableUtil::printTable(os, tip);
+        bmqst::TableUtil::printTable(os, tip);
     }
     else {
         d_channelsTable.records().update();
-        mwcst::TableUtil::printTable(os, d_channelsTip);
+        bmqst::TableUtil::printTable(os, d_channelsTip);
     }
 
     BALL_LOG_INFO << os.str();
@@ -542,7 +537,7 @@ Application::Application(
     const bmqp_ctrlmsg::NegotiationMessage& negotiationMessage,
     const EventQueue::EventHandlerCallback& eventHandlerCB,
     bslma::Allocator*                       allocator)
-: d_allocatorStatContext(mwcst::StatContextConfiguration("Allocators",
+: d_allocatorStatContext(bmqst::StatContextConfiguration("Allocators",
                                                          allocator),
                          allocator)
 , d_allocator("Application", &d_allocatorStatContext, allocator)
@@ -550,7 +545,7 @@ Application::Application(
 , d_rootStatContext(statContextConfiguration(sessionOptions, allocator),
                     d_allocators.get("Statistics"))
 , d_channelsStatContext_mp(d_rootStatContext.addSubcontext(
-      mwcio::StatChannelFactoryUtil::statContextConfiguration("channels",
+      bmqio::StatChannelFactoryUtil::statContextConfiguration("channels",
                                                               -1,
                                                               allocator)))
 , d_sessionOptions(sessionOptions, &d_allocator)
@@ -563,18 +558,18 @@ Application::Application(
                    &d_blobBufferFactory,
                    allocator)
 , d_resolvingChannelFactory(
-      mwcio::ResolvingChannelFactoryConfig(
+      bmqio::ResolvingChannelFactoryConfig(
           &d_channelFactory,
-          mwcex::ExecutionPolicyUtil::oneWay().alwaysBlocking().useExecutor(
-              mwcex::SystemExecutor())),
+          bmqex::ExecutionPolicyUtil::oneWay().alwaysBlocking().useExecutor(
+              bmqex::SystemExecutor())),
       allocator)
 , d_reconnectingChannelFactory(
-      mwcio::ReconnectingChannelFactoryConfig(&d_resolvingChannelFactory,
+      bmqio::ReconnectingChannelFactoryConfig(&d_resolvingChannelFactory,
                                               &d_scheduler,
                                               allocator),
       allocator)
 , d_statChannelFactory(
-      mwcio::StatChannelFactoryConfig(
+      bmqio::StatChannelFactoryConfig(
           &d_reconnectingChannelFactory,
           bdlf::BindUtil::bind(&Application::channelStatContextCreator,
                                this,
@@ -617,7 +612,6 @@ Application::Application(
     {
         BALL_LOG_OUTPUT_STREAM << "Creating Application "
                                << "[bmq: " << bmqscm::Version::version()
-                               << ", mwc: " << mwcscm::Version::version()
                                << "], options:\n";
         d_sessionOptions.print(BALL_LOG_OUTPUT_STREAM, 1, 4);
     }
@@ -628,7 +622,7 @@ Application::Application(
         bsl::srand(unsigned(bsl::time(0)));
         // For calls to 'rand()' in the reconnecting channel factory
 
-        mwcsys::Time::initialize();
+        bmqsys::Time::initialize();
         bmqp::Crc32c::initialize();
     }
 
@@ -644,7 +638,7 @@ Application::Application(
     // we can not call 'stop' on the scheduler from the 'finalizeCb', and
     // therefore have to let it stop in the application thread, i.e., from the
     // destructor of this object.
-    bslmt::ThreadAttributes attr = mwcsys::ThreadUtil::defaultAttributes();
+    bslmt::ThreadAttributes attr = bmqsys::ThreadUtil::defaultAttributes();
     attr.setThreadName("bmqScheduler");
     int rc = d_scheduler.start(attr);
     if (rc != 0) {
@@ -653,8 +647,8 @@ Application::Application(
     }
 
     // Initialize stats
-    mwcst::StatValue::SnapshotLocation start;
-    mwcst::StatValue::SnapshotLocation end;
+    bmqst::StatValue::SnapshotLocation start;
+    bmqst::StatValue::SnapshotLocation end;
     if (d_sessionOptions.statsDumpInterval() != bsls::TimeInterval()) {
         start.setLevel(1).setIndex(0);
         end.setLevel(1).setIndex(
@@ -668,7 +662,7 @@ Application::Application(
     d_brokerSession.initializeStats(&d_rootStatContext, start, end);
 
     // Create the channels stat context table
-    mwcio::StatChannelFactoryUtil::initializeStatsTable(
+    bmqio::StatChannelFactoryUtil::initializeStatsTable(
         &d_channelsTable,
         &d_channelsTip,
         d_channelsStatContext_mp.get(),
@@ -712,7 +706,7 @@ int Application::startAsync(const bsls::TimeInterval& timeout)
     // Schedule a timeout
     d_scheduler.scheduleEvent(
         &d_startTimeoutHandle,
-        mwcsys::Time::nowMonotonicClock() + timeout,
+        bmqsys::Time::nowMonotonicClock() + timeout,
         bdlf::MemFnUtil::memFn(&Application::onStartTimeout, this));
 
     return bmqt::GenericResult::e_SUCCESS;

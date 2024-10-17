@@ -61,8 +61,7 @@
 #include <bmqt_messageguid.h>
 #include <bmqt_resultcode.h>
 
-// MWC
-#include <mwcc_orderedhashset.h>
+#include <bmqc_orderedhashset.h>
 
 // BDE
 #include <bdlbb_blob.h>
@@ -432,7 +431,7 @@ class QueueHandle {
     typedef bsl::function<void(void)> VoidFunctor;
 
     /// An ordered hash map of GUID and associated message info.
-    typedef mwcc::OrderedHashMap<bmqt::MessageGUID,
+    typedef bmqc::OrderedHashMap<bmqt::MessageGUID,
                                  UnconfirmedMessageInfo,
                                  bslh::Hash<bmqt::MessageGUIDHashAlgo> >
         UnconfirmedMessageInfoMap;

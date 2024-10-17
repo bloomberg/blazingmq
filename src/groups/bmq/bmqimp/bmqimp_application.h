@@ -42,18 +42,17 @@
 #include <bmqp_ctrlmsg_messages.h>
 #include <bmqt_sessionoptions.h>
 
-// MWC
-#include <mwcio_channel.h>
-#include <mwcio_channelfactory.h>
-#include <mwcio_ntcchannelfactory.h>
-#include <mwcio_reconnectingchannelfactory.h>
-#include <mwcio_resolvingchannelfactory.h>
-#include <mwcio_statchannelfactory.h>
-#include <mwcma_countingallocator.h>
-#include <mwcma_countingallocatorstore.h>
-#include <mwcst_basictableinfoprovider.h>
-#include <mwcst_statcontext.h>
-#include <mwcst_table.h>
+#include <bmqio_channel.h>
+#include <bmqio_channelfactory.h>
+#include <bmqio_ntcchannelfactory.h>
+#include <bmqio_reconnectingchannelfactory.h>
+#include <bmqio_resolvingchannelfactory.h>
+#include <bmqio_statchannelfactory.h>
+#include <bmqma_countingallocator.h>
+#include <bmqma_countingallocatorstore.h>
+#include <bmqst_basictableinfoprovider.h>
+#include <bmqst_statcontext.h>
+#include <bmqst_table.h>
 
 // BDE
 #include <ball_log.h>
@@ -81,7 +80,7 @@ namespace bmqimp {
 class Application {
   private:
     // PRIVATE TYPES
-    typedef bslma::ManagedPtr<mwcio::ChannelFactory::OpHandle>
+    typedef bslma::ManagedPtr<bmqio::ChannelFactory::OpHandle>
         ChannelFactoryOpHandleMp;
 
   private:
@@ -90,29 +89,29 @@ class Application {
 
   private:
     // DATA
-    mwcst::StatContext d_allocatorStatContext;
+    bmqst::StatContext d_allocatorStatContext;
     // Stat context for counting allocators
 
-    mwcma::CountingAllocator d_allocator;
+    bmqma::CountingAllocator d_allocator;
     // Counting allocator
 
-    mwcma::CountingAllocatorStore d_allocators;
+    bmqma::CountingAllocatorStore d_allocators;
     // Allocator store to spawn new
     // allocators for sub-components
 
-    mwcst::StatContext d_rootStatContext;
+    bmqst::StatContext d_rootStatContext;
     // Top level stat context for all stats
 
-    bslma::ManagedPtr<mwcst::StatContext> d_channelsStatContext_mp;
+    bslma::ManagedPtr<bmqst::StatContext> d_channelsStatContext_mp;
     // Top level stat context for channels
 
     bmqt::SessionOptions d_sessionOptions;
     // Options to configure this
     // application
 
-    mwcst::Table d_channelsTable;
+    bmqst::Table d_channelsTable;
 
-    mwcst::BasicTableInfoProvider d_channelsTip;
+    bmqst::BasicTableInfoProvider d_channelsTip;
 
     bdlbb::PooledBlobBufferFactory d_blobBufferFactory;
     // Factory for blob buffers
@@ -120,13 +119,13 @@ class Application {
     bdlmt::EventScheduler d_scheduler;
     // Scheduler
 
-    mwcio::NtcChannelFactory d_channelFactory;
+    bmqio::NtcChannelFactory d_channelFactory;
 
-    mwcio::ResolvingChannelFactory d_resolvingChannelFactory;
+    bmqio::ResolvingChannelFactory d_resolvingChannelFactory;
 
-    mwcio::ReconnectingChannelFactory d_reconnectingChannelFactory;
+    bmqio::ReconnectingChannelFactory d_reconnectingChannelFactory;
 
-    mwcio::StatChannelFactory d_statChannelFactory;
+    bmqio::StatChannelFactory d_statChannelFactory;
 
     NegotiatedChannelFactory d_negotiatedChannelFactory;
 
@@ -157,26 +156,26 @@ class Application {
   private:
     // PRIVATE MANIPULATORS
     void onChannelDown(const bsl::string&   peerUri,
-                       const mwcio::Status& status);
+                       const bmqio::Status& status);
 
     void onChannelWatermark(const bsl::string&                peerUri,
-                            mwcio::ChannelWatermarkType::Enum type);
+                            bmqio::ChannelWatermarkType::Enum type);
 
-    void readCb(const mwcio::Status&                   status,
+    void readCb(const bmqio::Status&                   status,
                 int*                                   numNeeded,
                 bdlbb::Blob*                           blob,
-                const bsl::shared_ptr<mwcio::Channel>& channel);
+                const bsl::shared_ptr<bmqio::Channel>& channel);
 
     void channelStateCallback(const bsl::string&                     endpoint,
-                              mwcio::ChannelFactoryEvent::Enum       event,
-                              const mwcio::Status&                   status,
-                              const bsl::shared_ptr<mwcio::Channel>& channel);
+                              bmqio::ChannelFactoryEvent::Enum       event,
+                              const bmqio::Status&                   status,
+                              const bsl::shared_ptr<bmqio::Channel>& channel);
 
     /// Create and return the statContext to be used for tracking stats of
     /// the specified `channel` obtained from the specified `handle`.
-    bslma::ManagedPtr<mwcst::StatContext> channelStatContextCreator(
-        const bsl::shared_ptr<mwcio::Channel>&                  channel,
-        const bsl::shared_ptr<mwcio::StatChannelFactoryHandle>& handle);
+    bslma::ManagedPtr<bmqst::StatContext> channelStatContextCreator(
+        const bsl::shared_ptr<bmqio::Channel>&                  channel,
+        const bsl::shared_ptr<bmqio::StatChannelFactoryHandle>& handle);
 
     /// Method to call after the broker session has been stopped (whether
     /// sync or async), for cleanup of application.

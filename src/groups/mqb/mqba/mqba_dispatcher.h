@@ -26,7 +26,7 @@
 //  mqbi::Dispatcher: Protocol implemented by this dispatcher
 //
 //@DESCRIPTION: 'mqba::Dispatcher' is an implementation of the
-// 'mqbi::Dispatcher' protocol, using the mwcc::MultiQueueThreadPool. This
+// 'mqbi::Dispatcher' protocol, using the bmqc::MultiQueueThreadPool. This
 // dispatcher supports three types of isolated independent pools of threads and
 // queues: one for the client sessions, one for the queues, and one for
 // clusters.
@@ -54,9 +54,8 @@
 #include <mqbi_dispatcher.h>
 #include <mqbu_loadbalancer.h>
 
-// MWC
-#include <mwcc_multiqueuethreadpool.h>
-#include <mwcex_executor.h>
+#include <bmqc_multiqueuethreadpool.h>
+#include <bmqex_executor.h>
 
 // BDE
 #include <ball_log.h>
@@ -91,7 +90,7 @@ class Dispatcher;
 /// dispatcher's processor.
 ///
 /// Note that this class conforms to the Executor concept as defined in
-/// the `mwcex` package documentation.
+/// the `bmqex` package documentation.
 ///
 /// Note also that it is undefined behavior to submit work on this
 /// executor unless its associated dispatcher is started.
@@ -102,7 +101,7 @@ class Dispatcher;
 class Dispatcher_Executor {
   private:
     // PRIVATE DATA
-    mwcc::MultiQueueThreadPool<mqbi::DispatcherEvent>* d_processorPool_p;
+    bmqc::MultiQueueThreadPool<mqbi::DispatcherEvent>* d_processorPool_p;
 
     mqbi::Dispatcher::ProcessorHandle d_processorHandle;
 
@@ -145,7 +144,7 @@ class Dispatcher_Executor {
 /// dispatcher's processor to be executed by a dispatcher's client.
 ///
 /// Note that this class conforms to the Executor concept as defined in
-/// the `mwcex` package documentation.
+/// the `bmqex` package documentation.
 ///
 /// Note also that it is undefined behavior to submit work on this
 /// executor unless its associated dispatcher is started and the
@@ -160,7 +159,7 @@ class Dispatcher_ClientExecutor {
     // PRIVATE ACCESSORS
 
     /// Return a pointer to the processor pool used to submit work.
-    mwcc::MultiQueueThreadPool<mqbi::DispatcherEvent>*
+    bmqc::MultiQueueThreadPool<mqbi::DispatcherEvent>*
     processorPool() const BSLS_CPP11_NOEXCEPT;
 
     /// Return the handle of the associated processor.
@@ -206,7 +205,7 @@ class Dispatcher_ClientExecutor {
 // ================
 
 /// This class provides an implementation of the `mqbi::Dispatcher`
-/// protocol, using the mwcc::MultiQueueThreadPool
+/// protocol, using the bmqc::MultiQueueThreadPool
 class Dispatcher BSLS_CPP11_FINAL : public mqbi::Dispatcher {
   private:
     // CLASS-SCOPE CATEGORY
@@ -214,7 +213,7 @@ class Dispatcher BSLS_CPP11_FINAL : public mqbi::Dispatcher {
 
   private:
     // PRIVATE TYPES
-    typedef mwcc::MultiQueueThreadPool<mqbi::DispatcherEvent> ProcessorPool;
+    typedef bmqc::MultiQueueThreadPool<mqbi::DispatcherEvent> ProcessorPool;
 
     typedef bslma::ManagedPtr<bdlmt::ThreadPool> ThreadPoolMp;
 
@@ -478,7 +477,7 @@ class Dispatcher BSLS_CPP11_FINAL : public mqbi::Dispatcher {
     /// Note also that the returned executor can be used to submit work even
     /// after the specified `client` has been unregistered from this
     /// dispatcher.
-    mwcex::Executor
+    bmqex::Executor
     executor(const mqbi::DispatcherClient* client) const BSLS_KEYWORD_OVERRIDE;
 
     /// Return an executor object suitable for executing function objects by
@@ -490,7 +489,7 @@ class Dispatcher BSLS_CPP11_FINAL : public mqbi::Dispatcher {
     /// Note that submitting work on the returned executor is undefined
     /// behavior unless this dispatcher is started or if the specified
     /// `client` was unregistered from this dispatcher.
-    mwcex::Executor clientExecutor(const mqbi::DispatcherClient* client) const
+    bmqex::Executor clientExecutor(const mqbi::DispatcherClient* client) const
         BSLS_KEYWORD_OVERRIDE;
 };
 
@@ -598,22 +597,22 @@ Dispatcher::numProcessors(mqbi::DispatcherClientType::Enum type) const
     switch (type) {
     case mqbi::DispatcherClientType::e_SESSION: {
         return d_config.sessions().numProcessors();  // RETURN
-    }                                                // break;
+    }  // break;
     case mqbi::DispatcherClientType::e_QUEUE: {
         return d_config.queues().numProcessors();  // RETURN
-    }                                              // break;
+    }  // break;
     case mqbi::DispatcherClientType::e_CLUSTER: {
         return d_config.clusters().numProcessors();  // RETURN
-    }                                                // break;
+    }  // break;
     case mqbi::DispatcherClientType::e_ALL: {
         return d_config.sessions().numProcessors() +
                d_config.queues().numProcessors() +
                d_config.clusters().numProcessors();  // RETURN
-    }                                                // break;
+    }  // break;
     case mqbi::DispatcherClientType::e_UNDEFINED: {
         BSLS_ASSERT_OPT(false && "Invalid type");
         return -1;  // RETURN
-    }               // break;
+    }  // break;
     }
 
     return 0;

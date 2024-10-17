@@ -71,8 +71,7 @@
 #include <mqbnet_multirequestmanager.h>
 #include <mqbnet_session.h>
 
-// MWC
-#include <mwcma_countingallocatorstore.h>
+#include <bmqma_countingallocatorstore.h>
 
 // BDE
 #include <ball_log.h>
@@ -118,7 +117,7 @@ class NegotiatorContext;
 namespace mqbnet {
 class TransportManager;
 }
-namespace mwcst {
+namespace bmqst {
 class StatContext;
 }
 
@@ -200,7 +199,7 @@ class ClusterCatalog {
     typedef bsl::unordered_map<bsl::string, int> VirtualClustersMap;
 
     /// Map of stat context names to StatContext pointers
-    typedef bsl::unordered_map<bsl::string, mwcst::StatContext*>
+    typedef bsl::unordered_map<bsl::string, bmqst::StatContext*>
         StatContextsMap;
 
   private:
@@ -208,7 +207,7 @@ class ClusterCatalog {
     bslma::Allocator* d_allocator_p;
     // Allocator to use
 
-    mwcma::CountingAllocatorStore d_allocators;
+    bmqma::CountingAllocatorStore d_allocators;
     // Allocator store to spawn new
     // allocators for sub-components
 

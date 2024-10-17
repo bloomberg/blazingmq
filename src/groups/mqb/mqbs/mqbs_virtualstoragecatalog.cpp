@@ -22,7 +22,7 @@
 #include <mqbi_queueengine.h>
 #include <mqbstat_queuestats.h>
 
-#include <mwctsk_alarmlog.h>
+#include <bmqtsk_alarmlog.h>
 
 // BDE
 #include <bdlbb_blob.h>
@@ -359,7 +359,7 @@ VirtualStorageCatalog::removeAll(const mqbu::StorageKey& appKey)
                 else if (result == mqbi::StorageResult::e_SUCCESS) {
                 }
                 else {
-                    MWCTSK_ALARMLOG_ALARM("STORAGE_PURGE_ERROR")
+                    BMQTSK_ALARMLOG_ALARM("STORAGE_PURGE_ERROR")
                         << "PartitionId [" << d_storage_p->partitionId() << "]"
                         << ": Attempting to purge GUID '" << itData->first
                         << "' from virtual storage with appId '"
@@ -368,7 +368,7 @@ VirtualStorageCatalog::removeAll(const mqbu::StorageKey& appKey)
                         << "' & queueKey '" << d_storage_p->queueKey()
                         << "', with invalid context (refCount is already "
                            "zero)."
-                        << MWCTSK_ALARMLOG_END;
+                        << BMQTSK_ALARMLOG_END;
                 }
                 ++itData;
             }

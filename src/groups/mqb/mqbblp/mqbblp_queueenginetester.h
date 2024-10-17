@@ -107,8 +107,7 @@
 #include <mqbs_virtualstoragecatalog.h>
 #include <mqbu_storagekey.h>
 
-// MWC
-#include <mwcc_orderedhashmap.h>
+#include <bmqc_orderedhashmap.h>
 
 // BMQ
 #include <bmqt_messageguid.h>
@@ -165,7 +164,7 @@ class QueueEngineTester {
     /// Must be a container in which iteration order is same as insertion
     /// order because in `afterNewMessage`, we need to invoke the engine for
     /// newly posted messages in the order that they were posted.
-    typedef mwcc::OrderedHashMap<bsl::string, bmqt::MessageGUID> MessagesMap;
+    typedef bmqc::OrderedHashMap<bsl::string, bmqt::MessageGUID> MessagesMap;
 
     typedef bsl::shared_ptr<mqbi::QueueHandle> QueueHandleSp;
 
@@ -593,8 +592,8 @@ class TimeControlledQueueEngineTester : public mqbblp::QueueEngineTester {
     : mqbblp::QueueEngineTester(domainConfig, true, allocator)
     , d_testClock(d_mockCluster_mp->_timeSource())
     {
-        mwcsys::Time::shutdown();
-        mwcsys::Time::initialize(
+        bmqsys::Time::shutdown();
+        bmqsys::Time::initialize(
             bdlf::BindUtil::bind(&TestClock::realtimeClock, &d_testClock),
             bdlf::BindUtil::bind(&TestClock::monotonicClock, &d_testClock),
             bdlf::BindUtil::bind(&TestClock::highResTimer, &d_testClock));
@@ -623,7 +622,7 @@ QueueEngineTester::createQueueEngineHelper(mqbi::QueueEngine* engine)
     BSLS_ASSERT_OPT(engine);
     BSLS_ASSERT_OPT(d_mockQueue_sp);
 
-    mwcu::MemOutStream errorDescription(d_allocator_p);
+    bmqu::MemOutStream errorDescription(d_allocator_p);
     int                rc = engine->configure(errorDescription);
     BSLS_ASSERT_OPT(rc == 0);
 

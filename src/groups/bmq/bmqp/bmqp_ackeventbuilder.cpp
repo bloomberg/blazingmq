@@ -20,9 +20,8 @@
 // BMQ
 #include <bmqp_protocolutil.h>
 
-// MWC
-#include <mwcu_blob.h>
-#include <mwcu_blobobjectproxy.h>
+#include <bmqu_blob.h>
+#include <bmqu_blobobjectproxy.h>
 
 // BDE
 #include <bsl_cstring.h>
@@ -82,10 +81,10 @@ AckEventBuilder::appendMessage(int                      status,
     }
 
     // Resize the blob to have space for an 'AckMessage' at the end ...
-    mwcu::BlobPosition offset;
-    mwcu::BlobUtil::reserve(&offset, &d_blob, sizeof(AckMessage));
+    bmqu::BlobPosition offset;
+    bmqu::BlobUtil::reserve(&offset, &d_blob, sizeof(AckMessage));
 
-    mwcu::BlobObjectProxy<AckMessage> ackMessage(&d_blob,
+    bmqu::BlobObjectProxy<AckMessage> ackMessage(&d_blob,
                                                  offset,
                                                  false,  // no read
                                                  true);  // write mode

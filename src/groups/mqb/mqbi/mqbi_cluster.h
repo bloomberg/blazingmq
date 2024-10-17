@@ -50,8 +50,7 @@
 #include <bmqp_ctrlmsg_messages.h>
 #include <bmqp_requestmanager.h>
 
-// MWC
-#include <mwcio_status.h>
+#include <bmqio_status.h>
 
 // BDE
 #include <bsl_functional.h>

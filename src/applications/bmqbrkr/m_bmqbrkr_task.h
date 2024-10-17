@@ -24,7 +24,7 @@
 //  m_bmqbrkr::Task_AllocatorManager: guard-like mechanism to manage allocator
 //
 //@SEE_ALSO:
-//  mwctsk::LogController: BALL logging management
+//  bmqtsk::LogController: BALL logging management
 //
 //@DESCRIPTION: 'm_bmqbrkr::Task_AllocatorManager' is an internal mechanism
 // allowing to setup different kind of allocators to use through the entire
@@ -32,7 +32,7 @@
 // infrastructure for a task, controlling the following aspects of it:
 //: o *memory*: memory allocators are managed using the
 //:   'm_bmqbrkr::Task_AllocatorManager' component,
-//: o *logging*: an 'mwctsk::LogController' is used to initialize and
+//: o *logging*: an 'bmqtsk::LogController' is used to initialize and
 //:   configure logging to file and console,
 //: o *control channel command*: a 'balb::PipeControlChannel' component is used
 //:   to create a pipe allowing to send IPC command (called M-Trap) to the task
@@ -42,7 +42,7 @@
 // The following allocator models are supported:
 //: o *NEWDELETE*:      using 'bslma:NewDeleteAllocator'
 //: o *STACKTRACETEST*: using 'balst::StackTraceTestAllocator'
-//: o *COUNTING*:       using 'mwcma::CountingAllocator'
+//: o *COUNTING*:       using 'bmqma::CountingAllocator'
 // Note that when using the 'COUNTING' allocator, the 'default' and 'global'
 // allocators are changed to be counting allocators too.
 //
@@ -61,9 +61,9 @@
 // responsible for ensuring that the supplied name is unique on a given system;
 // otherwise, 'initialize' will fail.
 
-// MWC
-#include <mwcma_countingallocatorstore.h>
-#include <mwctsk_logcontroller.h>
+// BMQ
+#include <bmqma_countingallocatorstore.h>
+#include <bmqtsk_logcontroller.h>
 
 // MQB
 #include <mqbcfg_messages.h>
@@ -87,7 +87,7 @@ namespace BloombergLP {
 namespace bdld {
 class Datum;
 }
-namespace mwcst {
+namespace bmqst {
 class StatContext;
 }
 
@@ -104,7 +104,7 @@ class Task_AllocatorManager {
     mqbcfg::AllocatorType::Value d_type;
     // Type of allocator in use.
 
-    bsls::ObjectBuffer<mwcma::CountingAllocatorStore> d_store;
+    bsls::ObjectBuffer<bmqma::CountingAllocatorStore> d_store;
     // Allocator store, to dispence allocators
     // based on the configured type; used if
     // type is 'e_NEWDELETE' or
@@ -114,11 +114,11 @@ class Task_AllocatorManager {
     // The stack trace test allocator, if type
     // is 'e_STACKTRACETEST'.
 
-    mwcma::CountingAllocatorStore* d_store_p;
+    bmqma::CountingAllocatorStore* d_store_p;
     // Raw pointer to the allocator store to
     // use; regardless of the configured type.
 
-    mwcst::StatContext* d_statContext_p;
+    bmqst::StatContext* d_statContext_p;
     // The StatContext of the counting
     // allocators, if type is 'e_COUNTING', or
     // null otherwise.
@@ -149,11 +149,11 @@ class Task_AllocatorManager {
     /// Return the stat context keeping track of the allocations, if this
     /// object has been initialized with the `COUNTING` allocator, or null
     /// otherwise.
-    mwcst::StatContext* statContext();
+    bmqst::StatContext* statContext();
 
     /// Return a reference offering modifiable access to the allocator store
     /// to use.
-    mwcma::CountingAllocatorStore& store();
+    bmqma::CountingAllocatorStore& store();
 
     // ACCESSORS
 
@@ -202,7 +202,7 @@ class Task {
     bdlmt::EventScheduler d_scheduler;
     // EventScheduler
 
-    mwctsk::LogController d_logController;
+    bmqtsk::LogController d_logController;
     // Log controller for log file and console
     // observer
 
@@ -279,15 +279,15 @@ class Task {
     /// Return the stat context keeping track of the allocations, if this
     /// object has been initialized with the `COUNTING` allocator, or null
     /// otherwise.
-    mwcst::StatContext* allocatorStatContext();
+    bmqst::StatContext* allocatorStatContext();
 
     /// Return a reference offering modifiable access to the allocator store
     /// to use.
-    mwcma::CountingAllocatorStore& allocatorStore();
+    bmqma::CountingAllocatorStore& allocatorStore();
 
     /// Return a reference offering modifiable access to the log controller
     /// object used by this task.
-    mwctsk::LogController& logController();
+    bmqtsk::LogController& logController();
 
     /// Return a pointer to the event scheduler.
     bdlmt::EventScheduler* scheduler();
@@ -307,12 +307,12 @@ class Task {
 // class Task_AllocatorManager
 // ---------------------------
 
-inline mwcst::StatContext* Task_AllocatorManager::statContext()
+inline bmqst::StatContext* Task_AllocatorManager::statContext()
 {
     return d_statContext_p;
 }
 
-inline mwcma::CountingAllocatorStore& Task_AllocatorManager::store()
+inline bmqma::CountingAllocatorStore& Task_AllocatorManager::store()
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(d_store_p);
@@ -329,17 +329,17 @@ inline mqbcfg::AllocatorType::Value Task_AllocatorManager::type() const
 // class Task
 // ----------
 
-inline mwcst::StatContext* Task::allocatorStatContext()
+inline bmqst::StatContext* Task::allocatorStatContext()
 {
     return d_allocatorManager.statContext();
 }
 
-inline mwcma::CountingAllocatorStore& Task::allocatorStore()
+inline bmqma::CountingAllocatorStore& Task::allocatorStore()
 {
     return d_allocatorManager.store();
 }
 
-inline mwctsk::LogController& Task::logController()
+inline bmqtsk::LogController& Task::logController()
 {
     return d_logController;
 }

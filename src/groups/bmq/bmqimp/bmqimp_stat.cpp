@@ -17,8 +17,8 @@
 #include <bmqimp_stat.h>
 
 #include <bmqscm_version.h>
-// MWC
-#include <mwcst_tableutil.h>
+
+#include <bmqst_tableutil.h>
 
 namespace BloombergLP {
 namespace bmqimp {
@@ -39,12 +39,12 @@ Stat::Stat(bslma::Allocator* allocator)
 
 void Stat::printStats(bsl::ostream& stream, bool includeDelta) const
 {
-    mwcst::Table* table = (includeDelta ? &d_table : &d_tableNoDelta);
-    const mwcst::BasicTableInfoProvider* tip = (includeDelta ? &d_tip
+    bmqst::Table* table = (includeDelta ? &d_table : &d_tableNoDelta);
+    const bmqst::BasicTableInfoProvider* tip = (includeDelta ? &d_tip
                                                              : &d_tipNoDelta);
 
     table->records().update();
-    mwcst::TableUtil::printTable(stream, *tip);
+    bmqst::TableUtil::printTable(stream, *tip);
     stream << "\n";
 }
 
@@ -52,15 +52,15 @@ void Stat::printStats(bsl::ostream& stream, bool includeDelta) const
 // struct StatUtil
 // ---------------
 
-bool StatUtil::filterDirect(const mwcst::TableRecords::Record& record)
+bool StatUtil::filterDirect(const bmqst::TableRecords::Record& record)
 {
-    return record.type() == mwcst::StatContext::e_TOTAL_VALUE;
+    return record.type() == bmqst::StatContext::e_TOTAL_VALUE;
 }
 
 bool StatUtil::filterDirectAndTopLevel(
-    const mwcst::TableRecords::Record& record)
+    const bmqst::TableRecords::Record& record)
 {
-    return record.type() == mwcst::StatContext::e_TOTAL_VALUE &&
+    return record.type() == bmqst::StatContext::e_TOTAL_VALUE &&
            record.level() != 0;
 }
 

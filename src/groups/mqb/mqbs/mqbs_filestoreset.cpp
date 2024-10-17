@@ -17,8 +17,8 @@
 #include <mqbs_filestoreset.h>
 
 #include <mqbscm_version.h>
-// MWC
-#include <mwcu_printutil.h>
+
+#include <bmqu_printutil.h>
 
 // BDE
 #include <bslim_printer.h>
@@ -36,7 +36,7 @@ static bsl::ostream& prettyPrintSize(bsl::ostream&              stream,
                                      BSLS_ANNOTATION_UNUSED int level = 0,
                                      int spacesPerLevel               = 4)
 {
-    stream << mwcu::PrintUtil::prettyNumber(
+    stream << bmqu::PrintUtil::prettyNumber(
         static_cast<bsls::Types::Int64>(size));
     if (spacesPerLevel >= 0) {
         stream << "\n";

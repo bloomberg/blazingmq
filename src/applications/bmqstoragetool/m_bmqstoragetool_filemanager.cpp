@@ -26,8 +26,8 @@
 #include <mqbsl_ledger.h>
 #include <mqbsl_memorymappedondisklog.h>
 
-// MWC
-#include <mwcu_memoutstream.h>
+// BMQ
+#include <bmqu_memoutstream.h>
 
 // BDE
 #include <bdls_filesystemutil.h>
@@ -80,7 +80,7 @@ FileManagerImpl::FileManagerImpl(const bsl::string& journalFile,
 : d_journalFile(journalFile, allocator)
 , d_dataFile(dataFile, allocator)
 {
-    mwcu::MemOutStream ss(allocator);
+    bmqu::MemOutStream ss(allocator);
     if ((!d_journalFile.path().empty() && !d_journalFile.resetIterator(ss)) ||
         (!d_dataFile.path().empty() && !d_dataFile.resetIterator(ss))) {
         throw bsl::runtime_error(ss.str());  // THROW
@@ -242,7 +242,7 @@ bool FileManagerImpl::FileHandler<ITER>::resetIterator(
     bsl::ostream& errorDescription)
 {
     // 1) Open
-    mwcu::MemOutStream errorDesc;
+    bmqu::MemOutStream errorDesc;
     int                rc = mqbs::FileSystemUtil::open(
         &d_mfd,
         d_path.c_str(),

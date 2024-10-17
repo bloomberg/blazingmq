@@ -38,8 +38,7 @@
 #include <bmqp_ctrlmsg_messages.h>
 #include <bmqp_queueid.h>
 
-// MWC
-#include <mwcc_twokeyhashmap.h>
+#include <bmqc_twokeyhashmap.h>
 
 // BDE
 #include <bsl_functional.h>
@@ -127,7 +126,7 @@ class QueueHandleCatalog {
         RequesterKey;
 
     /// (queueHandlePtr, requester) -> queueHandleSp
-    typedef mwcc::TwoKeyHashMap<mqbi::QueueHandle*,
+    typedef bmqc::TwoKeyHashMap<mqbi::QueueHandle*,
                                 RequesterKey,
                                 bsl::shared_ptr<mqbi::QueueHandle> >
         HandleMap;

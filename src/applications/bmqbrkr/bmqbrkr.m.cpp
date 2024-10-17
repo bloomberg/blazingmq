@@ -26,11 +26,11 @@
 #include <mqbu_exit.h>
 #include <mqbu_messageguidutil.h>
 
-// MWC
-#include <mwcsys_time.h>
-#include <mwctsk_alarmlog.h>
-#include <mwcu_memoutstream.h>
-#include <mwcu_printutil.h>
+// BMQ
+#include <bmqsys_time.h>
+#include <bmqtsk_alarmlog.h>
+#include <bmqu_memoutstream.h>
+#include <bmqu_printutil.h>
 
 // BDE
 #include <balcl_commandline.h>
@@ -165,7 +165,7 @@ static void bmqAssertHandler(const char* comment, const char* file, int line)
         file = "(* Empty File Name *)";
     }
 
-    mwcu::MemOutStream stackTrace;
+    bmqu::MemOutStream stackTrace;
     balst::StackTracePrintUtil::printStackTrace(stackTrace);
     stackTrace << bsl::ends;
 
@@ -265,7 +265,7 @@ static int getConfig(bsl::ostream&      errorDescription,
     bsl::cout << "Reading broker configuration from " << configFilename
               << "\n";
     bsl::ifstream      configStream(configFilename.c_str());
-    mwcu::MemOutStream configParameters;
+    bmqu::MemOutStream configParameters;
     configParameters << configStream.rdbuf();
     taskEnv->d_configJson = configParameters.str();
 
@@ -318,7 +318,7 @@ static void onProcessedAdminCommand(const bsl::string&       prefix,
                                     int                      rc,
                                     const bsl::string&       results)
 {
-    const bsls::Types::Int64 end = mwcsys::Time::highResolutionTimer();
+    const bsls::Types::Int64 end = bmqsys::Time::highResolutionTimer();
 
     if (rc != 0) {
         BALL_LOG_ERROR << "Error processing command [rc: " << rc << "] "
@@ -329,7 +329,7 @@ static void onProcessedAdminCommand(const bsl::string&       prefix,
     else {
         BALL_LOG_INFO << "Command '" << prefix << " " << command
                       << "' processed successfully in "
-                      << mwcu::PrintUtil::prettyTimeInterval(end - start)
+                      << bmqu::PrintUtil::prettyTimeInterval(end - start)
                       << ":\n"
                       << results;
     }
@@ -356,7 +356,7 @@ static void onMTrap(TaskEnvironment*   taskEnv,
         return;  // RETURN
     }
     else if (bdlb::String::areEqualCaseless(prefix, "CMD")) {
-        const bsls::Types::Int64 start = mwcsys::Time::highResolutionTimer();
+        const bsls::Types::Int64 start = bmqsys::Time::highResolutionTimer();
         taskEnv->d_app.object().enqueueCommand(
             "MTRAP",
             cmd,
@@ -391,7 +391,7 @@ static int initializeTask(bsl::ostream&    errorDescription,
     new (taskEnv->d_task.buffer())
         m_bmqbrkr::Task(taskEnv->d_bmqPrefix, taskEnv->d_config.taskConfig());
 
-    mwcu::MemOutStream localError;
+    bmqu::MemOutStream localError;
     const int          rc = taskEnv->d_task.object().initialize(localError);
     if (rc != 0) {
         errorDescription << "Failed to initialize task "
@@ -417,9 +417,9 @@ static int initializeTask(bsl::ostream&    errorDescription,
     const bsl::string pidFile = taskEnv->d_bmqPrefix + "/bmqbrkr.pid";
     bsl::ofstream     pidFd(pidFile.c_str());
     if (!pidFd) {
-        MWCTSK_ALARMLOG_ALARM("STARTUP")
+        BMQTSK_ALARMLOG_ALARM("STARTUP")
             << "Failed to create pid file [" << pidFile << "]."
-            << " This is not fatal." << MWCTSK_ALARMLOG_END;
+            << " This is not fatal." << BMQTSK_ALARMLOG_END;
     }
     else {
         pidFd << bdls::ProcessUtil::getProcessId() << "\n";
@@ -537,7 +537,7 @@ static void updateHistFile(const TaskEnvironment* taskEnv)
     }
 
     // Generate the new entry
-    mwcu::MemOutStream os;
+    bmqu::MemOutStream os;
     os << bdlt::CurrentTime::utc() << "|"
        << taskEnv->d_config.appConfig().brokerVersion() << "|"
        << taskEnv->d_config.appConfig().configVersion() << "|"
@@ -548,9 +548,9 @@ static void updateHistFile(const TaskEnvironment* taskEnv)
     // Write back all entries to file
     bsl::ofstream output(histFile.c_str());
     if (!output) {
-        MWCTSK_ALARMLOG_ALARM("STARTUP")
+        BMQTSK_ALARMLOG_ALARM("STARTUP")
             << "Failed to create vers file [" << histFile << "]. "
-            << "This is not fatal." << MWCTSK_ALARMLOG_END;
+            << "This is not fatal." << BMQTSK_ALARMLOG_END;
     }
     else {
         for (bsl::list<bsl::string>::const_iterator it = entries.begin();
@@ -570,7 +570,7 @@ static int
 run(bsl::ostream& errorDescription, TaskEnvironment* taskEnv, bool wait = true)
 {
     // Start the application
-    mwcu::MemOutStream localError;
+    bmqu::MemOutStream localError;
 
     int rc = taskEnv->d_app.object().start(localError);
     if (rc != 0) {
@@ -697,7 +697,7 @@ int main(int argc, const char* argv[])
     taskEnv.d_bmqPrefix      = (prefixEnvVar != 0 ? prefixEnvVar : "./");
     taskEnv.d_instanceId     = instanceId;
 
-    mwcu::MemOutStream errorDescription;
+    bmqu::MemOutStream errorDescription;
 
     rc = getConfig(errorDescription, &taskEnv, configDir);
     if (rc != 0) {
@@ -752,9 +752,9 @@ int main(int argc, const char* argv[])
     // Run
     rc = run(errorDescription, &taskEnv);
     if (rc != 0) {
-        MWCTSK_ALARMLOG_PANIC("STARTUP")
+        BMQTSK_ALARMLOG_PANIC("STARTUP")
             << "(" << rc << "): " << errorDescription.str()
-            << MWCTSK_ALARMLOG_END;
+            << BMQTSK_ALARMLOG_END;
         shutdownApplication(&taskEnv);
         shutdownTask(&taskEnv);
         return mqbu::ExitCode::e_RUN;  // RETURN

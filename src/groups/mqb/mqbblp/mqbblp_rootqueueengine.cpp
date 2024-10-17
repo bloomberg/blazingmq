@@ -42,11 +42,10 @@
 #include <bmqt_queueflags.h>
 #include <bmqt_uri.h>
 
-// MWC
-#include <mwcsys_time.h>
-#include <mwctsk_alarmlog.h>
-#include <mwcu_memoutstream.h>
-#include <mwcu_outstreamformatsaver.h>
+#include <bmqsys_time.h>
+#include <bmqtsk_alarmlog.h>
+#include <bmqu_memoutstream.h>
+#include <bmqu_outstreamformatsaver.h>
 
 // BDE
 #include <ball_logthrottle.h>
@@ -132,7 +131,7 @@ void RootQueueEngine::deliverMessages(AppState* app)
 
     if (delay != bsls::TimeInterval()) {
         app->scheduleThrottle(
-            mwcsys::Time::nowMonotonicClock() + delay,
+            bmqsys::Time::nowMonotonicClock() + delay,
             bdlf::BindUtil::bind(&RootQueueEngine::deliverMessages,
                                  this,
                                  app));
@@ -492,7 +491,7 @@ void RootQueueEngine::rebuildSelectedApp(
 
     BSLS_ASSERT_SAFE(app->routing());
 
-    mwcu::MemOutStream errorStream(d_allocator_p);
+    bmqu::MemOutStream errorStream(d_allocator_p);
 
     app->routing()->loadApp(itApp->key1().c_str(),
                             handle,
@@ -572,8 +571,8 @@ int RootQueueEngine::rebuildInternalState(bsl::ostream& errorDescription)
                                   bmqp::QueueId::k_UNASSIGNED_SUBQUEUE_ID);
         }
 
-        AppStateSp& app      = itApp->value();
-        app->routing()       = previous->routing();
+        AppStateSp& app = itApp->value();
+        app->routing()  = previous->routing();
 
         app->setUpstreamSubQueueId(upstreamSubQueueId);
         // Do not copy resumePoint.  New RootQueueEngine redelivers everything
@@ -639,7 +638,7 @@ mqbi::QueueHandle* RootQueueEngine::getHandle(
     // race during failover scenarios, these max producer/consumer config
     // fields should be used with caution (perhaps as a hint or soft-limit
     // instead of a hard limit).
-    mwcu::MemOutStream errorDescription(d_allocator_p);
+    bmqu::MemOutStream errorDescription(d_allocator_p);
     if (!QueueEngineUtil::consumerAndProducerLimitsAreValid(
             d_queueState_p,
             errorDescription,
@@ -776,12 +775,12 @@ mqbi::QueueHandle* RootQueueEngine::getHandle(
         Apps::iterator     iter  = d_apps.findByKey1(appId);
 
         if (iter == d_apps.end()) {
-            MWCTSK_ALARMLOG_ALARM("FANOUT_UNREGISTERED_APPID")
+            BMQTSK_ALARMLOG_ALARM("FANOUT_UNREGISTERED_APPID")
                 << "AppId '" << appId << "' is not authorized for queue '"
                 << d_queueState_p->uri()
                 << "' - please contact BlazingMQ team to request configuration"
                    " of this AppId"
-                << MWCTSK_ALARMLOG_END;
+                << BMQTSK_ALARMLOG_END;
 
             AppKeyCount key2;
             if (d_queueState_p->isCSLModeEnabled()) {
@@ -1180,7 +1179,7 @@ void RootQueueEngine::releaseHandle(
                             d_allocator_p),
                         d_allocator_p);
 
-                    mwcu::MemOutStream errorStream(d_allocator_p);
+                    bmqu::MemOutStream errorStream(d_allocator_p);
                     app->rebuildConsumers(currSubStreamInfo.appId().c_str(),
                                           &errorStream,
                                           d_queueState_p,
@@ -1235,7 +1234,7 @@ void RootQueueEngine::releaseHandle(
                 // the set of consumers for the given appId
                 BSLS_ASSERT_SAFE(!hasHandle(subStreamInfo.appId(), handle));
             }  // else there are app consumers on this handle
-        }      // else producer
+        }  // else producer
 
         // Register/unregister both consumers and producers
         handle->unregisterSubStream(
@@ -1476,7 +1475,7 @@ int RootQueueEngine::onRejectMessage(mqbi::QueueHandle*       handle,
         // primary, if a new consumer connects to the replica/proxy.
         const int maxDeliveryAttempts =
             d_queueState_p->domain()->config().maxDeliveryAttempts();
-        const bool domainIsUnlimited = (maxDeliveryAttempts == 0);
+        const bool     domainIsUnlimited = (maxDeliveryAttempts == 0);
         bmqp::RdaInfo& rda = message->appMessageState(app.ordinal()).d_rdaInfo;
 
         if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(domainIsUnlimited !=
@@ -1652,7 +1651,7 @@ bool RootQueueEngine::logAlarmCb(const mqbu::StorageKey& appKey,
     // Logging alarm info
     bdlma::LocalSequentialAllocator<4096> localAllocator(d_allocator_p);
 
-    mwcu::MemOutStream ss(&localAllocator);
+    bmqu::MemOutStream ss(&localAllocator);
 
     // Log app consumers queue handles info
     int idx          = 1;
@@ -1678,13 +1677,13 @@ bool RootQueueEngine::logAlarmCb(const mqbu::StorageKey& appKey,
 
             ss << "\n  " << idx++ << ". "
                << queueHandle_p->client()->description()
-               << mwcu::PrintUtil::newlineAndIndent(level, spacesPerLevel)
+               << bmqu::PrintUtil::newlineAndIndent(level, spacesPerLevel)
                << "Handle Parameters .....: "
                << queueHandle_p->handleParameters()
-               << mwcu::PrintUtil::newlineAndIndent(level, spacesPerLevel)
+               << bmqu::PrintUtil::newlineAndIndent(level, spacesPerLevel)
                << "Number of unconfirmed messages .....: "
                << queueHandle_p->countUnconfirmed()
-               << mwcu::PrintUtil::newlineAndIndent(level, spacesPerLevel)
+               << bmqu::PrintUtil::newlineAndIndent(level, spacesPerLevel)
                << "UnconfirmedMonitors ....:";
 
             const bsl::vector<const mqbu::ResourceUsageMonitor*> monitors =
@@ -1695,7 +1694,7 @@ bool RootQueueEngine::logAlarmCb(const mqbu::StorageKey& appKey,
         }
     }
 
-    mwcu::MemOutStream   out(&localAllocator);
+    bmqu::MemOutStream   out(&localAllocator);
     mqbi::Storage* const storage = d_queueState_p->storage();
 
     out << "Queue '" << d_queueState_p->uri();
@@ -1705,7 +1704,7 @@ bool RootQueueEngine::logAlarmCb(const mqbu::StorageKey& appKey,
     out << "' ";
     storage->capacityMeter()->printShortSummary(out);
     out << ", max idle time "
-        << mwcu::PrintUtil::prettyTimeInterval(
+        << bmqu::PrintUtil::prettyTimeInterval(
                d_queueState_p->queue()->domain()->config().maxIdleTime() *
                bdlt::TimeUnitRatio::k_NANOSECONDS_PER_SECOND)
         << " appears to be stuck. It currently has " << numConsumers
@@ -1794,7 +1793,7 @@ bool RootQueueEngine::logAlarmCb(const mqbu::StorageKey& appKey,
     static const int k_NUM_MSGS = 10;
     const int        level = 0, spacesPerLevel = 2;
 
-    out << mwcu::PrintUtil::newlineAndIndent(level, spacesPerLevel)
+    out << bmqu::PrintUtil::newlineAndIndent(level, spacesPerLevel)
         << k_NUM_MSGS << " oldest messages in the queue:\n";
 
     mqbcmd::Result result;
@@ -1806,7 +1805,7 @@ bool RootQueueEngine::logAlarmCb(const mqbu::StorageKey& appKey,
     mqbcmd::HumanPrinter::print(out, result);
 
     // Print the current head of the queue
-    out << mwcu::PrintUtil::newlineAndIndent(level, spacesPerLevel)
+    out << bmqu::PrintUtil::newlineAndIndent(level, spacesPerLevel)
         << "Current head of the queue:\n";
 
     mqbs::StoragePrintUtil::listMessage(&result.makeMessage(),
@@ -1816,7 +1815,7 @@ bool RootQueueEngine::logAlarmCb(const mqbu::StorageKey& appKey,
     mqbcmd::HumanPrinter::print(out, result);
     out << "\n";
 
-    MWCTSK_ALARMLOG_ALARM("QUEUE_STUCK") << out.str() << MWCTSK_ALARMLOG_END;
+    BMQTSK_ALARMLOG_ALARM("QUEUE_STUCK") << out.str() << BMQTSK_ALARMLOG_END;
 
     return true;
 }

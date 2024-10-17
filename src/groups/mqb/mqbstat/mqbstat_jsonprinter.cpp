@@ -21,8 +21,7 @@
 // MQB
 #include <mqbstat_queuestats.h>
 
-// MWC
-#include <mwcu_memoutstream.h>
+#include <bmqu_memoutstream.h>
 
 // BDE
 #include <ball_log.h>
@@ -44,7 +43,7 @@ struct ConversionUtils {
 
     inline static void
     populateMetric(bdljsn::JsonObject*                   metricsObject,
-                   const mwcst::StatContext&             ctx,
+                   const bmqst::StatContext&             ctx,
                    mqbstat::QueueStatsDomain::Stat::Enum metric)
     {
         // PRECONDITIONS
@@ -58,7 +57,7 @@ struct ConversionUtils {
     }
 
     inline static void populateQueueStats(bdljsn::JsonObject* queueObject,
-                                          const mwcst::StatContext& ctx)
+                                          const bmqst::StatContext& ctx)
     {
         // PRECONDITIONS
         BSLS_ASSERT_SAFE(queueObject);
@@ -124,12 +123,12 @@ struct ConversionUtils {
     }
 
     inline static void populateOneDomainStats(bdljsn::JsonObject* domainObject,
-                                              const mwcst::StatContext& ctx)
+                                              const bmqst::StatContext& ctx)
     {
         // PRECONDITIONS
         BSLS_ASSERT_SAFE(domainObject);
 
-        for (mwcst::StatContextIterator queueIt = ctx.subcontextIterator();
+        for (bmqst::StatContextIterator queueIt = ctx.subcontextIterator();
              queueIt;
              ++queueIt) {
             bdljsn::JsonObject& queueObj =
@@ -141,7 +140,7 @@ struct ConversionUtils {
                     queueObj["appIds"].makeObject();
 
                 // Add metrics per appId, if any
-                for (mwcst::StatContextIterator appIdIt =
+                for (bmqst::StatContextIterator appIdIt =
                          queueIt->subcontextIterator();
                      appIdIt;
                      ++appIdIt) {
@@ -157,13 +156,13 @@ struct ConversionUtils {
     }
 
     inline static void populateAllDomainsStats(bdljsn::JsonObject* parent,
-                                               const mwcst::StatContext& ctx)
+                                               const bmqst::StatContext& ctx)
     {
         // PRECONDITIONS
         BSLS_ASSERT_SAFE(parent);
 
         bdljsn::JsonObject& nodes = (*parent)["domains"].makeObject();
-        for (mwcst::StatContextIterator domainIt = ctx.subcontextIterator();
+        for (bmqst::StatContextIterator domainIt = ctx.subcontextIterator();
              domainIt;
              ++domainIt) {
             populateOneDomainStats(&nodes[domainIt->name()].makeObject(),
@@ -257,7 +256,7 @@ inline int JsonPrinter::JsonPrinterImpl::printStats(bsl::string* out,
     bdljsn::JsonObject& obj = json.makeObject();
 
     {
-        const mwcst::StatContext& ctx =
+        const bmqst::StatContext& ctx =
             *d_contexts.find("domainQueues")->second;
         bdljsn::JsonObject& domainQueuesObj = obj["domainQueues"].makeObject();
 
@@ -266,7 +265,7 @@ inline int JsonPrinter::JsonPrinterImpl::printStats(bsl::string* out,
 
     const bdljsn::WriteOptions& ops = compact ? d_opsCompact : d_opsPretty;
 
-    mwcu::MemOutStream os;
+    bmqu::MemOutStream os;
     const int          rc = bdljsn::JsonUtil::write(os, json, ops);
     if (0 != rc) {
         BALL_LOG_ERROR << "Failed to encode stats JSON, rc = " << rc;

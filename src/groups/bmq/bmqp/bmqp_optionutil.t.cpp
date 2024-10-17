@@ -25,7 +25,7 @@
 #include <bdlbb_pooledblobbufferfactory.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -158,7 +158,7 @@ static void test1_basicOptionMetaProperties()
 //
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("BASIC OPTIONMETA PROPERTIES");
+    bmqtst::TestHelper::printTestName("BASIC OPTIONMETA PROPERTIES");
 
     typedef bmqp::OptionUtil::OptionMeta OptionMeta;
 
@@ -230,7 +230,7 @@ static void test2_basicOptionsBoxCanAdd()
 //
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("OPTIONSBOX CAN ADD");
+    bmqtst::TestHelper::printTestName("OPTIONSBOX CAN ADD");
 
     // Arbitrary value
     const bmqp::OptionType::Enum type = bmqp::OptionType::e_SUB_QUEUE_IDS_OLD;
@@ -326,7 +326,7 @@ static void test3_checkOptionsBlobSegment()
 //
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("CHECK OPTIONS BLOB SEGMENT");
+    bmqtst::TestHelper::printTestName("CHECK OPTIONS BLOB SEGMENT");
 
     typedef bmqp::OptionUtil::OptionMeta OptionMeta;
     typedef bmqp::OptionUtil::OptionsBox OptionsBox;
@@ -405,7 +405,7 @@ static void test4_isValidMsgGroupId()
 //
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("VALIDATE GROUPID LENGTH");
+    bmqtst::TestHelper::printTestName("VALIDATE GROUPID LENGTH");
 
     typedef bmqt::EventBuilderResult Result;
 
@@ -435,7 +435,7 @@ static void test4_isValidMsgGroupId()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     bmqp::ProtocolUtil::initialize(s_allocator_p);
 
@@ -455,5 +455,5 @@ int main(int argc, char* argv[])
 
     bmqp::ProtocolUtil::shutdown();
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }

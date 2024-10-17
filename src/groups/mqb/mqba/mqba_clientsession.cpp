@@ -53,7 +53,7 @@
 // for remotely activated asynchronous requests (such as 'openQueue' which
 // could be sending an async request to the cluster, and deliver the response
 // through the proxyBroker<->clusterBroker IO channel).  For those kind of
-// requests, the 'mwcu::SharedResource' must be used.  All callbacks having the
+// requests, the 'bmqu::SharedResource' must be used.  All callbacks having the
 // shared resource bound and which will be invoked through the dispatcher must
 // do so by using the 'e_DISPATCHER' dispatcher event type, to ensure the
 // client will not be added to the dispatcher's flush list: the client may
@@ -172,13 +172,12 @@
 #include <bmqt_resultcode.h>
 #include <bmqt_uri.h>
 
-// MWC
-#include <mwcio_status.h>
-#include <mwcst_statcontext.h>
-#include <mwctsk_alarmlog.h>
-#include <mwcu_blob.h>
-#include <mwcu_printutil.h>
-#include <mwcu_weakmemfn.h>
+#include <bmqio_status.h>
+#include <bmqst_statcontext.h>
+#include <bmqtsk_alarmlog.h>
+#include <bmqu_blob.h>
+#include <bmqu_printutil.h>
+#include <bmqu_weakmemfn.h>
 
 // BDE
 #include <ball_log.h>
@@ -228,7 +227,7 @@ void sessionHolderDummy(
 
 /// Create the queue stats datum associated with the specified `statContext`
 /// and having the specified `domain`, `cluster`, and `queueFlags`.
-void createQueueStatsDatum(mwcst::StatContext* statContext,
+void createQueueStatsDatum(bmqst::StatContext* statContext,
                            const bsl::string&  domain,
                            const bsl::string&  cluster,
                            bsls::Types::Uint64 queueFlags)
@@ -295,7 +294,7 @@ void finalizeClosedHandle(bsl::string description,
 // -------------------------
 
 ClientSessionState::ClientSessionState(
-    bslma::ManagedPtr<mwcst::StatContext>& clientStatContext,
+    bslma::ManagedPtr<bmqst::StatContext>& clientStatContext,
     BlobSpPool*                            blobSpPool,
     bdlbb::BlobBufferFactory*              bufferFactory,
     bmqp::EncodingType::Enum               encodingType,
@@ -434,20 +433,20 @@ void ClientSession::sendPacketDispatched(const bdlbb::Blob& blob,
     // Try to send the data, if we fail due to high watermark limit, enqueue
     // the message to the channelBufferQueue, and we'll send it later, once we
     // get the lowWatermark notification.
-    mwcio::Status status;
+    bmqio::Status status;
     d_channel_sp->write(&status, blob);
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
-            status.category() != mwcio::StatusCategory::e_SUCCESS)) {
+            status.category() != bmqio::StatusCategory::e_SUCCESS)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        if (status.category() == mwcio::StatusCategory::e_CONNECTION) {
+        if (status.category() == bmqio::StatusCategory::e_CONNECTION) {
             // This code relies on the fact that `e_CONNECTION` error cannot be
             // returned without calling `tearDown`.
             return;  // RETURN
         }
-        if (status.category() == mwcio::StatusCategory::e_LIMIT) {
+        if (status.category() == bmqio::StatusCategory::e_LIMIT) {
             BALL_LOG_WARN << "#CLIENT_SEND_FAILURE " << description()
                           << ": Failed to send data [size: "
-                          << mwcu::PrintUtil::prettyNumber(blob.length())
+                          << bmqu::PrintUtil::prettyNumber(blob.length())
                           << " bytes] to client due to channel watermark limit"
                           << "; enqueuing to the ChannelBufferQueue.";
             d_state.d_channelBufferQueue.push_back(blob);
@@ -455,7 +454,7 @@ void ClientSession::sendPacketDispatched(const bdlbb::Blob& blob,
         else {
             BALL_LOG_INFO << "#CLIENT_SEND_FAILURE " << description()
                           << ": Failed to send data [size: "
-                          << mwcu::PrintUtil::prettyNumber(blob.length())
+                          << bmqu::PrintUtil::prettyNumber(blob.length())
                           << " bytes] to client with status: " << status;
         }
     }
@@ -480,9 +479,9 @@ void ClientSession::flushChannelBufferQueue()
     while (!d_state.d_channelBufferQueue.empty()) {
         const bdlbb::Blob& blob = d_state.d_channelBufferQueue.front();
 
-        mwcio::Status status;
+        bmqio::Status status;
         d_channel_sp->write(&status, blob);
-        if (status.category() == mwcio::StatusCategory::e_LIMIT) {
+        if (status.category() == bmqio::StatusCategory::e_LIMIT) {
             // We are hitting the limit again, can't continue.. stop sending
             // and we'll resume with the next lowWatermark notification.
             BALL_LOG_WARN
@@ -923,7 +922,7 @@ void ClientSession::deconfigureAndWait(ShutdownContextSp& context)
     d_operationState = e_SHUTTING_DOWN;
 
     // Fill the first link with handle deconfigure operations
-    mwcu::OperationChainLink link(d_shutdownChain.allocator());
+    bmqu::OperationChainLink link(d_shutdownChain.allocator());
 
     for (QueueStateMapIter it = d_queueSessionManager.queues().begin();
          it != d_queueSessionManager.queues().end();
@@ -990,7 +989,7 @@ void ClientSession::checkUnconfirmedDispatched(
     // expired or the client is disconnected skip checking of the unconfirmed
     // messages and break the shutdown sequence.
     const bool isDisconnected = d_operationState != e_SHUTTING_DOWN;
-    if (mwcsys::Time::nowMonotonicClock() >= shutdownCtx->d_stopTime ||
+    if (bmqsys::Time::nowMonotonicClock() >= shutdownCtx->d_stopTime ||
         isDisconnected) {
         BALL_LOG_INFO << description()
                       << (isDisconnected ? ": the client is disconnected."
@@ -1005,7 +1004,7 @@ void ClientSession::checkUnconfirmedDispatched(
     shutdownCtx->d_numUnconfirmedTotal = 0;
 
     // Add countUnconfirmed operations
-    mwcu::OperationChainLink link(d_shutdownChain.allocator());
+    bmqu::OperationChainLink link(d_shutdownChain.allocator());
 
     for (QueueStateMapIter it = d_queueSessionManager.queues().begin();
          it != d_queueSessionManager.queues().end();
@@ -1094,7 +1093,7 @@ void ClientSession::finishCheckUnconfirmedDispatched(
     bdlb::ScopeExitAny guard(completionCb);
 
     const bsls::TimeInterval nextCheckTime =
-        mwcsys::Time::nowMonotonicClock().addSeconds(1);
+        bmqsys::Time::nowMonotonicClock().addSeconds(1);
 
     // If there are no unconfirmed messages, or if there is no more time to
     // wait for the confirms, or the client is disconnected  then finish the
@@ -1120,7 +1119,7 @@ void ClientSession::finishCheckUnconfirmedDispatched(
         &d_periodicUnconfirmedCheckHandler,
         nextCheckTime,
         bdlf::BindUtil::bind(
-            mwcu::WeakMemFnUtil::weakMemFn(&ClientSession::checkUnconfirmed,
+            bmqu::WeakMemFnUtil::weakMemFn(&ClientSession::checkUnconfirmed,
                                            d_self.acquireWeak()),
             shutdownCtx,
             bdlf::noOp));
@@ -1135,27 +1134,27 @@ void ClientSession::closeChannel()
     BALL_LOG_INFO << description() << ": Closing channel "
                   << channel()->peerUri();
 
-    mwcio::Status status(
-        mwcio::StatusCategory::e_SUCCESS,
+    bmqio::Status status(
+        bmqio::StatusCategory::e_SUCCESS,
         mqbnet::TCPSessionFactory::k_CHANNEL_STATUS_CLOSE_REASON,
         true,
         d_state.d_allocator_p);
 
-    // Assume safe to call 'mwcio::Channel::close' on already closed channel.
+    // Assume safe to call 'bmqio::Channel::close' on already closed channel.
 
     channel()->close(status);
 }
 
-void ClientSession::logOperationTime(mwcu::MemOutStream& opDescription)
+void ClientSession::logOperationTime(bmqu::MemOutStream& opDescription)
 {
     if (d_beginTimestamp) {
         BALL_LOG_INFO_BLOCK
         {
             const bsls::Types::Int64 elapsed =
-                mwcsys::Time::highResolutionTimer() - d_beginTimestamp;
+                bmqsys::Time::highResolutionTimer() - d_beginTimestamp;
             BALL_LOG_OUTPUT_STREAM
                 << description() << ": " << opDescription.str()
-                << " took: " << mwcu::PrintUtil::prettyTimeInterval(elapsed)
+                << " took: " << bmqu::PrintUtil::prettyTimeInterval(elapsed)
                 << " (" << elapsed << " nanoseconds)";
         }
         d_beginTimestamp = 0;
@@ -1213,12 +1212,12 @@ void ClientSession::processDisconnectAllQueues(
     // 'processDisconnectAllQueuesDone' once all queues threads have been
     // drained.  Note, this must be using an 'e_DISPATCHER' dispatcher event
     // type, refer to top level documention for explanation (paragraph about
-    // the mwcu::SharedResource).
+    // the bmqu::SharedResource).
     dispatcher()->execute(
         mqbi::Dispatcher::ProcessorFunctor(),  // empty
         mqbi::DispatcherClientType::e_QUEUE,
         bdlf::BindUtil::bind(
-            mwcu::WeakMemFnUtil::weakMemFn(
+            bmqu::WeakMemFnUtil::weakMemFn(
                 &ClientSession::processDisconnectAllQueuesDone,
                 d_self.acquireWeak()),
             controlMessage));
@@ -1236,7 +1235,7 @@ void ClientSession::processDisconnectAllQueuesDone(
 
     dispatcher()->execute(
         bdlf::BindUtil::bind(
-            mwcu::WeakMemFnUtil::weakMemFn(&ClientSession::processDisconnect,
+            bmqu::WeakMemFnUtil::weakMemFn(&ClientSession::processDisconnect,
                                            d_self.acquireWeak()),
             controlMessage),
         this);
@@ -1558,7 +1557,7 @@ void ClientSession::processConfigureStream(
     handle->configure(
         req.streamParameters(),
         bdlf::BindUtil::bind(
-            mwcu::WeakMemFnUtil::weakMemFn(&ClientSession::onHandleConfigured,
+            bmqu::WeakMemFnUtil::weakMemFn(&ClientSession::onHandleConfigured,
                                            d_self.acquireWeak()),
             bdlf::PlaceHolders::_1,  // status
             bdlf::PlaceHolders::_2,  // streamParams
@@ -1602,7 +1601,7 @@ void ClientSession::onAckEvent(const mqbi::DispatcherAckEvent& event)
         if (cit != d_state.d_unackedMessageInfos.end()) {
             // Calculate time delta between PUT and ACK
             const bsls::Types::Int64 timeDelta =
-                mwcsys::Time::highResolutionTimer() - cit->second.d_timeStamp;
+                bmqsys::Time::highResolutionTimer() - cit->second.d_timeStamp;
             queue->stats()->onEvent(
                 mqbstat::QueueStatsDomain::EventType::e_ACK_TIME,
                 timeDelta);
@@ -1689,7 +1688,7 @@ void ClientSession::onConfirmEvent(const mqbi::DispatcherConfirmEvent& event)
     int rc     = 0;
 
     bdlma::LocalSequentialAllocator<256> localAllocator(d_state.d_allocator_p);
-    mwcu::MemOutStream                   errorStream(&localAllocator);
+    bmqu::MemOutStream                   errorStream(&localAllocator);
 
     while ((rc = confIt.next()) == 1) {
         const int          id    = confIt.message().queueId();
@@ -1774,7 +1773,7 @@ void ClientSession::onRejectEvent(const mqbi::DispatcherRejectEvent& event)
     int rc     = 0;
 
     bdlma::LocalSequentialAllocator<256> localAllocator(d_state.d_allocator_p);
-    mwcu::MemOutStream                   errorStream(&localAllocator);
+    bmqu::MemOutStream                   errorStream(&localAllocator);
 
     while ((rc = rejectIt.next()) == 1) {
         const int          id    = rejectIt.message().queueId();
@@ -1961,7 +1960,7 @@ void ClientSession::onPushEvent(const mqbi::DispatcherPushEvent& event)
                            << it->second.d_handle_p->queue()->uri() << "'"
                            << ", subQueueInfo: " << event.subQueueInfos()[i]
                            << ", GUID: " << event.guid() << "]:\n"
-                           << mwcu::BlobStartHexDumper(blob, k_PAYLOAD_DUMP);
+                           << bmqu::BlobStartHexDumper(blob, k_PAYLOAD_DUMP);
         }
     }
 
@@ -2055,7 +2054,7 @@ void ClientSession::onPushEvent(const mqbi::DispatcherPushEvent& event)
                     << citer->second.d_handle_p->queue()->uri()
                     << "', subQueueInfo: " << event.subQueueInfos()[i]
                     << ", GUID: " << event.guid() << "]:\n"
-                    << mwcu::BlobStartHexDumper(blob, k_PAYLOAD_DUMP);
+                    << bmqu::BlobStartHexDumper(blob, k_PAYLOAD_DUMP);
 
                 invalidQueueStats()->onEvent(
                     mqbstat::QueueStatsClient::EventType::e_PUSH,
@@ -2081,7 +2080,7 @@ void ClientSession::onPushEvent(const mqbi::DispatcherPushEvent& event)
         // REVISIT: An alternative is to send Reject upstream
 
         if (dumpRc == 0) {
-            MWCTSK_ALARMLOG_ALARM("CLIENT_INVALID_PUSH")
+            BMQTSK_ALARMLOG_ALARM("CLIENT_INVALID_PUSH")
                 << description() << ": error '" << convertingRc
                 << "' converting to old format [queue: '"
                 << citer->second.d_handle_p->queue()->uri()
@@ -2089,10 +2088,10 @@ void ClientSession::onPushEvent(const mqbi::DispatcherPushEvent& event)
                 << ", compressionAlgorithmType: "
                 << event.compressionAlgorithmType()
                 << "] Message was dumped in file at location [" << filepath
-                << "] on this machine." << MWCTSK_ALARMLOG_END;
+                << "] on this machine." << BMQTSK_ALARMLOG_END;
         }
         else {
-            MWCTSK_ALARMLOG_ALARM("CLIENT_INVALID_PUSH")
+            BMQTSK_ALARMLOG_ALARM("CLIENT_INVALID_PUSH")
                 << description() << ": error '" << convertingRc
                 << "' converting to old format [queue: '"
                 << citer->second.d_handle_p->queue()->uri()
@@ -2100,7 +2099,7 @@ void ClientSession::onPushEvent(const mqbi::DispatcherPushEvent& event)
                 << ", compressionAlgorithmType: "
                 << event.compressionAlgorithmType()
                 << "] Attempt to dump message in a file failed with error "
-                << dumpRc << MWCTSK_ALARMLOG_END;
+                << dumpRc << BMQTSK_ALARMLOG_END;
         }
     }
 }
@@ -2309,7 +2308,7 @@ void ClientSession::onPutEvent(const mqbi::DispatcherPutEvent& event)
                     bsl::make_pair(putHeader.messageGUID(),
                                    ClientSessionState::UnackedMessageInfo(
                                        correlationId,
-                                       mwcsys::Time::highResolutionTimer())));
+                                       bmqsys::Time::highResolutionTimer())));
             if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(insertRc.second ==
                                                       false)) {
                 BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
@@ -2347,7 +2346,7 @@ void ClientSession::onPutEvent(const mqbi::DispatcherPutEvent& event)
                        << ", flags: " << putIt.header().flags()
                        << ", message size: " << putIt.applicationDataSize()
                        << "]:\n"
-                       << mwcu::BlobStartHexDumper(appDataSp.get(), 64);
+                       << bmqu::BlobStartHexDumper(appDataSp.get(), 64);
 
         queueStatePtr->d_handle_p->postMessage(putIt.header(),
                                                appDataSp,
@@ -2390,7 +2389,7 @@ mqbstat::QueueStatsClient* ClientSession::invalidQueueStats()
         //      only be done once the stats UI panel has been updated to
         //      support that.
 
-        mwcst::StatContext* statContext =
+        bmqst::StatContext* statContext =
             d_state.d_invalidQueueStats.value().statContext();
         createQueueStatsDatum(statContext, "invalid", "none", 0);
     }
@@ -2587,13 +2586,13 @@ bool ClientSession::validatePutMessage(QueueState**   queueState,
 
 // CREATORS
 ClientSession::ClientSession(
-    const bsl::shared_ptr<mwcio::Channel>&  channel,
+    const bsl::shared_ptr<bmqio::Channel>&  channel,
     const bmqp_ctrlmsg::NegotiationMessage& negotiationMessage,
     const bsl::string&                      sessionDescription,
     mqbi::Dispatcher*                       dispatcher,
     mqbblp::ClusterCatalog*                 clusterCatalog,
     mqbi::DomainFactory*                    domainFactory,
-    bslma::ManagedPtr<mwcst::StatContext>&  clientStatContext,
+    bslma::ManagedPtr<bmqst::StatContext>&  clientStatContext,
     ClientSessionState::BlobSpPool*         blobSpPool,
     bdlbb::BlobBufferFactory*               bufferFactory,
     bdlmt::EventScheduler*                  scheduler,
@@ -2688,7 +2687,7 @@ void ClientSession::processEvent(
                            << ": Received invalid control message from client "
                            << "[reason: 'failed to decode', rc: " << rc
                            << "]:\n"
-                           << mwcu::BlobStartHexDumper(event.blob());
+                           << bmqu::BlobStartHexDumper(event.blob());
             return;  // RETURN
         }
 
@@ -2722,7 +2721,7 @@ void ClientSession::processEvent(
                 return;  // RETURN
             }
 
-            d_beginTimestamp = mwcsys::Time::highResolutionTimer();
+            d_beginTimestamp = bmqsys::Time::highResolutionTimer();
 
             d_isDisconnecting = true;
             eventCallback     = bdlf::BindUtil::bind(
@@ -2731,7 +2730,7 @@ void ClientSession::processEvent(
                 controlMessage);
         } break;
         case MsgChoice::SELECTION_ID_OPEN_QUEUE: {
-            d_beginTimestamp = mwcsys::Time::highResolutionTimer();
+            d_beginTimestamp = bmqsys::Time::highResolutionTimer();
 
             eventCallback = bdlf::BindUtil::bind(
                 &ClientSession::processOpenQueue,
@@ -2739,7 +2738,7 @@ void ClientSession::processEvent(
                 controlMessage);
         } break;
         case MsgChoice::SELECTION_ID_CLOSE_QUEUE: {
-            d_beginTimestamp = mwcsys::Time::highResolutionTimer();
+            d_beginTimestamp = bmqsys::Time::highResolutionTimer();
 
             eventCallback = bdlf::BindUtil::bind(
                 &ClientSession::processCloseQueue,
@@ -2748,7 +2747,7 @@ void ClientSession::processEvent(
         } break;
         case MsgChoice::SELECTION_ID_CONFIGURE_QUEUE_STREAM:
         case MsgChoice::SELECTION_ID_CONFIGURE_STREAM: {
-            d_beginTimestamp = mwcsys::Time::highResolutionTimer();
+            d_beginTimestamp = bmqsys::Time::highResolutionTimer();
 
             eventCallback = bdlf::BindUtil::bind(
                 &ClientSession::processConfigureStream,
@@ -2872,7 +2871,7 @@ void ClientSession::initiateShutdown(const ShutdownCb&         callback,
 {
     // executed by the *ANY* thread
 
-    d_beginTimestamp = mwcsys::Time::highResolutionTimer();
+    d_beginTimestamp = bmqsys::Time::highResolutionTimer();
 
     BALL_LOG_INFO << description() << ": initiateShutdown";
 
@@ -2890,7 +2889,7 @@ void ClientSession::initiateShutdown(const ShutdownCb&         callback,
     //
     // Choosing 2), assuming that calling the (completion) callback from a
     // thread other than the *CLIENT* dispatcher thread is ok.  The
-    // 'mwcu::OperationChainLink' expects the completion callback from multiple
+    // 'bmqu::OperationChainLink' expects the completion callback from multiple
     // sessions anyway.
 
     bsl::shared_ptr<ClientSession> ptr = d_self.acquire();
@@ -2926,13 +2925,13 @@ void ClientSession::invalidate()
 }
 
 // MANIPULATORS
-void ClientSession::onWatermark(mwcio::ChannelWatermarkType::Enum type)
+void ClientSession::onWatermark(bmqio::ChannelWatermarkType::Enum type)
 {
     switch (type) {
-    case mwcio::ChannelWatermarkType::e_LOW_WATERMARK: {
+    case bmqio::ChannelWatermarkType::e_LOW_WATERMARK: {
         onLowWatermark();
     } break;  // BREAK
-    case mwcio::ChannelWatermarkType::e_HIGH_WATERMARK: {
+    case bmqio::ChannelWatermarkType::e_HIGH_WATERMARK: {
         onHighWatermark();
     } break;  // BREAK
     default: {
@@ -3022,35 +3021,35 @@ void ClientSession::onDispatcherEvent(const mqbi::DispatcherEvent& event)
         BSLS_ASSERT_OPT(false &&
                         "'CONTROL_MSG' type dispatcher event unexpected");
         return;  // RETURN
-    }            // break;
+    }  // break;
     case mqbi::DispatcherEventType::e_DISPATCHER: {
         BSLS_ASSERT_OPT(false &&
                         "'DISPATCHER' type dispatcher event unexpected");
         return;  // RETURN
-    }            // break;
+    }  // break;
     case mqbi::DispatcherEventType::e_UNDEFINED: {
         BSLS_ASSERT_OPT(false && "'NONE' type dispatcher event unexpected");
         return;  // RETURN
-    }            // break;
+    }  // break;
     case mqbi::DispatcherEventType::e_CLUSTER_STATE: {
         BSLS_ASSERT_OPT(false &&
                         "'CLUSTER_STATE' dispatcher event unexpected");
         return;  // RETURN
-    }            // break;
+    }  // break;
     case mqbi::DispatcherEventType::e_STORAGE: {
         BSLS_ASSERT_OPT(false && "'STORAGE' dispatcher event unexpected");
         return;  // RETURN
-    }            // break;
+    }  // break;
     case mqbi::DispatcherEventType::e_RECOVERY: {
         BSLS_ASSERT_OPT(false &&
                         "'RECOVERY' type dispatcher event unexpected");
         return;  // RETURN
-    }            // break;
+    }  // break;
     case mqbi::DispatcherEventType::e_REPLICATION_RECEIPT: {
         BSLS_ASSERT_OPT(
             false && "'REPLICATION_RECEIPT' type dispatcher event unexpected");
         return;  // RETURN
-    }            // break;
+    }  // break;
     default: {
         BALL_LOG_ERROR
             << "#CLIENT_UNEXPECTED_EVENT " << description()

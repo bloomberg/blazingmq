@@ -32,8 +32,7 @@
 #include <mqbconfm_messages.h>
 #include <mqbi_cluster.h>
 
-// MWC
-#include <mwcma_countingallocatorstore.h>
+#include <bmqma_countingallocatorstore.h>
 
 // BDE
 #include <ball_log.h>
@@ -70,7 +69,7 @@ class PluginManager;
 namespace mqbstat {
 class StatController;
 }
-namespace mwcst {
+namespace bmqst {
 class StatContext;
 }
 
@@ -111,7 +110,7 @@ class Application {
         BlobSpPool;
 
     // Data members
-    mwcma::CountingAllocatorStore d_allocators;
+    bmqma::CountingAllocatorStore d_allocators;
     // Allocator store to spawn new allocators
     // for sub-components
 
@@ -138,7 +137,7 @@ class Application {
 
     bdlma::ConcurrentPool d_pushElementsPool;
 
-    mwcst::StatContext* d_allocatorsStatContext_p;
+    bmqst::StatContext* d_allocatorsStatContext_p;
     // Stat context of the counting allocators,
     // if used
 
@@ -192,7 +191,7 @@ class Application {
     /// Create a new `Application` object, using the specified `scheduler`
     /// and the specified `allocatorsStatContext` and `allocator`.
     Application(bdlmt::EventScheduler* scheduler,
-                mwcst::StatContext*    allocatorsStatContext,
+                bmqst::StatContext*    allocatorsStatContext,
                 bslma::Allocator*      allocator);
 
     /// Destructor.
@@ -203,7 +202,7 @@ class Application {
     /// Load into the specified `contexts` all root top level stat contexts
     /// (allocators, systems, domains, clients, ...).
     void loadStatContexts(
-        bsl::unordered_map<bsl::string, mwcst::StatContext*>* contexts) const;
+        bsl::unordered_map<bsl::string, bmqst::StatContext*>* contexts) const;
 
     // MANIPULATORS
 
