@@ -36,8 +36,7 @@
 #include <bmqt_messageguid.h>
 #include <bmqt_uri.h>
 
-// MWC
-#include <mwcu_memoutstream.h>
+#include <bmqu_memoutstream.h>
 
 // BDE
 #include <ball_log.h>
@@ -57,7 +56,7 @@
 #include <bsls_types.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -102,6 +101,7 @@ namespace {
 const int  k_PARTITION_ID       = 1;
 const int  k_PROXY_PARTITION_ID = mqbs::DataStore::k_INVALID_PARTITION_ID;
 const char k_HEX_QUEUE[]        = "ABCDEF1234";
+
 const bsls::Types::Int64 k_DEFAULT_MSG          = 20;
 const bsls::Types::Int64 k_DEFAULT_BYTES        = 2048;
 const double             k_MSG_WATERMARK_RATIO  = 0.8;
@@ -110,13 +110,14 @@ const char               k_URI_STR[]            = "bmq://mydomain/testqueue";
 const char               k_APP_ID1[]            = "app1";
 const char               k_APP_ID2[]            = "app2";
 const char               k_APP_ID3[]            = "app3";
-const mqbu::StorageKey   k_QUEUE_KEY(mqbu::StorageKey::HexRepresentation(),
+
+const mqbu::StorageKey k_QUEUE_KEY(mqbu::StorageKey::HexRepresentation(),
                                    k_HEX_QUEUE);
-const mqbu::StorageKey   k_APP_KEY1(mqbu::StorageKey::HexRepresentation(),
+const mqbu::StorageKey k_APP_KEY1(mqbu::StorageKey::HexRepresentation(),
                                   "ABCDEF1111");
-const mqbu::StorageKey   k_APP_KEY2(mqbu::StorageKey::HexRepresentation(),
+const mqbu::StorageKey k_APP_KEY2(mqbu::StorageKey::HexRepresentation(),
                                   "ABCDEF2222");
-const mqbu::StorageKey   k_APP_KEY3(mqbu::StorageKey::HexRepresentation(),
+const mqbu::StorageKey k_APP_KEY3(mqbu::StorageKey::HexRepresentation(),
                                   "ABCDEF3333");
 
 // ALIASES
@@ -549,7 +550,7 @@ struct Tester {
         limits.bytes()                  = byteCapacity;
         limits.bytesWatermarkRatio()    = byteWatermarkRatio;
 
-        mwcu::MemOutStream errDescription(s_allocator_p);
+        bmqu::MemOutStream errDescription(s_allocator_p);
         return d_replicatedStorage_mp->configure(errDescription,
                                                  config,
                                                  limits,
@@ -658,7 +659,7 @@ struct Tester {
 
 /// Fixture instantiating a tester of `mqbs::FileBackedStorage` having already
 /// configured the storage with an FileBackedStorage configuration.
-struct Test : mwctst::Test {
+struct Test : bmqtst::Test {
     // PUBLIC DATA
     Tester d_tester;
 
@@ -706,7 +707,7 @@ TEST(breathingTest)
 //   - setQueue(...)
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("BREATHING TEST");
+    bmqtst::TestHelper::printTestName("BREATHING TEST");
 
     Tester tester(s_allocator_p, k_PROXY_PARTITION_ID);
 
@@ -743,7 +744,7 @@ TEST(configure)
 //   - configure(...) + config()
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("CONFIGURE");
+    bmqtst::TestHelper::printTestName("CONFIGURE");
 
     Tester tester(s_allocator_p, k_PROXY_PARTITION_ID);
 
@@ -773,7 +774,7 @@ TEST_F(Test, supportedOperations)
 //   purge(...)
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("SUPPORTED OPERATIONS");
+    bmqtst::TestHelper::printTestName("SUPPORTED OPRATIONS");
 
     bmqt::MessageGUID guid = generateRandomGUID();
     mqbu::StorageKey  appKey;
@@ -839,7 +840,7 @@ TEST_F(Test, put_noVirtualStorage)
 //   in a 'mqbs::FileBackedStorage'.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("PUT - WITH NO VIRTUAL STORAGES");
+    bmqtst::TestHelper::printTestName("PUT - WITH NO VIRTUAL STORAGES");
 
     bsl::vector<bmqt::MessageGUID> guids(s_allocator_p);
 
@@ -876,7 +877,7 @@ TEST_F(Test, getMessageSize)
 //   - 'getMessageSize(...)'
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("GET MESSAGE SIZE");
+    bmqtst::TestHelper::printTestName("GET MESSAGE SIZE");
 
     bsl::vector<bmqt::MessageGUID> guids(s_allocator_p);
 
@@ -914,7 +915,7 @@ TEST_F(Test, get_noVirtualStorages)
 //   in a 'mqbs::FileBackedStorage'.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("GET - WITH NO VIRTUAL STORAGES");
+    bmqtst::TestHelper::printTestName("GET - WITH NO VIRTUAL STORAGES");
 
     bsl::vector<bmqt::MessageGUID> guids(s_allocator_p);
 
@@ -977,7 +978,7 @@ TEST_F(Test, remove_messageNotFound)
 //   in storage as well as GUID not in storage
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("REMOVE - MESSAGE NOT FOUND");
+    bmqtst::TestHelper::printTestName("REMOVE - MESSAGE NOT FOUND");
 
     mqbs::ReplicatedStorage& storage = d_tester.storage();
 
@@ -999,7 +1000,7 @@ TEST_F(Test, removeMessage)
 //   in storage as well as GUID not in storage
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("REMOVE MESSAGE");
+    bmqtst::TestHelper::printTestName("REMOVE MESSAGE");
 
     const int k_MSG_COUNT = 10;
 
@@ -1037,9 +1038,9 @@ TEST_F(Test, addVirtualStorage)
 //   'mqbs::FileBackedStorage'.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("ADD VIRTUAL STORAGE");
+    bmqtst::TestHelper::printTestName("ADD VIRTUAL STORAGE");
 
-    mwcu::MemOutStream errDescription(s_allocator_p);
+    bmqu::MemOutStream errDescription(s_allocator_p);
     bsl::string        dummyAppId(s_allocator_p);
     mqbu::StorageKey   dummyAppKey;
 
@@ -1064,9 +1065,9 @@ TEST_F(Test, hasVirtualStorage)
 //   successfully added
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("HAS VIRTUAL STORAGE");
+    bmqtst::TestHelper::printTestName("HAS VIRTUAL STORAGE");
 
-    mwcu::MemOutStream errDescription(s_allocator_p);
+    bmqu::MemOutStream errDescription(s_allocator_p);
     bsl::string        dummyAppId(s_allocator_p);
     mqbu::StorageKey   dummyAppKey;
 
@@ -1102,9 +1103,9 @@ TEST_F(Test, removeVirtualStorage)
 //   in a 'mqbs::FileBackedStorage'.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("REMOVE VIRTUAL STORAGE");
+    bmqtst::TestHelper::printTestName("REMOVE VIRTUAL STORAGE");
 
-    mwcu::MemOutStream errDescription(s_allocator_p);
+    bmqu::MemOutStream errDescription(s_allocator_p);
     bsl::string        dummyAppId(s_allocator_p);
 
     mqbs::ReplicatedStorage& storage = d_tester.storage();
@@ -1135,13 +1136,13 @@ TEST(put_withVirtualStorages)
 //   in a 'mqbs::FileBackedStorage'.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("PUT - WITH VIRTUAL STORAGES");
+    bmqtst::TestHelper::printTestName("PUT - WITH VIRTUAL STORAGES");
 
     // CONSTANTS
     const bsls::Types::Int64 k_MSG_LIMIT   = 80;
     const bsls::Types::Int64 k_BYTES_LIMIT = 2048;
 
-    mwcu::MemOutStream errDescription(s_allocator_p);
+    bmqu::MemOutStream errDescription(s_allocator_p);
 
     Tester tester(s_allocator_p, k_PROXY_PARTITION_ID);
 
@@ -1204,10 +1205,10 @@ TEST(removeAllMessages_appKeyNotFound)
 // ------------------------------------------------------------------------
 
 {
-    mwctst::TestHelper::printTestName("REMOVE ALL MESSAGES "
+    bmqtst::TestHelper::printTestName("REMOVE ALL MESSAGES "
                                       "- APPKEY NOT FOUND");
 
-    mwcu::MemOutStream errDescription(s_allocator_p);
+    bmqu::MemOutStream errDescription(s_allocator_p);
 
     const bsls::Types::Int64 k_MSG_LIMIT   = 80;
     const bsls::Types::Int64 k_BYTES_LIMIT = 2048;
@@ -1255,9 +1256,9 @@ TEST(removeAllMessages)
 // ------------------------------------------------------------------------
 
 {
-    mwctst::TestHelper::printTestName("Remove All Messages Test");
+    bmqtst::TestHelper::printTestName("Remove All Messages Test");
 
-    mwcu::MemOutStream errDescription(s_allocator_p);
+    bmqu::MemOutStream errDescription(s_allocator_p);
 
     const bsls::Types::Int64 k_MSG_LIMIT   = 80;
     const bsls::Types::Int64 k_BYTES_LIMIT = 2048;
@@ -1319,9 +1320,9 @@ TEST(get_withVirtualStorages)
 //   in a 'mqbs::FileBackedStorage'.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("Get - with Virtual Storage Test");
+    bmqtst::TestHelper::printTestName("Get - with Virtual Storage Test");
 
-    mwcu::MemOutStream errDescription(s_allocator_p);
+    bmqu::MemOutStream errDescription(s_allocator_p);
 
     const bsls::Types::Int64 k_MSG_LIMIT   = 80;
     const bsls::Types::Int64 k_BYTES_LIMIT = 2048;
@@ -1377,12 +1378,12 @@ TEST(confirm)
 //   in a 'mqbs::FileBackedStorage'.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("RELEASE REF");
+    bmqtst::TestHelper::printTestName("RELEASE REF");
 
     const bsls::Types::Int64 k_MSG_LIMIT   = 80;
     const bsls::Types::Int64 k_BYTES_LIMIT = 2048;
 
-    mwcu::MemOutStream errDescription(s_allocator_p);
+    bmqu::MemOutStream errDescription(s_allocator_p);
 
     Tester tester(s_allocator_p, k_PROXY_PARTITION_ID);
 
@@ -1460,7 +1461,7 @@ TEST_F(Test, getIterator_noVirtualStorages)
 //   in a 'mqbs::FileBackedStorage'.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("Iterator- No virtual storages Test");
+    bmqtst::TestHelper::printTestName("Iterator- No virtual storages Test");
 
     const int k_MSG_COUNT = 10;
 
@@ -1531,9 +1532,9 @@ TEST(getIterator_withVirtualStorages)
 //   in a 'mqbs::FileBackedStorage'.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("Iterator Test- In presence of Virtual");
+    bmqtst::TestHelper::printTestName("Iterator Test- In presence of Virtual");
 
-    mwcu::MemOutStream errDescription(s_allocator_p);
+    bmqu::MemOutStream errDescription(s_allocator_p);
 
     const bsls::Types::Int64 k_MSG_LIMIT   = 80;
     const bsls::Types::Int64 k_BYTES_LIMIT = 2048;
@@ -1633,7 +1634,7 @@ TEST_F(Test, capacityMeter_limitMessages)
 //   limits on messages in a 'mqbs::FileBackedStorage'.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("Capacity Meter- Limit Messages");
+    bmqtst::TestHelper::printTestName("Capacity Meter- Limit Messages");
 
     bsl::vector<bmqt::MessageGUID> guids(s_allocator_p);
 
@@ -1675,7 +1676,7 @@ TEST(capacityMeter_limitBytes)
 //   limits on bytes in a 'mqbs::FileBackedStorage'.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("Capacity Meter - Limit Bytes");
+    bmqtst::TestHelper::printTestName("Capacity Meter - Limit Bytes");
 
     const bsls::Types::Int64 k_MSG_LIMIT   = 30;
     const bsls::Types::Int64 k_BYTES_LIMIT = 80;
@@ -1717,7 +1718,7 @@ TEST(garbageCollect)
 // ------------------------------------------------------------------------
 
 {
-    mwctst::TestHelper::printTestName("GARBAGE COLLECT");
+    bmqtst::TestHelper::printTestName("GARBAGE COLLECT");
 
     // Set with TTL of 20: control GC test by manipulating secondsFromEpoch
     // input
@@ -1800,7 +1801,7 @@ TEST_F(Test, addQueueOpRecordHandle)
 
 TEST_F(Test, doNotRecordLastConfirmInPriorityMode)
 {
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "Do Not Record Last Confirm In Priority Mode");
 
     const int                      k_MSG_COUNT = 1;
@@ -1830,9 +1831,9 @@ TEST_F(Test, doNotRecordLastConfirmInPriorityMode)
 
 TEST_F(Test, doNotRecordLastConfirmInFanoutMode)
 {
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "Do Not Record Last Confirm in Fanout Mode");
-    mwcu::MemOutStream errDescription(s_allocator_p);
+    bmqu::MemOutStream errDescription(s_allocator_p);
 
     const MockDataStore&     data_store = d_tester.dataStore();
     mqbs::ReplicatedStorage& storage    = d_tester.storage();
@@ -1899,10 +1900,10 @@ int main(int argc, char* argv[])
 {
     BALL_LOG_SET_CATEGORY("MAIN");
 
-    TEST_PROLOG(mwctst::TestHelper::e_CHECK_GBL_ALLOC);
+    TEST_PROLOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 
     bmqt::UriParser::initialize(s_allocator_p);
-    mwcsys::Time::initialize(s_allocator_p);
+    bmqsys::Time::initialize(s_allocator_p);
 
     mqbu::MessageGUIDUtil::initialize();
 
@@ -1910,14 +1911,14 @@ int main(int argc, char* argv[])
         mqbcfg::AppConfig brokerConfig(s_allocator_p);
         mqbcfg::BrokerConfig::set(brokerConfig);
 
-        bsl::shared_ptr<mwcst::StatContext> statContext =
+        bsl::shared_ptr<bmqst::StatContext> statContext =
             mqbstat::BrokerStatsUtil::initializeStatContext(30, s_allocator_p);
 
-        mwctst::runTest(_testCase);
+        bmqtst::runTest(_testCase);
     }
 
-    mwcsys::Time::shutdown();
+    bmqsys::Time::shutdown();
     bmqt::UriParser::shutdown();
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 }
