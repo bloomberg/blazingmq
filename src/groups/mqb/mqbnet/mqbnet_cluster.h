@@ -37,9 +37,8 @@
 // BMQ
 #include <bmqp_ctrlmsg_messages.h>
 
-// MWC
-#include <mwcio_channel.h>
-#include <mwcio_status.h>
+#include <bmqio_channel.h>
+#include <bmqio_status.h>
 
 // BDE
 #include <bdlbb_blob.h>
@@ -97,7 +96,7 @@ class ClusterObserver {
 
     /// Process incoming proxy connection
     virtual void
-    onProxyConnectionUp(const bsl::shared_ptr<mwcio::Channel>& channel,
+    onProxyConnectionUp(const bsl::shared_ptr<bmqio::Channel>& channel,
                         const bmqp_ctrlmsg::ClientIdentity&    identity,
                         const bsl::string&                     description);
 };
@@ -129,9 +128,9 @@ class ClusterNode {
     /// The specified `readCb` serves as read data callback when
     /// `enableRead` is called.
     virtual ClusterNode*
-    setChannel(const bsl::weak_ptr<mwcio::Channel>& value,
+    setChannel(const bsl::weak_ptr<bmqio::Channel>& value,
                const bmqp_ctrlmsg::ClientIdentity&  identity,
-               const mwcio::Channel::ReadCallback&  readCb) = 0;
+               const bmqio::Channel::ReadCallback&  readCb) = 0;
 
     /// Start reading from the channel.  Return true if `read` is successful
     /// or if it is already reading.
@@ -240,7 +239,7 @@ class Cluster {
 
     /// Process incoming proxy connection.
     virtual void
-    onProxyConnectionUp(const bsl::shared_ptr<mwcio::Channel>& channel,
+    onProxyConnectionUp(const bsl::shared_ptr<bmqio::Channel>& channel,
                         const bmqp_ctrlmsg::ClientIdentity&    identity,
                         const bsl::string& description) = 0;
 

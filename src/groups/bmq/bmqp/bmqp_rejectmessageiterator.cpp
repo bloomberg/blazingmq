@@ -118,7 +118,7 @@ int RejectMessageIterator::reset(const bdlbb::Blob* blob,
                                   // header
     };
 
-    d_blobIter.reset(blob, mwcu::BlobPosition(), blob->length(), true);
+    d_blobIter.reset(blob, bmqu::BlobPosition(), blob->length(), true);
 
     // Skip the EventHeader to point to the RejectHeader
     bool rc = d_blobIter.advance(eventHeader.headerWords() *
@@ -180,7 +180,7 @@ void RejectMessageIterator::dumpBlob(bsl::ostream& stream)
     // For now, print only the beginning of the blob.. we may later on print
     // also the bytes around the current position
     if (d_blobIter.blob()) {
-        stream << mwcu::BlobStartHexDumper(d_blobIter.blob(),
+        stream << bmqu::BlobStartHexDumper(d_blobIter.blob(),
                                            k_MAX_BYTES_DUMP);
     }
     else {

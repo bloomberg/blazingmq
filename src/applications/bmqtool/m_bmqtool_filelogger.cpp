@@ -23,8 +23,8 @@
 #include <bmqt_sessioneventtype.h>
 #include <bmqt_uri.h>
 
-// MWC
-#include <mwcu_blob.h>
+// BMQ
+#include <bmqu_blob.h>
 
 // BDE
 #include <ball_context.h>
@@ -102,7 +102,7 @@ static void printSingleLine(LogRecord& record, const bdlbb::Blob& blob)
 {
     for (int i = 0; i < blob.numDataBuffers(); ++i) {
         record << bslstl::StringRef(blob.buffer(i).data(),
-                                    mwcu::BlobUtil::bufferSize(blob, i));
+                                    bmqu::BlobUtil::bufferSize(blob, i));
     }
 }
 

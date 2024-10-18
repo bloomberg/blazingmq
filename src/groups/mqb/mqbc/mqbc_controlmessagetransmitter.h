@@ -39,8 +39,7 @@
 #include <bmqp_ctrlmsg_messages.h>
 #include <bmqp_schemaeventbuilder.h>
 
-// MWC
-#include <mwcio_channel.h>
+#include <bmqio_channel.h>
 
 // BDE
 #include <ball_log.h>
@@ -148,7 +147,7 @@ class ControlMessageTransmitter {
     void sendMessage(const bmqp_ctrlmsg::ControlMessage& message,
                      mqbnet::ClusterNode*                destination);
     void sendMessage(const bmqp_ctrlmsg::ControlMessage&    message,
-                     const bsl::shared_ptr<mwcio::Channel>& channel,
+                     const bsl::shared_ptr<bmqio::Channel>& channel,
                      const bsl::string&                     description);
 
     /// Encode and send the specified schema `message` to the specified

@@ -65,8 +65,7 @@
 #include <bmqt_messageguid.h>
 #include <bmqt_resultcode.h>
 
-// MWC
-#include <mwcu_blob.h>
+#include <bmqu_blob.h>
 
 // BDE
 #include <bdlbb_blob.h>
@@ -176,7 +175,7 @@ class StorageEventBuilder BSLS_CPP11_FINAL {
     /// `bmqp::StorageHeader` before the storage message.
     bmqt::EventBuilderResult::Enum
     packMessageRaw(const bdlbb::Blob&        blob,
-                   const mwcu::BlobPosition& startPos,
+                   const bmqu::BlobPosition& startPos,
                    int                       length);
 
     // ACCESSORS

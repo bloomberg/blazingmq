@@ -570,7 +570,7 @@ int Ledger::writeRecord(LedgerRecordId* recordId,
 
 int Ledger::writeRecord(LedgerRecordId*           recordId,
                         const bdlbb::Blob&        record,
-                        const mwcu::BlobPosition& offset,
+                        const bmqu::BlobPosition& offset,
                         int                       length)
 {
     // PRECONDITIONS
@@ -586,7 +586,7 @@ int Ledger::writeRecord(LedgerRecordId*           recordId,
 
 int Ledger::writeRecord(LedgerRecordId*          recordId,
                         const bdlbb::Blob&       record,
-                        const mwcu::BlobSection& section)
+                        const bmqu::BlobSection& section)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_state == LedgerState::e_OPENED);
@@ -594,7 +594,7 @@ int Ledger::writeRecord(LedgerRecordId*          recordId,
     BSLS_ASSERT_SAFE(!d_logs.empty());
 
     int length;
-    int rc = mwcu::BlobUtil::sectionSize(&length, record, section);
+    int rc = bmqu::BlobUtil::sectionSize(&length, record, section);
     if (rc != 0) {
         return LedgerOpResult::e_INVALID_BLOB_SECTION;  // RETURN
     }

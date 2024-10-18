@@ -30,8 +30,7 @@
 #include <mqbmock_cluster.h>
 #include <mqbnet_mockcluster.h>
 
-// MWC
-#include <mwcu_tempdirectory.h>
+#include <bmqu_tempdirectory.h>
 
 // BDE
 #include <bdlbb_blobutil.h>
@@ -57,8 +56,8 @@
 #include <bsls_types.h>
 
 // TEST DRIVER
-#include <mwcio_testchannel.h>
-#include <mwctst_testhelper.h>
+#include <bmqio_testchannel.h>
+#include <bmqtst_testhelper.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -99,7 +98,7 @@ typedef ReqManagerType::RequestSp                  ReqSp;
 typedef bsl::vector<ReqSp>                         ReqVec;
 typedef bmqp_ctrlmsg::ControlMessageChoice         ReqChoice;
 typedef bsl::unordered_set<ReqChoice>              ReqChoiceSet;
-typedef bsl::shared_ptr<mwcio::TestChannel>        ChannelSp;
+typedef bsl::shared_ptr<bmqio::TestChannel>        ChannelSp;
 
 const bsls::TimeInterval SEND_REQUEST_TIMEOUT(30);
 const bsls::Types::Int64 WATERMARK = 64 * 1024 * 1024;
@@ -139,7 +138,7 @@ class TestContext {
     Nodes d_nodes;
     // Cluster nodes used to send them request by MultiRequestManager
 
-    mwcu::TempDirectory d_tempDir;
+    bmqu::TempDirectory d_tempDir;
     // Temp directory needed for Cluster object
 
     bslma::Allocator* d_allocator_p;
@@ -273,8 +272,8 @@ TestContext::TestContext(int nodesCount, bslma::Allocator* allocator)
     d_requestContextSp = d_multiRequestManager->createRequestContext();
     d_requestContextSp->setDestinationNodes(d_nodes);
 
-    mwcsys::Time::shutdown();
-    mwcsys::Time::initialize(
+    bmqsys::Time::shutdown();
+    bmqsys::Time::initialize(
         bdlf::BindUtil::bind(&mqbmock::Cluster::getTime, d_cluster_mp.get()),
         bdlf::BindUtil::bind(&mqbmock::Cluster::getTime, d_cluster_mp.get()),
         bdlf::BindUtil::bind(&mqbmock::Cluster::getTimeInt64,
@@ -366,7 +365,7 @@ Mes TestContext::createResponseCancel()
 Mes TestContext::getNextRequest(const ChannelSp& channel)
 {
     ASSERT(channel->waitFor(1, true, bsls::TimeInterval(1)));
-    mwcio::TestChannel::WriteCall wc = channel->popWriteCall();
+    bmqio::TestChannel::WriteCall wc = channel->popWriteCall();
     bmqp::Event                   ev(&wc.d_blob, d_allocator_p);
     ASSERT(ev.isControlEvent());
     Mes controlMessage(d_allocator_p);
@@ -455,7 +454,7 @@ static void test1_contextTest()
 //    MultiRequestManagerRequestContext
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("CONTEXT TEST");
+    bmqtst::TestHelper::printTestName("CONTEXT TEST");
 
     {
         ReqContextSp reqContext;
@@ -469,7 +468,7 @@ static void test1_contextTest()
         mqbmock::Cluster::ClusterNodeDefs defs =
             TestContext::generateNodeDefs(5, s_allocator_p);
         bdlbb::PooledBlobBufferFactory blobBufferFactory(1024, s_allocator_p);
-        mwcu::TempDirectory            tempDir(s_allocator_p);
+        bmqu::TempDirectory            tempDir(s_allocator_p);
         mqbmock::Cluster               cluster(&blobBufferFactory,
                                  s_allocator_p,
                                  true,   // isClusterMember
@@ -504,7 +503,7 @@ static void test2_creatorsTest()
 //    MultiRequestManager::MultiRequestManager()
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("CREATORS TEST");
+    bmqtst::TestHelper::printTestName("CREATORS TEST");
 
     {
         // Null RequestManager pointer
@@ -525,7 +524,7 @@ static void test3_sendRequestTest()
 //    MultiRequestManager::sendRequest()
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("SEND REQUEST TEST");
+    bmqtst::TestHelper::printTestName("SEND REQUEST TEST");
 
     {
         // Send one request and check it was delivered
@@ -537,7 +536,7 @@ static void test3_sendRequestTest()
 
         NodesIt it = context.nodes().begin();
         for (; it != context.nodes().end(); ++it) {
-            ChannelSp ch = bsl::dynamic_pointer_cast<mwcio::TestChannel>(
+            ChannelSp ch = bsl::dynamic_pointer_cast<bmqio::TestChannel>(
                 (*it)->channel().channel());
             ASSERT(ch);
             // checking that MultiRequestManager has really sent the requests
@@ -553,7 +552,7 @@ static void test4_handleResponseTest()
 //    MultiRequestManager::response()
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("HANDLE RESPONSE TEST");
+    bmqtst::TestHelper::printTestName("HANDLE RESPONSE TEST");
 
     {
         // Successfully receive responses from all the nodes
@@ -570,7 +569,7 @@ static void test4_handleResponseTest()
         responses.reserve(context.nodes().size());
         NodesIt it = context.nodes().begin();
         for (; it != context.nodes().end(); ++it) {
-            ChannelSp ch = bsl::dynamic_pointer_cast<mwcio::TestChannel>(
+            ChannelSp ch = bsl::dynamic_pointer_cast<bmqio::TestChannel>(
                 (*it)->channel().channel());
             ASSERT(ch);
             // checking that MultiRequestManager has really sent the requests
@@ -665,7 +664,7 @@ static void test4_handleResponseTest()
 
         NodesIt it = context.nodes().begin();
         for (; it != context.nodes().end(); ++it) {
-            ChannelSp ch = bsl::dynamic_pointer_cast<mwcio::TestChannel>(
+            ChannelSp ch = bsl::dynamic_pointer_cast<bmqio::TestChannel>(
                 (*it)->channel().channel());
             ASSERT(ch);
             // checking that MultiRequestManager has really sent the requests
@@ -698,9 +697,9 @@ static void test4_handleResponseTest()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
-    mwcsys::Time::initialize(s_allocator_p);
+    bmqsys::Time::initialize(s_allocator_p);
     bmqp::ProtocolUtil::initialize(s_allocator_p);
 
     switch (_testCase) {
@@ -715,10 +714,10 @@ int main(int argc, char* argv[])
     } break;
     }
 
-    mwcsys::Time::shutdown();
+    bmqsys::Time::shutdown();
     bmqp::ProtocolUtil::shutdown();
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_GBL_ALLOC);  // RETURN
-    // Default: EventQueue uses mwcex::BindUtil::bindExecute(), which uses
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);  // RETURN
+    // Default: EventQueue uses bmqex::BindUtil::bindExecute(), which uses
     //          default allocator.
 }

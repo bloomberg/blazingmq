@@ -25,8 +25,7 @@
 #include <bmqp_queueid.h>
 #include <bmqt_messageguid.h>
 
-// MWC
-#include <mwcu_memoutstream.h>
+#include <bmqu_memoutstream.h>
 
 // BDE
 #include <bdlb_random.h>
@@ -44,7 +43,7 @@
 #include <bslmf_nestedtraitdeclaration.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -75,7 +74,7 @@ struct Data {
 
     int d_optionsSize;
 
-    mwcu::BlobPosition d_optionsPosition;
+    bmqu::BlobPosition d_optionsPosition;
 
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(Data, bslma::UsesBslmaAllocator)
@@ -218,7 +217,7 @@ static void generateMsgGroupId(bmqp::Protocol::MsgGroupId* msgGroupId)
     // PRECONDITIONS
     BSLS_ASSERT_OPT(msgGroupId);
 
-    mwcu::MemOutStream oss(s_allocator_p);
+    bmqu::MemOutStream oss(s_allocator_p);
     oss << "gid:" << generateRandomInteger(0, 200);
     *msgGroupId = oss.str();
 }
@@ -570,9 +569,9 @@ void populateBlob(bdlbb::Blob*              blob,
         // Options
         if (numSubQueueInfos > 0) {
             // Write option header
-            mwcu::BlobUtil::reserve(&data.d_optionsPosition, blob, sizeof(oh));
+            bmqu::BlobUtil::reserve(&data.d_optionsPosition, blob, sizeof(oh));
 
-            mwcu::BlobUtil::writeBytes(blob,
+            bmqu::BlobUtil::writeBytes(blob,
                                        data.d_optionsPosition,
                                        reinterpret_cast<const char*>(&oh),
                                        sizeof(oh));
@@ -624,8 +623,8 @@ void populateBlob(bdlbb::Blob*             blob,
                   bmqp::EventHeader*       eh,
                   bdlbb::Blob*             eb,     // expected appData
                   int*                     ebLen,  // expected appDataLen
-                  mwcu::BlobPosition*      headerPosition,
-                  mwcu::BlobPosition*      payloadPosition,
+                  bmqu::BlobPosition*      headerPosition,
+                  bmqu::BlobPosition*      payloadPosition,
                   int                      queueId,
                   const bmqt::MessageGUID& guid,
                   bmqt::CompressionAlgorithmType::Enum cat,
@@ -640,7 +639,7 @@ void populateBlob(bdlbb::Blob*             blob,
     *ebLen = bsl::strlen(payload);
 
     bdlbb::BlobUtil::append(eb, payload, *ebLen);
-    mwcu::MemOutStream error(allocator);
+    bmqu::MemOutStream error(allocator);
     bdlbb::Blob        compressedBlob(bufferFactory, allocator);
     int                payloadLength = bsl::strlen(payload);
     bmqp::Compression::compress(&compressedBlob,
@@ -692,18 +691,18 @@ void populateBlob(bdlbb::Blob*             blob,
                             eh->headerWords() * bmqp::Protocol::k_WORD_SIZE);
 
     // Capture PushHeader position
-    mwcu::BlobUtil::reserve(headerPosition,
+    bmqu::BlobUtil::reserve(headerPosition,
                             blob,
                             ph.headerWords() * bmqp::Protocol::k_WORD_SIZE);
 
-    mwcu::BlobUtil::writeBytes(blob,
+    bmqu::BlobUtil::writeBytes(blob,
                                *headerPosition,
                                reinterpret_cast<const char*>(&ph),
                                ph.headerWords() * bmqp::Protocol::k_WORD_SIZE);
 
     const int payloadOffset = blob->length();
     bdlbb::BlobUtil::append(blob, compressedBlob);
-    mwcu::BlobUtil::findOffset(payloadPosition, *blob, payloadOffset);
+    bmqu::BlobUtil::findOffset(payloadPosition, *blob, payloadOffset);
 }
 
 void breathingTestHelper(
@@ -716,9 +715,9 @@ void breathingTestHelper(
     bdlbb::Blob        expectedBlob(bufferFactory_p, s_allocator_p);
     bdlbb::Blob        expectedCompressedBlob(bufferFactory_p, s_allocator_p);
     int                expectedBlobLength = 0;
-    mwcu::BlobPosition expectedHeaderPos;
-    mwcu::BlobPosition expectedPayloadPos;
-    mwcu::BlobPosition retrievedPayloadPos;
+    bmqu::BlobPosition expectedHeaderPos;
+    bmqu::BlobPosition expectedPayloadPos;
+    bmqu::BlobPosition retrievedPayloadPos;
     bdlbb::Blob        retrievedPayloadBlob(s_allocator_p);
 
     // Populate blob
@@ -853,7 +852,7 @@ void breathingTestHelper(
         retrievedPayloadBlob2.removeAll();
     }
 
-    mwcu::BlobPosition retrievedPayloadPos2;
+    bmqu::BlobPosition retrievedPayloadPos2;
     ASSERT_EQ(0, iter.loadApplicationDataPosition(&retrievedPayloadPos2));
     ASSERT_EQ(retrievedPayloadPos2, expectedPayloadPos);
 
@@ -915,7 +914,7 @@ static void test1_breathingTest()
 //   Basic functionality
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("BREATHING TEST");
+    bmqtst::TestHelper::printTestName("BREATHING TEST");
 
     bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
 
@@ -977,7 +976,7 @@ static void test1_breathingTest()
 
 static void test2_iteratorReset()
 {
-    mwctst::TestHelper::printTestName("ITERATOR RESET");
+    bmqtst::TestHelper::printTestName("ITERATOR RESET");
 
     bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
     bmqp::PushMessageIterator      pmt(&bufferFactory, s_allocator_p);
@@ -985,8 +984,8 @@ static void test2_iteratorReset()
     bdlbb::Blob                    expectedBlob(&bufferFactory, s_allocator_p);
     bdlbb::Blob        expectedCompressedBlob(&bufferFactory, s_allocator_p);
     int                expectedBlobLength = 0;
-    mwcu::BlobPosition headerPosition;
-    mwcu::BlobPosition payloadPosition;
+    bmqu::BlobPosition headerPosition;
+    bmqu::BlobPosition payloadPosition;
     const int          queueId = 123;
     bmqt::MessageGUID  guid;
     bmqp::EventHeader  eventHeader;
@@ -1047,7 +1046,7 @@ static void test2_iteratorReset()
 /// Test iterating over PUSH event having *NO* PUSH messages
 static void test3_iteratePushEventHavingNoMessages()
 {
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "ITERATE PUSH EVENT HAVING NO PUSH MESSAGES");
 
     bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
@@ -1075,7 +1074,7 @@ static void test3_iteratePushEventHavingNoMessages()
 /// enough bytes in the blob).
 static void test4_iterateInvalidPushEvent()
 {
-    mwctst::TestHelper::printTestName("ITERATE INVALID PUSH EVENT");
+    bmqtst::TestHelper::printTestName("ITERATE INVALID PUSH EVENT");
 
     bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
     bdlbb::Blob                    eventBlob(&bufferFactory, s_allocator_p);
@@ -1114,7 +1113,7 @@ static void test4_iterateInvalidPushEvent()
 
 static void test5_iteratePushEventHavingMultipleMessages()
 {
-    mwctst::TestHelper::printTestName("PUSH EVENT HAVING MULTIPLE MESSAGES");
+    bmqtst::TestHelper::printTestName("PUSH EVENT HAVING MULTIPLE MESSAGES");
     // Test iterating over PUSH event having multiple PUSH messages
 
     bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
@@ -1172,9 +1171,9 @@ static void test5_iteratePushEventHavingMultipleMessages()
         bdlbb::Blob        props(s_allocator_p);
         bdlbb::Blob        payload(s_allocator_p);
         bdlbb::Blob        appData(s_allocator_p);
-        mwcu::BlobPosition propsPos;
-        mwcu::BlobPosition payloadPos;
-        mwcu::BlobPosition appDataPos;
+        bmqu::BlobPosition propsPos;
+        bmqu::BlobPosition payloadPos;
+        bmqu::BlobPosition appDataPos;
 
         // Below, we are relying on the imp detail when we check for rc of
         // '-1' for various 'load*' routines when 'isAppDataImplicit' flag
@@ -1218,7 +1217,7 @@ static void test5_iteratePushEventHavingMultipleMessages()
 /// messages.
 static void test6_iteratePushEventHavingZeroLengthMessages()
 {
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "PUSH EVENT HAVING ZERO-LENGTH MESSAGES");
 
     bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
@@ -1278,9 +1277,9 @@ static void test6_iteratePushEventHavingZeroLengthMessages()
         bdlbb::Blob        props(s_allocator_p);
         bdlbb::Blob        payload(s_allocator_p);
         bdlbb::Blob        appData(s_allocator_p);
-        mwcu::BlobPosition propsPos;
-        mwcu::BlobPosition payloadPos;
-        mwcu::BlobPosition appDataPos;
+        bmqu::BlobPosition propsPos;
+        bmqu::BlobPosition payloadPos;
+        bmqu::BlobPosition appDataPos;
 
         // Below, we are relying on the imp detail when we check for rc of
         // '-1' for various 'load*' routines when 'isAppDataImplicit' flag
@@ -1351,7 +1350,7 @@ static void test7_extractOptions()
 //   - extractMsgGroupId(...)
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("EXTRACT OPTIONS");
+    bmqtst::TestHelper::printTestName("EXTRACT OPTIONS");
 
     bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
     bdlbb::Blob                    eventBlob(&bufferFactory, s_allocator_p);
@@ -1536,7 +1535,7 @@ static void test7_extractOptions()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     // Temporary workaround to suppress the 'unused operator
     // NestedTraitDeclaration' warning/error generated by clang.  TBD:
@@ -1575,5 +1574,5 @@ int main(int argc, char* argv[])
 
     bmqp::ProtocolUtil::shutdown();
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }

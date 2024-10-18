@@ -16,11 +16,10 @@
 // bmqt_compressionalgorithmtype.t.cpp                                -*-C++-*-
 #include <bmqt_compressionalgorithmtype.h>
 
-// MWC
-#include <mwcu_memoutstream.h>
+#include <bmqu_memoutstream.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // BDE
 #include <bslmf_assert.h>
@@ -54,8 +53,8 @@ static void printEnumHelper(ARRAY (&data)[SIZE])
 
         PVVV("Line [" << test.d_line << "]");
 
-        mwcu::MemOutStream out(s_allocator_p);
-        mwcu::MemOutStream expected(s_allocator_p);
+        bmqu::MemOutStream out(s_allocator_p);
+        bmqu::MemOutStream expected(s_allocator_p);
 
         typedef typename ENUM_TYPE::Enum T;
 
@@ -100,7 +99,7 @@ static void test1_enumPrint()
 //   operator<<(bsl::ostream&, CompressionAlgorithmType::Enum)
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("ENUM LAYOUT");
+    bmqtst::TestHelper::printTestName("ENUM LAYOUT");
 
     PV("Test bmqt::CompressionAlgorithmType printing");
     {
@@ -129,7 +128,7 @@ static void test1_enumPrint()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     switch (_testCase) {
     case 0:
@@ -140,5 +139,5 @@ int main(int argc, char* argv[])
     } break;
     }
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }

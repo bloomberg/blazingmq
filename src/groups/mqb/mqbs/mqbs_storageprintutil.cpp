@@ -25,10 +25,9 @@
 #include <mqbs_storageutil.h>
 #include <mqbu_storagekey.h>
 
-// MWC
-#include <mwcsys_time.h>
-#include <mwcu_memoutstream.h>
-#include <mwcu_printutil.h>
+#include <bmqsys_time.h>
+#include <bmqu_memoutstream.h>
+#include <bmqu_printutil.h>
 
 // BMQ
 #include <bmqp_protocolutil.h>
@@ -72,7 +71,7 @@ int StoragePrintUtil::listMessage(mqbcmd::Message*             message,
     int msgSize = -1;
     storage->getMessageSize(&msgSize, storageIter.guid());
 
-    mwcu::MemOutStream guid;
+    bmqu::MemOutStream guid;
     guid << storageIter.guid();
     message->guid()             = guid.str();
     message->arrivalTimestamp() = bdlt::DatetimeTz(arrivalDatetime, 0);
@@ -156,8 +155,8 @@ void StoragePrintUtil::printRecoveredStorages(
     out << clusterDescription << ": Partition [" << partitionId
         << "]: Number of recovered storages: " << storageMap.size()
         << ". Time taken for recovery: "
-        << mwcu::PrintUtil::prettyTimeInterval(
-               (mwcsys::Time::highResolutionTimer() - recoveryStartTime))
+        << bmqu::PrintUtil::prettyTimeInterval(
+               (bmqsys::Time::highResolutionTimer() - recoveryStartTime))
         << ". Summary: \n(format: [QueueUri] [QueueKey] "
         << "[Num Msgs] [Num Virtual Storages] "
         << "[Virtual Storages Details])";

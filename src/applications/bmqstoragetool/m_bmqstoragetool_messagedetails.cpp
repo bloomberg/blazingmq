@@ -21,9 +21,9 @@
 // MQB
 #include <mqbs_filestoreprotocolprinter.h>
 
-// MWC
-#include <mwcu_alignedprinter.h>
-#include <mwcu_memoutstream.h>
+// BMQ
+#include <bmqu_alignedprinter.h>
+#include <bmqu_memoutstream.h>
 
 namespace BloombergLP {
 namespace m_bmqstoragetool {
@@ -75,7 +75,7 @@ void printRecord(bsl::ostream&                  stream,
     fields.push_back("GUID");
     fields.push_back("Crc32c");
 
-    mwcu::AlignedPrinter printer(stream, &fields);
+    bmqu::AlignedPrinter printer(stream, &fields);
     printer << rec.header().primaryLeaseId() << rec.header().sequenceNumber();
 
     bsls::Types::Uint64 epochValue = rec.header().timestamp();
@@ -88,7 +88,7 @@ void printRecord(bsl::ostream&                  stream,
         printer << datetime;
     }
 
-    mwcu::MemOutStream fileKeyStr(allocator), queueKeyStr(allocator);
+    bmqu::MemOutStream fileKeyStr(allocator), queueKeyStr(allocator);
     fileKeyStr << rec.fileKey();
     queueKeyStr << rec.queueKey();
 
@@ -146,7 +146,7 @@ void printRecord(bsl::ostream&                  stream,
         fields.push_back("AppId");
     fields.push_back("GUID");
 
-    mwcu::MemOutStream queueKeyStr(allocator), appKeyStr(allocator);
+    bmqu::MemOutStream queueKeyStr(allocator), appKeyStr(allocator);
     queueKeyStr << rec.queueKey();
 
     if (rec.appKey().isNull()) {
@@ -165,7 +165,7 @@ void printRecord(bsl::ostream&                  stream,
         }
     }
 
-    mwcu::AlignedPrinter printer(stream, &fields);
+    bmqu::AlignedPrinter printer(stream, &fields);
     printer << rec.header().primaryLeaseId() << rec.header().sequenceNumber();
 
     bsls::Types::Uint64 epochValue = rec.header().timestamp();
@@ -207,10 +207,10 @@ void printRecord(bsl::ostream&                  stream,
     fields.push_back("DeletionFlag");
     fields.push_back("GUID");
 
-    mwcu::MemOutStream queueKeyStr(allocator);
+    bmqu::MemOutStream queueKeyStr(allocator);
     queueKeyStr << rec.queueKey();
 
-    mwcu::AlignedPrinter printer(stream, &fields);
+    bmqu::AlignedPrinter printer(stream, &fields);
     printer << rec.header().primaryLeaseId() << rec.header().sequenceNumber();
 
     bsls::Types::Uint64 epochValue = rec.header().timestamp();
@@ -275,7 +275,7 @@ void MessageDetails::print(bsl::ostream& os, const QueueMap& queueMap) const
     bmqp_ctrlmsg::QueueInfo* queueInfo_p = queueInfoPresent ? &queueInfo : 0;
 
     // Print message record
-    mwcu::MemOutStream ss(d_allocator_p);
+    bmqu::MemOutStream ss(d_allocator_p);
     ss << "MESSAGE Record, index: " << d_messageRecord.d_recordIndex
        << ", offset: " << d_messageRecord.d_recordOffset;
     bsl::string delimiter(ss.length(), '=', d_allocator_p);

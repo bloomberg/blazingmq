@@ -1,0 +1,31 @@
+ bmqma.txt
+
+@PURPOSE: Provide allocators and other memory-management tools
+
+@MNEMONIC: BlazingMQ Memory Allocators (bmqma)
+
+@DESCRIPTION: This package provides miscellaneous allocators and utility
+components for memory-management to be reused through various applications.
+
+/Hierarchical Synopsis
+/---------------------
+The 'bmqma' package currently has 3 components having 3 level of physical
+dependency.  The list below shows the hierarchical ordering of the components.
+..
+  3. bmqma_countingallocatorutil
+
+  2. bmqma_countingallocatorstore
+
+  1. bmqma_countingallocator
+..
+
+/Component Synopsis
+/------------------
+: 'bmqma_countingallocator':
+:      Provide an instrumented allocator adaptor.
+:
+: 'bmqma_countingallocatorstore':
+:      Provide a collection of 'bmqma::CountingAllocator' objects.
+:
+: 'bmqma_countingallocatorutil':
+:      Provide a utility for installing 'bmqma::CountingAllocator'.

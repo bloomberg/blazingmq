@@ -387,7 +387,7 @@ StorageKeyHashAlgo::operator()(const void*                   data,
 {
     // 10K Keys
     // --------
-    // o With 'mwcc::OrderedHashMap': Average of 17M insertions per second
+    // o With 'bmqc::OrderedHashMap': Average of 17M insertions per second
     //                                (compared to average of 12M insertions
     //                                per second using the default hash)
 

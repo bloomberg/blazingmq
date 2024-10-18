@@ -1,0 +1,49 @@
+ bmqc.txt
+
+@PURPOSE: Provide container vocabulary types.
+
+@MNEMONIC: BlazingMQ Containers (bmqc)
+
+@DESCRIPTION: This package provides miscellaneous container vocabulary types to
+be reused through various applications.
+
+/Hierarchical Synopsis
+/---------------------
+The 'bmqc' package currently has 7 components having 3 level of physical
+dependency.  The list below shows the hierarchal ordering of the components.
+..
+  3. bmqc_multiqueuethreadpool
+  2. bmqc_monitoredqueue_bdlccfixedqueue
+     bmqc_monitoredqueue_bdlccsingleconsumerqueue
+     bmqc_monitoredqueue_bdlccsingleproducerqueue
+  1. bmqc_array
+     bmqc_monitoredqueue
+     bmqc_orderedhashmap
+     bmqc_twokeyhashmap
+..
+
+/Component Synopsis
+/------------------
+: 'bmqc_array':
+:      Provide a hybrid of static and dynamic array.
+:
+: 'bmqc_monitoredqueue':
+:      Provide a queue that monitors its load.
+:
+: 'bmqc_monitoredqueue_bdlccfixedqueue':
+:      Provide a fixed queue queue that monitors its load.
+:
+: 'bmqc_monitoredqueue_bdlccsingleconsumerqueue':
+:      Provide a single consumer queue that monitors its load.
+:
+: 'bmqc_monitoredqueue_bdlccsingleproducerqueue':
+:      Provide a single producer queue that monitors its load.
+:
+: 'bmqc_multiqueuethreadpool':
+:      Provide a set of queues processed by a thread pool.
+:
+: 'bmqc_orderedhashmap':
+:      Provide a hash table with predictive iteration order.
+:
+: 'bmqc_twokeyhashmap':
+:      Provide a simple hash map with two keys.

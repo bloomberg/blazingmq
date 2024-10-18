@@ -39,8 +39,7 @@
 
 #include <mqbu_storagekey.h>
 
-// MWC
-#include <mwcu_blob.h>
+#include <bmqu_blob.h>
 
 // BDE
 #include <bdlbb_blob.h>
@@ -405,7 +404,7 @@ class Log {
     /// record.
     virtual Offset write(const void* entry, int offset, int length) = 0;
     virtual Offset write(const bdlbb::Blob&        entry,
-                         const mwcu::BlobPosition& offset,
+                         const bmqu::BlobPosition& offset,
                          int                       length)                                = 0;
 
     /// Write the specified `section` of the specified `entry` into the
@@ -417,7 +416,7 @@ class Log {
     /// it is the onus of the user to invoke `updateOutstandingNumBytes`
     /// properly before overwriting an existing record.
     virtual Offset write(const bdlbb::Blob&       entry,
-                         const mwcu::BlobSection& section) = 0;
+                         const bmqu::BlobSection& section) = 0;
 
     /// Flush any cached data up to the optionally specified `offset` to the
     /// underlying storing mechanism, and return 0 on success, or a negative

@@ -38,9 +38,7 @@
 
 // BMQ
 #include <bmqt_uri.h>
-
-// MWC
-#include <mwct_valueorerror.h>
+#include <bmqvt_valueorerror.h>
 
 // BDE
 #include <bdlbb_blob.h>
@@ -83,7 +81,7 @@ class Dispatcher;
 namespace mqbs {
 class StorageDomain;
 }
-namespace mwcst {
+namespace bmqst {
 class StatContext;
 }
 
@@ -122,8 +120,8 @@ class DomainManager BSLS_CPP11_FINAL : public mqbi::DomainFactory {
         mqbi::Dispatcher*                      dispatcher,
         const bsl::shared_ptr<mqbi::Cluster>&  cluster,
         bdlbb::BlobBufferFactory*              blobBufferFactory,
-        mwcst::StatContext*                    domainsStatContext,
-        bslma::ManagedPtr<mwcst::StatContext>& queuesStatContext,
+        bmqst::StatContext*                    domainsStatContext,
+        bslma::ManagedPtr<bmqst::StatContext>& queuesStatContext,
         bslma::Allocator*                      allocator)>
         FactoryMethod;
 
@@ -150,9 +148,9 @@ class DomainManager BSLS_CPP11_FINAL : public mqbi::DomainFactory {
     // A type with details on errors for 'upsertDomain()'.
 
     /// The return type for `upsertDomain()` might be a value or an error.
-    typedef mwct::ValueOrError<UpsertDomainSuccess, Error> UpsertDomainValue;
+    typedef bmqvt::ValueOrError<UpsertDomainSuccess, Error> UpsertDomainValue;
 
-    typedef mwct::ValueOrError<DomainSp, Error> DecodeAndUpsertValue;
+    typedef bmqvt::ValueOrError<DomainSp, Error> DecodeAndUpsertValue;
     // The return type for 'decodeAndUpsert()' might be a value or an error.
 
   private:
@@ -169,11 +167,11 @@ class DomainManager BSLS_CPP11_FINAL : public mqbi::DomainFactory {
     mqbblp::ClusterCatalog* d_clusterCatalog_p;
     // ClusterCatalog to use, held, not owned
 
-    mwcst::StatContext* d_domainsStatContext_p;
+    bmqst::StatContext* d_domainsStatContext_p;
     // Top-level stat context for all
     // domains stats
 
-    mwcst::StatContext* d_queuesStatContext_p;
+    bmqst::StatContext* d_queuesStatContext_p;
     // Top-level stat context for all
     // domains/queues stats
 
@@ -310,8 +308,8 @@ class DomainManager BSLS_CPP11_FINAL : public mqbi::DomainFactory {
                   bdlbb::BlobBufferFactory* blobBufferFactory,
                   mqbblp::ClusterCatalog*   clusterCatalog,
                   mqbi::Dispatcher*         dispatcher,
-                  mwcst::StatContext*       domainsStatContext,
-                  mwcst::StatContext*       queuesstatContext,
+                  bmqst::StatContext*       domainsStatContext,
+                  bmqst::StatContext*       queuesstatContext,
                   bslma::Allocator*         allocator);
 
     /// Destructor

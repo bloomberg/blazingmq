@@ -27,11 +27,11 @@
 #include <mqbs_filesystemutil.h>
 #include <mqbs_offsetptr.h>
 
-// MWC
-#include <mwcu_alignedprinter.h>
-#include <mwcu_memoutstream.h>
-#include <mwcu_outstreamformatsaver.h>
-#include <mwcu_stringutil.h>
+// BMQ
+#include <bmqu_alignedprinter.h>
+#include <bmqu_memoutstream.h>
+#include <bmqu_outstreamformatsaver.h>
+#include <bmqu_stringutil.h>
 
 namespace BloombergLP {
 namespace m_bmqstoragetool {

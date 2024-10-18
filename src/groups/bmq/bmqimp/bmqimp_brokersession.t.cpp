@@ -39,11 +39,10 @@
 #include <bmqt_queueflags.h>
 #include <bmqt_uri.h>
 
-// MWC
-#include <mwcio_status.h>
-#include <mwcio_testchannel.h>
-#include <mwcsys_time.h>
-#include <mwcu_memoutstream.h>
+#include <bmqio_status.h>
+#include <bmqio_testchannel.h>
+#include <bmqsys_time.h>
+#include <bmqu_memoutstream.h>
 
 // BDE
 #include <bdlbb_pooledblobbufferfactory.h>
@@ -64,7 +63,7 @@
 #include <bsls_systemtime.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -401,7 +400,7 @@ struct TestSession BSLS_CPP11_FINAL {
     // event scheduler used in the
     // broker session
 
-    mwcio::TestChannel d_testChannel;
+    bmqio::TestChannel d_testChannel;
     // mocked network channel object
     // to be used in the broker session
 
@@ -448,7 +447,7 @@ struct TestSession BSLS_CPP11_FINAL {
 
     // ACCESSORS
     bmqimp::BrokerSession&    session();
-    mwcio::TestChannel&       channel();
+    bmqio::TestChannel&       channel();
     bslma::Allocator*         allocator();
     bdlbb::BlobBufferFactory& blobBufferFactory();
 
@@ -762,7 +761,7 @@ struct TestSession BSLS_CPP11_FINAL {
 
     /// Called when the test channel is closed and provides the specified
     /// close `status`.
-    void onChannelClose(const mwcio::Status& status);
+    void onChannelClose(const bmqio::Status& status);
 
     /// Wait until stateCb is called informing about reaching the STOPPED
     /// state.  Must be called after `session.stop()` call.  Return false
@@ -782,7 +781,7 @@ struct TestSession BSLS_CPP11_FINAL {
 
     /// Set the specified `writeStatus` to the test network channel and
     /// notify the BrokerSession about channel LWM.
-    void setChannelLowWaterMark(mwcio::StatusCategory::Enum writeStatus);
+    void setChannelLowWaterMark(bmqio::StatusCategory::Enum writeStatus);
 };
 
 // CLASS DATA
@@ -891,8 +890,8 @@ TestSession::TestSession(const bmqt::SessionOptions& sessionOptions,
     // Set peer uri for the sake of better logging
     d_testChannel.setPeerUri("tcp://testHost:1234");
 
-    mwcsys::Time::shutdown();
-    mwcsys::Time::initialize(
+    bmqsys::Time::shutdown();
+    bmqsys::Time::initialize(
         bdlf::BindUtil::bind(&TestClock::realtimeClock, d_testClock_p),
         bdlf::BindUtil::bind(&TestClock::monotonicClock, d_testClock_p),
         bdlf::BindUtil::bind(&TestClock::highResTimer, d_testClock_p),
@@ -915,7 +914,7 @@ bmqimp::BrokerSession& TestSession::session()
     return d_brokerSession;
 }
 
-mwcio::TestChannel& TestSession::channel()
+bmqio::TestChannel& TestSession::channel()
 {
     return d_testChannel;
 }
@@ -1013,7 +1012,7 @@ void TestSession::openQueueWithError(bsl::shared_ptr<bmqimp::Queue> queue,
 
     // open queue request is not sent
     if (requestType == e_REQ_OPEN_QUEUE && errorResult == e_ERR_NOT_SENT) {
-        mwcio::Status status(mwcio::StatusCategory::e_GENERIC_ERROR);
+        bmqio::Status status(bmqio::StatusCategory::e_GENERIC_ERROR);
         PVVV_SAFE("Set channel write status to "
                   << status << " to reject open queue request");
         d_testChannel.setWriteStatus(status);
@@ -1041,7 +1040,7 @@ void TestSession::openQueueWithError(bsl::shared_ptr<bmqimp::Queue> queue,
 
         // reset channel write status
         PVVV_SAFE("Reset channel write status");
-        d_testChannel.setWriteStatus(mwcio::Status());
+        d_testChannel.setWriteStatus(bmqio::Status());
 
         return;  // RETURN
     }
@@ -1080,7 +1079,7 @@ void TestSession::openQueueWithError(bsl::shared_ptr<bmqimp::Queue> queue,
 
     // configure request is not sent
     if (requestType == e_REQ_CONFIG_QUEUE && errorResult == e_ERR_NOT_SENT) {
-        mwcio::Status status(mwcio::StatusCategory::e_GENERIC_ERROR);
+        bmqio::Status status(bmqio::StatusCategory::e_GENERIC_ERROR);
         PVVV_SAFE("Set channel write status to "
                   << status << " to reject open configure request");
         d_testChannel.setWriteStatus(status);
@@ -1107,7 +1106,7 @@ void TestSession::openQueueWithError(bsl::shared_ptr<bmqimp::Queue> queue,
 
         // reset channel write status
         PVVV_SAFE("Reset channel write status");
-        d_testChannel.setWriteStatus(mwcio::Status());
+        d_testChannel.setWriteStatus(bmqio::Status());
 
         return;  // RETURN
     }
@@ -1232,7 +1231,7 @@ void TestSession::closeQueueWithError(bsl::shared_ptr<bmqimp::Queue> queue,
 
     // configure queue request is not sent
     if (requestType == e_REQ_CONFIG_QUEUE && errorResult == e_ERR_NOT_SENT) {
-        mwcio::Status status(mwcio::StatusCategory::e_GENERIC_ERROR);
+        bmqio::Status status(bmqio::StatusCategory::e_GENERIC_ERROR);
         PVVV_SAFE(L_ << " Set channel write status to " << status
                      << " to reject configure queue request");
         d_testChannel.setWriteStatus(status);
@@ -1255,7 +1254,7 @@ void TestSession::closeQueueWithError(bsl::shared_ptr<bmqimp::Queue> queue,
 
         // reset channel write status
         PVVV_SAFE(L_ << " Reset channel write status");
-        d_testChannel.setWriteStatus(mwcio::Status());
+        d_testChannel.setWriteStatus(bmqio::Status());
 
         PVVV_SAFE(L_ << " Verify there is no close queue request");
         ASSERT(isChannelEmpty());
@@ -1303,7 +1302,7 @@ void TestSession::closeQueueWithError(bsl::shared_ptr<bmqimp::Queue> queue,
 
     // close request is not sent
     if (requestType == e_REQ_CLOSE_QUEUE && errorResult == e_ERR_NOT_SENT) {
-        mwcio::Status status(mwcio::StatusCategory::e_GENERIC_ERROR);
+        bmqio::Status status(bmqio::StatusCategory::e_GENERIC_ERROR);
         PVVV_SAFE(L_ << " Set channel write status to " << status
                      << " to reject close request");
         d_testChannel.setWriteStatus(status);
@@ -1326,7 +1325,7 @@ void TestSession::closeQueueWithError(bsl::shared_ptr<bmqimp::Queue> queue,
 
         // reset channel write status
         PVVV_SAFE(L_ << " Reset channel write status");
-        d_testChannel.setWriteStatus(mwcio::Status());
+        d_testChannel.setWriteStatus(bmqio::Status());
 
         return;  // RETURN
     }
@@ -1501,7 +1500,7 @@ TestSession::reopenQueueFirstStep(bsl::shared_ptr<bmqimp::Queue> queue)
     bmqp_ctrlmsg::ControlMessage currentRequest(s_allocator_p);
 
     PVVV_SAFE(L_ << " Trigger channel drop");
-    session().setChannel(bsl::shared_ptr<mwcio::Channel>());
+    session().setChannel(bsl::shared_ptr<bmqio::Channel>());
 
     ASSERT(waitConnectionLostEvent());
 
@@ -2208,7 +2207,7 @@ bool TestSession::waitForChannelClose(const bsls::TimeInterval& timeout)
     d_testChannel.popCloseCall();
 
     // Invoke the close signaler
-    mwcio::Status status;
+    bmqio::Status status;
     onChannelClose(status);
 
     return true;
@@ -2284,7 +2283,7 @@ void TestSession::stopGracefully(bool waitForDisconnected)
 void TestSession::setChannel()
 {
     d_brokerSession.setChannel(
-        bsl::shared_ptr<mwcio::Channel>(&d_testChannel,
+        bsl::shared_ptr<bmqio::Channel>(&d_testChannel,
                                         bslstl::SharedPtrNilDeleter()));
 }
 
@@ -2388,7 +2387,7 @@ void TestSession::getOutboundEvent(bmqp::Event* rawEvent)
 {
     ASSERT(d_testChannel.waitFor(1, true, bsls::TimeInterval(1)));
 
-    mwcio::TestChannel::WriteCall wc = d_testChannel.popWriteCall();
+    bmqio::TestChannel::WriteCall wc = d_testChannel.popWriteCall();
     bmqp::Event                   ev(&wc.d_blob, s_allocator_p, true);
 
     *rawEvent = ev;
@@ -2399,7 +2398,7 @@ void TestSession::getOutboundControlMessage(
 {
     ASSERT(d_testChannel.waitFor(1, true, k_EVENT_TIMEOUT));
 
-    mwcio::TestChannel::WriteCall wc = d_testChannel.popWriteCall();
+    bmqio::TestChannel::WriteCall wc = d_testChannel.popWriteCall();
     bmqp::Event                   ev(&wc.d_blob, s_allocator_p);
 
     ASSERT(ev.isControlEvent());
@@ -2544,10 +2543,10 @@ void TestSession::verifyOpenQueueErrorResult(
     }
 }
 
-void TestSession::onChannelClose(const mwcio::Status& status)
+void TestSession::onChannelClose(const bmqio::Status& status)
 {
     PVVV_SAFE("onChannelClose: [" << status << "] Resetting the channel");
-    session().setChannel(bsl::shared_ptr<mwcio::Channel>());
+    session().setChannel(bsl::shared_ptr<bmqio::Channel>());
 }
 
 bool TestSession::verifySessionIsStopped()
@@ -2596,16 +2595,16 @@ void TestSession::verifyCloseQueueResult(
 }
 
 void TestSession::setChannelLowWaterMark(
-    mwcio::StatusCategory::Enum writeStatus)
+    bmqio::StatusCategory::Enum writeStatus)
 {
     channel().setWriteStatus(writeStatus);
 
     // Notify BrokerSession
     session().handleChannelWatermark(
-        mwcio::ChannelWatermarkType::e_LOW_WATERMARK);
+        bmqio::ChannelWatermarkType::e_LOW_WATERMARK);
 }
 
-static void test_disconnectRequestErr(mwcio::StatusCategory::Enum category)
+static void test_disconnectRequestErr(bmqio::StatusCategory::Enum category)
 {
     bmqt::SessionOptions  sessionOptions;
     bdlmt::EventScheduler scheduler(bsls::SystemClockType::e_MONOTONIC,
@@ -2618,7 +2617,7 @@ static void test_disconnectRequestErr(mwcio::StatusCategory::Enum category)
     obj.startAndConnect();
 
     // set channel write status
-    mwcio::Status status(category);
+    bmqio::Status status(category);
     PVV_SAFE("Set channel write status to " << status);
     obj.channel().setWriteStatus(status);
 
@@ -2722,7 +2721,7 @@ class DTTestSpan : public bmqpi::DTSpan {
         // PRECONDITIONS
         BSLS_ASSERT_SAFE(d_eventsQueue_p);
 
-        mwcu::MemOutStream event(d_allocator_p);
+        bmqu::MemOutStream event(d_allocator_p);
         event << "START " << d_operation;
 
         bmqpi::DTSpan::Baggage::const_iterator it = baggage.begin();
@@ -2735,7 +2734,7 @@ class DTTestSpan : public bmqpi::DTSpan {
 
     ~DTTestSpan() BSLS_KEYWORD_OVERRIDE
     {
-        mwcu::MemOutStream event(d_allocator_p);
+        bmqu::MemOutStream event(d_allocator_p);
         event << "END " << d_operation;
 
         d_eventsQueue_p->pushBack(event.str());
@@ -2767,7 +2766,7 @@ class DTTestTracer : public bmqpi::DTTracer {
         const bsl::string_view&               operation,
         const bmqpi::DTSpan::Baggage& baggage) const BSLS_KEYWORD_OVERRIDE
     {
-        mwcu::MemOutStream operationName(d_allocator_p);
+        bmqu::MemOutStream operationName(d_allocator_p);
         operationName << operation;
         if (parent) {
             operationName << " < " << parent->operation();
@@ -2791,7 +2790,7 @@ class DTTestTracer : public bmqpi::DTTracer {
 
 static void test1_breathingTest()
 {
-    mwctst::TestHelper::printTestName("BREATHING TEST");
+    bmqtst::TestHelper::printTestName("BREATHING TEST");
 
     bdlmt::EventScheduler scheduler(bsls::SystemClockType::e_MONOTONIC,
                                     s_allocator_p);
@@ -2854,7 +2853,7 @@ static void test2_basicAccessorsTest()
 //   - lookupQueue
 //   ----------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("BASIC ACCESSORS");
+    bmqtst::TestHelper::printTestName("BASIC ACCESSORS");
 
     bmqt::Uri                      uri(k_URI, s_allocator_p);
     const bmqp::QueueId            k_QUEUE_ID(0, 0);
@@ -2888,7 +2887,7 @@ static void test3_nullChannelTest()
 //
 // Concerns:
 //   1. Check the behavior of the bmqimp::BrokerSession when null
-//      mwcio::Channel is provided as a connection with the broker.
+//      bmqio::Channel is provided as a connection with the broker.
 //
 // Plan:
 //   1. Create bmqimp::BrokerSession object and start the session.
@@ -2900,7 +2899,7 @@ static void test3_nullChannelTest()
 //   - setChannel
 //   ----------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("NULL CHANNEL");
+    bmqtst::TestHelper::printTestName("NULL CHANNEL");
 
     const int                      k_NUM_EVENTS = 3;
     bdlbb::PooledBlobBufferFactory blobBufferFactory(1024, s_allocator_p);
@@ -2930,7 +2929,7 @@ static void test3_nullChannelTest()
     ASSERT_EQ(obj.isUsingSessionEventHandler(), true);
 
     // Should not emit CONNECTION_LOST
-    obj.setChannel(bsl::shared_ptr<mwcio::Channel>());
+    obj.setChannel(bsl::shared_ptr<bmqio::Channel>());
 
     // Stop without previous start is ok.  DISCONNECTED will not be delivered
     // to the user but still stateCb will be called
@@ -2951,13 +2950,13 @@ static void test3_nullChannelTest()
     PVV_SAFE("Resetting channel...");
     // Expect no CONNECTION_LOST events if a valid channel is never being set
     for (int i = 0; i < k_NUM_EVENTS; i++) {
-        obj.setChannel(bsl::shared_ptr<mwcio::Channel>());
+        obj.setChannel(bsl::shared_ptr<bmqio::Channel>());
     }
 
     // Expect one stop callback due to STARTING->STOPPED transition resulting
     // in stopCounter == 2 which we will check at the end.
 
-    rc = eventSemaphore.timedWait(mwcsys::Time::nowRealtimeClock() +
+    rc = eventSemaphore.timedWait(bmqsys::Time::nowRealtimeClock() +
                                   bsls::TimeInterval(0.1));
 
     // Timeout since there are no events
@@ -2990,7 +2989,7 @@ static void test4_createEventTest()
 //   - createEvent
 //   ----------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("CREATE EVENT TEST");
+    bmqtst::TestHelper::printTestName("CREATE EVENT TEST");
 
     bdlmt::EventScheduler scheduler(bsls::SystemClockType::e_MONOTONIC,
                                     s_allocator_p);
@@ -3192,7 +3191,7 @@ static void test5_queueErrorsTest()
 //   - closeQueueAsync
 //   ----------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("QUEUE ERRORS TEST");
+    bmqtst::TestHelper::printTestName("QUEUE ERRORS TEST");
 
     PVV_SAFE("Check READER");
     queueErrorsTest(bmqt::QueueFlags::e_READ);
@@ -3214,9 +3213,9 @@ static void test6_setChannelTest()
 //
 // Concerns:
 //   1. Check the behavior of the bmqimp::BrokerSession when a valid
-//      mwcio::Channel is provided as a connection with the broker.
+//      bmqio::Channel is provided as a connection with the broker.
 //   2. Check the behavior of the bmqimp::BrokerSession when a null
-//      mwcio::Channel is provided as a connection with the broker.
+//      bmqio::Channel is provided as a connection with the broker.
 //
 // Plan:
 //   1. Create bmqimp::BrokerSession object and start the session.
@@ -3233,7 +3232,7 @@ static void test6_setChannelTest()
 //   - setChannel
 //   ----------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("SET CHANNEL");
+    bmqtst::TestHelper::printTestName("SET CHANNEL");
 
     // We are going to start the session and in cycle set and reset the channel
     // for k_NUM_CALLS times. We expect two events on the first iteration:
@@ -3250,7 +3249,7 @@ static void test6_setChannelTest()
     bsls::AtomicInt                eventCounter(0);
     bsls::AtomicInt                startCounter(0);
     bsls::AtomicInt                stopCounter(0);
-    mwcio::TestChannel             testChannel(s_allocator_p);
+    bmqio::TestChannel             testChannel(s_allocator_p);
     bslmt::TimedSemaphore          eventSemaphore;
 
     bdlmt::EventScheduler scheduler(bsls::SystemClockType::e_MONOTONIC,
@@ -3282,9 +3281,9 @@ static void test6_setChannelTest()
 
     for (int i = 0; i < k_NUM_CALLS; i++) {
         obj.setChannel(
-            bsl::shared_ptr<mwcio::Channel>(&testChannel,
+            bsl::shared_ptr<bmqio::Channel>(&testChannel,
                                             bslstl::SharedPtrNilDeleter()));
-        obj.setChannel(bsl::shared_ptr<mwcio::Channel>());
+        obj.setChannel(bsl::shared_ptr<bmqio::Channel>());
     }
 
     PVV_SAFE("Stopping session...");
@@ -3344,7 +3343,7 @@ static void queueOpenTimeoutTest(bsls::Types::Uint64 queueFlags)
 
         PVV_SAFE("Step 5. Reset the channel to make the queue CLOSED");
         // Reset channel to force closing of the expired queue
-        obj.session().setChannel(bsl::shared_ptr<mwcio::Channel>());
+        obj.session().setChannel(bsl::shared_ptr<bmqio::Channel>());
         ASSERT(obj.waitConnectionLostEvent());
 
         ASSERT(obj.waitForQueueState(pQueue, bmqimp::QueueState::e_CLOSED));
@@ -3428,7 +3427,7 @@ static void test7_queueOpenTimeoutTest()
 //   - openQueueAsync
 //   ----------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("QUEUE OPEN TIMEOUT TEST");
+    bmqtst::TestHelper::printTestName("QUEUE OPEN TIMEOUT TEST");
 
     PVV_SAFE("Check READER");
     queueOpenTimeoutTest(bmqt::QueueFlags::e_READ);
@@ -3455,7 +3454,7 @@ static void test8_queueWriterConfigureTest()
 //
 //   ----------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("QUEUE WRITER CONFIGURE TEST");
+    bmqtst::TestHelper::printTestName("QUEUE WRITER CONFIGURE TEST");
 
     const bsls::TimeInterval timeout = bsls::TimeInterval(15);
     bmqt::SessionOptions     sessionOptions;
@@ -3543,7 +3542,7 @@ static void test8_queueWriterConfigureTest()
 
 static void queueOpenErrorTest(bsls::Types::Uint64 queueFlags)
 {
-    mwctst::TestHelper::printTestName("QUEUE OPEN ERROR TEST");
+    bmqtst::TestHelper::printTestName("QUEUE OPEN ERROR TEST");
 
     const bsls::TimeInterval timeout = bsls::TimeInterval(15);
     bmqt::SessionOptions     sessionOptions;
@@ -3662,7 +3661,7 @@ static void test9_queueOpenErrorTest()
 //   - openQueueAsync
 //   ----------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("QUEUE OPEN ERROR TEST");
+    bmqtst::TestHelper::printTestName("QUEUE OPEN ERROR TEST");
 
     PVV_SAFE("Check READER");
     queueOpenErrorTest(bmqt::QueueFlags::e_READ);
@@ -3848,7 +3847,7 @@ static void test10_queueOpenCloseAsync()
 //   - stop
 //   ----------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("ASYNC OPEN/CLOSE QUEUE TEST");
+    bmqtst::TestHelper::printTestName("ASYNC OPEN/CLOSE QUEUE TEST");
 
     PVV_SAFE("Check READER");
     queueOpenCloseAsync(bmqt::QueueFlags::e_READ);
@@ -3870,7 +3869,7 @@ static void test11_disconnect()
 //
 // Concerns:
 //   1. Check the behavior of the bmqimp::BrokerSession when a valid
-//      mwcio::Channel is provided as a connection with the broker.  When
+//      bmqio::Channel is provided as a connection with the broker.  When
 //      is being stopped it should properly send disconnect message to the
 //      broker, receive a response and generate DISCONNECTED event.  If
 //      user is using event handler, a single DISCONNECTED event should be
@@ -3891,7 +3890,7 @@ static void test11_disconnect()
 //   - stop
 //   ----------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("DISCONNECT");
+    bmqtst::TestHelper::printTestName("DISCONNECT");
 
     bdlmt::EventScheduler scheduler(bsls::SystemClockType::e_MONOTONIC,
                                     s_allocator_p);
@@ -3899,7 +3898,7 @@ static void test11_disconnect()
     bdlcc::Deque<bsl::shared_ptr<bmqimp::Event> > eventQueue(
         bsls::SystemClockType::e_MONOTONIC,
         s_allocator_p);
-    mwcio::TestChannel testChannel(s_allocator_p);
+    bmqio::TestChannel testChannel(s_allocator_p);
     bsls::AtomicInt    startCounter(0);
     bsls::AtomicInt    stopCounter(0);
 
@@ -3940,13 +3939,13 @@ static void test11_disconnect()
 
         // Set channel
         obj.setChannel(
-            bsl::shared_ptr<mwcio::Channel>(&testChannel,
+            bsl::shared_ptr<bmqio::Channel>(&testChannel,
                                             bslstl::SharedPtrNilDeleter()));
 
         PVV_SAFE("Waiting CONNECTED event...");
         bsl::shared_ptr<bmqimp::Event> event;
         rc = eventQueue.timedPopFront(&event,
-                                      mwcsys::Time::nowMonotonicClock() +
+                                      bmqsys::Time::nowMonotonicClock() +
                                           bsls::TimeInterval(5));
         ASSERT_EQ(rc, 0);
         ASSERT_EQ(event->statusCode(), 0);
@@ -3961,14 +3960,14 @@ static void test11_disconnect()
         // Ensure no event is yet emitted to the user
         event.reset();
         eventQueue.timedPopFront(&event,
-                                 mwcsys::Time::nowMonotonicClock() +
+                                 bmqsys::Time::nowMonotonicClock() +
                                      bsls::TimeInterval(0.1));
         ASSERT(!event);
 
         PVV_SAFE("Ensure a disconnectMessage was sent to the broker");
         bmqp_ctrlmsg::ControlMessage disconnectMessage(s_allocator_p);
         ASSERT(testChannel.waitFor(1, true, bsls::TimeInterval(5)));
-        mwcio::TestChannel::WriteCall wc = testChannel.popWriteCall();
+        bmqio::TestChannel::WriteCall wc = testChannel.popWriteCall();
         bmqp::Event                   ev(&wc.d_blob, s_allocator_p);
         ASSERT(ev.isControlEvent());
 
@@ -3989,11 +3988,11 @@ static void test11_disconnect()
         obj.processPacket(builder.blob());
 
         // Reset the channel
-        obj.setChannel(bsl::shared_ptr<mwcio::Channel>());
+        obj.setChannel(bsl::shared_ptr<bmqio::Channel>());
 
         PVV_SAFE("Verify the user receives the DISCONNECTED event");
         rc = eventQueue.timedPopFront(&event,
-                                      mwcsys::Time::nowMonotonicClock() +
+                                      bmqsys::Time::nowMonotonicClock() +
                                           bsls::TimeInterval(5));
         ASSERT_EQ(rc, 0);
         ASSERT_EQ(event->statusCode(), 0);
@@ -4003,7 +4002,7 @@ static void test11_disconnect()
         // Ensure no more  events are delivered to the user
         event.reset();
         eventQueue.timedPopFront(&event,
-                                 mwcsys::Time::nowMonotonicClock() +
+                                 bmqsys::Time::nowMonotonicClock() +
                                      bsls::TimeInterval(0.1));
         ASSERT(!event);
 
@@ -4040,7 +4039,7 @@ static void test11_disconnect()
 
         // Set channel
         obj.setChannel(
-            bsl::shared_ptr<mwcio::Channel>(&testChannel,
+            bsl::shared_ptr<bmqio::Channel>(&testChannel,
                                             bslstl::SharedPtrNilDeleter()));
 
         PVV_SAFE("Waiting CONNECTED event...");
@@ -4065,7 +4064,7 @@ static void test11_disconnect()
         PVV_SAFE("Ensure a disconnectMessage was sent to the broker");
         bmqp_ctrlmsg::ControlMessage disconnectMessage(s_allocator_p);
         ASSERT(testChannel.waitFor(1, true, bsls::TimeInterval(5)));
-        mwcio::TestChannel::WriteCall wc = testChannel.popWriteCall();
+        bmqio::TestChannel::WriteCall wc = testChannel.popWriteCall();
         bmqp::Event                   ev(&wc.d_blob, s_allocator_p);
         ASSERT(ev.isControlEvent());
 
@@ -4086,7 +4085,7 @@ static void test11_disconnect()
         obj.processPacket(builder.blob());
 
         // Reset the channel
-        obj.setChannel(bsl::shared_ptr<mwcio::Channel>());
+        obj.setChannel(bsl::shared_ptr<bmqio::Channel>());
 
         PVV_SAFE("Verify the user receives a DISCONNECTED event");
         // Since we are using next event, we should 'infinitely' pop out
@@ -4114,7 +4113,7 @@ static void test12_disconnectStatus()
 //
 // Concerns:
 //   1. Check the behavior of the bmqimp::BrokerSession when a valid
-//      mwcio::Channel is provided as a connection with the broker.
+//      bmqio::Channel is provided as a connection with the broker.
 //      When is being stopped it should properly send disconnect message
 //      to the broker, but there will be an unknown status message response
 //      which should not break the process
@@ -4132,7 +4131,7 @@ static void test12_disconnectStatus()
 //   - stop
 //   ----------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("DISCONNECT STATUS MESSAGE");
+    bmqtst::TestHelper::printTestName("DISCONNECT STATUS MESSAGE");
 
     bdlmt::EventScheduler scheduler(bsls::SystemClockType::e_MONOTONIC,
                                     s_allocator_p);
@@ -4176,7 +4175,7 @@ static void test13_disconnectTimeout()
 //
 // Concerns:
 //   1. Check the behavior of the bmqimp::BrokerSession when a valid
-//      mwcio::Channel is provided as a connection with the broker.
+//      bmqio::Channel is provided as a connection with the broker.
 //      When is being stopped it should properly send disconnect message
 //      to the broker, but there will be no response, timeout handler
 //      should be called and the session should be stopped.
@@ -4194,7 +4193,7 @@ static void test13_disconnectTimeout()
 //   - stop
 //   ----------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("DISCONNECT TIMEOUT");
+    bmqtst::TestHelper::printTestName("DISCONNECT TIMEOUT");
 
     const bsls::TimeInterval timeout = bsls::TimeInterval(5);
     bmqt::SessionOptions     sessionOptions;
@@ -4231,7 +4230,7 @@ static void test14_disconnectRequestGenericErr()
 //
 // Concerns:
 //   1. Check the behavior of the bmqimp::BrokerSession when a valid
-//      mwcio::Channel is provided as a connection with the broker.
+//      bmqio::Channel is provided as a connection with the broker.
 //      When is being stopped it should fail to send disconnect message
 //      to the broker due to generic error, but this should not break
 //      the process and the session should be successfully stopped
@@ -4249,8 +4248,8 @@ static void test14_disconnectRequestGenericErr()
 //   - stop
 //   ----------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("DISCONNECT FAILED REQUEST (GENERIC)");
-    test_disconnectRequestErr(mwcio::StatusCategory::e_GENERIC_ERROR);
+    bmqtst::TestHelper::printTestName("DISCONNECT FAILED REQUEST (GENERIC)");
+    test_disconnectRequestErr(bmqio::StatusCategory::e_GENERIC_ERROR);
 }
 
 static void test15_disconnectRequestConnection()
@@ -4259,7 +4258,7 @@ static void test15_disconnectRequestConnection()
 //
 // Concerns:
 //   1. Check the behavior of the bmqimp::BrokerSession when a valid
-//      mwcio::Channel is provided as a connection with the broker.
+//      bmqio::Channel is provided as a connection with the broker.
 //      When is being stopped it should fail to send disconnect message
 //      to the broker due to connection problems, but this should not break
 //      the process and the session should be successfully stopped
@@ -4277,9 +4276,9 @@ static void test15_disconnectRequestConnection()
 //   - stop
 //   ----------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "DISCONNECT FAILED REQUEST (CONNECTION)");
-    test_disconnectRequestErr(mwcio::StatusCategory::e_CONNECTION);
+    test_disconnectRequestErr(bmqio::StatusCategory::e_CONNECTION);
 }
 
 static void test16_disconnectRequestTimeout()
@@ -4288,7 +4287,7 @@ static void test16_disconnectRequestTimeout()
 //
 // Concerns:
 //   1. Check the behavior of the bmqimp::BrokerSession when a valid
-//      mwcio::Channel is provided as a connection with the broker.
+//      bmqio::Channel is provided as a connection with the broker.
 //      When is being stopped it should fail to send disconnect message
 //      to the broker due to timeout, but this should not break
 //      the process and the session should be successfully stopped
@@ -4306,8 +4305,8 @@ static void test16_disconnectRequestTimeout()
 //   - stop
 //   ----------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("DISCONNECT FAILED REQUEST (TIMEOUT)");
-    test_disconnectRequestErr(mwcio::StatusCategory::e_TIMEOUT);
+    bmqtst::TestHelper::printTestName("DISCONNECT FAILED REQUEST (TIMEOUT)");
+    test_disconnectRequestErr(bmqio::StatusCategory::e_TIMEOUT);
 }
 
 static void test17_disconnectRequestCanceled()
@@ -4316,7 +4315,7 @@ static void test17_disconnectRequestCanceled()
 //
 // Concerns:
 //   1. Check the behavior of the bmqimp::BrokerSession when a valid
-//      mwcio::Channel is provided as a connection with the broker.
+//      bmqio::Channel is provided as a connection with the broker.
 //      When is being stopped it should fail to send disconnect message
 //      to the broker due to canceled request, but this should not break
 //      the process and the session should be successfully stopped
@@ -4334,8 +4333,8 @@ static void test17_disconnectRequestCanceled()
 //   - stop
 //   ----------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("DISCONNECT FAILED REQUEST (CANCELED)");
-    test_disconnectRequestErr(mwcio::StatusCategory::e_CANCELED);
+    bmqtst::TestHelper::printTestName("DISCONNECT FAILED REQUEST (CANCELED)");
+    test_disconnectRequestErr(bmqio::StatusCategory::e_CANCELED);
 }
 
 static void test18_disconnectRequestLimit()
@@ -4344,7 +4343,7 @@ static void test18_disconnectRequestLimit()
 //
 // Concerns:
 //   1. Check the behavior of the bmqimp::BrokerSession when a valid
-//      mwcio::Channel is provided as a connection with the broker.
+//      bmqio::Channel is provided as a connection with the broker.
 //      When is being stopped it should fail to send disconnect message
 //      to the broker due to busy channel, but this should not break
 //      the process and the session should be successfully stopped
@@ -4362,13 +4361,13 @@ static void test18_disconnectRequestLimit()
 //   - stop
 //   ----------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("DISCONNECT FAILED REQUEST (LIMIT)");
-    test_disconnectRequestErr(mwcio::StatusCategory::e_LIMIT);
+    bmqtst::TestHelper::printTestName("DISCONNECT FAILED REQUEST (LIMIT)");
+    test_disconnectRequestErr(bmqio::StatusCategory::e_LIMIT);
 }
 
 static void lateOpenQueueResponse(bsls::Types::Uint64 queueFlags)
 {
-    mwctst::TestHelper::printTestName("QUEUE LATE OPEN RESPONSE TEST");
+    bmqtst::TestHelper::printTestName("QUEUE LATE OPEN RESPONSE TEST");
 
     const bsls::TimeInterval timeout = bsls::TimeInterval(15);
     bmqt::SessionOptions     sessionOptions;
@@ -4452,7 +4451,7 @@ static void test19_queueOpen_LateOpenQueueResponse()
 //   - openQueueAsync
 //   ----------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("QUEUE LATE OPEN RESPONSE TEST");
+    bmqtst::TestHelper::printTestName("QUEUE LATE OPEN RESPONSE TEST");
 
     PVV_SAFE("Check READER");
     lateOpenQueueResponse(bmqt::QueueFlags::e_READ);
@@ -4489,7 +4488,7 @@ static void test20_queueOpen_LateConfigureQueueResponse()
 //   - openQueueAsync
 //   ----------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("QUEUE LATE CONFIGURE RESPONSE TEST");
+    bmqtst::TestHelper::printTestName("QUEUE LATE CONFIGURE RESPONSE TEST");
 
     bmqt::Uri                    uri(k_URI, s_allocator_p);
     const bsls::TimeInterval     timeout = bsls::TimeInterval(15);
@@ -4595,7 +4594,7 @@ static void test21_post_Limit()
 //   - post
 //-------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("POST CHANNEL LIMIT TEST");
+    bmqtst::TestHelper::printTestName("POST CHANNEL LIMIT TEST");
 
     const bsls::TimeInterval timeout     = bsls::TimeInterval(15);
     const bsls::TimeInterval postTimeout = bsls::TimeInterval(0.1);
@@ -4619,7 +4618,7 @@ static void test21_post_Limit()
     obj.openQueue(pQueue, timeout);
 
     PVV_SAFE("Step 3. Set the channel to return e_LIMIT on write");
-    obj.channel().setWriteStatus(mwcio::StatusCategory::e_LIMIT);
+    obj.channel().setWriteStatus(bmqio::StatusCategory::e_LIMIT);
 
     PVV_SAFE("Step 4. Create and post PUT message");
     bmqp::Crc32c::initialize();
@@ -4656,10 +4655,10 @@ static void test21_post_Limit()
 
     PVV_SAFE("Step 7. Schedule LWM and post PUT again");
     scheduler.scheduleEvent(
-        mwcsys::Time::nowMonotonicClock() + postTimeout,
+        bmqsys::Time::nowMonotonicClock() + postTimeout,
         bdlf::BindUtil::bind(&TestSession::setChannelLowWaterMark,
                              &obj,
-                             mwcio::StatusCategory::e_SUCCESS));
+                             bmqio::StatusCategory::e_SUCCESS));
 
     // Call post with a bigger timeout so that LWM event arrives before it
     // expires.
@@ -4681,7 +4680,7 @@ static void test21_post_Limit()
     ASSERT_EQ(obj.channel().writeCalls().size(), 0u);
 
     PVV_SAFE("Step 9. Set the channel to return e_GENERIC_ERROR on write");
-    obj.channel().setWriteStatus(mwcio::StatusCategory::e_GENERIC_ERROR);
+    obj.channel().setWriteStatus(bmqio::StatusCategory::e_GENERIC_ERROR);
 
     rc = obj.session().post(builder.blob(), postTimeout);
 
@@ -4698,7 +4697,7 @@ static void test21_post_Limit()
     ASSERT_EQ(obj.channel().closeCalls().size(), 1u);
 
     // Set write status back to e_SUCCESS
-    obj.channel().setWriteStatus(mwcio::StatusCategory::e_SUCCESS);
+    obj.channel().setWriteStatus(bmqio::StatusCategory::e_SUCCESS);
 
     PV_SAFE("Step 11. Stop the session");
     obj.stopGracefully();
@@ -4732,7 +4731,7 @@ static void test22_confirm_Limit()
 //   - confirmMessages
 //-------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("CONFIRM MESSAGES CHANNEL LIMIT TEST");
+    bmqtst::TestHelper::printTestName("CONFIRM MESSAGES CHANNEL LIMIT TEST");
 
     const bsls::TimeInterval timeout        = bsls::TimeInterval(15);
     const bsls::TimeInterval confirmTimeout = bsls::TimeInterval(0.1);
@@ -4755,7 +4754,7 @@ static void test22_confirm_Limit()
     obj.openQueue(pQueue, timeout);
 
     PVV_SAFE("Step 3. Set the channel to return e_LIMIT on write");
-    obj.channel().setWriteStatus(mwcio::StatusCategory::e_LIMIT);
+    obj.channel().setWriteStatus(bmqio::StatusCategory::e_LIMIT);
 
     PVV_SAFE("Step 4. Create the blob and confirm messages");
     bmqp::ConfirmEventBuilder builder(&obj.blobBufferFactory(),
@@ -4783,10 +4782,10 @@ static void test22_confirm_Limit()
 
     // LWM handler will set write status to e_SUCCESS
     scheduler.scheduleEvent(
-        mwcsys::Time::nowMonotonicClock() + confirmTimeout,
+        bmqsys::Time::nowMonotonicClock() + confirmTimeout,
         bdlf::BindUtil::bind(&TestSession::setChannelLowWaterMark,
                              &obj,
-                             mwcio::StatusCategory::e_SUCCESS));
+                             bmqio::StatusCategory::e_SUCCESS));
 
     // Call confirm with a bigger timeout so that LWM event arrives before it
     // expires.
@@ -4806,7 +4805,7 @@ static void test22_confirm_Limit()
     obj.channel().writeCalls().clear();
 
     PVV_SAFE("Step 8. Set the channel to return e_GENERIC_ERROR on write");
-    obj.channel().setWriteStatus(mwcio::StatusCategory::e_GENERIC_ERROR);
+    obj.channel().setWriteStatus(bmqio::StatusCategory::e_GENERIC_ERROR);
 
     rc = obj.session().confirmMessages(builder.blob(), confirmTimeout);
 
@@ -4822,7 +4821,7 @@ static void test22_confirm_Limit()
     obj.channel().writeCalls().clear();
 
     // Set write status back to e_SUCCESS
-    obj.channel().setWriteStatus(mwcio::StatusCategory::e_SUCCESS);
+    obj.channel().setWriteStatus(bmqio::StatusCategory::e_SUCCESS);
 
     PV_SAFE("Step 10. Stop the session");
     obj.stopGracefully();
@@ -4830,7 +4829,7 @@ static void test22_confirm_Limit()
 
 static void queueCloseSync(bsls::Types::Uint64 queueFlags)
 {
-    mwctst::TestHelper::printTestName("SYNC CLOSE QUEUE TEST");
+    bmqtst::TestHelper::printTestName("SYNC CLOSE QUEUE TEST");
 
     const bsls::TimeInterval timeout = bsls::TimeInterval(500);
     bmqt::SessionOptions     sessionOptions;
@@ -4856,7 +4855,7 @@ static void queueCloseSync(bsls::Types::Uint64 queueFlags)
     obj.openQueue(pQueue, timeout);
 
     PVV_SAFE("Step 3. Trigger channel drop");
-    obj.session().setChannel(bsl::shared_ptr<mwcio::Channel>());
+    obj.session().setChannel(bsl::shared_ptr<bmqio::Channel>());
 
     ASSERT(obj.waitConnectionLostEvent());
 
@@ -4908,7 +4907,7 @@ static void test23_queueCloseSync()
 //   - stop
 //   ----------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("SYNC CLOSE QUEUE TEST");
+    bmqtst::TestHelper::printTestName("SYNC CLOSE QUEUE TEST");
 
     PVV_SAFE("Check READER");
     queueCloseSync(bmqt::QueueFlags::e_READ);
@@ -4958,7 +4957,7 @@ queueAsyncCanceled(int                          lineNum,
         obj.createQueueOnStep(queueTestStep, queueFlags, timeout);
 
     PVV_SAFE(lineNum << ": Step 3. Trigger channel drop");
-    obj.session().setChannel(bsl::shared_ptr<mwcio::Channel>());
+    obj.session().setChannel(bsl::shared_ptr<bmqio::Channel>());
 
     PVV_SAFE(lineNum << ": Step 4. Waiting queue operation result"
                      << " STATE_RESTORED and CONNECTION_LOST events");
@@ -5594,7 +5593,7 @@ static void test24_queueAsyncCanceled1()
 //   - closeQueueAsync
 //   ----------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("QUEUE ASYNC CANCELED TEST 1");
+    bmqtst::TestHelper::printTestName("QUEUE ASYNC CANCELED TEST 1");
 
     queueAsyncCanceled_OPEN_OPENING();
 
@@ -5621,7 +5620,7 @@ static void test25_sessionFsmTable()
 //   - onStartTimeout
 //   ----------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("SESSION FSM TRANSITION TABLE TEST");
+    bmqtst::TestHelper::printTestName("SESSION FSM TRANSITION TABLE TEST");
 
     bdlmt::EventScheduler scheduler(bsls::SystemClockType::e_MONOTONIC,
                                     s_allocator_p);
@@ -5642,7 +5641,7 @@ static void test25_sessionFsmTable()
     bslmt::TimedSemaphore                               doneSemaphore;
     bsls::AtomicInt                                     tcpRc(0);
 
-    mwcio::TestChannel testChannel(s_allocator_p);
+    bmqio::TestChannel testChannel(s_allocator_p);
     testChannel.setPeerUri("tcp://testHost:1234");  // for better logging
 
     bmqimp::BrokerSession obj(
@@ -5682,7 +5681,7 @@ static void test25_sessionFsmTable()
 
         // Reset the channel
         // STARTING -> STOPPED
-        obj.setChannel(bsl::shared_ptr<mwcio::Channel>());
+        obj.setChannel(bsl::shared_ptr<bmqio::Channel>());
     }
 
     {
@@ -5716,7 +5715,7 @@ static void test25_sessionFsmTable()
         // Set valid channel
         // STARTING -> STARTED
         obj.setChannel(
-            bsl::shared_ptr<mwcio::Channel>(&testChannel,
+            bsl::shared_ptr<bmqio::Channel>(&testChannel,
                                             bslstl::SharedPtrNilDeleter()));
 
         // STARTED -> STARTED
@@ -5725,28 +5724,28 @@ static void test25_sessionFsmTable()
 
         // Reset the channel
         // STARTING -> RECONNECTING
-        obj.setChannel(bsl::shared_ptr<mwcio::Channel>());
+        obj.setChannel(bsl::shared_ptr<bmqio::Channel>());
 
         // Set valid channel
         // RECONNECTING -> STARTED
         obj.setChannel(
-            bsl::shared_ptr<mwcio::Channel>(&testChannel,
+            bsl::shared_ptr<bmqio::Channel>(&testChannel,
                                             bslstl::SharedPtrNilDeleter()));
 
         // Generate error on disconnect request
-        testChannel.setWriteStatus(mwcio::StatusCategory::e_CANCELED);
+        testChannel.setWriteStatus(bmqio::StatusCategory::e_CANCELED);
         // STARTED         -> CLOSING_SESSION
         // CLOSING_SESSION -> CLOSING_CHANNEL
         obj.stopAsync();
 
         // Reset the channel
         // CLOSING_CHANNEL -> STOPPED
-        obj.setChannel(bsl::shared_ptr<mwcio::Channel>());
+        obj.setChannel(bsl::shared_ptr<bmqio::Channel>());
     }
 
     {
         // Make channel writeable
-        testChannel.setWriteStatus(mwcio::StatusCategory::e_SUCCESS);
+        testChannel.setWriteStatus(bmqio::StatusCategory::e_SUCCESS);
 
         // STOPPED -> STARTING
         int rc = obj.startAsync();
@@ -5755,12 +5754,12 @@ static void test25_sessionFsmTable()
         // Set valid channel
         // STARTING -> STARTED
         obj.setChannel(
-            bsl::shared_ptr<mwcio::Channel>(&testChannel,
+            bsl::shared_ptr<bmqio::Channel>(&testChannel,
                                             bslstl::SharedPtrNilDeleter()));
 
         // Reset the channel
         // STARTING -> RECONNECTING
-        obj.setChannel(bsl::shared_ptr<mwcio::Channel>());
+        obj.setChannel(bsl::shared_ptr<bmqio::Channel>());
 
         // RECONNECTING    -> CLOSING_CHANNEL
         // CLOSING_CHANNEL -> STOPPED
@@ -5775,7 +5774,7 @@ static void test25_sessionFsmTable()
         // Set valid channel
         // STARTING -> STARTED
         obj.setChannel(
-            bsl::shared_ptr<mwcio::Channel>(&testChannel,
+            bsl::shared_ptr<bmqio::Channel>(&testChannel,
                                             bslstl::SharedPtrNilDeleter()));
         // STARTED -> CLOSING_SESSION
         obj.stopAsync();
@@ -5783,7 +5782,7 @@ static void test25_sessionFsmTable()
         // Reset the channel
         // CLOSING_SESSION -> CLOSING_CHANNEL
         // CLOSING_CHANNEL -> STOPPED
-        obj.setChannel(bsl::shared_ptr<mwcio::Channel>());
+        obj.setChannel(bsl::shared_ptr<bmqio::Channel>());
     }
 
     {
@@ -5808,7 +5807,7 @@ static void test25_sessionFsmTable()
         // Set valid channel
         // STARTING -> STARTED
         obj.setChannel(
-            bsl::shared_ptr<mwcio::Channel>(&testChannel,
+            bsl::shared_ptr<bmqio::Channel>(&testChannel,
                                             bslstl::SharedPtrNilDeleter()));
 
         // STARTED -> STARTED
@@ -5821,7 +5820,7 @@ static void test25_sessionFsmTable()
 
         // Reset the channel
         // CLOSING_CHANNEL -> STOPPED
-        obj.setChannel(bsl::shared_ptr<mwcio::Channel>());
+        obj.setChannel(bsl::shared_ptr<bmqio::Channel>());
     }
 
     {
@@ -5832,12 +5831,12 @@ static void test25_sessionFsmTable()
         // Set valid channel
         // STARTING -> STARTED
         obj.setChannel(
-            bsl::shared_ptr<mwcio::Channel>(&testChannel,
+            bsl::shared_ptr<bmqio::Channel>(&testChannel,
                                             bslstl::SharedPtrNilDeleter()));
 
         // Reset the channel
         // STARTING -> RECONNECTING
-        obj.setChannel(bsl::shared_ptr<mwcio::Channel>());
+        obj.setChannel(bsl::shared_ptr<bmqio::Channel>());
 
         monitor->setState(bmqt::HostHealthState::e_UNHEALTHY);
         monitor->setState(bmqt::HostHealthState::e_HEALTHY);
@@ -5845,18 +5844,18 @@ static void test25_sessionFsmTable()
         // Set valid channel
         // RECONNECTING -> STARTED
         obj.setChannel(
-            bsl::shared_ptr<mwcio::Channel>(&testChannel,
+            bsl::shared_ptr<bmqio::Channel>(&testChannel,
                                             bslstl::SharedPtrNilDeleter()));
 
         // Generate error on disconnect request
-        testChannel.setWriteStatus(mwcio::StatusCategory::e_CANCELED);
+        testChannel.setWriteStatus(bmqio::StatusCategory::e_CANCELED);
         // STARTED         -> CLOSING_SESSION
         // CLOSING_SESSION -> CLOSING_CHANNEL
         obj.stopAsync();
 
         // Reset the channel
         // CLOSING_CHANNEL -> STOPPED
-        obj.setChannel(bsl::shared_ptr<mwcio::Channel>());
+        obj.setChannel(bsl::shared_ptr<bmqio::Channel>());
     }
 
     PVV_SAFE("Waiting for empty transition table");
@@ -5962,7 +5961,7 @@ static void test27_openCloseMultipleSubqueuesWithErrors()
 //   - stop
 //   ----------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "OPEN CLOSE MULTIPLE SUBQUEUES WITH ERRORS TEST");
 
     const bsls::TimeInterval timeout = bsls::TimeInterval(15);
@@ -6184,7 +6183,7 @@ queueLateAsyncCanceled(int                               testId,
                                                                   timeout);
 
     PVV_SAFE(testId << ": Step 3. Trigger channel drop");
-    obj.session().setChannel(bsl::shared_ptr<mwcio::Channel>());
+    obj.session().setChannel(bsl::shared_ptr<bmqio::Channel>());
 
     PVV_SAFE(testId << ": Step 4. Waiting queue operation result"
                     << " STATE_RESTORED and CONNECTION_LOST events");
@@ -6255,7 +6254,7 @@ static void test28_queueLateAsyncCanceledReader1()
 //   - closeQueueAsync
 //   ----------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "QUEUE LATE ASYNC CANCELED READER TEST 1");
 
     queueLateAsyncCanceled(L_,
@@ -6292,7 +6291,7 @@ static void test29_queueLateAsyncCanceledWriter1()
 //   - closeQueueAsync
 //   ----------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "QUEUE LATE ASYNC CANCELED WRITER TEST 1");
 
     queueLateAsyncCanceled(L_,
@@ -6329,7 +6328,7 @@ static void test30_queueLateAsyncCanceledHybrid1()
 //   - closeQueueAsync
 //   ----------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "QUEUE LATE ASYNC CANCELED HYBRID TEST 1");
 
     bsls::Types::Uint64 flags = 0;
@@ -6412,7 +6411,7 @@ static void test31_queueDoubleOpenUri()
 //   - stop
 //   ----------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("QUEUE DOUBLE OPEN URI TEST");
+    bmqtst::TestHelper::printTestName("QUEUE DOUBLE OPEN URI TEST");
 
     PVV_SAFE("Check READER");
     queueDoubleOpenUri(bmqt::QueueFlags::e_READ);
@@ -6500,7 +6499,7 @@ static void test32_queueDoubleOpenCorrelationId()
 //   - stop
 //   ----------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("QUEUE DOUBLE OPEN CORRELATION ID TEST");
+    bmqtst::TestHelper::printTestName("QUEUE DOUBLE OPEN CORRELATION ID TEST");
 
     PVV_SAFE("Check READER");
     queueDoubleOpenCorrelationId(bmqt::QueueFlags::e_READ);
@@ -6541,7 +6540,7 @@ static void test33_queueNackTest()
 //   - stop
 //   ----------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("QUEUE NACK TEST");
+    bmqtst::TestHelper::printTestName("QUEUE NACK TEST");
 
     const char* k_PAYLOAD     = "abcdefghijklmnopqrstuvwxyz";
     const int   k_PAYLOAD_LEN = bsl::strlen(k_PAYLOAD);
@@ -6607,7 +6606,7 @@ static void test33_queueNackTest()
     ASSERT(rawEvent.isPutEvent());
 
     PVV_SAFE("Step 5. Trigger channel drop and verify no NACK event is sent");
-    obj.session().setChannel(bsl::shared_ptr<mwcio::Channel>());
+    obj.session().setChannel(bsl::shared_ptr<bmqio::Channel>());
 
     ASSERT(obj.waitConnectionLostEvent());
 
@@ -6629,7 +6628,7 @@ static void test33_queueNackTest()
 
     PVV_SAFE("Step 8. Trigger channel drop, close the queue and verify NACK "
              "event");
-    obj.session().setChannel(bsl::shared_ptr<mwcio::Channel>());
+    obj.session().setChannel(bsl::shared_ptr<bmqio::Channel>());
 
     ASSERT(obj.waitConnectionLostEvent());
 
@@ -6664,7 +6663,7 @@ static void test33_queueNackTest()
 
 static void reopenError(bsls::Types::Uint64 queueFlags)
 {
-    mwctst::TestHelper::printTestName("REOPEN ERROR TEST");
+    bmqtst::TestHelper::printTestName("REOPEN ERROR TEST");
 
     const bsls::TimeInterval timeout = bsls::TimeInterval(15);
     bmqt::SessionOptions     sessionOptions;
@@ -6689,7 +6688,7 @@ static void reopenError(bsls::Types::Uint64 queueFlags)
         obj.openQueue(queue);
 
         PVV_SAFE("Step 4. Reset the channel");
-        obj.session().setChannel(bsl::shared_ptr<mwcio::Channel>());
+        obj.session().setChannel(bsl::shared_ptr<bmqio::Channel>());
 
         ASSERT(obj.waitConnectionLostEvent());
 
@@ -6697,7 +6696,7 @@ static void reopenError(bsls::Types::Uint64 queueFlags)
         ASSERT(queue->isValid());
 
         // Set write error condition
-        obj.channel().setWriteStatus(mwcio::StatusCategory::e_GENERIC_ERROR);
+        obj.channel().setWriteStatus(bmqio::StatusCategory::e_GENERIC_ERROR);
 
         // Restore the connection
         obj.setChannel();
@@ -6717,7 +6716,7 @@ static void reopenError(bsls::Types::Uint64 queueFlags)
         ASSERT(obj.waitForQueueRemoved(queue, timeout));
 
         // Set normal write status
-        obj.channel().setWriteStatus(mwcio::StatusCategory::e_SUCCESS);
+        obj.channel().setWriteStatus(bmqio::StatusCategory::e_SUCCESS);
     }
 
     PVV_SAFE("Step 7. Check reopen 2st part error");
@@ -6726,7 +6725,7 @@ static void reopenError(bsls::Types::Uint64 queueFlags)
         obj.openQueue(queue);
 
         PVV_SAFE("Step 9. Reset the channel");
-        obj.session().setChannel(bsl::shared_ptr<mwcio::Channel>());
+        obj.session().setChannel(bsl::shared_ptr<bmqio::Channel>());
 
         ASSERT(obj.waitConnectionLostEvent());
 
@@ -6743,7 +6742,7 @@ static void reopenError(bsls::Types::Uint64 queueFlags)
             TestSession::e_REQ_OPEN_QUEUE);
 
         // Set write error condition
-        obj.channel().setWriteStatus(mwcio::StatusCategory::e_GENERIC_ERROR);
+        obj.channel().setWriteStatus(bmqio::StatusCategory::e_GENERIC_ERROR);
 
         PVV_SAFE("Step 11. Send reopen response");
         obj.sendResponse(request);
@@ -6776,7 +6775,7 @@ static void reopenError(bsls::Types::Uint64 queueFlags)
         }
 
         // Set normal write status
-        obj.channel().setWriteStatus(mwcio::StatusCategory::e_SUCCESS);
+        obj.channel().setWriteStatus(bmqio::StatusCategory::e_SUCCESS);
     }
 
     PVV_SAFE("Step 14. Stop the session");
@@ -6807,7 +6806,7 @@ static void test34_reopenError()
 //   - stop
 //   ----------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("REOPEN ERROR TEST");
+    bmqtst::TestHelper::printTestName("REOPEN ERROR TEST");
 
     PVV_SAFE("Check READER");
     reopenError(bmqt::QueueFlags::e_READ);
@@ -6858,7 +6857,7 @@ static void test35_hostHealthMonitoring()
 // ------------------------------------------------------------------------
 
 {
-    mwctst::TestHelper::printTestName("HOST HEALTH MONITORING TEST");
+    bmqtst::TestHelper::printTestName("HOST HEALTH MONITORING TEST");
 
     ManualHostHealthMonitor* monitor = new (*s_allocator_p)
         ManualHostHealthMonitor(bmqt::HostHealthState::e_HEALTHY,
@@ -7065,7 +7064,7 @@ static void test36_closingAfterConfigTimeout()
 //   - stop
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("CLOSING AFTER CONFIGURE TIMEOUT TEST");
+    bmqtst::TestHelper::printTestName("CLOSING AFTER CONFIGURE TIMEOUT TEST");
 
     const bsls::TimeInterval     timeout = bsls::TimeInterval(15);
     bmqt::QueueOptions           queueOptions;
@@ -7166,7 +7165,7 @@ static void test37_closingPendingConfig()
 //   - stop
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("CLOSING WHILE PENDING CONFIGURE TEST");
+    bmqtst::TestHelper::printTestName("CLOSING WHILE PENDING CONFIGURE TEST");
 
     const bsls::TimeInterval     timeout = bsls::TimeInterval(15);
     bmqt::QueueOptions           queueOptions;
@@ -7551,7 +7550,7 @@ static void test38_syncOpenConfigureCloseWithHandler()
 //   - stop
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("SYNC API WITH HANDLER TEST");
+    bmqtst::TestHelper::printTestName("SYNC API WITH HANDLER TEST");
 
     test_syncOpenConfigureClose(true);
 }
@@ -7580,7 +7579,7 @@ static void test39_syncOpenConfigureCloseWithoutHandler()
 //   - stop
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("SYNC API WITHOUT HANDLER TEST");
+    bmqtst::TestHelper::printTestName("SYNC API WITHOUT HANDLER TEST");
 
     test_syncOpenConfigureClose(false);
 }
@@ -7611,7 +7610,7 @@ static void test40_syncCalledFromEventHandler()
 //   - stop
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "SYNC API CALLED FROM EVENT HANDLER TEST");
 
     bmqt::Uri                      uri(k_URI, s_allocator_p);
@@ -7709,7 +7708,7 @@ static void test41_asyncOpenConfigureCloseWithHandler()
 //   - stop
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("ASYNC API WITH HANDLER TEST");
+    bmqtst::TestHelper::printTestName("ASYNC API WITH HANDLER TEST");
 
     test_asyncOpenConfigureClose(true);
 }
@@ -7739,7 +7738,7 @@ static void test42_asyncOpenConfigureCloseWithoutHandler()
 //   - stop
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("ASYNC API WITHOUT HANDLER TEST");
+    bmqtst::TestHelper::printTestName("ASYNC API WITHOUT HANDLER TEST");
 
     test_asyncOpenConfigureClose(false);
 }
@@ -7777,7 +7776,7 @@ static void test43_hostHealthMonitoringErrors()
 // ------------------------------------------------------------------------
 
 {
-    mwctst::TestHelper::printTestName("HOST HEALTH MONITORING ERRORS TEST");
+    bmqtst::TestHelper::printTestName("HOST HEALTH MONITORING ERRORS TEST");
 
     ManualHostHealthMonitor* monitor = new (*s_allocator_p)
         ManualHostHealthMonitor(bmqt::HostHealthState::e_HEALTHY,
@@ -8036,7 +8035,7 @@ static void test44_hostHealthMonitoringMultipleQueues()
 // ------------------------------------------------------------------------
 
 {
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "HOST HEALTH MONITORING MULTIPLE QUEUES TEST");
 
     ManualHostHealthMonitor* monitor = new (*s_allocator_p)
@@ -8203,7 +8202,7 @@ static void test45_hostHealthMonitoringPendingStandalone()
 // ------------------------------------------------------------------------
 
 {
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "HOST HEALTH MONITORING PENDING STANDALONE TEST");
 
     ManualHostHealthMonitor* monitor = new (*s_allocator_p)
@@ -8320,7 +8319,7 @@ static void test46_hostHealthMonitoringDeferredResumeClose()
 // ------------------------------------------------------------------------
 
 {
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "HOST HEALTH MONITORING DEFERRED SUSPEND RESUME TEST");
 
     ManualHostHealthMonitor* monitor = new (*s_allocator_p)
@@ -8467,7 +8466,7 @@ static void test47_configureMergesQueueOptions()
 // ------------------------------------------------------------------------
 
 {
-    mwctst::TestHelper::printTestName("CONFIGURE MERGED QUEUE OPTIONS TEST");
+    bmqtst::TestHelper::printTestName("CONFIGURE MERGED QUEUE OPTIONS TEST");
 
     bdlmt::EventScheduler scheduler(bsls::SystemClockType::e_MONOTONIC,
                                     s_allocator_p);
@@ -8563,7 +8562,7 @@ static void test48_hostHealthSensitivityReconfiguration()
 // ------------------------------------------------------------------------
 
 {
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "HOST HEALTH SENSITIVITY RECONFIGURATION TEST");
 
     ManualHostHealthMonitor* monitor = new (*s_allocator_p)
@@ -8735,7 +8734,7 @@ static void test49_controlsBuffering()
 //   - handleChannelWatermark
 //-------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("CONTROLS BUFFERING TEST");
+    bmqtst::TestHelper::printTestName("CONTROLS BUFFERING TEST");
 
     const bsls::TimeInterval timeout = bsls::TimeInterval(15);
     bmqt::SessionOptions     sessionOptions;
@@ -8767,7 +8766,7 @@ static void test49_controlsBuffering()
     obj.startAndConnect();
 
     PVV_SAFE("Step 2. Set the channel to return e_LIMIT on write");
-    obj.channel().setWriteStatus(mwcio::StatusCategory::e_LIMIT);
+    obj.channel().setWriteStatus(bmqio::StatusCategory::e_LIMIT);
 
     PVV_SAFE("Step 3. Open the queues async");
     int rc = obj.session().openQueueAsync(queueFoo, timeout);
@@ -8791,10 +8790,10 @@ static void test49_controlsBuffering()
 
     // LWM arrives but the channel still returns e_LIMIT
     scheduler.scheduleEvent(
-        mwcsys::Time::nowMonotonicClock(),
+        bmqsys::Time::nowMonotonicClock(),
         bdlf::BindUtil::bind(&TestSession::setChannelLowWaterMark,
                              &obj,
-                             mwcio::StatusCategory::e_LIMIT));
+                             bmqio::StatusCategory::e_LIMIT));
 
     // Only one write attempt happened
     obj.verifyRequestSent(TestSession::e_REQ_OPEN_QUEUE);
@@ -8804,10 +8803,10 @@ static void test49_controlsBuffering()
 
     // Set write status to e_SUCCESS
     scheduler.scheduleEvent(
-        mwcsys::Time::nowMonotonicClock(),
+        bmqsys::Time::nowMonotonicClock(),
         bdlf::BindUtil::bind(&TestSession::setChannelLowWaterMark,
                              &obj,
-                             mwcio::StatusCategory::e_SUCCESS));
+                             bmqio::StatusCategory::e_SUCCESS));
 
     // All buffered control messages should be written
     obj.verifyRequestSent(TestSession::e_REQ_OPEN_QUEUE);
@@ -8869,7 +8868,7 @@ static void test50_putRetransmittingTest()
 //   - stop
 //   ----------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("QUEUE RETRANSMITTING TEST");
+    bmqtst::TestHelper::printTestName("QUEUE RETRANSMITTING TEST");
 
     const char* k_PAYLOAD     = "abcdefghijklmnopqrstuvwxyz";
     const int   k_PAYLOAD_LEN = bsl::strlen(k_PAYLOAD);
@@ -8983,7 +8982,7 @@ static void test50_putRetransmittingTest()
     ASSERT_EQ(0, ackIter->next());
 
     PVV_SAFE("Step 5. Trigger channel drop and verify no NACK event is sent");
-    obj.session().setChannel(bsl::shared_ptr<mwcio::Channel>());
+    obj.session().setChannel(bsl::shared_ptr<bmqio::Channel>());
 
     ASSERT(obj.waitConnectionLostEvent());
 
@@ -9029,7 +9028,7 @@ static void test50_putRetransmittingTest()
     ASSERT_EQ(0, putIter.next());
 
     PVV_SAFE("Step 9. Trigger channel drop and advance the time");
-    obj.session().setChannel(bsl::shared_ptr<mwcio::Channel>());
+    obj.session().setChannel(bsl::shared_ptr<bmqio::Channel>());
 
     ASSERT(obj.waitConnectionLostEvent());
 
@@ -9087,7 +9086,7 @@ static void test50_putRetransmittingTest()
 
     PVV_SAFE("Step 13. "
              "Drop the channel, close the queue and verify NACK event");
-    obj.session().setChannel(bsl::shared_ptr<mwcio::Channel>());
+    obj.session().setChannel(bsl::shared_ptr<bmqio::Channel>());
 
     ASSERT(obj.waitConnectionLostEvent());
 
@@ -9153,7 +9152,7 @@ static void test51_putRetransmittingNoAckTest()
 //   - stop
 //   ----------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("PUT RETRANSMITTING NO ACK TEST");
+    bmqtst::TestHelper::printTestName("PUT RETRANSMITTING NO ACK TEST");
 
     const char* k_PAYLOAD     = "abcdefghijklmnopqrstuvwxyz";
     const int   k_PAYLOAD_LEN = bsl::strlen(k_PAYLOAD);
@@ -9235,7 +9234,7 @@ static void test51_putRetransmittingNoAckTest()
     ASSERT(rawEvent.isPutEvent());
 
     PVV_SAFE("Step 5. Trigger channel drop and verify no NACK event is sent");
-    obj.session().setChannel(bsl::shared_ptr<mwcio::Channel>());
+    obj.session().setChannel(bsl::shared_ptr<bmqio::Channel>());
 
     ASSERT(obj.waitConnectionLostEvent());
 
@@ -9282,7 +9281,7 @@ static void test51_putRetransmittingNoAckTest()
     ASSERT_EQ(0, putIter.next());
 
     PVV_SAFE("Step 9. Trigger channel restart once again");
-    obj.session().setChannel(bsl::shared_ptr<mwcio::Channel>());
+    obj.session().setChannel(bsl::shared_ptr<bmqio::Channel>());
 
     ASSERT(obj.waitConnectionLostEvent());
 
@@ -9311,7 +9310,7 @@ static void test51_putRetransmittingNoAckTest()
 
     PVV_SAFE("Step 12. "
              "Drop the channel, close the queue and verify NACK event");
-    obj.session().setChannel(bsl::shared_ptr<mwcio::Channel>());
+    obj.session().setChannel(bsl::shared_ptr<bmqio::Channel>());
 
     ASSERT(obj.waitConnectionLostEvent());
 
@@ -9373,7 +9372,7 @@ static void test52_controlRetransmission()
 //   - stop
 //   ----------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("CONTROL RETRANSMISSION TEST");
+    bmqtst::TestHelper::printTestName("CONTROL RETRANSMISSION TEST");
 
     const bsls::TimeInterval timeout = bsls::TimeInterval(15);
     bmqt::SessionOptions     sessionOptions;
@@ -9394,7 +9393,7 @@ static void test52_controlRetransmission()
 
     PVV_SAFE("Step 2. Reset the channel and open a queue");
 
-    obj.session().setChannel(bsl::shared_ptr<mwcio::Channel>());
+    obj.session().setChannel(bsl::shared_ptr<bmqio::Channel>());
     ASSERT(obj.waitConnectionLostEvent());
 
     int rc = obj.session().openQueueAsync(pQueue, timeout);
@@ -9429,7 +9428,7 @@ static void test52_controlRetransmission()
 
     PVV_SAFE("Step 4. Reset the channel and configure the queue");
 
-    obj.session().setChannel(bsl::shared_ptr<mwcio::Channel>());
+    obj.session().setChannel(bsl::shared_ptr<bmqio::Channel>());
     ASSERT(obj.waitConnectionLostEvent());
 
     rc = obj.session().configureQueueAsync(pQueue, pQueue->options(), timeout);
@@ -9464,7 +9463,7 @@ static void test52_controlRetransmission()
     PVV_SAFE("Step 6. "
              "Reset the channel, configure the queue, emulate timeout");
 
-    obj.session().setChannel(bsl::shared_ptr<mwcio::Channel>());
+    obj.session().setChannel(bsl::shared_ptr<bmqio::Channel>());
     ASSERT(obj.waitConnectionLostEvent());
 
     rc = obj.session().configureQueueAsync(pQueue, pQueue->options(), timeout);
@@ -9494,7 +9493,7 @@ static void test52_controlRetransmission()
 
     PVV_SAFE("Step 8. Reset the channel, configure the queue, then close it");
 
-    obj.session().setChannel(bsl::shared_ptr<mwcio::Channel>());
+    obj.session().setChannel(bsl::shared_ptr<bmqio::Channel>());
     ASSERT(obj.waitConnectionLostEvent());
 
     rc = obj.session().configureQueueAsync(pQueue, pQueue->options(), timeout);
@@ -9525,7 +9524,7 @@ static void test52_controlRetransmission()
 
 static void queueExpired(bsls::Types::Uint64 queueFlags)
 {
-    mwctst::TestHelper::printTestName("QUEUE EXPIRED TEST");
+    bmqtst::TestHelper::printTestName("QUEUE EXPIRED TEST");
 
     const bsls::TimeInterval timeout = bsls::TimeInterval(500);
 
@@ -9547,7 +9546,7 @@ static void queueExpired(bsls::Types::Uint64 queueFlags)
     obj.startAndConnect();
 
     PVV_SAFE("Step 2. Trigger channel drop");
-    obj.session().setChannel(bsl::shared_ptr<mwcio::Channel>());
+    obj.session().setChannel(bsl::shared_ptr<bmqio::Channel>());
 
     ASSERT(obj.waitConnectionLostEvent());
 
@@ -9589,7 +9588,7 @@ static void queueExpired(bsls::Types::Uint64 queueFlags)
             obj.verifyRequestSent(TestSession::e_REQ_CONFIG_QUEUE);
 
             PVV_SAFE("Step 8. Trigger channel drop");
-            obj.session().setChannel(bsl::shared_ptr<mwcio::Channel>());
+            obj.session().setChannel(bsl::shared_ptr<bmqio::Channel>());
 
             ASSERT(obj.waitConnectionLostEvent());
 
@@ -9617,7 +9616,7 @@ static void queueExpired(bsls::Types::Uint64 queueFlags)
         obj.openQueue(pQueue, timeout);
 
         PVV_SAFE("Step 12. Trigger channel drop");
-        obj.session().setChannel(bsl::shared_ptr<mwcio::Channel>());
+        obj.session().setChannel(bsl::shared_ptr<bmqio::Channel>());
 
         ASSERT(obj.waitConnectionLostEvent());
 
@@ -9689,7 +9688,7 @@ static void test53_queueExpired()
 //   - stop
 //   ----------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("QUEUE EXPIRED TEST");
+    bmqtst::TestHelper::printTestName("QUEUE EXPIRED TEST");
 
     PVV_SAFE("Check READER");
     queueExpired(bmqt::QueueFlags::e_READ);
@@ -9767,7 +9766,7 @@ static void test54_distributedTrace()
 {
     using namespace bdlf::PlaceHolders;
 
-    mwctst::TestHelper::printTestName("DISTRIBUTED TRACE TEST");
+    bmqtst::TestHelper::printTestName("DISTRIBUTED TRACE TEST");
 
     struct localFns {
         static void addSpacer(bdlcc::Deque<bsl::string>& events)
@@ -9996,7 +9995,7 @@ static void test54_distributedTrace()
 
 static void test55_queueAsyncCanceled2()
 {
-    mwctst::TestHelper::printTestName("QUEUE ASYNC CANCELED TEST 2");
+    bmqtst::TestHelper::printTestName("QUEUE ASYNC CANCELED TEST 2");
 
     queueAsyncCanceled_REOPEN_OPENING();
 
@@ -10005,7 +10004,7 @@ static void test55_queueAsyncCanceled2()
 
 static void test56_queueAsyncCanceled3()
 {
-    mwctst::TestHelper::printTestName("QUEUE ASYNC CANCELED TEST 3");
+    bmqtst::TestHelper::printTestName("QUEUE ASYNC CANCELED TEST 3");
 
     queueAsyncCanceled_CONFIGURING();
 
@@ -10014,21 +10013,21 @@ static void test56_queueAsyncCanceled3()
 
 static void test57_queueAsyncCanceled4()
 {
-    mwctst::TestHelper::printTestName("QUEUE ASYNC CANCELED TEST 4");
+    bmqtst::TestHelper::printTestName("QUEUE ASYNC CANCELED TEST 4");
 
     queueAsyncCanceled_CLOSE_CONFIGURING();
 }
 
 static void test58_queueAsyncCanceled5()
 {
-    mwctst::TestHelper::printTestName("QUEUE ASYNC CANCELED TEST 5");
+    bmqtst::TestHelper::printTestName("QUEUE ASYNC CANCELED TEST 5");
 
     queueAsyncCanceled_CLOSE_CLOSING();
 }
 
 static void test59_queueLateAsyncCanceledReader2()
 {
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "QUEUE LATE ASYNC CANCELED READER TEST 2");
 
     queueLateAsyncCanceled(L_,
@@ -10044,7 +10043,7 @@ static void test59_queueLateAsyncCanceledReader2()
 
 static void test60_queueLateAsyncCanceledReader3()
 {
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "QUEUE LATE ASYNC CANCELED READER TEST 3");
 
     queueLateAsyncCanceled(L_,
@@ -10060,7 +10059,7 @@ static void test60_queueLateAsyncCanceledReader3()
 
 static void test61_queueLateAsyncCanceledReader4()
 {
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "QUEUE LATE ASYNC CANCELED READER TEST 4");
 
     queueLateAsyncCanceled(L_,
@@ -10071,7 +10070,7 @@ static void test61_queueLateAsyncCanceledReader4()
 
 static void test62_queueLateAsyncCanceledReader5()
 {
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "QUEUE LATE ASYNC CANCELED READER TEST 5");
 
     queueLateAsyncCanceled(L_,
@@ -10082,7 +10081,7 @@ static void test62_queueLateAsyncCanceledReader5()
 
 static void test63_queueLateAsyncCanceledWriter2()
 {
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "QUEUE LATE ASYNC CANCELED WRITER TEST 2");
 
     queueLateAsyncCanceled(L_,
@@ -10098,7 +10097,7 @@ static void test63_queueLateAsyncCanceledWriter2()
 
 static void test64_queueLateAsyncCanceledWriter3()
 {
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "QUEUE LATE ASYNC CANCELED WRITER TEST 3");
 
     queueLateAsyncCanceled(L_,
@@ -10114,7 +10113,7 @@ static void test64_queueLateAsyncCanceledWriter3()
 
 static void test65_queueLateAsyncCanceledWriter4()
 {
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "QUEUE LATE ASYNC CANCELED WRITER TEST 4");
 
     queueLateAsyncCanceled(L_,
@@ -10125,7 +10124,7 @@ static void test65_queueLateAsyncCanceledWriter4()
 
 static void test66_queueLateAsyncCanceledWriter5()
 {
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "QUEUE LATE ASYNC CANCELED WRITER TEST 5");
 
     queueLateAsyncCanceled(L_,
@@ -10136,7 +10135,7 @@ static void test66_queueLateAsyncCanceledWriter5()
 
 static void test67_queueLateAsyncCanceledHybrid2()
 {
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "QUEUE LATE ASYNC CANCELED HYBRID TEST 2");
 
     bsls::Types::Uint64 flags = 0;
@@ -10156,7 +10155,7 @@ static void test67_queueLateAsyncCanceledHybrid2()
 
 static void test68_queueLateAsyncCanceledHybrid3()
 {
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "QUEUE LATE ASYNC CANCELED HYBRID TEST 3");
 
     bsls::Types::Uint64 flags = 0;
@@ -10176,7 +10175,7 @@ static void test68_queueLateAsyncCanceledHybrid3()
 
 static void test69_queueLateAsyncCanceledHybrid4()
 {
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "QUEUE LATE ASYNC CANCELED HYBRID TEST 4");
 
     bsls::Types::Uint64 flags = 0;
@@ -10191,7 +10190,7 @@ static void test69_queueLateAsyncCanceledHybrid4()
 
 static void test70_queueLateAsyncCanceledHybrid5()
 {
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "QUEUE LATE ASYNC CANCELED HYBRID TEST 5");
 
     bsls::Types::Uint64 flags = 0;
@@ -10210,9 +10209,9 @@ static void test70_queueLateAsyncCanceledHybrid5()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
-    mwcsys::Time::initialize();
+    bmqsys::Time::initialize();
     bmqt::UriParser::initialize(s_allocator_p);
     bmqp::ProtocolUtil::initialize(s_allocator_p);
     bmqp::Crc32c::initialize();
@@ -10295,14 +10294,14 @@ int main(int argc, char* argv[])
     } break;
     }
 
-    mwcsys::Time::shutdown();
+    bmqsys::Time::shutdown();
     bmqt::UriParser::shutdown();
     bmqp::ProtocolUtil::shutdown();
 
-    TEST_EPILOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_EPILOG(bmqtst::TestHelper::e_DEFAULT);
     // Global:  The global allocator is used to initialize the
     //          bmqt::URIParser RegEx.
-    // Default: EventQueue uses mwcc::MonitoredFixedQueue, which uses
+    // Default: EventQueue uses bmqc::MonitoredFixedQueue, which uses
     //          'bdlcc::SharedObjectPool' which uses bslmt::Semaphore which
     //          generates a unique name using an ostringstream, hence the
     //          default allocator.

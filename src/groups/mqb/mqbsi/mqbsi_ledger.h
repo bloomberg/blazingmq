@@ -39,8 +39,7 @@
 #include <mqbsi_log.h>
 #include <mqbu_storagekey.h>
 
-// MWC
-#include <mwcu_blob.h>
+#include <bmqu_blob.h>
 
 // BDE
 #include <bdlb_nullablevalue.h>
@@ -450,8 +449,8 @@ class Ledger {
                             int             length) = 0;
     virtual int writeRecord(LedgerRecordId*           recordId,
                             const bdlbb::Blob&        record,
-                            const mwcu::BlobPosition& offset,
-                            int                       length) = 0;
+                            const bmqu::BlobPosition& offset,
+                            int                       length)             = 0;
 
     /// Write the specified `section` of the specified `record` into this
     /// ledger and load into `recordId` an identifier which can be used to
@@ -460,7 +459,7 @@ class Ledger {
     /// adjust the total outstanding number of bytes if successful.
     virtual int writeRecord(LedgerRecordId*          recordId,
                             const bdlbb::Blob&       record,
-                            const mwcu::BlobSection& section) = 0;
+                            const bmqu::BlobSection& section) = 0;
 
     /// Flush any cached data in this ledger to the underlying storage
     /// mechanism, and return 0 on success, or a non-zero value on error.

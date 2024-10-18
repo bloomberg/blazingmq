@@ -66,8 +66,7 @@
 #include <bslmf_issame.h>
 #include <bsls_types.h>
 
-// MWC
-#include <mwcu_memoutstream.h>
+#include <bmqu_memoutstream.h>
 
 namespace BloombergLP {
 
@@ -595,7 +594,7 @@ class CompilationContext {
     ErrorType::Enum d_lastError;
 
     // If `d_lastError` is not zero, contains a description of the error.
-    mwcu::MemOutStream d_os;
+    bmqu::MemOutStream d_os;
 
     // The resulting AST, if `d_validationOnly` is set to `false`.
     ExpressionPtr d_expression;

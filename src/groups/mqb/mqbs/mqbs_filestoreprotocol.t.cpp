@@ -19,8 +19,7 @@
 // BMQ
 #include <bmqt_messageguid.h>
 
-// MWC
-#include <mwcu_memoutstream.h>
+#include <bmqu_memoutstream.h>
 
 // BDE
 #include <bsl_ios.h>
@@ -29,7 +28,7 @@
 #include <bslma_default.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -67,7 +66,7 @@ static void test1_breathingTest()
 //   Basic functionality of protocol structs
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("BREATHING TEST");
+    bmqtst::TestHelper::printTestName("BREATHING TEST");
 
     using namespace mqbs;
     typedef FileStoreProtocol FSP;
@@ -466,7 +465,7 @@ static void test2_manipulators()
 //   Test protocol structs with edge/corner values
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("MANIPULATORS");
+    bmqtst::TestHelper::printTestName("MANIPULATORS");
 
     using namespace mqbs;
 
@@ -560,7 +559,7 @@ static void test3_printTest()
 //   operator<<(bsl::ostream& stream, const JournalOpRecord& rhs)
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("PRINT TEST");
+    bmqtst::TestHelper::printTestName("PRINT TEST");
 
     using namespace mqbs;
 
@@ -587,7 +586,7 @@ static void test3_printTest()
             "[ type = MESSAGE flags = 0 primaryLeaseId = 8 sequenceNumber = 33"
             " timestamp = 123456 ]";
 
-        mwcu::MemOutStream stream(s_allocator_p);
+        bmqu::MemOutStream stream(s_allocator_p);
         stream << rh;
         ASSERT_EQ(stream.str(), k_EXPECTED_OUTPUT);
         stream.reset();
@@ -623,7 +622,7 @@ static void test3_printTest()
             "messageGUID = ** UNSET ** crc32c = 2333 compressionAlgorithmType "
             "= ZLIB ]";
 
-        mwcu::MemOutStream stream(s_allocator_p);
+        bmqu::MemOutStream stream(s_allocator_p);
         stream << msgRec;
         ASSERT_EQ(stream.str(), k_EXPECTED_OUTPUT);
         stream.reset();
@@ -655,7 +654,7 @@ static void test3_printTest()
             "queueKey = DEADFACE13 appKey = FACEDAFACE messageGUID = ** UNSET "
             "** ]";
 
-        mwcu::MemOutStream stream(s_allocator_p);
+        bmqu::MemOutStream stream(s_allocator_p);
         stream << confRec;
         ASSERT_EQ(stream.str(), k_EXPECTED_OUTPUT);
         stream.reset();
@@ -685,7 +684,7 @@ static void test3_printTest()
             "IMPLICIT_CONFIRM queueKey = DEADFACE13 messageGUID = "
             "** UNSET ** ]";
 
-        mwcu::MemOutStream stream(s_allocator_p);
+        bmqu::MemOutStream stream(s_allocator_p);
         stream << delRec;
         ASSERT_EQ(stream.str(), k_EXPECTED_OUTPUT);
         stream.reset();
@@ -717,7 +716,7 @@ static void test3_printTest()
             "DEADFACE13 appKey = FACEDAFACE type = CREATION "
             "queueUriRecordOffsetWords = 69 ]";
 
-        mwcu::MemOutStream stream(s_allocator_p);
+        bmqu::MemOutStream stream(s_allocator_p);
         stream << qOpRec;
         ASSERT_EQ(stream.str(), k_EXPECTED_OUTPUT);
         stream.reset();
@@ -753,7 +752,7 @@ static void test3_printTest()
             "primaryNodeId = 1 primaryLeaseId = 8 dataFileOffsetDwords = 666 "
             "qlistFileOffsetWords = 23 ]";
 
-        mwcu::MemOutStream stream(s_allocator_p);
+        bmqu::MemOutStream stream(s_allocator_p);
         stream << jOpRec;
         ASSERT_EQ(stream.str(), expectedOut);
         stream.reset();
@@ -772,7 +771,7 @@ static void test3_printTest()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     switch (_testCase) {
     case 0:
@@ -785,5 +784,5 @@ int main(int argc, char* argv[])
     } break;
     }
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }

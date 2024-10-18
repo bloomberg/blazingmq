@@ -23,15 +23,14 @@
 // BMQ
 #include <bmqp_ctrlmsg_messages.h>
 
-// MWC
-#include <mwcu_memoutstream.h>
+#include <bmqu_memoutstream.h>
 
 // BDE
 #include <bsl_ostream.h>
 #include <bsls_protocoltest.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -143,7 +142,7 @@ static void test1_clusterStateLedgerIterator_protocol()
 //   PROTOCOL TEST
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("CLUSTER STATE LEDGER ITERATOR - "
+    bmqtst::TestHelper::printTestName("CLUSTER STATE LEDGER ITERATOR - "
                                       "PROTOCOL TEST");
 
     PV("Creating a test object");
@@ -166,7 +165,7 @@ static void test1_clusterStateLedgerIterator_protocol()
             s_allocator_p);
         mqbmock::ClusterStateLedgerIterator cslIter(records);
         bmqp_ctrlmsg::ClusterMessage        clusterMessage;
-        mwcu::MemOutStream                  os;
+        bmqu::MemOutStream                  os;
         BSLS_PROTOCOLTEST_ASSERT(testObj, copy(cslIter));
         BSLS_PROTOCOLTEST_ASSERT(testObj, clone(0));
         BSLS_PROTOCOLTEST_ASSERT(testObj, next());
@@ -183,7 +182,7 @@ static void test1_clusterStateLedgerIterator_protocol()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     switch (_testCase) {
     case 0:
@@ -194,5 +193,5 @@ int main(int argc, char* argv[])
     } break;
     }
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }

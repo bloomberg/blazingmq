@@ -42,8 +42,7 @@
 #include <mqbi_dispatcher.h>
 #include <mqbnet_elector.h>
 
-// MWC
-#include <mwcma_countingallocatorstore.h>
+#include <bmqma_countingallocatorstore.h>
 
 // BMQ
 #include <bmqp_ctrlmsg_messages.h>
@@ -117,7 +116,7 @@ class ClusterOrchestrator {
     bslma::Allocator* d_allocator_p;
     // Allocator to use
 
-    mwcma::CountingAllocatorStore d_allocators;
+    bmqma::CountingAllocatorStore d_allocators;
     // Allocator store to spawn new
     // allocators for sub-components
 

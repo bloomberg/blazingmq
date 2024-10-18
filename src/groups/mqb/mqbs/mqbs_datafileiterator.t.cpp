@@ -34,7 +34,7 @@
 #include <bslma_default.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 using namespace BloombergLP;
 using namespace bsl;
@@ -150,7 +150,7 @@ static void test1_breathingTest()
 //   Basic functionality of the component
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("BREATHING TEST");
+    bmqtst::TestHelper::printTestName("BREATHING TEST");
 
     {
         // Default Object
@@ -212,7 +212,7 @@ static void test2_forwardIteration()
 //   Forward iteration.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("FORWARD ITERATION");
+    bmqtst::TestHelper::printTestName("FORWARD ITERATION");
 
     const Message MESSAGES[] = {
         {
@@ -289,7 +289,7 @@ static void test3_reverseIteration()
 //   Reverse iteration.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("REVERSE ITERATION");
+    bmqtst::TestHelper::printTestName("REVERSE ITERATION");
 
     const Message MESSAGES[] = {
         {
@@ -390,7 +390,7 @@ static void test3_reverseIteration()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     switch (_testCase) {
     case 0:
@@ -403,5 +403,5 @@ int main(int argc, char* argv[])
     } break;
     }
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }

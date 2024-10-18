@@ -19,7 +19,7 @@
 #include <bsl_limits.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -58,7 +58,7 @@ static void ensureIsBalanced(const mqbu::LoadBalancer<MyDummyType>& obj)
 // ----------------------------------------------------------------------------
 static void test1_breathingTest()
 {
-    mwctst::TestHelper::printTestName("BREATHING TEST");
+    bmqtst::TestHelper::printTestName("BREATHING TEST");
 
     const int                       k_NUM_PROCESSORS = 3;
     const int                       k_NUM_CLIENTS    = 13;
@@ -118,7 +118,7 @@ static void test1_breathingTest()
 
 static void test2_singleProcessorLoadBalancer()
 {
-    mwctst::TestHelper::printTestName("SINGLE PROCESSOR LOAD BALANCER");
+    bmqtst::TestHelper::printTestName("SINGLE PROCESSOR LOAD BALANCER");
 
     const int                       k_NUM_PROCESSORS = 1;
     const int                       k_NUM_CLIENTS    = 10;
@@ -147,7 +147,7 @@ static void test2_singleProcessorLoadBalancer()
 
 static void test3_loadBalancing()
 {
-    mwctst::TestHelper::printTestName("LOAD BALANCING");
+    bmqtst::TestHelper::printTestName("LOAD BALANCING");
 
     const int                       k_INITIAL_CLIENTS_COUNT = 137;
     mqbu::LoadBalancer<MyDummyType> obj(5, s_allocator_p);
@@ -191,7 +191,7 @@ static void test3_loadBalancing()
 
 static void test4_forceAssociate()
 {
-    mwctst::TestHelper::printTestName("FORCE_ASSOCIATE");
+    bmqtst::TestHelper::printTestName("FORCE_ASSOCIATE");
 
     const int                       k_NUM_PROCESSORS = 3;
     mqbu::LoadBalancer<MyDummyType> obj(k_NUM_PROCESSORS, s_allocator_p);
@@ -233,7 +233,7 @@ static void test4_forceAssociate()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     switch (_testCase) {
     case 0:
@@ -247,5 +247,5 @@ int main(int argc, char* argv[])
     } break;
     }
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }

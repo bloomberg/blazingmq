@@ -36,8 +36,8 @@
 #include <bmqa_openqueuestatus.h>
 #include <bmqt_messageguid.h>
 
-// MWC
-#include <mwcc_orderedhashmap.h>
+// BMQ
+#include <bmqc_orderedhashmap.h>
 
 // BDE
 #include <ball_log.h>
@@ -73,7 +73,7 @@ class Interactive {
     // PRIVATE TYPES
 
     /// Must be ordered by msgGUID to have them oldest first when iterating
-    typedef mwcc::OrderedHashMap<bmqt::MessageGUID,
+    typedef bmqc::OrderedHashMap<bmqt::MessageGUID,
                                  bmqa::Message,
                                  bslh::Hash<bmqt::MessageGUIDHashAlgo> >
         MessagesMap;

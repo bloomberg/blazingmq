@@ -25,9 +25,8 @@
 #include <bmqp_optionutil.h>
 #include <bmqp_protocolutil.h>
 
-// MWC
-#include <mwcu_blobobjectproxy.h>
-#include <mwcu_memoutstream.h>
+#include <bmqu_blobobjectproxy.h>
+#include <bmqu_memoutstream.h>
 
 // BDE
 #include <bdlma_localsequentialallocator.h>
@@ -90,8 +89,8 @@ int PutMessageIterator::compressedApplicationDataSize() const
     // and message payload.
     const int msgLenPadded = d_header.messageWords() * Protocol::k_WORD_SIZE;
 
-    mwcu::BlobPosition lastBytePos;
-    int                rc = mwcu::BlobUtil::findOffsetSafe(&lastBytePos,
+    bmqu::BlobPosition lastBytePos;
+    int                rc = bmqu::BlobUtil::findOffsetSafe(&lastBytePos,
                                             *d_blobIter.blob(),
                                             d_blobIter.position(),
                                             msgLenPadded - 1);
@@ -135,12 +134,12 @@ int PutMessageIterator::applicationDataSize() const
 }
 
 int PutMessageIterator::loadApplicationDataPosition(
-    mwcu::BlobPosition* position) const
+    bmqu::BlobPosition* position) const
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(position);
     BSLS_ASSERT_SAFE(isValid());
-    BSLS_ASSERT_SAFE(d_applicationDataPosition != mwcu::BlobPosition());
+    BSLS_ASSERT_SAFE(d_applicationDataPosition != bmqu::BlobPosition());
 
     enum RcEnum {
         // Value for the various RC error categories
@@ -168,14 +167,14 @@ int PutMessageIterator::loadApplicationData(bdlbb::Blob* blob) const
     };
 
     if (d_applicationDataSize > -1) {
-        mwcu::BlobUtil::appendToBlob(blob,
+        bmqu::BlobUtil::appendToBlob(blob,
                                      d_applicationData,
-                                     mwcu::BlobPosition());
+                                     bmqu::BlobPosition());
         return rc_SUCCESS;  // RETURN
     }
 
-    BSLS_ASSERT_SAFE(d_applicationDataPosition != mwcu::BlobPosition());
-    int rc = mwcu::BlobUtil::appendToBlob(blob,
+    BSLS_ASSERT_SAFE(d_applicationDataPosition != bmqu::BlobPosition());
+    int rc = bmqu::BlobUtil::appendToBlob(blob,
                                           *d_blobIter.blob(),
                                           d_applicationDataPosition,
                                           applicationDataSize());
@@ -211,7 +210,7 @@ int PutMessageIterator::loadOptions(bdlbb::Blob* blob) const
         return rc_SUCCESS;  // RETURN
     }
 
-    const int rc = mwcu::BlobUtil::appendToBlob(blob,
+    const int rc = bmqu::BlobUtil::appendToBlob(blob,
                                                 *d_blobIter.blob(),
                                                 d_optionsPosition,
                                                 d_optionsSize);
@@ -232,7 +231,7 @@ int PutMessageIterator::loadOptionsView(OptionsView* view) const
 }
 
 int PutMessageIterator::loadMessagePropertiesPosition(
-    mwcu::BlobPosition* position) const
+    bmqu::BlobPosition* position) const
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(position);
@@ -242,11 +241,11 @@ int PutMessageIterator::loadMessagePropertiesPosition(
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!hasMessageProperties())) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        *position = mwcu::BlobPosition();
+        *position = bmqu::BlobPosition();
         return rc_NO_MSG_PROPERTIES;  // RETURN
     }
 
-    BSLS_ASSERT_SAFE(d_applicationDataPosition != mwcu::BlobPosition());
+    BSLS_ASSERT_SAFE(d_applicationDataPosition != bmqu::BlobPosition());
     BSLS_ASSERT_SAFE(0 < d_messagePropertiesSize);
 
     *position = d_applicationDataPosition;
@@ -268,12 +267,12 @@ int PutMessageIterator::loadMessageProperties(bdlbb::Blob* blob) const
     }
 
     // Message properties are present.
-    BSLS_ASSERT_SAFE(d_applicationDataPosition != mwcu::BlobPosition());
+    BSLS_ASSERT_SAFE(d_applicationDataPosition != bmqu::BlobPosition());
     BSLS_ASSERT_SAFE(0 < d_messagePropertiesSize);
 
-    int rc = mwcu::BlobUtil::appendToBlob(blob,
+    int rc = bmqu::BlobUtil::appendToBlob(blob,
                                           d_applicationData,
-                                          mwcu::BlobPosition(),
+                                          bmqu::BlobPosition(),
                                           d_messagePropertiesSize);
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc != 0)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
@@ -336,7 +335,7 @@ int PutMessageIterator::messagePayloadSize() const
 }
 
 int PutMessageIterator::loadMessagePayloadPosition(
-    mwcu::BlobPosition* position) const
+    bmqu::BlobPosition* position) const
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(position);
@@ -350,19 +349,19 @@ int PutMessageIterator::loadMessagePayloadPosition(
         rc_INVALID_PAYLOAD_OFFSET   = -2
     };
 
-    if (d_lazyMessagePayloadPosition != mwcu::BlobPosition()) {
+    if (d_lazyMessagePayloadPosition != bmqu::BlobPosition()) {
         *position = d_lazyMessagePayloadPosition;
         return rc_SUCCESS;  // RETURN
     }
 
-    int rc = mwcu::BlobUtil::findOffsetSafe(&d_lazyMessagePayloadPosition,
+    int rc = bmqu::BlobUtil::findOffsetSafe(&d_lazyMessagePayloadPosition,
                                             d_applicationData,
-                                            mwcu::BlobPosition(),
+                                            bmqu::BlobPosition(),
                                             d_messagePropertiesSize);
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc != 0)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        d_lazyMessagePayloadPosition = mwcu::BlobPosition();
+        d_lazyMessagePayloadPosition = bmqu::BlobPosition();
         return (rc * 10 + rc_INVALID_PAYLOAD_OFFSET);  // RETURN
     }
 
@@ -382,12 +381,12 @@ int PutMessageIterator::loadMessagePayload(bdlbb::Blob* blob) const
         rc_INVALID_PAYLOAD_LENGTH = -2
     };
 
-    if (d_lazyMessagePayloadPosition == mwcu::BlobPosition()) {
+    if (d_lazyMessagePayloadPosition == bmqu::BlobPosition()) {
         // This could be because 'loadMessagePayloadPosition' wasn't called or
         // because it failed.  If its later, calling it will fail again, and an
         // appropriate error will be returned.
 
-        mwcu::BlobPosition payloadPos;
+        bmqu::BlobPosition payloadPos;
         int                rc = loadMessagePayloadPosition(&payloadPos);
         if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc != 0)) {
             BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
@@ -397,7 +396,7 @@ int PutMessageIterator::loadMessagePayload(bdlbb::Blob* blob) const
         BSLS_ASSERT_SAFE(d_lazyMessagePayloadPosition == payloadPos);
     }
 
-    int rc = mwcu::BlobUtil::appendToBlob(blob,
+    int rc = bmqu::BlobUtil::appendToBlob(blob,
                                           d_applicationData,
                                           d_lazyMessagePayloadPosition,
                                           messagePayloadSize());
@@ -482,11 +481,11 @@ int PutMessageIterator::next()
     // message
     d_applicationDataSize        = -1;
     d_lazyMessagePayloadSize     = -1;
-    d_lazyMessagePayloadPosition = mwcu::BlobPosition();
+    d_lazyMessagePayloadPosition = bmqu::BlobPosition();
     d_messagePropertiesSize      = 0;
-    d_applicationDataPosition    = mwcu::BlobPosition();
+    d_applicationDataPosition    = bmqu::BlobPosition();
     d_optionsSize                = 0;
-    d_optionsPosition            = mwcu::BlobPosition();
+    d_optionsPosition            = bmqu::BlobPosition();
     d_optionsView.reset();
     d_applicationData.removeAll();
 
@@ -496,7 +495,7 @@ int PutMessageIterator::next()
 
     // Read PutHeader, supporting protocol evolution by reading as many bytes
     // as the header declares (and not as many as the size of the struct)
-    mwcu::BlobObjectProxy<PutHeader> header(d_blobIter.blob(),
+    bmqu::BlobObjectProxy<PutHeader> header(d_blobIter.blob(),
                                             d_blobIter.position(),
                                             -PutHeader::k_MIN_HEADER_SIZE,
                                             true,
@@ -570,14 +569,14 @@ int PutMessageIterator::next()
     // the application data offset.
     int dataOffset = (d_header.headerWords() + d_header.optionsWords()) *
                      bmqp::Protocol::k_WORD_SIZE;
-    int rc = mwcu::BlobUtil::findOffsetSafe(&d_applicationDataPosition,
+    int rc = bmqu::BlobUtil::findOffsetSafe(&d_applicationDataPosition,
                                             *d_blobIter.blob(),
                                             header.position(),
                                             dataOffset);
     // 'd_applicationDataPosition' is 'sizeof(EventHeader) + dataOffset'
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc != 0)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        d_applicationDataPosition = mwcu::BlobPosition();
+        d_applicationDataPosition = bmqu::BlobPosition();
         d_advanceLength           = -1;
         return (rc * 10 + rc_INVALID_APPLICATION_DATA_OFFSET);  // RETURN
     }
@@ -633,7 +632,7 @@ int PutMessageIterator::next()
                              d_allocator_p);
 
     if (rc < 0) {
-        d_applicationDataPosition = mwcu::BlobPosition();
+        d_applicationDataPosition = bmqu::BlobPosition();
         d_advanceLength           = -1;
         return rc * 100 + rc_PARSING_ERROR;  // RETURN
     }
@@ -675,7 +674,7 @@ int PutMessageIterator::reset(const bdlbb::Blob* blob,
     clear();
 
     d_decompressFlag = decompressFlag;
-    d_blobIter.reset(blob, mwcu::BlobPosition(), blob->length(), true);
+    d_blobIter.reset(blob, bmqu::BlobPosition(), blob->length(), true);
 
     bool rc = d_blobIter.advance(eventHeader.headerWords() *
                                  Protocol::k_WORD_SIZE);
@@ -715,7 +714,7 @@ void PutMessageIterator::dumpBlob(bsl::ostream& stream)
     // For now, print only the beginning of the blob.. we may later on print
     // also the bytes around the current position
     if (d_blobIter.blob()) {
-        stream << mwcu::BlobStartHexDumper(d_blobIter.blob(),
+        stream << bmqu::BlobStartHexDumper(d_blobIter.blob(),
                                            k_MAX_BYTES_DUMP);
     }
     else {

@@ -24,9 +24,8 @@
 #include <bmqp_queueid.h>
 #include <bmqt_uri.h>
 
-// MWC
-#include <mwcst_statcontext.h>
-#include <mwcu_memoutstream.h>
+#include <bmqst_statcontext.h>
+#include <bmqu_memoutstream.h>
 
 // BDE
 #include <bsl_ios.h>
@@ -34,7 +33,7 @@
 #include <bsls_assert.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -60,7 +59,7 @@ static void test1_breathingTest()
 //   Basic functionality
 // --------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("BREATHING TEST");
+    bmqtst::TestHelper::printTestName("BREATHING TEST");
 
     // Constants
     const int k_INVALID_QUEUE_ID     = bmqimp::Queue::k_INVALID_QUEUE_ID;
@@ -118,7 +117,7 @@ static void test2_settersTest()
 //   Setters and getters
 // --------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("SETTERS TEST");
+    bmqtst::TestHelper::printTestName("SETTERS TEST");
 
     bmqimp::Queue obj(s_allocator_p);
 
@@ -196,7 +195,7 @@ static void test3_printQueueStateTest()
 //                            bmqimp::QueueState::Enum value);
 // --------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("PRINT QUEUE STATE");
+    bmqtst::TestHelper::printTestName("PRINT QUEUE STATE");
 
     PV("Testing print");
 
@@ -229,8 +228,8 @@ static void test3_printQueueStateTest()
 
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
         const Test&        test = k_DATA[idx];
-        mwcu::MemOutStream out(s_allocator_p);
-        mwcu::MemOutStream expected(s_allocator_p);
+        bmqu::MemOutStream out(s_allocator_p);
+        bmqu::MemOutStream expected(s_allocator_p);
 
         expected << test.d_expected << "\n";
 
@@ -276,7 +275,7 @@ static void test4_printTest()
 //                            bmqimp::Queue rhs);
 // --------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("PRINT");
+    bmqtst::TestHelper::printTestName("PRINT");
 
     PV("Testing bmqimp::Queue print");
 
@@ -323,8 +322,8 @@ static void test4_printTest()
         "pendingConfigureId = 65432 requestGroupId = 4091 isSuspended = false "
         "isSuspendedWithBroker = false ]";
 
-    mwcu::MemOutStream out(s_allocator_p);
-    mwcu::MemOutStream expected(s_allocator_p);
+    bmqu::MemOutStream out(s_allocator_p);
+    bmqu::MemOutStream expected(s_allocator_p);
 
     expected << k_PATTERN;
 
@@ -362,7 +361,7 @@ static void test5_comparisionTest()
 //   bool operator==(const bmqimp::Queue& lhs, const bmqimp::Queue& rhs);
 // --------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("COMPARISION TEST");
+    bmqtst::TestHelper::printTestName("COMPARISION TEST");
 
     bmqimp::Queue obj1(s_allocator_p);
     bmqimp::Queue obj2(s_allocator_p);
@@ -422,11 +421,11 @@ static void test6_statTest()
 {
     s_ignoreCheckDefAlloc = true;
     // Check for default allocator is explicitly disabled as
-    // 'mwcst::TableSchema::addColumn' used in
+    // 'bmqst::TableSchema::addColumn' used in
     // 'bmqimp::QueueStatsUtil::initializeStats' may allocate
     // temporaries with default allocator.
 
-    mwctst::TestHelper::printTestName("STAT TEST");
+    bmqtst::TestHelper::printTestName("STAT TEST");
 
     const char k_URI[] = "bmq://ts.trades.myapp/my.queue?id=my.app";
 
@@ -434,14 +433,14 @@ static void test6_statTest()
     bmqimp::QueueState::Enum k_STATE = bmqimp::QueueState::e_OPENED;
     bmqimp::Queue            obj(s_allocator_p);
 
-    mwcst::StatContextConfiguration config("stats", s_allocator_p);
+    bmqst::StatContextConfiguration config("stats", s_allocator_p);
 
     config.defaultHistorySize(1);
 
-    mwcst::StatContext rootStatContext(config, s_allocator_p);
+    bmqst::StatContext rootStatContext(config, s_allocator_p);
 
-    mwcst::StatValue::SnapshotLocation start;
-    mwcst::StatValue::SnapshotLocation end;
+    bmqst::StatValue::SnapshotLocation start;
+    bmqst::StatValue::SnapshotLocation end;
 
     start.setLevel(0).setIndex(0);
     end.setLevel(0).setIndex(1);
@@ -453,7 +452,7 @@ static void test6_statTest()
                                             end,
                                             s_allocator_p);
 
-    mwcst::StatContext* pStatContext = queuesStats.d_statContext_mp.get();
+    bmqst::StatContext* pStatContext = queuesStats.d_statContext_mp.get();
 
     ASSERT(pStatContext != 0);
 
@@ -475,7 +474,7 @@ static void test6_statTest()
     ASSERT_EQ(rootStatContext.numSubcontexts(), 1);
 
     const char                k_STAT_NAME[] = "queues";
-    const mwcst::StatContext* k_pSubContext = rootStatContext.getSubcontext(
+    const bmqst::StatContext* k_pSubContext = rootStatContext.getSubcontext(
         k_STAT_NAME);
 
     ASSERT(k_pSubContext != 0);
@@ -484,14 +483,14 @@ static void test6_statTest()
     ASSERT_EQ(k_pSubContext->valueName(1), "out");
     ASSERT_EQ(k_pSubContext->valueName(2), "compression_ratio");
 
-    const mwcst::StatValue& k_IN_VALUE =
-        k_pSubContext->value(mwcst::StatContext::e_TOTAL_VALUE, 0);
+    const bmqst::StatValue& k_IN_VALUE =
+        k_pSubContext->value(bmqst::StatContext::e_TOTAL_VALUE, 0);
 
-    const mwcst::StatValue& k_OUT_VALUE =
-        k_pSubContext->value(mwcst::StatContext::e_TOTAL_VALUE, 1);
+    const bmqst::StatValue& k_OUT_VALUE =
+        k_pSubContext->value(bmqst::StatContext::e_TOTAL_VALUE, 1);
 
-    const mwcst::StatValue& k_STAT_COMPRESSION_RATIO =
-        k_pSubContext->value(mwcst::StatContext::e_TOTAL_VALUE, 2);
+    const bmqst::StatValue& k_STAT_COMPRESSION_RATIO =
+        k_pSubContext->value(bmqst::StatContext::e_TOTAL_VALUE, 2);
 
     const int k_NEW_OUT_VALUE = 1024;
 
@@ -520,7 +519,7 @@ static void test6_statTest()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     bmqt::UriParser::initialize(s_allocator_p);
 
@@ -540,5 +539,5 @@ int main(int argc, char* argv[])
 
     bmqt::UriParser::shutdown();
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }

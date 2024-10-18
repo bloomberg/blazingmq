@@ -40,8 +40,7 @@
 #include <bmqt_correlationid.h>
 #include <bmqt_messageguid.h>
 
-// MWC
-#include <mwcc_orderedhashmap.h>
+#include <bmqc_orderedhashmap.h>
 
 // BDE
 #include <bsl_functional.h>
@@ -115,10 +114,10 @@ class MessageCorrelationIdContainer {
     /// Map of key to an object containing correlationId and queueId of a
     /// message.  This should be an ordered container so that any local
     /// NAKs are generated in the order in which PUTs were posted.
-    typedef mwcc::OrderedHashMap<bmqt::MessageGUID, QueueAndCorrelationId>
+    typedef bmqc::OrderedHashMap<bmqt::MessageGUID, QueueAndCorrelationId>
         CorrelationIdsMap;
 
-    typedef mwcc::OrderedHashMap<bmqt::MessageGUID, bsls::TimeInterval>
+    typedef bmqc::OrderedHashMap<bmqt::MessageGUID, bsls::TimeInterval>
         HandleAndExpirationTimeMap;
 
     /// Map of key (queueId) to an ordered map of handle (message GUID and

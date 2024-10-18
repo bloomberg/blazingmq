@@ -19,9 +19,8 @@
 // MQB
 #include <mqbnet_cluster.h>
 
-// MWC
-#include <mwcsys_mocktime.h>
-#include <mwcsys_time.h>
+#include <bmqsys_mocktime.h>
+#include <bmqsys_time.h>
 
 // BDE
 #include <bdlb_nullablevalue.h>
@@ -31,7 +30,7 @@
 #include <bslim_printer.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 using namespace BloombergLP;
 using namespace bsl;
@@ -48,7 +47,7 @@ using namespace BloombergLP::mqbnet;
 namespace {
 
 /// Elector clock with static storage used in various test cases
-static mwcsys::MockTime* s_electorClock;
+static bmqsys::MockTime* s_electorClock;
 
 // ====================
 // struct ExpectedState
@@ -179,7 +178,7 @@ static void test1_breathingTest()
 //   Dormant -> Follower -> Candidate -> Leader
 // --------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("BREATHING TEST");
+    bmqtst::TestHelper::printTestName("BREATHING TEST");
 
     {
         PV("Ensure constants values");
@@ -253,7 +252,7 @@ static void test2()
     // Logging infrastructure allocates using the default allocator, and
     // that logging is beyond the control of this function.
 
-    mwctst::TestHelper::printTestName("TEST 2");
+    bmqtst::TestHelper::printTestName("TEST 2");
 
     const int k_SELFID             = 0;
     const int k_QUORUM             = 3;
@@ -406,7 +405,7 @@ static void test3()
     // Logging infrastructure allocates using the default allocator, and
     // that logging is beyond the control of this function.
 
-    mwctst::TestHelper::printTestName("TEST 3");
+    bmqtst::TestHelper::printTestName("TEST 3");
 
     const int k_SELFID             = 0;
     const int k_QUORUM             = 3;
@@ -546,7 +545,7 @@ static void test4()
     // Logging infrastructure allocates using the default allocator, and
     // that logging is beyond the control of this function.
 
-    mwctst::TestHelper::printTestName("TEST 4");
+    bmqtst::TestHelper::printTestName("TEST 4");
 
     const int k_SELFID             = 0;
     const int k_QUORUM             = 3;
@@ -851,7 +850,7 @@ static void test5()
     // Logging infrastructure allocates using the default allocator, and
     // that logging is beyond the control of this function.
 
-    mwctst::TestHelper::printTestName("TEST 5");
+    bmqtst::TestHelper::printTestName("TEST 5");
 
     const int k_SELFID             = 0;
     const int k_QUORUM             = 3;
@@ -1001,7 +1000,7 @@ static void test6()
     // Logging infrastructure allocates using the default allocator, and
     // that logging is beyond the control of this function.
 
-    mwctst::TestHelper::printTestName("TEST 6");
+    bmqtst::TestHelper::printTestName("TEST 6");
 
     const int k_SELFID             = 0;
     const int k_QUORUM             = 3;
@@ -1188,7 +1187,7 @@ static void test7()
     // Logging infrastructure allocates using the default allocator, and
     // that logging is beyond the control of this function.
 
-    mwctst::TestHelper::printTestName("TEST 7");
+    bmqtst::TestHelper::printTestName("TEST 7");
 
     const int k_SELFID             = 0;
     const int k_QUORUM             = 3;
@@ -1340,7 +1339,7 @@ static void test8()
     // Logging infrastructure allocates using the default allocator, and
     // that logging is beyond the control of this function.
 
-    mwctst::TestHelper::printTestName("TEST 8");
+    bmqtst::TestHelper::printTestName("TEST 8");
 
     const int k_SELFID             = 0;
     const int k_QUORUM             = 3;
@@ -1490,7 +1489,7 @@ static void test9()
     // Logging infrastructure allocates using the default allocator, and
     // that logging is beyond the control of this function.
 
-    mwctst::TestHelper::printTestName("TEST 9");
+    bmqtst::TestHelper::printTestName("TEST 9");
 
     const int k_SELFID             = 0;
     const int k_QUORUM             = 1;
@@ -1566,7 +1565,7 @@ static void test10()
     // Logging infrastructure allocates using the default allocator, and
     // that logging is beyond the control of this function.
 
-    mwctst::TestHelper::printTestName("TEST 10");
+    bmqtst::TestHelper::printTestName("TEST 10");
 
     const int k_SELFID             = 0;
     const int k_QUORUM             = 1;
@@ -1651,7 +1650,7 @@ static void test11()
     // Logging infrastructure allocates using the default allocator, and
     // that logging is beyond the control of this function.
 
-    mwctst::TestHelper::printTestName("TEST 11");
+    bmqtst::TestHelper::printTestName("TEST 11");
 
     const int k_SELFID             = 0;
     const int k_QUORUM             = 3;
@@ -1819,7 +1818,7 @@ static void test12()
     // Logging infrastructure allocates using the default allocator, and
     // that logging is beyond the control of this function.
 
-    mwctst::TestHelper::printTestName("TEST 12");
+    bmqtst::TestHelper::printTestName("TEST 12");
 
     const int k_SELFID             = 0;
     const int k_QUORUM             = 4;
@@ -1876,7 +1875,7 @@ static void test13()
     // Logging infrastructure allocates using the default allocator, and
     // that logging is beyond the control of this function.
 
-    mwctst::TestHelper::printTestName("TEST 13");
+    bmqtst::TestHelper::printTestName("TEST 13");
 
     const int k_SELFID             = 0;
     const int k_QUORUM             = 3;
@@ -1953,7 +1952,7 @@ static void test14()
     // Logging infrastructure allocates using the default allocator, and
     // that logging is beyond the control of this function.
 
-    mwctst::TestHelper::printTestName("TEST 14");
+    bmqtst::TestHelper::printTestName("TEST 14");
 
     const int k_SELFID             = 0;
     const int k_QUORUM             = 3;
@@ -2065,7 +2064,7 @@ static void test15()
     // Logging infrastructure allocates using the default allocator, and
     // that logging is beyond the control of this function.
 
-    mwctst::TestHelper::printTestName("TEST 15");
+    bmqtst::TestHelper::printTestName("TEST 15");
 
     const int k_SELFID             = 0;
     const int k_QUORUM             = 3;
@@ -2152,7 +2151,7 @@ static void test16()
     // Logging infrastructure allocates using the default allocator, and
     // that logging is beyond the control of this function.
 
-    mwctst::TestHelper::printTestName("TEST 16");
+    bmqtst::TestHelper::printTestName("TEST 16");
 
     const int k_SELFID             = 0;
     const int k_QUORUM             = 3;
@@ -2256,7 +2255,7 @@ static void test17()
     // Logging infrastructure allocates using the default allocator, and
     // that logging is beyond the control of this function.
 
-    mwctst::TestHelper::printTestName("TEST 17");
+    bmqtst::TestHelper::printTestName("TEST 17");
 
     const int k_SELFID             = 0;
     const int k_QUORUM             = 3;
@@ -2360,7 +2359,7 @@ static void test18()
     // Logging infrastructure allocates using the default allocator, and
     // that logging is beyond the control of this function.
 
-    mwctst::TestHelper::printTestName("TEST 18");
+    bmqtst::TestHelper::printTestName("TEST 18");
 
     const int k_SELFID             = 0;
     const int k_QUORUM             = 3;
@@ -2454,7 +2453,7 @@ static void test19()
     // Logging infrastructure allocates using the default allocator, and
     // that logging is beyond the control of this function.
 
-    mwctst::TestHelper::printTestName("TEST 19");
+    bmqtst::TestHelper::printTestName("TEST 19");
 
     const int k_SELFID             = 0;
     const int k_QUORUM             = 3;
@@ -2529,7 +2528,7 @@ static void test20()
     // Logging infrastructure allocates using the default allocator, and
     // that logging is beyond the control of this function.
 
-    mwctst::TestHelper::printTestName("TEST 20");
+    bmqtst::TestHelper::printTestName("TEST 20");
 
     const int k_SELFID             = 0;
     const int k_QUORUM             = 3;
@@ -2666,12 +2665,12 @@ static void test20()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     using namespace mqbnet;
 
     // Setup the test clock (once per task)
-    s_electorClock = new (*s_allocator_p) mwcsys::MockTime;
+    s_electorClock = new (*s_allocator_p) bmqsys::MockTime;
 
     switch (_testCase) {
     case 0:
@@ -2703,5 +2702,5 @@ int main(int argc, char* argv[])
 
     s_allocator_p->deallocate(s_electorClock);
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }

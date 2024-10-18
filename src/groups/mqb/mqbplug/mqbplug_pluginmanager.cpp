@@ -20,9 +20,8 @@
 // MQB
 #include <mqbplug_pluginlibrary.h>
 
-// MWC
-#include <mwctsk_alarmlog.h>
-#include <mwcu_memoutstream.h>
+#include <bmqtsk_alarmlog.h>
+#include <bmqu_memoutstream.h>
 
 // BDE
 #include <ball_log.h>
@@ -318,9 +317,9 @@ int PluginManager::start(const mqbcfg::Plugins& pluginsConfig,
 
     // If no plugin is enabled at all, log a warning.
     if (requiredPlugins.empty()) {
-        MWCTSK_ALARMLOG_ALARM("PLUGIN_MISSING")
+        BMQTSK_ALARMLOG_ALARM("PLUGIN_MISSING")
             << "No plugin is enabled at all. Please double check if this is "
-            << "intended." << MWCTSK_ALARMLOG_END;
+            << "intended." << BMQTSK_ALARMLOG_END;
         return rc_SUCCESS;  // RETURN
     }
 
@@ -387,7 +386,7 @@ int PluginManager::start(const mqbcfg::Plugins& pluginsConfig,
             }
         }
 
-        mwcu::MemOutStream errorDesc;
+        bmqu::MemOutStream errorDesc;
         errorDesc << "Could not find unique candidates for all required "
                      "plugins [missingOrDuplicate: ["
                   << libraryList.str() << "]]";
@@ -400,8 +399,8 @@ int PluginManager::start(const mqbcfg::Plugins& pluginsConfig,
             // If there are missing plugins but no duplicates, we will log an
             // error but we can still start the broker.
 
-            MWCTSK_ALARMLOG_ALARM("PLUGIN_MISSING")
-                << errorDesc.str() << MWCTSK_ALARMLOG_END;
+            BMQTSK_ALARMLOG_ALARM("PLUGIN_MISSING")
+                << errorDesc.str() << BMQTSK_ALARMLOG_END;
         }
     }
     return rc;

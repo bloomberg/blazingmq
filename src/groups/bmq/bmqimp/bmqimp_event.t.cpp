@@ -26,9 +26,8 @@
 #include <bmqt_messageeventtype.h>
 #include <bmqt_messageguid.h>
 
-// MWC
-#include <mwcu_blob.h>
-#include <mwcu_memoutstream.h>
+#include <bmqu_blob.h>
+#include <bmqu_memoutstream.h>
 
 // BDE
 #include <bdlbb_blobutil.h>
@@ -36,7 +35,7 @@
 #include <bdlf_bind.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -214,7 +213,7 @@ static unsigned int findExpectedCrc32(
         // New format.
     }
 
-    mwcu::MemOutStream error(allocator);
+    bmqu::MemOutStream error(allocator);
     int                rc = bmqp::Compression::compress(&testApplicationData,
                                          bufferFactory,
                                          compressionAlgorithmType,
@@ -234,7 +233,7 @@ static unsigned int findExpectedCrc32(
 
 static void test1_breathingTest()
 {
-    mwctst::TestHelper::printTestName("BREATHING TEST");
+    bmqtst::TestHelper::printTestName("BREATHING TEST");
     bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
     bmqimp::Event                  obj(&bufferFactory, s_allocator_p);
     bdlbb::Blob                    eventBlob(&bufferFactory, s_allocator_p);
@@ -316,7 +315,7 @@ static void test2_setterGetterTest()
     //   - setDoneCallback
     //   - insertQueue
     //   ----------------------------------------------------------------------
-    mwctst::TestHelper::printTestName("GENERAL SETTER GETTER TEST");
+    bmqtst::TestHelper::printTestName("GENERAL SETTER GETTER TEST");
 
     bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
     bmqimp::Event                  obj(&bufferFactory, s_allocator_p);
@@ -422,7 +421,7 @@ static void test3_sessionEvent_setterGetterTest()
     //   - setCorrelationId
     //   - setStatusCode
     // ------------------------------------------------------------------------
-    mwctst::TestHelper::printTestName("SETTER GETTER TEST FOR SESSION EVENT");
+    bmqtst::TestHelper::printTestName("SETTER GETTER TEST FOR SESSION EVENT");
 
     bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
     bmqimp::Event                  obj(&bufferFactory, s_allocator_p);
@@ -471,7 +470,7 @@ static void test4_messageEvent_setterGetterTest()
     // Testing manipulators:
     //   - addCorrelationId
     // ------------------------------------------------------------------------
-    mwctst::TestHelper::printTestName("SETTER GETTER TEST FOR MESSAGE EVENT");
+    bmqtst::TestHelper::printTestName("SETTER GETTER TEST FOR MESSAGE EVENT");
 
     PV("Configure as MesageEvent");
     bmqt::CorrelationId corrId1(123);
@@ -619,7 +618,7 @@ static void test5_configureAsMessageEventTest()
                                 false}};
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "CONFIGURE AS MESSAGE EVENT / MESSAGE ITERATOR TEST");
 
     // Iterate over test data grouped by message event types
@@ -749,7 +748,7 @@ static void test6_comparisonOperatorTest()
     //   - operator==
     //   - operator!=
     //   ----------------------------------------------------------------------
-    mwctst::TestHelper::printTestName("COMPARISON OPERATORS");
+    bmqtst::TestHelper::printTestName("COMPARISON OPERATORS");
 
     bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
     bmqimp::Event                  obj1(&bufferFactory, s_allocator_p);
@@ -839,12 +838,12 @@ static void test7_printing()
 //                      const bmqp::Event& rhs)
 // --------------------------------------------------------------------
 {
-    // mwcu::PrintUtil::prettyTimeInterval uses default allocator
+    // bmqu::PrintUtil::prettyTimeInterval uses default allocator
     s_ignoreCheckDefAlloc = true;
 
-    mwctst::TestHelper::printTestName("PRINT");
-    mwcu::MemOutStream             out(s_allocator_p);
-    mwcu::MemOutStream             expected(s_allocator_p);
+    bmqtst::TestHelper::printTestName("PRINT");
+    bmqu::MemOutStream             out(s_allocator_p);
+    bmqu::MemOutStream             expected(s_allocator_p);
     bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
     bdlbb::Blob                    eventBlob(&bufferFactory, s_allocator_p);
     bmqp::EventHeader              eventHeader;
@@ -1071,25 +1070,25 @@ static void test8_putEventBuilder()
     // 'putIter.loadMessageProperties' allocates into a temporary blob
     // using the default allocator
 
-    mwctst::TestHelper::printTestName("PUT EVENT BUILDER TEST");
+    bmqtst::TestHelper::printTestName("PUT EVENT BUILDER TEST");
 
     // Initialize Crc32c
     bmqp::Crc32c::initialize();
 
-    bdlbb::PooledBlobBufferFactory   bufferFactory(1024, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
 #ifdef BMQ_ENABLE_MSG_GROUPID
     const bmqp::Protocol::MsgGroupId k_MSG_GROUP_ID("gid:0", s_allocator_p);
 #endif
-    const int                        k_PROPERTY_VAL_ENCODING = 3;
-    const bsl::string                k_PROPERTY_VAL_ID       = "myCoolId";
-    const unsigned int               k_CRC32                 = 123;
-    const bsls::Types::Int64         k_TIME_STAMP            = 1234567890LL;
-    const int                        k_NUM_PROPERTIES        = 3;
-    const char*                      k_PAYLOAD = "abcdefghijklmnopqrstuvwxyz";
-    const int                        k_PAYLOAD_LEN = bsl::strlen(k_PAYLOAD);
-    const char* k_HEX_GUID1 = "40000000000000000000000000000001";
-    const char* k_HEX_GUID2 = "40000000000000000000000000000002";
-    const char* k_HEX_GUID3 = "40000000000000000000000000000003";
+    const int                k_PROPERTY_VAL_ENCODING = 3;
+    const bsl::string        k_PROPERTY_VAL_ID       = "myCoolId";
+    const unsigned int       k_CRC32                 = 123;
+    const bsls::Types::Int64 k_TIME_STAMP            = 1234567890LL;
+    const int                k_NUM_PROPERTIES        = 3;
+    const char*              k_PAYLOAD     = "abcdefghijklmnopqrstuvwxyz";
+    const int                k_PAYLOAD_LEN = bsl::strlen(k_PAYLOAD);
+    const char*              k_HEX_GUID1 = "40000000000000000000000000000001";
+    const char*              k_HEX_GUID2 = "40000000000000000000000000000002";
+    const char*              k_HEX_GUID3 = "40000000000000000000000000000003";
 
     bmqp::MessageProperties msgProps(s_allocator_p);
 
@@ -1203,9 +1202,9 @@ static void test8_putEventBuilder()
         ASSERT(putIter.messagePayloadSize() == k_PAYLOAD_LEN);
 
         int res, compareResult;
-        res = mwcu::BlobUtil::compareSection(&compareResult,
+        res = bmqu::BlobUtil::compareSection(&compareResult,
                                              payloadBlob,
-                                             mwcu::BlobPosition(),
+                                             bmqu::BlobPosition(),
                                              k_PAYLOAD,
                                              k_PAYLOAD_LEN);
 
@@ -1278,7 +1277,7 @@ static void test9_copyTest()
     // Testing:
     //   - Event::Event(const Event& other, bslma::Allocator *allocator)
     // ------------------------------------------------------------------------
-    mwctst::TestHelper::printTestName("COPY CONSTRUCTOR TEST");
+    bmqtst::TestHelper::printTestName("COPY CONSTRUCTOR TEST");
 
     PV("Configure as MesageEvent");
     bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
@@ -1365,7 +1364,7 @@ static void test10_assignmentTest()
     // Testing:
     //   - Event& Event::operator=(const Event& rhs)
     // ------------------------------------------------------------------------
-    mwctst::TestHelper::printTestName("ASSIGNMENT OPERATOR TEST");
+    bmqtst::TestHelper::printTestName("ASSIGNMENT OPERATOR TEST");
 
     PV("ASSIGNMENT OPERATOR - Configure as MesageEvent");
     bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
@@ -1458,7 +1457,7 @@ static void test11_doneCallbackTest()
     //   - setDoneCallback
     //   - clear
     //   ----------------------------------------------------------------------
-    mwctst::TestHelper::printTestName("DONE CALLBACK TEST");
+    bmqtst::TestHelper::printTestName("DONE CALLBACK TEST");
 
     bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
     bmqimp::Event                  obj(&bufferFactory, s_allocator_p);
@@ -1510,7 +1509,7 @@ static void test12_upgradeDowngradeMessageEvent()
     //   - downgradeMessageEventModeToRead
     //   - upgradeMessageEventModeToWrite
     //   ----------------------------------------------------------------------
-    mwctst::TestHelper::printTestName("UPGRADE DOWNGRADE MESSAGE EVENT TEST");
+    bmqtst::TestHelper::printTestName("UPGRADE DOWNGRADE MESSAGE EVENT TEST");
 
     bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
 
@@ -1557,7 +1556,7 @@ static void test12_upgradeDowngradeMessageEvent()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
     bmqp::ProtocolUtil::initialize(s_allocator_p);
     bmqt::UriParser::initialize(s_allocator_p);
 
@@ -1584,5 +1583,5 @@ int main(int argc, char* argv[])
     bmqt::UriParser::shutdown();
     bmqp::ProtocolUtil::shutdown();
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }

@@ -27,8 +27,8 @@
 #include <mqbsl_ledger.h>
 #include <mqbsl_memorymappedondisklog.h>
 
-// MWC
-#include <mwcu_memoutstream.h>
+// BMQ
+#include <bmqu_memoutstream.h>
 
 // BDE
 #include <bdlb_chartype.h>
@@ -96,7 +96,7 @@ CommandLineArguments::CommandLineArguments(bslma::Allocator* allocator)
 
 bool CommandLineArguments::validate(bsl::string* error)
 {
-    mwcu::MemOutStream ss;
+    bmqu::MemOutStream ss;
 
     if (d_journalPath.empty() && d_journalFile.empty()) {
         ss << "Neither journal path nor journal file are specified\n";
@@ -247,7 +247,7 @@ Parameters::Parameters(const CommandLineArguments& arguments,
 void Parameters::validateQueueNames(bslma::Allocator* allocator) const
 {
     // Validate given queue names agains existing in csl file
-    mwcu::MemOutStream                       ss(allocator);
+    bmqu::MemOutStream                       ss(allocator);
     mqbu::StorageKey                         key;
     bsl::vector<bsl::string>::const_iterator it = d_queueName.cbegin();
     for (; it != d_queueName.cend(); ++it) {

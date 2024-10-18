@@ -17,10 +17,9 @@
 #include <bmqt_propertytype.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
-// MWC
-#include <mwcu_memoutstream.h>
+#include <bmqu_memoutstream.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -32,7 +31,7 @@ using namespace bsl;
 
 static void test1_breathingTest()
 {
-    mwctst::TestHelper::printTestName("BREATHING TEST");
+    bmqtst::TestHelper::printTestName("BREATHING TEST");
 
     PV("Testing PropertyType");
     bmqt::PropertyType::Enum obj;
@@ -70,9 +69,9 @@ static void test1_breathingTest()
 
 static void test2_printTest()
 {
-    mwctst::TestHelper::printTestName("PRINT");
+    bmqtst::TestHelper::printTestName("PRINT");
     PV("Testing print");
-    mwcu::MemOutStream stream(s_allocator_p);
+    bmqu::MemOutStream stream(s_allocator_p);
     stream << bmqt::PropertyType::e_INT64;
     ASSERT_EQ(stream.str(), "INT64");
     stream.reset();
@@ -86,7 +85,7 @@ static void test2_printTest()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     switch (_testCase) {
     case 0:
@@ -98,5 +97,5 @@ int main(int argc, char* argv[])
     } break;
     }
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }

@@ -20,8 +20,7 @@
 // BMQ
 #include <bmqp_protocolutil.h>
 
-// MWC
-#include <mwcu_blobobjectproxy.h>
+#include <bmqu_blobobjectproxy.h>
 
 // BDE
 #include <bdlbb_blobutil.h>
@@ -68,10 +67,10 @@ bmqt::EventBuilderResult::Enum StorageEventBuilder::packMessageImp(
     }
 
     // Add the StorageHeader
-    mwcu::BlobPosition offset;
-    mwcu::BlobUtil::reserve(&offset, &d_blob, sizeof(StorageHeader));
+    bmqu::BlobPosition offset;
+    bmqu::BlobUtil::reserve(&offset, &d_blob, sizeof(StorageHeader));
 
-    mwcu::BlobObjectProxy<StorageHeader> storageHeader(&d_blob,
+    bmqu::BlobObjectProxy<StorageHeader> storageHeader(&d_blob,
                                                        offset,
                                                        false,  // no read
                                                        true);  // write mode
@@ -141,7 +140,7 @@ void StorageEventBuilder::reset()
 
 bmqt::EventBuilderResult::Enum
 StorageEventBuilder::packMessageRaw(const bdlbb::Blob&        blob,
-                                    const mwcu::BlobPosition& startPos,
+                                    const bmqu::BlobPosition& startPos,
                                     int                       length)
 {
     // PRECONDITIONS
@@ -152,7 +151,7 @@ StorageEventBuilder::packMessageRaw(const bdlbb::Blob&        blob,
     }
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
-            !mwcu::BlobUtil::isValidPos(blob, startPos))) {
+            !bmqu::BlobUtil::isValidPos(blob, startPos))) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
         return bmqt::EventBuilderResult::e_UNKNOWN;  // RETURN
     }
@@ -170,7 +169,7 @@ StorageEventBuilder::packMessageRaw(const bdlbb::Blob&        blob,
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
             0 !=
-            mwcu::BlobUtil::appendToBlob(&d_blob, blob, startPos, length))) {
+            bmqu::BlobUtil::appendToBlob(&d_blob, blob, startPos, length))) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
         return bmqt::EventBuilderResult::e_UNKNOWN;  // RETURN
     }

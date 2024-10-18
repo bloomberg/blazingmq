@@ -22,10 +22,9 @@
 #include <mqbi_queueengine.h>
 #include <mqbstat_queuestats.h>
 
-// MWC
-#include <mwcma_countingallocatorstore.h>
-#include <mwcsys_time.h>
-#include <mwcu_printutil.h>
+#include <bmqma_countingallocatorstore.h>
+#include <bmqsys_time.h>
+#include <bmqu_printutil.h>
 
 // BDE
 #include <bsl_algorithm.h>
@@ -55,7 +54,7 @@ InMemoryStorage::InMemoryStorage(const bmqt::Uri&        uri,
                                  const mqbconfm::Domain& config,
                                  mqbu::CapacityMeter*    parentCapacityMeter,
                                  bslma::Allocator*       allocator,
-                                 mwcma::CountingAllocatorStore* allocatorStore)
+                                 bmqma::CountingAllocatorStore* allocatorStore)
 : d_allocator_p(allocator)
 , d_key(queueKey)
 , d_uri(uri, allocator)
@@ -123,9 +122,9 @@ void InMemoryStorage::setQueue(mqbi::Queue* queue)
         BALL_LOG_INFO << "Associated queue [" << queue->uri() << "] with key ["
                       << queueKey() << "] and Partition ["
                       << queue->partitionId() << "] with its storage having ["
-                      << mwcu::PrintUtil::prettyNumber(numMessage)
+                      << bmqu::PrintUtil::prettyNumber(numMessage)
                       << " messages and "
-                      << mwcu::PrintUtil::prettyNumber(numByte)
+                      << bmqu::PrintUtil::prettyNumber(numByte)
                       << " bytes of outstanding.";
     }
 }
@@ -421,7 +420,7 @@ int InMemoryStorage::gcExpiredMessages(
     *configuredTtlValue = d_ttlSeconds;
 
     int                      numMsgsDeleted = 0;
-    const bsls::Types::Int64 now   = mwcsys::Time::highResolutionTimer();
+    const bsls::Types::Int64 now   = bmqsys::Time::highResolutionTimer();
     int                      limit = k_GC_MESSAGES_BATCH_SIZE;
 
     for (ItemsMapIter next = d_items.begin(), cit;
@@ -471,7 +470,7 @@ int InMemoryStorage::gcExpiredMessages(
 
 bool InMemoryStorage::gcHistory()
 {
-    bool hasMoreToGc = d_items.gc(mwcsys::Time::highResolutionTimer(),
+    bool hasMoreToGc = d_items.gc(bmqsys::Time::highResolutionTimer(),
                                   k_GC_MESSAGES_BATCH_SIZE);
 
     if (queue()) {

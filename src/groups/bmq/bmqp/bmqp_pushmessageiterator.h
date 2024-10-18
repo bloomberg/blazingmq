@@ -59,9 +59,8 @@
 #include <bmqp_protocol.h>
 #include <bmqp_queueid.h>
 
-// MWC
-#include <mwcu_blob.h>
-#include <mwcu_blobiterator.h>
+#include <bmqu_blob.h>
+#include <bmqu_blobiterator.h>
 
 // BDE
 #include <bdlb_nullablevalue.h>
@@ -90,7 +89,7 @@ class PushMessageIterator {
 
   private:
     // DATA
-    mwcu::BlobIterator d_blobIter;
+    bmqu::BlobIterator d_blobIter;
     // Blob iterator pointing to the
     // current message in the blob.
 
@@ -110,7 +109,7 @@ class PushMessageIterator {
     // (without padding).  -1 if not
     // initialized.
 
-    mutable mwcu::BlobPosition d_lazyMessagePayloadPosition;
+    mutable bmqu::BlobPosition d_lazyMessagePayloadPosition;
     // Lazily computed payload position.
     // Unset if not initialized.
 
@@ -120,14 +119,14 @@ class PushMessageIterator {
     // includes padding and message
     // properties header.
 
-    mwcu::BlobPosition d_applicationDataPosition;
+    bmqu::BlobPosition d_applicationDataPosition;
     // Application Data position. For each
     // blob, initialized in next().
 
     mutable int d_optionsSize;
     // Message options size.
 
-    mutable mwcu::BlobPosition d_optionsPosition;
+    mutable bmqu::BlobPosition d_optionsPosition;
     // Message options position.  Unset if
     // not initialized.
 
@@ -303,7 +302,7 @@ class PushMessageIterator {
     /// data is implicit.  Behavior is undefined unless latest call to
     /// `next()` returned 1.  Note that application data includes message
     /// properties and message payload, but excludes the options.
-    int loadApplicationDataPosition(mwcu::BlobPosition* position) const;
+    int loadApplicationDataPosition(bmqu::BlobPosition* position) const;
 
     /// Load into the specified `blob` the application data for the message
     /// currently pointed to by this iterator.  Return zero on success, and
@@ -397,7 +396,7 @@ class PushMessageIterator {
 inline PushMessageIterator::PushMessageIterator(
     bdlbb::BlobBufferFactory* bufferFactory,
     bslma::Allocator*         allocator)
-: d_blobIter(0, mwcu::BlobPosition(), 0, true)
+: d_blobIter(0, bmqu::BlobPosition(), 0, true)
 , d_applicationDataSize(-1)
 , d_lazyMessagePayloadSize(-1)
 , d_lazyMessagePayloadPosition()
@@ -421,7 +420,7 @@ inline PushMessageIterator::PushMessageIterator(
     bool                      decompressFlag,
     bdlbb::BlobBufferFactory* bufferFactory,
     bslma::Allocator*         allocator)
-: d_blobIter(0, mwcu::BlobPosition(), 0, true)  // no def ctor - set in reset
+: d_blobIter(0, bmqu::BlobPosition(), 0, true)  // no def ctor - set in reset
 , d_optionsView(allocator)
 , d_decompressFlag(decompressFlag)
 , d_applicationData(bufferFactory, allocator)
@@ -434,7 +433,7 @@ inline PushMessageIterator::PushMessageIterator(
 inline PushMessageIterator::PushMessageIterator(const PushMessageIterator& src,
                                                 bslma::Allocator* allocator)
 : d_blobIter(0,
-             mwcu::BlobPosition(),
+             bmqu::BlobPosition(),
              0,
              true)  // no def ctor - set in copyFrom
 , d_applicationData(src.d_bufferFactory_p, allocator)
@@ -457,15 +456,15 @@ PushMessageIterator::operator=(const PushMessageIterator& rhs)
 
 inline void PushMessageIterator::clear()
 {
-    d_blobIter.reset(0, mwcu::BlobPosition(), 0, true);
+    d_blobIter.reset(0, bmqu::BlobPosition(), 0, true);
     d_header                     = PushHeader();
     d_applicationDataSize        = -1;
     d_lazyMessagePayloadSize     = -1;
-    d_lazyMessagePayloadPosition = mwcu::BlobPosition();
+    d_lazyMessagePayloadPosition = bmqu::BlobPosition();
     d_messagePropertiesSize      = 0;
-    d_applicationDataPosition    = mwcu::BlobPosition();
+    d_applicationDataPosition    = bmqu::BlobPosition();
     d_optionsSize                = 0;
-    d_optionsPosition            = mwcu::BlobPosition();
+    d_optionsPosition            = bmqu::BlobPosition();
     d_advanceLength              = -1;
     d_applicationData.removeAll();
     d_optionsView.reset();
@@ -527,8 +526,8 @@ inline bool PushMessageIterator::hasOptions() const
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(isValid());
     BSLS_ASSERT_SAFE(
-        (d_optionsSize == 0 && d_optionsPosition == mwcu::BlobPosition()) ||
-        (d_optionsSize != 0 && d_optionsPosition != mwcu::BlobPosition()));
+        (d_optionsSize == 0 && d_optionsPosition == bmqu::BlobPosition()) ||
+        (d_optionsSize != 0 && d_optionsPosition != bmqu::BlobPosition()));
 
     return d_optionsSize > 0;
 }

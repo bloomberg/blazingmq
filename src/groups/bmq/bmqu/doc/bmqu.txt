@@ -1,0 +1,94 @@
+    bmqu.txt
+
+@PURPOSE: Provide utility components and mechanisms.
+
+@MNEMONIC: BlazingMQ Utility (bmqu)
+
+@DESCRIPTION: This package provides miscellaneous utility components to be
+reused through various applications.
+
+/Hierarchical Synopsis
+/---------------------
+The 'bmqu' package currently has 19 components having 2 level of physical
+dependency.  The list below shows the hierarchal ordering of the components.
+..
+  2. bmqu_blobiterator
+     bmqu_blobojectproxy
+     bmqu_operationchain
+     bmqu_printutil
+     bmqu_tempdirectory
+
+  1. bmqu_atomicstate
+     bmqu_atomicvalidator
+     bmqu_blob
+     bmqu_memoutstream
+     bmqu_objectplaceholder
+     bmqu_outstreamformatsaver
+     bmqu_sharedresource
+     bmqu_samethreadchecker
+     bmqu_stringutil
+     bmqu_tempfile
+     bmqu_temputil
+     bmqu_throttledaction
+     bmqu_tlsbool
+     bmqu_weakmemfn
+..
+
+/Component Synopsis
+/------------------
+: 'bmqu_atomicstate':
+:      Provide a mechanism to change a state atomically.
+:
+: 'bmqu_atomicvalidator':
+:      Provide a mechanism to acquire/release and invalidate a resource.
+:
+: 'bmqu_blob':
+:      Provide blob utilities.
+:
+: 'bmqu_blobiterator':
+:      Provide an iterator over a section of a blob
+:
+: 'bmqu_blobobjectproxy':
+:      Provide a utility for reading/writing structures in 'bdlbb::Blob's
+:
+: 'bmqu_memoutstream':
+:      Provide an 'ostringstream' exposing a StringRef to its internal buffer.
+:
+: 'bmqu_objectplaceholder':
+:      Provide a placeholder for any object.
+:
+: 'bmqu_operationchain':
+:      Provide a mechanism to serialize execution of async operations.
+:
+: 'bmqu_outstreamformatsaver':
+:      Provide a scoped guard for an ostream's format state.
+:
+: 'bmqu_printutil':
+:      Provide utilities for printing things.
+:
+: 'bmqu_samethreadchecker':
+:      Provide a mechanism to check if a call is performed in same thread.
+:
+: 'bmqu_sharedresource':
+:      Provide a mechanism to manage the lifetime of a shared resource.
+:
+: 'bmqu_stringutil':
+:      Provide utility functions for string manipulation.
+:
+: 'bmqu_tempdirectory':
+:      Provide a guard for creating a temporary directory.
+:
+: 'bmqu_tempfile':
+:      Provide a guard for creating a temporary file.
+:
+: 'bmqu_temputil':
+:      Provide an utility for resolving the effective temporary directory.
+:
+: 'bmqu_throttledaction':
+:      Provide macros and utilities to throttle an action.
+:
+: 'bmqu_tlsbool':
+:      Provide a VST of bool in 'ThreadLocalStorage'.
+:
+: 'bmqu_weakmemfn':
+:      Provide a wrapper type for invoking member functions on a weak_ptr.

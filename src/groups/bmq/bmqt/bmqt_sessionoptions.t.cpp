@@ -16,14 +16,13 @@
 // bmqt_sessionoptions.t.cpp                                          -*-C++-*-
 #include <bmqt_sessionoptions.h>
 
-// MWC
-#include <mwcu_memoutstream.h>
+#include <bmqu_memoutstream.h>
 
 // BDE
 #include <bsl_ios.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -35,7 +34,7 @@ using namespace bsl;
 
 static void test1_breathingTest()
 {
-    mwctst::TestHelper::printTestName("BREATHING TEST");
+    bmqtst::TestHelper::printTestName("BREATHING TEST");
 
     // Create default sessionOptions
     bmqt::SessionOptions sessionOptions(s_allocator_p);
@@ -43,7 +42,7 @@ static void test1_breathingTest()
     // Make sure 'k_BROKER_DEFAULT_PORT' and the default brokerUri are in sync
     {
         PV("CHECKING k_BROKER_DEFAULT_PORT and brokerUri()");
-        mwcu::MemOutStream ss(s_allocator_p);
+        bmqu::MemOutStream ss(s_allocator_p);
         ss << "tcp://localhost:"
            << bmqt::SessionOptions::k_BROKER_DEFAULT_PORT;
         bsl::string str(ss.str().data(), ss.str().length(), s_allocator_p);
@@ -62,9 +61,9 @@ static void test2_printTest()
         "closeQueueTimeout = 300 eventQueueLowWatermark = 50 "
         "eventQueueHighWatermark = 2000 hasHostHealthMonitor = false "
         "hasDistributedTracing = false ]";
-    mwctst::TestHelper::printTestName("PRINT");
+    bmqtst::TestHelper::printTestName("PRINT");
     PV("Testing print");
-    mwcu::MemOutStream stream(s_allocator_p);
+    bmqu::MemOutStream stream(s_allocator_p);
     // Create default sessionOptions
     bmqt::SessionOptions sessionOptions(s_allocator_p);
     stream << sessionOptions;
@@ -79,7 +78,7 @@ static void test2_printTest()
 
 static void test3_setterGetterAndCopyTest()
 {
-    mwctst::TestHelper::printTestName("SETTER GETTER");
+    bmqtst::TestHelper::printTestName("SETTER GETTER");
     PVV("Setter getter test");
     // Create default sessionOptions
     bmqt::SessionOptions obj(s_allocator_p);
@@ -170,7 +169,7 @@ static void test3_setterGetterAndCopyTest()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     switch (_testCase) {
     case 0:
@@ -183,5 +182,5 @@ int main(int argc, char* argv[])
     } break;
     }
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }

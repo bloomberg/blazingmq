@@ -69,11 +69,11 @@
 /// integral constant.  Also note that the patch version number is
 /// intentionally not included.  The behavior is undefined unless 'major'
 /// and 'minor' are integral values in the range '[ 0 .. 99 ]'.
-#define PROMETHEUS_MAKE_VERSION(major, minor) ((major)*10000 + (minor)*100)
+#define PROMETHEUS_MAKE_VERSION(major, minor) ((major) * 10000 + (minor) * 100)
 
 /// Similar to PROMETHEUS_MAKE_VERSION(), but include patch number as well.
 #define PROMETHEUS_MAKE_EXT_VERSION(major, minor, patch)                      \
-    ((major)*10000 + (minor)*100 + (patch))
+    ((major) * 10000 + (minor) * 100 + (patch))
 
 /// Construct a composite version number in the range [ 0 .. 999900 ] from
 /// the specified 'PROMETHEUS_VERSION_MAJOR' and 'PROMETHEUS_VERSION_MINOR'

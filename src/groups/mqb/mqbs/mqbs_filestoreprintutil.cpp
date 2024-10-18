@@ -20,10 +20,9 @@
 #include <mqbcmd_messages.h>
 #include <mqbs_fileset.h>
 
-// MWC
-#include <mwcu_memoutstream.h>
-#include <mwcu_outstreamformatsaver.h>
-#include <mwcu_printutil.h>
+#include <bmqu_memoutstream.h>
+#include <bmqu_outstreamformatsaver.h>
+#include <bmqu_printutil.h>
 
 // BDE
 #include <bdlb_print.h>
@@ -122,9 +121,9 @@ void FileStorePrintUtil::loadQueueStatus(mqbcmd::StorageQueueInfo* queueInfo,
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(storage);
 
-    using namespace mwcu::PrintUtil;
+    using namespace bmqu::PrintUtil;
 
-    mwcu::MemOutStream field;
+    bmqu::MemOutStream field;
     field << storage->queueKey();
     queueInfo->queueKey()    = field.str();
     queueInfo->partitionId() = storage->partitionId();
