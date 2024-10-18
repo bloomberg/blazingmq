@@ -60,7 +60,7 @@ void StorageManager::registerQueue(
     BSLS_ANNOTATION_UNUSED const bmqt::Uri& uri,
     BSLS_ANNOTATION_UNUSED const mqbu::StorageKey& queueKey,
     BSLS_ANNOTATION_UNUSED int                     partitionId,
-    BSLS_ANNOTATION_UNUSED const AppIdKeyPairs&    appIdKeyPairs,
+    BSLS_ANNOTATION_UNUSED const AppInfos&         appIdKeyPairs,
     BSLS_ANNOTATION_UNUSED mqbi::Domain* domain)
 {
     // NOTHING
@@ -77,8 +77,8 @@ int StorageManager::updateQueuePrimary(
     BSLS_ANNOTATION_UNUSED const bmqt::Uri& uri,
     BSLS_ANNOTATION_UNUSED const mqbu::StorageKey& queueKey,
     BSLS_ANNOTATION_UNUSED int                     partitionId,
-    BSLS_ANNOTATION_UNUSED const AppIdKeyPairs&    addedIdKeyPairs,
-    BSLS_ANNOTATION_UNUSED const AppIdKeyPairs&    removedIdKeyPairs)
+    BSLS_ANNOTATION_UNUSED const AppInfos&         addedIdKeyPairs,
+    BSLS_ANNOTATION_UNUSED const AppInfos&         removedIdKeyPairs)
 {
     return 0;
 }
@@ -106,7 +106,7 @@ void StorageManager::updateQueueReplica(
     BSLS_ANNOTATION_UNUSED int   partitionId,
     BSLS_ANNOTATION_UNUSED const bmqt::Uri& uri,
     BSLS_ANNOTATION_UNUSED const mqbu::StorageKey& queueKey,
-    BSLS_ANNOTATION_UNUSED const AppIdKeyPairs&    appIdKeyPairs,
+    BSLS_ANNOTATION_UNUSED const AppInfos&         appIdKeyPairs,
     BSLS_ANNOTATION_UNUSED mqbi::Domain* domain,
     BSLS_ANNOTATION_UNUSED bool          allowDuplicate)
 {

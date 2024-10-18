@@ -2020,13 +2020,15 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                             FileStoreProtocol::k_HASH_LENGTH,
                         appIdsAreaLen);
 
-                    AppIdKeyPairs appIdKeyPairs;
-                    FileStoreProtocolUtil::loadAppIdKeyPairs(&appIdKeyPairs,
-                                                             appIdsBlock,
-                                                             numAppIds);
+                    AppInfos appIdKeyPairs;
+                    FileStoreProtocolUtil::loadAppInfos(&appIdKeyPairs,
+                                                        appIdsBlock,
+                                                        numAppIds);
 
-                    for (size_t n = 0; n < appIdKeyPairs.size(); ++n) {
-                        const AppIdKeyPair& p = appIdKeyPairs[n];
+                    for (AppInfos::const_iterator cit = appIdKeyPairs.cbegin();
+                         cit != appIdKeyPairs.cend();
+                         ++cit) {
+                        const AppInfo& p = *cit;
                         if (0 == deletedAppKeysOffsets.count(p.second)) {
                             // This appKey is not deleted.  Add it to the list
                             // of 'alive' appId/appKey pairs for this queue.
@@ -2035,7 +2037,7 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                             // StorageMgr because we have recovered all
                             // appId/appKey pairs by that time.
 
-                            qinfo.addAppIdKeyPair(p);
+                            qinfo.addAppInfo(p);
 
                             BALL_LOG_INFO
                                 << partitionDesc()
@@ -4269,7 +4271,7 @@ int FileStore::writeQueueCreationRecord(
     }
 
     bmqt::Uri     quri;
-    AppIdKeyPairs appIdKeyPairs;
+    AppInfos      appIdKeyPairs;
     if (!d_isFSMWorkflow) {
         // Check qlist offset in the replicated journal record sent by the
         // primary vs qlist offset maintained by self.  A mismatch means that
@@ -4303,9 +4305,9 @@ int FileStore::writeQueueCreationRecord(
                                     queueRecHeaderLen + paddedUriLen +
                                     FileStoreProtocol::k_HASH_LENGTH,
                                 appIdsAreaSize);
-        FileStoreProtocolUtil::loadAppIdKeyPairs(&appIdKeyPairs,
-                                                 appIdsBlock,
-                                                 queueRecHeader->numAppIds());
+        FileStoreProtocolUtil::loadAppInfos(&appIdKeyPairs,
+                                            appIdsBlock,
+                                            queueRecHeader->numAppIds());
     }
 
     BALL_LOG_INFO_BLOCK
@@ -4318,10 +4320,11 @@ int FileStore::writeQueueCreationRecord(
             BALL_LOG_OUTPUT_STREAM << ", queue [" << quri << "]"
                                    << ", with [" << appIdKeyPairs.size()
                                    << "] appId/appKey pairs ";
-            for (size_t n = 0; n < appIdKeyPairs.size(); ++n) {
-                BALL_LOG_OUTPUT_STREAM << " [" << appIdKeyPairs[n].first
-                                       << ", " << appIdKeyPairs[n].second
-                                       << "]";
+            for (AppInfos::const_iterator cit = appIdKeyPairs.cbegin();
+                 cit != appIdKeyPairs.cend();
+                 ++cit) {
+                BALL_LOG_OUTPUT_STREAM << " [" << cit->first << ", "
+                                       << cit->second << "]";
             }
         }
     }
@@ -5595,7 +5598,7 @@ int FileStore::writeMessageRecord(mqbi::StorageMessageAttributes* attributes,
 int FileStore::writeQueueCreationRecord(DataStoreRecordHandle*  handle,
                                         const bmqt::Uri&        queueUri,
                                         const mqbu::StorageKey& queueKey,
-                                        const AppIdKeyPairs&    appIdKeyPairs,
+                                        const AppInfos&         appIdKeyPairs,
                                         bsls::Types::Uint64     timestamp,
                                         bool                    isNewQueue)
 {
@@ -5656,9 +5659,11 @@ int FileStore::writeQueueCreationRecord(DataStoreRecordHandle*  handle,
         totalLength = sizeof(QueueRecordHeader) +
                       queueUri.asString().length() + queueUriPadding +
                       FileStoreProtocol::k_HASH_LENGTH;
-
-        for (size_t i = 0; i < appIdKeyPairs.size(); ++i) {
-            const AppIdKeyPair& appIdKeyPair = appIdKeyPairs[i];
+        size_t i = 0;
+        for (AppInfos::const_iterator cit = appIdKeyPairs.cbegin();
+             cit != appIdKeyPairs.cend();
+             ++cit, ++i) {
+            const AppInfo& appIdKeyPair = *cit;
             BSLS_ASSERT_SAFE(!appIdKeyPair.first.empty());
             BSLS_ASSERT_SAFE(!appIdKeyPair.second.isNull());
             appIdWords[i] = bmqp::ProtocolUtil::calcNumWordsAndPadding(
@@ -5763,7 +5768,10 @@ int FileStore::writeQueueCreationRecord(DataStoreRecordHandle*  handle,
         qlistFilePos += FileStoreProtocol::k_HASH_LENGTH;
 
         // 3) Append AppIds and AppKeys
-        for (size_t i = 0; i < appIdKeyPairs.size(); ++i) {
+        size_t i = 0;
+        for (AppInfos::const_iterator cit = appIdKeyPairs.cbegin();
+             cit != appIdKeyPairs.cend();
+             ++cit, ++i) {
             // Append AppIdHeader.
 
             OffsetPtr<AppIdHeader> appIdHeader(qlistFile.block(),
@@ -5775,10 +5783,8 @@ int FileStore::writeQueueCreationRecord(DataStoreRecordHandle*  handle,
             // Append AppId.
 
             OffsetPtr<char> appId(qlistFile.block(), qlistFilePos);
-            bsl::memcpy(appId.get(),
-                        appIdKeyPairs[i].first.c_str(),
-                        appIdKeyPairs[i].first.length());
-            qlistFilePos += appIdKeyPairs[i].first.length();
+            bsl::memcpy(appId.get(), cit->first.c_str(), cit->first.length());
+            qlistFilePos += cit->first.length();
 
             // Append padding after AppId.
 
@@ -5791,7 +5797,7 @@ int FileStore::writeQueueCreationRecord(DataStoreRecordHandle*  handle,
             // above for explanation).
 
             char appIdHash[mqbs::FileStoreProtocol::k_HASH_LENGTH] = {0};
-            bsl::memcpy(appIdHash, appIdKeyPairs[i].second.data(), k_KEY_LEN);
+            bsl::memcpy(appIdHash, cit->second.data(), k_KEY_LEN);
             OffsetPtr<char> appHash(qlistFile.block(), qlistFilePos);
             bsl::memcpy(appHash.get(),
                         appIdHash,

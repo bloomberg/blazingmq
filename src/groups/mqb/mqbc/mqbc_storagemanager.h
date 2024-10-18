@@ -155,7 +155,7 @@ class StorageManager
     typedef ClusterState::DomainStatesCIter      DomainStatesCIter;
     typedef ClusterState::UriToQueueInfoMapCIter UriToQueueInfoMapCIter;
 
-    typedef ClusterStateQueueInfo::AppIdInfosCIter AppIdInfosCIter;
+    typedef ClusterStateQueueInfo::AppInfosCIter AppInfosCIter;
 
     /// Vector of pairs of buffered primary status advisories and their source
     typedef bsl::vector<
@@ -853,11 +853,12 @@ class StorageManager
     /// associated queue storage created.
     ///
     /// THREAD: Executed by the Client's dispatcher thread.
-    virtual void registerQueue(const bmqt::Uri&        uri,
-                               const mqbu::StorageKey& queueKey,
-                               int                     partitionId,
-                               const AppIdKeyPairs&    appIdKeyPairs,
-                               mqbi::Domain* domain) BSLS_KEYWORD_OVERRIDE;
+    virtual void
+    registerQueue(const bmqt::Uri&                   uri,
+                  const mqbu::StorageKey&            queueKey,
+                  int                                partitionId,
+                  const bsl::unordered_set<AppInfo>& appIdKeyPairs,
+                  mqbi::Domain* domain) BSLS_KEYWORD_OVERRIDE;
 
     /// Synchronously unregister the queue with the specified `uri` from the
     /// specified `partitionId`.
@@ -878,8 +879,8 @@ class StorageManager
     virtual int updateQueuePrimary(const bmqt::Uri&        uri,
                                    const mqbu::StorageKey& queueKey,
                                    int                     partitionId,
-                                   const AppIdKeyPairs&    addedIdKeyPairs,
-                                   const AppIdKeyPairs&    removedIdKeyPairs)
+                                   const AppInfos&         addedIdKeyPairs,
+                                   const AppInfos&         removedIdKeyPairs)
         BSLS_KEYWORD_OVERRIDE;
 
     virtual void
@@ -899,7 +900,7 @@ class StorageManager
     updateQueueReplica(int                     partitionId,
                        const bmqt::Uri&        uri,
                        const mqbu::StorageKey& queueKey,
-                       const AppIdKeyPairs&    appIdKeyPairs,
+                       const AppInfos&         appIdKeyPairs,
                        mqbi::Domain*           domain = 0,
                        bool allowDuplicate = false) BSLS_KEYWORD_OVERRIDE;
 
