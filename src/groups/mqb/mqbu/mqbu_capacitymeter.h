@@ -151,6 +151,7 @@
 
 #include <mqbcmd_messages.h>
 #include <mqbu_resourceusagemonitor.h>
+#include <mqbu_storagekey.h>
 
 // BDE
 #include <ball_log.h>
@@ -189,6 +190,11 @@ class CapacityMeter {
         e_LIMIT_BYTES = 2  // bytes limit was hit
     };
 
+    // Callback function to log appllications subscription info into the
+    // specified `stream`.
+    typedef bsl::function<bsl::ostream&(bsl::ostream& stream)>
+        LogAppsSubscriptionInfoCb;
+
   private:
     // DATA
     bsl::string d_name;
@@ -217,6 +223,10 @@ class CapacityMeter {
     mutable bsls::SpinLock d_lock;
     // SpinLock for synchronization of this
     // component
+
+    LogAppsSubscriptionInfoCb d_logAppsSubscriptionInfoCb;
+    // Callback function to log appllications subscription info into the
+    // specified `stream`.
 
     // FRIENDS
     friend struct CapacityMeterUtil;
@@ -253,6 +263,20 @@ class CapacityMeter {
     CapacityMeter(const bsl::string& name,
                   CapacityMeter*     parent,
                   bslma::Allocator*  allocator);
+
+    /// Create a new un-configured object having the specified `name`,
+    /// `logAppsSubscriptionInfoCb` and using the specified `allocator`.
+    CapacityMeter(const bsl::string&              name,
+                  const LogAppsSubscriptionInfoCb logAppsSubscriptionInfoCb,
+                  bslma::Allocator*               allocator);
+
+    /// Create a new un-configured object having the specified `name`,
+    /// `logAppsSubscriptionInfoCb`, being a child of the specified `parent`
+    /// meter and using the specified `allocator`.
+    CapacityMeter(const bsl::string&              name,
+                  const LogAppsSubscriptionInfoCb logAppsSubscriptionInfoCb,
+                  CapacityMeter*                  parent,
+                  bslma::Allocator*               allocator);
 
     // MANIPULATORS
 
